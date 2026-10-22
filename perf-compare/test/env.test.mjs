@@ -26,9 +26,22 @@ const meta = () =>
 test('every environment field is present and non-empty', () => {
   const m = meta();
   for (const key of [
-    'harnessCommit', 'arms', 'fixtures', 'browserVersion', 'playwrightVersion', 'nodeVersion', 'os',
-    'cpuModel', 'cpuCores', 'totalMemoryBytes', 'powerSource', 'viewport', 'deviceScaleFactor',
-    'profile', 'throttleRate', 'flows',
+    'harnessCommit',
+    'arms',
+    'fixtures',
+    'browserVersion',
+    'playwrightVersion',
+    'nodeVersion',
+    'os',
+    'cpuModel',
+    'cpuCores',
+    'totalMemoryBytes',
+    'powerSource',
+    'viewport',
+    'deviceScaleFactor',
+    'profile',
+    'throttleRate',
+    'flows',
   ]) {
     assert.ok(m[key] !== undefined && m[key] !== null && m[key] !== '', `${key} is empty`);
   }
@@ -46,4 +59,15 @@ test('compatible lists exactly the differing keys', () => {
   assert.deepEqual(compatible(a, meta()), []);
   const b = { ...meta(), profile: 'slow', flows: ['open'], nodeVersion: 'v0' };
   assert.deepEqual(compatible(a, b), ['profile', 'flows']);
+});
+
+test('runs with different probe code cannot be compared as the same measurement', () => {
+  const current = meta();
+  assert.match(current.probeSha256 ?? '', /^[a-f0-9]{64}$/);
+  const legacy = { ...current };
+  delete legacy.probeSha256;
+  assert.deepEqual(compatible(current, legacy), ['probeSha256']);
+  assert.deepEqual(compatible(current, { ...current, probeSha256: '0'.repeat(64) }), [
+    'probeSha256',
+  ]);
 });

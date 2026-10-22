@@ -210,6 +210,16 @@ bindings used the new text API, so the `pdfium` crate compiled against no fork c
 
 ## Caveats
 
+The probe now waits for each visible image's current-source decode promise and tracks clipped
+viewport membership, movement, and removal. Offscreen changes do not extend the quiet window.
+The returned settle timestamp is the latest observed visible change or decode completion,
+bounded below by the action's `doneAt`, before a 250 ms quiet window. This is a visual heuristic,
+not proof that no future render can run. Sampling visibility performs geometry and style reads;
+that instrumentation cost is included in the reported CPU and frame metrics.
+`meta.json` records `probeSha256`; `--against` rejects runs from different probe versions,
+including historical runs without that field. Published `RESULTS.md` predates this correction;
+its timing numbers have not been regenerated with the corrected probe.
+
 > Note: The `slow` profile throttles the main thread only. Chromium 140 answers
 > `Emulation.setCPUThrottlingRate` on a worker target with "Operation is only supported for pages,
 > not workers", and page throttling doesn't reach the worker: at 4x a busy loop took 4.4x longer on
@@ -245,6 +255,13 @@ The `slow` profile approximates a mid-range laptop by CPU throttling. It is not 
 
 ## Tests
 
-`pnpm test` runs the Node tests (config, statistics, server, environment). Two self-tests need
-Chromium: `node --test test/memory.selftest.mjs` and `node --test test/probe.selftest.mjs`, which
-also needs a built `main` arm.
+`pnpm test` runs the Node tests, including controlled-clock probe regressions. Browser checks:
+
+```sh
+node --test test/probe.selftest.mjs test/memory.selftest.mjs
+node --test test/flow-state.selftest.mjs
+```
+
+The synthetic probe and memory tests need Chromium. The flow-state test additionally needs a
+built `main` arm (`node scripts/build-entry.mjs main`). It checks each interaction flow's
+starting state after warm-up.

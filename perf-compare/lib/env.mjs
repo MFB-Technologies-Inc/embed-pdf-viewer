@@ -17,7 +17,10 @@ export const THROTTLE = { desktop: 1, slow: 4 };
 const sha256 = (file) => createHash('sha256').update(readFileSync(file)).digest('hex');
 const run = (cmd, args) => {
   try {
-    return execFileSync(cmd, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    return execFileSync(cmd, args, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
   } catch {
     return null;
   }
@@ -28,7 +31,8 @@ export function verifyFixtures() {
   const expected = JSON.parse(readFileSync(path.join(fixturesDir, 'fixtures.json'), 'utf8'));
   for (const [name, hash] of Object.entries(expected)) {
     const actual = sha256(path.join(fixturesDir, `${name}.pdf`));
-    if (actual !== hash) throw new Error(`fixture ${name}.pdf is ${actual}, fixtures.json says ${hash}`);
+    if (actual !== hash)
+      throw new Error(`fixture ${name}.pdf is ${actual}, fixtures.json says ${hash}`);
   }
   return expected;
 }
@@ -49,7 +53,16 @@ function powerSource() {
   return /'([^']+)'/.exec(batt)?.[1] ?? 'unknown';
 }
 
-export function collectEnv({ config, arms: armIds = config.armOrder, stamps, dists, fixtures, browserVersion, profile, flows }) {
+export function collectEnv({
+  config,
+  arms: armIds = config.armOrder,
+  stamps,
+  dists,
+  fixtures,
+  browserVersion,
+  profile,
+  flows,
+}) {
   const arms = {};
   for (const id of armIds) {
     const arm = config.arms[id];
@@ -75,6 +88,7 @@ export function collectEnv({ config, arms: armIds = config.armOrder, stamps, dis
       process.env.PERF_HARNESS_DIRTY !== undefined
         ? process.env.PERF_HARNESS_DIRTY === '1'
         : Boolean(run('git', ['-C', path.join(here, '..'), 'status', '--porcelain', '--', '.'])),
+    probeSha256: sha256(path.join(here, 'probe.js')),
     host: os.hostname().split('.')[0],
     arms,
     fixtures,
@@ -94,7 +108,16 @@ export function collectEnv({ config, arms: armIds = config.armOrder, stamps, dis
   };
 }
 
-const COMPARED = ['browserVersion', 'cpuModel', 'fixtures', 'profile', 'viewport', 'deviceScaleFactor', 'flows'];
+const COMPARED = [
+  'probeSha256',
+  'browserVersion',
+  'cpuModel',
+  'fixtures',
+  'profile',
+  'viewport',
+  'deviceScaleFactor',
+  'flows',
+];
 
 // The keys that make two runs incomparable. Empty when they compare.
 export function compatible(a, b) {
@@ -106,7 +129,8 @@ export function compatible(a, b) {
 export function distSizes(dist) {
   const { readdirSync, statSync } = require('node:fs');
   const { brotliCompressSync, constants } = require('node:zlib');
-  const brotli = (buf) => brotliCompressSync(buf, { params: { [constants.BROTLI_PARAM_QUALITY]: 11 } }).length;
+  const brotli = (buf) =>
+    brotliCompressSync(buf, { params: { [constants.BROTLI_PARAM_QUALITY]: 11 } }).length;
   const files = [];
   const walk = (dir) => {
     for (const name of readdirSync(dir)) {
@@ -128,7 +152,16 @@ export function distSizes(dist) {
   };
   const base = (f) => path.basename(f);
   const [engineWasmBytes, engineWasmBrotliBytes] = sum((f) => /^embedpdf-.*\.wasm$/.test(base(f)));
-  const [kernelWasmBytes, kernelWasmBrotliBytes] = sum((f) => /^epdf_web_bg.*\.wasm$/.test(base(f)));
+  const [kernelWasmBytes, kernelWasmBrotliBytes] = sum((f) =>
+    /^epdf_web_bg.*\.wasm$/.test(base(f)),
+  );
   const [jsBytes, jsBrotliBytes] = sum((f) => f.endsWith('.js'));
-  return { engineWasmBytes, engineWasmBrotliBytes, kernelWasmBytes, kernelWasmBrotliBytes, jsBytes, jsBrotliBytes };
+  return {
+    engineWasmBytes,
+    engineWasmBrotliBytes,
+    kernelWasmBytes,
+    kernelWasmBrotliBytes,
+    jsBytes,
+    jsBrotliBytes,
+  };
 }
