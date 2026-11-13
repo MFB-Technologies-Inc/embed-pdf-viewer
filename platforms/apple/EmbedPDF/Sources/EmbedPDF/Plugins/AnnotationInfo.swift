@@ -2,8 +2,8 @@ public import EmbedPDFBindings
 public import Foundation
 
 /// An annotation as the engine reads it, in Swift types: timestamps are
-/// `Date`, the subtype is an `AnnotationSubtype`, and ink, highlight and
-/// note annotations carry their own members typed in `details`.
+/// `Date`, the subtype is an `AnnotationSubtype`, and each subtype but popup
+/// and widget carries its own members typed in `details`.
 /// `AnnotationCapability.get(_:)`, `list(_:)`, `selected()` and
 /// `hitTest(at:on:)` return it.
 ///
@@ -38,11 +38,14 @@ public struct AnnotationInfo: Sendable, Hashable, Identifiable {
   public let inReplyTo: AnnotationRef?
   public let canUpdate: Bool
   public let canDelete: Bool
+  /// `/BM` on the appearance, or `nil` when the record names none this
+  /// reads.
+  public let blendMode: AnnotationBlendMode?
   /// The engine's record, every member, as the engine wrote it. The members
   /// `details` doesn't type are read from here.
   public let fieldsJSON: String
-  /// The subtype's own members, typed for ink, highlight and note
-  /// annotations.
+  /// The subtype's own members, typed for every subtype but popup and
+  /// widget.
   public let details: Details
 
   public init(_ record: AnnotationRecord) {
@@ -62,6 +65,8 @@ public struct AnnotationInfo: Sendable, Hashable, Identifiable {
     canDelete = record.canDelete
     fieldsJSON = record.fieldsJson
     details = Details(subtype: subtype, fieldsJSON: record.fieldsJson)
+    blendMode = (try? JSONDecoder().decode(BlendModeField.self, from: Data(record.fieldsJson.utf8)))?
+      .blendMode
   }
 
   /// The engine's record this was made from, member for member.
@@ -96,6 +101,76 @@ public struct AnnotationInfo: Sendable, Hashable, Identifiable {
   public var note: Note? {
     if case let .note(note) = details { note } else { nil }
   }
+
+  /// `details`' underline members, or `nil` for any other subtype.
+  public var underline: TextMarkup? {
+    if case let .underline(markup) = details { markup } else { nil }
+  }
+
+  /// `details`' squiggly members, or `nil` for any other subtype.
+  public var squiggly: TextMarkup? {
+    if case let .squiggly(markup) = details { markup } else { nil }
+  }
+
+  /// `details`' strikeout members, or `nil` for any other subtype.
+  public var strikeout: Strikeout? {
+    if case let .strikeout(strikeout) = details { strikeout } else { nil }
+  }
+
+  /// `details`' square members, or `nil` for any other subtype.
+  public var square: Shape? {
+    if case let .square(shape) = details { shape } else { nil }
+  }
+
+  /// `details`' circle members, or `nil` for any other subtype.
+  public var circle: Shape? {
+    if case let .circle(shape) = details { shape } else { nil }
+  }
+
+  /// `details`' line members, or `nil` for any other subtype.
+  public var line: Line? {
+    if case let .line(line) = details { line } else { nil }
+  }
+
+  /// `details`' polygon members, or `nil` for any other subtype.
+  public var polygon: Polygon? {
+    if case let .polygon(polygon) = details { polygon } else { nil }
+  }
+
+  /// `details`' polyline members, or `nil` for any other subtype.
+  public var polyline: Polyline? {
+    if case let .polyline(polyline) = details { polyline } else { nil }
+  }
+
+  /// `details`' free-text members, or `nil` for any other subtype.
+  public var freeText: FreeText? {
+    if case let .freeText(freeText) = details { freeText } else { nil }
+  }
+
+  /// `details`' caret members, or `nil` for any other subtype.
+  public var caret: Caret? {
+    if case let .caret(caret) = details { caret } else { nil }
+  }
+
+  /// `details`' stamp members, or `nil` for any other subtype.
+  public var stamp: Stamp? {
+    if case let .stamp(stamp) = details { stamp } else { nil }
+  }
+
+  /// `details`' link members, or `nil` for any other subtype.
+  public var link: Link? {
+    if case let .link(link) = details { link } else { nil }
+  }
+
+  /// `details`' file-attachment members, or `nil` for any other subtype.
+  public var fileAttachment: FileAttachment? {
+    if case let .fileAttachment(fileAttachment) = details { fileAttachment } else { nil }
+  }
+
+  /// `details`' redaction members, or `nil` for any other subtype.
+  public var redaction: Redaction? {
+    if case let .redaction(redaction) = details { redaction } else { nil }
+  }
 }
 
 // ── subtype members ─────────────────────────────────────────────────────────
@@ -107,23 +182,52 @@ extension AnnotationInfo {
     case highlight(Highlight)
     /// A `text` annotation: a sticky note.
     case note(Note)
-    /// A subtype this layer doesn't type, or a record whose members don't
-    /// have the shape it reads. Read `fieldsJSON`.
+    case underline(TextMarkup)
+    case squiggly(TextMarkup)
+    case strikeout(Strikeout)
+    case square(Shape)
+    case circle(Shape)
+    case line(Line)
+    case polygon(Polygon)
+    case polyline(Polyline)
+    case freeText(FreeText)
+    case caret(Caret)
+    case stamp(Stamp)
+    case link(Link)
+    case fileAttachment(FileAttachment)
+    /// A `redact` annotation: marked for redaction, not yet applied.
+    case redaction(Redaction)
+    /// A subtype this layer doesn't type (popup, widget, or one a newer
+    /// engine adds), or a record whose members don't have the shape it
+    /// reads. Read `fieldsJSON`.
     case untyped
 
     init(subtype: AnnotationSubtype, fieldsJSON: String) {
       let bytes = Data(fieldsJSON.utf8)
-      let decoder = JSONDecoder()
-      switch subtype {
-      case .ink:
-        self = (try? decoder.decode(Ink.self, from: bytes)).map(Details.ink) ?? .untyped
-      case .highlight:
-        self = (try? decoder.decode(Highlight.self, from: bytes)).map(Details.highlight) ?? .untyped
-      case .text:
-        self = (try? decoder.decode(Note.self, from: bytes)).map(Details.note) ?? .untyped
-      default:
-        self = .untyped
+      func read<Members: Decodable>(_ type: Members.Type, _ make: (Members) -> Details) -> Details {
+        (try? JSONDecoder().decode(type, from: bytes)).map(make) ?? .untyped
       }
+      self =
+        switch subtype {
+        case .ink: read(Ink.self, Details.ink)
+        case .highlight: read(Highlight.self, Details.highlight)
+        case .text: read(Note.self, Details.note)
+        case .underline: read(TextMarkup.self, Details.underline)
+        case .squiggly: read(TextMarkup.self, Details.squiggly)
+        case .strikeout: read(Strikeout.self, Details.strikeout)
+        case .square: read(Shape.self, Details.square)
+        case .circle: read(Shape.self, Details.circle)
+        case .line: read(Line.self, Details.line)
+        case .polygon: read(Polygon.self, Details.polygon)
+        case .polyline: read(Polyline.self, Details.polyline)
+        case .freeText: read(FreeText.self, Details.freeText)
+        case .caret: read(Caret.self, Details.caret)
+        case .stamp: read(Stamp.self, Details.stamp)
+        case .link: read(Link.self, Details.link)
+        case .fileAttachment: read(FileAttachment.self, Details.fileAttachment)
+        case .redact: read(Redaction.self, Details.redaction)
+        default: .untyped
+        }
     }
   }
 
@@ -179,24 +283,39 @@ extension AnnotationInfo {
 // The typed members decode from the record's JSON; a missing required
 // member fails the decode, and `Details` falls back to `untyped`.
 
-private struct WirePoint: Decodable {
+struct ReadPoint: Decodable {
   let x: Double
   let y: Double
 
   var point: Point { Point(x: x, y: y) }
 }
 
-private struct WireQuad: Decodable {
-  let upperLeft: WirePoint
-  let upperRight: WirePoint
-  let lowerLeft: WirePoint
-  let lowerRight: WirePoint
+struct ReadQuad: Decodable {
+  let upperLeft: ReadPoint
+  let upperRight: ReadPoint
+  let lowerLeft: ReadPoint
+  let lowerRight: ReadPoint
 
   var quad: Quad {
     Quad(
       upperLeft: upperLeft.point, upperRight: upperRight.point, lowerLeft: lowerLeft.point,
       lowerRight: lowerRight.point)
   }
+}
+
+/// The base field every record carries.
+private struct BlendModeField: Decodable {
+  let blendMode: AnnotationBlendMode?
+}
+
+/// A box, `{x, y, width, height}`.
+struct ReadRect: Decodable {
+  let x: Double
+  let y: Double
+  let width: Double
+  let height: Double
+
+  var rect: Rect { Rect(x: x, y: y, width: width, height: height) }
 }
 
 extension AnnotationInfo.Ink: Decodable {
@@ -211,7 +330,7 @@ extension AnnotationInfo.Ink: Decodable {
     strokeWidth = try container.decode(Double.self, forKey: .strokeWidth)
     borderStyle = try container.decode(String.self, forKey: .borderStyle)
     dashArray = try container.decodeIfPresent([Double].self, forKey: .dashArray)
-    inkList = try container.decode([[WirePoint]].self, forKey: .inkList).map { $0.map(\.point) }
+    inkList = try container.decode([[ReadPoint]].self, forKey: .inkList).map { $0.map(\.point) }
     intent = try container.decodeIfPresent(String.self, forKey: .intent)
     rotation = try container.decodeIfPresent(Double.self, forKey: .rotation)
   }
@@ -226,7 +345,7 @@ extension AnnotationInfo.Highlight: Decodable {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     color = try container.decode(AnnotationColor.self, forKey: .color)
     opacity = try container.decode(Double.self, forKey: .opacity)
-    quadPoints = try container.decode([WireQuad].self, forKey: .quadPoints).map(\.quad)
+    quadPoints = try container.decode([ReadQuad].self, forKey: .quadPoints).map(\.quad)
   }
 }
 

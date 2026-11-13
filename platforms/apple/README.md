@@ -378,8 +378,21 @@ limit as `PDFDocument`.
 
 Reads no longer hand out `AnnotationRecord` itself. `get(_:)`, `list(_:)`,
 `selected()` and `hitTest(at:on:)` return `AnnotationInfo`, a hand-written
-struct over it with `Date` timestamps and typed ink, highlight and note
-members, and `AnnotationInfo.record` gives the generated record back.
+struct over it with `Date` timestamps, a typed `blendMode`, and typed members
+for every subtype but popup and widget. `AnnotationInfo.record` gives the
+generated record back.
+
+Writes take the same types. Every subtype the engine creates from a field
+bag has a typed draft (`UnderlineAnnotationDraft`, `LineAnnotationDraft`,
+`FreeTextAnnotationDraft`, …) and a patch, and stamps and file attachments
+have a patch only, since their create needs image or file bytes. The typed
+layer leaves out `richText`, `measure`, the `/F` flags, `nm`, `subject`,
+`reply` and `groupId`; the JSON-string overloads still take those. A link
+and a stamp have no `blendMode`, because the engine writes `/BM` while it
+draws an appearance and draws neither (`write/update.rs` in
+`crates/epdf-engine/src/features/annotation`). The cost is that each typed
+member has to track the engine's schema. `AnnotationKindDraftTests` writes
+every member through the engine and fails if one doesn't come back.
 
 ## Moving from 0.0.0-swift.4
 
