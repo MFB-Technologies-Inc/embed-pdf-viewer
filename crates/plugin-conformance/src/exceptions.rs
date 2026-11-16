@@ -23,7 +23,8 @@
 //! loudly when it goes stale: when the trace no longer shows the divergence
 //! the way the ledger says, or when its case never ran. A bad ledger (an
 //! empty `id`, `summary` or `reason`, a repeated id, a malformed
-//! observation, or a `pinnedBy` test that does not exist) fails every replay.
+//! observation, an observation of a vector file that does not exist, or a
+//! `pinnedBy` test that does not exist) fails every replay.
 
 use std::path::Path;
 
@@ -156,6 +157,7 @@ pub fn validate(list: &[Divergence], root: &Path) -> Result<(), String> {
                     }
                 }
             }
+            check_vector(&obs.file, root).map_err(|why| format!("{name}: {why}"))?;
             let earlier = list[..index].iter().flat_map(|e| &e.observed_by);
             if entry.observed_by[..at].contains(obs) || earlier.into_iter().any(|o| o == obs) {
                 return Err(format!("{name} is listed twice"));
@@ -165,6 +167,26 @@ pub fn validate(list: &[Divergence], root: &Path) -> Result<(), String> {
             check_pin(pin, root).map_err(|why| format!("{id} pinnedBy {pin}: {why}"))?;
         }
     }
+    Ok(())
+}
+
+/// `file` names a vector suite: `tooling/plugin-conformance/vectors/<file>.zst`
+/// or `<file>` exists under `root`.
+fn check_vector(file: &str, root: &Path) -> Result<(), String> {
+    // A wasm32 test runner has no workspace to read; native replays check.
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let path = root.join("tooling/plugin-conformance/vectors").join(file);
+        let mut compressed = path.clone().into_os_string();
+        compressed.push(".zst");
+        if !path.exists() && !Path::new(&compressed).exists() {
+            return Err(format!(
+                "no vector file {file}(.zst) under tooling/plugin-conformance/vectors"
+            ));
+        }
+    }
+    #[cfg(target_arch = "wasm32")]
+    let _ = (file, root);
     Ok(())
 }
 
@@ -374,7 +396,7 @@ mod tests {
 
     fn moved() -> Observation {
         Observation {
-            file: "f.json".into(),
+            file: "core/acrojs-host.json".into(),
             case: "c".into(),
             moved_callback: Some(MovedCallback {
                 callback: json!({ "fn": "sandbox.dispose", "args": [1] }),
@@ -387,7 +409,7 @@ mod tests {
 
     fn value_at(path: &str, expected: Value, actual: Value) -> Observation {
         Observation {
-            file: "f.json".into(),
+            file: "core/acrojs-host.json".into(),
             case: "c".into(),
             moved_callback: None,
             value_at: Some(ValueAt { path: path.into(), expected, actual }),
@@ -628,6 +650,17 @@ mod tests {
         assert!(err.contains("nope.rs"), "{err}");
         let no_name = "crates/plugin-conformance/src/exceptions.rs";
         assert!(validate(&[divergence(vec![], Some(no_name))], &root()).is_err());
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn an_observation_must_name_an_existing_vector_file() {
+        let missing = Observation { file: "core/no-such-suite.json".into(), ..moved() };
+        let err = validate(&[divergence(vec![missing], None)], &root()).unwrap_err();
+        assert!(
+            err.contains("X1") && err.contains("core/no-such-suite.json") && err.contains("/ c"),
+            "{err}"
+        );
     }
 
     #[test]

@@ -207,7 +207,7 @@ fn assert_suite_with_ledger(
                                 serde_json::to_string_pretty(&run.trace).unwrap()
                             );
                         }
-                        let mut stale = None;
+                        let mut stale = Vec::new();
                         for (divergence, observation) in
                             exceptions::observations(ledger, file, name)
                         {
@@ -218,10 +218,11 @@ fn assert_suite_with_ledger(
                                         exceptions_applied.push(divergence.id.clone());
                                     }
                                 }
-                                Err(why) => stale = Some(format!("{}: {why}", divergence.id)),
+                                Err(why) => stale.push(format!("{}: {why}", divergence.id)),
                             }
                         }
-                        if let Some(why) = stale {
+                        if !stale.is_empty() {
+                            let why = stale.join("; ");
                             let diff = compare_trace(&expected, &run.trace)
                                 .unwrap_or_else(|| "no other difference".into());
                             failures.push(format!("{name}: {why}; trace: {diff}"));
@@ -388,6 +389,47 @@ mod tests {
         );
         assert!(!message.contains("elsewhere"), "{message}");
         assert!(run(Some("one")).is_ok(), "a filtered run does not check observations");
+    }
+
+    /// Every stale observation of a case is reported, not only the last.
+    #[test]
+    fn every_stale_observation_of_a_case_is_reported() {
+        let suite = serde_json::json!({
+            "schemaVersion": SCHEMA_VERSION,
+            "kind": "scenario",
+            "cases": [{ "name": "one", "plugins": [], "steps": [], "trace": [] }],
+        });
+        let ledger = exceptions::parse(
+            r#"[{ "id": "X1", "summary": "s", "reason": "r", "decided": "d",
+                  "observedBy": [
+                    { "file": "a/b.json", "case": "one",
+                      "valueAt": { "path": "$[0].first", "expected": 1, "actual": 2 } } ] },
+                { "id": "X2", "summary": "s", "reason": "r", "decided": "d",
+                  "observedBy": [
+                    { "file": "a/b.json", "case": "one",
+                      "valueAt": { "path": "$[7].second", "expected": 1, "actual": 2 } } ] }]"#,
+        )
+        .unwrap();
+        let run = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            assert_suite_with_ledger(
+                "a/b.json",
+                &suite,
+                &Registry::new(),
+                &Vec::new(),
+                None,
+                None,
+                &ledger,
+            )
+        }));
+        let message = panic_message(run.unwrap_err());
+        assert!(
+            message.contains("X1: observation is stale") && message.contains("$[0].first"),
+            "{message}"
+        );
+        assert!(
+            message.contains("X2: observation is stale") && message.contains("$[7].second"),
+            "{message}"
+        );
     }
 
     #[test]
