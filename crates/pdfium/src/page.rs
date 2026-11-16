@@ -555,6 +555,7 @@ pub struct Page<'a> {
 
 impl<'a> Page<'a> {
     pub(crate) fn load(doc: pdfium_sys::FPDF_DOCUMENT, index: u32) -> Result<Self, PdfiumError> {
+        count_call!(LoadPage);
         let handle = unsafe { pdfium_sys::FPDF_LoadPage(doc, index as i32) };
         // Document::page already checked index < page_count(), so a null
         // handle here is not an out-of-range index; it is PDFium refusing to
@@ -586,6 +587,7 @@ impl<'a> Page<'a> {
         doc: pdfium_sys::FPDF_DOCUMENT,
         object_number: u32,
     ) -> Result<Self, PdfiumError> {
+        count_call!(LoadPage);
         // SAFETY: `doc` is a live document handle owned by the caller.
         let handle =
             unsafe { pdfium_sys::EPDFDoc_LoadPageByObjectNumberNormalized(doc, object_number) };
@@ -673,6 +675,7 @@ impl SharedPage {
     /// Loads a page by object number, rotation normalized, keeping `document`
     /// alive for as long as the page.
     pub fn load(document: Rc<Document>, object_number: u32) -> Result<Self, PdfiumError> {
+        count_call!(LoadPage);
         // SAFETY: `document` is live for the duration of the call and, through
         // the `Rc` this struct keeps, for the life of the returned page.
         let handle = unsafe {

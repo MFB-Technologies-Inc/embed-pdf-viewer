@@ -68,6 +68,7 @@ impl Drop for SignatureModel<'_> {
 impl Document {
     /// Build the signature model of the document as it is now.
     pub fn signature_model(&self) -> Result<SignatureModel<'_>, PdfiumError> {
+        count_call!(SigLoadModel);
         // SAFETY: the document is live for the borrow the model keeps.
         let raw = unsafe { pdfium_sys::EPDFSig_LoadModel(self.as_raw()) };
         if raw.is_null() {

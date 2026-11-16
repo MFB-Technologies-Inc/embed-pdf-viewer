@@ -12,12 +12,23 @@
 //! confinement rather than papering over it with atomics that would let a
 //! handle cross threads and misbehave later.
 
+/// Counts one PDFium call when the `call-count` feature is on; expands to
+/// nothing otherwise.
+macro_rules! count_call {
+    ($call:ident) => {
+        #[cfg(feature = "call-count")]
+        $crate::call_count::record($crate::call_count::Call::$call);
+    };
+}
+
 pub(crate) mod action;
 mod action_write;
 mod annot;
 mod annot_write;
 mod base;
 mod bitmap;
+#[cfg(feature = "call-count")]
+pub mod call_count;
 mod capture;
 mod document;
 mod document_fonts;

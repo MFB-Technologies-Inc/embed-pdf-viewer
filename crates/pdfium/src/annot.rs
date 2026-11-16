@@ -126,6 +126,7 @@ impl Document {
     pub fn raw_annotation(&self, page_index: u32, index: u32) -> Option<Annotation<'_>> {
         let page_index = i32::try_from(page_index).ok()?;
         let index = i32::try_from(index).ok()?;
+        count_call!(GetAnnotRaw);
         // SAFETY: the handle is live for the borrow this returns.
         let handle = unsafe { pdfium_sys::EPDFPage_GetAnnotRaw(self.as_raw(), page_index, index) };
         if handle.is_null() {

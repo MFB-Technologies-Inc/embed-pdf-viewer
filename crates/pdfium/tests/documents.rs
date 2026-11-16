@@ -239,3 +239,21 @@ fn a_fresh_layer_renders_an_image_drawn_through_a_tiling_pattern() {
         .expect("render the plain page");
     assert!(from_layer.bgra == from_plain.bgra, "the layer's page renders as the plain page");
 }
+
+/// Each `Document::page` is one `FPDF_LoadPage`, so loading the same page
+/// twice counts two loads.
+#[cfg(feature = "call-count")]
+#[test]
+fn load_page_is_counted() {
+    use pdfium::call_count::{self, Call};
+
+    let lib = Library::acquire();
+    let doc = Document::from_bytes(lib, &test_support::fixture(test_support::FEATURES), None)
+        .expect("open features.pdf");
+    assert_eq!(doc.page_count(), 3);
+
+    call_count::reset();
+    drop(doc.page(0).expect("load page 0"));
+    drop(doc.page(0).expect("load page 0 again"));
+    assert_eq!(call_count::get(Call::LoadPage), 2);
+}
