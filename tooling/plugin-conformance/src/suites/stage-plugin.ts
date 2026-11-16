@@ -1086,6 +1086,15 @@ const manipulationCases: ScenarioCase[] = [
     snapshot: SNAP,
   },
   {
+    name: 'grid-nan-columns',
+    covers:
+      'A NaN grid column count makes every scene build throw in the TypeScript. The Rust port lays out an empty scene instead (kept divergence M27, divergences.json).',
+    plugins: stage({ layout: 'grid', columns: 2, scrollBehavior: 'instant' }),
+    engine: engine(),
+    steps: [...boot, st('update', { columns: NAN }), st('visiblePages'), st('currentPage')],
+    snapshot: SNAP,
+  },
+  {
     name: 'grid-fractional-columns',
     covers:
       'A fractional grid column count makes the nearest-item index fractional past the last column: unbounded, a camera out there throws a TypeError syncing the cursor and reading the viewpoint, and so does a later settings write, which captures its anchor first.',
