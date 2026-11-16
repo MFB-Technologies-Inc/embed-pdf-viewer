@@ -1,5 +1,8 @@
-import EmbedPDF, { StageToken, SearchToken, SelectionToken, AnnotationToken } from '@perf/door';
+import EmbedPDF, { StageToken, SearchToken, SelectionToken } from '@perf/door';
 import { setupKernel, kernelCounts } from '@perf/kernel';
+// entry/api-v1.ts or api-v2.ts, whichever viewer API this arm's packages have
+// (lib/api-generation.mjs): the calls that were renamed between the two.
+import { onOpened, execute, goToPageIndex, pageFrame, annotationCountOn } from '@perf/api';
 import type { PerfArm } from './globals';
 
 declare const __PERF_ARM__: PerfArm;
@@ -36,7 +39,7 @@ const opened = ready.then(
         performance.mark('perf:opened');
         resolve();
       };
-      const off = v().on('opened', () => {
+      const off = onOpened(v(), () => {
         off();
         done();
       });
@@ -68,7 +71,7 @@ window.__perf = {
   ready,
   opened,
   pageCount: () => pages().length,
-  goToPageIndex: (i) => v().get(StageToken).goToPageIndex(i, { behavior: 'instant' }),
+  goToPageIndex: (i) => goToPageIndex(v(), i),
   currentPageIndex: () => v().get(StageToken).getCurrentPageIndex(),
   zoomTo: (z) => v().get(StageToken).zoomTo(z),
   zoomLevel: () => v().get(StageToken).getZoomLevel(),
@@ -79,13 +82,13 @@ window.__perf = {
   clearSearch: () => v().get(SearchToken).clear(),
   readSelection: () => v().get(SelectionToken).readText(),
   clearSelection: () => v().get(SelectionToken).clear(),
-  annotationCount: (pageIndex) => v().get(AnnotationToken).list({ page: pageRef(pageIndex) }).length,
-  execute: (command) => v().execute(command),
+  annotationCount: (pageIndex) => annotationCountOn(v(), pageRef(pageIndex)),
+  execute: (command) => execute(v(), command),
   pageBox: (i) => {
     // The frame is in stage-viewport px; the viewport element is found by its
     // size, so chrome above or beside it moves the box with it.
     const stage = v().get(StageToken);
-    const frame = stage.getPageFrame(pageRef(i));
+    const frame = pageFrame(v(), pageRef(i));
     if (!frame) throw new Error(`page ${i} has no frame yet`);
     const { width, height } = stage.getViewportSize();
     const origin = viewportOrigin(width, height);

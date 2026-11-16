@@ -9,6 +9,20 @@ const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
 // anti-aliasing by a pixel.
 const PIXEL_TOLERANCE = 0.01;
 
+// The upstream catch-up (main ed064e0c8, plugins 2aaa8f841) changed how
+// selected text joins its lines: "commercial \nPDF" where main 2516e2786 gives
+// "commercial\r\nPDF". The words are the same, so a selection is compared with
+// each line break, and the spaces before it, read as one "\n". gate.json keeps
+// every arm's text as it came.
+const NORMALIZE = {
+  selection: (text) => (typeof text === 'string' ? text.replace(/[ \t]*\r?\n/g, '\n') : text),
+};
+
+export function sameAnswer(key, got, reference) {
+  const normalize = NORMALIZE[key] ?? ((value) => value);
+  return JSON.stringify(normalize(got)) === JSON.stringify(normalize(reference));
+}
+
 // Page index 0's rendered bitmap at zoom 1, search cleared: the engine's own
 // output, read back from the full-page image through a canvas. A compositor
 // screenshot isn't usable here: two identical builds differed in 0.01% of
@@ -123,7 +137,7 @@ export async function runGate(run, { config, arms, urls, stamps, env }) {
     // stamp's verify-rust-core result stands in for impl-rust.
     if (arm.rustReads && !stamps[arm.worktree].rustCore) reasons.push('the payload has no verified Rust core');
     for (const [key, value] of Object.entries(reference.answers)) {
-      if (JSON.stringify(got.answers[key]) !== JSON.stringify(value)) {
+      if (!sameAnswer(key, got.answers[key], value)) {
         reasons.push(`${key}: ${JSON.stringify(got.answers[key])} where ${referenceId} has ${JSON.stringify(value)}`);
       }
     }

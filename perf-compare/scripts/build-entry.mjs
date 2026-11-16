@@ -9,6 +9,7 @@ import { execFileSync } from 'node:child_process';
 import { copyFileSync, cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { apiGeneration } from '../lib/api-generation.mjs';
 import { loadConfig } from '../lib/config.mjs';
 import { buildWorktree } from './build-arm.mjs';
 import { workDir, worktreePath } from './materialize.mjs';
@@ -59,7 +60,11 @@ function typecheckEntry(arm, staged) {
         target: 'ES2022',
         lib: ['ES2022', 'DOM', 'DOM.Iterable'],
         baseUrl: viewerMain,
-        paths: { '@perf/door': ['src/doors/local.ts'], '@perf/kernel': [kernel] },
+        paths: {
+          '@perf/door': ['src/doors/local.ts'],
+          '@perf/kernel': [kernel],
+          '@perf/api': [path.join(staged, `api-${apiGeneration(dir)}.ts`)],
+        },
       },
       files: [path.join(staged, 'main.ts'), path.join(staged, 'globals.d.ts')],
       include: [], // otherwise the viewer's own `include` is inherited
@@ -73,6 +78,8 @@ export function buildEntry(armId, config) {
   const dir = worktreePath(arm.worktree);
   const out = path.join(workDir(), 'dist', armId);
   const staged = stageEntry(arm);
+  const api = apiGeneration(dir);
+  console.log(`${armId}: viewer API ${api}`);
   typecheckEntry(arm, staged);
   sh(`pnpm exec vite build --config ${path.join(staged, 'vite.config.mjs')}`, path.join(dir, 'packages/viewer/main'), {
     PERF_ARM: JSON.stringify({ id: arm.id, kernel: arm.kernel, rustReads: arm.rustReads, dedupeCompat: arm.dedupeCompat === true }),
@@ -80,6 +87,7 @@ export function buildEntry(armId, config) {
     PERF_ENTRY: staged,
     PERF_FIXTURES: fixturesDir,
     PERF_OUT: out,
+    PERF_API: api,
   });
   return out;
 }

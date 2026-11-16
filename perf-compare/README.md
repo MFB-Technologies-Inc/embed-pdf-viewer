@@ -157,6 +157,16 @@ applies. A branch that needs a different build means a new recipe in
 `scripts/build-arm.mjs`, and that file's contents are the worktree cache key, so editing it
 rebuilds every worktree.
 
+The upstream catch-up renamed five of the viewer calls the entry makes. `goToPageIndex` and
+`getPageFrame` became `goToPage` and `getPageBox`, `viewer.on('opened')` became
+`documents.onOpened`, `viewer.execute` became `commands.execute`, and the annotation filter's
+`page` became `pages`. The two commands the flows run were renamed too: `pointer:toggle` is
+`tool:pointer` and `annotation:add-highlight` is `tool:highlight`. `entry/api-v1.ts` and `entry/api-v2.ts` make those calls the old way and
+the new way. `scripts/build-entry.mjs` reads the worktree's stage contract with
+`lib/api-generation.mjs` and builds the arm with the matching one, and prints
+`<arm>: viewer API v1` or `v2`. `main` at `2516e2786` and the plugins branch up to `9d6c2eca1`
+are v1; upstream `main` from `ed064e0c8` and the plugins branch from `2aaa8f841` are v2.
+
 ## Reading a run
 
 `node scripts/summary.mjs results/<run-id> [arm ...]` prints the numbers worth quoting from a run's
