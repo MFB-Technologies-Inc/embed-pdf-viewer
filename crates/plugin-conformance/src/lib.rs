@@ -17,10 +17,11 @@ pub mod harness;
 /// Moved to the kernel, which prints actions and state with it.
 pub use epdf_kernel::js;
 pub mod probe;
+pub mod receipt;
 pub mod scenario;
 pub mod test_kernel;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 
@@ -88,21 +89,48 @@ fn panic_message(panic: Box<dyn std::any::Any + Send>) -> String {
 
 /// Replay every case of a vector file; panic listing every case that
 /// differs. `PLUGIN_CONFORMANCE_ONLY=<substring>` restricts the run to the
-/// cases whose name contains it.
+/// cases whose name contains it. `PLUGIN_CONFORMANCE_RECEIPTS=<dir>` writes
+/// a [`receipt::Receipt`] of the run into `<dir>`.
 pub fn assert_suite(file: &str, registry: &Registry, functions: &FunctionTable) {
-    let suite = load(file);
     let only = std::env::var("PLUGIN_CONFORMANCE_ONLY").ok();
+    let receipts = std::env::var_os("PLUGIN_CONFORMANCE_RECEIPTS").map(PathBuf::from);
+    assert_loaded_suite(
+        file,
+        &load(file),
+        registry,
+        functions,
+        only.as_deref(),
+        receipts.as_deref(),
+    );
+}
+
+/// [`assert_suite`] on an already loaded `suite`, with the case filter and
+/// the receipt directory passed in rather than read from the environment.
+pub fn assert_loaded_suite(
+    file: &str,
+    suite: &Value,
+    registry: &Registry,
+    functions: &FunctionTable,
+    only: Option<&str>,
+    receipts: Option<&Path>,
+) {
     let verbose = std::env::var("PLUGIN_CONFORMANCE_VERBOSE").is_ok();
     let mut failures = Vec::new();
-    let mut ran = 0;
+    let mut ran = Vec::new();
     let mut exceptions_seen = Vec::new();
+    let mut exceptions_applied = Vec::new();
+    let mut member_order_allowed = Vec::new();
     for case in suite["cases"].as_array().expect("cases") {
         let name = case["name"].as_str().unwrap_or("?");
-        if only.as_deref().is_some_and(|o| !name.contains(o)) {
+        if only.is_some_and(|o| !name.contains(o)) {
             continue;
         }
-        ran += 1;
-        let _allowed = canonical::allow_member_order(canonical::allowed_member_order(file, name));
+        ran.push(name.to_string());
+        let allowed_paths = canonical::allowed_member_order(file, name);
+        if !allowed_paths.is_empty() {
+            member_order_allowed.push(name.to_string());
+        }
+        let _allowed = canonical::allow_member_order(allowed_paths);
         match suite["kind"].as_str() {
             Some("scenario") => {
                 let run = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -124,8 +152,9 @@ pub fn assert_suite(file: &str, registry: &Registry, functions: &FunctionTable) 
                         let mut stale = None;
                         for entry in exceptions::for_case(file, name) {
                             exceptions_seen.push(name.to_string());
-                            if let Err(why) = exceptions::apply(entry, &expected, &mut run.trace) {
-                                stale = Some(why);
+                            match exceptions::apply(entry, &expected, &mut run.trace) {
+                                Ok(()) => exceptions_applied.push(receipt::exception_id(entry)),
+                                Err(why) => stale = Some(why),
                             }
                         }
                         if let Some(why) = stale {
@@ -169,6 +198,18 @@ pub fn assert_suite(file: &str, registry: &Registry, functions: &FunctionTable) 
             other => panic!("{file}: unknown suite kind {other:?}"),
         }
     }
+    if let Some(dir) = receipts {
+        let receipt = receipt::Receipt {
+            file: file.to_string(),
+            only: only.map(str::to_string),
+            ran: ran.clone(),
+            exceptions: exceptions_applied,
+            member_order_allowed,
+        };
+        receipt::write_receipt(dir, &receipt)
+            .unwrap_or_else(|e| panic!("{file}: write receipt into {}: {e}", dir.display()));
+    }
+    let ran = ran.len();
     assert!(ran > 0, "{file}: no case ran");
     if only.is_none() {
         for entry in exceptions::all().iter().filter(|e| e.file == file) {
