@@ -34,6 +34,7 @@ use epdf_kernel::rt::{self, Promise};
 use epdf_kernel::settings::InstanceSettings;
 use epdf_kernel::signal::AbortSignal;
 use epdf_kernel::{Controller, Error, Unsubscribe};
+use serde::Deserialize;
 use serde_json::Value;
 
 use crate::contract::*;
@@ -236,7 +237,7 @@ fn page_key(page: PageRef) -> Value {
 /// `None` when it is neither, which reads as no geometry.
 fn hydrate(answer: &Value) -> Option<TextLayout> {
     let snapshot = answer.get("$textLayout").unwrap_or(answer);
-    serde_json::from_value::<PageGeometrySnapshot>(snapshot.clone()).ok().map(create_text_layout)
+    PageGeometrySnapshot::deserialize(snapshot).ok().map(create_text_layout)
 }
 
 /// The settings the store holds, and why the whole value did not decode
