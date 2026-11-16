@@ -147,14 +147,17 @@ extension BaseSuite {
       let registration = try await commands.register(CommandDefinition(id: "app:inspect", labelKey: "Inspect", handler: handler))
       defer { registration.unregister() }
       try await commands.setAppState(Data(#"{"kept":true}"#.utf8))
+      _ = try await commands.resolve("app:inspect")
       for invalid in [Data("{broken".utf8), Data([0x80])] {
         await #expect { try await commands.setAppState(invalid) } throws: { error in
           (error as? PDFError)?.code == .invalidInput
         }
-        seen.withValue { $0 = [] }
+        // A refused value makes no store change, so the hook isn't asked again (upstream
+        // 7af98f4df); had the value replaced the state, the hook would see it here.
         _ = try await commands.resolve("app:inspect")
-        expectNoDifference(seen.value, [#"{"kept":true}"#])
       }
+      #expect(!seen.value.isEmpty)
+      for value in seen.value { expectNoDifference(value, #"{"kept":true}"#) }
       try await viewer.destroy()
     }
 
