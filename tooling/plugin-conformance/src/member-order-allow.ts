@@ -162,6 +162,20 @@ export function findCandidates(options: FindOptions): Found {
   }
 }
 
+/** The environment each cargo run gets: member order on, `overrideFile`
+ *  as the allowlist, and no filter or receipts, so every case runs and
+ *  `--fresh` never mistakes a skipped case for an unneeded entry. */
+export function childEnv(base: NodeJS.ProcessEnv, overrideFile: string): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {
+    ...base,
+    PLUGIN_CONFORMANCE_MEMBER_ORDER: '1',
+    PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW: overrideFile,
+  };
+  delete env.PLUGIN_CONFORMANCE_ONLY;
+  delete env.PLUGIN_CONFORMANCE_RECEIPTS;
+  return env;
+}
+
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 
 function main(): void {
@@ -178,11 +192,7 @@ function main(): void {
         {
           cwd: root,
           encoding: 'utf8',
-          env: {
-            ...process.env,
-            PLUGIN_CONFORMANCE_MEMBER_ORDER: '1',
-            PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW: overrideFile,
-          },
+          env: childEnv(process.env, overrideFile),
           maxBuffer: 256 * 1024 * 1024,
         },
       );

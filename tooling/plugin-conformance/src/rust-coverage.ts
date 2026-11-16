@@ -268,12 +268,20 @@ const repoRoot = resolve(packageRoot, '..', '..');
 const target = join(packageRoot, 'vectors', 'rust-coverage.json');
 const excludeFile = join(repoRoot, 'crates', 'plugin-conformance', 'rust-coverage-exclude.json');
 
-function cargo(args: readonly string[]): void {
-  const env: NodeJS.ProcessEnv = { ...process.env };
+/** The environment cargo runs under: `base` without the variables that
+ *  filter the replay or weaken its comparison. */
+export function childEnv(base: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...base };
   // A filtered or reordered replay would measure less than the vectors hold.
   delete env.PLUGIN_CONFORMANCE_ONLY;
+  delete env.PLUGIN_CONFORMANCE_MEMBER_ORDER;
   delete env.PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW;
   delete env.PLUGIN_CONFORMANCE_RECEIPTS;
+  return env;
+}
+
+function cargo(args: readonly string[]): void {
+  const env = childEnv(process.env);
   const run = spawnSync('cargo', args, {
     cwd: repoRoot,
     env,

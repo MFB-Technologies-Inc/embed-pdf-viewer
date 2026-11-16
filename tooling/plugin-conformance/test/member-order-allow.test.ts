@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-import { findCandidates, type Paths } from '../src/member-order-allow';
+import { childEnv, findCandidates, type Paths } from '../src/member-order-allow';
 
 /** Every member-order difference the fake replay has, by file and case. */
 const FAILING: Paths = {
@@ -124,4 +124,24 @@ test('a failure that is not member order stops the run and leaves the allowlist 
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+test('childEnv turns order on, sets the override and removes the filter and receipts', () => {
+  assert.deepEqual(
+    childEnv(
+      {
+        PATH: '/bin',
+        PLUGIN_CONFORMANCE_ONLY: 'open-all',
+        PLUGIN_CONFORMANCE_MEMBER_ORDER: '0',
+        PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW: '/tmp/allow.json',
+        PLUGIN_CONFORMANCE_RECEIPTS: '/tmp/old',
+      },
+      '/tmp/override.json',
+    ),
+    {
+      PATH: '/bin',
+      PLUGIN_CONFORMANCE_MEMBER_ORDER: '1',
+      PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW: '/tmp/override.json',
+    },
+  );
 });

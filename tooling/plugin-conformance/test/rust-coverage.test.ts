@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
+  childEnv,
   lineCounts,
   testModuleLines,
   unitOnly,
@@ -160,4 +161,17 @@ test('unitOnly leaves the lines of test modules out of every count', () => {
   assert.deepEqual(result.files, {
     'crates/plugins/c/src/lib.rs': { replayLines: '1/2', unitOnlyLines: ['2'] },
   });
+});
+
+test('childEnv removes the filter, order, allowlist and receipt variables', () => {
+  assert.deepEqual(
+    childEnv({
+      PATH: '/bin',
+      PLUGIN_CONFORMANCE_ONLY: 'open-all',
+      PLUGIN_CONFORMANCE_MEMBER_ORDER: '0',
+      PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW: '/tmp/allow.json',
+      PLUGIN_CONFORMANCE_RECEIPTS: '/tmp/old',
+    }),
+    { PATH: '/bin' },
+  );
 });

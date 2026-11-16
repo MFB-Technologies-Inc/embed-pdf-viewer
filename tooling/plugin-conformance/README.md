@@ -51,7 +51,9 @@ would still pass, so treat that scan as a fast offline lint.
 `replay:check` is the proof. It runs `cargo test --tests --no-fail-fast` over `plugin-conformance`
 and every workspace crate with a normal or dev dependency on it, read from `cargo metadata` at run
 time, with `PLUGIN_CONFORMANCE_RECEIPTS` set to a fresh temporary directory and
-`PLUGIN_CONFORMANCE_ONLY` removed, so each `assert_suite` call writes a receipt of the cases it ran.
+`PLUGIN_CONFORMANCE_ONLY`, `PLUGIN_CONFORMANCE_MEMBER_ORDER` and
+`PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW` removed, so each `assert_suite` call writes a receipt of the
+cases it ran under the full comparison.
 It then compares those receipts with the case names of every suite in `src/suites/`. It fails on a
 vector file no test replayed, a case that never ran, a receipt from a filtered run, a receipt for a
 file no suite writes, a case that ran but no suite writes (a stale vector file), or a receipt it
@@ -69,7 +71,9 @@ the replay targets (each plugin crate's `tests/conformance.rs` and `plugin-confo
 `replayLines` (lines replay hit / lines llvm-cov maps) and `unitOnlyLines`, the lines some test
 reaches and replay does not. Files matching a glob in
 `crates/plugin-conformance/rust-coverage-exclude.json` (replay adapters, C ABI glue, the replay
-runner) are left out, each with its reason, and so are the lines of inline `#[cfg(test)]` modules. It is a record, not a threshold: `rust-coverage:check` fails only
+runner) are left out, each with its reason, and so are the lines of inline `#[cfg(test)]` modules.
+Both runs drop `PLUGIN_CONFORMANCE_ONLY`, `PLUGIN_CONFORMANCE_MEMBER_ORDER`,
+`PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW` and `PLUGIN_CONFORMANCE_RECEIPTS`. It is a record, not a threshold: `rust-coverage:check` fails only
 when the file would change. Both runs together cost an instrumented build and test run of every
 replay crate.
 
@@ -192,7 +196,9 @@ that puts one in an answer.
   `[]`, and the `crates/plugin-conformance/divergences.json` id that says why. An entry without
   one, or citing an id the ledger lacks, fails every replay at load. A new mismatch fails the run:
   fix the order, or, only if it is one of those two kinds, add the path by hand with its id.
-  `pnpm run member-order:allow` never edits the list. It reruns the replay until no new path
+  `pnpm run member-order:allow` never edits the list. It reruns the replay, with
+  `PLUGIN_CONFORMANCE_MEMBER_ORDER=1`, its own allowlist in `PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW`,
+  and `PLUGIN_CONFORMANCE_ONLY` and `PLUGIN_CONFORMANCE_RECEIPTS` removed, until no new path
   fails, then writes the failing paths the list lacks to `member-order-candidates.json`
   (gitignored) and prints them. `--fresh` starts from no allowance, so it also prints the entries
   no case needs any more. Delete those freely.

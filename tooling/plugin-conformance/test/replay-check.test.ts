@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 
 import {
+  childEnv,
   compareReceipts,
   readReceipts,
   replayPackages,
@@ -118,4 +119,18 @@ test('replayPackages selects plugin-conformance and the workspace members that d
     ],
   };
   assert.deepEqual(replayPackages(metadata), ['plugin-conformance', 'uses-dev', 'uses-normal']);
+});
+
+test('childEnv removes every variable that would weaken the proof and sets receipts', () => {
+  const env = childEnv(
+    {
+      PATH: '/bin',
+      PLUGIN_CONFORMANCE_ONLY: 'open-all',
+      PLUGIN_CONFORMANCE_MEMBER_ORDER: '0',
+      PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW: '/tmp/allow.json',
+      PLUGIN_CONFORMANCE_RECEIPTS: '/tmp/old',
+    },
+    '/tmp/receipts',
+  );
+  assert.deepEqual(env, { PATH: '/bin', PLUGIN_CONFORMANCE_RECEIPTS: '/tmp/receipts' });
 });

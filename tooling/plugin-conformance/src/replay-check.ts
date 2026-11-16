@@ -182,12 +182,21 @@ export function cargoMetadata(): CargoMetadata {
   return JSON.parse(run.stdout) as CargoMetadata;
 }
 
-/** Run the tests of `packages` with receipts on; true when cargo passed. */
-function runCargo(packages: readonly string[], receipts: string): boolean {
-  const env: NodeJS.ProcessEnv = { ...process.env, PLUGIN_CONFORMANCE_RECEIPTS: receipts };
+/** The environment cargo runs under: `base` with receipts written to
+ *  `receipts` and every variable that would weaken the proof removed. */
+export function childEnv(base: NodeJS.ProcessEnv, receipts: string): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...base, PLUGIN_CONFORMANCE_RECEIPTS: receipts };
   delete env.PLUGIN_CONFORMANCE_ONLY;
+  // `0` turns the member-order comparison off.
+  delete env.PLUGIN_CONFORMANCE_MEMBER_ORDER;
   // `member-order:allow`'s replacement allowlist: never part of the proof.
   delete env.PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW;
+  return env;
+}
+
+/** Run the tests of `packages` with receipts on; true when cargo passed. */
+function runCargo(packages: readonly string[], receipts: string): boolean {
+  const env = childEnv(process.env, receipts);
   const args = ['test', ...packages.flatMap((p) => ['-p', p]), '--tests', '--no-fail-fast'];
   console.log(
     `running cargo test over ${packages.length} crates (${packages.join(', ')}) with receipts in ${receipts}`,
