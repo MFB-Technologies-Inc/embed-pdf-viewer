@@ -4,8 +4,9 @@
  *   pnpm --filter @embedpdf/tooling-plugin-conformance run replay:check
  *   pnpm --filter @embedpdf/tooling-plugin-conformance run replay:check -- --receipts <dir>
  *
- * Runs `cargo test --workspace --tests --no-fail-fast` with
- * `PLUGIN_CONFORMANCE_RECEIPTS` pointing at a fresh temporary directory (and
+ * Runs `cargo test --tests --no-fail-fast` over `plugin-conformance` and every
+ * workspace crate with a normal or dev dependency on it (read from
+ * `cargo metadata` at run time), with `PLUGIN_CONFORMANCE_RECEIPTS` pointing at a fresh temporary directory (and
  * `PLUGIN_CONFORMANCE_ONLY` removed), so every `assert_suite` call writes a
  * receipt naming the cases it ran. Then it compares the union of the receipts
  * with the case names of every suite in `src/suites/`. A receipt shows a case
@@ -75,13 +76,71 @@ export function compareReceipts(expected: Map<string, string[]>, receipts: Recei
   return problems;
 }
 
-/** Every complete receipt in `dir`. The Rust side writes `*.partial` first and
- *  renames, so only `*.json` names are finished. */
-export async function readReceipts(dir: string): Promise<Receipt[]> {
-  const names = (await readdir(dir)).filter((name) => name.endsWith('.json')).sort();
-  return Promise.all(
-    names.map(async (name) => JSON.parse(await readFile(join(dir, name), 'utf8')) as Receipt),
-  );
+const isStrings = (value: unknown): boolean =>
+  Array.isArray(value) && value.every((item) => typeof item === 'string');
+
+/** Why `value` is not a receipt, or null when it is one. */
+function malformed(value: unknown): string | null {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return 'not an object';
+  const r = value as Record<string, unknown>;
+  if (typeof r.file !== 'string') return '"file" is not a string';
+  if (r.only !== null && typeof r.only !== 'string') return '"only" is not a string or null';
+  if (!isStrings(r.ran)) return '"ran" is not an array of strings';
+  if (!Array.isArray(r.exceptions)) return '"exceptions" is not an array';
+  if (!Array.isArray(r.memberOrderAllowed)) return '"memberOrderAllowed" is not an array';
+  return null;
+}
+
+/** Every complete receipt in `dir`, and one problem line per file that is not
+ *  a receipt. The Rust side writes `*.partial` first and renames, so only
+ *  `*.json` names are finished. */
+export async function readReceipts(
+  dir: string,
+): Promise<{ receipts: Receipt[]; problems: string[] }> {
+  const receipts: Receipt[] = [];
+  const problems: string[] = [];
+  for (const name of (await readdir(dir)).filter((n) => n.endsWith('.json')).sort()) {
+    let value: unknown;
+    try {
+      value = JSON.parse(await readFile(join(dir, name), 'utf8'));
+    } catch (error) {
+      problems.push(`${name}: malformed receipt (${(error as Error).message})`);
+      continue;
+    }
+    const why = malformed(value);
+    if (why) problems.push(`${name}: malformed receipt (${why})`);
+    else receipts.push(value as Receipt);
+  }
+  return { receipts, problems };
+}
+
+/** The part of `cargo metadata --format-version 1 --no-deps` this reads. */
+export interface CargoMetadata {
+  readonly workspace_members: readonly string[];
+  readonly packages: readonly {
+    readonly id: string;
+    readonly name: string;
+    readonly dependencies: readonly { readonly name: string; readonly kind: string | null }[];
+  }[];
+}
+
+const CONFORMANCE_CRATE = 'plugin-conformance';
+
+/** `plugin-conformance` and every workspace member with a normal or dev
+ *  dependency on it, sorted: the crates whose tests can call `assert_suite`. */
+export function replayPackages(metadata: CargoMetadata): string[] {
+  const members = new Set(metadata.workspace_members);
+  return metadata.packages
+    .filter((p) => members.has(p.id))
+    .filter(
+      (p) =>
+        p.name === CONFORMANCE_CRATE ||
+        p.dependencies.some(
+          (d) => d.name === CONFORMANCE_CRATE && (d.kind === null || d.kind === 'dev'),
+        ),
+    )
+    .map((p) => p.name)
+    .sort();
 }
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -109,12 +168,27 @@ async function expectedCases(): Promise<Map<string, string[]>> {
   return expected;
 }
 
-/** Run the Rust tests with receipts on; true when cargo passed. */
-function runCargo(receipts: string): boolean {
+/** Read the workspace's packages from cargo. */
+function cargoMetadata(): CargoMetadata {
+  const run = spawnSync('cargo', ['metadata', '--format-version', '1', '--no-deps'], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    maxBuffer: 256 * 1024 * 1024,
+    stdio: ['ignore', 'pipe', 'inherit'],
+  });
+  if (run.error) throw run.error;
+  if (run.status !== 0) throw new Error(`cargo metadata exited ${run.status}`);
+  return JSON.parse(run.stdout) as CargoMetadata;
+}
+
+/** Run the tests of `packages` with receipts on; true when cargo passed. */
+function runCargo(packages: readonly string[], receipts: string): boolean {
   const env: NodeJS.ProcessEnv = { ...process.env, PLUGIN_CONFORMANCE_RECEIPTS: receipts };
   delete env.PLUGIN_CONFORMANCE_ONLY;
-  const args = ['test', '--workspace', '--tests', '--no-fail-fast'];
-  console.log(`running cargo ${args.join(' ')} with receipts in ${receipts}`);
+  const args = ['test', ...packages.flatMap((p) => ['-p', p]), '--tests', '--no-fail-fast'];
+  console.log(
+    `running cargo test over ${packages.length} crates (${packages.join(', ')}) with receipts in ${receipts}`,
+  );
   const run = spawnSync('cargo', args, { cwd: repoRoot, env, stdio: 'inherit' });
   if (run.error) throw run.error;
   return run.status === 0;
@@ -131,15 +205,16 @@ async function main(): Promise<void> {
     ? resolve(given)
     : await mkdtemp(join(tmpdir(), 'plugin-conformance-receipts-'));
   let cargoPassed: boolean | null = null;
-  let receipts: Receipt[];
+  let read: { receipts: Receipt[]; problems: string[] };
   try {
-    if (!given) cargoPassed = runCargo(dir);
-    receipts = await readReceipts(dir);
+    if (!given) cargoPassed = runCargo(replayPackages(cargoMetadata()), dir);
+    read = await readReceipts(dir);
   } finally {
     if (!given) await rm(dir, { recursive: true, force: true });
   }
 
-  const problems = compareReceipts(expected, receipts);
+  const { receipts } = read;
+  const problems = [...read.problems, ...compareReceipts(expected, receipts)];
   const cases = [...expected.values()].reduce((n, names) => n + names.length, 0);
   console.log('');
   if (cargoPassed === null) console.log(`cargo: not run (read receipts from ${dir})`);

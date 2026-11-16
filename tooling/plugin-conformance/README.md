@@ -33,15 +33,17 @@ source: some `.rs` file under `crates/` must hold the path as a string literal
 (`"plugins/actions.json"`), as every `assert_suite` call does. A literal in a test that never runs
 would still pass, so treat that scan as a fast offline lint.
 
-`replay:check` is the proof. It runs `cargo test --workspace --tests --no-fail-fast` with
-`PLUGIN_CONFORMANCE_RECEIPTS` set to a fresh temporary directory and `PLUGIN_CONFORMANCE_ONLY`
-removed, so each `assert_suite` call writes a receipt of the cases it ran. It then compares those
-receipts with the case names of every suite in `src/suites/`. It fails on a vector file no test
-replayed, a case that never ran, a receipt from a filtered run, a receipt for a file no suite
-writes, or a case that ran but no suite writes (a stale vector file). A receipt records that a case
-ran, not that it passed, so it also fails when cargo fails, and prints both results. The cost is a
-full workspace test run. `-- --receipts <dir>` skips cargo and reads `<dir>` as it is; give it only
-a directory a single full run filled, because receipts left from an older run would vouch for cases
+`replay:check` is the proof. It runs `cargo test --tests --no-fail-fast` over `plugin-conformance`
+and every workspace crate with a normal or dev dependency on it, read from `cargo metadata` at run
+time, with `PLUGIN_CONFORMANCE_RECEIPTS` set to a fresh temporary directory and
+`PLUGIN_CONFORMANCE_ONLY` removed, so each `assert_suite` call writes a receipt of the cases it ran.
+It then compares those receipts with the case names of every suite in `src/suites/`. It fails on a
+vector file no test replayed, a case that never ran, a receipt from a filtered run, a receipt for a
+file no suite writes, a case that ran but no suite writes (a stale vector file), or a receipt it
+cannot parse. A receipt records that a case ran, not that it passed, so it also fails when cargo
+fails, and prints both results. The cost is a test run of every crate that depends on
+`plugin-conformance`. `-- --receipts <dir>` skips cargo and reads `<dir>` as it is; give it only a
+directory a single full run filled, because receipts left from an older run would vouch for cases
 the current tests no longer reach.
 
 `vectors/environment.json` records the ICU and Unicode versions of the Node that wrote the vectors
