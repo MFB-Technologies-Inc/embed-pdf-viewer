@@ -347,6 +347,29 @@ fn paged_lock(by: &str) -> StageSettingsLock {
     }
 }
 
+// Kept divergence STAGE-LOCK-ORDER (crates/plugin-conformance/divergences.json):
+// a lock's settings are recorded in setting order, where the TypeScript keeps
+// the caller's key order.
+#[test]
+fn a_locks_settings_are_listed_in_setting_order() {
+    let (kernel, stage) = placed(Default::default());
+    let _release = stage
+        .lock_settings(StageSettingsLock {
+            by: "slides".into(),
+            reason_key: None,
+            settings: StageSettingsPatch {
+                padding: Some(40.0),
+                flow: Some(FlowMode::Paged),
+                ..Default::default()
+            },
+        })
+        .expect("lock");
+    let state = model(&kernel);
+    let keys: Vec<&str> =
+        state["locks"].as_object().expect("locks").keys().map(String::as_str).collect();
+    assert_eq!(keys, ["flow", "padding"]);
+}
+
 #[test]
 fn a_lock_holds_a_setting_over_every_writer_until_it_is_released() {
     let (kernel, stage) = placed(Default::default());
