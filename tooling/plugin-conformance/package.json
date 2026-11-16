@@ -8,6 +8,7 @@
     "vectors:check": "tsx --conditions=development src/generate.ts --check",
     "coverage": "tsx --conditions=development src/coverage.ts",
     "coverage:check": "tsx --conditions=development src/coverage.ts --check",
+    "replay:check": "tsx --conditions=development src/replay-check.ts",
     "typecheck": "tsc --noEmit",
     "member-order:allow": "tsx src/member-order-allow.ts",
     "test:harness": "node --import=tsx --conditions=development --test test/harness.test.ts",

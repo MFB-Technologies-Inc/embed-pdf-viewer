@@ -11,6 +11,7 @@ pnpm --filter @embedpdf/tooling-plugin-conformance run vectors          # write
 pnpm --filter @embedpdf/tooling-plugin-conformance run vectors:check    # fail if stale, orphaned or unreplayed
 pnpm --filter @embedpdf/tooling-plugin-conformance run coverage         # write vectors/coverage.json
 pnpm --filter @embedpdf/tooling-plugin-conformance run coverage:check
+pnpm --filter @embedpdf/tooling-plugin-conformance run replay:check     # run the Rust tests, prove every case replayed
 pnpm --filter @embedpdf/tooling-plugin-conformance run test:harness    # runtime invariants
 pnpm --filter @embedpdf/tooling-plugin-conformance run audit:kernel    # every kernel scenario and refusal
 cargo test -p plugin-conformance                                        # replay the kernel
@@ -30,7 +31,18 @@ plugin's generator is one new file there. A suite writes one vector file:
 or renamed suite leaves behind, and on a file no Rust test replays. It reads the second from the
 source: some `.rs` file under `crates/` must hold the path as a string literal
 (`"plugins/actions.json"`), as every `assert_suite` call does. A literal in a test that never runs
-would still pass.
+would still pass, so treat that scan as a fast offline lint.
+
+`replay:check` is the proof. It runs `cargo test --workspace --tests --no-fail-fast` with
+`PLUGIN_CONFORMANCE_RECEIPTS` set to a fresh temporary directory and `PLUGIN_CONFORMANCE_ONLY`
+removed, so each `assert_suite` call writes a receipt of the cases it ran. It then compares those
+receipts with the case names of every suite in `src/suites/`. It fails on a vector file no test
+replayed, a case that never ran, a receipt from a filtered run, a receipt for a file no suite
+writes, or a case that ran but no suite writes (a stale vector file). A receipt records that a case
+ran, not that it passed, so it also fails when cargo fails, and prints both results. The cost is a
+full workspace test run. `-- --receipts <dir>` skips cargo and reads `<dir>` as it is; give it only
+a directory a single full run filled, because receipts left from an older run would vouch for cases
+the current tests no longer reach.
 
 `vectors/environment.json` records the ICU and Unicode versions of the Node that wrote the vectors
 (`process.versions.icu`). ICU decides `Intl.PluralRules` (i18n plurals) and `localeCompare` (render
