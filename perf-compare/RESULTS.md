@@ -2,15 +2,18 @@
 
 The plugins tip after the upstream catch-up, `2aaa8f841` (`plugins-next`), is slower than upstream
 `main` at `ed064e0c8` (`main-now`) on 44 of 63 rows and faster on 1. Its median latency row is
-1.239x and its median main-thread row 1.603x. Opening is the largest latency gap (`open(ebook)`
-settles in 538.7 ms against 356.1), and `searchLarge` main-thread JavaScript the largest CPU gap
-(1,268.1 ms against 360.6, 3.517x). Upstream itself moved: `main-now` against the old `main`
-(`2516e2786`) is 1.034x latency and 1.257x main thread, so the tip's 1.246x and 1.859x against
-`main` are not the port's cost alone. Building the tip's kernel with LTO (`plugins-next-lto`)
-makes `open` 7.8 to 12.1% cheaper on the main thread and changes nothing measurable elsewhere (54 of
-63 rows no different), at 4.33 MiB more kernel wasm. The tip against `9d6c2eca1` isn't measured:
-that build needs a fork build this machine's container can't do. `FINDINGS.md`, "The tip after
-the catch-up, against upstream main", has each no-difference row's threshold and the build notes.
+1.239x and its median main-thread row 1.603x (`node scripts/summary.mjs`). Opening is the largest
+latency gap (`open(ebook)` settles in 538.7 ms against 356.1), and `searchLarge` main-thread
+JavaScript the largest CPU gap (1,268.1 ms against 360.6, 3.517x). Four of the slower settle rows
+(`zoom`, `selectLarge`, `annotate`, `annotateLarge`) are within how far the unchanged `main` build
+moved since 2026-10-13, so they're unconfirmed. Upstream itself moved: `main-now` against the old
+`main` (`2516e2786`) is 1.034x latency and 1.257x main thread, so the tip's 1.246x and 1.859x
+against `main` are not the port's cost alone. Building the tip's kernel with LTO
+(`plugins-next-lto`) puts `open`'s main-thread rows at 0.879x to 0.922x and changes nothing
+measurable elsewhere (54 of 63 rows no different), with a 14.68 MiB kernel wasm against 10.35 MiB.
+The tip against `9d6c2eca1` isn't measured: that build needs a fork build this machine's container
+can't do. `FINDINGS.md`, "The tip after the catch-up, against upstream main", has each
+no-difference row's threshold, the run-to-run drift and the build notes.
 
 # Viewer perf comparison: 2026-11-16T20-20-49-728Z-macmini2020-desktop
 

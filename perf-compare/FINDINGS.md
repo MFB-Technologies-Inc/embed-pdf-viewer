@@ -888,32 +888,47 @@ CIPD for `infra/rbe/client/linux-arm64`, which doesn't exist, and the fork's DEP
 `third_party/llvm-build` to a `Linux_x64` clang. The build needs an amd64 host.
 
 Against `main-now`, the tip is slower on 44 rows, faster on 1, and no different on 18. The median
-latency row is 1.239x and the median main-thread row 1.603x (summary.mjs's rule, applied to this
-pair). Startup is the largest latency gap: `open(ebook) / readyMs` 52.8 to 109.9 ms (2.081x),
-`openedMs` 201.3 to 288.6 ms (1.434x), `settledMs` 356.1 to 538.7 ms (1.513x), with `open(large)`
-close behind. Main-thread JavaScript is 1.750x on `scroll` (859.6 to 1,504.5 ms), 1.751x on
-`coldScroll`, 1.803x on `jump` and 3.517x on `searchLarge` (360.6 to 1,268.1 ms), which is the
-widest gap in the run and the first place to profile. `searchLarge / searchMs` itself shows no
-difference (threshold ±3.0%). The settle rows that moved are 10.6 to 49.8 ms slower, except
-`zoom / backTo1SettleMs`, 47.9 ms faster. The other 17 no-difference rows, with thresholds:
-`scroll` and `coldScroll` `settleMs` ±0.0, `wallMs` ±3.0%, `frameP50Ms` ±3.0%, `frameP95Ms`
-±3.8% and ±3.0%, `jankFrames` ±0, `longTasks` ±0 and `longTaskMs` ±0.0; `zoom / zoom4SettleMs`
-±21.2; `zoomLarge / backTo1SettleMs` ±7.8; `select / settleMs` ±12.0.
+latency row is 1.239x and the median main-thread row 1.603x (`node scripts/summary.mjs results/<run>
+main-now` prints them). Startup is the largest latency gap: `open(ebook) / readyMs` 52.8 to 109.9 ms
+(2.081x), `openedMs` 201.3 to 288.6 ms (1.434x), `settledMs` 356.1 to 538.7 ms (1.513x), with
+`open(large)` close behind. Main-thread JavaScript is 1.750x on `scroll` (859.6 to 1,504.5 ms),
+1.751x on `coldScroll`, 1.803x on `jump` and 3.517x on `searchLarge` (360.6 to 1,268.1 ms), which is
+the widest gap in the run and the first place to profile. `searchLarge / searchMs` itself shows no
+difference (threshold ±3.0%). The settle rows that moved are 10.6 to 49.8 ms slower, except `zoom /
+backTo1SettleMs`, 47.9 ms faster. Four of them are unconfirmed, because the unchanged `main` build
+moved as much or more on the same row between runs (below): `zoom / settleMs` +47.0, `selectLarge /
+settleMs` +32.4, `annotate / settleMs` +10.6 and `annotateLarge / settleMs` +15.6. The other 17
+no-difference rows, with thresholds: `scroll` and `coldScroll` `settleMs` ±0.0, `wallMs` ±3.0%,
+`frameP50Ms` ±3.0%, `frameP95Ms` ±3.8% and ±3.0%, `jankFrames` ±0, `longTasks` ±0 and `longTaskMs`
+±0.0; `zoom / zoom4SettleMs` ±21.2; `zoomLarge / backTo1SettleMs` ±7.8; `select / settleMs` ±12.0.
 
 Against `main`, the tip reads 1.246x latency and 1.859x main thread (46 slower, 1 faster, 16 no
-difference). That isn't the port's cost alone: `main` against `main-now` is upstream's own
-movement since `2516e2786`, 1.034x latency and 1.257x main thread (36 slower, 8 faster, 19 no
-difference). Upstream got faster at reaching `readyMs` (0.825x on both fixtures), at
-`open(large)` main thread (0.625x JavaScript) and at `search / searchMs` (81.7 to 40.7 ms,
-0.497x). It got slower at opening `ebook` (`openedMs` 1.475x), at `scroll` and `coldScroll` main
-thread (1.387x and 1.461x JavaScript), at zoom settling (`zoom / settleMs` +153.0 ms) and at
-`searchLarge / searchMs` (1,886.8 to 2,231.9 ms, 1.183x). Its no-difference rows: `scroll` and
-`coldScroll` `settleMs` ±0.0, `frameP50Ms` ±3.0%, `frameP95Ms` ±3.8% and ±3.0%, `jankFrames` ±0,
-`longTasks` ±0 and `longTaskMs` ±0.0; `zoomLarge / settleMs` ±26.3, `zoom2SettleMs` ±19.2 and
-`zoom4SettleMs` ±5.4; `select / settleMs` ±12.0; `selectLarge / settleMs` ±13.8;
-`search / mainTaskMs` ±5.7%; `annotateLarge / mainTaskMs` ±3.4%. For scale only, since runs don't
-compare: on 2026-10-13 the tip before the catch-up read 1.088x latency and 1.423x main thread
-against the same `main` build.
+difference). That isn't the port's cost alone: `main` against `main-now` is upstream's own movement
+since `2516e2786`, 1.034x latency and 1.257x main thread (36 slower, 8 faster, 19 no difference).
+Upstream got faster at reaching `readyMs` (0.825x on both fixtures), at `open(large)` main thread
+(0.625x JavaScript) and at `search / searchMs` (81.7 to 40.7 ms, 0.497x). It got slower at opening
+`ebook` (`openedMs` 1.475x), at `scroll` and `coldScroll` main thread (1.387x and 1.461x
+JavaScript), at zoom settling (`zoom / settleMs` +153.0 ms) and at `searchLarge / searchMs` (1,886.8
+to 2,231.9 ms, 1.183x). Its no-difference rows: `scroll` and `coldScroll` `settleMs` ±0.0,
+`frameP50Ms` ±3.0%, `frameP95Ms` ±3.8% and ±3.0%, `jankFrames` ±0, `longTasks` ±0 and `longTaskMs`
+±0.0; `zoomLarge / settleMs` ±26.3, `zoom2SettleMs` ±19.2 and `zoom4SettleMs` ±5.4; `select /
+settleMs` ±12.0; `selectLarge / settleMs` ±13.8; `search / mainTaskMs` ±5.7%; `annotateLarge /
+mainTaskMs` ±3.4%. Of upstream's moved settle rows, `zoomLarge / backTo1SettleMs` +54.3, `annotate /
+settleMs` -11.9 and `annotateLarge / settleMs` -14.8 are inside `main`'s run-to-run drift and
+unconfirmed; `zoom / settleMs` +153.0 is not.
+
+The same `main` build (`2516e2786`, engine wasm `98c2368a774d` in both) ran on 2026-10-13
+(`results/2026-10-13T02-28-33-711Z-macmini2020-desktop`). Between the two runs its median
+latency row moved 1.014x and its median main-thread row 1.699x, from `node scripts/summary.mjs
+results/2026-11-16T20-20-49-728Z-macmini2020-desktop --drift
+results/2026-10-13T02-28-33-711Z-macmini2020-desktop main`. Its settle rows moved from -58.7 ms
+(`zoom / zoom4SettleMs`) to +73.3 ms (`annotateLarge / settleMs`). The main-thread move is not
+noise alone: the earlier run predates the probe correction (it records no `probeSha256`; this one
+has `29ce19545e8b`), whose visibility sampling adds main-thread work, the Mac mini went from
+Darwin 27.2.0 to 27.3.0, and the entry was rebuilt (`jsBytes` 3,536,548 to 3,536,649). So
+main-thread numbers from before 2026-11-16 don't compare with these at all. For the record only,
+the tip before the catch-up read 1.088x latency and 1.423x main thread against `main` on
+2026-10-13.
 
 LTO still helps only where the kernel starts. Against `plugins-next`, `plugins-next-lto` is
 faster on 7 rows, slower on 2 and no different on 54; the median latency row is 1.000x and the
@@ -939,7 +954,7 @@ Memory moved with upstream as much as with the port. After opening `ebook` the p
 34.38 MiB on `main`, 50.72 MiB on `main-now` and 56.36 MiB on the tip; for `large` it is 48.19,
 52.68 and 71.22 MiB. The worker heap is the same on `main-now` and the tip (27.72 and 27.70 MiB).
 The kernel's `refs` table grows from 1,026 at soak cycle 5 to 1,526 at cycle 30 on both
-`plugins-next` arms, 20 a cycle, while the heap slope stays at 0.03 MiB. We haven't checked
+`plugins-next` arms, while the heap slope stays at 0.03 MiB. We haven't checked
 whether that predates the catch-up.
 
 How the arms were driven and built. The catch-up renamed the viewer calls the entry makes, so
