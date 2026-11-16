@@ -872,3 +872,87 @@ median on the remote was 245, 244 and 220 ms across three runs of the same build
 differ by about 20 ms on the row here. Against `main`, main-thread time is 1.423x (1.433x before);
 latency reads 1.088x against 1.042x, from rows that each moved inside their noise. The kernel wasm
 grows 0.29 MiB (8.06 to 8.35), 0.04 MiB brotli.
+
+### The tip after the catch-up, against upstream main
+
+The plugins tip is now `2aaa8f841` (arm `plugins-next`), after the upstream catch-up. Upstream
+`main` has moved to `ed064e0c8` (arm `main-now`), and `main` stays at `2516e2786` so earlier runs
+keep their baseline. `plugins-next-lto` is the tip's kernel built with the `rust-kernel-lto`
+recipe. The run is `results/2026-11-16T20-20-49-728Z-macmini2020-desktop`: R=10 on the Mac mini,
+harness `92c3bb74e`, A/A 63 of 63, all five arms through the gate, 700 samples with none failed.
+
+The tip against `9d6c2eca1` isn't measured. `plugins-base` is still pinned there in `arms.json`,
+but its fork commit `7c7b600b1` has no prebuilt `wasm32-eh` archive and no published payload
+(hash `e1b4027f945241e7`). A cold fork build failed in the arm64 Linux container: gclient asks
+CIPD for `infra/rbe/client/linux-arm64`, which doesn't exist, and the fork's DEPS pins
+`third_party/llvm-build` to a `Linux_x64` clang. The build needs an amd64 host.
+
+Against `main-now`, the tip is slower on 44 rows, faster on 1, and no different on 18. The median
+latency row is 1.239x and the median main-thread row 1.603x (summary.mjs's rule, applied to this
+pair). Startup is the largest latency gap: `open(ebook) / readyMs` 52.8 to 109.9 ms (2.081x),
+`openedMs` 201.3 to 288.6 ms (1.434x), `settledMs` 356.1 to 538.7 ms (1.513x), with `open(large)`
+close behind. Main-thread JavaScript is 1.750x on `scroll` (859.6 to 1,504.5 ms), 1.751x on
+`coldScroll`, 1.803x on `jump` and 3.517x on `searchLarge` (360.6 to 1,268.1 ms), which is the
+widest gap in the run and the first place to profile. `searchLarge / searchMs` itself shows no
+difference (threshold ±3.0%). The settle rows that moved are 10.6 to 49.8 ms slower, except
+`zoom / backTo1SettleMs`, 47.9 ms faster. The other 17 no-difference rows, with thresholds:
+`scroll` and `coldScroll` `settleMs` ±0.0, `wallMs` ±3.0%, `frameP50Ms` ±3.0%, `frameP95Ms`
+±3.8% and ±3.0%, `jankFrames` ±0, `longTasks` ±0 and `longTaskMs` ±0.0; `zoom / zoom4SettleMs`
+±21.2; `zoomLarge / backTo1SettleMs` ±7.8; `select / settleMs` ±12.0.
+
+Against `main`, the tip reads 1.246x latency and 1.859x main thread (46 slower, 1 faster, 16 no
+difference). That isn't the port's cost alone: `main` against `main-now` is upstream's own
+movement since `2516e2786`, 1.034x latency and 1.257x main thread (36 slower, 8 faster, 19 no
+difference). Upstream got faster at reaching `readyMs` (0.825x on both fixtures), at
+`open(large)` main thread (0.625x JavaScript) and at `search / searchMs` (81.7 to 40.7 ms,
+0.497x). It got slower at opening `ebook` (`openedMs` 1.475x), at `scroll` and `coldScroll` main
+thread (1.387x and 1.461x JavaScript), at zoom settling (`zoom / settleMs` +153.0 ms) and at
+`searchLarge / searchMs` (1,886.8 to 2,231.9 ms, 1.183x). Its no-difference rows: `scroll` and
+`coldScroll` `settleMs` ±0.0, `frameP50Ms` ±3.0%, `frameP95Ms` ±3.8% and ±3.0%, `jankFrames` ±0,
+`longTasks` ±0 and `longTaskMs` ±0.0; `zoomLarge / settleMs` ±26.3, `zoom2SettleMs` ±19.2 and
+`zoom4SettleMs` ±5.4; `select / settleMs` ±12.0; `selectLarge / settleMs` ±13.8;
+`search / mainTaskMs` ±5.7%; `annotateLarge / mainTaskMs` ±3.4%. For scale only, since runs don't
+compare: on 2026-10-13 the tip before the catch-up read 1.088x latency and 1.423x main thread
+against the same `main` build.
+
+LTO still helps only where the kernel starts. Against `plugins-next`, `plugins-next-lto` is
+faster on 7 rows, slower on 2 and no different on 54; the median latency row is 1.000x and the
+median main-thread row 0.988x. The gains are all in `open`: `open(ebook) / mainJsMs` 0.879x (363.3
+to 319.5 ms), `settledMs` 0.915x, `firstPaintMs` 0.909x, `mainTaskMs` 0.904x, and on
+`open(large)` `mainJsMs` 0.903x, `mainTaskMs` 0.922x and `firstPaintMs` 0.931x. `readyMs` is
+slower on both fixtures (1.115x and 1.101x), most likely the larger module's compile: the kernel
+wasm is 14.68 MiB against 10.35 MiB (2.69 against 2.44 MiB brotli). The engine wasm is the same
+file in both arms. No-difference rows, with thresholds: `open(ebook) / openedMs` ±4.6%;
+`open(large) / openedMs` ±3.0% and `settledMs` ±4.4%; on `scroll` and on `coldScroll`, `settleMs`
+±0.0, `wallMs` ±3.0%, `frameP50Ms` ±3.0%, `frameP95Ms` ±3.8% and ±3.0%, `jankFrames` ±0,
+`longTasks` ±0, `longTaskMs` ±0.0, `mainTaskMs` ±3.0% and `mainJsMs` ±3.0%; `jump` `settleMs`
+±11.3, `mainTaskMs` ±6.0%, `mainJsMs` ±9.7%; `zoom` `settleMs` ±25.9, `zoom2SettleMs` ±7.0,
+`zoom4SettleMs` ±21.2, `backTo1SettleMs` ±10.0, `mainTaskMs` and `mainJsMs` ±3.0%; `zoomLarge`
+`settleMs` ±26.3, `zoom2SettleMs` ±19.2, `zoom4SettleMs` ±5.4, `backTo1SettleMs` ±7.8,
+`mainTaskMs` and `mainJsMs` ±3.0%; `select` `settleMs` ±12.0, `mainTaskMs` ±5.3%, `mainJsMs`
+±9.5%; `selectLarge` `settleMs` ±13.8, `mainTaskMs` ±9.6%, `mainJsMs` ±8.1%; `search`
+`searchMs` ±3.0%, `mainTaskMs` ±5.7%, `mainJsMs` ±11.2%; `searchLarge` `searchMs`, `mainTaskMs`
+and `mainJsMs` ±3.0%; `annotate` `settleMs` ±8.7, `mainTaskMs` ±3.3%, `mainJsMs` ±6.2%;
+`annotateLarge` `settleMs` ±8.8, `mainTaskMs` ±3.4%, `mainJsMs` ±4.1%.
+
+Memory moved with upstream as much as with the port. After opening `ebook` the page heap is
+34.38 MiB on `main`, 50.72 MiB on `main-now` and 56.36 MiB on the tip; for `large` it is 48.19,
+52.68 and 71.22 MiB. The worker heap is the same on `main-now` and the tip (27.72 and 27.70 MiB).
+The kernel's `refs` table grows from 1,026 at soak cycle 5 to 1,526 at cycle 30 on both
+`plugins-next` arms, 20 a cycle, while the heap slope stays at 0.03 MiB. We haven't checked
+whether that predates the catch-up.
+
+How the arms were driven and built. The catch-up renamed the viewer calls the entry makes, so
+`92c3bb74e` adds `entry/api-v1.ts` and `entry/api-v2.ts` and picks one per arm from its stage
+contract (`lib/api-generation.mjs`). `main` and `main-aa` ran v1; `main-now`, `plugins-next` and
+`plugins-next-lto` ran v2. The same commit lets the gate read a selection's line breaks as one:
+the catch-up's engine ends each selected line with ` \n` where `2516e2786` gives `\r\n`, and
+otherwise the 150 characters match. The arms built in the arm64 Linux devcontainer. There,
+`packages/engine/runtime/build/generate-functions.mjs` parses the fork headers with the host
+`clang` and no target, so `uint64_t` reads as `unsigned long` and is bound as `i32`; the ABI check
+then fails on `EPDFAttachment_ExtractFile` and `EPDFAttachment_ExtractFileToOwnedBuffer` (5
+arguments against 6). The build used a PATH shim that retargets only that header dump to
+`wasm32-unknown-emscripten`. With it the generator reproduces the tracked
+`pdf-functions.generated.ts` byte for byte and all 1,061 bindings pass. The plugins arms link
+fork `17d8073d4`'s released `wasm32-eh` archive (`libembedpdf.a` sha256 `315bb221...`) rather than
+a local fork build.
