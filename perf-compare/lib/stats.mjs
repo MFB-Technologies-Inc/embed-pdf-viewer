@@ -93,22 +93,28 @@ export function noiseBand(interval) {
   return Math.max(Math.abs(centre - interval.lo), Math.abs(interval.hi - centre));
 }
 
+// The smallest change `verdict` calls a difference: the A/A noise band or
+// the 3% floor, whichever is wider. A ratio's is a fraction of 1.0; a
+// difference's is in the metric's unit, its floor 3% of the reference
+// median. With a zero reference the floor is 0, and any difference the
+// interval resolves counts.
+export function threshold(interval, noise) {
+  return interval.kind === 'difference' ? Math.max(FLOOR * interval.scale, noise) : Math.max(FLOOR, noise);
+}
+
 // Every metric is lower-is-better, so "slower" means the candidate is worse,
 // whatever the unit.
 export function verdict(interval, noise) {
   checkFinite(interval);
   const { lo, hi } = interval;
+  const t = threshold(interval, noise);
   if (interval.kind === 'difference') {
-    // The 3% floor is relative to the reference median. With a zero
-    // reference it is 0, and any difference the interval resolves counts.
-    const threshold = Math.max(FLOOR * interval.scale, noise);
-    if (lo > 0 && interval.diff > threshold) return 'slower';
-    if (hi < 0 && -interval.diff > threshold) return 'faster';
+    if (lo > 0 && interval.diff > t) return 'slower';
+    if (hi < 0 && -interval.diff > t) return 'faster';
     return 'same';
   }
-  const threshold = Math.max(FLOOR, noise);
-  if (lo > 1 && interval.ratio - 1 > threshold) return 'slower';
-  if (hi < 1 && 1 - interval.ratio > threshold) return 'faster';
+  if (lo > 1 && interval.ratio - 1 > t) return 'slower';
+  if (hi < 1 && 1 - interval.ratio > t) return 'faster';
   return 'same';
 }
 

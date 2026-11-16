@@ -1,6 +1,9 @@
 // results/<run-id>/ -> report.md (and stdout).
 //
-//   node report.mjs <results/run-id | --latest> [--against <results/other>] [--publish]
+//   node report.mjs <results/run-id | --latest> [--publish]
+//
+// Every comparison is between arms of one run. Two runs don't share a noise
+// band, so `--against` is gone and exits 2.
 //
 // Deterministic: the bootstrap is seeded, so the same raw data prints the
 // same report.
@@ -9,8 +12,8 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { loadConfig } from './lib/config.mjs';
-import { compatible, distSizes } from './lib/env.mjs';
-import { bootstrapDifference, bootstrapRatio, calibrate, comparePair, summarize } from './lib/stats.mjs';
+import { distSizes } from './lib/env.mjs';
+import { bootstrapDifference, bootstrapRatio, calibrate, comparePair, summarize, threshold } from './lib/stats.mjs';
 import { workDir } from './scripts/materialize.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -74,7 +77,13 @@ const fmt = (metric, v) => {
 const fmtDiff = (metric, v) => (v >= 0 ? '+' : '') + fmt(metric, v);
 const cell = (metric, values) => {
   const s = summarize(values);
-  return `${fmt(metric, s.median)} [${fmt(metric, s.p95)}]`;
+  return `${fmt(metric, s.median)} [${fmt(metric, s.max)}]`;
+};
+// The change a row must clear to get a verdict other than "no detectable
+// difference": a ratio's as a percentage, a difference's in the metric's unit.
+const thresholdText = (metric, iv, noise) => {
+  const t = threshold(iv, noise);
+  return iv.kind === 'difference' ? `±${fmt(metric, t)}` : `±${(t * 100).toFixed(1)}%`;
 };
 
 function interval(metric, reference, candidate) {
@@ -105,30 +114,32 @@ function calibrations(allRows, config) {
   return out;
 }
 
-function pairTable(allRows, calib, ref, cand, { skip = MEMORY } = {}) {
+function pairTable(allRows, calib, ref, cand) {
   const body = [];
   for (const [key, row] of allRows) {
-    if (skip.includes(row.metric)) continue;
+    if (MEMORY.includes(row.metric)) continue;
     const r = row.byArm[ref];
     const c = row.byArm[cand];
     if (!r || !c) continue;
     let ivText = '';
+    let thresholdCell = '';
     let verdict;
     try {
       const iv = interval(row.metric, r, c);
       ivText = intervalText(row.metric, iv);
       const cal = calib.get(key);
+      if (cal?.ok) thresholdCell = thresholdText(row.metric, iv, cal.noise);
       verdict = !cal ? 'no A/A data' : cal.ok ? comparePair(iv, cal) : 'unreliable (A/A failed)';
       if (verdict === 'same') verdict = 'no detectable difference';
     } catch (error) {
       verdict = `invalid: ${error.message}`;
     }
-    body.push([row.label, cell(row.metric, r), cell(row.metric, c), ivText, verdict]);
+    body.push([row.label, cell(row.metric, r), cell(row.metric, c), ivText, thresholdCell, verdict]);
   }
   return body;
 }
 
-function report(run, config, against) {
+function report(run, config) {
   const { meta, gate, samples } = run;
   const lines = [];
   const push = (...l) => lines.push(...l);
@@ -215,7 +226,7 @@ function report(run, config, against) {
   }
   const passed = aaBody.filter((r) => r[4] === 'pass').length;
   push(`${passed} of ${aaBody.length} rows pass.`, '');
-  push(table(['Row', `${noiseRef} median [p95]`, `${noiseCand} median [p95]`, 'ratio or diff [95% CI]', 'A/A'], aaBody));
+  push(table(['Row', `${noiseRef} median [max]`, `${noiseCand} median [max]`, 'ratio or diff [95% CI]', 'A/A'], aaBody));
 
   for (const [ref, cand] of config.pairs) {
     if (ref === noiseRef && cand === noiseCand) continue;
@@ -230,14 +241,14 @@ function report(run, config, against) {
       push(out.map((id) => `\`${id}\` excluded: ${gate[id].reason}`).join('\n\n'));
       continue;
     }
-    push(table(['Row', `${ref} median [p95]`, `${cand} median [p95]`, 'ratio or diff [95% CI]', 'Verdict'], pairTable(allRows, calib, ref, cand)));
+    push(table(['Row', `${ref} median [max]`, `${cand} median [max]`, 'ratio or diff [95% CI]', 'threshold', 'Verdict'], pairTable(allRows, calib, ref, cand)));
   }
 
   push('', '## Memory', '');
   if (meta.memorySource === 'cdp') push('JS heap only, wasm linear memory not included.', '');
   const memRows = [...allRows.values()].filter((r) => MEMORY.includes(r.metric));
   const memArms = meta.armsRun.filter((id) => gate[id]?.pass);
-  push(table(['Row', ...memArms.map((id) => `${id} median [p95]`)], memRows.map((r) => [r.label, ...memArms.map((id) => (r.byArm[id] ? cell(r.metric, r.byArm[id]) : ''))])));
+  push(table(['Row', ...memArms.map((id) => `${id} median [max]`)], memRows.map((r) => [r.label, ...memArms.map((id) => (r.byArm[id] ? cell(r.metric, r.byArm[id]) : ''))])));
 
   const diag = samples.filter((s) => s.diagnostics);
   if (diag.length) {
@@ -250,35 +261,20 @@ function report(run, config, against) {
     }
   }
 
-  if (against) {
-    push('', `## Against ${against.meta.runId}`, '', `Reference is the other run; verdicts use this run's A/A noise bands.`);
-    const other = rows(against.samples);
-    for (const arm of meta.armsRun.filter((id) => against.meta.armsRun.includes(id))) {
-      const merged = new Map();
-      for (const [key, row] of allRows) {
-        const o = other.get(key)?.byArm[arm];
-        if (o && row.byArm[arm]) merged.set(key, { ...row, byArm: { before: o, after: row.byArm[arm] } });
-      }
-      push('', `### \`${arm}\``, '', table(['Row', 'before median [p95]', 'after median [p95]', 'ratio or diff [95% CI]', 'Verdict'], pairTable(merged, calib, 'before', 'after', { skip: [] })));
-    }
-  }
   return lines.join('\n') + '\n';
 }
 
+if (values.against !== undefined) {
+  console.error(
+    'cross-run comparison removed: two runs do not share an A/A noise band, so a verdict across them is not one this harness can back. Put both builds in one run as arms and compare the pair.',
+  );
+  process.exit(2);
+}
 const dir = values.latest ? latestRun() : positionals[0] && path.resolve(positionals[0]);
-if (!dir) throw new Error('usage: node report.mjs <results/run-id | --latest> [--against <results/other>] [--publish]');
+if (!dir) throw new Error('usage: node report.mjs <results/run-id | --latest> [--publish]');
 const run = loadRun(dir);
 const config = loadConfig();
-let against = null;
-if (values.against) {
-  against = loadRun(path.resolve(values.against));
-  const differing = compatible(run.meta, against.meta);
-  if (differing.length) {
-    console.error(`refusing to compare: the runs differ in ${differing.join(', ')}`);
-    process.exit(1);
-  }
-}
-const text = report(run, config, against);
+const text = report(run, config);
 writeFileSync(path.join(dir, 'report.md'), text);
 process.stdout.write(text);
 if (values.publish) {
