@@ -462,6 +462,10 @@ impl DocumentSecurity for JsSecurity {
         self.check("allows", &[json!(capability)])
     }
 
+    fn allows_field(&self, action: &str, target: &Value) -> bool {
+        self.check("allowsField", &[json!(action), target.clone()])
+    }
+
     fn allows_annotation_create(&self) -> bool {
         self.check("allowsAnnotationCreate", &[])
     }

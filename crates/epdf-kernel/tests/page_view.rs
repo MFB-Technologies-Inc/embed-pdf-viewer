@@ -31,6 +31,9 @@ impl DocumentSecurity for Open {
     fn allows(&self, _: &str) -> bool {
         true
     }
+    fn allows_field(&self, _: &str, _: &Value) -> bool {
+        true
+    }
     fn allows_annotation_create(&self) -> bool {
         true
     }

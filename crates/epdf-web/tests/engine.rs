@@ -71,6 +71,10 @@ return {
     if (member === 'allows') return JSON.stringify(JSON.parse(args)[0] === 'doc.render');
     if (member === 'passwordPrompt') return '{"state":"required"}';
     if (member === 'effectiveScope') return '["doc.render"]';
+    if (member === 'allowsField') {
+      const [action, target] = JSON.parse(args);
+      return JSON.stringify(action === 'fill' && target.groupId === null);
+    }
     throw new Error('no such read');
   },
   pageIndex(doc, pon) {
@@ -236,6 +240,22 @@ async fn synchronous_reads_go_to_the_bridge_each_time() {
     assert_eq!(
         log(&stub).as_array().unwrap().last().unwrap(),
         &json!(["call", "a", "security.unlock", null, r#"[{"password":"pw"}]"#])
+    );
+}
+
+#[wasm_bindgen_test]
+async fn a_field_check_goes_to_the_bridge() {
+    reset();
+    let stub = stub();
+    let doc = open(&stub).await;
+    let security = doc.security();
+    // `ctx.allowsField(action, field)` asks `doc.security.allowsField`
+    // (`packages/core/main/src/context.ts:264`), never a refusing default.
+    assert!(security.allows_field("fill", &json!({"groupId": null})));
+    assert!(!security.allows_field("sign", &json!({"groupId": null})));
+    assert_eq!(
+        log(&stub).as_array().unwrap().last().unwrap(),
+        &json!(["security", "allowsField", r#"["sign",{"groupId":null}]"#])
     );
 }
 

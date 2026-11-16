@@ -284,6 +284,9 @@ impl DocumentSecurity for Gated {
     fn allows(&self, capability: &str) -> bool {
         if capability == "doc.annotate.read" { self.1.get() } else { self.0.allows(capability) }
     }
+    fn allows_field(&self, action: &str, target: &Value) -> bool {
+        self.0.allows_field(action, target)
+    }
     fn allows_annotation_create(&self) -> bool {
         self.0.allows_annotation_create()
     }

@@ -73,9 +73,12 @@ pub trait Engine {
 
 pub trait DocumentSecurity {
     fn allows(&self, capability: &str) -> bool;
-    fn allows_field(&self, _action: &str, _target: &Value) -> bool {
-        false
-    }
+    /// `allowsField(action, target)`: whether the session may `fill` or
+    /// `sign` the field in `target.groupId`, or `set-group` a field to it.
+    /// Required, not defaulted: a host that forgot it would refuse every
+    /// field, which is how epdf-web's `JsSecurity` once disabled every
+    /// widget of an unrestricted file.
+    fn allows_field(&self, action: &str, target: &Value) -> bool;
     fn allows_annotation(&self, action: &str, target: &Value) -> bool {
         if action == "create" {
             self.allows_annotation_create()

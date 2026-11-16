@@ -32,6 +32,9 @@ impl DocumentSecurity for Security {
     fn allows(&self, permission: &str) -> bool {
         self.0.borrow().contains(&permission)
     }
+    fn allows_field(&self, _: &str, _: &Value) -> bool {
+        false
+    }
     fn allows_annotation_create(&self) -> bool {
         false
     }

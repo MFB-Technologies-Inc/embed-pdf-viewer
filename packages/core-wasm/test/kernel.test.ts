@@ -16,6 +16,7 @@ import { CommandsToken } from '@embedpdf/plugin-commands';
 import { ShellToken } from '@embedpdf/plugin-shell';
 import { AnnotationToken } from '@embedpdf/plugin-annotation';
 import { SearchToken } from '@embedpdf/plugin-search';
+import { FormToken } from '@embedpdf/plugin-form/contract/host';
 
 import { RenderToken } from '@embedpdf/plugin-render/contract/host';
 
@@ -24,6 +25,7 @@ import {
   annotationPlugin,
   commandsPlugin,
   createKernel,
+  formPlugin,
   interactionPlugin,
   kernelCounts,
   renderPlugin,
@@ -215,6 +217,22 @@ describe('the Kernel shim over the Rust kernel', () => {
     expect(first).not.toBeNull();
     expect(second).not.toBeNull();
     expect(second!.start).not.toBe(first!.start);
+  });
+
+  test("an unrestricted document's form widgets take input", async () => {
+    // The form plugin asks `ctx.allowsField('fill', field)`, which the TS
+    // kernel answers from `doc.security.allowsField` (true for an
+    // unencrypted file opened with every scope).
+    const toggles = new Uint8Array(await readFile(resolve(fixtures, 'toggle_fields.pdf')));
+    const k = await openFixture([stagePlugin(), interactionPlugin(), formPlugin()], toggles);
+    const stage = k.capability(StageToken, 'fixture');
+    stage.setViewportSize({ width: 800, height: 600 });
+    const page = stage.listVisiblePages()[0].ref;
+    const form = k.capability(FormToken, 'fixture');
+    await form.ensureLoaded(page);
+    const widgets = form.listWidgets(page);
+    expect(widgets.length).toBeGreaterThan(0);
+    expect(widgets.map((widget) => widget.disabled)).toEqual(widgets.map(() => false));
   });
 
   test('a getter inside a subscribe listener sees a mutation made in that listener', async () => {
