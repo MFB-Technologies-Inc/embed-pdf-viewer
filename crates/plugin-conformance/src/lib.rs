@@ -210,6 +210,9 @@ fn assert_suite_with_ledger(
         let _allowed = canonical::allow_member_order(allowed_paths);
         match suite["kind"].as_str() {
             Some("scenario") => {
+                // A case that ran counts as seen even when it panics, so its
+                // observations are not also reported as never ran.
+                exceptions_seen.push(name.to_string());
                 let run = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                     scenario::run_case(case, registry)
                 }));
@@ -230,7 +233,6 @@ fn assert_suite_with_ledger(
                         for (divergence, observation) in
                             exceptions::observations(ledger, file, name)
                         {
-                            exceptions_seen.push(name.to_string());
                             match exceptions::apply(observation, &expected, &mut run.trace) {
                                 Ok(()) => {
                                     if !exceptions_applied.contains(&divergence.id) {
@@ -443,6 +445,39 @@ mod tests {
             message.contains("X2: observation is stale") && message.contains("$[7].second"),
             "{message}"
         );
+    }
+
+    /// A scenario case that panics ran: the panic is its failure, and its
+    /// observations are not also reported as stale.
+    #[test]
+    fn a_panicking_case_is_not_reported_as_never_ran() {
+        let suite = serde_json::json!({
+            "schemaVersion": SCHEMA_VERSION,
+            "kind": "scenario",
+            "cases": [{ "name": "one", "plugins": [], "steps": [{ "op": "no-such-op" }], "trace": [] }],
+        });
+        let ledger = exceptions::parse(
+            r#"[{ "id": "X1", "summary": "s", "reason": "r", "decided": "d",
+                  "observedBy": [
+                    { "file": "a/b.json", "case": "one",
+                      "valueAt": { "path": "$[0].x", "expected": 1, "actual": 2 } } ] }]"#,
+        )
+        .unwrap();
+        let run = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            assert_suite_with_ledger(
+                "a/b.json",
+                &suite,
+                &Registry::new(),
+                &Vec::new(),
+                None,
+                None,
+                &ledger,
+            )
+        }));
+        let message = panic_message(run.unwrap_err());
+        assert!(message.contains("one: panicked: "), "{message}");
+        assert!(!message.contains("no scenario case of that name ran"), "{message}");
+        assert!(message.contains("1 of 1 cases differ"), "{message}");
     }
 
     #[test]

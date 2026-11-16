@@ -25,7 +25,8 @@
 //! loudly when it goes stale: when the trace no longer shows the divergence
 //! the way the ledger says, or when its case never ran. A bad ledger (an
 //! empty `id`, `summary` or `reason`, a repeated id, a malformed
-//! observation, an observation of a vector file that does not exist, or a
+//! observation, an observation of a vector file that does not exist or that
+//! it names by an absolute or `..` path, or a
 //! `pinnedBy` test that does not exist) fails every replay.
 
 use std::path::Path;
@@ -196,9 +197,19 @@ pub fn validate(list: &[Divergence], root: &Path) -> Result<(), String> {
     Ok(())
 }
 
-/// `file` names a vector suite: `tooling/plugin-conformance/vectors/<file>.zst`
-/// or `<file>` exists under `root`.
+/// `file` names a vector suite: a relative path with no `..` component, and
+/// `tooling/plugin-conformance/vectors/<file>.zst` or `<file>` exists under
+/// `root`. A path that leaves the vector directory would name a file no
+/// receipt reports, so its observation could never apply.
 fn check_vector(file: &str, root: &Path) -> Result<(), String> {
+    let relative = Path::new(file)
+        .components()
+        .all(|c| matches!(c, std::path::Component::Normal(_) | std::path::Component::CurDir));
+    if file.starts_with('/') || !relative {
+        return Err(format!(
+            "vector file {file} is not a path relative to tooling/plugin-conformance/vectors"
+        ));
+    }
     // A wasm32 test runner has no workspace to read; native replays check.
     #[cfg(not(target_arch = "wasm32"))]
     {
@@ -688,6 +699,21 @@ mod tests {
             err.contains("X1") && err.contains("core/no-such-suite.json") && err.contains("/ c"),
             "{err}"
         );
+    }
+
+    #[test]
+    fn an_observation_file_must_stay_inside_the_vector_directory() {
+        // Both name a file that exists, by a path no receipt would report.
+        let absolute = root().join("tooling/plugin-conformance/vectors/core/acrojs-host.json");
+        for file in [
+            absolute.to_str().unwrap(),
+            "../vectors/core/acrojs-host.json",
+            "core/../core/acrojs-host.json",
+        ] {
+            let obs = Observation { file: file.into(), ..moved() };
+            let err = validate(&[divergence(vec![obs], None)], &root()).unwrap_err();
+            assert!(err.contains("not a path relative"), "{file}: {err}");
+        }
     }
 
     #[test]

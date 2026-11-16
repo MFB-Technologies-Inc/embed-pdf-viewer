@@ -9,6 +9,7 @@ import {
   compareReceipts,
   readReceipts,
   replayPackages,
+  unappliedObservations,
   type CargoMetadata,
   type Receipt,
 } from '../src/replay-check';
@@ -133,4 +134,26 @@ test('childEnv removes every variable that would weaken the proof and sets recei
     '/tmp/receipts',
   );
   assert.deepEqual(env, { PATH: '/bin', PLUGIN_CONFORMANCE_RECEIPTS: '/tmp/receipts' });
+});
+
+test('a ledger entry with observedBy that no receipt applied is a problem', () => {
+  const ledger = [
+    { id: 'A1', observedBy: [{}] },
+    { id: 'B2', observedBy: [{}] },
+    { id: 'P3' }, // pinnedBy only: nothing to apply
+    { id: 'E4', observedBy: [] },
+  ];
+  const applied = { ...receipt('core/x.json', ['a']), exceptions: ['A1'] };
+  assert.deepEqual(unappliedObservations(ledger, [applied, receipt('core/x.json', ['b'])]), [
+    'divergences.json: B2: no replay applied any of its observedBy entries',
+  ]);
+  const both = { ...receipt('core/y.json', ['c']), exceptions: ['B2', 'A1'] };
+  assert.deepEqual(unappliedObservations(ledger, [applied, both]), []);
+});
+
+test('unapplied observations are not checked when a receipt is filtered', () => {
+  assert.deepEqual(
+    unappliedObservations([{ id: 'A1', observedBy: [{}] }], [receipt('core/x.json', ['a'], 'a')]),
+    [],
+  );
 });

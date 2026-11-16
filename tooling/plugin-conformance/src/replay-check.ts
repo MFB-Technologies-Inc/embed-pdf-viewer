@@ -7,12 +7,15 @@
  * Runs `cargo test --tests --no-fail-fast` over `plugin-conformance` and every
  * workspace crate with a normal or dev dependency on it (read from
  * `cargo metadata` at run time), with `PLUGIN_CONFORMANCE_RECEIPTS` pointing at a fresh temporary directory (and
- * `PLUGIN_CONFORMANCE_ONLY` and `PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW`
- * removed), so every `assert_suite` call writes a
+ * `PLUGIN_CONFORMANCE_ONLY`, `PLUGIN_CONFORMANCE_MEMBER_ORDER` and
+ * `PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW` removed), so every `assert_suite` call writes a
  * receipt naming the cases it ran. Then it compares the union of the receipts
  * with the case names of every suite in `src/suites/`. A receipt shows a case
  * ran, not that it passed, so cargo's exit status counts too: the check fails
- * if cargo failed or any receipt problem exists, and reports both.
+ * if cargo failed or any receipt problem exists, and reports both. It also
+ * fails when a `crates/plugin-conformance/divergences.json` entry with
+ * `observedBy` is in no receipt's `exceptions`: an observation that never
+ * applied.
  *
  * `--receipts <dir>` skips cargo and reads `<dir>` as it is. Point it only at
  * a directory one full run filled: receipts from older runs would cover cases
@@ -77,6 +80,28 @@ export function compareReceipts(expected: Map<string, string[]>, receipts: Recei
   return problems;
 }
 
+/** The part of a `divergences.json` entry this reads. */
+export interface LedgerEntry {
+  readonly id: string;
+  readonly observedBy?: readonly unknown[];
+}
+
+/**
+ * One problem line per ledger entry that has `observedBy` but that no
+ * receipt lists in `exceptions`, which is where the Rust replay records each
+ * observation it applied. Filtered receipts already fail
+ * [`compareReceipts`], so with any of them this reports nothing.
+ */
+export function unappliedObservations(ledger: LedgerEntry[], receipts: Receipt[]): string[] {
+  if (receipts.some((r) => r.only !== null)) return [];
+  const applied = new Set(receipts.flatMap((r) => r.exceptions));
+  return ledger
+    .filter((entry) => (entry.observedBy?.length ?? 0) > 0 && !applied.has(entry.id))
+    .map(
+      (entry) => `divergences.json: ${entry.id}: no replay applied any of its observedBy entries`,
+    );
+}
+
 const isStrings = (value: unknown): boolean =>
   Array.isArray(value) && value.every((item) => typeof item === 'string');
 
@@ -87,7 +112,7 @@ function malformed(value: unknown): string | null {
   if (typeof r.file !== 'string') return '"file" is not a string';
   if (r.only !== null && typeof r.only !== 'string') return '"only" is not a string or null';
   if (!isStrings(r.ran)) return '"ran" is not an array of strings';
-  if (!Array.isArray(r.exceptions)) return '"exceptions" is not an array';
+  if (!isStrings(r.exceptions)) return '"exceptions" is not an array of strings';
   if (!Array.isArray(r.memberOrderAllowed)) return '"memberOrderAllowed" is not an array';
   return null;
 }
@@ -226,7 +251,14 @@ async function main(): Promise<void> {
   }
 
   const { receipts } = read;
-  const problems = [...read.problems, ...compareReceipts(expected, receipts)];
+  const ledger = JSON.parse(
+    await readFile(join(repoRoot, 'crates', 'plugin-conformance', 'divergences.json'), 'utf8'),
+  ) as LedgerEntry[];
+  const problems = [
+    ...read.problems,
+    ...compareReceipts(expected, receipts),
+    ...unappliedObservations(ledger, receipts),
+  ];
   const cases = [...expected.values()].reduce((n, names) => n + names.length, 0);
   console.log('');
   if (cargoPassed === null) console.log(`cargo: not run (read receipts from ${dir})`);
