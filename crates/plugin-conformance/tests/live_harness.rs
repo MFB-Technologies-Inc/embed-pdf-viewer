@@ -77,8 +77,12 @@ fn text_memo_misses_on_new_rc_at_reused_address() {
     let old = Rc::new(Counted::new("old", 1.5));
     let old_text = memo.get_or_print(&old);
     let old_addr = Rc::as_ptr(&old);
+    let weak = Rc::downgrade(&old);
     drop(old);
+    assert!(weak.upgrade().is_some(), "the memo holds its source");
 
+    // The loop can end at the old address only while the memo does not hold
+    // its source; with the hold above it runs all 1,000 tries.
     let mut held = Vec::new();
     let mut new = Rc::new(Counted::new("new", 2.5));
     for _ in 0..1_000 {
