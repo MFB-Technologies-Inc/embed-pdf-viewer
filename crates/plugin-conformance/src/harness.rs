@@ -15,6 +15,9 @@ use crate::fake_engine::FakeEngine;
 /// What a call did, before the harness writes it into the trace.
 pub enum Outcome {
     Returned(Value),
+    /// A returned value already printed as JSON text, written into the
+    /// trace as it is. A [`TextMemo`] makes one.
+    Text(Rc<str>),
     Threw(Error),
     Promise(Promise<Value>),
 }
@@ -48,6 +51,42 @@ impl Outcome {
         let (unit, resolver) = Promise::pending();
         promise.on_settle(move |result| resolver.settle(result.clone().map(|_| undefined())));
         Outcome::Promise(unit)
+    }
+}
+
+/// The JSON text of the last answer an adapter printed, kept until the
+/// adapter hands it a different `Rc`. The memo holds that `Rc`, so its
+/// address cannot be reused by a new answer while the text stands for it.
+pub struct TextMemo<T> {
+    last: RefCell<Option<(Rc<T>, Rc<str>)>>,
+}
+
+impl<T> Default for TextMemo<T> {
+    fn default() -> TextMemo<T> {
+        TextMemo { last: RefCell::new(None) }
+    }
+}
+
+impl<T> TextMemo<T> {
+    /// `value` as JSON text: the text printed last when `value` is the same
+    /// `Rc`, otherwise a new print. The text goes through a `Value`, so it is
+    /// byte-identical to an [`Outcome::Returned`] of
+    /// `serde_json::to_value(value)`.
+    pub fn get_or_print(&self, value: &Rc<T>) -> Rc<str>
+    where
+        T: serde::Serialize,
+    {
+        if let Some((source, text)) = &*self.last.borrow() {
+            if Rc::ptr_eq(source, value) {
+                return text.clone();
+            }
+        }
+        let text: Rc<str> = serde_json::to_value(&**value)
+            .expect("[harness] an answer does not serialize")
+            .to_string()
+            .into();
+        *self.last.borrow_mut() = Some((value.clone(), text.clone()));
+        text
     }
 }
 
@@ -607,6 +646,7 @@ impl Harness {
     pub fn outcome_json(&self, outcome: Outcome) -> Value {
         match outcome {
             Outcome::Returned(value) => json!({ "returned": crate::scrub(&value) }),
+            Outcome::Text(text) => json!({ "returned": crate::scrub(&parse_text(&text)) }),
             Outcome::Threw(error) => json!({ "threw": error.to_canonical() }),
             Outcome::Promise(promise) => {
                 let tracked = self.track(promise);
@@ -620,6 +660,7 @@ impl Harness {
     pub fn outcome_json_raw(&self, outcome: Outcome) -> Value {
         match outcome {
             Outcome::Returned(value) => json!({ "returned": value }),
+            Outcome::Text(text) => json!({ "returned": parse_text(&text) }),
             Outcome::Threw(error) => json!({ "threw": error.to_canonical() }),
             Outcome::Promise(promise) => {
                 let tracked = self.track(promise);
@@ -635,6 +676,7 @@ impl Harness {
     pub fn outcome_text_raw(&self, outcome: Outcome) -> String {
         let (key, value) = match outcome {
             Outcome::Returned(value) => ("returned", value),
+            Outcome::Text(text) => return format!("{{\"returned\":{text}}}"),
             Outcome::Threw(error) => ("threw", error.to_canonical()),
             Outcome::Promise(promise) => {
                 let mut tracked = self.track(promise);
@@ -649,6 +691,11 @@ impl Harness {
         out.push(b'}');
         String::from_utf8(out).expect("serde_json writes UTF-8")
     }
+}
+
+/// An [`Outcome::Text`] read back into the value it printed.
+fn parse_text(text: &str) -> Value {
+    serde_json::from_str(text).expect("[harness] an Outcome::Text is JSON")
 }
 
 /// What a scripted callback answered.

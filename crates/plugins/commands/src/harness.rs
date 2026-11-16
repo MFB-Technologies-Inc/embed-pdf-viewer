@@ -240,6 +240,9 @@ fn ctx_json(c: &CommandCtx, live: bool) -> Value {
 fn outcome_value(outcome: Outcome) -> Value {
     match outcome {
         Outcome::Returned(value) => json!({ "returned": value }),
+        Outcome::Text(text) => json!({
+            "returned": serde_json::from_str::<Value>(&text).expect("an Outcome::Text is JSON")
+        }),
         Outcome::Threw(error) => json!({ "threw": error.to_canonical() }),
         // A promise has no canonical form in callback arguments.
         Outcome::Promise(_) => json!({ "returnedPromise": true }),
