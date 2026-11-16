@@ -113,3 +113,33 @@ test('a missing suite reads as null and checks stale', async () => {
     assert.equal(await syncVector(path, text, 'check'), 'stale');
   });
 });
+
+test('write removes a stale plain file beside a current compressed suite', async () => {
+  await withDir(async (dir) => {
+    const path = join(dir, 'x.json');
+    await writeFile(`${path}.zst`, compress(19));
+    await writeFile(path, `${text} stale`);
+    assert.equal(await syncVector(path, text, 'write'), 'wrote');
+    await assert.rejects(stat(path), 'the plain file is gone');
+    assert.deepEqual(await readFile(`${path}.zst`), compress(19), 'the current blob is untouched');
+  });
+});
+
+test('compression without zstd in this Node names the Node it needs', async () => {
+  await withDir(async (dir) => {
+    const path = join(dir, 'x.json');
+    await writeFile(`${path}.zst`, compress(3));
+    const node = zlib as unknown as Record<string, unknown>;
+    const saved = { compress: node.zstdCompressSync, decompress: node.zstdDecompressSync };
+    node.zstdCompressSync = undefined;
+    node.zstdDecompressSync = undefined;
+    const message = `vector compression needs Node 22.15 or later, running ${process.version}`;
+    try {
+      await assert.rejects(readVector(path), { message });
+      await assert.rejects(writeVector(join(dir, 'y.json'), text, { compress: true }), { message });
+    } finally {
+      node.zstdCompressSync = saved.compress;
+      node.zstdDecompressSync = saved.decompress;
+    }
+  });
+});

@@ -56,6 +56,11 @@ pub fn vectors_root() -> PathBuf {
 /// zstd-compressed `<file>.zst` decompressed when it exists, else `<file>`.
 /// Panics naming the path when neither reads.
 pub fn read_vector_text(file: &str) -> String {
+    read_vector(file).1
+}
+
+/// [`read_vector_text`], with the path it read.
+fn read_vector(file: &str) -> (PathBuf, String) {
     let path = vectors_root().join(file);
     #[cfg(not(target_arch = "wasm32"))]
     {
@@ -63,10 +68,13 @@ pub fn read_vector_text(file: &str) -> String {
         compressed.push(".zst");
         let compressed = PathBuf::from(compressed);
         if compressed.exists() {
-            return decompress(&compressed);
+            let text = decompress(&compressed);
+            return (compressed, text);
         }
     }
-    std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()))
+    let text =
+        std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+    (path, text)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -83,8 +91,7 @@ fn decompress(path: &Path) -> String {
 }
 
 pub fn load(file: &str) -> Value {
-    let path = vectors_root().join(file);
-    let text = read_vector_text(file);
+    let (path, text) = read_vector(file);
     let suite: Value =
         serde_json::from_str(&text).unwrap_or_else(|e| panic!("parse {}: {e}", path.display()));
     assert_eq!(suite["schemaVersion"].as_u64(), Some(SCHEMA_VERSION), "{file}: schema version");
@@ -296,6 +303,21 @@ mod tests {
         assert_eq!(suite["describes"], "from zst");
         assert_eq!(suite["cases"].as_array().map(Vec::len), Some(40));
         assert_eq!(suite["cases"][39]["name"], "case-39");
+    }
+
+    /// A `.json.zst` that decompresses to text that is not JSON: the parse
+    /// failure names the compressed file, the one actually read.
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    #[should_panic(expected = "x.json.zst: ")]
+    fn load_names_the_zst_it_failed_to_parse() {
+        let dir = TempDir::new("load-zst-parse");
+        let bytes = ruzstd::encoding::compress_to_vec(
+            &b"not json"[..],
+            ruzstd::encoding::CompressionLevel::Fastest,
+        );
+        std::fs::write(dir.0.join("x.json.zst"), bytes).unwrap();
+        load(dir.0.join("x.json").to_str().unwrap());
     }
 
     #[test]

@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
 
 import { canonical, canonicalError, isThenable, snapshotHooks } from './canonical';
+import { caseDiff, describeCaseDiff, type RenderedSuite } from './case-diff';
 import { runScenario, type ScenarioCase } from './scenario';
 
 /** Bump when the envelope or the trace changes shape. */
@@ -83,6 +84,14 @@ const ZSTD_LEVEL = 3;
 
 const ZSTD = '.zst';
 
+/** Node's zstd, which arrived in Node 22.15. */
+function zstd(): { compress: typeof zlib.zstdCompressSync; decompress: typeof zlib.zstdDecompressSync } {
+  if (typeof zlib.zstdCompressSync !== 'function' || typeof zlib.zstdDecompressSync !== 'function') {
+    throw new Error(`vector compression needs Node 22.15 or later, running ${process.version}`);
+  }
+  return { compress: zlib.zstdCompressSync, decompress: zlib.zstdDecompressSync };
+}
+
 const missing = (error: NodeJS.ErrnoException): null => {
   if (error.code === 'ENOENT') return null;
   throw error;
@@ -92,13 +101,14 @@ const missing = (error: NodeJS.ErrnoException): null => {
  *  decompressed if it exists, else `<path>`, else null. */
 export async function readVector(path: string): Promise<string | null> {
   const compressed = await readFile(`${path}${ZSTD}`).catch(missing);
-  if (compressed) return zlib.zstdDecompressSync(compressed).toString('utf8');
+  if (compressed) return zstd().decompress(compressed).toString('utf8');
   return readFile(path, 'utf8').catch(missing);
 }
 
 /** Write `text` as the suite at `path` (its `.json` name), compressed when
  *  `compress` is set or a `.json.zst` already exists, and leave one form
- *  on disk. False when the file already held `text` in that form. */
+ *  on disk: a plain file beside a current `.json.zst` is removed. False when
+ *  the file already held `text` in that form and nothing else was there. */
 export async function writeVector(
   path: string,
   text: string,
@@ -106,10 +116,15 @@ export async function writeVector(
 ): Promise<boolean> {
   const compressed = await readFile(`${path}${ZSTD}`).catch(missing);
   if (compressed || compress) {
-    if (compressed && zlib.zstdDecompressSync(compressed).toString('utf8') === text) return false;
+    const { compress: deflate, decompress } = zstd();
+    if (compressed && decompress(compressed).toString('utf8') === text) {
+      // The plain file a reader would never see; removing it heals a suite
+      // `vectors:check` reports as both plain and compressed.
+      return (await rm(path).then(() => true).catch(missing)) ?? false;
+    }
     await mkdir(dirname(path), { recursive: true });
     const level = { [zlib.constants.ZSTD_c_compressionLevel]: ZSTD_LEVEL };
-    await writeFile(`${path}${ZSTD}`, zlib.zstdCompressSync(text, { params: level }));
+    await writeFile(`${path}${ZSTD}`, deflate(text, { params: level }));
     await rm(path, { force: true });
     return true;
   }
@@ -252,6 +267,19 @@ async function renderSuite(suite: Suite): Promise<unknown> {
   return { schemaVersion: SCHEMA_VERSION, kind: 'scenario', describes: suite.describes, cases };
 }
 
+/** The line write mode prints for a file it changed: its case counts, or
+ *  `wrote vectors/<file>` when no case changed (its envelope did, or only
+ *  its form on disk). */
+function writeSummary(file: string, before: string | null, after: RenderedSuite): string {
+  let old: RenderedSuite | null = null;
+  try {
+    old = before === null ? null : (JSON.parse(before) as RenderedSuite);
+  } catch {
+    // An unreadable file before: every case reads as added.
+  }
+  return describeCaseDiff(file, caseDiff(old, after)) ?? `wrote vectors/${file}`;
+}
+
 /** Write each suite, or with `check` fail on any file whose content would
  *  change, any vector file no suite writes, or any no Rust test replays. `render` runs every case and keeps nothing: the coverage gate's
  *  second pass, over a filtered set of cases no file holds. */
@@ -266,9 +294,11 @@ export async function emit(suites: readonly Suite[], mode: 'write' | 'check' | '
     const rendered = await renderSuite(suite);
     if (mode === 'render') continue;
     const text = `${JSON.stringify(rendered, null, 2)}\n`;
-    const status = await syncVector(join(vectorsRoot, suite.file), text, mode);
+    const path = join(vectorsRoot, suite.file);
+    const before = mode === 'write' ? await readVector(path) : null;
+    const status = await syncVector(path, text, mode);
     if (status === 'stale') stale.push(suite.file);
-    if (status === 'wrote') console.log(`wrote vectors/${suite.file}`);
+    if (status === 'wrote') console.log(writeSummary(suite.file, before, rendered as RenderedSuite));
   }
   const drift = check ? await environmentDrift() : null;
   if (stale.length) {

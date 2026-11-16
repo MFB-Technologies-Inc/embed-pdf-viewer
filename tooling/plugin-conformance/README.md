@@ -27,6 +27,10 @@ plugin's generator is one new file there. A suite writes one vector file:
 { "schemaVersion": 2, "kind": "scenario" | "function", "describes": "...", "cases": [...] }
 ```
 
+`vectors` prints one line per file it changed, comparing cases by `name` and by the
+`canonicalKey` of the whole case: `core/x.json: +2 -0 ~5 (changed: a, b, c, d, e)`, with at most
+10 changed names and `and N more` after them. Object member order alone is not a change.
+
 `vectors:check` also fails on a file under `vectors/` that no suite writes, which is what a deleted
 or renamed suite leaves behind, and on a file no Rust test replays. It reads the second from the
 source: some `.rs` file under `crates/` must hold the path as a string literal
