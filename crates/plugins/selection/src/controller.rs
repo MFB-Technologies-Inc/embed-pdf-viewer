@@ -1261,7 +1261,7 @@ mod tests {
             assert_eq!(read, layout_of(Answer::Value(value)), "{text}");
         }
         for text in [r#"{"runs":["#, r#"{"runs":[]} x"#, ""] {
-            let error = hydrate(&Answer::Text(text.into())).err().expect(text);
+            let error = hydrate(&Answer::Text(text.into())).expect_err(text);
             assert!(error.to_string().contains("[engine-bridge] malformed answer: "), "{error}");
         }
     }
