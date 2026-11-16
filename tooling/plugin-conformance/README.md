@@ -31,6 +31,15 @@ plugin's generator is one new file there. A suite writes one vector file:
 `canonicalKey` of the whole case: `core/x.json: +2 -0 ~5 (changed: a, b, c, d, e)`, with at most
 10 changed names and `and N more` after them. Object member order alone is not a change.
 
+The file is stored zstd-compressed at level 3, as `vectors/<suite>.json.zst`, and everything that
+names a suite still uses the `.json` name: `assert_suite("plugins/actions.json")` reads
+`plugins/actions.json.zst`. Compressed, the corpus is about 4 MB instead of 231 MB, and git can't
+show a readable diff of it, so review a regeneration from the lines above. `vectors:check`
+compares decompressed text, never compressed bytes, so a file another zstd build wrote is still
+current. It also fails when a suite is on disk both plain and compressed; a `vectors` run removes
+the plain file. Node 22.15 or later is needed for `zlib.zstdCompressSync`.
+`vectors/environment.json` and `vectors/coverage.json` stay plain JSON.
+
 `vectors:check` also fails on a file under `vectors/` that no suite writes, which is what a deleted
 or renamed suite leaves behind, and on a file no Rust test replays. It reads the second from the
 source: some `.rs` file under `crates/` must hold the path as a string literal

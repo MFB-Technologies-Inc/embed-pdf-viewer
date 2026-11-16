@@ -85,14 +85,24 @@ test('write keeps the compressed form a suite already has, at level 3', async ()
   });
 });
 
-test('a suite with only a plain file stays plain and still checks', async () => {
+test('a suite with only a plain file still checks, and stays plain when asked', async () => {
   await withDir(async (dir) => {
     const path = join(dir, 'x.json');
     await writeFile(path, text);
     assert.equal(await syncVector(path, text, 'check'), 'current');
-    assert.equal(await syncVector(path, `${text} `, 'write'), 'wrote');
+    assert.equal(await writeVector(path, `${text} `, { compress: false }), true);
     assert.equal(await readFile(path, 'utf8'), `${text} `);
-    await assert.rejects(stat(`${path}.zst`), 'the default write form is still plain');
+    await assert.rejects(stat(`${path}.zst`));
+  });
+});
+
+test('a write compresses a plain suite by default', async () => {
+  await withDir(async (dir) => {
+    const path = join(dir, 'x.json');
+    await writeFile(path, text);
+    assert.equal(await syncVector(path, `${text} `, 'write'), 'wrote');
+    assert.equal(await readVector(path), `${text} `);
+    await assert.rejects(stat(path), 'the plain file is gone');
   });
 });
 

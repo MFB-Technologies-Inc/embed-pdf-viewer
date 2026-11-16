@@ -75,7 +75,7 @@ async function writeEnvironment(): Promise<void> {
 
 /** Whether a write compresses a suite that has no `.json.zst` yet. A suite
  *  already compressed stays compressed either way. */
-export const COMPRESS_NEW_VECTORS = false;
+export const COMPRESS_NEW_VECTORS = true;
 
 /** The zstd level a write compresses at. Check mode never compares
  *  compressed bytes, so another level or another zstd build is not a
