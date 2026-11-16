@@ -27,9 +27,9 @@ const cratesRoot = join(packageRoot, '..', '..', 'crates');
 /** The ICU the vectors were written with. */
 const ENVIRONMENT_FILE = 'environment.json';
 
-/** Written by `coverage.ts` or by `emit` itself, not by a suite, and
- *  replayed by nothing. */
-const NOT_A_SUITE = new Set(['coverage.json', ENVIRONMENT_FILE]);
+/** Written by `coverage.ts`, `rust-coverage.ts` or by `emit` itself, not by
+ *  a suite, and replayed by nothing. */
+const NOT_A_SUITE = new Set(['coverage.json', 'rust-coverage.json', ENVIRONMENT_FILE]);
 
 /**
  * Node's ICU decides what some cases print: `Intl.PluralRules` (i18n

@@ -35,6 +35,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import { vectorsRoot } from './vectors';
 
@@ -127,7 +128,7 @@ function uncoveredLinesOf(file: IstanbulFile | undefined): Set<number> {
 }
 
 /** `[3, 4, 5, 9]` as `['3-5', '9']`. */
-function ranges(lines: readonly number[]): string[] {
+export function ranges(lines: readonly number[]): string[] {
   const out: string[] = [];
   for (let i = 0; i < lines.length; ) {
     let j = i;
@@ -138,72 +139,78 @@ function ranges(lines: readonly number[]): string[] {
   return out;
 }
 
-const all = await measure(['--check']);
-const compared = await measure(['--compared-only']);
+async function main(): Promise<void> {
+  const all = await measure(['--check']);
+  const compared = await measure(['--compared-only']);
 
-const files: Record<string, unknown> = {};
-let statements = 0;
-let statementsHit = 0;
-let branches = 0;
-let branchesHit = 0;
-let unsnapshottedLines = 0;
-for (const [path, file] of all) {
-  const uncoveredLines = uncoveredLinesOf(file);
-  const hit = Object.values(file.s).filter((count) => count > 0).length;
-  const uncoveredBranches: string[] = [];
-  let branchCount = 0;
-  let branchHit = 0;
-  for (const [id, counts] of Object.entries(file.b)) {
-    const { line, column } = file.branchMap[id].loc.start;
-    counts.forEach((count, arm) => {
-      branchCount += 1;
-      if (count > 0) branchHit += 1;
-      else uncoveredBranches.push(`${line}:${column}#${arm}`);
-    });
+  const files: Record<string, unknown> = {};
+  let statements = 0;
+  let statementsHit = 0;
+  let branches = 0;
+  let branchesHit = 0;
+  let unsnapshottedLines = 0;
+  for (const [path, file] of all) {
+    const uncoveredLines = uncoveredLinesOf(file);
+    const hit = Object.values(file.s).filter((count) => count > 0).length;
+    const uncoveredBranches: string[] = [];
+    let branchCount = 0;
+    let branchHit = 0;
+    for (const [id, counts] of Object.entries(file.b)) {
+      const { line, column } = file.branchMap[id].loc.start;
+      counts.forEach((count, arm) => {
+        branchCount += 1;
+        if (count > 0) branchHit += 1;
+        else uncoveredBranches.push(`${line}:${column}#${arm}`);
+      });
+    }
+    // A file the compared run never loaded ran none of its statements there.
+    const comparedFile = compared.get(path) ?? { ...file, s: Object.fromEntries(Object.keys(file.s).map((id) => [id, 0])) };
+    const unsnapshotted = [...uncoveredLinesOf(comparedFile)].filter((line) => !uncoveredLines.has(line)).sort((a, b) => a - b);
+    unsnapshottedLines += unsnapshotted.length;
+    const total = Object.keys(file.s).length;
+    statements += total;
+    statementsHit += hit;
+    branches += branchCount;
+    branchesHit += branchHit;
+    files[path] = {
+      statements: `${hit}/${total}`,
+      branches: `${branchHit}/${branchCount}`,
+      uncoveredLines: [...uncoveredLines].sort((a, b) => a - b),
+      uncoveredBranches,
+      ...(unsnapshotted.length ? { unsnapshottedOnly: ranges(unsnapshotted) } : {}),
+    };
   }
-  // A file the compared run never loaded ran none of its statements there.
-  const comparedFile = compared.get(path) ?? { ...file, s: Object.fromEntries(Object.keys(file.s).map((id) => [id, 0])) };
-  const unsnapshotted = [...uncoveredLinesOf(comparedFile)].filter((line) => !uncoveredLines.has(line)).sort((a, b) => a - b);
-  unsnapshottedLines += unsnapshotted.length;
-  const total = Object.keys(file.s).length;
-  statements += total;
-  statementsHit += hit;
-  branches += branchCount;
-  branchesHit += branchHit;
-  files[path] = {
-    statements: `${hit}/${total}`,
-    branches: `${branchHit}/${branchCount}`,
-    uncoveredLines: [...uncoveredLines].sort((a, b) => a - b),
-    uncoveredBranches,
-    ...(unsnapshotted.length ? { unsnapshottedOnly: ranges(unsnapshotted) } : {}),
-  };
-}
-const sorted = Object.fromEntries(Object.entries(files).sort(([a], [b]) => a.localeCompare(b)));
-const unloaded = (await portedOnDisk()).filter((path) => !all.has(path));
-const text = `${JSON.stringify(
-  {
-    total: {
-      statements: `${statementsHit}/${statements}`,
-      branches: `${branchesHit}/${branches}`,
-      unsnapshottedOnlyLines: unsnapshottedLines,
-      unloadedFiles: unloaded.length,
+  const sorted = Object.fromEntries(Object.entries(files).sort(([a], [b]) => a.localeCompare(b)));
+  const unloaded = (await portedOnDisk()).filter((path) => !all.has(path));
+  const text = `${JSON.stringify(
+    {
+      total: {
+        statements: `${statementsHit}/${statements}`,
+        branches: `${branchesHit}/${branches}`,
+        unsnapshottedOnlyLines: unsnapshottedLines,
+        unloadedFiles: unloaded.length,
+      },
+      unloaded,
+      files: sorted,
     },
-    unloaded,
-    files: sorted,
-  },
-  null,
-  2,
-)}\n`;
-const summary = `statements ${statementsHit}/${statements}, branches ${branchesHit}/${branches}, ${unsnapshottedLines} lines reached only by snapshot-none cases, ${unloaded.length} ported files no generator loads`;
-const target = join(vectorsRoot, 'coverage.json');
-if (check) {
-  const current = await readFile(target, 'utf8').catch(() => null);
-  if (current !== text) {
-    console.error('vectors/coverage.json is stale: run `pnpm --filter @embedpdf/tooling-plugin-conformance run coverage` and review the diff');
-    process.exit(1);
+    null,
+    2,
+  )}\n`;
+  const summary = `statements ${statementsHit}/${statements}, branches ${branchesHit}/${branches}, ${unsnapshottedLines} lines reached only by snapshot-none cases, ${unloaded.length} ported files no generator loads`;
+  const target = join(vectorsRoot, 'coverage.json');
+  if (check) {
+    const current = await readFile(target, 'utf8').catch(() => null);
+    if (current !== text) {
+      console.error('vectors/coverage.json is stale: run `pnpm --filter @embedpdf/tooling-plugin-conformance run coverage` and review the diff');
+      process.exit(1);
+    }
+    console.log(`coverage is current: ${summary}`);
+  } else {
+    await writeFile(target, text);
+    console.log(`wrote vectors/coverage.json: ${summary}`);
   }
-  console.log(`coverage is current: ${summary}`);
-} else {
-  await writeFile(target, text);
-  console.log(`wrote vectors/coverage.json: ${summary}`);
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  await main();
 }

@@ -12,6 +12,8 @@ pnpm --filter @embedpdf/tooling-plugin-conformance run vectors:check    # fail i
 pnpm --filter @embedpdf/tooling-plugin-conformance run coverage         # write vectors/coverage.json
 pnpm --filter @embedpdf/tooling-plugin-conformance run coverage:check
 pnpm --filter @embedpdf/tooling-plugin-conformance run replay:check     # run the Rust tests, prove every case replayed
+pnpm --filter @embedpdf/tooling-plugin-conformance run rust-coverage    # write vectors/rust-coverage.json
+pnpm --filter @embedpdf/tooling-plugin-conformance run rust-coverage:check
 pnpm --filter @embedpdf/tooling-plugin-conformance run test:harness    # runtime invariants
 pnpm --filter @embedpdf/tooling-plugin-conformance run audit:kernel    # every kernel scenario and refusal
 cargo test -p plugin-conformance                                        # replay the kernel
@@ -38,7 +40,7 @@ show a readable diff of it, so review a regeneration from the lines above. `vect
 compares decompressed text, never compressed bytes, so a file another zstd build wrote is still
 current. It also fails when a suite is on disk both plain and compressed; a `vectors` run removes
 the plain file. Node 22.15 or later is needed for `zlib.zstdCompressSync`.
-`vectors/environment.json` and `vectors/coverage.json` stay plain JSON.
+`vectors/environment.json`, `vectors/coverage.json` and `vectors/rust-coverage.json` stay plain JSON.
 
 `vectors:check` also fails on a file under `vectors/` that no suite writes, which is what a deleted
 or renamed suite leaves behind, and on a file no Rust test replays. It reads the second from the
@@ -58,6 +60,18 @@ fails, and prints both results. The cost is a test run of every crate that depen
 `plugin-conformance`. `-- --receipts <dir>` skips cargo and reads `<dir>` as it is; give it only a
 directory a single full run filled, because receipts left from an older run would vouch for cases
 the current tests no longer reach.
+
+`rust-coverage` records which Rust lines the replay reaches. It needs `cargo-llvm-cov` (written
+against 0.9.1, `cargo install cargo-llvm-cov --locked`) and the `llvm-tools-preview` rustup
+component. It runs the same crates as `replay:check` under `cargo llvm-cov` twice: once with only
+the replay targets (each plugin crate's `tests/conformance.rs` and `plugin-conformance`'s
+`tests/kernel.rs`), once with `--tests`. `vectors/rust-coverage.json` gives each source file's
+`replayLines` (lines replay hit / lines llvm-cov maps) and `unitOnlyLines`, the lines some test
+reaches and replay does not. Files matching a glob in
+`crates/plugin-conformance/rust-coverage-exclude.json` (replay adapters, C ABI glue, the replay
+runner) are left out, each with its reason, and so are the lines of inline `#[cfg(test)]` modules. It is a record, not a threshold: `rust-coverage:check` fails only
+when the file would change. Both runs together cost an instrumented build and test run of every
+replay crate.
 
 `vectors/environment.json` records the ICU and Unicode versions of the Node that wrote the vectors
 (`process.versions.icu`). ICU decides `Intl.PluralRules` (i18n plurals) and `localeCompare` (render

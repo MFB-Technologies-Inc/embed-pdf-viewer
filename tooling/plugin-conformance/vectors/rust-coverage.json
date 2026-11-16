@@ -1,0 +1,2994 @@
+{
+  "total": {
+    "replayLines": "56211/66601",
+    "unitOnlyLines": 4011,
+    "files": 447,
+    "excludedFiles": 41
+  },
+  "files": {
+    "crates/epdf-web/src/adapters.rs": {
+      "replayLines": "0/26",
+      "unitOnlyLines": []
+    },
+    "crates/epdf-web/src/clock.rs": {
+      "replayLines": "0/72",
+      "unitOnlyLines": []
+    },
+    "crates/epdf-web/src/engine.rs": {
+      "replayLines": "0/252",
+      "unitOnlyLines": []
+    },
+    "crates/epdf-web/src/exports.rs": {
+      "replayLines": "0/458",
+      "unitOnlyLines": []
+    },
+    "crates/epdf-web/src/fetch.rs": {
+      "replayLines": "0/59",
+      "unitOnlyLines": []
+    },
+    "crates/epdf-web/src/runtime.rs": {
+      "replayLines": "0/162",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/acrojs/src/actions.rs": {
+      "replayLines": "30/30",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/acrojs/src/color.rs": {
+      "replayLines": "50/50",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/acrojs/src/host.rs": {
+      "replayLines": "209/212",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/acrojs/src/input.rs": {
+      "replayLines": "122/130",
+      "unitOnlyLines": [
+        "59",
+        "61",
+        "65",
+        "69-71",
+        "88"
+      ]
+    },
+    "crates/plugins/acrojs/src/js.rs": {
+      "replayLines": "81/96",
+      "unitOnlyLines": [
+        "16",
+        "22",
+        "25",
+        "35-38",
+        "40-42",
+        "102",
+        "118",
+        "128",
+        "136-137"
+      ]
+    },
+    "crates/plugins/acrojs/src/types.rs": {
+      "replayLines": "92/101",
+      "unitOnlyLines": [
+        "296-298"
+      ]
+    },
+    "crates/plugins/actions/src/contract.rs": {
+      "replayLines": "111/133",
+      "unitOnlyLines": [
+        "546"
+      ]
+    },
+    "crates/plugins/actions/src/controller.rs": {
+      "replayLines": "112/134",
+      "unitOnlyLines": [
+        "118-120",
+        "124-136",
+        "272-274"
+      ]
+    },
+    "crates/plugins/actions/src/dispatch/dispatcher.rs": {
+      "replayLines": "295/340",
+      "unitOnlyLines": [
+        "385-386",
+        "388"
+      ]
+    },
+    "crates/plugins/actions/src/dispatch/fold.rs": {
+      "replayLines": "16/16",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/actions/src/dispatch/run.rs": {
+      "replayLines": "379/394",
+      "unitOnlyLines": [
+        "510-515"
+      ]
+    },
+    "crates/plugins/actions/src/dispatch/triggers.rs": {
+      "replayLines": "121/129",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/actions/src/external_uri.rs": {
+      "replayLines": "25/29",
+      "unitOnlyLines": [
+        "25",
+        "41",
+        "50"
+      ]
+    },
+    "crates/plugins/actions/src/host_contract.rs": {
+      "replayLines": "21/21",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/actions/src/hover_pump.rs": {
+      "replayLines": "77/77",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/actions/src/lib.rs": {
+      "replayLines": "16/16",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/actions/src/lifecycle/document_events.rs": {
+      "replayLines": "153/177",
+      "unitOnlyLines": [
+        "113-114",
+        "116-133"
+      ]
+    },
+    "crates/plugins/actions/src/lifecycle/open_sequence.rs": {
+      "replayLines": "112/112",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/actions/src/lifecycle/page_lifecycle.rs": {
+      "replayLines": "82/82",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/actions/src/scripting/environment.rs": {
+      "replayLines": "92/93",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/actions/src/scripting/executor.rs": {
+      "replayLines": "199/201",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/actions/src/scripting/realm.rs": {
+      "replayLines": "17/17",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/actions/src/scripting/surface.rs": {
+      "replayLines": "107/133",
+      "unitOnlyLines": [
+        "69-76",
+        "97-98",
+        "100",
+        "102-106",
+        "114-116"
+      ]
+    },
+    "crates/plugins/actions/src/scripting/world.rs": {
+      "replayLines": "150/152",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/actions/src/services/annotation_rows.rs": {
+      "replayLines": "54/62",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/actions/src/services/catalog.rs": {
+      "replayLines": "31/32",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/actions/src/services/mod.rs": {
+      "replayLines": "146/155",
+      "unitOnlyLines": [
+        "290",
+        "292"
+      ]
+    },
+    "crates/plugins/actions/src/services/policy.rs": {
+      "replayLines": "41/59",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/actions/src/services/ports.rs": {
+      "replayLines": "74/75",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/actions/src/settings.rs": {
+      "replayLines": "131/147",
+      "unitOnlyLines": [
+        "218-221"
+      ]
+    },
+    "crates/plugins/actions/src/submit_encoding.rs": {
+      "replayLines": "16/16",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/actions/src/submit/intent.rs": {
+      "replayLines": "64/66",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/actions/src/submit/perform.rs": {
+      "replayLines": "96/104",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/anchor.rs": {
+      "replayLines": "82/82",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/appearance.rs": {
+      "replayLines": "100/101",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/bezier.rs": {
+      "replayLines": "37/37",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/cloudy.rs": {
+      "replayLines": "548/638",
+      "unitOnlyLines": [
+        "177-186",
+        "188-193",
+        "197-209",
+        "212-218",
+        "220-228",
+        "739",
+        "759",
+        "781",
+        "792",
+        "802",
+        "808-812",
+        "815-824",
+        "830"
+      ]
+    },
+    "crates/plugins/annotation-core/src/editable.rs": {
+      "replayLines": "13/21",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/endings.rs": {
+      "replayLines": "133/134",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/engine/appearance.rs": {
+      "replayLines": "162/175",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/engine/copy.rs": {
+      "replayLines": "156/201",
+      "unitOnlyLines": [
+        "203-204",
+        "237-240",
+        "243",
+        "246",
+        "248",
+        "309-310"
+      ]
+    },
+    "crates/plugins/annotation-core/src/engine/facts.rs": {
+      "replayLines": "39/48",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/engine/geom.rs": {
+      "replayLines": "170/186",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/engine/measure.rs": {
+      "replayLines": "384/398",
+      "unitOnlyLines": [
+        "77"
+      ]
+    },
+    "crates/plugins/annotation-core/src/engine/resolve.rs": {
+      "replayLines": "830/1093",
+      "unitOnlyLines": [
+        "364-373",
+        "375-376",
+        "378",
+        "380-381",
+        "396",
+        "501-506",
+        "992-995",
+        "1058-1060",
+        "1084-1088",
+        "1130"
+      ]
+    },
+    "crates/plugins/annotation-core/src/engine/shape_for_rect.rs": {
+      "replayLines": "72/113",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/engine/siblings.rs": {
+      "replayLines": "18/21",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/engine/space.rs": {
+      "replayLines": "145/194",
+      "unitOnlyLines": [
+        "148-150",
+        "154",
+        "157",
+        "161-162",
+        "164",
+        "166",
+        "182-188",
+        "191-193",
+        "202-204",
+        "206",
+        "208",
+        "210-214"
+      ]
+    },
+    "crates/plugins/annotation-core/src/engine/text.rs": {
+      "replayLines": "118/136",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/error.rs": {
+      "replayLines": "13/19",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/flags.rs": {
+      "replayLines": "66/68",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/font_css.rs": {
+      "replayLines": "36/77",
+      "unitOnlyLines": [
+        "65-73",
+        "76-79"
+      ]
+    },
+    "crates/plugins/annotation-core/src/frame.rs": {
+      "replayLines": "34/34",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/geometry.rs": {
+      "replayLines": "215/215",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/group.rs": {
+      "replayLines": "60/60",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/helvetica.rs": {
+      "replayLines": "17/17",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/hit.rs": {
+      "replayLines": "283/287",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/icons.rs": {
+      "replayLines": "0/244",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/ink_curves.rs": {
+      "replayLines": "170/175",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/ink.rs": {
+      "replayLines": "29/29",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/js.rs": {
+      "replayLines": "250/650",
+      "unitOnlyLines": [
+        "68",
+        "107",
+        "155",
+        "168-170",
+        "172-174",
+        "206-212",
+        "412-417",
+        "422-431",
+        "439-440",
+        "442-443",
+        "448-452",
+        "454-471",
+        "473-475",
+        "479-500",
+        "502-504",
+        "506-513",
+        "515-518",
+        "520-528",
+        "530-531",
+        "535-556",
+        "558-561",
+        "563-570",
+        "572-574",
+        "576-584",
+        "586-587",
+        "591-600",
+        "606-608",
+        "610-614",
+        "616-617",
+        "619-632",
+        "634-645",
+        "648-664",
+        "666-676",
+        "678-693",
+        "695",
+        "697-698",
+        "701",
+        "703-706",
+        "708-712",
+        "714",
+        "718-729",
+        "735-737",
+        "739-743",
+        "745-746",
+        "748-761",
+        "763-774",
+        "777-803",
+        "805-816",
+        "818",
+        "820-830",
+        "832-833",
+        "836",
+        "838-842",
+        "844-850",
+        "852",
+        "859-861"
+      ]
+    },
+    "crates/plugins/annotation-core/src/json.rs": {
+      "replayLines": "175/209",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/kinds.rs": {
+      "replayLines": "749/755",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/links.rs": {
+      "replayLines": "16/16",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/measurement_shape.rs": {
+      "replayLines": "193/193",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/measurement.rs": {
+      "replayLines": "470/472",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/object.rs": {
+      "replayLines": "250/288",
+      "unitOnlyLines": [
+        "31-33",
+        "266-268"
+      ]
+    },
+    "crates/plugins/annotation-core/src/painted.rs": {
+      "replayLines": "70/71",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/placement.rs": {
+      "replayLines": "87/89",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/plane.rs": {
+      "replayLines": "26/26",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/props.rs": {
+      "replayLines": "73/73",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/record.rs": {
+      "replayLines": "206/225",
+      "unitOnlyLines": [
+        "48",
+        "79-81",
+        "124",
+        "153-156",
+        "158"
+      ]
+    },
+    "crates/plugins/annotation-core/src/rect.rs": {
+      "replayLines": "280/283",
+      "unitOnlyLines": [
+        "51"
+      ]
+    },
+    "crates/plugins/annotation-core/src/richtext.rs": {
+      "replayLines": "280/339",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/scene.rs": {
+      "replayLines": "335/350",
+      "unitOnlyLines": [
+        "70"
+      ]
+    },
+    "crates/plugins/annotation-core/src/selection.rs": {
+      "replayLines": "32/32",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/shapes/boxes.rs": {
+      "replayLines": "145/170",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/shapes/caret.rs": {
+      "replayLines": "89/89",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/shapes/mod.rs": {
+      "replayLines": "166/169",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/shapes/points.rs": {
+      "replayLines": "580/617",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/shapes/quads.rs": {
+      "replayLines": "67/67",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/shapes/text_box.rs": {
+      "replayLines": "229/229",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/snap.rs": {
+      "replayLines": "93/94",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/types.rs": {
+      "replayLines": "508/619",
+      "unitOnlyLines": [
+        "940-942",
+        "1722",
+        "1951"
+      ]
+    },
+    "crates/plugins/annotation-core/src/update/changes.rs": {
+      "replayLines": "118/121",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/update/draw_callout.rs": {
+      "replayLines": "132/135",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/update/draw_distance.rs": {
+      "replayLines": "106/107",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/update/draw.rs": {
+      "replayLines": "298/300",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/update/edit_commit.rs": {
+      "replayLines": "109/110",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/update/edit.rs": {
+      "replayLines": "263/286",
+      "unitOnlyLines": [
+        "225-232"
+      ]
+    },
+    "crates/plugins/annotation-core/src/update/marquee.rs": {
+      "replayLines": "76/76",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/update/mod.rs": {
+      "replayLines": "158/161",
+      "unitOnlyLines": [
+        "213"
+      ]
+    },
+    "crates/plugins/annotation-core/src/update/page_bound.rs": {
+      "replayLines": "79/90",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/update/selection_edits.rs": {
+      "replayLines": "217/246",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/update/session.rs": {
+      "replayLines": "59/59",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/update/text_markup.rs": {
+      "replayLines": "145/149",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/update/text.rs": {
+      "replayLines": "45/46",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation-core/src/view.rs": {
+      "replayLines": "785/805",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/binary.rs": {
+      "replayLines": "97/100",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/comments/build.rs": {
+      "replayLines": "206/210",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/comments/comments.rs": {
+      "replayLines": "242/253",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/comments/threads.rs": {
+      "replayLines": "117/119",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/connect.rs": {
+      "replayLines": "42/46",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/console.rs": {
+      "replayLines": "8/9",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/contract.rs": {
+      "replayLines": "69/84",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/controller.rs": {
+      "replayLines": "227/275",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/engine.rs": {
+      "replayLines": "158/258",
+      "unitOnlyLines": [
+        "136",
+        "267",
+        "302-303",
+        "305-309",
+        "315-320",
+        "325"
+      ]
+    },
+    "crates/plugins/annotation/src/host_contract.rs": {
+      "replayLines": "16/16",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/js.rs": {
+      "replayLines": "28/50",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/lib.rs": {
+      "replayLines": "18/18",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/model.rs": {
+      "replayLines": "129/147",
+      "unitOnlyLines": [
+        "189-192",
+        "194-196"
+      ]
+    },
+    "crates/plugins/annotation/src/promise.rs": {
+      "replayLines": "21/70",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/read/annotations.rs": {
+      "replayLines": "118/134",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/read/chrome.rs": {
+      "replayLines": "214/246",
+      "unitOnlyLines": [
+        "242"
+      ]
+    },
+    "crates/plugins/annotation/src/read/properties.rs": {
+      "replayLines": "99/106",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/read/property_values.rs": {
+      "replayLines": "42/43",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/read/render.rs": {
+      "replayLines": "233/322",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/read/view.rs": {
+      "replayLines": "302/324",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/rich_text.rs": {
+      "replayLines": "384/414",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/services/authority.rs": {
+      "replayLines": "65/65",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/services/events.rs": {
+      "replayLines": "24/36",
+      "unitOnlyLines": [
+        "107-109",
+        "112-117"
+      ]
+    },
+    "crates/plugins/annotation/src/services/file_picker.rs": {
+      "replayLines": "65/71",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/services/lending.rs": {
+      "replayLines": "51/92",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/services/staging.rs": {
+      "replayLines": "246/290",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/services/store.rs": {
+      "replayLines": "497/635",
+      "unitOnlyLines": [
+        "319",
+        "324",
+        "388-390",
+        "392",
+        "480",
+        "548-557",
+        "560-562",
+        "564-566",
+        "568",
+        "571",
+        "573-575",
+        "584-586"
+      ]
+    },
+    "crates/plugins/annotation/src/sync/confirmed.rs": {
+      "replayLines": "52/53",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/sync/records.rs": {
+      "replayLines": "453/576",
+      "unitOnlyLines": [
+        "131",
+        "133",
+        "135",
+        "594-595",
+        "666",
+        "679"
+      ]
+    },
+    "crates/plugins/annotation/src/text_item.rs": {
+      "replayLines": "103/105",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/tools/behaviors.rs": {
+      "replayLines": "45/47",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/tools/definitions.rs": {
+      "replayLines": "303/310",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/tools/ghost.rs": {
+      "replayLines": "161/172",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/tools/handlers.rs": {
+      "replayLines": "416/451",
+      "unitOnlyLines": [
+        "576-580"
+      ]
+    },
+    "crates/plugins/annotation/src/tools/hover_feed.rs": {
+      "replayLines": "46/48",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/tools/markup_bridge.rs": {
+      "replayLines": "53/61",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/tools/registry.rs": {
+      "replayLines": "181/193",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/write/after_create.rs": {
+      "replayLines": "48/61",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/write/crud.rs": {
+      "replayLines": "328/439",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/write/drafts.rs": {
+      "replayLines": "66/69",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/write/icons.rs": {
+      "replayLines": "75/79",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/write/links.rs": {
+      "replayLines": "100/100",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/write/markup.rs": {
+      "replayLines": "200/217",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/write/measurement.rs": {
+      "replayLines": "103/109",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/write/outcomes.rs": {
+      "replayLines": "66/76",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/write/placement.rs": {
+      "replayLines": "74/83",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/write/pointer.rs": {
+      "replayLines": "207/219",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/write/script_effects.rs": {
+      "replayLines": "148/149",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/write/selection.rs": {
+      "replayLines": "307/327",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/write/stamps.rs": {
+      "replayLines": "371/396",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/annotation/src/write/text_editing.rs": {
+      "replayLines": "138/178",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/attachment/src/contract.rs": {
+      "replayLines": "0/6",
+      "unitOnlyLines": [
+        "31-33",
+        "56-58"
+      ]
+    },
+    "crates/plugins/attachment/src/controller.rs": {
+      "replayLines": "380/397",
+      "unitOnlyLines": [
+        "69-70",
+        "72",
+        "74",
+        "263-264",
+        "266-269",
+        "272"
+      ]
+    },
+    "crates/plugins/attachment/src/lib.rs": {
+      "replayLines": "12/12",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/attachment/src/model.rs": {
+      "replayLines": "87/98",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/attachment/src/names.rs": {
+      "replayLines": "13/13",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/attachment/src/state.rs": {
+      "replayLines": "0/22",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/attachment/src/sync.rs": {
+      "replayLines": "123/131",
+      "unitOnlyLines": [
+        "61",
+        "113"
+      ]
+    },
+    "crates/plugins/commands/src/availability.rs": {
+      "replayLines": "158/161",
+      "unitOnlyLines": [
+        "107",
+        "185",
+        "204"
+      ]
+    },
+    "crates/plugins/commands/src/contract.rs": {
+      "replayLines": "72/124",
+      "unitOnlyLines": [
+        "186-188",
+        "196",
+        "254-255",
+        "258",
+        "275-277",
+        "281-283"
+      ]
+    },
+    "crates/plugins/commands/src/controller.rs": {
+      "replayLines": "607/662",
+      "unitOnlyLines": [
+        "367-369",
+        "435-454",
+        "456",
+        "458",
+        "460-461",
+        "472-473",
+        "501-503",
+        "649-653",
+        "815",
+        "882-888",
+        "916",
+        "918-919",
+        "998",
+        "1019"
+      ]
+    },
+    "crates/plugins/commands/src/lib.rs": {
+      "replayLines": "22/25",
+      "unitOnlyLines": [
+        "90-92"
+      ]
+    },
+    "crates/plugins/commands/src/registry.rs": {
+      "replayLines": "36/46",
+      "unitOnlyLines": [
+        "96"
+      ]
+    },
+    "crates/plugins/commands/src/settings.rs": {
+      "replayLines": "99/131",
+      "unitOnlyLines": [
+        "47",
+        "71-83",
+        "94-97",
+        "115-117",
+        "137",
+        "163-164",
+        "174-176",
+        "184-186",
+        "201-202"
+      ]
+    },
+    "crates/plugins/commands/src/turning_off.rs": {
+      "replayLines": "46/57",
+      "unitOnlyLines": [
+        "91-94",
+        "96",
+        "104-106"
+      ]
+    },
+    "crates/plugins/fonts/src/base64.rs": {
+      "replayLines": "21/21",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/fonts/src/css.rs": {
+      "replayLines": "17/17",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/fonts/src/font.rs": {
+      "replayLines": "38/47",
+      "unitOnlyLines": [
+        "144-146"
+      ]
+    },
+    "crates/plugins/fonts/src/lib.rs": {
+      "replayLines": "3/3",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/fonts/src/metrics.rs": {
+      "replayLines": "14/14",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/fonts/src/mountable.rs": {
+      "replayLines": "34/56",
+      "unitOnlyLines": [
+        "107-109",
+        "113"
+      ]
+    },
+    "crates/plugins/fonts/src/programs.rs": {
+      "replayLines": "25/25",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form-core/src/drawing/border.rs": {
+      "replayLines": "177/177",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form-core/src/drawing/mod.rs": {
+      "replayLines": "132/132",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form-core/src/drawing/text.rs": {
+      "replayLines": "198/199",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form-core/src/drawing/toggle.rs": {
+      "replayLines": "261/262",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form-core/src/editor.rs": {
+      "replayLines": "65/73",
+      "unitOnlyLines": [
+        "88-94"
+      ]
+    },
+    "crates/plugins/form-core/src/lib.rs": {
+      "replayLines": "3/3",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form-core/src/scene.rs": {
+      "replayLines": "127/128",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/connect.rs": {
+      "replayLines": "86/103",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/console.rs": {
+      "replayLines": "11/15",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/contract.rs": {
+      "replayLines": "33/34",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/controller.rs": {
+      "replayLines": "109/154",
+      "unitOnlyLines": [
+        "276-278"
+      ]
+    },
+    "crates/plugins/form/src/engine.rs": {
+      "replayLines": "590/1002",
+      "unitOnlyLines": [
+        "108-111",
+        "113",
+        "117-137",
+        "139-149",
+        "151-158",
+        "160",
+        "163-167",
+        "171-192",
+        "194",
+        "196-198",
+        "275-277",
+        "293",
+        "297",
+        "308",
+        "317-329",
+        "347",
+        "351-354",
+        "360-363",
+        "381",
+        "395",
+        "398-407",
+        "413",
+        "417",
+        "419-422",
+        "433-436",
+        "446-455",
+        "457-459",
+        "461",
+        "463-467",
+        "469",
+        "471",
+        "473-475",
+        "563",
+        "567",
+        "569-572",
+        "574-575",
+        "637-638",
+        "663-674",
+        "695",
+        "720-731",
+        "799",
+        "830",
+        "840-842",
+        "844-847",
+        "849-853",
+        "856",
+        "859-865",
+        "869-872",
+        "874-882",
+        "885-891",
+        "893",
+        "895-898",
+        "900-904",
+        "907-915",
+        "951",
+        "977",
+        "981-985",
+        "988",
+        "992-1002",
+        "1004-1012",
+        "1029-1031",
+        "1033-1039",
+        "1044",
+        "1048",
+        "1281-1284",
+        "1286",
+        "1288-1296"
+      ]
+    },
+    "crates/plugins/form/src/engine/copy.rs": {
+      "replayLines": "216/374",
+      "unitOnlyLines": [
+        "341",
+        "346-349",
+        "351",
+        "356-357"
+      ]
+    },
+    "crates/plugins/form/src/engine/tab_order.rs": {
+      "replayLines": "0/76",
+      "unitOnlyLines": [
+        "8-10",
+        "13-33",
+        "35-37",
+        "39-43",
+        "45",
+        "47",
+        "49-80",
+        "82-91"
+      ]
+    },
+    "crates/plugins/form/src/field_selection.rs": {
+      "replayLines": "96/97",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/lib.rs": {
+      "replayLines": "19/19",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/model.rs": {
+      "replayLines": "578/697",
+      "unitOnlyLines": [
+        "67-69",
+        "83-85",
+        "346-349",
+        "848",
+        "1051"
+      ]
+    },
+    "crates/plugins/form/src/promise.rs": {
+      "replayLines": "4/20",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/read/fields.rs": {
+      "replayLines": "197/281",
+      "unitOnlyLines": [
+        "32-34",
+        "112-115",
+        "126",
+        "186-187",
+        "189",
+        "278-292",
+        "303-305",
+        "307",
+        "318-323",
+        "337-338",
+        "340",
+        "342-343",
+        "345",
+        "423-425",
+        "429",
+        "432-435",
+        "438"
+      ]
+    },
+    "crates/plugins/form/src/read/fill_items.rs": {
+      "replayLines": "117/117",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/read/settings.rs": {
+      "replayLines": "0/77",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/read/widgets.rs": {
+      "replayLines": "43/43",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/scripting/controller.rs": {
+      "replayLines": "406/440",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/scripting/overlay.rs": {
+      "replayLines": "135/148",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/scripting/results.rs": {
+      "replayLines": "34/34",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/services/cursor.rs": {
+      "replayLines": "71/152",
+      "unitOnlyLines": [
+        "71",
+        "77-79",
+        "88",
+        "112-116",
+        "120-154",
+        "156-159",
+        "161-181",
+        "183-184"
+      ]
+    },
+    "crates/plugins/form/src/services/design.rs": {
+      "replayLines": "6/6",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/services/events.rs": {
+      "replayLines": "17/17",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/services/formatted.rs": {
+      "replayLines": "33/40",
+      "unitOnlyLines": [
+        "32"
+      ]
+    },
+    "crates/plugins/form/src/services/index_cache.rs": {
+      "replayLines": "39/67",
+      "unitOnlyLines": [
+        "55-56",
+        "67-71",
+        "73-74",
+        "85-88",
+        "98-99",
+        "102",
+        "120-123",
+        "125-130"
+      ]
+    },
+    "crates/plugins/form/src/services/looks.rs": {
+      "replayLines": "76/138",
+      "unitOnlyLines": [
+        "69-72",
+        "161-171",
+        "175-182"
+      ]
+    },
+    "crates/plugins/form/src/services/object_numbers.rs": {
+      "replayLines": "18/31",
+      "unitOnlyLines": [
+        "28-29",
+        "41",
+        "48-50",
+        "52-56",
+        "58-59"
+      ]
+    },
+    "crates/plugins/form/src/services/pictures.rs": {
+      "replayLines": "6/58",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/services/rights.rs": {
+      "replayLines": "43/48",
+      "unitOnlyLines": [
+        "19",
+        "24-26"
+      ]
+    },
+    "crates/plugins/form/src/services/scripting.rs": {
+      "replayLines": "52/64",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/services/siblings.rs": {
+      "replayLines": "9/12",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/sync/fields.rs": {
+      "replayLines": "79/83",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/sync/predict.rs": {
+      "replayLines": "311/446",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/tools/definitions.rs": {
+      "replayLines": "41/41",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/tools/handlers.rs": {
+      "replayLines": "165/191",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/value.rs": {
+      "replayLines": "117/121",
+      "unitOnlyLines": [
+        "54",
+        "189"
+      ]
+    },
+    "crates/plugins/form/src/write/activation.rs": {
+      "replayLines": "131/140",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/write/duplicate.rs": {
+      "replayLines": "198/205",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/write/fields.rs": {
+      "replayLines": "349/422",
+      "unitOnlyLines": [
+        "257"
+      ]
+    },
+    "crates/plugins/form/src/write/fill.rs": {
+      "replayLines": "206/362",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/write/focus.rs": {
+      "replayLines": "0/172",
+      "unitOnlyLines": [
+        "31-40",
+        "42-51",
+        "54-62",
+        "64-66",
+        "68-103",
+        "105-107",
+        "109",
+        "111-117",
+        "119-120",
+        "122-125",
+        "127-130",
+        "132-148",
+        "151",
+        "153-173",
+        "175",
+        "177-184",
+        "186-190",
+        "194-196",
+        "199",
+        "201-203",
+        "205-215",
+        "217-218",
+        "220-222"
+      ]
+    },
+    "crates/plugins/form/src/write/interchange.rs": {
+      "replayLines": "106/119",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/write/lending.rs": {
+      "replayLines": "59/141",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/write/next_in_line.rs": {
+      "replayLines": "0/37",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/write/reset.rs": {
+      "replayLines": "80/80",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/write/script_effects.rs": {
+      "replayLines": "57/59",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/write/typing.rs": {
+      "replayLines": "4/36",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/form/src/write/values.rs": {
+      "replayLines": "141/159",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/geometry/src/js.rs": {
+      "replayLines": "126/147",
+      "unitOnlyLines": [
+        "160",
+        "184",
+        "193-198",
+        "200-205",
+        "207-210",
+        "214-215"
+      ]
+    },
+    "crates/plugins/geometry/src/lib.rs": {
+      "replayLines": "244/252",
+      "unitOnlyLines": [
+        "121",
+        "479-485"
+      ]
+    },
+    "crates/plugins/geometry/src/page_space.rs": {
+      "replayLines": "35/35",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/geometry/src/pdf.rs": {
+      "replayLines": "89/89",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/history/src/contract.rs": {
+      "replayLines": "6/9",
+      "unitOnlyLines": [
+        "30-32"
+      ]
+    },
+    "crates/plugins/history/src/controller.rs": {
+      "replayLines": "301/352",
+      "unitOnlyLines": [
+        "120-122",
+        "363-365",
+        "374-376",
+        "388-398"
+      ]
+    },
+    "crates/plugins/history/src/lib.rs": {
+      "replayLines": "12/15",
+      "unitOnlyLines": [
+        "33-35"
+      ]
+    },
+    "crates/plugins/history/src/model.rs": {
+      "replayLines": "160/165",
+      "unitOnlyLines": [
+        "181"
+      ]
+    },
+    "crates/plugins/history/src/state.rs": {
+      "replayLines": "0/10",
+      "unitOnlyLines": [
+        "19-27",
+        "29"
+      ]
+    },
+    "crates/plugins/i18n/src/contract.rs": {
+      "replayLines": "8/25",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/i18n/src/controller.rs": {
+      "replayLines": "305/371",
+      "unitOnlyLines": [
+        "178-180",
+        "193-195",
+        "198-201",
+        "204-216",
+        "338-340",
+        "342-343",
+        "359-362",
+        "364",
+        "366-372",
+        "374-375",
+        "377",
+        "446-449",
+        "454-457",
+        "466",
+        "468",
+        "471-479"
+      ]
+    },
+    "crates/plugins/i18n/src/js.rs": {
+      "replayLines": "117/120",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/i18n/src/lib.rs": {
+      "replayLines": "15/18",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/i18n/src/loaders.rs": {
+      "replayLines": "87/91",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/i18n/src/model.rs": {
+      "replayLines": "181/183",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/i18n/src/negotiate.rs": {
+      "replayLines": "41/41",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/i18n/src/plural.rs": {
+      "replayLines": "228/231",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/i18n/src/script.rs": {
+      "replayLines": "31/41",
+      "unitOnlyLines": [
+        "46-48",
+        "51-53",
+        "79-81"
+      ]
+    },
+    "crates/plugins/i18n/src/settings.rs": {
+      "replayLines": "74/91",
+      "unitOnlyLines": [
+        "57-59",
+        "105-106",
+        "115-117",
+        "121",
+        "129",
+        "141-143",
+        "148-150"
+      ]
+    },
+    "crates/plugins/i18n/src/strings/mod.rs": {
+      "replayLines": "24/24",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/i18n/src/translate.rs": {
+      "replayLines": "97/97",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/interaction/src/callbacks.rs": {
+      "replayLines": "6/6",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/interaction/src/contract.rs": {
+      "replayLines": "46/90",
+      "unitOnlyLines": [
+        "304-316",
+        "320-332",
+        "352"
+      ]
+    },
+    "crates/plugins/interaction/src/controller.rs": {
+      "replayLines": "386/498",
+      "unitOnlyLines": [
+        "142-143",
+        "147-148",
+        "150-158",
+        "160-162",
+        "227",
+        "295-296",
+        "395-397",
+        "400-402",
+        "406-418",
+        "444",
+        "684-690",
+        "700-711",
+        "716-722",
+        "724-731",
+        "738-745",
+        "748-771"
+      ]
+    },
+    "crates/plugins/interaction/src/feedback.rs": {
+      "replayLines": "22/22",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/interaction/src/lib.rs": {
+      "replayLines": "16/16",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/interaction/src/model.rs": {
+      "replayLines": "50/50",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/interaction/src/settings.rs": {
+      "replayLines": "60/92",
+      "unitOnlyLines": [
+        "39-47",
+        "49-52",
+        "54",
+        "64-65",
+        "113-117",
+        "121-131"
+      ]
+    },
+    "crates/plugins/interaction/src/state.rs": {
+      "replayLines": "0/8",
+      "unitOnlyLines": [
+        "20-26",
+        "28"
+      ]
+    },
+    "crates/plugins/link/src/connect.rs": {
+      "replayLines": "15/15",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/link/src/contract.rs": {
+      "replayLines": "70/70",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/link/src/controller.rs": {
+      "replayLines": "276/333",
+      "unitOnlyLines": [
+        "187",
+        "189-190",
+        "192",
+        "208-209",
+        "220",
+        "371-373",
+        "392",
+        "394-395",
+        "397",
+        "399-401",
+        "403-408",
+        "493-501",
+        "503-504"
+      ]
+    },
+    "crates/plugins/link/src/lib.rs": {
+      "replayLines": "19/22",
+      "unitOnlyLines": [
+        "55-57"
+      ]
+    },
+    "crates/plugins/link/src/source.rs": {
+      "replayLines": "44/51",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/link/src/token.rs": {
+      "replayLines": "1/1",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/measurement/src/contract.rs": {
+      "replayLines": "81/130",
+      "unitOnlyLines": [
+        "27-29",
+        "63-65",
+        "109-111",
+        "115",
+        "117",
+        "132-133",
+        "135-136",
+        "138-139",
+        "141",
+        "143",
+        "145",
+        "161-163",
+        "165-166",
+        "168-170"
+      ]
+    },
+    "crates/plugins/measurement/src/controller.rs": {
+      "replayLines": "60/88",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/measurement/src/lib.rs": {
+      "replayLines": "17/20",
+      "unitOnlyLines": [
+        "56-58"
+      ]
+    },
+    "crates/plugins/measurement/src/model.rs": {
+      "replayLines": "66/67",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/measurement/src/read/scale.rs": {
+      "replayLines": "70/74",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/measurement/src/scale.rs": {
+      "replayLines": "130/138",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/measurement/src/services/events.rs": {
+      "replayLines": "8/8",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/measurement/src/services/siblings.rs": {
+      "replayLines": "3/3",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/measurement/src/services/store.rs": {
+      "replayLines": "77/86",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/measurement/src/sync/viewports.rs": {
+      "replayLines": "115/126",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/measurement/src/token.rs": {
+      "replayLines": "1/1",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/measurement/src/units.rs": {
+      "replayLines": "107/112",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/measurement/src/write/calibration.rs": {
+      "replayLines": "47/48",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/measurement/src/write/create.rs": {
+      "replayLines": "95/102",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/measurement/src/write/scale.rs": {
+      "replayLines": "282/306",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/metadata/src/controller.rs": {
+      "replayLines": "174/187",
+      "unitOnlyLines": [
+        "36",
+        "135-141",
+        "304"
+      ]
+    },
+    "crates/plugins/metadata/src/lib.rs": {
+      "replayLines": "10/10",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/metadata/src/model.rs": {
+      "replayLines": "26/33",
+      "unitOnlyLines": [
+        "19",
+        "43",
+        "47-48",
+        "56-57"
+      ]
+    },
+    "crates/plugins/outline/src/controller.rs": {
+      "replayLines": "529/567",
+      "unitOnlyLines": [
+        "469",
+        "472-475",
+        "504",
+        "601",
+        "603"
+      ]
+    },
+    "crates/plugins/outline/src/lib.rs": {
+      "replayLines": "15/15",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/outline/src/model.rs": {
+      "replayLines": "296/314",
+      "unitOnlyLines": [
+        "38",
+        "192",
+        "228-229",
+        "318"
+      ]
+    },
+    "crates/plugins/outline/src/state.rs": {
+      "replayLines": "0/26",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/outline/src/sync.rs": {
+      "replayLines": "424/468",
+      "unitOnlyLines": [
+        "27-29",
+        "71",
+        "146-148",
+        "227",
+        "460",
+        "468",
+        "530"
+      ]
+    },
+    "crates/plugins/page-edit/src/contract.rs": {
+      "replayLines": "36/47",
+      "unitOnlyLines": [
+        "72-73",
+        "184-186"
+      ]
+    },
+    "crates/plugins/page-edit/src/controller.rs": {
+      "replayLines": "547/592",
+      "unitOnlyLines": [
+        "250",
+        "301-307",
+        "369-371",
+        "373",
+        "376-381",
+        "703-709"
+      ]
+    },
+    "crates/plugins/page-edit/src/lib.rs": {
+      "replayLines": "7/7",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/page-edit/src/model.rs": {
+      "replayLines": "10/11",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/page-edit/src/state.rs": {
+      "replayLines": "0/9",
+      "unitOnlyLines": [
+        "20-27",
+        "29"
+      ]
+    },
+    "crates/plugins/redaction/src/contract.rs": {
+      "replayLines": "24/65",
+      "unitOnlyLines": [
+        "53-59",
+        "62",
+        "64-67",
+        "69-72",
+        "76",
+        "137-146",
+        "148-152",
+        "154-155",
+        "157-160"
+      ]
+    },
+    "crates/plugins/redaction/src/controller.rs": {
+      "replayLines": "51/86",
+      "unitOnlyLines": [
+        "83-85",
+        "94-96",
+        "99-101",
+        "104-106"
+      ]
+    },
+    "crates/plugins/redaction/src/lib.rs": {
+      "replayLines": "18/21",
+      "unitOnlyLines": [
+        "59-61"
+      ]
+    },
+    "crates/plugins/redaction/src/model.rs": {
+      "replayLines": "23/24",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/redaction/src/read/pending.rs": {
+      "replayLines": "166/169",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/redaction/src/services/events.rs": {
+      "replayLines": "3/3",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/redaction/src/services/siblings.rs": {
+      "replayLines": "9/9",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/redaction/src/services/store.rs": {
+      "replayLines": "69/85",
+      "unitOnlyLines": [
+        "51-57",
+        "106",
+        "108-109",
+        "111",
+        "123-124",
+        "148"
+      ]
+    },
+    "crates/plugins/redaction/src/sync/document_events.rs": {
+      "replayLines": "44/44",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/redaction/src/sync/overlay.rs": {
+      "replayLines": "28/33",
+      "unitOnlyLines": [
+        "45-46",
+        "48-49"
+      ]
+    },
+    "crates/plugins/redaction/src/token.rs": {
+      "replayLines": "1/1",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/redaction/src/write/apply.rs": {
+      "replayLines": "100/100",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/redaction/src/write/marks.rs": {
+      "replayLines": "248/266",
+      "unitOnlyLines": [
+        "32-38"
+      ]
+    },
+    "crates/plugins/render/src/appearance_store.rs": {
+      "replayLines": "103/155",
+      "unitOnlyLines": [
+        "74-77",
+        "241-247"
+      ]
+    },
+    "crates/plugins/render/src/contract.rs": {
+      "replayLines": "73/78",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/render/src/controller.rs": {
+      "replayLines": "1134/1256",
+      "unitOnlyLines": [
+        "214-220",
+        "282",
+        "892",
+        "995-997",
+        "1096",
+        "1098",
+        "1198-1200",
+        "1215-1217",
+        "1220-1227",
+        "1230-1232",
+        "1433-1435",
+        "1444-1452",
+        "1487-1493",
+        "1555-1557",
+        "1560-1562",
+        "1672-1674",
+        "1677-1679",
+        "1691"
+      ]
+    },
+    "crates/plugins/render/src/host_contract.rs": {
+      "replayLines": "18/20",
+      "unitOnlyLines": [
+        "62"
+      ]
+    },
+    "crates/plugins/render/src/invalidation.rs": {
+      "replayLines": "63/74",
+      "unitOnlyLines": [
+        "104-107",
+        "109",
+        "116-121"
+      ]
+    },
+    "crates/plugins/render/src/js.rs": {
+      "replayLines": "16/23",
+      "unitOnlyLines": [
+        "23",
+        "33-36",
+        "42-43"
+      ]
+    },
+    "crates/plugins/render/src/lib.rs": {
+      "replayLines": "17/17",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/render/src/model.rs": {
+      "replayLines": "52/54",
+      "unitOnlyLines": [
+        "148",
+        "151"
+      ]
+    },
+    "crates/plugins/render/src/paint_plan.rs": {
+      "replayLines": "44/55",
+      "unitOnlyLines": [
+        "117"
+      ]
+    },
+    "crates/plugins/render/src/pictures.rs": {
+      "replayLines": "159/166",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/render/src/policy.rs": {
+      "replayLines": "54/56",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/render/src/raster_store.rs": {
+      "replayLines": "205/237",
+      "unitOnlyLines": [
+        "53",
+        "65-67",
+        "76-78",
+        "80-82",
+        "98",
+        "118",
+        "122",
+        "132",
+        "134",
+        "146-147",
+        "149",
+        "202-204",
+        "262",
+        "301-303",
+        "306-308"
+      ]
+    },
+    "crates/plugins/render/src/snapshot.rs": {
+      "replayLines": "193/202",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/render/src/strategy.rs": {
+      "replayLines": "60/60",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/render/src/tile_manager.rs": {
+      "replayLines": "611/652",
+      "unitOnlyLines": [
+        "515",
+        "517-523",
+        "525",
+        "803",
+        "806-808"
+      ]
+    },
+    "crates/plugins/render/src/tiles.rs": {
+      "replayLines": "92/93",
+      "unitOnlyLines": [
+        "70"
+      ]
+    },
+    "crates/plugins/search/src/contract.rs": {
+      "replayLines": "44/69",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/search/src/controller.rs": {
+      "replayLines": "535/586",
+      "unitOnlyLines": [
+        "190-194",
+        "205-207",
+        "209-210",
+        "213-214"
+      ]
+    },
+    "crates/plugins/search/src/lib.rs": {
+      "replayLines": "16/16",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/search/src/model.rs": {
+      "replayLines": "97/107",
+      "unitOnlyLines": [
+        "166-175"
+      ]
+    },
+    "crates/plugins/search/src/state.rs": {
+      "replayLines": "0/21",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/search/src/token.rs": {
+      "replayLines": "1/1",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/selection/src/connect.rs": {
+      "replayLines": "20/20",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/selection/src/contract.rs": {
+      "replayLines": "37/59",
+      "unitOnlyLines": [
+        "99-100",
+        "102",
+        "105-107",
+        "158-160",
+        "178-180"
+      ]
+    },
+    "crates/plugins/selection/src/controller.rs": {
+      "replayLines": "675/734",
+      "unitOnlyLines": [
+        "79-81",
+        "94",
+        "181",
+        "209-215",
+        "245-260",
+        "439-443",
+        "455-456",
+        "824-826",
+        "830-832",
+        "835-837",
+        "841-847",
+        "850-852"
+      ]
+    },
+    "crates/plugins/selection/src/handler.rs": {
+      "replayLines": "84/90",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/selection/src/handles.rs": {
+      "replayLines": "76/129",
+      "unitOnlyLines": [
+        "85-101",
+        "115-123",
+        "280-286",
+        "288",
+        "290-295"
+      ]
+    },
+    "crates/plugins/selection/src/lib.rs": {
+      "replayLines": "17/17",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/selection/src/model.rs": {
+      "replayLines": "93/97",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/selection/src/state.rs": {
+      "replayLines": "0/15",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/selection/src/text_layout.rs": {
+      "replayLines": "704/732",
+      "unitOnlyLines": [
+        "208",
+        "212",
+        "234-235",
+        "238"
+      ]
+    },
+    "crates/plugins/shell/src/contract.rs": {
+      "replayLines": "11/23",
+      "unitOnlyLines": [
+        "34-36",
+        "50-52"
+      ]
+    },
+    "crates/plugins/shell/src/controller.rs": {
+      "replayLines": "189/191",
+      "unitOnlyLines": [
+        "36",
+        "225"
+      ]
+    },
+    "crates/plugins/shell/src/lib.rs": {
+      "replayLines": "7/7",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/shell/src/model.rs": {
+      "replayLines": "256/273",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/shell/src/record.rs": {
+      "replayLines": "69/72",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature-core/src/asn1js.rs": {
+      "replayLines": "217/230",
+      "unitOnlyLines": [
+        "63",
+        "129",
+        "152",
+        "313-315",
+        "317-319",
+        "321",
+        "324"
+      ]
+    },
+    "crates/plugins/signature-core/src/cert.rs": {
+      "replayLines": "130/149",
+      "unitOnlyLines": [
+        "189"
+      ]
+    },
+    "crates/plugins/signature-core/src/cms.rs": {
+      "replayLines": "161/163",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature-core/src/crypto.rs": {
+      "replayLines": "192/212",
+      "unitOnlyLines": [
+        "139",
+        "304"
+      ]
+    },
+    "crates/plugins/signature-core/src/der.rs": {
+      "replayLines": "467/577",
+      "unitOnlyLines": [
+        "159",
+        "175",
+        "187",
+        "205",
+        "243-253",
+        "623",
+        "631-632",
+        "634-636",
+        "643-645",
+        "647",
+        "649-650",
+        "652-654",
+        "670",
+        "675",
+        "678",
+        "682-683",
+        "685-690",
+        "692",
+        "707",
+        "709-716",
+        "719-724",
+        "735",
+        "759-760",
+        "762-774"
+      ]
+    },
+    "crates/plugins/signature-core/src/gate.rs": {
+      "replayLines": "73/116",
+      "unitOnlyLines": [
+        "35-37",
+        "86",
+        "138-146",
+        "148-173",
+        "178",
+        "181"
+      ]
+    },
+    "crates/plugins/signature-core/src/lib.rs": {
+      "replayLines": "3/3",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature-core/src/oids.rs": {
+      "replayLines": "55/59",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature-core/src/parse.rs": {
+      "replayLines": "301/333",
+      "unitOnlyLines": [
+        "307",
+        "334",
+        "346-349",
+        "351",
+        "356",
+        "361-367",
+        "507-508",
+        "525-526",
+        "529"
+      ]
+    },
+    "crates/plugins/signature-core/src/policy.rs": {
+      "replayLines": "386/410",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature-core/src/sign.rs": {
+      "replayLines": "111/142",
+      "unitOnlyLines": [
+        "55-57",
+        "84-87",
+        "90",
+        "92-94",
+        "117-121",
+        "124",
+        "132-137"
+      ]
+    },
+    "crates/plugins/signature-core/src/signers.rs": {
+      "replayLines": "282/338",
+      "unitOnlyLines": [
+        "371-379",
+        "381-387",
+        "394-407"
+      ]
+    },
+    "crates/plugins/signature-core/src/timestamp.rs": {
+      "replayLines": "0/255",
+      "unitOnlyLines": [
+        "44-46",
+        "48-50",
+        "52-54",
+        "56-58",
+        "60-62",
+        "65",
+        "68-89",
+        "91-129",
+        "132-137",
+        "139-144",
+        "146-147",
+        "149-152",
+        "155-156",
+        "158",
+        "160",
+        "162",
+        "166-168",
+        "170-176",
+        "178-179",
+        "182",
+        "190-191",
+        "193-206",
+        "208-214",
+        "217-218",
+        "220-222",
+        "232-238",
+        "240-246",
+        "249-251",
+        "253-257",
+        "260-262",
+        "264-267",
+        "284-289",
+        "293-296",
+        "304-308",
+        "315-316",
+        "323-352",
+        "355-380"
+      ]
+    },
+    "crates/plugins/signature-core/src/trust.rs": {
+      "replayLines": "249/256",
+      "unitOnlyLines": [
+        "257"
+      ]
+    },
+    "crates/plugins/signature-core/src/verdict.rs": {
+      "replayLines": "176/178",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature/src/blank_page.rs": {
+      "replayLines": "32/32",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature/src/connect.rs": {
+      "replayLines": "13/16",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature/src/console.rs": {
+      "replayLines": "8/9",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature/src/contract.rs": {
+      "replayLines": "50/83",
+      "unitOnlyLines": [
+        "84-85",
+        "89",
+        "92",
+        "245-251",
+        "253-264",
+        "266-268"
+      ]
+    },
+    "crates/plugins/signature/src/controller.rs": {
+      "replayLines": "57/92",
+      "unitOnlyLines": [
+        "155-158",
+        "162-164",
+        "167-170",
+        "173-184"
+      ]
+    },
+    "crates/plugins/signature/src/js.rs": {
+      "replayLines": "22/38",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature/src/lib.rs": {
+      "replayLines": "30/30",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature/src/model.rs": {
+      "replayLines": "132/135",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature/src/promise.rs": {
+      "replayLines": "11/11",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature/src/read/judging.rs": {
+      "replayLines": "58/58",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature/src/read/signatures.rs": {
+      "replayLines": "150/155",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature/src/services/authority.rs": {
+      "replayLines": "42/46",
+      "unitOnlyLines": [
+        "86-88"
+      ]
+    },
+    "crates/plugins/signature/src/services/errors.rs": {
+      "replayLines": "3/3",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature/src/services/events.rs": {
+      "replayLines": "51/51",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature/src/services/marks.rs": {
+      "replayLines": "19/19",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature/src/services/settings.rs": {
+      "replayLines": "68/77",
+      "unitOnlyLines": [
+        "71-76",
+        "80-82"
+      ]
+    },
+    "crates/plugins/signature/src/services/siblings.rs": {
+      "replayLines": "9/9",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature/src/services/store.rs": {
+      "replayLines": "24/31",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature/src/sync/signatures.rs": {
+      "replayLines": "94/99",
+      "unitOnlyLines": [
+        "129-132"
+      ]
+    },
+    "crates/plugins/signature/src/sync/validation.rs": {
+      "replayLines": "56/57",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature/src/tools/armed_mark.rs": {
+      "replayLines": "46/50",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature/src/write/fill.rs": {
+      "replayLines": "72/72",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature/src/write/place.rs": {
+      "replayLines": "86/93",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/signature/src/write/sign.rs": {
+      "replayLines": "191/267",
+      "unitOnlyLines": [
+        "32-35",
+        "37-38",
+        "40",
+        "76-81",
+        "131",
+        "182",
+        "354"
+      ]
+    },
+    "crates/plugins/stage-core/src/lib.rs": {
+      "replayLines": "598/601",
+      "unitOnlyLines": [
+        "332-334"
+      ]
+    },
+    "crates/plugins/stage/src/camera/animation.rs": {
+      "replayLines": "247/252",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stage/src/camera/coasting.rs": {
+      "replayLines": "29/30",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stage/src/camera/gestures.rs": {
+      "replayLines": "146/149",
+      "unitOnlyLines": [
+        "12-14"
+      ]
+    },
+    "crates/plugins/stage/src/camera/wheel.rs": {
+      "replayLines": "51/51",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stage/src/camera/write.rs": {
+      "replayLines": "137/137",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stage/src/connect.rs": {
+      "replayLines": "130/146",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stage/src/contract.rs": {
+      "replayLines": "81/99",
+      "unitOnlyLines": [
+        "118-121",
+        "123",
+        "449-455",
+        "638-640"
+      ]
+    },
+    "crates/plugins/stage/src/controller.rs": {
+      "replayLines": "86/90",
+      "unitOnlyLines": [
+        "232-234"
+      ]
+    },
+    "crates/plugins/stage/src/destination.rs": {
+      "replayLines": "41/41",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stage/src/lib.rs": {
+      "replayLines": "16/16",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stage/src/model.rs": {
+      "replayLines": "176/203",
+      "unitOnlyLines": [
+        "162-164",
+        "171",
+        "429-430",
+        "432-434",
+        "438-440"
+      ]
+    },
+    "crates/plugins/stage/src/motion.rs": {
+      "replayLines": "30/30",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stage/src/navigation/arrive.rs": {
+      "replayLines": "173/178",
+      "unitOnlyLines": [
+        "96"
+      ]
+    },
+    "crates/plugins/stage/src/navigation/reveal.rs": {
+      "replayLines": "190/197",
+      "unitOnlyLines": [
+        "225-227"
+      ]
+    },
+    "crates/plugins/stage/src/navigation/turn.rs": {
+      "replayLines": "153/155",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stage/src/navigation/zoom_drag.rs": {
+      "replayLines": "0/111",
+      "unitOnlyLines": [
+        "16-23",
+        "25-27",
+        "33-37",
+        "41-45",
+        "49-53",
+        "59-65",
+        "67",
+        "69-70",
+        "73-75",
+        "78-79",
+        "81-89",
+        "91-92",
+        "95-96",
+        "118",
+        "122-123",
+        "126-127",
+        "130-132",
+        "135-136",
+        "139-140",
+        "143-144",
+        "146",
+        "151-158",
+        "160",
+        "162-164",
+        "167-169",
+        "175-179"
+      ]
+    },
+    "crates/plugins/stage/src/navigation/zoom.rs": {
+      "replayLines": "112/121",
+      "unitOnlyLines": [
+        "67",
+        "165-167",
+        "170-172"
+      ]
+    },
+    "crates/plugins/stage/src/read/pages.rs": {
+      "replayLines": "264/275",
+      "unitOnlyLines": [
+        "182-184",
+        "223-225",
+        "255"
+      ]
+    },
+    "crates/plugins/stage/src/responsive.rs": {
+      "replayLines": "57/57",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stage/src/scroll_handler.rs": {
+      "replayLines": "43/46",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stage/src/services/events.rs": {
+      "replayLines": "89/89",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stage/src/services/scene.rs": {
+      "replayLines": "370/376",
+      "unitOnlyLines": [
+        "110-111"
+      ]
+    },
+    "crates/plugins/stage/src/settings.rs": {
+      "replayLines": "93/96",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stage/src/settings/area.rs": {
+      "replayLines": "134/209",
+      "unitOnlyLines": [
+        "84-85",
+        "90-98",
+        "101-107",
+        "267-276",
+        "292-317",
+        "319-326",
+        "330-332",
+        "335-337",
+        "341",
+        "349-350",
+        "353",
+        "361",
+        "363"
+      ]
+    },
+    "crates/plugins/stage/src/state.rs": {
+      "replayLines": "0/21",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stage/src/token.rs": {
+      "replayLines": "3/3",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stage/src/view/lifecycle.rs": {
+      "replayLines": "83/87",
+      "unitOnlyLines": [
+        "32",
+        "37",
+        "137"
+      ]
+    },
+    "crates/plugins/stage/src/working_set.rs": {
+      "replayLines": "65/65",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stage/src/zoom_drag_handler.rs": {
+      "replayLines": "0/37",
+      "unitOnlyLines": [
+        "24-26",
+        "29-31",
+        "33-35",
+        "37-43",
+        "49",
+        "54-57",
+        "71-76"
+      ]
+    },
+    "crates/plugins/stamp/src/blank_library.rs": {
+      "replayLines": "18/18",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stamp/src/console.rs": {
+      "replayLines": "19/38",
+      "unitOnlyLines": [
+        "65",
+        "72-81"
+      ]
+    },
+    "crates/plugins/stamp/src/contract.rs": {
+      "replayLines": "171/194",
+      "unitOnlyLines": [
+        "345-347",
+        "371-375",
+        "377",
+        "379"
+      ]
+    },
+    "crates/plugins/stamp/src/controller.rs": {
+      "replayLines": "128/144",
+      "unitOnlyLines": [
+        "144-146",
+        "155-166"
+      ]
+    },
+    "crates/plugins/stamp/src/convention.rs": {
+      "replayLines": "67/67",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stamp/src/js.rs": {
+      "replayLines": "54/59",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stamp/src/lib.rs": {
+      "replayLines": "21/28",
+      "unitOnlyLines": [
+        "66-69",
+        "73-75"
+      ]
+    },
+    "crates/plugins/stamp/src/model.rs": {
+      "replayLines": "118/133",
+      "unitOnlyLines": [
+        "90-94",
+        "109-113"
+      ]
+    },
+    "crates/plugins/stamp/src/persistence.rs": {
+      "replayLines": "82/91",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stamp/src/read/catalog.rs": {
+      "replayLines": "91/94",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stamp/src/services/asset_engine.rs": {
+      "replayLines": "176/179",
+      "unitOnlyLines": [
+        "282"
+      ]
+    },
+    "crates/plugins/stamp/src/services/binaries.rs": {
+      "replayLines": "19/21",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stamp/src/services/documents.rs": {
+      "replayLines": "22/26",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stamp/src/services/errors.rs": {
+      "replayLines": "16/24",
+      "unitOnlyLines": [
+        "32-39"
+      ]
+    },
+    "crates/plugins/stamp/src/services/events.rs": {
+      "replayLines": "12/12",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stamp/src/services/ghosts.rs": {
+      "replayLines": "79/83",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stamp/src/services/settings.rs": {
+      "replayLines": "79/84",
+      "unitOnlyLines": [
+        "65",
+        "107-109"
+      ]
+    },
+    "crates/plugins/stamp/src/token.rs": {
+      "replayLines": "3/3",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stamp/src/write/assets.rs": {
+      "replayLines": "491/504",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stamp/src/write/libraries.rs": {
+      "replayLines": "462/464",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stamp/src/write/marks.rs": {
+      "replayLines": "140/142",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/stamp/src/write/placement.rs": {
+      "replayLines": "380/395",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/ui-core/src/js.rs": {
+      "replayLines": "122/175",
+      "unitOnlyLines": [
+        "33",
+        "37-38",
+        "46-48",
+        "50-52",
+        "77-83",
+        "94-96",
+        "98-100",
+        "130",
+        "134-143",
+        "145-146",
+        "168-170",
+        "172-174",
+        "188-190",
+        "237",
+        "262-265"
+      ]
+    },
+    "crates/plugins/ui-core/src/layout_compile.rs": {
+      "replayLines": "10/35",
+      "unitOnlyLines": [
+        "17-19",
+        "22-24",
+        "34-36",
+        "39-46",
+        "48",
+        "52-54",
+        "61-64"
+      ]
+    },
+    "crates/plugins/ui-core/src/layout_validate.rs": {
+      "replayLines": "129/331",
+      "unitOnlyLines": [
+        "43-45",
+        "89",
+        "92-93",
+        "104-105",
+        "107",
+        "110-111",
+        "116-117",
+        "121-128",
+        "138-139",
+        "142-147",
+        "160",
+        "163",
+        "165",
+        "171",
+        "179-186",
+        "188-189",
+        "192-208",
+        "211-213",
+        "216-220",
+        "222-223",
+        "229",
+        "238",
+        "240-247",
+        "249-256",
+        "258",
+        "260-261",
+        "272-274",
+        "281",
+        "289-290",
+        "292-293",
+        "295",
+        "297",
+        "299",
+        "307-308",
+        "313",
+        "323",
+        "330",
+        "337-338",
+        "341",
+        "350-352",
+        "354-357",
+        "359",
+        "361-362",
+        "367-380",
+        "382-383",
+        "385-388",
+        "390",
+        "392",
+        "395-396",
+        "401-406",
+        "411",
+        "413-425",
+        "427-452"
+      ]
+    },
+    "crates/plugins/ui-core/src/layout.rs": {
+      "replayLines": "412/738",
+      "unitOnlyLines": [
+        "35-37",
+        "42",
+        "109-110",
+        "113",
+        "115-118",
+        "120-124",
+        "130",
+        "146",
+        "217-219",
+        "222-226",
+        "230-232",
+        "247-249",
+        "272-274",
+        "295-297",
+        "300-302",
+        "307-309",
+        "313-315",
+        "318-320",
+        "376",
+        "393-394",
+        "423",
+        "425",
+        "467-468",
+        "514-520",
+        "535",
+        "541",
+        "578",
+        "583-585",
+        "613-615",
+        "618-621",
+        "623",
+        "625-628",
+        "632",
+        "636-640",
+        "669",
+        "677",
+        "699",
+        "714",
+        "727",
+        "731-734",
+        "743",
+        "759",
+        "771-773",
+        "782-786",
+        "788-800",
+        "802",
+        "804-808",
+        "818-819",
+        "822",
+        "824",
+        "953-959",
+        "961",
+        "963",
+        "966-969",
+        "971",
+        "975-982",
+        "984-991",
+        "993-1000",
+        "1002-1005",
+        "1007",
+        "1009",
+        "1011-1012",
+        "1014-1023",
+        "1025-1027",
+        "1033",
+        "1035-1077",
+        "1125-1130",
+        "1134-1139",
+        "1168-1174",
+        "1176",
+        "1178-1179",
+        "1181-1182",
+        "1185",
+        "1187-1192",
+        "1194-1196",
+        "1198"
+      ]
+    },
+    "crates/plugins/ui-core/src/projection.rs": {
+      "replayLines": "68/68",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/ui-core/src/schema.rs": {
+      "replayLines": "194/211",
+      "unitOnlyLines": [
+        "404",
+        "466"
+      ]
+    },
+    "crates/plugins/ui-core/src/shortcuts.rs": {
+      "replayLines": "91/103",
+      "unitOnlyLines": [
+        "115-117",
+        "119-123",
+        "125-127"
+      ]
+    },
+    "crates/plugins/ui-core/src/solver.rs": {
+      "replayLines": "231/231",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/ui-core/src/suggestions.rs": {
+      "replayLines": "42/45",
+      "unitOnlyLines": [
+        "10",
+        "23",
+        "45"
+      ]
+    },
+    "crates/plugins/ui-core/src/value.rs": {
+      "replayLines": "85/282",
+      "unitOnlyLines": [
+        "51",
+        "55-57",
+        "60",
+        "65",
+        "82-84",
+        "86-87",
+        "89",
+        "96-97",
+        "105",
+        "107-109",
+        "111-112",
+        "114-117",
+        "125-127",
+        "140-141",
+        "143-148",
+        "162",
+        "165",
+        "174",
+        "184-186",
+        "193",
+        "211",
+        "213",
+        "227-235",
+        "237-238",
+        "245-246",
+        "255",
+        "258-263",
+        "269-273",
+        "275-288",
+        "290",
+        "292-300",
+        "302",
+        "305",
+        "310-312",
+        "321-323",
+        "364-365",
+        "370-371",
+        "373",
+        "375-378",
+        "380",
+        "390",
+        "394",
+        "401-403",
+        "410-412",
+        "422-438",
+        "440-441"
+      ]
+    },
+    "crates/plugins/view-manager/src/contract.rs": {
+      "replayLines": "3/3",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/view-manager/src/controller.rs": {
+      "replayLines": "236/239",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/view-manager/src/lib.rs": {
+      "replayLines": "10/10",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/view-manager/src/model.rs": {
+      "replayLines": "280/281",
+      "unitOnlyLines": []
+    },
+    "crates/plugins/view-manager/src/record.rs": {
+      "replayLines": "61/75",
+      "unitOnlyLines": [
+        "16",
+        "90-92",
+        "96-102"
+      ]
+    }
+  }
+}
