@@ -24,7 +24,7 @@ const arms = {
   'plugins-next': Object.fromEntries(Object.entries(base).map(([m, xs]) => [m, xs.map((x) => x * 1.1)])),
 };
 
-function fixtureRun() {
+function fixtureRun({ extra = () => {} } = {}) {
   const dir = mkdtempSync(path.join(tmpdir(), 'report-test-'));
   const armMeta = { ref: 'r', sha: '0'.repeat(40), payload: 'p', engineWasmSha256: 'e'.repeat(64) };
   const meta = {
@@ -58,6 +58,7 @@ function fixtureRun() {
       samples.push({ arm, flow: 'open', fixture: 'small', metrics: Object.fromEntries(Object.entries(metrics).map(([m, xs]) => [m, xs[i]])) });
     }
   }
+  extra({ meta, gate, samples });
   writeFileSync(path.join(dir, 'meta.json'), JSON.stringify(meta));
   writeFileSync(path.join(dir, 'gate.json'), JSON.stringify(gate));
   writeFileSync(path.join(dir, 'samples.jsonl'), samples.map((s) => JSON.stringify(s)).join('\n') + '\n');
@@ -139,6 +140,45 @@ test('max column header is "max", not "p95"', () => {
     assert.equal(load[2], '110.0 [121.0]');
     const aa = section(out.stdout, '## A/A: `main` vs `main-aa`');
     assert.equal(aa.head[1], 'main median [max]');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// `undo` on main-now and plugins-next only, as when main has no history plugin.
+const undoOnly = (skipped) => ({ meta, gate, samples }) => {
+  meta.armsRun.push('main-now');
+  meta.arms['main-now'] = meta.arms.main;
+  if (skipped) meta.skipped = { main: ['undo'], 'main-aa': ['undo'], 'main-now': [], 'plugins-next': [] };
+  gate['main-now'] = { pass: true };
+  for (const [arm, scale] of [['main-now', 1], ['plugins-next', 1.2]]) {
+    for (let i = 0; i < 12; i++) samples.push({ arm, flow: 'undo', fixture: 'annots', metrics: { mainJsMs: base.paintMs[i] * scale } });
+  }
+};
+
+test('a flow the baseline skipped is judged against the floor alone', () => {
+  const dir = fixtureRun({ extra: undoOnly(true) });
+  try {
+    const out = runReport(dir);
+    assert.equal(out.status, 0, out.stderr);
+    const { head, rows } = section(out.stdout, '## `main-now` vs `plugins-next`');
+    const undo = rows.find((r) => r[0] === 'undo / mainJsMs');
+    assert.equal(undo[head.indexOf('threshold')], '±3.0%');
+    assert.equal(undo[head.indexOf('Verdict')], 'slower');
+    assert.ok(!section(out.stdout, '## A/A: `main` vs `main-aa`').rows.some((r) => r[0].startsWith('undo')));
+    assert.match(out.stdout, /- `main`: `undo`/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('a row without A/A data that no arm skipped keeps "no A/A data"', () => {
+  const dir = fixtureRun({ extra: undoOnly(false) });
+  try {
+    const out = runReport(dir);
+    assert.equal(out.status, 0, out.stderr);
+    const { head, rows } = section(out.stdout, '## `main-now` vs `plugins-next`');
+    assert.equal(rows.find((r) => r[0] === 'undo / mainJsMs')[head.indexOf('Verdict')], 'no A/A data');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

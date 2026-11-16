@@ -2,7 +2,20 @@ import EmbedPDF, { StageToken, SearchToken, SelectionToken } from '@perf/door';
 import { setupKernel, kernelCounts } from '@perf/kernel';
 // entry/api-v1.ts or api-v2.ts, whichever viewer API this arm's packages have
 // (lib/api-generation.mjs): the calls that were renamed between the two.
-import { onOpened, execute, goToPageIndex, pageFrame, annotationCountOn } from '@perf/api';
+import {
+  capabilities,
+  onOpened,
+  execute,
+  goToPageIndex,
+  pageFrame,
+  annotationCountOn,
+  annotationTotal,
+  annotationStatus,
+  annotationsOn,
+  fieldCount,
+  formStatus,
+  fieldText,
+} from '@perf/api';
 import type { PerfArm } from './globals';
 
 declare const __PERF_ARM__: PerfArm;
@@ -82,7 +95,14 @@ window.__perf = {
   clearSearch: () => v().get(SearchToken).clear(),
   readSelection: () => v().get(SelectionToken).readText(),
   clearSelection: () => v().get(SelectionToken).clear(),
+  capabilities,
   annotationCount: (pageIndex) => annotationCountOn(v(), pageRef(pageIndex)),
+  annotationTotal: () => annotationTotal(v()),
+  annotationStatus: () => annotationStatus(v()),
+  annotations: (pageIndex) => annotationsOn(v(), pageRef(pageIndex)),
+  fieldCount: () => fieldCount(v()),
+  formStatus: () => formStatus(v()),
+  fieldText: (name) => fieldText(v(), name),
   execute: (command) => execute(v(), command),
   pageBox: (i) => {
     // The frame is in stage-viewport px; the viewport element is found by its

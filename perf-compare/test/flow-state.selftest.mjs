@@ -11,7 +11,21 @@ test('start, warmup, start puts every flow back in its starting state', async ()
   const dist = fileURLToPath(new URL('../.work/dist/main', import.meta.url));
   const { urls, close } = await serveArms({ main: dist }, { basePort: 5390 });
   const run = await launchBrowser({ port: 9335 });
-  const starting = { scroll: 0, jump: 0, zoom: 0, select: 1, search: 0, annotate: 1, soak: 0 };
+  // `undo` needs a history plugin, which main lacks.
+  const starting = {
+    scroll: 0,
+    scrollMid: 300,
+    jump: 0,
+    zoom: 0,
+    select: 1,
+    search: 0,
+    annotate: 1,
+    hover: 200,
+    dragAnnot: 205,
+    drawInk: 202,
+    typeField: 50,
+    soak: 0,
+  };
   try {
     for (const [name, pageIndex] of Object.entries(starting)) {
       const flow = FLOWS[name];

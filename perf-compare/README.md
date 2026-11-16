@@ -58,6 +58,16 @@ Every arm runs one shared entry page (`entry/`), built with Vite from each workt
 selected text, annotation count or rendered page-1 bitmap differs from `main`'s. The report prints
 an excluded arm as `excluded: <reason>` rather than dropping it.
 
+Two fixtures exist for the annotation and form flows, both written by `fixtures/generate.mjs`:
+`annots.pdf` is `large.pdf` with 1,000 highlights, 150 ink drawings and 50 stamps, and `forms.pdf`
+has 1,000 text and checkbox fields over 100 pages. `hover`, `dragAnnot`, `drawInk`, `typeField` and
+`undo` run on them, and the gate compares each one's answer. `dragAnnot` drags a stamp: neither
+viewer API generation moves a highlight. A flow can declare what it `needs` (`lib/flows.mjs`), and
+an arm whose viewer lacks it (`capabilities` in `entry/api-v*.ts`) skips that flow. `undo` needs a
+history plugin, which `main` 2516e2786 doesn't have, so `main` and `main-aa` skip it. The gate
+compares `undo`'s answer with the first arm that ran it, and the report judges its rows against the
+3% floor alone, because there's no A/A pair for them.
+
 ## The standard run
 
 Since 2026-10-14 a run with no `--arms`, and `scripts/build-entry.mjs` with no arms, use
@@ -281,9 +291,10 @@ The `slow` profile approximates a mid-range laptop by CPU throttling. It is not 
 
 ```sh
 node --test test/probe.selftest.mjs test/memory.selftest.mjs
-node --test test/flow-state.selftest.mjs
+node --test test/flow-state.selftest.mjs test/fixtures.selftest.mjs
 ```
 
 The synthetic probe and memory tests need Chromium. The flow-state test additionally needs a
 built `main` arm (`node scripts/build-entry.mjs main`). It checks each interaction flow's
-starting state after warm-up.
+starting state after warm-up. The fixtures test needs the same build and checks that `main`'s
+TypeScript engine lists 1,200 annotations in `annots.pdf` and 1,000 fields in `forms.pdf`.

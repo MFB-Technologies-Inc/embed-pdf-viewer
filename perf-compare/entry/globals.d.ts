@@ -17,7 +17,15 @@ export interface PerfBridge {
   clearSearch(): void;
   readSelection(): Promise<string>;
   clearSelection(): void;
+  /** What the arm's viewer has beyond the common operations (entry/api-v*.ts). */
+  capabilities: readonly string[];
   annotationCount(pageIndex: number): number;
+  annotationTotal(): number;
+  annotationStatus(): string;
+  annotations(pageIndex: number): { subtype: string; box: [number, number, number, number] }[];
+  fieldCount(): number;
+  formStatus(): string;
+  fieldText(name: string): string | null;
   execute(command: string): void;
   kernelCounts(): Record<string, number> | null;
   pageBox(pageIndex: number): { x: number; y: number; width: number; height: number };

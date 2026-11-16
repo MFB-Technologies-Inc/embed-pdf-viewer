@@ -61,7 +61,7 @@ function rows(samples) {
     if (s.error) continue;
     for (const [metric, value] of Object.entries(s.metrics)) {
       const key = `${s.flow}|${s.fixture}|${metric}`;
-      if (!out.has(key)) out.set(key, { label: rowLabel(s.flow, s.fixture, metric), metric, byArm: {} });
+      if (!out.has(key)) out.set(key, { label: rowLabel(s.flow, s.fixture, metric), flow: s.flow, metric, byArm: {} });
       (out.get(key).byArm[s.arm] ??= []).push(value);
     }
   }
@@ -98,11 +98,21 @@ const intervalText = (metric, iv) =>
 const table = (head, body) =>
   [`| ${head.join(' | ')} |`, `| ${head.map(() => '---').join(' | ')} |`, ...body.map((r) => `| ${r.join(' | ')} |`)].join('\n');
 
-function calibrations(allRows, config) {
+// A flow the baseline and noise arms don't have (meta.skipped: a flow that
+// needs what their viewer lacks, lib/flows.mjs `needs`) has no A/A pair; its
+// rows are judged against the floor alone, as if the noise band were 0, and
+// leave the A/A table.
+const FLOOR_ONLY = { ok: true, noise: 0, floorOnly: true };
+
+function calibrations(allRows, config, skipped = {}) {
   const out = new Map();
   for (const [key, row] of allRows) {
     const a = row.byArm[config.baseline];
     const b = row.byArm[config.noiseArm];
+    if (!a && !b && [config.baseline, config.noiseArm].every((id) => skipped[id]?.includes(row.flow))) {
+      out.set(key, FLOOR_ONLY);
+      continue;
+    }
     if (!a || !b) continue;
     try {
       const iv = interval(row.metric, a, b);
@@ -144,7 +154,7 @@ function report(run, config) {
   const lines = [];
   const push = (...l) => lines.push(...l);
   const allRows = rows(samples);
-  const calib = calibrations(allRows, config);
+  const calib = calibrations(allRows, config, meta.skipped);
 
   push(
     `# Viewer perf comparison: ${meta.runId}`,
@@ -193,6 +203,11 @@ function report(run, config) {
 
   push('', '## Gate', '');
   for (const [id, g] of Object.entries(gate)) push(`- \`${id}\`: ${g.pass ? 'pass' : `excluded: ${g.reason}`}`);
+  const skippedText = Object.entries(meta.skipped ?? {}).filter(([, flows]) => flows.length);
+  if (skippedText.length) {
+    push('', 'Not run, because the arm\'s viewer lacks what the flow needs:', '');
+    for (const [id, flows] of skippedText) push(`- \`${id}\`: ${flows.map((f) => `\`${f}\``).join(', ')}`);
+  }
   const errors = samples.filter((s) => s.error);
   if (errors.length) {
     push('', `${errors.length} samples failed and are left out:`, '');
@@ -215,7 +230,7 @@ function report(run, config) {
   for (const [key, row] of allRows) {
     if (MEMORY.includes(row.metric)) continue;
     const c = calib.get(key);
-    if (!c) continue;
+    if (!c || c.floorOnly) continue;
     aaBody.push([
       row.label,
       cell(row.metric, row.byArm[noiseRef]),

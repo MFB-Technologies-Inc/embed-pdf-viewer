@@ -51,7 +51,7 @@ test('every environment field is present and non-empty', () => {
 });
 
 test('the committed fixtures match fixtures.json', () => {
-  assert.deepEqual(Object.keys(verifyFixtures()).sort(), ['ebook', 'large']);
+  assert.deepEqual(Object.keys(verifyFixtures()).sort(), ['annots', 'ebook', 'forms', 'large']);
 });
 
 test('compatible lists exactly the differing keys', () => {

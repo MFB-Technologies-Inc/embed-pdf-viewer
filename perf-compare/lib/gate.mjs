@@ -1,7 +1,7 @@
 // The fairness gate: what "the same answer" means. Every arm must give the
 // baseline arm's answers before any of its timings count.
 import { createHash } from 'node:crypto';
-import { runFlow } from './flows.mjs';
+import { armRuns, FLOWS, runFlow } from './flows.mjs';
 
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
 // Arms on different engine wasm may differ by this share of pixels: the
@@ -77,6 +77,17 @@ async function differingShare(browser, a, b) {
   }
 }
 
+// The flows on annots.pdf and forms.pdf, run once each. Each answer is kept
+// under its flow's name, so an arm that doesn't run a flow (lib/flows.mjs
+// `needs`) has no answer for it.
+const FIXTURE_FLOWS = ['hover', 'dragAnnot', 'drawInk', 'typeField', 'undo'];
+
+// Every annotation and field is read once the plugin says it's ready.
+const fixtureCounts = (read) => async (page) => {
+  await page.waitForFunction((s) => window.__perf[s]() === 'ready', read.status, { timeout: 30_000 });
+  return page.evaluate((c) => window.__perf[c](), read.count);
+};
+
 async function answersFor(run, arm, origin, env) {
   const opts = { origin, rate: 1, ...env };
   const large = await runFlow(run, {
@@ -93,13 +104,38 @@ async function answersFor(run, arm, origin, env) {
       pageCount: await page.evaluate(() => window.__perf.pageCount()),
       arm: await page.evaluate(() => window.__perf.arm),
       kernelCounts: await page.evaluate(() => window.__perf.kernelCounts()),
+      capabilities: await page.evaluate(() => window.__perf.capabilities),
       png: await screenshot(page),
     }),
   });
   const select = await runFlow(run, { ...opts, flow: 'select', fixture: 'ebook' });
   const annotate = await runFlow(run, { ...opts, flow: 'annotate', fixture: 'ebook' });
+  const annots = await runFlow(run, {
+    ...opts,
+    flow: 'open',
+    fixture: 'annots',
+    inspect: fixtureCounts({ status: 'annotationStatus', count: 'annotationTotal' }),
+  });
+  const forms = await runFlow(run, {
+    ...opts,
+    flow: 'open',
+    fixture: 'forms',
+    inspect: fixtureCounts({ status: 'formStatus', count: 'fieldCount' }),
+  });
+  const { capabilities } = search.inspected;
+  const flowAnswers = {};
+  const skipped = [];
+  for (const flow of FIXTURE_FLOWS) {
+    if (!armRuns(flow, capabilities)) {
+      skipped.push(flow);
+      continue;
+    }
+    flowAnswers[flow] = (await runFlow(run, { ...opts, flow, fixture: FLOWS[flow].fixture })).answers;
+  }
   return {
     identity: { arm: search.inspected.arm, kernelMounted: search.inspected.kernelCounts !== null },
+    capabilities,
+    skipped,
     answers: {
       largePageCount: large.inspected,
       ebookPageCount: search.inspected.pageCount,
@@ -107,12 +143,38 @@ async function answersFor(run, arm, origin, env) {
       selection: select.answers.selection,
       annotationsBefore: annotate.answers.countBefore,
       annotationsAfter: annotate.answers.countAfter,
+      annotsAnnotations: annots.inspected,
+      formsFields: forms.inspected,
+      ...flowAnswers,
     },
     png: search.inspected.png,
   };
 }
 
-// Returns { [armId]: { pass: true, answers, screenshotSha256 } | { pass: false, reason } }.
+// Each answer is compared with the reference arm's: the baseline's when the
+// baseline has that answer, else the first arm in `order` that has it. An arm
+// may lack an answer only for a flow it skipped (`skipped`, flow names, which
+// are also the keys of their answers). `collected` is { [armId]: { answers,
+// skipped } }; returns the reasons `id` fails, empty when it passes.
+export function answerReasons(id, collected, order) {
+  const reasons = [];
+  const keys = [...new Set(order.flatMap((a) => Object.keys(collected[a]?.answers ?? {})))];
+  const got = collected[id];
+  for (const key of keys) {
+    const refId = order.find((a) => collected[a] && key in collected[a].answers);
+    if (!(key in got.answers)) {
+      if (!got.skipped?.includes(key)) reasons.push(`${key}: no answer where ${refId} has one`);
+      continue;
+    }
+    const value = collected[refId].answers[key];
+    if (!sameAnswer(key, got.answers[key], value)) {
+      reasons.push(`${key}: ${JSON.stringify(got.answers[key])} where ${refId} has ${JSON.stringify(value)}`);
+    }
+  }
+  return reasons;
+}
+
+// Returns { [armId]: { pass: true, answers, capabilities, skipped, screenshotSha256 } | { pass: false, reason } }.
 export async function runGate(run, { config, arms, urls, stamps, env }) {
   const results = {};
   const collected = {};
@@ -136,11 +198,7 @@ export async function runGate(run, { config, arms, urls, stamps, env }) {
     // The viewer can't ask the worker which reader served a page, so the
     // stamp's verify-rust-core result stands in for impl-rust.
     if (arm.rustReads && !stamps[arm.worktree].rustCore) reasons.push('the payload has no verified Rust core');
-    for (const [key, value] of Object.entries(reference.answers)) {
-      if (!sameAnswer(key, got.answers[key], value)) {
-        reasons.push(`${key}: ${JSON.stringify(got.answers[key])} where ${referenceId} has ${JSON.stringify(value)}`);
-      }
-    }
+    reasons.push(...answerReasons(id, collected, [referenceId, ...arms.filter((a) => a !== referenceId)]));
     const sameWasm = stamps[arm.worktree].engineWasmSha256 === stamps[config.arms[referenceId].worktree].engineWasmSha256;
     let pixelShare = 0;
     if (sha256(got.png) !== sha256(reference.png)) {
@@ -152,7 +210,12 @@ export async function runGate(run, { config, arms, urls, stamps, env }) {
     }
     results[id] = reasons.length
       ? { pass: false, reason: reasons.join('; ') }
-      : { pass: true, answers: got.answers, screenshotSha256: sha256(got.png), pixelShareVsReference: pixelShare };
+      : {
+          pass: true,
+          answers: got.answers,
+          capabilities: got.capabilities,
+          skipped: got.skipped,
+          screenshotSha256: sha256(got.png), pixelShareVsReference: pixelShare };
   }
   return Object.fromEntries(arms.map((id) => [id, results[id]]));
 }
