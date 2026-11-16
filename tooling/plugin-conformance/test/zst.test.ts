@@ -139,6 +139,7 @@ test('compression without zstd in this Node names the Node it needs', async () =
   await withDir(async (dir) => {
     const path = join(dir, 'x.json');
     await writeFile(`${path}.zst`, compress(3));
+    // Works because this file and src/vectors.ts resolve `node:zlib` to the same object.
     const node = zlib as unknown as Record<string, unknown>;
     const saved = { compress: node.zstdCompressSync, decompress: node.zstdDecompressSync };
     node.zstdCompressSync = undefined;
