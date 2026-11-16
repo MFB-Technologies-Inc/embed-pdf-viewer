@@ -259,8 +259,8 @@
       "recipe": "rust-kernel"
     },
     "plugins-next": {
-      "ref": "research/multi-platform-rust-core-impl-plugins",
-      "sha": "2aaa8f8411039eb038287d4689a515ecc211a390",
+      "ref": "research/perf-fixes",
+      "sha": "0de4effd922631c607fe44ca352a3aa9b2d52555",
       "recipe": "rust-kernel"
     },
     "main-now": {
@@ -269,8 +269,8 @@
       "recipe": "typescript"
     },
     "plugins-next-lto": {
-      "ref": "research/multi-platform-rust-core-impl-plugins",
-      "sha": "2aaa8f8411039eb038287d4689a515ecc211a390",
+      "ref": "research/perf-fixes",
+      "sha": "0de4effd922631c607fe44ca352a3aa9b2d52555",
       "recipe": "rust-kernel-lto"
     }
   },
