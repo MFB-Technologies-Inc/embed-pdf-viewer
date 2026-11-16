@@ -151,6 +151,27 @@ pub fn assert_loaded_suite(
     only: Option<&str>,
     receipts: Option<&Path>,
 ) {
+    assert_suite_with_ledger(
+        file,
+        suite,
+        registry,
+        functions,
+        only,
+        receipts,
+        exceptions::ledger(),
+    );
+}
+
+/// [`assert_loaded_suite`] against `ledger` rather than `divergences.json`.
+fn assert_suite_with_ledger(
+    file: &str,
+    suite: &Value,
+    registry: &Registry,
+    functions: &FunctionTable,
+    only: Option<&str>,
+    receipts: Option<&Path>,
+    ledger: &[exceptions::Divergence],
+) {
     let verbose = std::env::var("PLUGIN_CONFORMANCE_VERBOSE").is_ok();
     let mut failures = Vec::new();
     let mut ran = Vec::new();
@@ -187,11 +208,17 @@ pub fn assert_loaded_suite(
                             );
                         }
                         let mut stale = None;
-                        for entry in exceptions::for_case(file, name) {
+                        for (divergence, observation) in
+                            exceptions::observations(ledger, file, name)
+                        {
                             exceptions_seen.push(name.to_string());
-                            match exceptions::apply(entry, &expected, &mut run.trace) {
-                                Ok(()) => exceptions_applied.push(receipt::exception_id(entry)),
-                                Err(why) => stale = Some(why),
+                            match exceptions::apply(observation, &expected, &mut run.trace) {
+                                Ok(()) => {
+                                    if !exceptions_applied.contains(&divergence.id) {
+                                        exceptions_applied.push(divergence.id.clone());
+                                    }
+                                }
+                                Err(why) => stale = Some(format!("{}: {why}", divergence.id)),
                             }
                         }
                         if let Some(why) = stale {
@@ -249,12 +276,14 @@ pub fn assert_loaded_suite(
     let ran = ran.len();
     assert!(ran > 0, "{file}: no case ran");
     if only.is_none() {
-        for entry in exceptions::all().iter().filter(|e| e.file == file) {
-            if !exceptions_seen.contains(&entry.case) {
-                failures.push(format!(
-                    "{}: outcome exception is stale: no scenario case of that name ran",
-                    entry.case
-                ));
+        for divergence in ledger {
+            for observation in divergence.observed_by.iter().filter(|o| o.file == file) {
+                if !exceptions_seen.contains(&observation.case) {
+                    failures.push(format!(
+                        "{}: {}: observation is stale: no scenario case of that name ran",
+                        observation.case, divergence.id
+                    ));
+                }
             }
         }
     }
@@ -318,6 +347,47 @@ mod tests {
         );
         std::fs::write(dir.0.join("x.json.zst"), bytes).unwrap();
         load(dir.0.join("x.json").to_str().unwrap());
+    }
+
+    /// A ledger observation of a case the suite does not have fails the
+    /// unfiltered replay, and only the observation of this file counts.
+    #[test]
+    fn an_observation_whose_case_never_ran_fails() {
+        let suite = serde_json::json!({
+            "schemaVersion": SCHEMA_VERSION,
+            "kind": "function",
+            "cases": [{ "name": "one", "fn": "id", "args": [1], "outcome": { "returned": 1 } }],
+        });
+        let functions: FunctionTable = vec![("id", |args: &[Value]| Ok(args[0].clone()))];
+        let ledger = exceptions::parse(
+            r#"[{ "id": "X1", "summary": "s", "reason": "r", "decided": "d",
+                  "observedBy": [
+                    { "file": "a/b.json", "case": "gone",
+                      "valueAt": { "path": "$[0].x", "expected": 1, "actual": 2 } },
+                    { "file": "other.json", "case": "elsewhere",
+                      "valueAt": { "path": "$[0].x", "expected": 1, "actual": 2 } } ] }]"#,
+        )
+        .unwrap();
+        let run = |only: Option<&str>| {
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                assert_suite_with_ledger(
+                    "a/b.json",
+                    &suite,
+                    &Registry::new(),
+                    &functions,
+                    only,
+                    None,
+                    &ledger,
+                )
+            }))
+        };
+        let message = panic_message(run(None).unwrap_err());
+        assert!(
+            message.contains("gone: X1: observation is stale: no scenario case of that name ran"),
+            "{message}"
+        );
+        assert!(!message.contains("elsewhere"), "{message}");
+        assert!(run(Some("one")).is_ok(), "a filtered run does not check observations");
     }
 
     #[test]

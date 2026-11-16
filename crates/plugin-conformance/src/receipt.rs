@@ -13,8 +13,6 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use serde::{Deserialize, Serialize};
 
-use crate::exceptions::MovedCallback;
-
 /// What one [`crate::assert_suite`] call replayed.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -25,7 +23,8 @@ pub struct Receipt {
     pub only: Option<String>,
     /// The names of the cases that ran, in file order.
     pub ran: Vec<String>,
-    /// The ids of the outcome exceptions that were applied.
+    /// The ids of the ledger divergences (`divergences.json`) whose
+    /// observations were applied.
     pub exceptions: Vec<String>,
     /// The cases that ran with a member-order allowance.
     pub member_order_allowed: Vec<String>,
@@ -44,19 +43,6 @@ pub fn write_receipt(dir: &Path, receipt: &Receipt) -> std::io::Result<PathBuf> 
     std::fs::write(&partial, serde_json::to_vec_pretty(receipt)?)?;
     std::fs::rename(&partial, &path)?;
     Ok(path)
-}
-
-/// The id a receipt records for an applied outcome exception: the divergence
-/// id its `reason` names after "Kept divergence ", else `<file>/<case>`.
-pub fn exception_id(entry: &MovedCallback) -> String {
-    entry
-        .reason
-        .strip_prefix("Kept divergence ")
-        .and_then(|rest| rest.split_whitespace().next())
-        .map(|token| token.trim_end_matches(|c: char| c.is_ascii_punctuation()))
-        .filter(|id| !id.is_empty())
-        .map(str::to_string)
-        .unwrap_or_else(|| format!("{}/{}", entry.file, entry.case))
 }
 
 #[cfg(test)]
@@ -231,17 +217,5 @@ mod tests {
         let [path] = &dir.entries()[..] else { panic!("one receipt: {:?}", dir.entries()) };
         let r = read(path);
         assert_eq!((r.only.as_deref(), r.ran), (Some("two"), vec!["two".to_string()]));
-    }
-
-    #[test]
-    fn a_kept_divergence_is_named_by_its_id() {
-        let entry = crate::exceptions::all()
-            .iter()
-            .find(|e| e.case == "dispose-pending-factory")
-            .expect("the checked-in M13 entry");
-        assert_eq!(exception_id(entry), "M13");
-        let other =
-            crate::exceptions::MovedCallback { reason: "Something else".into(), ..entry.clone() };
-        assert_eq!(exception_id(&other), "core/acrojs-host.json/dispose-pending-factory");
     }
 }
