@@ -3,8 +3,14 @@
 //! kind's shape, a rotated run with a null rotation or no `ascentFlip`, and
 //! a negative `start` are refused.
 
+mod common;
+
+use epdf_geometry::Point;
+use epdf_kernel::geometry::PageRef;
+use epdf_kernel::rt;
+use epdf_plugin_selection::controller::layout_builds;
 use epdf_plugin_selection::text_layout::{
-    PageCoordinates, PageGeometryRun, PageGeometrySnapshot, PdfCoordinates,
+    Coordinates, PageCoordinates, PageGeometryRun, PageGeometrySnapshot, PdfCoordinates,
 };
 use serde_json::{Value, json};
 
@@ -77,4 +83,46 @@ fn refuses_what_does_not_fit() {
     for run in bad {
         assert!(decode(&run).is_err(), "{run}");
     }
+}
+
+#[test]
+fn loaded_page_keeps_one_geometry_copy() {
+    let (kernel, _fake) = common::kernel(1, common::BOTH, Vec::new());
+    let selection = common::selection(&kernel);
+    let page = PageRef::new(1);
+    let before = layout_builds();
+    let _ = selection.ensure_loaded(page);
+    rt::run_until_stalled();
+    assert!(selection.is_loaded(page));
+    // The load builds the layout the mirror holds ...
+    assert_eq!(layout_builds() - before, 1);
+    // ... and reads use it as it is.
+    assert!(selection.is_over_text(page, Point { x: 55.0, y: 55.0 }));
+    assert!(!selection.is_over_text(page, Point { x: 300.0, y: 300.0 }));
+    assert_eq!(layout_builds() - before, 1);
+}
+
+/// The member names a cell is gathered by are the ones each type writes.
+#[test]
+fn cell_members_are_the_types_own() {
+    fn members<T: serde::Serialize + Default>() -> Vec<String> {
+        let value = serde_json::to_value(T::default()).unwrap();
+        value.as_object().unwrap().keys().cloned().collect()
+    }
+    fn check<C: Coordinates>()
+    where
+        C::Rect: Default,
+        C::Quad: Default,
+    {
+        let (mut rect, mut quad) = (members::<C::Rect>(), members::<C::Quad>());
+        rect.sort();
+        quad.sort();
+        let (mut want_rect, mut want_quad) = (C::RECT_MEMBERS.to_vec(), C::QUAD_MEMBERS.to_vec());
+        want_rect.sort();
+        want_quad.sort();
+        assert_eq!(rect, want_rect);
+        assert_eq!(quad, want_quad);
+    }
+    check::<PageCoordinates>();
+    check::<PdfCoordinates>();
 }

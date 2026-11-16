@@ -24,13 +24,17 @@
 //! page-space [`TextLayout`] runs it on page-space geometry flipped top to
 //! bottom and flips each answer back: the flip is exact.
 
-use std::fmt::Debug;
+use std::fmt::{self, Debug};
+use std::marker::PhantomData;
 
 use epdf_geometry::js;
 use epdf_geometry::{
     PdfRect, Point, Quad, Rect, page_box_of, page_quad_of, pdf_point_of as geometry_pdf_point_of,
 };
-use serde::de::{DeserializeOwned, Error as _};
+use serde::de::value::MapDeserializer;
+use serde::de::{
+    DeserializeOwned, DeserializeSeed, Error as _, IgnoredAny, MapAccess, SeqAccess, Visitor,
+};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
@@ -48,6 +52,10 @@ pub trait Coordinates: Clone + Copy + Debug + PartialEq + 'static {
     type Rect: Clone + Copy + Debug + PartialEq + Serialize + DeserializeOwned;
     /// A quad, its corners named in the text's own frame in either space.
     type Quad: Clone + Copy + Debug + PartialEq + Serialize + DeserializeOwned;
+    /// The members a [`Self::Quad`] reads: its corners.
+    const QUAD_MEMBERS: [&'static str; 4] = ["upperLeft", "upperRight", "lowerLeft", "lowerRight"];
+    /// The members a [`Self::Rect`] reads.
+    const RECT_MEMBERS: [&'static str; 4];
 }
 
 /// The file's coordinates: PDF user space, y up.
@@ -57,6 +65,7 @@ pub struct PdfCoordinates;
 impl Coordinates for PdfCoordinates {
     type Rect = PdfRect;
     type Quad = Quad;
+    const RECT_MEMBERS: [&'static str; 4] = ["left", "right", "bottom", "top"];
 }
 
 /// Page space: from the top-left of the page's visible box, y down.
@@ -66,6 +75,7 @@ pub struct PageCoordinates;
 impl Coordinates for PageCoordinates {
     type Rect = PageBox;
     type Quad = Quad;
+    const RECT_MEMBERS: [&'static str; 4] = ["x", "y", "width", "height"];
 }
 
 // ── the wire DTOs ─────────────────────────────────────────────────────────────
@@ -190,11 +200,181 @@ struct WireGlyph<C: Coordinates> {
     empty: bool,
 }
 
-#[derive(Deserialize)]
-#[serde(untagged, bound = "")]
+/// A glyph's cell, read before its run's kind is known: whichever of a quad
+/// and a box it makes, the quad first, as an untagged `Quad | Rect` reads
+/// it. A cell that is an object has its members gathered by name in one
+/// pass, so an upright cell is read as a box without buffering it and
+/// without first failing as a quad.
 enum WireCell<C: Coordinates> {
     Quad(C::Quad),
     Rect(C::Rect),
+}
+
+const UNMATCHED: &str = "data did not match any variant of untagged enum WireCell";
+
+impl<'de, C: Coordinates> Deserialize<'de> for WireCell<C> {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        deserializer.deserialize_any(CellVisitor::<C>(PhantomData))
+    }
+}
+
+struct CellVisitor<C>(PhantomData<C>);
+
+impl<'de, C: Coordinates> Visitor<'de> for CellVisitor<C> {
+    type Value = WireCell<C>;
+
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("a quad or a box")
+    }
+
+    /// Slots 0 to 3 hold the quad's corners, 4 to 7 the box's members. A
+    /// member named twice spoils its shape, as it fails a derived read.
+    fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<WireCell<C>, A::Error> {
+        let mut slots: [Option<Value>; 8] = Default::default();
+        let (mut quad, mut rect) = (true, true);
+        while let Some(member) = map.next_key_seed(MemberSeed::<C>(PhantomData))? {
+            match member {
+                Some(i) if i < 4 => {
+                    let corner = map.next_value::<Corner>()?.0;
+                    quad &= slots[i].replace(corner).is_none();
+                }
+                Some(i) => {
+                    let value = map.next_value::<Value>()?;
+                    rect &= slots[i].replace(value).is_none();
+                }
+                None => {
+                    map.next_value::<IgnoredAny>()?;
+                }
+            }
+        }
+        let [ul, ur, ll, lr, a, b, c, d] = slots;
+        let corners = [ul, ur, ll, lr];
+        // With no corner at all, the quad would fail for a missing one.
+        if quad
+            && corners.iter().any(Option::is_some)
+            && let Ok(q) = read_members(C::QUAD_MEMBERS, corners)
+        {
+            return Ok(WireCell::Quad(q));
+        }
+        if rect && let Ok(r) = read_members(C::RECT_MEMBERS, [a, b, c, d]) {
+            return Ok(WireCell::Rect(r));
+        }
+        Err(A::Error::custom(UNMATCHED))
+    }
+
+    /// A cell written as an array reads by position, as a derived read does.
+    fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<WireCell<C>, A::Error> {
+        let mut items = Vec::new();
+        while let Some(Corner(item)) = seq.next_element()? {
+            items.push(item);
+        }
+        let cell = Value::Array(items);
+        C::Quad::deserialize(&cell)
+            .map(WireCell::Quad)
+            .or_else(|_| C::Rect::deserialize(&cell).map(WireCell::Rect))
+            .map_err(|_| A::Error::custom(UNMATCHED))
+    }
+}
+
+/// `T` read from the members present, each under its name.
+fn read_members<T: DeserializeOwned>(
+    names: [&'static str; 4],
+    values: [Option<Value>; 4],
+) -> Result<T, serde_json::Error> {
+    let present = names.into_iter().zip(values).filter_map(|(name, value)| Some((name, value?)));
+    T::deserialize(MapDeserializer::new(present))
+}
+
+/// A cell member's name: its slot, or `None` for a member neither shape reads.
+struct MemberSeed<C>(PhantomData<C>);
+
+impl<'de, C: Coordinates> DeserializeSeed<'de> for MemberSeed<C> {
+    type Value = Option<usize>;
+
+    fn deserialize<D: Deserializer<'de>>(self, deserializer: D) -> Result<Option<usize>, D::Error> {
+        deserializer.deserialize_identifier(self)
+    }
+}
+
+impl<'de, C: Coordinates> Visitor<'de> for MemberSeed<C> {
+    type Value = Option<usize>;
+
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("a member name")
+    }
+
+    fn visit_str<E: serde::de::Error>(self, name: &str) -> Result<Option<usize>, E> {
+        Ok(C::QUAD_MEMBERS.iter().chain(&C::RECT_MEMBERS).position(|m| *m == name))
+    }
+}
+
+/// A corner, or an element of a cell written as an array, kept as a value
+/// to read once the cell's shape is known. An object that names `x` or `y`
+/// twice is kept as `null`, which no point reads, as a derived read of it
+/// fails.
+struct Corner(Value);
+
+impl<'de> Deserialize<'de> for Corner {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        deserializer.deserialize_any(CornerVisitor)
+    }
+}
+
+struct CornerVisitor;
+
+impl<'de> Visitor<'de> for CornerVisitor {
+    type Value = Corner;
+
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("any value")
+    }
+
+    fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Corner, A::Error> {
+        let mut members = serde_json::Map::new();
+        let mut spoiled = false;
+        while let Some(name) = map.next_key::<String>()? {
+            let value = map.next_value::<Value>()?;
+            let point = name == "x" || name == "y";
+            spoiled |= members.insert(name, value).is_some() && point;
+        }
+        Ok(Corner(if spoiled { Value::Null } else { Value::Object(members) }))
+    }
+
+    fn visit_seq<A: SeqAccess<'de>>(self, seq: A) -> Result<Corner, A::Error> {
+        Value::deserialize(serde::de::value::SeqAccessDeserializer::new(seq)).map(Corner)
+    }
+
+    fn visit_bool<E: serde::de::Error>(self, v: bool) -> Result<Corner, E> {
+        Ok(Corner(Value::Bool(v)))
+    }
+
+    fn visit_i64<E: serde::de::Error>(self, v: i64) -> Result<Corner, E> {
+        Ok(Corner(Value::from(v)))
+    }
+
+    fn visit_u64<E: serde::de::Error>(self, v: u64) -> Result<Corner, E> {
+        Ok(Corner(Value::from(v)))
+    }
+
+    fn visit_f64<E: serde::de::Error>(self, v: f64) -> Result<Corner, E> {
+        Ok(Corner(Value::from(v)))
+    }
+
+    fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Corner, E> {
+        Ok(Corner(Value::from(v)))
+    }
+
+    fn visit_unit<E: serde::de::Error>(self) -> Result<Corner, E> {
+        Ok(Corner(Value::Null))
+    }
+
+    fn visit_none<E: serde::de::Error>(self) -> Result<Corner, E> {
+        Ok(Corner(Value::Null))
+    }
+
+    fn visit_some<D: Deserializer<'de>>(self, deserializer: D) -> Result<Corner, D::Error> {
+        Corner::deserialize(deserializer)
+    }
 }
 
 fn present<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<Value>, D::Error> {
@@ -1264,4 +1444,108 @@ pub fn slice_text(snapshot: &PageTextSnapshot, start: f64, count: f64) -> String
         boundary_text_offset(snapshot, start),
         boundary_text_offset(snapshot, start + count),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The untagged read `WireCell` stands in for.
+    #[derive(Deserialize)]
+    #[serde(untagged, bound = "")]
+    enum Untagged<C: Coordinates> {
+        Quad(C::Quad),
+        Rect(C::Rect),
+    }
+
+    fn shape<C: Coordinates>(cell: Result<WireCell<C>, impl Debug>) -> Option<String> {
+        cell.ok().map(|cell| match cell {
+            WireCell::Quad(q) => format!("quad {q:?}"),
+            WireCell::Rect(r) => format!("rect {r:?}"),
+        })
+    }
+
+    fn untagged<C: Coordinates>(cell: Result<Untagged<C>, impl Debug>) -> Option<String> {
+        cell.ok().map(|cell| match cell {
+            Untagged::Quad(q) => format!("quad {q:?}"),
+            Untagged::Rect(r) => format!("rect {r:?}"),
+        })
+    }
+
+    /// The cell reads as the untagged enum reads it, from text and from a
+    /// parsed value, refusals included.
+    fn agree<C: Coordinates>(text: &str) {
+        let read = shape(serde_json::from_str::<WireCell<C>>(text));
+        assert_eq!(read, untagged(serde_json::from_str::<Untagged<C>>(text)), "text {text}");
+        if let Ok(value) = serde_json::from_str::<Value>(text) {
+            let read = shape(WireCell::<C>::deserialize(&value));
+            assert_eq!(read, untagged(Untagged::<C>::deserialize(&value)), "value {text}");
+        }
+    }
+
+    const CORNERS: &str = r#""upperLeft":{"x":0,"y":0},"upperRight":{"x":1,"y":0},"lowerLeft":{"x":0,"y":1},"lowerRight":{"x":1,"y":1}"#;
+    const PAGE_BOX: &str = r#""x":1,"y":2,"width":3,"height":4"#;
+    const PDF_BOX: &str = r#""left":0,"right":4,"bottom":1,"top":9"#;
+
+    fn cells(r: &str) -> Vec<String> {
+        let c = CORNERS;
+        let three =
+            r#""upperLeft":{"x":0,"y":0},"upperRight":{"x":1,"y":0},"lowerLeft":{"x":0,"y":1}"#;
+        vec![
+            format!("{{{r}}}"),
+            format!(r#"{{"extra":{{"a":[1,2]}},{r},"z":null}}"#),
+            format!(r#"{{"z":1,"z":2,{r}}}"#),
+            format!("{{{c}}}"),
+            format!("{{{c},{r}}}"),
+            format!("{{{r},{c}}}"),
+            format!("{{{three},{r}}}"),
+            format!("{{{three}}}"),
+            format!(r#"{{{three},"lowerRight":{{"x":1}},{r}}}"#),
+            format!(r#"{{{three},"lowerRight":{{"x":1,"y":1,"x":2}},{r}}}"#),
+            format!(r#"{{{three},"lowerRight":{{"x":1,"y":1,"x":2}}}}"#),
+            format!(r#"{{{three},"lowerRight":{{"x":1,"y":1,"w":2,"w":3}}}}"#),
+            format!(r#"{{{three},"lowerRight":[1,1]}}"#),
+            format!(r#"{{{three},"lowerRight":[1,1,1]}}"#),
+            format!(r#"{{{three},"lowerRight":null,{r}}}"#),
+            format!(r#"{{{c},"upperLeft":{{"x":0,"y":0}},{r}}}"#),
+            format!(r#"{{{c},"upperLeft":{{"x":0,"y":0}}}}"#),
+            format!(r#"{{{r},{r}}}"#),
+            format!(r#"{{{c},{r},{r}}}"#),
+        ]
+    }
+
+    fn agree_all<C: Coordinates>(r: &str, wrong: &str) {
+        let mut corpus = cells(r);
+        corpus.extend(cells(wrong));
+        corpus.extend(
+            [
+                "null",
+                "5",
+                "\"s\"",
+                "true",
+                "[]",
+                "{}",
+                "[1,2,3,4]",
+                "[1,2,3]",
+                "[1,2,3,4,5]",
+                "[[0,0],[1,0],[0,1],[1,1]]",
+                r#"[{"x":0,"y":0},{"x":1,"y":0},{"x":0,"y":1},{"x":1,"y":1}]"#,
+                r#"[{"x":0,"y":0,"x":3},{"x":1,"y":0},{"x":0,"y":1},{"x":1,"y":1}]"#,
+                r#"{"x":"1","y":2,"width":3,"height":4}"#,
+                r#"{"x":1,"y":2,"width":3}"#,
+                r#"{"x":1e308,"y":-0.0,"width":3,"height":18446744073709551615}"#,
+                r#"{"left":null,"right":4,"bottom":1,"top":9}"#,
+            ]
+            .map(String::from),
+        );
+        for text in corpus {
+            agree::<C>(&text);
+        }
+    }
+
+    #[test]
+    fn a_cell_reads_as_the_untagged_enum_reads_it() {
+        agree_all::<PageCoordinates>(PAGE_BOX, PDF_BOX);
+        agree_all::<PdfCoordinates>(PDF_BOX, PAGE_BOX);
+    }
 }

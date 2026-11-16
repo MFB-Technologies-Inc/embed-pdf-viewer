@@ -785,10 +785,10 @@ impl ControllerContext {
         Ok(mirror)
     }
 
-    pub fn page_mirror(
+    pub fn page_mirror<T: Clone + 'static>(
         &self,
-        spec: crate::page_mirror::PageMirrorSpec,
-    ) -> Result<crate::page_mirror::PageMirror, Error> {
+        spec: crate::page_mirror::PageMirrorSpec<T>,
+    ) -> Result<crate::page_mirror::PageMirror<T>, Error> {
         Ok(crate::page_mirror::PageMirror::new(spec, self.mirror_environment()?))
     }
 
