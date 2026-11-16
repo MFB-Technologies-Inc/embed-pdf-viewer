@@ -72,3 +72,32 @@ test('a file with no entry has no summary line', () => {
     'core/x.json: +1 -0 ~0',
   );
 });
+
+test('cases sharing a name match by occurrence and print as name#n', () => {
+  const t1 = { name: 't', args: [1] };
+  const t2 = { name: 't', args: [2] };
+  const t3 = { name: 't', args: [3] };
+  // Before, a name-keyed map kept only the last `t`, so the first `t`
+  // changing showed nothing and an unchanged pair showed a spurious `~`.
+  assert.deepEqual(caseDiff(suite(t1, t2), suite(t1, t2)), { added: [], removed: [], changed: [] });
+  assert.deepEqual(caseDiff(suite(t1, t2), suite(t3, t2)), {
+    added: [],
+    removed: [],
+    changed: ['t'],
+  });
+  assert.deepEqual(caseDiff(suite(t1, t2), suite(t1, t3)), {
+    added: [],
+    removed: [],
+    changed: ['t#2'],
+  });
+  assert.deepEqual(caseDiff(suite(t1, t2), suite(t1, t2, t3)), {
+    added: ['t#3'],
+    removed: [],
+    changed: [],
+  });
+  assert.deepEqual(caseDiff(suite(t1, t2, t3), suite(t1)), {
+    added: [],
+    removed: ['t#2', 't#3'],
+    changed: [],
+  });
+});

@@ -31,7 +31,8 @@ plugin's generator is one new file there. A suite writes one vector file:
 
 `vectors` prints one line per file it changed, comparing cases by `name` and by the
 `canonicalKey` of the whole case: `core/x.json: +2 -0 ~5 (changed: a, b, c, d, e)`, with at most
-10 changed names and `and N more` after them. Object member order alone is not a change.
+10 changed names and `and N more` after them. Cases that share a name match by occurrence, and the
+second and later print as `name#2`, `name#3`. Object member order alone is not a change.
 
 The file is stored zstd-compressed at level 3, as `vectors/<suite>.json.zst`, and everything that
 names a suite still uses the `.json` name: `assert_suite("plugins/actions.json")` reads

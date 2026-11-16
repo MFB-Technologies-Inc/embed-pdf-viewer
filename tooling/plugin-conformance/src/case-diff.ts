@@ -16,19 +16,35 @@ export interface CaseDiff {
   readonly changed: string[];
 }
 
-/** Cases matched by `name`; a case is changed when the `canonicalKey` of the
- *  whole case differs, so moved object members alone are no change. */
+/** Each case's label: its `name`, or `name#n` for the nth case (n from 2)
+ *  that repeats a name, so cases sharing a name match by occurrence. */
+function labels(cases: readonly { readonly name: string }[]): string[] {
+  const seen = new Map<string, number>();
+  return cases.map(({ name }) => {
+    const n = (seen.get(name) ?? 0) + 1;
+    seen.set(name, n);
+    return n === 1 ? name : `${name}#${n}`;
+  });
+}
+
+/** Cases matched by `name` and, among cases that share a name, by
+ *  occurrence; a case is changed when the `canonicalKey` of the whole case
+ *  differs, so moved object members alone are no change. */
 export function caseDiff(before: RenderedSuite | null, after: RenderedSuite): CaseDiff {
-  const old = new Map((before?.cases ?? []).map((entry) => [entry.name, canonicalKey(entry)]));
-  const names = new Set(after.cases.map((entry) => entry.name));
+  const beforeCases = before?.cases ?? [];
+  const beforeLabels = labels(beforeCases);
+  const old = new Map(beforeCases.map((entry, i) => [beforeLabels[i], canonicalKey(entry)]));
+  const afterLabels = labels(after.cases);
+  const present = new Set(afterLabels);
   const added: string[] = [];
   const changed: string[] = [];
-  for (const entry of after.cases) {
-    const key = old.get(entry.name);
-    if (key === undefined) added.push(entry.name);
-    else if (key !== canonicalKey(entry)) changed.push(entry.name);
-  }
-  const removed = [...old.keys()].filter((name) => !names.has(name));
+  after.cases.forEach((entry, i) => {
+    const label = afterLabels[i];
+    const key = old.get(label);
+    if (key === undefined) added.push(label);
+    else if (key !== canonicalKey(entry)) changed.push(label);
+  });
+  const removed = beforeLabels.filter((label) => !present.has(label));
   return { added, removed, changed };
 }
 
