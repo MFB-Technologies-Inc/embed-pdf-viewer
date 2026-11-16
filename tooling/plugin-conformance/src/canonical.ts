@@ -166,3 +166,71 @@ function sortKeys(value: unknown): unknown {
   }
   return value;
 }
+
+// ── comparing ───────────────────────────────────────────────────────────────
+//
+// A port of `crates/plugin-conformance/src/canonical.rs` `diff`, the
+// comparison replay makes, for tools that compare a TypeScript outcome with a
+// Rust one in TypeScript (`differential.ts`). Same rules: numbers as f64, two
+// safe integers exactly, anything else within one part in 10^12; array order;
+// object member order when `ordered`. `-0` and `0` are the same number, as
+// `canonical` already prints them, and NaN is `{"$number":"NaN"}` on both
+// sides, so it equals itself.
+
+const RELATIVE_TOLERANCE = 1e-12;
+
+function isSafeInteger(x: number): boolean {
+  return Number.isInteger(x) && Math.abs(x) < 2 ** 53;
+}
+
+export function numbersEqual(a: number, b: number): boolean {
+  if (a === b) return true;
+  if (isSafeInteger(a) && isSafeInteger(b)) return false;
+  const scale = Math.max(Math.abs(a), Math.abs(b), 1);
+  return Math.abs(a - b) <= RELATIVE_TOLERANCE * scale;
+}
+
+function short(value: unknown): string {
+  const text = JSON.stringify(value) ?? String(value);
+  return text.length > 400 ? `${text.slice(0, 400)}…` : text;
+}
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+
+/** `null` when two canonical JSON values are equal, else the path to the
+ *  first difference and both sides. */
+export function diff(expected: unknown, actual: unknown, ordered = true, path = '$'): string | null {
+  if (typeof expected === 'number' && typeof actual === 'number') {
+    return numbersEqual(expected, actual) ? null : `${path}: expected ${expected}, got ${actual}`;
+  }
+  if (Array.isArray(expected) && Array.isArray(actual)) {
+    for (let i = 0; i < Math.min(expected.length, actual.length); i++) {
+      const d = diff(expected[i], actual[i], ordered, `${path}[${i}]`);
+      if (d !== null) return d;
+    }
+    if (expected.length !== actual.length) {
+      const extra = expected.length > actual.length ? expected[actual.length] : actual[expected.length];
+      return `${path}: expected ${expected.length} items, got ${actual.length} (first unmatched: ${short(extra)})`;
+    }
+    return null;
+  }
+  if (isObject(expected) && isObject(actual)) {
+    for (const key of Object.keys(expected)) {
+      if (!Object.hasOwn(actual, key)) return `${path}.${key}: missing (expected ${short(expected[key])})`;
+      const d = diff(expected[key], actual[key], ordered, `${path}.${key}`);
+      if (d !== null) return d;
+    }
+    for (const key of Object.keys(actual)) {
+      if (!Object.hasOwn(expected, key)) return `${path}.${key}: unexpected ${short(actual[key])}`;
+    }
+    const a = Object.keys(expected);
+    const b = Object.keys(actual);
+    if (ordered && a.some((key, i) => key !== b[i])) {
+      return `${path}: member order: expected [${a.join(', ')}], got [${b.join(', ')}]`;
+    }
+    return null;
+  }
+  if (expected === actual) return null;
+  return `${path}: expected ${short(expected)}, got ${short(actual)}`;
+}

@@ -3,7 +3,7 @@
     "replayLines": "56211/66601",
     "unitOnlyLines": 4011,
     "files": 447,
-    "excludedFiles": 41
+    "excludedFiles": 42
   },
   "files": {
     "crates/epdf-web/src/adapters.rs": {

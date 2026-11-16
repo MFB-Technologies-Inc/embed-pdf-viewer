@@ -18,5 +18,9 @@
   {
     "glob": "crates/plugin-conformance/src/**",
     "reason": "the replay runner, fake engine and probe plugin: test machinery, not ported code"
+  },
+  {
+    "glob": "crates/conformance-function-server/**",
+    "reason": "the differential runner's stdio server over the function tables: test machinery, not ported code"
   }
 ]

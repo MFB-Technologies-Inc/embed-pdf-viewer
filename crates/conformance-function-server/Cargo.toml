@@ -1,0 +1,21 @@
+[package]
+name = "conformance-function-server"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+description = "function-server: answers calls into the conformance function tables over stdin and stdout, for tooling/plugin-conformance's differential runner."
+
+# Its own crate, not a bin of plugin-conformance: each table's crate depends
+# on plugin-conformance (`epdf-geometry`'s `harness` feature), so the server
+# that links the tables sits above both.
+[[bin]]
+name = "function-server"
+path = "src/main.rs"
+
+[dependencies]
+plugin-conformance = { path = "../plugin-conformance" }
+epdf-geometry = { path = "../plugins/geometry" }
+serde_json = { version = "1", features = ["float_roundtrip", "preserve_order"] }
+
+[build-dependencies]
+build-support = { path = "../build-support" }

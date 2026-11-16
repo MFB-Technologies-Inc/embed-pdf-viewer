@@ -124,6 +124,25 @@ fn panic_message(panic: Box<dyn std::any::Any + Send>) -> String {
         .unwrap_or_default()
 }
 
+/// Call `fn_name` from `functions` the way a function case runs it: the
+/// outcome a vector records, `{"returned": value}` or `{"threw": error}`.
+/// `Err` when the table has no such function or the call panicked.
+/// `function-server` answers the differential runner through this too.
+pub fn call_function(
+    functions: &FunctionTable,
+    fn_name: &str,
+    args: &[Value],
+) -> Result<Value, String> {
+    let Some((_, f)) = functions.iter().find(|(n, _)| *n == fn_name) else {
+        return Err(format!("no Rust function \"{fn_name}\""));
+    };
+    match std::panic::catch_unwind(|| f(args)) {
+        Ok(Ok(value)) => Ok(serde_json::json!({ "returned": scrub(&value) })),
+        Ok(Err(error)) => Ok(serde_json::json!({ "threw": error.to_canonical() })),
+        Err(panic) => Err(format!("panicked: {}", panic_message(panic))),
+    }
+}
+
 /// Replay every case of a vector file; panic listing every case that
 /// differs. `PLUGIN_CONFORMANCE_ONLY=<substring>` restricts the run to the
 /// cases whose name contains it. `PLUGIN_CONFORMANCE_RECEIPTS=<dir>` writes
@@ -242,17 +261,11 @@ fn assert_suite_with_ledger(
             }
             Some("function") => {
                 let fn_name = case["fn"].as_str().unwrap_or_default();
-                let Some((_, f)) = functions.iter().find(|(n, _)| *n == fn_name) else {
-                    failures.push(format!("{name}: no Rust function \"{fn_name}\""));
-                    continue;
-                };
                 let args = case["args"].as_array().cloned().unwrap_or_default();
-                let run = std::panic::catch_unwind(|| f(&args));
-                let outcome = match run {
-                    Ok(Ok(value)) => serde_json::json!({ "returned": scrub(&value) }),
-                    Ok(Err(error)) => serde_json::json!({ "threw": error.to_canonical() }),
-                    Err(panic) => {
-                        failures.push(format!("{name}: panicked: {}", panic_message(panic)));
+                let outcome = match call_function(functions, fn_name, &args) {
+                    Ok(outcome) => outcome,
+                    Err(why) => {
+                        failures.push(format!("{name}: {why}"));
                         continue;
                     }
                 };

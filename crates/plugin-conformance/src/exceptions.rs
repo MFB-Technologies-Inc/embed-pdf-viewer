@@ -5,7 +5,9 @@
 //! the `reason` it is kept (citing the source), when it was `decided`, the
 //! vector cases that observe it (`observedBy`), and the Rust test that pins
 //! it (`pinnedBy`, `<path from the workspace root>::<test fn>`). An entry
-//! needs at least one of `observedBy` and `pinnedBy`.
+//! needs at least one of `observedBy` and `pinnedBy`. An optional
+//! `differentialSkip` lists functions whose generated inputs the
+//! differential runner skips, `{ "fn", "when" }` (see [`DifferentialSkip`]).
 //!
 //! An observation names a vector file and case and one of two forms:
 //!
@@ -44,6 +46,23 @@ pub struct Divergence {
     pub observed_by: Vec<Observation>,
     #[serde(default)]
     pub pinned_by: Option<String>,
+    /// Generated inputs the differential runner
+    /// (`tooling/plugin-conformance/src/differential.ts`) does not count as a
+    /// mismatch. Each predicate is code in `src/differential/<crate>.ts`,
+    /// keyed by this entry's `id`; `when` says in words what it matches.
+    #[serde(default)]
+    pub differential_skip: Vec<DifferentialSkip>,
+}
+
+/// One function the differential runner skips some inputs of.
+#[derive(Clone, Debug, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DifferentialSkip {
+    /// The function's name in the suite's table.
+    #[serde(rename = "fn")]
+    pub function: String,
+    /// The inputs skipped, in words.
+    pub when: String,
 }
 
 /// A vector case that observes a divergence, with exactly one form set.
@@ -161,6 +180,13 @@ pub fn validate(list: &[Divergence], root: &Path) -> Result<(), String> {
             let earlier = list[..index].iter().flat_map(|e| &e.observed_by);
             if entry.observed_by[..at].contains(obs) || earlier.into_iter().any(|o| o == obs) {
                 return Err(format!("{name} is listed twice"));
+            }
+        }
+        for skip in &entry.differential_skip {
+            for (field, text) in [("fn", &skip.function), ("when", &skip.when)] {
+                if text.trim().is_empty() {
+                    return Err(format!("{id} has a differentialSkip with an empty {field}"));
+                }
             }
         }
         if let Some(pin) = &entry.pinned_by {
@@ -424,6 +450,7 @@ mod tests {
             decided: "2026-11-16".into(),
             observed_by,
             pinned_by: pinned_by.map(str::to_string),
+            differential_skip: vec![],
         }
     }
 
@@ -672,6 +699,33 @@ mod tests {
             "observedBy": [{ "file": "f", "case": "c",
               "valueAt": { "path": "$[0]", "expected": 1, "actual": 2, "why": 3 } }] }]"#;
         assert!(parse(text).unwrap_err().contains("why"));
+    }
+
+    /// `differentialSkip` parses with `fn` and `when`, and refuses an empty
+    /// one or an unknown member.
+    #[test]
+    fn a_differential_skip_names_a_function_and_when() {
+        let entry = |skip: &str| {
+            format!(
+                r#"[{{ "id": "X1", "summary": "s", "reason": "r", "decided": "d",
+                      "pinnedBy": "crates/plugin-conformance/src/exceptions.rs::ids_are_unique",
+                      "differentialSkip": [{skip}] }}]"#
+            )
+        };
+        let list = parse(&entry(r#"{ "fn": "snapToDevice", "when": "dpr is 0" }"#)).unwrap();
+        assert_eq!(
+            list[0].differential_skip,
+            vec![DifferentialSkip { function: "snapToDevice".into(), when: "dpr is 0".into() }]
+        );
+        validate(&list, &root()).unwrap();
+        for (field, skip) in [
+            ("fn", r#"{ "fn": " ", "when": "dpr is 0" }"#),
+            ("when", r#"{ "fn": "snapToDevice", "when": "" }"#),
+        ] {
+            let err = validate(&parse(&entry(skip)).unwrap(), &root()).unwrap_err();
+            assert!(err.contains("X1") && err.contains(field), "{field}: {err}");
+        }
+        assert!(parse(&entry(r#"{ "fn": "f", "when": "w", "extra": 1 }"#)).is_err());
     }
 
     #[test]

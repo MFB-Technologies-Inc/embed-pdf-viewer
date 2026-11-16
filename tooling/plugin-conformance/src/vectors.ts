@@ -230,24 +230,41 @@ function decodePlain(value: unknown): unknown {
   return out;
 }
 
+/** One function case as the generator runs it: the canonical `args` the
+ *  file records and the `outcome`, `{returned}` or `{threw}`. `where` names
+ *  the case in the error a thenable result raises. `differential.ts` calls
+ *  the TypeScript through this too. */
+export function callFunctionCase(
+  fn: (...args: never[]) => unknown,
+  rawArgs: readonly unknown[],
+  where: string,
+): { args: unknown[]; outcome: unknown } {
+  // Encode the arguments first and call with their decoding, so the
+  // function sees exactly what the file records: a raw `NaN` would
+  // otherwise reach the TypeScript and print as `null` for the Rust side.
+  const args = canonical(rawArgs) as unknown[];
+  let outcome: unknown;
+  try {
+    const result = (fn as (...args: unknown[]) => unknown)(...args.map(decodePlain));
+    if (isThenable(result)) throw new Error(`${where}: function cases must be synchronous`);
+    outcome = { returned: canonical(result, snapshotHooks) };
+  } catch (error) {
+    outcome = { threw: canonicalError(error, snapshotHooks) };
+  }
+  return { args, outcome };
+}
+
+/** A canonical value decoded back to what a function receives (`$number`,
+ *  `$undefined`, `$bytes`, `$map`, `$set`). */
+export { decodePlain };
+
 async function renderSuite(suite: Suite): Promise<unknown> {
   if (suite.kind === 'function') {
     const cases = [];
     for (const entry of suite.cases) {
       const fn = suite.functions[entry.fn];
       if (!fn) throw new Error(`[${suite.file}] no function "${entry.fn}"`);
-      // Encode the arguments first and call with their decoding, so the
-      // function sees exactly what the file records: a raw `NaN` would
-      // otherwise reach the TypeScript and print as `null` for the Rust side.
-      const args = canonical(entry.args) as unknown[];
-      let outcome: unknown;
-      try {
-        const result = (fn as (...args: unknown[]) => unknown)(...args.map(decodePlain));
-        if (isThenable(result)) throw new Error(`[${suite.file}] ${entry.name}: function cases must be synchronous`);
-        outcome = { returned: canonical(result, snapshotHooks) };
-      } catch (error) {
-        outcome = { threw: canonicalError(error, snapshotHooks) };
-      }
+      const { args, outcome } = callFunctionCase(fn, entry.args, `[${suite.file}] ${entry.name}`);
       cases.push({ ...entry, args, outcome });
     }
     return { schemaVersion: SCHEMA_VERSION, kind: 'function', describes: suite.describes, cases };

@@ -11,9 +11,10 @@
     "rust-coverage": "tsx --conditions=development src/rust-coverage.ts",
     "rust-coverage:check": "tsx --conditions=development src/rust-coverage.ts --check",
     "replay:check": "tsx --conditions=development src/replay-check.ts",
+    "differential": "tsx --conditions=development src/differential.ts",
     "typecheck": "tsc --noEmit",
     "member-order:allow": "tsx src/member-order-allow.ts",
-    "test:harness": "node --import=tsx --conditions=development --test test/harness.test.ts test/replay-check.test.ts test/zst.test.ts test/case-diff.test.ts test/member-order-allow.test.ts test/rust-coverage.test.ts",
+    "test:harness": "node --import=tsx --conditions=development --test test/harness.test.ts test/replay-check.test.ts test/zst.test.ts test/case-diff.test.ts test/member-order-allow.test.ts test/rust-coverage.test.ts test/differential.test.ts",
     "audit:kernel": "node --import=tsx --conditions=development test/audit-kernel.ts"
   },
   "devDependencies": {
@@ -23,6 +24,7 @@
     "@types/node": "^22.19.0",
     "@types/sinonjs__fake-timers": "^15.0.1",
     "c8": "^10.1.3",
+    "fast-check": "4.10.2",
     "tsx": "^4.19.0",
     "typescript": "^5.9.3"
   }
