@@ -8,9 +8,9 @@ public typealias DocumentInfo = EmbedPDFBindings.DocumentInfo
 /// and `@retroactive` is an error when it is built from source in this
 /// package. `Swift.Identifiable` is accepted in both.
 extension DocumentInfo: Swift.Identifiable {}
-/// The pre-rename name of `DocumentInfo`, kept until 0.0.0-swift.6. It
+/// The pre-rename name of `DocumentInfo`, kept until a future release. It
 /// collides with PDFKit's `PDFDocument` in any file that imports both modules.
-@available(*, deprecated, renamed: "DocumentInfo", message: "PDFDocument is removed in 0.0.0-swift.6.")
+@available(*, deprecated, renamed: "DocumentInfo", message: "PDFDocument is removed in a future release.")
 public typealias PDFDocument = DocumentInfo
 public typealias DocumentStatus = EmbedPDFBindings.DocumentStatus
 public typealias PageInfo = EmbedPDFBindings.PageInfo

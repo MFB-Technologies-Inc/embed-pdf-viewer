@@ -4,11 +4,11 @@ import Testing
 
 extension BaseSuite {
   /// The rule: a deprecated shim survives at least one tagged release. The
-  /// two renamed types, `PDFDocument` and `Annotation`, are removed in
-  /// 0.0.0-swift.6. These tests fail if either is deleted early, or if its
-  /// deprecation message stops naming the release.
+  /// two renamed types, `PDFDocument` and `Annotation`, are removed in a
+  /// release not yet chosen. These tests fail if either is deleted early, or
+  /// if its deprecation message stops saying it will be removed.
   @Suite struct AliasRemovalTests {
-    static let removalRelease = "0.0.0-swift.6"
+    static let removalRelease = "a future release"
 
     /// Compiles both old spellings. Deprecated, so its own uses don't warn.
     @available(*, deprecated)
@@ -34,7 +34,7 @@ extension BaseSuite {
       ("Exports.swift", "PDFDocument", "DocumentInfo"),
       ("Plugins/Annotation.swift", "Annotation", "AnnotationRecord"),
     ])
-    func deprecationNamesTheRemovalRelease(file: String, old: String, new: String) throws {
+    func deprecationSaysItWillBeRemoved(file: String, old: String, new: String) throws {
       let text = try Self.source(file)
       let declaration = "public typealias \(old) = \(new)"
       let range = try #require(text.range(of: declaration))

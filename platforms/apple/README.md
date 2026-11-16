@@ -364,8 +364,8 @@ unsupported and can change with every regeneration.
 The document record is `DocumentInfo`, the name the bindings give it. It was
 `PDFDocument` until 2026-10-16, which PDFKit also declares, so any file that
 imported both modules got "'PDFDocument' is ambiguous for type lookup in this
-context". `PDFDocument` is still there as a deprecated typealias, removed in
-0.0.0-swift.6. The deprecated alias collides exactly as before: it keeps old code
+context". `PDFDocument` is still there as a deprecated typealias, to be removed in a
+future release. The deprecated alias collides exactly as before: it keeps old code
 compiling only in files that don't import PDFKit.
 
 The annotation read record is `AnnotationRecord` for the same reason. It was
@@ -421,19 +421,19 @@ The deprecated spellings, with their replacements:
 | `AnnotationInfo.fieldsJson`, `groupId` | `fieldsJSON`, `groupID` |
 | `get(_:)`, `list(_:)`, `selected()` and `hitTest(at:on:)` returning `AnnotationRecord` | the overloads returning `AnnotationInfo`; `AnnotationInfo.record` gives the record |
 
-The two renamed types go in 0.0.0-swift.6, and their deprecation messages say so:
+The two renamed types go in a future release, not yet chosen, and their deprecation messages say so:
 
 | Deprecated | Use | Removed in |
 |---|---|---|
-| `PDFDocument` | `DocumentInfo` | 0.0.0-swift.6 |
-| `Annotation` | `AnnotationRecord` | 0.0.0-swift.6 |
+| `PDFDocument` | `DocumentInfo` | a future release |
+| `Annotation` | `AnnotationRecord` | a future release |
 
 Every other shim above is removed no earlier than 0.0.0-swift.6. The rule is
 that a deprecated shim survives at least one tagged release: 0.0.0-swift.5
 ships with all of them in place, so a project can build against it, read the
 warnings and move over before anything is deleted. We haven't picked a release
 for the overloads beyond that floor. `AliasRemovalTests` fails if `PDFDocument`
-or `Annotation` is deleted early or stops naming its release.
+or `Annotation` is deleted early or its message stops saying it will be removed.
 
 ## Names that overlap Apple frameworks
 
@@ -451,8 +451,8 @@ the types themselves.
 
 | Name | Framework | What happens | Workaround |
 |---|---|---|---|
-| `PDFDocument` (deprecated alias) | PDFKit | ambiguous for type lookup | `EmbedPDF.PDFDocument`, or use `DocumentInfo`; removed in 0.0.0-swift.6 |
-| `Annotation` (deprecated alias) | MapKit with SwiftUI (iOS 17, macOS 14) | ambiguous for type lookup | `EmbedPDF.Annotation`, or use `AnnotationRecord`; removed in 0.0.0-swift.6 |
+| `PDFDocument` (deprecated alias) | PDFKit | ambiguous for type lookup | `EmbedPDF.PDFDocument`, or use `DocumentInfo`; removed in a future release |
+| `Annotation` (deprecated alias) | MapKit with SwiftUI (iOS 17, macOS 14) | ambiguous for type lookup | `EmbedPDF.Annotation`, or use `AnnotationRecord`; removed in a future release |
 | every other name, including `Rect`, `Point`, `Size`, `PageInfo` | none | no clash | none needed |
 
 No name collides with the Swift standard library. `Point`, `Size` and `Rect`
