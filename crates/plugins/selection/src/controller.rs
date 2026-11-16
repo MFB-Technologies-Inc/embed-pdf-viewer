@@ -256,7 +256,7 @@ fn hydrate(answer: &Answer) -> Result<Geometry, Error> {
             Ok(WireAnswer(snapshot)) => Some(snapshot),
             Err(_) => {
                 let value: Value = serde_json::from_str(text)
-                    .map_err(|e| Error::new(format!("[engine] malformed answer: {e}")))?;
+                    .map_err(|e| Error::new(format!("[engine-bridge] malformed answer: {e}")))?;
                 snapshot_of(&value)
             }
         },
@@ -1223,8 +1223,12 @@ mod tests {
         hydrate(&answer).map(|layout| layout.map(|l| (*l).clone())).map_err(|_| ())
     }
 
+    const CORNERS: &str =
+        r#""upperRight":{"x":1,"y":0},"lowerLeft":{"x":0,"y":1},"lowerRight":{"x":1,"y":1}"#;
+    const CORNERS_X_TWICE: &str = r#""upperLeft":{"x":0,"y":0,"x":0},"upperRight":{"x":1,"y":0},"lowerLeft":{"x":0,"y":1},"lowerRight":{"x":1,"y":1}"#;
+
     /// An answer's text reads as the value it parses to; text that is not
-    /// JSON fails the read.
+    /// JSON fails the read, with the message `call` gives it.
     #[test]
     fn answer_text_reads_as_its_value() {
         let run = r#"{"rect":{"x":0,"y":0,"width":12,"height":12},"start":0,"glyphs":[{"loose":{"x":0,"y":0,"width":6,"height":12}},{"loose":{"x":6,"y":0,"width":6,"height":12}}]}"#;
@@ -1239,6 +1243,12 @@ mod tests {
             format!(r#"{{"runs":[{other}],"runs":[{run}]}}"#),
             format!(r#"{{"$textLayout":{{"runs":[]}},"$textLayout":{{"runs":[{run}]}}}}"#),
             r#"{"runs":[{"rect":{"x":0,"y":0,"width":6,"height":12},"start":0,"glyphs":[{"loose":{"x":0,"y":0,"width":6,"height":12},"loose":{"x":1,"y":0,"width":6,"height":12}}]}]}"#.into(),
+            // An upright cell with every corner and a box: a repeated corner,
+            // or a corner's repeated `x`, keeps its last value, so the cell
+            // is a quad and the upright run refuses it.
+            format!(r#"{{"runs":[{{"rect":{{"x":0,"y":0,"width":6,"height":12}},"start":0,"glyphs":[{{"loose":{{"upperLeft":5,{CORNERS},"upperLeft":{{"x":0,"y":0}},"x":0,"y":0,"width":6,"height":12}}}}]}}]}}"#),
+            format!(r#"{{"runs":[{{"rect":{{"x":0,"y":0,"width":6,"height":12}},"start":0,"glyphs":[{{"loose":{{{CORNERS_X_TWICE},"x":0,"y":0,"width":6,"height":12}}}}]}}]}}"#),
+            format!(r#"{{"runs":[{{"rect":{{"x":0,"y":0,"width":6,"height":12}},"start":0,"glyphs":[{{"loose":{{"x":0,"y":0,"width":6,"height":12}}}}]}}]}}"#),
             format!(r#"[[{run}]]"#),
             "null".into(),
             "5".into(),
@@ -1251,7 +1261,8 @@ mod tests {
             assert_eq!(read, layout_of(Answer::Value(value)), "{text}");
         }
         for text in [r#"{"runs":["#, r#"{"runs":[]} x"#, ""] {
-            assert_eq!(layout_of(Answer::Text(text.into())), Err(()), "{text}");
+            let error = hydrate(&Answer::Text(text.into())).err().expect(text);
+            assert!(error.to_string().contains("[engine-bridge] malformed answer: "), "{error}");
         }
     }
 }

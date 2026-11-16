@@ -202,9 +202,10 @@ struct WireGlyph<C: Coordinates> {
 
 /// A glyph's cell, read before its run's kind is known: whichever of a quad
 /// and a box it makes, the quad first, as an untagged `Quad | Rect` reads
-/// it. A cell that is an object has its members gathered by name in one
-/// pass, so an upright cell is read as a box without buffering it and
-/// without first failing as a quad.
+/// the parsed cell. A cell that is an object has its members gathered by
+/// name in one pass, a member named twice keeping its last value as
+/// `JSON.parse` does, so an upright cell is read as a box without buffering
+/// it and without first failing as a quad.
 enum WireCell<C: Coordinates> {
     Quad(C::Quad),
     Rect(C::Rect),
@@ -227,21 +228,12 @@ impl<'de, C: Coordinates> Visitor<'de> for CellVisitor<C> {
         f.write_str("a quad or a box")
     }
 
-    /// Slots 0 to 3 hold the quad's corners, 4 to 7 the box's members. A
-    /// member named twice spoils its shape, as it fails a derived read.
+    /// Slots 0 to 3 hold the quad's corners, 4 to 7 the box's members.
     fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<WireCell<C>, A::Error> {
         let mut slots: [Option<Value>; 8] = Default::default();
-        let (mut quad, mut rect) = (true, true);
         while let Some(member) = map.next_key_seed(MemberSeed::<C>(PhantomData))? {
             match member {
-                Some(i) if i < 4 => {
-                    let corner = map.next_value::<Corner>()?.0;
-                    quad &= slots[i].replace(corner).is_none();
-                }
-                Some(i) => {
-                    let value = map.next_value::<Value>()?;
-                    rect &= slots[i].replace(value).is_none();
-                }
+                Some(i) => slots[i] = Some(map.next_value()?),
                 None => {
                     map.next_value::<IgnoredAny>()?;
                 }
@@ -250,13 +242,12 @@ impl<'de, C: Coordinates> Visitor<'de> for CellVisitor<C> {
         let [ul, ur, ll, lr, a, b, c, d] = slots;
         let corners = [ul, ur, ll, lr];
         // With no corner at all, the quad would fail for a missing one.
-        if quad
-            && corners.iter().any(Option::is_some)
+        if corners.iter().any(Option::is_some)
             && let Ok(q) = read_members(C::QUAD_MEMBERS, corners)
         {
             return Ok(WireCell::Quad(q));
         }
-        if rect && let Ok(r) = read_members(C::RECT_MEMBERS, [a, b, c, d]) {
+        if let Ok(r) = read_members(C::RECT_MEMBERS, [a, b, c, d]) {
             return Ok(WireCell::Rect(r));
         }
         Err(A::Error::custom(UNMATCHED))
@@ -265,7 +256,7 @@ impl<'de, C: Coordinates> Visitor<'de> for CellVisitor<C> {
     /// A cell written as an array reads by position, as a derived read does.
     fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<WireCell<C>, A::Error> {
         let mut items = Vec::new();
-        while let Some(Corner(item)) = seq.next_element()? {
+        while let Some(item) = seq.next_element()? {
             items.push(item);
         }
         let cell = Value::Array(items);
@@ -273,6 +264,30 @@ impl<'de, C: Coordinates> Visitor<'de> for CellVisitor<C> {
             .map(WireCell::Quad)
             .or_else(|_| C::Rect::deserialize(&cell).map(WireCell::Rect))
             .map_err(|_| A::Error::custom(UNMATCHED))
+    }
+
+    fn visit_unit<E: serde::de::Error>(self) -> Result<WireCell<C>, E> {
+        Err(E::custom(UNMATCHED))
+    }
+
+    fn visit_bool<E: serde::de::Error>(self, _: bool) -> Result<WireCell<C>, E> {
+        Err(E::custom(UNMATCHED))
+    }
+
+    fn visit_i64<E: serde::de::Error>(self, _: i64) -> Result<WireCell<C>, E> {
+        Err(E::custom(UNMATCHED))
+    }
+
+    fn visit_u64<E: serde::de::Error>(self, _: u64) -> Result<WireCell<C>, E> {
+        Err(E::custom(UNMATCHED))
+    }
+
+    fn visit_f64<E: serde::de::Error>(self, _: f64) -> Result<WireCell<C>, E> {
+        Err(E::custom(UNMATCHED))
+    }
+
+    fn visit_str<E: serde::de::Error>(self, _: &str) -> Result<WireCell<C>, E> {
+        Err(E::custom(UNMATCHED))
     }
 }
 
@@ -305,75 +320,6 @@ impl<'de, C: Coordinates> Visitor<'de> for MemberSeed<C> {
 
     fn visit_str<E: serde::de::Error>(self, name: &str) -> Result<Option<usize>, E> {
         Ok(C::QUAD_MEMBERS.iter().chain(&C::RECT_MEMBERS).position(|m| *m == name))
-    }
-}
-
-/// A corner, or an element of a cell written as an array, kept as a value
-/// to read once the cell's shape is known. An object that names `x` or `y`
-/// twice is kept as `null`, which no point reads, as a derived read of it
-/// fails.
-struct Corner(Value);
-
-impl<'de> Deserialize<'de> for Corner {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        deserializer.deserialize_any(CornerVisitor)
-    }
-}
-
-struct CornerVisitor;
-
-impl<'de> Visitor<'de> for CornerVisitor {
-    type Value = Corner;
-
-    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str("any value")
-    }
-
-    fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Corner, A::Error> {
-        let mut members = serde_json::Map::new();
-        let mut spoiled = false;
-        while let Some(name) = map.next_key::<String>()? {
-            let value = map.next_value::<Value>()?;
-            let point = name == "x" || name == "y";
-            spoiled |= members.insert(name, value).is_some() && point;
-        }
-        Ok(Corner(if spoiled { Value::Null } else { Value::Object(members) }))
-    }
-
-    fn visit_seq<A: SeqAccess<'de>>(self, seq: A) -> Result<Corner, A::Error> {
-        Value::deserialize(serde::de::value::SeqAccessDeserializer::new(seq)).map(Corner)
-    }
-
-    fn visit_bool<E: serde::de::Error>(self, v: bool) -> Result<Corner, E> {
-        Ok(Corner(Value::Bool(v)))
-    }
-
-    fn visit_i64<E: serde::de::Error>(self, v: i64) -> Result<Corner, E> {
-        Ok(Corner(Value::from(v)))
-    }
-
-    fn visit_u64<E: serde::de::Error>(self, v: u64) -> Result<Corner, E> {
-        Ok(Corner(Value::from(v)))
-    }
-
-    fn visit_f64<E: serde::de::Error>(self, v: f64) -> Result<Corner, E> {
-        Ok(Corner(Value::from(v)))
-    }
-
-    fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Corner, E> {
-        Ok(Corner(Value::from(v)))
-    }
-
-    fn visit_unit<E: serde::de::Error>(self) -> Result<Corner, E> {
-        Ok(Corner(Value::Null))
-    }
-
-    fn visit_none<E: serde::de::Error>(self) -> Result<Corner, E> {
-        Ok(Corner(Value::Null))
-    }
-
-    fn visit_some<D: Deserializer<'de>>(self, deserializer: D) -> Result<Corner, D::Error> {
-        Corner::deserialize(deserializer)
     }
 }
 
@@ -1472,14 +1418,17 @@ mod tests {
         })
     }
 
-    /// The cell reads as the untagged enum reads it, from text and from a
-    /// parsed value, refusals included.
+    /// The cell reads, from its text and from its parsed value, as the
+    /// untagged enum reads the parsed value (`JSON.parse`: a repeated
+    /// member keeps its last value), refusals included.
     fn agree<C: Coordinates>(text: &str) {
-        let read = shape(serde_json::from_str::<WireCell<C>>(text));
-        assert_eq!(read, untagged(serde_json::from_str::<Untagged<C>>(text)), "text {text}");
-        if let Ok(value) = serde_json::from_str::<Value>(text) {
-            let read = shape(WireCell::<C>::deserialize(&value));
-            assert_eq!(read, untagged(Untagged::<C>::deserialize(&value)), "value {text}");
+        let value: Value = serde_json::from_str(text).unwrap();
+        let want = untagged(Untagged::<C>::deserialize(&value));
+        assert_eq!(shape(serde_json::from_str::<WireCell<C>>(text)), want, "text {text}");
+        assert_eq!(shape(WireCell::<C>::deserialize(&value)), want, "value {text}");
+        if want.is_none() {
+            let error = serde_json::from_str::<WireCell<C>>(text).err().unwrap().to_string();
+            assert!(error.starts_with(UNMATCHED), "{text}: {error}");
         }
     }
 
