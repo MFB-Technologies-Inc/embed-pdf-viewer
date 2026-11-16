@@ -161,20 +161,26 @@ The upstream catch-up renamed five of the viewer calls the entry makes. `goToPag
 `getPageFrame` became `goToPage` and `getPageBox`, `viewer.on('opened')` became
 `documents.onOpened`, `viewer.execute` became `commands.execute`, and the annotation filter's
 `page` became `pages`. The two commands the flows run were renamed too: `pointer:toggle` is
-`tool:pointer` and `annotation:add-highlight` is `tool:highlight`. `entry/api-v1.ts` and `entry/api-v2.ts` make those calls the old way and
-the new way. `scripts/build-entry.mjs` reads the worktree's stage contract with
-`lib/api-generation.mjs` and builds the arm with the matching one, and prints
-`<arm>: viewer API v1` or `v2`. `main` at `2516e2786` and the plugins branch up to `9d6c2eca1`
-are v1; upstream `main` from `ed064e0c8` and the plugins branch from `2aaa8f841` are v2.
+`tool:pointer` and `annotation:add-highlight` is `tool:highlight`. `entry/api-v1.ts` and
+`entry/api-v2.ts` make those calls the old way and the new way. `scripts/build-entry.mjs` reads
+the worktree's stage contract with `lib/api-generation.mjs`, builds the arm with the matching
+one, and prints `<arm>: viewer API v1` or `v2`. `main` at `2516e2786` and the plugins branch up
+to `9d6c2eca1` are v1; upstream `main` from `ed064e0c8` and the plugins branch from `2aaa8f841`
+are v2.
 
 ## Reading a run
 
 `node scripts/summary.mjs results/<run-id> [arm ...]` prints the numbers worth quoting from a run's
-`report.md`: each pair's verdict counts, the rows that aren't "no detectable difference", and for
-pairs against `main` the median ratio over the latency rows and over the main-thread rows. Before
-calling a row a regression, check the same unchanged build in earlier runs: on the remote,
-`annotateLarge` settle for one build moved between 220 and 245 ms from run to run, and `main`
-against `main-aa` differed by about 20 ms on it within a run.
+`report.md`: each pair's verdict counts, the median ratio over its latency rows and over its
+main-thread rows, and, for pairs not against `main`, the rows that aren't "no detectable
+difference". Before calling a row a regression, check the same unchanged build in earlier runs: on
+the remote, `annotateLarge` settle for one build moved between 220 and 245 ms from run to run, and
+`main` against `main-aa` differed by about 20 ms on it within a run. `--drift
+results/<earlier-run> main` does that check: it prints `main`'s median on every row in both runs,
+whether its commit, engine wasm and probe match, and each moved row of this run's pairs whose
+change is no larger than `main`'s own move on that row. A run from before `probeSha256` was
+recorded used the uncorrected probe, so its main-thread and frame rows can differ by
+instrumentation as well as by noise.
 
 Each arm's cell in the report's tables is `median [max]`: the median over rounds, then the slowest
 round. Each pair table's `threshold` column is the smallest change that row's verdict counts: its

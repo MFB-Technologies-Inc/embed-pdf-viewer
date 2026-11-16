@@ -2,8 +2,9 @@
 // branch from 2aaa8f841. Each operation is the same call as in entry/api-v1.ts
 // under its new name: `viewer.on('opened')` is `documents.onOpened`,
 // `viewer.execute` is `commands.execute` (the v1 handle discarded the same
-// promise) with the tool commands' new ids, `goToPageIndex(i)` is `goToPage(i)` with an index, `getPageFrame`
-// is `getPageBox`, and the filter's `page` is `pages: [page]`.
+// promise) with the tool commands' new ids, `goToPageIndex(i)` is
+// `goToPage(i)` with an index, `getPageFrame` is `getPageBox`, and the
+// filter's `page` is `pages: [page]`.
 import { StageToken, AnnotationToken, type EmbedPdfViewerElement } from '@perf/door';
 
 type Viewer = NonNullable<EmbedPdfViewerElement['viewer']>;

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -76,4 +76,59 @@ test('summary reads the verdict and ratio columns of a 6-column report with thre
   assert.match(out, /open\(small\) \/ textMs: .* \(unreliable \(A\/A failed\)\)/);
   assert.doesNotMatch(out, /paintMs/);
   assert.doesNotMatch(out, /±/);
+});
+
+test('summary prints the median ratios for a pair whose first arm is not the baseline', () => {
+  const out = summarize(NEW);
+  const tail = out.slice(out.indexOf('plugins-base vs plugins-next'));
+  // loadMs 1.100 and paintMs 1.000 are latency rows, textMs 1.000 too: median 1.000.
+  assert.match(tail, /^plugins-base vs plugins-next: .*\n  latency median 1\.000x, main-thread median n\/a\n/);
+});
+
+// An A/A table for the drift arm in each of two runs.
+const aa = (rows) => `# Viewer perf comparison: fixture
+
+## A/A: \`main\` vs \`main-aa\`
+
+| Row | main median [max] | main-aa median [max] | ratio or diff [95% CI] | A/A |
+| --- | --- | --- | --- | --- |
+${rows}
+`;
+const BEFORE = aa(`| open(small) / loadMs | 100.0 [101.0] | 100.0 [101.0] | 1.000 [0.990, 1.010] | pass |
+| zoom / settleMs | 200.0 [210.0] | 200.0 [210.0] | +0.0 [-1.0, +1.0] | pass |
+| scroll / mainJsMs | 100.0 [101.0] | 100.0 [101.0] | 1.000 [0.990, 1.010] | pass |`);
+const AFTER = `${aa(`| open(small) / loadMs | 104.0 [105.0] | 104.0 [105.0] | 1.000 [0.990, 1.010] | pass |
+| zoom / settleMs | 230.0 [240.0] | 230.0 [240.0] | +0.0 [-1.0, +1.0] | pass |
+| scroll / mainJsMs | 100.0 [101.0] | 100.0 [101.0] | 1.000 [0.990, 1.010] | pass |`)}
+## \`plugins-base\` vs \`plugins-next\`
+
+| Row | plugins-base median [max] | plugins-next median [max] | ratio or diff [95% CI] | threshold | Verdict |
+| --- | --- | --- | --- | --- | --- |
+| open(small) / loadMs | 100.0 [110.0] | 110.0 [121.0] | 1.100 [1.045, 1.158] | ±3.0% | slower |
+| zoom / settleMs | 200.0 [210.0] | 225.0 [230.0] | +25.0 [+20.0, +30.0] | ±5.0 | slower |
+| scroll / mainJsMs | 100.0 [100.3] | 102.0 [103.0] | 1.020 [1.010, 1.030] | ±1.0% | slower |
+`;
+
+test('--drift prints the arm across two runs and the moved rows inside its drift', () => {
+  const root = mkdtempSync(path.join(tmpdir(), 'summary-drift-'));
+  try {
+    const write = (name, report, probe) => {
+      const dir = path.join(root, name);
+      mkdirSync(dir);
+      writeFileSync(path.join(dir, 'report.md'), report);
+      writeFileSync(path.join(dir, 'meta.json'), JSON.stringify({ probeSha256: probe, arms: { main: { sha: 'abc', engineWasmSha256: 'e1' } } }));
+      return dir;
+    };
+    const before = write('before', BEFORE, undefined);
+    const after = write('after', AFTER, 'f'.repeat(64));
+    const out = spawnSync(process.execPath, [SUMMARY, after, '--drift', before, 'main'], { encoding: 'utf8' });
+    assert.equal(out.status, 0, out.stderr);
+    assert.match(out.stdout, /drift of main: before -> after\n  commit same, engine wasm same, probe differs \(none recorded -> ffffffffffff\)\n/);
+    assert.match(out.stdout, /open\(small\) \/ loadMs: 100 -> 104, 1\.040x\n/);
+    assert.match(out.stdout, /zoom \/ settleMs: 200 -> 230, \+30\.0\n/);
+    // settleMs moved 25 against main's 30, mainJsMs 2% against main's 0%, loadMs 10% against 4%.
+    assert.match(out.stdout, /plugins-base vs plugins-next, moved rows within main's drift: zoom \/ settleMs \+25\.0\n/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
