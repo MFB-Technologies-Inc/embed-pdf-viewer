@@ -51,10 +51,40 @@ pub fn vectors_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tooling/plugin-conformance/vectors")
 }
 
+/// The text of the vector suite `file`, named by its `.json` name relative
+/// to [`vectors_root`] (an absolute path stands as it is): the
+/// zstd-compressed `<file>.zst` decompressed when it exists, else `<file>`.
+/// Panics naming the path when neither reads.
+pub fn read_vector_text(file: &str) -> String {
+    let path = vectors_root().join(file);
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let mut compressed = path.clone().into_os_string();
+        compressed.push(".zst");
+        let compressed = PathBuf::from(compressed);
+        if compressed.exists() {
+            return decompress(&compressed);
+        }
+    }
+    std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn decompress(path: &Path) -> String {
+    use std::io::Read;
+    let file = std::fs::File::open(path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+    let mut decoder = ruzstd::decoding::StreamingDecoder::new(std::io::BufReader::new(file))
+        .unwrap_or_else(|e| panic!("decompress {}: {e}", path.display()));
+    let mut text = String::new();
+    decoder
+        .read_to_string(&mut text)
+        .unwrap_or_else(|e| panic!("decompress {}: {e}", path.display()));
+    text
+}
+
 pub fn load(file: &str) -> Value {
     let path = vectors_root().join(file);
-    let text =
-        std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+    let text = read_vector_text(file);
     let suite: Value =
         serde_json::from_str(&text).unwrap_or_else(|e| panic!("parse {}: {e}", path.display()));
     assert_eq!(suite["schemaVersion"].as_u64(), Some(SCHEMA_VERSION), "{file}: schema version");
@@ -227,5 +257,52 @@ pub fn assert_loaded_suite(
             failures.len(),
             failures.join("\n  ")
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A fresh directory under the system temp dir, removed on drop.
+    struct TempDir(PathBuf);
+
+    impl TempDir {
+        fn new(tag: &str) -> Self {
+            let dir = std::env::temp_dir()
+                .join(format!("plugin-conformance-{tag}-{}", std::process::id()));
+            let _ = std::fs::remove_dir_all(&dir);
+            std::fs::create_dir_all(&dir).unwrap();
+            TempDir(dir)
+        }
+    }
+
+    impl Drop for TempDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    /// `tests/data/x.json.zst` is the generator's `writeVector` output
+    /// (level 3) for a 40-case function suite that `describes` "from zst".
+    #[test]
+    fn reads_zst_before_json() {
+        let dir = TempDir::new("reads-zst");
+        let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/data/x.json.zst");
+        std::fs::copy(&fixture, dir.0.join("x.json.zst")).unwrap();
+        std::fs::write(dir.0.join("x.json"), "{\"describes\": \"from json\"}\n").unwrap();
+        let text = read_vector_text(dir.0.join("x.json").to_str().unwrap());
+        let suite: Value = serde_json::from_str(&text).unwrap();
+        assert_eq!(suite["describes"], "from zst");
+        assert_eq!(suite["cases"].as_array().map(Vec::len), Some(40));
+        assert_eq!(suite["cases"][39]["name"], "case-39");
+    }
+
+    #[test]
+    fn reads_json_when_no_zst_exists() {
+        let dir = TempDir::new("reads-json");
+        std::fs::write(dir.0.join("x.json"), "{\"describes\": \"from json\"}\n").unwrap();
+        let text = read_vector_text(dir.0.join("x.json").to_str().unwrap());
+        assert_eq!(text, "{\"describes\": \"from json\"}\n");
     }
 }

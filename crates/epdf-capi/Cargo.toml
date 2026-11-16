@@ -17,6 +17,8 @@ serde_json = { version = "1", features = ["float_roundtrip"] }
 
 [dev-dependencies]
 test-support = { path = "../test-support" }
+# Reads plugin-conformance vectors stored as `.json.zst`.
+ruzstd = "0.9.1"
 
 [build-dependencies]
 build-support = { path = "../build-support" }

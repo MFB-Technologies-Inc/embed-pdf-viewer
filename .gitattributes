@@ -1,0 +1,2 @@
+# zstd-compressed conformance vectors: never diff or merge them as text.
+tooling/plugin-conformance/vectors/**/*.json.zst binary

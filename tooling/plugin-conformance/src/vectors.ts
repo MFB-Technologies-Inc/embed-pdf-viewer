@@ -4,11 +4,14 @@
  * A suite is either scenarios (`scenario.ts`) or function cases: a pure
  * function called with canonical arguments, and its canonical outcome. Both
  * kinds land in `vectors/<suite>.json` under one envelope the Rust runner
- * asserts the version of.
+ * asserts the version of. On disk a suite is that file or, zstd-compressed,
+ * `vectors/<suite>.json.zst`; everything that names a suite still uses the
+ * `.json` name.
  */
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import zlib from 'node:zlib';
 
 import { canonical, canonicalError, isThenable, snapshotHooks } from './canonical';
 import { runScenario, type ScenarioCase } from './scenario';
@@ -69,6 +72,60 @@ async function writeEnvironment(): Promise<void> {
   await writeFile(join(vectorsRoot, ENVIRONMENT_FILE), `${JSON.stringify(current, null, 2)}\n`);
 }
 
+/** Whether a write compresses a suite that has no `.json.zst` yet. A suite
+ *  already compressed stays compressed either way. */
+export const COMPRESS_NEW_VECTORS = false;
+
+/** The zstd level a write compresses at. Check mode never compares
+ *  compressed bytes, so another level or another zstd build is not a
+ *  difference. */
+const ZSTD_LEVEL = 3;
+
+const ZSTD = '.zst';
+
+const missing = (error: NodeJS.ErrnoException): null => {
+  if (error.code === 'ENOENT') return null;
+  throw error;
+};
+
+/** The text of the suite at `path` (its `.json` name): `<path>.zst`
+ *  decompressed if it exists, else `<path>`, else null. */
+export async function readVector(path: string): Promise<string | null> {
+  const compressed = await readFile(`${path}${ZSTD}`).catch(missing);
+  if (compressed) return zlib.zstdDecompressSync(compressed).toString('utf8');
+  return readFile(path, 'utf8').catch(missing);
+}
+
+/** Write `text` as the suite at `path` (its `.json` name), compressed when
+ *  `compress` is set or a `.json.zst` already exists, and leave one form
+ *  on disk. False when the file already held `text` in that form. */
+export async function writeVector(
+  path: string,
+  text: string,
+  { compress = COMPRESS_NEW_VECTORS }: { compress?: boolean } = {},
+): Promise<boolean> {
+  const compressed = await readFile(`${path}${ZSTD}`).catch(missing);
+  if (compressed || compress) {
+    if (compressed && zlib.zstdDecompressSync(compressed).toString('utf8') === text) return false;
+    await mkdir(dirname(path), { recursive: true });
+    const level = { [zlib.constants.ZSTD_c_compressionLevel]: ZSTD_LEVEL };
+    await writeFile(`${path}${ZSTD}`, zlib.zstdCompressSync(text, { params: level }));
+    await rm(path, { force: true });
+    return true;
+  }
+  if ((await readFile(path, 'utf8').catch(missing)) === text) return false;
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, text);
+  return true;
+}
+
+/** Compare (`check`) or write (`write`) one suite's rendered text against
+ *  its file, by decompressed text only. */
+export async function syncVector(path: string, text: string, mode: 'write' | 'check'): Promise<'current' | 'stale' | 'wrote'> {
+  if (mode === 'check') return (await readVector(path)) === text ? 'current' : 'stale';
+  return (await writeVector(path, text)) ? 'wrote' : 'current';
+}
+
 async function filesUnder(root: string, keep: (name: string) => boolean): Promise<string[]> {
   const out: string[] = [];
   for (const entry of await readdir(root, { withFileTypes: true })) {
@@ -93,17 +150,25 @@ async function filesUnder(root: string, keep: (name: string) => boolean): Promis
  * every `assert_suite` call and replay helper names its file. A literal in a
  * test that never runs would pass; a missing one cannot.
  */
-async function unaccounted(written: ReadonlySet<string>, only?: string): Promise<{ orphaned: string[]; unreplayed: string[] }> {
-  const onDisk = (await filesUnder(vectorsRoot, (name) => name.endsWith('.json')))
-    .map((path) => relative(vectorsRoot, path).split(sep).join('/'))
+async function unaccounted(
+  written: ReadonlySet<string>,
+  only?: string,
+): Promise<{ orphaned: string[]; unreplayed: string[]; doubled: string[] }> {
+  // A `.json.zst` counts under its `.json` name.
+  const files = (await filesUnder(vectorsRoot, (name) => name.endsWith('.json') || name.endsWith(`.json${ZSTD}`)))
+    .map((path) => relative(vectorsRoot, path).split(sep).join('/').replace(/\.zst$/, ''))
     .filter((file) => !NOT_A_SUITE.has(file) && (!only || file.startsWith(only)))
     .sort();
+  // Both forms of one suite: the reader takes the `.zst`, and the plain file
+  // goes stale unseen.
+  const doubled = files.filter((file, index) => files[index + 1] === file);
+  const onDisk = [...new Set(files)];
   const orphaned = onDisk.filter((file) => !written.has(file));
   const rust = (
     await Promise.all((await filesUnder(cratesRoot, (name) => name.endsWith('.rs'))).map((path) => readFile(path, 'utf8')))
   ).join('\n');
   const unreplayed = onDisk.filter((file) => written.has(file) && !rust.includes(`"${file}"`));
-  return { orphaned, unreplayed };
+  return { orphaned, unreplayed, doubled };
 }
 
 export interface FunctionCase {
@@ -201,15 +266,9 @@ export async function emit(suites: readonly Suite[], mode: 'write' | 'check' | '
     const rendered = await renderSuite(suite);
     if (mode === 'render') continue;
     const text = `${JSON.stringify(rendered, null, 2)}\n`;
-    const path = join(vectorsRoot, suite.file);
-    if (check) {
-      const current = await readFile(path, 'utf8').catch(() => null);
-      if (current !== text) stale.push(suite.file);
-    } else {
-      await mkdir(dirname(path), { recursive: true });
-      await writeFile(path, text);
-      console.log(`wrote vectors/${suite.file}`);
-    }
+    const status = await syncVector(join(vectorsRoot, suite.file), text, mode);
+    if (status === 'stale') stale.push(suite.file);
+    if (status === 'wrote') console.log(`wrote vectors/${suite.file}`);
   }
   const drift = check ? await environmentDrift() : null;
   if (stale.length) {
@@ -228,7 +287,12 @@ export async function emit(suites: readonly Suite[], mode: 'write' | 'check' | '
   }
   if (mode === 'write' && !only) await writeEnvironment();
   if (check) {
-    const { orphaned, unreplayed } = await unaccounted(names, only);
+    const { orphaned, unreplayed, doubled } = await unaccounted(names, only);
+    if (doubled.length) {
+      console.error('vector files on disk both plain and compressed (delete the plain `.json`; the `.json.zst` is the one read):');
+      for (const file of doubled) console.error(`  vectors/${file}`);
+      process.exitCode = 1;
+    }
     if (orphaned.length) {
       console.error('vector files no suite writes (delete them, or restore the suite in src/suites/):');
       for (const file of orphaned) console.error(`  vectors/${file}`);
@@ -239,7 +303,7 @@ export async function emit(suites: readonly Suite[], mode: 'write' | 'check' | '
       for (const file of unreplayed) console.error(`  vectors/${file}`);
       process.exitCode = 1;
     }
-    if (!stale.length && !orphaned.length && !unreplayed.length) {
+    if (!stale.length && !orphaned.length && !unreplayed.length && !doubled.length) {
       console.log(`${names.size} vector files are current, and each is replayed`);
     }
   } else if (mode === 'render') {

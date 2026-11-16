@@ -71,6 +71,30 @@ fn read_json(relative: &str) -> Value {
     serde_json::from_str(&text).unwrap_or_else(|e| panic!("parse {}: {e}", path.display()))
 }
 
+/// A plugin-conformance vector suite by its `.json` name under
+/// `tooling/plugin-conformance/vectors/`: the zstd-compressed `<file>.zst`
+/// when it exists, else `<file>`. The same rule as
+/// `plugin_conformance::read_vector_text`, which this crate does not depend
+/// on.
+fn read_plugin_vector(file: &str) -> Value {
+    use std::io::Read;
+    let path = test_support::workspace_root().join("tooling/plugin-conformance/vectors").join(file);
+    let compressed =
+        path.with_file_name(format!("{}.zst", path.file_name().unwrap().to_str().unwrap()));
+    if !compressed.exists() {
+        return read_json(path.to_str().unwrap());
+    }
+    let bytes = std::fs::File::open(&compressed)
+        .unwrap_or_else(|e| panic!("read {}: {e}", compressed.display()));
+    let mut decoder = ruzstd::decoding::StreamingDecoder::new(std::io::BufReader::new(bytes))
+        .unwrap_or_else(|e| panic!("decompress {}: {e}", compressed.display()));
+    let mut text = String::new();
+    decoder
+        .read_to_string(&mut text)
+        .unwrap_or_else(|e| panic!("decompress {}: {e}", compressed.display()));
+    serde_json::from_str(&text).unwrap_or_else(|e| panic!("parse {}: {e}", compressed.display()))
+}
+
 fn layout_vectors() -> Value {
     let file = read_json("tooling/engine-conformance/vectors/text/layout.json");
     assert_eq!(file["schemaVersion"], 2, "layout vector envelope moved");
@@ -511,7 +535,7 @@ const PROBE_KEYS: [&str; 6] = [
 
 #[test]
 fn page_transforms_agree_with_the_geometry_vectors() {
-    let file = read_json("tooling/plugin-conformance/vectors/core/geometry-page.json");
+    let file = read_plugin_vector("core/geometry-page.json");
     let (mut compared, mut refused_cases) = (0, 0);
     let mut turns = std::collections::BTreeSet::new();
     let mut probed = 0;
