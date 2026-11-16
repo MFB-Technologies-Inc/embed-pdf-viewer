@@ -5,13 +5,22 @@
 //! (`JOINING_TYPES`). It reads the generator's exact layout and panics on a
 //! line it doesn't expect, rather than guess.
 //!
-//! No rpath: the crate has no conformance harness of its own (the form
-//! painter's vectors replay it), so it links nothing.
+//! The rpath: re-emitted for this crate's own test binaries. The crate has no
+//! conformance harness of its own (the form painter's vectors replay it), but
+//! `epdf-fonts` and `epdf-geometry` do. When a workspace build turns their
+//! `harness` feature on (`cargo test -p epdf-text-core -p epdf-plugin-form`),
+//! Cargo unifies features and this crate's tests link libembedpdf through
+//! them. Cargo does not propagate `cargo:rustc-link-arg` to a dependent
+//! package's test targets, so without this line they fail at load with
+//! `libembedpdf.so: cannot open shared object file`. A build script can't see
+//! a dependency's features, so the rpath is emitted either way; it is unused
+//! when the crate is built alone and links nothing.
 
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 fn main() {
+    build_support::emit_rpath_only();
     let manifest = PathBuf::from(std::env::var_os("CARGO_MANIFEST_DIR").expect("manifest dir"));
     // The nearest ancestor holding the package, as `build_support::lib_root`
     // finds `packages/engine/runtime`, so the crate's depth doesn't matter.

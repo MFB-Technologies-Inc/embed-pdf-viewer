@@ -989,6 +989,7 @@ dependencies = [
 name = "epdf-text-core"
 version = "0.0.0"
 dependencies = [
+ "build-support",
  "epdf-fonts",
  "epdf-geometry",
  "serde",
