@@ -78,7 +78,9 @@ impl StageCapability {
 
     /// `ctx.document()?.pages ?? []`, as JSON rows.
     pub(crate) fn registry_rows(&self) -> Rc<Value> {
-        self.ctx.document().map_or_else(|| Rc::new(Value::Array(Vec::new())), |d| d.pages)
+        self.ctx
+            .document_rc()
+            .map_or_else(|| Rc::new(Value::Array(Vec::new())), |d| d.pages.clone())
     }
 
     /// The registry rows, parsed once per registry. A row that does not
@@ -104,15 +106,20 @@ impl StageCapability {
 
     /// `ctx.getPage(page)`: the registry row a ref or an index names.
     pub(crate) fn get_page(&self, page: PageTarget) -> Option<Value> {
-        let rows = self.registry_rows();
-        let pages = rows.as_array()?;
         match page {
             PageTarget::Index(index) => {
-                (index >= 0.0 && index.fract() == 0.0).then(|| pages.get(index as usize)).flatten()
+                let rows = self.registry_rows();
+                let pages = rows.as_array()?;
+                (index >= 0.0 && index.fract() == 0.0)
+                    .then(|| pages.get(index as usize))
+                    .flatten()
+                    .cloned()
             }
-            PageTarget::Ref(page) => pages.iter().find(|row| page.names(row)),
+            PageTarget::Ref(page) => {
+                let meta = self.ctx.document_rc()?;
+                self.ctx.page_by_ref(&meta, page).cloned()
+            }
         }
-        .cloned()
     }
 
     /// `ctx.getPage(page)?.index ?? -1`, as an option.

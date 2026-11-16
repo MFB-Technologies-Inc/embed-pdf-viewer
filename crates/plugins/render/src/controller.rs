@@ -189,18 +189,11 @@ pub(crate) struct Core {
 }
 
 impl Core {
-    /// Read the bound document's meta without cloning its page list when it
-    /// is in the registry; `ctx.document()` otherwise (bring-up, or after
-    /// close, when it is the staged meta).
+    /// Read the bound document's meta as the core holds it, or the staged
+    /// meta during bring-up and after close, without copying it.
     fn with_meta<R>(&self, f: impl FnOnce(Option<&DocumentMeta>) -> R) -> R {
-        let core = self.cx.core();
-        if let Some(id) = self.cx.document_id()
-            && let Some(meta) = core.documents.get(id)
-        {
-            return f(Some(meta));
-        }
-        let meta = self.cx.document();
-        f(meta.as_ref())
+        let meta = self.cx.document_rc();
+        f(meta.as_deref())
     }
 
     // ── settings ──
@@ -359,14 +352,14 @@ impl Core {
     /// this document does not have.
     pub(crate) fn find_page(&self, page: PageArg) -> Option<(PageRef, PageSizePt)> {
         self.with_meta(|meta| {
-            let pages = meta?.pages.as_array()?;
+            let meta = meta?;
             let info = match page {
-                PageArg::Ref(page) => pages.iter().find(|p| page.names(p))?,
+                PageArg::Ref(page) => self.cx.page_by_ref(meta, page)?,
                 PageArg::Index(index) => {
                     if index < 0.0 || index.fract() != 0.0 {
                         return None;
                     }
-                    pages.get(index as usize)?
+                    meta.pages.as_array()?.get(index as usize)?
                 }
             };
             let reference = info.get("ref").and_then(PageRef::from_json)?;

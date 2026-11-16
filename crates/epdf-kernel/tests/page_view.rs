@@ -563,3 +563,40 @@ fn a_reserve_of_a_fractional_count_is_refused_as_invalid_input() {
     assert!(error.message.contains("cannot reserve 1.5 object numbers"), "{}", error.message);
     assert!(h.doc.calls.borrow().is_empty());
 }
+
+#[test]
+fn page_by_ref_duplicate_object_number_resolves_first() {
+    let h = Harness::with(
+        vec![page(5, 0, 0, Value::Null), page(5, 1, 90, Value::Null), page(6, 2, 0, Value::Null)],
+        json!([]),
+    );
+    let meta = h.ctx.document_rc().unwrap();
+
+    let row = h.ctx.page_by_ref(&meta, PageRef::new(5)).expect("the page is in the list");
+    assert!(std::ptr::eq(row, &meta.pages.as_array().unwrap()[0]));
+    assert_eq!(row["rotation"], json!(0));
+    assert_eq!(h.ctx.page_by_ref(&meta, PageRef::new(6)).unwrap()["index"], json!(2));
+    assert!(h.ctx.page_by_ref(&meta, PageRef::new(7)).is_none());
+    assert_eq!(h.get_page(5)["index"], json!(0));
+}
+
+#[test]
+fn page_by_ref_follows_page_move() {
+    let h = Harness::new();
+    let before = h.ctx.document_rc().unwrap();
+    assert_eq!(h.ctx.page_by_ref(&before, PageRef::new(3)).unwrap()["index"], json!(2));
+
+    h.stage(
+        "pages.reorder",
+        vec![json!({ "type": "pages.reorder", "pages": [r(3)], "position": "start" })],
+    );
+    let after = h.ctx.document_rc().unwrap();
+    assert!(!Rc::ptr_eq(&before.pages, &after.pages));
+
+    let row = h.ctx.page_by_ref(&after, PageRef::new(3)).expect("the page is in the list");
+    assert!(std::ptr::eq(row, &after.pages.as_array().unwrap()[0]));
+    assert_eq!(row["index"], json!(0));
+    assert_eq!(h.ctx.page_by_ref(&after, PageRef::new(1)).unwrap()["index"], json!(1));
+    // The list it was read from still answers as it was.
+    assert_eq!(h.ctx.page_by_ref(&before, PageRef::new(3)).unwrap()["index"], json!(2));
+}

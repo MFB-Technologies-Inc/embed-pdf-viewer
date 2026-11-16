@@ -162,6 +162,8 @@ impl Fixture {
         self.kernel
             .documents()
             .list_pages(Some("a"))
+            .as_array()
+            .unwrap()
             .iter()
             .map(|p| (p["ref"]["objectNumber"].as_u64().unwrap(), p["rotation"].as_u64().unwrap()))
             .collect()

@@ -12,6 +12,7 @@ use std::rc::{Rc, Weak};
 use epdf_kernel::cancellable::cancellable;
 use epdf_kernel::engine::DocumentHandle;
 use epdf_kernel::error::{code, plugin_error};
+use epdf_kernel::geometry::PageRef;
 use epdf_kernel::mirror::Mirror;
 use epdf_kernel::plugin::ConnectFn;
 use epdf_kernel::rt::Promise;
@@ -145,8 +146,8 @@ impl Core {
     /// The document's page list (`ctx.document()?.pages`).
     pub(crate) fn pages(&self) -> Rc<Value> {
         self.cx
-            .document()
-            .map(|meta| meta.pages)
+            .document_rc()
+            .map(|meta| meta.pages.clone())
             .unwrap_or_else(|| Rc::new(Value::Array(Vec::new())))
     }
 
@@ -161,12 +162,10 @@ impl Core {
             return None;
         }
         let wanted = page.get("objectNumber").and_then(Value::as_f64)?;
-        list.iter()
-            .find(|info| {
-                info.get("ref").and_then(|r| r.get("objectNumber")).and_then(Value::as_f64)
-                    == Some(wanted)
-            })
-            .cloned()
+        let wanted = (wanted > 0.0 && wanted.fract() == 0.0 && wanted <= u32::MAX as f64)
+            .then(|| PageRef::new(wanted as u32))?;
+        let meta = self.cx.document_rc()?;
+        self.cx.page_by_ref(&meta, wanted).cloned()
     }
 
     /// `ctx.pageOf(page)`: the page, or `not-found`.

@@ -31,6 +31,13 @@ pub struct HitView {
     pub zoom: Option<f64>,
 }
 
+/// The kernel's ref for a page object number, or `None` for a number no
+/// page has.
+fn kernel_page_ref(page: f64) -> Option<epdf_kernel::geometry::PageRef> {
+    (page > 0.0 && page.fract() == 0.0 && page <= u32::MAX as f64)
+        .then(|| epdf_kernel::geometry::PageRef::new(page as u32))
+}
+
 /// Finger-sized grab zones: 2x the mouse tolerances.
 pub const TOUCH_GRAB_BOOST: f64 = 2.0;
 
@@ -114,12 +121,9 @@ impl Core {
     }
 
     fn layout_of(&self, page: f64) -> Option<Value> {
-        let pages = self.pages();
-        pages
-            .as_array()?
-            .iter()
-            .find(|p| p.get("ref").map(page_object_number) == Some(page))
-            .cloned()
+        let page = kernel_page_ref(page)?;
+        let meta = self.cx.document_rc()?;
+        self.cx.page_by_ref(&meta, page).cloned()
     }
 
     /// `hitAt(page, point, view, boost, inert)`: the core hit-test with this

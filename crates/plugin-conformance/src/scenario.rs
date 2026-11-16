@@ -17,7 +17,7 @@ use epdf_kernel::{
 use serde_json::{Value, json};
 
 use crate::fake_engine::FakeEngine;
-use crate::harness::{Answer, Callback, Harness, HarnessPlugin, Outcome};
+use crate::harness::{Answer, Callback, Harness, HarnessPlugin, Outcome, TextMemo};
 use crate::scrub;
 
 /// The adapters a run may use. Plugin crates add theirs.
@@ -29,7 +29,7 @@ pub struct Registry {
 impl Registry {
     pub fn new() -> Self {
         let mut registry = Registry::default();
-        registry.add(Rc::new(DocumentsAdapter));
+        registry.add(Rc::new(DocumentsAdapter::default()));
         registry.add(Rc::new(crate::probe::Probe));
         registry
     }
@@ -54,7 +54,11 @@ fn str_arg(args: &[Value], i: usize) -> Option<&str> {
 }
 
 /// `documents` as the harness drives it.
-struct DocumentsAdapter;
+#[derive(Default)]
+struct DocumentsAdapter {
+    /// `listPages` prints a page list once, while the core keeps it.
+    list_pages: TextMemo<Value>,
+}
 
 /// `documents`, in the order the TypeScript object literal defines it.
 const DOCUMENTS_MEMBERS: &[&str] = &[
@@ -245,7 +249,9 @@ impl HarnessPlugin for DocumentsAdapter {
                 Outcome::Promise(docs.save(str_arg(&args, 0), mode.cloned()))
             }
             "downloadLayer" => Outcome::Promise(docs.save_layer(str_arg(&args, 0))),
-            "listPages" => Outcome::Returned(json!(docs.list_pages(str_arg(&args, 0)))),
+            "listPages" => {
+                Outcome::Text(self.list_pages.get_or_print(&docs.list_pages(str_arg(&args, 0))))
+            }
             "getPage" if arg(&args, 0).is_some_and(Value::is_number) => Outcome::Returned(
                 docs.get_page_at(
                     arg(&args, 0).and_then(Value::as_i64).unwrap_or(-1),

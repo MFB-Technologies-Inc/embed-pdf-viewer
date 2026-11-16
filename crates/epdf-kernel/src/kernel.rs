@@ -3048,38 +3048,40 @@ impl Documents {
         }
     }
 
-    fn meta_of(&self, id: Option<&str>) -> Option<DocumentMeta> {
+    fn meta_of(&self, id: Option<&str>) -> Option<Rc<DocumentMeta>> {
         let core = self.inner().ok()?.store.core();
         let id = match self.scoped(id) {
             Some(id) => id.to_string(),
             None => core.active_id.clone()?,
         };
-        core.documents.get(&id).map(|meta| (**meta).clone())
+        core.documents.get(&id).cloned()
     }
 
-    fn pages_of(&self, id: Option<&str>) -> Option<Vec<Value>> {
-        self.meta_of(id).map(|meta| meta.pages.as_array().cloned().unwrap_or_default())
+    fn pages_of(&self, id: Option<&str>) -> Option<Rc<Value>> {
+        self.meta_of(id).map(|meta| meta.pages.clone())
     }
 
-    /// The page registry of a document, the active one by default.
-    pub fn list_pages(&self, id: Option<&str>) -> Vec<Value> {
-        self.pages_of(id).unwrap_or_default()
+    /// The page registry of a document, the active one by default: the list
+    /// the core holds, the same `Rc` until the document's pages change.
+    pub fn list_pages(&self, id: Option<&str>) -> Rc<Value> {
+        self.pages_of(id)
+            .filter(|pages| pages.is_array())
+            .unwrap_or_else(|| Rc::new(Value::Array(Vec::new())))
     }
 
     pub fn get_page(&self, page: PageRef, id: Option<&str>) -> Option<Value> {
-        self.pages_of(id)?.into_iter().find(|p| page.names(p))
+        self.pages_of(id)?.as_array()?.iter().find(|p| page.names(p)).cloned()
     }
 
     pub fn get_page_at(&self, index: i64, id: Option<&str>) -> Option<Value> {
         let pages = self.pages_of(id)?;
-        usize::try_from(index).ok().and_then(|i| pages.get(i).cloned())
+        usize::try_from(index).ok().and_then(|i| pages.as_array()?.get(i).cloned())
     }
 
     pub fn get_page_index(&self, page: PageRef, id: Option<&str>) -> i64 {
-        match self.pages_of(id) {
-            Some(pages) => pages.iter().position(|p| page.names(p)).map_or(-1, |i| i as i64),
-            None => -1,
-        }
+        self.pages_of(id)
+            .and_then(|pages| pages.as_array()?.iter().position(|p| page.names(p)))
+            .map_or(-1, |i| i as i64)
     }
 
     pub fn get_revision(&self, id: Option<&str>) -> i64 {

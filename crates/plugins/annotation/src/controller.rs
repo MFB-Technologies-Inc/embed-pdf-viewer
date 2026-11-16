@@ -211,8 +211,8 @@ impl Core {
     /// The document's page list (`ctx.document()?.pages`).
     pub(crate) fn pages(&self) -> Rc<Value> {
         self.cx
-            .document()
-            .map(|meta| meta.pages)
+            .document_rc()
+            .map(|meta| meta.pages.clone())
             .unwrap_or_else(|| Rc::new(Value::Array(Vec::new())))
     }
 

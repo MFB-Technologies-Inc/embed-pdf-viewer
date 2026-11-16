@@ -491,6 +491,9 @@ struct ControllerInner {
     guarded: RefCell<Option<Rc<dyn DocumentHandle>>>,
     queues: RefCell<HashMap<String, SerialQueue>>,
     lanes: RefCell<HashMap<String, LatestLane>>,
+    /// The rows of a page list by object number, the first row of each, for
+    /// the page list it was built from.
+    page_index: RefCell<Option<(Rc<Value>, HashMap<u32, usize>)>>,
     clock: crate::clock::PluginClock,
 }
 
@@ -530,6 +533,7 @@ impl ControllerContext {
             guarded: RefCell::new(None),
             queues: RefCell::new(HashMap::new()),
             lanes: RefCell::new(HashMap::new()),
+            page_index: RefCell::new(None),
         })))
     }
 
@@ -968,16 +972,37 @@ impl ControllerContext {
         core.documents.get(&session.id()).cloned().or_else(|| session.staged_meta())
     }
 
-    fn page_by_ref(&self, page: PageRef) -> Option<Value> {
+    /// The row of `meta.pages` a ref names: the first, when two rows share
+    /// its object number. The rows are indexed once per page list, so a
+    /// lookup costs no scan while the list stays the same `Rc`.
+    pub fn page_by_ref<'a>(&self, meta: &'a DocumentMeta, page: PageRef) -> Option<&'a Value> {
+        let rows = meta.pages.as_array()?;
+        let mut cached = self.0.page_index.borrow_mut();
+        let index = match &*cached {
+            Some((pages, index)) if Rc::ptr_eq(pages, &meta.pages) => index,
+            _ => {
+                let mut index = HashMap::new();
+                for (at, row) in rows.iter().enumerate() {
+                    if let Some(found) = row.get("ref").and_then(PageRef::from_json) {
+                        index.entry(found.page_object_number).or_insert(at);
+                    }
+                }
+                &cached.insert((meta.pages.clone(), index)).1
+            }
+        };
+        rows.get(*index.get(&page.page_object_number)?)
+    }
+
+    fn row_by_ref(&self, page: PageRef) -> Option<Value> {
         let meta = self.meta()?;
-        meta.pages.as_array()?.iter().find(|p| page.names(p)).cloned()
+        self.page_by_ref(&meta, page).cloned()
     }
 
     /// `findPage(pages, page)`: the page a ref names, or the one at a
     /// zero-based index (`pages[page] ?? null`).
     fn find_page(&self, page: PageArg) -> Option<Value> {
         match page {
-            PageArg::Ref(page) => self.page_by_ref(page),
+            PageArg::Ref(page) => self.row_by_ref(page),
             PageArg::Index(index) => {
                 let meta = self.meta()?;
                 let pages = meta.pages.as_array()?;
@@ -1019,7 +1044,8 @@ impl ControllerContext {
     /// `ctx.geometry.tryForPage(ref)`: the page's space, or `None` for a
     /// page this document does not have.
     pub fn try_for_page(&self, page: PageRef) -> Option<PageSpace> {
-        let layout = self.page_by_ref(page)?;
+        let meta = self.meta()?;
+        let layout = self.page_by_ref(&meta, page)?;
         let crop: PdfEdges =
             serde_json::from_value(layout.get("boxes")?.get("crop")?.clone()).ok()?;
         Some(PageSpace::new(crop))
@@ -1032,8 +1058,8 @@ impl ControllerContext {
 
     /// `ctx.assertPageRef(ref)`.
     pub fn assert_page_ref(&self, page: PageRef) -> Result<(), Error> {
-        match self.page_by_ref(page) {
-            Some(_) => Ok(()),
+        match self.meta().and_then(|meta| self.page_by_ref(&meta, page).map(|_| ())) {
+            Some(()) => Ok(()),
             None => Err(self.not_in_document(page)),
         }
     }
