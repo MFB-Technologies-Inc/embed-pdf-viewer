@@ -49,7 +49,7 @@
 - `cargo fmt -p <crate>` only; revert reformatting of lines the task did not touch.
 - Run cargo test suites in the `embedpdf-dev` container (linux/arm64); Mac host only if a step needs it.
 - The repo must never name outside projects or people in code, docs or commits.
-- Commits: no Claude footer, session URL or Co-Authored-By on this repo.
+- Commits: no AI attribution footer, session URL or Co-Authored-By on this repo.
 - No em dashes in docs prose added by this plan.
 
 ## Review Focus

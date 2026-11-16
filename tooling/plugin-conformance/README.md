@@ -14,6 +14,7 @@ pnpm --filter @embedpdf/tooling-plugin-conformance run coverage:check
 pnpm --filter @embedpdf/tooling-plugin-conformance run replay:check     # run the Rust tests, prove every case replayed
 pnpm --filter @embedpdf/tooling-plugin-conformance run rust-coverage    # write vectors/rust-coverage.json
 pnpm --filter @embedpdf/tooling-plugin-conformance run rust-coverage:check
+pnpm --filter @embedpdf/tooling-plugin-conformance run differential -- --crate geometry --runs 1000 --seed 42
 pnpm --filter @embedpdf/tooling-plugin-conformance run test:harness    # runtime invariants
 pnpm --filter @embedpdf/tooling-plugin-conformance run audit:kernel    # every kernel scenario and refusal
 cargo test -p plugin-conformance                                        # replay the kernel
@@ -57,9 +58,10 @@ time, with `PLUGIN_CONFORMANCE_RECEIPTS` set to a fresh temporary directory and
 cases it ran under the full comparison.
 It then compares those receipts with the case names of every suite in `src/suites/`. It fails on a
 vector file no test replayed, a case that never ran, a receipt from a filtered run, a receipt for a
-file no suite writes, a case that ran but no suite writes (a stale vector file), or a receipt it
-cannot parse. A receipt records that a case ran, not that it passed, so it also fails when cargo
-fails, and prints both results. The cost is a test run of every crate that depends on
+file no suite writes, a case that ran but no suite writes (a stale vector file), a receipt it
+cannot parse, or a `divergences.json` entry with `observedBy` that no receipt lists in its
+`exceptions` (an observation that never applied). A receipt records that a case ran, not that it
+passed, so it also fails when cargo fails, and prints both results. The cost is a test run of every crate that depends on
 `plugin-conformance`. `-- --receipts <dir>` skips cargo and reads `<dir>` as it is; give it only a
 directory a single full run filled, because receipts left from an older run would vouch for cases
 the current tests no longer reach.
@@ -196,7 +198,9 @@ that puts one in an answer.
   is a vector file, a case and `{ "path", "divergence" }`: the path with its array indexes written
   `[]`, and the `crates/plugin-conformance/divergences.json` id that says why. An entry without
   one, or citing an id the ledger lacks, fails every replay at load. A new mismatch fails the run:
-  fix the order, or, only if it is one of those two kinds, add the path by hand with its id.
+  fix the order, or, only if it is one of those two kinds, add the path by hand with its id. A
+  passed-through object cites `MO-passthrough`. No entry covers the builder-order kind yet, so the
+  first such path also needs a new ledger entry.
   `pnpm run member-order:allow` never edits the list. It reruns the replay, with
   `PLUGIN_CONFORMANCE_MEMBER_ORDER=1`, its own allowlist in `PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW`,
   and `PLUGIN_CONFORMANCE_ONLY` and `PLUGIN_CONFORMANCE_RECEIPTS` removed, until no new path
@@ -213,6 +217,36 @@ A member that is not a method prints through `HarnessPlugin::describe_member`, w
 calls in the same order, so any ref it registers numbers in place. The actions plugin's
 `scriptRealm` (`{transaction, budget}`) is the one such member so far. The TypeScript needs no
 counterpart: canonical JSON already prints a nested object.
+
+## The divergence ledger
+
+`crates/plugin-conformance/divergences.json` lists every kept Rust divergence from the TypeScript
+once, by `id`, with a `summary`, the `reason` it is kept and when it was `decided`
+(`crates/plugin-conformance/src/exceptions.rs` documents the fields). An entry needs `observedBy`,
+`pinnedBy`, or both, and a malformed entry fails every replay at load.
+
+`observedBy` names the vector cases that show the divergence. Each is a `file` and `case` and one
+of two forms. `movedCallback` says Rust logs `callback` in trace step `actualStep` where the
+TypeScript logs it in `expectedStep`, and replay moves it back before comparing. `valueAt` says
+that at `path` (`$[<step>]`, then the path a replay failure prints) the TypeScript holds
+`expected` and Rust holds `actual`, and replay puts `expected` there. The rest of the trace still
+compares exactly. An observation whose trace no longer shows the divergence, or whose case never
+ran, fails the replay. `replay:check` also fails when no receipt lists an entry with `observedBy`
+in its `exceptions`.
+
+`pinnedBy` is `<path from the workspace root>::<test fn>`. Load checks only that the file defines
+`fn <test fn>(`. That proves the named test exists, not that any checked command ran it.
+
+`differentialSkip` lists `{ "fn", "when" }`: generated inputs of `fn` that `differential` does not
+count as a mismatch, because they reach this divergence. The predicate is code in
+`src/differential/<crate>.ts`, keyed by the entry's `id`, and `when` says in words what it
+matches. A skip without a predicate, or a predicate without a skip, fails the run.
+
+`differential` calls each function of a crate's function suites on the TypeScript and, through
+`crates/conformance-function-server`, on the Rust, with inputs fast-check generates from the
+arbitraries in `src/differential/<crate>.ts`, and compares the outcomes canonically. On a mismatch
+it prints the shrunk input as a function case to paste into the suite. `geometry` is the only
+crate so far.
 
 ## The fake engine
 
