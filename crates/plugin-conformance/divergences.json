@@ -62,9 +62,9 @@
   {
     "id": "ANNOTATION-CORE-MEASURE-LOOSE",
     "summary": "A malformed /Measure dictionary is read loosely where the TypeScript throws or prints \"undefined\".",
-    "reason": "Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.7, and crates/plugins/annotation-core/README.md, \"Not ported\" (a null format entry, a missing x/distance/area list, a missing unit, a mistyped member). Since Task 14.3 epdf-engine reads it the same way. No vector holds one.",
+    "reason": "Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.7, and crates/plugins/annotation-core/README.md, \"Not ported\" (a null format entry, a missing x/distance/area list, a missing unit, a mistyped member). Since Task 14.3 epdf-engine reads it the same way. No vector holds one. The pin asserts both Rust copies' answers for three inputs the TypeScript throws on or prints \"undefined\" for: a missing unit, a null format entry and a missing distance list.",
     "decided": "Task 13.7, Task 14.3",
-    "pinnedBy": "crates/plugins/annotation-core/tests/engine_cross_check.rs::a_malformed_measure_reads_alike_in_both_copies_and_as_the_typescript_does"
+    "pinnedBy": "crates/plugins/annotation-core/tests/engine_cross_check.rs::a_malformed_measure_the_typescript_throws_on_reads_loosely_in_both_copies"
   },
   {
     "id": "M20",
@@ -72,13 +72,6 @@
     "reason": "The TypeScript allocates until memory runs out or loops. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", findings table (M20) and Task 13.7, and crates/plugins/annotation-core/README.md, \"Not ported\". A vector cannot record a run that never ends.",
     "decided": "26e0aa3b0",
     "pinnedBy": "crates/plugins/annotation-core/tests/hostile_geometry.rs::an_absurd_cloudy_border_draws_nothing"
-  },
-  {
-    "id": "C5-M3",
-    "summary": "The commands plugin app_state carries JSON values only.",
-    "reason": "The TypeScript appState can hold functions and getters the app changes in place; in Rust that state lives in a command's own closures. Accepted 2026-11-03, recorded in multiplatform-upstream-catchup.md, Task 8.3 (\"Accepted 2026-11-03\") and multiplatform-upstream-catchup-2026-11-impl.md, \"Round 2 review fixes\". No vector case passes a function in appState.",
-    "decided": "2026-11-03 C5 review round 1 (M3)",
-    "pinnedBy": "crates/plugins/commands/tests/behavior.rs::every_reader_wakes_once_a_command_ran"
   },
   {
     "id": "COMMANDS-DEFINITION-IDENTITY",
@@ -298,13 +291,6 @@
     "pinnedBy": "crates/plugins/ui-core/src/value.rs::spreads_and_reads_members_as_javascript_does"
   },
   {
-    "id": "P3",
-    "summary": "The waits for a pending page approximate the TypeScript's turn counts.",
-    "reason": "In the page mirror (when_held, read) and in render (when_held). Accepted 2026-11-02, recorded in multiplatform-upstream-catchup.md, Task 8.3 (\"Accepted 2026-11-02 ... P1 ... P3\") and multiplatform-upstream-catchup-2026-11-impl.md, \"C4: upstream c7f6a7958 ported\". No vector waits on a pending page. The pin covers the wait, not a turn count.",
-    "decided": "2026-11-02 C4 (c7f6a7958 port)",
-    "pinnedBy": "crates/epdf-kernel/tests/page_view.rs::a_page_mirror_reads_a_page_a_pending_change_makes_once_the_engine_has_it"
-  },
-  {
     "id": "E3",
     "summary": "An XML character reference to a lone surrogate decodes to U+FFFD in the XMP port.",
     "reason": "The TypeScript makes a lone surrogate a Rust string cannot hold. Accepted 2026-11-02, recorded in multiplatform-upstream-catchup.md, Task 8.3 (\"Accepted 2026-11-02 ... E3\") and multiplatform-upstream-catchup-2026-11-impl.md, \"C4: the eight calls ported\". The plugin vectors run a fake engine and never parse XMP. Pinned by a test added in Task 7.",
@@ -359,13 +345,6 @@
     "reason": "Kept 2026-10-15, recorded in multiplatform-upstream-catchup.md, Task 8.6, Task 8.17 and Task 8.23 (\"Kept divergences to re-check\"); the forms.applyEffects part is obsolete (Task 8.20). The plugin vectors run a fake engine. The pin covers flatten; the redaction half is unpinned by name.",
     "decided": "2026-10-15 87b61b533",
     "pinnedBy": "crates/epdf-engine/tests/annotation_flatten.rs::a_flatten_that_applies_nothing_is_no_mutation"
-  },
-  {
-    "id": "FREETEXT-FONT-LOOKUP",
-    "summary": "The FreeText rich-text reader resolves registered fonts through the thread's font registry, not a passed-in registrar.",
-    "reason": "Kept 2026-10-14 from the FreeText rich-text port, recorded in multiplatform-upstream-catchup.md, Task 8.12 (\"Kept divergences to re-check\"). Where the lookup comes from is not visible in any answer; the pin covers a registered key winning over the standard mapping.",
-    "decided": "2026-10-14 818eba296",
-    "pinnedBy": "crates/epdf-engine/src/features/annotation/rich_text.rs::a_registered_key_wins_over_the_standard_mapping"
   },
   {
     "id": "TEXT-LAYOUT-POINT-PAST-RUN",

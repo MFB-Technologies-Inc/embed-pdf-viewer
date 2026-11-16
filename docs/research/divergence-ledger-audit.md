@@ -1,6 +1,6 @@
 # Divergence ledger audit
 
-`crates/plugin-conformance/divergences.json` holds 45 kept divergences after this audit. 2 are observed by a vector case (one of them, M27, by a case added for the purpose) and also pinned; 43 are pinned by a Rust test only. 28 rows below name kept divergences with no test to pin them, so they are not in the ledger yet. 3 could not be tied to a decision.
+`crates/plugin-conformance/divergences.json` holds 42 kept divergences after this audit. 2 are observed by a vector case (one of them, M27, by a case added for the purpose) and also pinned; 40 are pinned by a Rust test only. 31 rows below name kept divergences with no test to pin them, so they are not in the ledger yet. 3 could not be tied to a decision.
 
 Every replay passes today with only M13 in the ledger before this audit, so no existing vector case could observe any other divergence: a differing trace would already have failed. Observing one needs a new scenario case. The ledger applies to scenario suites only, so a divergence that a function suite would show (`formatShortcut("Ctrl+constructor")`, a `toString` face name) is pinned instead.
 
@@ -17,9 +17,8 @@ The sources were the Status section of `docs/research/rust-plugins-branch-review
 | N6 | pinned: `crates/plugins/annotation/tests/behavior.rs::n6_a_record_whose_ref_has_no_key_is_refused_and_the_others_stay` | 2026-10-12 343fc063e |
 | ANNOTATION-PROTOTYPE-KIND | pinned: `crates/plugins/annotation-core/tests/behavior.rs::a_name_object_prototype_has_is_a_kind_only_shown` | Task 13.7 (Ruling13.7) |
 | ANNOTATION-CORE-SETSNAP | pinned: `crates/plugins/annotation-core/tests/behavior.rs::a_snap_patch_that_does_not_read_changes_nothing` | Task 13.7 |
-| ANNOTATION-CORE-MEASURE-LOOSE | pinned: `crates/plugins/annotation-core/tests/engine_cross_check.rs::a_malformed_measure_reads_alike_in_both_copies_and_as_the_typescript_does` | Task 13.7, Task 14.3 |
+| ANNOTATION-CORE-MEASURE-LOOSE | pinned: `crates/plugins/annotation-core/tests/engine_cross_check.rs::a_malformed_measure_the_typescript_throws_on_reads_loosely_in_both_copies` | Task 13.7, Task 14.3 |
 | M20 | pinned: `crates/plugins/annotation-core/tests/hostile_geometry.rs::an_absurd_cloudy_border_draws_nothing` | 26e0aa3b0 |
-| C5-M3 | pinned: `crates/plugins/commands/tests/behavior.rs::every_reader_wakes_once_a_command_ran` | 2026-11-03 C5 review round 1 (M3) |
 | COMMANDS-DEFINITION-IDENTITY | pinned: `crates/plugins/commands/src/settings.rs::equal_definitions_share_a_handle` | Task 13.29 |
 | COMMANDS-UNDECODED-SETTINGS | pinned: `crates/plugins/commands/src/settings.rs::a_member_that_does_not_decode_is_reported` | Task 13.29 |
 | I18N-LOJBAN | pinned: `crates/plugins/i18n/src/script.rs::a_language_and_variant_alias_is_not_applied` | Task 13.27 |
@@ -43,7 +42,6 @@ The sources were the Status section of `docs/research/rust-plugins-branch-review
 | UI-CORE-OWN-MEMBERS | pinned: `crates/plugins/ui-core/tests/behavior.rs::an_object_prototype_name_is_no_bar_menu_or_key_name` | Task 13.10 |
 | UI-CORE-NULL-ENTRIES | pinned: `crates/plugins/ui-core/tests/behavior.rs::a_null_bar_or_panel_is_skipped_where_the_typescript_throws` | Task 13.10 |
 | UI-CORE-STRING-RECORD | pinned: `crates/plugins/ui-core/src/value.rs::spreads_and_reads_members_as_javascript_does` | Task 13.10 |
-| P3 | pinned: `crates/epdf-kernel/tests/page_view.rs::a_page_mirror_reads_a_page_a_pending_change_makes_once_the_engine_has_it` | 2026-11-02 C4 (c7f6a7958 port) |
 | E3 | pinned: `crates/epdf-engine/src/features/xmp/xml.rs::a_reference_to_a_lone_surrogate_decodes_to_the_replacement_character` | 2026-11-02 f8e959eab (C4) |
 | FALLBACK-TIER-NAN-ORDER | pinned: `crates/epdf-engine/tests/font_registry.rs::a_nan_tier_compares_equal_and_never_panics` | 2026-11-02 798f7b229 (C3) |
 | FONTS-REGISTER-STRICT | pinned: `crates/epdf-engine/tests/font_settings.rs::the_register_wire_refuses_what_the_typescript_passes_unchecked` | 2026-10-15 7566552a2 |
@@ -52,7 +50,6 @@ The sources were the Status section of `docs/research/rust-plugins-branch-review
 | PAGEREF-MALFORMED | pinned: `crates/epdf-engine/src/identity.rs::a_malformed_page_ref_is_an_invalid_argument` | 2026-10-15 3baec217b |
 | EVENTS-SIGNING-ENVELOPE | pinned: `crates/epdf-engine/tests/signature_sign.rs::prepare_then_complete_seals_the_field` | 2026-10-15 517d0123d |
 | NOOP-MUTATION-SEQUENCE | pinned: `crates/epdf-engine/tests/annotation_flatten.rs::a_flatten_that_applies_nothing_is_no_mutation` | 2026-10-15 87b61b533 |
-| FREETEXT-FONT-LOOKUP | pinned: `crates/epdf-engine/src/features/annotation/rich_text.rs::a_registered_key_wins_over_the_standard_mapping` | 2026-10-14 818eba296 |
 | TEXT-LAYOUT-POINT-PAST-RUN | pinned: `crates/epdf-engine/src/features/text/layout.rs::a_point_on_a_glyph_the_run_claims_past_the_end_reads_no_further` | Task 14.3 |
 | TEXT-LAYOUT-NEGATIVE-COUNT | pinned: `crates/epdf-engine/src/features/text/layout.rs::a_line_that_reads_backwards_has_no_characters` | Task 14.3 |
 
@@ -70,11 +67,9 @@ ANNOTATION-PROTOTYPE-KIND. A kind name Object.prototype holds (constructor, toSt
 
 ANNOTATION-CORE-SETSNAP. A setSnap patch the typed SnapSettings cannot hold leaves the model unchanged. The TypeScript spreads the patch in. Recorded in docs/research/rust-plugins-branch-review.md, "Status, 2026-10-13", Task 13.7 ("three refusals no vector reaches") and crates/plugins/annotation-core/README.md, "Not ported".
 
-ANNOTATION-CORE-MEASURE-LOOSE. A malformed /Measure dictionary is read loosely where the TypeScript throws or prints "undefined". Recorded in docs/research/rust-plugins-branch-review.md, "Status, 2026-10-13", Task 13.7, and crates/plugins/annotation-core/README.md, "Not ported" (a null format entry, a missing x/distance/area list, a missing unit, a mistyped member). Since Task 14.3 epdf-engine reads it the same way. No vector holds one.
+ANNOTATION-CORE-MEASURE-LOOSE. A malformed /Measure dictionary is read loosely where the TypeScript throws or prints "undefined". Recorded in docs/research/rust-plugins-branch-review.md, "Status, 2026-10-13", Task 13.7, and crates/plugins/annotation-core/README.md, "Not ported" (a null format entry, a missing x/distance/area list, a missing unit, a mistyped member). Since Task 14.3 epdf-engine reads it the same way. No vector holds one. The pin asserts both Rust copies' answers for three inputs the TypeScript throws on or prints "undefined" for: a missing unit, a null format entry and a missing distance list.
 
 M20. A cloudy border or cloud outline past 1,000,000 curls or points is empty. The TypeScript allocates until memory runs out or loops. Recorded in docs/research/rust-plugins-branch-review.md, "Status, 2026-10-13", findings table (M20) and Task 13.7, and crates/plugins/annotation-core/README.md, "Not ported". A vector cannot record a run that never ends.
-
-C5-M3. The commands plugin app_state carries JSON values only. The TypeScript appState can hold functions and getters the app changes in place; in Rust that state lives in a command's own closures. Accepted 2026-11-03, recorded in multiplatform-upstream-catchup.md, Task 8.3 ("Accepted 2026-11-03") and multiplatform-upstream-catchup-2026-11-impl.md, "Round 2 review fixes". No vector case passes a function in appState.
 
 COMMANDS-DEFINITION-IDENTITY. A changed commands list reads back the first definition equal by sameValue, not the new object. Identity only: every data member and function is the same. Recorded in docs/research/rust-plugins-branch-review.md, "Status, 2026-10-13", Task 13.29, and crates/plugins/commands/README.md, "Kept Rust-only divergences". The trace compares values, not identity, so no trace can see it.
 
@@ -120,8 +115,6 @@ UI-CORE-NULL-ENTRIES. A null bar or panel, or null layout data, is read as empty
 
 UI-CORE-STRING-RECORD. A bars, menus or panels record that is a string reads each half of a surrogate pair as U+FFFD. The TypeScript spreads the string into UTF-16 unit keys and keeps lone surrogates, which a Rust string cannot hold. Recorded in docs/research/rust-plugins-branch-review.md, "Status, 2026-10-13", Task 13.10, and crates/plugins/ui-core/README.md. No vector holds one.
 
-P3. The waits for a pending page approximate the TypeScript's turn counts. In the page mirror (when_held, read) and in render (when_held). Accepted 2026-11-02, recorded in multiplatform-upstream-catchup.md, Task 8.3 ("Accepted 2026-11-02 ... P1 ... P3") and multiplatform-upstream-catchup-2026-11-impl.md, "C4: upstream c7f6a7958 ported". No vector waits on a pending page. The pin covers the wait, not a turn count.
-
 E3. An XML character reference to a lone surrogate decodes to U+FFFD in the XMP port. The TypeScript makes a lone surrogate a Rust string cannot hold. Accepted 2026-11-02, recorded in multiplatform-upstream-catchup.md, Task 8.3 ("Accepted 2026-11-02 ... E3") and multiplatform-upstream-catchup-2026-11-impl.md, "C4: the eight calls ported". The plugin vectors run a fake engine and never parse XMP. Pinned by a test added in Task 7.
 
 FALLBACK-TIER-NAN-ORDER. With a NaN fallback tier, the reported fallback order follows a stable insertion sort. The TypeScript order depends on the JavaScript engine's sort with a comparator that is not total. PDFium's chain matches. Accepted 2026-11-02, recorded in multiplatform-upstream-catchup-2026-11-impl.md, "The tier at the FFI boundary". The plugin vectors run a fake engine.
@@ -138,8 +131,6 @@ EVENTS-SIGNING-ENVELOPE. Signing notices travel in an envelope-level event. Kept
 
 NOOP-MUTATION-SEQUENCE. A no-op flatten or redaction answer carries mutationSequence where the TypeScript sends only {tag, result}. Kept 2026-10-15, recorded in multiplatform-upstream-catchup.md, Task 8.6, Task 8.17 and Task 8.23 ("Kept divergences to re-check"); the forms.applyEffects part is obsolete (Task 8.20). The plugin vectors run a fake engine. The pin covers flatten; the redaction half is unpinned by name.
 
-FREETEXT-FONT-LOOKUP. The FreeText rich-text reader resolves registered fonts through the thread's font registry, not a passed-in registrar. Kept 2026-10-14 from the FreeText rich-text port, recorded in multiplatform-upstream-catchup.md, Task 8.12 ("Kept divergences to re-check"). Where the lookup comes from is not visible in any answer; the pin covers a registered key winning over the standard mapping.
-
 TEXT-LAYOUT-POINT-PAST-RUN. A point read passes over a glyph the run claims that is not there. The TypeScript reads undefined and throws a TypeError. Input PDFium never produces. Recorded in docs/research/rust-plugins-branch-review.md, "Status, 2026-10-13", Task 14.3 paragraph.
 
 TEXT-LAYOUT-NEGATIVE-COUNT. A line range whose TypeScript count is negative has count 0 in the engine. TextRange counts in u32. Input PDFium never produces. Recorded in docs/research/rust-plugins-branch-review.md, "Status, 2026-10-13", Task 14.3 paragraph (and Task 13.15 for the selection copy).
@@ -150,6 +141,9 @@ These need a test or a scenario case before they can enter the ledger. Each was 
 
 | Ids | Record | Behavior | Why unpinned |
 | --- | --- | --- | --- |
+| P3 | `multiplatform-upstream-catchup.md` Task 8.3, accepted 2026-11-02; `multiplatform-upstream-catchup-2026-11-impl.md` "C4: upstream c7f6a7958 ported" | The waits for a pending page approximate the TypeScript turn counts, in the page mirror and in render. | The page-view tests assert that a pending page resolves once the engine has it, which the TypeScript does too; no test asserts a Rust turn count. |
+| C5-M3 | `multiplatform-upstream-catchup.md` Task 8.3, accepted 2026-11-03; `multiplatform-upstream-catchup-2026-11-impl.md` "Round 2 review fixes" | `CommandsSettings::app_state` carries JSON values only, where the TypeScript `appState` can hold functions and getters. | A type, not a behavior. `every_reader_wakes_once_a_command_ran` tests the closures that replace in-place state, not the restriction. |
+| FREETEXT-FONT-LOOKUP | `multiplatform-upstream-catchup.md` Task 8.12 (kept 2026-10-14, `818eba296`) | The FreeText reader resolves registered fonts through the thread font registry, not a passed-in registrar. | Where the lookup comes from is not visible in any answer. The rich-text unit tests pass a lookup closure in, so they cover the other mechanism. |
 | P1 | `multiplatform-upstream-catchup.md` Task 8.3, accepted 2026-11-02 | A page-view refresh that fails on the change-notify path goes to the kernel report; the TypeScript throws into `stage`. | No test makes a refresh fail on that path. |
 | E4 | `multiplatform-upstream-catchup.md` Task 8.3, accepted 2026-11-02 | `page_label_sections` skips a section the runtime refuses to read. | The fork refuses no index below the count, so no test can reach the skip without a fault-injecting runtime. |
 | STAGE-LOCK-RELEASE | `multiplatform-upstream-catchup-2026-11-impl.md` "Three upstream commits, not one", accepted 2026-11-03 | A lock release cannot throw, so a failed reframe on release is dropped. | No test makes the reframe fail. |
