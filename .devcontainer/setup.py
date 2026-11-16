@@ -35,6 +35,14 @@ def main():
     if pending.returncode:
         print("skipped: wasm32-eh is pending in engine-runtime-build.json", file=sys.stderr)
 
+    # scripts/publish-engine-payload.mjs links the Rust-core payload with the emsdk in
+    # perf-compare/.work; point it at the image's wasm32-eh emsdk instead of a fresh clone.
+    work_emsdk = Path(os.environ.get("PERF_WORK_DIR", "perf-compare/.work")) / "emsdk"
+    image_emsdk = os.environ.get("EMSDK_EH")
+    if image_emsdk and not work_emsdk.exists() and not work_emsdk.is_symlink():
+        work_emsdk.parent.mkdir(parents=True, exist_ok=True)
+        work_emsdk.symlink_to(image_emsdk)
+
     run("bash", "packages/engine/runtime/scripts/fetch-payload.sh", "wasm32")
     for package in (
         "@embedpdf/engine-runtime",

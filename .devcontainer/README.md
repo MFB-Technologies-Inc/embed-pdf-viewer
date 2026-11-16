@@ -122,7 +122,8 @@ for these editor and lifecycle settings.
 | Rust, Cargo, rustfmt, Clippy, rust-src, cross-target std  | `rust-toolchain.toml`                                |
 | .NET SDK                                                  | 10.0.403; Microsoft archives verified with SHA512      |
 | Clang/libclang, LLD, CMake, Ninja, C/C++ compiler, Python | Debian Trixie packages                               |
-| Emscripten / Binaryen                                     | 3.1.72 / 133; `EM_BINARYEN_ROOT` selects Binaryen    |
+| Emscripten / Binaryen                                     | 3.1.72 / 133, on `PATH`; its `.emscripten` selects Binaryen |
+| Emscripten for `wasm32-eh`                                | 4.0.0 with its own Binaryen, sysroot built; `/opt/emsdk-eh` (`$EMSDK_EH`) |
 | wasm-bindgen-cli                                          | 0.2.127, matching `crates/epdf-web/Cargo.toml`       |
 | Android NDK / cargo-ndk                                   | 29.0.14206865 (amd64 only) / 4.1.2                   |
 | swiftly / Swift toolchain                                 | 1.1.4 / 6.3.1; `swiftly` manages further toolchains  |

@@ -5,6 +5,9 @@ FROM node:24.20.0-trixie
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ARG TARGETARCH
 ARG EMSDK_VERSION=3.1.72
+# The wasm32-eh pin in the runtime fork's scripts/embedpdf-runtime/emsdk-version.sh and
+# EH_EMSDK_VERSION in perf-compare/scripts/build-arm.mjs: the Rust-core payload links with it.
+ARG EMSDK_EH_VERSION=4.0.0
 ARG BINARYEN_VERSION=133
 ARG CARGO_NDK_VERSION=4.1.2
 # Must equal the `wasm-bindgen` pin in crates/epdf-web/Cargo.toml.
@@ -50,7 +53,15 @@ ENV EMBEDPDF_REPOSITORY=https://github.com/roanutil/embed-pdf-viewer.git \
 RUN git clone --depth 1 --branch "$EMSDK_VERSION" https://github.com/emscripten-core/emsdk.git /opt/emsdk \
     && /opt/emsdk/emsdk install "$EMSDK_VERSION" \
     && /opt/emsdk/emsdk activate "$EMSDK_VERSION" \
+    && echo "BINARYEN_ROOT = '/opt/binaryen'" >> /opt/emsdk/.emscripten \
     && chown -R node:node /opt/emsdk
+# A second emsdk for wasm32-eh, with its own binaryen and a built sysroot: pdfium-sys runs
+# bindgen against the cache's sysroot before emcc has installed any headers there.
+RUN git clone --depth 1 https://github.com/emscripten-core/emsdk.git /opt/emsdk-eh \
+    && /opt/emsdk-eh/emsdk install "$EMSDK_EH_VERSION" \
+    && /opt/emsdk-eh/emsdk activate "$EMSDK_EH_VERSION" \
+    && bash -c 'unset EM_CONFIG; source /opt/emsdk-eh/emsdk_env.sh >/dev/null 2>&1 && embuilder build sysroot && emcc --version | grep -F " $0 "' "$EMSDK_EH_VERSION" \
+    && chown -R node:node /opt/emsdk-eh
 RUN case "$TARGETARCH" in amd64) binaryen_arch=x86_64 ;; arm64) binaryen_arch=aarch64 ;; esac \
     && curl -fsSL --retry 3 \
       "https://github.com/WebAssembly/binaryen/releases/download/version_${BINARYEN_VERSION}/binaryen-version_${BINARYEN_VERSION}-${binaryen_arch}-linux.tar.gz" \
@@ -72,7 +83,7 @@ RUN if [ "$TARGETARCH" = amd64 ]; then \
 
 ENV EMSDK=/opt/emsdk \
     EM_CONFIG=/opt/emsdk/.emscripten \
-    EM_BINARYEN_ROOT=/opt/binaryen \
+    EMSDK_EH=/opt/emsdk-eh \
     ANDROID_NDK_HOME=/opt/android-ndk-r29 \
     SWIFTLY_HOME_DIR=/home/node/.local/share/swiftly \
     SWIFTLY_BIN_DIR=/home/node/.local/share/swiftly/bin \
@@ -117,9 +128,9 @@ RUN npm install -g "@openai/codex@${CODEX_VERSION}" "@anthropic-ai/claude-code@$
 # Login shells (`bash -l`, which VS Code may open) reset PATH in /etc/profile
 # and lose the ENV entries above that no ~/.profile hook restores.
 RUN printf '%s\n' \
-      'export PATH="/home/node/.npm-global/bin:/opt/emsdk/upstream/emscripten:/opt/emsdk/upstream/bin:/opt/binaryen/bin:$PATH"' \
+      'export PATH="/opt/binaryen/bin:/home/node/.npm-global/bin:/opt/emsdk/upstream/emscripten:/opt/emsdk/upstream/bin:$PATH"' \
     | sudo tee /etc/profile.d/embedpdf-toolchain.sh >/dev/null \
-    && bash -lc 'command -v wasm-opt && command -v emcc && command -v claude'
+    && bash -lc 'command -v emcc && command -v claude && wasm-opt --version | grep -F "version ${BINARYEN_VERSION}"'
 
 USER root
 ARG DOTNET_SDK_VERSION=10.0.403
