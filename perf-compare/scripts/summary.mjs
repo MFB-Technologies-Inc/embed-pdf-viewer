@@ -37,27 +37,34 @@ for (const section of sections) {
   if (!pair) continue;
   const [, a, b] = pair;
   if (only.length && !only.includes(a) && !only.includes(b)) continue;
-  const rows = section
-    .split('\n')
+  const lines = section.split('\n');
+  const header = lines.find((l) => l.startsWith('| Row'));
+  if (!header) continue;
+  // Columns by name: reports from before the threshold column have five,
+  // later ones six, and an older run's cached report.md keeps its layout.
+  const columns = cells(header);
+  const [V, I] = [columns.indexOf('Verdict'), columns.indexOf('ratio or diff [95% CI]')];
+  if (V === -1 || I === -1) throw new Error(`${a} vs ${b}: no Verdict or ratio column in ${header}`);
+  const rows = lines
     .filter((l) => /^\| [a-zA-Z]/.test(l) && !l.startsWith('| Row'))
     .map(cells)
-    .filter((c) => c.length >= 5);
+    .filter((c) => c.length === columns.length);
   if (rows.length === 0) continue;
   const verdicts = {};
-  for (const r of rows) verdicts[r[4]] = (verdicts[r[4]] ?? 0) + 1;
+  for (const r of rows) verdicts[r[V]] = (verdicts[r[V]] ?? 0) + 1;
   console.log(`\n${a} vs ${b}: ${Object.entries(verdicts).map(([v, n]) => `${n} ${v}`).join(', ')}`);
   if (a === baseline) {
     const lat = [];
     const cpu = [];
     for (const r of rows) {
-      const ratio = Number.parseFloat(r[3]);
-      if (!/^\d/.test(r[3]) || Number.isNaN(ratio)) continue;
+      const ratio = Number.parseFloat(r[I]);
+      if (!/^\d/.test(r[I]) || Number.isNaN(ratio)) continue;
       (/mainJs|mainTask/.test(r[0]) ? cpu : lat).push(ratio);
     }
     console.log(`  latency median ${median(lat).toFixed(3)}x, main-thread median ${median(cpu).toFixed(3)}x`);
   } else {
-    for (const r of rows.filter((r) => r[4] !== 'no detectable difference')) {
-      console.log(`  ${r[0]}: ${r[1]} -> ${r[2]}, ${r[3]} (${r[4]})`);
+    for (const r of rows.filter((r) => r[V] !== 'no detectable difference')) {
+      console.log(`  ${r[0]}: ${r[1]} -> ${r[2]}, ${r[I]} (${r[V]})`);
     }
   }
 }
