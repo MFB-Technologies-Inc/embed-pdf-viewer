@@ -124,7 +124,7 @@ runs are `results/2026-10-02T02-02-24-660Z-macmini2020-desktop` (solo) and
 `results/2026-10-02T02-18-19-070Z-macmini2020-desktop-p0` and `-p100`.
 
 `meta.json` records the remote's host, CPU and power source, and the local harness commit.
-`report.mjs --against` refuses to compare a remote run with a local one, because the CPU differs.
+The report compares arms within one run, never a remote run with a local one (see Moving a pin).
 
 ## Moving a pin
 
@@ -137,14 +137,15 @@ A pinned commit has to exist on one of the checkout's remotes. `materialize.mjs`
 in turn, so a branch pushed only to a private fork works, as long as every machine that runs the
 harness has that remote. Push before pinning.
 
-To see whether a change on a branch helped, run once, move the pin, run again, and compare:
+To see whether a change on a branch helped, pin `plugins-base` to the commit before it and
+`plugins-next` to the commit with it, then time both in one run and read the `plugins-base` vs
+`plugins-next` pair. That pair is the only comparison the report supports.
 
-```sh
-node report.mjs results/<after> --against results/<before>
-```
-
-`--against` refuses two runs whose Chromium version, CPU, fixtures, profile, viewport, device scale
-factor or flow set differ, and prints the keys that differ.
+`report.mjs --against` used to compare two runs. It now exits 2 with
+`cross-run comparison removed`, because the same build's medians spread by a median of 6.3%, and
+up to 17%, from one run to the next. That's wider than most of the changes it was meant to find,
+and no A/A band covers it. The cost is run time: every comparison times both builds, not just the
+new one.
 
 ## Adding an arm
 
@@ -164,6 +165,13 @@ pairs against `main` the median ratio over the latency rows and over the main-th
 calling a row a regression, check the same unchanged build in earlier runs: on the remote,
 `annotateLarge` settle for one build moved between 220 and 245 ms from run to run, and `main`
 against `main-aa` differed by about 20 ms on it within a run.
+
+Each arm's cell in the report's tables is `median [max]`: the median over rounds, then the slowest
+round. Each pair table's `threshold` column is the smallest change that row's verdict counts: its
+A/A noise band or 3% of the reference, whichever is wider. A ratio row shows it as a percentage, a
+difference row in the metric's unit. It's blank when the row's A/A check failed. A row that moved
+less than its threshold reads "no detectable difference", even when its interval leaves out the
+null value.
 
 An arm whose payload has the Rust engine core but whose recipe isn't `rust-core` can still run
 with `rustReads: true`: `node scripts/verify-core.mjs <worktree>` checks the payload and records
@@ -216,9 +224,8 @@ The returned settle timestamp is the latest observed visible change or decode co
 bounded below by the action's `doneAt`, before a 250 ms quiet window. This is a visual heuristic,
 not proof that no future render can run. Sampling visibility performs geometry and style reads;
 that instrumentation cost is included in the reported CPU and frame metrics.
-`meta.json` records `probeSha256`; `--against` rejects runs from different probe versions,
-including historical runs without that field. Published `RESULTS.md` predates this correction;
-its timing numbers have not been regenerated with the corrected probe.
+`meta.json` records `probeSha256`, so a run's probe version is on record. Published `RESULTS.md`
+predates this correction; its timing numbers have not been regenerated with the corrected probe.
 
 > Note: The `slow` profile throttles the main thread only. Chromium 140 answers
 > `Emulation.setCPUThrottlingRate` on a worker target with "Operation is only supported for pages,
@@ -244,9 +251,8 @@ thread did. `mainJsMs` is the JavaScript part of it, read from a trace of the sa
 outermost `FunctionCall`, `RunMicrotasks`, `EvaluateScript` and `v8.evaluateModule` events. It
 replaced `mainScriptMs` (`ScriptDuration`) on 2026-09-30, because `ScriptDuration` leaves microtasks
 out, and a Preact render is one: moving work out of a render read as more script with the same
-JavaScript run (FINDINGS.md, section 6). Runs from before then have `mainScriptMs` instead, so
-`--against` can't compare that row across the change. The trace is on during every measured
-window, so its overhead is in every timing.
+JavaScript run (FINDINGS.md, section 6). Runs from before then have `mainScriptMs` instead. The
+trace is on during every measured window, so its overhead is in every timing.
 
 `scroll / settleMs` is usually 0 on the TypeScript arms: every render lands during the wheel burst,
 so the page is already settled when the last wheel event goes out.
