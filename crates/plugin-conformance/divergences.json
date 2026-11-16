@@ -359,5 +359,12 @@
     "reason": "TextRange counts in u32. Input PDFium never produces. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 14.3 paragraph (and Task 13.15 for the selection copy).",
     "decided": "Task 14.3",
     "pinnedBy": "crates/epdf-engine/src/features/text/layout.rs::a_line_that_reads_backwards_has_no_characters"
+  },
+  {
+    "id": "MO-passthrough",
+    "summary": "Where the TypeScript passes a caller's object through, Rust prints its members in the typed value's order, not the caller's.",
+    "reason": "A typed Rust value has one member order; the TypeScript keeps whatever order the caller wrote. The paths citing this id in crates/plugin-conformance/member-order-allow.json are the observations: a run() world event handed to the sandbox (core/acrojs-host.json), { ...paragraph, runs } in packages/core/annotation/src/richtext.ts normalizeRuns, the caller's options spread into a group (core/ui-schema.json, see crates/plugins/ui-core/README.md), and the resolver's request handed to the submit handler (packages/plugin/actions/src/submit/perform.ts). The script event and submit request dropped their order tracking in 306a293cd to stay plain types.",
+    "decided": "2026-10-13 8cf572cf5",
+    "pinnedBy": "crates/plugin-conformance/src/canonical.rs::an_allowed_path_skips_the_member_order_comparison"
   }
 ]

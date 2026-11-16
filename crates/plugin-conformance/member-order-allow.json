@@ -1,67 +1,124 @@
 {
   "core/acrojs-host.json": {
     "input-shape": [
-      "$.callbacks[].args[].event"
+      {
+        "path": "$.callbacks[].args[].event",
+        "divergence": "MO-passthrough"
+      }
     ]
   },
   "core/annotation-richtext.json": {
     "applyStyleToRange/bold-across-paragraphs": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-passthrough"
+      }
     ],
     "applyStyleToRange/bold-across-runs": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-passthrough"
+      }
     ],
     "applyStyleToRange/bold-emoji": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-passthrough"
+      }
     ],
     "applyStyleToRange/bold-empty": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-passthrough"
+      }
     ],
     "applyStyleToRange/bold-empty-paragraph": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-passthrough"
+      }
     ],
     "applyStyleToRange/bold-inside-later-run": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-passthrough"
+      }
     ],
     "applyStyleToRange/bold-inside-run": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-passthrough"
+      }
     ],
     "applyStyleToRange/bold-negative-start": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-passthrough"
+      }
     ],
     "applyStyleToRange/bold-paragraph-boundary": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-passthrough"
+      }
     ],
     "applyStyleToRange/bold-reversed": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-passthrough"
+      }
     ],
     "applyStyleToRange/bold-whole": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-passthrough"
+      }
     ],
     "applyStyleToRange/clear-all": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-passthrough"
+      }
     ],
     "applyStyleToRange/clear-weight": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-passthrough"
+      }
     ],
     "applyStyleToRange/merges-into-neighbour": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-passthrough"
+      }
     ],
     "normalizeRuns/doc": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-passthrough"
+      }
     ]
   },
   "core/ui-schema.json": {
     "group-opts-and-items": [
-      "$.returned"
+      {
+        "path": "$.returned",
+        "divergence": "MO-passthrough"
+      }
     ],
     "group-opts-no-items": [
-      "$.returned"
+      {
+        "path": "$.returned",
+        "divergence": "MO-passthrough"
+      }
     ]
   },
   "plugins/actions-submit.json": {
     "a-handler-beats-the-home": [
-      "$.callbacks[].args[]"
+      {
+        "path": "$.callbacks[].args[]",
+        "divergence": "MO-passthrough"
+      }
     ]
   }
 }

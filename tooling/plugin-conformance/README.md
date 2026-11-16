@@ -174,10 +174,14 @@ that puts one in an answer.
   typed Rust value can't follow the TypeScript: where it passes a caller's object through (stage
   cameras, pointer samples, rich text and patch inputs), or where one type takes its order from
   whichever function built it (a page scale, a number format, an annotation's paint). Each entry
-  is a vector file, a case and a path with its array indexes written `[]`; on 2026-10-13 it holds
-  375 paths in 186 cases of 25 files. A new mismatch fails the run: fix the order, or, only if it
-  is one of those two kinds, add the path. `pnpm run member-order:allow` adds every path the tree
-  currently fails on, rerunning until none is left (`--fresh` rebuilds the list from empty).
+  is a vector file, a case and `{ "path", "divergence" }`: the path with its array indexes written
+  `[]`, and the `crates/plugin-conformance/divergences.json` id that says why. An entry without
+  one, or citing an id the ledger lacks, fails every replay at load. A new mismatch fails the run:
+  fix the order, or, only if it is one of those two kinds, add the path by hand with its id.
+  `pnpm run member-order:allow` never edits the list. It reruns the replay until no new path
+  fails, then writes the failing paths the list lacks to `member-order-candidates.json`
+  (gitignored) and prints them. `--fresh` starts from no allowance, so it also prints the entries
+  no case needs any more. Delete those freely.
 - Numbers compare as `f64`. Two integers below 2^53 in magnitude compare exactly, so an epoch in
   milliseconds off by one fails. Any other pair compares within one part in 10^12, which absorbs a
   last-bit difference in a transcendental and nothing a coordinate could carry.

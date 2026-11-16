@@ -7,7 +7,8 @@
  * Runs `cargo test --tests --no-fail-fast` over `plugin-conformance` and every
  * workspace crate with a normal or dev dependency on it (read from
  * `cargo metadata` at run time), with `PLUGIN_CONFORMANCE_RECEIPTS` pointing at a fresh temporary directory (and
- * `PLUGIN_CONFORMANCE_ONLY` removed), so every `assert_suite` call writes a
+ * `PLUGIN_CONFORMANCE_ONLY` and `PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW`
+ * removed), so every `assert_suite` call writes a
  * receipt naming the cases it ran. Then it compares the union of the receipts
  * with the case names of every suite in `src/suites/`. A receipt shows a case
  * ran, not that it passed, so cargo's exit status counts too: the check fails
@@ -169,7 +170,7 @@ async function expectedCases(): Promise<Map<string, string[]>> {
 }
 
 /** Read the workspace's packages from cargo. */
-function cargoMetadata(): CargoMetadata {
+export function cargoMetadata(): CargoMetadata {
   const run = spawnSync('cargo', ['metadata', '--format-version', '1', '--no-deps'], {
     cwd: repoRoot,
     encoding: 'utf8',
@@ -185,6 +186,8 @@ function cargoMetadata(): CargoMetadata {
 function runCargo(packages: readonly string[], receipts: string): boolean {
   const env: NodeJS.ProcessEnv = { ...process.env, PLUGIN_CONFORMANCE_RECEIPTS: receipts };
   delete env.PLUGIN_CONFORMANCE_ONLY;
+  // `member-order:allow`'s replacement allowlist: never part of the proof.
+  delete env.PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW;
   const args = ['test', ...packages.flatMap((p) => ['-p', p]), '--tests', '--no-fail-fast'];
   console.log(
     `running cargo test over ${packages.length} crates (${packages.join(', ')}) with receipts in ${receipts}`,
