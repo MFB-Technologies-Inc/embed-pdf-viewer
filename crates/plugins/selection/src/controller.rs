@@ -1248,7 +1248,7 @@ mod tests {
             // is a quad and the upright run refuses it.
             format!(r#"{{"runs":[{{"rect":{{"x":0,"y":0,"width":6,"height":12}},"start":0,"glyphs":[{{"loose":{{"upperLeft":5,{CORNERS},"upperLeft":{{"x":0,"y":0}},"x":0,"y":0,"width":6,"height":12}}}}]}}]}}"#),
             format!(r#"{{"runs":[{{"rect":{{"x":0,"y":0,"width":6,"height":12}},"start":0,"glyphs":[{{"loose":{{{CORNERS_X_TWICE},"x":0,"y":0,"width":6,"height":12}}}}]}}]}}"#),
-            format!(r#"{{"runs":[{{"rect":{{"x":0,"y":0,"width":6,"height":12}},"start":0,"glyphs":[{{"loose":{{"x":0,"y":0,"width":6,"height":12}}}}]}}]}}"#),
+            r#"{"runs":[{"rect":{"x":0,"y":0,"width":6,"height":12},"start":0,"glyphs":[{"loose":{"x":0,"y":0,"width":6,"height":12}}]}]}"#.into(),
             format!(r#"[[{run}]]"#),
             "null".into(),
             "5".into(),
