@@ -255,13 +255,23 @@
     },
     "plugins-base": {
       "ref": "research/multi-platform-rust-core-impl-plugins",
-      "sha": "b5e82a19036abb472ca34f8c627dbf809d912f36",
+      "sha": "9d6c2eca100ab612faa1dcb87135c2527b81b450",
       "recipe": "rust-kernel"
     },
     "plugins-next": {
       "ref": "research/multi-platform-rust-core-impl-plugins",
-      "sha": "b5e82a19036abb472ca34f8c627dbf809d912f36",
+      "sha": "2aaa8f8411039eb038287d4689a515ecc211a390",
       "recipe": "rust-kernel"
+    },
+    "main-now": {
+      "ref": "main",
+      "sha": "ed064e0c867e7688234ad36c0350377544ef93f9",
+      "recipe": "typescript"
+    },
+    "plugins-next-lto": {
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "2aaa8f8411039eb038287d4689a515ecc211a390",
+      "recipe": "rust-kernel-lto"
     }
   },
   "arms": {
@@ -550,6 +560,16 @@
     },
     "plugins-next": {
       "worktree": "plugins-next",
+      "kernel": "rust",
+      "rustReads": false
+    },
+    "main-now": {
+      "worktree": "main-now",
+      "kernel": "typescript",
+      "rustReads": false
+    },
+    "plugins-next-lto": {
+      "worktree": "plugins-next-lto",
       "kernel": "rust",
       "rustReads": false
     }
@@ -874,6 +894,18 @@
     [
       "main",
       "plugins-next"
+    ],
+    [
+      "main",
+      "main-now"
+    ],
+    [
+      "main-now",
+      "plugins-next"
+    ],
+    [
+      "plugins-next",
+      "plugins-next-lto"
     ]
   ]
 }
