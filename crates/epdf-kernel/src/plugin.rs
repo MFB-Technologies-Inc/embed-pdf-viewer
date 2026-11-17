@@ -20,7 +20,7 @@ use crate::engine::{DocumentHandle, Engine};
 use crate::error::{Error, code, plugin_error};
 use crate::event_hook::EventHookSource;
 use crate::geometry::{PageArg, PageRef, PageSpace, PdfEdges};
-use crate::guarded::{GuardedLifetime, guard_handle_noting_unlocks};
+use crate::guarded::{GuardedLifetime, guard_handle};
 use crate::lanes::LatestLane;
 use crate::rt::{self, Promise};
 use crate::scope::{Scope, Teardown};
@@ -115,7 +115,6 @@ pub(crate) trait SessionView {
     /// How many unlocks of the document succeeded. An unlock can upgrade an
     /// open document's rights (the owner password) with no event.
     fn unlocks(&self) -> u64;
-    fn note_unlock(&self);
     fn handle(&self) -> Option<Rc<dyn DocumentHandle>>;
     fn staged_meta(&self) -> Option<Rc<DocumentMeta>>;
     fn scope(&self) -> Scope;
@@ -619,19 +618,13 @@ impl ControllerContext {
         let mut guarded = self.0.guarded.borrow_mut();
         Ok(guarded
             .get_or_insert_with(|| {
-                let unlocked = Rc::downgrade(session);
-                guard_handle_noting_unlocks(
+                guard_handle(
                     handle,
                     GuardedLifetime {
                         signal: self.0.lifetime.clone(),
                         instance_id: self.0.instance_id.clone(),
                     },
                     &self.0.capability,
-                    Rc::new(move || {
-                        if let Some(session) = unlocked.upgrade() {
-                            session.note_unlock();
-                        }
-                    }),
                 )
             })
             .clone())

@@ -1465,3 +1465,18 @@ fn a_failed_permission_read_answers_false_and_is_asked_again() {
     assert!(ctx.allows("doc.print"));
     assert_eq!(doc.security.asked(), asked + 3);
 }
+
+#[test]
+fn allows_rereads_after_an_unlock_through_an_unguarded_handle() {
+    let doc = permission_doc("doc");
+    let (kernel, token) = permission_kernel(std::slice::from_ref(&doc));
+    let ctx = kernel.capability(&token, Some("doc")).unwrap();
+    assert!(!ctx.allows("doc.print"));
+    // `ctx.documentHandle(id)` and `ctx.doc` hand out the session's handle
+    // without the guard; an owner unlock through either upgrades the rights.
+    let handle = ctx.document_handle(Some("doc")).expect("a handle");
+    let asked = doc.security.asked();
+    settle(handle.security().unlock(json!({"password": "owner", "mode": "owner"})));
+    assert!(ctx.allows("doc.print"));
+    assert_eq!(doc.security.asked(), asked + 1);
+}
