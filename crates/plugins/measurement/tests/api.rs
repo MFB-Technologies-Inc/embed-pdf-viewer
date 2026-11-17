@@ -54,7 +54,7 @@ fn a_presets_setting_the_typed_read_cannot_hold_is_refused() {
 
 /// A kernel with the interaction hub, the annotation plugin and this plugin
 /// over the conformance fake engine; page 1 lists `annotations`.
-fn kernel_listing(annotations: Vec<Value>) -> Kernel {
+fn kernel_listing(annotations: Vec<Value>) -> (Kernel, Rc<FakeEngine>) {
     rt::reset();
     let b = json!({ "x": 0, "y": 0, "width": 600, "height": 800 });
     let fake = FakeEngine::new(json!({ "documents": { "a": {
@@ -77,8 +77,8 @@ fn kernel_listing(annotations: Vec<Value>) -> Kernel {
         annotation_plugin(None),
         measurement_plugin(MeasurementConfig::default()),
     ];
-    let kernel =
-        Kernel::new(Rc::new(AsEngine(fake)), plugins, KernelOptions::default()).expect("kernel");
+    let kernel = Kernel::new(Rc::new(AsEngine(fake.clone())), plugins, KernelOptions::default())
+        .expect("kernel");
     kernel.start();
     rt::run_until_stalled();
     kernel.documents().open(
@@ -86,7 +86,7 @@ fn kernel_listing(annotations: Vec<Value>) -> Kernel {
         OpenOptions::default(),
     );
     rt::run_until_stalled();
-    kernel
+    (kernel, fake)
 }
 
 /// A line dimension on page 1, 144 points long in metres at 1 in = 1 m.
@@ -109,7 +109,7 @@ fn dimension(object_number: u32) -> Value {
 
 #[test]
 fn readout_computed_once_over_two_reads() {
-    let kernel = kernel_listing(vec![dimension(7), dimension(8)]);
+    let (kernel, _fake) = kernel_listing(vec![dimension(7), dimension(8)]);
     let measurement = kernel.capability(&MEASUREMENT, Some("a")).expect("measurement");
     let first = dimension(7)["ref"].clone();
     let before = readout_computations();
@@ -120,4 +120,35 @@ fn readout_computed_once_over_two_reads() {
     let second = measurement.get_readout(&dimension(8)["ref"]);
     assert_eq!(second, once);
     assert_eq!(readout_computations() - before, 2, "another record has its own readout");
+}
+
+/// Another session changed this record.
+fn updated(record: Value) -> Value {
+    json!({
+        "type": "annotations.updated", "page": PageRef::new(1), "annotation": record,
+        "origin": { "kind": "remote", "sessionId": "s2",
+            "subject": "u-9", "at": "1970-01-01T00:00:00.000Z", "serverSequence": null },
+        "meta": { "affectedPages": [PageRef::new(1)], "cacheDelta": null, "changed": [],
+            "opId": "remote-update", "undoable": true },
+    })
+}
+
+#[test]
+fn readout_computed_anew_when_the_measure_changes() {
+    let (kernel, fake) = kernel_listing(vec![dimension(7)]);
+    let measurement = kernel.capability(&MEASUREMENT, Some("a")).expect("measurement");
+    let first = dimension(7)["ref"].clone();
+    assert_eq!(measurement.get_readout(&first)["label"], "2.00 m");
+    let before = readout_computations();
+    // Rescaled to 1 in = 2 m: the record is a new object with a new measure.
+    let mut rescaled = dimension(7);
+    rescaled["measure"]["ratio"] = json!("1 in = 2 m");
+    rescaled["measure"]["x"][0]["conversion"] = json!(2.0 / 72.0);
+    fake.emit("a", &updated(rescaled)).expect("the event");
+    rt::run_until_stalled();
+    let after = measurement.get_readout(&first);
+    assert_eq!(after["label"], "4.00 m", "{after}");
+    assert_eq!(readout_computations() - before, 1, "the changed record's readout is computed");
+    assert_eq!(measurement.get_readout(&first), after);
+    assert_eq!(readout_computations() - before, 1, "and then kept");
 }
