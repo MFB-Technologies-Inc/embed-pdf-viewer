@@ -35,7 +35,10 @@ import { fileURLToPath } from 'node:url';
 import fc from 'fast-check';
 
 import { diff } from '../canonical';
+import { refuseDirectRun } from '../library-guard';
 import { callFunctionCase, decodePlain, type FunctionSuite } from '../vectors';
+
+refuseDirectRun('src/checks/differential.ts', 'differential');
 
 const repoRoot = fileURLToPath(new URL('../../../..', import.meta.url));
 const ledgerFile = resolve(repoRoot, 'crates/plugin-conformance/divergences.json');

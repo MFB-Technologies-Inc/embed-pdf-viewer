@@ -39,9 +39,13 @@ import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { rejectUnknownArgs } from './args';
+import { rejectUnknownArgs } from '../args';
+import { refuseDirectRun } from '../library-guard';
+
 import { ranges } from './coverage';
 import { cargoMetadata, replayPackages, type CargoMetadata } from './replay-check';
+
+refuseDirectRun('src/checks/rust-coverage.ts', 'rust-coverage:check');
 
 /** One `llvm-cov export` segment: line, column, count, has count, region
  *  entry, gap region. */

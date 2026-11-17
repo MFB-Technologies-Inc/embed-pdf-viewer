@@ -5,6 +5,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
+// Before any check module: see `src/library-guard.ts`.
+import '../src/as-library';
+
 import { childEnv, findCandidates, type Paths } from '../src/checks/member-order-allow';
 
 /** Every member-order difference the fake replay has, by file and case. */

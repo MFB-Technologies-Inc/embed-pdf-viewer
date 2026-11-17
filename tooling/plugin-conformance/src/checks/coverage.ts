@@ -36,9 +36,11 @@ import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
 
+import { rejectUnknownArgs } from '../args';
+import { refuseDirectRun } from '../library-guard';
 import { vectorsRoot } from '../vectors';
 
-import { rejectUnknownArgs } from './args';
+refuseDirectRun('src/checks/coverage.ts', 'coverage:check');
 
 const PORTED = /^packages\/(core\/(main|geometry|stage|ui|annotation|acrojs|signature)|plugin\/[^/]+)\/src\//;
 /** JavaScript that runs inside the script sandbox. It ships to Rust as data

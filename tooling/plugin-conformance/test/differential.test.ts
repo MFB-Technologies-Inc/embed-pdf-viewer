@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
+// Before any check module: see `src/library-guard.ts`.
+import '../src/as-library';
+
 import { diff } from '../src/canonical';
 import {
   runDifferential,

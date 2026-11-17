@@ -1,5 +1,7 @@
 # Conformance Enforcement Implementation Plan
 
+> Note, 2026-11-17: the check modules this plan creates as `tooling/plugin-conformance/src/<name>.ts` now live in `src/checks/`, and the `pnpm run` scripts start them through entries in `src/cli/` (`generate.ts` included). The rest of this plan is a dated record and names the old paths.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Close the four enforcement holes and the storage cost named in the 2026-11-16 conformance report, without replacing the frozen-vector design.

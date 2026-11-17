@@ -30,8 +30,12 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { rejectUnknownArgs } from './args';
+import { rejectUnknownArgs } from '../args';
+import { refuseDirectRun } from '../library-guard';
+
 import { cargoMetadata, replayPackages } from './replay-check';
+
+refuseDirectRun('src/checks/member-order-allow.ts', 'member-order:allow');
 
 /** Paths by vector file and case. */
 export type Paths = Record<string, Record<string, string[]>>;

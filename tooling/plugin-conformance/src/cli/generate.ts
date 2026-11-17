@@ -17,6 +17,7 @@ import { readdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { rejectUnknownArgs } from '../args';
 import { emit, type Suite } from '../vectors';
 
 // The oracle's wall clock is faked per case, but its time zone is the host's
@@ -28,6 +29,7 @@ process.env.TZ = 'UTC';
 const suitesDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'suites');
 
 const argv = process.argv.slice(2);
+rejectUnknownArgs(argv, ['--check', '--compared-only'], ['--only']);
 const check = argv.includes('--check');
 const comparedOnly = argv.includes('--compared-only');
 const onlyAt = argv.indexOf('--only');

@@ -45,9 +45,11 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { rejectUnknownArgs } from '../args';
+import { refuseDirectRun } from '../library-guard';
 import { readVector, vectorsRoot, type Suite } from '../vectors';
 
-import { rejectUnknownArgs } from './args';
+refuseDirectRun('src/checks/replay-check.ts', 'replay:check');
 
 /** An allow-list path that suppressed a member-order difference in a case. */
 export interface AllowanceUse {
