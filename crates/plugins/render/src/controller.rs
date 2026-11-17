@@ -156,7 +156,9 @@ pub struct RenderSettingsChanged {
 pub(crate) struct Core {
     pub(crate) cx: Controller<RenderState, Value>,
     settings: InstanceSettings,
-    resolved_memo: RefCell<Option<(Rc<Value>, Rc<ResolvedRenderOptions>)>>,
+    /// The resolved options and `slowAfterMs`, for the settings value they
+    /// were read from.
+    resolved_memo: RefCell<Option<(Rc<Value>, Rc<ResolvedRenderOptions>, Option<f64>)>>,
     host: RenderHost,
     /// Document-lifetime cache; staleness is a new key, never a flush.
     store: RasterStore,
@@ -216,16 +218,26 @@ impl Core {
     /// The settings as the strategy reads them, resolved again when they
     /// change.
     fn resolved(&self) -> Rc<ResolvedRenderOptions> {
+        self.resolved_settings().0
+    }
+
+    /// `slowAfterMs` as set, read with the resolved options.
+    fn slow_after_ms(&self) -> Option<f64> {
+        self.resolved_settings().1
+    }
+
+    fn resolved_settings(&self) -> (Rc<ResolvedRenderOptions>, Option<f64>) {
         let current = self.settings.get();
-        if let Some((value, resolved)) = &*self.resolved_memo.borrow()
+        if let Some((value, resolved, slow_after_ms)) = &*self.resolved_memo.borrow()
             && Rc::ptr_eq(value, &current)
         {
-            return resolved.clone();
+            return (resolved.clone(), *slow_after_ms);
         }
         let config = self.decode_settings(&current);
         let resolved = Rc::new(resolve_render_options(&config));
-        *self.resolved_memo.borrow_mut() = Some((current, resolved.clone()));
-        resolved
+        let slow_after_ms = config.slow_after_ms;
+        *self.resolved_memo.borrow_mut() = Some((current, resolved.clone(), slow_after_ms));
+        (resolved, slow_after_ms)
     }
 
     pub(crate) fn get_settings(&self) -> RenderSettings {
@@ -1778,9 +1790,7 @@ pub fn create_render_controller(
                 },
                 slow_after_ms: {
                     let weak = weak.clone();
-                    Rc::new(move || {
-                        weak.upgrade().and_then(|c| c.get_settings().slow_after_ms).unwrap_or(400.0)
-                    })
+                    Rc::new(move || weak.upgrade().and_then(|c| c.slow_after_ms()).unwrap_or(400.0))
                 },
                 after: {
                     let clock = cx.clock();

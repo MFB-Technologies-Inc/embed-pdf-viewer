@@ -13,6 +13,7 @@ use epdf_kernel::engine::{
 };
 use epdf_kernel::geometry::PageRef;
 use epdf_kernel::kernel::{OpenOptions, OpenSource};
+use epdf_kernel::rt::Promise;
 use epdf_kernel::store::Unsubscribe;
 use epdf_kernel::{Error, Kernel, KernelOptions, rt};
 use epdf_plugin_render::*;
@@ -614,4 +615,55 @@ fn a_malformed_setting_reads_as_the_defaults_and_warns_once() {
     assert_eq!(viewport, PageRenderViewport::Width { width: 640.0 });
     assert_eq!(rig.warnings.borrow().len(), 1, "{:?}", rig.warnings.borrow());
     assert!(rig.warnings.borrow()[0].starts_with("[render] malformed settings ("));
+}
+
+/// Over budget, the store drops resolved, consumer-free entries least
+/// recently used first, and only until the total fits again; the entries
+/// left behind still answer by key.
+#[test]
+fn eviction_order_unchanged_at_budget() {
+    rt::reset();
+    let released: Rc<RefCell<Vec<String>>> = Rc::default();
+    let record = released.clone();
+    // A budget of four ten-byte images.
+    let store = RasterStore::with_release(
+        40.0,
+        Rc::new(move |v: &Value| record.borrow_mut().push(v["id"].as_str().unwrap().into())),
+    );
+    let fetch = |id: &str, bytes: u32| {
+        let value = json!({ "id": id,
+            "source": { "kind": "bytes", "bytes": { "$byteLength": bytes } } });
+        let image =
+            store.acquire(id, move |_| Ok(Promise::resolved(value)), None).expect("acquire");
+        rt::run_until_stalled();
+        assert!(image.peek().expect("settled").is_ok());
+    };
+    for id in ["a", "b", "c", "d"] {
+        fetch(id, 10);
+    }
+    // Use order, oldest first: b, d, c, a.
+    assert!(store.peek("c").is_some());
+    assert!(store.peek("a").is_some());
+    assert!(released.borrow().is_empty());
+
+    fetch("e", 10);
+    assert_eq!(*released.borrow(), ["b"]);
+    assert_eq!(store.cost_used(), 40.0);
+
+    // Twenty-five bytes more: d, c and a leave, oldest first, and e stays.
+    fetch("f", 25);
+    assert_eq!(*released.borrow(), ["b", "d", "c", "a"]);
+    assert_eq!(store.size(), 2);
+    assert_eq!(store.cost_used(), 35.0);
+    for gone in ["a", "b", "c", "d"] {
+        assert!(store.peek(gone).is_none(), "{gone}");
+    }
+    assert!(store.peek("e").is_some());
+    assert!(store.peek("f").is_some());
+
+    // A full sweep: g overflows alone, so e and f leave, e (older) first.
+    fetch("g", 40);
+    assert_eq!(*released.borrow(), ["b", "d", "c", "a", "e", "f"]);
+    assert_eq!(store.size(), 1);
+    assert!(store.peek("g").is_some());
 }
