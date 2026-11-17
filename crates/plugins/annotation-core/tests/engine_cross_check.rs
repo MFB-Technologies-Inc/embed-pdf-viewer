@@ -179,3 +179,30 @@ fn a_caption_member_the_annotation_lacks_is_left_out_in_both_copies() {
         assert_eq!(Value::Object(theirs), typescript, "{patch}: the engine");
     }
 }
+
+// Kept divergence ANNOTATION-CORE-MEASURE-LOOSE
+// (crates/plugin-conformance/divergences.json): where the TypeScript throws
+// (`validNumberFormat(null)`, a missing `distance` list) or prints
+// "undefined" for a missing unit, both Rust copies answer a value.
+#[test]
+fn a_malformed_measure_the_typescript_throws_on_reads_loosely_in_both_copies() {
+    let good = json!({ "subtype": "rectilinear",
+        "x": [{ "unit": "m", "conversion": 1 }],
+        "distance": [{ "unit": "m", "conversion": 1, "precision": 100 }], "area": [] });
+    let mut no_unit = good.clone();
+    no_unit["distance"] = json!([{ "conversion": 1, "precision": 100 }]);
+    let mut null_entry = good.clone();
+    null_entry["distance"] = json!([null]);
+    let mut no_distance = good;
+    no_distance.as_object_mut().unwrap().remove("distance");
+    let cases = [
+        ("a missing unit", no_unit, json!({ "kind": "distance", "value": 5, "label": "5.00 " })),
+        ("a null entry", null_entry, json!({ "unavailable": "invalid-format" })),
+        ("no distance list", no_distance, json!({ "unavailable": "no-distance-format" })),
+    ];
+    for (name, measure, rust) in cases {
+        let dimension = line(measure, (3.0, 4.0));
+        assert_eq!(canonical(ours(&dimension)), canonical(rust.clone()), "{name}: this crate");
+        assert_eq!(canonical(theirs(&dimension)), canonical(rust), "{name}: the engine");
+    }
+}

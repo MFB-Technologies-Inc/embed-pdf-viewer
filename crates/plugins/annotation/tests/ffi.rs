@@ -645,11 +645,10 @@ fn a_pick_that_lands_after_a_tool_change_places_nothing() {
 fn creating_from_the_selection_answers_the_created_refs() {
     use epdf_ffi::KernelBound;
     use epdf_plugin_selection::{SELECTION, SelectionRangeInput, selection_plugin};
-    let path = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../../tooling/plugin-conformance/vectors/plugins/annotation-markup.json"
-    );
-    let vectors: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let vectors: Value = serde_json::from_str(&plugin_conformance::read_vector_text(
+        "plugins/annotation-markup.json",
+    ))
+    .unwrap();
     let engine = vectors["cases"]
         .as_array()
         .unwrap()

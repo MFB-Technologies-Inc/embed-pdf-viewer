@@ -505,6 +505,19 @@ pub fn script_event_matrix() -> Value {
 mod tests {
     use super::*;
 
+    /// The pin of `MO-acrojs-event`: the TypeScript hands the sandbox the
+    /// caller's event object, members in the caller's order; Rust prints
+    /// the typed event in field order, whatever order it was given in.
+    #[test]
+    fn a_script_event_prints_in_field_order_not_the_callers() {
+        let given = r#"{"kind":"field-keystroke","name":"Keystroke","change":"a","willCommit":false,"value":"x"}"#;
+        let event: ScriptEventInput = serde_json::from_str(given).unwrap();
+        assert_eq!(
+            serde_json::to_string(&event).unwrap(),
+            r#"{"kind":"field-keystroke","name":"Keystroke","value":"x","change":"a","willCommit":false}"#
+        );
+    }
+
     #[test]
     fn looks_up_writable_keys_by_subtype() {
         assert_eq!(annot_writable_keys("stamp"), Some(&["rect"][..]));

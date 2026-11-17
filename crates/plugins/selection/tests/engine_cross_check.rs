@@ -122,9 +122,8 @@ fn tiles(snapshot: &Value) -> bool {
 }
 
 fn vector_layouts() -> Vec<(String, Value)> {
-    let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../tooling/plugin-conformance/vectors");
     let read = |file: &str| -> Value {
-        serde_json::from_str(&std::fs::read_to_string(format!("{root}/{file}")).unwrap()).unwrap()
+        serde_json::from_str(&plugin_conformance::read_vector_text(file)).unwrap()
     };
     let mut out: Vec<(String, Value)> = Vec::new();
     let mut push = |name: String, snapshot: &Value| {

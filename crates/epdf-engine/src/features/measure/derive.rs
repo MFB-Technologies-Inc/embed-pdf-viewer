@@ -212,11 +212,9 @@ fn js_string(x: f64) -> String {
     if x.is_infinite() {
         return "Infinity".into();
     }
-    let sci = format!("{x:e}");
-    let (mantissa, exponent) = sci.split_once('e').unwrap_or((&sci, "0"));
-    let digits: String = mantissa.chars().filter(|c| *c != '.').collect();
+    let (digits, exponent) = shortest_digits(x);
     let k = digits.len() as i32;
-    let n = exponent.parse::<i32>().unwrap_or(0) + 1;
+    let n = exponent + 1;
     if k <= n && n <= 21 {
         format!("{digits}{}", "0".repeat((n - k) as usize))
     } else if 0 < n && n <= 21 {
@@ -234,6 +232,77 @@ fn js_string(x: f64) -> String {
             format!("{first}.{rest}e{sign}{}", e.abs())
         }
     }
+}
+
+/// The shortest decimal digits that round-trip `x` (positive, finite), and
+/// the exponent of the first: `x = d.ddd × 10^exponent`. Of two equally
+/// close candidates, the one ending in an even digit. The engine depends on
+/// the kernel only in its tests, so this is a copy of
+/// `epdf_kernel::js::shortest_digits`; `js_string_is_the_kernel_number_to_string`
+/// holds the two together.
+fn shortest_digits(x: f64) -> (String, i32) {
+    // `{:e}` gives the shortest round-trip digits closest to `x`, but breaks
+    // an exact tie upward where JavaScript picks the even digit.
+    let sci = format!("{x:e}");
+    let (mantissa, exponent) = sci.split_once('e').expect("LowerExp has an exponent");
+    let digits: String = mantissa.chars().filter(char::is_ascii_digit).collect();
+    let exponent: i32 = exponent.parse().expect("integer exponent");
+    even_tie(x, &digits, exponent).unwrap_or((digits, exponent))
+}
+
+/// At an exact tie between `digits` and its neighbour, the one ending in an
+/// even digit, if it round-trips.
+fn even_tie(x: f64, digits: &str, exponent: i32) -> Option<(String, i32)> {
+    // The candidates are multiples of 10^-places.
+    let places = digits.len() as i32 - 1 - exponent;
+    // `x = m * 2^q` with `m` odd has exactly `-q` decimal places, the last a
+    // 5, so it is halfway between two candidates exactly when `-q` is one
+    // more than theirs. With `places <= 0` the halfway point is farther from
+    // the candidates than the half ulp a round trip allows: no tie there.
+    if places < 1 || odd_binary_exponent(x) != -(places + 1) {
+        return None;
+    }
+    // Fixed-precision formatting is exact: here, every digit of `x`.
+    let exact = format!("{x:.*}", places as usize + 1);
+    let floor: String = exact[..exact.len() - 1].chars().filter(char::is_ascii_digit).collect();
+    let floor = floor.trim_start_matches('0');
+    let even = if floor.is_empty() {
+        // Zero is the even candidate, and never round-trips a positive `x`.
+        return None;
+    } else if floor.ends_with(['0', '2', '4', '6', '8']) {
+        floor.to_string()
+    } else {
+        increment(floor)
+    };
+    if format!("{even}e-{places}").parse::<f64>() != Ok(x) {
+        return None;
+    }
+    let exponent = even.len() as i32 - 1 - places;
+    Some((even.trim_end_matches('0').to_string(), exponent))
+}
+
+/// The `q` of `x = m * 2^q` with `m` odd, for a positive finite `x`.
+fn odd_binary_exponent(x: f64) -> i32 {
+    let bits = x.to_bits();
+    let biased = ((bits >> 52) & 0x7ff) as i32;
+    let fraction = bits & ((1u64 << 52) - 1);
+    let (m, q) =
+        if biased == 0 { (fraction, -1074) } else { (fraction | (1u64 << 52), biased - 1075) };
+    q + m.trailing_zeros() as i32
+}
+
+/// A decimal digit string plus one.
+fn increment(digits: &str) -> String {
+    let mut bytes = digits.as_bytes().to_vec();
+    for byte in bytes.iter_mut().rev() {
+        if *byte == b'9' {
+            *byte = b'0';
+        } else {
+            *byte += 1;
+            return String::from_utf8(bytes).expect("ASCII digits");
+        }
+    }
+    format!("1{}", String::from_utf8(bytes).expect("ASCII digits"))
 }
 
 /// Whether `x * 10^digits` lies exactly halfway between two integers, for
@@ -900,6 +969,24 @@ mod tests {
         }
     }
 
+    /// Exactly halfway between two shortest candidates, JavaScript prints
+    /// the one ending in an even digit.
+    #[test]
+    fn js_string_breaks_a_tie_to_even() {
+        let cases: &[(&str, &str)] = &[
+            ("1655218367829957.25", "1655218367829957.2"),
+            ("18008701800628.8125", "18008701800628.812"),
+            ("151546589707673.125", "151546589707673.12"),
+            ("0.0239124298095703125", "0.023912429809570312"),
+            ("1655218367829957.75", "1655218367829957.8"),
+        ];
+        for (exact, want) in cases {
+            let x: f64 = exact.parse().unwrap();
+            assert_eq!(js_string(x), *want, "{exact}");
+            assert_eq!(js_string(-x), format!("-{want}"), "-{exact}");
+        }
+    }
+
     #[test]
     fn js_numbers_print_as_javascript_prints_them() {
         assert_eq!(js_string(2378.0), "2378");
@@ -971,5 +1058,74 @@ mod tests {
             }
         }
         assert!(compared > 800_000, "{compared}");
+    }
+
+    #[test]
+    fn js_string_is_the_kernel_number_to_string() {
+        // `js_string` and `shortest_digits` copy `epdf_kernel::js`, and
+        // `epdf_geometry::js` carries a third copy; only the tests here see
+        // all three, so they are held together over exact ties in both
+        // directions, the notation switches, subnormals, powers of two,
+        // integers past 2^53, plain-notation fractions, zeros and the
+        // non-finite values.
+        let mut seed: u64 = 0x2545_f491_4f6c_dd1d;
+        let mut next = || {
+            seed = seed
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            seed
+        };
+        let decimal = [
+            "1655218367829957.25",
+            "1655218367829957.75",
+            "18008701800628.8125",
+            "151546589707673.125",
+            "0.0239124298095703125",
+            "0.1",
+            "0.3",
+            "123.456",
+            "1e21",
+            "999999999999999900000",
+            "1e-6",
+            "1e-7",
+            "1.5e-7",
+            "4.35e-310",
+            "2.2250738585072014e-308",
+            "1.7976931348623157e308",
+            "9007199254740992",
+            "9007199254740994",
+            "9007199254740993",
+            "18014398509481988",
+            "123456789012345680000",
+        ];
+        let mut values: Vec<f64> = decimal.iter().map(|s| s.parse().unwrap()).collect();
+        values.extend([0.0, -0.0, f64::NAN, f64::INFINITY, f64::EPSILON, f64::MAX]);
+        // Every power of two: subnormal ones from the low mantissa bit,
+        // normal ones from the exponent field.
+        values.extend((0..52).map(|bit| f64::from_bits(1 << bit)));
+        values.extend((1..2047u64).map(|e| f64::from_bits(e << 52)));
+        for k in 0..20_000u64 {
+            // Between 2^50 and 2^51 the ulp is 0.25, so `n + 0.25` and
+            // `n + 0.75` are exactly halfway between two one-place
+            // candidates: one tie breaks down to the even digit, one up.
+            let n = (1u64 << 50) + k * 56_294_995_342;
+            values.push(n as f64 + 0.25);
+            values.push(n as f64 + 0.75);
+            values.push(f64::from_bits(next()));
+            // Plain notation with up to 17 digits: a 53-bit integer in
+            // millionths, and scaled by a power of ten from 1e-6 to 1e5, so
+            // the point falls inside the digits or past them, up to just
+            // under 1e21.
+            let digits = (next() >> 11) as f64;
+            values.push(digits / 1e6);
+            values.push(digits * [1e-6, 1e-3, 1.0, 1e3, 1e5][(next() % 5) as usize]);
+        }
+        for value in values {
+            for x in [value, -value] {
+                let want = epdf_kernel::js::number_to_string(x);
+                assert_eq!(js_string(x), want, "{x:e}");
+                assert_eq!(epdf_geometry::js::number_to_string(x), want, "{x:e}");
+            }
+        }
     }
 }

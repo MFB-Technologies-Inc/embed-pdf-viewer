@@ -11,6 +11,10 @@ pnpm --filter @embedpdf/tooling-plugin-conformance run vectors          # write
 pnpm --filter @embedpdf/tooling-plugin-conformance run vectors:check    # fail if stale, orphaned or unreplayed
 pnpm --filter @embedpdf/tooling-plugin-conformance run coverage         # write vectors/coverage.json
 pnpm --filter @embedpdf/tooling-plugin-conformance run coverage:check
+pnpm --filter @embedpdf/tooling-plugin-conformance run replay:check     # run the Rust tests, prove every case replayed
+pnpm --filter @embedpdf/tooling-plugin-conformance run rust-coverage    # write vectors/rust-coverage.json
+pnpm --filter @embedpdf/tooling-plugin-conformance run rust-coverage:check
+pnpm --filter @embedpdf/tooling-plugin-conformance run differential -- --crate geometry --runs 1000 --seed 42
 pnpm --filter @embedpdf/tooling-plugin-conformance run test:harness    # runtime invariants
 pnpm --filter @embedpdf/tooling-plugin-conformance run audit:kernel    # every kernel scenario and refusal
 cargo test -p plugin-conformance                                        # replay the kernel
@@ -19,18 +23,102 @@ PLUGIN_CONFORMANCE_ONLY=open-all PLUGIN_CONFORMANCE_VERBOSE=1 cargo test -p plug
 
 ## Files
 
-Every module in `src/suites/` exports `suites`, and `src/generate.ts` discovers them, so a new
+Each script above that runs a source file runs an entry in `src/cli/`, and the entry always runs its
+check. The checks themselves are library modules in `src/checks/`. Run one of those directly, under
+any spelling of its path, and it exits 2 and names the script to use. A module that imports a check
+(each entry, each test) imports `src/as-library.ts` first, which marks the process as using the
+checks as libraries; `src/library-guard.ts` says why this looks at no paths.
+
+Every module in `src/suites/` exports `suites`, and `src/cli/generate.ts` discovers them, so a new
 plugin's generator is one new file there. A suite writes one vector file:
 
 ```json
 { "schemaVersion": 2, "kind": "scenario" | "function", "describes": "...", "cases": [...] }
 ```
 
+`vectors` prints one line per file it changed, comparing cases by `name` and by the
+`canonicalKey` of the whole case: `core/x.json: +2 -0 ~5 (changed: a, b, c, d, e)`, with at most
+10 changed names and `and N more` after them. Cases that share a name match by occurrence, and the
+second and later print as `name#2`, `name#3`. Object member order alone is not a change.
+
+The file is stored zstd-compressed at level 3, as `vectors/<suite>.json.zst`, and everything that
+names a suite still uses the `.json` name: `assert_suite("plugins/actions.json")` reads
+`plugins/actions.json.zst`. Compressed, the corpus is about 4 MB instead of 231 MB, and git can't
+show a readable diff of it, so review a regeneration from the lines above. `vectors:check`
+compares decompressed text, never compressed bytes, so a file another zstd build wrote is still
+current. It also fails when a suite is on disk both plain and compressed; a `vectors` run removes
+the plain file. Node 22.15 or later is needed for `zlib.zstdCompressSync`.
+`vectors/environment.json`, `vectors/coverage.json` and `vectors/rust-coverage.json` stay plain JSON.
+
 `vectors:check` also fails on a file under `vectors/` that no suite writes, which is what a deleted
 or renamed suite leaves behind, and on a file no Rust test replays. It reads the second from the
 source: some `.rs` file under `crates/` must hold the path as a string literal
 (`"plugins/actions.json"`), as every `assert_suite` call does. A literal in a test that never runs
-would still pass.
+would still pass, so treat that scan as a fast offline lint.
+
+`replay:check` is the proof. It runs `cargo test --tests --no-fail-fast` over `plugin-conformance`
+and every workspace crate with a normal or dev dependency on it, read from `cargo metadata` at run
+time, with `PLUGIN_CONFORMANCE_RECEIPTS` set to a fresh temporary directory,
+`PLUGIN_CONFORMANCE_RUN_ID` set to a fresh id, `PLUGIN_CONFORMANCE_HEAD` set to
+`git rev-parse HEAD`, `PLUGIN_CONFORMANCE_DIRTY` set to `1` when `git status --porcelain` prints
+anything and `0` when it prints nothing, and `PLUGIN_CONFORMANCE_ONLY`, `PLUGIN_CONFORMANCE_MEMBER_ORDER` and
+`PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW` removed. Each `assert_suite` call writes a receipt: the run
+id, the commit and whether the tree had uncommitted changes, the SHA-256 of the vector text it replayed, the cases it ran, how many failed,
+whether member order was compared, whether the allowlist was replaced, the ledger observations it
+applied (`exceptions`) and the `member-order-allow.json` paths that skipped a member-order
+difference (`memberOrderAllowed`).
+It then compares those receipts with the case names of every suite in `src/suites/`. It fails on a
+vector file no test replayed, a case that never ran, a receipt from a filtered run, a receipt for a
+file no suite writes, a case that ran but no suite writes (a stale vector file), a receipt it
+cannot parse, a receipt that counts failed cases, one written with member order off or the
+allowlist replaced, one from another run, one that names no commit or another commit, one whose
+record of uncommitted changes is missing or differs from the checkout's, one whose vector hash differs
+from the vector file in the checkout, a `divergences.json` entry with `observedBy` that no receipt
+lists in its `exceptions` (an observation that never applied), a `member-order-allow.json` path
+that no receipt lists for its file and case (an allowance with no effect), or a used allowance the
+allowlist does not hold. It also fails when cargo fails, and prints both results. The cost is a
+test run of every crate that depends on `plugin-conformance`. `-- --receipts <dir>` skips cargo and
+reads `<dir>` as it is. Fill it with a single cargo run on a clean tree that sets
+`PLUGIN_CONFORMANCE_RUN_ID`, `PLUGIN_CONFORMANCE_HEAD` and `PLUGIN_CONFORMANCE_DIRTY=0`. A directory
+from an older run fails when the commit has moved since or any vector file it replayed has changed,
+even when every receipt in it carries the same run id. It also fails when its receipts or the
+checkout have uncommitted changes, since nothing ties those changes to the receipts. The cost is
+that `--receipts` only works on a clean tree; a plain `replay:check` on a tree with changes still
+passes, because it replays that tree itself. If either git command fails (a "dubious ownership"
+refusal inside a container, say), the check fails with git's message instead of comparing nothing.
+The `--receipts` directory gets an exemption only when it is inside the repository (after resolving
+symlinks) and `git status` prints it as one untracked directory, `?? <dir>/`, which git does only
+when it tracks nothing under it. Even then the exemption covers just the untracked `*.json` files
+directly in it, the files the check reads as receipts. Any other untracked file there counts as a
+change, at any depth, and so does every tracked change: a staged deletion under the directory, an
+edit to a tracked file in it. A directory inside an untracked parent gets no exemption, because git
+prints only the parent. The cost is that a saved directory must hold nothing but receipts; a stray
+`*.partial` from an interrupted run makes the tree dirty.
+
+What a saved directory proves is consistency, not provenance. Receipts are not signed, so the commit
+and the clean-tree flag in them are what `PLUGIN_CONFORMANCE_HEAD` and `PLUGIN_CONFORMANCE_DIRTY` said
+when they were written, taken on trust. `--receipts` shows that one run's receipts agree with each
+other and with the checkout; only a plain `replay:check`, which sets both variables from git itself,
+is the gate.
+
+`rust-coverage` records which Rust lines the replay reaches. It needs `cargo-llvm-cov` (written
+against 0.9.1, `cargo install cargo-llvm-cov --locked`) and the `llvm-tools-preview` rustup
+component. It runs `cargo llvm-cov` twice: once with only the replay targets (each plugin crate's
+`tests/conformance.rs` and `plugin-conformance`'s `tests/kernel.rs`) of the crates `replay:check`
+runs, once with `--tests` over every crate it reports on. It reports on the crates the replay
+links: the ones `replay:check` runs and every workspace member they reach through normal,
+non-optional dependencies (`reachedPackages`), so `epdf-kernel`, `epdf-text-core` and
+`epdf-engine` are counted with the plugins. Binding crates behind an optional feature
+(`epdf-ffi`) are not built for the tests and are not in it. `vectors/rust-coverage.json` gives
+each source file's `replayLines` (lines replay hit / lines llvm-cov maps) and `unitOnlyLines`, the
+lines some test reaches and replay does not. Files matching a glob in
+`crates/plugin-conformance/rust-coverage-exclude.json` (replay adapters, C ABI glue, the replay
+runner, the PDFium bindings) are left out, each with its reason, and so are the lines of inline
+`#[cfg(test)]` modules. Both runs drop `PLUGIN_CONFORMANCE_ONLY`,
+`PLUGIN_CONFORMANCE_MEMBER_ORDER`, `PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW` and
+`PLUGIN_CONFORMANCE_RECEIPTS`. It is a record, not a threshold: `rust-coverage:check` fails only
+when the file would change. Both runs together cost an instrumented build and test run of every
+reported crate.
 
 `vectors/environment.json` records the ICU and Unicode versions of the Node that wrote the vectors
 (`process.versions.icu`). ICU decides `Intl.PluralRules` (i18n plurals) and `localeCompare` (render
@@ -147,10 +235,20 @@ that puts one in an answer.
   typed Rust value can't follow the TypeScript: where it passes a caller's object through (stage
   cameras, pointer samples, rich text and patch inputs), or where one type takes its order from
   whichever function built it (a page scale, a number format, an annotation's paint). Each entry
-  is a vector file, a case and a path with its array indexes written `[]`; on 2026-10-13 it holds
-  375 paths in 186 cases of 25 files. A new mismatch fails the run: fix the order, or, only if it
-  is one of those two kinds, add the path. `pnpm run member-order:allow` adds every path the tree
-  currently fails on, rerunning until none is left (`--fresh` rebuilds the list from empty).
+  is a vector file, a case and `{ "path", "divergence" }`: the path with its array indexes written
+  `[]`, and the `crates/plugin-conformance/divergences.json` id that says why. An entry without
+  one, or citing an id the ledger lacks, fails every replay at load. A new mismatch fails the run:
+  fix the order, or, only if it is one of those two kinds, add the path by hand with its id. Each
+  cause has its own `MO-` entry with a test that pins it (`MO-acrojs-event`,
+  `MO-richtext-paragraph`, `MO-ui-group-options`, `MO-submit-request`), so a path from a new cause
+  needs a new ledger entry and pin. No entry covers the builder-order kind yet.
+  `pnpm run member-order:allow` never edits the list. It reruns the replay, with
+  `PLUGIN_CONFORMANCE_MEMBER_ORDER=1`, its own allowlist in `PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW`,
+  and `PLUGIN_CONFORMANCE_ONLY` and `PLUGIN_CONFORMANCE_RECEIPTS` removed, until no new path
+  fails, then writes the failing paths the list lacks to `member-order-candidates.json`
+  (gitignored) and prints them. `--fresh` starts from no allowance, so it also prints the entries
+  no case needs any more. Delete those freely. `replay:check` fails on such an entry, so one left
+  behind does not pass unnoticed.
 - Numbers compare as `f64`. Two integers below 2^53 in magnitude compare exactly, so an epoch in
   milliseconds off by one fails. Any other pair compares within one part in 10^12, which absorbs a
   last-bit difference in a transcendental and nothing a coordinate could carry.
@@ -161,6 +259,79 @@ A member that is not a method prints through `HarnessPlugin::describe_member`, w
 calls in the same order, so any ref it registers numbers in place. The actions plugin's
 `scriptRealm` (`{transaction, budget}`) is the one such member so far. The TypeScript needs no
 counterpart: canonical JSON already prints a nested object.
+
+## The divergence ledger
+
+`crates/plugin-conformance/divergences.json` lists each kept Rust divergence from the TypeScript
+that a vector case observes or a Rust test pins, once, by `id`, with a `summary`, the `reason` it
+is kept and when it was `decided` (`crates/plugin-conformance/src/exceptions.rs` documents the
+fields). Kept divergences that nothing pins yet are not in it: `docs/research/divergence-ledger-audit.md`
+lists them, and each enters the ledger once a test pins it. An entry needs `observedBy`,
+`pinnedBy`, or both, and a malformed entry fails every replay at load.
+
+`observedBy` names the vector cases that show the divergence. Each is a `file` and `case` and one
+of two forms. `movedCallback` says Rust logs `callback` in trace step `actualStep` where the
+TypeScript logs it in `expectedStep`, and replay moves it back before comparing. `valueAt` says
+that at `path` (`$[<step>]`, then the path a replay failure prints) the TypeScript holds
+`expected` and Rust holds `actual`, and replay puts `expected` there. The rest of the trace still
+compares exactly. An observation whose trace no longer shows the divergence, or whose case never
+ran, fails the replay. `replay:check` also fails when no receipt lists an entry with `observedBy`
+in its `exceptions`.
+
+`pinnedBy` is `<path from the workspace root>::<test fn>`. Load checks only that the file defines
+`fn <test fn>(`. That proves the named test exists, not that any checked command ran it.
+
+`differentialSkip` lists `{ "fn", "when" }`: differences on `fn` that `differential` does not
+count as a mismatch, because they are this divergence. The predicate is code in
+`src/differential/<crate>.ts`, keyed by the entry's `id`, and `when` says in words what it
+accepts. It sees the input and both outcomes, it can call the TypeScript again, and it can ask the
+function server what the platform math library answers, so it accepts the difference the entry
+describes and nothing else; a function the entry does not name compares as before. A skip without
+a predicate, a predicate without a skip, or a skip whose `fn` no crate's suites hold fails the run,
+so removing the entry removes the allowance. A skip for a function of another crate's table is
+left to that crate's run.
+
+`PLATFORM-MATH-COS-SIN` and `PLATFORM-MATH-ATAN2` are the two that use it. Rust takes `cos`, `sin`
+and `atan2` from the platform math library and the TypeScript from the JavaScript runtime, and the
+two can round the last bit differently. The canonical comparison's relative tolerance of `1e-12`
+absorbs one ulp in most outputs, but not in three cases. A safe-integer output compares exactly
+(`rotateAbout` about a pivot at `y = -4915517297019373`). The ulp can flip a branch
+(`normalizePdfQuad`'s sort of near-tied corners). And it can survive cancellation in the
+translation terms: `rotateAbout({ x: 0, y: 7e11 }, 5e-323)` with a cosine one ulp below 1 moves
+its last member from 0 to 2^-13 (about 1.2e-4). No fixed bound covers those.
+
+So the rule in `src/differential/platform-math.ts` uses the platform library's actual answers. On
+a mismatch in a function the entry names, it records the distinct `Math` calls the TypeScript
+makes on the input and asks `function-server` for the platform's answer to each (a `{"math"}`
+request, numbers as the bits of the double, so `-0` and NaN cross exactly). Each answer must be the
+runtime's or a double next to it; one further out refuses the input and names the call and both
+values. The TypeScript then runs once more with exactly those answers, and a call that run makes
+for the first time is asked for in turn, for at most four reruns. Rust's outcome is accepted only
+when it equals that run under the same canonical comparison. A port that reorders near-tied
+corners, or moves the translation by anything other than the library's own last bit, still fails,
+even where some other one-ulp answer would have reached its outcome. A server that cannot answer,
+or an input with no `Math` call, allows nothing.
+
+The rule assumes the ported code calls the library as the probe does: `f64::cos`, `f64::sin` and
+`y.atan2(x)` on the arguments the TypeScript passes. The probe reports the library, not the port's
+call of it, so it does not guard a Rust wrapper that changes the call itself. Its cost is one
+server round trip per distinct call and one rerun of the TypeScript, paid only on a mismatch in a
+ledgered function. Each entry's `pinnedBy` test (`crates/plugins/geometry/tests/platform_math.rs`)
+holds the recorded input to the same rule with Rust's own answers, so it passes on a platform whose
+library agrees with the runtime and on one a ulp away.
+
+`differential` prints, per function, how many inputs a ledger skip allowed, and in its last line
+the total and the count per entry:
+`37 functions, 370000 inputs, 0 mismatched, 5 allowed by the ledger (PLATFORM-MATH-ATAN2 5)`.
+
+`differential` calls each function of a crate's function suites on the TypeScript and, through
+`crates/conformance-function-server`, on the Rust, with inputs fast-check generates from the
+arbitraries in `src/differential/<crate>.ts`, and compares the outcomes canonically. On a mismatch
+it prints the shrunk input as a function case to paste into the suite. `geometry` is the only
+crate so far.
+
+The last full runs, with their seeds, counts and the mismatches they found, are recorded in
+`docs/research/conformance-verification.md`.
 
 ## The fake engine
 

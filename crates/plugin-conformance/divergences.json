@@ -1,0 +1,425 @@
+[
+  {
+    "id": "M13",
+    "summary": "A realm built after dispose() is released when the queue drains, not at the repeated dispose().",
+    "reason": "Rust releases a realm built after dispose() when the last admitted transaction settles. The TypeScript builds it lazily with no disposed check (packages/core/acrojs/src/host.ts:130), refuses only new transactions (:216), and releases only the realm held at each dispose() call (:231-238), so it keeps that realm until the repeated dispose().",
+    "decided": "2026-10-23 22ca510e6",
+    "observedBy": [
+      {
+        "file": "core/acrojs-host.json",
+        "case": "dispose-pending-factory",
+        "movedCallback": {
+          "callback": { "fn": "sandbox.dispose", "args": [1] },
+          "actualStep": 3,
+          "expectedStep": 4
+        }
+      }
+    ],
+    "pinnedBy": "crates/plugins/acrojs/src/host.rs::a_realm_built_after_dispose_is_released_when_the_queue_drains"
+  },
+  {
+    "id": "M15",
+    "summary": "A URI action whose scheme is not on the allow-list never reaches open_uri.",
+    "reason": "Rust-only divergence: the TypeScript has the same gap. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", findings table (M15). No vector sends a URI with another scheme, so no trace sees it.",
+    "decided": "2026-10-08 7d53dae0c",
+    "pinnedBy": "crates/plugins/actions/tests/external_uri.rs::only_allowed_schemes_reach_open_uri"
+  },
+  {
+    "id": "ACTIONS-NO-DEFAULT-SANDBOX",
+    "summary": "With javascript on and no sandbox factory, every sandbox build fails with NO_DEFAULT_SANDBOX.",
+    "reason": "The TypeScript lazily loads QuickJS; Rust has no JavaScript engine, so the document gets its realm but each javascript node fails. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.12, and crates/plugins/actions/README.md. No vector runs a script in that configuration (no-sandbox-host closes the document first). A dynamic stamp arm fails the same way (crates/plugins/stamp/README.md).",
+    "decided": "Task 13.12",
+    "pinnedBy": "crates/plugins/actions/tests/behavior.rs::scripting_on_without_a_factory_has_a_realm_whose_runs_fail"
+  },
+  {
+    "id": "ACROJS-FOREIGN-SANDBOX-OUTPUT",
+    "summary": "A foreign-engine sandbox output that does not decode as typed AcroJS output is invalid-output.",
+    "reason": "Rust decodes the AcroJS output fully typed; the TypeScript isScriptOutput only checks that arrays hold records, so a malformed effect passes there. Recorded as a pre-existing divergence in docs/research/upstream-catchup-2026-11-07/decisions.md (\"ix\"). The conformance vectors drive a scripted sandbox, not a foreign engine, so no trace sees it.",
+    "decided": "2026-11-07 catch-up (ix)",
+    "pinnedBy": "crates/plugins/actions/tests/ffi_sandbox.rs::malformed_output_is_invalid_output"
+  },
+  {
+    "id": "N6",
+    "summary": "A record whose ref is of a kind no key is defined for is refused instead of keyed \"undefined\".",
+    "reason": "Rust-only divergence from the Lows (part of N6): the TypeScript keys every such record \"undefined\" and collapses them into one. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\" (Lows) and crates/plugins/annotation/README.md, \"Kept divergences\". No vector holds such a ref.",
+    "decided": "2026-10-12 343fc063e",
+    "pinnedBy": "crates/plugins/annotation/tests/behavior.rs::n6_a_record_whose_ref_has_no_key_is_refused_and_the_others_stay"
+  },
+  {
+    "id": "ANNOTATION-PROTOTYPE-KIND",
+    "summary": "A kind name Object.prototype holds (constructor, toString) is an unknown kind that is only shown.",
+    "reason": "Ruling13.7: the TypeScript kindNamed finds the inherited member and later reads throw. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.7 paragraph. The annotation-core harness prints the TypeScript answers for those names, so the 13 vector cases that name them compare against the TypeScript rather than the core: no trace can see the core behavior without changing the harness.",
+    "decided": "Task 13.7 (Ruling13.7)",
+    "pinnedBy": "crates/plugins/annotation-core/tests/behavior.rs::a_name_object_prototype_has_is_a_kind_only_shown"
+  },
+  {
+    "id": "ANNOTATION-CORE-SETSNAP",
+    "summary": "A setSnap patch the typed SnapSettings cannot hold leaves the model unchanged.",
+    "reason": "The TypeScript spreads the patch in. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.7 (\"three refusals no vector reaches\") and crates/plugins/annotation-core/README.md, \"Not ported\".",
+    "decided": "Task 13.7",
+    "pinnedBy": "crates/plugins/annotation-core/tests/behavior.rs::a_snap_patch_that_does_not_read_changes_nothing"
+  },
+  {
+    "id": "ANNOTATION-CORE-MEASURE-LOOSE",
+    "summary": "A malformed /Measure dictionary is read loosely where the TypeScript throws or prints \"undefined\".",
+    "reason": "Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.7, and crates/plugins/annotation-core/README.md, \"Not ported\" (a null format entry, a missing x/distance/area list, a missing unit, a mistyped member). Since Task 14.3 epdf-engine reads it the same way. No vector holds one. The pin asserts both Rust copies' answers for three inputs the TypeScript throws on or prints \"undefined\" for: a missing unit, a null format entry and a missing distance list.",
+    "decided": "Task 13.7, Task 14.3",
+    "pinnedBy": "crates/plugins/annotation-core/tests/engine_cross_check.rs::a_malformed_measure_the_typescript_throws_on_reads_loosely_in_both_copies"
+  },
+  {
+    "id": "M20",
+    "summary": "A cloudy border or cloud outline past 1,000,000 curls or points is empty.",
+    "reason": "The TypeScript allocates until memory runs out or loops. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", findings table (M20) and Task 13.7, and crates/plugins/annotation-core/README.md, \"Not ported\". A vector cannot record a run that never ends.",
+    "decided": "26e0aa3b0",
+    "pinnedBy": "crates/plugins/annotation-core/tests/hostile_geometry.rs::an_absurd_cloudy_border_draws_nothing"
+  },
+  {
+    "id": "COMMANDS-DEFINITION-IDENTITY",
+    "summary": "A changed commands list reads back the first definition equal by sameValue, not the new object.",
+    "reason": "Identity only: every data member and function is the same. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.29, and crates/plugins/commands/README.md, \"Kept Rust-only divergences\". The trace compares values, not identity, so no trace can see it.",
+    "decided": "Task 13.29",
+    "pinnedBy": "crates/plugins/commands/src/settings.rs::equal_definitions_share_a_handle"
+  },
+  {
+    "id": "COMMANDS-UNDECODED-SETTINGS",
+    "summary": "A commands settings value that does not decode is reported and read as empty.",
+    "reason": "Only a write past update_settings can store one; the TypeScript resolves whatever is there. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.29, and crates/plugins/commands/README.md. No vector writes past the typed API.",
+    "decided": "Task 13.29",
+    "pinnedBy": "crates/plugins/commands/src/settings.rs::a_member_that_does_not_decode_is_reported"
+  },
+  {
+    "id": "I18N-LOJBAN",
+    "summary": "script_of skips the language-and-variant alias art-lojban.",
+    "reason": "ICU says Latn (as jbo); Rust says no script, which negotiation reads as \"cannot tell\". Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.27, and crates/plugins/i18n/README.md. The 13 negotiateLocale cases in core.json do not name it.",
+    "decided": "Task 13.27",
+    "pinnedBy": "crates/plugins/i18n/src/script.rs::a_language_and_variant_alias_is_not_applied"
+  },
+  {
+    "id": "I18N-UNDECODED-SETTINGS",
+    "summary": "An i18n settings value no update_settings wrote is reported and read as empty where it does not decode.",
+    "reason": "Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.27, and crates/plugins/i18n/README.md. No vector writes past the typed API.",
+    "decided": "Task 13.27",
+    "pinnedBy": "crates/plugins/i18n/src/settings.rs::a_member_that_does_not_decode_is_reported"
+  },
+  {
+    "id": "INTERACTION-TOOL-IDENTITY",
+    "summary": "Settings tools compare by identity, so two distinct tools with equal data are a change.",
+    "reason": "The TypeScript sameValue deep-compares a plain tool given without enables. Rust fires on_settings_changed and swaps the tools where the TypeScript does nothing. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.11, and crates/plugins/interaction/README.md. No vector reaches it.",
+    "decided": "Task 13.11",
+    "pinnedBy": "crates/plugins/interaction/tests/api.rs::distinct_equal_settings_tools_count_as_a_change"
+  },
+  {
+    "id": "LINK-UNDECODABLE-DESTINATION",
+    "summary": "A goto destination the stage cannot decode gets a bare reveal of its page and a report.",
+    "reason": "For a known kind with an unreadable member the TypeScript places the camera from that member. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.21, and crates/plugins/link/README.md, \"Where the port differs\". No vector sends one.",
+    "decided": "Task 13.21",
+    "pinnedBy": "crates/plugins/link/tests/behavior.rs::an_undecodable_destination_still_reveals_its_page"
+  },
+  {
+    "id": "MEASUREMENT-PRESETS-TYPED",
+    "summary": "The typed measurement settings read refuses a presets value that is not a list of presets.",
+    "reason": "The TypeScript getSettings hands back whatever was written; the JSON read keeps that answer. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.22, and crates/plugins/measurement/README.md. No vector writes past the typed API.",
+    "decided": "Task 13.22",
+    "pinnedBy": "crates/plugins/measurement/tests/api.rs::a_presets_setting_the_typed_read_cannot_hold_is_refused"
+  },
+  {
+    "id": "METADATA-CHANGED-KEYS-PRIMITIVE",
+    "summary": "changed_keys lists no keys for a previous or next that is not an object.",
+    "reason": "Object.keys on a string lists its indices in the TypeScript. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.26, and crates/plugins/metadata/README.md, \"Rust-only divergences\". No vector or engine answer sends one.",
+    "decided": "Task 13.26",
+    "pinnedBy": "crates/plugins/metadata/src/model.rs::a_previous_that_is_not_an_object_has_no_keys_here"
+  },
+  {
+    "id": "OUTLINE-LOOP",
+    "summary": "A loop in the outline tree's children is not entered again.",
+    "reason": "The TypeScript recurses until the stack overflows or, in subtreeOf, never ends. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.31, and crates/plugins/outline/README.md, \"Rust-only divergences\". A vector cannot record a run that never ends.",
+    "decided": "Task 13.31",
+    "pinnedBy": "crates/plugins/outline/src/model.rs::a_key_under_two_parents_is_listed_under_each_and_a_loop_ends"
+  },
+  {
+    "id": "FORM-INDEX-CACHE-MISS",
+    "summary": "A fields-mirror token the cache no longer holds is logged and shows the confirmed form.",
+    "reason": "A Rust-only console line with no TypeScript counterpart. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.18, and crates/plugins/form/README.md, \"What differs from the TypeScript\". The pin and recency make it unreachable from a vector.",
+    "decided": "Task 13.18",
+    "pinnedBy": "crates/plugins/form/src/services/index_cache.rs::a_miss_is_logged_and_shows_the_confirmed_form"
+  },
+  {
+    "id": "M25",
+    "summary": "A fetch_tile that answers Err at once fails that tile and frees its slot.",
+    "reason": "Rust-only divergence: a synchronous throw in the TypeScript would strand the slot. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", findings table (M25) and Task 13.16, and crates/plugins/render/README.md. Only a Rust embedder of TileManager can answer that way; the TypeScript fetchTile is async, so no vector can.",
+    "decided": "2026-10-11 f0b535982",
+    "pinnedBy": "crates/plugins/render/tests/api.rs::a_synchronous_tile_refusal_frees_its_slot"
+  },
+  {
+    "id": "R7",
+    "summary": "A zero tile span yields no tiles.",
+    "reason": "Rust-only guard from the Lows: the TypeScript loop runs out of memory. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\" (Lows) and crates/plugins/render/README.md. A vector cannot record a run that never ends.",
+    "decided": "2026-10-12 0695bc428",
+    "pinnedBy": "crates/plugins/render/tests/api.rs::a_zero_tile_span_yields_no_tiles_instead_of_looping"
+  },
+  {
+    "id": "RENDER-MALFORMED-EVENT",
+    "summary": "An event missing or mistyping a member pixelChangeOf reads names no page for it.",
+    "reason": "The TypeScript throws a TypeError in its listener or keys the ledger with the value as given. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.16, and crates/plugins/render/README.md, \"Rust-only divergences\". The pin covers a signing fact whose widget is null; the other malformed members are unpinned by name.",
+    "decided": "Task 13.16",
+    "pinnedBy": "crates/plugins/render/src/invalidation.rs::a_signing_repaints_its_widget_page_and_nothing_without_one"
+  },
+  {
+    "id": "RENDER-MALFORMED-SETTINGS",
+    "summary": "A render settings value that does not decode reads as the defaults and warns once.",
+    "reason": "The TypeScript resolves whatever is there. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.16, and crates/plugins/render/README.md. No vector writes past the typed API.",
+    "decided": "Task 13.16",
+    "pinnedBy": "crates/plugins/render/tests/behavior.rs::a_malformed_setting_reads_as_the_defaults_and_warns_once"
+  },
+  {
+    "id": "M23",
+    "summary": "A content change during readText fails the read with conflict.",
+    "reason": "Rust-only divergence: the TypeScript has the same race. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", findings table (M23) and Task 13.15. No vector changes content mid-read.",
+    "decided": "2026-10-11 e8205de75",
+    "pinnedBy": "crates/plugins/selection/tests/stale_text.rs::a_change_during_the_first_batch_fails_the_read"
+  },
+  {
+    "id": "SELECTION-MALFORMED-ROW",
+    "summary": "A page row whose ref does not decode is skipped by pageAtIndex.",
+    "reason": "The TypeScript hands the raw value on. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.15 (S1 now covers it). No vector sends such a row.",
+    "decided": "Task 13.15 (S1)",
+    "pinnedBy": "crates/plugins/selection/tests/malformed_registry.rs::a_page_beside_a_malformed_row_still_selects"
+  },
+  {
+    "id": "M27",
+    "summary": "A NaN grid column count lays out an empty scene where the TypeScript throws on every scene build.",
+    "reason": "Rust-only divergence, the NaN-column part of M27. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", findings table (M27) and Task 13.14. Observed by plugins/stage-capability.json grid-nan-columns: the TypeScript reports a RangeError from the settings write and throws it from visiblePages; Rust reports nothing and answers an empty list.",
+    "decided": "2026-10-11 4965e0519",
+    "observedBy": [
+      {
+        "file": "plugins/stage-capability.json",
+        "case": "grid-nan-columns",
+        "valueAt": {
+          "path": "$[3].reports",
+          "expected": [
+            {
+              "$error": {
+                "name": "RangeError",
+                "message": "Invalid array length"
+              }
+            }
+          ],
+          "actual": []
+        }
+      },
+      {
+        "file": "plugins/stage-capability.json",
+        "case": "grid-nan-columns",
+        "valueAt": {
+          "path": "$[3].outcome",
+          "expected": {
+            "threw": {
+              "$error": {
+                "name": "RangeError",
+                "message": "Invalid array length"
+              }
+            }
+          },
+          "actual": {
+            "returned": {
+              "$undefined": true
+            }
+          }
+        }
+      },
+      {
+        "file": "plugins/stage-capability.json",
+        "case": "grid-nan-columns",
+        "valueAt": {
+          "path": "$[4].outcome",
+          "expected": {
+            "threw": {
+              "$error": {
+                "name": "RangeError",
+                "message": "Invalid array length"
+              }
+            }
+          },
+          "actual": {
+            "returned": []
+          }
+        }
+      }
+    ],
+    "pinnedBy": "crates/plugins/stage/tests/api.rs::a_nan_column_count_empties_the_grid_instead_of_throwing"
+  },
+  {
+    "id": "R5",
+    "summary": "A scene with an unreadable page row lays out the other pages at their indexes.",
+    "reason": "Rust-only divergence from the Lows: the TypeScript throws on every build, as for M27. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\" (Lows) and Task 13.14. No vector records the throw.",
+    "decided": "2026-10-12 1bd756fb3",
+    "pinnedBy": "crates/plugins/stage/tests/api.rs::an_unreadable_page_row_keeps_the_others_at_their_indexes"
+  },
+  {
+    "id": "STAGE-NON-INVERTIBLE",
+    "summary": "A page transform that is not invertible leaves the page out of the page reads.",
+    "reason": "The TypeScript throws \"Mat2D.invert: non-invertible matrix\". Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.14, and crates/plugins/stage/README.md. No vector reaches it; the zoom limits keep the camera at 5% or more.",
+    "decided": "Task 13.14",
+    "pinnedBy": "crates/plugins/stage/tests/api.rs::a_non_invertible_page_transform_leaves_the_page_out"
+  },
+  {
+    "id": "STAGE-LOCK-ORDER",
+    "summary": "A stage lock's settings are checked and recorded in setting order, not the caller's key order.",
+    "reason": "So the key order of locks can differ, and so can which refusal wins when one lock both conflicts and has invalid input (widened in C5b review round 1). Accepted 2026-11-03, recorded in multiplatform-upstream-catchup-2026-11-impl.md, \"Three upstream commits, not one\". Neither part is in a vector. The pin covers the key order only; the error precedence is unpinned.",
+    "decided": "2026-11-03 bb4d814d9 (C5b)",
+    "pinnedBy": "crates/plugins/stage/tests/zoom_tools.rs::a_locks_settings_are_listed_in_setting_order"
+  },
+  {
+    "id": "UI-CORE-OWN-MEMBERS",
+    "summary": "Layout, menu, panel and key-name lookups read own members only.",
+    "reason": "The TypeScript finds Object.prototype members for constructor and __proto__, so formatShortcut(\"Ctrl+constructor\") prints \"Ctrl+\" there and \"Ctrl+Constructor\" here. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.10, and crates/plugins/ui-core/README.md. A function-suite case would show it, but the ledger applies to scenario cases only, so it is pinned.",
+    "decided": "Task 13.10",
+    "pinnedBy": "crates/plugins/ui-core/tests/behavior.rs::an_object_prototype_name_is_no_bar_menu_or_key_name"
+  },
+  {
+    "id": "UI-CORE-NULL-ENTRIES",
+    "summary": "A null bar or panel, or null layout data, is read as empty where the TypeScript throws a TypeError.",
+    "reason": "Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.10, and crates/plugins/ui-core/README.md. No vector holds one.",
+    "decided": "Task 13.10",
+    "pinnedBy": "crates/plugins/ui-core/tests/behavior.rs::a_null_bar_or_panel_is_skipped_where_the_typescript_throws"
+  },
+  {
+    "id": "UI-CORE-STRING-RECORD",
+    "summary": "A bars, menus or panels record that is a string reads each half of a surrogate pair as U+FFFD.",
+    "reason": "The TypeScript spreads the string into UTF-16 unit keys and keeps lone surrogates, which a Rust string cannot hold. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 13.10, and crates/plugins/ui-core/README.md. No vector holds one.",
+    "decided": "Task 13.10",
+    "pinnedBy": "crates/plugins/ui-core/src/value.rs::spreads_and_reads_members_as_javascript_does"
+  },
+  {
+    "id": "E3",
+    "summary": "An XML character reference to a lone surrogate decodes to U+FFFD in the XMP port.",
+    "reason": "The TypeScript makes a lone surrogate a Rust string cannot hold. Accepted 2026-11-02, recorded in multiplatform-upstream-catchup.md, Task 8.3 (\"Accepted 2026-11-02 ... E3\") and multiplatform-upstream-catchup-2026-11-impl.md, \"C4: the eight calls ported\". The plugin vectors run a fake engine and never parse XMP. Pinned by a test added in Task 7.",
+    "decided": "2026-11-02 f8e959eab (C4)",
+    "pinnedBy": "crates/epdf-engine/src/features/xmp/xml.rs::a_reference_to_a_lone_surrogate_decodes_to_the_replacement_character"
+  },
+  {
+    "id": "FALLBACK-TIER-NAN-ORDER",
+    "summary": "With a NaN fallback tier, the reported fallback order follows a stable insertion sort.",
+    "reason": "The TypeScript order depends on the JavaScript engine's sort with a comparator that is not total. PDFium's chain matches. Accepted 2026-11-02, recorded in multiplatform-upstream-catchup-2026-11-impl.md, \"The tier at the FFI boundary\". The plugin vectors run a fake engine.",
+    "decided": "2026-11-02 798f7b229 (C3)",
+    "pinnedBy": "crates/epdf-engine/tests/font_registry.rs::a_nan_tier_compares_equal_and_never_panics"
+  },
+  {
+    "id": "FONTS-REGISTER-STRICT",
+    "summary": "fonts.register refuses missing font bytes, a fractional or boolean weight or italic (WireFormat) and a NUL in familyName (InvalidArg).",
+    "reason": "The TypeScript passes these to its registrar unchecked. Kept 2026-10-15, recorded in multiplatform-upstream-catchup.md, Task 8.3 (\"Kept divergences to re-check\"). The plugin vectors run a fake engine. Pinned by a test added in Task 7; the bool-italic part was already pinned by italic_is_the_c_apis_number_rather_than_a_bool.",
+    "decided": "2026-10-15 7566552a2",
+    "pinnedBy": "crates/epdf-engine/tests/font_settings.rs::the_register_wire_refuses_what_the_typescript_passes_unchecked"
+  },
+  {
+    "id": "FONTS-RESOLVE-STRICT",
+    "summary": "document.fonts.resolve refuses wrongly typed run fields as WireFormat; a numeric weight takes ToInt32.",
+    "reason": "The TypeScript passes such values to its Int32Array and string writers unchecked. Accepted 2026-11-02, recorded in multiplatform-upstream-catchup.md, Task 8.3 (\"Accepted 2026-11-02 ... document.fonts.resolve\"). The plugin vectors run a fake engine.",
+    "decided": "2026-11-02 C4 (c4/fonts)",
+    "pinnedBy": "crates/epdf-engine/tests/document_fonts_wire.rs::malformed_runs_and_missing_annotations_are_refused"
+  },
+  {
+    "id": "FONT-SETTINGS-POLICY",
+    "summary": "document.setFontSettings refuses an unknown embeddingPolicy as InvalidArg.",
+    "reason": "The TypeScript passes undefined on. Kept 2026-10-14, recorded in multiplatform-upstream-catchup.md, Task 8.3 (\"Kept divergences to re-check\"). The plugin vectors run a fake engine.",
+    "decided": "2026-10-14 dd2e1c290",
+    "pinnedBy": "crates/epdf-engine/tests/font_settings.rs::an_unknown_embedding_policy_is_refused"
+  },
+  {
+    "id": "PAGEREF-MALFORMED",
+    "summary": "A malformed PageRef (unknown kind, bad number) is refused as InvalidArg on the Rust worker wire.",
+    "reason": "The TypeScript worker does not validate. Kept 2026-10-15, listed in multiplatform-upstream-catchup.md, Task 8.27 (\"Kept divergences to re-check\", 3baec217b). The plugin vectors run a fake engine.",
+    "decided": "2026-10-15 3baec217b",
+    "pinnedBy": "crates/epdf-engine/src/identity.rs::a_malformed_page_ref_is_an_invalid_argument"
+  },
+  {
+    "id": "EVENTS-SIGNING-ENVELOPE",
+    "summary": "Signing notices travel in an envelope-level event.",
+    "reason": "Kept 2026-10-15 from the events port, recorded in multiplatform-upstream-catchup.md, Task 8.26 (\"Kept divergences to re-check\"). The plugin vectors run a fake engine; the pin asserts the completed notice in the answer's event member.",
+    "decided": "2026-10-15 517d0123d",
+    "pinnedBy": "crates/epdf-engine/tests/signature_sign.rs::prepare_then_complete_seals_the_field"
+  },
+  {
+    "id": "NOOP-MUTATION-SEQUENCE",
+    "summary": "A no-op flatten or redaction answer carries mutationSequence where the TypeScript sends only {tag, result}.",
+    "reason": "Kept 2026-10-15, recorded in multiplatform-upstream-catchup.md, Task 8.6, Task 8.17 and Task 8.23 (\"Kept divergences to re-check\"); the forms.applyEffects part is obsolete (Task 8.20). The plugin vectors run a fake engine. The pin covers flatten; the redaction half is unpinned by name.",
+    "decided": "2026-10-15 87b61b533",
+    "pinnedBy": "crates/epdf-engine/tests/annotation_flatten.rs::a_flatten_that_applies_nothing_is_no_mutation"
+  },
+  {
+    "id": "TEXT-LAYOUT-POINT-PAST-RUN",
+    "summary": "A point read passes over a glyph the run claims that is not there.",
+    "reason": "The TypeScript reads undefined and throws a TypeError. Input PDFium never produces. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 14.3 paragraph.",
+    "decided": "Task 14.3",
+    "pinnedBy": "crates/epdf-engine/src/features/text/layout.rs::a_point_on_a_glyph_the_run_claims_past_the_end_reads_no_further"
+  },
+  {
+    "id": "TEXT-LAYOUT-NEGATIVE-COUNT",
+    "summary": "A line range whose TypeScript count is negative has count 0 in the engine.",
+    "reason": "TextRange counts in u32. Input PDFium never produces. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", Task 14.3 paragraph (and Task 13.15 for the selection copy).",
+    "decided": "Task 14.3",
+    "pinnedBy": "crates/epdf-engine/src/features/text/layout.rs::a_line_that_reads_backwards_has_no_characters"
+  },
+  {
+    "id": "MO-acrojs-event",
+    "summary": "The script event a run() hands the sandbox prints in ScriptEventInput field order, not the order the caller wrote its members in.",
+    "reason": "The TypeScript passes the caller's world event object through to the sandbox; a typed Rust value has one member order. member-order-allow.json cites this id for core/acrojs-host.json. The script event dropped its order tracking in 306a293cd to stay a plain type.",
+    "decided": "2026-10-13 8cf572cf5",
+    "pinnedBy": "crates/plugins/acrojs/src/types.rs::a_script_event_prints_in_field_order_not_the_callers"
+  },
+  {
+    "id": "MO-richtext-paragraph",
+    "summary": "A paragraph normalizeRuns returns prints runs before its other members; the TypeScript prints every member, runs included, where the caller wrote it.",
+    "reason": "packages/core/annotation/src/richtext.ts normalizeRuns builds { ...paragraph, runs }; assigning runs to a key the spread already copied keeps that key's place, so the result keeps the caller's member order. RichTextParagraph holds runs as a field and the rest as a flattened map, so Rust prints runs first. The two agree only when the caller wrote runs first. member-order-allow.json cites this id for core/annotation-richtext.json.",
+    "decided": "2026-10-13 8cf572cf5",
+    "pinnedBy": "crates/plugins/annotation-core/tests/behavior.rs::a_normalized_paragraph_prints_runs_before_its_other_members"
+  },
+  {
+    "id": "MO-ui-group-options",
+    "summary": "group(id, items, options) prints its options in GroupOpts field order, not the order the caller wrote them in.",
+    "reason": "The TypeScript spreads the caller's options between id and items, so they keep the caller's order; BarGroup is a typed value (see crates/plugins/ui-core/README.md). member-order-allow.json cites this id for core/ui-schema.json.",
+    "decided": "2026-10-13 8cf572cf5",
+    "pinnedBy": "crates/plugins/ui-core/tests/behavior.rs::a_group_prints_its_options_in_field_order_not_the_callers"
+  },
+  {
+    "id": "MO-submit-request",
+    "summary": "The request a submit handler receives prints in ActionSubmitRequest field order (charSet after format), not the order the resolver built it in.",
+    "reason": "packages/plugin/actions/src/submit/perform.ts hands the handler the resolver's request object, which adds charSet last. The submit request dropped its order tracking in 306a293cd to stay a plain type. member-order-allow.json cites this id for plugins/actions-submit.json.",
+    "decided": "2026-10-13 8cf572cf5",
+    "pinnedBy": "crates/plugins/actions/tests/behavior.rs::a_submit_request_prints_in_field_order_not_the_resolvers"
+  },
+  {
+    "id": "PLATFORM-MATH-COS-SIN",
+    "summary": "rotate and rotateAbout take cos and sin from the platform math library, which can round the last bit differently from the JavaScript runtime's Math.cos and Math.sin.",
+    "reason": "Each library is within one ulp of the exact value but they are not bit-identical, and which one Rust links depends on the platform (in the dev container cos(-6) is 0.960170286650366 where the JavaScript runtime gives 0.9601702866503661), so no Rust change can match everywhere short of carrying a ported math library. Recorded in docs/research/conformance-verification.md (seed 31337). The comparison's 1e-12 relative tolerance absorbs the ulp except where an output is a safe integer: rotateAbout about { x: 0, y: -4915517297019373 } by -6 prints -195783644905450 where the TypeScript prints -195783644905449. In epdf-geometry it reaches rotate and rotateAbout only; annotation-core, form-core, selection and epdf-engine call the platform cos and sin too, where no vector has shown a difference. The function suites are outside the ledger's observations, so the pin feeds the recorded input, requires this platform's cosine and sine each within one ulp of the runtime's, and accepts only the TypeScript's arithmetic on them.",
+    "decided": "2026-11-17, after the geometry differential",
+    "pinnedBy": "crates/plugins/geometry/tests/platform_math.rs::rotate_about_differs_only_by_one_ulp_of_the_platform_cos_and_sin",
+    "differentialSkip": [
+      {
+        "fn": "rotate",
+        "when": "Rust's outcome is the TypeScript's with Math.cos and Math.sin answering what the platform math library does, each within one ulp of the runtime"
+      },
+      {
+        "fn": "rotateAbout",
+        "when": "Rust's outcome is the TypeScript's with Math.cos and Math.sin answering what the platform math library does, each within one ulp of the runtime"
+      }
+    ]
+  },
+  {
+    "id": "PLATFORM-MATH-ATAN2",
+    "summary": "angleOf and normalizePdfQuad take atan2 from the platform math library, which can round the last bit differently from the JavaScript runtime's Math.atan2.",
+    "reason": "As for PLATFORM-MATH-COS-SIN: each library is within one ulp but they are not bit-identical, and the Rust side is platform-dependent. normalizePdfQuad sorts the corners of a quad that matches neither corner order by their atan2 about the middle, so one ulp can flip the comparator between near-tied corners and label a degenerate quad differently (docs/research/conformance-verification.md, seed 1: 1.5707963267948968 in the JavaScript runtime, 1.5707963267948966 in the dev container). In epdf-geometry it reaches angleOf and normalizePdfQuad only; annotation-core, selection and epdf-engine call the platform atan2 too, where no vector has shown a difference. The pin feeds the recorded quad, requires this platform's angles each within one ulp of the runtime's, and accepts only the labelling the TypeScript gives from them.",
+    "decided": "2026-11-17, after the geometry differential",
+    "pinnedBy": "crates/plugins/geometry/tests/platform_math.rs::a_degenerate_quad_is_labelled_only_as_one_ulp_of_the_platform_atan2_allows",
+    "differentialSkip": [
+      {
+        "fn": "angleOf",
+        "when": "Rust's outcome is the TypeScript's with Math.atan2 answering what the platform math library does, within one ulp of the runtime"
+      },
+      {
+        "fn": "normalizePdfQuad",
+        "when": "Rust's outcome is the TypeScript's with each distinct Math.atan2 call answering what the platform math library does, within one ulp of the runtime"
+      }
+    ]
+  }
+]

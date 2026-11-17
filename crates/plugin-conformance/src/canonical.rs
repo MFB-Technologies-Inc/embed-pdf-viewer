@@ -12,7 +12,11 @@
 //! integers are exempt: a timestamp off by one millisecond is a real
 //! difference.
 
+use std::collections::BTreeMap;
+
 use serde_json::Value;
+
+use crate::exceptions::Divergence;
 
 pub const RELATIVE_TOLERANCE: f64 = 1e-12;
 
@@ -53,35 +57,108 @@ pub fn member_order_checked() -> bool {
 thread_local! {
     /// The paths whose member order the current case doesn't compare.
     static ALLOWED: std::cell::RefCell<Vec<String>> = const { std::cell::RefCell::new(Vec::new()) };
+    /// The paths of `ALLOWED` at which a member-order difference was skipped.
+    static USED: std::cell::RefCell<Vec<String>> = const { std::cell::RefCell::new(Vec::new()) };
 }
 
+/// One `member-order-allow.json` entry: a trace path, with its array indexes
+/// written `[]`, and the `divergences.json` id that says why its member order
+/// is not compared.
+#[derive(Clone, Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Allowance {
+    pub path: String,
+    pub divergence: String,
+}
+
+/// `member-order-allow.json`: `{ file: { case: [Allowance, ...] } }`.
+pub type AllowList = BTreeMap<String, BTreeMap<String, Vec<Allowance>>>;
+
+/// Parse allow-list text. Every entry must be an [`Allowance`] whose
+/// `divergence` names an entry of `ledger`, and whose path starts at `$`.
+pub fn parse_allow_list(text: &str, ledger: &[Divergence]) -> Result<AllowList, String> {
+    let list: AllowList = serde_json::from_str(text).map_err(|e| e.to_string())?;
+    for (file, cases) in &list {
+        for (case, entries) in cases {
+            for Allowance { path, divergence } in entries {
+                if !path.starts_with('$') {
+                    return Err(format!("{file} / {case} / {path} is not a path from `$`"));
+                }
+                if !ledger.iter().any(|d| d.id == *divergence) {
+                    return Err(format!(
+                        "{file} / {case} / {path} cites {divergence}, which divergences.json \
+                         does not list"
+                    ));
+                }
+            }
+        }
+    }
+    Ok(list)
+}
+
+/// The variable `pnpm run member-order:allow` sets for its cargo runs: a
+/// JSON file `{ file: { case: [path, ...] } }` whose paths replace the
+/// checked-in allow-list for that run. `replay:check` removes it.
+pub const ALLOW_OVERRIDE_VAR: &str = "PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW";
+
 /// The allow-list entries for one case of `file`, from
-/// `member-order-allow.json`: `{ file: { case: [path, ...] } }`, each path
-/// with its array indexes written `[]`.
+/// `member-order-allow.json`, each path with its array indexes written `[]`.
+/// Panics on an invalid list (see [`parse_allow_list`]), checked against the
+/// ledger, even when [`ALLOW_OVERRIDE_VAR`] replaces it.
 pub fn allowed_member_order(file: &str, case: &str) -> Vec<String> {
-    static LIST: std::sync::OnceLock<Value> = std::sync::OnceLock::new();
+    type Paths = BTreeMap<String, BTreeMap<String, Vec<String>>>;
+    static LIST: std::sync::OnceLock<Paths> = std::sync::OnceLock::new();
     let list = LIST.get_or_init(|| {
-        serde_json::from_str(include_str!("../member-order-allow.json"))
-            .expect("member-order-allow.json parses")
+        let checked_in = parse_allow_list(
+            include_str!("../member-order-allow.json"),
+            crate::exceptions::ledger(),
+        )
+        .unwrap_or_else(|why| panic!("member-order-allow.json: {why}"));
+        if let Some(over) = std::env::var_os(ALLOW_OVERRIDE_VAR) {
+            let text = std::fs::read_to_string(&over)
+                .unwrap_or_else(|e| panic!("{ALLOW_OVERRIDE_VAR}={over:?}: {e}"));
+            return serde_json::from_str(&text)
+                .unwrap_or_else(|e| panic!("{ALLOW_OVERRIDE_VAR}={over:?}: {e}"));
+        }
+        checked_in
+            .into_iter()
+            .map(|(file, cases)| {
+                let cases = cases
+                    .into_iter()
+                    .map(|(case, entries)| (case, entries.into_iter().map(|a| a.path).collect()))
+                    .collect();
+                (file, cases)
+            })
+            .collect()
     });
-    list.get(file)
-        .and_then(|cases| cases.get(case))
-        .and_then(Value::as_array)
-        .map(|paths| paths.iter().filter_map(|p| p.as_str().map(str::to_string)).collect())
-        .unwrap_or_default()
+    list.get(file).and_then(|cases| cases.get(case)).cloned().unwrap_or_default()
+}
+
+/// What [`allow_member_order`] returns: the allowance lasts until it drops.
+pub struct MemberOrderAllowance(());
+
+impl MemberOrderAllowance {
+    /// The allowed paths at which the comparison skipped a member-order
+    /// difference so far, each once, in the order first skipped. An allowed
+    /// path missing here had no effect.
+    pub fn used(&self) -> Vec<String> {
+        USED.with(|used| used.borrow().clone())
+    }
+}
+
+impl Drop for MemberOrderAllowance {
+    fn drop(&mut self) {
+        ALLOWED.with(|allowed| allowed.borrow_mut().clear());
+        USED.with(|used| used.borrow_mut().clear());
+    }
 }
 
 /// Skip the member-order comparison at `paths` until the returned guard
 /// drops.
-pub fn allow_member_order(paths: Vec<String>) -> impl Drop {
-    struct Reset;
-    impl Drop for Reset {
-        fn drop(&mut self) {
-            ALLOWED.with(|allowed| allowed.borrow_mut().clear());
-        }
-    }
+pub fn allow_member_order(paths: Vec<String>) -> MemberOrderAllowance {
     ALLOWED.with(|allowed| *allowed.borrow_mut() = paths);
-    Reset
+    USED.with(|used| used.borrow_mut().clear());
+    MemberOrderAllowance(())
 }
 
 /// `path` with every array index written `[]`, as the allow-list names it.
@@ -99,11 +176,22 @@ pub fn path_pattern(path: &str) -> String {
     out
 }
 
+/// Whether the member order at `path` is allowed to differ; called only
+/// where it does, so an allowed path is recorded as used.
 fn order_allowed(path: &str) -> bool {
-    ALLOWED.with(|allowed| {
+    let pattern = ALLOWED.with(|allowed| {
         let allowed = allowed.borrow();
-        !allowed.is_empty() && allowed.contains(&path_pattern(path))
-    })
+        let pattern = path_pattern(path);
+        (!allowed.is_empty() && allowed.contains(&pattern)).then_some(pattern)
+    });
+    let Some(pattern) = pattern else { return false };
+    USED.with(|used| {
+        let mut used = used.borrow_mut();
+        if !used.contains(&pattern) {
+            used.push(pattern);
+        }
+    });
+    true
 }
 
 /// `None` when equal, else the path to the first difference and both sides.
@@ -231,7 +319,8 @@ pub fn key(value: &Value) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{diff_members, numbers_equal};
+    use super::{allow_member_order, diff_members, numbers_equal, parse_allow_list};
+    use crate::exceptions::Divergence;
     use serde_json::json;
 
     #[test]
@@ -249,6 +338,91 @@ mod tests {
             diff_members("$", &a, &c, true, true).as_deref(),
             Some("$: member order: expected [x, y], got [y, x]")
         );
+    }
+
+    /// How every `MO-` ledger entry is applied: an allowed path skips the
+    /// member-order comparison at that object only.
+    #[test]
+    fn an_allowed_path_skips_the_member_order_comparison() {
+        let a = json!({"y": {"p": 1, "q": 2}, "z": [{"p": 1, "q": 2}]});
+        let b = json!({"y": {"q": 2, "p": 1}, "z": [{"q": 2, "p": 1}]});
+        {
+            let allowed = allow_member_order(vec!["$.y".into(), "$.z[]".into()]);
+            assert_eq!(diff_members("$", &a, &b, false, true), None);
+            assert_eq!(allowed.used(), ["$.y", "$.z[]"]);
+        }
+        let allowed = allow_member_order(vec!["$.y".into()]);
+        assert_eq!(
+            diff_members("$", &a, &b, false, true).as_deref(),
+            Some("$.z[0]: member order: expected [p, q], got [q, p]")
+        );
+        assert_eq!(allowed.used(), ["$.y"]);
+    }
+
+    /// An allowed path whose member order agrees is not used: that
+    /// allowance has no effect, and `replay:check` reports it.
+    #[test]
+    fn an_allowed_path_whose_order_agrees_is_not_used() {
+        let a = json!({"y": {"p": 1, "q": 2}});
+        let allowed = allow_member_order(vec!["$.y".into(), "$.gone".into()]);
+        assert_eq!(diff_members("$", &a, &a.clone(), false, true), None);
+        assert!(allowed.used().is_empty());
+        drop(allowed);
+        let b = json!({"y": {"q": 2, "p": 1}});
+        let allowed = allow_member_order(vec!["$.y".into()]);
+        assert_eq!(diff_members("$", &a, &b, false, true), None);
+        assert_eq!(diff_members("$", &a, &b, false, true), None);
+        assert_eq!(allowed.used(), ["$.y"], "each path once");
+    }
+
+    fn ledger_with(id: &str) -> Vec<Divergence> {
+        crate::exceptions::parse(
+            &json!([{
+                "id": id,
+                "summary": "s",
+                "reason": "r",
+                "decided": "d",
+                "pinnedBy": "crates/plugin-conformance/src/canonical.rs::x"
+            }])
+            .to_string(),
+        )
+        .expect("a ledger")
+    }
+
+    #[test]
+    fn an_allowance_cites_a_ledger_id() {
+        let text = json!({"f.json": {"c": [{"path": "$.a", "divergence": "MO-x"}]}}).to_string();
+        let list = parse_allow_list(&text, &ledger_with("MO-x")).expect("a cited id parses");
+        assert_eq!(list["f.json"]["c"][0].path, "$.a");
+        assert_eq!(
+            parse_allow_list(&text, &ledger_with("MO-y")).expect_err("an unknown id"),
+            "f.json / c / $.a cites MO-x, which divergences.json does not list"
+        );
+    }
+
+    #[test]
+    fn a_bare_path_allowance_is_rejected() {
+        let text = json!({"f.json": {"c": ["$.a"]}}).to_string();
+        let why = parse_allow_list(&text, &ledger_with("MO-x")).expect_err("a bare path");
+        assert!(why.contains("expected struct"), "{why}");
+        let text = json!({"f.json": {"c": [{"path": "$.a"}]}}).to_string();
+        let why = parse_allow_list(&text, &ledger_with("MO-x")).expect_err("no divergence");
+        assert!(why.contains("missing field `divergence`"), "{why}");
+        let text = json!({"f.json": {"c": [{"path": "a", "divergence": "MO-x"}]}}).to_string();
+        assert_eq!(
+            parse_allow_list(&text, &ledger_with("MO-x")).expect_err("not a trace path"),
+            "f.json / c / a is not a path from `$`"
+        );
+    }
+
+    #[test]
+    fn the_checked_in_allow_list_cites_the_ledger() {
+        let list = parse_allow_list(
+            include_str!("../member-order-allow.json"),
+            crate::exceptions::ledger(),
+        )
+        .unwrap_or_else(|why| panic!("member-order-allow.json: {why}"));
+        assert!(!list.is_empty());
     }
 
     #[test]

@@ -1141,3 +1141,17 @@ fn a_null_bar_or_panel_is_skipped_where_the_typescript_throws() {
     assert_eq!(from_null.to_json(), js(json!({ "bars": { "main": { "place": "top" } } })));
     assert!(layout_warnings_of(&from_null).is_empty());
 }
+
+/// The pin of `MO-ui-group-options`: `group(id, items, opts)` spreads the
+/// caller's options between `id` and `items`, in the caller's order; Rust
+/// prints them in `GroupOpts` field order.
+#[test]
+fn a_group_prints_its_options_in_field_order_not_the_callers() {
+    let options: epdf_ui_core::GroupOpts =
+        serde_json::from_value(json!({ "role": "tabs", "shed": true, "labelKey": "k" })).unwrap();
+    let group = epdf_ui_core::group("g", vec![], Some(options));
+    assert_eq!(
+        serde_json::to_string(&group).unwrap(),
+        r#"{"id":"g","labelKey":"k","role":"tabs","shed":true,"items":[]}"#
+    );
+}

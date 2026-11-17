@@ -1,0 +1,34 @@
+[
+  {
+    "glob": "crates/plugins/*/src/harness.rs",
+    "reason": "replay adapter: builds the plugin from a vector, not ported code. annotation-core's also prints the TypeScript answers for kind names Object.prototype holds, which is ledger entry ANNOTATION-PROTOTYPE-KIND (divergences.json), not ported behavior"
+  },
+  {
+    "glob": "crates/plugins/*/src/harness/**",
+    "reason": "replay adapter: builds the plugin from a vector, not ported code"
+  },
+  {
+    "glob": "crates/plugins/*/src/ffi.rs",
+    "reason": "C ABI glue over the Rust API; the ffi test targets exercise it, the vectors cannot reach it"
+  },
+  {
+    "glob": "crates/plugins/*/src/ffi/**",
+    "reason": "C ABI glue over the Rust API; the ffi test targets exercise it, the vectors cannot reach it"
+  },
+  {
+    "glob": "crates/plugin-conformance/src/**",
+    "reason": "the replay runner, fake engine and probe plugin: test machinery, not ported code"
+  },
+  {
+    "glob": "crates/conformance-function-server/**",
+    "reason": "the differential runner's stdio server over the function tables: test machinery, not ported code"
+  },
+  {
+    "glob": "crates/pdfium-sys/**",
+    "reason": "generated bindings to the PDFium C ABI, not ported TypeScript"
+  },
+  {
+    "glob": "crates/pdfium/**",
+    "reason": "the safe wrapper over pdfium-sys, not ported TypeScript"
+  }
+]

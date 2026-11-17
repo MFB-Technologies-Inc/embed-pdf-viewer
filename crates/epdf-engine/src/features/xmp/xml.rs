@@ -516,4 +516,12 @@ mod tests {
         assert_eq!(escape_xml_text("a<b>&\r\u{1}"), "a&lt;b&gt;&amp;&#xD;");
         assert_eq!(escape_xml_attribute("\"'\t\n"), "&quot;&apos;&#x9;&#xA;");
     }
+
+    // Kept divergence E3 (crates/plugin-conformance/divergences.json): the
+    // TypeScript makes a lone surrogate, which a Rust string can't hold.
+    #[test]
+    fn a_reference_to_a_lone_surrogate_decodes_to_the_replacement_character() {
+        let doc = parse_xml("<a>&#xD800;&#56319;x</a>").unwrap();
+        assert_eq!(doc.element(0).text, "\u{FFFD}\u{FFFD}x");
+    }
 }

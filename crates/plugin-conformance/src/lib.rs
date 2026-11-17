@@ -17,10 +17,11 @@ pub mod harness;
 /// Moved to the kernel, which prints actions and state with it.
 pub use epdf_kernel::js;
 pub mod probe;
+pub mod receipt;
 pub mod scenario;
 pub mod test_kernel;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 
@@ -50,12 +51,55 @@ pub fn vectors_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tooling/plugin-conformance/vectors")
 }
 
-pub fn load(file: &str) -> Value {
+/// The text of the vector suite `file`, named by its `.json` name relative
+/// to [`vectors_root`] (an absolute path stands as it is): the
+/// zstd-compressed `<file>.zst` decompressed when it exists, else `<file>`.
+/// Panics naming the path when neither reads.
+pub fn read_vector_text(file: &str) -> String {
+    read_vector(file).1
+}
+
+/// [`read_vector_text`], with the path it read.
+fn read_vector(file: &str) -> (PathBuf, String) {
     let path = vectors_root().join(file);
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let mut compressed = path.clone().into_os_string();
+        compressed.push(".zst");
+        let compressed = PathBuf::from(compressed);
+        if compressed.exists() {
+            let text = decompress(&compressed);
+            return (compressed, text);
+        }
+    }
     let text =
         std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+    (path, text)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn decompress(path: &Path) -> String {
+    use std::io::Read;
+    let file = std::fs::File::open(path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+    let mut decoder = ruzstd::decoding::StreamingDecoder::new(std::io::BufReader::new(file))
+        .unwrap_or_else(|e| panic!("decompress {}: {e}", path.display()));
+    let mut text = String::new();
+    decoder
+        .read_to_string(&mut text)
+        .unwrap_or_else(|e| panic!("decompress {}: {e}", path.display()));
+    text
+}
+
+pub fn load(file: &str) -> Value {
+    let (path, text) = read_vector(file);
+    parse_vector(file, &path, &text)
+}
+
+/// The suite in `text`, read from `path` for `file`; panics on bad JSON or
+/// another schema version.
+fn parse_vector(file: &str, path: &Path, text: &str) -> Value {
     let suite: Value =
-        serde_json::from_str(&text).unwrap_or_else(|e| panic!("parse {}: {e}", path.display()));
+        serde_json::from_str(text).unwrap_or_else(|e| panic!("parse {}: {e}", path.display()));
     assert_eq!(suite["schemaVersion"].as_u64(), Some(SCHEMA_VERSION), "{file}: schema version");
     suite
 }
@@ -86,25 +130,128 @@ fn panic_message(panic: Box<dyn std::any::Any + Send>) -> String {
         .unwrap_or_default()
 }
 
+/// Call `fn_name` from `functions` the way a function case runs it: the
+/// outcome a vector records, `{"returned": value}` or `{"threw": error}`.
+/// `Err` when the table has no such function or the call panicked.
+/// `function-server` answers the differential runner through this too.
+pub fn call_function(
+    functions: &FunctionTable,
+    fn_name: &str,
+    args: &[Value],
+) -> Result<Value, String> {
+    let Some((_, f)) = functions.iter().find(|(n, _)| *n == fn_name) else {
+        return Err(format!("no Rust function \"{fn_name}\""));
+    };
+    match std::panic::catch_unwind(|| f(args)) {
+        Ok(Ok(value)) => Ok(serde_json::json!({ "returned": scrub(&value) })),
+        Ok(Err(error)) => Ok(serde_json::json!({ "threw": error.to_canonical() })),
+        Err(panic) => Err(format!("panicked: {}", panic_message(panic))),
+    }
+}
+
 /// Replay every case of a vector file; panic listing every case that
 /// differs. `PLUGIN_CONFORMANCE_ONLY=<substring>` restricts the run to the
-/// cases whose name contains it.
+/// cases whose name contains it. `PLUGIN_CONFORMANCE_RECEIPTS=<dir>` writes
+/// a [`receipt::Receipt`] of the run into `<dir>`.
 pub fn assert_suite(file: &str, registry: &Registry, functions: &FunctionTable) {
-    let suite = load(file);
     let only = std::env::var("PLUGIN_CONFORMANCE_ONLY").ok();
+    let receipts = std::env::var_os("PLUGIN_CONFORMANCE_RECEIPTS").map(PathBuf::from);
+    let (path, text) = read_vector(file);
+    let suite = parse_vector(file, &path, &text);
+    replay_suite(
+        file,
+        &suite,
+        registry,
+        functions,
+        only.as_deref(),
+        receipts.as_deref(),
+        exceptions::ledger(),
+        &canonical::allowed_member_order,
+        Some(receipt::sha256_hex(text.as_bytes())),
+    );
+}
+
+/// [`assert_suite`] on an already loaded `suite`, with the case filter and
+/// the receipt directory passed in rather than read from the environment.
+pub fn assert_loaded_suite(
+    file: &str,
+    suite: &Value,
+    registry: &Registry,
+    functions: &FunctionTable,
+    only: Option<&str>,
+    receipts: Option<&Path>,
+) {
+    assert_suite_with_ledger(
+        file,
+        suite,
+        registry,
+        functions,
+        only,
+        receipts,
+        exceptions::ledger(),
+    );
+}
+
+/// [`assert_loaded_suite`] against `ledger` rather than `divergences.json`.
+fn assert_suite_with_ledger(
+    file: &str,
+    suite: &Value,
+    registry: &Registry,
+    functions: &FunctionTable,
+    only: Option<&str>,
+    receipts: Option<&Path>,
+    ledger: &[exceptions::Divergence],
+) {
+    replay_suite(
+        file,
+        suite,
+        registry,
+        functions,
+        only,
+        receipts,
+        ledger,
+        &canonical::allowed_member_order,
+        None,
+    );
+}
+
+/// The paths of a vector file's case whose member order is not compared
+/// ([`canonical::allowed_member_order`] outside tests).
+pub(crate) type AllowedPaths<'a> = &'a dyn Fn(&str, &str) -> Vec<String>;
+
+/// The replay behind every `assert_*suite`: `ledger` for the divergences,
+/// `allowed` for the member-order allowances, and `vector_sha256`, the hash
+/// of the vector text `suite` was parsed from, for the receipt.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn replay_suite(
+    file: &str,
+    suite: &Value,
+    registry: &Registry,
+    functions: &FunctionTable,
+    only: Option<&str>,
+    receipts: Option<&Path>,
+    ledger: &[exceptions::Divergence],
+    allowed: AllowedPaths,
+    vector_sha256: Option<String>,
+) {
     let verbose = std::env::var("PLUGIN_CONFORMANCE_VERBOSE").is_ok();
     let mut failures = Vec::new();
-    let mut ran = 0;
+    let mut ran = Vec::new();
     let mut exceptions_seen = Vec::new();
+    let mut exceptions_applied = Vec::new();
+    let mut member_order_allowed = Vec::new();
     for case in suite["cases"].as_array().expect("cases") {
         let name = case["name"].as_str().unwrap_or("?");
-        if only.as_deref().is_some_and(|o| !name.contains(o)) {
+        if only.is_some_and(|o| !name.contains(o)) {
             continue;
         }
-        ran += 1;
-        let _allowed = canonical::allow_member_order(canonical::allowed_member_order(file, name));
+        ran.push(name.to_string());
+        let allowance = canonical::allow_member_order(allowed(file, name));
         match suite["kind"].as_str() {
             Some("scenario") => {
+                // A case that ran counts as seen even when it panics, so its
+                // observations are not also reported as never ran.
+                exceptions_seen.push(name.to_string());
                 let run = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                     scenario::run_case(case, registry)
                 }));
@@ -121,14 +268,21 @@ pub fn assert_suite(file: &str, registry: &Registry, functions: &FunctionTable) 
                                 serde_json::to_string_pretty(&run.trace).unwrap()
                             );
                         }
-                        let mut stale = None;
-                        for entry in exceptions::for_case(file, name) {
-                            exceptions_seen.push(name.to_string());
-                            if let Err(why) = exceptions::apply(entry, &expected, &mut run.trace) {
-                                stale = Some(why);
+                        let mut stale = Vec::new();
+                        for (divergence, observation) in
+                            exceptions::observations(ledger, file, name)
+                        {
+                            match exceptions::apply(observation, &expected, &mut run.trace) {
+                                Ok(()) => {
+                                    if !exceptions_applied.contains(&divergence.id) {
+                                        exceptions_applied.push(divergence.id.clone());
+                                    }
+                                }
+                                Err(why) => stale.push(format!("{}: {why}", divergence.id)),
                             }
                         }
-                        if let Some(why) = stale {
+                        if !stale.is_empty() {
+                            let why = stale.join("; ");
                             let diff = compare_trace(&expected, &run.trace)
                                 .unwrap_or_else(|| "no other difference".into());
                             failures.push(format!("{name}: {why}; trace: {diff}"));
@@ -148,43 +302,237 @@ pub fn assert_suite(file: &str, registry: &Registry, functions: &FunctionTable) 
             }
             Some("function") => {
                 let fn_name = case["fn"].as_str().unwrap_or_default();
-                let Some((_, f)) = functions.iter().find(|(n, _)| *n == fn_name) else {
-                    failures.push(format!("{name}: no Rust function \"{fn_name}\""));
-                    continue;
-                };
                 let args = case["args"].as_array().cloned().unwrap_or_default();
-                let run = std::panic::catch_unwind(|| f(&args));
-                let outcome = match run {
-                    Ok(Ok(value)) => serde_json::json!({ "returned": scrub(&value) }),
-                    Ok(Err(error)) => serde_json::json!({ "threw": error.to_canonical() }),
-                    Err(panic) => {
-                        failures.push(format!("{name}: panicked: {}", panic_message(panic)));
-                        continue;
+                match call_function(functions, fn_name, &args) {
+                    Ok(outcome) => {
+                        if let Some(diff) = canonical::diff(&case["outcome"], &outcome) {
+                            failures.push(format!("{name}: {diff}"));
+                        }
                     }
-                };
-                if let Some(diff) = canonical::diff(&case["outcome"], &outcome) {
-                    failures.push(format!("{name}: {diff}"));
+                    Err(why) => failures.push(format!("{name}: {why}")),
                 }
             }
             other => panic!("{file}: unknown suite kind {other:?}"),
         }
+        for path in allowance.used() {
+            member_order_allowed.push(receipt::AllowanceUse { case: name.to_string(), path });
+        }
     }
-    assert!(ran > 0, "{file}: no case ran");
     if only.is_none() {
-        for entry in exceptions::all().iter().filter(|e| e.file == file) {
-            if !exceptions_seen.contains(&entry.case) {
-                failures.push(format!(
-                    "{}: outcome exception is stale: no scenario case of that name ran",
-                    entry.case
-                ));
+        for divergence in ledger {
+            for observation in divergence.observed_by.iter().filter(|o| o.file == file) {
+                if !exceptions_seen.contains(&observation.case) {
+                    failures.push(format!(
+                        "{}: {}: observation is stale: no scenario case of that name ran",
+                        observation.case, divergence.id
+                    ));
+                }
             }
         }
     }
+    if let Some(dir) = receipts {
+        let receipt = receipt::Receipt {
+            file: file.to_string(),
+            run_id: std::env::var(receipt::RUN_ID_VAR).ok(),
+            head: std::env::var(receipt::HEAD_VAR).ok(),
+            dirty: receipt::dirty_from_env(),
+            vector_sha256,
+            only: only.map(str::to_string),
+            ran: ran.clone(),
+            failures: failures.len(),
+            member_order: canonical::member_order_checked(),
+            allow_list_overridden: std::env::var_os(canonical::ALLOW_OVERRIDE_VAR).is_some(),
+            exceptions: exceptions_applied,
+            member_order_allowed,
+        };
+        receipt::write_receipt(dir, &receipt)
+            .unwrap_or_else(|e| panic!("{file}: write receipt into {}: {e}", dir.display()));
+    }
+    let ran = ran.len();
+    assert!(ran > 0, "{file}: no case ran");
     if !failures.is_empty() {
         panic!(
             "{file}: {} of {ran} cases differ from the TypeScript:\n  {}",
             failures.len(),
             failures.join("\n  ")
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A fresh directory under the system temp dir, removed on drop.
+    struct TempDir(PathBuf);
+
+    impl TempDir {
+        fn new(tag: &str) -> Self {
+            let dir = std::env::temp_dir()
+                .join(format!("plugin-conformance-{tag}-{}", std::process::id()));
+            let _ = std::fs::remove_dir_all(&dir);
+            std::fs::create_dir_all(&dir).unwrap();
+            TempDir(dir)
+        }
+    }
+
+    impl Drop for TempDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    /// `tests/data/x.json.zst` is the generator's `writeVector` output
+    /// (level 3) for a 40-case function suite that `describes` "from zst".
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn reads_zst_before_json() {
+        let dir = TempDir::new("reads-zst");
+        let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/data/x.json.zst");
+        std::fs::copy(&fixture, dir.0.join("x.json.zst")).unwrap();
+        std::fs::write(dir.0.join("x.json"), "{\"describes\": \"from json\"}\n").unwrap();
+        let text = read_vector_text(dir.0.join("x.json").to_str().unwrap());
+        let suite: Value = serde_json::from_str(&text).unwrap();
+        assert_eq!(suite["describes"], "from zst");
+        assert_eq!(suite["cases"].as_array().map(Vec::len), Some(40));
+        assert_eq!(suite["cases"][39]["name"], "case-39");
+    }
+
+    /// A `.json.zst` that decompresses to text that is not JSON: the parse
+    /// failure names the compressed file, the one actually read.
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    #[should_panic(expected = "x.json.zst: ")]
+    fn load_names_the_zst_it_failed_to_parse() {
+        let dir = TempDir::new("load-zst-parse");
+        let bytes = ruzstd::encoding::compress_to_vec(
+            &b"not json"[..],
+            ruzstd::encoding::CompressionLevel::Fastest,
+        );
+        std::fs::write(dir.0.join("x.json.zst"), bytes).unwrap();
+        load(dir.0.join("x.json").to_str().unwrap());
+    }
+
+    /// A ledger observation of a case the suite does not have fails the
+    /// unfiltered replay, and only the observation of this file counts.
+    #[test]
+    fn an_observation_whose_case_never_ran_fails() {
+        let suite = serde_json::json!({
+            "schemaVersion": SCHEMA_VERSION,
+            "kind": "function",
+            "cases": [{ "name": "one", "fn": "id", "args": [1], "outcome": { "returned": 1 } }],
+        });
+        let functions: FunctionTable = vec![("id", |args: &[Value]| Ok(args[0].clone()))];
+        let ledger = exceptions::parse(
+            r#"[{ "id": "X1", "summary": "s", "reason": "r", "decided": "d",
+                  "observedBy": [
+                    { "file": "a/b.json", "case": "gone",
+                      "valueAt": { "path": "$[0].x", "expected": 1, "actual": 2 } },
+                    { "file": "other.json", "case": "elsewhere",
+                      "valueAt": { "path": "$[0].x", "expected": 1, "actual": 2 } } ] }]"#,
+        )
+        .unwrap();
+        let run = |only: Option<&str>| {
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                assert_suite_with_ledger(
+                    "a/b.json",
+                    &suite,
+                    &Registry::new(),
+                    &functions,
+                    only,
+                    None,
+                    &ledger,
+                )
+            }))
+        };
+        let message = panic_message(run(None).unwrap_err());
+        assert!(
+            message.contains("gone: X1: observation is stale: no scenario case of that name ran"),
+            "{message}"
+        );
+        assert!(!message.contains("elsewhere"), "{message}");
+        assert!(run(Some("one")).is_ok(), "a filtered run does not check observations");
+    }
+
+    /// Every stale observation of a case is reported, not only the last.
+    #[test]
+    fn every_stale_observation_of_a_case_is_reported() {
+        let suite = serde_json::json!({
+            "schemaVersion": SCHEMA_VERSION,
+            "kind": "scenario",
+            "cases": [{ "name": "one", "plugins": [], "steps": [], "trace": [] }],
+        });
+        let ledger = exceptions::parse(
+            r#"[{ "id": "X1", "summary": "s", "reason": "r", "decided": "d",
+                  "observedBy": [
+                    { "file": "a/b.json", "case": "one",
+                      "valueAt": { "path": "$[0].first", "expected": 1, "actual": 2 } } ] },
+                { "id": "X2", "summary": "s", "reason": "r", "decided": "d",
+                  "observedBy": [
+                    { "file": "a/b.json", "case": "one",
+                      "valueAt": { "path": "$[7].second", "expected": 1, "actual": 2 } } ] }]"#,
+        )
+        .unwrap();
+        let run = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            assert_suite_with_ledger(
+                "a/b.json",
+                &suite,
+                &Registry::new(),
+                &Vec::new(),
+                None,
+                None,
+                &ledger,
+            )
+        }));
+        let message = panic_message(run.unwrap_err());
+        assert!(
+            message.contains("X1: observation is stale") && message.contains("$[0].first"),
+            "{message}"
+        );
+        assert!(
+            message.contains("X2: observation is stale") && message.contains("$[7].second"),
+            "{message}"
+        );
+    }
+
+    /// A scenario case that panics ran: the panic is its failure, and its
+    /// observations are not also reported as stale.
+    #[test]
+    fn a_panicking_case_is_not_reported_as_never_ran() {
+        let suite = serde_json::json!({
+            "schemaVersion": SCHEMA_VERSION,
+            "kind": "scenario",
+            "cases": [{ "name": "one", "plugins": [], "steps": [{ "op": "no-such-op" }], "trace": [] }],
+        });
+        let ledger = exceptions::parse(
+            r#"[{ "id": "X1", "summary": "s", "reason": "r", "decided": "d",
+                  "observedBy": [
+                    { "file": "a/b.json", "case": "one",
+                      "valueAt": { "path": "$[0].x", "expected": 1, "actual": 2 } } ] }]"#,
+        )
+        .unwrap();
+        let run = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            assert_suite_with_ledger(
+                "a/b.json",
+                &suite,
+                &Registry::new(),
+                &Vec::new(),
+                None,
+                None,
+                &ledger,
+            )
+        }));
+        let message = panic_message(run.unwrap_err());
+        assert!(message.contains("one: panicked: "), "{message}");
+        assert!(!message.contains("no scenario case of that name ran"), "{message}");
+        assert!(message.contains("1 of 1 cases differ"), "{message}");
+    }
+
+    #[test]
+    fn reads_json_when_no_zst_exists() {
+        let dir = TempDir::new("reads-json");
+        std::fs::write(dir.0.join("x.json"), "{\"describes\": \"from json\"}\n").unwrap();
+        let text = read_vector_text(dir.0.join("x.json").to_str().unwrap());
+        assert_eq!(text, "{\"describes\": \"from json\"}\n");
     }
 }

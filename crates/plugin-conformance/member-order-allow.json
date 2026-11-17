@@ -1,67 +1,124 @@
 {
   "core/acrojs-host.json": {
     "input-shape": [
-      "$.callbacks[].args[].event"
+      {
+        "path": "$.callbacks[].args[].event",
+        "divergence": "MO-acrojs-event"
+      }
     ]
   },
   "core/annotation-richtext.json": {
     "applyStyleToRange/bold-across-paragraphs": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-richtext-paragraph"
+      }
     ],
     "applyStyleToRange/bold-across-runs": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-richtext-paragraph"
+      }
     ],
     "applyStyleToRange/bold-emoji": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-richtext-paragraph"
+      }
     ],
     "applyStyleToRange/bold-empty": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-richtext-paragraph"
+      }
     ],
     "applyStyleToRange/bold-empty-paragraph": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-richtext-paragraph"
+      }
     ],
     "applyStyleToRange/bold-inside-later-run": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-richtext-paragraph"
+      }
     ],
     "applyStyleToRange/bold-inside-run": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-richtext-paragraph"
+      }
     ],
     "applyStyleToRange/bold-negative-start": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-richtext-paragraph"
+      }
     ],
     "applyStyleToRange/bold-paragraph-boundary": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-richtext-paragraph"
+      }
     ],
     "applyStyleToRange/bold-reversed": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-richtext-paragraph"
+      }
     ],
     "applyStyleToRange/bold-whole": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-richtext-paragraph"
+      }
     ],
     "applyStyleToRange/clear-all": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-richtext-paragraph"
+      }
     ],
     "applyStyleToRange/clear-weight": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-richtext-paragraph"
+      }
     ],
     "applyStyleToRange/merges-into-neighbour": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-richtext-paragraph"
+      }
     ],
     "normalizeRuns/doc": [
-      "$.returned.paragraphs[]"
+      {
+        "path": "$.returned.paragraphs[]",
+        "divergence": "MO-richtext-paragraph"
+      }
     ]
   },
   "core/ui-schema.json": {
     "group-opts-and-items": [
-      "$.returned"
+      {
+        "path": "$.returned",
+        "divergence": "MO-ui-group-options"
+      }
     ],
     "group-opts-no-items": [
-      "$.returned"
+      {
+        "path": "$.returned",
+        "divergence": "MO-ui-group-options"
+      }
     ]
   },
   "plugins/actions-submit.json": {
     "a-handler-beats-the-home": [
-      "$.callbacks[].args[]"
+      {
+        "path": "$.callbacks[].args[]",
+        "divergence": "MO-submit-request"
+      }
     ]
   }
 }

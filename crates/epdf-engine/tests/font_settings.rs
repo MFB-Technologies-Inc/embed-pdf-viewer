@@ -187,6 +187,27 @@ fn italic_is_the_c_apis_number_rather_than_a_bool() {
     });
 }
 
+// Kept divergence FONTS-REGISTER-STRICT (crates/plugin-conformance/divergences.json):
+// the TypeScript passes these to its registrar unchecked.
+#[test]
+fn the_register_wire_refuses_what_the_typescript_passes_unchecked() {
+    on_a_fresh_thread(|| {
+        let mut host = Host::new();
+        let request = |family: &str, weight: serde_json::Value| {
+            json!({ "kind": "fonts.register", "fontKey": "k", "familyName": family,
+                "weight": weight, "italic": 0 })
+        };
+        let no_bytes = host_call(&mut host, request("", json!(0)), vec![]);
+        assert_eq!(no_bytes["error"]["code"], json!("WireFormat"), "{no_bytes}");
+        let fractional = host_call(&mut host, request("", json!(400.5)), vec![roboto()]);
+        assert_eq!(fractional["error"]["code"], json!("WireFormat"), "{fractional}");
+        let boolean = host_call(&mut host, request("", json!(true)), vec![roboto()]);
+        assert_eq!(boolean["error"]["code"], json!("WireFormat"), "{boolean}");
+        let nul = host_call(&mut host, request("Brand\u{0}Sans", json!(0)), vec![roboto()]);
+        assert_eq!(nul["error"]["code"], json!("InvalidArg"), "{nul}");
+    });
+}
+
 #[test]
 fn a_given_family_and_weight_are_the_identity() {
     on_a_fresh_thread(|| {

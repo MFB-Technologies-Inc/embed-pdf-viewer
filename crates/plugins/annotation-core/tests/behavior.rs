@@ -540,3 +540,17 @@ fn a_page_space_fit_rect_destination_without_its_size_is_refused() {
         json!({ "kind": "goto", "destination": { "kind": "xyz", "page": page(), "zoom": 1 } });
     assert!(to_pdf(&obj(json!({ "subtype": "link", "target": xyz }))).is_ok());
 }
+
+/// The pin of `MO-richtext-paragraph`: `normalizeRuns` builds
+/// `{ ...paragraph, runs }`, so the TypeScript keeps every member, `runs`
+/// included, where the caller wrote it (`{"align":"center","runs":[...]}`
+/// here); Rust prints `runs` first, then the other members.
+#[test]
+fn a_normalized_paragraph_prints_runs_before_its_other_members() {
+    let given: Vec<richtext::RichTextParagraph> =
+        serde_json::from_value(json!([{ "align": "center", "runs": [{ "text": "a" }] }])).unwrap();
+    assert_eq!(
+        serde_json::to_string(&richtext::normalize_runs(&given)).unwrap(),
+        r#"[{"runs":[{"text":"a"}],"align":"center"}]"#
+    );
+}

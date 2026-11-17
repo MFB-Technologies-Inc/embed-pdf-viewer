@@ -5,7 +5,7 @@
 (`cargo test -p epdf-acrojs`). One passes through a named exception:
 `dispose-pending-factory` releases the second realm at the repeated `dispose()`, where this crate
 releases it when the queue drains (M13, `22ca510e6`). The entry is in
-`crates/plugin-conformance/outcome-exceptions.json`.
+`crates/plugin-conformance/divergences.json`.
 
 What ports is `host.ts`, `input.ts`, `color.ts`, `actions.ts` and the contract and constants in
 `types.ts`. What doesn't is `prelude.ts`, the JavaScript that runs inside the sandbox. We ship its

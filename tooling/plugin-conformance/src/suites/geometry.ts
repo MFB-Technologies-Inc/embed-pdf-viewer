@@ -378,6 +378,16 @@ const affine: FunctionCase[] = [
   ...cssNumbers.map(([label, n]) =>
     c('matrixToCss', `number-${label}`, [n, -n, n * 3, n / 7, 0, 1]),
   ),
+  // Exactly halfway between two shortest digit strings (1135804785559700.25
+  // and the like): JavaScript prints the even last digit. From the
+  // differential, seeds 1 to 3.
+  c('matrixToCss', 'digit-tie-to-even', [0, 0, 1135804785559700.2, 1e306, 0, 0]),
+  c(
+    'matrixToCss',
+    'digit-tie-to-even-three-places',
+    [1.6977765058241488e307, -18008701800628.812, 1060722759376.7931, 1e306, 0, 0],
+  ),
+  c('matrixToCss', 'digit-tie-to-even-negative', [0, 0, 0, 0, 0, -1582924403967420.2]),
 ];
 
 // ── page matrices and transforms ────────────────────────────────────────────
@@ -664,6 +674,37 @@ const page: FunctionCase[] = [
     probe,
   ),
   c('pageTransform', 'no-probes', { pageSize: letter, rotation: 270, scale: 2, dpr: 3 }),
+  // `cssMatrix` prints a view scale exactly halfway between two shortest
+  // digit strings: JavaScript takes the even last digit. From the
+  // differential, seeds 1 to 3.
+  c(
+    'pageTransform',
+    'css-digit-tie-to-even',
+    {
+      pageSize: { width: 1.1463944840817858e-18, height: 0 },
+      rotation: 1e306,
+      scale: 0,
+      dpr: -527,
+    },
+    { points: [], rects: [] },
+  ),
+  c(
+    'pageTransform',
+    'css-digit-tie-to-even-infinite-render-scale',
+    { pageSize: { width: -6e-323, height: 0 }, rotation: 0, scale: 0, dpr: 7.95014096357817e306 },
+    { points: [], rects: [] },
+  ),
+  c(
+    'pageTransform',
+    'css-digit-tie-to-even-two-places',
+    {
+      pageSize: { width: -4e-323, height: 0 },
+      rotation: 0,
+      scale: 0,
+      dpr: 1.6694721875442381e308,
+    },
+    { points: [], rects: [] },
+  ),
   ...[
     ['letter', { left: 0, bottom: 0, right: 612, top: 792 }],
     ['offset', { left: 12, bottom: -8, right: 312, top: 392 }],
