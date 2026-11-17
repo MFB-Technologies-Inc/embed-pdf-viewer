@@ -65,6 +65,17 @@ pub fn json_number(value: f64) -> Value {
 /// `epdf_geometry::js` carries the same function; that crate depends on this
 /// one, so the kernel keeps its own copy.
 pub fn number_to_string(x: f64) -> String {
+    // An integer below 2^53 in magnitude is exact, and its shortest digits
+    // are its decimal integer: one allocation, no layout.
+    if x.trunc() == x && x.abs() < 9_007_199_254_740_992.0 {
+        return (x as i64).to_string();
+    }
+    shortest_number_to_string(x)
+}
+
+/// [`number_to_string`] for any double: the shortest round-trip digits
+/// laid out as `Number::toString` lays them out.
+fn shortest_number_to_string(x: f64) -> String {
     if x.is_nan() {
         return "NaN".into();
     }
@@ -72,7 +83,7 @@ pub fn number_to_string(x: f64) -> String {
         return "0".into();
     }
     if x < 0.0 {
-        return format!("-{}", number_to_string(-x));
+        return format!("-{}", shortest_number_to_string(-x));
     }
     if x.is_infinite() {
         return "Infinity".into();
