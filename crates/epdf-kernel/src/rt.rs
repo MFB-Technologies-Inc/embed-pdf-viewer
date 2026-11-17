@@ -360,6 +360,9 @@ pub fn sleep(ms: f64) -> Promise<()> {
 enum State<T> {
     Pending(Vec<Waker>),
     Settled(Result<T, Error>),
+    /// Settled while observers waited: they read the one result through
+    /// the `Rc` the state keeps, so it is never copied for them.
+    Shared(Rc<Result<T, Error>>),
 }
 
 struct Inner<T> {
@@ -399,7 +402,7 @@ impl<T> Inner<T> {
     fn abandon(&self) {
         let wakers = match &mut *self.state.borrow_mut() {
             State::Pending(wakers) => std::mem::take(wakers),
-            State::Settled(_) => return,
+            State::Settled(_) | State::Shared(_) => return,
         };
         self.abandoned.set(true);
         let observers = std::mem::take(&mut *self.on_settle.borrow_mut());
@@ -501,15 +504,19 @@ impl<T: Clone + 'static> Promise<T> {
             return;
         }
         let observers = std::mem::take(&mut *self.0.on_settle.borrow_mut());
-        // Without observers the result moves into the state: an engine
-        // answer is a deep `Value`, and nothing else would read the copy.
-        let (stored, observed) =
-            if observers.is_empty() { (result, None) } else { (result.clone(), Some(result)) };
-        let wakers =
-            match std::mem::replace(&mut *self.0.state.borrow_mut(), State::Settled(stored)) {
-                State::Pending(wakers) => wakers,
-                State::Settled(_) => unreachable!(),
-            };
+        // The result moves into the state; observers read it through a
+        // shared `Rc`. An engine answer is a deep `Value` or a long text,
+        // and an observer is often its only reader.
+        let (stored, observed) = if observers.is_empty() {
+            (State::Settled(result), None)
+        } else {
+            let shared = Rc::new(result);
+            (State::Shared(shared.clone()), Some(shared))
+        };
+        let wakers = match std::mem::replace(&mut *self.0.state.borrow_mut(), stored) {
+            State::Pending(wakers) => wakers,
+            State::Settled(_) | State::Shared(_) => unreachable!(),
+        };
         drop(self.0.abort.borrow_mut().take());
         if let Some(result) = observed {
             for observer in observers {
@@ -526,6 +533,7 @@ impl<T: Clone + 'static> Promise<T> {
         match &*self.0.state.borrow() {
             State::Pending(_) => None,
             State::Settled(result) => Some(result.clone()),
+            State::Shared(result) => Some((**result).clone()),
         }
     }
 
@@ -535,7 +543,7 @@ impl<T: Clone + 'static> Promise<T> {
     }
 
     pub fn is_settled(&self) -> bool {
-        matches!(*self.0.state.borrow(), State::Settled(_))
+        !matches!(*self.0.state.borrow(), State::Pending(_))
     }
 
     /// Observe settlement synchronously, at the moment it happens (or now,
@@ -737,14 +745,18 @@ impl<T: Clone + 'static> Future for PromiseFuture<T> {
                     wakers.push(cx.waker().clone());
                     None
                 }
-                State::Settled(_) if !yielded => Some(None),
-                State::Settled(_) if only => {
+                State::Settled(_) | State::Shared(_) if !yielded => Some(None),
+                State::Settled(_) | State::Shared(_) if only => {
                     match std::mem::replace(&mut *state, State::Pending(Vec::new())) {
                         State::Settled(result) => Some(Some(result)),
+                        State::Shared(result) => {
+                            Some(Some(Rc::try_unwrap(result).unwrap_or_else(|r| (*r).clone())))
+                        }
                         State::Pending(_) => unreachable!(),
                     }
                 }
                 State::Settled(result) => Some(Some(result.clone())),
+                State::Shared(result) => Some(Some((**result).clone())),
             }
         };
         match ready {

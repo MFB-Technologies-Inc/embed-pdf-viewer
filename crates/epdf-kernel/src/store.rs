@@ -528,7 +528,7 @@ impl Store {
         {
             return text.clone();
         }
-        let text: Rc<str> = crate::js::to_value(&*core).to_string().into();
+        let text: Rc<str> = crate::js::to_string(&*core).into();
         *self.core_text.borrow_mut() = Some((core, text.clone()));
         text
     }

@@ -27,6 +27,12 @@ pub fn to_value<T: Serialize + ?Sized>(value: &T) -> Value {
         .unwrap_or_else(|e| panic!("[js] serialize: {e}"))
 }
 
+/// [`to_value`] printed: the same bytes, written straight to text
+/// without building the `Value` first.
+pub fn to_string<T: Serialize + ?Sized>(value: &T) -> String {
+    serde_json::to_string(&Js(value)).unwrap_or_else(|e| panic!("[js] serialize: {e}"))
+}
+
 /// The canonical spelling of a number.
 pub fn number(value: f64) -> Value {
     if value.is_nan() {

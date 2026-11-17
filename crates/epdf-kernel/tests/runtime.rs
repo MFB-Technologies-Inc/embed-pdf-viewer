@@ -178,6 +178,70 @@ fn on_settle_observes_synchronously_or_immediately() {
     assert_eq!(seen.borrow().len(), 2);
 }
 
+/// An engine answer settles a promise whose only reader is an observer:
+/// the observer reads the one answer, not a copy kept for nobody.
+#[test]
+fn settle_without_awaiter_moves_result() {
+    rt::reset();
+    let counts = Rc::new(RefCell::new(Vec::new()));
+    let (promise, resolver) = Promise::<Rc<str>>::pending();
+    let c = counts.clone();
+    promise.on_settle(move |r| c.borrow_mut().push(Rc::strong_count(r.as_ref().unwrap())));
+    drop(promise);
+    let answer: Rc<str> = "a long engine answer".into();
+    let probe = Rc::downgrade(&answer);
+    resolver.resolve(answer);
+    assert_eq!(*counts.borrow(), [1], "the observer saw the only copy");
+    assert_eq!(probe.strong_count(), 1, "the settled promise holds the answer once");
+}
+
+/// With an observer, an awaiter and a later reader, each sees the result
+/// settle gave, and an observer runs once the promise reads as settled.
+#[test]
+fn observers_awaiters_and_peek_see_the_same_result() {
+    rt::reset();
+    let seen = log();
+    let (promise, resolver) = Promise::<Rc<str>>::pending();
+    let (s, p) = (seen.clone(), promise.clone());
+    promise.on_settle(move |r| {
+        let settled = p.peek().map(|r| r.unwrap().to_string());
+        s.borrow_mut().push(format!("observer {} {settled:?}", r.as_ref().unwrap()));
+    });
+    let (s, p) = (seen.clone(), promise.clone());
+    rt::spawn(async move {
+        let value = p.await.unwrap();
+        s.borrow_mut().push(format!("awaiter {value}"));
+    });
+    rt::run_until_stalled();
+    resolver.resolve("answer".into());
+    rt::run_until_stalled();
+    assert_eq!(*seen.borrow(), ["observer answer Some(\"answer\")", "awaiter answer"]);
+    assert_eq!(&*promise.peek().unwrap().unwrap(), "answer");
+    let (s, p) = (seen.clone(), promise.clone());
+    p.on_settle(move |r| s.borrow_mut().push(format!("late {}", r.as_ref().unwrap())));
+    assert_eq!(seen.borrow().last().map(String::as_str), Some("late answer"));
+}
+
+/// An awaiter holding the last handle after an observed settle takes the
+/// result without a copy.
+#[test]
+fn the_last_awaiter_after_an_observed_settle_takes_the_result() {
+    rt::reset();
+    let counts = Rc::new(RefCell::new(Vec::new()));
+    let (promise, resolver) = Promise::<Rc<str>>::pending();
+    promise.on_settle(|_| {});
+    let c = counts.clone();
+    rt::spawn(async move {
+        let value = promise.await.unwrap();
+        c.borrow_mut().push(Rc::strong_count(&value));
+    });
+    rt::run_until_stalled();
+    resolver.resolve("answer".into());
+    drop(resolver);
+    rt::run_until_stalled();
+    assert_eq!(*counts.borrow(), [1]);
+}
+
 #[test]
 fn abort_runs_only_on_an_abortable_pending_promise() {
     rt::reset();

@@ -115,7 +115,7 @@ fn refused(error: Error) -> Error {
 }
 
 fn args_json(args: &[Value]) -> String {
-    Value::Array(args.to_vec()).to_string()
+    serde_json::to_string(args).expect("a JSON value prints")
 }
 
 /// Hand every `$host` in `value` back through `release_host`, nested ones
