@@ -593,7 +593,14 @@ fn call_interaction(
     h: &Harness,
 ) -> Outcome {
     let raw = |i: usize| arg(args, i).cloned().unwrap_or(Value::Null);
-    let sample = |i: usize| sample_from_json(&raw(i), Some(h), None);
+    let sample = |i: usize| sample_from_json(arg(args, i).unwrap_or(&Value::Null), Some(h), None);
+    // A vector's sample prints as it was given while it is dispatched; a
+    // live host's handlers get the typed sample, so a live harness keeps
+    // no copy.
+    let dispatching = |i: usize, f: &mut dyn FnMut()| match arg(args, i) {
+        Some(raw) if !h.is_live() => with_vector_sample(raw, f),
+        _ => f(),
+    };
     match method {
         "getSettings" => Outcome::Returned(settings_json(&cap.get_settings())),
         "updateSettings" => {
@@ -670,14 +677,16 @@ fn call_interaction(
             |f| cap.on_cursor_changed(f),
         ),
         "wouldClaimTouch" => match sample(0) {
-            Ok(sample) => Outcome::Returned(json!(
-                with_vector_sample(&raw(0), || cap.would_claim_touch(&sample))
-            )),
+            Ok(sample) => {
+                let mut claims = false;
+                dispatching(0, &mut || claims = cap.would_claim_touch(&sample));
+                Outcome::Returned(json!(claims))
+            }
             Err(error) => Outcome::Threw(error),
         },
         "dispatchPointer" => match sample(0) {
             Ok(sample) => {
-                with_vector_sample(&raw(0), || cap.dispatch_pointer(&sample));
+                dispatching(0, &mut || cap.dispatch_pointer(&sample));
                 Outcome::undefined()
             }
             Err(error) => Outcome::Threw(error),
