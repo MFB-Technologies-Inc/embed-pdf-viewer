@@ -5,6 +5,7 @@ use serde_json::Value;
 
 use crate::engine::facts::FLAG_NAMES;
 use crate::json::{self, Object};
+use crate::kinds::AnnotationKind;
 use crate::record::kind_of;
 use crate::types::{Authority, ModelAnnotation};
 
@@ -82,8 +83,13 @@ fn may_delete(record: &dyn FlagBearer) -> bool {
 
 /// `annotInteractive(record)`: widgets ignore `readOnly`.
 pub fn annot_interactive(record: &dyn FlagBearer) -> bool {
+    annot_interactive_as(record, &kind_of(record.bearer_annotation()))
+}
+
+/// [`annot_interactive`] for a record whose kind is `kind`.
+pub fn annot_interactive_as(record: &dyn FlagBearer, kind: &AnnotationKind) -> bool {
     let annotation = record.bearer_annotation();
-    if kind_of(annotation).caps.ignores_read_only {
+    if kind.caps.ignores_read_only {
         !flag(annotation, "hidden") && !flag(annotation, "noView")
     } else {
         interactive(annotation)

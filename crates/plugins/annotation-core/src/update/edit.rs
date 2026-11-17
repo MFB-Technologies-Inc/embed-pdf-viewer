@@ -25,7 +25,8 @@ use crate::types::{
 use crate::update::changes::sub;
 use crate::update::edit_commit::edit_up;
 use crate::update::page_bound::{
-    clamp_move_delta, clamp_point_to_box, delta_on_page, edit_draft_page, fraction_on_page, view_of,
+    clamp_delta_to, clamp_point_to_box, delta_on_page, edit_draft_page, fraction_on_page,
+    union_bounds_of, view_of,
 };
 
 const RAD2DEG: f64 = 180.0 / std::f64::consts::PI;
@@ -234,26 +235,26 @@ pub(super) fn missing_record() -> crate::error::CoreError {
 /// `editMove(model, input)`. A record the draft names is read only where the
 /// TypeScript reads it: a page-bound fraction with no page box never asks.
 pub fn edit_move(model: &Model, input: &PointerInput) -> CoreResult<Model> {
-    let draft = model.draft().expect("a draft").clone();
-    if let Some(home) = edit_draft_page(model, &draft)
+    let draft = model.draft().expect("a draft");
+    if let Some(home) = edit_draft_page(model, draft)
         && input.page_number() != home.object_number
     {
         return Ok(model.clone());
     }
-    if let Draft::Move(d) = &draft {
+    if let Draft::Move(d) = draft {
         let view = view_of(input);
-        let raw = clamp_move_delta(
-            model,
-            &d.ids,
-            sub(input.point, d.start),
-            input.page_box,
-            view.as_ref(),
-        );
+        // The union does not move with the delta: measured once for both clamps.
+        let union = input.page_box.and_then(|_| union_bounds_of(model, &d.ids, view.as_ref()));
+        let raw = clamp_delta_to(sub(input.point, d.start), input.page_box, union);
+        let moved = |delta, guides| MoveDraft {
+            ids: d.ids.clone(),
+            start: d.start,
+            delta,
+            guides,
+            order: d.order.clone(),
+        };
         if !model.snap.alignment || input.shift {
-            return Ok(with_draft(
-                model,
-                Draft::Move(MoveDraft { delta: raw, guides: Vec::new(), ..d.clone() }),
-            ));
+            return Ok(with_draft(model, Draft::Move(moved(raw, Vec::new()))));
         }
         let scale = input.scale.filter(|s| *s != 0.0 && !s.is_nan()).unwrap_or(1.0);
         let snap = compute_move_snap(
@@ -264,7 +265,7 @@ pub fn edit_move(model: &Model, input: &PointerInput) -> CoreResult<Model> {
             model.snap.alignment_threshold / scale,
             input.page_box,
         );
-        let delta = clamp_move_delta(model, &d.ids, snap.delta, input.page_box, view.as_ref());
+        let delta = clamp_delta_to(snap.delta, input.page_box, union);
         let guides = snap
             .guides
             .into_iter()
@@ -272,11 +273,11 @@ pub fn edit_move(model: &Model, input: &PointerInput) -> CoreResult<Model> {
                 |g| if g.axis == "x" { delta.x == snap.delta.x } else { delta.y == snap.delta.y },
             )
             .collect();
-        return Ok(with_draft(model, Draft::Move(MoveDraft { delta, guides, ..d.clone() })));
+        return Ok(with_draft(model, Draft::Move(moved(delta, guides))));
     }
     let point = clamp_point_to_box(input.point, input.page_box);
     let mut missing = false;
-    let next = match &draft {
+    let next = match draft {
         Draft::Leader(d) => {
             let Some(record) = model.record(&d.id) else { return Err(missing_record()) };
             let geometry = shape_of(&record.annotation);

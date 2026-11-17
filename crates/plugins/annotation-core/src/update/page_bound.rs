@@ -96,7 +96,13 @@ pub fn clamp_move_delta(
     view: Option<&ViewEnv>,
 ) -> Point {
     let Some(page) = page else { return delta };
-    let Some(rect) = union_bounds_of(model, ids, view) else { return delta };
+    clamp_delta_to(delta, Some(page), union_bounds_of(model, ids, view))
+}
+
+/// [`clamp_move_delta`] for a union `rect` already measured: the delta
+/// that keeps `rect` on `page`, or `delta` when either is missing.
+pub fn clamp_delta_to(delta: Point, page: Option<Rect>, rect: Option<Rect>) -> Point {
+    let (Some(page), Some(rect)) = (page, rect) else { return delta };
     Point {
         x: clamp_axis(delta.x, page.x - rect.x, page.x + page.width - (rect.x + rect.width)),
         y: clamp_axis(delta.y, page.y - rect.y, page.y + page.height - (rect.y + rect.height)),

@@ -1,12 +1,16 @@
 //! `snap.ts`: alignment snapping for the move gesture.
 
+use std::cell::RefCell;
+use std::collections::HashSet;
+use std::rc::{Rc, Weak};
+
 use crate::anchor::anchor_mode_of;
 use crate::geometry::selection_quad;
 use crate::hit::is_selectable;
 use crate::js;
 use crate::record::{shape_of, style_of};
 use crate::rect::union_rect;
-use crate::types::{Guide, Id, Model, PageRef, Point, Rect};
+use crate::types::{ById, Guide, Id, Model, PageRef, Point, Rect};
 
 /// A snapped move: the adjusted delta and the guides to draw (`SnapResult`).
 #[derive(Clone, Debug, PartialEq)]
@@ -16,6 +20,92 @@ pub struct SnapResult {
 }
 
 const GUIDE_PAD: f64 = 14.0;
+
+/// A move's snap targets: the moving records' bounds and every other
+/// record's on the page that it snaps to, in record order. `None` when a
+/// moving record is screen-anchored, which turns snapping off.
+type Targets = Option<(Bounds, Vec<Bounds>)>;
+
+/// What [`Targets`] are built from: the records and their order, the page
+/// and the moving ids. The records and order are held weakly: a weak
+/// pointer keeps their allocation, so no other map takes the address, and
+/// a write through `Rc::make_mut` or `Rc::get_mut` cannot change the map
+/// in place while one is held.
+struct TargetKey {
+    by_id: Weak<ById>,
+    order: Weak<Vec<Id>>,
+    page: u64,
+    ids: Vec<Id>,
+}
+
+impl TargetKey {
+    fn of(model: &Model, ids: &[Id], page: &PageRef) -> TargetKey {
+        TargetKey {
+            by_id: Rc::downgrade(&model.by_id),
+            order: Rc::downgrade(&model.order),
+            page: page.object_number.to_bits(),
+            ids: ids.to_vec(),
+        }
+    }
+
+    fn holds(&self, model: &Model, ids: &[Id], page: &PageRef) -> bool {
+        std::ptr::eq(self.by_id.as_ptr(), Rc::as_ptr(&model.by_id))
+            && std::ptr::eq(self.order.as_ptr(), Rc::as_ptr(&model.order))
+            && self.page == page.object_number.to_bits()
+            && self.ids == ids
+    }
+}
+
+thread_local! {
+    /// The last move's targets: a drag's samples share one model's records.
+    static TARGETS: RefCell<Option<(TargetKey, Rc<Targets>)>> = const { RefCell::new(None) };
+    static TARGET_BUILDS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+/// How many times this thread built a move's snap targets. A move drag
+/// builds them once, at its first sample.
+pub fn snap_target_builds() -> usize {
+    TARGET_BUILDS.with(std::cell::Cell::get)
+}
+
+/// The targets for moving `ids` on `page`, kept from the last call when
+/// its records, order, page and ids are the same.
+fn targets_of(model: &Model, ids: &[Id], page: &PageRef) -> Rc<Targets> {
+    let kept = TARGETS.with(|t| {
+        t.borrow().as_ref().filter(|(key, _)| key.holds(model, ids, page)).map(|(_, t)| t.clone())
+    });
+    if let Some(targets) = kept {
+        return targets;
+    }
+    let targets = Rc::new(build_targets(model, ids, page));
+    TARGETS.with(|t| *t.borrow_mut() = Some((TargetKey::of(model, ids, page), targets.clone())));
+    targets
+}
+
+fn build_targets(model: &Model, ids: &[Id], page: &PageRef) -> Targets {
+    TARGET_BUILDS.with(|c| c.set(c.get() + 1));
+    if ids.iter().any(|id| model.record(id).is_some_and(|r| anchor_mode_of(r).is_some())) {
+        return None;
+    }
+    let corners: Vec<Point> = ids.iter().flat_map(|id| annot_quad(model, id)).collect();
+    let base = to_bounds(union_rect(&corners));
+    let moving: HashSet<&str> = ids.iter().map(Id::as_str).collect();
+    let mut targets = Vec::new();
+    for id in model.order.iter() {
+        if moving.contains(id.as_str()) {
+            continue;
+        }
+        let Some(record) = model.record(id) else { continue };
+        if record.page_number() != Some(page.object_number)
+            || !is_selectable(model, id)
+            || anchor_mode_of(record).is_some()
+        {
+            continue;
+        }
+        targets.push(to_bounds(union_rect(&annot_quad(model, id))));
+    }
+    Some((base, targets))
+}
 
 #[derive(Clone, Copy)]
 struct Bounds {
@@ -70,29 +160,16 @@ pub fn compute_move_snap(
     threshold: f64,
     page_box: Option<Rect>,
 ) -> SnapResult {
-    if ids.iter().any(|id| model.record(id).is_some_and(|r| anchor_mode_of(r).is_some())) {
+    let kept = targets_of(model, ids, page);
+    let Some((base, records)) = kept.as_ref() else {
         return SnapResult { delta: raw, guides: Vec::new() };
-    }
-    let corners: Vec<Point> = ids.iter().flat_map(|id| annot_quad(model, id)).collect();
-    let base = to_bounds(union_rect(&corners));
+    };
+    let base = *base;
     let moving_box = shift(&base, raw);
-    let mut targets: Vec<Bounds> = page_box.map(to_bounds).into_iter().collect();
-    for id in model.order.iter() {
-        if ids.contains(id) {
-            continue;
-        }
-        let Some(record) = model.record(id) else { continue };
-        if record.page_number() != Some(page.object_number)
-            || !is_selectable(model, id)
-            || anchor_mode_of(record).is_some()
-        {
-            continue;
-        }
-        targets.push(to_bounds(union_rect(&annot_quad(model, id))));
-    }
+    let page_target = page_box.map(to_bounds);
     let mut bx: Option<(f64, f64, Bounds)> = None;
     let mut by: Option<(f64, f64, Bounds)> = None;
-    for tb in &targets {
+    for tb in page_target.iter().chain(records) {
         for tk in keys_x(tb) {
             for mk in keys_x(&moving_box) {
                 let diff = tk - mk;

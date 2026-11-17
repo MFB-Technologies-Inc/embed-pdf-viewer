@@ -36,8 +36,12 @@ fn create(subtype: &str, phase: &str, x: f64, y: f64) -> Message {
 }
 
 /// The model after a result, as the plugin lays a change set on its records
-/// (`test/support.ts`'s `apply`).
+/// (`test/support.ts`'s `apply`); an empty change keeps them, as the
+/// plugin's `model_after` does.
 fn apply(model: &Model, result: &UpdateResult) -> Model {
+    if result.change.is_empty() {
+        return Model::of(result.session.clone(), model.by_id.clone(), model.order.clone());
+    }
     let mut by_id = (*model.by_id).clone();
     for id in &result.change.drop {
         by_id.shift_remove(id);
@@ -539,4 +543,104 @@ fn a_page_space_fit_rect_destination_without_its_size_is_refused() {
     let xyz =
         json!({ "kind": "goto", "destination": { "kind": "xyz", "page": page(), "zoom": 1 } });
     assert!(to_pdf(&obj(json!({ "subtype": "link", "target": xyz }))).is_ok());
+}
+
+// ── hit inputs read once, snap targets kept for a drag, ink shared ──────────
+
+#[test]
+fn kind_named_returns_static_for_known_kinds() {
+    use epdf_annotation_core::kinds::KIND_NAMES;
+    use std::borrow::Cow;
+    for name in KIND_NAMES {
+        let kind = kind_named(name);
+        assert!(matches!(kind, Cow::Borrowed(_)), "{name} is built on every read");
+        assert_eq!(kind.name, name);
+    }
+    assert!(matches!(kind_named("bogus"), Cow::Owned(_)));
+}
+
+/// Three squares, none selected.
+fn three_squares() -> Model {
+    let draw = |x: f64| {
+        [
+            create("square", "down", x, 100.0),
+            create("square", "move", x + 40.0, 140.0),
+            create("square", "up", x + 40.0, 140.0),
+        ]
+    };
+    let msgs: Vec<Message> = [100.0, 200.0, 300.0].into_iter().flat_map(draw).collect();
+    let m = run(&session_with_numbers(), &msgs);
+    assert_eq!(m.order.len(), 3);
+    Model { selected: Rc::new(Vec::new()), ..m }
+}
+
+#[test]
+fn hit_test_reads_kind_once_per_record() {
+    use epdf_annotation_core::hit::hit_test;
+    use epdf_annotation_core::record::kind_reads;
+    let m = three_squares();
+    let chrome = ChromeGeometry::read(
+        &json!({ "handleTol": 8, "knobTol": 10, "knobOffset": 24, "rotationHandle": true }),
+    )
+    .expect("chrome");
+    let page = PageRef::read(&page()).expect("a page");
+    let before = kind_reads();
+    let target = hit_test(&m, &page, Point { x: 500.0, y: 500.0 }, &chrome, 4.0, None, None, None);
+    assert!(matches!(target, Target::Empty(_)));
+    assert_eq!(kind_reads() - before, 3, "each record's kind is read once");
+}
+
+#[test]
+fn move_drag_reuses_snap_targets() {
+    use epdf_annotation_core::snap::{compute_move_snap, snap_target_builds};
+    let m = three_squares();
+    let id = m.order[0].clone();
+    let moving = run(&m, &[edit("down", 100.5, 120.0)]);
+    let before = snap_target_builds();
+    let first = run(&moving, &[edit("move", 150.5, 121.0)]);
+    assert_eq!(snap_target_builds() - before, 1);
+    let second = run(&first, &[edit("move", 197.5, 122.0)]);
+    assert_eq!(snap_target_builds() - before, 1, "the second sample rebuilt the targets");
+    let Some(Draft::Move(d)) = second.draft() else { panic!("a move") };
+    assert_eq!(d.ids, vec![id.clone()]);
+
+    // A fresh records map is a new key: the targets are built again and
+    // agree with the kept ones.
+    let page = PageRef::read(&page()).expect("a page");
+    let kept = compute_move_snap(&second, &d.ids, &page, d.delta, 6.0, None);
+    let fresh = Model { by_id: Rc::new((*second.by_id).clone()), ..second.clone() };
+    let built = compute_move_snap(&fresh, &d.ids, &page, d.delta, 6.0, None);
+    assert_eq!(snap_target_builds() - before, 2);
+    assert_eq!(kept, built);
+}
+
+#[test]
+fn ink_draft_move_does_not_clone_strokes() {
+    let ink = |phase: &str, x: f64, y: f64| {
+        message(json!({
+            "type": "createPointer", "phase": phase, "subtype": "ink",
+            "in": input(x, y), "deferInkCommit": true
+        }))
+    };
+    let drawing = run(
+        &session_with_numbers(),
+        &[
+            ink("down", 100.0, 100.0),
+            ink("move", 120.0, 110.0),
+            ink("move", 140.0, 130.0),
+            ink("up", 140.0, 130.0),
+            ink("down", 200.0, 100.0),
+        ],
+    );
+    let next = run(&drawing, &[ink("move", 210.0, 120.0)]);
+    let (Some(Draft::CreateInk(a)), Some(Draft::CreateInk(b))) = (drawing.draft(), next.draft())
+    else {
+        panic!("an ink draft")
+    };
+    assert_eq!(b.strokes.len(), 2);
+    assert!(
+        std::ptr::eq(a.strokes[0].as_ptr(), b.strokes[0].as_ptr()),
+        "a finished stroke was copied"
+    );
+    assert_eq!(b.strokes[1].len(), 2);
 }

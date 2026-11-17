@@ -5,7 +5,8 @@
 use crate::flags::FlagBearer;
 use crate::geometry::{geom_bounds, geom_rotate_about, geom_scale_about, geom_translate};
 use crate::js_object;
-use crate::json;
+use crate::json::{self, Object};
+use crate::kinds::AnnotationKind;
 use crate::object::Json;
 use crate::record::kind_of;
 use crate::rect::{normalize_deg, rotate_point};
@@ -22,7 +23,12 @@ js_object! {
 /// `anchorModeOf(record)`: its `/F` flags or'd with its kind's statics.
 pub fn anchor_mode_of(record: &dyn FlagBearer) -> Option<AnchorMode> {
     let annotation = record.bearer_annotation();
-    let caps = kind_of(annotation).caps;
+    anchor_mode_as(annotation, &kind_of(annotation))
+}
+
+/// [`anchor_mode_of`] for an annotation whose kind is `kind`.
+pub fn anchor_mode_as(annotation: &Object, kind: &AnnotationKind) -> Option<AnchorMode> {
+    let caps = &kind.caps;
     let zoom = json::truthy(annotation.get("noZoom")) || caps.no_zoom;
     let upright = json::truthy(annotation.get("noRotate")) || caps.no_rotate;
     (zoom || upright).then(|| AnchorMode { zoom, upright, order: Default::default() })

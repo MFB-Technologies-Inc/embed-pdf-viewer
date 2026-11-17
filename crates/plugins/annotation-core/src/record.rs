@@ -4,6 +4,8 @@
 //! ([`with_values`]), and reads it as the engine writes a create or an edit
 //! ([`annotation_of_new`], [`annotation_after`]).
 
+use std::borrow::Cow;
+
 use epdf_geometry::quad_bounds;
 use serde_json::Value;
 
@@ -49,9 +51,20 @@ pub fn annotation_key(reference: &Value) -> Option<String> {
     }
 }
 
+thread_local! {
+    static KIND_READS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+/// How many times this thread read a record's kind ([`kind_of`]). A hit
+/// test reads each record's kind once.
+pub fn kind_reads() -> usize {
+    KIND_READS.with(std::cell::Cell::get)
+}
+
 /// `kindOf(annotation)`: the kind its subtype, field kind (or the mark in
 /// it) or intent names.
-pub fn kind_of(annotation: &Object) -> AnnotationKind {
+pub fn kind_of(annotation: &Object) -> Cow<'static, AnnotationKind> {
+    KIND_READS.with(|c| c.set(c.get() + 1));
     match json::get_str(annotation, "subtype") {
         Some("widget") => {
             let field_kind = json::get_str(annotation, "fieldKind").unwrap_or("undefined");
