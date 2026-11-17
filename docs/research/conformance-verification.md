@@ -107,9 +107,48 @@ to `rotateAbout({ x: 0, y: 0 }, -1)`. One built with `normalize_pdf_quad` swappi
 corners of a quad named from its shape exited 1 on the third input. The unchanged copy exited 0
 with the same 5 inputs allowed.
 
+## Geometry differential with the platform library's answers, 2026-11-17
+
+The rule above was too loose. It accepted any outcome some combination of one-ulp answers reached,
+whether or not the platform library gave those answers. A `function-server` built at `022009aef`
+from a copy of the Rust sources under `/tmp` in the container, never committed, with
+`normalize_pdf_quad` swapping the first two corners before its sort when
+`ring[0].x == ring[1].x && ring[0].y != ring[1].y && ring[2].x == ring[3].x`, passed
+`--fn rotate,rotateAbout,angleOf,normalizePdfQuad --runs 10000 --seed 90210 --server <binary>`. It
+exited 0 with `4 functions, 40000 inputs, 0 mismatched, 26 allowed by the ledger
+(PLATFORM-MATH-ATAN2 26)`, where the unchanged copy allowed 8.
+
+The rule now takes the platform library's actual answers. `function-server` answers a
+`{"math": "cos" | "sin" | "atan2"}` request with what `f64::cos`, `f64::sin` or `y.atan2(x)` gives,
+as the bits of the double. On a mismatch in a function a platform math entry names,
+`src/differential/platform-math.ts` asks that server for each distinct `Math` call the TypeScript
+made, refuses unless each answer is the runtime's or a double next to it, and runs the TypeScript
+once more with exactly those answers. Rust's outcome must equal that run
+(`tooling/plugin-conformance/README.md`, "The divergence ledger").
+
+The same mutation against `cff7e66f4`, its binary's SHA-256 starting `0fefe990afe6356e`, now fails
+on every seed tried, each with
+`ledger refused: PLATFORM-MATH-ATAN2: Rust's outcome is not the TypeScript's with the platform library's answers`:
+
+| seed | mismatch, shrunk | printed | exit |
+| --- | --- | --- | --- |
+| 90210 | `normalizePdfQuad` on its 13th input, `[{ x: 0, y: 1.0000000000000002e-12 }, { x: 0, y: 0 }, { x: 0, y: 1.5000000000000007e-12 }, { x: 0, y: 1.5000000000000007e-12 }]` | `4 functions, 30013 inputs, 1 mismatched, 0 allowed by the ledger` | 1 |
+| 7 | `normalizePdfQuad` on its 2879th input, `[{ x: 0, y: 1.0000000000000002e-12 }, { x: 0, y: 0 }, { x: 0, y: 1.4989742372373589e-12 }, { x: 0, y: 1.5010257627626423e-12 }]` | `4 functions, 32879 inputs, 1 mismatched, 2 allowed by the ledger (PLATFORM-MATH-ATAN2 2)` | 1 |
+| 424242 | `normalizePdfQuad` on its 3rd input, `[{ x: 0, y: 1.0000000000000002e-12 }, { x: 0, y: 0 }, { x: 0, y: -5.000000000000002e-13 }, { x: 0, y: -5.000000000000002e-13 }]` | `4 functions, 30003 inputs, 1 mismatched, 0 allowed by the ledger` | 1 |
+
+The unchanged copy (`87a2d3dc999c5ad9`) exited 0 on the same three seeds, allowing 8, 5 and 4
+`normalizePdfQuad` inputs (`PLATFORM-MATH-ATAN2`). Seed 90210 allowed 8 under the old rule too: on
+every input the platform's real answers explain, both rules agree. The two earlier mutations still
+fail at seeds 1 and 90210. `rotate_about` turning by `-rad` (`de11a14886087d35`) mismatched on the
+first `rotateAbout` input, shrunk to `rotateAbout({ x: 0, y: 0 }, -1)` and
+`rotateAbout({ x: 0, y: 0 }, -5.000000000000001e-13)`. `rotate` taking `rad.cos() * (1.0 + 4e-16)`
+(`2eba6b635b099787`) mismatched on the 9th and 24th, shrunk to `rotateAbout({ x: 0, y: 1e+306 }, 0)`
+and `rotateAbout({ x: 0, y: -2560.0000000000005 }, 0)`. All four exited 1. The copies were removed
+afterwards.
+
 ## Full suite, 2026-11-17
 
-At `fd1081000`, on a clean tree, in container `embed-pdf` with Node v24.20.0, pnpm
+At `cff7e66f4`, on a clean tree, in container `embed-pdf` with Node v24.20.0, pnpm
 10.34.0, rustc 1.98.0 (88d9e12ae 2026-08-18), cargo 1.98.0 (797e8a9bc 2026-08-05) and
 cargo-llvm-cov 0.9.1. The `pnpm run` commands ran from `tooling/plugin-conformance`, the cargo ones
 from the repository root. `<crates>` is every crate with a file this branch changed under `crates/`
@@ -123,14 +162,27 @@ from the repository root. `<crates>` is every crate with a file this branch chan
 | `cargo fmt <crates> --check` | 0 | nothing |
 | `cargo clippy <crates> --all-targets -- -D warnings` | 0 | no warnings or errors |
 | `pnpm run typecheck` | 0 | |
-| `pnpm run test:harness` | 0 | tests 87, pass 87, fail 0 |
+| `pnpm run test:harness` | 0 | tests 101, pass 101, fail 0 |
 | `pnpm run vectors:check` | 0 | `119 vector files are current, and each is replayed` |
 | `pnpm run coverage:check` | 0 | `coverage is current: statements 72853/77093, branches 14365/15719, 935 lines reached only by snapshot-none cases, 36 ported files no generator loads` |
-| `pnpm run replay:check` | 0 | `cargo: passed`, `checkout: fd10810007008a896584471f6d6d92bd4113fb7f, clean`, `receipts: 119 read`, `119 vector files, 15922 cases, all replayed` |
+| `pnpm run replay:check` | 0 | `cargo: passed`, `checkout: cff7e66f4b470dca359d9f9e930e4496cc856282, clean`, `receipts: 119 read`, `119 vector files, 15922 cases, all replayed` |
 | `pnpm run rust-coverage:check` | 0 | `rust coverage is current: replay reaches 64253/112591 lines; 37035 lines only other tests reach, in 673 files (74 excluded)` |
-| `pnpm run differential -- --crate geometry` | 0 | the four runs in the section above |
+| `pnpm run differential -- --crate geometry` | 0 | the five runs below |
 
-The cargo test run inside `replay:check` printed 162 `test result:` lines, which sum to 869 passed,
-0 failed and 1 ignored. Every receipt carried the run's id, the commit, a clean-tree flag and the
-vector hash, none was written with failures, member order off or the allowlist replaced, and every
-one of the 19 allowlist paths was used.
+| seed | runs | printed | exit |
+| --- | --- | --- | --- |
+| 1 | 10000 | `37 functions, 370000 inputs, 0 mismatched, 5 allowed by the ledger (PLATFORM-MATH-ATAN2 5)` | 0 |
+| 2 | 10000 | `37 functions, 370000 inputs, 0 mismatched, 3 allowed by the ledger (PLATFORM-MATH-ATAN2 3)` | 0 |
+| 3 | 10000 | `37 functions, 370000 inputs, 0 mismatched, 3 allowed by the ledger (PLATFORM-MATH-ATAN2 3)` | 0 |
+| 90210 | 10000 | `37 functions, 370000 inputs, 0 mismatched, 8 allowed by the ledger (PLATFORM-MATH-ATAN2 8)` | 0 |
+| 31337 | 50000 | `37 functions, 1850000 inputs, 0 mismatched, 24 allowed by the ledger (PLATFORM-MATH-COS-SIN 1, PLATFORM-MATH-ATAN2 23)` | 0 |
+
+The allowed counts for seeds 1, 2, 3 and 31337 are the ones the old rule gave at `fd1081000`. A
+10000 run took 31 seconds of wall time (seed 3), the 50000 run 155. The record at `fd1081000` gave
+`test:harness` as 87 tests; that suite had 94 there, and has 101 now with the platform math and
+ledger-skip tests this change adds.
+
+The cargo test run inside `replay:check` printed 162 `test result:` lines, which sum to 872 passed,
+0 failed and 1 ignored. `replay:check` exits 0 only when every receipt carried the run's id, the
+commit, a clean-tree flag and the vector hash, none was written with failures, member order off or
+the allowlist replaced, and every one of the 19 paths in `member-order-allow.json` was used.
