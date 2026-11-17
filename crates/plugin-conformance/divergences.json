@@ -369,8 +369,8 @@
   },
   {
     "id": "MO-richtext-paragraph",
-    "summary": "A paragraph normalizeRuns returns prints runs before its other members; the TypeScript prints the caller's members first and runs last.",
-    "reason": "packages/core/annotation/src/richtext.ts normalizeRuns builds { ...paragraph, runs }, keeping the caller's members in the caller's order. RichTextParagraph holds runs as a field and the rest as a flattened map. member-order-allow.json cites this id for core/annotation-richtext.json.",
+    "summary": "A paragraph normalizeRuns returns prints runs before its other members; the TypeScript prints every member, runs included, where the caller wrote it.",
+    "reason": "packages/core/annotation/src/richtext.ts normalizeRuns builds { ...paragraph, runs }; assigning runs to a key the spread already copied keeps that key's place, so the result keeps the caller's member order. RichTextParagraph holds runs as a field and the rest as a flattened map, so Rust prints runs first. The two agree only when the caller wrote runs first. member-order-allow.json cites this id for core/annotation-richtext.json.",
     "decided": "2026-10-13 8cf572cf5",
     "pinnedBy": "crates/plugins/annotation-core/tests/behavior.rs::a_normalized_paragraph_prints_runs_before_its_other_members"
   },

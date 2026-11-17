@@ -542,8 +542,9 @@ fn a_page_space_fit_rect_destination_without_its_size_is_refused() {
 }
 
 /// The pin of `MO-richtext-paragraph`: `normalizeRuns` builds
-/// `{ ...paragraph, runs }`, so the TypeScript keeps the caller's members
-/// first and `runs` last; Rust prints `runs` first, then the other members.
+/// `{ ...paragraph, runs }`, so the TypeScript keeps every member, `runs`
+/// included, where the caller wrote it (`{"align":"center","runs":[...]}`
+/// here); Rust prints `runs` first, then the other members.
 #[test]
 fn a_normalized_paragraph_prints_runs_before_its_other_members() {
     let given: Vec<richtext::RichTextParagraph> =
