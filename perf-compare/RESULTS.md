@@ -3,15 +3,21 @@
 The `research/perf-fixes` tip at `a6d4d5d14` (`perf-fixes-end`) spends 1.468x the main-thread time
 of upstream `main` at `ed064e0c8` (`main-now`), and its timing rows have a median of 1.447x
 (`node scripts/summary.mjs`). It's slower on 53 rows and faster on 4, and its settle median is
-+20.9 ms (-19.5 to +2,574.1 ms). Phase C (`0de4effd9` to `af9ff5d2b`) is the large win: main
-thread 0.826x, 39 rows faster and none slower. Phase D (`0d18fb177`) is faster on 10 rows,
++20.9 ms (-19.5 to +2,574.1 ms). The top of that range is `drawInk / settleMs`, and we think its
+size comes from this run's frame interval: `main`'s median `scroll / frameP50Ms` is 11.3 ms here
+and was 16.7 ms in the runs before, and a `perf-fixes-end` ink move (about 13 ms of main-thread
+JavaScript) fits a 16.7 ms frame and not an 11.1 ms one. At 16.7 ms, `main-now` against
+`phase-d-end`, whose ink moves cost the same, read no difference. That is an inference from
+recorded runs, not an experiment (FINDINGS.md, "Where the port stands"). Phase C (`0de4effd9` to
+`af9ff5d2b`) is the large win: main thread 0.826x, 39 rows faster and none slower. Phase D
+(`0d18fb177`) is faster on 10 rows,
 including `undo` at 0.640x and `typeField` at 0.817x, and slower on one, `open(ebook) / mainJsMs`
 at 1.032x, which no same-build check can confirm yet. Phase E (`a6d4d5d14`) moved no row. This run
 uses the corrected probe (`d3edaa255947`) and done conditions that poll one field or annotation,
 so it replaces the CPU and settle numbers of the 2026-11-16 and 2026-11-17 runs before it and is
-the drift reference for the next. A/A passed 83 of 84 rows. `search / searchMs` failed and reads
-"unreliable" in every pair. FINDINGS.md ("The fix branch under the corrected harness") has the
-per-row numbers.
+the drift reference for the next run at the same frame interval. A/A passed 83 of 84 rows.
+`search / searchMs` failed and reads "unreliable" in every pair. FINDINGS.md ("The fix branch
+under the corrected harness") has the per-row numbers.
 
 # Viewer perf comparison: 2026-11-17T16-59-17-202Z-macmini2020-desktop
 

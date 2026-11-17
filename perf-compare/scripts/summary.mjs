@@ -6,7 +6,7 @@
 // samples.jsonl. Then, for each pair in the report, the verdict counts; the median ratio over
 // three groups of ratio rows, each labelled with its row count: timing rows
 // (open, search and wall times), frame-interval rows (`frameP50Ms`,
-// `frameP95Ms`, which sit at the display's 16.7 ms whatever the arm does) and
+// `frameP95Ms`, which sit near the run's frame interval whatever the arm does) and
 // main-thread rows (`mainJsMs`, `mainTaskMs`); the median difference over the
 // settle rows, which have no ratio; and, unless the pair's first arm is the
 // baseline (`main`), every row that isn't "no detectable difference". Arms

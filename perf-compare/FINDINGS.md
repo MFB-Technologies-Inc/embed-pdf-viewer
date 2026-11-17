@@ -28,8 +28,11 @@ Every CPU row carries the probe's own cost. The probe in those runs (`lib/probe.
 waited, with a `getComputedStyle` walk up each image's ancestors, offscreen images included. That
 work runs on the main thread inside every `mainJsMs` and `mainTaskMs` window. `main`'s
 `scroll / mainJsMs` was 391.5 ms on 2026-10-13 and 616.5 ms on 2026-11-17 (`04-18-50`), the same
-build. How much of that is the probe, the macOS update (Darwin 27.2.0 to 27.3.0) and the rebuilt
-entry wasn't measured. Both arms of a pair pay it, so it works as an addend and pulls every CPU
+build. How much of that is the probe, the macOS update (Darwin 27.2.0 to 27.3.0), the rebuilt
+entry and the frame interval wasn't measured. The interval differed: `main`'s median
+`scroll / frameP50Ms` was 11.0 ms on 2026-10-13 and 16.7 ms in `04-18-50`. The same build reads
+468.2 ms in `2026-11-17T16-59-17-202Z`, at 11.3 ms and under the corrected probe. Both arms of
+a pair pay the probe's cost, so it works as an addend and pulls every CPU
 ratio toward 1.0: a 1.427x gap is wider than printed, and Phase C's 0.835x is a larger saving than
 printed. The addend isn't exactly constant, since it grows with the window, so an arm that takes
 longer also pays a little more probe. `7d9648d6d` skips the style reads for offscreen images and
@@ -51,9 +54,12 @@ ends before the window.
 
 The "median latency row" headlines leave settle rows out. `scripts/summary.mjs` before `703629a7c`
 took the median over the ratio rows that aren't main-thread rows: `open`, `search`, `wallMs` and
-the `frameP50Ms` and `frameP95Ms` rows. Frame intervals sit at the display's 16.7 ms on every arm.
+the `frameP50Ms` and `frameP95Ms` rows. Frame intervals sit near the run's frame interval on every
+arm, 16.7 ms in these three runs and 11.0 to 11.3 ms in `2026-11-17T16-59-17-202Z`, so their
+ratios stay near 1.0.
 Settle rows are differences in ms, with no ratio, so none of them counted. For `main-now` against
-`phase-d-end` the headline is 1.000x (also at the top of `RESULTS.md`). Split by the current
+`phase-d-end` the headline is 1.000x (`RESULTS.md` quoted it until `96fe83aff` republished that
+file from `2026-11-17T16-59-17-202Z`). Split by the current
 script, its timing rows have a median of 1.415x (13 rows), its frame-interval rows 0.999x (6 rows),
 and its settle rows a median of +10.4 ms (21 rows, -46.3 ms to +394.7 ms). The same table has
 seven settle rows slower: `dragAnnot / settleMs` +394.7 ms, `undo / settleMs` +206.9 ms,
@@ -1423,9 +1429,12 @@ measured. `perf-fixes-end` ships a different engine wasm (`172b5a139647`, 14.15 
 phase arms (`2ecd0bd98574`, 14.26 MiB). The kernel is 10.73 MiB on both `phase-d-end` and
 `perf-fixes-end`.
 
-This run is the new drift reference. Its probe hash differs from every earlier run's, so
-`summary.mjs --drift` against `04-18-50` exits 2 ("probe hash 29ce19545e8b -> d3edaa255947"), and
-no row here has a same-build check yet. Medians below come from `node scripts/summary.mjs`, which
+This run is the drift reference for the next run at the same frame interval. Its probe hash differs
+from every earlier run's, and so does its frame interval: `main`'s median `scroll / frameP50Ms` is
+11.3 ms here and 16.7 ms in `04-18-50`, `02-25-30` and `20-20-49`. `summary.mjs --drift` against
+`04-18-50` exits 2 on both ("probe hash 29ce19545e8b -> d3edaa255947; frame interval 16.7 -> 11.3
+ms, more than 1 ms apart"), and no row here has a same-build check yet. A next run at 16.7 ms
+won't compare with this one either. Medians below come from `node scripts/summary.mjs`, which
 now reports timing, frame-interval, main-thread and settle rows apart. `hover` rows end on
 `getHovered()` on every v2 arm and carry "(no done condition on `main`)" against `main`. `undo`
 still has no A/A band, and its gate reference is `main-now`, the first arm in `arms.json` order
@@ -1456,12 +1465,21 @@ The watched rows:
 
 Off the watch list, `dragAnnot` is 0.787x with settle -180.0 ms, `annotateLarge` 0.765x and
 -36.1 ms, `drawInk` 0.733x, `typeField` 0.911x and -22.8 ms, and `undo` 0.744x and -149.9 ms.
-`drawInk / settleMs` shows no difference (+48.6 ms, ±171.2). The -2,824.2 ms recorded for it in
-"Phases C and D" doesn't hold up, but the polling fix explains only part of why. On the same
-builds, `phase-c-base` dropped from 6,971.2 to 5,707.0 ms between `04-18-50` and this run, while
-`phase-c-end` rose from 4,147.0 to 5,755.7 ms, `phase-d-end` from 4,037.8 to 5,662.0 ms, and
-`main-now` fell from 3,940.9 to 3,093.3 ms. So every `drawInk` settle number in this run is
-unconfirmed (see "Where the port stands").
+`drawInk / settleMs` shows no difference here (+48.6 ms, ±171.2), where `04-18-50` recorded
+-2,824.2 ms ("Phases C and D"). We think both are right, each at its own frame interval. Pointer
+input is frame-paced, and the two runs ran at different intervals: 16.7 ms in `04-18-50` and
+11.0 to 11.3 ms here, on every arm. `drawInk` is 180 pointer moves and the ink tool's 800 ms
+grouping, so a move whose handling fits in a frame costs one interval and one that doesn't costs
+two or more. `main` shows the shape: at 3 to 4 ms of main-thread JavaScript a move, it took
+3,884.2 ms in `04-18-50` and 2,907.5 ms here, each 180 frames plus about 875 ms. `phase-c-end`
+spends about 14 ms a move (2,508.5 ms of `mainJsMs` there, 2,541.7 ms here), one frame at 16.7 ms
+and more than one at 11.1 ms. `phase-c-base` spends 19 to 22 ms (4,006.5 and 3,467.1 ms), more
+than a frame at either interval. So at 16.7 ms Phase C took `drawInk` from about two frames a move
+to about one (6,971.2 to 4,147.0 ms), and at 11.1 ms both arms need two or more and the rows meet
+(5,707.0 and 5,755.7 ms). Phase C's `drawInk / mainJsMs` saving holds in both runs (0.733x here).
+This is an inference from recorded rows of two runs that also differ in probe, which is the kind of
+cross-run comparison this file otherwise doesn't count. No run has timed the same arms at both
+intervals under one probe, and we don't know why the Mac mini's interval changed.
 
 #### Phase D (`phase-c-end` to `phase-d-end` 0d18fb177)
 
@@ -1509,14 +1527,22 @@ The largest settle gaps are `dragAnnot` +339.7 ms, `undo` +205.6 ms, `hover` +19
 `typeField` +74.3 ms. Open is about twice as slow to `readyMs` (2.061x on `ebook`, 2.058x on
 `large`).
 
-`drawInk / settleMs` reads +2,574.1 ms (3,093.3 to 5,667.4), and that gap is unconfirmed. It's new
-to this run: in `04-18-50`, `main-now` against `phase-d-end` read +96.8 ms (3,940.9 to 4,037.8, no
-difference). Between the two runs the same `main-now` build got 847.6 ms faster, while
-`phase-c-end` got 1,608.7 ms slower and `phase-d-end` 1,624.2 ms slower (Phase C above). The
-likely cause is the harness, not the port. `00ff9e715` changed `drawInk`'s done condition to a
-`watch`/`read` pair on the page's `annotationCount`, and that value updates through a different
-path on the TypeScript kernel than on the Rust kernel, so the same ink commit can be seen at
-different times. Check that before citing the gap as a port regression.
+`drawInk / settleMs` reads +2,574.1 ms (3,093.3 to 5,667.4). In `04-18-50`, `main-now` against
+`phase-d-end` read +96.8 ms (3,940.9 to 4,037.8, no difference). We think the frame interval
+explains the change (Phase C above). `phase-d-end` and `perf-fixes-end` spend about 13 ms of
+main-thread JavaScript an ink move (2,374.8 and 2,370.9 ms over 180 moves here), which fits a
+16.7 ms frame and not an 11.1 ms one. So they took about one frame a move in `04-18-50` (4,037.8 ms)
+and two to three here (5,662.0 and 5,667.4 ms). `main-now`, at 6 to 7 ms a move, stays near one
+frame at either interval (3,940.9 and 3,093.3 ms). `main`'s `hover / settleMs` fell from 1,323.6
+to 1,086.0 ms between the two runs too, although that flow has no done condition on `main` and
+didn't change. If the inference holds, the +2,574.1 ms is what the port's slower ink handling costs
+at an 11.1 ms frame, and at 16.7 ms it cost nothing detectable: the row measures whether a move
+fits a frame, not the handling itself, and the `drawInk / mainJsMs` row (2.087x) is the steadier
+measure of the port's cost. Like the Phase C reading, this rests on two runs that differ in probe
+as well as interval, not on an experiment. Every settle row of a flow that drives the pointer
+(`hover`, `dragAnnot`, `drawInk`, and the drags of `select`, `selectLarge`, `annotate` and
+`annotateLarge`) is counted in frames this way, so it depends on the interval, and `summary.mjs
+--drift` now refuses two runs whose intervals are more than 1 ms apart.
 
 `main` against `main-now`, for reference: 42 slower (plus 2 `hover` rows with no done condition
 on `main`), 8 faster, 30 no difference. Timing 1.051x, frame interval 1.015x, main thread 1.488x,

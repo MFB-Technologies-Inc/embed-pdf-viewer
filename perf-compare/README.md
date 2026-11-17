@@ -73,8 +73,8 @@ nothing checks it: the gate marks `undo` unchecked for that arm (`unchecked` and
 its `gate.json` entry), prints a `gate:` warning that no comparison happened, and the report
 leaves that arm's `undo` rows out. A run of `main`, `main-aa`, `plugins-base` and `plugins-next`
 is that case, since `plugins-base` (`9d6c2eca1`) builds as viewer API v1 and skips `undo` like
-`main`. Add `main-now` to such a run to get `undo` checked and timed. The report judges `undo`'s rows against the
-3% floor alone, because there's no A/A pair for them.
+`main`. Add `main-now` to such a run to get `undo` checked and timed. The report judges `undo`'s
+rows against the 3% floor alone, because there's no A/A pair for them.
 
 ## The standard run
 
@@ -204,7 +204,8 @@ are v2.
 difference over its settle rows, and, for pairs not against `main`, the rows that aren't "no
 detectable difference". The three ratio groups are timing rows (open, search and wall times),
 frame-interval rows (`frameP50Ms`, `frameP95Ms`) and main-thread rows, each with its row count.
-They're apart because frame intervals sit at the display's 16.7 ms on every arm: mixed in, they
+They're apart because frame intervals sit near the run's frame interval on every arm (16.7 ms or
+11.0 to 11.3 ms on the Mac mini, below), so their ratios stay near 1.0: mixed in, they
 pulled one pair's median to 1.000x while the same table had `dragAnnot` settle 394.7 ms slower.
 Settle rows are differences in ms with no ratio, so they get their own line. Before calling a row a regression, check the same unchanged build in earlier runs: on
 the remote, `annotateLarge` settle for one build moved between 220 and 245 ms from run to run, and
@@ -221,8 +222,9 @@ probe change, can't serve as the earlier run.
 `--drift` also refuses two runs whose frame intervals are more than 1 ms apart, or a run whose
 interval can't be determined. A run's frame interval is the median `scroll / frameP50Ms` of `main`
 in its `samples.jsonl`; `summary.mjs` prints it first and the report's Environment table has it.
-It matters because pointer input is frame-paced: `hover`, `dragAnnot` and `drawInk` take whole
-frames per move, so their settle rows scale with the interval, and an arm whose per-move work fits
+It matters because pointer input is frame-paced: the flows that drive the pointer (`hover`,
+`dragAnnot`, `drawInk`, and the drags of `select` and `annotate`) take whole frames per move, so
+their settle rows scale with the interval, and an arm whose per-move work fits
 one frame at one interval can need two at a shorter one. The Mac mini has run at 16.7 ms
 (`2026-11-16T20-20-49-728Z`, `2026-11-17T02-25-30-951Z`, `2026-11-17T04-18-50-584Z`) and at
 11.0 to 11.3 ms (`2026-10-13T02-28-33-711Z`, `2026-11-17T16-59-17-202Z`), and we don't know why.
@@ -302,8 +304,8 @@ not proof that no future render can run. Sampling visibility performs geometry a
 that instrumentation cost is included in the reported CPU and frame metrics. Since `7d9648d6d` an
 image outside the browser viewport costs one `getBoundingClientRect` and no style reads, and one
 sample reads each shared ancestor's style once.
-`meta.json` records `probeSha256`, so a run's probe version is on record. Published `RESULTS.md`
-predates this correction; its timing numbers have not been regenerated with the corrected probe.
+`meta.json` records `probeSha256`, so a run's probe version is on record. `RESULTS.md` publishes
+`2026-11-17T16-59-17-202Z`, recorded with probe `d3edaa255947`, the version at `7d9648d6d`.
 
 > Note: The `slow` profile throttles the main thread only. Chromium 140 answers
 > `Emulation.setCPUThrottlingRate` on a worker target with "Operation is only supported for pages,
