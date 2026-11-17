@@ -5,6 +5,8 @@
 //! the layout. What this covers is the pipeline that composes them, where the
 //! failures are about budgets, ordering and resumption rather than about text.
 
+mod common;
+
 use epdf_engine::cancel::CancelToken;
 use epdf_engine::error::EngineErrorCode;
 use epdf_engine::features::search::matcher::SearchQuery;
@@ -670,4 +672,145 @@ fn a_negative_page_limit_searches_one_page() {
     .expect("search");
     assert_eq!(slice.pages_searched, 1);
     assert!(slice.next_cursor.is_some());
+}
+
+// ── The page corpus cache and the query compiled once (E5) ─────────────────
+
+/// Every match of `needle` across the whole document, in one slice.
+fn whole_document(needle: &str) -> SearchRequest {
+    SearchRequest {
+        limit: Some(SearchLimit { pages: Some(256.0), matches: Some(1024.0) }),
+        ..request(literal(needle))
+    }
+}
+
+/// Pages with at least one match, in scan order.
+fn matched_pages(matches: &[SearchMatch]) -> Vec<PageObjectNumber> {
+    let mut pages: Vec<PageObjectNumber> = Vec::new();
+    for m in matches {
+        if pages.last() != Some(&m.page) {
+            pages.push(m.page);
+        }
+    }
+    pages
+}
+
+#[test]
+fn repeat_query_loads_no_text_page() {
+    use pdfium::call_count::{self, Call};
+
+    let mut session = report();
+    // A needle no page holds: every page is read for its text and none for
+    // its geometry.
+    call_count::reset();
+    let first = search(&mut session, &whole_document("zqxjv"), &CancelToken::never())
+        .expect("first search");
+    assert!(first.matches.is_empty());
+    assert_eq!(call_count::get(Call::TextLoadPage), 14, "the first query reads every page");
+
+    call_count::reset();
+    let again = search(&mut session, &whole_document("zqxjv"), &CancelToken::never())
+        .expect("repeat search");
+    assert_eq!(again, first);
+    assert_eq!(
+        call_count::get(Call::TextLoadPage),
+        0,
+        "a repeat query at the same mutation sequence read page text again",
+    );
+
+    // A query with hits reads text from the cache too, and loads a text page
+    // only for each matched page's geometry.
+    let found = search(&mut session, &whole_document(RARE), &CancelToken::never())
+        .expect("search with hits");
+    assert!(!found.matches.is_empty());
+    call_count::reset();
+    let repeat = search(&mut session, &whole_document(RARE), &CancelToken::never())
+        .expect("repeat search with hits");
+    assert_eq!(repeat, found);
+    assert_eq!(
+        call_count::get(Call::TextLoadPage),
+        matched_pages(&found.matches).len() as u64,
+        "a repeat query loaded text pages beyond the matched pages' geometry",
+    );
+}
+
+#[test]
+fn query_after_edit_reloads_page() {
+    use pdfium::call_count::{self, Call};
+    use serde_json::{Value, json};
+
+    let mut host = epdf_engine::host::Host::new();
+    let (doc, _) = common::open_fixture(&mut host, test_support::REPORT);
+    let query = |host: &mut epdf_engine::host::Host| -> Value {
+        common::call(
+            host,
+            json!({ "kind": "search.query", "docId": doc,
+                "request": { "text": "the", "limit": { "pages": 256, "matches": 1024 } } }),
+        )
+    };
+    let hits_on = |slice: &Value, page: u64| -> usize {
+        slice["matches"]
+            .as_array()
+            .expect("matches")
+            .iter()
+            .filter(|m| m["page"]["objectNumber"] == page)
+            .count()
+    };
+    let pages = common::call(&mut host, json!({ "kind": "pages.list", "docId": doc }));
+    let second = &pages["pages"][1];
+    let page = second["ref"]["objectNumber"].as_u64().expect("a second page");
+    let size = second["size"].clone();
+
+    let before = query(&mut host);
+    assert!(hits_on(&before, page) > 0, "page 2 has no hits to remove: {before}");
+    call_count::reset();
+    assert_eq!(query(&mut host), before);
+    let cached = call_count::get(Call::TextLoadPage);
+
+    // Redact the whole of page 2, which takes its text out of the content.
+    common::call(
+        &mut host,
+        json!({ "kind": "annotations.create", "opId": "mark", "docId": doc,
+            "page": common::page_ref(page),
+            "draft": { "subtype": "redact", "interiorColor": "#000000",
+                "rect": { "x": 0, "y": 0, "width": size["width"], "height": size["height"] } } }),
+    );
+    common::call(
+        &mut host,
+        json!({ "kind": "redaction.apply", "effect": "contentWrite", "opId": "apply",
+            "docId": doc, "scope": { "pages": [common::page_ref(page)] } }),
+    );
+
+    call_count::reset();
+    let after = query(&mut host);
+    assert!(
+        call_count::get(Call::TextLoadPage) > cached,
+        "the query after the edit read no more text pages than a cached repeat",
+    );
+    assert_eq!(hits_on(&after, page), 0, "the hits still show the redacted text: {after}");
+    let elsewhere =
+        |slice: &Value| slice["matches"].as_array().expect("matches").len() - hits_on(slice, page);
+    assert_eq!(elsewhere(&after), elsewhere(&before), "hits on unedited pages changed");
+}
+
+#[test]
+fn regex_compiled_once_per_query() {
+    use epdf_engine::features::search::build_count;
+
+    let mut session = report();
+    let query = SearchQuery { text: "fig(ure)?".into(), regex: true, ..SearchQuery::default() };
+    build_count::reset();
+    let slice = search(
+        &mut session,
+        &SearchRequest {
+            limit: Some(SearchLimit { pages: Some(256.0), matches: Some(1024.0) }),
+            ..request(query)
+        },
+        &CancelToken::never(),
+    )
+    .expect("search");
+    assert_eq!(slice.pages_searched, 14);
+    assert!(!slice.matches.is_empty());
+    assert_eq!(build_count::validated(), 1, "the pattern was validated more than once");
+    assert_eq!(build_count::compiled(), 1, "the pattern was compiled more than once");
 }

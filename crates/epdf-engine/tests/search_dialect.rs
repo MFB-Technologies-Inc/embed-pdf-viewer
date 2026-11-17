@@ -17,6 +17,7 @@
 
 use std::collections::BTreeMap;
 
+use epdf_engine::features::search::matcher::SearchQuery;
 use epdf_engine::features::search::{match_regex, validate_search_regex};
 use epdf_engine::features::text::TextRange;
 use serde::Deserialize;
@@ -142,6 +143,19 @@ fn the_rust_engine_reproduces_the_javascript_dialect() {
                     case.name
                 );
                 for (text, want) in case.texts.iter().zip(expected) {
+                    let query = SearchQuery {
+                        text: case.pattern.clone(),
+                        regex: true,
+                        match_case: case.match_case,
+                        whole_word: case.whole_word,
+                        ..SearchQuery::default()
+                    };
+                    let compiled = compiled_matches(&query, text);
+                    if compiled.as_ref() != Some(want) {
+                        problems.push(format!(
+                            "on {text:?}: JavaScript {want:?}, the compiled query {compiled:?}"
+                        ));
+                    }
                     match match_regex(text, &case.pattern, case.match_case, case.whole_word) {
                         Err(issue) => problems.push(format!(
                             "validates but will not run: `{}` on {text:?}",
@@ -453,6 +467,22 @@ fn folded_ranges_translate_back_the_same_way() {
     assert!(probes >= 1_000, "only {probes} ranges checked");
 }
 
+/// What a search's compiled query finds in `text` as a cached page corpus,
+/// the path `search.query` takes; `None` when the query will not compile.
+fn compiled_matches(query: &SearchQuery, text: &str) -> Option<Vec<Range>> {
+    use epdf_engine::features::search::corpus::PageCorpus;
+    use epdf_engine::features::search::matcher::CompiledQuery;
+    use epdf_engine::features::text::charmap::PageTextSnapshot;
+
+    let corpus = PageCorpus::new(PageTextSnapshot {
+        text: text.to_owned(),
+        char_count: text.encode_utf16().count() as u32,
+        char_map: Vec::new(),
+    });
+    let compiled = CompiledQuery::new(query).ok()?;
+    Some(compiled.match_corpus(&corpus).into_iter().map(Range::from).collect())
+}
+
 // --- G5: literal search.
 
 #[derive(Debug, Deserialize)]
@@ -504,6 +534,22 @@ fn literal_search_agrees_with_typescript() {
         let haystack = fold_text(&case.haystack, query.fold_options());
         let actual: Vec<Range> =
             match_literal(&haystack, &query).into_iter().map(Range::from).collect();
+        let compiled = compiled_matches(
+            &SearchQuery {
+                text: case.needle.clone(),
+                match_case: case.match_case,
+                match_diacritics: case.match_diacritics,
+                whole_word: case.whole_word,
+                ..SearchQuery::default()
+            },
+            &case.haystack,
+        );
+        if compiled.as_ref() != Some(&case.matches) {
+            failures.push(format!(
+                "{}: the compiled query matched {compiled:?}, TypeScript said {:?}",
+                case.name, case.matches,
+            ));
+        }
         if actual != case.matches {
             failures.push(format!(
                 "{}: matched {:?}, TypeScript said {:?} ({})",

@@ -204,9 +204,15 @@ fn anchor_at_or_before(map: &[CharMapAnchor], boundary: u32) -> CharMapAnchor {
 /// For a dropped character this is the offset of the next real text unit,
 /// which is exactly what half-open slicing needs at either end.
 pub fn boundary_text_offset(snapshot: &PageTextSnapshot, boundary: u32) -> u32 {
+    boundary_text_offset_with_len(snapshot, snapshot.text_len_utf16(), boundary)
+}
+
+/// [`boundary_text_offset`] for a caller that already knows the text's
+/// UTF-16 length.
+fn boundary_text_offset_with_len(snapshot: &PageTextSnapshot, text_len: u32, boundary: u32) -> u32 {
     let b = boundary.min(snapshot.char_count);
     if snapshot.char_map.is_empty() {
-        return b.min(snapshot.text_len_utf16());
+        return b.min(text_len);
     }
     let anchor = anchor_at_or_before(&snapshot.char_map, b);
     anchor.text + (b - anchor.char)
@@ -221,7 +227,19 @@ pub fn char_boundary_at_text_offset(
     offset: u32,
     bias: CharBoundaryBias,
 ) -> u32 {
-    let target = offset.min(snapshot.text_len_utf16());
+    char_boundary_at_text_offset_with_len(snapshot, snapshot.text_len_utf16(), offset, bias)
+}
+
+/// [`char_boundary_at_text_offset`] for a caller that already knows the
+/// text's UTF-16 length, which the search then measures once rather than per
+/// probe.
+fn char_boundary_at_text_offset_with_len(
+    snapshot: &PageTextSnapshot,
+    text_len: u32,
+    offset: u32,
+    bias: CharBoundaryBias,
+) -> u32 {
+    let target = offset.min(text_len);
     let mut lo = 0u32;
     let mut hi = snapshot.char_count;
 
@@ -231,7 +249,7 @@ pub fn char_boundary_at_text_offset(
             // Boundary zero always qualifies.
             while lo < hi {
                 let mid = lo + (hi - lo).div_ceil(2);
-                if boundary_text_offset(snapshot, mid) <= target {
+                if boundary_text_offset_with_len(snapshot, text_len, mid) <= target {
                     lo = mid;
                 } else {
                     hi = mid - 1;
@@ -244,7 +262,7 @@ pub fn char_boundary_at_text_offset(
             // The final boundary always qualifies, since the offset is clamped.
             while lo < hi {
                 let mid = lo + (hi - lo) / 2;
-                if boundary_text_offset(snapshot, mid) >= target {
+                if boundary_text_offset_with_len(snapshot, text_len, mid) >= target {
                     hi = mid;
                 } else {
                     lo = mid + 1;
@@ -276,13 +294,32 @@ pub fn char_range_for_text_offsets(
     start_offset: u32,
     end_offset: u32,
 ) -> CharRange {
+    char_range_for_text_offsets_with_len(
+        snapshot,
+        snapshot.text_len_utf16(),
+        start_offset,
+        end_offset,
+    )
+}
+
+/// [`char_range_for_text_offsets`] for a caller that already knows the text's
+/// UTF-16 length (`text_len`, which must be [`PageTextSnapshot::text_len_utf16`]),
+/// such as a search converting every match on one page.
+pub fn char_range_for_text_offsets_with_len(
+    snapshot: &PageTextSnapshot,
+    text_len: u32,
+    start_offset: u32,
+    end_offset: u32,
+) -> CharRange {
+    let boundary =
+        |offset, bias| char_boundary_at_text_offset_with_len(snapshot, text_len, offset, bias);
     if end_offset <= start_offset {
-        let b = char_boundary_at_text_offset(snapshot, start_offset, CharBoundaryBias::End);
+        let b = boundary(start_offset, CharBoundaryBias::End);
         return CharRange { start: b, end: b };
     }
     CharRange {
-        start: char_boundary_at_text_offset(snapshot, start_offset, CharBoundaryBias::Start),
-        end: char_boundary_at_text_offset(snapshot, end_offset, CharBoundaryBias::End),
+        start: boundary(start_offset, CharBoundaryBias::Start),
+        end: boundary(end_offset, CharBoundaryBias::End),
     }
 }
 

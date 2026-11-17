@@ -126,6 +126,9 @@ struct OpenState {
     /// The document's stamp drawings, by content (`DrawingIndex`): new with
     /// each document it describes.
     drawings: std::cell::RefCell<crate::features::annotation::write::stamp::DrawingIndex>,
+    /// What search has read of this document's pages, at the current
+    /// mutation sequence (`pageCorpusCache`).
+    search_corpus: crate::features::search::corpus::SearchCorpus,
 }
 
 /// One open, locked or closed document.
@@ -429,6 +432,7 @@ impl DocumentSession {
             records: Vec::new(),
             fully_enumerated: false,
             drawings: Default::default(),
+            search_corpus: Default::default(),
         });
         self.authority = authority;
         self.parked_bytes = None;
@@ -520,6 +524,7 @@ impl DocumentSession {
             records: Vec::new(),
             fully_enumerated: false,
             drawings: Default::default(),
+            search_corpus: Default::default(),
         });
         self.authority = authority;
         self.parked_bytes = None;
@@ -740,6 +745,14 @@ impl DocumentSession {
         self.ensure_full_page_registry()
     }
 
+    /// The pages search has read, keyed by object number at the current
+    /// mutation sequence.
+    pub fn search_corpus(
+        &mut self,
+    ) -> Result<&mut crate::features::search::corpus::SearchCorpus, EngineError> {
+        Ok(&mut self.state_mut()?.search_corpus)
+    }
+
     /// A page from the pool, shared with any other holder.
     pub fn acquire_page(
         &self,
@@ -882,6 +895,7 @@ impl DocumentSession {
         state.records.clear();
         state.fully_enumerated = false;
         state.drawings.get_mut().forget();
+        state.search_corpus.clear();
         for pon in previous {
             state.revisions.bump(pon);
         }
