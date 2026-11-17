@@ -272,6 +272,16 @@
       "ref": "research/perf-fixes",
       "sha": "0de4effd922631c607fe44ca352a3aa9b2d52555",
       "recipe": "rust-kernel-lto"
+    },
+    "phase-c-end": {
+      "ref": "research/perf-fixes",
+      "sha": "af9ff5d2b1950fc0940931612d3b2c862448ef2e",
+      "recipe": "rust-kernel"
+    },
+    "phase-d-end": {
+      "ref": "research/perf-fixes",
+      "sha": "0d18fb1776331c12dcf332632f6e4c6d74a876fa",
+      "recipe": "rust-kernel"
     }
   },
   "arms": {
@@ -570,6 +580,21 @@
     },
     "plugins-next-lto": {
       "worktree": "plugins-next-lto",
+      "kernel": "rust",
+      "rustReads": false
+    },
+    "phase-c-base": {
+      "worktree": "plugins-next",
+      "kernel": "rust",
+      "rustReads": false
+    },
+    "phase-c-end": {
+      "worktree": "phase-c-end",
+      "kernel": "rust",
+      "rustReads": false
+    },
+    "phase-d-end": {
+      "worktree": "phase-d-end",
       "kernel": "rust",
       "rustReads": false
     }
@@ -906,6 +931,18 @@
     [
       "plugins-next",
       "plugins-next-lto"
+    ],
+    [
+      "phase-c-base",
+      "phase-c-end"
+    ],
+    [
+      "phase-c-end",
+      "phase-d-end"
+    ],
+    [
+      "main-now",
+      "phase-d-end"
     ]
   ]
 }

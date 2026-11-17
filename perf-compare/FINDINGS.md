@@ -1038,3 +1038,104 @@ JavaScript and -23.4 ms settle. Against `main`, the tip reads 1.115x latency and
 main thread 0.994x (`node scripts/summary.mjs <run> --drift
 results/2026-11-16T20-20-49-728Z-macmini2020-desktop main`). Its settle rows moved by -3.6 to
 +10.7 ms, and no moved row of either pair is within that drift, so none is unconfirmed this time.
+
+### Phases C and D on `research/perf-fixes`
+
+One run measures both phases: `results/2026-11-17T04-18-50-584Z-macmini2020-desktop`, R=10 on the
+Mac mini, 130.1 min, harness `7e527a415` with this commit's `arms.json` uncommitted. A/A 84 of 84,
+all six arms through the gate, 1,180 samples, none failed. The arms, all tagged `arm/<id>` in the
+host repository:
+
+| Arm | Commit | What it is |
+| --- | --- | --- |
+| `main`, `main-aa` | `2516e2786` | A/A pair, viewer API v1 |
+| `main-now` | `ed064e0c8` | upstream TypeScript reference, v2 |
+| `phase-c-base` | `0de4effd9` | the baseline run's `plugins-next`, same worktree and build |
+| `phase-c-end` | `af9ff5d2b` | Phase C: Tasks 6 to 12, 30 and 12a |
+| `phase-d-end` | `0d18fb177` | Phase D: Tasks 13 to 17 |
+
+All three Rust arms run the same engine wasm (`2ecd0bd98574`, fork `17d8073d4`). The kernel wasm
+grew from 10.35 MiB to 10.70 MiB in Phase C and to 10.73 MiB in Phase D (2.44 to 2.50 MiB brotli).
+
+`main-now` held still since the baseline run: same commit, engine wasm and probe, median latency
+1.001x and main thread 0.998x, settle rows -9.0 to +4.6 ms (`node scripts/summary.mjs <run> --drift
+results/2026-11-17T02-25-30-951Z-macmini2020-desktop main-now`). No moved row of any pair falls
+inside that drift, so none is unconfirmed.
+
+`undo` still has no `main` baseline and judges against the 3% floor. Its gate reference is
+`main-now`, because `main-now` is the first arm in `arms.json` order that runs it (`run.mjs` sorts
+`--arms` into that order). `dragAnnot` still drags a stamp, not a highlight. Task 12 (`efac793af`)
+changed the sample a live harness hands interaction handlers: the typed sample, with members in the
+generator's order (`page` last), instead of the host's raw JSON. The handlers read only contract
+members, and every gate answer matched, so the flows measure the same work.
+
+#### Phase C: every watched row is faster, and nothing is slower
+
+`phase-c-base` against `phase-c-end`: 50 rows faster, 37 no difference, none slower. Median latency
+0.987x, median main thread 0.835x. The watched rows:
+
+| Row | `phase-c-base` | `phase-c-end` | Change |
+| --- | --- | --- | --- |
+| `jump / mainJsMs` | 235.6 | 175.1 | 0.743x |
+| `jump / settleMs` | 164.3 | 144.5 | -19.8 ms |
+| `selectLarge / mainJsMs` | 184.2 | 152.1 | 0.826x |
+| `selectLarge / settleMs` | 312.1 | 284.2 | -27.9 ms |
+| `scroll / mainJsMs` | 1,529.5 | 1,225.2 | 0.801x |
+| `scrollMid / mainJsMs` | 1,804.2 | 1,287.2 | 0.713x |
+| `scrollMid / wallMs` | 3,352.3 | 3,063.5 | 0.914x |
+| `zoomLarge / mainJsMs` | 566.1 | 518.7 | 0.916x |
+| `zoomLarge / settleMs` | 372.0 | 345.0 | -27.0 ms |
+| `hover / mainJsMs` | 1,199.9 | 886.6 | 0.739x |
+| `hover / settleMs` | 1,663.6 | 1,347.0 | -316.7 ms |
+| `searchLarge / mainJsMs` | 1,270.6 | 911.0 | 0.717x |
+| `searchLarge / searchMs` | 2,188.8 | 1,924.3 | 0.879x |
+
+The watched rows that didn't move: `scroll / wallMs` (0.983x, ±3.0%), the frame, jank and
+long-task rows of `scroll` and `scrollMid`, `zoomLarge / zoom4SettleMs` (-8.9 ms, ±5.3) and
+`zoomLarge / backTo1SettleMs` (+9.3 ms, ±9.9). The largest moves are off the watch list:
+`drawInk` main-thread JavaScript 0.626x and settle -2,824.2 ms (6,971.2 to 4,147.0), and `undo`
+0.762x and -149.1 ms.
+
+#### Phase D: the form and undo rows moved, `annotateLarge` didn't
+
+`phase-c-end` against `phase-d-end`: 13 rows faster, 74 no difference, none slower. Median latency
+1.002x, median main thread 1.004x, because Phase D touches only the annotation, form and history
+flows. The watched rows:
+
+| Row | `phase-c-end` | `phase-d-end` | Change |
+| --- | --- | --- | --- |
+| `undo / mainJsMs` | 478.9 | 315.0 | 0.658x |
+| `undo / settleMs` | 693.2 | 407.0 | -286.3 ms |
+| `typeField / mainJsMs` | 297.4 | 246.7 | 0.829x |
+| `typeField / settleMs` | 271.4 | 240.1 | -31.3 ms |
+| `dragAnnot / mainJsMs` | 583.2 | 550.1 | 0.943x |
+| `dragAnnot / settleMs` | 870.2 | 843.5 | -26.6 ms |
+| `drawInk / mainJsMs` | 2,508.5 | 2,363.4 | 0.942x |
+| `hover / mainJsMs` | 886.6 | 844.7 | 0.953x |
+
+No difference on `hover / settleMs` (-6.1 ms, ±40.4), `drawInk / settleMs` (-109.2 ms, ±124.4) or
+any `annotateLarge` row: `settleMs` -1.1 ms (±8.2), `mainJsMs` 0.993x (±4.8%), `mainTaskMs` 1.021x
+(±5.1%).
+
+#### Where the fix branch stands against upstream
+
+`main-now` against `phase-d-end`: 54 slower, 31 no difference, 2 faster. Median latency 1.000x,
+median main thread 1.427x. The same pair with the baseline's tip read 63 slower, 1 faster and 23 no
+difference, at 1.065x and 1.817x. That comparison crosses runs, which the report doesn't support,
+but `main-now`'s drift between the two runs is under 0.3% on both medians. The new flows'
+`mainJsMs` against `main-now`, then and now:
+
+| Flow | Baseline tip | `phase-d-end` |
+| --- | --- | --- |
+| `hover` | 2.372x | 1.664x |
+| `dragAnnot` | 2.998x | 2.355x |
+| `drawInk` | 2.984x | 1.766x |
+| `typeField` | 2.271x | 1.772x |
+| `undo` | 4.009x | 2.039x |
+| `scrollMid` | 1.918x | 1.383x |
+| `searchLarge` | 3.508x | 2.533x |
+
+The two faster rows are `searchLarge / searchMs` (0.861x, 2,235.4 to 1,923.6 ms) and
+`zoom / backTo1SettleMs` (-46.3 ms). The widest remaining gaps are `searchLarge / mainTaskMs`
+2.831x, `dragAnnot / mainJsMs` 2.355x, `search / mainJsMs` 2.234x and the `open` main-thread rows
+at 1.850x to 2.061x, with `open(*) / readyMs` at 2.092x and 2.124x.
