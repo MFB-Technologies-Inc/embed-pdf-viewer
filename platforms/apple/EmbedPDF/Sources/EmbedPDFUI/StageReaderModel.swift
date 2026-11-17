@@ -32,16 +32,19 @@ public final class StageReaderModel {
   /// The most pixels one page renders at: 4096 by 4096, 64 MB of RGBA.
   public nonisolated static let maxPagePixels: Double = 4096 * 4096
 
-  /// The scale to render a page at: the stage's `renderScale`, capped so the
-  /// whole page stays within `maxPagePixels`. The reader renders pages whole
-  /// until it draws the tile plane, so past the cap a deep zoom is soft
+  /// The scale to render a page at: the stage's `renderScale` rounded up to
+  /// a width band (``PageRenderResolution/bandedScale(_:pageWidth:)``), so a
+  /// pinch restarts a page's render only when it crosses a band, and capped
+  /// so the whole page stays within `maxPagePixels`. The reader renders pages
+  /// whole until it draws the tile plane, so past the cap a deep zoom is soft
   /// rather than hundreds of megabytes a page. Sizes in page points.
   public nonisolated static func renderScale(
     _ scale: Double, contentWidth: Double, contentHeight: Double
   ) -> Double {
+    let banded = PageRenderResolution.bandedScale(scale, pageWidth: contentWidth)
     let area = contentWidth * contentHeight
-    guard area > 0 else { return scale }
-    return min(scale, (maxPagePixels / area).squareRoot())
+    guard area > 0 else { return banded }
+    return min(banded, (maxPagePixels / area).squareRoot())
   }
 
   public init(stage: StageCapability, render: RenderCapability) {
@@ -74,7 +77,15 @@ public final class StageReaderModel {
 
   private func receiveStage(_ event: StageEvent) async {
     switch event {
-    case .cameraChanged, .motionEnded, .viewportChanged, .zoomChanged, .settingsChanged:
+    case let .cameraChanged(event):
+      // The event carries the camera; only the pages it shows are read back.
+      camera = event.camera
+      do {
+        visiblePages = try await stage.visiblePages()
+      } catch {
+        self.error = error
+      }
+    case .motionEnded, .viewportChanged, .zoomChanged, .settingsChanged:
       await refresh()
     case let .pageChanged(event):
       do {
@@ -139,7 +150,7 @@ public final class StageReaderModel {
     } catch {
       self.error = error
     }
-    await refresh()
+    // The pan's `cameraChanged` event brings the camera and pages back.
   }
 
   private func applyDragEnd(_ velocity: CGSize) async {

@@ -55,6 +55,23 @@ public struct PageRenderResolution: Hashable, Sendable {
     return Self(deviceWidth: width, isFull: true)
   }
 
+  /// `scale` raised so the page's width in device pixels rounds up to a
+  /// multiple of ``deviceWidthStep``.
+  ///
+  /// Scales whose widths fall in one step share a value, so a render keyed on
+  /// it restarts only when the width crosses into another step. The result is
+  /// never below `scale`.
+  ///
+  /// - Parameters:
+  ///   - scale: Device pixels per page point.
+  ///   - pageWidth: The page's width in page points.
+  /// - Returns: The banded scale, or `scale` itself when either value is not positive.
+  public static func bandedScale(_ scale: Double, pageWidth: Double) -> Double {
+    guard scale > 0, pageWidth > 0 else { return scale }
+    let pixels = (scale * pageWidth / deviceWidthStep).rounded(.up) * deviceWidthStep
+    return max(scale, pixels / pageWidth)
+  }
+
   /// `deviceWidth` measured across a page whose displayed width differs from
   /// its unrotated width, for `RenderPageOptions(width:)`, which renders the
   /// unrotated page.

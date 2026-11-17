@@ -75,6 +75,22 @@ struct StageReaderModelTests {
     #expect(model.camera != before)
   }
 
+  /// A drag sample does not read the camera back itself: the stage's camera
+  /// event brings it, with the pages it now shows.
+  @Test func aDragSampleReachesTheModelThroughTheStageEvents() async throws {
+    let (model, task) = try await model()
+    defer { task.cancel() }
+    await model.sizeChanged(CGSize(width: 390, height: 844), displayScale: 3)
+    let before = model.visiblePages
+    await model.dragChanged(translation: CGSize(width: 0, height: -400))
+    let camera = try await model.stage.camera()
+    let pages = try await model.stage.visiblePages()
+    #expect(pages != before)
+    try await expectObserved({ model.camera }, equals: camera) {}
+    try await expectObserved({ model.visiblePages }, equals: pages) {}
+    await model.dragEnded(velocity: .zero)
+  }
+
   @Test func resizingKeepsTheCurrentPage() async throws {
     let (model, task) = try await model()
     defer { task.cancel() }
@@ -122,6 +138,14 @@ struct StageReaderModelTests {
     let capped = StageReaderModel.renderScale(12, contentWidth: 600, contentHeight: 800)
     #expect(capped < 12)
     #expect(600 * capped * 800 * capped <= StageReaderModel.maxPagePixels * 1.000001)
-    expectNoDifference(StageReaderModel.renderScale(2, contentWidth: 600, contentHeight: 800), 2)
+  }
+
+  /// Under the cap the page renders at the stage's scale rounded up to a
+  /// width band, so a pinch within one band keeps the render it has.
+  @Test func theRenderScaleRoundsUpToAWidthBand() {
+    let scale = StageReaderModel.renderScale(2, contentWidth: 600, contentHeight: 800)
+    expectNoDifference(scale, PageRenderResolution.bandedScale(2, pageWidth: 600))
+    expectNoDifference(StageReaderModel.renderScale(2.1, contentWidth: 600, contentHeight: 800), scale)
+    #expect(scale >= 2.1)
   }
 }
