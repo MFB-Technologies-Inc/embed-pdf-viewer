@@ -2,11 +2,14 @@
 //! `PLATFORM-MATH-ATAN2` in `crates/plugin-conformance/divergences.json`.
 //!
 //! Rust's `cos`, `sin` and `atan2` come from the platform math library, so
-//! their last bit depends on the platform. Each test accepts the JavaScript
-//! runtime's recorded answer or a double next to it, and then only the
-//! outcome the TypeScript's own arithmetic gives from such an answer. That
-//! holds on every platform whose library is within one ulp, and fails on a
-//! larger difference or on any change to the arithmetic around the call.
+//! their last bit depends on the platform. Each test holds one recorded
+//! input to the differential's rule: this platform's answers are the
+//! JavaScript runtime's recorded ones or doubles next to them, and the
+//! outcome is the one the TypeScript's arithmetic gives from this platform's
+//! answers. That holds on every platform whose library is within one ulp,
+//! and fails on a larger difference or on a change that alters the outcome
+//! on this input. A change that leaves this input alone can still pass;
+//! the differential (`tooling/plugin-conformance`) is what covers the rest.
 
 use epdf_geometry::*;
 
@@ -28,11 +31,11 @@ fn rotate_about_differs_only_by_one_ulp_of_the_platform_cos_and_sin() {
     let typescript: Mat2D = [COS, SIN, -SIN, COS, -1373471714452105.5, -195783644905449.0];
     let pivot = pt(0.0, -4915517297019373.0);
 
-    let rotation = rotate(-6.0);
-    let (cos, sin) = (rotation[0], rotation[1]);
+    // This platform's answers, called as `rotate` calls them.
+    let (cos, sin) = ((-6.0f64).cos(), (-6.0f64).sin());
     assert!(within_one_ulp(cos, COS), "cos(-6) is {cos:e}, the runtime's {COS:e}");
     assert!(within_one_ulp(sin, SIN), "sin(-6) is {sin:e}, the runtime's {SIN:e}");
-    assert_eq!(rotation, [cos, sin, -sin, cos, 0.0, 0.0]);
+    assert_eq!(rotate(-6.0), [cos, sin, -sin, cos, 0.0, 0.0]);
 
     // The TypeScript's `T(c) · R · T(-c)` for a given cosine and sine. Fed the
     // runtime's, it is the TypeScript's matrix to the bit.
@@ -43,12 +46,8 @@ fn rotate_about_differs_only_by_one_ulp_of_the_platform_cos_and_sin() {
         )
     };
     assert_eq!(about(COS, SIN), typescript);
-    let allowed: Vec<Mat2D> = [COS.next_down(), COS, COS.next_up()]
-        .into_iter()
-        .flat_map(|c| [SIN.next_down(), SIN, SIN.next_up()].map(|s| about(c, s)))
-        .collect();
-    let rust = rotate_about(pivot, -6.0);
-    assert!(allowed.contains(&rust), "{rust:?} is no one-ulp move of {typescript:?}");
+    // Fed this platform's, it is Rust's matrix to the bit.
+    assert_eq!(rotate_about(pivot, -6.0), about(cos, sin));
     // The translation multiplies the cosine by 4.9e15, so the dev container's
     // cosine, one ulp lower, moves the last member by a whole unit, which a
     // comparison of safe integers sees.
@@ -63,23 +62,26 @@ fn a_degenerate_quad_is_labelled_only_as_one_ulp_of_the_platform_atan2_allows() 
     // rounds the second up to 1.5707963267948968, the dev container down.
     // These are recorded answers, not stand-ins for `FRAC_PI_2`.
     #[allow(clippy::approx_constant)]
-    let angles = [
+    let angles: [(f64, f64, f64); 3] = [
         (3.6140106882042333e-20, -0.75, -1.5707963267948966),
         (-1.0842032064612701e-19, 0.25, 1.5707963267948968),
         (3.6140106882042333e-20, 0.25, 1.5707963267948966),
     ];
-    for (dx, dy, typescript) in angles {
-        let rust = angle_of([dx, dy, 0.0, 0.0, 0.0, 0.0]);
+    // This platform's answers, called as the corner sort calls them.
+    let platform = angles.map(|(dx, dy, typescript)| {
+        let rust = dy.atan2(dx);
         assert!(
             within_one_ulp(rust, typescript),
             "atan2({dy:e}, {dx:e}) is {rust:e}, the runtime's {typescript:e}"
         );
-    }
+        rust
+    });
 
-    // The labellings the TypeScript gives when each of those three calls
-    // answers the runtime's value or a double next to it, over all 27 runs:
-    // its own, and the one with the second corner's angle tied with the
-    // corners on the y axis, which the dev container gives.
+    // The TypeScript's sort orders the first corner, at -pi/2, first, then
+    // the two on the y axis, stably, and the second corner after them only
+    // if its angle is larger. The runtime's is, giving its own labelling;
+    // the dev container's is tied, giving the second corner's place before
+    // them. This platform's answers pick one.
     let typescript = Quad {
         upper_left: pt(0.0, 0.0),
         upper_right: pt(0.0, 5e-324),
@@ -91,6 +93,7 @@ fn a_degenerate_quad_is_labelled_only_as_one_ulp_of_the_platform_atan2_allows() 
         lower_right: pt(0.0, -1.0),
         ..typescript
     };
-    let rust = normalize_pdf_quad(quad);
-    assert!(rust == typescript || rust == tied, "{rust:?}");
+    let [_, second, on_axis] = platform;
+    let expected = if second > on_axis { typescript } else { tied };
+    assert_eq!(normalize_pdf_quad(quad), expected);
 }
