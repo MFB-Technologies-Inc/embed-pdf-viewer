@@ -14,7 +14,7 @@ import * as g from '../../../../packages/core/geometry/src/index';
 import { suites } from '../suites/geometry';
 import type { FunctionSuite } from '../vectors';
 import type { CrateTable, SkipPredicate } from '../checks/differential';
-import { withinOneUlp } from './platform-math';
+import { platformMath } from './platform-math';
 
 const MIN_NORMAL = 2.2250738585072014e-308;
 
@@ -175,11 +175,11 @@ export const arbitraries: Record<string, fc.Arbitrary<unknown[]>> = {
 };
 
 /** Ledger skips by `divergences.json` id: each accepts only the outcome the
- *  TypeScript gives when the named `Math` functions answer one ulp off
- *  (`platform-math.ts`). */
+ *  TypeScript gives when the named `Math` functions answer what the platform
+ *  library does, within one ulp of the runtime (`platform-math.ts`). */
 export const skips: Record<string, SkipPredicate> = {
-  'PLATFORM-MATH-COS-SIN': (d) => withinOneUlp(['cos', 'sin'], d.rerun, d.rust),
-  'PLATFORM-MATH-ATAN2': (d) => withinOneUlp(['atan2'], d.rerun, d.rust),
+  'PLATFORM-MATH-COS-SIN': (d) => platformMath(['cos', 'sin'], d),
+  'PLATFORM-MATH-ATAN2': (d) => platformMath(['atan2'], d),
 };
 
 export const table: CrateTable = {

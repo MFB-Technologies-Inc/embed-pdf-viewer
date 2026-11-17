@@ -25,8 +25,10 @@
  * `divergences.json` entry, `{ "fn", "when" }`, with the predicate in
  * `src/differential/<crate>.ts` under the entry's id. The predicate sees the
  * input and both outcomes, so it can accept the difference the entry
- * describes and refuse any other. A skip without a predicate, or a predicate
- * without a skip, fails the run.
+ * describes and refuse any other; it may ask `function-server` what the
+ * platform math library answers (`Difference.math`). A skip without a
+ * predicate, a predicate without a skip, or a skip naming a function no
+ * crate's suites hold fails the run.
  */
 import { spawn, spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -38,6 +40,7 @@ import fc from 'fast-check';
 
 import { diff } from '../canonical';
 import { refuseDirectRun } from '../library-guard';
+import { fromBits, toBits } from '../differential/platform-math';
 import { callFunctionCase, decodePlain, type FunctionSuite } from '../vectors';
 
 refuseDirectRun('src/checks/differential.ts', 'differential');
@@ -48,6 +51,9 @@ const ledgerFile = resolve(repoRoot, 'crates/plugin-conformance/divergences.json
 /** A process that answers `{table, fn, args}` with an outcome. */
 export interface FunctionServer {
   call(table: string, fn: string, args: readonly unknown[]): Promise<unknown>;
+  /** What the platform math library answers to `cos`, `sin` or `atan2` on
+   *  `args`, to the bit; rejects when the server cannot say. */
+  math(name: string, args: readonly number[]): Promise<number>;
   close(): Promise<void>;
 }
 
@@ -61,10 +67,16 @@ export interface Difference {
   readonly rust: unknown;
   /** Calls the TypeScript again on the same input and returns its outcome. */
   readonly rerun: () => unknown;
+  /** `FunctionServer.math` on the server that gave `rust`. */
+  readonly math: (name: string, args: readonly number[]) => Promise<number>;
 }
 
+/** `true` when the difference is the one a ledger entry describes; a
+ *  refusal may say why it is not, for the mismatch report. */
+export type SkipVerdict = boolean | { readonly refused: string };
+
 /** Whether a difference is the one a ledger entry describes. */
-export type SkipPredicate = (difference: Difference) => boolean;
+export type SkipPredicate = (difference: Difference) => SkipVerdict | Promise<SkipVerdict>;
 
 /** What `src/differential/<crate>.ts` exports as `table`. */
 export interface CrateTable {
@@ -94,6 +106,8 @@ export interface Mismatch {
   /** The shrunk arguments, as both sides received them. */
   readonly args: unknown[];
   readonly difference: string;
+  /** Why each ledger skip on `fn` refused the shrunk input, by entry id. */
+  readonly refusals: string[];
   readonly typescript: unknown;
   readonly rust: unknown;
   /** The function case to paste into the suite. */
@@ -138,15 +152,35 @@ function functionsOf(table: CrateTable): Map<string, { fn: (...args: never[]) =>
   return out;
 }
 
-/** The ledger's skips for this table's functions, each with its predicate. */
+/** Every function the suites of every crate in `crates` hold, and `table`'s. */
+async function everyFunction(table: CrateTable): Promise<Set<string>> {
+  const names = new Set(functionsOf(table).keys());
+  for (const load of Object.values(crates)) {
+    for (const name of functionsOf(await load()).keys()) names.add(name);
+  }
+  return names;
+}
+
+/**
+ * The ledger's skips for this table's functions, each with its predicate. A
+ * skip for a function of another crate's table is that run's business; one
+ * naming a function no table in `crates` holds (`known`) can never apply,
+ * so it fails instead of passing unseen.
+ */
 export function resolveSkips(
   table: CrateTable,
   ledger: readonly LedgerEntry[],
+  known: ReadonlySet<string>,
 ): Map<string, { id: string; predicate: SkipPredicate }[]> {
   const names = functionsOf(table);
   const out = new Map<string, { id: string; predicate: SkipPredicate }[]>();
   for (const entry of ledger) {
     for (const skip of entry.differentialSkip ?? []) {
+      if (!known.has(skip.fn)) {
+        throw new Error(
+          `${entry.id}: differentialSkip names ${skip.fn}, which no suite of ${Object.keys(crates).join(', ')} holds`,
+        );
+      }
       if (!names.has(skip.fn)) continue;
       const predicate = table.skips[entry.id];
       if (!predicate) {
@@ -194,7 +228,7 @@ export function literal(value: unknown): string {
 
 export async function runDifferential(options: Options): Promise<Report> {
   const { table, server, runs, seed } = options;
-  const skips = resolveSkips(table, options.ledger);
+  const skips = resolveSkips(table, options.ledger, await everyFunction(table));
   const functions = functionsOf(table);
   const unknown = (options.only ?? []).filter((name) => !functions.has(name));
   if (unknown.length) {
@@ -226,24 +260,35 @@ export async function runDifferential(options: Options): Promise<Report> {
           : diff(outcome, reply);
       return { args, outcome, reply, failed };
     };
-    let shrinking = false;
-    let skipped = 0;
-    const skippedBy: Record<string, number> = {};
-    const property = fc.asyncProperty(arbitrary, async (raw) => {
-      const { args, outcome, reply, failed } = await compare(raw);
-      if (failed === null) return true;
+    /** The first ledger skip that allows the difference, or each one's refusal. */
+    const judge = async (raw: unknown[], args: unknown[], outcome: unknown, reply: unknown) => {
       const difference: Difference = {
         fn: name,
         args: args.map(decodePlain),
         typescript: outcome,
         rust: reply,
         rerun: () => call(raw).outcome,
+        math: (mathName, mathArgs) => server.math(mathName, mathArgs),
       };
-      const skip = (skips.get(name) ?? []).find((s) => s.predicate(difference));
-      if (skip) {
+      const refusals: string[] = [];
+      for (const skip of skips.get(name) ?? []) {
+        const verdict = await skip.predicate(difference);
+        if (verdict === true) return { allowedBy: skip.id, refusals };
+        if (typeof verdict === 'object') refusals.push(`${skip.id}: ${verdict.refused}`);
+      }
+      return { allowedBy: null, refusals };
+    };
+    let shrinking = false;
+    let skipped = 0;
+    const skippedBy: Record<string, number> = {};
+    const property = fc.asyncProperty(arbitrary, async (raw) => {
+      const { args, outcome, reply, failed } = await compare(raw);
+      if (failed === null) return true;
+      const { allowedBy } = await judge(raw, args, outcome, reply);
+      if (allowedBy !== null) {
         if (!shrinking) {
           skipped++;
-          skippedBy[skip.id] = (skippedBy[skip.id] ?? 0) + 1;
+          skippedBy[allowedBy] = (skippedBy[allowedBy] ?? 0) + 1;
         }
         return true;
       }
@@ -261,6 +306,8 @@ export async function runDifferential(options: Options): Promise<Report> {
     // throws here.
     const [raw] = result.counterexample;
     const { args, outcome, reply, failed } = await compare(raw);
+    const { refusals } =
+      failed === null ? { refusals: [] } : await judge(raw, args, outcome, reply);
     const decoded = args.map(decodePlain);
     const printed = `{ name: ${literal(`diff-${name}-${seed}`)}, fn: ${literal(name)}, args: ${literal(decoded)} },`;
     report.mismatches.push({
@@ -268,6 +315,7 @@ export async function runDifferential(options: Options): Promise<Report> {
       file,
       args: decoded,
       difference: failed ?? 'differs only before shrinking',
+      refusals,
       typescript: outcome,
       rust: reply,
       printed,
@@ -298,13 +346,24 @@ export function spawnFunctionServer(binary: string): FunctionServer {
   child.on('error', fail);
   child.on('exit', (code, signal) => fail(new Error(`function-server exited (${signal ?? code})`)));
   const done = new Promise<void>((resolveDone) => child.on('close', () => resolveDone()));
+  const request = (line: unknown): Promise<unknown> => {
+    if (exited) return Promise.reject(exited);
+    return new Promise((resolveCall, reject) => {
+      pending.push({ resolve: resolveCall, reject });
+      child.stdin.write(`${JSON.stringify(line)}\n`);
+    });
+  };
   return {
-    call(tableName, fn, args) {
-      if (exited) return Promise.reject(exited);
-      return new Promise((resolveCall, reject) => {
-        pending.push({ resolve: resolveCall, reject });
-        child.stdin.write(`${JSON.stringify({ table: tableName, fn, args })}\n`);
-      });
+    call: (tableName, fn, args) => request({ table: tableName, fn, args }),
+    async math(name, args) {
+      const reply = (await request({ math: name, args: args.map(toBits) })) as {
+        bits?: unknown;
+        error?: unknown;
+      };
+      if (typeof reply?.bits === 'string') return fromBits(reply.bits);
+      throw new Error(
+        `math ${name}: ${reply?.error === undefined ? JSON.stringify(reply) : String(reply.error)}`,
+      );
     },
     async close() {
       child.stdin.end();
@@ -396,6 +455,7 @@ export async function main() {
   for (const name of report.untested) console.log(`  ${name}: no arbitrary, not run`);
   for (const mismatch of report.mismatches) {
     console.log(`\n${mismatch.fn} (${mismatch.file}): ${mismatch.difference}`);
+    for (const refusal of mismatch.refusals) console.log(`  ledger refused: ${refusal}`);
     console.log(`  TypeScript: ${JSON.stringify(mismatch.typescript)}`);
     console.log(`  Rust:       ${JSON.stringify(mismatch.rust)}`);
     console.log(`  case for the suite:\n  ${mismatch.printed}`);
