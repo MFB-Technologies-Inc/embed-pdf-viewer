@@ -31,25 +31,42 @@ Neither is fixed or in the ledger; both wait on a decision. The printed cases re
 example
 `{ name: 'diff-normalizePdfQuad-1', fn: 'normalizePdfQuad', args: [[{ x: 0, y: -1 }, { x: -1.4456042752816933e-19, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 5e-324 }]] }`.
 
+## Geometry differential, 2026-11-17
+
+The same command and seeds at `5ff124ed9` printed the same inputs and mismatches as the run above,
+and each seed exited 1:
+
+| seed | inputs, 37 functions | mismatched (failing input) | exit |
+| --- | --- | --- | --- |
+| 1 | 349676 | `matrixToCss` (8319), `pageTransform` (262), `normalizePdfQuad` (1095) | 1 |
+| 2 | 350207 | `matrixToCss` (7437), `pageTransform` (2225), `normalizePdfQuad` (545) | 1 |
+| 3 | 346069 | `matrixToCss` (4322), `pageTransform` (96), `normalizePdfQuad` (1651) | 1 |
+
+The two causes are unchanged: the halfway digit rounding of `number_to_string` and the one-ulp
+`atan2` difference. They still wait on a decision.
+
 ## Full suite, 2026-11-17
 
-At `661e13437`, on a clean tree, in container `embed-pdf-conformance` with Node v24.20.0, pnpm
+At `5ff124ed9`, on a clean tree, in container `embed-pdf-conformance` with Node v24.20.0, pnpm
 10.34.0, rustc 1.98.0 (88d9e12ae 2026-08-18), cargo 1.98.0 (797e8a9bc 2026-08-05) and
 cargo-llvm-cov 0.9.1. The `pnpm run` commands ran from `tooling/plugin-conformance`, the cargo ones
-from the repository root, in this order:
+from the repository root. `<crates>` is every crate with a file this branch changed under `crates/`
+(`git diff --name-only 2aaa8f841..HEAD -- crates`): `-p conformance-function-server -p epdf-capi
+-p epdf-engine -p plugin-conformance -p epdf-acrojs -p epdf-plugin-actions -p epdf-plugin-annotation
+-p epdf-annotation-core -p epdf-plugin-selection -p epdf-plugin-stage -p epdf-ui-core`.
 
 | command | exit | printed |
 | --- | --- | --- |
+| `cargo fmt <crates> --check` | 0 | nothing |
+| `cargo clippy <crates> --all-targets -- -D warnings` | 0 | no warnings or errors |
 | `pnpm run typecheck` | 0 | |
-| `pnpm run test:harness` | 0 | tests 82, pass 82, fail 0 |
+| `pnpm run test:harness` | 0 | tests 86, pass 86, fail 0 |
 | `pnpm run vectors:check` | 0 | `119 vector files are current, and each is replayed` |
 | `pnpm run coverage:check` | 0 | `coverage is current: statements 72853/77093, branches 14365/15719, 935 lines reached only by snapshot-none cases, 36 ported files no generator loads` |
-| `pnpm run replay:check` | 0 | `cargo: passed`, `checkout: 661e13437c583b6fc970f37d8a6a0c5228c200f7, clean`, `receipts: 119 read`, `119 vector files, 15916 cases, all replayed` |
+| `pnpm run replay:check` | 0 | `cargo: passed`, `checkout: 5ff124ed97ecdb48b7a9dc957622dbd5946a4547, clean`, `receipts: 119 read`, `119 vector files, 15916 cases, all replayed` |
 | `pnpm run rust-coverage:check` | 0 | `rust coverage is current: replay reaches 64233/112503 lines; 36975 lines only other tests reach, in 673 files (74 excluded)` |
-| `cargo fmt -p plugin-conformance -p conformance-function-server --check` | 0 | nothing |
-| `cargo clippy -p plugin-conformance -p conformance-function-server --all-targets` | 0 | no warnings |
 
-The cargo test run inside `replay:check` printed 161 `test result:` lines, which sum to 862 passed,
+The cargo test run inside `replay:check` printed 161 `test result:` lines, which sum to 863 passed,
 0 failed and 1 ignored. Every receipt carried the run's id, the commit, a clean-tree flag and the
 vector hash, none was written with failures, member order off or the allowlist replaced, and every
 one of the 19 allowlist paths was used.
