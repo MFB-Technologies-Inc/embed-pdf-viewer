@@ -157,8 +157,16 @@ The report compares arms within one run, never a remote run with a local one (se
 
 ## Moving a pin
 
+`scripts/pin.mjs` sets a worktree's `sha` in `arms.json` to the current tip of its `ref`. It takes
+worktree ids, not arm ids, and with no argument it moves all 56 worktrees in the file. We don't move
+the pins that are there: each records what an arm name meant when it was timed, so moving one
+changes what that name means in `FINDINGS.md` and the results, and it moves every arm on that
+worktree too
+(`phase-c-base` builds from the `plugins-next` worktree). Use it to pin a new worktree instead: add
+the entry to `worktrees` with its `ref`, its `recipe` and `"sha": ""`, then
+
 ```sh
-node scripts/pin.mjs plugins   # or impl, main; no argument moves all three
+node scripts/pin.mjs <new-worktree>
 git commit perf-compare/arms.json
 ```
 
@@ -166,9 +174,10 @@ A pinned commit has to exist on one of the checkout's remotes. `materialize.mjs`
 in turn, so a branch pushed only to a private fork works, as long as every machine that runs the
 harness has that remote. Push before pinning.
 
-To see whether a change on a branch helped, pin `plugins-base` to the commit before it and
-`plugins-next` to the commit with it, then time both in one run and read the `plugins-base` vs
-`plugins-next` pair. That pair is the only comparison the report supports.
+To see whether a change on a branch helped, do what "The standard run" describes: add an arm for
+the commit before the change and one for the commit with it, add their pair to `pairs`, and name
+both with the defaults in `--arms`. Then time them in one run and read that pair. It costs about
+21 min of Mac mini time per added arm at R=10.
 
 `report.mjs --against` used to compare two runs. It now exits 2 with
 `cross-run comparison removed`, because the same build's medians spread by a median of 6.3%, and
