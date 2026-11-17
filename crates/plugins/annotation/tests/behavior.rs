@@ -754,3 +754,20 @@ fn appearance_epoch_memoized_per_page_model() {
     assert_eq!(after, epoch, "a selection changes no picture");
     assert!(Rc::ptr_eq(&after, &cap.get_appearance_epoch(&page())));
 }
+
+/// The epoch follows the page's records: a remote delete drops the deleted
+/// record's picture from it, and a remote create adds the new one (at
+/// whatever picture version the create gives it).
+#[test]
+fn appearance_epoch_follows_the_records() {
+    let (kernel, fake) = kernel(vec![square(7, 100.0, 100.0), square(8, 300.0, 300.0)], Vec::new());
+    let cap = annotation(&kernel);
+    assert_eq!(&*cap.get_appearance_epoch(&page()), "obj:7@0|obj:8@0");
+    fake.emit("a", &deleted(vec![square_ref(8)])).expect("the event");
+    rt::run_until_stalled();
+    assert_eq!(&*cap.get_appearance_epoch(&page()), "obj:7@0");
+    fake.emit("a", &created(square(9, 200.0, 200.0))).expect("the event");
+    rt::run_until_stalled();
+    let epoch = cap.get_appearance_epoch(&page());
+    assert!(epoch.starts_with("obj:7@0|obj:9@"), "{epoch}");
+}

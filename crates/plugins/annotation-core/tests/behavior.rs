@@ -614,6 +614,36 @@ fn move_drag_reuses_snap_targets() {
     assert_eq!(kept, built);
 }
 
+/// The snap targets follow the records: a records map or an order that
+/// no longer holds the square the move snapped to answers without it, and
+/// the first model's maps snap to it again.
+#[test]
+fn snap_targets_follow_the_records() {
+    use epdf_annotation_core::snap::compute_move_snap;
+    let m = three_squares();
+    let ids = vec![m.order[0].clone()];
+    let target = m.order[1].clone();
+    let page = PageRef::read(&page()).expect("a page");
+    // The first square's left edge lands half a point short of the
+    // second's.
+    let raw = Point { x: 99.5, y: 0.0 };
+    let snapped = compute_move_snap(&m, &ids, &page, raw, 6.0, None);
+    assert_eq!(snapped.delta.x, 100.0, "snaps to the second square");
+
+    let mut by_id = (*m.by_id).clone();
+    by_id.shift_remove(&target);
+    let without_record = Model { by_id: Rc::new(by_id), ..m.clone() };
+    let answer = compute_move_snap(&without_record, &ids, &page, raw, 6.0, None);
+    assert_eq!(answer.delta.x, 99.5, "a records map without the square");
+
+    let order: Vec<Id> = m.order.iter().filter(|id| **id != target).cloned().collect();
+    let without_order = Model { order: Rc::new(order), ..m.clone() };
+    let answer = compute_move_snap(&without_order, &ids, &page, raw, 6.0, None);
+    assert_eq!(answer.delta.x, 99.5, "an order without the square");
+
+    assert_eq!(compute_move_snap(&m, &ids, &page, raw, 6.0, None), snapped);
+}
+
 #[test]
 fn ink_draft_move_does_not_clone_strokes() {
     let ink = |phase: &str, x: f64, y: f64| {

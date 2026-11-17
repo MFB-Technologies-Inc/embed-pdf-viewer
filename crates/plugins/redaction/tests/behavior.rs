@@ -761,6 +761,46 @@ fn mark_of_refuses_a_page_index_that_is_not_whole() {
     }
 }
 
+/// The pending view follows its inputs. A remote reorder moves page 2
+/// first: every mark is listed in the new page order with its new index.
+/// A remote delete of mark 12 then leaves only mark 10.
+#[test]
+fn the_pending_view_follows_the_page_order_and_the_records() {
+    let rig = Rig::new(Vec::new());
+    let before = rig.redaction.list_pending(None);
+    assert_eq!(keys(&before), vec![obj(10, 1), obj(12, 2)]);
+    let remote = json!({ "kind": "remote", "sessionId": "s2",
+        "subject": null, "at": "1970-01-01T00:00:00.000Z", "serverSequence": 9 });
+
+    let reordered = json!({
+        "type": "pages.reordered",
+        "pages": [],
+        "layout": {
+            "pageCount": 2,
+            "pages": [layout(2, 0, 400.0, 500.0), layout(1, 1, 600.0, 800.0)],
+            "labels": [],
+            "namedPages": [],
+        },
+        "origin": remote,
+    });
+    rig.fake.emit("a", &reordered).expect("emit");
+    rt::run_until_stalled();
+    let after = rig.redaction.list_pending(None);
+    assert_eq!(keys(&after), vec![obj(12, 2), obj(10, 1)]);
+    assert_eq!((after[0].page_index, after[1].page_index), (0, 1));
+
+    let deleted = json!({
+        "type": "annotations.deleted",
+        "page": pr(2),
+        "deleted": [obj(12, 2)],
+        "origin": remote,
+    });
+    rig.fake.emit("a", &deleted).expect("emit");
+    rt::run_until_stalled();
+    assert_eq!(keys(&rig.redaction.list_pending(None)), vec![obj(10, 1)]);
+    assert_eq!(rig.redaction.get_pending_count(None), 1);
+}
+
 /// An unchanged document answers the pending count from the memo, asking
 /// the annotation plane for no page's list. A new annotation model reads
 /// every page again, the same as the TypeScript's `allMarks` walk.
