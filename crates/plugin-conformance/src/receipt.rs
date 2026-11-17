@@ -33,7 +33,13 @@ pub const DIRTY_VAR: &str = "PLUGIN_CONFORMANCE_DIRTY";
 /// [`DIRTY_VAR`] read as a flag; `None` when it is unset or neither `0` nor
 /// `1`.
 pub fn dirty_from_env() -> Option<bool> {
-    match std::env::var(DIRTY_VAR).ok().as_deref() {
+    dirty_flag(std::env::var(DIRTY_VAR).ok().as_deref())
+}
+
+/// A [`DIRTY_VAR`] value as a flag: `1` is true, `0` false, anything else
+/// (unset included) `None`.
+fn dirty_flag(value: Option<&str>) -> Option<bool> {
+    match value {
         Some("1") => Some(true),
         Some("0") => Some(false),
         _ => None,
@@ -209,6 +215,16 @@ mod tests {
                 "memberOrderAllowed": [{ "case": "case-a", "path": "$.returned" }],
             })
         );
+    }
+
+    #[test]
+    fn only_0_and_1_say_whether_the_tree_had_changes() {
+        assert_eq!(dirty_flag(Some("1")), Some(true));
+        assert_eq!(dirty_flag(Some("0")), Some(false));
+        for other in [None, Some(""), Some("true"), Some("yes"), Some(" 1"), Some("01")] {
+            assert_eq!(dirty_flag(other), None, "{other:?}");
+        }
+        assert_eq!(dirty_from_env(), dirty_flag(std::env::var(DIRTY_VAR).ok().as_deref()));
     }
 
     #[test]

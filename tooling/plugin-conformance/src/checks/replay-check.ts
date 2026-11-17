@@ -42,7 +42,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { rejectUnknownArgs } from '../args';
@@ -166,29 +166,37 @@ export function runProblems(receipts: Receipt[], runId?: string): string[] {
   return problems;
 }
 
-/** What the checkout holds now: its commit, whether it has uncommitted
- *  changes, the SHA-256 of each vector file's text (null when the file is
- *  gone), and whether the receipts come from a `--receipts` directory
- *  rather than this run. */
-export interface Checkout {
-  readonly head: string;
-  readonly dirty: boolean;
+/** What the checkout holds now: its commit and uncommitted changes (see
+ *  `CheckoutState`), the SHA-256 of each vector file's text (null when the
+ *  file is gone), and whether the receipts come from a `--receipts`
+ *  directory rather than this run. */
+export interface Checkout extends CheckoutState {
   readonly vectorSha256: (file: string) => string | null;
   readonly saved: boolean;
 }
 
+/** The first `shown` of `items`, then how many more there are. */
+function listed(items: readonly string[], shown = 3): string {
+  const more = items.length - shown;
+  return `${items.slice(0, shown).join(', ')}${more > 0 ? ` and ${more} more` : ''}`;
+}
+
 /**
- * One problem line per receipt that does not match `checkout`: no commit or
- * a commit other than its head, no record of uncommitted changes or a record
- * that differs from the checkout's, uncommitted changes in a saved receipt,
- * no vector hash, or a vector hash other than the file's in the checkout. A
- * receipt like that replayed other vectors or other code than the checkout
- * holds. A saved receipt from a tree with uncommitted changes fails even
- * when the checkout has uncommitted changes too: nothing says they are the
- * same changes.
+ * Problem lines for receipts that do not match `checkout`. Per receipt: no
+ * commit or a commit other than its head, no vector hash, or a vector hash
+ * other than the file's in the checkout. For uncommitted changes, one line
+ * per kind of mismatch, naming the first few files or changed paths: no
+ * record, a record that differs from the checkout's, or uncommitted changes
+ * in saved receipts. A saved receipt from a tree with uncommitted changes
+ * fails even when the checkout has uncommitted changes too: nothing says
+ * they are the same changes.
  */
 export function staleProblems(receipts: Receipt[], checkout: Checkout): string[] {
   const problems: string[] = [];
+  const unrecorded: string[] = [];
+  const dirtyAtClean: string[] = [];
+  const cleanAtDirty: string[] = [];
+  const dirtySaved: string[] = [];
   for (const r of receipts) {
     if (r.head === null) {
       problems.push(`${r.file}: receipt names no commit (${HEAD_VAR} was not set)`);
@@ -197,26 +205,35 @@ export function staleProblems(receipts: Receipt[], checkout: Checkout): string[]
         `${r.file}: receipt is from commit ${r.head}, the checkout is at ${checkout.head}`,
       );
     }
-    if (r.dirty === null) {
-      problems.push(
-        `${r.file}: receipt does not say whether the tree had uncommitted changes (${DIRTY_VAR} was not set)`,
-      );
-    } else if (r.dirty !== checkout.dirty) {
-      problems.push(
-        r.dirty
-          ? `${r.file}: receipt is from a tree with uncommitted changes, the checkout has none`
-          : `${r.file}: receipt is from a clean tree, the checkout has uncommitted changes`,
-      );
-    } else if (r.dirty && checkout.saved) {
-      problems.push(
-        `${r.file}: receipt is from a tree with uncommitted changes, which a --receipts directory cannot tie to the checkout`,
-      );
-    }
+    if (r.dirty === null) unrecorded.push(r.file);
+    else if (r.dirty !== checkout.dirty) (r.dirty ? dirtyAtClean : cleanAtDirty).push(r.file);
+    else if (r.dirty && checkout.saved) dirtySaved.push(r.file);
     const current = checkout.vectorSha256(r.file);
     if (r.vectorSha256 === null) problems.push(`${r.file}: receipt has no vector hash`);
     else if (r.vectorSha256 !== current) {
       problems.push(`${r.file}: receipt replayed other vector text than the checkout holds`);
     }
+  }
+  const changes = listed(checkout.changes);
+  if (unrecorded.length) {
+    problems.push(
+      `${unrecorded.length} receipts do not say whether the tree had uncommitted changes (${DIRTY_VAR} was not set): ${listed(unrecorded)}`,
+    );
+  }
+  if (dirtyAtClean.length) {
+    problems.push(
+      `${dirtyAtClean.length} receipts are from a tree with uncommitted changes, and the checkout has none: ${listed(dirtyAtClean)}`,
+    );
+  }
+  if (cleanAtDirty.length) {
+    problems.push(
+      `the checkout has uncommitted changes (${changes}), so ${cleanAtDirty.length} receipts from a clean tree are not its proof`,
+    );
+  }
+  if (dirtySaved.length) {
+    problems.push(
+      `the checkout has uncommitted changes (${changes}), and nothing ties them to the ${dirtySaved.length} receipts in the --receipts directory, which were written with uncommitted changes too`,
+    );
   }
   return problems;
 }
@@ -442,10 +459,11 @@ export const HEAD_VAR = 'PLUGIN_CONFORMANCE_HEAD';
 export const DIRTY_VAR = 'PLUGIN_CONFORMANCE_DIRTY';
 
 /** The checkout's commit and whether it has uncommitted changes, untracked
- *  files included. */
+ *  files included; `changes` holds the changed paths `git status` names. */
 export interface CheckoutState {
   readonly head: string;
   readonly dirty: boolean;
+  readonly changes: readonly string[];
 }
 
 /** What one git command printed. */
@@ -458,10 +476,13 @@ export type Git = (args: readonly string[]) => {
 
 const git: Git = (args) => spawnSync('git', args, { cwd: repoRoot, encoding: 'utf8' });
 
-/** `git rev-parse HEAD` and `git status --porcelain`. Throws, with git's
- *  message, when either fails: without the commit the receipts cannot be
- *  tied to the checkout, so the check cannot pass. */
-export function checkoutState(run: Git = git): CheckoutState {
+/** `git rev-parse HEAD` and `git status --porcelain`, run at the repository
+ *  root. `receipts`, a `--receipts` directory, is left out of the status when
+ *  it is inside the repository, so receipts kept there do not count as a
+ *  change. Throws, with git's message, when either command fails: without
+ *  the commit the receipts cannot be tied to the checkout, so the check
+ *  cannot pass. */
+export function checkoutState(run: Git = git, receipts?: string): CheckoutState {
   const output = (args: readonly string[]): string => {
     const result = run(args);
     if (result.error || result.status !== 0) {
@@ -471,8 +492,16 @@ export function checkoutState(run: Git = git): CheckoutState {
     return result.stdout;
   };
   const head = output(['rev-parse', 'HEAD']).trim();
-  const dirty = output(['status', '--porcelain']).trim() !== '';
-  return { head, dirty };
+  const inside = receipts === undefined ? null : relative(repoRoot, receipts);
+  const status = ['status', '--porcelain'];
+  if (inside !== null && inside !== '' && !inside.startsWith('..') && !isAbsolute(inside)) {
+    status.push('--', '.', `:(exclude)${inside.split(sep).join('/')}`);
+  }
+  const changes = output(status)
+    .split('\n')
+    .filter((line) => line.trim() !== '')
+    .map((line) => line.slice(3));
+  return { head, dirty: changes.length > 0, changes };
 }
 
 /** The SHA-256 of each vector file's text, as `readVector` gives it. */
@@ -498,7 +527,7 @@ export async function main(): Promise<void> {
     ? resolve(given)
     : await mkdtemp(join(tmpdir(), 'plugin-conformance-receipts-'));
   const runId = given ? undefined : randomUUID();
-  const checkout = checkoutState();
+  const checkout = checkoutState(git, given === undefined ? undefined : dir);
   let cargoPassed: boolean | null = null;
   let read: { receipts: Receipt[]; problems: string[] };
   try {
@@ -537,7 +566,7 @@ export async function main(): Promise<void> {
   if (cargoPassed === null) console.log(`cargo: not run (read receipts from ${dir})`);
   else console.log(`cargo: ${cargoPassed ? 'passed' : 'FAILED (see the test output above)'}`);
   console.log(
-    `checkout: ${checkout.head}${checkout.dirty ? ' with uncommitted changes' : ', clean'}`,
+    `checkout: ${checkout.head}${checkout.dirty ? ` with uncommitted changes (${listed(checkout.changes)})` : ', clean'}`,
   );
   console.log(`receipts: ${receipts.length} read`);
   if (problems.length) {

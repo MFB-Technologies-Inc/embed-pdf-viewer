@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { test } from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 // Before any check module: see `src/library-guard.ts`.
 import '../src/as-library';
@@ -173,7 +174,7 @@ test('childEnv removes every variable that would weaken the proof and sets recei
     },
     '/tmp/receipts',
     'run-2',
-    { head: 'head-2', dirty: false },
+    { head: 'head-2', dirty: false, changes: [] },
   );
   assert.deepEqual(env, {
     PATH: '/bin',
@@ -185,6 +186,7 @@ test('childEnv removes every variable that would weaken the proof and sets recei
   const dirty = childEnv({ PLUGIN_CONFORMANCE_DIRTY: '0' }, '/tmp/r', 'run-3', {
     head: 'head-3',
     dirty: true,
+    changes: ['a.rs'],
   });
   assert.equal(dirty.PLUGIN_CONFORMANCE_DIRTY, '1');
 });
@@ -195,9 +197,9 @@ test('checkoutState reads the commit and uncommitted changes, and fails with git
     'status --porcelain': { status: 0, stdout: '', stderr: '' },
   };
   const git = (args: readonly string[]) => answers[args.join(' ')];
-  assert.deepEqual(checkoutState(git), { head: 'abc', dirty: false });
-  answers['status --porcelain'] = { status: 0, stdout: '?? new.rs\n', stderr: '' };
-  assert.deepEqual(checkoutState(git), { head: 'abc', dirty: true });
+  assert.deepEqual(checkoutState(git), { head: 'abc', dirty: false, changes: [] });
+  answers['status --porcelain'] = { status: 0, stdout: ' M a.rs\n?? new.rs\n', stderr: '' };
+  assert.deepEqual(checkoutState(git), { head: 'abc', dirty: true, changes: ['a.rs', 'new.rs'] });
   // The container case: git refuses a repository another user owns.
   answers['rev-parse HEAD'] = {
     status: 128,
@@ -211,6 +213,26 @@ test('checkoutState reads the commit and uncommitted changes, and fails with git
   answers['rev-parse HEAD'] = { status: 0, stdout: 'abc\n', stderr: '' };
   answers['status --porcelain'] = { status: 1, stdout: '', stderr: '' };
   assert.throws(() => checkoutState(git), /git status --porcelain failed.*: exit 1/);
+});
+
+test('checkoutState leaves a receipts directory inside the repository out of the status', () => {
+  const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+  const calls: string[] = [];
+  const git = (args: readonly string[]) => {
+    calls.push(args.join(' '));
+    return { status: 0, stdout: args[0] === 'rev-parse' ? 'abc\n' : '', stderr: '' };
+  };
+  checkoutState(git, join(repoRoot, 'saved', 'receipts'));
+  checkoutState(git, '/elsewhere/receipts');
+  checkoutState(git);
+  assert.deepEqual(calls, [
+    'rev-parse HEAD',
+    'status --porcelain -- . :(exclude)saved/receipts',
+    'rev-parse HEAD',
+    'status --porcelain',
+    'rev-parse HEAD',
+    'status --porcelain',
+  ]);
 });
 
 test('a ledger entry with observedBy that no receipt applied is a problem', () => {
@@ -333,6 +355,7 @@ test('receipts from another commit or of other vector text than the checkout are
   const checkout = {
     head: 'abc',
     dirty: false,
+    changes: [],
     saved: false,
     vectorSha256: (file: string) => `sha-${file}`,
   };
@@ -353,7 +376,7 @@ test('receipts from another commit or of other vector text than the checkout are
       'core/y.json: receipt replayed other vector text than the checkout holds',
       'core/z.json: receipt has no vector hash',
       'core/w.json: receipt names no commit (PLUGIN_CONFORMANCE_HEAD was not set)',
-      'core/w.json: receipt does not say whether the tree had uncommitted changes (PLUGIN_CONFORMANCE_DIRTY was not set)',
+      '1 receipts do not say whether the tree had uncommitted changes (PLUGIN_CONFORMANCE_DIRTY was not set): core/w.json',
     ],
   );
   // A vector file the checkout no longer has.
@@ -365,20 +388,29 @@ test('receipts from another commit or of other vector text than the checkout are
 
 test('a receipt from a tree with uncommitted changes passes only for this run', () => {
   const vectorSha256 = (file: string) => `sha-${file}`;
-  const clean = receipt('core/x.json', ['a']);
-  const dirty = { ...clean, dirty: true };
-  const at = (tree: boolean, saved: boolean) => ({ head: 'abc', dirty: tree, saved, vectorSha256 });
+  const files = ['core/a.json', 'core/b.json', 'core/c.json', 'core/d.json'];
+  const clean = files.map((file) => receipt(file, ['a']));
+  const dirty = clean.map((r) => ({ ...r, dirty: true }));
+  const changes = ['a.rs', 'b.rs', 'c.rs', 'd.rs', 'e.rs'];
+  const at = (tree: boolean, saved: boolean) => ({
+    head: 'abc',
+    dirty: tree,
+    changes: tree ? changes : [],
+    saved,
+    vectorSha256,
+  });
   // This run's own receipts describe the tree it ran on, changes and all.
-  assert.deepEqual(staleProblems([dirty], at(true, false)), []);
-  assert.deepEqual(staleProblems([clean], at(false, true)), []);
-  assert.deepEqual(staleProblems([dirty], at(false, false)), [
-    'core/x.json: receipt is from a tree with uncommitted changes, the checkout has none',
+  assert.deepEqual(staleProblems(dirty, at(true, false)), []);
+  assert.deepEqual(staleProblems(clean, at(false, true)), []);
+  // One line for every receipt, not one per receipt.
+  assert.deepEqual(staleProblems(dirty, at(false, false)), [
+    '4 receipts are from a tree with uncommitted changes, and the checkout has none: core/a.json, core/b.json, core/c.json and 1 more',
   ]);
-  assert.deepEqual(staleProblems([clean], at(true, true)), [
-    'core/x.json: receipt is from a clean tree, the checkout has uncommitted changes',
+  assert.deepEqual(staleProblems(clean, at(true, true)), [
+    'the checkout has uncommitted changes (a.rs, b.rs, c.rs and 2 more), so 4 receipts from a clean tree are not its proof',
   ]);
   // Saved receipts cannot show their changes are the checkout's.
-  assert.deepEqual(staleProblems([dirty], at(true, true)), [
-    'core/x.json: receipt is from a tree with uncommitted changes, which a --receipts directory cannot tie to the checkout',
+  assert.deepEqual(staleProblems(dirty, at(true, true)), [
+    'the checkout has uncommitted changes (a.rs, b.rs, c.rs and 2 more), and nothing ties them to the 4 receipts in the --receipts directory, which were written with uncommitted changes too',
   ]);
 });
