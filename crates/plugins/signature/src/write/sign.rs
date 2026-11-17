@@ -97,6 +97,18 @@ impl DocumentHandle for SealUnlessCancelled {
         }
         self.doc.call_answer(path, pon, args)
     }
+    fn call_answer_with(
+        &self,
+        facts: &CallFacts,
+        path: &str,
+        pon: Option<u32>,
+        args: Vec<Value>,
+    ) -> EngineCall<Answer> {
+        if path == "signatures.complete" && self.signal.aborted() {
+            return Promise::rejected(cancelled(&self.signal));
+        }
+        self.doc.call_answer_with(facts, path, pon, args)
+    }
     fn page_index(&self, pon: u32) -> Result<u32, Error> {
         self.doc.page_index(pon)
     }
