@@ -172,7 +172,7 @@ pub fn search(
         });
     }
 
-    let seq = session.mutation_sequence();
+    let seq = session.cache_sequence();
     let key = search_query_key(&request.query, request.snippets);
 
     let (mut start, mut scanned) = (0u32, 0u32);

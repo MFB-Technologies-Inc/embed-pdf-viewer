@@ -5,8 +5,9 @@
 //! its default fold, built the first time a search reads the page and reused
 //! by every later slice and query until the document changes.
 //!
-//! The version key is the session's mutation sequence, which every write
-//! moves (`crate::session::save::finish_mutation`, and `install`). An entry
+//! The version key is the session's cache sequence (`cacheSeq`), which every
+//! commit, abort, install and finished write moves
+//! (`DocumentSession::cache_sequence`). An entry
 //! from an earlier sequence is never served: the first lookup at a new
 //! sequence empties the cache, so a page is keyed by its object number and
 //! the sequence together. The session drops the whole cache on install and

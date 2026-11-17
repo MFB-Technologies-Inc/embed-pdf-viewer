@@ -7,7 +7,7 @@
 //!
 //! - the query, and whether it asks for snippets, because a cursor is not
 //!   transferable between queries;
-//! - the document's mutation sequence, because resuming over mutated content
+//! - the document's cache sequence (`cacheSeq`), because resuming over mutated content
 //!   could serve stale pages or, worse, text a redaction just removed;
 //! - the scan origin, because a position means nothing in a different page
 //!   order.
@@ -27,7 +27,7 @@ pub struct SearchCursorState {
     /// Format version. A cursor from another version is refused rather than
     /// reinterpreted.
     pub v: u32,
-    /// The session's mutation sequence when the cursor was minted.
+    /// The session's cache sequence when the cursor was minted.
     pub seq: u64,
     /// The query's identity, snippets included ([`search_query_key`]).
     pub key: String,

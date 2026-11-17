@@ -814,3 +814,69 @@ fn regex_compiled_once_per_query() {
     assert_eq!(build_count::validated(), 1, "the pattern was validated more than once");
     assert_eq!(build_count::compiled(), 1, "the pattern was compiled more than once");
 }
+
+/// A one-page PDF whose word `SECRET` sits under a redaction mark and whose
+/// word `visible` does not.
+fn marked_secret() -> Vec<u8> {
+    let content = "BT /F1 18 Tf 60 90 Td (SECRET) Tj ET BT /F1 18 Tf 60 220 Td (visible) Tj ET";
+    let objects = [
+        "<< /Type /Catalog /Pages 2 0 R >>".to_string(),
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 >>".to_string(),
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 4 0 R \
+         /Resources << /Font << /F1 5 0 R >> >> \
+         /Annots [<< /Type /Annot /Subtype /Redact /Rect [40 70 200 130] /IC [0 0 0] >>] >>"
+            .to_string(),
+        format!("<< /Length {} >>\nstream\n{content}\nendstream", content.len()),
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>".to_string(),
+    ];
+    let mut out = b"%PDF-1.7\n".to_vec();
+    let mut offsets = Vec::new();
+    for (i, object) in objects.iter().enumerate() {
+        offsets.push(out.len());
+        out.extend(format!("{} 0 obj\n{object}\nendobj\n", i + 1).as_bytes());
+    }
+    let xref = out.len();
+    out.extend(format!("xref\n0 {}\n0000000000 65535 f \n", objects.len() + 1).as_bytes());
+    for offset in offsets {
+        out.extend(format!("{offset:010} 00000 n \n").as_bytes());
+    }
+    out.extend(
+        format!(
+            "trailer\n<< /Size {} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n",
+            objects.len() + 1
+        )
+        .as_bytes(),
+    );
+    out
+}
+
+#[test]
+fn a_committed_write_that_never_finished_is_not_searched_as_it_was() {
+    // `document.applyChanges` commits each change on its own, and a change
+    // that fails with a refusal it does not keep fails the job before it
+    // finishes: the changes before it stay committed and the wire sequence
+    // does not move. The corpus is keyed on the derived-cache sequence
+    // (`cacheSeq`), which every commit moves, so the next search reads the
+    // page again.
+    let mut session = DocumentSession::new();
+    session.open_with(marked_secret(), None, SessionAuthority::unrestricted()).expect("open");
+    let page = pages(&mut session)[0];
+    let found =
+        search(&mut session, &request(literal("SECRET")), &CancelToken::never()).expect("search");
+    assert_eq!(found.matches.len(), 1, "the fixture shows SECRET once");
+
+    let sequence = session.mutation_sequence();
+    let scope = epdf_engine::features::redaction::RedactionScope::Pages { pages: vec![page] };
+    epdf_engine::features::changes::transaction::in_transaction(&mut session, "op-redact", |s| {
+        epdf_engine::features::redaction::apply(s, &scope, &CancelToken::never())
+    })
+    .expect("the redaction commits");
+    assert_eq!(session.mutation_sequence(), sequence, "nothing finished the write");
+
+    let after =
+        search(&mut session, &request(literal("SECRET")), &CancelToken::never()).expect("search");
+    assert!(after.matches.is_empty(), "the redacted word is still found: {:?}", after.matches);
+    let kept =
+        search(&mut session, &request(literal("visible")), &CancelToken::never()).expect("search");
+    assert_eq!(kept.matches.len(), 1, "the redaction took the unmarked word too");
+}

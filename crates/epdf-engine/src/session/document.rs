@@ -127,7 +127,7 @@ struct OpenState {
     /// each document it describes.
     drawings: std::cell::RefCell<crate::features::annotation::write::stamp::DrawingIndex>,
     /// What search has read of this document's pages, at the current
-    /// mutation sequence (`pageCorpusCache`).
+    /// cache sequence (`pageCorpusCache`).
     search_corpus: crate::features::search::corpus::SearchCorpus,
 }
 
@@ -151,6 +151,11 @@ pub struct DocumentSession {
     /// (`DocumentSession.ts` `loadedSeq`).
     loaded_sequence: Cell<u64>,
     mutation_sequence: Cell<u64>,
+    /// The version caches built from the document key on
+    /// (`DocumentSession.ts` `cacheSeqCounter`): moved by every commit,
+    /// abort, install and finished write, so it moves wherever a write can
+    /// land, including a commit that never reaches `finish_mutation`.
+    cache_sequence: Cell<u64>,
     /// What this session's caller may do. Grants nothing until open sets it,
     /// so a session that failed to open cannot be read through.
     authority: SessionAuthority,
@@ -291,6 +296,7 @@ impl DocumentSession {
             password: None,
             loaded_sequence: Cell::new(0),
             mutation_sequence: Cell::new(0),
+            cache_sequence: Cell::new(0),
             authority: SessionAuthority::default(),
             retained: Vec::new(),
             object_number_authority: ObjectNumberAuthority::default(),
@@ -851,6 +857,23 @@ impl DocumentSession {
         self.mutation_sequence.get()
     }
 
+    /// The version key for a cache built from the document (`cacheSeq`):
+    /// an entry built at sequence N is valid exactly while this is still N.
+    ///
+    /// Not [`DocumentSession::mutation_sequence`], which only a finished
+    /// write moves: `document.applyChanges` commits each change on its own,
+    /// and a job that fails after a commit keeps that commit without
+    /// finishing, so the wire sequence stays where it was.
+    pub fn cache_sequence(&self) -> u64 {
+        self.cache_sequence.get()
+    }
+
+    /// `invalidateDerived`: make every cache keyed on
+    /// [`DocumentSession::cache_sequence`] build again.
+    fn invalidate_derived(&self) {
+        self.cache_sequence.set(self.cache_sequence.get().saturating_add(1));
+    }
+
     /// `hasUnsavedEdits`: a mutation since the current bytes were loaded.
     pub fn has_unsaved_edits(&self) -> bool {
         self.mutation_sequence.get() != self.loaded_sequence.get()
@@ -902,6 +925,7 @@ impl DocumentSession {
         }
         self.mutation_sequence.set(self.mutation_sequence.get().saturating_add(1));
         self.loaded_sequence.set(self.mutation_sequence.get());
+        self.invalidate_derived();
         // The new version's objects may sit at numbers this session held.
         self.held_object_numbers.clear();
         if let Some(open) = self.transaction.as_mut() {
@@ -914,6 +938,7 @@ impl DocumentSession {
     /// [`RevisionAuthority::bump`].
     pub fn note_mutation(&self) {
         self.mutation_sequence.set(self.mutation_sequence.get().saturating_add(1));
+        self.invalidate_derived();
     }
 
     /// Park a disposer to run when this session closes.
@@ -1050,6 +1075,9 @@ impl DocumentSession {
         for number in spent {
             self.release_held(number);
         }
+        // What the transaction wrote is kept whether or not the write goes
+        // on to finish, so caches built before it are stale from here.
+        self.invalidate_derived();
         Ok(())
     }
 
@@ -1133,6 +1161,8 @@ impl DocumentSession {
         if self.transaction.take().is_none() {
             return;
         }
+        // A cache may have been built from what the transaction wrote.
+        self.invalidate_derived();
         let Some(state) = self.open.as_mut() else { return };
         let aborted = state.document.document().layer_abort_transaction();
         state.drawings.get_mut().forget();

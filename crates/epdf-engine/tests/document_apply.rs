@@ -599,3 +599,55 @@ fn a_final_change_ends_undo_for_the_changes_before_it() {
     assert_eq!(after["meta"]["undoable"], true);
     applied(&mut host, json!({ "undoOf": after["meta"]["opId"] }));
 }
+
+#[test]
+fn a_server_request_that_fails_after_a_commit_ends_every_search_cursor() {
+    // A refusal a change does not keep (`Aborted` here) fails the job
+    // before it finishes, and the changes before it stay committed. The
+    // document changed, so a cursor from before the job is refused, as
+    // upstream refuses it: its cursor is keyed on `cacheSeq`, which the
+    // failed change's `abortTransaction` moves.
+    use epdf_engine::cancel::CancelToken;
+    let search = |host: &mut Host, cursor: Option<&Value>| -> Result<Value, Value> {
+        let mut request = json!({ "text": "the", "limit": { "pages": 2 } });
+        if let Some(cursor) = cursor {
+            request["cursor"] = cursor.clone();
+        }
+        send(host, json!({ "kind": "search.query", "request": request }))
+    };
+    let changes = json!({ "kind": "document.applyChanges", "effect": "write", "jobId": 7, "docId": DOC,
+        "changes": [
+            { "opId": "c1", "authority": { "identity": {}, "grants": null },
+              "change": { "ops": [update(json!({ "title": "First" }))] } },
+            { "opId": "c2", "authority": { "identity": {}, "grants": null },
+              "change": { "ops": [update(json!({ "subject": "Second" }))] } },
+        ] });
+    // The check that cancels the second change after the first committed:
+    // the first `n` whose job fails `Aborted` with the first change kept.
+    for n in 1..256 {
+        let mut host = Host::new();
+        common::open_fixture(&mut host, test_support::REPORT);
+        let first = search(&mut host, None).expect("the first slice");
+        let cursor = first["nextCursor"].clone();
+        assert!(cursor.is_string(), "two pages of report.pdf leave more to scan: {first}");
+
+        let response = host.call_with_cancel(
+            &changes.to_string(),
+            Vec::new(),
+            &CancelToken::cancelled_at_check(n),
+        );
+        let envelope: Value = serde_json::from_str(&response.json).expect("JSON");
+        assert!(envelope.get("error").is_some(), "no check cancelled the job: {envelope}");
+        assert_eq!(envelope["error"]["code"], "Aborted", "{envelope}");
+        let title = facts(&mut host)["metadata"]["title"].clone();
+        if title != json!("First") {
+            continue;
+        }
+
+        let refused = search(&mut host, Some(&cursor)).expect_err("a cursor from before");
+        assert_eq!(refused["code"], "InvalidArg", "{refused}");
+        assert!(refused["message"].as_str().unwrap().contains("changed"), "{refused}");
+        return;
+    }
+    panic!("no check fell between the two changes");
+}
