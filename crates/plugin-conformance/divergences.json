@@ -188,7 +188,7 @@
   {
     "id": "M27",
     "summary": "A NaN grid column count lays out an empty scene where the TypeScript throws on every scene build.",
-    "reason": "Rust-only divergence, the NaN-column part of M27. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", findings table (M27) and Task 13.14. Observed since Task 7 of the conformance-enforcement plan by plugins/stage-capability.json grid-nan-columns: the TypeScript reports a RangeError from the settings write and throws it from visiblePages; Rust reports nothing and answers an empty list.",
+    "reason": "Rust-only divergence, the NaN-column part of M27. Recorded in docs/research/rust-plugins-branch-review.md, \"Status, 2026-10-13\", findings table (M27) and Task 13.14. Observed by plugins/stage-capability.json grid-nan-columns: the TypeScript reports a RangeError from the settings write and throws it from visiblePages; Rust reports nothing and answers an empty list.",
     "decided": "2026-10-11 4965e0519",
     "observedBy": [
       {

@@ -66,7 +66,7 @@ test('differential reports a planted mismatch', async () => {
   assert.match(mismatch.difference, /^\$\.returned\.x: expected \{"\$number":"NaN"\}, got 0$/);
 });
 
-// Review Focus 5: the vectors print -0 as 0 (canonical.ts) and replay
+// The vectors print -0 as 0 (canonical.ts) and replay
 // compares 0 and -0 equal (canonical.rs numbers_equal), so a Rust -0.0
 // where the TypeScript has 0 is no mismatch here either.
 test('differential compares -0 and 0 as the vectors do', async () => {
