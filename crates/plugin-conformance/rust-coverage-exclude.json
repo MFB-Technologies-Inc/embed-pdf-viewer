@@ -1,7 +1,7 @@
 [
   {
     "glob": "crates/plugins/*/src/harness.rs",
-    "reason": "replay adapter: builds the plugin from a vector, not ported code"
+    "reason": "replay adapter: builds the plugin from a vector, not ported code. annotation-core's also prints the TypeScript answers for kind names Object.prototype holds, which is ledger entry ANNOTATION-PROTOTYPE-KIND (divergences.json), not ported behavior"
   },
   {
     "glob": "crates/plugins/*/src/harness/**",
