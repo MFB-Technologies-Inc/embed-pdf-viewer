@@ -40,6 +40,7 @@
  */
 import { spawnSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
+import { realpathSync } from 'node:fs';
 import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
@@ -474,15 +475,43 @@ export type Git = (args: readonly string[]) => {
   readonly error?: Error;
 };
 
-const git: Git = (args) => spawnSync('git', args, { cwd: repoRoot, encoding: 'utf8' });
+/** Git run in `root`. */
+const gitIn =
+  (root: string): Git =>
+  (args) =>
+    spawnSync('git', args, { cwd: root, encoding: 'utf8' });
 
-/** `git rev-parse HEAD` and `git status --porcelain`, run at the repository
- *  root. `receipts`, a `--receipts` directory, is left out of the status when
- *  it is inside the repository, so receipts kept there do not count as a
- *  change. Throws, with git's message, when either command fails: without
- *  the commit the receipts cannot be tied to the checkout, so the check
- *  cannot pass. */
-export function checkoutState(run: Git = git, receipts?: string): CheckoutState {
+/** Where `dir` is inside `root`, as a `/`-separated relative path, or null
+ *  when it is outside, is `root` itself, or does not exist. Symlinks on
+ *  either side are resolved first. */
+function insideRepository(root: string, dir: string): string | null {
+  let rel: string;
+  try {
+    rel = relative(realpathSync(root), realpathSync(dir));
+  } catch {
+    return null;
+  }
+  if (rel === '' || rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) return null;
+  return rel.split(sep).join('/');
+}
+
+/**
+ * `git rev-parse HEAD` and `git status --porcelain`, run at `root` (the
+ * repository by default). Throws, with git's message, when a git command
+ * fails: without the commit the receipts cannot be tied to the checkout, so
+ * the check cannot pass.
+ *
+ * `receipts`, a `--receipts` directory, is left out of the status only when
+ * it is inside the repository and git tracks no file under it, which is a
+ * directory of untracked receipts. A directory that holds tracked files gets
+ * no exemption, so an edit to one of them still counts as a change. Both
+ * pathspecs are literal, so a directory named `r*` leaves out only itself.
+ */
+export function checkoutState(
+  options: { readonly root?: string; readonly receipts?: string; readonly run?: Git } = {},
+): CheckoutState {
+  const root = options.root ?? repoRoot;
+  const run = options.run ?? gitIn(root);
   const output = (args: readonly string[]): string => {
     const result = run(args);
     if (result.error || result.status !== 0) {
@@ -492,10 +521,10 @@ export function checkoutState(run: Git = git, receipts?: string): CheckoutState 
     return result.stdout;
   };
   const head = output(['rev-parse', 'HEAD']).trim();
-  const inside = receipts === undefined ? null : relative(repoRoot, receipts);
+  const inside = options.receipts === undefined ? null : insideRepository(root, options.receipts);
   const status = ['status', '--porcelain'];
-  if (inside !== null && inside !== '' && !inside.startsWith('..') && !isAbsolute(inside)) {
-    status.push('--', '.', `:(exclude)${inside.split(sep).join('/')}`);
+  if (inside !== null && output(['ls-files', '--', `:(literal)${inside}`]).trim() === '') {
+    status.push('--', '.', `:(exclude,literal)${inside}`);
   }
   const changes = output(status)
     .split('\n')
@@ -527,7 +556,7 @@ export async function main(): Promise<void> {
     ? resolve(given)
     : await mkdtemp(join(tmpdir(), 'plugin-conformance-receipts-'));
   const runId = given ? undefined : randomUUID();
-  const checkout = checkoutState(git, given === undefined ? undefined : dir);
+  const checkout = checkoutState({ receipts: given === undefined ? undefined : dir });
   let cargoPassed: boolean | null = null;
   let read: { receipts: Receipt[]; problems: string[] };
   try {

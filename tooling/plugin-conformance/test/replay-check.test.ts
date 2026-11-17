@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join } from 'node:path';
 import { test } from 'node:test';
-import { fileURLToPath } from 'node:url';
 
 // Before any check module: see `src/library-guard.ts`.
 import '../src/as-library';
@@ -197,9 +197,9 @@ test('checkoutState reads the commit and uncommitted changes, and fails with git
     'status --porcelain': { status: 0, stdout: '', stderr: '' },
   };
   const git = (args: readonly string[]) => answers[args.join(' ')];
-  assert.deepEqual(checkoutState(git), { head: 'abc', dirty: false, changes: [] });
+  assert.deepEqual(checkoutState({ run: git }), { head: 'abc', dirty: false, changes: [] });
   answers['status --porcelain'] = { status: 0, stdout: ' M a.rs\n?? new.rs\n', stderr: '' };
-  assert.deepEqual(checkoutState(git), { head: 'abc', dirty: true, changes: ['a.rs', 'new.rs'] });
+  assert.deepEqual(checkoutState({ run: git }), { head: 'abc', dirty: true, changes: ['a.rs', 'new.rs'] });
   // The container case: git refuses a repository another user owns.
   answers['rev-parse HEAD'] = {
     status: 128,
@@ -207,32 +207,62 @@ test('checkoutState reads the commit and uncommitted changes, and fails with git
     stderr: "fatal: detected dubious ownership in repository at '/repo'\n",
   };
   assert.throws(
-    () => checkoutState(git),
+    () => checkoutState({ run: git }),
     /git rev-parse HEAD failed, so no receipt can be tied to a commit: fatal: detected dubious ownership/,
   );
   answers['rev-parse HEAD'] = { status: 0, stdout: 'abc\n', stderr: '' };
   answers['status --porcelain'] = { status: 1, stdout: '', stderr: '' };
-  assert.throws(() => checkoutState(git), /git status --porcelain failed.*: exit 1/);
+  assert.throws(() => checkoutState({ run: git }), /git status --porcelain failed.*: exit 1/);
 });
 
-test('checkoutState leaves a receipts directory inside the repository out of the status', () => {
-  const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
-  const calls: string[] = [];
-  const git = (args: readonly string[]) => {
-    calls.push(args.join(' '));
-    return { status: 0, stdout: args[0] === 'rev-parse' ? 'abc\n' : '', stderr: '' };
+test('checkoutState exempts only an untracked receipts directory, in a real repository', async () => {
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'replay-check-git-')));
+  const outside = await realpath(await mkdtemp(join(tmpdir(), 'replay-check-link-')));
+  const git = (...args: string[]) => {
+    const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' });
+    assert.equal(result.status, 0, `git ${args.join(' ')}: ${result.stderr}`);
   };
-  checkoutState(git, join(repoRoot, 'saved', 'receipts'));
-  checkoutState(git, '/elsewhere/receipts');
-  checkoutState(git);
-  assert.deepEqual(calls, [
-    'rev-parse HEAD',
-    'status --porcelain -- . :(exclude)saved/receipts',
-    'rev-parse HEAD',
-    'status --porcelain',
-    'rev-parse HEAD',
-    'status --porcelain',
-  ]);
+  const put = async (path: string, text = 'x') => {
+    await mkdir(dirname(join(root, path)), { recursive: true });
+    await writeFile(join(root, path), text);
+  };
+  const state = (receipts?: string) =>
+    checkoutState({ root, receipts: receipts === undefined ? undefined : join(root, receipts) });
+  try {
+    git('init', '-q');
+    await put('crates/a/src/lib.rs', 'fn a() {}');
+    git('add', 'crates/a/src/lib.rs');
+    git('-c', 'user.name=test', '-c', 'user.email=test@example.invalid', 'commit', '-q', '-m', 'one');
+    assert.equal(state().dirty, false);
+
+    // Untracked receipts inside the repository: exempt when named, a change otherwise.
+    await put('saved/r.json');
+    assert.deepEqual(state().changes, ['saved/']);
+    assert.deepEqual(state('saved').changes, []);
+
+    // Through a symlink from outside the repository, the same directory is still exempt.
+    await symlink(join(root, 'saved'), join(outside, 'saved'));
+    assert.deepEqual(checkoutState({ root, receipts: join(outside, 'saved') }).changes, []);
+
+    // A directory with tracked files gets no exemption: its edits and new files count.
+    await put('crates/a/src/lib.rs', 'fn b() {}');
+    await put('crates/a/src/r.json');
+    assert.deepEqual(state('crates/a/src').changes, [
+      'crates/a/src/lib.rs',
+      'crates/a/src/r.json',
+      'saved/',
+    ]);
+    git('checkout', '-q', '--', 'crates/a/src/lib.rs');
+    await rm(join(root, 'crates/a/src/r.json'));
+
+    // The pathspec is literal: a directory named `r*` does not hide `rx/`.
+    await put('r*/r.json');
+    await put('rx/new.rs');
+    assert.deepEqual(state('r*').changes, ['rx/', 'saved/']);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+    await rm(outside, { recursive: true, force: true });
+  }
 });
 
 test('a ledger entry with observedBy that no receipt applied is a problem', () => {
