@@ -165,9 +165,17 @@ const scrollFlow = (pageIndex, warmPage) => ({
 });
 
 // A warm-up that fails leaves the measured window cold, not wrong: the
-// measure still has its own done condition. So the run goes on, but says so.
-const warmupFailed = (flow) => (error) =>
-  console.warn(`[${flow}] warm-up failed: ${String(error?.message ?? error).split('\n')[0]}`);
+// measure still has its own done condition. So the run goes on, but says so,
+// on the console and, through runFlow's `warmupFailed`, on the sample's line.
+const warmupFailures = new WeakMap(); // page -> first failure's message
+const warmupFailed = (page, flow) => (error) => {
+  const message = String(error?.message ?? error).split('\n')[0];
+  console.warn(`[${flow}] warm-up failed: ${message}`);
+  if (!warmupFailures.has(page)) warmupFailures.set(page, message);
+};
+
+// The first warm-up failure on `page`, or undefined.
+export const warmupFailureOn = (page) => warmupFailures.get(page);
 
 // A page-space point (pt, y down, as window.__perf.annotations gives boxes)
 // on page `pageIndex`, in window px.
@@ -281,7 +289,7 @@ const dragAnnotFlow = {
     await settle(page, await now(page), { requireChange: false });
     await findStamp(page, STAMP_PAGE + 8)
       .then((stamp) => dragStamp(page, stamp, 200))
-      .catch(warmupFailed('dragAnnot'));
+      .catch(warmupFailed(page, 'dragAnnot'));
     await page.mouse.move(PARKED.x, PARKED.y);
   },
   async measure(page, cdp) {
@@ -337,7 +345,7 @@ const drawInkFlow = {
     await page.evaluate(() => window.__perf.execute('annotation:add-ink'));
     await drawStrokes(page, await strokesOn(page, warm));
     await waitFor(page, ([i, n]) => window.__perf.annotationCount(i) > n, [warm, count], 'the warm-up ink', 10_000).catch(
-      warmupFailed('drawInk'),
+      warmupFailed(page, 'drawInk'),
     );
     await page.mouse.move(PARKED.x, PARKED.y);
   },
@@ -395,7 +403,7 @@ const typeFieldFlow = {
     await settle(page, await now(page), { requireChange: false });
     await findField(page, FIELD_PAGE + 1)
       .then((field) => typeInto(page, field, TYPED.slice(0, 10)))
-      .catch(warmupFailed('typeField'));
+      .catch(warmupFailed(page, 'typeField'));
     await page.mouse.move(PARKED.x, PARKED.y);
   },
   async measure(page, cdp) {
@@ -455,7 +463,7 @@ const undoFlow = {
     await highlightLines(page, warm);
     await watch(page, 'annotationCount', warm)
       .then((watched) => undoAll(page, watched, count))
-      .catch(warmupFailed('undo'));
+      .catch(warmupFailed(page, 'undo'));
   },
   async measure(page, cdp) {
     const countBefore = await page.evaluate((i) => window.__perf.annotationCount(i), UNDO_PAGE);
@@ -517,7 +525,7 @@ const selectFlow = (name, fixture, pageIndex, region) => ({
       .then((text) => {
         if (!text) throw new Error('the drag selected no text');
       })
-      .catch(warmupFailed(name));
+      .catch(warmupFailed(page, name));
     await page.mouse.move(PARKED.x, PARKED.y);
   },
   async measure(page, cdp) {
@@ -549,7 +557,7 @@ const annotateFlow = (name, fixture, pageIndex, region) => ({
       [warm, count],
       'the warm-up highlight',
       10_000,
-    ).catch(warmupFailed(name));
+    ).catch(warmupFailed(page, name));
     await page.mouse.move(PARKED.x, PARKED.y);
   },
   async measure(page, cdp) {
@@ -731,6 +739,15 @@ export async function openFlow(page, cdp, url) {
 
 const probePath = new URL('./probe.js', import.meta.url).pathname;
 
+// What a sample's line in samples.jsonl records of runFlow's result.
+// `warmupFailed` is there only when the warm-up failed, so a run with none
+// writes the same lines as before it existed.
+export const sampleFields = (r) => ({
+  metrics: r.metrics,
+  ...(r.diagnostics ? { diagnostics: r.diagnostics } : {}),
+  ...(r.warmupFailed ? { warmupFailed: r.warmupFailed } : {}),
+});
+
 // One flow on one arm, in a fresh context: park on /__blank, attach CDP and
 // throttle there (same origin, so the viewer's navigation keeps the process
 // and the throttle), then open and run. `inspect(page)`, when given, runs
@@ -764,8 +781,14 @@ export async function runFlow(run, { origin, flow, fixture, rate, viewport, devi
         await page.evaluate(() => window.__probe.reset());
         result = await f.measure(page, cdp);
       }
+      const warmup = warmupFailureOn(page);
       const inspected = inspect ? await inspect(page) : undefined;
-      return { ...result, inspected, workerThrottled: rate === 1 ? null : cdp.workerThrottled };
+      return {
+        ...result,
+        ...(warmup ? { warmupFailed: warmup } : {}),
+        inspected,
+        workerThrottled: rate === 1 ? null : cdp.workerThrottled,
+      };
     } finally {
       await cdp.close();
     }

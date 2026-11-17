@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { launchBrowser } from './lib/cdp.mjs';
 import { loadConfig } from './lib/config.mjs';
 import { collectEnv, DEVICE_SCALE_FACTOR, distSizes, THROTTLE, verifyFixtures, VIEWPORT } from './lib/env.mjs';
-import { armRuns, FLOW_ORDER, FLOWS, runFlow } from './lib/flows.mjs';
+import { armRuns, FLOW_ORDER, FLOWS, runFlow, sampleFields } from './lib/flows.mjs';
 import { runGate } from './lib/gate.mjs';
 import { serveArms } from './lib/serve.mjs';
 import { workDir } from './scripts/materialize.mjs';
@@ -90,8 +90,7 @@ try {
         const line = { arm, flow, fixture, round };
         try {
           const r = await runFlow(run, { origin: urls[arm], flow, fixture, rate, ...env });
-          line.metrics = r.metrics;
-          if (r.diagnostics) line.diagnostics = r.diagnostics;
+          Object.assign(line, sampleFields(r));
           if (r.memorySource) memorySource ??= r.memorySource;
           if (r.memorySource === 'cdp') memorySource = 'cdp';
           if (r.workerThrottled === false) workerThrottled = false;

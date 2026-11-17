@@ -241,6 +241,18 @@ function report(run, config) {
     for (const e of errors) (byKind[`${e.arm} ${e.flow}(${e.fixture}): ${e.error}`] ??= 0), byKind[`${e.arm} ${e.flow}(${e.fixture}): ${e.error}`]++;
     for (const [k, n] of Object.entries(byKind)) push(`- ${k} (x${n})`);
   }
+  // Kept: a failed warm-up leaves the measured window cold, not wrong
+  // (lib/flows.mjs `warmupFailed`).
+  const cold = samples.filter((s) => !s.error && s.warmupFailed);
+  if (cold.length) {
+    push('', `${cold.length} samples ran after a failed warm-up and are kept, measured after an incomplete warm-up:`, '');
+    const byKind = {};
+    for (const s of cold) {
+      const k = `${s.arm} ${s.flow}(${s.fixture}): ${s.warmupFailed}`;
+      byKind[k] = (byKind[k] ?? 0) + 1;
+    }
+    for (const [k, n] of Object.entries(byKind)) push(`- ${k} (x${n})`);
+  }
 
   const sizes = meta.sizes ?? Object.fromEntries(meta.armsRun.map((id) => [id, distSizes(path.join(workDir(), 'dist', id))]));
   push('', '## Sizes', '');

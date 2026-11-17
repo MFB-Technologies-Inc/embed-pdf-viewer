@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { armRuns, FLOWS } from '../lib/flows.mjs';
+import { armRuns, FLOWS, sampleFields, warmupFailureOn } from '../lib/flows.mjs';
 import { DONE_NEEDS, hasDone } from '../lib/done.mjs';
 
 test('undo needs a history plugin', () => {
@@ -158,7 +158,7 @@ test('hover, on a viewer without one, ends at its last pointer move and watches 
   }
 });
 
-test('a failed annotate or select warm-up is logged, not swallowed', async () => {
+test('a failed annotate or select warm-up is logged and kept for the sample line, not swallowed', async () => {
   const run = fakeRun({
     capabilities: [],
     pageBox: box,
@@ -175,6 +175,9 @@ test('a failed annotate or select warm-up is logged, not swallowed', async () =>
       '[annotate] warm-up failed: timed out waiting for the warm-up highlight',
       '[select] warm-up failed: the drag selected no text',
     ]);
+    // runFlow puts the page's first failure on the sample as `warmupFailed`.
+    assert.equal(warmupFailureOn(run.page), 'timed out waiting for the warm-up highlight');
+    assert.equal(warmupFailureOn({}), undefined, 'a page whose warm-up never failed');
   } finally {
     run.restore();
   }
@@ -233,3 +236,14 @@ for (const flow of ['annotate', 'annotateLarge']) {
     }
   });
 }
+
+test('a sample line carries warmupFailed only when the warm-up failed', () => {
+  const metrics = { settleMs: 1 };
+  // A clean sample serializes exactly as before the field existed.
+  assert.equal(JSON.stringify(sampleFields({ metrics, inspected: undefined, workerThrottled: null })), '{"metrics":{"settleMs":1}}');
+  assert.deepEqual(Object.keys(sampleFields({ metrics, diagnostics: { cycle5: {} } })), ['metrics', 'diagnostics']);
+  assert.deepEqual(sampleFields({ metrics, warmupFailed: 'the drag selected no text' }), {
+    metrics,
+    warmupFailed: 'the drag selected no text',
+  });
+});

@@ -214,6 +214,11 @@ condition on <arm>)` is a `hover` row where that arm can't report the hovered an
 pacing, not hover handling. On a v2 arm the `hover` CPU rows include the done-condition poll
 of `getHovered()`, which on a Rust arm is a kernel read.
 
+A sample whose warm-up failed is kept. Its line in `samples.jsonl` carries the failure's first line
+as `warmupFailed`, and the report lists those samples by arm and flow under the gate, beside the
+samples that failed and were left out. Its measured window followed an incomplete warm-up, so it
+can read slower than its arm's other rounds.
+
 Each arm's cell in the report's tables is `median [max]`: the median over rounds, then the slowest
 round. Each pair table's `threshold` column is the smallest change that row's verdict counts: its
 A/A noise band or 3% of the reference, whichever is wider. A ratio row shows it as a percentage, a

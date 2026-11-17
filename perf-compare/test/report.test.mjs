@@ -257,3 +257,30 @@ test('a run whose gate recorded no capabilities marks every hover row', () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('samples after a failed warm-up are kept and listed per arm and flow', () => {
+  const failed = ({ samples }) => {
+    const mine = samples.filter((s) => s.arm === 'plugins-next');
+    for (const s of mine.slice(0, 3)) s.warmupFailed = 'timed out waiting for the warm-up highlight';
+    samples.find((s) => s.arm === 'main').warmupFailed = 'the drag selected no text';
+  };
+  const clean = fixtureRun();
+  const dir = fixtureRun({ extra: failed });
+  try {
+    const before = runReport(clean);
+    assert.equal(before.status, 0, before.stderr);
+    assert.doesNotMatch(before.stdout, /warm-up/, 'a run with no failed warm-up prints nothing about them');
+    const out = runReport(dir);
+    assert.equal(out.status, 0, out.stderr);
+    assert.match(
+      out.stdout,
+      /\n4 samples ran after a failed warm-up and are kept, measured after an incomplete warm-up:\n\n- main open\(small\): the drag selected no text \(x1\)\n- plugins-next open\(small\): timed out waiting for the warm-up highlight \(x3\)\n/,
+    );
+    // Kept: every row still has all 12 samples, so the tables are unchanged.
+    const strip = (t) => t.replace(/\n4 samples ran after[^]*?\(x3\)\n/, '');
+    assert.equal(strip(out.stdout), before.stdout);
+  } finally {
+    rmSync(clean, { recursive: true, force: true });
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
