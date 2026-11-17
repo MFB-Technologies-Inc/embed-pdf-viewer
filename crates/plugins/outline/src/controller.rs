@@ -130,6 +130,9 @@ pub(crate) struct Core {
     changed: EventHookSource<OutlineChangedEvent>,
     resynced: EventHookSource<OutlineResyncedEvent>,
     memos: RefCell<Memos>,
+    /// The conformance adapter's printed answers.
+    #[cfg(feature = "harness")]
+    pub(crate) printed: crate::harness::Printed,
 }
 
 /// `OutlineCapability`: the api `createOutlineController` returns.
@@ -854,8 +857,15 @@ pub fn create_outline_controller(
     }));
     let outline = cx.mirror(spec)?;
 
-    let core =
-        Rc::new(Core { cx, outline, changed, resynced, memos: RefCell::new(Memos::default()) });
+    let core = Rc::new(Core {
+        cx,
+        outline,
+        changed,
+        resynced,
+        memos: RefCell::new(Memos::default()),
+        #[cfg(feature = "harness")]
+        printed: crate::harness::Printed::default(),
+    });
     *slot.borrow_mut() = Rc::downgrade(&core);
     Ok((OutlineCapability(core), None))
 }

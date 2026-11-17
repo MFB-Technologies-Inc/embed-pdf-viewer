@@ -417,3 +417,56 @@ fn a_colour_that_is_not_a_string_rejects_the_write_before_it_is_staged() {
     assert_eq!(rig.calls("apply"), 0);
     assert_eq!(rig.outline.get(&r(10)).unwrap()["color"], Value::Null);
 }
+
+/// The adapter prints `list`, `getChildren` and `listRows` once per answer:
+/// the same text `Rc` until the read answers anew, byte for byte what the
+/// answer prints as through a `Value`.
+#[test]
+fn outline_list_printed_once_per_change() {
+    use plugin_conformance::{Harness, Outcome};
+    let rig = Rig::loaded(vec![read(), updated(1)]);
+    let o = &rig.outline;
+    let h = Harness::new(
+        vec![Rc::new(epdf_plugin_outline::harness::Outline)],
+        std::collections::HashMap::new(),
+    );
+    let any: Rc<dyn std::any::Any> = Rc::new(o.clone());
+    let printed = |method: &str, args: Vec<Value>| match h.call(&any, method, args) {
+        Outcome::Text(text) => text,
+        _ => panic!("{method} answers as printed text"),
+    };
+    let expected = |o: &OutlineCapability| {
+        [
+            Value::Array((*o.list()).clone()).to_string(),
+            Value::Array((*o.get_children(Some(&r(10)))).clone()).to_string(),
+            plugin_conformance::js::to_value(&*o.list_rows()).to_string(),
+        ]
+    };
+    let reads = || {
+        [printed("list", vec![]), printed("getChildren", vec![r(10)]), printed("listRows", vec![])]
+    };
+    let first = reads();
+    for (text, bytes) in first.iter().zip(expected(o)) {
+        assert_eq!(&**text, bytes);
+    }
+    for (a, b) in first.iter().zip(reads()) {
+        assert!(Rc::ptr_eq(a, &b), "an unchanged answer is printed once");
+    }
+
+    // Expanding changes the rows only.
+    o.expand(&r(10));
+    let expanded = reads();
+    assert!(Rc::ptr_eq(&first[0], &expanded[0]));
+    assert!(!Rc::ptr_eq(&first[2], &expanded[2]));
+    assert_eq!(&*expanded[2], expected(o)[2]);
+
+    // A write changes every answer.
+    settled(&o.update(r(10), titled("X"), none())).unwrap().unwrap();
+    let after = reads();
+    for (a, b) in expanded.iter().zip(&after) {
+        assert!(!Rc::ptr_eq(a, b), "a changed answer is printed again");
+    }
+    for (text, bytes) in after.iter().zip(expected(o)) {
+        assert_eq!(&**text, bytes);
+    }
+}

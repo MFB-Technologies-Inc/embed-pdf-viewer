@@ -17,12 +17,20 @@ use epdf_kernel::{
     AnyPlugin, AnyToken, Error, Token, Unsubscribe, define, is_undefined, undefined,
 };
 use plugin_conformance::js::to_value;
-use plugin_conformance::{Answer, Harness, HarnessPlugin, Outcome};
+use plugin_conformance::{Answer, Harness, HarnessPlugin, Outcome, TextMemo};
 use serde::Serialize;
 use serde_json::{Value, json};
 
 use crate::model::truthy;
 use crate::*;
+
+/// The memoized reads' answers as printed, once per answer `Rc`.
+#[derive(Default)]
+pub(crate) struct Printed {
+    list: TextMemo<Vec<Value>>,
+    children: TextMemo<Vec<Value>>,
+    rows: TextMemo<Vec<OutlineRow>>,
+}
 
 /// The capability object literal's member order (`controller.ts`).
 pub const MEMBERS: &[&str] = &[
@@ -123,14 +131,14 @@ fn hook<E: Serialize + 'static>(
 
 fn call_capability(cap: &OutlineCapability, method: &str, args: &[Value], h: &Harness) -> Outcome {
     match method {
-        "list" => Outcome::Returned(Value::Array((*cap.list()).clone())),
+        "list" => Outcome::Text(cap.0.printed.list.get_or_print(&cap.list())),
         "get" => Outcome::Returned(or_null(cap.get(&arg(args, 0)))),
         "getChildren" => {
             let parent = arg(args, 0);
             let parent = (!is_undefined(&parent)).then_some(&parent);
-            Outcome::Returned(Value::Array((*cap.get_children(parent)).clone()))
+            Outcome::Text(cap.0.printed.children.get_or_print(&cap.get_children(parent)))
         }
-        "listRows" => Outcome::Returned(to_value(&*cap.list_rows())),
+        "listRows" => Outcome::Text(cap.0.printed.rows.get_or_print(&cap.list_rows())),
         "getCurrentItem" => Outcome::Returned(or_null(cap.get_current_item())),
         "isIncomplete" => Outcome::Returned(json!(cap.is_incomplete())),
         "getStatus" => Outcome::Returned(json!(cap.get_status().as_str())),
