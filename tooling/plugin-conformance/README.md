@@ -255,6 +255,18 @@ arbitraries in `src/differential/<crate>.ts`, and compares the outcomes canonica
 it prints the shrunk input as a function case to paste into the suite. `geometry` is the only
 crate so far.
 
+The last full run, on 2026-11-16 in the dev container, was
+`pnpm run differential -- --crate geometry --runs 10000 --seed <s>` for seeds 1, 2 and 3. It ran
+349676, 350207 and 346069 inputs over 37 functions and exited 1 on each seed with the same three
+functions mismatched; the other 34 ran clean. `matrixToCss` and the `cssMatrix` of
+`pageTransform` differ when an `f64` sits halfway between two shortest digit strings (TypeScript
+`...957.2`, Rust `...957.3`): `epdf_kernel::js::number_to_string` rounds the tie up where V8 picks
+the even digit. `normalizePdfQuad` labels the corners of a degenerate quad differently because
+V8's `Math.atan2` and the platform libm differ in the last bit near pi/2, which flips the ring
+sort. Neither is in the ledger or fixed yet; both wait on a decision. The printed cases, for
+example `{ name: 'diff-normalizePdfQuad-1', fn: 'normalizePdfQuad', args: [[{ x: 0, y: -1 },
+{ x: -1.4456042752816933e-19, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 5e-324 }]] }`, reproduce them.
+
 ## The fake engine
 
 `src/fake-engine.ts` and `crates/plugin-conformance/src/fake_engine.rs` answer `engine-core`'s
