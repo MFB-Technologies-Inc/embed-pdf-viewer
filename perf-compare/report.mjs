@@ -153,7 +153,9 @@ function report(run, config) {
   const { meta, gate, samples } = run;
   const lines = [];
   const push = (...l) => lines.push(...l);
-  const allRows = rows(samples);
+  // An arm's rows for a flow whose answer the gate couldn't check (only that
+  // arm gave it, lib/gate.mjs `gateRecord`) are left out.
+  const allRows = rows(samples.filter((s) => !gate[s.arm]?.unchecked?.includes(s.flow)));
   const calib = calibrations(allRows, config, meta.skipped);
 
   push(
@@ -203,6 +205,11 @@ function report(run, config) {
 
   push('', '## Gate', '');
   for (const [id, g] of Object.entries(gate)) push(`- \`${id}\`: ${g.pass ? 'pass' : `excluded: ${g.reason}`}`);
+  const uncheckedText = Object.entries(gate).filter(([, g]) => g.pass && g.unchecked?.length);
+  if (uncheckedText.length) {
+    push('', 'Unchecked, because no other arm in the run gave the answer, so its rows are left out:', '');
+    for (const [id, g] of uncheckedText) push(`- \`${id}\`: ${g.unchecked.map((f) => `\`${f}\``).join(', ')}`);
+  }
   const skippedText = Object.entries(meta.skipped ?? {}).filter(([, flows]) => flows.length);
   if (skippedText.length) {
     push('', 'Not run, because the arm\'s viewer lacks what the flow needs:', '');

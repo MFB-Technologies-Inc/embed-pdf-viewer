@@ -175,23 +175,52 @@ export function answerReasons(id, collected, references) {
 
 const answerKeys = (collected) => [...new Set(Object.values(collected).flatMap((c) => Object.keys(c.answers)))];
 const referenceOf = (key, collected, references) => references.find((a) => collected[a] && key in collected[a].answers);
+const answering = (key, collected) => Object.keys(collected).filter((id) => key in collected[id].answers);
+
+// An answer only one arm in the run gave: answerReasons compares it with
+// itself, so it passes without a comparison.
+export const UNCHECKED = 'unchecked';
+
+// What gate.json records for arm `id`: each answer's reference (the arm its
+// answer was compared with, or UNCHECKED when no other arm in the run gave
+// that answer), and `unchecked`, the flows whose answer went unchecked. The
+// report leaves an arm's rows for those flows out.
+export function gateRecord(id, collected, references) {
+  const refs = {};
+  for (const key of Object.keys(collected[id].answers)) {
+    const alone = answering(key, collected).length === 1;
+    refs[key] = alone ? UNCHECKED : referenceOf(key, collected, references);
+  }
+  const unchecked = Object.keys(refs).filter((key) => refs[key] === UNCHECKED && key in FLOWS);
+  return { references: refs, unchecked };
+}
 
 // Where an answer's reference comes from, in turn: the run's reference (the
 // baseline, unless it failed to load); arms.json's fallbackReference
 // (`main-now`) when it's in the run, for an answer the baseline doesn't give
 // (`undo`, which needs a history plugin `main` lacks); then the arms in run
 // order (`arms.json` order), so a run without `main-now` still compares
-// `undo` among the arms that have it. `order` is the run's arms.
+// `undo` among the arms that have it. An answer only one arm gave has nothing
+// to compare with, whatever this order says (gateRecord marks it unchecked).
+// `order` is the run's arms.
 export function referencesFor(config, referenceId, order) {
   const configured = [referenceId, config.fallbackReference].filter((id) => id && order.includes(id));
   return [...new Set([...configured, ...order])];
 }
 
-// One warning for each answer whose reference came from run order rather than
-// from the baseline or fallbackReference, naming the arm it was compared with.
+// One warning for each answer only one arm gave, saying no comparison
+// happened, and one for each answer whose reference came from run order
+// rather than from the baseline or fallbackReference, naming the arm it was
+// compared with.
 export function warnOrderReferences(collected, config, referenceId, references, warn = console.warn) {
   const configured = [referenceId, config.fallbackReference].filter(Boolean);
   for (const key of answerKeys(collected)) {
+    const gave = answering(key, collected);
+    if (gave.length === 1) {
+      const rows = key in FLOWS ? `, and the report leaves out its ${key} rows` : '';
+      warn(`gate: only ${gave[0]} answered ${key}, so no comparison happened; ${key} is unchecked for ${gave[0]}${rows}`);
+      continue;
+    }
     const refId = referenceOf(key, collected, references);
     if (!configured.includes(refId)) {
       warn(`gate: no ${configured.join(' or ')} answer for ${key}; compared with ${refId}, the first arm in run order that gave one`);
@@ -242,6 +271,7 @@ export async function runGate(run, { config, arms, urls, stamps, env }) {
           answers: got.answers,
           capabilities: got.capabilities,
           skipped: got.skipped,
+          ...gateRecord(id, collected, references),
           screenshotSha256: sha256(got.png), pixelShareVsReference: pixelShare };
   }
   return Object.fromEntries(arms.map((id) => [id, results[id]]));

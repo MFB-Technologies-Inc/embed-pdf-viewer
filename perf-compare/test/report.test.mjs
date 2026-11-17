@@ -183,3 +183,25 @@ test('a row without A/A data that no arm skipped keeps "no A/A data"', () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('an arm whose flow the gate left unchecked has its rows for that flow left out', () => {
+  // The rows still exist for main-now here, so leaving plugins-next's out
+  // shows in the pair table; in a real run the gate marks a flow unchecked
+  // only when no other arm answered it.
+  const unchecked = ({ meta, gate, samples }) => {
+    undoOnly(true)({ meta, gate, samples });
+    gate['plugins-next'] = { pass: true, unchecked: ['undo'] };
+  };
+  const dir = fixtureRun({ extra: unchecked });
+  try {
+    const out = runReport(dir);
+    assert.equal(out.status, 0, out.stderr);
+    const { rows } = section(out.stdout, '## `main-now` vs `plugins-next`');
+    assert.ok(!rows.some((r) => r[0].startsWith('undo')), rows.map((r) => r[0]).join(', '));
+    assert.ok(section(out.stdout, '## `main` vs `plugins-next`').rows.some((r) => r[0] === 'open(small) / loadMs'));
+    assert.match(out.stdout, /Unchecked, because no other arm in the run gave the answer/);
+    assert.match(out.stdout, /- `plugins-next`: `undo`\n/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

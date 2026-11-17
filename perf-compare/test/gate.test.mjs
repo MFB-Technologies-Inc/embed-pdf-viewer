@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { answerReasons, referencesFor, sameAnswer, warnOrderReferences } from '../lib/gate.mjs';
+import { answerReasons, gateRecord, referencesFor, sameAnswer, warnOrderReferences } from '../lib/gate.mjs';
 
 // From the gate of results/2026-11-16T20-06-31-783Z (main against plugins-next).
 const OLD = 'Pay through the nose for a commercial\r\nPDF SDK that locks you into their\r\necosystem';
@@ -44,23 +44,70 @@ test('with main-now in the run, it is the reference even when plugins-next runs 
   assert.deepEqual(warnings, []);
 });
 
-test('without main-now, the default arms compare undo with the first arm in run order, and warn', () => {
-  const defaults = ['main', 'main-aa', 'plugins-base', 'plugins-next'];
+// The default arms as arms.json pins them: plugins-base (9d6c2eca1) builds
+// as viewer API v1 with no capabilities, so it skips undo as main does, and
+// plugins-next is the only arm that answers it.
+const defaults = ['main', 'main-aa', 'plugins-base', 'plugins-next'];
+const defaultRun = {
+  main: collected.main,
+  'main-aa': collected.main,
+  'plugins-base': collected.main,
+  'plugins-next': collected['plugins-next'],
+};
+
+test('without main-now, the default arms leave undo unchecked, record it, and say no comparison happened', () => {
+  const refs = referencesFor(config, 'main', defaults);
+  for (const id of defaults) assert.deepEqual(answerReasons(id, defaultRun, refs), [], id);
+  assert.deepEqual(gateRecord('plugins-next', defaultRun, refs), {
+    references: { searchHits: 'main', dragAnnot: 'main', undo: 'unchecked' },
+    unchecked: ['undo'],
+  });
+  assert.deepEqual(gateRecord('plugins-base', defaultRun, refs), {
+    references: { searchHits: 'main', dragAnnot: 'main' },
+    unchecked: [],
+  });
+  const warnings = [];
+  warnOrderReferences(defaultRun, config, 'main', refs, (w) => warnings.push(w));
+  assert.deepEqual(warnings, [
+    'gate: only plugins-next answered undo, so no comparison happened; undo is unchecked for plugins-next, and the report leaves out its undo rows',
+  ]);
+});
+
+test('with main-now in the default arms, undo is checked against main-now', () => {
+  const order = [...defaults, 'main-now'];
+  const run = { ...defaultRun, 'main-now': collected['main-now'] };
+  const refs = referencesFor(config, 'main', order);
+  assert.deepEqual(gateRecord('plugins-next', run, refs).references.undo, 'main-now');
+  assert.deepEqual(gateRecord('plugins-next', run, refs).unchecked, []);
+  assert.deepEqual(gateRecord('main-now', run, refs).unchecked, []);
+  const off = withUndo('plugins-next', { countAfter: 3 });
+  assert.deepEqual(answerReasons('plugins-next', { ...run, 'plugins-next': off['plugins-next'] }, refs), [
+    'undo: {"countAfter":3} where main-now has {"countAfter":2}',
+  ]);
+  const warnings = [];
+  warnOrderReferences(run, config, 'main', refs, (w) => warnings.push(w));
+  assert.deepEqual(warnings, []);
+});
+
+test('two history arms without main-now compare undo with the first in run order, and warn', () => {
+  const order = ['main', 'main-aa', 'plugins-next', 'plugins-next-lto'];
   const run = {
     main: collected.main,
     'main-aa': collected.main,
-    'plugins-base': collected['plugins-next'],
     'plugins-next': collected['plugins-next'],
+    'plugins-next-lto': collected['plugins-next'],
   };
-  const refs = referencesFor(config, 'main', defaults);
-  for (const id of defaults) assert.deepEqual(answerReasons(id, run, refs), [], id);
+  const refs = referencesFor(config, 'main', order);
+  for (const id of order) assert.deepEqual(answerReasons(id, run, refs), [], id);
+  assert.deepEqual(gateRecord('plugins-next-lto', run, refs).references.undo, 'plugins-next');
+  assert.deepEqual(gateRecord('plugins-next', run, refs).unchecked, []);
   const warnings = [];
   warnOrderReferences(run, config, 'main', refs, (w) => warnings.push(w));
   assert.deepEqual(warnings, [
-    'gate: no main or main-now answer for undo; compared with plugins-base, the first arm in run order that gave one',
+    'gate: no main or main-now answer for undo; compared with plugins-next, the first arm in run order that gave one',
   ]);
-  const off = { ...run, 'plugins-next': { ...run['plugins-next'], answers: { ...run['plugins-next'].answers, undo: { countAfter: 3 } } } };
-  assert.deepEqual(answerReasons('plugins-next', off, refs), ['undo: {"countAfter":3} where plugins-base has {"countAfter":2}']);
+  const off = { ...run, 'plugins-next-lto': { ...run['plugins-next-lto'], answers: { ...run['plugins-next-lto'].answers, undo: { countAfter: 3 } } } };
+  assert.deepEqual(answerReasons('plugins-next-lto', off, refs), ['undo: {"countAfter":3} where plugins-next has {"countAfter":2}']);
 });
 
 test('an arm may lack only the answers of the flows it skipped', () => {

@@ -68,8 +68,13 @@ history plugin, which `main` 2516e2786 doesn't have, so `main` and `main-aa` ski
 runs every flow once on every arm, whatever `--flows` says, so it always has an `undo` answer from
 the arms with history. It compares that answer with `arms.json`'s `fallbackReference` (`main-now`)
 when `main-now` is in the run. Otherwise it uses the first arm in run order that gave one, and
-prints a `gate:` warning naming that arm. The report judges `undo`'s rows against the 3% floor
-alone, because there's no A/A pair for them.
+prints a `gate:` warning naming that arm. When only one arm answers, nothing checks it. The
+default arms are that case: `plugins-base` (`9d6c2eca1`) builds as viewer API v1, skips `undo`
+like `main`, and leaves `plugins-next` as the only arm with an answer. The gate then marks `undo`
+unchecked for that arm (`unchecked` and `references` in its `gate.json` entry), prints a `gate:`
+warning that no comparison happened, and the report leaves that arm's `undo` rows out. Add
+`main-now` to the run to get `undo` checked and timed. The report judges `undo`'s rows against the
+3% floor alone, because there's no A/A pair for them.
 
 ## The standard run
 
