@@ -107,8 +107,13 @@ impl Digest {
         self.0 = self.0.wrapping_mul(0x0100_0000_01b3);
     }
 
+    /// The answer's JSON at the corpus quantum (`test_support::corpus::quantized`),
+    /// and its payloads exactly. Two builds can round a coordinate's last
+    /// bit differently, and the vectors don't pin that either.
     pub fn add_answer(&mut self, answer: &Answer) {
-        self.add(answer.raw.as_bytes());
+        let envelope: Value = serde_json::from_str(&answer.raw).expect("every response is JSON");
+        let quantized = test_support::corpus::quantized(&envelope);
+        self.add(quantized.to_string().as_bytes());
         for payload in &answer.payloads {
             self.add(payload);
         }

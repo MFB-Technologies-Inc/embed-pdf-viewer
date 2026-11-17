@@ -44,9 +44,10 @@ against the sizes in `render/geometry.json`, and a search against the occurrence
 Every round then runs A, the A/A copy and B as separate processes, in an order that rotates by
 round. Only the `Host::call` itself is inside the clock. A row's sample for a round is the median
 of its calls, and the table reports the median over rounds, with the slowest round in brackets.
-Each row's answers are digested, and the run stops if the builds answer any row differently,
-because a wrong answer can be a fast one. The host's clock and id source are fixed, so a build's
-answers are the same bytes on every run.
+Each row's answers are digested, numbers at the corpus quantum (1e-4 point) and payloads byte
+for byte, and the run stops if the builds answer any row differently, because a wrong answer can
+be a fast one. The host's clock and id source are fixed, so a build answers the same bytes on
+every run.
 
 The statistics are the viewer harness's (`stats.mjs`): a bootstrap interval on the ratio of
 medians, the A/A interval as the noise band, and a row's threshold is that band or 3%, whichever

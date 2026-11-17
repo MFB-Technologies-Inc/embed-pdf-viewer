@@ -89,6 +89,7 @@ rmSync(aa);
 const differing = Object.entries(digests).filter(([, set]) => set.size > 1).map(([row]) => row);
 if (differing.length) {
   console.error(`the builds answer differently on: ${differing.join(', ')}`);
+  console.error('`engine-timer round <fixtures> --dump <dir>` with each build writes the answers to diff');
   process.exit(1);
 }
 

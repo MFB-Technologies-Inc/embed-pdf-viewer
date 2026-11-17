@@ -13,13 +13,36 @@ use std::time::Duration;
 
 use serde_json::{Value, json};
 
-use crate::wire::{Digest, Session};
+use crate::wire::{Answer, Digest, Session};
 
 /// What one row produced in one process.
 pub struct RowResult {
     pub row: String,
     pub samples: Vec<Duration>,
     pub digest: Digest,
+    /// Every answer as text, then a tab and its payloads' digest, when the
+    /// round keeps them.
+    pub answers: Vec<String>,
+}
+
+/// A row's answers: always digested, and kept as text when asked.
+#[derive(Default)]
+struct Answers {
+    digest: Digest,
+    kept: Option<Vec<String>>,
+}
+
+impl Answers {
+    fn add(&mut self, answer: &Answer) {
+        self.digest.add_answer(answer);
+        if let Some(kept) = &mut self.kept {
+            let mut payloads = Digest::default();
+            for payload in &answer.payloads {
+                payloads.add(payload);
+            }
+            kept.push(format!("{}\t{}", answer.raw, payloads.hex()));
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -86,16 +109,19 @@ const ROWS: &[Row] = &[
 const SEARCH_TEXT: &str = "the";
 
 /// Runs every row once, in order, on the fixtures in `dir`. `scale` divides
-/// every row's call counts, for a smoke run.
-pub fn run(dir: &Path, scale: usize, mut report: impl FnMut(RowResult)) {
+/// every row's call counts, for a smoke run. `keep` keeps every answer.
+pub fn run(dir: &Path, scale: usize, keep: bool, mut report: impl FnMut(RowResult)) {
     for row in ROWS {
         let path = dir.join(format!("{}.pdf", row.fixture));
         let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
         let warmup = (row.warmup / scale).max(1);
         let iterations = (row.iterations / scale).max(2);
         let name = format!("{}/{}", row.fixture, row.op.name());
-        let (samples, digest) = time(row.op, bytes, warmup, iterations, &name);
-        report(RowResult { row: name, samples, digest });
+        let mut answers = Answers { digest: Digest::default(), kept: keep.then(Vec::new) };
+        let samples = time(row.op, bytes, warmup, iterations, &name, &mut answers);
+        let digest = answers.digest;
+        let answers = answers.kept.unwrap_or_default();
+        report(RowResult { row: name, samples, digest, answers });
     }
 }
 
@@ -105,7 +131,8 @@ fn time(
     warmup: usize,
     iterations: usize,
     name: &str,
-) -> (Vec<Duration>, Digest) {
+    answers: &mut Answers,
+) -> Vec<Duration> {
     let mut session = Session::open(bytes.clone(), None, name);
     let calls = warmup + iterations;
     let requests: Vec<(String, Vec<Vec<u8>>)> = match op {
@@ -116,7 +143,7 @@ fn time(
             })
             .collect(),
         Op::PagesList => repeat(&mut session, json!({ "kind": "pages.list" }), calls),
-        Op::SearchQuery => return search(&mut session, warmup, iterations, name),
+        Op::SearchQuery => return search(&mut session, warmup, iterations, name, answers),
         Op::AnnotationsList => repeat(&mut session, json!({ "kind": "annotations.list" }), calls),
         // A different page each call: a page the engine has already read is
         // a cache lookup, not the work a viewer waits for on scroll.
@@ -147,14 +174,13 @@ fn time(
         }
     };
 
-    let mut digest = Digest::default();
     let mut samples = Vec::with_capacity(iterations);
     for (i, (request, payloads)) in requests.into_iter().enumerate() {
         let (answer, elapsed) = session.call(&request, payloads);
         if let Err(error) = &answer.outcome {
             panic!("{name}: call {i} refused: {error}");
         }
-        digest.add_answer(&answer);
+        answers.add(&answer);
         if matches!(op, Op::Open) {
             let doc = format!("open-{i}");
             let close = json!({ "kind": "close", "docId": doc });
@@ -167,7 +193,7 @@ fn time(
             samples.push(elapsed);
         }
     }
-    (samples, digest)
+    samples
 }
 
 /// A whole-document search, which is a chain of budgeted slices: each sample
@@ -180,8 +206,8 @@ fn search(
     warmup: usize,
     iterations: usize,
     name: &str,
-) -> (Vec<Duration>, Digest) {
-    let mut digest = Digest::default();
+    answers: &mut Answers,
+) -> Vec<Duration> {
     let mut samples = Vec::with_capacity(iterations);
     for i in 0..warmup + iterations {
         let mut total = Duration::ZERO;
@@ -194,7 +220,7 @@ fn search(
             let request = session.request(json!({ "kind": "search.query", "request": query }));
             let (answer, elapsed) = session.call(&request, Vec::new());
             total += elapsed;
-            digest.add_answer(&answer);
+            answers.add(&answer);
             match answer.outcome {
                 Ok(slice) => cursor = slice["nextCursor"].clone(),
                 Err(error) => panic!("{name}: search {i} refused: {error}"),
@@ -207,7 +233,7 @@ fn search(
             samples.push(total);
         }
     }
-    (samples, digest)
+    samples
 }
 
 fn repeat(session: &mut Session, body: Value, calls: usize) -> Vec<(String, Vec<Vec<u8>>)> {

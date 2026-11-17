@@ -5,6 +5,8 @@
 //! engine-timer files <root>         every corpus file the check reads
 //! engine-timer round <fixtures>     one timed round, one JSON line per row
 //!               [--scale <n>]       divide every row's call counts by n
+//!               [--dump <dir>]      write every row's answers to <dir>, to
+//!                                   diff two builds that answer differently
 //! ```
 
 mod check;
@@ -20,7 +22,7 @@ fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let usage = || {
         eprintln!(
-            "usage: engine-timer check <root> | files <root> | round <fixtures> [--scale <n>]"
+            "usage: engine-timer check <root> | files <root> | round <fixtures> [--scale <n>] [--dump <dir>]"
         );
         ExitCode::from(2)
     };
@@ -45,15 +47,27 @@ fn main() -> ExitCode {
             ExitCode::SUCCESS
         }
         ["round", fixtures, rest @ ..] => {
-            let scale = match rest {
-                [] => 1,
-                ["--scale", n] => match n.parse::<usize>() {
-                    Ok(n) if n > 0 => n,
+            let mut scale = 1;
+            let mut dump = None;
+            for option in rest.chunks(2) {
+                match option {
+                    ["--scale", n] => match n.parse::<usize>() {
+                        Ok(n) if n > 0 => scale = n,
+                        _ => return usage(),
+                    },
+                    ["--dump", dir] => dump = Some(PathBuf::from(dir)),
                     _ => return usage(),
-                },
-                _ => return usage(),
-            };
-            rows::run(&PathBuf::from(fixtures), scale, |result| {
+                }
+            }
+            if let Some(dir) = &dump {
+                std::fs::create_dir_all(dir).expect("the dump directory");
+            }
+            rows::run(&PathBuf::from(fixtures), scale, dump.is_some(), |result| {
+                if let Some(dir) = &dump {
+                    let file = dir.join(format!("{}.txt", result.row.replace('/', "-")));
+                    std::fs::write(&file, result.answers.join("\n") + "\n")
+                        .unwrap_or_else(|e| panic!("write {}: {e}", file.display()));
+                }
                 let ns: Vec<u128> = result.samples.iter().map(|d| d.as_nanos()).collect();
                 println!(
                     "{}",
