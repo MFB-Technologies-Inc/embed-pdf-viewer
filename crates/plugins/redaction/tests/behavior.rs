@@ -760,3 +760,24 @@ fn mark_of_refuses_a_page_index_that_is_not_whole() {
         assert_eq!(error.name, "TypeError");
     }
 }
+
+/// An unchanged document answers the pending count from the memo, asking
+/// the annotation plane for no page's list. A new annotation model reads
+/// every page again, the same as the TypeScript's `allMarks` walk.
+#[test]
+fn pending_count_hit_makes_no_annotation_list_call() {
+    let rig = Rig::new(Vec::new());
+    assert_eq!(rig.redaction.get_pending_count(None), 2);
+    let listed = rig.redaction.page_list_calls();
+
+    assert_eq!(rig.redaction.get_pending_count(None), 2);
+    assert_eq!(rig.redaction.page_list_calls(), listed, "a hit asks for no page's list");
+
+    // Selecting a square is a new model with the same marks.
+    let before = rig.redaction.list_pending(None);
+    rig.annotation.selection_set(&[obj(1, 1)]);
+    rt::run_until_stalled();
+    assert_eq!(rig.redaction.get_pending_count(None), 2);
+    assert_eq!(rig.redaction.page_list_calls(), listed + 2, "a new model reads both pages");
+    assert_eq!(keys(&before), keys(&rig.redaction.list_pending(None)));
+}

@@ -38,9 +38,9 @@ impl RedactionStore {
         RedactionStore { cx, index: RefCell::new(None) }
     }
 
-    /// `ctx.document()?.pages`.
-    fn layouts(&self) -> Option<Rc<Value>> {
-        self.cx.document().map(|meta| meta.pages)
+    /// `ctx.document()?.pages`: the same `Rc` while the page list holds.
+    pub(crate) fn layouts(&self) -> Option<Rc<Value>> {
+        self.cx.document_rc().map(|meta| meta.pages.clone())
     }
 
     /// `requireService()`: the handle, when the engine has a redaction
