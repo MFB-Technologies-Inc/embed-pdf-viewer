@@ -187,9 +187,12 @@ const centreOf = ([x, y, w, h]) => [x + w / 2, y + h / 2];
 const annotationsOn = (page, pageIndex) => page.evaluate((i) => window.__perf.annotations(i), pageIndex);
 
 // A done condition polls one page's count, one annotation or one field
-// (entry/main.ts `watch`): found once, before the timed window, so a poll
-// costs the same small read on every arm, not a scan of a 1,000-entry list
-// that a Rust arm also serializes across the wire.
+// (entry/main.ts `watch`), found once before the timed window, not a scan of
+// a 1,000-entry list. The read still differs by arm: the count watch lists
+// the page's annotations (`annotationCountOn` in entry/api-v*.ts), which a
+// Rust arm serializes across the wire whenever its store has changed, and
+// every read on a Rust arm first checks the kernel's state revision
+// (packages/core-wasm/src/proxy.ts `sync`).
 const watch = (page, kind, arg) => page.evaluate(([k, a]) => window.__perf.watch(k, a), [kind, arg]);
 
 // annots.pdf (fixtures/generate.mjs): page index 200 has 20 highlights, one

@@ -418,6 +418,22 @@ should prove the Rust route ran rather than only that the payload contains the c
 Items 1 and 2 below, the next step this section first named, are done. The large flows came after
 (item 10); the three gaps in the paragraph above are still open.
 
+Two harness fixes from the 2026-11-17 reviews are deferred (added 2026-11-17). Each changes what a
+recorded row means, so it needs a new timed run on the Mac mini before any row under it can be
+quoted, and none was started. The first is the probe's cost. `lib/probe.js` samples the page
+images on every animation frame (`tick`) and again every 16 ms while a settle waits (`check` in
+`settledAt`), so during a settle it can sample twice a frame, inside every `mainJsMs` and
+`mainTaskMs` window. Its share of those rows has never been measured. The fix is to sample once a
+frame, or to time the same arms with the probe on and off in one run and publish the difference;
+either changes the probe hash or the rows, so `--drift` refuses every earlier run against the
+first run after it. The second is the paced settle rows. `hover / settleMs` and
+`drawInk / settleMs` are `settled - t0` (`lib/flows.mjs`), which includes the frame-paced input,
+80 pointer moves for `hover` and 180 for `drawInk`, so the 3% floor is 3% of a median that is
+mostly pacing (the caveats at the top), and the rows move with the frame interval ("Where the port
+stands", under "The fix branch under the corrected harness"). The fix is what `scroll` does:
+report `wallMs = settled - t0` and judge `settleMs` from the last pointer move. That costs every
+earlier `hover` and `drawInk` settle row its comparability with the new ones.
+
 ## Not tried yet
 
 Updated 2026-10-05, with every kept fix merged into

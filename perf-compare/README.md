@@ -337,6 +337,21 @@ trace is on during every measured window, so its overhead is in every timing.
 `scroll / settleMs` is usually 0 on the TypeScript arms: every render lands during the wheel burst,
 so the page is already settled when the last wheel event goes out.
 
+`hover / settleMs` and `drawInk / settleMs` are `settled - t0`, where `t0` is before the first
+pointer move, so they include the frame-paced input: 80 pointer moves for `hover` (four steps
+between each of 20 highlights), and 180 moves plus the ink tool's 800 ms grouping window for
+`drawInk`. Most of each row is pacing, which scales with the run's frame interval, and the 3%
+floor is taken from that total: `main-now` against `phase-d-end` in `2026-11-17T04-18-50-584Z`
+had thresholds of ±39.6 ms on `hover` and ±118.2 ms on `drawInk`. `dragAnnot`, `typeField`, `select` and `annotate` include their shorter input the same
+way. `scroll` splits the two, `wallMs` from `t0` and `settleMs` from the last wheel; these flows
+don't yet (`FINDINGS.md`, "What the harness should measure next").
+
+A done condition's poll is a small read on every arm, found once before the timed window
+(`entry/main.ts` `watch`), but not the same read: the count watch that `drawInk`, `undo`,
+`annotate` and `annotateLarge` poll lists one page's annotations (`annotationCountOn` in
+`entry/api-v*.ts`), which a Rust arm serializes across the wire whenever its store has changed,
+and every read on a Rust arm first checks the kernel's state revision.
+
 The `slow` profile approximates a mid-range laptop by CPU throttling. It is not a real device.
 
 ## Tests
