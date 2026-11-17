@@ -14,6 +14,8 @@
 pub mod functions;
 
 use std::any::Any;
+use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use epdf_annotation_core::object::Json;
@@ -21,7 +23,7 @@ use epdf_annotation_core::types::{Authority, Effect, Model, Painter, Point, View
 use epdf_kernel::rt::Promise;
 use epdf_kernel::signal::AbortSignal;
 use epdf_kernel::{AnyPlugin, AnyToken, Error, Unsubscribe};
-use plugin_conformance::{Answer, Callback, Harness, HarnessPlugin, Outcome};
+use plugin_conformance::{Answer, Callback, Harness, HarnessPlugin, Outcome, TextMemo};
 use serde_json::{Value, json};
 
 pub use functions::{pure_functions, repository_functions};
@@ -38,6 +40,48 @@ use crate::{ANNOTATION, AnnotationCapability, annotation_plugin};
 
 /// The adapter.
 pub struct Annotation;
+
+/// The memoized reads' answers as printed: each read's text is printed once
+/// per answer `Rc`, and the page reads keep one text per page.
+#[derive(Default)]
+pub(crate) struct Printed {
+    pages: RefCell<HashMap<(&'static str, String), Rc<TextMemo<Value>>>>,
+    list: TextMemo<Vec<Value>>,
+    selected: TextMemo<Vec<Value>>,
+    settings: TextMemo<Value>,
+    threads: TextMemo<Vec<Value>>,
+}
+
+impl Printed {
+    /// `read`'s answer for `page`, printed.
+    fn page(&self, read: &'static str, page: &Value, answer: &Rc<Value>) -> Rc<str> {
+        let key =
+            (read, epdf_annotation_core::js::number_to_string(crate::js::page_object_number(page)));
+        let memo = self.pages.borrow_mut().entry(key).or_default().clone();
+        memo.get_or_print(answer)
+    }
+}
+
+/// Whether an item of `items` carries a function, which prints as a ref
+/// registered per call, so its print can't be kept.
+fn any_carries(items: &Value, carries: impl Fn(&Value) -> bool) -> bool {
+    items.as_array().into_iter().flatten().any(carries)
+}
+
+fn is_function(value: &Value) -> bool {
+    value.get("$function").is_some()
+}
+
+/// A page item's `lentScene` function.
+fn has_lent_scene(item: &Value) -> bool {
+    item.get("lentScene").is_some_and(is_function)
+}
+
+/// A text item's program `load` function.
+fn has_program_load(item: &Value) -> bool {
+    let programs = item.get("programs").and_then(Value::as_array);
+    programs.into_iter().flatten().any(|p| p.get("load").is_some_and(is_function))
+}
 
 /// A noun of the capability (`selection`, `draft`, `text`, `tools`,
 /// `stamps`, `links`, `comments`), resolved for a dotted call.
@@ -617,7 +661,9 @@ fn call_noun(
             a.selection_clear();
             undefined_outcome()
         }
-        ("selection", "getSelected") => Outcome::Returned(json!(*a.list_selected())),
+        ("selection", "getSelected") => {
+            Outcome::Text(a.printed.selected.get_or_print(&a.list_selected()))
+        }
         ("selection", "update") => {
             let patch = match arg(args, 0) {
                 Some(spec) if spec.get("$fn").is_some() => {
@@ -691,7 +737,9 @@ fn call_noun(
         ("links", "get") => Outcome::Returned(a.links_get(&value(args, 0))),
         ("links", "set") => promise_unit(a.links_set(&value(args, 0), value(args, 1), None)),
         ("links", "clear") => promise_unit(a.links_clear(&value(args, 0), None)),
-        ("comments", "listThreads") => Outcome::Returned(a.comments_list_threads()),
+        ("comments", "listThreads") => {
+            Outcome::Text(a.printed.threads.get_or_print(&a.threads_index().threads))
+        }
         ("comments", "getThread") => Outcome::Returned(a.comments_get_thread(&value(args, 0))),
         ("comments", "onThreadChanged") => subscribe(h, &a.events.thread_changed, &value(args, 0)),
         ("comments", "reply") => promise(a.comments_reply(&value(args, 0), &text(args, 1), None)),
@@ -726,7 +774,7 @@ fn call_noun(
 fn call_capability(a: &AnnotationCapability, method: &str, args: &[Value], h: &Harness) -> Outcome {
     match method {
         // ── settings ──
-        "getSettings" => Outcome::Returned((*a.settings.get()).clone()),
+        "getSettings" => Outcome::Text(a.printed.settings.get_or_print(&a.settings.get())),
         "updateSettings" => {
             a.settings.store.update_settings(&value(args, 0));
             undefined_outcome()
@@ -739,7 +787,7 @@ fn call_capability(a: &AnnotationCapability, method: &str, args: &[Value], h: &H
         "get" => Outcome::Returned(opt_value(a.get(&value(args, 0)))),
         "list" => {
             let filter = arg(args, 0).map(AnnotationFilter::read);
-            Outcome::Returned(json!(*a.list(filter.as_ref())))
+            Outcome::Text(a.printed.list.get_or_print(&a.list(filter.as_ref())))
         }
         "isPending" => Outcome::Returned(json!(a.is_pending(&value(args, 0)))),
         "getHovered" => Outcome::Returned(opt_value(a.get_hovered())),
@@ -755,12 +803,11 @@ fn call_capability(a: &AnnotationCapability, method: &str, args: &[Value], h: &H
         "canDelete" => Outcome::Returned(json!(a.can_delete(&value(args, 0)))),
         "canDuplicate" => Outcome::Returned(json!(a.can_duplicate(&refs(args, 0)))),
         // ── chrome ──
-        "listChromeNodes" => Outcome::Returned(a.list_chrome_nodes(
-            &value(args, 0),
-            num(args, 1),
-            num(args, 2),
-            num(args, 3),
-        )),
+        "listChromeNodes" => {
+            let page = value(args, 0);
+            let nodes = a.list_chrome_nodes(&page, num(args, 1), num(args, 2), num(args, 3));
+            Outcome::Text(a.printed.page("listChromeNodes", &page, &nodes))
+        }
         "getSelectionAnchorIn" => {
             let view = hit_view(&value(args, 0));
             Outcome::Returned(a.selection_anchor_of(view.scale, view.rotation, view.zoom))
@@ -790,13 +837,28 @@ fn call_capability(a: &AnnotationCapability, method: &str, args: &[Value], h: &H
         }
         // ── render ──
         "listPageItems" => {
-            Outcome::Returned(lent_scenes(h, a.list_page_items(&value(args, 0), view_env(args, 1))))
+            let page = value(args, 0);
+            let items = a.list_page_items(&page, view_env(args, 1));
+            if any_carries(&items, has_lent_scene) {
+                Outcome::Returned(lent_scenes(h, (*items).clone()))
+            } else {
+                Outcome::Text(a.printed.page("listPageItems", &page, &items))
+            }
         }
-        "listTextItems" => Outcome::Returned(program_loads(
-            h,
-            a.list_text_items(&value(args, 0), view_env(args, 1)),
-        )),
-        "listLinkItems" => Outcome::Returned(a.list_link_items(&value(args, 0))),
+        "listTextItems" => {
+            let page = value(args, 0);
+            let items = a.list_text_items(&page, view_env(args, 1));
+            if any_carries(&items, has_program_load) {
+                Outcome::Returned(program_loads(h, (*items).clone()))
+            } else {
+                Outcome::Text(a.printed.page("listTextItems", &page, &items))
+            }
+        }
+        "listLinkItems" => {
+            let page = value(args, 0);
+            let items = a.list_link_items(&page);
+            Outcome::Text(a.printed.page("listLinkItems", &page, &items))
+        }
         "getAppearanceEpoch" => Outcome::Returned(json!(a.get_appearance_epoch(&value(args, 0)))),
         "renderAppearances" => {
             let h = h.clone();

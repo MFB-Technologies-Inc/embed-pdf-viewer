@@ -497,8 +497,8 @@ fn a_write_failed_listener_can_reenter_the_pointer_and_leaves_the_record_publicl
     assert!(!cap.can_update(&square_ref(10001)));
     assert!(!cap.can_delete(&square_ref(10001)));
     assert!(cap.list(None).is_empty());
-    assert_eq!(cap.list_page_items(&page(), None), json!([]));
-    assert_eq!(cap.list_chrome_nodes(&page(), None, None, None), json!([]));
+    assert_eq!(*cap.list_page_items(&page(), None), json!([]));
+    assert_eq!(*cap.list_chrome_nodes(&page(), None, None, None), json!([]));
     assert!(cap.draft_get().is_null());
 
     let log = fake.log_since(0);
@@ -661,4 +661,96 @@ fn a_cursorless_handle_reads_undefined_and_nothing_reads_null() {
     assert!(upright.is_string(), "a corner handle has a cursor upright: {upright}");
     assert!(epdf_kernel::is_undefined(&at(100.0, 100.0, Some(f64::NAN))));
     assert_eq!(at(400.0, 400.0, None), Value::Null);
+}
+
+// ── S4, S6: memoized reads hand out their memo and print it once ───────────
+
+/// The capability as the conformance adapter is called with, and a harness
+/// over that adapter.
+fn adapter_call(
+    cap: &AnnotationCapability,
+) -> impl Fn(&str, Vec<Value>) -> plugin_conformance::Outcome {
+    use plugin_conformance::Harness;
+    let h = Harness::new(
+        vec![Rc::new(epdf_plugin_annotation::harness::Annotation)],
+        std::collections::HashMap::new(),
+    );
+    let any: Rc<dyn std::any::Any> = Rc::new(cap.clone());
+    move |method, args| h.call(&any, method, args)
+}
+
+fn printed(outcome: plugin_conformance::Outcome) -> Rc<str> {
+    match outcome {
+        plugin_conformance::Outcome::Text(text) => text,
+        _ => panic!("the read answers as printed text"),
+    }
+}
+
+/// A page read hands out its memo itself on a hit, and the adapter prints
+/// it once: the same text `Rc` until the read's answer changes, byte for
+/// byte what the answer prints as.
+#[test]
+fn list_page_items_shared_on_hit() {
+    let (kernel, _fake) =
+        kernel(vec![square(7, 100.0, 100.0), square(8, 300.0, 300.0)], Vec::new());
+    let cap = annotation(&kernel);
+    let items = cap.list_page_items(&page(), None);
+    assert_eq!(items.as_array().map(Vec::len), Some(2));
+    assert!(Rc::ptr_eq(&items, &cap.list_page_items(&page(), None)));
+    let texts = cap.list_text_items(&page(), None);
+    assert!(Rc::ptr_eq(&texts, &cap.list_text_items(&page(), None)));
+    let links = cap.list_link_items(&page());
+    assert!(Rc::ptr_eq(&links, &cap.list_link_items(&page())));
+    let nodes = cap.list_chrome_nodes(&page(), None, None, None);
+    assert!(Rc::ptr_eq(&nodes, &cap.list_chrome_nodes(&page(), None, None, None)));
+
+    let call = adapter_call(&cap);
+    let reads: [(&str, Vec<Value>, String); 8] = [
+        ("listPageItems", vec![page()], items.to_string()),
+        ("listTextItems", vec![page()], texts.to_string()),
+        ("listLinkItems", vec![page()], links.to_string()),
+        ("listChromeNodes", vec![page()], nodes.to_string()),
+        ("list", vec![], json!(*cap.list(None)).to_string()),
+        ("selection.getSelected", vec![], json!(*cap.list_selected()).to_string()),
+        ("getSettings", vec![], cap.get_settings().to_string()),
+        ("comments.listThreads", vec![], cap.comments_list_threads().to_string()),
+    ];
+    for (method, args, expected) in &reads {
+        let first = printed(call(method, args.clone()));
+        assert_eq!(&*first, expected.as_str(), "{method} prints what it answers");
+        let again = printed(call(method, args.clone()));
+        assert!(Rc::ptr_eq(&first, &again), "{method} prints once");
+    }
+
+    // A selection changes the page's model, so the page and selection reads
+    // answer anew, and print anew.
+    let before = printed(call("listPageItems", vec![page()]));
+    let selected = printed(call("selection.getSelected", vec![]));
+    cap.selection_set(&[square_ref(7)]);
+    let items_after = cap.list_page_items(&page(), None);
+    assert!(!Rc::ptr_eq(&items, &items_after));
+    let after = printed(call("listPageItems", vec![page()]));
+    assert!(!Rc::ptr_eq(&before, &after));
+    assert_eq!(&*after, items_after.to_string());
+    let selected_after = printed(call("selection.getSelected", vec![]));
+    assert!(!Rc::ptr_eq(&selected, &selected_after));
+    assert_eq!(&*selected_after, json!(*cap.list_selected()).to_string());
+}
+
+/// `getAppearanceEpoch` keeps the engine's part of a page's epoch per page
+/// model: the same answer `Rc` while the page's model is the same, a new
+/// one, equal while the pictures are, once it changes.
+#[test]
+fn appearance_epoch_memoized_per_page_model() {
+    let (kernel, _fake) =
+        kernel(vec![square(7, 100.0, 100.0), square(8, 300.0, 300.0)], Vec::new());
+    let cap = annotation(&kernel);
+    let epoch = cap.get_appearance_epoch(&page());
+    assert_eq!(&*epoch, "obj:7@0|obj:8@0");
+    assert!(Rc::ptr_eq(&epoch, &cap.get_appearance_epoch(&page())));
+    cap.selection_set(&[square_ref(7)]);
+    let after = cap.get_appearance_epoch(&page());
+    assert!(!Rc::ptr_eq(&epoch, &after), "a new page model computes it again");
+    assert_eq!(after, epoch, "a selection changes no picture");
+    assert!(Rc::ptr_eq(&after, &cap.get_appearance_epoch(&page())));
 }

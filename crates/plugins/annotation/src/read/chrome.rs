@@ -58,7 +58,7 @@ type ChromeKey = (Rc<Model>, Rc<serde_json::Value>, Option<f64>, Option<f64>, Op
 
 #[derive(Default)]
 pub struct ChromeState {
-    nodes: RefCell<HashMap<String, (ChromeKey, Value)>>,
+    nodes: RefCell<HashMap<String, (ChromeKey, Rc<Value>)>>,
     anchor: RefCell<Option<(ChromeKey, Value)>>,
     anchors: RefCell<HashMap<String, (Rc<Model>, Option<(f64, f64)>, Value)>>,
     rotation: RefCell<Option<(Rc<Model>, Value)>>,
@@ -180,7 +180,7 @@ impl Core {
         scale: Option<f64>,
         rotation: Option<f64>,
         zoom: Option<f64>,
-    ) -> Value {
+    ) -> Rc<Value> {
         let number = page_object_number(page);
         let model = self.model();
         let settings = self.settings.get();
@@ -205,7 +205,7 @@ impl Core {
         if !cs.rotation_handle {
             nodes.retain(|n| !matches!(n, ChromeNode::RotateKnob(_)));
         }
-        let value = Value::Array(nodes.iter().map(Json::json).collect());
+        let value = Rc::new(Value::Array(nodes.iter().map(Json::json).collect()));
         self.chrome.nodes.borrow_mut().insert(page_key, (key, value.clone()));
         value
     }

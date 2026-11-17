@@ -33,9 +33,13 @@ type ItemsKey =
 
 #[derive(Default)]
 pub struct RenderState {
-    items: RefCell<HashMap<String, (ItemsKey, Value)>>,
-    texts: RefCell<HashMap<String, (Rc<Model>, Option<(f64, f64)>, Value)>>,
-    links: RefCell<HashMap<String, (Rc<Model>, Value)>>,
+    items: RefCell<HashMap<String, (ItemsKey, Rc<Value>)>>,
+    texts: RefCell<HashMap<String, (Rc<Model>, Option<(f64, f64)>, Rc<Value>)>>,
+    links: RefCell<HashMap<String, (Rc<Model>, Rc<Value>)>>,
+    /// The engine's part of each page's epoch, per page model. Kept only
+    /// while no lender is set: which records are lent is the lender's
+    /// answer, asked once per record, and a memo would ask it less often.
+    epochs: RefCell<HashMap<String, (Rc<Model>, Rc<EngineEpoch>)>>,
 }
 
 fn opt_ptr<T>(a: &Option<Rc<T>>, b: &Option<Rc<T>>) -> bool {
@@ -61,9 +65,53 @@ struct Epoch {
     lent: String,
 }
 
+/// The part of a page's epoch its model decides while no record is lent:
+/// the annotations the engine draws, and the records it hasn't written,
+/// whose pictures are looked up per read.
+struct EngineEpoch {
+    engine: Vec<AppearanceItem>,
+    /// `engine` as the epoch prints it.
+    drawn: Rc<str>,
+    unconfirmed: Vec<Rc<ModelAnnotation>>,
+}
+
+/// The baked records the page shows a picture of, in the model's order.
+fn baked_on(model: &Model, number: f64) -> impl Iterator<Item = &Rc<ModelAnnotation>> {
+    model.order.iter().filter_map(move |id| {
+        let record = model.by_id.get(id)?;
+        (record.page_number() == Some(number)
+            && record.source == Source::Baked
+            && !is_substrate_only(&record.annotation))
+        .then_some(record)
+    })
+}
+
+fn appearance_item(record: &ModelAnnotation) -> AppearanceItem {
+    AppearanceItem {
+        reference: record.annotation.get("ref").cloned().unwrap_or(Value::Null),
+        version: record.picture_version.unwrap_or(0.0),
+    }
+}
+
+/// The engine's items as the epoch prints them: `key@version`, sorted.
+fn drawn_of(engine: &[AppearanceItem]) -> String {
+    let mut drawn: Vec<String> = engine
+        .iter()
+        .map(|item| {
+            format!(
+                "{}@{}",
+                key_or_none(&item.reference),
+                epdf_annotation_core::js::number_to_string(item.version)
+            )
+        })
+        .collect();
+    drawn.sort();
+    drawn.join("|")
+}
+
 impl Core {
     /// `listPageItems(page, view)`.
-    pub fn list_page_items(&self, page: &Value, view: Option<ViewEnv>) -> Value {
+    pub fn list_page_items(&self, page: &Value, view: Option<ViewEnv>) -> Rc<Value> {
         let number = page_object_number(page);
         let model = self.page_model(number);
         let state = self.state();
@@ -81,13 +129,13 @@ impl Core {
         let mut items: Vec<Value> =
             page_items(&model, &core_page(page), view.as_ref()).iter().map(Json::json).collect();
         items.extend(self.ghost_items_on(number, &model, view.as_ref()));
-        let value = Value::Array(items);
+        let value = Rc::new(Value::Array(items));
         self.render.items.borrow_mut().insert(page_key(number), (key, value.clone()));
         value
     }
 
     /// `listTextItems(page, view)`.
-    pub fn list_text_items(&self, page: &Value, view: Option<ViewEnv>) -> Value {
+    pub fn list_text_items(&self, page: &Value, view: Option<ViewEnv>) -> Rc<Value> {
         let number = page_object_number(page);
         let model = self.page_model(number);
         if let Some((m, vk, v)) = self.render.texts.borrow().get(&page_key(number))
@@ -98,8 +146,12 @@ impl Core {
         }
         let lookup = self.fonts();
         let fonts = TextItemFonts { lookup: lookup.as_deref() };
-        let items =
-            Value::Array(build_text_items(&model, &core_page(page), view.as_ref(), Some(fonts)));
+        let items = Rc::new(Value::Array(build_text_items(
+            &model,
+            &core_page(page),
+            view.as_ref(),
+            Some(fonts),
+        )));
         self.render
             .texts
             .borrow_mut()
@@ -108,7 +160,7 @@ impl Core {
     }
 
     /// `listLinkItems(page)`: standalone links and attached-link segments.
-    pub fn list_link_items(&self, page: &Value) -> Value {
+    pub fn list_link_items(&self, page: &Value) -> Rc<Value> {
         let number = page_object_number(page);
         let model = self.page_model(number);
         if let Some((m, v)) = self.render.links.borrow().get(&page_key(number))
@@ -160,7 +212,7 @@ impl Core {
             }
             items.push(Value::Object(item));
         }
-        let value = Value::Array(items);
+        let value = Rc::new(Value::Array(items));
         self.render.links.borrow_mut().insert(page_key(number), (model, value.clone()));
         value
     }
@@ -252,33 +304,29 @@ impl Core {
     fn epoch_of(&self, page: &Value) -> Epoch {
         let number = page_object_number(page);
         let model = self.page_model(number);
+        if self.lending.lender().is_none() {
+            let base = self.engine_epoch(number, &model);
+            return Epoch {
+                engine: base.engine.clone(),
+                placed: self.placed_of(&base.unconfirmed),
+                lent: String::new(),
+            };
+        }
         let mut engine = Vec::new();
         let mut placed: Vec<String> = Vec::new();
         let mut lent_shown = false;
-        for id in model.order.iter() {
-            let Some(record) = model.by_id.get(id) else { continue };
-            if record.page_number() != Some(number) || record.source != Source::Baked {
-                continue;
-            }
-            if is_substrate_only(&record.annotation) {
-                continue;
-            }
+        for record in baked_on(&model, number) {
             if record.unconfirmed == Some(true) {
-                if self.preview_or_original(record).is_some() {
-                    placed.push(format!("{id}@placed"));
-                } else if !self.kept_of(record).is_empty() {
-                    placed.push(format!("{id}@kept"));
+                if let Some(shown) = self.placed_one(record) {
+                    placed.push(shown);
                 }
                 continue;
             }
-            if self.lending.owns(id) {
+            if self.lending.owns(&record.id) {
                 lent_shown = true;
                 continue;
             }
-            engine.push(AppearanceItem {
-                reference: record.annotation.get("ref").cloned().unwrap_or(Value::Null),
-                version: record.picture_version.unwrap_or(0.0),
-            });
+            engine.push(appearance_item(record));
         }
         placed.sort();
         let lent = match (lent_shown, self.lending.lender()) {
@@ -288,27 +336,68 @@ impl Core {
         Epoch { engine, placed: placed.join("|"), lent }
     }
 
-    /// `getAppearanceEpoch(page)`.
-    pub fn get_appearance_epoch(&self, page: &Value) -> String {
-        let epoch = self.epoch_of(page);
-        let mut drawn: Vec<String> = epoch
-            .engine
-            .iter()
-            .map(|item| {
-                format!(
-                    "{}@{}",
-                    key_or_none(&item.reference),
-                    epdf_annotation_core::js::number_to_string(item.version)
-                )
-            })
-            .collect();
-        drawn.sort();
-        let drawn = drawn.join("|");
-        [drawn, epoch.placed, epoch.lent]
+    /// The engine's part of the page's epoch while no lender is set, so no
+    /// record is lent, kept per page model.
+    fn engine_epoch(&self, number: f64, model: &Rc<Model>) -> Rc<EngineEpoch> {
+        if let Some((m, base)) = self.render.epochs.borrow().get(&page_key(number))
+            && Rc::ptr_eq(m, model)
+        {
+            return base.clone();
+        }
+        let mut engine = Vec::new();
+        let mut unconfirmed = Vec::new();
+        for record in baked_on(model, number) {
+            if record.unconfirmed == Some(true) {
+                unconfirmed.push(record.clone());
+            } else {
+                engine.push(appearance_item(record));
+            }
+        }
+        let drawn = drawn_of(&engine).into();
+        let base = Rc::new(EngineEpoch { engine, drawn, unconfirmed });
+        self.render.epochs.borrow_mut().insert(page_key(number), (model.clone(), base.clone()));
+        base
+    }
+
+    /// How an unconfirmed record shows: the preview it was placed with, or
+    /// the pictures kept of it or of its original.
+    fn placed_one(&self, record: &ModelAnnotation) -> Option<String> {
+        if self.preview_or_original(record).is_some() {
+            Some(format!("{}@placed", record.id))
+        } else if !self.kept_of(record).is_empty() {
+            Some(format!("{}@kept", record.id))
+        } else {
+            None
+        }
+    }
+
+    fn placed_of(&self, unconfirmed: &[Rc<ModelAnnotation>]) -> String {
+        let mut placed: Vec<String> =
+            unconfirmed.iter().filter_map(|record| self.placed_one(record)).collect();
+        placed.sort();
+        placed.join("|")
+    }
+
+    /// `getAppearanceEpoch(page)`. While no lender is set, a page with no
+    /// unconfirmed record answers the kept print of its engine part.
+    pub fn get_appearance_epoch(&self, page: &Value) -> Rc<str> {
+        let number = page_object_number(page);
+        let (drawn, placed, lent) = if self.lending.lender().is_none() {
+            let base = self.engine_epoch(number, &self.page_model(number));
+            if base.unconfirmed.is_empty() {
+                return base.drawn.clone();
+            }
+            (base.drawn.to_string(), self.placed_of(&base.unconfirmed), String::new())
+        } else {
+            let epoch = self.epoch_of(page);
+            (drawn_of(&epoch.engine), epoch.placed, epoch.lent)
+        };
+        [drawn, placed, lent]
             .into_iter()
             .filter(|s| !s.is_empty())
             .collect::<Vec<_>>()
             .join("|")
+            .into()
     }
 
     /// `renderAppearances(page, scale, signal)`: every picture the page's

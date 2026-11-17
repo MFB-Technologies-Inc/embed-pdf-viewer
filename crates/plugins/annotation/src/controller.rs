@@ -69,6 +69,9 @@ pub struct Core {
     pub(crate) drafts: DraftsState,
     pub(crate) threads: ThreadsState,
     pub(crate) hover_feed: RefCell<Option<HoverFeed>>,
+    /// The conformance adapter's printed answers.
+    #[cfg(feature = "harness")]
+    pub(crate) printed: crate::harness::Printed,
 }
 
 /// `AnnotationHostCapability`, which includes the public
@@ -341,6 +344,8 @@ pub fn create_annotation_controller(
         drafts: DraftsState::default(),
         threads: ThreadsState::default(),
         hover_feed: RefCell::new(None),
+        #[cfg(feature = "harness")]
+        printed: crate::harness::Printed::default(),
     });
     // `createServices`: the store's listeners, then the tools a document
     // has (read once, when it opens: each seeds its defaults).
