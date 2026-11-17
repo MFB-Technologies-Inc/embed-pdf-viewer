@@ -391,34 +391,34 @@
   {
     "id": "PLATFORM-MATH-COS-SIN",
     "summary": "rotate and rotateAbout take cos and sin from the platform math library, which can round the last bit differently from the JavaScript runtime's Math.cos and Math.sin.",
-    "reason": "Each library is within one ulp of the exact value but they are not bit-identical, and which one Rust links depends on the platform (in the dev container cos(-6) is 0.960170286650366 where the JavaScript runtime gives 0.9601702866503661), so no Rust change can match everywhere short of carrying a ported math library. Recorded in docs/research/conformance-verification.md (seed 31337). The comparison's 1e-12 relative tolerance absorbs the ulp except where an output is a safe integer: rotateAbout about { x: 0, y: -4915517297019373 } by -6 prints -195783644905450 where the TypeScript prints -195783644905449. In epdf-geometry it reaches rotate and rotateAbout only; annotation-core, form-core, selection and epdf-engine call the platform cos and sin too, where no vector has shown a difference. The function suites are outside the ledger's observations, so the pin feeds the recorded input and accepts only the TypeScript's arithmetic on a cosine and sine each within one ulp of the runtime's.",
+    "reason": "Each library is within one ulp of the exact value but they are not bit-identical, and which one Rust links depends on the platform (in the dev container cos(-6) is 0.960170286650366 where the JavaScript runtime gives 0.9601702866503661), so no Rust change can match everywhere short of carrying a ported math library. Recorded in docs/research/conformance-verification.md (seed 31337). The comparison's 1e-12 relative tolerance absorbs the ulp except where an output is a safe integer: rotateAbout about { x: 0, y: -4915517297019373 } by -6 prints -195783644905450 where the TypeScript prints -195783644905449. In epdf-geometry it reaches rotate and rotateAbout only; annotation-core, form-core, selection and epdf-engine call the platform cos and sin too, where no vector has shown a difference. The function suites are outside the ledger's observations, so the pin feeds the recorded input, requires this platform's cosine and sine each within one ulp of the runtime's, and accepts only the TypeScript's arithmetic on them.",
     "decided": "2026-11-17, after the geometry differential",
     "pinnedBy": "crates/plugins/geometry/tests/platform_math.rs::rotate_about_differs_only_by_one_ulp_of_the_platform_cos_and_sin",
     "differentialSkip": [
       {
         "fn": "rotate",
-        "when": "Rust's outcome is the TypeScript's with Math.cos and Math.sin each answering one ulp off"
+        "when": "Rust's outcome is the TypeScript's with Math.cos and Math.sin answering what the platform math library does, each within one ulp of the runtime"
       },
       {
         "fn": "rotateAbout",
-        "when": "Rust's outcome is the TypeScript's with Math.cos and Math.sin each answering one ulp off"
+        "when": "Rust's outcome is the TypeScript's with Math.cos and Math.sin answering what the platform math library does, each within one ulp of the runtime"
       }
     ]
   },
   {
     "id": "PLATFORM-MATH-ATAN2",
     "summary": "angleOf and normalizePdfQuad take atan2 from the platform math library, which can round the last bit differently from the JavaScript runtime's Math.atan2.",
-    "reason": "As for PLATFORM-MATH-COS-SIN: each library is within one ulp but they are not bit-identical, and the Rust side is platform-dependent. normalizePdfQuad sorts the corners of a quad that matches neither corner order by their atan2 about the middle, so one ulp can flip the comparator between near-tied corners and label a degenerate quad differently (docs/research/conformance-verification.md, seed 1: 1.5707963267948968 in the JavaScript runtime, 1.5707963267948966 in the dev container). In epdf-geometry it reaches angleOf and normalizePdfQuad only; annotation-core, selection and epdf-engine call the platform atan2 too, where no vector has shown a difference. The pin feeds the recorded quad and accepts only the labellings the TypeScript gives with each angle within one ulp of the runtime's.",
+    "reason": "As for PLATFORM-MATH-COS-SIN: each library is within one ulp but they are not bit-identical, and the Rust side is platform-dependent. normalizePdfQuad sorts the corners of a quad that matches neither corner order by their atan2 about the middle, so one ulp can flip the comparator between near-tied corners and label a degenerate quad differently (docs/research/conformance-verification.md, seed 1: 1.5707963267948968 in the JavaScript runtime, 1.5707963267948966 in the dev container). In epdf-geometry it reaches angleOf and normalizePdfQuad only; annotation-core, selection and epdf-engine call the platform atan2 too, where no vector has shown a difference. The pin feeds the recorded quad, requires this platform's angles each within one ulp of the runtime's, and accepts only the labelling the TypeScript gives from them.",
     "decided": "2026-11-17, after the geometry differential",
     "pinnedBy": "crates/plugins/geometry/tests/platform_math.rs::a_degenerate_quad_is_labelled_only_as_one_ulp_of_the_platform_atan2_allows",
     "differentialSkip": [
       {
         "fn": "angleOf",
-        "when": "Rust's outcome is the TypeScript's with Math.atan2 answering one ulp off"
+        "when": "Rust's outcome is the TypeScript's with Math.atan2 answering what the platform math library does, within one ulp of the runtime"
       },
       {
         "fn": "normalizePdfQuad",
-        "when": "Rust's outcome is the TypeScript's with each distinct Math.atan2 call answering one ulp off"
+        "when": "Rust's outcome is the TypeScript's with each distinct Math.atan2 call answering what the platform math library does, within one ulp of the runtime"
       }
     ]
   }

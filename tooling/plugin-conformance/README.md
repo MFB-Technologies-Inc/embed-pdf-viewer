@@ -284,26 +284,41 @@ in its `exceptions`.
 `differentialSkip` lists `{ "fn", "when" }`: differences on `fn` that `differential` does not
 count as a mismatch, because they are this divergence. The predicate is code in
 `src/differential/<crate>.ts`, keyed by the entry's `id`, and `when` says in words what it
-accepts. It sees the input and both outcomes, and it can call the TypeScript again, so it accepts
-the difference the entry describes and nothing else; a function the entry does not name compares
-as before. A skip without a predicate, or a predicate without a skip, fails the run, so removing
-the entry removes the allowance.
+accepts. It sees the input and both outcomes, it can call the TypeScript again, and it can ask the
+function server what the platform math library answers, so it accepts the difference the entry
+describes and nothing else; a function the entry does not name compares as before. A skip without
+a predicate, a predicate without a skip, or a skip whose `fn` no crate's suites hold fails the run,
+so removing the entry removes the allowance. A skip for a function of another crate's table is
+left to that crate's run.
 
 `PLATFORM-MATH-COS-SIN` and `PLATFORM-MATH-ATAN2` are the two that use it. Rust takes `cos`, `sin`
 and `atan2` from the platform math library and the TypeScript from the JavaScript runtime, and the
 two can round the last bit differently. The canonical comparison's relative tolerance of `1e-12`
-already absorbs one ulp in most outputs. It does not when an output is a safe integer, which
-compares exactly (`rotateAbout` about a pivot at `y = -4915517297019373`), or when the ulp flips a
-branch (`normalizePdfQuad`'s sort of near-tied corners). There is no fixed bound for those: one ulp
-of `cos` times a pivot of 4.9e15 is a whole unit. So `src/differential/platform-math.ts` runs the
-TypeScript again with the named `Math` functions answering the runtime's value or a double next to
-it, chosen once per distinct argument list (at most six, so at most 729 runs), and accepts Rust's
-outcome only when it equals one of those runs under the same canonical comparison. The bound is
-the TypeScript's own arithmetic on inputs one ulp away; anything Rust does differently around the
-call still fails. It assumes each library is within one ulp of the exact value, so the two answers
-are equal or adjacent; a platform two ulps out would show as a mismatch. Each entry's `pinnedBy`
-test (`crates/plugins/geometry/tests/platform_math.rs`) holds the recorded input to the same rule,
-so it passes on a platform whose library agrees with the runtime and on one a ulp away.
+absorbs one ulp in most outputs, but not in three cases. A safe-integer output compares exactly
+(`rotateAbout` about a pivot at `y = -4915517297019373`). The ulp can flip a branch
+(`normalizePdfQuad`'s sort of near-tied corners). And it can survive cancellation in the
+translation terms: `rotateAbout({ x: 0, y: 7e11 }, 5e-323)` with a cosine one ulp below 1 moves
+its last member from 0 to 2^-13 (about 1.2e-4). No fixed bound covers those.
+
+So the rule in `src/differential/platform-math.ts` uses the platform library's actual answers. On
+a mismatch in a function the entry names, it records the distinct `Math` calls the TypeScript
+makes on the input and asks `function-server` for the platform's answer to each (a `{"math"}`
+request, numbers as the bits of the double, so `-0` and NaN cross exactly). Each answer must be the
+runtime's or a double next to it; one further out refuses the input and names the call and both
+values. The TypeScript then runs once more with exactly those answers, and a call that run makes
+for the first time is asked for in turn, for at most four reruns. Rust's outcome is accepted only
+when it equals that run under the same canonical comparison. A port that reorders near-tied
+corners, or moves the translation by anything other than the library's own last bit, still fails,
+even where some other one-ulp answer would have reached its outcome. A server that cannot answer,
+or an input with no `Math` call, allows nothing.
+
+The rule assumes the ported code calls the library as the probe does: `f64::cos`, `f64::sin` and
+`y.atan2(x)` on the arguments the TypeScript passes. The probe reports the library, not the port's
+call of it, so it does not guard a Rust wrapper that changes the call itself. Its cost is one
+server round trip per distinct call and one rerun of the TypeScript, paid only on a mismatch in a
+ledgered function. Each entry's `pinnedBy` test (`crates/plugins/geometry/tests/platform_math.rs`)
+holds the recorded input to the same rule with Rust's own answers, so it passes on a platform whose
+library agrees with the runtime and on one a ulp away.
 
 `differential` prints, per function, how many inputs a ledger skip allowed, and in its last line
 the total and the count per entry:
