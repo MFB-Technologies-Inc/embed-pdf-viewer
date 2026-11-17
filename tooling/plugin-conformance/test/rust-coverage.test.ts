@@ -9,7 +9,7 @@ import {
   unitOnly,
   type LlvmCovExport,
   type Segment,
-} from '../src/rust-coverage';
+} from '../src/checks/rust-coverage';
 
 const root = '/work/repo';
 

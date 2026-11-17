@@ -13,7 +13,7 @@ import fc from 'fast-check';
 import * as g from '../../../../packages/core/geometry/src/index';
 import { suites } from '../suites/geometry';
 import type { FunctionSuite } from '../vectors';
-import type { CrateTable, SkipPredicate } from '../differential';
+import type { CrateTable, SkipPredicate } from '../checks/differential';
 
 const MIN_NORMAL = 2.2250738585072014e-308;
 

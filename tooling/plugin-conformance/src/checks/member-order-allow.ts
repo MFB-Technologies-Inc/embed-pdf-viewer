@@ -30,6 +30,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { rejectUnknownArgs } from './args';
 import { cargoMetadata, replayPackages } from './replay-check';
 
 /** Paths by vector file and case. */
@@ -176,10 +177,11 @@ export function childEnv(base: NodeJS.ProcessEnv, overrideFile: string): NodeJS.
   return env;
 }
 
-const root = fileURLToPath(new URL('../../..', import.meta.url));
+const root = fileURLToPath(new URL('../../../..', import.meta.url));
 
 /** The command line: `src/cli/member-order-allow.ts` calls it. */
 export function main(): void {
+  rejectUnknownArgs(process.argv.slice(2), ['--fresh']);
   const packages = replayPackages(cargoMetadata());
   const candidatesFile = path.join(root, 'tooling/plugin-conformance/member-order-candidates.json');
   const found = findCandidates({

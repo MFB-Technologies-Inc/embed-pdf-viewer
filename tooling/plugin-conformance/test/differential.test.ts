@@ -6,7 +6,7 @@ import {
   runDifferential,
   type FunctionServer,
   type LedgerEntry,
-} from '../src/differential';
+} from '../src/checks/differential';
 import { table as geometry } from '../src/differential/geometry';
 import { callFunctionCase, decodePlain } from '../src/vectors';
 

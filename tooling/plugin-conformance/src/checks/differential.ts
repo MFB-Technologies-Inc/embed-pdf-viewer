@@ -34,10 +34,10 @@ import { fileURLToPath } from 'node:url';
 
 import fc from 'fast-check';
 
-import { diff } from './canonical';
-import { callFunctionCase, decodePlain, type FunctionSuite } from './vectors';
+import { diff } from '../canonical';
+import { callFunctionCase, decodePlain, type FunctionSuite } from '../vectors';
 
-const repoRoot = fileURLToPath(new URL('../../..', import.meta.url));
+const repoRoot = fileURLToPath(new URL('../../../..', import.meta.url));
 const ledgerFile = resolve(repoRoot, 'crates/plugin-conformance/divergences.json');
 
 /** A process that answers `{table, fn, args}` with an outcome. */
@@ -68,7 +68,7 @@ export interface LedgerEntry {
 }
 
 export const crates: Record<string, () => Promise<CrateTable>> = {
-  geometry: async () => (await import('./differential/geometry')).table,
+  geometry: async () => (await import('../differential/geometry')).table,
 };
 
 export interface Mismatch {

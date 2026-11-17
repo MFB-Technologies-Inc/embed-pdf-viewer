@@ -1,5 +1,5 @@
 //! The built `function-server` binary, driven over stdin and stdout as
-//! `tooling/plugin-conformance/src/differential.ts` drives it.
+//! `tooling/plugin-conformance/src/checks/differential.ts` drives it.
 
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Command, Stdio};

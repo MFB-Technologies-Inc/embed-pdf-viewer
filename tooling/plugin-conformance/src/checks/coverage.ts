@@ -36,7 +36,9 @@ import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
 
-import { vectorsRoot } from './vectors';
+import { vectorsRoot } from '../vectors';
+
+import { rejectUnknownArgs } from './args';
 
 const PORTED = /^packages\/(core\/(main|geometry|stage|ui|annotation|acrojs|signature)|plugin\/[^/]+)\/src\//;
 /** JavaScript that runs inside the script sandbox. It ships to Rust as data
@@ -72,7 +74,7 @@ async function measure(args: readonly string[]): Promise<Map<string, IstanbulFil
         '--exclude=**/*.test.ts',
         'tsx',
         '--conditions=development',
-        'src/generate.ts',
+        'src/cli/generate.ts',
         ...args,
       ],
       { cwd: packageRoot, stdio: ['ignore', 'inherit', 'inherit'] },
@@ -140,6 +142,7 @@ export function ranges(lines: readonly number[]): string[] {
 
 /** The command line: `src/cli/coverage.ts` calls it. */
 export async function main(): Promise<void> {
+  rejectUnknownArgs(process.argv.slice(2), ['--check']);
   const all = await measure(['--check']);
   const compared = await measure(['--compared-only']);
 

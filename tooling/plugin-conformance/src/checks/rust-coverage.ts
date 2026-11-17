@@ -39,6 +39,7 @@ import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { rejectUnknownArgs } from './args';
 import { ranges } from './coverage';
 import { cargoMetadata, replayPackages, type CargoMetadata } from './replay-check';
 
@@ -288,7 +289,7 @@ export function reachedPackages(metadata: CargoMetadata, roots: readonly string[
   return [...reached].sort();
 }
 
-const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const repoRoot = resolve(packageRoot, '..', '..');
 const target = join(packageRoot, 'vectors', 'rust-coverage.json');
 const excludeFile = join(repoRoot, 'crates', 'plugin-conformance', 'rust-coverage-exclude.json');
@@ -340,6 +341,7 @@ async function measure(
 
 /** The command line: `src/cli/rust-coverage.ts` calls it. */
 export async function main(): Promise<void> {
+  rejectUnknownArgs(process.argv.slice(2), ['--check']);
   const check = process.argv.includes('--check');
   const metadata = cargoMetadata();
   const packages = replayPackages(metadata);

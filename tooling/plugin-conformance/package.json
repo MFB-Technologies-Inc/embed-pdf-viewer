@@ -4,8 +4,8 @@
   "type": "module",
   "description": "Generates the frozen cross-language conformance vectors for the kernel and plugin layer. The shipping TypeScript is the oracle; the Rust crates replay the vectors.",
   "scripts": {
-    "vectors": "tsx --conditions=development src/generate.ts",
-    "vectors:check": "tsx --conditions=development src/generate.ts --check",
+    "vectors": "tsx --conditions=development src/cli/generate.ts",
+    "vectors:check": "tsx --conditions=development src/cli/generate.ts --check",
     "coverage": "tsx --conditions=development src/cli/coverage.ts",
     "coverage:check": "tsx --conditions=development src/cli/coverage.ts --check",
     "rust-coverage": "tsx --conditions=development src/cli/rust-coverage.ts",

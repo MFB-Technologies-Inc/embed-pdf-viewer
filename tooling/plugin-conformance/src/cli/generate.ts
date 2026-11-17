@@ -17,7 +17,7 @@ import { readdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { emit, type Suite } from './vectors';
+import { emit, type Suite } from '../vectors';
 
 // The oracle's wall clock is faked per case, but its time zone is the host's
 // unless pinned: `getTimezoneOffset` (the actions plugin's UTC offset, date
@@ -25,7 +25,7 @@ import { emit, type Suite } from './vectors';
 // Rust side takes the offset as an input and replays with zero.
 process.env.TZ = 'UTC';
 
-const suitesDir = join(dirname(fileURLToPath(import.meta.url)), 'suites');
+const suitesDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'suites');
 
 const argv = process.argv.slice(2);
 const check = argv.includes('--check');

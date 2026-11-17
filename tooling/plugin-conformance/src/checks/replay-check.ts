@@ -42,7 +42,9 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { readVector, vectorsRoot, type Suite } from './vectors';
+import { readVector, vectorsRoot, type Suite } from '../vectors';
+
+import { rejectUnknownArgs } from './args';
 
 /** An allow-list path that suppressed a member-order difference in a case. */
 export interface AllowanceUse {
@@ -322,10 +324,10 @@ export function replayPackages(metadata: CargoMetadata): string[] {
     .sort();
 }
 
-const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const repoRoot = resolve(packageRoot, '..', '..');
 
-/** The case names of every suite `src/generate.ts` discovers, by vector file.
+/** The case names of every suite `src/cli/generate.ts` discovers, by vector file.
  *  Read from the suite definitions, which is what the generator writes the
  *  names from; no case is run. */
 async function expectedCases(): Promise<Map<string, string[]>> {
@@ -420,6 +422,7 @@ async function vectorHashes(files: Iterable<string>): Promise<Map<string, string
 /** The command line: `src/cli/replay-check.ts` calls it. */
 export async function main(): Promise<void> {
   const argv = process.argv.slice(2);
+  rejectUnknownArgs(argv, [], ['--receipts']);
   const at = argv.indexOf('--receipts');
   const given = at >= 0 ? argv[at + 1] : undefined;
   if (at >= 0 && !given) throw new Error('--receipts needs a directory');

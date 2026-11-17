@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-import { childEnv, findCandidates, type Paths } from '../src/member-order-allow';
+import { childEnv, findCandidates, type Paths } from '../src/checks/member-order-allow';
 
 /** Every member-order difference the fake replay has, by file and case. */
 const FAILING: Paths = {

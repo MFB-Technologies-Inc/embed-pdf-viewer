@@ -16,7 +16,7 @@ import {
   unusedAllowances,
   type CargoMetadata,
   type Receipt,
-} from '../src/replay-check';
+} from '../src/checks/replay-check';
 
 function receipt(file: string, ran: string[], only: string | null = null): Receipt {
   return {

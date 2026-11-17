@@ -48,7 +48,7 @@ pub struct Divergence {
     #[serde(default)]
     pub pinned_by: Option<String>,
     /// Generated inputs the differential runner
-    /// (`tooling/plugin-conformance/src/differential.ts`) does not count as a
+    /// (`tooling/plugin-conformance/src/checks/differential.ts`) does not count as a
     /// mismatch. Each predicate is code in `src/differential/<crate>.ts`,
     /// keyed by this entry's `id`; `when` says in words what it matches.
     #[serde(default)]

@@ -1,5 +1,5 @@
 //! `function-server`: calls into the conformance function tables, for
-//! `tooling/plugin-conformance/src/differential.ts`.
+//! `tooling/plugin-conformance/src/checks/differential.ts`.
 //!
 //! Each stdin line is one request, `{"table": "geometry", "fn": "...",
 //! "args": [...]}`, with canonical JSON arguments. Each gets one stdout line:

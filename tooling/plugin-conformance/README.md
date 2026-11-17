@@ -23,7 +23,11 @@ PLUGIN_CONFORMANCE_ONLY=open-all PLUGIN_CONFORMANCE_VERBOSE=1 cargo test -p plug
 
 ## Files
 
-Every module in `src/suites/` exports `suites`, and `src/generate.ts` discovers them, so a new
+Each script above that runs a source file runs an entry in `src/cli/`, and the entry always runs its
+check. The checks themselves are library modules in `src/checks/`, which the tests import; running
+one of those directly does nothing, so use the scripts.
+
+Every module in `src/suites/` exports `suites`, and `src/cli/generate.ts` discovers them, so a new
 plugin's generator is one new file there. A suite writes one vector file:
 
 ```json
