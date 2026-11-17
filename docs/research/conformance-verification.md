@@ -30,3 +30,20 @@ comparator between near-tied corners.
 Neither is fixed or in the ledger; both wait on a decision. The printed cases reproduce them, for
 example
 `{ name: 'diff-normalizePdfQuad-1', fn: 'normalizePdfQuad', args: [[{ x: 0, y: -1 }, { x: -1.4456042752816933e-19, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 5e-324 }]] }`.
+
+## Full suite, 2026-11-16
+
+At `d37f70fe0`, from `tooling/plugin-conformance`, in this order:
+
+| command | exit | printed |
+| --- | --- | --- |
+| `pnpm run typecheck` | 0 | |
+| `pnpm run test:harness` | 0 | tests 78, pass 78, fail 0 |
+| `pnpm run vectors:check` | 0 | `119 vector files are current, and each is replayed` |
+| `pnpm run coverage:check` | 0 | `coverage is current: statements 72853/77093, branches 14365/15719, 935 lines reached only by snapshot-none cases, 36 ported files no generator loads` |
+| `pnpm run replay:check` | 0 | `cargo: passed`, `receipts: 119 read`, `119 vector files, 15916 cases, all replayed` |
+| `pnpm run rust-coverage:check` | 0 | `rust coverage is current: replay reaches 64233/112503 lines; 36975 lines only other tests reach, in 673 files (74 excluded)` |
+
+`replay:check` ran with this wave's receipts: every receipt carried the run's id, commit and vector
+hash, none was written with failures, member order off or the allowlist replaced, and every one of
+the 19 allowlist paths was used.
