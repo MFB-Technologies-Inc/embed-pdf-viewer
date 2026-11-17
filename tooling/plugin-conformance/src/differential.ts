@@ -35,7 +35,6 @@ import { fileURLToPath } from 'node:url';
 import fc from 'fast-check';
 
 import { diff } from './canonical';
-import { isMainModule } from './main-module';
 import { callFunctionCase, decodePlain, type FunctionSuite } from './vectors';
 
 const repoRoot = fileURLToPath(new URL('../../..', import.meta.url));
@@ -336,7 +335,8 @@ function parseArgs(argv: readonly string[]) {
   return { crate, runs, seed: seed ?? (Date.now() ^ (Math.random() * 0x100000000)) | 0, server, only };
 }
 
-async function main() {
+/** The command line: `src/cli/differential.ts` calls it. */
+export async function main() {
   const { crate, runs, seed, server: serverPath, only } = parseArgs(process.argv.slice(2));
   // Before the run, so a run that dies still names the seed that repeats it.
   console.log(`differential --crate ${crate} --runs ${runs} --seed ${seed}`);
@@ -372,11 +372,4 @@ async function main() {
     `\n${Object.keys(report.runs).length} functions, ${total} inputs, ${report.mismatches.length} mismatched`,
   );
   if (report.mismatches.length) process.exitCode = 1;
-}
-
-if (isMainModule(import.meta.url)) {
-  main().catch((error) => {
-    console.error(error instanceof Error ? error.message : error);
-    process.exitCode = 2;
-  });
 }

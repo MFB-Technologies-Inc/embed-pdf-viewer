@@ -6,15 +6,15 @@
   "scripts": {
     "vectors": "tsx --conditions=development src/generate.ts",
     "vectors:check": "tsx --conditions=development src/generate.ts --check",
-    "coverage": "tsx --conditions=development src/coverage.ts",
-    "coverage:check": "tsx --conditions=development src/coverage.ts --check",
-    "rust-coverage": "tsx --conditions=development src/rust-coverage.ts",
-    "rust-coverage:check": "tsx --conditions=development src/rust-coverage.ts --check",
-    "replay:check": "tsx --conditions=development src/replay-check.ts",
-    "differential": "tsx --conditions=development src/differential.ts",
+    "coverage": "tsx --conditions=development src/cli/coverage.ts",
+    "coverage:check": "tsx --conditions=development src/cli/coverage.ts --check",
+    "rust-coverage": "tsx --conditions=development src/cli/rust-coverage.ts",
+    "rust-coverage:check": "tsx --conditions=development src/cli/rust-coverage.ts --check",
+    "replay:check": "tsx --conditions=development src/cli/replay-check.ts",
+    "differential": "tsx --conditions=development src/cli/differential.ts",
     "typecheck": "tsc --noEmit",
-    "member-order:allow": "tsx src/member-order-allow.ts",
-    "test:harness": "node --import=tsx --conditions=development --test test/harness.test.ts test/replay-check.test.ts test/zst.test.ts test/case-diff.test.ts test/member-order-allow.test.ts test/rust-coverage.test.ts test/differential.test.ts test/main-module.test.ts",
+    "member-order:allow": "tsx src/cli/member-order-allow.ts",
+    "test:harness": "node --import=tsx --conditions=development --test test/harness.test.ts test/replay-check.test.ts test/zst.test.ts test/case-diff.test.ts test/member-order-allow.test.ts test/rust-coverage.test.ts test/differential.test.ts test/cli.test.ts",
     "audit:kernel": "node --import=tsx --conditions=development test/audit-kernel.ts"
   },
   "devDependencies": {

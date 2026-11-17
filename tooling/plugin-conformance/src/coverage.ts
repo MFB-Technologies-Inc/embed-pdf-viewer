@@ -36,7 +36,6 @@ import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
 
-import { isMainModule } from './main-module';
 import { vectorsRoot } from './vectors';
 
 const PORTED = /^packages\/(core\/(main|geometry|stage|ui|annotation|acrojs|signature)|plugin\/[^/]+)\/src\//;
@@ -139,7 +138,8 @@ export function ranges(lines: readonly number[]): string[] {
   return out;
 }
 
-async function main(): Promise<void> {
+/** The command line: `src/cli/coverage.ts` calls it. */
+export async function main(): Promise<void> {
   const all = await measure(['--check']);
   const compared = await measure(['--compared-only']);
 
@@ -209,8 +209,4 @@ async function main(): Promise<void> {
     await writeFile(target, text);
     console.log(`wrote vectors/coverage.json: ${summary}`);
   }
-}
-
-if (isMainModule(import.meta.url)) {
-  await main();
 }

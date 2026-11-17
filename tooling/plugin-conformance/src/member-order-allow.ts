@@ -30,7 +30,6 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { isMainModule } from './main-module';
 import { cargoMetadata, replayPackages } from './replay-check';
 
 /** Paths by vector file and case. */
@@ -179,7 +178,8 @@ export function childEnv(base: NodeJS.ProcessEnv, overrideFile: string): NodeJS.
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 
-function main(): void {
+/** The command line: `src/cli/member-order-allow.ts` calls it. */
+export function main(): void {
   const packages = replayPackages(cargoMetadata());
   const candidatesFile = path.join(root, 'tooling/plugin-conformance/member-order-candidates.json');
   const found = findCandidates({
@@ -209,8 +209,4 @@ function main(): void {
   };
   print(`candidates, written to ${path.relative(root, candidatesFile)}`, found.candidates);
   if (process.argv.includes('--fresh')) print('allowlist paths no case needs', found.unneeded);
-}
-
-if (isMainModule(import.meta.url)) {
-  main();
 }

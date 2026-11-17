@@ -42,7 +42,6 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { isMainModule } from './main-module';
 import { readVector, vectorsRoot, type Suite } from './vectors';
 
 /** An allow-list path that suppressed a member-order difference in a case. */
@@ -418,7 +417,8 @@ async function vectorHashes(files: Iterable<string>): Promise<Map<string, string
   return out;
 }
 
-async function main(): Promise<void> {
+/** The command line: `src/cli/replay-check.ts` calls it. */
+export async function main(): Promise<void> {
   const argv = process.argv.slice(2);
   const at = argv.indexOf('--receipts');
   const given = at >= 0 ? argv[at + 1] : undefined;
@@ -471,8 +471,4 @@ async function main(): Promise<void> {
     console.log(`${expected.size} vector files, ${cases} cases, all replayed`);
   }
   if (problems.length || cargoPassed === false) process.exitCode = 1;
-}
-
-if (isMainModule(import.meta.url)) {
-  await main();
 }

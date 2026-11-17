@@ -40,7 +40,6 @@ import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { ranges } from './coverage';
-import { isMainModule } from './main-module';
 import { cargoMetadata, replayPackages, type CargoMetadata } from './replay-check';
 
 /** One `llvm-cov export` segment: line, column, count, has count, region
@@ -339,7 +338,8 @@ async function measure(
   return JSON.parse(await readFile(out, 'utf8')) as LlvmCovExport;
 }
 
-async function main(): Promise<void> {
+/** The command line: `src/cli/rust-coverage.ts` calls it. */
+export async function main(): Promise<void> {
   const check = process.argv.includes('--check');
   const metadata = cargoMetadata();
   const packages = replayPackages(metadata);
@@ -387,8 +387,4 @@ async function main(): Promise<void> {
     await writeFile(target, text);
     console.log(`wrote vectors/rust-coverage.json: ${summary}`);
   }
-}
-
-if (isMainModule(import.meta.url)) {
-  await main();
 }
