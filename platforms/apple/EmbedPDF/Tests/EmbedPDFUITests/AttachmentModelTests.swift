@@ -33,6 +33,27 @@ struct AttachmentModelTests {
     await observing.value
   }
 
+  /// A revision that leaves the attachments as they were, as a scroll does,
+  /// must not invalidate the panel; a real change still must.
+  @Test func unchangedRevisionDoesNotNotify() async throws {
+    let (viewer, _, attachments, model) = try await opened()
+    await model.reload()
+    await model.add([AttachmentFileSource(data: Data([1, 2, 3]), name: "kept.bin")])
+    let file = try #require(model.files.first { $0.name == "kept.bin" })
+    await model.select([file])
+    let shown = { @MainActor in
+      _ = (model.files, model.selectedFiles, model.status, model.canAdd, model.canDownload,
+        model.canRemoveSelection, model.pendingIDs)
+    }
+    #expect(await !observationFires(shown) { await model.refresh() })
+    #expect(try await observationFires({ model.files }) {
+      _ = try await attachments.add([AttachmentFileSource(data: Data([4]), name: "added.bin")])
+      await model.refresh()
+    })
+    expectNoDifference(model.error, nil)
+    try await viewer.destroy()
+  }
+
   func opened(scope: [String]? = nil) async throws -> (PDFViewer, DocumentInfo, AttachmentCapability, AttachmentModel) {
     let viewer = try PDFViewer(ViewerConfig(scope: scope, interaction: true, annotation: "", attachment: true))
     try await viewer.start()
