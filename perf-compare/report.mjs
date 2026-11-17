@@ -12,6 +12,7 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { loadConfig } from './lib/config.mjs';
+import { hasDone } from './lib/done.mjs';
 import { distSizes } from './lib/env.mjs';
 import { bootstrapDifference, bootstrapRatio, calibrate, comparePair, summarize, threshold } from './lib/stats.mjs';
 import { workDir } from './scripts/materialize.mjs';
@@ -124,7 +125,19 @@ function calibrations(allRows, config, skipped = {}) {
   return out;
 }
 
-function pairTable(allRows, calib, ref, cand) {
+// A verdict says what it rests on when that's less than the usual: a row
+// judged against the floor alone has no A/A band behind it (FLOOR_ONLY), and
+// a flow whose done condition an arm lacks (lib/done.mjs) times that arm's
+// input, not its handling.
+function qualified(verdict, row, cal, ref, cand, gate) {
+  const notes = [];
+  if (cal?.floorOnly) notes.push('no A/A band');
+  const without = [ref, cand].filter((id) => !hasDone(row.flow, gate[id]?.capabilities));
+  if (without.length) notes.push(`no done condition on ${without.map((id) => `\`${id}\``).join(' and ')}`);
+  return notes.length ? `${verdict} (${notes.join('; ')})` : verdict;
+}
+
+function pairTable(allRows, calib, ref, cand, gate = {}) {
   const body = [];
   for (const [key, row] of allRows) {
     if (MEMORY.includes(row.metric)) continue;
@@ -141,6 +154,7 @@ function pairTable(allRows, calib, ref, cand) {
       if (cal?.ok) thresholdCell = thresholdText(row.metric, iv, cal.noise);
       verdict = !cal ? 'no A/A data' : cal.ok ? comparePair(iv, cal) : 'unreliable (A/A failed)';
       if (verdict === 'same') verdict = 'no detectable difference';
+      verdict = qualified(verdict, row, cal, ref, cand, gate);
     } catch (error) {
       verdict = `invalid: ${error.message}`;
     }
@@ -263,7 +277,7 @@ function report(run, config) {
       push(out.map((id) => `\`${id}\` excluded: ${gate[id].reason}`).join('\n\n'));
       continue;
     }
-    push(table(['Row', `${ref} median [max]`, `${cand} median [max]`, 'ratio or diff [95% CI]', 'threshold', 'Verdict'], pairTable(allRows, calib, ref, cand)));
+    push(table(['Row', `${ref} median [max]`, `${cand} median [max]`, 'ratio or diff [95% CI]', 'threshold', 'Verdict'], pairTable(allRows, calib, ref, cand, gate)));
   }
 
   push('', '## Memory', '');

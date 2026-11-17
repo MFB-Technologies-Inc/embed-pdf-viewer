@@ -164,7 +164,7 @@ test('a flow the baseline skipped is judged against the floor alone', () => {
     const { head, rows } = section(out.stdout, '## `main-now` vs `plugins-next`');
     const undo = rows.find((r) => r[0] === 'undo / mainJsMs');
     assert.equal(undo[head.indexOf('threshold')], '±3.0%');
-    assert.equal(undo[head.indexOf('Verdict')], 'slower');
+    assert.equal(undo[head.indexOf('Verdict')], 'slower (no A/A band)');
     assert.ok(!section(out.stdout, '## A/A: `main` vs `main-aa`').rows.some((r) => r[0].startsWith('undo')));
     assert.match(out.stdout, /- `main`: `undo`/);
   } finally {
@@ -201,6 +201,55 @@ test('an arm whose flow the gate left unchecked has its rows for that flow left 
     assert.ok(section(out.stdout, '## `main` vs `plugins-next`').rows.some((r) => r[0] === 'open(small) / loadMs'));
     assert.match(out.stdout, /Unchecked, because no other arm in the run gave the answer/);
     assert.match(out.stdout, /- `plugins-next`: `undo`\n/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// `hover` on every arm; only main-now and plugins-next can read the hovered
+// annotation, so only their hover rows end when the viewer handled the hover.
+const hoverEverywhere = ({ meta, gate, samples }) => {
+  meta.armsRun.push('main-now');
+  meta.arms['main-now'] = meta.arms.main;
+  gate['main-now'] = { pass: true, capabilities: ['history', 'hovered'] };
+  gate['plugins-next'].capabilities = ['history', 'hovered'];
+  gate.main.capabilities = [];
+  gate['main-aa'].capabilities = [];
+  for (const [arm, scale] of [['main', 1], ['main-aa', 1], ['main-now', 1], ['plugins-next', 1.2]]) {
+    const xs = arm === 'main-aa' ? shuffle(base.paintMs) : base.paintMs;
+    for (let i = 0; i < 12; i++) samples.push({ arm, flow: 'hover', fixture: 'annots', metrics: { mainJsMs: xs[i] * scale } });
+  }
+};
+
+test('a hover row says which arm has no done condition', () => {
+  const dir = fixtureRun({ extra: hoverEverywhere });
+  try {
+    const out = runReport(dir);
+    assert.equal(out.status, 0, out.stderr);
+    const verdict = (heading) => {
+      const { head, rows } = section(out.stdout, heading);
+      return rows.find((r) => r[0] === 'hover / mainJsMs')[head.indexOf('Verdict')];
+    };
+    assert.equal(verdict('## `main` vs `plugins-next`'), 'slower (no done condition on `main`)');
+    assert.equal(verdict('## `main-now` vs `plugins-next`'), 'slower');
+    assert.equal(verdict('## `main` vs `main-now`'), 'no detectable difference (no done condition on `main`)');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('a run whose gate recorded no capabilities marks every hover row', () => {
+  const dir = fixtureRun({
+    extra: (run) => {
+      hoverEverywhere(run);
+      for (const g of Object.values(run.gate)) delete g.capabilities;
+    },
+  });
+  try {
+    const out = runReport(dir);
+    assert.equal(out.status, 0, out.stderr);
+    const { head, rows } = section(out.stdout, '## `main-now` vs `plugins-next`');
+    assert.equal(rows.find((r) => r[0] === 'hover / mainJsMs')[head.indexOf('Verdict')], 'slower (no done condition on `main-now` and `plugins-next`)');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
