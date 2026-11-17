@@ -13,35 +13,59 @@
   const parentOf = (el) => el.parentElement ?? el.getRootNode()?.host ?? null;
   const clips = (value) => /^(hidden|clip|scroll|auto)$/.test(value);
 
-  // Rectangles use viewport CSS pixels, including ancestor scrolling and
-  // transforms. Clip each axis separately; crossing a shadow root includes
-  // the viewer host's clipping ancestors too.
-  function visibleRect(img) {
-    const rect = img.getBoundingClientRect();
-    let left = Math.max(0, rect.left);
-    let top = Math.max(0, rect.top);
-    let right = Math.min(innerWidth, rect.right);
-    let bottom = Math.min(innerHeight, rect.bottom);
-    for (let el = img; el; el = parentOf(el)) {
-      const css = getComputedStyle(el);
-      if (css.display === 'none' || css.visibility === 'hidden' || css.visibility === 'collapse')
-        return null;
-      if (el !== img && (clips(css.overflowX) || clips(css.overflowY))) {
+  const hidden = (css) => css.display === 'none' || css.visibility === 'hidden' || css.visibility === 'collapse';
+  const VIEWPORT = () => ({ left: 0, top: 0, right: innerWidth, bottom: innerHeight });
+
+  // The viewport area `el` and its ancestors let through, or null when one of
+  // them is hidden. Every page image shares the viewer's ancestors, so one
+  // sample memoizes each element's answer (`seen`) and walks a chain once.
+  function clipOf(el, seen) {
+    if (!el) return VIEWPORT();
+    if (seen.has(el)) return seen.get(el);
+    const css = getComputedStyle(el);
+    let clip = null;
+    if (!hidden(css)) {
+      const up = clipOf(parentOf(el), seen);
+      if (up && (clips(css.overflowX) || clips(css.overflowY))) {
         const box = el.getBoundingClientRect();
         const sx = el.offsetWidth ? box.width / el.offsetWidth : 1;
         const sy = el.offsetHeight ? box.height / el.offsetHeight : 1;
         const innerLeft = box.left + el.clientLeft * sx;
         const innerTop = box.top + el.clientTop * sy;
+        clip = { ...up };
         if (clips(css.overflowX)) {
-          left = Math.max(left, innerLeft);
-          right = Math.min(right, innerLeft + el.clientWidth * sx);
+          clip.left = Math.max(clip.left, innerLeft);
+          clip.right = Math.min(clip.right, innerLeft + el.clientWidth * sx);
         }
         if (clips(css.overflowY)) {
-          top = Math.max(top, innerTop);
-          bottom = Math.min(bottom, innerTop + el.clientHeight * sy);
+          clip.top = Math.max(clip.top, innerTop);
+          clip.bottom = Math.min(clip.bottom, innerTop + el.clientHeight * sy);
         }
-      }
+      } else clip = up;
     }
+    seen.set(el, clip);
+    return clip;
+  }
+
+  // Rectangles use viewport CSS pixels, including ancestor scrolling and
+  // transforms. Clip each axis separately; crossing a shadow root includes
+  // the viewer host's clipping ancestors too. An image outside the browser
+  // viewport is offscreen whatever its ancestors are, so it costs one
+  // getBoundingClientRect and no style reads.
+  function visibleRect(img, seen) {
+    const rect = img.getBoundingClientRect();
+    let left = Math.max(0, rect.left);
+    let top = Math.max(0, rect.top);
+    let right = Math.min(innerWidth, rect.right);
+    let bottom = Math.min(innerHeight, rect.bottom);
+    if (!(right > left && bottom > top)) return null;
+    if (hidden(getComputedStyle(img))) return null;
+    const clip = clipOf(parentOf(img), seen);
+    if (!clip) return null;
+    left = Math.max(left, clip.left);
+    top = Math.max(top, clip.top);
+    right = Math.min(right, clip.right);
+    bottom = Math.min(bottom, clip.bottom);
     return right > left && bottom > top ? `${left},${top},${right},${bottom}` : null;
   }
 
@@ -85,8 +109,9 @@
 
   function sample() {
     const next = new Map();
+    const seen = new Map();
     for (const img of root()?.querySelectorAll('img[draggable="false"]') ?? []) {
-      const rect = visibleRect(img);
+      const rect = visibleRect(img, seen);
       if (rect === null) continue;
       const source = sourceOf(img);
       next.set(img, { source, rect, decode: track(img, source) });

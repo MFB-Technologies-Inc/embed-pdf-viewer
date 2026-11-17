@@ -14,6 +14,7 @@ function harness() {
   const timers = [];
   const images = [];
   const listeners = {};
+  const styleReads = new Map();
   class Element {
     parentElement = null;
     style = { overflowX: 'visible', overflowY: 'visible', display: 'block', visibility: 'visible' };
@@ -80,7 +81,10 @@ function harness() {
     document: { querySelector: () => ({ shadowRoot: root }) },
     Element,
     HTMLImageElement: Img,
-    getComputedStyle: (el) => el.style,
+    getComputedStyle: (el) => {
+      styleReads.set(el, (styleReads.get(el) ?? 0) + 1);
+      return el.style;
+    },
     requestAnimationFrame: (fn) => frames.push(fn),
     setTimeout: (fn, ms) => timers.push({ fn, at: now + ms }),
     PerformanceObserver: class {
@@ -99,6 +103,8 @@ function harness() {
   };
   return {
     probe: ctx.window.__probe,
+    styleReads,
+    Element,
     add(src = 'a', top = 0) {
       const img = new Img(src);
       img.rect = { ...img.rect, top, bottom: top + 100 };
@@ -354,4 +360,44 @@ test('overflow clips to the inner scrollport rather than its border box', async 
   const r = result(h.probe.settledAt(301));
   await h.advance(600);
   assert.equal(r.status, 'pending');
+});
+
+test('an image outside the browser viewport costs no style reads', async () => {
+  const { h } = await ready();
+  const off = h.add('off', 2000);
+  const parent = h.clip(off);
+  h.styleReads.clear();
+  await h.advance(310);
+  assert.equal(h.styleReads.get(off), undefined);
+  assert.equal(h.styleReads.get(parent), undefined);
+  assert.equal(off.decodeCalls, 0);
+});
+
+test('one sample reads a shared ancestor once, however many images it holds', async () => {
+  const { h, img } = await ready();
+  const viewer = new h.Element();
+  const page = new h.Element();
+  page.parentElement = viewer;
+  img.parentElement = page;
+  const second = h.add('b', 120);
+  second.parentElement = page;
+  h.styleReads.clear();
+  await h.advance(310);
+  // One frame's sample: each image once, the page and viewer once.
+  assert.equal(h.styleReads.get(img), 1);
+  assert.equal(h.styleReads.get(second), 1);
+  assert.equal(h.styleReads.get(page), 1);
+  assert.equal(h.styleReads.get(viewer), 1);
+});
+
+test('a hidden ancestor still hides every image under it', async () => {
+  const { h, img } = await ready();
+  const page = new h.Element();
+  page.style.visibility = 'hidden';
+  img.parentElement = page;
+  const r = result(h.probe.settledAt(301));
+  await h.advance(310);
+  await h.advance(31000);
+  assert.equal(r.status, 'rejected');
+  assert.match(r.error.message, /never settled|no page-image change/);
 });
