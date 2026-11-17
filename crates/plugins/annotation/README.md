@@ -151,8 +151,8 @@ Stale since Task 13.17: the counts and lines below are the pre-13.17 port's, ove
 longer exist. Not re-run since 172f5369d.
 
 The generators reach 9,238 of the package's 9,254 statements and 2,159 of its 2,258 branches
-(measured with `src/coverage.ts`). The 16 statements left cannot be reached from the public
-surface:
+(measured with `pnpm --filter @embedpdf/tooling-plugin-conformance run coverage`). The
+16 statements left cannot be reached from the public surface:
 
 - `services/write-sink.ts` 64 to 68, `awaitCreate` with no optimistic id. `create` validates its
   input before committing, and every message it and `createFromSelection` commit stages an entry
