@@ -1098,7 +1098,7 @@ impl Host {
         &mut self,
         header: &RequestHeader,
         body: &serde_json::Value,
-        payloads: Payloads,
+        mut payloads: Payloads,
         cancel: &CancelToken,
     ) -> Result<Reply, EngineError> {
         use crate::features as f;
@@ -1258,14 +1258,14 @@ impl Host {
             // authority's to sign.
             "signatures.complete" => {
                 let input: f::signature::mutator::SignatureCompleteInput = field(body, "input")?;
-                let cms = payload(&payloads, 0, "the CMS")?.to_vec();
+                let cms = payload(&payloads, 0, "the CMS")?;
                 let job = JobEnvelope::parse(&header.kind, body)?;
                 let op_id = self.op_id_of(&job)?;
                 let session = self.sessions.session_mut(&key)?;
                 require_some_signing(session)?;
                 let authority = job.change_authority()?;
                 let result =
-                    f::signature::mutator::complete(session, &input, &cms, &op_id, &authority)?;
+                    f::signature::mutator::complete(session, &input, cms, &op_id, &authority)?;
                 let result = value(&result)?;
                 if result["status"] == "already-completed" {
                     return Ok(ok(serde_json::json!({
@@ -1303,7 +1303,7 @@ impl Host {
             // change under the request's authority, the PDF payload 0.
             "forms.setSignatureAppearance" => {
                 let reference: f::forms::snapshot::FormFieldRef = field(body, "ref")?;
-                let pdf = payload(&payloads, 0, "the appearance PDF")?.to_vec();
+                let pdf = take_payload(&mut payloads, 0, "the appearance PDF")?;
                 let op = f::changes::op::ChangeOp::FormsSetSignatureAppearance {
                     field: reference,
                     appearance: f::changes::op::SignatureAppearance {
@@ -2862,14 +2862,14 @@ impl Host {
         &mut self,
         header: &RequestHeader,
         body: &serde_json::Value,
-        payloads: Payloads,
+        mut payloads: Payloads,
     ) -> Result<serde_json::Value, EngineError> {
         let key = header.key()?;
         let options = OpenOptions::parse(body)?;
         let base_key = string_field(body, "baseKey")?;
         let password: Option<String> = optional(body, "password")?;
         let file_base = header.kind == "open.layerFileBase";
-        let source = layer_source(body, &payloads, if file_base { 0 } else { 1 })?;
+        let source = layer_source(body, &mut payloads, if file_base { 0 } else { 1 })?;
 
         let opened = if file_base {
             let path = string_field(body, "basePath")?;
@@ -3269,6 +3269,17 @@ fn payload<'a>(payloads: &'a Payloads, index: usize, what: &str) -> Result<&'a [
     })
 }
 
+/// One binary input, by position, moved out rather than copied. The slot is
+/// left empty, so nothing may read payload `index` afterwards.
+fn take_payload(payloads: &mut Payloads, index: usize, what: &str) -> Result<Vec<u8>, EngineError> {
+    payloads.get_mut(index).map(std::mem::take).ok_or_else(|| {
+        EngineError::with_message(
+            EngineErrorCode::WireFormat,
+            format!("{what} should have arrived as payload {index}, and no payload did"),
+        )
+    })
+}
+
 /// Render options, defaulted, their target in the file's coordinates (the
 /// boundary converted it).
 ///
@@ -3611,10 +3622,10 @@ fn object_number_count(body: &serde_json::Value, name: &str) -> Result<u64, Engi
     }
 }
 
-/// `LayerOpenSource`, its bytes from payload `index`.
+/// `LayerOpenSource`, its bytes moved out of payload `index`.
 fn layer_source(
     body: &serde_json::Value,
-    payloads: &Payloads,
+    payloads: &mut Payloads,
     index: usize,
 ) -> Result<crate::session::document::LayerOpenSource, EngineError> {
     use crate::session::document::LayerOpenSource;
@@ -3630,10 +3641,10 @@ fn layer_source(
     Ok(match field::<Wire>(body, "layer")? {
         Wire::Fresh => LayerOpenSource::Fresh,
         Wire::RawDelta => {
-            LayerOpenSource::RawDelta(payload(payloads, index, "the layer's delta")?.to_vec())
+            LayerOpenSource::RawDelta(take_payload(payloads, index, "the layer's delta")?)
         }
         Wire::Artifact => {
-            LayerOpenSource::Artifact(payload(payloads, index, "the layer artifact")?.to_vec())
+            LayerOpenSource::Artifact(take_payload(payloads, index, "the layer artifact")?)
         }
         Wire::ArtifactFile { path } => LayerOpenSource::ArtifactFile(path.into()),
     })

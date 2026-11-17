@@ -242,16 +242,17 @@ pub fn object_number_unavailable(number: u32, reason: &str) -> EngineError {
 }
 
 /// `bytes` as a fresh layer over a private memory base
-/// (`WorkerHost.openBytesAsLayer`). The layer document holds its base, and
-/// releases it after its own handle closes, so anything holding the document
-/// (a pooled page) keeps the base alive too.
+/// (`WorkerHost.openBytesAsLayer`). The base owns `bytes` without copying
+/// them. The layer document holds its base, and releases it after its own
+/// handle closes, so anything holding the document (a pooled page) keeps the
+/// base and its bytes alive too.
 ///
 /// A missing password reports `DocPasswordRequired` and a wrong one
 /// `DocPasswordIncorrect`, as a plain open does, so a locked document parks
 /// and unlocks the same way.
-fn open_bytes_as_layer(bytes: &[u8], password: Option<&str>) -> Result<Document, EngineError> {
+fn open_bytes_as_layer(bytes: Vec<u8>, password: Option<&str>) -> Result<Document, EngineError> {
     let base =
-        BaseDocument::from_bytes(Library::acquire(), bytes, password).map_err(|e| match e {
+        BaseDocument::from_vec(Library::acquire(), bytes, password).map_err(|e| match e {
             PdfiumError::Password if super::base_registry::password_given(password) => {
                 EngineError::with_message(
                     EngineErrorCode::DocPasswordIncorrect,
@@ -402,7 +403,7 @@ impl DocumentSession {
                 "document already open",
             ));
         }
-        let document = open_bytes_as_layer(&bytes, password)?;
+        let document = open_bytes_as_layer(bytes, password)?;
 
         // PDFium's own subsystems, forms especially, consult the permission
         // bits and would otherwise refuse work this engine has already
@@ -876,7 +877,7 @@ impl DocumentSession {
     /// that was not one persists no artifact from here on
     /// (`SignatureMutator.verifySealed`); a layer keeps what it had.
     pub fn install(&mut self, bytes: Vec<u8>) -> Result<(), EngineError> {
-        let document = open_bytes_as_layer(&bytes, self.password.as_deref())
+        let document = open_bytes_as_layer(bytes, self.password.as_deref())
             .map_err(|e| EngineError::with_message(EngineErrorCode::DocOpenFailed, e.message))?;
         if document.is_encrypted() {
             document.set_runtime_owner_permissions(true);
@@ -1291,7 +1292,7 @@ mod open_tests {
         let path = test_support::workspace_root()
             .join("tooling/engine-conformance/fixtures/encrypted-r4-aes-128.pdf");
         let bytes = std::fs::read(path).expect("read");
-        let code = |password| open_bytes_as_layer(&bytes, password).err().map(|e| e.code);
+        let code = |password| open_bytes_as_layer(bytes.clone(), password).err().map(|e| e.code);
         assert_eq!(code(Some("")), Some(EngineErrorCode::DocPasswordRequired));
         assert_eq!(code(None), Some(EngineErrorCode::DocPasswordRequired));
         assert_eq!(code(Some("wrong")), Some(EngineErrorCode::DocPasswordIncorrect));
