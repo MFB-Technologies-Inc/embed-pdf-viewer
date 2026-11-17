@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { readdirSync, readFileSync } from 'node:fs';
 import { access, mkdtemp, readFile, realpath, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -7,6 +8,25 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+
+/** Every module in `src/checks/`, read from disk so that a new check is
+ *  covered by every test below without editing this file. */
+const checks = readdirSync(join(packageRoot, 'src', 'checks'))
+  .filter((file) => file.endsWith('.ts'))
+  .map((file) => file.slice(0, -'.ts'.length))
+  .sort();
+
+const packageScripts = (
+  JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8')) as {
+    scripts: Record<string, string>;
+  }
+).scripts;
+
+/** The package scripts that run `check`'s entry. */
+const scriptsFor = (check: string): string[] =>
+  Object.entries(packageScripts)
+    .filter(([, command]) => command.split(/\s+/).includes(`src/cli/${check}.ts`))
+    .map(([name]) => name);
 
 /** Run `entry` under tsx, as the package scripts do. */
 function run(entry: string, args: string[], env: NodeJS.ProcessEnv = process.env) {
@@ -36,8 +56,16 @@ test('a check entry runs however it is named', async () => {
   }
 });
 
-/** The five checks a `pnpm run` script starts through `src/cli/`. */
-const checks = ['coverage', 'differential', 'member-order-allow', 'replay-check', 'rust-coverage'];
+test('every module in src/checks is a check with an entry and a script', async () => {
+  assert.ok(checks.length > 0, 'src/checks/ holds no module');
+  for (const check of checks) {
+    const source = await readFile(join(packageRoot, 'src', 'checks', `${check}.ts`), 'utf8');
+    assert.match(source, /^export (async )?function main\(/m, `${check} exports no main`);
+    assert.match(source, /^refuseDirectRun\(/m, `${check} does not refuse a direct run`);
+    await access(join(packageRoot, 'src', 'cli', `${check}.ts`));
+    assert.ok(scriptsFor(check).length > 0, `no package script runs src/cli/${check}.ts`);
+  }
+});
 
 test('every check entry runs its check', () => {
   // An unknown argument stops each check before it does any work, so exit 2
@@ -57,15 +85,6 @@ test('the old module paths no longer resolve', () => {
   }
 });
 
-/** Each check's `pnpm run` script, which the refusal names. */
-const scripts: Record<string, string> = {
-  coverage: 'coverage:check',
-  differential: 'differential',
-  'member-order-allow': 'member-order:allow',
-  'replay-check': 'replay:check',
-  'rust-coverage': 'rust-coverage:check',
-};
-
 test('a check module run directly fails and names its script, however it is named', async () => {
   const dir = await realpath(await mkdtemp(join(tmpdir(), 'plugin-conformance-direct-')));
   try {
@@ -83,7 +102,7 @@ test('a check module run directly fails and names its script, however it is name
         assert.equal(result.status, 2, `${entry}: ${result.stdout}${result.stderr}`);
         assert.match(
           result.stderr,
-          new RegExp(`src/checks/${check}\\.ts is a library .* run ${scripts[check]}\``),
+          new RegExp(`src/checks/${check}\\.ts is a library .* run (${scriptsFor(check).join('|')})\``),
           entry,
         );
       }
@@ -105,6 +124,8 @@ test('replay:check fails with git\'s message when git fails', async () => {
     const result = run('src/cli/replay-check.ts', ['--receipts', dir], {
       ...process.env,
       GIT_DIR: join(dir, 'not-a-repository'),
+      // The message below is git's English text.
+      LC_ALL: 'C',
     });
     assert.notEqual(result.status, 0, `${result.stdout}${result.stderr}`);
     assert.match(
