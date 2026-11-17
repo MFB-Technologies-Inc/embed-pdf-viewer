@@ -2,6 +2,7 @@ import CustomDump
 import EmbedPDF
 import EmbedPDFUI
 import Foundation
+import Observation
 import Testing
 
 @MainActor
@@ -140,52 +141,110 @@ struct StageReaderModelTests {
     #expect(600 * capped * 800 * capped <= StageReaderModel.maxPagePixels * 1.000001)
   }
 
-  /// In motion, under the cap, the page renders at the stage's scale rounded
-  /// up to a width band, so a pinch within one band keeps the render it has.
-  @Test func inMotionTheRenderScaleRoundsUpToAWidthBand() {
-    let scale = StageReaderModel.renderScale(2, contentWidth: 600, contentHeight: 800, inMotion: true)
+  /// While zooming, under the cap, the page renders at the stage's scale
+  /// rounded up to a width band, so a pinch within one band keeps the render
+  /// it has.
+  @Test func whileZoomingTheRenderScaleRoundsUpToAWidthBand() {
+    let scale = StageReaderModel.renderScale(2, contentWidth: 600, contentHeight: 800, zooming: true)
     expectNoDifference(scale, PageRenderResolution.bandedScale(2, pageWidth: 600))
     expectNoDifference(
-      StageReaderModel.renderScale(2.1, contentWidth: 600, contentHeight: 800, inMotion: true), scale)
+      StageReaderModel.renderScale(2.1, contentWidth: 600, contentHeight: 800, zooming: true), scale)
     #expect(scale >= 2.1)
   }
 
-  /// At rest the page renders at the stage's scale itself: a 612-point page
-  /// at 2 is 1224 pixels wide, not the 1280 of its band.
+  /// Otherwise the page renders at the stage's scale itself: a 612-point
+  /// page at 2 is 1224 pixels wide, not the 1280 of its band.
   @Test func atRestTheRenderScaleIsTheStageScale() {
     expectNoDifference(StageReaderModel.renderScale(2, contentWidth: 612, contentHeight: 792), 2)
     expectNoDifference(StageReaderModel.renderScale(2.05, contentWidth: 612, contentHeight: 792), 2.05)
-    let inMotion = StageReaderModel.renderScale(2, contentWidth: 612, contentHeight: 792, inMotion: true)
-    expectNoDifference((inMotion * 612).rounded(), 1280)
+    let zooming = StageReaderModel.renderScale(2, contentWidth: 612, contentHeight: 792, zooming: true)
+    expectNoDifference((zooming * 612).rounded(), 1280)
     // The cap holds either way.
     expectNoDifference(
       StageReaderModel.renderScale(12, contentWidth: 600, contentHeight: 800),
-      StageReaderModel.renderScale(12, contentWidth: 600, contentHeight: 800, inMotion: true))
+      StageReaderModel.renderScale(12, contentWidth: 600, contentHeight: 800, zooming: true))
   }
 
-  /// A drag puts the reader in motion, and its end, once any spring-back has
-  /// settled, takes it out, so the pages render at the exact scale again.
-  @Test func aDragIsMotionUntilItSettles() async throws {
-    let (model, task) = try await model()
-    defer { task.cancel() }
-    await model.sizeChanged(CGSize(width: 390, height: 844), displayScale: 3)
-    #expect(!model.isInMotion)
-    await model.dragChanged(translation: CGSize(width: 0, height: -400))
-    #expect(model.isInMotion)
-    try await expectObserved({ model.isInMotion }, equals: false) {
-      await model.dragEnded(velocity: .zero)
+  /// The scale each visible page renders at, as `StageReaderView` asks for it.
+  func renderScales(_ model: StageReaderModel) -> [Double] {
+    model.visiblePages.map {
+      StageReaderModel.renderScale(
+        $0.transform.renderScale, contentWidth: $0.transform.contentWidth,
+        contentHeight: $0.transform.contentHeight, zooming: model.isZooming)
     }
   }
 
-  /// A pinch is motion from its first change to its end.
-  @Test func aPinchIsMotionUntilItEnds() async throws {
+  /// A pan, a fling and a tap (a zero-distance drag) change no scale, so the
+  /// reader never zooms and every page keeps its at-rest render scale: the
+  /// view starts no new render for them.
+  @Test func aDragWithNoZoomKeepsTheRestingRenderScale() async throws {
     let (model, task) = try await model()
     defer { task.cancel() }
     await model.sizeChanged(CGSize(width: 390, height: 844), displayScale: 3)
+    let resting = renderScales(model)
+    #expect(!resting.isEmpty)
+    // `isZooming` is written only when it changes, so any write is a zoom.
+    let written = Written()
+    withObservationTracking { _ = model.isZooming } onChange: { written.set() }
+    // A tap.
+    await model.dragChanged(translation: .zero)
+    await model.dragEnded(velocity: .zero)
+    expectNoDifference(renderScales(model), resting)
+    // A pan, then a fling.
+    for step in 1...5 {
+      await model.dragChanged(translation: CGSize(width: 0, height: -40 * Double(step)))
+      #expect(!model.isZooming)
+    }
+    await model.dragEnded(velocity: CGSize(width: 0, height: -1500))
+    let deadline = ContinuousClock.now + .seconds(20)
+    while try await model.stage.isMoving(), ContinuousClock.now < deadline {
+      try await Task.sleep(for: .milliseconds(50))
+    }
+    #expect(!written.value, "a drag made the reader zoom")
+    #expect(!model.isZooming)
+    // Same zoom, other pages: each still renders at its own at-rest scale.
+    for page in model.visiblePages {
+      expectNoDifference(
+        StageReaderModel.renderScale(
+          page.transform.renderScale, contentWidth: page.transform.contentWidth,
+          contentHeight: page.transform.contentHeight, zooming: model.isZooming),
+        StageReaderModel.renderScale(
+          page.transform.renderScale, contentWidth: page.transform.contentWidth,
+          contentHeight: page.transform.contentHeight))
+    }
+  }
+
+  /// A pinch zooms from its first change until its end and any animation
+  /// after it settle.
+  @Test func aPinchZoomsUntilItSettles() async throws {
+    let (model, task) = try await model()
+    defer { task.cancel() }
+    await model.sizeChanged(CGSize(width: 390, height: 844), displayScale: 3)
+    #expect(!model.isZooming)
     model.magnifyChanged(1.2, at: CGPoint(x: 195, y: 422))
-    #expect(model.isInMotion)
-    try await expectObserved({ model.isInMotion }, equals: false) {
+    #expect(model.isZooming)
+    try await expectObserved({ model.isZooming }, equals: false) {
       await model.magnifyEnded()
     }
   }
+
+  /// A double tap's zoom animation zooms until the stage settles.
+  @Test func aDoubleTapZoomsUntilItSettles() async throws {
+    let (model, task) = try await model()
+    defer { task.cancel() }
+    await model.sizeChanged(CGSize(width: 390, height: 844), displayScale: 3)
+    try await expectObserved({ model.isZooming }, equals: false) {
+      await model.doubleTapped(at: CGPoint(x: 195, y: 422))
+    }
+    #expect(try await !model.stage.isMoving())
+  }
+
+}
+
+/// Set once, from any thread: an observation's `onChange`.
+final class Written: @unchecked Sendable {
+  private let lock = NSLock()
+  private var written = false
+  var value: Bool { lock.withLock { written } }
+  func set() { lock.withLock { written = true } }
 }
