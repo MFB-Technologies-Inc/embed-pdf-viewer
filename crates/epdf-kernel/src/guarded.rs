@@ -164,6 +164,16 @@ impl DocumentHandle for GuardedHandle {
         self.guard.promise(self.inner.call_answer(path, pon, args))
     }
 
+    fn call_answer_with(
+        &self,
+        facts: &CallFacts,
+        path: &str,
+        pon: Option<u32>,
+        args: Vec<Value>,
+    ) -> EngineCall<Answer> {
+        self.guard.promise(self.inner.call_answer_with(facts, path, pon, args))
+    }
+
     /// `page(ref)` throws synchronously; the guard maps the throw.
     fn page_index(&self, pon: u32) -> Result<u32, Error> {
         self.inner.page_index(pon).map_err(|e| to_plugin_error(&self.guard.capability, &e))

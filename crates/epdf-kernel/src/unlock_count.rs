@@ -75,6 +75,15 @@ impl DocumentHandle for CountingHandle {
     fn call_answer(&self, path: &str, pon: Option<u32>, args: Vec<Value>) -> EngineCall<Answer> {
         self.inner.call_answer(path, pon, args)
     }
+    fn call_answer_with(
+        &self,
+        facts: &CallFacts,
+        path: &str,
+        pon: Option<u32>,
+        args: Vec<Value>,
+    ) -> EngineCall<Answer> {
+        self.inner.call_answer_with(facts, path, pon, args)
+    }
     fn page_index(&self, pon: u32) -> Result<u32, Error> {
         self.inner.page_index(pon)
     }

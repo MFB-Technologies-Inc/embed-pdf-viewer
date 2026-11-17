@@ -201,6 +201,18 @@ pub trait DocumentHandle {
     fn call_answer(&self, path: &str, pon: Option<u32>, args: Vec<Value>) -> EngineCall<Answer> {
         self.call(path, pon, args).convert(|value| Ok(Answer::Value(value.clone())))
     }
+    /// [`call_with`](Self::call_with), with the answer as the host has it,
+    /// as [`call_answer`](Self::call_answer) gives it. A host that ranks
+    /// work by the facts and holds answers as JSON text overrides both.
+    fn call_answer_with(
+        &self,
+        facts: &CallFacts,
+        path: &str,
+        pon: Option<u32>,
+        args: Vec<Value>,
+    ) -> EngineCall<Answer> {
+        self.call_with(facts, path, pon, args).convert(|value| Ok(Answer::Value(value.clone())))
+    }
     /// `page(ref)` for the page whose `PageRef` names object number `pon`:
     /// the page's display index, or `EngineError(NotFound)`.
     fn page_index(&self, pon: u32) -> Result<u32, Error>;
