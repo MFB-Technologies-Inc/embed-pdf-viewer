@@ -220,9 +220,11 @@ counterpart: canonical JSON already prints a nested object.
 
 ## The divergence ledger
 
-`crates/plugin-conformance/divergences.json` lists every kept Rust divergence from the TypeScript
-once, by `id`, with a `summary`, the `reason` it is kept and when it was `decided`
-(`crates/plugin-conformance/src/exceptions.rs` documents the fields). An entry needs `observedBy`,
+`crates/plugin-conformance/divergences.json` lists each kept Rust divergence from the TypeScript
+that a vector case observes or a Rust test pins, once, by `id`, with a `summary`, the `reason` it
+is kept and when it was `decided` (`crates/plugin-conformance/src/exceptions.rs` documents the
+fields). Kept divergences that nothing pins yet are not in it: `docs/research/divergence-ledger-audit.md`
+lists them, and each enters the ledger once a test pins it. An entry needs `observedBy`,
 `pinnedBy`, or both, and a malformed entry fails every replay at load.
 
 `observedBy` names the vector cases that show the divergence. Each is a `file` and `case` and one
