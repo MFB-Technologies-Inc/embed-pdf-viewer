@@ -42,7 +42,7 @@ async function fixture(allow: unknown) {
   return { dir, allowFile, text, candidatesFile: join(dir, 'member-order-candidates.json') };
 }
 
-const ALLOW = { 'f.json': { c: [{ path: '$.a', divergence: 'MO-passthrough' }] } };
+const ALLOW = { 'f.json': { c: [{ path: '$.a', divergence: 'MO-ui-group-options' }] } };
 
 test('a run writes the paths outside the allowlist as candidates and leaves the allowlist bytes unchanged', async () => {
   const { dir, allowFile, text, candidatesFile } = await fixture(ALLOW);
@@ -68,7 +68,7 @@ test('a run writes the paths outside the allowlist as candidates and leaves the 
 test('--fresh starts from no allowance and names allowlist entries nothing needs', async () => {
   const { dir, allowFile, text, candidatesFile } = await fixture({
     ...ALLOW,
-    'h.json': { e: [{ path: '$.gone', divergence: 'MO-passthrough' }] },
+    'h.json': { e: [{ path: '$.gone', divergence: 'MO-ui-group-options' }] },
   });
   try {
     const found = findCandidates({
@@ -88,8 +88,8 @@ test('--fresh starts from no allowance and names allowlist entries nothing needs
 
 test('no candidates writes an empty candidates file', async () => {
   const { dir, allowFile, candidatesFile } = await fixture({
-    'f.json': { c: ['$.a', '$.b[]'].map((path) => ({ path, divergence: 'MO-passthrough' })) },
-    'g.json': { d: [{ path: '$.x', divergence: 'MO-passthrough' }] },
+    'f.json': { c: ['$.a', '$.b[]'].map((path) => ({ path, divergence: 'MO-ui-group-options' })) },
+    'g.json': { d: [{ path: '$.x', divergence: 'MO-ui-group-options' }] },
   });
   try {
     const found = findCandidates({
