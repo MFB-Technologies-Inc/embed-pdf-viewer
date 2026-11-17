@@ -203,11 +203,7 @@ fn assert_suite_with_ledger(
             continue;
         }
         ran.push(name.to_string());
-        let allowed_paths = canonical::allowed_member_order(file, name);
-        if !allowed_paths.is_empty() {
-            member_order_allowed.push(name.to_string());
-        }
-        let _allowed = canonical::allow_member_order(allowed_paths);
+        let allowed = canonical::allow_member_order(canonical::allowed_member_order(file, name));
         match suite["kind"].as_str() {
             Some("scenario") => {
                 // A case that ran counts as seen even when it panics, so its
@@ -264,33 +260,21 @@ fn assert_suite_with_ledger(
             Some("function") => {
                 let fn_name = case["fn"].as_str().unwrap_or_default();
                 let args = case["args"].as_array().cloned().unwrap_or_default();
-                let outcome = match call_function(functions, fn_name, &args) {
-                    Ok(outcome) => outcome,
-                    Err(why) => {
-                        failures.push(format!("{name}: {why}"));
-                        continue;
+                match call_function(functions, fn_name, &args) {
+                    Ok(outcome) => {
+                        if let Some(diff) = canonical::diff(&case["outcome"], &outcome) {
+                            failures.push(format!("{name}: {diff}"));
+                        }
                     }
-                };
-                if let Some(diff) = canonical::diff(&case["outcome"], &outcome) {
-                    failures.push(format!("{name}: {diff}"));
+                    Err(why) => failures.push(format!("{name}: {why}")),
                 }
             }
             other => panic!("{file}: unknown suite kind {other:?}"),
         }
+        for path in allowed.used() {
+            member_order_allowed.push(receipt::AllowanceUse { case: name.to_string(), path });
+        }
     }
-    if let Some(dir) = receipts {
-        let receipt = receipt::Receipt {
-            file: file.to_string(),
-            only: only.map(str::to_string),
-            ran: ran.clone(),
-            exceptions: exceptions_applied,
-            member_order_allowed,
-        };
-        receipt::write_receipt(dir, &receipt)
-            .unwrap_or_else(|e| panic!("{file}: write receipt into {}: {e}", dir.display()));
-    }
-    let ran = ran.len();
-    assert!(ran > 0, "{file}: no case ran");
     if only.is_none() {
         for divergence in ledger {
             for observation in divergence.observed_by.iter().filter(|o| o.file == file) {
@@ -303,6 +287,22 @@ fn assert_suite_with_ledger(
             }
         }
     }
+    if let Some(dir) = receipts {
+        let receipt = receipt::Receipt {
+            file: file.to_string(),
+            run_id: std::env::var(receipt::RUN_ID_VAR).ok(),
+            only: only.map(str::to_string),
+            ran: ran.clone(),
+            failures: failures.len(),
+            member_order: canonical::member_order_checked(),
+            exceptions: exceptions_applied,
+            member_order_allowed,
+        };
+        receipt::write_receipt(dir, &receipt)
+            .unwrap_or_else(|e| panic!("{file}: write receipt into {}: {e}", dir.display()));
+    }
+    let ran = ran.len();
+    assert!(ran > 0, "{file}: no case ran");
     if !failures.is_empty() {
         panic!(
             "{file}: {} of {ran} cases differ from the TypeScript:\n  {}",

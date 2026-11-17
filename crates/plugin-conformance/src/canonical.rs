@@ -57,6 +57,8 @@ pub fn member_order_checked() -> bool {
 thread_local! {
     /// The paths whose member order the current case doesn't compare.
     static ALLOWED: std::cell::RefCell<Vec<String>> = const { std::cell::RefCell::new(Vec::new()) };
+    /// The paths of `ALLOWED` at which a member-order difference was skipped.
+    static USED: std::cell::RefCell<Vec<String>> = const { std::cell::RefCell::new(Vec::new()) };
 }
 
 /// One `member-order-allow.json` entry: a trace path, with its array indexes
@@ -132,17 +134,31 @@ pub fn allowed_member_order(file: &str, case: &str) -> Vec<String> {
     list.get(file).and_then(|cases| cases.get(case)).cloned().unwrap_or_default()
 }
 
+/// What [`allow_member_order`] returns: the allowance lasts until it drops.
+pub struct MemberOrderAllowance(());
+
+impl MemberOrderAllowance {
+    /// The allowed paths at which the comparison skipped a member-order
+    /// difference so far, each once, in the order first skipped. An allowed
+    /// path missing here had no effect.
+    pub fn used(&self) -> Vec<String> {
+        USED.with(|used| used.borrow().clone())
+    }
+}
+
+impl Drop for MemberOrderAllowance {
+    fn drop(&mut self) {
+        ALLOWED.with(|allowed| allowed.borrow_mut().clear());
+        USED.with(|used| used.borrow_mut().clear());
+    }
+}
+
 /// Skip the member-order comparison at `paths` until the returned guard
 /// drops.
-pub fn allow_member_order(paths: Vec<String>) -> impl Drop {
-    struct Reset;
-    impl Drop for Reset {
-        fn drop(&mut self) {
-            ALLOWED.with(|allowed| allowed.borrow_mut().clear());
-        }
-    }
+pub fn allow_member_order(paths: Vec<String>) -> MemberOrderAllowance {
     ALLOWED.with(|allowed| *allowed.borrow_mut() = paths);
-    Reset
+    USED.with(|used| used.borrow_mut().clear());
+    MemberOrderAllowance(())
 }
 
 /// `path` with every array index written `[]`, as the allow-list names it.
@@ -160,11 +176,22 @@ pub fn path_pattern(path: &str) -> String {
     out
 }
 
+/// Whether the member order at `path` is allowed to differ; called only
+/// where it does, so an allowed path is recorded as used.
 fn order_allowed(path: &str) -> bool {
-    ALLOWED.with(|allowed| {
+    let pattern = ALLOWED.with(|allowed| {
         let allowed = allowed.borrow();
-        !allowed.is_empty() && allowed.contains(&path_pattern(path))
-    })
+        let pattern = path_pattern(path);
+        (!allowed.is_empty() && allowed.contains(&pattern)).then_some(pattern)
+    });
+    let Some(pattern) = pattern else { return false };
+    USED.with(|used| {
+        let mut used = used.borrow_mut();
+        if !used.contains(&pattern) {
+            used.push(pattern);
+        }
+    });
+    true
 }
 
 /// `None` when equal, else the path to the first difference and both sides.
@@ -320,14 +347,32 @@ mod tests {
         let a = json!({"y": {"p": 1, "q": 2}, "z": [{"p": 1, "q": 2}]});
         let b = json!({"y": {"q": 2, "p": 1}, "z": [{"q": 2, "p": 1}]});
         {
-            let _allowed = allow_member_order(vec!["$.y".into(), "$.z[]".into()]);
+            let allowed = allow_member_order(vec!["$.y".into(), "$.z[]".into()]);
             assert_eq!(diff_members("$", &a, &b, false, true), None);
+            assert_eq!(allowed.used(), ["$.y", "$.z[]"]);
         }
-        let _allowed = allow_member_order(vec!["$.y".into()]);
+        let allowed = allow_member_order(vec!["$.y".into()]);
         assert_eq!(
             diff_members("$", &a, &b, false, true).as_deref(),
             Some("$.z[0]: member order: expected [p, q], got [q, p]")
         );
+        assert_eq!(allowed.used(), ["$.y"]);
+    }
+
+    /// An allowed path whose member order agrees is not used: that
+    /// allowance has no effect, and `replay:check` reports it.
+    #[test]
+    fn an_allowed_path_whose_order_agrees_is_not_used() {
+        let a = json!({"y": {"p": 1, "q": 2}});
+        let allowed = allow_member_order(vec!["$.y".into(), "$.gone".into()]);
+        assert_eq!(diff_members("$", &a, &a.clone(), false, true), None);
+        assert!(allowed.used().is_empty());
+        drop(allowed);
+        let b = json!({"y": {"q": 2, "p": 1}});
+        let allowed = allow_member_order(vec!["$.y".into()]);
+        assert_eq!(diff_members("$", &a, &b, false, true), None);
+        assert_eq!(diff_members("$", &a, &b, false, true), None);
+        assert_eq!(allowed.used(), ["$.y"], "each path once");
     }
 
     fn ledger_with(id: &str) -> Vec<Divergence> {

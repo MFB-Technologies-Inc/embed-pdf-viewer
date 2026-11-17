@@ -5,13 +5,19 @@
 //! `<file with "/" replaced by "__">.<pid>.<n>.json`, where `n` counts the
 //! receipts this process wrote. Two tests that replay the same file therefore
 //! leave two receipts, and a reader merges them. A receipt is written even
-//! when the suite fails, and records `only` when `PLUGIN_CONFORMANCE_ONLY`
-//! filtered the run, so a checker can refuse a partial replay.
+//! when the suite fails, and records how many cases failed, `only` when
+//! `PLUGIN_CONFORMANCE_ONLY` filtered the run, whether member order was
+//! compared, and the [`RUN_ID_VAR`] of the run, so a checker can refuse a
+//! failed, partial, weakened or mixed replay.
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use serde::{Deserialize, Serialize};
+
+/// The variable naming the run a receipt belongs to; `replay:check` sets it
+/// to a fresh id for each cargo run.
+pub const RUN_ID_VAR: &str = "PLUGIN_CONFORMANCE_RUN_ID";
 
 /// What one [`crate::assert_suite`] call replayed.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -19,15 +25,30 @@ use serde::{Deserialize, Serialize};
 pub struct Receipt {
     /// The vector file, relative to the vectors root.
     pub file: String,
+    /// The [`RUN_ID_VAR`] of the run, when one was set.
+    pub run_id: Option<String>,
     /// The `PLUGIN_CONFORMANCE_ONLY` filter, when one was set.
     pub only: Option<String>,
     /// The names of the cases that ran, in file order.
     pub ran: Vec<String>,
+    /// How many of them failed, stale observations included.
+    pub failures: usize,
+    /// Whether object member order was compared
+    /// ([`crate::canonical::member_order_checked`]).
+    pub member_order: bool,
     /// The ids of the ledger divergences (`divergences.json`) whose
     /// observations were applied.
     pub exceptions: Vec<String>,
-    /// The cases that ran with a member-order allowance.
-    pub member_order_allowed: Vec<String>,
+    /// The `member-order-allow.json` paths that skipped a member-order
+    /// difference, by case.
+    pub member_order_allowed: Vec<AllowanceUse>,
+}
+
+/// One allowed path that skipped a member-order difference in `case`.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct AllowanceUse {
+    pub case: String,
+    pub path: String,
 }
 
 /// Write `receipt` into `dir` under a name no other receipt of this process
@@ -83,8 +104,7 @@ mod tests {
             file: "a/b.json".into(),
             only: None,
             ran: ran.iter().map(|s| s.to_string()).collect(),
-            exceptions: vec![],
-            member_order_allowed: vec![],
+            ..Receipt::default()
         }
     }
 
@@ -123,19 +143,26 @@ mod tests {
     fn a_receipt_uses_the_wire_names() {
         let dir = TempDir::new("wire");
         let mut r = receipt(&["case-a"]);
+        r.run_id = Some("run-1".into());
         r.only = Some("case".into());
+        r.failures = 1;
+        r.member_order = true;
         r.exceptions = vec!["M13".into()];
-        r.member_order_allowed = vec!["case-a".into()];
+        r.member_order_allowed =
+            vec![AllowanceUse { case: "case-a".into(), path: "$.returned".into() }];
         let path = write_receipt(&dir.0, &r).unwrap();
         let value: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
         assert_eq!(
             value,
             json!({
                 "file": "a/b.json",
+                "runId": "run-1",
                 "only": "case",
                 "ran": ["case-a"],
+                "failures": 1,
+                "memberOrder": true,
                 "exceptions": ["M13"],
-                "memberOrderAllowed": ["case-a"],
+                "memberOrderAllowed": [{ "case": "case-a", "path": "$.returned" }],
             })
         );
     }
@@ -195,7 +222,64 @@ mod tests {
         });
         assert!(run.is_err(), "the suite differs, so it fails");
         let [path] = &dir.entries()[..] else { panic!("one receipt: {:?}", dir.entries()) };
-        assert_eq!(read(path).ran, ["one"]);
+        let r = read(path);
+        assert_eq!((r.ran, r.failures), (vec!["one".to_string()], 1));
+    }
+
+    #[test]
+    fn a_passing_suite_records_no_failures_and_the_member_order_mode() {
+        let dir = TempDir::new("passing");
+        crate::assert_loaded_suite(
+            "a/b.json",
+            &one_case_suite(),
+            &crate::Registry::new(),
+            &functions(),
+            None,
+            Some(&dir.0),
+        );
+        let [path] = &dir.entries()[..] else { panic!("one receipt: {:?}", dir.entries()) };
+        let r = read(path);
+        assert_eq!(r.failures, 0);
+        assert_eq!(r.member_order, crate::canonical::member_order_checked());
+        assert_eq!(r.run_id, std::env::var(RUN_ID_VAR).ok());
+    }
+
+    /// `member-order-allow.json` allows `$.returned` of this file and case;
+    /// a reply in the other order uses the allowance, one in the same order
+    /// does not.
+    #[test]
+    fn a_receipt_lists_the_allowances_that_skipped_a_difference() {
+        let file = "core/ui-schema.json";
+        let suite = json!({
+            "schemaVersion": crate::SCHEMA_VERSION,
+            "kind": "function",
+            "cases": [
+                { "name": "group-opts-and-items", "fn": "swap", "args": [],
+                  "outcome": { "returned": { "a": 1, "b": 2 } } },
+                { "name": "group-opts-no-items", "fn": "keep", "args": [],
+                  "outcome": { "returned": { "a": 1, "b": 2 } } },
+            ],
+        });
+        let functions: crate::FunctionTable = vec![
+            ("swap", |_: &[Value]| Ok(json!({ "b": 2, "a": 1 }))),
+            ("keep", |_: &[Value]| Ok(json!({ "a": 1, "b": 2 }))),
+        ];
+        let dir = TempDir::new("allowed");
+        crate::assert_loaded_suite(
+            file,
+            &suite,
+            &crate::Registry::new(),
+            &functions,
+            None,
+            Some(&dir.0),
+        );
+        let [path] = &dir.entries()[..] else { panic!("one receipt: {:?}", dir.entries()) };
+        let expected = if crate::canonical::member_order_checked() {
+            vec![AllowanceUse { case: "group-opts-and-items".into(), path: "$.returned".into() }]
+        } else {
+            vec![]
+        };
+        assert_eq!(read(path).member_order_allowed, expected);
     }
 
     #[test]

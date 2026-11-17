@@ -9,22 +9,28 @@
  * `cargo metadata` at run time), with `PLUGIN_CONFORMANCE_RECEIPTS` pointing at a fresh temporary directory (and
  * `PLUGIN_CONFORMANCE_ONLY`, `PLUGIN_CONFORMANCE_MEMBER_ORDER` and
  * `PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW` removed), so every `assert_suite` call writes a
- * receipt naming the cases it ran. Then it compares the union of the receipts
- * with the case names of every suite in `src/suites/`. A receipt shows a case
- * ran, not that it passed, so cargo's exit status counts too: the check fails
- * if cargo failed or any receipt problem exists, and reports both. It also
- * fails when a `crates/plugin-conformance/divergences.json` entry with
- * `observedBy` is in no receipt's `exceptions`: an observation that never
- * applied.
+ * receipt naming the cases it ran, and `PLUGIN_CONFORMANCE_RUN_ID` set to a
+ * fresh id every receipt of the run records. Then it compares the union of
+ * the receipts with the case names of every suite in `src/suites/`. Cargo's
+ * exit status counts too: the check fails if cargo failed or any receipt
+ * problem exists, and reports both. A receipt problem is also a receipt
+ * that counts failed cases, one written with the member-order comparison
+ * off, or one from another run. It also fails when a
+ * `crates/plugin-conformance/divergences.json` entry with `observedBy` is in
+ * no receipt's `exceptions` (an observation that never applied), or when a
+ * `crates/plugin-conformance/member-order-allow.json` path is in no
+ * receipt's `memberOrderAllowed` (an allowance that never suppressed a
+ * difference).
  *
- * `--receipts <dir>` skips cargo and reads `<dir>` as it is. Point it only at
- * a directory one full run filled: receipts from older runs would cover cases
- * the current tests no longer run.
+ * `--receipts <dir>` skips cargo and reads `<dir>` as it is. Every receipt
+ * in it must carry the same run id, so fill it with one cargo run that sets
+ * `PLUGIN_CONFORMANCE_RUN_ID`.
  *
  * `vectors:check` keeps its source scan (a `.rs` file must name each vector
  * file as a string literal) as a fast offline lint; this is the proof.
  */
 import { spawnSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -33,13 +39,22 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { isMainModule } from './main-module';
 import type { Suite } from './vectors';
 
+/** An allow-list path that suppressed a member-order difference in a case. */
+export interface AllowanceUse {
+  readonly case: string;
+  readonly path: string;
+}
+
 /** What one Rust `assert_suite` call replayed (`crates/plugin-conformance/src/receipt.rs`). */
 export interface Receipt {
+  readonly runId: string | null;
   readonly file: string;
   readonly only: string | null;
   readonly ran: readonly string[];
+  readonly failures: number;
+  readonly memberOrder: boolean;
   readonly exceptions: readonly string[];
-  readonly memberOrderAllowed: readonly string[];
+  readonly memberOrderAllowed: readonly AllowanceUse[];
 }
 
 /**
@@ -103,6 +118,63 @@ export function unappliedObservations(ledger: LedgerEntry[], receipts: Receipt[]
     );
 }
 
+/**
+ * One problem line per receipt that does not vouch for a passing, full
+ * strength run: failed cases, the member-order comparison off, no run id, or
+ * a run id other than `runId` (when given) or than the other receipts'.
+ */
+export function runProblems(receipts: Receipt[], runId?: string): string[] {
+  const problems: string[] = [];
+  for (const r of receipts) {
+    if (r.failures > 0) problems.push(`${r.file}: ${r.failures} cases failed in the replay`);
+    if (!r.memberOrder) {
+      problems.push(
+        `${r.file}: replayed with the member-order comparison off (PLUGIN_CONFORMANCE_MEMBER_ORDER=0)`,
+      );
+    }
+    if (r.runId === null) problems.push(`${r.file}: receipt has no run id`);
+    else if (runId !== undefined && r.runId !== runId) {
+      problems.push(`${r.file}: receipt is from run ${r.runId}, not this run (${runId})`);
+    }
+  }
+  const ids = [...new Set(receipts.flatMap((r) => (r.runId === null ? [] : [r.runId])))].sort();
+  if (runId === undefined && ids.length > 1) {
+    problems.push(`receipts come from ${ids.length} runs (${ids.join(', ')}), not one`);
+  }
+  return problems;
+}
+
+/** `member-order-allow.json`: `{ file: { case: [{ path, divergence }] } }`. */
+export type AllowList = Record<string, Record<string, readonly { readonly path: string }[]>>;
+
+/**
+ * One problem line per allow-list path that no receipt of its file lists in
+ * `memberOrderAllowed` for its case: an allowance that suppressed no
+ * difference, so has no effect. Filtered receipts and receipts with the
+ * comparison off already fail, so with any of them this reports nothing.
+ */
+export function unusedAllowances(allow: AllowList, receipts: Receipt[]): string[] {
+  if (receipts.some((r) => r.only !== null || !r.memberOrder)) return [];
+  const used = new Set(
+    receipts.flatMap((r) =>
+      r.memberOrderAllowed.map((u) => JSON.stringify([r.file, u.case, u.path])),
+    ),
+  );
+  const problems: string[] = [];
+  for (const [file, cases] of Object.entries(allow)) {
+    for (const [name, entries] of Object.entries(cases)) {
+      for (const { path } of entries) {
+        if (!used.has(JSON.stringify([file, name, path]))) {
+          problems.push(
+            `member-order-allow.json: ${file} / ${name} / ${path}: no replay needed it (the member orders agree, or the case never ran)`,
+          );
+        }
+      }
+    }
+  }
+  return problems;
+}
+
 const isStrings = (value: unknown): boolean =>
   Array.isArray(value) && value.every((item) => typeof item === 'string');
 
@@ -110,11 +182,23 @@ const isStrings = (value: unknown): boolean =>
 function malformed(value: unknown): string | null {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return 'not an object';
   const r = value as Record<string, unknown>;
+  if (r.runId !== null && typeof r.runId !== 'string') return '"runId" is not a string or null';
   if (typeof r.file !== 'string') return '"file" is not a string';
   if (r.only !== null && typeof r.only !== 'string') return '"only" is not a string or null';
   if (!isStrings(r.ran)) return '"ran" is not an array of strings';
+  if (!Number.isInteger(r.failures) || (r.failures as number) < 0) {
+    return '"failures" is not a count';
+  }
+  if (typeof r.memberOrder !== 'boolean') return '"memberOrder" is not a boolean';
   if (!isStrings(r.exceptions)) return '"exceptions" is not an array of strings';
-  if (!Array.isArray(r.memberOrderAllowed)) return '"memberOrderAllowed" is not an array';
+  const isUse = (u: unknown): boolean =>
+    u !== null &&
+    typeof u === 'object' &&
+    typeof (u as AllowanceUse).case === 'string' &&
+    typeof (u as AllowanceUse).path === 'string';
+  if (!Array.isArray(r.memberOrderAllowed) || !r.memberOrderAllowed.every(isUse)) {
+    return '"memberOrderAllowed" is not an array of {case, path}';
+  }
   return null;
 }
 
@@ -209,9 +293,18 @@ export function cargoMetadata(): CargoMetadata {
 }
 
 /** The environment cargo runs under: `base` with receipts written to
- *  `receipts` and every variable that would weaken the proof removed. */
-export function childEnv(base: NodeJS.ProcessEnv, receipts: string): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = { ...base, PLUGIN_CONFORMANCE_RECEIPTS: receipts };
+ *  `receipts` under `runId` and every variable that would weaken the proof
+ *  removed. */
+export function childEnv(
+  base: NodeJS.ProcessEnv,
+  receipts: string,
+  runId: string,
+): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {
+    ...base,
+    PLUGIN_CONFORMANCE_RECEIPTS: receipts,
+    PLUGIN_CONFORMANCE_RUN_ID: runId,
+  };
   delete env.PLUGIN_CONFORMANCE_ONLY;
   // `0` turns the member-order comparison off.
   delete env.PLUGIN_CONFORMANCE_MEMBER_ORDER;
@@ -221,11 +314,11 @@ export function childEnv(base: NodeJS.ProcessEnv, receipts: string): NodeJS.Proc
 }
 
 /** Run the tests of `packages` with receipts on; true when cargo passed. */
-function runCargo(packages: readonly string[], receipts: string): boolean {
-  const env = childEnv(process.env, receipts);
+function runCargo(packages: readonly string[], receipts: string, runId: string): boolean {
+  const env = childEnv(process.env, receipts, runId);
   const args = ['test', ...packages.flatMap((p) => ['-p', p]), '--tests', '--no-fail-fast'];
   console.log(
-    `running cargo test over ${packages.length} crates (${packages.join(', ')}) with receipts in ${receipts}`,
+    `running cargo test over ${packages.length} crates (${packages.join(', ')}) with receipts in ${receipts}, run ${runId}`,
   );
   const run = spawnSync('cargo', args, { cwd: repoRoot, env, stdio: 'inherit' });
   if (run.error) throw run.error;
@@ -242,10 +335,11 @@ async function main(): Promise<void> {
   const dir = given
     ? resolve(given)
     : await mkdtemp(join(tmpdir(), 'plugin-conformance-receipts-'));
+  const runId = given ? undefined : randomUUID();
   let cargoPassed: boolean | null = null;
   let read: { receipts: Receipt[]; problems: string[] };
   try {
-    if (!given) cargoPassed = runCargo(replayPackages(cargoMetadata()), dir);
+    if (runId) cargoPassed = runCargo(replayPackages(cargoMetadata()), dir, runId);
     read = await readReceipts(dir);
   } finally {
     if (!given) await rm(dir, { recursive: true, force: true });
@@ -255,10 +349,18 @@ async function main(): Promise<void> {
   const ledger = JSON.parse(
     await readFile(join(repoRoot, 'crates', 'plugin-conformance', 'divergences.json'), 'utf8'),
   ) as LedgerEntry[];
+  const allow = JSON.parse(
+    await readFile(
+      join(repoRoot, 'crates', 'plugin-conformance', 'member-order-allow.json'),
+      'utf8',
+    ),
+  ) as AllowList;
   const problems = [
     ...read.problems,
+    ...runProblems(receipts, runId),
     ...compareReceipts(expected, receipts),
     ...unappliedObservations(ledger, receipts),
+    ...unusedAllowances(allow, receipts),
   ];
   const cases = [...expected.values()].reduce((n, names) => n + names.length, 0);
   console.log('');

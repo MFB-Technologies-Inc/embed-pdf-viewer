@@ -9,13 +9,24 @@ import {
   compareReceipts,
   readReceipts,
   replayPackages,
+  runProblems,
   unappliedObservations,
+  unusedAllowances,
   type CargoMetadata,
   type Receipt,
 } from '../src/replay-check';
 
 function receipt(file: string, ran: string[], only: string | null = null): Receipt {
-  return { file, only, ran, exceptions: [], memberOrderAllowed: [] };
+  return {
+    runId: 'run-1',
+    file,
+    only,
+    ran,
+    failures: 0,
+    memberOrder: true,
+    exceptions: [],
+    memberOrderAllowed: [],
+  };
 }
 
 const expected = new Map([['core/x.json', ['a', 'b', 'c']]]);
@@ -89,13 +100,25 @@ test('readReceipts reports a malformed receipt by its file name instead of throw
       JSON.stringify({ ...receipt('core/x.json', ['a']), only: 3 }),
     );
     await writeFile(join(dir, 'not-json.json'), '{');
+    await writeFile(
+      join(dir, 'case-list.json'),
+      JSON.stringify({ ...receipt('core/x.json', ['a']), memberOrderAllowed: ['a'] }),
+    );
+    const { failures: _, ...noFailures } = receipt('core/x.json', ['a']);
+    await writeFile(join(dir, 'no-failures.json'), JSON.stringify(noFailures));
     const read = await readReceipts(dir);
     assert.deepEqual(
       read.receipts.map((r) => r.file),
       ['core/x.json'],
     );
-    assert.equal(read.problems.length, 3);
-    for (const name of ['bad-only.json', 'no-ran.json', 'not-json.json']) {
+    assert.equal(read.problems.length, 5);
+    for (const name of [
+      'bad-only.json',
+      'case-list.json',
+      'no-failures.json',
+      'no-ran.json',
+      'not-json.json',
+    ]) {
       assert.ok(
         read.problems.some((line) => line.startsWith(`${name}: malformed receipt`)),
         `${name} in ${JSON.stringify(read.problems)}`,
@@ -130,10 +153,16 @@ test('childEnv removes every variable that would weaken the proof and sets recei
       PLUGIN_CONFORMANCE_MEMBER_ORDER: '0',
       PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW: '/tmp/allow.json',
       PLUGIN_CONFORMANCE_RECEIPTS: '/tmp/old',
+      PLUGIN_CONFORMANCE_RUN_ID: 'old-run',
     },
     '/tmp/receipts',
+    'run-2',
   );
-  assert.deepEqual(env, { PATH: '/bin', PLUGIN_CONFORMANCE_RECEIPTS: '/tmp/receipts' });
+  assert.deepEqual(env, {
+    PATH: '/bin',
+    PLUGIN_CONFORMANCE_RECEIPTS: '/tmp/receipts',
+    PLUGIN_CONFORMANCE_RUN_ID: 'run-2',
+  });
 });
 
 test('a ledger entry with observedBy that no receipt applied is a problem', () => {
@@ -154,6 +183,73 @@ test('a ledger entry with observedBy that no receipt applied is a problem', () =
 test('unapplied observations are not checked when a receipt is filtered', () => {
   assert.deepEqual(
     unappliedObservations([{ id: 'A1', observedBy: [{}] }], [receipt('core/x.json', ['a'], 'a')]),
+    [],
+  );
+});
+
+test('receipts of one passing full-strength run have no run problems', () => {
+  const both = [receipt('core/x.json', ['a']), receipt('core/y.json', ['b'])];
+  assert.deepEqual(runProblems(both), []);
+  assert.deepEqual(runProblems(both, 'run-1'), []);
+});
+
+test('a receipt that counts failed cases is a problem', () => {
+  assert.deepEqual(runProblems([{ ...receipt('core/x.json', ['a', 'b']), failures: 2 }]), [
+    'core/x.json: 2 cases failed in the replay',
+  ]);
+});
+
+test('a receipt written with the member-order comparison off is a problem', () => {
+  assert.deepEqual(runProblems([{ ...receipt('core/x.json', ['a']), memberOrder: false }]), [
+    'core/x.json: replayed with the member-order comparison off (PLUGIN_CONFORMANCE_MEMBER_ORDER=0)',
+  ]);
+});
+
+test('receipts from two runs, or with no run id, are a problem', () => {
+  const stale = { ...receipt('core/y.json', ['b']), runId: 'run-0' };
+  assert.deepEqual(runProblems([receipt('core/x.json', ['a']), stale]), [
+    'receipts come from 2 runs (run-0, run-1), not one',
+  ]);
+  assert.deepEqual(runProblems([receipt('core/x.json', ['a']), stale], 'run-1'), [
+    'core/y.json: receipt is from run run-0, not this run (run-1)',
+  ]);
+  assert.deepEqual(runProblems([{ ...receipt('core/x.json', ['a']), runId: null }]), [
+    'core/x.json: receipt has no run id',
+  ]);
+});
+
+test('an allow-list path no receipt used is a problem', () => {
+  const allow = {
+    'core/x.json': {
+      a: [{ path: '$.returned' }, { path: '$.returned.never' }],
+      gone: [{ path: '$.returned' }],
+    },
+  };
+  const used = {
+    ...receipt('core/x.json', ['a']),
+    memberOrderAllowed: [{ case: 'a', path: '$.returned' }],
+  };
+  assert.deepEqual(unusedAllowances(allow, [used]), [
+    'member-order-allow.json: core/x.json / a / $.returned.never: no replay needed it (the member orders agree, or the case never ran)',
+    'member-order-allow.json: core/x.json / gone / $.returned: no replay needed it (the member orders agree, or the case never ran)',
+  ]);
+  // The same case and path in another file's receipt does not count.
+  const elsewhere = { ...used, file: 'core/y.json' };
+  assert.equal(
+    unusedAllowances({ 'core/x.json': { a: [{ path: '$.returned' }] } }, [elsewhere]).length,
+    1,
+  );
+  assert.deepEqual(
+    unusedAllowances({ 'core/x.json': { a: [{ path: '$.returned' }] } }, [used]),
+    [],
+  );
+});
+
+test('unused allowances are not checked when a receipt is filtered or ran with the order off', () => {
+  const allow = { 'core/x.json': { a: [{ path: '$.returned' }] } };
+  assert.deepEqual(unusedAllowances(allow, [receipt('core/x.json', ['a'], 'a')]), []);
+  assert.deepEqual(
+    unusedAllowances(allow, [{ ...receipt('core/x.json', ['a']), memberOrder: false }]),
     [],
   );
 });
