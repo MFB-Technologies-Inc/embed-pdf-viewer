@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { access, mkdtemp, readFile, realpath, rm, symlink } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { devNull, tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -124,6 +124,9 @@ test('replay:check fails with git\'s message when git fails', async () => {
     const result = run('src/cli/replay-check.ts', ['--receipts', dir], {
       ...process.env,
       GIT_DIR: join(dir, 'not-a-repository'),
+      // No user or system configuration to fail on first.
+      GIT_CONFIG_GLOBAL: devNull,
+      GIT_CONFIG_NOSYSTEM: '1',
       // The message below is git's English text.
       LC_ALL: 'C',
     });

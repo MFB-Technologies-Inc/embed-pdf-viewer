@@ -559,7 +559,10 @@ export function checkoutState(
     return result.stdout;
   };
   const head = output(['rev-parse', 'HEAD']).trim();
-  let entries = statusEntries(output(['status', '--porcelain', '-z']));
+  // Explicit, since `status.showUntrackedFiles` would otherwise decide: `no`
+  // hides untracked source, and `all` lists a receipts directory file by
+  // file so it never shows as `?? dir/`.
+  let entries = statusEntries(output(['status', '--porcelain', '-z', '--untracked-files=normal']));
   const inside = options.receipts === undefined ? null : insideRepository(root, options.receipts);
   const own = inside === null ? null : `${inside}/`;
   if (own !== null && entries.some((e) => e.code === '??' && e.path === own)) {

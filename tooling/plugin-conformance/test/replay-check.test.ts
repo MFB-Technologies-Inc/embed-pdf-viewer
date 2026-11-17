@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { devNull, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { test } from 'node:test';
+import { after, before, test } from 'node:test';
 
 // Before any check module: see `src/library-guard.ts`.
 import '../src/as-library';
@@ -194,12 +194,12 @@ test('childEnv removes every variable that would weaken the proof and sets recei
 test('checkoutState reads the commit and uncommitted changes, and fails with git', () => {
   const answers: Record<string, { status: number; stdout: string; stderr: string }> = {
     'rev-parse HEAD': { status: 0, stdout: 'abc\n', stderr: '' },
-    'status --porcelain -z': { status: 0, stdout: '', stderr: '' },
+    'status --porcelain -z --untracked-files=normal': { status: 0, stdout: '', stderr: '' },
   };
   const git = (args: readonly string[]) => answers[args.join(' ')];
   assert.deepEqual(checkoutState({ run: git }), { head: 'abc', dirty: false, changes: [] });
   // `-z` prints raw paths, NUL-ended, and a rename's source as a field of its own.
-  answers['status --porcelain -z'] = {
+  answers['status --porcelain -z --untracked-files=normal'] = {
     status: 0,
     stdout: ' M a.rs\0R  new name.rs\0old.rs\0?? é.rs\0',
     stderr: '',
@@ -209,7 +209,11 @@ test('checkoutState reads the commit and uncommitted changes, and fails with git
     dirty: true,
     changes: ['a.rs', 'old.rs -> new name.rs', 'é.rs'],
   });
-  answers['status --porcelain -z'] = { status: 0, stdout: 'M\0', stderr: '' };
+  answers['status --porcelain -z --untracked-files=normal'] = {
+    status: 0,
+    stdout: 'M\0',
+    stderr: '',
+  };
   assert.throws(() => checkoutState({ run: git }), /git status printed an entry this cannot read/);
   // The container case: git refuses a repository another user owns.
   answers['rev-parse HEAD'] = {
@@ -222,13 +226,36 @@ test('checkoutState reads the commit and uncommitted changes, and fails with git
     /git rev-parse HEAD failed, so no receipt can be tied to a commit: fatal: detected dubious ownership/,
   );
   answers['rev-parse HEAD'] = { status: 0, stdout: 'abc\n', stderr: '' };
-  answers['status --porcelain -z'] = { status: 1, stdout: '', stderr: '' };
-  assert.throws(() => checkoutState({ run: git }), /git status --porcelain -z failed.*: exit 1/);
+  answers['status --porcelain -z --untracked-files=normal'] = { status: 1, stdout: '', stderr: '' };
+  assert.throws(
+    () => checkoutState({ run: git }),
+    /git status --porcelain -z --untracked-files=normal failed.*: exit 1/,
+  );
 });
 
-test('checkoutState exempts only an untracked receipts directory, in a real repository', async () => {
+// The real-git tests below read no global or system git configuration, in
+// this process (which `checkoutState` runs git from) or any git it starts, so
+// a user's `commit.gpgsign` or `status.showUntrackedFiles` cannot change what
+// they see. Settings a test needs go in its scratch repository's own
+// configuration.
+const userGitConfig = {
+  GIT_CONFIG_GLOBAL: process.env.GIT_CONFIG_GLOBAL,
+  GIT_CONFIG_NOSYSTEM: process.env.GIT_CONFIG_NOSYSTEM,
+};
+before(() => {
+  process.env.GIT_CONFIG_GLOBAL = devNull;
+  process.env.GIT_CONFIG_NOSYSTEM = '1';
+});
+after(() => {
+  for (const [name, value] of Object.entries(userGitConfig)) {
+    if (value === undefined) delete process.env[name];
+    else process.env[name] = value;
+  }
+});
+
+/** A scratch repository with one commit, git run in it, and a file writer. */
+async function scratchRepository() {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'replay-check-git-')));
-  const outside = await realpath(await mkdtemp(join(tmpdir(), 'replay-check-link-')));
   const git = (...args: string[]) => {
     const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' });
     assert.equal(result.status, 0, `git ${args.join(' ')}: ${result.stderr}`);
@@ -237,13 +264,21 @@ test('checkoutState exempts only an untracked receipts directory, in a real repo
     await mkdir(dirname(join(root, path)), { recursive: true });
     await writeFile(join(root, path), text);
   };
+  git('init', '-q');
+  git('config', 'user.name', 'test');
+  git('config', 'user.email', 'test@example.invalid');
+  await put('crates/a/src/lib.rs', 'fn a() {}');
+  git('add', 'crates/a/src/lib.rs');
+  git('commit', '-q', '-m', 'one');
+  return { root, git, put };
+}
+
+test('checkoutState exempts only an untracked receipts directory, in a real repository', async () => {
+  const { root, git, put } = await scratchRepository();
+  const outside = await realpath(await mkdtemp(join(tmpdir(), 'replay-check-link-')));
   const state = (receipts?: string) =>
     checkoutState({ root, receipts: receipts === undefined ? undefined : join(root, receipts) });
   try {
-    git('init', '-q');
-    await put('crates/a/src/lib.rs', 'fn a() {}');
-    git('add', 'crates/a/src/lib.rs');
-    git('-c', 'user.name=test', '-c', 'user.email=test@example.invalid', 'commit', '-q', '-m', 'one');
     assert.equal(state().dirty, false);
 
     // Untracked receipts inside the repository: exempt when named, a change otherwise.
@@ -307,7 +342,7 @@ test('checkoutState exempts only an untracked receipts directory, in a real repo
     // nothing under it.
     await put('kept/r.json');
     git('add', 'kept/r.json');
-    git('-c', 'user.name=test', '-c', 'user.email=test@example.invalid', 'commit', '-q', '-m', 'two');
+    git('commit', '-q', '-m', 'two');
     git('rm', '-r', '-q', '--cached', 'kept');
     assert.deepEqual(state('kept').changes, ['kept/r.json', 'saved/']);
 
@@ -316,6 +351,29 @@ test('checkoutState exempts only an untracked receipts directory, in a real repo
   } finally {
     await rm(root, { recursive: true, force: true });
     await rm(outside, { recursive: true, force: true });
+  }
+});
+
+test('checkoutState lists untracked files the same whatever status.showUntrackedFiles says', async () => {
+  const { root, git, put } = await scratchRepository();
+  try {
+    await put('crates/a/src/new.rs');
+    await put('saved/r.json');
+    for (const setting of ['no', 'normal', 'all']) {
+      git('config', 'status.showUntrackedFiles', setting);
+      assert.deepEqual(
+        checkoutState({ root }).changes,
+        ['crates/a/src/new.rs', 'saved/'],
+        `status.showUntrackedFiles=${setting}`,
+      );
+      assert.deepEqual(
+        checkoutState({ root, receipts: join(root, 'saved') }).changes,
+        ['crates/a/src/new.rs'],
+        `status.showUntrackedFiles=${setting}, receipts in saved/`,
+      );
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
   }
 });
 
@@ -451,7 +509,12 @@ test('receipts from another commit or of other vector text than the checkout are
         { ...receipt('core/y.json', ['b']), vectorSha256: 'sha-old' },
         { ...receipt('core/z.json', ['c']), vectorSha256: null },
         // A unit test's receipt, or a run where git failed: no commit.
-        { ...receipt('core/w.json', ['d']), head: null, dirty: null, vectorSha256: 'sha-core/w.json' },
+        {
+          ...receipt('core/w.json', ['d']),
+          head: null,
+          dirty: null,
+          vectorSha256: 'sha-core/w.json',
+        },
       ],
       checkout,
     ),
