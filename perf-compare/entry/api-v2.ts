@@ -14,8 +14,10 @@ type PageRef = ReturnType<Viewer['documents']['listPages']>[number]['ref'];
 
 export const apiGeneration = 'v2';
 
-// v2 has the history plugin; `history:undo` runs `HistoryToken.undo()`.
-export const capabilities: readonly string[] = ['history'];
+// v2 has the history plugin; `history:undo` runs `HistoryToken.undo()`. It
+// also reads the annotation under the pointer (`getHovered`), which `hover`
+// waits on.
+export const capabilities: readonly string[] = ['history', 'hovered'];
 
 export const onOpened = (v: Viewer, listener: () => void): (() => void) =>
   v.documents.onOpened(() => listener());
@@ -59,4 +61,35 @@ export const fieldText = (v: Viewer, name: string): string | null => {
   const field = form.list().find((f) => f.name === name);
   const value = field ? form.getValue(field.ref) : null;
   return value && 'value' in value ? value.value : null;
+};
+
+// Done conditions read one field or annotation by its ref, found once before
+// the timed window (entry/main.ts `watch`), not a scan of the list.
+const form = (v: Viewer) => v.get(FormToken);
+type FieldRef = ReturnType<ReturnType<typeof form>['list']>[number]['ref'];
+
+export const fieldRef = (v: Viewer, name: string): FieldRef | null => form(v).list({ name })[0]?.ref ?? null;
+
+export const fieldTextOf = (v: Viewer, ref: FieldRef): string | null => {
+  const value = form(v).getValue(ref);
+  return value && 'value' in value ? value.value : null;
+};
+
+export const annotationRef = (v: Viewer, page: PageRef, subtype: string) =>
+  v
+    .get(AnnotationToken)
+    .list({ pages: [page] })
+    .find((a) => String(a.subtype).toLowerCase() === subtype)?.ref ?? null;
+
+export const annotationBoxOf = (
+  v: Viewer,
+  ref: NonNullable<ReturnType<typeof annotationRef>>,
+): Box | null => {
+  const a = v.get(AnnotationToken).get(ref);
+  return a ? boxOf(a.rect) : null;
+};
+
+export const hoveredBox: ((v: Viewer) => Box | null) | null = (v) => {
+  const a = v.get(AnnotationToken).getHovered();
+  return a ? boxOf(a.rect) : null;
 };

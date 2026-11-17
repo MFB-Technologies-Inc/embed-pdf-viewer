@@ -15,6 +15,11 @@ import {
   fieldCount,
   formStatus,
   fieldText,
+  fieldRef,
+  fieldTextOf,
+  annotationRef,
+  annotationBoxOf,
+  hoveredBox,
 } from '@perf/api';
 import type { PerfArm } from './globals';
 
@@ -79,6 +84,32 @@ function viewportOrigin(width: number, height: number): { x: number; y: number }
   throw new Error(`no element is the ${width}x${height} stage viewport`);
 }
 
+// What a flow's done condition polls (lib/flows.mjs): `watch` finds the page,
+// field or annotation once, before the timed window, and `read` then reads
+// only that one, at every poll.
+const watches: (() => unknown)[] = [];
+function watch(kind: string, arg?: unknown): number {
+  let read: () => unknown;
+  if (kind === 'annotationCount') {
+    const page = pageRef(arg as number);
+    read = () => annotationCountOn(v(), page);
+  } else if (kind === 'annotationBox') {
+    const [i, subtype] = arg as [number, string];
+    const ref = annotationRef(v(), pageRef(i), subtype);
+    if (!ref) throw new Error(`page index ${i} has no ${subtype}`);
+    read = () => annotationBoxOf(v(), ref);
+  } else if (kind === 'fieldText') {
+    const ref = fieldRef(v(), arg as string);
+    if (!ref) throw new Error(`no field ${arg}`);
+    read = () => fieldTextOf(v(), ref);
+  } else if (kind === 'hoveredBox') {
+    const hovered = hoveredBox;
+    if (!hovered) throw new Error('this viewer has no hover read');
+    read = () => hovered(v());
+  } else throw new Error(`no watch ${kind}`);
+  return watches.push(read) - 1;
+}
+
 window.__perf = {
   arm,
   ready,
@@ -104,6 +135,8 @@ window.__perf = {
   formStatus: () => formStatus(v()),
   fieldText: (name) => fieldText(v(), name),
   execute: (command) => execute(v(), command),
+  watch,
+  read: (id) => watches[id](),
   pageBox: (i) => {
     // The frame is in stage-viewport px; the viewport element is found by its
     // size, so chrome above or beside it moves the box with it.

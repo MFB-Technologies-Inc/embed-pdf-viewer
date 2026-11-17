@@ -10,6 +10,7 @@
 // Every time is page clock minus page clock (performance.now() in the page).
 // The runner calls start, warmup, start, then measure; only measure is timed.
 import { openCdp } from './cdp.mjs';
+import { DONE_NEEDS } from './done.mjs';
 import { slope, summarize } from './stats.mjs';
 
 /** @typedef {{ fixture: string, needs?: string[], start(page): Promise<void>, warmup?(page, cdp): Promise<void>, measure(page, cdp): Promise<{ metrics: Record<string, number>, diagnostics?: unknown, answers?: unknown }> }} Flow */
@@ -169,6 +170,12 @@ async function screenPoint(page, pageIndex, [x, y]) {
 const centreOf = ([x, y, w, h]) => [x + w / 2, y + h / 2];
 const annotationsOn = (page, pageIndex) => page.evaluate((i) => window.__perf.annotations(i), pageIndex);
 
+// A done condition polls one page's count, one annotation or one field
+// (entry/main.ts `watch`): found once, before the timed window, so a poll
+// costs the same small read on every arm, not a scan of a 1,000-entry list
+// that a Rust arm also serializes across the wire.
+const watch = (page, kind, arg) => page.evaluate(([k, a]) => window.__perf.watch(k, a), [kind, arg]);
+
 // annots.pdf (fixtures/generate.mjs): page index 200 has 20 highlights, one
 // per line on lines 1 to 20; a stamp is on every page index 8k + 5; page
 // indexes 202 and 208 have no ink and no stamp.
@@ -177,12 +184,16 @@ const STAMP_PAGE = 205;
 const INK_PAGE = 202;
 const UNDO_PAGE = 208;
 
-// The centres of the page's highlights, top to bottom, in window px.
-async function highlightCentres(page, pageIndex) {
-  const boxes = (await annotationsOn(page, pageIndex))
+// The page's highlight boxes, top to bottom.
+const highlightBoxes = async (page, pageIndex) =>
+  (await annotationsOn(page, pageIndex))
     .filter((a) => a.subtype === 'highlight')
     .map((a) => a.box)
     .sort((a, b) => a[1] - b[1]);
+
+// The centres of the page's highlights, top to bottom, in window px.
+async function highlightCentres(page, pageIndex) {
+  const boxes = await highlightBoxes(page, pageIndex);
   return Promise.all(boxes.map((b) => screenPoint(page, pageIndex, centreOf(b))));
 }
 
@@ -190,6 +201,10 @@ async function hoverAcross(page, points) {
   for (const [x, y] of points) await page.mouse.move(x, y, { steps: 4 });
 }
 
+// The arm handled the hover once the viewer reports the last highlight as
+// the annotation under the pointer. Only viewers with a hover read
+// (`hovered`, lib/done.mjs) can say so; on the others the flow ends at its
+// last pointer move, and the report marks those rows.
 /** @type {Flow} */
 const hoverFlow = {
   fixture: 'annots',
@@ -202,12 +217,24 @@ const hoverFlow = {
   },
   async measure(page, cdp) {
     const points = await highlightCentres(page, HOVER_PAGE);
+    const capabilities = await page.evaluate(() => window.__perf.capabilities);
+    const reads = capabilities.includes(DONE_NEEDS.hover);
+    const last = reads ? (await highlightBoxes(page, HOVER_PAGE)).at(-1) : null;
+    const hovered = reads ? await watch(page, 'hoveredBox') : null;
     const before = await cdp.cpuStart();
     const t0 = await now(page);
     // The pointer enters the page on the first highlight and moves down
     // across all 20, four steps from one centre to the next.
     await hoverAcross(page, points);
-    const done = await now(page);
+    const done = reads
+      ? await waitFor(
+          page,
+          ([id, box]) => JSON.stringify(window.__perf.read(id)) === box,
+          [hovered, JSON.stringify(last)],
+          'the last highlight to be hovered',
+          10_000,
+        )
+      : await now(page);
     const settled = await settle(page, t0, { doneAt: done, requireChange: false });
     return { metrics: { settleMs: settled - t0, ...(await cpu(cdp, before)) }, answers: { highlights: points.length } };
   },
@@ -215,24 +242,23 @@ const hoverFlow = {
 
 const stampBox = async (page, pageIndex) => (await annotationsOn(page, pageIndex)).find((a) => a.subtype === 'stamp')?.box;
 
-// Presses on the stamp's centre with the pointer tool and drags it `dx` px
-// left in 20 moves; resolves once the stamp's box has moved.
-async function dragStamp(page, pageIndex, dx) {
+// The stamp on page index `pageIndex`: its box, where to press, and a watch
+// on its box. Untimed.
+async function findStamp(page, pageIndex) {
   const from = await stampBox(page, pageIndex);
   if (!from) throw new Error(`page index ${pageIndex} has no stamp`);
-  const [x, y] = await screenPoint(page, pageIndex, centreOf(from));
+  const at = await screenPoint(page, pageIndex, centreOf(from));
+  return { from, at, box: await watch(page, 'annotationBox', [pageIndex, 'stamp']) };
+}
+
+// Presses on the stamp's centre with the pointer tool and drags it `dx` px
+// left in 20 moves; resolves once the stamp's box has moved.
+async function dragStamp(page, { from, at: [x, y], box }, dx) {
   await page.mouse.move(x, y, { steps: 4 });
   await page.mouse.down();
   await page.mouse.move(x - dx, y, { steps: 20 });
   await page.mouse.up();
-  const done = await waitFor(
-    page,
-    ([i, x0]) => window.__perf.annotations(i).find((a) => a.subtype === 'stamp')?.box[0] !== x0,
-    [pageIndex, from[0]],
-    'the stamp to move',
-    10_000,
-  );
-  return { from, done };
+  return waitFor(page, ([id, x0]) => window.__perf.read(id)?.[0] !== x0, [box, from[0]], 'the stamp to move', 10_000);
 }
 
 // Named for what Phase D watches. It drags a stamp, not a highlight: neither
@@ -245,13 +271,17 @@ const dragAnnotFlow = {
   async warmup(page) {
     await goTo(page, STAMP_PAGE + 8);
     await settle(page, await now(page), { requireChange: false });
-    await dragStamp(page, STAMP_PAGE + 8, 200).catch(warmupFailed('dragAnnot'));
+    await findStamp(page, STAMP_PAGE + 8)
+      .then((stamp) => dragStamp(page, stamp, 200))
+      .catch(warmupFailed('dragAnnot'));
     await page.mouse.move(PARKED.x, PARKED.y);
   },
   async measure(page, cdp) {
+    const stamp = await findStamp(page, STAMP_PAGE);
+    const { from } = stamp;
     const before = await cdp.cpuStart();
     const t0 = await now(page);
-    const { from, done } = await dragStamp(page, STAMP_PAGE, 200);
+    const done = await dragStamp(page, stamp, 200);
     const settled = await settle(page, t0, { doneAt: done, requireChange: false });
     const load = await cpu(cdp, before);
     return {
@@ -262,12 +292,20 @@ const dragAnnotFlow = {
 };
 
 // Three strokes of 60 samples each, right of the text on page index 202:
-// zig-zags 170 pt wide at y = 150, 250 and 350 pt from the page top.
-async function drawStrokes(page, pageIndex) {
-  for (const y of [150, 250, 350]) {
-    const points = await Promise.all(
-      Array.from({ length: 60 }, (_, i) => screenPoint(page, pageIndex, [410 + (170 * i) / 59, y + (i % 2 ? 20 : -20)])),
-    );
+// zig-zags 170 pt wide at y = 150, 250 and 350 pt from the page top. In
+// window px, worked out before the timed window: each point reads the page's
+// box.
+const strokesOn = (page, pageIndex) =>
+  Promise.all(
+    [150, 250, 350].map((y) =>
+      Promise.all(
+        Array.from({ length: 60 }, (_, i) => screenPoint(page, pageIndex, [410 + (170 * i) / 59, y + (i % 2 ? 20 : -20)])),
+      ),
+    ),
+  );
+
+async function drawStrokes(page, strokes) {
+  for (const points of strokes) {
     await page.mouse.move(...points[0]);
     await page.mouse.down();
     for (const p of points.slice(1)) await page.mouse.move(...p);
@@ -289,7 +327,7 @@ const drawInkFlow = {
     await settle(page, await now(page), { requireChange: false });
     const count = await page.evaluate((i) => window.__perf.annotationCount(i), warm);
     await page.evaluate(() => window.__perf.execute('annotation:add-ink'));
-    await drawStrokes(page, warm);
+    await drawStrokes(page, await strokesOn(page, warm));
     await waitFor(page, ([i, n]) => window.__perf.annotationCount(i) > n, [warm, count], 'the warm-up ink', 10_000).catch(
       warmupFailed('drawInk'),
     );
@@ -298,13 +336,15 @@ const drawInkFlow = {
   async measure(page, cdp) {
     const countBefore = await page.evaluate((i) => window.__perf.annotationCount(i), INK_PAGE);
     await page.evaluate(() => window.__perf.execute('annotation:add-ink'));
+    const count = await watch(page, 'annotationCount', INK_PAGE);
+    const strokes = await strokesOn(page, INK_PAGE);
     const before = await cdp.cpuStart();
     const t0 = await now(page);
-    await drawStrokes(page, INK_PAGE);
+    await drawStrokes(page, strokes);
     const done = await waitFor(
       page,
-      ([i, n]) => window.__perf.annotationCount(i) === n + 1,
-      [INK_PAGE, countBefore],
+      ([id, n]) => window.__perf.read(id) === n + 1,
+      [count, countBefore],
       'the ink to be added',
       10_000,
     );
@@ -321,14 +361,21 @@ const FIELD_PAGE = 50;
 const TYPED = 'The quick brown fox jumps over a lazy do'; // 40 characters
 const fieldName = (pageIndex) => `t${pageIndex + 1}-1`;
 
+// The field's click point and a watch on its value. Untimed.
+async function findField(page, pageIndex) {
+  return {
+    at: await screenPoint(page, pageIndex, [290, 82]),
+    value: await watch(page, 'fieldText', fieldName(pageIndex)),
+  };
+}
+
 // Clicks into the field, types `text` and presses Tab to leave it, which
 // commits the value; resolves once the form reports it.
-async function typeInto(page, pageIndex, text) {
-  const [x, y] = await screenPoint(page, pageIndex, [290, 82]);
+async function typeInto(page, { at: [x, y], value }, text) {
   await page.mouse.click(x, y);
   await page.keyboard.type(text);
   await page.keyboard.press('Tab');
-  return waitFor(page, ([n, t]) => window.__perf.fieldText(n) === t, [fieldName(pageIndex), text], 'the typed value', 10_000);
+  return waitFor(page, ([id, t]) => window.__perf.read(id) === t, [value, text], 'the typed value', 10_000);
 }
 
 /** @type {Flow} */
@@ -338,13 +385,16 @@ const typeFieldFlow = {
   async warmup(page) {
     await goTo(page, FIELD_PAGE + 1);
     await settle(page, await now(page), { requireChange: false });
-    await typeInto(page, FIELD_PAGE + 1, TYPED.slice(0, 10)).catch(warmupFailed('typeField'));
+    await findField(page, FIELD_PAGE + 1)
+      .then((field) => typeInto(page, field, TYPED.slice(0, 10)))
+      .catch(warmupFailed('typeField'));
     await page.mouse.move(PARKED.x, PARKED.y);
   },
   async measure(page, cdp) {
+    const field = await findField(page, FIELD_PAGE);
     const before = await cdp.cpuStart();
     const t0 = await now(page);
-    const done = await typeInto(page, FIELD_PAGE, TYPED);
+    const done = await typeInto(page, field, TYPED);
     const settled = await settle(page, t0, { doneAt: done, requireChange: false });
     const load = await cpu(cdp, before);
     return {
@@ -442,14 +492,19 @@ const zoomFlow = (fixture, pageIndex) => ({
   },
 });
 
-const selectFlow = (fixture, pageIndex, region) => ({
+const selectFlow = (name, fixture, pageIndex, region) => ({
   fixture,
   start: startAt(pageIndex, { park: true }),
   async warmup(page) {
     await goTo(page, pageIndex + 1);
     await settle(page, await now(page), { requireChange: false });
     await drag(page, pageIndex + 1, region);
-    await page.evaluate(() => window.__perf.readSelection()).catch(() => {});
+    await page
+      .evaluate(() => window.__perf.readSelection())
+      .then((text) => {
+        if (!text) throw new Error('the drag selected no text');
+      })
+      .catch(warmupFailed(name));
     await page.mouse.move(PARKED.x, PARKED.y);
   },
   async measure(page, cdp) {
@@ -464,7 +519,7 @@ const selectFlow = (fixture, pageIndex, region) => ({
   },
 });
 
-const annotateFlow = (fixture, pageIndex, region) => ({
+const annotateFlow = (name, fixture, pageIndex, region) => ({
   fixture,
   start: startAt(pageIndex, { park: true }),
   async warmup(page) {
@@ -480,7 +535,7 @@ const annotateFlow = (fixture, pageIndex, region) => ({
       [warm, count],
       'the warm-up highlight',
       10_000,
-    ).catch(() => {});
+    ).catch(warmupFailed(name));
     await page.mouse.move(PARKED.x, PARKED.y);
   },
   async measure(page, cdp) {
@@ -546,9 +601,9 @@ export const FLOWS = {
   zoomLarge: zoomFlow('large', 200),
 
 
-  select: selectFlow('ebook', 1, SELECT_DRAG),
+  select: selectFlow('select', 'ebook', 1, SELECT_DRAG),
   // Four lines on page index 200 of large.pdf, a 400-page document.
-  selectLarge: selectFlow('large', 200, LARGE_SELECT_DRAG),
+  selectLarge: selectFlow('selectLarge', 'large', 200, LARGE_SELECT_DRAG),
 
 
   search: {
@@ -574,9 +629,9 @@ export const FLOWS = {
   },
 
 
-  annotate: annotateFlow('ebook', 1, HIGHLIGHT_DRAG),
+  annotate: annotateFlow('annotate', 'ebook', 1, HIGHLIGHT_DRAG),
   // One line on page index 200 of large.pdf.
-  annotateLarge: annotateFlow('large', 200, LARGE_HIGHLIGHT_DRAG),
+  annotateLarge: annotateFlow('annotateLarge', 'large', 200, LARGE_HIGHLIGHT_DRAG),
 
   hover: hoverFlow,
   dragAnnot: dragAnnotFlow,
