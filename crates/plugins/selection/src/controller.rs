@@ -176,6 +176,9 @@ struct Core {
     changed: EventHookSource<SelectionChangedEvent>,
     committed: EventHookSource<SelectionCommittedEvent>,
     cleared: EventHookSource<SelectionClearedEvent>,
+    /// How many geometry loads were asked for, for the tests.
+    #[cfg(feature = "harness")]
+    load_starts: Cell<u64>,
 }
 
 /// `SelectionHostCapability`, which includes the public
@@ -379,6 +382,8 @@ pub(crate) fn create_selection_controller(
         epoch: Cell::new(0),
         model: RefCell::new(None),
         registry: RefCell::new(None),
+        #[cfg(feature = "harness")]
+        load_starts: Cell::new(0),
     });
     *slot.borrow_mut() = Rc::downgrade(&core);
     let api = SelectionCapability(core);
@@ -549,6 +554,8 @@ impl SelectionCapability {
     /// Start loading a page's geometry, if this caller may read it and the
     /// page is in the document: the load `ensure_loaded` waits for.
     fn start_load(&self, page: PageRef) -> Option<Promise<()>> {
+        #[cfg(feature = "harness")]
+        self.0.load_starts.set(self.0.load_starts.get() + 1);
         // Authorized-only warming: without doc.text.select the read is
         // guaranteed to be refused, so it is not issued.
         if !self.can_select() || self.get_page(PageTarget::Ref(page)).is_none() {
@@ -1153,6 +1160,14 @@ impl SelectionCapability {
             let _ = load.await;
             Ok(())
         })
+    }
+
+    /// How many geometry loads were asked for (`ensureLoaded` and the
+    /// warming reads), loaded pages included. For the tests.
+    #[cfg(feature = "harness")]
+    #[doc(hidden)]
+    pub fn load_starts(&self) -> u64 {
+        self.0.load_starts.get()
     }
 
     /// Whether the page's text geometry is loaded and current.

@@ -171,3 +171,38 @@ fn a_page_with_no_text_selects_nothing_and_reads_empty() {
     rt::run_until_stalled();
     assert_eq!(text.peek().unwrap().unwrap(), "");
 }
+
+/// Hovering a page whose geometry is loaded starts no load: the TypeScript's
+/// `ensureLoaded` there only reaches a settled promise (`handler.ts:119`).
+/// The first hover over a page still warms it.
+#[test]
+fn hover_does_not_reload_loaded_page() {
+    use epdf_plugin_interaction::{INTERACTION, PageHit, Phase, PointerSample};
+    let (kernel, fake) = kernel(1, BOTH, Vec::new());
+    let selection = selection(&kernel);
+    let hub = kernel.capability(&INTERACTION, Some("a")).expect("the interaction hub");
+    let hover = |x: f64, y: f64| {
+        let hit = PageHit {
+            page: page(1),
+            point: Point { x, y },
+            scale: None,
+            rotation: None,
+            zoom: None,
+        };
+        hub.dispatch_pointer(&PointerSample::new(Phase::Move, Point { x, y }, Some(hit)));
+        rt::run_until_stalled();
+    };
+    let layouts = || fake.log_since(0).iter().filter(|c| c["path"] == "page.text.layout").count();
+
+    hover(10.0, 10.0);
+    assert!(selection.is_loaded(page(1)), "the first hover warms the page");
+    assert_eq!(layouts(), 1);
+    let started = selection.load_starts();
+
+    hover(53.0, 56.0);
+    hover(10.0, 10.0);
+    hover(53.0, 56.0);
+    assert_eq!(selection.load_starts(), started, "a loaded page starts no load");
+    assert_eq!(layouts(), 1);
+    assert_eq!(hub.get_cursor(), "text", "over text shows the I-beam");
+}
