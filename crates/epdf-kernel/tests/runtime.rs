@@ -1634,6 +1634,31 @@ fn allows_rereads_after_security_event() {
     assert_eq!(doc.security.asked(), asked + 2);
 }
 
+/// The accepted divergence the memo's invariant leaves (the
+/// `DocumentSecurity` docs): an engine that changes its answer with no store
+/// write, event or unlock is answered from the memo until one of them
+/// moves. TypeScript asks the service on every check and would answer true
+/// at once.
+#[test]
+fn allows_keeps_an_answer_changed_without_an_event() {
+    let doc = permission_doc("doc");
+    let (kernel, token) = permission_kernel(std::slice::from_ref(&doc));
+    let ctx = kernel.capability(&token, Some("doc")).unwrap();
+    assert!(!ctx.allows("doc.print"));
+    assert!(!ctx.allows_field("fill", &json!({"groupId": "g", "name": "a"})));
+    doc.security.grant("doc.print");
+    doc.security.grant(r#"field:fill:{"groupId":"g"}"#);
+    assert!(doc.security.allows("doc.print"), "the engine answers the new right");
+    let asked = doc.security.asked();
+    assert!(!ctx.allows("doc.print"), "the memo keeps the old answer");
+    assert!(!ctx.allows_field("fill", &json!({"groupId": "g", "name": "b"})));
+    assert_eq!(doc.security.asked(), asked, "no question reached the engine");
+    // Anything the stamp reads lets the new answer through.
+    doc.events.emit(&json!({"type": "signatures.prepared"}));
+    assert!(ctx.allows("doc.print"));
+    assert!(ctx.allows_field("fill", &json!({"groupId": "g", "name": "b"})));
+}
+
 #[test]
 fn allows_field_crosses_once_per_group_and_action() {
     let doc = permission_doc("doc");

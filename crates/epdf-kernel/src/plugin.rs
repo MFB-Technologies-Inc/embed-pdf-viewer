@@ -507,6 +507,15 @@ struct ControllerInner {
 /// The security service's answers, by `(member, args)`, for one
 /// [`PermissionStamp`]. TypeScript asks the service on every check; an
 /// answer is kept only while nothing it reads can have changed.
+///
+/// That rests on an invariant of the engine (the
+/// [`DocumentSecurity`](crate::engine::DocumentSecurity) docs): its answers
+/// change only with a store write, a document event or an unlock, the
+/// counters the stamp reads. An engine that changes rights without any of
+/// them is answered from here until one moves, where TypeScript would see
+/// the change at once. The bundled engines keep the invariant; a cloud
+/// engine is unverified, and the divergence is accepted and pinned by
+/// `allows_keeps_an_answer_changed_without_an_event`.
 #[derive(Default)]
 struct PermissionMemo {
     stamp: Option<PermissionStamp>,

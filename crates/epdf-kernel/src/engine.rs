@@ -71,6 +71,19 @@ pub trait Engine {
     }
 }
 
+/// A document's security service: what the session may do with it.
+///
+/// Invariant: an answer changes only with a store write, a document event
+/// ([`DocumentHandle::subscribe`]) or a successful [`Self::unlock`]. A
+/// plugin context keeps each `allows*` answer until one of those moves
+/// (`PermissionMemo` in `plugin.rs`), where TypeScript asks the service on
+/// every check, so an engine whose rights change some other way must emit
+/// an event when they do, or plugins keep the old answer until something
+/// else moves. The native host and epdf-web's bridge change rights only
+/// by an unlock or with an event (a signing's new protection). A cloud
+/// engine is unverified; a change it makes without an event is the
+/// accepted divergence that `allows_keeps_an_answer_changed_without_an_event`
+/// (`crates/epdf-kernel/tests/runtime.rs`) pins.
 pub trait DocumentSecurity {
     fn allows(&self, capability: &str) -> bool;
     /// `allowsField(action, target)`: whether the session may `fill` or

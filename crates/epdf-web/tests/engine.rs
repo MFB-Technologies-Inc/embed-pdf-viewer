@@ -553,7 +553,12 @@ async fn allows_rereads_after_security_event() {
     let grant =
         js_sys::Reflect::get(&stub, &"grant".into()).unwrap().unchecked_into::<js_sys::Function>();
     grant.call1(&stub, &"doc.print".into()).unwrap();
+    // Until the event, this is the divergence the memo's invariant accepts
+    // (`DocumentSecurity` in epdf-kernel's engine.rs): TypeScript would ask
+    // and answer true; the memo answers without crossing the bridge.
+    let asked = security_calls(&stub);
     assert!(!ctx.allows("doc.print"), "the same revision answers from the memo");
+    assert_eq!(security_calls(&stub), asked, "no question crossed the bridge");
     let (count, core) = (ctx.store_change_count(), kernel.core_revision());
     let emit =
         js_sys::Reflect::get(&stub, &"emit".into()).unwrap().unchecked_into::<js_sys::Function>();
