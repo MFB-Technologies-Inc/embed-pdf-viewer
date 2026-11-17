@@ -242,6 +242,208 @@ fn the_last_awaiter_after_an_observed_settle_takes_the_result() {
     assert_eq!(*counts.borrow(), [1]);
 }
 
+/// Who besides the caller reads an answer [`LoneAnswers`] gives.
+#[derive(Clone, Copy)]
+enum Reader {
+    Nobody,
+    Observer,
+    Awaiter,
+}
+
+/// A host that overrides only `call`, as the native and fake hosts do:
+/// each answer is a string whose buffer it records, settled at once or
+/// when `answer_pending` runs, and read by `reader` too.
+struct LoneAnswers {
+    later: bool,
+    reader: Reader,
+    buffers: RefCell<Vec<usize>>,
+    pending: RefCell<Vec<(rt::Resolver<Value>, Value)>>,
+    seen: Rc<RefCell<Vec<String>>>,
+}
+
+impl LoneAnswers {
+    fn new(later: bool, reader: Reader) -> Self {
+        LoneAnswers {
+            later,
+            reader,
+            buffers: RefCell::default(),
+            pending: RefCell::default(),
+            seen: log(),
+        }
+    }
+
+    fn answer_pending(&self) {
+        let pending = std::mem::take(&mut *self.pending.borrow_mut());
+        for (resolver, value) in pending {
+            resolver.resolve(value);
+        }
+    }
+}
+
+impl DocumentHandle for LoneAnswers {
+    fn id(&self) -> String {
+        "a".into()
+    }
+    fn capabilities(&self) -> Value {
+        json!({})
+    }
+    fn security(&self) -> Rc<dyn DocumentSecurity> {
+        unimplemented!()
+    }
+    fn has(&self, _: &str) -> bool {
+        true
+    }
+    fn call(&self, path: &str, _: Option<u32>, _: Vec<Value>) -> EngineCall<Value> {
+        let text = format!("the answer to {path}");
+        self.buffers.borrow_mut().push(text.as_ptr() as usize);
+        let value = Value::String(text);
+        let promise = if self.later {
+            let (promise, resolver) = Promise::pending();
+            self.pending.borrow_mut().push((resolver, value));
+            promise
+        } else {
+            Promise::resolved(value)
+        };
+        let seen = self.seen.clone();
+        match self.reader {
+            Reader::Nobody => {}
+            Reader::Observer => promise.on_settle(move |result| {
+                seen.borrow_mut().push(result.as_ref().unwrap().as_str().unwrap().into())
+            }),
+            Reader::Awaiter => {
+                let promise = promise.clone();
+                rt::spawn(async move {
+                    let value = promise.await.unwrap();
+                    seen.borrow_mut().push(value.as_str().unwrap().into());
+                });
+            }
+        }
+        promise
+    }
+    fn page_index(&self, _: u32) -> Result<u32, Error> {
+        Ok(0)
+    }
+    fn subscribe(&self, _: Rc<dyn Fn(&Value)>) -> epdf_kernel::Unsubscribe {
+        epdf_kernel::Unsubscribe::noop()
+    }
+}
+
+/// Each default answer call on `host`, settled and taken by its only
+/// awaiter: the answer's text and its buffer's address.
+fn default_answers(host: &LoneAnswers) -> Vec<(String, usize)> {
+    use epdf_kernel::engine::{Answer, CallFacts};
+    let calls = [
+        host.call_answer("pages.list", None, Vec::new()),
+        host.call_answer_with(&CallFacts::default(), "page.text", Some(3), Vec::new()),
+    ];
+    let taken = Rc::new(RefCell::new(Vec::new()));
+    for call in calls {
+        let taken = taken.clone();
+        rt::spawn(async move {
+            let Answer::Value(Value::String(text)) = call.await.unwrap() else {
+                panic!("a string answer")
+            };
+            let buffer = text.as_ptr() as usize;
+            taken.borrow_mut().push((text, buffer));
+        });
+    }
+    rt::run_until_stalled();
+    host.answer_pending();
+    rt::run_until_stalled();
+    taken.take()
+}
+
+/// `call_answer` and `call_answer_with` on a host that overrides only
+/// `call` hand the caller the answer itself when nobody else reads it,
+/// whether it settled before the call returned or after.
+#[test]
+fn a_default_answer_call_moves_an_answer_nobody_else_reads() {
+    for later in [false, true] {
+        rt::reset();
+        let host = LoneAnswers::new(later, Reader::Nobody);
+        let answers = default_answers(&host);
+        let texts: Vec<_> = answers.iter().map(|(text, _)| text.as_str()).collect();
+        assert_eq!(texts, ["the answer to pages.list", "the answer to page.text"]);
+        let buffers: Vec<_> = answers.iter().map(|(_, buffer)| *buffer).collect();
+        assert_eq!(buffers, *host.buffers.borrow(), "settled later: {later}");
+    }
+}
+
+/// An answer the host also reads, through an observer or an awaiter of
+/// its own, is copied for the caller: both read the same text.
+#[test]
+fn a_default_answer_call_copies_an_answer_another_reader_holds() {
+    for (later, reader) in
+        [(true, Reader::Observer), (false, Reader::Awaiter), (true, Reader::Awaiter)]
+    {
+        rt::reset();
+        let host = LoneAnswers::new(later, reader);
+        let answers = default_answers(&host);
+        let texts: Vec<_> = answers.iter().map(|(text, _)| text.clone()).collect();
+        assert_eq!(texts, ["the answer to pages.list", "the answer to page.text"]);
+        let mut seen = host.seen.borrow().clone();
+        seen.sort();
+        let mut sorted = texts.clone();
+        sorted.sort();
+        assert_eq!(seen, sorted, "the host's reader saw the same answers");
+        for ((_, buffer), original) in answers.iter().zip(host.buffers.borrow().iter()) {
+            assert_ne!(buffer, original, "settled later: {later}");
+        }
+    }
+}
+
+/// `convert_owned` settles in the turn its source does, as `convert` does,
+/// passes an error through and keeps the abort and the subclass.
+#[test]
+fn convert_owned_settles_with_its_source_and_keeps_the_abort() {
+    rt::reset();
+    let aborted = log();
+    let (raw, resolver) = Promise::<Value>::pending();
+    let (a, r) = (aborted.clone(), resolver.clone());
+    let source = raw.with_abort(move |reason| {
+        a.borrow_mut().push(format!("{reason:?}"));
+        r.reject(Error::abort(reason));
+    });
+    let out = source.convert_owned(|value| Ok(value.to_string()));
+    assert!(out.is_abortable());
+    resolver.resolve(json!(7));
+    assert_eq!(out.peek().unwrap().unwrap(), "7", "settled with the source, no turn");
+    out.abort(None);
+    assert!(aborted.borrow().is_empty(), "a settled promise ignores abort");
+
+    let (raw, resolver) = Promise::<Value>::pending();
+    let r = resolver.clone();
+    let source = raw.with_abort_member(move |reason| r.reject(Error::abort(reason)));
+    let out = source.convert_owned(|value| Ok(value.to_string()));
+    assert!(out.has_abort() && !out.is_abortable());
+    out.abort(Some(json!("stop")));
+    assert!(out.peek().unwrap().unwrap_err().is_abort());
+    drop(resolver);
+
+    let (source, resolver) = Promise::<Value>::pending();
+    let out = source.convert_owned(|value| Ok(value.to_string()));
+    resolver.reject(Error::new("no"));
+    assert_eq!(out.peek().unwrap().unwrap_err().message, "no");
+}
+
+/// A result `convert_owned` took leaves its promise settled: a resolver's
+/// promise reads it so, with no result to give.
+#[test]
+fn a_taken_result_leaves_its_promise_settled() {
+    rt::reset();
+    let (source, resolver) = Promise::<Value>::pending();
+    let out = source.convert_owned(Ok);
+    resolver.resolve(json!("answer"));
+    assert_eq!(out.peek().unwrap().unwrap(), json!("answer"));
+    let again = resolver.promise();
+    assert!(again.is_settled());
+    assert!(again.peek().is_none());
+    let observed = Rc::new(Cell::new(false));
+    let o = observed.clone();
+    again.on_settle(move |_| o.set(true));
+    assert!(!observed.get());
+}
+
 #[test]
 fn abort_runs_only_on_an_abortable_pending_promise() {
     rt::reset();
