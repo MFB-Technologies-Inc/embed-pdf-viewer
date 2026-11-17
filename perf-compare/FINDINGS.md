@@ -1004,7 +1004,11 @@ not `main-now`'s: the gate at `cb3167fcd` took the first arm in run order that a
 `arms.json` lists `plugins-next` before `main-now`. Both answered `countBefore` 2, `countEdited`
 12, `countAfter` 2 (`gate.json`), so the answers agree. Since then the gate takes this reference
 from `arms.json`'s `fallbackReference` (`main-now`) whenever `main-now` is in the run, and falls
-back to run order only without it, with a `gate:` warning naming the arm used.
+back to run order only without it, with a `gate:` warning naming the arm used. When only one arm
+answers `undo`, nothing checks it. The default arms are that case, because `plugins-base`
+(`9d6c2eca1`) builds as viewer API v1 and skips `undo`. The gate then records `undo` as unchecked
+in that arm's `gate.json` entry, warns that no comparison happened, and the report leaves out that
+arm's `undo` rows.
 `undo` has no `main` baseline and no A/A noise, so its threshold is the floor: ±6.1 ms on
 `settleMs`, ±3.0% on the CPU rows.
 
@@ -1047,9 +1051,9 @@ results/2026-11-16T20-20-49-728Z-macmini2020-desktop main`). Its settle rows mov
 ### Phases C and D on `research/perf-fixes`
 
 One run measures both phases: `results/2026-11-17T04-18-50-584Z-macmini2020-desktop`, R=10 on the
-Mac mini, 130.1 min, harness `7e527a415` with this commit's `arms.json` uncommitted. A/A 84 of 84,
-all six arms through the gate, 1,180 samples, none failed. The arms, all tagged `arm/<id>` in the
-host repository:
+Mac mini, 130.1 min, harness `7e527a415` with the `arms.json` of `a4a680e29` uncommitted. A/A 84
+of 84, all six arms through the gate, 1,180 samples, none failed. The arms, all tagged `arm/<id>`
+in the host repository:
 
 | Arm | Commit | What it is |
 | --- | --- | --- |
@@ -1069,11 +1073,11 @@ inside that drift, so none is unconfirmed.
 
 `undo` still has no `main` baseline and judges against the 3% floor. Its gate reference was
 `main-now`, because `main-now` came first in `arms.json` order among the arms that ran it in this
-run (`run.mjs` sorts `--arms` into that order). The gate now takes that reference from `arms.json`'s
-`fallbackReference` (`main-now`) whenever `main-now` is in the run, not from the run order. `dragAnnot` still drags a stamp, not a highlight. Task 12 (`efac793af`)
-changed the sample a live harness hands interaction handlers: the typed sample, with members in the
-generator's order (`page` last), instead of the host's raw JSON. The handlers read only contract
-members, and every gate answer matched, so the flows measure the same work.
+run (`run.mjs` sorts `--arms` into that order). `dragAnnot` still drags a stamp, not a highlight.
+Task 12 (`efac793af`) changed the sample a live harness hands interaction handlers: the typed
+sample, with members in the generator's order (`page` last), instead of the host's raw JSON. The
+handlers read only contract members, and every gate answer matched, so the flows measure the same
+work.
 
 #### Phase C: every watched flow got faster, and nothing is slower
 
@@ -1100,7 +1104,8 @@ The watched rows that didn't move: `scroll / wallMs` (0.983x, ±3.0%), the frame
 long-task rows of `scroll` and `scrollMid`, `zoomLarge / zoom4SettleMs` (-8.9 ms, ±5.3) and
 `zoomLarge / backTo1SettleMs` (+9.3 ms, ±9.9). The largest moves are off the watch list:
 `drawInk` main-thread JavaScript 0.626x and settle -2,824.2 ms (6,971.2 to 4,147.0), and `undo`
-0.762x and -149.1 ms.
+0.762x and -149.1 ms. `annotateLarge`, also off the list, got faster too: main-thread JavaScript
+0.860x and settle -26.1 ms.
 
 #### Phase D: the form and undo rows moved, `annotateLarge` didn't
 
@@ -1222,9 +1227,10 @@ except `forms.setValue`'s, which is 3.1%.
 | forms/annotations.list | 1.25 [1.28] | 1.25 [1.27] | 1.23 [1.26] | 0.998 | 0.986 [0.971, 0.997] | 3.0% | no detectable difference |
 | forms/forms.setValue | 40.5 [41.4] | 40.2 [40.6] | 25.9 [26.3] | 0.993 | 0.638 [0.623, 0.648] | 3.1% | faster |
 
-Results: `task-28-run/results/results-base-tip.json` (raw per-round samples), run 2026-11-17
-07:55 to 08:05 UTC on `macmini2020` (Apple M1, AC power, load average 1.54 before and 1.65
-after).
+Results: the `compare.mjs --out` JSON of the run started 2026-11-17T07:55:56.639Z (the
+`tooling/engine-timer` README's command, at `a5f7f59e3`), run 2026-11-17 07:55 to 08:05 UTC on
+`macmini2020` (Apple M1, AC power, load average 1.54 before and 1.65 after). The JSON, with its raw
+per-round samples, and the run's logs aren't committed.
 
 The timer is `tooling/engine-timer` (b3f41cd38, 93342cdf6 on `research/perf-fixes`). It sends
 `open.fatMem`, `pages.list`, `pages.geometry`, `pages.render`, a whole-document `search.query`,
@@ -1252,17 +1258,18 @@ The vectors allow that (1e-4 point), so the timer compares quantized answers (93
 LTO stays, on a small effect from one run. Built with `-C lto`, the timer is faster past
 threshold on 4 of 18 rows and slower on none. `pages.geometry` is 0.968 on `large.pdf`, 0.965 on
 `annots.pdf` and 0.964 on `forms.pdf`, and `annotations.list` on `forms.pdf` is 0.969. The other 14
-rows moved 2.9% or less either way (`forms/pages.render` is 1.007), inside the floor. The brief's
-rule keeps LTO when a row moves past its threshold, so `build-xcframework.sh` now builds
+rows moved 2.9% or less either way (`forms/pages.render` is 1.007), inside the floor. The plan's
+Task 28, Step 4, keeps LTO when a row moves past its threshold, so `build-xcframework.sh` now builds
 `epdf-viewer-host` with `cargo rustc --crate-type staticlib`, and the C# README documents `cargo
 rustc -p epdf-capi --release --crate-type cdylib` (66a459832).
 
 Read the four rows with care. They clear the 3% floor by 0.10 to 0.64 points (improvements of
 3.10% to 3.64%). The LTO binary is the same file as the tip in the run before, and its medians
-moved by up to 1.70% between the two runs (`large/open` 3.37 ms, then 3.43 ms). That drift is 2.7
-to 16 times the margin past the floor, and about half of each row's whole improvement. The ratios
-come from a single nolto/lto run, and the passing within-run A/A pairs are what make this run's
-verdicts valid. The link time and the archive sizes, with and without LTO, weren't measured.
+moved between the two runs. On these four rows the drift was 0.52% to 0.76%, at or above each
+row's margin past the floor. The largest drift across all 18 rows was 1.70% (`large/open` 3.37 ms,
+then 3.43 ms), about half of each row's whole improvement. The ratios come from a single nolto/lto
+run, and the passing within-run A/A pairs are what make this run's verdicts valid. The link time
+and the archive sizes, with and without LTO, weren't measured.
 
 10 rounds, ms per call, median [max] over rounds; ratio is lto / nolto
 
@@ -1287,9 +1294,9 @@ verdicts valid. The link time and the archive sizes, with and without LTO, weren
 | forms/annotations.list | 1.27 [1.29] | 1.27 [1.29] | 1.23 [1.25] | 1.006 | 0.969 [0.959, 0.976] | 3.0% | faster |
 | forms/forms.setValue | 26.4 [27.3] | 26.3 [27.3] | 26.0 [26.5] | 0.996 | 0.984 [0.958, 0.999] | 3.7% | no detectable difference |
 
-Results: `task-28-run/results/results-nolto-lto.json`, run 2026-11-17 08:05 to 08:13 UTC on the
-same machine (load average 1.65 before and 1.90 after). Every A/A pair passed, the largest A/A
-distance 0.6%.
+Results: the `compare.mjs --out` JSON of the run started 2026-11-17T08:05:43.158Z, not committed,
+run 2026-11-17 08:05 to 08:13 UTC on the same machine (load average 1.65 before and 1.90 after).
+Every A/A pair passed, the largest A/A distance 0.6%.
 
 The timer can't link the staticlib, so the arms are the timer itself. `lto` is the tip binary
 above (`-C lto` on its final `rustc` line). `nolto` is the same commit built with
@@ -1299,12 +1306,12 @@ the same in both places. The archive's Swift and uniffi boundary isn't in the ti
 
 `-C lto` now reaches both archives. `cargo rustc -p epdf-viewer-host --target aarch64-apple-darwin
 --profile release --crate-type staticlib -v` runs `rustc --crate-name epdf_viewer_host ...
---crate-type staticlib --emit=dep-info,link -C opt-level=3 -C lto -C codegen-units=1`
-(`task-28-run/logs/apple-lto.log`). `cargo rustc -p epdf-capi --release --crate-type cdylib -v`
-runs `--crate-type cdylib ... -C opt-level=3 -C lto -C codegen-units=1` (`capi-lto.log`). Before
-the change, `cargo build -p epdf-capi --release -v` ran `--crate-type cdylib --crate-type rlib ...
--C opt-level=3 -C codegen-units=1` with no `-C lto` (`capi-build.log`).
+--crate-type staticlib --emit=dep-info,link -C opt-level=3 -C lto -C codegen-units=1`.
+`cargo rustc -p epdf-capi --release --crate-type cdylib -v` runs `--crate-type cdylib ...
+-C opt-level=3 -C lto -C codegen-units=1`. Before the change, `cargo build -p epdf-capi
+--release -v` ran `--crate-type cdylib --crate-type rlib ... -C opt-level=3 -C codegen-units=1`
+with no `-C lto`. These three `-v` logs aren't committed; the commands rerun them.
 
 The Swift suite passes on the LTO archive. `build-xcframework.sh` with the change, then
 `EMBEDPDF_LOCAL_ENGINE=1 swift test` in `platforms/apple/EmbedPDF`, ran 506 tests in 51 suites,
-71 in 14 and 8 XCTest cases, all passing (`task-28-run/logs/swift-test.log`).
+71 in 14 and 8 XCTest cases, all passing. The test log isn't committed.
