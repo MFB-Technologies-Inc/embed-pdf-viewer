@@ -26,7 +26,6 @@ use epdf_engine::features::render::raster::{
     PageLayerRights, PagePictureRights, RenderOptions, check_render_usage_for, resolve_page_layers,
 };
 use epdf_engine::features::signature::protection::{describe_protection, protected_capabilities};
-use epdf_engine::host::HostResponse;
 use epdf_engine::session::authority::SessionAuthority;
 use epdf_ffi::KernelPost;
 use epdf_kernel::engine::{
@@ -40,7 +39,7 @@ use serde_json::{Value, json};
 
 use crate::engine_worker::EngineWorker;
 use crate::host_table::HostTable;
-use crate::translate::{self, Client, Decode, WireCall};
+use crate::translate::{self, Client, Decode, Reply, WireCall};
 
 type Pending = (u64, HashMap<u64, (String, Decode, Resolver<Value>)>);
 type Listener = Rc<dyn Fn(&Value)>;
@@ -131,7 +130,8 @@ impl Inner {
     /// Reserve a job id, build the call for document `doc` with it, and send
     /// it. Aborting rejects with an `AbortError` and cancels the call: one
     /// still in line never runs, a running one stops at the host's next
-    /// check or completes, and either way its reply is dropped.
+    /// check or completes, and either way its reply is dropped. The reply is
+    /// read on the engine's client thread; the kernel thread only decodes it.
     fn send(
         &self,
         doc: &str,
@@ -146,12 +146,19 @@ impl Inner {
         PENDING.with(|p| p.borrow_mut().1.insert(id, (doc.to_owned(), call.decode, resolver)));
         let post = self.post.clone();
         let cancel = CancelToken::default();
+        let aborted = cancel.clone();
         self.worker.submit(
             call.request.to_string(),
             call.payloads,
             cancel.clone(),
             Box::new(move |response| {
-                post(Box::new(move || settle(id, response)));
+                // The abort that cancelled it settled it, so nothing reads
+                // the reply.
+                if aborted.is_cancelled() {
+                    return;
+                }
+                let reply = Reply::parse(response);
+                post(Box::new(move || settle(id, reply)));
             }),
         );
         promise.with_abort(move |reason| {
@@ -169,11 +176,11 @@ impl Inner {
     }
 }
 
-fn settle(id: u64, response: HostResponse) {
+fn settle(id: u64, reply: Reply) {
     let Some((doc, decode, resolver)) = PENDING.with(|p| p.borrow_mut().1.remove(&id)) else {
         return; // aborted; the late reply is dropped
     };
-    match translate::decode(&decode, response) {
+    match translate::decode(&decode, reply) {
         Ok(decoded) => {
             for event in &decoded.events {
                 publish(&doc, event);
