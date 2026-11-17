@@ -21,7 +21,7 @@ use std::rc::Rc;
 
 use epdf_geometry::bounds_of_rects;
 use epdf_kernel::cancellable::cancellable;
-use epdf_kernel::engine::{CallFacts, CallPriority, decode};
+use epdf_kernel::engine::{Answer, CallFacts, CallPriority};
 use epdf_kernel::error::{code, plugin_error, to_plugin_error, to_plugin_error_info};
 use epdf_kernel::event_hook::EventHookSource;
 use epdf_kernel::geometry::PageRef;
@@ -317,10 +317,10 @@ async fn collect(core: &Core, scan: Scan<'_>, sink: &dyn CollectSink) -> Result<
             Ok(doc) => {
                 let request = serde_json::to_value(&request).unwrap_or(Value::Null);
                 let facts = CallFacts { priority: Some(CallPriority::Low), view: None };
-                let call = doc.call_with(&facts, "search.query", None, vec![request]);
+                let call = doc.call_answer_with(&facts, "search.query", None, vec![request]);
                 cancellable(CAPABILITY, scan.signal.clone(), call)
                     .await
-                    .and_then(decode::<SearchSlice>)
+                    .and_then(Answer::decode::<SearchSlice>)
             }
             Err(error) => Err(error),
         };
