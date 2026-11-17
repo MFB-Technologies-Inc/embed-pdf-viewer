@@ -150,6 +150,16 @@ fn created(record: Value) -> Value {
     })
 }
 
+/// A remote session changed this record.
+fn updated(record: Value) -> Value {
+    json!({
+        "type": "annotations.updated", "page": page(), "annotation": record,
+        "origin": { "kind": "remote", "sessionId": "s2",
+            "subject": "u-9", "at": "1970-01-01T00:00:00.000Z", "serverSequence": null },
+        "meta": { "affectedPages": [page()], "cacheDelta": null, "changed": [], "opId": "remote-update", "undoable": true }
+    })
+}
+
 // ── H3 ──────────────────────────────────────────────────────────────────────
 
 #[test]
@@ -192,6 +202,32 @@ fn h3_a_created_record_keeps_its_key_before_and_after_the_engine_confirms_it() {
         made.peek().expect("settled").expect("created")["annotation"]["ref"],
         square_ref(10001)
     );
+}
+
+/// Another session moves the square a drag snapped to: the drag's next
+/// sample snaps against the records as they now are, not the targets the
+/// first samples found.
+#[test]
+fn a_record_moved_mid_drag_is_snapped_against_where_it_now_is() {
+    let (kernel, fake) =
+        kernel(vec![square(7, 100.0, 100.0), square(8, 270.0, 500.0)], Vec::new());
+    let cap = annotation(&kernel);
+    cap.selection_set(&[square_ref(7)]);
+    let draft = || cap.model().draft().expect("dragging").json();
+    // On its left edge, clear of the handles: a square with no fill is hit
+    // on its stroke.
+    pointer(&cap, "down", 100.0, 120.0);
+    // Its right edge lands half a point short of square 8's left edge, and
+    // no edge or centre is near the page's.
+    pointer(&cap, "move", 169.5, 120.0);
+    assert_eq!(draft()["kind"], "move");
+    assert_eq!(draft()["delta"]["x"], json!(70.0), "{}", draft());
+    assert_eq!(draft()["guides"][0]["at"], json!(270.0), "{}", draft());
+    fake.emit("a", &updated(square(8, 450.0, 500.0))).expect("the event");
+    pointer(&cap, "move", 169.6, 120.0);
+    let x = draft()["delta"]["x"].as_f64().expect("a delta");
+    assert!((x - 69.6).abs() < 1e-9, "snapped to where square 8 was: {}", draft());
+    assert_eq!(draft()["guides"], json!([]), "{}", draft());
 }
 
 #[test]
