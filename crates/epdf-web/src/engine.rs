@@ -118,6 +118,12 @@ fn args_json(args: &[Value]) -> String {
     serde_json::to_string(args).expect("a JSON value prints")
 }
 
+/// `doc.with(facts)`'s facts as the bridge takes them.
+fn facts_json(facts: &CallFacts) -> Result<String, Error> {
+    serde_json::to_string(facts)
+        .map_err(|error| Error::new(format!("[engine-bridge] call facts do not encode: {error}")))
+}
+
 /// Hand every `$host` in `value` back through `release_host`, nested ones
 /// included. A `$hostBytes` carries no `$host` and goes with its image.
 fn release_hosts(value: &Value) {
@@ -319,13 +325,9 @@ impl DocumentHandle for JsDocumentHandle {
         pon: Option<u32>,
         args: Vec<Value>,
     ) -> EngineCall<Value> {
-        let facts = match serde_json::to_string(facts) {
+        let facts = match facts_json(facts) {
             Ok(facts) => facts,
-            Err(error) => {
-                return Promise::rejected(Error::new(format!(
-                    "[engine-bridge] call facts do not encode: {error}"
-                )));
-            }
+            Err(error) => return Promise::rejected(error),
         };
         engine_call(self.bridge.call_with(&self.id, &facts, path, pon, &args_json(&args)))
     }
@@ -334,6 +336,23 @@ impl DocumentHandle for JsDocumentHandle {
         engine_call_with(self.bridge.call(&self.id, path, pon, &args_json(&args)), |text| {
             Ok(Answer::Text(text.into()))
         })
+    }
+
+    fn call_answer_with(
+        &self,
+        facts: &CallFacts,
+        path: &str,
+        pon: Option<u32>,
+        args: Vec<Value>,
+    ) -> EngineCall<Answer> {
+        let facts = match facts_json(facts) {
+            Ok(facts) => facts,
+            Err(error) => return Promise::rejected(error),
+        };
+        engine_call_with(
+            self.bridge.call_with(&self.id, &facts, path, pon, &args_json(&args)),
+            |text| Ok(Answer::Text(text.into())),
+        )
     }
 
     fn is_local(&self) -> bool {

@@ -7,7 +7,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use epdf_kernel::engine::{
-    CallFacts, CallPriority, DocumentHandle, Engine, ObjectNumbersLost, ObjectNumbersLostReason,
+    Answer, CallFacts, CallPriority, DocumentHandle, Engine, ObjectNumbersLost,
+    ObjectNumbersLostReason,
 };
 use epdf_kernel::error::ErrorClass;
 use epdf_web::engine::{EngineBridge, JsEngine, UNINDEXED};
@@ -461,6 +462,26 @@ async fn call_with_sends_the_facts_as_json_text() {
             ]),
             json!(["callWith", "a", "{}", "page.render.image", 12, r#"[{"width":64}]"#]),
         ]
+    );
+}
+
+/// `call_answer_with` goes through `callWith` with the facts, and hands the
+/// answer over as the text the bridge returned.
+#[wasm_bindgen_test]
+async fn call_answer_with_sends_the_facts_and_keeps_the_text() {
+    reset();
+    let stub = stub();
+    let doc = open(&stub).await;
+    let facts = CallFacts { priority: Some(CallPriority::Low), view: None };
+    let list = doc.call_answer_with(&facts, "pages.list", None, vec![]);
+    js_sleep(0.0).await;
+    match list.peek().unwrap().unwrap() {
+        Answer::Text(text) => assert_eq!(&*text, r#"{"pageCount":2,"pages":[]}"#),
+        Answer::Value(value) => panic!("parsed where the text was expected: {value}"),
+    }
+    assert_eq!(
+        log(&stub).as_array().unwrap()[1..],
+        [json!(["callWith", "a", r#"{"priority":"low"}"#, "pages.list", null, "[]"])]
     );
 }
 
