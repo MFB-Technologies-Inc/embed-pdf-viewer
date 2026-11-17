@@ -155,6 +155,11 @@ const scrollFlow = (pageIndex, warmPage) => ({
   },
 });
 
+// A warm-up that fails leaves the measured window cold, not wrong: the
+// measure still has its own done condition. So the run goes on, but says so.
+const warmupFailed = (flow) => (error) =>
+  console.warn(`[${flow}] warm-up failed: ${String(error?.message ?? error).split('\n')[0]}`);
+
 // A page-space point (pt, y down, as window.__perf.annotations gives boxes)
 // on page `pageIndex`, in window px.
 async function screenPoint(page, pageIndex, [x, y]) {
@@ -240,7 +245,7 @@ const dragAnnotFlow = {
   async warmup(page) {
     await goTo(page, STAMP_PAGE + 8);
     await settle(page, await now(page), { requireChange: false });
-    await dragStamp(page, STAMP_PAGE + 8, 200).catch(() => {});
+    await dragStamp(page, STAMP_PAGE + 8, 200).catch(warmupFailed('dragAnnot'));
     await page.mouse.move(PARKED.x, PARKED.y);
   },
   async measure(page, cdp) {
@@ -286,7 +291,7 @@ const drawInkFlow = {
     await page.evaluate(() => window.__perf.execute('annotation:add-ink'));
     await drawStrokes(page, warm);
     await waitFor(page, ([i, n]) => window.__perf.annotationCount(i) > n, [warm, count], 'the warm-up ink', 10_000).catch(
-      () => {},
+      warmupFailed('drawInk'),
     );
     await page.mouse.move(PARKED.x, PARKED.y);
   },
@@ -333,7 +338,7 @@ const typeFieldFlow = {
   async warmup(page) {
     await goTo(page, FIELD_PAGE + 1);
     await settle(page, await now(page), { requireChange: false });
-    await typeInto(page, FIELD_PAGE + 1, TYPED.slice(0, 10)).catch(() => {});
+    await typeInto(page, FIELD_PAGE + 1, TYPED.slice(0, 10)).catch(warmupFailed('typeField'));
     await page.mouse.move(PARKED.x, PARKED.y);
   },
   async measure(page, cdp) {
@@ -388,7 +393,7 @@ const undoFlow = {
     await settle(page, await now(page), { requireChange: false });
     const count = await page.evaluate((i) => window.__perf.annotationCount(i), warm);
     await highlightLines(page, warm);
-    await undoAll(page, warm, count).catch(() => {});
+    await undoAll(page, warm, count).catch(warmupFailed('undo'));
   },
   async measure(page, cdp) {
     const countBefore = await page.evaluate((i) => window.__perf.annotationCount(i), UNDO_PAGE);

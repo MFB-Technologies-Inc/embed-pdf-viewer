@@ -151,19 +151,26 @@ async function answersFor(run, arm, origin, env) {
   };
 }
 
-// Each answer is compared with the reference arm's: the baseline's when the
-// baseline has that answer, else the first arm in `order` that has it. An arm
-// may lack an answer only for a flow it skipped (`skipped`, flow names, which
-// are also the keys of their answers). `collected` is { [armId]: { answers,
-// skipped } }; returns the reasons `id` fails, empty when it passes.
-export function answerReasons(id, collected, order) {
+// Each answer is compared with the first arm in `references` that has it:
+// the baseline, then arms.json's `fallbackReference` (`main-now`) for an
+// answer the baseline doesn't give (`undo`, which needs a history plugin
+// `main` lacks). Never the order the arms ran in. An arm may lack an answer
+// only for a flow it skipped (`skipped`, flow names, which are also the keys
+// of their answers), and an answer no reference gives fails every arm that
+// gives it. `collected` is { [armId]: { answers, skipped } }; returns the
+// reasons `id` fails, empty when it passes.
+export function answerReasons(id, collected, references) {
   const reasons = [];
-  const keys = [...new Set(order.flatMap((a) => Object.keys(collected[a]?.answers ?? {})))];
+  const keys = [...new Set(Object.values(collected).flatMap((c) => Object.keys(c.answers)))];
   const got = collected[id];
   for (const key of keys) {
-    const refId = order.find((a) => collected[a] && key in collected[a].answers);
+    const refId = references.find((a) => collected[a] && key in collected[a].answers);
     if (!(key in got.answers)) {
-      if (!got.skipped?.includes(key)) reasons.push(`${key}: no answer where ${refId} has one`);
+      if (!got.skipped?.includes(key)) reasons.push(`${key}: no answer where ${refId ?? 'another arm'} has one`);
+      continue;
+    }
+    if (!refId) {
+      reasons.push(`${key}: no reference arm answered it (${references.join(', ')})`);
       continue;
     }
     const value = collected[refId].answers[key];
@@ -173,6 +180,10 @@ export function answerReasons(id, collected, order) {
   }
   return reasons;
 }
+
+// The arms answerReasons looks to, in turn: the run's reference (the
+// baseline, unless it failed to load) and arms.json's fallbackReference.
+export const referencesFor = (config, referenceId) => [...new Set([referenceId, config.fallbackReference].filter(Boolean))];
 
 // Returns { [armId]: { pass: true, answers, capabilities, skipped, screenshotSha256 } | { pass: false, reason } }.
 export async function runGate(run, { config, arms, urls, stamps, env }) {
@@ -198,7 +209,7 @@ export async function runGate(run, { config, arms, urls, stamps, env }) {
     // The viewer can't ask the worker which reader served a page, so the
     // stamp's verify-rust-core result stands in for impl-rust.
     if (arm.rustReads && !stamps[arm.worktree].rustCore) reasons.push('the payload has no verified Rust core');
-    reasons.push(...answerReasons(id, collected, [referenceId, ...arms.filter((a) => a !== referenceId)]));
+    reasons.push(...answerReasons(id, collected, referencesFor(config, referenceId)));
     const sameWasm = stamps[arm.worktree].engineWasmSha256 === stamps[config.arms[referenceId].worktree].engineWasmSha256;
     let pixelShare = 0;
     if (sha256(got.png) !== sha256(reference.png)) {

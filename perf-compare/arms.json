@@ -1,6 +1,7 @@
 {
   "baseline": "main",
   "noiseArm": "main-aa",
+  "fallbackReference": "main-now",
   "defaultArms": [
     "main",
     "main-aa",

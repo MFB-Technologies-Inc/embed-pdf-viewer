@@ -24,6 +24,10 @@ export function loadConfig(file = DEFAULT) {
   for (const key of ['baseline', 'noiseArm']) {
     if (!raw.arms[raw[key]]) throw new Error(`${key}: unknown arm ${raw[key]}`);
   }
+  // The gate's reference for an answer the baseline doesn't give (lib/gate.mjs).
+  if (raw.fallbackReference !== undefined && !raw.arms[raw.fallbackReference]) {
+    throw new Error(`fallbackReference: unknown arm ${raw.fallbackReference}`);
+  }
   // The arms a run or build uses when it names none. Every other arm stays
   // in the file as the record of what a FINDINGS arm name meant.
   const armOrder = Object.keys(raw.arms);

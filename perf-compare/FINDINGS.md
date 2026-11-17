@@ -999,7 +999,11 @@ over 100 pages. Both come from `fixtures/generate.mjs`. `test/fixtures.selftest.
 Two flows don't measure what their names first suggest. `dragAnnot` drags a stamp 200 px, not a
 highlight: neither viewer API generation moves a highlight (it's selectable but not movable,
 `packages/plugin/annotation/src/read/chrome.ts`). `undo` needs a history plugin, which `2516e2786`
-doesn't have, so `main` and `main-aa` skip it. The gate compared its answer with `main-now`'s.
+doesn't have, so `main` and `main-aa` skip it. The gate compared its answer with `plugins-next`'s,
+not `main-now`'s: the gate at `cb3167fcd` took the first arm in run order that answered, and
+`arms.json` lists `plugins-next` before `main-now`. Both answered `countBefore` 2, `countEdited`
+12, `countAfter` 2 (`gate.json`), so the answers agree. Since then the gate takes this reference
+from `arms.json`'s `fallbackReference` (`main-now`), never from the run order.
 `undo` has no `main` baseline and no A/A noise, so its threshold is the floor: ±6.1 ms on
 `settleMs`, ±3.0% on the CPU rows.
 
@@ -1062,14 +1066,15 @@ grew from 10.35 MiB to 10.70 MiB in Phase C and to 10.73 MiB in Phase D (2.44 to
 results/2026-11-17T02-25-30-951Z-macmini2020-desktop main-now`). No moved row of any pair falls
 inside that drift, so none is unconfirmed.
 
-`undo` still has no `main` baseline and judges against the 3% floor. Its gate reference is
-`main-now`, because `main-now` is the first arm in `arms.json` order that runs it (`run.mjs` sorts
-`--arms` into that order). `dragAnnot` still drags a stamp, not a highlight. Task 12 (`efac793af`)
+`undo` still has no `main` baseline and judges against the 3% floor. Its gate reference was
+`main-now`, because `main-now` came first in `arms.json` order among the arms that ran it in this
+run (`run.mjs` sorts `--arms` into that order). The gate now takes that reference from `arms.json`'s
+`fallbackReference` (`main-now`) instead of the run order. `dragAnnot` still drags a stamp, not a highlight. Task 12 (`efac793af`)
 changed the sample a live harness hands interaction handlers: the typed sample, with members in the
 generator's order (`page` last), instead of the host's raw JSON. The handlers read only contract
 members, and every gate answer matched, so the flows measure the same work.
 
-#### Phase C: every watched row is faster, and nothing is slower
+#### Phase C: every watched flow got faster, and nothing is slower
 
 `phase-c-base` against `phase-c-end`: 50 rows faster, 37 no difference, none slower. Median latency
 0.987x, median main thread 0.835x. The watched rows:
@@ -1113,9 +1118,10 @@ flows. The watched rows:
 | `drawInk / mainJsMs` | 2,508.5 | 2,363.4 | 0.942x |
 | `hover / mainJsMs` | 886.6 | 844.7 | 0.953x |
 
-No difference on `hover / settleMs` (-6.1 ms, ±40.4), `drawInk / settleMs` (-109.2 ms, ±124.4) or
-any `annotateLarge` row: `settleMs` -1.1 ms (±8.2), `mainJsMs` 0.993x (±4.8%), `mainTaskMs` 1.021x
-(±5.1%).
+No difference on `hover / settleMs` (-6.1 ms, ±40.4) or any `annotateLarge` row. `drawInk /
+settleMs` (-109.2 ms, ±124.4) is no difference by the harness rule, but its whole interval is below
+zero ([-178.6, -66.0]), so it leans faster. The `annotateLarge` rows: `settleMs` -1.1 ms (±8.2),
+`mainJsMs` 0.993x (±4.8%), `mainTaskMs` 1.021x (±5.1%).
 
 #### Where the fix branch stands against upstream
 
@@ -1137,5 +1143,5 @@ but `main-now`'s drift between the two runs is under 0.3% on both medians. The n
 
 The two faster rows are `searchLarge / searchMs` (0.861x, 2,235.4 to 1,923.6 ms) and
 `zoom / backTo1SettleMs` (-46.3 ms). The widest remaining gaps are `searchLarge / mainTaskMs`
-2.831x, `dragAnnot / mainJsMs` 2.355x, `search / mainJsMs` 2.234x and the `open` main-thread rows
+2.831x, `searchLarge / mainJsMs` 2.533x, `dragAnnot / mainJsMs` 2.355x, `search / mainJsMs` 2.234x and the `open` main-thread rows
 at 1.850x to 2.061x, with `open(*) / readyMs` at 2.092x and 2.124x.
