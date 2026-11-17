@@ -283,6 +283,11 @@
       "ref": "research/perf-fixes",
       "sha": "0d18fb1776331c12dcf332632f6e4c6d74a876fa",
       "recipe": "rust-kernel"
+    },
+    "perf-fixes-end": {
+      "ref": "research/perf-fixes",
+      "sha": "a6d4d5d14074cb20cd7d2cebcff9fbd5f5981648",
+      "recipe": "rust-kernel"
     }
   },
   "arms": {
@@ -596,6 +601,11 @@
     },
     "phase-d-end": {
       "worktree": "phase-d-end",
+      "kernel": "rust",
+      "rustReads": false
+    },
+    "perf-fixes-end": {
+      "worktree": "perf-fixes-end",
       "kernel": "rust",
       "rustReads": false
     }
@@ -944,6 +954,14 @@
     [
       "main-now",
       "phase-d-end"
+    ],
+    [
+      "phase-d-end",
+      "perf-fixes-end"
+    ],
+    [
+      "main-now",
+      "perf-fixes-end"
     ]
   ]
 }
