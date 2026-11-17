@@ -27,8 +27,10 @@ rounds up to `...957.3`.
 where glibc, which Rust's `f64::atan2` calls, gives `1.5707963267948966`. One ulp flips the
 comparator between near-tied corners.
 
-Neither is fixed or in the ledger; both wait on a decision. The printed cases reproduce them, for
-example
+Neither was fixed or in the ledger at `82c1f37d7`. `971ed565e` fixes the halfway rounding: every
+port of `Number::toString` now picks the even digit, and the cases `matrixToCss/digit-tie-to-even*`
+and `pageTransform/css-digit-tie-to-even*` in `tooling/plugin-conformance/src/suites/geometry.ts`
+pin it. The `atan2` difference still waits on a decision. The printed cases reproduce it, for example
 `{ name: 'diff-normalizePdfQuad-1', fn: 'normalizePdfQuad', args: [[{ x: 0, y: -1 }, { x: -1.4456042752816933e-19, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 5e-324 }]] }`.
 
 ## Geometry differential, 2026-11-17
@@ -42,8 +44,9 @@ and each seed exited 1:
 | 2 | 350207 | `matrixToCss` (7437), `pageTransform` (2225), `normalizePdfQuad` (545) | 1 |
 | 3 | 346069 | `matrixToCss` (4322), `pageTransform` (96), `normalizePdfQuad` (1651) | 1 |
 
-The two causes are unchanged: the halfway digit rounding of `number_to_string` and the one-ulp
-`atan2` difference. They still wait on a decision.
+The two causes were unchanged: the halfway digit rounding of `number_to_string` and the one-ulp
+`atan2` difference. At `86c22c127`, after the rounding fix, the same seeds mismatch only in
+`normalizePdfQuad` (1095, 545 and 1651), and each still exits 1.
 
 ## Full suite, 2026-11-17
 
