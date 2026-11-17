@@ -56,5 +56,5 @@ is wider. A row that moves less than its threshold reads "no detectable differen
 The timer binary is a Cargo `bin`, which gets the release profile's `lto = true`. A build without
 LTO is `CARGO_PROFILE_RELEASE_LTO=false cargo build -p engine-timer --release`.
 
-Timings belong on an idle machine, one run at a time. A round takes about 9 s per build on an
-M1, so 10 rounds of three arms is about 5 minutes.
+Timings belong on an idle machine, one run at a time. On the M1 Mac mini, 10 rounds of three arms
+took 7.5 minutes for two tip builds and 9.7 minutes with 0de4effd9 as A.
