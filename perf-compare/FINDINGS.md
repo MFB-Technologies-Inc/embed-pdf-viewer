@@ -1146,3 +1146,39 @@ The two faster rows are `searchLarge / searchMs` (0.861x, 2,235.4 to 1,923.6 ms)
 `zoom / backTo1SettleMs` (-46.3 ms). The widest remaining gaps are `searchLarge / mainTaskMs`
 2.831x, `searchLarge / mainJsMs` 2.533x, `dragAnnot / mainJsMs` 2.355x, `search / mainJsMs` 2.234x and the `open` main-thread rows
 at 1.850x to 2.061x, with `open(*) / readyMs` at 2.092x and 2.124x.
+
+### Phase E: PDFium call counts
+
+Phase E removed most of the repeated PDFium work on the hot host calls. Opening no longer loads
+every page (`FPDF_LoadPage` 400 to 0), a repeated search loads no text pages (400 to 0), and the
+two writes read a third or fewer of the annotations they used to. These are call counts, not
+timings: the `call-count` feature of the `pdfium` crate counts each call. No Mac mini run measured
+Phase E.
+
+The counts come from the ignored test `hot_host_calls` in `crates/epdf-engine/tests/call_counts.rs`,
+committed as `fa3c0d3fb` on `research/perf-fixes`. It ran at `0d18fb177`, the last commit before
+Phase E, and at `82cfb6e20`, Phase E's head:
+`cargo test -p epdf-engine --test call_counts -- --ignored --nocapture`. Both builds link the same
+`libembedpdf.so`. At `0d18fb177` the test needed two local edits to compile: it drops the
+`GetAnnotIndexRaw` counter, and `crates/epdf-engine/Cargo.toml` adds the `pdfium` dev-dependency
+with `features = ["call-count"]`. Neither edit was committed.
+
+The test builds its own file in memory (1,402,476 bytes): 400 US Letter pages of 40 Courier lines,
+each page with three highlights and one text field in a single `/AcroForm`. The writes target page
+index 200: `forms.setValue` sets its field, and `annotations.update` patches `contents` on its
+second highlight. Counters reset before each operation, and each search runs every slice to the
+end (2 slices). Before to after:
+
+| Operation | `LoadPage` | `FormLoadModel` | `GetAnnotRaw` | `GetAnnotIndexRaw` | `TextLoadPage` | `SigLoadModel` |
+| --- | --- | --- | --- | --- | --- | --- |
+| `open.fatMem` | 400 to 0 | 0 to 0 | 0 to 0 | n/a to 0 | 0 to 0 | 1 to 1 |
+| `pages.list` | 0 to 0 | 0 to 0 | 0 to 0 | n/a to 0 | 0 to 0 | 0 to 0 |
+| `search.query` (miss) | 800 to 400 | 0 to 0 | 0 to 0 | n/a to 0 | 400 to 400 | 0 to 0 |
+| `search.query` (repeat) | 0 to 0 | 0 to 0 | 0 to 0 | n/a to 0 | 400 to 0 | 0 to 0 |
+| `search.query` (1 page) | 0 to 0 | 0 to 0 | 0 to 0 | n/a to 0 | 401 to 1 | 0 to 0 |
+| `forms.setValue` | 0 to 0 | 4 to 2 | 5 to 1 | n/a to 1 | 0 to 0 | 1 to 1 |
+| `annotations.update` | 0 to 0 | 0 to 0 | 13 to 5 | n/a to 4 | 0 to 0 | 0 to 0 |
+
+The miss searches for "zqxjv", which no page holds; the repeat searches for it again; the one-page
+search is "Page 200 line" (40 matches). `GetAnnotIndexRaw` reads n/a before because the counter, and
+the index lookup it counts, arrived inside Phase E (`ef17b2441`).
