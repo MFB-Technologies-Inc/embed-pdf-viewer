@@ -284,3 +284,25 @@ test('samples after a failed warm-up are kept and listed per arm and flow', () =
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('the environment table gives the frame interval from the baseline arm\'s scroll', () => {
+  const scroll = ({ samples }) => {
+    for (const [arm, frames] of [['main', [11.0, 11.3, 11.4]], ['plugins-next', [16.7, 16.7, 16.7]]]) {
+      frames.forEach((f, round) => samples.push({ arm, flow: 'scroll', fixture: 'large', round, metrics: { frameP50Ms: f } }));
+    }
+  };
+  const withScroll = fixtureRun({ extra: scroll });
+  const without = fixtureRun();
+  try {
+    const row = (dir) => {
+      const out = runReport(dir);
+      assert.equal(out.status, 0, out.stderr);
+      return section(out.stdout, '## Environment').rows.find((r) => r[0] === 'Frame interval')[1];
+    };
+    assert.equal(row(withScroll), '11.3 ms (median `scroll / frameP50Ms` of `main`, 3 samples)');
+    assert.equal(row(without), 'not determined (no `scroll` sample on `main`)');
+  } finally {
+    rmSync(withScroll, { recursive: true, force: true });
+    rmSync(without, { recursive: true, force: true });
+  }
+});

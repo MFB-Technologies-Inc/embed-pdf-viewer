@@ -203,9 +203,21 @@ and each moved row of this run's pairs whose change is no larger than `main`'s o
 row. It exits 2 instead when the runs don't compare, which `viewer-perf-compare-plan.md` (Task 6,
 Step 6) defines: a probe hash that differs or wasn't recorded, a different browser, CPU, profile,
 viewport or scale factor, or a fixture both runs have with different bytes. A different commit or
-engine wasm for the drift arm is refused too, since then it isn't the same build. So any run
-before `probeSha256` was recorded, and any run before a probe change, can't serve as the earlier
-run.
+engine wasm for the drift arm is refused too, since then it isn't the same build, and so is one
+that either run didn't record. So any run before `probeSha256` was recorded, and any run before a
+probe change, can't serve as the earlier run.
+
+`--drift` also refuses two runs whose frame intervals are more than 1 ms apart, or a run whose
+interval can't be determined. A run's frame interval is the median `scroll / frameP50Ms` of `main`
+in its `samples.jsonl`; `summary.mjs` prints it first and the report's Environment table has it.
+It matters because pointer input is frame-paced: `hover`, `dragAnnot` and `drawInk` take whole
+frames per move, so their settle rows scale with the interval, and an arm whose per-move work fits
+one frame at one interval can need two at a shorter one. The Mac mini has run at 16.7 ms
+(`2026-11-16T20-20-49-728Z`, `2026-11-17T02-25-30-951Z`, `2026-11-17T04-18-50-584Z`) and at
+11.0 to 11.3 ms (`2026-10-13T02-28-33-711Z`, `2026-11-17T16-59-17-202Z`), and we don't know why.
+The interval comes from the scroll flow rather than an idle measurement so that recorded runs have
+it too. On `main` the scroll's median frame has matched the display's interval in every recorded
+run, but a run without `main`'s `scroll` samples has none, and `--drift` refuses it.
 
 A verdict carries a note when it rests on less than usual. `slower (no A/A band)` is a row
 judged against the 3% floor alone, because `main` and `main-aa` skip its flow (`undo`). `(no done

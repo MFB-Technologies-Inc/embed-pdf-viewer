@@ -5,6 +5,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { summarize } from './stats.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixturesDir = path.join(here, '../fixtures');
@@ -123,6 +124,31 @@ const COMPARED = [
 export function compatible(a, b) {
   return COMPARED.filter((key) => JSON.stringify(a[key]) !== JSON.stringify(b[key]));
 }
+
+// The run's frame interval: the median `scroll / frameP50Ms` of `arm` (the
+// baseline, `main`), or null when the run has no such sample. Pointer input
+// is frame-paced, so this decides how long the paced flows (`hover`,
+// `drawInk`, `dragAnnot`) take, and an arm whose per-move work fits one frame
+// at one interval can need two at a shorter one. The Mac mini has run at
+// 16.7 ms and at 11.1 ms. It's read from the scroll flow, not measured idle,
+// so runs recorded before it existed have it too; on the TypeScript baseline
+// the scroll's median frame is the display's interval in every recorded run.
+export function frameInterval(samples, arm) {
+  const xs = samples
+    .filter((s) => !s.error && s.arm === arm && s.flow === 'scroll' && Number.isFinite(s.metrics?.frameP50Ms))
+    .map((s) => s.metrics.frameP50Ms);
+  return xs.length ? { arm, ms: summarize(xs).median, samples: xs.length } : null;
+}
+
+// Two runs' frame intervals compare when they differ by no more than this.
+// Arms of one run spread by 0.3 ms (11.0 to 11.3 ms in
+// 2026-11-17T16-59-17-202Z); the two intervals seen differ by 5.6 ms.
+export const FRAME_INTERVAL_TOLERANCE_MS = 1;
+
+export const frameIntervalText = (fi, arm) =>
+  fi
+    ? `${fi.ms.toFixed(1)} ms (median \`scroll / frameP50Ms\` of \`${fi.arm}\`, ${fi.samples} samples)`
+    : `not determined (no \`scroll\` sample on \`${arm}\`)`;
 
 // Byte sizes of an arm's built entry: the engine and wire-kernel wasm, and
 // every .js, raw and brotli level 11.

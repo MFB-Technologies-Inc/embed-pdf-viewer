@@ -13,7 +13,7 @@ import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { loadConfig } from './lib/config.mjs';
 import { hasDone } from './lib/done.mjs';
-import { distSizes } from './lib/env.mjs';
+import { distSizes, frameInterval, frameIntervalText } from './lib/env.mjs';
 import { bootstrapDifference, bootstrapRatio, calibrate, comparePair, summarize, threshold } from './lib/stats.mjs';
 import { workDir } from './scripts/materialize.mjs';
 
@@ -206,6 +206,7 @@ function report(run, config) {
         ['Memory', `${(meta.totalMemoryBytes / 2 ** 30).toFixed(0)} GiB`],
         ['Power', meta.powerSource],
         ['Viewport', `${meta.viewport.width}x${meta.viewport.height} @${meta.deviceScaleFactor}x`],
+        ['Frame interval', frameIntervalText(frameInterval(samples, config.baseline), config.baseline)],
         ['Fixtures', Object.entries(meta.fixtures).map(([k, v]) => `${k} ${v.slice(0, 12)}`).join(', ')],
       ],
     ),

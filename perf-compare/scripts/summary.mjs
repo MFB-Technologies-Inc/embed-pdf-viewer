@@ -2,7 +2,8 @@
 // the numbers to quote from a run's report.md (written by report.mjs, run
 // here if missing).
 //
-// For each pair in the report, the verdict counts; the median ratio over
+// First the run's frame interval (lib/env.mjs `frameInterval`), from its
+// samples.jsonl. Then, for each pair in the report, the verdict counts; the median ratio over
 // three groups of ratio rows, each labelled with its row count: timing rows
 // (open, search and wall times), frame-interval rows (`frameP50Ms`,
 // `frameP95Ms`, which sit at the display's 16.7 ms whatever the arm does) and
@@ -19,14 +20,15 @@
 // that differs or is missing (viewer-perf-compare-plan.md, Task 6 Step 6:
 // "reject comparisons with a different or missing probe hash"), a different
 // browser, CPU, profile, viewport or scale factor, a fixture both runs have
-// with different bytes (lib/env.mjs `compatible`), or a different commit or
-// engine wasm for the drift arm.
+// with different bytes (lib/env.mjs `compatible`), frame intervals more than
+// FRAME_INTERVAL_TOLERANCE_MS apart or not determined in either run, or a
+// commit or engine wasm for the drift arm that differs or wasn't recorded.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfig } from '../lib/config.mjs';
-import { compatible } from '../lib/env.mjs';
+import { compatible, FRAME_INTERVAL_TOLERANCE_MS, frameInterval, frameIntervalText } from '../lib/env.mjs';
 
 const args = process.argv.slice(2);
 const driftAt = args.indexOf('--drift');
@@ -42,9 +44,14 @@ function readRun(arg) {
   const reportFile = path.join(dir, 'report.md');
   if (!existsSync(reportFile)) execFileSync('node', ['report.mjs', dir], { cwd: here, stdio: 'ignore' });
   const metaFile = path.join(dir, 'meta.json');
+  const samplesFile = path.join(dir, 'samples.jsonl');
+  const samples = existsSync(samplesFile)
+    ? readFileSync(samplesFile, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l))
+    : [];
   return {
     report: readFileSync(reportFile, 'utf8'),
     meta: existsSync(metaFile) ? JSON.parse(readFileSync(metaFile, 'utf8')) : {},
+    frameInterval: frameInterval(samples, baseline),
   };
 }
 
@@ -116,6 +123,7 @@ function armMedians(report, arm) {
 }
 
 const current = readRun(runArg);
+console.log(`frame interval: ${frameIntervalText(current.frameInterval, baseline)}`);
 const pairs = [];
 for (const t of tables(current.report)) {
   const pair = t.head.match(/^`([^`]+)` vs `([^`]+)`$/);
@@ -145,7 +153,7 @@ if (drift) {
     return { sha: arm.sha ?? null, engine: arm.engineWasmSha256 ?? null, probe: meta.probeSha256 ?? null };
   };
   const [p, q] = [build(other.meta), build(current.meta)];
-  const reasons = driftRefusals(other.meta, current.meta, p, q);
+  const reasons = driftRefusals(other, current, p, q);
   if (reasons.length) {
     console.error(
       `--drift refused: ${path.basename(path.resolve(here, drift.run))} and ${path.basename(path.resolve(here, runArg))} don't compare for ${drift.arm}: ${reasons.join('; ')}. ` +
@@ -154,7 +162,9 @@ if (drift) {
     process.exit(2);
   }
   console.log(`\ndrift of ${drift.arm}: ${path.basename(path.resolve(here, drift.run))} -> ${path.basename(path.resolve(here, runArg))}`);
-  console.log(`  commit same, engine wasm same, probe same (${q.probe.slice(0, 12)})`);
+  console.log(
+    `  commit same, engine wasm same, probe same (${q.probe.slice(0, 12)}), frame interval ${other.frameInterval.ms.toFixed(1)} -> ${current.frameInterval.ms.toFixed(1)} ms`,
+  );
   const moved = new Map(); // row -> { ratio, diff }
   const changes = [];
   for (const [row, { median: before, ratioRow }] of was) {
@@ -186,7 +196,8 @@ if (drift) {
 }
 
 // Why the two runs' medians for the drift arm don't compare; empty when they do.
-function driftRefusals(was, now, p, q) {
+function driftRefusals(wasRun, nowRun, p, q) {
+  const [was, now] = [wasRun.meta, nowRun.meta];
   const reasons = [];
   const hash = (h) => h?.slice(0, 12) ?? 'none recorded';
   if (!p.probe || !q.probe || p.probe !== q.probe) reasons.push(`probe hash ${hash(p.probe)} -> ${hash(q.probe)}`);
@@ -198,7 +209,18 @@ function driftRefusals(was, now, p, q) {
   for (const [f, sha] of Object.entries(was.fixtures ?? {})) {
     if (now.fixtures?.[f] !== undefined && now.fixtures[f] !== sha) reasons.push(`fixture ${f} differs`);
   }
-  if (p.sha !== q.sha) reasons.push('commit differs');
-  if (p.engine !== q.engine) reasons.push('engine wasm differs');
+  // Paced flows take whole frames, so a different interval moves their rows
+  // on every arm (FINDINGS.md, "The fix branch under the corrected harness").
+  const [fa, fb] = [wasRun.frameInterval, nowRun.frameInterval];
+  if (!fa || !fb) {
+    reasons.push(`frame interval ${fa ? `${fa.ms.toFixed(1)} ms` : 'not determined'} -> ${fb ? `${fb.ms.toFixed(1)} ms` : 'not determined'}`);
+  } else if (Math.abs(fa.ms - fb.ms) > FRAME_INTERVAL_TOLERANCE_MS) {
+    reasons.push(`frame interval ${fa.ms.toFixed(1)} -> ${fb.ms.toFixed(1)} ms, more than ${FRAME_INTERVAL_TOLERANCE_MS} ms apart`);
+  }
+  // A build not recorded on either side can't be shown to be the same build.
+  if (!p.sha || !q.sha) reasons.push('commit not recorded');
+  else if (p.sha !== q.sha) reasons.push('commit differs');
+  if (!p.engine || !q.engine) reasons.push('engine wasm not recorded');
+  else if (p.engine !== q.engine) reasons.push('engine wasm differs');
   return reasons;
 }
