@@ -1457,9 +1457,11 @@ The watched rows:
 Off the watch list, `dragAnnot` is 0.787x with settle -180.0 ms, `annotateLarge` 0.765x and
 -36.1 ms, `drawInk` 0.733x, `typeField` 0.911x and -22.8 ms, and `undo` 0.744x and -149.9 ms.
 `drawInk / settleMs` shows no difference (+48.6 ms, ±171.2). The -2,824.2 ms recorded for it in
-"Phases C and D" doesn't hold up. That run's `drawInk` done condition polled its page through
-`documents.listPages()` and worked out 180 stroke points inside the window (caveats above), and
-that cost went away with the polling fix.
+"Phases C and D" doesn't hold up, but the polling fix explains only part of why. On the same
+builds, `phase-c-base` dropped from 6,971.2 to 5,707.0 ms between `04-18-50` and this run, while
+`phase-c-end` rose from 4,147.0 to 5,755.7 ms, `phase-d-end` from 4,037.8 to 5,662.0 ms, and
+`main-now` fell from 3,940.9 to 3,093.3 ms. So every `drawInk` settle number in this run is
+unconfirmed (see "Where the port stands").
 
 #### Phase D (`phase-c-end` to `phase-d-end` 0d18fb177)
 
@@ -1503,9 +1505,18 @@ faster rows are the scroll `wallMs` rows (`scroll` 0.925x, `scrollMid` 0.869x, `
 | `open(ebook)` | 181.8 | 344.5 | 1.895x |
 | `hover` | 422.7 | 788.4 | 1.865x |
 
-The largest settle gaps are `drawInk` +2,574.1 ms (3,093.3 to 5,667.4), `dragAnnot` +339.7 ms,
-`undo` +205.6 ms, `hover` +193.3 ms and `typeField` +74.3 ms. Open is about twice as slow to
-`readyMs` (2.061x on `ebook`, 2.058x on `large`).
+The largest settle gaps are `dragAnnot` +339.7 ms, `undo` +205.6 ms, `hover` +193.3 ms and
+`typeField` +74.3 ms. Open is about twice as slow to `readyMs` (2.061x on `ebook`, 2.058x on
+`large`).
+
+`drawInk / settleMs` reads +2,574.1 ms (3,093.3 to 5,667.4), and that gap is unconfirmed. It's new
+to this run: in `04-18-50`, `main-now` against `phase-d-end` read +96.8 ms (3,940.9 to 4,037.8, no
+difference). Between the two runs the same `main-now` build got 847.6 ms faster, while
+`phase-c-end` got 1,608.7 ms slower and `phase-d-end` 1,624.2 ms slower (Phase C above). The
+likely cause is the harness, not the port. `00ff9e715` changed `drawInk`'s done condition to a
+`watch`/`read` pair on the page's `annotationCount`, and that value updates through a different
+path on the TypeScript kernel than on the Rust kernel, so the same ink commit can be seen at
+different times. Check that before citing the gap as a port regression.
 
 `main` against `main-now`, for reference: 42 slower (plus 2 `hover` rows with no done condition
 on `main`), 8 faster, 30 no difference. Timing 1.051x, frame interval 1.015x, main thread 1.488x,
