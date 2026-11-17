@@ -1,6 +1,6 @@
 # Divergence ledger audit
 
-`crates/plugin-conformance/divergences.json` holds 46 kept divergences: the 41 this audit entered, M13, which was in the ledger before the audit, and four MO- entries, one per cause of the member-order differences the member-order allowlist exempts. 2 are observed by a vector case (one of them, M27, by a case added for the purpose) and also pinned; 44 are pinned by a Rust test only. 31 rows below name kept divergences with no test to pin them, so they are not in the ledger yet. 3 could not be tied to a decision.
+`crates/plugin-conformance/divergences.json` holds 48 kept divergences: the 41 this audit entered, M13, which was in the ledger before the audit, four MO- entries, one per cause of the member-order differences the member-order allowlist exempts, and two PLATFORM-MATH- entries, one per math function family the geometry differential found rounding the last bit differently. 2 are observed by a vector case (one of them, M27, by a case added for the purpose) and also pinned; 46 are pinned by a Rust test only. 31 rows below name kept divergences with no test to pin them, so they are not in the ledger yet. 3 could not be tied to a decision.
 
 Every replay passes today with only M13 in the ledger before this audit, so no existing vector case could observe any other divergence: a differing trace would already have failed. Observing one needs a new scenario case. The ledger applies to scenario suites only, so a divergence that a function suite would show (`formatShortcut("Ctrl+constructor")`, a `toString` face name) is pinned instead.
 
@@ -56,6 +56,8 @@ The sources were the Status section of `docs/research/rust-plugins-branch-review
 | MO-richtext-paragraph | pinned: `crates/plugins/annotation-core/tests/behavior.rs::a_normalized_paragraph_prints_runs_before_its_other_members` | 2026-10-13 8cf572cf5 |
 | MO-ui-group-options | pinned: `crates/plugins/ui-core/tests/behavior.rs::a_group_prints_its_options_in_field_order_not_the_callers` | 2026-10-13 8cf572cf5 |
 | MO-submit-request | pinned: `crates/plugins/actions/tests/behavior.rs::a_submit_request_prints_in_field_order_not_the_resolvers` | 2026-10-13 8cf572cf5 |
+| PLATFORM-MATH-COS-SIN | pinned: `crates/plugins/geometry/tests/platform_math.rs::rotate_about_differs_only_by_one_ulp_of_the_platform_cos_and_sin` | 2026-11-17, after the geometry differential |
+| PLATFORM-MATH-ATAN2 | pinned: `crates/plugins/geometry/tests/platform_math.rs::a_degenerate_quad_is_labelled_only_as_one_ulp_of_the_platform_atan2_allows` | 2026-11-17, after the geometry differential |
 
 ## Why no trace sees the pinned ones
 
@@ -138,6 +140,8 @@ NOOP-MUTATION-SEQUENCE. A no-op flatten or redaction answer carries mutationSequ
 TEXT-LAYOUT-POINT-PAST-RUN. A point read passes over a glyph the run claims that is not there. The TypeScript reads undefined and throws a TypeError. Input PDFium never produces. Recorded in docs/research/rust-plugins-branch-review.md, "Status, 2026-10-13", Task 14.3 paragraph.
 
 TEXT-LAYOUT-NEGATIVE-COUNT. A line range whose TypeScript count is negative has count 0 in the engine. TextRange counts in u32. Input PDFium never produces. Recorded in docs/research/rust-plugins-branch-review.md, "Status, 2026-10-13", Task 14.3 paragraph (and Task 13.15 for the selection copy).
+
+PLATFORM-MATH-COS-SIN and PLATFORM-MATH-ATAN2. Rust's `cos`, `sin` and `atan2` come from the platform math library, which can round the last bit differently from the JavaScript runtime. Recorded in docs/research/conformance-verification.md. Only the function suites reach them, and the ledger's observations apply to scenario cases, so each is pinned on its recorded input. The differential accepts them through each entry's `differentialSkip` (tooling/plugin-conformance/README.md, "The divergence ledger").
 
 ## Kept, but not pinned by any test
 
