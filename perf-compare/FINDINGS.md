@@ -16,6 +16,84 @@ Paths are relative to a checkout of the branch named in each section:
 `research/multi-platform-rust-core-impl-plugins` at `bef223d9d` ("plugins") or
 `research/multi-platform-rust-core-impl` at `c8085bd3c` ("impl"). Line numbers are at those commits.
 
+## Caveats on the 2026-11-16 and 2026-11-17 runs (added 2026-11-17)
+
+A second review of the harness at `5bb019688` found biases in the three runs the sections from
+"The tip after the catch-up" on rest on: `results/2026-11-16T20-20-49-728Z`,
+`2026-11-17T02-25-30-951Z` and `2026-11-17T04-18-50-584Z` (all `-macmini2020-desktop`). The
+recorded numbers below stay as measured. Read them with these limits.
+
+Every CPU row carries the probe's own cost. The probe in those runs (`lib/probe.js`, sha256
+`29ce19545e8b`) sampled every page image on every animation frame, and every 16 ms while a settle
+waited, with a `getComputedStyle` walk up each image's ancestors, offscreen images included. That
+work runs on the main thread inside every `mainJsMs` and `mainTaskMs` window. `main`'s
+`scroll / mainJsMs` was 391.5 ms on 2026-10-13 and 616.5 ms on 2026-11-17 (`04-18-50`), the same
+build. How much of that is the probe, the macOS update (Darwin 27.2.0 to 27.3.0) and the rebuilt
+entry wasn't measured. Both arms of a pair pay it, so it works as an addend and pulls every CPU
+ratio toward 1.0: a 1.427x gap is wider than printed, and Phase C's 0.835x is a larger saving than
+printed. The addend isn't exactly constant, since it grows with the window, so an arm that takes
+longer also pays a little more probe. `7d9648d6d` skips the style reads for offscreen images and
+reads each shared ancestor once per sample.
+
+The done conditions of `typeField`, `dragAnnot` and `drawInk` polled heavy reads inside the CPU
+window, every 16 ms. `typeField` ran `form.list().find()` over the 1,000 fields of `forms.pdf`.
+`dragAnnot` listed the stamp page's annotations. `drawInk` read its page's count through
+`documents.listPages()` and the page's list, and worked out its 180 stroke points, each one a
+`pageBox` call that walks the viewer's shadow DOM, inside the window. On a Rust arm a list read can
+cross the wasm wire and be serialized (`packages/core-wasm/src/proxy.ts` caches an answer only until
+the next real call). So the "2.271x to 4.009x the main-thread JavaScript" in "Annotation and form
+flows" includes harness work that may cost a Rust arm more than `main-now`, and nothing measured
+how much. `00ff9e715` finds the field, stamp or page once before the window and polls only it.
+`annotate`, `annotateLarge` and `undo` still poll `annotationCount` by page index.
+
+The "median latency row" headlines leave settle rows out. `scripts/summary.mjs` before `703629a7c`
+took the median over the ratio rows that aren't main-thread rows: `open`, `search`, `wallMs` and
+the `frameP50Ms` and `frameP95Ms` rows. Frame intervals sit at the display's 16.7 ms on every arm.
+Settle rows are differences in ms, with no ratio, so none of them counted. For `main-now` against
+`phase-d-end` the headline is 1.000x (also at the top of `RESULTS.md`). Split by the current
+script, its timing rows have a median of 1.415x (13 rows), its frame-interval rows 0.999x (6 rows),
+and its settle rows a median of +10.4 ms (21 rows, -46.3 ms to +394.7 ms). The same table has
+seven settle rows slower: `dragAnnot / settleMs` +394.7 ms, `undo / settleMs` +206.9 ms,
+`typeField / settleMs` +88.2 ms, `zoom / settleMs` +37.0 ms, `zoom / zoom2SettleMs` +29.5 ms,
+`zoomLarge / settleMs` +28.7 ms and `zoomLarge / zoom2SettleMs` +18.4 ms. The baseline run's
+`main-now` against `plugins-next` (1.065x) splits into timing 1.414x, frame interval 1.010x and
+settle +24.1 ms (-58.3 ms to +3,041.4 ms); the 2026-11-16 run's (1.239x) into 1.454x, 1.003x and
++20.5 ms (-47.9 ms to +49.8 ms).
+
+"No detectable difference" on `hover` and `drawInk` settle is a coarse statement. Neither has an
+A/A band wider than the 3% floor, and the floor is 3% of a median that is mostly paced input:
+`hover` settles in about 1,320 ms (`main-now`, 1,320.8 ms) of 20 pointer moves of four steps each,
+and `drawInk` in about 3,940 ms (3,940.9 ms) of 180 pointer moves and the ink tool's 800 ms
+grouping. The thresholds are ±39.6 and ±118.2 ms in `main-now` against `phase-d-end`, and ±40.4
+and ±124.4 ms in Phase D. So "no difference" there means no change of 40 ms on `hover` or 120 ms on
+`drawInk`, which is most of what either flow's handling could cost.
+
+`hover` had no done condition. It ended at its last pointer move on every arm, so its settle row
+says when the page images stopped changing, not when the viewer handled the hover, and an arm that
+dropped hover handling would have read fastest. `00ff9e715` waits on viewer API v2 until
+`getHovered()` reports the last highlight. API v1 (`main` at `2516e2786`, `9d6c2eca1`) has no hover
+read, so a `hover` row with a v1 arm now reads `(no done condition on <arm>)`.
+
+`undo` has no A/A band. `main` and `main-aa` skip it, so every `undo` verdict (`+206.9 ms`, ±6.0, in
+`main-now` against `phase-d-end`; Phase D's -286.3 ms) is judged against the 3% floor alone, and
+nothing measured `undo`'s own run-to-run noise. The report now prints those verdicts as, for
+example, `slower (no A/A band)`.
+
+Seven settle rows in "The tip after the catch-up" were called unconfirmed by a drift check the plan
+rejects. The check was `--drift` against `results/2026-10-13T02-28-33-711Z`, which recorded no
+probe hash. `viewer-perf-compare-plan.md` (Task 6, Step 6) says to "reject comparisons with a
+different or missing probe hash". So that check doesn't count: the four tip rows (`zoom /
+settleMs` +47.0, `selectLarge / settleMs` +32.4, `annotate / settleMs` +10.6, `annotateLarge /
+settleMs` +15.6) and upstream's three (`zoomLarge / backTo1SettleMs` +54.3, `annotate / settleMs`
+-11.9, `annotateLarge / settleMs` -14.8) keep their in-run verdicts, with no earlier run of the
+same build and probe to check them against. `summary.mjs --drift` now exits 2 on such a pair. The
+two later drift checks (`main` from `20-20-49` to `02-25-30`, `main-now` from `02-25-30` to
+`04-18-50`) compare the same build under the same probe and stand.
+
+`plugins-base` (`9d6c2eca1`) has never been measured as that arm. None of these runs could build it
+(below), and `9d6c2eca1` was last timed as `plugins-tip7` on 2026-10-13, under the uncorrected
+probe, so the tip against October is still unmeasured.
+
 ## What the profiles show
 
 All numbers are for the `plugins-lto` arm on `large.pdf` (400 pages), Chromium 140, Apple M4 Max.
@@ -895,9 +973,11 @@ main-now` prints them). Startup is the largest latency gap: `open(ebook) / ready
 1.751x on `coldScroll`, 1.803x on `jump` and 3.517x on `searchLarge` (360.6 to 1,268.1 ms), which is
 the widest gap in the run and the first place to profile. `searchLarge / searchMs` itself shows no
 difference (threshold ±3.0%). The settle rows that moved are 10.6 to 49.8 ms slower, except `zoom /
-backTo1SettleMs`, 47.9 ms faster. Four of them are unconfirmed, because the unchanged `main` build
-moved as much or more on the same row between runs (below): `zoom / settleMs` +47.0, `selectLarge /
-settleMs` +32.4, `annotate / settleMs` +10.6 and `annotateLarge / settleMs` +15.6. The other 17
+backTo1SettleMs`, 47.9 ms faster. Four of them, `zoom / settleMs` +47.0, `selectLarge / settleMs`
++32.4, `annotate / settleMs` +10.6 and `annotateLarge / settleMs` +15.6, are within how far the
+unchanged `main` build moved between this run and 2026-10-13 (below). That earlier run recorded no
+probe hash, and the plan rejects such a comparison, so it confirms nothing either way: these rows
+stand as slower in this run, with no earlier run to check them against. The other 17
 no-difference rows, with thresholds: `scroll` and `coldScroll` `settleMs` ±0.0, `wallMs` ±3.0%,
 `frameP50Ms` ±3.0%, `frameP95Ms` ±3.8% and ±3.0%, `jankFrames` ±0, `longTasks` ±0 and `longTaskMs`
 ±0.0; `zoom / zoom4SettleMs` ±21.2; `zoomLarge / backTo1SettleMs` ±7.8; `select / settleMs` ±12.0.
@@ -914,8 +994,9 @@ to 2,231.9 ms, 1.183x). Its no-difference rows: `scroll` and `coldScroll` `settl
 ±0.0; `zoomLarge / settleMs` ±26.3, `zoom2SettleMs` ±19.2 and `zoom4SettleMs` ±5.4; `select /
 settleMs` ±12.0; `selectLarge / settleMs` ±13.8; `search / mainTaskMs` ±5.7%; `annotateLarge /
 mainTaskMs` ±3.4%. Of upstream's moved settle rows, `zoomLarge / backTo1SettleMs` +54.3, `annotate /
-settleMs` -11.9 and `annotateLarge / settleMs` -14.8 are inside `main`'s run-to-run drift and
-unconfirmed; `zoom / settleMs` +153.0 is not.
+settleMs` -11.9 and `annotateLarge / settleMs` -14.8 are within `main`'s move since 2026-10-13 and
+`zoom / settleMs` +153.0 is not; that comparison is the rejected one above, so all four keep their
+in-run verdicts.
 
 The same `main` build (`2516e2786`, engine wasm `98c2368a774d` in both) ran on 2026-10-13
 (`results/2026-10-13T02-28-33-711Z-macmini2020-desktop`). Between the two runs its median
@@ -1005,8 +1086,10 @@ not `main-now`'s: the gate at `cb3167fcd` took the first arm in run order that a
 12, `countAfter` 2 (`gate.json`), so the answers agree. Since then the gate takes this reference
 from `arms.json`'s `fallbackReference` (`main-now`) whenever `main-now` is in the run, and falls
 back to run order only without it, with a `gate:` warning naming the arm used. When only one arm
-answers `undo`, nothing checks it. The default arms are that case, because `plugins-base`
-(`9d6c2eca1`) builds as viewer API v1 and skips `undo`. The gate then records `undo` as unchecked
+answers `undo`, nothing checks it. The default arms would be that case, because `plugins-base`
+(`9d6c2eca1`) is viewer API v1 and would skip `undo`. No run has had `plugins-base` in it, since it
+can't be built here (above), so this is the rule `test/gate.test.mjs` checks, not something a run
+showed. The gate then records `undo` as unchecked
 in that arm's `gate.json` entry, warns that no comparison happened, and the report leaves out that
 arm's `undo` rows.
 `undo` has no `main` baseline and no A/A noise, so its threshold is the floor: ±6.1 ms on
