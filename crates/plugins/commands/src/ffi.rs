@@ -86,7 +86,7 @@ fn context(command_id: &str, ctx: &CommandCtx) -> CommandContext {
         command_id: command_id.to_string(),
         document_id: ctx.document_id().map(str::to_string),
         args_json: ctx.args().map(Value::to_string),
-        app_state_json: ctx.app_state().to_string(),
+        app_state_json: ctx.app_state_text().to_string(),
     }
 }
 

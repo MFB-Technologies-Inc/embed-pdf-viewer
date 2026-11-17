@@ -1084,3 +1084,155 @@ fn turned_off_and_not_allowed_refusals_precede_lock_checks() {
     );
     assert_eq!(checked.get(), 0);
 }
+
+// ── what a read costs (controller.ts:162-179, :318-345) ─────────────────────
+
+/// A live harness whose callbacks answer `true` and keep the argument text
+/// each was handed.
+fn printing_harness() -> (plugin_conformance::Harness, Rc<RefCell<Vec<Rc<str>>>>) {
+    use plugin_conformance::{Answer, Harness, LiveFn, LiveTextFn};
+    let seen: Rc<RefCell<Vec<Rc<str>>>> = Rc::default();
+    let heard = seen.clone();
+    let live: LiveFn = Rc::new(|_spec, _args| Answer::Returns(json!(true)));
+    let live_text: LiveTextFn = Rc::new(move |_spec, args: &Rc<str>| {
+        heard.borrow_mut().push(args.clone());
+        Answer::Returns(json!(true))
+    });
+    let adapters: Vec<Rc<dyn plugin_conformance::HarnessPlugin>> =
+        vec![Rc::new(epdf_plugin_commands::harness::Commands)];
+    let harness = Harness::live_with_text(adapters, Default::default(), live, live_text, None);
+    (harness, seen)
+}
+
+#[test]
+fn derivation_ctx_printed_once_per_store_change() {
+    use plugin_conformance::HarnessPlugin;
+    rt::reset();
+    let (h, seen) = printing_harness();
+    let commands: Vec<Value> = (0..100)
+        .map(|i| json!({ "id": format!("c{i}"), "enabled": { "$fn": "js:enabled" } }))
+        .collect();
+    let config = json!({ "commands": commands, "appState": { "n": 1 } });
+    let plugin = epdf_plugin_commands::harness::Commands.build("commands", &config, &h).unwrap();
+    let kernel = Kernel::new(
+        Rc::new(AsEngine(FakeEngine::new(json!({ "documents": {} })))),
+        vec![plugin],
+        KernelOptions::default(),
+    )
+    .unwrap();
+    settle(&kernel.start()).unwrap();
+    let api = kernel.capability(&COMMANDS, None).unwrap();
+    let resolve_all = || {
+        for i in 0..100 {
+            api.resolve_command(&format!("c{i}"), None).unwrap();
+        }
+    };
+
+    resolve_all();
+    let first = seen.borrow().clone();
+    assert_eq!(first.len(), 100);
+    // One print, handed to every derivation, byte for byte what a list of
+    // the context's value prints as.
+    assert!(first.iter().all(|text| Rc::ptr_eq(text, &first[0])));
+    assert_eq!(
+        &*first[0],
+        r#"[{"documentId":null,"appState":{"n":1},"get":{"$kernel":"get","doc":null},"tryGet":{"$kernel":"tryGet","doc":null}}]"#
+    );
+
+    // After a store change the context is new, and so is its print.
+    api.update_settings(&CommandsConfig {
+        app_state: Some(json!({ "n": 2 })),
+        ..CommandsConfig::default()
+    });
+    seen.borrow_mut().clear();
+    resolve_all();
+    let second = seen.borrow().clone();
+    assert_eq!(second.len(), 100);
+    assert!(second.iter().all(|text| Rc::ptr_eq(text, &second[0])));
+    assert!(!Rc::ptr_eq(&first[0], &second[0]));
+    assert!(second[0].contains(r#""appState":{"n":2}"#));
+}
+
+#[test]
+fn capability_lookup_memoized_per_ctx() {
+    // Each context a function is handed, kept, with whether it looked up
+    // the commands capability.
+    type Kept = Rc<RefCell<Vec<CommandCtx>>>;
+    let (derived, ran): (Kept, Kept) = Default::default();
+    let look = Rc::new(Cell::new(true));
+    let keep = |into: &Kept, look: &Rc<Cell<bool>>| {
+        let (into, look) = (into.clone(), look.clone());
+        move |c: &CommandCtx| {
+            if look.get() {
+                c.get_any(COMMANDS.any()).unwrap();
+                assert!(c.try_get_any(COMMANDS.any()).is_some());
+            }
+            into.borrow_mut().push(c.clone());
+        }
+    };
+    let (on_enabled, on_run) = (keep(&derived, &look), keep(&ran, &look));
+    let rig = rig_with(
+        Some(config(vec![CommandDef {
+            enabled: Some(Rc::new(move |c: &CommandCtx| {
+                on_enabled(c);
+                Ok(true)
+            })),
+            run: Some(Rc::new(move |c: &CommandCtx| {
+                on_run(c);
+                Ok(None)
+            })),
+            ..def("a")
+        }])),
+        Vec::new(),
+        json!({ "d": document(json!([])) }),
+    );
+    rig.open("d");
+    rig.resolve("a");
+    let done = rig.commands.execute("a", ExecuteOptions::default());
+    rt::run_until_stalled();
+    assert!(matches!(done.peek(), Some(Ok(ExecuteResult::Executed))));
+    // After a store change the derivation gets a new context, which looks
+    // up nothing this time.
+    look.set(false);
+    rig.kernel.store().notify();
+    rig.resolve("a");
+    settle(&rig.kernel.destroy()).unwrap();
+
+    let derived = derived.borrow();
+    let (before, after) = (&derived[0], derived.last().unwrap());
+    // A derivation context answers with what it found, even once the
+    // kernel would refuse a lookup.
+    assert!(before.get_any(COMMANDS.any()).is_ok());
+    assert!(before.try_get_any(COMMANDS.any()).is_some());
+    // What one context found is its own: the next looks again.
+    assert!(after.get_any(COMMANDS.any()).is_err());
+    assert!(after.try_get_any(COMMANDS.any()).is_none());
+    // `run`'s context is `commandContext`'s, which keeps nothing.
+    assert!(ran.borrow()[0].get_any(COMMANDS.any()).is_err());
+}
+
+#[test]
+fn resolve_command_text_shared_until_change() {
+    let answer = Rc::new(Cell::new(true));
+    let enabled = answer.clone();
+    let rig = rig(config(vec![CommandDef {
+        enabled: Some(Rc::new(move |_| Ok(enabled.get()))),
+        ..def("a")
+    }]));
+    let text = rig.commands.resolve_command_text("a", None).unwrap();
+    assert_eq!(&*text, serde_json::to_value(&*rig.resolve("a")).unwrap().to_string());
+    assert!(Rc::ptr_eq(&text, &rig.commands.resolve_command_text("a", None).unwrap()));
+    // A store change that changes no answer keeps the resolved command, and
+    // its text.
+    rig.kernel.store().notify();
+    assert!(Rc::ptr_eq(&text, &rig.commands.resolve_command_text("a", None).unwrap()));
+
+    answer.set(false);
+    rig.kernel.store().notify();
+    let changed = rig.commands.resolve_command_text("a", None).unwrap();
+    assert!(!Rc::ptr_eq(&text, &changed));
+    assert_eq!(&*changed, serde_json::to_value(&*rig.resolve("a")).unwrap().to_string());
+    assert!(changed.contains(r#""enabled":false"#));
+    // An unknown id prints as `null`, as `None` does.
+    assert_eq!(&*rig.commands.resolve_command_text("nope", None).unwrap(), "null");
+}

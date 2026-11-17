@@ -315,7 +315,13 @@ fn scripted(spec: &Value, h: &Harness) -> Rc<dyn Fn(&CommandCtx) -> Answer> {
     let uses = spec.get("uses").and_then(Value::as_array).cloned();
     let h = h.clone();
     Rc::new(move |c: &CommandCtx| {
-        let answer = callback.call(vec![ctx_json(c, h.is_live())]);
+        // A context prints the same every time, so its argument list is
+        // printed once per context and handed to every function it reaches.
+        let live = h.is_live();
+        let answer = callback.call_text(
+            || c.printed(|| Value::Array(vec![ctx_json(c, live)]).to_string()),
+            || vec![ctx_json(c, live)],
+        );
         if let Some(uses) = &uses {
             let results = uses.iter().map(|u| run_use(u, c, &h)).collect();
             h.log(&format!("{}:uses", callback.name()), results);
@@ -581,7 +587,10 @@ impl HarnessPlugin for Commands {
                 Err(error) => Outcome::Threw(error),
             },
             "listCommandIds" => returned(cap.list_command_ids()),
-            "resolveCommand" => returned(cap.resolve_command(id, doc)),
+            "resolveCommand" => match cap.resolve_command_text(id, doc) {
+                Ok(text) => Outcome::Text(text),
+                Err(error) => Outcome::Threw(error),
+            },
             "listCommands" => returned(cap.list_commands(str_arg(&args, 0))),
             "searchCommands" => returned(cap.search_commands(id, doc)),
             "listShortcuts" => returned(cap.list_shortcuts()),
