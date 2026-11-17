@@ -61,6 +61,8 @@ fn a_degenerate_quad_is_labelled_only_as_one_ulp_of_the_platform_atan2_allows() 
     // Each corner's offset from the middle and `Math.atan2` of it in the
     // JavaScript runtime; the last two corners share an offset. The runtime
     // rounds the second up to 1.5707963267948968, the dev container down.
+    // These are recorded answers, not stand-ins for `FRAC_PI_2`.
+    #[allow(clippy::approx_constant)]
     let angles = [
         (3.6140106882042333e-20, -0.75, -1.5707963267948966),
         (-1.0842032064612701e-19, 0.25, 1.5707963267948968),
