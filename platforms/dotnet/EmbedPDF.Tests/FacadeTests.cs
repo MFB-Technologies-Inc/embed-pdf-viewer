@@ -47,6 +47,39 @@ public class FacadeTests
         var search = await doc.SearchLiteralAsync(new("UPRIGHT") { Snippets = true, MaxPages = 1 }); Assert.True(search.PagesSearched > 0);
         var transform = PageTransforms.Apply(new(new(100, 200), PageRotation.Clockwise90, 1.25, 2), pagePoints: [new(1, 2)]); Assert.Single(transform.PageToView);
     }
+    static Func<long> SubmittedRequests(PdfEngine engine)
+    {
+        var dispatcher = typeof(PdfEngine).GetField("dispatcher", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(engine)!;
+        var sequence = typeof(EngineDispatcher).GetField("sequence", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        return () => (long)sequence.GetValue(dispatcher)!;
+    }
+    [Fact]
+    public async Task RepeatedRenderListsPagesOnce()
+    {
+        await using var engine = await PdfEngine.CreateAsync();
+        await using var doc = await engine.OpenAsync(Pdf);
+        var submitted = SubmittedRequests(engine);
+        var options = new RenderOptions { Region = new(0, 0, 10, 10) };
+        await doc.RenderAsync(new(0), options);
+        var before = submitted();
+        for (var i = 0; i < 3; i++) await doc.RenderAsync(new(0), options);
+        await doc.GetTextAsync(new(0)); await doc.GetGeometryAsync(new(0));
+        var pages = await doc.GetPagesAsync();
+        Assert.Equal(5, submitted() - before);
+        Assert.Equal(pages, await doc.GetPagesAsync());
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => doc.GetTextAsync(new((uint)pages.Length)));
+    }
+    [Fact]
+    public async Task ListedPagesStillRefuseCancellationAndDisposal()
+    {
+        var engine = await PdfEngine.CreateAsync(); var doc = await engine.OpenAsync(Pdf);
+        await doc.GetPagesAsync();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => doc.GetPagesAsync(new(true)));
+        await engine.DisposeAsync();
+        var stopped = await Assert.ThrowsAsync<ObjectDisposedException>(() => doc.GetPagesAsync()); Assert.Equal(nameof(PdfEngine), stopped.ObjectName);
+        await doc.DisposeAsync();
+        var closed = await Assert.ThrowsAsync<ObjectDisposedException>(() => doc.GetPagesAsync()); Assert.Equal(nameof(PdfDocument), closed.ObjectName);
+    }
     [Fact]
     public async Task ImagesOwnBytesAfterClose()
     {

@@ -8,6 +8,8 @@ public sealed class PdfDocument : IAsyncDisposable
     readonly PdfEngine engine;
     readonly ulong document;
     Task? disposed;
+    // The first listing. This facade has no operation that changes the page list.
+    ImmutableArray<PageInfo>? pages;
     internal PdfDocument(PdfEngine engine, ulong document) { this.engine = engine; this.document = document; }
     Task<WireResult> Call(uint operation, object args, CancellationToken cancellation)
     {
@@ -18,7 +20,21 @@ public sealed class PdfDocument : IAsyncDisposable
         }
     }
     public async Task<ImmutableArray<PageInfo>> GetPagesAsync(CancellationToken cancellationToken = default)
-        => Wire.Read<ImmutableArray<PageInfo>>((await Call(3, new { }, cancellationToken).ConfigureAwait(false)).Result.GetProperty("pages"));
+    {
+        lock (gate)
+        {
+            // A listed document refuses as an unlisted one would.
+            if (pages is { } listed)
+            {
+                if (disposed != null) throw new ObjectDisposedException(nameof(PdfDocument));
+                cancellationToken.ThrowIfCancellationRequested();
+                if (engine.IsClosing) throw new ObjectDisposedException(nameof(PdfEngine));
+                return listed;
+            }
+        }
+        var read = Wire.Read<ImmutableArray<PageInfo>>((await Call(3, new { }, cancellationToken).ConfigureAwait(false)).Result.GetProperty("pages"));
+        lock (gate) return pages ??= read;
+    }
     async Task<PageReference> Page(PageIndex index, CancellationToken cancellation)
     {
         var pages = await GetPagesAsync(cancellation).ConfigureAwait(false);
