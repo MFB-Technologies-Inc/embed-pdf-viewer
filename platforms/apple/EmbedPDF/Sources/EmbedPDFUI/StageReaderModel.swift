@@ -17,12 +17,18 @@ public final class StageReaderModel {
   @available(*, deprecated, message: "Use pageIndex, an Int; this is the same position as a UInt32.")
   public var currentPageIndex: UInt32 { UInt32(exactly: pageIndex) ?? 0 }
   public private(set) var error: PDFError?
+  /// Whether the camera is moving: a drag or a pinch is under way, or the
+  /// stage's fling or zoom animation hasn't settled. Pages render at banded
+  /// scales while it is, and at the stage's own scale once it stops
+  /// (``renderScale(_:contentWidth:contentHeight:inMotion:)``).
+  public private(set) var isInMotion = false
   private var renderRevisions: [PageRef: UInt64] = [:]
   @ObservationIgnored public let stage: StageCapability
   @ObservationIgnored public let render: RenderCapability
   @ObservationIgnored private var lastTranslation = CGSize.zero
   @ObservationIgnored private var lastMagnification: CGFloat = 1
   @ObservationIgnored private var gestureOpen = false
+  @ObservationIgnored private var magnifying = false
   /// The last drag call, which the next one waits for. SwiftUI hands a
   /// gesture's change and end to separate tasks, and each call leaves the
   /// main actor while it reaches the stage, so without this an end could
@@ -32,19 +38,23 @@ public final class StageReaderModel {
   /// The most pixels one page renders at: 4096 by 4096, 64 MB of RGBA.
   public nonisolated static let maxPagePixels: Double = 4096 * 4096
 
-  /// The scale to render a page at: the stage's `renderScale` rounded up to
-  /// a width band (``PageRenderResolution/bandedScale(_:pageWidth:)``), so a
-  /// pinch restarts a page's render only when it crosses a band, and capped
-  /// so the whole page stays within `maxPagePixels`. The reader renders pages
-  /// whole until it draws the tile plane, so past the cap a deep zoom is soft
+  /// The scale to render a page at: the stage's `renderScale`, capped so the
+  /// whole page stays within `maxPagePixels`. The reader renders pages whole
+  /// until it draws the tile plane, so past the cap a deep zoom is soft
   /// rather than hundreds of megabytes a page. Sizes in page points.
+  ///
+  /// In motion the scale is first rounded up to a width band
+  /// (``PageRenderResolution/bandedScale(_:pageWidth:)``), so a pinch
+  /// restarts a page's render only when it crosses a band. At rest it is the
+  /// stage's scale itself, so the page that stays on screen is drawn at the
+  /// size it is shown, not resampled from a wider band.
   public nonisolated static func renderScale(
-    _ scale: Double, contentWidth: Double, contentHeight: Double
+    _ scale: Double, contentWidth: Double, contentHeight: Double, inMotion: Bool = false
   ) -> Double {
-    let banded = PageRenderResolution.bandedScale(scale, pageWidth: contentWidth)
+    let wanted = inMotion ? PageRenderResolution.bandedScale(scale, pageWidth: contentWidth) : scale
     let area = contentWidth * contentHeight
-    guard area > 0 else { return banded }
-    return min(banded, (maxPagePixels / area).squareRoot())
+    guard area > 0 else { return wanted }
+    return min(wanted, (maxPagePixels / area).squareRoot())
   }
 
   public init(stage: StageCapability, render: RenderCapability) {
@@ -136,6 +146,7 @@ public final class StageReaderModel {
   }
 
   private func applyDragChange(_ translation: CGSize) async {
+    setInMotion(true)
     do {
       if !gestureOpen {
         gestureOpen = true
@@ -170,12 +181,15 @@ public final class StageReaderModel {
   }
 
   public func magnifyChanged(_ magnification: CGFloat, at location: CGPoint) {
+    magnifying = true
+    setInMotion(true)
     let factor = magnification / lastMagnification
     lastMagnification = magnification
     stage.zoomAround(Point(x: location.x, y: location.y), factor: Double(factor))
   }
 
   public func magnifyEnded() async {
+    magnifying = false
     lastMagnification = 1
     await refresh()
   }
@@ -189,12 +203,20 @@ public final class StageReaderModel {
     await refresh()
   }
 
+  /// Reads the pages, the camera and whether the camera still moves: a
+  /// drag's end, a pinch's end and the stage's `motionEnded` all land here.
   private func refresh() async {
     do {
       visiblePages = try await stage.visiblePages()
       camera = try await stage.camera()
+      let moving = try await stage.isMoving()
+      setInMotion(gestureOpen || magnifying || moving)
     } catch {
       self.error = error
     }
+  }
+
+  private func setInMotion(_ moving: Bool) {
+    if isInMotion != moving { isInMotion = moving }
   }
 }

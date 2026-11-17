@@ -20,7 +20,7 @@ public struct StageReaderView: View {
               render: model.render, page: page.page,
               scale: StageReaderModel.renderScale(
                 page.transform.renderScale, contentWidth: page.transform.contentWidth,
-                contentHeight: page.transform.contentHeight),
+                contentHeight: page.transform.contentHeight, inMotion: model.isInMotion),
               revision: model.renderRevision(for: page.page))
               .frame(width: page.transform.viewWidth, height: page.transform.viewHeight)
               .offset(x: page.screenX, y: page.screenY)

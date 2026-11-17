@@ -140,12 +140,52 @@ struct StageReaderModelTests {
     #expect(600 * capped * 800 * capped <= StageReaderModel.maxPagePixels * 1.000001)
   }
 
-  /// Under the cap the page renders at the stage's scale rounded up to a
-  /// width band, so a pinch within one band keeps the render it has.
-  @Test func theRenderScaleRoundsUpToAWidthBand() {
-    let scale = StageReaderModel.renderScale(2, contentWidth: 600, contentHeight: 800)
+  /// In motion, under the cap, the page renders at the stage's scale rounded
+  /// up to a width band, so a pinch within one band keeps the render it has.
+  @Test func inMotionTheRenderScaleRoundsUpToAWidthBand() {
+    let scale = StageReaderModel.renderScale(2, contentWidth: 600, contentHeight: 800, inMotion: true)
     expectNoDifference(scale, PageRenderResolution.bandedScale(2, pageWidth: 600))
-    expectNoDifference(StageReaderModel.renderScale(2.1, contentWidth: 600, contentHeight: 800), scale)
+    expectNoDifference(
+      StageReaderModel.renderScale(2.1, contentWidth: 600, contentHeight: 800, inMotion: true), scale)
     #expect(scale >= 2.1)
+  }
+
+  /// At rest the page renders at the stage's scale itself: a 612-point page
+  /// at 2 is 1224 pixels wide, not the 1280 of its band.
+  @Test func atRestTheRenderScaleIsTheStageScale() {
+    expectNoDifference(StageReaderModel.renderScale(2, contentWidth: 612, contentHeight: 792), 2)
+    expectNoDifference(StageReaderModel.renderScale(2.05, contentWidth: 612, contentHeight: 792), 2.05)
+    let inMotion = StageReaderModel.renderScale(2, contentWidth: 612, contentHeight: 792, inMotion: true)
+    expectNoDifference((inMotion * 612).rounded(), 1280)
+    // The cap holds either way.
+    expectNoDifference(
+      StageReaderModel.renderScale(12, contentWidth: 600, contentHeight: 800),
+      StageReaderModel.renderScale(12, contentWidth: 600, contentHeight: 800, inMotion: true))
+  }
+
+  /// A drag puts the reader in motion, and its end, once any spring-back has
+  /// settled, takes it out, so the pages render at the exact scale again.
+  @Test func aDragIsMotionUntilItSettles() async throws {
+    let (model, task) = try await model()
+    defer { task.cancel() }
+    await model.sizeChanged(CGSize(width: 390, height: 844), displayScale: 3)
+    #expect(!model.isInMotion)
+    await model.dragChanged(translation: CGSize(width: 0, height: -400))
+    #expect(model.isInMotion)
+    try await expectObserved({ model.isInMotion }, equals: false) {
+      await model.dragEnded(velocity: .zero)
+    }
+  }
+
+  /// A pinch is motion from its first change to its end.
+  @Test func aPinchIsMotionUntilItEnds() async throws {
+    let (model, task) = try await model()
+    defer { task.cancel() }
+    await model.sizeChanged(CGSize(width: 390, height: 844), displayScale: 3)
+    model.magnifyChanged(1.2, at: CGPoint(x: 195, y: 422))
+    #expect(model.isInMotion)
+    try await expectObserved({ model.isInMotion }, equals: false) {
+      await model.magnifyEnded()
+    }
   }
 }
