@@ -5,8 +5,8 @@
   "defaultArms": [
     "main",
     "main-aa",
-    "plugins-base",
-    "plugins-next"
+    "main-now",
+    "perf-fixes-end"
   ],
   "worktrees": {
     "main": {

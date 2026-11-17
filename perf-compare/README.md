@@ -67,27 +67,38 @@ an arm whose viewer lacks it (`capabilities` in `entry/api-v*.ts`) skips that fl
 history plugin, which `main` 2516e2786 doesn't have, so `main` and `main-aa` skip it. The gate
 runs every flow once on every arm, whatever `--flows` says, so it always has an `undo` answer from
 the arms with history. It compares that answer with `arms.json`'s `fallbackReference` (`main-now`)
-when `main-now` is in the run. Otherwise it uses the first arm in run order that gave one, and
-prints a `gate:` warning naming that arm. When only one arm answers, nothing checks it. The
-default arms are that case: `plugins-base` (`9d6c2eca1`) builds as viewer API v1, skips `undo`
-like `main`, and leaves `plugins-next` as the only arm with an answer. The gate then marks `undo`
-unchecked for that arm (`unchecked` and `references` in its `gate.json` entry), prints a `gate:`
-warning that no comparison happened, and the report leaves that arm's `undo` rows out. Add
-`main-now` to the run to get `undo` checked and timed. The report judges `undo`'s rows against the
+when `main-now` is in the run, as it is in the default arms. Otherwise it uses the first arm in
+run order that gave one, and prints a `gate:` warning naming that arm. When only one arm answers,
+nothing checks it: the gate marks `undo` unchecked for that arm (`unchecked` and `references` in
+its `gate.json` entry), prints a `gate:` warning that no comparison happened, and the report
+leaves that arm's `undo` rows out. A run of `main`, `main-aa`, `plugins-base` and `plugins-next`
+is that case, since `plugins-base` (`9d6c2eca1`) builds as viewer API v1 and skips `undo` like
+`main`. Add `main-now` to such a run to get `undo` checked and timed. The report judges `undo`'s rows against the
 3% floor alone, because there's no A/A pair for them.
 
 ## The standard run
 
-Since 2026-10-14 a run with no `--arms`, and `scripts/build-entry.mjs` with no arms, use
-`defaultArms` in `arms.json`: `main`, `main-aa`, `plugins-base` and `plugins-next`. The other arms
-stay in the file as the record of what each arm name in `FINDINGS.md` and the results meant; their
-checkouts aren't kept, and naming one rebuilds it (`materialize.mjs`, then `build-entry.mjs`).
+A run with no `--arms`, and `scripts/build-entry.mjs` with no arms, use `defaultArms` in
+`arms.json`: `main`, `main-aa`, `main-now` and `perf-fixes-end`. `main` against `main-aa` is the
+A/A check. `main-now` (upstream `main` at `ed064e0c8`) against `perf-fixes-end` (the
+`research/perf-fixes` tip at `a6d4d5d14`) is where the port stands, the pair `FINDINGS.md` quotes
+from `2026-11-17T16-59-17-202Z`, the last run with all four. `main-now` also gives the gate its
+`undo` reference. The other arms stay in the file as the record of what each arm name in
+`FINDINGS.md` and the results meant; their checkouts aren't kept, and naming one rebuilds it
+(`materialize.mjs`, then `build-entry.mjs`).
 
-- `plugins-base` is the plugins branch before the change under test, and `plugins-next` the
-  change. To test a change, set `plugins-next`'s worktree `ref` to the candidate branch and run
-  `node scripts/pin.mjs plugins-next`; the report's `plugins-base` vs `plugins-next` pair is the
-  answer, and `main` vs either shows where the branch stands.
-- After the change merges, `node scripts/pin.mjs plugins-base` moves the base to the new tip.
+From 2026-10-14 to 2026-11-17 the defaults were `main`, `main-aa`, `plugins-base` and
+`plugins-next`, meant as the plugins branch before and after a change under test. Neither means
+that now. `plugins-base` (`9d6c2eca1`) can't be built in the arm64 Linux devcontainer: its fork
+commit has no published `wasm32-eh` archive, and the fork build needs an amd64 host
+(`FINDINGS.md`, "The tip after the catch-up, against upstream main"). `plugins-next` is
+`0de4effd9`, the base of `research/perf-fixes`.
+
+To test a change, add an arm for the commit before it and one for the commit with it, as
+`phase-c-base` and `phase-c-end` were, add their pair to `pairs`, and name them with the defaults
+in `--arms`. That pair is the answer, and `main-now` against either shows where the branch stands.
+Each arm costs run time: `2026-11-17T16-59-17-202Z` took 150.2 min for seven arms at R=10 on the
+Mac mini, about 21 min an arm.
 
 ## How long it takes
 

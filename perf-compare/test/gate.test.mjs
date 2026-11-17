@@ -44,9 +44,9 @@ test('with main-now in the run, it is the reference even when plugins-next runs 
   assert.deepEqual(warnings, []);
 });
 
-// The default arms as arms.json pins them: plugins-base (9d6c2eca1) builds
-// as viewer API v1 with no capabilities, so it skips undo as main does, and
-// plugins-next is the only arm that answers it.
+// The default arms before perf-fixes-end replaced them: plugins-base
+// (9d6c2eca1) builds as viewer API v1 with no capabilities, so it skips undo
+// as main does, and plugins-next is the only arm that answers it.
 const defaults = ['main', 'main-aa', 'plugins-base', 'plugins-next'];
 const defaultRun = {
   main: collected.main,
@@ -55,7 +55,7 @@ const defaultRun = {
   'plugins-next': collected['plugins-next'],
 };
 
-test('without main-now, the default arms leave undo unchecked, record it, and say no comparison happened', () => {
+test('without main-now, the former default arms leave undo unchecked, record it, and say no comparison happened', () => {
   const refs = referencesFor(config, 'main', defaults);
   for (const id of defaults) assert.deepEqual(answerReasons(id, defaultRun, refs), [], id);
   assert.deepEqual(gateRecord('plugins-next', defaultRun, refs), {
@@ -73,7 +73,7 @@ test('without main-now, the default arms leave undo unchecked, record it, and sa
   ]);
 });
 
-test('with main-now in the default arms, undo is checked against main-now', () => {
+test('with main-now added to the former default arms, undo is checked against main-now', () => {
   const order = [...defaults, 'main-now'];
   const run = { ...defaultRun, 'main-now': collected['main-now'] };
   const refs = referencesFor(config, 'main', order);

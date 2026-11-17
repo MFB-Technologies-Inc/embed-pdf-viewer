@@ -57,6 +57,15 @@ test('accepts rustReads on the rust kernel', () => {
   assert.equal(loadConfig(write(both)).arms.a.rustReads, true);
 });
 
+test('the tracked default arms include the A/A pair and the gate\'s undo reference', () => {
+  // Without fallbackReference (main-now) in the run, the only v2 arm's undo
+  // answer goes unchecked (README, "What it compares").
+  const config = loadConfig();
+  for (const id of [config.baseline, config.noiseArm, config.fallbackReference]) {
+    assert.ok(config.defaultArms.includes(id), `${id} not in ${config.defaultArms.join(', ')}`);
+  }
+});
+
 test('defaultArms names the arms a run uses when it names none', () => {
   const both = structuredClone(valid);
   both.defaultArms = ['b'];
