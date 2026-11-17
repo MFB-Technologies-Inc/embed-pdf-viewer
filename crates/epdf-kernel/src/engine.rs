@@ -271,11 +271,18 @@ pub enum Answer {
 }
 
 impl Answer {
-    /// Read the answer into a plugin's DTO.
+    /// Read the answer into a plugin's DTO. A malformed answer reads the
+    /// same as [`decode`]'s, without the text's line and column, so a host
+    /// that answers with text and one that answers with a value refuse it
+    /// in the same words.
     pub fn decode<R: serde::de::DeserializeOwned>(self) -> Result<R, Error> {
         match self {
-            Answer::Text(text) => serde_json::from_str(&text)
-                .map_err(|e| Error::new(format!("[engine] malformed answer: {e}"))),
+            Answer::Text(text) => serde_json::from_str(&text).map_err(|e| {
+                let message = e.to_string();
+                let at = format!(" at line {} column {}", e.line(), e.column());
+                let message = message.strip_suffix(&at).unwrap_or(&message);
+                Error::new(format!("[engine] malformed answer: {message}"))
+            }),
             Answer::Value(value) => decode(value),
         }
     }

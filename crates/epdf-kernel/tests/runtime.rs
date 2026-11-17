@@ -1771,3 +1771,24 @@ fn allows_rereads_after_an_unlock_through_an_unguarded_handle() {
     assert!(ctx.allows("doc.print"));
     assert_eq!(doc.security.asked(), asked + 1);
 }
+
+/// A malformed answer is refused in the same words whether the host
+/// answered with text (the web bridge) or a value (the native host).
+#[test]
+fn a_malformed_answer_reads_the_same_as_text_and_as_a_value() {
+    use epdf_kernel::engine::Answer;
+    #[derive(Debug, serde::Deserialize)]
+    #[allow(dead_code)]
+    struct Slice {
+        matches: Vec<Value>,
+        #[serde(rename = "pagesSearched")]
+        pages_searched: u32,
+    }
+    for text in [r#"{"matches":[]}"#, "{\n  \"matches\": 3,\n  \"pagesSearched\": 1\n}"] {
+        let value: Value = serde_json::from_str(text).unwrap();
+        let from_text = Answer::Text(text.into()).decode::<Slice>().unwrap_err();
+        let from_value = Answer::Value(value).decode::<Slice>().unwrap_err();
+        assert_eq!(from_text.message, from_value.message, "{text}");
+        assert!(from_text.message.starts_with("[engine] malformed answer: "));
+    }
+}
