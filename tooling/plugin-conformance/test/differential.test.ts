@@ -143,3 +143,18 @@ test('a --fn name no suite calls fails instead of running nothing', async () => 
     /--fn noSuchFunction: no suite of geometry calls it/,
   );
 });
+
+test('a --fn name with no arbitrary fails instead of running nothing', async () => {
+  const { rectFromCorners: _, ...arbitraries } = geometry.arbitraries;
+  await assert.rejects(
+    runDifferential({
+      table: { ...geometry, arbitraries },
+      server: stubServer((_fn, _args, outcome) => outcome),
+      runs: 1,
+      seed: SEED,
+      ledger: [],
+      only: ['rectFromCorners'],
+    }),
+    /--fn rectFromCorners: no arbitrary in src\/differential\/geometry\.ts/,
+  );
+});

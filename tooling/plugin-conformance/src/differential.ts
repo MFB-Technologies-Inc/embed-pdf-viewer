@@ -101,7 +101,8 @@ export interface Options {
   readonly runs: number;
   readonly seed: number;
   readonly ledger: readonly LedgerEntry[];
-  /** Only these functions; a name the table's suites do not hold throws. */
+  /** Only these functions; a name the table's suites do not hold, or one
+   *  with no arbitrary, throws. */
   readonly only?: readonly string[];
 }
 
@@ -182,6 +183,12 @@ export async function runDifferential(options: Options): Promise<Report> {
   if (unknown.length) {
     throw new Error(
       `--fn ${unknown.join(', ')}: no suite of ${table.table} calls it; the functions are ${[...functions.keys()].join(', ')}`,
+    );
+  }
+  const untestable = (options.only ?? []).filter((name) => !table.arbitraries[name]);
+  if (untestable.length) {
+    throw new Error(
+      `--fn ${untestable.join(', ')}: no arbitrary in src/differential/${table.table}.ts, so nothing would run`,
     );
   }
   const report: Report = { runs: {}, skipped: {}, mismatches: [], untested: [] };
