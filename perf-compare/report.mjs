@@ -132,9 +132,14 @@ function calibrations(allRows, config, skipped = {}) {
 function qualified(verdict, row, cal, ref, cand, gate) {
   const notes = [];
   if (cal?.floorOnly) notes.push('no A/A band');
-  const without = [ref, cand].filter((id) => !hasDone(row.flow, gate[id]?.capabilities));
-  if (without.length) notes.push(`no done condition on ${without.map((id) => `\`${id}\``).join(' and ')}`);
+  const done = doneNote(row, ref, cand, gate);
+  if (done) notes.push(done);
   return notes.length ? `${verdict} (${notes.join('; ')})` : verdict;
+}
+
+function doneNote(row, ref, cand, gate) {
+  const without = [ref, cand].filter((id) => !hasDone(row.flow, gate[id]?.capabilities));
+  return without.length ? `no done condition on ${without.map((id) => `\`${id}\``).join(' and ')}` : null;
 }
 
 function pairTable(allRows, calib, ref, cand, gate = {}) {
@@ -252,15 +257,17 @@ function report(run, config) {
     if (MEMORY.includes(row.metric)) continue;
     const c = calib.get(key);
     if (!c || c.floorOnly) continue;
+    const status = c.invalid ? `invalid: ${c.invalid}` : c.ok ? 'pass' : 'A/A failed';
+    const done = doneNote(row, noiseRef, noiseCand, gate);
     aaBody.push([
       row.label,
       cell(row.metric, row.byArm[noiseRef]),
       cell(row.metric, row.byArm[noiseCand]),
       c.iv ? intervalText(row.metric, c.iv) : '',
-      c.invalid ? `invalid: ${c.invalid}` : c.ok ? 'pass' : 'A/A failed',
+      done ? `${status} (${done})` : status,
     ]);
   }
-  const passed = aaBody.filter((r) => r[4] === 'pass').length;
+  const passed = aaBody.filter((r) => r[4].startsWith('pass')).length;
   push(`${passed} of ${aaBody.length} rows pass.`, '');
   push(table(['Row', `${noiseRef} median [max]`, `${noiseCand} median [max]`, 'ratio or diff [95% CI]', 'A/A'], aaBody));
 

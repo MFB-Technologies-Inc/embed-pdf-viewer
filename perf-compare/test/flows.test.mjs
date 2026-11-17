@@ -186,3 +186,50 @@ test('hover is the flow whose done condition needs a hover read', () => {
   assert.equal(hasDone('hover', ['history', 'hovered']), true);
   assert.equal(hasDone('undo', []), true);
 });
+
+test('undo finds its page once and polls only its count while the ten undos land', async () => {
+  let count = 2;
+  let undos = 0;
+  const run = fakeRun({
+    capabilities: ['history'],
+    pageBox: box,
+    execute: (command) => {
+      if (command === 'history:undo' && ++undos % 10 === 0) count = 2;
+    },
+    annotationCount: () => count,
+    watch: (kind, arg) => (assert.deepEqual([kind, arg], ['annotationCount', 208]), 0),
+    read: () => count,
+    onInput: (name) => name === 'mouse.up' && count++,
+  });
+  try {
+    const r = await FLOWS.undo.measure(run.page, run.cdp);
+    assert.ok(run.log.lastIndexOf('watch') < run.log.indexOf('cpuStart'));
+    assert.deepEqual([...new Set(inWindow(run.log))], ['execute', 'read']);
+    assert.deepEqual(r.answers, { countBefore: 2, countEdited: 12, countAfter: 2 });
+  } finally {
+    run.restore();
+  }
+});
+
+for (const flow of ['annotate', 'annotateLarge']) {
+  test(`${flow} finds its page and drag ends before the CPU window and polls only its count`, async () => {
+    let count = 0;
+    const run = fakeRun({
+      capabilities: [],
+      pageBox: box,
+      execute: () => {},
+      annotationCount: () => count,
+      watch: (kind) => (assert.equal(kind, 'annotationCount'), 0),
+      read: () => count,
+      onInput: (name) => name === 'mouse.up' && count++,
+    });
+    try {
+      const r = await FLOWS[flow].measure(run.page, run.cdp);
+      assert.ok(run.log.indexOf('watch') < run.log.indexOf('cpuStart'));
+      assert.deepEqual([...new Set(inWindow(run.log))], ['read']);
+      assert.deepEqual(r.answers, { countBefore: 0, countAfter: 1 });
+    } finally {
+      run.restore();
+    }
+  });
+}

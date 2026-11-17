@@ -233,6 +233,9 @@ test('a hover row says which arm has no done condition', () => {
     assert.equal(verdict('## `main` vs `plugins-next`'), 'slower (no done condition on `main`)');
     assert.equal(verdict('## `main-now` vs `plugins-next`'), 'slower');
     assert.equal(verdict('## `main` vs `main-now`'), 'no detectable difference (no done condition on `main`)');
+    const aa = section(out.stdout, '## A/A: `main` vs `main-aa`');
+    assert.equal(aa.rows.find((r) => r[0] === 'hover / mainJsMs')[4], 'pass (no done condition on `main` and `main-aa`)');
+    assert.match(out.stdout, /4 of 4 rows pass\./);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

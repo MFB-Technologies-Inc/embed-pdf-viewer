@@ -76,11 +76,19 @@ function startAt(pageIndex, { park = false } = {}) {
   };
 }
 
-async function drag(page, pageIndex, { from, to }) {
+// A drag's two ends in window px. `pageBox` walks the viewer's shadow DOM, so
+// a timed drag works these out before its window (`dragAlong`).
+async function dragEnds(page, pageIndex, { from, to }) {
   const box = await page.evaluate((i) => window.__perf.pageBox(i), pageIndex);
   const at = ([fx, fy]) => [box.x + box.width * fx, box.y + box.height * fy];
-  const [x0, y0] = at(from);
-  const [x1, y1] = at(to);
+  return [at(from), at(to)];
+}
+
+async function drag(page, pageIndex, region) {
+  await dragAlong(page, await dragEnds(page, pageIndex, region));
+}
+
+async function dragAlong(page, [[x0, y0], [x1, y1]]) {
   await page.mouse.move(x0, y0, { steps: 4 });
   await page.mouse.down();
   await page.mouse.move(x1, y1, { steps: 12 });
@@ -408,6 +416,7 @@ const typeFieldFlow = {
 // the highlight tool and waited for; the edits `undo` takes back.
 async function highlightLines(page, pageIndex) {
   const start = await page.evaluate((i) => window.__perf.annotationCount(i), pageIndex);
+  const count = await watch(page, 'annotationCount', pageIndex);
   await page.evaluate(() => window.__perf.execute('annotation:add-highlight'));
   for (let n = 11; n <= 20; n++) {
     // Line n's baseline is 730 - 13 (n - 1) pt up from the bottom.
@@ -415,8 +424,8 @@ async function highlightLines(page, pageIndex) {
     await drag(page, pageIndex, { from: [0.1, y], to: [0.55, y] });
     await waitFor(
       page,
-      ([i, k]) => window.__perf.annotationCount(i) === k,
-      [pageIndex, start + n - 10],
+      ([id, k]) => window.__perf.read(id) === k,
+      [count, start + n - 10],
       `highlight ${n - 10} of 10`,
       10_000,
     );
@@ -425,9 +434,10 @@ async function highlightLines(page, pageIndex) {
   await page.mouse.move(PARKED.x, PARKED.y);
 }
 
-async function undoAll(page, pageIndex, count) {
+// `watched` is a watch on the page's count (`watch`), made before the timed window.
+async function undoAll(page, watched, count) {
   for (let i = 0; i < 10; i++) await page.evaluate(() => window.__perf.execute('history:undo'));
-  return waitFor(page, ([p, n]) => window.__perf.annotationCount(p) === n, [pageIndex, count], 'ten undos', 10_000);
+  return waitFor(page, ([id, n]) => window.__perf.read(id) === n, [watched, count], 'ten undos', 10_000);
 }
 
 // Needs a history plugin: main 2516e2786 has none (its `history:undo` is a
@@ -443,7 +453,9 @@ const undoFlow = {
     await settle(page, await now(page), { requireChange: false });
     const count = await page.evaluate((i) => window.__perf.annotationCount(i), warm);
     await highlightLines(page, warm);
-    await undoAll(page, warm, count).catch(warmupFailed('undo'));
+    await watch(page, 'annotationCount', warm)
+      .then((watched) => undoAll(page, watched, count))
+      .catch(warmupFailed('undo'));
   },
   async measure(page, cdp) {
     const countBefore = await page.evaluate((i) => window.__perf.annotationCount(i), UNDO_PAGE);
@@ -451,9 +463,10 @@ const undoFlow = {
     await highlightLines(page, UNDO_PAGE);
     await settle(page, await now(page), { requireChange: false });
     const countEdited = await page.evaluate((i) => window.__perf.annotationCount(i), UNDO_PAGE);
+    const watched = await watch(page, 'annotationCount', UNDO_PAGE);
     const before = await cdp.cpuStart();
     const t0 = await now(page);
-    const done = await undoAll(page, UNDO_PAGE, countBefore);
+    const done = await undoAll(page, watched, countBefore);
     const settled = await settle(page, t0, { doneAt: done, requireChange: false });
     const load = await cpu(cdp, before);
     const countAfter = await page.evaluate((i) => window.__perf.annotationCount(i), UNDO_PAGE);
@@ -508,11 +521,12 @@ const selectFlow = (name, fixture, pageIndex, region) => ({
     await page.mouse.move(PARKED.x, PARKED.y);
   },
   async measure(page, cdp) {
+    const ends = await dragEnds(page, pageIndex, region);
     const before = await cdp.cpuStart();
     // Before the pointer first enters the page: on main the selection
     // handler's onHover already fetches text geometry.
     const t0 = await now(page);
-    await drag(page, pageIndex, region);
+    await dragAlong(page, ends);
     const { text, at } = await readSelection(page);
     const settled = await settle(page, t0, { doneAt: at, requireChange: false });
     return { metrics: { settleMs: settled - t0, ...(await cpu(cdp, before)) }, answers: { selection: text } };
@@ -541,21 +555,24 @@ const annotateFlow = (name, fixture, pageIndex, region) => ({
   async measure(page, cdp) {
     const countBefore = await page.evaluate((i) => window.__perf.annotationCount(i), pageIndex);
     await page.evaluate(() => window.__perf.execute('annotation:add-highlight'));
+    const count = await watch(page, 'annotationCount', pageIndex);
+    const ends = await dragEnds(page, pageIndex, region);
     const before = await cdp.cpuStart();
     // After the tool is on, before the pointer first enters the page.
     const t0 = await now(page);
-    await drag(page, pageIndex, region);
+    await dragAlong(page, ends);
     const done = await waitFor(
       page,
-      ([i, n]) => window.__perf.annotationCount(i) === n + 1,
-      [pageIndex, countBefore],
+      ([id, n]) => window.__perf.read(id) === n + 1,
+      [count, countBefore],
       'the highlight to be added',
       10_000,
     );
     const settled = await settle(page, t0, { doneAt: done, requireChange: false });
+    const load = await cpu(cdp, before);
     const countAfter = await page.evaluate((i) => window.__perf.annotationCount(i), pageIndex);
     return {
-      metrics: { settleMs: settled - t0, ...(await cpu(cdp, before)) },
+      metrics: { settleMs: settled - t0, ...load },
       answers: { countBefore, countAfter },
     };
   },
