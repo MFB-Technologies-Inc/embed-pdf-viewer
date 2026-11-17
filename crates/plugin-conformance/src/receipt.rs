@@ -7,8 +7,10 @@
 //! leave two receipts, and a reader merges them. A receipt is written even
 //! when the suite fails, and records how many cases failed, `only` when
 //! `PLUGIN_CONFORMANCE_ONLY` filtered the run, whether member order was
-//! compared, and the [`RUN_ID_VAR`] of the run, so a checker can refuse a
-//! failed, partial, weakened or mixed replay.
+//! compared and whether the allowlist was replaced, the [`RUN_ID_VAR`] and
+//! [`HEAD_VAR`] of the run and the SHA-256 of the vector text it replayed,
+//! so a checker can refuse a failed, partial, weakened, mixed or stale
+//! replay.
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -19,6 +21,16 @@ use serde::{Deserialize, Serialize};
 /// to a fresh id for each cargo run.
 pub const RUN_ID_VAR: &str = "PLUGIN_CONFORMANCE_RUN_ID";
 
+/// The variable naming the commit a run replayed; `replay:check` sets it to
+/// `git rev-parse HEAD`.
+pub const HEAD_VAR: &str = "PLUGIN_CONFORMANCE_HEAD";
+
+/// `bytes` hashed with SHA-256, as lowercase hex.
+pub fn sha256_hex(bytes: &[u8]) -> String {
+    use sha2::Digest;
+    sha2::Sha256::digest(bytes).iter().map(|b| format!("{b:02x}")).collect()
+}
+
 /// What one [`crate::assert_suite`] call replayed.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -27,6 +39,11 @@ pub struct Receipt {
     pub file: String,
     /// The [`RUN_ID_VAR`] of the run, when one was set.
     pub run_id: Option<String>,
+    /// The [`HEAD_VAR`] of the run, when one was set.
+    pub head: Option<String>,
+    /// The SHA-256 of the vector text replayed (decompressed), as hex; `None`
+    /// for a suite passed in already loaded.
+    pub vector_sha256: Option<String>,
     /// The `PLUGIN_CONFORMANCE_ONLY` filter, when one was set.
     pub only: Option<String>,
     /// The names of the cases that ran, in file order.
@@ -36,6 +53,9 @@ pub struct Receipt {
     /// Whether object member order was compared
     /// ([`crate::canonical::member_order_checked`]).
     pub member_order: bool,
+    /// Whether `PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW` replaced the
+    /// checked-in allowlist.
+    pub allow_list_overridden: bool,
     /// The ids of the ledger divergences (`divergences.json`) whose
     /// observations were applied.
     pub exceptions: Vec<String>,
@@ -144,6 +164,8 @@ mod tests {
         let dir = TempDir::new("wire");
         let mut r = receipt(&["case-a"]);
         r.run_id = Some("run-1".into());
+        r.head = Some("abc".into());
+        r.vector_sha256 = Some("00".into());
         r.only = Some("case".into());
         r.failures = 1;
         r.member_order = true;
@@ -157,10 +179,13 @@ mod tests {
             json!({
                 "file": "a/b.json",
                 "runId": "run-1",
+                "head": "abc",
+                "vectorSha256": "00",
                 "only": "case",
                 "ran": ["case-a"],
                 "failures": 1,
                 "memberOrder": true,
+                "allowListOverridden": false,
                 "exceptions": ["M13"],
                 "memberOrderAllowed": [{ "case": "case-a", "path": "$.returned" }],
             })
@@ -244,19 +269,18 @@ mod tests {
         assert_eq!(r.run_id, std::env::var(RUN_ID_VAR).ok());
     }
 
-    /// `member-order-allow.json` allows `$.returned` of this file and case;
-    /// a reply in the other order uses the allowance, one in the same order
+    /// An allowance for `$.returned` of case `swap`, and one for case `keep`:
+    /// a reply in the other order uses its allowance, one in the same order
     /// does not.
     #[test]
     fn a_receipt_lists_the_allowances_that_skipped_a_difference() {
-        let file = "core/ui-schema.json";
         let suite = json!({
             "schemaVersion": crate::SCHEMA_VERSION,
             "kind": "function",
             "cases": [
-                { "name": "group-opts-and-items", "fn": "swap", "args": [],
+                { "name": "swap", "fn": "swap", "args": [],
                   "outcome": { "returned": { "a": 1, "b": 2 } } },
-                { "name": "group-opts-no-items", "fn": "keep", "args": [],
+                { "name": "keep", "fn": "keep", "args": [],
                   "outcome": { "returned": { "a": 1, "b": 2 } } },
             ],
         });
@@ -264,22 +288,58 @@ mod tests {
             ("swap", |_: &[Value]| Ok(json!({ "b": 2, "a": 1 }))),
             ("keep", |_: &[Value]| Ok(json!({ "a": 1, "b": 2 }))),
         ];
+        let allowed = |file: &str, _case: &str| {
+            if file == "a/b.json" { vec!["$.returned".to_string()] } else { vec![] }
+        };
         let dir = TempDir::new("allowed");
-        crate::assert_loaded_suite(
-            file,
+        crate::replay_suite(
+            "a/b.json",
             &suite,
             &crate::Registry::new(),
             &functions,
             None,
             Some(&dir.0),
+            crate::exceptions::ledger(),
+            &allowed,
+            None,
         );
         let [path] = &dir.entries()[..] else { panic!("one receipt: {:?}", dir.entries()) };
         let expected = if crate::canonical::member_order_checked() {
-            vec![AllowanceUse { case: "group-opts-and-items".into(), path: "$.returned".into() }]
+            vec![AllowanceUse { case: "swap".into(), path: "$.returned".into() }]
         } else {
             vec![]
         };
         assert_eq!(read(path).member_order_allowed, expected);
+    }
+
+    #[test]
+    fn a_receipt_records_the_hash_of_the_vector_text_it_replayed() {
+        let dir = TempDir::new("hash");
+        let text = one_case_suite().to_string();
+        crate::replay_suite(
+            "a/b.json",
+            &serde_json::from_str(&text).unwrap(),
+            &crate::Registry::new(),
+            &functions(),
+            None,
+            Some(&dir.0),
+            crate::exceptions::ledger(),
+            &|_: &str, _: &str| vec![],
+            Some(sha256_hex(text.as_bytes())),
+        );
+        let [path] = &dir.entries()[..] else { panic!("one receipt: {:?}", dir.entries()) };
+        let r = read(path);
+        assert_eq!(r.vector_sha256.as_deref(), Some(sha256_hex(text.as_bytes()).as_str()));
+        assert_eq!(r.head, std::env::var(HEAD_VAR).ok());
+        assert_eq!(
+            r.allow_list_overridden,
+            std::env::var_os(crate::canonical::ALLOW_OVERRIDE_VAR).is_some()
+        );
+        // The empty input's well-known digest.
+        assert_eq!(
+            sha256_hex(b""),
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        );
     }
 
     #[test]

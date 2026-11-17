@@ -10,7 +10,9 @@ import {
   readReceipts,
   replayPackages,
   runProblems,
+  staleProblems,
   unappliedObservations,
+  unlistedAllowances,
   unusedAllowances,
   type CargoMetadata,
   type Receipt,
@@ -19,11 +21,14 @@ import {
 function receipt(file: string, ran: string[], only: string | null = null): Receipt {
   return {
     runId: 'run-1',
+    head: 'abc',
+    vectorSha256: `sha-${file}`,
     file,
     only,
     ran,
     failures: 0,
     memberOrder: true,
+    allowListOverridden: false,
     exceptions: [],
     memberOrderAllowed: [],
   };
@@ -154,15 +159,20 @@ test('childEnv removes every variable that would weaken the proof and sets recei
       PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW: '/tmp/allow.json',
       PLUGIN_CONFORMANCE_RECEIPTS: '/tmp/old',
       PLUGIN_CONFORMANCE_RUN_ID: 'old-run',
+      PLUGIN_CONFORMANCE_HEAD: 'old-head',
     },
     '/tmp/receipts',
     'run-2',
+    'head-2',
   );
   assert.deepEqual(env, {
     PATH: '/bin',
     PLUGIN_CONFORMANCE_RECEIPTS: '/tmp/receipts',
     PLUGIN_CONFORMANCE_RUN_ID: 'run-2',
+    PLUGIN_CONFORMANCE_HEAD: 'head-2',
   });
+  const noGit = childEnv({ PLUGIN_CONFORMANCE_HEAD: 'old-head' }, '/tmp/r', 'run-3', null);
+  assert.equal('PLUGIN_CONFORMANCE_HEAD' in noGit, false);
 });
 
 test('a ledger entry with observedBy that no receipt applied is a problem', () => {
@@ -251,5 +261,57 @@ test('unused allowances are not checked when a receipt is filtered or ran with t
   assert.deepEqual(
     unusedAllowances(allow, [{ ...receipt('core/x.json', ['a']), memberOrder: false }]),
     [],
+  );
+});
+
+test('a receipt written with the allowlist replaced is a problem', () => {
+  assert.deepEqual(runProblems([{ ...receipt('core/x.json', ['a']), allowListOverridden: true }]), [
+    'core/x.json: replayed with the allowlist replaced (PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW)',
+  ]);
+});
+
+test('an allowance a receipt used that the allowlist does not hold is a problem', () => {
+  const allow = { 'core/x.json': { a: [{ path: '$.returned' }] } };
+  const used = (uses: { case: string; path: string }[]) => ({
+    ...receipt('core/x.json', ['a', 'b']),
+    memberOrderAllowed: uses,
+  });
+  assert.deepEqual(unlistedAllowances(allow, [used([{ case: 'a', path: '$.returned' }])]), []);
+  assert.deepEqual(
+    unlistedAllowances(allow, [
+      used([
+        { case: 'a', path: '$.returned.more' },
+        { case: 'b', path: '$.returned' },
+      ]),
+    ]),
+    [
+      'core/x.json: case "a" skipped the member order at $.returned.more, which member-order-allow.json does not allow',
+      'core/x.json: case "b" skipped the member order at $.returned, which member-order-allow.json does not allow',
+    ],
+  );
+});
+
+test('receipts from another commit or of other vector text than the checkout are a problem', () => {
+  const checkout = { head: 'abc', vectorSha256: (file: string) => `sha-${file}` };
+  assert.deepEqual(staleProblems([receipt('core/x.json', ['a'])], checkout), []);
+  assert.deepEqual(
+    staleProblems(
+      [
+        { ...receipt('core/x.json', ['a']), head: 'old' },
+        { ...receipt('core/y.json', ['b']), vectorSha256: 'sha-old' },
+        { ...receipt('core/z.json', ['c']), vectorSha256: null },
+      ],
+      checkout,
+    ),
+    [
+      'core/x.json: receipt is from commit old, the checkout is at abc',
+      'core/y.json: receipt replayed other vector text than the checkout holds',
+      'core/z.json: receipt has no vector hash',
+    ],
+  );
+  // A vector file the checkout no longer has.
+  assert.deepEqual(
+    staleProblems([receipt('core/x.json', ['a'])], { head: 'abc', vectorSha256: () => null }),
+    ['core/x.json: receipt replayed other vector text than the checkout holds'],
   );
 });

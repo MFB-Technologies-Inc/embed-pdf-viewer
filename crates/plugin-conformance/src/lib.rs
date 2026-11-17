@@ -92,8 +92,14 @@ fn decompress(path: &Path) -> String {
 
 pub fn load(file: &str) -> Value {
     let (path, text) = read_vector(file);
+    parse_vector(file, &path, &text)
+}
+
+/// The suite in `text`, read from `path` for `file`; panics on bad JSON or
+/// another schema version.
+fn parse_vector(file: &str, path: &Path, text: &str) -> Value {
     let suite: Value =
-        serde_json::from_str(&text).unwrap_or_else(|e| panic!("parse {}: {e}", path.display()));
+        serde_json::from_str(text).unwrap_or_else(|e| panic!("parse {}: {e}", path.display()));
     assert_eq!(suite["schemaVersion"].as_u64(), Some(SCHEMA_VERSION), "{file}: schema version");
     suite
 }
@@ -150,13 +156,18 @@ pub fn call_function(
 pub fn assert_suite(file: &str, registry: &Registry, functions: &FunctionTable) {
     let only = std::env::var("PLUGIN_CONFORMANCE_ONLY").ok();
     let receipts = std::env::var_os("PLUGIN_CONFORMANCE_RECEIPTS").map(PathBuf::from);
-    assert_loaded_suite(
+    let (path, text) = read_vector(file);
+    let suite = parse_vector(file, &path, &text);
+    replay_suite(
         file,
-        &load(file),
+        &suite,
         registry,
         functions,
         only.as_deref(),
         receipts.as_deref(),
+        exceptions::ledger(),
+        &canonical::allowed_member_order,
+        Some(receipt::sha256_hex(text.as_bytes())),
     );
 }
 
@@ -191,6 +202,38 @@ fn assert_suite_with_ledger(
     receipts: Option<&Path>,
     ledger: &[exceptions::Divergence],
 ) {
+    replay_suite(
+        file,
+        suite,
+        registry,
+        functions,
+        only,
+        receipts,
+        ledger,
+        &canonical::allowed_member_order,
+        None,
+    );
+}
+
+/// The paths of a vector file's case whose member order is not compared
+/// ([`canonical::allowed_member_order`] outside tests).
+pub(crate) type AllowedPaths<'a> = &'a dyn Fn(&str, &str) -> Vec<String>;
+
+/// The replay behind every `assert_*suite`: `ledger` for the divergences,
+/// `allowed` for the member-order allowances, and `vector_sha256`, the hash
+/// of the vector text `suite` was parsed from, for the receipt.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn replay_suite(
+    file: &str,
+    suite: &Value,
+    registry: &Registry,
+    functions: &FunctionTable,
+    only: Option<&str>,
+    receipts: Option<&Path>,
+    ledger: &[exceptions::Divergence],
+    allowed: AllowedPaths,
+    vector_sha256: Option<String>,
+) {
     let verbose = std::env::var("PLUGIN_CONFORMANCE_VERBOSE").is_ok();
     let mut failures = Vec::new();
     let mut ran = Vec::new();
@@ -203,7 +246,7 @@ fn assert_suite_with_ledger(
             continue;
         }
         ran.push(name.to_string());
-        let allowed = canonical::allow_member_order(canonical::allowed_member_order(file, name));
+        let allowance = canonical::allow_member_order(allowed(file, name));
         match suite["kind"].as_str() {
             Some("scenario") => {
                 // A case that ran counts as seen even when it panics, so its
@@ -271,7 +314,7 @@ fn assert_suite_with_ledger(
             }
             other => panic!("{file}: unknown suite kind {other:?}"),
         }
-        for path in allowed.used() {
+        for path in allowance.used() {
             member_order_allowed.push(receipt::AllowanceUse { case: name.to_string(), path });
         }
     }
@@ -291,10 +334,13 @@ fn assert_suite_with_ledger(
         let receipt = receipt::Receipt {
             file: file.to_string(),
             run_id: std::env::var(receipt::RUN_ID_VAR).ok(),
+            head: std::env::var(receipt::HEAD_VAR).ok(),
+            vector_sha256,
             only: only.map(str::to_string),
             ran: ran.clone(),
             failures: failures.len(),
             member_order: canonical::member_order_checked(),
+            allow_list_overridden: std::env::var_os(canonical::ALLOW_OVERRIDE_VAR).is_some(),
             exceptions: exceptions_applied,
             member_order_allowed,
         };

@@ -53,22 +53,28 @@ would still pass, so treat that scan as a fast offline lint.
 `replay:check` is the proof. It runs `cargo test --tests --no-fail-fast` over `plugin-conformance`
 and every workspace crate with a normal or dev dependency on it, read from `cargo metadata` at run
 time, with `PLUGIN_CONFORMANCE_RECEIPTS` set to a fresh temporary directory,
-`PLUGIN_CONFORMANCE_RUN_ID` set to a fresh id, and `PLUGIN_CONFORMANCE_ONLY`,
-`PLUGIN_CONFORMANCE_MEMBER_ORDER` and `PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW` removed. Each
-`assert_suite` call writes a receipt: the run id, the cases it ran, how many failed, whether member
-order was compared, the ledger observations it applied (`exceptions`) and the
-`member-order-allow.json` paths that skipped a member-order difference (`memberOrderAllowed`).
+`PLUGIN_CONFORMANCE_RUN_ID` set to a fresh id, `PLUGIN_CONFORMANCE_HEAD` set to
+`git rev-parse HEAD`, and `PLUGIN_CONFORMANCE_ONLY`, `PLUGIN_CONFORMANCE_MEMBER_ORDER` and
+`PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW` removed. Each `assert_suite` call writes a receipt: the run
+id and commit, the SHA-256 of the vector text it replayed, the cases it ran, how many failed,
+whether member order was compared, whether the allowlist was replaced, the ledger observations it
+applied (`exceptions`) and the `member-order-allow.json` paths that skipped a member-order
+difference (`memberOrderAllowed`).
 It then compares those receipts with the case names of every suite in `src/suites/`. It fails on a
 vector file no test replayed, a case that never ran, a receipt from a filtered run, a receipt for a
 file no suite writes, a case that ran but no suite writes (a stale vector file), a receipt it
-cannot parse, a receipt that counts failed cases, one written with member order off, one from
-another run, a `divergences.json` entry with `observedBy` that no receipt lists in its
-`exceptions` (an observation that never applied), or a `member-order-allow.json` path that no
-receipt lists for its file and case (an allowance with no effect). It also fails when cargo fails,
-and prints both results. The cost is a test run of every crate that depends on
-`plugin-conformance`. `-- --receipts <dir>` skips cargo and reads `<dir>` as it is. Every receipt
-there must carry one run id, so fill the directory with a single cargo run that sets
-`PLUGIN_CONFORMANCE_RUN_ID`; receipts left from an older run, or written with no id, fail.
+cannot parse, a receipt that counts failed cases, one written with member order off or the
+allowlist replaced, one from another run, one from another commit, one whose vector hash differs
+from the vector file in the checkout, a `divergences.json` entry with `observedBy` that no receipt
+lists in its `exceptions` (an observation that never applied), a `member-order-allow.json` path
+that no receipt lists for its file and case (an allowance with no effect), or a used allowance the
+allowlist does not hold. It also fails when cargo fails, and prints both results. The cost is a
+test run of every crate that depends on `plugin-conformance`. `-- --receipts <dir>` skips cargo and
+reads `<dir>` as it is. Fill it with a single cargo run that sets `PLUGIN_CONFORMANCE_RUN_ID` and
+`PLUGIN_CONFORMANCE_HEAD`. A directory from an older run fails when the commit has moved since or
+any vector file it replayed has changed, even when every receipt in it carries the same run id.
+Uncommitted Rust changes are the one thing it cannot see: the commit is the same and the vectors
+match.
 
 `rust-coverage` records which Rust lines the replay reaches. It needs `cargo-llvm-cov` (written
 against 0.9.1, `cargo install cargo-llvm-cov --locked`) and the `llvm-tools-preview` rustup

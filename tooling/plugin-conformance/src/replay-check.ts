@@ -15,29 +15,35 @@
  * exit status counts too: the check fails if cargo failed or any receipt
  * problem exists, and reports both. A receipt problem is also a receipt
  * that counts failed cases, one written with the member-order comparison
- * off, or one from another run. It also fails when a
+ * off or the allowlist replaced, one from another run, one from another
+ * commit than the checkout's `git rev-parse HEAD` (`PLUGIN_CONFORMANCE_HEAD`,
+ * which this sets), or one whose vector text hash is not the hash of the
+ * vector file in the checkout. It also fails when a
  * `crates/plugin-conformance/divergences.json` entry with `observedBy` is in
  * no receipt's `exceptions` (an observation that never applied), or when a
  * `crates/plugin-conformance/member-order-allow.json` path is in no
  * receipt's `memberOrderAllowed` (an allowance that never suppressed a
- * difference).
+ * difference), or a receipt's `memberOrderAllowed` names a path the
+ * allowlist does not hold.
  *
  * `--receipts <dir>` skips cargo and reads `<dir>` as it is. Every receipt
- * in it must carry the same run id, so fill it with one cargo run that sets
- * `PLUGIN_CONFORMANCE_RUN_ID`.
+ * in it must carry the same run id and the checkout's commit, so fill it
+ * with one cargo run that sets `PLUGIN_CONFORMANCE_RUN_ID` and
+ * `PLUGIN_CONFORMANCE_HEAD`. Uncommitted Rust changes are not detected;
+ * uncommitted vector changes are, through the hash.
  *
  * `vectors:check` keeps its source scan (a `.rs` file must name each vector
  * file as a string literal) as a fast offline lint; this is the proof.
  */
 import { spawnSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { isMainModule } from './main-module';
-import type { Suite } from './vectors';
+import { readVector, vectorsRoot, type Suite } from './vectors';
 
 /** An allow-list path that suppressed a member-order difference in a case. */
 export interface AllowanceUse {
@@ -48,11 +54,14 @@ export interface AllowanceUse {
 /** What one Rust `assert_suite` call replayed (`crates/plugin-conformance/src/receipt.rs`). */
 export interface Receipt {
   readonly runId: string | null;
+  readonly head: string | null;
+  readonly vectorSha256: string | null;
   readonly file: string;
   readonly only: string | null;
   readonly ran: readonly string[];
   readonly failures: number;
   readonly memberOrder: boolean;
+  readonly allowListOverridden: boolean;
   readonly exceptions: readonly string[];
   readonly memberOrderAllowed: readonly AllowanceUse[];
 }
@@ -132,6 +141,11 @@ export function runProblems(receipts: Receipt[], runId?: string): string[] {
         `${r.file}: replayed with the member-order comparison off (PLUGIN_CONFORMANCE_MEMBER_ORDER=0)`,
       );
     }
+    if (r.allowListOverridden) {
+      problems.push(
+        `${r.file}: replayed with the allowlist replaced (PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW)`,
+      );
+    }
     if (r.runId === null) problems.push(`${r.file}: receipt has no run id`);
     else if (runId !== undefined && r.runId !== runId) {
       problems.push(`${r.file}: receipt is from run ${r.runId}, not this run (${runId})`);
@@ -140,6 +154,36 @@ export function runProblems(receipts: Receipt[], runId?: string): string[] {
   const ids = [...new Set(receipts.flatMap((r) => (r.runId === null ? [] : [r.runId])))].sort();
   if (runId === undefined && ids.length > 1) {
     problems.push(`receipts come from ${ids.length} runs (${ids.join(', ')}), not one`);
+  }
+  return problems;
+}
+
+/** What the checkout holds now: its commit (null when git cannot say) and
+ *  the SHA-256 of each vector file's text (null when the file is gone). */
+export interface Checkout {
+  readonly head: string | null;
+  readonly vectorSha256: (file: string) => string | null;
+}
+
+/**
+ * One problem line per receipt that does not match `checkout`: a commit
+ * other than its head, no vector hash, or a vector hash other than the
+ * file's in the checkout. A receipt like that replayed other vectors or
+ * other code than the checkout holds.
+ */
+export function staleProblems(receipts: Receipt[], checkout: Checkout): string[] {
+  const problems: string[] = [];
+  for (const r of receipts) {
+    if (r.head !== checkout.head) {
+      problems.push(
+        `${r.file}: receipt is from commit ${r.head}, the checkout is at ${checkout.head}`,
+      );
+    }
+    const current = checkout.vectorSha256(r.file);
+    if (r.vectorSha256 === null) problems.push(`${r.file}: receipt has no vector hash`);
+    else if (r.vectorSha256 !== current) {
+      problems.push(`${r.file}: receipt replayed other vector text than the checkout holds`);
+    }
   }
   return problems;
 }
@@ -175,6 +219,24 @@ export function unusedAllowances(allow: AllowList, receipts: Receipt[]): string[
   return problems;
 }
 
+/**
+ * One problem line per allowance a receipt used that `allow` does not hold
+ * for its file and case: a run under a replaced or wider allowlist.
+ */
+export function unlistedAllowances(allow: AllowList, receipts: Receipt[]): string[] {
+  const problems: string[] = [];
+  for (const r of receipts) {
+    for (const use of r.memberOrderAllowed) {
+      if (!(allow[r.file]?.[use.case] ?? []).some((entry) => entry.path === use.path)) {
+        problems.push(
+          `${r.file}: case "${use.case}" skipped the member order at ${use.path}, which member-order-allow.json does not allow`,
+        );
+      }
+    }
+  }
+  return problems;
+}
+
 const isStrings = (value: unknown): boolean =>
   Array.isArray(value) && value.every((item) => typeof item === 'string');
 
@@ -182,7 +244,9 @@ const isStrings = (value: unknown): boolean =>
 function malformed(value: unknown): string | null {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return 'not an object';
   const r = value as Record<string, unknown>;
-  if (r.runId !== null && typeof r.runId !== 'string') return '"runId" is not a string or null';
+  for (const key of ['runId', 'head', 'vectorSha256']) {
+    if (r[key] !== null && typeof r[key] !== 'string') return `"${key}" is not a string or null`;
+  }
   if (typeof r.file !== 'string') return '"file" is not a string';
   if (r.only !== null && typeof r.only !== 'string') return '"only" is not a string or null';
   if (!isStrings(r.ran)) return '"ran" is not an array of strings';
@@ -190,6 +254,7 @@ function malformed(value: unknown): string | null {
     return '"failures" is not a count';
   }
   if (typeof r.memberOrder !== 'boolean') return '"memberOrder" is not a boolean';
+  if (typeof r.allowListOverridden !== 'boolean') return '"allowListOverridden" is not a boolean';
   if (!isStrings(r.exceptions)) return '"exceptions" is not an array of strings';
   const isUse = (u: unknown): boolean =>
     u !== null &&
@@ -303,12 +368,15 @@ export function childEnv(
   base: NodeJS.ProcessEnv,
   receipts: string,
   runId: string,
+  head: string | null,
 ): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {
     ...base,
     PLUGIN_CONFORMANCE_RECEIPTS: receipts,
     PLUGIN_CONFORMANCE_RUN_ID: runId,
   };
+  if (head === null) delete env.PLUGIN_CONFORMANCE_HEAD;
+  else env.PLUGIN_CONFORMANCE_HEAD = head;
   delete env.PLUGIN_CONFORMANCE_ONLY;
   // `0` turns the member-order comparison off.
   delete env.PLUGIN_CONFORMANCE_MEMBER_ORDER;
@@ -318,8 +386,13 @@ export function childEnv(
 }
 
 /** Run the tests of `packages` with receipts on; true when cargo passed. */
-function runCargo(packages: readonly string[], receipts: string, runId: string): boolean {
-  const env = childEnv(process.env, receipts, runId);
+function runCargo(
+  packages: readonly string[],
+  receipts: string,
+  runId: string,
+  head: string | null,
+): boolean {
+  const env = childEnv(process.env, receipts, runId, head);
   const args = ['test', ...packages.flatMap((p) => ['-p', p]), '--tests', '--no-fail-fast'];
   console.log(
     `running cargo test over ${packages.length} crates (${packages.join(', ')}) with receipts in ${receipts}, run ${runId}`,
@@ -327,6 +400,22 @@ function runCargo(packages: readonly string[], receipts: string, runId: string):
   const run = spawnSync('cargo', args, { cwd: repoRoot, env, stdio: 'inherit' });
   if (run.error) throw run.error;
   return run.status === 0;
+}
+
+/** `git rev-parse HEAD` of the repository, or null when git cannot say. */
+function gitHead(): string | null {
+  const run = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' });
+  return run.status === 0 ? run.stdout.trim() : null;
+}
+
+/** The SHA-256 of each vector file's text, as `readVector` gives it. */
+async function vectorHashes(files: Iterable<string>): Promise<Map<string, string | null>> {
+  const out = new Map<string, string | null>();
+  for (const file of files) {
+    const text = await readVector(join(vectorsRoot, file));
+    out.set(file, text === null ? null : createHash('sha256').update(text, 'utf8').digest('hex'));
+  }
+  return out;
 }
 
 async function main(): Promise<void> {
@@ -340,10 +429,11 @@ async function main(): Promise<void> {
     ? resolve(given)
     : await mkdtemp(join(tmpdir(), 'plugin-conformance-receipts-'));
   const runId = given ? undefined : randomUUID();
+  const head = gitHead();
   let cargoPassed: boolean | null = null;
   let read: { receipts: Receipt[]; problems: string[] };
   try {
-    if (runId) cargoPassed = runCargo(replayPackages(cargoMetadata()), dir, runId);
+    if (runId) cargoPassed = runCargo(replayPackages(cargoMetadata()), dir, runId, head);
     read = await readReceipts(dir);
   } finally {
     if (!given) await rm(dir, { recursive: true, force: true });
@@ -359,9 +449,12 @@ async function main(): Promise<void> {
       'utf8',
     ),
   ) as AllowList;
+  const hashes = await vectorHashes(new Set(receipts.map((r) => r.file)));
   const problems = [
     ...read.problems,
     ...runProblems(receipts, runId),
+    ...staleProblems(receipts, { head, vectorSha256: (file) => hashes.get(file) ?? null }),
+    ...unlistedAllowances(allow, receipts),
     ...compareReceipts(expected, receipts),
     ...unappliedObservations(ledger, receipts),
     ...unusedAllowances(allow, receipts),
