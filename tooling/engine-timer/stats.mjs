@@ -1,0 +1,148 @@
+// The statistics of the viewer harness's perf-compare/lib/stats.mjs, kept
+// identical so a threshold here means what it means in that harness's
+// reports: bootstrap intervals on the median, an A/A noise band, and a 3%
+// floor.
+
+const FLOOR = 0.03;
+
+function quantile(sorted, q) {
+  if (sorted.length === 1) return sorted[0];
+  const pos = (sorted.length - 1) * q;
+  const lo = Math.floor(pos);
+  const hi = Math.ceil(pos);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+}
+
+function sorted(values) {
+  if (!values.length) throw new Error('A summary needs at least one sample');
+  if (values.some((v) => !Number.isFinite(v))) throw new Error('Samples must be finite');
+  return [...values].sort((a, b) => a - b);
+}
+
+export function summarize(values) {
+  const s = sorted(values);
+  return { n: s.length, median: quantile(s, 0.5), p95: quantile(s, 0.95), min: s[0], max: s[s.length - 1] };
+}
+
+// mulberry32: small, seedable, and good enough for resampling indices.
+function rng(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const median = (values) => quantile(sorted(values), 0.5);
+
+// The resampled median, sorting a scratch buffer in place. Inputs were
+// validated once by the caller, so the bootstrap loop skips `sorted()`.
+function resampledMedian(values, next, scratch) {
+  for (let i = 0; i < values.length; i++) scratch[i] = values[Math.floor(next() * values.length)];
+  scratch.sort((a, b) => a - b);
+  return quantile(scratch, 0.5);
+}
+
+export function bootstrapRatio(reference, candidate, { resamples = 10_000, seed = 1 } = {}) {
+  if (![...reference, ...candidate].every((v) => v > 0)) {
+    throw new Error('A ratio needs positive samples; use bootstrapDifference');
+  }
+  const next = rng(seed);
+  const ratios = new Array(resamples);
+  const [c, r] = [new Float64Array(candidate.length), new Float64Array(reference.length)];
+  median(candidate), median(reference); // validates both once
+  for (let i = 0; i < resamples; i++) {
+    ratios[i] = resampledMedian(candidate, next, c) / resampledMedian(reference, next, r);
+  }
+  ratios.sort((a, b) => a - b);
+  return {
+    kind: 'ratio',
+    ratio: median(candidate) / median(reference),
+    lo: quantile(ratios, 0.025),
+    hi: quantile(ratios, 0.975),
+  };
+}
+
+// For metrics that can be zero (longTaskMs, settleMs, counts) or negative
+// (heapSoakSlopeBytes), where a ratio is undefined or points the wrong way.
+export function bootstrapDifference(reference, candidate, { resamples = 10_000, seed = 1 } = {}) {
+  const next = rng(seed);
+  const diffs = new Array(resamples);
+  const [c, r] = [new Float64Array(candidate.length), new Float64Array(reference.length)];
+  median(candidate), median(reference); // validates both once
+  for (let i = 0; i < resamples; i++) {
+    diffs[i] = resampledMedian(candidate, next, c) - resampledMedian(reference, next, r);
+  }
+  diffs.sort((a, b) => a - b);
+  return {
+    kind: 'difference',
+    diff: median(candidate) - median(reference),
+    lo: quantile(diffs, 0.025),
+    hi: quantile(diffs, 0.975),
+    scale: Math.abs(median(reference)),
+  };
+}
+
+function checkFinite(interval) {
+  const point = interval.kind === 'difference' ? interval.diff : interval.ratio;
+  if (![point, interval.lo, interval.hi].every(Number.isFinite)) {
+    throw new Error(`Interval must be finite: ${JSON.stringify(interval)}`);
+  }
+}
+
+export function noiseBand(interval) {
+  const centre = interval.kind === 'difference' ? 0 : 1;
+  return Math.max(Math.abs(centre - interval.lo), Math.abs(interval.hi - centre));
+}
+
+// The smallest change `verdict` calls a difference: the A/A noise band or
+// the 3% floor, whichever is wider. A ratio's is a fraction of 1.0; a
+// difference's is in the metric's unit, its floor 3% of the reference
+// median. With a zero reference the floor is 0, and any difference the
+// interval resolves counts.
+export function threshold(interval, noise) {
+  return interval.kind === 'difference' ? Math.max(FLOOR * interval.scale, noise) : Math.max(FLOOR, noise);
+}
+
+// Every metric is lower-is-better, so "slower" means the candidate is worse,
+// whatever the unit.
+export function verdict(interval, noise) {
+  checkFinite(interval);
+  const { lo, hi } = interval;
+  const t = threshold(interval, noise);
+  if (interval.kind === 'difference') {
+    if (lo > 0 && interval.diff > t) return 'slower';
+    if (hi < 0 && -interval.diff > t) return 'faster';
+    return 'same';
+  }
+  if (lo > 1 && interval.ratio - 1 > t) return 'slower';
+  if (hi < 1 && 1 - interval.ratio > t) return 'faster';
+  return 'same';
+}
+
+// The A/A pair is judged against the fixed floor alone. Using its own band
+// would make it pass by construction: the band is at least as wide as the
+// pair's distance from 1.0.
+export function calibrate(aa) {
+  return { ok: verdict(aa, 0) === 'same', noise: noiseBand(aa) };
+}
+
+export function comparePair(interval, calibration) {
+  return calibration.ok ? verdict(interval, calibration.noise) : 'unreliable';
+}
+
+export function slope(ys) {
+  const n = ys.length;
+  const mx = (n - 1) / 2;
+  const my = ys.reduce((a, b) => a + b, 0) / n;
+  let num = 0;
+  let den = 0;
+  ys.forEach((y, x) => {
+    num += (x - mx) * (y - my);
+    den += (x - mx) ** 2;
+  });
+  return den === 0 ? 0 : num / den;
+}
