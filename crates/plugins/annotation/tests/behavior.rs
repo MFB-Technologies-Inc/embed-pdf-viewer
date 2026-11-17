@@ -209,8 +209,7 @@ fn h3_a_created_record_keeps_its_key_before_and_after_the_engine_confirms_it() {
 /// first samples found.
 #[test]
 fn a_record_moved_mid_drag_is_snapped_against_where_it_now_is() {
-    let (kernel, fake) =
-        kernel(vec![square(7, 100.0, 100.0), square(8, 270.0, 500.0)], Vec::new());
+    let (kernel, fake) = kernel(vec![square(7, 100.0, 100.0), square(8, 270.0, 500.0)], Vec::new());
     let cap = annotation(&kernel);
     cap.selection_set(&[square_ref(7)]);
     let draft = || cap.model().draft().expect("dragging").json();
