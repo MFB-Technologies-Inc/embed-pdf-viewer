@@ -86,8 +86,18 @@ pub fn read_widget_rows(
     owned: &crate::access::OwnedDocument,
     widgets: &[super::snapshot::FormWidgetRef],
 ) -> Result<Vec<WidgetAnnotation>, EngineError> {
+    let model = owned.document().form_model();
+    read_widget_rows_in(owned, widgets, model.as_ref())
+}
+
+/// [`read_widget_rows`], joined through `model`, which the caller loaded
+/// after its last write; `None` for a document with no form model.
+pub(crate) fn read_widget_rows_in(
+    owned: &crate::access::OwnedDocument,
+    widgets: &[super::snapshot::FormWidgetRef],
+    model: Option<&pdfium::FormModel<'_>>,
+) -> Result<Vec<WidgetAnnotation>, EngineError> {
     let document = owned.document();
-    let model = document.form_model();
     let mut rows = Vec::new();
     let mut seen = Vec::new();
     for widget in widgets {
@@ -121,7 +131,7 @@ pub fn read_widget_rows(
         let mut budget = ActionReadBudgetTracker::default();
         let base = read_annotation_record_base(document, &annotation, page, index, &mut budget)?;
         let mut row = read_widget_annotation(&annotation, base)?;
-        if let Some(model) = &model {
+        if let Some(model) = model {
             join_widget_field(model, &mut row);
         }
         rows.push(row);

@@ -295,3 +295,67 @@ fn a_repair_reports_what_the_typescript_engine_reported() {
 
     assert_eq!(repairs, 2, "both repair modes are covered");
 }
+
+/// Grants for a write the vectors record: every capability, and no
+/// protection.
+fn authority() -> Value {
+    json!({ "identity": {}, "grants": { "scope": ["*"], "permissionFlags": {
+        "print": true, "modifyContents": true, "copy": true, "modifyAnnotations": true,
+        "fillForms": true, "copyForAccessibility": true, "assemble": true,
+        "printHighQuality": true } },
+        "protection": { "enforced": null, "judged": null, "certification": null,
+                        "fieldLocks": [], "policyVersion": 4 } })
+}
+
+#[test]
+fn set_value_loads_model_at_most_twice() {
+    use pdfium::call_count::{self, Call};
+
+    // One model resolves and reads the field before the write, and one reads
+    // it and its widget rows back after it. The host runs the session on
+    // this thread, so the thread-local counter sees every load.
+    let file = load();
+    let mut replay = Replay::open(&file.fixture, "set-value-loads");
+    call_count::reset();
+    replay
+        .replay(&json!({ "kind": "forms.setValue", "effect": "write", "jobId": "<job>",
+                         "opId": "<op>",
+                         "ref": { "kind": "objectNumber", "objectNumber": 4 },
+                         "value": { "value": "Grace Hopper" }, "authority": authority() }))
+        .expect("the write lands");
+    let loads = call_count::get(Call::FormLoadModel);
+    assert!(loads <= 2, "a setValue loaded the form model {loads} times");
+}
+
+#[test]
+fn reset_loads_model_once() {
+    use pdfium::call_count::{self, Call};
+
+    // A reset loads the model once to read what it puts back, and once to
+    // read every changed field and widget back: never once per field.
+    let file = load();
+    let mut replay = Replay::open(&file.fixture, "reset-loads");
+    for (field, value) in [
+        (4, json!({ "value": "Grace Hopper" })),
+        (6, json!({ "value": "Agree" })),
+        (10, json!({ "value": "DE" })),
+    ] {
+        replay
+            .replay(&json!({ "kind": "forms.setValue", "effect": "write", "jobId": "<job>",
+                             "opId": "<op>",
+                             "ref": { "kind": "objectNumber", "objectNumber": field },
+                             "value": value, "authority": authority() }))
+            .expect("the write lands");
+    }
+    call_count::reset();
+    let answer = replay
+        .replay(&json!({ "kind": "forms.reset", "effect": "write", "jobId": "<job>",
+                         "opId": "<op>", "authority": authority() }))
+        .expect("the reset lands");
+    assert!(
+        answer["result"]["fields"].as_array().is_some_and(|fields| fields.len() >= 3),
+        "the reset changed fewer fields than were written: {answer}"
+    );
+    let loads = call_count::get(Call::FormLoadModel);
+    assert_eq!(loads, 2, "a reset loaded the form model {loads} times");
+}

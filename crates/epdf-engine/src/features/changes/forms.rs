@@ -11,6 +11,7 @@
 //! read as it left them; a value write's reverse, when someone changed them
 //! since, puts back by value each field still holding what it set.
 
+use pdfium::FormModel;
 use serde_json::Value;
 
 use super::applier::{ChangeContext, Done, assert_expected, left_alone};
@@ -57,12 +58,16 @@ pub fn set_value(
     op_index: usize,
 ) -> Result<Done, EngineError> {
     ctx.cancel.check()?;
-    let before = read_field(ctx, reference)?;
+    let ctx = &*ctx;
+    // One model reads the field and resolves the write: nothing writes in
+    // between.
+    let model = load_model(ctx.session.document()?.document())?;
+    let before = read_field_in(&model, reference)?;
     authorize_fill(ctx, &before)?;
     if let Some(expect) = expect {
         assert_expected(op_index, &object(&value_of(&before.field))?, &object(expect)?)?;
     }
-    write_value(ctx, &before, value)
+    write_value_in(ctx, model, &before, value)
 }
 
 /// `forms.setDisplay`: a script's visibility effect.
@@ -138,11 +143,15 @@ pub fn reset(
 ) -> Result<Done, EngineError> {
     ctx.cancel.check()?;
     authorize_some_fill(ctx)?;
+    let ctx = &*ctx;
+    // One model reads the targets and the reset's own, before any write.
+    let model = load_model(ctx.session.document()?.document())?;
     let targets = match fields {
-        Some(fields) => {
-            fields.iter().map(|reference| read_field(ctx, reference)).collect::<Result<_, _>>()?
-        }
-        None => all_fields(ctx)?
+        Some(fields) => fields
+            .iter()
+            .map(|reference| read_field_in(&model, reference))
+            .collect::<Result<_, _>>()?,
+        None => all_fields_in(&model)?
             .into_iter()
             .filter(|target| holds_value(target.field.base.family))
             .collect::<Vec<_>>(),
@@ -156,16 +165,17 @@ pub fn reset(
     let document = ctx.session.document()?.document();
     let wanted: Vec<(u32, &[&str])> = targets.iter().flat_map(objects_of).collect();
     let pending = capture_before(document, &wanted);
-    let result = mutator(ctx)?.reset(fields, ctx.cancel)?;
+    let (result, model) = mutator(ctx)?.reset_in(model, fields, ctx.cancel)?;
     let objects = capture_after(document, pending)?;
     let changed: Vec<u32> =
         result.fields.iter().map(|field| field.base.field_object_number()).collect();
     let item = ChangeItem::FormsReset {
         fields: to_values(&result.fields)?,
-        widgets: rows(ctx, &result.meta)?,
+        widgets: rows_in(ctx, &result.meta, Some(&model))?,
         meta: result.meta,
         skipped: Vec::new(),
     };
+    drop(model);
     // Every field was at its default already: nothing was written to undo.
     if changed.is_empty() {
         return Ok(Done { item, reverse: Vec::new() });
@@ -376,7 +386,19 @@ fn is_calculated(ctx: &ChangeContext<'_>, target: &ReadField) -> Result<bool, En
 /// A value write to the field `before` reads, recording what it writes
 /// (`writeValue`).
 fn write_value(
-    ctx: &mut ChangeContext<'_>,
+    ctx: &ChangeContext<'_>,
+    before: &ReadField,
+    value: &FormFieldValue,
+) -> Result<Done, EngineError> {
+    let model = load_model(ctx.session.document()?.document())?;
+    write_value_in(ctx, model, before, value)
+}
+
+/// [`write_value`] against `model`, which read `before` and has seen no
+/// write since.
+fn write_value_in<'a>(
+    ctx: &'a ChangeContext<'_>,
+    model: FormModel<'a>,
     before: &ReadField,
     value: &FormFieldValue,
 ) -> Result<Done, EngineError> {
@@ -384,7 +406,8 @@ fn write_value(
     let document = ctx.session.document()?.document();
     let pending = capture_before(document, &objects_of(before));
     let now = crate::clock::format_pdf_timestamp(ctx.clock.now());
-    let result = mutator(ctx)?.set_value(
+    let (result, model) = mutator(ctx)?.set_value_in(
+        model,
         &reference,
         value,
         &ctx.authority.identity,
@@ -394,7 +417,8 @@ fn write_value(
     let objects = capture_after(document, pending)?;
     let left = value_of(&result.field);
     let unchanged = result.meta.changed_widgets.is_empty() && value_of(&before.field) == left;
-    let item = field_item(ctx, "forms.setValue", result)?;
+    let item = field_item_in(ctx, "forms.setValue", result, Some(&model))?;
+    drop(model);
     // The value it already held: nothing was written to undo.
     if unchanged {
         return Ok(Done { item, reverse: Vec::new() });
@@ -547,8 +571,19 @@ pub(super) fn field_item(
     reports: &str,
     result: FieldWriteResult,
 ) -> Result<ChangeItem, EngineError> {
+    field_item_in(ctx, reports, result, None)
+}
+
+/// [`field_item`], its rows joined through `model` when the caller holds
+/// one loaded after its last write.
+fn field_item_in(
+    ctx: &ChangeContext<'_>,
+    reports: &str,
+    result: FieldWriteResult,
+    model: Option<&FormModel<'_>>,
+) -> Result<ChangeItem, EngineError> {
     let field = serde_json::to_value(&result.field).map_err(unreadable)?;
-    let widgets = rows(ctx, &result.meta)?;
+    let widgets = rows_in(ctx, &result.meta, model)?;
     let meta = result.meta;
     Ok(match reports {
         "forms.setDisplay" => ChangeItem::FormsSetDisplay { field, widgets, meta },
@@ -574,10 +609,24 @@ pub(super) fn rows(
     ctx: &ChangeContext<'_>,
     meta: &FormMutationMeta,
 ) -> Result<Vec<Value>, EngineError> {
+    rows_in(ctx, meta, None)
+}
+
+/// [`rows`], joined through `model` when the caller holds one loaded after
+/// its last write, and through a fresh one otherwise.
+fn rows_in(
+    ctx: &ChangeContext<'_>,
+    meta: &FormMutationMeta,
+    model: Option<&FormModel<'_>>,
+) -> Result<Vec<Value>, EngineError> {
+    use crate::features::forms::widgets::{read_widget_rows, read_widget_rows_in};
     let widgets: Vec<FormWidgetRef> =
         meta.changed_widgets.iter().map(|widget| *widget.widget()).collect();
-    let rows =
-        crate::features::forms::widgets::read_widget_rows(ctx.session.document()?, &widgets)?;
+    let owned = ctx.session.document()?;
+    let rows = match model {
+        Some(model) => read_widget_rows_in(owned, &widgets, Some(model))?,
+        None => read_widget_rows(owned, &widgets)?,
+    };
     to_values(&rows)
 }
 
@@ -601,10 +650,16 @@ pub(super) fn read_field(
     ctx: &ChangeContext<'_>,
     reference: &FormFieldRef,
 ) -> Result<ReadField, EngineError> {
-    let document = ctx.session.document()?.document();
-    let model = load_model(document)?;
-    let resolved = resolve(&model, reference)?;
-    let field = read_at(&model, resolved.index)?;
+    read_field_in(&load_model(ctx.session.document()?.document())?, reference)
+}
+
+/// [`read_field`] through a model the caller holds.
+pub(super) fn read_field_in(
+    model: &FormModel<'_>,
+    reference: &FormFieldRef,
+) -> Result<ReadField, EngineError> {
+    let resolved = resolve(model, reference)?;
+    let field = read_at(model, resolved.index)?;
     Ok(ReadField { object_number: resolved.object_number, field })
 }
 
@@ -637,11 +692,14 @@ pub(super) fn field_numbers_of(ctx: &ChangeContext<'_>) -> Result<Vec<u32>, Engi
 
 /// Every field of the form with an object number (`allFields`).
 fn all_fields(ctx: &ChangeContext<'_>) -> Result<Vec<ReadField>, EngineError> {
-    let document = ctx.session.document()?.document();
-    let model = load_model(document)?;
+    all_fields_in(&load_model(ctx.session.document()?.document())?)
+}
+
+/// [`all_fields`] through a model the caller holds.
+fn all_fields_in(model: &FormModel<'_>) -> Result<Vec<ReadField>, EngineError> {
     let mut fields = Vec::new();
     for index in 0..model.field_count() {
-        let field = read_at(&model, index)?;
+        let field = read_at(model, index)?;
         let object_number = field.base.field_object_number();
         if object_number > 0 {
             fields.push(ReadField { object_number, field });
