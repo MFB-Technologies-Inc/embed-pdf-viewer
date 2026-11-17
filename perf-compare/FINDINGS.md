@@ -971,3 +971,70 @@ arguments against 6). The build used a PATH shim that retargets only that header
 `pdf-functions.generated.ts` byte for byte and all 1,061 bindings pass. The plugins arms link
 fork `17d8073d4`'s released `wasm32-eh` archive (`libembedpdf.a` sha256 `315bb221...`) rather than
 a local fork build.
+
+### Annotation and form flows: the baseline for Phases C and D
+
+The Rust kernel's cost is widest on the new annotation and form flows. Against `main-now`, the tip
+spends 2.271x to 4.009x the main-thread JavaScript on `hover`, `dragAnnot`, `drawInk`, `typeField`
+and `undo`, and each of them settles later. The only older row that compares is `searchLarge`
+(3.508x). This run is the baseline that Phases C and D measure against:
+`results/2026-11-17T02-25-30-951Z-macmini2020-desktop`, R=10 on the Mac mini, harness `cb3167fcd`,
+A/A 84 of 84, all four arms through the gate, 780 samples, none failed.
+
+The `plugins-next` here is `2aaa8f841` plus `0de4effd9` ("fix(epdf-web): forward allowsField to the
+bridge so form widgets take input", on `research/perf-fixes`). Before that commit, the Rust web
+host's `JsSecurity` had no `allows_field`, so it fell back to the trait default in
+`crates/epdf-kernel/src/engine.rs`, which answers `false`. Every form widget was a disabled input,
+and `typeField` couldn't type on the tip. The engine wasm is the same file with and without the fix
+(`2ecd0bd98574`). `main` and `main-aa` are `2516e2786` and ran the v1 viewer API; `main-now`
+(`ed064e0c8`) and `plugins-next` ran v2. The new flows go through the same adapter
+(`entry/api-v1.ts`, `entry/api-v2.ts`). `plugins-base` isn't in the run, since `9d6c2eca1` can't be
+built in the arm64 container (above).
+
+The fixtures are `annots.pdf` (`f27197ce9ac9`), which is `large.pdf` with 1,000 highlights, 150 ink
+drawings and 50 stamps, and `forms.pdf` (`b973ccec7bf6`), which has 1,000 text and checkbox fields
+over 100 pages. Both come from `fixtures/generate.mjs`. `test/fixtures.selftest.mjs` checks that
+`main`'s TypeScript engine lists all of them, and the gate compares the two totals on every arm.
+
+Two flows don't measure what their names first suggest. `dragAnnot` drags a stamp 200 px, not a
+highlight: neither viewer API generation moves a highlight (it's selectable but not movable,
+`packages/plugin/annotation/src/read/chrome.ts`). `undo` needs a history plugin, which `2516e2786`
+doesn't have, so `main` and `main-aa` skip it. The gate compared its answer with `main-now`'s.
+`undo` has no `main` baseline and no A/A noise, so its threshold is the floor: ±6.1 ms on
+`settleMs`, ±3.0% on the CPU rows.
+
+The tip against `main-now` (`node scripts/summary.mjs <run> main-now`): 63 rows slower, 1 faster,
+23 no difference. The median latency row is 1.065x and the median main-thread row 1.817x. This pair
+has 87 rows here against 63 in the run above, so its medians don't compare with that run's 1.239x
+and 1.603x. The new flows, `main-now` to `plugins-next`, medians:
+
+| Flow | `mainJsMs` | `settleMs` |
+| --- | --- | --- |
+| `hover` (20 highlights) | 508.3 to 1,205.6 (2.372x) | 1,322.4 to 1,666.3 (+343.9) |
+| `dragAnnot` (one stamp) | 237.8 to 712.9 (2.998x) | 453.0 to 934.3 (+481.3) |
+| `drawInk` (3 strokes of 60 samples) | 1,345.3 to 4,014.1 (2.984x) | 3,947.8 to 6,989.1 (+3,041.4) |
+| `typeField` (40 characters) | 138.5 to 314.5 (2.271x) | 152.2 to 289.9 (+137.7) |
+| `undo` (10 steps) | 157.9 to 633.1 (4.009x) | 202.5 to 846.7 (+644.3) |
+| `scrollMid` (60 wheels from page 300) | 938.5 to 1,800.3 (1.918x) | 0.0 to 0.0 (no difference) |
+
+`drawInk`'s settle includes the ink tool's 800 ms stroke grouping on both arms. `scrollMid` also
+reads `wallMs` 1.065x and `frameP95Ms` 1.046x. Against `scroll` from page 0 (`mainJsMs` 1.741x),
+the tip loses more in the middle of the document. The one faster row is `zoom / backTo1SettleMs`,
+-58.3 ms. The 23 no-difference rows, with thresholds: `scroll` `settleMs` ±0.0, `wallMs` ±3.0%,
+`frameP50Ms` ±3.0%, `frameP95Ms` ±3.0%, `jankFrames` ±0, `longTasks` ±0, `longTaskMs` ±0.0;
+`scrollMid` `settleMs` ±0.0, `frameP50Ms` ±3.0%, `jankFrames` ±0, `longTasks` ±0, `longTaskMs` ±0.0;
+`coldScroll` `settleMs` ±0.0, `wallMs` ±3.0%, `frameP50Ms` ±3.0%, `jankFrames` ±0, `longTasks` ±0,
+`longTaskMs` ±0.0; `zoom / zoom4SettleMs` ±26.1; `zoomLarge / backTo1SettleMs` ±10.2; `select /
+settleMs` ±12.7; `searchLarge / searchMs` ±3.0%; `annotate / settleMs` ±8.6.
+
+Upstream moved on the new flows too. `main` against `main-now` is 46 slower, 12 faster and 26 no
+difference, with medians of 1.015x latency and 1.325x main thread. On the new flows, `main-now`'s
+JavaScript is 1.312x on `hover`, 1.670x on `dragAnnot` (settle +42.3 ms), 1.695x on `drawInk`
+(settle no difference, ±116.6) and 1.501x on `scrollMid`. On `typeField` it's faster: 0.956x
+JavaScript and -23.4 ms settle. Against `main`, the tip reads 1.115x latency and 2.178x main thread
+(63 slower, 1 faster, 20 no difference).
+
+`main` held still since the run above. Same commit, engine wasm and probe; median latency 0.999x and
+main thread 0.994x (`node scripts/summary.mjs <run> --drift
+results/2026-11-16T20-20-49-728Z-macmini2020-desktop main`). Its settle rows moved by -3.6 to
++10.7 ms, and no moved row of either pair is within that drift, so none is unconfirmed this time.
