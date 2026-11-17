@@ -158,6 +158,7 @@ test('--drift refuses a run with no probe hash recorded, as the plan says', () =
     const out = drifted(runs);
     assert.equal(out.status, 2);
     assert.match(out.stderr, /--drift refused: .*probe hash none recorded -> ffffffffffff/);
+    assert.match(out.stderr, /The plan rejects comparisons across a different or missing probe hash; time both builds in one run instead\./);
     assert.doesNotMatch(out.stdout, /moved rows within/);
   } finally {
     runs.done();
@@ -207,7 +208,8 @@ test('--drift accepts frame intervals within the tolerance and refuses a cadence
   try {
     const out = drifted(apart);
     assert.equal(out.status, 2);
-    assert.match(out.stderr, /--drift refused: .*frame interval 16\.7 -> 11\.2 ms, more than 1 ms apart/);
+    assert.match(out.stderr, /--drift refused: .*frame interval 16\.7 -> 11\.2 ms, more than 1 ms apart\. Time both builds in one run instead\./);
+    assert.doesNotMatch(out.stderr, /probe hash/);
     assert.doesNotMatch(out.stdout, /moved rows within/);
   } finally {
     apart.done();
@@ -235,7 +237,8 @@ test('--drift refuses a commit or engine wasm recorded on neither side, rather t
   try {
     const out = drifted(runs);
     assert.equal(out.status, 2);
-    assert.match(out.stderr, /commit not recorded; engine wasm not recorded/);
+    assert.match(out.stderr, /commit not recorded; engine wasm not recorded\. Time both builds in one run instead\./);
+    assert.doesNotMatch(out.stderr, /probe hash/);
     assert.doesNotMatch(out.stdout, /commit same/);
   } finally {
     runs.done();

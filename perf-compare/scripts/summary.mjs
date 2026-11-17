@@ -155,9 +155,14 @@ if (drift) {
   const [p, q] = [build(other.meta), build(current.meta)];
   const reasons = driftRefusals(other, current, p, q);
   if (reasons.length) {
+    // Cite the plan only when the probe is among the reasons; it says nothing
+    // about cadence or unrecorded builds.
+    const probe = reasons.some((r) => r.startsWith('probe hash'));
     console.error(
       `--drift refused: ${path.basename(path.resolve(here, drift.run))} and ${path.basename(path.resolve(here, runArg))} don't compare for ${drift.arm}: ${reasons.join('; ')}. ` +
-        'The plan rejects comparisons across a different or missing probe hash; time both builds in one run instead.',
+        (probe
+          ? 'The plan rejects comparisons across a different or missing probe hash; time both builds in one run instead.'
+          : 'Time both builds in one run instead.'),
     );
     process.exit(2);
   }
