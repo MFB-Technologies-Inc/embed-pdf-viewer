@@ -63,7 +63,8 @@ pub fn json_number(value: f64) -> Value {
 /// from -7 to 20 and scientific (`1e+21`, `1.5e-7`) outside it. Rust's `{}`
 /// never switches to scientific notation and prints `-0` as `-0`.
 /// `epdf_geometry::js` carries the same function; that crate depends on this
-/// one, so the kernel keeps its own copy.
+/// one, so the kernel keeps its own copy. The engine's measure `js_string` is
+/// a third; the geometry and engine tests compare both with this one.
 pub fn number_to_string(x: f64) -> String {
     if x.is_nan() {
         return "NaN".into();

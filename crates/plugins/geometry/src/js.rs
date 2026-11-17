@@ -103,7 +103,8 @@ pub fn hypot(a: f64, b: f64) -> f64 {
 /// from -7 to 20 and scientific (`1e+21`, `1.5e-7`) outside it. Rust's `{}`
 /// never switches to scientific notation and prints `-0` as `-0`.
 /// `epdf_kernel::js` carries the same function; this crate links the
-/// kernel only for its harness, so it keeps its own copy.
+/// kernel only for its harness, so it keeps its own copy, which
+/// `number_to_string_is_the_kernel_one` compares with the kernel's.
 pub fn number_to_string(x: f64) -> String {
     if x.is_nan() {
         return "NaN".into();
@@ -296,6 +297,55 @@ mod tests {
             let x: f64 = exact.parse().unwrap();
             assert_eq!(number_to_string(x), *want, "{exact}");
             assert_eq!(number_to_string(-x), format!("-{want}"), "-{exact}");
+        }
+    }
+
+    /// This copy against the kernel's, which the crate links only with
+    /// `harness` (a default feature, so plain `cargo test` runs this).
+    #[cfg(feature = "harness")]
+    #[test]
+    fn number_to_string_is_the_kernel_one() {
+        let mut seed: u64 = 0x2545_f491_4f6c_dd1d;
+        let mut next = || {
+            seed = seed
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            seed
+        };
+        let decimal = [
+            "1655218367829957.25",
+            "1655218367829957.75",
+            "18008701800628.8125",
+            "151546589707673.125",
+            "0.0239124298095703125",
+            "0.1",
+            "123.456",
+            "1e21",
+            "999999999999999900000",
+            "1e-6",
+            "1e-7",
+            "4.35e-310",
+            "2.2250738585072014e-308",
+            "1.7976931348623157e308",
+            "9007199254740993",
+            "18014398509481988",
+        ];
+        let mut values: Vec<f64> = decimal.iter().map(|s| s.parse().unwrap()).collect();
+        values.extend([0.0, -0.0, f64::NAN, f64::INFINITY]);
+        values.extend((0..52).map(|bit| f64::from_bits(1 << bit)));
+        values.extend((1..2047u64).map(|e| f64::from_bits(e << 52)));
+        for k in 0..20_000u64 {
+            // Exact ties between one-place candidates (the ulp from 2^50
+            // to 2^51 is 0.25), one broken down and one up.
+            let n = (1u64 << 50) + k * 56_294_995_342;
+            values.push(n as f64 + 0.25);
+            values.push(n as f64 + 0.75);
+            values.push(f64::from_bits(next()));
+        }
+        for value in values {
+            for x in [value, -value] {
+                assert_eq!(number_to_string(x), epdf_kernel::js::number_to_string(x), "{x:e}");
+            }
         }
     }
 

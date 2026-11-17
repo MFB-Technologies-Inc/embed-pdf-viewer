@@ -236,8 +236,10 @@ fn js_string(x: f64) -> String {
 
 /// The shortest decimal digits that round-trip `x` (positive, finite), and
 /// the exponent of the first: `x = d.ddd × 10^exponent`. Of two equally
-/// close candidates, the one ending in an even digit. The engine does not
-/// depend on the kernel, so this is a copy of `epdf_kernel::js::shortest_digits`.
+/// close candidates, the one ending in an even digit. The engine depends on
+/// the kernel only in its tests, so this is a copy of
+/// `epdf_kernel::js::shortest_digits`; `js_string_is_the_kernel_number_to_string`
+/// holds the two together.
 fn shortest_digits(x: f64) -> (String, i32) {
     // `{:e}` gives the shortest round-trip digits closest to `x`, but breaks
     // an exact tie upward where JavaScript picks the even digit.
@@ -1056,5 +1058,67 @@ mod tests {
             }
         }
         assert!(compared > 800_000, "{compared}");
+    }
+
+    #[test]
+    fn js_string_is_the_kernel_number_to_string() {
+        // `js_string` and `shortest_digits` copy `epdf_kernel::js`, and
+        // `epdf_geometry::js` carries a third copy; only the tests here see
+        // all three, so they are held together over exact ties in both
+        // directions, the notation switches, subnormals, powers of two,
+        // integers past 2^53, zeros and the non-finite values.
+        let mut seed: u64 = 0x2545_f491_4f6c_dd1d;
+        let mut next = || {
+            seed = seed
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            seed
+        };
+        let decimal = [
+            "1655218367829957.25",
+            "1655218367829957.75",
+            "18008701800628.8125",
+            "151546589707673.125",
+            "0.0239124298095703125",
+            "0.1",
+            "0.3",
+            "123.456",
+            "1e21",
+            "999999999999999900000",
+            "1e-6",
+            "1e-7",
+            "1.5e-7",
+            "4.35e-310",
+            "2.2250738585072014e-308",
+            "1.7976931348623157e308",
+            "9007199254740992",
+            "9007199254740994",
+            "9007199254740993",
+            "18014398509481988",
+            "123456789012345680000",
+        ];
+        let mut values: Vec<f64> = decimal.iter().map(|s| s.parse().unwrap()).collect();
+        values.extend([0.0, -0.0, f64::NAN, f64::INFINITY, f64::EPSILON, f64::MAX]);
+        // Every power of two: subnormal ones from the low mantissa bit,
+        // normal ones from the exponent field.
+        values.extend((0..52).map(|bit| f64::from_bits(1 << bit)));
+        values.extend((1..2047u64).map(|e| f64::from_bits(e << 52)));
+        for k in 0..20_000u64 {
+            // Between 2^50 and 2^51 the ulp is 0.25, so `n + 0.25` and
+            // `n + 0.75` are exactly halfway between two one-place
+            // candidates: one tie breaks down to the even digit, one up.
+            let n = (1u64 << 50) + k * 56_294_995_342;
+            values.push(n as f64 + 0.25);
+            values.push(n as f64 + 0.75);
+            values.push(f64::from_bits(next()));
+            values.push(f64::from_bits(next() >> 2) % 1e6);
+        }
+        for value in values {
+            for x in [value, -value] {
+                let want = epdf_kernel::js::number_to_string(x);
+                assert_eq!(js_string(x), want, "{x:e}");
+                assert_eq!(epdf_geometry::js::number_to_string(x), want, "{x:e}");
+            }
+        }
     }
 }
