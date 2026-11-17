@@ -807,7 +807,7 @@ pub fn parse_op(at: usize, op: &serde_json::Value) -> Result<ChangeOp, EngineErr
         )
         .with_details(serde_json::json!({ "opIndex": at, "type": kind })));
     }
-    let mut parsed: ChangeOp = serde_json::from_value(op.clone())
+    let mut parsed = ChangeOp::deserialize(op)
         .map_err(|e| malformed(format!("op {at} ({kind}) is not the shape it takes: {e}")))?;
     match &mut parsed {
         ChangeOp::MetadataUpdate { keys, .. } | ChangeOp::MetadataUpdateCustom { keys, .. } => {

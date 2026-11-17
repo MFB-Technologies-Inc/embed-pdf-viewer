@@ -33,7 +33,7 @@ use crate::features::pages::PageListSnapshot;
 use crate::features::render::geometry::RenderTarget;
 use crate::features::search::reader::SearchSlice;
 use crate::geom::{PageRect, PdfRect};
-use crate::host::HostResponse;
+use crate::host::Reply;
 use crate::identity::{PageObjectNumber, PageRef};
 
 macro_rules! wire_kinds {
@@ -191,7 +191,7 @@ pub fn request_in_file_space(
 
         // The draft on the page it goes on (`pdfAnnotationDraftOf`).
         K::AnnotationsCreate => {
-            let page: PageRef = from_value(body.get("page").cloned().unwrap_or_default())?;
+            let page: PageRef = read(body.get("page"))?;
             let visible = box_of(page.object_number())?;
             if let Some(serde_json::Value::Object(draft)) = body.get_mut("draft") {
                 let converted = super::annotations::pdf_annotation_draft_of(
@@ -207,8 +207,7 @@ pub fn request_in_file_space(
         // The patch on the page of the annotation it changes
         // (`pdfAnnotationPatchOf`).
         K::AnnotationsUpdate => {
-            let reference: crate::identity::AnnotationRef =
-                from_value(body.get("ref").cloned().unwrap_or_default())?;
+            let reference: crate::identity::AnnotationRef = read(body.get("ref"))?;
             let visible = box_of(reference.page())?;
             if let Some(serde_json::Value::Object(patch)) = body.get_mut("patch") {
                 let converted = super::annotations::pdf_annotation_patch_of(
@@ -241,8 +240,7 @@ pub fn request_in_file_space(
         }
         // The patch on the widget's page (`pdfWidgetPatchOf`).
         K::FormsUpdateWidget => {
-            let widget: crate::identity::AnnotationRef =
-                from_value(body.get("widget").cloned().unwrap_or_default())?;
+            let widget: crate::identity::AnnotationRef = read(body.get("widget"))?;
             let visible = box_of(widget.page())?;
             if let Some(serde_json::Value::Object(patch)) = body.get_mut("patch") {
                 let converted =
@@ -255,7 +253,7 @@ pub fn request_in_file_space(
         // The scale's origin on its page (`pdfMeasureOf`); `null` clears.
         K::MeasureSetScale => {
             if body.get("measure").is_some_and(serde_json::Value::is_object) {
-                let page: PageRef = from_value(body.get("page").cloned().unwrap_or_default())?;
+                let page: PageRef = read(body.get("page"))?;
                 let visible = box_of(page.object_number())?;
                 let measure = &mut body["measure"];
                 *measure = super::measure::pdf_measure_of(measure.take(), visible);
@@ -356,12 +354,12 @@ pub fn request_in_file_space(
 /// itself. `request` is the request as the handler took it: an answer that
 /// does not name its page, as upstream's payload does, is measured on the
 /// request's `page`.
-pub fn result_in_page_space(
+pub(crate) fn result_in_page_space(
     kind: WireKind,
     request: &serde_json::Value,
-    response: HostResponse,
+    response: Reply,
     box_of: &mut VisibleBoxOf<'_>,
-) -> Result<HostResponse, EngineError> {
+) -> Result<Reply, EngineError> {
     use WireKind as K;
     match kind {
         K::PagesList => convert_result(response, |snapshot: PageListSnapshot<PdfCoordinates>| {
@@ -375,15 +373,15 @@ pub fn result_in_page_space(
             Ok(answer)
         }),
         K::PagesRender => convert_result(response, |mut answer: serde_json::Value| {
-            let page: PageRef = from_value(answer.get("page").cloned().unwrap_or_default())?;
-            let area: PdfRect = from_value(answer.get("area").cloned().unwrap_or_default())?;
+            let page: PageRef = read(answer.get("page"))?;
+            let area: PdfRect = read(answer.get("area"))?;
             let visible = box_of(page.object_number())?;
             answer["area"] = to_value(&page_render_area_of(area, visible))?;
             Ok(answer)
         }),
         K::PagesGeometry => {
             convert_result(response, |snapshot: PageGeometrySnapshot<PdfCoordinates>| {
-                let page: PageRef = from_value(request.get("page").cloned().unwrap_or_default())?;
+                let page: PageRef = read(request.get("page"))?;
                 Ok(page_geometry_of(snapshot, box_of(page.object_number())?))
             })
         }
@@ -400,7 +398,7 @@ pub fn result_in_page_space(
         // (`pageAppearancesOf(payload.result.appearances, boxOf(payload.page))`).
         K::AnnotationsRenderAppearances | K::AnnotationsRenderAppearancesEncoded => {
             convert_result(response, |mut answer: serde_json::Value| {
-                let page: PageRef = from_value(answer.get("page").cloned().unwrap_or_default())?;
+                let page: PageRef = read(answer.get("page"))?;
                 let visible = box_of(page.object_number())?;
                 if let Some(appearances) = answer
                     .get_mut("result")
@@ -474,7 +472,7 @@ pub fn result_in_page_space(
         // Each viewport on the page the answer names
         // (`pageViewportsOf(payload.viewports, boxOf(payload.page))`).
         K::MeasureViewports => convert_result(response, |mut answer: serde_json::Value| {
-            let page: PageRef = from_value(answer.get("page").cloned().unwrap_or_default())?;
+            let page: PageRef = read(answer.get("page"))?;
             let visible = box_of(page.object_number())?;
             let viewports = answer["viewports"].take();
             answer["viewports"] = super::measure::page_viewports_of(viewports, visible)?;
@@ -1000,11 +998,11 @@ fn render_options_in_file_space(
     else {
         return Ok(());
     };
-    let target: RenderTarget<PageRect> = from_value(target.clone())?;
+    let target: RenderTarget<PageRect> = read(Some(target))?;
     let target = match target {
         RenderTarget::Page => RenderTarget::Page,
         rect @ RenderTarget::Rect { .. } => {
-            let page: PageRef = from_value(body.get("page").cloned().unwrap_or_default())?;
+            let page: PageRef = read(body.get("page"))?;
             pdf_render_target_of(rect, box_of(page.object_number())?)
         }
     };
@@ -1012,32 +1010,34 @@ fn render_options_in_file_space(
     Ok(())
 }
 
-/// Read a response's `result`, convert it, and write it back. The payloads
-/// and any event ride through untouched; an error answer is left as it is.
+/// Read a reply's `result`, convert it, and write it back. The payloads and
+/// any event ride through untouched.
 fn convert_result<From: DeserializeOwned, To: Serialize>(
-    response: HostResponse,
+    mut reply: Reply,
     convert: impl FnOnce(From) -> Result<To, EngineError>,
-) -> Result<HostResponse, EngineError> {
-    let mut envelope: serde_json::Value = serde_json::from_str(&response.json)
-        .map_err(|e| unserializable(format!("the answer is not JSON: {e}")))?;
-    let Some(result) = envelope.get_mut("result") else {
-        return Ok(response);
-    };
-    let converted = convert(from_value(result.take())?)?;
-    *result = to_value(&converted)?;
-    let json = serde_json::to_string(&envelope).map_err(|e| unserializable(e.to_string()))?;
-    Ok(HostResponse { json, payloads: response.payloads })
+) -> Result<Reply, EngineError> {
+    let converted = convert(from_value(reply.result.take())?)?;
+    reply.result = to_value(&converted)?;
+    Ok(reply)
 }
 
 /// A value the wire sent, read as the type a conversion takes. A request
 /// that isn't that shape is the caller's `WireFormat`.
 fn from_value<T: DeserializeOwned>(value: serde_json::Value) -> Result<T, EngineError> {
-    serde_json::from_value(value).map_err(|e| {
-        EngineError::with_message(
-            EngineErrorCode::WireFormat,
-            format!("a place is not the shape this operation takes: {e}"),
-        )
-    })
+    serde_json::from_value(value).map_err(not_a_place)
+}
+
+/// [`from_value`] over a borrowed member, an absent one read as `null`.
+fn read<T: DeserializeOwned>(value: Option<&serde_json::Value>) -> Result<T, EngineError> {
+    static NULL: serde_json::Value = serde_json::Value::Null;
+    T::deserialize(value.unwrap_or(&NULL)).map_err(not_a_place)
+}
+
+fn not_a_place(e: serde_json::Error) -> EngineError {
+    EngineError::with_message(
+        EngineErrorCode::WireFormat,
+        format!("a place is not the shape this operation takes: {e}"),
+    )
 }
 
 fn to_value<T: Serialize>(value: &T) -> Result<serde_json::Value, EngineError> {
@@ -1140,15 +1140,14 @@ mod tests {
 
     #[test]
     fn a_render_answers_its_area_in_page_space_and_keeps_its_pixels() {
-        let response = HostResponse {
-            json: serde_json::json!({ "result": {
+        let response = Reply::new(
+            serde_json::json!({
                 "width": 10, "height": 5, "stride": 40,
                 "page": { "kind": "objectNumber", "objectNumber": 3 },
                 "area": { "left": 60.0, "bottom": 662.0, "right": 160.0, "top": 712.0 },
-            } })
-            .to_string(),
-            payloads: vec![vec![1, 2, 3]],
-        };
+            }),
+            vec![vec![1, 2, 3]],
+        );
         let mut box_of = |_| Ok(PdfRect { left: 50.0, bottom: 60.0, right: 562.0, top: 732.0 });
         let converted = result_in_page_space(
             WireKind::PagesRender,
@@ -1157,12 +1156,11 @@ mod tests {
             &mut box_of,
         )
         .unwrap();
-        let envelope: serde_json::Value = serde_json::from_str(&converted.json).unwrap();
         assert_eq!(
-            envelope["result"]["area"],
+            converted.result["area"],
             serde_json::json!({ "x": 10.0, "y": 20.0, "width": 100.0, "height": 50.0 })
         );
-        assert_eq!(envelope["result"]["stride"], 40);
+        assert_eq!(converted.result["stride"], 40);
         assert_eq!(converted.payloads, vec![vec![1, 2, 3]]);
     }
 
@@ -1172,25 +1170,23 @@ mod tests {
             "kind": "pages.geometry",
             "page": { "kind": "objectNumber", "objectNumber": 9 },
         });
-        let response = HostResponse {
-            json: serde_json::json!({ "result": { "runs": [{
+        let response = Reply::new(
+            serde_json::json!({ "runs": [{
                 "rect": { "left": 60.0, "bottom": 662.0, "right": 160.0, "top": 712.0 },
                 "start": 0,
                 "glyphs": [{ "loose": { "left": 60.0, "bottom": 662.0, "right": 160.0, "top": 712.0 }, "space": true }],
-            }] } })
-            .to_string(),
-            payloads: Vec::new(),
-        };
+            }] }),
+            Vec::new(),
+        );
         let mut box_of = |page: PageObjectNumber| {
             assert_eq!(page.get(), 9);
             Ok(PdfRect { left: 50.0, bottom: 60.0, right: 562.0, top: 732.0 })
         };
         let converted =
             result_in_page_space(WireKind::PagesGeometry, &request, response, &mut box_of).unwrap();
-        let envelope: serde_json::Value = serde_json::from_str(&converted.json).unwrap();
         let page_box = serde_json::json!({ "x": 10.0, "y": 20.0, "width": 100.0, "height": 50.0 });
         assert_eq!(
-            envelope["result"],
+            converted.result,
             serde_json::json!({ "runs": [{
                 "rect": page_box,
                 "start": 0,
@@ -1216,14 +1212,13 @@ mod tests {
                 "snippet": { "before": "a ", "match": "word", "after": " here" },
             })
         };
-        let response = HostResponse {
-            json: serde_json::json!({ "result": {
+        let response = Reply::new(
+            serde_json::json!({
                 "matches": [hit(4), hit(6)],
                 "nextCursor": "c", "pagesSearched": 2, "pageCount": 9,
-            } })
-            .to_string(),
-            payloads: Vec::new(),
-        };
+            }),
+            Vec::new(),
+        );
         let mut box_of = |page: PageObjectNumber| {
             Ok(match page.get() {
                 4 => PdfRect { left: 50.0, bottom: 60.0, right: 562.0, top: 732.0 },
@@ -1237,8 +1232,7 @@ mod tests {
             &mut box_of,
         )
         .unwrap();
-        let envelope: serde_json::Value = serde_json::from_str(&converted.json).unwrap();
-        let result = &envelope["result"];
+        let result = &converted.result;
         assert_eq!(
             result["matches"][0]["segments"][0]["rect"],
             serde_json::json!({ "x": 10.0, "y": 20.0, "width": 100.0, "height": 50.0 })
@@ -1257,19 +1251,5 @@ mod tests {
             (&result["nextCursor"], &result["pagesSearched"], &result["pageCount"]),
             (&serde_json::json!("c"), &serde_json::json!(2), &serde_json::json!(9))
         );
-    }
-
-    #[test]
-    fn an_error_answer_crosses_unchanged() {
-        let json = r#"{"error":{"code":"NotFound","message":"no page"}}"#;
-        let response = HostResponse { json: json.into(), payloads: Vec::new() };
-        let converted = result_in_page_space(
-            WireKind::PagesRender,
-            &serde_json::Value::Null,
-            response,
-            &mut never,
-        )
-        .unwrap();
-        assert_eq!(converted.json, json);
     }
 }

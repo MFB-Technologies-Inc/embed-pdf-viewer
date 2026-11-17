@@ -71,6 +71,36 @@ struct Envelope<'a> {
     event: Option<serde_json::Value>,
 }
 
+/// An answer before its envelope is written. The page-space boundary
+/// converts its `result` in place, and [`Host::route_job`] prints it once.
+#[derive(Debug)]
+pub(crate) struct Reply {
+    /// The envelope's `result`.
+    pub(crate) result: serde_json::Value,
+    /// The envelope's `event`.
+    pub(crate) event: Option<serde_json::Value>,
+    /// Binary outputs, positional on the same terms as the inputs.
+    pub(crate) payloads: Payloads,
+}
+
+impl Reply {
+    /// `result` with its payloads and no notice.
+    pub(crate) fn new(result: serde_json::Value, payloads: Payloads) -> Self {
+        Self { result, event: None, payloads }
+    }
+
+    /// The envelope as text.
+    fn print(self) -> HostResponse {
+        let json = serde_json::to_string(&Envelope {
+            result: Some(self.result),
+            error: None,
+            event: self.event,
+        })
+        .unwrap_or_else(|_| String::from(r#"{"error":{"code":"Unknown","message":"Unknown"}}"#));
+        HostResponse { json, payloads: self.payloads }
+    }
+}
+
 /// The fields every request shares.
 ///
 /// Deserialized separately from the operation's own arguments so that a
@@ -744,20 +774,16 @@ impl Host {
             self.end_write(transacted.as_ref(), routed)
         });
         self.artifact_path = None;
-        let response = routed?;
-        match kind {
+        let reply = routed?;
+        let reply = match kind {
             Some(kind) => {
                 let mut box_of =
                     crate::page_space::boundary::session_boxes(&self.sessions, key, &header.kind);
-                crate::page_space::boundary::result_in_page_space(
-                    kind,
-                    &body,
-                    response,
-                    &mut box_of,
-                )
+                crate::page_space::boundary::result_in_page_space(kind, &body, reply, &mut box_of)?
             }
-            None => Ok(response),
-        }
+            None => reply,
+        };
+        Ok(reply.print())
     }
 
     /// `closePagesChangedBy`: closes the pages a job of `effect` may change,
@@ -844,8 +870,8 @@ impl Host {
     fn end_write(
         &mut self,
         transacted: Option<&SessionKey>,
-        routed: Result<HostResponse, EngineError>,
-    ) -> Result<HostResponse, EngineError> {
+        routed: Result<Reply, EngineError>,
+    ) -> Result<Reply, EngineError> {
         let Some(session) = transacted.and_then(|key| self.sessions.entry_mut(key)) else {
             return routed;
         };
@@ -869,7 +895,7 @@ impl Host {
         body: &serde_json::Value,
         payloads: Payloads,
         cancel: &CancelToken,
-    ) -> Result<HostResponse, EngineError> {
+    ) -> Result<Reply, EngineError> {
         let result = match header.kind.as_str() {
             "open.fatMem" => self.open_fat_memory(header, body, payloads)?,
             "open.layerMemBase" | "open.layerFileBase" => {
@@ -1033,7 +1059,7 @@ impl Host {
                 };
                 answer["page"] = value(&page)?;
                 answer["pageCount"] = page_count.into();
-                return Ok(HostResponse { json: envelope(answer), payloads: vec![payload] });
+                return Ok(Reply::new(answer, vec![payload]));
             }
             // `WorkerHost.handleSignaturesFinalizeCandidate`: session-less,
             // like `document.renderPageFile`. The candidate file is the
@@ -1041,7 +1067,7 @@ impl Host {
             // that is never registered as a session.
             "signatures.finalizeCandidate" => {
                 let input: crate::features::signature::mutator::FinalizeCandidateInput =
-                    serde_json::from_value(body.clone()).map_err(|e| {
+                    Deserialize::deserialize(body).map_err(|e| {
                         EngineError::with_message(
                             EngineErrorCode::WireFormat,
                             format!("signatures.finalizeCandidate is not the shape it takes: {e}"),
@@ -1074,7 +1100,7 @@ impl Host {
         body: &serde_json::Value,
         payloads: Payloads,
         cancel: &CancelToken,
-    ) -> Result<HostResponse, EngineError> {
+    ) -> Result<Reply, EngineError> {
         use crate::features as f;
 
         let key = header.key()?;
@@ -1436,10 +1462,7 @@ impl Host {
                         "area": value(&rendered.area)?,
                         "raster": raster_json(&rendered.raster, 0),
                     });
-                    return Ok(HostResponse {
-                        json: envelope(answer),
-                        payloads: vec![rendered.raster.rgba],
-                    });
+                    return Ok(Reply::new(answer, vec![rendered.raster.rgba]));
                 }
                 let encode: f::server::RenderEncode = field(body, "encode")?;
                 let encoded = f::server::encode_raster(
@@ -1449,10 +1472,10 @@ impl Host {
                     cancel,
                 )?;
                 // `{tag, image}` (`encodeRendered`), the bytes payload 0.
-                Ok(HostResponse {
-                    json: envelope(serde_json::json!({ "image": encoded_json(&encoded, 0) })),
-                    payloads: vec![encoded.bytes],
-                })
+                Ok(Reply::new(
+                    serde_json::json!({ "image": encoded_json(&encoded, 0) }),
+                    vec![encoded.bytes],
+                ))
             }
             "annotations.renderAppearances" | "annotations.renderAppearancesEncoded" => {
                 let family: f::annotation::appearance::AnnotationFamily = field(body, "family")?;
@@ -1504,16 +1527,16 @@ impl Host {
                 }
                 // `{ tag, page, result: { page, appearances } }`: the page
                 // as the request named it beside the reader's result.
-                Ok(HostResponse {
-                    json: envelope(serde_json::json!({
+                Ok(Reply::new(
+                    serde_json::json!({
                         "page": body["page"],
                         "result": {
                             "page": crate::identity::PageRef::from(result.page),
                             "appearances": index,
                         },
-                    })),
+                    }),
                     payloads,
-                })
+                ))
             }
             "annotations.readAppearance" => {
                 let page = page_field(body)?;
@@ -2344,7 +2367,7 @@ impl Host {
         key: &SessionKey,
         op_id: &str,
         event: crate::session::save::DocumentEventInit,
-    ) -> Result<HostResponse, EngineError> {
+    ) -> Result<Reply, EngineError> {
         let result = event.result().cloned().unwrap_or(serde_json::Value::Null);
         self.finish_with(key, op_id, event, result)
     }
@@ -2357,7 +2380,7 @@ impl Host {
         op_id: &str,
         event: crate::session::save::DocumentEventInit,
         result: serde_json::Value,
-    ) -> Result<HostResponse, EngineError> {
+    ) -> Result<Reply, EngineError> {
         let family = event.family();
         self.finalize(key, family, Some((op_id, event)), result)
     }
@@ -2369,7 +2392,7 @@ impl Host {
         &mut self,
         key: &SessionKey,
         result: serde_json::Value,
-    ) -> Result<HostResponse, EngineError> {
+    ) -> Result<Reply, EngineError> {
         self.finalize(key, crate::session::save::MutationFamily::Ordinary, None, result)
     }
 
@@ -2379,7 +2402,7 @@ impl Host {
         family: crate::session::save::MutationFamily,
         event: Option<(&str, crate::session::save::DocumentEventInit)>,
         result: serde_json::Value,
-    ) -> Result<HostResponse, EngineError> {
+    ) -> Result<Reply, EngineError> {
         // A final change ends undo for itself and every change before it
         // (`FINAL_CHANGES` in `WorkerHost.finishMutation`): form repair and a
         // completed signing, each of which finishes here with its event. The
@@ -2464,7 +2487,7 @@ impl Host {
         result: serde_json::Value,
         wrote: bool,
         event: impl FnOnce(serde_json::Value) -> crate::session::save::DocumentEventInit,
-    ) -> Result<HostResponse, EngineError> {
+    ) -> Result<Reply, EngineError> {
         use crate::session::save;
 
         if !wrote {
@@ -2532,7 +2555,7 @@ impl Host {
         body: &serde_json::Value,
         op: crate::features::changes::op::ChangeOp,
         cancel: &CancelToken,
-    ) -> Result<HostResponse, EngineError> {
+    ) -> Result<Reply, EngineError> {
         let job = JobEnvelope::parse(kind, body)?;
         let op_id = self.op_id_of(&job)?;
         let authority = job.authority.as_ref().map(change_authority).transpose()?;
@@ -2565,7 +2588,7 @@ impl Host {
         op: crate::features::changes::op::ChangeOp,
         checked: bool,
         cancel: &CancelToken,
-    ) -> Result<HostResponse, EngineError> {
+    ) -> Result<Reply, EngineError> {
         let job = JobEnvelope::parse(kind, body)?;
         let op_id = self.op_id_of(&job)?;
         let authority = match (checked, job.authority.as_ref()) {
@@ -2601,7 +2624,7 @@ impl Host {
         body: &serde_json::Value,
         op: crate::features::changes::op::ChangeOp,
         cancel: &CancelToken,
-    ) -> Result<HostResponse, EngineError> {
+    ) -> Result<Reply, EngineError> {
         let job = JobEnvelope::parse(kind, body)?;
         let op_id = self.op_id_of(&job)?;
         let authority = match job.authority {
@@ -2639,14 +2662,14 @@ impl Host {
         op: crate::features::changes::op::ChangeOp,
         authority: crate::features::changes::applier::ChangeAuthority,
         cancel: &CancelToken,
-    ) -> Result<HostResponse, EngineError> {
+    ) -> Result<Reply, EngineError> {
         let op_id = self.op_id_of(job)?;
         let item = self.apply_one_item(key, &op_id, op, Some(authority), cancel)?;
         // Everything left out: nothing was written, and the answer is the
         // result alone (`handleFormsImport`, `handleFormsImportValues`).
         if !item.wrote() {
             let answer = serde_json::json!({ "result": strip_item(item)? });
-            return Ok(HostResponse { json: envelope(answer), payloads: Vec::new() });
+            return Ok(Reply::new(answer, Vec::new()));
         }
         let events = item.events()?;
         let (result, sequence, events, written) =
@@ -2785,16 +2808,10 @@ impl Host {
         result: serde_json::Value,
         notice: crate::session::save::DocumentEventInit,
         payloads: Vec<Vec<u8>>,
-    ) -> Result<HostResponse, EngineError> {
+    ) -> Result<Reply, EngineError> {
         let op_id = self.ids.next_uuid_v4();
         let event = self.stamp_write(key, &op_id, notice)?;
-        let json = serde_json::to_string(&Envelope {
-            result: Some(result),
-            error: None,
-            event: Some(event),
-        })
-        .unwrap_or_else(|_| String::from(r#"{"error":{"code":"Unknown","message":"Unknown"}}"#));
-        Ok(HostResponse { json, payloads })
+        Ok(Reply { result, event: Some(event), payloads })
     }
 
     /// The open document behind a key.
@@ -2808,7 +2825,7 @@ impl Host {
         key: &SessionKey,
         body: &serde_json::Value,
         read: impl FnOnce(&dyn crate::access::PageAccess) -> Result<serde_json::Value, EngineError>,
-    ) -> Result<HostResponse, EngineError> {
+    ) -> Result<Reply, EngineError> {
         let page = page_field(body)?;
         let opened = self.sessions.session(key)?.acquire_page(page)?;
         Ok(ok(read(&opened)?))
@@ -3068,7 +3085,7 @@ struct Written {
 impl Written {
     /// `answer`, naming the artifact beside its own fields
     /// (`{ ...payload, ...saved.payload }`), its bytes the payloads.
-    fn respond(self, mut answer: serde_json::Value) -> HostResponse {
+    fn respond(self, mut answer: serde_json::Value) -> Reply {
         // `withMissingCharacters`: in the result's meta, when there are any,
         // it has a meta, and that meta doesn't already say (a change's
         // result says per op, and for the whole change).
@@ -3087,19 +3104,13 @@ impl Written {
         if let Some((name, artifact)) = self.artifact {
             answer[name] = artifact;
         }
-        HostResponse { json: envelope(answer), payloads: self.payloads }
+        Reply::new(answer, self.payloads)
     }
 }
 
 /// A successful response with no payloads, which is most of them.
-fn ok(result: serde_json::Value) -> HostResponse {
-    HostResponse {
-        json: serde_json::to_string(&Envelope { result: Some(result), error: None, event: None })
-            .unwrap_or_else(|_| {
-                String::from(r#"{"error":{"code":"Unknown","message":"Unknown"}}"#)
-            }),
-        payloads: Vec::new(),
-    }
+fn ok(result: serde_json::Value) -> Reply {
+    Reply::new(result, Vec::new())
 }
 
 /// Serialize an operation's result into the envelope's `result`.
@@ -3148,17 +3159,15 @@ fn encoded_json(
 /// The metadata rides in the JSON and the bytes in a payload, so a caller can
 /// show the name and the type without waiting for a copy of a file it may be
 /// about to hand straight to a download.
-fn attachment_response(
-    file: crate::features::files::attachments::AttachmentContent,
-) -> HostResponse {
-    HostResponse {
-        json: envelope(serde_json::json!({
+fn attachment_response(file: crate::features::files::attachments::AttachmentContent) -> Reply {
+    Reply::new(
+        serde_json::json!({
             "name": file.name,
             "mimeType": file.mime_type,
             "size": file.size,
-        })),
-        payloads: vec![file.bytes],
-    }
+        }),
+        vec![file.bytes],
+    )
 }
 
 /// A response whose whole result is bytes.
@@ -3168,7 +3177,7 @@ fn attachment_response(
 /// A bundle as a read answers it (`{ tag, bundle }` without its tag): its
 /// manifest, and each resource a payload of the response, `{ "payload": n }`,
 /// in order.
-fn bundle_response(bundle: crate::features::transfer::Bundle) -> HostResponse {
+fn bundle_response(bundle: crate::features::transfer::Bundle) -> Reply {
     let mut answer = bundle.manifest;
     let mut payloads = Vec::with_capacity(bundle.resources.len());
     let mut resources = serde_json::Map::new();
@@ -3177,7 +3186,7 @@ fn bundle_response(bundle: crate::features::transfer::Bundle) -> HostResponse {
         payloads.push(bytes);
     }
     answer.insert("resources".into(), serde_json::Value::Object(resources));
-    HostResponse { json: envelope(serde_json::json!({ "bundle": answer })), payloads }
+    Reply::new(serde_json::json!({ "bundle": answer }), payloads)
 }
 
 /// `gate('sign-some-field')` (`ScopeGuard.assertSomeFieldWrite('sign')`):
@@ -3234,20 +3243,12 @@ fn resource_payload<'a>(
 }
 
 /// `result`, which names `bytes` as its payload 0.
-fn payload_response(result: serde_json::Value, bytes: Vec<u8>) -> HostResponse {
-    HostResponse { json: envelope(result), payloads: vec![bytes] }
+fn payload_response(result: serde_json::Value, bytes: Vec<u8>) -> Reply {
+    Reply::new(result, vec![bytes])
 }
 
-fn bytes_response(bytes: Vec<u8>) -> HostResponse {
-    HostResponse {
-        json: envelope(serde_json::json!({ "size": bytes.len() })),
-        payloads: vec![bytes],
-    }
-}
-
-fn envelope(result: serde_json::Value) -> String {
-    serde_json::to_string(&Envelope { result: Some(result), error: None, event: None })
-        .unwrap_or_else(|_| String::from(r#"{"error":{"code":"Unknown","message":"Unknown"}}"#))
+fn bytes_response(bytes: Vec<u8>) -> Reply {
+    Reply::new(serde_json::json!({ "size": bytes.len() }), vec![bytes])
 }
 
 fn form_model_missing() -> EngineError {
@@ -3290,7 +3291,7 @@ fn field<T: for<'de> Deserialize<'de>>(
             format!("the request has no '{name}'"),
         )
     })?;
-    serde_json::from_value(value.clone()).map_err(|e| {
+    T::deserialize(value).map_err(|e| {
         EngineError::with_message(
             EngineErrorCode::WireFormat,
             format!("'{name}' is not the shape this operation takes: {e}"),

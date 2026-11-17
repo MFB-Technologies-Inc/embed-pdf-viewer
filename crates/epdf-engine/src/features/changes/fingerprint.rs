@@ -11,23 +11,37 @@
 /// length and a 53-bit hash of it, both in base 36.
 pub fn change_fingerprint(change: &serde_json::Value) -> String {
     let text = canonical_json(change);
-    let units: Vec<u16> = text.encode_utf16().collect();
-    format!("{}-{}", base36(units.len() as u64), hash_units(&units))
+    let (length, hash) = hash_units(text.encode_utf16());
+    format!("{}-{}", base36(length), hash)
 }
 
 /// What `canonicalJson` writes for bytes, under `$bytes`: their length and
 /// the same hash over them, both in base 36.
 pub fn bytes_token(bytes: &[u8]) -> String {
-    let units: Vec<u16> = bytes.iter().map(|byte| u16::from(*byte)).collect();
-    format!("{}-{}", base36(bytes.len() as u64), hash_units(&units))
+    let (length, hash) = hash_units(bytes.iter().map(|byte| u16::from(*byte)));
+    format!("{}-{}", base36(length), hash)
 }
 
 /// `value` as JSON with every object's keys sorted (`canonicalJson`).
 fn canonical_json(value: &serde_json::Value) -> String {
+    let mut out = Vec::new();
+    write_canonical(&mut out, value);
+    // Only `serde_json`'s writer and ASCII punctuation write here.
+    String::from_utf8(out).unwrap_or_default()
+}
+
+/// [`canonical_json`] of `value`, written onto `out`.
+fn write_canonical(out: &mut Vec<u8>, value: &serde_json::Value) {
     match value {
         serde_json::Value::Array(items) => {
-            let parts: Vec<String> = items.iter().map(canonical_json).collect();
-            format!("[{}]", parts.join(","))
+            out.push(b'[');
+            for (at, item) in items.iter().enumerate() {
+                if at > 0 {
+                    out.push(b',');
+                }
+                write_canonical(out, item);
+            }
+            out.push(b']');
         }
         serde_json::Value::Object(map) => {
             let mut entries: Vec<(&String, &serde_json::Value)> = map.iter().collect();
@@ -35,31 +49,43 @@ fn canonical_json(value: &serde_json::Value) -> String {
             // same as Rust's byte order except across the surrogate range;
             // compare units to agree everywhere.
             entries.sort_by(|(a, _), (b, _)| a.encode_utf16().cmp(b.encode_utf16()));
-            let parts: Vec<String> = entries
-                .into_iter()
-                .map(|(key, entry)| {
-                    format!("{}:{}", serde_json::Value::String(key.clone()), canonical_json(entry))
-                })
-                .collect();
-            format!("{{{}}}", parts.join(","))
+            out.push(b'{');
+            for (at, (key, entry)) in entries.into_iter().enumerate() {
+                if at > 0 {
+                    out.push(b',');
+                }
+                write_json(out, key);
+                out.push(b':');
+                write_canonical(out, entry);
+            }
+            out.push(b'}');
         }
-        other => other.to_string(),
+        other => write_json(out, other),
     }
 }
 
-/// cyrb53 over UTF-16 units (`hashText`), in base 36.
-fn hash_units(units: &[u16]) -> String {
+/// `value` as `serde_json` writes it. Writing a string or a scalar into
+/// memory does not fail.
+fn write_json<T: serde::Serialize + ?Sized>(out: &mut Vec<u8>, value: &T) {
+    let _ = serde_json::to_writer(out, value);
+}
+
+/// cyrb53 over UTF-16 units (`hashText`): how many units there were, and
+/// the hash in base 36.
+fn hash_units(units: impl IntoIterator<Item = u16>) -> (u64, String) {
     let mut h1: u32 = 0xdead_beef;
     let mut h2: u32 = 0x41c6_ce57;
-    for &unit in units {
+    let mut length: u64 = 0;
+    for unit in units {
         h1 = (h1 ^ u32::from(unit)).wrapping_mul(2_654_435_761);
         h2 = (h2 ^ u32::from(unit)).wrapping_mul(1_597_334_677);
+        length += 1;
     }
     h1 = (h1 ^ (h1 >> 16)).wrapping_mul(2_246_822_507);
     h1 ^= (h2 ^ (h2 >> 13)).wrapping_mul(3_266_489_909);
     h2 = (h2 ^ (h2 >> 16)).wrapping_mul(2_246_822_507);
     h2 ^= (h1 ^ (h1 >> 13)).wrapping_mul(3_266_489_909);
-    base36(4_294_967_296 * u64::from(2_097_151 & h2) + u64::from(h1))
+    (length, base36(4_294_967_296 * u64::from(2_097_151 & h2) + u64::from(h1)))
 }
 
 fn base36(mut n: u64) -> String {
@@ -100,7 +126,7 @@ mod tests {
     #[test]
     fn the_hash_is_cyrb53() {
         // Reference values from the TypeScript `hashText` run under node.
-        let hash = |text: &str| hash_units(&text.encode_utf16().collect::<Vec<_>>());
+        let hash = |text: &str| hash_units(text.encode_utf16()).1;
         assert_eq!(hash(""), "wvjl67o803");
         assert_eq!(hash(r#"{"a":1}"#), "18wxssjtft2");
         assert_eq!(hash("Smørrebrød 😀"), "2a2qgzsi1cp");
