@@ -335,6 +335,7 @@ pub(crate) fn replay_suite(
             file: file.to_string(),
             run_id: std::env::var(receipt::RUN_ID_VAR).ok(),
             head: std::env::var(receipt::HEAD_VAR).ok(),
+            dirty: receipt::dirty_from_env(),
             vector_sha256,
             only: only.map(str::to_string),
             ran: ran.clone(),

@@ -15,10 +15,13 @@
  * exit status counts too: the check fails if cargo failed or any receipt
  * problem exists, and reports both. A receipt problem is also a receipt
  * that counts failed cases, one written with the member-order comparison
- * off or the allowlist replaced, one from another run, one from another
- * commit than the checkout's `git rev-parse HEAD` (`PLUGIN_CONFORMANCE_HEAD`,
- * which this sets), or one whose vector text hash is not the hash of the
- * vector file in the checkout. It also fails when a
+ * off or the allowlist replaced, one from another run, one that names no
+ * commit or another commit than the checkout's `git rev-parse HEAD`
+ * (`PLUGIN_CONFORMANCE_HEAD`, which this sets), one whose record of
+ * uncommitted changes (`PLUGIN_CONFORMANCE_DIRTY`, from `git status
+ * --porcelain`, which this also sets) differs from the checkout's, or one
+ * whose vector text hash is not the hash of the vector file in the
+ * checkout. A failing git command fails the check. It also fails when a
  * `crates/plugin-conformance/divergences.json` entry with `observedBy` is in
  * no receipt's `exceptions` (an observation that never applied), or when a
  * `crates/plugin-conformance/member-order-allow.json` path is in no
@@ -27,10 +30,10 @@
  * allowlist does not hold.
  *
  * `--receipts <dir>` skips cargo and reads `<dir>` as it is. Every receipt
- * in it must carry the same run id and the checkout's commit, so fill it
- * with one cargo run that sets `PLUGIN_CONFORMANCE_RUN_ID` and
- * `PLUGIN_CONFORMANCE_HEAD`. Uncommitted Rust changes are not detected;
- * uncommitted vector changes are, through the hash.
+ * in it must carry the same run id and the checkout's commit, and come from
+ * a clean tree while the checkout is clean, so fill it with one cargo run
+ * on a clean tree that sets `PLUGIN_CONFORMANCE_RUN_ID`,
+ * `PLUGIN_CONFORMANCE_HEAD` and `PLUGIN_CONFORMANCE_DIRTY=0`.
  *
  * `vectors:check` keeps its source scan (a `.rs` file must name each vector
  * file as a string literal) as a fast offline lint; this is the proof.
@@ -56,6 +59,8 @@ export interface AllowanceUse {
 export interface Receipt {
   readonly runId: string | null;
   readonly head: string | null;
+  /** Whether the tree had uncommitted changes when the run started. */
+  readonly dirty: boolean | null;
   readonly vectorSha256: string | null;
   readonly file: string;
   readonly only: string | null;
@@ -159,25 +164,50 @@ export function runProblems(receipts: Receipt[], runId?: string): string[] {
   return problems;
 }
 
-/** What the checkout holds now: its commit (null when git cannot say) and
- *  the SHA-256 of each vector file's text (null when the file is gone). */
+/** What the checkout holds now: its commit, whether it has uncommitted
+ *  changes, the SHA-256 of each vector file's text (null when the file is
+ *  gone), and whether the receipts come from a `--receipts` directory
+ *  rather than this run. */
 export interface Checkout {
-  readonly head: string | null;
+  readonly head: string;
+  readonly dirty: boolean;
   readonly vectorSha256: (file: string) => string | null;
+  readonly saved: boolean;
 }
 
 /**
- * One problem line per receipt that does not match `checkout`: a commit
- * other than its head, no vector hash, or a vector hash other than the
- * file's in the checkout. A receipt like that replayed other vectors or
- * other code than the checkout holds.
+ * One problem line per receipt that does not match `checkout`: no commit or
+ * a commit other than its head, no record of uncommitted changes or a record
+ * that differs from the checkout's, uncommitted changes in a saved receipt,
+ * no vector hash, or a vector hash other than the file's in the checkout. A
+ * receipt like that replayed other vectors or other code than the checkout
+ * holds. A saved receipt from a tree with uncommitted changes fails even
+ * when the checkout has uncommitted changes too: nothing says they are the
+ * same changes.
  */
 export function staleProblems(receipts: Receipt[], checkout: Checkout): string[] {
   const problems: string[] = [];
   for (const r of receipts) {
-    if (r.head !== checkout.head) {
+    if (r.head === null) {
+      problems.push(`${r.file}: receipt names no commit (${HEAD_VAR} was not set)`);
+    } else if (r.head !== checkout.head) {
       problems.push(
         `${r.file}: receipt is from commit ${r.head}, the checkout is at ${checkout.head}`,
+      );
+    }
+    if (r.dirty === null) {
+      problems.push(
+        `${r.file}: receipt does not say whether the tree had uncommitted changes (${DIRTY_VAR} was not set)`,
+      );
+    } else if (r.dirty !== checkout.dirty) {
+      problems.push(
+        r.dirty
+          ? `${r.file}: receipt is from a tree with uncommitted changes, the checkout has none`
+          : `${r.file}: receipt is from a clean tree, the checkout has uncommitted changes`,
+      );
+    } else if (r.dirty && checkout.saved) {
+      problems.push(
+        `${r.file}: receipt is from a tree with uncommitted changes, which a --receipts directory cannot tie to the checkout`,
       );
     }
     const current = checkout.vectorSha256(r.file);
@@ -248,6 +278,7 @@ function malformed(value: unknown): string | null {
   for (const key of ['runId', 'head', 'vectorSha256']) {
     if (r[key] !== null && typeof r[key] !== 'string') return `"${key}" is not a string or null`;
   }
+  if (r.dirty !== null && typeof r.dirty !== 'boolean') return '"dirty" is not a boolean or null';
   if (typeof r.file !== 'string') return '"file" is not a string';
   if (r.only !== null && typeof r.only !== 'string') return '"only" is not a string or null';
   if (!isStrings(r.ran)) return '"ran" is not an array of strings';
@@ -369,15 +400,15 @@ export function childEnv(
   base: NodeJS.ProcessEnv,
   receipts: string,
   runId: string,
-  head: string | null,
+  checkout: CheckoutState,
 ): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {
     ...base,
     PLUGIN_CONFORMANCE_RECEIPTS: receipts,
     PLUGIN_CONFORMANCE_RUN_ID: runId,
+    [HEAD_VAR]: checkout.head,
+    [DIRTY_VAR]: checkout.dirty ? '1' : '0',
   };
-  if (head === null) delete env.PLUGIN_CONFORMANCE_HEAD;
-  else env.PLUGIN_CONFORMANCE_HEAD = head;
   delete env.PLUGIN_CONFORMANCE_ONLY;
   // `0` turns the member-order comparison off.
   delete env.PLUGIN_CONFORMANCE_MEMBER_ORDER;
@@ -391,9 +422,9 @@ function runCargo(
   packages: readonly string[],
   receipts: string,
   runId: string,
-  head: string | null,
+  checkout: CheckoutState,
 ): boolean {
-  const env = childEnv(process.env, receipts, runId, head);
+  const env = childEnv(process.env, receipts, runId, checkout);
   const args = ['test', ...packages.flatMap((p) => ['-p', p]), '--tests', '--no-fail-fast'];
   console.log(
     `running cargo test over ${packages.length} crates (${packages.join(', ')}) with receipts in ${receipts}, run ${runId}`,
@@ -403,10 +434,43 @@ function runCargo(
   return run.status === 0;
 }
 
-/** `git rev-parse HEAD` of the repository, or null when git cannot say. */
-function gitHead(): string | null {
-  const run = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' });
-  return run.status === 0 ? run.stdout.trim() : null;
+/** The receipt variables naming the commit and whether the tree had
+ *  uncommitted changes (`crates/plugin-conformance/src/receipt.rs`). */
+export const HEAD_VAR = 'PLUGIN_CONFORMANCE_HEAD';
+export const DIRTY_VAR = 'PLUGIN_CONFORMANCE_DIRTY';
+
+/** The checkout's commit and whether it has uncommitted changes, untracked
+ *  files included. */
+export interface CheckoutState {
+  readonly head: string;
+  readonly dirty: boolean;
+}
+
+/** What one git command printed. */
+export type Git = (args: readonly string[]) => {
+  readonly status: number | null;
+  readonly stdout: string;
+  readonly stderr: string;
+  readonly error?: Error;
+};
+
+const git: Git = (args) => spawnSync('git', args, { cwd: repoRoot, encoding: 'utf8' });
+
+/** `git rev-parse HEAD` and `git status --porcelain`. Throws, with git's
+ *  message, when either fails: without the commit the receipts cannot be
+ *  tied to the checkout, so the check cannot pass. */
+export function checkoutState(run: Git = git): CheckoutState {
+  const output = (args: readonly string[]): string => {
+    const result = run(args);
+    if (result.error || result.status !== 0) {
+      const why = result.error?.message ?? (result.stderr.trim() || `exit ${result.status}`);
+      throw new Error(`git ${args.join(' ')} failed, so no receipt can be tied to a commit: ${why}`);
+    }
+    return result.stdout;
+  };
+  const head = output(['rev-parse', 'HEAD']).trim();
+  const dirty = output(['status', '--porcelain']).trim() !== '';
+  return { head, dirty };
 }
 
 /** The SHA-256 of each vector file's text, as `readVector` gives it. */
@@ -432,11 +496,11 @@ export async function main(): Promise<void> {
     ? resolve(given)
     : await mkdtemp(join(tmpdir(), 'plugin-conformance-receipts-'));
   const runId = given ? undefined : randomUUID();
-  const head = gitHead();
+  const checkout = checkoutState();
   let cargoPassed: boolean | null = null;
   let read: { receipts: Receipt[]; problems: string[] };
   try {
-    if (runId) cargoPassed = runCargo(replayPackages(cargoMetadata()), dir, runId, head);
+    if (runId) cargoPassed = runCargo(replayPackages(cargoMetadata()), dir, runId, checkout);
     read = await readReceipts(dir);
   } finally {
     if (!given) await rm(dir, { recursive: true, force: true });
@@ -456,7 +520,11 @@ export async function main(): Promise<void> {
   const problems = [
     ...read.problems,
     ...runProblems(receipts, runId),
-    ...staleProblems(receipts, { head, vectorSha256: (file) => hashes.get(file) ?? null }),
+    ...staleProblems(receipts, {
+      ...checkout,
+      vectorSha256: (file) => hashes.get(file) ?? null,
+      saved: given !== undefined,
+    }),
     ...unlistedAllowances(allow, receipts),
     ...compareReceipts(expected, receipts),
     ...unappliedObservations(ledger, receipts),
@@ -466,6 +534,9 @@ export async function main(): Promise<void> {
   console.log('');
   if (cargoPassed === null) console.log(`cargo: not run (read receipts from ${dir})`);
   else console.log(`cargo: ${cargoPassed ? 'passed' : 'FAILED (see the test output above)'}`);
+  console.log(
+    `checkout: ${checkout.head}${checkout.dirty ? ' with uncommitted changes' : ', clean'}`,
+  );
   console.log(`receipts: ${receipts.length} read`);
   if (problems.length) {
     console.error(`${problems.length} replay problems:`);

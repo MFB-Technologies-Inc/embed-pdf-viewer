@@ -7,10 +7,10 @@
 //! leave two receipts, and a reader merges them. A receipt is written even
 //! when the suite fails, and records how many cases failed, `only` when
 //! `PLUGIN_CONFORMANCE_ONLY` filtered the run, whether member order was
-//! compared and whether the allowlist was replaced, the [`RUN_ID_VAR`] and
-//! [`HEAD_VAR`] of the run and the SHA-256 of the vector text it replayed,
-//! so a checker can refuse a failed, partial, weakened, mixed or stale
-//! replay.
+//! compared and whether the allowlist was replaced, the [`RUN_ID_VAR`],
+//! [`HEAD_VAR`] and [`DIRTY_VAR`] of the run and the SHA-256 of the vector
+//! text it replayed, so a checker can refuse a failed, partial, weakened,
+//! mixed or stale replay.
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -24,6 +24,21 @@ pub const RUN_ID_VAR: &str = "PLUGIN_CONFORMANCE_RUN_ID";
 /// The variable naming the commit a run replayed; `replay:check` sets it to
 /// `git rev-parse HEAD`.
 pub const HEAD_VAR: &str = "PLUGIN_CONFORMANCE_HEAD";
+
+/// The variable saying whether the tree a run replayed had uncommitted
+/// changes: `1` when it had, `0` when it had none. `replay:check` sets it
+/// from `git status --porcelain`.
+pub const DIRTY_VAR: &str = "PLUGIN_CONFORMANCE_DIRTY";
+
+/// [`DIRTY_VAR`] read as a flag; `None` when it is unset or neither `0` nor
+/// `1`.
+pub fn dirty_from_env() -> Option<bool> {
+    match std::env::var(DIRTY_VAR).ok().as_deref() {
+        Some("1") => Some(true),
+        Some("0") => Some(false),
+        _ => None,
+    }
+}
 
 /// `bytes` hashed with SHA-256, as lowercase hex.
 pub fn sha256_hex(bytes: &[u8]) -> String {
@@ -41,6 +56,8 @@ pub struct Receipt {
     pub run_id: Option<String>,
     /// The [`HEAD_VAR`] of the run, when one was set.
     pub head: Option<String>,
+    /// [`DIRTY_VAR`] of the run as a flag, when it was `0` or `1`.
+    pub dirty: Option<bool>,
     /// The SHA-256 of the vector text replayed (decompressed), as hex; `None`
     /// for a suite passed in already loaded.
     pub vector_sha256: Option<String>,
@@ -165,6 +182,7 @@ mod tests {
         let mut r = receipt(&["case-a"]);
         r.run_id = Some("run-1".into());
         r.head = Some("abc".into());
+        r.dirty = Some(false);
         r.vector_sha256 = Some("00".into());
         r.only = Some("case".into());
         r.failures = 1;
@@ -180,6 +198,7 @@ mod tests {
                 "file": "a/b.json",
                 "runId": "run-1",
                 "head": "abc",
+                "dirty": false,
                 "vectorSha256": "00",
                 "only": "case",
                 "ran": ["case-a"],
@@ -331,6 +350,7 @@ mod tests {
         let r = read(path);
         assert_eq!(r.vector_sha256.as_deref(), Some(sha256_hex(text.as_bytes()).as_str()));
         assert_eq!(r.head, std::env::var(HEAD_VAR).ok());
+        assert_eq!(r.dirty, dirty_from_env());
         assert_eq!(
             r.allow_list_overridden,
             std::env::var_os(crate::canonical::ALLOW_OVERRIDE_VAR).is_some()
