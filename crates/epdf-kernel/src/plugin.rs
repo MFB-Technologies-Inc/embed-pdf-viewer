@@ -109,6 +109,9 @@ pub(crate) trait SessionView {
     fn id(&self) -> String;
     /// Unique per open; a reopened id gets a new one.
     fn instance_id(&self) -> String;
+    /// How many engine events the document had, counted before any
+    /// plugin's own listener hears the event.
+    fn engine_events(&self) -> u64;
     fn handle(&self) -> Option<Rc<dyn DocumentHandle>>;
     fn staged_meta(&self) -> Option<Rc<DocumentMeta>>;
     fn scope(&self) -> Scope;
@@ -494,7 +497,27 @@ struct ControllerInner {
     /// The rows of a page list by object number, the first row of each, for
     /// the page list it was built from.
     page_index: RefCell<Option<(Rc<Value>, HashMap<u32, usize>)>>,
+    permissions: RefCell<PermissionMemo>,
     clock: crate::clock::PluginClock,
+}
+
+/// The security service's answers, by `(member, args)`, for one
+/// [`PermissionStamp`]. TypeScript asks the service on every check; an
+/// answer is kept only while nothing it reads can have changed.
+#[derive(Default)]
+struct PermissionMemo {
+    stamp: Option<PermissionStamp>,
+    answers: HashMap<(String, String), bool>,
+}
+
+/// What a permission answer reads, as counters: the store's change count,
+/// its core revision, and the document's engine events, which carry what
+/// the engine changes without a store write (a signing's new protection).
+#[derive(Clone, Copy, PartialEq, Eq)]
+struct PermissionStamp {
+    store_changes: u64,
+    core_revision: u64,
+    engine_events: u64,
 }
 
 impl std::ops::Deref for ControllerContext {
@@ -534,6 +557,7 @@ impl ControllerContext {
             queues: RefCell::new(HashMap::new()),
             lanes: RefCell::new(HashMap::new()),
             page_index: RefCell::new(None),
+            permissions: RefCell::default(),
         })))
     }
 
@@ -605,12 +629,58 @@ impl ControllerContext {
         self.0.clock.clone()
     }
 
+    /// The stamp a permission answer is kept under, or `None` when there
+    /// is nothing to key it on: a workspace context, a gone kernel, or a
+    /// closed instance, whose engine document may already be gone.
+    fn permission_stamp(&self) -> Option<PermissionStamp> {
+        if self.0.lifetime.aborted() {
+            return None;
+        }
+        let session = self.0.session.as_ref()?;
+        let store = self.0.services.upgrade()?.store();
+        Some(PermissionStamp {
+            store_changes: store.change_count(),
+            core_revision: store.core_revision(),
+            engine_events: session.engine_events(),
+        })
+    }
+
+    /// `ask` of the bound document's security service, answered from the
+    /// memo while the stamp it was asked at holds.
+    fn permission(
+        &self,
+        member: &str,
+        args: String,
+        ask: impl FnOnce(&dyn crate::engine::DocumentSecurity) -> bool,
+    ) -> bool {
+        let Ok(doc) = self.doc() else { return false };
+        let Some(stamp) = self.permission_stamp() else { return ask(&*doc.security()) };
+        let key = (member.to_string(), args);
+        {
+            let mut memo = self.0.permissions.borrow_mut();
+            if memo.stamp != Some(stamp) {
+                memo.answers.clear();
+                memo.stamp = Some(stamp);
+            }
+            if let Some(&answer) = memo.answers.get(&key) {
+                return answer;
+            }
+        }
+        let answer = ask(&*doc.security());
+        // The question crossed into the engine; keep the answer only if
+        // nothing moved meanwhile.
+        if self.permission_stamp() == Some(stamp) {
+            self.0.permissions.borrow_mut().answers.insert(key, answer);
+        }
+        answer
+    }
+
     pub fn allows(&self, permission: &str) -> bool {
-        self.doc().is_ok_and(|d| {
+        self.permission("allows", permission.to_string(), |security| {
             if permission == "annotations:create" {
-                d.security().allows_annotation_create()
+                security.allows_annotation_create()
             } else {
-                d.security().allows(permission)
+                security.allows(permission)
             }
         })
     }
@@ -629,8 +699,9 @@ impl ControllerContext {
         }
     }
     pub fn allows_field(&self, action: &str, field: &Value) -> bool {
-        self.doc().is_ok_and(|d| {
-            d.security().allows_field(action, &serde_json::json!({"groupId":field["groupId"]}))
+        let group = &field["groupId"];
+        self.permission("allowsField", format!("{action} {group}"), |security| {
+            security.allows_field(action, &serde_json::json!({ "groupId": group }))
         })
     }
     pub fn assert_allowed_field(

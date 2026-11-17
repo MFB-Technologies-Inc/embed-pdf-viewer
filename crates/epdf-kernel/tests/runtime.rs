@@ -1131,3 +1131,281 @@ fn a_lane_abort_reason_reaches_the_engine_as_the_typescript_value() {
     plain.abort(Error::new("boom"));
     assert_eq!(plain.reason_value(), Some(Error::new("boom").to_canonical()));
 }
+
+// ── permission checks, asked once per revision ────────────────────────────────
+
+/// A security service that logs each question and answers from `granted`.
+#[derive(Default)]
+struct CountingSecurity {
+    granted: RefCell<HashSet<String>>,
+    asked: RefCell<Vec<String>>,
+}
+
+impl CountingSecurity {
+    fn ask(&self, question: String, key: &str) -> bool {
+        self.asked.borrow_mut().push(question);
+        self.granted.borrow().contains(key)
+    }
+    fn grant(&self, key: &str) {
+        self.granted.borrow_mut().insert(key.into());
+    }
+    fn asked(&self) -> usize {
+        self.asked.borrow().len()
+    }
+}
+
+impl DocumentSecurity for CountingSecurity {
+    fn allows(&self, capability: &str) -> bool {
+        self.ask(format!("allows {capability}"), capability)
+    }
+    fn allows_field(&self, action: &str, target: &Value) -> bool {
+        self.ask(format!("allowsField {action} {target}"), &format!("field:{action}:{target}"))
+    }
+    fn allows_annotation_create(&self) -> bool {
+        self.ask("allowsAnnotationCreate".into(), "annotations:create")
+    }
+    fn allows_annotation_mutation(&self, _: &str, _: &Value) -> bool {
+        false
+    }
+    fn allows_annotation_group_assignment(&self, _: &str) -> bool {
+        false
+    }
+    fn effective_scope(&self) -> Vec<String> {
+        Vec::new()
+    }
+    fn identity(&self) -> Value {
+        Value::Null
+    }
+    fn current(&self) -> Value {
+        Value::Null
+    }
+    fn password_prompt(&self) -> Value {
+        json!({ "state": "none" })
+    }
+    fn unlock(&self, _: Value) -> EngineCall<Value> {
+        Promise::rejected(Error::new("no unlock"))
+    }
+}
+
+/// A document whose security is a [`CountingSecurity`] and whose events
+/// the test emits.
+struct PermissionDoc {
+    id: String,
+    security: Rc<CountingSecurity>,
+    events: EventHookSource<Value>,
+}
+
+impl DocumentHandle for PermissionDoc {
+    fn id(&self) -> String {
+        self.id.clone()
+    }
+    fn capabilities(&self) -> Value {
+        json!({})
+    }
+    fn security(&self) -> Rc<dyn DocumentSecurity> {
+        self.security.clone()
+    }
+    fn has(&self, _: &str) -> bool {
+        false
+    }
+    fn call(&self, path: &str, _: Option<u32>, _: Vec<Value>) -> EngineCall<Value> {
+        match path {
+            "pages.list" => Promise::resolved(json!({"pageCount":0,"pages":[],"labels":[]})),
+            "close" => Promise::resolved(Value::Null),
+            _ => Promise::rejected(Error::new(format!("unexpected call {path}"))),
+        }
+    }
+    fn page_index(&self, _: u32) -> Result<u32, Error> {
+        Err(Error::engine("NotFound", "page"))
+    }
+    fn subscribe(&self, listener: Rc<dyn Fn(&Value)>) -> epdf_kernel::Unsubscribe {
+        self.events.on(move |event| {
+            listener(event);
+            Ok(())
+        })
+    }
+    fn last_server_sequence(&self) -> Option<String> {
+        None
+    }
+}
+
+/// An engine that opens each `{"id": ...}` input as its [`PermissionDoc`].
+struct PermissionEngine(Vec<Rc<PermissionDoc>>);
+
+impl epdf_kernel::engine::Engine for PermissionEngine {
+    fn open(&self, input: Value, _: Option<Value>) -> EngineCall<Rc<dyn DocumentHandle>> {
+        let doc = self.0.iter().find(|d| input["id"] == d.id.as_str()).expect("a known document");
+        Promise::resolved(doc.clone() as Rc<dyn DocumentHandle>)
+    }
+    fn destroy(&self) -> EngineCall<()> {
+        Promise::resolved(())
+    }
+}
+
+fn permission_doc(id: &str) -> Rc<PermissionDoc> {
+    Rc::new(PermissionDoc {
+        id: id.into(),
+        security: Rc::new(CountingSecurity::default()),
+        events: EventHookSource::new(None),
+    })
+}
+
+fn settle<T: Clone + 'static>(promise: Promise<T>) -> T {
+    rt::run_until_stalled();
+    promise.peek().expect("settled").expect("resolved")
+}
+
+/// A kernel over `docs`, each opened, with a document plugin whose
+/// capability is its controller context.
+fn permission_kernel(
+    docs: &[Rc<PermissionDoc>],
+) -> (epdf_kernel::Kernel, Token<epdf_kernel::ControllerContext>) {
+    rt::reset();
+    let token = Token::<epdf_kernel::ControllerContext>::new("permissions");
+    let plugin = epdf_kernel::define::<Value, CoreAction>("permissions")
+        .document_scoped()
+        .create(&token, |ctx| Ok((ctx.cx.clone(), None)))
+        .build();
+    let options = epdf_kernel::KernelOptions {
+        report: Some(Rc::new(|e| panic!("unexpected report: {e}"))),
+        ..Default::default()
+    };
+    let kernel =
+        epdf_kernel::Kernel::new(Rc::new(PermissionEngine(docs.to_vec())), vec![plugin], options)
+            .unwrap();
+    settle(kernel.start());
+    for doc in docs {
+        let input = epdf_kernel::OpenSource::Input(json!({ "id": doc.id }));
+        settle(kernel.documents().open(input, epdf_kernel::OpenOptions::default()));
+    }
+    (kernel, token)
+}
+
+#[test]
+fn allows_crosses_once_per_revision() {
+    let doc = permission_doc("doc");
+    doc.security.grant("doc.print");
+    let (kernel, token) = permission_kernel(std::slice::from_ref(&doc));
+    let ctx = kernel.capability(&token, Some("doc")).unwrap();
+    let before = doc.security.asked();
+    for _ in 0..10 {
+        assert!(ctx.allows("doc.print"));
+        assert!(!ctx.allows("doc.render"));
+        assert!(!ctx.allows("annotations:create"));
+    }
+    // One question per permission, each asked of the member TypeScript
+    // asks (`annotations:create` goes to `allowsAnnotationCreate`).
+    assert_eq!(
+        doc.security.asked.borrow()[before..],
+        ["allows doc.print", "allows doc.render", "allowsAnnotationCreate"]
+    );
+    assert!(ctx.assert_allowed("doc.print", "print").is_ok());
+    assert!(ctx.assert_allowed("doc.render", "render").is_err());
+    assert_eq!(doc.security.asked(), before + 3);
+}
+
+#[test]
+fn allows_rereads_after_a_store_change() {
+    let doc = permission_doc("doc");
+    let (kernel, token) = permission_kernel(std::slice::from_ref(&doc));
+    let ctx = kernel.capability(&token, Some("doc")).unwrap();
+    assert!(!ctx.allows("doc.print"));
+    doc.security.grant("doc.print");
+    assert!(!ctx.allows("doc.print"), "the same revision answers from the memo");
+    let asked = doc.security.asked();
+    ctx.notify();
+    assert!(ctx.allows("doc.print"));
+    assert!(ctx.allows("doc.print"));
+    assert_eq!(doc.security.asked(), asked + 1);
+}
+
+#[test]
+fn allows_rereads_after_a_core_change() {
+    let first = permission_doc("first");
+    let second = permission_doc("second");
+    let (kernel, token) = permission_kernel(&[first.clone(), second.clone()]);
+    let ctx = kernel.capability(&token, Some("first")).unwrap();
+    assert!(!ctx.allows("doc.print"));
+    first.security.grant("doc.print");
+    let asked = first.security.asked();
+    let (count, core) = (ctx.store_change_count(), kernel.core_revision());
+    kernel.documents().set_order(&["second".into(), "first".into()]).unwrap();
+    assert_ne!(kernel.core_revision(), core);
+    assert_ne!(ctx.store_change_count(), count);
+    assert!(ctx.allows("doc.print"));
+    assert_eq!(first.security.asked(), asked + 1);
+}
+
+#[test]
+fn allows_rereads_after_security_event() {
+    let doc = permission_doc("doc");
+    let (kernel, token) = permission_kernel(std::slice::from_ref(&doc));
+    let ctx = kernel.capability(&token, Some("doc")).unwrap();
+    assert!(!ctx.allows("doc.print"));
+    assert!(!ctx.allows_field("fill", &json!({"groupId": "g", "name": "a"})));
+    // A change the engine reports with an event and no store write, such
+    // as a signing's new protection.
+    doc.security.grant("doc.print");
+    doc.security.grant(r#"field:fill:{"groupId":"g"}"#);
+    let (count, core) = (ctx.store_change_count(), kernel.core_revision());
+    doc.events.emit(&json!({"type": "signatures.prepared"}));
+    assert_eq!((ctx.store_change_count(), kernel.core_revision()), (count, core));
+    let asked = doc.security.asked();
+    assert!(ctx.allows("doc.print"));
+    assert!(ctx.allows_field("fill", &json!({"groupId": "g", "name": "b"})));
+    assert_eq!(doc.security.asked(), asked + 2);
+}
+
+#[test]
+fn allows_field_crosses_once_per_group_and_action() {
+    let doc = permission_doc("doc");
+    doc.security.grant(r#"field:fill:{"groupId":null}"#);
+    let (kernel, token) = permission_kernel(std::slice::from_ref(&doc));
+    let ctx = kernel.capability(&token, Some("doc")).unwrap();
+    let before = doc.security.asked();
+    for name in ["a", "b", "c"] {
+        assert!(ctx.allows_field("fill", &json!({"groupId": null, "name": name})));
+        assert!(!ctx.allows_field("sign", &json!({"groupId": null, "name": name})));
+        assert!(!ctx.allows_field("fill", &json!({"groupId": "g", "name": name})));
+    }
+    // The question is the action and the group, not the rest of the field.
+    assert_eq!(
+        doc.security.asked.borrow()[before..],
+        [
+            r#"allowsField fill {"groupId":null}"#,
+            r#"allowsField sign {"groupId":null}"#,
+            r#"allowsField fill {"groupId":"g"}"#,
+        ]
+    );
+}
+
+#[test]
+fn allows_is_per_document() {
+    let first = permission_doc("first");
+    let second = permission_doc("second");
+    first.security.grant("doc.print");
+    let (kernel, token) = permission_kernel(&[first.clone(), second.clone()]);
+    let one = kernel.capability(&token, Some("first")).unwrap();
+    let two = kernel.capability(&token, Some("second")).unwrap();
+    assert!(one.allows("doc.print"));
+    assert!(!two.allows("doc.print"));
+    assert!(one.allows("doc.print"));
+    assert_eq!((first.security.asked(), second.security.asked()), (1, 1));
+}
+
+#[test]
+fn allows_asks_every_time_once_the_instance_closed() {
+    let doc = permission_doc("doc");
+    doc.security.grant("doc.print");
+    let (kernel, token) = permission_kernel(std::slice::from_ref(&doc));
+    let ctx = kernel.capability(&token, Some("doc")).unwrap();
+    assert!(ctx.allows("doc.print"));
+    settle(kernel.documents().close("doc"));
+    assert!(ctx.lifetime().aborted());
+    // The engine's document is gone: what it answers now is what counts.
+    doc.security.granted.borrow_mut().clear();
+    let asked = doc.security.asked();
+    assert!(!ctx.allows("doc.print"));
+    assert!(!ctx.allows("doc.print"));
+    assert_eq!(doc.security.asked(), asked + 2);
+}

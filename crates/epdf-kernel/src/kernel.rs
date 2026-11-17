@@ -194,6 +194,8 @@ type Recorded = (OpenSource, OpenOptions, Option<Rc<HostHold>>);
 
 struct Session {
     change_count: Cell<u64>,
+    /// Engine events the document had since it came up, of any type.
+    engine_events: Cell<u64>,
     settle_flushes: Rc<RefCell<Vec<crate::settle::SettleFlush>>>,
     download_wraps: Rc<RefCell<Vec<crate::settle::DownloadWrap>>>,
     print_wraps: Rc<RefCell<Vec<crate::settle::PrintWrap>>>,
@@ -267,6 +269,9 @@ impl SessionView for Session {
     }
     fn instance_id(&self) -> String {
         self.instance_id.clone()
+    }
+    fn engine_events(&self) -> u64 {
+        self.engine_events.get()
     }
     fn handle(&self) -> Option<Rc<dyn DocumentHandle>> {
         self.handle.borrow().clone()
@@ -511,6 +516,7 @@ impl Inner {
             Session {
                 page_view,
                 change_count: Cell::new(0),
+                engine_events: Cell::new(0),
                 settle_flushes: Rc::default(),
                 download_wraps: Rc::default(),
                 print_wraps: Rc::default(),
@@ -1666,6 +1672,7 @@ impl Inner {
         };
         let unsubscribe = handle.subscribe(Rc::new(move |event: &Value| {
             let (Some(this), Some(session)) = (weak.upgrade(), s.upgrade()) else { return };
+            session.engine_events.set(session.engine_events.get() + 1);
             let tx = event.pointer("/origin/transaction");
             let id = tx.and_then(|t| t["id"].as_str());
             let old = if session
