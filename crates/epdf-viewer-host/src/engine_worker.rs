@@ -1,6 +1,9 @@
 //! The engine's own thread. PDFium never leaves `OwnerThread`; this client
 //! thread queues calls to it so the kernel thread never blocks on a render.
-//! A PDFium call cannot be interrupted, so a kernel abort only drops the
+//! A call cancelled while it waits in line never runs. A running call gets
+//! its token, which the host checks between units of work; a single PDFium
+//! call cannot be interrupted, so a call cancelled past its last check
+//! completes, and the kernel, which settled it at the abort, drops the
 //! reply.
 
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -8,6 +11,7 @@ use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Mutex, Weak};
 use std::thread::JoinHandle;
 
+use epdf_engine::cancel::CancelToken;
 use epdf_engine::dispatch::OwnerThread;
 use epdf_engine::error::{EngineError, EngineErrorCode};
 use epdf_engine::host::{Host, HostResponse};
@@ -18,6 +22,7 @@ enum Request {
     Call {
         json: String,
         payloads: Vec<Vec<u8>>,
+        cancel: CancelToken,
         reply: Reply,
     },
     /// Answered once every request queued before it has been answered.
@@ -58,12 +63,16 @@ impl EngineWorker {
                 let mut owner = OwnerThread::start(setup);
                 for request in rx {
                     match request {
+                        // Its canceller has answered it.
+                        Request::Call { cancel, .. } if cancel.is_cancelled() => {}
                         Request::Call { reply, .. } if skip.load(Ordering::SeqCst) => {
                             reply(shut_down());
                         }
-                        Request::Call { json, payloads, reply } => {
+                        Request::Call { json, payloads, cancel, reply } => {
                             let response = owner
-                                .run(move |host: &mut Host| host.call(&json, payloads))
+                                .run(move |host: &mut Host| {
+                                    host.call_with_cancel(&json, payloads, &cancel)
+                                })
                                 .unwrap_or_else(|error| HostResponse {
                                     json: serde_json::json!({ "error": error }).to_string(),
                                     payloads: Vec::new(),
@@ -85,9 +94,11 @@ impl EngineWorker {
     }
 
     /// Queue a call. After `shutdown` the reply still comes, at once and as
-    /// an error, so a caller waiting on it is never left pending.
-    pub fn submit(&self, json: String, payloads: Vec<Vec<u8>>, reply: Reply) {
-        let request = Request::Call { json, payloads, reply };
+    /// an error, so a caller waiting on it is never left pending. Cancelling
+    /// `cancel` before the call runs drops it unanswered; once it runs, the
+    /// host checks `cancel` between units of work.
+    pub fn submit(&self, json: String, payloads: Vec<Vec<u8>>, cancel: CancelToken, reply: Reply) {
+        let request = Request::Call { json, payloads, cancel, reply };
         if let Some(Request::Call { reply, .. }) = self.send(request) {
             reply(shut_down());
         }
@@ -129,6 +140,16 @@ impl EngineWorker {
     #[doc(hidden)]
     pub fn alive(&self) -> Weak<()> {
         self.alive.clone()
+    }
+
+    /// Keep the client thread from taking the calls queued after this one
+    /// until `gate` receives: a test's way to cancel a call while it waits.
+    #[cfg(test)]
+    pub(crate) fn hold(&self, gate: mpsc::Receiver<()>) {
+        let held = self.send(Request::Drained(Box::new(move || {
+            let _ = gate.recv();
+        })));
+        assert!(held.is_none(), "the worker takes requests");
     }
 
     /// The request back if the thread no longer takes requests.
