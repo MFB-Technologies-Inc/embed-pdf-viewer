@@ -246,7 +246,7 @@ function report(run, config) {
   // (lib/flows.mjs `warmupFailed`).
   const cold = samples.filter((s) => !s.error && s.warmupFailed);
   if (cold.length) {
-    push('', `${cold.length} samples ran after a failed warm-up and are kept, measured after an incomplete warm-up:`, '');
+    push('', `${cold.length} samples ran after a failed warm-up. They were timed without their warm-up and are included in the medians and verdicts below:`, '');
     const byKind = {};
     for (const s of cold) {
       const k = `${s.arm} ${s.flow}(${s.fixture}): ${s.warmupFailed}`;

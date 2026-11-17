@@ -274,7 +274,7 @@ test('samples after a failed warm-up are kept and listed per arm and flow', () =
     assert.equal(out.status, 0, out.stderr);
     assert.match(
       out.stdout,
-      /\n4 samples ran after a failed warm-up and are kept, measured after an incomplete warm-up:\n\n- main open\(small\): the drag selected no text \(x1\)\n- plugins-next open\(small\): timed out waiting for the warm-up highlight \(x3\)\n/,
+      /\n4 samples ran after a failed warm-up\. They were timed without their warm-up and are included in the medians and verdicts below:\n\n- main open\(small\): the drag selected no text \(x1\)\n- plugins-next open\(small\): timed out waiting for the warm-up highlight \(x3\)\n/,
     );
     // Kept: every row still has all 12 samples, so the tables are unchanged.
     const strip = (t) => t.replace(/\n4 samples ran after[^]*?\(x3\)\n/, '');
