@@ -30,7 +30,9 @@ comparator between near-tied corners.
 Neither was fixed or in the ledger at `82c1f37d7`. `971ed565e` fixes the halfway rounding: every
 port of `Number::toString` now picks the even digit, and the cases `matrixToCss/digit-tie-to-even*`
 and `pageTransform/css-digit-tie-to-even*` in `tooling/plugin-conformance/src/suites/geometry.ts`
-pin it. The `atan2` difference still waits on a decision. The printed cases reproduce it, for example
+pin it. What still waits on the owner's decision is the last-bit difference between the platform
+math libraries: `atan2` here, and `cos` and `sin` in the seed 31337 run below. The printed cases
+reproduce the `atan2` one, for example
 `{ name: 'diff-normalizePdfQuad-1', fn: 'normalizePdfQuad', args: [[{ x: 0, y: -1 }, { x: -1.4456042752816933e-19, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 5e-324 }]] }`.
 
 ## Geometry differential, 2026-11-17
@@ -46,17 +48,47 @@ and each seed exited 1:
 
 The two causes were unchanged: the halfway digit rounding of `number_to_string` and the one-ulp
 `atan2` difference. At `86c22c127`, after the rounding fix, the same seeds mismatch only in
-`normalizePdfQuad` (1095, 545 and 1651), and each still exits 1.
+`normalizePdfQuad` (1095, 545 and 1651), and each still exits 1. At `ef439fbba` they print the same:
+
+| seed | inputs, 37 functions | mismatched (failing input) | exit |
+| --- | --- | --- | --- |
+| 1 | 361095 | `normalizePdfQuad` (1095) | 1 |
+| 2 | 360545 | `normalizePdfQuad` (545) | 1 |
+| 3 | 361651 | `normalizePdfQuad` (1651) | 1 |
+
+These 10000 runs never reach the `cos` difference below, so they show only one of the two.
+
+## Geometry differential, seed 31337, 2026-11-17
+
+`pnpm run differential -- --crate geometry --runs 50000 --seed 31337` printed, at `da89a8ead` and
+again at `ef439fbba`, 1791277 inputs over 37 functions with two mismatched, `rotateAbout` (39703)
+and `normalizePdfQuad` (1574), and exited 1. The `normalizePdfQuad` case is the `atan2` difference
+again. The `rotateAbout` one is new:
+
+```
+{ name: 'diff-rotateAbout-31337', fn: 'rotateAbout', args: [{ x: 0, y: -4915517297019373 }, -6] },
+```
+
+TypeScript returns `[0.9601702866503661, 0.27941549819892586, -0.27941549819892586,
+0.9601702866503661, -1373471714452105.5, -195783644905449]`, Rust the same with `0.960170286650366`
+for both cosines and `-195783644905450` last. `Math.cos(-6)` in Node v24.20.0 is
+`0.9601702866503661`; `(-6f64).cos()` in the container, which calls glibc 2.41, is
+`0.960170286650366`, one ulp lower. The sines agree at `0.27941549819892586`. The translation
+multiplies that ulp by `4915517297019373`, so it reaches the last digit of an integer. This is the
+`atan2` family, a last-bit difference in the platform math library, and it waits on the same
+decision. Neither is fixed or in `divergences.json`, so the differential exits 1 by design until
+that decision is made.
 
 ## Full suite, 2026-11-17
 
-At `f02f7419a`, on a clean tree, in container `embed-pdf-conformance` with Node v24.20.0, pnpm
+At `ef439fbba`, on a clean tree, in container `embed-pdf` with Node v24.20.0, pnpm
 10.34.0, rustc 1.98.0 (88d9e12ae 2026-08-18), cargo 1.98.0 (797e8a9bc 2026-08-05) and
 cargo-llvm-cov 0.9.1. The `pnpm run` commands ran from `tooling/plugin-conformance`, the cargo ones
 from the repository root. `<crates>` is every crate with a file this branch changed under `crates/`
 (`git diff --name-only 2aaa8f841..HEAD -- crates`): `-p conformance-function-server -p epdf-capi
--p epdf-engine -p plugin-conformance -p epdf-acrojs -p epdf-plugin-actions -p epdf-plugin-annotation
--p epdf-annotation-core -p epdf-plugin-selection -p epdf-plugin-stage -p epdf-ui-core`.
+-p epdf-engine -p epdf-kernel -p plugin-conformance -p epdf-acrojs -p epdf-plugin-actions
+-p epdf-plugin-annotation -p epdf-annotation-core -p epdf-geometry -p epdf-plugin-i18n
+-p epdf-plugin-selection -p epdf-plugin-stage -p epdf-ui-core`.
 
 | command | exit | printed |
 | --- | --- | --- |
@@ -66,10 +98,10 @@ from the repository root. `<crates>` is every crate with a file this branch chan
 | `pnpm run test:harness` | 0 | tests 87, pass 87, fail 0 |
 | `pnpm run vectors:check` | 0 | `119 vector files are current, and each is replayed` |
 | `pnpm run coverage:check` | 0 | `coverage is current: statements 72853/77093, branches 14365/15719, 935 lines reached only by snapshot-none cases, 36 ported files no generator loads` |
-| `pnpm run replay:check` | 0 | `cargo: passed`, `checkout: f02f7419afe1734b68d1f2923324a914d5dee144, clean`, `receipts: 119 read`, `119 vector files, 15916 cases, all replayed` |
-| `pnpm run rust-coverage:check` | 0 | `rust coverage is current: replay reaches 64233/112503 lines; 36975 lines only other tests reach, in 673 files (74 excluded)` |
+| `pnpm run replay:check` | 0 | `cargo: passed`, `checkout: ef439fbbab417ffa93c541dd14ff1f16e8401288, clean`, `receipts: 119 read`, `119 vector files, 15922 cases, all replayed` |
+| `pnpm run rust-coverage:check` | 0 | `rust coverage is current: replay reaches 64253/112591 lines; 37035 lines only other tests reach, in 673 files (74 excluded)` |
 
-The cargo test run inside `replay:check` printed 161 `test result:` lines, which sum to 863 passed,
+The cargo test run inside `replay:check` printed 161 `test result:` lines, which sum to 867 passed,
 0 failed and 1 ignored. Every receipt carried the run's id, the commit, a clean-tree flag and the
 vector hash, none was written with failures, member order off or the allowlist replaced, and every
 one of the 19 allowlist paths was used.
