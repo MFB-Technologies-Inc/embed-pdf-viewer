@@ -66,6 +66,9 @@ pub struct Core {
     pub(crate) focus_order_cache: RefCell<Option<crate::write::focus::FocusOrderCache>>,
     /// The widget hover pump, made on first use.
     pub(crate) widget_pump: RefCell<Option<epdf_plugin_actions::HoverPump>>,
+    /// The conformance adapter's printed answers.
+    #[cfg(feature = "harness")]
+    pub(crate) printed: crate::harness::Printed,
 }
 
 /// `FormHostCapability`, which includes the public `FormCapability`.
@@ -223,6 +226,8 @@ pub fn create_form_controller(
         widget_pump: RefCell::new(None),
         cursor: Default::default(),
         focus_order_cache: RefCell::new(None),
+        #[cfg(feature = "harness")]
+        printed: crate::harness::Printed::default(),
     });
     core.watch_formatted_texts()?;
     core.wire_fills()?;

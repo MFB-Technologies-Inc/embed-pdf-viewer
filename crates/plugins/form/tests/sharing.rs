@@ -274,6 +274,33 @@ fn the_fill_projection_is_reference_stable() {
     assert!(Rc::ptr_eq(&after, &form.list_widgets(&page)));
 }
 
+/// The adapter prints `listWidgets` once per list: the same text `Rc` while
+/// the list is the same, byte for byte what the list prints as.
+#[test]
+fn list_widgets_printed_once_per_change() {
+    use plugin_conformance::{Harness, Outcome};
+    let (kernel, _fake) = kernel_with(3);
+    let form = kernel.capability(&FORM, Some("a")).expect("the form capability");
+    let page = object_ref(1);
+    let h = Harness::new(
+        vec![Rc::new(epdf_plugin_form::harness::Form)],
+        std::collections::HashMap::new(),
+    );
+    let any: Rc<dyn std::any::Any> = Rc::new(form.clone());
+    let printed = || match h.call(&any, "listWidgets", vec![page.clone()]) {
+        Outcome::Text(text) => text,
+        _ => panic!("listWidgets answers as printed text"),
+    };
+    let first = printed();
+    assert_eq!(&*first, Value::Array((*form.list_widgets(&page)).clone()).to_string());
+    assert!(Rc::ptr_eq(&first, &printed()), "an unchanged list is printed once");
+    let _pending = form.set_value(object_ref(2), json!({ "value": "typed" }), None);
+    rt::run_until_stalled();
+    let after = printed();
+    assert!(!Rc::ptr_eq(&first, &after), "a new list is printed again");
+    assert_eq!(&*after, Value::Array((*form.list_widgets(&page)).clone()).to_string());
+}
+
 /// M38: a host that refetches the store's text (`epdf-web`'s `state_json`
 /// and `slice_text`, `crates/epdf-web/src/exports.rs`) serialises the
 /// fields mirror's `FieldIndex` once per confirmed form, however often it
