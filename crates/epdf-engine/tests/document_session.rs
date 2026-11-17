@@ -715,3 +715,66 @@ fn a_session_opened_from_bytes_persists_no_artifact_and_a_layer_does() {
         .expect("open");
     assert!(layer.persists_layer_artifact());
 }
+
+/// A PDF of `pages` letter pages, each drawing one line from its own stream,
+/// cross-reference offsets computed so PDFium reads it without repair.
+fn many_pages(pages: u32) -> Vec<u8> {
+    let first_page = 3;
+    let kids: Vec<String> = (0..pages).map(|i| format!("{} 0 R", first_page + 2 * i)).collect();
+    let mut objects = vec![
+        "<< /Type /Catalog /Pages 2 0 R >>".to_owned(),
+        format!("<< /Type /Pages /Kids [{}] /Count {pages} >>", kids.join(" ")),
+    ];
+    let content = "0 0 m 612 792 l S";
+    for i in 0..pages {
+        objects.push(format!(
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents {} 0 R >>",
+            first_page + 2 * i + 1
+        ));
+        objects.push(format!("<< /Length {} >>\nstream\n{content}\nendstream", content.len()));
+    }
+    let mut out = b"%PDF-1.7\n".to_vec();
+    let mut offsets = Vec::with_capacity(objects.len());
+    for (i, body) in objects.iter().enumerate() {
+        offsets.push(out.len());
+        out.extend_from_slice(format!("{} 0 obj\n{body}\nendobj\n", i + 1).as_bytes());
+    }
+    let xref = out.len();
+    out.extend_from_slice(
+        format!("xref\n0 {}\n0000000000 65535 f \n", objects.len() + 1).as_bytes(),
+    );
+    for offset in offsets {
+        out.extend_from_slice(format!("{offset:010} 00000 n \n").as_bytes());
+    }
+    out.extend_from_slice(
+        format!(
+            "trailer\n<< /Size {} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n",
+            objects.len() + 1
+        )
+        .as_bytes(),
+    );
+    out
+}
+
+#[test]
+fn open_400_pages_loads_no_page() {
+    use pdfium::call_count::{self, Call};
+
+    // The session runs on this thread, so the thread-local counter sees every
+    // load the open makes.
+    let bytes = many_pages(400);
+    let mut session = DocumentSession::new();
+    call_count::reset();
+    session.open(bytes, None).expect("open");
+    assert_eq!(session.page_count().expect("count"), 400);
+    assert_eq!(call_count::get(Call::LoadPage), 0, "open loaded pages");
+
+    // The first whole-document read enumerates the registry; it reads object
+    // numbers from the page tree too.
+    let records = session.all_records().expect("records").to_vec();
+    assert_eq!(records.len(), 400);
+    let last = records[399];
+    assert_eq!(last.page_index, 399);
+    assert_eq!(session.record_by_object_number(last.page_object_number).expect("record"), last);
+    assert_eq!(call_count::get(Call::LoadPage), 0, "registry enumeration loaded pages");
+}

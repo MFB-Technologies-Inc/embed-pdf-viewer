@@ -34,6 +34,8 @@ build-support = { path = "../build-support" }
 
 [dev-dependencies]
 test-support = { path = "../test-support" }
+# Tests count PDFium page loads to prove a path does not make them.
+pdfium = { path = "../pdfium", features = ["call-count"] }
 # The Stage B spike's write test calls PDFium through the leased raw pointer,
 # which is what the host does with it. Goes with the spike.
 pdfium-sys = { path = "../pdfium-sys" }

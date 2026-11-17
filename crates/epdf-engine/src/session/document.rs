@@ -677,6 +677,8 @@ impl DocumentSession {
 
     /// Enumerate every page once, caching index to object number.
     ///
+    /// Reads the numbers from the page tree; no page is loaded.
+    ///
     /// A page with no indirect object number makes the document unusable for
     /// identity, so it is refused here with a message that says what is wrong
     /// rather than routed through a weak identity path. ISO 32000-1 7.7.3.3
@@ -688,13 +690,12 @@ impl DocumentSession {
         if state.fully_enumerated {
             return Ok(());
         }
-        let count = state.document.page_count();
+        let document = state.document.document();
+        let count = document.page_count();
         let mut records = Vec::with_capacity(count as usize);
         for index in 0..count {
-            let page = state.document.document().page(index).map_err(|e| {
-                EngineError::with_message(EngineErrorCode::RuntimeUnavailable, e.to_string())
-            })?;
-            let number = PageObjectNumber::new(page.object_number()).map_err(|_| {
+            let raw = document.page_object_number_by_index(index);
+            let number = PageObjectNumber::new(raw).map_err(|_| {
                 EngineError::with_message(
                     EngineErrorCode::MalformedPdf,
                     format!(
@@ -716,17 +717,8 @@ impl DocumentSession {
         page_object_number: PageObjectNumber,
     ) -> Result<PageRecord, EngineError> {
         self.ensure_full_page_registry()?;
-        self.state()?
-            .records
-            .iter()
-            .find(|record| record.page_object_number == page_object_number)
-            .copied()
-            .ok_or_else(|| {
-                EngineError::with_message(
-                    EngineErrorCode::NotFound,
-                    format!("no page with object number {page_object_number}"),
-                )
-            })
+        let page_index = self.state()?.document.page_index(page_object_number)?;
+        Ok(PageRecord { page_object_number, page_index })
     }
 
     /// Every page record, in display order.

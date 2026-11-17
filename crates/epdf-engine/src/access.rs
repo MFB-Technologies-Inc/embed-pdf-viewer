@@ -138,21 +138,21 @@ pub struct OwnedDocument {
 }
 
 impl OwnedDocument {
-    /// Opens the index by walking every page once.
+    /// Opens the index by walking the page tree once, loading no page.
     ///
     /// A page whose object number is `0` is a direct object, which makes the
     /// file malformed for identity purposes. It is skipped rather than
     /// rejected, so a document with one broken page still serves its others,
     /// and asking for that page reports `NotFound`.
     pub fn new(document: Document) -> Result<Self, EngineError> {
-        let index_by_object_number = index_pages(&document)?;
+        let index_by_object_number = index_pages(&document);
         Ok(Self { document: Rc::new(document), index_by_object_number })
     }
 
     /// Walk the pages again after a page edit (insert, delete, move), so a
     /// read finds an inserted page and no longer finds a deleted one.
     pub fn reindex(&mut self) -> Result<(), EngineError> {
-        self.index_by_object_number = index_pages(&self.document)?;
+        self.index_by_object_number = index_pages(&self.document);
         Ok(())
     }
 
@@ -192,17 +192,18 @@ impl OwnedDocument {
 }
 
 /// Object number to display index, skipping direct-object pages.
-fn index_pages(document: &Document) -> Result<BTreeMap<PageObjectNumber, u32>, EngineError> {
+///
+/// Reads each number from the page tree, so no page is loaded and a page whose
+/// content is broken does not fail the walk (`DocumentSession.ts`
+/// `ensureFullPageRegistry`).
+fn index_pages(document: &Document) -> BTreeMap<PageObjectNumber, u32> {
     let mut index_by_object_number = BTreeMap::new();
     for index in 0..document.page_count() {
-        let page = document.page(index).map_err(|e| {
-            EngineError::with_message(EngineErrorCode::DocOpenFailed, e.to_string())
-        })?;
-        if let Ok(number) = PageObjectNumber::new(page.object_number()) {
+        if let Ok(number) = PageObjectNumber::new(document.page_object_number_by_index(index)) {
             index_by_object_number.insert(number, index);
         }
     }
-    Ok(index_by_object_number)
+    index_by_object_number
 }
 
 impl DocumentAccess for OwnedDocument {
