@@ -5,6 +5,8 @@
 //                    [--rounds 10] [--scale 1] [--names a,b] [--out <file.json>]
 //
 // Each build's answers are checked against the conformance vectors first.
+// The results file records the run's id, when it ran, the machine, and each
+// arm's build (`engine-timer build`: its commit and LTO setting).
 // Then every round runs A, an identical copy of A, and B, each in its own
 // process, in an order that rotates by round. A row's sample for a round is
 // the median of that process's calls. The A/A pair sets the noise band the
@@ -12,7 +14,7 @@
 
 import { execFileSync } from 'node:child_process';
 import { copyFileSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
@@ -41,6 +43,8 @@ const rounds = Number(args.rounds);
 const [nameA, nameB] = args.names.split(',');
 
 const sha256 = (file) => createHash('sha256').update(readFileSync(file)).digest('hex');
+const runId = randomUUID();
+process.stdout.write(`run ${runId}\n`);
 
 // The A/A arm is a byte-identical copy beside A, so it loads the same library.
 const a = path.resolve(args.a);
@@ -53,6 +57,31 @@ const arms = [
 ];
 
 const run = (bin, argv) => execFileSync(bin, argv, { encoding: 'utf8', maxBuffer: 1 << 28 });
+
+// What each binary was built from. A binary older than `build` answers
+// nothing, and its build is recorded as unknown.
+const builds = Object.fromEntries(
+  arms
+    .filter((arm) => arm.bin !== aa)
+    .map((arm) => {
+      try {
+        return [arm.name, JSON.parse(run(arm.bin, ['build']))];
+      } catch {
+        return [arm.name, null];
+      }
+    }),
+);
+// The checkout this script runs from, when it runs from one.
+let harness = null;
+try {
+  harness = execFileSync('git', ['rev-parse', 'HEAD'], {
+    cwd: path.dirname(new URL(import.meta.url).pathname),
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  }).trim();
+} catch {
+  // A copy of the script with no checkout around it.
+}
 
 for (const arm of arms.filter((arm) => arm.bin !== aa)) {
   try {
@@ -127,10 +156,17 @@ for (const r of rows) {
 
 if (args.out) {
   const meta = {
+    runId,
     started,
     finished: new Date().toISOString(),
     host: os.hostname(),
     cpu: os.cpus()[0]?.model,
+    cpus: os.cpus().length,
+    memoryBytes: os.totalmem(),
+    os: `${os.type()} ${os.release()} ${os.arch()}`,
+    node: process.version,
+    harness,
+    builds,
     loadBefore,
     loadAfter: os.loadavg(),
     rounds,

@@ -1,6 +1,12 @@
 //! The timed rows: one operation on one fixture, run `warmup` times untimed
 //! and then `iterations` times timed, in a fresh host per row.
 //!
+//! A warm row opens its document once, so its timed calls find what the
+//! warm-up calls cached: the page registry, a search's page text. A cold row
+//! (`-cold` on its name) opens a fresh host and document for every call,
+//! untimed, and times that document's first call, which is the one a
+//! viewer waits for after an open.
+//!
 //! Only [`Host::call`] is inside the clock. Writing the request and reading
 //! the response are outside it, and so is any untimed setup a row needs.
 //! Every answer feeds the row's digest, which `compare.mjs` requires to be
@@ -77,10 +83,17 @@ struct Row {
     op: Op,
     warmup: usize,
     iterations: usize,
+    /// A fresh document for every call.
+    cold: bool,
 }
 
 const fn row(fixture: &'static str, op: Op, warmup: usize, iterations: usize) -> Row {
-    Row { fixture, op, warmup, iterations }
+    Row { fixture, op, warmup, iterations, cold: false }
+}
+
+/// A cold row: `op`'s first call on a freshly opened document, each time.
+const fn cold(fixture: &'static str, op: Op, warmup: usize, iterations: usize) -> Row {
+    Row { fixture, op, warmup, iterations, cold: true }
 }
 
 const ROWS: &[Row] = &[
@@ -102,6 +115,14 @@ const ROWS: &[Row] = &[
     row("forms", Op::PagesRender, 5, 40),
     row("forms", Op::AnnotationsList, 3, 30),
     row("forms", Op::FormsSetValue, 4, 20),
+    cold("large", Op::PagesList, 1, 10),
+    cold("large", Op::SearchQuery, 1, 5),
+    cold("large", Op::AnnotationsList, 1, 10),
+    cold("annots", Op::PagesList, 1, 10),
+    cold("annots", Op::SearchQuery, 1, 5),
+    cold("annots", Op::AnnotationsList, 1, 10),
+    cold("forms", Op::PagesList, 1, 10),
+    cold("forms", Op::AnnotationsList, 1, 10),
 ];
 
 /// The search every round makes. Each line of `large.pdf` and `annots.pdf`
@@ -116,9 +137,14 @@ pub fn run(dir: &Path, scale: usize, keep: bool, mut report: impl FnMut(RowResul
         let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
         let warmup = (row.warmup / scale).max(1);
         let iterations = (row.iterations / scale).max(2);
-        let name = format!("{}/{}", row.fixture, row.op.name());
+        let name =
+            format!("{}/{}{}", row.fixture, row.op.name(), if row.cold { "-cold" } else { "" });
         let mut answers = Answers { digest: Digest::default(), kept: keep.then(Vec::new) };
-        let samples = time(row.op, bytes, warmup, iterations, &name, &mut answers);
+        let samples = if row.cold {
+            time_cold(row.op, &bytes, warmup, iterations, &name, &mut answers)
+        } else {
+            time(row.op, bytes, warmup, iterations, &name, &mut answers)
+        };
         let digest = answers.digest;
         let answers = answers.kept.unwrap_or_default();
         report(RowResult { row: name, samples, digest, answers });
@@ -196,6 +222,43 @@ fn time(
     samples
 }
 
+/// A cold row's samples: for every call, a fresh host opens `bytes`
+/// untimed, and only `op`'s first call on it is timed.
+fn time_cold(
+    op: Op,
+    bytes: &[u8],
+    warmup: usize,
+    iterations: usize,
+    name: &str,
+    answers: &mut Answers,
+) -> Vec<Duration> {
+    let body = match op {
+        Op::PagesList => json!({ "kind": "pages.list" }),
+        Op::AnnotationsList => json!({ "kind": "annotations.list" }),
+        Op::SearchQuery => Value::Null,
+        _ => unreachable!("{name}: no cold row for {}", op.name()),
+    };
+    let mut samples = Vec::with_capacity(iterations);
+    for i in 0..warmup + iterations {
+        let mut session = Session::open(bytes.to_vec(), None, name);
+        let elapsed = if body.is_null() {
+            search_once(&mut session, i, name, answers)
+        } else {
+            let request = session.request(body.clone());
+            let (answer, elapsed) = session.call(&request, Vec::new());
+            if let Err(error) = &answer.outcome {
+                panic!("{name}: call {i} refused: {error}");
+            }
+            answers.add(&answer);
+            elapsed
+        };
+        if i >= warmup {
+            samples.push(elapsed);
+        }
+    }
+    samples
+}
+
 /// A whole-document search, which is a chain of budgeted slices: each sample
 /// is the chain's [`Host::call`] time, summed, from the first slice to the
 /// one that answers no `nextCursor`.
@@ -210,30 +273,37 @@ fn search(
 ) -> Vec<Duration> {
     let mut samples = Vec::with_capacity(iterations);
     for i in 0..warmup + iterations {
-        let mut total = Duration::ZERO;
-        let mut cursor = Value::Null;
-        loop {
-            let mut query = json!({ "text": SEARCH_TEXT });
-            if !cursor.is_null() {
-                query["cursor"] = cursor;
-            }
-            let request = session.request(json!({ "kind": "search.query", "request": query }));
-            let (answer, elapsed) = session.call(&request, Vec::new());
-            total += elapsed;
-            answers.add(&answer);
-            match answer.outcome {
-                Ok(slice) => cursor = slice["nextCursor"].clone(),
-                Err(error) => panic!("{name}: search {i} refused: {error}"),
-            }
-            if cursor.is_null() {
-                break;
-            }
-        }
+        let total = search_once(session, i, name, answers);
         if i >= warmup {
             samples.push(total);
         }
     }
     samples
+}
+
+/// One whole-document search, its slices' [`Host::call`] time summed.
+///
+/// [`Host::call`]: epdf_engine::host::Host::call
+fn search_once(session: &mut Session, i: usize, name: &str, answers: &mut Answers) -> Duration {
+    let mut total = Duration::ZERO;
+    let mut cursor = Value::Null;
+    loop {
+        let mut query = json!({ "text": SEARCH_TEXT });
+        if !cursor.is_null() {
+            query["cursor"] = cursor;
+        }
+        let request = session.request(json!({ "kind": "search.query", "request": query }));
+        let (answer, elapsed) = session.call(&request, Vec::new());
+        total += elapsed;
+        answers.add(&answer);
+        match answer.outcome {
+            Ok(slice) => cursor = slice["nextCursor"].clone(),
+            Err(error) => panic!("{name}: search {i} refused: {error}"),
+        }
+        if cursor.is_null() {
+            return total;
+        }
+    }
 }
 
 fn repeat(session: &mut Session, body: Value, calls: usize) -> Vec<(String, Vec<Vec<u8>>)> {

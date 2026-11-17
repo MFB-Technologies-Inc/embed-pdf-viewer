@@ -3,6 +3,7 @@
 //! ```text
 //! engine-timer check <root>         the answer check against the corpus under <root>
 //! engine-timer files <root>         every corpus file the check reads
+//! engine-timer build                what this binary was built from, as JSON
 //! engine-timer round <fixtures>     one timed round, one JSON line per row
 //!               [--scale <n>]       divide every row's call counts by n
 //!               [--dump <dir>]      write every row's answers to <dir>, to
@@ -22,7 +23,7 @@ fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let usage = || {
         eprintln!(
-            "usage: engine-timer check <root> | files <root> | round <fixtures> [--scale <n>] [--dump <dir>]"
+            "usage: engine-timer check <root> | files <root> | build | round <fixtures> [--scale <n>] [--dump <dir>]"
         );
         ExitCode::from(2)
     };
@@ -39,6 +40,19 @@ fn main() -> ExitCode {
                 eprintln!("check: {} answer(s) differ from the vectors", failures.len());
                 ExitCode::FAILURE
             }
+        }
+        ["build"] => {
+            println!(
+                "{}",
+                json!({
+                    "commit": env!("ENGINE_TIMER_COMMIT"),
+                    "dirty": env!("ENGINE_TIMER_DIRTY"),
+                    "profile": env!("ENGINE_TIMER_PROFILE"),
+                    "lto": env!("ENGINE_TIMER_LTO"),
+                    "target": format!("{}-{}", std::env::consts::ARCH, std::env::consts::OS),
+                })
+            );
+            ExitCode::SUCCESS
         }
         ["files", root] => {
             for file in check::Corpus::new(&PathBuf::from(root)).files() {
