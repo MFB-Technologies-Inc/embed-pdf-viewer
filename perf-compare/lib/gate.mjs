@@ -151,26 +151,18 @@ async function answersFor(run, arm, origin, env) {
   };
 }
 
-// Each answer is compared with the first arm in `references` that has it:
-// the baseline, then arms.json's `fallbackReference` (`main-now`) for an
-// answer the baseline doesn't give (`undo`, which needs a history plugin
-// `main` lacks). Never the order the arms ran in. An arm may lack an answer
-// only for a flow it skipped (`skipped`, flow names, which are also the keys
-// of their answers), and an answer no reference gives fails every arm that
-// gives it. `collected` is { [armId]: { answers, skipped } }; returns the
-// reasons `id` fails, empty when it passes.
+// Each answer is compared with the first arm in `references` that has it
+// (referencesFor). An arm may lack an answer only for a flow it skipped
+// (`skipped`, flow names, which are also the keys of their answers).
+// `collected` is { [armId]: { answers, skipped } }; returns the reasons `id`
+// fails, empty when it passes.
 export function answerReasons(id, collected, references) {
   const reasons = [];
-  const keys = [...new Set(Object.values(collected).flatMap((c) => Object.keys(c.answers)))];
   const got = collected[id];
-  for (const key of keys) {
-    const refId = references.find((a) => collected[a] && key in collected[a].answers);
+  for (const key of answerKeys(collected)) {
+    const refId = referenceOf(key, collected, references);
     if (!(key in got.answers)) {
-      if (!got.skipped?.includes(key)) reasons.push(`${key}: no answer where ${refId ?? 'another arm'} has one`);
-      continue;
-    }
-    if (!refId) {
-      reasons.push(`${key}: no reference arm answered it (${references.join(', ')})`);
+      if (!got.skipped?.includes(key)) reasons.push(`${key}: no answer where ${refId} has one`);
       continue;
     }
     const value = collected[refId].answers[key];
@@ -181,9 +173,31 @@ export function answerReasons(id, collected, references) {
   return reasons;
 }
 
-// The arms answerReasons looks to, in turn: the run's reference (the
-// baseline, unless it failed to load) and arms.json's fallbackReference.
-export const referencesFor = (config, referenceId) => [...new Set([referenceId, config.fallbackReference].filter(Boolean))];
+const answerKeys = (collected) => [...new Set(Object.values(collected).flatMap((c) => Object.keys(c.answers)))];
+const referenceOf = (key, collected, references) => references.find((a) => collected[a] && key in collected[a].answers);
+
+// Where an answer's reference comes from, in turn: the run's reference (the
+// baseline, unless it failed to load); arms.json's fallbackReference
+// (`main-now`) when it's in the run, for an answer the baseline doesn't give
+// (`undo`, which needs a history plugin `main` lacks); then the arms in run
+// order (`arms.json` order), so a run without `main-now` still compares
+// `undo` among the arms that have it. `order` is the run's arms.
+export function referencesFor(config, referenceId, order) {
+  const configured = [referenceId, config.fallbackReference].filter((id) => id && order.includes(id));
+  return [...new Set([...configured, ...order])];
+}
+
+// One warning for each answer whose reference came from run order rather than
+// from the baseline or fallbackReference, naming the arm it was compared with.
+export function warnOrderReferences(collected, config, referenceId, references, warn = console.warn) {
+  const configured = [referenceId, config.fallbackReference].filter(Boolean);
+  for (const key of answerKeys(collected)) {
+    const refId = referenceOf(key, collected, references);
+    if (!configured.includes(refId)) {
+      warn(`gate: no ${configured.join(' or ')} answer for ${key}; compared with ${refId}, the first arm in run order that gave one`);
+    }
+  }
+}
 
 // Returns { [armId]: { pass: true, answers, capabilities, skipped, screenshotSha256 } | { pass: false, reason } }.
 export async function runGate(run, { config, arms, urls, stamps, env }) {
@@ -198,6 +212,8 @@ export async function runGate(run, { config, arms, urls, stamps, env }) {
   }
   const reference = collected[config.baseline] ?? Object.values(collected)[0];
   const referenceId = Object.keys(collected).find((id) => collected[id] === reference);
+  const references = referencesFor(config, referenceId, arms);
+  warnOrderReferences(collected, config, referenceId, references);
   for (const [id, got] of Object.entries(collected)) {
     const arm = { id, ...config.arms[id] };
     const reasons = [];
@@ -209,7 +225,7 @@ export async function runGate(run, { config, arms, urls, stamps, env }) {
     // The viewer can't ask the worker which reader served a page, so the
     // stamp's verify-rust-core result stands in for impl-rust.
     if (arm.rustReads && !stamps[arm.worktree].rustCore) reasons.push('the payload has no verified Rust core');
-    reasons.push(...answerReasons(id, collected, referencesFor(config, referenceId)));
+    reasons.push(...answerReasons(id, collected, references));
     const sameWasm = stamps[arm.worktree].engineWasmSha256 === stamps[config.arms[referenceId].worktree].engineWasmSha256;
     let pixelShare = 0;
     if (sha256(got.png) !== sha256(reference.png)) {

@@ -1003,7 +1003,8 @@ doesn't have, so `main` and `main-aa` skip it. The gate compared its answer with
 not `main-now`'s: the gate at `cb3167fcd` took the first arm in run order that answered, and
 `arms.json` lists `plugins-next` before `main-now`. Both answered `countBefore` 2, `countEdited`
 12, `countAfter` 2 (`gate.json`), so the answers agree. Since then the gate takes this reference
-from `arms.json`'s `fallbackReference` (`main-now`), never from the run order.
+from `arms.json`'s `fallbackReference` (`main-now`) whenever `main-now` is in the run, and falls
+back to run order only without it, with a `gate:` warning naming the arm used.
 `undo` has no `main` baseline and no A/A noise, so its threshold is the floor: ±6.1 ms on
 `settleMs`, ±3.0% on the CPU rows.
 
@@ -1069,7 +1070,7 @@ inside that drift, so none is unconfirmed.
 `undo` still has no `main` baseline and judges against the 3% floor. Its gate reference was
 `main-now`, because `main-now` came first in `arms.json` order among the arms that ran it in this
 run (`run.mjs` sorts `--arms` into that order). The gate now takes that reference from `arms.json`'s
-`fallbackReference` (`main-now`) instead of the run order. `dragAnnot` still drags a stamp, not a highlight. Task 12 (`efac793af`)
+`fallbackReference` (`main-now`) whenever `main-now` is in the run, not from the run order. `dragAnnot` still drags a stamp, not a highlight. Task 12 (`efac793af`)
 changed the sample a live harness hands interaction handlers: the typed sample, with members in the
 generator's order (`page` last), instead of the host's raw JSON. The handlers read only contract
 members, and every gate answer matched, so the flows measure the same work.

@@ -65,9 +65,11 @@ has 1,000 text and checkbox fields over 100 pages. `hover`, `dragAnnot`, `drawIn
 viewer API generation moves a highlight. A flow can declare what it `needs` (`lib/flows.mjs`), and
 an arm whose viewer lacks it (`capabilities` in `entry/api-v*.ts`) skips that flow. `undo` needs a
 history plugin, which `main` 2516e2786 doesn't have, so `main` and `main-aa` skip it. The gate
-compares an answer the baseline doesn't give with `arms.json`'s `fallbackReference` (`main-now`), so a
-run with `undo` and an arm that has history needs `main-now` in it, or those arms fail the gate. The
-report judges `undo`'s rows against the 3% floor alone, because there's no A/A pair for them.
+runs every flow once on every arm, whatever `--flows` says, so it always has an `undo` answer from
+the arms with history. It compares that answer with `arms.json`'s `fallbackReference` (`main-now`)
+when `main-now` is in the run. Otherwise it uses the first arm in run order that gave one, and
+prints a `gate:` warning naming that arm. The report judges `undo`'s rows against the 3% floor
+alone, because there's no A/A pair for them.
 
 ## The standard run
 
