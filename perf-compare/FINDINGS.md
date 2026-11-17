@@ -1486,7 +1486,7 @@ Off the watch list, `dragAnnot` is 0.787x with settle -180.0 ms, `annotateLarge`
 input is frame-paced, and the two runs ran at different intervals: 16.7 ms in `04-18-50` and
 11.0 to 11.3 ms here, on every arm. `drawInk` is 180 pointer moves and the ink tool's 800 ms
 grouping, so a move whose handling fits in a frame costs one interval and one that doesn't costs
-two or more. `main` shows the shape: at 3 to 4 ms of main-thread JavaScript a move, it took
+two or more. `main` shows the shape: at 2.7 to 4.4 ms of main-thread JavaScript a move, it took
 3,884.2 ms in `04-18-50` and 2,907.5 ms here, each 180 frames plus about 875 ms. `phase-c-end`
 spends about 14 ms a move (2,508.5 ms of `mainJsMs` there, 2,541.7 ms here), one frame at 16.7 ms
 and more than one at 11.1 ms. `phase-c-base` spends 19 to 22 ms (4,006.5 and 3,467.1 ms), more
@@ -1548,7 +1548,7 @@ The largest settle gaps are `dragAnnot` +339.7 ms, `undo` +205.6 ms, `hover` +19
 explains the change (Phase C above). `phase-d-end` and `perf-fixes-end` spend about 13 ms of
 main-thread JavaScript an ink move (2,374.8 and 2,370.9 ms over 180 moves here), which fits a
 16.7 ms frame and not an 11.1 ms one. So they took about one frame a move in `04-18-50` (4,037.8 ms)
-and two to three here (5,662.0 and 5,667.4 ms). `main-now`, at 6 to 7 ms a move, stays near one
+and two to three here (5,662.0 and 5,667.4 ms). `main-now`, at 6.3 to 7.4 ms a move, stays near one
 frame at either interval (3,940.9 and 3,093.3 ms). `main`'s `hover / settleMs` fell from 1,323.6
 to 1,086.0 ms between the two runs too, although that flow has no done condition on `main` and
 didn't change. If the inference holds, the +2,574.1 ms is what the port's slower ink handling costs
