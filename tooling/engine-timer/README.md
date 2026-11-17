@@ -57,4 +57,4 @@ The timer binary is a Cargo `bin`, which gets the release profile's `lto = true`
 LTO is `CARGO_PROFILE_RELEASE_LTO=false cargo build -p engine-timer --release`.
 
 Timings belong on an idle machine, one run at a time. On the M1 Mac mini, 10 rounds of three arms
-took 7.5 minutes for two tip builds and 9.7 minutes with 0de4effd9 as A.
+took 7.4 minutes for two tip builds and 9.7 minutes with 0de4effd9 as A.
