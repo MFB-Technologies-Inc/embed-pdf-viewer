@@ -33,12 +33,12 @@ example
 
 ## Full suite, 2026-11-16
 
-At `d37f70fe0`, from `tooling/plugin-conformance`, in this order:
+At `7cf173714`, from `tooling/plugin-conformance`, in this order:
 
 | command | exit | printed |
 | --- | --- | --- |
 | `pnpm run typecheck` | 0 | |
-| `pnpm run test:harness` | 0 | tests 78, pass 78, fail 0 |
+| `pnpm run test:harness` | 0 | tests 77, pass 77, fail 0 |
 | `pnpm run vectors:check` | 0 | `119 vector files are current, and each is replayed` |
 | `pnpm run coverage:check` | 0 | `coverage is current: statements 72853/77093, branches 14365/15719, 935 lines reached only by snapshot-none cases, 36 ported files no generator loads` |
 | `pnpm run replay:check` | 0 | `cargo: passed`, `receipts: 119 read`, `119 vector files, 15916 cases, all replayed` |
