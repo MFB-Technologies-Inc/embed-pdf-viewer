@@ -189,16 +189,29 @@ are v2.
 ## Reading a run
 
 `node scripts/summary.mjs results/<run-id> [arm ...]` prints the numbers worth quoting from a run's
-`report.md`: each pair's verdict counts, the median ratio over its latency rows and over its
-main-thread rows, and, for pairs not against `main`, the rows that aren't "no detectable
-difference". Before calling a row a regression, check the same unchanged build in earlier runs: on
+`report.md`: each pair's verdict counts, the median ratio over three groups of rows, the median
+difference over its settle rows, and, for pairs not against `main`, the rows that aren't "no
+detectable difference". The three ratio groups are timing rows (open, search and wall times),
+frame-interval rows (`frameP50Ms`, `frameP95Ms`) and main-thread rows, each with its row count.
+They're apart because frame intervals sit at the display's 16.7 ms on every arm: mixed in, they
+pulled one pair's median to 1.000x while the same table had `dragAnnot` settle 394.7 ms slower.
+Settle rows are differences in ms with no ratio, so they get their own line. Before calling a row a regression, check the same unchanged build in earlier runs: on
 the remote, `annotateLarge` settle for one build moved between 220 and 245 ms from run to run, and
 `main` against `main-aa` differed by about 20 ms on it within a run. `--drift
 results/<earlier-run> main` does that check: it prints `main`'s median on every row in both runs,
-whether its commit, engine wasm and probe match, and each moved row of this run's pairs whose
-change is no larger than `main`'s own move on that row. A run from before `probeSha256` was
-recorded used the uncorrected probe, so its main-thread and frame rows can differ by
-instrumentation as well as by noise.
+and each moved row of this run's pairs whose change is no larger than `main`'s own move on that
+row. It exits 2 instead when the runs don't compare, which `viewer-perf-compare-plan.md` (Task 6,
+Step 6) defines: a probe hash that differs or wasn't recorded, a different browser, CPU, profile,
+viewport or scale factor, or a fixture both runs have with different bytes. A different commit or
+engine wasm for the drift arm is refused too, since then it isn't the same build. So any run
+before `probeSha256` was recorded, and any run before a probe change, can't serve as the earlier
+run.
+
+A verdict carries a note when it rests on less than usual. `slower (no A/A band)` is a row
+judged against the 3% floor alone, because `main` and `main-aa` skip its flow (`undo`). `(no done
+condition on <arm>)` is a `hover` row where that arm can't report the hovered annotation
+(`lib/done.mjs`; viewer API v1 can't), so its row ends at the last pointer move and times input
+pacing, not hover handling.
 
 Each arm's cell in the report's tables is `median [max]`: the median over rounds, then the slowest
 round. Each pair table's `threshold` column is the smallest change that row's verdict counts: its
@@ -257,7 +270,9 @@ viewport membership, movement, and removal. Offscreen changes do not extend the 
 The returned settle timestamp is the latest observed visible change or decode completion,
 bounded below by the action's `doneAt`, before a 250 ms quiet window. This is a visual heuristic,
 not proof that no future render can run. Sampling visibility performs geometry and style reads;
-that instrumentation cost is included in the reported CPU and frame metrics.
+that instrumentation cost is included in the reported CPU and frame metrics. Since `7d9648d6d` an
+image outside the browser viewport costs one `getBoundingClientRect` and no style reads, and one
+sample reads each shared ancestor's style once.
 `meta.json` records `probeSha256`, so a run's probe version is on record. Published `RESULTS.md`
 predates this correction; its timing numbers have not been regenerated with the corrected probe.
 

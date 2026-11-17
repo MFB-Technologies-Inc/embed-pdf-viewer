@@ -2,23 +2,31 @@
 // the numbers to quote from a run's report.md (written by report.mjs, run
 // here if missing).
 //
-// For each pair in the report, the verdict counts, the median ratio over the
-// latency rows and over the main-thread rows (`mainJsMs`, `mainTaskMs`), and,
-// unless the pair's first arm is the baseline (`main`), every row that isn't
-// "no detectable difference". Rows reported as a difference in ms (settle
-// times) have no ratio and count only toward the verdicts. Arms after the run
-// id narrow the output to pairs naming one of them.
+// For each pair in the report, the verdict counts; the median ratio over
+// three groups of ratio rows, each labelled with its row count: timing rows
+// (open, search and wall times), frame-interval rows (`frameP50Ms`,
+// `frameP95Ms`, which sit at the display's 16.7 ms whatever the arm does) and
+// main-thread rows (`mainJsMs`, `mainTaskMs`); the median difference over the
+// settle rows, which have no ratio; and, unless the pair's first arm is the
+// baseline (`main`), every row that isn't "no detectable difference". Arms
+// after the run id narrow the output to pairs naming one of them.
 //
 // --drift compares one arm's medians between this run and another, for a
 // build that is in both: how far the same build moved from run to run. It
 // prints each row's two medians, then every moved row of this run's pairs
 // whose change is no larger than that arm's drift on the same row, as
-// unconfirmed.
+// unconfirmed. It refuses (exit 2) two runs that don't compare: a probe hash
+// that differs or is missing (viewer-perf-compare-plan.md, Task 6 Step 6:
+// "reject comparisons with a different or missing probe hash"), a different
+// browser, CPU, profile, viewport or scale factor, a fixture both runs have
+// with different bytes (lib/env.mjs `compatible`), or a different commit or
+// engine wasm for the drift arm.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfig } from '../lib/config.mjs';
+import { compatible } from '../lib/env.mjs';
 
 const args = process.argv.slice(2);
 const driftAt = args.indexOf('--drift');
@@ -50,7 +58,29 @@ const cells = (line) => line.split('|').slice(1, -1).map((c) => c.trim());
 // A ratio cell starts with a digit, a difference cell with its sign.
 const isRatio = (cell) => /^\d/.test(cell) && !Number.isNaN(Number.parseFloat(cell));
 const isMainThread = (row) => /mainJs|mainTask/.test(row);
+const isFrame = (row) => /\/ frameP\d+Ms$/.test(row);
+const isSettle = (row) => /[sS]ettleMs$/.test(row);
 const times = (x) => (Number.isNaN(x) ? 'n/a' : `${x.toFixed(3)}x`);
+const ms = (x) => `${x >= 0 ? '+' : ''}${x.toFixed(1)} ms`;
+// A verdict can carry a note, "slower (no A/A band)".
+const isSame = (verdict) => verdict.startsWith('no detectable difference');
+
+// The ratio medians by group, each with its row count, and the settle rows'
+// median difference, from [row, value, isRatio] triples.
+function medians(entries) {
+  const groups = { timing: [], frame: [], main: [], settle: [] };
+  for (const [row, value, ratio] of entries) {
+    if (Number.isNaN(value)) continue;
+    if (ratio) groups[isMainThread(row) ? 'main' : isFrame(row) ? 'frame' : 'timing'].push(value);
+    else if (isSettle(row)) groups.settle.push(value);
+  }
+  const ratioText = (name, xs) => `${name} median ${times(median(xs))} (${xs.length} rows)`;
+  const settle = groups.settle;
+  return [
+    `  ratio rows: ${ratioText('timing', groups.timing)}, ${ratioText('frame-interval', groups.frame)}, ${ratioText('main-thread', groups.main)}`,
+    `  settle rows: median ${settle.length ? ms(median(settle)) : 'n/a'} (${settle.length} rows${settle.length ? `, ${ms(Math.min(...settle))} to ${ms(Math.max(...settle))}` : ''})`,
+  ];
+}
 
 // Every table with a `Row` header and a `ratio or diff` column: the A/A table
 // and each pair's. Columns by name: reports from before the threshold column
@@ -99,15 +129,9 @@ for (const t of tables(current.report)) {
   const verdicts = {};
   for (const r of t.rows) verdicts[r[V]] = (verdicts[r[V]] ?? 0) + 1;
   console.log(`\n${a} vs ${b}: ${Object.entries(verdicts).map(([v, n]) => `${n} ${v}`).join(', ')}`);
-  const lat = [];
-  const cpu = [];
-  for (const r of t.rows) {
-    if (!isRatio(r[t.I])) continue;
-    (isMainThread(r[0]) ? cpu : lat).push(Number.parseFloat(r[t.I]));
-  }
-  console.log(`  latency median ${times(median(lat))}, main-thread median ${times(median(cpu))}`);
+  for (const line of medians(t.rows.map((r) => [r[0], Number.parseFloat(r[t.I]), isRatio(r[t.I])]))) console.log(line);
   if (a === baseline) continue;
-  for (const r of t.rows.filter((r) => r[V] !== 'no detectable difference')) {
+  for (const r of t.rows.filter((r) => !isSame(r[V]))) {
     console.log(`  ${r[0]}: ${r[1]} -> ${r[2]}, ${r[t.I]} (${r[V]})`);
   }
 }
@@ -121,28 +145,35 @@ if (drift) {
     return { sha: arm.sha ?? null, engine: arm.engineWasmSha256 ?? null, probe: meta.probeSha256 ?? null };
   };
   const [p, q] = [build(other.meta), build(current.meta)];
+  const reasons = driftRefusals(other.meta, current.meta, p, q);
+  if (reasons.length) {
+    console.error(
+      `--drift refused: ${path.basename(path.resolve(here, drift.run))} and ${path.basename(path.resolve(here, runArg))} don't compare for ${drift.arm}: ${reasons.join('; ')}. ` +
+        'The plan rejects comparisons across a different or missing probe hash; time both builds in one run instead.',
+    );
+    process.exit(2);
+  }
   console.log(`\ndrift of ${drift.arm}: ${path.basename(path.resolve(here, drift.run))} -> ${path.basename(path.resolve(here, runArg))}`);
-  console.log(`  commit ${p.sha === q.sha ? 'same' : 'differs'}, engine wasm ${p.engine === q.engine ? 'same' : 'differs'}, probe ${p.probe === q.probe ? 'same' : `differs (${p.probe?.slice(0, 12) ?? 'none recorded'} -> ${q.probe?.slice(0, 12) ?? 'none recorded'})`}`);
+  console.log(`  commit same, engine wasm same, probe same (${q.probe.slice(0, 12)})`);
   const moved = new Map(); // row -> { ratio, diff }
-  const lat = [];
-  const cpu = [];
+  const changes = [];
   for (const [row, { median: before, ratioRow }] of was) {
     const after = now.get(row)?.median;
     if (after === undefined || Number.isNaN(before) || Number.isNaN(after)) continue;
     const diff = after - before;
     const ratio = before > 0 ? after / before : NaN;
     moved.set(row, { diff, ratio, ratioRow });
-    if (ratioRow && !Number.isNaN(ratio)) (isMainThread(row) ? cpu : lat).push(ratio);
+    changes.push([row, ratioRow ? ratio : diff, ratioRow]);
     const change = ratioRow ? (Number.isNaN(ratio) ? 'n/a' : `${ratio.toFixed(3)}x`) : `${diff >= 0 ? '+' : ''}${diff.toFixed(1)}`;
     console.log(`  ${row}: ${before} -> ${after}, ${change}`);
   }
-  console.log(`  latency median ${times(median(lat))}, main-thread median ${times(median(cpu))}`);
+  for (const line of medians(changes)) console.log(line);
   // A moved row whose change is no larger than the drift arm's own change on
   // the same row can't be told from run-to-run movement.
   for (const pr of pairs) {
     const inside = [];
     for (const r of pr.rows) {
-      if (r[pr.V] === 'no detectable difference' || !moved.has(r[0])) continue;
+      if (isSame(r[pr.V]) || !moved.has(r[0])) continue;
       const d = moved.get(r[0]);
       const value = Number.parseFloat(r[pr.I]);
       const within = isRatio(r[pr.I])
@@ -152,4 +183,22 @@ if (drift) {
     }
     console.log(`  ${pr.a} vs ${pr.b}, moved rows within ${drift.arm}'s drift: ${inside.length ? inside.join('; ') : 'none'}`);
   }
+}
+
+// Why the two runs' medians for the drift arm don't compare; empty when they do.
+function driftRefusals(was, now, p, q) {
+  const reasons = [];
+  const hash = (h) => h?.slice(0, 12) ?? 'none recorded';
+  if (!p.probe || !q.probe || p.probe !== q.probe) reasons.push(`probe hash ${hash(p.probe)} -> ${hash(q.probe)}`);
+  // The flow and fixture lists may grow from run to run; a fixture both runs
+  // have must be the same file.
+  for (const key of compatible(was, now)) {
+    if (!['probeSha256', 'flows', 'fixtures'].includes(key)) reasons.push(`${key} differs`);
+  }
+  for (const [f, sha] of Object.entries(was.fixtures ?? {})) {
+    if (now.fixtures?.[f] !== undefined && now.fixtures[f] !== sha) reasons.push(`fixture ${f} differs`);
+  }
+  if (p.sha !== q.sha) reasons.push('commit differs');
+  if (p.engine !== q.engine) reasons.push('engine wasm differs');
+  return reasons;
 }
