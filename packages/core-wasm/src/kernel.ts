@@ -261,13 +261,18 @@ export function createKernel(opts: {
 
   /** The settings calls over the Rust store for `token` (the kernel's own
    *  with none). `getSettings()` keeps its object until a setting changes,
-   *  as the TS store does, so a selector over it can compare by identity. */
+   *  as the TS store does, so a selector over it can compare by identity.
+   *  It reads the settings' text only when their revision moved. */
   const settingsApi = (token?: string): SettingsApi<unknown> => {
+    let revision: number | undefined;
     let text: string | undefined;
     let value: unknown;
     return {
       getSettings: () => {
+        const now = rusty(() => wire.rust.settings_revision(token));
+        if (now === revision) return value;
         const next = rusty(() => wire.rust.get_settings(token));
+        revision = now;
         if (next !== text) {
           text = next;
           value = JSON.parse(next);

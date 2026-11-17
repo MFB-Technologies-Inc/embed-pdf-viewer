@@ -2205,6 +2205,10 @@ impl Kernel {
     pub fn get_settings(&self) -> Rc<Value> {
         self.0.viewer_settings.get()
     }
+    /// The viewer settings' [`revision`](crate::settings::Settings::revision).
+    pub fn settings_revision(&self) -> u64 {
+        self.0.viewer_settings.revision()
+    }
     pub fn update_settings(&self, changes: &Value) {
         self.0.viewer_settings.update_settings(changes);
     }

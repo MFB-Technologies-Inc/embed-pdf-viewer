@@ -112,6 +112,48 @@ async fn a_getter_ref_returns() {
     assert_eq!(log.length(), 0);
 }
 
+/// `settings_revision` moves with every write that changes the settings,
+/// to a revision no store had before, and holds otherwise.
+#[wasm_bindgen_test]
+async fn the_settings_revision_moves_only_when_the_settings_change() {
+    reset();
+    let plugins = json!([{ "factory": "commands" }, { "factory": "shell" }]).to_string();
+    let kernel = WasmKernel::new(
+        &plugins,
+        stub_engine(),
+        call_js(&js_sys::Array::new(), "() => undefined"),
+        no_release(),
+        None,
+        None,
+        None,
+    )
+    .unwrap();
+    JsFuture::from(kernel.start()).await.unwrap();
+
+    let first = kernel.settings_revision(None).unwrap();
+    let commands = kernel.settings_revision(Some("commands".into())).unwrap();
+    assert_eq!(kernel.settings_revision(None).unwrap(), first);
+    assert_ne!(commands, first);
+
+    kernel.update_settings(None, r##"{"accent":"#ff0000"}"##).unwrap();
+    let second = kernel.settings_revision(None).unwrap();
+    assert_ne!(second, first);
+    assert_eq!(kernel.settings_revision(Some("commands".into())).unwrap(), commands);
+
+    kernel.update_settings(None, r##"{"accent":"#ff0000"}"##).unwrap();
+    assert_eq!(kernel.settings_revision(None).unwrap(), second);
+
+    kernel.reset_settings(None).unwrap();
+    let third = kernel.settings_revision(None).unwrap();
+    assert!(third != second && third != first && third != commands);
+
+    // A token with no settings store refuses both reads alike.
+    assert_eq!(
+        kernel.settings_revision(Some("shell".into())).is_err(),
+        kernel.get_settings(Some("shell".into())).is_err(),
+    );
+}
+
 #[wasm_bindgen_test]
 async fn a_document_capability_with_no_document_throws() {
     reset();

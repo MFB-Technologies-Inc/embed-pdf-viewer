@@ -59,8 +59,11 @@ import { CancelledError, PluginError, type PluginErrorCode } from '@embedpdf/cor
 import {
   canonical,
   decode,
+  decodeText,
   errorSpec,
   isPlainJson,
+  needsDecode,
+  primitiveArgsJson,
   type DecodeHook,
   type EngineBridge,
 } from './engine-bridge';
@@ -101,6 +104,9 @@ export interface RustKernel {
   /** The kernel's viewer settings with no token, else `settingsOf(token)`'s,
    *  as JSON text. */
   get_settings(tokenName?: string): string;
+  /** Moves whenever `get_settings` for the same token could answer
+   *  differently. */
+  settings_revision(tokenName?: string): number;
   update_settings(tokenName: string | undefined, changesJson: string): void;
   reset_settings(tokenName?: string): void;
   /** `listener(eventJson)` until `unsubscribe` with the id this returns. */
@@ -438,6 +444,11 @@ export class Wire {
     return decode(value, this.bridge.host, this.hook);
   }
 
+  /** JSON `text` parsed and decoded (`decodeText`). */
+  private decodeText(text: string): unknown {
+    return decodeText(text, this.bridge.host, this.hook);
+  }
+
   /** `encode` for a value the kernel reads later, not during the call that
    *  encodes it: a `callJs` promise's settled value, which Rust's `from_js`
    *  takes on a microtask of its own. Until then, a release of one of its
@@ -502,7 +513,7 @@ export class Wire {
       }
       throw new Error(`[core-wasm] no JavaScript function ${id}`);
     }
-    const args = this.decode(JSON.parse(argsJson)) as unknown[];
+    const args = this.decodeText(argsJson) as unknown[];
     let out: unknown;
     try {
       out = fn(...args);
@@ -650,7 +661,7 @@ export class Wire {
       this.slices.set(path, { ...last, revision });
       return last.value;
     }
-    const value = text === 'undefined' ? undefined : this.decode(JSON.parse(text));
+    const value = text === 'undefined' ? undefined : this.decodeText(text);
     this.slices.set(path, { revision, text, value });
     return value;
   }
@@ -781,6 +792,12 @@ export class Wire {
   }
 
   private call(id: number, member: string, args: unknown[]): unknown {
+    // Only strings, finite numbers, booleans and `null`: no `PREPARE` entry
+    // changes those, they hold no `Blob`, and their text is the key.
+    if (!HELD_FIRST.has(member)) {
+      const json = primitiveArgsJson(args);
+      if (json !== undefined) return this.invoke(id, member, args, json);
+    }
     const prepared = HELD_FIRST.has(member)
       ? [{ $host: this.bridge.hold(args[0]) }, ...args.slice(1)]
       : prepareArgs(member, args);
@@ -819,10 +836,12 @@ export class Wire {
     return out;
   }
 
-  private invoke(id: number, member: string, args: unknown[]): unknown {
+  /** `json` is `args`' text when the caller already has it
+   *  (`primitiveArgsJson`). */
+  private invoke(id: number, member: string, args: unknown[], json?: string): unknown {
     const signals: AbortSignal[] = [];
     // Most calls pass plain data, which needs no canonical copy.
-    const json = JSON.stringify(isPlainJson(args) ? args : this.encode(args, signals, member));
+    json ??= JSON.stringify(isPlainJson(args) ? args : this.encode(args, signals, member));
     const key = `${id}:${json}`;
     this.sync();
     if (this.results.has(key)) return this.results.get(key);
@@ -870,7 +889,8 @@ export class Wire {
       }
       return promise;
     }
-    if (MAKES_NEW.test(member)) return rehydrate(member, this.decode(outcome.returned));
+    const returned = () => (needsDecode(text) ? this.decode(outcome.returned) : outcome.returned);
+    if (MAKES_NEW.test(member)) return rehydrate(member, returned());
     // Compared with its ref ids blanked: some members describe what they
     // return with newly registered refs on every call (stage's
     // `listVisiblePages` does, for each page transform), and the refs the
@@ -887,7 +907,7 @@ export class Wire {
       const kept = refIds(last.text);
       for (const id of refIds(text)) if (!kept.has(id)) this.rust.release_ref(id);
     } else {
-      value = rehydrate(member, this.decode(outcome.returned));
+      value = rehydrate(member, returned());
     }
     if (value !== undefined) {
       // A call that changed the store (`search.nextHit`, `link.activate`)

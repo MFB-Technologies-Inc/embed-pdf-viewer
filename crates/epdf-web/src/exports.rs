@@ -527,6 +527,18 @@ impl WasmKernel {
         })
     }
 
+    /// Moves whenever [`get_settings`](Self::get_settings) for the same
+    /// token could answer differently. A plain read, like
+    /// [`state_revision`](Self::state_revision); throws as `get_settings`
+    /// does for a token with no settings.
+    pub fn settings_revision(&self, token_name: Option<String>) -> Result<f64, JsValue> {
+        let revision = match token_name {
+            None => self.kernel.settings_revision(),
+            Some(name) => self.settings_of(&name)?.revision(),
+        };
+        Ok(revision as f64)
+    }
+
     /// `updateSettings(changes)`, on the kernel or on `settingsOf(token)`.
     pub fn update_settings(
         &self,

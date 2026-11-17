@@ -118,6 +118,39 @@ describe('the Kernel shim over the Rust kernel', () => {
     expect(stage.listVisiblePages()).not.toBe(visible);
   });
 
+  test('getSettings crosses once per settings revision', async () => {
+    const k = await openFixture([commandsPlugin()]);
+    const read = vi.spyOn(WasmKernel.prototype, 'get_settings');
+    const commands = k.settingsOf(CommandsToken);
+    const first = k.getSettings() as { accent: string };
+    const commandsFirst = commands.getSettings();
+    read.mockClear();
+
+    expect(k.getSettings()).toBe(first);
+    expect(commands.getSettings()).toBe(commandsFirst);
+    expect(read).not.toHaveBeenCalled();
+
+    k.updateSettings({ accent: '#ff0000' });
+    const second = k.getSettings() as { accent: string };
+    expect(second).not.toBe(first);
+    expect(second.accent).toBe('#ff0000');
+    expect(k.getSettings()).toBe(second);
+    expect(read).toHaveBeenCalledTimes(1);
+    // Another store's write leaves this one's revision where it was.
+    expect(commands.getSettings()).toBe(commandsFirst);
+    expect(read).toHaveBeenCalledTimes(1);
+
+    // A write that changes nothing moves no revision.
+    k.updateSettings({ accent: '#ff0000' });
+    expect(k.getSettings()).toBe(second);
+    expect(read).toHaveBeenCalledTimes(1);
+
+    k.resetSettings();
+    expect((k.getSettings() as { accent: string }).accent).toBe(first.accent);
+    expect(read).toHaveBeenCalledTimes(2);
+    read.mockRestore();
+  });
+
   test('two getters read in turn keep answering the same objects', async () => {
     const k = await openFixture([shellPlugin()]);
     const shell = k.capability(ShellToken);
