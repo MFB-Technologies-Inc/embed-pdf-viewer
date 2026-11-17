@@ -6,8 +6,9 @@
 //! vector cases that observe it (`observedBy`), and the Rust test that pins
 //! it (`pinnedBy`, `<path from the workspace root>::<test fn>`). An entry
 //! needs at least one of `observedBy` and `pinnedBy`. An optional
-//! `differentialSkip` lists functions whose generated inputs the
-//! differential runner skips, `{ "fn", "when" }` (see [`DifferentialSkip`]).
+//! `differentialSkip` lists functions on which the differential runner
+//! accepts the difference this entry describes, `{ "fn", "when" }` (see
+//! [`DifferentialSkip`]).
 //!
 //! An observation names a vector file and case and one of two forms:
 //!
@@ -47,22 +48,23 @@ pub struct Divergence {
     pub observed_by: Vec<Observation>,
     #[serde(default)]
     pub pinned_by: Option<String>,
-    /// Generated inputs the differential runner
+    /// Differences the differential runner
     /// (`tooling/plugin-conformance/src/checks/differential.ts`) does not count as a
     /// mismatch. Each predicate is code in `src/differential/<crate>.ts`,
-    /// keyed by this entry's `id`; `when` says in words what it matches.
+    /// keyed by this entry's `id`, and sees the input and both outcomes;
+    /// `when` says in words what it accepts.
     #[serde(default)]
     pub differential_skip: Vec<DifferentialSkip>,
 }
 
-/// One function the differential runner skips some inputs of.
+/// One function the differential runner accepts some differences of.
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DifferentialSkip {
     /// The function's name in the suite's table.
     #[serde(rename = "fn")]
     pub function: String,
-    /// The inputs skipped, in words.
+    /// The differences accepted, in words.
     pub when: String,
 }
 

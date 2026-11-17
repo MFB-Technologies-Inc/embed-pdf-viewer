@@ -21,10 +21,12 @@
  * the generator then freezes it as a vector. It exits 1 when any function
  * mismatched.
  *
- * A kept divergence is skipped by a `differentialSkip` on its
+ * A kept divergence is allowed by a `differentialSkip` on its
  * `divergences.json` entry, `{ "fn", "when" }`, with the predicate in
- * `src/differential/<crate>.ts` under the entry's id. A skip without a
- * predicate, or a predicate without a skip, fails the run.
+ * `src/differential/<crate>.ts` under the entry's id. The predicate sees the
+ * input and both outcomes, so it can accept the difference the entry
+ * describes and refuse any other. A skip without a predicate, or a predicate
+ * without a skip, fails the run.
  */
 import { spawn, spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -49,9 +51,20 @@ export interface FunctionServer {
   close(): Promise<void>;
 }
 
-/** Whether a generated input falls under a ledger entry's skip. `args` are
- *  the decoded arguments both sides received. */
-export type SkipPredicate = (fn: string, args: readonly unknown[]) => boolean;
+/** An input on which the two sides differed. */
+export interface Difference {
+  readonly fn: string;
+  /** The decoded arguments both sides received. */
+  readonly args: readonly unknown[];
+  /** Both outcomes, as a vector records them. */
+  readonly typescript: unknown;
+  readonly rust: unknown;
+  /** Calls the TypeScript again on the same input and returns its outcome. */
+  readonly rerun: () => unknown;
+}
+
+/** Whether a difference is the one a ledger entry describes. */
+export type SkipPredicate = (difference: Difference) => boolean;
 
 /** What `src/differential/<crate>.ts` exports as `table`. */
 export interface CrateTable {
@@ -92,6 +105,8 @@ export interface Report {
   readonly runs: Record<string, number>;
   /** Inputs a ledger skip passed, per function. */
   readonly skipped: Record<string, number>;
+  /** Inputs a ledger skip passed, per `divergences.json` id. */
+  readonly skippedBy: Record<string, number>;
   readonly mismatches: Mismatch[];
   /** Functions of the suites with no arbitrary, so never run. */
   readonly untested: string[];
@@ -193,7 +208,7 @@ export async function runDifferential(options: Options): Promise<Report> {
       `--fn ${untestable.join(', ')}: no arbitrary in src/differential/${table.table}.ts, so nothing would run`,
     );
   }
-  const report: Report = { runs: {}, skipped: {}, mismatches: [], untested: [] };
+  const report: Report = { runs: {}, skipped: {}, skippedBy: {}, mismatches: [], untested: [] };
   for (const [name, { fn, file }] of functions) {
     if (options.only && !options.only.includes(name)) continue;
     const arbitrary = table.arbitraries[name];
@@ -201,8 +216,9 @@ export async function runDifferential(options: Options): Promise<Report> {
       report.untested.push(name);
       continue;
     }
+    const call = (raw: unknown[]) => callFunctionCase(fn, raw, `[differential] ${name}`);
     const compare = async (raw: unknown[]) => {
-      const { args, outcome } = callFunctionCase(fn, raw, `[differential] ${name}`);
+      const { args, outcome } = call(raw);
       const reply = await server.call(table.table, name, args);
       const failed =
         reply !== null && typeof reply === 'object' && 'error' in reply
@@ -212,12 +228,23 @@ export async function runDifferential(options: Options): Promise<Report> {
     };
     let shrinking = false;
     let skipped = 0;
+    const skippedBy: Record<string, number> = {};
     const property = fc.asyncProperty(arbitrary, async (raw) => {
-      const { args, failed } = await compare(raw);
+      const { args, outcome, reply, failed } = await compare(raw);
       if (failed === null) return true;
-      const decoded = args.map(decodePlain);
-      if ((skips.get(name) ?? []).some((skip) => skip.predicate(name, decoded))) {
-        if (!shrinking) skipped++;
+      const difference: Difference = {
+        fn: name,
+        args: args.map(decodePlain),
+        typescript: outcome,
+        rust: reply,
+        rerun: () => call(raw).outcome,
+      };
+      const skip = (skips.get(name) ?? []).find((s) => s.predicate(difference));
+      if (skip) {
+        if (!shrinking) {
+          skipped++;
+          skippedBy[skip.id] = (skippedBy[skip.id] ?? 0) + 1;
+        }
         return true;
       }
       shrinking = true;
@@ -226,6 +253,9 @@ export async function runDifferential(options: Options): Promise<Report> {
     const result = await fc.check(property, { numRuns: runs, seed });
     report.runs[name] = result.numRuns;
     if (skipped) report.skipped[name] = skipped;
+    for (const [id, count] of Object.entries(skippedBy)) {
+      report.skippedBy[id] = (report.skippedBy[id] ?? 0) + count;
+    }
     if (!result.failed || !result.counterexample) continue;
     // Called again on the shrunk input; a call that threw (the server died)
     // throws here.
@@ -359,7 +389,7 @@ export async function main() {
     await server.close();
   }
   for (const [name, count] of Object.entries(report.runs)) {
-    const skipped = report.skipped[name] ? `, ${report.skipped[name]} skipped by the ledger` : '';
+    const skipped = report.skipped[name] ? `, ${report.skipped[name]} allowed by the ledger` : '';
     const failed = report.mismatches.some((m) => m.fn === name) ? ' MISMATCH' : '';
     console.log(`  ${name}: ${count} inputs${skipped}${failed}`);
   }
@@ -371,8 +401,13 @@ export async function main() {
     console.log(`  case for the suite:\n  ${mismatch.printed}`);
   }
   const total = Object.values(report.runs).reduce((a, b) => a + b, 0);
+  const allowed = Object.values(report.skippedBy).reduce((a, b) => a + b, 0);
+  const byId = Object.entries(report.skippedBy)
+    .map(([id, count]) => `${id} ${count}`)
+    .join(', ');
   console.log(
-    `\n${Object.keys(report.runs).length} functions, ${total} inputs, ${report.mismatches.length} mismatched`,
+    `\n${Object.keys(report.runs).length} functions, ${total} inputs, ${report.mismatches.length} mismatched, ` +
+      `${allowed} allowed by the ledger${byId ? ` (${byId})` : ''}`,
   );
   if (report.mismatches.length) process.exitCode = 1;
 }
