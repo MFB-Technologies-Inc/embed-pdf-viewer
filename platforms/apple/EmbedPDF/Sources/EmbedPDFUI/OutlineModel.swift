@@ -61,13 +61,17 @@ public final class OutlineModel {
       return (items, rows, selected, current, status, incomplete, editable)
     }, apply: {
       let (items, rows, selected, current, status, incomplete, editable) = $0
-      // Observation skips equal writes only for `Equatable` values. Items
-      // hold an action handle and aren't, so they're compared here: most
-      // revisions are a scroll or a zoom that leaves the outline as it was.
+      // Most revisions are a scroll or a zoom that leaves the outline as it
+      // was: write only what changed, so the views reading these fields stay
+      // valid. Items hold an action handle and aren't `Equatable`, so they're
+      // compared field by field.
       if !items.elementsEqual(self.items, by: Self.sameItem) { self.items = items }
       if !rows.elementsEqual(self.rows, by: Self.sameRow) { self.rows = rows }
-      (self.selectedItems, self.currentItem, self.status, self.incomplete, self.canEdit) =
-        (selected, current, status, incomplete, editable)
+      if self.selectedItems != selected { self.selectedItems = selected }
+      if self.currentItem != current { self.currentItem = current }
+      if self.status != status { self.status = status }
+      if self.incomplete != incomplete { self.incomplete = incomplete }
+      if self.canEdit != editable { self.canEdit = editable }
     }, failure: {
       self.items = []; self.rows = []; self.selectedItems = []; self.currentItem = nil
       self.canEdit = false

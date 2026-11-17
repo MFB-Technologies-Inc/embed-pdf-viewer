@@ -72,7 +72,7 @@ struct OutlineModelTests {
     await model.reload()
     let page = try await viewer.pages(of: document)[1].page
     let parent = try #require(await model.create(OutlineItemInput(title: "Parent", target: .goto(destination: .fit(page: page)), color: "#ff0000", bold: true)))
-    _ = try #require(await model.create(OutlineItemInput(title: "Child", parent: parent.itemRef, clearTarget: true)))
+    let child = try #require(await model.create(OutlineItemInput(title: "Child", parent: parent.itemRef, clearTarget: true)))
     await model.select([parent.itemRef])
     let shown = { @MainActor in
       _ = (model.items, model.rows, model.selectedItems, model.currentItem, model.status, model.incomplete, model.canEdit)
@@ -88,6 +88,10 @@ struct OutlineModelTests {
       try await outline.collapse(parent.itemRef)
       await model.refresh()
     })
+    // The selection is compared before it's written, as the items are.
+    #expect(await !observationFires({ model.selectedItems }) { await model.select([parent.itemRef]) })
+    #expect(await observationFires({ model.selectedItems }) { await model.select([child.itemRef]) })
+    expectNoDifference(model.selectedItems, [child.itemRef])
     expectNoDifference(model.error, nil)
     try await viewer.destroy()
   }
