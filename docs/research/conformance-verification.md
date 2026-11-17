@@ -47,7 +47,7 @@ The two causes are unchanged: the halfway digit rounding of `number_to_string` a
 
 ## Full suite, 2026-11-17
 
-At `5ff124ed9`, on a clean tree, in container `embed-pdf-conformance` with Node v24.20.0, pnpm
+At `f02f7419a`, on a clean tree, in container `embed-pdf-conformance` with Node v24.20.0, pnpm
 10.34.0, rustc 1.98.0 (88d9e12ae 2026-08-18), cargo 1.98.0 (797e8a9bc 2026-08-05) and
 cargo-llvm-cov 0.9.1. The `pnpm run` commands ran from `tooling/plugin-conformance`, the cargo ones
 from the repository root. `<crates>` is every crate with a file this branch changed under `crates/`
@@ -60,10 +60,10 @@ from the repository root. `<crates>` is every crate with a file this branch chan
 | `cargo fmt <crates> --check` | 0 | nothing |
 | `cargo clippy <crates> --all-targets -- -D warnings` | 0 | no warnings or errors |
 | `pnpm run typecheck` | 0 | |
-| `pnpm run test:harness` | 0 | tests 86, pass 86, fail 0 |
+| `pnpm run test:harness` | 0 | tests 87, pass 87, fail 0 |
 | `pnpm run vectors:check` | 0 | `119 vector files are current, and each is replayed` |
 | `pnpm run coverage:check` | 0 | `coverage is current: statements 72853/77093, branches 14365/15719, 935 lines reached only by snapshot-none cases, 36 ported files no generator loads` |
-| `pnpm run replay:check` | 0 | `cargo: passed`, `checkout: 5ff124ed97ecdb48b7a9dc957622dbd5946a4547, clean`, `receipts: 119 read`, `119 vector files, 15916 cases, all replayed` |
+| `pnpm run replay:check` | 0 | `cargo: passed`, `checkout: f02f7419afe1734b68d1f2923324a914d5dee144, clean`, `receipts: 119 read`, `119 vector files, 15916 cases, all replayed` |
 | `pnpm run rust-coverage:check` | 0 | `rust coverage is current: replay reaches 64233/112503 lines; 36975 lines only other tests reach, in 673 files (74 excluded)` |
 
 The cargo test run inside `replay:check` printed 161 `test result:` lines, which sum to 863 passed,
