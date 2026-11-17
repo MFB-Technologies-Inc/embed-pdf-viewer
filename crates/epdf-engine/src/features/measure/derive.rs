@@ -1066,7 +1066,8 @@ mod tests {
         // `epdf_geometry::js` carries a third copy; only the tests here see
         // all three, so they are held together over exact ties in both
         // directions, the notation switches, subnormals, powers of two,
-        // integers past 2^53, zeros and the non-finite values.
+        // integers past 2^53, plain-notation fractions, zeros and the
+        // non-finite values.
         let mut seed: u64 = 0x2545_f491_4f6c_dd1d;
         let mut next = || {
             seed = seed
@@ -1111,7 +1112,13 @@ mod tests {
             values.push(n as f64 + 0.25);
             values.push(n as f64 + 0.75);
             values.push(f64::from_bits(next()));
-            values.push(f64::from_bits(next() >> 2) % 1e6);
+            // Plain notation with up to 17 digits: a 53-bit integer in
+            // millionths, and scaled by a power of ten from 1e-6 to 1e5, so
+            // the point falls inside the digits or past them, up to just
+            // under 1e21.
+            let digits = (next() >> 11) as f64;
+            values.push(digits / 1e6);
+            values.push(digits * [1e-6, 1e-3, 1.0, 1e3, 1e5][(next() % 5) as usize]);
         }
         for value in values {
             for x in [value, -value] {
