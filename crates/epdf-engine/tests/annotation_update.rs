@@ -1970,3 +1970,56 @@ fn a_patch_without_its_subtype_converts_its_places_by_name() {
     assert_eq!(refused["code"], "InvalidArg", "{refused}");
     assert_eq!(refused["details"]["field"], "box", "{refused}");
 }
+
+/// The fixtures whose pages carry annotations: object entries, inline
+/// entries, popups and widgets among them.
+const LOOKUP_FIXTURES: [&str; 4] = [
+    "tooling/engine-conformance/fixtures/annotation_base.pdf",
+    "tooling/engine-conformance/fixtures/annotation_kinds.pdf",
+    "tooling/engine-conformance/fixtures/annotation_appearances.pdf",
+    "tooling/engine-conformance/fixtures/form_fields.pdf",
+];
+
+#[test]
+fn update_makes_no_annot_probes() {
+    use epdf_engine::features::annotation::write::resolve::resolve_annotation_index_raw;
+    use epdf_engine::identity::{AnnotationRef, PageObjectNumber};
+    use pdfium::call_count::{self, Call};
+    use pdfium::{Document, Library};
+
+    // An update finds its annotation by object number from `/Annots` alone,
+    // at the position the first entry with that number has, without opening
+    // a single annotation to compare.
+    let mut looked_up = 0;
+    for fixture in LOOKUP_FIXTURES {
+        let bytes = test_support::fixture(fixture);
+        let document = Document::from_bytes(Library::acquire(), &bytes, None).expect("open");
+        for page_index in 0..document.page_count() {
+            let page = PageObjectNumber::new(document.page_object_number_by_index(page_index))
+                .expect("a page object number");
+            let count = document.raw_annotation_count(page_index).unwrap_or(0);
+            let numbers: Vec<u32> = (0..count)
+                .map(|at| document.raw_annotation(page_index, at).map_or(0, |a| a.object_number()))
+                .collect();
+            for (at, &annot) in numbers.iter().enumerate().filter(|(_, n)| **n > 0) {
+                let first = numbers.iter().position(|n| *n == annot).expect("present");
+                assert!(first <= at);
+                call_count::reset();
+                let found = resolve_annotation_index_raw(
+                    &document,
+                    page_index,
+                    &AnnotationRef::ObjectNumber { page, annot },
+                )
+                .unwrap_or_else(|e| panic!("{fixture} page {page_index} object {annot}: {e:?}"));
+                assert_eq!(
+                    call_count::get(Call::GetAnnotRaw),
+                    0,
+                    "{fixture} page {page_index}: the lookup of {annot} opened annotations"
+                );
+                assert_eq!(found as usize, first, "{fixture} page {page_index} object {annot}");
+                looked_up += 1;
+            }
+        }
+    }
+    assert!(looked_up > 0, "no fixture has an annotation with an object number");
+}

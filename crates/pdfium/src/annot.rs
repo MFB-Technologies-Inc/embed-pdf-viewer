@@ -134,6 +134,44 @@ impl Document {
         }
         Some(Annotation { handle, _page: PhantomData, _not_send: PhantomData })
     }
+
+    /// Where the annotation that is object `object_number` sits in a page's
+    /// `/Annots` (`EPDFPage_GetAnnotIndexByObjectNumberRaw`): the first entry
+    /// referring to it. Read from `/Annots` alone, so no page is loaded and
+    /// no annotation opened. `None` when no entry refers to it, which an
+    /// inline entry never does, or when the runtime refuses the page.
+    pub fn raw_annotation_index_by_object_number(
+        &self,
+        page_index: u32,
+        object_number: u32,
+    ) -> Option<u32> {
+        let page_index = i32::try_from(page_index).ok()?;
+        // SAFETY: the handle is live and is not closed here.
+        let index = unsafe {
+            pdfium_sys::EPDFPage_GetAnnotIndexByObjectNumberRaw(
+                self.as_raw(),
+                page_index,
+                object_number,
+            )
+        };
+        u32::try_from(index).ok()
+    }
+
+    /// Where the first annotation of a page's `/Annots` named `nm` (its
+    /// `/NM`) sits (`EPDFPage_GetAnnotIndexByNameRaw`). Read from the page's
+    /// dictionaries, so no page is loaded and no annotation opened. `None`
+    /// when no annotation has that name, when `nm` is empty, or when the
+    /// runtime refuses the page.
+    pub fn raw_annotation_index_by_name(&self, page_index: u32, nm: &str) -> Option<u32> {
+        let page_index = i32::try_from(page_index).ok()?;
+        let nm: Vec<u16> = nm.encode_utf16().chain(std::iter::once(0)).collect();
+        // SAFETY: the handle is live, and `nm` is NUL-terminated UTF-16 that
+        // outlives the call.
+        let index = unsafe {
+            pdfium_sys::EPDFPage_GetAnnotIndexByNameRaw(self.as_raw(), page_index, nm.as_ptr())
+        };
+        u32::try_from(index).ok()
+    }
 }
 
 impl<'page> Annotation<'page> {
