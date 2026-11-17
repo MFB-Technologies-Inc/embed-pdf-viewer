@@ -35,8 +35,8 @@ import { spawnSync } from 'node:child_process';
 import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
 
+import { isMainModule } from './main-module';
 import { vectorsRoot } from './vectors';
 
 const PORTED = /^packages\/(core\/(main|geometry|stage|ui|annotation|acrojs|signature)|plugin\/[^/]+)\/src\//;
@@ -211,6 +211,6 @@ async function main(): Promise<void> {
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+if (isMainModule(import.meta.url)) {
   await main();
 }

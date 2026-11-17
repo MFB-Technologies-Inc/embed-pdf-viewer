@@ -28,8 +28,9 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
+import { isMainModule } from './main-module';
 import { cargoMetadata, replayPackages } from './replay-check';
 
 /** Paths by vector file and case. */
@@ -210,6 +211,6 @@ function main(): void {
   if (process.argv.includes('--fresh')) print('allowlist paths no case needs', found.unneeded);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+if (isMainModule(import.meta.url)) {
   main();
 }

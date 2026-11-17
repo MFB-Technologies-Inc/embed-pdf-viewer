@@ -30,6 +30,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { isMainModule } from './main-module';
 import type { Suite } from './vectors';
 
 /** What one Rust `assert_suite` call replayed (`crates/plugin-conformance/src/receipt.rs`). */
@@ -273,6 +274,6 @@ async function main(): Promise<void> {
   if (problems.length || cargoPassed === false) process.exitCode = 1;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+if (isMainModule(import.meta.url)) {
   await main();
 }

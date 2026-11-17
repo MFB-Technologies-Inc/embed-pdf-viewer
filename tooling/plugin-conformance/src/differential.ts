@@ -30,11 +30,12 @@ import { spawn, spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createInterface } from 'node:readline';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 import fc from 'fast-check';
 
 import { diff } from './canonical';
+import { isMainModule } from './main-module';
 import { callFunctionCase, decodePlain, type FunctionSuite } from './vectors';
 
 const repoRoot = fileURLToPath(new URL('../../..', import.meta.url));
@@ -356,7 +357,7 @@ async function main() {
   if (report.mismatches.length) process.exitCode = 1;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+if (isMainModule(import.meta.url)) {
   main().catch((error) => {
     console.error(error instanceof Error ? error.message : error);
     process.exitCode = 2;
