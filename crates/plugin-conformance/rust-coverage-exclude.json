@@ -22,5 +22,13 @@
   {
     "glob": "crates/conformance-function-server/**",
     "reason": "the differential runner's stdio server over the function tables: test machinery, not ported code"
+  },
+  {
+    "glob": "crates/pdfium-sys/**",
+    "reason": "generated bindings to the PDFium C ABI, not ported TypeScript"
+  },
+  {
+    "glob": "crates/pdfium/**",
+    "reason": "the safe wrapper over pdfium-sys, not ported TypeScript"
   }
 ]

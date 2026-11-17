@@ -231,7 +231,11 @@ export interface CargoMetadata {
   readonly packages: readonly {
     readonly id: string;
     readonly name: string;
-    readonly dependencies: readonly { readonly name: string; readonly kind: string | null }[];
+    readonly dependencies: readonly {
+      readonly name: string;
+      readonly kind: string | null;
+      readonly optional?: boolean;
+    }[];
   }[];
 }
 

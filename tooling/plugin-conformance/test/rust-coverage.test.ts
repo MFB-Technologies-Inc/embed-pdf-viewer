@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import {
   childEnv,
   lineCounts,
+  reachedPackages,
   testModuleLines,
   unitOnly,
   type LlvmCovExport,
@@ -174,4 +175,31 @@ test('childEnv removes the filter, order, allowlist and receipt variables', () =
     }),
     { PATH: '/bin' },
   );
+});
+
+test('reachedPackages follows normal, non-optional dependencies between workspace members', () => {
+  const pkg = (name: string, deps: [string, string | null, boolean?][] = []) => ({
+    id: `${name}-id`,
+    name,
+    dependencies: deps.map(([dep, kind, optional = false]) => ({ name: dep, kind, optional })),
+  });
+  const metadata = {
+    workspace_members: ['plugin-id', 'kernel-id', 'geometry-id', 'helper-id', 'tests-id', 'ffi-id'],
+    packages: [
+      pkg('plugin', [
+        ['kernel', null],
+        ['serde', null],
+        ['tests', 'dev'],
+        ['helper', 'build'],
+        ['ffi', null, true],
+      ]),
+      pkg('kernel', [['geometry', null]]),
+      pkg('geometry'),
+      pkg('helper'),
+      pkg('tests'),
+      pkg('serde'),
+      pkg('ffi'),
+    ],
+  };
+  assert.deepEqual(reachedPackages(metadata, ['plugin']), ['geometry', 'kernel', 'plugin']);
 });

@@ -5,17 +5,19 @@
  *   pnpm --filter @embedpdf/tooling-plugin-conformance run rust-coverage:check
  *
  * Needs `cargo-llvm-cov` and the `llvm-tools-preview` rustup component.
- * Measures the crates `replay:check` runs (`replayPackages`: plugin-conformance
- * and every workspace member that depends on it) twice under
- * `cargo llvm-cov`:
+ * Measures twice under `cargo llvm-cov`, and reports on the crates the
+ * replay reaches (`reachedPackages`): the crates `replay:check` runs
+ * (`replayPackages`: plugin-conformance and every workspace member that
+ * depends on it) and every workspace member they depend on, so
+ * `epdf-kernel`, `epdf-text-core` and `epdf-engine` count too.
  *
  * - replay: the `conformance` integration test target of each plugin crate
  *   (`tests/conformance.rs`) and plugin-conformance's own `kernel` target,
  *   which replays the kernel vectors and the function-table suites. Every
  *   test in those targets runs, including the few that are not
  *   `assert_suite` calls.
- * - all tests: `--tests` over the same crates, so the library unit tests and
- *   every integration test target. Doc tests are not measured.
+ * - all tests: `--tests` over every reached crate, so the library unit tests
+ *   and every integration test target. Doc tests are not measured.
  *
  * `vectors/rust-coverage.json` records, per source file, `replayLines`
  * (lines replay hit / lines llvm-cov maps) and `unitOnlyLines`: the lines
@@ -39,7 +41,7 @@ import { fileURLToPath } from 'node:url';
 
 import { ranges } from './coverage';
 import { isMainModule } from './main-module';
-import { cargoMetadata, replayPackages } from './replay-check';
+import { cargoMetadata, replayPackages, type CargoMetadata } from './replay-check';
 
 /** One `llvm-cov export` segment: line, column, count, has count, region
  *  entry, gap region. */
@@ -264,6 +266,29 @@ export function unitOnly(
   };
 }
 
+/** `roots` and every workspace member they reach through normal,
+ *  non-optional dependencies, sorted: the crates whose code a replay test
+ *  links. An optional dependency (a binding crate behind a feature) is not
+ *  built for the tests. */
+export function reachedPackages(metadata: CargoMetadata, roots: readonly string[]): string[] {
+  const members = new Set(metadata.workspace_members);
+  const byName = new Map(
+    metadata.packages.filter((p) => members.has(p.id)).map((p) => [p.name, p]),
+  );
+  const reached = new Set(roots);
+  const stack = [...roots];
+  while (stack.length) {
+    for (const dep of byName.get(stack.pop()!)?.dependencies ?? []) {
+      if (dep.kind !== null || dep.optional || reached.has(dep.name) || !byName.has(dep.name)) {
+        continue;
+      }
+      reached.add(dep.name);
+      stack.push(dep.name);
+    }
+  }
+  return [...reached].sort();
+}
+
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = resolve(packageRoot, '..', '..');
 const target = join(packageRoot, 'vectors', 'rust-coverage.json');
@@ -298,36 +323,41 @@ function cargo(args: readonly string[]): void {
 }
 
 /** Run `targets` of `packages` under coverage from fresh profiles and return
- *  the JSON export. */
+ *  the JSON export of the files of `reported`. */
 async function measure(
   packages: readonly string[],
   targets: readonly string[],
+  reported: readonly string[],
   dir: string,
   name: string,
 ): Promise<LlvmCovExport> {
-  const select = packages.flatMap((p) => ['-p', p]);
+  const select = (list: readonly string[]) => list.flatMap((p) => ['-p', p]);
   cargo(['llvm-cov', 'clean', '--profraw-only']);
-  cargo(['llvm-cov', '--no-report', '--no-fail-fast', ...select, ...targets]);
+  cargo(['llvm-cov', '--no-report', '--no-fail-fast', ...select(packages), ...targets]);
   const out = join(dir, `${name}.json`);
-  cargo(['llvm-cov', 'report', '--json', ...select, '--output-path', out]);
+  cargo(['llvm-cov', 'report', '--json', ...select(reported), '--output-path', out]);
   return JSON.parse(await readFile(out, 'utf8')) as LlvmCovExport;
 }
 
 async function main(): Promise<void> {
   const check = process.argv.includes('--check');
-  const packages = replayPackages(cargoMetadata());
+  const metadata = cargoMetadata();
+  const packages = replayPackages(metadata);
+  const reached = reachedPackages(metadata, packages);
   const exclude = JSON.parse(await readFile(excludeFile, 'utf8')) as Exclusion[];
   const dir = await mkdtemp(join(tmpdir(), 'rust-coverage-'));
   let result: RustCoverage;
   try {
-    console.log(`measuring ${packages.length} crates: ${packages.join(', ')}`);
+    console.log(`replaying ${packages.length} crates: ${packages.join(', ')}`);
+    console.log(`measuring ${reached.length} crates: ${reached.join(', ')}`);
     const replay = await measure(
       packages,
       ['--test', 'conformance', '--test', 'kernel'],
+      reached,
       dir,
       'replay',
     );
-    const all = await measure(packages, ['--tests'], dir, 'all');
+    const all = await measure(reached, ['--tests'], reached, dir, 'all');
     const sources = new Map<string, string>();
     for (const unit of all.data) {
       for (const file of unit.files)

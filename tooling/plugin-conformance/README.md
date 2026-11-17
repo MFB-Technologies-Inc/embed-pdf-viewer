@@ -72,17 +72,22 @@ there must carry one run id, so fill the directory with a single cargo run that 
 
 `rust-coverage` records which Rust lines the replay reaches. It needs `cargo-llvm-cov` (written
 against 0.9.1, `cargo install cargo-llvm-cov --locked`) and the `llvm-tools-preview` rustup
-component. It runs the same crates as `replay:check` under `cargo llvm-cov` twice: once with only
-the replay targets (each plugin crate's `tests/conformance.rs` and `plugin-conformance`'s
-`tests/kernel.rs`), once with `--tests`. `vectors/rust-coverage.json` gives each source file's
-`replayLines` (lines replay hit / lines llvm-cov maps) and `unitOnlyLines`, the lines some test
-reaches and replay does not. Files matching a glob in
+component. It runs `cargo llvm-cov` twice: once with only the replay targets (each plugin crate's
+`tests/conformance.rs` and `plugin-conformance`'s `tests/kernel.rs`) of the crates `replay:check`
+runs, once with `--tests` over every crate it reports on. It reports on the crates the replay
+links: the ones `replay:check` runs and every workspace member they reach through normal,
+non-optional dependencies (`reachedPackages`), so `epdf-kernel`, `epdf-text-core` and
+`epdf-engine` are counted with the plugins. Binding crates behind an optional feature
+(`epdf-ffi`) are not built for the tests and are not in it. `vectors/rust-coverage.json` gives
+each source file's `replayLines` (lines replay hit / lines llvm-cov maps) and `unitOnlyLines`, the
+lines some test reaches and replay does not. Files matching a glob in
 `crates/plugin-conformance/rust-coverage-exclude.json` (replay adapters, C ABI glue, the replay
-runner) are left out, each with its reason, and so are the lines of inline `#[cfg(test)]` modules.
-Both runs drop `PLUGIN_CONFORMANCE_ONLY`, `PLUGIN_CONFORMANCE_MEMBER_ORDER`,
-`PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW` and `PLUGIN_CONFORMANCE_RECEIPTS`. It is a record, not a threshold: `rust-coverage:check` fails only
+runner, the PDFium bindings) are left out, each with its reason, and so are the lines of inline
+`#[cfg(test)]` modules. Both runs drop `PLUGIN_CONFORMANCE_ONLY`,
+`PLUGIN_CONFORMANCE_MEMBER_ORDER`, `PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW` and
+`PLUGIN_CONFORMANCE_RECEIPTS`. It is a record, not a threshold: `rust-coverage:check` fails only
 when the file would change. Both runs together cost an instrumented build and test run of every
-replay crate.
+reported crate.
 
 `vectors/environment.json` records the ICU and Unicode versions of the Node that wrote the vectors
 (`process.versions.icu`). ICU decides `Intl.PluralRules` (i18n plurals) and `localeCompare` (render
