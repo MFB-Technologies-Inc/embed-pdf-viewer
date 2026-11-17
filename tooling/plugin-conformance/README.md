@@ -86,6 +86,13 @@ checkout have uncommitted changes, since nothing ties those changes to the recei
 that `--receipts` only works on a clean tree; a plain `replay:check` on a tree with changes still
 passes, because it replays that tree itself. If either git command fails (a "dubious ownership"
 refusal inside a container, say), the check fails with git's message instead of comparing nothing.
+A receipts directory inside the repository is left out of the `git status` it reads.
+
+What a saved directory proves is consistency, not provenance. Receipts are not signed, so the commit
+and the clean-tree flag in them are what `PLUGIN_CONFORMANCE_HEAD` and `PLUGIN_CONFORMANCE_DIRTY` said
+when they were written, taken on trust. `--receipts` shows that one run's receipts agree with each
+other and with the checkout; only a plain `replay:check`, which sets both variables from git itself,
+is the gate.
 
 `rust-coverage` records which Rust lines the replay reaches. It needs `cargo-llvm-cov` (written
 against 0.9.1, `cargo install cargo-llvm-cov --locked`) and the `llvm-tools-preview` rustup
