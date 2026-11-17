@@ -314,6 +314,8 @@ function parseArgs(argv: readonly string[]) {
       i++;
       return value;
     };
+    // `pnpm run differential -- --crate ...` passes the `--` through.
+    if (flag === '--') continue;
     if (flag === '--crate') crate = need();
     else if (flag === '--runs') runs = Number(need());
     else if (flag === '--seed') seed = Number(need());
