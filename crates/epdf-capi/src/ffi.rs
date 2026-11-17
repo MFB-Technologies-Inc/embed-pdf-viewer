@@ -326,16 +326,7 @@ pub unsafe extern "C" fn epdf_engine_submit(
                             guard.transfer();
                         }
                     }
-                    let successful = serde_json::from_str::<serde_json::Value>(&response.json)
-                        .map_err(|_| {
-                            EngineError::with_message(
-                                EngineErrorCode::WireFormat,
-                                "invalid Host response",
-                            )
-                        })?
-                        .get("error")
-                        .is_none();
-                    let transfer = if operation == 1 && successful {
+                    let transfer = if operation == 1 && operations::opened(&response.json)? {
                         let inserted = documents()
                             .lock()
                             .unwrap_or_else(|p| p.into_inner())

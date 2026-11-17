@@ -3,6 +3,8 @@ use crate::config::Limits;
 use epdf_engine::cancel::CancelToken;
 use epdf_engine::error::{EngineError, EngineErrorCode};
 use epdf_engine::host::{Host, HostResponse, JobEnvelope, Payloads, RequestEffect};
+use serde::Deserialize;
+use serde::de::IgnoredAny;
 use serde_json::{Value, json};
 
 pub(crate) fn validate(operation: u32, args: &Value, payload_count: usize) -> Result<(), Status> {
@@ -140,6 +142,11 @@ pub(crate) fn call(
 ) -> Result<HostResponse, EngineError> {
     let document = request["docId"].as_str().unwrap();
     let mut response = host.call_with_cancel(&request.to_string(), payloads, cancel);
+    // Only an open and a search read their answer; every other answer goes
+    // back as the host gave it.
+    if operation != 1 && operation != 7 {
+        return Ok(response);
+    }
     let mut parsed: Value =
         serde_json::from_str(&response.json).map_err(|_| invalid("invalid Host response"))?;
     if operation == 1 {
@@ -172,6 +179,18 @@ pub(crate) fn call(
     Ok(response)
 }
 
+/// Whether an open's answer hands out a document: it has no top-level
+/// `error`. Only that member is read; the rest is skipped unbuilt.
+pub(crate) fn opened(json: &str) -> Result<bool, EngineError> {
+    #[derive(Deserialize)]
+    struct Probe {
+        error: Option<IgnoredAny>,
+    }
+    serde_json::from_str::<Probe>(json).map(|probe| probe.error.is_none()).map_err(|_| {
+        EngineError::with_message(EngineErrorCode::WireFormat, "invalid Host response")
+    })
+}
+
 pub(crate) fn close(host: &mut Host, document: &str) {
     let request = json!({"kind":"close","docId":document,"jobId":0,"effect":"close"});
     host.call(&request.to_string(), vec![]);
@@ -180,6 +199,56 @@ pub(crate) fn close(host: &mut Host, document: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn host_with_plain() -> Host {
+        let bytes =
+            include_bytes!("../../../tooling/engine-conformance/fixtures/annotation_kinds.pdf");
+        let mut host = Host::new();
+        let open = request(1, json!({}), "plain", 1, &Limits::default()).unwrap();
+        let answer = call(&mut host, 1, open, vec![bytes.to_vec()], &CancelToken::never()).unwrap();
+        assert_eq!(opened(&answer.json), Ok(true), "{}", answer.json);
+        host
+    }
+
+    #[test]
+    fn failing_open_still_fails_with_probe() {
+        let mut host = Host::new();
+        let open = request(1, json!({}), "garbage", 1, &Limits::default()).unwrap();
+        let failed =
+            call(&mut host, 1, open, vec![b"not a PDF".to_vec()], &CancelToken::never()).unwrap();
+        assert_eq!(opened(&failed.json), Ok(false), "{}", failed.json);
+        assert!(host.sessions().is_empty());
+        // Only the answer's own `error` counts.
+        assert_eq!(opened(r#"{"result":{"error":{"code":"x"}}}"#), Ok(true));
+        assert_eq!(opened(r#"{"error":{"code":"x"},"result":{}}"#), Ok(false));
+        let unreadable = opened(r#"{"error":"#).unwrap_err();
+        assert_eq!(unreadable.code, EngineErrorCode::WireFormat);
+        assert_eq!(unreadable.message, "invalid Host response");
+    }
+
+    /// Reads other than search go back byte for byte as the host answered.
+    #[test]
+    fn reads_answer_the_hosts_bytes() {
+        let mut host = host_with_plain();
+        let list = request(3, json!({}), "plain", 2, &Limits::default()).unwrap();
+        let expected = host.call(&list.to_string(), vec![]);
+        let pages = call(&mut host, 3, list, vec![], &CancelToken::never()).unwrap();
+        assert_eq!(pages.json, expected.json);
+        let listed: Value = serde_json::from_str(&pages.json).unwrap();
+        let page = listed["result"]["pages"][0]["ref"].clone();
+        for (operation, args) in [
+            (4, json!({"page":page})),
+            (5, json!({"page":page})),
+            (6, json!({"page":page,"options":{"viewport":{"kind":"scale","scale":0.25}}})),
+        ] {
+            let read = request(operation, args, "plain", 3, &Limits::default()).unwrap();
+            let expected = host.call(&read.to_string(), vec![]);
+            let answer = call(&mut host, operation, read, vec![], &CancelToken::never()).unwrap();
+            assert!(!answer.json.contains("\"error\""), "{}", answer.json);
+            assert_eq!(answer.json, expected.json, "operation {operation}");
+            assert_eq!(answer.payloads, expected.payloads, "operation {operation}");
+        }
+    }
 
     #[test]
     fn password_refusals_remove_the_parked_host_session() {
