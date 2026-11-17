@@ -211,7 +211,8 @@ A verdict carries a note when it rests on less than usual. `slower (no A/A band)
 judged against the 3% floor alone, because `main` and `main-aa` skip its flow (`undo`). `(no done
 condition on <arm>)` is a `hover` row where that arm can't report the hovered annotation
 (`lib/done.mjs`; viewer API v1 can't), so its row ends at the last pointer move and times input
-pacing, not hover handling.
+pacing, not hover handling. On a v2 arm the `hover` CPU rows include the done-condition poll
+of `getHovered()`, which on a Rust arm is a kernel read.
 
 Each arm's cell in the report's tables is `median [max]`: the median over rounds, then the slowest
 round. Each pair table's `threshold` column is the smallest change that row's verdict counts: its

@@ -1403,3 +1403,110 @@ with no `-C lto`. These three `-v` logs aren't committed; the commands rerun the
 The Swift suite passes on the LTO archive. `build-xcframework.sh` with the change, then
 `EMBEDPDF_LOCAL_ENGINE=1 swift test` in `platforms/apple/EmbedPDF`, ran 506 tests in 51 suites,
 71 in 14 and 8 XCTest cases, all passing. The test log isn't committed.
+
+### The fix branch under the corrected harness (2026-11-17)
+
+This run replaces the CPU and settle claims of the three runs in the caveats at the top
+(`20-20-49`, `02-25-30` and `04-18-50`). Their numbers stay as recorded. Phase C is still the large
+win: main-thread median 0.826x, every `mainJsMs` row on the Phase C watch list faster except
+`selectLarge`, whose A/A band is ±19.3%. Phase D is smaller than first recorded, and Phase E moved
+nothing. The tip still spends 1.468x the main-thread time of upstream `main`.
+
+Run `results/2026-11-17T16-59-17-202Z-macmini2020-desktop`: R=10 on the Mac mini, 150.2 min,
+harness `5f6b0eca5` (clean), probe `d3edaa255947`. A/A 83 of 84. The one failure is
+`search / searchMs` (1.036x, [1.002, 1.168]), so that row reads "unreliable" in every pair. All
+seven arms passed the gate, and none of the 1,380 samples failed. `main` and `main-aa` skipped
+`undo`. The new arm is `perf-fixes-end`, `a6d4d5d14` (the `research/perf-fixes` tip with Phase E and
+the final fixes, tag `arm/perf-fixes-end`). The branch has since moved to `2da733fc8`, with review
+fixes to cancellation, Swift and timers and no web-path perf change intended. That commit isn't
+measured. `perf-fixes-end` ships a different engine wasm (`172b5a139647`, 14.15 MiB) from the three
+phase arms (`2ecd0bd98574`, 14.26 MiB). The kernel is 10.73 MiB on both `phase-d-end` and
+`perf-fixes-end`.
+
+This run is the new drift reference. Its probe hash differs from every earlier run's, so
+`summary.mjs --drift` against `04-18-50` exits 2 ("probe hash 29ce19545e8b -> d3edaa255947"), and
+no row here has a same-build check yet. Medians below come from `node scripts/summary.mjs`, which
+now reports timing, frame-interval, main-thread and settle rows apart. `hover` rows end on
+`getHovered()` on every v2 arm and carry "(no done condition on `main`)" against `main`. `undo`
+still has no A/A band, and its gate reference is `main-now`, the first arm in `arms.json` order
+that runs it. `dragAnnot` drags a stamp.
+
+#### Phase C (`phase-c-base` 0de4effd9 to `phase-c-end` af9ff5d2b)
+
+39 rows faster (3 of them `undo`, with no A/A band), 47 no difference, none slower. Timing median
+0.995x, frame interval 0.999x, main thread 0.826x. Settle median -10.0 ms (-295.8 to +48.6 ms).
+The watched rows:
+
+| Row | `phase-c-base` | `phase-c-end` | Change | Threshold |
+| --- | --- | --- | --- | --- |
+| `jump / mainJsMs` | 223.5 | 164.7 | 0.737x | |
+| `scroll / mainJsMs` | 1,320.0 | 1,067.3 | 0.809x | |
+| `scrollMid / mainJsMs` | 1,604.1 | 1,124.0 | 0.701x | |
+| `zoomLarge / mainJsMs` | 413.2 | 346.1 | 0.838x | |
+| `zoomLarge / settleMs` | 348.2 | 325.5 | -22.7 ms | |
+| `hover / mainJsMs` | 1,147.8 | 832.8 | 0.726x | |
+| `hover / settleMs` | 1,552.2 | 1,256.4 | -295.8 ms | |
+| `searchLarge / mainJsMs` | 1,258.3 | 886.7 | 0.705x | |
+| `searchLarge / searchMs` | 2,187.2 | 1,926.8 | 0.881x | |
+| `selectLarge / mainJsMs` | 142.7 | 122.5 | 0.859x, no difference | ±19.3% |
+| `selectLarge / settleMs` | 284.1 | 270.4 | -13.7 ms, no difference | ±52.9 |
+| `jump / settleMs` | 167.0 | 160.1 | -6.9 ms, no difference | ±18.6 |
+| `scroll / wallMs` | 2,752.0 | 2,695.4 | 0.979x, no difference | ±3.6% |
+| `scrollMid / wallMs` | 2,874.5 | 2,644.1 | 0.920x, no difference | ±8.7% |
+
+Off the watch list, `dragAnnot` is 0.787x with settle -180.0 ms, `annotateLarge` 0.765x and
+-36.1 ms, `drawInk` 0.733x, `typeField` 0.911x and -22.8 ms, and `undo` 0.744x and -149.9 ms.
+`drawInk / settleMs` shows no difference (+48.6 ms, ±171.2). The -2,824.2 ms recorded for it in
+"Phases C and D" doesn't hold up. That run's `drawInk` done condition polled its page through
+`documents.listPages()` and worked out 180 stroke points inside the window (caveats above), and
+that cost went away with the polling fix.
+
+#### Phase D (`phase-c-end` to `phase-d-end` 0d18fb177)
+
+10 rows faster (3 of them `undo`), 75 no difference, 1 slower. Timing median 0.997x, frame interval
+1.012x, main thread 0.992x. Settle median -1.8 ms (-292.7 to +12.0 ms). `undo` is 0.640x
+(457.2 to 292.7 ms) with settle -292.7 ms. `typeField` is 0.817x (248.4 to 203.0 ms) with
+-37.3 ms. `drawInk` is 0.934x and `hover` 0.953x, and neither settle moved (`drawInk` -93.7 ms,
+±172.7; `hover` -41.8 ms, ±94.3). `dragAnnot` and `annotateLarge` show no difference on any row.
+`dragAnnot / mainJsMs` reads 0.953x, but its A/A band is ±6.7%. The earlier run had it at 0.943x
+and settle -26.6 ms, under a done condition that listed the stamp page inside the window.
+
+The slower row is `open(ebook) / mainJsMs`, 336.0 to 346.9 ms, 1.032x [1.002, 1.048] against a
+±3.0% floor. Phase D doesn't change the open path, `open(large) / mainJsMs` didn't move, and the
+same pair read no difference on this row in `04-18-50`. No same-build drift check is possible yet
+(see above), so it stays unconfirmed. If the next run under this probe repeats it, it's a
+regression.
+
+#### Phase E (`phase-d-end` to `perf-fixes-end` a6d4d5d14)
+
+No detectable difference on any row: 83, plus `undo`'s 3 judged against the floor. Timing median
+1.002x, frame interval 1.004x, main thread 1.000x, settle median +0.3 ms (-16.7 to +26.0 ms). The
+engine wasm changed and is 0.11 MiB smaller, and no flow sees it.
+
+#### Where the port stands (`main-now` ed064e0c8 to `perf-fixes-end`)
+
+53 rows slower (3 of them `undo`), 29 no difference, 4 faster. Timing median 1.447x, frame interval
+1.019x, main thread 1.468x. Settle median +20.9 ms (-19.5 to +2,574.1 ms). `phase-d-end` reads
+almost the same against `main-now`: timing 1.459x, main thread 1.466x, settle +20.1 ms. The four
+faster rows are the scroll `wallMs` rows (`scroll` 0.925x, `scrollMid` 0.869x, `coldScroll`
+0.895x) and `searchLarge / searchMs` 0.859x. The widest gaps, `mainJsMs`:
+
+| Row | `main-now` | `perf-fixes-end` | Ratio |
+| --- | --- | --- | --- |
+| `searchLarge` | 348.0 | 901.1 | 2.590x |
+| `dragAnnot` | 201.9 | 505.9 | 2.506x |
+| `search` | 9.3 | 22.1 | 2.392x |
+| `undo` | 134.2 | 293.6 | 2.188x |
+| `typeField` | 93.3 | 200.8 | 2.152x |
+| `drawInk` | 1,136.0 | 2,370.9 | 2.087x |
+| `open(large)` | 179.0 | 363.5 | 2.031x |
+| `open(ebook)` | 181.8 | 344.5 | 1.895x |
+| `hover` | 422.7 | 788.4 | 1.865x |
+
+The largest settle gaps are `drawInk` +2,574.1 ms (3,093.3 to 5,667.4), `dragAnnot` +339.7 ms,
+`undo` +205.6 ms, `hover` +193.3 ms and `typeField` +74.3 ms. Open is about twice as slow to
+`readyMs` (2.061x on `ebook`, 2.058x on `large`).
+
+`main` against `main-now`, for reference: 42 slower (plus 2 `hover` rows with no done condition
+on `main`), 8 faster, 30 no difference. Timing 1.051x, frame interval 1.015x, main thread 1.488x,
+settle median +0.0 ms (-179.2 to +185.8 ms).
