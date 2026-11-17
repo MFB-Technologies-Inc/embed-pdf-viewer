@@ -74,6 +74,10 @@ struct Registry {
 
 thread_local! {
     static REGISTRY_DECODES: Cell<usize> = const { Cell::new(0) };
+}
+
+#[cfg(feature = "harness")]
+thread_local! {
     static LAYOUT_BUILDS: Cell<usize> = const { Cell::new(0) };
 }
 
@@ -87,7 +91,8 @@ pub fn registry_decodes() -> usize {
 
 /// How many page layouts this thread has built from geometry answers.
 /// `tests/geometry_decode.rs` asserts a page load builds its layout once
-/// and a read of a loaded page builds none.
+/// and a read of a loaded page builds none. For the tests, with `harness`.
+#[cfg(feature = "harness")]
 #[doc(hidden)]
 pub fn layout_builds() -> usize {
     LAYOUT_BUILDS.with(Cell::get)
@@ -265,6 +270,7 @@ fn hydrate(answer: &Answer) -> Result<Geometry, Error> {
         },
     };
     Ok(snapshot.map(|snapshot| {
+        #[cfg(feature = "harness")]
         LAYOUT_BUILDS.with(|n| n.set(n.get() + 1));
         Rc::new(create_text_layout(snapshot))
     }))

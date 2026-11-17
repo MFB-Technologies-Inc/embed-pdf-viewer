@@ -33,12 +33,14 @@ fn point(p: Point) -> Value {
     json!({ "x": p.x, "y": p.y })
 }
 
+#[cfg(feature = "harness")]
 thread_local! {
     static COMPUTATIONS: Cell<usize> = const { Cell::new(0) };
 }
 
 /// How many readouts this thread computed. A record's readout is computed
-/// once while the record is the same.
+/// once while the record is the same. For the tests, with `harness`.
+#[cfg(feature = "harness")]
 #[doc(hidden)]
 pub fn readout_computations() -> usize {
     COMPUTATIONS.with(Cell::get)
@@ -74,6 +76,7 @@ impl Readouts {
 
 /// `measurementReadout(dto)` over a JSON object.
 fn readout(object: &Map<String, Value>) -> Value {
+    #[cfg(feature = "harness")]
     COMPUTATIONS.with(|n| n.set(n.get() + 1));
     measurement_readout(&DimensionInput::of(object)).to_value()
 }

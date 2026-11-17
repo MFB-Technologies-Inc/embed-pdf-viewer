@@ -29,10 +29,17 @@ regex = "=1.13.1"
 # it is not a new supply-chain surface so much as an explicit one.
 unicode-normalization = "=0.1.24"
 
+[features]
+# Thread-local counts of search pattern builds, read by tests through
+# `features::search::build_count`.
+call-count = []
+
 [build-dependencies]
 build-support = { path = "../build-support" }
 
 [dev-dependencies]
+# The crate's own tests read its counters (`call-count`).
+epdf-engine = { path = ".", features = ["call-count"] }
 test-support = { path = "../test-support" }
 # Tests count PDFium page loads to prove a path does not make them.
 pdfium = { path = "../pdfium", features = ["call-count"] }

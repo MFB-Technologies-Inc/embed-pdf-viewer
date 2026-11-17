@@ -30,18 +30,26 @@ use crate::js::{Object, key_of, number, page_number};
 
 thread_local! {
     static NEXT_VERSION: Cell<u64> = const { Cell::new(1) };
+}
+
+#[cfg(feature = "harness")]
+thread_local! {
     static RECORD_COPIES: Cell<usize> = const { Cell::new(0) };
 }
 
 /// How many times this thread copied the records' whole `byKey` map. A
 /// change copies it once, to replace or drop its own records in the copy;
-/// building the records value around the copy moves it.
+/// building the records value around the copy moves it. For the tests, with
+/// `harness`.
+#[cfg(feature = "harness")]
+#[doc(hidden)]
 pub fn record_copies() -> usize {
     RECORD_COPIES.with(Cell::get)
 }
 
 /// The records' `byKey`, copied to change.
 fn by_key_copy(records: &Value) -> Map<String, Value> {
+    #[cfg(feature = "harness")]
     RECORD_COPIES.with(|c| c.set(c.get() + 1));
     by_key(records).clone()
 }

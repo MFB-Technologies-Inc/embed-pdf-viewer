@@ -65,6 +65,8 @@ pub const SEARCH_REGEX_MAX_LENGTH: usize = 512;
 
 /// How many times this thread has validated and compiled a search pattern,
 /// for tests that prove a query builds its regex once rather than per page.
+/// Compiled only with the `call-count` feature.
+#[cfg(feature = "call-count")]
 #[doc(hidden)]
 pub mod build_count {
     use std::cell::Cell;
@@ -132,6 +134,7 @@ impl SearchRegexIssue {
 /// state, since `\1` and `(?=` only mean backreference and lookahead outside a
 /// class.
 pub fn validate_search_regex(pattern: &str) -> Result<(), SearchRegexIssue> {
+    #[cfg(feature = "call-count")]
     build_count::record_validated();
     if pattern.is_empty() {
         return Err(SearchRegexIssue::Empty);
@@ -205,6 +208,7 @@ pub fn validate_search_regex(pattern: &str) -> Result<(), SearchRegexIssue> {
 /// is always on, because `^` and `$` meaning line boundaries is what page-text
 /// search wants and what `regex.ts` hard-codes.
 pub fn compile(pattern: &str, match_case: bool) -> Result<regex::Regex, SearchRegexIssue> {
+    #[cfg(feature = "call-count")]
     build_count::record_compiled();
     let translated = dialect::to_regex_syntax(pattern).ok_or(SearchRegexIssue::Syntax)?;
     regex::RegexBuilder::new(&translated)

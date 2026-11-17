@@ -59,11 +59,17 @@ impl TargetKey {
 thread_local! {
     /// The last move's targets: a drag's samples share one model's records.
     static TARGETS: RefCell<Option<(TargetKey, Rc<Targets>)>> = const { RefCell::new(None) };
+}
+
+#[cfg(feature = "harness")]
+thread_local! {
     static TARGET_BUILDS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
 /// How many times this thread built a move's snap targets. A move drag
-/// builds them once, at its first sample.
+/// builds them once, at its first sample. For the tests, with `harness`.
+#[cfg(feature = "harness")]
+#[doc(hidden)]
 pub fn snap_target_builds() -> usize {
     TARGET_BUILDS.with(std::cell::Cell::get)
 }
@@ -83,6 +89,7 @@ fn targets_of(model: &Model, ids: &[Id], page: &PageRef) -> Rc<Targets> {
 }
 
 fn build_targets(model: &Model, ids: &[Id], page: &PageRef) -> Targets {
+    #[cfg(feature = "harness")]
     TARGET_BUILDS.with(|c| c.set(c.get() + 1));
     if ids.iter().any(|id| model.record(id).is_some_and(|r| anchor_mode_of(r).is_some())) {
         return None;
