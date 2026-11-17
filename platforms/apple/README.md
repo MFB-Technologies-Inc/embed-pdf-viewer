@@ -142,21 +142,6 @@ Either way the script leaves `platforms/apple/EmbedPDF/Package.swift` modified f
 That costs a window: on the commit the release was built from, `check-apple-engine.sh` exits 2.
 It has to. The release names a commit, and that commit can't contain its own checksum.
 
-> Important: as of 2026-11-17 the pin is stale on `research/perf-fixes`, and that blocks its merge
-> into `research/multi-platform-rust-core-impl-plugins`. The branch changes hashed inputs (crates in
-> `APPLE_CRATES`, `Cargo.toml`, `Cargo.lock`), so at 878f075be and at the commit that adds this note
-> `apple-engine-hash.sh` gives `8d0a810dc5a3b06f`, while `Package.swift` and
-> `platforms/apple/EmbedPDF/Package.swift` still pin `apple-engine-572d1dc31f32b352`. Until someone
-> republishes on a Mac with `node scripts/publish-engine-payload.mjs --only apple` and commits both
-> re-pinned manifests, `check-apple-engine.sh` fails: exit 1 where `gh` can see the releases, exit 69
-> in the dev container, whose `gh` isn't logged in. We didn't publish from the branch because that
-> needs macOS, Xcode and a release upload. The republished archive must also export
-> `EPDFPage_GetAnnotIndexByObjectNumberRaw` and `EPDFPage_GetAnnotIndexByNameRaw`, which cb74c563b
-> calls. We checked the Linux `libembedpdf.so` (the commit message that adds this note has the
-> `nm` output), not the Apple archive. After unzipping the release, this should print both symbols
-> for every slice:
-> `nm -gU EmbedPDFBindings.xcframework/*/EmbedPDFBindings.framework/EmbedPDFBindings | grep -E '_EPDFPage_GetAnnotIndexBy(ObjectNumber|Name)Raw$'`.
-
 ## Plugins
 
 | Plugin | Swift | `ViewerConfig` | Plan |
