@@ -31,7 +31,7 @@ Neither was fixed or in the ledger at `82c1f37d7`. `971ed565e` fixes the halfway
 port of `Number::toString` now picks the even digit, and the cases `matrixToCss/digit-tie-to-even*`
 and `pageTransform/css-digit-tie-to-even*` in `tooling/plugin-conformance/src/suites/geometry.ts`
 pin it. What still waits on the owner's decision is the last-bit difference between the platform
-math libraries: `atan2` here, and `cos` and `sin` in the seed 31337 run below. The printed cases
+math libraries: `atan2` here, and `cos` in the seed 31337 run below, where the sines agree. The printed cases
 reproduce the `atan2` one, for example
 `{ name: 'diff-normalizePdfQuad-1', fn: 'normalizePdfQuad', args: [[{ x: 0, y: -1 }, { x: -1.4456042752816933e-19, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 5e-324 }]] }`.
 
@@ -79,9 +79,37 @@ multiplies that ulp by `4915517297019373`, so it reaches the last digit of an in
 decision. Neither is fixed or in `divergences.json`, so the differential exits 1 by design until
 that decision is made.
 
+## Geometry differential with the platform math entries, 2026-11-17
+
+The owner decided to keep the last-bit difference between the platform math libraries as a
+platform-dependent divergence, so it is now in `divergences.json` as `PLATFORM-MATH-COS-SIN` and
+`PLATFORM-MATH-ATAN2`, each pinned by a test in `crates/plugins/geometry/tests/platform_math.rs`.
+The differential accepts a difference in a function those entries name only when Rust's outcome is
+the TypeScript's with each `Math.cos`, `Math.sin` or `Math.atan2` call answering one ulp off
+(`tooling/plugin-conformance/README.md`, "The divergence ledger"). The same command at `fd1081000`,
+with the seed 31337 run added:
+
+| seed | runs | inputs, 37 functions | mismatched | allowed by the ledger | exit |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 10000 | 370000 | 0 | 5, all `normalizePdfQuad` (`PLATFORM-MATH-ATAN2`) | 0 |
+| 2 | 10000 | 370000 | 0 | 3, all `normalizePdfQuad` (`PLATFORM-MATH-ATAN2`) | 0 |
+| 3 | 10000 | 370000 | 0 | 3, all `normalizePdfQuad` (`PLATFORM-MATH-ATAN2`) | 0 |
+| 31337 | 50000 | 1850000 | 0 | 24: `rotateAbout` 1 (`PLATFORM-MATH-COS-SIN`), `normalizePdfQuad` 23 (`PLATFORM-MATH-ATAN2`) | 0 |
+
+Seed 31337 printed `37 functions, 1850000 inputs, 0 mismatched, 24 allowed by the ledger
+(PLATFORM-MATH-COS-SIN 1, PLATFORM-MATH-ATAN2 23)`. Each 10000 run now covers every input of every
+function; before, fast-check stopped `normalizePdfQuad` at its first mismatch.
+
+The rule still catches a real bug in those functions. In a copy of the Rust sources under `/tmp` in
+the container, never committed, a `function-server` built with `rotate_about` turning by `-rad`
+made `--fn rotateAbout,normalizePdfQuad --runs 10000 --seed 1` exit 1 on its first input, shrunk
+to `rotateAbout({ x: 0, y: 0 }, -1)`. One built with `normalize_pdf_quad` swapping the lower
+corners of a quad named from its shape exited 1 on the third input. The unchanged copy exited 0
+with the same 5 inputs allowed.
+
 ## Full suite, 2026-11-17
 
-At `ef439fbba`, on a clean tree, in container `embed-pdf` with Node v24.20.0, pnpm
+At `fd1081000`, on a clean tree, in container `embed-pdf` with Node v24.20.0, pnpm
 10.34.0, rustc 1.98.0 (88d9e12ae 2026-08-18), cargo 1.98.0 (797e8a9bc 2026-08-05) and
 cargo-llvm-cov 0.9.1. The `pnpm run` commands ran from `tooling/plugin-conformance`, the cargo ones
 from the repository root. `<crates>` is every crate with a file this branch changed under `crates/`
@@ -98,10 +126,11 @@ from the repository root. `<crates>` is every crate with a file this branch chan
 | `pnpm run test:harness` | 0 | tests 87, pass 87, fail 0 |
 | `pnpm run vectors:check` | 0 | `119 vector files are current, and each is replayed` |
 | `pnpm run coverage:check` | 0 | `coverage is current: statements 72853/77093, branches 14365/15719, 935 lines reached only by snapshot-none cases, 36 ported files no generator loads` |
-| `pnpm run replay:check` | 0 | `cargo: passed`, `checkout: ef439fbbab417ffa93c541dd14ff1f16e8401288, clean`, `receipts: 119 read`, `119 vector files, 15922 cases, all replayed` |
+| `pnpm run replay:check` | 0 | `cargo: passed`, `checkout: fd10810007008a896584471f6d6d92bd4113fb7f, clean`, `receipts: 119 read`, `119 vector files, 15922 cases, all replayed` |
 | `pnpm run rust-coverage:check` | 0 | `rust coverage is current: replay reaches 64253/112591 lines; 37035 lines only other tests reach, in 673 files (74 excluded)` |
+| `pnpm run differential -- --crate geometry` | 0 | the four runs in the section above |
 
-The cargo test run inside `replay:check` printed 161 `test result:` lines, which sum to 867 passed,
+The cargo test run inside `replay:check` printed 162 `test result:` lines, which sum to 869 passed,
 0 failed and 1 ignored. Every receipt carried the run's id, the commit, a clean-tree flag and the
 vector hash, none was written with failures, member order off or the allowlist replaced, and every
 one of the 19 allowlist paths was used.
