@@ -47,6 +47,12 @@ fn main() -> ExitCode {
                 json!({
                     "commit": env!("ENGINE_TIMER_COMMIT"),
                     "dirty": env!("ENGINE_TIMER_DIRTY"),
+                    "dirtyPaths": env!("ENGINE_TIMER_DIRTY_PATHS")
+                        .split(',')
+                        .filter(|path| !path.is_empty())
+                        .collect::<Vec<_>>(),
+                    "diff": env!("ENGINE_TIMER_DIFF"),
+                    "rustc": env!("ENGINE_TIMER_RUSTC"),
                     "profile": env!("ENGINE_TIMER_PROFILE"),
                     "lto": env!("ENGINE_TIMER_LTO"),
                     "target": format!("{}-{}", std::env::consts::ARCH, std::env::consts::OS),

@@ -27,6 +27,18 @@ bash packages/engine/runtime/scripts/fetch-libpdfium.sh darwin-arm64
 cargo build -p engine-timer --release
 ```
 
+A commit older than the timer (b3f41cd38) has no `tooling/engine-timer`, so it is built with the
+timer laid over it, uncommitted: in a separate checkout of that commit, copy `tooling/engine-timer`
+from a commit that has it, add `"tooling/engine-timer"` to the `members` of the root `Cargo.toml`,
+and build as above. Cargo adds the timer to `Cargo.lock`. That is how the 0de4effd9 arm in
+`perf-compare/FINDINGS.md` (on `research/viewer-perf-compare`) was built: "0de4effd9 with the timer
+source copied in uncommitted". That record doesn't say which commit's timer source was copied, or
+whether `Cargo.toml` was edited by hand; we infer the member line because Cargo refuses to build a
+package under the workspace root that isn't a member. The timer needs only `Host::with_determinism`,
+`Host::fill_envelope`, `FixedClock`, `SeededIdSource` and `test_support::corpus::quantized` from
+the commit under it, and 0de4effd9 has all five. Such a build reports itself as dirty, with
+`Cargo.toml`, `Cargo.lock` and the timer's files in `dirtyPaths`.
+
 Then compare two builds:
 
 ```sh
@@ -79,8 +91,14 @@ crate turns `float_roundtrip` on for the whole build, so the old parse moved not
 `--out` writes every row, its samples and the run's metadata: a run id (also printed when the run
 starts), the start and end times, the machine (host name, CPU model and count, memory, OS, Node
 version, load before and after), the harness checkout's commit, and each binary's sha256 and
-`engine-timer build` answer, which is the commit it was built from, whether tracked files differed
-from that commit when it was built, and the `CARGO_PROFILE_RELEASE_LTO` override if one was set.
+`engine-timer build` answer. That answer is the commit the binary was built from; `dirty`, whether
+the files it is built from (`Cargo.toml`, `Cargo.lock`, `crates` and `tooling/engine-timer`)
+differed from that commit, staged, unstaged or new; `dirtyPaths`, which ones; `diff`, an FNV-1a
+digest of their `git diff HEAD`, so two dirty builds can be told apart; `rustc`, the compiler's
+`rustc -V`; and the `CARGO_PROFILE_RELEASE_LTO` override if one was set. The build script reruns
+on every build, so an edit Cargo relinks is never stamped with an older answer. The cost is that
+`cargo build` recompiles and relinks the timer every time, about 30 s for a release build in the
+dev container.
 
 The statistics are the viewer harness's (`stats.mjs`): a bootstrap interval on the ratio of
 medians, the A/A interval as the noise band, and a row's threshold is that band or 3%, whichever
@@ -90,4 +108,7 @@ The timer binary is a Cargo `bin`, which gets the release profile's `lto = true`
 LTO is `CARGO_PROFILE_RELEASE_LTO=false cargo build -p engine-timer --release`.
 
 Timings belong on an idle machine, one run at a time. On the M1 Mac mini, 10 rounds of three arms
-took 7.4 minutes for two tip builds and 9.7 minutes with 0de4effd9 as A.
+took 9.7 minutes with 0de4effd9 as A (the run started 2026-11-17T07:55:56.639Z, and the next one
+at 08:05:43.158Z) and about 8 minutes for two tip builds (08:05 to 08:13 UTC). Both runs are in
+`perf-compare/FINDINGS.md` on `research/viewer-perf-compare`; their JSON, which holds the exact end
+times, isn't committed.
