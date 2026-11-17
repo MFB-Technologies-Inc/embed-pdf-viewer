@@ -1151,7 +1151,7 @@ at 1.850x to 2.061x, with `open(*) / readyMs` at 2.092x and 2.124x.
 
 Phase E removed most of the repeated PDFium work on the hot host calls. Opening no longer loads
 every page (`FPDF_LoadPage` 400 to 0), a repeated search loads no text pages (400 to 0), and the
-two writes read a third or fewer of the annotations they used to. These are call counts, not
+two writes read fewer annotations (`GetAnnotRaw` 5 to 1 and 13 to 5). These are call counts, not
 timings: the `call-count` feature of the `pdfium` crate counts each call. No Mac mini run measured
 Phase E.
 
