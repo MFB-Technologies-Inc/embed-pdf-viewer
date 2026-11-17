@@ -40,3 +40,8 @@ epdf-engine = { path = "../../epdf-engine" }
 
 [build-dependencies]
 build-support = { path = "../../build-support" }
+
+# Reads the harness-only counters.
+[[test]]
+name = "geometry_decode"
+required-features = ["harness"]

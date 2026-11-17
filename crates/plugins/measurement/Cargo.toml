@@ -49,5 +49,10 @@ required-features = ["harness"]
 name = "ffi"
 required-features = ["uniffi"]
 
+# Reads the harness-only readout counter.
+[[test]]
+name = "api"
+required-features = ["harness"]
+
 [build-dependencies]
 build-support = { path = "../../build-support" }
