@@ -8,8 +8,8 @@
 //! calculated, a restyle, a field just placed. The layer then draws the
 //! painter's scene.
 //!
-//! The TypeScript memoizes each read by its inputs' identities; nothing
-//! here compares by identity, so each read is computed when asked.
+//! `listShownWidgets` is memoized as the TypeScript's `shownOn` is, by its
+//! inputs' identities; the other reads are computed when asked.
 
 use std::rc::Rc;
 
@@ -25,7 +25,17 @@ use crate::model::{
     FieldIndex, ShownWidget, field_for_widget, picture_version_of, shown_widgets_of, widget_number,
     widget_row_of,
 };
-use crate::value::{get, items, json_stringify, str_of, truthy};
+use crate::value::{get, items, json_stringify, number_key, str_of, truthy};
+
+/// One page's `listShownWidgets` answer and what it was made from: the
+/// view, the confirmed form, the formatted texts' version and lending.
+pub(crate) struct ShownOn {
+    view: Rc<FieldIndex>,
+    truth: Rc<FieldIndex>,
+    formatted: u64,
+    lending: bool,
+    shown: Rc<Vec<ShownWidget>>,
+}
 
 /// `WidgetPainting`: a widget as the painter draws it, its scene on the page.
 #[derive(Clone, Debug)]
@@ -38,7 +48,7 @@ pub struct WidgetPainting {
 /// that no longer decodes is reported, not drawn (a Rust-only console line,
 /// `[form] the painter could not read a widget:`).
 fn decoded<T: serde::de::DeserializeOwned>(value: &Value) -> Option<T> {
-    match serde_json::from_value(value.clone()) {
+    match T::deserialize(value) {
         Ok(decoded) => Some(decoded),
         Err(error) => {
             crate::console::error(
@@ -131,22 +141,40 @@ impl crate::controller::Core {
 
     /// `listShownWidgets(page)`: the widgets a page shows, in the order the
     /// page draws them; in design mode none, the annotation layer draws them.
-    pub fn list_shown_widgets(&self, page: &Value) -> Vec<ShownWidget> {
-        let Some(info) = self.get_page(page) else { return Vec::new() };
+    /// The same list while the view, the confirmed form, the formatted texts
+    /// and lending stay the same (`shownOn` in the TypeScript).
+    pub fn list_shown_widgets(&self, page: &Value) -> Rc<Vec<ShownWidget>> {
+        let Some(info) = self.get_page(page) else { return Rc::default() };
         let page = get(&info, "ref").and_then(|r| get(r, "objectNumber")).and_then(Value::as_f64);
-        let Some(page) = page else { return Vec::new() };
-        if self.lending() {
-            return Vec::new();
-        }
+        let Some(page) = page else { return Rc::default() };
         let view = self.view();
         let truth = self.truth();
-        shown_widgets_of(&view, page, &|row| {
-            let number = number_of(get(row, "ref").unwrap_or(&Value::Null));
-            (
-                self.look_of(&view, number) != self.look_of(&truth, number),
-                picture_version_of(&truth, number),
-            )
-        })
+        let formatted = self.formatted.version();
+        let lending = self.lending();
+        let key = number_key(page);
+        if let Some(kept) = self.shown_widgets.borrow().get(&key)
+            && Rc::ptr_eq(&kept.view, &view)
+            && Rc::ptr_eq(&kept.truth, &truth)
+            && kept.formatted == formatted
+            && kept.lending == lending
+        {
+            return kept.shown.clone();
+        }
+        let shown = Rc::new(if lending {
+            Vec::new()
+        } else {
+            shown_widgets_of(&view, page, &|row| {
+                let number = number_of(get(row, "ref").unwrap_or(&Value::Null));
+                (
+                    self.look_of(&view, number) != self.look_of(&truth, number),
+                    picture_version_of(&truth, number),
+                )
+            })
+        });
+        self.shown_widgets
+            .borrow_mut()
+            .insert(key, ShownOn { view, truth, formatted, lending, shown: shown.clone() });
+        shown
     }
 
     /// `looks.isPending(ref)`: the widget's look in the view isn't its

@@ -60,6 +60,11 @@ pub struct Core {
     pub(crate) reads: crate::read::fields::ReadMemos,
     /// `listWidgets`' memo, by page: the items it made, and from what.
     pub(crate) widget_items: RefCell<HashMap<String, crate::read::widgets::WidgetItems>>,
+    /// `listShownWidgets`' memo, by page: the list it made, and from what.
+    pub(crate) shown_widgets: RefCell<HashMap<String, crate::services::looks::ShownOn>>,
+    /// `getAppearanceEpoch`'s memo, by page: the items and epoch it made,
+    /// and the confirmed form it read.
+    pub(crate) picture_items: RefCell<HashMap<String, crate::services::pictures::ItemsOn>>,
     /// Mounted focus targets, pending focus, and the last widget visited.
     pub(crate) cursor: crate::services::cursor::Cursor,
     /// Keyboard order derived from the field view, pages, fill rights and settings.
@@ -223,6 +228,8 @@ pub fn create_form_controller(
         rights_groups: RefCell::new(None),
         reads: Default::default(),
         widget_items: RefCell::new(HashMap::new()),
+        shown_widgets: RefCell::new(HashMap::new()),
+        picture_items: RefCell::new(HashMap::new()),
         widget_pump: RefCell::new(None),
         cursor: Default::default(),
         focus_order_cache: RefCell::new(None),

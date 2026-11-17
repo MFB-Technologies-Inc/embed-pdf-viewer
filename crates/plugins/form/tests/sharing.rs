@@ -494,3 +494,109 @@ fn get_selected_field_keeps_its_answer_while_the_selection_list_is_the_same() {
     assert!(form.get_selected_field().is_none());
     assert_eq!(read_computes(), before, "the same selection list, no new answer");
 }
+
+/// `listShownWidgets` is memoized as the TypeScript's `shownOn` is: the
+/// same list while the view, the confirmed form, the formatted texts and
+/// lending stay the same, and the adapter prints each list once.
+#[test]
+fn shown_widgets_memo_hits_on_repeat() {
+    use plugin_conformance::{Harness, Outcome};
+    let (kernel, _fake) = kernel_with(3);
+    let form = kernel.capability(&FORM, Some("a")).expect("the form capability");
+    let page = object_ref(1);
+    let shown = form.list_shown_widgets(&page);
+    assert_eq!(shown.len(), 3);
+    assert!(Rc::ptr_eq(&shown, &form.list_shown_widgets(&page)), "the same list");
+    let h = Harness::new(
+        vec![Rc::new(epdf_plugin_form::harness::Form)],
+        std::collections::HashMap::new(),
+    );
+    let any: Rc<dyn std::any::Any> = Rc::new(form.clone());
+    let printed = || match h.call(&any, "listShownWidgets", vec![page.clone()]) {
+        Outcome::Text(text) => text,
+        _ => panic!("listShownWidgets answers as printed text"),
+    };
+    let as_json = |list: &[epdf_plugin_form::model::ShownWidget]| {
+        Value::Array(list.iter().map(|w| w.to_json()).collect()).to_string()
+    };
+    let first = printed();
+    assert_eq!(&*first, as_json(&shown));
+    assert!(Rc::ptr_eq(&first, &printed()), "an unchanged list is printed once");
+    let _pending = form.set_value(object_ref(2), json!({ "value": "typed" }), None);
+    rt::run_until_stalled();
+    let after = form.list_shown_widgets(&page);
+    assert!(!Rc::ptr_eq(&shown, &after), "a new view, a new list");
+    assert!(after[1].pending, "the typed value isn't confirmed yet");
+    assert!(Rc::ptr_eq(&after, &form.list_shown_widgets(&page)));
+    let reprinted = printed();
+    assert!(!Rc::ptr_eq(&first, &reprinted));
+    assert_eq!(&*reprinted, as_json(&after));
+}
+
+/// `getAppearanceEpoch` is memoized per page on the confirmed form, as the
+/// TypeScript's `itemsOn` and `epochOn` are.
+#[test]
+fn appearance_epoch_memoized_on_the_confirmed_form() {
+    let (kernel, fake) = kernel_with(3);
+    let form = kernel.capability(&FORM, Some("a")).expect("the form capability");
+    let page = object_ref(1);
+    let epoch = form.get_appearance_epoch(&page);
+    assert_eq!(&*epoch, "10001@0|10002@0|10003@0");
+    assert!(Rc::ptr_eq(&epoch, &form.get_appearance_epoch(&page)));
+    let mut redrawn = value_set(2, "elsewhere");
+    redrawn["meta"] = json!({ "redrawnWidgets": [widget_ref(2)] });
+    fake.emit("a", &redrawn).expect("the event");
+    rt::run_until_stalled();
+    let after = form.get_appearance_epoch(&page);
+    assert_eq!(&*after, "10001@0|10002@1|10003@0");
+    assert!(Rc::ptr_eq(&after, &form.get_appearance_epoch(&page)));
+}
+
+/// A redraw moves only the picture versions: the index's other records are
+/// shared with the index it folded, as the TypeScript's `{ ...index,
+/// pictureVersions }` shares them, and a value fold shares the versions.
+#[test]
+fn redraw_shares_positions() {
+    let index = indexed(5);
+    let redraw = json!({
+        "type": "signatures.completed",
+        "signature": { "widget": { "kind": "objectNumber", "objectNumber": 10_002 } },
+    });
+    let Folded::Index(redrawn) = fold_form_event(&index, &redraw) else {
+        panic!("a redraw keeps the index");
+    };
+    assert!(!Rc::ptr_eq(&index, &redrawn));
+    assert!(Rc::ptr_eq(&index.by_key, &redrawn.by_key));
+    assert!(Rc::ptr_eq(&index.by_name, &redrawn.by_name));
+    assert!(Rc::ptr_eq(&index.by_widget, &redrawn.by_widget));
+    assert!(Rc::ptr_eq(&index.row_by_widget, &redrawn.row_by_widget));
+    assert_eq!(redrawn.picture_versions.get("10002"), Some(&1.0));
+    let Folded::Index(filled) = fold_form_event(&redrawn, &value_set(3, "typed")) else {
+        panic!("a value fold keeps the index");
+    };
+    assert!(Rc::ptr_eq(&redrawn.picture_versions, &filled.picture_versions));
+}
+
+/// Lending is in `listShownWidgets`' key: in design mode the page shows
+/// none, and back in fill mode the list is made again.
+#[test]
+fn shown_widgets_follow_lending() {
+    use epdf_plugin_interaction::INTERACTION;
+    let (kernel, _fake) = kernel_on(snapshot(2), vec![page_row()], true);
+    let form = kernel.capability(&FORM, Some("a")).expect("the form capability");
+    let interaction = kernel.capability(&INTERACTION, Some("a")).expect("interaction");
+    let page = object_ref(1);
+    let filling = form.list_shown_widgets(&page);
+    assert_eq!(filling.len(), 2);
+    interaction.activate_tool("form-text").expect("the tool");
+    rt::run_until_stalled();
+    assert!(form.lending());
+    let lent = form.list_shown_widgets(&page);
+    assert!(lent.is_empty(), "the annotation layer draws them");
+    assert!(Rc::ptr_eq(&lent, &form.list_shown_widgets(&page)));
+    interaction.activate_default_tool().expect("the default tool");
+    rt::run_until_stalled();
+    let again = form.list_shown_widgets(&page);
+    assert_eq!(again.len(), 2);
+    assert_eq!(*again, *filling);
+}

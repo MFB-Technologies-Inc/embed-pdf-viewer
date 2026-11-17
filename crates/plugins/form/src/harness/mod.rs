@@ -40,6 +40,7 @@ use serde_json::{Value, json};
 use crate::FORM;
 use crate::controller::FormCapability;
 use crate::form_plugin;
+use crate::model::ShownWidget;
 use crate::scripting::controller::{
     FormScriptingController, FormScriptingControllerOptions, TransactionBody, TransactionPort,
 };
@@ -49,16 +50,23 @@ pub use functions::functions;
 /// The adapter.
 pub struct Form;
 
-/// `listWidgets`' answers as printed: once per list, one text per page.
+/// `listWidgets`' and `listShownWidgets`' answers as printed: once per
+/// list, one text per page.
 #[derive(Default)]
 pub(crate) struct Printed {
     widgets: RefCell<HashMap<String, Rc<TextMemo<Vec<Value>>>>>,
+    shown: RefCell<HashMap<String, Rc<TextMemo<Vec<ShownWidget>>>>>,
 }
 
 impl Printed {
     fn widgets(&self, page: &Value, items: &Rc<Vec<Value>>) -> Rc<str> {
         let memo = self.widgets.borrow_mut().entry(page.to_string()).or_default().clone();
         memo.get_or_print(items)
+    }
+
+    fn shown(&self, page: &Value, shown: &Rc<Vec<ShownWidget>>) -> Rc<str> {
+        let memo = self.shown.borrow_mut().entry(page.to_string()).or_default().clone();
+        memo.get_or_print(shown)
     }
 }
 
@@ -258,10 +266,13 @@ fn call_form(
             let page = value(args, 0);
             Outcome::Text(cap.printed.widgets(&page, &cap.list_widgets(&page)))
         }
-        "listShownWidgets" => Outcome::Returned(Value::Array(
-            cap.list_shown_widgets(&value(args, 0)).iter().map(|w| w.to_json()).collect(),
-        )),
-        "getAppearanceEpoch" => Outcome::Returned(json!(cap.get_appearance_epoch(&value(args, 0)))),
+        "listShownWidgets" => {
+            let page = value(args, 0);
+            Outcome::Text(cap.printed.shown(&page, &cap.list_shown_widgets(&page)))
+        }
+        "getAppearanceEpoch" => {
+            Outcome::Returned(json!(&*cap.get_appearance_epoch(&value(args, 0))))
+        }
         "renderAppearances" => Outcome::Promise(
             cap.render_appearances(&value(args, 0), number(args, 1), None)
                 .convert(|list| Ok(epdf_kernel::js::to_value(&**list))),

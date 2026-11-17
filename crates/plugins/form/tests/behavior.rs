@@ -414,3 +414,49 @@ fn the_fields_mirror_cell_dumps_the_whole_field_index() {
 fn the_form_starts_with_no_focused_widget() {
     assert_eq!(epdf_plugin_form::model::initial_form_state(), json!({ "focused": null }));
 }
+
+/// The painter reads a widget row and its field in place
+/// (`services/looks.rs`): the same decode, and the same refusal word for
+/// word, as a copy of them gave.
+#[test]
+fn the_painter_decodes_in_place_as_a_copy_did() {
+    use epdf_form_core::{FieldFacts, WidgetRow};
+    fn same<T: serde::de::DeserializeOwned + std::fmt::Debug>(value: &Value) {
+        let in_place = T::deserialize(value).map_err(|e| e.to_string());
+        let copied = serde_json::from_value::<T>(value.clone()).map_err(|e| e.to_string());
+        assert_eq!(format!("{in_place:?}"), format!("{copied:?}"), "{value}");
+    }
+    let rect = json!({ "x": 1, "y": 2.5, "width": 30, "height": 10 });
+    let rows = [
+        json!({ "rect": rect, "appearanceState": null, "color": "#ff0000", "rotation": 90 }),
+        json!({ "rect": rect, "box": rect, "appearanceState": "On", "dashArray": [1, 2] }),
+        json!({ "rect": rect, "borderStyle": "beveled", "textAlign": "center", "fontSize": 0 }),
+        json!({ "rect": rect, "borderStyle": "zigzag" }),
+        json!({ "rect": rect, "appearanceState": 3 }),
+        json!({ "rect": "here" }),
+        json!({ "box": rect }),
+        json!([rect]),
+        Value::Null,
+    ];
+    for row in &rows {
+        same::<WidgetRow>(row);
+    }
+    let fields = [
+        json!({ "kind": "text", "value": "a", "maxLength": null, "multiline": false,
+                "password": false, "comb": true, "name": "f" }),
+        json!({ "kind": "text", "value": "a", "maxLength": -1, "multiline": false,
+                "password": false, "comb": true }),
+        json!({ "kind": "combobox", "value": "b" }),
+        json!({ "kind": "listbox", "topIndex": 0,
+                "options": [{ "label": "x", "selected": true, "value": "x" }] }),
+        json!({ "kind": "listbox", "topIndex": 0.5, "options": [] }),
+        json!({ "kind": "checkbox" }),
+        json!({ "kind": "slider" }),
+        json!({ "value": "c" }),
+        json!({ "kind": 4 }),
+        json!("text"),
+    ];
+    for field in &fields {
+        same::<FieldFacts>(field);
+    }
+}

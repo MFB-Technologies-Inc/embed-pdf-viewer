@@ -159,8 +159,10 @@ mod tests {
             sink.borrow_mut().push(args);
         })));
         let cache = IndexCache::default();
-        let confirmed =
-            Rc::new(FieldIndex { by_key: [("obj:1".into(), 0.0)].into(), ..Default::default() });
+        let confirmed = Rc::new(FieldIndex {
+            by_key: Rc::new([("obj:1".into(), 0.0)].into()),
+            ..Default::default()
+        });
         let value = cache.value(&confirmed);
         cache.pin(&value);
         let missed = cache.index(&json!({ TOKEN: 999 }));
@@ -184,7 +186,7 @@ mod tests {
     fn the_text_of_a_shown_index_is_written_once() {
         let cache = IndexCache::default();
         let index = Rc::new(FieldIndex {
-            by_key: [("obj:2".into(), 1.0), ("obj:1".into(), 0.0)].into(),
+            by_key: Rc::new([("obj:2".into(), 1.0), ("obj:1".into(), 0.0)].into()),
             ..Default::default()
         });
         let token = cache.value(&index);
