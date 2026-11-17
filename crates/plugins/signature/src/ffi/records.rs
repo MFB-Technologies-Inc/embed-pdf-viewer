@@ -19,8 +19,9 @@ pub(crate) fn invalid_state(what: &str, e: impl std::fmt::Display) -> Error {
         .with("code", "invalid-state")
 }
 
+/// `value` as `T`, read in place.
 pub(crate) fn decode<T: DeserializeOwned>(what: &str, value: &Value) -> Result<T, Error> {
-    serde_json::from_value(value.clone()).map_err(|e| invalid_state(what, e))
+    T::deserialize(value).map_err(|e| invalid_state(what, e))
 }
 
 /// A field ref the engine's way: `{ kind: 'objectNumber', objectNumber }`
@@ -1133,5 +1134,45 @@ impl TryFrom<crate::PlaceMarkResult> for SignaturePlaceResult {
                     .ok_or_else(|| invalid_state("a placed annotation", &annotation))?,
             },
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Read in place, a record decodes as a copy of it did: the same value,
+    /// and the same refusal word for word.
+    #[test]
+    fn decoding_in_place_accepts_and_refuses_as_a_copy_did() {
+        let protection = json!({
+            "enforced": null, "judged": null, "certification": null,
+            "fieldLocks": [], "policyVersion": 1, "extra": [1, 2],
+        });
+        let with = |key: &str, member: Value| {
+            let mut value = protection.clone();
+            value[key] = member;
+            value
+        };
+        let mut without = protection.clone();
+        without.as_object_mut().unwrap().shift_remove("fieldLocks");
+        let values = [
+            protection.clone(),
+            with("policyVersion", json!(-1)),
+            with("policyVersion", json!(1.5)),
+            with("policyVersion", json!("1")),
+            with("enforced", json!("bogus")),
+            with("fieldLocks", json!({})),
+            without,
+            json!([]),
+            Value::Null,
+        ];
+        for value in &values {
+            let in_place = decode::<DocumentProtection>("a document protection", value);
+            let copied = serde_json::from_value::<DocumentProtection>(value.clone())
+                .map_err(|e| invalid_state("a document protection", e));
+            assert_eq!(format!("{in_place:?}"), format!("{copied:?}"), "{value}");
+        }
+        assert!(DocumentProtection::from_json(&protection).is_ok());
     }
 }
