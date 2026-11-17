@@ -1149,11 +1149,15 @@ at 1.850x to 2.061x, with `open(*) / readyMs` at 2.092x and 2.124x.
 
 ### Phase E: PDFium call counts
 
-Phase E removed most of the repeated PDFium work on the hot host calls. Opening no longer loads
-every page (`LoadPage` 400 to 0), a repeated search loads no text pages (400 to 0), and the
-two writes read fewer annotations (`GetAnnotRaw` 5 to 1 and 13 to 5). These are call counts, not
-timings: the `call-count` feature of the `pdfium` crate counts each call. No Mac mini run measured
-Phase E.
+Phase E cut the PDFium calls on these host operations, but not all of them. Opening no longer
+loads every page (`LoadPage` 400 to 0). The first search for a needle no page holds (`zqxjv`) still
+loads every page and its text: Phase E halved its `LoadPage` (800 to 400) and left its
+`TextLoadPage` at 400. The same search again drops `TextLoadPage` from 400 to 0, and a search for a
+needle on one page (`Page 200 line`) from 401 to 1. The two writes read fewer annotations
+(`GetAnnotRaw` 5 to 1 and 13 to 5). These are call counts, not timings: the `call-count` feature of
+the `pdfium` crate counts the six counters in the table (`LoadPage`, `FormLoadModel`, `GetAnnotRaw`,
+`GetAnnotIndexRaw`, `TextLoadPage`, `SigLoadModel`), not every PDFium call. The native engine timer
+below times the perf-fixes tip, Phase E included.
 
 The counts come from the ignored test `hot_host_calls` in `crates/epdf-engine/tests/call_counts.rs`,
 committed as `fa3c0d3fb` on `research/perf-fixes`. It ran at `0d18fb177`, the last commit before
@@ -1182,3 +1186,125 @@ end (2 slices). Before to after:
 The miss searches for "zqxjv", which no page holds; the repeat searches for it again; the one-page
 search is "Page 200 line" (40 matches). `GetAnnotIndexRaw` reads n/a before because the counter, and
 the index lookup it counts, arrived inside Phase E (`ef17b2441`).
+
+### Native engine timer: the Task 3 baseline (`plugins-next` at 0de4effd9) against the perf-fixes tip
+
+The perf-fixes tip is faster than the Task 3 baseline on 15 of 18 native rows and slower on none.
+Measured on the Mac mini, 10 rounds. Opening `large.pdf` takes 0.163x the time (20.7 ms to 3.37
+ms). A whole-document search for `the` takes 0.472x (818.4 ms to 386.0 ms on `large.pdf`).
+`pages.list` and `pages.geometry` are about 0.6x on every fixture, and `forms.setValue` is 0.638x
+(40.5 ms to 25.9 ms). Opening `forms.pdf` is 0.959x (21.5 ms to 20.6 ms), the smallest gain past
+its threshold. Rendering doesn't move on `large.pdf` or `annots.pdf` (0.983, 0.984, inside
+the 3% floor). It is 0.927x on `forms.pdf`. `annotations.list` on `forms.pdf` doesn't move. Every
+A/A pair passed, the largest A/A distance from 1.0 being 1.2%. Every threshold is the 3% floor
+except `forms.setValue`'s, which is 3.1%.
+
+10 rounds, ms per call, median [max] over rounds; ratio is tip / base
+
+| row | base | base-aa | tip | A/A ratio | ratio [95% CI] | threshold | verdict |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| large/open | 20.7 [21.1] | 20.5 [21.1] | 3.37 [3.43] | 0.990 | 0.163 [0.162, 0.165] | 3.0% | faster |
+| large/pages.list | 5.08 [5.17] | 5.08 [5.17] | 3.05 [3.09] | 0.999 | 0.600 [0.590, 0.604] | 3.0% | faster |
+| large/pages.geometry | 7.02 [7.12] | 6.99 [7.12] | 4.13 [4.17] | 0.995 | 0.588 [0.578, 0.595] | 3.0% | faster |
+| large/pages.render | 0.627 [0.639] | 0.626 [0.628] | 0.617 [0.619] | 0.999 | 0.983 [0.981, 0.987] | 3.0% | no detectable difference |
+| large/search.query | 818.4 [835.1] | 817.2 [832.2] | 386.0 [391.2] | 0.999 | 0.472 [0.464, 0.476] | 3.0% | faster |
+| large/annotations.list | 0.319 [0.325] | 0.317 [0.325] | 0.218 [0.226] | 0.994 | 0.684 [0.671, 0.697] | 3.0% | faster |
+| annots/open | 36.8 [37.6] | 36.7 [37.5] | 19.8 [20.0] | 0.996 | 0.539 [0.526, 0.544] | 3.0% | faster |
+| annots/pages.list | 5.10 [5.19] | 5.09 [5.18] | 3.08 [3.12] | 0.998 | 0.605 [0.591, 0.611] | 3.0% | faster |
+| annots/pages.geometry | 7.01 [7.10] | 6.97 [7.10] | 4.12 [4.16] | 0.993 | 0.587 [0.578, 0.595] | 3.0% | faster |
+| annots/pages.render | 0.744 [0.746] | 0.744 [0.746] | 0.731 [0.734] | 1.001 | 0.984 [0.981, 0.986] | 3.0% | no detectable difference |
+| annots/search.query | 819.3 [834.6] | 817.2 [832.1] | 385.8 [391.0] | 0.997 | 0.471 [0.461, 0.476] | 3.0% | faster |
+| annots/annotations.list | 44.8 [45.5] | 44.8 [45.6] | 36.5 [36.8] | 0.999 | 0.814 [0.798, 0.822] | 3.0% | faster |
+| forms/open | 21.5 [21.8] | 21.2 [21.7] | 20.6 [20.9] | 0.988 | 0.959 [0.942, 0.971] | 3.0% | faster |
+| forms/pages.list | 1.22 [1.24] | 1.21 [1.23] | 0.708 [0.717] | 0.989 | 0.579 [0.567, 0.590] | 3.0% | faster |
+| forms/pages.geometry | 0.306 [0.309] | 0.303 [0.309] | 0.182 [0.185] | 0.991 | 0.597 [0.586, 0.609] | 3.0% | faster |
+| forms/pages.render | 0.148 [0.149] | 0.147 [0.148] | 0.137 [0.139] | 0.995 | 0.927 [0.924, 0.931] | 3.0% | faster |
+| forms/annotations.list | 1.25 [1.28] | 1.25 [1.27] | 1.23 [1.26] | 0.998 | 0.986 [0.971, 0.997] | 3.0% | no detectable difference |
+| forms/forms.setValue | 40.5 [41.4] | 40.2 [40.6] | 25.9 [26.3] | 0.993 | 0.638 [0.623, 0.648] | 3.1% | faster |
+
+Results: `task-28-run/results/results-base-tip.json` (raw per-round samples), run 2026-11-17
+07:55 to 08:05 UTC on `macmini2020` (Apple M1, AC power, load average 1.54 before and 1.65
+after).
+
+The timer is `tooling/engine-timer` (b3f41cd38, 93342cdf6 on `research/perf-fixes`). It sends
+`open.fatMem`, `pages.list`, `pages.geometry`, `pages.render`, a whole-document `search.query`,
+`annotations.list` and `forms.setValue` to `Host::call` on `large.pdf`, `annots.pdf` and
+`forms.pdf`, after each build passes the answer check against `tooling/engine-conformance/vectors`.
+Every round runs A, a byte-identical A/A copy and B in rotating order, and the thresholds come from
+the harness's own `stats.mjs`. Geometry and render read a different page on every call. A search
+row is the summed time of the whole cursor chain.
+
+Arms: `base` is 0de4effd9 with the timer source copied in uncommitted (the crate didn't exist
+there), `tip` is 93342cdf6, whose engine is the same as 5617106e5. Both link the fork's static
+`darwin-static-arm64` archive for runtime 17d8073d4 (`libembedpdf.a` sha256
+`09a082d8226133e55dd5416f6a72b3ad9669bf6960c27d21c198e36d2c2e9cd2`), so PDFium is the same bytes
+on both sides. Both are Cargo `bin` builds, so both get `-C lto`. Binary sha256: base
+`179c123f029bc47144239ba2c6ffb3b388419bd6336b0954143939188a6c6a60`, tip
+`6d5714a9bdf0d601886d5030f8f27fb4fc849a9631601119ca6aec5e4405264b`.
+
+The two builds' answers agree at the corpus quantum, not byte for byte. 0de4effd9 prints
+`annotations[348].rect.width` on `annots.pdf` as `310.2000122070313` where the tip prints
+`310.20001220703125`, and some `pages.geometry` glyph widths differ in their last bits the same way.
+The vectors allow that (1e-4 point), so the timer compares quantized answers (93342cdf6).
+
+### LTO on the native archives
+
+LTO stays, on a small effect from one run. Built with `-C lto`, the timer is faster past
+threshold on 4 of 18 rows and slower on none. `pages.geometry` is 0.968 on `large.pdf`, 0.965 on
+`annots.pdf` and 0.964 on `forms.pdf`, and `annotations.list` on `forms.pdf` is 0.969. The other 14
+rows moved 2.9% or less either way (`forms/pages.render` is 1.007), inside the floor. The brief's
+rule keeps LTO when a row moves past its threshold, so `build-xcframework.sh` now builds
+`epdf-viewer-host` with `cargo rustc --crate-type staticlib`, and the C# README documents `cargo
+rustc -p epdf-capi --release --crate-type cdylib` (66a459832).
+
+Read the four rows with care. They clear the 3% floor by 0.10 to 0.64 points (improvements of
+3.10% to 3.64%). The LTO binary is the same file as the tip in the run before, and its medians
+moved by up to 1.70% between the two runs (`large/open` 3.37 ms, then 3.43 ms). That drift is 2.7
+to 16 times the margin past the floor, and about half of each row's whole improvement. The ratios
+come from a single nolto/lto run, and the passing within-run A/A pairs are what make this run's
+verdicts valid. The link time and the archive sizes, with and without LTO, weren't measured.
+
+10 rounds, ms per call, median [max] over rounds; ratio is lto / nolto
+
+| row | nolto | nolto-aa | lto | A/A ratio | ratio [95% CI] | threshold | verdict |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| large/open | 3.43 [3.46] | 3.44 [3.50] | 3.43 [3.44] | 1.003 | 0.998 [0.994, 1.001] | 3.0% | no detectable difference |
+| large/pages.list | 3.15 [3.16] | 3.15 [3.16] | 3.09 [3.11] | 1.000 | 0.982 [0.979, 0.987] | 3.0% | no detectable difference |
+| large/pages.geometry | 4.30 [4.32] | 4.31 [4.32] | 4.16 [4.17] | 1.003 | 0.968 [0.960, 0.973] | 3.0% | faster |
+| large/pages.render | 0.618 [0.620] | 0.618 [0.620] | 0.616 [0.617] | 0.999 | 0.996 [0.993, 0.998] | 3.0% | no detectable difference |
+| large/search.query | 399.1 [399.9] | 398.6 [399.3] | 387.6 [389.6] | 0.999 | 0.971 [0.963, 0.975] | 3.0% | no detectable difference |
+| large/annotations.list | 0.228 [0.231] | 0.228 [0.232] | 0.222 [0.224] | 0.999 | 0.972 [0.958, 0.980] | 3.0% | no detectable difference |
+| annots/open | 20.2 [20.5] | 20.2 [20.5] | 20.0 [20.0] | 1.002 | 0.990 [0.973, 0.997] | 3.0% | no detectable difference |
+| annots/pages.list | 3.15 [3.16] | 3.16 [3.16] | 3.10 [3.12] | 1.001 | 0.984 [0.977, 0.987] | 3.0% | no detectable difference |
+| annots/pages.geometry | 4.30 [4.30] | 4.30 [4.31] | 4.15 [4.17] | 1.001 | 0.965 [0.953, 0.970] | 3.0% | faster |
+| annots/pages.render | 0.733 [0.737] | 0.733 [0.736] | 0.733 [0.735] | 1.001 | 1.001 [0.997, 1.004] | 3.0% | no detectable difference |
+| annots/search.query | 398.8 [399.8] | 398.1 [399.3] | 387.7 [389.0] | 0.998 | 0.972 [0.964, 0.976] | 3.0% | no detectable difference |
+| annots/annotations.list | 36.9 [37.2] | 37.0 [37.2] | 36.1 [36.8] | 1.002 | 0.979 [0.971, 0.995] | 3.0% | no detectable difference |
+| forms/open | 21.1 [21.3] | 21.0 [21.2] | 20.8 [21.0] | 0.998 | 0.988 [0.979, 0.995] | 3.0% | no detectable difference |
+| forms/pages.list | 0.726 [0.730] | 0.726 [0.730] | 0.713 [0.717] | 0.999 | 0.982 [0.976, 0.986] | 3.0% | no detectable difference |
+| forms/pages.geometry | 0.191 [0.191] | 0.191 [0.192] | 0.184 [0.185] | 1.000 | 0.964 [0.957, 0.968] | 3.0% | faster |
+| forms/pages.render | 0.137 [0.138] | 0.137 [0.138] | 0.138 [0.139] | 1.002 | 1.007 [1.003, 1.012] | 3.0% | no detectable difference |
+| forms/annotations.list | 1.27 [1.29] | 1.27 [1.29] | 1.23 [1.25] | 1.006 | 0.969 [0.959, 0.976] | 3.0% | faster |
+| forms/forms.setValue | 26.4 [27.3] | 26.3 [27.3] | 26.0 [26.5] | 0.996 | 0.984 [0.958, 0.999] | 3.7% | no detectable difference |
+
+Results: `task-28-run/results/results-nolto-lto.json`, run 2026-11-17 08:05 to 08:13 UTC on the
+same machine (load average 1.65 before and 1.90 after). Every A/A pair passed, the largest A/A
+distance 0.6%.
+
+The timer can't link the staticlib, so the arms are the timer itself. `lto` is the tip binary
+above (`-C lto` on its final `rustc` line). `nolto` is the same commit built with
+`CARGO_PROFILE_RELEASE_LTO=false`, which passes no `-C lto`, as `cargo build` did for the shipped
+archive (sha256 `d8f472c9721b71811ee86150de079e7feba4c7ced166a2d3c6f850178cf45a26`). Rust LTO is
+the same in both places. The archive's Swift and uniffi boundary isn't in the timer.
+
+`-C lto` now reaches both archives. `cargo rustc -p epdf-viewer-host --target aarch64-apple-darwin
+--profile release --crate-type staticlib -v` runs `rustc --crate-name epdf_viewer_host ...
+--crate-type staticlib --emit=dep-info,link -C opt-level=3 -C lto -C codegen-units=1`
+(`task-28-run/logs/apple-lto.log`). `cargo rustc -p epdf-capi --release --crate-type cdylib -v`
+runs `--crate-type cdylib ... -C opt-level=3 -C lto -C codegen-units=1` (`capi-lto.log`). Before
+the change, `cargo build -p epdf-capi --release -v` ran `--crate-type cdylib --crate-type rlib ...
+-C opt-level=3 -C codegen-units=1` with no `-C lto` (`capi-build.log`).
+
+The Swift suite passes on the LTO archive. `build-xcframework.sh` with the change, then
+`EMBEDPDF_LOCAL_ENGINE=1 swift test` in `platforms/apple/EmbedPDF`, ran 506 tests in 51 suites,
+71 in 14 and 8 XCTest cases, all passing (`task-28-run/logs/swift-test.log`).
