@@ -1714,7 +1714,7 @@ pub enum Phase {
 }
 
 impl Phase {
-    fn read(text: &str) -> Result<Phase, JsonError> {
+    pub fn read(text: &str) -> Result<Phase, JsonError> {
         match text {
             "down" => Ok(Phase::Down),
             "move" => Ok(Phase::Move),

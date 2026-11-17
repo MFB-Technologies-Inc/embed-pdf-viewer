@@ -30,6 +30,20 @@ use crate::js::{Object, key_of, number, page_number};
 
 thread_local! {
     static NEXT_VERSION: Cell<u64> = const { Cell::new(1) };
+    static RECORD_COPIES: Cell<usize> = const { Cell::new(0) };
+}
+
+/// How many times this thread copied the records' whole `byKey` map. A
+/// change copies it once, to replace or drop its own records in the copy;
+/// building the records value around the copy moves it.
+pub fn record_copies() -> usize {
+    RECORD_COPIES.with(Cell::get)
+}
+
+/// The records' `byKey`, copied to change.
+fn by_key_copy(records: &Value) -> Map<String, Value> {
+    RECORD_COPIES.with(|c| c.set(c.get() + 1));
+    by_key(records).clone()
 }
 
 /// A fresh record identity.
@@ -112,7 +126,11 @@ pub fn records_json(records: &Value) -> Value {
 }
 
 fn stored(dto: Value, picture_version: f64) -> Value {
-    json!({ "dto": dto, "pictureVersion": crate::js::num(picture_version), "$v": fresh() })
+    let mut stored = Map::new();
+    stored.insert("dto".into(), dto);
+    stored.insert("pictureVersion".into(), crate::js::num(picture_version));
+    stored.insert("$v".into(), Value::from(fresh()));
+    Value::Object(stored)
 }
 
 fn type_error(of: &str, reading: &str) -> Error {
@@ -140,8 +158,16 @@ fn page_of_dto(dto: &Value) -> f64 {
     dto.get("page").and_then(|p| p.get("objectNumber")).and_then(number).unwrap_or(f64::NAN)
 }
 
+/// `{ byKey, order }`, built around the parts it is given.
+fn parts(byk: Map<String, Value>, order: Vec<String>) -> Value {
+    let mut records = Map::new();
+    records.insert("byKey".into(), Value::Object(byk));
+    records.insert("order".into(), Value::Array(order.into_iter().map(Value::String).collect()));
+    Value::Object(records)
+}
+
 fn with_parts(byk: Map<String, Value>, order: Vec<String>) -> Rc<Value> {
-    Rc::new(json!({ "byKey": byk, "order": order }))
+    Rc::new(parts(byk, order))
 }
 
 /// `put(records, dtos, bump)`: add or replace records; a replaced one keeps
@@ -150,7 +176,7 @@ fn put(records: &Rc<Value>, dtos: &[Value], bump: bool) -> Result<Rc<Value>, Err
     if dtos.is_empty() {
         return Ok(records.clone());
     }
-    let mut byk = by_key(records).clone();
+    let mut byk = by_key_copy(records);
     let mut order = order(records);
     for dto in dtos {
         let key = dto_key(dto)?;
@@ -170,7 +196,7 @@ fn drop_keys(records: &Rc<Value>, keys: &[String]) -> Rc<Value> {
     if present.is_empty() {
         return records.clone();
     }
-    let mut next = byk.clone();
+    let mut next = by_key_copy(records);
     for key in &present {
         next.shift_remove(*key);
     }
@@ -243,7 +269,7 @@ pub fn from_snapshot(current: &Value, dtos: &[Value]) -> Result<Value, Error> {
         }
         byk.insert(key, stored(dto.clone(), version));
     }
-    Ok(json!({ "byKey": byk, "order": order }))
+    Ok(parts(byk, order))
 }
 
 /// `withPages(records, pages, dtos)`: some pages read again.
@@ -287,8 +313,7 @@ pub fn fold_records(records: Rc<Value>, event: &Value) -> Result<Fold, Error> {
                 })?);
             }
             let next = reorder_part(&order(&records), &in_part, &keys);
-            let byk = byk.clone();
-            Fold::Value(with_parts(byk, next))
+            Fold::Value(with_parts(by_key_copy(&records), next))
         }
         "annotations.deleted" => {
             let mut keys = Vec::new();
@@ -559,7 +584,7 @@ pub fn predict_records(records: Rc<Value>, op: &Value) -> Result<Rc<Value>, Erro
             let position = keyed_position(op.get("position").unwrap_or(&Value::Null));
             match reordered_keys(&records, page, &keys, &position) {
                 Some(next) if next != order(&records) => {
-                    Ok(with_parts(by_key(&records).clone(), next))
+                    Ok(with_parts(by_key_copy(&records), next))
                 }
                 _ => Ok(records),
             }
@@ -579,13 +604,15 @@ pub fn predict_records(records: Rc<Value>, op: &Value) -> Result<Rc<Value>, Erro
             if made.is_empty() {
                 return Ok(records);
             }
-            let mut next_byk = byk.clone();
+            let mut next_byk = by_key_copy(&records);
             let mut next_order = order(&records);
             for (key, copy, of) in made {
-                next_byk.insert(
-                    key.clone(),
-                    json!({ "dto": copy, "pictureVersion": crate::js::num(0.0), "copyOf": of, "$v": fresh() }),
-                );
+                let mut stored = Map::new();
+                stored.insert("dto".into(), Value::Object(copy));
+                stored.insert("pictureVersion".into(), crate::js::num(0.0));
+                stored.insert("copyOf".into(), of);
+                stored.insert("$v".into(), Value::from(fresh()));
+                next_byk.insert(key.clone(), Value::Object(stored));
                 next_order.push(key);
             }
             Ok(with_parts(next_byk, next_order))
@@ -613,7 +640,7 @@ pub fn predict_records(records: Rc<Value>, op: &Value) -> Result<Rc<Value>, Erro
                 Some(b) => all.iter().position(|k| k == *b).unwrap_or(all.len()),
                 None => all.len(),
             };
-            let mut next_byk = byk.clone();
+            let mut next_byk = by_key_copy(&records);
             next_byk.insert(key.clone(), stored(annotation, 0.0));
             let mut next_order = all[..at].to_vec();
             next_order.push(key);
@@ -684,8 +711,12 @@ fn undo_of_op(records: &Rc<Value>, op: &Value) -> Vec<Value> {
 pub fn undo_of(records: &Rc<Value>, ops: &[Value]) -> Vec<Value> {
     let mut undo: Vec<Vec<Value>> = Vec::new();
     let mut current = records.clone();
-    for op in ops {
+    for (at, op) in ops.iter().enumerate() {
         undo.push(undo_of_op(&current, op));
+        // The records after the last op are read by nothing.
+        if at + 1 == ops.len() {
+            break;
+        }
         // The TypeScript throws here; the change is checked before it is
         // staged, so a prediction fails only on an op it cannot read, and
         // the records the earlier ops left stand.

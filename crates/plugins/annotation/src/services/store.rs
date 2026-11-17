@@ -36,6 +36,11 @@ use crate::services::staging::{
 };
 use crate::sync::records::{core_error, predict_records, undo_of};
 
+/// A message that doesn't read, refused as invalid input.
+pub(crate) fn invalid_message(error: epdf_annotation_core::object::JsonError) -> Error {
+    plugin_error(code::INVALID_INPUT, CAPABILITY, format!("[annotation] {}", error.0), None, None)
+}
+
 /// How many changes keep their selections.
 const KEPT: usize = 200;
 
@@ -466,18 +471,20 @@ impl Core {
         adjust: Option<Adjust>,
         into: Option<&StoreHold>,
     ) -> Result<Commit, Error> {
-        let parsed = Message::read(&message).map_err(|e| {
-            plugin_error(
-                code::INVALID_INPUT,
-                CAPABILITY,
-                format!("[annotation] {}", e.0),
-                None,
-                None,
-            )
-        })?;
+        let parsed = Message::read(&message).map_err(invalid_message)?;
+        self.commit_message(parsed, adjust, into)
+    }
+
+    /// `commit` with a message already read.
+    pub(crate) fn commit_message(
+        &self,
+        parsed: Message,
+        adjust: Option<Adjust>,
+        into: Option<&StoreHold>,
+    ) -> Result<Commit, Error> {
         let needed = new_records_at_most(&parsed);
         if needed > 0 && !self.hold_numbers(needed) {
-            return Ok(self.commit_when_numbered(message, adjust, into.cloned(), needed));
+            return Ok(self.commit_when_numbered(parsed, adjust, into.cloned(), needed));
         }
         let before = self.model();
         let mut result =
@@ -547,7 +554,7 @@ impl Core {
     /// A message that may create, run once the pool has the numbers it needs.
     fn commit_when_numbered(
         &self,
-        message: Value,
+        message: Message,
         adjust: Option<Adjust>,
         into: Option<StoreHold>,
         needed: usize,
@@ -571,7 +578,7 @@ impl Core {
                     if !same {
                         return Ok(NOTHING_WRITTEN());
                     }
-                    match core.commit(message, adjust, into.as_ref()) {
+                    match core.commit_message(message, adjust, into.as_ref()) {
                         Ok(commit) => commit.written.await,
                         Err(error) => Err(error),
                     }

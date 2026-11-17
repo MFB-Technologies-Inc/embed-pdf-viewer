@@ -7,13 +7,16 @@ use epdf_annotation_core::engine::measure::{
     DimensionInput, Readout, is_dimension, measurement_readout,
 };
 use epdf_annotation_core::object::Json;
-use epdf_annotation_core::types::{Point, Target};
+use epdf_annotation_core::types::{
+    Message, PageRef, Phase as PointerPhase, Point, PointerInput, Target,
+};
 use epdf_annotation_core::update::defaults_for;
 use serde_json::{Map, Value, json};
 
 use crate::controller::Core;
 use crate::js::{num, page_object_number};
 use crate::read::chrome::HitView;
+use crate::services::store::invalid_message;
 
 /// `'down' | 'move' | 'up'`.
 pub type Phase = &'static str;
@@ -49,27 +52,29 @@ impl Core {
         touch: Option<bool>,
     ) -> Result<(), epdf_kernel::Error> {
         let number = page_object_number(page);
-        let mut input = Map::new();
-        input.insert("page".into(), page.clone());
-        input.insert("point".into(), point.json());
-        input.insert("shift".into(), json!(shift));
-        if let Some(b) = self.page_box_of(number) {
-            input.insert("pageBox".into(), b.json());
-        }
-        input.insert("chrome".into(), self.chrome_geom_at(scale, Core::grab_boost(touch)).json());
-        if let Some(s) = scale.filter(|s| *s != 0.0 && !s.is_nan()) {
-            input.insert("scale".into(), num(s));
-        }
-        if let Some(inert) = inert_json(self.engaged_ids_on(number)) {
-            input.insert("inert".into(), inert);
-        }
-        if let Some(z) = zoom {
-            input.insert("zoom".into(), num(z));
-        }
-        if let Some(r) = rotation {
-            input.insert("displayRotation".into(), num(r));
-        }
-        self.commit_json(json!({ "type": "editPointer", "phase": phase, "in": input }))?;
+        // The message is built as `Message::read` reads it from JSON, the
+        // chrome's member order included.
+        let page_box = self.page_box_of(number);
+        let mut chrome = self.chrome_geom_at(scale, Core::grab_boost(touch));
+        chrome.seal();
+        let inert = self.engaged_ids_on(number);
+        let phase = PointerPhase::read(phase).map_err(invalid_message)?;
+        let page =
+            <Option<PageRef>>::from_json(Some(page)).map_err(|e| invalid_message(e.at("page")))?;
+        let input = PointerInput {
+            page,
+            point,
+            shift,
+            finish: None,
+            page_box,
+            chrome: Some(chrome),
+            display_rotation: rotation,
+            scale: scale.filter(|s| *s != 0.0 && !s.is_nan()),
+            zoom,
+            upright: None,
+            inert,
+        };
+        self.commit_message(Message::EditPointer { phase, input }, None, None)?;
         Ok(())
     }
 

@@ -568,6 +568,51 @@ fn m19_threading_ten_thousand_annotations_stays_linear() {
     assert!(took < std::time::Duration::from_secs(10), "threading took {took:?}");
 }
 
+// ── S1: a record change copies the records once ─────────────────────────────
+
+/// A one-op change on 1,000 records copies the records' map once: its undo
+/// (`undoOf`) predicts no record past the last op, and the records value is
+/// built around the copy by moving it. The new records keep every member
+/// and key in its place.
+#[test]
+fn put_copies_records_once() {
+    use epdf_plugin_annotation::sync::records::{
+        by_key, from_snapshot, no_records, order, predict_records, record_copies, records_json,
+        undo_of,
+    };
+    let dtos: Vec<Value> = (1..=1_000).map(|n| square(n, 10.0, 10.0)).collect();
+    let records = Rc::new(from_snapshot(&no_records(), &dtos).expect("the records"));
+    let op = json!({
+        "type": "annotations.update", "ref": square_ref(7),
+        "patch": { "subtype": "square", "opacity": 0.5 }
+    });
+    let before = record_copies();
+    let undo = undo_of(&records, std::slice::from_ref(&op));
+    let next = predict_records(records.clone(), &op).expect("the prediction");
+    assert_eq!(record_copies() - before, 1, "the records were copied more than once");
+    assert_eq!(undo.len(), 1);
+    assert_eq!(undo[0]["patch"]["opacity"], json!(1));
+    let keys: Vec<&String> = next.as_object().unwrap().keys().collect();
+    assert_eq!(keys, ["byKey", "order"]);
+    assert_eq!(order(&next), order(&records));
+    let byk = by_key(&next);
+    assert_eq!(byk.keys().collect::<Vec<_>>(), by_key(&records).keys().collect::<Vec<_>>());
+    let changed = &byk[&order(&next)[6]];
+    let members: Vec<&String> = changed.as_object().unwrap().keys().collect();
+    assert_eq!(members, ["dto", "pictureVersion", "$v"]);
+    assert_eq!(changed["dto"]["opacity"], json!(0.5));
+    let mut expected = records_json(&records);
+    let current = records["byKey"][&order(&next)[6]]["dto"].as_object().unwrap();
+    let after =
+        epdf_annotation_core::record::annotation_after(current, op["patch"].as_object().unwrap())
+            .expect("the patched annotation");
+    expected["byKey"][&order(&next)[6]]["dto"] = Value::Object(after);
+    assert_eq!(
+        serde_json::to_string(&records_json(&next)).unwrap(),
+        serde_json::to_string(&expected).unwrap()
+    );
+}
+
 // ── M16: a grant after a forbidden load is seen on refresh ──────────────────
 
 /// Superseded M16: the records load refused for lack of `doc.annotate.read`

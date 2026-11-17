@@ -270,7 +270,7 @@ pub fn page_items(model: &Model, page: &PageRef, view: Option<&ViewEnv>) -> Vec<
         ]);
         items.push(placed(item, anchored_scale(anchor_mode_of(record).as_ref(), view)));
     }
-    let draft = model.draft().cloned();
+    let draft = model.draft();
     let on_page = |p: &PageRef| p.object_number == page.object_number;
     match &draft {
         Some(Draft::CreateRect(d))
@@ -754,10 +754,10 @@ pub fn chrome(
         _ => {}
     }
     let rd = match model.draft() {
-        Some(Draft::Rotate(d)) if first_on_page(&d.ids) => Some(d.clone()),
+        Some(Draft::Rotate(d)) if first_on_page(&d.ids) => Some(d),
         _ => None,
     };
-    if let Some(rd) = &rd {
+    if let Some(rd) = rd {
         let angle = rotate_draft_delta(model, rd).angle;
         let span = page_box.unwrap_or(Rect {
             x: rd.pivot.x - 300.0,
