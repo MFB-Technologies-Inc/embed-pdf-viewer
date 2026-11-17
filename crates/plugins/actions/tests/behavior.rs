@@ -565,3 +565,26 @@ fn script_focus_routes_to_the_form_before_the_ui_adapter_and_old_release_is_safe
     actions.surface_script_result(&detached).unwrap();
     assert_eq!(heard.borrow().len(), 1);
 }
+
+/// The pin of `MO-submit-request`: the TypeScript hands a submit handler
+/// the resolver's request object, `charSet` last when the resolver added it
+/// last; Rust prints `ActionSubmitRequest` in field order, `charSet` after
+/// `format`.
+#[test]
+fn a_submit_request_prints_in_field_order_not_the_resolvers() {
+    let given = json!({
+        "url": "https://example.test/submit",
+        "method": "POST",
+        "format": "html",
+        "entries": [],
+        "origin": "user",
+        "event": { "type": "activate" },
+        "charSet": "utf-8",
+    });
+    let request: epdf_plugin_actions::contract::ActionSubmitRequest =
+        serde_json::from_value(given).unwrap();
+    assert_eq!(
+        serde_json::to_string(&request).unwrap(),
+        r#"{"url":"https://example.test/submit","method":"POST","format":"html","charSet":"utf-8","entries":[],"origin":"user","event":{"type":"activate"}}"#
+    );
+}

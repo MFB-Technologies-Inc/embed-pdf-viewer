@@ -361,10 +361,31 @@
     "pinnedBy": "crates/epdf-engine/src/features/text/layout.rs::a_line_that_reads_backwards_has_no_characters"
   },
   {
-    "id": "MO-passthrough",
-    "summary": "Where the TypeScript passes a caller's object through, Rust prints its members in the typed value's order, not the caller's.",
-    "reason": "A typed Rust value has one member order; the TypeScript keeps whatever order the caller wrote. The paths citing this id in crates/plugin-conformance/member-order-allow.json are the observations: a run() world event handed to the sandbox (core/acrojs-host.json), { ...paragraph, runs } in packages/core/annotation/src/richtext.ts normalizeRuns, the caller's options spread into a group (core/ui-schema.json, see crates/plugins/ui-core/README.md), and the resolver's request handed to the submit handler (packages/plugin/actions/src/submit/perform.ts). The script event and submit request dropped their order tracking in 306a293cd to stay plain types.",
+    "id": "MO-acrojs-event",
+    "summary": "The script event a run() hands the sandbox prints in ScriptEventInput field order, not the order the caller wrote its members in.",
+    "reason": "The TypeScript passes the caller's world event object through to the sandbox; a typed Rust value has one member order. member-order-allow.json cites this id for core/acrojs-host.json. The script event dropped its order tracking in 306a293cd to stay a plain type.",
     "decided": "2026-10-13 8cf572cf5",
-    "pinnedBy": "crates/plugin-conformance/src/canonical.rs::an_allowed_path_skips_the_member_order_comparison"
+    "pinnedBy": "crates/plugins/acrojs/src/types.rs::a_script_event_prints_in_field_order_not_the_callers"
+  },
+  {
+    "id": "MO-richtext-paragraph",
+    "summary": "A paragraph normalizeRuns returns prints runs before its other members; the TypeScript prints the caller's members first and runs last.",
+    "reason": "packages/core/annotation/src/richtext.ts normalizeRuns builds { ...paragraph, runs }, keeping the caller's members in the caller's order. RichTextParagraph holds runs as a field and the rest as a flattened map. member-order-allow.json cites this id for core/annotation-richtext.json.",
+    "decided": "2026-10-13 8cf572cf5",
+    "pinnedBy": "crates/plugins/annotation-core/tests/behavior.rs::a_normalized_paragraph_prints_runs_before_its_other_members"
+  },
+  {
+    "id": "MO-ui-group-options",
+    "summary": "group(id, items, options) prints its options in GroupOpts field order, not the order the caller wrote them in.",
+    "reason": "The TypeScript spreads the caller's options between id and items, so they keep the caller's order; BarGroup is a typed value (see crates/plugins/ui-core/README.md). member-order-allow.json cites this id for core/ui-schema.json.",
+    "decided": "2026-10-13 8cf572cf5",
+    "pinnedBy": "crates/plugins/ui-core/tests/behavior.rs::a_group_prints_its_options_in_field_order_not_the_callers"
+  },
+  {
+    "id": "MO-submit-request",
+    "summary": "The request a submit handler receives prints in ActionSubmitRequest field order (charSet after format), not the order the resolver built it in.",
+    "reason": "packages/plugin/actions/src/submit/perform.ts hands the handler the resolver's request object, which adds charSet last. The submit request dropped its order tracking in 306a293cd to stay a plain type. member-order-allow.json cites this id for plugins/actions-submit.json.",
+    "decided": "2026-10-13 8cf572cf5",
+    "pinnedBy": "crates/plugins/actions/tests/behavior.rs::a_submit_request_prints_in_field_order_not_the_resolvers"
   }
 ]

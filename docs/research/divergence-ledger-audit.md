@@ -1,6 +1,6 @@
 # Divergence ledger audit
 
-`crates/plugin-conformance/divergences.json` holds 43 kept divergences: the 41 this audit entered, M13, which was in the ledger before the audit, and MO-passthrough, which the member-order allowlist cites. 2 are observed by a vector case (one of them, M27, by a case added for the purpose) and also pinned; 41 are pinned by a Rust test only. 31 rows below name kept divergences with no test to pin them, so they are not in the ledger yet. 3 could not be tied to a decision.
+`crates/plugin-conformance/divergences.json` holds 46 kept divergences: the 41 this audit entered, M13, which was in the ledger before the audit, and four MO- entries, one per cause of the member-order differences the member-order allowlist exempts. 2 are observed by a vector case (one of them, M27, by a case added for the purpose) and also pinned; 44 are pinned by a Rust test only. 31 rows below name kept divergences with no test to pin them, so they are not in the ledger yet. 3 could not be tied to a decision.
 
 Every replay passes today with only M13 in the ledger before this audit, so no existing vector case could observe any other divergence: a differing trace would already have failed. Observing one needs a new scenario case. The ledger applies to scenario suites only, so a divergence that a function suite would show (`formatShortcut("Ctrl+constructor")`, a `toString` face name) is pinned instead.
 
@@ -52,7 +52,10 @@ The sources were the Status section of `docs/research/rust-plugins-branch-review
 | NOOP-MUTATION-SEQUENCE | pinned: `crates/epdf-engine/tests/annotation_flatten.rs::a_flatten_that_applies_nothing_is_no_mutation` | 2026-10-15 87b61b533 |
 | TEXT-LAYOUT-POINT-PAST-RUN | pinned: `crates/epdf-engine/src/features/text/layout.rs::a_point_on_a_glyph_the_run_claims_past_the_end_reads_no_further` | Task 14.3 |
 | TEXT-LAYOUT-NEGATIVE-COUNT | pinned: `crates/epdf-engine/src/features/text/layout.rs::a_line_that_reads_backwards_has_no_characters` | Task 14.3 |
-| MO-passthrough | pinned: `crates/plugin-conformance/src/canonical.rs::an_allowed_path_skips_the_member_order_comparison` | 2026-10-13 8cf572cf5 |
+| MO-acrojs-event | pinned: `crates/plugins/acrojs/src/types.rs::a_script_event_prints_in_field_order_not_the_callers` | 2026-10-13 8cf572cf5 |
+| MO-richtext-paragraph | pinned: `crates/plugins/annotation-core/tests/behavior.rs::a_normalized_paragraph_prints_runs_before_its_other_members` | 2026-10-13 8cf572cf5 |
+| MO-ui-group-options | pinned: `crates/plugins/ui-core/tests/behavior.rs::a_group_prints_its_options_in_field_order_not_the_callers` | 2026-10-13 8cf572cf5 |
+| MO-submit-request | pinned: `crates/plugins/actions/tests/behavior.rs::a_submit_request_prints_in_field_order_not_the_resolvers` | 2026-10-13 8cf572cf5 |
 
 ## Why no trace sees the pinned ones
 

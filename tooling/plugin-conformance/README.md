@@ -207,9 +207,10 @@ that puts one in an answer.
   is a vector file, a case and `{ "path", "divergence" }`: the path with its array indexes written
   `[]`, and the `crates/plugin-conformance/divergences.json` id that says why. An entry without
   one, or citing an id the ledger lacks, fails every replay at load. A new mismatch fails the run:
-  fix the order, or, only if it is one of those two kinds, add the path by hand with its id. A
-  passed-through object cites `MO-passthrough`. No entry covers the builder-order kind yet, so the
-  first such path also needs a new ledger entry.
+  fix the order, or, only if it is one of those two kinds, add the path by hand with its id. Each
+  cause has its own `MO-` entry with a test that pins it (`MO-acrojs-event`,
+  `MO-richtext-paragraph`, `MO-ui-group-options`, `MO-submit-request`), so a path from a new cause
+  needs a new ledger entry and pin. No entry covers the builder-order kind yet.
   `pnpm run member-order:allow` never edits the list. It reruns the replay, with
   `PLUGIN_CONFORMANCE_MEMBER_ORDER=1`, its own allowlist in `PLUGIN_CONFORMANCE_MEMBER_ORDER_ALLOW`,
   and `PLUGIN_CONFORMANCE_ONLY` and `PLUGIN_CONFORMANCE_RECEIPTS` removed, until no new path

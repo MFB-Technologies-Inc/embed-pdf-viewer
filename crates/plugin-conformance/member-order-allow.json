@@ -3,7 +3,7 @@
     "input-shape": [
       {
         "path": "$.callbacks[].args[].event",
-        "divergence": "MO-passthrough"
+        "divergence": "MO-acrojs-event"
       }
     ]
   },
@@ -11,91 +11,91 @@
     "applyStyleToRange/bold-across-paragraphs": [
       {
         "path": "$.returned.paragraphs[]",
-        "divergence": "MO-passthrough"
+        "divergence": "MO-richtext-paragraph"
       }
     ],
     "applyStyleToRange/bold-across-runs": [
       {
         "path": "$.returned.paragraphs[]",
-        "divergence": "MO-passthrough"
+        "divergence": "MO-richtext-paragraph"
       }
     ],
     "applyStyleToRange/bold-emoji": [
       {
         "path": "$.returned.paragraphs[]",
-        "divergence": "MO-passthrough"
+        "divergence": "MO-richtext-paragraph"
       }
     ],
     "applyStyleToRange/bold-empty": [
       {
         "path": "$.returned.paragraphs[]",
-        "divergence": "MO-passthrough"
+        "divergence": "MO-richtext-paragraph"
       }
     ],
     "applyStyleToRange/bold-empty-paragraph": [
       {
         "path": "$.returned.paragraphs[]",
-        "divergence": "MO-passthrough"
+        "divergence": "MO-richtext-paragraph"
       }
     ],
     "applyStyleToRange/bold-inside-later-run": [
       {
         "path": "$.returned.paragraphs[]",
-        "divergence": "MO-passthrough"
+        "divergence": "MO-richtext-paragraph"
       }
     ],
     "applyStyleToRange/bold-inside-run": [
       {
         "path": "$.returned.paragraphs[]",
-        "divergence": "MO-passthrough"
+        "divergence": "MO-richtext-paragraph"
       }
     ],
     "applyStyleToRange/bold-negative-start": [
       {
         "path": "$.returned.paragraphs[]",
-        "divergence": "MO-passthrough"
+        "divergence": "MO-richtext-paragraph"
       }
     ],
     "applyStyleToRange/bold-paragraph-boundary": [
       {
         "path": "$.returned.paragraphs[]",
-        "divergence": "MO-passthrough"
+        "divergence": "MO-richtext-paragraph"
       }
     ],
     "applyStyleToRange/bold-reversed": [
       {
         "path": "$.returned.paragraphs[]",
-        "divergence": "MO-passthrough"
+        "divergence": "MO-richtext-paragraph"
       }
     ],
     "applyStyleToRange/bold-whole": [
       {
         "path": "$.returned.paragraphs[]",
-        "divergence": "MO-passthrough"
+        "divergence": "MO-richtext-paragraph"
       }
     ],
     "applyStyleToRange/clear-all": [
       {
         "path": "$.returned.paragraphs[]",
-        "divergence": "MO-passthrough"
+        "divergence": "MO-richtext-paragraph"
       }
     ],
     "applyStyleToRange/clear-weight": [
       {
         "path": "$.returned.paragraphs[]",
-        "divergence": "MO-passthrough"
+        "divergence": "MO-richtext-paragraph"
       }
     ],
     "applyStyleToRange/merges-into-neighbour": [
       {
         "path": "$.returned.paragraphs[]",
-        "divergence": "MO-passthrough"
+        "divergence": "MO-richtext-paragraph"
       }
     ],
     "normalizeRuns/doc": [
       {
         "path": "$.returned.paragraphs[]",
-        "divergence": "MO-passthrough"
+        "divergence": "MO-richtext-paragraph"
       }
     ]
   },
@@ -103,13 +103,13 @@
     "group-opts-and-items": [
       {
         "path": "$.returned",
-        "divergence": "MO-passthrough"
+        "divergence": "MO-ui-group-options"
       }
     ],
     "group-opts-no-items": [
       {
         "path": "$.returned",
-        "divergence": "MO-passthrough"
+        "divergence": "MO-ui-group-options"
       }
     ]
   },
@@ -117,7 +117,7 @@
     "a-handler-beats-the-home": [
       {
         "path": "$.callbacks[].args[]",
-        "divergence": "MO-passthrough"
+        "divergence": "MO-submit-request"
       }
     ]
   }

@@ -21,8 +21,8 @@
  * Moving a candidate into the allowlist is a hand edit that fills in its
  * `divergence`, the `divergences.json` id that says why. Only two causes
  * qualify: the TypeScript passes a caller's object through
- * (`MO-passthrough`), or one type's order depends on which function built
- * it. Anything else is a Rust order to fix.
+ * (one `MO-` ledger entry per place it does), or one type's order depends
+ * on which function built it. Anything else is a Rust order to fix.
  */
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';

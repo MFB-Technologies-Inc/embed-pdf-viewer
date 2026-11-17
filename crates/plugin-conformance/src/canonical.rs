@@ -340,7 +340,7 @@ mod tests {
         );
     }
 
-    /// The pin of the `MO-*` ledger entries: an allowed path skips the
+    /// How every `MO-` ledger entry is applied: an allowed path skips the
     /// member-order comparison at that object only.
     #[test]
     fn an_allowed_path_skips_the_member_order_comparison() {
