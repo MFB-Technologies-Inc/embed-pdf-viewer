@@ -8,7 +8,7 @@
 
 **Tech Stack:** Rust (serde_json, `ruzstd`), TypeScript on Node 24 (`node:zlib` zstd, tsx, `fast-check`), `cargo-llvm-cov`.
 
-**Spec:** `/Users/andrew/Downloads/embed-pdf-rust-conformance.md` (examined at `2216e1e3b`). Copy it into `docs/research/conformance-enforcement-report.md` in Task 1 so the plan's spec travels with the branch.
+**Spec:** `docs/research/conformance-enforcement-report.md` (examined at `2216e1e3b`).
 
 ## Findings included
 
@@ -230,7 +230,7 @@ Budget: two to three days, per the report. If an id can't be traced to a decisio
 
 **Interfaces:**
 - New format: `{ "<file>": { "<case>": [{ "path": "$.returned.paragraphs[]", "divergence": "MO-passthrough" }] } }`. `divergence` must name a ledger id; replay panics at load on an unknown id.
-- The 375 current paths get ledger ids by cause. Start with two entries, `MO-passthrough` (the TypeScript passes a caller's object through) and `MO-builder-order` (one type's order depends on which function built it), the two causes the tool's header comment allows. Paths that fit neither are Rust order bugs: list them for the user, don't ledger them.
+- The 19 current paths get ledger ids by cause. Start with two entries, `MO-passthrough` (the TypeScript passes a caller's object through) and `MO-builder-order` (one type's order depends on which function built it), the two causes the tool's header comment allows. Paths that fit neither are Rust order bugs: list them for the user, don't ledger them.
 - `member-order:allow` no longer writes the allowlist. It writes failing paths to `member-order-candidates.json` (gitignored) and prints them. Moving a candidate into the allowlist is a hand edit that needs a `divergence` id. Removing entries needs nothing, so the list shrinks freely.
 
 - [ ] **Step 1: Failing tests:** unknown divergence id rejected; old string-only entry rejected; tool run writes candidates and leaves the allowlist bytes unchanged.
