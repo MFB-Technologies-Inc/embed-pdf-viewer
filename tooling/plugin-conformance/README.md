@@ -86,10 +86,14 @@ checkout have uncommitted changes, since nothing ties those changes to the recei
 that `--receipts` only works on a clean tree; a plain `replay:check` on a tree with changes still
 passes, because it replays that tree itself. If either git command fails (a "dubious ownership"
 refusal inside a container, say), the check fails with git's message instead of comparing nothing.
-The `--receipts` directory is left out of the `git status` it reads only when the directory is inside
-the repository (after resolving symlinks) and git tracks no file under it: a directory of untracked
-receipts. Any other directory gets no exemption, so an edit to a tracked file under it still counts
-as a change.
+The `--receipts` directory gets an exemption only when it is inside the repository (after resolving
+symlinks) and `git status` prints it as one untracked directory, `?? <dir>/`, which git does only
+when it tracks nothing under it. Even then the exemption covers just the untracked `*.json` files
+directly in it, the files the check reads as receipts. Any other untracked file there counts as a
+change, at any depth, and so does every tracked change: a staged deletion under the directory, an
+edit to a tracked file in it. A directory inside an untracked parent gets no exemption, because git
+prints only the parent. The cost is that a saved directory must hold nothing but receipts; a stray
+`*.partial` from an interrupted run makes the tree dirty.
 
 What a saved directory proves is consistency, not provenance. Receipts are not signed, so the commit
 and the clean-tree flag in them are what `PLUGIN_CONFORMANCE_HEAD` and `PLUGIN_CONFORMANCE_DIRTY` said

@@ -194,12 +194,23 @@ test('childEnv removes every variable that would weaken the proof and sets recei
 test('checkoutState reads the commit and uncommitted changes, and fails with git', () => {
   const answers: Record<string, { status: number; stdout: string; stderr: string }> = {
     'rev-parse HEAD': { status: 0, stdout: 'abc\n', stderr: '' },
-    'status --porcelain': { status: 0, stdout: '', stderr: '' },
+    'status --porcelain -z': { status: 0, stdout: '', stderr: '' },
   };
   const git = (args: readonly string[]) => answers[args.join(' ')];
   assert.deepEqual(checkoutState({ run: git }), { head: 'abc', dirty: false, changes: [] });
-  answers['status --porcelain'] = { status: 0, stdout: ' M a.rs\n?? new.rs\n', stderr: '' };
-  assert.deepEqual(checkoutState({ run: git }), { head: 'abc', dirty: true, changes: ['a.rs', 'new.rs'] });
+  // `-z` prints raw paths, NUL-ended, and a rename's source as a field of its own.
+  answers['status --porcelain -z'] = {
+    status: 0,
+    stdout: ' M a.rs\0R  new name.rs\0old.rs\0?? é.rs\0',
+    stderr: '',
+  };
+  assert.deepEqual(checkoutState({ run: git }), {
+    head: 'abc',
+    dirty: true,
+    changes: ['a.rs', 'old.rs -> new name.rs', 'é.rs'],
+  });
+  answers['status --porcelain -z'] = { status: 0, stdout: 'M\0', stderr: '' };
+  assert.throws(() => checkoutState({ run: git }), /git status printed an entry this cannot read/);
   // The container case: git refuses a repository another user owns.
   answers['rev-parse HEAD'] = {
     status: 128,
@@ -211,8 +222,8 @@ test('checkoutState reads the commit and uncommitted changes, and fails with git
     /git rev-parse HEAD failed, so no receipt can be tied to a commit: fatal: detected dubious ownership/,
   );
   answers['rev-parse HEAD'] = { status: 0, stdout: 'abc\n', stderr: '' };
-  answers['status --porcelain'] = { status: 1, stdout: '', stderr: '' };
-  assert.throws(() => checkoutState({ run: git }), /git status --porcelain failed.*: exit 1/);
+  answers['status --porcelain -z'] = { status: 1, stdout: '', stderr: '' };
+  assert.throws(() => checkoutState({ run: git }), /git status --porcelain -z failed.*: exit 1/);
 });
 
 test('checkoutState exempts only an untracked receipts directory, in a real repository', async () => {
@@ -259,6 +270,49 @@ test('checkoutState exempts only an untracked receipts directory, in a real repo
     await put('r*/r.json');
     await put('rx/new.rs');
     assert.deepEqual(state('r*').changes, ['rx/', 'saved/']);
+    await rm(join(root, 'r*'), { recursive: true });
+    await rm(join(root, 'rx'), { recursive: true });
+
+    // Only the `*.json` files directly in it are receipts: any other
+    // untracked file there, at any depth, still counts.
+    await put('saved/notes.txt');
+    await put('saved/sub/r.json');
+    await put('saved/r.json.partial');
+    assert.deepEqual(state('saved').changes, [
+      'saved/notes.txt',
+      'saved/r.json.partial',
+      'saved/sub/r.json',
+    ]);
+    await rm(join(root, 'saved'), { recursive: true });
+    await put('saved/r.json');
+
+    // Untracked source named as the receipts directory is not exempt.
+    await put('crates/a/tests/t.rs');
+    assert.deepEqual(state('crates/a/tests').changes, ['crates/a/tests/t.rs', 'saved/']);
+    await rm(join(root, 'crates/a/tests'), { recursive: true });
+
+    // A receipts directory inside an untracked parent: git prints only the
+    // parent, which is not left out.
+    await put('parent/saved/r.json');
+    assert.deepEqual(state('parent/saved').changes, ['parent/', 'saved/']);
+    await rm(join(root, 'parent'), { recursive: true });
+
+    // Paths with a space and non-ASCII are matched as git stores them.
+    await put('my receipts é/r.json');
+    assert.deepEqual(state('my receipts é').changes, ['saved/']);
+    assert.deepEqual(state().changes, ['my receipts é/', 'saved/']);
+    await rm(join(root, 'my receipts é'), { recursive: true });
+
+    // A staged deletion under the directory counts, though git then tracks
+    // nothing under it.
+    await put('kept/r.json');
+    git('add', 'kept/r.json');
+    git('-c', 'user.name=test', '-c', 'user.email=test@example.invalid', 'commit', '-q', '-m', 'two');
+    git('rm', '-r', '-q', '--cached', 'kept');
+    assert.deepEqual(state('kept').changes, ['kept/r.json', 'saved/']);
+
+    // The repository root is never exempt.
+    assert.deepEqual(state('.').changes, ['kept/r.json', 'kept/', 'saved/']);
   } finally {
     await rm(root, { recursive: true, force: true });
     await rm(outside, { recursive: true, force: true });

@@ -495,17 +495,53 @@ function insideRepository(root: string, dir: string): string | null {
   return rel.split(sep).join('/');
 }
 
+/** One `git status --porcelain -z` entry: its two status letters, its path,
+ *  and how a change list shows it (`from -> to` for a rename or copy). */
+interface StatusEntry {
+  readonly code: string;
+  readonly path: string;
+  readonly shown: string;
+}
+
+/** The entries of `git status --porcelain -z`. With `-z` git prints paths
+ *  raw, without the quoting and escapes it gives spaces and non-ASCII, and a
+ *  rename or copy is followed by its source as a field of its own. */
+function statusEntries(out: string): StatusEntry[] {
+  const fields = out.split('\0');
+  const entries: StatusEntry[] = [];
+  for (let i = 0; i < fields.length; i++) {
+    const field = fields[i];
+    if (field === '' && i === fields.length - 1) break;
+    if (field.length < 4 || field[2] !== ' ') {
+      throw new Error(`git status printed an entry this cannot read: ${JSON.stringify(field)}`);
+    }
+    const code = field.slice(0, 2);
+    const path = field.slice(3);
+    if (/[RC]/.test(code)) {
+      const from = fields[++i];
+      if (!from) throw new Error(`git status printed a rename of ${path} with no source`);
+      entries.push({ code, path, shown: `${from} -> ${path}` });
+    } else {
+      entries.push({ code, path, shown: path });
+    }
+  }
+  return entries;
+}
+
 /**
- * `git rev-parse HEAD` and `git status --porcelain`, run at `root` (the
+ * `git rev-parse HEAD` and `git status --porcelain -z`, run at `root` (the
  * repository by default). Throws, with git's message, when a git command
  * fails: without the commit the receipts cannot be tied to the checkout, so
  * the check cannot pass.
  *
- * `receipts`, a `--receipts` directory, is left out of the status only when
- * it is inside the repository and git tracks no file under it, which is a
- * directory of untracked receipts. A directory that holds tracked files gets
- * no exemption, so an edit to one of them still counts as a change. Both
- * pathspecs are literal, so a directory named `r*` leaves out only itself.
+ * `receipts`, a `--receipts` directory, is exempt only when it is inside the
+ * repository and `git status` names it as one untracked directory (`?? dir/`),
+ * which git prints only when it tracks nothing under it. Even then only its
+ * untracked `*.json` files directly inside it, the files `readReceipts`
+ * reads, are left out; any other file in it, at any depth, still counts as a
+ * change. Only untracked entries are ever left out, so a staged deletion
+ * under the directory counts, and a directory inside an untracked parent
+ * (printed as `?? parent/`) gets no exemption.
  */
 export function checkoutState(
   options: { readonly root?: string; readonly receipts?: string; readonly run?: Git } = {},
@@ -516,20 +552,34 @@ export function checkoutState(
     const result = run(args);
     if (result.error || result.status !== 0) {
       const why = result.error?.message ?? (result.stderr.trim() || `exit ${result.status}`);
-      throw new Error(`git ${args.join(' ')} failed, so no receipt can be tied to a commit: ${why}`);
+      throw new Error(
+        `git ${args.join(' ')} failed, so no receipt can be tied to a commit: ${why}`,
+      );
     }
     return result.stdout;
   };
   const head = output(['rev-parse', 'HEAD']).trim();
+  let entries = statusEntries(output(['status', '--porcelain', '-z']));
   const inside = options.receipts === undefined ? null : insideRepository(root, options.receipts);
-  const status = ['status', '--porcelain'];
-  if (inside !== null && output(['ls-files', '--', `:(literal)${inside}`]).trim() === '') {
-    status.push('--', '.', `:(exclude,literal)${inside}`);
+  const own = inside === null ? null : `${inside}/`;
+  if (own !== null && entries.some((e) => e.code === '??' && e.path === own)) {
+    // Each untracked file in it, listed one by one; the pathspec is literal,
+    // so a directory named `r*` lists only itself.
+    const files = statusEntries(
+      output(['status', '--porcelain', '-z', '--untracked-files=all', '--', `:(literal)${inside}`]),
+    );
+    const untracked = files.filter((e) => e.code === '??');
+    const receipt = (e: StatusEntry) =>
+      e.path.startsWith(own) && e.path.endsWith('.json') && !e.path.slice(own.length).includes('/');
+    // Tracked changes are in the first listing already; the directory entry
+    // stands for these untracked files, less the receipts.
+    const others = untracked.filter((e) => !receipt(e));
+    // An empty listing is not what git just printed: keep the directory.
+    if (untracked.length > 0) {
+      entries = entries.flatMap((e) => (e.code === '??' && e.path === own ? others : [e]));
+    }
   }
-  const changes = output(status)
-    .split('\n')
-    .filter((line) => line.trim() !== '')
-    .map((line) => line.slice(3));
+  const changes = entries.map((e) => e.shown);
   return { head, dirty: changes.length > 0, changes };
 }
 
