@@ -11,37 +11,7 @@
 use serde_json::Value;
 
 /// `Number.prototype.toString()` (radix 10): ECMA-262 Number::toString.
-pub fn number_to_string(x: f64) -> String {
-    if x.is_nan() {
-        return "NaN".into();
-    }
-    if x == 0.0 {
-        return "0".into();
-    }
-    if x.is_infinite() {
-        return if x > 0.0 { "Infinity".into() } else { "-Infinity".into() };
-    }
-    if x < 0.0 {
-        return format!("-{}", number_to_string(-x));
-    }
-    // `{:e}` prints the shortest digits that round-trip, as ECMA-262 asks.
-    let sci = format!("{x:e}");
-    let (mantissa, exponent) = sci.split_once('e').unwrap_or((&sci, "0"));
-    let digits: String = mantissa.chars().filter(char::is_ascii_digit).collect();
-    let k = digits.len() as i64;
-    let n = exponent.parse::<i64>().unwrap_or(0) + 1;
-    if k <= n && n <= 21 {
-        format!("{digits}{}", "0".repeat((n - k) as usize))
-    } else if 0 < n && n <= 21 {
-        format!("{}.{}", &digits[..n as usize], &digits[n as usize..])
-    } else if -6 < n && n <= 0 {
-        format!("0.{}{digits}", "0".repeat((-n) as usize))
-    } else {
-        let sign = if n - 1 < 0 { '-' } else { '+' };
-        let rest = if k > 1 { format!(".{}", &digits[1..]) } else { String::new() };
-        format!("{}{rest}e{sign}{}", &digits[..1], (n - 1).abs())
-    }
-}
+pub use epdf_kernel::js::number_to_string;
 
 /// `Math.round`: half toward positive infinity.
 pub fn round(x: f64) -> f64 {
@@ -179,6 +149,24 @@ mod tests {
             (f64::NEG_INFINITY, "-Infinity"),
         ] {
             assert_eq!(number_to_string(x), want, "{x}");
+        }
+    }
+
+    /// Exactly halfway between two shortest candidates, JavaScript prints
+    /// the one ending in an even digit.
+    #[test]
+    fn number_to_string_breaks_a_tie_to_even() {
+        let cases: &[(&str, &str)] = &[
+            ("1655218367829957.25", "1655218367829957.2"),
+            ("18008701800628.8125", "18008701800628.812"),
+            ("151546589707673.125", "151546589707673.12"),
+            ("0.0239124298095703125", "0.023912429809570312"),
+            ("1655218367829957.75", "1655218367829957.8"),
+        ];
+        for (exact, want) in cases {
+            let x: f64 = exact.parse().unwrap();
+            assert_eq!(number_to_string(x), *want, "{exact}");
+            assert_eq!(number_to_string(-x), format!("-{want}"), "-{exact}");
         }
     }
 

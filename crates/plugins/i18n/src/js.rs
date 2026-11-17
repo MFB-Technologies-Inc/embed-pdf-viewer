@@ -211,15 +211,7 @@ pub fn number_to_string(n: f64) -> String {
     format!("{sign}{body}")
 }
 
-/// The shortest decimal digits that round-trip `x` (positive, finite), and
-/// the exponent of the first: `x = d.ddd × 10^exponent`.
-pub fn shortest_digits(x: f64) -> (String, i32) {
-    // Rust's `{:e}` is the shortest round-trip representation.
-    let text = format!("{x:e}");
-    let (mantissa, exponent) = text.split_once('e').expect("{:e} has an exponent");
-    let digits: String = mantissa.chars().filter(char::is_ascii_digit).collect();
-    (digits, exponent.parse().expect("{:e} exponent is an integer"))
-}
+pub use epdf_kernel::js::shortest_digits;
 
 #[cfg(test)]
 mod tests {
@@ -244,6 +236,24 @@ mod tests {
         ];
         for (n, want) in cases {
             assert_eq!(number_to_string(n), want, "{n}");
+        }
+    }
+
+    /// Exactly halfway between two shortest candidates, JavaScript prints
+    /// the one ending in an even digit.
+    #[test]
+    fn numbers_break_a_tie_to_even() {
+        let cases: &[(&str, &str)] = &[
+            ("1655218367829957.25", "1655218367829957.2"),
+            ("18008701800628.8125", "18008701800628.812"),
+            ("151546589707673.125", "151546589707673.12"),
+            ("0.0239124298095703125", "0.023912429809570312"),
+            ("1655218367829957.75", "1655218367829957.8"),
+        ];
+        for (exact, want) in cases {
+            let x: f64 = exact.parse().unwrap();
+            assert_eq!(number_to_string(x), *want, "{exact}");
+            assert_eq!(number_to_string(-x), format!("-{want}"), "-{exact}");
         }
     }
 
