@@ -43,8 +43,11 @@ window, every 16 ms. `typeField` ran `form.list().find()` over the 1,000 fields 
 cross the wasm wire and be serialized (`packages/core-wasm/src/proxy.ts` caches an answer only until
 the next real call). So the "2.271x to 4.009x the main-thread JavaScript" in "Annotation and form
 flows" includes harness work that may cost a Rust arm more than `main-now`, and nothing measured
-how much. `00ff9e715` finds the field, stamp or page once before the window and polls only it.
-`annotate`, `annotateLarge` and `undo` still poll `annotationCount` by page index.
+how much. `undo`, at the 4.009x end of that range, and `annotate` and `annotateLarge` polled
+their page's count by index the same way. `00ff9e715` finds the field, stamp or page once before
+the window and polls only it, for `typeField`, `dragAnnot` and `drawInk`; `e9c7df9e1` does the
+same for `undo`, `annotate` and `annotateLarge`, and works out the `annotate` and `select` drag
+ends before the window.
 
 The "median latency row" headlines leave settle rows out. `scripts/summary.mjs` before `703629a7c`
 took the median over the ratio rows that aren't main-thread rows: `open`, `search`, `wallMs` and
@@ -1002,7 +1005,9 @@ The same `main` build (`2516e2786`, engine wasm `98c2368a774d` in both) ran on 2
 (`results/2026-10-13T02-28-33-711Z-macmini2020-desktop`). Between the two runs its median
 latency row moved 1.014x and its median main-thread row 1.699x, from `node scripts/summary.mjs
 results/2026-11-16T20-20-49-728Z-macmini2020-desktop --drift
-results/2026-10-13T02-28-33-711Z-macmini2020-desktop main`. Its settle rows moved from -58.7 ms
+results/2026-10-13T02-28-33-711Z-macmini2020-desktop main`; that command now exits 2, because the
+2026-10-13 run recorded no probe hash, and the "latency row" it printed mixed frame intervals in
+(caveats at the top). Its settle rows moved from -58.7 ms
 (`zoom / zoom4SettleMs`) to +73.3 ms (`annotateLarge / settleMs`). The main-thread move is not
 noise alone: the earlier run predates the probe correction (it records no `probeSha256`; this one
 has `29ce19545e8b`), whose visibility sampling adds main-thread work, the Mac mini went from
