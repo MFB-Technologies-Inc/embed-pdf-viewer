@@ -18,7 +18,7 @@ uniffi = ["dep:uniffi", "dep:epdf-ffi"]
 
 [dependencies]
 epdf-kernel = { path = "../../epdf-kernel" }
-serde = { version = "1", features = ["derive"] }
+serde = { version = "1", features = ["derive", "rc"] }
 serde_json = { version = "1", features = ["float_roundtrip"] }
 plugin-conformance = { path = "../../plugin-conformance", optional = true }
 

@@ -177,7 +177,7 @@ impl Inner {
     /// `openHold()`: a change still being typed, what undo would undo before
     /// anything in the history.
     fn open_hold(&self) -> Option<PendingChange> {
-        self.changes.pending().into_iter().find(|change| change.held() && change.history())
+        self.changes.pending_find(|change| change.held() && change.history())
     }
 
     /// `answerOf(direction, entry, part, change)`: what one step's change for
@@ -185,7 +185,7 @@ impl Inner {
     fn answer_of(
         self: &Rc<Self>,
         direction: Direction,
-        entry: HistoryEntry,
+        entry: Rc<HistoryEntry>,
         part: HistoryPart,
         change: PendingChange,
     ) -> Promise<Answer> {
@@ -211,7 +211,7 @@ impl Inner {
                     }
                     if is_unavailable(&error) {
                         let history = this.state();
-                        let older: Vec<&HistoryEntry> = history
+                        let older: Vec<&Rc<HistoryEntry>> = history
                             .undo
                             .iter()
                             .chain(history.redo.iter())
@@ -246,8 +246,8 @@ impl Inner {
         let mut staged: Vec<(HistoryPart, PendingChange)> = Vec::new();
         for part in parts {
             let shows = match direction {
-                Direction::Undo => part.backward.clone(),
-                Direction::Redo => part.forward.clone(),
+                Direction::Undo => part.backward.to_vec(),
+                Direction::Redo => part.forward.to_vec(),
             };
             match self.changes.stage(StagedChange::undo(
                 entry.label.clone(),
@@ -343,7 +343,7 @@ impl Inner {
 }
 
 /// `partsOf(entries)`: every part's id.
-fn parts_of<'a>(entries: impl IntoIterator<Item = &'a HistoryEntry>) -> Vec<String> {
+fn parts_of<'a>(entries: impl IntoIterator<Item = &'a Rc<HistoryEntry>>) -> Vec<String> {
     entries.into_iter().flat_map(|entry| entry.parts.iter().map(|part| part.id.clone())).collect()
 }
 
@@ -503,8 +503,8 @@ fn connect(inner: &Rc<Inner>, weak: Weak<Inner>) -> Result<(), Error> {
             op_id: change.op_id().to_string(),
             label: change.label().clone(),
             merge: change.merge().map(str::to_string),
-            shows: change.shows(),
-            undo: change.undo(),
+            shows: change.shows().into(),
+            undo: change.undo().into(),
         };
         let limit = to_number(inner.settings.get().get("limit"));
         inner.update(|h| model::recorded(&h, &recorded, limit));
