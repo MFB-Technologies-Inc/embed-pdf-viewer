@@ -1173,6 +1173,7 @@ fn name_check_makes_no_annot_probes() {
                     0,
                     "{fixture} page {page_index}: checking {nm:?} opened annotations"
                 );
+                assert_eq!(call_count::get(Call::GetAnnotIndexRaw), 1, "one index lookup");
                 assert_eq!(
                     taken,
                     names.iter().any(|n| n == nm),

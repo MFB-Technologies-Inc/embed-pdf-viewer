@@ -91,11 +91,11 @@ pub fn deleted_with(
     annotations: &[serde_json::Value],
     reference: &AnnotationRef,
 ) -> Vec<serde_json::Value> {
-    // The first annotation with a key is the one it names.
+    // The last annotation with a key is the one it names.
     let mut by_key: HashMap<String, usize> = HashMap::with_capacity(annotations.len());
     for (at, annotation) in annotations.iter().enumerate() {
         if let Some(key) = key_at(annotation.get("ref")) {
-            by_key.entry(key).or_insert(at);
+            by_key.insert(key, at);
         }
     }
     let find = |key: Option<String>| key.and_then(|key| by_key.get(key.as_str()).copied());
@@ -210,7 +210,7 @@ mod tests {
     }
 
     #[test]
-    fn a_ref_listed_twice_names_its_first_entry() {
+    fn a_ref_listed_twice_names_its_last_entry() {
         let annotations = [
             json!({ "ref": object(5), "subtype": "text" }),
             json!({ "ref": object(5), "subtype": "square" }),
@@ -219,6 +219,6 @@ mod tests {
         let reference: AnnotationRef = serde_json::from_value(object(5)).unwrap();
         let members = deleted_with(&annotations, &reference);
         assert_eq!(names(&members), [object(7), object(5)]);
-        assert_eq!(members[1]["subtype"], "text");
+        assert_eq!(members[1]["subtype"], "square");
     }
 }

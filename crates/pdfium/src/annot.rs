@@ -146,6 +146,7 @@ impl Document {
         object_number: u32,
     ) -> Option<u32> {
         let page_index = i32::try_from(page_index).ok()?;
+        count_call!(GetAnnotIndexRaw);
         // SAFETY: the handle is live and is not closed here.
         let index = unsafe {
             pdfium_sys::EPDFPage_GetAnnotIndexByObjectNumberRaw(
@@ -165,6 +166,7 @@ impl Document {
     pub fn raw_annotation_index_by_name(&self, page_index: u32, nm: &str) -> Option<u32> {
         let page_index = i32::try_from(page_index).ok()?;
         let nm: Vec<u16> = nm.encode_utf16().chain(std::iter::once(0)).collect();
+        count_call!(GetAnnotIndexRaw);
         // SAFETY: the handle is live, and `nm` is NUL-terminated UTF-16 that
         // outlives the call.
         let index = unsafe {

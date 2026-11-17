@@ -17,13 +17,16 @@ pub enum Call {
     FormLoadModel,
     /// `EPDFPage_GetAnnotRaw`.
     GetAnnotRaw,
+    /// `EPDFPage_GetAnnotIndexByObjectNumberRaw` or
+    /// `EPDFPage_GetAnnotIndexByNameRaw`: a lookup that opens no annotation.
+    GetAnnotIndexRaw,
     /// `FPDFText_LoadPage`.
     TextLoadPage,
     /// `EPDFSig_LoadModel`.
     SigLoadModel,
 }
 
-const CALLS: usize = 5;
+const CALLS: usize = 6;
 
 thread_local! {
     static COUNTS: [Cell<u64>; CALLS] = const { [const { Cell::new(0) }; CALLS] };

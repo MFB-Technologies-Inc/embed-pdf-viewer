@@ -2016,6 +2016,7 @@ fn update_makes_no_annot_probes() {
                     0,
                     "{fixture} page {page_index}: the lookup of {annot} opened annotations"
                 );
+                assert_eq!(call_count::get(Call::GetAnnotIndexRaw), 1, "one index lookup");
                 assert_eq!(found as usize, first, "{fixture} page {page_index} object {annot}");
                 looked_up += 1;
             }
