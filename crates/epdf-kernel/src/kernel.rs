@@ -196,6 +196,8 @@ struct Session {
     change_count: Cell<u64>,
     /// Engine events the document had since it came up, of any type.
     engine_events: Cell<u64>,
+    /// Unlocks that succeeded through a plugin context's guarded handle.
+    unlocks: Cell<u64>,
     settle_flushes: Rc<RefCell<Vec<crate::settle::SettleFlush>>>,
     download_wraps: Rc<RefCell<Vec<crate::settle::DownloadWrap>>>,
     print_wraps: Rc<RefCell<Vec<crate::settle::PrintWrap>>>,
@@ -272,6 +274,12 @@ impl SessionView for Session {
     }
     fn engine_events(&self) -> u64 {
         self.engine_events.get()
+    }
+    fn unlocks(&self) -> u64 {
+        self.unlocks.get()
+    }
+    fn note_unlock(&self) {
+        self.unlocks.set(self.unlocks.get() + 1);
     }
     fn handle(&self) -> Option<Rc<dyn DocumentHandle>> {
         self.handle.borrow().clone()
@@ -517,6 +525,7 @@ impl Inner {
                 page_view,
                 change_count: Cell::new(0),
                 engine_events: Cell::new(0),
+                unlocks: Cell::new(0),
                 settle_flushes: Rc::default(),
                 download_wraps: Rc::default(),
                 print_wraps: Rc::default(),

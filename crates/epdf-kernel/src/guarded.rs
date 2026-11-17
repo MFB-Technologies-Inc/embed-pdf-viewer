@@ -95,15 +95,28 @@ pub fn guard_handle(
     lifetime: GuardedLifetime,
     capability: &str,
 ) -> Rc<dyn DocumentHandle> {
+    guard_handle_noting_unlocks(handle, lifetime, capability, Rc::new(|| {}))
+}
+
+/// [`guard_handle`], calling `unlocked` when an unlock through it
+/// succeeds, at the moment the engine's answer settles.
+pub fn guard_handle_noting_unlocks(
+    handle: Rc<dyn DocumentHandle>,
+    lifetime: GuardedLifetime,
+    capability: &str,
+    unlocked: Rc<dyn Fn()>,
+) -> Rc<dyn DocumentHandle> {
     Rc::new(GuardedHandle {
         inner: handle,
         guard: Guard { lifetime, capability: capability.to_string() },
+        unlocked,
     })
 }
 
 struct GuardedHandle {
     inner: Rc<dyn DocumentHandle>,
     guard: Guard,
+    unlocked: Rc<dyn Fn()>,
 }
 
 impl DocumentHandle for GuardedHandle {
@@ -138,7 +151,11 @@ impl DocumentHandle for GuardedHandle {
     }
 
     fn security(&self) -> Rc<dyn DocumentSecurity> {
-        Rc::new(GuardedSecurity { inner: self.inner.security(), guard: self.guard.clone() })
+        Rc::new(GuardedSecurity {
+            inner: self.inner.security(),
+            guard: self.guard.clone(),
+            unlocked: self.unlocked.clone(),
+        })
     }
 
     fn has(&self, member: &str) -> bool {
@@ -186,6 +203,7 @@ impl DocumentHandle for GuardedHandle {
 struct GuardedSecurity {
     inner: Rc<dyn DocumentSecurity>,
     guard: Guard,
+    unlocked: Rc<dyn Fn()>,
 }
 
 impl DocumentSecurity for GuardedSecurity {
@@ -200,6 +218,15 @@ impl DocumentSecurity for GuardedSecurity {
     }
     fn allows_annotation_create(&self) -> bool {
         self.inner.allows_annotation_create()
+    }
+    fn try_allows(&self, capability: &str) -> Option<bool> {
+        self.inner.try_allows(capability)
+    }
+    fn try_allows_field(&self, action: &str, target: &Value) -> Option<bool> {
+        self.inner.try_allows_field(action, target)
+    }
+    fn try_allows_annotation_create(&self) -> Option<bool> {
+        self.inner.try_allows_annotation_create()
     }
     fn allows_annotation_mutation(&self, action: &str, target: &Value) -> bool {
         self.inner.allows_annotation_mutation(action, target)
@@ -220,6 +247,13 @@ impl DocumentSecurity for GuardedSecurity {
         self.inner.password_prompt()
     }
     fn unlock(&self, input: Value) -> EngineCall<Value> {
-        self.guard.promise(self.inner.unlock(input))
+        let pending = self.inner.unlock(input);
+        let unlocked = self.unlocked.clone();
+        pending.on_settle(move |result| {
+            if result.is_ok() {
+                unlocked();
+            }
+        });
+        self.guard.promise(pending)
     }
 }

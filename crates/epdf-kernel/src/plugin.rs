@@ -20,7 +20,7 @@ use crate::engine::{DocumentHandle, Engine};
 use crate::error::{Error, code, plugin_error};
 use crate::event_hook::EventHookSource;
 use crate::geometry::{PageArg, PageRef, PageSpace, PdfEdges};
-use crate::guarded::{GuardedLifetime, guard_handle};
+use crate::guarded::{GuardedLifetime, guard_handle_noting_unlocks};
 use crate::lanes::LatestLane;
 use crate::rt::{self, Promise};
 use crate::scope::{Scope, Teardown};
@@ -112,6 +112,10 @@ pub(crate) trait SessionView {
     /// How many engine events the document had, counted before any
     /// plugin's own listener hears the event.
     fn engine_events(&self) -> u64;
+    /// How many unlocks of the document succeeded. An unlock can upgrade an
+    /// open document's rights (the owner password) with no event.
+    fn unlocks(&self) -> u64;
+    fn note_unlock(&self);
     fn handle(&self) -> Option<Rc<dyn DocumentHandle>>;
     fn staged_meta(&self) -> Option<Rc<DocumentMeta>>;
     fn scope(&self) -> Scope;
@@ -511,13 +515,15 @@ struct PermissionMemo {
 }
 
 /// What a permission answer reads, as counters: the store's change count,
-/// its core revision, and the document's engine events, which carry what
-/// the engine changes without a store write (a signing's new protection).
+/// its core revision, the document's engine events, which carry what the
+/// engine changes without a store write (a signing's new protection), and
+/// its successful unlocks, which change the rights with neither.
 #[derive(Clone, Copy, PartialEq, Eq)]
 struct PermissionStamp {
     store_changes: u64,
     core_revision: u64,
     engine_events: u64,
+    unlocks: u64,
 }
 
 impl std::ops::Deref for ControllerContext {
@@ -613,13 +619,19 @@ impl ControllerContext {
         let mut guarded = self.0.guarded.borrow_mut();
         Ok(guarded
             .get_or_insert_with(|| {
-                guard_handle(
+                let unlocked = Rc::downgrade(session);
+                guard_handle_noting_unlocks(
                     handle,
                     GuardedLifetime {
                         signal: self.0.lifetime.clone(),
                         instance_id: self.0.instance_id.clone(),
                     },
                     &self.0.capability,
+                    Rc::new(move || {
+                        if let Some(session) = unlocked.upgrade() {
+                            session.note_unlock();
+                        }
+                    }),
                 )
             })
             .clone())
@@ -642,19 +654,23 @@ impl ControllerContext {
             store_changes: store.change_count(),
             core_revision: store.core_revision(),
             engine_events: session.engine_events(),
+            unlocks: session.unlocks(),
         })
     }
 
     /// `ask` of the bound document's security service, answered from the
-    /// memo while the stamp it was asked at holds.
+    /// memo while the stamp it was asked at holds. A failed read answers
+    /// `false` and is not kept, so the next check asks again.
     fn permission(
         &self,
         member: &str,
         args: String,
-        ask: impl FnOnce(&dyn crate::engine::DocumentSecurity) -> bool,
+        ask: impl FnOnce(&dyn crate::engine::DocumentSecurity) -> Option<bool>,
     ) -> bool {
         let Ok(doc) = self.doc() else { return false };
-        let Some(stamp) = self.permission_stamp() else { return ask(&*doc.security()) };
+        let Some(stamp) = self.permission_stamp() else {
+            return ask(&*doc.security()).unwrap_or(false);
+        };
         let key = (member.to_string(), args);
         {
             let mut memo = self.0.permissions.borrow_mut();
@@ -666,7 +682,7 @@ impl ControllerContext {
                 return answer;
             }
         }
-        let answer = ask(&*doc.security());
+        let Some(answer) = ask(&*doc.security()) else { return false };
         // The question crossed into the engine; keep the answer only if
         // nothing moved meanwhile.
         if self.permission_stamp() == Some(stamp) {
@@ -678,9 +694,9 @@ impl ControllerContext {
     pub fn allows(&self, permission: &str) -> bool {
         self.permission("allows", permission.to_string(), |security| {
             if permission == "annotations:create" {
-                security.allows_annotation_create()
+                security.try_allows_annotation_create()
             } else {
-                security.allows(permission)
+                security.try_allows(permission)
             }
         })
     }
@@ -701,7 +717,7 @@ impl ControllerContext {
     pub fn allows_field(&self, action: &str, field: &Value) -> bool {
         let group = &field["groupId"];
         self.permission("allowsField", format!("{action} {group}"), |security| {
-            security.allows_field(action, &serde_json::json!({ "groupId": group }))
+            security.try_allows_field(action, &serde_json::json!({ "groupId": group }))
         })
     }
     pub fn assert_allowed_field(

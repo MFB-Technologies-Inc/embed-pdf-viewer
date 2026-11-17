@@ -73,6 +73,7 @@ return {
   capabilities(doc) { return '{"pageEditSessions":"supported"}'; },
   security(doc, member, args) {
     log.push(['security', member, args]);
+    if (member === 'allows' && JSON.parse(args)[0] === 'throws') throw new Error('gone');
     if (member === 'allows') return JSON.stringify(granted.has(JSON.parse(args)[0]));
     if (member === 'passwordPrompt') {
       return doc === 'kernel' ? '{"state":"none"}' : '{"state":"required"}';
@@ -541,4 +542,15 @@ async fn allows_rereads_after_security_event() {
     assert!(ctx.allows("doc.print"));
     assert!(ctx.allows("doc.print"));
     assert_eq!(security_calls(&stub), before + 1);
+}
+
+#[wasm_bindgen_test]
+async fn a_permission_read_that_throws_answers_false_and_is_asked_again() {
+    reset();
+    let stub = stub();
+    let (_kernel, ctx) = kernel_context(&stub).await;
+    let before = security_calls(&stub);
+    assert!(!ctx.allows("throws"));
+    assert!(!ctx.allows("throws"));
+    assert_eq!(security_calls(&stub), before + 2);
 }

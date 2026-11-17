@@ -452,8 +452,14 @@ impl JsSecurity {
         serde_json::from_str(&text).ok()
     }
 
+    /// A boolean read, or `None` when the bridge threw or answered
+    /// something else.
+    fn try_check(&self, member: &str, args: &[Value]) -> Option<bool> {
+        self.read(member, args).and_then(|v| v.as_bool())
+    }
+
     fn check(&self, member: &str, args: &[Value]) -> bool {
-        self.read(member, args).and_then(|v| v.as_bool()).unwrap_or(false)
+        self.try_check(member, args).unwrap_or(false)
     }
 }
 
@@ -468,6 +474,18 @@ impl DocumentSecurity for JsSecurity {
 
     fn allows_annotation_create(&self) -> bool {
         self.check("allowsAnnotationCreate", &[])
+    }
+
+    fn try_allows(&self, capability: &str) -> Option<bool> {
+        self.try_check("allows", &[json!(capability)])
+    }
+
+    fn try_allows_field(&self, action: &str, target: &Value) -> Option<bool> {
+        self.try_check("allowsField", &[json!(action), target.clone()])
+    }
+
+    fn try_allows_annotation_create(&self) -> Option<bool> {
+        self.try_check("allowsAnnotationCreate", &[])
     }
 
     fn allows_annotation_mutation(&self, action: &str, target: &Value) -> bool {

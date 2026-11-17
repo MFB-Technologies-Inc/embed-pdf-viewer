@@ -87,6 +87,19 @@ pub trait DocumentSecurity {
         }
     }
     fn allows_annotation_create(&self) -> bool;
+    /// [`Self::allows`], or `None` when the read failed (the document is
+    /// gone) and answered the refusing default. A memo keeps only answers.
+    fn try_allows(&self, capability: &str) -> Option<bool> {
+        Some(self.allows(capability))
+    }
+    /// [`Self::allows_field`], or `None` when the read failed.
+    fn try_allows_field(&self, action: &str, target: &Value) -> Option<bool> {
+        Some(self.allows_field(action, target))
+    }
+    /// [`Self::allows_annotation_create`], or `None` when the read failed.
+    fn try_allows_annotation_create(&self) -> Option<bool> {
+        Some(self.allows_annotation_create())
+    }
     fn allows_annotation_mutation(&self, action: &str, target: &Value) -> bool;
     fn allows_annotation_group_assignment(&self, group_id: &str) -> bool;
     fn effective_scope(&self) -> Vec<String>;

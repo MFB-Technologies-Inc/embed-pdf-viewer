@@ -1138,6 +1138,8 @@ fn a_lane_abort_reason_reaches_the_engine_as_the_typescript_value() {
 #[derive(Default)]
 struct CountingSecurity {
     granted: RefCell<HashSet<String>>,
+    /// Questions whose read fails, as a bridge read that throws does.
+    broken: RefCell<HashSet<String>>,
     asked: RefCell<Vec<String>>,
 }
 
@@ -1157,6 +1159,10 @@ impl CountingSecurity {
 impl DocumentSecurity for CountingSecurity {
     fn allows(&self, capability: &str) -> bool {
         self.ask(format!("allows {capability}"), capability)
+    }
+    fn try_allows(&self, capability: &str) -> Option<bool> {
+        let answer = self.allows(capability);
+        (!self.broken.borrow().contains(capability)).then_some(answer)
     }
     fn allows_field(&self, action: &str, target: &Value) -> bool {
         self.ask(format!("allowsField {action} {target}"), &format!("field:{action}:{target}"))
@@ -1182,8 +1188,14 @@ impl DocumentSecurity for CountingSecurity {
     fn password_prompt(&self) -> Value {
         json!({ "state": "none" })
     }
-    fn unlock(&self, _: Value) -> EngineCall<Value> {
-        Promise::rejected(Error::new("no unlock"))
+    /// The owner password lifts the file's restrictions: `doc.print` from
+    /// then on.
+    fn unlock(&self, input: Value) -> EngineCall<Value> {
+        if input["password"] != "owner" {
+            return Promise::rejected(Error::engine("DocPasswordIncorrect", "wrong"));
+        }
+        self.grant("doc.print");
+        Promise::resolved(json!({ "security": null }))
     }
 }
 
@@ -1408,4 +1420,48 @@ fn allows_asks_every_time_once_the_instance_closed() {
     assert!(!ctx.allows("doc.print"));
     assert!(!ctx.allows("doc.print"));
     assert_eq!(doc.security.asked(), asked + 2);
+}
+
+#[test]
+fn allows_rereads_after_an_unlock_on_a_ready_document() {
+    let doc = permission_doc("doc");
+    let (kernel, token) = permission_kernel(std::slice::from_ref(&doc));
+    let ctx = kernel.capability(&token, Some("doc")).unwrap();
+    assert!(!ctx.allows("doc.print"));
+    // A wrong password changes nothing and the memo stands.
+    let security = ctx.doc().unwrap().security();
+    assert!(settle_err(security.unlock(json!({"password": "wrong", "mode": "owner"}))));
+    let asked = doc.security.asked();
+    assert!(!ctx.allows("doc.print"));
+    assert_eq!(doc.security.asked(), asked);
+    // The owner password upgrades the open document's rights; the engine
+    // reports no event and the store does not change.
+    let (count, core) = (ctx.store_change_count(), kernel.core_revision());
+    settle(security.unlock(json!({"password": "owner", "mode": "owner"})));
+    assert_eq!((ctx.store_change_count(), kernel.core_revision()), (count, core));
+    assert!(ctx.allows("doc.print"));
+    assert_eq!(doc.security.asked(), asked + 1);
+}
+
+fn settle_err<T: Clone + 'static>(promise: Promise<T>) -> bool {
+    rt::run_until_stalled();
+    promise.peek().expect("settled").is_err()
+}
+
+#[test]
+fn a_failed_permission_read_answers_false_and_is_asked_again() {
+    let doc = permission_doc("doc");
+    doc.security.grant("doc.print");
+    doc.security.broken.borrow_mut().insert("doc.print".into());
+    let (kernel, token) = permission_kernel(std::slice::from_ref(&doc));
+    let ctx = kernel.capability(&token, Some("doc")).unwrap();
+    let asked = doc.security.asked();
+    assert!(!ctx.allows("doc.print"));
+    assert!(!ctx.allows("doc.print"));
+    assert_eq!(doc.security.asked(), asked + 2);
+    // Once the read works, its answer is kept.
+    doc.security.broken.borrow_mut().clear();
+    assert!(ctx.allows("doc.print"));
+    assert!(ctx.allows("doc.print"));
+    assert_eq!(doc.security.asked(), asked + 3);
 }
