@@ -107,19 +107,70 @@ impl Digest {
         self.0 = self.0.wrapping_mul(0x0100_0000_01b3);
     }
 
-    /// The answer's JSON at the corpus quantum (`test_support::corpus::quantized`),
-    /// and its payloads exactly. Two builds can round a coordinate's last
-    /// bit differently, and the vectors don't pin that either.
-    pub fn add_answer(&mut self, answer: &Answer) {
-        let envelope: Value = serde_json::from_str(&answer.raw).expect("every response is JSON");
-        let quantized = test_support::corpus::quantized(&envelope);
-        self.add(quantized.to_string().as_bytes());
-        for payload in &answer.payloads {
-            self.add(payload);
-        }
-    }
-
     pub fn hex(self) -> String {
         format!("{:016x}", self.0)
+    }
+}
+
+/// A row's answers digested twice, payloads exactly in both: `quantized`
+/// reads the JSON at the corpus quantum (`test_support::corpus::quantized`),
+/// and `raw` reads it as the host wrote it. Two builds must agree on
+/// `quantized`, as the vectors pin numbers to that quantum; `raw` tells
+/// whether they also agree below it.
+#[derive(Clone, Copy, Default)]
+pub struct AnswerDigests {
+    pub quantized: Digest,
+    pub raw: Digest,
+}
+
+impl AnswerDigests {
+    pub fn add(&mut self, answer: &Answer) {
+        let envelope: Value = serde_json::from_str(&answer.raw).expect("every response is JSON");
+        let quantized = test_support::corpus::quantized(&envelope);
+        self.quantized.add(quantized.to_string().as_bytes());
+        self.raw.add(answer.raw.as_bytes());
+        for payload in &answer.payloads {
+            self.quantized.add(payload);
+            self.raw.add(payload);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn digests(raw: &str) -> AnswerDigests {
+        let answer =
+            Answer { outcome: Ok(Value::Null), payloads: vec![vec![1, 2]], raw: raw.into() };
+        let mut digests = AnswerDigests::default();
+        digests.add(&answer);
+        digests
+    }
+
+    // annots.pdf's `annotations[348].rect.width` as 0de4effd9 and the tip
+    // print it: one ULP apart, the same at the quantum.
+    #[test]
+    fn a_last_digit_difference_moves_the_raw_digest_only() {
+        let old = digests(r#"{"result":{"width":310.2000122070313}}"#);
+        let new = digests(r#"{"result":{"width":310.20001220703125}}"#);
+        assert_eq!(old.quantized.hex(), new.quantized.hex());
+        assert_ne!(old.raw.hex(), new.raw.hex());
+    }
+
+    #[test]
+    fn a_difference_at_the_quantum_moves_both_digests() {
+        let old = digests(r#"{"result":{"width":310.2}}"#);
+        let new = digests(r#"{"result":{"width":310.3}}"#);
+        assert_ne!(old.quantized.hex(), new.quantized.hex());
+        assert_ne!(old.raw.hex(), new.raw.hex());
+    }
+
+    #[test]
+    fn the_same_answer_gives_the_same_digests() {
+        let a = digests(r#"{"result":{"width":310.2}}"#);
+        let b = digests(r#"{"result":{"width":310.2}}"#);
+        assert_eq!(a.quantized.hex(), b.quantized.hex());
+        assert_eq!(a.raw.hex(), b.raw.hex());
     }
 }

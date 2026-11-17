@@ -85,7 +85,12 @@ fn main() -> ExitCode {
                 let ns: Vec<u128> = result.samples.iter().map(|d| d.as_nanos()).collect();
                 println!(
                     "{}",
-                    json!({ "row": result.row, "digest": result.digest.hex(), "samplesNs": ns })
+                    json!({
+                        "row": result.row,
+                        "digest": result.digest.quantized.hex(),
+                        "rawDigest": result.digest.raw.hex(),
+                        "samplesNs": ns,
+                    })
                 );
             });
             ExitCode::SUCCESS

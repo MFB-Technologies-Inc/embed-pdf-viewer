@@ -9,8 +9,9 @@
 //!
 //! Only [`Host::call`] is inside the clock. Writing the request and reading
 //! the response are outside it, and so is any untimed setup a row needs.
-//! Every answer feeds the row's digest, which `compare.mjs` requires to be
-//! the same for both builds.
+//! Every answer feeds the row's two digests: `compare.mjs` requires the
+//! quantized one to be the same for both builds and warns when the raw one
+//! differs.
 //!
 //! [`Host::call`]: epdf_engine::host::Host::call
 
@@ -19,13 +20,13 @@ use std::time::Duration;
 
 use serde_json::{Value, json};
 
-use crate::wire::{Answer, Digest, Session};
+use crate::wire::{Answer, AnswerDigests, Digest, Session};
 
 /// What one row produced in one process.
 pub struct RowResult {
     pub row: String,
     pub samples: Vec<Duration>,
-    pub digest: Digest,
+    pub digest: AnswerDigests,
     /// Every answer as text, then a tab and its payloads' digest, when the
     /// round keeps them.
     pub answers: Vec<String>,
@@ -34,13 +35,13 @@ pub struct RowResult {
 /// A row's answers: always digested, and kept as text when asked.
 #[derive(Default)]
 struct Answers {
-    digest: Digest,
+    digest: AnswerDigests,
     kept: Option<Vec<String>>,
 }
 
 impl Answers {
     fn add(&mut self, answer: &Answer) {
-        self.digest.add_answer(answer);
+        self.digest.add(answer);
         if let Some(kept) = &mut self.kept {
             let mut payloads = Digest::default();
             for payload in &answer.payloads {
@@ -139,7 +140,7 @@ pub fn run(dir: &Path, scale: usize, keep: bool, mut report: impl FnMut(RowResul
         let iterations = (row.iterations / scale).max(2);
         let name =
             format!("{}/{}{}", row.fixture, row.op.name(), if row.cold { "-cold" } else { "" });
-        let mut answers = Answers { digest: Digest::default(), kept: keep.then(Vec::new) };
+        let mut answers = Answers { digest: AnswerDigests::default(), kept: keep.then(Vec::new) };
         let samples = if row.cold {
             time_cold(row.op, &bytes, warmup, iterations, &name, &mut answers)
         } else {

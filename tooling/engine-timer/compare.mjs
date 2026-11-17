@@ -19,6 +19,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { compareAnswers } from './answers.mjs';
 import { bootstrapRatio, calibrate, comparePair, noiseBand, summarize, threshold } from './stats.mjs';
 
 const { values: args } = parseArgs({
@@ -96,6 +97,7 @@ const median = (values) => summarize(values).median;
 // samples[arm][row] = one value per round, in milliseconds.
 const samples = Object.fromEntries(arms.map((arm) => [arm.name, {}]));
 const digests = {};
+const rawDigests = {};
 const started = new Date().toISOString();
 const loadBefore = os.loadavg();
 
@@ -104,9 +106,10 @@ for (let round = 0; round < rounds; round++) {
   for (const arm of order) {
     const argv = ['round', args.fixtures, '--scale', args.scale];
     for (const line of run(arm.bin, argv).trim().split('\n')) {
-      const { row, digest, samplesNs } = JSON.parse(line);
+      const { row, digest, rawDigest, samplesNs } = JSON.parse(line);
       (samples[arm.name][row] ??= []).push(median(samplesNs) / 1e6);
       (digests[row] ??= new Set()).add(digest);
+      (rawDigests[row] ??= new Set()).add(rawDigest);
     }
   }
   process.stdout.write(`round ${round + 1}/${rounds}: ${order.map((arm) => arm.name).join(', ')}\n`);
@@ -114,12 +117,17 @@ for (let round = 0; round < rounds; round++) {
 rmSync(aa);
 
 // A build that answers differently is not timed against the other: a wrong
-// answer can be a fast one.
-const differing = Object.entries(digests).filter(([, set]) => set.size > 1).map(([row]) => row);
+// answer can be a fast one. A difference below the corpus quantum is timed,
+// and named.
+const { differing, belowQuantum } = compareAnswers(digests, rawDigests);
 if (differing.length) {
   console.error(`the builds answer differently on: ${differing.join(', ')}`);
   console.error('`engine-timer round <fixtures> --dump <dir>` with each build writes the answers to diff');
   process.exit(1);
+}
+if (belowQuantum.length) {
+  console.error(`warning: the builds' answers differ below the corpus quantum on: ${belowQuantum.join(', ')}`);
+  console.error('`engine-timer round <fixtures> --dump <dir>` with each build writes the answers to diff');
 }
 
 const pct = (x) => `${(x * 100).toFixed(1)}%`;
@@ -167,6 +175,7 @@ if (args.out) {
     node: process.version,
     harness,
     builds,
+    belowQuantum,
     loadBefore,
     loadAfter: os.loadavg(),
     rounds,

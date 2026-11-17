@@ -56,6 +56,26 @@ for byte, and the run stops if the builds answer any row differently, because a 
 be a fast one. The host's clock and id source are fixed, so a build answers the same bytes on
 every run.
 
+Each row also has a raw digest of the answers exactly as the host wrote them. When two builds
+agree at the quantum and differ in the raw digest, the run goes on, prints a warning naming those
+rows and records them as `belowQuantum` in the `--out` file. `engine-timer round <fixtures> --dump
+<dir>` writes every answer, to diff the two builds.
+
+The one such difference we know of is between 0de4effd9 and later commits. 0de4effd9 prints
+`annotations[348].rect.width` on `annots.pdf` as `310.2000122070313` where later commits print
+`310.20001220703125`, and some `pages.geometry` glyph widths move in their last digits the same
+way. bfe5584c8 ("serialize each answer once") caused it. Before it, the page-space boundary
+printed each answer in file space and parsed the text back with `serde_json::from_str` before
+converting it (`convert_result` in `crates/epdf-engine/src/page_space/boundary.rs` at
+bfe5584c8^). The timer links `epdf-engine` and `test-support` only, so its `serde_json` has no
+`float_roundtrip`, and that parse can land one ULP off. We checked the annotation by experiment
+with `serde_json` 1.0.151: its `/Rect` is `[54 727 364.2 739]`, the f32 right edge
+`364.20001220703125` parses back as `364.2000122070313` without `float_roundtrip` and exactly with
+it, and `right - left` then gives the two widths above. The glyph widths went through the same
+parse; we did not check them value by value. The later value is the exact widening of PDFium's
+f32, which is also what the TypeScript engine prints. A host that links `epdf-kernel` or a plugin
+crate turns `float_roundtrip` on for the whole build, so the old parse moved nothing there.
+
 `--out` writes every row, its samples and the run's metadata: a run id (also printed when the run
 starts), the start and end times, the machine (host name, CPU model and count, memory, OS, Node
 version, load before and after), the harness checkout's commit, and each binary's sha256 and
