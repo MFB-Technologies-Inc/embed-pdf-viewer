@@ -7,6 +7,7 @@
 use serde::Deserialize;
 use serde_json::Value;
 
+use crate::controller::{SceneCache, SceneInputs};
 use crate::prelude::*;
 
 /// What the stage reads of a registry row (`PageInfo`): its size and
@@ -343,7 +344,7 @@ impl StageCapability {
     }
 
     fn document_key(&self) -> String {
-        match self.ctx.document() {
+        match self.ctx.document_rc() {
             Some(document) => format!("{}.{}", document.page_count, document.pages_sequence),
             None => "0.0".into(),
         }
@@ -351,8 +352,16 @@ impl StageCapability {
 
     /// The scene: the whole document (continuous), or a one-item slice at
     /// the cursor (paged). Cached by key; the same `Rc` means the same
-    /// scene, as the TypeScript compares scenes by reference.
+    /// scene, as the TypeScript compares scenes by reference. The key is
+    /// built again only when the state or the document record moved.
     pub(crate) fn build_scene(&self) -> Rc<Scene> {
+        let inputs = SceneInputs { state: self.st(), document: self.ctx.document_rc() };
+        if let Some(cache) = self.inner.scene_cache.borrow().as_ref()
+            && cache.inputs.same(&inputs)
+        {
+            return cache.scene.clone();
+        }
+        self.inner.scene_key_builds.set(self.inner.scene_key_builds.get() + 1);
         let grouping = self.grouping();
         let groups = &grouping.grouping;
         let (key, slice) = if self.paged() {
@@ -365,10 +374,11 @@ impl StageCapability {
         } else {
             (format!("continuous|{}|{}", self.document_key(), self.settings_key()), None)
         };
-        if let Some((k, scene)) = self.inner.scene_cache.borrow().as_ref()
-            && *k == key
+        if let Some(cache) = self.inner.scene_cache.borrow_mut().as_mut()
+            && cache.key == key
         {
-            return scene.clone();
+            cache.inputs = inputs;
+            return cache.scene.clone();
         }
         let scene = Rc::new(match slice {
             Some(index) => {
@@ -376,13 +386,14 @@ impl StageCapability {
             }
             None => self.layout_for(groups),
         });
-        *self.inner.scene_cache.borrow_mut() = Some((key, scene.clone()));
+        *self.inner.scene_cache.borrow_mut() =
+            Some(SceneCache { inputs, key, scene: scene.clone() });
         scene
     }
 
     /// The current scene's cache key, part of the visible-pages signature.
     pub(crate) fn scene_cache_key(&self) -> String {
-        self.inner.scene_cache.borrow().as_ref().map(|(k, _)| k.clone()).unwrap_or_default()
+        self.inner.scene_cache.borrow().as_ref().map(|c| c.key.clone()).unwrap_or_default()
     }
 
     /// Drop the memoized scene (a 'scene' or 'reflow' setting changed, or a

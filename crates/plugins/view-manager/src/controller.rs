@@ -11,6 +11,7 @@ use std::rc::Rc;
 use epdf_kernel::event_hook::EventHookSource;
 use epdf_kernel::plugin::ConnectFn;
 use epdf_kernel::store::Unsubscribe;
+use epdf_kernel::types::CoreState;
 use epdf_kernel::{Controller, DOCUMENTS, Error};
 use serde_json::Value;
 
@@ -283,18 +284,35 @@ impl ViewManagerCapability {
         };
         sync(&documents.get_order(), &[]);
         // `ctx.watch(() => documents.getOrder(), sync, sameIds)`: the
-        // baseline is read after the initial sync, as `watch` reads it.
+        // baseline is read after the initial sync, as `watch` reads it. The
+        // order lives in the core, so while the core is the same `Rc` it is
+        // the order read last.
+        let core = self.0.cx.clone();
+        let last: RefCell<Option<OrderRead>> = RefCell::new(None);
         self.0.cx.watch(
-            move || Ok(documents.get_order()),
-            move |next, prior| {
+            move || {
+                let current = core.core();
+                if let Some((previous, order)) = &*last.borrow()
+                    && Rc::ptr_eq(previous, &current)
+                {
+                    return Ok(order.clone());
+                }
+                let order = Rc::new(documents.get_order());
+                *last.borrow_mut() = Some((current, order.clone()));
+                Ok(order)
+            },
+            move |next: &Rc<Vec<String>>, prior: &Rc<Vec<String>>| {
                 sync(next, prior);
                 Ok(())
             },
-            |a, b| a == b,
+            |a, b| Rc::ptr_eq(a, b) || a == b,
         )?;
         Ok(())
     }
 }
+
+/// The document order, and the core it was read from.
+type OrderRead = (Rc<CoreState>, Rc<Vec<String>>);
 
 /// The `ctx.state.onChange` listener: panes created (in the new order),
 /// panes removed (in the old order), the focus, then each document whose

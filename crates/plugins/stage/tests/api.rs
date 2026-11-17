@@ -576,3 +576,88 @@ fn a_non_invertible_page_transform_leaves_the_page_out() {
     assert!(stage.get_page_box(0usize).is_none());
     assert!(stage.get_page_at(Point { x: 1.0, y: 1.0 }).is_none());
 }
+
+/// Reads with nothing changed between them answer from the scene they
+/// keyed last: the key is built again only once an input moved.
+#[test]
+fn scene_rebuilt_once_per_input_change() {
+    let f = fixture(false, three_pages(), units());
+    let stage = f.stage();
+    stage.set_viewport_size(VIEWPORT).expect("viewport");
+    let first = stage.list_visible_pages();
+    let before = stage.scene_key_builds();
+    for _ in 0..8 {
+        assert!(Rc::ptr_eq(&stage.list_visible_pages(), &first));
+    }
+    assert_eq!(stage.scene_key_builds(), before, "nothing changed");
+
+    stage.zoom_by(2.0, None).expect("zoom");
+    let before = stage.scene_key_builds();
+    for _ in 0..8 {
+        stage.list_visible_pages();
+        stage.get_scroll_metrics();
+    }
+    assert!(stage.scene_key_builds() - before <= 1, "one key for the new inputs");
+
+    // A scene setting changes the key and the scene.
+    let scene = stage.list_visible_pages();
+    stage
+        .update_settings(StageSettingsPatch { gap: Some(Gap::World(40.0)), ..Default::default() })
+        .expect("gap");
+    let before = stage.scene_key_builds();
+    for _ in 0..8 {
+        stage.list_visible_pages();
+    }
+    assert!(stage.scene_key_builds() - before <= 1);
+    assert!(!Rc::ptr_eq(&stage.list_visible_pages(), &scene));
+}
+
+/// The default lens with the actions plugin, which feeds it page state.
+fn fixture_with_actions() -> Fixture {
+    rt::reset();
+    let fake = FakeEngine::new(json!({ "documents": {
+        "a": { "pages": three_pages() }, "b": { "pages": three_pages() } } }));
+    let config = StageConfig { settings: units(), ..Default::default() };
+    let kernel = Kernel::new_with_clock(
+        Rc::new(AsEngine(fake)),
+        vec![
+            epdf_plugin_actions::actions_plugin(Default::default()),
+            stage_plugin(StagePluginOptions { config, ..Default::default() }),
+        ],
+        KernelOptions::default(),
+        Rc::new(FrameClock(false)),
+    )
+    .expect("kernel");
+    kernel.start();
+    rt::run_until_stalled();
+    kernel.documents().open(
+        OpenSource::Input(json!({ "kind": "bytes", "id": "a", "bytes": { "$bytes": "" } })),
+        OpenOptions::default(),
+    );
+    rt::run_until_stalled();
+    Fixture { kernel, reports: Rc::default() }
+}
+
+/// The page-state feed reads the lens again only when its state or its
+/// document moved: a store change elsewhere makes no full read.
+#[test]
+fn stage_watcher_skips_unchanged_core() {
+    let f = fixture_with_actions();
+    let stage = f.stage();
+    stage.set_viewport_size(VIEWPORT).expect("viewport");
+    rt::run_until_stalled();
+    let before = stage.page_state_reads();
+
+    // Another document opens: the core and other slices change, this
+    // lens's state and document do not.
+    f.kernel.documents().open(
+        OpenSource::Input(json!({ "kind": "bytes", "id": "b", "bytes": { "$bytes": "" } })),
+        OpenOptions::default(),
+    );
+    rt::run_until_stalled();
+    assert_eq!(stage.page_state_reads(), before);
+
+    stage.zoom_by(2.0, None).expect("zoom");
+    rt::run_until_stalled();
+    assert!(stage.page_state_reads() > before, "the lens moved");
+}

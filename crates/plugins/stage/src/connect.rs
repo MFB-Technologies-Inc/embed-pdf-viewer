@@ -4,6 +4,7 @@
 //! the navigation executors of the actions plugin. A thumbnail lens must
 //! never report page state or win the last-wins executor registry.
 
+use std::cell::RefCell;
 use std::rc::Rc;
 
 use epdf_kernel::geometry::PageRef;
@@ -16,7 +17,7 @@ use epdf_plugin_actions::{
 use serde_json::Value;
 
 use crate::contract::*;
-use crate::controller::StageCapability;
+use crate::controller::{SceneInputs, StageCapability};
 use crate::model::{MotionCause, StageState};
 use crate::working_set::connect_working_set;
 
@@ -34,7 +35,7 @@ pub(crate) fn connect_stage(
     let revision_ctx = ctx.clone();
     let refit = stage.clone();
     ctx.watch(
-        move || Ok(revision_ctx.document().map_or(0, |d| d.pages_sequence)),
+        move || Ok(revision_ctx.document_rc().map_or(0, |d| d.pages_sequence)),
         move |_, _| refit.refit(),
         |a, b| a == b,
     )?;
@@ -82,19 +83,36 @@ fn feed_page_state(
     let signature = snapshot.clone();
     let signature_placed = placed.clone();
     let actions = actions.clone();
+    // The signature reads only this lens's state and its document record:
+    // while both are the same `Rc`, it is the one read last.
+    let last: RefCell<Option<(SceneInputs, String)>> = RefCell::new(None);
+    let signature_ctx = ctx.clone();
+    let reads = stage.clone();
     ctx.watch(
         move || {
-            if !signature_placed() {
-                return Ok("unplaced".to_string());
+            let inputs =
+                SceneInputs { state: signature_ctx.state(), document: signature_ctx.document_rc() };
+            if let Some((previous, value)) = &*last.borrow()
+                && previous.same(&inputs)
+            {
+                return Ok(value.clone());
             }
-            let current = signature();
-            let mut numbers: Vec<u32> =
-                current.visible_pages.iter().map(|p| p.page_object_number).collect();
-            numbers.sort();
-            let numbers: Vec<String> = numbers.iter().map(u32::to_string).collect();
-            let page =
-                current.current_page.map_or("-1".to_string(), |p| p.page_object_number.to_string());
-            Ok(format!("{page}|{}", numbers.join(",")))
+            reads.inner.page_state_reads.set(reads.inner.page_state_reads.get() + 1);
+            let value = if !signature_placed() {
+                "unplaced".to_string()
+            } else {
+                let current = signature();
+                let mut numbers: Vec<u32> =
+                    current.visible_pages.iter().map(|p| p.page_object_number).collect();
+                numbers.sort();
+                let numbers: Vec<String> = numbers.iter().map(u32::to_string).collect();
+                let page = current
+                    .current_page
+                    .map_or("-1".to_string(), |p| p.page_object_number.to_string());
+                format!("{page}|{}", numbers.join(","))
+            };
+            *last.borrow_mut() = Some((inputs, value.clone()));
+            Ok(value)
         },
         move |_, _| {
             if !placed() {
