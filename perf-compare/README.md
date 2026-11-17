@@ -161,9 +161,8 @@ The report compares arms within one run, never a remote run with a local one (se
 worktree ids, not arm ids, and with no argument it moves all 56 worktrees in the file. We don't move
 the pins that are there: each records what an arm name meant when it was timed, so moving one
 changes what that name means in `FINDINGS.md` and the results, and it moves every arm on that
-worktree too
-(`phase-c-base` builds from the `plugins-next` worktree). Use it to pin a new worktree instead: add
-the entry to `worktrees` with its `ref`, its `recipe` and `"sha": ""`, then
+worktree too (`phase-c-base` builds from the `plugins-next` worktree). Use it to pin a new
+worktree instead: add the entry to `worktrees` with its `ref`, its `recipe` and `"sha": ""`, then
 
 ```sh
 node scripts/pin.mjs <new-worktree>
@@ -238,8 +237,12 @@ one frame at one interval can need two at a shorter one. The Mac mini has run at
 (`2026-11-16T20-20-49-728Z`, `2026-11-17T02-25-30-951Z`, `2026-11-17T04-18-50-584Z`) and at
 11.0 to 11.3 ms (`2026-10-13T02-28-33-711Z`, `2026-11-17T16-59-17-202Z`), and we don't know why.
 The interval comes from the scroll flow rather than an idle measurement so that recorded runs have
-it too. On `main` the scroll's median frame has matched the display's interval in every recorded
-run, but a run without `main`'s `scroll` samples has none, and `--drift` refuses it.
+it too. No run records the display's refresh rate, so this is the interval the scroll saw, not a
+measured display rate. `main`'s scroll samples read 16.66 to 16.67 ms in the 16.7 ms runs and 10.5
+to 11.8 ms in the 11 ms runs, apart from one at 17.3 ms in `2026-11-17T16-59-17-202Z`. Every arm of
+a run agrees within 0.32 ms whatever its load, and `main`'s `drawInk` settle is 180 intervals plus
+the same 870 to 885 ms in `2026-11-17T04-18-50-584Z` and `2026-11-17T16-59-17-202Z`. A run without
+`main`'s `scroll` samples has none, and `--drift` refuses it.
 
 A verdict carries a note when it rests on less than usual. `slower (no A/A band)` is a row
 judged against the 3% floor alone, because `main` and `main-aa` skip its flow (`undo`). `(no done

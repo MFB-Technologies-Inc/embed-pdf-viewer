@@ -131,8 +131,12 @@ export function compatible(a, b) {
 // `drawInk`, `dragAnnot`) take, and an arm whose per-move work fits one frame
 // at one interval can need two at a shorter one. The Mac mini has run at
 // 16.7 ms and at 11.1 ms. It's read from the scroll flow, not measured idle,
-// so runs recorded before it existed have it too; on the TypeScript baseline
-// the scroll's median frame is the display's interval in every recorded run.
+// so runs recorded before it existed have it too. Nothing records the
+// display's rate, so this is the interval the scroll saw: `main`'s samples read
+// 16.66 to 16.67 ms in the 16.7 ms runs and 10.5 to 11.8 ms in the 11 ms runs,
+// apart from one at 17.3 ms. Every arm of a run agrees within 0.32 ms whatever
+// its load, and `main`'s drawInk settle is 180 intervals plus the same 870 to
+// 885 ms at both.
 export function frameInterval(samples, arm) {
   const xs = samples
     .filter((s) => !s.error && s.arm === arm && s.flow === 'scroll' && Number.isFinite(s.metrics?.frameP50Ms))
