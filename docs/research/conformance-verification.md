@@ -31,19 +31,25 @@ Neither is fixed or in the ledger; both wait on a decision. The printed cases re
 example
 `{ name: 'diff-normalizePdfQuad-1', fn: 'normalizePdfQuad', args: [[{ x: 0, y: -1 }, { x: -1.4456042752816933e-19, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 5e-324 }]] }`.
 
-## Full suite, 2026-11-16
+## Full suite, 2026-11-17
 
-At `7cf173714`, from `tooling/plugin-conformance`, in this order:
+At `661e13437`, on a clean tree, in container `embed-pdf-conformance` with Node v24.20.0, pnpm
+10.34.0, rustc 1.98.0 (88d9e12ae 2026-08-18), cargo 1.98.0 (797e8a9bc 2026-08-05) and
+cargo-llvm-cov 0.9.1. The `pnpm run` commands ran from `tooling/plugin-conformance`, the cargo ones
+from the repository root, in this order:
 
 | command | exit | printed |
 | --- | --- | --- |
 | `pnpm run typecheck` | 0 | |
-| `pnpm run test:harness` | 0 | tests 77, pass 77, fail 0 |
+| `pnpm run test:harness` | 0 | tests 82, pass 82, fail 0 |
 | `pnpm run vectors:check` | 0 | `119 vector files are current, and each is replayed` |
 | `pnpm run coverage:check` | 0 | `coverage is current: statements 72853/77093, branches 14365/15719, 935 lines reached only by snapshot-none cases, 36 ported files no generator loads` |
-| `pnpm run replay:check` | 0 | `cargo: passed`, `receipts: 119 read`, `119 vector files, 15916 cases, all replayed` |
+| `pnpm run replay:check` | 0 | `cargo: passed`, `checkout: 661e13437c583b6fc970f37d8a6a0c5228c200f7, clean`, `receipts: 119 read`, `119 vector files, 15916 cases, all replayed` |
 | `pnpm run rust-coverage:check` | 0 | `rust coverage is current: replay reaches 64233/112503 lines; 36975 lines only other tests reach, in 673 files (74 excluded)` |
+| `cargo fmt -p plugin-conformance -p conformance-function-server --check` | 0 | nothing |
+| `cargo clippy -p plugin-conformance -p conformance-function-server --all-targets` | 0 | no warnings |
 
-`replay:check` ran with this wave's receipts: every receipt carried the run's id, commit and vector
-hash, none was written with failures, member order off or the allowlist replaced, and every one of
-the 19 allowlist paths was used.
+The cargo test run inside `replay:check` printed 161 `test result:` lines, which sum to 862 passed,
+0 failed and 1 ignored. Every receipt carried the run's id, the commit, a clean-tree flag and the
+vector hash, none was written with failures, member order off or the allowlist replaced, and every
+one of the 19 allowlist paths was used.
