@@ -129,3 +129,17 @@ test('a ledger skip needs its predicate, and a predicate its ledger skip', async
   await assert.rejects(run({}, SKIP_LEDGER), /X-NAN-CORNER: differentialSkip for rectFromCorners has no predicate/);
   await assert.rejects(run({ 'X-OTHER': () => true }, []), /skip for X-OTHER/);
 });
+
+test('a --fn name no suite calls fails instead of running nothing', async () => {
+  await assert.rejects(
+    runDifferential({
+      table: geometry,
+      server: stubServer((_fn, _args, outcome) => outcome),
+      runs: 1,
+      seed: SEED,
+      ledger: [],
+      only: ['rectFromCorners', 'noSuchFunction'],
+    }),
+    /--fn noSuchFunction: no suite of geometry calls it/,
+  );
+});

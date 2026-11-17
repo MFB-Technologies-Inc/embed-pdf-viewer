@@ -101,7 +101,7 @@ export interface Options {
   readonly runs: number;
   readonly seed: number;
   readonly ledger: readonly LedgerEntry[];
-  /** Only these functions. */
+  /** Only these functions; a name the table's suites do not hold throws. */
   readonly only?: readonly string[];
 }
 
@@ -177,8 +177,15 @@ export function literal(value: unknown): string {
 export async function runDifferential(options: Options): Promise<Report> {
   const { table, server, runs, seed } = options;
   const skips = resolveSkips(table, options.ledger);
+  const functions = functionsOf(table);
+  const unknown = (options.only ?? []).filter((name) => !functions.has(name));
+  if (unknown.length) {
+    throw new Error(
+      `--fn ${unknown.join(', ')}: no suite of ${table.table} calls it; the functions are ${[...functions.keys()].join(', ')}`,
+    );
+  }
   const report: Report = { runs: {}, skipped: {}, mismatches: [], untested: [] };
-  for (const [name, { fn, file }] of functionsOf(table)) {
+  for (const [name, { fn, file }] of functions) {
     if (options.only && !options.only.includes(name)) continue;
     const arbitrary = table.arbitraries[name];
     if (!arbitrary) {
@@ -322,6 +329,8 @@ function parseArgs(argv: readonly string[]) {
 
 async function main() {
   const { crate, runs, seed, server: serverPath, only } = parseArgs(process.argv.slice(2));
+  // Before the run, so a run that dies still names the seed that repeats it.
+  console.log(`differential --crate ${crate} --runs ${runs} --seed ${seed}`);
   const table = await crates[crate]();
   const server = spawnFunctionServer(serverPath ?? buildFunctionServer());
   let report: Report;
@@ -337,7 +346,6 @@ async function main() {
   } finally {
     await server.close();
   }
-  console.log(`differential --crate ${crate} --runs ${runs} --seed ${seed}`);
   for (const [name, count] of Object.entries(report.runs)) {
     const skipped = report.skipped[name] ? `, ${report.skipped[name]} skipped by the ledger` : '';
     const failed = report.mismatches.some((m) => m.fn === name) ? ' MISMATCH' : '';
