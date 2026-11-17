@@ -337,6 +337,7 @@ mod tests {
 
     /// `tests/data/x.json.zst` is the generator's `writeVector` output
     /// (level 3) for a 40-case function suite that `describes` "from zst".
+    #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn reads_zst_before_json() {
         let dir = TempDir::new("reads-zst");
