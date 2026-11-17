@@ -1,6 +1,6 @@
 # Divergence ledger audit
 
-`crates/plugin-conformance/divergences.json` holds 43 kept divergences: the 42 this audit entered and MO-passthrough, which the member-order allowlist cites. 2 are observed by a vector case (one of them, M27, by a case added for the purpose) and also pinned; 41 are pinned by a Rust test only. 31 rows below name kept divergences with no test to pin them, so they are not in the ledger yet. 3 could not be tied to a decision.
+`crates/plugin-conformance/divergences.json` holds 43 kept divergences: the 41 this audit entered, M13, which was in the ledger before the audit, and MO-passthrough, which the member-order allowlist cites. 2 are observed by a vector case (one of them, M27, by a case added for the purpose) and also pinned; 41 are pinned by a Rust test only. 31 rows below name kept divergences with no test to pin them, so they are not in the ledger yet. 3 could not be tied to a decision.
 
 Every replay passes today with only M13 in the ledger before this audit, so no existing vector case could observe any other divergence: a differing trace would already have failed. Observing one needs a new scenario case. The ledger applies to scenario suites only, so a divergence that a function suite would show (`formatShortcut("Ctrl+constructor")`, a `toString` face name) is pinned instead.
 
