@@ -33,7 +33,9 @@ use epdf_signature_core::{
     CmsSignRequest, CmsSigner, Digest, RawAlgorithm, RawSigner, SignerPort, TrustPort,
     ValidationTime,
 };
-use plugin_conformance::{Answer, Callback, FunctionTable, Harness, HarnessPlugin, Outcome};
+use plugin_conformance::{
+    Answer, Callback, FunctionTable, Harness, HarnessPlugin, Outcome, TextMemo,
+};
 use serde::Serialize;
 use serde_json::{Value, json};
 
@@ -48,6 +50,15 @@ use crate::{
 
 /// The adapter.
 pub struct Signature;
+
+/// The memoized reads' answers as printed, once per answer `Rc`.
+#[derive(Default)]
+pub(crate) struct Printed {
+    settings: TextMemo<Value>,
+    signatures: TextMemo<Vec<Value>>,
+    unsigned: TextMemo<Vec<Value>>,
+    verdicts: TextMemo<Value>,
+}
 
 /// The composed api's member order (`composeApi` over the settings, the
 /// areas' slices, then the authority twins and the events).
@@ -334,21 +345,24 @@ fn call_signature(
     let arg = |i: usize| args.get(i).filter(|v| !is_undefined(v));
     let field = || arg(0).cloned().unwrap_or_else(undefined);
     Ok(match method {
-        "getSettings" => Outcome::Returned((*cap.settings_json()).clone()),
+        "getSettings" => Outcome::Text(cap.0.printed.settings.get_or_print(&cap.settings_json())),
         "resetSettings" => {
             cap.reset_settings();
             Outcome::undefined()
         }
         "getSnapshot" => Outcome::Returned(optional(cap.get_snapshot())),
         "getStatus" => Outcome::Returned(json!(cap.get_status().as_str())),
-        "listSignatures" => Outcome::Returned(Value::Array((*cap.list_signatures()).clone())),
+        "listSignatures" => {
+            Outcome::Text(cap.0.printed.signatures.get_or_print(&cap.list_signatures()))
+        }
         "listUnsignedFields" => {
-            Outcome::Returned(Value::Array((*cap.list_unsigned_fields()).clone()))
+            Outcome::Text(cap.0.printed.unsigned.get_or_print(&cap.list_unsigned_fields()))
         }
         "getSignature" => Outcome::Returned(optional(cap.get_signature(&field()))),
-        "listVerdicts" => {
-            Outcome::Returned(cap.list_verdicts().map_or(Value::Null, |v| (*v).clone()))
-        }
+        "listVerdicts" => match cap.list_verdicts() {
+            Some(verdicts) => Outcome::Text(cap.0.printed.verdicts.get_or_print(&verdicts)),
+            None => Outcome::Returned(Value::Null),
+        },
         "getVerdict" => Outcome::Returned(optional(cap.get_verdict(&field()))),
         "getProtection" => Outcome::Returned(optional(cap.get_protection())),
         "getPending" => Outcome::Returned(cap.get_pending_json()),

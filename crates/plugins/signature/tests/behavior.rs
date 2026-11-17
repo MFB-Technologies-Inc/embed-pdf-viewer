@@ -511,3 +511,41 @@ fn a_reset_releases_the_key_it_replaced() {
     signature.reset_settings();
     assert_eq!(signature.retained_ports(), 0, "nothing registered, nothing kept");
 }
+
+/// The adapter prints the memoized reads once per answer: the same text
+/// `Rc` until the read answers anew, byte for byte what the answer prints
+/// as through a `Value`.
+#[test]
+fn signature_list_printed_once_per_change() {
+    use plugin_conformance::{Harness, Outcome};
+    let rig = Rig::open(SignatureConfig::default(), engine_of("reads-over-the-snapshot"));
+    let s = &rig.signature;
+    let h = Harness::new(vec![Rc::new(Signature)], std::collections::HashMap::new());
+    let any: Rc<dyn std::any::Any> = Rc::new(s.clone());
+    let printed = |method: &str| match h.call(&any, method, Vec::new()) {
+        Outcome::Text(text) => text,
+        _ => panic!("{method} answers as printed text"),
+    };
+    let signatures = s.list_signatures();
+    assert!(!signatures.is_empty());
+    let reads = [
+        ("listSignatures", Value::Array((*signatures).clone()).to_string()),
+        ("listUnsignedFields", Value::Array((*s.list_unsigned_fields()).clone()).to_string()),
+        ("getSettings", s.settings_json().to_string()),
+    ];
+    for (method, bytes) in &reads {
+        let first = printed(method);
+        assert_eq!(&*first, bytes.as_str(), "{method} prints what it answers");
+        assert!(Rc::ptr_eq(&first, &printed(method)), "{method} prints once");
+    }
+
+    // A settings change is a new answer, printed again.
+    let before = printed("getSettings");
+    s.update_settings(&SignatureConfig {
+        mode: Some(Some(SignatureMode::Visual)),
+        ..Default::default()
+    });
+    let after = printed("getSettings");
+    assert!(!Rc::ptr_eq(&before, &after));
+    assert_eq!(&*after, s.settings_json().to_string());
+}

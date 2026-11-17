@@ -48,6 +48,9 @@ pub struct Core {
     pub(crate) lists: RefCell<Option<Lists>>,
     // write/sign: two-phase signings this session prepared.
     pub(crate) prepared: RefCell<HashMap<String, Value>>,
+    /// The conformance adapter's printed answers.
+    #[cfg(feature = "harness")]
+    pub(crate) printed: crate::harness::Printed,
 }
 
 /// `SignatureCapability`, which the host lens equals. Cheap to clone;
@@ -81,6 +84,8 @@ pub fn create_signature_controller(
         cancel_revalidate: RefCell::new(None),
         lists: RefCell::new(None),
         prepared: RefCell::default(),
+        #[cfg(feature = "harness")]
+        printed: crate::harness::Printed::default(),
     }));
     // Sync: the engine's facts, mirrored, and the judgement that reacts to
     // them.
