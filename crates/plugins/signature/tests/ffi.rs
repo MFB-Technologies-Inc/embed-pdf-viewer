@@ -124,6 +124,10 @@ fn spec_with(listed: Value, allows: Value) -> TestSpec {
     .respond("signatures.contents", |_| Ok(Reply::value(json!({ "$bytes": "MAA=" }))))
     .respond("signatures.digest", |_| Ok(Reply::value(json!({ "$bytes": "AA==" }))))
     .respond("signatures.analyze", |_| Ok(Reply::value(analysis())))
+    // Every validation reads the document validation data first (upstream 67ed292a6).
+    .respond("signatures.getValidationInfo", |_| {
+        Ok(Reply::value(json!({ "certificates": [], "ocspResponses": [], "crls": [] })))
+    })
     .respond("signatures.downloadRevision", |_| Ok(Reply::value(json!({ "$bytes": "JVBERi0=" }))))
     .respond("forms.list", |_| {
         Ok(Reply::value(json!({ "formKind": "acroform", "needsAppearances": false,
