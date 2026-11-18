@@ -5,6 +5,7 @@
     "host": "macmini2020",
     "cpuModel": "Apple M1"
   },
+  "since": "2026-11-18T00:00:00.000Z",
   "series": {
     "plugins": {
       "label": "Rust port",

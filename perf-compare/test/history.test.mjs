@@ -87,6 +87,13 @@ test('eligible gives one reason per failed condition', () => {
   assert.equal(eligible({ ...goodMeta, rounds: 9 }, goodGate, want).length, 1);
 });
 
+test('eligible refuses a run from before the history begins', () => {
+  const since = '2026-11-18T00:00:00.000Z';
+  assert.deepEqual(eligible({ ...goodMeta, startedAt: '2026-11-18T05:05:31.149Z' }, goodGate, { ...want, since }), []);
+  assert.equal(eligible({ ...goodMeta, startedAt: '2026-11-17T16:59:17.202Z' }, goodGate, { ...want, since }).length, 1);
+  assert.equal(eligible(goodMeta, goodGate, { ...want, since }).length, 1);
+});
+
 const sample = (arm, round, wallMs) => ({ arm, flow: 'scroll', fixture: 'large', round, metrics: { wallMs } });
 const samplesFor = (xScale) =>
   [100, 101, 99, 100, 102, 100, 101, 100, 99, 101].flatMap((v, i) => [

@@ -52,8 +52,10 @@ export function armFor(config, { sha, recipe, kernel }) {
 // Why a run can't join the history; empty when it can. Points from
 // different runs share a line only because each is compared with the
 // reference arm of its own run, on one machine, at full length.
-export function eligible(meta, gate, { machine, reference, noise }) {
+export function eligible(meta, gate, { machine, reference, noise, since }) {
   const reasons = [];
+  // `since` is when the harness last changed what a row means. Earlier runs stay in the archive.
+  if (since && !(meta.startedAt >= since)) reasons.push(`started ${meta.startedAt}, before the history begins at ${since}`);
   if (meta.host !== machine.host) reasons.push(`host is ${meta.host}, not ${machine.host}`);
   if (meta.cpuModel !== machine.cpuModel) reasons.push(`CPU is ${meta.cpuModel}, not ${machine.cpuModel}`);
   if (meta.profile !== 'desktop') reasons.push(`profile is ${meta.profile}, not desktop`);
