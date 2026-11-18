@@ -14,20 +14,32 @@ Last updated 2026-11-18.
 | Task | State |
 | --- | --- |
 | 1. Archive the old runs | done, `a745832fc` |
-| 2. `lib/rows.mjs` | not started |
-| 3. `lib/history.mjs` | not started |
-| 4. `scripts/history-points.mjs` and `history/points.json` | not started |
-| 5. `scripts/history-record.mjs`, first run recorded | not started |
-| 6. `scripts/history-chart.mjs` and the page | not started |
-| 7. README section | not started |
-| 8. Build every point | not started |
+| 2. `lib/rows.mjs` | done, `6b06dc884` |
+| 3. `lib/history.mjs` | done, `ea3e2b5f4`, extended in `db5605bee` |
+| 4. `scripts/history-points.mjs` and `history/points.json` | done, `66b7c9032`: 19 points |
+| 5. `scripts/history-record.mjs`, first run recorded | done, `db5605bee` |
+| 6. `scripts/history-chart.mjs` and the page | done, `0b7f7c7a0`: 3 of 19 points plotted |
+| 7. README section | done, `3ca600b8f` |
+| 8. Build every point | not started. Next. Needs no Mac mini time |
 | 9. Measure the points on the Mac mini | blocked: the Mac mini is busy, wait for the user's word |
 | 10. Merge into the harness branch | blocked on review |
 
-Nothing on this branch is pushed yet. Pushing and merging need the user's confirmation.
+Nothing on this branch is pushed yet: it exists only in the `embed-pdf-perf` container's clone.
+Pushing and merging need the user's confirmation.
 
 ### Progress log
 
+- 2026-11-18: Tasks 2 to 7. 110 tests pass (`node --test test/*.test.mjs`, 4 skipped as before).
+  `history-points.mjs` chose 19 points: 12 milestones and 3 weekly commits of the port
+  (`dfd2937d4`, `920a52876`, `bac82a2cd`), and 4 of upstream. 12 reuse an arm `arms.json` already
+  had and 7 got a `hist-<sha9>` arm. Recorded `2026-11-18T05-05-31-149Z-macmini2020-desktop`, which
+  measures 3 points: `main` (`2516e2786`), `main-now` (`ed064e0c8`) and `perf-fixes-end`
+  (`a6d4d5d14`). The page was opened once in Chrome from `history/index.html`: the charts draw, the
+  console is clean. 16 points are left to build and measure.
+- 2026-11-18: added `since` to `points.json` (`2026-11-18T00:00:00.000Z`) after
+  `2026-11-17T16-59-17-202Z` passed every other check. That run predates the probe sampling once a
+  frame (`096115a21`) and times `hover` and `drawInk` as one row each, so its rows aren't the rows
+  the later runs have. `phase-c-end` and `phase-d-end`, which it measured, are in the backfill.
 - 2026-11-18: gathered the old runs from the laptop (58), the Mac mini (7 more, the November runs)
   and the `embed-pdf-perf` container (7 more, all `c6b3fab5a0a0` container runs), 72 in all, and
   committed them under `perf-compare/history/archive/` (`a745832fc`). A scan of every file for
@@ -54,7 +66,8 @@ refuses a pair whose probe hash differs. A line drawn through them would step wh
 the probe changed. So they are kept as a record in `history/archive/` and never plotted.
 
 The history is measured again: chosen commits, built with today's harness and timed on one machine
-(the Mac mini, `macmini2020`, Apple M1), 10 rounds, profile `desktop`.
+(the Mac mini, `macmini2020`, Apple M1), 10 rounds, profile `desktop`. It begins at `since` in
+`points.json`, 2026-11-18, the first day of runs with the probe sampling once a frame.
 
 ## Design
 
@@ -87,9 +100,10 @@ taking the last first-parent commit dated on or before the target. A target with
 within 1 day of it adds nothing. `upstream` has no interval, only milestones.
 
 Seven days is the pick because the port's history is 7 weeks long and bursty. Weekly targets plus
-the milestones give about 15 `plugins` points, 3 of them from the interval alone. A point costs
-about 21 min of Mac mini time, so the first backfill is about 18 new arms, 6.3 h, plus `main`,
-`main-aa` and `main-now` in each batch.
+the milestones give 15 `plugins` points, 3 of them from the interval alone, and `upstream` has 4.
+A point costs about 21 min of Mac mini time. 3 of the 19 are measured already, so the backfill is
+16 arms, 5.6 h, plus `main`, `main-aa` and `main-now` in each batch: about 8.8 h over three
+batches.
 
 A point names the arm that builds it. Where `arms.json` already has an arm at that commit with the
 series' recipe and kernel (`plugins`, `plugins-tip7`, `perf-fixes-end` and others), the point
@@ -111,8 +125,9 @@ perf-compare/history/
 ```
 
 `scripts/history-record.mjs` copies a finished run from `results/` to `history/runs/` after
-checking it qualifies: `macmini2020`, Apple M1, profile `desktop`, at least 10 rounds, not
-`--quick`, a clean harness, and `main` and `main-aa` both timed and through the gate. A run that
+checking it qualifies: started on or after `since`, `macmini2020`, Apple M1, profile `desktop`, at
+least 10 rounds, not `--quick`, a clean harness, and `main` and `main-aa` both timed and through
+the gate. A run that
 fails prints each reason and copies nothing.
 
 Raw samples are committed, not summaries. A run is 30 to 300 KB and packs to about a seventh of
@@ -126,16 +141,39 @@ script that makes them and the page should open from a checkout.
 
 One small chart per row, grouped by direction and then by flow. Every row today is lower-is-better
 (`lib/stats.mjs`: "Every metric is lower-is-better"), so there is one direction group now; `better`
-in `lib/rows.mjs` is where a higher-is-better metric would be declared. The x axis is commit date.
+in `lib/rows.mjs` is where a higher-is-better metric would be declared. The x axis is commit time (`date` in `points.json` is the UTC
+commit time to the second, so three points on one day keep their order).
 The y axis is the ratio or difference to `main`, with the bootstrap interval as a bar on each
-point and the run's noise band shaded around the null value. A toggle switches to absolute
-medians. Milestone points are marked and show their note on hover. Bundle sizes are rows too, from
+point. A point is drawn solid when it differs from `main` by more than the run's noise band and
+hollow when it doesn't. A toggle switches to absolute medians, with `main`'s median from the same
+run dashed beside them. A point's note shows on hover, and each chart has a table. Bundle sizes are rows too, from
 `meta.json`'s `sizes`, without intervals.
 
 When a point was measured in more than one run, the latest run wins.
 
 `undo` rows have no `main` to compare with (`main` at `2516e2786` has no history plugin), so they
 plot as absolute medians only.
+
+## Working in the container
+
+```sh
+docker exec -it embed-pdf-perf bash
+cd /workspaces/wt-perf-history/perf-compare
+node --test test/*.test.mjs
+```
+
+`node_modules` there is a symlink to `/workspaces/wt-harness/perf-compare/node_modules`
+(untracked). The container's clone has no local plugins branch; `history-points.mjs` reads it from
+a remote, so fetch first:
+
+```sh
+P=research/multi-platform-rust-core-impl-plugins
+git fetch --no-recurse-submodules host "refs/heads/$P:refs/remotes/host/$P"
+```
+
+A file brought in with `docker cp` arrives owned by root. `docker exec -u root embed-pdf-perf chown
+-R node:node /workspaces/wt-perf-history/perf-compare` fixes it. The branch exists only in the
+container's clone until it is pushed.
 
 ## Constraints
 
@@ -283,7 +321,8 @@ rule that only `history-record.mjs` writes to `history/runs/`.
 
 ### Task 8: build every point
 
-In the container, for the points without a recorded run, in batches of six:
+In the container, for the 16 points without a recorded run (`node scripts/history-chart.mjs`
+prints how many are plotted; `history/data.json` `points` lists them), in batches of six:
 
 ```sh
 cd /workspaces/wt-perf-history/perf-compare
