@@ -1,0 +1,10 @@
+{
+  "fork": "roanutil/embed-pdf-runtime",
+  "sha": "af480d0ce420ed916db0de8d2e8827822ad7be1e",
+  "artifacts": {
+    "wasm32-eh": {
+      "url": "file:///workspaces/pdfium/archives/libembedpdf-runtime-wasm32-eh-af480d0ce.tar.gz",
+      "sha256": "c6597d255e41de23ffa3b6797db7c5afd7d55344157859574479be679fc1f60f"
+    }
+  }
+}
