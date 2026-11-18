@@ -19,6 +19,7 @@
 //! ([`signers::PersonalKeyStore`]).
 
 pub mod asn1js;
+pub mod attach;
 pub mod cert;
 pub mod cms;
 pub mod crypto;
@@ -32,7 +33,10 @@ pub mod policy;
 pub mod revocation;
 pub mod sign;
 pub mod signers;
+pub mod splice;
 pub mod timestamp;
+pub mod timestamp_http;
+pub mod timestamp_protocol;
 pub mod transport;
 pub mod trust;
 pub mod verdict;

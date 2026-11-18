@@ -488,7 +488,10 @@ pub async fn create_test_timestamp_authority(
             .await
         })
     });
-    Ok(TestTimestampAuthority { signer: CmsSigner { sign }, certificate: authority.certificate })
+    Ok(TestTimestampAuthority {
+        signer: CmsSigner { sign, hash: None },
+        certificate: authority.certificate,
+    })
 }
 
 /// `PersonalKeyRecord`.
@@ -611,5 +614,5 @@ pub async fn personal_signer(
 
 /// `remoteSigner`: a CMS signer over the customer's own signing service.
 pub fn remote_signer(sign: Rc<dyn Fn(CmsSignRequest) -> Promise<Vec<u8>>>) -> CmsSigner {
-    CmsSigner { sign }
+    CmsSigner { sign, hash: None }
 }

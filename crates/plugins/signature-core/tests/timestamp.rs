@@ -323,6 +323,7 @@ fn a_document_timestamp_prepares_without_a_sub_filter_and_installs_the_token() {
                 },
             ))
         }),
+        hash: None,
     };
     let result =
         block_on(sign(doc.clone(), timestamp_input(), SignerPort::Cms(authority))).unwrap();
@@ -369,8 +370,10 @@ fn an_unknown_sub_filter_is_refused_before_prepare() {
 fn a_gate_refusal_is_a_signature_refused_engine_error_and_cancels() {
     let doc = Rc::new(ScriptedDoc { calls: RefCell::default() });
     // A detached CMS answered for a document timestamp.
-    let wrong =
-        CmsSigner { sign: Rc::new(|_| Promise::resolved(fixture("cms", "rsaCades", None))) };
+    let wrong = CmsSigner {
+        sign: Rc::new(|_| Promise::resolved(fixture("cms", "rsaCades", None))),
+        hash: None,
+    };
     let error = block_on(sign(doc.clone(), timestamp_input(), SignerPort::Cms(wrong))).unwrap_err();
     assert_eq!(error.name, "EngineError");
     assert_eq!(error.code(), Some("SignatureRefused"));

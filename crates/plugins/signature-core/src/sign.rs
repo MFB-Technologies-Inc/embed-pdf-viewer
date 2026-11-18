@@ -8,9 +8,13 @@ use epdf_kernel::engine::DocumentHandle;
 use epdf_kernel::rt::Promise;
 use serde_json::{Map, Value, json};
 
+use crate::attach::{attach_signature_timestamp, require_trusted_authority};
+use crate::cms::Cryptography;
 use crate::cms::{BuildInput, Profile, RawSigner, build_detached_cms};
 use crate::gate::{CompletionProfile, Gate, Prepared, verify_for_completion};
 use crate::oids::Digest;
+use crate::trust::TrustPort;
+use crate::verify_timestamp::{Stamped, check_timestamp_token};
 
 /// What a `CmsSigner` is asked for.
 #[derive(Clone, Debug, PartialEq)]
@@ -26,11 +30,27 @@ impl CmsSignRequest {
     }
 }
 
-/// `CmsSigner`: a service that turns a digest into a finished CMS.
+/// `CmsSigner`: a service that turns a digest into a finished CMS, a
+/// signing service (a detached signature) or a timestamp authority (an RFC
+/// 3161 token).
 #[derive(Clone)]
 pub struct CmsSigner {
     pub sign: Rc<dyn Fn(CmsSignRequest) -> Promise<Vec<u8>>>,
+    /// The hash this key prefers: the default digest of `sign()`.
+    pub hash: Option<Digest>,
 }
+
+/// The timestamp options of a `SignInput` and of `completeSignature`.
+#[derive(Clone, Default)]
+pub struct TimestampOptions {
+    /// Timestamp the signature: the authority stamps its signature value.
+    pub timestamp_authority: Option<CmsSigner>,
+    /// Who may timestamp; for `kind: 'timestamp'` it judges the key.
+    pub timestamp_trust: Option<Rc<dyn TrustPort>>,
+}
+
+/// The room `sign()` reserves for a signature that will carry a token.
+const TIMESTAMPED_CONTENTS_SIZE: f64 = 16384.0;
 
 /// `SignerPort`: the `key` of a `SignInput`.
 #[derive(Clone)]
@@ -112,6 +132,17 @@ pub async fn sign(
     input: Map<String, Value>,
     key: SignerPort,
 ) -> Result<Value, Error> {
+    sign_with(doc, input, key, TimestampOptions::default()).await
+}
+
+/// `sign` with `timestampAuthority` and `timestampTrust`. A timestamp that
+/// was asked for and can't be had fails the signing.
+pub async fn sign_with(
+    doc: Rc<dyn DocumentHandle>,
+    input: Map<String, Value>,
+    key: SignerPort,
+    options: TimestampOptions,
+) -> Result<Value, Error> {
     let timestamp = input.get("kind").and_then(Value::as_str) == Some("timestamp");
     if timestamp && !matches!(key, SignerPort::Cms(_)) {
         return Err(Error::engine(
@@ -120,6 +151,7 @@ pub async fn sign(
         )
         .with("details", json!({ "field": "key" })));
     }
+    assert_timestamp_options(timestamp, &options)?;
     let sub_filter = if timestamp {
         Value::from("ETSI.RFC3161")
     } else {
@@ -140,49 +172,32 @@ pub async fn sign(
     let sub_filter = js_string(&sub_filter);
     let digest = match present(&input, "digest") {
         Some(d) => d.clone(),
-        None => json!(match &key {
-            SignerPort::Raw(raw) => raw.hash.name(),
-            SignerPort::Cms(_) => "sha256",
-        }),
+        None => json!(
+            match &key {
+                SignerPort::Raw(raw) => Some(raw.hash),
+                SignerPort::Cms(cms) => cms.hash,
+            }
+            .unwrap_or(Digest::Sha256)
+            .name()
+        ),
     };
+    let reserve = options.timestamp_authority.is_some()
+        && input.get("contentsSizeBytes").is_none_or(epdf_kernel::is_undefined);
     let mut request = input;
     if !timestamp {
         request.insert("subFilter".into(), json!(sub_filter));
     }
     request.insert("digest".into(), digest);
+    if reserve {
+        // A token is commonly 1.5 to 6 KB: the default reserve would fail late.
+        request.insert("contentsSizeBytes".into(), json!(TIMESTAMPED_CONTENTS_SIZE));
+    }
     let prepared = doc.call("signatures.prepare", None, vec![Value::Object(request)]).await?;
     let signing_id = member(&prepared, "signingId");
 
     let attempt = async {
         let cms = cms_for(&key, &prepared, &sub_filter, profile).await?;
-        let digest = bytes_member(&prepared, "digest");
-        let algorithm =
-            prepared.get("algorithm").and_then(Value::as_str).unwrap_or_default().to_string();
-        let gate = verify_for_completion(
-            &cms,
-            &Prepared {
-                digest,
-                algorithm,
-                contents_size_bytes: prepared
-                    .get("contentsSizeBytes")
-                    .and_then(Value::as_f64)
-                    .unwrap_or(f64::NAN),
-            },
-            profile,
-        );
-        if let Gate::Refused { reason, detail } = gate {
-            return Err(signing_refused(reason, &detail));
-        }
-        doc.call(
-            "signatures.complete",
-            None,
-            vec![json!({
-                "signingId": signing_id,
-                "cms": Bytes(cms).to_json(),
-                "expectedVersion": member(&prepared, "expectedVersion"),
-            })],
-        )
-        .await
+        complete_prepared(&doc, &prepared, cms, &options).await
     };
     match attempt.await {
         Ok(result) => Ok(result),
@@ -191,6 +206,121 @@ pub async fn sign(
             Err(error)
         }
     }
+}
+
+/// `completeSignature`: the second half of `sign` for a signature made in
+/// two steps. On failure nothing is written and the signing stays prepared.
+pub async fn complete_signature(
+    doc: Rc<dyn DocumentHandle>,
+    prepared: Value,
+    cms: Vec<u8>,
+    options: TimestampOptions,
+) -> Result<Value, Error> {
+    let document_timestamp =
+        prepared.get("subFilter").and_then(Value::as_str) == Some("ETSI.RFC3161");
+    assert_timestamp_options(document_timestamp, &options)?;
+    match complete_prepared(&doc, &prepared, cms, &options).await {
+        Err(error) if error.code() == Some("SignatureRefused") => {
+            let mut refused = Error::engine(
+                "SignatureRefused",
+                format!(
+                    "{}. The signing stays prepared, and this CMS will be refused again: cancel it and prepare again",
+                    error.message
+                ),
+            );
+            if let Some(details) = error.member("details") {
+                refused = refused.with("details", details.clone());
+            }
+            Err(refused)
+        }
+        other => other,
+    }
+}
+
+/// `assertTimestampOptions`.
+fn assert_timestamp_options(
+    document_timestamp: bool,
+    options: &TimestampOptions,
+) -> Result<(), Error> {
+    if document_timestamp && options.timestamp_authority.is_some() {
+        return Err(Error::engine(
+            "InvalidArg",
+            "a document timestamp is already a timestamp; leave out `timestampAuthority`",
+        )
+        .with("details", json!({ "field": "timestampAuthority" })));
+    }
+    if options.timestamp_trust.is_some()
+        && options.timestamp_authority.is_none()
+        && !document_timestamp
+    {
+        return Err(Error::engine(
+            "InvalidArg",
+            "`timestampTrust` judges a timestamp's authority; pass `timestampAuthority` too",
+        )
+        .with("details", json!({ "field": "timestampTrust" })));
+    }
+    Ok(())
+}
+
+/// `completePrepared`: the gate, then the timestamp, then the gate again,
+/// then `complete`.
+async fn complete_prepared(
+    doc: &Rc<dyn DocumentHandle>,
+    prepared: &Value,
+    cms: Vec<u8>,
+    options: &TimestampOptions,
+) -> Result<Value, Error> {
+    let sub_filter = js_string(&member(prepared, "subFilter"));
+    let profile = profile_for(&sub_filter)?;
+    let gate_input = Prepared {
+        digest: bytes_member(prepared, "digest"),
+        algorithm: prepared
+            .get("algorithm")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string(),
+        contents_size_bytes: prepared
+            .get("contentsSizeBytes")
+            .and_then(Value::as_f64)
+            .unwrap_or(f64::NAN),
+    };
+    let check = |cms: &[u8]| match verify_for_completion(cms, &gate_input, profile) {
+        Gate::Refused { reason, detail } => Err(signing_refused(reason, &detail)),
+        Gate::Ok => Ok(()),
+    };
+    let mut cms = cms;
+    check(&cms)?;
+    if profile == CompletionProfile::Timestamp
+        && let Some(trust) = &options.timestamp_trust
+    {
+        // A document timestamp is its token: the authority to judge is the one that made it.
+        let token = check_timestamp_token(
+            &cms,
+            &Stamped::Digest {
+                digest: gate_input.digest.clone(),
+                algorithm: gate_input.algorithm.clone(),
+            },
+            &[],
+        );
+        if token.verdict != Cryptography::Valid {
+            return Err(signing_refused("malformed", "the timestamp token"));
+        }
+        require_trusted_authority(&token, trust.clone(), &[]).await?;
+    }
+    if let Some(authority) = &options.timestamp_authority {
+        cms = attach_signature_timestamp(&cms, authority, options.timestamp_trust.clone()).await?;
+        check(&cms)?;
+    }
+    doc.call(
+        "signatures.complete",
+        None,
+        vec![json!({
+            "signingId": member(prepared, "signingId"),
+            "cms": Bytes(cms).to_json(),
+            "expectedVersion": member(prepared, "expectedVersion"),
+        })],
+    )
+    .await
 }
 
 /// `cmsFor`: the key's answer for the prepared digest, a service's CMS, or

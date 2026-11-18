@@ -271,6 +271,7 @@ fn cms_signer(h: &Harness, value: &Value) -> CmsSigner {
         sign: Rc::new(move |request: CmsSignRequest| {
             answer(callback.call(vec![request.to_json()])).map(|v| Ok(bytes(&v)))
         }),
+        hash: value.get("hash").and_then(Value::as_str).and_then(Digest::from_name),
     }
 }
 
