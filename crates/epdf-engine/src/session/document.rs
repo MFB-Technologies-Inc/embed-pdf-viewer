@@ -1213,6 +1213,8 @@ impl DocumentSession {
 
     pub fn set_signed_document_policy(&mut self, policy: SignedDocumentPolicy) {
         self.signed_document_policy = policy;
+        // `ScopeGuard.setProtection` holds none under `permit`.
+        self.authority.set_protection_enforced(policy == SignedDocumentPolicy::Protect);
     }
 
     /// `lastObjectNumber()`: every object the layer has is at or below it.

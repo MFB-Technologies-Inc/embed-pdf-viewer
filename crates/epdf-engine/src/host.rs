@@ -3104,7 +3104,7 @@ impl Host {
         self.sessions
             .session(key)
             .ok()
-            .and_then(|s| s.authority().protection())
+            .and_then(|s| s.authority().document_protection())
             .and_then(|p| serde_json::to_value(p).ok())
             .unwrap_or(serde_json::Value::Null)
     }

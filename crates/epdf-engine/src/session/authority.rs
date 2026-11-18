@@ -54,6 +54,11 @@ pub struct SessionAuthority {
     /// under `signedDocumentPolicy: 'protect'`, the default). `None` for an
     /// unsigned document or one not read yet.
     protection: Option<DocumentProtection>,
+    /// Whether the protection is enforced: false under
+    /// `signedDocumentPolicy: 'permit'`, where `ScopeGuard` holds no
+    /// protection (`setProtection` ignores it) and the engine leaves every
+    /// edit to the caller.
+    enforced: bool,
 }
 
 impl SessionAuthority {
@@ -73,6 +78,7 @@ impl SessionAuthority {
             identity,
             permission_flags,
             protection: None,
+            enforced: true,
         })
     }
 
@@ -89,6 +95,7 @@ impl SessionAuthority {
             identity: IdentityClaims::default(),
             permission_flags: PdfPermissionFlags::default(),
             protection: None,
+            enforced: true,
         }
     }
 
@@ -116,13 +123,27 @@ impl SessionAuthority {
         self.protection = protection;
     }
 
+    /// `ScopeGuard.currentProtection`: the protection this authority
+    /// subtracts, `None` when none applies (unsigned, or under
+    /// `signedDocumentPolicy: 'permit'`).
     pub fn protection(&self) -> Option<&DocumentProtection> {
+        self.protection.as_ref().filter(|_| self.enforced)
+    }
+
+    /// What the document's signatures declare, enforced or not: what an
+    /// open reports (`WorkerHost.probeProtection`).
+    pub fn document_protection(&self) -> Option<&DocumentProtection> {
         self.protection.as_ref()
+    }
+
+    /// Enforce the protection or not (`signedDocumentPolicy`).
+    pub fn set_protection_enforced(&mut self, enforced: bool) {
+        self.enforced = enforced;
     }
 
     /// What the protection removes from every caller.
     fn protected(&self) -> Capabilities {
-        protected_capabilities(self.protection.as_ref())
+        protected_capabilities(self.protection())
     }
 
     pub fn scope(&self) -> &[ParsedScope] {
@@ -144,7 +165,7 @@ impl SessionAuthority {
                 "scope": self.granted,
                 "permissionFlags": self.permission_flags,
             },
-            "protection": self.protection,
+            "protection": self.protection(),
         })
     }
 
@@ -241,6 +262,17 @@ impl SessionAuthority {
         if self.allows(capability) {
             return Ok(());
         }
+        // `ScopeGuard.assertCapability`: what a signature in the document
+        // took away is `ProtectedDocument`, naming the restriction; what the
+        // scope never granted is `PermissionDenied`.
+        if let Some(protection) = self.protection()
+            && self.protected().contains(&capability)
+        {
+            return Err(EngineError::with_message(
+                crate::error::EngineErrorCode::ProtectedDocument,
+                crate::features::signature::protection::describe_protection(capability, protection),
+            ));
+        }
         Err(EngineError::permission_denied(capability.as_str(), None, None))
     }
 
@@ -274,6 +306,7 @@ impl Default for SessionAuthority {
             identity: IdentityClaims::default(),
             permission_flags: PdfPermissionFlags::default(),
             protection: None,
+            enforced: true,
         }
     }
 }
