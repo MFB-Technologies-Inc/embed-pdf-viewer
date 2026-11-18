@@ -24,16 +24,19 @@ Cost: one transport per viewer, not one per authority. A host that needs two sta
 its own `post` by `request.url`.
 Reverse: an optional `Arc<dyn SignatureTransport>` member on each authority record.
 
-## CU-C8a-D3. A native timestamp nonce comes from the process's hashing keys; tests may fix it
+## CU-C8a-D3. A timestamp nonce comes from the kernel's UUID byte source (fix round 1)
 
-Decision: `NonceSource::Random` draws the 8 nonce octets from `RandomState`, as the kernel's UUID
-source does (`crates/epdf-kernel/src/identity.rs`). `fixed_nonce_octet` (`fixedNonceOctet` on the
-web) fills every octet with one value so a recorded reply can answer a known request.
-Reason: upstream's client uses `globalThis.crypto`, which a native host does not have, and no other
-part of `WebCrypto` is used by `httpTimestampAuthority`. No new dependency.
-Cost: `RandomState` is not a CSPRNG. A nonce only has to differ between requests for the reply
-check to work, and it does. `fixed_nonce_octet` is a test hook on a production record.
-Reverse: draw from `getrandom` once a crate in the native build depends on it.
+Decision: `NonceSource::Random` fills the octets through `epdf_kernel::identity::fill_random`, new
+in fix round 1: the byte source the kernel's UUIDs draw from. `epdf-web` installs `getrandom` over
+Web Crypto there (`crates/epdf-web/src/runtime.rs` `start_clock`); a native host without an
+installed source gets the kernel's fallback, `RandomState` hashing, whose keys std draws from the
+OS. `random_positive_integer` gives the nonce upstream's shape: 8 octets, `(o[0] & 0x7f) | 0x40`.
+Reason: the first version hashed a counter under `RandomState` in the plugin. On
+`wasm32-unknown-unknown` those keys are addresses, so a page's first nonce tended to repeat across
+loads. Upstream's client draws from `globalThis.crypto`. No new dependency.
+Cost: a native nonce is SipHash output under OS-seeded keys, not a CSPRNG draw. The reply check only
+needs it unpredictable to a third party and fresh per request, which it is.
+Reverse: install a `getrandom` source on the native hosts too.
 
 ## CU-C8a-D4. The browser build takes the transport through the signature plugin's config
 
@@ -91,3 +94,27 @@ first two.
 Reason: both bindings route every kind through `epdf_engine::host::Host`.
 Cost: a facade decodes the JSON itself, as for every other kind.
 Reverse: not applicable.
+
+## CU-C8a-D8. No binding can fix the nonce (fix round 1)
+
+Decision: `fixed_nonce_octet` is gone from `SignatureTimestampAuthority`, and `fixedNonceOctet` from
+the web options. `NonceSource::Fixed` stays as a Rust-only value for Rust tests. The binding tests
+check the request's shape (an 8-octet `INTEGER` whose first octet is `01xxxxxx`) without fixing it.
+Reason: controller ruling on the review. Any Swift, Kotlin or JavaScript app could set the option
+and send the same nonce on every request, and it is not upstream API.
+Cost: a platform test cannot replay a recorded timestamp reply byte for byte; it has to compute the
+reply from the request.
+Reverse: not intended.
+
+## CU-C8a-D9. `SignatureValidateRequest.validation_time` changed type
+
+Decision: the field is `Option<SignatureRequestedTime>` (`EarliestTimestamp`, `Now`,
+`Timestamp { gen_time }`), no longer `Option<SignatureValidationTime>`. `SignatureValidationTime`
+stays the verdict's type.
+Reason: upstream's request takes `ValidationTime | { kind: 'earliest-timestamp' }`
+(`packages/plugin/signature/src/contract.ts:312`) where a verdict's time is a `ValidationTime`; one
+enum for both would give every verdict a case it never carries.
+Cost: Swift and Kotlin code that sets the field breaks. The Swift wrapper's alias
+(`platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Signature.swift:29`) needs a
+`SignatureRequestedTime` counterpart (CU-C9).
+Reverse: add `EarliestTimestamp` to `SignatureValidationTime` and change the field back.

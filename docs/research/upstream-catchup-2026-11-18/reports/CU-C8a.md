@@ -56,7 +56,7 @@ is CU-C8a-D6.
 | C6 3: `addValidationInfo` | `add_validation_info(field, cancel) -> SignatureValidationInfoAdded` | n/a (D6) | `addValidationInfo` |
 | C6 3: `canAddValidationInfo` | `can_add_validation_info()` | n/a (D6) | `canAddValidationInfo` |
 | C6 3: `validationInfo`, `validationInfoError` | `SignatureCompletion.validation_info`, `.validation_info_error: SignatureFailure` | n/a (D6) | result JSON members |
-| C6 3: `earliest-timestamp` | `SignatureValidateRequest.validation_time: SignatureRequestedTime::EarliestTimestamp` (the type changed from `SignatureValidationTime`) | n/a (D6) | `validationTime: 'earliest-timestamp'` |
+| C6 3: `earliest-timestamp` | `SignatureValidateRequest.validation_time: SignatureRequestedTime::EarliestTimestamp` (the type changed from `SignatureValidationTime`) | n/a (D6) | `validationTime: { kind: 'earliest-timestamp' }` |
 | C6 3: verdict `revocation`, timestamp, `longTerm` | `SignatureVerdict.revocation`, `.revocation_reason`, `.timestamp: SignatureTimestampVerdict`, `.long_term: SignatureLongTermVerdict` | n/a (D6) | verdict JSON members |
 
 `epdf-node`: the engine rows reach it through `Engine::call`; no plugin item applies.
@@ -78,7 +78,7 @@ ViewerHost::set_signature_transport(Option<Arc<dyn SignatureTransport>>)
 ```
 
 Web (`crates/plugins/signature/src/transport.rs`, read by `harness.rs`): a config or call spec
-`{ transport: fn, url, hash?, policy?, headers?, timeoutMs?, retries?, fixedNonceOctet? }` for an
+`{ transport: fn, url, hash?, policy?, headers?, timeoutMs?, retries? }` for an
 authority, `{ transport: fn, url, headers?, timeoutMs?, retries?, maxReplyBytes? }` for a route.
 `fn(request) => Promise<outcome>` with `request = { url, contentType, headers: [{ name, value }],
 body: {$bytes}, timeoutMs, maxReplyBytes }` and `outcome` one of `{ kind: 'replied', status, body }`,
@@ -94,7 +94,7 @@ every crate source touched once first (CU-C7-D3). Start column is CU-C7's final 
 | Check | CU-C7 (`5f4abdabc`) | Now |
 |---|---|---|
 | `cargo test --workspace --no-fail-fast` | 3,514 passed, 0 failed, 2 ignored | 3,536 passed, 0 failed, 2 ignored |
-| `epdf-web` wasm tests | 59 passed in 8 binaries | 62 passed in 9 binaries |
+| `epdf-web` wasm tests | 59 passed in 8 binaries | 63 passed in 9 binaries (fix round 1) |
 | `epdf-node` addon (`addon.mjs`, release) | 6 checks | 6 checks |
 | `epdf-plugin-signature --features uniffi` | | 48 passed (lib 7, behavior 15, conformance 2, ffi 22, ffi_settings 2) |
 | `rust-coverage:check` | exit 0 | stale at first (the new `signature/src/transport.rs` and the moved `signature-core` lines); regenerated with the package's `rust-coverage`, then exit 0: 68,348 of 118,503 lines, 38,496 only other tests reach, 701 files (76 excluded) |
@@ -107,7 +107,7 @@ in for uniffi, and `crates/epdf-capi/include/epdf.h` is untouched.
 ## For CU-C8b and CU-C9
 
 A positive timestamped signature against recorded replies is not testable from Rust here. The
-reply must echo the request's nonce (fixable with `fixed_nonce_octet`) and its message imprint,
+reply must echo the request's nonce, which no binding can fix (CU-C8a-D8), and its message imprint,
 the hash of a signature value that covers a signing time from the clock.
 `build_timestamp_token` also writes no nonce. Every test here proves the request, the four
 outcomes and the errors, not a granted token. A long-term fill has the same limit: the
@@ -115,8 +115,20 @@ outcomes and the errors, not a granted token. A long-term fill has the same limi
 (`a_seal_with_a_revocation_route_reports_its_validation_data`). A platform test of either needs a
 fixture document and replies generated together, or a reply computed from the request.
 
-In the browser, the request's `body` reaches the transport function as the proxy converts
-`{$bytes}`; the TS shim's handling is CU-C8b's to check.
+`SignatureValidateRequest.validation_time` changed type from `SignatureValidationTime` to
+`SignatureRequestedTime` (CU-C8a-D9). The Swift wrapper's alias
+(`platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Signature.swift:29`) needs a
+`SignatureRequestedTime` counterpart, and Kotlin callers that set the field change the same way.
+
+Hosts must enforce `timeout_ms` themselves: the client has no backstop timer, so a `post` that never
+answers leaves the signing waiting. `max_reply_bytes` has the client-side check of `7b8f20ecd`.
+
+`ViewerConfig.standard_commands` is ignored when `commands` is false: no commands plugin is built
+to take the lists.
+
+In the browser, the request's `body` reaches the transport function as the core-wasm proxy converts
+`{$bytes}`. A core-wasm test of a `Uint8Array` body round trip through the JavaScript transport is
+CU-C8b's.
 
 ## Evidence
 
