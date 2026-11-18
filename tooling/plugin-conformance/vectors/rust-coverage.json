@@ -1,7 +1,7 @@
 {
   "total": {
-    "replayLines": "68348/118497",
-    "unitOnlyLines": 38490,
+    "replayLines": "68355/118531",
+    "unitOnlyLines": 38511,
     "files": 701,
     "excludedFiles": 76
   },
@@ -7578,12 +7578,16 @@
       ]
     },
     "crates/epdf-kernel/src/identity.rs": {
-      "replayLines": "34/54",
+      "replayLines": "34/79",
       "unitOnlyLines": [
-        "28-32",
-        "39-44",
-        "51-53",
-        "58-63"
+        "31-32",
+        "34-35",
+        "46-47",
+        "53-58",
+        "65-67",
+        "72-77",
+        "98-108",
+        "112-116"
       ]
     },
     "crates/epdf-kernel/src/js.rs": {
@@ -10381,17 +10385,18 @@
       ]
     },
     "crates/plugins/signature-core/src/transport.rs": {
-      "replayLines": "45/63",
+      "replayLines": "46/65",
       "unitOnlyLines": [
-        "90",
-        "99-102",
-        "171"
+        "92-95",
+        "108-109",
+        "111",
+        "147-149"
       ]
     },
     "crates/plugins/signature-core/src/trust.rs": {
-      "replayLines": "407/420",
+      "replayLines": "410/423",
       "unitOnlyLines": [
-        "489"
+        "494"
       ]
     },
     "crates/plugins/signature-core/src/verdict.rs": {
@@ -10428,13 +10433,13 @@
       ]
     },
     "crates/plugins/signature/src/controller.rs": {
-      "replayLines": "59/94",
+      "replayLines": "62/98",
       "unitOnlyLines": [
         "148-150",
-        "163-166",
-        "170-172",
-        "175-178",
-        "181-192"
+        "169-172",
+        "176-178",
+        "181-184",
+        "187-198"
       ]
     },
     "crates/plugins/signature/src/js.rs": {
