@@ -32,6 +32,7 @@ import {
 } from '@embedpdf/react/signature';
 import { useSignatureSettings } from '../config-context';
 import { Icon } from './icons';
+import { lacksValidationInfo, validationInfoReason } from './signature-result';
 import { restoreStampLibrariesOnce } from './stamp-store';
 import { TooltipButton } from './tooltip';
 
@@ -84,10 +85,22 @@ export function SignaturesPanel() {
   const pick = (asset: StampAsset) => {
     setError(null);
     if (target) {
-      void signature.placeMark({ assetId: asset.id }, { field: target }).catch((error) => {
-        console.error('[embedpdf] placing the mark failed:', error);
-        setError(t('demo.signError'));
-      });
+      void signature
+        .placeMark({ assetId: asset.id }, { field: target })
+        .then((placed) => {
+          // Signed, without the verification information the settings ask for: say so here.
+          if (placed.status === 'signed' && lacksValidationInfo(signature, placed.result)) {
+            console.error(
+              '[embedpdf] verification information not added:',
+              validationInfoReason(placed.result),
+            );
+            setError(t('demo.signedWithoutValidationInfo'));
+          }
+        })
+        .catch((error) => {
+          console.error('[embedpdf] placing the mark failed:', error);
+          setError(t('demo.signError'));
+        });
       return;
     }
     setArmedId(asset.id);

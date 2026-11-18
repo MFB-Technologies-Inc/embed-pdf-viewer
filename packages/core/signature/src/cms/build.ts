@@ -4,6 +4,9 @@ import * as pkijs from 'pkijs';
 
 import { ensureEngine, toArrayBuffer } from './engine';
 import { DIGEST_LENGTH, OID, OID_BY_DIGEST } from './oids';
+import { derOrder } from './splice';
+import { cmsTime } from './time';
+import { signedAttributesDer } from './verify';
 
 export type SignatureProfile = 'pkcs7' | 'cades-b';
 export type RawSignatureAlgorithm = 'RSA-PKCS1-v1_5' | 'RSA-PSS' | 'ECDSA';
@@ -31,6 +34,21 @@ export interface BuildDetachedCmsInput {
   signer: RawSigner;
   /** `pkcs7` only: the CMS `signing-time` attribute, as an ISO 8601 string. PAdES (`cades-b`) never carries one. */
   signingTime?: string;
+}
+
+/**
+ * The signed attributes of a new signer, in the order DER gives the elements of a set. RFC 5652
+ * has the signature made over their DER, so the order written is the order signed: a reader
+ * that encodes them again before it checks the signature then gets the bytes that were signed.
+ */
+export function signedAttributesOf(
+  attributes: readonly pkijs.Attribute[],
+): pkijs.SignedAndUnsignedAttributes {
+  const ordered = attributes
+    .map((attribute) => ({ attribute, der: new Uint8Array(attribute.toSchema().toBER(false)) }))
+    .sort((left, right) => derOrder(left.der, right.der))
+    .map(({ attribute }) => attribute);
+  return new pkijs.SignedAndUnsignedAttributes({ type: 0, attributes: ordered });
 }
 
 /**
@@ -73,7 +91,7 @@ export async function buildDetachedCms(input: BuildDetachedCmsInput): Promise<Ui
     attributes.push(
       new pkijs.Attribute({
         type: OID.signingTime,
-        values: [new asn1js.UTCTime({ valueDate: new Date(input.signingTime) })],
+        values: [cmsTime(new Date(input.signingTime))],
       }),
     );
   }
@@ -108,14 +126,11 @@ export async function buildDetachedCms(input: BuildDetachedCmsInput): Promise<Ui
       serialNumber: signerCert.serialNumber,
     }),
     digestAlgorithm,
-    signedAttrs: new pkijs.SignedAndUnsignedAttributes({ type: 0, attributes }),
+    signedAttrs: signedAttributesOf(attributes),
     signatureAlgorithm: signatureAlgorithmFor(input.signer.algorithm, input.hash),
   });
 
-  const toSign = new asn1js.Set({
-    value: attributes.map((attribute) => attribute.toSchema()),
-  }).toBER(false);
-  const raw = await input.signer.sign(new Uint8Array(toSign));
+  const raw = await input.signer.sign(signedAttributesDer(signerInfo));
   signerInfo.signature = new asn1js.OctetString({
     valueHex: cmsSignatureValue(input.signer.algorithm, raw),
   });

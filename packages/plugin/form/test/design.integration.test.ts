@@ -70,7 +70,11 @@ async function withSignatureFields(): Promise<Uint8Array> {
   return bytes;
 }
 
-async function boot(scope?: readonly string[], bytes: Uint8Array = CHANGE_FIXTURE_PDF) {
+async function boot(
+  scope?: readonly string[],
+  bytes: Uint8Array = CHANGE_FIXTURE_PDF,
+  identity?: { userId?: string; groupId?: string },
+) {
   const held: HeldChange[] = [];
   let holding = false;
   let inner: DocumentHandle | null = null;
@@ -91,7 +95,9 @@ async function boot(scope?: readonly string[], bytes: Uint8Array = CHANGE_FIXTUR
   });
   await kernel.documents.open(
     { kind: 'bytes', id: `design-${Math.random()}`, bytes: bytes.slice() },
-    scope ? ({ scope } as never) : undefined,
+    scope || identity
+      ? ({ ...(scope ? { scope } : {}), ...(identity ? { identity } : {}) } as never)
+      : undefined,
   );
   const form = kernel.capability(FormToken);
   const annotation = kernel.capability(AnnotationToken);
@@ -187,6 +193,37 @@ describe('design through lending', () => {
     }
   });
 
+  it('a widget of no size is never lent, so it cannot be selected by hand', async () => {
+    const booted = await boot();
+    try {
+      const { annotation, form, page } = booted;
+      booted.design();
+      // The first create fills the session's pool of object numbers.
+      await form.create({ kind: 'text', name: 'warm', widgets: [{ page, rect: box(200, 10) }] });
+      // The field of a document timestamp: a signature field whose box shows nowhere.
+      await form.create({
+        kind: 'signature',
+        name: 'stamp',
+        widgets: [{ page, rect: box(0, 0, 0, 0) }],
+      });
+      const stamp = booted.widgetOf({ kind: 'fqn', name: 'stamp' });
+      expect(form.get({ kind: 'fqn', name: 'stamp' })?.kind).toBe('signature');
+      expect(annotation.get(booted.widgetOf({ kind: 'fqn', name: 'warm' }))?.subtype).toBe(
+        'widget',
+      );
+      expect(annotation.get(stamp)).toBeNull();
+      annotation.selection.select([stamp]);
+      expect(annotation.selection.getSelected()).toHaveLength(0);
+      // Filling: the form layer has nothing to draw for it, and no control.
+      booted.interaction.activateDefaultTool();
+      const shown = form.listShownWidgets(page).map((each) => annotationKey(each.ref));
+      expect(shown).toContain(annotationKey(booted.widgetOf({ kind: 'fqn', name: 'warm' })));
+      expect(shown).not.toContain(annotationKey(stamp));
+    } finally {
+      await booted.destroy();
+    }
+  });
+
   it('a placed field shows and is selected at once', async () => {
     const booted = await boot();
     try {
@@ -211,6 +248,26 @@ describe('design through lending', () => {
       expect(item).toBeDefined();
       const { field } = await created;
       expect(annotationKey(field.widgets[0]!.ref!)).toBe(annotationKey(widget));
+    } finally {
+      await booted.destroy();
+    }
+  });
+
+  it('a placed field shows in the session’s own group at once', async () => {
+    const booted = await boot(undefined, CHANGE_FIXTURE_PDF, { userId: 'lisa', groupId: 'legal' });
+    try {
+      const { form, page } = booted;
+      booted.design();
+      // The first create fills the session's pool of object numbers.
+      await form.create({ kind: 'text', name: 'warm', widgets: [{ page, rect: box(200, 10) }] });
+      const created = form.create({
+        kind: 'text',
+        name: 'clause',
+        widgets: [{ page, rect: box(200, 60) }],
+      });
+      // Before the engine answers: the group the engine puts it in, not none.
+      expect(form.get({ kind: 'fqn', name: 'clause' })?.groupId).toBe('legal');
+      expect((await created).field.groupId).toBe('legal');
     } finally {
       await booted.destroy();
     }

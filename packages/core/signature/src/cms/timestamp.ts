@@ -2,17 +2,27 @@ import type { DigestAlgorithm } from '@embedpdf/engine-core/runtime';
 import * as asn1js from 'asn1js';
 import * as pkijs from 'pkijs';
 
-import { cmsSignatureValue, signatureAlgorithmFor, type RawSigner } from './build';
-import { ensureEngine, toArrayBuffer } from './engine';
+import {
+  cmsSignatureValue,
+  signatureAlgorithmFor,
+  signedAttributesOf,
+  type RawSigner,
+} from './build';
+import { ensureEngine, randomPositiveInteger, toArrayBuffer } from './engine';
 import { DIGEST_BY_OID, DIGEST_LENGTH, OID, OID_BY_DIGEST, WEBCRYPTO_HASH } from './oids';
 import { CmsError } from './parse';
+import { signedAttributesDer } from './verify';
 
-/** What a timestamp token's TSTInfo says: which digest it stamped, and when. */
+/** What a timestamp token's TSTInfo says: which digest it stamped, when, and for which request. */
 export interface TimestampInfo {
   imprintAlgorithm: DigestAlgorithm;
   /** The stamped digest: for a document timestamp, the `/ByteRange` digest. */
   imprint: Uint8Array;
   genTime: Date;
+  /** The policy the authority issued the token under (an OID). */
+  policy: string;
+  /** The nonce of the request the token answers, without leading zeros; null when it carries none. */
+  nonce: Uint8Array | null;
 }
 
 /** Read a token's TSTInfo (the encapsulated content of an RFC 3161 token). Throws `CmsError`. */
@@ -36,7 +46,16 @@ export function readTimestampInfo(eContent: Uint8Array): TimestampInfo {
     imprintAlgorithm: algorithm,
     imprint: new Uint8Array(info.messageImprint.hashedMessage.valueBlock.valueHexView),
     genTime: info.genTime,
+    policy: info.policy,
+    nonce: info.nonce ? withoutLeadingZeros(info.nonce.valueBlock.valueHexView) : null,
   };
+}
+
+/** An integer's octets without the zeros DER puts in front: two nonces are equal when these are. */
+export function withoutLeadingZeros(octets: Uint8Array): Uint8Array {
+  let start = 0;
+  while (start < octets.byteLength - 1 && octets[start] === 0) start++;
+  return new Uint8Array(octets.subarray(start));
 }
 
 export interface BuildTimestampTokenInput {
@@ -65,8 +84,6 @@ export async function buildTimestampToken(input: BuildTimestampTokenInput): Prom
   const authorityCert = pkijs.Certificate.fromBER(
     toArrayBuffer(input.authority.certificateChain[0]!),
   );
-  const serial = globalThis.crypto.getRandomValues(new Uint8Array(8));
-  serial[0]! &= 0x7f;
   const info = new pkijs.TSTInfo({
     version: 1,
     policy: '1.3.6.1.4.1.57264.1.1',
@@ -74,7 +91,7 @@ export async function buildTimestampToken(input: BuildTimestampTokenInput): Prom
       hashAlgorithm: new pkijs.AlgorithmIdentifier({ algorithmId: OID_BY_DIGEST[input.hash] }),
       hashedMessage: new asn1js.OctetString({ valueHex: toArrayBuffer(input.digest) }),
     }),
-    serialNumber: new asn1js.Integer({ valueHex: toArrayBuffer(serial) }),
+    serialNumber: new asn1js.Integer({ valueHex: toArrayBuffer(randomPositiveInteger()) }),
     genTime: input.genTime ?? new Date(),
   });
   const eContent = info.toSchema().toBER(false);
@@ -125,23 +142,22 @@ export async function buildTimestampToken(input: BuildTimestampTokenInput): Prom
       serialNumber: authorityCert.serialNumber,
     }),
     digestAlgorithm,
-    signedAttrs: new pkijs.SignedAndUnsignedAttributes({ type: 0, attributes }),
+    signedAttrs: signedAttributesOf(attributes),
     signatureAlgorithm: signatureAlgorithmFor(input.authority.algorithm, input.authority.hash),
   });
-  const toSign = new asn1js.Set({
-    value: attributes.map((attribute) => attribute.toSchema()),
-  }).toBER(false);
-  const raw = await input.authority.sign(new Uint8Array(toSign));
+  const raw = await input.authority.sign(signedAttributesDer(signerInfo));
   signerInfo.signature = new asn1js.OctetString({
     valueHex: cmsSignatureValue(input.authority.algorithm, raw),
   });
+  const encapContentInfo = new pkijs.EncapsulatedContentInfo({ eContentType: OID.tstInfo });
+  // Set after the constructor ran. Given the content, the constructor splits it into an
+  // octet string made of parts, which is not DER. A token is DER, and a strict reader
+  // refuses anything else (pyHanko does).
+  encapContentInfo.eContent = new asn1js.OctetString({ valueHex: eContent });
   const signedData = new pkijs.SignedData({
     version: 3,
     digestAlgorithms: [digestAlgorithm],
-    encapContentInfo: new pkijs.EncapsulatedContentInfo({
-      eContentType: OID.tstInfo,
-      eContent: new asn1js.OctetString({ valueHex: eContent }),
-    }),
+    encapContentInfo,
     certificates: [authorityCert],
     signerInfos: [signerInfo],
   });

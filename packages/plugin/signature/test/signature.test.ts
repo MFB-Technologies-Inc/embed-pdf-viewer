@@ -13,12 +13,16 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import type { CapabilityToken } from '@embedpdf/core';
 import { createTestContext, type TestContext } from '@embedpdf/core/testing';
 import {
+  addValidationInfo,
   buildDetachedCms,
+  createTestCertificateAuthority,
   createTestSigner,
+  createTestTimestampAuthority,
   memoryKeyStore,
   personalSigner,
   profileFor,
   remoteSigner,
+  type CmsSigner,
 } from '@embedpdf/core-signature';
 import {
   toPageRef,
@@ -139,7 +143,11 @@ function makeSignature(
   const ctx = createTestContext({
     id: 'signature',
     state: initialSignatureModel(),
-    settings: { defaults: SIGNATURE_DEFAULTS, registered: config, whole: ['signingKey', 'trust'] },
+    settings: {
+      defaults: SIGNATURE_DEFAULTS,
+      registered: config,
+      whole: ['signingKey', 'timestampAuthority', 'revocation', 'trust'],
+    },
     documentId: 'doc-1',
     doc,
     capabilities,
@@ -229,8 +237,9 @@ describe('settings, permissions and cancelling', () => {
       await expect(
         signature.sign({ field: SIG, mark: { assetId: 'people:signature' } }),
       ).rejects.toMatchObject({ code: 'permission-denied', permission: 'doc.sign' });
+      // A mark in a signature field is its signer's to place: it takes what signing takes.
       await expect(signature.fillField(SIG, { assetId: 'people:signature' })).rejects.toMatchObject(
-        { code: 'permission-denied', permission: 'doc.forms.fill' },
+        { code: 'permission-denied', permission: 'doc.sign' },
       );
       await expect(signature.readRevision({ revisionIndex: 0 })).rejects.toMatchObject({
         code: 'permission-denied',
@@ -239,6 +248,44 @@ describe('settings, permissions and cancelling', () => {
       expect(signature.isBusy()).toBe(false);
     } finally {
       await doc.close();
+    }
+  });
+
+  it('draws a mark with the right to sign the field, not the right to fill fields in', async () => {
+    // Filling in only: the engine refuses a mark there, so the plugin says no before it asks.
+    const filler = await engine.open(
+      { kind: 'bytes', id: `sig-plugin-${++openCount}`, bytes: base },
+      { scope: ['doc.open', 'doc.render', 'doc.forms.read', 'doc.forms.fill'] },
+    );
+    try {
+      const { signature } = makeSignature(filler, {}, { stamp: stampStub(artwork) });
+      expect(signature.canFill(SIG)).toBe(false);
+      await expect(signature.fillField(SIG, { assetId: 'people:signature' })).rejects.toMatchObject(
+        { code: 'permission-denied', permission: 'doc.sign' },
+      );
+      await expect(signature.clearField(SIG)).rejects.toMatchObject({
+        code: 'permission-denied',
+        permission: 'doc.sign',
+      });
+    } finally {
+      await filler.close();
+    }
+    // Signing only: the mark goes in, and comes out again.
+    const signer = await engine.open(
+      { kind: 'bytes', id: `sig-plugin-${++openCount}`, bytes: base },
+      { scope: ['doc.open', 'doc.render', 'doc.forms.read', 'doc.sign'] },
+    );
+    try {
+      const { signature } = makeSignature(signer, {}, { stamp: stampStub(artwork) });
+      await signature.refresh();
+      expect(signature.canFill(SIG)).toBe(true);
+      await signature.fillField(SIG, { assetId: 'people:signature' });
+      const marked = (await signer.forms.list()).widgets.filter((widget) => widget.hasMark);
+      expect(marked).toHaveLength(1);
+      await signature.clearField(SIG);
+      expect((await signer.signatures.list()).signatures[0]!.signed).toBe(false);
+    } finally {
+      await signer.close();
     }
   });
 
@@ -529,6 +576,250 @@ describe('signing', () => {
   });
 });
 
+describe('timestamps', () => {
+  const mark = { assetId: 'people:signature' };
+  /** A CAdES signature over what was prepared, as a key elsewhere would return it. */
+  const cmsFor = (
+    prepared: SignaturePrepared,
+    signer: Awaited<ReturnType<typeof createTestSigner>>,
+  ) =>
+    buildDetachedCms({
+      digest: prepared.digest,
+      hash: prepared.algorithm,
+      profile: profileFor('ETSI.CAdES.detached'),
+      signer,
+    });
+  /** The timestamp of the document's one signature, as the plugin reads it; `null` without one. */
+  const timestampOf = async (signature: SignatureCapability) =>
+    (await signature.validate())[0]!.timestamp;
+
+  it('with an authority set, every signature it seals carries a timestamp, in one step and in two', async () => {
+    const signer = await createTestSigner();
+    const timestampAuthority = await createTestTimestampAuthority();
+    for (const steps of ['one', 'two'] as const) {
+      const doc = await openDoc();
+      try {
+        const { signature } = makeSignature(
+          doc,
+          { signingKey: signer, timestampAuthority },
+          { stamp: stampStub(artwork) },
+        );
+        await signature.refresh();
+        if (steps === 'one') {
+          await signature.sign({ field: SIG, mark });
+        } else {
+          const prepared = await signature.prepareSignature({ field: SIG, mark });
+          // Room for the token is reserved when the signing is prepared.
+          expect(prepared.contentsSizeBytes).toBe(16384);
+          await signature.completeSignature(prepared.signingId, await cmsFor(prepared, signer));
+        }
+        expect(await timestampOf(signature), steps).toMatchObject({
+          cryptography: 'valid',
+          summary: 'valid-untrusted',
+        });
+      } finally {
+        await doc.close();
+      }
+    }
+  });
+
+  it('a call can sign without a timestamp, or with another authority', async () => {
+    const signer = await createTestSigner();
+    const timestampAuthority = await createTestTimestampAuthority();
+    const other = await createTestTimestampAuthority({ commonName: 'another authority' });
+
+    const plain = await openDoc();
+    try {
+      const { signature } = makeSignature(
+        plain,
+        { signingKey: signer, timestampAuthority },
+        { stamp: stampStub(artwork) },
+      );
+      await signature.refresh();
+      await signature.sign({ field: SIG, mark, timestampAuthority: null });
+      expect(await timestampOf(signature)).toBeNull();
+    } finally {
+      await plain.close();
+    }
+
+    const twoSteps = await openDoc();
+    try {
+      const { signature } = makeSignature(
+        twoSteps,
+        { signingKey: signer, timestampAuthority },
+        { stamp: stampStub(artwork) },
+      );
+      await signature.refresh();
+      const prepared = await signature.prepareSignature({
+        field: SIG,
+        mark,
+        timestampAuthority: other,
+      });
+      await signature.completeSignature(prepared.signingId, await cmsFor(prepared, signer));
+      const stamp = await timestampOf(signature);
+      expect(Array.from(stamp!.authorityCertificate!)).toEqual(Array.from(other.certificate));
+    } finally {
+      await twoSteps.close();
+    }
+  });
+
+  it('completing checks the CMS first: a wrong one is refused, and the signing stays parked', async () => {
+    const doc = await openDoc();
+    const signer = await createTestSigner();
+    try {
+      const { signature } = makeSignature(doc, {}, { stamp: stampStub(artwork) });
+      await signature.refresh();
+      const prepared = await signature.prepareSignature({ field: SIG, mark });
+      const wrong = await cmsFor({ ...prepared, digest: new Uint8Array(32).fill(4) }, signer);
+
+      await expect(signature.completeSignature(prepared.signingId, wrong)).rejects.toMatchObject({
+        name: 'PluginError',
+        code: 'operation-failed',
+        details: { reason: 'digest-mismatch' },
+      });
+      expect(signature.getSignature(SIG)?.signed).toBe(false);
+      expect(signature.getPending()?.signingId).toBe(prepared.signingId);
+
+      // The same signing completes with the CMS that does sign it.
+      await signature.completeSignature(prepared.signingId, await cmsFor(prepared, signer));
+      expect(signature.getSignature(SIG)?.signed).toBe(true);
+      expect(signature.getPending()).toBeNull();
+    } finally {
+      await doc.close();
+    }
+  });
+
+  it('an authority that does not answer leaves a two-step signing parked, to complete again', async () => {
+    const doc = await openDoc();
+    const signer = await createTestSigner();
+    const real = await createTestTimestampAuthority();
+    let asked = 0;
+    const timestampAuthority: CmsSigner = {
+      kind: 'cms',
+      sign: (request) => {
+        if (asked++ === 0) throw new Error('the authority is down');
+        return real.sign(request);
+      },
+    };
+    try {
+      const { signature } = makeSignature(
+        doc,
+        { signingKey: signer, timestampAuthority },
+        { stamp: stampStub(artwork) },
+      );
+      await signature.refresh();
+      const prepared = await signature.prepareSignature({ field: SIG, mark });
+      const cms = await cmsFor(prepared, signer);
+
+      await expect(signature.completeSignature(prepared.signingId, cms)).rejects.toMatchObject({
+        name: 'PluginError',
+        message: 'the authority is down',
+      });
+      expect(signature.getPending()?.signingId).toBe(prepared.signingId);
+
+      await signature.completeSignature(prepared.signingId, cms);
+      expect((await timestampOf(signature))?.cryptography).toBe('valid');
+    } finally {
+      await doc.close();
+    }
+  });
+
+  it('with trust set, a timestamp from an authority it does not cover is not sealed', async () => {
+    const signer = await createTestSigner();
+    const timestampAuthority = await createTestTimestampAuthority({ commonName: 'a stranger' });
+    const known = await createTestTimestampAuthority();
+    const trust = {
+      anchors: async () => [signer.certificate],
+      timestampAnchors: async () => [known.certificate],
+    };
+
+    const refusing = await openDoc();
+    try {
+      const { signature } = makeSignature(
+        refusing,
+        { signingKey: signer, timestampAuthority, trust },
+        { stamp: stampStub(artwork) },
+      );
+      await signature.refresh();
+      await expect(signature.sign({ field: SIG, mark })).rejects.toMatchObject({
+        name: 'PluginError',
+        code: 'operation-failed',
+        details: { trust: 'untrusted' },
+      });
+      expect(signature.getSignature(SIG)?.signed).toBe(false);
+
+      const prepared = await signature.prepareSignature({ field: SIG, mark });
+      await expect(
+        signature.completeSignature(prepared.signingId, await cmsFor(prepared, signer)),
+      ).rejects.toMatchObject({ details: { trust: 'untrusted' } });
+      expect(signature.getPending()?.signingId).toBe(prepared.signingId);
+      await signature.cancelPending();
+    } finally {
+      await refusing.close();
+    }
+
+    // The same authority with one that trust covers, and with no trust at all.
+    for (const config of [
+      { timestampAuthority: known, trust },
+      { timestampAuthority, trust: null },
+    ]) {
+      const doc = await openDoc();
+      try {
+        const { signature } = makeSignature(
+          doc,
+          { signingKey: signer, ...config },
+          { stamp: stampStub(artwork) },
+        );
+        await signature.refresh();
+        await signature.sign({ field: SIG, mark });
+        expect(signature.getSignature(SIG)?.signed).toBe(true);
+      } finally {
+        await doc.close();
+      }
+    }
+  });
+
+  it('validate() judges each signature at its earliest trusted timestamp, and as of now when asked', async () => {
+    const doc = await openDoc();
+    const signer = await createTestSigner();
+    const timestampAuthority = await createTestTimestampAuthority();
+    try {
+      const { signature } = makeSignature(
+        doc,
+        {
+          signingKey: signer,
+          timestampAuthority,
+          trust: {
+            anchors: async () => [signer.certificate],
+            timestampAnchors: async () => [timestampAuthority.certificate],
+          },
+        },
+        { stamp: stampStub(artwork) },
+      );
+      await signature.refresh();
+      await signature.sign({ field: SIG, mark });
+
+      const [now] = await signature.validate({ validationTime: { kind: 'now' } });
+      expect(now).toMatchObject({ summary: 'valid', validationTime: { kind: 'now' } });
+      expect(now!.timestamp!.summary).toBe('valid');
+
+      // With nothing asked for, and when asked for by name.
+      for (const options of [
+        undefined,
+        { validationTime: { kind: 'earliest-timestamp' } } as const,
+      ]) {
+        const [then] = await signature.validate(options);
+        expect(then).toMatchObject({
+          summary: 'valid',
+          validationTime: { kind: 'timestamp', stampedAt: then!.timestamp!.stampedAt },
+        });
+      }
+    } finally {
+      await doc.close();
+    }
+  });
+});
+
 describe('facts from every session', () => {
   it('fires onSigned, parks and releases the signing, and shows the sealed field for a signing another session completed', async () => {
     // The facts of an unsigned document, read from the real engine; the
@@ -799,6 +1090,271 @@ describe('judging what a save would write', () => {
         certify: { permission: 3 },
       });
       expect(result.protection).toMatchObject({ enforced: 'annotate', judged: 'annotate' });
+    } finally {
+      await doc.close();
+    }
+  });
+});
+
+describe('validation data', () => {
+  const MARK = { assetId: 'people:signature' } as const;
+  const total = (added: { certificates: number; ocspResponses: number; crls: number }) =>
+    added.certificates + added.ocspResponses + added.crls;
+
+  /** A signer from a certificate authority that answers, a timestamp authority, and who is trusted. */
+  async function setUp() {
+    const ca = await createTestCertificateAuthority();
+    const signer = await ca.issueSigner({ commonName: 'Ada' });
+    const timestampAuthority = await createTestTimestampAuthority();
+    const trust = {
+      anchors: async () => [ca.certificate],
+      timestampAnchors: async () => [timestampAuthority.certificate],
+    };
+    return { ca, signer, timestampAuthority, trust };
+  }
+  /** A source no authority answers through. */
+  const silent = {
+    fetch: async (): Promise<Uint8Array> => {
+      throw new Error('nobody answers');
+    },
+  };
+
+  it('follows a seal when `revocation` is set, and the verdict reads enabled', async () => {
+    const doc = await openDoc();
+    try {
+      const { ca, signer, timestampAuthority, trust } = await setUp();
+      const { signature } = makeSignature(
+        doc,
+        { signingKey: signer, timestampAuthority, revocation: ca.revocation, trust },
+        { stamp: stampStub(artwork) },
+      );
+      expect(signature.canAddValidationInfo()).toBe(true);
+
+      const result = await signature.sign({ field: SIG, mark: MARK });
+      expect(result.signature).toMatchObject({ fieldName: 'sig', signed: true });
+      expect(result.validationInfoError).toBeNull();
+      expect(result.validationInfo).toMatchObject({ documentTimestamp: null });
+      expect(result.validationInfo!.added.ocspResponses).toBeGreaterThan(0);
+      expect(signature.isBusy()).toBe(false);
+
+      const [verdict] = await signature.validate();
+      expect(verdict).toMatchObject({
+        summary: 'valid',
+        revocation: 'good',
+        longTerm: { enabled: true, documentTimestampedAt: null, missing: [] },
+      });
+      // Nothing is left to add: asking again stores nothing.
+      const again = await signature.addValidationInfo(SIG);
+      expect(total(again.added)).toBe(0);
+    } finally {
+      await doc.close();
+    }
+  });
+
+  it('adds a document timestamp after the data with `documentTimestamp`, once', async () => {
+    const doc = await openDoc();
+    try {
+      const { ca, signer, timestampAuthority, trust } = await setUp();
+      const { signature } = makeSignature(
+        doc,
+        {
+          signingKey: signer,
+          timestampAuthority,
+          revocation: ca.revocation,
+          documentTimestamp: true,
+          trust,
+        },
+        { stamp: stampStub(artwork) },
+      );
+      const result = await signature.sign({ field: SIG, mark: MARK });
+      expect(result.validationInfoError).toBeNull();
+      expect(result.validationInfo!.documentTimestamp).not.toBeNull();
+
+      const fields = (await doc.signatures.list()).signatures;
+      expect(fields.map((field) => [field.fieldName, field.kind, field.signed])).toEqual([
+        ['sig', 'signature', true],
+        ['Timestamp1', 'timestamp', true],
+      ]);
+      const verdicts = await signature.validate();
+      const signed = verdicts.find((verdict) => verdict.signature.fieldName === 'sig')!;
+      expect(signed.longTerm.enabled).toBe(true);
+      expect(signed.longTerm.documentTimestampedAt).not.toBeNull();
+
+      // The answers are in the file and a timestamp covers them: a second call adds neither.
+      const again = await signature.addValidationInfo();
+      expect(again).toEqual({
+        added: { certificates: 0, ocspResponses: 0, crls: 0 },
+        documentTimestamp: null,
+      });
+      expect((await doc.signatures.list()).signatures).toHaveLength(2);
+    } finally {
+      await doc.close();
+    }
+  });
+
+  it('never undoes the signature: a failure is in the result, and the data can be added later', async () => {
+    const doc = await openDoc();
+    try {
+      const { ca, signer, timestampAuthority, trust } = await setUp();
+      const { signature } = makeSignature(
+        doc,
+        { signingKey: signer, timestampAuthority, revocation: silent, trust },
+        { stamp: stampStub(artwork) },
+      );
+      const result = await signature.sign({ field: SIG, mark: MARK });
+      expect(result.signature.signed).toBe(true);
+      expect(result.validationInfo).toBeNull();
+      // The address that did not answer is named, as for a timestamp authority.
+      const unanswered = {
+        code: 'operation-failed',
+        details: { source: expect.stringContaining('test-authority.example') },
+        cause: { code: 'Network' },
+      };
+      expect(result.validationInfoError).toMatchObject(unanswered);
+      expect((await doc.signatures.getValidationInfo()).ocspResponses).toHaveLength(0);
+      expect((await signature.validate())[0]!.longTerm.enabled).toBe(false);
+      await expect(signature.addValidationInfo(SIG)).rejects.toMatchObject(unanswered);
+
+      // The authority answers again: the same call now covers the signature.
+      signature.updateSettings({ revocation: ca.revocation });
+      const added = await signature.addValidationInfo(SIG);
+      expect(added.added.ocspResponses).toBeGreaterThan(0);
+      expect((await signature.validate())[0]!.longTerm.enabled).toBe(true);
+    } finally {
+      await doc.close();
+    }
+  });
+
+  it('says what is in the file when the document timestamp fails after the data', async () => {
+    const doc = await openDoc();
+    try {
+      const { ca, signer, timestampAuthority, trust } = await setUp();
+      const down: CmsSigner = {
+        kind: 'cms',
+        sign: async () => {
+          throw new Error('the authority is down');
+        },
+      };
+      const { signature } = makeSignature(
+        doc,
+        {
+          signingKey: signer,
+          timestampAuthority: down,
+          revocation: ca.revocation,
+          documentTimestamp: true,
+          trust,
+        },
+        { stamp: stampStub(artwork) },
+      );
+      // The signature's own timestamp comes from an authority that answers.
+      const result = await signature.sign({ field: SIG, mark: MARK, timestampAuthority });
+      expect(result.signature.signed).toBe(true);
+      expect(result.validationInfo).toMatchObject({ documentTimestamp: null });
+      expect(result.validationInfo!.added.ocspResponses).toBeGreaterThan(0);
+      expect(result.validationInfoError).toMatchObject({ code: 'operation-failed' });
+      expect((await doc.signatures.list()).signatures).toHaveLength(1);
+    } finally {
+      await doc.close();
+    }
+  });
+
+  it('is skipped for a signer of one group, and refused by name', async () => {
+    const doc = await openDoc();
+    try {
+      const { ca, signer, timestampAuthority, trust } = await setUp();
+      // The session of someone who may sign this field's group and has no `doc.sign`.
+      const asGroupSigner = new Proxy(doc, {
+        get(target, key) {
+          if (key === 'security') {
+            return {
+              allows: (permission: string) =>
+                permission !== 'doc.sign' && target.security.allows(permission as never),
+              allowsAnnotation: () => true,
+              allowsField: () => true,
+            };
+          }
+          const value = Reflect.get(target, key) as unknown;
+          return typeof value === 'function' ? value.bind(target) : value;
+        },
+      });
+      const { signature } = makeSignature(
+        asGroupSigner,
+        { signingKey: signer, timestampAuthority, revocation: ca.revocation, trust },
+        { stamp: stampStub(artwork), form: { get: () => ({ groupId: 'buyer' }) } },
+      );
+      expect(signature.canSign(SIG)).toBe(true);
+      expect(signature.canAddValidationInfo()).toBe(false);
+      const result = await signature.sign({ field: SIG, mark: MARK });
+      expect(result.signature.signed).toBe(true);
+      expect(result).toMatchObject({ validationInfo: null, validationInfoError: null });
+      await expect(signature.addValidationInfo(SIG)).rejects.toMatchObject({
+        code: 'permission-denied',
+        permission: 'doc.sign',
+      });
+    } finally {
+      await doc.close();
+    }
+  });
+
+  it('needs its settings, and a signed field', async () => {
+    const doc = await openDoc();
+    try {
+      const { ca, signer, timestampAuthority, trust } = await setUp();
+      const { signature } = makeSignature(
+        doc,
+        { signingKey: signer, timestampAuthority },
+        { stamp: stampStub(artwork) },
+      );
+      await signature.refresh();
+      expect(signature.canAddValidationInfo()).toBe(false);
+      // Without `revocation` nothing follows a seal, and nothing is reported.
+      const result = await signature.sign({ field: SIG, mark: MARK });
+      expect(result).toMatchObject({ validationInfo: null, validationInfoError: null });
+      await expect(signature.addValidationInfo(SIG)).rejects.toMatchObject({
+        code: 'invalid-input',
+      });
+
+      signature.updateSettings({ revocation: ca.revocation });
+      // Someone to ask, and nobody to trust: still not.
+      expect(signature.canAddValidationInfo()).toBe(false);
+      signature.updateSettings({ trust });
+      expect(signature.canAddValidationInfo()).toBe(true);
+      await expect(
+        signature.addValidationInfo({ kind: 'fqn', name: 'no-such-field' }),
+      ).rejects.toMatchObject({ code: 'not-found' });
+
+      signature.updateSettings({ documentTimestamp: true, timestampAuthority: null });
+      await expect(signature.addValidationInfo(SIG)).rejects.toMatchObject({
+        code: 'invalid-input',
+        message: expect.stringContaining('timestampAuthority'),
+      });
+      expect((await doc.signatures.getValidationInfo()).ocspResponses).toHaveLength(0);
+    } finally {
+      await doc.close();
+    }
+  });
+
+  it('judges again when anyone adds validation data', async () => {
+    const doc = await openDoc();
+    try {
+      const { ca, signer, timestampAuthority, trust } = await setUp();
+      const { signature } = makeSignature(
+        doc,
+        { signingKey: signer, timestampAuthority, trust },
+        { stamp: stampStub(artwork) },
+      );
+      await signature.sign({ field: SIG, mark: MARK });
+      expect((await signature.validate())[0]!.longTerm.enabled).toBe(false);
+
+      // Not through the plugin: another part of the app, or another session.
+      const enabled = new Promise<void>((done) => {
+        signature.onValidated(({ verdicts }) => {
+          if (verdicts[0]?.longTerm.enabled) done();
+        });
+      });
+      await addValidationInfo(doc, { trust, revocation: ca.revocation });
+      await enabled;
+      expect(signature.getVerdict(SIG)!.longTerm.enabled).toBe(true);
     } finally {
       await doc.close();
     }

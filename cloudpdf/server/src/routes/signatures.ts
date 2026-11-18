@@ -4,7 +4,9 @@
  *   Layer reads (versioned `@token` twin + current form, one handler each):
  *     GET  /v1/docs/:docId/layers/:layerName/signatures[@docVersion]
  *     GET  /v1/docs/:docId/layers/:layerName/signatures/analysis[@token]
+ *     GET  /v1/docs/:docId/layers/:layerName/signatures/validation-info[@docVersion]
  *   Mutations (current only; never cached):
+ *     POST   …/signatures/validation-info         JSON { certificates?, ocspResponses?, crls? }, each entry base64
  *     POST   …/signatures/prepare                 multipart (`body`, naming its artwork's `resource:<key>` part)
  *     POST   …/signatures/:signingId/complete     JSON { cms: base64, expectedVersion }
  *     DELETE …/signatures/:signingId
@@ -12,10 +14,10 @@
  *   content-addressed by base sha; immutable; the resource comes before the
  *   sha so each family keeps its own CDN prefix):
  *     GET  …/layers/:layerName/versions                                   the list (no-store)
- *     GET  …/layers/:layerName/versions/signatures/:sha256
+ *     GET  …/layers/:layerName/versions/signatures/:sha256?engine=
  *     GET  …/layers/:layerName/versions/signatures/:sha256/:fieldKey/contents
  *     GET  …/layers/:layerName/versions/signatures/:sha256/:fieldKey/digest/:algorithm
- *     GET  …/layers/:layerName/versions/analysis/:sha?since.signature=|since.revision=&until=&level=
+ *     GET  …/layers/:layerName/versions/analysis/:sha?since.signature=|since.revision=&until=&level=&engine=
  *     GET  …/layers/:layerName/versions/download/:sha256
  *     GET  …/layers/:layerName/versions/revisions/:sha256/:index
  *
@@ -34,6 +36,7 @@ import {
   type DigestAlgorithm,
   type FormFieldRef,
   type SignaturePrepareInput,
+  type ValidationInfo,
   type WorkerJobId,
 } from '@embedpdf/engine-core/runtime';
 import {
@@ -44,15 +47,19 @@ import {
   LayerAnalysisQuerySchema,
   SignatureCompleteBodySchema,
   SignaturePrepareBodySchema,
+  ValidationInfoAddBodySchema,
   VersionAnalysisQuerySchema,
+  VersionSignaturesQuerySchema,
   analyzeInputFromQuery,
   encodePrepared,
+  encodeValidationInfo,
   type LayerVersions,
 } from '@embedpdf/engine-core/wire';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 
 import {
   abortSignalOf,
+  answerAtEngine,
   parseOrInvalidArg,
   parseTokenOrInvalidArg,
   readAtPins,
@@ -168,7 +175,6 @@ export async function registerSignatureRoutes(
       permissionFlags,
     );
     const requested = parseTokenOrInvalidArg(decodeAnalysisToken, token, 'analysis token');
-    requireServedPolicy(reply, requested.policyVersion);
     const input: AnalyzeInput = {
       since: requested.since,
       until: 'working-copy',
@@ -226,7 +232,114 @@ export async function registerSignatureRoutes(
     );
   });
 
+  // Validation data: the certificates, OCSP responses and CRLs the layer's file
+  // holds for its signatures. It is read from the working copy, like the list.
+  const readValidationInfo = async (
+    ctx: OpenContext,
+    docId: string,
+    layerName: string,
+    signal: AbortSignal,
+  ) => encodeValidationInfo(await service.readLayerValidationInfo(ctx, docId, layerName, signal));
+
+  app.get(
+    '/v1/docs/:docId/layers/:layerName/signatures/validation-info@:token',
+    async (req, reply) => {
+      const { docId, layerName, token } = req.params as {
+        docId: string;
+        layerName: string;
+        token: string;
+      };
+      rejectQueryParamsOnTokenUrl(req.query);
+      const accessCtx = requireLayerDocAccessOnly(req, docId, layerName);
+      const permissionFlags = await bitsForLayer(accessCtx, docId, layerName);
+      const ctx = requireLayerResource(
+        req,
+        docId,
+        layerName,
+        'layer-signatures-validation-info',
+        permissionFlags,
+      );
+      const requested = parseTokenOrInvalidArg(decodeDocToken, token, 'docVersion token');
+      const info = await readAtPins({
+        documentService: service,
+        reply,
+        docId,
+        layerName,
+        assertCurrent: async () => {
+          const manifest = await service.getLayerManifest(ctx, docId, layerName);
+          if (requested.docVersion === manifest.docVersion) return;
+          throw new EngineError(
+            EngineErrorCode.NotFound,
+            `validation data version ${requested.docVersion} no longer current (current=${manifest.docVersion})`,
+          );
+        },
+        read: () => readValidationInfo(ctx, docId, layerName, abortSignalOf(reply)),
+        token: { kind: 'validationInfo', pin: requested.pin },
+      });
+      setImmutableCache(reply);
+      return info;
+    },
+  );
+
+  app.get('/v1/docs/:docId/layers/:layerName/signatures/validation-info', async (req, reply) => {
+    const { docId, layerName } = req.params as { docId: string; layerName: string };
+    const accessCtx = requireLayerDocAccessOnly(req, docId, layerName);
+    const permissionFlags = await bitsForLayer(accessCtx, docId, layerName);
+    const ctx = requireLayerResource(
+      req,
+      docId,
+      layerName,
+      'layer-signatures-validation-info',
+      permissionFlags,
+    );
+    setNoStore(reply);
+    return readValidationInfo(ctx, docId, layerName, abortSignalOf(reply));
+  });
+
   // ---- mutations ----------------------------------------------------------
+
+  app.post('/v1/docs/:docId/layers/:layerName/signatures/validation-info', async (req, reply) => {
+    const { docId, layerName } = req.params as { docId: string; layerName: string };
+    const accessCtx = requireLayerDocAccessOnly(req, docId, layerName);
+    const permissionFlags = await bitsForLayer(accessCtx, docId, layerName);
+    // It takes `doc.sign`, the document's own and not a group's, and a certification
+    // that allows no changes forbids it.
+    const protection = await service.getProtection(accessCtx, docId, layerName);
+    const ctx = requireLayerCapability(
+      req,
+      docId,
+      layerName,
+      'doc.sign',
+      permissionFlags,
+      protection,
+    );
+    const body = parseOrInvalidArg(
+      ValidationInfoAddBodySchema as unknown as SchemaLike<
+        ReturnType<typeof ValidationInfoAddBodySchema.parse>
+      >,
+      req.body ?? {},
+      'request body',
+    );
+    // What each entry is worth is the worker's to check: one DER object, within the size limit.
+    const info: ValidationInfo = { certificates: [], ocspResponses: [], crls: [] };
+    for (const kind of ['certificates', 'ocspResponses', 'crls'] as const) {
+      (body[kind] ?? []).forEach((entry, index) => {
+        try {
+          info[kind].push(fromBase64(entry));
+        } catch {
+          throw new EngineError(
+            EngineErrorCode.InvalidArg,
+            `${kind}[${index}] is not valid base64`,
+            {
+              details: { field: `${kind}[${index}]` },
+            },
+          );
+        }
+      });
+    }
+    setNoStore(reply);
+    return layerService.addValidationInfo(ctx, { docId, layerName, info }, abortSignalOf(reply));
+  });
 
   app.post('/v1/docs/:docId/layers/:layerName/signatures/prepare', async (req, reply) => {
     const { docId, layerName } = req.params as { docId: string; layerName: string };
@@ -245,6 +358,12 @@ export async function registerSignatureRoutes(
     );
     if (parsed.certify) {
       requireLayerCapability(req, docId, layerName, 'doc.sign.certify', permissionFlags);
+    }
+    // No field: a document timestamp the engine makes the field for. That is the
+    // document's to sign, not a group's.
+    if (!parsed.field) {
+      const protection = await service.getProtection(accessCtx, docId, layerName);
+      requireLayerCapability(req, docId, layerName, 'doc.sign', permissionFlags, protection);
     }
     const { resources: named, ...rest } = parsed;
     const input: SignaturePrepareInput = { ...rest };
@@ -386,6 +505,7 @@ export async function registerSignatureRoutes(
       sha256: string;
     };
     const ctx = await versionCaller(req, docId, layerName, 'layer-version-signatures');
+    const query = parseOrInvalidArg(VersionSignaturesQuerySchema, req.query, 'query');
     const snapshot = await versionSignatures(
       ctx,
       docId,
@@ -393,6 +513,12 @@ export async function registerSignatureRoutes(
       requireSha(sha),
       abortSignalOf(reply),
     );
+    await answerAtEngine({
+      documentService: service,
+      reply,
+      kind: 'signatures',
+      requested: query.engine,
+    });
     setImmutableCache(reply);
     return snapshot;
   });
@@ -504,7 +630,6 @@ export async function registerSignatureRoutes(
       req.query,
       'query',
     );
-    requireServedPolicy(reply, query.policy);
     const input = analyzeInputFromQuery(
       query,
       query.until !== undefined ? { revisionIndex: query.until } : 'persisted',
@@ -527,6 +652,12 @@ export async function registerSignatureRoutes(
     if (payload.tag !== 'signatures.analyze') {
       throw new EngineError(EngineErrorCode.WireFormat, `unexpected payload: ${payload.tag}`);
     }
+    await answerAtEngine({
+      documentService: service,
+      reply,
+      kind: 'analysis',
+      requested: query.engine,
+    });
     return finishAnalysisReply(reply, payload.analysis);
   });
 
@@ -614,40 +745,20 @@ function fieldRefFromPath(fieldKey: string): FormFieldRef {
 }
 
 /**
- * The policy version a caller puts in an analysis URL is the cache key that
- * keeps a verdict judged under one set of rules from being served under
- * another. A request for a policy this server does not run is refused, never
- * answered with the current policy under the requested key.
- */
-function requireServedPolicy(reply: FastifyReply, requested: number | undefined): void {
-  if (requested !== undefined && requested !== SIGNATURE_POLICY_VERSION) {
-    setNoStore(reply);
-    throw new EngineError(
-      EngineErrorCode.InvalidArg,
-      `signature policy ${requested} is not served here (current=${SIGNATURE_POLICY_VERSION})`,
-    );
-  }
-}
-
-/**
  * Cache an analysis only when it is a settled, authoritative verdict judged
- * under this server's policy: a worker at another policy (a mixed fleet), an
- * exploratory run, or a verdict that could not be established must not live
- * for a year under an immutable URL.
+ * under this server's rules. An exploratory run, a verdict that could not be
+ * established, and one a worker judged under other rules (a fleet in the
+ * middle of a deploy) must not live for a year under an immutable URL. Such an
+ * answer still goes out: it says itself which rules judged it
+ * (`policyVersion`).
  */
 function finishAnalysisReply(reply: FastifyReply, analysis: ChangeAnalysis): ChangeAnalysis {
-  if (analysis.policyVersion !== SIGNATURE_POLICY_VERSION) {
-    setNoStore(reply);
-    throw new EngineError(
-      EngineErrorCode.WireFormat,
-      `analysis judged under policy ${analysis.policyVersion}, this server serves ${SIGNATURE_POLICY_VERSION}`,
-    );
-  }
-  if (analysis.mode === 'exploratory' || analysis.verdict === 'indeterminate') {
-    setNoStore(reply);
-  } else {
-    setImmutableCache(reply);
-  }
+  const settled =
+    analysis.policyVersion === SIGNATURE_POLICY_VERSION &&
+    analysis.mode !== 'exploratory' &&
+    analysis.verdict !== 'indeterminate';
+  if (settled) setImmutableCache(reply);
+  else setNoStore(reply);
   return analysis;
 }
 

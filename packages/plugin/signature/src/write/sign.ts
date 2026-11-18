@@ -5,20 +5,28 @@
  * detached CMS; `cancelPending` cancels. The parked signing, the sealed
  * field's facts and `onSigned` come from the confirmed events the engine
  * publishes for each step (`sync/signatures.ts`), for every session alike.
+ * A seal is followed by its validation data when the settings ask for it
+ * (`write/validation-info.ts`).
  */
 import { PluginError, type OperationOptions } from '@embedpdf/core';
+import type { CmsSigner } from '@embedpdf/core-signature';
 import type {
   DocumentHandle,
   FormFieldRef,
-  SignatureCompleteResult,
   SignaturePrepared,
 } from '@embedpdf/engine-core/runtime';
 
-import type { PrepareSignatureInput, SignatureCapability, SignFieldInput } from '../contract';
+import type {
+  PrepareSignatureInput,
+  SignatureCapability,
+  SignFieldInput,
+  SignFieldResult,
+} from '../contract';
 import type { SignatureReads } from '../read/signatures';
 import type { SignatureContext, SignatureServices } from '../services';
 import { verb } from '../services/errors';
 import type { SignaturesMirror } from '../sync/signatures';
+import type { SignatureValidationInfo } from './validation-info';
 
 export function createSigning(
   ctx: SignatureContext,
@@ -26,13 +34,23 @@ export function createSigning(
   { api: reads }: Pick<SignatureReads, 'api'>,
   target: { clearIfTarget(field: FormFieldRef): void },
   signatures: Pick<SignaturesMirror, 'disown'>,
+  { afterSeal }: Pick<SignatureValidationInfo, 'afterSeal'>,
 ) {
   const { withBusy, requireSignatures } = store;
-  const { resolveKey, assertAllowedField } = authority;
+  const { resolveKey, resolveTimestampAuthority, timestampTrust, assertAllowedField } = authority;
   const { bytesOf, markBytes } = marks;
 
-  /** Two-phase signings this session prepared: the version each one must complete against. */
-  const prepared = new Map<string, SignaturePrepared>();
+  /**
+   * Two-phase signings this session prepared: what each one must complete against, and the
+   * timestamp authority it was prepared with room for.
+   */
+  const prepared = new Map<
+    string,
+    { prepared: SignaturePrepared; timestampAuthority: CmsSigner | null }
+  >();
+
+  /** The room a signature needs when it will carry a timestamp token. */
+  const TIMESTAMPED_CONTENTS_SIZE = 16384;
 
   const cancelled = (signal: AbortSignal): PluginError =>
     new PluginError('operation-cancelled', 'signature', 'signing cancelled', {
@@ -84,7 +102,7 @@ export function createSigning(
   const sign = async (
     input: SignFieldInput,
     options?: OperationOptions,
-  ): Promise<SignatureCompleteResult> => {
+  ): Promise<SignFieldResult> => {
     assertMaySign(input, 'signature.sign');
     if (options?.signal?.aborted) throw cancelled(options.signal);
     return withBusy(async () => {
@@ -101,6 +119,7 @@ export function createSigning(
       const signer = { ...(subject ? { name: subject } : {}), ...input.signer };
       // The appearance is the mark: its page is drawn into the widget by the engine.
       const appearance = (await appearanceOf(input))!;
+      const timestampAuthority = resolveTimestampAuthority(input.timestampAuthority);
       const result = await signDocument(doc, {
         field: input.field,
         key,
@@ -108,9 +127,10 @@ export function createSigning(
         certify: input.certify,
         lock: input.lock,
         appearance: { pdf: appearance },
+        ...(timestampAuthority ? { timestampAuthority, timestampTrust: timestampTrust() } : {}),
       });
       target.clearIfTarget(input.field);
-      return result;
+      return afterSeal(result, options?.signal);
     });
   };
 
@@ -122,6 +142,7 @@ export function createSigning(
     return withBusy(async () => {
       const signatures = requireSignatures();
       const appearance = await appearanceOf(input);
+      const timestampAuthority = resolveTimestampAuthority(input.timestampAuthority);
       const pending = signatures.prepare({
         field: input.field,
         signer: input.signer,
@@ -130,9 +151,11 @@ export function createSigning(
         subFilter: input.subFilter,
         digest: input.digest,
         ...(appearance ? { appearance: { pdf: appearance } } : {}),
+        // The token has to fit the room reserved now: the completion can't make more.
+        ...(timestampAuthority ? { contentsSizeBytes: TIMESTAMPED_CONTENTS_SIZE } : {}),
       });
       const result = await ctx.cancellable(options?.signal, pending);
-      prepared.set(result.signingId, result);
+      prepared.set(result.signingId, { prepared: result, timestampAuthority });
       return result;
     });
   };
@@ -141,7 +164,7 @@ export function createSigning(
     signingId: string,
     cms: Uint8Array,
     options?: OperationOptions,
-  ): Promise<SignatureCompleteResult> => {
+  ): Promise<SignFieldResult> => {
     // Its field was checked when it was prepared; the engine checks it again.
     if (options?.signal?.aborted) throw cancelled(options.signal);
     return withBusy(async () => {
@@ -154,14 +177,18 @@ export function createSigning(
           `no signing '${signingId}' was prepared in this session`,
         );
       }
-      const result = await signatures.complete({
-        signingId,
+      // The second half of the package's `sign()`: the CMS is checked against what was
+      // prepared, timestamped, checked again, then completed. A failure leaves it parked.
+      const { completeSignature: complete } = await import('@embedpdf/core-signature');
+      const { timestampAuthority } = parked;
+      const result = await complete({ signatures } as unknown as DocumentHandle, {
+        prepared: parked.prepared,
         cms,
-        expectedVersion: parked.expectedVersion,
+        ...(timestampAuthority ? { timestampAuthority, timestampTrust: timestampTrust() } : {}),
       });
       prepared.delete(signingId);
       target.clearIfTarget(result.signature.field);
-      return result;
+      return afterSeal(result, options?.signal);
     });
   };
 

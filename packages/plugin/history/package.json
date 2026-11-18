@@ -1,6 +1,6 @@
 {
   "name": "@embedpdf/plugin-history",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "private": false,
   "description": "Undo and redo per open document, built on the document's change queue: every change the viewer's plugins stage is a step, undone by reference while still pending.",
   "type": "module",
@@ -9,6 +9,7 @@
   "types": "./dist/index.d.cts",
   "exports": {
     ".": "./src/index.ts",
+    "./commands": "./src/commands.ts",
     "./contract": "./src/contract.ts",
     "./package.json": "./package.json"
   },
@@ -20,6 +21,10 @@
       ".": {
         "import": "./dist/index.js",
         "require": "./dist/index.cjs"
+      },
+      "./commands": {
+        "import": "./dist/commands.js",
+        "require": "./dist/commands.cjs"
       },
       "./contract": {
         "import": "./dist/contract.js",

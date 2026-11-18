@@ -1,8 +1,9 @@
 import * as asn1js from 'asn1js';
 import * as pkijs from 'pkijs';
 
-import { ensureEngine } from '../cms/engine';
+import { ensureEngine, randomPositiveInteger, toArrayBuffer } from '../cms/engine';
 import { OID, WEBCRYPTO_HASH } from '../cms/oids';
+import { x509Time } from '../cms/time';
 
 /**
  * A self-signed certificate over a WebCrypto key pair: the shape a personal
@@ -18,13 +19,39 @@ export async function selfSignedCertificate(input: {
   /** Validity in days; default one year. */
   validityDays?: number;
 }): Promise<Uint8Array> {
+  return buildSelfSignedCertificate(input, 'signing');
+}
+
+/**
+ * A self-signed certificate for a timestamp authority. Timestamping is its only purpose, in a
+ * critical extended key usage (RFC 3161 §2.3), and its key usage is `digitalSignature` alone:
+ * what a validator such as OpenSSL requires before it accepts a token signed with it.
+ */
+export async function timestampAuthorityCertificate(input: {
+  publicKey: CryptoKey;
+  privateKey: CryptoKey;
+  commonName: string;
+  hash: 'sha256' | 'sha384' | 'sha512';
+  /** Validity in days; default one year. */
+  validityDays?: number;
+}): Promise<Uint8Array> {
+  return buildSelfSignedCertificate(input, 'timestamping');
+}
+
+async function buildSelfSignedCertificate(
+  input: {
+    publicKey: CryptoKey;
+    privateKey: CryptoKey;
+    commonName: string;
+    hash: 'sha256' | 'sha384' | 'sha512';
+    validityDays?: number;
+  },
+  purpose: 'signing' | 'timestamping',
+): Promise<Uint8Array> {
   ensureEngine();
   const cert = new pkijs.Certificate();
   cert.version = 2;
-  const serial = new Uint8Array(8);
-  globalThis.crypto.getRandomValues(serial);
-  serial[0] &= 0x7f;
-  cert.serialNumber = new asn1js.Integer({ valueHex: serial.buffer });
+  cert.serialNumber = new asn1js.Integer({ valueHex: toArrayBuffer(randomPositiveInteger()) });
   const name = new pkijs.AttributeTypeAndValue({
     type: OID.commonName,
     value: new asn1js.Utf8String({ value: input.commonName }),
@@ -32,11 +59,14 @@ export async function selfSignedCertificate(input: {
   cert.issuer.typesAndValues.push(name);
   cert.subject.typesAndValues.push(name);
   const now = Date.now();
-  cert.notBefore.value = new Date(now - 24 * 3600 * 1000);
-  cert.notAfter.value = new Date(now + (input.validityDays ?? 365) * 24 * 3600 * 1000);
-  const basicConstraints = new pkijs.BasicConstraints({ cA: true });
-  // digitalSignature (bit 0) | keyCertSign (bit 5)
-  const keyUsage = new asn1js.BitString({ valueHex: new Uint8Array([0x84]).buffer, unusedBits: 2 });
+  cert.notBefore = x509Time(new Date(now - 24 * 3600 * 1000));
+  cert.notAfter = x509Time(new Date(now + (input.validityDays ?? 365) * 24 * 3600 * 1000));
+  const timestamping = purpose === 'timestamping';
+  const basicConstraints = new pkijs.BasicConstraints({ cA: !timestamping });
+  // A signer: digitalSignature (bit 0) | keyCertSign (bit 5). An authority: digitalSignature alone.
+  const keyUsage = timestamping
+    ? new asn1js.BitString({ valueHex: new Uint8Array([0x80]).buffer, unusedBits: 7 })
+    : new asn1js.BitString({ valueHex: new Uint8Array([0x84]).buffer, unusedBits: 2 });
   cert.extensions = [
     new pkijs.Extension({
       extnID: OID.basicConstraints,
@@ -46,6 +76,17 @@ export async function selfSignedCertificate(input: {
     }),
     new pkijs.Extension({ extnID: OID.keyUsage, critical: true, extnValue: keyUsage.toBER(false) }),
   ];
+  if (timestamping) {
+    const extendedKeyUsage = new pkijs.ExtKeyUsage({ keyPurposes: [OID.timeStamping] });
+    cert.extensions.push(
+      new pkijs.Extension({
+        extnID: OID.extendedKeyUsage,
+        critical: true,
+        extnValue: extendedKeyUsage.toSchema().toBER(false),
+        parsedValue: extendedKeyUsage,
+      }),
+    );
+  }
   await cert.subjectPublicKeyInfo.importKey(input.publicKey);
   await cert.sign(input.privateKey, WEBCRYPTO_HASH[input.hash]);
   return new Uint8Array(cert.toSchema(true).toBER(false));
