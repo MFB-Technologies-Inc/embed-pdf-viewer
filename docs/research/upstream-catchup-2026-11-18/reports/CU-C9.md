@@ -37,6 +37,10 @@ passed its native graph check. `package-engine-framework.sh` wrote
 `EmbedPDFBindings.xcframework.zip`, 114,485,572 bytes, SwiftPM checksum
 `6d04a49d8859b715a85ce2b4d767ee932838f41e43054e68330c67a9b4572470`; each of its three
 `EmbedPDFBindings` binaries holds the three `EPDFDss_*` symbols per architecture.
+The final review's check (`llvm-nm -gUj` on the four slice archives in the fork tree's
+`artifacts/`) found `EPDFDoc_GetLoadedObjectValue`, `EPDFPage_AddViewportRaw`,
+`EPDFPage_GetViewportRaw` and `EPDFPage_RemoveViewportRaw` in all four, each archive's
+`libembedpdf.a` matching the sha256 above.
 `apple-engine-hash.sh` gives `eda11a35f09a0134` for this tree, the release CU-C10 would publish.
 `APPLE_CRATES` matches `cargo metadata`'s crates under `epdf-viewer-host` (none missing, none
 extra), so it is unchanged.
@@ -130,10 +134,10 @@ Logs in `tmp/cu1118/logs/CU-C9/` of the host checkout: `slices.log`, `build-xcfr
 ## Cleanup
 
 Host free space (`df -g /System/Volumes/Data`) read 429 GB at the start and is in the implementer
-report for the end, after the worktrees go; `/workspaces` was not touched (12 GB). The host
-worktrees `.claude/worktrees/cu1118-swift` (4.1 GB with its `target`, `platforms/apple/.build`,
-both xcframeworks and `node_modules`) and `.claude/worktrees/cu1118-swift-base` (308 MB) are removed
-after the branch is committed; the test runs' derived data lived in temporary directories the run
+report for the end, after the worktrees go; `/workspaces` was not touched (12 GB). The job's two
+host worktrees, the head checkout (4.1 GB with its `target`, `platforms/apple/.build`, both
+xcframeworks and `node_modules`) and the base checkout (308 MB), are removed after the branch is
+committed; the test runs' derived data lived in temporary directories the run
 script deletes. Kept for CU-C10: the fork tree `perf-compare/.work/fork/af480d0ce…/` (4.6 GB
 apparent, mostly APFS clones of the `17d8073d4` tree), whose four stamps let `buildFork` skip the
 slice builds when the publish runs.

@@ -39,7 +39,8 @@ without touching the clients.
 
 Decision: a request over 64 KiB is refused before it is sent; a timestamp reply may be 1 MiB and a
 revocation answer 2 MiB (`MAX_TIMESTAMP_REPLY_BYTES`, `MAX_REVOCATION_REPLY_BYTES`), passed to the
-host as `max_reply_bytes`; 10 s per attempt by default. The revocation limit is configurable,
+host as `max_reply_bytes`; the request carries `timeout_ms`, 10 s by default, and the host
+transport enforces it. The client has no timer of its own. The revocation limit is configurable,
 `HttpRevocationSourceOptions.max_reply_bytes`, as the route's `maxBytes` is.
 Reason: the brief. On a native platform the transport stands where upstream's routes stand
 (`server/timestamp-route.ts` 64 KiB and 1 MiB, `server/revocation-route.ts` 64 KiB and 2 MiB

@@ -116,5 +116,8 @@ Reason: upstream's request takes `ValidationTime | { kind: 'earliest-timestamp' 
 enum for both would give every verdict a case it never carries.
 Cost: Swift and Kotlin code that sets the field breaks. The Swift wrapper's alias
 (`platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Signature.swift:29`) needs a
-`SignatureRequestedTime` counterpart (CU-C9).
+`SignatureRequestedTime` counterpart (CU-C9). The default moves too: a caller that leaves
+`validation_time` as `None` was judged at now and is now judged at the earliest trusted timestamp
+over what each signature signed (upstream `7bd135d7f`), so its verdicts can change with no code
+change.
 Reverse: add `EarliestTimestamp` to `SignatureValidationTime` and change the field back.

@@ -30,8 +30,9 @@ The divergences accepted in earlier catch-ups stand as before
 
 - CU-C4b-D3. The D-1 transport carries upstream's route limits: a request over 64 KiB is refused
   before it is sent, a timestamp reply over 1 MiB or a revocation answer over `max_reply_bytes`
-  (2 MiB by default, configurable as the route's `maxBytes` is) is no answer, and an attempt times
-  out after 10 s. Upstream's browser clients (`httpTimestampAuthority`, `httpRevocationSource`)
+  (2 MiB by default, configurable as the route's `maxBytes` is) is no answer, and each attempt
+  passes `timeout_ms` (10 s by default) for the host transport to enforce; the client has no timer.
+  Upstream's browser clients (`httpTimestampAuthority`, `httpRevocationSource`)
   set no limit of their own and leave it to the routes. Cost: a reply over the limit, which the
   browser client would read, is no answer here. Reverse: drop the check and pass `u32::MAX`.
 
@@ -39,7 +40,9 @@ The divergences accepted in earlier catch-ups stand as before
 
 - D-1. Timestamps and revocation answers come from the network through one host transport trait;
   every signature-core step is ported, and Swift, Kotlin, .NET and the browser each implement the
-  transport (CU-C8). Cost: four HTTP implementations.
+  transport (CU-C8). Cost: four HTTP implementations. In practice .NET gets none: `epdf-capi` has
+  no signing, so there is nothing for a transport to serve (CU-C8a-D6). That awaits the user's
+  sign-off.
 - D-2. `core/signature/src/server/*` routes stay unported; the browser build's transport speaks
   their wire format, pinned by conformance cases. Cost: a Rust-core browser build needs the TS
   routes on its server.
@@ -222,6 +225,29 @@ The divergences accepted in earlier catch-ups stand as before
   writes a small class for a tool permission or the commands platform.
 - CU-C9-D6. The start column is `cf7fdbe7a` against its own published engine
   (`apple-engine-9c1ce4a8ff1cd488`); the head runs use the local framework.
+
+## Final review fixes (CU-final)
+
+- CU-final-D1. An over-limit reply is `TooLarge` only for a 2xx; any other status keeps its status
+  with no body. Cost: a long refusal's own message is dropped.
+- CU-final-D2. Native UUIDs and timestamp nonces draw from the OS through `getrandom` 0.3;
+  `RandomState` stays the browser's fallback before `epdf-web` installs its source. Cost: the
+  Apple framework was not rebuilt here, so the local CU-C9 framework still has the old source.
+- CU-final-D3. Kotlin answers `failed("the reply is not HTTP")` when `getResponseCode()` is -1.
+- CU-final-D4. An empty host trust slot is no `trust` setting, as upstream's `trust: null`.
+  Cost: sealing with a timestamp authority and an empty slot now accepts the token unjudged, as
+  upstream does, where it refused before.
+- CU-final-D5. The review's record fixes: CU-C8a-D9's default change, CU-C4b-D3's timeout, D-1 and
+  .NET, and the CU-C9 report's export check and cleanup wording.
+
+For CU-C10, before anything is released:
+
+- The release's Swift test runs must start `platforms/android/tests/signature-routes.mjs` and pass
+  its address as `EMBEDPDF_SIGNATURE_ROUTES`, or the route tests skip (CU-C9-D4).
+- `build-aar.sh` should check the slice's `BUILD-METADATA.json` sha against `runtime-src`, so an
+  AAR cannot link a slice from another runtime commit.
+- `scripts/cu-c8c/slices-setup.sh` needs `patch` installed in its container before any AAR is
+  released.
 
 Left for the final whole-branch review, not changed here: CU-C4a `open_candidate` with unchanged
 bytes and edits relying on two fork checks agreeing; CU-C4b's client trusting the host's reply
