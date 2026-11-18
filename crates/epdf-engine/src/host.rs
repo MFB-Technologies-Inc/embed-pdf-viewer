@@ -1232,7 +1232,13 @@ impl Host {
                 let input: f::signature::mutator::SignaturePrepareInput = field(body, "input")?;
                 let job = JobEnvelope::parse(&header.kind, body)?;
                 let session = self.sessions.session(&key)?;
-                require_some_signing(session)?;
+                // A timestamp with no field gets one made for it, which takes
+                // the right to sign the document itself (ba5f54d5f).
+                if input.field.is_some() {
+                    require_some_signing(session)?;
+                } else {
+                    session.require(DocCapability::DocSign)?;
+                }
                 if input.certify.is_some() {
                     session.require(DocCapability::DocSignCertify)?;
                 }
@@ -1248,12 +1254,33 @@ impl Host {
                 let mut prepared = value(&prepared)?;
                 prepared["digest"] = serde_json::json!({ "payload": 0 });
                 // `LocalDocumentSignaturesService.prepare` publishes the
-                // parked candidate beside the field the call named.
-                let notice = crate::session::save::DocumentEventInit::SignaturesPrepared {
-                    field: value(&input.field)?,
-                    prepared: prepared.clone(),
+                // parked candidate beside the field: the one the call named,
+                // or the one the engine made for a timestamp.
+                let named = match &input.field {
+                    Some(named) => value(named)?,
+                    None => prepared.get("field").cloned().ok_or_else(|| {
+                        EngineError::with_message(
+                            EngineErrorCode::Unknown,
+                            "the prepared signing names no field",
+                        )
+                    })?,
                 };
-                let answer = serde_json::json!({ "result": prepared });
+                let mut fields = prepared.clone();
+                if let Some(fields) = fields.as_object_mut() {
+                    fields.remove("field");
+                }
+                let notice = crate::session::save::DocumentEventInit::SignaturesPrepared {
+                    field: named,
+                    prepared: fields,
+                };
+                // `{ tag: 'signatures.prepare', result, fieldObjectNumber }`
+                // (ba5f54d5f).
+                let field_object_number =
+                    self.sessions.session(&key)?.signing().borrow().pending_field_object_number();
+                let answer = serde_json::json!({
+                    "result": prepared,
+                    "fieldObjectNumber": field_object_number,
+                });
                 self.answer_with_notice(&key, answer, notice, vec![digest])
             }
             // `WorkerHost.handleSignaturesComplete`: under the request's

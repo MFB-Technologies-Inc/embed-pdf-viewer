@@ -19,7 +19,7 @@
 use pdfium::{Document, Library, PdfSaveMode, SavedCandidate, SignaturePrepareOptions};
 use serde::{Deserialize, Serialize};
 
-use crate::auth::scope::FieldWriteAction;
+use crate::auth::scope::{DocCapability, FieldWriteAction};
 use crate::error::{EngineError, EngineErrorCode};
 use crate::features::changes::applier::ChangeAuthority;
 use crate::features::changes::op::ResourceBytes;
@@ -83,7 +83,10 @@ pub struct AppearanceInput {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SignaturePrepareInput {
-    pub field: FormFieldRef,
+    /// The field to sign. A document timestamp may leave it out: the engine
+    /// then makes one for it on the candidate (ba5f54d5f).
+    #[serde(default)]
+    pub field: Option<FormFieldRef>,
     #[serde(default)]
     pub kind: Option<SignatureKind>,
     #[serde(default)]
@@ -104,7 +107,7 @@ pub struct SignaturePrepareInput {
 }
 
 /// `SignaturePrepared`, the digest left out: it is the response's payload.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SignaturePrepared {
     pub signing_id: String,
@@ -114,6 +117,10 @@ pub struct SignaturePrepared {
     pub sub_filter: String,
     pub expected_version: DocumentVersionRef,
     pub expires_at: Option<String>,
+    /// The field the engine made for a document timestamp prepared with no
+    /// `field`, by its name; absent when a `field` was given (ba5f54d5f).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub field: Option<FormFieldRef>,
 }
 
 /// `SignatureCompleteInput`, the CMS left out: it is payload 0.
@@ -162,6 +169,9 @@ pub struct SignatureCancelResult {
 pub struct PendingSigning {
     prepared: SignaturePrepared,
     field_object_number: u32,
+    /// The field was made on the candidate, for a document timestamp that
+    /// named none.
+    made_field: bool,
     saved: SavedCandidate,
     contents_offset: u64,
     contents_hex_length: u64,
@@ -187,6 +197,13 @@ impl SigningState {
     /// The parked signing's id, if any.
     pub fn pending_id(&self) -> Option<&str> {
         self.pending.as_ref().map(|p| p.prepared.signing_id.as_str())
+    }
+
+    /// The object number of the field the parked signing goes in, on the
+    /// candidate: the one asked for, or the one made for a document
+    /// timestamp prepared with no field.
+    pub fn pending_field_object_number(&self) -> Option<u32> {
+        self.pending.as_ref().map(|p| p.field_object_number)
     }
 }
 
@@ -360,10 +377,30 @@ pub fn prepare(
             format!("a signing is pending ({id}); complete or cancel it first"),
         ));
     }
+    let kind = input.kind.unwrap_or(SignatureKind::Signature);
+    if input.field.is_none() && kind != SignatureKind::Timestamp {
+        return Err(EngineError::with_message(
+            EngineErrorCode::InvalidArg,
+            "a signature needs a `field`: only a document timestamp (`kind: 'timestamp'`) can be given one by the engine",
+        )
+        .with_details(serde_json::json!({ "field": "field" })));
+    }
     let loaded = session.document()?.document();
-    let field = resolve_field(loaded, &input.field)?;
-    let group_id = group_of_field(session, field.field_object_number)?;
-    authority.require_field_write(group_id.as_deref(), FieldWriteAction::Sign)?;
+    // None: the field is made on the candidate, below.
+    let field = input.field.as_ref().map(|f| resolve_field(loaded, f)).transpose()?;
+    let group_id = match &field {
+        Some(field) => group_of_field(session, field.field_object_number)?,
+        None => None,
+    };
+    // A timestamp with no field is the document's to sign, not a group's: a
+    // caller whose signing is narrowed to a group's fields still adds it,
+    // when they hold `doc.sign` (`authorizeCapability`).
+    if field.is_some() {
+        authority.require_field_write(group_id.as_deref(), FieldWriteAction::Sign)?;
+    } else {
+        authority.require_unprotected(DocCapability::DocSign)?;
+        authority.require(DocCapability::DocSign)?;
+    }
     let lock = match (&input.lock, &group_id) {
         (Some(lock), _) => Some(lock.clone()),
         (None, Some(group_id)) => Some(FieldLockSpec {
@@ -373,17 +410,20 @@ pub fn prepare(
         }),
         (None, None) => None,
     };
-    if field.signed {
+    if field.as_ref().is_some_and(|f| f.signed) {
         return Err(refused("the signature field is already signed"));
     }
-    if input.appearance.is_some() && field.widget.is_none() {
-        return Err(refused("the signature field has no widget to carry an appearance"));
+    if input.appearance.is_some() && field.as_ref().and_then(|f| f.widget.as_ref()).is_none() {
+        return Err(refused(if field.is_some() {
+            "the signature field has no widget to carry an appearance"
+        } else {
+            "a timestamp with a field of its own shows nowhere, so it carries no appearance"
+        }));
     }
     let algorithm = input.digest.unwrap_or(DigestAlgorithm::Sha256);
     if algorithm == DigestAlgorithm::Sha1 {
         return Err(refused("unsupported digest 'sha1'"));
     }
-    let kind = input.kind.unwrap_or(SignatureKind::Signature);
     let sub_filter = if kind == SignatureKind::Timestamp {
         "ETSI.RFC3161".to_string()
     } else {
@@ -405,6 +445,15 @@ pub fn prepare(
     let expected_version = version_ref(session, version(session)?.sha256);
 
     let candidate = open_bytes(session, &snapshot_bytes(session)?)?;
+    let made = match &field {
+        Some(_) => None,
+        None => Some(create_timestamp_field(&candidate)?),
+    };
+    let field_object_number = match (&field, &made) {
+        (Some(field), _) => field.field_object_number,
+        (None, Some(made)) => made.0,
+        (None, None) => unreachable!("a field is named or made"),
+    };
     let signer = input.signer.clone().unwrap_or_default();
     let signing_time = signer
         .signed_at
@@ -414,7 +463,7 @@ pub fn prepare(
     let lock = lock.as_ref();
     let value_obj_num = candidate
         .prepare_signature(
-            field.field_object_number,
+            field_object_number,
             &SignaturePrepareOptions {
                 subfilter,
                 digest: algorithm.native() as i32,
@@ -439,7 +488,9 @@ pub fn prepare(
             "the engine refused to author the signature (the field is signed, read-only or locked, a certification is not allowed here, the seed value requires what is not implemented, or the request is inconsistent)",
         ));
     }
-    if let (Some(_), Some(widget)) = (&input.appearance, field.widget.as_ref()) {
+    if let (Some(_), Some(widget)) =
+        (&input.appearance, field.as_ref().and_then(|f| f.widget.as_ref()))
+    {
         let pdf = appearance_pdf.ok_or_else(|| {
             EngineError::with_message(
                 EngineErrorCode::WireFormat,
@@ -468,10 +519,12 @@ pub fn prepare(
         sub_filter,
         expected_version,
         expires_at: None,
+        field: made.as_ref().map(|(_, name)| FormFieldRef::Fqn { name: name.clone() }),
     };
     session.signing().borrow_mut().pending = Some(PendingSigning {
         prepared: prepared.clone(),
-        field_object_number: field.field_object_number,
+        field_object_number,
+        made_field: made.is_some(),
         saved,
         contents_offset: sealed.contents_offset,
         contents_hex_length: sealed.contents_hex_length,
@@ -506,8 +559,15 @@ pub fn complete(
             format!("no pending signing '{}'", input.signing_id),
         ));
     };
-    let group_id = group_of_field(session, pending.field_object_number)?;
-    authority.require_field_write(group_id.as_deref(), FieldWriteAction::Sign)?;
+    // The right `prepare` took: the document's for a field made for a
+    // timestamp, else the field's.
+    if pending.made_field {
+        authority.require_unprotected(DocCapability::DocSign)?;
+        authority.require(DocCapability::DocSign)?;
+    } else {
+        let group_id = group_of_field(session, pending.field_object_number)?;
+        authority.require_field_write(group_id.as_deref(), FieldWriteAction::Sign)?;
+    }
     if pending.prepared.expected_version != input.expected_version {
         return Err(EngineError::with_message(
             EngineErrorCode::SigningVersionMismatch,
@@ -803,4 +863,82 @@ fn assert_sealed_signature(
         }
         Ok(())
     })
+}
+
+/// `EPDF_FORMFIELD_FAMILY_SIGNATURE`'s creatable family, and the widget
+/// subtype (`FPDF_ANNOT_WIDGET`).
+const TIMESTAMP_WIDGET_SUBTYPE: i32 = 20;
+/// How many names are tried before giving up: `Timestamp1` to `Timestamp64`.
+const MAX_TIMESTAMP_NAMES: u32 = 64;
+/// `FPDF_ANNOT_APPEARANCEMODE_NORMAL`.
+const NORMAL_APPEARANCE: i32 = 0;
+
+/// `createTimestampField` (`internal/timestampField.ts`, b1293b16b): make the
+/// field a document timestamp goes in, on the candidate: a signature field
+/// with a name no other field has, and one widget of no size on the first
+/// page, set to print and locked, with no appearance. The live document gets
+/// it when the signing completes, in the same revision as the timestamp.
+/// Answers its object number and name.
+fn create_timestamp_field(candidate: &Document) -> Result<(u32, String), EngineError> {
+    for attempt in 1..=MAX_TIMESTAMP_NAMES {
+        let name = format!("Timestamp{attempt}");
+        // 0: the next free object number. A name another field has is refused.
+        let Some(field_object_number) =
+            candidate.create_field(pdfium::CreatableFieldFamily::Signature, &name, 0)
+        else {
+            continue;
+        };
+        let widget_object_number = {
+            let annotation =
+                candidate.create_annotation_raw(0, TIMESTAMP_WIDGET_SUBTYPE, 0).ok_or_else(
+                    || refused("the document has no first page to put the timestamp field on"),
+                )?;
+            crate::features::annotation::write::primitives::set_rect(
+                &annotation,
+                crate::geom::PdfRect { left: 0.0, top: 0.0, right: 0.0, bottom: 0.0 },
+            )?;
+            // print (bit 3) and locked (bit 8); the rest keep their bit.
+            let mut flags = [None; 10];
+            flags[2] = Some(true);
+            flags[7] = Some(true);
+            crate::features::annotation::write::primitives::set_flags(&annotation, &flags)?;
+            annotation.object_number()
+        };
+        let attached = widget_object_number > 0
+            && candidate
+                .attach_widget(field_object_number, widget_object_number, "", 0)
+                .unwrap_or(false);
+        if !attached {
+            return Err(EngineError::with_message(
+                EngineErrorCode::Unknown,
+                "the timestamp field could not be given its widget",
+            ));
+        }
+        remove_timestamp_appearance(candidate, widget_object_number)?;
+        return Ok((field_object_number, name));
+    }
+    Err(refused(format!(
+        "the engine could not make a field for the timestamp: no name from Timestamp1 to Timestamp{MAX_TIMESTAMP_NAMES} could be used"
+    )))
+}
+
+/// `removeAppearance`: take away the appearance the widget was given when
+/// its field adopted it. A widget of no size draws nothing.
+fn remove_timestamp_appearance(candidate: &Document, widget: u32) -> Result<(), EngineError> {
+    let annotation = candidate
+        .raw_annotation_index_by_object_number(0, widget)
+        .and_then(|index| candidate.raw_annotation(0, index))
+        .ok_or_else(|| {
+            EngineError::with_message(
+                EngineErrorCode::Unknown,
+                "the timestamp widget is not on its page",
+            )
+        })?;
+    if !annotation.remove_appearance(NORMAL_APPEARANCE) {
+        return Err(EngineError::with_message(
+            EngineErrorCode::Unknown,
+            "the timestamp widget kept its appearance",
+        ));
+    }
+    Ok(())
 }

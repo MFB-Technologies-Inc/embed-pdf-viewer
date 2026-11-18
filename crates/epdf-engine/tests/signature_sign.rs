@@ -823,3 +823,76 @@ fn signature_reads_are_gated_as_the_typescript_gates_them() {
     );
     assert_eq!(bytes["error"]["code"], json!("Forbidden"), "{bytes}");
 }
+
+// ── a document timestamp with no field (ba5f54d5f, b1293b16b) ────────────
+
+#[test]
+fn a_document_timestamp_needs_no_field_and_the_engine_makes_one() {
+    let mut host = Host::new();
+    let (doc, page) = sig_open_fixture(&mut host, &format!("{FIX}/unsigned_sigfield.pdf"));
+    let prepared = envelope(
+        &mut host,
+        json!({ "kind": "signatures.prepare", "docId": doc, "input": { "kind": "timestamp" } }),
+        Vec::new(),
+    );
+    assert_eq!(prepared["result"]["result"]["field"], fqn("Timestamp1"), "{prepared}");
+    assert_eq!(prepared["result"]["result"]["subFilter"], json!("ETSI.RFC3161"));
+    assert!(prepared["result"]["fieldObjectNumber"].as_u64().is_some_and(|n| n > 0), "{prepared}");
+    assert_eq!(prepared["event"]["type"], json!("signatures.prepared"));
+    assert_eq!(prepared["event"]["field"], fqn("Timestamp1"), "{prepared}");
+    let prepared = prepared["result"]["result"].clone();
+    let done = envelope(
+        &mut host,
+        json!({ "kind": "signatures.complete", "docId": doc, "opId": "ts-1",
+            "input": { "signingId": prepared["signingId"],
+                "expectedVersion": prepared["expectedVersion"] } }),
+        vec![PLACEHOLDER_CMS.to_vec()],
+    );
+    let signature = &done["result"]["result"]["signature"];
+    assert_eq!(signature["kind"], json!("timestamp"), "{done}");
+    assert_eq!(signature["fieldName"], json!("Timestamp1"));
+    assert_eq!(signature["coverage"], json!("whole-revision"));
+    assert_eq!(signature["revisionIndex"], json!(1));
+    let form = sig_call(&mut host, json!({ "kind": "forms.list", "docId": doc }));
+    let form = if form.get("snapshot").is_some() { form["snapshot"].clone() } else { form };
+    let widget = form["widgets"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|w| w["ref"]["objectNumber"] == signature["widget"]["objectNumber"])
+        .unwrap_or_else(|| panic!("no widget in {form}"));
+    assert_eq!(widget["page"], page_ref(page), "{widget}");
+    assert_eq!(widget["rect"]["width"].as_f64(), Some(0.0));
+    assert_eq!(widget["rect"]["height"].as_f64(), Some(0.0));
+    assert_eq!(
+        (&widget["print"], &widget["locked"], &widget["hidden"]),
+        (&json!(true), &json!(true), &json!(false))
+    );
+    // The next one gets the next name.
+    let next = envelope(
+        &mut host,
+        json!({ "kind": "signatures.prepare", "docId": doc, "input": { "kind": "timestamp" } }),
+        Vec::new(),
+    );
+    assert_eq!(next["result"]["result"]["field"], fqn("Timestamp2"), "{next}");
+}
+
+#[test]
+fn only_a_document_timestamp_may_leave_the_field_out() {
+    let mut host = Host::new();
+    let (doc, _) = sig_open_fixture(&mut host, &format!("{FIX}/unsigned_sigfield.pdf"));
+    let refused = envelope(
+        &mut host,
+        json!({ "kind": "signatures.prepare", "docId": doc, "input": {} }),
+        Vec::new(),
+    );
+    assert_eq!(refused["error"]["code"], json!("InvalidArg"), "{refused}");
+    assert_eq!(refused["error"]["details"]["field"], json!("field"), "{refused}");
+    let drawn = envelope(
+        &mut host,
+        json!({ "kind": "signatures.prepare", "docId": doc,
+            "input": { "kind": "timestamp", "appearance": { "pdf": { "payload": 0 } } } }),
+        vec![fixture("unsigned_sigfield.pdf")],
+    );
+    assert_eq!(drawn["error"]["code"], json!("SignatureRefused"), "{drawn}");
+}

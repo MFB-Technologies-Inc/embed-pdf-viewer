@@ -140,6 +140,13 @@ impl PageView<'_> {
 }
 
 impl Annotation<'_> {
+    /// Remove the appearance stream of `mode` (`FPDFAnnot_SetAP` with no
+    /// stream): for the normal appearance, the whole `/AP` goes.
+    pub fn remove_appearance(&self, mode: i32) -> bool {
+        // SAFETY: the handle is live; a NULL value removes the entry.
+        unsafe { pdfium_sys::FPDFAnnot_SetAP(self.as_raw(), mode, std::ptr::null()) != 0 }
+    }
+
     /// `/Rect`.
     pub fn set_rect(&self, rect: RectF) -> bool {
         let rect = pdfium_sys::FS_RECTF {
