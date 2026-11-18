@@ -22,13 +22,14 @@ use serde_json::{Map, Value, json};
 use crate::cms::{
     BuildInput, Profile, RawAlgorithm, RawSigner, build_detached_cms, verify_cms_signature,
 };
+use crate::collect::{AddValidationInfoOptions, add_validation_info};
 use crate::der;
 use crate::gate::{CompletionProfile, Prepared, verify_for_completion};
 use crate::judgement::Requested;
 use crate::oids::Digest;
 use crate::parse::{bytes_json, parse_detached_cms};
 use crate::revocation::http_source::{HttpRevocationSourceOptions, http_revocation_source};
-use crate::revocation::source::RevocationRequest;
+use crate::revocation::source::{RevocationRequest, RevocationSource};
 use crate::sign::{CmsSignRequest, CmsSigner, SignerPort, profile_for, sign};
 use crate::signers::{
     CryptoKey, CryptoKeyPair, MemoryKeyStore, PersonalKeyRecord, PersonalKeyStore, WebCrypto,
@@ -291,6 +292,28 @@ fn signer_port(h: &Harness, value: &Value) -> Result<SignerPort, Error> {
     }
 }
 
+struct ScriptedSource {
+    harness: Harness,
+    spec: Value,
+}
+
+impl RevocationSource for ScriptedSource {
+    fn fetch(&self, request: RevocationRequest) -> Promise<Vec<u8>> {
+        let mut asked = Map::new();
+        asked.insert("kind".into(), json!(request.kind()));
+        asked.insert("url".into(), json!(request.url()));
+        if let RevocationRequest::Ocsp { body, .. } = &request {
+            asked.insert("body".into(), bytes_json(body));
+        }
+        scripted(&self.harness, &self.spec, vec![Value::Object(asked)]).map(|v| Ok(bytes(&v)))
+    }
+}
+
+fn revocation_source(h: &Harness, value: Option<&Value>) -> Option<Rc<dyn RevocationSource>> {
+    let spec = present(value)?.get("fetch")?.clone();
+    Some(Rc::new(ScriptedSource { harness: h.clone(), spec }))
+}
+
 struct ScriptedTrust {
     harness: Harness,
     spec: Value,
@@ -551,12 +574,41 @@ impl SignatureCapability {
                             Requested::At(ValidationTime::from_json(v))
                         }
                     }),
-                    revocation: None,
+                    revocation: revocation_source(&h, options.get("revocation")),
                     until: options.get("until").and_then(Value::as_str).map(str::to_string),
                 };
                 spawn(async move {
                     let doc = doc.ok_or_else(|| Error::new("[signature-core] no document"))?;
                     validate_signatures(doc, options).await
+                })
+            }
+            "addValidationInfo" => {
+                let doc = self.ctx.document_handle(arg(0).as_str());
+                let options = present(args.get(1)).cloned().unwrap_or(Value::Null);
+                let list = |key: &str| -> Vec<Vec<u8>> {
+                    options
+                        .get("known")
+                        .and_then(|k| k.get(key))
+                        .and_then(Value::as_array)
+                        .map(|l| l.iter().map(bytes).collect())
+                        .unwrap_or_default()
+                };
+                let options = AddValidationInfoOptions {
+                    trust: trust_port(&h, options.get("trust")),
+                    revocation: revocation_source(&h, options.get("revocation")),
+                    known_certificates: list("certificates"),
+                    known_ocsp_responses: list("ocspResponses"),
+                    known_crls: list("crls"),
+                    fields: options.get("fields").and_then(Value::as_array).cloned(),
+                    partial: options.get("partial").is_some_and(|v| v.as_bool() == Some(true)),
+                    max_crl_bytes: options
+                        .get("maxCrlBytes")
+                        .and_then(Value::as_u64)
+                        .map(|n| n as usize),
+                };
+                spawn(async move {
+                    let doc = doc.ok_or_else(|| Error::new("[signature-core] no document"))?;
+                    add_validation_info(doc, options).await
                 })
             }
             "remoteSign" => {

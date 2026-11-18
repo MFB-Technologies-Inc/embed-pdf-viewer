@@ -13,6 +13,10 @@
 //! - [`sign`] and [`verdict`]: `sign()` and `validateSignatures()` over a
 //!   document handle's `signatures` service.
 //! - [`signers`]: the signer ports over a host's WebCrypto.
+//! - [`judgement`], [`long_term`] and [`revocation`]: revocation answers
+//!   and long-term validation; [`collect`]: `addValidationInfo`.
+//! - [`attach`], [`timestamp_http`] and [`transport`]: timestamping a
+//!   signature, an authority over HTTP, and the host transport (D-1).
 //!
 //! The crate links no PDFium. WebCrypto is the host's ([`signers::WebCrypto`]),
 //! as are trust anchors ([`trust::TrustPort`]) and key storage
@@ -46,18 +50,30 @@ pub mod verify_timestamp;
 #[cfg(feature = "harness")]
 pub mod harness;
 
+pub use attach::attach_signature_timestamp;
 pub use cms::{
     BuildInput, Cryptography, Profile, RawAlgorithm, RawSigner, build_detached_cms,
     verify_cms_signature,
 };
+pub use collect::{AddValidationInfoOptions, add_validation_info};
 pub use gate::{CompletionProfile, Gate, Prepared, verify_for_completion};
+pub use judgement::Requested;
 pub use oids::Digest;
 pub use parse::{CmsContent, ParseError, ParsedCms, parse_detached_cms};
+pub use revocation::http_source::{HttpRevocationSourceOptions, http_revocation_source};
+pub use revocation::source::{RevocationRequest, RevocationSource};
 pub use sign::{CmsSignRequest, CmsSigner, SignerPort, profile_for, sign, signing_refused};
+pub use sign::{TimestampOptions, complete_signature, sign_with};
 pub use signers::{TestTimestampAuthority, create_test_timestamp_authority};
 pub use timestamp::{TimestampInfo, build_timestamp_token, read_timestamp_info};
+pub use timestamp_http::{
+    HttpTimestampAuthorityOptions, ecdsa_raw_from_der, http_timestamp_authority,
+};
+pub use transport::{
+    HttpTransport, RecordedTransport, TransportHeader, TransportOutcome, TransportRequest,
+};
 pub use trust::{TrustPort, TrustStatus, TrustVerdict, ValidationTime, validate_chain};
-pub use verdict::{ValidateOptions, validate_signatures};
+pub use verdict::{ValidateOptions, validate_signatures, verify_timestamp_token};
 
 /// A number as JavaScript's `String(n)` prints it.
 pub fn number_text(n: f64) -> String {

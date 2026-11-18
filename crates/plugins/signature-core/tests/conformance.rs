@@ -36,3 +36,8 @@ fn signers_match_the_typescript() {
 fn timestamps_over_http_and_the_revocation_route_match_the_typescript() {
     replay("core/signature-timestamp.json");
 }
+
+#[test]
+fn revocation_long_term_and_collecting_match_the_typescript() {
+    replay("core/signature-revocation.json");
+}

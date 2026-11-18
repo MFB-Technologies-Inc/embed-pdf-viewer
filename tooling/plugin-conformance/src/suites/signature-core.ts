@@ -31,8 +31,10 @@ import { fileURLToPath } from 'node:url';
 import type { AnyPlugin } from '@embedpdf/core';
 
 import {
+  addValidationInfo,
   buildDetachedCms,
   certificateCommonName,
+  createTestCertificateAuthority,
   createTestSigner,
   ecdsaRawFromDer,
   generateSigningKeyPair,
@@ -55,6 +57,8 @@ import {
   type RawSigner,
 } from '../../../../packages/core/signature/src/index';
 import { buildTestToken } from '../../../../packages/core/signature/test/helpers/tokens';
+import { certificateFromDer } from '../../../../packages/core/signature/src/cms/parse';
+import { buildOcspRequest } from '../../../../packages/core/signature/src/revocation/request';
 
 import type { FakeDocumentSpec, ResponseSpec } from '../fake-engine';
 import { registerPlugin, type PluginEnv, type ScenarioCase, type Step } from '../scenario';
@@ -318,6 +322,8 @@ function signaturePlugin(env: PluginEnv): AnyPlugin {
           }
         })(),
       verifyTimestampToken: (input: Parameters<typeof verifyTimestampToken>[0]) => verifyTimestampToken(input),
+      addValidationInfo: (documentId: string, options: Parameters<typeof addValidationInfo>[1]) =>
+        addValidationInfo(ctx.documentHandle(documentId)!, options),
       ecdsaRawFromDer: (der: Uint8Array, curve: Parameters<typeof ecdsaRawFromDer>[1]) => ecdsaRawFromDer(der, curve),
       memoryKeyStore: async (ops: { op: 'load' | 'save' | 'remove'; subject: string; record?: unknown }[]) => {
         const store = memoryKeyStore();
@@ -1307,6 +1313,138 @@ const longTermCases: ScenarioCase[] = [
   ]),
 ];
 
+// ── revocation answers, long-term validation, addValidationInfo ─────────────
+
+/**
+ * A test certificate authority and what it serves, made once under the scripted WebCrypto with
+ * its clock at 2026-01-15 (upstream `8a143eecf`), so every byte is the same each run: a signer
+ * it vouches for and one it withdrew a day before, their OCSP answers and its CRL, and a CAdES
+ * signature by each.
+ */
+const authority = await withWebCrypto(() => {}, async () => {
+  const at = new Date(JAN_2026);
+  const ca = await createTestCertificateAuthority({ now: () => at });
+  const good = await ca.issueSigner({ commonName: 'Long-Term Signer' });
+  const withdrawn = await ca.issueSigner({ commonName: 'Withdrawn Signer' });
+  ca.revoke(withdrawn, { at: new Date(JAN_2026 - 24 * 3600 * 1000), reason: 'key-compromise' });
+  const root = certificateFromDer(ca.certificate);
+  const ocspFor = async (certificate: Uint8Array) =>
+    ca.revocation.fetch({
+      kind: 'ocsp',
+      url: 'http://test-authority.example/ocsp',
+      body: await buildOcspRequest(certificateFromDer(certificate), root),
+    });
+  const digest = digestBytes(32, 21);
+  const cmsBy = (signer: typeof good) => buildDetachedCms({ digest, hash: 'sha256', profile: 'cades-b', signer });
+  return {
+    root: ca.certificate,
+    good: good.certificate,
+    ocspGood: await ocspFor(good.certificate),
+    ocspWithdrawn: await ocspFor(withdrawn.certificate),
+    ocspUnknown: await ocspFor(ca.certificate),
+    crl: await ca.revocation.fetch({ kind: 'crl', url: 'http://test-authority.example/crl' }),
+    issuer: await ca.revocation.fetch({ kind: 'issuer', url: 'http://test-authority.example/issuer' }),
+    digest,
+    cmsGood: await cmsBy(good),
+    cmsWithdrawn: await cmsBy(withdrawn),
+  };
+});
+const $bytesOf = (b64text: string) => bytesOf(b64text);
+const ltvTrust = { anchors: { $fn: 'trust.anchors', resolves: [$b(b64(authority.root))] } };
+const stored = (over: { certificates?: Uint8Array[]; ocspResponses?: Uint8Array[]; crls?: Uint8Array[] } = {}) => ({
+  certificates: (over.certificates ?? []).map((d) => $b(b64(d))),
+  ocspResponses: (over.ocspResponses ?? []).map((d) => $b(b64(d))),
+  crls: (over.crls ?? []).map((d) => $b(b64(d))),
+});
+const ltvSignature = {
+  index: 0,
+  field: { kind: 'fqn', name: 'Sig1' },
+  fieldName: 'Sig1',
+  widget: null,
+  signed: true,
+  kind: 'signature',
+  filter: 'Adobe.PPKLite',
+  subFilter: 'ETSI.CAdES.detached',
+  byteRange: [0, 100, 8292, 50],
+  contentsSizeBytes: 8192,
+  coverage: 'whole-revision',
+  revisionIndex: 0,
+  signer: { name: 'Long-Term Signer' },
+  docMdp: null,
+  catalogCertification: false,
+  fieldMdp: null,
+  lock: null,
+  seedValue: null,
+};
+/** A document whose one signature is `cms`, with `info` as its validation data. */
+const ltvDoc = (cms: Uint8Array, info: ReturnType<typeof stored>, more: ResponseSpec[] = []): Record<string, FakeDocumentSpec> => ({
+  d: {
+    pages: [],
+    services: ['signatures'],
+    responses: [
+      { path: 'signatures.list', value: { chainValid: true, revisions: [{ index: 0 }], signatures: [ltvSignature], protection: {} } },
+      { path: 'signatures.getValidationInfo', value: info },
+      { path: 'signatures.getContents', value: $b(b64(cms)) },
+      { path: 'signatures.getDigest', value: $b(b64(authority.digest)) },
+      ...more,
+    ],
+  },
+});
+const stampedAt = { kind: 'timestamp', stampedAt: iso(JAN_2026), tokenVerified: true };
+const source = (answer: Uint8Array | null) => ({
+  fetch: answer
+    ? { $fn: 'revocation.fetch', resolves: $b(b64(answer)) }
+    : { $fn: 'revocation.fetch', rejects: { name: 'EngineError', code: 'Network', message: 'no answer', details: { source: 'x' } } },
+});
+const stores = (added: Record<string, number>): ResponseSpec => ({
+  path: 'signatures.addValidationInfo',
+  value: { added: { certificates: 0, ocspResponses: 0, crls: 0, ...added } },
+});
+
+const revocationCases: ScenarioCase[] = [
+  scenario('ltv-ocsp-good', "A stored OCSP answer from the authority's responder says the signer was good.", [
+    call('validateSignatures', 'd', { trust: ltvTrust, validationTime: stampedAt }),
+  ], ltvDoc(authority.cmsGood, stored({ ocspResponses: [authority.ocspGood] }))),
+  scenario('ltv-crl-shared-serial', 'Under the scripted WebCrypto every serial is 5a5a5a5a5a5a5a5a, so the CRL that withdraws one signer lists the other: a CRL entry matches by serial number alone.', [
+    call('validateSignatures', 'd', { trust: ltvTrust, validationTime: stampedAt }),
+  ], ltvDoc(authority.cmsGood, stored({ crls: [authority.crl] }))),
+  scenario('ltv-withdrawn', 'The CRL says the signer was withdrawn the day before: revoked, and the verdict is invalid.', [
+    call('validateSignatures', 'd', { trust: ltvTrust, validationTime: stampedAt }),
+  ], ltvDoc(authority.cmsWithdrawn, stored({ ocspResponses: [authority.ocspWithdrawn], crls: [authority.crl] }))),
+  scenario('ltv-answers-about-others', 'Bytes that are no answer say nothing; the authority answers by serial, the same for every certificate here, so its OCSP answers speak for the signer.', [
+    call('validateSignatures', 'd', { trust: ltvTrust, validationTime: stampedAt }),
+  ], ltvDoc(authority.cmsGood, stored({ ocspResponses: [authority.ocspUnknown, authority.ocspWithdrawn, $bytesOf('AQID')], crls: [$bytesOf('AQID')] }))),
+  scenario('ltv-now-without-answers', 'Judged now with nothing stored: no answer speaks for now.', [
+    call('validateSignatures', 'd', { trust: ltvTrust, validationTime: { kind: 'now' } }),
+    call('validateSignatures', 'd', { trust: ltvTrust }),
+  ], ltvDoc(authority.cmsGood, stored())),
+  scenario('ltv-asks-the-source', 'validateSignatures with a revocation source asks it for what the file lacks, and uses the answer.', [
+    call('validateSignatures', 'd', { trust: ltvTrust, validationTime: stampedAt, revocation: source(authority.ocspGood) }),
+  ], ltvDoc(authority.cmsGood, stored())),
+  scenario('collect-needs-trust', 'addValidationInfo without trust is refused before anything is asked.', [
+    call('addValidationInfo', 'd', {}),
+  ], ltvDoc(authority.cmsGood, stored())),
+  scenario('collect-no-timestamp', 'All or nothing: a signature with no trusted timestamp is refused, and nothing is stored.', [
+    call('addValidationInfo', 'd', { trust: ltvTrust, revocation: source(authority.ocspGood) }),
+  ], ltvDoc(authority.cmsGood, stored(), [stores({})])),
+  scenario('collect-partial', 'partial: what there is is stored, and the verdicts say what is missing.', [
+    call('addValidationInfo', 'd', { trust: ltvTrust, revocation: source(authority.ocspGood), partial: true }),
+  ], ltvDoc(authority.cmsGood, stored(), [stores({ certificates: 2 })])),
+  scenario('collect-partial-unanswered', 'partial with a source that does not answer, and with known answers.', [
+    call('addValidationInfo', 'd', { trust: ltvTrust, revocation: source(null), partial: true }),
+    call('addValidationInfo', 'd', {
+      trust: ltvTrust,
+      known: { certificates: [$b(b64(authority.issuer))], ocspResponses: [$b(b64(authority.ocspGood))], crls: [$b(b64(authority.crl))] },
+      partial: true,
+      maxCrlBytes: 10,
+    }),
+  ], ltvDoc(authority.cmsGood, stored(), [stores({ certificates: 2 })])),
+  scenario('collect-fields', 'fields picks the signatures to cover; a field with no signature is NotFound.', [
+    call('addValidationInfo', 'd', { trust: ltvTrust, fields: [{ kind: 'fqn', name: 'Sig1' }], partial: true }),
+    call('addValidationInfo', 'd', { trust: ltvTrust, fields: [{ kind: 'objectNumber', objectNumber: 9 }] }),
+  ], ltvDoc(authority.cmsGood, stored(), [stores({ certificates: 2 })])),
+];
+
 export const suites: Suite[] = [
   {
     kind: 'function',
@@ -1346,5 +1484,12 @@ export const suites: Suite[] = [
     describes:
       'packages/core/signature: httpTimestampAuthority and httpRevocationSource over a scripted transport (the D-1 request and reply, the D-2 route request), verifyTimestampToken, ecdsaRawFromDer.',
     cases: longTermCases,
+  },
+  {
+    kind: 'scenario',
+    file: 'core/signature-revocation.json',
+    describes:
+      'packages/core/signature: revocation answers from a test certificate authority, long-term validation, and addValidationInfo.',
+    cases: revocationCases,
   },
 ];
