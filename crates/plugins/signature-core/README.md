@@ -8,12 +8,12 @@ the signer ports. Document timestamps (`sign` with `kind: 'timestamp'`, `cms/tim
 `complete_signature`), the RFC 3161 protocol and `httpTimestampAuthority`, revocation answers and
 long-term validation (`revocation/`, `judgement.rs`, `long_term.rs`), `addValidationInfo`
 (`collect.rs`), and the host transport both HTTP clients send through (`transport.rs`, decision
-D-1 of the 2026-11-18 catch-up). All 503 cases in the eight `vectors/core/signature-*.json` files
+D-1 of the 2026-11-18 catch-up). All 511 cases in the eight `vectors/core/signature-*.json` files
 replay identically (`cargo test -p epdf-signature-core`): 204 parse cases, 97 for verify, build
 and the gate, 96 for trust, 35 for signing and validation over a document, 28 for the signers, 17
 for the timestamp and revocation clients over a scripted transport, 11 for revocation answers,
-long-term validation and collecting, and 15 for trusted timestamps, attaching and answers branch
-by branch.
+long-term validation and collecting, and 23 for trusted timestamps, attaching, issuer fetching and answers
+branch by branch.
 
 ## What ports and what the host supplies
 
@@ -95,7 +95,7 @@ These are recorded rather than fixed; the TypeScript is the oracle.
   over 64 KiB is refused before it is sent; neither client can build one that large.
 - OCSP responses, CRLs and TimeStampResp go through pkijs's schemas with the same
   `compareSchema` walk a TSTInfo does (`timestamp.rs`), so form, the order of optional members and
-  what is never looked at match pkijs; `core/signature-long-term.json` checks 36 answers branch by
+  what is never looked at match pkijs; `core/signature-long-term.json` checks 45 answers branch by
   branch. Two parts are taken whole rather than walked: a certificate inside a
   `BasicOCSPResponse` (its TBS) and the `distributionPoint` of an `IssuingDistributionPoint`.
   A certificate pkijs's schema refuses there is refused here by `Certificate::read` with the

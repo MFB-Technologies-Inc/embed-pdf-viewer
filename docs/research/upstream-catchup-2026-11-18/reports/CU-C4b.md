@@ -2,10 +2,11 @@
 
 `research/catchup-2026-11-18-c4b` ports CU-C3's work order items 8 to 11 (CU-C4, engine and
 signatures) onto `618824a53`. Items 8, 10 and 11 are done. Item 9 is ported except
-`createTestCertificateAuthority`, which the vectors use at generation time only (CU-C4b-D4); after
-fix round 1, 273 of the 2,148 uncovered `core/signature` lines still have no case. The 5
-`epdf-signature-core` tests and all 77 replayed cases pass; `cargo test --workspace` fails 4
-tests, all on CU-C3's list.
+`createTestCertificateAuthority`, which the vectors use at generation time only (CU-C4b-D4). The
+`epdf-signature-core` conformance runner replays 8 files and 511 cases, the 77 CU-C3 assigned
+among them, all identical. After fix round 2, 168 of the 2,148 uncovered `core/signature` lines
+still have no case, each named below. `cargo test --workspace` fails 4 tests, all on CU-C3's
+list and assigned to CU-C5 and CU-C6.
 Decisions are in [`../decisions/CU-C4b.md`](../decisions/CU-C4b.md).
 
 ## Commits
@@ -23,7 +24,9 @@ Decisions are in [`../decisions/CU-C4b.md`](../decisions/CU-C4b.md).
 | `62f25f22f` | | This report, the decisions, the job's scripts |
 | `789f6146e` | 9 | Fix round 1: OCSP, CRL and TimeStampResp read through pkijs's schemas |
 | `990c8a3ab` | 9 | Fix round 1: `tsa` fixtures, `core/signature-long-term.json` (15 cases), `max_reply_bytes` |
-| the fix-round docs commit | | `coverage.json`, README, this report, the decisions |
+| `e125f85b7` | | Fix round 1: `coverage.json`, README, this report, the decisions |
+| `e06be2bba` | 9 | Fix round 2: 8 cases and 9 answers for `fill`, `splice` and `answer` branches, a configured reply limit |
+| the round-2 docs commit | | `coverage.json`, README, this report |
 
 ## Items
 
@@ -41,17 +44,21 @@ Decisions are in [`../decisions/CU-C4b.md`](../decisions/CU-C4b.md).
    `cms/verify-timestamp.ts`, `signers/ecdsa.ts`, `signers/timestamp-http.ts`, `gate.ts`
    timestamps, `sign.ts` (`sign_with`, `complete_signature`), `verdict.ts`, `judgement.ts`,
    `long-term.ts`, `collect.ts`, `revocation/{addresses,answer,fill,pool,request,source,status,http-source}`.
-   Not ported: `signers/test-authority.ts` (CU-C4b-D4). 43 new cases in three files. Fix round 1
+   Not ported: `signers/test-authority.ts` (CU-C4b-D4). 51 new cases in three files: fix round 1
    added a `tsa` fixture certificate (critical `id-kp-timeStamping`, as upstream's
-   `test/fixtures/long-term/timestamp-authority.cer`) and 15 cases: trusted signature and document
-   timestamps, `longTerm.enabled`, attach and splice, `completeSignature`, the gate on tokens, and
-   `checkRevocationAnswer` over 36 answers. Uncovered added lines in `core/signature`, by
-   `scripts/cu-c3/gaps.py` (`gaps-after.txt`), from 2,148 to 273: `fill.ts` 54, `splice.ts` 37,
-   `answer.ts` 27, `self-signed.ts` 21, `parse.ts` 19, `test-authority.ts` 19, `timestamp-http.ts`
-   15, `trust.ts` 12, `webcrypto.ts` 11, `cms/timestamp.ts` 9, `verify-timestamp.ts` 8,
-   `http-source.ts` 8, `gate.ts` 7, `judgement.ts` 5, `pool.ts` 5, `long-term.ts` 4,
-   `addresses.ts` 4, `attach.ts` 3, `sign.ts` 2, `status.ts` 2, `collect.ts` 1. The rest of the
-   range: 389 lines in 26 files.
+   `test/fixtures/long-term/timestamp-authority.cer`) and 15 cases, fix round 2 added 8 cases and 9
+   more answers after upstream's `test/collect.test.ts:279`, `:584` and `test/cms/splice.test.ts:103`,
+   `:150`. Uncovered added lines in `core/signature` (`scripts/cu-c3/gaps.py`, `gaps-after.txt`),
+   from 2,148 to 168:
+   - Left on purpose, as the review allowed: `self-signed.ts` 21, `test-authority.ts` 18,
+     `webcrypto.ts` 11 (WebCrypto adapters and the generation-time authority), and the error
+     branches of `parse.ts` 19, `timestamp-http.ts` 15 and `http-source.ts` 8.
+   - Unreachable after the schema walk, in TS too: `answer.ts` 224-225 (a revoked status with no
+     time; `SingleResponse.schema()` requires the GeneralizedTime).
+   - Small branches with no case yet: `trust.ts` 12, `cms/timestamp.ts` 9, `verify-timestamp.ts` 8,
+     `gate.ts` 7, `splice.ts` 6, `judgement.ts` 5, `pool.ts` 5, `answer.ts` 3 more, `long-term.ts` 4,
+     `addresses.ts` 4, `attach.ts` 3, `fill.ts` 3, `sign.ts` 2, `status.ts` 2, `collect.ts` 1.
+   The whole range: 284 lines in 26 files.
 10. Done (`086ceb417`, `10ead45d1`). See "D-1 transport trait".
 11. Done (`42a9d4da8`). `core/signature-timestamp.json` pins the `RevocationRouteRequest` JSON for
     OCSP, CRL and issuer questions and the RFC 3161 query `httpTimestampAuthority` sends, with
@@ -97,10 +104,10 @@ of outcomes and keeps the requests. The trait follows the crate's other host por
 All in container `embed-pdf-catchup1118`, worktree `/workspaces/wt/CU-C4b`,
 `CARGO_TARGET_DIR=/workspaces/target`.
 
-| Check | CU-C4a (`1239df825`) | Now (`990c8a3ab`) |
+| Check | CU-C4a (`1239df825`) | Now (`e06be2bba`) |
 |---|---|---|
-| `cargo test --workspace --no-fail-fast` | 3,487 passed, 14 failed, 2 ignored | 3,501 passed, 4 failed, 2 ignored |
-| `epdf-signature-core` `conformance` | 0 of 5 | 8 of 8 (3 new files, 503 cases) |
+| `cargo test --workspace --no-fail-fast` | 3,487 passed, 14 failed, 2 ignored | 3,502 passed, 4 failed, 2 ignored |
+| `epdf-signature-core` `conformance` | 0 of 5 | 8 of 8 (3 new files, 511 cases) |
 | engine `:check` scripts | 36 of 36 | 36 of 36 |
 | plugin vectors twice | | identical sha256 lists |
 | plugin `vectors:check`, `coverage:check`, `test:harness`, `typecheck` | all pass | all pass |
@@ -138,4 +145,4 @@ Base `618824a53`; head is the docs commit. Logs in `/workspaces/logs/CU-C4b/` an
 `tmp/cu1118/logs/CU-C4b/` of the host viewer checkout. Scripts in
 [`../scripts/cu-c4b/`](../scripts/cu-c4b/): `prep.sh`, `after.sh` (plugin vectors twice,
 `coverage`, the suite, `replay:check`), `suite.sh`. Final cargo and `replay:check` are in
-`after/` (fix round 1); the first round's logs are in `round0/`.
+`after/` (fix round 2); the earlier rounds' logs are in `round0/` and `round1/`.
