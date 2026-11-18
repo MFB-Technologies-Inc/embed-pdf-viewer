@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "wire.changeKinds",
-  "apiVersion": "3.2",
+  "apiVersion": "3.3",
   "since": {
     "annotations.create": "3.0",
     "annotations.update": "3.0",
@@ -173,7 +173,9 @@
     },
     {
       "version": "3.3",
-      "unknown": []
+      "unknown": [
+        "pages.someKindFromANewerServer"
+      ]
     },
     {
       "version": "4.0",
@@ -304,12 +306,12 @@
     {
       "version": "3.2",
       "since": "3.3",
-      "lacks": false
+      "lacks": true
     },
     {
       "version": "3.3",
       "since": null,
-      "lacks": false
+      "lacks": true
     },
     {
       "version": "3.3",
