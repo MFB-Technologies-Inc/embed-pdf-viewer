@@ -1062,9 +1062,12 @@ mod tests {
 
     #[test]
     fn js_string_is_the_kernel_number_to_string() {
-        // `js_string` and `shortest_digits` copy `epdf_kernel::js`, and
-        // `epdf_geometry::js` carries a third copy; only the tests here see
-        // all three, so they are held together over exact ties in both
+        // `js_string` and `shortest_digits` copy the kernel's
+        // `shortest_number_to_string` and `shortest_digits`; the kernel's
+        // `number_to_string` puts an integer fast path in front of them that
+        // prints the same strings. `epdf_geometry::js` carries a third copy;
+        // only the tests here see all three, so they are held together over
+        // exact ties in both
         // directions, the notation switches, subnormals, powers of two,
         // integers past 2^53, plain-notation fractions, zeros and the
         // non-finite values.
