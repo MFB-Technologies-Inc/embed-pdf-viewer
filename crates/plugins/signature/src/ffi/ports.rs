@@ -41,6 +41,14 @@ impl SignatureDigest {
             SignatureDigest::Sha512 => "sha512",
         }
     }
+
+    pub(crate) fn core(self) -> Digest {
+        match self {
+            SignatureDigest::Sha256 => Digest::Sha256,
+            SignatureDigest::Sha384 => Digest::Sha384,
+            SignatureDigest::Sha512 => Digest::Sha512,
+        }
+    }
 }
 
 /// A private key that never leaves the host, and its certificate chain
@@ -130,11 +138,7 @@ pub fn signer_port(
         SignatureKeyAlgorithm::RsaPss => RawAlgorithm::RsaPss,
         SignatureKeyAlgorithm::Ecdsa => RawAlgorithm::Ecdsa,
     };
-    let hash = match signer.digest() {
-        SignatureDigest::Sha256 => Digest::Sha256,
-        SignatureDigest::Sha384 => Digest::Sha384,
-        SignatureDigest::Sha512 => Digest::Sha512,
-    };
+    let hash = signer.digest().core();
     Ok(SignerPort::Raw(RawSigner {
         certificate_chain,
         algorithm,

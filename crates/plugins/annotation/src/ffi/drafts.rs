@@ -129,6 +129,14 @@ impl AnnotationDraftsHandle {
             .await?
     }
 
+    /// `hasCreationAwaitingClick()`: a shape made click by click waits for
+    /// its next click (a polygon or polyline corner, a callout knee or box,
+    /// a distance line placement). That click is the shape's, also where it
+    /// lands on an existing annotation.
+    pub async fn has_creation_awaiting_click(&self) -> Result<bool, ViewerError> {
+        self.cap.call(|c| Ok(open(c)?.has_creation_awaiting_click())).await
+    }
+
     pub async fn finish_ink_draft(&self) -> Result<(), ViewerError> {
         self.cap
             .call(|c| {

@@ -548,6 +548,125 @@ pub struct SignatureVerdict {
     pub validation_time: SignatureValidationTime,
     pub modifications: SignatureModifications,
     pub summary: SignatureSummary,
+    /// The signer's certificates at `validation_time`, from the answers
+    /// the file holds and those the `revocation` setting fetched.
+    pub revocation: SignatureRevocationStatus,
+    pub revocation_reason: Option<String>,
+    /// The signature's own RFC 3161 timestamp, when it carries one.
+    pub timestamp: Option<SignatureTimestampVerdict>,
+    /// Whether the file alone lets a reader check it with no network.
+    pub long_term: SignatureLongTermVerdict,
+}
+
+/// What the revocation answers say about a certificate.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, uniffi::Enum)]
+#[serde(rename_all = "lowercase")]
+pub enum SignatureRevocationStatus {
+    Good,
+    Revoked,
+    Unknown,
+}
+
+/// What an RFC 3161 token is worth (`TimestampVerdict`).
+#[derive(Clone, Debug, PartialEq, uniffi::Record)]
+pub struct SignatureTimestampVerdict {
+    pub cryptography: SignatureCryptography,
+    pub trust: SignatureTrustStatus,
+    pub trust_reason: Option<String>,
+    pub validation_time: SignatureValidationTime,
+    pub revocation: SignatureRevocationStatus,
+    pub revocation_reason: Option<String>,
+    pub authority_name: Option<String>,
+    pub summary: SignatureSummary,
+    /// The token's time, ISO 8601.
+    pub stamped_at: Option<String>,
+    /// DER of the authority's certificate.
+    pub authority_certificate: Option<Vec<u8>>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SignatureTimestampVerdictJson {
+    cryptography: SignatureCryptography,
+    trust: SignatureTrustStatus,
+    #[serde(default)]
+    trust_reason: Option<String>,
+    validation_time: Value,
+    revocation: SignatureRevocationStatus,
+    #[serde(default)]
+    revocation_reason: Option<String>,
+    #[serde(default)]
+    authority_name: Option<String>,
+    summary: SignatureSummary,
+    #[serde(default)]
+    stamped_at: Option<String>,
+    #[serde(default)]
+    authority_certificate: Value,
+}
+
+impl SignatureTimestampVerdict {
+    fn from_json(value: &Value) -> Result<Option<Self>, Error> {
+        if value.is_null() {
+            return Ok(None);
+        }
+        let j: SignatureTimestampVerdictJson = decode("a timestamp verdict", value)?;
+        let authority_certificate = match &j.authority_certificate {
+            Value::Null => None,
+            other => Some(
+                Bytes::from_json(other)
+                    .ok_or_else(|| invalid_state("an authority certificate", other))?
+                    .0,
+            ),
+        };
+        Ok(Some(SignatureTimestampVerdict {
+            cryptography: j.cryptography,
+            trust: j.trust,
+            trust_reason: j.trust_reason,
+            validation_time: SignatureValidationTime::from_json(&j.validation_time)?,
+            revocation: j.revocation,
+            revocation_reason: j.revocation_reason,
+            authority_name: j.authority_name,
+            summary: j.summary,
+            stamped_at: j.stamped_at,
+            authority_certificate,
+        }))
+    }
+}
+
+/// Why a long-term verdict is not enabled for one certificate.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, uniffi::Enum)]
+#[serde(rename_all = "kebab-case")]
+pub enum SignatureLongTermGapReason {
+    NoTimestamp,
+    Untrusted,
+    NoAnswer,
+    Revoked,
+}
+
+/// One thing the file lacks (`LongTermGap`).
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, uniffi::Record)]
+#[serde(rename_all = "camelCase")]
+pub struct SignatureLongTermGap {
+    /// The certificate's subject, when the gap is about one.
+    #[serde(default)]
+    pub certificate: Option<String>,
+    pub reason: SignatureLongTermGapReason,
+}
+
+/// Whether the file holds everything a reader needs to check the signature
+/// with no network ("LTV enabled"), judged at a time a timestamp proves
+/// (`LongTermVerdict`).
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, uniffi::Record)]
+#[serde(rename_all = "camelCase")]
+pub struct SignatureLongTermVerdict {
+    pub enabled: bool,
+    #[serde(default)]
+    pub proven_at: Option<String>,
+    #[serde(default)]
+    pub expires_at: Option<String>,
+    #[serde(default)]
+    pub document_timestamped_at: Option<String>,
+    pub missing: Vec<SignatureLongTermGap>,
 }
 
 #[derive(Deserialize)]
@@ -562,6 +681,12 @@ struct SignatureVerdictJson {
     validation_time: Value,
     modifications: SignatureModifications,
     summary: SignatureSummary,
+    revocation: SignatureRevocationStatus,
+    #[serde(default)]
+    revocation_reason: Option<String>,
+    #[serde(default)]
+    timestamp: Value,
+    long_term: SignatureLongTermVerdict,
 }
 
 impl SignatureVerdict {
@@ -576,6 +701,10 @@ impl SignatureVerdict {
             validation_time: SignatureValidationTime::from_json(&j.validation_time)?,
             modifications: j.modifications,
             summary: j.summary,
+            revocation: j.revocation,
+            revocation_reason: j.revocation_reason,
+            timestamp: SignatureTimestampVerdict::from_json(&j.timestamp)?,
+            long_term: j.long_term,
         })
     }
 
@@ -589,13 +718,40 @@ impl SignatureVerdict {
     }
 }
 
+/// When `validate` judges the chains: upstream's `ValidationTime |
+/// 'earliest-timestamp'`.
+#[derive(Clone, Debug, PartialEq, uniffi::Enum)]
+pub enum SignatureRequestedTime {
+    /// Each signature at the earliest trusted timestamp over what it
+    /// signed, and now when there is none. The default.
+    EarliestTimestamp,
+    Now,
+    /// An RFC 3161 token's time, as an ISO 8601 string.
+    Timestamp {
+        gen_time: String,
+    },
+}
+
+impl From<SignatureRequestedTime> for epdf_signature_core::Requested {
+    fn from(t: SignatureRequestedTime) -> Self {
+        match t {
+            SignatureRequestedTime::EarliestTimestamp => epdf_signature_core::Requested::Earliest,
+            SignatureRequestedTime::Now => {
+                epdf_signature_core::Requested::At(SignatureValidationTime::Now.into())
+            }
+            SignatureRequestedTime::Timestamp { gen_time } => epdf_signature_core::Requested::At(
+                SignatureValidationTime::Timestamp { gen_time }.into(),
+            ),
+        }
+    }
+}
+
 /// `validate`'s options. Every member optional.
 #[derive(Clone, Debug, Default, PartialEq, uniffi::Record)]
 pub struct SignatureValidateRequest {
-    /// `None` judges each signature at the earliest trusted timestamp over
-    /// what it signed, and now when there is none.
+    /// `None` is `EarliestTimestamp`.
     #[uniffi(default = None)]
-    pub validation_time: Option<SignatureValidationTime>,
+    pub validation_time: Option<SignatureRequestedTime>,
     /// `None` is the working copy, the plugin's default.
     #[uniffi(default = None)]
     pub until: Option<SignatureModificationsBasis>,
@@ -608,9 +764,7 @@ impl SignatureValidateRequest {
         signal: Option<epdf_kernel::signal::AbortSignal>,
     ) -> crate::SignatureValidateOptions {
         crate::SignatureValidateOptions {
-            validation_time: self
-                .validation_time
-                .map(|t| epdf_signature_core::Requested::At(t.into())),
+            validation_time: self.validation_time.map(Into::into),
             until: self.until.map(|u| u.as_str().to_string()),
             signal,
         }
@@ -757,17 +911,27 @@ pub struct SignatureCompletion {
     /// What they were built on.
     pub previous: SignatureVersionRef,
     pub protection: DocumentProtection,
+    /// The validation data the `revocation` setting added right after the
+    /// seal, or `None` when nothing was asked for (`SignFieldResult`).
+    pub validation_info: Option<SignatureValidationInfoAdded>,
+    /// Why adding it failed. The signature is sealed either way.
+    pub validation_info_error: Option<SignatureFailure>,
 }
 
 impl SignatureCompletion {
     pub(crate) fn from_json(value: &Value) -> Result<Self, Error> {
         #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
         struct Json {
             status: SignatureCompletionStatus,
             signature: Value,
             version: SignatureBaseVersion,
             previous: SignatureVersionRef,
             protection: DocumentProtection,
+            #[serde(default)]
+            validation_info: Value,
+            #[serde(default)]
+            validation_info_error: Value,
         }
         let j: Json = decode("a signature completion", value)?;
         Ok(SignatureCompletion {
@@ -776,7 +940,69 @@ impl SignatureCompletion {
             version: j.version,
             previous: j.previous,
             protection: j.protection,
+            validation_info: match &j.validation_info {
+                Value::Null => None,
+                v => Some(SignatureValidationInfoAdded::from_json(v)?),
+            },
+            validation_info_error: SignatureFailure::from_json(&j.validation_info_error),
         })
+    }
+}
+
+/// How many entries of each kind were stored.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize, uniffi::Record)]
+#[serde(rename_all = "camelCase")]
+pub struct SignatureValidationInfoCounts {
+    pub certificates: u32,
+    pub ocsp_responses: u32,
+    pub crls: u32,
+}
+
+/// `ValidationInfoAdded`: what `add_validation_info` stored, and the
+/// document timestamp that followed, if any.
+#[derive(Clone, Debug, PartialEq, uniffi::Record)]
+pub struct SignatureValidationInfoAdded {
+    pub added: SignatureValidationInfoCounts,
+    /// The new document timestamp's field.
+    pub document_timestamp: Option<FormFieldRef>,
+}
+
+impl SignatureValidationInfoAdded {
+    pub(crate) fn from_json(value: &Value) -> Result<Self, Error> {
+        let added = value.get("added").unwrap_or(&Value::Null);
+        let document_timestamp = match value.get("documentTimestamp") {
+            None | Some(Value::Null) => None,
+            Some(v) if epdf_kernel::is_undefined(v) => None,
+            Some(v) => Some(field_from_json(v)?),
+        };
+        Ok(SignatureValidationInfoAdded {
+            added: decode("validation data counts", added)?,
+            document_timestamp,
+        })
+    }
+}
+
+/// An error a result carries rather than throws, as `ViewerError::Kernel`
+/// would carry it.
+#[derive(Clone, Debug, PartialEq, Eq, uniffi::Record)]
+pub struct SignatureFailure {
+    pub name: String,
+    pub code: Option<String>,
+    pub detail: String,
+}
+
+impl SignatureFailure {
+    /// `None` for `null`, else the canonical `{"$error": ...}`.
+    fn from_json(value: &Value) -> Option<Self> {
+        if value.is_null() || epdf_kernel::is_undefined(value) {
+            return None;
+        }
+        match epdf_ffi::ViewerError::from(Error::from_spec(value)) {
+            epdf_ffi::ViewerError::Kernel { name, code, detail } => {
+                Some(SignatureFailure { name, code, detail })
+            }
+            epdf_ffi::ViewerError::Closed => None,
+        }
     }
 }
 
@@ -962,11 +1188,40 @@ pub struct SignatureSignInput {
     /// A FieldMDP for this signature, mirrored as the field's `/Lock`.
     #[uniffi(default = None)]
     pub lock: Option<SignatureFieldLock>,
+    /// This call's timestamp authority. `None` is the setting.
+    #[uniffi(default = None)]
+    pub timestamp_authority: Option<SignatureCallAuthority>,
+}
+
+/// A call's timestamp authority, over the `timestampAuthority` setting.
+#[derive(Clone, Debug, PartialEq, Eq, uniffi::Enum)]
+pub enum SignatureCallAuthority {
+    /// No timestamp on this one.
+    Without,
+    /// This authority, through the host's transport.
+    Http { authority: super::transport::SignatureTimestampAuthority },
+}
+
+impl SignatureCallAuthority {
+    /// `Some(None)` for none on this call.
+    pub(crate) fn into_core(
+        self,
+        transport: &std::rc::Rc<dyn epdf_signature_core::transport::HttpTransport>,
+    ) -> Option<epdf_signature_core::CmsSigner> {
+        match self {
+            SignatureCallAuthority::Without => None,
+            SignatureCallAuthority::Http { authority } => Some(authority.signer(transport.clone())),
+        }
+    }
 }
 
 impl SignatureSignInput {
-    /// `SignFieldInput`, with a per-call key.
-    pub(crate) fn into_core(self, key: Option<crate::SigningKey>) -> crate::SignFieldInput {
+    /// `SignFieldInput`, with a per-call key and the call's authority.
+    pub(crate) fn into_core(
+        self,
+        key: Option<crate::SigningKey>,
+        timestamp_authority: Option<Option<epdf_signature_core::CmsSigner>>,
+    ) -> crate::SignFieldInput {
         crate::SignFieldInput {
             field: field_json(&self.field),
             mark: self.mark.map(Into::into),
@@ -975,7 +1230,7 @@ impl SignatureSignInput {
             appearance: None,
             certify: self.certify.map(|p| json!({ "permission": p })),
             lock: self.lock.map(|l| l.to_json()),
-            timestamp_authority: None,
+            timestamp_authority,
         }
     }
 }
@@ -998,10 +1253,17 @@ pub struct SignaturePrepareInput {
     pub sub_filter: Option<String>,
     #[uniffi(default = None)]
     pub digest: Option<super::ports::SignatureDigest>,
+    /// The authority `complete_signature` will timestamp with; `prepare`
+    /// reserves room for its token. `None` is the setting.
+    #[uniffi(default = None)]
+    pub timestamp_authority: Option<SignatureCallAuthority>,
 }
 
 impl SignaturePrepareInput {
-    pub(crate) fn into_core(self) -> crate::PrepareSignatureInput {
+    pub(crate) fn into_core(
+        self,
+        timestamp_authority: Option<Option<epdf_signature_core::CmsSigner>>,
+    ) -> crate::PrepareSignatureInput {
         crate::PrepareSignatureInput {
             field: field_json(&self.field),
             mark: self.mark.map(Into::into),
@@ -1011,7 +1273,7 @@ impl SignaturePrepareInput {
             lock: self.lock.map(|l| l.to_json()),
             sub_filter: self.sub_filter.map(Value::String),
             digest: self.digest.map(|d| json!(d.name())),
-            timestamp_authority: None,
+            timestamp_authority,
         }
     }
 }
@@ -1179,5 +1441,67 @@ mod tests {
             assert_eq!(format!("{in_place:?}"), format!("{copied:?}"), "{value}");
         }
         assert!(DocumentProtection::from_json(&protection).is_ok());
+    }
+
+    #[test]
+    fn validation_info_and_its_error_decode() {
+        let added = SignatureValidationInfoAdded::from_json(&json!({
+            "added": { "certificates": 2, "ocspResponses": 1, "crls": 0 },
+            "documentTimestamp": { "kind": "objectNumber", "objectNumber": 31 }
+        }))
+        .unwrap();
+        assert_eq!(
+            added.added,
+            SignatureValidationInfoCounts { certificates: 2, ocsp_responses: 1, crls: 0 }
+        );
+        assert_eq!(
+            added.document_timestamp,
+            Some(FormFieldRef::ObjectNumber { field_object_number: 31 })
+        );
+        let none = SignatureValidationInfoAdded::from_json(&json!({
+            "added": { "certificates": 0, "ocspResponses": 0, "crls": 0 },
+            "documentTimestamp": null
+        }))
+        .unwrap();
+        assert_eq!(none.document_timestamp, None);
+        let failure = SignatureFailure::from_json(&json!({ "$error": {
+            "name": "PluginError", "message": "no answer", "code": "network-error"
+        } }))
+        .unwrap();
+        assert_eq!(failure.name, "PluginError");
+        assert_eq!(failure.detail, "no answer");
+        assert_eq!(SignatureFailure::from_json(&Value::Null), None);
+    }
+
+    #[test]
+    fn a_requested_time_names_the_earliest_timestamp() {
+        assert_eq!(
+            epdf_signature_core::Requested::from(SignatureRequestedTime::EarliestTimestamp),
+            epdf_signature_core::Requested::Earliest
+        );
+        assert_eq!(
+            epdf_signature_core::Requested::from(SignatureRequestedTime::Timestamp {
+                gen_time: "2026-01-01T00:00:00Z".into()
+            }),
+            epdf_signature_core::Requested::At(epdf_signature_core::ValidationTime::Timestamp {
+                stamped_at: "2026-01-01T00:00:00Z".into()
+            })
+        );
+    }
+
+    #[test]
+    fn a_timestamp_verdict_decodes() {
+        let verdict = SignatureTimestampVerdict::from_json(&json!({
+            "cryptography": "valid", "trust": "trusted", "trustReason": null,
+            "validationTime": { "kind": "now" }, "revocation": "good", "revocationReason": null,
+            "authorityName": "TSA", "summary": "valid", "stampedAt": "2026-01-15T00:00:00.250Z",
+            "authorityCertificate": { "$bytes": "MAA=" }
+        }))
+        .unwrap()
+        .unwrap();
+        assert_eq!(verdict.revocation, SignatureRevocationStatus::Good);
+        assert_eq!(verdict.authority_certificate, Some(vec![0x30, 0]));
+        assert_eq!(verdict.summary, SignatureSummary::Valid);
+        assert_eq!(SignatureTimestampVerdict::from_json(&Value::Null).unwrap(), None);
     }
 }

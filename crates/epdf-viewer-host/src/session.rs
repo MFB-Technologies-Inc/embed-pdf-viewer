@@ -15,12 +15,13 @@ use crate::engine_worker::EngineWorker;
 use crate::host_table::HostTable;
 use crate::native_engine::NativeEngine;
 
-/// The signer and trust anchors a host sets, shared with the signature
-/// plugin's ports (16 signature).
+/// The signer, trust anchors and HTTP transport a host sets, shared with
+/// the signature plugin's ports (16 signature, D-1).
 #[derive(Clone, Default)]
 pub struct SignatureSlots {
     pub signer: epdf_plugin_signature::ffi::ports::SignatureSignerSlot,
     pub trust: epdf_plugin_signature::ffi::ports::SignatureTrustSlot,
+    pub transport: epdf_plugin_signature::ffi::SignatureTransportSlot,
 }
 
 pub struct Session {
@@ -193,11 +194,12 @@ impl Session {
             plugins.push(epdf_plugin_attachment::attachment_plugin());
         }
         if let Some(signature) = config.signature {
-            let SignatureSlots { signer, trust } = signature_slots;
+            let SignatureSlots { signer, trust, transport } = signature_slots;
             plugins.push(epdf_plugin_signature::ffi::host_plugin(
                 signature,
                 signer,
                 trust,
+                transport,
                 post.clone(),
             ));
         }

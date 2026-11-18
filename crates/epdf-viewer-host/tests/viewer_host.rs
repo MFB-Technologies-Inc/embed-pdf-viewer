@@ -2447,6 +2447,7 @@ fn sign_input(field: epdf_ffi::FormFieldRef) -> SignatureSignInput {
         signer: None,
         certify: None,
         lock: None,
+        timestamp_authority: None,
     }
 }
 
@@ -2710,7 +2711,7 @@ fn a_certification_signed_here_protects_the_document() {
             interaction: true,
             form: Some(Default::default()),
             page_edit: true,
-            signature: Some(SignatureConfig { mode: None, allow_certify: Some(true) }),
+            signature: Some(SignatureConfig { allow_certify: Some(true), ..Default::default() }),
             ..Default::default()
         },
         Arc::new(Delegate),
@@ -2852,4 +2853,147 @@ fn every_plugin_builds_together() {
     block_on(s.refresh(CancelToken::new())).unwrap();
     assert!(!block_on(s.unsigned_fields()).unwrap().is_empty());
     block_on(host.close_document(doc)).unwrap();
+}
+
+// ── D-1: the host's transport ──────────────────────────────────────────────
+
+/// A host transport that answers recorded replies and keeps every request.
+#[derive(Default)]
+struct RecordedTransport {
+    replies: Mutex<std::collections::VecDeque<(u16, Vec<u8>)>>,
+    sent: Mutex<Vec<epdf_plugin_signature::ffi::SignatureTransportRequest>>,
+}
+
+impl epdf_plugin_signature::ffi::SignatureTransport for RecordedTransport {
+    fn post(
+        &self,
+        request: epdf_plugin_signature::ffi::SignatureTransportRequest,
+        completion: Arc<epdf_plugin_signature::ffi::SignatureTransportCompletion>,
+    ) {
+        self.sent.lock().unwrap().push(request);
+        match self.replies.lock().unwrap().pop_front() {
+            Some((status, body)) => {
+                std::thread::spawn(move || completion.replied(status, body));
+            }
+            None => completion.failed("no recorded reply is left".into()),
+        }
+    }
+}
+
+fn kernel_detail(error: &ViewerError) -> String {
+    match error {
+        ViewerError::Kernel { detail, .. } => detail.clone(),
+        ViewerError::Closed => "closed".into(),
+    }
+}
+
+fn timestamped_host() -> Arc<ViewerHost> {
+    let host = ViewerHost::new(
+        ViewerConfig {
+            interaction: true,
+            annotation: Some(Default::default()),
+            form: Some(Default::default()),
+            signature: Some(SignatureConfig {
+                timestamp_authority: Some(
+                    epdf_plugin_signature::ffi::SignatureTimestampAuthority {
+                        url: "https://tsa.example/stamp".into(),
+                        hash: None,
+                        policy: None,
+                        headers: vec![],
+                        timeout_ms: None,
+                        retries: Some(0),
+                        fixed_nonce_octet: Some(0x5a),
+                    },
+                ),
+                ..Default::default()
+            }),
+            ..Default::default()
+        },
+        Arc::new(Delegate),
+    )
+    .unwrap();
+    block_on(host.start()).unwrap();
+    host.set_signature_signer(Some(Arc::new(common::TestSigner::load(false))));
+    host
+}
+
+#[test]
+fn the_timestamp_authority_setting_posts_through_the_hosts_transport() {
+    let host = timestamped_host();
+    let transport = Arc::new(RecordedTransport::default());
+    transport.replies.lock().unwrap().push_back((500, b"down".to_vec()));
+    host.set_signature_transport(Some(transport.clone()));
+    let doc = open_signing(&host, "unsigned_sigfield.pdf");
+    let s = block_on(host.signature(doc)).unwrap();
+    block_on(s.refresh(CancelToken::new())).unwrap();
+    let field = block_on(s.unsigned_fields()).unwrap()[0].field.clone();
+    let error = block_on(s.sign(sign_input(field), None, CancelToken::new())).unwrap_err();
+    assert!(
+        kernel_detail(&error).contains(
+            "the timestamp authority at https://tsa.example/stamp did not answer: HTTP 500"
+        ),
+        "{error:?}"
+    );
+    let sent = transport.sent.lock().unwrap().clone();
+    assert_eq!(sent.len(), 1);
+    assert_eq!(sent[0].content_type, "application/timestamp-query");
+    assert_eq!(sent[0].max_reply_bytes, 1024 * 1024);
+    // The signing is given up: nothing sealed, nothing pending.
+    assert!(block_on(s.signatures()).unwrap().is_empty());
+    assert_eq!(block_on(s.pending()).unwrap(), None);
+}
+
+#[test]
+fn without_a_transport_the_authority_gets_no_reply() {
+    let host = timestamped_host();
+    let doc = open_signing(&host, "unsigned_sigfield.pdf");
+    let s = block_on(host.signature(doc)).unwrap();
+    block_on(s.refresh(CancelToken::new())).unwrap();
+    let field = block_on(s.unsigned_fields()).unwrap()[0].field.clone();
+    let error = block_on(s.sign(sign_input(field), None, CancelToken::new())).unwrap_err();
+    assert!(
+        kernel_detail(&error).contains("no transport: set one on the viewer first"),
+        "{error:?}"
+    );
+}
+
+#[test]
+fn a_seal_with_a_revocation_route_reports_its_validation_data() {
+    let host = ViewerHost::new(
+        ViewerConfig {
+            interaction: true,
+            annotation: Some(Default::default()),
+            form: Some(Default::default()),
+            signature: Some(SignatureConfig {
+                revocation: Some(epdf_plugin_signature::ffi::SignatureRevocationRoute {
+                    url: "https://app.example/revocation".into(),
+                    headers: vec![],
+                    timeout_ms: None,
+                    retries: Some(0),
+                    max_reply_bytes: None,
+                }),
+                ..Default::default()
+            }),
+            ..Default::default()
+        },
+        Arc::new(Delegate),
+    )
+    .unwrap();
+    block_on(host.start()).unwrap();
+    host.set_signature_signer(Some(Arc::new(common::TestSigner::load(false))));
+    host.set_signature_trust(Some(Arc::new(common::TestAnchors)));
+    let transport = Arc::new(RecordedTransport::default());
+    host.set_signature_transport(Some(transport.clone()));
+    let doc = open_signing(&host, "unsigned_sigfield.pdf");
+    let s = block_on(host.signature(doc)).unwrap();
+    block_on(s.refresh(CancelToken::new())).unwrap();
+    assert!(block_on(s.can_add_validation_info()).unwrap());
+    let field = block_on(s.unsigned_fields()).unwrap()[0].field.clone();
+    let done = block_on(s.sign(sign_input(field), None, CancelToken::new())).unwrap();
+    // Sealed either way; the follow-up's failure is in the result.
+    assert!(done.signature.signed);
+    let failure = done.validation_info_error.expect("the follow-up failed");
+    assert!(failure.detail.contains("has no timestamp you trust"), "{failure:?}");
+    assert_eq!(done.validation_info, None);
+    assert!(transport.sent.lock().unwrap().is_empty());
 }

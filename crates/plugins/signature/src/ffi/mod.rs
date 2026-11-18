@@ -8,6 +8,7 @@
 
 pub mod ports;
 pub mod records;
+pub mod transport;
 
 use std::sync::Arc;
 
@@ -25,6 +26,11 @@ pub use ports::{
     SignatureTrust,
 };
 pub use records::*;
+pub use transport::{
+    SignatureRevocationRoute, SignatureTimestampAuthority, SignatureTransport,
+    SignatureTransportCompletion, SignatureTransportHeader, SignatureTransportRequest,
+    SignatureTransportSlot, SlotTransport,
+};
 
 use crate::SignatureCapability;
 
@@ -63,12 +69,24 @@ fn none() -> crate::OperationOptions {
 pub struct SignatureHandle {
     pub(crate) cap: KernelBound<SignatureCapability>,
     pub(crate) post: KernelPost,
+    /// The host's transport, for a call's own timestamp authority.
+    pub(crate) transport: SignatureTransportSlot,
 }
 
 impl SignatureHandle {
-    /// On the kernel thread.
+    /// On the kernel thread. A call's own timestamp authority has no
+    /// transport here: use [`SignatureHandle::with_transport`] for that.
     pub fn new(cap: SignatureCapability, post: KernelPost) -> Arc<Self> {
-        Arc::new(SignatureHandle { cap: KernelBound::new(cap, post.clone()), post })
+        Self::with_transport(cap, post, SignatureTransportSlot::default())
+    }
+
+    /// On the kernel thread, with the host's transport slot.
+    pub fn with_transport(
+        cap: SignatureCapability,
+        post: KernelPost,
+        transport: SignatureTransportSlot,
+    ) -> Arc<Self> {
+        Arc::new(SignatureHandle { cap: KernelBound::new(cap, post.clone()), post, transport })
     }
 }
 
@@ -86,17 +104,35 @@ pub struct SignatureConfig {
     /// Let the UI offer a certification. `None` is false.
     #[uniffi(default = None)]
     pub allow_certify: Option<bool>,
+    /// Timestamp every signature from this authority, through the host's
+    /// transport (`ViewerHost::set_signature_transport`). `None` for none.
+    #[uniffi(default = None)]
+    pub timestamp_authority: Option<SignatureTimestampAuthority>,
+    /// Ask this route for revocation answers, through the host's
+    /// transport, and store them right after every seal. Needs trust
+    /// anchors. `None` for none.
+    #[uniffi(default = None)]
+    pub revocation: Option<SignatureRevocationRoute>,
+    /// Add a document timestamp after the validation data, from
+    /// `timestamp_authority`. `None` is false.
+    #[uniffi(default = None)]
+    pub document_timestamp: Option<bool>,
 }
 
 /// `signaturePlugin(config)` for a host: the `key` setting is a function
-/// over `signer` (resolved per signing, `invalid-input` while empty) and the
-/// `trust` setting a port over `trust` (no anchors while empty).
+/// over `signer` (resolved per signing, `invalid-input` while empty), the
+/// `trust` setting a port over `trust` (no anchors while empty), and the
+/// timestamp authority and revocation source post through `transport`
+/// (no reply while empty).
 pub fn host_plugin(
     config: SignatureConfig,
     signer: ports::SignatureSignerSlot,
     trust: ports::SignatureTrustSlot,
+    transport: SignatureTransportSlot,
     post: KernelPost,
 ) -> epdf_kernel::AnyPlugin {
+    let http: std::rc::Rc<dyn epdf_signature_core::transport::HttpTransport> =
+        std::rc::Rc::new(SlotTransport { slot: transport, post: post.clone() });
     let slot = signer.clone();
     let resolve: std::rc::Rc<
         dyn Fn() -> epdf_kernel::rt::Promise<epdf_signature_core::SignerPort>,
@@ -121,7 +157,9 @@ pub fn host_plugin(
         signing_key: Some(Some(crate::SigningKey::Thunk(resolve))),
         trust: Some(Some(std::rc::Rc::new(ports::SlotTrust(trust)))),
         allow_certify: config.allow_certify,
-        ..Default::default()
+        timestamp_authority: config.timestamp_authority.map(|a| Some(a.signer(http.clone()))),
+        revocation: config.revocation.map(|r| Some(r.source(http))),
+        document_timestamp: config.document_timestamp,
     })
 }
 
@@ -362,6 +400,7 @@ impl SignatureHandle {
         cancel: Arc<CancelToken>,
     ) -> Result<SignatureCompletion, ViewerError> {
         let post = self.post.clone();
+        let transport = (self.transport.clone(), self.post.clone());
         self.cap
             .call_promise_cancellable(
                 cancel,
@@ -370,7 +409,8 @@ impl SignatureHandle {
                         .map(|signer| ports::signer_port(signer, post))
                         .transpose()?
                         .map(crate::SigningKey::port);
-                    Ok(open(c)?.sign(input.into_core(key), none()))
+                    let authority = call_authority(input.timestamp_authority.clone(), transport);
+                    Ok(open(c)?.sign(input.into_core(key, authority), none()))
                 },
                 |v: Value| SignatureCompletion::from_json(&v).map_err(ViewerError::from),
             )
@@ -384,10 +424,14 @@ impl SignatureHandle {
         input: SignaturePrepareInput,
         cancel: Arc<CancelToken>,
     ) -> Result<SignaturePrepared, ViewerError> {
+        let transport = (self.transport.clone(), self.post.clone());
         self.cap
             .call_promise_cancellable(
                 cancel,
-                move |c| Ok(open(c)?.prepare_signature(input.into_core(), none())),
+                move |c| {
+                    let authority = call_authority(input.timestamp_authority.clone(), transport);
+                    Ok(open(c)?.prepare_signature(input.into_core(authority), none()))
+                },
                 |v: Value| SignaturePrepared::from_json(&v).map_err(ViewerError::from),
             )
             .await?
@@ -489,6 +533,33 @@ impl SignatureHandle {
         self.cap.call(|c| Ok(open(c)?.can_read_revision())).await
     }
 
+    /// Keep a signed field checkable with no network: ask, through the
+    /// `revocation` setting, whether its certificates were good at its
+    /// timestamp, and store the answers in the file; with `field` `None`,
+    /// for every signature. With `document_timestamp`, a document
+    /// timestamp follows when the answers aren't covered by one yet. All or
+    /// nothing for the answers. Needs `doc.sign`, the `revocation` setting
+    /// and trust anchors.
+    pub async fn add_validation_info(
+        &self,
+        field: Option<FormFieldRef>,
+        cancel: Arc<CancelToken>,
+    ) -> Result<SignatureValidationInfoAdded, ViewerError> {
+        self.cap
+            .call_promise_cancellable(
+                cancel,
+                move |c| Ok(open(c)?.add_validation_info(field.as_ref().map(field_json), none())),
+                |v: Value| SignatureValidationInfoAdded::from_json(&v).map_err(ViewerError::from),
+            )
+            .await?
+    }
+
+    /// Whether `add_validation_info` can run: the `revocation` setting,
+    /// trust anchors, and `doc.sign`.
+    pub async fn can_add_validation_info(&self) -> Result<bool, ViewerError> {
+        self.cap.call(|c| Ok(open(c)?.can_add_validation_info())).await
+    }
+
     /// The nine change hooks as one stream, ended when the document closes.
     pub fn subscribe(&self, listener: Arc<dyn SignatureEventListener>) -> Arc<Subscription> {
         let (subscription, slot) = Subscription::pending(self.post.clone());
@@ -502,6 +573,17 @@ impl SignatureHandle {
         });
         subscription
     }
+}
+
+/// A call's authority over the handle's transport: `None` is the
+/// setting, `Some(None)` none on this call. On the kernel thread.
+fn call_authority(
+    authority: Option<SignatureCallAuthority>,
+    (slot, post): (SignatureTransportSlot, KernelPost),
+) -> Option<Option<epdf_signature_core::CmsSigner>> {
+    let http: std::rc::Rc<dyn epdf_signature_core::transport::HttpTransport> =
+        std::rc::Rc::new(SlotTransport { slot, post });
+    authority.map(|a| a.into_core(&http))
 }
 
 mod settings;

@@ -438,7 +438,14 @@ fn origin() -> Value {
 fn unsigned_input(s: &SignatureHandle) -> SignatureSignInput {
     block_on(s.refresh(CancelToken::new())).unwrap();
     let field = block_on(s.unsigned_fields()).unwrap()[0].field.clone();
-    SignatureSignInput { field, mark: None, signer: None, certify: None, lock: None }
+    SignatureSignInput {
+        field,
+        mark: None,
+        signer: None,
+        certify: None,
+        lock: None,
+        timestamp_authority: None,
+    }
 }
 
 #[test]
@@ -495,6 +502,7 @@ fn a_two_phase_signing_parks_and_a_refused_cms_leaves_it_parked() {
             lock: None,
             sub_filter: None,
             digest: Some(SignatureDigest::Sha256),
+            timestamp_authority: None,
         },
         CancelToken::new(),
     ))
@@ -550,5 +558,323 @@ fn placing_a_mark_in_visual_mode_fills_the_field() {
     assert_eq!(
         result,
         epdf_plugin_signature::ffi::SignaturePlaceResult::Filled { field: input.field }
+    );
+}
+
+// ── D-1: the foreign transport ──────────────────────────────────────────────
+
+use epdf_plugin_signature::ffi::{
+    SignatureCallAuthority, SignatureRevocationRoute, SignatureSettingsPatch,
+    SignatureTimestampAuthority, SignatureTransport, SignatureTransportCompletion,
+    SignatureTransportHeader, SignatureTransportRequest, SignatureTransportSlot, SlotTransport,
+};
+
+/// What a recorded transport answers, in order.
+enum Canned {
+    Replied(u16, Vec<u8>),
+    TimedOut,
+    TooLarge,
+    Failed(&'static str),
+    /// The completion is dropped unanswered.
+    Dropped,
+}
+
+/// A host transport that answers recorded replies from another thread and
+/// keeps every request.
+#[derive(Default)]
+struct Recorded {
+    replies: Mutex<std::collections::VecDeque<Canned>>,
+    sent: Mutex<Vec<SignatureTransportRequest>>,
+}
+
+impl Recorded {
+    fn new(replies: Vec<Canned>) -> Arc<Self> {
+        Arc::new(Recorded { replies: Mutex::new(replies.into()), sent: Mutex::default() })
+    }
+    fn sent(&self) -> Vec<SignatureTransportRequest> {
+        self.sent.lock().unwrap().clone()
+    }
+}
+
+impl SignatureTransport for Recorded {
+    fn post(
+        &self,
+        request: SignatureTransportRequest,
+        completion: Arc<SignatureTransportCompletion>,
+    ) {
+        self.sent.lock().unwrap().push(request);
+        let reply = self.replies.lock().unwrap().pop_front();
+        std::thread::spawn(move || match reply {
+            Some(Canned::Replied(status, body)) => completion.replied(status, body),
+            Some(Canned::TimedOut) => completion.timed_out(),
+            Some(Canned::TooLarge) => completion.too_large(),
+            Some(Canned::Failed(message)) => completion.failed(message.into()),
+            Some(Canned::Dropped) | None => drop(completion),
+        });
+    }
+}
+
+/// Fetch `request` through a revocation route over `slot`, on the kernel
+/// thread, and wait for the answer here.
+fn fetch_through(
+    slot: SignatureTransportSlot,
+    route: SignatureRevocationRoute,
+) -> Result<Vec<u8>, ViewerError> {
+    let thread = KernelThread::spawn(|_| Ok(())).unwrap();
+    let post = thread.post();
+    let (pending, reply) = epdf_ffi::PromiseSlot::pending(post.clone(), |bytes: Vec<u8>| bytes);
+    block_on(thread.call(move |_| {
+        let transport = std::rc::Rc::new(SlotTransport { slot, post });
+        let source = route.source(transport);
+        pending.start(Ok(source.fetch(epdf_signature_core::RevocationRequest::Crl {
+            url: "http://crl.example/a.crl".into(),
+        })));
+    }))
+    .unwrap();
+    block_on(reply)
+}
+
+fn route() -> SignatureRevocationRoute {
+    SignatureRevocationRoute {
+        url: "https://app.example/revocation".into(),
+        headers: vec![SignatureTransportHeader { name: "x-session".into(), value: "t".into() }],
+        timeout_ms: None,
+        retries: Some(0),
+        max_reply_bytes: None,
+    }
+}
+
+fn detail(error: &ViewerError) -> &str {
+    match error {
+        ViewerError::Kernel { detail, .. } => detail,
+        ViewerError::Closed => "closed",
+    }
+}
+
+#[test]
+fn a_revocation_route_round_trips_a_recorded_reply_through_the_foreign_transport() {
+    let host = Recorded::new(vec![Canned::Replied(200, vec![0x30, 0x03, 1, 2, 3])]);
+    let slot: SignatureTransportSlot = Arc::new(Mutex::new(Some(host.clone())));
+    assert_eq!(fetch_through(slot, route()).unwrap(), vec![0x30, 0x03, 1, 2, 3]);
+    let sent = host.sent();
+    assert_eq!(sent.len(), 1);
+    assert_eq!(sent[0].url, "https://app.example/revocation");
+    assert_eq!(sent[0].content_type, "application/json");
+    assert_eq!(sent[0].headers, route().headers);
+    assert_eq!(sent[0].timeout_ms, 10_000);
+    assert_eq!(sent[0].max_reply_bytes, 2 * 1024 * 1024);
+    let body: Value = serde_json::from_slice(&sent[0].body).unwrap();
+    assert_eq!(body, json!({ "kind": "crl", "url": "http://crl.example/a.crl" }));
+}
+
+#[test]
+fn each_outcome_the_foreign_transport_gives_reads_as_the_client_reads_it() {
+    let cases = [
+        (Canned::TimedOut, "no reply within 10000 ms"),
+        (Canned::TooLarge, "the reply broke off: it is over 2097152 bytes"),
+        // A body over the limit is no answer, however much the host read.
+        (
+            Canned::Replied(200, vec![0; 2 * 1024 * 1024 + 1]),
+            "the reply broke off: it is over 2097152 bytes",
+        ),
+        (Canned::Failed("the name did not resolve"), "the name did not resolve"),
+        (Canned::Dropped, "a SignatureTransport completion was dropped without an answer"),
+    ];
+    for (canned, why) in cases {
+        let slot: SignatureTransportSlot = Arc::new(Mutex::new(Some(Recorded::new(vec![canned]))));
+        let error = fetch_through(slot, route()).unwrap_err();
+        assert_eq!(
+            detail(&error),
+            format!(
+                "http://crl.example/a.crl did not answer through https://app.example/revocation: {why}"
+            ),
+            "{error:?}"
+        );
+    }
+    let error = fetch_through(SignatureTransportSlot::default(), route()).unwrap_err();
+    assert!(detail(&error).ends_with("no transport: set one on the viewer first"), "{error:?}");
+}
+
+/// A kernel with interaction, form and the host's signature plugin over
+/// `transport`, and its handle.
+fn host_handle(
+    config: epdf_plugin_signature::ffi::SignatureConfig,
+    transport: Option<Arc<dyn SignatureTransport>>,
+    spec: impl FnOnce() -> TestSpec + Send + 'static,
+) -> (KernelThread<TestKernel>, Arc<SignatureHandle>) {
+    let slot: SignatureTransportSlot = Arc::new(Mutex::new(transport));
+    let plugin_slot = slot.clone();
+    let thread = KernelThread::spawn(move |post| {
+        TestKernel::open(
+            vec![
+                interaction_plugin(InteractionConfig::default()),
+                form_plugin(None),
+                epdf_plugin_signature::ffi::host_plugin(
+                    config,
+                    Arc::default(),
+                    Arc::default(),
+                    plugin_slot,
+                    post,
+                ),
+            ],
+            spec(),
+        )
+    })
+    .unwrap();
+    let post = thread.post();
+    let handle = block_on(thread.call(move |k| {
+        SignatureHandle::with_transport(k.capability(&SIGNATURE).unwrap(), post, slot)
+    }))
+    .unwrap();
+    (thread, handle)
+}
+
+fn authority() -> SignatureTimestampAuthority {
+    SignatureTimestampAuthority {
+        url: "https://tsa.example/stamp".into(),
+        hash: None,
+        policy: None,
+        headers: vec![SignatureTransportHeader { name: "x-api-key".into(), value: "k".into() }],
+        timeout_ms: Some(5_000),
+        retries: Some(1),
+        fixed_nonce_octet: Some(0x5a),
+    }
+}
+
+#[test]
+fn a_calls_timestamp_authority_asks_through_the_foreign_transport() {
+    let host = Recorded::new(vec![Canned::Replied(503, b"busy".to_vec()), Canned::TimedOut]);
+    let (_thread, s) =
+        host_handle(Default::default(), Some(host.clone()), || signing_spec(Arc::default()));
+    let input = SignatureSignInput {
+        timestamp_authority: Some(SignatureCallAuthority::Http { authority: authority() }),
+        ..unsigned_input(&s)
+    };
+    let error =
+        block_on(s.sign(input, Some(Arc::new(TestSigner::load(false))), CancelToken::new()))
+            .unwrap_err();
+    assert!(
+        detail(&error).contains("the timestamp authority at https://tsa.example/stamp did not answer: no reply within 5000 ms"),
+        "{error:?}"
+    );
+    let sent = host.sent();
+    // One retry after the 503.
+    assert_eq!(sent.len(), 2);
+    for request in &sent {
+        assert_eq!(request.url, "https://tsa.example/stamp");
+        assert_eq!(request.content_type, "application/timestamp-query");
+        assert_eq!(request.headers, authority().headers);
+        assert_eq!(request.timeout_ms, 5_000);
+        assert_eq!(request.max_reply_bytes, 1024 * 1024);
+        // A TimeStampReq with the fixed nonce: INTEGER, 8 octets of 0x5a.
+        assert_eq!(request.body[0], 0x30);
+        let nonce = [0x02, 0x08, 0x5a, 0x5a, 0x5a, 0x5a, 0x5a, 0x5a, 0x5a, 0x5a];
+        assert!(request.body.windows(nonce.len()).any(|w| w == nonce), "{:02x?}", request.body);
+    }
+    assert_eq!(sent[0].body, sent[1].body);
+    assert_eq!(block_on(s.pending()).unwrap(), None);
+}
+
+#[test]
+fn a_call_without_an_authority_does_not_ask_the_settings_one() {
+    let host = Recorded::new(vec![]);
+    let config = epdf_plugin_signature::ffi::SignatureConfig {
+        timestamp_authority: Some(authority()),
+        ..Default::default()
+    };
+    let (_thread, s) = host_handle(config, Some(host.clone()), || signing_spec(Arc::default()));
+    let input = SignatureSignInput {
+        timestamp_authority: Some(SignatureCallAuthority::Without),
+        ..unsigned_input(&s)
+    };
+    let done = block_on(s.sign(input, Some(Arc::new(TestSigner::load(false))), CancelToken::new()))
+        .unwrap();
+    assert!(done.signature.signed);
+    assert!(host.sent().is_empty());
+    // No `revocation` setting: nothing was asked for after the seal.
+    assert_eq!(done.validation_info, None);
+    assert_eq!(done.validation_info_error, None);
+}
+
+#[test]
+fn the_new_settings_cross_and_gate_add_validation_info() {
+    let (_thread, s) = host_handle(Default::default(), None, spec);
+    let settings = block_on(s.settings()).unwrap();
+    assert!(!settings.has_timestamp_authority && !settings.has_revocation);
+    assert!(!settings.document_timestamp);
+    assert!(!block_on(s.can_add_validation_info()).unwrap());
+    let error = block_on(s.add_validation_info(None, CancelToken::new())).unwrap_err();
+    assert_eq!(code(&error), Some("invalid-input"), "{error:?}");
+    block_on(s.update_settings(SignatureSettingsPatch {
+        timestamp_authority: Some(authority()),
+        revocation: Some(route()),
+        document_timestamp: Some(true),
+        ..Default::default()
+    }))
+    .unwrap();
+    let settings = block_on(s.settings()).unwrap();
+    assert!(settings.has_timestamp_authority && settings.has_revocation);
+    assert!(settings.document_timestamp);
+    // The host plugin's trust is its slot, so `revocation` is what was missing.
+    assert!(block_on(s.can_add_validation_info()).unwrap());
+    block_on(
+        s.update_settings(SignatureSettingsPatch { clear_revocation: true, ..Default::default() }),
+    )
+    .unwrap();
+    assert!(!block_on(s.settings()).unwrap().has_revocation);
+    assert!(!block_on(s.can_add_validation_info()).unwrap());
+}
+
+#[test]
+fn add_validation_info_reaches_the_plugin_and_refuses_as_it_does() {
+    let config = epdf_plugin_signature::ffi::SignatureConfig {
+        revocation: Some(route()),
+        ..Default::default()
+    };
+    let host = Recorded::new(vec![]);
+    let (_thread, s) = host_handle(config, Some(host.clone()), || {
+        // The engine refuses nothing for the probe the client sends first.
+        spec().respond("signatures.addValidationInfo", |_| {
+            Ok(Reply::value(
+                json!({ "added": { "certificates": 0, "ocspResponses": 0, "crls": 0 } }),
+            ))
+        })
+    });
+    block_on(s.refresh(CancelToken::new())).unwrap();
+    // All or nothing: the fake signature has no trusted timestamp, so no
+    // time is proven to ask about, and nothing is fetched or stored.
+    let error = block_on(s.add_validation_info(
+        Some(FormFieldRef::ObjectNumber { field_object_number: 12 }),
+        CancelToken::new(),
+    ))
+    .unwrap_err();
+    assert_eq!(code(&error), Some("operation-failed"), "{error:?}");
+    assert!(detail(&error).contains("has no timestamp you trust"), "{error:?}");
+    assert!(host.sent().is_empty());
+}
+
+#[test]
+fn a_verdict_carries_revocation_timestamp_and_long_term() {
+    let (_thread, s) = handle();
+    block_on(s.refresh(CancelToken::new())).unwrap();
+    let request = SignatureValidateRequest {
+        validation_time: Some(
+            epdf_plugin_signature::ffi::SignatureRequestedTime::EarliestTimestamp,
+        ),
+        until: None,
+    };
+    let verdicts = block_on(s.validate(request, CancelToken::new())).unwrap();
+    let verdict = &verdicts[0];
+    assert_eq!(verdict.revocation, epdf_plugin_signature::ffi::SignatureRevocationStatus::Unknown);
+    assert_eq!(verdict.timestamp, None);
+    assert!(!verdict.long_term.enabled);
+    let now = SignatureValidateRequest {
+        validation_time: Some(epdf_plugin_signature::ffi::SignatureRequestedTime::Now),
+        until: None,
+    };
+    let verdicts = block_on(s.validate(now, CancelToken::new())).unwrap();
+    assert_eq!(
+        verdicts[0].validation_time,
+        epdf_plugin_signature::ffi::SignatureValidationTime::Now
     );
 }

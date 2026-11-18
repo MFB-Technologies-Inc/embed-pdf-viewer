@@ -47,7 +47,9 @@ use epdf_plugin_render::ffi::RenderHandle;
 use epdf_plugin_search::ffi::SearchHandle;
 use epdf_plugin_selection::ffi::SelectionHandle;
 use epdf_plugin_shell::ffi::ShellHandle;
-use epdf_plugin_signature::ffi::{SignatureHandle, SignatureSigner, SignatureTrust};
+use epdf_plugin_signature::ffi::{
+    SignatureHandle, SignatureSigner, SignatureTransport, SignatureTrust,
+};
 use epdf_plugin_stage::ffi::StageHandle;
 use epdf_plugin_stamp::ffi::StampHandle;
 use epdf_plugin_view_manager::ffi::ViewManagerHandle;
@@ -662,9 +664,10 @@ impl ViewerHost {
         document_id: String,
     ) -> Result<Arc<SignatureHandle>, ViewerError> {
         let post = self.post.clone();
+        let transport = self.signature_slots.transport.clone();
         self.call(move |s| {
             let cap = capability(&s.kernel, &epdf_plugin_signature::SIGNATURE, Some(&document_id))?;
-            Ok(SignatureHandle::new(cap, post))
+            Ok(SignatureHandle::with_transport(cap, post, transport))
         })
         .await
     }
@@ -679,6 +682,13 @@ impl ViewerHost {
     /// `ValidUntrusted`.
     pub fn set_signature_trust(&self, trust: Option<Arc<dyn SignatureTrust>>) {
         *self.signature_slots.trust.lock().unwrap() = trust;
+    }
+
+    /// The HTTP stack the signature plugin's timestamp authority and
+    /// revocation route post through (D-1). Read per request; with `None`
+    /// every request fails with no reply.
+    pub fn set_signature_transport(&self, transport: Option<Arc<dyn SignatureTransport>>) {
+        *self.signature_slots.transport.lock().unwrap() = transport;
     }
 
     pub fn state_revision(&self) -> u64 {

@@ -29,6 +29,7 @@ pub mod read;
 pub mod services;
 pub mod sync;
 pub mod tools;
+pub mod transport;
 pub mod write;
 
 #[cfg(feature = "harness")]

@@ -506,6 +506,7 @@ fn a_polygon_draft_has_nothing_to_finish_before_drawing() {
     let drafts = annotations.drafts();
     assert!(block_on(drafts.creation_draft()).unwrap().is_none());
     assert_eq!(block_on(drafts.finish_creation_draft(token())).unwrap(), None);
+    assert!(!block_on(drafts.has_creation_awaiting_click()).unwrap());
 }
 
 use epdf_plugin_annotation::ffi::{
