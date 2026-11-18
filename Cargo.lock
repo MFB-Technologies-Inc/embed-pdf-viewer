@@ -1076,6 +1076,7 @@ dependencies = [
 name = "epdf-uniffi"
 version = "0.0.0"
 dependencies = [
+ "base64",
  "build-support",
  "epdf-engine",
  "pdfium",
