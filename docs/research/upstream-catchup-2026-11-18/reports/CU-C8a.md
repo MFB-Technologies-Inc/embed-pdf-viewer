@@ -93,11 +93,11 @@ every crate source touched once first (CU-C7-D3). Start column is CU-C7's final 
 
 | Check | CU-C7 (`5f4abdabc`) | Now |
 |---|---|---|
-| `cargo test --workspace --no-fail-fast` | 3,514 passed, 0 failed, 2 ignored | 3,536 passed, 0 failed, 2 ignored |
+| `cargo test --workspace --no-fail-fast` | 3,514 passed, 0 failed, 2 ignored | 3,536 passed, 0 failed, 2 ignored; 3,537 after fix round 1 (`fix1/final/cargo.log`) |
 | `epdf-web` wasm tests | 59 passed in 8 binaries | 63 passed in 9 binaries (fix round 1) |
 | `epdf-node` addon (`addon.mjs`, release) | 6 checks | 6 checks |
 | `epdf-plugin-signature --features uniffi` | | 48 passed (lib 7, behavior 15, conformance 2, ffi 22, ffi_settings 2) |
-| `rust-coverage:check` | exit 0 | stale at first (the new `signature/src/transport.rs` and the moved `signature-core` lines); regenerated with the package's `rust-coverage`, then exit 0: 68,348 of 118,503 lines, 38,496 only other tests reach, 701 files (76 excluded) |
+| `rust-coverage:check` | exit 0 | stale at first (the new `signature/src/transport.rs` and the moved `signature-core` lines); regenerated with the package's `rust-coverage`, then exit 0: 68,348 of 118,503 lines, 38,496 only other tests reach, 701 files (76 excluded). Stale again after fix round 1; regenerated (`a3cc5ece2`), exit 0: 68,348 of 118,497, 38,490, 701 files (76 excluded) |
 
 The 22 new cargo tests: signature-core 1, the signature plugin's transport and record units 6 and
 its FFI 7, annotation FFI 0 (an assertion added), viewer-host 6, `epdf-uniffi` 2. The signature
@@ -143,6 +143,12 @@ Host free space (`df -g /System/Volumes/Data`) read 417 GB at the start and 406 
 (6.7 GB, the coverage build) and `/workspaces/target/release` (437 MB, the addon build). The CU-C8a
 bundle is deleted once the host has fetched the branch. No trim was run.
 
+Fix round 1: a mis-quoted command ran a stray `cargo test --workspace` without the job's
+environment (debuginfo and incremental on), which grew `/workspaces/target/debug` to 111 GB. All
+of `/workspaces/target/debug` (and `target/tmp`) was deleted, since it mixed two profiles; the
+round's coverage dir was deleted too. `/workspaces` is 8.1 GB after it, host free space read 331 GB
+before a trim. CU-C8b rebuilds `target/debug`.
+
 Kept for CU-C8b and CU-C9: `/workspaces/wt/CU-C8a`, which is CU-C7's worktree moved and switched to
 this branch at the same commit (`git worktree move`), with its `node_modules`, the PDFium libraries
-and the Rust-core payload; `/workspaces/target/debug` and `/workspaces/target/wasm32-unknown-unknown`.
+and the Rust-core payload; `/workspaces/target/wasm32-unknown-unknown`.
