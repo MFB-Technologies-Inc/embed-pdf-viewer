@@ -151,6 +151,8 @@ pub const PATHS: &[&str] = &[
     "signatures.prepare",
     "signatures.complete",
     "signatures.cancel",
+    "signatures.getValidationInfo",
+    "signatures.addValidationInfo",
     "download",
     "downloadLayer",
     "document.version",
@@ -230,6 +232,11 @@ fn route(path: &str) -> Option<(&'static str, Decode)> {
         "signatures.prepare" => ("signatures.prepare", Decode::Inner),
         "signatures.complete" => ("signatures.complete", Decode::Mutation),
         "signatures.cancel" => ("signatures.cancel", Decode::Inner),
+        // `LocalDocumentSignaturesService.getValidationInfo` and
+        // `addValidationInfo` (67ed292a6): three lists of byte arrays, each
+        // entry a payload both ways.
+        "signatures.getValidationInfo" => ("signatures.validationInfo", Decode::Result),
+        "signatures.addValidationInfo" => ("signatures.addValidationInfo", Decode::Mutation),
         "download" => ("document.saveBuffer", Decode::HostBytes),
         "downloadLayer" => ("document.saveLayerBuffer", Decode::HostBytes),
         "document.version" => ("document.version", Decode::Field("version")),
@@ -423,6 +430,16 @@ pub fn translate(
         }
         "signatures.cancel" => {
             put(&mut body, "signingId", arg(0));
+            options_at(1)
+        }
+        "signatures.addValidationInfo" => {
+            // `entriesOf`: the three lists as given, each entry a request
+            // payload. A list that is not one of byte arrays goes as it is,
+            // and the host refuses it `InvalidArg`, naming the list.
+            let input = arg(0).unwrap_or_else(|| json!({}));
+            for name in ["certificates", "ocspResponses", "crls"] {
+                put(&mut body, name, member(&input, name));
+            }
             options_at(1)
         }
         "download" => {

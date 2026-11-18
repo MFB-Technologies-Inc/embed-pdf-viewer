@@ -1104,3 +1104,83 @@ fn appearance_pictures_come_back_as_raw_pixels() {
         assert!(HostTable::take(id).is_some());
     }
 }
+
+// ── validation data (67ed292a6) ────────────────────────────────────────────
+
+/// One DER object, as a store holds them: a sequence around `label` as an
+/// octet string.
+fn der_entry(label: &str) -> Vec<u8> {
+    let text = label.as_bytes();
+    let mut out = vec![0x30, (text.len() + 2) as u8, 0x04, text.len() as u8];
+    out.extend_from_slice(text);
+    out
+}
+
+fn bytes(entry: &[u8]) -> Value {
+    epdf_kernel::bytes::Bytes(entry.to_vec()).to_json()
+}
+
+#[test]
+fn validation_data_entries_travel_as_payloads() {
+    let input = json!({ "certificates": [bytes(&der_entry("a")), bytes(&der_entry("b"))],
+        "crls": [bytes(&der_entry("c"))] });
+    let call = translate(
+        "d",
+        "signatures.addValidationInfo",
+        None,
+        &[input, json!({ "opId": "dss" })],
+        3,
+        &client(),
+    )
+    .unwrap();
+    assert_eq!(call.request["kind"], "signatures.addValidationInfo");
+    assert_eq!(call.request["effect"], "write");
+    assert_eq!(call.request["opId"], "dss");
+    assert_eq!(call.payloads.len(), 3);
+    for entry in call.request["certificates"].as_array().unwrap() {
+        assert!(entry["payload"].is_u64(), "{entry}");
+    }
+    assert!(call.request.get("ocspResponses").is_none());
+    let read = translate("d", "signatures.getValidationInfo", None, &[], 4, &client()).unwrap();
+    assert_eq!(read.request["kind"], "signatures.validationInfo");
+    assert_eq!(read.request["effect"], "read");
+}
+
+#[test]
+fn validation_data_is_stored_once_and_read_back_as_bytes() {
+    let mut host = host_with(&format!("{ENGINE_FIXTURES}/unsigned_sigfield.pdf"));
+    let empty = run(&mut host, "signatures.getValidationInfo", None, &[]).unwrap();
+    assert_eq!(empty.value, json!({ "certificates": [], "ocspResponses": [], "crls": [] }));
+    let (a, b) = (der_entry("certificate a"), der_entry("crl one"));
+    let input = json!({ "certificates": [bytes(&a)], "crls": [bytes(&b), bytes(&b)] });
+    let stored = run(
+        &mut host,
+        "signatures.addValidationInfo",
+        None,
+        &[input.clone(), json!({ "opId": "v1" })],
+    )
+    .unwrap();
+    assert_eq!(stored.value["added"], json!({ "certificates": 1, "ocspResponses": 0, "crls": 1 }));
+    assert_eq!(stored.value["meta"]["opId"], "v1");
+    assert_eq!(stored.value["meta"]["undoable"], false);
+    assert_eq!(stored.events.len(), 1, "{:?}", stored.events);
+    assert_eq!(stored.events[0]["type"], "signatures.validationInfoAdded");
+    assert_eq!(stored.events[0]["added"], stored.value["added"]);
+    let read = run(&mut host, "signatures.getValidationInfo", None, &[]).unwrap().value;
+    assert_eq!(read["certificates"], json!([bytes(&a)]));
+    assert_eq!(read["crls"], json!([bytes(&b)]));
+    // Nothing new: nothing is written, and no event says otherwise.
+    let again = run(&mut host, "signatures.addValidationInfo", None, &[input]).unwrap();
+    assert_eq!(again.value["added"], json!({ "certificates": 0, "ocspResponses": 0, "crls": 0 }));
+    assert!(again.events.is_empty());
+    // A list that is not one of byte arrays names itself.
+    let refused = run(
+        &mut host,
+        "signatures.addValidationInfo",
+        None,
+        &[json!({ "certificates": ["MIIB"] })],
+    )
+    .unwrap_err();
+    let refused = format!("{refused:?}");
+    assert!(refused.contains("InvalidArg") && refused.contains("certificates"), "{refused}");
+}

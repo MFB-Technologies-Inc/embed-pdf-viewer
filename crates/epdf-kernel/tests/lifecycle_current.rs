@@ -1102,3 +1102,27 @@ fn closing_during_source_production_releases_a_late_host_buffer_before_engine_ad
     epdf_kernel::bytes::set_host_releaser(None);
     run(kernel.destroy()).unwrap();
 }
+
+#[test]
+fn stored_validation_data_marks_the_document_unsaved_and_the_signing_notices_do_not() {
+    // `changesDocument` (`packages/core/main/src/kernel.ts`) leaves out only
+    // the four notices; `signatures.validationInfoAdded` (67ed292a6) is a
+    // change to the document.
+    rt::reset();
+    let document = doc(false);
+    document.local.set(true);
+    let kernel = Kernel::new(Rc::new(TestEngine(document.clone())), vec![], options()).unwrap();
+    run(kernel.start()).unwrap();
+    run(kernel.documents().open(input(), OpenOptions::default())).unwrap();
+    document
+        .events
+        .emit(&json!({"type":"signatures.prepared","field":{"kind":"fqn","name":"sig"}}));
+    document.events.emit(&json!({"type":"signatures.cancelled","signingId":"s"}));
+    rt::run_until_stalled();
+    assert!(!kernel.documents().get("doc").unwrap().has_unsaved_changes);
+    document.events.emit(&json!({"type":"signatures.validationInfoAdded",
+        "added":{"certificates":1,"ocspResponses":0,"crls":0},"meta":{"opId":"v"}}));
+    rt::run_until_stalled();
+    assert!(kernel.documents().get("doc").unwrap().has_unsaved_changes);
+    run(kernel.destroy()).unwrap();
+}
