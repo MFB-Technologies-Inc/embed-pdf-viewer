@@ -207,6 +207,22 @@ The divergences accepted in earlier catch-ups stand as before
 - CU-C8c-D9. `build-aar.sh` links the NDK's compiler-rt builtins, without which the arm64 library
   failed `dlopen` on `__arm_get_current_vg`. Cost: the link depends on the NDK's builtins layout.
 
+## Swift (CU-C9)
+
+- CU-C9-D1. The Apple slices build in a fork tree seeded from the cached `17d8073d4` tree, without
+  a dependency sync: the `DEPS` changes (`depot_tools`, `tools/memory`) are outside the PDFium build.
+  Cost: those two stay at the old revisions in that tree.
+- CU-C9-D2. `URLSessionSignatureTransport` reads each reply through a per-task delegate, with one
+  deadline. Cost: the spent deadline keeps the exchange alive until `timeoutMs`.
+- CU-C9-D3. A body shorter than its `Content-Length` counts as broken off, because `URLSession`
+  ended such a task without an error. Cost: not checked under a content coding.
+- CU-C9-D4. The route tests reuse `platforms/android/tests/signature-routes.mjs` and run only with
+  `EMBEDPDF_SIGNATURE_ROUTES` set. Cost: the publish script's runs skip them.
+- CU-C9-D5. The Swift surface is aliases and thin members, with no closure adapters. Cost: an app
+  writes a small class for a tool permission or the commands platform.
+- CU-C9-D6. The start column is `cf7fdbe7a` against its own published engine
+  (`apple-engine-9c1ce4a8ff1cd488`); the head runs use the local framework.
+
 Left for the final whole-branch review, not changed here: CU-C4a `open_candidate` with unchanged
 bytes and edits relying on two fork checks agreeing; CU-C4b's client trusting the host's reply
 limit; CU-C4b's `route-max-reply-bytes` vector, which only proves the option parses; CU-C4b's
