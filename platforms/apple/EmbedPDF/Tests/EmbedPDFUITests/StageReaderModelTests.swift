@@ -288,6 +288,9 @@ struct StageReaderModelTests {
     model.magnifyChanged(1.2, at: CGPoint(x: 195, y: 422))
     let pinch = Task { await model.magnifyEnded() }
     for await _ in reached { break }
+    // The held read saw a still stage. If it had seen motion, applying it
+    // late would be harmless and this test would not cover the epoch check.
+    #expect(try await !model.stage.isMoving())
     await model.doubleTapped(at: CGPoint(x: 195, y: 422))
     #expect(try await model.stage.isMoving())
     #expect(model.isZooming)
