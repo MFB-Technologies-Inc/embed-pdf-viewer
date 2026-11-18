@@ -166,16 +166,11 @@ pub struct SignatureTimestampAuthority {
     /// Further attempts when no answer came. `None` is 1.
     #[uniffi(default = None)]
     pub retries: Option<u32>,
-    /// Tests only: every octet of the request's nonce is this one, so a
-    /// recorded reply answers it. `None` draws a fresh nonce.
-    #[uniffi(default = None)]
-    pub fixed_nonce_octet: Option<u8>,
 }
 
 impl SignatureTimestampAuthority {
     /// The client over `transport`.
     pub fn signer(self, transport: Rc<dyn HttpTransport>) -> CmsSigner {
-        let nonce = self.fixed_nonce_octet.map_or(NonceSource::Random, NonceSource::Fixed);
         let options = HttpTimestampAuthorityOptions {
             url: self.url,
             hash: self.hash.map(SignatureDigest::core),
@@ -184,7 +179,7 @@ impl SignatureTimestampAuthority {
             timeout_ms: self.timeout_ms,
             retries: self.retries,
         };
-        timestamp_authority(transport, options, nonce)
+        timestamp_authority(transport, options, NonceSource::Random)
     }
 }
 

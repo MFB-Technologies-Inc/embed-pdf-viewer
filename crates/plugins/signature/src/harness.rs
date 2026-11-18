@@ -39,8 +39,8 @@ use plugin_conformance::{
 };
 
 use crate::transport::{
-    JsonTransport, authority_options_from_json, revocation_options_from_json, revocation_source,
-    timestamp_authority,
+    JsonTransport, NonceSource, authority_options_from_json, revocation_options_from_json,
+    revocation_source, timestamp_authority,
 };
 use serde::Serialize;
 use serde_json::{Value, json};
@@ -281,8 +281,8 @@ fn transport_of(spec: &Value, h: &Harness) -> Option<Rc<dyn HttpTransport>> {
 /// (upstream's `CmsSigner`), or else scripted as `authority.sign`.
 pub fn timestamp_authority_of(spec: &Value, h: &Harness) -> Result<CmsSigner, Error> {
     if let Some(transport) = transport_of(spec, h) {
-        let (options, nonce) = authority_options_from_json(spec)?;
-        return Ok(timestamp_authority(transport, options, nonce));
+        let options = authority_options_from_json(spec)?;
+        return Ok(timestamp_authority(transport, options, NonceSource::Random));
     }
     if let Some(sign) = spec.get("sign").filter(|s| s.get("$fn").is_some()) {
         let mut signer = cms_signer(h.callback(sign));
@@ -313,8 +313,8 @@ fn call_authority(value: Option<&Value>, h: &Harness) -> Result<Option<Option<Cm
         return Ok(Some(None));
     }
     if let Some(transport) = transport_of(&value, h) {
-        let (options, nonce) = authority_options_from_json(&value)?;
-        return Ok(Some(Some(timestamp_authority(transport, options, nonce))));
+        let options = authority_options_from_json(&value)?;
+        return Ok(Some(Some(timestamp_authority(transport, options, NonceSource::Random))));
     }
     Ok(Some(Some(cms_signer(h.callback(value.get("sign").unwrap_or(&Value::Null))))))
 }

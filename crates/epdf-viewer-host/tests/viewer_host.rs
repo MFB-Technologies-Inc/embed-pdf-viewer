@@ -2903,7 +2903,6 @@ fn timestamped_host() -> Arc<ViewerHost> {
                         headers: vec![],
                         timeout_ms: None,
                         retries: Some(0),
-                        fixed_nonce_octet: Some(0x5a),
                     },
                 ),
                 ..Default::default()

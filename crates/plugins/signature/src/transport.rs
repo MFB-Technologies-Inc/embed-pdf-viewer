@@ -27,12 +27,13 @@ use serde_json::{Value, json};
 /// Where a timestamp request's nonce comes from.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum NonceSource {
-    /// Fresh octets for every request, from the process's hashing keys
-    /// (the kernel's UUID source does the same).
+    /// Fresh octets for every request, from the byte source the kernel's
+    /// UUIDs draw from (`epdf_kernel::identity::fill_random`): Web Crypto in
+    /// the browser build.
     #[default]
     Random,
-    /// Every octet is this one, so a request is the same each time and a
-    /// recorded reply can answer it. For tests only.
+    /// Every octet is this one, so a request is the same each time. For
+    /// Rust tests only: no binding can set it.
     Fixed(u8),
 }
 
@@ -59,17 +60,7 @@ impl WebCrypto for NonceCrypto {
     fn get_random_values(&self, buffer: &mut [u8]) {
         match self.0 {
             NonceSource::Fixed(octet) => buffer.fill(octet),
-            NonceSource::Random => {
-                use std::hash::{BuildHasher, Hasher};
-                use std::sync::atomic::{AtomicU64, Ordering};
-                static DRAWN: AtomicU64 = AtomicU64::new(0);
-                for chunk in buffer.chunks_mut(8) {
-                    let mut hash = std::collections::hash_map::RandomState::new().build_hasher();
-                    hash.write_u64(DRAWN.fetch_add(1, Ordering::Relaxed));
-                    let octets = hash.finish().to_be_bytes();
-                    chunk.copy_from_slice(&octets[..chunk.len()]);
-                }
-            }
+            NonceSource::Random => epdf_kernel::identity::fill_random(buffer),
         }
     }
 }
@@ -141,11 +132,8 @@ fn headers_of(spec: &Value) -> Vec<TransportHeader> {
     }
 }
 
-/// `HttpTimestampAuthorityOptions` from upstream's camelCase JSON, with
-/// `fixedNonceOctet` for tests.
-pub fn authority_options_from_json(
-    spec: &Value,
-) -> Result<(HttpTimestampAuthorityOptions, NonceSource), Error> {
+/// `HttpTimestampAuthorityOptions` from upstream's camelCase JSON.
+pub fn authority_options_from_json(spec: &Value) -> Result<HttpTimestampAuthorityOptions, Error> {
     let hash = match spec.get("hash").and_then(Value::as_str) {
         None => None,
         Some(name) => Some(
@@ -153,23 +141,14 @@ pub fn authority_options_from_json(
                 .ok_or_else(|| bad_option("hash", &json!(name)))?,
         ),
     };
-    let nonce = match whole(spec, "fixedNonceOctet")? {
-        None => NonceSource::Random,
-        Some(octet) => NonceSource::Fixed(
-            u8::try_from(octet).map_err(|_| bad_option("fixedNonceOctet", &json!(octet)))?,
-        ),
-    };
-    Ok((
-        HttpTimestampAuthorityOptions {
-            url: url_of(spec)?,
-            hash,
-            policy: text(spec, "policy"),
-            headers: headers_of(spec),
-            timeout_ms: whole(spec, "timeoutMs")?,
-            retries: whole(spec, "retries")?,
-        },
-        nonce,
-    ))
+    Ok(HttpTimestampAuthorityOptions {
+        url: url_of(spec)?,
+        hash,
+        policy: text(spec, "policy"),
+        headers: headers_of(spec),
+        timeout_ms: whole(spec, "timeoutMs")?,
+        retries: whole(spec, "retries")?,
+    })
 }
 
 /// `HttpRevocationSourceOptions` from upstream's camelCase JSON.
@@ -295,10 +274,9 @@ mod tests {
 
     #[test]
     fn options_read_as_upstream_spells_them() {
-        let (authority, nonce) = authority_options_from_json(&json!({
+        let authority = authority_options_from_json(&json!({
             "url": "https://tsa.example", "hash": "sha384", "policy": "1.2.3",
-            "headers": { "x-key": "k", "x-other": "o" }, "timeoutMs": 500, "retries": 0,
-            "fixedNonceOctet": 90
+            "headers": { "x-key": "k", "x-other": "o" }, "timeoutMs": 500, "retries": 0
         }))
         .unwrap();
         assert_eq!(authority.hash, Some(epdf_signature_core::Digest::Sha384));
@@ -307,7 +285,6 @@ mod tests {
             TransportHeader { name: "x-other".into(), value: "o".into() }
         );
         assert_eq!((authority.timeout_ms, authority.retries), (Some(500), Some(0)));
-        assert_eq!(nonce, NonceSource::Fixed(90));
         let route = revocation_options_from_json(&json!({
             "url": "/revocation", "headers": [{ "name": "a", "value": "b" }], "maxReplyBytes": 9
         }))
@@ -324,9 +301,19 @@ mod tests {
         let mut octets = [0u8; 8];
         NonceCrypto(NonceSource::Fixed(0x5a)).get_random_values(&mut octets);
         assert_eq!(octets, [0x5a; 8]);
-        let (mut a, mut b) = ([0u8; 8], [0u8; 8]);
-        NonceCrypto(NonceSource::Random).get_random_values(&mut a);
-        NonceCrypto(NonceSource::Random).get_random_values(&mut b);
+    }
+
+    /// Upstream's nonce: 8 octets, positive, no leading zero octet
+    /// (`random_positive_integer`), fresh each time.
+    #[test]
+    fn random_nonces_differ_and_have_upstreams_shape() {
+        let crypto = NonceCrypto(NonceSource::Random);
+        let a = epdf_signature_core::signers::random_positive_integer(&crypto);
+        let b = epdf_signature_core::signers::random_positive_integer(&crypto);
         assert_ne!(a, b);
+        for nonce in [a, b] {
+            assert_eq!(nonce.len(), 8);
+            assert_eq!(nonce[0] & 0xc0, 0x40, "{nonce:02x?}");
+        }
     }
 }

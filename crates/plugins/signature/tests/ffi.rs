@@ -737,7 +737,6 @@ fn authority() -> SignatureTimestampAuthority {
         headers: vec![SignatureTransportHeader { name: "x-api-key".into(), value: "k".into() }],
         timeout_ms: Some(5_000),
         retries: Some(1),
-        fixed_nonce_octet: Some(0x5a),
     }
 }
 
@@ -766,10 +765,14 @@ fn a_calls_timestamp_authority_asks_through_the_foreign_transport() {
         assert_eq!(request.headers, authority().headers);
         assert_eq!(request.timeout_ms, 5_000);
         assert_eq!(request.max_reply_bytes, 1024 * 1024);
-        // A TimeStampReq with the fixed nonce: INTEGER, 8 octets of 0x5a.
+        // A TimeStampReq with upstream's nonce: INTEGER, 8 octets, the first
+        // `01xxxxxx`.
         assert_eq!(request.body[0], 0x30);
-        let nonce = [0x02, 0x08, 0x5a, 0x5a, 0x5a, 0x5a, 0x5a, 0x5a, 0x5a, 0x5a];
-        assert!(request.body.windows(nonce.len()).any(|w| w == nonce), "{:02x?}", request.body);
+        assert!(
+            request.body.windows(3).any(|w| w[0] == 0x02 && w[1] == 0x08 && w[2] & 0xc0 == 0x40),
+            "{:02x?}",
+            request.body
+        );
     }
     assert_eq!(sent[0].body, sent[1].body);
     assert_eq!(block_on(s.pending()).unwrap(), None);

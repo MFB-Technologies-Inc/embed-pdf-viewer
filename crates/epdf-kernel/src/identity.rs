@@ -33,6 +33,15 @@ fn random_bytes() -> [u8; 16] {
     }
     bytes
 }
+/// Fill `out` from the byte source UUIDs draw from: the host's when one is
+/// installed (`epdf-web` installs `getrandom` over Web Crypto), else the
+/// kernel's own.
+pub fn fill_random(out: &mut [u8]) {
+    for chunk in out.chunks_mut(16) {
+        let bytes = random_bytes();
+        chunk.copy_from_slice(&bytes[..chunk.len()]);
+    }
+}
 fn format(mut bytes: [u8; 16], version: u8) -> String {
     bytes[6] = (bytes[6] & 15) | version << 4;
     bytes[8] = (bytes[8] & 63) | 128;

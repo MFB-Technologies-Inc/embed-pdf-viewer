@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 
 use epdf_signature_core::{CmsSignRequest, RevocationRequest};
-use epdf_web::runtime::{entry, reset, to_js};
+use epdf_web::runtime::{entry, reset, start_clock, to_js};
 use plugin_conformance::Harness;
 use serde_json::{Value, json};
 use wasm_bindgen::prelude::*;
@@ -80,6 +80,8 @@ async fn a_revocation_route_answers_a_recorded_reply_through_a_javascript_transp
 #[wasm_bindgen_test]
 async fn a_timestamp_authority_reads_each_recorded_outcome_as_the_client_does() {
     reset();
+    // As `WasmKernel::new` does: the kernel's byte source is Web Crypto.
+    start_clock();
     let log = js_sys::Array::new();
     let h = harness(transport(
         &log,
@@ -87,7 +89,7 @@ async fn a_timestamp_authority_reads_each_recorded_outcome_as_the_client_does() 
     ));
     let spec = json!({
         "transport": { "$fn": "js:t" }, "url": "https://tsa.example/stamp",
-        "retries": 1, "fixedNonceOctet": 90,
+        "retries": 1,
     });
     let stamped = entry(|| {
         let authority = epdf_plugin_signature::harness::timestamp_authority_of(&spec, &h).unwrap();
@@ -111,6 +113,19 @@ async fn a_timestamp_authority_reads_each_recorded_outcome_as_the_client_does() 
     assert_eq!(first, second);
     assert_eq!(first["contentType"], "application/timestamp-query");
     assert_eq!(first["maxReplyBytes"], 1024 * 1024);
+}
+
+/// Two nonces in the browser build differ: they come from Web Crypto, not
+/// from hashing keys a page load can repeat.
+#[wasm_bindgen_test]
+async fn browser_nonces_come_from_web_crypto() {
+    reset();
+    start_clock();
+    let mut a = [0u8; 8];
+    let mut b = [0u8; 8];
+    epdf_kernel::identity::fill_random(&mut a);
+    epdf_kernel::identity::fill_random(&mut b);
+    assert_ne!(a, b);
 }
 
 #[wasm_bindgen_test]
