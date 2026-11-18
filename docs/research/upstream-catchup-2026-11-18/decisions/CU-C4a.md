@@ -39,21 +39,25 @@ Cost: every gate that calls `require` on a protected capability now answers `Pro
 No existing test asserted otherwise (`cargo test -p epdf-engine`, 0 new failures).
 Reverse: revert `d05f2dae7`.
 
-## CU-C4a-D4. Three replayed steps are listed as a known divergence, not fixed
+## CU-C4a-D4. Port `openCandidate`'s layer path: unsaved edits share the signature's revision
 
-Decision: `signature_ltv.rs` lists three steps where this port lands a signature over unsaved edits
-one revision later than upstream: `validation-info.json` case
-`a-signature-made-after-it-seals-it-in-added-after-one-it-is-permitted` steps 3 (`revisionIndex`)
-and 8 (`revisions`), and `timestamp-field.json` case
-`a-timestamp-field-takes-a-name-no-other-field-has` step 2 (`revisionIndex`). Each must differ at
-that pointer and nowhere else, so the replay fails when the port starts agreeing.
-Reason: `SignatureMutator.openCandidate` seals unsaved edits in the signature's own revision (the
-layer artifact a save would write). The Rust `prepare` takes `snapshot_bytes`, an incremental save,
-so the edits get a revision of their own. The gap predates this range; these are the first vectors
-that sign over unsaved edits. Porting the layer candidate path is outside CU-C4a's items.
-Cost: until it is ported, a fill-and-sign through the Rust engine writes two revisions where
-upstream writes one. The verdicts agree in every case recorded.
-Reverse: port the layer path of `openCandidate` and delete the three entries.
+Decision: the fix round's commit ports `SignatureMutator.openCandidate` to Rust `prepare`. With
+unsaved edits, and no signed bytes in the loaded delta, the candidate is the layer artifact a save
+would write (`save_layer_artifact_ex`, `EPDFLayer_SaveLayerArtifactToOwnedBufferEx`), opened as a
+writable layer over the session's base (`open_layer_artifact_over_base`,
+`EPDFLayer_OpenLayerArtifact`). Otherwise the candidate is a document of its own over the bytes a
+save would write, as before. The first review round had listed the three replayed steps this changed
+as a known divergence; the controller ruled to port instead, and the list is gone.
+Reason: upstream seals the edits and the signature in one revision, as Acrobat saves a
+fill-and-sign; this port gave the edits a revision of their own, so `revisionIndex` and the revision
+count differed in `validation-info.json` and `timestamp-field.json`. The candidate borrows the
+session's document only until it is saved, which ends before `PendingSigning` is stored, so
+`complete` and its install are unchanged.
+Cost: with no unsaved edits, or when the save pass finds nothing changed, upstream opens the
+session's own layer over its base and this port opens the loaded bytes as a document of its own.
+Both seal the loaded bytes followed by one signature revision; no replay tells them apart. The
+native scratch-file candidate (a file base) stays in memory here.
+Reverse: revert the fix round's commit and restore the three entries.
 
 ## CU-C4a-D5. `fieldObjectNumber` rides the prepare answer
 
