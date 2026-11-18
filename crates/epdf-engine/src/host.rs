@@ -3665,7 +3665,6 @@ impl PageEffect {
 /// document's bytes instead.
 const TRANSACTED_KINDS: &[&str] = &[
     "metadata.update",
-    "signatures.addValidationInfo",
     "metadata.updateCustom",
     "document.apply",
     "annotations.create",
@@ -3696,6 +3695,7 @@ const TRANSACTED_KINDS: &[&str] = &[
     "measure.setScale",
     "pieceInfo.update",
     "pieceInfo.delete",
+    "signatures.addValidationInfo",
 ];
 
 /// What the three open kinds ask of the session beside the document

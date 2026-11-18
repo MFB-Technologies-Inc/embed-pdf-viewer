@@ -416,4 +416,73 @@ mod tests {
                 "anyOf": ["doc.print", "doc.download"] }))
         );
     }
+
+    /// A document whose signature allows filling in only (no
+    /// certification), as `deriveProtection` reports it.
+    fn fill_only() -> DocumentProtection {
+        use crate::features::signature::types::ModificationLevel;
+        DocumentProtection {
+            enforced: Some(ModificationLevel::Fill),
+            judged: Some(ModificationLevel::Fill),
+            certification: None,
+            field_locks: Vec::new(),
+            policy_version: 5,
+        }
+    }
+
+    #[test]
+    fn what_a_signature_forbids_is_protected_document_and_what_the_scope_lacks_is_forbidden() {
+        // `ScopeGuard.assertCapability`: the signature's restriction is named
+        // even for the wildcard, and a capability the signature leaves alone
+        // but the scope never granted stays `PermissionDenied`.
+        let mut authority = SessionAuthority::new(
+            &scope(&["doc.open", "doc.annotate.modify"]),
+            IdentityClaims::default(),
+            PdfPermissionFlags::default(),
+        )
+        .expect("parse");
+        authority.set_protection(Some(fill_only()));
+
+        let protected = authority.require(DocCapability::DocAnnotateModify).expect_err("protected");
+        assert_eq!(protected.code, EngineErrorCode::ProtectedDocument);
+        assert_eq!(
+            protected.message,
+            "the document is signed: an existing signature (declared level 'fill') forbids \
+             'doc.annotate.modify'"
+        );
+
+        let denied = authority.require(DocCapability::DocRender).expect_err("not in scope");
+        assert_eq!(denied.code, EngineErrorCode::Forbidden);
+        assert_eq!(denied.message, "permission denied: doc.render");
+
+        let mut wildcard = SessionAuthority::unrestricted();
+        wildcard.set_protection(Some(fill_only()));
+        let refused = wildcard.require(DocCapability::DocAnnotateModify).expect_err("protected");
+        assert_eq!(refused.code, EngineErrorCode::ProtectedDocument);
+        wildcard.require(DocCapability::DocFormsFill).expect("fill is allowed at 'fill'");
+    }
+
+    #[test]
+    fn permit_enforces_nothing_and_still_reports_the_protection() {
+        // `signedDocumentPolicy: 'permit'`: `ScopeGuard` holds no protection,
+        // but an open still reports what the signatures declare
+        // (`WorkerHost.probeProtection`).
+        let mut authority = SessionAuthority::unrestricted();
+        authority.set_protection(Some(fill_only()));
+        authority.set_protection_enforced(false);
+
+        assert_eq!(authority.protection(), None);
+        assert_eq!(authority.document_protection(), Some(&fill_only()));
+        for capability in DocCapability::ALL {
+            authority.require(capability).expect("permit leaves every edit to the caller");
+        }
+        assert_eq!(authority.to_wire()["protection"], serde_json::Value::Null);
+
+        authority.set_protection_enforced(true);
+        assert_eq!(authority.protection(), Some(&fill_only()));
+        assert_eq!(
+            authority.require(DocCapability::DocAnnotateModify).expect_err("protected").code,
+            EngineErrorCode::ProtectedDocument
+        );
+    }
 }

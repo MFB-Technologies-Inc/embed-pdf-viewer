@@ -29,7 +29,7 @@ fn two_approvals_list_in_field_order_with_whole_revision_coverage() {
     assert_eq!(revisions[0]["signatureIndex"], Value::Null);
     assert_eq!(revisions[1]["signatureIndex"], json!(0));
     assert_eq!(snapshot["protection"]["enforced"], Value::Null);
-    // `deriveProtection`'s approval baseline, policy version 4.
+    // `deriveProtection`'s approval baseline, policy version 5.
     assert_eq!(snapshot["protection"]["judged"], json!("annotate"));
     assert_eq!(snapshot["protection"]["policyVersion"], json!(5));
 }
