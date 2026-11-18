@@ -1,11 +1,12 @@
 {
   "baseline": "main",
   "noiseArm": "main-aa",
+  "fallbackReference": "main-now",
   "defaultArms": [
     "main",
     "main-aa",
-    "plugins-base",
-    "plugins-next"
+    "main-now",
+    "perf-fixes-end"
   ],
   "worktrees": {
     "main": {
@@ -255,12 +256,37 @@
     },
     "plugins-base": {
       "ref": "research/multi-platform-rust-core-impl-plugins",
-      "sha": "b5e82a19036abb472ca34f8c627dbf809d912f36",
+      "sha": "9d6c2eca100ab612faa1dcb87135c2527b81b450",
       "recipe": "rust-kernel"
     },
     "plugins-next": {
-      "ref": "research/multi-platform-rust-core-impl-plugins",
-      "sha": "b5e82a19036abb472ca34f8c627dbf809d912f36",
+      "ref": "research/perf-fixes",
+      "sha": "0de4effd922631c607fe44ca352a3aa9b2d52555",
+      "recipe": "rust-kernel"
+    },
+    "main-now": {
+      "ref": "main",
+      "sha": "ed064e0c867e7688234ad36c0350377544ef93f9",
+      "recipe": "typescript"
+    },
+    "plugins-next-lto": {
+      "ref": "research/perf-fixes",
+      "sha": "0de4effd922631c607fe44ca352a3aa9b2d52555",
+      "recipe": "rust-kernel-lto"
+    },
+    "phase-c-end": {
+      "ref": "research/perf-fixes",
+      "sha": "af9ff5d2b1950fc0940931612d3b2c862448ef2e",
+      "recipe": "rust-kernel"
+    },
+    "phase-d-end": {
+      "ref": "research/perf-fixes",
+      "sha": "0d18fb1776331c12dcf332632f6e4c6d74a876fa",
+      "recipe": "rust-kernel"
+    },
+    "perf-fixes-end": {
+      "ref": "research/perf-fixes",
+      "sha": "a6d4d5d14074cb20cd7d2cebcff9fbd5f5981648",
       "recipe": "rust-kernel"
     }
   },
@@ -550,6 +576,36 @@
     },
     "plugins-next": {
       "worktree": "plugins-next",
+      "kernel": "rust",
+      "rustReads": false
+    },
+    "main-now": {
+      "worktree": "main-now",
+      "kernel": "typescript",
+      "rustReads": false
+    },
+    "plugins-next-lto": {
+      "worktree": "plugins-next-lto",
+      "kernel": "rust",
+      "rustReads": false
+    },
+    "phase-c-base": {
+      "worktree": "plugins-next",
+      "kernel": "rust",
+      "rustReads": false
+    },
+    "phase-c-end": {
+      "worktree": "phase-c-end",
+      "kernel": "rust",
+      "rustReads": false
+    },
+    "phase-d-end": {
+      "worktree": "phase-d-end",
+      "kernel": "rust",
+      "rustReads": false
+    },
+    "perf-fixes-end": {
+      "worktree": "perf-fixes-end",
       "kernel": "rust",
       "rustReads": false
     }
@@ -874,6 +930,38 @@
     [
       "main",
       "plugins-next"
+    ],
+    [
+      "main",
+      "main-now"
+    ],
+    [
+      "main-now",
+      "plugins-next"
+    ],
+    [
+      "plugins-next",
+      "plugins-next-lto"
+    ],
+    [
+      "phase-c-base",
+      "phase-c-end"
+    ],
+    [
+      "phase-c-end",
+      "phase-d-end"
+    ],
+    [
+      "main-now",
+      "phase-d-end"
+    ],
+    [
+      "phase-d-end",
+      "perf-fixes-end"
+    ],
+    [
+      "main-now",
+      "perf-fixes-end"
     ]
   ]
 }

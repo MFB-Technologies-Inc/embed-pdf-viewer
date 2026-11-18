@@ -1,105 +1,192 @@
 (() => {
-  const state = { firstPaintAt: null, frames: [], longTasks: [], changes: [] };
-  let last = null;
+  const state = { firstPaintAt: null, frames: [], longTasks: [], lastChange: null };
+  const decodes = new WeakMap();
+  const waiters = new Set();
+  let visible = new Map();
+  let lastFrame = null;
+  let paintCandidate = null;
+  const mark = () => {
+    state.lastChange = performance.now();
+  };
+  const root = () => document.querySelector('embedpdf-viewer')?.shadowRoot ?? null;
+  const sourceOf = (img) => `${img.getAttribute('src') ?? ''}\n${img.currentSrc}`;
+  const parentOf = (el) => el.parentElement ?? el.getRootNode()?.host ?? null;
+  const clips = (value) => /^(hidden|clip|scroll|auto)$/.test(value);
+
+  const hidden = (css) => css.display === 'none' || css.visibility === 'hidden' || css.visibility === 'collapse';
+  const VIEWPORT = () => ({ left: 0, top: 0, right: innerWidth, bottom: innerHeight });
+
+  // The viewport area `el` and its ancestors let through, or null when one of
+  // them is hidden. Every page image shares the viewer's ancestors, so one
+  // sample memoizes each element's answer (`seen`) and walks a chain once.
+  function clipOf(el, seen) {
+    if (!el) return VIEWPORT();
+    if (seen.has(el)) return seen.get(el);
+    const css = getComputedStyle(el);
+    let clip = null;
+    if (!hidden(css)) {
+      const up = clipOf(parentOf(el), seen);
+      if (up && (clips(css.overflowX) || clips(css.overflowY))) {
+        const box = el.getBoundingClientRect();
+        const sx = el.offsetWidth ? box.width / el.offsetWidth : 1;
+        const sy = el.offsetHeight ? box.height / el.offsetHeight : 1;
+        const innerLeft = box.left + el.clientLeft * sx;
+        const innerTop = box.top + el.clientTop * sy;
+        clip = { ...up };
+        if (clips(css.overflowX)) {
+          clip.left = Math.max(clip.left, innerLeft);
+          clip.right = Math.min(clip.right, innerLeft + el.clientWidth * sx);
+        }
+        if (clips(css.overflowY)) {
+          clip.top = Math.max(clip.top, innerTop);
+          clip.bottom = Math.min(clip.bottom, innerTop + el.clientHeight * sy);
+        }
+      } else clip = up;
+    }
+    seen.set(el, clip);
+    return clip;
+  }
+
+  // Rectangles use viewport CSS pixels, including ancestor scrolling and
+  // transforms. Clip each axis separately; crossing a shadow root includes
+  // the viewer host's clipping ancestors too. An image outside the browser
+  // viewport is offscreen whatever its ancestors are, so it costs one
+  // getBoundingClientRect and no style reads.
+  function visibleRect(img, seen) {
+    const rect = img.getBoundingClientRect();
+    let left = Math.max(0, rect.left);
+    let top = Math.max(0, rect.top);
+    let right = Math.min(innerWidth, rect.right);
+    let bottom = Math.min(innerHeight, rect.bottom);
+    if (!(right > left && bottom > top)) return null;
+    if (hidden(getComputedStyle(img))) return null;
+    const clip = clipOf(parentOf(img), seen);
+    if (!clip) return null;
+    left = Math.max(left, clip.left);
+    top = Math.max(top, clip.top);
+    right = Math.min(right, clip.right);
+    bottom = Math.min(bottom, clip.bottom);
+    return right > left && bottom > top ? `${left},${top},${right},${bottom}` : null;
+  }
+
+  function track(img, source) {
+    let record = decodes.get(img);
+    if (record?.source === source) return record;
+    record = { source, status: 'pending' };
+    decodes.set(img, record);
+    // RenderLayer mounts its img before the engine supplies a source.
+    if (!img.getAttribute('src') && !img.currentSrc) return record;
+    const finish = (status) => {
+      // A late completion from A must not satisfy (or fail) B, even if A's
+      // callback runs before the next frame has noticed B's src mutation.
+      if (sourceOf(img) !== source || decodes.get(img) !== record) return;
+      if (!img.isConnected) {
+        // Re-insertion must recheck decode rather than reuse an ignored
+        // completion's permanently pending record.
+        decodes.delete(img);
+        return;
+      }
+      sample();
+      record.status = status;
+      if (visible.has(img)) {
+        mark();
+        if (status === 'error') {
+          for (const fail of [...waiters]) fail(new Error('visible page image decode failed'));
+        }
+        if (state.firstPaintAt === null && allDecoded()) paintCandidate = visible;
+      }
+    };
+    try {
+      img.decode().then(
+        () => finish('decoded'),
+        () => finish('error'),
+      );
+    } catch {
+      finish('error');
+    }
+    return record;
+  }
+
+  function sample() {
+    const next = new Map();
+    const seen = new Map();
+    for (const img of root()?.querySelectorAll('img[draggable="false"]') ?? []) {
+      const rect = visibleRect(img, seen);
+      if (rect === null) continue;
+      const source = sourceOf(img);
+      next.set(img, { source, rect, decode: track(img, source) });
+    }
+    if (
+      next.size !== visible.size ||
+      [...next].some(([img, v]) => {
+        const previous = visible.get(img);
+        return !previous || previous.source !== v.source || previous.rect !== v.rect;
+      })
+    )
+      mark();
+    visible = next;
+  }
+
+  const allDecoded = () =>
+    visible.size > 0 &&
+    [...visible].every(
+      ([img, v]) => v.decode.status === 'decoded' && img.complete && img.naturalWidth > 0,
+    );
+  const sameSources = (a, b) =>
+    a?.size === b.size && [...b].every(([img, v]) => a.get(img)?.source === v.source);
   const tick = (t) => {
-    if (last !== null) state.frames.push(t - last);
-    last = t;
+    if (lastFrame !== null) state.frames.push(t - lastFrame);
+    lastFrame = t;
+    sample();
+    if (state.firstPaintAt === null) {
+      if (allDecoded()) {
+        if (sameSources(paintCandidate, visible)) state.firstPaintAt = t;
+        else paintCandidate = visible;
+      } else paintCandidate = null;
+    }
     requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
-
   new PerformanceObserver((list) => {
-    for (const e of list.getEntries()) state.longTasks.push({ start: e.startTime, duration: e.duration });
+    for (const e of list.getEntries())
+      state.longTasks.push({ start: e.startTime, duration: e.duration });
   }).observe({ type: 'longtask', buffered: true });
 
-  const root = () => document.querySelector('embedpdf-viewer')?.shadowRoot ?? null;
-  const isPageImage = (n) => n instanceof HTMLImageElement && n.getAttribute('draggable') === 'false';
-  const visibleImages = () =>
-    [...(root()?.querySelectorAll('img[draggable="false"]') ?? [])].filter((img) => {
-      const r = img.getBoundingClientRect();
-      return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth;
-    });
-  // Images whose src changed and haven't finished loading and decoding.
-  // Chromium keeps `complete` true and the old naturalWidth until the new
-  // bytes arrive, so without this a swap reads as decoded straight away.
-  const pending = new Set();
-  const allDecoded = () => {
-    for (const img of pending) if (!img.isConnected) pending.delete(img);
-    const imgs = visibleImages();
-    return imgs.length > 0 && imgs.every((img) => img.complete && img.naturalWidth > 0 && !pending.has(img));
-  };
-
-  // A change is a page image being added, re-sourced, or finishing decode.
-  // Recording the decode, not only the src swap, is what makes a slow decode
-  // show up in the settled time instead of hiding behind the mutation.
-  const mark = () => state.changes.push(performance.now());
-  const attach = () => {
-    const r = root();
-    if (!r) return requestAnimationFrame(attach);
-    const track = (img) => {
-      if (!img.complete || img.naturalWidth === 0 || img.currentSrc !== img.src) pending.add(img);
-    };
-    new MutationObserver((records) => {
-      let changed = false;
-      for (const rec of records) {
-        if (rec.type === 'attributes') {
-          if (isPageImage(rec.target)) {
-            pending.add(rec.target);
-            changed = true;
-          }
-          continue;
-        }
-        for (const n of rec.addedNodes) {
-          const imgs = isPageImage(n) ? [n] : n instanceof Element ? [...n.querySelectorAll('img[draggable="false"]')] : [];
-          imgs.forEach(track);
-          if (imgs.length) changed = true;
-        }
-      }
-      if (changed) mark();
-    }).observe(r, { subtree: true, childList: true, attributes: true, attributeFilter: ['src'] });
-    // `load` doesn't bubble, so listen in the capture phase.
-    const done = (img) => () => {
-      pending.delete(img);
-      mark();
-    };
-    r.addEventListener('load', (e) => isPageImage(e.target) && e.target.decode().then(done(e.target), done(e.target)), true);
-    r.addEventListener('error', (e) => isPageImage(e.target) && done(e.target)(), true);
-    const firstPaint = () => {
-      if (allDecoded()) requestAnimationFrame((t) => (state.firstPaintAt ??= t));
-      else requestAnimationFrame(firstPaint);
-    };
-    firstPaint();
-  };
-  attach();
-
-  const QUIET_MS = 250;
   window.__probe = {
     get firstPaintAt() {
       return state.firstPaintAt;
     },
-    // `sinceMs` is when the action started. `doneAt` is when the flow saw the
-    // action's own completion condition (see Task 7), and defaults to
-    // `sinceMs`. With `requireChange`, at least one page-image change must
-    // happen after `sinceMs`, so an action whose render hasn't started yet
-    // can't settle on the quiet left over from the previous one.
-    //
-    // Resolves with the later of `doneAt` and the last change after `sinceMs`,
-    // once QUIET_MS has passed since then with every visible image decoded.
-    // That is the time of the last change, not the time it was detected.
     settledAt: (sinceMs, { doneAt = sinceMs, requireChange = true } = {}) =>
       new Promise((resolve, reject) => {
         const deadline = performance.now() + 30_000;
+        let finished = false;
+        const finish = (callback, value) => {
+          if (finished) return;
+          finished = true;
+          waiters.delete(fail);
+          callback(value);
+        };
+        const fail = (error) => finish(reject, error);
+        waiters.add(fail);
         const check = () => {
+          if (finished) return;
+          sample();
+          if (finished) return;
           const now = performance.now();
-          const after = state.changes.filter((t) => t >= sinceMs);
-          const lastChange = after.length ? after[after.length - 1] : null;
-          if (now > deadline) {
-            const why = requireChange && lastChange === null ? 'action produced no page-image change' : 'page never settled';
-            return reject(new Error(why));
-          }
-          const settledAt = Math.max(lastChange ?? sinceMs, doneAt);
-          const ready = (!requireChange || lastChange !== null) && now - settledAt >= QUIET_MS && allDecoded();
-          if (ready) return resolve(settledAt);
+          const changed = state.lastChange !== null && state.lastChange >= sinceMs;
+          if ([...visible.values()].some((v) => v.decode.status === 'error'))
+            return fail(new Error('visible page image decode failed'));
+          if (now > deadline)
+            return fail(
+              new Error(
+                requireChange && !changed
+                  ? 'action produced no page-image change'
+                  : 'page never settled',
+              ),
+            );
+          const settledAt = Math.max(changed ? state.lastChange : sinceMs, doneAt);
+          if ((!requireChange || changed) && now - settledAt >= 250 && allDecoded())
+            return finish(resolve, settledAt);
           setTimeout(check, 16);
         };
         check();
@@ -107,10 +194,11 @@
     frames: () => state.frames.slice(),
     longTasks: () => state.longTasks.slice(),
     reset: () => {
+      sample();
       state.frames = [];
       state.longTasks = [];
-      state.changes = [];
-      last = null;
+      state.lastChange = null;
+      lastFrame = null;
     },
   };
 })();

@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { launchBrowser } from './lib/cdp.mjs';
 import { loadConfig } from './lib/config.mjs';
 import { collectEnv, DEVICE_SCALE_FACTOR, distSizes, THROTTLE, verifyFixtures, VIEWPORT } from './lib/env.mjs';
-import { FLOW_ORDER, FLOWS, runFlow } from './lib/flows.mjs';
+import { armRuns, FLOW_ORDER, FLOWS, runFlow, sampleFields } from './lib/flows.mjs';
 import { runGate } from './lib/gate.mjs';
 import { serveArms } from './lib/serve.mjs';
 import { workDir } from './scripts/materialize.mjs';
@@ -71,6 +71,9 @@ try {
   writeFileSync(path.join(out, 'gate.json'), JSON.stringify(gate, null, 2));
   for (const [id, g] of Object.entries(gate)) console.log(`gate ${id}: ${g.pass ? 'pass' : `excluded: ${g.reason}`}`);
   const timed = arms.filter((id) => gate[id].pass);
+  // Flows an arm leaves out because its viewer lacks what they need (lib/flows.mjs `needs`).
+  const skipped = Object.fromEntries(timed.map((id) => [id, flows.filter((f) => f !== 'open' && !armRuns(f, gate[id].capabilities))]));
+  for (const [id, list] of Object.entries(skipped)) if (list.length) console.log(`${id} skips ${list.join(', ')}`);
 
   const samples = path.join(out, 'samples.jsonl');
   let memorySource = null;
@@ -83,11 +86,11 @@ try {
     const order = timed.map((_, i) => timed[(i + round) % timed.length]);
     for (const { flow, fixture } of jobs) {
       for (const arm of order) {
+        if (skipped[arm].includes(flow)) continue;
         const line = { arm, flow, fixture, round };
         try {
           const r = await runFlow(run, { origin: urls[arm], flow, fixture, rate, ...env });
-          line.metrics = r.metrics;
-          if (r.diagnostics) line.diagnostics = r.diagnostics;
+          Object.assign(line, sampleFields(r));
           if (r.memorySource) memorySource ??= r.memorySource;
           if (r.memorySource === 'cdp') memorySource = 'cdp';
           if (r.workerThrottled === false) workerThrottled = false;
@@ -107,6 +110,7 @@ try {
     rounds,
     quick,
     armsRun: arms,
+    skipped,
     sizes: Object.fromEntries(arms.map((id) => [id, distSizes(path.join(workDir(), 'dist', id))])),
     memorySource,
     workerThrottled,

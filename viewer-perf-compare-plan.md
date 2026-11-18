@@ -178,6 +178,9 @@ perf-compare/
     stats.test.mjs
     env.test.mjs
     serve.test.mjs
+    probe.test.mjs        controlled-clock visible image and decode checks
+    probe.selftest.mjs    browser visibility and decode checks (needs Chromium)
+    flow-state.selftest.mjs  real-viewer starting-state checks (needs main build)
     memory.selftest.mjs   the 64 MiB wasm memory check (needs Chromium)
 ```
 
@@ -1270,7 +1273,7 @@ git commit -m "Build one viewer entry into every perf arm"
 **Files:**
 - Create: `perf-compare/lib/serve.mjs`, `perf-compare/lib/probe.js`, `perf-compare/lib/cdp.mjs`, `perf-compare/lib/env.mjs`
 - Create: `perf-compare/fixtures/generate.mjs`, `perf-compare/fixtures/fixtures.json`, `perf-compare/fixtures/large.pdf`, `perf-compare/fixtures/ebook.pdf`
-- Test: `perf-compare/test/serve.test.mjs`, `perf-compare/test/env.test.mjs`, `perf-compare/test/memory.selftest.mjs`
+- Test: `perf-compare/test/serve.test.mjs`, `perf-compare/test/env.test.mjs`, `perf-compare/test/probe.test.mjs`, `perf-compare/test/probe.selftest.mjs`, `perf-compare/test/memory.selftest.mjs`
 
 **Interfaces:**
 - Produces:
@@ -1302,108 +1305,46 @@ Content types: `.html`, `.js`, `.mjs`, `.css`, `.wasm` (`application/wasm`, requ
 
 `test/serve.test.mjs` serves a temp dir with an `index.html` and a `.wasm`, fetches both, and asserts the four headers and `application/wasm`.
 
-- [ ] **Step 3: Probe**
+- [x] **Step 3: Probe**
 
-`lib/probe.js` is an init script, so it runs before the entry. It must not import anything:
+`lib/probe.js` is an init script, so it runs before the entry and must not import anything. Keep the `window.__probe` interface above. Implement the following contract instead of treating an image's `complete` flag as proof of decode completion.
 
-```js
-(() => {
-  const state = { firstPaintAt: null, frames: [], longTasks: [], changes: [] };
-  let last = null;
-  const tick = (t) => {
-    if (last !== null) state.frames.push(t - last);
-    last = t;
-    requestAnimationFrame(tick);
-  };
-  requestAnimationFrame(tick);
+**Visible image state**
 
-  new PerformanceObserver((list) => {
-    for (const e of list.getEntries()) state.longTasks.push({ start: e.startTime, duration: e.duration });
-  }).observe({ type: 'longtask', buffered: true });
+On each animation frame, and immediately before evaluating a settle condition, sample the page images (`img[draggable="false"]`) in the viewer's shadow root. Determine visibility by intersecting each image's bounds with the browser viewport and its clipping ancestors. Track the visible set by element identity, source identity (`src` and `currentSrc`) and clipped bounds. An addition, removal, source replacement, or changed clipped bounds records a visible change at the observation's `performance.now()`. This includes cached images entering view during scrolling, even when no DOM mutation or `load` event occurs. An offscreen image's mutation or decode must neither satisfy `requireChange` nor extend the quiet window.
 
-  const root = () => document.querySelector('embedpdf-viewer')?.shadowRoot ?? null;
-  const isPageImage = (n) => n instanceof HTMLImageElement && n.getAttribute('draggable') === 'false';
-  const visibleImages = () =>
-    [...(root()?.querySelectorAll('img[draggable="false"]') ?? [])].filter((img) => {
-      const r = img.getBoundingClientRect();
-      return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth;
-    });
-  const allDecoded = () => {
-    const imgs = visibleImages();
-    return imgs.length > 0 && imgs.every((img) => img.complete && img.naturalWidth > 0);
-  };
+Maintain decode state per element and source generation. For each current source observed on a visible image, call `img.decode()` once per source generation and retain its pending, fulfilled or rejected state. Do not initiate decodes for offscreen images: instrumentation must not create extra offscreen decode work. A visible image with no source yet is pending; wait for a source instead of calling `decode()` on the empty image. Start this tracking for images already loaded when the probe first sees them as well as images added later; do not depend on catching `load`. `complete && naturalWidth > 0` is only an additional validity check. A visible image is ready only when its current source's decode promise has fulfilled and that validity check passes.
 
-  // A change is a page image being added, re-sourced, or finishing decode.
-  // Recording the decode, not only the src swap, is what makes a slow decode
-  // show up in the settled time instead of hiding behind the mutation.
-  const mark = () => state.changes.push(performance.now());
-  const attach = () => {
-    const r = root();
-    if (!r) return requestAnimationFrame(attach);
-    new MutationObserver((records) => {
-      for (const rec of records) {
-        if (rec.type === 'attributes' ? isPageImage(rec.target) : [...rec.addedNodes].some(
-          (n) => isPageImage(n) || (n instanceof Element && n.querySelector('img[draggable="false"]')),
-        )) return mark();
-      }
-    }).observe(r, { subtree: true, childList: true, attributes: true, attributeFilter: ['src'] });
-    // `load` doesn't bubble, so listen in the capture phase.
-    r.addEventListener('load', (e) => isPageImage(e.target) && e.target.decode().then(mark, mark), true);
-    const firstPaint = () => {
-      if (allDecoded()) requestAnimationFrame((t) => (state.firstPaintAt ??= t));
-      else requestAnimationFrame(firstPaint);
-    };
-    firstPaint();
-  };
-  attach();
+When a decode settles, resample visibility and verify that the element still has the same source generation. Ignore callbacks for replaced sources or removed images. A successful decode records a change only if the image is currently visible. A rejected decode on a still-current visible source rejects the active settle with an image-decode error; a stale rejection must not fail a newer source. A pending offscreen decode does not block settling.
 
-  const QUIET_MS = 250;
-  window.__probe = {
-    get firstPaintAt() {
-      return state.firstPaintAt;
-    },
-    // `sinceMs` is when the action started. `doneAt` is when the flow saw the
-    // action's own completion condition (see Task 7), and defaults to
-    // `sinceMs`. With `requireChange`, at least one page-image change must
-    // happen after `sinceMs`, so an action whose render hasn't started yet
-    // can't settle on the quiet left over from the previous one.
-    //
-    // Resolves with the later of `doneAt` and the last change after `sinceMs`,
-    // once QUIET_MS has passed since then with every visible image decoded.
-    // That is the time of the last change, not the time it was detected.
-    settledAt: (sinceMs, { doneAt = sinceMs, requireChange = true } = {}) =>
-      new Promise((resolve, reject) => {
-        const deadline = performance.now() + 30_000;
-        const check = () => {
-          const now = performance.now();
-          const after = state.changes.filter((t) => t >= sinceMs);
-          const lastChange = after.length ? after[after.length - 1] : null;
-          if (now > deadline) {
-            const why = requireChange && lastChange === null ? 'action produced no page-image change' : 'page never settled';
-            return reject(new Error(why));
-          }
-          const settledAt = Math.max(lastChange ?? sinceMs, doneAt);
-          const ready = (!requireChange || lastChange !== null) && now - settledAt >= QUIET_MS && allDecoded();
-          if (ready) return resolve(settledAt);
-          setTimeout(check, 16);
-        };
-        check();
-      }),
-    frames: () => state.frames.slice(),
-    longTasks: () => state.longTasks.slice(),
-    reset: () => {
-      state.frames = [];
-      state.longTasks = [];
-      state.changes = [];
-      last = null;
-    },
-  };
-})();
-```
+**Completion and reset**
 
-A settle that times out rejects. The flow records that as an `error` sample, so a broken action shows up as a failure and never as `settleMs = 0`.
+`settledAt(sinceMs, { doneAt = sinceMs, requireChange = true } = {})` waits for at least one visible change at or after `sinceMs` when `requireChange` is true. Let `lastChange` be the latest such change and `settledAt = Math.max(lastChange ?? sinceMs, doneAt)`. Resolve with that timestamp only when at least 250 ms has elapsed since it, the visible set is nonempty, and every current visible image is decoded. Reject immediately on a current visible source decode failure; otherwise reject after 30 seconds, distinguishing a missing required change from a page that never became quiet. This remains a visual quiet-window heuristic: it cannot prove that no future render will be scheduled. Task 7 must still supply the action's own completion condition.
 
-The same caveat as `tooling/viewer-e2e/performance.ts` applies and goes in the README: "first paint" is a frame opportunity after a decoded image, not a compositor timestamp.
+`firstPaintAt` uses the same decoded-visible-set predicate. Record the next animation-frame timestamp only after resampling and confirming that the same visible source generations remain decoded. It is a frame opportunity, not a compositor timestamp.
+
+Continue collecting rAF intervals and `longtask` entries. `reset()` clears those samples and the visible-change history, but retains the current visible snapshot and current-source decode records. Resetting must not manufacture a change from images that were already visible. A pending current-source decode that completes after reset must still be recorded. Use source-generation checks to prevent callbacks from old sources contaminating the new measurement.
+
+**Regression checks before implementation**
+
+Create `test/probe.test.mjs` using `node:test`, loading the actual `lib/probe.js` into a controlled DOM/clock harness. Control rAF, timers, visibility and deferred `decode()` promises. Write these assertions first; confirm they fail against the previous probe and pass against the replacement:
+
+| Case | Required assertions |
+| --- | --- |
+| Decode pending past quiet window | A visible image added at 10 ms has `complete = true` and positive `naturalWidth`, but its decode remains pending at 300 ms: settle stays pending and `firstPaintAt` stays unset. Resolve decode at 400 ms: settling remains pending before 650 ms, then returns 400 ms; first paint can be recorded only on a subsequent frame. |
+| Offscreen changes and viewport entry | With an unchanged decoded visible image, offscreen additions, source swaps and decode completions do not satisfy `requireChange`; it times out if nothing visible changes. Move a cached decoded image into view at 400 ms without a DOM mutation: this records a visible change, and settling returns 400 ms after the quiet window. Include an image clipped by a scroll container despite bounds intersecting the browser viewport. |
+| Removal and movement | Record an initial visible change at 10 ms, then remove one of two visible images at 240 ms. Settle remains pending at 300 ms and returns 240 ms only at or after 490 ms. Repeat with a changed clipped rectangle and no DOM mutation. Removing the final visible image must never settle successfully. |
+| Source replacement and errors | Replace pending source A with B. Resolving or rejecting A must neither mark B decoded nor add a change or fail B. B remains pending until its own decode finishes. A newly mounted image with no source stays pending without a decode error until a source is assigned. Rejecting a current visible B rejects settle with an image-decode error. Completion after removal is ignored. |
+| Reset and completion boundary | Reset on an unchanged decoded image creates no qualifying change. With `requireChange: false` and `doneAt = 500`, settle cannot resolve before 750 ms and returns at least 500 ms. A current visible decode that was pending across reset still advances the returned timestamp when it completes. |
+
+Also create `test/probe.selftest.mjs` using Chromium and the same probe file on a small synthetic page with an open viewer shadow root. Exercise a real data-URL image decode, a source swap, removal, clipping, and scrolling a cached image into view. Include a source swap scheduled 200 ms after the action starts and an image response delayed by 300 ms; neither may settle before the current image decodes. Assert that each successful settle has a nonempty decoded visible set and that offscreen-only changes do not fulfill `requireChange`. This checks browser event and geometry behavior that the controlled harness cannot establish.
+
+Run: `cd perf-compare && node --test test/probe.test.mjs && node --test test/probe.selftest.mjs`
+Expected: both suites pass. Run the Chromium self-test with the same browser version as the performance runner. The controlled tests establish exact timestamps; the browser test uses ordering and bounded timeouts rather than exact wall-clock equality.
+
+A settle that rejects becomes an `error` sample, never a successful zero-duration sample. A valid cached action with `requireChange: false` may still have zero duration relative to its completion boundary.
+
+The README must describe the metric as the last observed visible change or decode completion before a 250 ms quiet window, and preserve the first-paint frame-opportunity caveat.
 
 - [ ] **Step 4: CDP helpers**
 
@@ -1438,11 +1379,11 @@ Expected: PASS. If it fails on `source`, cross-origin isolation isn't on: check 
 
 - [ ] **Step 6: `lib/env.mjs`, with a test**
 
-`collectEnv` returns the fields listed under "Environment" above. `test/env.test.mjs` asserts every field is present and non-empty, and that `compatible(metaA, metaB)` (also exported) returns a list of differing keys among `browserVersion`, `cpuModel`, `fixtures`, `profile`, `viewport`, `deviceScaleFactor`, `flows`.
+`collectEnv` returns the fields listed under "Environment" above. `test/env.test.mjs` asserts every field is present and non-empty, and that `compatible(metaA, metaB)` (also exported) returns a list of differing keys among `probeSha256`, `browserVersion`, `cpuModel`, `fixtures`, `profile`, `viewport`, `deviceScaleFactor`, `flows`. Record the SHA-256 of `lib/probe.js` in each run and reject comparisons with a different or missing probe hash, so historical measurements cannot silently mix with corrected-probe timings.
 
 - [ ] **Step 7: Run all Node tests**
 
-Run: `cd perf-compare && pnpm test && node --test test/memory.selftest.mjs`
+Run: `cd perf-compare && pnpm test && node --test test/probe.selftest.mjs test/memory.selftest.mjs`
 Expected: all passing.
 
 - [ ] **Step 8: Commit**
@@ -1458,6 +1399,7 @@ git commit -m "Add the perf server, page probe, CDP helpers and fixtures"
 
 **Files:**
 - Create: `perf-compare/lib/gate.mjs`, `perf-compare/lib/flows.mjs`, `perf-compare/run.mjs`
+- Test: `perf-compare/test/flow-state.selftest.mjs`
 
 **Interfaces:**
 - Consumes: everything above.
@@ -1547,18 +1489,12 @@ async measure(page, cdp) {
 
 `open.measure` receives the page the runner prepared (Step 3), navigates it, and reads `performance.getEntriesByName('perf:ready')[0].startTime` and friends, which are already relative to navigation start.
 
-- [ ] **Step 2b: Probe and flow-state self-test**
+- [x] **Step 2b: Flow-state self-test**
 
-Add `test/probe.selftest.mjs`. It serves a page with a fake `<embedpdf-viewer>` whose shadow root holds one `img[draggable="false"]`, and checks three things in Chromium:
+Task 6 owns the synthetic-page probe checks in `test/probe.selftest.mjs`. Add `test/flow-state.selftest.mjs` for the real-viewer integration check: against the `main` arm's build, run each interaction flow's `start`, optional `warmup`, and `start` sequence, and assert the page index and zoom after the second `start` equal the table's starting state. Use the Task 6 probe to wait for settling. `open` instead asserts that its prepared page remains at `about:blank` before measurement.
 
-1. An action that swaps the `src` 200 ms after `sinceMs` settles no earlier than the swap. The old probe returned `sinceMs` here, giving `settleMs = 0`.
-2. An image whose decode finishes after its `src` swap settles no earlier than the decode. Serve a large PNG with a 300 ms delay to force it.
-3. With `requireChange` and no swap at all, `settledAt` rejects with `action produced no page-image change`.
-
-Then, against the `main` arm's real build, run each flow's `start`, `warmup`, `start` sequence and assert the page index and zoom after the second `start` equal the table's starting state.
-
-Run: `node --test perf-compare/test/probe.selftest.mjs`
-Expected: PASS.
+Run: `node --test perf-compare/test/probe.selftest.mjs perf-compare/test/flow-state.selftest.mjs`
+Expected: PASS, with no probe timeouts during starting-state restoration.
 
 - [ ] **Step 3: Runner**
 
@@ -1589,7 +1525,7 @@ Expected: 120 sample lines. Any arm excluded by the gate is a finding about that
 - [ ] **Step 6: Commit**
 
 ```bash
-git add perf-compare/lib/gate.mjs perf-compare/lib/flows.mjs perf-compare/run.mjs perf-compare/entry/main.ts perf-compare/test/probe.selftest.mjs
+git add perf-compare/lib/gate.mjs perf-compare/lib/flows.mjs perf-compare/run.mjs perf-compare/entry/main.ts perf-compare/test/flow-state.selftest.mjs
 git commit -m "Gate every perf arm on the same answers, then run interleaved rounds"
 ```
 

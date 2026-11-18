@@ -54,6 +54,8 @@ export default defineConfig({
     alias: [
       { find: '@perf/door', replacement: path.join(viewerMain, 'src/doors/local.ts') },
       { find: '@perf/kernel', replacement: kernel },
+      // entry/api-v1.ts or api-v2.ts, chosen by build-entry.mjs (lib/api-generation.mjs).
+      { find: '@perf/api', replacement: path.join(process.env.PERF_ENTRY, `api-${process.env.PERF_API}.ts`) },
       { find: 'react-dom/client', replacement: preact('preact/compat/client') },
       { find: 'react-dom', replacement: compat },
       { find: 'react/jsx-runtime', replacement: preact('preact/jsx-runtime') },

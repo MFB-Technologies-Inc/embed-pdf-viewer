@@ -5,6 +5,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { summarize } from './stats.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixturesDir = path.join(here, '../fixtures');
@@ -17,7 +18,10 @@ export const THROTTLE = { desktop: 1, slow: 4 };
 const sha256 = (file) => createHash('sha256').update(readFileSync(file)).digest('hex');
 const run = (cmd, args) => {
   try {
-    return execFileSync(cmd, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    return execFileSync(cmd, args, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
   } catch {
     return null;
   }
@@ -28,7 +32,8 @@ export function verifyFixtures() {
   const expected = JSON.parse(readFileSync(path.join(fixturesDir, 'fixtures.json'), 'utf8'));
   for (const [name, hash] of Object.entries(expected)) {
     const actual = sha256(path.join(fixturesDir, `${name}.pdf`));
-    if (actual !== hash) throw new Error(`fixture ${name}.pdf is ${actual}, fixtures.json says ${hash}`);
+    if (actual !== hash)
+      throw new Error(`fixture ${name}.pdf is ${actual}, fixtures.json says ${hash}`);
   }
   return expected;
 }
@@ -49,7 +54,16 @@ function powerSource() {
   return /'([^']+)'/.exec(batt)?.[1] ?? 'unknown';
 }
 
-export function collectEnv({ config, arms: armIds = config.armOrder, stamps, dists, fixtures, browserVersion, profile, flows }) {
+export function collectEnv({
+  config,
+  arms: armIds = config.armOrder,
+  stamps,
+  dists,
+  fixtures,
+  browserVersion,
+  profile,
+  flows,
+}) {
   const arms = {};
   for (const id of armIds) {
     const arm = config.arms[id];
@@ -75,6 +89,7 @@ export function collectEnv({ config, arms: armIds = config.armOrder, stamps, dis
       process.env.PERF_HARNESS_DIRTY !== undefined
         ? process.env.PERF_HARNESS_DIRTY === '1'
         : Boolean(run('git', ['-C', path.join(here, '..'), 'status', '--porcelain', '--', '.'])),
+    probeSha256: sha256(path.join(here, 'probe.js')),
     host: os.hostname().split('.')[0],
     arms,
     fixtures,
@@ -94,19 +109,58 @@ export function collectEnv({ config, arms: armIds = config.armOrder, stamps, dis
   };
 }
 
-const COMPARED = ['browserVersion', 'cpuModel', 'fixtures', 'profile', 'viewport', 'deviceScaleFactor', 'flows'];
+const COMPARED = [
+  'probeSha256',
+  'browserVersion',
+  'cpuModel',
+  'fixtures',
+  'profile',
+  'viewport',
+  'deviceScaleFactor',
+  'flows',
+];
 
 // The keys that make two runs incomparable. Empty when they compare.
 export function compatible(a, b) {
   return COMPARED.filter((key) => JSON.stringify(a[key]) !== JSON.stringify(b[key]));
 }
 
+// The run's frame interval: the median `scroll / frameP50Ms` of `arm` (the
+// baseline, `main`), or null when the run has no such sample. Pointer input
+// is frame-paced, so this decides how long the paced flows (`hover`,
+// `drawInk`, `dragAnnot`) take, and an arm whose per-move work fits one frame
+// at one interval can need two at a shorter one. The Mac mini has run at
+// 16.7 ms and at 11.1 ms. It's read from the scroll flow, not measured idle,
+// so runs recorded before it existed have it too. Nothing records the
+// display's rate, so this is the interval the scroll saw: `main`'s samples read
+// 16.66 to 16.67 ms in the 16.7 ms runs and 10.5 to 11.8 ms in the 11 ms runs,
+// apart from one at 17.3 ms. Every arm of a run agrees within 0.32 ms whatever
+// its load, and `main`'s drawInk settle is 180 intervals plus the same 870 to
+// 885 ms at both.
+export function frameInterval(samples, arm) {
+  const xs = samples
+    .filter((s) => !s.error && s.arm === arm && s.flow === 'scroll' && Number.isFinite(s.metrics?.frameP50Ms))
+    .map((s) => s.metrics.frameP50Ms);
+  return xs.length ? { arm, ms: summarize(xs).median, samples: xs.length } : null;
+}
+
+// Two runs' frame intervals compare when they differ by no more than this.
+// Arms of one run spread by 0.3 ms (11.0 to 11.3 ms in
+// 2026-11-17T16-59-17-202Z); the two intervals seen differ by 5.6 ms.
+export const FRAME_INTERVAL_TOLERANCE_MS = 1;
+
+export const frameIntervalText = (fi, arm) =>
+  fi
+    ? `${fi.ms.toFixed(1)} ms (median \`scroll / frameP50Ms\` of \`${fi.arm}\`, ${fi.samples} samples)`
+    : `not determined (no \`scroll\` sample on \`${arm}\`)`;
+
 // Byte sizes of an arm's built entry: the engine and wire-kernel wasm, and
 // every .js, raw and brotli level 11.
 export function distSizes(dist) {
   const { readdirSync, statSync } = require('node:fs');
   const { brotliCompressSync, constants } = require('node:zlib');
-  const brotli = (buf) => brotliCompressSync(buf, { params: { [constants.BROTLI_PARAM_QUALITY]: 11 } }).length;
+  const brotli = (buf) =>
+    brotliCompressSync(buf, { params: { [constants.BROTLI_PARAM_QUALITY]: 11 } }).length;
   const files = [];
   const walk = (dir) => {
     for (const name of readdirSync(dir)) {
@@ -128,7 +182,16 @@ export function distSizes(dist) {
   };
   const base = (f) => path.basename(f);
   const [engineWasmBytes, engineWasmBrotliBytes] = sum((f) => /^embedpdf-.*\.wasm$/.test(base(f)));
-  const [kernelWasmBytes, kernelWasmBrotliBytes] = sum((f) => /^epdf_web_bg.*\.wasm$/.test(base(f)));
+  const [kernelWasmBytes, kernelWasmBrotliBytes] = sum((f) =>
+    /^epdf_web_bg.*\.wasm$/.test(base(f)),
+  );
   const [jsBytes, jsBrotliBytes] = sum((f) => f.endsWith('.js'));
-  return { engineWasmBytes, engineWasmBrotliBytes, kernelWasmBytes, kernelWasmBrotliBytes, jsBytes, jsBrotliBytes };
+  return {
+    engineWasmBytes,
+    engineWasmBrotliBytes,
+    kernelWasmBytes,
+    kernelWasmBrotliBytes,
+    jsBytes,
+    jsBrotliBytes,
+  };
 }

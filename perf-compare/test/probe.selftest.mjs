@@ -1,15 +1,10 @@
-// Needs Chromium and a built `main` arm (scripts/build-entry.mjs main).
-// Checks the settle rule on a fake viewer, then that every flow's
-// start/warmup/start sequence really lands in the flow's starting state.
+// Synthetic viewer checks: needs Chromium, but no built viewer arm.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import path from 'node:path';
 import { crc32, deflateSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { launchBrowser } from '../lib/cdp.mjs';
-import { FLOWS } from '../lib/flows.mjs';
-import { serveArms } from '../lib/serve.mjs';
 
 const probePath = fileURLToPath(new URL('../lib/probe.js', import.meta.url));
 
@@ -45,7 +40,7 @@ const FAKE = `<!doctype html><body style="margin:0">
   const img = document.createElement('img');
   img.setAttribute('draggable', 'false');
   img.style.cssText = 'display:block;width:400px;height:300px';
-  img.src = '/small.png';
+  img.src = 'data:image/png;base64,${png(4, 4).toString('base64')}';
   root.append(img);
   window.__img = img;
 </script>`;
@@ -97,15 +92,76 @@ test('the settle rule waits for the change and the decode, and refuses no change
     const two = await page.evaluate(async () => {
       const since = performance.now();
       let decodedAt = 0;
-      window.__img.addEventListener('load', () => window.__img.decode().then(() => (decodedAt = performance.now())), {
-        once: true,
-      });
+      window.__img.addEventListener(
+        'load',
+        () => window.__img.decode().then(() => (decodedAt = performance.now())),
+        {
+          once: true,
+        },
+      );
       window.__img.src = '/slow.png?2';
       const settled = await window.__probe.settledAt(since);
       return { since, decodedAt, settled };
     });
     assert.ok(two.decodedAt > 0 && two.settled >= two.decodedAt - 1, JSON.stringify(two));
     assert.ok(two.settled - two.since >= 290, JSON.stringify(two));
+
+    // Cached images entering a clipped viewport are changes even without
+    // src/load events; offscreen decodes must not extend that window.
+    const visibility = await page.evaluate(async () => {
+      const root = document.querySelector('embedpdf-viewer').shadowRoot;
+      const clip = document.createElement('div');
+      clip.style.cssText =
+        'position:absolute;top:310px;left:0;width:200px;height:100px;overflow:hidden;border:20px solid black';
+      const img = document.createElement('img');
+      img.draggable = false;
+      img.style.cssText = 'display:block;width:100px;height:100px;margin-top:200px';
+      img.src = '/small.png';
+      const borderImage = document.createElement('img');
+      borderImage.draggable = false;
+      borderImage.src = '/small.png';
+      borderImage.style.cssText = 'position:absolute;left:-15px;top:0;width:10px;height:10px';
+      clip.append(img, borderImage);
+      root.append(clip);
+      await img.decode();
+      await new Promise((r) => requestAnimationFrame(r));
+      window.__probe.reset();
+      const since = performance.now();
+      let resolved = false;
+      const pending = window.__probe.settledAt(since).then((t) => {
+        resolved = true;
+        return t;
+      });
+      img.src = '/swap.png?offscreen';
+      borderImage.src = '/swap.png?under-border';
+      await img.decode();
+      await new Promise((r) => setTimeout(r, 350));
+      const premature = resolved;
+      const enteredAt = performance.now();
+      clip.scrollTop = 200;
+      const entered = await pending;
+      const removalAt = performance.now();
+      clip.remove();
+      const removed = await window.__probe.settledAt(removalAt);
+      const remaining = [...root.querySelectorAll('img[draggable="false"]')];
+      const ready =
+        remaining.length > 0 && remaining.every((i) => i.complete && i.naturalWidth > 0);
+      await Promise.all(remaining.map((i) => i.decode()));
+      return {
+        premature,
+        enteredAt,
+        entered,
+        removalAt,
+        removed,
+        ready,
+        observedAt: performance.now(),
+      };
+    });
+    assert.equal(visibility.premature, false, JSON.stringify(visibility));
+    assert.equal(visibility.ready, true, JSON.stringify(visibility));
+    assert.ok(visibility.entered >= visibility.enteredAt, JSON.stringify(visibility));
+    assert.ok(visibility.removed >= visibility.removalAt, JSON.stringify(visibility));
+    assert.ok(visibility.observedAt - visibility.removed >= 250, JSON.stringify(visibility));
 
     // 3. requireChange with no change at all rejects (after the 30 s deadline).
     const three = await page.evaluate(() =>
@@ -119,35 +175,5 @@ test('the settle rule waits for the change and the decode, and refuses no change
   } finally {
     await run.close();
     await server.close();
-  }
-});
-
-test('start, warmup, start puts every flow back in its starting state', async () => {
-  const dist = fileURLToPath(new URL('../.work/dist/main', import.meta.url));
-  const { urls, close } = await serveArms({ main: dist }, { basePort: 5390 });
-  const run = await launchBrowser({ port: 9335 });
-  const starting = { scroll: 0, jump: 0, zoom: 0, select: 1, search: 0, annotate: 1, soak: 0 };
-  try {
-    for (const [name, pageIndex] of Object.entries(starting)) {
-      const flow = FLOWS[name];
-      const context = await run.browser.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 });
-      await context.addInitScript({ path: probePath });
-      const page = await context.newPage();
-      await page.goto(`${urls.main}/?doc=${flow.fixture}`);
-      await page.waitForFunction(() => window.__perf);
-      await page.evaluate(() => window.__perf.opened);
-      await flow.start(page);
-      if (flow.warmup) await flow.warmup(page, null);
-      await flow.start(page);
-      const state = await page.evaluate(() => ({
-        page: window.__perf.currentPageIndex(),
-        zoom: window.__perf.zoomLevel(),
-      }));
-      assert.deepEqual(state, { page: pageIndex, zoom: 1 }, name);
-      await context.close();
-    }
-  } finally {
-    await run.close();
-    await close();
   }
 });

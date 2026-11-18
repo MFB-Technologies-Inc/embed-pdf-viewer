@@ -1,6 +1,9 @@
 // results/<run-id>/ -> report.md (and stdout).
 //
-//   node report.mjs <results/run-id | --latest> [--against <results/other>] [--publish]
+//   node report.mjs <results/run-id | --latest> [--publish]
+//
+// Every comparison is between arms of one run. Two runs don't share a noise
+// band, so `--against` is gone and exits 2.
 //
 // Deterministic: the bootstrap is seeded, so the same raw data prints the
 // same report.
@@ -9,8 +12,9 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { loadConfig } from './lib/config.mjs';
-import { compatible, distSizes } from './lib/env.mjs';
-import { bootstrapDifference, bootstrapRatio, calibrate, comparePair, summarize } from './lib/stats.mjs';
+import { hasDone } from './lib/done.mjs';
+import { distSizes, frameInterval, frameIntervalText } from './lib/env.mjs';
+import { bootstrapDifference, bootstrapRatio, calibrate, comparePair, summarize, threshold } from './lib/stats.mjs';
 import { workDir } from './scripts/materialize.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -58,7 +62,7 @@ function rows(samples) {
     if (s.error) continue;
     for (const [metric, value] of Object.entries(s.metrics)) {
       const key = `${s.flow}|${s.fixture}|${metric}`;
-      if (!out.has(key)) out.set(key, { label: rowLabel(s.flow, s.fixture, metric), metric, byArm: {} });
+      if (!out.has(key)) out.set(key, { label: rowLabel(s.flow, s.fixture, metric), flow: s.flow, metric, byArm: {} });
       (out.get(key).byArm[s.arm] ??= []).push(value);
     }
   }
@@ -74,7 +78,13 @@ const fmt = (metric, v) => {
 const fmtDiff = (metric, v) => (v >= 0 ? '+' : '') + fmt(metric, v);
 const cell = (metric, values) => {
   const s = summarize(values);
-  return `${fmt(metric, s.median)} [${fmt(metric, s.p95)}]`;
+  return `${fmt(metric, s.median)} [${fmt(metric, s.max)}]`;
+};
+// The change a row must clear to get a verdict other than "no detectable
+// difference": a ratio's as a percentage, a difference's in the metric's unit.
+const thresholdText = (metric, iv, noise) => {
+  const t = threshold(iv, noise);
+  return iv.kind === 'difference' ? `±${fmt(metric, t)}` : `±${(t * 100).toFixed(1)}%`;
 };
 
 function interval(metric, reference, candidate) {
@@ -89,11 +99,21 @@ const intervalText = (metric, iv) =>
 const table = (head, body) =>
   [`| ${head.join(' | ')} |`, `| ${head.map(() => '---').join(' | ')} |`, ...body.map((r) => `| ${r.join(' | ')} |`)].join('\n');
 
-function calibrations(allRows, config) {
+// A flow the baseline and noise arms don't have (meta.skipped: a flow that
+// needs what their viewer lacks, lib/flows.mjs `needs`) has no A/A pair; its
+// rows are judged against the floor alone, as if the noise band were 0, and
+// leave the A/A table.
+const FLOOR_ONLY = { ok: true, noise: 0, floorOnly: true };
+
+function calibrations(allRows, config, skipped = {}) {
   const out = new Map();
   for (const [key, row] of allRows) {
     const a = row.byArm[config.baseline];
     const b = row.byArm[config.noiseArm];
+    if (!a && !b && [config.baseline, config.noiseArm].every((id) => skipped[id]?.includes(row.flow))) {
+      out.set(key, FLOOR_ONLY);
+      continue;
+    }
     if (!a || !b) continue;
     try {
       const iv = interval(row.metric, a, b);
@@ -105,35 +125,57 @@ function calibrations(allRows, config) {
   return out;
 }
 
-function pairTable(allRows, calib, ref, cand, { skip = MEMORY } = {}) {
+// A verdict says what it rests on when that's less than the usual: a row
+// judged against the floor alone has no A/A band behind it (FLOOR_ONLY), and
+// a flow whose done condition an arm lacks (lib/done.mjs) times that arm's
+// input, not its handling.
+function qualified(verdict, row, cal, ref, cand, gate) {
+  const notes = [];
+  if (cal?.floorOnly) notes.push('no A/A band');
+  const done = doneNote(row, ref, cand, gate);
+  if (done) notes.push(done);
+  return notes.length ? `${verdict} (${notes.join('; ')})` : verdict;
+}
+
+function doneNote(row, ref, cand, gate) {
+  const without = [ref, cand].filter((id) => !hasDone(row.flow, gate[id]?.capabilities));
+  return without.length ? `no done condition on ${without.map((id) => `\`${id}\``).join(' and ')}` : null;
+}
+
+function pairTable(allRows, calib, ref, cand, gate = {}) {
   const body = [];
   for (const [key, row] of allRows) {
-    if (skip.includes(row.metric)) continue;
+    if (MEMORY.includes(row.metric)) continue;
     const r = row.byArm[ref];
     const c = row.byArm[cand];
     if (!r || !c) continue;
     let ivText = '';
+    let thresholdCell = '';
     let verdict;
     try {
       const iv = interval(row.metric, r, c);
       ivText = intervalText(row.metric, iv);
       const cal = calib.get(key);
+      if (cal?.ok) thresholdCell = thresholdText(row.metric, iv, cal.noise);
       verdict = !cal ? 'no A/A data' : cal.ok ? comparePair(iv, cal) : 'unreliable (A/A failed)';
       if (verdict === 'same') verdict = 'no detectable difference';
+      verdict = qualified(verdict, row, cal, ref, cand, gate);
     } catch (error) {
       verdict = `invalid: ${error.message}`;
     }
-    body.push([row.label, cell(row.metric, r), cell(row.metric, c), ivText, verdict]);
+    body.push([row.label, cell(row.metric, r), cell(row.metric, c), ivText, thresholdCell, verdict]);
   }
   return body;
 }
 
-function report(run, config, against) {
+function report(run, config) {
   const { meta, gate, samples } = run;
   const lines = [];
   const push = (...l) => lines.push(...l);
-  const allRows = rows(samples);
-  const calib = calibrations(allRows, config);
+  // An arm's rows for a flow whose answer the gate couldn't check (only that
+  // arm gave it, lib/gate.mjs `gateRecord`) are left out.
+  const allRows = rows(samples.filter((s) => !gate[s.arm]?.unchecked?.includes(s.flow)));
+  const calib = calibrations(allRows, config, meta.skipped);
 
   push(
     `# Viewer perf comparison: ${meta.runId}`,
@@ -164,6 +206,7 @@ function report(run, config, against) {
         ['Memory', `${(meta.totalMemoryBytes / 2 ** 30).toFixed(0)} GiB`],
         ['Power', meta.powerSource],
         ['Viewport', `${meta.viewport.width}x${meta.viewport.height} @${meta.deviceScaleFactor}x`],
+        ['Frame interval', frameIntervalText(frameInterval(samples, config.baseline), config.baseline)],
         ['Fixtures', Object.entries(meta.fixtures).map(([k, v]) => `${k} ${v.slice(0, 12)}`).join(', ')],
       ],
     ),
@@ -182,11 +225,33 @@ function report(run, config, against) {
 
   push('', '## Gate', '');
   for (const [id, g] of Object.entries(gate)) push(`- \`${id}\`: ${g.pass ? 'pass' : `excluded: ${g.reason}`}`);
+  const uncheckedText = Object.entries(gate).filter(([, g]) => g.pass && g.unchecked?.length);
+  if (uncheckedText.length) {
+    push('', 'Unchecked, because no other arm in the run gave the answer, so its rows are left out:', '');
+    for (const [id, g] of uncheckedText) push(`- \`${id}\`: ${g.unchecked.map((f) => `\`${f}\``).join(', ')}`);
+  }
+  const skippedText = Object.entries(meta.skipped ?? {}).filter(([, flows]) => flows.length);
+  if (skippedText.length) {
+    push('', 'Not run, because the arm\'s viewer lacks what the flow needs:', '');
+    for (const [id, flows] of skippedText) push(`- \`${id}\`: ${flows.map((f) => `\`${f}\``).join(', ')}`);
+  }
   const errors = samples.filter((s) => s.error);
   if (errors.length) {
     push('', `${errors.length} samples failed and are left out:`, '');
     const byKind = {};
     for (const e of errors) (byKind[`${e.arm} ${e.flow}(${e.fixture}): ${e.error}`] ??= 0), byKind[`${e.arm} ${e.flow}(${e.fixture}): ${e.error}`]++;
+    for (const [k, n] of Object.entries(byKind)) push(`- ${k} (x${n})`);
+  }
+  // Kept: a failed warm-up leaves the measured window cold, not wrong
+  // (lib/flows.mjs `warmupFailed`).
+  const cold = samples.filter((s) => !s.error && s.warmupFailed);
+  if (cold.length) {
+    push('', `${cold.length} samples ran after a failed warm-up. They were timed without their warm-up and are included in the medians and verdicts below:`, '');
+    const byKind = {};
+    for (const s of cold) {
+      const k = `${s.arm} ${s.flow}(${s.fixture}): ${s.warmupFailed}`;
+      byKind[k] = (byKind[k] ?? 0) + 1;
+    }
     for (const [k, n] of Object.entries(byKind)) push(`- ${k} (x${n})`);
   }
 
@@ -204,18 +269,20 @@ function report(run, config, against) {
   for (const [key, row] of allRows) {
     if (MEMORY.includes(row.metric)) continue;
     const c = calib.get(key);
-    if (!c) continue;
+    if (!c || c.floorOnly) continue;
+    const status = c.invalid ? `invalid: ${c.invalid}` : c.ok ? 'pass' : 'A/A failed';
+    const done = doneNote(row, noiseRef, noiseCand, gate);
     aaBody.push([
       row.label,
       cell(row.metric, row.byArm[noiseRef]),
       cell(row.metric, row.byArm[noiseCand]),
       c.iv ? intervalText(row.metric, c.iv) : '',
-      c.invalid ? `invalid: ${c.invalid}` : c.ok ? 'pass' : 'A/A failed',
+      done ? `${status} (${done})` : status,
     ]);
   }
-  const passed = aaBody.filter((r) => r[4] === 'pass').length;
+  const passed = aaBody.filter((r) => r[4].startsWith('pass')).length;
   push(`${passed} of ${aaBody.length} rows pass.`, '');
-  push(table(['Row', `${noiseRef} median [p95]`, `${noiseCand} median [p95]`, 'ratio or diff [95% CI]', 'A/A'], aaBody));
+  push(table(['Row', `${noiseRef} median [max]`, `${noiseCand} median [max]`, 'ratio or diff [95% CI]', 'A/A'], aaBody));
 
   for (const [ref, cand] of config.pairs) {
     if (ref === noiseRef && cand === noiseCand) continue;
@@ -230,14 +297,14 @@ function report(run, config, against) {
       push(out.map((id) => `\`${id}\` excluded: ${gate[id].reason}`).join('\n\n'));
       continue;
     }
-    push(table(['Row', `${ref} median [p95]`, `${cand} median [p95]`, 'ratio or diff [95% CI]', 'Verdict'], pairTable(allRows, calib, ref, cand)));
+    push(table(['Row', `${ref} median [max]`, `${cand} median [max]`, 'ratio or diff [95% CI]', 'threshold', 'Verdict'], pairTable(allRows, calib, ref, cand, gate)));
   }
 
   push('', '## Memory', '');
   if (meta.memorySource === 'cdp') push('JS heap only, wasm linear memory not included.', '');
   const memRows = [...allRows.values()].filter((r) => MEMORY.includes(r.metric));
   const memArms = meta.armsRun.filter((id) => gate[id]?.pass);
-  push(table(['Row', ...memArms.map((id) => `${id} median [p95]`)], memRows.map((r) => [r.label, ...memArms.map((id) => (r.byArm[id] ? cell(r.metric, r.byArm[id]) : ''))])));
+  push(table(['Row', ...memArms.map((id) => `${id} median [max]`)], memRows.map((r) => [r.label, ...memArms.map((id) => (r.byArm[id] ? cell(r.metric, r.byArm[id]) : ''))])));
 
   const diag = samples.filter((s) => s.diagnostics);
   if (diag.length) {
@@ -250,35 +317,20 @@ function report(run, config, against) {
     }
   }
 
-  if (against) {
-    push('', `## Against ${against.meta.runId}`, '', `Reference is the other run; verdicts use this run's A/A noise bands.`);
-    const other = rows(against.samples);
-    for (const arm of meta.armsRun.filter((id) => against.meta.armsRun.includes(id))) {
-      const merged = new Map();
-      for (const [key, row] of allRows) {
-        const o = other.get(key)?.byArm[arm];
-        if (o && row.byArm[arm]) merged.set(key, { ...row, byArm: { before: o, after: row.byArm[arm] } });
-      }
-      push('', `### \`${arm}\``, '', table(['Row', 'before median [p95]', 'after median [p95]', 'ratio or diff [95% CI]', 'Verdict'], pairTable(merged, calib, 'before', 'after', { skip: [] })));
-    }
-  }
   return lines.join('\n') + '\n';
 }
 
+if (values.against !== undefined) {
+  console.error(
+    'cross-run comparison removed: two runs do not share an A/A noise band, so a verdict across them is not one this harness can back. Put both builds in one run as arms and compare the pair.',
+  );
+  process.exit(2);
+}
 const dir = values.latest ? latestRun() : positionals[0] && path.resolve(positionals[0]);
-if (!dir) throw new Error('usage: node report.mjs <results/run-id | --latest> [--against <results/other>] [--publish]');
+if (!dir) throw new Error('usage: node report.mjs <results/run-id | --latest> [--publish]');
 const run = loadRun(dir);
 const config = loadConfig();
-let against = null;
-if (values.against) {
-  against = loadRun(path.resolve(values.against));
-  const differing = compatible(run.meta, against.meta);
-  if (differing.length) {
-    console.error(`refusing to compare: the runs differ in ${differing.join(', ')}`);
-    process.exit(1);
-  }
-}
-const text = report(run, config, against);
+const text = report(run, config);
 writeFileSync(path.join(dir, 'report.md'), text);
 process.stdout.write(text);
 if (values.publish) {

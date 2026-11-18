@@ -60,18 +60,47 @@ Every arm runs one shared entry page (`entry/`), built with Vite from each workt
 selected text, annotation count or rendered page-1 bitmap differs from `main`'s. The report prints
 an excluded arm as `excluded: <reason>` rather than dropping it.
 
+Two fixtures exist for the annotation and form flows, both written by `fixtures/generate.mjs`:
+`annots.pdf` is `large.pdf` with 1,000 highlights, 150 ink drawings and 50 stamps, and `forms.pdf`
+has 1,000 text and checkbox fields over 100 pages. `hover`, `dragAnnot`, `drawInk`, `typeField` and
+`undo` run on them, and the gate compares each one's answer. `dragAnnot` drags a stamp: neither
+viewer API generation moves a highlight. A flow can declare what it `needs` (`lib/flows.mjs`), and
+an arm whose viewer lacks it (`capabilities` in `entry/api-v*.ts`) skips that flow. `undo` needs a
+history plugin, which `main` 2516e2786 doesn't have, so `main` and `main-aa` skip it. The gate
+runs every flow once on every arm, whatever `--flows` says, so it always has an `undo` answer from
+the arms with history. It compares that answer with `arms.json`'s `fallbackReference` (`main-now`)
+when `main-now` is in the run, as it is in the default arms. Otherwise it uses the first arm in
+run order that gave one, and prints a `gate:` warning naming that arm. When only one arm answers,
+nothing checks it: the gate marks `undo` unchecked for that arm (`unchecked` and `references` in
+its `gate.json` entry), prints a `gate:` warning that no comparison happened, and the report
+leaves that arm's `undo` rows out. A run of `main`, `main-aa`, `plugins-base` and `plugins-next`
+is that case, since `plugins-base` (`9d6c2eca1`) builds as viewer API v1 and skips `undo` like
+`main`. Add `main-now` to such a run to get `undo` checked and timed. The report judges `undo`'s
+rows against the 3% floor alone, because there's no A/A pair for them.
+
 ## The standard run
 
-Since 2026-10-14 a run with no `--arms`, and `scripts/build-entry.mjs` with no arms, use
-`defaultArms` in `arms.json`: `main`, `main-aa`, `plugins-base` and `plugins-next`. The other arms
-stay in the file as the record of what each arm name in `FINDINGS.md` and the results meant; their
-checkouts aren't kept, and naming one rebuilds it (`materialize.mjs`, then `build-entry.mjs`).
+A run with no `--arms`, and `scripts/build-entry.mjs` with no arms, use `defaultArms` in
+`arms.json`: `main`, `main-aa`, `main-now` and `perf-fixes-end`. `main` against `main-aa` is the
+A/A check. `main-now` (upstream `main` at `ed064e0c8`) against `perf-fixes-end` (the
+`research/perf-fixes` tip at `a6d4d5d14`) is where the port stands, the pair `FINDINGS.md` quotes
+from `2026-11-17T16-59-17-202Z`, the last run with all four. `main-now` also gives the gate its
+`undo` reference. The other arms stay in the file as the record of what each arm name in
+`FINDINGS.md` and the results meant; their checkouts aren't kept, and naming one rebuilds it
+(`materialize.mjs`, then `build-entry.mjs`).
 
-- `plugins-base` is the plugins branch before the change under test, and `plugins-next` the
-  change. To test a change, set `plugins-next`'s worktree `ref` to the candidate branch and run
-  `node scripts/pin.mjs plugins-next`; the report's `plugins-base` vs `plugins-next` pair is the
-  answer, and `main` vs either shows where the branch stands.
-- After the change merges, `node scripts/pin.mjs plugins-base` moves the base to the new tip.
+From 2026-10-14 to 2026-11-17 the defaults were `main`, `main-aa`, `plugins-base` and
+`plugins-next`, meant as the plugins branch before and after a change under test. Neither means
+that now. `plugins-base` (`9d6c2eca1`) can't be built in the arm64 Linux devcontainer: its fork
+commit has no published `wasm32-eh` archive, and the fork build needs an amd64 host
+(`FINDINGS.md`, "The tip after the catch-up, against upstream main"). `plugins-next` is
+`0de4effd9`, the base of `research/perf-fixes`.
+
+To test a change, add an arm for the commit before it and one for the commit with it, as
+`phase-c-base` and `phase-c-end` were, add their pair to `pairs`, and name them with the defaults
+in `--arms`. That pair is the answer, and `main-now` against either shows where the branch stands.
+Each arm costs run time: `2026-11-17T16-59-17-202Z` took 150.2 min for seven arms at R=10 on the
+Mac mini, about 21 min an arm.
 
 ## How long it takes
 
@@ -126,12 +155,19 @@ runs are `results/2026-10-02T02-02-24-660Z-macmini2020-desktop` (solo) and
 `results/2026-10-02T02-18-19-070Z-macmini2020-desktop-p0` and `-p100`.
 
 `meta.json` records the remote's host, CPU and power source, and the local harness commit.
-`report.mjs --against` refuses to compare a remote run with a local one, because the CPU differs.
+The report compares arms within one run, never a remote run with a local one (see Moving a pin).
 
 ## Moving a pin
 
+`scripts/pin.mjs` sets a worktree's `sha` in `arms.json` to the current tip of its `ref`. It takes
+worktree ids, not arm ids, and with no argument it moves all 56 worktrees in the file. We don't move
+the pins that are there: each records what an arm name meant when it was timed, so moving one
+changes what that name means in `FINDINGS.md` and the results, and it moves every arm on that
+worktree too (`phase-c-base` builds from the `plugins-next` worktree). Use it to pin a new
+worktree instead: add the entry to `worktrees` with its `ref`, its `recipe` and `"sha": ""`, then
+
 ```sh
-node scripts/pin.mjs plugins   # or impl, main; no argument moves all three
+node scripts/pin.mjs <new-worktree>
 git commit perf-compare/arms.json
 ```
 
@@ -139,14 +175,16 @@ A pinned commit has to exist on one of the checkout's remotes. `materialize.mjs`
 in turn, so a branch pushed only to a private fork works, as long as every machine that runs the
 harness has that remote. Push before pinning.
 
-To see whether a change on a branch helped, run once, move the pin, run again, and compare:
+To see whether a change on a branch helped, do what "The standard run" describes: add an arm for
+the commit before the change and one for the commit with it, add their pair to `pairs`, and name
+both with the defaults in `--arms`. Then time them in one run and read that pair. It costs about
+21 min of Mac mini time per added arm at R=10.
 
-```sh
-node report.mjs results/<after> --against results/<before>
-```
-
-`--against` refuses two runs whose Chromium version, CPU, fixtures, profile, viewport, device scale
-factor or flow set differ, and prints the keys that differ.
+`report.mjs --against` used to compare two runs. It now exits 2 with
+`cross-run comparison removed`, because the same build's medians spread by a median of 6.3%, and
+up to 17%, from one run to the next. That's wider than most of the changes it was meant to find,
+and no A/A band covers it. The cost is run time: every comparison times both builds, not just the
+new one.
 
 ## Adding an arm
 
@@ -158,14 +196,74 @@ applies. A branch that needs a different build means a new recipe in
 `scripts/build-arm.mjs`, and that file's contents are the worktree cache key, so editing it
 rebuilds every worktree.
 
+The upstream catch-up renamed five of the viewer calls the entry makes. `goToPageIndex` and
+`getPageFrame` became `goToPage` and `getPageBox`, `viewer.on('opened')` became
+`documents.onOpened`, `viewer.execute` became `commands.execute`, and the annotation filter's
+`page` became `pages`. The two commands the flows run were renamed too: `pointer:toggle` is
+`tool:pointer` and `annotation:add-highlight` is `tool:highlight`. `entry/api-v1.ts` and
+`entry/api-v2.ts` make those calls the old way and the new way. `scripts/build-entry.mjs` reads
+the worktree's stage contract with `lib/api-generation.mjs`, builds the arm with the matching
+one, and prints `<arm>: viewer API v1` or `v2`. `main` at `2516e2786` and the plugins branch up
+to `9d6c2eca1` are v1; upstream `main` from `ed064e0c8` and the plugins branch from `2aaa8f841`
+are v2.
+
 ## Reading a run
 
 `node scripts/summary.mjs results/<run-id> [arm ...]` prints the numbers worth quoting from a run's
-`report.md`: each pair's verdict counts, the rows that aren't "no detectable difference", and for
-pairs against `main` the median ratio over the latency rows and over the main-thread rows. Before
-calling a row a regression, check the same unchanged build in earlier runs: on the remote,
-`annotateLarge` settle for one build moved between 220 and 245 ms from run to run, and `main`
-against `main-aa` differed by about 20 ms on it within a run.
+`report.md`: each pair's verdict counts, the median ratio over three groups of rows, the median
+difference over its settle rows, and, for pairs not against `main`, the rows that aren't "no
+detectable difference". The three ratio groups are timing rows (open, search and wall times),
+frame-interval rows (`frameP50Ms`, `frameP95Ms`) and main-thread rows, each with its row count.
+They're apart because frame intervals sit near the run's frame interval on every arm (16.7 ms or
+11.0 to 11.3 ms on the Mac mini, below), so their ratios stay near 1.0: mixed in, they
+pulled one pair's median to 1.000x while the same table had `dragAnnot` settle 394.7 ms slower.
+Settle rows are differences in ms with no ratio, so they get their own line. Before calling a row a regression, check the same unchanged build in earlier runs: on
+the remote, `annotateLarge` settle for one build moved between 220 and 245 ms from run to run, and
+`main` against `main-aa` differed by about 20 ms on it within a run. `--drift
+results/<earlier-run> main` does that check: it prints `main`'s median on every row in both runs,
+and each moved row of this run's pairs whose change is no larger than `main`'s own move on that
+row. It exits 2 instead when the runs don't compare, which `viewer-perf-compare-plan.md` (Task 6,
+Step 6) defines: a probe hash that differs or wasn't recorded, a different browser, CPU, profile,
+viewport or scale factor, or a fixture both runs have with different bytes. A different commit or
+engine wasm for the drift arm is refused too, since then it isn't the same build, and so is one
+that either run didn't record. So any run before `probeSha256` was recorded, and any run before a
+probe change, can't serve as the earlier run.
+
+`--drift` also refuses two runs whose frame intervals are more than 1 ms apart, or a run whose
+interval can't be determined. A run's frame interval is the median `scroll / frameP50Ms` of `main`
+in its `samples.jsonl`; `summary.mjs` prints it first and the report's Environment table has it.
+It matters because pointer input is frame-paced: the flows that drive the pointer (`hover`,
+`dragAnnot`, `drawInk`, and the drags of `select` and `annotate`) take whole frames per move, so
+their settle rows scale with the interval, and an arm whose per-move work fits
+one frame at one interval can need two at a shorter one. The Mac mini has run at 16.7 ms
+(`2026-11-16T20-20-49-728Z`, `2026-11-17T02-25-30-951Z`, `2026-11-17T04-18-50-584Z`) and at
+11.0 to 11.3 ms (`2026-10-13T02-28-33-711Z`, `2026-11-17T16-59-17-202Z`), and we don't know why.
+The interval comes from the scroll flow rather than an idle measurement so that recorded runs have
+it too. No run records the display's refresh rate, so this is the interval the scroll saw, not a
+measured display rate. `main`'s scroll samples read 16.66 to 16.67 ms in the 16.7 ms runs and 10.5
+to 11.8 ms in the 11 ms runs, apart from one at 17.3 ms in `2026-11-17T16-59-17-202Z`. Every arm of
+a run agrees within 0.32 ms whatever its load, and `main`'s `drawInk` settle is 180 intervals plus
+the same 870 to 885 ms in `2026-11-17T04-18-50-584Z` and `2026-11-17T16-59-17-202Z`. A run without
+`main`'s `scroll` samples has none, and `--drift` refuses it.
+
+A verdict carries a note when it rests on less than usual. `slower (no A/A band)` is a row
+judged against the 3% floor alone, because `main` and `main-aa` skip its flow (`undo`). `(no done
+condition on <arm>)` is a `hover` row where that arm can't report the hovered annotation
+(`lib/done.mjs`; viewer API v1 can't), so its row ends at the last pointer move and times input
+pacing, not hover handling. On a v2 arm the `hover` CPU rows include the done-condition poll
+of `getHovered()`, which on a Rust arm is a kernel read.
+
+A sample whose warm-up failed is kept. Its line in `samples.jsonl` carries the failure's first line
+as `warmupFailed`, and the report lists those samples by arm and flow under the gate, beside the
+samples that failed and were left out. Its measured window followed an incomplete warm-up, so it
+can read slower than its arm's other rounds.
+
+Each arm's cell in the report's tables is `median [max]`: the median over rounds, then the slowest
+round. Each pair table's `threshold` column is the smallest change that row's verdict counts: its
+A/A noise band or 3% of the reference, whichever is wider. A ratio row shows it as a percentage, a
+difference row in the metric's unit. It's blank when the row's A/A check failed. A row that moved
+less than its threshold reads "no detectable difference", even when its interval leaves out the
+null value.
 
 An arm whose payload has the Rust engine core but whose recipe isn't `rust-core` can still run
 with `rustReads: true`: `node scripts/verify-core.mjs <worktree>` checks the payload and records
@@ -212,6 +310,17 @@ bindings used the new text API, so the `pdfium` crate compiled against no fork c
 
 ## Caveats
 
+The probe now waits for each visible image's current-source decode promise and tracks clipped
+viewport membership, movement, and removal. Offscreen changes do not extend the quiet window.
+The returned settle timestamp is the latest observed visible change or decode completion,
+bounded below by the action's `doneAt`, before a 250 ms quiet window. This is a visual heuristic,
+not proof that no future render can run. Sampling visibility performs geometry and style reads;
+that instrumentation cost is included in the reported CPU and frame metrics. Since `7d9648d6d` an
+image outside the browser viewport costs one `getBoundingClientRect` and no style reads, and one
+sample reads each shared ancestor's style once.
+`meta.json` records `probeSha256`, so a run's probe version is on record. `RESULTS.md` publishes
+`2026-11-17T16-59-17-202Z`, recorded with probe `d3edaa255947`, the version at `7d9648d6d`.
+
 > Note: The `slow` profile throttles the main thread only. Chromium 140 answers
 > `Emulation.setCPUThrottlingRate` on a worker target with "Operation is only supported for pages,
 > not workers", and page throttling doesn't reach the worker: at 4x a busy loop took 4.4x longer on
@@ -236,17 +345,39 @@ thread did. `mainJsMs` is the JavaScript part of it, read from a trace of the sa
 outermost `FunctionCall`, `RunMicrotasks`, `EvaluateScript` and `v8.evaluateModule` events. It
 replaced `mainScriptMs` (`ScriptDuration`) on 2026-09-30, because `ScriptDuration` leaves microtasks
 out, and a Preact render is one: moving work out of a render read as more script with the same
-JavaScript run (FINDINGS.md, section 6). Runs from before then have `mainScriptMs` instead, so
-`--against` can't compare that row across the change. The trace is on during every measured
-window, so its overhead is in every timing.
+JavaScript run (FINDINGS.md, section 6). Runs from before then have `mainScriptMs` instead. The
+trace is on during every measured window, so its overhead is in every timing.
 
 `scroll / settleMs` is usually 0 on the TypeScript arms: every render lands during the wheel burst,
 so the page is already settled when the last wheel event goes out.
+
+`hover / settleMs` and `drawInk / settleMs` are `settled - t0`, where `t0` is before the first
+pointer move, so they include the frame-paced input: 80 pointer moves for `hover` (four steps
+between each of 20 highlights), and 180 moves plus the ink tool's 800 ms grouping window for
+`drawInk`. Most of each row is pacing, which scales with the run's frame interval, and the 3%
+floor is taken from that total: `main-now` against `phase-d-end` in `2026-11-17T04-18-50-584Z`
+had thresholds of ±39.6 ms on `hover` and ±118.2 ms on `drawInk`. `dragAnnot`, `typeField`, `select` and `annotate` include their shorter input the same
+way. `scroll` splits the two, `wallMs` from `t0` and `settleMs` from the last wheel; these flows
+don't yet (`FINDINGS.md`, "What the harness should measure next").
+
+A done condition's poll is a small read on every arm, found once before the timed window
+(`entry/main.ts` `watch`), but not the same read: the count watch that `drawInk`, `undo`,
+`annotate` and `annotateLarge` poll lists one page's annotations (`annotationCountOn` in
+`entry/api-v*.ts`), which a Rust arm serializes across the wire whenever its store has changed,
+and every read on a Rust arm first checks the kernel's state revision.
 
 The `slow` profile approximates a mid-range laptop by CPU throttling. It is not a real device.
 
 ## Tests
 
-`pnpm test` runs the Node tests (config, statistics, server, environment). Two self-tests need
-Chromium: `node --test test/memory.selftest.mjs` and `node --test test/probe.selftest.mjs`, which
-also needs a built `main` arm.
+`pnpm test` runs the Node tests, including controlled-clock probe regressions. Browser checks:
+
+```sh
+node --test test/probe.selftest.mjs test/memory.selftest.mjs
+node --test test/flow-state.selftest.mjs test/fixtures.selftest.mjs
+```
+
+The synthetic probe and memory tests need Chromium. The flow-state test additionally needs a
+built `main` arm (`node scripts/build-entry.mjs main`). It checks each interaction flow's
+starting state after warm-up. The fixtures test needs the same build and checks that `main`'s
+TypeScript engine lists 1,200 annotations in `annots.pdf` and 1,000 fields in `forms.pdf`.
