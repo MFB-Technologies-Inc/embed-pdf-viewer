@@ -21,11 +21,11 @@ use super::analysis::types::{
     ChangeValues, CurrentAssessment, FindingVerdict, LaterRevisions, ObjectChange,
     ObjectChangeKind, ObjectChangeType, ObjectReadStatus, ObjectReferrer, RestrictionSource,
     RevisionAnalysis, RevisionHealth, RevisionStructure, Sides, StepInput, StepRestrictions,
-    StepVerdict,
+    StepVerdict, UnwrittenObject,
 };
 use super::analysis::{
     EdgeResolver, assessment_of, combine, evaluate_step, parse_pdf_value, restrictions_for,
-    same_effective_value,
+    same_effective_value, unwritten_objects_to_read,
 };
 use super::protection::{SIGNATURE_POLICY_VERSION, derive_protection};
 use super::reader::{
@@ -311,7 +311,7 @@ fn analyze_target(
 
     // The sealed revision and the judged one; nothing in between is opened
     // for the net state.
-    let (before, after, changes, health) = {
+    let (before, after, changes, unwritten, health) = {
         let sealed = open_prefix(target, &revisions, since_revision)?;
         let judged = if until_revision == last {
             RevisionDoc::Target
@@ -324,13 +324,14 @@ fn analyze_target(
         } else {
             read_structure(judged.doc(target))?
         };
-        let (changes, health) = if until_revision > since_revision {
-            let (changes, health) = compare(&sealed, judged.doc(target), &before, &after)?;
-            (changes, Some(health))
+        let (changes, unwritten, health) = if until_revision > since_revision {
+            let (changes, unwritten, health) =
+                compare(&sealed, judged.doc(target), &before, &after)?;
+            (changes, unwritten, Some(health))
         } else {
-            (Vec::new(), None)
+            (Vec::new(), Vec::new(), None)
         };
-        (before, after, changes, health)
+        (before, after, changes, unwritten, health)
     };
 
     let judged_signature = since_signature.and_then(|i| before.signatures.get(i as usize));
@@ -344,6 +345,7 @@ fn analyze_target(
         older: since_revision,
         newer: until_revision,
         changes,
+        unwritten,
         before: before.clone(),
         after,
         health,
@@ -419,12 +421,13 @@ fn walk_steps(
             RevisionDoc::Prefix(open_prefix(target, revisions, r)?)
         };
         let newer_structure = read_structure(newer.doc(target))?;
-        let (changes, health) =
+        let (changes, unwritten, health) =
             compare(older.doc(target), newer.doc(target), &older_structure, &newer_structure)?;
         steps.push(evaluate_step(StepInput {
             older: r - 1,
             newer: r,
             changes,
+            unwritten,
             before: older_structure,
             after: newer_structure.clone(),
             health: Some(health),
@@ -439,13 +442,15 @@ fn walk_steps(
 }
 
 /// `compare`: the fork's exact object diff between two revision documents,
-/// values in pass one, anchored edges in pass two.
+/// values in pass one, anchored edges in pass two; with it, the objects the
+/// rules read that the newer revision did not write (92db1287a).
+#[allow(clippy::type_complexity)]
 fn compare(
     older: &Document,
     newer: &Document,
     before: &RevisionStructure,
     after: &RevisionStructure,
-) -> Result<(Vec<ObjectChange>, Sides<RevisionHealth>), EngineError> {
+) -> Result<(Vec<ObjectChange>, Vec<UnwrittenObject>, Sides<RevisionHealth>), EngineError> {
     let diff = older
         .compare_revisions(newer)
         .ok_or_else(|| malformed("the revisions do not share a byte history"))?;
@@ -504,7 +509,31 @@ fn compare(
         });
     }
     let health = Sides { old: read_health(&diff, DIFF_OLD)?, new: read_health(&diff, DIFF_NEW)? };
-    Ok((with_anchored_usage(&diff, changes, before, after), health))
+    // An object the newer revision did not write reads the same in both; the
+    // older document is asked, as the one a rule compares against.
+    let unwritten = unwritten_objects_to_read(&changes, before, after)
+        .into_iter()
+        .map(|n| read_unwritten(older, n))
+        .collect();
+    Ok((with_anchored_usage(&diff, changes, before, after), unwritten, health))
+}
+
+/// `readUnwritten`: object `object_number` as `revision`'s loaded bytes hold
+/// it, in the form the diff's values have. Its value is `None` when the
+/// object is absent, when its bytes do not parse, or when it is past the
+/// fork's inspection cap: `read` tells the first two apart.
+fn read_unwritten(revision: &Document, object_number: u32) -> UnwrittenObject {
+    let loaded = revision.loaded_object_value(object_number);
+    let read = read_by_code(loaded.read_status);
+    let gap = UnwrittenObject { object_number, value: None, read };
+    if read != ObjectReadStatus::Ok || loaded.truncated {
+        return gap;
+    }
+    match loaded.text.as_deref().map(parse_pdf_value) {
+        Some(Ok(value)) => UnwrittenObject { object_number, value: Some(value), read },
+        // A serialisation this engine cannot read carries no evidence.
+        _ => gap,
+    }
 }
 
 /// `readHealth`.

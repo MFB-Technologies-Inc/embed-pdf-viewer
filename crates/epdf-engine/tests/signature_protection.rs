@@ -61,7 +61,7 @@ fn named_reset_builds_signature_model_once() {
                 "fillForms": true, "copyForAccessibility": true, "assemble": true,
                 "printHighQuality": true } },
             "protection": { "enforced": null, "judged": null, "certification": null,
-                            "fieldLocks": [], "policyVersion": 4 } } }))
+                            "fieldLocks": [], "policyVersion": 5 } } }))
         .expect("the reset lands");
     let builds = call_count::get(Call::SigLoadModel);
     assert_eq!(

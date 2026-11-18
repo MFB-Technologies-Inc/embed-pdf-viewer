@@ -304,7 +304,7 @@ fn authority() -> Value {
         "fillForms": true, "copyForAccessibility": true, "assemble": true,
         "printHighQuality": true } },
         "protection": { "enforced": null, "judged": null, "certification": null,
-                        "fieldLocks": [], "policyVersion": 4 } })
+                        "fieldLocks": [], "policyVersion": 5 } })
 }
 
 #[test]

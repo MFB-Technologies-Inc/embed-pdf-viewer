@@ -68,12 +68,12 @@ fn snapshot() -> Value {
         ],
         "signatures": [base(12, true), base(14, false)],
         "protection": { "enforced": null, "judged": "annotate", "certification": null,
-                        "fieldLocks": [], "policyVersion": 4 }
+                        "fieldLocks": [], "policyVersion": 5 }
     })
 }
 
 fn analysis() -> Value {
-    json!({ "mode": "authoritative", "policyVersion": 4,
+    json!({ "mode": "authoritative", "policyVersion": 5,
             "basis": { "version": { "sha256": "x", "sizeBytes": 400 }, "editsVersion": 0, "source": "persisted" },
             "since": { "revisionIndex": 0, "signatureIndex": 0 }, "until": { "revisionIndex": 1 },
             "restrictions": [],

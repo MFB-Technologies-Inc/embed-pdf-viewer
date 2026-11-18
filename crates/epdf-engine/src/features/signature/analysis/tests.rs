@@ -220,6 +220,19 @@ fn step_with(
     after: &Value,
     health: Option<(Value, Value)>,
 ) -> Value {
+    step_full(older, newer, changes, &[], before, after, health)
+}
+
+/// `evaluateStep` with `unwritten` objects handed over.
+fn step_full(
+    older: u32,
+    newer: u32,
+    changes: &[Value],
+    unwritten: &[Value],
+    before: &Value,
+    after: &Value,
+    health: Option<(Value, Value)>,
+) -> Value {
     let changes: Vec<ObjectChange> =
         changes.iter().map(|c| serde_json::from_value(c.clone()).unwrap()).collect();
     let structure = |v: &Value| -> RevisionStructure { serde_json::from_value(v.clone()).unwrap() };
@@ -231,6 +244,7 @@ fn step_with(
         older,
         newer,
         changes,
+        unwritten: unwritten.iter().map(|u| serde_json::from_value(u.clone()).unwrap()).collect(),
         before: structure(before),
         after: structure(after),
         health,
@@ -457,7 +471,13 @@ fn a_form_fill_is_permitted_under_fill_and_annotate_forbidden_under_lta() {
     let lta = signed_with(json!([certification(1)]));
     let refused = step(1, 2, &fill, &lta, &lta);
     assert_eq!(verdict(&refused), "forbidden");
-    assert!(any(&refused, |f| f["rule"] == "form-fill" && f["verdict"] == "forbidden"));
+    // One cause, named once per object: nothing may follow such a
+    // certification (policy 5, 462380c7a).
+    let mut numbers: Vec<u64> =
+        forbidden(&refused).iter().map(|f| f["objectNumber"].as_u64().unwrap()).collect();
+    numbers.sort_unstable();
+    assert_eq!(numbers, [20, 21, 22, 40, 41]);
+    assert!(forbidden(&refused).iter().all(|f| f["rule"] == "no-changes-certification"));
 }
 
 #[test]
@@ -530,7 +550,8 @@ fn a_page_content_change_a_catalog_change_and_a_deleted_page_are_forbidden() {
 }
 
 #[test]
-fn metadata_info_trailer_housekeeping_and_dss_are_permitted_even_under_lta() {
+fn metadata_info_trailer_housekeeping_and_dss_permitted_after_p2_forbidden_after_p1() {
+    let fill = signed_with(json!([certification(2)]));
     let lta = signed_with(json!([certification(1)]));
     let changes = [
         change(
@@ -561,9 +582,22 @@ fn metadata_info_trailer_housekeeping_and_dss_are_permitted_even_under_lta() {
             Usage::default(),
         ),
     ];
-    let s = step(1, 2, &changes, &lta, &lta);
+    let s = step(1, 2, &changes, &fill, &fill);
     assert!(forbidden(&s).is_empty(), "{s}");
     assert_eq!(verdict(&s), "permitted");
+
+    // Acrobat reports a no-changes certification as altered for each of
+    // these alone, so none is housekeeping there. The trailer is the
+    // revision's own bookkeeping and stays so.
+    let strict = step(1, 2, &changes, &lta, &lta);
+    assert_eq!(verdict(&strict), "forbidden");
+    let mut numbers: Vec<u64> =
+        forbidden(&strict).iter().map(|f| f["objectNumber"].as_u64().unwrap()).collect();
+    numbers.sort_unstable();
+    assert_eq!(numbers, [1, 6, 7, 8, 50, 51]);
+    assert!(forbidden(&strict).iter().all(|f| f["rule"] == "no-changes-certification"));
+    let trailer = findings(&strict).iter().find(|f| f["objectNumber"] == 0).unwrap();
+    assert_eq!((&trailer["rule"], &trailer["verdict"]), (&json!("trailer"), &json!("permitted")));
 }
 
 fn with_sig1() -> Value {
@@ -802,7 +836,9 @@ fn unresolvable_references_are_incomplete_never_permitted() {
 
 #[test]
 fn a_dss_update_cannot_vouch_for_an_unrelated_catalog_edge() {
-    let lta = signed_with(json!([certification(1)]));
+    // After a certification that allows form filling: the level at which a
+    // DSS update is allowed (policy 5).
+    let lta = signed_with(json!([certification(2)]));
     let changes = [
         change(
             9,
@@ -1117,4 +1153,446 @@ fn the_default_budget_is_upstreams() {
         ),
         (16, 256, 20_000)
     );
+}
+
+// ── evaluateStep: a signature field added by Acrobat (92db1287a) ─────────
+
+/// What Acrobat writes when it adds a document timestamp to a page whose
+/// /Annots was an array inside the page: a new field that is its own widget,
+/// the AcroForm's list grown, and the page's /Annots moved into a new object
+/// that holds the old entry and the new widget.
+fn moved(holder: &str, holder_usage: &[Value]) -> Vec<Value> {
+    vec![
+        change(
+            3,
+            Some("<</Annots [30 0 R]/Parent 2 0 R/Type /Page>>"),
+            Some("<</Annots 60 0 R/Parent 2 0 R/Type /Page>>"),
+            Usage {
+                old: vec![edge(2, "Kids/[0]"), edge(30, "P")],
+                new: vec![edge(2, "Kids/[0]"), edge(30, "P"), edge(31, "P")],
+            },
+        ),
+        change(60, None, Some(holder), new_only(holder_usage)),
+        change(
+            31,
+            None,
+            Some(
+                "<</F 132/FT /Sig/P 3 0 R/Rect [0 0 0 0]/Subtype /Widget/T (Signature3)/V 32 0 R>>",
+            ),
+            new_only(&[edge(10, "Fields/[2]"), edge(60, "[1]")]),
+        ),
+        change(
+            32,
+            None,
+            Some("<</SubFilter /ETSI.RFC3161/Type /DocTimeStamp>>"),
+            new_only(&[edge(31, "V")]),
+        ),
+        change(
+            10,
+            Some("<</Fields [20 0 R 30 0 R]/SigFlags 3>>"),
+            Some("<</Fields [20 0 R 30 0 R 31 0 R]/SigFlags 3>>"),
+            both(&[edge(1, "AcroForm")]),
+        ),
+        change(
+            0,
+            Some("<</Root 1 0 R/Size 60>>"),
+            Some("<</Prev 999/Root 1 0 R/Size 61>>"),
+            Usage::default(),
+        ),
+    ]
+}
+
+/// The structure after a document timestamp in a new field 31.
+fn with_timestamp_field() -> Value {
+    let mut fields = base_fields();
+    fields.as_array_mut().unwrap().push(
+        json!({ "objectNumber": 31, "name": "Signature3", "kind": "signature", "widgets": [31] }),
+    );
+    structure(json!({
+        "fields": fields,
+        "signatures": [approval(), signature(1, 31, json!({ "kind": "timestamp",
+            "subFilter": "ETSI.RFC3161", "fieldName": "Signature3", "revisionIndex": 2 }))],
+    }))
+}
+
+fn finding_for(step: &Value, n: u32) -> Option<&Value> {
+    findings(step).iter().find(|f| f["objectNumber"] == n)
+}
+
+fn permitted_for(step: &Value, n: u32) -> bool {
+    any(step, |f| f["objectNumber"] == n && f["verdict"] == "permitted")
+}
+
+#[test]
+fn annots_moved_into_an_object_of_its_own_with_the_new_widget_is_permitted() {
+    let s = step(
+        1,
+        2,
+        &moved("[30 0 R 31 0 R]", &[edge(3, "Annots")]),
+        &structure(json!({})),
+        &with_timestamp_field(),
+    );
+    assert!(findings(&s).iter().all(|f| f["verdict"] == "permitted"), "{s}");
+    assert_eq!(verdict(&s), "permitted");
+    let f = finding_for(&s, 60).unwrap();
+    assert_eq!((&f["rule"], &f["verdict"]), (&json!("signature-field-added"), &json!("permitted")));
+}
+
+#[test]
+fn a_moved_annots_that_drops_the_old_entry_or_holds_an_inline_annotation_is_forbidden() {
+    for holder in ["[31 0 R]", "[30 0 R 31 0 R <</Subtype /Link>>]"] {
+        let s = step(
+            1,
+            2,
+            &moved(holder, &[edge(3, "Annots")]),
+            &structure(json!({})),
+            &with_timestamp_field(),
+        );
+        assert_eq!(verdict(&s), "forbidden", "{holder}");
+        assert!(!permitted_for(&s, 60), "{holder}");
+    }
+}
+
+#[test]
+fn a_moved_annots_out_of_order_with_another_annotation_or_unchanged_is_not_explained() {
+    for holder in ["[31 0 R 30 0 R]", "[30 0 R 31 0 R 70 0 R]", "[30 0 R]"] {
+        let certified = certification(2);
+        let mut after = with_timestamp_field();
+        let later = after["signatures"][1].clone();
+        after["signatures"] = json!([certified.clone(), later]);
+        let changes = moved(holder, &[edge(3, "Annots")]);
+        let s = step(1, 2, &changes, &signed_with(json!([certified])), &after);
+        assert_eq!(verdict(&s), "forbidden", "{holder}");
+        assert!(!permitted_for(&s, 60), "{holder}");
+        let approval = step(1, 2, &changes, &structure(json!({})), &with_timestamp_field());
+        assert!(
+            !any(&approval, |f| f["objectNumber"] == 60 && f["rule"] == "signature-field-added"),
+            "{holder}"
+        );
+    }
+}
+
+#[test]
+fn a_new_array_that_something_else_also_points_at_is_not_the_pages_list_alone() {
+    let changes = moved("[30 0 R 31 0 R]", &[edge(3, "Annots"), edge(1, "Names/Extra")]);
+    let s = step(1, 2, &changes, &structure(json!({})), &with_timestamp_field());
+    assert_eq!(verdict(&s), "forbidden");
+}
+
+// ── evaluateStep: a page whose /Annots is an object of its own ───────────
+
+/// Object 60 is page 3's list: the text field's widget and the signature
+/// field.
+fn own_list(after: &str, uses: &[Value]) -> Value {
+    change(
+        60,
+        Some("[21 0 R 30 0 R]"),
+        Some(after),
+        Usage { old: vec![edge(3, "Annots")], new: uses.to_vec() },
+    )
+}
+
+fn list_trailer() -> Value {
+    change(
+        0,
+        Some("<</Root 1 0 R/Size 60>>"),
+        Some("<</Prev 999/Root 1 0 R/Size 80>>"),
+        Usage::default(),
+    )
+}
+
+/// A document timestamp in a new field, 31, whose widget joins list `holder`.
+fn new_field(holder: u32) -> Vec<Value> {
+    vec![
+        change(
+            31,
+            None,
+            Some(
+                "<</F 132/FT /Sig/P 3 0 R/Rect [0 0 0 0]/Subtype /Widget/T (Signature3)/V 32 0 R>>",
+            ),
+            new_only(&[edge(10, "Fields/[2]"), edge(holder, "[2]")]),
+        ),
+        change(
+            32,
+            None,
+            Some("<</SubFilter /ETSI.RFC3161/Type /DocTimeStamp>>"),
+            new_only(&[edge(31, "V")]),
+        ),
+        change(
+            10,
+            Some("<</Fields [20 0 R 30 0 R]/SigFlags 3>>"),
+            Some("<</Fields [20 0 R 30 0 R 31 0 R]/SigFlags 3>>"),
+            both(&[edge(1, "AcroForm")]),
+        ),
+    ]
+}
+
+/// A square comment with its popup and its appearance, joining the list.
+fn list_comment() -> Vec<Value> {
+    vec![
+        change(
+            70,
+            None,
+            Some("<</AP <</N 72 0 R>>/P 3 0 R/Popup 71 0 R/Subtype /Square/Type /Annot>>"),
+            new_only(&[edge(60, "[2]"), edge(71, "Parent")]),
+        ),
+        change(
+            71,
+            None,
+            Some("<</Parent 70 0 R/Subtype /Popup/Type /Annot>>"),
+            new_only(&[edge(60, "[3]"), edge(70, "Popup")]),
+        ),
+        change(
+            72,
+            None,
+            Some("stream(27,ab)<</Subtype /Form/Type /XObject>>"),
+            new_only(&[edge(70, "AP/N")]),
+        ),
+    ]
+}
+
+fn not_permitted(step: &Value) -> Vec<&Value> {
+    findings(step).iter().filter(|f| f["verdict"] != "permitted").collect()
+}
+
+#[test]
+fn the_list_grows_there_by_a_new_signature_field_permitted_the_page_not_written() {
+    let mut changes = vec![own_list("[21 0 R 30 0 R 31 0 R]", &[edge(3, "Annots")])];
+    changes.extend(new_field(60));
+    changes.push(list_trailer());
+    let s = step(1, 2, &changes, &structure(json!({})), &with_timestamp_field());
+    assert!(not_permitted(&s).is_empty(), "{s}");
+    assert_eq!(verdict(&s), "permitted");
+    let f = finding_for(&s, 60).unwrap();
+    assert_eq!((&f["rule"], &f["verdict"]), (&json!("signature-field-added"), &json!("permitted")));
+}
+
+#[test]
+fn the_list_grows_there_by_a_comment_permitted_for_an_approval_not_after_p2() {
+    let mut changes = vec![own_list("[21 0 R 30 0 R 70 0 R 71 0 R]", &[edge(3, "Annots")])];
+    changes.extend(list_comment());
+    changes.push(list_trailer());
+    let approval = step(1, 2, &changes, &structure(json!({})), &structure(json!({})));
+    assert!(not_permitted(&approval).is_empty(), "{approval}");
+    let f = finding_for(&approval, 60).unwrap();
+    assert_eq!((&f["rule"], &f["verdict"]), (&json!("annotation"), &json!("permitted")));
+    let fill = signed_with(json!([certification(2)]));
+    let certified = step(1, 2, &changes, &fill, &fill);
+    assert_eq!(verdict(&certified), "forbidden");
+    assert!(any(&certified, |f| f["objectNumber"] == 70
+        && f["rule"] == "annotation"
+        && f["verdict"] == "forbidden"));
+}
+
+#[test]
+fn a_list_that_drops_a_form_widget_is_forbidden() {
+    for after in ["[30 0 R]", "[30 0 R 70 0 R 71 0 R]"] {
+        let mut changes = vec![own_list(after, &[edge(3, "Annots")])];
+        changes.extend(list_comment());
+        changes.push(list_trailer());
+        let s = step(1, 2, &changes, &structure(json!({})), &structure(json!({})));
+        assert_eq!(verdict(&s), "forbidden", "{after}");
+        let f = finding_for(&s, 60).unwrap();
+        assert_eq!(f["rule"], "annotation", "{after}");
+        assert_eq!(f["verdict"], "forbidden", "{after}");
+        assert_eq!(f["detail"], "page /Annots added or removed a form widget", "{after}");
+    }
+}
+
+#[test]
+fn a_new_signature_field_does_not_explain_a_list_that_also_lost_an_entry() {
+    let mut changes = vec![own_list("[30 0 R 31 0 R]", &[edge(3, "Annots")])];
+    changes.extend(new_field(60));
+    changes.push(list_trailer());
+    let s = step(1, 2, &changes, &structure(json!({})), &with_timestamp_field());
+    assert_eq!(verdict(&s), "forbidden");
+    assert!(!any(&s, |f| f["objectNumber"] == 60 && f["rule"] == "signature-field-added"));
+}
+
+#[test]
+fn an_array_something_else_also_points_at_is_not_a_page_list() {
+    let mut changes =
+        vec![own_list("[21 0 R 30 0 R 31 0 R]", &[edge(3, "Annots"), edge(1, "Names/Extra")])];
+    changes.extend(new_field(60));
+    changes.push(list_trailer());
+    let s = step(1, 2, &changes, &structure(json!({})), &with_timestamp_field());
+    assert_eq!(verdict(&s), "forbidden");
+    assert!(!permitted_for(&s, 60));
+}
+
+// The page points at another list, and the old one stays in the file
+// unwritten: what Acrobat writes for a second timestamp.
+
+fn replaced(new_list: &str) -> Vec<Value> {
+    let mut out = vec![
+        change(
+            3,
+            Some("<</Annots 60 0 R/Parent 2 0 R/Type /Page>>"),
+            Some("<</Annots 61 0 R/Parent 2 0 R/Type /Page>>"),
+            Usage {
+                old: vec![edge(2, "Kids/[0]"), edge(30, "P")],
+                new: vec![edge(2, "Kids/[0]"), edge(30, "P"), edge(31, "P")],
+            },
+        ),
+        change(61, None, Some(new_list), new_only(&[edge(3, "Annots")])),
+    ];
+    out.extend(new_field(61));
+    out.push(list_trailer());
+    out
+}
+
+fn old_list(text: Option<&str>, read: &str) -> Value {
+    json!({ "objectNumber": 60,
+        "value": text.map(|t| serde_json::to_value(parse_pdf_value(t).unwrap()).unwrap()),
+        "read": read })
+}
+
+fn judge_replaced(new_list: &str, unwritten: &[Value]) -> Value {
+    step_full(
+        1,
+        2,
+        &replaced(new_list),
+        unwritten,
+        &structure(json!({})),
+        &with_timestamp_field(),
+        None,
+    )
+}
+
+/// The one refusal a list that could not be read gives: its detail.
+fn list_refusal(step: &Value) -> String {
+    assert_eq!(verdict(step), "forbidden", "{step}");
+    let refused = forbidden(step);
+    assert_eq!(refused.len(), 1, "{step}");
+    assert_eq!(refused[0]["rule"], "annotation");
+    assert_eq!(refused[0]["objectNumber"], 3);
+    refused[0]["detail"].as_str().unwrap().to_owned()
+}
+
+#[test]
+fn the_rules_ask_for_the_old_list_and_for_nothing_a_step_wrote() {
+    let asked = |changes: &[Value]| {
+        let changes: Vec<ObjectChange> =
+            changes.iter().map(|c| serde_json::from_value(c.clone()).unwrap()).collect();
+        let before: RevisionStructure = serde_json::from_value(structure(json!({}))).unwrap();
+        let after: RevisionStructure = serde_json::from_value(with_timestamp_field()).unwrap();
+        super::unwritten_objects_to_read(&changes, &before, &after)
+    };
+    assert_eq!(asked(&replaced("[21 0 R 30 0 R 31 0 R]")), [60]);
+    // A list the step wrote is read from the step.
+    let mut written = vec![own_list("[21 0 R 30 0 R 31 0 R]", &[edge(3, "Annots")])];
+    written.extend(new_field(60));
+    written.push(list_trailer());
+    assert!(asked(&written).is_empty());
+    // A page that is not written names nothing, whatever else changed.
+    let mut unwritten_page = new_field(60);
+    unwritten_page.push(list_trailer());
+    assert!(asked(&unwritten_page).is_empty());
+}
+
+#[test]
+fn the_new_list_keeps_every_old_entry_and_adds_the_new_widget_permitted() {
+    let s = judge_replaced("[21 0 R 30 0 R 31 0 R]", &[old_list(Some("[21 0 R 30 0 R]"), "ok")]);
+    assert_eq!(verdict(&s), "permitted", "{s}");
+    let page: Vec<&Value> = findings(&s).iter().filter(|f| f["objectNumber"] == 3).collect();
+    assert_eq!(page.len(), 1);
+    assert_eq!(
+        (&page[0]["rule"], &page[0]["verdict"]),
+        (&json!("signature-field-added"), &json!("permitted"))
+    );
+    let list: Vec<&Value> = findings(&s).iter().filter(|f| f["objectNumber"] == 61).collect();
+    assert_eq!(list.len(), 1);
+    assert_eq!(list[0]["rule"], "signature-field-added");
+    assert!(list[0]["detail"].as_str().unwrap().contains("another list object"));
+}
+
+#[test]
+fn the_new_list_drops_an_old_entry_forbidden() {
+    let s = judge_replaced("[21 0 R 31 0 R]", &[old_list(Some("[21 0 R 30 0 R]"), "ok")]);
+    assert_eq!(verdict(&s), "forbidden");
+    assert!(!any(&s, |f| f["rule"] == "signature-field-added" && f["objectNumber"] == 3));
+}
+
+#[test]
+fn the_new_list_puts_the_old_entries_in_another_order_not_explained_by_the_new_field() {
+    let s = judge_replaced("[30 0 R 21 0 R 31 0 R]", &[old_list(Some("[21 0 R 30 0 R]"), "ok")]);
+    assert!(!any(&s, |f| f["rule"] == "signature-field-added" && f["objectNumber"] == 3));
+}
+
+#[test]
+fn the_old_list_was_not_read_one_refusal_that_says_so() {
+    assert!(
+        list_refusal(&judge_replaced("[21 0 R 30 0 R 31 0 R]", &[])).contains("cannot be compared")
+    );
+}
+
+#[test]
+fn the_old_list_does_not_parse_or_is_absent_the_same_refusal() {
+    for read in ["failed", "absent"] {
+        let s = judge_replaced("[21 0 R 30 0 R 31 0 R]", &[old_list(None, read)]);
+        assert!(list_refusal(&s).contains("cannot be compared"), "{read}");
+    }
+}
+
+#[test]
+fn the_old_object_is_not_a_list_of_references_the_same_refusal() {
+    for text in ["<</Type /Annot>>", "[21 0 R (text)]"] {
+        let s = judge_replaced("[21 0 R 30 0 R 31 0 R]", &[old_list(Some(text), "ok")]);
+        assert!(list_refusal(&s).contains("cannot be compared"), "{text}");
+    }
+}
+
+#[test]
+fn a_value_handed_over_for_an_object_the_step_wrote_is_not_read() {
+    let other = json!({ "objectNumber": 61,
+        "value": serde_json::to_value(parse_pdf_value("[99 0 R]").unwrap()).unwrap(), "read": "ok" });
+    let s =
+        judge_replaced("[21 0 R 30 0 R 31 0 R]", &[old_list(Some("[21 0 R 30 0 R]"), "ok"), other]);
+    assert_eq!(verdict(&s), "permitted", "{s}");
+}
+
+// ── restrictionsFor: a document timestamp after a no-changes certification ──
+
+fn restricted(before: &Value, judged: Option<&Value>) -> super::Restrictions {
+    let before: RevisionStructure = serde_json::from_value(before.clone()).unwrap();
+    let judged: Option<crate::features::signature::types::SignatureDto> =
+        judged.map(|j| serde_json::from_value(j.clone()).unwrap());
+    super::restrictions_for(&before, judged.as_ref())
+}
+
+fn timestamp_31() -> Value {
+    signature(
+        1,
+        31,
+        json!({ "kind": "timestamp", "subFilter": "ETSI.RFC3161",
+        "fieldName": "Timestamp", "revisionIndex": 2 }),
+    )
+}
+
+fn certified_then(permission: u8, later: Value) -> Value {
+    signed_with(json!([certification(permission), later]))
+}
+
+#[test]
+fn the_timestamp_is_judged_on_its_own_as_acrobat_judges_it() {
+    let own = restricted(&certified_then(1, timestamp_31()), Some(&timestamp_31()));
+    assert_eq!(own.level, crate::features::signature::types::ModificationLevel::Annotate);
+    assert!(own.anchors.is_empty());
+}
+
+#[test]
+fn the_certification_itself_and_a_later_approval_stay_bound_by_it() {
+    use crate::features::signature::types::ModificationLevel::Lta;
+    let before = certified_then(1, timestamp_31());
+    assert_eq!(restricted(&before, Some(&before["signatures"][0])).level, Lta);
+    let approval = signature(1, 31, json!({ "fieldName": "second", "revisionIndex": 2 }));
+    assert_eq!(restricted(&certified_then(1, approval.clone()), Some(&approval)).level, Lta);
+    // No signature in particular: every restriction in the file applies.
+    assert_eq!(restricted(&before, None).level, Lta);
+}
+
+#[test]
+fn a_certification_that_allows_form_filling_still_binds_a_later_timestamp() {
+    let own = restricted(&certified_then(2, timestamp_31()), Some(&timestamp_31()));
+    assert_eq!(own.level, crate::features::signature::types::ModificationLevel::Fill);
 }

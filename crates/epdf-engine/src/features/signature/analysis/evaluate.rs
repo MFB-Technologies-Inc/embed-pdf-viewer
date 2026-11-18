@@ -21,7 +21,7 @@ use super::pdf_value::{PdfValue, changed_keys, dict_entries, entry, pdf_value_eq
 use super::types::{
     ChangeFinding, FindingVerdict, ObjectChange, ObjectChangeKind, ObjectChangeType,
     ObjectReadStatus, ObjectReferrer, RevisionAnalysis, RevisionField, RevisionStructure, SIDES,
-    Side, StepInput, StepRestrictions,
+    Side, StepInput, StepRestrictions, UnwrittenObject,
 };
 use super::verdict::conclude;
 
@@ -93,6 +93,44 @@ pub fn restrictions_of(before: &RevisionStructure) -> StepRestrictions {
     }
 }
 
+/// One side of a change's value.
+fn side_value(c: &ObjectChange, side: Side) -> Option<&PdfValue> {
+    match side {
+        Side::Old => c.value.old.as_ref(),
+        Side::New => c.value.new.as_ref(),
+    }
+}
+
+/// `unwrittenObjectsToRead` (92db1287a): the objects the rules read that
+/// `changes` does not hold, for the transport to read from the revisions'
+/// bytes and hand over as `StepInput::unwritten`. One kind so far: the
+/// annotation list of a page this step wrote, when the list is an object of
+/// its own that the step left alone.
+pub fn unwritten_objects_to_read(
+    changes: &[ObjectChange],
+    before: &RevisionStructure,
+    after: &RevisionStructure,
+) -> Vec<u32> {
+    let pages: HashSet<u32> = before.pages.iter().chain(&after.pages).copied().collect();
+    let written: HashSet<u32> = changes.iter().map(|c| c.object_number).collect();
+    let mut out: Vec<u32> = Vec::new();
+    for c in changes {
+        if !pages.contains(&c.object_number) {
+            continue;
+        }
+        for side in SIDES {
+            if let Some(PdfValue::Ref(num)) = entry(side_value(c, side), "Annots")
+                && !written.contains(num)
+                && !out.contains(num)
+            {
+                out.push(*num);
+            }
+        }
+    }
+    out.sort_unstable();
+    out
+}
+
 /// `evaluateStep`.
 pub fn evaluate_step(input: StepInput) -> RevisionAnalysis {
     let changes = with_evidence_check(input.changes.clone());
@@ -105,18 +143,23 @@ pub fn evaluate_step(input: StepInput) -> RevisionAnalysis {
     rule_revision_health(&ctx, &mut st);
     rule_xref_container(&ctx, &mut st);
     rule_identical_rewrite(&ctx, &mut st);
-    // Locks first: a frozen object is condemned before any rule could vouch for it.
-    rule_field_lock(&ctx, &mut st);
-    rule_trailer(&ctx, &mut st);
-    rule_info(&ctx, &mut st);
-    rule_metadata(&ctx, &mut st);
-    rule_catalog(&ctx, &mut st);
-    rule_acro_form(&ctx, &mut st);
-    rule_dss(&ctx, &mut st);
-    rule_signature_field_added(&ctx, &mut st);
-    rule_signature_added(&ctx, &mut st);
-    rule_form_fill(&ctx, &mut st);
-    rule_annotation(&ctx, &mut st);
+    if ctx.allows(ModificationLevel::Fill) {
+        // Locks first: a frozen object is condemned before any rule could vouch for it.
+        rule_field_lock(&ctx, &mut st);
+        rule_trailer(&ctx, &mut st);
+        rule_info(&ctx, &mut st);
+        rule_metadata(&ctx, &mut st);
+        rule_catalog(&ctx, &mut st);
+        rule_acro_form(&ctx, &mut st);
+        rule_dss(&ctx, &mut st);
+        rule_signature_field_added(&ctx, &mut st);
+        rule_signature_added(&ctx, &mut st);
+        rule_form_fill(&ctx, &mut st);
+        rule_annotation(&ctx, &mut st);
+    } else {
+        rule_trailer(&ctx, &mut st);
+        rule_no_changes_certification(&ctx, &mut st);
+    }
     rule_unexplained(&ctx, &mut st);
 
     let effective = st.findings.iter().any(|f| {
@@ -286,6 +329,8 @@ struct StepContext<'a> {
     input: &'a StepInput,
     changes: &'a [ObjectChange],
     by_num: HashMap<u32, usize>,
+    /// The objects the step left alone that the transport read for the rules.
+    unwritten: HashMap<u32, &'a UnwrittenObject>,
     before: RoleIndex,
     after: RoleIndex,
     level: ModificationLevel,
@@ -309,11 +354,20 @@ impl<'a> StepContext<'a> {
         level: ModificationLevel,
         locks: &'a [DocumentFieldLock],
     ) -> Self {
-        let by_num = changes.iter().enumerate().map(|(i, c)| (c.object_number, i)).collect();
+        let by_num: HashMap<u32, usize> =
+            changes.iter().enumerate().map(|(i, c)| (c.object_number, i)).collect();
+        let mut unwritten = HashMap::new();
+        for kept in &input.unwritten {
+            // A step's own object is read from the step, never from here.
+            if !by_num.contains_key(&kept.object_number) {
+                unwritten.insert(kept.object_number, kept);
+            }
+        }
         StepContext {
             input,
             changes,
             by_num,
+            unwritten,
             before: index_roles(&input.before),
             after: index_roles(&input.after),
             level,
@@ -533,6 +587,38 @@ fn rule_identical_rewrite(ctx: &StepContext<'_>, st: &mut State) {
     }
 }
 
+/// `ruleNoChangesCertification` (462380c7a): after a certification that
+/// allows no changes, nothing may follow. ISO 32000-2 lets validation data
+/// and document timestamps through; Acrobat reports the certification as
+/// altered for each, so every object such a revision writes is forbidden.
+/// The trailer and the cross-reference containers are the revision's own
+/// bookkeeping, and an object written again unchanged is judged by its own
+/// rule.
+fn rule_no_changes_certification(ctx: &StepContext<'_>, st: &mut State) {
+    let rule = "no-changes-certification";
+    for c in ctx.changes {
+        if c.object_number == 0
+            || c.kind == ObjectChangeKind::Xref
+            || c.kind == ObjectChangeKind::Objstm
+        {
+            continue;
+        }
+        if ctx.is_identical(c) {
+            continue;
+        }
+        st.claim_all(c, rule, false);
+        st.forbidden(
+            c,
+            rule,
+            format!(
+                "{} after a certification that allows no changes: Acrobat reports the certification as altered (ISO 32000-2 allows validation data and document timestamps here, Acrobat does not)",
+                change_kind_name(c.change)
+            ),
+            None,
+        );
+    }
+}
+
 fn rule_trailer(ctx: &StepContext<'_>, st: &mut State) {
     let Some(c) = ctx.change(0) else { return };
     let changed = changed_keys(c.value.old.as_ref(), c.value.new.as_ref());
@@ -745,6 +831,104 @@ fn appended_refs(c: &ObjectChange, key: &str) -> Option<Vec<u32>> {
     Some(new_refs[old_refs.len()..].to_vec())
 }
 
+/// `annotsHolders` (92db1287a): the array objects of this step that are one
+/// page's /Annots and nothing else, with their page, in the step's order.
+fn annots_holders(ctx: &StepContext<'_>) -> Vec<(u32, u32)> {
+    let pages: HashSet<u32> =
+        ctx.input.before.pages.iter().chain(&ctx.input.after.pages).copied().collect();
+    let mut out = Vec::new();
+    for c in ctx.changes {
+        if c.kind != ObjectChangeKind::Array || c.value.truncated {
+            continue;
+        }
+        let uses: Vec<&ObjectReferrer> = c.usage.old.iter().chain(&c.usage.new).collect();
+        // Every use is one page's /Annots: nothing else points at the array.
+        if uses.is_empty() || !uses.iter().all(|e| pages.contains(&e.parent) && e.label == "Annots")
+        {
+            continue;
+        }
+        let owners: HashSet<u32> = uses.iter().map(|e| e.parent).collect();
+        if owners.len() != 1 {
+            continue;
+        }
+        let only_references = [&c.value.old, &c.value.new].into_iter().all(|value| match value {
+            None => true,
+            Some(PdfValue::Array(items)) => refs_of(value.as_ref()).len() == items.len(),
+            Some(_) => false,
+        });
+        if only_references {
+            out.push((c.object_number, uses[0].parent));
+        }
+    }
+    out
+}
+
+/// The page whose list `number` is, when it is one of `holders`.
+fn holder_page(holders: &[(u32, u32)], number: u32) -> Option<u32> {
+    holders.iter().find(|(n, _)| *n == number).map(|(_, page)| *page)
+}
+
+/// `PageList`: a page's annotation list on one side of a step, and where it
+/// is kept.
+struct PageList<'a> {
+    refs: Vec<u32>,
+    /// The object that holds the list when it is one of its own; 0 when the
+    /// array is inside the page.
+    object: u32,
+    /// That object's change, when this step wrote it.
+    holder: Option<&'a ObjectChange>,
+}
+
+/// `pageList`: a page's annotation list on one side, from the page, from the
+/// list's own object when this step wrote it, or from the revision's bytes
+/// (`StepInput::unwritten`). `None` when it cannot be read.
+fn page_list<'a>(
+    ctx: &StepContext<'a>,
+    holders: &[(u32, u32)],
+    page: &ObjectChange,
+    side: Side,
+) -> Option<PageList<'a>> {
+    let Some(value) = entry(side_value(page, side), "Annots") else {
+        return Some(PageList { refs: Vec::new(), object: 0, holder: None });
+    };
+    let num = match value {
+        PdfValue::Array(_) => {
+            return Some(PageList { refs: refs_of(Some(value)), object: 0, holder: None });
+        }
+        PdfValue::Ref(num) => *num,
+        _ => return None,
+    };
+    let Some(holder) = ctx.change(num) else {
+        let kept = ctx.unwritten.get(&num)?;
+        if kept.read != ObjectReadStatus::Ok {
+            return None;
+        }
+        let Some(PdfValue::Array(items)) = &kept.value else { return None };
+        let refs = refs_of(kept.value.as_ref());
+        if refs.len() != items.len() {
+            return None;
+        }
+        return Some(PageList { refs, object: num, holder: None });
+    };
+    if holder_page(holders, holder.object_number) != Some(page.object_number) {
+        return None;
+    }
+    side_value(holder, side).map(|list| PageList {
+        refs: refs_of(Some(list)),
+        object: holder.object_number,
+        holder: Some(holder),
+    })
+}
+
+/// `appendedTo`: what `after` has beyond `before`, when `before` is its
+/// beginning.
+fn appended_to(before: &[u32], after: &[u32]) -> Option<Vec<u32>> {
+    if before.len() > after.len() || before.iter().zip(after).any(|(a, b)| a != b) {
+        return None;
+    }
+    Some(after[before.len()..].to_vec())
+}
+
 /// `newSignatureFields`, in the after revision's field order.
 fn new_signature_fields(ctx: &StepContext<'_>) -> Vec<u32> {
     ctx.after.sig_fields.iter().copied().filter(|n| !ctx.before.field_by_obj.has(*n)).collect()
@@ -811,7 +995,12 @@ fn rule_signature_field_added(ctx: &StepContext<'_>, st: &mut State) {
             }
         }
     }
-    // The page that lists the new widget: /Annots append-only.
+    // The page that lists the new widget: /Annots append-only. The list is an
+    // array inside the page, or an object of its own (Acrobat's way); when the
+    // field is added it may stay where it is, move from one to the other, or
+    // move to a new list object while the old one stays in the file unwritten
+    // (92db1287a).
+    let holders = annots_holders(ctx);
     for p in &ctx.input.after.pages {
         let Some(c) = ctx.change(*p) else { continue };
         if ctx.is_identical(c) {
@@ -821,9 +1010,62 @@ fn rule_signature_field_added(ctx: &StepContext<'_>, st: &mut State) {
         if changed.len() != 1 || changed[0] != "Annots" {
             continue;
         }
-        if appended_refs(c, "Annots").is_some_and(|a| a.iter().all(|n| new_widgets.contains(n))) {
+        let (Some(before), Some(after)) =
+            (page_list(ctx, &holders, c, Side::Old), page_list(ctx, &holders, c, Side::New))
+        else {
+            continue;
+        };
+        let Some(appended) = appended_to(&before.refs, &after.refs) else { continue };
+        if !appended.iter().all(|n| new_widgets.contains(n)) {
+            continue;
+        }
+        // A list that moved to another object must also have grown: a move
+        // alone is not something a new field explains.
+        let moved = before.object != after.object;
+        if moved && appended.is_empty() {
+            continue;
+        }
+        st.claim_all(c, rule, true);
+        st.permitted(c, rule, Some("page /Annots gained the new signature widget".into()));
+        let replaced = before.object != 0 && after.object != 0;
+        let mut seen: Vec<u32> = Vec::new();
+        for holder in [before.holder, after.holder].into_iter().flatten() {
+            if seen.contains(&holder.object_number) {
+                continue;
+            }
+            seen.push(holder.object_number);
+            st.claim_all(holder, rule, true);
+            st.permitted(
+                holder,
+                rule,
+                Some(if replaced {
+                    "page /Annots moved to another list object, with the new signature widget"
+                        .into()
+                } else {
+                    "page /Annots moved into an object of its own, with the new signature widget"
+                        .into()
+                }),
+            );
+        }
+    }
+    // A list that already is an object of its own, and grows there: the page
+    // itself is not written.
+    for (number, _) in &holders {
+        let Some(c) = ctx.change(*number) else { continue };
+        if c.change != ObjectChangeType::Modified || ctx.is_identical(c) {
+            continue;
+        }
+        if let Some(appended) =
+            appended_to(&refs_of(c.value.old.as_ref()), &refs_of(c.value.new.as_ref()))
+            && !appended.is_empty()
+            && appended.iter().all(|n| new_widgets.contains(n))
+        {
             st.claim_all(c, rule, true);
-            st.permitted(c, rule, Some("page /Annots gained the new signature widget".into()));
+            st.permitted(
+                c,
+                rule,
+                Some("page /Annots, an object of its own, gained the new signature widget".into()),
+            );
         }
     }
     // A parent field whose /Kids gained the new field.
@@ -1209,6 +1451,20 @@ fn change_kind_name(change: ObjectChangeType) -> &'static str {
     }
 }
 
+/// `listChange`: whether a change of a page's annotation list adds or
+/// removes a form widget that no rule permitted (a field shown or hidden).
+fn list_touches_widget(st: &State, widgets: &HashSet<u32>, before: &[u32], after: &[u32]) -> bool {
+    let removed = before.iter().filter(|n| !after.contains(n));
+    let added = after.iter().filter(|n| !before.contains(n));
+    removed.chain(added).any(|n| {
+        widgets.contains(n)
+            && !st
+                .findings
+                .iter()
+                .any(|f| f.object_number == *n && f.verdict == FindingVerdict::Permitted)
+    })
+}
+
 fn rule_annotation(ctx: &StepContext<'_>, st: &mut State) {
     let rule = "annotation";
     let mut pages: Vec<u32> = Vec::new();
@@ -1232,17 +1488,18 @@ fn rule_annotation(ctx: &StepContext<'_>, st: &mut State) {
         let side = c.value.new.as_ref().or(c.value.old.as_ref());
         matches!(dict_entries(side).and_then(|e| e.get("Subtype")), Some(PdfValue::Name(v)) if v == "Widget")
     };
+    let holders = annots_holders(ctx);
     let mut annots: Vec<&ObjectChange> = Vec::new();
     for c in ctx.changes {
         if c.kind != ObjectChangeKind::Dictionary || ctx.is_identical(c) {
             continue;
         }
-        let on_page = c
-            .usage
-            .old
-            .iter()
-            .chain(&c.usage.new)
-            .any(|e| page_set.contains(&e.parent) && e.label.starts_with("Annots/"));
+        // Listed by a page: in the array inside the page, or in the page's
+        // list object.
+        let on_page = c.usage.old.iter().chain(&c.usage.new).any(|e| {
+            (page_set.contains(&e.parent) && e.label.starts_with("Annots/"))
+                || (holder_page(&holders, e.parent).is_some() && is_index_label(&e.label))
+        });
         if on_page && !is_widget(c) {
             annots.push(c);
         }
@@ -1269,26 +1526,80 @@ fn rule_annotation(ctx: &StepContext<'_>, st: &mut State) {
         if ctx.is_identical(c) {
             continue;
         }
+        // A page whose /Annots a new signature field explains is already judged.
+        if st.findings.iter().any(|f| {
+            f.object_number == *p
+                && f.rule == "signature-field-added"
+                && f.verdict == FindingVerdict::Permitted
+        }) {
+            continue;
+        }
         let changed = changed_keys(c.value.old.as_ref(), c.value.new.as_ref());
         if changed.len() == 1 && changed[0] == "Annots" {
-            let old_refs = refs_of(entry(c.value.old.as_ref(), "Annots"));
-            let new_refs = refs_of(entry(c.value.new.as_ref(), "Annots"));
-            let removed = old_refs.iter().filter(|n| !new_refs.contains(n));
-            let added = new_refs.iter().filter(|n| !old_refs.contains(n));
-            let touches_widget = removed.chain(added).any(|n| {
-                widgets.contains(n)
-                    && !st
-                        .findings
-                        .iter()
-                        .any(|f| f.object_number == *n && f.verdict == FindingVerdict::Permitted)
-            });
-            if touches_widget {
+            let before = page_list(ctx, &holders, c, Side::Old);
+            let after = page_list(ctx, &holders, c, Side::New);
+            let list_objects: Vec<&ObjectChange> =
+                [before.as_ref().and_then(|l| l.holder), after.as_ref().and_then(|l| l.holder)]
+                    .into_iter()
+                    .flatten()
+                    .collect();
+            let (Some(before), Some(after)) = (before, after) else {
+                // A list in an object this step left alone, which the
+                // transport did not read or which does not read as a list
+                // of references: what it held is not among the evidence.
+                st.claim_all(c, rule, false);
+                for holder in &list_objects {
+                    st.claim_all(holder, rule, false);
+                }
+                st.forbidden(
+                    c,
+                    rule,
+                    "page /Annots points at a list object this revision did not write, and that list could not be read: what it held cannot be compared".into(),
+                    None,
+                );
+                continue;
+            };
+            if list_touches_widget(st, &widgets, &before.refs, &after.refs) {
                 st.forbidden(c, rule, "page /Annots added or removed a form widget".into(), None);
                 continue;
             }
             st.claim_all(c, rule, true);
             st.permitted(c, rule, Some("page /Annots changed".into()));
+            for holder in &list_objects {
+                st.claim_all(holder, rule, true);
+                st.permitted(
+                    holder,
+                    rule,
+                    Some("page /Annots, an object of its own, changed".into()),
+                );
+            }
         }
+    }
+    // A list that is an object of its own and changes there: the page itself
+    // is not written (Acrobat adds a comment this way).
+    for (number, _) in &holders {
+        let Some(c) = ctx.change(*number) else { continue };
+        if c.change != ObjectChangeType::Modified || ctx.is_identical(c) {
+            continue;
+        }
+        if st
+            .findings
+            .iter()
+            .any(|f| f.object_number == *number && f.verdict == FindingVerdict::Permitted)
+        {
+            continue;
+        }
+        if list_touches_widget(
+            st,
+            &widgets,
+            &refs_of(c.value.old.as_ref()),
+            &refs_of(c.value.new.as_ref()),
+        ) {
+            st.forbidden(c, rule, "page /Annots added or removed a form widget".into(), None);
+            continue;
+        }
+        st.claim_all(c, rule, true);
+        st.permitted(c, rule, Some("page /Annots, an object of its own, changed".into()));
     }
     for side in SIDES {
         st.claim_subtree(
@@ -1299,6 +1610,14 @@ fn rule_annotation(ctx: &StepContext<'_>, st: &mut State) {
             rule,
         );
     }
+}
+
+/// `/^\[\d+\]$/`: an array entry's label.
+fn is_index_label(label: &str) -> bool {
+    label.len() > 2
+        && label.starts_with('[')
+        && label.ends_with(']')
+        && label[1..label.len() - 1].bytes().all(|b| b.is_ascii_digit())
 }
 
 fn rule_field_lock(ctx: &StepContext<'_>, st: &mut State) {

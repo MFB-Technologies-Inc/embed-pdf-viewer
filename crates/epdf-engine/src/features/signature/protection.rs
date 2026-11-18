@@ -12,8 +12,12 @@ use super::types::{
     FieldLockSpec, ModificationLevel, SignatureDto,
 };
 
-/// `SIGNATURE_POLICY_VERSION`.
-pub const SIGNATURE_POLICY_VERSION: u32 = 4;
+/// `SIGNATURE_POLICY_VERSION`. Version 5 (462380c7a, 92db1287a) adds the
+/// observations in `fixtures/signature-long-term`: a certification that
+/// allows no changes allows no later revision, a document timestamp after
+/// one is judged on its own, and a page's /Annots may move into an object
+/// of its own when a signature field is added.
+pub const SIGNATURE_POLICY_VERSION: u32 = 5;
 
 /// `APPROVAL_BASELINE`.
 pub const APPROVAL_BASELINE: ModificationLevel = ModificationLevel::Annotate;
@@ -130,6 +134,8 @@ pub const PROTECTABLE_CAPABILITIES: &[DocCapability] = &[
     DocCapability::DocAnnotateImport,
     DocCapability::DocFormsFill,
     DocCapability::DocFormsImport,
+    DocCapability::DocMetadataModify,
+    DocCapability::DocSign,
 ];
 
 /// `isProtectableCapability`: whether a protection can ever remove
@@ -159,8 +165,12 @@ pub fn protected_capabilities(protection: Option<&DocumentProtection>) -> BTreeS
         out.insert(DocCapability::DocAnnotateImport);
     }
     if !level_allows(Some(enforced), ModificationLevel::Fill) {
+        // At P=1 that is everything that writes: the metadata, and signing
+        // too, a document timestamp included (462380c7a).
         out.insert(DocCapability::DocFormsFill);
         out.insert(DocCapability::DocFormsImport);
+        out.insert(DocCapability::DocMetadataModify);
+        out.insert(DocCapability::DocSign);
     }
     out
 }
@@ -228,6 +238,12 @@ mod tests {
         assert!(has(2, DocCapability::DocAnnotateImport));
         assert!(!has(2, DocCapability::DocFormsImport));
         assert!(has(1, DocCapability::DocFormsImport));
+        // Nothing may follow a no-changes certification: Acrobat reports it as
+        // altered for a metadata change and for a document timestamp alike.
+        assert!(has(1, DocCapability::DocMetadataModify));
+        assert!(has(1, DocCapability::DocSign));
+        assert!(!has(2, DocCapability::DocMetadataModify));
+        assert!(!has(2, DocCapability::DocSign));
     }
 
     #[test]
@@ -239,7 +255,8 @@ mod tests {
         assert_eq!(removed, protectable);
         assert!(is_protectable_capability(DocCapability::DocFormsFill));
         assert!(!is_protectable_capability(DocCapability::DocFormsRead));
-        assert!(!is_protectable_capability(DocCapability::DocSign));
+        assert!(is_protectable_capability(DocCapability::DocSign));
+        assert!(!is_protectable_capability(DocCapability::DocSignCertify));
     }
 
     #[test]

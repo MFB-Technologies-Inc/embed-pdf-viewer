@@ -3,7 +3,7 @@
 
 use crate::features::signature::protection::{APPROVAL_BASELINE, level_from_permission, min_level};
 use crate::features::signature::types::{
-    DocumentFieldLock, FieldLockSource, ModificationLevel, SignatureDto,
+    DocumentFieldLock, FieldLockSource, ModificationLevel, SignatureDto, SignatureKind,
 };
 
 use super::types::{RestrictionAnchor, RestrictionSource, RevisionStructure};
@@ -26,8 +26,14 @@ pub fn restrictions_for(before: &RevisionStructure, judged: Option<&SignatureDto
         let Some(revision_index) = sig.revision_index.filter(|_| sig.signed) else { continue };
         signed = true;
         let own = judged.is_some_and(|j| sig.index == j.index);
+        // A document timestamp after a certification that allows no changes
+        // breaks it, and Acrobat still judges the timestamp on its own
+        // (462380c7a): that certification doesn't bind the timestamp's window.
+        let timestamp_after_no_changes = judged
+            .is_some_and(|j| !own && j.kind == SignatureKind::Timestamp && sig.doc_mdp == Some(1));
         if sig.catalog_certification
             && let Some(doc_mdp) = sig.doc_mdp
+            && !timestamp_after_no_changes
         {
             anchors.push(RestrictionAnchor {
                 signature_index: sig.index,

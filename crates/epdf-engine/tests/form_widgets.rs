@@ -747,7 +747,7 @@ fn a_calculate_script_keeps_the_field_in_the_calculation_order() {
             "permissionFlags": { "print": true, "modifyContents": true, "copy": true, "modifyAnnotations": true, "fillForms": true,
                 "copyForAccessibility": true, "assemble": true, "printHighQuality": true } },
             "protection": { "enforced": null, "judged": null, "certification": null,
-                "fieldLocks": [], "policyVersion": 4 } } }));
+                "fieldLocks": [], "policyVersion": 5 } } }));
     assert_eq!(code(&refused), "Forbidden", "{refused}");
     assert_eq!(refused["details"]["required"], "doc.forms.script", "{refused}");
 }
@@ -761,7 +761,7 @@ fn designer() -> Value {
             "permissionFlags": { "print": true, "modifyContents": true, "copy": true, "modifyAnnotations": true, "fillForms": true,
                 "copyForAccessibility": true, "assemble": true, "printHighQuality": true } },
         "protection": { "enforced": null, "judged": null, "certification": null,
-            "fieldLocks": [], "policyVersion": 4 } })
+            "fieldLocks": [], "policyVersion": 5 } })
 }
 
 #[test]

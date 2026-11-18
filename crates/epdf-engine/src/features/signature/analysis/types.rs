@@ -347,12 +347,30 @@ pub struct StepRestrictions {
     pub locks: Vec<DocumentFieldLock>,
 }
 
+/// `UnwrittenObject` (92db1287a): an object a rule reads that the step did
+/// not write, as the revision's bytes hold it. It reads the same in both
+/// revisions: a step lists every object whose cross-reference mapping moved,
+/// and this one's did not.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UnwrittenObject {
+    pub object_number: u32,
+    /// `None` when the object is absent, could not be read, or is past the
+    /// inspection cap.
+    pub value: Option<PdfValue>,
+    pub read: ObjectReadStatus,
+}
+
 /// `StepInput`.
 #[derive(Debug, Clone)]
 pub struct StepInput {
     pub older: u32,
     pub newer: u32,
     pub changes: Vec<ObjectChange>,
+    /// The objects `unwrittenObjectsToRead` names, read from the revisions'
+    /// bytes. Empty on a transport that reads none: a rule that needs one
+    /// then finds its evidence missing.
+    pub unwritten: Vec<UnwrittenObject>,
     pub before: RevisionStructure,
     pub after: RevisionStructure,
     pub health: Option<Sides<RevisionHealth>>,

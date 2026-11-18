@@ -31,7 +31,7 @@ fn two_approvals_list_in_field_order_with_whole_revision_coverage() {
     assert_eq!(snapshot["protection"]["enforced"], Value::Null);
     // `deriveProtection`'s approval baseline, policy version 4.
     assert_eq!(snapshot["protection"]["judged"], json!("annotate"));
-    assert_eq!(snapshot["protection"]["policyVersion"], json!(4));
+    assert_eq!(snapshot["protection"]["policyVersion"], json!(5));
 }
 
 #[test]

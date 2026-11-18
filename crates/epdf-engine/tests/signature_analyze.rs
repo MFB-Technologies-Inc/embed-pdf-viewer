@@ -37,7 +37,7 @@ fn the_second_approval_is_a_permitted_change_after_the_first() {
     assert_eq!(analysis["current"]["verdict"], analysis["verdict"]);
     assert_eq!(analysis["current"]["method"], json!("net-state"));
     assert_eq!(analysis["basis"]["source"], json!("persisted"));
-    assert_eq!(analysis["policyVersion"], json!(4));
+    assert_eq!(analysis["policyVersion"], json!(5));
     assert_eq!(analysis["steps"].as_array().unwrap().len(), 1);
 }
 

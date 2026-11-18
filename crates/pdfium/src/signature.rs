@@ -498,6 +498,8 @@ impl Document {
         }
         let mut buffer = vec![0u8; length as usize];
         truncated = 0;
+        // The status is the first call's, as `readUnwritten` reads it.
+        let mut again: c_int = -1;
         // SAFETY: `buffer` holds `length` writable bytes.
         let written = unsafe {
             pdfium_sys::EPDFDoc_GetLoadedObjectValue(
@@ -505,7 +507,7 @@ impl Document {
                 object_number,
                 buffer.as_mut_ptr().cast(),
                 length,
-                &mut status,
+                &mut again,
                 &mut truncated,
             )
         };
