@@ -22,13 +22,24 @@
     "annotation": {
       "delete": "Delete"
     },
+    "history": {
+      "undo": "Undo",
+      "redo": "Redo"
+    },
     "document": {
       "download": "Download",
       "print": "Print"
     },
+    "snapshot": {
+      "copy": "Copy",
+      "save": "Save image",
+      "clear": "Clear snapshot"
+    },
     "tool": {
       "pointer": "Select",
       "pan": "Pan",
+      "zoom": "Marquee zoom",
+      "snapshot": "Snapshot",
       "highlight": "Highlight",
       "underline": "Underline",
       "strikeout": "Strikethrough",

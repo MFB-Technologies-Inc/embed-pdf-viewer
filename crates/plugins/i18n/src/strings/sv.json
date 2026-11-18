@@ -22,13 +22,24 @@
     "annotation": {
       "delete": "Ta bort"
     },
+    "history": {
+      "undo": "Ångra",
+      "redo": "Gör om"
+    },
     "document": {
       "download": "Ladda ned",
       "print": "Skriv ut"
     },
+    "snapshot": {
+      "copy": "Kopiera",
+      "save": "Spara bild",
+      "clear": "Rensa ögonblicksbild"
+    },
     "tool": {
       "pointer": "Välj",
       "pan": "Panorera",
+      "zoom": "Zooma till markering",
+      "snapshot": "Ögonblicksbild",
       "highlight": "Markera",
       "underline": "Stryk under",
       "strikeout": "Stryk över",
