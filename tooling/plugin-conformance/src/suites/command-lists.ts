@@ -255,6 +255,21 @@ const cases: ScenarioCase[] = [
     ],
   },
   {
+    name: 'document-download',
+    covers:
+      'createDocumentCommands: document:download reads the file and hands it to the host as the document name ending in .pdf, of type application/pdf.',
+    plugins: [commandLists(['document'])],
+    engine: {
+      documents: {
+        a: doc({
+          security: { allows: ['doc.download'] },
+          responses: [{ path: 'download', value: { $bytes: 'JVBERi0=' } }],
+        }),
+      },
+    },
+    steps: [start, open, resolve('document:download'), cmd('execute', 'document:download')],
+  },
+  {
     name: 'selection-commands',
     covers:
       'createSelectionCommands: selection:copy (Mod+C) is disabled with nothing selected, and disabled without the selection plugin.',
