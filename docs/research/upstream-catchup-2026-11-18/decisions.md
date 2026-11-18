@@ -148,12 +148,14 @@ The divergences accepted in earlier catch-ups stand as before
 - CU-C7-D2. The start column measures `cf7fdbe7a` on a fresh checkout for the rows earlier jobs
   didn't run (payload, `core-wasm`, `test:gc`, `epdf-web`, the addon), with that commit's own
   PDFium pins, and cites CU-C3's same-day `cf7fdbe7a` run for the rest.
-- CU-C7-D9. `rust-coverage:check` passes at `cf7fdbe7a` and fails at head (stale record); not
-  regenerated here. Cost: the check is red until the record is regenerated and reviewed.
+- CU-C7-D9. `vectors/rust-coverage.json`, stale at head, is regenerated in its own target dir and
+  `rust-coverage:check` passes. Cost: the record's diff covers the whole port at once.
 - CU-C7-D10. The five CU-C1 logs missing from the container are copied in, so CU-C1's sentence
   that its logs are in both places is true.
-- CU-C7-D11. The eight evidence failures new since `cf7fdbe7a` (archive pins CU-C6's cases moved)
-  are reported, not re-pinned. Cost: the evidence row is 761 of 771 until they are.
+- CU-C7-D11. The eight evidence failures new since `cf7fdbe7a` are closed: the pen drawing case's
+  stale answer opIds are fixed in its fixture, and the evidence tests count the catch-up's cases
+  from a generated archive (`historical/catchup-2026-11-18/additions.json`). Cost: one more archive
+  file the tests read.
 
 Left for the final whole-branch review, not changed here: CU-C4a `open_candidate` with unchanged
 bytes and edits relying on two fork checks agreeing; CU-C4b's client trusting the host's reply

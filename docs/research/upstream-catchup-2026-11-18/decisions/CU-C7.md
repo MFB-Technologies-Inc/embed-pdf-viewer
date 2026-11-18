@@ -112,21 +112,21 @@ owned by uid 501 (two such files remain at `/workspaces/lib-exports.sh` and
 Cost: git in that container won't warn about a repository another user owns.
 Reverse: `git config --global --unset-all safe.directory`.
 
-## CU-C7-D9. `rust-coverage:check` fails at head; the record is not regenerated here
+## CU-C7-D9. `vectors/rust-coverage.json` is regenerated (controller follow-up)
 
-Decision: `cargo-llvm-cov` 0.9.1 and the `llvm-tools` component are installed in the container and
-`rust-coverage` runs on both sides (`scripts/cu-c7/rustcov.sh`, write mode, then the file is
-restored). At `cf7fdbe7a` the write reproduces `vectors/rust-coverage.json` exactly: replay reaches
-64,882 of 113,799 lines, 37,520 lines only other tests reach, 675 files, 75 excluded. At
-`bdc139736` `rust-coverage:check` exits 1 (`vectors/rust-coverage.json is stale`), and the write
-gives 68,345 of 118,359, 38,382, 700 files, 76 excluded: a diff of 1,291 insertions and 994
-deletions, kept as `head-rustcov/rust-coverage.diff`. The file isn't committed.
-Reason: a row worse than the start is a finding to report. CU-C3-D9 left the check out and no
-job since ran it, so the drift is the whole port's, and its 60 KB diff wants a reviewer.
-Cost: `rust-coverage:check` stays red until someone runs
-`pnpm --filter @embedpdf/tooling-plugin-conformance run rust-coverage` and commits the result.
-Each run's `llvm-cov-target` was deleted after its numbers were recorded.
-Reverse: not needed.
+Decision: `cargo-llvm-cov` 0.9.1 and the `llvm-tools` component are installed in the container.
+`rust-coverage` was measured on both sides first (`scripts/cu-c7/rustcov.sh`, write mode, file
+restored). At `cf7fdbe7a` the write reproduces the committed record exactly: replay reaches 64,882
+of 113,799 lines, 37,520 lines only other tests reach, 675 files, 75 excluded. At `bdc139736`
+`rust-coverage:check` exited 1 (`vectors/rust-coverage.json is stale`). After the controller asked
+for the row to be closed, `pnpm --filter @embedpdf/tooling-plugin-conformance run rust-coverage`
+rewrote the record on top of the evidence commits, in its own target dir
+(`CARGO_TARGET_DIR=/workspaces/target-cov`, deleted afterwards), and `rust-coverage:check` then
+exits 0 (`rustcov-regen/`). The record is its own commit.
+Reason: the record lagged the whole port. CU-C3-D9 left the check out and no job since ran it.
+Cost: the record's diff (1,291 insertions, 994 deletions; replay now reaches 68,345 of 118,359
+lines, 38,382 only other tests reach, 700 files, 76 excluded) is reviewed as a whole rather than per job.
+Reverse: revert that commit.
 
 ## CU-C7-D10. CU-C1's logs are in the container too
 
@@ -138,12 +138,31 @@ Reason: that makes the report's sentence true rather than editing it.
 Cost: none.
 Reverse: not needed.
 
-## CU-C7-D11. Evidence failures are reported, not re-pinned
+## CU-C7-D11. The evidence failures are closed by a fixture fix and a generated additions archive (controller follow-up)
 
-Decision: the eight evidence failures that are new since `cf7fdbe7a` stay failing and are listed
-in the report.
-Reason: the brief makes a row worse than the start a finding, and limits fixes to the minor list.
-Each failure is a count or ID the archives pin, moved by cases CU-C6 added; none is a
-Rust failure.
-Cost: the evidence row reads 761 of 771 until someone re-pins the archives.
-Reverse: re-pin with the CU-C3 scripts (`srcpins.py`, `owners.py`, `chainpins.py`).
+Decision: the eight evidence failures new since `cf7fdbe7a` are closed in two commits. First, the
+`ink-press-on-an-annotation-keeps-the-waiting-stroke` answers in
+`src/suites/annotation-live-answers.ts` give their three `apply` writes `{ ms: 200 }`, and the
+plugin vectors are regenerated (twice, identical; only `plugins/annotation-tools.json` changes).
+Second, `scripts/cu-c7/additions.mjs` writes `historical/catchup-2026-11-18/additions.json`, the
+83 cases the catch-up added to the vectors between `cf7fdbe7a` and `2615a3bec` (file, name,
+covers), read from git; `test/catchup-additions.ts` reads it, and the six evidence tests count a
+file's additions on top of their archives, as their 2026-11-12 lists do. CU-C3's `chainpins.py`
+then moved the one chained pin that names a changed test file
+(`historical/task-12b2b1b-ii/family.json`, `test/annotation-live.test.ts`); `srcpins.py` and
+`owners.py` find nothing to re-pin.
+Reason: seven failures were counts, which no CU-C3 script re-pins: those scripts move hashes of
+changed source, while these tests count cases against archives. The archive keeps the counts out of
+hand-typed lists. The eighth was the opId check, and it is a stale fixture, not a TS and Rust
+difference. In the recorded TS trace all three `apply` calls carry `00000000-00c8-…` (200 ms, after
+the case's `advance(200)`). `replay:check` passes, so the Rust replay sends the same. Only the
+scripted answers said `00000000-0000-…`, because CU-C6 wrote them without the `ms` option the other
+live answers pass. `opids.mjs` finds no other case in any vector whose call and answer opIds
+differ.
+The two failures left are the start's, in `current-suites.test.ts`. `grid-nan-columns`
+(`f629719b5`, 2026-11-16, before `cf7fdbe7a`) observes the kept M27 NaN divergence: TS's kernel
+reports `RangeError: Invalid array length`, and the test allows a report only from `change-hooks`.
+The second (`Cannot read properties of undefined (reading '6')`) is that test aborting before it
+records `smooth-navigation-tween`, which the next test reads.
+Cost: the evidence tests depend on one more archive file, regenerated if the catch-up adds cases.
+Reverse: revert the two commits.

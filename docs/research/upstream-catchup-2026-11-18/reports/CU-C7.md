@@ -1,13 +1,13 @@
 # CU-C7: Rust and Node integration, the full table, and the deferred minors
 
 `research/catchup-2026-11-18-plugins` is fast-forwarded to CU-C6's tip `0e1586fc0` and carries this
-job's five fix commits. Every Rust and Node row is measured on the code head `bdc139736` and on
-the start `cf7fdbe7a`. All rows match or improve on the start except two. The plugin evidence
-tests are 761 of 771 against 766 of 768: eight new failures, each an archive pin that CU-C6's new
-cases moved. And `rust-coverage:check`, whose record is current at the start, fails at head on a
-stale record. No Rust behaviour changed here and there is no NEW DIVERGENCE. All seven deferred
-minors are fixed or recorded. The decisions index for the whole catch-up is
-[`../decisions.md`](../decisions.md); this job's decisions are in
+job's commits. Every Rust and Node row is measured on the head and on the start `cf7fdbe7a`, and
+nothing is worse than the start. The first pass left two rows worse, the plugin evidence tests
+(761 of 771) and `rust-coverage:check` (stale record). A controller follow-up closed both: a stale
+fixture in one CU-C6 case, the catch-up's cases counted from a generated archive, and a regenerated
+coverage record (CU-C7-D11, CU-C7-D9). No Rust behaviour changed here and there is no NEW
+DIVERGENCE. All seven deferred minors are fixed or recorded. The decisions index for the whole
+catch-up is [`../decisions.md`](../decisions.md); this job's decisions are in
 [`../decisions/CU-C7.md`](../decisions/CU-C7.md).
 
 ## Commits
@@ -19,24 +19,30 @@ minors are fixed or recorded. The decisions index for the whole catch-up is
 | `d60c1758a` | 4 | `signature_read.rs:32` says policy version 5; `signatures.addValidationInfo` last in `TRANSACTED_KINDS`; two `session/authority.rs` tests |
 | `394c34207` | 6 | refusing `image_bytes` test in `commands/tests/lists.rs`; `ToolPermission` deadlock warning |
 | `bdc139736` | 2, 5, 7 | `reports/CU-C2.md` "plan D-3"; 43 and 7 answers in the signature-core README and `reports/CU-C4b.md`; `reports/CU-C6.md` coverage and Divergences, `decisions/CU-C6.md` D7 |
-| the docs commit | | this report, `decisions/CU-C7.md`, `decisions.md`, `scripts/cu-c7/` |
+| `2615a3bec` | | this report, `decisions/CU-C7.md`, `decisions.md`, `scripts/cu-c7/` (first pass) |
+| `46a1089b3` | | follow-up: the pen drawing case answers its writes at 200 ms; `plugins/annotation-tools.json` |
+| `c277f21c6` | | follow-up: `historical/catchup-2026-11-18/additions.json`, `test/catchup-additions.ts`, six evidence tests count the catch-up's cases; `task-12b2b1b-ii/family.json` chained pin |
+| `5f4abdabc` | | follow-up: `vectors/rust-coverage.json` regenerated |
+| the docs commit | | this report, the decisions, `scripts/cu-c7/additions.mjs` and `regen.sh` (follow-up) |
 
 The branch moved `9041d7510..0e1586fc0` by fast-forward (CU-C7-D1), in the container clone and on
 the host, before these commits.
 
 ## Checks, start against now
 
-Start is `cf7fdbe7a`. Now is `bdc139736`; the docs commit on top changes no code. Start numbers
+Start is `cf7fdbe7a`. Now is `5f4abdabc` for cargo, the plugin checks, `replay:check`, evidence and
+`rust-coverage`, re-run after the follow-up, and `bdc139736` for the rest: the follow-up changed
+only `tooling/plugin-conformance` test data and records, which those rows don't read. Start numbers
 marked "CU-C3" are CU-C3's baseline run of `cf7fdbe7a` in this container on the same day with the
 same suite script (CU-C7-D2). Every other start number was measured here.
 
-| Check | Start (`cf7fdbe7a`) | Now (`bdc139736`) |
+| Check | Start (`cf7fdbe7a`) | Now |
 |---|---|---|
 | `cargo test --workspace --no-fail-fast` | 3,467 passed, 0 failed, 2 ignored (CU-C3) | 3,514 passed, 0 failed, 2 ignored |
 | engine `:check` scripts | 35 of 35 (CU-C3) | 36 of 36 (`signature-ltv:check` is new) |
 | plugin `vectors:check`, `coverage:check`, `test:harness`, `typecheck` | all pass (CU-C3) | all pass |
 | plugin `replay:check` | pass: 119 files, 15,922 cases (CU-C3) | pass: 123 files, 16,005 cases |
-| plugin evidence tests | 766 of 768 (CU-C3) | 761 of 771, worse (below) |
+| plugin evidence tests | 766 of 768 (CU-C3) | 769 of 771, the same 2 failing |
 | TS `turbo run test` over `packages/**` | 98 of 98 (CU-C3) | 98 of 98, run with `--force` |
 | Rust-core `wasm32` payload (`wasm32-eh`, emsdk 4.0.0) | built; 1,061 bound functions match | built; 1,065 bound functions match |
 | `core-wasm` vitest | 108 of 108 (12 files) | 108 of 108 (12 files) |
@@ -44,21 +50,18 @@ same suite script (CU-C7-D2). Every other start number was measured here.
 | `core-wasm` `typecheck` | pass | pass |
 | `epdf-web` wasm tests, 8 integration binaries | 59 passed, 0 failed | 59 passed, 0 failed |
 | `epdf-node` addon (`addon.mjs`, release build) | 6 checks passed | 6 checks passed |
-| `rust-coverage:check` | current: a fresh measurement reproduces the record exactly | exit 1, stale: worse (below) |
+| `rust-coverage:check` | current: a fresh measurement reproduces the record exactly | exit 0 after `5f4abdabc` (was exit 1, stale, at `bdc139736`) |
 
 The 47 more cargo tests are CU-C4a to CU-C6's and this job's 3 (two in `session/authority.rs`,
 one in `commands/tests/lists.rs`). The 4 more bound functions are the DSS exports
 (`EPDFDss_GetCount`, `EPDFDss_GetData`, `EPDFDss_Add`, `EPDFDoc_GetLoadedObjectValue`).
 
-### Worse than the start: plugin evidence tests
+### Plugin evidence tests
 
-The 2 start failures are still there with the same messages (`current-suites.test.ts`:
-`grid-nan-columns` where the archive expects `change-hooks`, and `TypeError: Cannot read
-properties of undefined (reading '6')`). Eight are new, in six files. Each is a count or an ID the
-evidence archives pin, moved by the cases CU-C6 added. None is a Rust failure, and none was fixed
-here (CU-C7-D11).
+The first pass at `bdc139736` had 761 of 771: the 2 start failures and 8 new ones, all in tests
+that pin archive counts or IDs.
 
-| File | Test | Message |
+| File | Test | Message at `bdc139736` |
 |---|---|---|
 | `annotation-live-ii.test.ts` | every owned mutation has exact current ops, result kind, refs, schema fields and pre-settlement event provenance | `ink-press-on-an-annotation-keeps-the-waiting-stroke`: opId `00000000-0000-7000-8000-000000000001`, expected `00000000-00c8-7000-8000-000000000001` |
 | `annotation-live-ii.test.ts` | every original66 definition and canonical input maps exactly to the current68 cases | `38 !== 36` |
@@ -69,18 +72,36 @@ here (CU-C7-D11).
 | `stamp-mutations.test.ts` | all original41 map exhaustively to complete current inputs with verified source owners | `42 !== 41` |
 | `stamp-placement.test.ts` | aggregate accounts for all original211 and preserves every reviewed earlier disposition exactly | `224 !== 223` |
 
-No job after CU-C3 ran the evidence tests, which is how these went unseen. CU-C3's re-pin scripts
-(`scripts/cu-c3/srcpins.py`, `owners.py`, `chainpins.py`) are the way back.
+The opId failure is a stale fixture, not a TS and Rust difference. The recorded TS trace sends all
+three `apply` calls of that case with `00000000-00c8-…` (200 ms, after its `advance(200)`), and
+`replay:check` passes, so the Rust replay sends the same. Only the scripted answers CU-C6 wrote said
+`00000000-0000-…`. `46a1089b3` gives them `{ ms: 200 }`, as the other live answers carry theirs; the
+vectors regenerate identically twice and only `plugins/annotation-tools.json` changes. A scan of
+every vector (`opids.mjs`) finds no other call and answer opId that differ.
 
-### Worse than the start: `rust-coverage:check`
+The seven count failures are the cases CU-C6 added to `annotation-api`, `annotation-tools`,
+`form-core` and `stamp-api`. CU-C3's re-pin scripts move hashes of changed source and don't touch
+counts, so `c277f21c6` follows the tests' own 2026-11-12 mechanism (lists of later cases) with the
+list generated rather than typed: `additions.mjs` writes the 83 cases the catch-up added between
+`cf7fdbe7a` and `2615a3bec` to `historical/catchup-2026-11-18/additions.json`, and the tests count a
+file's additions on top of their archives. CU-C3's `chainpins.py` then moved the one chained pin
+that names a changed test file; `srcpins.py` and `owners.py` find nothing. Result: 769 of 771.
+
+The 2 failures left are the start's, in `current-suites.test.ts`. `grid-nan-columns` (`f629719b5`,
+2026-11-16, already at `cf7fdbe7a`) observes the kept M27 NaN divergence: TS's kernel reports
+`RangeError: Invalid array length`, and the test allows a kernel report only from `change-hooks`.
+The second, `Cannot read properties of undefined (reading '6')`, follows from the first: that test
+aborts before it records `smooth-navigation-tween`, which the next test reads.
+
+### `rust-coverage:check`
 
 At `cf7fdbe7a` a fresh measurement reproduces `vectors/rust-coverage.json` byte for byte: replay
 reaches 64,882 of 113,799 lines, 37,520 lines only other tests reach, 675 files (75 excluded). At
-`bdc139736` the check exits 1 with `vectors/rust-coverage.json is stale`; the measurement is 68,345
-of 118,359, 38,382, 700 files (76 excluded), a 1,291-insertion, 994-deletion diff
-(`head-rustcov/rust-coverage.diff`). Replay reaches more lines than before, so the drift is the
-record lagging the port, not lost coverage. It isn't regenerated here (CU-C7-D9); the fix is
-`pnpm --filter @embedpdf/tooling-plugin-conformance run rust-coverage` and a reviewed commit.
+`bdc139736` the check exited 1, `vectors/rust-coverage.json is stale`. `5f4abdabc` regenerates the
+record with the package's `rust-coverage` script in its own target dir: 68,345 of 118,359, 38,382,
+700 files (76 excluded), a 1,291-insertion, 994-deletion diff. `rust-coverage:check` then exits 0.
+Replay reaches more lines than before, so the drift was the record lagging the port, not lost
+coverage.
 
 ### How the wasm and coverage rows ran
 
@@ -129,7 +150,8 @@ No NEW DIVERGENCE. `decisions.md` lists first the one open proposed exception, C
 
 Logs in `/workspaces/logs/CU-C7/` in the container and `tmp/cu1118/logs/CU-C7/` of the host viewer
 checkout, hashed in its `SHA256SUMS`. Scripts in [`../scripts/cu-c7/`](../scripts/cu-c7/):
-`env.sh`, `prep.sh`, `start-prep.sh`, `table.sh`, `evrun.sh`, `wasm.sh`, `rustcov.sh`. Hashes are
+`env.sh`, `prep.sh`, `start-prep.sh`, `table.sh`, `evrun.sh`, `wasm.sh`, `rustcov.sh`, and for the
+follow-up `regen.sh`, `additions.mjs`, `opids.mjs`. Hashes are
 sha256, first 8 hex digits.
 
 | Check | Head | Command | Exit | Log | sha256 |
@@ -148,6 +170,11 @@ sha256, first 8 hex digits.
 | Rejection test mutated | `394c34207` tree, `image_bytes` resolving | `cargo test -p epdf-plugin-commands --features harness --test lists` | 101 | `minors-mutation.log` | `fc2c0c75` |
 | CU-C1 scripts re-run | `9982aeb10` | `runtime-verify.sh`; `lib-exports.sh` over the two linux-arm64 libraries | 0, 0 | `minor1-runtime-verify.log`, `minor1-lib-exports.log` | `c20c6965`, `e5d865c9` |
 | Lockfile with the pin | `f6481da43` | `pnpm install --no-frozen-lockfile` | 0 | `minor2-pnpm-install.log` | `14f3c7fc` |
+| Follow-up: vectors twice, `coverage.json`, plugin checks, `replay:check` | `c277f21c6` tree | `regen.sh regen1` | 0 each; identical runs | `regen1/regen.all`, `regen1/plugvec-run1.sha` | `7ab324e1`, `70582d10` |
+| Follow-up: chained pins | `c277f21c6` tree | CU-C3 `chainpins.py` (root `/workspaces/wt/CU-C7`); `srcpins.py`, `owners.py` report nothing | 0 | `chainpins.log` | `edd3c868` |
+| Follow-up: evidence tests | `c277f21c6` tree | `evrun.sh /workspaces/wt/CU-C7 ev-fix2` | 769 pass, 2 fail | `ev-fix2/summary.txt` | `6290cd61` |
+| Follow-up: `rust-coverage` write and check | `c277f21c6`, then `5f4abdabc` tree | `CARGO_TARGET_DIR=/workspaces/target-cov pnpm -s run rust-coverage`, then `rust-coverage:check` | 0, 0 | `rustcov-regen/write.log`, `rustcov-regen/check.log` | `29815157`, `c6ef06f1` |
+| Follow-up: cargo and plugin checks once more | `5f4abdabc` | `suite.sh … final cargo plugconf`, `replay:check` | 0; 3,514/0/2 | `final/cargo.log`, `final/cargo.summary`, `final/plugconf.all`, `final/plugconf.replay:check.log` | `84c80405`, `fdd2b5b5`, `cf0bfd16`, `33e4cbb8` |
 
 Environment: container `embed-pdf-catchup1118`, linux-arm64, Rust 1.98.0, node 24.20.0, emsdk
 4.0.0 at `/workspaces/emsdk4`, `wasm-bindgen` 0.2.127, `wasm-opt` 133, `cargo-llvm-cov` 0.9.1
@@ -155,9 +182,9 @@ Environment: container `embed-pdf-catchup1118`, linux-arm64, Rust 1.98.0, node 2
 
 ## Cleanup
 
-Host free space (`df -g /System/Volumes/Data`) read 424 GB at the start and 420 GB at the end;
-`/workspaces` went from 33 GB to 35 GB. Deleted, about 21.7 GB inside the volume: the two
-`llvm-cov-target` dirs (8.9 GB at head, and the start's inside `/workspaces/target-start`, 8.5 GB
+Host free space (`df -g /System/Volumes/Data`) read 424 GB at the start and 415 GB at the end;
+`/workspaces` went from 33 GB to 35 GB. Deleted, about 28.4 GB inside the volume: the follow-up's
+`/workspaces/target-cov` (6.7 GB), the two `llvm-cov-target` dirs (8.9 GB at head, and the start's inside `/workspaces/target-start`, 8.5 GB
 with the start's wasm builds), `/workspaces/target/release` (580 MB, the addon builds) and
 `/workspaces/target/wasm32-unknown-emscripten` (255 MB, the payload builds), the worktree
 `/workspaces/wt/CU-C7-start` (674 MB) and CU-C6's worktree `/workspaces/wt/CU-C6` (2.8 GB, whose
