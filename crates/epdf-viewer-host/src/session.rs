@@ -41,6 +41,7 @@ impl Session {
         revision: Arc<AtomicU64>,
         post: KernelPost,
         signature_slots: SignatureSlots,
+        commands_platform: crate::commands::StandardCommandsSlot,
         fetcher: Option<Arc<dyn crate::DocumentFetcher>>,
     ) -> Result<Session, Error> {
         let worker = EngineWorker::spawn();
@@ -178,8 +179,11 @@ impl Session {
             }
         }
         if config.commands {
+            let commands = config.standard_commands.as_deref().map(|lists| {
+                crate::commands::standard_commands(lists, commands_platform, post.clone())
+            });
             plugins.push(epdf_plugin_commands::commands_plugin(
-                epdf_plugin_commands::CommandsConfig::default(),
+                epdf_plugin_commands::CommandsConfig { commands, ..Default::default() },
             ));
         }
         if let Some(actions) = config.actions {

@@ -117,6 +117,12 @@ pub struct ViewerConfig {
     /// definitions through `ViewerHost::commands()`.
     #[uniffi(default = false)]
     pub commands: bool,
+    /// The owners' standard command lists to register with the commands
+    /// plugin, joined in upstream's `standardCommands` order. Needs
+    /// `commands`. The clipboard and file parts go to the platform set with
+    /// `ViewerHost::set_commands_platform`. `None` for none.
+    #[uniffi(default = None)]
+    pub standard_commands: Option<Vec<crate::commands::StandardCommandList>>,
     /// Install `actionsPlugin(config)`: the PDF action engine, a dispatcher
     /// per document.
     #[uniffi(default = None)]

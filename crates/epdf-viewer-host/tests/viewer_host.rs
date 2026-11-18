@@ -2813,6 +2813,7 @@ fn every_plugin_builds_together() {
             loader: None,
         }),
         commands: true,
+        standard_commands: Some(epdf_viewer_host::StandardCommandList::ALL.to_vec()),
         actions: Some(epdf_plugin_actions::ffi::ActionsConfig {
             policy: None,
             triggers: None,
@@ -2996,4 +2997,93 @@ fn a_seal_with_a_revocation_route_reports_its_validation_data() {
     assert!(failure.detail.contains("has no timestamp you trust"), "{failure:?}");
     assert_eq!(done.validation_info, None);
     assert!(transport.sent.lock().unwrap().is_empty());
+}
+
+// ── the standard commands (#1091, #1089) ──────────────────────────────────
+
+#[derive(Default)]
+struct CommandsPlatform {
+    saved: Mutex<Vec<(Vec<u8>, String, String)>>,
+    copied: Mutex<Vec<String>>,
+}
+
+impl epdf_viewer_host::StandardCommandsPlatform for CommandsPlatform {
+    fn save_file(&self, bytes: Vec<u8>, file_name: String, content_type: String) {
+        self.saved.lock().unwrap().push((bytes, file_name, content_type));
+    }
+    fn copy_text(
+        &self,
+        text: String,
+        completion: Arc<epdf_viewer_host::StandardCommandCompletion>,
+    ) {
+        self.copied.lock().unwrap().push(text);
+        completion.finish();
+    }
+    fn copy_image(
+        &self,
+        _png: Vec<u8>,
+        completion: Arc<epdf_viewer_host::StandardCommandCompletion>,
+    ) {
+        completion.finish();
+    }
+}
+
+fn standard_commands_host(lists: Vec<epdf_viewer_host::StandardCommandList>) -> Arc<ViewerHost> {
+    let config = ViewerConfig {
+        interaction: true,
+        history: true,
+        selection: true,
+        commands: true,
+        standard_commands: Some(lists),
+        ..ViewerConfig::default()
+    };
+    let host = ViewerHost::new(config, Arc::new(Delegate)).unwrap();
+    block_on(host.start()).unwrap();
+    host
+}
+
+#[test]
+fn the_standard_commands_join_the_owners_lists_in_upstreams_order() {
+    use epdf_viewer_host::StandardCommandList as L;
+    // Named out of order: the join keeps upstream's.
+    let host = standard_commands_host(vec![L::Document, L::History, L::Selection, L::Render]);
+    let commands = block_on(host.commands()).unwrap();
+    let ids = block_on(commands.command_ids()).unwrap();
+    let at =
+        |id: &str| ids.iter().position(|i| i == id).unwrap_or_else(|| panic!("{id} in {ids:?}"));
+    assert!(at("selection:copy") < at("history:undo"));
+    assert!(at("history:undo") < at("history:redo"));
+    assert!(at("history:redo") < at("snapshot:save"));
+    assert!(at("snapshot:save") < at("document:download"));
+    assert!(at("document:download") < at("document:print"));
+    assert!(!ids.iter().any(|id| id == "annotation:delete"), "{ids:?}");
+    let undo = block_on(commands.command("history:undo".into())).unwrap().unwrap();
+    assert_eq!(undo.label_key.as_deref(), Some("commands.history.undo"));
+}
+
+#[test]
+fn document_download_hands_the_platform_the_file() {
+    let host = standard_commands_host(vec![epdf_viewer_host::StandardCommandList::Document]);
+    let platform = Arc::new(CommandsPlatform::default());
+    host.set_commands_platform(Some(platform.clone()));
+    let doc = open_signing(&host, "unsigned_sigfield.pdf");
+    let commands = block_on(host.commands()).unwrap();
+    let result = block_on(commands.execute("document:download".into(), Some(doc), None)).unwrap();
+    assert_eq!(result, CommandExecuteResult::Executed);
+    let saved = platform.saved.lock().unwrap();
+    assert_eq!(saved.len(), 1);
+    assert!(saved[0].0.starts_with(b"%PDF"), "{:?}", &saved[0].0[..8.min(saved[0].0.len())]);
+    assert_eq!(saved[0].2, "application/pdf");
+    assert!(saved[0].1.ends_with(".pdf"), "{}", saved[0].1);
+}
+
+#[test]
+fn selection_copy_with_nothing_selected_is_rejected() {
+    let host = standard_commands_host(vec![epdf_viewer_host::StandardCommandList::Selection]);
+    let doc = open_signing(&host, "unsigned_sigfield.pdf");
+    let commands = block_on(host.commands()).unwrap();
+    // Nothing is selected, so the command is not enabled and never reaches
+    // the platform either way.
+    let result = block_on(commands.execute("selection:copy".into(), Some(doc), None)).unwrap();
+    assert!(matches!(result, CommandExecuteResult::Rejected { .. }), "{result:?}");
 }

@@ -5,6 +5,7 @@
 //! a `Session` holds the kernel; every export posts a job there.
 
 pub mod api;
+pub mod commands;
 mod documents;
 pub mod engine_worker;
 #[cfg(feature = "manual-bridge")]
@@ -61,6 +62,7 @@ pub use api::{
     ViewerSettingsPatch,
 };
 use api::{Lifecycle, decode_pages};
+pub use commands::{StandardCommandCompletion, StandardCommandList, StandardCommandsPlatform};
 pub use fetch::{DocumentFetchCancellation, DocumentFetchCompletion, DocumentFetcher};
 use host_table::HostTable;
 use session::{Session, SignatureSlots};
@@ -114,6 +116,8 @@ pub struct ViewerHost {
     post: KernelPost,
     /// The signer and anchors every document's signature plugin reads.
     signature_slots: SignatureSlots,
+    /// The clipboard and file parts of the standard commands.
+    commands_platform: commands::StandardCommandsSlot,
     /// This host's entry in the manual bridge's registry.
     #[cfg(feature = "manual-bridge")]
     token: u64,
@@ -129,8 +133,10 @@ impl ViewerHost {
         let mirror = revision.clone();
         let signature_slots = SignatureSlots::default();
         let slots = signature_slots.clone();
+        let commands_platform = commands::StandardCommandsSlot::default();
+        let platform = commands_platform.clone();
         let thread = KernelThread::spawn(move |post| {
-            Session::build(config, delegate, mirror, post, slots, fetcher)
+            Session::build(config, delegate, mirror, post, slots, platform, fetcher)
         })?;
         let post = thread.post();
         #[cfg(not(feature = "manual-bridge"))]
@@ -139,6 +145,7 @@ impl ViewerHost {
             revision,
             post,
             signature_slots,
+            commands_platform,
         });
         #[cfg(feature = "manual-bridge")]
         let host = Arc::new_cyclic(|weak| ViewerHost {
@@ -147,6 +154,7 @@ impl ViewerHost {
             revision,
             post,
             signature_slots,
+            commands_platform,
         });
         Ok(host)
     }
@@ -689,6 +697,13 @@ impl ViewerHost {
     /// every request fails with no reply.
     pub fn set_signature_transport(&self, transport: Option<Arc<dyn SignatureTransport>>) {
         *self.signature_slots.transport.lock().unwrap() = transport;
+    }
+
+    /// The clipboard and file parts of the standard commands
+    /// (`ViewerConfig.standard_commands`). Read when a command runs; with
+    /// `None`, a copy fails with `invalid-input` and a save saves nothing.
+    pub fn set_commands_platform(&self, platform: Option<Arc<dyn StandardCommandsPlatform>>) {
+        *self.commands_platform.lock().unwrap() = platform;
     }
 
     pub fn state_revision(&self) -> u64 {
