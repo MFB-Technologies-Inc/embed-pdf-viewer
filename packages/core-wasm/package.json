@@ -43,7 +43,10 @@
     "@embedpdf/plugin-view-manager": "workspace:*"
   },
   "devDependencies": {
+    "@embedpdf/core-signature": "workspace:*",
     "@embedpdf/engine": "workspace:*",
+    "asn1js": "^4.0.0",
+    "pkijs": "^4.0.1",
     "typescript": "^5.0.0",
     "vitest": "^2.1.9"
   }

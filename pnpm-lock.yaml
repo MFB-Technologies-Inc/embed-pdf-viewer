@@ -1199,9 +1199,18 @@ importers:
         specifier: workspace:*
         version: link:../plugin/view-manager
     devDependencies:
+      '@embedpdf/core-signature':
+        specifier: workspace:*
+        version: link:../core/signature
       '@embedpdf/engine':
         specifier: workspace:*
         version: link:../engine/main
+      asn1js:
+        specifier: ^4.0.0
+        version: 4.0.0
+      pkijs:
+        specifier: ^4.0.1
+        version: 4.0.1(asn1js@4.0.0)
       typescript:
         specifier: ^5.0.0
         version: 5.9.3
