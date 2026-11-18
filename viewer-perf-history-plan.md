@@ -15,7 +15,7 @@ Last updated 2026-11-18.
 | --- | --- |
 | 1. Archive the old runs | done, `a745832fc` |
 | 2. `lib/rows.mjs` | done, `6b06dc884` |
-| 3. `lib/history.mjs` | done, `ea3e2b5f4`, extended in `db5605bee` |
+| 3. `lib/history.mjs` | done, `5426ee3fc`, extended in `db5605bee` |
 | 4. `scripts/history-points.mjs` and `history/points.json` | done, `66b7c9032`: 19 points |
 | 5. `scripts/history-record.mjs`, first run recorded | done, `db5605bee` |
 | 6. `scripts/history-chart.mjs` and the page | done, `0b7f7c7a0`: 3 of 19 points plotted |
@@ -342,7 +342,7 @@ This needs no Mac mini time and can start before Task 9 is unblocked.
 Wait for the user to say the Mac mini is free. Then one batch at a time:
 
 ```sh
-PERF_REMOTE=andrew@MacMini2020 node scripts/remote.mjs --rounds 10 --profile desktop \
+PERF_REMOTE=user@remote-host node scripts/remote.mjs --rounds 10 --profile desktop \
   --arms main,main-aa,main-now,<arm>,<arm>,...
 node scripts/history-record.mjs results/<run-id>
 node scripts/history-chart.mjs
