@@ -8,11 +8,12 @@ the signer ports. Document timestamps (`sign` with `kind: 'timestamp'`, `cms/tim
 `complete_signature`), the RFC 3161 protocol and `httpTimestampAuthority`, revocation answers and
 long-term validation (`revocation/`, `judgement.rs`, `long_term.rs`), `addValidationInfo`
 (`collect.rs`), and the host transport both HTTP clients send through (`transport.rs`, decision
-D-1 of the 2026-11-18 catch-up). All 488 cases in the seven `vectors/core/signature-*.json` files
+D-1 of the 2026-11-18 catch-up). All 503 cases in the eight `vectors/core/signature-*.json` files
 replay identically (`cargo test -p epdf-signature-core`): 204 parse cases, 97 for verify, build
 and the gate, 96 for trust, 35 for signing and validation over a document, 28 for the signers, 17
-for the timestamp and revocation clients over a scripted transport, and 11 for revocation answers,
-long-term validation and collecting.
+for the timestamp and revocation clients over a scripted transport, 11 for revocation answers,
+long-term validation and collecting, and 15 for trusted timestamps, attaching and answers branch
+by branch.
 
 ## What ports and what the host supplies
 
@@ -92,13 +93,15 @@ These are recorded rather than fixed; the TypeScript is the oracle.
   1 MiB for a timestamp reply, 2 MiB for a revocation answer, 10 s per attempt by default):
   upstream's browser clients set no size limit of their own and leave that to the route. A request
   over 64 KiB is refused before it is sent; neither client can build one that large.
-- OCSP responses, CRLs and TimeStampResp are read by structure (`revocation/answer.rs`,
-  `timestamp_protocol.rs`), with pkijs's schema texts for what fails. Which malformed answers pass
-  pkijs's `compareSchema` is not walked rule by rule as `asn1js.rs` does for the CMS: an answer
-  that is unreadable here is `unreadable` with a pkijs schema text, but a malformed answer pkijs
-  reads in part could be read differently. No vector reaches one.
+- OCSP responses, CRLs and TimeStampResp go through pkijs's schemas with the same
+  `compareSchema` walk a TSTInfo does (`timestamp.rs`), so form, the order of optional members and
+  what is never looked at match pkijs; `core/signature-long-term.json` checks 36 answers branch by
+  branch. Two parts are taken whole rather than walked: a certificate inside a
+  `BasicOCSPResponse` (its TBS) and the `distributionPoint` of an `IssuingDistributionPoint`.
+  A certificate pkijs's schema refuses there is refused here by `Certificate::read` with the
+  `BasicOCSPResponse` schema text, so the answer is `unreadable` either way; no vector has one.
 - `createTestCertificateAuthority` (`signers/test-authority.ts`) does not port: the vectors use it
-  at generation time only, through its answers. A host test that needs an authority replays
+  and its builders at generation time only, through what they made. A host test that needs an authority replays
   recorded answers (`RecordedTransport`).
 
 - Every BER read the TypeScript makes with `asn1js.fromBER` (the CMS, a TSTInfo, a certificate,
