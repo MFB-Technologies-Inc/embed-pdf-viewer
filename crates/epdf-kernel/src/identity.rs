@@ -13,29 +13,43 @@ impl Drop for UuidSourceGuard {
 pub fn with_uuid_source(bytes: Bytes, now: Now) -> UuidSourceGuard {
     UuidSourceGuard(SOURCE.with(|source| source.replace(Some((bytes, now)))))
 }
+/// Draws taken from the `RandomState` fallback, which also numbers them.
+static FALLBACK_DRAWS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+/// The last resort: `RandomState`'s per-process keys, hashed with a counter.
+/// The browser build uses it until epdf-web installs its Web Crypto source;
+/// a native build only if the OS source fails.
+fn fallback_bytes(bytes: &mut [u8; 16]) {
+    use std::hash::{BuildHasher, Hasher};
+    for chunk in bytes.chunks_mut(8) {
+        let mut hash = std::collections::hash_map::RandomState::new().build_hasher();
+        hash.write_u64(FALLBACK_DRAWS.fetch_add(1, std::sync::atomic::Ordering::Relaxed));
+        chunk.copy_from_slice(&hash.finish().to_be_bytes());
+    }
+}
+/// The kernel's own source: the OS on native targets.
+#[cfg(not(target_arch = "wasm32"))]
+fn own_bytes(bytes: &mut [u8; 16]) {
+    if getrandom::fill(bytes).is_err() {
+        fallback_bytes(bytes);
+    }
+}
+#[cfg(target_arch = "wasm32")]
+fn own_bytes(bytes: &mut [u8; 16]) {
+    fallback_bytes(bytes);
+}
 fn random_bytes() -> [u8; 16] {
     let mut bytes = [0; 16];
     let source = SOURCE.with(|source| source.borrow().as_ref().map(|(bytes, _)| bytes.clone()));
     if let Some(source) = source {
         source(&mut bytes);
     } else {
-        // Retain the kernel's native RandomState-backed entropy source.
-        use std::{
-            hash::{BuildHasher, Hasher},
-            sync::atomic::{AtomicU64, Ordering},
-        };
-        static IDS: AtomicU64 = AtomicU64::new(0);
-        for chunk in bytes.chunks_mut(8) {
-            let mut hash = std::collections::hash_map::RandomState::new().build_hasher();
-            hash.write_u64(IDS.fetch_add(1, Ordering::Relaxed));
-            chunk.copy_from_slice(&hash.finish().to_be_bytes());
-        }
+        own_bytes(&mut bytes);
     }
     bytes
 }
 /// Fill `out` from the byte source UUIDs draw from: the host's when one is
 /// installed (`epdf-web` installs `getrandom` over Web Crypto), else the
-/// kernel's own.
+/// kernel's own: the OS on native targets.
 pub fn fill_random(out: &mut [u8]) {
     for chunk in out.chunks_mut(16) {
         let bytes = random_bytes();
@@ -71,4 +85,33 @@ pub fn generate_uuid_v7(now: Option<f64>) -> String {
         time = (time / 256.0).floor();
     }
     format(bytes, 7)
+}
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod tests {
+    use super::*;
+    use std::sync::atomic::Ordering;
+
+    /// With no source installed, a native draw comes from the OS, not the
+    /// `RandomState` fallback.
+    #[test]
+    fn a_native_draw_with_no_source_comes_from_the_os() {
+        assert!(SOURCE.with(|source| source.borrow().is_none()));
+        let before = FALLBACK_DRAWS.load(Ordering::Relaxed);
+        let (a, b) = (random_bytes(), random_bytes());
+        let mut out = [0u8; 40];
+        fill_random(&mut out);
+        assert_ne!(a, b);
+        assert_ne!(out, [0u8; 40]);
+        assert_ne!(generate_uuid(), generate_uuid());
+        assert_eq!(FALLBACK_DRAWS.load(Ordering::Relaxed), before, "the fallback was taken");
+    }
+
+    /// An installed source still wins on native.
+    #[test]
+    fn an_installed_source_wins_over_the_os() {
+        let _guard =
+            with_uuid_source(Rc::new(|bytes: &mut [u8; 16]| bytes.fill(7)), Rc::new(|| 0.0));
+        assert_eq!(random_bytes(), [7; 16]);
+    }
 }
