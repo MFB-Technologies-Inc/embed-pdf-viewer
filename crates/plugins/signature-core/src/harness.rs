@@ -735,7 +735,10 @@ impl SignatureCapability {
                             .and_then(Value::as_u64)
                             .map(|n| n as u32),
                         retries: options.get("retries").and_then(Value::as_u64).map(|n| n as u32),
-                        max_reply_bytes: None,
+                        max_reply_bytes: options
+                            .get("maxReplyBytes")
+                            .and_then(Value::as_u64)
+                            .map(|n| n as u32),
                     },
                 );
                 let url = request["url"].as_str().unwrap_or_default().to_string();

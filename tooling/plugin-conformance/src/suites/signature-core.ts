@@ -1599,6 +1599,38 @@ const answers = await withWebCrypto(() => {}, async () => {
     new pkijs.Extension({ extnID, critical, extnValue: new Uint8Array(value).buffer });
   const der = (cert: { toSchema: (b: boolean) => { toBER: (b: boolean) => ArrayBuffer } }) => new Uint8Array(cert.toSchema(true).toBER(false));
   const good = await ocsp();
+  const asn1js = await import('../../../../packages/core/signature/node_modules/asn1js/build/index.js');
+  /** The identifier the issuer's own answer would carry, changed by `change`. */
+  const askedWith = async (change: (id: InstanceType<typeof pkijs.CertID>) => void) => {
+    const id = new pkijs.CertID();
+    await id.createForCertificate(signer, { hashAlgorithm: 'SHA-1', issuerCertificate: root.certificate });
+    change(id);
+    return id;
+  };
+  const SHA256_RSA = [0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0b];
+  const UNKNOWN_SIG = [0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x7f];
+  const swapLast = (bytes: Uint8Array, from: number[], to: number[]) => {
+    for (let i = bytes.length - from.length; i >= 0; i--) {
+      if (from.every((b, j) => bytes[i + j] === b)) {
+        const out = bytes.slice();
+        out.set(to, i);
+        return out;
+      }
+    }
+    throw new Error('[signature-core] no bytes to swap');
+  };
+  const flipLast = (bytes: Uint8Array) => {
+    const out = bytes.slice();
+    out[out.length - 1] ^= 1;
+    return out;
+  };
+  // An issuer whose key usage leaves out cRLSign, and a signer it issued.
+  const plainIssuer: Issuer = {
+    certificate: await issueCertificate({ kind: 'signer', commonName: 'No CRL Signing', publicKey: keys.publicKey, privateKey: keys.privateKey, ...dates }),
+    privateKey: keys.privateKey,
+  };
+  const underPlain = await issueCertificate({ kind: 'signer', commonName: 'Under No CRL Signing', publicKey: keys.publicKey, issuer: plainIssuer, ...dates });
+  void asn1js;
   const swap = (bytes: Uint8Array, from: number[], to: number[]) => {
     for (let i = 0; i + from.length <= bytes.length; i++) {
       if (from.every((b, j) => bytes[i + j] === b)) {
@@ -1635,7 +1667,14 @@ const answers = await withWebCrypto(() => {}, async () => {
       innerGarbage: new Uint8Array([0x30, 0x16, 0x0a, 0x01, 0x00, 0xa0, 0x11, 0x30, 0x0f, 0x06, 0x09, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x30, 0x01, 0x01, 0x04, 0x02, 0x01, 0x02]),
       notDer: new Uint8Array([0x30, 0x80]),
       badSignature: (() => { const out = good.slice(); out[out.length - 1] ^= 1; return out; })(),
+      unknownIdHash: await ocsp({ asked: await askedWith((id) => { id.hashAlgorithm.algorithmId = '1.2.3.4.5'; }) }),
+      otherSerial: await ocsp({ asked: await askedWith((id) => { id.serialNumber = new asn1js.Integer({ value: 7 }); }) }),
+      responderNotIncluded: swapLast(good, [...new TextEncoder().encode('Answers Root')], [...new TextEncoder().encode('Answers Rooz')]),
+      unknownSignatureAlgorithm: swapLast(good, SHA256_RSA, UNKNOWN_SIG),
     },
+    plainIssuer: der(plainIssuer.certificate),
+    underPlain: der(underPlain),
+    crlByPlainIssuer: await crl({ issuer: plainIssuer }),
     crl: {
       good: await crl(),
       revoked: await crl({ revoked: [{ serialNumber: signer.serialNumber, at: new Date(JAN_2026 - HOUR_MS), reason: 'superseded' }] }),
@@ -1650,13 +1689,101 @@ const answers = await withWebCrypto(() => {}, async () => {
       unknownCritical: await crl({ extensions: [make('1.3.6.1.4.1.99999.2', [0x05, 0x00], true)] }),
       notDer: new Uint8Array([0x30, 0x80]),
       notCrl: new Uint8Array([0x30, 0x03, 0x02, 0x01, 0x01]),
+      badSignature: flipLast(await crl()),
+      unknownSignatureAlgorithm: swapLast(await crl(), SHA256_RSA, UNKNOWN_SIG),
     },
   };
 });
 const check = (kind: 'ocsp' | 'crl', der: Uint8Array, certificate = answers.signer, issuer = answers.root) =>
   call('checkRevocationAnswer', { kind, der: $b(b64(der)), certificate: $b(b64(certificate)), issuer: $b(b64(issuer)) });
 
+/**
+ * A path with an issuer the CMS leaves out: a root, an intermediate it issued, and a signer the
+ * intermediate issued that names where its issuer's certificate is and nothing to ask about
+ * itself. The CMS carries the signer alone. Made under the scripted WebCrypto.
+ */
+const orphan = await withWebCrypto(() => {}, async () => {
+  const keys = await generateSigningKeyPair('RSA-PKCS1-v1_5', 'sha256', true);
+  const dates = { notBefore: new Date(JAN_2026 - 24 * 3600 * 1000), notAfter: new Date(JAN_2026 + 365 * 24 * 3600 * 1000) };
+  const root: Issuer = {
+    certificate: await issueCertificate({ kind: 'authority', commonName: 'Orphan Root', publicKey: keys.publicKey, privateKey: keys.privateKey, ...dates }),
+    privateKey: keys.privateKey,
+  };
+  const inter: Issuer = {
+    certificate: await issueCertificate({ kind: 'authority', commonName: 'Orphan Intermediate', publicKey: keys.publicKey, issuer: root, ...dates }),
+    privateKey: keys.privateKey,
+  };
+  const leaf = await issueCertificate({
+    kind: 'signer', commonName: 'Orphan Signer', publicKey: keys.publicKey, issuer: inter,
+    addresses: { issuer: 'http://orphan.example/inter.cer' }, ...dates,
+  });
+  const der = (c: { toSchema: (b: boolean) => { toBER: (b: boolean) => ArrayBuffer } }) => new Uint8Array(c.toSchema(true).toBER(false));
+  const signer = webCryptoSigner({ privateKey: keys.privateKey, certificateChain: [der(leaf)], hash: 'sha256' });
+  const pkijs = await import('../../../../packages/core/signature/node_modules/pkijs/build/index.js');
+  // A degenerate PKCS #7 SignedData holding the intermediate: what some authorities serve.
+  const bundle = new pkijs.ContentInfo({
+    contentType: '1.2.840.113549.1.7.2',
+    content: new pkijs.SignedData({
+      version: 1,
+      encapContentInfo: new pkijs.EncapsulatedContentInfo({ eContentType: '1.2.840.113549.1.7.1' }),
+      certificates: [inter.certificate],
+      signerInfos: [],
+    }).toSchema(true),
+  });
+  return {
+    root: der(root.certificate),
+    inter: der(inter.certificate),
+    bundle: new Uint8Array(bundle.toSchema().toBER(false)),
+    cms: await buildDetachedCms({ digest: authority.digest, hash: 'sha256', profile: 'cades-b', signer }),
+  };
+});
+const orphanTrust = { anchors: { $fn: 'trust.anchors', resolves: [$b(b64(orphan.root))] } };
+/** A CMS with lengths written as indefinite, outside the SignedData: BER a reader must accept. */
+const indefinite = (cms: Uint8Array) => {
+  const outer = cms[1]! & 0x7f;
+  const body = cms.subarray(2 + (cms[1]! & 0x80 ? outer : 0));
+  const oid = body.subarray(0, 2 + body[1]!);
+  const wrapped = body.subarray(oid.length);
+  const inner = wrapped.subarray(2 + (wrapped[1]! & 0x80 ? wrapped[1]! & 0x7f : 0));
+  return new Uint8Array([0x30, 0x80, ...oid, 0xa0, 0x80, ...inner, 0, 0, 0, 0]);
+};
+/** An unsigned attribute that is no timestamp: `oid` with a NULL value. */
+const otherAttribute = (oid: number[]) => new Uint8Array([0x30, 6 + oid.length, 0x06, oid.length, ...oid, 0x31, 0x02, 0x05, 0x00]);
+const withOthers = addUnsignedAttribute(
+  addUnsignedAttribute(authority.cmsGood, otherAttribute([0x55, 0x04, 0x03])),
+  otherAttribute([0x2a, 0x03]),
+);
+
 const longTermCases2: ScenarioCase[] = [
+  scenario('fill-issuer-fetched', 'An issuer the CMS leaves out is fetched from the address the signer names, and the path is followed.', [
+    call('validateSignatures', 'd', { trust: orphanTrust, validationTime: stampedAt, revocation: source(orphan.inter) }),
+  ], ltvDoc(orphan.cms, stored())),
+  scenario('fill-issuer-bundle', 'The issuer address serves a PKCS #7 bundle; and one that serves nothing readable.', [
+    call('validateSignatures', 'd', { trust: orphanTrust, validationTime: stampedAt, revocation: source(orphan.bundle) }),
+    call('validateSignatures', 'd', { trust: orphanTrust, validationTime: stampedAt, revocation: source(new Uint8Array([1, 2, 3])) }),
+  ], ltvDoc(orphan.cms, stored())),
+  scenario('fill-names-no-address', 'A certificate that names no address to ask at, collected all or nothing.', [
+    call('addValidationInfo', 'd', { trust: orphanTrust, revocation: source(orphan.inter), partial: true }),
+  ], ltvDoc(orphan.cms, stored(), [stores({ certificates: 3 })])),
+  scenario('fill-crl-over-limit', 'An answer that says nothing, then a list over maxCrlBytes: both named, nothing stored.', [
+    call('addValidationInfo', 'd', { trust: tsTrust('tsa'), revocation: source(new Uint8Array([1, 2, 3])), maxCrlBytes: 2 }),
+    call('addValidationInfo', 'd', { trust: tsTrust('tsa'), revocation: source(authority.crl), maxCrlBytes: 10 }),
+  ], ltvDoc(cmsStamped, stored(), [stores({})])),
+  scenario('fill-source-throws', 'A source that throws something other than an EngineError: a Network error naming the address.', [
+    call('addValidationInfo', 'd', { trust: tsTrust('tsa'), revocation: { fetch: { $fn: 'revocation.fetch', rejects: { name: 'TypeError', message: 'socket hang up' } } } }),
+  ], ltvDoc(cmsStamped, stored(), [stores({})])),
+  scenario('splice-indefinite-and-ordered', 'Attaching to a CMS with indefinite lengths keeps them indefinite; attaching beside other unsigned attributes puts the token where DER orders it.', [
+    call('attachSignatureTimestamp', { cms: $b(b64(indefinite(authority.cmsGood))), authority: tsaKey(sigToken) }),
+    call('attachSignatureTimestamp', { cms: $b(b64(withOthers)), authority: tsaKey(sigToken) }),
+  ]),
+  scenario('route-max-reply-bytes', 'A revocation source with its reply limit set: an answer within it is passed on.', [
+    call('revocationRoute', { url: ROUTE, retries: 0, maxReplyBytes: 1024 }, { kind: 'crl', url: 'http://crl.example/a.crl' }, [reply(200, $b('AQID'))]),
+  ]),
+  scenario('tsa-status-text-not-utf8', 'A TimeStampResp whose status text is a PrintableString does not fit the schema.', [
+    call('timestampHttp', { url: TSA_URL, retries: 0 }, tsaRequest(), [
+      reply(200, $b(b64(der(0x30, der(0x30, new Uint8Array([0x02, 0x01, 0x02, ...der(0x30, der(0x13, new TextEncoder().encode('no')))])))))),
+    ]),
+  ]),
   scenario('lt-timestamped-enabled', 'A signature with a trusted timestamp and a stored answer good at its time is long-term enabled.', [
     call('validateSignatures', 'd', { trust: tsTrust('tsa') }),
     call('validateSignatures', 'd', { trust: tsTrust('tsa'), validationTime: { kind: 'now' } }),
@@ -1737,6 +1864,7 @@ const longTermCases2: ScenarioCase[] = [
   scenario('answers-crl', 'checkRevocationAnswer over CRLs: each branch, the well-formed ones and the malformed.', [
     ...Object.values(answers.crl).map((der) => check('crl', der)),
     check('crl', answers.crl.good, answers.root, answers.root),
+    check('crl', answers.crlByPlainIssuer, answers.underPlain, answers.plainIssuer),
   ]),
 ];
 

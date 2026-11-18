@@ -155,8 +155,13 @@ impl RecordedTransport {
 
 impl HttpTransport for RecordedTransport {
     fn post(&self, request: TransportRequest) -> Promise<TransportOutcome> {
+        let limit = request.max_reply_bytes as usize;
         self.sent.borrow_mut().push(request);
         match self.replies.borrow_mut().pop_front() {
+            // A host stops reading past the limit.
+            Some(TransportOutcome::Replied { body, .. }) if body.len() > limit => {
+                Promise::resolved(TransportOutcome::TooLarge)
+            }
             Some(outcome) => Promise::resolved(outcome),
             None => Promise::resolved(TransportOutcome::Failed {
                 message: "no recorded reply is left".into(),
