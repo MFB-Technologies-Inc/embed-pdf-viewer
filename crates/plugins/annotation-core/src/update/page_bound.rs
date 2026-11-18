@@ -87,20 +87,9 @@ pub fn union_bounds_of(model: &Model, ids: &[Id], view: Option<&ViewEnv>) -> Opt
     (!corners.is_empty()).then(|| union_rect(&corners))
 }
 
-/// `clampMoveDelta(model, ids, delta, page, view)`.
-pub fn clamp_move_delta(
-    model: &Model,
-    ids: &[Id],
-    delta: Point,
-    page: Option<Rect>,
-    view: Option<&ViewEnv>,
-) -> Point {
-    let Some(page) = page else { return delta };
-    clamp_delta_to(delta, Some(page), union_bounds_of(model, ids, view))
-}
-
-/// [`clamp_move_delta`] for a union `rect` already measured: the delta
-/// that keeps `rect` on `page`, or `delta` when either is missing.
+/// `clampMoveDelta(model, ids, delta, page, view)` for a union `rect`
+/// already measured with [`union_bounds_of`]: the delta that keeps `rect`
+/// on `page`, or `delta` when either is missing.
 pub fn clamp_delta_to(delta: Point, page: Option<Rect>, rect: Option<Rect>) -> Point {
     let (Some(page), Some(rect)) = (page, rect) else { return delta };
     Point {
