@@ -32,6 +32,10 @@ const WORKING_COPY_EDITS: [&str; 6] = [
     "forms.updated",
 ];
 
+/// Changes to what the file holds about its signatures: a verdict's
+/// `longTerm` may have changed.
+const VALIDATION_DATA_ADDED: &str = "signatures.validationInfoAdded";
+
 /// `JSON.stringify(left) === JSON.stringify(right)`.
 fn same_protection(left: &Value, right: &Value) -> bool {
     serde_json::to_string(left).ok() == serde_json::to_string(right).ok()
@@ -131,8 +135,9 @@ impl SignatureCapability {
         self.mirror().refresh()
     }
 
-    /// `connect()`: every edit of the working copy re-judges once the edits
-    /// pause, when anything is signed.
+    /// `connect()`: every edit of the working copy, and validation data
+    /// added by anyone, re-judges once the edits pause, when anything is
+    /// signed.
     pub(crate) fn connect_signatures(&self) -> Result<(), Error> {
         let doc = self.cx().doc()?;
         let weak = Rc::downgrade(&self.0);
@@ -140,9 +145,8 @@ impl SignatureCapability {
             let Some(core) = weak.upgrade() else { return };
             let this = SignatureCapability(core);
             let kind = event.get("type").and_then(Value::as_str).unwrap_or_default();
-            if WORKING_COPY_EDITS.contains(&kind)
-                && has_signed_field(snapshot_of(&this.mirror().get()))
-            {
+            let judged_again = WORKING_COPY_EDITS.contains(&kind) || kind == VALIDATION_DATA_ADDED;
+            if judged_again && has_signed_field(snapshot_of(&this.mirror().get())) {
                 this.revalidate_soon();
             }
         }));

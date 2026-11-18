@@ -121,6 +121,7 @@ pub fn host_plugin(
         signing_key: Some(Some(crate::SigningKey::Thunk(resolve))),
         trust: Some(Some(std::rc::Rc::new(ports::SlotTrust(trust)))),
         allow_certify: config.allow_certify,
+        ..Default::default()
     })
 }
 

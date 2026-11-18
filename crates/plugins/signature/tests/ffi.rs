@@ -233,13 +233,15 @@ fn analyze_changes_decodes_the_analysis() {
 fn mode_defaults_to_visual_without_a_key() {
     // Filling granted, signing not: `canSign` and `canFill` read the
     // session's grants for the form's field 14 (`services/authority.ts`).
+    // A mark in a signature field is its signer's to place, so `canFill`
+    // asks what signing asks (upstream ceeb36bae).
     let grants =
         || spec_with(snapshot(), json!(["doc.forms.read", "doc.forms.fill", "doc.download"]));
     let (_thread, s) = handle_with(SignatureConfig::default, grants);
     assert_eq!(block_on(s.mode()).unwrap(), SignatureMode::Visual);
     let field = FormFieldRef::ObjectNumber { field_object_number: 14 };
     assert!(!block_on(s.can_sign(field.clone())).unwrap());
-    assert!(block_on(s.can_fill(field)).unwrap());
+    assert!(!block_on(s.can_fill(field)).unwrap());
     assert!(!block_on(s.can_certify()).unwrap());
     assert!(!block_on(s.is_busy()).unwrap());
     assert_eq!(block_on(s.pending()).unwrap(), None);
@@ -477,7 +479,7 @@ fn signing_without_a_signer_is_invalid_input() {
 }
 
 #[test]
-fn a_two_phase_signing_parks_then_completes() {
+fn a_two_phase_signing_parks_and_a_refused_cms_leaves_it_parked() {
     let (thread, s) = handle_with(SignatureConfig::default, || signing_spec(Arc::default()));
     let input = unsigned_input(&s);
     let prepared = block_on(s.prepare_signature(
@@ -502,10 +504,13 @@ fn a_two_phase_signing_parks_then_completes() {
     let sent = block_on(thread.call(|_| PREPARE_INPUT.with(|p| p.borrow().clone()))).unwrap();
     assert_eq!(sent["signer"], json!({ "name": "Ada", "reason": "Approved" }), "{sent}");
     assert_eq!(block_on(s.pending()).unwrap().map(|p| p.signing_id), Some("s1".to_string()));
-    let done =
-        block_on(s.complete_signature("s1".into(), vec![0x30, 0], CancelToken::new())).unwrap();
-    assert!(done.signature.signed);
-    assert_eq!(block_on(s.pending()).unwrap(), None);
+    // The CMS is checked against what was prepared before anything is
+    // written (upstream b08c0075d): one that is not SignedData is refused,
+    // and the signing stays prepared.
+    let error =
+        block_on(s.complete_signature("s1".into(), vec![0x30, 0], CancelToken::new())).unwrap_err();
+    assert_eq!(code(&error), Some("operation-failed"), "{error:?}");
+    assert_eq!(block_on(s.pending()).unwrap().map(|p| p.signing_id), Some("s1".to_string()));
 }
 
 #[test]

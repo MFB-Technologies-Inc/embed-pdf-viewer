@@ -592,7 +592,8 @@ impl SignatureVerdict {
 /// `validate`'s options. Every member optional.
 #[derive(Clone, Debug, Default, PartialEq, uniffi::Record)]
 pub struct SignatureValidateRequest {
-    /// `None` is now.
+    /// `None` judges each signature at the earliest trusted timestamp over
+    /// what it signed, and now when there is none.
     #[uniffi(default = None)]
     pub validation_time: Option<SignatureValidationTime>,
     /// `None` is the working copy, the plugin's default.
@@ -607,7 +608,9 @@ impl SignatureValidateRequest {
         signal: Option<epdf_kernel::signal::AbortSignal>,
     ) -> crate::SignatureValidateOptions {
         crate::SignatureValidateOptions {
-            validation_time: self.validation_time.map(Into::into),
+            validation_time: self
+                .validation_time
+                .map(|t| epdf_signature_core::Requested::At(t.into())),
             until: self.until.map(|u| u.as_str().to_string()),
             signal,
         }
@@ -972,6 +975,7 @@ impl SignatureSignInput {
             appearance: None,
             certify: self.certify.map(|p| json!({ "permission": p })),
             lock: self.lock.map(|l| l.to_json()),
+            timestamp_authority: None,
         }
     }
 }
@@ -1007,6 +1011,7 @@ impl SignaturePrepareInput {
             lock: self.lock.map(|l| l.to_json()),
             sub_filter: self.sub_filter.map(Value::String),
             digest: self.digest.map(|d| json!(d.name())),
+            timestamp_authority: None,
         }
     }
 }

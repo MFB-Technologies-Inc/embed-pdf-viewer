@@ -30,8 +30,8 @@ use epdf_kernel::{
 use epdf_plugin_annotation::write::stamps::StampInput;
 use epdf_plugin_annotation::{ANNOTATION, AnnotationCapability};
 use epdf_signature_core::{
-    CmsSignRequest, CmsSigner, Digest, RawAlgorithm, RawSigner, SignerPort, TrustPort,
-    ValidationTime,
+    CmsSignRequest, CmsSigner, Digest, RawAlgorithm, RawSigner, Requested, RevocationRequest,
+    RevocationSource, SignerPort, TrustPort, ValidationTime,
 };
 use plugin_conformance::{
     Answer, Callback, FunctionTable, Harness, HarnessPlugin, Outcome, TextMemo,
@@ -90,6 +90,7 @@ pub const MEMBERS: &[&str] = &[
     "prepareSignature",
     "completeSignature",
     "cancelPending",
+    "addValidationInfo",
     "fillField",
     "clearField",
     "placeMark",
@@ -97,6 +98,7 @@ pub const MEMBERS: &[&str] = &[
     "canFill",
     "canCertify",
     "canReadRevision",
+    "canAddValidationInfo",
     "onSigned",
     "onFilled",
     "onCleared",
@@ -224,6 +226,51 @@ impl TrustPort for ScriptedTrust {
     }
 }
 
+struct ScriptedRevocation(Callback);
+
+impl RevocationSource for ScriptedRevocation {
+    fn fetch(&self, request: RevocationRequest) -> Promise<Vec<u8>> {
+        let mut out = serde_json::Map::new();
+        out.insert("kind".into(), json!(request.kind()));
+        out.insert("url".into(), json!(request.url()));
+        if let RevocationRequest::Ocsp { body, .. } = &request {
+            out.insert("body".into(), Bytes(body.clone()).to_json());
+        }
+        answer(self.0.call(vec![Value::Object(out)])).map(|v| Ok(bytes(&v)))
+    }
+}
+
+/// A scripted callback named `name`, answering as `spec.answer` says.
+fn scripted(name: &str, spec: &Value, h: &Harness) -> Callback {
+    let mut callback = json!({ "$fn": name });
+    if let (Some(Value::Object(answer)), Value::Object(out)) = (spec.get("answer"), &mut callback) {
+        for (k, v) in answer {
+            out.insert(k.clone(), v.clone());
+        }
+    }
+    h.callback(&callback)
+}
+
+/// A CMS key over a scripted `sign`.
+fn cms_signer(sign: Callback) -> CmsSigner {
+    CmsSigner {
+        sign: Rc::new(move |request: CmsSignRequest| {
+            answer(sign.call(vec![request.to_json()])).map(|v| Ok(bytes(&v)))
+        }),
+        hash: None,
+    }
+}
+
+/// A per-call timestamp authority: `null` for none, or a port whose `sign`
+/// is a `$fn`.
+fn call_authority(value: Option<&Value>, h: &Harness) -> Option<Option<CmsSigner>> {
+    let value = defined(value)?;
+    if value.is_null() {
+        return Some(None);
+    }
+    Some(Some(cms_signer(h.callback(value.get("sign").unwrap_or(&Value::Null)))))
+}
+
 /// `configOf(spec, env)`: only the settings the spec names.
 fn config_of(spec: &Value, h: &Harness) -> Result<SignatureConfig, Error> {
     let trust = present(spec.get("trust")).map(|t| {
@@ -236,11 +283,20 @@ fn config_of(spec: &Value, h: &Harness) -> Result<SignatureConfig, Error> {
         }
         Some(Rc::new(ScriptedTrust(h.callback(&anchors))) as Rc<dyn TrustPort>)
     });
+    let timestamp_authority = present(spec.get("timestampAuthority"))
+        .map(|a| Some(cms_signer(scripted("authority.sign", a, h))));
+    let revocation = present(spec.get("revocation")).map(|r| {
+        Some(Rc::new(ScriptedRevocation(scripted("revocation.fetch", r, h)))
+            as Rc<dyn RevocationSource>)
+    });
     Ok(SignatureConfig {
         mode: defined(spec.get("mode")).map(|m| m.as_str().and_then(SignatureMode::from_name)),
         allow_certify: spec.get("allowCertify").and_then(Value::as_bool),
         signing_key: present(spec.get("signer")).map(|s| config_key(s, h)).transpose()?.map(Some),
         trust,
+        timestamp_authority,
+        revocation,
+        document_timestamp: spec.get("documentTimestamp").and_then(Value::as_bool),
     })
 }
 
@@ -268,10 +324,11 @@ fn sign_input(value: &Value, h: &Harness) -> Result<SignFieldInput, Error> {
         appearance: defined(value.get("appearance")),
         certify: defined(value.get("certify")),
         lock: defined(value.get("lock")),
+        timestamp_authority: call_authority(value.get("timestampAuthority"), h),
     })
 }
 
-fn prepare_input(value: &Value) -> PrepareSignatureInput {
+fn prepare_input(value: &Value, h: &Harness) -> PrepareSignatureInput {
     PrepareSignatureInput {
         field: value.get("field").cloned().unwrap_or_else(undefined),
         mark: mark_of(value.get("mark")),
@@ -281,6 +338,7 @@ fn prepare_input(value: &Value) -> PrepareSignatureInput {
         lock: defined(value.get("lock")),
         sub_filter: defined(value.get("subFilter")),
         digest: defined(value.get("digest")),
+        timestamp_authority: call_authority(value.get("timestampAuthority"), h),
     }
 }
 
@@ -288,10 +346,11 @@ fn validate_options(value: Option<&Value>) -> SignatureValidateOptions {
     let Some(opts) = present(value) else { return SignatureValidateOptions::default() };
     let at = present(opts.get("validationTime")).map(|at| {
         match at.get("kind").and_then(Value::as_str) {
-            Some("timestamp") => ValidationTime::Timestamp {
+            Some("earliest-timestamp") => Requested::Earliest,
+            Some("timestamp") => Requested::At(ValidationTime::Timestamp {
                 stamped_at: at.get("genTime").and_then(Value::as_str).unwrap_or_default().into(),
-            },
-            _ => ValidationTime::Now,
+            }),
+            _ => Requested::At(ValidationTime::Now),
         }
     });
     SignatureValidateOptions {
@@ -385,7 +444,7 @@ fn call_signature(
         }
         "sign" => Outcome::Promise(cap.sign(sign_input(&field(), h)?, none())),
         "prepareSignature" => {
-            Outcome::Promise(cap.prepare_signature(prepare_input(&field()), none()))
+            Outcome::Promise(cap.prepare_signature(prepare_input(&field(), h), none()))
         }
         "completeSignature" => {
             let id = arg(0).map(|v| crate::js::template(Some(v))).unwrap_or_default();
@@ -396,6 +455,9 @@ fn call_signature(
             ))
         }
         "cancelPending" => Outcome::promise_unit(cap.cancel_pending(none())),
+        "addValidationInfo" => {
+            Outcome::Promise(cap.add_validation_info(present(arg(0)).cloned(), none()))
+        }
         "fillField" => {
             let mark = mark_of(arg(1)).ok_or_else(|| Error::new("[signature harness] no mark"))?;
             Outcome::promise_unit(cap.fill_field(field(), mark, none()))
@@ -414,6 +476,7 @@ fn call_signature(
         "canFill" => Outcome::Returned(json!(cap.can_fill(&field()))),
         "canCertify" => Outcome::Returned(json!(cap.can_certify())),
         "canReadRevision" => Outcome::Returned(json!(cap.can_read_revision())),
+        "canAddValidationInfo" => Outcome::Returned(json!(cap.can_add_validation_info())),
         "onSettingsChanged" => {
             let callback = h.callback(arg(0).unwrap_or(&Value::Null));
             let off = cap.on_settings_changed_json(move |settings, changed| {

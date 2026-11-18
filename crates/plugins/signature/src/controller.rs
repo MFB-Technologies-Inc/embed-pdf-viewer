@@ -47,7 +47,10 @@ pub struct Core {
     // read/signatures: the lists, memoized per snapshot and verdicts.
     pub(crate) lists: RefCell<Option<Lists>>,
     // write/sign: two-phase signings this session prepared.
-    pub(crate) prepared: RefCell<HashMap<String, Value>>,
+    /// Two-phase signings this session prepared: what each one must
+    /// complete against, and the timestamp authority it was prepared with
+    /// room for.
+    pub(crate) prepared: RefCell<HashMap<String, (Value, Option<epdf_signature_core::CmsSigner>)>>,
     /// The conformance adapter's printed answers.
     #[cfg(feature = "harness")]
     pub(crate) printed: crate::harness::Printed,

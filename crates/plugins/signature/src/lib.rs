@@ -100,12 +100,15 @@ pub fn signature_plugin_creating(
         .optional(STAMP.any())
         .optional(ANNOTATION.any())
         .initial_state(initial_signature_state)
-        // A key and a trust port are one value each: a change replaces
-        // them, never merges into them.
+        // A signing key, a timestamp authority, a revocation source and a
+        // trust port are one value each: a change replaces them, never
+        // merges into them.
         .settings(SettingsDeclaration {
             defaults: defaults_json(),
             registered,
-            whole: vec!["signingKey".to_string(), "trust".to_string()],
+            whole: ["signingKey", "timestampAuthority", "revocation", "trust"]
+                .map(str::to_string)
+                .to_vec(),
         })
         .create(&SIGNATURE, move |cx| {
             let (api, connect) = create(cx, table.clone())?;

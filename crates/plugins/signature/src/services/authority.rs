@@ -6,7 +6,9 @@
 use epdf_kernel::Error;
 use epdf_kernel::error::{code, plugin_error};
 use epdf_kernel::rt::Promise;
-use epdf_signature_core::SignerPort;
+use std::rc::Rc;
+
+use epdf_signature_core::{CmsSigner, SignerPort, TrustPort};
 use serde_json::Value;
 
 use crate::contract::{SignatureMode, SigningKey};
@@ -44,6 +46,25 @@ impl SignatureCapability {
         })
     }
 
+    /// `resolveTimestampAuthority(override)`: the timestamp authority of one
+    /// sealing: the call's, else the setting's; `None` for none.
+    pub(crate) fn resolve_timestamp_authority(
+        &self,
+        override_: Option<Option<CmsSigner>>,
+    ) -> Option<CmsSigner> {
+        match override_ {
+            None => self.settings().timestamp_authority,
+            Some(authority) => authority,
+        }
+    }
+
+    /// `timestampTrust()`: who may timestamp what this plugin seals, the
+    /// `trust` setting when there is one. An app that says who it trusts
+    /// never seals a timestamp from someone else.
+    pub(crate) fn timestamp_trust(&self) -> Option<Rc<dyn TrustPort>> {
+        self.settings().trust
+    }
+
     /// `allowsField(action, ref)`: whether the session may `action` this
     /// field; `false` for a field the form doesn't have.
     fn allows_field(&self, action: &str, reference: &Value) -> bool {
@@ -71,10 +92,11 @@ impl SignatureCapability {
         self.allows_field("sign", field)
     }
 
-    /// `canFill(field)`: `doc.forms.fill`, or a `fields:fill` permission for
-    /// its group.
+    /// `canFill(field)`: a mark in a signature field is its signer's to
+    /// place, so it takes what signing takes: `doc.sign`, or a `fields:sign`
+    /// permission for its group.
     pub fn can_fill(&self, field: &Value) -> bool {
-        self.allows_field("fill", field)
+        self.allows_field("sign", field)
     }
 
     /// `canCertify()`: the `allowCertify` setting and `doc.sign.certify`.
@@ -85,5 +107,12 @@ impl SignatureCapability {
     /// `canReadRevision()`: `doc.download`.
     pub fn can_read_revision(&self) -> bool {
         self.cx().allows("doc.download")
+    }
+
+    /// `canAddValidationInfo()`: someone to ask (the `revocation` setting),
+    /// someone to trust (`trust`), and `doc.sign`.
+    pub fn can_add_validation_info(&self) -> bool {
+        let settings = self.settings();
+        settings.revocation.is_some() && settings.trust.is_some() && self.cx().allows("doc.sign")
     }
 }

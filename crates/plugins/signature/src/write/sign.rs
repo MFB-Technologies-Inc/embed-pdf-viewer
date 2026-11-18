@@ -4,7 +4,8 @@
 //! with a detached CMS; `cancelPending` cancels. The parked signing, the
 //! sealed field's facts and `onSigned` come from the confirmed events the
 //! engine publishes for each step (`sync/signatures.rs`), for every session
-//! alike.
+//! alike. A seal is followed by its validation data when the settings ask
+//! for it (`write/validation_info.rs`).
 
 use std::rc::Rc;
 
@@ -16,8 +17,8 @@ use epdf_kernel::error::{code, plugin_error};
 use epdf_kernel::rt::{self, Promise};
 use epdf_kernel::signal::AbortSignal;
 use epdf_kernel::{Error, Unsubscribe};
-use epdf_signature_core::SignerPort;
 use epdf_signature_core::signers::certificate_common_name;
+use epdf_signature_core::{SignerPort, TimestampOptions, complete_signature, sign_with};
 use serde_json::{Map, Value, json};
 
 use crate::contract::{Mark, OperationOptions, PrepareSignatureInput, SignFieldInput};
@@ -126,6 +127,9 @@ impl DocumentHandle for SealUnlessCancelled {
     }
 }
 
+/// The room a signature needs when it will carry a timestamp token.
+const TIMESTAMPED_CONTENTS_SIZE: f64 = 16384.0;
+
 /// `{ pdf }`, the appearance the engine draws into the widget.
 fn appearance_json(pdf: Option<Vec<u8>>) -> Value {
     json!({ "pdf": pdf.map_or(Value::Null, |pdf| Bytes(pdf).to_json()) })
@@ -222,6 +226,8 @@ impl SignatureCapability {
                     // widget by the engine.
                     let appearance =
                         busy.appearance_of(input.mark.as_ref(), input.appearance.as_ref()).await?;
+                    let timestamp_authority =
+                        busy.resolve_timestamp_authority(input.timestamp_authority.clone());
                     let mut request = Map::new();
                     request.insert("field".into(), input.field.clone());
                     request.insert("signer".into(), Value::Object(signer));
@@ -232,9 +238,16 @@ impl SignatureCapability {
                         request.insert("lock".into(), lock.clone());
                     }
                     request.insert("appearance".into(), appearance_json(appearance));
-                    let result = rt::returned(epdf_signature_core::sign(doc, request, key)).await?;
+                    let timestamp = match timestamp_authority {
+                        Some(authority) => TimestampOptions {
+                            timestamp_authority: Some(authority),
+                            timestamp_trust: busy.timestamp_trust(),
+                        },
+                        None => TimestampOptions::default(),
+                    };
+                    let result = rt::returned(sign_with(doc, request, key, timestamp)).await?;
                     busy.clear_if_target(&input.field);
-                    Ok(result)
+                    Ok(busy.after_seal(result, options.signal.clone()).await)
                 })
             }))
             .await
@@ -243,7 +256,12 @@ impl SignatureCapability {
 
     /// `sign(input, options)`: sign a field. The mark becomes what it
     /// shows, the key seals the document, and the signed document is a new
-    /// version. A signal that fires before the seal leaves nothing signed.
+    /// version. With a timestamp authority the signature carries its
+    /// timestamp, or nothing is signed. A signal that fires before the seal
+    /// leaves nothing signed. Resolves `SignFieldResult`: the engine's
+    /// `SignatureCompleteResult` with `validationInfo` and
+    /// `validationInfoError`, the validation data the `revocation` setting
+    /// adds right after the seal (a failure there can't undo the signature).
     pub fn sign(&self, input: SignFieldInput, options: OperationOptions) -> Promise<Value> {
         verb(self.sign_raw(input, options))
     }
@@ -269,6 +287,8 @@ impl SignatureCapability {
                     let doc = busy.require_signatures()?;
                     let appearance =
                         busy.appearance_of(input.mark.as_ref(), input.appearance.as_ref()).await?;
+                    let timestamp_authority =
+                        busy.resolve_timestamp_authority(input.timestamp_authority.clone());
                     let mut request = Map::new();
                     request.insert("field".into(), input.field.clone());
                     for (key, value) in [
@@ -285,11 +305,20 @@ impl SignatureCapability {
                     if appearance.is_some() {
                         request.insert("appearance".into(), appearance_json(appearance));
                     }
+                    // The token has to fit the room reserved now: the
+                    // completion can't make more.
+                    if timestamp_authority.is_some() {
+                        request
+                            .insert("contentsSizeBytes".into(), json!(TIMESTAMPED_CONTENTS_SIZE));
+                    }
                     let pending =
                         doc.call("signatures.prepare", None, vec![Value::Object(request)]);
                     let result = busy.cancellable(options.signal, pending).await?;
                     let signing_id = crate::js::template(result.get("signingId"));
-                    busy.0.prepared.borrow_mut().insert(signing_id, result.clone());
+                    busy.0
+                        .prepared
+                        .borrow_mut()
+                        .insert(signing_id, (result.clone(), timestamp_authority));
                     Ok(result)
                 })
             }))
@@ -298,8 +327,12 @@ impl SignatureCapability {
     }
 
     /// `completeSignature(signingId, cms, options)`: signing in two steps,
-    /// the second: the key's CMS seals the document. Rejects `not-found` for
-    /// a signing this session didn't prepare.
+    /// the second: the key's CMS is checked against what was prepared,
+    /// timestamped when a timestamp authority is set, and seals the
+    /// document. When it fails nothing is written and the signing stays
+    /// prepared. Rejects `not-found` for a signing this session didn't
+    /// prepare, `operation-failed` for a CMS or a timestamp that is refused.
+    /// Validation data follows the seal as it does for `sign()`.
     pub fn complete_signature(
         &self,
         signing_id: String,
@@ -327,14 +360,20 @@ impl SignatureCapability {
                             None,
                         ));
                     };
-                    let mut request = Map::new();
-                    request.insert("signingId".into(), json!(signing_id));
-                    request.insert("cms".into(), Bytes(cms).to_json());
-                    if let Some(expected) = parked.get("expectedVersion") {
-                        request.insert("expectedVersion".into(), expected.clone());
-                    }
-                    let result =
-                        doc.call("signatures.complete", None, vec![Value::Object(request)]).await?;
+                    // The second half of the package's `sign()`: the CMS is
+                    // checked against what was prepared, timestamped,
+                    // checked again, then completed. A failure leaves it
+                    // parked.
+                    import_module().await;
+                    let (prepared, timestamp_authority) = parked;
+                    let timestamp = match timestamp_authority {
+                        Some(authority) => TimestampOptions {
+                            timestamp_authority: Some(authority),
+                            timestamp_trust: busy.timestamp_trust(),
+                        },
+                        None => TimestampOptions::default(),
+                    };
+                    let result = complete_signature(doc, prepared, cms, timestamp).await?;
                     busy.0.prepared.borrow_mut().remove(&signing_id);
                     let field = result
                         .get("signature")
@@ -342,7 +381,7 @@ impl SignatureCapability {
                         .cloned()
                         .unwrap_or_else(epdf_kernel::undefined);
                     busy.clear_if_target(&field);
-                    Ok(result)
+                    Ok(busy.after_seal(result, options.signal.clone()).await)
                 })
             }))
             .await

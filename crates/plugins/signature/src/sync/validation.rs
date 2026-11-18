@@ -8,7 +8,7 @@
 use std::rc::Rc;
 
 use epdf_kernel::rt::{self, Promise};
-use epdf_signature_core::{Requested, ValidateOptions, ValidationTime, validate_signatures};
+use epdf_signature_core::{ValidateOptions, validate_signatures};
 use serde_json::Value;
 
 use crate::contract::{SignatureValidateOptions, SignatureValidatedEvent};
@@ -48,11 +48,9 @@ impl SignatureCapability {
             .await?;
             let run = ValidateOptions {
                 trust: this.settings().trust,
-                // Judged now unless a time is named, as before the catch-up;
-                // the earliest-timestamp default is CU-C6 (upstream 7bd135d7f).
-                validation_time: Some(Requested::At(
-                    options.validation_time.clone().unwrap_or(ValidationTime::Now),
-                )),
+                // By default each one is judged at the earliest trusted
+                // timestamp over what it signed (upstream 7bd135d7f).
+                validation_time: options.validation_time.clone(),
                 revocation: None,
                 until: Some(options.until.clone().unwrap_or_else(|| "working-copy".into())),
             };

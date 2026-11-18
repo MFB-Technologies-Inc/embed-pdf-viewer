@@ -17,8 +17,11 @@
  *     `AnswerSpec` whose `resolves` may carry `$bytes`); `thunk: true` wraps
  *     it in a function that logs `signer.resolve` and resolves it.
  *     `config.trust` is `{anchors}`, an `AnswerSpec` logged as
- *     `trust.anchors`. A per-call signer rides the call's arguments as a
- *     scripted `$fn`, which the runner decodes itself.
+ *     `trust.anchors`. `config.timestampAuthority` is `{answer}`, a CMS
+ *     key whose `sign` logs as `authority.sign`; `config.revocation` is
+ *     `{answer}`, a source whose `fetch` logs as `revocation.fetch`.
+ *     A per-call signer or timestamp authority rides the call's arguments
+ *     as a scripted `$fn`, which the runner decodes itself.
  *   - `config.shape: 'controller'` builds the shipping controller and runs its connect.
  *
  * WebCrypto answers from libuv's pool (`suites/signature-core.ts`), so only
@@ -177,6 +180,9 @@ interface SignatureSpec {
   readonly allowCertify?: boolean;
   readonly signer?: SignerSpec;
   readonly trust?: { readonly anchors: AnswerSpec };
+  readonly timestampAuthority?: { readonly answer: AnswerSpec };
+  readonly revocation?: { readonly answer: AnswerSpec };
+  readonly documentTimestamp?: boolean;
   readonly shape?: 'controller';
 }
 
@@ -207,6 +213,22 @@ function configOf(spec: SignatureSpec, env: PluginEnv): SignatureConfig {
     ...(spec.trust
       ? { trust: { anchors: answering('trust.anchors', spec.trust.anchors, env) as never } }
       : {}),
+    ...(spec.timestampAuthority
+      ? {
+          timestampAuthority: {
+            kind: 'cms' as const,
+            sign: answering('authority.sign', spec.timestampAuthority.answer, env) as never,
+          },
+        }
+      : {}),
+    ...(spec.revocation
+      ? {
+          revocation: {
+            fetch: answering('revocation.fetch', spec.revocation.answer, env) as never,
+          },
+        }
+      : {}),
+    ...(spec.documentTimestamp !== undefined ? { documentTimestamp: spec.documentTimestamp } : {}),
   };
 }
 
@@ -226,7 +248,10 @@ registerPlugin('signature', {
       requires: [FormToken],
       optional: [InteractionToken, StampToken, AnnotationToken],
       state: initialSignatureState,
-      settings: { defaults: SIGNATURE_DEFAULTS, whole: ['signingKey', 'trust'] },
+      settings: {
+        defaults: SIGNATURE_DEFAULTS,
+        whole: ['signingKey', 'timestampAuthority', 'revocation', 'trust'],
+      },
       create: (ctx) => createSignatureController(ctx as never),
     }) as unknown as AnyPlugin;
   },
@@ -258,12 +283,7 @@ registerPlugin('signature-annotation', {
 type Dto = Record<string, unknown>;
 
 /** A signature DTO: field `n`, widget `100 + n` on page 1. */
-const dto = (
-  index: number,
-  n: number,
-  name: string,
-  over: Partial<Signature> = {},
-): Signature => ({
+const dto = (index: number, n: number, name: string, over: Partial<Signature> = {}): Signature => ({
   index,
   field: ref(n),
   fieldName: name,
@@ -390,13 +410,22 @@ const docOf = (o: DocOptions = {}): FakeDocumentSpec => ({
     { path: 'forms.setSignatureAppearance' },
     { path: 'signatures.cancel' },
     // No validation data: validation reads the security store first (67ed292a6).
-    { path: 'signatures.getValidationInfo', value: { certificates: [], ocspResponses: [], crls: [] } },
+    {
+      path: 'signatures.getValidationInfo',
+      value: { certificates: [], ocspResponses: [], crls: [] },
+    },
   ],
 });
 
 // ── steps ─────────────────────────────────────────────────────────────────────
 
-const ORIGIN = { kind: 'local', sessionId: 's1', subject: null, at: '1970-01-01T00:00:00.000Z', serverSequence: null } as const;
+const ORIGIN = {
+  kind: 'local',
+  sessionId: 's1',
+  subject: null,
+  at: '1970-01-01T00:00:00.000Z',
+  serverSequence: null,
+} as const;
 const start: Step = { op: 'call', target: 'kernel', method: 'start' };
 const open = (id = 'a'): Step => ({
   op: 'call',
@@ -765,6 +794,84 @@ const reads: ScenarioCase[] = [
     engine: { documents: { a: docOf() } },
     ...UNSNAPSHOTTED,
     steps: [...boot, sig('canCertify'), sig('canSign', ref(2)), sig('getMode')],
+  },
+  {
+    name: 'validation-info-needs-its-settings',
+    covers:
+      'canAddValidationInfo needs the revocation and trust settings and doc.sign; addValidationInfo without them rejects invalid-input, and without doc.sign permission-denied (32571b4b7).',
+    plugins: FORM_SIG({ revocation: { answer: { resolves: $b('') } } }),
+    engine: {
+      documents: {
+        a: docOf({ allows: ['doc.sign'] }),
+        b: docOf({ allows: ['doc.forms.fill'] }),
+      },
+    },
+    ...UNSNAPSHOTTED,
+    steps: [
+      ...boot,
+      open('b'),
+      sig('canAddValidationInfo'),
+      sig('addValidationInfo'),
+      {
+        op: 'call',
+        target: { token: 'signature', doc: 'b' },
+        method: 'canAddValidationInfo',
+        args: [],
+      },
+      {
+        op: 'call',
+        target: { token: 'signature', doc: 'b' },
+        method: 'addValidationInfo',
+        args: [],
+      },
+    ],
+  },
+  {
+    name: 'validation-info-requests',
+    covers:
+      'With revocation and trust, canAddValidationInfo is true; addValidationInfo of an unsigned or unknown field rejects not-found, a documentTimestamp without a timestampAuthority rejects invalid-input, and a refused engine door rejects as the engine said and re-judges at once (32571b4b7). canFill takes what signing takes (ceeb36bae).',
+    plugins: FORM_SIG({
+      trust: { anchors: { resolves: [] } },
+      revocation: { answer: { resolves: $b('') } },
+    }),
+    engine: {
+      documents: {
+        a: docOf({
+          allows: ['doc.sign'],
+          responses: [
+            {
+              path: 'signatures.addValidationInfo',
+              error: { name: 'EngineError', code: 'Unsupported', message: 'no validation data' },
+            },
+          ],
+        }),
+      },
+    },
+    ...UNSNAPSHOTTED,
+    steps: [
+      ...boot,
+      sig('canAddValidationInfo'),
+      sig('canFill', ref(2)),
+      sig('addValidationInfo', { kind: 'fqn', name: 'Sig2' }),
+      sig('addValidationInfo', { kind: 'fqn', name: 'Nope' }),
+      sig('addValidationInfo', { kind: 'fqn', name: 'Sig1' }),
+      drain,
+      sig('validate', { validationTime: { kind: 'earliest-timestamp' } }),
+      sig('validate', { validationTime: { kind: 'now' } }),
+    ],
+  },
+  {
+    name: 'validation-info-document-timestamp-needs-an-authority',
+    covers:
+      'The documentTimestamp setting without a timestampAuthority: addValidationInfo rejects invalid-input before anything is asked (32571b4b7).',
+    plugins: FORM_SIG({
+      trust: { anchors: { resolves: [] } },
+      revocation: { answer: { resolves: $b('') } },
+      documentTimestamp: true,
+    }),
+    engine: { documents: { a: docOf({ allows: ['doc.sign'] }) } },
+    ...UNSNAPSHOTTED,
+    steps: [...boot, sig('addValidationInfo')],
   },
 ];
 
@@ -1237,6 +1344,57 @@ const signing: ScenarioCase[] = [
         lock: { action: 'all' },
       }),
       drain,
+    ],
+  },
+  {
+    name: 'sign-then-validation-info',
+    covers:
+      'With the revocation setting, a seal is followed by its validation data; a failure there cannot undo the signature: sign resolves with validationInfo null and the failure in validationInfoError, and re-judges (32571b4b7, b08c0075d).',
+    plugins: FORM_SIG({
+      signer: CMS_SIGNER,
+      trust: { anchors: { resolves: [] } },
+      revocation: { answer: { resolves: $b('') } },
+    }),
+    engine: {
+      documents: {
+        a: docOf({
+          allows: ['doc.sign'],
+          responses: [
+            listed([SIG1, SIG2], {}, { times: 2 }),
+            listed(BOTH_SIGNED),
+            PREPARE,
+            COMPLETE,
+            {
+              path: 'signatures.addValidationInfo',
+              error: { name: 'EngineError', code: 'Unsupported', message: 'no validation data' },
+            },
+          ],
+        }),
+      },
+    },
+    snapshot: ['signature::a'],
+    awaitCalls: true,
+    steps: [...boot, listen('onSigned'), drain, sig('sign', { field: ref(2), mark: MARK }), drain],
+  },
+  {
+    name: 'prepare-with-a-timestamp-authority',
+    covers:
+      "A timestamp authority, the setting or the call's, makes prepareSignature reserve 16384 bytes for the token; a per-call null prepares without one. completeSignature refuses a CMS that is not SignedData before any authority is asked, and the signing stays prepared (3d167f772, b08c0075d).",
+    plugins: FORM_SIG({ timestampAuthority: { answer: { resolves: $b('') } } }),
+    engine: {
+      documents: {
+        a: docOf({
+          responses: [listed([SIG1, SIG2], {}, { times: 2 }), { ...PREPARE, times: 2 }],
+        }),
+      },
+    },
+    snapshot: ['signature::a'],
+    steps: [
+      ...boot,
+      sig('prepareSignature', { field: ref(2) }),
+      sig('completeSignature', 'signing-1', $b('AAEC')),
+      sig('getPending'),
+      sig('prepareSignature', { field: ref(2), timestampAuthority: null }),
     ],
   },
   {

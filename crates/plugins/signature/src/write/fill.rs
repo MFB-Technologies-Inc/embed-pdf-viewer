@@ -60,7 +60,7 @@ impl SignatureCapability {
     ) -> Promise<()> {
         let this = self.clone();
         Promise::spawn(async move {
-            this.assert_allowed_field("fill", &field, "signature.fillField")?;
+            this.assert_allowed_field("sign", &field, "signature.fillField")?;
             let busy = this.clone();
             adopt(this.with_busy(move || {
                 Promise::spawn(async move {
@@ -87,7 +87,7 @@ impl SignatureCapability {
     pub fn clear_field(&self, field: Value, options: OperationOptions) -> Promise<()> {
         let this = self.clone();
         verb(Promise::spawn(async move {
-            this.assert_allowed_field("fill", &field, "signature.clearField")?;
+            this.assert_allowed_field("sign", &field, "signature.clearField")?;
             let busy = this.clone();
             adopt(this.with_busy(move || {
                 Promise::spawn(async move {

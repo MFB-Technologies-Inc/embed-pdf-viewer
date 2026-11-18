@@ -12,7 +12,7 @@ use epdf_kernel::Token;
 use epdf_kernel::rt::Promise;
 use epdf_kernel::signal::AbortSignal;
 use epdf_plugin_stamp::{StampAsset, StampLibrary};
-use epdf_signature_core::{SignerPort, TrustPort, ValidationTime};
+use epdf_signature_core::{CmsSigner, Requested, RevocationSource, SignerPort, TrustPort};
 use serde::Serialize;
 use serde_json::{Value, json};
 
@@ -104,8 +104,22 @@ pub struct SignatureSettings {
     /// What a mark does in a field; `None` is `sign` with a key, else
     /// `visual`.
     pub mode: Option<SignatureMode>,
-    /// The certificates you trust, for checking signatures. Without them a
-    /// verdict is at best `valid-untrusted`.
+    /// The timestamp authority: every signature this plugin seals then
+    /// carries a timestamp from it, and a timestamp that can't be had fails
+    /// the signing. `None` for none.
+    pub timestamp_authority: Option<CmsSigner>,
+    /// Where revocation answers come from. With one, every signature this
+    /// plugin seals gets its validation data right after: the answers that
+    /// say its certificates were good at its timestamp, stored in the file,
+    /// so a reader can check it with no network. Needs `trust`. `None` for
+    /// none.
+    pub revocation: Option<Rc<dyn RevocationSource>>,
+    /// Add a document timestamp after the validation data, from
+    /// `timestamp_authority`: proof that the data was in the file by then.
+    pub document_timestamp: bool,
+    /// The certificates you trust: for checking signatures, where a verdict
+    /// without them is at best `valid-untrusted`, and for sealing, where a
+    /// timestamp from an authority they don't cover is refused.
     pub trust: Option<Rc<dyn TrustPort>>,
     /// Let a first signature be a certification (still needs
     /// `doc.sign.certify`).
@@ -123,6 +137,9 @@ pub fn signature_defaults() -> SignatureSettings {
 pub struct SignatureConfig {
     pub signing_key: Option<Option<SigningKey>>,
     pub mode: Option<Option<SignatureMode>>,
+    pub timestamp_authority: Option<Option<CmsSigner>>,
+    pub revocation: Option<Option<Rc<dyn RevocationSource>>>,
+    pub document_timestamp: Option<bool>,
     pub trust: Option<Option<Rc<dyn TrustPort>>>,
     pub allow_certify: Option<bool>,
 }
@@ -174,6 +191,9 @@ pub struct SignFieldInput {
     pub appearance: Option<Value>,
     pub certify: Option<Value>,
     pub lock: Option<Value>,
+    /// A per-call timestamp authority: `Some(None)` signs this one without a
+    /// timestamp; `None` is the setting.
+    pub timestamp_authority: Option<Option<CmsSigner>>,
 }
 
 impl SignFieldInput {
@@ -187,6 +207,7 @@ impl SignFieldInput {
             appearance: None,
             certify: None,
             lock: None,
+            timestamp_authority: None,
         }
     }
 }
@@ -203,6 +224,9 @@ pub struct PrepareSignatureInput {
     pub lock: Option<Value>,
     pub sub_filter: Option<Value>,
     pub digest: Option<Value>,
+    /// A per-call timestamp authority: `Some(None)` seals this one without a
+    /// timestamp; `None` is the setting.
+    pub timestamp_authority: Option<Option<CmsSigner>>,
 }
 
 /// `SIGNATURES_LIBRARY_KIND`: the stamp-library kind that holds people's
@@ -387,7 +411,11 @@ pub struct SignatureInspectionRequestedEvent {
 /// (now by default), and `persisted` or `working-copy` (the default).
 #[derive(Clone, Default)]
 pub struct SignatureValidateOptions {
-    pub validation_time: Option<ValidationTime>,
+    /// The moment the certificates are judged at. `None` (and
+    /// `Requested::Earliest`) judges each one at the earliest trusted
+    /// timestamp that covers what it signed, and now when there is none;
+    /// `Requested::At(ValidationTime::Now)` judges them all as of now.
+    pub validation_time: Option<Requested>,
     pub until: Option<String>,
     pub signal: Option<AbortSignal>,
 }
