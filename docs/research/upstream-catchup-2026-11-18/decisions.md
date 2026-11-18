@@ -161,6 +161,52 @@ The divergences accepted in earlier catch-ups stand as before
   from a generated archive (`historical/catchup-2026-11-18/additions.json`). Cost: one more archive
   file the tests read.
 
+## Bindings (CU-C8a)
+
+- CU-C8a-D1. The uniffi transport answers through `SignatureTransportCompletion`, one method per
+  outcome. Cost: a host calls a method rather than returning a value.
+- CU-C8a-D2. The transport is a host slot on `ViewerHost`, like the signer and the anchors. Cost:
+  one transport per viewer.
+- CU-C8a-D3. A timestamp nonce comes from the kernel's UUID byte source (`getrandom` on the web).
+  Cost: a native nonce is SipHash output under OS-seeded keys, not a CSPRNG draw.
+- CU-C8a-D4. The browser build takes the transport through the signature plugin's config.
+- CU-C8a-D5. The standard commands are a `ViewerConfig` list over a `StandardCommandsPlatform` slot.
+  Cost: changing the lists needs a new viewer.
+- CU-C8a-D6. `epdf-capi` gets no catch-up surface, the D-1 adapter included. Cost: .NET cannot
+  timestamp or fill.
+- CU-C8a-D7. Engine kinds need no new export on uniffi or the node addon.
+- CU-C8a-D8. No binding can fix the nonce. Cost: platform tests compute replies from the request.
+- CU-C8a-D9. `SignatureValidateRequest.validation_time` is a `SignatureRequestedTime`. Cost: Swift
+  and Kotlin code that sets it breaks.
+
+## Browser and .NET (CU-C8b)
+
+- CU-C8b-D1. The browser transport posts one attempt and leaves retries and status meaning to Rust;
+  a non-2xx body that can't be read is that status with no body.
+- CU-C8b-D2. The browser transport stops reading at `maxReplyBytes` (listed beside CU-C4b-D3).
+- CU-C8b-D3. `core-wasm` exports `httpTimestampAuthority` and `httpRevocationSource` by upstream's
+  names. Cost: the value is a description, not a `CmsSigner`.
+- CU-C8b-D4. The granted-timestamp test echoes the nonce by patching pkijs in the test.
+- CU-C8b-D5. linux-x64 .NET ran in a temporary amd64 container under Rosetta.
+- CU-C8b-D6. osx-x64 ran under Rosetta and its record step fails on the schema.
+- CU-C8b-D7. .NET has no timestamp or long-term row.
+
+## Kotlin and Android (CU-C8c)
+
+- CU-C8c-D1. The Kotlin surfaces come from the generated bindings; there is no wrapper to extend.
+- CU-C8c-D2. `HttpSignatureTransport.kt` is not in the AAR, which packages `epdf-uniffi`. Cost: the
+  transport and the new viewer surfaces are proven on a desktop JVM only.
+- CU-C8c-D3. One timer covers the whole exchange; a non-2xx status in hand at the deadline is that
+  reply, as CU-C8b-D1.
+- CU-C8c-D4. The JVM test signs against upstream's routes served by a Node helper. Cost: it needs
+  `node` and a built `core-signature` dist.
+- CU-C8c-D5. The Android slices were built in an amd64 `debian:trixie` container under Rosetta.
+- CU-C8c-D6. The AAR, its 16 KB checks and the emulator ran on the Mac.
+- CU-C8c-D7. The slices keep their unversioned file names in the local pin.
+- CU-C8c-D8. `scripts/cu-c7/index-check.sh` reads the directory it sits in.
+- CU-C8c-D9. `build-aar.sh` links the NDK's compiler-rt builtins, without which the arm64 library
+  failed `dlopen` on `__arm_get_current_vg`. Cost: the link depends on the NDK's builtins layout.
+
 Left for the final whole-branch review, not changed here: CU-C4a `open_candidate` with unchanged
 bytes and edits relying on two fork checks agreeing; CU-C4b's client trusting the host's reply
 limit; CU-C4b's `route-max-reply-bytes` vector, which only proves the option parses; CU-C4b's
