@@ -61,7 +61,7 @@ impl Core {
             // A pen drawing that waits for its next stroke is finished. A
             // gesture, or a shape that needs more clicks, goes with the tool
             // it was made with.
-            core.finish_ink_draft();
+            core.finish_ink_draft()?;
             core.cancel();
             core.clear_ghost();
             core.prune_engaged_selection();

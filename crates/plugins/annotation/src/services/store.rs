@@ -493,7 +493,7 @@ impl Core {
         // in the draft. A message that would take its place runs after the
         // drawing became an annotation; only `cancel` drops it.
         if drops_waiting_ink(&before.session(), &result.session, &parsed) {
-            self.finish_waiting_ink(false);
+            self.finish_waiting_ink(false)?;
             // The drawing is an annotation now: the message runs on that
             // model. When its create still waits for an object number, the
             // message goes ahead.

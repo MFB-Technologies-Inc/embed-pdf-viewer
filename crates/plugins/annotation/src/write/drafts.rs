@@ -103,9 +103,10 @@ impl Core {
 
     /// `finishInkDraft()`: make the pen drawing that waits for its next
     /// stroke an annotation now, as its tool's `afterCreate` says. A stroke
-    /// still being drawn is left alone.
-    pub fn finish_ink_draft(&self) {
-        self.finish_waiting_ink(true);
+    /// still being drawn is left alone. A commit that throws rejects here,
+    /// as it does in the TypeScript.
+    pub fn finish_ink_draft(&self) -> Result<(), epdf_kernel::Error> {
+        self.finish_waiting_ink(true)
     }
 
     // ── the pen drawing that waits for its next stroke ───────────────────
@@ -123,8 +124,8 @@ impl Core {
     /// `finishWaitingInk({ selects })`: make the drawing that waits an
     /// annotation now, as its tool's `afterCreate` says. With `selects` false
     /// the selection stays as it is: what ended the wait decides it.
-    pub(crate) fn finish_waiting_ink(&self, selects: bool) {
-        let Some(draft) = self.waiting_ink() else { return };
+    pub(crate) fn finish_waiting_ink(&self, selects: bool) -> Result<(), epdf_kernel::Error> {
+        let Some(draft) = self.waiting_ink() else { return Ok(()) };
         let wait = self.drafts.wait.borrow_mut().take();
         if let Some(w) = &wait {
             w.cancel.call();
@@ -143,16 +144,16 @@ impl Core {
                 result
             })
         };
-        let Ok(commit) = self.commit(json!({ "type": "finishInkDraft" }), Some(adjust), None)
-        else {
-            return;
-        };
+        // A commit that throws goes to the caller: the store's commit then
+        // never runs the message that would have taken the drawing's place.
+        let commit = self.commit(json!({ "type": "finishInkDraft" }), Some(adjust), None)?;
         // Going back to the default tool is for a user still on the tool they
         // drew with. After a tool change the choice is theirs.
         let active = self.active_tool().map(|t| t.id.clone());
         if running.as_ref().is_none_or(|w| w.active_tool_id == active) {
             self.after_create_done(tool_id.as_deref(), &commit.effects);
         }
+        Ok(())
     }
 
     /// `waitForNextStroke(toolId, delayMs)`: the pen is up and its stroke is
@@ -169,7 +170,8 @@ impl Core {
             let Some(core) = me.upgrade() else { return };
             // Only the drawing this wait was started for.
             if core.model().draft.as_ref().is_some_and(|d| Rc::ptr_eq(d, &mine)) {
-                core.finish_waiting_ink(true);
+                // A timer callback has no caller to throw to.
+                let _ = core.finish_waiting_ink(true);
             }
         });
         let active_tool_id = self.active_tool().map(|t| t.id.clone());
@@ -184,7 +186,7 @@ impl Core {
         let me = self.weak();
         let _ = self.cx.on_settle(Rc::new(move |_signal| {
             if let Some(core) = me.upgrade() {
-                core.finish_waiting_ink(true);
+                core.finish_waiting_ink(true)?;
             }
             Ok(None)
         }));

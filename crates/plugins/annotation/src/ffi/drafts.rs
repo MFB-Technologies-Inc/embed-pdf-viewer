@@ -132,7 +132,7 @@ impl AnnotationDraftsHandle {
     pub async fn finish_ink_draft(&self) -> Result<(), ViewerError> {
         self.cap
             .call(|c| {
-                open(c)?.finish_ink_draft();
+                open(c)?.finish_ink_draft()?;
                 Ok(())
             })
             .await

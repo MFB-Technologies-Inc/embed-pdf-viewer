@@ -1110,10 +1110,7 @@ fn call_capability(a: &AnnotationCapability, method: &str, args: &[Value], h: &H
             });
             unit(a.hover_at(at.as_ref().map(|(p, point, view)| (p, *point, *view))))
         }
-        "finishInkDraft" => {
-            a.finish_ink_draft();
-            undefined_outcome()
-        }
+        "finishInkDraft" => unit(a.finish_ink_draft()),
         "cancel" => {
             a.cancel();
             undefined_outcome()
