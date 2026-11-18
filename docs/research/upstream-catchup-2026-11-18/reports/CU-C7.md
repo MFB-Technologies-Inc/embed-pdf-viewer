@@ -143,8 +143,12 @@ override.
 
 ## Divergences
 
-No NEW DIVERGENCE. `decisions.md` lists first the one open proposed exception, CU-C4b-D3
-(transport limits), and the two recorded Rust-only differences, CU-C6-D7 and CU-C6-D2.
+No NEW DIVERGENCE: no vector observes a difference. Two Rust-only differences are recorded,
+neither visible to a caller that gets an answer: CU-C6-D7 (the pen drawing's wait timer drops a
+throwing `finishInkDraft` where upstream's escapes as an uncaught timer exception) and CU-C6-D2
+(the two new signature ports compare by handle identity, extending `SigningKey::same`). The one
+open proposed exception is CU-C4b-D3 (transport limits). `decisions.md` lists these first, under
+the same heading wording.
 
 ## Evidence
 

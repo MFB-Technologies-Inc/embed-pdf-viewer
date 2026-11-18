@@ -9,10 +9,10 @@ Targets: upstream viewer `c4e744345a4d81e655f75ccae91e5b513592f769`, upstream ru
 `f2ea7597287f26bdcb450602de6616ff6939d506`. Starting points: impl `a7c75f5ad`, plugins
 `cf7fdbe7a`, runtime fork `17d8073d4`.
 
-## NEW DIVERGENCE
+## NEW DIVERGENCE (none observed by a vector); recorded Rust-only differences
 
-None that a vector observes. Two Rust-only differences are recorded, neither visible to a caller
-that gets an answer:
+No NEW DIVERGENCE: no vector observes a difference. Two Rust-only differences are recorded,
+neither visible to a caller that gets an answer:
 
 - CU-C6-D7. When the timer that ends the pen drawing's wait finishes the drawing and the
   `finishInkDraft` commit throws, upstream's error escapes as an uncaught exception of the timer
@@ -77,6 +77,10 @@ The divergences accepted in earlier catch-ups stand as before
 - CU-C1-D1. The fork's Android secure-random branch is kept in the merge.
 - CU-C1-D6. No fork ledger entry or sync note for this merge.
 - CU-C1-D7. The two untagged Android blocks `check-fork-tags.py` reports are left.
+- CU-C2-D2. impl's `runtime-src` conflict is resolved by setting the gitlink directly to
+  `af480d0ce` (`git update-index --cacheinfo`), without initialising or fetching the submodule.
+  Cost: no checkout of the runtime source proves the pin builds from the worktree; CU-C1's
+  `wasm32-eh` build of that commit is the only evidence it does.
 
 ## Lockfile and dependencies
 
