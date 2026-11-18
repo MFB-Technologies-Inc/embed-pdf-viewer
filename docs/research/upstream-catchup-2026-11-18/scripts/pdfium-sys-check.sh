@@ -11,5 +11,5 @@ echo "=== pdfium-sys tests"; (cd "$C" && cargo test -p pdfium-sys --locked); a=$
 echo "pdfium-sys rc=$a"
 echo "=== probe load test"; cp "$C/Cargo.lock" "$P/Cargo.lock"; (cd "$P" && cargo test -- --nocapture); b=$?
 echo "probe rc=$b"
-for t in "$C"/target/debug/deps/pdfium_sys-* "$P"/../CU-C1/target/debug/deps/load-*; do [[ -x $t && -f $t ]] && { echo "--- ldd $t"; ldd "$t" | grep -i embedpdf; }; done
+for t in "$C"/target/debug/deps/pdfium_sys-* "$C"/target/debug/deps/load-*; do [[ -x $t && -f $t ]] && { echo "--- ldd $t"; ldd "$t" | grep -i embedpdf; }; done
 exit $(( a || b ))

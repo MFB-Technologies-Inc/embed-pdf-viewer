@@ -10,9 +10,10 @@ syms() {
     *.a)  $NM --defined-only --extern-only "$1" 2>/dev/null ;;
   esac | awk 'NF>=2 {print $NF}' | grep -E '^_?(EPDF|FPDF)' | sed 's/^_//' | sort -u
 }
-syms "$1" > /tmp/old.syms; syms "$2" > /tmp/new.syms
-echo "old $1: EPDF=$(grep -c ^EPDF /tmp/old.syms) FPDF=$(grep -c ^FPDF /tmp/old.syms)"
-echo "new $2: EPDF=$(grep -c ^EPDF /tmp/new.syms) FPDF=$(grep -c ^FPDF /tmp/new.syms)"
-echo "added:"; comm -13 /tmp/old.syms /tmp/new.syms
-echo "removed:"; comm -23 /tmp/old.syms /tmp/new.syms
+T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
+syms "$1" > "$T/old.syms"; syms "$2" > "$T/new.syms"
+echo "old $1: EPDF=$(grep -c ^EPDF "$T/old.syms") FPDF=$(grep -c ^FPDF "$T/old.syms")"
+echo "new $2: EPDF=$(grep -c ^EPDF "$T/new.syms") FPDF=$(grep -c ^FPDF "$T/new.syms")"
+echo "added:"; comm -13 "$T/old.syms" "$T/new.syms"
+echo "removed:"; comm -23 "$T/old.syms" "$T/new.syms"
 echo "end"
