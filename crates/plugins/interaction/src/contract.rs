@@ -70,6 +70,8 @@ pub struct ToolPointerEvent {
 pub type ToolPointerDown = Rc<dyn Fn(&ToolPointerEvent) -> bool>;
 /// `onPointerMove`, `onPointerUp` and `onHover`.
 pub type ToolPointerFn = Rc<dyn Fn(&ToolPointerEvent)>;
+/// `canUse`: whether the user may use the tool now.
+pub type ToolCanUse = Rc<dyn Fn() -> bool>;
 
 /// `HostTool`: what the pointer does on the page while it is active.
 /// `pointer` and `pan` are built in; plugins add their own with
@@ -100,6 +102,11 @@ pub struct Tool {
     pub on_pointer_up: Option<ToolPointerFn>,
     /// The pointer moved over a page with no button pressed.
     pub on_hover: Option<ToolPointerFn>,
+    /// Whether the user may use the tool now, for a tool that needs a
+    /// permission: one that draws annotations needs permission to create
+    /// them. A button for the tool reads it through
+    /// [`InteractionCapability::can_use_tool`]. Absent: always.
+    pub can_use: Option<ToolCanUse>,
 }
 
 impl Tool {
@@ -153,6 +160,7 @@ impl fmt::Debug for Tool {
             .field("on_pointer_move", &member(self.on_pointer_move.is_some()))
             .field("on_pointer_up", &member(self.on_pointer_up.is_some()))
             .field("on_hover", &member(self.on_hover.is_some()))
+            .field("can_use", &member(self.can_use.is_some()))
             .finish()
     }
 }

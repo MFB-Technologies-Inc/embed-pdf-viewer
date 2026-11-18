@@ -24,6 +24,13 @@ impl Core {
         self.allows("annotations:create")
     }
 
+    /// A hub tool's `canUse`: [`can_create`](Self::can_create) when asked.
+    /// It holds the plugin weakly; once the plugin is gone it answers `false`.
+    pub(crate) fn can_create_now(&self) -> epdf_plugin_interaction::ToolCanUse {
+        let me = self.weak();
+        std::rc::Rc::new(move || me.upgrade().is_some_and(|core| core.can_create()))
+    }
+
     /// `allowsMutation(action, ref)`: the target's stamped owner, asked of the engine's rules.
     pub(crate) fn allows_mutation(&self, action: &str, reference: &Value) -> bool {
         let model = self.model();

@@ -452,6 +452,15 @@ impl InteractionCapability {
         self.0.tools.borrow().iter().find(|t| t.id == id).cloned()
     }
 
+    /// `canUseTool(id)`: whether the user may use a tool: what its
+    /// `can_use` says, and `true` for a tool without one. `false` for an id
+    /// that isn't registered. Activating a tool doesn't ask: the plugin that
+    /// owns the tool refuses its own gesture.
+    pub fn can_use_tool(&self, id: &str) -> bool {
+        let tool = self.get_tool(id);
+        tool.is_some_and(|tool| tool.can_use.as_ref().is_none_or(|can_use| can_use()))
+    }
+
     pub fn has_tool(&self, id: &str) -> bool {
         self.0.tools.borrow().iter().any(|t| t.id == id)
     }

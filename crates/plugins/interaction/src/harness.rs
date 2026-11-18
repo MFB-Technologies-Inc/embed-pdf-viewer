@@ -173,12 +173,27 @@ pub fn tool_json(tool: &Tool) -> Value {
         ("onPointerMove", tool.on_pointer_move.is_some()),
         ("onPointerUp", tool.on_pointer_up.is_some()),
         ("onHover", tool.on_hover.is_some()),
+        ("canUse", tool.can_use.is_some()),
     ] {
         if present {
             out.insert(name.into(), function_json());
         }
     }
     Value::Object(out)
+}
+
+/// A tool a capability method returns, as the TypeScript prints it there:
+/// its `canUse` registered as a `{"$ref": n}` a later step can call (the
+/// other function members stay noted, as [`tool_json`] has them).
+pub fn tool_outcome_json(h: &Harness, tool: &Rc<Tool>) -> Value {
+    let mut out = tool_json(tool);
+    if let (Some(can_use), Some(object)) = (tool.can_use.clone(), out.as_object_mut())
+        && object.contains_key("canUse")
+    {
+        let id = h.register_fn(Rc::new(move |_| Outcome::Returned(json!(can_use()))));
+        object.insert("canUse".into(), id);
+    }
+    out
 }
 
 /// A `ToolPointerEvent` as the TypeScript prints it.
@@ -221,6 +236,18 @@ pub fn tool_from_json(value: &Value, h: Option<&Harness>) -> Rc<Tool> {
             }));
         }
     }
+    if let Some(can_use) = callback("canUse") {
+        // `canUse?.() ?? true`: only a `false` answer refuses.
+        tool.can_use = Some(Rc::new(move || {
+            !matches!(can_use.call(Vec::new()), Answer::Returns(Value::Bool(false)))
+        }));
+    }
+    spelled_tool(tool, value)
+}
+
+/// `tool`, printed by [`tool_json`] as `value` spells it: its `$fn` members
+/// as functions, and `enables` as the `Set` the tool holds.
+pub fn spelled_tool(tool: Tool, value: &Value) -> Rc<Tool> {
     let tool = Rc::new(tool);
     let mut spelling = value.as_object().cloned().unwrap_or_default();
     for member in spelling.values_mut() {
@@ -614,16 +641,17 @@ fn call_interaction(
         "onSettingsChanged" => {
             listen(h, arg(args, 0), settings_changed_json, |f| cap.on_settings_changed(f))
         }
-        "getActiveTool" => Outcome::Returned(tool_json(&cap.get_active_tool())),
+        "getActiveTool" => Outcome::Returned(tool_outcome_json(h, &cap.get_active_tool())),
         "getActiveToolId" => Outcome::Returned(json!(cap.get_active_tool_id())),
         "getDefaultToolId" => Outcome::Returned(json!(cap.get_default_tool_id())),
-        "listTools" => {
-            Outcome::Returned(Value::Array(cap.list_tools().iter().map(|t| tool_json(t)).collect()))
-        }
+        "listTools" => Outcome::Returned(Value::Array(
+            cap.list_tools().iter().map(|t| tool_outcome_json(h, t)).collect(),
+        )),
         "getTool" => Outcome::Returned(
-            cap.get_tool(&str_arg(args, 0)).map_or(Value::Null, |t| tool_json(&t)),
+            cap.get_tool(&str_arg(args, 0)).map_or(Value::Null, |t| tool_outcome_json(h, &t)),
         ),
         "hasTool" => Outcome::Returned(json!(cap.has_tool(&str_arg(args, 0)))),
+        "canUseTool" => Outcome::Returned(json!(cap.can_use_tool(&str_arg(args, 0)))),
         "activeToolEnables" => Outcome::Returned(json!(cap.active_tool_enables(&str_arg(args, 0)))),
         "activateTool" => unit(cap.activate_tool(&str_arg(args, 0))),
         "activateDefaultTool" => unit(cap.activate_default_tool()),

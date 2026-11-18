@@ -40,8 +40,11 @@ impl Core {
             if interaction.has_tool(&tool.id) {
                 continue;
             }
-            let unregister =
-                interaction.register_tool(hub_tool(&tool), RegisterToolOptions::default())?;
+            // Every tool here makes an annotation, so it needs that permission.
+            let unregister = interaction.register_tool(
+                hub_tool(&tool, self.can_create_now()),
+                RegisterToolOptions::default(),
+            )?;
             self.cx.cleanup_fn(move || unregister.call());
         }
         let (place, edit, marquee, draw) = create_handlers(self, &interaction);

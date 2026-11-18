@@ -12,7 +12,7 @@ use epdf_annotation_core::props::properties_of;
 use epdf_annotation_core::record::{read_of_defaults, text_of};
 use epdf_annotation_core::update::defaults_for;
 use epdf_kernel::{Error, Unsubscribe};
-use epdf_plugin_interaction::{INTERACTION, RegisterToolOptions, Tool, Unregister};
+use epdf_plugin_interaction::{INTERACTION, RegisterToolOptions, Tool, ToolCanUse, Unregister};
 use indexmap::IndexMap;
 use serde_json::{Map, Value, json};
 
@@ -43,13 +43,15 @@ pub struct ToolsState {
 /// registration of the same id is removed first.
 type Registration = Rc<RefCell<Option<Rc<ResolvedTool>>>>;
 
-/// The tool as the hub registers it.
-pub fn hub_tool(tool: &ResolvedTool) -> Rc<Tool> {
+/// The tool as the hub registers it, with `can_use` as its `canUse`: making
+/// an annotation needs the permission (`d6325f5ba`).
+pub fn hub_tool(tool: &ResolvedTool, can_use: ToolCanUse) -> Rc<Tool> {
     let mut hub =
         Tool::new(tool.id.clone(), tool.cursor.clone(), tool.enables.iter().map(String::as_str));
     hub.touch = Some(tool_touch_of(&tool.enables));
+    hub.can_use = Some(can_use);
     // The conformance harness prints a tool as it was written; this one is
-    // written `{ id, cursor, enables, touch }` (`registry.ts`).
+    // written `{ id, cursor, enables, touch, canUse }` (`registry.ts`).
     #[cfg(feature = "harness")]
     {
         let spelled = json!({
@@ -57,8 +59,9 @@ pub fn hub_tool(tool: &ResolvedTool) -> Rc<Tool> {
             "cursor": hub.cursor,
             "enables": { "$set": hub.enables },
             "touch": hub.touch,
+            "canUse": { "$fn": "canUse" },
         });
-        return epdf_plugin_interaction::harness::tool_from_json(&spelled, None);
+        return epdf_plugin_interaction::harness::spelled_tool(hub, &spelled);
     }
     #[cfg_attr(feature = "harness", allow(unreachable_code))]
     Rc::new(hub)
@@ -201,9 +204,10 @@ impl Core {
     /// `registerOnHub(tool)`: put `tool` on the hub, in place of any tool with its id.
     fn register_on_hub(&self, tool: &ResolvedTool) -> Result<Option<Unregister>, Error> {
         match self.cx.try_get(&INTERACTION).ok().flatten() {
-            Some(interaction) => Ok(Some(
-                interaction.register_tool(hub_tool(tool), RegisterToolOptions { replace: true })?,
-            )),
+            Some(interaction) => Ok(Some(interaction.register_tool(
+                hub_tool(tool, self.can_create_now()),
+                RegisterToolOptions { replace: true },
+            )?)),
             None => Ok(None),
         }
     }

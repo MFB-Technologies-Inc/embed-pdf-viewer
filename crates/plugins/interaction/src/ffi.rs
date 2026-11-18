@@ -411,6 +411,12 @@ impl InteractionHandle {
         self.bound.call(move |b| Ok(open(&b.cap)?.has_tool(&id))).await
     }
 
+    /// Whether the user may use a tool: what the tool says, `true` for a
+    /// tool that says nothing, `false` for an id nobody registered.
+    pub async fn can_use_tool(&self, id: String) -> Result<bool, ViewerError> {
+        self.bound.call(move |b| Ok(open(&b.cap)?.can_use_tool(&id))).await
+    }
+
     /// Whether the active tool enables a behaviour tag such as `text-select`.
     pub async fn active_tool_enables(&self, behavior: String) -> Result<bool, ViewerError> {
         self.bound.call(move |b| Ok(open(&b.cap)?.active_tool_enables(&behavior))).await
