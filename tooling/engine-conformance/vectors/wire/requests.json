@@ -87,6 +87,7 @@
   {"kind":"redaction.apply","fields":[{"name":"artifactPath","optional":true,"type":"string"},{"name":"effect","optional":false,"type":"\"contentWrite\""},{"name":"objectNumberFloor","optional":true,"type":"number"},{"name":"opId","optional":false,"type":"string"},{"name":"scope","optional":false,"type":"RedactionApplyScope"}],"control":false},
   {"kind":"search.query","fields":[{"name":"effect","optional":false,"type":"\"read\""},{"name":"request","optional":false,"type":"SearchScanRequest"}],"control":false},
   {"kind":"shutdown","fields":[],"control":true},
+  {"kind":"signatures.addValidationInfo","fields":[{"name":"artifactPath","optional":true,"type":"string"},{"name":"certificates","optional":false,"type":"ArrayBuffer[]"},{"name":"crls","optional":false,"type":"ArrayBuffer[]"},{"name":"effect","optional":false,"type":"\"write\""},{"name":"objectNumberFloor","optional":true,"type":"number"},{"name":"ocspResponses","optional":false,"type":"ArrayBuffer[]"},{"name":"opId","optional":false,"type":"string"}],"control":false},
   {"kind":"signatures.analyze","fields":[{"name":"effect","optional":false,"type":"\"read\""},{"name":"input","optional":false,"type":"AnalyzeInput"}],"control":false},
   {"kind":"signatures.cancel","fields":[{"name":"effect","optional":false,"type":"\"session\""},{"name":"signingId","optional":false,"type":"string"}],"control":false},
   {"kind":"signatures.complete","fields":[{"name":"artifactPath","optional":true,"type":"string"},{"name":"authority","optional":false,"type":"ChangeAuthority"},{"name":"effect","optional":false,"type":"\"contentWrite\""},{"name":"input","optional":false,"type":"SignatureCompleteInput"},{"name":"objectNumberFloor","optional":true,"type":"number"},{"name":"opId","optional":false,"type":"string"}],"control":false},
@@ -95,6 +96,7 @@
   {"kind":"signatures.finalizeCandidate","fields":[{"name":"byteRange","optional":false,"type":"[number, number, number, number]"},{"name":"cms","optional":false,"type":"ArrayBuffer"},{"name":"contentsSizeBytes","optional":false,"type":"number"},{"name":"effect","optional":false,"type":"\"read\""},{"name":"fieldObjectNumber","optional":false,"type":"number"},{"name":"password","optional":true,"type":"string"},{"name":"path","optional":false,"type":"string"}],"control":false},
   {"kind":"signatures.list","fields":[{"name":"effect","optional":false,"type":"\"read\""},{"name":"workingCopy","optional":true,"type":"boolean"}],"control":false},
   {"kind":"signatures.prepare","fields":[{"name":"authority","optional":false,"type":"ChangeAuthority"},{"name":"effect","optional":false,"type":"\"snapshot\""},{"name":"input","optional":false,"type":"SignaturePrepareInput"}],"control":false},
-  {"kind":"signatures.revisionBytes","fields":[{"name":"effect","optional":false,"type":"\"read\""},{"name":"revisionIndex","optional":false,"type":"number"}],"control":false}
+  {"kind":"signatures.revisionBytes","fields":[{"name":"effect","optional":false,"type":"\"read\""},{"name":"revisionIndex","optional":false,"type":"number"}],"control":false},
+  {"kind":"signatures.validationInfo","fields":[{"name":"effect","optional":false,"type":"\"read\""}],"control":false}
   ]
 }
