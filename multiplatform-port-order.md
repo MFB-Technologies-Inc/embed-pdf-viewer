@@ -570,11 +570,11 @@ flowchart TB
 
 ## 6. Operation coverage check
 
-The `WorkerRequest` union (`worker-protocol.ts:1573`) has 90 members.
+The `WorkerRequest` union (`worker-protocol.ts:1599`) has 92 members.
 `OpenWorkerRequest` is a union alias expanding to three `open.*` kinds, and
 `WorkerControlMessage` one expanding to `abort`, `pages.workingSet` and
-`shutdown`, so there are 94 distinct request kinds. Four are control frames
-(`abort`, `close`, `layer.close`, `shutdown`), all in G3, leaving 90
+`shutdown`, so there are 96 distinct request kinds. Four are control frames
+(`abort`, `close`, `layer.close`, `shutdown`), all in G3, leaving 92
 non-control operations,
 including engine-wide font operations. Every one appears in exactly one group
 above. G3w routes a subset of G3's kinds to a second backend and adds no row.

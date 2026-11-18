@@ -170,6 +170,7 @@ pub const WRITE_KINDS: &[&str] = &[
     "pieceInfo.delete",
     "pieceInfo.update",
     "redaction.apply",
+    "signatures.addValidationInfo",
     "signatures.complete",
 ];
 
@@ -309,6 +310,8 @@ impl RequestEffect {
             "signatures.list" => Read,
             "signatures.prepare" => Snapshot,
             "signatures.revisionBytes" => Read,
+            "signatures.validationInfo" => Read,
+            "signatures.addValidationInfo" => Write,
             _ => return None,
         })
     }
@@ -1311,6 +1314,58 @@ impl Host {
                     },
                 };
                 self.field_verb(&key, &header.kind, body, op, true, cancel)
+            }
+            // `LocalDocumentSignaturesService.getValidationInfo` gated by
+            // `doc.forms.read`, then `WorkerHost.handleSignaturesValidationInfo`
+            // (67ed292a6): the store as the document holds it now, each entry
+            // a payload, the certificates first, then the OCSP responses,
+            // then the CRLs.
+            "signatures.validationInfo" => {
+                let session = self.sessions.session(&key)?;
+                session.require(DocCapability::DocFormsRead)?;
+                let info = f::signature::validation_info::read(session)?;
+                let mut payloads = Vec::new();
+                let mut answer = serde_json::Map::new();
+                for kind in f::signature::validation_info::VALIDATION_INFO_KINDS {
+                    let list: Vec<serde_json::Value> = info
+                        .get(kind)
+                        .iter()
+                        .map(|entry| {
+                            payloads.push(entry.clone());
+                            serde_json::json!({ "payload": payloads.len() - 1 })
+                        })
+                        .collect();
+                    answer.insert(kind.as_str().into(), serde_json::Value::Array(list));
+                }
+                Ok(Reply::new(serde_json::Value::Object(answer), payloads))
+            }
+            // `LocalDocumentSignaturesService.addValidationInfo` gated by
+            // `doc.sign`, its lists each an array of byte arrays (here each
+            // entry a payload), then `WorkerHost.handleSignaturesAddValidationInfo`
+            // (67ed292a6) under the request's `opId`: a write that stored
+            // nothing is not finished as a mutation and publishes nothing;
+            // one that stored something publishes
+            // `signatures.validationInfoAdded`. Never undoable.
+            "signatures.addValidationInfo" => {
+                self.sessions.session(&key)?.require(DocCapability::DocSign)?;
+                let job = JobEnvelope::parse(&header.kind, body)?;
+                let op_id = self.op_id_of(&job)?;
+                let input = validation_info_input(body, &payloads)?;
+                let result = f::signature::validation_info::add(
+                    self.sessions.session(&key)?,
+                    &input,
+                    cancel,
+                )?;
+                let wrote = result.added.any();
+                let result = value(&result)?;
+                if !wrote {
+                    return Ok(ok(serde_json::json!({ "result": result })));
+                }
+                self.finish(
+                    &key,
+                    &op_id,
+                    crate::session::save::DocumentEventInit::SignaturesValidationInfoAdded(result),
+                )
             }
             "signatures.analyze" => {
                 self.sessions.session(&key)?.require(DocCapability::DocFormsRead)?;
@@ -3242,6 +3297,43 @@ fn resource_payload<'a>(
     }
 }
 
+/// `entriesOf` over each list of an `addValidationInfo` request: the lists
+/// it names, each an array of `{ "payload": n }`; a list that is anything
+/// else is `InvalidArg` naming it, as a list that is not an array of byte
+/// arrays is upstream.
+fn validation_info_input(
+    body: &serde_json::Value,
+    payloads: &Payloads,
+) -> Result<crate::features::signature::validation_info::ValidationInfo, EngineError> {
+    use crate::features::signature::validation_info::{VALIDATION_INFO_KINDS, ValidationInfo};
+    let mut out = ValidationInfo::default();
+    for kind in VALIDATION_INFO_KINDS {
+        let name = kind.as_str();
+        let not_bytes = || {
+            EngineError::with_message(
+                EngineErrorCode::InvalidArg,
+                format!("{name} must be an array of Uint8Array"),
+            )
+            .with_details(serde_json::json!({ "field": name }))
+        };
+        let list = match body.get(name) {
+            None | Some(serde_json::Value::Null) => continue,
+            Some(serde_json::Value::Array(list)) => list,
+            Some(_) => return Err(not_bytes()),
+        };
+        for entry in list {
+            let index = entry
+                .as_object()
+                .filter(|o| o.len() == 1)
+                .and_then(|o| o.get("payload"))
+                .and_then(serde_json::Value::as_u64)
+                .ok_or_else(not_bytes)?;
+            out.get_mut(kind).push(payload(payloads, index as usize, name)?.to_vec());
+        }
+    }
+    Ok(out)
+}
+
 /// `result`, which names `bytes` as its payload 0.
 fn payload_response(result: serde_json::Value, bytes: Vec<u8>) -> Reply {
     Reply::new(result, vec![bytes])
@@ -3541,6 +3633,7 @@ impl PageEffect {
 /// document's bytes instead.
 const TRANSACTED_KINDS: &[&str] = &[
     "metadata.update",
+    "signatures.addValidationInfo",
     "metadata.updateCustom",
     "document.apply",
     "annotations.create",

@@ -12,3 +12,4 @@ pub mod mutator;
 pub mod protection;
 pub mod reader;
 pub mod types;
+pub mod validation_info;

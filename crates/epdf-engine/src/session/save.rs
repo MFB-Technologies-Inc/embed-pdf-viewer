@@ -237,6 +237,12 @@ pub enum DocumentEventInit {
     /// `status: "cancelled"` only). A notice, with no result.
     #[serde(rename = "signatures.cancelled", rename_all = "camelCase")]
     SignaturesCancelled { signing_id: String },
+    /// Validation data was stored in the document: the
+    /// `ValidationInfoAddResult` (`{added, meta}`), published only when the
+    /// write stored something (67ed292a6). A verdict that depends on it must
+    /// be read again.
+    #[serde(rename = "signatures.validationInfoAdded")]
+    SignaturesValidationInfoAdded(serde_json::Value),
 }
 
 impl DocumentEventInit {
@@ -256,7 +262,8 @@ impl DocumentEventInit {
             | Self::MetadataCustomUpdated(v)
             | Self::FormRepaired(v)
             | Self::PagesScaleSet(v)
-            | Self::SignaturesCompleted(v) => Some(v),
+            | Self::SignaturesCompleted(v)
+            | Self::SignaturesValidationInfoAdded(v) => Some(v),
             Self::AnnotationCreated { result, .. }
             | Self::AnnotationUpdated { result, .. }
             | Self::PagesNamed { result, .. } => Some(result),
@@ -280,6 +287,7 @@ impl DocumentEventInit {
             Self::SignaturesPrepared { .. } => "signatures.prepared",
             Self::SignaturesCompleted(_) => "signatures.completed",
             Self::SignaturesCancelled { .. } => "signatures.cancelled",
+            Self::SignaturesValidationInfoAdded(_) => "signatures.validationInfoAdded",
         }
     }
 

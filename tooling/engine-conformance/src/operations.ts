@@ -1101,6 +1101,25 @@ export const OPERATIONS: readonly OperationRow[] = [
     rustStatus: 'routed',
     note: "A session effect, renamed from signatures.abort (7bccc4f35): discards the parked candidate and answers { result: { status } }, cancelled, already-completed or unknown. Gated by crates/epdf-engine/tests/signature_sign.rs. WorkerHost.ts:599-628 calls the signature handlers without the job's AbortSignal, so no throwIfAborted reaches them.",
   },
+  // New in the catch-up to upstream c4e744345 (67ed292a6, #1088).
+  {
+    kind: 'signatures.validationInfo',
+    group: 'G15',
+    stage: 'A',
+    phase: 5,
+    cancellation: 'queued-only',
+    rustStatus: 'routed',
+    note: "Reads the document's security store (/DSS) as it is now, an unsaved addition included: { certificates, ocspResponses, crls }, each entry a payload. Gated by doc.forms.read. The worker handler takes no AbortSignal (WorkerHost.ts handleSignaturesValidationInfo).",
+  },
+  {
+    kind: 'signatures.addValidationInfo',
+    group: 'G15',
+    stage: 'C',
+    phase: 5,
+    cancellation: 'after-first-write',
+    rustStatus: 'routed',
+    note: "A write under its opId, gated by doc.sign and refused with ProtectedDocument after a P=1 certification. Every entry is checked (validationInfoEntryProblem, 16 MiB each) before the first is stored; one the document holds is not stored again. Never undoable. A write that stored nothing is not finished as a mutation and publishes nothing; one that stored something publishes signatures.validationInfoAdded. Filed after-first-write like the other writes; ValidationInfoMutator checks the signal before each entry it stores.",
+  },
   {
     kind: 'signatures.finalizeCandidate',
     group: 'G15',

@@ -164,6 +164,8 @@ wire_kinds! {
     SignaturesList => "signatures.list",
     SignaturesPrepare => "signatures.prepare",
     SignaturesRevisionBytes => "signatures.revisionBytes",
+    SignaturesValidationInfo => "signatures.validationInfo",
+    SignaturesAddValidationInfo => "signatures.addValidationInfo",
 }
 
 /// A request as the handlers take it, each place a caller sent in page space
@@ -343,6 +345,8 @@ pub fn request_in_file_space(
         | K::SignaturesFinalizeCandidate
         | K::SignaturesList
         | K::SignaturesPrepare
+        | K::SignaturesValidationInfo
+        | K::SignaturesAddValidationInfo
         | K::SignaturesRevisionBytes => Ok(()),
     }
 }
@@ -575,6 +579,8 @@ pub(crate) fn result_in_page_space(
         | K::SignaturesFinalizeCandidate
         | K::SignaturesList
         | K::SignaturesPrepare
+        | K::SignaturesValidationInfo
+        | K::SignaturesAddValidationInfo
         | K::SignaturesRevisionBytes => Ok(response),
     }
 }
