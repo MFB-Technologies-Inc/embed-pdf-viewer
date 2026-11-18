@@ -418,7 +418,11 @@ should prove the Rust route ran rather than only that the payload contains the c
 Items 1 and 2 below, the next step this section first named, are done. The large flows came after
 (item 10); the three gaps in the paragraph above are still open.
 
-Two harness fixes from the 2026-11-17 reviews are deferred (added 2026-11-17). Each changes what a
+Both fixes below landed on 2026-11-17, after this paragraph was written. The probe now samples
+once a frame (README, Caveats; probe `af209e7644d8`, so `--drift` refuses every earlier run), and
+`hover` and `drawInk` report `wallMs` from `t0` and `settleMs` from the last pointer move, so
+their settle rows from earlier runs don't compare with later ones. No timed run has used either
+yet. Two harness fixes from the 2026-11-17 reviews are deferred (added 2026-11-17). Each changes what a
 recorded row means, so it needs a new timed run on the Mac mini before any row under it can be
 quoted, and none was started. The first is the probe's cost. `lib/probe.js` samples the page
 images on every animation frame (`tick`) and again every 16 ms while a settle waits (`check` in

@@ -240,7 +240,7 @@ The interval comes from the scroll flow rather than an idle measurement so that 
 it too. No run records the display's refresh rate, so this is the interval the scroll saw, not a
 measured display rate. `main`'s scroll samples read 16.66 to 16.67 ms in the 16.7 ms runs and 10.5
 to 11.8 ms in the 11 ms runs, apart from one at 17.3 ms in `2026-11-17T16-59-17-202Z`. Every arm of
-a run agrees within 0.32 ms whatever its load, and `main`'s `drawInk` settle is 180 intervals plus
+a run agrees within 0.32 ms whatever its load, and `main`'s `drawInk` settle (now `wallMs`) is 180 intervals plus
 the same 870 to 885 ms in `2026-11-17T04-18-50-584Z` and `2026-11-17T16-59-17-202Z`. A run without
 `main`'s `scroll` samples has none, and `--drift` refuses it.
 
@@ -318,6 +318,10 @@ image outside the browser viewport costs one `getBoundingClientRect` and no styl
 sample reads each shared ancestor's style once.
 `meta.json` records `probeSha256`, so a run's probe version is on record. `RESULTS.md` publishes
 `2026-11-17T16-59-17-202Z`, recorded with probe `d3edaa255947`, the version at `7d9648d6d`.
+Since 2026-11-17 (probe `af209e7644d8`) the probe samples once a frame: a settle check reuses the
+latest frame's sample and counts quiet time to it, and samples on its own only once no frame has
+run for 100 ms. Before, it sampled again every 16 ms while a settle waited. `--drift` refuses any
+earlier run against a run with this probe.
 
 > Note: The `slow` profile throttles the main thread only. Chromium 140 answers
 > `Emulation.setCPUThrottlingRate` on a worker target with "Operation is only supported for pages,
@@ -349,14 +353,15 @@ trace is on during every measured window, so its overhead is in every timing.
 `scroll / settleMs` is usually 0 on the TypeScript arms: every render lands during the wheel burst,
 so the page is already settled when the last wheel event goes out.
 
-`hover / settleMs` and `drawInk / settleMs` are `settled - t0`, where `t0` is before the first
-pointer move, so they include the frame-paced input: 80 pointer moves for `hover` (four steps
-between each of 20 highlights), and 180 moves plus the ink tool's 800 ms grouping window for
-`drawInk`. Most of each row is pacing, which scales with the run's frame interval, and the 3%
-floor is taken from that total: `main-now` against `phase-d-end` in `2026-11-17T04-18-50-584Z`
-had thresholds of ±39.6 ms on `hover` and ±118.2 ms on `drawInk`. `dragAnnot`, `typeField`, `select` and `annotate` include their shorter input the same
-way. `scroll` splits the two, `wallMs` from `t0` and `settleMs` from the last wheel; these flows
-don't yet (`FINDINGS.md`, "What the harness should measure next").
+`hover` and `drawInk` split their time the way `scroll` does, since 2026-11-17: `wallMs` is
+`settled - t0`, with `t0` before the first pointer move, and `settleMs` counts from the last one.
+`wallMs` holds the frame-paced input, 80 pointer moves for `hover` (four steps between each of 20
+highlights) and 180 for `drawInk`, so it scales with the run's frame interval. `drawInk /
+settleMs` still holds the ink tool's 800 ms grouping window. Before, `settleMs` was the whole
+`settled - t0`, and its 3% floor was mostly pacing: `main-now` against `phase-d-end` in
+`2026-11-17T04-18-50-584Z` had thresholds of ±39.6 ms on `hover` and ±118.2 ms on `drawInk`. So
+a `hover` or `drawInk` settle row from an earlier run doesn't compare with one after the change.
+`dragAnnot`, `typeField`, `select` and `annotate` still include their shorter input in `settleMs`.
 
 A done condition's poll is a small read on every arm, found once before the timed window
 (`entry/main.ts` `watch`), but not the same read: the count watch that `drawInk`, `undo`,
