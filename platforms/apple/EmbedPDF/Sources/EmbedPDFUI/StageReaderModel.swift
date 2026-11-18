@@ -46,6 +46,9 @@ public final class StageReaderModel {
   /// Runs in a double tap after the start is marked and before the stage
   /// call. Tests hold it so a refresh can land first.
   @ObservationIgnored var zoomStartReached: (@MainActor () async -> Void)?
+  /// Runs in a refresh after its `isMoving()` read returns and before the
+  /// read is applied. Tests hold it so a double tap can run first.
+  @ObservationIgnored var zoomReadReturned: (@MainActor () async -> Void)?
   /// The last drag call, which the next one waits for. SwiftUI hands a
   /// gesture's change and end to separate tasks, and each call leaves the
   /// main actor while it reaches the stage, so without this an end could
@@ -241,6 +244,7 @@ public final class StageReaderModel {
       camera = try await stage.camera()
       if zoomAnimating, mayJudge {
         let moving = try await stage.isMoving()
+        await zoomReadReturned?()
         if epoch == zoomEpoch { zoomAnimating = moving }
       }
     } catch {

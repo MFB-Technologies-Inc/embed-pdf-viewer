@@ -266,6 +266,43 @@ struct StageReaderModelTests {
     try await expectObserved({ model.isZooming }, equals: false) {}
     #expect(try await !model.stage.isMoving())
   }
+
+  /// A refresh that began before a double tap, with no zoom start in flight,
+  /// reads the still stage. If that read lands only after the tap has started
+  /// its zoom, it must not end that zoom.
+  @Test func aReadTakenBeforeTheDoubleTapDoesNotEndItsZoom() async throws {
+    let (model, task) = try await model()
+    defer { task.cancel() }
+    await model.sizeChanged(CGSize(width: 390, height: 844), displayScale: 3)
+    let (reached, reach) = AsyncStream<Void>.makeStream()
+    let (gate, open) = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
+    var held = false
+    model.zoomReadReturned = {
+      guard !held else { return }
+      held = true
+      reach.yield(())
+      for await _ in gate { break }
+    }
+    // A pinch starts no motion, so its end's refresh reads the still stage
+    // and is held there.
+    model.magnifyChanged(1.2, at: CGPoint(x: 195, y: 422))
+    let pinch = Task { await model.magnifyEnded() }
+    for await _ in reached { break }
+    await model.doubleTapped(at: CGPoint(x: 195, y: 422))
+    #expect(try await model.stage.isMoving())
+    #expect(model.isZooming)
+    // The held read must leave `isZooming` alone. This relies on the 240 ms
+    // tween outlasting the hops from the tap's return to here.
+    let ended = await observationFires({ model.isZooming }) {
+      open.yield(())
+      open.finish()
+      await pinch.value
+    }
+    #expect(!ended, "a read taken before the double tap ended its zoom")
+    #expect(model.isZooming)
+    try await expectObserved({ model.isZooming }, equals: false) {}
+    #expect(try await !model.stage.isMoving())
+  }
 }
 
 /// Set once, from any thread: an observation's `onChange`.
