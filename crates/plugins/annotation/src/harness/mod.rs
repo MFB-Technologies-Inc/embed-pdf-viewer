@@ -512,6 +512,7 @@ const MEMBERS: &[&str] = &[
     "finishInkDraft",
     "cancel",
     "getDistanceCreationPage",
+    "hasCreationAwaitingClick",
     "onDraftCaptured",
     "createMarkup",
     "createCaret",
@@ -1061,6 +1062,7 @@ fn call_capability(a: &AnnotationCapability, method: &str, args: &[Value], h: &H
         },
         "onDraftCaptured" => subscribe(h, &a.events.draft_captured, &value(args, 0)),
         "getDistanceCreationPage" => Outcome::Returned(opt_value(a.distance_creation_page())),
+        "hasCreationAwaitingClick" => Outcome::Returned(json!(a.has_creation_awaiting_click())),
         // ── pointer ──
         "editPointer" => {
             let touch = arg(args, 7).map(|v| epdf_annotation_core::json::truthy(Some(v)));

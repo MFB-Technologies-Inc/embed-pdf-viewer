@@ -7,7 +7,7 @@
  * object (`same`: the "no change" a store skips a notification for), the
  * effects, change set and session it returned; then the final model. The
  * other exports (`rotateDraftDelta`, `calloutBox`, `calloutUprightRot`,
- * `annotsInBox`) are called directly.
+ * `annotsInBox`, `dropsWaitingInk`) are called directly.
  */
 import type { PageRef } from '@embedpdf/engine-core/runtime';
 import * as up from '../../../../packages/core/annotation/src/update';
@@ -90,6 +90,13 @@ export const updateFns: Record<string, Fn> = {
   /** Current calls: page address, rectangle, optional inert ids and view. */
   annotsInBoxes: (model: Model, calls: [PageRef, Rect, Set<Id>?, ViewEnv?][]) =>
     calls.map(([page, box, inert, view]) => up.annotsInBox(model, page, box, inert, view)),
+  /** `setup` runs from `s`; then each of `messages` alone on what it left:
+   *  whether that message took the place of the ink waiting there. */
+  dropsWaitingInk: (s: Model, setup: Msg[], messages: Msg[]) => {
+    let m = s;
+    for (const msg of setup) m = apply(m, up.update(m, msg));
+    return messages.map((msg) => up.dropsWaitingInk(m, up.update(m, msg).session, msg));
+  },
 };
 
 /** Apply `msgs` in turn from `s` over `initialModel`. Per step: whether
@@ -1821,6 +1828,38 @@ BOXES.push([2, v(0, 0), v(600, 800)]);
 updateCases.push(c('annotsInBox', 'box', S(), PON, v(90, 90), v(200, 200)));
 updateCases.push(c('annotsInBoxes', 'page', S(), BOXES));
 updateCases.push(c('annotsInBox', 'groups', GROUP, PON, v(0, 0), v(600, 800)));
+// `dropsWaitingInk` (6b424edce), after upstream's annotation-core test: a
+// square to press, then one stroke of a pen that groups strokes.
+{
+  const ink = (phase: Phase, x: number, y: number, page = pageRef(PON)): Msg =>
+    cr('ink', phase, x, y, { page }, { deferInkCommit: true });
+  const square = drag('square', v(100, 100), v(160, 160));
+  const penDown = [...square, ink('down', 300, 300), ink('move', 340, 320)];
+  let pressed = modelOf({});
+  for (const msg of square) pressed = apply(pressed, up.update(pressed, msg));
+  const id = pressed.order[0]!;
+  updateCases.push(
+    c('dropsWaitingInk', 'pen-down', {}, penDown, [ed('down', 100, 130), { type: 'cancel' }]),
+    c(
+      'dropsWaitingInk',
+      'waiting',
+      {},
+      [...penDown, ink('up', 380, 300)],
+      [
+        ink('down', 300, 340),
+        { type: 'hover', id },
+        { type: 'select', ids: [id] },
+        ed('down', 500, 500),
+        ed('down', 100, 130),
+        mq('down', 500, 500),
+        ink('down', 20, 20, pageRef(2)),
+        { type: 'cancel' },
+        { type: 'finishInkDraft' },
+      ],
+    ),
+    c('dropsWaitingInk', 'no-draft', {}, square, [ed('down', 100, 130)]),
+  );
+}
 
 export const suites: Suite[] = currentSuites([
   {

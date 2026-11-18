@@ -19,7 +19,7 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use epdf_annotation_core::types::{Effect, Id, Message, Model, UpdateResult};
-use epdf_annotation_core::update::{new_records_at_most, update};
+use epdf_annotation_core::update::{drops_waiting_ink, new_records_at_most, update};
 use epdf_kernel::changes::{ChangeQueue, HeldChange, PendingChange, SettledChange, StagedChange};
 use epdf_kernel::error::{code, plugin_error, to_plugin_error};
 use epdf_kernel::rt::Promise;
@@ -489,6 +489,23 @@ impl Core {
         let before = self.model();
         let mut result =
             update(&before, &parsed).map_err(|e| to_plugin_error(CAPABILITY, &core_error(e)))?;
+        // An ink drawing that waits for its next stroke is finished work held
+        // in the draft. A message that would take its place runs after the
+        // drawing became an annotation; only `cancel` drops it.
+        if drops_waiting_ink(&before.session(), &result.session, &parsed) {
+            self.finish_waiting_ink(false);
+            // The drawing is an annotation now: the message runs on that
+            // model. When its create still waits for an object number, the
+            // message goes ahead.
+            let now = self.model();
+            let same = match (&now.draft, &before.draft) {
+                (Some(a), Some(b)) => Rc::ptr_eq(a, b),
+                (a, b) => a.is_none() && b.is_none(),
+            };
+            if !same {
+                return self.commit_message(parsed, adjust, into);
+            }
+        }
         if let Some(adjust) = &adjust {
             result = adjust(result);
         }

@@ -16,7 +16,8 @@ use crate::record::writable_target;
 use crate::rect::union_rect;
 use crate::types::{
     CapturedEffect, CreateInk, CreateLine, CreatePointerMessage, CreatePoly, CreateRect, Draft,
-    Effect, InkShape, Model, Phase, Placement, Point, PointerInput, PolyShape, Rect, Shape,
+    Effect, InkShape, Message, Model, Phase, Placement, Point, PointerInput, PolyShape, Rect,
+    Session, Shape,
 };
 use crate::update::changes::{
     draft_of, is_poly_subtype, new_record, numbers_left, with_new_record,
@@ -360,6 +361,34 @@ pub fn finish_ink_create(model: &Model) -> CoreResult<(Model, Vec<Effect>)> {
     let id = record.record.id.clone();
     let next = created(model, record.record, model.editing.clone());
     Ok((next, vec![Effect::create(&id, record.draft)]))
+}
+
+/// `dropsWaitingInk(before, after, message)`: whether `message` took the
+/// place of an ink drawing that waited for its next stroke. Before the
+/// message, the draft held strokes with the pen up: finished work, kept there
+/// so the next stroke can join it. After it, the draft no longer holds them.
+/// Two messages end the drawing on purpose and so drop nothing: `cancel`
+/// discards it, and `finishInkDraft` makes it an annotation.
+///
+/// The caller makes the strokes an annotation and runs the message again.
+pub fn drops_waiting_ink(before: &Session, after: &Session, message: &Message) -> bool {
+    let Some(Draft::CreateInk(waiting)) = before.draft.as_deref() else { return false };
+    if waiting.drawing == Some(true) {
+        return false;
+    }
+    if matches!(message, Message::Cancel | Message::FinishInkDraft) {
+        return false;
+    }
+    // The next stroke of the drawing, and a message that leaves the draft
+    // alone, both keep its first stroke as it was.
+    let kept = match after.draft.as_deref() {
+        Some(Draft::CreateInk(next)) => match (next.strokes.first(), waiting.strokes.first()) {
+            (Some(a), Some(b)) => Rc::ptr_eq(a, b),
+            (a, b) => a.is_none() && b.is_none(),
+        },
+        _ => false,
+    };
+    !kept
 }
 
 /// `finishPolyCreate(model)`.

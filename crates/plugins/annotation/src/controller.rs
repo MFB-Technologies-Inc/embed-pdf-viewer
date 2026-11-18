@@ -360,6 +360,7 @@ pub fn create_annotation_controller(
     core.follow_confirmed_changes();
     core.wire_editable_freeze();
     core.wire_measurement();
+    core.wire_drafts();
     core.create_hover_feed();
     let capability = AnnotationCapability(core.clone());
     let weak = Rc::downgrade(&core);

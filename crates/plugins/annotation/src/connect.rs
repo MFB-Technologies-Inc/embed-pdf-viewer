@@ -58,6 +58,10 @@ impl Core {
         let (me, i) = (self.weak(), interaction.clone());
         let off = interaction.on_tool_changed(move |_| {
             let Some(core) = me.upgrade() else { return Ok(()) };
+            // A pen drawing that waits for its next stroke is finished. A
+            // gesture, or a shape that needs more clicks, goes with the tool
+            // it was made with.
+            core.finish_ink_draft();
             core.cancel();
             core.clear_ghost();
             core.prune_engaged_selection();

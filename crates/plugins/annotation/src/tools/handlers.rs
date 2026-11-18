@@ -6,8 +6,6 @@ use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 
 use epdf_annotation_core::types::Point;
-use epdf_kernel::Unsubscribe;
-use epdf_kernel::clock::PluginClock;
 use epdf_plugin_interaction::{
     InteractionCapability, InteractionHandler, PointerKind, PointerSample, Tool, sample_point_on,
 };
@@ -147,7 +145,9 @@ impl InteractionHandler for EditHandler {
         let (Some(core), Some(hit)) = (self.core.upgrade(), sample.page.as_ref()) else {
             return false;
         };
-        if core.distance_creation_page().is_some() {
+        // A shape that is made click by click owns its next click, also where
+        // it lands on an existing annotation: the draw handler takes it.
+        if core.has_creation_awaiting_click() {
             return false;
         }
         let touch = sample.pointer_type == Some(PointerKind::Touch);
@@ -246,12 +246,15 @@ impl InteractionHandler for EditHandler {
     }
     fn on_hover(&self, sample: &PointerSample) {
         let Some(core) = self.core.upgrade() else { return };
-        let cursor = match &sample.page {
+        // While a shape waits for its next click, a click here is the shape's:
+        // no annotation under the pointer shows as one to grab or as hovered.
+        let page = if core.has_creation_awaiting_click() { None } else { sample.page.as_ref() };
+        let cursor = match page {
             Some(hit) => core.get_cursor_at(&hit.page.to_json(), hit.point, view_of(sample)),
             None => Value::Null,
         };
         self.interaction.claim_cursor("annotation", cursor.as_str(), 20.0);
-        let at = sample.page.as_ref().map(|hit| (hit.page.to_json(), hit.point, view_of(sample)));
+        let at = page.map(|hit| (hit.page.to_json(), hit.point, view_of(sample)));
         let _ = core.hover_at(at.as_ref().map(|(p, point, v)| (p, *point, *v)));
     }
 }
@@ -347,30 +350,20 @@ impl InteractionHandler for MarqueeHandler {
     }
 }
 
-/// An ink drawing waiting for its next stroke.
-struct PendingInk {
-    tool: String,
-    page: f64,
-    cancel_wait: Unsubscribe,
-}
-
 /// The draw gesture's home page and last point.
 struct DrawOrigin {
     page: Value,
     point: Point,
 }
 
-/// `createDrawHandler(anno, interaction, clock, onSettle)`.
+/// `createDrawHandler(anno, interaction)`.
 pub struct DrawHandler {
     core: Weak<Core>,
     interaction: InteractionCapability,
-    clock: PluginClock,
-    me: RefCell<Weak<DrawHandler>>,
     drawing_poly: Cell<bool>,
     drawing_callout: Cell<bool>,
     follow_page: RefCell<Option<Value>>,
     origin: RefCell<Option<DrawOrigin>>,
-    pending_ink: RefCell<Option<PendingInk>>,
 }
 
 impl DrawHandler {
@@ -378,17 +371,7 @@ impl DrawHandler {
         self.interaction.get_active_tool_id()
     }
 
-    fn flush_pending_ink(&self) {
-        let pending = self.pending_ink.borrow_mut().take();
-        let Some(pending) = pending else { return };
-        pending.cancel_wait.call();
-        if let Some(core) = self.core.upgrade() {
-            core.finish_ink_draft();
-        }
-    }
-
     fn reset(&self) {
-        self.flush_pending_ink();
         self.drawing_poly.set(false);
         self.drawing_callout.set(false);
         *self.follow_page.borrow_mut() = None;
@@ -419,20 +402,6 @@ impl InteractionHandler for DrawHandler {
         }
         let Some(hit) = sample.page.as_ref() else { return false };
         let page = hit.page.to_json();
-        let number = hit.page.page_object_number as f64;
-        if subtype == "ink" {
-            let same =
-                self.pending_ink.borrow().as_ref().map(|p| p.tool == tool && p.page == number);
-            match same {
-                Some(true) => {
-                    if let Some(p) = self.pending_ink.borrow_mut().take() {
-                        p.cancel_wait.call();
-                    }
-                }
-                Some(false) => self.flush_pending_ink(),
-                None => {}
-            }
-        }
         *self.origin.borrow_mut() = Some(DrawOrigin { page: page.clone(), point: hit.point });
         if is_poly_tool(&subtype) {
             let finish = sample.click_count.unwrap_or(1.0) >= 2.0;
@@ -478,32 +447,11 @@ impl InteractionHandler for DrawHandler {
         {
             let point = point_on(sample, &origin.page).unwrap_or(origin.point);
             let _ = core.create_pointer(&tool, "up", &origin.page, point, false, None);
-            if subtype == "ink" {
-                let group = core.get_resolved_tool(&tool).map_or(0.0, |t| t.group_strokes_ms());
-                if group > 0.0 {
-                    let me = self.me.borrow().clone();
-                    let cancel_wait = self.clock.after(group, move || {
-                        let Some(handler) = me.upgrade() else { return };
-                        *handler.pending_ink.borrow_mut() = None;
-                        if let Some(core) = handler.core.upgrade() {
-                            core.finish_ink_draft();
-                        }
-                    });
-                    *self.pending_ink.borrow_mut() = Some(PendingInk {
-                        tool: tool.clone(),
-                        page: page_object_number(&origin.page),
-                        cancel_wait,
-                    });
-                }
-            }
         }
         *self.origin.borrow_mut() = None;
         core.clear_ghost();
     }
     fn on_pointer_cancel(&self, _sample: &PointerSample) {
-        if let Some(pending) = self.pending_ink.borrow_mut().take() {
-            pending.cancel_wait.call();
-        }
         self.drawing_poly.set(false);
         self.drawing_callout.set(false);
         *self.follow_page.borrow_mut() = None;
@@ -556,28 +504,17 @@ pub fn create_handlers(
     let draw = Rc::new(DrawHandler {
         core: core.weak(),
         interaction: interaction.clone(),
-        clock: core.cx.clock(),
-        me: RefCell::new(Weak::new()),
         drawing_poly: Cell::new(false),
         drawing_callout: Cell::new(false),
         follow_page: RefCell::new(None),
         origin: RefCell::new(None),
-        pending_ink: RefCell::new(None),
     });
-    *draw.me.borrow_mut() = Rc::downgrade(&draw);
     (place, edit, marquee, draw)
 }
 
 impl DrawHandler {
-    /// A download finishes the drawing waiting for its next stroke; a tool change too.
+    /// A tool change ends the gesture this handler follows.
     pub(crate) fn wire(self: &Rc<Self>, core: &Core) {
-        let me = Rc::downgrade(self);
-        let _ = core.cx.on_settle(Rc::new(move |_signal| {
-            if let Some(handler) = me.upgrade() {
-                handler.flush_pending_ink();
-            }
-            Ok(None)
-        }));
         let me = Rc::downgrade(self);
         let off = self.interaction.on_tool_changed(move |_| {
             if let Some(handler) = me.upgrade() {

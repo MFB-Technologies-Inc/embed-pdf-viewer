@@ -60,8 +60,8 @@ use crate::shapes::text_box::{callout_end, text_plate_inset};
 use crate::snap::compute_move_snap;
 use crate::types::*;
 use crate::update::{
-    RotateDelta, annots_in_box, callout_box, callout_upright_rot, defaults_for, initial_model,
-    rotate_draft_delta, update,
+    RotateDelta, annots_in_box, callout_box, callout_upright_rot, defaults_for, drops_waiting_ink,
+    initial_model, rotate_draft_delta, update,
 };
 use crate::view::{
     TextBox, chrome, creation_draft_anchor, page_items, selected_items, selection_anchor,
@@ -570,6 +570,26 @@ fn rotate_delta_value(d: RotateDelta) -> Value {
         ("angle", num(d.angle)),
         ("snapped", Value::Bool(d.snapped)),
     ]))
+}
+
+/// `setup` runs from the model; then each message alone on what it left.
+fn drops_waiting_ink_fn(a: &[Value]) -> Out {
+    let mut m = model(a, 0)?;
+    for message in a.get(1).and_then(Value::as_array).cloned().unwrap_or_default() {
+        let message = Message::read(&message).map_err(decode)?;
+        let result = update(&m, &message).map_err(|e| Error::new(e.to_string()))?;
+        if let Some(next) = apply(&m, &result) {
+            m = next;
+        }
+    }
+    let before = m.session();
+    let mut out = Vec::new();
+    for message in a.get(2).and_then(Value::as_array).cloned().unwrap_or_default() {
+        let message = Message::read(&message).map_err(decode)?;
+        let result = update(&m, &message).map_err(|e| Error::new(e.to_string()))?;
+        out.push(Value::Bool(drops_waiting_ink(&before, &result.session, &message)));
+    }
+    ok_value(Value::Array(out))
 }
 
 fn annots_in_boxes(a: &[Value]) -> Out {
@@ -1202,6 +1222,7 @@ pub fn functions() -> FunctionTable {
             ))
         }),
         ("annotsInBoxes", annots_in_boxes),
+        ("dropsWaitingInk", drops_waiting_ink_fn),
         // measurement
         ("distanceCaptionWidth", |a| ok(distance_caption_width(&arg::<String>(a, 0)?))),
         ("distanceLabel", |a| ok(distance_label(&arg(a, 0)?, &appearance(a, 1)?))),

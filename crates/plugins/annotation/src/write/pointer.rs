@@ -132,6 +132,8 @@ impl Core {
         }
         let laid_out = self.size_of(number).is_some();
         let cache = self.viewports_of(number);
+        // A pen that groups strokes keeps each one in the draft for this long.
+        let group_strokes_ms = resolved.as_ref().map_or(0.0, |t| t.group_strokes_ms());
         let model = self.model();
         let preset = resolved.as_ref().map_or_else(|| tool.to_string(), |t| t.preset.clone());
         let continuing = match model.draft() {
@@ -241,7 +243,7 @@ impl Core {
             if let Some(f) = &t.flags {
                 message.insert("flags".into(), Value::Object(f.clone()));
             }
-            message.insert("deferInkCommit".into(), json!(t.group_strokes_ms() > 0.0));
+            message.insert("deferInkCommit".into(), json!(group_strokes_ms > 0.0));
             if let Some(straighten) = t.ink.as_ref().and_then(|i| i.get("straighten")) {
                 message.insert("straightenInk".into(), straighten.clone());
             }
@@ -256,6 +258,10 @@ impl Core {
             None,
         )?;
         self.after_create_done(tool_id.as_deref(), &committed.effects);
+        // The pen's stroke was held back: the next one may join the same drawing.
+        if phase == "up" && group_strokes_ms > 0.0 {
+            self.wait_for_next_stroke(tool_id, group_strokes_ms);
+        }
         Ok(())
     }
 

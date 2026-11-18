@@ -35,7 +35,7 @@ use crate::json::{self, Object};
 use crate::object::Json;
 use crate::types::{ChangeSet, Effect, Id, Message, Model, SnapSettings, UpdateResult};
 
-pub use draw::{draft_placement, finish_ink_create, finish_poly_create};
+pub use draw::{draft_placement, drops_waiting_ink, finish_ink_create, finish_poly_create};
 pub use draw_callout::{callout_box, callout_upright_rot};
 pub use edit::{RotateDelta, rotate_draft_delta};
 pub use marquee::{annots_in_box, selection_in_box};

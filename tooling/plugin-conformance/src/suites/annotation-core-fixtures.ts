@@ -79,6 +79,7 @@ export const c = (fn: string, label: string, ...args: unknown[]): FunctionCase =
     'rotateDraftDeltas',
     'annotsInBox',
     'annotsInBoxes',
+    'dropsWaitingInk',
     'pageItems',
     'chrome',
     'selectedItems',
