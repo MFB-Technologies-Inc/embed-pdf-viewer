@@ -755,6 +755,7 @@ dependencies = [
  "epdf-ffi",
  "epdf-geometry",
  "epdf-kernel",
+ "epdf-plugin-annotation",
  "epdf-plugin-commands",
  "futures",
  "plugin-conformance",

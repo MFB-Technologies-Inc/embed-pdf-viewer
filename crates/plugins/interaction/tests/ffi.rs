@@ -171,10 +171,10 @@ fn a_registered_tool_conflicts_until_replaced_and_unregisters() {
         enables: vec!["annotation-create".into()],
         touch: Some(InteractionToolTouch::Draw),
     };
-    let registration = block_on(interaction.register_tool(tool.clone(), false)).unwrap();
-    let error = block_on(interaction.register_tool(tool.clone(), false)).err().unwrap();
+    let registration = block_on(interaction.register_tool(tool.clone(), false, None)).unwrap();
+    let error = block_on(interaction.register_tool(tool.clone(), false, None)).err().unwrap();
     assert_eq!(code(&error), Some("conflict"), "{error:?}");
-    let replaced = block_on(interaction.register_tool(tool, true)).unwrap();
+    let replaced = block_on(interaction.register_tool(tool, true, None)).unwrap();
     // The first registration no longer owns the id, so its unregister is a no-op.
     registration.unregister();
     drain(&thread);
@@ -423,4 +423,86 @@ fn unregistering_a_handler_releases_it_while_the_registration_lives() {
     // keep itself alive through the registration's closure.
     assert_eq!(Arc::strong_count(&handler), 1);
     drop(registration);
+}
+
+// ── a tool says whether it may be used (`Tool.canUse`, d6325f5ba) ─────────────
+
+struct Permission(bool);
+
+impl epdf_plugin_interaction::ffi::ToolPermission for Permission {
+    fn can_use(&self) -> bool {
+        self.0
+    }
+}
+
+fn host_tool(id: &str) -> InteractionTool {
+    InteractionTool {
+        id: id.into(),
+        cursor: "crosshair".into(),
+        gap_cursor: None,
+        enables: Vec::new(),
+        touch: None,
+    }
+}
+
+#[test]
+fn a_tool_is_usable_as_its_permission_says() {
+    let (_thread, interaction, _) = handle();
+    // An id nobody registered may not be used; a built-in tool says nothing, so it may.
+    assert!(!block_on(interaction.can_use_tool("nothing".into())).unwrap());
+    assert!(block_on(interaction.can_use_tool("pan".into())).unwrap());
+    block_on(interaction.register_tool(host_tool("plain"), false, None)).unwrap();
+    assert!(block_on(interaction.can_use_tool("plain".into())).unwrap());
+    let refused =
+        Some(Arc::new(Permission(false)) as Arc<dyn epdf_plugin_interaction::ffi::ToolPermission>);
+    block_on(interaction.register_tool(host_tool("ink"), false, refused)).unwrap();
+    assert!(!block_on(interaction.can_use_tool("ink".into())).unwrap());
+    let allowed =
+        Some(Arc::new(Permission(true)) as Arc<dyn epdf_plugin_interaction::ffi::ToolPermission>);
+    block_on(interaction.register_tool(host_tool("ink"), true, allowed)).unwrap();
+    assert!(block_on(interaction.can_use_tool("ink".into())).unwrap());
+}
+
+/// The annotation plugin's tools ask `annotations:create`: a document that
+/// allows nothing refuses them, one that allows everything takes them.
+fn annotation_tools_usable(allows: serde_json::Value) -> bool {
+    use plugin_conformance::test_kernel::{Reply, TestSpec};
+    let thread = KernelThread::spawn(move |_| {
+        let spec = TestSpec::new(serde_json::json!({ "documents": { "a": {
+                "id": "a", "security": { "allows": allows },
+                "pages": [{
+                        "index": 0, "ref": { "kind": "objectNumber", "objectNumber": 1 }, "label": null,
+                        "size": { "width": 600, "height": 800 }, "rotation": 0, "userUnit": 1, "tabOrder": null,
+                        "pdfCropBox": { "left": 0, "bottom": 0, "right": 600, "top": 800 },
+                        "boxes": { "media": { "x": 0, "y": 0, "width": 600, "height": 800 },
+                                           "crop": { "x": 0, "y": 0, "width": 600, "height": 800 } }
+                }]
+        } } }))
+        .respond("annotations.list", |_| Ok(Reply::value(serde_json::json!({ "annotations": [] }))));
+        TestKernel::open(
+            vec![
+                interaction_plugin(InteractionConfig::default()),
+                epdf_plugin_annotation::annotation_plugin(None),
+            ],
+            spec,
+        )
+    })
+    .unwrap();
+    let post = thread.post();
+    let interaction = block_on(thread.call(move |k| {
+        InteractionHandle::new(
+            k.capability(&INTERACTION).unwrap(),
+            post,
+            Rc::new(|_: &epdf_kernel::Error| {}),
+        )
+    }))
+    .unwrap();
+    assert!(block_on(interaction.has_tool("square".into())).unwrap());
+    block_on(interaction.can_use_tool("square".into())).unwrap()
+}
+
+#[test]
+fn an_annotation_tool_needs_the_permission_to_create_annotations() {
+    assert!(!annotation_tools_usable(serde_json::json!([])));
+    assert!(annotation_tools_usable(serde_json::json!("*")));
 }

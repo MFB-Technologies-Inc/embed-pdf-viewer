@@ -46,6 +46,14 @@ pub struct InteractionTool {
     pub touch: Option<InteractionToolTouch>,
 }
 
+/// `Tool.canUse()` for a tool the host registers: whether the user may use
+/// it now, such as a tool that draws annotations, which needs permission to
+/// create them. Asked on the kernel thread whenever `can_use_tool` is read.
+#[uniffi::export(with_foreign)]
+pub trait ToolPermission: Send + Sync {
+    fn can_use(&self) -> bool;
+}
+
 /// `ToolTouch`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, uniffi::Enum)]
 pub enum InteractionToolTouch {
@@ -458,16 +466,22 @@ impl InteractionHandle {
 
     /// Rejects `conflict` for an id already registered unless `replace`.
     /// The registration's `unregister` removes only this registration.
+    /// `permission` is the tool's `canUse`; without one the tool may always
+    /// be used.
+    #[uniffi::method(default(permission = None))]
     pub async fn register_tool(
         &self,
         tool: InteractionTool,
         replace: bool,
+        permission: Option<Arc<dyn ToolPermission>>,
     ) -> Result<Arc<RegistrationHandle>, ViewerError> {
         let post = self.post.clone();
         self.bound
             .call(move |b| {
-                let off = open(&b.cap)?
-                    .register_tool(Tool::from(tool), RegisterToolOptions { replace })?;
+                let mut tool = Tool::from(tool);
+                tool.can_use =
+                    permission.map(|p| Rc::new(move || p.can_use()) as crate::ToolCanUse);
+                let off = open(&b.cap)?.register_tool(tool, RegisterToolOptions { replace })?;
                 Ok(registration(post, off))
             })
             .await
