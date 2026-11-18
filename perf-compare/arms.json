@@ -288,6 +288,41 @@
       "ref": "research/perf-fixes",
       "sha": "a6d4d5d14074cb20cd7d2cebcff9fbd5f5981648",
       "recipe": "rust-kernel"
+    },
+    "hist-49b09030c": {
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "49b09030c3cb75aa16bdfb6c0fff61e2b3d0c2a7",
+      "recipe": "rust-kernel"
+    },
+    "hist-3aa47e708": {
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "3aa47e7081e38931532516721a2a606d1cdae8b6",
+      "recipe": "rust-kernel"
+    },
+    "hist-074a190c9": {
+      "ref": "main",
+      "sha": "074a190c910a66181fe7294737f7de55e279b189",
+      "recipe": "typescript"
+    },
+    "hist-c4e744345": {
+      "ref": "main",
+      "sha": "c4e744345a4d81e655f75ccae91e5b513592f769",
+      "recipe": "typescript"
+    },
+    "hist-dfd2937d4": {
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "dfd2937d45c5a1fed0d68159226692d179a0039a",
+      "recipe": "rust-kernel"
+    },
+    "hist-920a52876": {
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "920a52876cf8006c98fe8dfb5210120b4782be7e",
+      "recipe": "rust-kernel"
+    },
+    "hist-bac82a2cd": {
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "bac82a2cd1a4e3a5d3888ff1f0fb460b593a5fb9",
+      "recipe": "rust-kernel"
     }
   },
   "arms": {
@@ -606,6 +641,41 @@
     },
     "perf-fixes-end": {
       "worktree": "perf-fixes-end",
+      "kernel": "rust",
+      "rustReads": false
+    },
+    "hist-49b09030c": {
+      "worktree": "hist-49b09030c",
+      "kernel": "rust",
+      "rustReads": false
+    },
+    "hist-3aa47e708": {
+      "worktree": "hist-3aa47e708",
+      "kernel": "rust",
+      "rustReads": false
+    },
+    "hist-074a190c9": {
+      "worktree": "hist-074a190c9",
+      "kernel": "typescript",
+      "rustReads": false
+    },
+    "hist-c4e744345": {
+      "worktree": "hist-c4e744345",
+      "kernel": "typescript",
+      "rustReads": false
+    },
+    "hist-dfd2937d4": {
+      "worktree": "hist-dfd2937d4",
+      "kernel": "rust",
+      "rustReads": false
+    },
+    "hist-920a52876": {
+      "worktree": "hist-920a52876",
+      "kernel": "rust",
+      "rustReads": false
+    },
+    "hist-bac82a2cd": {
+      "worktree": "hist-bac82a2cd",
       "kernel": "rust",
       "rustReads": false
     }

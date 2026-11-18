@@ -1,0 +1,178 @@
+{
+  "reference": "main",
+  "noise": "main-aa",
+  "machine": {
+    "host": "macmini2020",
+    "cpuModel": "Apple M1"
+  },
+  "series": {
+    "plugins": {
+      "label": "Rust port",
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "recipe": "rust-kernel",
+      "kernel": "rust",
+      "from": "2026-09-29",
+      "intervalDays": 7
+    },
+    "upstream": {
+      "label": "Upstream main",
+      "ref": "main",
+      "recipe": "typescript",
+      "kernel": "typescript"
+    }
+  },
+  "points": [
+    {
+      "series": "plugins",
+      "sha": "bef223d9d1702703dbffae9ce8180ee9f4690615",
+      "date": "2026-09-29T15:27:15.000Z",
+      "why": "milestone",
+      "note": "the first commit the harness measured",
+      "arm": "plugins"
+    },
+    {
+      "series": "plugins",
+      "sha": "c9201919264bf5fdc309b11b3f2cdbd70936634f",
+      "date": "2026-10-01T03:38:07.000Z",
+      "why": "milestone",
+      "note": "the state cache, wire and bump fixes merged",
+      "arm": "plugins-fixed"
+    },
+    {
+      "series": "plugins",
+      "sha": "373b7f73b1b1d0d4bf202ecfafdcbbc84f18ba31",
+      "date": "2026-10-01T17:55:59.000Z",
+      "why": "milestone",
+      "note": "the glyph view merged",
+      "arm": "plugins-tip3"
+    },
+    {
+      "series": "plugins",
+      "sha": "7455a529410a8d8464e5a9b1a45dfba7a8e97916",
+      "date": "2026-10-06T00:41:13.000Z",
+      "why": "milestone",
+      "note": "the bridge encoding merged",
+      "arm": "plugins-tip4"
+    },
+    {
+      "series": "plugins",
+      "sha": "faa2c6189eeecb1c62552fc8cfe7fa09a7c1c7cb",
+      "date": "2026-10-08T14:20:48.000Z",
+      "why": "milestone",
+      "note": "the geometry decode merged",
+      "arm": "plugins-tip6"
+    },
+    {
+      "series": "plugins",
+      "sha": "9d6c2eca100ab612faa1dcb87135c2527b81b450",
+      "date": "2026-10-13T02:20:28.000Z",
+      "why": "milestone",
+      "note": "plain arguments and result text merged; the tip before the catch-ups",
+      "arm": "plugins-tip7"
+    },
+    {
+      "series": "plugins",
+      "sha": "dfd2937d45c5a1fed0d68159226692d179a0039a",
+      "date": "2026-10-20T20:40:11.000Z",
+      "why": "interval",
+      "note": "the last commit on or before 2026-10-20",
+      "arm": "hist-dfd2937d4"
+    },
+    {
+      "series": "plugins",
+      "sha": "49b09030c3cb75aa16bdfb6c0fff61e2b3d0c2a7",
+      "date": "2026-10-27T18:04:47.000Z",
+      "why": "milestone",
+      "note": "the first upstream catch-up merged",
+      "arm": "hist-49b09030c"
+    },
+    {
+      "series": "plugins",
+      "sha": "920a52876cf8006c98fe8dfb5210120b4782be7e",
+      "date": "2026-11-03T22:56:00.000Z",
+      "why": "interval",
+      "note": "the last commit on or before 2026-11-03",
+      "arm": "hist-920a52876"
+    },
+    {
+      "series": "plugins",
+      "sha": "bac82a2cd1a4e3a5d3888ff1f0fb460b593a5fb9",
+      "date": "2026-11-10T23:38:54.000Z",
+      "why": "interval",
+      "note": "the last commit on or before 2026-11-10",
+      "arm": "hist-bac82a2cd"
+    },
+    {
+      "series": "plugins",
+      "sha": "3aa47e7081e38931532516721a2a606d1cdae8b6",
+      "date": "2026-11-12T21:56:06.000Z",
+      "why": "milestone",
+      "note": "the 2026-11-12 catch-up merged",
+      "arm": "hist-3aa47e708"
+    },
+    {
+      "series": "plugins",
+      "sha": "0de4effd922631c607fe44ca352a3aa9b2d52555",
+      "date": "2026-11-16T22:48:52.000Z",
+      "why": "milestone",
+      "note": "the base of research/perf-fixes",
+      "arm": "plugins-next"
+    },
+    {
+      "series": "plugins",
+      "sha": "af9ff5d2b1950fc0940931612d3b2c862448ef2e",
+      "date": "2026-11-17T02:09:02.000Z",
+      "why": "milestone",
+      "note": "research/perf-fixes Phase C",
+      "arm": "phase-c-end"
+    },
+    {
+      "series": "plugins",
+      "sha": "0d18fb1776331c12dcf332632f6e4c6d74a876fa",
+      "date": "2026-11-17T03:20:53.000Z",
+      "why": "milestone",
+      "note": "research/perf-fixes Phase D",
+      "arm": "phase-d-end"
+    },
+    {
+      "series": "plugins",
+      "sha": "a6d4d5d14074cb20cd7d2cebcff9fbd5f5981648",
+      "date": "2026-11-17T13:55:51.000Z",
+      "why": "milestone",
+      "note": "the research/perf-fixes tip",
+      "arm": "perf-fixes-end"
+    },
+    {
+      "series": "upstream",
+      "sha": "2516e2786ee894383220ecd436fbd248182ef444",
+      "date": "2026-09-22T12:37:31.000Z",
+      "why": "milestone",
+      "note": "the reference itself",
+      "arm": "main"
+    },
+    {
+      "series": "upstream",
+      "sha": "074a190c910a66181fe7294737f7de55e279b189",
+      "date": "2026-11-06T23:36:00.000Z",
+      "why": "milestone",
+      "note": "upstream at the 2026-11-07 catch-up",
+      "arm": "hist-074a190c9"
+    },
+    {
+      "series": "upstream",
+      "sha": "ed064e0c867e7688234ad36c0350377544ef93f9",
+      "date": "2026-11-12T20:08:31.000Z",
+      "why": "milestone",
+      "note": "upstream at the 2026-11-12 catch-up",
+      "arm": "main-now"
+    },
+    {
+      "series": "upstream",
+      "sha": "c4e744345a4d81e655f75ccae91e5b513592f769",
+      "date": "2026-11-17T12:09:21.000Z",
+      "why": "milestone",
+      "note": "upstream main on 2026-11-17",
+      "arm": "hist-c4e744345"
+    }
+  ]
+}
