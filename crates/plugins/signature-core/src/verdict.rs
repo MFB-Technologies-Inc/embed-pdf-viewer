@@ -1,28 +1,42 @@
-//! `verdict.ts`: integrity, cryptography, trust and modifications for every
-//! signature of a document.
+//! `verdict.ts`: integrity, cryptography, trust, revocation, the
+//! timestamp, long-term validation and modifications for every signature
+//! of a document.
 
 use std::rc::Rc;
 
 use epdf_kernel::Error;
-use epdf_kernel::bytes::Bytes;
 use epdf_kernel::engine::DocumentHandle;
 use serde_json::{Map, Value, json};
 
-use crate::cms::{Cryptography, verify_parsed};
-use crate::parse::{Internal, ParseError, parse_cms_internal};
-use crate::trust::{CmsInput, TrustPort, TrustStatus, ValidationTime, validate_chain};
+use crate::cms::Cryptography;
+use crate::judgement::{
+    Reading, Requested, TimestampVerdict, judge, judge_token, judgement_members,
+    long_term_input_of, read,
+};
+use crate::long_term::long_term_verdict;
+use crate::oids::Digest;
+use crate::revocation::fill::{DEFAULT_MAX_CRL_BYTES, fill_pool};
+use crate::revocation::pool::{AnswersFrom, ValidationPool, read_validation_pool};
+use crate::revocation::source::RevocationSource;
+use crate::revocation::status::Status;
+use crate::trust::{TrustPort, TrustStatus, ValidationTime};
+use crate::verify_timestamp::{Stamped, check_timestamp_token};
 
 /// `ValidateSignaturesOptions`.
 #[derive(Clone, Default)]
 pub struct ValidateOptions {
     pub trust: Option<Rc<dyn TrustPort>>,
-    pub validation_time: Option<ValidationTime>,
+    /// `None` and `Some(Requested::Earliest)` both judge at the earliest
+    /// trusted timestamp.
+    pub validation_time: Option<Requested>,
+    /// Where to ask for the answers the file lacks. Needs `trust`.
+    pub revocation: Option<Rc<dyn RevocationSource>>,
     /// `persisted` (default) or `working-copy`.
     pub until: Option<String>,
 }
 
 /// JavaScript truthiness of a JSON value (`!signature.signed`).
-fn truthy(value: &Value) -> bool {
+pub(crate) fn truthy(value: &Value) -> bool {
     match value {
         Value::Null => false,
         Value::Bool(b) => *b,
@@ -36,6 +50,24 @@ fn text(value: &Value, key: &str) -> Option<String> {
     value.get(key).and_then(Value::as_str).map(str::to_string)
 }
 
+/// Read every signed signature of a document and the pool its validation
+/// data and CMSs offer.
+pub(crate) async fn read_all(
+    doc: &Rc<dyn DocumentHandle>,
+) -> Result<(Value, ValidationPool, Vec<Reading>), Error> {
+    let snapshot = doc.call("signatures.list", None, vec![]).await?;
+    let pool = read_validation_pool(doc).await?;
+    let mut readings = Vec::new();
+    for signature in
+        snapshot.get("signatures").and_then(Value::as_array).cloned().unwrap_or_default()
+    {
+        if signature.get("signed").is_some_and(truthy) {
+            readings.push(read(doc, &snapshot, &signature, &pool).await?);
+        }
+    }
+    Ok((snapshot, pool, readings))
+}
+
 /// `validateSignatures`: one verdict per signed signature, as JSON.
 ///
 /// `signatures` is a required member of the current `DocumentHandle`
@@ -45,117 +77,104 @@ pub async fn validate_signatures(
     doc: Rc<dyn DocumentHandle>,
     options: ValidateOptions,
 ) -> Result<Value, Error> {
-    let snapshot = doc.call("signatures.list", None, vec![]).await?;
+    let (snapshot, pool, readings) = read_all(&doc).await?;
+    let trust = options.trust.clone();
+
+    // Long-term validation always speaks for the times the timestamps
+    // prove, so that judgement is made whatever was asked for.
+    let requested = options.validation_time.clone().unwrap_or(Requested::Earliest);
+    if let (Some(source), Some(trust)) = (&options.revocation, &trust) {
+        let times = match &requested {
+            Requested::Earliest => vec![Requested::Earliest],
+            other => vec![Requested::Earliest, other.clone()],
+        };
+        fill_pool(&readings, trust.clone(), &pool, source.clone(), DEFAULT_MAX_CRL_BYTES, &times)
+            .await?;
+    }
+    let at_timestamps = judge(&readings, trust.clone(), &pool, &Requested::Earliest).await?;
+    let judged = match &requested {
+        Requested::Earliest => None,
+        other => Some(judge(&readings, trust.clone(), &pool, other).await?),
+    };
+    let judged = judged.as_ref().unwrap_or(&at_timestamps);
+
     let mut verdicts = Vec::new();
-    for signature in
-        snapshot.get("signatures").and_then(Value::as_array).cloned().unwrap_or_default()
-    {
-        if !signature.get("signed").is_some_and(truthy) {
-            continue;
-        }
-        verdicts.push(validate_one(&doc, &snapshot, &signature, &options).await?);
+    for (index, reading) in readings.iter().enumerate() {
+        let judgement = &judged.judgements[&index];
+        let proof = &at_timestamps.judgements[&index];
+        let modifications = modifications_of(
+            &doc,
+            &snapshot,
+            &reading.signature,
+            options.until.as_deref().unwrap_or("persisted"),
+        )
+        .await;
+        let verdict =
+            modifications.get("verdict").and_then(Value::as_str).unwrap_or_default().to_string();
+        let revoked =
+            judgement.trust == TrustStatus::Trusted && judgement.revocation == Status::Revoked;
+        let summary = if reading.integrity == "invalid"
+            || reading.cryptography == Cryptography::Invalid
+            || verdict == "forbidden"
+        {
+            "invalid"
+        } else if reading.integrity == "indeterminate"
+            || reading.cryptography == Cryptography::Unsupported
+            || verdict == "indeterminate"
+        {
+            "indeterminate"
+        } else if revoked {
+            // Proof that the certificate was withdrawn by the time it is judged at.
+            "invalid"
+        } else if judgement.trust == TrustStatus::Trusted {
+            "valid"
+        } else {
+            "valid-untrusted"
+        };
+        let long_term = long_term_verdict(&long_term_input_of(
+            reading,
+            proof,
+            &at_timestamps.document_timestamps,
+            &pool,
+            // What the file holds: an answer that was only asked for is not in it.
+            AnswersFrom::File,
+        )?)?;
+        let mut out = Map::new();
+        out.insert("signature".into(), reading.signature.clone());
+        out.insert("integrity".into(), json!(reading.integrity));
+        out.insert("cryptography".into(), json!(reading.cryptography.name()));
+        judgement_members(judgement, &mut out);
+        out.insert("modifications".into(), modifications);
+        out.insert("summary".into(), json!(summary));
+        out.insert("cms".into(), reading.cms.clone().unwrap_or(Value::Null));
+        out.insert(
+            "timestamp".into(),
+            judgement.timestamp.as_ref().map_or(Value::Null, TimestampVerdict::to_json),
+        );
+        out.insert("longTerm".into(), long_term.to_json());
+        verdicts.push(Value::Object(out));
     }
     Ok(Value::Array(verdicts))
 }
 
-async fn validate_one(
-    doc: &Rc<dyn DocumentHandle>,
-    snapshot: &Value,
-    signature: &Value,
-    options: &ValidateOptions,
+/// `verifyTimestampToken`: an RFC 3161 token over any digest, its authority
+/// judged now from the answers it carries itself.
+pub async fn verify_timestamp_token(
+    token: &[u8],
+    digest: &[u8],
+    algorithm: Digest,
+    trust: Option<Rc<dyn TrustPort>>,
 ) -> Result<Value, Error> {
-    let at = options.validation_time.clone().unwrap_or(ValidationTime::Now);
-    let mut integrity = "indeterminate";
-    let mut cryptography = Cryptography::Unsupported;
-    let mut trust = TrustStatus::Unknown;
-    let mut trust_reason = None;
-    let mut internal: Option<Rc<Internal>> = None;
-
-    let chain_valid = snapshot.get("chainValid").and_then(Value::as_bool) == Some(true);
-    let coverage = text(signature, "coverage");
-    if !chain_valid || coverage.as_deref() == Some("malformed") {
-        integrity = if chain_valid { "invalid" } else { "indeterminate" };
-    } else {
-        let field = signature.get("field").cloned().unwrap_or(Value::Null);
-        let outcome: Result<(), Option<ParseError>> = async {
-            let contents = doc
-                .call("signatures.getContents", None, vec![field.clone()])
-                .await
-                .map_err(|_| None)?;
-            let bytes = Bytes::from_json(&contents).map(|b| b.0).unwrap_or_default();
-            let parsed = Rc::new(parse_cms_internal(&bytes).map_err(Some)?);
-            internal = Some(parsed.clone());
-            let digest = doc
-                .call(
-                    "signatures.getDigest",
-                    None,
-                    vec![field, json!(parsed.parsed.digest_algorithm.name())],
-                )
-                .await
-                .map_err(|_| None)?;
-            let digest = Bytes::from_json(&digest).map(|b| b.0).unwrap_or_default();
-            let matches = digest == parsed.parsed.message_digest;
-            integrity = if coverage.as_deref() == Some("whole-revision") && matches {
-                "valid"
-            } else {
-                "invalid"
-            };
-            Ok(())
-        }
-        .await;
-        if let Err(error) = outcome {
-            // A CMS this engine cannot read is not evidence of tampering.
-            integrity = match error {
-                Some(ParseError::Cms { reason: "unsupported", .. }) => "indeterminate",
-                Some(ParseError::Cms { .. }) => "invalid",
-                _ => "indeterminate",
-            };
-        }
+    let check = check_timestamp_token(
+        token,
+        &Stamped::Digest { digest: digest.to_vec(), algorithm: algorithm.name().to_string() },
+        &[],
+    );
+    let pool = ValidationPool::new();
+    if let Some(token) = &check.token {
+        pool.add_carried(&token.certificates, &token.revocation);
     }
-
-    if let Some(parsed) = &internal {
-        cryptography = verify_parsed(parsed);
-        let chain =
-            validate_chain(CmsInput::Parsed(parsed.clone()), options.trust.clone(), at.clone())
-                .await?;
-        trust = chain.status;
-        trust_reason = chain.reason;
-    }
-
-    let modifications =
-        modifications_of(doc, snapshot, signature, options.until.as_deref().unwrap_or("persisted"))
-            .await;
-    let verdict =
-        modifications.get("verdict").and_then(Value::as_str).unwrap_or_default().to_string();
-    let summary = if integrity == "invalid"
-        || cryptography == Cryptography::Invalid
-        || verdict == "forbidden"
-    {
-        "invalid"
-    } else if integrity == "indeterminate"
-        || cryptography == Cryptography::Unsupported
-        || verdict == "indeterminate"
-    {
-        "indeterminate"
-    } else if trust == TrustStatus::Trusted {
-        "valid"
-    } else {
-        "valid-untrusted"
-    };
-
-    let mut out = Map::new();
-    out.insert("signature".into(), signature.clone());
-    out.insert("integrity".into(), json!(integrity));
-    out.insert("cryptography".into(), json!(cryptography.name()));
-    out.insert("trust".into(), json!(trust.name()));
-    if let Some(reason) = trust_reason {
-        out.insert("trustReason".into(), json!(reason));
-    }
-    out.insert("validationTime".into(), at.to_json());
-    out.insert("modifications".into(), modifications);
-    out.insert("summary".into(), json!(summary));
-    out.insert("cms".into(), internal.as_ref().map_or(Value::Null, |i| i.parsed.to_json()));
-    Ok(Value::Object(out))
+    Ok(judge_token(&check, trust, &ValidationTime::Now, &pool, &[]).await?.verdict.to_json())
 }
 
 async fn modifications_of(

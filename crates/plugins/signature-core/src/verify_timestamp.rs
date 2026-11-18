@@ -62,17 +62,19 @@ pub struct TimestampCheck {
 fn begin(
     token: &[u8],
     certificates: &[Certificate],
-) -> Result<(CmsParts, TimestampInfo), TimestampCheck> {
+) -> Result<(CmsParts, TimestampInfo), Box<TimestampCheck>> {
     let read = read_cms_parts(token, CmsContent::TstInfo, certificates).and_then(|parts| {
         let info = read_timestamp_info(parts.e_content.as_deref().unwrap_or_default())?;
         Ok((parts, info))
     });
-    read.map_err(|error: ParseError| TimestampCheck {
-        verdict: Cryptography::Unsupported,
-        problem: Some(TimestampProblem::Unreadable),
-        detail: Some(error.text()),
-        info: None,
-        token: None,
+    read.map_err(|error: ParseError| {
+        Box::new(TimestampCheck {
+            verdict: Cryptography::Unsupported,
+            problem: Some(TimestampProblem::Unreadable),
+            detail: Some(error.text()),
+            info: None,
+            token: None,
+        })
     })
 }
 
@@ -186,7 +188,7 @@ pub fn check_timestamp_token(
 ) -> TimestampCheck {
     let (parts, info) = match begin(token, certificates) {
         Ok(read) => read,
-        Err(check) => return check,
+        Err(check) => return *check,
     };
     match stamped {
         Stamped::Bytes(bytes) => {
@@ -214,7 +216,7 @@ pub async fn check_timestamp_token_async(
     };
     let (parts, info) = match begin(token, certificates) {
         Ok(read) => read,
-        Err(check) => return Ok(check),
+        Err(check) => return Ok(*check),
     };
     let expected = digest(info.imprint_algorithm).await?;
     Ok(finish(parts, info, None, Some(expected)))

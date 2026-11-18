@@ -24,6 +24,7 @@ use crate::cms::{
 };
 use crate::der;
 use crate::gate::{CompletionProfile, Prepared, verify_for_completion};
+use crate::judgement::Requested;
 use crate::oids::Digest;
 use crate::parse::{bytes_json, parse_detached_cms};
 use crate::sign::{CmsSignRequest, CmsSigner, SignerPort, profile_for, sign};
@@ -457,7 +458,14 @@ impl SignatureCapability {
                 let options = present(args.get(1)).cloned().unwrap_or(Value::Null);
                 let options = ValidateOptions {
                     trust: trust_port(&h, options.get("trust")),
-                    validation_time: validation_time(options.get("validationTime")),
+                    validation_time: present(options.get("validationTime")).map(|v| {
+                        if v.get("kind").and_then(Value::as_str) == Some("earliest-timestamp") {
+                            Requested::Earliest
+                        } else {
+                            Requested::At(ValidationTime::from_json(v))
+                        }
+                    }),
+                    revocation: None,
                     until: options.get("until").and_then(Value::as_str).map(str::to_string),
                 };
                 spawn(async move {
