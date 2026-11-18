@@ -2998,6 +2998,57 @@ fn a_seal_with_a_revocation_route_reports_its_validation_data() {
     assert!(transport.sent.lock().unwrap().is_empty());
 }
 
+/// An empty trust slot is no `trust` setting, as upstream's `trust: null`:
+/// `canAddValidationInfo` is false and `addValidationInfo` refuses with
+/// `invalid-input` (`services/authority.ts`, `write/validation-info.ts`).
+#[test]
+fn an_empty_trust_slot_is_no_trust_setting() {
+    let host = ViewerHost::new(
+        ViewerConfig {
+            interaction: true,
+            annotation: Some(Default::default()),
+            form: Some(Default::default()),
+            signature: Some(SignatureConfig {
+                revocation: Some(epdf_plugin_signature::ffi::SignatureRevocationRoute {
+                    url: "https://app.example/revocation".into(),
+                    headers: vec![],
+                    timeout_ms: None,
+                    retries: Some(0),
+                    max_reply_bytes: None,
+                }),
+                ..Default::default()
+            }),
+            ..Default::default()
+        },
+        Arc::new(Delegate),
+    )
+    .unwrap();
+    block_on(host.start()).unwrap();
+    let transport = Arc::new(RecordedTransport::default());
+    host.set_signature_transport(Some(transport.clone()));
+    let doc = open_signing(&host, "unsigned_sigfield.pdf");
+    let s = block_on(host.signature(doc)).unwrap();
+    block_on(s.refresh(CancelToken::new())).unwrap();
+    assert!(!block_on(s.can_add_validation_info()).unwrap());
+    let error = block_on(s.add_validation_info(None, CancelToken::new())).unwrap_err();
+    match &error {
+        ViewerError::Kernel { code, detail, .. } => {
+            assert_eq!(code.as_deref(), Some("invalid-input"), "{error:?}");
+            assert_eq!(
+                detail,
+                "adding validation data needs the `revocation` and `trust` settings"
+            );
+        }
+        ViewerError::Closed => panic!("closed"),
+    }
+    // Anchors in the slot are the setting; an emptied slot is none again.
+    host.set_signature_trust(Some(Arc::new(common::TestAnchors)));
+    assert!(block_on(s.can_add_validation_info()).unwrap());
+    host.set_signature_trust(None);
+    assert!(!block_on(s.can_add_validation_info()).unwrap());
+    assert!(transport.sent.lock().unwrap().is_empty());
+}
+
 // ── the standard commands (#1091, #1089) ──────────────────────────────────
 
 #[derive(Default)]

@@ -154,9 +154,15 @@ impl SignatureCapability {
         self.0.table.decode(&self.0.settings.get())
     }
 
-    /// `settings.get()`, as the areas read it.
+    /// `settings.get()`, as the areas read it. A trust port that stands for
+    /// no setting (a host's empty slot) reads as `trust: null`, so the
+    /// gates, validation and sealing see what upstream sees with none.
     pub(crate) fn settings(&self) -> SignatureSettings {
-        self.get_settings()
+        let mut settings = self.get_settings();
+        if settings.trust.as_ref().is_some_and(|trust| !trust.is_set()) {
+            settings.trust = None;
+        }
+        settings
     }
 
     /// `updateSettings(changes)`: change the settings for every document.

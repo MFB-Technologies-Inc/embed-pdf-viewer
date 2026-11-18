@@ -32,6 +32,11 @@ pub trait TrustPort {
     fn timestamp_anchors(&self) -> Option<Promise<Vec<Vec<u8>>>> {
         None
     }
+    /// Whether the port stands for a `trust` setting at all. A host's slot
+    /// that holds no trust yet is no setting, as upstream's `trust: null`.
+    fn is_set(&self) -> bool {
+        true
+    }
 }
 
 /// `ValidationTime`: now, or a verified RFC 3161 token's time. The token's

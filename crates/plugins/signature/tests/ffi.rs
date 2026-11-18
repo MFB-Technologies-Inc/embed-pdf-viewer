@@ -702,6 +702,25 @@ fn host_handle(
     transport: Option<Arc<dyn SignatureTransport>>,
     spec: impl FnOnce() -> TestSpec + Send + 'static,
 ) -> (KernelThread<TestKernel>, Arc<SignatureHandle>) {
+    host_handle_trusting(config, transport, None, spec)
+}
+
+/// A trust a host set that names no anchors: a `trust` setting all the same.
+struct NoAnchors;
+
+impl epdf_plugin_signature::ffi::SignatureTrust for NoAnchors {
+    fn anchors(&self) -> Result<Vec<Vec<u8>>, ViewerError> {
+        Ok(vec![])
+    }
+}
+
+fn host_handle_trusting(
+    config: epdf_plugin_signature::ffi::SignatureConfig,
+    transport: Option<Arc<dyn SignatureTransport>>,
+    trust: Option<Arc<dyn epdf_plugin_signature::ffi::SignatureTrust>>,
+    spec: impl FnOnce() -> TestSpec + Send + 'static,
+) -> (KernelThread<TestKernel>, Arc<SignatureHandle>) {
+    let trust = Arc::new(Mutex::new(trust));
     let slot: SignatureTransportSlot = Arc::new(Mutex::new(transport));
     let plugin_slot = slot.clone();
     let thread = KernelThread::spawn(move |post| {
@@ -712,7 +731,7 @@ fn host_handle(
                 epdf_plugin_signature::ffi::host_plugin(
                     config,
                     Arc::default(),
-                    Arc::default(),
+                    trust,
                     plugin_slot,
                     post,
                 ),
@@ -818,8 +837,15 @@ fn the_new_settings_cross_and_gate_add_validation_info() {
     let settings = block_on(s.settings()).unwrap();
     assert!(settings.has_timestamp_authority && settings.has_revocation);
     assert!(settings.document_timestamp);
-    // The host plugin's trust is its slot, so `revocation` is what was missing.
-    assert!(block_on(s.can_add_validation_info()).unwrap());
+    // The host plugin's trust is its slot, and the slot is empty: no
+    // `trust` setting, as upstream's `trust: null`.
+    assert!(!block_on(s.can_add_validation_info()).unwrap());
+    let error = block_on(s.add_validation_info(None, CancelToken::new())).unwrap_err();
+    assert_eq!(code(&error), Some("invalid-input"), "{error:?}");
+    assert_eq!(
+        detail(&error),
+        "adding validation data needs the `revocation` and `trust` settings"
+    );
     block_on(
         s.update_settings(SignatureSettingsPatch { clear_revocation: true, ..Default::default() }),
     )
@@ -835,14 +861,15 @@ fn add_validation_info_reaches_the_plugin_and_refuses_as_it_does() {
         ..Default::default()
     };
     let host = Recorded::new(vec![]);
-    let (_thread, s) = host_handle(config, Some(host.clone()), || {
-        // The engine refuses nothing for the probe the client sends first.
-        spec().respond("signatures.addValidationInfo", |_| {
-            Ok(Reply::value(
-                json!({ "added": { "certificates": 0, "ocspResponses": 0, "crls": 0 } }),
-            ))
-        })
-    });
+    let (_thread, s) =
+        host_handle_trusting(config, Some(host.clone()), Some(Arc::new(NoAnchors)), || {
+            // The engine refuses nothing for the probe the client sends first.
+            spec().respond("signatures.addValidationInfo", |_| {
+                Ok(Reply::value(
+                    json!({ "added": { "certificates": 0, "ocspResponses": 0, "crls": 0 } }),
+                ))
+            })
+        });
     block_on(s.refresh(CancelToken::new())).unwrap();
     // All or nothing: the fake signature has no trusted timestamp, so no
     // time is proven to ask about, and nothing is fetched or stored.

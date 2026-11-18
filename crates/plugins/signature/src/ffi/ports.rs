@@ -182,4 +182,9 @@ impl TrustPort for SlotTrust {
             None => Promise::resolved(Vec::new()),
         }
     }
+
+    /// An empty slot is no `trust` setting.
+    fn is_set(&self) -> bool {
+        self.0.lock().unwrap().is_some()
+    }
 }
