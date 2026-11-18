@@ -91,6 +91,98 @@ pub fn revocation_source(
     http_revocation_source(transport, options)
 }
 
+/// `HttpTransport` over a host function that takes the flat request
+/// ([`request_json`]) and answers the flat outcome ([`outcome_from_json`]):
+/// a JavaScript function returning a promise, in the browser build.
+pub struct JsonTransport(pub Rc<dyn Fn(Value) -> Promise<Value>>);
+
+impl HttpTransport for JsonTransport {
+    fn post(&self, request: TransportRequest) -> Promise<TransportOutcome> {
+        (self.0)(request_json(&request)).map(|answer: Value| outcome_from_json(&answer))
+    }
+}
+
+fn bad_option(what: &str, value: &Value) -> Error {
+    Error::named("TypeError", format!("[signature] {what} is not usable: {value}"))
+}
+
+fn whole(spec: &Value, key: &str) -> Result<Option<u32>, Error> {
+    match spec.get(key) {
+        None | Some(Value::Null) => Ok(None),
+        Some(v) if epdf_kernel::is_undefined(v) => Ok(None),
+        Some(v) => v
+            .as_u64()
+            .and_then(|n| u32::try_from(n).ok())
+            .map(Some)
+            .ok_or_else(|| bad_option(key, v)),
+    }
+}
+
+fn text(spec: &Value, key: &str) -> Option<String> {
+    spec.get(key).and_then(Value::as_str).map(str::to_string)
+}
+
+fn url_of(spec: &Value) -> Result<String, Error> {
+    text(spec, "url").ok_or_else(|| bad_option("url", spec.get("url").unwrap_or(&Value::Null)))
+}
+
+/// `headers` as upstream's options give them (`Record<string, string>`, in
+/// insertion order) or as the flat request carries them (`[{ name, value
+/// }]`).
+fn headers_of(spec: &Value) -> Vec<TransportHeader> {
+    match spec.get("headers") {
+        Some(Value::Object(map)) => map
+            .iter()
+            .filter_map(|(name, value)| {
+                Some(TransportHeader { name: name.clone(), value: value.as_str()?.to_string() })
+            })
+            .collect(),
+        other => headers_from_json(other),
+    }
+}
+
+/// `HttpTimestampAuthorityOptions` from upstream's camelCase JSON, with
+/// `fixedNonceOctet` for tests.
+pub fn authority_options_from_json(
+    spec: &Value,
+) -> Result<(HttpTimestampAuthorityOptions, NonceSource), Error> {
+    let hash = match spec.get("hash").and_then(Value::as_str) {
+        None => None,
+        Some(name) => Some(
+            epdf_signature_core::Digest::from_name(name)
+                .ok_or_else(|| bad_option("hash", &json!(name)))?,
+        ),
+    };
+    let nonce = match whole(spec, "fixedNonceOctet")? {
+        None => NonceSource::Random,
+        Some(octet) => NonceSource::Fixed(
+            u8::try_from(octet).map_err(|_| bad_option("fixedNonceOctet", &json!(octet)))?,
+        ),
+    };
+    Ok((
+        HttpTimestampAuthorityOptions {
+            url: url_of(spec)?,
+            hash,
+            policy: text(spec, "policy"),
+            headers: headers_of(spec),
+            timeout_ms: whole(spec, "timeoutMs")?,
+            retries: whole(spec, "retries")?,
+        },
+        nonce,
+    ))
+}
+
+/// `HttpRevocationSourceOptions` from upstream's camelCase JSON.
+pub fn revocation_options_from_json(spec: &Value) -> Result<HttpRevocationSourceOptions, Error> {
+    Ok(HttpRevocationSourceOptions {
+        url: url_of(spec)?,
+        headers: headers_of(spec),
+        timeout_ms: whole(spec, "timeoutMs")?,
+        retries: whole(spec, "retries")?,
+        max_reply_bytes: whole(spec, "maxReplyBytes")?,
+    })
+}
+
 /// A request as a host function gets it: `{ url, contentType, headers:
 /// [{ name, value }], body: {"$bytes"}, timeoutMs, maxReplyBytes }`.
 pub fn request_json(request: &TransportRequest) -> Value {
@@ -199,6 +291,32 @@ mod tests {
             .is_err()
         );
         assert!(outcome_from_json(&json!(null)).is_err());
+    }
+
+    #[test]
+    fn options_read_as_upstream_spells_them() {
+        let (authority, nonce) = authority_options_from_json(&json!({
+            "url": "https://tsa.example", "hash": "sha384", "policy": "1.2.3",
+            "headers": { "x-key": "k", "x-other": "o" }, "timeoutMs": 500, "retries": 0,
+            "fixedNonceOctet": 90
+        }))
+        .unwrap();
+        assert_eq!(authority.hash, Some(epdf_signature_core::Digest::Sha384));
+        assert_eq!(
+            authority.headers[1],
+            TransportHeader { name: "x-other".into(), value: "o".into() }
+        );
+        assert_eq!((authority.timeout_ms, authority.retries), (Some(500), Some(0)));
+        assert_eq!(nonce, NonceSource::Fixed(90));
+        let route = revocation_options_from_json(&json!({
+            "url": "/revocation", "headers": [{ "name": "a", "value": "b" }], "maxReplyBytes": 9
+        }))
+        .unwrap();
+        assert_eq!(route.max_reply_bytes, Some(9));
+        assert_eq!(route.headers.len(), 1);
+        assert!(authority_options_from_json(&json!({})).is_err());
+        assert!(authority_options_from_json(&json!({ "url": "u", "hash": "md5" })).is_err());
+        assert!(revocation_options_from_json(&json!({ "url": "u", "retries": -1 })).is_err());
     }
 
     #[test]

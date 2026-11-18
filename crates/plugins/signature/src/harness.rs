@@ -29,12 +29,18 @@ use epdf_kernel::{
 };
 use epdf_plugin_annotation::write::stamps::StampInput;
 use epdf_plugin_annotation::{ANNOTATION, AnnotationCapability};
+use epdf_signature_core::transport::HttpTransport;
 use epdf_signature_core::{
     CmsSignRequest, CmsSigner, Digest, RawAlgorithm, RawSigner, Requested, RevocationRequest,
     RevocationSource, SignerPort, TrustPort, ValidationTime,
 };
 use plugin_conformance::{
     Answer, Callback, FunctionTable, Harness, HarnessPlugin, Outcome, TextMemo,
+};
+
+use crate::transport::{
+    JsonTransport, authority_options_from_json, revocation_options_from_json, revocation_source,
+    timestamp_authority,
 };
 use serde::Serialize;
 use serde_json::{Value, json};
@@ -261,14 +267,56 @@ fn cms_signer(sign: Callback) -> CmsSigner {
     }
 }
 
-/// A per-call timestamp authority: `null` for none, or a port whose `sign`
-/// is a `$fn`.
-fn call_authority(value: Option<&Value>, h: &Harness) -> Option<Option<CmsSigner>> {
-    let value = defined(value)?;
-    if value.is_null() {
-        return Some(None);
+/// A host transport: `transport` a `$fn` that takes the flat request and
+/// answers the flat outcome (`crate::transport`). Not in the TS shim: it is
+/// how a browser host (`epdf-web`) hands the D-1 transport over.
+fn transport_of(spec: &Value, h: &Harness) -> Option<Rc<dyn HttpTransport>> {
+    let transport = spec.get("transport").filter(|t| t.get("$fn").is_some())?;
+    let callback = h.callback(transport);
+    Some(Rc::new(JsonTransport(Rc::new(move |request| answer(callback.call(vec![request]))))))
+}
+
+/// A timestamp authority from a spec: over a host transport (`transport`
+/// and `httpTimestampAuthority`'s options), a port whose `sign` is a `$fn`
+/// (upstream's `CmsSigner`), or else scripted as `authority.sign`.
+pub fn timestamp_authority_of(spec: &Value, h: &Harness) -> Result<CmsSigner, Error> {
+    if let Some(transport) = transport_of(spec, h) {
+        let (options, nonce) = authority_options_from_json(spec)?;
+        return Ok(timestamp_authority(transport, options, nonce));
     }
-    Some(Some(cms_signer(h.callback(value.get("sign").unwrap_or(&Value::Null)))))
+    if let Some(sign) = spec.get("sign").filter(|s| s.get("$fn").is_some()) {
+        let mut signer = cms_signer(h.callback(sign));
+        signer.hash = spec.get("hash").and_then(Value::as_str).and_then(Digest::from_name);
+        return Ok(signer);
+    }
+    Ok(cms_signer(scripted("authority.sign", spec, h)))
+}
+
+/// A revocation source from a spec: over a host transport (`transport` and
+/// `httpRevocationSource`'s options), a port whose `fetch` is a `$fn`, or
+/// else scripted as `revocation.fetch`.
+pub fn revocation_source_of(spec: &Value, h: &Harness) -> Result<Rc<dyn RevocationSource>, Error> {
+    if let Some(transport) = transport_of(spec, h) {
+        return Ok(revocation_source(transport, revocation_options_from_json(spec)?));
+    }
+    if let Some(fetch) = spec.get("fetch").filter(|f| f.get("$fn").is_some()) {
+        return Ok(Rc::new(ScriptedRevocation(h.callback(fetch))));
+    }
+    Ok(Rc::new(ScriptedRevocation(scripted("revocation.fetch", spec, h))))
+}
+
+/// A per-call timestamp authority: `null` for none, a host transport, or a
+/// port whose `sign` is a `$fn`.
+fn call_authority(value: Option<&Value>, h: &Harness) -> Result<Option<Option<CmsSigner>>, Error> {
+    let Some(value) = defined(value) else { return Ok(None) };
+    if value.is_null() {
+        return Ok(Some(None));
+    }
+    if let Some(transport) = transport_of(&value, h) {
+        let (options, nonce) = authority_options_from_json(&value)?;
+        return Ok(Some(Some(timestamp_authority(transport, options, nonce))));
+    }
+    Ok(Some(Some(cms_signer(h.callback(value.get("sign").unwrap_or(&Value::Null))))))
 }
 
 /// `configOf(spec, env)`: only the settings the spec names.
@@ -284,11 +332,11 @@ fn config_of(spec: &Value, h: &Harness) -> Result<SignatureConfig, Error> {
         Some(Rc::new(ScriptedTrust(h.callback(&anchors))) as Rc<dyn TrustPort>)
     });
     let timestamp_authority = present(spec.get("timestampAuthority"))
-        .map(|a| Some(cms_signer(scripted("authority.sign", a, h))));
-    let revocation = present(spec.get("revocation")).map(|r| {
-        Some(Rc::new(ScriptedRevocation(scripted("revocation.fetch", r, h)))
-            as Rc<dyn RevocationSource>)
-    });
+        .map(|a| timestamp_authority_of(a, h).map(Some))
+        .transpose()?;
+    let revocation = present(spec.get("revocation"))
+        .map(|r| revocation_source_of(r, h).map(Some))
+        .transpose()?;
     Ok(SignatureConfig {
         mode: defined(spec.get("mode")).map(|m| m.as_str().and_then(SignatureMode::from_name)),
         allow_certify: spec.get("allowCertify").and_then(Value::as_bool),
@@ -324,12 +372,12 @@ fn sign_input(value: &Value, h: &Harness) -> Result<SignFieldInput, Error> {
         appearance: defined(value.get("appearance")),
         certify: defined(value.get("certify")),
         lock: defined(value.get("lock")),
-        timestamp_authority: call_authority(value.get("timestampAuthority"), h),
+        timestamp_authority: call_authority(value.get("timestampAuthority"), h)?,
     })
 }
 
-fn prepare_input(value: &Value, h: &Harness) -> PrepareSignatureInput {
-    PrepareSignatureInput {
+fn prepare_input(value: &Value, h: &Harness) -> Result<PrepareSignatureInput, Error> {
+    Ok(PrepareSignatureInput {
         field: value.get("field").cloned().unwrap_or_else(undefined),
         mark: mark_of(value.get("mark")),
         appearance: defined(value.get("appearance")),
@@ -338,8 +386,8 @@ fn prepare_input(value: &Value, h: &Harness) -> PrepareSignatureInput {
         lock: defined(value.get("lock")),
         sub_filter: defined(value.get("subFilter")),
         digest: defined(value.get("digest")),
-        timestamp_authority: call_authority(value.get("timestampAuthority"), h),
-    }
+        timestamp_authority: call_authority(value.get("timestampAuthority"), h)?,
+    })
 }
 
 fn validate_options(value: Option<&Value>) -> SignatureValidateOptions {
@@ -444,7 +492,7 @@ fn call_signature(
         }
         "sign" => Outcome::Promise(cap.sign(sign_input(&field(), h)?, none())),
         "prepareSignature" => {
-            Outcome::Promise(cap.prepare_signature(prepare_input(&field(), h), none()))
+            Outcome::Promise(cap.prepare_signature(prepare_input(&field(), h)?, none()))
         }
         "completeSignature" => {
             let id = arg(0).map(|v| crate::js::template(Some(v))).unwrap_or_default();

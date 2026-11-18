@@ -190,7 +190,7 @@ fn call_live(call_js: &js_sys::Function, spec: &Value, args: &str) -> Answer {
 }
 
 /// A `$fn` callback's call as a call to `call_js`.
-fn live(call_js: js_sys::Function) -> LiveFn {
+pub fn live(call_js: js_sys::Function) -> LiveFn {
     Rc::new(move |spec: &Value, args: Vec<Value>| {
         call_live(&call_js, spec, &Value::Array(args).to_string())
     })
