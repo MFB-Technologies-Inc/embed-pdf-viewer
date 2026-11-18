@@ -40,6 +40,7 @@ import uniffi.epdf_plugin_signature.SignatureTransportRequest
  * - A reply outside 200 to 299 whose body runs past the limit, breaks off or
  *   is still arriving at the deadline is `replied` with its status and no
  *   body, so the client decides by the status, as upstream's clients do.
+ * - A reply with no readable status (`getResponseCode()` is -1) is `failed`.
  *
  * The completion is answered exactly once, whichever of the reply, the
  * deadline or a failure comes first, and released after.
@@ -151,6 +152,8 @@ class HttpSignatureTransport(
             c.outputStream.use { it.write(request.body) }
 
             val code = c.responseCode
+            // -1: the reply has no status line a status can be read from.
+            if (code < 0) return { it.failed("the reply is not HTTP") }
             status.set(code)
             val limit = request.maxReplyBytes.toLong()
             val ok = code in 200..299

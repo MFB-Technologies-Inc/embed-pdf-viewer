@@ -192,7 +192,29 @@ fun transportOutcomes() {
         check(a.got[0].startsWith("failed ") && a.got[0].contains("Connect")) { a.got.toString() }
         a = send(request("not a url"))
         check(a.got[0].startsWith("failed ")) { a.got.toString() }
-        println("SignatureTest: failed when nothing listens or the address is not a URL")
+        // A reply whose status line has no status: -1 from getResponseCode, never a status.
+        val notHttp = ServerSocket(0, 1, java.net.InetAddress.getByName("127.0.0.1"))
+        val answering = Thread {
+            notHttp.accept().use { s ->
+                val input = BufferedReader(InputStreamReader(s.getInputStream()))
+                var length = 0
+                while (true) {
+                    val line = input.readLine() ?: break
+                    if (line.isEmpty()) break
+                    if (line.lowercase().startsWith("content-length:")) length = line.substringAfter(":").trim().toInt()
+                }
+                repeat(length) { input.read() }
+                s.getOutputStream().apply { write("HTTP/1.1 OK\r\ncontent-length: 2\r\n\r\nok".toByteArray()); flush() }
+            }
+        }.apply { isDaemon = true; start() }
+        try {
+            a = send(request("http://127.0.0.1:${notHttp.localPort}/api/timestamp"))
+            check(a.got[0] == "failed the reply is not HTTP") { a.got.toString() }
+        } finally {
+            answering.join(5000)
+            notHttp.close()
+        }
+        println("SignatureTest: failed when nothing listens, the address is not a URL, or the reply has no status")
 
         // Exactly once: the held replies have finished arriving; nothing more was answered.
         check(heldDone.await(10, TimeUnit.SECONDS))
