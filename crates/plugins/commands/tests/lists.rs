@@ -117,3 +117,59 @@ fn the_command_lists_match_the_typescript() {
         .with(Annotation);
     assert_suite("plugins/commands/lists.json", &registry, &functions());
 }
+
+/// The render platform whose `image_bytes` rejects: a picture that can't be
+/// encoded, as a `blob()` that rejects upstream.
+struct Unencodable(Harness);
+
+impl RenderCommandsPlatform for Unencodable {
+    fn copy_image(&self, _image: Promise<PageImage>) -> Promise<Value> {
+        Promise::resolved(undefined())
+    }
+
+    fn image_bytes(&self, _image: PageImage) -> Promise<Value> {
+        Promise::rejected(Error::new("the picture could not be encoded"))
+    }
+
+    fn save_file(&self, _bytes: Value, file_name: String, content_type: String) {
+        self.0.log("saveFile", vec![json!(file_name), json!(content_type)]);
+    }
+}
+
+/// `snapshot:save` with a picture `image_bytes` refuses: the command
+/// rejects and `save_file` is never called (CU-C5-D4). Rust only, since
+/// upstream's generator has no `blob()` that rejects; the steps are the
+/// `snapshot-commands` case's.
+#[test]
+fn a_picture_that_cannot_be_encoded_fails_snapshot_save_before_anything_is_saved() {
+    let suite = plugin_conformance::load("plugins/commands/lists.json");
+    let case = suite["cases"]
+        .as_array()
+        .and_then(|cases| cases.iter().find(|case| case["name"] == "snapshot-commands"))
+        .expect("the snapshot-commands case")
+        .clone();
+    let registry = Registry::new()
+        .with(CommandLists(Rc::new(|name: &str, h: &Harness| {
+            (name == "render").then(|| {
+                items(epdf_plugin_render::commands::create_render_commands(Rc::new(Unencodable(
+                    h.clone(),
+                ))))
+            })
+        })))
+        .with(Interaction)
+        .with(SnapshotRender);
+    let run = plugin_conformance::scenario::run_case(&case, &registry);
+
+    let callbacks: Vec<&Value> = run
+        .trace
+        .iter()
+        .flat_map(|entry| entry["callbacks"].as_array().into_iter().flatten())
+        .collect();
+    assert!(callbacks.iter().all(|call| call["fn"] != "saveFile"), "{callbacks:?}");
+    // Step 7 executes `snapshot:save`; the settle after it rejects that promise.
+    let promise = run.trace[7]["outcome"]["promise"].clone();
+    let settled = run.trace[8]["settled"].as_array().expect("settled");
+    let save = settled.iter().find(|s| s["promise"] == promise).expect("snapshot:save settles");
+    assert!(save.get("resolved").is_none(), "{save}");
+    assert!(save.to_string().contains("the picture could not be encoded"), "{save}");
+}

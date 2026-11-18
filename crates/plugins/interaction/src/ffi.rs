@@ -49,6 +49,9 @@ pub struct InteractionTool {
 /// `Tool.canUse()` for a tool the host registers: whether the user may use
 /// it now, such as a tool that draws annotations, which needs permission to
 /// create them. Asked on the kernel thread whenever `can_use_tool` is read.
+/// Answer from what the host already holds: blocking on an
+/// `InteractionHandle` call (or any viewer call) inside `can_use` deadlocks
+/// the kernel thread, since that call queues behind the read that asked.
 #[uniffi::export(with_foreign)]
 pub trait ToolPermission: Send + Sync {
     fn can_use(&self) -> bool;
