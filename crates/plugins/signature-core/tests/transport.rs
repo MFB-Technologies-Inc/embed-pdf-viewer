@@ -44,3 +44,37 @@ fn a_revocation_answer_over_its_limit_is_no_answer() {
     assert!(fetch(None, vec![0; 2 * 1024 * 1024]).is_ok());
     assert!(fetch(None, vec![0; 2 * 1024 * 1024 + 1]).is_err());
 }
+
+/// A host that reads past `max_reply_bytes` and hands the whole body over.
+struct OverReading(Vec<u8>);
+
+impl epdf_signature_core::transport::HttpTransport for OverReading {
+    fn post(
+        &self,
+        _: epdf_signature_core::transport::TransportRequest,
+    ) -> Promise<TransportOutcome> {
+        Promise::resolved(TransportOutcome::Replied { status: 200, body: self.0.clone() })
+    }
+}
+
+#[test]
+fn a_reply_over_the_limit_is_no_answer_even_when_the_host_read_it_all() {
+    let source = http_revocation_source(
+        Rc::new(OverReading(vec![1, 2, 3, 4, 5])),
+        HttpRevocationSourceOptions {
+            url: "https://app.example/revocation".into(),
+            headers: vec![],
+            timeout_ms: None,
+            retries: Some(0),
+            max_reply_bytes: Some(4),
+        },
+    );
+    let error =
+        block_on(source.fetch(RevocationRequest::Crl { url: "http://crl.example/a.crl".into() }))
+            .unwrap_err();
+    assert_eq!(error.code(), Some("Network"));
+    assert_eq!(
+        error.message,
+        "http://crl.example/a.crl did not answer through https://app.example/revocation: the reply broke off: it is over 4 bytes"
+    );
+}

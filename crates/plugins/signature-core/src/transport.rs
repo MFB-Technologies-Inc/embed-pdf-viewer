@@ -83,6 +83,14 @@ async fn attempt(transport: &Rc<dyn HttpTransport>, request: &TransportRequest) 
         Ok(outcome) => outcome,
         Err(error) => TransportOutcome::Failed { message: error.message },
     };
+    let outcome = match outcome {
+        // The route stops reading past its limit, so a body a host read
+        // further than that is the same as one it broke off.
+        TransportOutcome::Replied { body, .. } if body.len() > request.max_reply_bytes as usize => {
+            TransportOutcome::TooLarge
+        }
+        outcome => outcome,
+    };
     match outcome {
         TransportOutcome::Replied { status, body } => Exchange::Reply { status, body },
         TransportOutcome::TimedOut => {
