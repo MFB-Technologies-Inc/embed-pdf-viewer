@@ -40,7 +40,7 @@ pub fn without_leading_zeros(octets: &[u8]) -> Vec<u8> {
 
 /// A schema element as asn1js's `compareSchema` matches it. Classes are
 /// `der`'s (0 universal, 1 application, 2 context-specific).
-enum Slot {
+pub(crate) enum Slot {
     /// A primitive element of this class and tag.
     Prim(u8, u32),
     /// A constructed element whose members match in order.
@@ -52,28 +52,62 @@ enum Slot {
     Any,
 }
 
-const UNIVERSAL: u8 = 0;
+pub(crate) const UNIVERSAL: u8 = 0;
 const APPLICATION: u8 = 1;
-const CONTEXT: u8 = 2;
+pub(crate) const CONTEXT: u8 = 2;
 
-fn required(slot: Slot) -> (Slot, bool) {
+pub(crate) fn required(slot: Slot) -> (Slot, bool) {
     (slot, false)
 }
 
-fn optional(slot: Slot) -> (Slot, bool) {
+pub(crate) fn optional(slot: Slot) -> (Slot, bool) {
     (slot, true)
 }
 
-fn sequence(members: Vec<(Slot, bool)>) -> Slot {
+pub(crate) fn sequence(members: Vec<(Slot, bool)>) -> Slot {
     Slot::Cons(UNIVERSAL, der::SEQUENCE, members)
 }
 
-fn universal(tag: u32) -> Slot {
+pub(crate) fn universal(tag: u32) -> Slot {
     Slot::Prim(UNIVERSAL, tag)
 }
 
 fn strings(tags: &[u32]) -> Slot {
     Slot::Choice(tags.iter().map(|&t| universal(t)).collect())
+}
+
+/// pkijs's `RelativeDistinguishedNames.schema()`: a Name.
+pub(crate) fn relative_distinguished_names() -> Slot {
+    let attribute_type_and_value =
+        sequence(vec![required(universal(der::OID)), required(Slot::Any)]);
+    Slot::Repeat(
+        UNIVERSAL,
+        der::SEQUENCE,
+        Box::new(Slot::Repeat(UNIVERSAL, der::SET, Box::new(attribute_type_and_value))),
+    )
+}
+
+/// pkijs's `AlgorithmIdentifier.schema()`.
+pub(crate) fn algorithm_identifier() -> Slot {
+    sequence(vec![required(universal(der::OID)), optional(Slot::Any)])
+}
+
+/// pkijs's `Extensions.schema()`.
+pub(crate) fn extensions() -> Slot {
+    Slot::Repeat(
+        UNIVERSAL,
+        der::SEQUENCE,
+        Box::new(sequence(vec![
+            required(universal(der::OID)),
+            optional(universal(1)),
+            required(universal(der::OCTET_STRING)),
+        ])),
+    )
+}
+
+/// pkijs's `Time.schema()`: UTCTime or GeneralizedTime.
+pub(crate) fn time() -> Slot {
+    Slot::Choice(vec![universal(der::UTC_TIME), universal(der::GENERALIZED_TIME)])
 }
 
 /// pkijs's `GeneralName.schema()`.
@@ -110,13 +144,7 @@ fn general_name() -> Slot {
         der::SET,
         vec![optional(ctx_prim(0)), optional(ctx(1, vec![required(Slot::Any)]))],
     );
-    let attribute_type_and_value =
-        sequence(vec![required(universal(der::OID)), required(Slot::Any)]);
-    let relative_distinguished_names = Slot::Repeat(
-        UNIVERSAL,
-        der::SEQUENCE,
-        Box::new(Slot::Repeat(UNIVERSAL, der::SET, Box::new(attribute_type_and_value))),
-    );
+    let relative_distinguished_names = relative_distinguished_names();
     Slot::Choice(vec![
         ctx(0, vec![required(universal(der::OID)), required(ctx(0, vec![required(Slot::Any)]))]),
         ctx_prim(1),
@@ -182,7 +210,7 @@ fn same_id(node: &Node, class: u8, tag: u32, constructed: bool) -> bool {
     node.class == class && node.tag == tag && node.constructed == constructed && tag < 31
 }
 
-fn matches(slot: &Slot, node: &Node) -> bool {
+pub(crate) fn matches(slot: &Slot, node: &Node) -> bool {
     match slot {
         Slot::Any => true,
         Slot::Choice(alternatives) => alternatives.iter().any(|a| matches(a, node)),

@@ -9,6 +9,116 @@ use crate::cert::{AlgId, Certificate, Name};
 use crate::crypto;
 use crate::der::{self, Node};
 use crate::oids::{self, Digest};
+use crate::timestamp::{
+    CONTEXT, Slot, UNIVERSAL, algorithm_identifier, extensions, matches, optional,
+    relative_distinguished_names, required, sequence, time, universal,
+};
+
+// ── pkijs's schemas, as `compareSchema` matches them ─────────────────────────
+
+const ENUMERATED: u32 = 10;
+
+fn ctx_cons(n: u32, members: Vec<(Slot, bool)>) -> Slot {
+    Slot::Cons(CONTEXT, n, members)
+}
+
+/// `Certificate.schema()`, its TBS taken whole: a certificate the schema
+/// lets through is then read by `Certificate::read`.
+fn certificate_schema() -> Slot {
+    sequence(vec![
+        required(Slot::Cons(UNIVERSAL, der::SEQUENCE, vec![])),
+        required(algorithm_identifier()),
+        required(universal(der::BIT_STRING)),
+    ])
+}
+
+fn cert_id_schema() -> Slot {
+    sequence(vec![
+        required(algorithm_identifier()),
+        required(universal(der::OCTET_STRING)),
+        required(universal(der::OCTET_STRING)),
+        required(universal(der::INTEGER)),
+    ])
+}
+
+/// `SingleResponse.schema()`: `[0]` good and `[2]` unknown primitive, `[1]`
+/// revoked constructed around a GeneralizedTime.
+fn single_response_schema() -> Slot {
+    sequence(vec![
+        required(cert_id_schema()),
+        required(Slot::Choice(vec![
+            Slot::Prim(CONTEXT, 0),
+            ctx_cons(
+                1,
+                vec![
+                    required(universal(der::GENERALIZED_TIME)),
+                    optional(ctx_cons(0, vec![required(universal(ENUMERATED))])),
+                ],
+            ),
+            Slot::Prim(CONTEXT, 2),
+        ])),
+        required(universal(der::GENERALIZED_TIME)),
+        optional(ctx_cons(0, vec![required(universal(der::GENERALIZED_TIME))])),
+        optional(ctx_cons(1, vec![required(extensions())])),
+    ])
+}
+
+/// `OCSPResponse.schema()`, with `ResponseBytes.schema()` in it.
+fn ocsp_response_schema() -> Slot {
+    sequence(vec![
+        required(universal(ENUMERATED)),
+        optional(ctx_cons(
+            0,
+            vec![required(sequence(vec![
+                required(universal(der::OID)),
+                required(universal(der::OCTET_STRING)),
+            ]))],
+        )),
+    ])
+}
+
+/// `BasicOCSPResponse.schema()`, with `ResponseData.schema()` in it.
+fn basic_ocsp_response_schema() -> Slot {
+    let response_data = sequence(vec![
+        optional(ctx_cons(0, vec![required(universal(der::INTEGER))])),
+        required(Slot::Choice(vec![
+            ctx_cons(1, vec![required(relative_distinguished_names())]),
+            ctx_cons(2, vec![required(universal(der::OCTET_STRING))]),
+        ])),
+        required(universal(der::GENERALIZED_TIME)),
+        required(Slot::Repeat(UNIVERSAL, der::SEQUENCE, Box::new(single_response_schema()))),
+        optional(ctx_cons(1, vec![required(extensions())])),
+    ]);
+    sequence(vec![
+        required(response_data),
+        required(algorithm_identifier()),
+        required(universal(der::BIT_STRING)),
+        optional(ctx_cons(
+            0,
+            vec![required(Slot::Repeat(UNIVERSAL, der::SEQUENCE, Box::new(certificate_schema())))],
+        )),
+    ])
+}
+
+/// `CertificateRevocationList.schema()`, with `tbsCertList` in it.
+fn crl_schema() -> Slot {
+    let revoked =
+        sequence(vec![required(universal(der::INTEGER)), required(time()), optional(extensions())]);
+    let tbs = sequence(vec![
+        optional(universal(der::INTEGER)),
+        required(algorithm_identifier()),
+        required(relative_distinguished_names()),
+        required(time()),
+        optional(time()),
+        optional(Slot::Repeat(UNIVERSAL, der::SEQUENCE, Box::new(revoked))),
+        optional(ctx_cons(0, vec![required(extensions())])),
+    ]);
+    sequence(vec![
+        required(tbs),
+        required(algorithm_identifier()),
+        required(universal(der::BIT_STRING)),
+    ])
+}
 
 /// `RevocationAnswer['kind']`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -103,6 +213,32 @@ pub enum AnswerCheck {
 }
 
 impl AnswerCheck {
+    /// The check as plain JSON, its times as ISO strings: what the
+    /// conformance probe reports.
+    pub fn to_json(&self) -> serde_json::Value {
+        use serde_json::json;
+        let iso = |ms: f64| der::iso_string(ms);
+        match self {
+            AnswerCheck::Nothing { kind, problem, detail } => json!({
+                "says": "nothing", "kind": kind.name(), "problem": problem.name(), "detail": detail,
+            }),
+            AnswerCheck::Good(window) | AnswerCheck::Revoked { window, .. } => {
+                let mut out = json!({
+                    "says": self.says(),
+                    "kind": window.kind.name(),
+                    "thisUpdate": iso(window.this_update),
+                    "nextUpdate": window.next_update.and_then(iso),
+                    "responder": window.responder.as_deref().map_or(serde_json::Value::Null, crate::parse::bytes_json),
+                });
+                if let AnswerCheck::Revoked { revoked_at, reason, .. } = self {
+                    out["revokedAt"] = json!(iso(*revoked_at));
+                    out["reason"] = json!(reason);
+                }
+                out
+            }
+        }
+    }
+
     pub fn says(&self) -> &'static str {
         match self {
             AnswerCheck::Good(_) => "good",
@@ -270,12 +406,9 @@ impl SingleResponse {
         }
         let this_update = generalized_time(node.children.get(2), "SingleResponse")?;
         let mut next_update = None;
-        for member in &node.children[3..] {
-            if member.is_context(0) && member.constructed {
-                next_update = Some(generalized_time(member.children.first(), "SingleResponse")?);
-            } else if !(member.is_context(1) && member.constructed) {
-                return Err(error());
-            }
+        // Members past the schema's slots are never looked at.
+        if let Some(member) = node.children.get(3).filter(|m| m.is_context(0) && m.constructed) {
+            next_update = Some(generalized_time(member.children.first(), "SingleResponse")?);
         }
         Ok(SingleResponse { cert_id, status, this_update, next_update })
     }
@@ -323,7 +456,7 @@ impl BasicResponse {
             return Err(error());
         }
         let mut certs = Vec::new();
-        if let Some(wrapper) = node.children.get(3) {
+        if let Some(wrapper) = node.children.get(3).filter(|w| w.is_context(0)) {
             let list = wrapper
                 .children
                 .first()
@@ -353,12 +486,12 @@ fn check_ocsp(
     let nothing = |problem, detail: String| {
         Ok(AnswerCheck::Nothing { kind: AnswerKind::Ocsp, problem, detail })
     };
-    let Some(outer) = parse_ber(der) else {
+    let Some(outer) = read_ber(der, "OCSPResponse")? else {
         return nothing(RevocationProblem::Unreadable, "the OCSP response is not valid DER".into());
     };
     // OCSPResponse ::= sequence { responseStatus enumerated, responseBytes [0] explicit optional }
     let error = || schema("OCSPResponse");
-    if !outer.is_sequence() {
+    if !matches(&ocsp_response_schema(), &outer) {
         return Err(error());
     }
     let status = outer.children.first().filter(|n| n.is_universal(10)).ok_or_else(error)?;
@@ -388,9 +521,12 @@ fn check_ocsp(
             format!("OCSP response type {response_type}"),
         );
     }
-    let Some(inner) = parse_ber(&response) else {
+    let Some(inner) = read_ber(&response, "BasicOCSPResponse")? else {
         return nothing(RevocationProblem::Unreadable, "the OCSP answer is not valid DER".into());
     };
+    if !matches(&basic_ocsp_response_schema(), &inner) {
+        return Err(schema("BasicOCSPResponse"));
+    }
     let basic = BasicResponse::read(&inner)?;
 
     let mut single = None;
@@ -473,6 +609,19 @@ fn check_ocsp(
             RevocationProblem::UnknownStatus,
             "the responder does not know the certificate".into(),
         ),
+    }
+}
+
+/// `asn1js.fromBER` before a pkijs schema: `None` where its offset is -1,
+/// what it throws, and the schema text where asn1js reads the bytes but
+/// `der` builds no tree from them (an indefinite length that runs out).
+fn read_ber(bytes: &[u8], target: &str) -> Result<Option<Node>, String> {
+    match crate::asn1js::from_ber(bytes) {
+        crate::asn1js::Verdict::Accepted => {
+            der::from_ber(bytes).map(Some).ok_or_else(|| schema(target))
+        }
+        crate::asn1js::Verdict::Refused => Ok(None),
+        crate::asn1js::Verdict::Throws(error) => Err(error.message),
     }
 }
 
@@ -631,16 +780,13 @@ impl Crl {
             }
         }
         let mut extensions = Vec::new();
-        if let Some(wrapper) = members.next() {
+        if let Some(wrapper) = members.next().filter(|w| w.is_context(0)) {
             let list = wrapper
                 .children
                 .first()
                 .filter(|_| wrapper.is_context(0) && wrapper.constructed)
                 .ok_or_else(error)?;
             extensions = read_extensions(list, "CertificateRevocationList")?;
-        }
-        if members.next().is_some() {
-            return Err(error());
         }
         let signature_algorithm = AlgId::read(&node.children[1]).ok_or_else(error)?;
         let signature = &node.children[2];
@@ -679,17 +825,33 @@ struct Scope {
     only_attribute: bool,
 }
 
+/// `IssuingDistributionPoint.schema()`.
+fn issuing_distribution_point_schema() -> Slot {
+    sequence(vec![
+        optional(ctx_cons(0, vec![required(Slot::Any)])),
+        optional(Slot::Prim(CONTEXT, 1)),
+        optional(Slot::Prim(CONTEXT, 2)),
+        optional(Slot::Prim(CONTEXT, 3)),
+        optional(Slot::Prim(CONTEXT, 4)),
+        optional(Slot::Prim(CONTEXT, 5)),
+    ])
+}
+
+/// The scope pkijs's `parsedValue` gives: `None` (null) only for bytes
+/// that are not BER; a value that misses the schema is an empty
+/// `IssuingDistributionPoint`, every flag at its default.
 fn read_scope(value: &[u8]) -> Option<Scope> {
-    let node = parse_ber(value)?;
-    if !node.is_sequence() {
+    if !matches!(crate::asn1js::from_ber(value), crate::asn1js::Verdict::Accepted) {
         return None;
     }
-    let flag = |n: &Node| n.content.first().is_some_and(|&b| b != 0);
     let mut scope = Scope::default();
+    let Some(node) =
+        der::from_ber(value).filter(|n| matches(&issuing_distribution_point_schema(), n))
+    else {
+        return Some(scope);
+    };
+    let flag = |n: &Node| n.content.first().is_some_and(|&b| b != 0);
     for member in &node.children {
-        if member.class != der::CONTEXT {
-            return None;
-        }
         match member.tag {
             0 => {}
             1 => scope.only_user = flag(member),
@@ -697,7 +859,7 @@ fn read_scope(value: &[u8]) -> Option<Scope> {
             3 => scope.some_reasons = true,
             4 => scope.indirect = flag(member),
             5 => scope.only_attribute = flag(member),
-            _ => return None,
+            _ => {}
         }
     }
     Some(scope)
@@ -711,9 +873,12 @@ fn check_crl(
     let nothing = |problem, detail: String| {
         Ok(AnswerCheck::Nothing { kind: AnswerKind::Crl, problem, detail })
     };
-    let Some(node) = parse_ber(der) else {
+    let Some(node) = read_ber(der, "CertificateRevocationList")? else {
         return nothing(RevocationProblem::Unreadable, "the CRL is not valid DER".into());
     };
+    if !matches(&crl_schema(), &node) {
+        return Err(schema("CertificateRevocationList"));
+    }
     let crl = Crl::read(&node)?;
     if !crl.issuer.is_equal(&issuer.subject) {
         return nothing(

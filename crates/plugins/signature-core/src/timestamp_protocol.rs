@@ -5,6 +5,22 @@ use crate::der::{self, Node};
 use crate::oids::Digest;
 use crate::parse::ParseError;
 use crate::splice::{children_of, read_element};
+use crate::timestamp::{CONTEXT, Slot, matches, optional, required, sequence, universal};
+
+/// `TimeStampResp.schema()`: `PKIStatusInfo.schema()`, then an optional
+/// `ContentInfo.schema()`.
+fn time_stamp_resp_schema() -> Slot {
+    let status = sequence(vec![
+        required(universal(der::INTEGER)),
+        optional(Slot::Repeat(0, der::SEQUENCE, Box::new(universal(der::UTF8_STRING)))),
+        optional(universal(der::BIT_STRING)),
+    ]);
+    let content_info = sequence(vec![
+        required(universal(der::OID)),
+        required(Slot::Cons(CONTEXT, 0, vec![required(Slot::Any)])),
+    ]);
+    sequence(vec![required(status), optional(content_info)])
+}
 
 /// `buildTimestampRequest`: a TimeStampReq (RFC 3161 2.4.1) asking for the
 /// authority's certificate in the token, with `nonce`.
@@ -93,7 +109,8 @@ fn status_of(info: &Node) -> Result<(i64, Option<String>, Option<String>), Strin
                 fail_info = Some(String::new());
             }
         } else {
-            return Err(schema());
+            // Past what the schema placed: never looked at.
+            break;
         }
     }
     Ok((value, fail_info.filter(|f| !f.is_empty()), status_text))
@@ -111,18 +128,7 @@ pub fn read_timestamp_response(bytes: &[u8]) -> Result<TimestampResponse, ParseE
         _ => None,
     }
     .ok_or_else(|| wrap("not valid BER".into()))?;
-    if !root.is_sequence() || root.children.is_empty() || root.children.len() > 2 {
-        return Err(wrap(der::schema_error("TimeStampResp").message));
-    }
-    // The token is a ContentInfo: `sequence { contentType, [0] explicit content }`.
-    if let Some(token) = root.children.get(1)
-        && !(token.is_sequence()
-            && token.children.first().is_some_and(|c| c.is_universal(der::OID))
-            && token
-                .children
-                .get(1)
-                .is_some_and(|c| c.is_context(0) && c.constructed && !c.children.is_empty()))
-    {
+    if !matches(&time_stamp_resp_schema(), &root) {
         return Err(wrap(der::schema_error("TimeStampResp").message));
     }
     let (status, fail_info, status_text) = status_of(&root.children[0]).map_err(wrap)?;
