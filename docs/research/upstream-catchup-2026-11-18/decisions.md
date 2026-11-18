@@ -255,3 +255,18 @@ Left for the final whole-branch review, not changed here: CU-C4a `open_candidate
 bytes and edits relying on two fork checks agreeing; CU-C4b's client trusting the host's reply
 limit; CU-C4b's `route-max-reply-bytes` vector, which only proves the option parses; CU-C4b's
 content-type header override in `http_source.rs`.
+
+## Releases and pushes (CU-C10)
+
+- CU-C10-D1. The runtime release reuses CU-C1's `wasm32-eh` and CU-C8c's Android archives and builds
+  `linux-arm64` and `wasm32` fresh. Cost: the five archives come from three containers.
+- CU-C10-D2. Published past the freshness gate: PDFium `1f02bc7d9` is 13 commits behind, none a
+  security fix. Cost: the archives trail upstream PDFium by those 13.
+- CU-C10-D3. The payload's `wasm32-eh` stamp is written by hand from CU-C1's archive, with no
+  `source`. Cost: the stamp's recipe is taken on trust.
+- CU-C10-D4. No Apple dry run; the real run tests before it uploads. Cost: its notes weren't
+  previewed.
+- CU-C10-D5. The pin commit `f37adb447` also moves the rust-viewer bundle to `0.0.0-preview.3`.
+  Cost: the pin commit is not only a pin.
+- CU-C10-D6. The tags were pushed with the branches before their releases were made.
+- CU-C10-D7. The .NET package is `linux-arm64` only, as before. Cost: four RIDs stay `UNVALIDATED`.

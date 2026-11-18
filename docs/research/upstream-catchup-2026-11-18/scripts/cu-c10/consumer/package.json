@@ -1,0 +1,2 @@
+{ "name": "rust-viewer-consumer", "private": true, "type": "module",
+  "scripts": { "build": "vite build", "preview": "vite preview --port 4173 --strictPort --host 127.0.0.1" } }
