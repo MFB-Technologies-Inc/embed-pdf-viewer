@@ -2,10 +2,12 @@
 //! `suites/command-lists.ts`: each owner's command list (#1091, #1089)
 //! through the commands plugin, next to its owner and without it.
 
+use std::any::Any;
 use std::rc::Rc;
 
 use epdf_kernel::rt::Promise;
-use epdf_kernel::undefined;
+use epdf_kernel::{AnyPlugin, AnyToken, Error, undefined};
+use epdf_plugin_annotation::harness::Annotation;
 use epdf_plugin_commands::harness::{CommandLists, functions};
 use epdf_plugin_commands::{CommandItem, DocumentCommandsPlatform, create_document_commands};
 use epdf_plugin_history::harness::History;
@@ -13,10 +15,11 @@ use epdf_plugin_i18n::harness::I18n;
 use epdf_plugin_interaction::harness::Interaction;
 use epdf_plugin_render::PageImage;
 use epdf_plugin_render::commands::RenderCommandsPlatform;
+use epdf_plugin_render::harness::Render;
 use epdf_plugin_selection::SelectionCapability;
 use epdf_plugin_selection::commands::SelectionCommandsPlatform;
 use epdf_plugin_selection::harness::Selection;
-use plugin_conformance::{Harness, Registry, assert_suite};
+use plugin_conformance::{Harness, HarnessPlugin, Outcome, Registry, assert_suite};
 use serde_json::{Value, json};
 
 /// The host's part of the lists: each call logged, as the generator's
@@ -42,8 +45,45 @@ impl RenderCommandsPlatform for Logged {
         Promise::resolved(undefined())
     }
 
-    fn save_image(&self, _image: PageImage, file_name: String, content_type: String) {
+    /// The generator's picture has a `blob()` that answers at once, unlogged.
+    fn image_bytes(&self, _image: PageImage) -> Promise<Value> {
+        Promise::resolved(Value::Null)
+    }
+
+    fn save_file(&self, _bytes: Value, file_name: String, content_type: String) {
         self.0.log("saveFile", vec![json!(file_name), json!(content_type)]);
+    }
+}
+
+/// `snapshot-render`: the render plugin as the generator builds it there,
+/// whose picture also has a `blob()` (the Rust side's `image_bytes`).
+struct SnapshotRender;
+
+impl HarnessPlugin for SnapshotRender {
+    fn factories(&self) -> Vec<&'static str> {
+        vec!["snapshot-render"]
+    }
+
+    fn build(&self, _factory: &str, config: &Value, h: &Harness) -> Result<AnyPlugin, Error> {
+        Render.build("render", config, h)
+    }
+
+    fn tokens(&self) -> Vec<AnyToken> {
+        Render.tokens()
+    }
+
+    fn call(
+        &self,
+        capability: &Rc<dyn Any>,
+        method: &str,
+        args: Vec<Value>,
+        h: &Harness,
+    ) -> Option<Outcome> {
+        Render.call(capability, method, args, h)
+    }
+
+    fn members(&self, capability: &Rc<dyn Any>) -> Option<Vec<&'static str>> {
+        Render.members(capability)
     }
 }
 
@@ -72,6 +112,8 @@ fn the_command_lists_match_the_typescript() {
         .with(History)
         .with(I18n)
         .with(Interaction)
-        .with(Selection);
+        .with(Selection)
+        .with(SnapshotRender)
+        .with(Annotation);
     assert_suite("plugins/commands/lists.json", &registry, &functions());
 }

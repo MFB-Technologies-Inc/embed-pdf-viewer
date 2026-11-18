@@ -20,10 +20,12 @@ pub trait RenderCommandsPlatform {
     /// Copy an image to the clipboard. Called in the press or key itself,
     /// before the image is there: a browser may take the clipboard only then.
     fn copy_image(&self, image: Promise<PageImage>) -> Promise<Value>;
-    /// Give the user the image as a file of the given content type. The
-    /// TypeScript hands over the image's `blob()`; the host reads the
-    /// picture from the image here.
-    fn save_image(&self, image: PageImage, file_name: String, content_type: String);
+    /// The picture's file contents, as PNG: upstream's `image.blob()`. A
+    /// rejection fails `snapshot:save` before anything is saved, as a blob
+    /// that can't be made does upstream.
+    fn image_bytes(&self, image: PageImage) -> Promise<Value>;
+    /// Give the user the bytes as a file of the given content type.
+    fn save_file(&self, bytes: Value, file_name: String, content_type: String);
 }
 
 fn snapshot_of(context: &CommandCtx) -> Option<Snapshot> {
@@ -77,6 +79,7 @@ pub fn create_render_commands(platform: Rc<dyn RenderCommandsPlatform>) -> Vec<C
                     let documents = context.get(&DOCUMENTS)?;
                     let id = context.document_id().map(str::to_string);
                     let image = snapshot.image.clone().await?;
+                    let bytes = platform.image_bytes(image).await?;
                     let pages = documents.list_pages(id.as_deref());
                     let index = pages.as_array().and_then(|pages| {
                         pages.iter().position(|page| {
@@ -86,8 +89,8 @@ pub fn create_render_commands(platform: Rc<dyn RenderCommandsPlatform>) -> Vec<C
                     });
                     let number = index.map_or(0, |index| index + 1);
                     let name = documents.get_document(id.as_deref()).and_then(|doc| doc.name);
-                    platform.save_image(
-                        image,
+                    platform.save_file(
+                        bytes,
                         snapshot_file_name_of(name.as_deref(), number),
                         "image/png".into(),
                     );

@@ -14,7 +14,10 @@ import './commands';
 import './history';
 import './interaction';
 import './i18n';
+import './render';
 import './selection';
+
+import type { AnyPlugin } from '@embedpdf/core';
 
 import { createDocumentCommands } from '../../../../packages/core/main/src/commands';
 import { createAnnotationCommands } from '../../../../packages/plugin/annotation/src/commands';
@@ -28,9 +31,24 @@ import { createInteractionCommands } from '../../../../packages/plugin/interacti
 import { createRenderCommands } from '../../../../packages/plugin/render/src/commands';
 import { createSelectionCommands } from '../../../../packages/plugin/selection/src/commands';
 import { createStageCommands } from '../../../../packages/plugin/stage/src/commands';
+import { renderPlugin } from '../../../../packages/plugin/render/src/index';
+import {
+  RenderToken,
+  type RenderHostCapability,
+} from '../../../../packages/plugin/render/src/host-contract';
+import type { RenderConfig } from '../../../../packages/plugin/render/src/contract';
 import type { PageLayout } from '../../../../packages/engine/core/src/index';
 
 import type { FakeDocumentSpec } from '../fake-engine';
+import {
+  call as annotation,
+  deleted,
+  doc as annotationDoc,
+  hydrate,
+  objRef,
+  square,
+  write,
+} from './annotation-live-fixtures';
 import { registerPlugin, type PluginEnv, type ScenarioCase, type Step } from '../scenario';
 import type { Suite } from '../vectors';
 
@@ -78,6 +96,43 @@ registerPlugin('command-lists', {
     });
   },
   tokens: [CommandsToken],
+});
+
+/**
+ * The render plugin, with a picture that has `blob()`: the fake engine's
+ * picture is JSON, and `snapshot:save` reads `(await snapshot.image).blob()`.
+ * The blob is the picture itself; the Rust side's `image_bytes` answers at the
+ * same point. Each snapshot gets one such picture, made when first read.
+ */
+const withBlob = new WeakMap<object, Promise<unknown>>();
+registerPlugin('snapshot-render', {
+  factory: (config) => {
+    const plugin = renderPlugin((config ?? {}) as RenderConfig) as AnyPlugin;
+    return {
+      ...plugin,
+      create: (ctx) => {
+        const { api, connect } = plugin.create!(ctx);
+        const render = api as RenderHostCapability;
+        const getSnapshot = () => {
+          const held = render.getSnapshot();
+          if (!held) return held;
+          return {
+            ...held,
+            get image() {
+              let image = withBlob.get(held);
+              if (!image) {
+                image = held.image.then((picture) => ({ ...picture, blob: async () => picture }));
+                withBlob.set(held, image);
+              }
+              return image;
+            },
+          };
+        };
+        return { api: { ...render, getSnapshot }, connect };
+      },
+    } as AnyPlugin;
+  },
+  tokens: [RenderToken],
 });
 
 const box = { x: 0, y: 0, width: 600, height: 800 };
@@ -133,6 +188,34 @@ const applies = (count: number) =>
 
 /** The i18n plugin's eight languages, in `EMBEDPDF_STRINGS` order. */
 const codes = ['en', 'nl', 'de', 'fr', 'es', 'zh-CN', 'sv', 'ja'];
+
+/** A document the snapshot tool can take a picture of: every page image deferred as `r<n>`. */
+const snapshotDoc: FakeDocumentSpec = {
+  pages,
+  security: {
+    allows: [
+      'doc.render',
+      'doc.render.thumbnail',
+      'doc.annotate.read',
+      'doc.forms.read',
+      'doc.content.copy',
+    ],
+  },
+  responses: Array.from({ length: 8 }, (_, n) => ({
+    path: 'page.render.image',
+    times: 1,
+    defer: `r${n}`,
+  })),
+};
+const NO_MODIFIERS = { shift: false, alt: false, ctrl: false, meta: false };
+/** A pointer sample over page 1 at page point (x, y), at scale 1. */
+const pointer = (phase: 'down' | 'up', x: number, y: number): Step =>
+  on('interaction', 'dispatchPointer', {
+    phase,
+    viewport: { x, y },
+    modifiers: NO_MODIFIERS,
+    page: { ref: page, point: { x, y }, scale: 1, rotation: 0 },
+  });
 
 const cases: ScenarioCase[] = [
   {
@@ -276,6 +359,54 @@ const cases: ScenarioCase[] = [
     plugins: [{ factory: 'interaction' }, { factory: 'selection' }, commandLists(['selection'])],
     engine: { documents: { a: doc() } },
     steps: [start, open, resolve('selection:copy'), cmd('execute', 'selection:copy')],
+  },
+  {
+    name: 'snapshot-commands',
+    covers:
+      'createRenderCommands with a snapshot held: snapshot:copy hands the picture to the host in the press itself, snapshot:save waits for the picture, then names the file after the document and the page number (document p1.png, image/png), and snapshot:clear lets the snapshot go, which disables all three.',
+    plugins: [{ factory: 'interaction' }, { factory: 'snapshot-render' }, commandLists(['render'])],
+    engine: { documents: { a: snapshotDoc } },
+    steps: [
+      start,
+      open,
+      cmd('execute', 'tool:snapshot'),
+      pointer('down', 100, 120),
+      pointer('up', 400, 500),
+      resolve('snapshot:copy'),
+      cmd('execute', 'snapshot:copy'),
+      cmd('execute', 'snapshot:save'),
+      { op: 'settle', label: 'r0', value: { width: 512, height: 512 } },
+      resolve('snapshot:clear'),
+      cmd('execute', 'snapshot:clear'),
+      resolve('snapshot:copy'),
+      resolve('snapshot:save'),
+      resolve('snapshot:clear'),
+    ],
+  },
+  {
+    name: 'annotation-delete',
+    covers:
+      'createAnnotationCommands with the annotation plugin: annotation:delete is disabled with nothing selected, enabled once an annotation the user may delete is selected, and deletes the selection.',
+    plugins: [
+      { factory: 'interaction' },
+      { factory: 'annotation-live' },
+      commandLists(['annotation']),
+    ],
+    engine: {
+      documents: {
+        a: annotationDoc([hydrate([square(1)]), write(1, [{ item: deleted(objRef(1, 1)) }])]),
+      },
+    },
+    steps: [
+      start,
+      open,
+      resolve('annotation:delete'),
+      annotation('selection.select', [[objRef(1, 1)]]),
+      resolve('annotation:delete'),
+      cmd('execute', 'annotation:delete'),
+      annotation('selection.getSelected'),
+      resolve('annotation:delete'),
+    ],
   },
   {
     name: 'owners-absent',
