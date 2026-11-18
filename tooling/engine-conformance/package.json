@@ -75,7 +75,9 @@
     "fonts": "tsx --conditions=development src/generate-font-vectors.ts",
     "fonts:check": "tsx --conditions=development src/generate-font-vectors.ts --check",
     "changes": "tsx --conditions=development src/generate-change-vectors.ts",
-    "changes:check": "tsx --conditions=development src/generate-change-vectors.ts --check"
+    "changes:check": "tsx --conditions=development src/generate-change-vectors.ts --check",
+    "signature-ltv": "tsx --conditions=development src/generate-signature-ltv-vectors.ts",
+    "signature-ltv:check": "tsx --conditions=development src/generate-signature-ltv-vectors.ts --check"
   },
   "devDependencies": {
     "@embedpdf/engine": "workspace:*",
