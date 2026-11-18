@@ -1,6 +1,6 @@
 import CustomDump
 import EmbedPDF
-import EmbedPDFUI
+@testable import EmbedPDFUI
 import Foundation
 import Observation
 import Testing
@@ -239,6 +239,33 @@ struct StageReaderModelTests {
     #expect(try await !model.stage.isMoving())
   }
 
+  /// A refresh that runs while a double tap's stage call is still on its way
+  /// reads the stage before the zoom starts and finds it still. That read
+  /// must not end the zoom the tap then starts.
+  @Test func aRefreshAheadOfTheDoubleTapDoesNotEndItsZoom() async throws {
+    let (model, task) = try await model()
+    defer { task.cancel() }
+    let size = CGSize(width: 390, height: 844)
+    await model.sizeChanged(size, displayScale: 3)
+    let (reached, reach) = AsyncStream<Void>.makeStream()
+    let (gate, open) = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
+    model.zoomStartReached = {
+      reach.yield(())
+      for await _ in gate { break }
+    }
+    let tap = Task { await model.doubleTapped(at: CGPoint(x: 195, y: 422)) }
+    for await _ in reached { break }
+    #expect(try await !model.stage.isMoving())
+    // Ends in a refresh, which reads the still stage.
+    await model.sizeChanged(size, displayScale: 3)
+    open.yield(())
+    open.finish()
+    await tap.value
+    #expect(try await model.stage.isMoving())
+    #expect(model.isZooming)
+    try await expectObserved({ model.isZooming }, equals: false) {}
+    #expect(try await !model.stage.isMoving())
+  }
 }
 
 /// Set once, from any thread: an observation's `onChange`.

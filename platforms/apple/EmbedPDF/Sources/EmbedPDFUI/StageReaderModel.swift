@@ -34,6 +34,18 @@ public final class StageReaderModel {
   /// A pinch's end or a double tap may start a zoom animation; it holds
   /// until a refresh finds the stage still.
   @ObservationIgnored private var zoomAnimating = false
+  /// Bumped when a zoom start begins and when its stage call returns. A
+  /// refresh judges `zoomAnimating` only if no start was in flight when it
+  /// began and this is unchanged when its read lands. Each stage call hops
+  /// off the main actor before it reaches the stage, so a refresh that began
+  /// near a double tap can read `isMoving()` before `doubleTapZoom` runs and
+  /// find the stage still.
+  @ObservationIgnored private var zoomEpoch = 0
+  /// Zoom starts whose stage call has not returned.
+  @ObservationIgnored private var zoomStartsInFlight = 0
+  /// Runs in a double tap after the start is marked and before the stage
+  /// call. Tests hold it so a refresh can land first.
+  @ObservationIgnored var zoomStartReached: (@MainActor () async -> Void)?
   /// The last drag call, which the next one waits for. SwiftUI hands a
   /// gesture's change and end to separate tasks, and each call leaves the
   /// main actor while it reaches the stage, so without this an end could
@@ -195,33 +207,44 @@ public final class StageReaderModel {
   public func magnifyEnded() async {
     magnifying = false
     zoomAnimating = true
+    zoomEpoch &+= 1
     lastMagnification = 1
     await refresh()
   }
 
   public func doubleTapped(at location: CGPoint) async {
     zoomAnimating = true
+    zoomEpoch &+= 1
+    zoomStartsInFlight += 1
+    await zoomStartReached?()
     do {
       try await stage.doubleTapZoom(Point(x: location.x, y: location.y))
     } catch {
       self.error = error
     }
+    zoomStartsInFlight -= 1
+    zoomEpoch &+= 1
     await refresh()
   }
 
   /// Reads the pages, the camera and, after a pinch's end or a double tap,
   /// whether the zoom animation still runs: the stage's `motionEnded` lands
   /// here too. A failed read ends the animation, so ``isZooming`` can't stay
-  /// set.
+  /// set. Only a refresh that began after the last zoom start returned may
+  /// end the animation (``zoomEpoch``); that start's own refresh always
+  /// does, so the animation still ends.
   private func refresh() async {
+    let epoch = zoomEpoch
+    let mayJudge = zoomStartsInFlight == 0
     do {
       visiblePages = try await stage.visiblePages()
       camera = try await stage.camera()
-      if zoomAnimating {
-        zoomAnimating = try await stage.isMoving()
+      if zoomAnimating, mayJudge {
+        let moving = try await stage.isMoving()
+        if epoch == zoomEpoch { zoomAnimating = moving }
       }
     } catch {
-      zoomAnimating = false
+      if mayJudge, epoch == zoomEpoch { zoomAnimating = false }
       self.error = error
     }
     setZooming(magnifying || zoomAnimating)
