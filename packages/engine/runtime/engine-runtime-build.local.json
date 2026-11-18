@@ -20,11 +20,11 @@
     },
     "android-arm64": {
       "url": "file://../../../pdfium-multiplatform-prototype/build/cache/libembedpdf-runtime-android-arm64.tar.gz",
-      "sha256": "80b9593be88094307760533e4f89161202c7d6c22d951df42c25c2e2fa9fbb84"
+      "sha256": "83efd1971ff0a36ff6b547e93905af03938d79907bc5359a2462894166d131b0"
     },
     "android-x64": {
       "url": "file://../../../pdfium-multiplatform-prototype/build/cache/libembedpdf-runtime-android-x64.tar.gz",
-      "sha256": "179e9784caa17acd77ebdc8a1feca13450c6fd50cb40e25a51f5f195a4800e96"
+      "sha256": "27b931b2c9d1dc0395196ee2a11c4ba454d769b49dbd581b25c858199fa72019"
     }
   }
 }

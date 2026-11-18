@@ -12,7 +12,7 @@
 # points at a local fork checkout. They cannot be built on this machine: the
 # fork's Android config asserts `host_os == "linux"`, so a macOS build fails at
 # `gn gen` before it compiles anything. What is used instead are artifacts from
-# fork commit 3c6e02297, the commit runtime-src pins, built in a linux/amd64
+# fork commit af480d0ce, the commit runtime-src pins, built in a linux/amd64
 # container.
 set -euo pipefail
 
