@@ -3,15 +3,20 @@
 `packages/core/signature` in Rust: parse, verify and build detached CMS signatures, the completion
 gate, certificate chain validation, `sign()` and `validateSignatures()` over a document handle, and
 the signer ports. Document timestamps (`sign` with `kind: 'timestamp'`, `cms/timestamp.ts`, the
-`timestamp` gate profile and `createTestTimestampAuthority`) port too. No vector signs a timestamp,
-so `tests/timestamp.rs` checks them against the refusal texts the TypeScript gives for the same
-inputs. All 460 cases in the five `vectors/core/signature-*.json` files replay identically
-(`cargo test -p epdf-signature-core`): 204 parse cases, 97 for verify, build and the gate, 96 for
-trust, 35 for signing and validation over a document, and 28 for the signers.
+`timestamp` gate profile and `createTestTimestampAuthority`) port too, and so do the parts upstream
+`c4e744345` added: signature timestamps (`attach.rs`, `splice.rs`, `sign_with`,
+`complete_signature`), the RFC 3161 protocol and `httpTimestampAuthority`, revocation answers and
+long-term validation (`revocation/`, `judgement.rs`, `long_term.rs`), `addValidationInfo`
+(`collect.rs`), and the host transport both HTTP clients send through (`transport.rs`, decision
+D-1 of the 2026-11-18 catch-up). All 488 cases in the seven `vectors/core/signature-*.json` files
+replay identically (`cargo test -p epdf-signature-core`): 204 parse cases, 97 for verify, build
+and the gate, 96 for trust, 35 for signing and validation over a document, 28 for the signers, 17
+for the timestamp and revocation clients over a scripted transport, and 11 for revocation answers,
+long-term validation and collecting.
 
 ## What ports and what the host supplies
 
-The TypeScript is thin over two libraries, pkijs 3.4.0 and asn1js, and over WebCrypto. The port
+The TypeScript is thin over two libraries, pkijs 4.0.1 and asn1js 4.0.0, and over WebCrypto. The port
 takes the libraries' behaviour with it, because a pkijs refusal text or a pkijs quirk is part of
 what `packages/core/signature` returns. `der.rs` is the slice of asn1js the package leans on (BER
 in, DER out, a SET never sorted), `cert.rs` reads certificates as `pkijs.Certificate` does,
@@ -36,10 +41,11 @@ certificate TBS byte for byte even where the signature over it is fixed.
 
 These are recorded rather than fixed; the TypeScript is the oracle.
 
-- The chain engine starts from the LAST certificate the CMS carries. `parseCmsInternal` orders the
-  signer first, so any CMS carrying two or more certificates validates the chain from the last of
-  the others, and the signer is never on the path. `trust-expired-leaf-not-checked` is an expired
-  signer with a valid intermediate, reported trusted.
+- The chain engine starts from the LAST certificate it is handed. `validatePath` (upstream
+  `30b269418`) hands it the signer last and alone, so the signer is now on the path:
+  `trust-expired-leaf-not-checked` is an expired signer with a valid intermediate, now untrusted.
+  When the engine fails and some certificate on the way up has no issuer among those offered, the
+  reason names it ("no certificate was found that issued ...") instead of the engine's message.
 - A carried certificate that is itself an anchor is a path of itself twice
   (`trust-intermediate-anchor-carried`, `trust-self-signed-anchor`).
 - Verification hashes with the CMS digest algorithm and never reads the signature algorithm's own
@@ -50,9 +56,18 @@ These are recorded rather than fixed; the TypeScript is the oracle.
   (`gate-malformed-type-error`).
 - A critical extension pkijs does not know passes the CA check as long as its value is BER
   (`trust-ca-unknown-critical`).
-- A policy mapping whose issuer-domain policy no certificate lists, or a mapping on a CA whose
-  child lists no policies, fails with a `TypeError` text as the chain's reason
-  (`trust-policy-mappingUnknownIssuer`, `trust-policy-mappingNoPolicies`).
+- Four policy chains fail with a JavaScript `TypeError` text as the chain's reason, which
+  `policy.rs` reproduces: `(reading '1')` for `trust-policy-mappingUnknownIssuer`,
+  `(reading 'certificatePolicies')` for `trust-policy-mappingNoPolicies`, and `(reading '0')` for
+  `trust-policy-explicitThenInhibit` and `trust-policy-requireOnlyMapping`. The new texts follow
+  from `validatePath` handing the engine the signer, not from pkijs 4: the engine's code is the
+  same in pkijs 3.4.0 and 4.0.1, and the Rust engine, unchanged, gives the new texts once the
+  signer is on the path. `requireOnlyMapping` was trusted with a path of 3 before and is untrusted
+  now, upstream as here.
+- pkijs 4 and asn1js 4 write differently: an ECDSA integer in the fewest octets, a UTCTime year
+  modulo 100 (no more dropped years), and a GeneralizedTime fraction without trailing zeros.
+  `cms/time.ts` picks UTCTime for 1950 to 2049 and GeneralizedTime outside, so
+  `self-signed-validity-past-2100` now carries a 2108 GeneralizedTime.
 - `selfSignedCertificate` writes both validity times as UTCTime, which reads back as 19xx for a
   validity that reaches 2050. From 2100 on, and before 1890, asn1js's `padNumber` drops the year
   altogether (`self-signed-validity-past-2100`, `build-signing-times`).
@@ -71,6 +86,20 @@ These are recorded rather than fixed; the TypeScript is the oracle.
   default stops at 4,096 bits, so the limit is set explicitly.
 
 ## Deliberate deviations from the TypeScript
+
+- The HTTP clients send through `transport::HttpTransport`, one POST in and a status and bytes, a
+  timeout, a reply too large, or a failure out. The limits are the routes' (64 KiB for a request,
+  1 MiB for a timestamp reply, 2 MiB for a revocation answer, 10 s per attempt by default):
+  upstream's browser clients set no size limit of their own and leave that to the route. A request
+  over 64 KiB is refused before it is sent; neither client can build one that large.
+- OCSP responses, CRLs and TimeStampResp are read by structure (`revocation/answer.rs`,
+  `timestamp_protocol.rs`), with pkijs's schema texts for what fails. Which malformed answers pass
+  pkijs's `compareSchema` is not walked rule by rule as `asn1js.rs` does for the CMS: an answer
+  that is unreadable here is `unreadable` with a pkijs schema text, but a malformed answer pkijs
+  reads in part could be read differently. No vector reaches one.
+- `createTestCertificateAuthority` (`signers/test-authority.ts`) does not port: the vectors use it
+  at generation time only, through its answers. A host test that needs an authority replays
+  recorded answers (`RecordedTransport`).
 
 - Every BER read the TypeScript makes with `asn1js.fromBER` (the CMS, a TSTInfo, a certificate,
   a subject key identifier) first asks `asn1js::from_ber` whether asn1js 3.0.10 would accept it.
@@ -145,7 +174,7 @@ engine's policy and name-constraint half.
 
 ## Mutation testing
 
-These counts predate the Task 13.9 catch-up (document timestamps, `CompletionProfile`, the
+These counts predate the 2026-11-18 catch-up and the Task 13.9 catch-up (document timestamps, `CompletionProfile`, the
 harness's `pkcs7` fallback for an unknown gate profile) and are stale: the in-diff run over Task 14's changed lines (`4a0b9c126..172f5369d`, 2026-10-27) caught 235 of 239 viable mutants (234 caught, 1 timeout; 13 unviable); the 4 left are equivalent (`.superpowers/sdd/multiplatform-upstream-catchup/task-14.8b-report.md`).
 
 `scripts/mutants.sh -p epdf-signature-core --test-package epdf-signature-core --file <file>`, file by
