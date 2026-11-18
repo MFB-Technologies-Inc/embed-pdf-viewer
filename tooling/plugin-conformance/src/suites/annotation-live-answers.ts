@@ -1432,56 +1432,68 @@ export const LIVE_ANSWERS: Readonly<Record<string, ResponseSpec[]>> = {
     ]),
   ],
   'ink-press-on-an-annotation-keeps-the-waiting-stroke': [
-    write(1, [
-      {
-        item: created(
-          born(10001, {
-            subtype: 'ink',
-            color: '#ef4444',
-            strokeWidth: 6,
-            blendMode: 'normal',
-            inkList: [
-              [
-                { x: 300, y: 300 },
-                { x: 340, y: 320 },
+    write(
+      1,
+      [
+        {
+          item: created(
+            born(10001, {
+              subtype: 'ink',
+              color: '#ef4444',
+              strokeWidth: 6,
+              blendMode: 'normal',
+              inkList: [
+                [
+                  { x: 300, y: 300 },
+                  { x: 340, y: 320 },
+                ],
               ],
-            ],
-            rotation: null,
-            print: true,
-          }),
-        ),
-      },
-    ]),
-    write(2, [
-      {
-        item: updated(
-          square(1, {
-            rect: { x: 130, y: 100, width: 100, height: 100 },
-            box: { x: 130, y: 100, width: 100, height: 100 },
-          }),
-        ),
-      },
-    ]),
-    write(3, [
-      {
-        item: created(
-          born(10002, {
-            subtype: 'ink',
-            color: '#ef4444',
-            strokeWidth: 6,
-            blendMode: 'normal',
-            inkList: [
-              [
-                { x: 400, y: 400 },
-                { x: 440, y: 420 },
+              rotation: null,
+              print: true,
+            }),
+          ),
+        },
+      ],
+      { ms: 200 },
+    ),
+    write(
+      2,
+      [
+        {
+          item: updated(
+            square(1, {
+              rect: { x: 130, y: 100, width: 100, height: 100 },
+              box: { x: 130, y: 100, width: 100, height: 100 },
+            }),
+          ),
+        },
+      ],
+      { ms: 200 },
+    ),
+    write(
+      3,
+      [
+        {
+          item: created(
+            born(10002, {
+              subtype: 'ink',
+              color: '#ef4444',
+              strokeWidth: 6,
+              blendMode: 'normal',
+              inkList: [
+                [
+                  { x: 400, y: 400 },
+                  { x: 440, y: 420 },
+                ],
               ],
-            ],
-            rotation: null,
-            print: true,
-          }),
-        ),
-      },
-    ]),
+              rotation: null,
+              print: true,
+            }),
+          ),
+        },
+      ],
+      { ms: 200 },
+    ),
   ],
   'shape-clicks-over-an-annotation': [
     write(1, [
