@@ -7,12 +7,18 @@ in upstream's `httpTimestampAuthority` and `httpRevocationSource` does at the ne
 `content-type` and then the request's headers, an `AbortController` that fires after `timeoutMs`
 and covers reading the reply, and for a failed timestamp query in a page the clients' hint about
 calling the authority through a route. Every status comes back as `replied`. Retries, the 250 ms
-delay, what a status means and the error texts stay in the Rust clients.
+delay, what a status means and the error texts stay in the Rust clients. A reply outside 200 to 299
+whose body stalls, breaks off or passes `maxReplyBytes` is `replied` with its status and an empty
+body, so the status alone decides, as upstream (fix round 1, `f9144cab2`).
 Reason: CU-C4b-D2 put those in Rust, and the Rust client already words each outcome
 (`crates/plugins/signature-core/src/transport.rs` `attempt()`). Duplicating the status mapping in
 JavaScript would give two places to drift.
-Cost: the transport reads the body of a 5xx or 429 that upstream's timestamp client never reads.
-It is bounded by `maxReplyBytes`, so the cost is a read, not a risk.
+Cost: the transport reads the body of every non-2xx reply, which upstream's timestamp client
+never does, so a server that holds such a body open costs up to `timeoutMs` before the status is
+answered, where upstream answers at once. The outcome is upstream's either way: a 4xx is
+`SignatureRefused` and not retried, a 5xx or 429 is `Network` and retried. Before fix round 1, an
+unreadable non-2xx body became `failed`, `timedOut` or `tooLarge`, which the Rust client counts as
+no answer and retries.
 Reverse: not intended.
 
 ## CU-C8b-D2. The transport stops reading at `maxReplyBytes`
@@ -34,8 +40,13 @@ Decision: both take upstream's options and answer `{ ...options, transport: fetc
 the config shape the signature adapter reads (CU-C8a-D4), typed as upstream's return type.
 Reason: an app moving from the TypeScript plugin to the Rust one changes the import and nothing
 else, the way `src/plugins.ts` mirrors the plugin factories.
+The authority's config also carries `kind: 'cms'` and a `sign` that rejects with upstream's
+`InvalidArg` refusal ("a timestamp authority can't sign a document: ..."), so using it as a
+signing key fails as upstream's does; the adapter reads `transport` first, so the Rust plugin never
+calls that `sign` (fix round 1).
 Cost: the value is a description, not a `CmsSigner` or `RevocationSource`. Handed to the
-TypeScript plugin, or called as a signer, it fails. The cast hides that from the type checker.
+TypeScript plugin as an authority, it cannot stamp: its `sign` refuses even for `ETSI.RFC3161`,
+where upstream's would stamp. The cast hides that from the type checker.
 Reverse: a distinct type and name (`rustTimestampAuthority`), at the cost of the swap-the-import
 property.
 

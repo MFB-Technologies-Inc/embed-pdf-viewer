@@ -5,7 +5,7 @@ the browser build its D-1 transport: `fetchTransport()` in `packages/core-wasm`,
 app's own routes, with `httpTimestampAuthority` and `httpRevocationSource` under upstream's names.
 Its tests sign through upstream's real `timestampRoute` and `revocationRoute`, including a granted
 timestamp and a long-term validation fill, so the plan's done line holds for the browser. The
-browser table passes: `core-wasm` 126 of 126, `test:gc` 13 of 13, `epdf-web` 63 of 63. The .NET
+browser table passes: `core-wasm` 131 of 131, `test:gc` 13 of 13, `epdf-web` 63 of 63. The .NET
 rows pass on linux-arm64, linux-x64 (emulated) and osx-arm64. osx-x64's relocated smoke passes
 under Rosetta, but `validate.sh` exits 1 at its record step (CU-C8b-D6). win-x64 was not run. No
 upstream TS under `packages/**` changed. Decisions are in
@@ -39,18 +39,21 @@ attempt: `content-type` then the headers, an `AbortController` over `timeoutMs` 
 body, `tooLarge` past `maxReplyBytes`, `failed` for a thrown `fetch` (with upstream's route hint for
 a timestamp query in a page) or a broken-off body, and `replied` for every status. Retries, the
 250 ms delay, the status mapping and the error texts are the Rust clients' (CU-C8b-D1, CU-C8b-D2).
-It never rejects.
+It never rejects. Those body outcomes are for a 2xx reply: any other status whose body can't be
+read is `replied` with that status and no body, so the Rust client decides by the status, as
+upstream's clients do (fix round 1).
 
 ## Tests
 
-`packages/core-wasm/test/signature-transport.test.ts`, 18 tests:
+`packages/core-wasm/test/signature-transport.test.ts`, 23 tests (18, and 5 from fix round 1):
 
 | Group | Tests | What they prove |
 |---|---|---|
 | stubbed `fetch` | 8 | `replied` (method, header order, body, any status), a header overriding `content-type`, the global `fetch` read per request, `timedOut` on the request and on the body, `tooLarge` by `content-length` and by bytes read (exactly the limit is a reply), `failed` with and without the route hint, a broken-off body |
+| non-2xx and misuse (fix round 1) | 3 | a 400 whose body breaks off, a 503 past the limit and a 429 whose body stalls are each `replied` with the status and no body; a locked body fails a 2xx without rejecting; `httpTimestampAuthority` used as a key rejects with upstream's `InvalidArg` text |
 | loopback `node:http` server | 3 | `replied` and `tooLarge` over a real connection with the headers as sent, `timedOut` on a held reply, `failed` with nothing listening |
 | upstream routes in-process | 3 | `timestampRoute` passes the query and the authority's status back and refuses an empty query (413), and answers 504 for a silent authority; `revocationRoute` asks a CRL address with GET and refuses `127.0.0.1` with 403 `not-allowed` |
-| Rust signature plugin | 4 | a `Uint8Array` body crossing to the transport and back (the reply's token reaches the nonce check, past the algorithm and digest checks); a granted timestamp sealed into the signature, its verdict `cryptography: 'valid'` with the authority's certificate (CU-C8b-D4); a long-term fill whose OCSP answer comes from `createTestCertificateAuthority()` through `revocationRoute`, verdict `summary: 'valid'`, `revocation: 'good'`, `longTerm.enabled: true`; a 503 from the authority retried once, then `did not answer: HTTP 503` |
+| Rust signature plugin | 6 | a `Uint8Array` body crossing to the transport and back (the reply's token reaches the nonce check, past the algorithm and digest checks); a granted timestamp sealed into the signature, its verdict `cryptography: 'valid'` with the authority's certificate (CU-C8b-D4); a long-term fill whose OCSP answer comes from `createTestCertificateAuthority()` through `revocationRoute`, verdict `summary: 'valid'`, `revocation: 'good'`, `longTerm.enabled: true`; a 503 from the authority retried once, then `did not answer: HTTP 503`; fix round 1: a 400 with a broken body is `refused the request: HTTP 400`, code `SignatureRefused`, asked once, and a 503 with an oversized body is `did not answer: HTTP 503`, code `Network`, asked twice |
 
 One-step signing needs an `appearance`. Without one, upstream's `sign` passes
 `appearance: { pdf: null }` and the engine refuses it, in the Rust port and upstream alike, so the
@@ -67,7 +70,7 @@ CU-C8a for `epdf-web`.
 |---|---|---|
 | Rust-core payload (`build-target.sh wasm32-eh`, emsdk 4.0.0) | exit 0 | exit 0 |
 | `build:wasm` | exit 0 | exit 0 |
-| `core-wasm` vitest | 108 of 108, 12 files | 126 of 126, 13 files (the 18 above) |
+| `core-wasm` vitest | 108 of 108, 12 files | 126 of 126, 13 files (the 18 above); 131 of 131 after fix round 1 (`test:wasm`, `fix1/core-wasm-test.log`) |
 | `core-wasm` `test:gc` | 13 of 13 | 13 of 13 |
 | `core-wasm` `typecheck` | pass | pass |
 | `epdf-web` wasm tests | 63 passed in 9 binaries | 63 passed in 9 binaries |
@@ -116,7 +119,7 @@ about 4.3 GB: container `cu-c8b-x64` and its image (`mcr.microsoft.com/dotnet/sd
 (209 MB), the linux-x64 runtime archive, the `bin`, `obj` and `__pycache__` outputs of
 `platforms/dotnet`, the `.nupkg` and staging dir of each pack (about 150 MB across the four RIDs),
 and on the host the two .NET SDKs, the darwin runtimes and the Cargo target (1.3 GB). The host
-worktree `.claude/worktrees/cu-c8b-mac` and the bundle are removed once used. No trim was run.
+worktree for the Mac steps and the bundle are removed once used. No trim was run.
 
 Kept for CU-C8c and CU-C9: `/workspaces/wt/CU-C8b` (CU-C8a's worktree moved and switched, with its
 `node_modules`, PDFium libraries and payload), `/workspaces/target/debug` (476 MB) and the wasm
