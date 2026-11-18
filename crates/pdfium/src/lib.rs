@@ -32,6 +32,7 @@ pub mod call_count;
 mod capture;
 mod document;
 mod document_fonts;
+mod dss;
 mod error;
 mod extract;
 mod file_access;
@@ -73,6 +74,7 @@ pub use document_fonts::{
     DocumentFontFace, DocumentFontProgram, FontEmbedding, FontResolution, FontResolveRun,
     FontSource, ResolvedFontRun,
 };
+pub use dss::dss_kind;
 pub use error::PdfiumError;
 pub use extract::ExtractCopy;
 pub use file_access::FileAccess;
@@ -102,8 +104,8 @@ pub use piece_info::{PieceInfoHolder, object_type};
 pub use piece_info_write::PieceInfoValue;
 pub use save::{LayerOutput, LayerSaveError, PdfSaveMode};
 pub use signature::{
-    DerivedDocument, DiffRevisionHealth, DigestAlgorithm, ObjectDiff, ObjectDiffEntry,
-    SignatureModel, field_list, string_key,
+    DerivedDocument, DiffRevisionHealth, DigestAlgorithm, LoadedObjectValue, ObjectDiff,
+    ObjectDiffEntry, SignatureModel, field_list, string_key,
 };
 pub use signature_write::{
     SavedCandidate, SealedCandidate, SignaturePrepareOptions, seal_signature_candidate,

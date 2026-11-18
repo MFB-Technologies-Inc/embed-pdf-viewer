@@ -470,6 +470,73 @@ impl Document {
         let raw = unsafe { pdfium_sys::EPDFDoc_CompareRevisions(self.as_raw(), newer.as_raw()) };
         (!raw.is_null()).then_some(ObjectDiff { raw, _not_send: PhantomData })
     }
+
+    /// `EPDFDoc_GetLoadedObjectValue`: object `object_number` as this
+    /// revision's loaded bytes hold it, in the form [`ObjectDiff::value`]
+    /// reads, for an object no diff wrote. Two-call; the object cache is
+    /// never read.
+    pub fn loaded_object_value(&self, object_number: u32) -> LoadedObjectValue {
+        let mut status: c_int = -1;
+        let mut truncated: pdfium_sys::FPDF_BOOL = 0;
+        // SAFETY: live document, a NULL buffer of length 0 asks for the length.
+        let length = unsafe {
+            pdfium_sys::EPDFDoc_GetLoadedObjectValue(
+                self.as_raw(),
+                object_number,
+                std::ptr::null_mut(),
+                0,
+                &mut status,
+                &mut truncated,
+            )
+        };
+        if length == 0 || truncated != 0 {
+            return LoadedObjectValue {
+                text: None,
+                read_status: status,
+                truncated: truncated != 0,
+            };
+        }
+        let mut buffer = vec![0u8; length as usize];
+        truncated = 0;
+        // SAFETY: `buffer` holds `length` writable bytes.
+        let written = unsafe {
+            pdfium_sys::EPDFDoc_GetLoadedObjectValue(
+                self.as_raw(),
+                object_number,
+                buffer.as_mut_ptr().cast(),
+                length,
+                &mut status,
+                &mut truncated,
+            )
+        };
+        if written == 0 || truncated != 0 {
+            return LoadedObjectValue {
+                text: None,
+                read_status: status,
+                truncated: truncated != 0,
+            };
+        }
+        // NUL-terminated: the text is every byte before it, one to one.
+        let end = (written as usize).saturating_sub(1).min(buffer.len());
+        LoadedObjectValue {
+            text: Some(latin1(&buffer[..end])),
+            read_status: status,
+            truncated: false,
+        }
+    }
+}
+
+/// What [`Document::loaded_object_value`] read.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LoadedObjectValue {
+    /// The serialisation; `None` when the object is absent, past the cap, or
+    /// the call was refused.
+    pub text: Option<String>,
+    /// `EPDF_DIFF_READ_*` (0 ok, 1 failed, 2 absent); -1 for a document with
+    /// no parser.
+    pub read_status: i32,
+    /// The serialisation exceeded the fork's cap (1 MiB).
+    pub truncated: bool,
 }
 
 /// `EPDF_OBJECT_DIFF`, closed on drop. Detached from both documents.
