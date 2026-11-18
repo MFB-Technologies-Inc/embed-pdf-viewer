@@ -1,7 +1,7 @@
 {
   "total": {
-    "statements": "77816/82243",
-    "branches": "15356/16887",
+    "statements": "77842/82243",
+    "branches": "15375/16906",
     "unsnapshottedOnlyLines": 2645,
     "unloadedFiles": 42
   },
@@ -1022,7 +1022,7 @@
     },
     "packages/core/annotation/src/update/index.ts": {
       "statements": "274/274",
-      "branches": "83/85",
+      "branches": "84/86",
       "uncoveredLines": [],
       "uncoveredBranches": [
         "157:37#0",
@@ -4759,17 +4759,10 @@
       "uncoveredBranches": []
     },
     "packages/plugin/annotation/src/commands.ts": {
-      "statements": "30/34",
-      "branches": "3/4",
-      "uncoveredLines": [
-        26,
-        27,
-        28,
-        29
-      ],
-      "uncoveredBranches": [
-        "25:8#0"
-      ]
+      "statements": "34/34",
+      "branches": "8/8",
+      "uncoveredLines": [],
+      "uncoveredBranches": []
     },
     "packages/plugin/annotation/src/comments/comments.ts": {
       "statements": "205/207",
@@ -4864,19 +4857,15 @@
       "uncoveredBranches": []
     },
     "packages/plugin/annotation/src/read/annotations.ts": {
-      "statements": "154/164",
-      "branches": "52/56",
+      "statements": "158/164",
+      "branches": "53/57",
       "uncoveredLines": [
         111,
         112,
         113,
         114,
         115,
-        116,
-        139,
-        140,
-        141,
-        142
+        116
       ],
       "uncoveredBranches": [
         "78:74#0",
@@ -6161,7 +6150,7 @@
     },
     "packages/plugin/commands/src/services/availability.ts": {
       "statements": "195/198",
-      "branches": "64/71",
+      "branches": "65/72",
       "uncoveredLines": [
         81,
         135,
@@ -8473,31 +8462,13 @@
       ]
     },
     "packages/plugin/render/src/commands.ts": {
-      "statements": "73/91",
-      "branches": "7/9",
-      "uncoveredLines": [
-        50,
-        51,
-        52,
-        62,
-        63,
-        64,
-        65,
-        66,
-        67,
-        68,
-        69,
-        70,
-        71,
-        72,
-        88,
-        89,
-        90,
-        91
-      ],
+      "statements": "91/91",
+      "branches": "16/19",
+      "uncoveredLines": [],
       "uncoveredBranches": [
-        "25:74#0",
-        "36:54#0"
+        "51:59#0",
+        "63:23#0",
+        "65:27#0"
       ]
     },
     "packages/plugin/render/src/contract.ts": {
@@ -8660,7 +8631,7 @@
     },
     "packages/plugin/render/src/snapshot.ts": {
       "statements": "243/246",
-      "branches": "54/59",
+      "branches": "56/61",
       "uncoveredLines": [
         165,
         166,

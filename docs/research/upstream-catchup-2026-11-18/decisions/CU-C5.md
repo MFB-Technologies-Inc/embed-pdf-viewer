@@ -26,8 +26,9 @@ Reason: upstream keeps it as a deprecated join of the 3.2 lists (`standard.ts`),
 never had it: `standard.ts` was unloaded at `cf7fdbe7a` too. A join in `epdf-plugin-commands` would
 make it depend on every owner, the cycle D1 avoids. A host joins the lists it wants, as upstream's
 framework packages do with `standardCommands`.
-Cost: a host writes the join (six calls) itself.
-Reverse: add the join in `epdf-viewer-host` or another crate above the owners.
+Cost: the native join (seven lists, counting history, as upstream's framework `standardCommands`)
+lives in `epdf-viewer-host`, CU-C8's work.
+Reverse: add the join in a crate above the owners.
 
 ## CU-C5-D3. `createTestCommandContext` is not mirrored
 
@@ -40,17 +41,20 @@ Cost: the lists' TS unit tests (`test/commands.test.ts` in each owner) have no l
 twin; the scenarios and two name tests cover the same branches except the ones listed in the report.
 Reverse: none needed unless the kernel grows capability stand-ins.
 
-## CU-C5-D4. The host's part of the lists is a trait per owner, and the snapshot's save hands over the image
+## CU-C5-D4. The host's part of the lists is a trait per owner
 
 Decision: `DocumentCommandsPlatform::save_file(bytes: Value, file_name, content_type)`,
-`SelectionCommandsPlatform::copy_selection(&SelectionCapability) -> Promise<Value>`,
-`RenderCommandsPlatform::copy_image(Promise<PageImage>) -> Promise<Value>` and
-`RenderCommandsPlatform::save_image(PageImage, file_name, content_type)`.
-Reason: upstream's `saveFile` for a snapshot takes `(await snapshot.image).blob()`, a browser
-`Blob`. The Rust `PageImage` is a handle the host reads pixels from, so the host makes the file.
-The file name, the content type, the page number and when the call happens match upstream.
-Cost: `save_image` and `save_file` are two methods where upstream has one `saveFile`.
-Reverse: give `PageImage` a PNG byte read and fold `save_image` into `save_file`.
+`SelectionCommandsPlatform::copy_selection(&SelectionCapability) -> Promise<Value>`, and
+`RenderCommandsPlatform` with `copy_image(Promise<PageImage>) -> Promise<Value>`,
+`image_bytes(PageImage) -> Promise<Value>` and `save_file(bytes: Value, file_name, content_type)`.
+Reason: upstream's `snapshot:save` reads `(await snapshot.image).blob()`, a browser `Blob`. The
+Rust `PageImage` is a handle the host reads pixels from, so the encoding step is the host's
+`image_bytes`, taken at the same point: after the picture, before `listPages`. A rejected
+`image_bytes` fails the command before `save_file`, as a `blob()` that rejects does upstream. File
+name, content type and page number match upstream; `snapshot-commands` in
+`plugins/commands/lists.json` pins them (fix round 1).
+Cost: the render platform has three methods where upstream's has two.
+Reverse: give `PageImage` a PNG byte read and drop `image_bytes`.
 
 ## CU-C5-D5. The i18n tables also gain the snapshot and marquee-zoom strings
 
