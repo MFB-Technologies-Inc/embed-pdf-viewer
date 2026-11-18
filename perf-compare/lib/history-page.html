@@ -1,0 +1,341 @@
+<title>Viewer Perf History</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: a header of facts, one row of controls, then small multiples: one chart per report row,
+   grouped by direction and flow, all on the same time axis. No network resource is loaded. */
+:root {
+  --plane: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --band: #efeee8;
+  --series-1: #2a78d6; --series-2: #eb6834; --ref: #898781;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --plane: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --band: #242422;
+    --series-1: #3987e5; --series-2: #d95926; --ref: #898781; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --plane: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --band: #242422;
+  --series-1: #3987e5; --series-2: #d95926; --ref: #898781; color-scheme: dark;
+}
+body { margin: 0; background: var(--plane); color: var(--ink); font: 14px/1.45 var(--sans); }
+.page { max-width: 1500px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1 { font-size: 24px; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font-size: 17px; margin: 36px 0 0; }
+h3 { font-size: 13px; margin: 22px 0 10px; color: var(--ink-2); font-weight: 600; font-family: var(--mono); }
+h3 span, h2 span { color: var(--muted); font-weight: 400; font-family: var(--sans); font-size: 13px; }
+.lede { max-width: 72ch; color: var(--ink-2); margin: 0; }
+.facts { color: var(--muted); margin: 8px 0 0; font-size: 13px; }
+code, .mono { font-family: var(--mono); font-size: 0.93em; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; margin-top: 22px; }
+.group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.group > span { color: var(--muted); font-size: 12px; margin-right: 2px; }
+button { font: 13px var(--sans); color: var(--ink-2); background: transparent; border: 1px solid var(--axis);
+  border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+button:hover { color: var(--ink); border-color: var(--muted); }
+button[aria-pressed="true"] { background: var(--ink); color: var(--plane); border-color: var(--ink); }
+button:focus-visible, summary:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 14px; color: var(--ink-2); font-size: 12.5px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend svg { flex: none; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--grid); border-radius: 8px; padding: 10px 12px 8px; min-width: 0; position: relative; }
+.card header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 10px; }
+.card h4 { margin: 0; font: 600 13px var(--mono); overflow-wrap: anywhere; }
+.latest { display: flex; gap: 10px; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink); }
+.latest span { display: inline-flex; align-items: center; gap: 4px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
+.note { color: var(--muted); font-size: 11.5px; margin: 1px 0 0; min-height: 1.4em; }
+.card svg.chart { display: block; width: 100%; height: auto; touch-action: pan-y; }
+.card svg text { font: 10.5px var(--sans); fill: var(--muted); font-variant-numeric: tabular-nums; }
+details { font-size: 12px; color: var(--ink-2); }
+summary { cursor: pointer; color: var(--muted); width: fit-content; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; margin-top: 6px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+th, td { text-align: right; padding: 2px 8px 2px 0; border-bottom: 1px solid var(--grid); }
+th { color: var(--muted); font-weight: 500; }
+th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
+#tip { position: fixed; z-index: 5; pointer-events: none; background: var(--surface); color: var(--ink);
+  border: 1px solid var(--axis); border-radius: 6px; padding: 8px 10px; font-size: 12px; line-height: 1.5;
+  max-width: min(320px, calc(100vw - 24px)); box-shadow: 0 4px 14px rgb(0 0 0 / 0.14); }
+#tip b { font-weight: 600; }
+#tip .sub { color: var(--ink-2); }
+#tip .dim { color: var(--muted); overflow-wrap: anywhere; }
+.empty { margin-top: 32px; padding: 20px; border: 1px dashed var(--axis); border-radius: 8px; color: var(--ink-2); max-width: 72ch; }
+</style>
+
+<div class="page">
+  <h1>Viewer perf history</h1>
+  <p class="lede" id="lede"></p>
+  <p class="facts" id="facts"></p>
+  <div class="controls" id="controls"></div>
+  <div class="legend" id="legend"></div>
+  <main id="charts"></main>
+</div>
+<div id="tip" hidden></div>
+
+<script>
+const DATA = /*DATA*/null;
+
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs = {}, ...kids) {
+  const svg = ['svg', 'g', 'line', 'path', 'circle', 'rect', 'text'].includes(tag);
+  const node = svg ? document.createElementNS(NS, tag) : document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class' && !svg) node.className = v;
+    else if (k === 'text') node.textContent = v;
+    else node.setAttribute(k, v);
+  }
+  for (const kid of kids) if (kid != null) node.append(kid);
+  return node;
+}
+
+const state = { view: 'rel', flow: 'all' };
+const tip = document.getElementById('tip');
+
+function fmtAbs(unit, v) {
+  if (v == null) return 'n/a';
+  if (unit === 'bytes') return `${(v / 2 ** 20).toFixed(2)} MiB`;
+  if (unit === 'ms') return Math.abs(v) >= 10000 ? `${(v / 1000).toFixed(2)} s` : `${v.toFixed(1)} ms`;
+  return Number.isInteger(v) ? String(v) : v.toFixed(2);
+}
+function fmtRel(row, v) {
+  if (v == null) return 'n/a';
+  if (row.kind === 'ratio') return `${v.toFixed(v >= 10 ? 1 : 2)}x`;
+  return (v >= 0 ? '+' : '-') + fmtAbs(row.unit, Math.abs(v));
+}
+// Axis ticks are shorter than tooltip values.
+function fmtTick(row, mode, v) {
+  if (mode === 'rel' && row.kind === 'ratio') return `${Number(v.toPrecision(3))}x`;
+  if (row.unit === 'bytes') return `${Number((v / 2 ** 20).toPrecision(3))} MiB`;
+  if (row.unit === 'ms' && Math.abs(v) >= 10000) return `${Number((v / 1000).toPrecision(3))} s`;
+  return `${Number(v.toPrecision(3))}${row.unit === 'ms' ? ' ms' : ''}`;
+}
+function niceTicks(lo, hi, count = 3) {
+  const span = hi - lo || Math.abs(hi) || 1;
+  const raw = span / count;
+  const mag = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw);
+  const out = [];
+  for (let v = Math.ceil(lo / step) * step; v <= hi + step * 1e-9; v += step) out.push(Number(v.toPrecision(12)));
+  return out;
+}
+const day = (t) => new Date(t).toISOString().slice(0, 10);
+const shortDay = (t) => new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+const VERDICT = {
+  slower: 'slower than main',
+  faster: 'faster than main',
+  same: 'no detectable difference from main',
+  unreliable: 'unreliable: main and its copy disagree on this row',
+};
+
+function build() {
+  const points = DATA.points.map((p) => ({ ...p, t: Date.parse(p.date) }));
+  const seriesIds = Object.keys(DATA.series);
+  // Color follows the series, by its fixed place in points.json, not by what a chart happens to hold.
+  const color = (id) => `var(--series-${seriesIds.indexOf(id) + 1})`;
+  let [t0, t1] = [Math.min(...points.map((p) => p.t)), Math.max(...points.map((p) => p.t))];
+  const pad = Math.max((t1 - t0) * 0.04, 86400000 / 2);
+  [t0, t1] = [t0 - pad, t1 + pad];
+
+  document.getElementById('lede').append(
+    'Each point is one commit, timed for 10 rounds on one machine and compared with ',
+    el('code', { text: DATA.reference }),
+    ' in the same run. Every row is a time, a count or a size, so lower is better: a ratio under 1x, or a difference under 0, is ahead of ',
+    el('code', { text: DATA.reference }),
+    '.',
+  );
+  const runs = [...new Set(points.map((p) => p.runId))].sort();
+  document.getElementById('facts').textContent =
+    `${points.length} of ${DATA.planned} chosen commits measured, in ${runs.length} run${runs.length === 1 ? '' : 's'}. Latest run: ${runs[runs.length - 1]}.`;
+
+  const flows = [...new Set(DATA.rows.map((r) => r.flow))];
+  const controls = document.getElementById('controls');
+  const toggle = (label, items, key) => {
+    const group = el('div', { class: 'group', role: 'group', 'aria-label': label }, el('span', { text: label }));
+    for (const [value, text] of items) {
+      const b = el('button', { type: 'button', id: `${key}-${value}`, 'aria-pressed': String(state[key] === value), text });
+      b.addEventListener('click', () => {
+        state[key] = value;
+        for (const other of group.querySelectorAll('button')) other.setAttribute('aria-pressed', String(other === b));
+        render();
+      });
+      group.append(b);
+    }
+    controls.append(group);
+  };
+  toggle('Show', [['rel', `Relative to ${DATA.reference}`], ['abs', 'Absolute']], 'view');
+  toggle('Flow', [['all', 'All'], ...flows.map((f) => [f, f])], 'flow');
+
+  const legend = document.getElementById('legend');
+  const swatch = (inner) => el('svg', { width: 22, height: 12, viewBox: '0 0 22 12', 'aria-hidden': 'true' }, ...inner);
+  for (const id of seriesIds) {
+    legend.append(el('span', {}, swatch([
+      el('line', { x1: 0, y1: 6, x2: 22, y2: 6, stroke: color(id), 'stroke-width': 2 }),
+      el('circle', { cx: 11, cy: 6, r: 4, fill: color(id) }),
+    ]), DATA.series[id].label));
+  }
+  legend.append(
+    el('span', {}, swatch([el('circle', { cx: 11, cy: 6, r: 4, fill: 'var(--ink-2)' })]), 'differs beyond the run’s noise'),
+    el('span', {}, swatch([el('circle', { cx: 11, cy: 6, r: 3.25, fill: 'var(--surface)', stroke: 'var(--ink-2)', 'stroke-width': 1.5 })]), 'no detectable difference'),
+    el('span', {}, swatch([el('line', { x1: 11, y1: 0, x2: 11, y2: 12, stroke: 'var(--ink-2)', 'stroke-width': 1.5 })]), '95% interval'),
+    el('span', {}, swatch([el('line', { x1: 0, y1: 6, x2: 22, y2: 6, stroke: 'var(--ref)', 'stroke-width': 1.5, 'stroke-dasharray': '3 3' })]), `${DATA.reference} in the same run`),
+  );
+
+  const W = 320, H = 150, M = { l: 44, r: 10, t: 8, b: 20 };
+  const x = (t) => M.l + ((t - t0) / (t1 - t0)) * (W - M.l - M.r);
+
+  function card(row) {
+    const hasRel = row.values.some((v) => v.rel != null);
+    const mode = state.view === 'rel' && hasRel ? 'rel' : 'abs';
+    const nullValue = row.kind === 'ratio' ? 1 : 0;
+    const drawn = row.values
+      .map((v) => ({ ...v, p: points[v.point], y: mode === 'rel' ? v.rel : v.median }))
+      .filter((v) => v.y != null)
+      .sort((a, b) => a.p.t - b.p.t);
+    const ys = drawn.flatMap((v) => (mode === 'rel' ? [v.y, v.lo ?? v.y, v.hi ?? v.y, nullValue] : [v.y, v.ref ?? v.y]));
+    let [lo, hi] = [Math.min(...ys), Math.max(...ys)];
+    const margin = (hi - lo) * 0.12 || Math.abs(hi) * 0.1 || 1;
+    [lo, hi] = [lo - margin, hi + margin];
+    const y = (v) => M.t + (1 - (v - lo) / (hi - lo)) * (H - M.t - M.b);
+
+    const svg = el('svg', { class: 'chart', viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': `${row.label}, ${mode === 'rel' ? `relative to ${DATA.reference}` : 'absolute'}, by commit date` });
+    for (const tick of niceTicks(lo, hi)) {
+      svg.append(
+        el('line', { x1: M.l, x2: W - M.r, y1: y(tick), y2: y(tick), stroke: 'var(--grid)', 'stroke-width': 1 }),
+        el('text', { x: M.l - 6, y: y(tick) + 3.5, 'text-anchor': 'end', text: fmtTick(row, mode, tick) }),
+      );
+    }
+    if (mode === 'rel') {
+      svg.append(el('line', { x1: M.l, x2: W - M.r, y1: y(nullValue), y2: y(nullValue), stroke: 'var(--ref)', 'stroke-width': 1.5, 'stroke-dasharray': '3 3' }));
+    }
+    const dayMs = 86400000;
+    const stepDays = [1, 2, 7, 14, 28].find((d) => (t1 - t0) / (d * dayMs) <= 4) ?? 56;
+    for (let t = Math.ceil(t0 / dayMs) * dayMs; t <= t1; t += stepDays * dayMs) {
+      svg.append(el('text', { x: x(t), y: H - 5, 'text-anchor': 'middle', text: shortDay(t) }));
+    }
+    svg.append(el('line', { x1: M.l, x2: W - M.r, y1: H - M.b, y2: H - M.b, stroke: 'var(--axis)', 'stroke-width': 1 }));
+
+    const path = (list, value) => list.map((v, i) => `${i ? 'L' : 'M'}${x(v.p.t).toFixed(1)},${y(value(v)).toFixed(1)}`).join('');
+    if (mode === 'abs') {
+      const withRef = drawn.filter((v) => v.ref != null);
+      if (withRef.length > 1) svg.append(el('path', { d: path(withRef, (v) => v.ref), fill: 'none', stroke: 'var(--ref)', 'stroke-width': 1.5, 'stroke-dasharray': '3 3' }));
+      for (const v of withRef) svg.append(el('circle', { cx: x(v.p.t), cy: y(v.ref), r: 2, fill: 'var(--ref)' }));
+    }
+    const marks = [];
+    for (const id of seriesIds) {
+      const list = drawn.filter((v) => v.p.series === id);
+      if (!list.length) continue;
+      if (list.length > 1) svg.append(el('path', { d: path(list, (v) => v.y), fill: 'none', stroke: color(id), 'stroke-width': 2, 'stroke-linejoin': 'round' }));
+      for (const v of list) {
+        if (mode === 'rel' && v.lo != null) {
+          svg.append(el('line', { x1: x(v.p.t), x2: x(v.p.t), y1: y(v.lo), y2: y(v.hi), stroke: color(id), 'stroke-width': 1.5 }));
+        }
+        const solid = mode === 'abs' || v.verdict === 'slower' || v.verdict === 'faster' || v.verdict == null;
+        const mark = el('circle', { cx: x(v.p.t), cy: y(v.y), r: 4, fill: solid ? color(id) : 'var(--surface)', stroke: solid ? 'var(--surface)' : color(id), 'stroke-width': solid ? 2 : 1.5 });
+        svg.append(mark);
+        marks.push({ v, mark, px: x(v.p.t), py: y(v.y) });
+      }
+    }
+    const cross = el('line', { y1: M.t, y2: H - M.b, stroke: 'var(--muted)', 'stroke-width': 1, visibility: 'hidden' });
+    svg.insertBefore(cross, svg.firstChild);
+
+    const show = (event) => {
+      const box = svg.getBoundingClientRect();
+      const mx = ((event.clientX - box.left) / box.width) * W;
+      const my = ((event.clientY - box.top) / box.height) * H;
+      let best = null;
+      for (const m of marks) {
+        const d = Math.abs(m.px - mx) * 3 + Math.abs(m.py - my);
+        if (!best || d < best.d) best = { ...m, d };
+      }
+      if (!best) return;
+      for (const m of marks) m.mark.setAttribute('r', m.mark === best.mark ? 5.5 : 4);
+      cross.setAttribute('x1', best.px);
+      cross.setAttribute('x2', best.px);
+      cross.setAttribute('visibility', 'visible');
+      const { v } = best;
+      tip.replaceChildren(
+        el('div', {}, el('span', { class: 'dot', style: `background:${color(v.p.series)}` }), ' ', el('b', { text: DATA.series[v.p.series].label }), ' ', el('span', { class: 'mono sub', text: `${v.p.sha.slice(0, 9)} · ${day(v.p.t)}` })),
+        v.p.note ? el('div', { class: 'sub', text: v.p.note }) : null,
+        v.rel != null ? el('div', {}, el('b', { text: fmtRel(row, v.rel) }), v.lo != null ? ` [${fmtRel(row, v.lo)}, ${fmtRel(row, v.hi)}]` : '', ` against ${DATA.reference}`) : null,
+        el('div', { text: `${fmtAbs(row.unit, v.median)}${v.ref != null ? `, ${DATA.reference} ${fmtAbs(row.unit, v.ref)}` : `, no ${DATA.reference} for this row`}` }),
+        v.verdict ? el('div', { class: 'sub', text: VERDICT[v.verdict] }) : null,
+        el('div', { class: 'dim', text: `${v.n} sample${v.n === 1 ? '' : 's'} · run ${v.p.runId}` }),
+      );
+      tip.hidden = false;
+      const tb = tip.getBoundingClientRect();
+      let left = event.clientX + 14;
+      if (left + tb.width > innerWidth - 8) left = event.clientX - tb.width - 14;
+      let top = event.clientY + 14;
+      if (top + tb.height > innerHeight - 8) top = event.clientY - tb.height - 14;
+      tip.style.left = `${Math.max(8, left)}px`;
+      tip.style.top = `${Math.max(8, top)}px`;
+    };
+    const hide = () => {
+      tip.hidden = true;
+      cross.setAttribute('visibility', 'hidden');
+      for (const m of marks) m.mark.setAttribute('r', 4);
+    };
+    svg.addEventListener('pointermove', show);
+    svg.addEventListener('pointerdown', show);
+    svg.addEventListener('pointerleave', hide);
+
+    const latest = el('div', { class: 'latest' });
+    for (const id of seriesIds) {
+      const last = drawn.filter((v) => v.p.series === id).pop();
+      if (!last) continue;
+      latest.append(el('span', { title: `${DATA.series[id].label}, latest point` }, el('span', { class: 'dot', style: `background:${color(id)}` }), mode === 'rel' ? fmtRel(row, last.y) : fmtAbs(row.unit, last.y)));
+    }
+    const fixture = row.key.split('|')[1];
+    const title = row.flow === 'open' ? `${fixture} · ${row.metric}` : row.metric;
+    const note = state.view === 'rel' && !hasRel ? `${DATA.reference} can’t run this flow, so the row is absolute.`
+      : mode === 'rel' ? (row.kind === 'ratio' ? `ratio to ${DATA.reference}` : `difference from ${DATA.reference}`)
+      : 'median';
+
+    const details = el('details', {}, el('summary', { text: 'Table' }));
+    details.addEventListener('toggle', () => {
+      if (!details.open || details.querySelector('table')) return;
+      const head = ['Commit', 'Date', row.kind === 'ratio' ? 'Ratio' : 'Difference', 'Low', 'High', 'Median', DATA.reference];
+      const table = el('table', {}, el('tr', {}, ...head.map((h) => el('th', { text: h }))));
+      for (const v of [...row.values].sort((a, b) => points[a.point].t - points[b.point].t)) {
+        const p = points[v.point];
+        const cells = [p.sha.slice(0, 9), day(p.t), fmtRel(row, v.rel), fmtRel(row, v.lo), fmtRel(row, v.hi), fmtAbs(row.unit, v.median), fmtAbs(row.unit, v.ref)];
+        table.append(el('tr', {}, ...cells.map((c, i) => el('td', { class: i === 0 ? 'mono' : '', text: c }))));
+      }
+      details.append(el('div', { class: 'scroll' }, table));
+    });
+
+    return el('article', { class: 'card' }, el('header', {}, el('h4', { text: title }), latest), el('p', { class: 'note', text: note }), svg, details);
+  }
+
+  function render() {
+    tip.hidden = true;
+    const root = document.getElementById('charts');
+    root.replaceChildren();
+    for (const [direction, heading] of [['lower', 'Lower is better'], ['higher', 'Higher is better']]) {
+      const rows = DATA.rows.filter((r) => r.better === direction && (state.flow === 'all' || r.flow === state.flow));
+      if (!rows.length) continue;
+      root.append(el('h2', {}, heading, ' ', el('span', { text: `${rows.length} rows` })));
+      for (const flow of flows) {
+        const mine = rows.filter((r) => r.flow === flow);
+        if (!mine.length) continue;
+        root.append(el('h3', { text: flow }), el('div', { class: 'grid' }, ...mine.map(card)));
+      }
+    }
+  }
+  render();
+}
+
+if (DATA && DATA.points.length) build();
+else {
+  document.getElementById('charts').append(
+    el('p', { class: 'empty', text: 'No run is recorded yet. Record one with scripts/history-record.mjs, then run scripts/history-chart.mjs.' }),
+  );
+}
+</script>
