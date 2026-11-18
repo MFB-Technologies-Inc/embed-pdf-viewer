@@ -22,6 +22,7 @@ pub mod asn1js;
 pub mod attach;
 pub mod cert;
 pub mod cms;
+pub mod collect;
 pub mod crypto;
 pub mod der;
 pub mod gate;

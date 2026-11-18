@@ -27,14 +27,22 @@ use crate::gate::{CompletionProfile, Prepared, verify_for_completion};
 use crate::judgement::Requested;
 use crate::oids::Digest;
 use crate::parse::{bytes_json, parse_detached_cms};
+use crate::revocation::http_source::{HttpRevocationSourceOptions, http_revocation_source};
+use crate::revocation::source::RevocationRequest;
 use crate::sign::{CmsSignRequest, CmsSigner, SignerPort, profile_for, sign};
 use crate::signers::{
     CryptoKey, CryptoKeyPair, MemoryKeyStore, PersonalKeyRecord, PersonalKeyStore, WebCrypto,
     certificate_common_name, create_test_signer, generate_signing_key_pair, personal_signer,
     remote_signer, self_signed_certificate, web_crypto_signer,
 };
+use crate::timestamp_http::{
+    HttpTimestampAuthorityOptions, ecdsa_raw_from_der, http_timestamp_authority,
+};
+use crate::transport::{
+    HttpTransport, RecordedTransport, TransportHeader, TransportOutcome, TransportRequest,
+};
 use crate::trust::{CmsInput, TrustPort, ValidationTime, validate_chain};
-use crate::verdict::{ValidateOptions, validate_signatures};
+use crate::verdict::{ValidateOptions, validate_signatures, verify_timestamp_token};
 
 type Out = Result<Value, Error>;
 
@@ -377,6 +385,83 @@ fn describe_signer(signer: &RawSigner) -> Map<String, Value> {
 
 // ── the capability ───────────────────────────────────────────────────────────
 
+/// A recorded transport over the case's scripted replies:
+/// `{ status, body }`, or `{ fail }` for no answer.
+fn recorded_transport(replies: &Value) -> (Rc<dyn HttpTransport>, Rc<RecordedTransport>) {
+    let outcomes = replies
+        .as_array()
+        .map(|list| {
+            list.iter()
+                .map(|reply| match reply.get("fail").and_then(Value::as_str) {
+                    Some(message) => TransportOutcome::Failed { message: message.into() },
+                    None => TransportOutcome::Replied {
+                        status: reply["status"].as_u64().unwrap_or(0) as u16,
+                        body: present(reply.get("body")).map(bytes).unwrap_or_default(),
+                    },
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let recorded = Rc::new(RecordedTransport::new(outcomes));
+    (recorded.clone(), recorded)
+}
+
+/// The headers of a client's options, in order.
+fn headers_of(options: &Value) -> Vec<TransportHeader> {
+    options
+        .get("headers")
+        .and_then(Value::as_object)
+        .map(|headers| {
+            headers
+                .iter()
+                .map(|(name, value)| TransportHeader {
+                    name: name.clone(),
+                    value: value.as_str().unwrap_or_default().into(),
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// What a transport probe reports: every request sent, then the answer
+/// under `key`, or the error's code, message and details.
+fn probe_outcome(
+    recorded: &RecordedTransport,
+    key: &str,
+    outcome: Result<Vec<u8>, Error>,
+) -> Value {
+    let sent: Vec<Value> = recorded
+        .sent()
+        .iter()
+        .map(|request: &TransportRequest| {
+            json!({
+                "url": request.url,
+                "contentType": request.content_type,
+                "headers": request.headers.iter().map(|h| json!({ "name": h.name, "value": h.value })).collect::<Vec<_>>(),
+                "body": bytes_json(&request.body),
+            })
+        })
+        .collect();
+    let mut out = Map::new();
+    out.insert("sent".into(), Value::Array(sent));
+    match outcome {
+        Ok(answer) => {
+            out.insert(key.into(), bytes_json(&answer));
+        }
+        Err(error) => {
+            out.insert(
+                "error".into(),
+                json!({
+                    "code": error.code(),
+                    "message": error.message,
+                    "details": error.member("details").cloned().unwrap_or(Value::Null),
+                }),
+            );
+        }
+    }
+    Value::Object(out)
+}
+
 pub struct SignatureCapability {
     ctx: PluginContext,
     harness: Harness,
@@ -490,6 +575,88 @@ impl SignatureCapability {
                     .await?;
                     Ok(bytes_json(&cms))
                 })
+            }
+            "timestampHttp" => {
+                let options = arg(0);
+                let request = arg(1);
+                let (transport, recorded) = recorded_transport(&arg(2));
+                let signer = http_timestamp_authority(
+                    transport,
+                    self.crypto(),
+                    HttpTimestampAuthorityOptions {
+                        url: options["url"].as_str().unwrap_or_default().into(),
+                        hash: options
+                            .get("hash")
+                            .and_then(Value::as_str)
+                            .and_then(Digest::from_name),
+                        policy: options.get("policy").and_then(Value::as_str).map(str::to_string),
+                        headers: headers_of(&options),
+                        timeout_ms: options
+                            .get("timeoutMs")
+                            .and_then(Value::as_u64)
+                            .map(|n| n as u32),
+                        retries: options.get("retries").and_then(Value::as_u64).map(|n| n as u32),
+                    },
+                );
+                let request = CmsSignRequest {
+                    digest: bytes(&request["digest"]),
+                    algorithm: request["algorithm"].as_str().unwrap_or_default().into(),
+                    sub_filter: request["subFilter"].as_str().unwrap_or_default().into(),
+                };
+                spawn(async move {
+                    let outcome = (signer.sign)(request).await;
+                    Ok(probe_outcome(&recorded, "token", outcome))
+                })
+            }
+            "revocationRoute" => {
+                let options = arg(0);
+                let request = arg(1);
+                let (transport, recorded) = recorded_transport(&arg(2));
+                let source = http_revocation_source(
+                    transport,
+                    HttpRevocationSourceOptions {
+                        url: options["url"].as_str().unwrap_or_default().into(),
+                        headers: headers_of(&options),
+                        timeout_ms: options
+                            .get("timeoutMs")
+                            .and_then(Value::as_u64)
+                            .map(|n| n as u32),
+                        retries: options.get("retries").and_then(Value::as_u64).map(|n| n as u32),
+                    },
+                );
+                let url = request["url"].as_str().unwrap_or_default().to_string();
+                let request = match request["kind"].as_str() {
+                    Some("ocsp") => RevocationRequest::Ocsp { url, body: bytes(&request["body"]) },
+                    Some("crl") => RevocationRequest::Crl { url },
+                    _ => RevocationRequest::Issuer { url },
+                };
+                spawn(async move {
+                    let outcome = source.fetch(request).await;
+                    Ok(probe_outcome(&recorded, "answer", outcome))
+                })
+            }
+            "verifyTimestampToken" => {
+                let input = arg(0);
+                let trust = trust_port(&h, input.get("trust"));
+                spawn(async move {
+                    let algorithm = digest_named(input["algorithm"].as_str().unwrap_or_default())?;
+                    verify_timestamp_token(
+                        &bytes(&input["token"]),
+                        &bytes(&input["digest"]),
+                        algorithm,
+                        trust,
+                    )
+                    .await
+                })
+            }
+            "ecdsaRawFromDer" => {
+                let der = bytes(&arg(0));
+                let curve = arg(1).as_str().unwrap_or_default().to_string();
+                // Synchronous in the TypeScript: a value or a throw, no promise.
+                match ecdsa_raw_from_der(&der, &curve) {
+                    Ok(raw) => Outcome::Returned(bytes_json(&raw)),
+                    Err(error) => Outcome::Threw(error),
+                }
             }
             "memoryKeyStore" => {
                 let ops = arg(0).as_array().cloned().unwrap_or_default();

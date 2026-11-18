@@ -31,3 +31,8 @@ fn sign_and_validate_match_the_typescript() {
 fn signers_match_the_typescript() {
     replay("core/signature-signers.json");
 }
+
+#[test]
+fn timestamps_over_http_and_the_revocation_route_match_the_typescript() {
+    replay("core/signature-timestamp.json");
+}

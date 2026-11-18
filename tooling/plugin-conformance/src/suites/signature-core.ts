@@ -34,7 +34,10 @@ import {
   buildDetachedCms,
   certificateCommonName,
   createTestSigner,
+  ecdsaRawFromDer,
   generateSigningKeyPair,
+  httpRevocationSource,
+  httpTimestampAuthority,
   memoryKeyStore,
   parseDetachedCms,
   personalSigner,
@@ -46,10 +49,12 @@ import {
   validateSignatures,
   verifyCmsSignature,
   verifyForCompletion,
+  verifyTimestampToken,
   webCryptoSigner,
   type PersonalKeyRecord,
   type RawSigner,
 } from '../../../../packages/core/signature/src/index';
+import { buildTestToken } from '../../../../packages/core/signature/test/helpers/tokens';
 
 import type { FakeDocumentSpec, ResponseSpec } from '../fake-engine';
 import { registerPlugin, type PluginEnv, type ScenarioCase, type Step } from '../scenario';
@@ -230,6 +235,42 @@ const describeSigner = (signer: RawSigner) => ({
 // ── the harness plugin ───────────────────────────────────────────────────────
 
 
+// ── the D-1 transport, scripted ──────────────────────────────────────────────
+
+/** One reply of a scripted endpoint: an HTTP status and body, or no answer (`fail`). */
+type ScriptedReply = { status: number; body?: Uint8Array } | { fail: string };
+
+/**
+ * A `fetch` that answers from `replies` in order and records each request as the D-1 transport
+ * sees it: the URL, the content type, the other headers in order, and the body's bytes.
+ */
+function scriptedFetch(replies: ScriptedReply[]) {
+  const sent: { url: string; contentType: string | null; headers: { name: string; value: string }[]; body: Uint8Array }[] = [];
+  let next = 0;
+  const fetch = (async (url: RequestInfo | URL, init?: RequestInit) => {
+    let contentType: string | null = null;
+    const headers: { name: string; value: string }[] = [];
+    for (const [name, value] of Object.entries((init?.headers ?? {}) as Record<string, string>)) {
+      if (name === 'content-type') contentType = value;
+      else headers.push({ name, value });
+    }
+    const raw = init?.body;
+    const body = typeof raw === 'string' ? new TextEncoder().encode(raw) : new Uint8Array(raw as Uint8Array);
+    sent.push({ url: String(url), contentType, headers, body });
+    const reply = replies[next++];
+    if (!reply) throw new TypeError('no recorded reply is left');
+    if ('fail' in reply) throw new TypeError(reply.fail);
+    return new Response(reply.body ? new Uint8Array(reply.body) : null, { status: reply.status });
+  }) as typeof globalThis.fetch;
+  return { fetch, sent };
+}
+
+/** An error as the probe reports it: its code, message and details. */
+function errorOf(error: unknown) {
+  const e = error as { code?: unknown; message?: unknown; details?: unknown };
+  return { code: e.code ?? null, message: e.message ?? String(error), details: e.details ?? null };
+}
+
 function signaturePlugin(env: PluginEnv): AnyPlugin {
   return {
     id: 'signature-core',
@@ -250,6 +291,34 @@ function signaturePlugin(env: PluginEnv): AnyPlugin {
         const signer = remoteSigner(port);
         return signer.sign(request);
       },
+      timestampHttp: (
+        options: Omit<Parameters<typeof httpTimestampAuthority>[0], 'fetch'>,
+        request: Parameters<ReturnType<typeof httpTimestampAuthority>['sign']>[0],
+        replies: ScriptedReply[],
+      ) =>
+        withWebCrypto(env.log, async () => {
+          const { fetch, sent } = scriptedFetch(replies);
+          try {
+            return { sent, token: await httpTimestampAuthority({ ...options, fetch }).sign(request) };
+          } catch (error) {
+            return { sent, error: errorOf(error) };
+          }
+        }),
+      revocationRoute: (
+        options: Omit<Parameters<typeof httpRevocationSource>[0], 'fetch'>,
+        request: Parameters<ReturnType<typeof httpRevocationSource>['fetch']>[0],
+        replies: ScriptedReply[],
+      ) =>
+        (async () => {
+          const { fetch, sent } = scriptedFetch(replies);
+          try {
+            return { sent, answer: await httpRevocationSource({ ...options, fetch }).fetch(request) };
+          } catch (error) {
+            return { sent, error: errorOf(error) };
+          }
+        })(),
+      verifyTimestampToken: (input: Parameters<typeof verifyTimestampToken>[0]) => verifyTimestampToken(input),
+      ecdsaRawFromDer: (der: Uint8Array, curve: Parameters<typeof ecdsaRawFromDer>[1]) => ecdsaRawFromDer(der, curve),
       memoryKeyStore: async (ops: { op: 'load' | 'save' | 'remove'; subject: string; record?: unknown }[]) => {
         const store = memoryKeyStore();
         const results: unknown[] = [];
@@ -1097,6 +1166,147 @@ const signerCases: ScenarioCase[] = [
   ]),
 ];
 
+// ── timestamps over HTTP, the revocation route, token verdicts ──────────────
+
+/** The fixture `leaf` key as a timestamp authority: what the scripted endpoints sign tokens with. */
+const leafAuthority: RawSigner = {
+  kind: 'raw',
+  certificateChain: [bytesOf(fixtures.certs.leaf!)],
+  algorithm: 'RSA-PKCS1-v1_5',
+  hash: 'sha256',
+  sign: async (data) => rawSignature('leaf', 'RSA-PKCS1-v1_5', 'sha256', data),
+};
+/** The nonce `httpTimestampAuthority` sends under the scripted WebCrypto: eight 0x5a octets. */
+const SCRIPTED_NONCE = new Uint8Array(8).fill(0x5a);
+const TSA_DIGEST = digestBytes(32, 11);
+const TSA_URL = 'https://tsa.example/stamp';
+const tsaRequest = (over: Record<string, unknown> = {}) => ({
+  digest: $b(b64(TSA_DIGEST)),
+  algorithm: 'sha256',
+  subFilter: 'ETSI.RFC3161',
+  ...over,
+});
+const der = (tag: number, content: Uint8Array) => {
+  const length = content.byteLength < 0x80 ? [content.byteLength] : [0x82, content.byteLength >> 8, content.byteLength & 0xff];
+  return new Uint8Array([tag, ...length, ...content]);
+};
+/** A TimeStampResp that grants, with `token`. */
+const grantedReply = (token: Uint8Array) =>
+  $b(b64(der(0x30, new Uint8Array([...der(0x30, new Uint8Array([0x02, 0x01, 0x00])), ...token]))));
+/** A TimeStampResp that rejects, naming the failure at `bit`, with a status text. */
+const rejectedReply = (bit: number) => {
+  const bits = new Uint8Array(Math.floor(bit / 8) + 1);
+  bits[bit >> 3]! |= 0x80 >> (bit & 7);
+  const text = der(0x30, der(0x0c, new TextEncoder().encode('try another hash')));
+  const status = der(0x30, new Uint8Array([0x02, 0x01, 0x02, ...text, ...der(0x03, new Uint8Array([0, ...bits]))]));
+  return $b(b64(der(0x30, status)));
+};
+const token = (over: Partial<Parameters<typeof buildTestToken>[0]> = {}) =>
+  buildTestToken({
+    digest: TSA_DIGEST,
+    authority: leafAuthority,
+    genTime: new Date(Date.UTC(2026, 0, 15, 12)),
+    nonce: SCRIPTED_NONCE,
+    ...over,
+  });
+const reply = (status: number, body?: unknown) => ({ status, ...(body === undefined ? {} : { body }) });
+const jsonBody = (value: unknown) => $b(Buffer.from(JSON.stringify(value)).toString('base64'));
+const ROUTE = 'https://app.example/revocation';
+
+const longTermCases: ScenarioCase[] = [
+  scenario('tsa-granted', 'httpTimestampAuthority: the RFC 3161 query it sends (D-1), and a granted reply with the nonce echoed.', [
+    call('timestampHttp', { url: TSA_URL, retries: 0 }, tsaRequest(), [reply(200, grantedReply(await token()))]),
+  ]),
+  scenario('tsa-policy-headers', 'A policy and headers are sent; a token under another policy is refused.', [
+    call(
+      'timestampHttp',
+      { url: TSA_URL, policy: '1.2.3.4', headers: { authorization: 'Bearer t', 'x-tenant': 'a' }, retries: 0 },
+      tsaRequest(),
+      [reply(200, grantedReply(await token()))],
+    ),
+  ]),
+  scenario('tsa-policy-kept', 'A token under the policy asked for is the answer.', [
+    call('timestampHttp', { url: TSA_URL, policy: '1.2.3.4', retries: 0 }, tsaRequest(), [
+      reply(200, grantedReply(await token({ policy: '1.2.3.4' }))),
+    ]),
+  ]),
+  scenario('tsa-sha384', 'A sha384 digest is asked for under sha384; a sha256 token for it is refused.', [
+    call('timestampHttp', { url: TSA_URL, hash: 'sha384', retries: 0 }, tsaRequest({ digest: $b(b64(digestBytes(48, 2))), algorithm: 'sha384' }), [
+      reply(200, grantedReply(await token())),
+    ]),
+  ]),
+  scenario('tsa-other-digest', 'A token over another digest is refused.', [
+    call('timestampHttp', { url: TSA_URL, retries: 0 }, tsaRequest(), [reply(200, grantedReply(await token({ digest: digestBytes(32, 99) })))]),
+  ]),
+  scenario('tsa-no-nonce', 'A token without the nonce sent does not answer this request.', [
+    call('timestampHttp', { url: TSA_URL, retries: 0 }, tsaRequest(), [reply(200, grantedReply(await token({ nonce: undefined })))]),
+  ]),
+  scenario('tsa-rejected', 'A rejection names its failure and status text.', [
+    call('timestampHttp', { url: TSA_URL, retries: 0 }, tsaRequest(), [reply(200, rejectedReply(0)), reply(200, rejectedReply(30))]),
+  ]),
+  scenario('tsa-rejected-unnamed-failure', 'A failure bit with no name.', [
+    call('timestampHttp', { url: TSA_URL, retries: 0 }, tsaRequest(), [reply(200, rejectedReply(30))]),
+  ]),
+  scenario('tsa-granted-without-token', 'A grant without a token.', [
+    call('timestampHttp', { url: TSA_URL, retries: 0 }, tsaRequest(), [reply(200, $b('MAUwAwIBAA=='))]),
+  ]),
+  scenario('tsa-unreadable', 'A reply that is no timestamp response, and a token that is no token.', [
+    call('timestampHttp', { url: TSA_URL, retries: 0 }, tsaRequest(), [reply(200, $b('AQID'))]),
+    call('timestampHttp', { url: TSA_URL, retries: 0 }, tsaRequest(), [reply(200, grantedReply(der(0x30, new Uint8Array([0x02, 0x01, 0x05]))))]),
+  ]),
+  scenario('tsa-http-statuses', 'A 4xx is a refusal; a 5xx, a 429 or a failure is no answer.', [
+    call('timestampHttp', { url: TSA_URL, retries: 0 }, tsaRequest(), [reply(403)]),
+    call('timestampHttp', { url: TSA_URL, retries: 0 }, tsaRequest(), [reply(503)]),
+    call('timestampHttp', { url: TSA_URL, retries: 0 }, tsaRequest(), [reply(429)]),
+    call('timestampHttp', { url: TSA_URL, retries: 0 }, tsaRequest(), [{ fail: 'getaddrinfo ENOTFOUND tsa.example' }]),
+  ]),
+  scenario('tsa-not-a-signer', 'A timestamp authority asked for a document signature.', [
+    call('timestampHttp', { url: TSA_URL }, tsaRequest({ subFilter: 'ETSI.CAdES.detached' }), []),
+  ]),
+  scenario('route-ocsp', 'httpRevocationSource: the route request for an OCSP question (D-2), and the answer passed on.', [
+    call('revocationRoute', { url: ROUTE, retries: 0 }, { kind: 'ocsp', url: 'http://ocsp.example', body: $b('MAMCAQE=') }, [reply(200, $b('BAUG'))]),
+  ]),
+  scenario('route-crl-issuer', 'The route request for a CRL and for an issuer, with headers.', [
+    call('revocationRoute', { url: ROUTE, headers: { 'x-session': 's1' }, retries: 0 }, { kind: 'crl', url: 'http://crl.example/a.crl' }, [reply(200, $b('AQ=='))]),
+    call('revocationRoute', { url: ROUTE, retries: 0 }, { kind: 'issuer', url: 'http://ca.example/ca.cer' }, [reply(200, $b('Ag=='))]),
+  ]),
+  scenario('route-refusals', 'A route that refuses, with and without its JSON; a 5xx, a 429 and a failure are no answer.', [
+    call('revocationRoute', { url: ROUTE, retries: 0 }, { kind: 'crl', url: 'http://crl.example/a.crl' }, [
+      reply(400, jsonBody({ reason: 'address', message: 'that address is not allowed' })),
+    ]),
+    call('revocationRoute', { url: ROUTE, retries: 0 }, { kind: 'crl', url: 'http://crl.example/a.crl' }, [reply(404, $b('bm8='))]),
+    call('revocationRoute', { url: ROUTE, retries: 0 }, { kind: 'crl', url: 'http://crl.example/a.crl' }, [
+      reply(502, jsonBody({ message: 'the authority did not answer' })),
+    ]),
+    call('revocationRoute', { url: ROUTE, retries: 0 }, { kind: 'crl', url: 'http://crl.example/a.crl' }, [reply(429)]),
+    call('revocationRoute', { url: ROUTE, retries: 0 }, { kind: 'crl', url: 'http://crl.example/a.crl' }, [{ fail: 'connection refused' }]),
+  ]),
+  scenario('token-verdicts', 'verifyTimestampToken: without trust, trusting the authority, over another digest, and unreadable.', [
+    call('verifyTimestampToken', { token: $b(b64(await token())), digest: $b(b64(TSA_DIGEST)), algorithm: 'sha256' }),
+    call('verifyTimestampToken', {
+      token: $b(b64(await token())),
+      digest: $b(b64(TSA_DIGEST)),
+      algorithm: 'sha256',
+      trust: anchors('leaf'),
+    }),
+    call('verifyTimestampToken', { token: $b(b64(await token())), digest: $b(b64(digestBytes(32, 1))), algorithm: 'sha256', trust: anchors('root') }),
+    call('verifyTimestampToken', { token: $b(b64(await token())), digest: $b(b64(TSA_DIGEST)), algorithm: 'sha384' }),
+    call('verifyTimestampToken', { token: $b('AQID'), digest: $b(b64(TSA_DIGEST)), algorithm: 'sha256' }),
+    call('verifyTimestampToken', {
+      token: $b(b64(await token({ binding: null }))),
+      digest: $b(b64(TSA_DIGEST)),
+      algorithm: 'sha256',
+    }),
+  ]),
+  scenario('ecdsa-raw-from-der', 'ecdsaRawFromDer: DER to r || s, and the bytes it refuses.', [
+    call('ecdsaRawFromDer', $b(b64(der(0x30, new Uint8Array([...der(0x02, new Uint8Array([0, 0x80, 1])), ...der(0x02, new Uint8Array([5]))])))), 'P-256'),
+    call('ecdsaRawFromDer', $b(b64(der(0x31, new Uint8Array([...der(0x02, new Uint8Array([1])), ...der(0x02, new Uint8Array([2]))])))), 'P-256'),
+    call('ecdsaRawFromDer', $b(b64(der(0x30, der(0x02, new Uint8Array([1]))))), 'P-384'),
+    call('ecdsaRawFromDer', $b(b64(der(0x30, new Uint8Array([...der(0x02, new Uint8Array(33).fill(1)), ...der(0x02, new Uint8Array([2]))])))), 'P-256'),
+    call('ecdsaRawFromDer', $b('MAU='), 'P-521'),
+  ]),
+];
+
 export const suites: Suite[] = [
   {
     kind: 'function',
@@ -1129,5 +1339,12 @@ export const suites: Suite[] = [
     file: 'core/signature-signers.json',
     describes: 'packages/core/signature: the signer ports and WebCrypto adapters, against a scripted WebCrypto.',
     cases: signerCases,
+  },
+  {
+    kind: 'scenario',
+    file: 'core/signature-timestamp.json',
+    describes:
+      'packages/core/signature: httpTimestampAuthority and httpRevocationSource over a scripted transport (the D-1 request and reply, the D-2 route request), verifyTimestampToken, ecdsaRawFromDer.',
+    cases: longTermCases,
   },
 ];

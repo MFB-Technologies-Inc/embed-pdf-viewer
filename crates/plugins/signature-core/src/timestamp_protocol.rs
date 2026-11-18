@@ -114,8 +114,14 @@ pub fn read_timestamp_response(bytes: &[u8]) -> Result<TimestampResponse, ParseE
     if !root.is_sequence() || root.children.is_empty() || root.children.len() > 2 {
         return Err(wrap(der::schema_error("TimeStampResp").message));
     }
+    // The token is a ContentInfo: `sequence { contentType, [0] explicit content }`.
     if let Some(token) = root.children.get(1)
-        && !token.is_sequence()
+        && !(token.is_sequence()
+            && token.children.first().is_some_and(|c| c.is_universal(der::OID))
+            && token
+                .children
+                .get(1)
+                .is_some_and(|c| c.is_context(0) && c.constructed && !c.children.is_empty()))
     {
         return Err(wrap(der::schema_error("TimeStampResp").message));
     }
