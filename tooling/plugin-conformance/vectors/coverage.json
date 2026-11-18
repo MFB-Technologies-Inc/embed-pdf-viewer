@@ -1,15 +1,14 @@
 {
   "total": {
-    "statements": "77369/81797",
-    "branches": "15274/16792",
+    "statements": "77816/82243",
+    "branches": "15356/16887",
     "unsnapshottedOnlyLines": 2645,
-    "unloadedFiles": 49
+    "unloadedFiles": 42
   },
   "unloaded": [
     "packages/core/annotation/src/shapes/family.ts",
     "packages/core/annotation/src/types.ts",
     "packages/core/main/src/command-types.ts",
-    "packages/core/main/src/commands.ts",
     "packages/core/signature/src/revocation/source.ts",
     "packages/core/signature/src/server.ts",
     "packages/core/signature/src/server/public-address.ts",
@@ -19,7 +18,6 @@
     "packages/plugin/actions/src/index.ts",
     "packages/plugin/actions/src/services/context.ts",
     "packages/plugin/annotation/src/authoring.ts",
-    "packages/plugin/annotation/src/commands.ts",
     "packages/plugin/annotation/src/index.ts",
     "packages/plugin/annotation/src/services/context.ts",
     "packages/plugin/attachment/src/index.ts",
@@ -34,8 +32,6 @@
     "packages/plugin/form/src/index.ts",
     "packages/plugin/form/src/services/context.ts",
     "packages/plugin/form/src/state.ts",
-    "packages/plugin/history/src/commands.ts",
-    "packages/plugin/interaction/src/commands.ts",
     "packages/plugin/link/src/index.ts",
     "packages/plugin/measurement/src/index.ts",
     "packages/plugin/measurement/src/services/context.ts",
@@ -45,13 +41,10 @@
     "packages/plugin/redaction/src/index.ts",
     "packages/plugin/redaction/src/services/context.ts",
     "packages/plugin/redaction/src/state.ts",
-    "packages/plugin/render/src/commands.ts",
-    "packages/plugin/selection/src/commands.ts",
     "packages/plugin/selection/src/geometry.ts",
     "packages/plugin/signature/src/index.ts",
     "packages/plugin/signature/src/services/context.ts",
     "packages/plugin/signature/src/state.ts",
-    "packages/plugin/stage/src/commands.ts",
     "packages/plugin/stamp/src/index.ts",
     "packages/plugin/stamp/src/services/context.ts",
     "packages/plugin/stamp/src/state.ts"
@@ -1301,6 +1294,21 @@
         "89:16#0"
       ]
     },
+    "packages/core/main/src/commands.ts": {
+      "statements": "60/63",
+      "branches": "8/12",
+      "uncoveredLines": [
+        51,
+        52,
+        53
+      ],
+      "uncoveredBranches": [
+        "29:72#0",
+        "33:27#0",
+        "46:69#0",
+        "62:2#0"
+      ]
+    },
     "packages/core/main/src/compose.ts": {
       "statements": "37/37",
       "branches": "8/8",
@@ -1407,7 +1415,7 @@
     },
     "packages/core/main/src/kernel.ts": {
       "statements": "1615/1915",
-      "branches": "408/459",
+      "branches": "410/461",
       "uncoveredLines": [
         208,
         209,
@@ -4750,6 +4758,19 @@
       "uncoveredLines": [],
       "uncoveredBranches": []
     },
+    "packages/plugin/annotation/src/commands.ts": {
+      "statements": "30/34",
+      "branches": "3/4",
+      "uncoveredLines": [
+        26,
+        27,
+        28,
+        29
+      ],
+      "uncoveredBranches": [
+        "25:8#0"
+      ]
+    },
     "packages/plugin/annotation/src/comments/comments.ts": {
       "statements": "205/207",
       "branches": "41/42",
@@ -6097,40 +6118,19 @@
       "uncoveredBranches": []
     },
     "packages/plugin/commands/src/controller.ts": {
-      "statements": "546/572",
-      "branches": "186/197",
+      "statements": "568/572",
+      "branches": "197/209",
       "uncoveredLines": [
-        184,
-        185,
-        186,
-        187,
-        188,
-        189,
-        190,
-        191,
-        192,
-        193,
-        194,
-        195,
-        246,
-        247,
-        248,
         249,
         250,
-        251,
-        399,
-        400,
-        401,
-        402,
-        403,
-        404,
         446,
         447
       ],
       "uncoveredBranches": [
         "151:15#0",
         "177:63#0",
-        "205:11#0",
+        "248:4#0",
+        "399:38#0",
         "445:8#0",
         "445:25#0",
         "460:10#0",
@@ -6155,20 +6155,17 @@
     },
     "packages/plugin/commands/src/registry.ts": {
       "statements": "37/37",
-      "branches": "8/9",
+      "branches": "10/10",
       "uncoveredLines": [],
-      "uncoveredBranches": [
-        "33:31#0"
-      ]
+      "uncoveredBranches": []
     },
     "packages/plugin/commands/src/services/availability.ts": {
-      "statements": "194/198",
-      "branches": "63/73",
+      "statements": "195/198",
+      "branches": "64/71",
       "uncoveredLines": [
         81,
         135,
-        136,
-        173
+        136
       ],
       "uncoveredBranches": [
         "65:65#0",
@@ -6177,10 +6174,7 @@
         "105:10#0",
         "131:29#0",
         "134:4#0",
-        "152:20#0",
-        "166:42#0",
-        "167:17#0",
-        "172:42#0"
+        "152:20#0"
       ]
     },
     "packages/plugin/commands/src/token.ts": {
@@ -7520,6 +7514,12 @@
         "135:33#0"
       ]
     },
+    "packages/plugin/history/src/commands.ts": {
+      "statements": "37/37",
+      "branches": "11/11",
+      "uncoveredLines": [],
+      "uncoveredBranches": []
+    },
     "packages/plugin/history/src/contract.ts": {
       "statements": "71/71",
       "branches": "0/0",
@@ -7748,6 +7748,12 @@
       "uncoveredLines": [],
       "uncoveredBranches": []
     },
+    "packages/plugin/interaction/src/commands.ts": {
+      "statements": "58/58",
+      "branches": "17/17",
+      "uncoveredLines": [],
+      "uncoveredBranches": []
+    },
     "packages/plugin/interaction/src/contract.ts": {
       "statements": "206/206",
       "branches": "0/0",
@@ -7755,8 +7761,8 @@
       "uncoveredBranches": []
     },
     "packages/plugin/interaction/src/controller.ts": {
-      "statements": "307/361",
-      "branches": "111/115",
+      "statements": "310/361",
+      "branches": "115/119",
       "uncoveredLines": [
         144,
         145,
@@ -7765,9 +7771,6 @@
         171,
         172,
         173,
-        218,
-        219,
-        220,
         317,
         318,
         319,
@@ -8469,6 +8472,34 @@
         "158:36#0"
       ]
     },
+    "packages/plugin/render/src/commands.ts": {
+      "statements": "73/91",
+      "branches": "7/9",
+      "uncoveredLines": [
+        50,
+        51,
+        52,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        88,
+        89,
+        90,
+        91
+      ],
+      "uncoveredBranches": [
+        "25:74#0",
+        "36:54#0"
+      ]
+    },
     "packages/plugin/render/src/contract.ts": {
       "statements": "415/415",
       "branches": "0/0",
@@ -8765,6 +8796,14 @@
       "branches": "0/0",
       "uncoveredLines": [],
       "uncoveredBranches": []
+    },
+    "packages/plugin/selection/src/commands.ts": {
+      "statements": "39/39",
+      "branches": "4/5",
+      "uncoveredLines": [],
+      "uncoveredBranches": [
+        "35:53#0"
+      ]
     },
     "packages/plugin/selection/src/connect.ts": {
       "statements": "31/31",
@@ -9319,6 +9358,21 @@
       "branches": "35/35",
       "uncoveredLines": [],
       "uncoveredBranches": []
+    },
+    "packages/plugin/stage/src/commands.ts": {
+      "statements": "124/124",
+      "branches": "12/20",
+      "uncoveredLines": [],
+      "uncoveredBranches": [
+        "29:43#0",
+        "39:43#0",
+        "48:42#0",
+        "58:42#0",
+        "71:43#0",
+        "81:43#0",
+        "91:43#0",
+        "101:43#0"
+      ]
     },
     "packages/plugin/stage/src/connect.ts": {
       "statements": "126/126",
