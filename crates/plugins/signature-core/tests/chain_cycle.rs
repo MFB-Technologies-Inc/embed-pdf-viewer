@@ -41,7 +41,7 @@ fn issuers_that_issue_each_other_are_refused() {
             validate_chain(
                 cms,
                 Some(trust),
-                ValidationTime::Timestamp { gen_time: "2023-11-14T22:13:20.000Z".into() },
+                ValidationTime::Timestamp { stamped_at: "2023-11-14T22:13:20.000Z".into() },
             )
             .await,
         );

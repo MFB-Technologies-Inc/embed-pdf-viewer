@@ -30,6 +30,34 @@ pub const BASIC_CONSTRAINTS: &str = "2.5.29.19";
 pub const AUTHORITY_KEY_IDENTIFIER: &str = "2.5.29.35";
 pub const COMMON_NAME: &str = "2.5.4.3";
 pub const EC_PUBLIC_KEY: &str = "1.2.840.10045.2.1";
+/// ESS signing-certificate: binds the signer's certificate by its SHA-1 hash (RFC 2634).
+pub const SIGNING_CERTIFICATE: &str = "1.2.840.113549.1.9.16.2.12";
+pub const EXTENDED_KEY_USAGE: &str = "2.5.29.37";
+/// id-kp-timeStamping: the purpose a timestamp authority's certificate carries (RFC 3161 2.3).
+pub const TIME_STAMPING: &str = "1.3.6.1.5.5.7.3.8";
+pub const AUTHORITY_INFO_ACCESS: &str = "1.3.6.1.5.5.7.1.1";
+pub const ACCESS_OCSP: &str = "1.3.6.1.5.5.7.48.1";
+pub const ACCESS_ISSUERS: &str = "1.3.6.1.5.5.7.48.2";
+pub const CRL_DISTRIBUTION_POINTS: &str = "2.5.29.31";
+/// id-pkix-ocsp-basic: the one OCSP response type (RFC 6960).
+pub const OCSP_BASIC: &str = "1.3.6.1.5.5.7.48.1.1";
+/// id-kp-OCSPSigning.
+pub const OCSP_SIGNING: &str = "1.3.6.1.5.5.7.3.9";
+/// id-pkix-ocsp-nocheck.
+pub const OCSP_NO_CHECK: &str = "1.3.6.1.5.5.7.48.1.5";
+/// id-ri-ocsp-response: an OCSP response among a CMS's revocation information.
+pub const OCSP_RESPONSE_INFO: &str = "1.3.6.1.5.5.7.16.2";
+/// adbe-revocationInfoArchival.
+pub const REVOCATION_INFO_ARCHIVAL: &str = "1.2.840.113583.1.1.8";
+pub const CRL_NUMBER: &str = "2.5.29.20";
+pub const CRL_REASON: &str = "2.5.29.21";
+pub const DELTA_CRL_INDICATOR: &str = "2.5.29.27";
+pub const ISSUING_DISTRIBUTION_POINT: &str = "2.5.29.28";
+pub const FRESHEST_CRL: &str = "2.5.29.46";
+/// id-ce-noRevAvail (RFC 9608).
+pub const NO_REV_AVAIL: &str = "2.5.29.56";
+/// id-etsi-ext-valassured-ST-certs (ETSI EN 319 412-1): a short-term certificate.
+pub const VALIDITY_ASSURED_SHORT_TERM: &str = "0.4.0.194121.2.1";
 
 /// `DigestAlgorithm`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

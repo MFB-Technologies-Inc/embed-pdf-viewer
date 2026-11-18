@@ -299,13 +299,7 @@ fn trust_port(h: &Harness, value: Option<&Value>) -> Option<Rc<dyn TrustPort>> {
 }
 
 fn validation_time(value: Option<&Value>) -> Option<ValidationTime> {
-    let value = present(value)?;
-    Some(match value.get("kind").and_then(Value::as_str) {
-        Some("timestamp") => ValidationTime::Timestamp {
-            gen_time: value["genTime"].as_str().unwrap_or_default().into(),
-        },
-        _ => ValidationTime::Now,
-    })
+    Some(ValidationTime::from_json(present(value)?))
 }
 
 struct ScriptedStore {

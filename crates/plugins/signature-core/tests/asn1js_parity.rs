@@ -100,7 +100,11 @@ fn outcome(bytes: &[u8]) -> String {
             "ok md={} sig={} ess={}",
             i.parsed.message_digest.len(),
             i.signer_info.signature.len(),
-            i.ess_cert_hash.map_or("null".to_string(), |h| h.len().to_string())
+            // The signing-certificate-v2 binding's hash, as `essCertHash` was.
+            i.bindings
+                .iter()
+                .find(|b| b.version == 2)
+                .map_or("null".to_string(), |b| b.cert_hash.len().to_string())
         ),
         Err(e) => {
             let error = e.to_error();

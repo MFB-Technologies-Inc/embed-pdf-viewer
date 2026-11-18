@@ -11,7 +11,8 @@ use crate::oids::{self, Digest};
 use crate::parse::ParseError;
 use crate::signers::WebCrypto;
 
-/// `TimestampInfo`: which digest a token's TSTInfo stamped, and when.
+/// `TimestampInfo`: which digest a token's TSTInfo stamped, when, and for
+/// which request.
 #[derive(Clone, Debug, PartialEq)]
 pub struct TimestampInfo {
     pub imprint_algorithm: Digest,
@@ -19,6 +20,20 @@ pub struct TimestampInfo {
     pub imprint: Vec<u8>,
     /// `genTime`, in epoch milliseconds.
     pub gen_time: f64,
+    /// The policy the authority issued the token under (an OID).
+    pub policy: String,
+    /// The nonce of the request the token answers, without leading zeros.
+    pub nonce: Option<Vec<u8>>,
+}
+
+/// `withoutLeadingZeros`: an integer's octets without the zeros DER puts in
+/// front; two nonces are equal when these are.
+pub fn without_leading_zeros(octets: &[u8]) -> Vec<u8> {
+    let mut start = 0;
+    while start + 1 < octets.len() && octets[start] == 0 {
+        start += 1;
+    }
+    octets[start..].to_vec()
 }
 
 // ── reading: asn1js's parse and pkijs's `TSTInfo` schema ─────────────────────
@@ -263,7 +278,15 @@ pub fn read_timestamp_info(e_content: &[u8]) -> Result<TimestampInfo, ParseError
         reason: "unsupported",
         message: format!("message imprint algorithm {}", algorithm.oid),
     })?;
-    Ok(TimestampInfo { imprint_algorithm, imprint: imprint.children[1].content.clone(), gen_time })
+    let policy = member(1).and_then(Node::oid).unwrap_or_default();
+    let nonce = member(7).map(|nonce| without_leading_zeros(&nonce.content));
+    Ok(TimestampInfo {
+        imprint_algorithm,
+        imprint: imprint.children[1].content.clone(),
+        gen_time,
+        policy,
+        nonce,
+    })
 }
 
 /// `BuildTimestampTokenInput`.
@@ -277,22 +300,6 @@ pub struct BuildTimestampTokenInput {
     pub authority: RawSigner,
     /// Epoch milliseconds; now when absent.
     pub gen_time: Option<f64>,
-}
-
-/// `new asn1js.GeneralizedTime({ valueDate })`: the milliseconds are written
-/// (three digits) only when they are not zero.
-fn generalized_time_with_ms(ms: f64) -> Vec<u8> {
-    let (y, mo, d, h, mi, s) = der::civil(ms);
-    let millis = ms.rem_euclid(1000.0).floor() as i64;
-    let fraction = if millis == 0 { String::new() } else { format!(".{millis:03}") };
-    der::tlv(0x18, format!("{y:04}{mo:02}{d:02}{h:02}{mi:02}{s:02}{fraction}Z").as_bytes())
-}
-
-/// `new EncapsulatedContentInfo({ eContent })` re-wraps a primitive OCTET
-/// STRING as a constructed one of 65,536-byte pieces.
-fn constructed_octets(bytes: &[u8]) -> Vec<u8> {
-    let pieces: Vec<Vec<u8>> = bytes.chunks(65_536).map(der::octet_string).collect();
-    der::tlv(0x24, &pieces.concat())
 }
 
 /// `buildTimestampToken`: an RFC 3161 timestamp token, a SignedData whose
@@ -321,9 +328,7 @@ pub async fn build_timestamp_token(
         ));
     };
     let authority_cert = Certificate::from_ber(authority_der)?;
-    let mut serial = [0u8; 8];
-    crypto.get_random_values(&mut serial);
-    serial[0] &= 0x7f;
+    let serial = crate::signers::random_positive_integer(crypto);
     let gen_time = input.gen_time.unwrap_or_else(epdf_kernel::rt::now);
     let e_content = der::sequence(&[
         der::integer(1),
@@ -333,7 +338,7 @@ pub async fn build_timestamp_token(
             der::octet_string(&input.digest),
         ]),
         der::integer_bytes(&serial),
-        generalized_time_with_ms(gen_time),
+        der::generalized_time(gen_time),
     ]);
     let content_digest = input.authority.hash.hash(&e_content);
     let cert_hash = Digest::Sha256.hash(authority_der);
@@ -341,7 +346,7 @@ pub async fn build_timestamp_token(
         der::sequence(&[der::context(4, std::slice::from_ref(&authority_cert.issuer.raw))]),
         der::integer_bytes(&authority_cert.serial),
     ]);
-    let attributes = vec![
+    let attributes = crate::cms::signed_attributes_of(vec![
         attribute(oids::CONTENT_TYPE, der::oid(oids::TST_INFO)),
         attribute(oids::MESSAGE_DIGEST, der::octet_string(&content_digest)),
         attribute(
@@ -351,7 +356,7 @@ pub async fn build_timestamp_token(
                 issuer_serial,
             ])])]),
         ),
-    ];
+    ]);
     let digest_algorithm = der::sequence(&[der::oid(input.authority.hash.oid())]);
     let raw = (input.authority.sign)(der::set(&attributes)).await?;
     let signature = cms_signature_value(input.authority.algorithm, raw);
@@ -371,7 +376,9 @@ pub async fn build_timestamp_token(
         der::set(&[digest_algorithm]),
         der::sequence(&[
             der::oid(oids::TST_INFO),
-            der::context(0, &[constructed_octets(&e_content)]),
+            // Set after the constructor ran in the TypeScript, so the
+            // content stays one primitive OCTET STRING: a token is DER.
+            der::context(0, &[der::octet_string(&e_content)]),
         ]),
         der::context(0, std::slice::from_ref(&authority_cert.raw)),
         der::set(&[signer_info]),

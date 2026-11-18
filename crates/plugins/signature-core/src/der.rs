@@ -378,6 +378,22 @@ pub fn integer(value: u64) -> Vec<u8> {
     integer_bytes(&bytes)
 }
 
+/// `toMinimalUnsignedInteger` (pkijs 4): an unsigned number's octets in
+/// the fewest DER takes, with a zero in front when the top bit is set.
+pub fn minimal_unsigned_integer(view: &[u8]) -> Vec<u8> {
+    let mut start = 0;
+    while start + 1 < view.len() && view[start] == 0 {
+        start += 1;
+    }
+    let value = &view[start..];
+    if value.first().is_some_and(|b| b & 0x80 != 0) {
+        let mut out = vec![0];
+        out.extend_from_slice(value);
+        return out;
+    }
+    value.to_vec()
+}
+
 /// `Integer.convertToDER()`, exactly as asn1js does it: a set high bit gets
 /// one zero byte in front, and otherwise ONE leading zero is dropped when
 /// the next byte's high bit is clear. Further leading zeros stay.
@@ -776,22 +792,50 @@ pub fn asn1js_generalized_time(content: &[u8]) -> Option<f64> {
     Some(js_date_utc(fields))
 }
 
-/// `new asn1js.UTCTime({ valueDate })`. asn1js writes the year as `year - 1900`
-/// before 2000 and `year - 2000` from then on, through `padNumber(n, 2)`,
-/// which answers an empty string for a number wider than two characters: a
-/// date from 2100 on, or before 1890, loses its year.
+/// `new asn1js.UTCTime({ valueDate })`, asn1js 4: the year modulo 100, in
+/// two digits.
 pub fn utc_time(ms: f64) -> Vec<u8> {
     let (y, mo, d, h, mi, s) = civil(ms);
-    let year = (if y < 2000 { y - 1900 } else { y - 2000 }).to_string();
-    let year = if year.len() > 2 { String::new() } else { format!("{year:0>2}") };
-    tlv(0x17, format!("{year}{mo:02}{d:02}{h:02}{mi:02}{s:02}Z").as_bytes())
+    let year = y.rem_euclid(100);
+    tlv(0x17, format!("{year:02}{mo:02}{d:02}{h:02}{mi:02}{s:02}Z").as_bytes())
 }
 
-/// `new asn1js.GeneralizedTime({ valueDate })`, as pkijs's `Time` writes a
-/// date from 2050 on.
+/// `new asn1js.GeneralizedTime({ valueDate })`, asn1js 4: a fraction of a
+/// second only when the milliseconds are not zero, without trailing zeros.
 pub fn generalized_time(ms: f64) -> Vec<u8> {
     let (y, mo, d, h, mi, s) = civil(ms);
-    tlv(0x18, format!("{y:04}{mo:02}{d:02}{h:02}{mi:02}{s:02}Z").as_bytes())
+    let millis = ms.rem_euclid(1000.0).floor() as i64;
+    let fraction = if millis == 0 {
+        String::new()
+    } else {
+        format!(".{}", format!("{millis:03}").trim_end_matches('0'))
+    };
+    // `String(year).padStart(4, "0")`: a negative year pads in front of
+    // its sign.
+    let year = format!("{y:0>4}");
+    tlv(0x18, format!("{year}{mo:02}{d:02}{h:02}{mi:02}{s:02}{fraction}Z").as_bytes())
+}
+
+/// Whether `cms/time.ts` writes a time as UTCTime: the years 1950 to 2049.
+fn fits_utc_time(ms: f64) -> bool {
+    (1950..=2049).contains(&civil(ms).0)
+}
+
+/// The time to the second, as `toTheSecond` floors it.
+fn to_the_second(ms: f64) -> f64 {
+    (ms / 1000.0).floor() * 1000.0
+}
+
+/// `cmsTime` (`cms/time.ts`): a time as an attribute of a CMS carries it.
+pub fn cms_time(ms: f64) -> Vec<u8> {
+    let value = to_the_second(ms);
+    if fits_utc_time(value) { utc_time(value) } else { generalized_time(value) }
+}
+
+/// `x509Time` (`cms/time.ts`): a time as a certificate or a CRL carries it.
+/// pkijs's `Time` writes the same two types as `cmsTime`.
+pub fn x509_time(ms: f64) -> Vec<u8> {
+    cms_time(ms)
 }
 
 /// A malformed-input error shaped like asn1js's.

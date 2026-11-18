@@ -3,8 +3,10 @@
 use serde_json::{Value, json};
 
 use crate::cms::{Cryptography, Profile, verify_parsed};
-use crate::parse::{CmsContent, parse_cms_content, parse_cms_internal};
-use crate::timestamp::read_timestamp_info;
+use crate::parse::parse_cms_internal;
+use crate::verify_timestamp::{
+    Stamped, TimestampProblem, check_timestamp_token, signature_value_of,
+};
 
 /// `CompletionProfile`: the shape the CMS must have, a PDF signature's
 /// (`pkcs7`, `cades-b`), or a document timestamp's RFC 3161 token
@@ -76,14 +78,15 @@ pub fn verify_for_completion(
         return refuse(
             "too-large",
             format!(
-                "the CMS is {} bytes; {} were reserved",
+                "the signature is {} bytes and {} were reserved: {}",
                 cms.len(),
-                crate::number_text(prepared.contents_size_bytes)
+                crate::number_text(prepared.contents_size_bytes),
+                reserve_advice(cms.len())
             ),
         );
     }
     if profile == CompletionProfile::Timestamp {
-        return verify_timestamp_token(cms, prepared);
+        return verify_document_timestamp(cms, prepared);
     }
     let internal = match parse_cms_internal(cms) {
         Ok(internal) => internal,
@@ -121,61 +124,89 @@ pub fn verify_for_completion(
         }
     }
     match verify_parsed(&internal) {
-        Cryptography::Valid => Gate::Ok,
+        Cryptography::Valid => {}
         Cryptography::Unsupported => {
-            refuse("signature-invalid", "the signature algorithm is not supported".into())
+            return refuse(
+                "signature-invalid",
+                "the signature or its certificate binding uses an algorithm that is not supported"
+                    .into(),
+            );
         }
         Cryptography::Invalid => {
-            refuse("signature-invalid", "the signature does not verify".into())
+            return refuse("signature-invalid", "the signature does not verify".into());
         }
+    }
+    // A timestamp the CMS carries must belong to it. One that can't be
+    // checked passes.
+    let signature_value = signature_value_of(&internal.signer_info);
+    for token in &internal.timestamp_tokens {
+        let check = check_timestamp_token(
+            token,
+            &Stamped::Bytes(signature_value.clone()),
+            &internal.certificates,
+        );
+        if check.verdict == Cryptography::Invalid {
+            return refuse(
+                if check.problem == Some(TimestampProblem::Imprint) {
+                    "digest-mismatch"
+                } else {
+                    "signature-invalid"
+                },
+                format!(
+                    "the signature's timestamp does not belong to it: {}",
+                    check.detail.unwrap_or_default()
+                ),
+            );
+        }
+    }
+    Gate::Ok
+}
+
+const RESERVE_STEP: usize = 4096;
+/// The most room `prepare` reserves for a signature: 4 MiB.
+const LARGEST_RESERVE: usize = 4 * 1024 * 1024;
+
+/// `reserveAdvice`: the reserve to prepare with for a signature of `size`
+/// bytes, in whole steps of 4096.
+fn reserve_advice(size: usize) -> String {
+    let reserve = size.div_ceil(RESERVE_STEP) * RESERVE_STEP;
+    if reserve > LARGEST_RESERVE {
+        "that is more than a signature may reserve".into()
+    } else {
+        format!("pass `contentsSizeBytes: {reserve}`")
     }
 }
 
-/// `verifyTimestampToken`: a document timestamp's token must stamp the
-/// prepared digest with the prepared algorithm, its own message digest must
-/// cover its TSTInfo, and its signature must verify with the authority's
-/// certificate.
-fn verify_timestamp_token(cms: &[u8], prepared: &Prepared) -> Gate {
+/// `verifyDocumentTimestamp`: a document timestamp's token must stamp the
+/// prepared digest with the prepared algorithm and pass
+/// `checkTimestampToken`. One that can't be checked is refused like a wrong
+/// one.
+fn verify_document_timestamp(cms: &[u8], prepared: &Prepared) -> Gate {
     let refuse = |reason, detail: String| Gate::Refused { reason, detail };
-    let read = parse_cms_content(cms, CmsContent::TstInfo).and_then(|internal| {
-        let info = read_timestamp_info(internal.e_content.as_deref().unwrap_or_default())?;
-        Ok((internal, info))
-    });
-    let (internal, info) = match read {
-        Ok(read) => read,
-        Err(e) => return refuse("malformed", e.text()),
-    };
-    if info.imprint_algorithm.name() != prepared.algorithm {
-        return refuse(
+    let stamped =
+        Stamped::Digest { digest: prepared.digest.clone(), algorithm: prepared.algorithm.clone() };
+    let check = check_timestamp_token(cms, &stamped, &[]);
+    if check.verdict == Cryptography::Valid {
+        return Gate::Ok;
+    }
+    let detail = check.detail.clone().unwrap_or_default();
+    match check.problem {
+        Some(TimestampProblem::Unreadable) => refuse("malformed", detail),
+        Some(TimestampProblem::NoCertificate) => {
+            refuse("malformed", "the token does not carry its authority's certificate".into())
+        }
+        Some(TimestampProblem::ImprintAlgorithm) => refuse(
             "algorithm-mismatch",
             format!(
                 "the token stamps a {} digest, the document was prepared with {}",
-                info.imprint_algorithm.name(),
+                check.info.as_ref().map_or("", |i| i.imprint_algorithm.name()),
                 prepared.algorithm
             ),
-        );
-    }
-    if info.imprint != prepared.digest {
-        return refuse(
+        ),
+        Some(TimestampProblem::Imprint) => refuse(
             "digest-mismatch",
             "the token's message imprint is not the prepared digest".into(),
-        );
-    }
-    let content_digest =
-        internal.parsed.digest_algorithm.hash(internal.e_content.as_deref().unwrap_or_default());
-    if content_digest != internal.parsed.message_digest {
-        return refuse(
-            "signature-invalid",
-            "the token's message digest does not cover its TSTInfo".into(),
-        );
-    }
-    match verify_parsed(&internal) {
-        Cryptography::Valid => Gate::Ok,
-        Cryptography::Unsupported => {
-            refuse("signature-invalid", "the signature algorithm is not supported".into())
-        }
-        Cryptography::Invalid => {
-            refuse("signature-invalid", "the token signature does not verify".into())
-        }
+        ),
+        _ => refuse("signature-invalid", detail),
     }
 }

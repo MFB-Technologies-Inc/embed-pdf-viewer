@@ -32,6 +32,7 @@ pub mod signers;
 pub mod timestamp;
 pub mod trust;
 pub mod verdict;
+pub mod verify_timestamp;
 
 #[cfg(feature = "harness")]
 pub mod harness;

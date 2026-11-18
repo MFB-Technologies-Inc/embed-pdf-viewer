@@ -246,6 +246,23 @@ fn signature_parameters(key: &CryptoKey, hash_name: &str) -> Result<(Value, Vec<
 
 const DAY_MS: f64 = 24.0 * 3600.0 * 1000.0;
 
+/// `randomPositiveInteger` (`cms/engine.ts`): random octets that are a
+/// positive integer in DER as they are, for a serial number or a nonce: the
+/// first octet is between `40` and `7f`.
+pub fn random_positive_integer(crypto: &dyn WebCrypto) -> [u8; 8] {
+    let mut octets = [0u8; 8];
+    crypto.get_random_values(&mut octets);
+    octets[0] = (octets[0] & 0x7f) | 0x40;
+    octets
+}
+
+/// What a self-signed certificate is for.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CertificatePurpose {
+    Signing,
+    Timestamping,
+}
+
 /// `selfSignedCertificate`: a certificate over a WebCrypto key pair, its own
 /// issuer, valid from a day back for `validity_days` (365 by default).
 pub async fn self_signed_certificate(
@@ -256,33 +273,90 @@ pub async fn self_signed_certificate(
     hash: Digest,
     validity_days: Option<f64>,
 ) -> Result<Vec<u8>, Error> {
-    let mut serial = [0u8; 8];
-    crypto.get_random_values(&mut serial);
-    serial[0] &= 0x7f;
+    build_self_signed_certificate(
+        crypto,
+        public_key,
+        private_key,
+        common_name,
+        hash,
+        validity_days,
+        CertificatePurpose::Signing,
+    )
+    .await
+}
+
+/// `timestampAuthorityCertificate`: a self-signed certificate for a
+/// timestamp authority. Timestamping is its only purpose, in a critical
+/// extended key usage (RFC 3161 2.3), and its key usage is
+/// `digitalSignature` alone.
+pub async fn timestamp_authority_certificate(
+    crypto: Rc<dyn WebCrypto>,
+    public_key: CryptoKey,
+    private_key: CryptoKey,
+    common_name: String,
+    hash: Digest,
+    validity_days: Option<f64>,
+) -> Result<Vec<u8>, Error> {
+    build_self_signed_certificate(
+        crypto,
+        public_key,
+        private_key,
+        common_name,
+        hash,
+        validity_days,
+        CertificatePurpose::Timestamping,
+    )
+    .await
+}
+
+/// `buildSelfSignedCertificate`.
+pub async fn build_self_signed_certificate(
+    crypto: Rc<dyn WebCrypto>,
+    public_key: CryptoKey,
+    private_key: CryptoKey,
+    common_name: String,
+    hash: Digest,
+    validity_days: Option<f64>,
+    purpose: CertificatePurpose,
+) -> Result<Vec<u8>, Error> {
+    let serial = random_positive_integer(&*crypto);
     let name = der::sequence(&[der::set(&[der::sequence(&[
         der::oid(oids::COMMON_NAME),
         der::utf8_string(&common_name),
     ])])]);
     let now = epdf_kernel::rt::now();
     let validity = der::sequence(&[
-        der::utc_time(now - DAY_MS),
-        der::utc_time(now + validity_days.unwrap_or(365.0) * DAY_MS),
+        der::x509_time(now - DAY_MS),
+        der::x509_time(now + validity_days.unwrap_or(365.0) * DAY_MS),
     ]);
-    let extensions = der::context(
-        3,
-        &[der::sequence(&[
-            der::sequence(&[
-                der::oid(oids::BASIC_CONSTRAINTS),
-                der::boolean(true),
-                der::octet_string(&der::sequence(&[der::boolean(true)])),
-            ]),
-            der::sequence(&[
-                der::oid(oids::KEY_USAGE),
-                der::boolean(true),
-                der::octet_string(&der::bit_string(2, &[0x84])),
-            ]),
-        ])],
-    );
+    let timestamping = purpose == CertificatePurpose::Timestamping;
+    // `new BasicConstraints({ cA: false })` writes no cA member: DER leaves
+    // out a value equal to its default.
+    let basic_constraints =
+        if timestamping { der::sequence(&[]) } else { der::sequence(&[der::boolean(true)]) };
+    // A signer: digitalSignature | keyCertSign. An authority: digitalSignature alone.
+    let key_usage =
+        if timestamping { der::bit_string(7, &[0x80]) } else { der::bit_string(2, &[0x84]) };
+    let mut extension_list = vec![
+        der::sequence(&[
+            der::oid(oids::BASIC_CONSTRAINTS),
+            der::boolean(true),
+            der::octet_string(&basic_constraints),
+        ]),
+        der::sequence(&[
+            der::oid(oids::KEY_USAGE),
+            der::boolean(true),
+            der::octet_string(&key_usage),
+        ]),
+    ];
+    if timestamping {
+        extension_list.push(der::sequence(&[
+            der::oid(oids::EXTENDED_KEY_USAGE),
+            der::boolean(true),
+            der::octet_string(&der::sequence(&[der::oid(oids::TIME_STAMPING)])),
+        ]));
+    }
+    let extensions = der::context(3, &[der::sequence(&extension_list)]);
     let jwk = crypto.export_jwk(&public_key).await?;
     let spki = spki_from_jwk(&jwk)?;
     let (params, algorithm) = signature_parameters(&private_key, hash.webcrypto())?;
@@ -372,13 +446,24 @@ pub async fn create_test_timestamp_authority(
     crypto: Rc<dyn WebCrypto>,
     common_name: Option<String>,
 ) -> Result<TestTimestampAuthority, Error> {
-    let authority = create_test_signer(
+    let keys =
+        generate_signing_key_pair(&*crypto, RawAlgorithm::RsaPkcs1, Digest::Sha256, true).await?;
+    let certificate = timestamp_authority_certificate(
         crypto.clone(),
-        Some(common_name.unwrap_or_else(|| "EmbedPDF test timestamp authority".into())),
-        None,
+        keys.public_key.clone(),
+        keys.private_key.clone(),
+        common_name.unwrap_or_else(|| "EmbedPDF test timestamp authority".into()),
+        Digest::Sha256,
         None,
     )
     .await?;
+    let signer = web_crypto_signer(
+        crypto.clone(),
+        keys.private_key.clone(),
+        vec![certificate.clone()],
+        None,
+    )?;
+    let authority = TestSigner { signer, certificate, private_key: keys.private_key };
     let raw = authority.signer.clone();
     let sign = Rc::new(move |request: CmsSignRequest| {
         let crypto = crypto.clone();

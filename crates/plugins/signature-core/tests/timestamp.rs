@@ -159,13 +159,15 @@ fn a_built_token_carries_its_tst_info_and_passes_the_timestamp_gate() {
     assert_eq!(info.gen_time, GEN_TIME);
     assert!(internal.parsed.signing_certificate_v2);
     assert_eq!(internal.parsed.signer_certificate, fixture("certs", "leaf", None));
-    // asn1js writes the milliseconds only when they are not zero.
-    assert!(token.windows(19).any(|w| w == b"20260115000000.250Z"));
-    // The serial is the drawn bytes with the sign bit cleared.
+    // asn1js 4 writes the milliseconds only when they are not zero, without
+    // trailing zeros.
+    assert!(token.windows(18).any(|w| w == b"20260115000000.25Z"));
+    // The serial is the drawn bytes made a positive DER integer as they are
+    // (`randomPositiveInteger`): the first octet between 40 and 7f.
     assert!(
         token
             .windows(10)
-            .any(|w| w == [0x02, 0x08, 0x25, 0xa5, 0xa5, 0xa5, 0xa5, 0xa5, 0xa5, 0xa5])
+            .any(|w| w == [0x02, 0x08, 0x65, 0xa5, 0xa5, 0xa5, 0xa5, 0xa5, 0xa5, 0xa5])
     );
     let gate =
         verify_for_completion(&token, &prepared(&DIGEST, "sha256"), CompletionProfile::Timestamp);
@@ -192,7 +194,7 @@ fn the_timestamp_gate_refuses_what_the_typescript_refuses() {
     assert_eq!(refusal(verify_for_completion(&token, &small, timestamp)).0, "too-large");
 
     // A changed genTime no longer matches the signed message digest.
-    let retimed = patched(&token, b"20260115000000.250Z", b"20270115000000.250Z");
+    let retimed = patched(&token, b"20260115000000.25Z", b"20270115000000.25Z");
     assert_eq!(
         refusal(verify_for_completion(&retimed, &prepared(&DIGEST, "sha256"), timestamp)),
         ("signature-invalid", "the token's message digest does not cover its TSTInfo".into())
@@ -408,21 +410,23 @@ fn contains(haystack: &[u8], needle: &[u8]) -> bool {
 }
 
 #[test]
-fn gen_time_writes_milliseconds_only_when_present_and_padded_to_three() {
+fn gen_time_writes_milliseconds_only_when_present_without_trailing_zeros() {
     assert!(contains(&token_at(1_768_435_200_000.0), b"\x18\x0f20260115000000Z"));
     assert!(contains(&token_at(1_768_435_200_005.0), b"\x18\x1320260115000000.005Z"));
+    assert!(contains(&token_at(1_768_435_200_500.0), b"\x18\x1120260115000000.5Z"));
 }
 
 #[test]
-fn the_tst_info_is_carried_as_a_constructed_octet_string() {
-    // id-ct-TSTInfo, then `[0]` around a constructed OCTET STRING (0x24).
+fn the_tst_info_is_carried_as_one_primitive_octet_string() {
+    // id-ct-TSTInfo, then `[0]` around a primitive OCTET STRING (0x04): the
+    // token is DER (upstream `f474edfca`).
     let mut header = der::oid(epdf_signature_core::oids::TST_INFO);
     header.push(0xa0);
     let token = token();
     let at =
         token.windows(header.len()).position(|w| w == header.as_slice()).unwrap() + header.len();
     let length_octets = if token[at] & 0x80 == 0 { 1 } else { 1 + usize::from(token[at] & 0x7f) };
-    assert_eq!(token[at + length_octets], 0x24);
+    assert_eq!(token[at + length_octets], 0x04);
 }
 
 /// The built token with its encapsulated content replaced by `e_content`.

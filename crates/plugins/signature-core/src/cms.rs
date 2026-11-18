@@ -43,16 +43,52 @@ fn mentions_unsupported(message: &str) -> bool {
     ["unsupported", "unknown", "not supported", "not implemented"].iter().any(|w| lower.contains(w))
 }
 
-/// `verifyCmsSignature(parsed)`: the ESS certificate hash, then the
-/// signature over the signed attributes, hashed with the DIGEST algorithm
-/// (pkijs is handed that hash, so an RSA or ECDSA signature algorithm's own
-/// hash is never read).
+/// `verifyCmsSignature(parsed)`: the certificate bindings, then the
+/// signature over the signed attributes.
 pub fn verify_parsed(internal: &Internal) -> Cryptography {
-    if let Some(ess) = &internal.ess_cert_hash
-        && &Digest::Sha256.hash(&internal.parsed.signer_certificate) != ess
-    {
+    let binding = check_certificate_binding(internal);
+    if binding == Binding::Invalid {
         return Cryptography::Invalid;
     }
+    let signature = verify_signer_signature(internal);
+    if signature != Cryptography::Valid {
+        return signature;
+    }
+    if binding == Binding::Unsupported { Cryptography::Unsupported } else { Cryptography::Valid }
+}
+
+/// What `checkCertificateBinding` answers: a cryptography verdict, or
+/// `absent` when the CMS carries no binding.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Binding {
+    Valid,
+    Invalid,
+    Unsupported,
+    Absent,
+}
+
+/// `checkCertificateBinding`: every binding whose hash is known must be the
+/// hash of the signer's certificate. `Unsupported` when only bindings of an
+/// unknown hash are carried.
+pub fn check_certificate_binding(internal: &Internal) -> Binding {
+    if internal.bindings.is_empty() {
+        return Binding::Absent;
+    }
+    let mut checked = false;
+    for binding in &internal.bindings {
+        let Some(algorithm) = binding.algorithm else { continue };
+        if algorithm.hash(&internal.parsed.signer_certificate) != binding.cert_hash {
+            return Binding::Invalid;
+        }
+        checked = true;
+    }
+    if checked { Binding::Valid } else { Binding::Unsupported }
+}
+
+/// `verifySignerSignature`: the signature over the signed attributes, hashed
+/// with the DIGEST algorithm (pkijs is handed that hash, so an RSA or ECDSA
+/// signature algorithm's own hash is never read).
+pub fn verify_signer_signature(internal: &Internal) -> Cryptography {
     let info = &internal.signer_info;
     match crypto::verify_with_public_key(
         &info.signed_attributes_der(),
@@ -194,13 +230,30 @@ pub fn cms_ecdsa_signature(raw: &[u8]) -> Vec<u8> {
         return Vec::new();
     }
     let (r, s) = raw.split_at(raw.len() / 2);
-    der::sequence(&[der::integer_der(r), der::integer_der(s)])
+    der::sequence(&[
+        der::integer_bytes(&der::minimal_unsigned_integer(r)),
+        der::integer_bytes(&der::minimal_unsigned_integer(s)),
+    ])
 }
 
 /// `cmsSignatureValue`: a raw signature as a SignerInfo carries it (ECDSA
 /// `r || s` becomes DER).
 pub fn cms_signature_value(algorithm: RawAlgorithm, raw: Vec<u8>) -> Vec<u8> {
     if algorithm == RawAlgorithm::Ecdsa { cms_ecdsa_signature(&raw) } else { raw }
+}
+
+/// `derOrder` (`cms/splice.ts`): how DER orders the elements of a set, by
+/// their encodings octet by octet.
+pub fn der_order(left: &[u8], right: &[u8]) -> std::cmp::Ordering {
+    left.cmp(right)
+}
+
+/// `signedAttributesOf`: the signed attributes of a new signer in the order
+/// DER gives the elements of a set, so the order written is the order
+/// signed. The sort is stable, as `Array.prototype.sort` is.
+pub fn signed_attributes_of(mut attributes: Vec<Vec<u8>>) -> Vec<Vec<u8>> {
+    attributes.sort_by(|a, b| der_order(a, b));
+    attributes
 }
 
 /// `buildDetachedCms`.
@@ -239,7 +292,7 @@ pub async fn build_detached_cms(input: BuildInput) -> Result<Vec<u8>, Error> {
         && let Some(time) = &input.signing_time
     {
         let time = der::date_from_iso(time);
-        attributes.push(attribute(oids::SIGNING_TIME, der::utc_time(time)));
+        attributes.push(attribute(oids::SIGNING_TIME, der::cms_time(time)));
     }
     if input.profile == Profile::CadesB {
         let cert_hash = Digest::Sha256.hash(&input.signer.certificate_chain[0]);
@@ -254,6 +307,7 @@ pub async fn build_detached_cms(input: BuildInput) -> Result<Vec<u8>, Error> {
         ));
     }
 
+    let attributes = signed_attributes_of(attributes);
     let digest_algorithm = der::sequence(&[der::oid(input.hash.oid())]);
     let to_sign = der::set(&attributes);
     let raw = (input.signer.sign)(to_sign).await?;

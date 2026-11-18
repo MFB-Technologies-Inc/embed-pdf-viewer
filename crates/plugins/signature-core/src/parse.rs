@@ -261,7 +261,48 @@ impl SignedData {
     }
 }
 
-/// What the rest of the package reads from a parse.
+/// `CertificateBinding`: how a CMS names the certificate that signed it, an
+/// ESS certificate identifier (RFC 5035).
+#[derive(Clone, Debug, PartialEq)]
+pub struct CertificateBinding {
+    /// 1 for `signing-certificate`, 2 for `signing-certificate-v2`.
+    pub version: u8,
+    /// `None` for a hash this package doesn't know.
+    pub algorithm: Option<Digest>,
+    pub cert_hash: Vec<u8>,
+}
+
+/// `CarriedRevocation`: the revocation answers a CMS carries itself, each
+/// in DER and none checked: its `crls` field, then Acrobat's
+/// `adbe-revocationInfoArchival` signed attribute.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CarriedRevocation {
+    pub ocsp_responses: Vec<Vec<u8>>,
+    pub crls: Vec<Vec<u8>>,
+}
+
+/// `CmsParts`: a SignedData and its one signer, read without needing the
+/// signer's certificate.
+#[derive(Clone, Debug, PartialEq)]
+pub struct CmsParts {
+    pub signer_info: SignerInfo,
+    pub digest_algorithm: Digest,
+    pub message_digest: Vec<u8>,
+    pub signing_time: Option<String>,
+    /// One the CMS carries, else one of those offered.
+    pub signer_certificate: Option<Certificate>,
+    /// The signer's certificate when it was found, then the others carried.
+    pub certificates: Vec<Certificate>,
+    /// `signing-certificate-v2` first.
+    pub bindings: Vec<CertificateBinding>,
+    /// DER of every RFC 3161 token among the unsigned attributes.
+    pub timestamp_tokens: Vec<Vec<u8>>,
+    /// A timestamp token's encapsulated TSTInfo; `None` for a detached CMS.
+    pub e_content: Option<Vec<u8>>,
+    pub revocation: CarriedRevocation,
+}
+
+/// What the rest of the package reads from a parse (`ParsedCmsInternal`).
 #[derive(Clone, Debug, PartialEq)]
 pub struct Internal {
     pub parsed: ParsedCms,
@@ -269,10 +310,12 @@ pub struct Internal {
     pub signer_certificate: Certificate,
     /// Signer first.
     pub certificates: Vec<Certificate>,
-    pub ess_cert_hash: Option<Vec<u8>>,
+    pub bindings: Vec<CertificateBinding>,
+    pub timestamp_tokens: Vec<Vec<u8>>,
     /// A timestamp token's encapsulated TSTInfo (`CmsContent::TstInfo`);
     /// `None` for a detached CMS.
     pub e_content: Option<Vec<u8>>,
+    pub revocation: CarriedRevocation,
 }
 
 /// `CmsContent`: what the CMS carries. Nothing (a detached PDF signature
@@ -297,6 +340,51 @@ pub fn parse_cms_internal(cms: &[u8]) -> Result<Internal, ParseError> {
 
 /// `parseCmsInternal(cms, content)`.
 pub fn parse_cms_content(cms: &[u8], content_kind: CmsContent) -> Result<Internal, ParseError> {
+    parse_cms_with(cms, content_kind, &[])
+}
+
+/// `parseCmsInternal(cms, content, { certificates })`: a CMS that must carry
+/// its signer's certificate, or find it among `offered`.
+pub fn parse_cms_with(
+    cms: &[u8],
+    content_kind: CmsContent,
+    offered: &[Certificate],
+) -> Result<Internal, ParseError> {
+    with_signer_certificate(read_cms_parts(cms, content_kind, offered)?)
+        .ok_or_else(|| ParseError::malformed("the signer certificate is not carried by the CMS"))
+}
+
+/// `withSignerCertificate`: the parts as a parsed CMS, or `None` when the
+/// signer's certificate was found nowhere.
+pub fn with_signer_certificate(parts: CmsParts) -> Option<Internal> {
+    let signer_certificate = parts.signer_certificate?;
+    Some(Internal {
+        parsed: ParsedCms {
+            digest_algorithm: parts.digest_algorithm,
+            message_digest: parts.message_digest,
+            signing_time: parts.signing_time,
+            signer_certificate: signer_certificate.raw.clone(),
+            certificates: parts.certificates.iter().map(|c| c.raw.clone()).collect(),
+            signature_algorithm: parts.signer_info.signature_algorithm.oid.clone(),
+            signing_certificate_v2: parts.bindings.iter().any(|b| b.version == 2),
+            timestamp_token: parts.timestamp_tokens.first().cloned(),
+        },
+        signer_info: parts.signer_info,
+        signer_certificate,
+        certificates: parts.certificates,
+        bindings: parts.bindings,
+        timestamp_tokens: parts.timestamp_tokens,
+        e_content: parts.e_content,
+        revocation: parts.revocation,
+    })
+}
+
+/// `readCmsParts`: a CMS SignedData with exactly one signer.
+pub fn read_cms_parts(
+    cms: &[u8],
+    content_kind: CmsContent,
+    offered: &[Certificate],
+) -> Result<CmsParts, ParseError> {
     if cms.is_empty() {
         return Err(ParseError::malformed("empty CMS"));
     }
@@ -328,6 +416,7 @@ pub fn parse_cms_content(cms: &[u8], content_kind: CmsContent) -> Result<Interna
             "CMS content type {content_type} is not SignedData"
         )));
     }
+    let revocation = read_revocation_field(content);
     let signed_data = SignedData::read(content).ok_or_else(|| wrap("SignedData"))?;
     let (expected_content_type, expected_name) = match content_kind {
         CmsContent::Detached => (oids::DATA, "id-data"),
@@ -384,9 +473,11 @@ pub fn parse_cms_content(cms: &[u8], content_kind: CmsContent) -> Result<Interna
                 signer_info.digest_algorithm.oid
             ))
         })?;
-    let certificates = signed_data.certificates;
-    let signer_index = find_signer_certificate(&signer_info.sid, &certificates)?
-        .ok_or_else(|| ParseError::malformed("the signer certificate is not carried by the CMS"))?;
+    let carried = signed_data.certificates;
+    let signer_certificate = match find_signer_certificate(&signer_info.sid, &carried)? {
+        Some(index) => Some(carried[index].clone()),
+        None => find_signer_certificate(&signer_info.sid, offered)?.map(|i| offered[i].clone()),
+    };
 
     let empty = Vec::new();
     let signed_attrs = signer_info.signed_attrs.as_ref().unwrap_or(&empty);
@@ -422,67 +513,131 @@ pub fn parse_cms_content(cms: &[u8], content_kind: CmsContent) -> Result<Interna
     })
     .transpose()?;
 
-    let ess = attr(oids::SIGNING_CERTIFICATE_V2);
-    let mut ess_cert_hash = None;
-    if let Some(ess) = ess {
-        let seq = ess.first()?;
-        let children = |n: Option<&Node>| {
-            n.filter(|n| n.constructed).map(|n| n.children.clone()).unwrap_or_default()
-        };
-        let certs = children(seq).into_iter().next();
-        let first = children(certs.as_ref()).into_iter().next();
-        let members = children(first.as_ref());
-        let mut cursor = 0;
-        if let Some(head) = members.first()
-            && head.is_sequence()
-            && head.children.first().is_some_and(|c| c.is_universal(der::OID))
-        {
-            if head.children[0].oid().as_deref() != Some(oids::SHA256) {
-                return Err(ParseError::unsupported(
-                    "signing-certificate-v2 uses a hash other than SHA-256",
-                ));
-            }
-            cursor = 1;
+    let mut bindings = Vec::new();
+    if let Some(binding) = attr(oids::SIGNING_CERTIFICATE_V2) {
+        bindings.push(read_binding(binding, 2)?);
+    }
+    if let Some(binding) = attr(oids::SIGNING_CERTIFICATE) {
+        bindings.push(read_binding(binding, 1)?);
+    }
+
+    let mut timestamp_tokens = Vec::new();
+    for attribute in signer_info.unsigned_attrs.iter().flatten() {
+        if attribute.oid != oids::TIMESTAMP_TOKEN {
+            continue;
         }
-        let hash = members
-            .get(cursor)
-            .filter(|n| n.is_octet_string())
-            .ok_or_else(|| ParseError::malformed("signing-certificate-v2 carries no certHash"))?;
-        ess_cert_hash = Some(value_hex(hash));
+        let Some(values) = &attribute.values else {
+            return Err(ParseError::Other(Error::named(
+                "TypeError",
+                "attribute.values is not iterable",
+            )));
+        };
+        timestamp_tokens.extend(values.iter().map(|v| v.raw.clone()));
     }
 
-    let mut timestamp_token = None;
-    if let Some(token) = signer_info
-        .unsigned_attrs
-        .as_ref()
-        .and_then(|attrs| attrs.iter().find(|a| a.oid == oids::TIMESTAMP_TOKEN))
-        && let Some(value) = token.first()?
-    {
-        timestamp_token = Some(value.raw.clone());
-    }
-
-    let signer_certificate = certificates[signer_index].clone();
-    let mut ordered = vec![signer_certificate.clone()];
-    ordered.extend(
-        certificates.iter().enumerate().filter(|(i, _)| *i != signer_index).map(|(_, c)| c.clone()),
-    );
-    Ok(Internal {
-        parsed: ParsedCms {
-            digest_algorithm,
-            message_digest,
-            signing_time,
-            signer_certificate: signer_certificate.raw.clone(),
-            certificates: ordered.iter().map(|c| c.raw.clone()).collect(),
-            signature_algorithm: signer_info.signature_algorithm.oid.clone(),
-            signing_certificate_v2: ess.is_some(),
-            timestamp_token,
-        },
+    let archival = attr(oids::REVOCATION_INFO_ARCHIVAL).cloned();
+    let certificates = match &signer_certificate {
+        Some(signer) => {
+            let mut ordered = vec![signer.clone()];
+            // pkijs compares by object identity: an offered signer is no
+            // carried certificate, so every carried one stays.
+            let carried_index = find_signer_certificate(&signer_info.sid, &carried)?;
+            ordered.extend(
+                carried
+                    .iter()
+                    .enumerate()
+                    .filter(|(i, _)| Some(*i) != carried_index)
+                    .map(|(_, c)| c.clone()),
+            );
+            ordered
+        }
+        None => carried,
+    };
+    Ok(CmsParts {
         signer_info,
+        digest_algorithm,
+        message_digest,
+        signing_time,
         signer_certificate,
-        certificates: ordered,
-        ess_cert_hash,
+        certificates,
+        bindings,
+        timestamp_tokens,
         e_content,
+        revocation: with_archived_revocation(revocation, archival.as_ref()),
     })
+}
+
+fn children(node: Option<&Node>) -> &[Node] {
+    node.map_or(&[], |n| if n.constructed { n.children.as_slice() } else { &[] })
+}
+
+/// `readRevocationField`: the answers in a SignedData's `crls` field as they
+/// were written. An `other` choice in a format not known here is left out.
+fn read_revocation_field(signed_data: &Node) -> CarriedRevocation {
+    let mut out = CarriedRevocation::default();
+    let field = children(Some(signed_data)).iter().find(|m| m.is_context(1));
+    for choice in children(field) {
+        if choice.class == der::UNIVERSAL {
+            out.crls.push(choice.raw.clone());
+            continue;
+        }
+        if !choice.is_context(1) {
+            continue;
+        }
+        let members = children(Some(choice));
+        if let (Some(format), Some(info)) = (members.first(), members.get(1))
+            && format.is_universal(der::OID)
+            && format.oid().as_deref() == Some(oids::OCSP_RESPONSE_INFO)
+        {
+            out.ocsp_responses.push(info.raw.clone());
+        }
+    }
+    out
+}
+
+/// `withArchivedRevocation`: `carried`, then the answers of Acrobat's
+/// `adbe-revocationInfoArchival` signed attribute.
+fn with_archived_revocation(
+    carried: CarriedRevocation,
+    archival: Option<&Attribute>,
+) -> CarriedRevocation {
+    let mut out = carried;
+    let value = archival.and_then(|a| a.values.as_ref()).and_then(|v| v.first());
+    for part in children(value) {
+        let list = children(children(Some(part)).first());
+        if part.is_context(0) {
+            out.crls.extend(list.iter().map(|n| n.raw.clone()));
+        }
+        if part.is_context(1) {
+            out.ocsp_responses.extend(list.iter().map(|n| n.raw.clone()));
+        }
+    }
+    out
+}
+
+/// `readBinding`: an ESS certificate identifier attribute; its first
+/// identifier names the signer.
+fn read_binding(attribute: &Attribute, version: u8) -> Result<CertificateBinding, ParseError> {
+    let name = if version == 2 { "signing-certificate-v2" } else { "signing-certificate" };
+    let seq = attribute.first()?;
+    let certs = children(seq).first();
+    let first = children(certs).first();
+    let members = children(first);
+    let mut algorithm = Some(if version == 2 { Digest::Sha256 } else { Digest::Sha1 });
+    let mut cursor = 0;
+    if version == 2
+        && let Some(head) = members.first()
+        && head.is_sequence()
+        && head.children.first().is_some_and(|c| c.is_universal(der::OID))
+    {
+        algorithm = head.children[0].oid().as_deref().and_then(Digest::from_oid);
+        cursor = 1;
+    }
+    let hash = members
+        .get(cursor)
+        .filter(|n| n.is_octet_string())
+        .ok_or_else(|| ParseError::malformed(format!("{name} carries no certHash")))?;
+    Ok(CertificateBinding { version, algorithm, cert_hash: value_hex(hash) })
 }
 
 /// `findSignerCertificate`. Reading a subject key identifier is a fresh
