@@ -20,7 +20,8 @@ the last section. Decisions are in [`../decisions/CU-C3.md`](../decisions/CU-C3.
 | `3b37c715f` | Generators follow upstream (wire kinds 96, fake engine members, `getValidationInfo` answers, the ink case) |
 | `98a477901` | Wire and plugin vectors regenerated, and `coverage.json` |
 | `48568034c` | Evidence archives re-baselined (766 of 768, as at `cf7fdbe7a`) |
-| this commit | Report, decisions, results, the job's scripts |
+| `06acceca6` | Report, decisions, results, the job's scripts |
+| review fix | Work-order item 12 for CU-C4, the native host's engine-call table (CU-C3-D11) |
 
 ## Merge
 
@@ -158,6 +159,28 @@ Failing now: the 6 `epdf-engine` tests and the 5 `epdf-signature-core` tests, 77
     CU-C8 and CU-C9 need its exact signature from the CU-C4 report.
 11. D-2: the client side of `RevocationRouteRequest` and of the timestamp request the route forwards,
     pinned by conformance cases; `server/*` stays unported.
+12. The native host's half of `LocalDocumentSignaturesService.ts` (+89 lines in the range), which
+    every native platform reaches through `epdf-viewer-host` and `epdf-engine`'s host (CU-C3-D11):
+    - `crates/epdf-viewer-host/src/translate.rs`, the Rust counterpart of each `Local*Service.ts`
+      `wirePack`: rows for `signatures.getValidationInfo` (kind `signatures.validationInfo`, an
+      answer of three byte lists sent as payloads, a decode shape no row has yet) and
+      `signatures.addValidationInfo` (kind `signatures.addValidationInfo`, an `opId`, each entry a
+      request payload, a mutation answer). Its method list and its kind and decode map stop at
+      `signatures.cancel` today. Tests in `crates/epdf-viewer-host/tests/translate.rs`.
+    - `crates/epdf-engine/src/host.rs`: `getValidationInfo` gated by `doc.forms.read` and
+      `addValidationInfo` by `doc.sign`; an entry list that isn't byte arrays is `InvalidArg`; a
+      write that stored nothing is not finished as a mutation (`WorkerHost.ts`
+      `handleSignaturesAddValidationInfo`) and publishes no event, one that stored something
+      publishes `signatures.validationInfoAdded` with `added` and `meta`. The event joins the event
+      enum in `crates/epdf-engine/src/session/save.rs`.
+    - `signatures.prepare` with no `field`: the gate is `doc.sign` rather than
+      `require_some_signing` (`gate('sign-some-field')`, `host.rs`), and the `signatures.prepared`
+      event takes its `field` from the answer's `field` when the call named none (`save.rs`
+      `SignaturesPrepared`), refusing with `Unknown` when neither has one.
+    - `epdf-kernel` needs no change: its `changes_document` (`kernel.rs` near line 1702) excludes
+      the same four events as upstream's `changesDocument` (`packages/core/main/src/kernel.ts`,
+      unchanged in the range), so `signatures.validationInfoAdded` counts as a change to the
+      document and marks it unsaved, as upstream does. A case that checks it belongs with item 7.
 
 ### CU-C5: commands, history, i18n (#1091, #1089)
 
@@ -212,7 +235,9 @@ the verdict's `revocation` and timestamp fields, and `ImportLibraryOptions.id`.
 The D-1 transport on each (`fetch` to the D-2 routes in `epdf-web`, the Android HTTP stack in
 Kotlin, `HttpClient` in .NET), with upstream's route limits (64 KiB request, 1 MiB reply, 10 s
 default timeout); the CU-C4 engine read and write of validation data where a wrapper exposes engine
-calls; and the CU-C5 and CU-C6 wrapper items above. Tests: a timestamped signature and a long-term
+calls; and the CU-C5 and CU-C6 wrapper items above. The plugins reach the engine on every native
+platform through `epdf-viewer-host`'s translation (CU-C4 item 12), so a platform test of a
+long-term validation fill also exercises those rows. Tests: a timestamped signature and a long-term
 validation fill against recorded replies on each platform.
 
 ### CU-C9: Swift
@@ -227,7 +252,7 @@ The same surface through `platforms/apple/EmbedPDF`, the D-1 transport on `URLSe
 | #1080 matrix red rows | `d51ef8fdd` | none: `isDev` in `engine/core/src/dev.ts` has no Rust counterpart, the rest is `tooling/bundler-matrix` |
 | #1089 standard history commands | `4c668404f` | CU-C5 3 |
 | #1087 signature timestamps | `3d167f772` | CU-C4 8, 9, 10; CU-C6 3; viewer chrome strings and UI not ported |
-| #1088 long-term validation | `32571b4b7` | CU-C4 1 to 4, 7, 9, 10, 11; CU-C6 3, 4; `cloudpdf` and docs not ported |
+| #1088 long-term validation | `32571b4b7` | CU-C4 1 to 4, 7, 9, 10, 11, 12; CU-C6 3, 4; `cloudpdf` and docs not ported |
 | #1039 viewer-app stamps | `540449699` | CU-C6 2; the viewer chrome app stamps are not ported |
 | #1090 PKCS#7 attribute order | `c4e8a4962` | CU-C4 8 |
 | #1091 plugin-owned commands | `d5d617f0d` | CU-C5 1, 2, 4, 5; framework packages not ported |
@@ -237,7 +262,7 @@ The same surface through `platforms/apple/EmbedPDF`, the D-1 transport on `URLSe
 | #1096 draft slot keeps finished work | `6b424edce` | CU-C6 1 |
 | #1081 version packages | `4b156274c` | CU-C4 5 |
 | #1101 form control radius | `3c38eb569` | none: `framework/web` CSS |
-| #1102 signing flow fixes | `b08c0075d` | CU-C4 3, 6, 7; CU-C6 3, 4 |
+| #1102 signing flow fixes | `b08c0075d` | CU-C4 3, 6, 7, 12; CU-C6 3, 4 |
 | #1103 test authority clock | `c4e744345` | CU-C4 8 |
 
 ## Evidence

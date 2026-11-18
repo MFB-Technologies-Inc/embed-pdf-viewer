@@ -121,3 +121,24 @@ Reason: the plan names only #1102's plugin parts for CU-C6, but the same files c
 `signature-core`. `canUse` is part of #1091's command move (`d6325f5ba`).
 Cost: CU-C6 grows by the plugin half of signing; CU-C5 touches the annotation and form crates.
 Reverse: move the items back in the work order.
+
+## CU-C3-D11. Add the native host's engine-call table to the work order (review fix)
+
+Decision: CU-C4 gets item 12, the native host's half of `LocalDocumentSignaturesService.ts`:
+`epdf-viewer-host`'s `translate.rs` rows for `getValidationInfo` and `addValidationInfo`, the gates
+and the conditional `signatures.validationInfoAdded` event in `epdf-engine`'s host, and the
+no-field `prepare` gate and event field. `epdf-kernel`'s `changes_document` stays as it is.
+Reason: review found that the first work order covered the worker side (`WorkerHost.ts`) and the
+plugins but not this layer, so a ported `readValidationPool` would pass replay against the fake
+engine and then call an untranslated member on every native platform. The upstream `kernel.ts`
+`changesDocument` is unchanged in `ed064e0c8..c4e744345` and the Rust copy excludes the same four
+events, so the new event already counts as a change. A sweep of the rest of the range found no other
+host-side gap: `WorkerHost.ts` and `DocumentSession.ts` are items 2 and 3; the cloud wire paths,
+resources, cached reads and tokens (`packages/engine/core/src/wire/{paths,resources,cachedReads,
+tokens,tokenSchemas}.ts`) have no Rust counterpart, since no crate ports the cloud REST surface;
+`epdf-node`, `epdf-web`, `epdf-ffi`, `epdf-capi` and `epdf-uniffi` carry no per-kind signature
+table (`grep` finds none) and pass kinds through to `epdf-engine`'s host; `core/main`'s
+`commands.ts` uses `canDownload`, `download`, `canPrint` and `print`, which `epdf-kernel` already
+has (`kernel.rs`), and is CU-C5 item 2.
+Cost: CU-C4 grows by one layer, with its own tests in `epdf-viewer-host`.
+Reverse: move item 12 to CU-C6, which first calls these members.
