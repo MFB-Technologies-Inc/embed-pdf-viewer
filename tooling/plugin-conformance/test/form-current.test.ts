@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { caughtUp20261118In } from './catchup-additions';
 import { test } from 'node:test';
 import { suites } from '../src/suites/form-core';
 import { definePlugin } from '@embedpdf/core';
@@ -568,7 +569,11 @@ test('all 220 original definitions are archived, all 101 owned cases map exactly
   const current = [...suites, ...lifecycle].flatMap((s) =>
     s.cases.map((input) => ({ file: s.file, name: input.name, input })),
   );
-  assert.equal(new Set(current.map((r) => r.file + ':' + r.name)).size, 102);
+  // Cases the 2026-11-18 catch-up added after this archive (#1088, #1102), counted on top.
+  const later = caughtUp20261118In([...suites, ...lifecycle]);
+  for (const [file, name] of later)
+    assert.ok(current.some((r) => r.file === file && r.name === name), name);
+  assert.equal(new Set(current.map((r) => r.file + ':' + r.name)).size, 102 + later.length);
   for (const mapping of accounting.mappings) {
     const before = original.find(
       (r) => r.file === mapping.before.file && r.name === mapping.before.name,

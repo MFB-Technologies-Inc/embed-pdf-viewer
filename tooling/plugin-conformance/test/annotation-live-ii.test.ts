@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { caughtUp20261118 } from './catchup-additions';
 import { test } from 'node:test';
 import { runScenario, type ScenarioCase, type TraceEntry } from '../src/scenario';
 import { suites as comments } from '../src/suites/annotation-comments';
@@ -860,6 +861,9 @@ test('every original66 definition and canonical input maps exactly to the curren
   const caughtUp: Record<string, string[]> = {
     'plugins/annotation-tools.json': ['register-over-a-tool-and-take-it-back'], // f0bb7b047
   };
+  // And the 2026-11-18 catch-up's (#1096: d0601e65e, a41ab182c).
+  for (const row of manifest.suites)
+    caughtUp[row.file] = [...(caughtUp[row.file] ?? []), ...caughtUp20261118(row.file)];
   let original = 0,
     current = 0,
     renamed = 0,

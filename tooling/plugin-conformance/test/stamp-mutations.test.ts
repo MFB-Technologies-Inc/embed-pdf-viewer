@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { caughtUp20261118In } from './catchup-additions';
 import { test } from 'node:test';
 import { suites as assets } from '../src/suites/stamp-assets';
 import { suites as api } from '../src/suites/stamp-api';
@@ -1177,7 +1178,10 @@ test('all original41 map exhaustively to complete current inputs with verified s
     [41, 41, 41, 0, 0, 0],
   );
   assert.equal(new Set(manifest.mappings.map((m) => m.before.file + ':' + m.before.name)).size, 41);
-  assert.equal(new Set(cases.map((c) => c.name)).size, 41);
+  // Cases the 2026-11-18 catch-up added after this archive (#1039), counted on top.
+  const later = caughtUp20261118In([...assets, ...api]);
+  for (const [, name] of later) assert.ok(cases.some((c) => c.name === name), name);
+  assert.equal(new Set(cases.map((c) => c.name)).size, 41 + later.length);
   assert.equal(stored.length, 41);
   for (const row of manifest.mappings) {
     const before = original.find((c) => c.file === row.before.file && c.name === row.before.name);

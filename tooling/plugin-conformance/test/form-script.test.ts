@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { caughtUp20261118In } from './catchup-additions';
 import { test } from 'node:test';
 import { suites as scripting } from '../src/suites/form-scripting';
 import { runScenario } from '../src/scenario';
@@ -1018,6 +1019,12 @@ test('exact 59-case migration closes every original 220 input against immutable 
       upstream: 'a390171cc',
     },
   ];
+  // And the 2026-11-18 catch-up's (#1088, #1102: the session group, a widget of no size).
+  caughtUp.push(
+    ...caughtUp20261118In([...core, ...lifecycle, ...fill, ...design, ...scripting, ...actions]).map(
+      ([file, name]) => ({ file, name, upstream: '133030b8a, 134f24b77' }),
+    ),
+  );
   for (const added of caughtUp)
     assert.ok(whole.some((row) => row.file === added.file && row.name === added.name), added.name);
   assert.equal(whole.length, 221 + caughtUp.length);

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { caughtUp20261118 } from './catchup-additions';
 import { test } from 'node:test';
 import { createCapabilityToken, definePlugin } from '@embedpdf/core';
 import { registerPlugin, runScenario, type TraceEntry, type ScenarioCase } from '../src/scenario';
@@ -249,6 +250,11 @@ const caughtUp: Record<string, string[]> = {
     'import-staged-and-copy-answers',
   ],
 };
+// And the 2026-11-18 catch-up's (#1096: the pen drawing's wait, `hasCreationAwaitingClick`).
+for (const suite of owned) {
+  const later = caughtUp20261118(suite.file);
+  if (later.length) caughtUp[suite.file] = [...(caughtUp[suite.file] ?? []), ...later];
+}
 const caughtUpCount = Object.values(caughtUp).flat().length;
 const runs = new Map<string, { input: ScenarioCase; trace: TraceEntry[] }>();
 function messages(value: unknown): string[] {

@@ -1,0 +1,504 @@
+{
+  "start": "cf7fdbe7a26e20863684bb7cced4de9cc6d47356",
+  "end": "2615a3bec",
+  "additions": [
+    {
+      "file": "core/annotation-update.json",
+      "name": "dropsWaitingInk/pen-down",
+      "newFile": false,
+      "covers": null
+    },
+    {
+      "file": "core/annotation-update.json",
+      "name": "dropsWaitingInk/waiting",
+      "newFile": false,
+      "covers": null
+    },
+    {
+      "file": "core/annotation-update.json",
+      "name": "dropsWaitingInk/no-draft",
+      "newFile": false,
+      "covers": null
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "fill-issuer-fetched",
+      "newFile": true,
+      "covers": "An issuer the CMS leaves out is fetched from the address the signer names, and the path is followed."
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "fill-issuer-bundle",
+      "newFile": true,
+      "covers": "The issuer address serves a PKCS #7 bundle; and one that serves nothing readable."
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "fill-names-no-address",
+      "newFile": true,
+      "covers": "A certificate that names no address to ask at, collected all or nothing."
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "fill-crl-over-limit",
+      "newFile": true,
+      "covers": "An answer that says nothing, then a list over maxCrlBytes: both named, nothing stored."
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "fill-source-throws",
+      "newFile": true,
+      "covers": "A source that throws something other than an EngineError: a Network error naming the address."
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "splice-indefinite-and-ordered",
+      "newFile": true,
+      "covers": "Attaching to a CMS with indefinite lengths keeps them indefinite; attaching beside other unsigned attributes puts the token where DER orders it."
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "route-max-reply-bytes",
+      "newFile": true,
+      "covers": "A revocation source with its reply limit set: an answer within it is passed on."
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "tsa-status-text-not-utf8",
+      "newFile": true,
+      "covers": "A TimeStampResp whose status text is a PrintableString does not fit the schema."
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "lt-timestamped-enabled",
+      "newFile": true,
+      "covers": "A signature with a trusted timestamp and a stored answer good at its time is long-term enabled."
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "lt-timestamped-no-answer",
+      "newFile": true,
+      "covers": "A trusted timestamp with nothing stored: no answer for the signer at that time."
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "lt-timestamp-untrusted",
+      "newFile": true,
+      "covers": "Without the authority's certificate among the anchors, the timestamp proves no time to you."
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "lt-timestamp-not-its-own",
+      "newFile": true,
+      "covers": "A timestamp over other bytes is invalid; the signature stays valid."
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "lt-tsa-purposes",
+      "newFile": true,
+      "covers": "An authority whose timestamping purpose is not critical, or not its only one, is not trusted to say the time."
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "lt-document-timestamp",
+      "newFile": true,
+      "covers": "A document timestamp after the signature: it vouches for the signature at its time, and is judged now itself."
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "lt-document-timestamp-other-bytes",
+      "newFile": true,
+      "covers": "A document timestamp over other bytes: integrity invalid, the token judged against what it stamps."
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "lt-document-timestamp-unreadable",
+      "newFile": true,
+      "covers": "A document timestamp whose contents are no token."
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "lt-collect-timestamped",
+      "newFile": true,
+      "covers": "addValidationInfo for a timestamped signature asks for the answer and stores it with the paths."
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "lt-collect-stored",
+      "newFile": true,
+      "covers": "addValidationInfo when the file already holds the answer: nothing new to store."
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "attach-timestamp",
+      "newFile": true,
+      "covers": "attachSignatureTimestamp: a token over the signature value, spliced in as an unsigned attribute; and what it refuses."
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "complete-signature",
+      "newFile": true,
+      "covers": "completeSignature: the gate, the timestamp, the gate again, complete; and its refusals."
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "gate-signature-timestamps",
+      "newFile": true,
+      "covers": "The gate refuses a CMS whose timestamp stamps other bytes, and checks a document timestamp's token."
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "answers-ocsp",
+      "newFile": true,
+      "covers": "checkRevocationAnswer over OCSP responses: each branch, the well-formed ones and the malformed."
+    },
+    {
+      "file": "core/signature-long-term.json",
+      "name": "answers-crl",
+      "newFile": true,
+      "covers": "checkRevocationAnswer over CRLs: each branch, the well-formed ones and the malformed."
+    },
+    {
+      "file": "core/signature-revocation.json",
+      "name": "ltv-ocsp-good",
+      "newFile": true,
+      "covers": "A stored OCSP answer from the authority's responder says the signer was good."
+    },
+    {
+      "file": "core/signature-revocation.json",
+      "name": "ltv-crl-shared-serial",
+      "newFile": true,
+      "covers": "Under the scripted WebCrypto every serial is 5a5a5a5a5a5a5a5a, so the CRL that withdraws one signer lists the other: a CRL entry matches by serial number alone."
+    },
+    {
+      "file": "core/signature-revocation.json",
+      "name": "ltv-withdrawn",
+      "newFile": true,
+      "covers": "The CRL says the signer was withdrawn the day before: revoked, and the verdict is invalid."
+    },
+    {
+      "file": "core/signature-revocation.json",
+      "name": "ltv-answers-about-others",
+      "newFile": true,
+      "covers": "Bytes that are no answer say nothing; the authority answers by serial, the same for every certificate here, so its OCSP answers speak for the signer."
+    },
+    {
+      "file": "core/signature-revocation.json",
+      "name": "ltv-now-without-answers",
+      "newFile": true,
+      "covers": "Judged now with nothing stored: no answer speaks for now."
+    },
+    {
+      "file": "core/signature-revocation.json",
+      "name": "ltv-asks-the-source",
+      "newFile": true,
+      "covers": "validateSignatures with a revocation source asks it for what the file lacks, and uses the answer."
+    },
+    {
+      "file": "core/signature-revocation.json",
+      "name": "collect-needs-trust",
+      "newFile": true,
+      "covers": "addValidationInfo without trust is refused before anything is asked."
+    },
+    {
+      "file": "core/signature-revocation.json",
+      "name": "collect-no-timestamp",
+      "newFile": true,
+      "covers": "All or nothing: a signature with no trusted timestamp is refused, and nothing is stored."
+    },
+    {
+      "file": "core/signature-revocation.json",
+      "name": "collect-partial",
+      "newFile": true,
+      "covers": "partial: what there is is stored, and the verdicts say what is missing."
+    },
+    {
+      "file": "core/signature-revocation.json",
+      "name": "collect-partial-unanswered",
+      "newFile": true,
+      "covers": "partial with a source that does not answer, and with known answers."
+    },
+    {
+      "file": "core/signature-revocation.json",
+      "name": "collect-fields",
+      "newFile": true,
+      "covers": "fields picks the signatures to cover; a field with no signature is NotFound."
+    },
+    {
+      "file": "core/signature-timestamp.json",
+      "name": "tsa-granted",
+      "newFile": true,
+      "covers": "httpTimestampAuthority: the RFC 3161 query it sends (D-1), and a granted reply with the nonce echoed."
+    },
+    {
+      "file": "core/signature-timestamp.json",
+      "name": "tsa-policy-headers",
+      "newFile": true,
+      "covers": "A policy and headers are sent; a token under another policy is refused."
+    },
+    {
+      "file": "core/signature-timestamp.json",
+      "name": "tsa-policy-kept",
+      "newFile": true,
+      "covers": "A token under the policy asked for is the answer."
+    },
+    {
+      "file": "core/signature-timestamp.json",
+      "name": "tsa-sha384",
+      "newFile": true,
+      "covers": "A sha384 digest is asked for under sha384; a sha256 token for it is refused."
+    },
+    {
+      "file": "core/signature-timestamp.json",
+      "name": "tsa-other-digest",
+      "newFile": true,
+      "covers": "A token over another digest is refused."
+    },
+    {
+      "file": "core/signature-timestamp.json",
+      "name": "tsa-no-nonce",
+      "newFile": true,
+      "covers": "A token without the nonce sent does not answer this request."
+    },
+    {
+      "file": "core/signature-timestamp.json",
+      "name": "tsa-rejected",
+      "newFile": true,
+      "covers": "A rejection names its failure and status text."
+    },
+    {
+      "file": "core/signature-timestamp.json",
+      "name": "tsa-rejected-unnamed-failure",
+      "newFile": true,
+      "covers": "A failure bit with no name."
+    },
+    {
+      "file": "core/signature-timestamp.json",
+      "name": "tsa-granted-without-token",
+      "newFile": true,
+      "covers": "A grant without a token."
+    },
+    {
+      "file": "core/signature-timestamp.json",
+      "name": "tsa-unreadable",
+      "newFile": true,
+      "covers": "A reply that is no timestamp response, and a token that is no token."
+    },
+    {
+      "file": "core/signature-timestamp.json",
+      "name": "tsa-http-statuses",
+      "newFile": true,
+      "covers": "A 4xx is a refusal; a 5xx, a 429 or a failure is no answer."
+    },
+    {
+      "file": "core/signature-timestamp.json",
+      "name": "tsa-not-a-signer",
+      "newFile": true,
+      "covers": "A timestamp authority asked for a document signature."
+    },
+    {
+      "file": "core/signature-timestamp.json",
+      "name": "route-ocsp",
+      "newFile": true,
+      "covers": "httpRevocationSource: the route request for an OCSP question (D-2), and the answer passed on."
+    },
+    {
+      "file": "core/signature-timestamp.json",
+      "name": "route-crl-issuer",
+      "newFile": true,
+      "covers": "The route request for a CRL and for an issuer, with headers."
+    },
+    {
+      "file": "core/signature-timestamp.json",
+      "name": "route-refusals",
+      "newFile": true,
+      "covers": "A route that refuses, with and without its JSON; a 5xx, a 429 and a failure are no answer."
+    },
+    {
+      "file": "core/signature-timestamp.json",
+      "name": "token-verdicts",
+      "newFile": true,
+      "covers": "verifyTimestampToken: without trust, trusting the authority, over another digest, and unreadable."
+    },
+    {
+      "file": "core/signature-timestamp.json",
+      "name": "ecdsa-raw-from-der",
+      "newFile": true,
+      "covers": "ecdsaRawFromDer: DER to r || s, and the bytes it refuses."
+    },
+    {
+      "file": "plugins/annotation-api.json",
+      "name": "creation-awaiting-click",
+      "newFile": false,
+      "covers": "hasCreationAwaitingClick (a41ab182c): a polygon, a polyline and a callout wait for their next click once started; nothing waits before, nor after a cancel."
+    },
+    {
+      "file": "plugins/annotation-tools.json",
+      "name": "ink-press-on-an-annotation-keeps-the-waiting-stroke",
+      "newFile": false,
+      "covers": "A pen drawing that waits for its next stroke is kept when a press lands on another annotation: the stroke becomes an annotation, and the press selects and drags the square it hit (d0601e65e). A tool picked during the next wait finishes that drawing too, and the picked tool stays active."
+    },
+    {
+      "file": "plugins/annotation-tools.json",
+      "name": "shape-clicks-over-an-annotation",
+      "newFile": false,
+      "covers": "A shape made click by click owns its next click over an existing annotation (a41ab182c): a polygon takes a corner on the square, which is not selected, and no cursor or hover shows over it meanwhile; a first click on the square, with no shape waiting, still selects it."
+    },
+    {
+      "file": "plugins/commands/lists.json",
+      "name": "history-undo-and-redo",
+      "newFile": true,
+      "covers": "createHistoryCommands: history:undo (Mod+Z) and history:redo (Mod+Shift+Z, Mod+Y) follow canUndo and canRedo, and run undo and redo."
+    },
+    {
+      "file": "plugins/commands/lists.json",
+      "name": "history-labels-in-every-language",
+      "newFile": true,
+      "covers": "The i18n plugin's own strings: commands.history.undo and commands.history.redo (#1089) in its eight languages, as t() reads them and as the commands' labels."
+    },
+    {
+      "file": "plugins/commands/lists.json",
+      "name": "history-commands-without-the-plugin",
+      "newFile": true,
+      "covers": "createHistoryCommands: without historyPlugin() both stay disabled, and running one is refused."
+    },
+    {
+      "file": "plugins/commands/lists.json",
+      "name": "interaction-tool-commands",
+      "newFile": true,
+      "covers": "createInteractionCommands: tool:pointer, tool:pan and tool:zoom with their keys, tool:<id> for every other tool, active with the tool, visible when the document has it, enabled as canUseTool says."
+    },
+    {
+      "file": "plugins/commands/lists.json",
+      "name": "interaction-tool-commands-without-the-plugin",
+      "newFile": true,
+      "covers": "createInteractionCommands: without the interaction plugin a tool command is enabled but neither visible nor active, and the family names nothing."
+    },
+    {
+      "file": "plugins/commands/lists.json",
+      "name": "document-commands",
+      "newFile": true,
+      "covers": "createDocumentCommands: document:download (Mod+S) and document:print (Mod+P), disabled with no document, and refused where the document does not allow them."
+    },
+    {
+      "file": "plugins/commands/lists.json",
+      "name": "document-download",
+      "newFile": true,
+      "covers": "createDocumentCommands: document:download reads the file and hands it to the host as the document name ending in .pdf, of type application/pdf."
+    },
+    {
+      "file": "plugins/commands/lists.json",
+      "name": "selection-commands",
+      "newFile": true,
+      "covers": "createSelectionCommands: selection:copy (Mod+C) is disabled with nothing selected, and disabled without the selection plugin."
+    },
+    {
+      "file": "plugins/commands/lists.json",
+      "name": "snapshot-commands",
+      "newFile": true,
+      "covers": "createRenderCommands with a snapshot held: snapshot:copy hands the picture to the host in the press itself, snapshot:save waits for the picture, then names the file after the document and the page number (document p1.png, image/png), and snapshot:clear lets the snapshot go, which disables all three."
+    },
+    {
+      "file": "plugins/commands/lists.json",
+      "name": "annotation-delete",
+      "newFile": true,
+      "covers": "createAnnotationCommands with the annotation plugin: annotation:delete is disabled with nothing selected, enabled once an annotation the user may delete is selected, and deletes the selection."
+    },
+    {
+      "file": "plugins/commands/lists.json",
+      "name": "owners-absent",
+      "newFile": true,
+      "covers": "createStageCommands, createSelectionCommands, createAnnotationCommands and createRenderCommands without their plugins: every command disabled, tool:snapshot hidden but allowed, and the lists in order."
+    },
+    {
+      "file": "plugins/form-core.json",
+      "name": "update/create-in-the-session-group",
+      "newFile": false,
+      "covers": "A created field whose draft names no group takes the session group"
+    },
+    {
+      "file": "plugins/form-core.json",
+      "name": "update/create-without-a-session",
+      "newFile": false,
+      "covers": "With no session a created field without a group has none"
+    },
+    {
+      "file": "plugins/form-core.json",
+      "name": "update/create-names-its-group",
+      "newFile": false,
+      "covers": "A group the draft names wins over the session group"
+    },
+    {
+      "file": "plugins/form-core.json",
+      "name": "update/copy-in-the-session-group",
+      "newFile": false,
+      "covers": "A copied field goes through the same create, with the session group"
+    },
+    {
+      "file": "plugins/form-core.json",
+      "name": "update/undo-look-in-the-session-group",
+      "newFile": false,
+      "covers": "The undo look predicts with the session it is made for"
+    },
+    {
+      "file": "plugins/form-core.json",
+      "name": "update/page-geom-of-no-size-shows-nowhere",
+      "newFile": false,
+      "covers": "A widget box with no width or no height shows nowhere: only the third widget is on the page (133030b8a)"
+    },
+    {
+      "file": "plugins/signature.json",
+      "name": "validation-info-needs-its-settings",
+      "newFile": false,
+      "covers": "canAddValidationInfo needs the revocation and trust settings and doc.sign; addValidationInfo without them rejects invalid-input, and without doc.sign permission-denied (32571b4b7)."
+    },
+    {
+      "file": "plugins/signature.json",
+      "name": "validation-info-requests",
+      "newFile": false,
+      "covers": "With revocation and trust, canAddValidationInfo is true; addValidationInfo of an unsigned or unknown field rejects not-found, a documentTimestamp without a timestampAuthority rejects invalid-input, and a refused engine door rejects as the engine said and re-judges at once (32571b4b7). canFill takes what signing takes (ceeb36bae)."
+    },
+    {
+      "file": "plugins/signature.json",
+      "name": "validation-info-added",
+      "newFile": false,
+      "covers": "addValidationInfo with trust and revocation over a timestamped signature whose answer the file already holds: nothing new is stored, for every signature and for one named field, and no document timestamp is asked for (32571b4b7)."
+    },
+    {
+      "file": "plugins/signature.json",
+      "name": "validation-info-and-a-failed-document-timestamp",
+      "newFile": false,
+      "covers": "With documentTimestamp: nothing new stored, but the signature has no document timestamp over it, so one is asked for, for a named field (the fqn branch of covered) and for every signature; the authority does not answer and addValidationInfo rejects with its failure (32571b4b7)."
+    },
+    {
+      "file": "plugins/signature.json",
+      "name": "validation-info-document-timestamp-needs-an-authority",
+      "newFile": false,
+      "covers": "The documentTimestamp setting without a timestampAuthority: addValidationInfo rejects invalid-input before anything is asked (32571b4b7)."
+    },
+    {
+      "file": "plugins/signature.json",
+      "name": "sign-then-validation-info",
+      "newFile": false,
+      "covers": "With the revocation setting, a seal is followed by its validation data; a failure there cannot undo the signature: sign resolves with validationInfo null and the failure in validationInfoError, and re-judges (32571b4b7, b08c0075d)."
+    },
+    {
+      "file": "plugins/signature.json",
+      "name": "sign-then-validation-info-and-a-failed-document-timestamp",
+      "newFile": false,
+      "covers": "With revocation, documentTimestamp and a timestamp authority that does not answer: the seal (no timestamp, per call) is followed by its validation data for the field it signed (the ref branch of covered), already complete, then the document timestamp fails. sign resolves with both validationInfo and validationInfoError (32571b4b7)."
+    },
+    {
+      "file": "plugins/signature.json",
+      "name": "prepare-with-a-timestamp-authority",
+      "newFile": false,
+      "covers": "A timestamp authority, the setting or the call's, makes prepareSignature reserve 16384 bytes for the token; a per-call null prepares without one. completeSignature refuses a CMS that is not SignedData before any authority is asked, and the signing stays prepared (3d167f772, b08c0075d)."
+    },
+    {
+      "file": "plugins/stamp-api.json",
+      "name": "import-under-the-callers-id",
+      "newFile": false,
+      "covers": "importLibrary takes the id to import under over the one the file names (a97140dd0); an id already taken gets a fresh one, as an unnamed file does."
+    }
+  ]
+}
