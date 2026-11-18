@@ -16,6 +16,8 @@
 #![allow(clippy::type_complexity)]
 
 pub mod binary;
+#[cfg(feature = "commands")]
+pub mod commands;
 pub mod comments;
 mod connect;
 pub mod console;

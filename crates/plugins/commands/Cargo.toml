@@ -38,9 +38,22 @@ build-support = { path = "../../build-support" }
 futures = { version = "0.3", default-features = false, features = ["std", "executor"] }
 plugin-conformance = { path = "../../plugin-conformance" }
 epdf-plugin-i18n = { path = "../i18n" }
+# The owners whose command lists `tests/lists.rs` replays. They depend on
+# this crate for its types (their `commands` feature); a dev-dependency
+# back is no cycle Cargo refuses.
+epdf-plugin-history = { path = "../history" }
+epdf-plugin-interaction = { path = "../interaction" }
+epdf-plugin-selection = { path = "../selection" }
+epdf-plugin-annotation = { path = "../annotation" }
+epdf-plugin-render = { path = "../render" }
+epdf-plugin-stage = { path = "../stage" }
 
 [[test]]
 name = "conformance"
+required-features = ["harness"]
+
+[[test]]
+name = "lists"
 required-features = ["harness"]
 
 [[test]]

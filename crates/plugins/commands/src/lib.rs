@@ -21,6 +21,7 @@ use serde_json::Value;
 pub mod availability;
 pub mod contract;
 pub mod controller;
+pub mod document;
 pub mod registry;
 pub mod settings;
 pub mod turning_off;
@@ -45,6 +46,7 @@ pub use contract::{
 pub use controller::{
     CommandsCapability, CommandsContext, WeakCommandsCapability, create_commands_controller,
 };
+pub use document::{DocumentCommandsPlatform, create_document_commands};
 pub use registry::{
     CommandRegistry, ConfiguredCommands, RegisteredCommand, configured_commands, registered_command,
 };

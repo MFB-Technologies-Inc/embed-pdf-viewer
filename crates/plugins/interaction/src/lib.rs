@@ -15,6 +15,8 @@
 //! through the host contract.
 
 pub mod callbacks;
+#[cfg(feature = "commands")]
+pub mod commands;
 pub mod contract;
 pub mod controller;
 pub mod feedback;

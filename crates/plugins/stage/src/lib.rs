@@ -17,6 +17,8 @@
 // closures.
 #![allow(clippy::type_complexity)]
 
+#[cfg(feature = "commands")]
+pub mod commands;
 pub mod connect;
 pub mod contract;
 pub mod controller;

@@ -5,6 +5,8 @@
 //! `controller`, [`state`], and the wiring in [`history_plugin`]. The model
 //! and the controller are private: consumers use [`HistoryCapability`].
 
+#[cfg(feature = "commands")]
+pub mod commands;
 pub mod contract;
 pub(crate) mod controller;
 #[cfg(feature = "uniffi")]

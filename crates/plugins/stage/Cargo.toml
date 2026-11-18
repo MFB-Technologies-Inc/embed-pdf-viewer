@@ -12,7 +12,7 @@ crate-type = ["rlib"]
 # The conformance adapter (`harness` module). On by default so `cargo test`
 # replays the vectors with no flags; a host that ships the plugin turns it
 # off with `default-features = false`.
-default = ["harness"]
+default = ["harness", "commands"]
 harness = [
   "dep:plugin-conformance",
   "epdf-plugin-interaction/harness",
@@ -21,7 +21,11 @@ harness = [
 # The uniffi exports (`ffi` module), for `epdf-viewer-host`.
 uniffi = ["dep:uniffi", "dep:epdf-ffi"]
 
+# The plugin's command list (`commands.ts`), made of the commands plugin's types.
+commands = ["dep:epdf-plugin-commands"]
+
 [dependencies]
+epdf-plugin-commands = { path = "../commands", default-features = false, optional = true }
 epdf-kernel = { path = "../../epdf-kernel" }
 epdf-geometry = { path = "../geometry", default-features = false }
 epdf-stage-core = { path = "../stage-core", default-features = false }

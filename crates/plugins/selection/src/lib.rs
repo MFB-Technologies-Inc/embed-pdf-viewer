@@ -15,6 +15,8 @@
 //! pure copy of `crates/epdf-engine`'s, since that crate links PDFium and
 //! this one also builds for wasm32 (Ruling13.15).
 
+#[cfg(feature = "commands")]
+pub mod commands;
 mod connect;
 pub mod contract;
 pub mod controller;

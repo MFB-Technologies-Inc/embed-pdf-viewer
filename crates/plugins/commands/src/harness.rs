@@ -664,6 +664,55 @@ impl HarnessPlugin for Commands {
     }
 }
 
+// ── the owners' command lists ─────────────────────────────────────────────────
+
+/// Makes the list a `command-lists` vector names, with the host's part
+/// logging through the harness; `None` for a name it doesn't know.
+pub type CommandListMaker = Rc<dyn Fn(&str, &Harness) -> Option<Vec<CommandItem>>>;
+
+/// The `command-lists` factory (`suites/command-lists.ts`): the plugin with
+/// `{ ...config, commands: lists.flatMap(make) }`, each of `config.lists`
+/// naming an owner's list. The lists live in their owners' crates, which
+/// depend on this one, so the test that replays the vectors hands them in.
+pub struct CommandLists(pub CommandListMaker);
+
+impl HarnessPlugin for CommandLists {
+    fn factories(&self) -> Vec<&'static str> {
+        vec!["command-lists"]
+    }
+
+    fn build(&self, _factory: &str, config: &Value, h: &Harness) -> Result<AnyPlugin, Error> {
+        reset_case();
+        let mut raw = if is_undefined(config) { json!({}) } else { config.clone() };
+        let names = raw.as_object_mut().and_then(|object| object.remove("lists"));
+        let mut commands = Vec::new();
+        for name in strings(names.as_ref()) {
+            commands.extend((self.0)(&name, h).ok_or_else(|| bad("command list", &name))?);
+        }
+        let mut config = decode_config(&raw, Some(h))?.unwrap_or_default();
+        config.commands = Some(commands);
+        Ok(plugin_parts(Some(config)).0)
+    }
+
+    fn tokens(&self) -> Vec<AnyToken> {
+        Commands.tokens()
+    }
+
+    fn call(
+        &self,
+        capability: &Rc<dyn Any>,
+        method: &str,
+        args: Vec<Value>,
+        h: &Harness,
+    ) -> Option<Outcome> {
+        Commands.call(capability, method, args, h)
+    }
+
+    fn members(&self, capability: &Rc<dyn Any>) -> Option<Vec<&'static str>> {
+        Commands.members(capability)
+    }
+}
+
 // ── function cases ────────────────────────────────────────────────────────────
 
 /// A kernel with no documents and the plugin registered with `config`: the

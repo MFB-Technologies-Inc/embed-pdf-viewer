@@ -29,6 +29,8 @@ use epdf_kernel::{AnyPlugin, Token, define};
 use serde_json::Value;
 
 pub mod appearance_store;
+#[cfg(feature = "commands")]
+pub mod commands;
 pub mod contract;
 pub mod controller;
 pub mod host_contract;
