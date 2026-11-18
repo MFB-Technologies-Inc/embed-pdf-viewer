@@ -1067,10 +1067,9 @@ mod tests {
         // `number_to_string` puts an integer fast path in front of them that
         // prints the same strings. `epdf_geometry::js` carries a third copy;
         // only the tests here see all three, so they are held together over
-        // exact ties in both
-        // directions, the notation switches, subnormals, powers of two,
-        // integers past 2^53, plain-notation fractions, zeros and the
-        // non-finite values.
+        // exact ties in both directions, the notation switches, subnormals,
+        // powers of two, integers past 2^53, plain-notation fractions, zeros
+        // and the non-finite values.
         let mut seed: u64 = 0x2545_f491_4f6c_dd1d;
         let mut next = || {
             seed = seed
