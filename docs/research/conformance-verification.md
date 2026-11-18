@@ -146,10 +146,56 @@ first `rotateAbout` input, shrunk to `rotateAbout({ x: 0, y: 0 }, -1)` and
 and `rotateAbout({ x: 0, y: -2560.0000000000005 }, 0)`. All four exited 1. The copies were removed
 afterwards.
 
+## Bounded shrinking, 2026-11-17
+
+A near-tie bug could hang the differential. Two `function-server` binaries built from copies of the
+Rust sources under `/tmp` in the container, never committed, each changed `normalize_pdf_quad`'s
+ring sort: one treats two angles a double apart as tied (SHA-256 starting `50e480923a277b74`), the
+other compares the first angle's `next_up()` (`e962a73770e39c62`). At `3a3125e67`,
+`--fn rotate,rotateAbout,angleOf,normalizePdfQuad --runs 10000 --seed 90210 --server <binary>`
+printed only its first line for both, and `timeout 150` killed each with exit 124. The unchanged
+copy (`6d8e5d63246cdb3e`) finishes the same command in 3 seconds.
+
+The cause is how fast-check 4.10.2 shrinks a double: it is an index into the order of doubles, and
+`shrinkBigInt` tries the target, then half the distance, a quarter, and so on down to one step, up
+to about 60 candidates, each one a server call. A threshold bug fails on one of the first
+candidates and halves its way to the boundary. A near-tie keeps failing only within a few ulps of
+the other corner, so each step gains a few ulps of a distance of up to 2^62 doubles, and every
+failing candidate also asks the server for the platform's `atan2` answers.
+
+`differential` now evaluates at most `--shrink-limit` candidates per mismatch, 10000 by default,
+and counts the rest as passing unrun, so the printed case is the last input that failed, judged
+again with the ledger. The same binaries at `4599b4763`, whose code is `3fede604a`'s, with the
+default limit:
+
+| seed | printed case | shrinking | printed | exit |
+| --- | --- | --- | --- | --- |
+| 90210 | `[{ x: 9999.999999997632, y: 0 }, { x: -9999.999999997712, y: -9999.999999999973 }, { x: -5e-324, y: -743 }, { x: 6.507426219359772e-255, y: -785 }]` | `shrinking stopped after 10000 attempts; this case may not be minimal` | `4 functions, 32756 inputs, 1 mismatched, 3 allowed by the ledger (PLATFORM-MATH-ATAN2 3)` | 1 |
+| 7 | `[{ x: 1e+306, y: 0 }, { x: 0, y: 1e+306 }, { x: -1, y: 1.000000000000001e+306 }, { x: 0, y: 0 }]` | `shrunk in 117 attempts` | `4 functions, 35957 inputs, 1 mismatched, 2 allowed by the ledger (PLATFORM-MATH-ATAN2 2)` | 1 |
+| 424242 | `[{ x: 0, y: 0 }, { x: 0, y: -46 }, { x: 1, y: 0 }, { x: 1.9567680809018388e-15, y: 5e-324 }]` | `shrunk in 902 attempts` | `4 functions, 34275 inputs, 1 mismatched, 3 allowed by the ledger (PLATFORM-MATH-ATAN2 3)` | 1 |
+
+Both binaries printed the same three rows. Each run took 2 to 4 seconds of wall time, and each
+mismatch was refused with `PLATFORM-MATH-ATAN2: Rust's outcome is not the TypeScript's with the
+platform library's answers`. Fed back alone to each mutated server through `runDifferential`, every
+printed case mismatched again (seed 90210: `$.returned.upperLeft.y: expected -785, got -743`), and
+the unchanged server matched all three.
+
+The earlier mutations shrink to the end well inside the limit. With `--shrink-limit 100000000` they
+printed the cases recorded above and took: `rotate_about` turning by `-rad` 12 attempts at seed 1
+and 68 at 90210; `rotate` taking `rad.cos() * (1.0 + 4e-16)` 4 and 68; the corner swap 3023 at
+90210, 2894 at 7 and 2575 at 424242. 3023 is the most, a third of the default.
+
+`a_degenerate_quad_is_labelled_only_as_one_ulp_of_the_platform_atan2_allows` had stopped calling
+`angle_of` (`f217af58f`), so an `angle_of` returning `m[0].atan2(m[1])` passed both pins. It now
+requires `angle_of` to give this platform's `atan2` to the bit on each recorded pair, and that
+mutation, in a copy under `/tmp`, fails it:
+``assertion `left == right` failed: angle_of([3.6140106882042333e-20, -7.5e-1, ..])``. The cos and sin
+pin already calls `rotate` beside `rotate_about`. The copies were removed afterwards.
+
 ## Full suite, 2026-11-17
 
-At `cff7e66f4`, on a clean tree, in container `embed-pdf` with Node v24.20.0, pnpm
-10.34.0, rustc 1.98.0 (88d9e12ae 2026-08-18), cargo 1.98.0 (797e8a9bc 2026-08-05) and
+At `4599b4763`, whose code is `3fede604a`'s, on a clean tree, in container `embed-pdf` with Node
+v24.20.0, pnpm 10.34.0, rustc 1.98.0 (88d9e12ae 2026-08-18), cargo 1.98.0 (797e8a9bc 2026-08-05) and
 cargo-llvm-cov 0.9.1. The `pnpm run` commands ran from `tooling/plugin-conformance`, the cargo ones
 from the repository root. `<crates>` is every crate with a file this branch changed under `crates/`
 (`git diff --name-only 2aaa8f841..HEAD -- crates`): `-p conformance-function-server -p epdf-capi
@@ -162,10 +208,10 @@ from the repository root. `<crates>` is every crate with a file this branch chan
 | `cargo fmt <crates> --check` | 0 | nothing |
 | `cargo clippy <crates> --all-targets -- -D warnings` | 0 | no warnings or errors |
 | `pnpm run typecheck` | 0 | |
-| `pnpm run test:harness` | 0 | tests 101, pass 101, fail 0 |
+| `pnpm run test:harness` | 0 | tests 103, pass 103, fail 0 |
 | `pnpm run vectors:check` | 0 | `119 vector files are current, and each is replayed` |
 | `pnpm run coverage:check` | 0 | `coverage is current: statements 72853/77093, branches 14365/15719, 935 lines reached only by snapshot-none cases, 36 ported files no generator loads` |
-| `pnpm run replay:check` | 0 | `cargo: passed`, `checkout: cff7e66f4b470dca359d9f9e930e4496cc856282, clean`, `receipts: 119 read`, `119 vector files, 15922 cases, all replayed` |
+| `pnpm run replay:check` | 0 | `cargo: passed`, `checkout: 4599b476381c243fcee50eec4d4a137b2f52d7a9, clean`, `receipts: 119 read`, `119 vector files, 15922 cases, all replayed` |
 | `pnpm run rust-coverage:check` | 0 | `rust coverage is current: replay reaches 64253/112591 lines; 37035 lines only other tests reach, in 673 files (74 excluded)` |
 | `pnpm run differential -- --crate geometry` | 0 | the five runs below |
 
@@ -177,10 +223,10 @@ from the repository root. `<crates>` is every crate with a file this branch chan
 | 90210 | 10000 | `37 functions, 370000 inputs, 0 mismatched, 8 allowed by the ledger (PLATFORM-MATH-ATAN2 8)` | 0 |
 | 31337 | 50000 | `37 functions, 1850000 inputs, 0 mismatched, 24 allowed by the ledger (PLATFORM-MATH-COS-SIN 1, PLATFORM-MATH-ATAN2 23)` | 0 |
 
-The allowed counts for seeds 1, 2, 3 and 31337 are the ones the old rule gave at `fd1081000`. A
-10000 run took 31 seconds of wall time (seed 3), the 50000 run 155. The record at `fd1081000` gave
-`test:harness` as 87 tests; that suite had 94 there, and has 101 now with the platform math and
-ledger-skip tests this change adds.
+The allowed counts are the ones recorded at `cff7e66f4`: the shrink limit acts only after a
+mismatch, and these runs have none. A 10000 run took 28 seconds of wall time (seed 3), the 50000
+run 134. `test:harness` has 103 tests, the 101 at `cff7e66f4` and the two shrinking tests this
+change adds.
 
 The cargo test run inside `replay:check` printed 162 `test result:` lines, which sum to 872 passed,
 0 failed and 1 ignored. `replay:check` exits 0 only when every receipt carried the run's id, the
