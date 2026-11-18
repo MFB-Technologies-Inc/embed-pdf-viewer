@@ -22,39 +22,6 @@ const SCHEMA_VERSION: u32 = 1;
 const ARTWORK: &str = "packages/engine/main/test/fixtures/signature_artwork.pdf";
 const KINDS: [&str; 3] = ["certificates", "ocspResponses", "crls"];
 
-/// Where this port still answers otherwise, each a debt rather than a
-/// policy: `(file, case, step, pointer)`. The step must differ from the
-/// vector at `pointer` and nowhere else; when the port learns to agree, the
-/// replay fails and the entry goes.
-///
-/// `SignatureMutator.openCandidate` seals a session's unsaved edits in the
-/// signature's own revision (a layer session's candidate is the layer
-/// artifact a save would write, as Acrobat saves a fill-and-sign). This
-/// port's candidate is an incremental save of the edits with the signature
-/// after it, so a signature over unsaved edits lands one revision later.
-/// That gap predates this range; the vectors of this range are the first to
-/// sign over unsaved edits (CU-C4a report, "Divergence").
-const KNOWN_DIVERGENCES: &[(&str, &str, usize, &str)] = &[
-    (
-        "validation-info.json",
-        "a-signature-made-after-it-seals-it-in-added-after-one-it-is-permitted",
-        3,
-        "/resolve/revisionIndex",
-    ),
-    (
-        "validation-info.json",
-        "a-signature-made-after-it-seals-it-in-added-after-one-it-is-permitted",
-        8,
-        "/resolve/revisions",
-    ),
-    (
-        "timestamp-field.json",
-        "a-timestamp-field-takes-a-name-no-other-field-has",
-        2,
-        "/resolve/revisionIndex",
-    ),
-];
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct VectorFile {
@@ -450,21 +417,7 @@ fn replay_file(file: &str, kind: &str, cases: usize) {
         for (s, step) in case.steps.iter().enumerate() {
             let (outcome, events) = run.step(step);
             let outcome = test_support::canonical_numbers(&outcome);
-            let mut expected = test_support::canonical_numbers(&step["outcome"]);
-            if let Some((.., pointer)) = KNOWN_DIVERGENCES
-                .iter()
-                .find(|(f, c, i, _)| *f == file && *c == case.name && *i == s)
-            {
-                let ours = outcome.pointer(pointer).cloned();
-                if ours.is_none() || ours.as_ref() == expected.pointer(pointer) {
-                    failures.push(format!(
-                        "{} step {s}: the known divergence at {pointer} is gone; drop its entry",
-                        case.name
-                    ));
-                    break;
-                }
-                *expected.pointer_mut(pointer).expect("the pointer") = ours.unwrap();
-            }
+            let expected = test_support::canonical_numbers(&step["outcome"]);
             if outcome != expected {
                 failures.push(format!(
                     "{} step {s} {}: {}\n    got      {outcome}\n    expected {expected}",

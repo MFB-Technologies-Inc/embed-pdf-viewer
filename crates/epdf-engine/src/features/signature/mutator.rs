@@ -239,6 +239,74 @@ fn snapshot_bytes(session: &DocumentSession) -> Result<Vec<u8>, EngineError> {
     loaded_bytes(doc)
 }
 
+/// The signing candidate: a layer over the session's base, or a document
+/// of its own over the bytes a save would write.
+enum Candidate<'a> {
+    Layer(pdfium::DerivedDocument<'a>),
+    Owned(Document),
+}
+
+impl std::ops::Deref for Candidate<'_> {
+    type Target = Document;
+    fn deref(&self) -> &Document {
+        match self {
+            Candidate::Layer(layer) => layer,
+            Candidate::Owned(document) => document,
+        }
+    }
+}
+
+/// `SignatureMutator.openCandidate`: the document a signing is prepared on.
+/// With unsaved edits it is the layer artifact a save would write, opened
+/// over the session's base, which is cumulative: the edits and the
+/// signature then share one revision, as Acrobat saves a fill-and-sign.
+/// When the save pass finds nothing changed since load, or the loaded delta
+/// already holds signed bytes (a layer save rewrites the delta and would
+/// drop them), the candidate is a document of its own over the bytes a save
+/// would write; with no unsaved edits those are the loaded bytes, the
+/// document the session was opened with.
+fn open_candidate(session: &DocumentSession) -> Result<Candidate<'_>, EngineError> {
+    let doc = session.document()?.document();
+    if session.has_unsaved_edits() && !loaded_delta_holds_signed_bytes(doc)? {
+        let (artifact, changed) = doc.save_layer_artifact_ex().map_err(|e| {
+            EngineError::with_message(
+                EngineErrorCode::DocOpenFailed,
+                format!("failed to save the layer artifact: {e}"),
+            )
+        })?;
+        if changed {
+            let layer = doc
+                .open_layer_artifact_over_base(artifact.as_deref(), session.password())
+                .ok_or_else(|| {
+                    EngineError::with_message(
+                        EngineErrorCode::DocOpenFailed,
+                        "the signing candidate could not be opened over its base",
+                    )
+                })?;
+            if layer.is_encrypted() {
+                layer.set_runtime_owner_permissions(true);
+            }
+            return Ok(Candidate::Layer(layer));
+        }
+    }
+    Ok(Candidate::Owned(open_bytes(session, &snapshot_bytes(session)?)?))
+}
+
+/// `loadedDeltaHoldsSignedBytes`: whether a signature's byte range reaches
+/// into the layer's loaded delta (past the base). A layer loaded with no
+/// delta holds none.
+fn loaded_delta_holds_signed_bytes(doc: &Document) -> Result<bool, EngineError> {
+    let base_size = doc.base_bytes_size();
+    if doc.loaded_bytes_size() <= base_size {
+        return Ok(false);
+    }
+    let snapshot = read_snapshot(doc)?;
+    Ok(snapshot
+        .signatures
+        .iter()
+        .any(|s| s.signed && s.byte_range.is_some_and(|r| r[2] + r[3] > base_size)))
+}
+
 /// A document over `bytes` under the session's password, with the owner
 /// permissions the session's own open sets (`PdfDocumentOpener`).
 fn open_bytes(session: &DocumentSession, bytes: &[u8]) -> Result<Document, EngineError> {
@@ -444,7 +512,7 @@ pub fn prepare(
     let contents_size = contents_size as u64;
     let expected_version = version_ref(session, version(session)?.sha256);
 
-    let candidate = open_bytes(session, &snapshot_bytes(session)?)?;
+    let candidate = open_candidate(session)?;
     let made = match &field {
         Some(_) => None,
         None => Some(create_timestamp_field(&candidate)?),

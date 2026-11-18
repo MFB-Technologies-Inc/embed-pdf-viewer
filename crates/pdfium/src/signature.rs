@@ -446,6 +446,48 @@ impl Document {
         })
     }
 
+    /// A writable layer over this layer's base, opened from `artifact`
+    /// (`EPDFLayer_OpenLayerArtifact`), or fresh when `None`: what
+    /// `openLayerDocument(base, layer)` opens for a signing candidate. `None`
+    /// when this is no layer or the layer does not open.
+    pub fn open_layer_artifact_over_base(
+        &self,
+        artifact: Option<&[u8]>,
+        password: Option<&str>,
+    ) -> Option<DerivedDocument<'_>> {
+        let Some(artifact) = artifact else { return self.open_fresh_layer_over_base(password) };
+        let password = std::ffi::CString::new(password.unwrap_or("")).ok()?;
+        // SAFETY: live layer document.
+        let base = unsafe { pdfium_sys::EPDFLayer_GetBaseDocument(self.as_raw()) };
+        if base.is_null() {
+            return None;
+        }
+        let access = crate::FileAccess::from_bytes(artifact.to_vec()).ok()?;
+        let mut status: pdfium_sys::EPDFLayerOpenStatus = u32::MAX as _;
+        // SAFETY: the base outlives the layer it backs; the access is read
+        // during the open and not retained.
+        let raw = unsafe {
+            pdfium_sys::EPDFLayer_OpenLayerArtifact(
+                base,
+                access.as_ptr(),
+                password.as_ptr(),
+                &mut status,
+            )
+        };
+        if raw.is_null() || status != 0 {
+            if !raw.is_null() {
+                // SAFETY: opened above, closed once.
+                unsafe { pdfium_sys::FPDF_CloseDocument(raw) };
+            }
+            return None;
+        }
+        // SAFETY: as for `open_revision`.
+        Some(DerivedDocument {
+            document: unsafe { Document::from_raw_layer(raw, self.library()) },
+            _parent: PhantomData,
+        })
+    }
+
     /// `EPDFDoc_GetStructureObjectNumbers`: the catalog, `/AcroForm` (0 when
     /// direct or absent) and page tree root.
     pub fn structure_object_numbers(&self) -> (u32, u32, u32) {

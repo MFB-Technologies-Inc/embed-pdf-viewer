@@ -199,6 +199,33 @@ impl Document {
         Ok((owned_buffer(ptr, size), changed != 0))
     }
 
+    /// `EPDFLayer_SaveLayerArtifactToOwnedBufferEx`: the artifact a layer
+    /// save would write, and whether anything changed since load. `(None,
+    /// false)` when nothing did (`DocumentSaver.saveLayerArtifactEx`).
+    pub fn save_layer_artifact_ex(&self) -> Result<(Option<Vec<u8>>, bool), LayerSaveError> {
+        let mut size: std::os::raw::c_ulong = 0;
+        let mut status = u32::MAX;
+        let mut changed: pdfium_sys::FPDF_BOOL = 1;
+        // SAFETY: the handle is live and every out-parameter is valid.
+        let ptr = unsafe {
+            pdfium_sys::EPDFLayer_SaveLayerArtifactToOwnedBufferEx(
+                self.as_raw(),
+                &raw mut size,
+                &raw mut status,
+                &raw mut changed,
+            )
+        };
+        if status != 0 {
+            drop(owned_buffer(ptr, size));
+            return Err(LayerSaveError::from_status(status));
+        }
+        if changed == 0 {
+            drop(owned_buffer(ptr, size));
+            return Ok((None, false));
+        }
+        Ok((owned_buffer(ptr, size), true))
+    }
+
     /// Serialize a layer document's artifact or its delta.
     ///
     /// The caller is responsible for this being a layer. PDFium answers for a

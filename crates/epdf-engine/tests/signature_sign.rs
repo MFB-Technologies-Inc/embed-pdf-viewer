@@ -925,3 +925,52 @@ fn a_visual_fill_takes_the_right_to_sign_not_the_right_to_fill() {
     assert!(placed.get("error").is_none(), "{placed}");
     assert_eq!(placed["result"]["event"]["type"], json!("forms.updated"), "{placed}");
 }
+
+// ── unsaved edits share the signature's revision (openCandidate) ─────────
+
+#[test]
+fn unsaved_edits_are_sealed_in_the_signatures_own_revision() {
+    // `SignatureMutator.openCandidate`: with unsaved edits the candidate is
+    // the layer artifact a save would write, so the fill and the signature
+    // are one revision, as Acrobat saves a fill-and-sign.
+    let mut host = Host::new();
+    let (doc, _) = sig_open_fixture(&mut host, &format!("{FIX}/unsigned_sigfield.pdf"));
+    sig_call(
+        &mut host,
+        json!({ "kind": "forms.setValue", "docId": doc, "opId": "fill",
+            "ref": fqn("group.total"), "value": { "value": "42" } }),
+    );
+    let completed = sign(&mut host, &doc, json!({ "field": fqn("sig") }));
+    assert_eq!(completed["result"]["status"], json!("completed"), "{completed}");
+    assert_eq!(completed["result"]["signature"]["revisionIndex"], json!(1), "{completed}");
+    let snapshot = sig_list(&mut host, json!({ "kind": "signatures.list", "docId": doc }));
+    assert_eq!(snapshot["revisions"].as_array().unwrap().len(), 2, "{snapshot}");
+    // The fill is in the signed revision: nothing after the signature.
+    let saved = sig_call_bytes(
+        &mut host,
+        json!({ "kind": "document.saveBuffer", "docId": doc, "mode": "incremental" }),
+    );
+    let reread = sig_open_fixture_bytes(&mut host, "reread", saved);
+    let reread_list = sig_list(&mut host, json!({ "kind": "signatures.list", "docId": reread }));
+    assert_eq!(reread_list["revisions"].as_array().unwrap().len(), 2, "{reread_list}");
+    let analysis = sig_call(
+        &mut host,
+        json!({ "kind": "signatures.analyze", "docId": reread,
+            "input": { "since": { "signatureIndex": 0 } } }),
+    );
+    assert_eq!(analysis["analysis"]["verdict"], json!("unchanged"), "{analysis}");
+    let form = sig_call(&mut host, json!({ "kind": "forms.list", "docId": reread }));
+    let form = form.get("snapshot").cloned().unwrap_or(form);
+    let total = form["fields"].as_array().unwrap().iter().find(|f| f["name"] == "group.total");
+    assert_eq!(total.unwrap()["value"], json!("42"), "{form}");
+}
+
+/// Open `bytes` as document `doc` with the default scope.
+fn sig_open_fixture_bytes(host: &mut Host, doc: &str, bytes: Vec<u8>) -> String {
+    let response = host.call_filled(
+        &json!({ "kind": "open.fatMem", "effect": "open", "jobId": 1, "docId": doc }).to_string(),
+        vec![bytes],
+    );
+    assert!(!response.json.contains("\"error\""), "{}", response.json);
+    doc.to_owned()
+}
