@@ -15,7 +15,7 @@ bash platforms/android/build-aar.sh test     # also run the smoke test on a devi
 ## The fork slices are prebuilt, and have to be
 
 `libembedpdf.a` for `android-arm64` and `android-x64` comes from fork commit
-`3c6e02297`, the commit `runtime-src` pins, registered in
+`af480d0ce`, the commit `runtime-src` pins, registered in
 `engine-runtime-build.local.json` as `file://` URLs. They were built in a
 `linux/amd64` container with the fork's own `build-target.sh` and
 `package-target.sh`, with `PDF_RUNTIME_TARGET_OS_LIST="linux android"`. They
@@ -125,3 +125,49 @@ The production generator also adapts imported callback-error buffer wrappers
 without copying their Rust allocation. Its checksum declarations use the
 native unsigned 16-bit return width and compare unsigned values while retaining
 UniFFI's checksum constants, mismatch exceptions, and contract-version checks.
+
+## The signature transport
+
+`viewer/HttpSignatureTransport.kt` is the viewer's HTTP door for signatures:
+the POST a timestamp authority or a revocation route sends, on
+`HttpURLConnection`. Set it on the full viewer host, beside the signer and the
+trust anchors:
+
+```kotlin
+viewer.setSignatureTransport(HttpSignatureTransport())
+```
+
+One `post` is one attempt. Retries, the delay between them, what a status means
+and the error texts stay in the Rust clients, so every status answers
+`replied`. The transport enforces the request's limits itself, since the
+client has no timer: `timeoutMs` covers connecting, sending and reading, and a
+2xx reply past `maxReplyBytes` is `tooLarge`. A reply outside 2xx that runs
+past the limit, breaks off or is still arriving at the deadline is `replied`
+with its status and no body. The completion is answered exactly once.
+
+It is not in the AAR. The AAR packages `epdf-uniffi`, which has no signature
+plugin, so the file compiles only against the full host's bindings. On Android
+a cleartext `http://` route also needs the app's network security config to
+allow it.
+
+```bash
+KOTLINC=/path/to/kotlinc \
+JNA_JAR=/path/to/jna-5.14.0.jar \
+COROUTINES_JAR=/path/to/kotlinx-coroutines-core-jvm-1.10.2.jar \
+bash platforms/android/test-signature.sh
+```
+
+`tests/SignatureTest.kt` sends requests to a loopback server for each outcome,
+the deadline and the size limit, and counts the answers. It then signs through
+the viewer against upstream's `timestampRoute` and `revocationRoute`, which
+`tests/signature-routes.mjs` serves from `packages/core/signature/dist` (build
+that package first). That covers a granted timestamp, a long-term validation
+fill and one call through each surface the catch-up added: the signature
+settings and per-call authority, `addValidationInfo`, the verdict's
+revocation, timestamp and long-term fields, `SignatureRequestedTime`, the
+standard command lists, `ToolPermission`, `hasCreationAwaitingClick` and
+`StampImportOptions.id`.
+
+The test authority writes no nonce and the Rust client checks one, so the
+helper sets the query's nonce on the token while it signs. A real authority
+answers it on its own.
