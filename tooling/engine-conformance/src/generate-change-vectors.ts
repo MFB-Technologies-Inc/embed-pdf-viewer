@@ -52,7 +52,11 @@ import {
 } from '../../../packages/engine/main/src/index';
 import { createInlineTransport } from '../../../packages/engine/main/src/transport/InlineTransport';
 import type { Change } from '../../../packages/engine/core/src/mutation/Change';
-import { API_VERSION, lacksWhatArrivedIn } from '../../../packages/engine/core/src/wire/apiVersion';
+import {
+  API_VERSION,
+  lacksWhatArrivedIn,
+  VALIDATION_INFO_SINCE,
+} from '../../../packages/engine/core/src/wire/apiVersion';
 import {
   CHANGE_KIND_SINCE,
   changeKindSince,
@@ -614,6 +618,8 @@ function kindsVector(): unknown {
     schemaVersion: SCHEMA_VERSION,
     kind: 'wire.changeKinds',
     apiVersion: API_VERSION,
+    // The version the validation-data routes and a prepare with no field arrived in (4cb85c91e).
+    validationInfoSince: VALIDATION_INFO_SINCE,
     since: Object.fromEntries(kinds.map((kind) => [kind, changeKindSince(kind as ChangeKind)])),
     rows: CHANGE_KIND_SINCE,
     asked,

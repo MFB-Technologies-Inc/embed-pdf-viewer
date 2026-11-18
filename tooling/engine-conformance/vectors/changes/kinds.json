@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "kind": "wire.changeKinds",
   "apiVersion": "3.3",
+  "validationInfoSince": "3.3",
   "since": {
     "annotations.create": "3.0",
     "annotations.update": "3.0",

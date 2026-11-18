@@ -10,7 +10,13 @@
 /// the TypeScript packages it follows, which release together.
 /// `vectors/changes/kinds.json` records theirs, and the replay checks this
 /// against it.
-pub const API_VERSION: &str = "3.2";
+pub const API_VERSION: &str = "3.3";
+
+/// `VALIDATION_INFO_SINCE` (4cb85c91e): the version long-term validation
+/// arrived in on the wire, the routes that read and store a document's
+/// validation data, their kind of audit row, and a prepare with no field. A
+/// client uses none of them with an older server.
+pub const VALIDATION_INFO_SINCE: &str = "3.3";
 
 /// Every kind of change op and result item, in the order the wire schema
 /// lists them (`CHANGE_KINDS`): an op's type, or a restore. An import is a
