@@ -3,7 +3,9 @@
 //! session may design and the active tool doesn't fill, the annotation
 //! plugin shows the widgets among its records and edits them with its
 //! tools: select, move, resize, restyle, reorder, delete. Each edit comes
-//! back here as the form's ops, in the same change as the rest of it.
+//! back here as the form's ops, in the same change as the rest of it. A
+//! widget of no size is never lent: nobody can see it, so nobody should be
+//! able to select it by hand.
 
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
@@ -20,8 +22,7 @@ use indexmap::IndexMap;
 use serde_json::{Value, json};
 
 use crate::controller::Core;
-use crate::model::{FieldIndex, field_for_widget, field_key_of};
-use crate::sync::predict::undo_look_of;
+use crate::model::{FieldIndex, field_for_widget, field_key_of, has_area};
 use crate::value::{get, items, str_of};
 
 /// `objectNumberOf(ref)`.
@@ -51,8 +52,9 @@ impl FormLender {
     }
 }
 
+/// The rows lent: every widget with an area.
 fn rows(index: &FieldIndex) -> Rc<Vec<Rc<Value>>> {
-    Rc::new(index.widgets().to_vec())
+    Rc::new(index.widgets().iter().filter(|row| has_area(row)).cloned().collect())
 }
 
 impl Core {
@@ -145,7 +147,7 @@ impl AnnotationLender for FormLender {
 
     fn undo_of(&self, ops: &[Value]) -> Vec<Value> {
         match self.core() {
-            Some(core) => undo_look_of(&core.view(), ops),
+            Some(core) => core.predictor.undo_look(&core.view(), ops),
             None => Vec::new(),
         }
     }

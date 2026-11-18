@@ -3,11 +3,7 @@ import type {
   ActionDiagnostic,
   SubmitIntent,
 } from '../../../../packages/plugin/actions/src/contract';
-import type {
-  FormField,
-  PdfActionTargetRef,
-  DocumentEvent,
-} from '@embedpdf/engine-core/runtime';
+import type { FormField, PdfActionTargetRef, DocumentEvent } from '@embedpdf/engine-core/runtime';
 import { encodeFieldRefKey } from '@embedpdf/engine-core/runtime';
 import { fillItems, projectWidget } from '../../../../packages/plugin/form/src/read/fill-items';
 import {
@@ -285,6 +281,57 @@ const cases: FunctionCase[] = [
     [writing, { type: 'forms.setValue', field: ref(5), value: { value: 'y' } }],
     'Later fills see earlier pending values',
   ),
+  ...(() => {
+    // 134f24b77: a field whose draft names no group shows in the session's own.
+    const create = (groupId?: string) => ({
+      type: 'forms.create' as const,
+      draft: {
+        kind: 'text' as const,
+        name: 'clause',
+        ...(groupId ? { groupId } : {}),
+        widgets: [{ page: pr(3), rect: { x: 0, y: 40, width: 80, height: 20 } }],
+      },
+      objectNumber: 900,
+      widgetObjectNumbers: [901],
+    });
+    const copy = {
+      type: 'forms.copy' as const,
+      fields: [ref(4)],
+      objectNumbers: [910, 911],
+    };
+    return [
+      fc(
+        'update/create-in-the-session-group',
+        'predictFormOp',
+        [withGeom, create(), { groupId: 'team-a' }],
+        'A created field whose draft names no group takes the session group',
+      ),
+      fc(
+        'update/create-without-a-session',
+        'predictFormOp',
+        [withGeom, create()],
+        'With no session a created field without a group has none',
+      ),
+      fc(
+        'update/create-names-its-group',
+        'predictFormOp',
+        [withGeom, create('own'), { groupId: 'team-a' }],
+        'A group the draft names wins over the session group',
+      ),
+      fc(
+        'update/copy-in-the-session-group',
+        'predictFormOp',
+        [withGeom, copy, { groupId: 'team-a' }],
+        'A copied field goes through the same create, with the session group',
+      ),
+      fc(
+        'update/undo-look-in-the-session-group',
+        'undoLookOf',
+        [withGeom, [create(), setValue], { groupId: 'team-a' }],
+        'The undo look predicts with the session it is made for',
+      ),
+    ];
+  })(),
   fc(
     'update/write-done-patches-and-reindexes',
     'upsertFields',
@@ -326,6 +373,24 @@ const cases: FunctionCase[] = [
     'upsertWidgets',
     [loaded, [row(104, ref(4), 3, box(1, 2))]],
     'Geometry is a complete widget row in the field mirror',
+  ),
+  fc(
+    'update/page-geom-of-no-size-shows-nowhere',
+    'pageWidgetsOf',
+    [
+      indexFields(
+        snapshot(
+          [text(4, 'name', 'abc', {}, [placed(104, 3), placed(105, 3), placed(106, 3)])],
+          [
+            row(104, ref(4), 3, box(0, 0, 0, 10)),
+            row(105, ref(4), 3, box(0, 20, 20, 0)),
+            row(106, ref(4), 3, box(0, 40)),
+          ],
+        ),
+      ),
+      3,
+    ],
+    'A widget box with no width or no height shows nowhere: only the third widget is on the page (133030b8a)',
   ),
   fc(
     'update/page-geom-replaces-a-page',

@@ -1129,6 +1129,9 @@ fn widget_row_of_placement(
 pub struct FieldDraftContext {
     pub object_number: f64,
     pub widgets: Vec<Value>,
+    /// The group a draft without one goes in: the session's own
+    /// (`identity.groupId`).
+    pub group_id: Option<String>,
 }
 
 /// `formFieldOfDraft(draft, context)`: the field and its widgets as a read
@@ -1181,7 +1184,14 @@ pub fn form_field_of_draft(
     put("mappingName", or("mappingName", Value::Null));
     put("valueEntry", none());
     put("defaultValueEntry", none());
-    put("groupId", or("groupId", Value::Null));
+    put(
+        "groupId",
+        get(draft, "groupId")
+            .filter(|g| !g.is_null())
+            .cloned()
+            .or_else(|| context.group_id.clone().map(Value::String))
+            .unwrap_or(Value::Null),
+    );
     put("createdBy", Value::Null);
     put("createdAt", Value::Null);
     put("filledBy", Value::Null);

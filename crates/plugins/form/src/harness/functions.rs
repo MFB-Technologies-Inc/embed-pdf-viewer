@@ -21,7 +21,7 @@ use crate::model::{
     upsert_widgets, widget_at, widget_row_of,
 };
 use crate::read::fill_items::{fill_items, project_widget};
-use crate::sync::predict::{fields_named_by, predict_form_op, undo_look_of};
+use crate::sync::predict::{PredictionContext, fields_named_by, predict_form_op, undo_look_of};
 use crate::tools::definitions::{FORM_TOOLS, PLACE_TAGS, form_tool_by_id};
 use crate::value::{get, string_of, truthy};
 
@@ -123,12 +123,23 @@ fn initial_form_state_fn(_: &[Value]) -> Result<Value, Error> {
     Ok(initial_form_state())
 }
 
+/// A prediction's optional `context` (`{ groupId }`); none is no session.
+fn prediction_context(args: &[Value], at: usize) -> PredictionContext {
+    PredictionContext {
+        group_id: args
+            .get(at)
+            .and_then(|c| c.get("groupId"))
+            .and_then(Value::as_str)
+            .map(str::to_string),
+    }
+}
+
 fn predict_form_op_fn(args: &[Value]) -> Result<Value, Error> {
-    Ok(predict_form_op(&index(args, 0), &value(args, 1)).to_json())
+    Ok(predict_form_op(&index(args, 0), &value(args, 1), &prediction_context(args, 2)).to_json())
 }
 
 fn undo_look_of_fn(args: &[Value]) -> Result<Value, Error> {
-    Ok(Value::Array(undo_look_of(&index(args, 0), &list(args, 1))))
+    Ok(Value::Array(undo_look_of(&index(args, 0), &list(args, 1), &prediction_context(args, 2))))
 }
 
 fn fields_named_by_fn(args: &[Value]) -> Result<Value, Error> {

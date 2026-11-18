@@ -903,9 +903,20 @@ pub fn page_widgets_of_json(value: &Value) -> PageWidgets {
     widgets
 }
 
-/// `shownOnScreen(row)`: its `hidden` and `noView` flags hide it.
+/// `hasArea(row)`: whether a widget's box has an area. One of no size is
+/// how a PDF keeps a field that shows nowhere: the field of a document
+/// timestamp, an invisible signature.
+pub fn has_area(row: &Value) -> bool {
+    let rect = get(row, "rect");
+    let side = |key: &str| rect.and_then(|r| get(r, key)).and_then(Value::as_f64);
+    side("width").is_some_and(|w| w > 0.0) && side("height").is_some_and(|h| h > 0.0)
+}
+
+/// `shownOnScreen(row)`: its `hidden` and `noView` flags hide it, and a
+/// box of no size has nothing to show. What doesn't show gets no control,
+/// and Tab doesn't stop at it.
 pub fn shown_on_screen(row: &Value) -> bool {
-    !truthy(get(row, "hidden")) && !truthy(get(row, "noView"))
+    !truthy(get(row, "hidden")) && !truthy(get(row, "noView")) && has_area(row)
 }
 
 fn row_page_is(row: &Value, page: f64) -> bool {

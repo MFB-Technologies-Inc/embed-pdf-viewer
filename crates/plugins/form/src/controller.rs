@@ -44,6 +44,10 @@ pub struct Core {
     pub(crate) fields: Mirror,
     /// The mirror's values as indexes, decoded once each.
     pub(crate) indexes: Rc<IndexCache>,
+    /// How this session's changes show before the engine answers. A field
+    /// placed without a group shows in the session's own, where the engine
+    /// puts it.
+    pub(crate) predictor: crate::sync::predict::FormPredictor,
     pub(crate) formatted: Rc<FormattedTexts>,
     pub(crate) numbers: ObjectNumbers,
     /// Fills take turns on one serial queue until they are sent, and a
@@ -209,7 +213,8 @@ pub fn create_form_controller(
     let settings = cx.settings()?;
     let events = Events::new(&cx);
     let indexes = Rc::new(IndexCache::default());
-    let fields = crate::sync::fields::create_fields_mirror(&cx, &events, &indexes)?;
+    let predictor = crate::sync::predict::FormPredictor::of(&cx);
+    let fields = crate::sync::fields::create_fields_mirror(&cx, &events, &indexes, &predictor)?;
     let formatted = Rc::new(FormattedTexts::default());
     let queue = cx.serial_queue("writes");
     let core = Rc::new_cyclic(|me| Core {
@@ -219,6 +224,7 @@ pub fn create_form_controller(
         events,
         fields,
         indexes,
+        predictor,
         formatted,
         numbers: ObjectNumbers::default(),
         enqueue: queue,
