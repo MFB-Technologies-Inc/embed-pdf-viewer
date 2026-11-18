@@ -12,8 +12,8 @@ let package = Package(
     targets: [
         .binaryTarget(
             name: "EmbedPDFBindings",
-            url: "https://github.com/roanutil/embed-pdf-runtime/releases/download/apple-engine-8d0a810dc5a3b06f/EmbedPDFBindings.xcframework.zip",
-            checksum: "dc2a8378686170f467b2ba0ea3f503030aaebd89ed511cc55c521d63ec07b509"
+            url: "https://github.com/roanutil/embed-pdf-runtime/releases/download/apple-engine-9c1ce4a8ff1cd488/EmbedPDFBindings.xcframework.zip",
+            checksum: "671b0ea0c6b66863cc932a2711e38614b890f2d332397a84c3c4547134b02b07"
         ),
         .target(
             name: "EmbedPDF",
