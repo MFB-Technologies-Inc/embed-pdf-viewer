@@ -78,3 +78,76 @@ fn a_reply_over_the_limit_is_no_answer_even_when_the_host_read_it_all() {
         "http://crl.example/a.crl did not answer through https://app.example/revocation: the reply broke off: it is over 4 bytes"
     );
 }
+
+/// A host that reads past `max_reply_bytes` and answers `status` with the
+/// whole body, counting its requests.
+struct OverReadingWith(u16, Vec<u8>, std::cell::Cell<u32>);
+
+impl epdf_signature_core::transport::HttpTransport for OverReadingWith {
+    fn post(
+        &self,
+        _: epdf_signature_core::transport::TransportRequest,
+    ) -> Promise<TransportOutcome> {
+        self.2.set(self.2.get() + 1);
+        Promise::resolved(TransportOutcome::Replied { status: self.0, body: self.1.clone() })
+    }
+}
+
+fn source_over(
+    transport: Rc<dyn epdf_signature_core::transport::HttpTransport>,
+) -> Result<Vec<u8>, epdf_kernel::Error> {
+    let source = http_revocation_source(
+        transport,
+        HttpRevocationSourceOptions {
+            url: "https://app.example/revocation".into(),
+            headers: vec![],
+            timeout_ms: None,
+            retries: Some(1),
+            max_reply_bytes: Some(4),
+        },
+    );
+    block_on(source.fetch(RevocationRequest::Crl { url: "http://crl.example/a.crl".into() }))
+}
+
+/// M1: a refusal whose body runs past the limit is still a refusal, given
+/// at once, not a retried no-answer: the client decides by the status.
+#[test]
+fn a_refusal_over_the_limit_is_its_status_with_no_body() {
+    let host =
+        Rc::new(OverReadingWith(404, b"{\"message\":\"gone\"}".to_vec(), Default::default()));
+    let error = source_over(host.clone()).unwrap_err();
+    assert_eq!(error.code(), Some("SignatureRefused"));
+    assert_eq!(
+        error.message,
+        "the route at https://app.example/revocation refused to ask http://crl.example/a.crl: HTTP 404"
+    );
+    assert_eq!(host.2.get(), 1, "a 404 is not tried again");
+
+    // The same through the recorded transport.
+    let recorded = Rc::new(RecordedTransport::new(vec![TransportOutcome::Replied {
+        status: 404,
+        body: b"{\"message\":\"gone\"}".to_vec(),
+    }]));
+    let error = source_over(recorded.clone()).unwrap_err();
+    assert_eq!(error.code(), Some("SignatureRefused"));
+    assert_eq!(recorded.sent().len(), 1);
+
+    // A 2xx past the limit is still no answer, and is tried again.
+    let host = Rc::new(OverReadingWith(200, vec![1, 2, 3, 4, 5], Default::default()));
+    let source = http_revocation_source(
+        host.clone(),
+        HttpRevocationSourceOptions {
+            url: "https://app.example/revocation".into(),
+            headers: vec![],
+            timeout_ms: None,
+            retries: Some(1),
+            max_reply_bytes: Some(4),
+        },
+    );
+    let fetched = source.fetch(RevocationRequest::Crl { url: "http://crl.example/a.crl".into() });
+    epdf_kernel::rt::run_until_stalled();
+    epdf_kernel::rt::advance(epdf_signature_core::transport::RETRY_DELAY_MS);
+    let error = block_on(fetched).unwrap_err();
+    assert_eq!(error.code(), Some("Network"));
+    assert_eq!(host.2.get(), 2);
+}

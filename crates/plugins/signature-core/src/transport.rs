@@ -46,7 +46,8 @@ pub struct TransportRequest {
     pub body: Vec<u8>,
     /// The host gives up after this long and answers `TimedOut`.
     pub timeout_ms: u32,
-    /// The host stops reading past this many bytes and answers `TooLarge`.
+    /// The host stops reading a 2xx reply past this many bytes and answers
+    /// `TooLarge`; another status past it is that status with no body.
     pub max_reply_bytes: u32,
 }
 
@@ -83,15 +84,7 @@ async fn attempt(transport: &Rc<dyn HttpTransport>, request: &TransportRequest) 
         Ok(outcome) => outcome,
         Err(error) => TransportOutcome::Failed { message: error.message },
     };
-    let outcome = match outcome {
-        // The route stops reading past its limit, so a body a host read
-        // further than that is the same as one it broke off.
-        TransportOutcome::Replied { body, .. } if body.len() > request.max_reply_bytes as usize => {
-            TransportOutcome::TooLarge
-        }
-        outcome => outcome,
-    };
-    match outcome {
+    match over_limit(outcome, request.max_reply_bytes) {
         TransportOutcome::Replied { status, body } => Exchange::Reply { status, body },
         TransportOutcome::TimedOut => {
             Exchange::NoAnswer(format!("no reply within {} ms", request.timeout_ms))
@@ -101,6 +94,24 @@ async fn attempt(transport: &Rc<dyn HttpTransport>, request: &TransportRequest) 
             request.max_reply_bytes
         )),
         TransportOutcome::Failed { message } => Exchange::NoAnswer(message),
+    }
+}
+
+/// A `Replied` body a host read past `max_reply_bytes`. The route stops
+/// reading past its limit, so a 2xx body past it is the same as one that
+/// broke off: `TooLarge`. Any other status keeps its status and loses its
+/// body, so the client decides by the status, as upstream's clients and
+/// every host transport do.
+pub(crate) fn over_limit(outcome: TransportOutcome, max_reply_bytes: u32) -> TransportOutcome {
+    match outcome {
+        TransportOutcome::Replied { status, body } if body.len() > max_reply_bytes as usize => {
+            if (200..300).contains(&status) {
+                TransportOutcome::TooLarge
+            } else {
+                TransportOutcome::Replied { status, body: Vec::new() }
+            }
+        }
+        outcome => outcome,
     }
 }
 
@@ -163,14 +174,11 @@ impl RecordedTransport {
 
 impl HttpTransport for RecordedTransport {
     fn post(&self, request: TransportRequest) -> Promise<TransportOutcome> {
-        let limit = request.max_reply_bytes as usize;
+        let limit = request.max_reply_bytes;
         self.sent.borrow_mut().push(request);
         match self.replies.borrow_mut().pop_front() {
             // A host stops reading past the limit.
-            Some(TransportOutcome::Replied { body, .. }) if body.len() > limit => {
-                Promise::resolved(TransportOutcome::TooLarge)
-            }
-            Some(outcome) => Promise::resolved(outcome),
+            Some(outcome) => Promise::resolved(over_limit(outcome, limit)),
             None => Promise::resolved(TransportOutcome::Failed {
                 message: "no recorded reply is left".into(),
             }),

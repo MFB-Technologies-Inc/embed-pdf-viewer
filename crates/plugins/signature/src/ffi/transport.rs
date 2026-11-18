@@ -53,8 +53,10 @@ pub struct SignatureTransportRequest {
     pub body: Vec<u8>,
     /// Give up after this long and answer `timed_out`.
     pub timeout_ms: u32,
-    /// Stop reading past this many bytes and answer `too_large`. A longer
-    /// body answered through `replied` counts as `too_large` too.
+    /// Stop reading a 2xx reply past this many bytes and answer `too_large`.
+    /// A longer 2xx body answered through `replied` counts as `too_large`
+    /// too; a longer body with any other status counts as that status with
+    /// no body.
     pub max_reply_bytes: u32,
 }
 
