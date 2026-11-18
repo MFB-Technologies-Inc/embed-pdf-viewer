@@ -418,11 +418,12 @@ should prove the Rust route ran rather than only that the payload contains the c
 Items 1 and 2 below, the next step this section first named, are done. The large flows came after
 (item 10); the three gaps in the paragraph above are still open.
 
-Both fixes below landed on 2026-11-17, after this paragraph was written. The probe now samples
-once a frame (README, Caveats; probe `af209e7644d8`, so `--drift` refuses every earlier run), and
-`hover` and `drawInk` report `wallMs` from `t0` and `settleMs` from the last pointer move, so
-their settle rows from earlier runs don't compare with later ones. No timed run has used either
-yet. Two harness fixes from the 2026-11-17 reviews are deferred (added 2026-11-17). Each changes what a
+Both fixes described next landed on 2026-11-17 (`748555cb7` and `096115a21`), and the rest of this
+paragraph is the record from before they did. The probe now samples once a frame (README, Caveats;
+probe `af209e7644d8`, so `--drift` refuses every earlier run), and `hover` and `drawInk` report
+`wallMs` from `t0` and `settleMs` from the last pointer move, so their settle rows from earlier
+runs don't compare with later ones. `2026-11-18T05-05-31-149Z` is the first run under both ("The
+probe once a frame, and `hover` and `drawInk` split", at the end). Two harness fixes from the 2026-11-17 reviews are deferred (added 2026-11-17). Each changes what a
 recorded row means, so it needs a new timed run on the Mac mini before any row under it can be
 quoted, and none was started. The first is the probe's cost. `lib/probe.js` samples the page
 images on every animation frame (`tick`) and again every 16 ms while a settle waits (`check` in
@@ -1567,3 +1568,67 @@ as well as interval, not on an experiment. Every settle row of a flow that drive
 `main` against `main-now`, for reference: 42 slower (plus 2 `hover` rows with no done condition
 on `main`), 8 faster, 30 no difference. Timing 1.051x, frame interval 1.015x, main thread 1.488x,
 settle median +0.0 ms (-179.2 to +185.8 ms).
+
+### The probe once a frame, and `hover` and `drawInk` split (2026-11-18)
+
+Neither harness fix changes where the port stands. Dropping the probe's second sample per frame
+took 1.3% to 3.9% off each arm's median `mainJsMs` row, and the port still spends 1.518x the
+main-thread time of upstream `main` (1.468x in `16-59-17`). Splitting the paced rows shows what
+they hid. `hover` settles 1.2 to 1.3 ms after its last pointer move on both `main-now` and
+`perf-fixes-end`, so the whole +193.3 ms `hover / settleMs` gap in `16-59-17` was pointer pacing.
+`drawInk` settles 50.1 ms later on the port after its last move, where the old row read
++2,574.1 ms.
+
+Run `results/2026-11-18T05-05-31-149Z-macmini2020-desktop`: R=10 on the Mac mini, 80.7 min,
+harness `096115a21` (clean), probe `af209e7644d8`. The arms are `main` and `main-aa`
+(`2516e2786`), `main-now` (`ed064e0c8`) and `perf-fixes-end` (`a6d4d5d14`). All four passed the
+gate, and none of the 780 samples failed. `main` and `main-aa` skipped `undo`. A/A passed 83 of 86
+rows (two more rows than before, the new `wallMs` rows). The three failures are all `select`
+(`settleMs` +43.8 ms, `mainTaskMs` 1.082x, `mainJsMs` 1.083x), so those rows read "unreliable" in
+every pair. The frame interval is 11.1 ms, against 11.3 ms in `16-59-17`. This run is the drift
+reference for the next one: `summary.mjs --drift` against `16-59-17` exits 2 on the probe hash
+alone ("probe hash d3edaa255947 -> af209e7644d8"). The phase arms weren't in this run, so Phase D's
+`open(ebook) / mainJsMs` reading stays unconfirmed.
+
+The probe's cost is a cross-run estimate, the kind of reading this file doesn't count as a
+verdict. Per arm, the median of new over old across its `mainJsMs` rows is 0.961 for `main`, 0.972
+for `main-aa`, 0.983 for `main-now` and 0.987 for `perf-fixes-end` (18 or 19 rows each). The
+`mainTaskMs` medians are 0.973, 0.973, 0.984 and 0.990. The arms that do the least main-thread
+work lost the largest share, which is what a fixed cost per sample looks like. We think that's
+also why the port's ratios rose a little: the same milliseconds came off both arms of the pair.
+The widest `mainJsMs` gaps now:
+
+| Row | `main-now` | `perf-fixes-end` | Ratio | In `16-59-17` |
+| --- | --- | --- | --- | --- |
+| `search` | 7.6 | 21.8 | 2.886x | 2.392x |
+| `searchLarge` | 345.1 | 909.2 | 2.635x | 2.590x |
+| `dragAnnot` | 201.8 | 495.9 | 2.457x | 2.506x |
+| `typeField` | 85.2 | 200.1 | 2.348x | 2.152x |
+| `undo` | 132.2 | 291.3 | 2.203x | 2.188x |
+| `drawInk` | 1,117.8 | 2,349.2 | 2.102x | 2.087x |
+| `open(large)` | 175.3 | 366.0 | 2.088x | 2.031x |
+| `open(ebook)` | 177.7 | 341.7 | 1.923x | 1.895x |
+| `hover` | 413.5 | 785.2 | 1.899x | 1.865x |
+
+`search` moved most, on the smallest base.
+
+`hover / wallMs` and `drawInk / wallMs` now carry the pacing, and they read 1.177x (1,055.0 to
+1,241.3 ms) and 1.828x (3,061.1 to 5,595.9 ms). Both still depend on the frame interval, as the
+old settle rows did ("Where the port stands" above). `drawInk / settleMs` (864.1 to 914.2 ms,
++50.1 [+45.6, +61.4]) still includes the ink tool's 800 ms grouping window, so the port's extra
+time after the last move is about 50 ms on a base of about 64 ms. `hover / settleMs` reads
+"faster" at -0.1 ms, because its A/A band is that narrow. It means both arms have finished
+reacting by the time the last move returns.
+
+#### Where the port stands under this harness
+
+49 rows slower, plus 3 `undo` rows with no A/A band, 30 no difference, 4 faster, and 3
+unreliable. Timing median 1.558x over 15 rows (the 13 from before plus the two `wallMs` rows),
+frame interval 0.997x, main thread 1.518x. Settle median +7.5 ms (-23.5 to +271.3 ms). The faster
+rows are `scroll / wallMs` 0.888x, `coldScroll / wallMs` 0.893x, `searchLarge / searchMs` 0.866x,
+and `hover / settleMs`. The largest settle gaps are `dragAnnot` +271.3 ms, `undo` +204.1 ms,
+`typeField` +77.1 ms and `drawInk` +50.1 ms.
+
+`main` against `main-now`, for reference: 41 slower, 6 faster, 32 no difference, 3 unreliable,
+and 4 rows with no done condition on `main` (3 slower, 1 no difference). Timing 1.061x, frame interval 1.012x, main
+thread 1.519x, settle median +8.6 ms (-15.2 to +164.3 ms).

@@ -317,7 +317,7 @@ that instrumentation cost is included in the reported CPU and frame metrics. Sin
 image outside the browser viewport costs one `getBoundingClientRect` and no style reads, and one
 sample reads each shared ancestor's style once.
 `meta.json` records `probeSha256`, so a run's probe version is on record. `RESULTS.md` publishes
-`2026-11-17T16-59-17-202Z`, recorded with probe `d3edaa255947`, the version at `7d9648d6d`.
+`2026-11-18T05-05-31-149Z`, recorded with probe `af209e7644d8`, the version at `748555cb7`.
 Since 2026-11-17 (probe `af209e7644d8`) the probe samples once a frame: a settle check reuses the
 latest frame's sample and counts quiet time to it, and samples on its own only once no frame has
 run for 100 ms. Before, it sampled again every 16 ms while a settle waited. `--drift` refuses any
