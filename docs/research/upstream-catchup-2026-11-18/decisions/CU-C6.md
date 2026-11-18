@@ -66,9 +66,27 @@ Reverse: not needed.
 ## CU-C6-D6. API surface left for the wrappers
 
 Decision: `ImportLibraryOptions.id` is on the uniffi `StampImportOptions` record (last member,
-default `None`, so existing Swift and Kotlin calls compile unchanged).
-`has_creation_awaiting_click` and `add_validation_info` are Rust methods only.
+default `None`, so existing Swift and Kotlin calls compile unchanged). Everything else this job
+added is Rust only, for CU-C8 and CU-C9: the settings `timestamp_authority`, `revocation` and
+`document_timestamp`; the per-call `timestamp_authority` of `sign` and `prepare_signature`; the
+`validationInfo` and `validationInfoError` result members; `add_validation_info` and
+`can_add_validation_info`; `has_creation_awaiting_click` (new on upstream's public
+`AnnotationHostCapability`, not in `annotation/src/ffi/drafts.rs`); and the uniffi
+`SignatureVerdict` (`signature/src/ffi/records.rs`), which lacks the verdict's `revocation`,
+timestamp and `longTerm` members.
 Reason: the brief gives the wrappers to CU-C8 and CU-C9; a defaulted record member costs them
 nothing.
 Cost: the Swift wrapper does not pass `id` until CU-C9 adds it.
 Reverse: remove the member.
+
+## CU-C6-D7. A finish of the waiting drawing that throws is the caller's (fix round 1)
+
+Decision: `finish_waiting_ink` and `finish_ink_draft` return the error of the `finishInkDraft`
+commit. The store's commit, the tool-change listener, the settle flush, the harness and the uniffi
+`finish_ink_draft` pass it on; the timer that ends the wait drops it.
+Reason: upstream's `finishWaitingInk` lets `store.commit` throw, so the commit that called it
+never runs the replacing message. The first port swallowed the error and ran the message, dropping
+the drawing.
+Cost: no test pins it. The commit throws only when the change queue is closed or refuses the
+change, and no harness path reaches that while a drawing waits.
+Reverse: not needed.
