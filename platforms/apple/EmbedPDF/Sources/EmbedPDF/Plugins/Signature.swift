@@ -27,6 +27,10 @@ public typealias SignatureIntegrity = EmbedPDFBindings.SignatureIntegrity
 public typealias SignatureCryptography = EmbedPDFBindings.SignatureCryptography
 public typealias SignatureTrustStatus = EmbedPDFBindings.SignatureTrustStatus
 public typealias SignatureValidationTime = EmbedPDFBindings.SignatureValidationTime
+/// What `SignatureValidateRequest.validationTime` asks for: `.earliestTimestamp`
+/// (the default), `.now`, or a token's time. A verdict's own time stays a
+/// `SignatureValidationTime`.
+public typealias SignatureRequestedTime = EmbedPDFBindings.SignatureRequestedTime
 public typealias SignatureModifications = EmbedPDFBindings.SignatureModifications
 public typealias SignatureModificationsVerdict = EmbedPDFBindings.SignatureModificationsVerdict
 public typealias SignatureModificationsBasis = EmbedPDFBindings.SignatureModificationsBasis
@@ -52,6 +56,28 @@ public typealias SignatureSignCompletion = EmbedPDFBindings.SignatureSignComplet
 public typealias SignatureTrust = EmbedPDFBindings.SignatureTrust
 public typealias SignatureKeyAlgorithm = EmbedPDFBindings.SignatureKeyAlgorithm
 public typealias SignatureDigest = EmbedPDFBindings.SignatureDigest
+public typealias SignatureRevocationStatus = EmbedPDFBindings.SignatureRevocationStatus
+public typealias SignatureTimestampVerdict = EmbedPDFBindings.SignatureTimestampVerdict
+public typealias SignatureLongTermVerdict = EmbedPDFBindings.SignatureLongTermVerdict
+public typealias SignatureLongTermGap = EmbedPDFBindings.SignatureLongTermGap
+public typealias SignatureLongTermGapReason = EmbedPDFBindings.SignatureLongTermGapReason
+public typealias SignatureValidationInfoAdded = EmbedPDFBindings.SignatureValidationInfoAdded
+public typealias SignatureValidationInfoCounts = EmbedPDFBindings.SignatureValidationInfoCounts
+public typealias SignatureFailure = EmbedPDFBindings.SignatureFailure
+/// A call's own timestamp authority, over the settings' one:
+/// `.without` for none, `.http(authority:)` for another.
+public typealias SignatureCallAuthority = EmbedPDFBindings.SignatureCallAuthority
+/// A timestamp authority reached over the viewer's transport
+/// (`PDFViewer.setSignatureTransport(_:)`).
+public typealias SignatureTimestampAuthority = EmbedPDFBindings.SignatureTimestampAuthority
+/// The app's revocation route, reached over the viewer's transport.
+public typealias SignatureRevocationRoute = EmbedPDFBindings.SignatureRevocationRoute
+/// The viewer's HTTP stack for timestamps and revocation answers.
+/// `URLSessionSignatureTransport` is the one this package ships.
+public typealias SignatureTransport = EmbedPDFBindings.SignatureTransport
+public typealias SignatureTransportRequest = EmbedPDFBindings.SignatureTransportRequest
+public typealias SignatureTransportHeader = EmbedPDFBindings.SignatureTransportHeader
+public typealias SignatureTransportCompletion = EmbedPDFBindings.SignatureTransportCompletion
 /// What a `SignatureSigner`'s synchronous members or a `SignatureTrust`
 /// throws: `.Kernel(name:code:detail:)` with a kernel code.
 public typealias ViewerError = EmbedPDFBindings.ViewerError
@@ -271,6 +297,24 @@ public struct SignatureCapability: Sendable {
     try await bridgedCancellable { token in try await handle.placeMark(mark: mark, target: target, cancel: token) }
   }
 
+  /// Keep a signed field checkable with no network: ask the `revocation`
+  /// setting's route whether its certificates were good at its timestamp,
+  /// and store the answers in the file; `nil` for every signature. With
+  /// `documentTimestamp` set, a document timestamp follows. All or nothing
+  /// for the answers. Needs `doc.sign`, the `revocation` setting and trust
+  /// anchors; without them it throws `invalid-input`.
+  public func addValidationInfo(_ field: FormFieldRef? = nil) async throws(PDFError)
+    -> SignatureValidationInfoAdded
+  {
+    try await bridgedCancellable { token in try await handle.addValidationInfo(field: field, cancel: token) }
+  }
+
+  /// Whether `addValidationInfo` can run: the `revocation` setting, trust
+  /// anchors and `doc.sign`.
+  public func canAddValidationInfo() async throws(PDFError) -> Bool {
+    try await bridged { try await handle.canAddValidationInfo() }
+  }
+
   /// Signed, filled, cleared, validated, protection changed, invalidating,
   /// target changed, sign requested and inspection requested. Finishes when
   /// the document closes or the viewer is destroyed.
@@ -305,5 +349,13 @@ extension PDFViewer {
   /// `.validUntrusted`.
   public func setTrust(_ trust: (any SignatureTrust)?) {
     host.setSignatureTrust(trust: trust)
+  }
+
+  /// The HTTP stack the signature plugin's timestamp authority and
+  /// revocation route post through, for every document. Read per request;
+  /// with `nil` every request fails with no reply. Usually
+  /// `URLSessionSignatureTransport()`.
+  public func setSignatureTransport(_ transport: (any SignatureTransport)?) {
+    host.setSignatureTransport(transport: transport)
   }
 }

@@ -26,6 +26,14 @@ public typealias CommandRefusalReason = EmbedPDFBindings.CommandRefusalReason
 public typealias CommandsEvent = EmbedPDFBindings.CommandsEvent
 public typealias CommandExecuted = EmbedPDFBindings.CommandExecuted
 public typealias CommandExecutionFailure = EmbedPDFBindings.CommandExecutionFailure
+/// One owner's standard command list, for `ViewerConfig.standardCommands`.
+/// The commands plugin joins the named lists in upstream's order: stage,
+/// interaction, selection, annotation, history, render, document.
+public typealias StandardCommandList = EmbedPDFBindings.StandardCommandList
+/// The clipboard and a file for the user: what the standard commands need
+/// from the app. Called on the viewer's kernel thread.
+public typealias StandardCommandsPlatform = EmbedPDFBindings.StandardCommandsPlatform
+public typealias StandardCommandCompletion = EmbedPDFBindings.StandardCommandCompletion
 
 /// A `CommandRunner` from closures. `enabled`, `active`, `visible` and
 /// `iconAccent` run on the viewer's kernel thread on every resolve: answer
@@ -304,9 +312,23 @@ extension EventRelay: CommandsEventListener where Event == CommandsEvent {
   }
 }
 
+extension StandardCommandCompletion {
+  /// Fail the copy with `error`, keeping its code (see `HostFailure.init(_:)`).
+  public func fail(_ error: any Error) {
+    failWith(failure: HostFailure(error))
+  }
+}
+
 extension PDFViewer {
   public func commands() async throws(PDFError) -> CommandsCapability {
     let handle = try await bridged { try await host.commands() }
     return CommandsCapability(handle: handle, viewer: self)
+  }
+
+  /// The clipboard and file parts of the standard commands
+  /// (`ViewerConfig.standardCommands`). Read when a command runs; with
+  /// `nil`, a copy fails with `invalid-input` and a save saves nothing.
+  public func setCommandsPlatform(_ platform: (any StandardCommandsPlatform)?) {
+    host.setCommandsPlatform(platform: platform)
   }
 }

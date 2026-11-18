@@ -92,6 +92,13 @@ public struct ViewerConfigBuilder: Sendable {
 
   public func commands(_ enabled: Bool = true) -> ViewerConfigBuilder { changing { $0.commands = enabled } }
 
+  /// The owners' standard command lists, joined in upstream's order. Needs
+  /// `commands`; the clipboard and file parts go to
+  /// `PDFViewer.setCommandsPlatform(_:)`.
+  public func standardCommands(_ lists: [StandardCommandList]) -> ViewerConfigBuilder {
+    changing { $0.standardCommands = lists }
+  }
+
   public func actions(_ config: ActionsConfig) -> ViewerConfigBuilder { changing { $0.actions = config } }
 
   /// Needs `form`.

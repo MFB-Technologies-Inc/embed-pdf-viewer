@@ -1392,6 +1392,20 @@
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/drafts.rs",
       "owner": "Core",
+      "symbol": "has_creation_awaiting_click",
+      "export": {
+        "path": "crates/plugins/annotation/src/ffi/drafts.rs",
+        "symbol": "has_creation_awaiting_click"
+      },
+      "swift": {
+        "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Annotation.swift",
+        "symbol": "hasCreationAwaitingClick"
+      }
+    },
+    {
+      "crate": "annotation",
+      "path": "crates/plugins/annotation/src/write/drafts.rs",
+      "owner": "Core",
       "symbol": "distance_creation_page",
       "exclusion": "Annotation host rendering, text-editor or pointer/tool integration; native facade currently supports document CRUD, drafts, selection and threads, not the web chrome adapter.",
       "classification": "host-presentation"
@@ -4180,6 +4194,20 @@
       "swift": {
         "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Interaction.swift",
         "symbol": "hasTool"
+      }
+    },
+    {
+      "crate": "interaction",
+      "path": "crates/plugins/interaction/src/controller.rs",
+      "owner": "InteractionCapability",
+      "symbol": "can_use_tool",
+      "export": {
+        "path": "crates/plugins/interaction/src/ffi.rs",
+        "symbol": "can_use_tool"
+      },
+      "swift": {
+        "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Interaction.swift",
+        "symbol": "canUseTool"
       }
     },
     {
@@ -8515,6 +8543,34 @@
       "swift": {
         "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Signature.swift",
         "symbol": "canReadRevision"
+      }
+    },
+    {
+      "crate": "signature",
+      "path": "crates/plugins/signature/src/write/validation_info.rs",
+      "owner": "SignatureCapability",
+      "symbol": "add_validation_info",
+      "export": {
+        "path": "crates/plugins/signature/src/ffi/mod.rs",
+        "symbol": "add_validation_info"
+      },
+      "swift": {
+        "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Signature.swift",
+        "symbol": "addValidationInfo"
+      }
+    },
+    {
+      "crate": "signature",
+      "path": "crates/plugins/signature/src/services/authority.rs",
+      "owner": "SignatureCapability",
+      "symbol": "can_add_validation_info",
+      "export": {
+        "path": "crates/plugins/signature/src/ffi/mod.rs",
+        "symbol": "can_add_validation_info"
+      },
+      "swift": {
+        "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Signature.swift",
+        "symbol": "canAddValidationInfo"
       }
     },
     {

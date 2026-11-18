@@ -9,6 +9,10 @@ public typealias InteractionToolChangedEvent = EmbedPDFBindings.InteractionToolC
 public typealias InteractionGestureEvent = EmbedPDFBindings.InteractionGestureEvent
 public typealias InteractionCursorChangedEvent = EmbedPDFBindings.InteractionCursorChangedEvent
 public typealias InteractionHandler = EmbedPDFBindings.InteractionHandler
+/// A registered tool's `canUse`: whether the user may use it now. Asked on
+/// the viewer's kernel thread whenever `canUseTool` is read, so answer from
+/// state you already hold; waiting on a viewer call inside it deadlocks.
+public typealias ToolPermission = EmbedPDFBindings.ToolPermission
 public typealias PointerSample = EmbedPDFBindings.PointerSample
 public typealias PointerPhase = EmbedPDFBindings.PointerPhase
 public typealias PointerKind = EmbedPDFBindings.PointerKind
@@ -147,10 +151,22 @@ public struct InteractionCapability: Sendable {
   }
 
   /// Throws `conflict` for an id already registered unless `replace`.
-  public func registerTool(_ tool: InteractionTool, replace: Bool = false) async throws(PDFError)
-    -> Registration
-  {
-    Registration(handle: try await bridged { try await handle.registerTool(tool: tool, replace: replace) })
+  /// `permission` is the tool's `canUse`; without one the tool may always
+  /// be used.
+  public func registerTool(
+    _ tool: InteractionTool, replace: Bool = false, permission: (any ToolPermission)? = nil
+  ) async throws(PDFError) -> Registration {
+    Registration(
+      handle: try await bridged {
+        try await handle.registerTool(tool: tool, replace: replace, permission: permission)
+      })
+  }
+
+  /// Whether the user may use a tool: what its `permission` says, `true`
+  /// for a tool registered without one, `false` for an id nobody
+  /// registered.
+  public func canUseTool(_ id: ToolID) async throws(PDFError) -> Bool {
+    try await bridged { try await handle.canUseTool(id: id.rawValue) }
   }
 
   /// `handler` is called on the viewer's kernel thread, synchronously,

@@ -193,6 +193,16 @@ is skipped without an error.
 > store would need a `SecTrust`-evaluating port in `epdf-signature-core`. Without anchors a good
 > signature reads `.validUntrusted`. Document permissions follow `ViewerConfig.scope`; `nil` grants
 > everything.
+>
+> Note: timestamps and revocation answers come over the network through one transport per
+> viewer, `PDFViewer.setSignatureTransport(URLSessionSignatureTransport())`. The authority and the
+> route are data on `SignatureConfig` (`timestampAuthority`, `revocation`) or on one call
+> (`SignatureSignInput.timestampAuthority`); the RFC 3161 query, retries and what a status means
+> stay in Rust. `URLSessionSignatureTransport` makes one attempt per call, holds it to the
+> request's `timeoutMs` from connect to the last byte, stops reading a 2xx reply past
+> `maxReplyBytes`, and answers every status as a reply. A status outside 2xx whose body runs long,
+> breaks off or stalls is answered with no body. Without a transport every request fails with no
+> reply. On iOS, a cleartext `http://` route also needs App Transport Security to allow it.
 
 ### Building a `ViewerConfig` with `ViewerConfigBuilder`
 

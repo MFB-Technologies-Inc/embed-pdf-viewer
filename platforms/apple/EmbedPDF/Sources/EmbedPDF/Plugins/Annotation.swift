@@ -486,6 +486,14 @@ public struct AnnotationDraftsCapability: Sendable {
     try await bridged { try await handle.finishInkDraft() }
   }
 
+  /// A shape made click by click waits for its next click: a polygon or
+  /// polyline corner, a callout knee or box, a distance line placement.
+  /// That click is the shape's, also where it lands on an existing
+  /// annotation.
+  public func hasCreationAwaitingClick() async throws(PDFError) -> Bool {
+    try await bridged { try await handle.hasCreationAwaitingClick() }
+  }
+
   /// Drop every gesture in progress: drafts, ghosts, placement previews.
   public func cancel() async throws(PDFError) {
     try await bridged { try await handle.cancel() }
