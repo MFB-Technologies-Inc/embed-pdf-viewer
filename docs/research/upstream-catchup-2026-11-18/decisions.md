@@ -26,7 +26,7 @@ neither visible to a caller that gets an answer:
 The divergences accepted in earlier catch-ups stand as before
 (`docs/research/upstream-catchup-2026-11-12/decisions.md`, `docs/research/rust-plugins-branch-review.md`).
 
-## Proposed exceptions (open, for the user)
+## Rust-only exceptions accepted by the user
 
 - CU-C4b-D3. The D-1 transport carries upstream's route limits: a request over 64 KiB is refused
   before it is sent, a timestamp reply over 1 MiB or a revocation answer over `max_reply_bytes`
@@ -35,14 +35,15 @@ The divergences accepted in earlier catch-ups stand as before
   Upstream's browser clients (`httpTimestampAuthority`, `httpRevocationSource`)
   set no limit of their own and leave it to the routes. Cost: a reply over the limit, which the
   browser client would read, is no answer here. Reverse: drop the check and pass `u32::MAX`.
+  The user accepted this as a kept Rust-only difference on 2026-11-18.
 
 ## Scope, authority and branches
 
 - D-1. Timestamps and revocation answers come from the network through one host transport trait;
   every signature-core step is ported, and Swift, Kotlin, .NET and the browser each implement the
   transport (CU-C8). Cost: four HTTP implementations. In practice .NET gets none: `epdf-capi` has
-  no signing, so there is nothing for a transport to serve (CU-C8a-D6). That awaits the user's
-  sign-off.
+  no signing, so there is nothing for a transport to serve (CU-C8a-D6). The user accepted that
+  on 2026-11-18; signing through `epdf-capi` is separate future work.
 - D-2. `core/signature/src/server/*` routes stay unported; the browser build's transport speaks
   their wire format, pinned by conformance cases. Cost: a Rust-core browser build needs the TS
   routes on its server.
@@ -127,7 +128,7 @@ The divergences accepted in earlier catch-ups stand as before
 
 - CU-C4b-D2. The D-1 transport is `transport::HttpTransport::post(TransportRequest) ->
   Promise<TransportOutcome>` over the crate's own `Promise`.
-- CU-C4b-D3. The transport carries the routes' limits (proposed exception, above).
+- CU-C4b-D3. The transport carries the routes' limits (accepted exception, above).
 
 ## Plugins
 
@@ -198,7 +199,8 @@ The divergences accepted in earlier catch-ups stand as before
 
 - CU-C8c-D1. The Kotlin surfaces come from the generated bindings; there is no wrapper to extend.
 - CU-C8c-D2. `HttpSignatureTransport.kt` is not in the AAR, which packages `epdf-uniffi`. Cost: the
-  transport and the new viewer surfaces are proven on a desktop JVM only.
+  transport and the new viewer surfaces are proven on a desktop JVM only. On 2026-11-18 the user
+  chose to keep the AAR engine-only until Android signing is wanted.
 - CU-C8c-D3. One timer covers the whole exchange; a non-2xx status in hand at the deadline is that
   reply, as CU-C8b-D1.
 - CU-C8c-D4. The JVM test signs against upstream's routes served by a Node helper. Cost: it needs
