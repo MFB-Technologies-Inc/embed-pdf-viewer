@@ -25,7 +25,7 @@ Decisions are in [`../decisions/CU-C4b.md`](../decisions/CU-C4b.md).
 | `789f6146e` | 9 | Fix round 1: OCSP, CRL and TimeStampResp read through pkijs's schemas |
 | `990c8a3ab` | 9 | Fix round 1: `tsa` fixtures, `core/signature-long-term.json` (15 cases), `max_reply_bytes` |
 | `e125f85b7` | | Fix round 1: `coverage.json`, README, this report, the decisions |
-| `e06be2bba` | 9 | Fix round 2: 8 cases and 9 answers for `fill`, `splice` and `answer` branches, a configured reply limit |
+| `e06be2bba` | 9 | Fix round 2: 8 cases and 7 answers for `fill`, `splice` and `answer` branches, a configured reply limit |
 | the round-2 docs commit | | `coverage.json`, README, this report |
 
 ## Items
@@ -46,7 +46,7 @@ Decisions are in [`../decisions/CU-C4b.md`](../decisions/CU-C4b.md).
    `long-term.ts`, `collect.ts`, `revocation/{addresses,answer,fill,pool,request,source,status,http-source}`.
    Not ported: `signers/test-authority.ts` (CU-C4b-D4). 51 new cases in three files: fix round 1
    added a `tsa` fixture certificate (critical `id-kp-timeStamping`, as upstream's
-   `test/fixtures/long-term/timestamp-authority.cer`) and 15 cases, fix round 2 added 8 cases and 9
+   `test/fixtures/long-term/timestamp-authority.cer`) and 15 cases, fix round 2 added 8 cases and 7
    more answers after upstream's `test/collect.test.ts:279`, `:584` and `test/cms/splice.test.ts:103`,
    `:150`. Uncovered added lines in `core/signature` (`scripts/cu-c3/gaps.py`, `gaps-after.txt`),
    from 2,148 to 168:

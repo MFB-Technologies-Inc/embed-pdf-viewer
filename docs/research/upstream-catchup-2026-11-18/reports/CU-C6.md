@@ -103,8 +103,12 @@ All in container `embed-pdf-catchup1118`, worktree `/workspaces/wt/CU-C6`,
 | uncovered added lines (`gaps.py`), whole range | 284 in 26 files | 195 in 23 files (219 in 25 before fix round 1) |
 
 Uncovered lines left in the files this job touched:
-`packages/plugin/signature/src/write/validation-info.ts`: none (85 at the base, 23 before fix
-round 1, whose three cases reach the success path).
+`packages/plugin/signature/src/write/validation-info.ts`: no uncovered statement line (85 at the
+base, 23 before fix round 1, whose three cases reach the stored-answers path), but three paths no
+case reaches (corrected in CU-C7): the `!uncovered` early return at line 90 (branch `90:20#0`), the
+success return at line 95 (branch `95:4#0`), and the `added.certificates + added.ocspResponses +
+added.crls > 0` side of `uncovered`. No case has a timestamp authority that answers, and every
+`signatures.addValidationInfo` answer is `{ certificates: 0, ocspResponses: 0, crls: 0 }`.
 `packages/plugin/form/src/write/fill.ts` 152-156, 171-173 (8, unchanged from the base): paths
 that existed before the range, which `134f24b77` only renamed (`undoLookOf` to
 `predictor.undoLook`), so `gaps.py` counts them as added; no case reaches them before or after. `authority.ts` 63-65 is covered now.
@@ -114,6 +118,12 @@ that existed before the range, which `134f24b77` only renamed (`undoLookOf` to
 No behaviour divergence is known. The port identity rule of CU-C6-D2 extends the existing
 `SigningKey::same` divergence (deep compare upstream, identity here) to the two new ports; no
 vector observes it.
+
+One deliberate Rust-only difference (CU-C6-D7, recorded in CU-C7): when the timer that ends the
+pen drawing's wait finishes the drawing and the `finishInkDraft` commit throws, upstream's error
+escapes as an uncaught exception of the timer callback, and Rust drops it (`write/drafts.rs`
+`wait_for_next_stroke`), as `write/text_editing.rs` drops a failed `send_typing` from its timer. A
+timer callback has no caller to throw to; no vector reaches it.
 
 ## Evidence
 

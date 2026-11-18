@@ -95,7 +95,7 @@ These are recorded rather than fixed; the TypeScript is the oracle.
   over 64 KiB is refused before it is sent; neither client can build one that large.
 - OCSP responses, CRLs and TimeStampResp go through pkijs's schemas with the same
   `compareSchema` walk a TSTInfo does (`timestamp.rs`), so form, the order of optional members and
-  what is never looked at match pkijs; `core/signature-long-term.json` checks 45 answers branch by
+  what is never looked at match pkijs; `core/signature-long-term.json` checks 43 answers branch by
   branch. Two parts are taken whole rather than walked: a certificate inside a
   `BasicOCSPResponse` (its TBS) and the `distributionPoint` of an `IssuingDistributionPoint`.
   A certificate pkijs's schema refuses there is refused here by `Certificate::read` with the

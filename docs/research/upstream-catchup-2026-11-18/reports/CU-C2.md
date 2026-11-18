@@ -111,4 +111,4 @@ checkout (ignored), hashed in its `SHA256SUMS`. Scripts are in [`../scripts/cu-c
 - Playwright moved to 1.65.1 in the lockfile (CU-C2-D3).
 - impl's Rust stays red on vector shape (D-03); the port is on plugins.
 - `runtime-src` names `af480d0ce`, which exists only in the local runtime fork until
-  `catchup/2026-11-18-runtime` is pushed (D-3).
+  `catchup/2026-11-18-runtime` is pushed (plan D-3).

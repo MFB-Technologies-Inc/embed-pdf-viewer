@@ -88,5 +88,8 @@ Reason: upstream's `finishWaitingInk` lets `store.commit` throw, so the commit t
 never runs the replacing message. The first port swallowed the error and ran the message, dropping
 the drawing.
 Cost: no test pins it. The commit throws only when the change queue is closed or refuses the
-change, and no harness path reaches that while a drawing waits.
+change, and no harness path reaches that while a drawing waits. The timer that ends the wait is
+a deliberate Rust-only difference (recorded in CU-C7): upstream's timer lets the `finishInkDraft`
+error escape as an uncaught exception of the timer callback, Rust drops it, the same convention as
+`write/text_editing.rs` for a failed `send_typing` from its timer.
 Reverse: not needed.
