@@ -896,3 +896,32 @@ fn only_a_document_timestamp_may_leave_the_field_out() {
     );
     assert_eq!(drawn["error"]["code"], json!("SignatureRefused"), "{drawn}");
 }
+
+// ── the visual fill is the signer's to place (ceeb36bae) ─────────────────
+
+#[test]
+fn a_visual_fill_takes_the_right_to_sign_not_the_right_to_fill() {
+    let artwork = fixture("signature_artwork.pdf");
+    let fill_only = |host: &mut Host, scope: Value| {
+        let doc = sig_open_fixture_with(
+            host,
+            &format!("{FIX}/unsigned_sigfield.pdf"),
+            json!({ "scope": scope, "identity": {} }),
+        );
+        let field = unsigned_field(host, &doc);
+        envelope(
+            host,
+            json!({ "kind": "forms.setSignatureAppearance", "docId": doc, "opId": "mark",
+                "ref": field }),
+            vec![artwork.clone()],
+        )
+    };
+    let refused = fill_only(
+        &mut Host::new(),
+        json!(["doc.open", "doc.forms.read", "doc.forms.fill", "doc.forms.modify"]),
+    );
+    assert_eq!(refused["error"]["code"], json!("Forbidden"), "{refused}");
+    let placed = fill_only(&mut Host::new(), json!(["doc.open", "doc.forms.read", "doc.sign"]));
+    assert!(placed.get("error").is_none(), "{placed}");
+    assert_eq!(placed["result"]["event"]["type"], json!("forms.updated"), "{placed}");
+}

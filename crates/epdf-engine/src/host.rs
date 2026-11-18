@@ -1330,8 +1330,13 @@ impl Host {
                 self.answer_with_notice(&key, answer, notice, Vec::new())
             }
             // `WorkerHost.handleFormsSetSignatureAppearance`: a one-op
-            // change under the request's authority, the PDF payload 0.
+            // change under the request's authority, the PDF payload 0. The
+            // mark is the field's signer's to place: the session must be
+            // able to sign some field (`beginFieldWrite('sign')`: `doc.sign`
+            // or a `fields:sign` scope), and the op checks the field's group
+            // (ceeb36bae), never `doc.forms.fill`.
             "forms.setSignatureAppearance" => {
+                require_some_signing(self.sessions.session(&key)?)?;
                 let reference: f::forms::snapshot::FormFieldRef = field(body, "ref")?;
                 let pdf = take_payload(&mut payloads, 0, "the appearance PDF")?;
                 let op = f::changes::op::ChangeOp::FormsSetSignatureAppearance {
