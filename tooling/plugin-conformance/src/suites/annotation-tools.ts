@@ -716,7 +716,7 @@ const cases: ScenarioCase[] = [
   {
     name: 'ink-cancel-inside-the-grouping-window',
     covers:
-      'A cancel while an ink group is still inside its grouping window clears the window’s timer, so the buffered stroke never commits. Only a down that is not an ink down leaves the window open for the cancel to meet: re-registering the active tool id as a square does that without a tool change.',
+      'A pen drawing that waits for its next stroke is finished work: a down that is not an ink down (the active tool id re-registered as a square, with no tool change) takes the draft slot, so the waiting stroke becomes an annotation then, and the cancel of the square that follows takes nothing back (d0601e65e). Before, the drawing waited in a grouping window the cancel cleared, and the stroke never committed.',
     plugins: PLUGINS,
     engine: {
       documents: { a: doc([hydrate(), ...LIVE_ANSWERS['ink-cancel-inside-the-grouping-window']]) },

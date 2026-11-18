@@ -1409,7 +1409,28 @@ export const LIVE_ANSWERS: Readonly<Record<string, ResponseSpec[]>> = {
       { ms: 1000 },
     ),
   ],
-  'ink-cancel-inside-the-grouping-window': [],
+  'ink-cancel-inside-the-grouping-window': [
+    write(1, [
+      {
+        item: created(
+          born(10001, {
+            subtype: 'ink',
+            color: '#e5484d',
+            strokeWidth: 6,
+            blendMode: 'normal',
+            inkList: [
+              [
+                { x: 10, y: 10 },
+                { x: 20, y: 15 },
+              ],
+            ],
+            rotation: null,
+            print: true,
+          }),
+        ),
+      },
+    ]),
+  ],
   'hover-follows-the-subtype-the-draft-began-with': [],
   'poly-and-callout-clicks': [
     write(1, [

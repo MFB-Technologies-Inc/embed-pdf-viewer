@@ -2,9 +2,9 @@
  * Every `kind` the worker protocol accepts, read out of the TypeScript type
  * rather than off a regular expression.
  *
- * `WorkerRequest` is a union of 90 members, two of which (`OpenWorkerRequest`
+ * `WorkerRequest` is a union of 92 members, two of which (`OpenWorkerRequest`
  * and `WorkerControlMessage`) are themselves union aliases over three kinds
- * each, so the flat set has 94 entries. Counting them by grepping for
+ * each, so the flat set has 96 entries. Counting them by grepping for
  * `kind: '` also picks up the four `LayerOpenSource` variants nested inside
  * the open requests and the response and lifecycle kinds, and counting the
  * `case` arms in `WorkerHost.ts` misses `abort` and `pages.workingSet`, which

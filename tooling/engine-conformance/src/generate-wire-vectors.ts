@@ -30,11 +30,13 @@ const vectorsRoot = join(packageRoot, 'vectors', 'wire');
 const SCHEMA_VERSION = 1;
 
 /**
- * Asserted rather than derived; both port documents quote it. 94 after the
- * 2026-11 catch-up added the five font kinds (89 after the catch-up to
- * upstream b456ee4fd; the committed vectors were cut at 65).
+ * Asserted rather than derived; both port documents quote it. 96 after the
+ * 2026-11-18 catch-up added signatures.validationInfo and
+ * signatures.addValidationInfo (94 after the 2026-11 catch-up added the five
+ * font kinds, 89 after the catch-up to upstream b456ee4fd; the committed
+ * vectors were cut at 65).
  */
-const EXPECTED_KINDS = 94;
+const EXPECTED_KINDS = 96;
 
 function serialize(entries: readonly unknown[]): string {
   const head = JSON.stringify(

@@ -216,6 +216,8 @@ const SERVICE_MEMBERS = {
     prepare: true,
     complete: true,
     cancel: true,
+    getValidationInfo: true,
+    addValidationInfo: true,
   },
   'page.annotations': {
     list: true,

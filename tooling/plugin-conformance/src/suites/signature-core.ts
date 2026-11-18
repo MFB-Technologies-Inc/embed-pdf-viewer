@@ -704,9 +704,18 @@ trustCases.push(
 
 // ── sign ─────────────────────────────────────────────────────────────────────
 
+/**
+ * A document with no validation data: `validateSignatures` reads the security store before it
+ * judges (`readValidationPool`, 67ed292a6). Sticky, so a case that never validates leaves it
+ * unasked.
+ */
+const NO_VALIDATION_INFO: ResponseSpec = {
+  path: 'signatures.getValidationInfo',
+  value: { certificates: [], ocspResponses: [], crls: [] },
+};
 const signDoc = (responses: ResponseSpec[], services = ['signatures']): Record<string, FakeDocumentSpec> => ({
   d: { pages: [], services, responses: services.length
-      ? responses
+      ? [...responses, NO_VALIDATION_INFO]
       : [
           ...responses,
           ...['prepare', 'list'].map((method) => ({

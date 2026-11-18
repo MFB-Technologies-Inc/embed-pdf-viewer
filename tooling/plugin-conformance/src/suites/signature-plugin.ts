@@ -389,6 +389,8 @@ const docOf = (o: DocOptions = {}): FakeDocumentSpec => ({
     PERMITTED,
     { path: 'forms.setSignatureAppearance' },
     { path: 'signatures.cancel' },
+    // No validation data: validation reads the security store first (67ed292a6).
+    { path: 'signatures.getValidationInfo', value: { certificates: [], ocspResponses: [], crls: [] } },
   ],
 });
 
