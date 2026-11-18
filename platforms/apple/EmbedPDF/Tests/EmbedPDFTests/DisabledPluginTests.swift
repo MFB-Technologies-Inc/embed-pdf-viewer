@@ -117,7 +117,8 @@ extension BaseSuite {
 
     @Test func everyPluginInViewerConfigHasARow() {
       let fields = Set(Mirror(reflecting: ViewerConfig()).children.compactMap { $0.label })
-        .subtracting(["scope"])
+        // Not plugins: the permission scope, and the lists the commands plugin takes.
+        .subtracting(["scope", "standardCommands"])
       let rows = Self.accessors.map(\.field)
       expectNoDifference(Set(rows), fields)
       expectNoDifference(rows.count, Set(rows).count)

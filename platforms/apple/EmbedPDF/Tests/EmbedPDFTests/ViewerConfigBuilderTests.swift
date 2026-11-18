@@ -46,6 +46,7 @@ extension BaseSuite {
       Row("shell") { $0.shell() },
       Row("i18n") { $0.i18n(I18nConfig()) },
       Row("commands") { $0.commands() },
+      Row("standardCommands") { $0.standardCommands([.history]) },
       Row("actions") { $0.actions(ActionsConfig(openSequence: .off)) },
       Row("signature") { $0.signature(SignatureConfig()) },
     ]
