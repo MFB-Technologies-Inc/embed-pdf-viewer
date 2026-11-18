@@ -3454,7 +3454,7 @@
     {
       "slice": "iii",
       "path": "tooling/plugin-conformance/historical/task-12b2b3-iii/accounting.json",
-      "sha256": "da12f99293f923c516809a500cf35628d98b521ff17fc0ea1966d8a7d7f67618",
+      "sha256": "2c0d5ef6090a6b81f0ca9d568e0f44c87ccc9d3c74297a318c6e3f7759ba3700",
       "original": 40,
       "current": 43,
       "mappings": [
@@ -4282,7 +4282,7 @@
     {
       "slice": "iv",
       "path": "tooling/plugin-conformance/historical/task-12b2b3-iv/accounting.json",
-      "sha256": "ceda3edfb1cfd30e5627177a72ec25749b5f51bd27088b68a03fb85b6f1a5f0e",
+      "sha256": "36a8e78d903288b6027cc4994712d31d8d4a68184887dc77a85760ebb32b8de1",
       "original": 41,
       "current": 41,
       "mappings": [
@@ -5100,7 +5100,7 @@
     {
       "slice": "v",
       "path": "tooling/plugin-conformance/historical/task-12b2b3-v/accounting.json",
-      "sha256": "f5e3845b00a14d4d3015ad5335fa0fb4c1172f7423757bf247b619ddfc00f5d9",
+      "sha256": "d9482a49f23cd2731b6212b0b384997345554ae91aa999f1b944b73b6b289360",
       "original": 19,
       "current": 22,
       "mappings": [
@@ -5638,8 +5638,8 @@
     },
     {
       "path": "packages/core/annotation/src/update/draw.ts",
-      "sha256": "6b52eadbd37dc3c4e04de828dbd556ea8cecd874e46c76be10a9c20b848114ed",
-      "commit": "59864ae011f46036c11cf3fea6da2e388033d1d5"
+      "sha256": "a028d927b6c35720d4ba58e8c4e1d1a29cf98cdc908a82e796d7f380556f2062",
+      "commit": "d0601e65eebc8d060b53c34441588d976ddc6f0f"
     },
     {
       "path": "packages/core/main/src/changes.ts",
@@ -5668,8 +5668,8 @@
     },
     {
       "path": "packages/core/main/src/testing.ts",
-      "sha256": "4b71e83ac42cfb04e7cefd593ca9d020ed039080559a51642d4ad6a0ebc0d24e",
-      "commit": "95fb3b5672098ab6d0a4856dcac16a5c57cd7fe1"
+      "sha256": "1dcadd297bf642fc3ed9c0beb37869753c37ef6a823787b85431ae9f9ef66e52",
+      "commit": "d6325f5ba75da478bf568b1d8db8b1594e3e7e3f"
     },
     {
       "path": "packages/core/main/src/types.ts",
@@ -5833,8 +5833,8 @@
     },
     {
       "path": "packages/plugin/annotation/src/host-contract.ts",
-      "sha256": "84059c05e4d777fe79385e868d014d5ca07ab10bb73c40b55c545fe673c27cb3",
-      "commit": "a390171cc89f6ec5181545b9505d3ba04794c9ea"
+      "sha256": "518b3eb29bdc8915e5310d77803a312cccef035a1de4f7e7190d6615b4a5807e",
+      "commit": "a41ab182cd78941d2af148649f8d869c4ba185ae"
     },
     {
       "path": "packages/plugin/annotation/src/services/authority.ts",
@@ -5973,8 +5973,8 @@
     },
     {
       "path": "packages/plugin/stamp/src/contract.ts",
-      "sha256": "1da9e7915d445136e966991b575f82308478c7ac350d6bc2422f64447cd101b5",
-      "commit": "fbbb417a6a4a8498e24e9dc734fc389812b55387"
+      "sha256": "48665d2ef0e8803a27afbc01be4638c13b73294b4349df43d84dcd0a55b6df27",
+      "commit": "a97140dd05c7ca78ea2e4b334345aaadbddc1c2a"
     },
     {
       "path": "packages/plugin/stamp/src/controller.ts",
@@ -6048,8 +6048,8 @@
     },
     {
       "path": "packages/plugin/stamp/src/write/libraries.ts",
-      "sha256": "bc30362779e364bdf406dff83f4ef7239481e47cc028d2438f90330aa1dc470f",
-      "commit": "2ce3f7bc57bf98998735c87e6393ee3d52d4be3f"
+      "sha256": "8ab43c422d284fbfe3fd410624c7d81bdd26d2a804a90f5bb688306e00442708",
+      "commit": "a97140dd05c7ca78ea2e4b334345aaadbddc1c2a"
     },
     {
       "path": "packages/plugin/stamp/src/write/marks.ts",

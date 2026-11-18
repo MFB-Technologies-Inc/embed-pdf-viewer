@@ -716,10 +716,10 @@
           "after": "ink-cancel-inside-the-grouping-window",
           "status": "retained",
           "oldCanonicalInputSha256": "bf59be00ebf0feb05ab8dd7a0d8d5ec5d1e9e76928beecaeb53e9f4d7a15402a",
-          "currentCanonicalInputSha256": "35fb25e99db6aae905ed06de68327867546fa1d00bace191a92a35657b9faeb7",
+          "currentCanonicalInputSha256": "6f754ee3ec065378bfeabc6908b7420f67efb64c81627419cb7ebaec993d2138",
           "task11InputDrift": false,
           "beforeCovers": "A cancel while an ink group is still inside its grouping window clears the window’s timer, so the buffered stroke never commits. Only a down that is not an ink down leaves the window open for the cancel to meet: re-registering the active tool id as a square does that without a tool change.",
-          "afterCovers": "A cancel while an ink group is still inside its grouping window clears the window’s timer, so the buffered stroke never commits. Only a down that is not an ink down leaves the window open for the cancel to meet: re-registering the active tool id as a square does that without a tool change.",
+          "afterCovers": "A pen drawing that waits for its next stroke is finished work: a down that is not an ink down (the active tool id re-registered as a square, with no tool change) takes the draft slot, so the waiting stroke becomes an annotation then, and the cancel of the square that follows takes nothing back (d0601e65e). Before, the drawing waited in a grouping window the cancel cleared, and the stroke never committed.",
           "migrationNotes": "Actual current live factory, nested nouns, complete page-space engine records, stable-born refs, typed pre-execution apply confirmations and current public/session/engine outcomes replace the archived aliases and service tables.",
           "upstreamEvidence": "packages/plugin/annotation/src/tools/handlers.ts:425-535; tools/definitions.ts:508-526; write/stamps.ts:171-175"
         },

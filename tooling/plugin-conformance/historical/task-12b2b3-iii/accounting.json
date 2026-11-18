@@ -854,8 +854,8 @@
     },
     {
       "path": "packages/plugin/stamp/src/contract.ts",
-      "sha256": "1da9e7915d445136e966991b575f82308478c7ac350d6bc2422f64447cd101b5",
-      "commit": "fbbb417a6a4a8498e24e9dc734fc389812b55387"
+      "sha256": "48665d2ef0e8803a27afbc01be4638c13b73294b4349df43d84dcd0a55b6df27",
+      "commit": "a97140dd05c7ca78ea2e4b334345aaadbddc1c2a"
     },
     {
       "path": "packages/plugin/stamp/src/token.ts",
@@ -879,8 +879,8 @@
     },
     {
       "path": "packages/plugin/stamp/src/write/libraries.ts",
-      "sha256": "bc30362779e364bdf406dff83f4ef7239481e47cc028d2438f90330aa1dc470f",
-      "commit": "2ce3f7bc57bf98998735c87e6393ee3d52d4be3f"
+      "sha256": "8ab43c422d284fbfe3fd410624c7d81bdd26d2a804a90f5bb688306e00442708",
+      "commit": "a97140dd05c7ca78ea2e4b334345aaadbddc1c2a"
     },
     {
       "path": "packages/plugin/stamp/src/write/assets.ts",
@@ -969,8 +969,8 @@
     },
     {
       "path": "packages/core/main/src/testing.ts",
-      "sha256": "4b71e83ac42cfb04e7cefd593ca9d020ed039080559a51642d4ad6a0ebc0d24e",
-      "commit": "95fb3b5672098ab6d0a4856dcac16a5c57cd7fe1"
+      "sha256": "1dcadd297bf642fc3ed9c0beb37869753c37ef6a823787b85431ae9f9ef66e52",
+      "commit": "d6325f5ba75da478bf568b1d8db8b1594e3e7e3f"
     }
   ],
   "partialRetirements": {

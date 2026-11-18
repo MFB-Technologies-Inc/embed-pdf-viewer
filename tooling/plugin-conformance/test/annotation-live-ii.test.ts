@@ -556,8 +556,19 @@ test('ink buffering, page switches, zero-window strokes and cancel have concrete
   assert.equal(highlighter!.blendMode, 'multiply');
   assert.equal(read('ink-strokes-group', 'draft.get'), null);
   assert.equal(ops('ink-strokes-group').length, 4);
-  assert.deepEqual(read('ink-cancel-inside-the-grouping-window', 'list'), []);
-  assert.equal(ops('ink-cancel-inside-the-grouping-window').length, 0);
+  // The waiting stroke is kept when the square down takes the draft slot (d0601e65e).
+  const kept = read<Extract<Annotation, { subtype: 'ink' }>[]>(
+    'ink-cancel-inside-the-grouping-window',
+    'list',
+  );
+  assert.equal(kept.length, 1);
+  assert.deepEqual(kept[0]!.inkList, [
+    [
+      { x: 10, y: 10 },
+      { x: 20, y: 15 },
+    ],
+  ]);
+  assert.equal(ops('ink-cancel-inside-the-grouping-window').length, 1);
   assert.equal(read<Annotation[]>('hover-drives-only-a-multi-click-draft', 'list').length, 2);
   assert.equal(ops('hover-drives-only-a-multi-click-draft').length, 2);
 });

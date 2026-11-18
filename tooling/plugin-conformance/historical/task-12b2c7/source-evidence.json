@@ -37,7 +37,7 @@
     },
     {
       "path": "packages/engine/core/src/events/DocumentEvent.ts",
-      "sha256": "012b5fa5705bc9f5eeaa093edd4800d445d8813a274af1c21706791917386fba"
+      "sha256": "2bd27260e15123eae00046035d8f86030fd567ab3d3b4cb3cae264811a585a41"
     },
     {
       "path": "packages/core/main/src/mirror.ts",
