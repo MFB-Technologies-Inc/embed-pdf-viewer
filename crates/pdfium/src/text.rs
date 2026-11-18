@@ -71,6 +71,7 @@ pub struct CharGeometry {
 
 impl<'a> TextPage<'a> {
     pub(crate) fn load(page: pdfium_sys::FPDF_PAGE) -> Result<Self, PdfiumError> {
+        count_call!(TextLoadPage);
         let handle = unsafe { pdfium_sys::FPDFText_LoadPage(page) };
         if handle.is_null() {
             return Err(PdfiumError::TextLoad);

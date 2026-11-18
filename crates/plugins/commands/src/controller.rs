@@ -109,7 +109,6 @@ fn same_resolved(a: &Option<Rc<ResolvedCommand>>, b: &Option<Rc<ResolvedCommand>
 /// sentences that say why it's disabled: the scope doesn't allow it (when it
 /// shows disabled for that), or a lock holds its setting. The label and the
 /// sentences are translated from these, only when one of them changes.
-#[derive(Clone)]
 struct Answers {
     entry: Option<Rc<RegisteredCommand>>,
     translate: Translate,
@@ -122,6 +121,25 @@ struct Answers {
     visible: bool,
     not_allowed_key: Option<String>,
     locked_key: Option<String>,
+}
+
+/// A map by document key (`""` is the active document), then by command
+/// id, so a lookup borrows both.
+type ByDocument<V> = HashMap<String, HashMap<String, V>>;
+
+fn held<'a, V>(map: &'a ByDocument<V>, document_key: &str, id: &str) -> Option<&'a V> {
+    map.get(document_key)?.get(id)
+}
+
+fn hold<V>(map: &mut ByDocument<V>, document_key: &str, id: &str, value: V) {
+    match map.get_mut(document_key) {
+        Some(by_id) => {
+            by_id.insert(id.to_string(), value);
+        }
+        None => {
+            map.insert(document_key.to_string(), HashMap::from([(id.to_string(), value)]));
+        }
+    }
 }
 
 /// `availabilityOf`'s answer.
@@ -226,12 +244,10 @@ impl IdsInputs {
 }
 
 type Defined = Rc<Vec<Rc<RegisteredCommand>>>;
-/// A document's key (`""` is the active document) and a command id.
-type ResolutionKey = (String, String);
 type ConfiguredMemo = (Rc<Vec<CommandItem>>, Rc<ConfiguredCommands>);
 type DefinedMemo = (u64, Rc<ConfiguredCommands>, Defined);
 type FamilyMemo = (Rc<CommandFamily>, Vec<(String, Rc<RegisteredCommand>)>);
-type ResolvedMemo = (Answers, Option<Rc<ResolvedCommand>>);
+type ResolvedMemo = (Rc<Answers>, Option<Rc<ResolvedCommand>>);
 type IdsMemo = (IdsInputs, Rc<Vec<String>>);
 type ListMemo = (Vec<Option<Rc<ResolvedCommand>>>, Rc<Vec<Rc<ResolvedCommand>>>);
 type ShortcutsMemo = (Defined, Rc<Vec<ShortcutBinding>>);
@@ -260,10 +276,14 @@ struct Inner {
     contexts: RefCell<HashMap<String, (u64, CommandCtx)>>,
     /// Each document's `answersById`: a command's answers, asked at most
     /// once per store change.
-    answers: RefCell<HashMap<ResolutionKey, (u64, Answers)>>,
+    answers: RefCell<ByDocument<(u64, Rc<Answers>)>>,
     /// Each document's resolved commands, built again only when their
     /// answers changed.
-    resolved: RefCell<HashMap<ResolutionKey, ResolvedMemo>>,
+    resolved: RefCell<ByDocument<ResolvedMemo>>,
+    /// Each document's resolved commands as JSON text, printed again only
+    /// when the resolved command is a new one.
+    #[cfg(feature = "harness")]
+    texts: RefCell<ByDocument<plugin_conformance::TextMemo<ResolvedCommand>>>,
     ids: RefCell<HashMap<String, IdsMemo>>,
     lists: RefCell<HashMap<String, ListMemo>>,
     shortcuts: RefCell<Option<ShortcutsMemo>>,
@@ -406,7 +426,16 @@ impl CommandsCapability {
             None => ctx.get(&DOCUMENTS)?.get_active_id(),
         };
         let app_state = self.current_settings().app_state.clone();
-        Ok(CommandCtx { document_id: target, app_state, args, signal, ctx: ctx.clone() })
+        Ok(CommandCtx {
+            document_id: target,
+            app_state,
+            args,
+            signal,
+            ctx: ctx.clone(),
+            found: None,
+            printed: Rc::default(),
+            app_state_text: Rc::default(),
+        })
     }
 
     /// `registeredChanged`.
@@ -503,7 +532,9 @@ impl CommandsCapability {
     }
 
     /// `contextByDocument`: the context a document's derivations read
-    /// (`""` is the active document), the same until the store changes.
+    /// (`""` is the active document), the same until the store changes. It
+    /// keeps the capabilities it finds, which stay the same objects until
+    /// then.
     fn context_by_document(&self, document_key: &str) -> Result<CommandCtx, Error> {
         let count = self.inner.cx.store_change_count();
         if let Some((held, context)) = self.inner.contexts.borrow().get(document_key)
@@ -512,7 +543,8 @@ impl CommandsCapability {
             return Ok(context.clone());
         }
         let target = (!document_key.is_empty()).then_some(document_key);
-        let context = self.command_context(target, None, None)?;
+        let context =
+            CommandCtx { found: Some(Rc::default()), ..self.command_context(target, None, None)? };
         self.inner.contexts.borrow_mut().insert(document_key.to_string(), (count, context.clone()));
         Ok(context)
     }
@@ -590,19 +622,18 @@ impl CommandsCapability {
 
     /// `answersById` for one document: a command's answers, asked at most
     /// once per store change however many readers ask.
-    fn answers_by_id(&self, document_key: &str, id: &str) -> Result<Answers, Error> {
+    fn answers_by_id(&self, document_key: &str, id: &str) -> Result<Rc<Answers>, Error> {
         let count = self.inner.cx.store_change_count();
-        let key = (document_key.to_string(), id.to_string());
-        if let Some((held, answers)) = self.inner.answers.borrow().get(&key)
-            && *held == count
+        if let Some((asked, answers)) = held(&self.inner.answers.borrow(), document_key, id)
+            && *asked == count
         {
             return Ok(answers.clone());
         }
-        let answers = match self.entry_of(id)? {
+        let answers = Rc::new(match self.entry_of(id)? {
             Some(entry) => self.answers_of(&entry, &self.context_by_document(document_key)?),
             None => Answers::not_registered(),
-        };
-        self.inner.answers.borrow_mut().insert(key, (count, answers.clone()));
+        });
+        hold(&mut self.inner.answers.borrow_mut(), document_key, id, (count, answers.clone()));
         Ok(answers)
     }
 
@@ -616,14 +647,13 @@ impl CommandsCapability {
         id: &str,
     ) -> Result<Option<Rc<ResolvedCommand>>, Error> {
         let answers = self.answers_by_id(document_key, id)?;
-        let key = (document_key.to_string(), id.to_string());
-        if let Some((held, resolved)) = self.inner.resolved.borrow().get(&key)
-            && held.same(&answers)
+        if let Some((from, resolved)) = held(&self.inner.resolved.borrow(), document_key, id)
+            && (Rc::ptr_eq(from, &answers) || from.same(&answers))
         {
             return Ok(resolved.clone());
         }
         let resolved = answers.resolved();
-        self.inner.resolved.borrow_mut().insert(key, (answers, resolved.clone()));
+        hold(&mut self.inner.resolved.borrow_mut(), document_key, id, (answers, resolved.clone()));
         Ok(resolved)
     }
 
@@ -771,6 +801,27 @@ impl CommandsCapability {
         document_id: Option<&str>,
     ) -> Result<Option<Rc<ResolvedCommand>>, Error> {
         self.resolve_in(self.target(document_id).unwrap_or(""), id)
+    }
+
+    /// [`resolve_command`](Self::resolve_command) as JSON text, `null` for
+    /// an unknown id: printed again only when the resolved command is a new
+    /// one. What the conformance adapter answers `resolveCommand` with.
+    #[cfg(feature = "harness")]
+    pub fn resolve_command_text(
+        &self,
+        id: &str,
+        document_id: Option<&str>,
+    ) -> Result<Rc<str>, Error> {
+        let document_key = self.target(document_id).unwrap_or("");
+        let Some(resolved) = self.resolve_in(document_key, id)? else { return Ok("null".into()) };
+        let texts = &mut *self.inner.texts.borrow_mut();
+        if let Some(memo) = held(texts, document_key, id) {
+            return Ok(memo.get_or_print(&resolved));
+        }
+        let memo = plugin_conformance::TextMemo::default();
+        let text = memo.get_or_print(&resolved);
+        hold(texts, document_key, id, memo);
+        Ok(text)
     }
 
     /// `listCommands`: every command, resolved, in the order they were
@@ -1056,6 +1107,8 @@ pub fn create_commands_controller(
             contexts: RefCell::new(HashMap::new()),
             answers: RefCell::new(HashMap::new()),
             resolved: RefCell::new(HashMap::new()),
+            #[cfg(feature = "harness")]
+            texts: RefCell::new(HashMap::new()),
             ids: RefCell::new(HashMap::new()),
             lists: RefCell::new(HashMap::new()),
             shortcuts: RefCell::new(None),

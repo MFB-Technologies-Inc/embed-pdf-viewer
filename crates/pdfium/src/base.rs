@@ -90,9 +90,10 @@ pub struct BaseDocument {
 impl BaseDocument {
     /// Load and freeze a base document from bytes.
     ///
-    /// The copy is deliberate and reserved fallibly, as [`Document::from_bytes`]
-    /// does: PDFium holds a pointer into this buffer until the base is
-    /// released, so the base has to own it.
+    /// The copy is reserved fallibly, as [`Document::from_bytes`] does:
+    /// PDFium holds a pointer into this buffer until the base is released,
+    /// so the base has to own it. A caller that already owns a `Vec` hands it
+    /// to [`BaseDocument::from_vec`] instead and skips the copy.
     pub fn from_bytes(
         library: Rc<Library>,
         bytes: &[u8],
@@ -101,7 +102,19 @@ impl BaseDocument {
         let mut owned = Vec::new();
         owned.try_reserve_exact(bytes.len()).map_err(|_| PdfiumError::OutOfMemory)?;
         owned.extend_from_slice(bytes);
+        Self::from_vec(library, owned, password)
+    }
 
+    /// Load and freeze a base document from bytes it takes ownership of,
+    /// without copying them. Moving the base moves the `Vec`'s three words,
+    /// never the allocation PDFium points into. On failure the bytes are
+    /// freed here, after PDFium has returned no handle that could point into
+    /// them.
+    pub fn from_vec(
+        library: Rc<Library>,
+        owned: Vec<u8>,
+        password: Option<&str>,
+    ) -> Result<Self, PdfiumError> {
         let c_password = password
             .map(|p| {
                 CString::new(p).map_err(|_| PdfiumError::InvalidArgument("password contains NUL"))

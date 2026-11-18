@@ -228,7 +228,7 @@ impl LinkCapability {
     pub fn list_links(&self, page: impl Into<PageTarget>) -> Rc<Value> {
         let Some(page) = self.ref_of(page.into()) else { return Rc::new(json!([])) };
         if let Some(host) = self.annotation_host() {
-            return Rc::new(host.list_link_items(&page.to_json()));
+            return host.list_link_items(&page.to_json());
         }
         self.0.pages.get(&page.to_json()).unwrap_or_else(|| Rc::new(json!([])))
     }

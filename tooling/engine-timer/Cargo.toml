@@ -1,0 +1,21 @@
+[package]
+name = "engine-timer"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+# A release binary that times `epdf_engine::host::Host::call` on the native
+# PDFium build. `compare.mjs` runs two builds of it against each other.
+[[bin]]
+name = "engine-timer"
+path = "src/main.rs"
+
+[dependencies]
+epdf-engine = { path = "../../crates/epdf-engine" }
+serde_json = "1"
+# The corpus quantizer and number canonicalizer, so the answer check compares
+# exactly as the engine's own vector tests do.
+test-support = { path = "../../crates/test-support" }
+
+[build-dependencies]
+build-support = { path = "../../crates/build-support" }

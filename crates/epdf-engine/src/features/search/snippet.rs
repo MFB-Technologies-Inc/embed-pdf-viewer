@@ -31,6 +31,12 @@ pub struct SearchSnippet {
 /// slice, so a snippet boundary always lands on a whole character.
 pub fn build_snippet(text: &str, range: TextRange, context: u32) -> SearchSnippet {
     let units: Vec<u16> = text.encode_utf16().collect();
+    build_snippet_in(&units, range, context)
+}
+
+/// [`build_snippet`] over the page text already in UTF-16 code units, so a
+/// page with many matches encodes its text once.
+pub fn build_snippet_in(units: &[u16], range: TextRange, context: u32) -> SearchSnippet {
     let total = units.len() as u32;
     let match_end = range.start.saturating_add(range.count).min(total);
     let start_of_match = range.start.min(total);
@@ -42,7 +48,7 @@ pub fn build_snippet(text: &str, range: TextRange, context: u32) -> SearchSnippe
         // token and not worth a worse rule.
         let mut cut = None;
         for i in start..start_of_match {
-            if is_whitespace_unit(&units, i) {
+            if is_whitespace_unit(units, i) {
                 cut = Some(i + 1);
                 break;
             }
@@ -50,7 +56,7 @@ pub fn build_snippet(text: &str, range: TextRange, context: u32) -> SearchSnippe
         if let Some(cut) = cut {
             start = cut;
         }
-        if is_low_surrogate(&units, start) {
+        if is_low_surrogate(units, start) {
             start += 1;
         }
     }
@@ -61,7 +67,7 @@ pub fn build_snippet(text: &str, range: TextRange, context: u32) -> SearchSnippe
         let mut i = end;
         while i > match_end {
             i -= 1;
-            if is_whitespace_unit(&units, i) {
+            if is_whitespace_unit(units, i) {
                 cut = Some(i);
                 break;
             }
@@ -69,7 +75,7 @@ pub fn build_snippet(text: &str, range: TextRange, context: u32) -> SearchSnippe
         if let Some(cut) = cut {
             end = cut;
         }
-        if is_low_surrogate(&units, end) {
+        if is_low_surrogate(units, end) {
             end -= 1;
         }
     }

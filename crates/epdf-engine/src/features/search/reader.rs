@@ -15,25 +15,28 @@
 //! [`crate::session::authority::SessionAuthority`] answers whether
 //! `doc.text.search` is granted; this assumes an authorized request.
 
+use std::rc::Rc;
+
 use serde::{Deserialize, Serialize};
 
 use crate::cancel::CancelToken;
 use crate::error::{EngineError, EngineErrorCode};
 use crate::features::geometry::read_page_geometry;
 use crate::features::text::TextRange;
-use crate::features::text::charmap::char_range_for_text_offsets;
+use crate::features::text::charmap::char_range_for_text_offsets_with_len;
 use crate::features::text::layout::{PdfTextLayout, PdfTextSegment};
 use crate::features::text::reader::read_page_text;
 use crate::identity::PageObjectNumber;
 use crate::page_space::{Coordinates, PdfCoordinates};
 use crate::session::document::DocumentSession;
 
+use super::corpus::PageCorpus;
 use super::cursor::{
     SearchCursorState, decode_search_cursor, encode_search_cursor, search_query_key,
 };
 use super::fold::{FoldOptions, fold_text};
-use super::matcher::{SearchQuery, match_page_text};
-use super::snippet::{SEARCH_SNIPPET_CONTEXT, SearchSnippet, build_snippet};
+use super::matcher::{CompiledQuery, SearchQuery};
+use super::snippet::{SEARCH_SNIPPET_CONTEXT, SearchSnippet, build_snippet_in};
 
 /// Per-slice budget defaults and ceilings.
 ///
@@ -169,7 +172,7 @@ pub fn search(
         });
     }
 
-    let seq = session.mutation_sequence();
+    let seq = session.cache_sequence();
     let key = search_query_key(&request.query, request.snippets);
 
     let (mut start, mut scanned) = (0u32, 0u32);
@@ -211,6 +214,9 @@ pub fn search(
 
     let mut matches: Vec<SearchMatch> = Vec::new();
     let mut pages_this_slice = 0u32;
+    // Prepared at the first page scanned, after that page is read, so a
+    // slice that scans nothing never compiles the pattern.
+    let mut compiled: Option<CompiledQuery> = None;
 
     // Budget checks sit at page granularity: a page's matches are never split
     // across slices, so a cursor only ever points between pages and a caller
@@ -222,16 +228,34 @@ pub fn search(
         cancel.check()?;
         let page_number = order[scanned as usize];
 
-        let page = session.acquire_page(page_number)?;
-        let snapshot = read_page_text(&page, cancel)?;
-        let ranges = match_page_text(&snapshot.text, &request.query).map_err(|issue| {
-            EngineError::with_message(
-                EngineErrorCode::InvalidArg,
-                format!("invalid search query: {issue:?}"),
-            )
-        })?;
+        // The page is acquired only when its text is not cached at this
+        // sequence, or when it matched and its geometry is needed.
+        let mut page = None;
+        let corpus = match session.search_corpus()?.get(page_number, seq) {
+            Some(corpus) => corpus,
+            None => {
+                let held = session.acquire_page(page_number)?;
+                let corpus = Rc::new(PageCorpus::new(read_page_text(&held, cancel)?));
+                session.search_corpus()?.insert(page_number, seq, Rc::clone(&corpus));
+                page = Some(held);
+                corpus
+            }
+        };
+        if compiled.is_none() {
+            compiled = Some(CompiledQuery::new(&request.query).map_err(|issue| {
+                EngineError::with_message(
+                    EngineErrorCode::InvalidArg,
+                    format!("invalid search query: {issue:?}"),
+                )
+            })?);
+        }
+        let ranges = compiled.as_ref().map_or_else(Vec::new, |query| query.match_corpus(&corpus));
 
         if !ranges.is_empty() {
+            let page = match page {
+                Some(page) => page,
+                None => session.acquire_page(page_number)?,
+            };
             let geometry = read_page_geometry(&page, cancel)?;
             // One canonical layout per page, shared by every match on it.
             let layout = PdfTextLayout::new(geometry);
@@ -241,8 +265,12 @@ pub fn search(
                 // biased helper that keeps zero-width characters adjacent to
                 // the match outside it on both sides. Snippets are built from
                 // the text.
-                let chars =
-                    char_range_for_text_offsets(&snapshot, range.start, range.start + range.count);
+                let chars = char_range_for_text_offsets_with_len(
+                    &corpus.snapshot,
+                    corpus.text_len_utf16(),
+                    range.start,
+                    range.start + range.count,
+                );
                 let chars = TextRange { start: chars.start, count: chars.end - chars.start };
                 matches.push(SearchMatch {
                     page: page_number,
@@ -251,7 +279,7 @@ pub fn search(
                     segments: layout.segments(chars),
                     snippet: request
                         .snippets
-                        .then(|| build_snippet(&snapshot.text, range, SEARCH_SNIPPET_CONTEXT)),
+                        .then(|| build_snippet_in(&corpus.units, range, SEARCH_SNIPPET_CONTEXT)),
                 });
             }
         }

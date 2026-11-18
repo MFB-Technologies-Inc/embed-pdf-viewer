@@ -240,31 +240,37 @@ pub fn to_original_range(
     folded_start: usize,
     folded_length: usize,
 ) -> Option<TextRange> {
+    let original: Vec<u16> = folded.original.encode_utf16().collect();
+    to_original_range_in(folded, &original, folded_start, folded_length)
+}
+
+/// [`to_original_range`] given `folded.original` in UTF-16 code units, so a
+/// caller mapping many matches encodes the original once.
+pub fn to_original_range_in(
+    folded: &FoldedText,
+    original: &[u16],
+    folded_start: usize,
+    folded_length: usize,
+) -> Option<TextRange> {
     if folded_length == 0 {
         return None;
     }
     let start = *folded.map.get(folded_start)?;
     let last_original = *folded.map.get(folded_start + folded_length - 1)?;
-    let end = last_original + code_point_len_utf16_at(&folded.original, last_original);
+    let end = last_original + code_point_len_utf16_at(original, last_original);
     Some(TextRange { start, count: end - start })
 }
 
-/// The UTF-16 length of the code point starting at a UTF-16 index.
-fn code_point_len_utf16_at(text: &str, utf16_index: u32) -> u32 {
-    let mut units = 0u32;
-    for ch in text.chars() {
-        if units == utf16_index {
-            return ch.len_utf16() as u32;
-        }
-        units += ch.len_utf16() as u32;
-        if units > utf16_index {
-            // The index landed inside a surrogate pair, which the map never
-            // produces; report the pair's length so a caller still gets a
-            // whole character.
-            return ch.len_utf16() as u32;
-        }
+/// The UTF-16 length of the code point at a UTF-16 index.
+///
+/// Either half of a surrogate pair reports the pair's length. The map never
+/// points at a low surrogate, but a caller still gets a whole character if
+/// it does. Past the end is one unit.
+fn code_point_len_utf16_at(units: &[u16], utf16_index: u32) -> u32 {
+    match units.get(utf16_index as usize) {
+        Some(unit) if (0xD800..=0xDFFF).contains(unit) => 2,
+        _ => 1,
     }
-    1
 }
 
 #[cfg(test)]

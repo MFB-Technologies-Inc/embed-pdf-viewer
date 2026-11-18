@@ -101,7 +101,15 @@ pub(super) fn read_field_back(
     cancel: &CancelToken,
 ) -> Result<FormFieldDto, EngineError> {
     cancel.check()?;
-    let model = load_model(document)?;
+    read_field_back_in(&load_model(document)?, object_number)
+}
+
+/// Read a field back through `model`, which the caller loaded after its
+/// last write.
+fn read_field_back_in(
+    model: &FormModel<'_>,
+    object_number: u32,
+) -> Result<FormFieldDto, EngineError> {
     let index = model.field_index_by_object_number(object_number).ok_or_else(|| {
         EngineError::with_message(
             EngineErrorCode::Unknown,
@@ -109,7 +117,7 @@ pub(super) fn read_field_back(
         )
     })?;
     let field = model.field(index).expect("the index resolved");
-    read_field(&model, &field, index, &mut ActionReadBudgetTracker::default())
+    read_field(model, &field, index, &mut ActionReadBudgetTracker::default())
 }
 
 /// A form write's meta (`FormMutationMeta`): the page envelope plus what
@@ -254,9 +262,10 @@ pub fn holds_value(family: FormFieldFamily) -> bool {
 }
 
 /// The value half of `FormMutator`: each write resolves its field against a
-/// fresh model, checks it can be written, writes what the field's rules
-/// (`super::value`) leave it holding that it doesn't hold now, and reads it
-/// back through another fresh model.
+/// model loaded since the last write (its own, or the caller's), checks it
+/// can be written, writes what the field's rules (`super::value`) leave it
+/// holding that it doesn't hold now, and reads it back through a fresh
+/// model.
 pub struct FormMutator<'a> {
     pub document: &'a Document,
     /// Whether the signatures' field locks hold (`signedDocumentPolicy:
@@ -267,7 +276,7 @@ pub struct FormMutator<'a> {
     pub stamp: WriteStamp,
 }
 
-impl FormMutator<'_> {
+impl<'a> FormMutator<'a> {
     /// Set a field's value, as `actor` filled it in (`setValue`): what the
     /// field's rules (`fieldAfterValue`) leave it holding. A write that
     /// changes the field names who filled it in, at `now`; one that leaves
@@ -282,6 +291,22 @@ impl FormMutator<'_> {
     ) -> Result<FieldWriteResult, EngineError> {
         cancel.check()?;
         let model = load_model(self.document)?;
+        Ok(self.set_value_in(model, reference, value, actor, now, cancel)?.0)
+    }
+
+    /// [`Self::set_value`] against `model`, which the caller loaded and has
+    /// not written since. Answers, beside the result, the model that read
+    /// the field back: it is current until the caller's next write.
+    pub(crate) fn set_value_in(
+        &self,
+        model: FormModel<'a>,
+        reference: &FormFieldRef,
+        value: &FormFieldValue,
+        actor: &IdentityClaims,
+        now: Option<&str>,
+        cancel: &CancelToken,
+    ) -> Result<(FieldWriteResult, FormModel<'a>), EngineError> {
+        cancel.check()?;
         let resolved = resolve(&model, reference)?;
         self.assert_writable(&model, &resolved)?;
         let before = read_at(&model, resolved.index)?;
@@ -318,6 +343,7 @@ impl FormMutator<'_> {
                 )
             })?;
         self.read_back(resolved.object_number, &changed.object_numbers, Some(false), cancel)
+            .map(|(result, _)| result)
     }
 
     /// Draw a text field's or dropdown's widgets with `text` (a format
@@ -356,6 +382,7 @@ impl FormMutator<'_> {
                 )
             })?;
         self.read_back(resolved.object_number, &changed.object_numbers, Some(true), cancel)
+            .map(|(result, _)| result)
     }
 
     /// Draw a one-page PDF into every widget of an unsigned signature field
@@ -416,7 +443,7 @@ impl FormMutator<'_> {
             )?;
         }
         let drawn: Vec<u32> = widgets.iter().map(|(annot, _)| *annot).collect();
-        self.read_back(resolved.object_number, &drawn, Some(true), cancel)
+        self.read_back(resolved.object_number, &drawn, Some(true), cancel).map(|(result, _)| result)
     }
 
     /// Put fields back to their default value (`reset`): the ones named, or,
@@ -432,6 +459,20 @@ impl FormMutator<'_> {
     ) -> Result<ResetResult, EngineError> {
         cancel.check()?;
         let model = load_model(self.document)?;
+        Ok(self.reset_in(model, refs, cancel)?.0)
+    }
+
+    /// [`Self::reset`] against `model`, which the caller loaded and has not
+    /// written since. Answers, beside the result, the one model that read
+    /// every changed field back: it is current until the caller's next
+    /// write.
+    pub(crate) fn reset_in(
+        &self,
+        model: FormModel<'a>,
+        refs: Option<&[FormFieldRef]>,
+        cancel: &CancelToken,
+    ) -> Result<(ResetResult, FormModel<'a>), EngineError> {
+        cancel.check()?;
         let targets = match refs {
             None => self.whole_form_targets(&model)?,
             Some(refs) => self.named_targets(&model, refs)?,
@@ -454,11 +495,15 @@ impl FormMutator<'_> {
             written.push((before, changed));
         }
 
+        // Every write is done: one model reads them all back.
+        cancel.check()?;
+        let model = load_model(self.document)?;
         let mut fields = Vec::new();
         let mut changed_widgets = Vec::new();
         let mut redrawn_widgets = Vec::new();
         for (before, changed) in written {
-            let after = read_field_back(self.document, before.base.field_object_number(), cancel)?;
+            cancel.check()?;
+            let after = read_field_back_in(&model, before.base.field_object_number())?;
             if changed.is_empty()
                 && super::value::value_entries_equal(
                     &before.base.value_entry,
@@ -478,7 +523,7 @@ impl FormMutator<'_> {
             fields.push(after);
         }
         let changed_fields = fields.iter().map(|field| field.base.field_ref.clone()).collect();
-        Ok(ResetResult {
+        let result = ResetResult {
             fields,
             meta: form_mutation_meta(
                 &self.stamp,
@@ -486,7 +531,8 @@ impl FormMutator<'_> {
                 changed_widgets,
                 Some(redrawn_widgets),
             ),
-        })
+        };
+        Ok((result, model))
     }
 
     /// Every field a whole-form reset puts back: those with a value, written
@@ -508,12 +554,14 @@ impl FormMutator<'_> {
     }
 
     /// The named fields with a value, each once; one that can't be written
-    /// is refused (`namedTargets`).
+    /// is refused (`namedTargets`). The locks are read once, when the first
+    /// field to check them comes.
     fn named_targets(
         &self,
         model: &FormModel<'_>,
         refs: &[FormFieldRef],
     ) -> Result<Vec<FormFieldDto>, EngineError> {
+        let mut locks = None;
         let mut seen = Vec::new();
         let mut targets = Vec::new();
         for reference in refs {
@@ -522,7 +570,9 @@ impl FormMutator<'_> {
             if !holds_value(field.base.family) || seen.contains(&resolved.object_number) {
                 continue;
             }
-            self.assert_writable(model, &resolved)?;
+            assert_not_direct(&resolved)?;
+            let locks = locks.get_or_insert_with(|| self.field_locks());
+            assert_unlocked(locks.as_ref(), model, &resolved)?;
             seen.push(resolved.object_number);
             targets.push(field);
         }
@@ -536,20 +586,8 @@ impl FormMutator<'_> {
         model: &FormModel<'_>,
         resolved: &ResolvedField,
     ) -> Result<(), EngineError> {
-        if resolved.object_number == 0 {
-            return Err(EngineError::with_message(
-                EngineErrorCode::InvalidArg,
-                "form field is stored as a direct object and cannot be written",
-            ));
-        }
-        let Some(locks) = self.field_locks() else {
-            return Ok(());
-        };
-        let name = model
-            .field(resolved.index)
-            .and_then(|f| super::snapshot::text(f.name()).ok().flatten())
-            .unwrap_or_default();
-        locks.assert_not_locked(&name)
+        assert_not_direct(resolved)?;
+        assert_unlocked(self.field_locks().as_ref(), model, resolved)
     }
 
     /// Whether a signature locked the field named `name`, by the locks read
@@ -643,14 +681,18 @@ impl FormMutator<'_> {
     /// Read the field back through a fresh model, and its changed widgets
     /// (`readBack`). `redraws`: whether the write drew the widgets again;
     /// `None` for a value write, which decides by the field's family.
+    /// Answers the model too, for a caller that reads on before its next
+    /// write.
     fn read_back(
         &self,
         object_number: u32,
         changed: &[u32],
         redraws: Option<bool>,
         cancel: &CancelToken,
-    ) -> Result<FieldWriteResult, EngineError> {
-        let field = read_field_back(self.document, object_number, cancel).map_err(|e| {
+    ) -> Result<(FieldWriteResult, FormModel<'a>), EngineError> {
+        cancel.check()?;
+        let model = load_model(self.document)?;
+        let field = read_field_back_in(&model, object_number).map_err(|e| {
             if e.code == EngineErrorCode::Unknown {
                 EngineError::with_message(
                     EngineErrorCode::Unknown,
@@ -677,8 +719,36 @@ impl FormMutator<'_> {
             changed_widgets,
             Some(redrawn),
         );
-        Ok(FieldWriteResult { field, meta })
+        Ok((FieldWriteResult { field, meta }, model))
     }
+}
+
+/// `assertWritable`'s first half: a field stored as a direct object can't
+/// be written.
+fn assert_not_direct(resolved: &ResolvedField) -> Result<(), EngineError> {
+    if resolved.object_number == 0 {
+        return Err(EngineError::with_message(
+            EngineErrorCode::InvalidArg,
+            "form field is stored as a direct object and cannot be written",
+        ));
+    }
+    Ok(())
+}
+
+/// `assertWritable`'s second half: the field is not one `locks` names.
+fn assert_unlocked(
+    locks: Option<&FieldLocks>,
+    model: &FormModel<'_>,
+    resolved: &ResolvedField,
+) -> Result<(), EngineError> {
+    let Some(locks) = locks else {
+        return Ok(());
+    };
+    let name = model
+        .field(resolved.index)
+        .and_then(|f| super::snapshot::text(f.name()).ok().flatten())
+        .unwrap_or_default();
+    locks.assert_not_locked(&name)
 }
 
 /// The locks earlier signatures put on fields, by fully qualified name.

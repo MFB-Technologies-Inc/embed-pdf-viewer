@@ -122,13 +122,16 @@ for slice in "${SLICES[@]}"; do
     darwin-static-x64) sdk=macosx; clang_target=x86_64-apple-macosx14.0 ;;
   esac
   sdk_root="$(xcrun --sdk "$sdk" --show-sdk-path)"
+  # `cargo rustc --crate-type staticlib` rather than `cargo build`: the crate
+  # also lists cdylib and rlib, and Cargo passes the profile's `-C lto` only
+  # when every crate type it builds can take it, which an rlib can't.
   (cd "$ROOT" && EMBEDPDF_FORK_TARGET="$fork" SDKROOT="$sdk_root" \
     MACOSX_DEPLOYMENT_TARGET=14.0 IPHONEOS_DEPLOYMENT_TARGET=17.0 \
     BINDGEN_EXTRA_CLANG_ARGS="${BINDGEN_EXTRA_CLANG_ARGS:+$BINDGEN_EXTRA_CLANG_ARGS }--target=$clang_target -isysroot $sdk_root" \
     RUSTFLAGS="${RUSTFLAGS:+$RUSTFLAGS }$REMAP" \
-    cargo build --manifest-path "$ROOT/Cargo.toml" --offline --locked \
+    cargo rustc --manifest-path "$ROOT/Cargo.toml" --offline --locked \
       -j "${CARGO_BUILD_JOBS:-2}" -p epdf-viewer-host --target "$rust" --profile "$PROFILE" \
-      ${FEATURES[@]+"${FEATURES[@]}"})
+      --crate-type staticlib ${FEATURES[@]+"${FEATURES[@]}"})
 
   # One archive per slice, because `xcodebuild -create-xcframework` takes one
   # `-library` per platform. pdfium-sys links libembedpdf as

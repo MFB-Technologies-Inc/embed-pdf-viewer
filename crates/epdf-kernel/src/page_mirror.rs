@@ -24,36 +24,38 @@ pub enum Affected {
     Pages(Vec<Value>),
 }
 #[derive(Clone)]
-pub struct PageMirrorChange {
+pub struct PageMirrorChange<T = Value> {
     pub page: Value,
     pub cause: &'static str,
     pub event: Option<Value>,
-    pub previous: Option<Rc<Value>>,
-    pub next: Option<Rc<Value>>,
+    pub previous: Option<Rc<T>>,
+    pub next: Option<Rc<T>>,
 }
-pub struct PageMirrorSpec {
+/// A page mirror's spec (`PageMirrorSpec<V>`): `T` is what a page's load
+/// answers and the mirror holds, the engine's JSON or a plugin's own type.
+pub struct PageMirrorSpec<T = Value> {
     pub name: String,
-    pub load: Rc<dyn Fn(Option<Rc<dyn DocumentHandle>>, Value, AbortSignal) -> Promise<Value>>,
+    pub load: Rc<dyn Fn(Option<Rc<dyn DocumentHandle>>, Value, AbortSignal) -> Promise<T>>,
     pub affected: Rc<dyn Fn(&Value) -> Affected>,
-    pub fold: Option<Rc<dyn Fn(Rc<Value>, &Value, &Value) -> Result<Fold, Error>>>,
-    pub predict: Option<Rc<dyn Fn(Rc<Value>, &Value, &Value) -> Result<Rc<Value>, Error>>>,
-    pub changed: Option<Rc<dyn Fn(PageMirrorChange) -> Result<(), Error>>>,
+    pub fold: Option<Rc<dyn Fn(Rc<T>, &Value, &Value) -> Result<Fold<T>, Error>>>,
+    pub predict: Option<Rc<dyn Fn(Rc<T>, &Value, &Value) -> Result<Rc<T>, Error>>>,
+    pub changed: Option<Rc<dyn Fn(PageMirrorChange<T>) -> Result<(), Error>>>,
 }
 #[derive(Clone)]
-pub(crate) struct Entry {
+pub(crate) struct Entry<T> {
     page: Rc<Value>,
-    value: Option<Rc<Value>>,
+    value: Option<Rc<T>>,
     status: ResourceStatus,
 }
-struct Inner {
-    spec: PageMirrorSpec,
+struct Inner<T> {
+    spec: PageMirrorSpec<T>,
     env: MirrorEnvironment,
     cell: SliceLease,
     /// The pages' entries live here, not in the store: the cell holds a
     /// number each write bumps, so a write wakes the store's readers
     /// without copying every other page's entry. In the order a `Map`
     /// keeps: a key written again stays where it was.
-    entries: RefCell<indexmap::IndexMap<String, Entry>>,
+    entries: RefCell<indexmap::IndexMap<String, Entry<T>>>,
     /// What the cell holds: how many writes there were.
     writes: Cell<u64>,
     epochs: RefCell<HashMap<String, u64>>,
@@ -61,22 +63,22 @@ struct Inner {
     kept: RefCell<HashMap<String, HashMap<String, (PendingChange, u64)>>>,
     folded: RefCell<HashSet<String>>,
     version: Cell<u64>,
-    views: RefCell<HashMap<String, (Rc<Value>, u64, u64, Rc<Value>)>>,
+    views: RefCell<HashMap<String, (Rc<T>, u64, u64, Rc<T>)>>,
     off: RefCell<Option<Unsubscribe>>,
 }
 #[derive(Clone)]
-pub struct PageMirror(Rc<Inner>);
+pub struct PageMirror<T = Value>(Rc<Inner<T>>);
 /// A page read on its way: at once, or once the engine has a pending page.
-enum Read {
-    Now(Promise<Value>),
-    Wait(Promise<Option<Value>>),
+enum Read<T> {
+    Now(Promise<T>),
+    Wait(Promise<Option<T>>),
 }
 
 fn key(page: &Value) -> String {
     format!("obj:{}", page["objectNumber"])
 }
-impl PageMirror {
-    pub fn new(spec: PageMirrorSpec, env: MirrorEnvironment) -> Self {
+impl<T: Clone + 'static> PageMirror<T> {
+    pub fn new(spec: PageMirrorSpec<T>, env: MirrorEnvironment) -> Self {
         let cell = (env.cell)(&format!("page-mirror/{}", spec.name), json!(0));
         let this = Self(Rc::new(Inner {
             spec,
@@ -109,11 +111,11 @@ impl PageMirror {
     fn live(&self) -> bool {
         self.0.cell.live() && !self.0.env.lifetime.aborted()
     }
-    fn entry(&self, key: &str) -> Option<Entry> {
+    fn entry(&self, key: &str) -> Option<Entry<T>> {
         self.0.entries.borrow().get(key).cloned()
     }
     /// `setEntry`: once the cell is revoked, a write changes nothing.
-    fn write(&self, k: String, entry: Option<Entry>) {
+    fn write(&self, k: String, entry: Option<Entry<T>>) {
         if !self.live() {
             return;
         }
@@ -137,14 +139,14 @@ impl PageMirror {
         epochs.insert(k.into(), next);
         next
     }
-    fn announce(&self, e: PageMirrorChange) {
+    fn announce(&self, e: PageMirrorChange<T>) {
         if let Some(changed) = &self.0.spec.changed
             && let Err(error) = changed(e)
         {
             (self.0.env.report)(&error);
         }
     }
-    pub fn get(&self, page: &Value) -> Option<Rc<Value>> {
+    pub fn get(&self, page: &Value) -> Option<Rc<T>> {
         self.entry(&key(page)).and_then(|e| e.value)
     }
     pub fn get_status(&self, page: &Value) -> ResourceStatus {
@@ -159,7 +161,7 @@ impl PageMirror {
             .map(|e| (*e.page).clone())
             .collect()
     }
-    pub fn view(&self, page: &Value) -> Option<Rc<Value>> {
+    pub fn view(&self, page: &Value) -> Option<Rc<T>> {
         let value = self.get(page)?;
         let Some(predict) = &self.0.spec.predict else { return Some(value) };
         let k = key(page);
@@ -181,7 +183,7 @@ impl PageMirror {
             .unwrap_or_default();
         let shown = showing(&self.0.env.changes, &kept, &self.0.folded.borrow());
         let (predict, page) = (predict.clone(), page.clone());
-        let predict: Predict = Rc::new(move |value, op| predict(value, op, &page));
+        let predict: Predict<T> = Rc::new(move |value, op| predict(value, op, &page));
         let next = replay(value.clone(), shown, &predict, &self.0.env.report);
         self.0.views.borrow_mut().insert(k, (value, version, kept_version, next.clone()));
         Some(next)
@@ -243,7 +245,7 @@ impl PageMirror {
 
     /// `read(page)`: read the page; one a pending change makes once the
     /// engine has it. `Wait` answers `None` for `GONE`: the page went first.
-    fn read(&self, page: &Value) -> Read {
+    fn read(&self, page: &Value) -> Read<T> {
         let load = self.0.spec.load.clone();
         let (doc, lifetime) = (self.0.env.doc.clone(), self.0.env.lifetime.clone());
         if self.0.env.pages.pending(page).is_none() {

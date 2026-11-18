@@ -180,7 +180,7 @@ impl AnnotationLender for FormLender {
     }
 
     fn picture_epoch(&self, page: &Value) -> String {
-        self.core().map(|core| core.get_appearance_epoch(page)).unwrap_or_default()
+        self.core().map(|core| core.get_appearance_epoch(page).to_string()).unwrap_or_default()
     }
 
     fn picture_version(&self, reference: &Value) -> f64 {

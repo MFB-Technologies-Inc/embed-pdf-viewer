@@ -3,6 +3,9 @@
 //! user can do to it (`KindCaps`), and what a style panel edits
 //! (`fields.ts`).
 
+use std::borrow::Cow;
+use std::sync::LazyLock;
+
 use serde_json::Value;
 
 use crate::json::{self, Object};
@@ -994,16 +997,27 @@ pub fn declared_kind(name: &str) -> Option<AnnotationKind> {
 /// not a kind the core can work with: here such a name reads as an only
 /// shown kind, like any other unknown name (a kept safe divergence; the
 /// harness reproduces the TypeScript's answers for those names).
-pub fn kind_named(name: &str) -> AnnotationKind {
-    declared_kind(name).unwrap_or_else(|| AnnotationKind {
+///
+/// A declared kind is the one table entry (`KINDS`), built once; an
+/// unknown name is built on each read, as it carries the name.
+pub fn kind_named(name: &str) -> Cow<'static, AnnotationKind> {
+    if let Some(i) = KIND_NAMES.iter().position(|n| *n == name) {
+        return Cow::Borrowed(&KINDS[i]);
+    }
+    Cow::Owned(declared_kind(name).unwrap_or_else(|| AnnotationKind {
         name: name.into(),
         family: Family::Box,
         style: plain_style,
         text: None,
         caps: caps(|c| c.raster_only = true),
         properties: no_fields,
-    })
+    }))
 }
+
+/// `KINDS`: the declared kinds, in `KIND_NAMES` order.
+static KINDS: LazyLock<Vec<AnnotationKind>> = LazyLock::new(|| {
+    KIND_NAMES.iter().map(|n| declared_kind(n).expect("a declared kind")).collect()
+});
 
 /// `widgetKindOf(widget)`: the name of a widget's kind: the one with a
 /// mark in it, else its field kind's.

@@ -23,11 +23,20 @@ pub struct ThreadsIndex {
     pub by_member: HashMap<Id, usize>,
 }
 
-type ThreadsMemo = Option<(Rc<ById>, Rc<Vec<Id>>, String, Option<String>, Rc<ThreadsIndex>)>;
+/// The memo's key and the index: the model's records, the page list it
+/// read with that list's layout, and the user.
+struct ThreadsMemo {
+    by_id: Rc<ById>,
+    order: Rc<Vec<Id>>,
+    pages: Rc<Value>,
+    layout: String,
+    user: Option<String>,
+    index: Rc<ThreadsIndex>,
+}
 
 #[derive(Default)]
 pub struct ThreadsState {
-    memo: RefCell<ThreadsMemo>,
+    memo: RefCell<Option<ThreadsMemo>>,
 }
 
 impl Core {
@@ -37,8 +46,8 @@ impl Core {
         identity.get("userId").and_then(Value::as_str).map(str::to_string)
     }
 
-    fn layout_signature(&self) -> String {
-        let pages = self.pages();
+    /// `layoutSignature()`: the pages' object numbers, in order.
+    fn layout_signature(pages: &Value) -> String {
         pages
             .as_array()
             .map(|list| {
@@ -50,7 +59,7 @@ impl Core {
             .unwrap_or_default()
     }
 
-    fn compute_threads(&self) -> ThreadsIndex {
+    fn compute_threads(&self, pages: &Value) -> ThreadsIndex {
         let model = self.model();
         let dtos: Vec<Value> = model
             .order
@@ -60,7 +69,6 @@ impl Core {
             .map(|r| Value::Object((*r.annotation).clone()))
             .collect();
         let mut threads = build_comment_threads(&dtos, self.current_user_id().as_deref());
-        let pages = self.pages();
         let display: HashMap<String, usize> = pages
             .as_array()
             .into_iter()
@@ -116,22 +124,35 @@ impl Core {
 
     /// `index()`: the threads, memoized. The same `Rc` until the records,
     /// the page layout or the user change (M19: one build per change, not
-    /// per read).
+    /// per read). The same page list is the same layout; a new list is
+    /// compared by its layout, so a list rebuilt with the same pages keeps
+    /// the index.
     pub fn threads_index(&self) -> Rc<ThreadsIndex> {
         let model = self.model();
-        let layout = self.layout_signature();
+        let pages = self.pages();
         let user = self.current_user_id();
-        if let Some((by_id, order, l, u, index)) = &*self.threads.memo.borrow()
-            && Rc::ptr_eq(by_id, &model.by_id)
-            && Rc::ptr_eq(order, &model.order)
-            && *l == layout
-            && *u == user
+        if let Some(memo) = &mut *self.threads.memo.borrow_mut()
+            && Rc::ptr_eq(&memo.by_id, &model.by_id)
+            && Rc::ptr_eq(&memo.order, &model.order)
+            && memo.user == user
         {
-            return index.clone();
+            if Rc::ptr_eq(&memo.pages, &pages) {
+                return memo.index.clone();
+            }
+            if memo.layout == Self::layout_signature(&pages) {
+                memo.pages = pages;
+                return memo.index.clone();
+            }
         }
-        let index = Rc::new(self.compute_threads());
-        *self.threads.memo.borrow_mut() =
-            Some((model.by_id.clone(), model.order.clone(), layout, user, index.clone()));
+        let index = Rc::new(self.compute_threads(&pages));
+        *self.threads.memo.borrow_mut() = Some(ThreadsMemo {
+            by_id: model.by_id.clone(),
+            order: model.order.clone(),
+            layout: Self::layout_signature(&pages),
+            pages,
+            user,
+            index: index.clone(),
+        });
         index
     }
 

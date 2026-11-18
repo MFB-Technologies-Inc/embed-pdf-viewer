@@ -150,6 +150,16 @@ fn created(record: Value) -> Value {
     })
 }
 
+/// A remote session changed this record.
+fn updated(record: Value) -> Value {
+    json!({
+        "type": "annotations.updated", "page": page(), "annotation": record,
+        "origin": { "kind": "remote", "sessionId": "s2",
+            "subject": "u-9", "at": "1970-01-01T00:00:00.000Z", "serverSequence": null },
+        "meta": { "affectedPages": [page()], "cacheDelta": null, "changed": [], "opId": "remote-update", "undoable": true }
+    })
+}
+
 // ── H3 ──────────────────────────────────────────────────────────────────────
 
 #[test]
@@ -192,6 +202,31 @@ fn h3_a_created_record_keeps_its_key_before_and_after_the_engine_confirms_it() {
         made.peek().expect("settled").expect("created")["annotation"]["ref"],
         square_ref(10001)
     );
+}
+
+/// Another session moves the square a drag snapped to: the drag's next
+/// sample snaps against the records as they now are, not the targets the
+/// first samples found.
+#[test]
+fn a_record_moved_mid_drag_is_snapped_against_where_it_now_is() {
+    let (kernel, fake) = kernel(vec![square(7, 100.0, 100.0), square(8, 270.0, 500.0)], Vec::new());
+    let cap = annotation(&kernel);
+    cap.selection_set(&[square_ref(7)]);
+    let draft = || cap.model().draft().expect("dragging").json();
+    // On its left edge, clear of the handles: a square with no fill is hit
+    // on its stroke.
+    pointer(&cap, "down", 100.0, 120.0);
+    // Its right edge lands half a point short of square 8's left edge, and
+    // no edge or centre is near the page's.
+    pointer(&cap, "move", 169.5, 120.0);
+    assert_eq!(draft()["kind"], "move");
+    assert_eq!(draft()["delta"]["x"], json!(70.0), "{}", draft());
+    assert_eq!(draft()["guides"][0]["at"], json!(270.0), "{}", draft());
+    fake.emit("a", &updated(square(8, 450.0, 500.0))).expect("the event");
+    pointer(&cap, "move", 169.6, 120.0);
+    let x = draft()["delta"]["x"].as_f64().expect("a delta");
+    assert!((x - 69.6).abs() < 1e-9, "snapped to where square 8 was: {}", draft());
+    assert_eq!(draft()["guides"], json!([]), "{}", draft());
 }
 
 #[test]
@@ -283,6 +318,9 @@ struct Gated(Rc<dyn DocumentSecurity>, Rc<std::cell::Cell<bool>>);
 impl DocumentSecurity for Gated {
     fn allows(&self, capability: &str) -> bool {
         if capability == "doc.annotate.read" { self.1.get() } else { self.0.allows(capability) }
+    }
+    fn allows_field(&self, action: &str, target: &Value) -> bool {
+        self.0.allows_field(action, target)
     }
     fn allows_annotation_create(&self) -> bool {
         self.0.allows_annotation_create()
@@ -494,8 +532,8 @@ fn a_write_failed_listener_can_reenter_the_pointer_and_leaves_the_record_publicl
     assert!(!cap.can_update(&square_ref(10001)));
     assert!(!cap.can_delete(&square_ref(10001)));
     assert!(cap.list(None).is_empty());
-    assert_eq!(cap.list_page_items(&page(), None), json!([]));
-    assert_eq!(cap.list_chrome_nodes(&page(), None, None, None), json!([]));
+    assert_eq!(*cap.list_page_items(&page(), None), json!([]));
+    assert_eq!(*cap.list_chrome_nodes(&page(), None, None, None), json!([]));
     assert!(cap.draft_get().is_null());
 
     let log = fake.log_since(0);
@@ -565,6 +603,51 @@ fn m19_threading_ten_thousand_annotations_stays_linear() {
     assert!(took < std::time::Duration::from_secs(10), "threading took {took:?}");
 }
 
+// ── S1: a record change copies the records once ─────────────────────────────
+
+/// A one-op change on 1,000 records copies the records' map once: its undo
+/// (`undoOf`) predicts no record past the last op, and the records value is
+/// built around the copy by moving it. The new records keep every member
+/// and key in its place.
+#[test]
+fn put_copies_records_once() {
+    use epdf_plugin_annotation::sync::records::{
+        by_key, from_snapshot, no_records, order, predict_records, record_copies, records_json,
+        undo_of,
+    };
+    let dtos: Vec<Value> = (1..=1_000).map(|n| square(n, 10.0, 10.0)).collect();
+    let records = Rc::new(from_snapshot(&no_records(), &dtos).expect("the records"));
+    let op = json!({
+        "type": "annotations.update", "ref": square_ref(7),
+        "patch": { "subtype": "square", "opacity": 0.5 }
+    });
+    let before = record_copies();
+    let undo = undo_of(&records, std::slice::from_ref(&op));
+    let next = predict_records(records.clone(), &op).expect("the prediction");
+    assert_eq!(record_copies() - before, 1, "the records were copied more than once");
+    assert_eq!(undo.len(), 1);
+    assert_eq!(undo[0]["patch"]["opacity"], json!(1));
+    let keys: Vec<&String> = next.as_object().unwrap().keys().collect();
+    assert_eq!(keys, ["byKey", "order"]);
+    assert_eq!(order(&next), order(&records));
+    let byk = by_key(&next);
+    assert_eq!(byk.keys().collect::<Vec<_>>(), by_key(&records).keys().collect::<Vec<_>>());
+    let changed = &byk[&order(&next)[6]];
+    let members: Vec<&String> = changed.as_object().unwrap().keys().collect();
+    assert_eq!(members, ["dto", "pictureVersion", "$v"]);
+    assert_eq!(changed["dto"]["opacity"], json!(0.5));
+    let mut expected = records_json(&records);
+    let current = records["byKey"][&order(&next)[6]]["dto"].as_object().unwrap();
+    let after =
+        epdf_annotation_core::record::annotation_after(current, op["patch"].as_object().unwrap())
+            .expect("the patched annotation");
+    expected["byKey"][&order(&next)[6]]["dto"] = Value::Object(after);
+    assert_eq!(
+        serde_json::to_string(&records_json(&next)).unwrap(),
+        serde_json::to_string(&expected).unwrap()
+    );
+}
+
 // ── M16: a grant after a forbidden load is seen on refresh ──────────────────
 
 /// Superseded M16: the records load refused for lack of `doc.annotate.read`
@@ -613,4 +696,113 @@ fn a_cursorless_handle_reads_undefined_and_nothing_reads_null() {
     assert!(upright.is_string(), "a corner handle has a cursor upright: {upright}");
     assert!(epdf_kernel::is_undefined(&at(100.0, 100.0, Some(f64::NAN))));
     assert_eq!(at(400.0, 400.0, None), Value::Null);
+}
+
+// ── S4, S6: memoized reads hand out their memo and print it once ───────────
+
+/// The capability as the conformance adapter is called with, and a harness
+/// over that adapter.
+fn adapter_call(
+    cap: &AnnotationCapability,
+) -> impl Fn(&str, Vec<Value>) -> plugin_conformance::Outcome {
+    use plugin_conformance::Harness;
+    let h = Harness::new(
+        vec![Rc::new(epdf_plugin_annotation::harness::Annotation)],
+        std::collections::HashMap::new(),
+    );
+    let any: Rc<dyn std::any::Any> = Rc::new(cap.clone());
+    move |method, args| h.call(&any, method, args)
+}
+
+fn printed(outcome: plugin_conformance::Outcome) -> Rc<str> {
+    match outcome {
+        plugin_conformance::Outcome::Text(text) => text,
+        _ => panic!("the read answers as printed text"),
+    }
+}
+
+/// A page read hands out its memo itself on a hit, and the adapter prints
+/// it once: the same text `Rc` until the read's answer changes, byte for
+/// byte what the answer prints as.
+#[test]
+fn list_page_items_shared_on_hit() {
+    let (kernel, _fake) =
+        kernel(vec![square(7, 100.0, 100.0), square(8, 300.0, 300.0)], Vec::new());
+    let cap = annotation(&kernel);
+    let items = cap.list_page_items(&page(), None);
+    assert_eq!(items.as_array().map(Vec::len), Some(2));
+    assert!(Rc::ptr_eq(&items, &cap.list_page_items(&page(), None)));
+    let texts = cap.list_text_items(&page(), None);
+    assert!(Rc::ptr_eq(&texts, &cap.list_text_items(&page(), None)));
+    let links = cap.list_link_items(&page());
+    assert!(Rc::ptr_eq(&links, &cap.list_link_items(&page())));
+    let nodes = cap.list_chrome_nodes(&page(), None, None, None);
+    assert!(Rc::ptr_eq(&nodes, &cap.list_chrome_nodes(&page(), None, None, None)));
+
+    let call = adapter_call(&cap);
+    let reads: [(&str, Vec<Value>, String); 8] = [
+        ("listPageItems", vec![page()], items.to_string()),
+        ("listTextItems", vec![page()], texts.to_string()),
+        ("listLinkItems", vec![page()], links.to_string()),
+        ("listChromeNodes", vec![page()], nodes.to_string()),
+        ("list", vec![], json!(*cap.list(None)).to_string()),
+        ("selection.getSelected", vec![], json!(*cap.list_selected()).to_string()),
+        ("getSettings", vec![], cap.get_settings().to_string()),
+        ("comments.listThreads", vec![], cap.comments_list_threads().to_string()),
+    ];
+    for (method, args, expected) in &reads {
+        let first = printed(call(method, args.clone()));
+        assert_eq!(&*first, expected.as_str(), "{method} prints what it answers");
+        let again = printed(call(method, args.clone()));
+        assert!(Rc::ptr_eq(&first, &again), "{method} prints once");
+    }
+
+    // A selection changes the page's model, so the page and selection reads
+    // answer anew, and print anew.
+    let before = printed(call("listPageItems", vec![page()]));
+    let selected = printed(call("selection.getSelected", vec![]));
+    cap.selection_set(&[square_ref(7)]);
+    let items_after = cap.list_page_items(&page(), None);
+    assert!(!Rc::ptr_eq(&items, &items_after));
+    let after = printed(call("listPageItems", vec![page()]));
+    assert!(!Rc::ptr_eq(&before, &after));
+    assert_eq!(&*after, items_after.to_string());
+    let selected_after = printed(call("selection.getSelected", vec![]));
+    assert!(!Rc::ptr_eq(&selected, &selected_after));
+    assert_eq!(&*selected_after, json!(*cap.list_selected()).to_string());
+}
+
+/// `getAppearanceEpoch` keeps the engine's part of a page's epoch per page
+/// model: the same answer `Rc` while the page's model is the same, a new
+/// one, equal while the pictures are, once it changes.
+#[test]
+fn appearance_epoch_memoized_per_page_model() {
+    let (kernel, _fake) =
+        kernel(vec![square(7, 100.0, 100.0), square(8, 300.0, 300.0)], Vec::new());
+    let cap = annotation(&kernel);
+    let epoch = cap.get_appearance_epoch(&page());
+    assert_eq!(&*epoch, "obj:7@0|obj:8@0");
+    assert!(Rc::ptr_eq(&epoch, &cap.get_appearance_epoch(&page())));
+    cap.selection_set(&[square_ref(7)]);
+    let after = cap.get_appearance_epoch(&page());
+    assert!(!Rc::ptr_eq(&epoch, &after), "a new page model computes it again");
+    assert_eq!(after, epoch, "a selection changes no picture");
+    assert!(Rc::ptr_eq(&after, &cap.get_appearance_epoch(&page())));
+}
+
+/// The epoch follows the page's records: a remote delete drops the deleted
+/// record's picture from it, and a remote create adds the new one (at
+/// whatever picture version the create gives it).
+#[test]
+fn appearance_epoch_follows_the_records() {
+    let (kernel, fake) = kernel(vec![square(7, 100.0, 100.0), square(8, 300.0, 300.0)], Vec::new());
+    let cap = annotation(&kernel);
+    assert_eq!(&*cap.get_appearance_epoch(&page()), "obj:7@0|obj:8@0");
+    fake.emit("a", &deleted(vec![square_ref(8)])).expect("the event");
+    rt::run_until_stalled();
+    assert_eq!(&*cap.get_appearance_epoch(&page()), "obj:7@0");
+    fake.emit("a", &created(square(9, 200.0, 200.0))).expect("the event");
+    rt::run_until_stalled();
+    let epoch = cap.get_appearance_epoch(&page());
+    assert!(epoch.starts_with("obj:7@0|obj:9@"), "{epoch}");
 }

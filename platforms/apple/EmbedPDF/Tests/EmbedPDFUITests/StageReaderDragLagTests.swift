@@ -4,8 +4,8 @@ import Foundation
 import Observation
 import Testing
 
-/// Timestamps every write of `model.camera`: one per `refresh`, whether a
-/// drag call or the stage event loop made it.
+/// Timestamps every write of `model.camera` that changes it: one per
+/// `cameraChanged` the stage event loop applies, plus any `refresh`.
 @MainActor
 final class CameraWrites {
   var times: [ContinuousClock.Instant] = []
@@ -32,10 +32,10 @@ final class CameraWrites {
 struct StageReaderDragLagTests {
   /// A drag at 120 Hz through the path `StageReaderView` uses: each
   /// `.onChanged` starts its own task that calls `dragChanged`. Measures each
-  /// call from the change to its return (its turn in the drag chain, the
-  /// pan, its refresh), how long the chain runs on after the last change,
-  /// and how long the event loop's refreshes (one per `cameraChanged`) keep
-  /// writing the camera after that.
+  /// call from the change to its return (its turn in the drag chain and the
+  /// pan), how long the chain runs on after the last change, and how long
+  /// the event loop (one camera write per `cameraChanged`) keeps writing the
+  /// camera after that.
   @Test func a120HzDragKeepsUp() async throws {
     let viewer = try PDFViewer(ViewerConfig(render: RenderConfig(), stage: StageConfig()))
     try await viewer.start()

@@ -38,3 +38,8 @@ build-support = { path = "../../build-support" }
 # epdf-engine links PDFium, and this crate builds for wasm32.
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 epdf-engine = { path = "../../epdf-engine" }
+
+# Reads the harness-only counters.
+[[test]]
+name = "behavior"
+required-features = ["harness"]

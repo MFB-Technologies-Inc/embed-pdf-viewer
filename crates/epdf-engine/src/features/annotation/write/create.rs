@@ -318,10 +318,7 @@ fn claim_name(
 /// (`annotationIndexByName`), read from the page's `/Annots` without loading
 /// the page.
 pub fn name_taken(document: &Document, page_index: u32, nm: &str) -> bool {
-    let count = document.raw_annotation_count(page_index).unwrap_or(0);
-    (0..count)
-        .filter_map(|index| document.raw_annotation(page_index, index))
-        .any(|annotation| annotation.string_value("NM").ok().flatten().as_deref() == Some(nm))
+    document.raw_annotation_index_by_name(page_index, nm).is_some()
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

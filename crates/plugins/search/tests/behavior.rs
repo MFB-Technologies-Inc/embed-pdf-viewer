@@ -10,7 +10,7 @@ use std::rc::Rc;
 
 use epdf_geometry::Size;
 use epdf_kernel::engine::{
-    CallFacts, CallPriority, DocumentHandle, DocumentSecurity, Engine, EngineCall,
+    Answer, CallFacts, CallPriority, DocumentHandle, DocumentSecurity, Engine, EngineCall,
 };
 use epdf_kernel::geometry::PageRef;
 use epdf_kernel::kernel::{OpenOptions, OpenSource};
@@ -84,18 +84,24 @@ fn defer(text: &str, label: &str) -> Value {
 type Facts = Rc<RefCell<Vec<(String, CallFacts)>>>;
 
 /// The fake engine, whose handles record the facts of every `call_with`
-/// before answering it as the fake does.
+/// before answering it as the fake does. An answer asked for as an
+/// [`Answer`] comes as its JSON text, the way the web host hands it over,
+/// and is counted.
 struct Recording {
     fake: Rc<FakeEngine>,
     facts: Facts,
+    texts: Rc<Cell<u32>>,
 }
 
 impl Engine for Recording {
     fn open(&self, input: Value, options: Option<Value>) -> EngineCall<Rc<dyn DocumentHandle>> {
-        let facts = self.facts.clone();
+        let (facts, texts) = (self.facts.clone(), self.texts.clone());
         AsEngine(self.fake.clone()).open(input, options).convert(move |inner| {
-            Ok(Rc::new(RecordingHandle { inner: inner.clone(), facts: facts.clone() })
-                as Rc<dyn DocumentHandle>)
+            Ok(Rc::new(RecordingHandle {
+                inner: inner.clone(),
+                facts: facts.clone(),
+                texts: texts.clone(),
+            }) as Rc<dyn DocumentHandle>)
         })
     }
 
@@ -107,6 +113,7 @@ impl Engine for Recording {
 struct RecordingHandle {
     inner: Rc<dyn DocumentHandle>,
     facts: Facts,
+    texts: Rc<Cell<u32>>,
 }
 
 impl DocumentHandle for RecordingHandle {
@@ -135,6 +142,20 @@ impl DocumentHandle for RecordingHandle {
         self.facts.borrow_mut().push((path.to_string(), facts.clone()));
         self.inner.call_with(facts, path, pon, args)
     }
+    fn call_answer_with(
+        &self,
+        facts: &CallFacts,
+        path: &str,
+        pon: Option<u32>,
+        args: Vec<Value>,
+    ) -> EngineCall<Answer> {
+        self.facts.borrow_mut().push((path.to_string(), facts.clone()));
+        let texts = self.texts.clone();
+        self.inner.call_with(facts, path, pon, args).convert(move |value| {
+            texts.set(texts.get() + 1);
+            Ok(Answer::Text(value.to_string().into()))
+        })
+    }
     fn page_index(&self, pon: u32) -> Result<u32, Error> {
         self.inner.page_index(pon)
     }
@@ -152,6 +173,7 @@ struct Rig {
     search: SearchCapability,
     stage: Option<StageCapability>,
     facts: Facts,
+    texts: Rc<Cell<u32>>,
     heard: Heard,
     _hooks: Vec<Unsubscribe>,
 }
@@ -167,6 +189,7 @@ impl Rig {
             "responses": responses,
         } } }));
         let facts: Facts = Rc::default();
+        let texts: Rc<Cell<u32>> = Rc::default();
         let mut plugins: Vec<AnyPlugin> = Vec::new();
         if stage {
             let mut options = StagePluginOptions::default();
@@ -175,7 +198,7 @@ impl Rig {
         }
         plugins.push(search_plugin(SearchConfig::default()));
         let kernel = Kernel::new(
-            Rc::new(Recording { fake: fake.clone(), facts: facts.clone() }),
+            Rc::new(Recording { fake: fake.clone(), facts: facts.clone(), texts: texts.clone() }),
             plugins,
             KernelOptions::default(),
         )
@@ -227,7 +250,7 @@ impl Rig {
                 move |e| f(e)
             }),
         ];
-        Rig { _kernel: kernel, fake, search, stage, facts, heard, _hooks: hooks }
+        Rig { _kernel: kernel, fake, search, stage, facts, texts, heard, _hooks: hooks }
     }
 
     fn engine(&self) -> Vec<Value> {
@@ -456,6 +479,32 @@ fn every_slice_is_asked_for_at_low_priority() {
         assert_eq!(path, "search.query");
         assert_eq!(*facts, CallFacts { priority: Some(CallPriority::Low), view: None });
     }
+}
+
+/// `controller.ts:154-160`: each slice is read from the answer as the host
+/// has it, its JSON text here, into the same hits a parsed value gives.
+#[test]
+fn search_slice_decodes_without_value() {
+    let rig = Rig::new(
+        json!("*"),
+        vec![
+            answer("the", true, None, slice(vec![m(33, 0), m(11, 4)], Some("c1"), 2)),
+            answer("the", true, Some("c1"), slice(vec![m(22, 1)], None, 3)),
+        ],
+        false,
+    );
+    let hits = settled(rig.search.find_all(q("the"), Default::default())).unwrap();
+    assert_eq!(rig.texts.get(), 2, "both slices came as text");
+    let order: Vec<(u32, f64, usize)> =
+        hits.iter().map(|h| (h.page.page_object_number, h.start, h.page_index)).collect();
+    assert_eq!(order, [(33, 0.0, 2), (11, 4.0, 0), (22, 1.0, 1)]);
+    let hit = &hits[0];
+    assert_eq!(hit.count, 4.0);
+    assert_eq!(hit.segments.len(), 1);
+    assert_eq!(
+        hit.bounds,
+        Some(epdf_geometry::Rect { x: 10.0, y: 20.0, width: 40.0, height: 20.0 })
+    );
 }
 
 /// A task that counts turns: each one is a JavaScript `await null` loop,

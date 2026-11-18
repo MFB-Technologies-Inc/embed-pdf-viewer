@@ -48,12 +48,14 @@ public final class HistoryModel {
       let redoTitle = try await self.title(for: redo, redo: true)
       return (canUndo, canRedo, undo, redo, undoTitle, redoTitle)
     }, apply: { snapshot in
-      self.canUndo = snapshot.0
-      self.canRedo = snapshot.1
-      self.undoLabel = snapshot.2
-      self.redoLabel = snapshot.3
-      self.undoTitle = snapshot.4
-      self.redoTitle = snapshot.5
+      // Most revisions are a scroll or a zoom: write only what changed, so
+      // the controls reading these fields stay valid.
+      if self.canUndo != snapshot.0 { self.canUndo = snapshot.0 }
+      if self.canRedo != snapshot.1 { self.canRedo = snapshot.1 }
+      if self.undoLabel != snapshot.2 { self.undoLabel = snapshot.2 }
+      if self.redoLabel != snapshot.3 { self.redoLabel = snapshot.3 }
+      if self.undoTitle != snapshot.4 { self.undoTitle = snapshot.4 }
+      if self.redoTitle != snapshot.5 { self.redoTitle = snapshot.5 }
     }, failure: {
       self.canUndo = false
       self.canRedo = false

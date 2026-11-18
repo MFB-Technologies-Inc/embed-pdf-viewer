@@ -48,6 +48,7 @@ pub mod state;
 pub mod store;
 pub mod token;
 pub mod types;
+mod unlock_count;
 
 pub use action::Action;
 pub use error::Error;

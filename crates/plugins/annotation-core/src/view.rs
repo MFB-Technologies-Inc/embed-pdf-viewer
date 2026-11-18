@@ -1,10 +1,12 @@
 //! `view.ts`: the pure view selectors. `pageItems` is the per-annotation
 //! render list (the live gesture applied), `chrome` the selection overlay.
 
+use std::collections::HashSet;
+
 use serde_json::Value;
 
 use crate::anchor::{anchor_mode_of, anchored_geom, anchored_scale, anchored_stroke_width};
-use crate::appearance::{raster_placement, source_during};
+use crate::appearance::{raster_placement_as, source_during, source_during_as};
 use crate::editable::is_transformable_by_hand;
 use crate::flags::viewable;
 use crate::frame::placed;
@@ -14,7 +16,7 @@ use crate::geometry::{
     rect_handles_for,
 };
 use crate::group::group_caps;
-use crate::hit::{is_selectable, paint_order};
+use crate::hit::{is_selectable, painted_records};
 use crate::json::{self, Object};
 use crate::kinds::blend_for;
 use crate::measurement::{
@@ -98,11 +100,17 @@ fn eff_measure(model: &Model, id: &str) -> Option<MeasurementAppearance> {
 }
 
 fn eff_geom(model: &Model, id: &str, view: Option<&ViewEnv>) -> Shape {
+    let dragged = model.dragged_ids().is_some_and(|ids| ids.iter().any(|i| i == id));
+    eff_geom_as(model, id, view, dragged)
+}
+
+/// [`eff_geom`], told whether the draft's ids hold `id` (`dragged`).
+fn eff_geom_as(model: &Model, id: &str, view: Option<&ViewEnv>, dragged: bool) -> Shape {
     let record = model.record(id).expect("a record");
     let geometry =
         anchored_geom(&shape_of(&record.annotation), anchor_mode_of(record).as_ref(), view);
     match model.draft() {
-        Some(Draft::Move(d)) if d.ids.iter().any(|i| i == id) => geom_translate(&geometry, d.delta),
+        Some(Draft::Move(d)) if dragged => geom_translate(&geometry, d.delta),
         Some(Draft::Handle(d)) if d.id == id => d.current.clone(),
         Some(Draft::Caption(d)) if d.id == id => match measurement_of(&record.annotation) {
             Some(m) => {
@@ -110,10 +118,10 @@ fn eff_geom(model: &Model, id: &str, view: Option<&ViewEnv>) -> Shape {
             }
             None => geometry,
         },
-        Some(Draft::Rotate(d)) if d.ids.iter().any(|i| i == id) => {
+        Some(Draft::Rotate(d)) if dragged => {
             geom_rotate_about(&geometry, d.pivot, rotate_draft_delta(model, d).delta)
         }
-        Some(Draft::Group(d)) if d.ids.iter().any(|i| i == id) => {
+        Some(Draft::Group(d)) if dragged => {
             let (sx, sy) = group_resize_factors(d.base, d.current);
             geom_scale_about(&geometry, d.anchor, sx, sy, Some(MIN_SIZE))
         }
@@ -164,7 +172,7 @@ pub fn unmade_item(
         id: id.into(),
         reference: Some(Value::Null),
         annotation: None,
-        subtype: kind_of(annotation).name,
+        subtype: kind_of(annotation).name.clone(),
         box_: distance
             .map_or_else(|| geom_visual_bounds(&geometry, style.stroke()), |d| d.visual_bounds()),
         geometry,
@@ -202,13 +210,15 @@ fn text_is_live(model: &Model, id: &str) -> bool {
 /// `pageItems(model, page, view)`.
 pub fn page_items(model: &Model, page: &PageRef, view: Option<&ViewEnv>) -> Vec<RenderItem> {
     let mut items = Vec::new();
-    for id in paint_order(model, page) {
-        let record = model.record(&id).expect("a painted record");
-        let text = text_of(&record.annotation);
-        let geometry = eff_geom(model, &id, view);
+    let dragged: HashSet<&str> =
+        model.dragged_ids().unwrap_or_default().iter().map(Id::as_str).collect();
+    for (id, record, kind) in painted_records(model, page) {
+        let dragged = dragged.contains(id.as_str());
+        let text = kind.text_of(&record.annotation);
+        let geometry = eff_geom_as(model, id, view, dragged);
         let style = eff_style(&record.annotation, view);
-        let ap = raster_placement(model, &id, view, &geometry);
-        let measure = eff_measure(model, &id);
+        let ap = raster_placement_as(model, id, view, &geometry, dragged);
+        let measure = eff_measure(model, id);
         let distance = measure.as_ref().and_then(|m| measurement_layout(&geometry, m, &style));
         let box_ = distance
             .map_or_else(|| geom_visual_bounds(&geometry, style.stroke()), |d| d.visual_bounds());
@@ -224,7 +234,7 @@ pub fn page_items(model: &Model, page: &PageRef, view: Option<&ViewEnv>) -> Vec<
             id: id.clone(),
             reference: Some(ref_of(Some(record)).unwrap_or(Value::Null)),
             annotation: Some(record.annotation.clone()),
-            subtype: kind_of(&record.annotation).name,
+            subtype: kind.name.clone(),
             geometry,
             box_,
             ap_box: ap.rect,
@@ -232,11 +242,11 @@ pub fn page_items(model: &Model, page: &PageRef, view: Option<&ViewEnv>) -> Vec<
             icon: icon_of(&record.annotation),
             label: redaction_label_of(&record.annotation),
             measure: measure.map(|m| m.0),
-            source: source_during(model, &id).into(),
+            source: source_during_as(model, id, dragged).into(),
             picture_version: Some(record.picture_version.unwrap_or(0.0)),
             lent_scene: crate::types::LentScene(lent),
             ghost_opacity: None,
-            selected: model.is_selected(&id),
+            selected: model.is_selected(id),
             hovered: (model.hovered.as_deref() == Some(id.as_str())).then_some(true),
             rot: Some(rot),
             ap_rot: ap.rot,
@@ -270,7 +280,7 @@ pub fn page_items(model: &Model, page: &PageRef, view: Option<&ViewEnv>) -> Vec<
         ]);
         items.push(placed(item, anchored_scale(anchor_mode_of(record).as_ref(), view)));
     }
-    let draft = model.draft().cloned();
+    let draft = model.draft();
     let on_page = |p: &PageRef| p.object_number == page.object_number;
     match &draft {
         Some(Draft::CreateRect(d))
@@ -347,7 +357,7 @@ pub fn page_items(model: &Model, page: &PageRef, view: Option<&ViewEnv>) -> Vec<
         Some(Draft::CreateInk(d)) if on_page(&d.page) => {
             let tool = tool_annotation(model, &d.subtype, d.preset.as_deref());
             let geometry = Shape::Ink(InkShape {
-                ink_list: d.strokes.clone(),
+                ink_list: d.strokes.iter().map(|s| (**s).clone()).collect(),
                 rotation: 0.0,
                 drawing: (d.drawing == Some(true)).then_some(true),
                 order: Default::default(),
@@ -549,7 +559,7 @@ pub fn selected_items(model: &Model, view: Option<&ViewEnv>) -> Vec<RenderItem> 
             id: id.clone(),
             reference: Some(ref_of(Some(record)).unwrap_or(Value::Null)),
             annotation: Some(record.annotation.clone()),
-            subtype: kind_of(&record.annotation).name,
+            subtype: kind_of(&record.annotation).name.clone(),
             box_: geom_visual_bounds(&geometry, style.stroke()),
             geometry,
             ap_box: None,
@@ -754,10 +764,10 @@ pub fn chrome(
         _ => {}
     }
     let rd = match model.draft() {
-        Some(Draft::Rotate(d)) if first_on_page(&d.ids) => Some(d.clone()),
+        Some(Draft::Rotate(d)) if first_on_page(&d.ids) => Some(d),
         _ => None,
     };
-    if let Some(rd) = &rd {
+    if let Some(rd) = rd {
         let angle = rotate_draft_delta(model, rd).angle;
         let span = page_box.unwrap_or(Rect {
             x: rd.pivot.x - 300.0,
@@ -789,7 +799,8 @@ pub fn chrome(
         let record = model.record(&selection[0]).expect("a record");
         let geometry = eff_geom(model, &selection[0], view);
         let style = eff_style(&record.annotation, view);
-        let caps = kind_of(&record.annotation).caps;
+        let kind = kind_of(&record.annotation);
+        let caps = &kind.caps;
         let rot = geom_rotation(&geometry);
         let measure = eff_measure(model, &record.id);
         let distance = measure

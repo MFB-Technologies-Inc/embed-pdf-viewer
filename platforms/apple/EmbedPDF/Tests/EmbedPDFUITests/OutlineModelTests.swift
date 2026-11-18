@@ -64,6 +64,38 @@ struct OutlineModelTests {
     try await viewer.destroy()
   }
 
+  /// Most revisions are a scroll or a zoom, which leave the outline as it
+  /// was. Rereading it then must not invalidate the views that show it; a
+  /// real change still must.
+  @Test func unchangedRevisionDoesNotNotify() async throws {
+    let (viewer, document, outline, model) = try await opened()
+    await model.reload()
+    let page = try await viewer.pages(of: document)[1].page
+    let parent = try #require(await model.create(OutlineItemInput(title: "Parent", target: .goto(destination: .fit(page: page)), color: "#ff0000", bold: true)))
+    let child = try #require(await model.create(OutlineItemInput(title: "Child", parent: parent.itemRef, clearTarget: true)))
+    await model.select([parent.itemRef])
+    let shown = { @MainActor in
+      _ = (model.items, model.rows, model.selectedItems, model.currentItem, model.status, model.incomplete, model.canEdit)
+    }
+    // Each read lifts the item's action as a new handle.
+    #expect(model.items.contains { $0.action != nil })
+    #expect(await !observationFires(shown) { await model.refresh() })
+    #expect(try await observationFires({ model.items }) {
+      _ = try await outline.update(parent.itemRef, OutlineItemPatch(title: "Renamed"))
+      await model.refresh()
+    })
+    #expect(try await observationFires({ model.rows }) {
+      try await outline.collapse(parent.itemRef)
+      await model.refresh()
+    })
+    // The selection is compared before it's written, as the items are.
+    #expect(await !observationFires({ model.selectedItems }) { await model.select([parent.itemRef]) })
+    #expect(await observationFires({ model.selectedItems }) { await model.select([child.itemRef]) })
+    expectNoDifference(model.selectedItems, [child.itemRef])
+    expectNoDifference(model.error, nil)
+    try await viewer.destroy()
+  }
+
   @Test func twoModelsObserveTheSameViewerIndependently() async throws {
     let (viewer, _, outline, first) = try await opened()
     let second = OutlineModel(viewer: viewer, outline: outline)

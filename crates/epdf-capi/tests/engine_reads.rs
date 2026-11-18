@@ -60,6 +60,21 @@ fn malformed_pdf_is_a_completed_error_and_document_handles_are_engine_scoped() {
     assert_eq!(first.submit(0, 3, json!({}), None).0, 3);
 }
 
+/// A failing open hands out no document and keeps none of its bytes: with
+/// room for one document, failed opens of that size leave the room free.
+#[test]
+fn failing_open_still_fails_with_probe() {
+    let engine = Engine::new(json!({"limits":{"maxRetainedInputBytes":PLAIN.len()+16}}));
+    let garbage = vec![b'x'; PLAIN.len()];
+    for _ in 0..3 {
+        let (reply, response, payloads) = engine.call(0, 1, json!({}), Some(&garbage));
+        assert_eq!(reply.document, 0);
+        assert!(response["error"]["code"].is_string(), "{response}");
+        assert!(payloads.is_empty());
+    }
+    engine.open(PLAIN);
+}
+
 #[test]
 fn unsupported_operations_and_caller_routing_fields_are_refused() {
     let engine = Engine::new(json!({}));

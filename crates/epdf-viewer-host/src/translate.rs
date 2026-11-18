@@ -81,6 +81,22 @@ pub struct Decoded {
     pub events: Vec<Value>,
 }
 
+/// A host response with its JSON read: the envelope, or why it is not
+/// JSON, and the payloads. The engine's client thread reads it, so a large
+/// answer (a page's geometry) is not parsed on the kernel thread. Reading
+/// keeps `serde_json`'s default depth limit: an answer nested 128 levels
+/// deep is unreadable.
+pub struct Reply {
+    envelope: Result<Value, serde_json::Error>,
+    payloads: Vec<Vec<u8>>,
+}
+
+impl Reply {
+    pub fn parse(response: HostResponse) -> Reply {
+        Reply { envelope: serde_json::from_str(&response.json), payloads: response.payloads }
+    }
+}
+
 /// What a request needs from the handle it is for.
 pub struct Client {
     /// `guard.changeAuthority()`: the handle's authority, on the wire.
@@ -757,10 +773,9 @@ fn first_payload(payloads: &mut Vec<Vec<u8>>, what: &str) -> Result<Vec<u8>, Err
     Ok(payloads.swap_remove(0))
 }
 
-/// Read a host response into what the call's caller expects.
-pub fn decode(decode: &Decode, response: HostResponse) -> Result<Decoded, Error> {
-    let mut envelope: Value = serde_json::from_str(&response.json)
-        .map_err(|e| malformed(format!("unreadable JSON: {e}")))?;
+/// Read a host reply into what the call's caller expects.
+pub fn decode(decode: &Decode, reply: Reply) -> Result<Decoded, Error> {
+    let mut envelope = reply.envelope.map_err(|e| malformed(format!("unreadable JSON: {e}")))?;
     if let Some(error) = envelope.get("error") {
         let code = error.get("code").and_then(Value::as_str).unwrap_or("Unknown");
         // The engine's own words, as `EngineError.message` carries them to
@@ -773,7 +788,7 @@ pub fn decode(decode: &Decode, response: HostResponse) -> Result<Decoded, Error>
         }
         return Err(refused);
     }
-    let mut payloads = response.payloads;
+    let mut payloads = reply.payloads;
     // A notice the host publishes beside a result that is not a write's
     // (`signatures.prepared`, `signatures.cancelled`).
     let notice: Vec<Value> = envelope.get_mut("event").map(Value::take).into_iter().collect();

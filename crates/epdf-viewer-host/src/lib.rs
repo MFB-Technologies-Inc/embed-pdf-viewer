@@ -306,7 +306,8 @@ impl ViewerHost {
                     None,
                 ));
             }
-            decode_pages(&documents.list_pages(Some(&document_id)))
+            let pages = documents.list_pages(Some(&document_id));
+            decode_pages(pages.as_array().map_or(&[], Vec::as_slice))
         })
         .await
     }

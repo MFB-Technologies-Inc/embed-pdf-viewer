@@ -157,7 +157,11 @@ impl InteractionHandler for TextSelectHandler {
             self.interaction.claim_cursor(CURSOR_TOKEN, None, 0.0); // off the page
             return;
         };
-        let _ = self.selection.ensure_loaded(hit.page);
+        // Warm the page on first hover. A loaded page's `ensureLoaded`
+        // only hands back a settled promise nobody waits on.
+        if !self.selection.is_loaded(hit.page) {
+            let _ = self.selection.ensure_loaded(hit.page);
+        }
         let over_text = self.selection.is_over_text(hit.page, hit.point);
         self.interaction.claim_cursor(CURSOR_TOKEN, over_text.then_some("text"), 10.0);
     }

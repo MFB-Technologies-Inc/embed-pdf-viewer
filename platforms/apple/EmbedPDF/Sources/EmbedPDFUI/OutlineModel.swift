@@ -60,13 +60,41 @@ public final class OutlineModel {
       let editable = try await self.outline.canEdit()
       return (items, rows, selected, current, status, incomplete, editable)
     }, apply: {
-      (self.items, self.rows, self.selectedItems, self.currentItem, self.status, self.incomplete, self.canEdit) = $0
+      let (items, rows, selected, current, status, incomplete, editable) = $0
+      // Most revisions are a scroll or a zoom that leaves the outline as it
+      // was: write only what changed, so the views reading these fields stay
+      // valid. Items hold an action handle and aren't `Equatable`, so they're
+      // compared field by field.
+      if !items.elementsEqual(self.items, by: Self.sameItem) { self.items = items }
+      if !rows.elementsEqual(self.rows, by: Self.sameRow) { self.rows = rows }
+      if self.selectedItems != selected { self.selectedItems = selected }
+      if self.currentItem != current { self.currentItem = current }
+      if self.status != status { self.status = status }
+      if self.incomplete != incomplete { self.incomplete = incomplete }
+      if self.canEdit != editable { self.canEdit = editable }
     }, failure: {
       self.items = []; self.rows = []; self.selectedItems = []; self.currentItem = nil
       self.canEdit = false
       self.errorIsReadFailure = true
       self.error = controlError($0)
     })
+  }
+
+  private static func sameRow(_ a: OutlineRow, _ b: OutlineRow) -> Bool {
+    a.depth == b.depth && a.hasChildren == b.hasChildren && a.expanded == b.expanded
+      && sameItem(a.item, b.item)
+  }
+
+  private static func sameItem(_ a: OutlineItem, _ b: OutlineItem) -> Bool {
+    guard a.itemRef == b.itemRef, a.parent == b.parent, a.title == b.title, a.target == b.target,
+      a.open == b.open, a.color == b.color, a.bold == b.bold, a.italic == b.italic
+    else { return false }
+    // Each read lifts a new handle, so equal actions compare by their JSON.
+    switch (a.action, b.action) {
+    case (nil, nil): return true
+    case let (a?, b?): return a === b || a.json() == b.json()
+    default: return false
+    }
   }
 
   public func reload() async { _ = await perform { try await self.outline.refresh() } }

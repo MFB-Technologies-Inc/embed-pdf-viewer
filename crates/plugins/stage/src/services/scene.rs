@@ -7,6 +7,7 @@
 use serde::Deserialize;
 use serde_json::Value;
 
+use crate::controller::{SceneCache, SceneInputs};
 use crate::prelude::*;
 
 /// What the stage reads of a registry row (`PageInfo`): its size and
@@ -78,7 +79,9 @@ impl StageCapability {
 
     /// `ctx.document()?.pages ?? []`, as JSON rows.
     pub(crate) fn registry_rows(&self) -> Rc<Value> {
-        self.ctx.document().map_or_else(|| Rc::new(Value::Array(Vec::new())), |d| d.pages)
+        self.ctx
+            .document_rc()
+            .map_or_else(|| Rc::new(Value::Array(Vec::new())), |d| d.pages.clone())
     }
 
     /// The registry rows, parsed once per registry. A row that does not
@@ -104,15 +107,20 @@ impl StageCapability {
 
     /// `ctx.getPage(page)`: the registry row a ref or an index names.
     pub(crate) fn get_page(&self, page: PageTarget) -> Option<Value> {
-        let rows = self.registry_rows();
-        let pages = rows.as_array()?;
         match page {
             PageTarget::Index(index) => {
-                (index >= 0.0 && index.fract() == 0.0).then(|| pages.get(index as usize)).flatten()
+                let rows = self.registry_rows();
+                let pages = rows.as_array()?;
+                (index >= 0.0 && index.fract() == 0.0)
+                    .then(|| pages.get(index as usize))
+                    .flatten()
+                    .cloned()
             }
-            PageTarget::Ref(page) => pages.iter().find(|row| page.names(row)),
+            PageTarget::Ref(page) => {
+                let meta = self.ctx.document_rc()?;
+                self.ctx.page_by_ref(&meta, page).cloned()
+            }
         }
-        .cloned()
     }
 
     /// `ctx.getPage(page)?.index ?? -1`, as an option.
@@ -336,7 +344,7 @@ impl StageCapability {
     }
 
     fn document_key(&self) -> String {
-        match self.ctx.document() {
+        match self.ctx.document_rc() {
             Some(document) => format!("{}.{}", document.page_count, document.pages_sequence),
             None => "0.0".into(),
         }
@@ -344,8 +352,16 @@ impl StageCapability {
 
     /// The scene: the whole document (continuous), or a one-item slice at
     /// the cursor (paged). Cached by key; the same `Rc` means the same
-    /// scene, as the TypeScript compares scenes by reference.
+    /// scene, as the TypeScript compares scenes by reference. The key is
+    /// built again only when the state or the document record moved.
     pub(crate) fn build_scene(&self) -> Rc<Scene> {
+        let inputs = SceneInputs { state: self.st(), document: self.ctx.document_rc() };
+        if let Some(cache) = self.inner.scene_cache.borrow().as_ref()
+            && cache.inputs.same(&inputs)
+        {
+            return cache.scene.clone();
+        }
+        self.inner.scene_key_builds.set(self.inner.scene_key_builds.get() + 1);
         let grouping = self.grouping();
         let groups = &grouping.grouping;
         let (key, slice) = if self.paged() {
@@ -358,10 +374,11 @@ impl StageCapability {
         } else {
             (format!("continuous|{}|{}", self.document_key(), self.settings_key()), None)
         };
-        if let Some((k, scene)) = self.inner.scene_cache.borrow().as_ref()
-            && *k == key
+        if let Some(cache) = self.inner.scene_cache.borrow_mut().as_mut()
+            && cache.key == key
         {
-            return scene.clone();
+            cache.inputs = inputs;
+            return cache.scene.clone();
         }
         let scene = Rc::new(match slice {
             Some(index) => {
@@ -369,13 +386,14 @@ impl StageCapability {
             }
             None => self.layout_for(groups),
         });
-        *self.inner.scene_cache.borrow_mut() = Some((key, scene.clone()));
+        *self.inner.scene_cache.borrow_mut() =
+            Some(SceneCache { inputs, key, scene: scene.clone() });
         scene
     }
 
     /// The current scene's cache key, part of the visible-pages signature.
     pub(crate) fn scene_cache_key(&self) -> String {
-        self.inner.scene_cache.borrow().as_ref().map(|(k, _)| k.clone()).unwrap_or_default()
+        self.inner.scene_cache.borrow().as_ref().map(|c| c.key.clone()).unwrap_or_default()
     }
 
     /// Drop the memoized scene (a 'scene' or 'reflow' setting changed, or a

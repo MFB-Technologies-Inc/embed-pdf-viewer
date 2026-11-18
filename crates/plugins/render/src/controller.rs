@@ -156,7 +156,9 @@ pub struct RenderSettingsChanged {
 pub(crate) struct Core {
     pub(crate) cx: Controller<RenderState, Value>,
     settings: InstanceSettings,
-    resolved_memo: RefCell<Option<(Rc<Value>, Rc<ResolvedRenderOptions>)>>,
+    /// The resolved options and `slowAfterMs`, for the settings value they
+    /// were read from.
+    resolved_memo: RefCell<Option<(Rc<Value>, Rc<ResolvedRenderOptions>, Option<f64>)>>,
     host: RenderHost,
     /// Document-lifetime cache; staleness is a new key, never a flush.
     store: RasterStore,
@@ -189,18 +191,11 @@ pub(crate) struct Core {
 }
 
 impl Core {
-    /// Read the bound document's meta without cloning its page list when it
-    /// is in the registry; `ctx.document()` otherwise (bring-up, or after
-    /// close, when it is the staged meta).
+    /// Read the bound document's meta as the core holds it, or the staged
+    /// meta during bring-up and after close, without copying it.
     fn with_meta<R>(&self, f: impl FnOnce(Option<&DocumentMeta>) -> R) -> R {
-        let core = self.cx.core();
-        if let Some(id) = self.cx.document_id()
-            && let Some(meta) = core.documents.get(id)
-        {
-            return f(Some(meta));
-        }
-        let meta = self.cx.document();
-        f(meta.as_ref())
+        let meta = self.cx.document_rc();
+        f(meta.as_deref())
     }
 
     // ── settings ──
@@ -223,16 +218,26 @@ impl Core {
     /// The settings as the strategy reads them, resolved again when they
     /// change.
     fn resolved(&self) -> Rc<ResolvedRenderOptions> {
+        self.resolved_settings().0
+    }
+
+    /// `slowAfterMs` as set, read with the resolved options.
+    fn slow_after_ms(&self) -> Option<f64> {
+        self.resolved_settings().1
+    }
+
+    fn resolved_settings(&self) -> (Rc<ResolvedRenderOptions>, Option<f64>) {
         let current = self.settings.get();
-        if let Some((value, resolved)) = &*self.resolved_memo.borrow()
+        if let Some((value, resolved, slow_after_ms)) = &*self.resolved_memo.borrow()
             && Rc::ptr_eq(value, &current)
         {
-            return resolved.clone();
+            return (resolved.clone(), *slow_after_ms);
         }
         let config = self.decode_settings(&current);
         let resolved = Rc::new(resolve_render_options(&config));
-        *self.resolved_memo.borrow_mut() = Some((current, resolved.clone()));
-        resolved
+        let slow_after_ms = config.slow_after_ms;
+        *self.resolved_memo.borrow_mut() = Some((current, resolved.clone(), slow_after_ms));
+        (resolved, slow_after_ms)
     }
 
     pub(crate) fn get_settings(&self) -> RenderSettings {
@@ -359,14 +364,14 @@ impl Core {
     /// this document does not have.
     pub(crate) fn find_page(&self, page: PageArg) -> Option<(PageRef, PageSizePt)> {
         self.with_meta(|meta| {
-            let pages = meta?.pages.as_array()?;
+            let meta = meta?;
             let info = match page {
-                PageArg::Ref(page) => pages.iter().find(|p| page.names(p))?,
+                PageArg::Ref(page) => self.cx.page_by_ref(meta, page)?,
                 PageArg::Index(index) => {
                     if index < 0.0 || index.fract() != 0.0 {
                         return None;
                     }
-                    pages.get(index as usize)?
+                    meta.pages.as_array()?.get(index as usize)?
                 }
             };
             let reference = info.get("ref").and_then(PageRef::from_json)?;
@@ -1785,9 +1790,7 @@ pub fn create_render_controller(
                 },
                 slow_after_ms: {
                     let weak = weak.clone();
-                    Rc::new(move || {
-                        weak.upgrade().and_then(|c| c.get_settings().slow_after_ms).unwrap_or(400.0)
-                    })
+                    Rc::new(move || weak.upgrade().and_then(|c| c.slow_after_ms()).unwrap_or(400.0))
                 },
                 after: {
                     let clock = cx.clock();

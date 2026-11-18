@@ -77,9 +77,13 @@ impl RenderTarget {
         opaque_background: bool,
     ) -> Result<Self, PdfiumError> {
         let (native_width, native_height, native_stride, len) = bitmap_layout(width, height)?;
+        // The background is the buffer's initial bytes: opaque white is
+        // 0xFF in every BGRA channel, transparent is zero. The stride is
+        // exactly four bytes a pixel, so this is what `FPDFBitmap_FillRect`
+        // would write, without a second pass over the buffer.
         let mut pixels = Vec::new();
         pixels.try_reserve_exact(len).map_err(|_| PdfiumError::OutOfMemory)?;
-        pixels.resize(len, 0u8);
+        pixels.resize(len, if opaque_background { 0xFF } else { 0x00 });
 
         // SAFETY: the buffer is exactly stride * height bytes, proved by
         // bitmap_layout, and it outlives the bitmap handle, which `Drop`
@@ -95,17 +99,6 @@ impl RenderTarget {
         };
         if bitmap.is_null() {
             return Err(PdfiumError::Bitmap);
-        }
-        // SAFETY: the bitmap was created above.
-        unsafe {
-            pdfium_sys::FPDFBitmap_FillRect(
-                bitmap,
-                0,
-                0,
-                native_width,
-                native_height,
-                if opaque_background { 0xFFFF_FFFF } else { 0x0000_0000 },
-            );
         }
         Ok(Self {
             bitmap,
@@ -395,15 +388,16 @@ impl<'a> PageView<'a> {
             f: matrix[5] as f32,
         };
 
+        // The background is the zeroed buffer: transparent, not white,
+        // because an appearance composites over page content that this
+        // bitmap does not contain.
+        //
         // SAFETY: the bitmap, page and annotation handles are all live, and
         // the matrix outlives the call. `state_ptr` is null or points into
         // `state`, a NUL-terminated CString that lives to the end of this
         // function. `&unrotated_box` is a local that lives across the one
         // call it is passed to.
         let ok = unsafe {
-            // Transparent, not white: an appearance composites over page
-            // content that this bitmap does not contain.
-            pdfium_sys::FPDFBitmap_FillRect(bitmap, 0, 0, native_width, native_height, 0x0000_0000);
             let drawn = if let Some(turn) = turn {
                 let unrotated_box = pdfium_sys::FS_RECTF {
                     left: turn.unrotated_box.left,
@@ -447,7 +441,10 @@ impl<'a> PageView<'a> {
         let (native_width, native_height, native_stride, len) = bitmap_layout(width, height)?;
         let mut bgra = Vec::new();
         bgra.try_reserve_exact(len).map_err(|_| PdfiumError::OutOfMemory)?;
-        bgra.resize(len, 0u8);
+        // White ground, fully opaque, so a page with no background matches
+        // what a viewer shows: 0xFF in every BGRA channel, written once here
+        // rather than zeroed and then filled.
+        bgra.resize(len, 0xFF);
 
         // SAFETY: the buffer is `len` bytes, which bitmap_layout proved is
         // exactly stride * height, and it outlives the bitmap handle below.
@@ -465,9 +462,6 @@ impl<'a> PageView<'a> {
         }
 
         unsafe {
-            // White ground, fully opaque, so a page with no background matches
-            // what a viewer shows.
-            pdfium_sys::FPDFBitmap_FillRect(bitmap, 0, 0, native_width, native_height, 0xFFFF_FFFF);
             pdfium_sys::FPDF_RenderPageBitmap(
                 bitmap,
                 self.handle,
@@ -555,6 +549,7 @@ pub struct Page<'a> {
 
 impl<'a> Page<'a> {
     pub(crate) fn load(doc: pdfium_sys::FPDF_DOCUMENT, index: u32) -> Result<Self, PdfiumError> {
+        count_call!(LoadPage);
         let handle = unsafe { pdfium_sys::FPDF_LoadPage(doc, index as i32) };
         // Document::page already checked index < page_count(), so a null
         // handle here is not an out-of-range index; it is PDFium refusing to
@@ -586,6 +581,7 @@ impl<'a> Page<'a> {
         doc: pdfium_sys::FPDF_DOCUMENT,
         object_number: u32,
     ) -> Result<Self, PdfiumError> {
+        count_call!(LoadPage);
         // SAFETY: `doc` is a live document handle owned by the caller.
         let handle =
             unsafe { pdfium_sys::EPDFDoc_LoadPageByObjectNumberNormalized(doc, object_number) };
@@ -673,6 +669,7 @@ impl SharedPage {
     /// Loads a page by object number, rotation normalized, keeping `document`
     /// alive for as long as the page.
     pub fn load(document: Rc<Document>, object_number: u32) -> Result<Self, PdfiumError> {
+        count_call!(LoadPage);
         // SAFETY: `document` is live for the duration of the call and, through
         // the `Rc` this struct keeps, for the life of the returned page.
         let handle = unsafe {

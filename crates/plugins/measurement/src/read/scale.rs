@@ -1,9 +1,12 @@
 //! `read/scale.ts`: the page scale, the vocabulary, readouts, and pure
 //! conversions in the page's scale.
 
-use std::rc::Rc;
+use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
+use std::rc::{Rc, Weak};
 
 use epdf_annotation_core::engine::measure::{DimensionInput, measurement_readout};
+use epdf_annotation_core::json::Object;
 use epdf_kernel::Error;
 use epdf_kernel::geometry::Point;
 use serde_json::{Map, Value, json};
@@ -30,8 +33,51 @@ fn point(p: Point) -> Value {
     json!({ "x": p.x, "y": p.y })
 }
 
+#[cfg(feature = "harness")]
+thread_local! {
+    static COMPUTATIONS: Cell<usize> = const { Cell::new(0) };
+}
+
+/// How many readouts this thread computed. A record's readout is computed
+/// once while the record is the same. For the tests, with `harness`.
+#[cfg(feature = "harness")]
+#[doc(hidden)]
+pub fn readout_computations() -> usize {
+    COMPUTATIONS.with(Cell::get)
+}
+
+/// The readouts: one per annotation object, as the TypeScript `WeakMap`.
+/// Each entry holds its annotation weakly, so the address is not reused
+/// while the entry is there and `Rc::make_mut` moves a changed annotation to
+/// a new one. Entries whose annotation is gone are dropped once the map has
+/// doubled since the last sweep.
+#[derive(Default)]
+pub(crate) struct Readouts {
+    by_object: RefCell<HashMap<*const Object, (Weak<Object>, Value)>>,
+    sweep_at: Cell<usize>,
+}
+
+impl Readouts {
+    fn get_or_compute(&self, annotation: &Rc<Object>) -> Value {
+        let key = Rc::as_ptr(annotation);
+        if let Some((_, readout)) = self.by_object.borrow().get(&key) {
+            return readout.clone();
+        }
+        let answer = readout(annotation);
+        let mut by_object = self.by_object.borrow_mut();
+        by_object.insert(key, (Rc::downgrade(annotation), answer.clone()));
+        if by_object.len() > self.sweep_at.get().max(64) {
+            by_object.retain(|_, (held, _)| held.strong_count() > 0);
+            self.sweep_at.set(by_object.len() * 2);
+        }
+        answer
+    }
+}
+
 /// `measurementReadout(dto)` over a JSON object.
 fn readout(object: &Map<String, Value>) -> Value {
+    #[cfg(feature = "harness")]
+    COMPUTATIONS.with(|n| n.set(n.get() + 1));
     measurement_readout(&DimensionInput::of(object)).to_value()
 }
 
@@ -78,9 +124,9 @@ impl MeasurementCapability {
     /// The formatted measurement of a measurement annotation, or why there
     /// is none (`NO_READOUT` for an annotation that isn't there).
     pub fn get_readout(&self, reference: &Value) -> Value {
-        match self.core().annotation.get(reference) {
-            Some(Value::Object(raw)) => readout(&raw),
-            Some(_) => readout(&Map::new()),
+        let core = self.core();
+        match core.annotation.get_shared(reference) {
+            Some(raw) => core.readouts.get_or_compute(&raw),
             None => no_readout(),
         }
     }

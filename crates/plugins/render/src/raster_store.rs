@@ -389,20 +389,37 @@ impl RasterStore {
             return;
         }
         // Oldest first over evictable entries: resolved and consumer-free.
-        let mut candidates: Vec<(String, Rc<Entry>)> = self
-            .0
-            .entries
-            .borrow()
-            .iter()
+        // Every `used` tick is distinct, so the map's order never decides.
+        let mut entries = self.0.entries.borrow_mut();
+        let mut candidates: Vec<(u64, usize)> = entries
+            .values()
+            .enumerate()
             .filter(|(_, e)| e.refs.get() <= 0 && e.handle.borrow().is_some())
-            .map(|(k, e)| (k.clone(), e.clone()))
+            .map(|(index, e)| (e.used.get(), index))
             .collect();
-        candidates.sort_by_key(|(_, e)| e.used.get());
-        for (key, entry) in candidates {
+        candidates.sort_unstable();
+        let mut doomed: Vec<usize> = Vec::new();
+        for (_, index) in candidates {
             if self.0.total.get() <= self.0.max_cost {
-                return;
+                break;
             }
-            self.drop_entry(&key, &entry);
+            if let Some(cost) = entries[index].cost.get() {
+                self.0.total.set(self.0.total.get() - cost);
+            }
+            doomed.push(index);
         }
+        // Released oldest first, once the map is consistent again.
+        let mut dropped: Vec<(usize, Rc<Entry>)> = Vec::with_capacity(doomed.len());
+        let mut by_index: Vec<(usize, usize)> = doomed.iter().copied().enumerate().collect();
+        // Highest index first: a swap-remove moves the last entry into the
+        // hole, and every index still to remove is below it.
+        by_index.sort_unstable_by_key(|&(_, index)| std::cmp::Reverse(index));
+        for (order, index) in by_index {
+            let (_, entry) = entries.swap_remove_index(index).expect("a candidate is held");
+            dropped.push((order, entry));
+        }
+        drop(entries);
+        dropped.sort_unstable_by_key(|(order, _)| *order);
+        drop(dropped);
     }
 }

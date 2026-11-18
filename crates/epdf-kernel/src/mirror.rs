@@ -61,8 +61,8 @@ pub struct Loaded {
     pub cursor: Option<Value>,
 }
 #[derive(Clone)]
-pub enum Fold {
-    Value(Rc<Value>),
+pub enum Fold<T = Value> {
+    Value(Rc<T>),
     Reload,
     Pages(Vec<Value>),
 }
@@ -74,7 +74,7 @@ pub struct MirrorChange {
     pub previous: Rc<Value>,
     pub next: Rc<Value>,
 }
-pub type Predict = Rc<dyn Fn(Rc<Value>, &Value) -> Result<Rc<Value>, Error>>;
+pub type Predict<T = Value> = Rc<dyn Fn(Rc<T>, &Value) -> Result<Rc<T>, Error>>;
 pub type Load = Rc<dyn Fn(Option<Rc<dyn DocumentHandle>>, AbortSignal) -> Promise<Loaded>>;
 pub type Merge = Rc<dyn Fn(Rc<Value>) -> Rc<Value>>;
 pub struct MirrorSpec {
@@ -577,12 +577,12 @@ pub(crate) fn showing(
     shown.sort_by_key(PendingChange::seq);
     shown
 }
-pub(crate) fn replay(
-    value: Rc<Value>,
+pub(crate) fn replay<T>(
+    value: Rc<T>,
     changes: Vec<PendingChange>,
-    predict: &Predict,
+    predict: &Predict<T>,
     report: &Report,
-) -> Rc<Value> {
+) -> Rc<T> {
     let mut next = value.clone();
     for c in changes {
         for op in c.shows() {

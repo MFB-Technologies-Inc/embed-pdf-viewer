@@ -4,6 +4,7 @@
 //! never in state: the plugin has no slice.
 
 use std::any::Any;
+use std::cell::{OnceCell, RefCell};
 use std::fmt;
 use std::rc::Rc;
 use std::sync::LazyLock;
@@ -19,6 +20,10 @@ use crate::controller::CommandsCapability;
 
 pub type CommandId = String;
 
+/// The capabilities a context found, by token: `None` for one that wasn't
+/// there.
+pub(crate) type Found = RefCell<Vec<(AnyToken, Option<Rc<dyn Any>>)>>;
+
 /// `CommandContext`: what a command's derivations and `run` see, with
 /// capabilities resolved for the command's document (the one named, else
 /// the document in scope, else the active one).
@@ -29,6 +34,15 @@ pub struct CommandCtx {
     pub(crate) args: Option<Value>,
     pub(crate) signal: Option<AbortSignal>,
     pub(crate) ctx: PluginContext,
+    /// `found`: the capabilities this context has looked up. Only a
+    /// document's derivation context (`contextByDocument`) keeps them;
+    /// clones share them.
+    pub(crate) found: Option<Rc<Found>>,
+    /// A callback's argument list holding this context, as an adapter
+    /// prints it, printed once and shared by clones.
+    pub(crate) printed: Rc<OnceCell<Rc<str>>>,
+    /// The app's state as JSON text, printed once and shared by clones.
+    pub(crate) app_state_text: Rc<OnceCell<Rc<str>>>,
 }
 
 impl CommandCtx {
@@ -42,6 +56,20 @@ impl CommandCtx {
     /// `undefined` marker until the app gives one.
     pub fn app_state(&self) -> &Value {
         &self.app_state
+    }
+
+    /// [`app_state`](Self::app_state) as JSON text: the same `Rc` for this
+    /// context and its clones.
+    pub fn app_state_text(&self) -> Rc<str> {
+        self.app_state_text.get_or_init(|| self.app_state.to_string().into()).clone()
+    }
+
+    /// What `print` makes of this context, made once: the same `Rc` for
+    /// this context and its clones. One adapter prints a context one way,
+    /// so every caller passes the same `print`.
+    #[cfg_attr(not(feature = "harness"), allow(dead_code))]
+    pub(crate) fn printed(&self, print: impl FnOnce() -> String) -> Rc<str> {
+        self.printed.get_or_init(|| print().into()).clone()
     }
 
     /// What the caller passed: `execute(id, {args})`. Absent when it passed
@@ -60,16 +88,35 @@ impl CommandCtx {
     /// it (`ctx.forDocument`); an empty or absent one resolves as the
     /// plugin's own context does (`ctx.get`), against the active document.
     /// Workspace tokens resolve either way.
+    ///
+    /// A derivation context answers from the capabilities it found, and
+    /// looks again only for one it didn't find, for the error.
     pub fn get_any(&self, token: &AnyToken) -> Result<Rc<dyn Any>, Error> {
+        if self.found.is_some()
+            && let Some(capability) = self.try_get_any(token)
+        {
+            return Ok(capability);
+        }
+        self.look_up(token)
+    }
+
+    /// `tryGet`, erased: `None` wherever `get` throws. A derivation context
+    /// looks each token up once and keeps the answer, `None` included.
+    pub fn try_get_any(&self, token: &AnyToken) -> Option<Rc<dyn Any>> {
+        let Some(found) = &self.found else { return self.look_up(token).ok() };
+        if let Some((_, held)) = found.borrow().iter().find(|(t, _)| t == token) {
+            return held.clone();
+        }
+        let capability = self.look_up(token).ok();
+        found.borrow_mut().push((token.clone(), capability.clone()));
+        capability
+    }
+
+    fn look_up(&self, token: &AnyToken) -> Result<Rc<dyn Any>, Error> {
         match self.document_id.as_deref() {
             Some(target) if !target.is_empty() => self.ctx.for_document_any(token, target),
             _ => self.ctx.get_any(token),
         }
-    }
-
-    /// `tryGet`, erased: `None` wherever `get` throws.
-    pub fn try_get_any(&self, token: &AnyToken) -> Option<Rc<dyn Any>> {
-        self.get_any(token).ok()
     }
 
     /// `get`: a capability, for the command's document when the plugin is

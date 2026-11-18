@@ -271,20 +271,21 @@ impl serde::Serialize for PrintedSnapshot<'_> {
     }
 }
 
-/// `FieldIndex`.
+/// `FieldIndex`. Each record is shared, as the TypeScript's object spreads
+/// share them: an index that moves one record keeps the others.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct FieldIndex {
     pub snapshot: Option<Rc<Snapshot>>,
     /// Field key to index into `snapshot.fields`.
-    pub by_key: Positions,
+    pub by_key: Rc<Positions>,
     /// Full name to index into `snapshot.fields`.
-    pub by_name: Positions,
+    pub by_name: Rc<Positions>,
     /// Widget annotation object number to index into `snapshot.fields`.
-    pub by_widget: Positions,
+    pub by_widget: Rc<Positions>,
     /// Widget annotation object number to index into `snapshot.widgets`.
-    pub row_by_widget: Positions,
+    pub row_by_widget: Rc<Positions>,
     /// Widget annotation object number to the version of its picture.
-    pub picture_versions: Positions,
+    pub picture_versions: Rc<Positions>,
 }
 
 fn positions_json(positions: &Positions) -> Value {
@@ -293,15 +294,17 @@ fn positions_json(positions: &Positions) -> Value {
     Value::Object(sorted.into_iter().map(|(k, v)| (k, number(v))).collect())
 }
 
-fn positions_of(value: Option<&Value>) -> Positions {
-    value
-        .and_then(Value::as_object)
-        .map(|o| {
-            o.iter()
-                .map(|(k, v)| (k.clone(), crate::value::f64_of(&json!({ "v": v }), "v")))
-                .collect()
-        })
-        .unwrap_or_default()
+fn positions_of(value: Option<&Value>) -> Rc<Positions> {
+    Rc::new(
+        value
+            .and_then(Value::as_object)
+            .map(|o| {
+                o.iter()
+                    .map(|(k, v)| (k.clone(), crate::value::f64_of(&json!({ "v": v }), "v")))
+                    .collect()
+            })
+            .unwrap_or_default(),
+    )
 }
 
 /// `position === undefined ? null : list[position] ?? null`.
@@ -380,7 +383,7 @@ pub fn empty_field_index() -> FieldIndex {
 }
 
 /// `indexFields(snapshot, pictureVersions)`.
-pub fn index_fields(snapshot: Rc<Snapshot>, picture_versions: Positions) -> FieldIndex {
+pub fn index_fields(snapshot: Rc<Snapshot>, picture_versions: Rc<Positions>) -> FieldIndex {
     let mut by_key = Positions::new();
     let mut by_name = Positions::new();
     let mut by_widget = Positions::new();
@@ -406,10 +409,10 @@ pub fn index_fields(snapshot: Rc<Snapshot>, picture_versions: Positions) -> Fiel
     }
     FieldIndex {
         snapshot: Some(snapshot),
-        by_key,
-        by_name,
-        by_widget,
-        row_by_widget,
+        by_key: Rc::new(by_key),
+        by_name: Rc::new(by_name),
+        by_widget: Rc::new(by_widget),
+        row_by_widget: Rc::new(row_by_widget),
         picture_versions,
     }
 }
@@ -431,7 +434,7 @@ pub fn with_snapshot_member(index: &FieldIndex, key: &str, value: Value) -> Rc<F
 /// the one it had; a new widget starts at 0.
 pub fn index_loaded_fields(previous: &FieldIndex, snapshot: Rc<Snapshot>) -> FieldIndex {
     let mut versions = Positions::new();
-    for (number, version) in &previous.picture_versions {
+    for (number, version) in previous.picture_versions.iter() {
         // `Number(number)` as the key again: the same key for every key a
         // number wrote.
         let key = number_key(epdf_kernel::mirror::string_to_number(number));
@@ -443,7 +446,7 @@ pub fn index_loaded_fields(previous: &FieldIndex, snapshot: Rc<Snapshot>) -> Fie
             versions.entry(number_key(n)).or_insert(0.0);
         }
     }
-    index_fields(snapshot, versions)
+    index_fields(snapshot, Rc::new(versions))
 }
 
 /// `pictureVersionOf(index, annotObjectNumber)`.
@@ -639,12 +642,12 @@ fn with_redrawn_pictures(index: &Rc<FieldIndex>, redrawn: &[Value]) -> Rc<FieldI
     if numbers.is_empty() {
         return index.clone();
     }
-    let mut versions = index.picture_versions.clone();
+    let mut versions = (*index.picture_versions).clone();
     for (key, ()) in numbers {
         let version = versions.get(&key).copied().unwrap_or(0.0);
         versions.insert(key, version + 1.0);
     }
-    Rc::new(FieldIndex { picture_versions: versions, ..(**index).clone() })
+    Rc::new(FieldIndex { picture_versions: Rc::new(versions), ..(**index).clone() })
 }
 
 /// `withoutSplitRow(index, field)`.
@@ -952,6 +955,13 @@ impl ShownWidget {
             "pending": self.pending,
             "pictureVersion": number(self.picture_version),
         })
+    }
+}
+
+/// As [`ShownWidget::to_json`] writes it.
+impl serde::Serialize for ShownWidget {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.to_json().serialize(serializer)
     }
 }
 

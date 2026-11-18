@@ -342,6 +342,21 @@ export function isPlainJson(value: unknown): boolean {
   return plainJson(value, 0);
 }
 
+/** `args`' JSON text when every one is a string, a finite number, a
+ *  boolean or `null`, else `undefined`. For those it is what `canonicalText`
+ *  writes, with no walk: most reads pass nothing or a few such values. */
+export function primitiveArgsJson(args: readonly unknown[]): string | undefined {
+  if (args.length === 0) return '[]';
+  for (let i = 0; i < args.length; i++) {
+    if (!(i in args)) return undefined;
+    const arg = args[i];
+    if (arg === null || typeof arg === 'string' || typeof arg === 'boolean') continue;
+    if (typeof arg === 'number' && Number.isFinite(arg)) continue;
+    return undefined;
+  }
+  return JSON.stringify(args);
+}
+
 /** `value` as canonical JSON text: straight through `JSON.stringify` when
  *  it is plain data, else through `canonical`. */
 export function canonicalText(value: unknown, hooks: EncodeHooks): string {
@@ -379,6 +394,23 @@ export function decode(value: unknown, host: (n: number) => unknown, hook?: Deco
     if (live !== undefined) out[key] = live;
   }
   return out;
+}
+
+/** Whether JSON `text` needs `decode` after its parse. Every marker is a
+ *  `"$`-prefixed key, and neither serde_json nor `JSON.stringify` escapes a
+ *  `$`, so text without `"$` holds none; its parse is then what `decode`
+ *  answers, minus the copy. A `"__proto__"` key also takes `decode`, whose
+ *  copy assigns that member as the object's prototype. A string value that
+ *  begins with `$` is a false positive and takes `decode` too. */
+export function needsDecode(text: string): boolean {
+  return text.includes('"$') || text.includes('"__proto__"');
+}
+
+/** JSON `text` parsed and decoded: the parse itself when `needsDecode`
+ *  finds nothing to decode. */
+export function decodeText(text: string, host: (n: number) => unknown, hook?: DecodeHook): unknown {
+  const value: unknown = JSON.parse(text);
+  return needsDecode(text) ? decode(value, host, hook) : value;
 }
 
 /**
@@ -582,7 +614,7 @@ export function createEngineBridge(engine: Engine): EngineBridge {
   liveBridges.add(registered);
   const hooks: EncodeHooks = { hold, held: (n, nested) => nestedHosts.set(n, nested) };
   const encode = (value: unknown) => canonicalText(value, hooks);
-  const decodeArgs = (json: string) => decode(JSON.parse(json), host) as unknown[];
+  const decodeArgs = (json: string) => decodeText(json, host) as unknown[];
   const reason = (error: unknown) => errorSpec(error, (v) => canonical(v, hold));
 
   const document = (docId: string): DocumentHandle => {
@@ -650,8 +682,8 @@ export function createEngineBridge(engine: Engine): EngineBridge {
 
   return {
     open(inputJson, optionsJson) {
-      const input = decode(JSON.parse(inputJson), host);
-      const args = optionsJson == null ? [input] : [input, decode(JSON.parse(optionsJson), host)];
+      const input = decodeText(inputJson, host);
+      const args = optionsJson == null ? [input] : [input, decodeText(optionsJson, host)];
       return bridged(
         () => (engine.open as (...a: unknown[]) => unknown)(...args),
         (value) => {

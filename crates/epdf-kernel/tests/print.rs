@@ -32,6 +32,9 @@ impl DocumentSecurity for Security {
     fn allows(&self, permission: &str) -> bool {
         self.0.borrow().contains(&permission)
     }
+    fn allows_field(&self, _: &str, _: &Value) -> bool {
+        false
+    }
     fn allows_annotation_create(&self) -> bool {
         false
     }
@@ -630,7 +633,7 @@ fn a_document_scope_sees_the_documents_capability_for_its_document() {
         assert_eq!(views.len(), 2);
         for (id, documents) in views.iter() {
             assert_eq!(documents.get_document(None).map(|d| d.id).as_deref(), Some(id.as_str()));
-            assert_eq!(documents.list_pages(None).len(), 2);
+            assert_eq!(documents.list_pages(None).as_array().map_or(0, Vec::len), 2);
             assert!(documents.can_print(None));
             assert_eq!(documents.can_download(None), id == "a", "{id}");
             assert_eq!(documents.get_print_quality(None), Some(PRINT_STANDARD));

@@ -239,3 +239,127 @@ fn a_fresh_layer_renders_an_image_drawn_through_a_tiling_pattern() {
         .expect("render the plain page");
     assert!(from_layer.bgra == from_plain.bgra, "the layer's page renders as the plain page");
 }
+
+/// Each `Document::page` is one `FPDF_LoadPage`, so loading the same page
+/// twice counts two loads.
+#[cfg(feature = "call-count")]
+#[test]
+fn load_page_is_counted() {
+    use pdfium::call_count::{self, Call};
+
+    let lib = Library::acquire();
+    let doc = Document::from_bytes(lib, &test_support::fixture(test_support::FEATURES), None)
+        .expect("open features.pdf");
+    assert_eq!(doc.page_count(), 3);
+
+    call_count::reset();
+    drop(doc.page(0).expect("load page 0"));
+    drop(doc.page(0).expect("load page 0 again"));
+    assert_eq!(call_count::get(Call::LoadPage), 2);
+}
+
+/// Opening from a `Vec` hands PDFium the caller's allocation: the Rust side
+/// never allocates a buffer the size of the file, where `from_bytes` copies
+/// into one. A wrong password still fails cleanly and the right one opens.
+#[test]
+fn open_from_vec_takes_ownership() {
+    use largest_allocation::during;
+
+    let bytes = test_support::fixture(test_support::REPORT);
+    let len = bytes.len();
+
+    let (copied, largest) = during(|| Document::from_bytes(Library::acquire(), &bytes, None));
+    copied.expect("open report.pdf from a slice");
+    assert!(largest >= len, "the probe sees the copy from_bytes makes ({largest} < {len})");
+
+    let owned = bytes.clone();
+    let (doc, largest) = during(|| Document::from_vec(Library::acquire(), owned, None));
+    let doc = doc.expect("open report.pdf from a Vec");
+    assert!(largest < len, "from_vec allocated {largest} bytes for a {len}-byte file");
+    assert!(doc.page_count() > 0);
+    assert!(doc.page(0).expect("load page 0").width() > 0.0);
+
+    let owned = bytes.clone();
+    let (base, largest) =
+        during(|| pdfium::BaseDocument::from_vec(Library::acquire(), owned, None));
+    let base = std::rc::Rc::new(base.expect("base from a Vec"));
+    assert!(
+        largest < len,
+        "BaseDocument::from_vec allocated {largest} bytes for a {len}-byte file"
+    );
+    let layer = base.open_layer().expect("fresh layer");
+    assert_eq!(layer.document().page_count(), doc.page_count());
+    drop(layer);
+    drop(base);
+
+    let encrypted = test_support::fixture(test_support::ENCRYPTED);
+    let lib = Library::acquire();
+    assert_eq!(
+        Document::from_vec(lib.clone(), encrypted.clone(), Some("wrong")).err(),
+        Some(PdfiumError::Password)
+    );
+    assert_eq!(
+        pdfium::BaseDocument::from_vec(lib.clone(), encrypted.clone(), None).err(),
+        Some(PdfiumError::Password)
+    );
+    Document::from_vec(lib.clone(), encrypted.clone(), Some("hôtel")).expect("correct password");
+    pdfium::BaseDocument::from_vec(lib, encrypted, Some("hôtel")).expect("correct password");
+}
+
+#[global_allocator]
+static ALLOCATOR: largest_allocation::Tracking = largest_allocation::Tracking;
+
+/// The largest single allocation the Rust side makes on this thread during a
+/// call. PDFium allocates through its own allocator, so a Rust allocation the
+/// size of the file can only be a copy of its bytes.
+mod largest_allocation {
+    use std::alloc::{GlobalAlloc, Layout, System};
+    use std::cell::Cell;
+
+    pub struct Tracking;
+
+    thread_local! {
+        static ARMED: Cell<bool> = const { Cell::new(false) };
+        static LARGEST: Cell<usize> = const { Cell::new(0) };
+    }
+
+    fn note(size: usize) {
+        let _ = ARMED.try_with(|armed| {
+            if armed.get() {
+                let _ = LARGEST.try_with(|largest| largest.set(largest.get().max(size)));
+            }
+        });
+    }
+
+    // SAFETY: every call forwards to `System` unchanged; the bookkeeping
+    // only reads the requested size.
+    unsafe impl GlobalAlloc for Tracking {
+        unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+            note(layout.size());
+            unsafe { System.alloc(layout) }
+        }
+
+        unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+            note(layout.size());
+            unsafe { System.alloc_zeroed(layout) }
+        }
+
+        unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+            unsafe { System.dealloc(ptr, layout) }
+        }
+
+        unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+            note(new_size);
+            unsafe { System.realloc(ptr, layout, new_size) }
+        }
+    }
+
+    /// Run `call`, and the largest allocation it made on this thread.
+    pub fn during<T>(call: impl FnOnce() -> T) -> (T, usize) {
+        LARGEST.with(|largest| largest.set(0));
+        ARMED.with(|armed| armed.set(true));
+        let out = call();
+        ARMED.with(|armed| armed.set(false));
+        (out, LARGEST.with(Cell::get))
+    }
+}

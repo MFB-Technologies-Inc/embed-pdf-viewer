@@ -1,7 +1,11 @@
 //! One settings store per registration, shared by its document instances.
 use crate::{event_hook::EventHookSource, scope::Scope, store::Report};
 use serde_json::{Value, json};
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+    sync::atomic::{AtomicU64, Ordering},
+};
 #[derive(Clone)]
 pub struct SettingsDeclaration {
     pub defaults: Value,
@@ -19,6 +23,7 @@ struct Inner {
     report: Report,
     initial: Rc<Value>,
     current: RefCell<Rc<Value>>,
+    revision: Cell<u64>,
     defaults: Value,
     whole: Vec<String>,
     notify: Rc<dyn Fn()>,
@@ -36,6 +41,7 @@ impl Settings {
             report: report.clone(),
             initial: initial.clone(),
             current: RefCell::new(initial),
+            revision: Cell::new(next_revision()),
             defaults: declaration.defaults,
             whole: declaration.whole,
             notify,
@@ -47,6 +53,12 @@ impl Settings {
     }
     pub fn get_settings(&self) -> Rc<Value> {
         self.get()
+    }
+    /// Moves whenever [`get`](Self::get) answers a new value. Unique across
+    /// every store, so a reader that keeps one per token never mistakes a
+    /// replaced store for the one it read.
+    pub fn revision(&self) -> u64 {
+        self.0.revision.get()
     }
     /// A handle that doesn't keep the store alive.
     pub fn downgrade(&self) -> WeakSettings {
@@ -92,6 +104,7 @@ impl Settings {
             return;
         }
         *self.0.current.borrow_mut() = next.clone();
+        self.0.revision.set(next_revision());
         (self.0.notify)();
         self.0.events.emit(&SettingsChanged { settings: next, changed });
     }
@@ -125,6 +138,12 @@ impl Settings {
         self.0.events.dispose();
     }
 }
+/// A revision no settings store has had.
+fn next_revision() -> u64 {
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    NEXT.fetch_add(1, Ordering::Relaxed)
+}
+
 /// A [`Settings`] store held weakly ([`Settings::downgrade`]).
 #[derive(Clone)]
 pub struct WeakSettings(std::rc::Weak<Inner>);

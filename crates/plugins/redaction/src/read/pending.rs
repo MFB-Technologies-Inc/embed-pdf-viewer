@@ -15,6 +15,7 @@ use std::rc::Rc;
 use epdf_annotation_core::engine::geom::{mirrored_quad, unmirrored_box};
 use epdf_annotation_core::json::number;
 use epdf_annotation_core::record::annotation_key;
+use epdf_annotation_core::types::Model;
 use epdf_geometry::pdf::pdf_quad_bounds;
 use epdf_geometry::{Point, Quad, Rect, rects_overlap};
 use epdf_kernel::Error;
@@ -144,6 +145,14 @@ pub fn estimate_collateral(
 
 type Marks = Rc<Vec<RedactionMark>>;
 
+fn same_layouts(a: &Option<Rc<Value>>, b: &Option<Rc<Value>>) -> bool {
+    match (a, b) {
+        (Some(a), Some(b)) => Rc::ptr_eq(a, b),
+        (None, None) => true,
+        _ => false,
+    }
+}
+
 /// One page's marks and what they were built from.
 struct PageMarks {
     records: Rc<Vec<Value>>,
@@ -151,11 +160,25 @@ struct PageMarks {
     marks: Marks,
 }
 
+/// The whole document's marks and what they were built from. The memo
+/// holds the model and the page list it compares, so neither address can
+/// name another value while it does.
+struct AllMarks {
+    model: Rc<Model>,
+    layouts: Option<Rc<Value>>,
+    per_page: Vec<Marks>,
+    marks: Marks,
+}
+
 /// The pending view's memos.
 pub(crate) struct PendingMemo {
     empty: Marks,
     pages: RefCell<HashMap<u32, PageMarks>>,
-    all: RefCell<Option<(Vec<Marks>, Marks)>>,
+    all: RefCell<Option<AllMarks>>,
+    /// How many pages' lists were asked of the annotation plane, for the
+    /// tests.
+    #[cfg(feature = "harness")]
+    page_lists: std::cell::Cell<u64>,
 }
 
 impl Default for PendingMemo {
@@ -164,6 +187,8 @@ impl Default for PendingMemo {
             empty: Rc::new(Vec::new()),
             pages: RefCell::default(),
             all: RefCell::default(),
+            #[cfg(feature = "harness")]
+            page_lists: std::cell::Cell::new(0),
         }
     }
 }
@@ -171,6 +196,8 @@ impl Default for PendingMemo {
 impl RedactionCapability {
     /// `annotation.list({ pages: [page] })`.
     pub(crate) fn list_page(&self, page: PageRef) -> Rc<Vec<Value>> {
+        #[cfg(feature = "harness")]
+        self.core().pending.page_lists.set(self.core().pending.page_lists.get() + 1);
         let filter = AnnotationFilter { pages: Some(vec![page.to_json()]), subtype: None };
         self.core().siblings.annotation.list(Some(&filter))
     }
@@ -215,22 +242,38 @@ impl RedactionCapability {
 
     /// `allMarks()`: the whole document's marks, the same `Rc` while no
     /// page's marks changed.
+    ///
+    /// Each page's marks come from `annotation.list({ pages: [page] })`,
+    /// which is the same list while the annotation model is, and from the
+    /// page's position in the page list. So an unchanged model and page
+    /// list read every page's marks as they were, and the walk is skipped.
     fn all_marks(&self) -> Marks {
-        let per_page: Vec<Marks> =
-            self.core().store.pages().into_iter().map(|page| self.marks_on(page)).collect();
-        let memo = &self.core().pending;
-        if let Some((held, marks)) = &*memo.all.borrow()
-            && held.len() == per_page.len()
-            && held.iter().zip(&per_page).all(|(a, b)| Rc::ptr_eq(a, b))
+        let core = self.core();
+        let model = core.siblings.annotation.model();
+        let layouts = core.store.layouts();
+        let memo = &core.pending;
+        if let Some(held) = &*memo.all.borrow()
+            && Rc::ptr_eq(&held.model, &model)
+            && same_layouts(&held.layouts, &layouts)
         {
-            return marks.clone();
+            return held.marks.clone();
+        }
+        let per_page: Vec<Marks> =
+            core.store.pages().into_iter().map(|page| self.marks_on(page)).collect();
+        if let Some(held) = &mut *memo.all.borrow_mut()
+            && held.per_page.len() == per_page.len()
+            && held.per_page.iter().zip(&per_page).all(|(a, b)| Rc::ptr_eq(a, b))
+        {
+            held.model = model;
+            held.layouts = layouts;
+            return held.marks.clone();
         }
         let marks = if per_page.iter().any(|marks| !marks.is_empty()) {
             Rc::new(per_page.iter().flat_map(|marks| marks.iter().cloned()).collect())
         } else {
             memo.empty.clone()
         };
-        *memo.all.borrow_mut() = Some((per_page, marks.clone()));
+        *memo.all.borrow_mut() = Some(AllMarks { model, layouts, per_page, marks: marks.clone() });
         marks
     }
 
@@ -263,6 +306,14 @@ impl RedactionCapability {
             .iter()
             .find(|mark| annotation_key(&mark.ref_).as_deref() == Some(key.as_str()))
             .cloned()
+    }
+
+    /// How many pages' lists this plugin asked the annotation plane for.
+    /// For the tests.
+    #[cfg(feature = "harness")]
+    #[doc(hidden)]
+    pub fn page_list_calls(&self) -> u64 {
+        self.core().pending.page_lists.get()
     }
 
     /// How many marks wait to be applied, in the document or on one page.

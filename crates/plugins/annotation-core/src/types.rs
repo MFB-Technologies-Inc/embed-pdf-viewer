@@ -537,7 +537,8 @@ js_object! {
         "subtype" => pub subtype: KindName,
         "preset" => pub preset: Option<String>,
         "page" => pub page: PageRef,
-        "strokes" => pub strokes: Vec<Vec<Point>>,
+        /// Each stroke shared, so a new draft copies only the stroke it draws.
+        "strokes" => pub strokes: Vec<Rc<Vec<Point>>>,
         /// The pen is down: the last stroke is still being drawn.
         "drawing" => pub drawing: Option<bool>,
         "intent" => pub intent: Option<String>,
@@ -852,6 +853,16 @@ impl Model {
 
     pub fn draft(&self) -> Option<&Draft> {
         self.draft.as_deref()
+    }
+
+    /// The ids a move, turn or group resize draft carries.
+    pub fn dragged_ids(&self) -> Option<&[Id]> {
+        match self.draft()? {
+            Draft::Move(d) => Some(&d.ids),
+            Draft::Rotate(d) => Some(&d.ids),
+            Draft::Group(d) => Some(&d.ids),
+            _ => None,
+        }
     }
 
     /// The model with another selection (`{ ...model, selected }`).
@@ -1714,7 +1725,7 @@ pub enum Phase {
 }
 
 impl Phase {
-    fn read(text: &str) -> Result<Phase, JsonError> {
+    pub fn read(text: &str) -> Result<Phase, JsonError> {
         match text {
             "down" => Ok(Phase::Down),
             "move" => Ok(Phase::Move),

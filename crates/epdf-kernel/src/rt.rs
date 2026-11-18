@@ -360,11 +360,27 @@ pub fn sleep(ms: f64) -> Promise<()> {
 enum State<T> {
     Pending(Vec<Waker>),
     Settled(Result<T, Error>),
+    /// Settled while observers waited: they read the one result through
+    /// the `Rc` the state keeps, so it is never copied for them.
+    Shared(Rc<Result<T, Error>>),
+    /// Settled, with the result moved to the one [`Promise::convert_owned`]
+    /// observing it, when nothing but resolvers held the promise. Only
+    /// [`Resolver::promise`] can reach it again, and reads it as settled
+    /// with nothing to give: no observer runs and no awaiter resumes.
+    Taken,
+}
+
+/// A callback for the moment a promise settles.
+enum Observer<T> {
+    /// Reads the result where the promise keeps it.
+    Borrows(Box<dyn FnOnce(&Result<T, Error>)>),
+    /// Takes the result: moved when it is the only reader, else a copy.
+    Owns(Box<dyn FnOnce(Result<T, Error>)>),
 }
 
 struct Inner<T> {
     state: RefCell<State<T>>,
-    on_settle: RefCell<Vec<Box<dyn FnOnce(&Result<T, Error>)>>>,
+    on_settle: RefCell<Vec<Observer<T>>>,
     /// Dropped when the promise settles: a settled promise ignores `abort`,
     /// and the function usually holds whatever it would cancel (a bridge
     /// call's JavaScript promise, and through it the task, its signal and
@@ -399,7 +415,7 @@ impl<T> Inner<T> {
     fn abandon(&self) {
         let wakers = match &mut *self.state.borrow_mut() {
             State::Pending(wakers) => std::mem::take(wakers),
-            State::Settled(_) => return,
+            State::Settled(_) | State::Shared(_) | State::Taken => return,
         };
         self.abandoned.set(true);
         let observers = std::mem::take(&mut *self.on_settle.borrow_mut());
@@ -500,20 +516,44 @@ impl<T: Clone + 'static> Promise<T> {
         if self.is_settled() {
             return;
         }
-        let observers = std::mem::take(&mut *self.0.on_settle.borrow_mut());
-        // Without observers the result moves into the state: an engine
-        // answer is a deep `Value`, and nothing else would read the copy.
-        let (stored, observed) =
-            if observers.is_empty() { (result, None) } else { (result.clone(), Some(result)) };
-        let wakers =
-            match std::mem::replace(&mut *self.0.state.borrow_mut(), State::Settled(stored)) {
-                State::Pending(wakers) => wakers,
-                State::Settled(_) => unreachable!(),
-            };
+        let mut observers = std::mem::take(&mut *self.0.on_settle.borrow_mut());
+        // An owning observer that is the only reader takes the result: no
+        // other observer, and no handle but resolvers', which can read it
+        // only through `Resolver::promise`.
+        let taker = match observers.as_slice() {
+            [Observer::Owns(_)] if Rc::strong_count(&self.0) == self.0.resolvers.get() => {
+                match observers.pop() {
+                    Some(Observer::Owns(take)) => Some(take),
+                    _ => unreachable!(),
+                }
+            }
+            _ => None,
+        };
+        // Otherwise the result moves into the state; observers read it
+        // through a shared `Rc`. An engine answer is a deep `Value` or a
+        // long text, and an observer is often its only reader.
+        let (stored, observed, taken) = match taker {
+            Some(take) => (State::Taken, None, Some((take, result))),
+            None if observers.is_empty() => (State::Settled(result), None, None),
+            None => {
+                let shared = Rc::new(result);
+                (State::Shared(shared.clone()), Some(shared), None)
+            }
+        };
+        let wakers = match std::mem::replace(&mut *self.0.state.borrow_mut(), stored) {
+            State::Pending(wakers) => wakers,
+            State::Settled(_) | State::Shared(_) | State::Taken => unreachable!(),
+        };
         drop(self.0.abort.borrow_mut().take());
+        if let Some((take, result)) = taken {
+            take(result);
+        }
         if let Some(result) = observed {
             for observer in observers {
-                observer(&result);
+                match observer {
+                    Observer::Borrows(observer) => observer(&result),
+                    Observer::Owns(take) => take((*result).clone()),
+                }
             }
         }
         for waker in wakers {
@@ -521,11 +561,13 @@ impl<T: Clone + 'static> Promise<T> {
         }
     }
 
-    /// The settled result, if any, without waiting.
+    /// The settled result, if any, without waiting. `None` too for a result
+    /// a [`convert_owned`](Self::convert_owned) took.
     pub fn peek(&self) -> Option<Result<T, Error>> {
         match &*self.0.state.borrow() {
-            State::Pending(_) => None,
+            State::Pending(_) | State::Taken => None,
             State::Settled(result) => Some(result.clone()),
+            State::Shared(result) => Some((**result).clone()),
         }
     }
 
@@ -535,7 +577,7 @@ impl<T: Clone + 'static> Promise<T> {
     }
 
     pub fn is_settled(&self) -> bool {
-        matches!(*self.0.state.borrow(), State::Settled(_))
+        !matches!(*self.0.state.borrow(), State::Pending(_))
     }
 
     /// Observe settlement synchronously, at the moment it happens (or now,
@@ -544,9 +586,10 @@ impl<T: Clone + 'static> Promise<T> {
         let settled = self.peek();
         match settled {
             Some(result) => observer(&result),
-            // It never settles, so the observer never runs.
-            None if self.0.abandoned.get() => drop(observer),
-            None => self.0.on_settle.borrow_mut().push(Box::new(observer)),
+            // It never settles, or its result is gone, so the observer
+            // never runs.
+            None if self.0.abandoned.get() || self.is_settled() => drop(observer),
+            None => self.0.on_settle.borrow_mut().push(Observer::Borrows(Box::new(observer))),
         }
     }
 
@@ -597,6 +640,46 @@ impl<T: Clone + 'static> Promise<T> {
         });
         match abort {
             Some(abort) if self.is_abortable() => out.with_abort(move |reason| abort(reason)),
+            Some(abort) => out.with_abort_member(move |reason| abort(reason)),
+            None => out,
+        }
+    }
+
+    /// [`convert`](Self::convert) for a conversion that consumes the value,
+    /// settling in the same turn and keeping the abort the same way. The
+    /// result moves to `f` when this handle is the promise's last reader:
+    /// nothing else holds the promise but its resolvers, and no other
+    /// observer waits on it. Any other reader keeps its view, and `f` gets
+    /// a copy.
+    pub fn convert_owned<U: Clone + 'static>(
+        self,
+        f: impl FnOnce(T) -> Result<U, Error> + 'static,
+    ) -> Promise<U> {
+        let (out, resolver) = Promise::<U>::pending();
+        let abort = self.abort_handle();
+        let abortable = self.is_abortable();
+        let take = move |result: Result<T, Error>| resolver.settle(result.and_then(f));
+        if self.is_settled() {
+            let result = if Rc::strong_count(&self.0) == 1 {
+                match std::mem::replace(&mut *self.0.state.borrow_mut(), State::Taken) {
+                    State::Settled(result) => Some(result),
+                    State::Shared(result) => {
+                        Some(Rc::try_unwrap(result).unwrap_or_else(|r| (*r).clone()))
+                    }
+                    State::Pending(_) | State::Taken => None,
+                }
+            } else {
+                self.peek()
+            };
+            // A result already taken never reaches anyone.
+            if let Some(result) = result {
+                take(result);
+            }
+        } else if !self.0.abandoned.get() {
+            self.0.on_settle.borrow_mut().push(Observer::Owns(Box::new(take)));
+        }
+        match abort {
+            Some(abort) if abortable => out.with_abort(move |reason| abort(reason)),
             Some(abort) => out.with_abort_member(move |reason| abort(reason)),
             None => out,
         }
@@ -737,14 +820,24 @@ impl<T: Clone + 'static> Future for PromiseFuture<T> {
                     wakers.push(cx.waker().clone());
                     None
                 }
-                State::Settled(_) if !yielded => Some(None),
-                State::Settled(_) if only => {
+                // Its result went to the one reader that took it: nothing
+                // resumes this task, as for an abandoned promise.
+                State::Taken => {
+                    RT.with(|rt| rt.abandon_current.set(true));
+                    return Poll::Pending;
+                }
+                State::Settled(_) | State::Shared(_) if !yielded => Some(None),
+                State::Settled(_) | State::Shared(_) if only => {
                     match std::mem::replace(&mut *state, State::Pending(Vec::new())) {
                         State::Settled(result) => Some(Some(result)),
-                        State::Pending(_) => unreachable!(),
+                        State::Shared(result) => {
+                            Some(Some(Rc::try_unwrap(result).unwrap_or_else(|r| (*r).clone())))
+                        }
+                        State::Pending(_) | State::Taken => unreachable!(),
                     }
                 }
                 State::Settled(result) => Some(Some(result.clone())),
+                State::Shared(result) => Some(Some((**result).clone())),
             }
         };
         match ready {

@@ -113,6 +113,9 @@ struct TileQueue {
     /// Visible tiles center-out, then the prefetch ring once every visible
     /// tile resolved.
     coords: Rc<Vec<TileCoord>>,
+    /// The tile key of each coord, built with `suffix`.
+    keys: Rc<Vec<String>>,
+    suffix: Rc<str>,
     /// Where the ring starts in `coords`.
     ring_from: usize,
     /// Where the pump looks next: every coord before it is started or failed.
@@ -151,6 +154,7 @@ struct Inner {
     pages: RefCell<IndexMap<String, State>>,
     strategy_memo:
         RefCell<Option<(EngineRenderPolicy, Rc<ResolvedRenderOptions>, Rc<ResolvedStrategy>)>>,
+    suffix_memo: RefCell<Option<(Rc<ResolvedRenderOptions>, Rc<ResolvedStrategy>, Rc<str>)>>,
     in_flight: Cell<i64>,
     warned_stageless: Cell<bool>,
     deps: TileManagerDeps,
@@ -173,6 +177,21 @@ fn state_key(view: &str, pon: u32) -> String {
 
 fn coord_key(c: TileCoord) -> String {
     format!("{},{}", num(c.ix), num(c.iy))
+}
+
+/// [`coord_key`] without the strings: equal exactly when the keys are, as
+/// `-0` prints as `0` and every NaN as `NaN`.
+fn coord_bits(c: TileCoord) -> (u64, u64) {
+    let bits = |x: f64| {
+        if x == 0.0 {
+            0.0_f64.to_bits()
+        } else if x.is_nan() {
+            f64::NAN.to_bits()
+        } else {
+            x.to_bits()
+        }
+    };
+    (bits(c.ix), bits(c.iy))
 }
 
 fn rect_key(r: Rect) -> String {
@@ -205,6 +224,7 @@ impl TileManager {
         TileManager(Rc::new(Inner {
             pages: RefCell::new(IndexMap::new()),
             strategy_memo: RefCell::new(None),
+            suffix_memo: RefCell::new(None),
             in_flight: Cell::new(0),
             warned_stageless: Cell::new(false),
             deps,
@@ -362,14 +382,17 @@ impl TileManager {
             options.tiles.prefetch_margin,
             if options.tiles.velocity_bias { demand.velocity } else { None },
         );
-        let visible_keys: HashSet<String> = visible_coords.iter().map(|c| coord_key(*c)).collect();
+        let visible_keys: HashSet<(u64, u64)> =
+            visible_coords.iter().map(|c| coord_bits(*c)).collect();
         let prefetch_coords: Vec<TileCoord> = tiles_in_rect(&grid, page, ring)
             .into_iter()
-            .filter(|c| !visible_keys.contains(&coord_key(*c)))
+            .filter(|c| !visible_keys.contains(&coord_bits(*c)))
             .collect();
 
+        let suffix = self.key_suffix();
         self.schedule(
             &state,
+            &suffix,
             page,
             grid,
             want_scale,
@@ -384,7 +407,7 @@ impl TileManager {
         // Release retained generations covered by the current painted set:
         // evaluated here, not only on painted reports, so report order can
         // never strand a release.
-        if self.release_covered(pon, &state, page, layers) {
+        if self.release_covered(pon, &state, page, layers, &suffix) {
             let mut s = state.borrow_mut();
             s.version += 1;
             s.plan_cache = None;
@@ -479,7 +502,7 @@ impl TileManager {
         }
         entry.painted.set(true);
         if let Some(page) = (self.deps().get_page_size)(pon) {
-            self.release_covered(pon, &state, page, layers_of_key(key));
+            self.release_covered(pon, &state, page, layers_of_key(key), &self.key_suffix());
         }
         {
             let mut s = state.borrow_mut();
@@ -553,6 +576,7 @@ impl TileManager {
     fn schedule(
         &self,
         state: &State,
+        suffix: &Rc<str>,
         page: PageSizePt,
         grid: TileGrid,
         want_scale: f64,
@@ -564,7 +588,6 @@ impl TileManager {
         visible: Rect,
     ) {
         let pon = state.borrow().pon;
-        let suffix = self.key_suffix();
         let options = self.options();
         let (first_engage, level_changed) = {
             let mut s = state.borrow_mut();
@@ -582,13 +605,15 @@ impl TileManager {
         // Entries follow the want set: in-flight ones that left it abort,
         // resolved same-level ones drop (their bytes stay in the store), and
         // only cross-level retained entries stay.
-        let key_of = |c: TileCoord| tile_key(&suffix, pon, want_width, c, layers, epoch);
-        let wanted: HashSet<String> =
-            visible_coords.iter().chain(prefetch_coords.iter()).map(|c| key_of(*c)).collect();
+        let key_of = |c: &TileCoord| tile_key(suffix, pon, want_width, *c, layers, epoch);
+        let visible_keys: Vec<String> = visible_coords.iter().map(key_of).collect();
+        let prefetch_keys: Vec<String> = prefetch_coords.iter().map(key_of).collect();
+        let wanted: HashSet<&str> =
+            visible_keys.iter().chain(prefetch_keys.iter()).map(String::as_str).collect();
         let snapshot: Vec<(String, Rc<TileEntry>)> =
             state.borrow().entries.iter().map(|(k, e)| (k.clone(), e.clone())).collect();
         for (key, entry) in snapshot {
-            if wanted.contains(&key) {
+            if wanted.contains(key.as_str()) {
                 continue;
             }
             if !entry.resolved.get() {
@@ -611,8 +636,9 @@ impl TileManager {
             let dy = (c.iy + 0.5) * span - center_y;
             dx * dx + dy * dy
         };
-        let mut ordered_visible = visible_coords;
-        ordered_visible.sort_by(|a, b| {
+        let mut ordered_visible: Vec<(TileCoord, String)> =
+            visible_coords.into_iter().zip(visible_keys).collect();
+        ordered_visible.sort_by(|(a, _), (b, _)| {
             let d = distance_to_center(a) - distance_to_center(b);
             d.partial_cmp(&0.0).unwrap_or(std::cmp::Ordering::Equal)
         });
@@ -626,20 +652,24 @@ impl TileManager {
                 // that failed at this level counts as done.
                 let all_visible_ready = {
                     let s = state.borrow();
-                    ordered_visible.iter().all(|c| {
-                        let key = tile_key(&suffix, pon, want_width, *c, layers, epoch);
-                        s.failed_keys.contains(&key)
-                            || s.entries.get(&key).is_some_and(|e| e.resolved.get())
+                    ordered_visible.iter().all(|(_, key)| {
+                        s.failed_keys.contains(key)
+                            || s.entries.get(key).is_some_and(|e| e.resolved.get())
                     })
                 };
                 let ring_from = ordered_visible.len();
-                let coords = if all_visible_ready {
-                    ordered_visible.iter().chain(prefetch_coords.iter()).copied().collect()
+                let visible = ordered_visible.iter().map(|(c, k)| (*c, k.clone()));
+                let (coords, keys) = if all_visible_ready {
+                    visible
+                        .chain(prefetch_coords.iter().copied().zip(prefetch_keys.iter().cloned()))
+                        .unzip()
                 } else {
-                    ordered_visible.clone()
+                    visible.unzip()
                 };
                 state.borrow_mut().queue = Some(TileQueue {
                     coords: Rc::new(coords),
+                    keys: Rc::new(keys),
+                    suffix: suffix.clone(),
                     ring_from,
                     next: 0,
                     page,
@@ -716,19 +746,19 @@ impl TileManager {
         while self.0.in_flight.get() < MAX_IN_FLIGHT {
             let states: Vec<(String, State)> =
                 self.0.pages.borrow().iter().map(|(k, s)| (k.clone(), s.clone())).collect();
-            let mut next: Option<(String, State, TileCoord)> = None;
+            let mut next: Option<(String, State, TileCoord, String)> = None;
             for (key, state) in states {
-                let Some((coord, prefetch)) = self.next_to_start(&state) else { continue };
+                let Some((coord, prefetch, tile)) = self.next_to_start(&state) else { continue };
                 if next.is_some() && prefetch {
                     continue;
                 }
-                next = Some((key, state, coord));
+                next = Some((key, state, coord, tile));
                 if !prefetch {
                     break;
                 }
             }
-            let Some((key, state, coord)) = next else { break };
-            self.start(&state, coord);
+            let Some((key, state, coord, tile)) = next else { break };
+            self.start(&state, coord, tile);
             started.entry(key).or_insert_with(|| (state.clone(), 0)).1 += 1;
         }
         for (_, (state, count)) in started {
@@ -739,35 +769,42 @@ impl TileManager {
     }
 
     /// The first tile of the state's queue not started yet, nor failed at
-    /// this level, and whether it belongs to the ring.
-    fn next_to_start(&self, state: &State) -> Option<(TileCoord, bool)> {
+    /// this level, whether it belongs to the ring, and its key. The queue's
+    /// keys serve while the options and the format still give its suffix.
+    fn next_to_start(&self, state: &State) -> Option<(TileCoord, bool, String)> {
         let suffix = self.key_suffix();
         let mut s = state.borrow_mut();
         let pon = s.pon;
         let PageTileState { queue, failed_keys, entries, .. } = &mut *s;
         let queue = queue.as_mut()?;
+        let queued_keys = Rc::ptr_eq(&suffix, &queue.suffix) || suffix == queue.suffix;
         while queue.next < queue.coords.len() {
             let coord = queue.coords[queue.next];
-            let key = tile_key(&suffix, pon, queue.want_width, coord, queue.layers, queue.epoch);
+            let built;
+            let key = if queued_keys {
+                queue.keys[queue.next].as_str()
+            } else {
+                built = tile_key(&suffix, pon, queue.want_width, coord, queue.layers, queue.epoch);
+                built.as_str()
+            };
             // A key that failed at this level is not retried until the level
             // or epoch changes.
-            if failed_keys.contains(&key) || entries.contains_key(&key) {
+            if failed_keys.contains(key) || entries.contains_key(key) {
                 queue.next += 1;
                 continue;
             }
-            return Some((coord, queue.next >= queue.ring_from));
+            return Some((coord, queue.next >= queue.ring_from, key.to_string()));
         }
         None
     }
 
-    /// Starts one queued tile's fetch, in a transit slot.
-    fn start(&self, state: &State, coord: TileCoord) {
+    /// Starts one queued tile's fetch under `key`, in a transit slot.
+    fn start(&self, state: &State, coord: TileCoord, key: String) {
         let (view, pon, queue) = {
             let s = state.borrow();
             (s.view.clone(), s.pon, s.queue.clone().expect("a started tile has a queue"))
         };
-        let TileQueue { page, grid, want_width, layers, epoch, .. } = queue;
-        let key = tile_key(&self.key_suffix(), pon, want_width, coord, layers, epoch);
+        let TileQueue { page, grid, layers, .. } = queue;
         let bleed_pt = self.options().tiles.bleed_px / grid.scale;
         self.0.in_flight.set(self.0.in_flight.get() + 1);
         let logical = tile_paint_rect(&grid, page, coord);
@@ -871,15 +908,15 @@ impl TileManager {
         state: &State,
         page: PageSizePt,
         layers: PageRenderLayers,
+        suffix: &str,
     ) -> bool {
-        let suffix = self.key_suffix();
         let (want_scale, want_width, epoch, last_visible) = {
             let s = state.borrow();
             (s.want_scale, s.want_width, s.epoch, s.last_visible)
         };
         let (Some(want_scale), Some(want_width)) = (want_scale, want_width) else { return false };
         let grid = tile_grid(page, want_scale, self.strategy().tile_size);
-        let want_key_of = |c: TileCoord| tile_key(&suffix, pon, want_width, c, layers, epoch);
+        let want_key_of = |c: TileCoord| tile_key(suffix, pon, want_width, c, layers, epoch);
         let painted_at = |c: TileCoord| {
             state.borrow().entries.get(&want_key_of(c)).is_some_and(|e| e.painted.get())
         };
@@ -956,15 +993,25 @@ impl TileManager {
 
     /// The part of every tile key that depends only on the options and the
     /// strategy's format: what determines the fetched bitmap for a coord.
-    fn key_suffix(&self) -> String {
+    /// Built again when the options or the strategy change.
+    fn key_suffix(&self) -> Rc<str> {
         let options = self.options();
-        let format = self.strategy().format;
-        format!(
+        let strategy = self.strategy();
+        if let Some((o, st, suffix)) = &*self.0.suffix_memo.borrow()
+            && Rc::ptr_eq(o, &options)
+            && Rc::ptr_eq(st, &strategy)
+        {
+            return suffix.clone();
+        }
+        let suffix: Rc<str> = format!(
             "g{}.{}{}",
             num(options.tiles.size),
             num(options.tiles.bleed_px),
-            format.map_or(String::new(), |f| format!(".{}", f.as_str()))
+            strategy.format.map_or(String::new(), |f| format!(".{}", f.as_str()))
         )
+        .into();
+        *self.0.suffix_memo.borrow_mut() = Some((options, strategy, suffix.clone()));
+        suffix
     }
 }
 
@@ -991,4 +1038,44 @@ fn tile_key(
 /// `SameValueZero`, the equality a `Set` of numbers and `Map.get` use.
 fn same_value_zero(a: f64, b: f64) -> bool {
     a == b || (a.is_nan() && b.is_nan())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Two coords share a bit key exactly when they share a string key:
+    /// `-0` prints as `0`, and every NaN prints as `NaN`.
+    #[test]
+    fn coord_bits_key_as_the_string_key_does() {
+        let values = [
+            0.0,
+            -0.0,
+            f64::NAN,
+            -f64::NAN,
+            f64::from_bits(0x7ff8_0000_0000_0001),
+            f64::from_bits(0xfff0_0000_0000_0001),
+            1.0,
+            -1.0,
+            0.5,
+            f64::INFINITY,
+            f64::NEG_INFINITY,
+            9_007_199_254_740_992.0,
+            9_007_199_254_740_994.0,
+            5e-324,
+        ];
+        let coords: Vec<TileCoord> = values
+            .iter()
+            .flat_map(|&ix| values.iter().map(move |&iy| TileCoord { ix, iy }))
+            .collect();
+        for a in &coords {
+            for b in &coords {
+                assert_eq!(
+                    coord_bits(*a) == coord_bits(*b),
+                    coord_key(*a) == coord_key(*b),
+                    "{a:?} {b:?}"
+                );
+            }
+        }
+    }
 }

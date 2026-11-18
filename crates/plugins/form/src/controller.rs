@@ -12,6 +12,7 @@ use std::rc::{Rc, Weak};
 use epdf_kernel::cancellable::cancellable;
 use epdf_kernel::engine::DocumentHandle;
 use epdf_kernel::error::{code, plugin_error};
+use epdf_kernel::geometry::PageRef;
 use epdf_kernel::mirror::Mirror;
 use epdf_kernel::plugin::ConnectFn;
 use epdf_kernel::rt::Promise;
@@ -59,12 +60,20 @@ pub struct Core {
     pub(crate) reads: crate::read::fields::ReadMemos,
     /// `listWidgets`' memo, by page: the items it made, and from what.
     pub(crate) widget_items: RefCell<HashMap<String, crate::read::widgets::WidgetItems>>,
+    /// `listShownWidgets`' memo, by page: the list it made, and from what.
+    pub(crate) shown_widgets: RefCell<HashMap<String, crate::services::looks::ShownOn>>,
+    /// `getAppearanceEpoch`'s memo, by page: the items and epoch it made,
+    /// and the confirmed form it read.
+    pub(crate) picture_items: RefCell<HashMap<String, crate::services::pictures::ItemsOn>>,
     /// Mounted focus targets, pending focus, and the last widget visited.
     pub(crate) cursor: crate::services::cursor::Cursor,
     /// Keyboard order derived from the field view, pages, fill rights and settings.
     pub(crate) focus_order_cache: RefCell<Option<crate::write::focus::FocusOrderCache>>,
     /// The widget hover pump, made on first use.
     pub(crate) widget_pump: RefCell<Option<epdf_plugin_actions::HoverPump>>,
+    /// The conformance adapter's printed answers.
+    #[cfg(feature = "harness")]
+    pub(crate) printed: crate::harness::Printed,
 }
 
 /// `FormHostCapability`, which includes the public `FormCapability`.
@@ -145,8 +154,8 @@ impl Core {
     /// The document's page list (`ctx.document()?.pages`).
     pub(crate) fn pages(&self) -> Rc<Value> {
         self.cx
-            .document()
-            .map(|meta| meta.pages)
+            .document_rc()
+            .map(|meta| meta.pages.clone())
             .unwrap_or_else(|| Rc::new(Value::Array(Vec::new())))
     }
 
@@ -161,12 +170,10 @@ impl Core {
             return None;
         }
         let wanted = page.get("objectNumber").and_then(Value::as_f64)?;
-        list.iter()
-            .find(|info| {
-                info.get("ref").and_then(|r| r.get("objectNumber")).and_then(Value::as_f64)
-                    == Some(wanted)
-            })
-            .cloned()
+        let wanted = (wanted > 0.0 && wanted.fract() == 0.0 && wanted <= u32::MAX as f64)
+            .then(|| PageRef::new(wanted as u32))?;
+        let meta = self.cx.document_rc()?;
+        self.cx.page_by_ref(&meta, wanted).cloned()
     }
 
     /// `ctx.pageOf(page)`: the page, or `not-found`.
@@ -221,9 +228,13 @@ pub fn create_form_controller(
         rights_groups: RefCell::new(None),
         reads: Default::default(),
         widget_items: RefCell::new(HashMap::new()),
+        shown_widgets: RefCell::new(HashMap::new()),
+        picture_items: RefCell::new(HashMap::new()),
         widget_pump: RefCell::new(None),
         cursor: Default::default(),
         focus_order_cache: RefCell::new(None),
+        #[cfg(feature = "harness")]
+        printed: crate::harness::Printed::default(),
     });
     core.watch_formatted_texts()?;
     core.wire_fills()?;

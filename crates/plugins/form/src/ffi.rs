@@ -25,16 +25,23 @@ use epdf_ffi::{
 use epdf_kernel::error::{code, plugin_error};
 use epdf_kernel::{Error, Unsubscribe};
 use serde::Deserialize;
-use serde::de::DeserializeOwned;
+use serde::de::{DeserializeOwned, IgnoredAny};
 use serde_json::{Map, Value, json};
 
 use crate::FormCapability;
 
 fn decode<T: DeserializeOwned>(value: Value) -> Result<T, Error> {
-    serde_json::from_value(value).map_err(|e| {
-        Error::named("InvalidState", format!("[form] a value does not decode: {e}"))
-            .with("code", "invalid-state")
-    })
+    serde_json::from_value(value).map_err(decode_error)
+}
+
+/// [`decode`] of a value read in place, not copied first.
+fn decode_ref<T: DeserializeOwned>(value: &Value) -> Result<T, Error> {
+    T::deserialize(value).map_err(decode_error)
+}
+
+fn decode_error(e: serde_json::Error) -> Error {
+    Error::named("InvalidState", format!("[form] a value does not decode: {e}"))
+        .with("code", "invalid-state")
 }
 
 fn invalid_state(message: String) -> Error {
@@ -317,7 +324,7 @@ struct FieldDto {
 
 impl FormField {
     pub(crate) fn from_json(value: &Value) -> Result<Self, Error> {
-        let dto: FieldDto = decode(value.clone())?;
+        let dto: FieldDto = decode_ref(value)?;
         let family = FormFieldFamily::parse(&dto.family);
         let text = |v: &Value| v.as_str().unwrap_or_default().to_string();
         let detail = match family {
@@ -416,28 +423,34 @@ pub struct FormSnapshot {
 
 impl FormSnapshot {
     fn from_json(value: &Value) -> Result<Self, Error> {
+        // The head is decoded; the lists are only checked to be lists, and
+        // are read in place from `value`.
         #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
         struct Dto {
             form_kind: FormKind,
             needs_appearances: bool,
-            fields: Vec<Value>,
+            #[allow(dead_code)]
+            fields: Vec<IgnoredAny>,
+            #[allow(dead_code)]
             #[serde(default)]
-            widgets: Vec<Value>,
+            widgets: Vec<IgnoredAny>,
+            #[allow(dead_code)]
             #[serde(default)]
-            calculation_order: Vec<Value>,
+            calculation_order: Vec<IgnoredAny>,
         }
-        let dto: Dto = decode(value.clone())?;
+        let dto: Dto = decode_ref(value)?;
+        let list =
+            |key: &str| value.get(key).and_then(Value::as_array).map_or(&[][..], Vec::as_slice);
         Ok(FormSnapshot {
             form_kind: dto.form_kind,
             needs_appearances: dto.needs_appearances,
-            fields: fields_out(&dto.fields)?,
-            calculation_order: dto
-                .calculation_order
+            fields: fields_out(list("fields"))?,
+            calculation_order: list("calculationOrder")
                 .iter()
                 .map(|r| if r.is_null() { Ok(None) } else { field_ref_of(r).map(Some) })
                 .collect::<Result<_, Error>>()?,
-            widgets_json: Value::Array(dto.widgets).to_string(),
+            widgets_json: serde_json::to_string(list("widgets")).expect("JSON values serialise"),
         })
     }
 }
@@ -1640,6 +1653,112 @@ mod tests {
                 error: None,
             }
         );
+    }
+
+    /// `FormSnapshot::from_json` as it decoded a copy of the whole value.
+    fn snapshot_from_a_copy(value: &Value) -> Result<FormSnapshot, Error> {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Dto {
+            form_kind: FormKind,
+            needs_appearances: bool,
+            fields: Vec<Value>,
+            #[serde(default)]
+            widgets: Vec<Value>,
+            #[serde(default)]
+            calculation_order: Vec<Value>,
+        }
+        let dto: Dto = decode(value.clone())?;
+        Ok(FormSnapshot {
+            form_kind: dto.form_kind,
+            needs_appearances: dto.needs_appearances,
+            fields: fields_out(&dto.fields)?,
+            calculation_order: dto
+                .calculation_order
+                .iter()
+                .map(|r| if r.is_null() { Ok(None) } else { field_ref_of(r).map(Some) })
+                .collect::<Result<_, Error>>()?,
+            widgets_json: Value::Array(dto.widgets).to_string(),
+        })
+    }
+
+    fn a_field() -> Value {
+        json!({
+            "ref": { "kind": "objectNumber", "objectNumber": 4 }, "name": "f", "kind": "text",
+            "origin": "acroform", "readOnly": false, "required": true, "noExport": false,
+            "value": "typed", "maxLength": 9,
+            "widgets": [{ "ref": { "kind": "objectNumber", "objectNumber": 5,
+                                   "page": { "kind": "objectNumber", "objectNumber": 1 } },
+                          "objectNumber": 5, "page": { "kind": "objectNumber", "objectNumber": 1 } }],
+        })
+    }
+
+    /// Read in place, a snapshot and a field decode as a copy of them did:
+    /// the same records, and the same refusals word for word.
+    #[test]
+    fn decoding_in_place_accepts_and_refuses_as_a_copy_did() {
+        let whole = json!({
+            "formKind": "acroform", "needsAppearances": false, "fields": [a_field()],
+            "widgets": [{ "subtype": "widget", "rect": { "x": 1.5 } }],
+            "calculationOrder": [null, { "kind": "objectNumber", "objectNumber": 4 }],
+        });
+        let with = |key: &str, member: Value| {
+            let mut value = whole.clone();
+            value[key] = member;
+            value
+        };
+        let without = |key: &str| {
+            let mut value = whole.clone();
+            value.as_object_mut().unwrap().shift_remove(key);
+            value
+        };
+        let mut bad_field = a_field();
+        bad_field["readOnly"] = json!("no");
+        let snapshots = [
+            whole.clone(),
+            without("widgets"),
+            without("calculationOrder"),
+            without("fields"),
+            with("fields", json!({})),
+            with("fields", json!([bad_field])),
+            with("widgets", Value::Null),
+            with("widgets", json!("rows")),
+            with("calculationOrder", json!([7])),
+            with("formKind", json!("pdf")),
+            with("needsAppearances", json!(1)),
+            json!([]),
+            Value::Null,
+        ];
+        for value in &snapshots {
+            assert_eq!(
+                format!("{:?}", FormSnapshot::from_json(value)),
+                format!("{:?}", snapshot_from_a_copy(value)),
+                "{value}"
+            );
+        }
+        assert!(FormSnapshot::from_json(&whole).is_ok(), "{:?}", FormSnapshot::from_json(&whole));
+        let mut fields = vec![a_field(), json!(7), json!({ "name": "f" })];
+        for (key, member) in
+            [("widgets", json!([{}])), ("maxLength", json!(1.5)), ("kind", json!(3))]
+        {
+            let mut field = a_field();
+            field[key] = member;
+            fields.push(field);
+        }
+        for field in &fields {
+            let in_place = FieldDto::deserialize(field).map(|_| ()).map_err(|e| e.to_string());
+            let copied = serde_json::from_value::<FieldDto>(field.clone())
+                .map(|_| ())
+                .map_err(|e| e.to_string());
+            assert_eq!(in_place, copied, "{field}");
+            assert_eq!(
+                format!("{:?}", FormField::from_json(field)),
+                format!(
+                    "{:?}",
+                    decode::<FieldDto>(field.clone()).and_then(|_| FormField::from_json(field))
+                ),
+            );
+        }
     }
 
     #[test]

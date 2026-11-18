@@ -62,7 +62,7 @@ use epdf_kernel::types::PluginScope;
 use epdf_kernel::{
     AnyToken, DOCUMENTS, Error, Kernel, KernelOptions, Promise, Unsubscribe, undefined,
 };
-use plugin_conformance::{Answer, Harness, LiveFn, Outcome, ReleaseFn};
+use plugin_conformance::{Answer, Harness, LiveFn, LiveTextFn, Outcome, ReleaseFn};
 use serde_json::{Value, json};
 use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::*;
@@ -168,32 +168,38 @@ fn parse_args(args_json: &str) -> Result<Vec<Value>, Error> {
     }
 }
 
-/// A `$fn` callback's call as a call to `call_js`.
-fn live(call_js: js_sys::Function) -> LiveFn {
-    Rc::new(move |spec: &Value, args: Vec<Value>| {
-        let id = spec.get("$fn").and_then(Value::as_str).and_then(|s| s.strip_prefix("js:"));
-        let Some(id) = id else {
-            return Answer::Throws(Error::new(format!(
-                "[epdf-web] not a JavaScript function: {spec}"
-            )));
-        };
-        let args = Value::Array(args).to_string();
-        let value = match call_js.call2(
-            &JsValue::NULL,
-            &JsValue::from_str(id),
-            &JsValue::from_str(&args),
-        ) {
+/// A `$fn` callback's call, its argument list printed as `args`, as a call
+/// to `call_js`.
+fn call_live(call_js: &js_sys::Function, spec: &Value, args: &str) -> Answer {
+    let id = spec.get("$fn").and_then(Value::as_str).and_then(|s| s.strip_prefix("js:"));
+    let Some(id) = id else {
+        return Answer::Throws(Error::new(format!("[epdf-web] not a JavaScript function: {spec}")));
+    };
+    let value =
+        match call_js.call2(&JsValue::NULL, &JsValue::from_str(id), &JsValue::from_str(args)) {
             Ok(value) => value,
             Err(error) => return Answer::Throws(js_to_error(&error)),
         };
-        if let Some(promise) = thenable(&value) {
-            return Answer::Promise(runtime::from_js(promise));
-        }
-        match js_to_value(&value) {
-            Ok(value) => Answer::Returns(value),
-            Err(error) => Answer::Throws(error),
-        }
+    if let Some(promise) = thenable(&value) {
+        return Answer::Promise(runtime::from_js(promise));
+    }
+    match js_to_value(&value) {
+        Ok(value) => Answer::Returns(value),
+        Err(error) => Answer::Throws(error),
+    }
+}
+
+/// A `$fn` callback's call as a call to `call_js`.
+fn live(call_js: js_sys::Function) -> LiveFn {
+    Rc::new(move |spec: &Value, args: Vec<Value>| {
+        call_live(&call_js, spec, &Value::Array(args).to_string())
     })
+}
+
+/// A `$fn` callback's call with its arguments already printed, as a call to
+/// `call_js`.
+fn live_text(call_js: js_sys::Function) -> LiveTextFn {
+    Rc::new(move |spec: &Value, args: &Rc<str>| call_live(&call_js, spec, args))
 }
 
 /// Call `release_js(id)` for each `js:<id>` name in `released` that no
@@ -357,7 +363,13 @@ impl WasmKernel {
         let released = Rc::new(RefCell::new(Vec::new()));
         let pending = released.clone();
         let release: ReleaseFn = Rc::new(move |name| pending.borrow_mut().push(name.to_string()));
-        let harness = Harness::live_with_release(adapters.clone(), tokens, live(call_js), release);
+        let harness = Harness::live_with_text(
+            adapters.clone(),
+            tokens,
+            live(call_js.clone()),
+            live_text(call_js),
+            Some(release),
+        );
         let release_fns: Rc<dyn Fn()> = {
             let harness = harness.clone();
             Rc::new(move || release_fns(&harness, &released, &release_js))
@@ -513,6 +525,18 @@ impl WasmKernel {
             };
             Ok(settings.to_string())
         })
+    }
+
+    /// Moves whenever [`get_settings`](Self::get_settings) for the same
+    /// token could answer differently. A plain read, like
+    /// [`state_revision`](Self::state_revision); throws as `get_settings`
+    /// does for a token with no settings.
+    pub fn settings_revision(&self, token_name: Option<String>) -> Result<f64, JsValue> {
+        let revision = match token_name {
+            None => self.kernel.settings_revision(),
+            Some(name) => self.settings_of(&name)?.revision(),
+        };
+        Ok(revision as f64)
     }
 
     /// `updateSettings(changes)`, on the kernel or on `settingsOf(token)`.

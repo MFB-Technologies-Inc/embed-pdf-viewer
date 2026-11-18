@@ -109,6 +109,12 @@ pub(crate) trait SessionView {
     fn id(&self) -> String;
     /// Unique per open; a reopened id gets a new one.
     fn instance_id(&self) -> String;
+    /// How many engine events the document had, counted before any
+    /// plugin's own listener hears the event.
+    fn engine_events(&self) -> u64;
+    /// How many unlocks of the document succeeded. An unlock can upgrade an
+    /// open document's rights (the owner password) with no event.
+    fn unlocks(&self) -> u64;
     fn handle(&self) -> Option<Rc<dyn DocumentHandle>>;
     fn staged_meta(&self) -> Option<Rc<DocumentMeta>>;
     fn scope(&self) -> Scope;
@@ -491,7 +497,41 @@ struct ControllerInner {
     guarded: RefCell<Option<Rc<dyn DocumentHandle>>>,
     queues: RefCell<HashMap<String, SerialQueue>>,
     lanes: RefCell<HashMap<String, LatestLane>>,
+    /// The rows of a page list by object number, the first row of each, for
+    /// the page list it was built from.
+    page_index: RefCell<Option<(Rc<Value>, HashMap<u32, usize>)>>,
+    permissions: RefCell<PermissionMemo>,
     clock: crate::clock::PluginClock,
+}
+
+/// The security service's answers, by `(member, args)`, for one
+/// [`PermissionStamp`]. TypeScript asks the service on every check; an
+/// answer is kept only while nothing it reads can have changed.
+///
+/// That rests on an invariant of the engine (the
+/// [`DocumentSecurity`](crate::engine::DocumentSecurity) docs): its answers
+/// change only with a store write, a document event or an unlock, the
+/// counters the stamp reads. An engine that changes rights without any of
+/// them is answered from here until one moves, where TypeScript would see
+/// the change at once. The bundled engines keep the invariant; a cloud
+/// engine is unverified, and the divergence is accepted and pinned by
+/// `allows_keeps_an_answer_changed_without_an_event`.
+#[derive(Default)]
+struct PermissionMemo {
+    stamp: Option<PermissionStamp>,
+    answers: HashMap<(String, String), bool>,
+}
+
+/// What a permission answer reads, as counters: the store's change count,
+/// its core revision, the document's engine events, which carry what the
+/// engine changes without a store write (a signing's new protection), and
+/// its successful unlocks, which change the rights with neither.
+#[derive(Clone, Copy, PartialEq, Eq)]
+struct PermissionStamp {
+    store_changes: u64,
+    core_revision: u64,
+    engine_events: u64,
+    unlocks: u64,
 }
 
 impl std::ops::Deref for ControllerContext {
@@ -530,6 +570,8 @@ impl ControllerContext {
             guarded: RefCell::new(None),
             queues: RefCell::new(HashMap::new()),
             lanes: RefCell::new(HashMap::new()),
+            page_index: RefCell::new(None),
+            permissions: RefCell::default(),
         })))
     }
 
@@ -601,12 +643,62 @@ impl ControllerContext {
         self.0.clock.clone()
     }
 
+    /// The stamp a permission answer is kept under, or `None` when there
+    /// is nothing to key it on: a workspace context, a gone kernel, or a
+    /// closed instance, whose engine document may already be gone.
+    fn permission_stamp(&self) -> Option<PermissionStamp> {
+        if self.0.lifetime.aborted() {
+            return None;
+        }
+        let session = self.0.session.as_ref()?;
+        let store = self.0.services.upgrade()?.store();
+        Some(PermissionStamp {
+            store_changes: store.change_count(),
+            core_revision: store.core_revision(),
+            engine_events: session.engine_events(),
+            unlocks: session.unlocks(),
+        })
+    }
+
+    /// `ask` of the bound document's security service, answered from the
+    /// memo while the stamp it was asked at holds. A failed read answers
+    /// `false` and is not kept, so the next check asks again.
+    fn permission(
+        &self,
+        member: &str,
+        args: String,
+        ask: impl FnOnce(&dyn crate::engine::DocumentSecurity) -> Option<bool>,
+    ) -> bool {
+        let Ok(doc) = self.doc() else { return false };
+        let Some(stamp) = self.permission_stamp() else {
+            return ask(&*doc.security()).unwrap_or(false);
+        };
+        let key = (member.to_string(), args);
+        {
+            let mut memo = self.0.permissions.borrow_mut();
+            if memo.stamp != Some(stamp) {
+                memo.answers.clear();
+                memo.stamp = Some(stamp);
+            }
+            if let Some(&answer) = memo.answers.get(&key) {
+                return answer;
+            }
+        }
+        let Some(answer) = ask(&*doc.security()) else { return false };
+        // The question crossed into the engine; keep the answer only if
+        // nothing moved meanwhile.
+        if self.permission_stamp() == Some(stamp) {
+            self.0.permissions.borrow_mut().answers.insert(key, answer);
+        }
+        answer
+    }
+
     pub fn allows(&self, permission: &str) -> bool {
-        self.doc().is_ok_and(|d| {
+        self.permission("allows", permission.to_string(), |security| {
             if permission == "annotations:create" {
-                d.security().allows_annotation_create()
+                security.try_allows_annotation_create()
             } else {
-                d.security().allows(permission)
+                security.try_allows(permission)
             }
         })
     }
@@ -625,8 +717,9 @@ impl ControllerContext {
         }
     }
     pub fn allows_field(&self, action: &str, field: &Value) -> bool {
-        self.doc().is_ok_and(|d| {
-            d.security().allows_field(action, &serde_json::json!({"groupId":field["groupId"]}))
+        let group = &field["groupId"];
+        self.permission("allowsField", format!("{action} {group}"), |security| {
+            security.try_allows_field(action, &serde_json::json!({ "groupId": group }))
         })
     }
     pub fn assert_allowed_field(
@@ -781,10 +874,10 @@ impl ControllerContext {
         Ok(mirror)
     }
 
-    pub fn page_mirror(
+    pub fn page_mirror<T: Clone + 'static>(
         &self,
-        spec: crate::page_mirror::PageMirrorSpec,
-    ) -> Result<crate::page_mirror::PageMirror, Error> {
+        spec: crate::page_mirror::PageMirrorSpec<T>,
+    ) -> Result<crate::page_mirror::PageMirror<T>, Error> {
         Ok(crate::page_mirror::PageMirror::new(spec, self.mirror_environment()?))
     }
 
@@ -968,16 +1061,37 @@ impl ControllerContext {
         core.documents.get(&session.id()).cloned().or_else(|| session.staged_meta())
     }
 
-    fn page_by_ref(&self, page: PageRef) -> Option<Value> {
+    /// The row of `meta.pages` a ref names: the first, when two rows share
+    /// its object number. The rows are indexed once per page list, so a
+    /// lookup costs no scan while the list stays the same `Rc`.
+    pub fn page_by_ref<'a>(&self, meta: &'a DocumentMeta, page: PageRef) -> Option<&'a Value> {
+        let rows = meta.pages.as_array()?;
+        let mut cached = self.0.page_index.borrow_mut();
+        let index = match &*cached {
+            Some((pages, index)) if Rc::ptr_eq(pages, &meta.pages) => index,
+            _ => {
+                let mut index = HashMap::new();
+                for (at, row) in rows.iter().enumerate() {
+                    if let Some(found) = row.get("ref").and_then(PageRef::from_json) {
+                        index.entry(found.page_object_number).or_insert(at);
+                    }
+                }
+                &cached.insert((meta.pages.clone(), index)).1
+            }
+        };
+        rows.get(*index.get(&page.page_object_number)?)
+    }
+
+    fn row_by_ref(&self, page: PageRef) -> Option<Value> {
         let meta = self.meta()?;
-        meta.pages.as_array()?.iter().find(|p| page.names(p)).cloned()
+        self.page_by_ref(&meta, page).cloned()
     }
 
     /// `findPage(pages, page)`: the page a ref names, or the one at a
     /// zero-based index (`pages[page] ?? null`).
     fn find_page(&self, page: PageArg) -> Option<Value> {
         match page {
-            PageArg::Ref(page) => self.page_by_ref(page),
+            PageArg::Ref(page) => self.row_by_ref(page),
             PageArg::Index(index) => {
                 let meta = self.meta()?;
                 let pages = meta.pages.as_array()?;
@@ -1019,7 +1133,8 @@ impl ControllerContext {
     /// `ctx.geometry.tryForPage(ref)`: the page's space, or `None` for a
     /// page this document does not have.
     pub fn try_for_page(&self, page: PageRef) -> Option<PageSpace> {
-        let layout = self.page_by_ref(page)?;
+        let meta = self.meta()?;
+        let layout = self.page_by_ref(&meta, page)?;
         let crop: PdfEdges =
             serde_json::from_value(layout.get("boxes")?.get("crop")?.clone()).ok()?;
         Some(PageSpace::new(crop))
@@ -1032,8 +1147,8 @@ impl ControllerContext {
 
     /// `ctx.assertPageRef(ref)`.
     pub fn assert_page_ref(&self, page: PageRef) -> Result<(), Error> {
-        match self.page_by_ref(page) {
-            Some(_) => Ok(()),
+        match self.meta().and_then(|meta| self.page_by_ref(&meta, page).map(|_| ())) {
+            Some(()) => Ok(()),
             None => Err(self.not_in_document(page)),
         }
     }

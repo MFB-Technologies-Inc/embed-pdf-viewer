@@ -62,7 +62,16 @@ public final class AttachmentModel {
       for file in files { if try await self.attachments.isPending(file) { pending.insert(file.id) } }
       return (files, selected, status, add, download, remove, pending)
     }, apply: {
-      (self.files, self.selectedFiles, self.status, self.canAdd, self.canDownload, self.canRemoveSelection, self.pendingIDs) = $0
+      let (files, selected, status, add, download, remove, pending) = $0
+      // Most revisions are a scroll or a zoom: write only what changed, so
+      // the views reading these fields stay valid.
+      if self.files != files { self.files = files }
+      if self.selectedFiles != selected { self.selectedFiles = selected }
+      if self.status != status { self.status = status }
+      if self.canAdd != add { self.canAdd = add }
+      if self.canDownload != download { self.canDownload = download }
+      if self.canRemoveSelection != remove { self.canRemoveSelection = remove }
+      if self.pendingIDs != pending { self.pendingIDs = pending }
     }, failure: {
       self.files = []; self.selectedFiles = []; self.pendingIDs = []
       self.canAdd = false; self.canDownload = false; self.canRemoveSelection = false

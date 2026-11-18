@@ -16,6 +16,7 @@ use serde_json::Value;
 
 use crate::contract::*;
 use crate::model::MeasurementState;
+use crate::read::scale::Readouts;
 use crate::services::{MeasurementEvents, Registry, create_events, resolve_siblings};
 use crate::sync::viewports::ScaleMemo;
 
@@ -32,6 +33,8 @@ pub(crate) struct Core {
     pub(crate) settings: InstanceSettings,
     /// `sync/viewports.ts`: the public scale memoized per page.
     pub(crate) scales: RefCell<HashMap<u32, ScaleMemo>>,
+    /// `read/scale.ts`: the readout memoized per annotation object.
+    pub(crate) readouts: Readouts,
 }
 
 /// `MeasurementHostCapability`, which is the public `MeasurementCapability`.
@@ -56,6 +59,7 @@ pub fn create_measurement_controller(
         interaction: siblings.interaction,
         settings,
         scales: RefCell::default(),
+        readouts: Readouts::default(),
     }));
     let connected = api.clone();
     let connect: ConnectFn = Rc::new(move || {

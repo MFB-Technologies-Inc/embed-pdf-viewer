@@ -14,7 +14,9 @@
 //!
 //! Each transition takes the history's `Rc` and returns it unchanged when the
 //! TypeScript returns `history` itself: the slice lease publishes by identity,
-//! so an unchanged history is no state change.
+//! so an unchanged history is no state change. Entries and predicted ops are
+//! shared between histories as the TypeScript's spreads share them: a
+//! transition copies the pointers and builds only the entries it changes.
 
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -38,9 +40,9 @@ pub struct HistoryPart {
     /// The change the next step undoes: the change itself, or its latest undo or redo.
     pub op_id: String,
     /// What the change shows: what a redo of it shows until the engine answers.
-    pub forward: Vec<PredictedOp>,
+    pub forward: Rc<[PredictedOp]>,
     /// What undoing it shows until the engine answers.
-    pub backward: Vec<PredictedOp>,
+    pub backward: Rc<[PredictedOp]>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -59,9 +61,9 @@ pub struct HistoryEntry {
 #[serde(rename_all = "camelCase")]
 pub struct History {
     /// What undo undoes, oldest first: the last is next.
-    pub undo: Vec<HistoryEntry>,
+    pub undo: Vec<Rc<HistoryEntry>>,
     /// What redo redoes, newest first: the last is next.
-    pub redo: Vec<HistoryEntry>,
+    pub redo: Vec<Rc<HistoryEntry>>,
     /// The merge key the newest entry still takes changes under: set when a
     /// change with a key is recorded, `None` again once anything else happens.
     pub merging: Option<String>,
@@ -81,8 +83,8 @@ pub struct RecordedChange {
     pub op_id: String,
     pub label: ChangeLabel,
     pub merge: Option<String>,
-    pub shows: Vec<PredictedOp>,
-    pub undo: Vec<PredictedOp>,
+    pub shows: Rc<[PredictedOp]>,
+    pub undo: Rc<[PredictedOp]>,
 }
 
 /// `emptyHistory()`.
@@ -95,14 +97,14 @@ pub fn empty_history() -> History {
 fn stacks_of(
     history: &mut History,
     direction: Direction,
-) -> (&mut Vec<HistoryEntry>, &mut Vec<HistoryEntry>) {
+) -> (&mut Vec<Rc<HistoryEntry>>, &mut Vec<Rc<HistoryEntry>>) {
     match direction {
         Direction::Undo => (&mut history.undo, &mut history.redo),
         Direction::Redo => (&mut history.redo, &mut history.undo),
     }
 }
 
-fn stack(history: &History, direction: Direction) -> &Vec<HistoryEntry> {
+fn stack(history: &History, direction: Direction) -> &Vec<Rc<HistoryEntry>> {
     match direction {
         Direction::Undo => &history.undo,
         Direction::Redo => &history.redo,
@@ -110,7 +112,7 @@ fn stack(history: &History, direction: Direction) -> &Vec<HistoryEntry> {
 }
 
 /// `nextOf(history, direction)`: the entry the next step of `direction` takes.
-pub fn next_of(history: &History, direction: Direction) -> Option<&HistoryEntry> {
+pub fn next_of(history: &History, direction: Direction) -> Option<&Rc<HistoryEntry>> {
     stack(history, direction).last()
 }
 
@@ -140,9 +142,9 @@ pub fn recorded(history: &Rc<History>, change: &RecordedChange, limit: f64) -> R
         && history.merging == change.merge
     {
         let mut undo = history.undo.clone();
-        let mut top = top.clone();
+        let mut top = HistoryEntry::clone(top);
         top.parts.push(part);
-        *undo.last_mut().unwrap() = top;
+        *undo.last_mut().unwrap() = Rc::new(top);
         return Rc::new(History {
             undo,
             redo: Vec::new(),
@@ -156,10 +158,11 @@ pub fn recorded(history: &Rc<History>, change: &RecordedChange, limit: f64) -> R
         merge: change.merge.clone(),
         parts: vec![part],
     };
-    let mut undo = history.undo.clone();
-    undo.push(entry);
-    let keep = kept(undo.len(), limit);
-    let undo = undo.split_off(undo.len() - keep);
+    let len = history.undo.len() + 1;
+    let keep = kept(len, limit);
+    let mut undo = Vec::with_capacity(keep);
+    undo.extend(history.undo[len - keep..].iter().cloned());
+    undo.push(Rc::new(entry));
     Rc::new(History {
         undo,
         redo: Vec::new(),
@@ -182,13 +185,13 @@ pub fn stepped(
     };
     let mut next = (**history).clone();
     let (from, to) = stacks_of(&mut next, direction);
-    let mut moved = from.remove(at);
+    let mut moved = HistoryEntry::clone(&from.remove(at));
     for part in &mut moved.parts {
         if let Some(op_id) = op_ids.get(&part.id) {
             part.op_id = op_id.clone();
         }
     }
-    to.push(moved);
+    to.push(Rc::new(moved));
     next.merging = None;
     Rc::new(next)
 }
@@ -196,23 +199,28 @@ pub fn stepped(
 /// `withoutParts(entries, drop)`: every entry without the parts `drop` picks,
 /// and without the entries left with none. `None` when nothing was dropped.
 fn without_parts(
-    entries: &[HistoryEntry],
+    entries: &[Rc<HistoryEntry>],
     drop: impl Fn(&HistoryPart) -> bool,
-) -> Option<Vec<HistoryEntry>> {
-    let mut changed = false;
+) -> Option<Vec<Rc<HistoryEntry>>> {
+    let first = entries.iter().position(|entry| entry.parts.iter().any(&drop))?;
     let mut kept = Vec::with_capacity(entries.len());
-    for entry in entries {
-        let parts: Vec<HistoryPart> = entry.parts.iter().filter(|p| !drop(p)).cloned().collect();
-        if parts.len() == entry.parts.len() {
+    kept.extend(entries[..first].iter().cloned());
+    for entry in &entries[first..] {
+        if !entry.parts.iter().any(&drop) {
             kept.push(entry.clone());
             continue;
         }
-        changed = true;
+        let parts: Vec<HistoryPart> = entry.parts.iter().filter(|p| !drop(p)).cloned().collect();
         if !parts.is_empty() {
-            kept.push(HistoryEntry { parts, ..entry.clone() });
+            kept.push(Rc::new(HistoryEntry {
+                seq: entry.seq,
+                label: entry.label.clone(),
+                merge: entry.merge.clone(),
+                parts,
+            }));
         }
     }
-    changed.then_some(kept)
+    Some(kept)
 }
 
 /// `forgotten(history, id)`: the change `id` never happened (the engine
@@ -248,9 +256,11 @@ pub fn step_refused(
     let (back, _) = stacks_of(&mut next, direction);
     match back.iter().position(|candidate| candidate.seq == entry.seq) {
         Some(at) => {
-            back[at].parts.push(part.clone());
+            let mut joined = HistoryEntry::clone(&back[at]);
+            joined.parts.push(part.clone());
             // `Array.prototype.sort` is stable, as `sort_by_key` is.
-            back[at].parts.sort_by_key(|p| p.seq);
+            joined.parts.sort_by_key(|p| p.seq);
+            back[at] = Rc::new(joined);
         }
         None => {
             // The undo stack is oldest first, the redo stack newest first.
@@ -263,12 +273,12 @@ pub fn step_refused(
                 .count();
             back.insert(
                 index,
-                HistoryEntry {
+                Rc::new(HistoryEntry {
                     seq: entry.seq,
                     label: entry.label.clone(),
                     merge: entry.merge.clone(),
                     parts: vec![part.clone()],
-                },
+                }),
             );
         }
     }
@@ -281,7 +291,7 @@ pub fn step_refused(
 /// It goes, and so does everything recorded before it. Always a new history,
 /// as the TypeScript's.
 pub fn unavailable(history: &Rc<History>, seq: u64) -> Rc<History> {
-    let newer = |entries: &[HistoryEntry]| {
+    let newer = |entries: &[Rc<HistoryEntry>]| {
         entries.iter().filter(|entry| entry.seq > seq).cloned().collect::<Vec<_>>()
     };
     Rc::new(History {
@@ -316,12 +326,12 @@ mod tests {
             op_id: op_id.into(),
             label: json!({ "key": key }),
             merge: merge.map(str::to_string),
-            shows: vec![json!(op_id)],
-            undo: vec![json!(format!("undo {op_id}"))],
+            shows: Rc::from([json!(op_id)]),
+            undo: Rc::from([json!(format!("undo {op_id}"))]),
         }
     }
 
-    fn keys(entries: &[HistoryEntry]) -> Vec<String> {
+    fn keys(entries: &[Rc<HistoryEntry>]) -> Vec<String> {
         entries.iter().map(|e| e.label["key"].as_str().unwrap().to_string()).collect()
     }
 
@@ -374,6 +384,40 @@ mod tests {
         assert_eq!(keys(&h.undo), ["a", "b", "c"]);
         assert!(h.redo.is_empty());
         assert_eq!(h.undo[1].parts[0].op_id, "2");
+    }
+
+    /// A transition copies pointers, as the TypeScript's spreads do: every
+    /// entry it keeps is the same entry, and a merge keeps the top entry's
+    /// earlier parts' predicted ops.
+    #[test]
+    fn record_shares_existing_entries() {
+        let mut h = Rc::new(empty_history());
+        for (id, key) in [("1", "a"), ("2", "b"), ("3", "c")] {
+            h = recorded(&h, &change(id, key, None), 100.0);
+        }
+        let next = recorded(&h, &change("4", "d", None), 100.0);
+        assert_eq!(next.undo.len(), 4);
+        for (old, new) in h.undo.iter().zip(&next.undo) {
+            assert!(Rc::ptr_eq(old, new));
+        }
+
+        let typed = recorded(&next, &change("5", "text", Some("k")), 100.0);
+        let merged = recorded(&typed, &change("6", "text", Some("k")), 100.0);
+        for (old, new) in typed.undo.iter().zip(&merged.undo).take(4) {
+            assert!(Rc::ptr_eq(old, new));
+        }
+        let (before, after) = (&typed.undo[4].parts[0], &merged.undo[4].parts[0]);
+        assert!(Rc::ptr_eq(&before.forward, &after.forward));
+        assert!(Rc::ptr_eq(&before.backward, &after.backward));
+
+        let stepped = stepped(&merged, Direction::Undo, 4, &HashMap::new());
+        for (old, new) in merged.undo.iter().zip(&stepped.undo) {
+            assert!(Rc::ptr_eq(old, new));
+        }
+        let kept = forgotten(&stepped, "2");
+        assert!(Rc::ptr_eq(&stepped.undo[0], &kept.undo[0]));
+        assert!(Rc::ptr_eq(&stepped.undo[2], &kept.undo[1]));
+        assert!(Rc::ptr_eq(&stepped.redo[0], &kept.redo[0]));
     }
 
     #[test]

@@ -510,3 +510,55 @@ fn shallow_equality_preserves_primitive_and_nested_identity() {
     assert!(!shallow_equal(&V::Number(0.0), &V::Number(-0.0)));
     assert!(!shallow_equal(&V::object(vec![]), &V::array(vec![])));
 }
+
+/// `documents.listPages` prints the page list once per list: a second read
+/// with no store change in between answers the same text, byte for byte what
+/// the rows print as a `Returned` array.
+#[test]
+fn list_pages_text_byte_identical_and_shared() {
+    use epdf_kernel::rt;
+    use epdf_kernel::{Kernel, KernelOptions, OpenOptions, OpenSource};
+    use plugin_conformance::{Harness, Outcome};
+    use std::any::Any;
+
+    rt::reset();
+    let page = |n: u32, i: u32| {
+        json!({ "ref": { "kind": "objectNumber", "objectNumber": n }, "index": i,
+            "size": { "width": 0.1, "height": 800 }, "rotation": 0 })
+    };
+    let fake = plugin_conformance::fake_engine::FakeEngine::new(json!({
+        "documents": { "a": { "pages": [page(4, 0), page(9, 1), page(2, 2)] } },
+    }));
+    let engine = Rc::new(plugin_conformance::fake_engine::AsEngine(fake));
+    let kernel = Kernel::new(engine, Vec::new(), KernelOptions::default()).unwrap();
+    let _ = kernel.start();
+    let input = json!({ "kind": "bytes", "id": "a", "bytes": { "$bytes": "" } });
+    let _ = kernel.documents().open(OpenSource::Input(input), OpenOptions::default());
+    rt::run_until_stalled();
+
+    let registry = Registry::new();
+    let h = Harness::new(registry.adapters.clone(), HashMap::new());
+    let docs = kernel.documents();
+    let rows: Vec<Value> = (0..3).map(|i| docs.get_page_at(i, Some("a")).unwrap()).collect();
+    let capability: Rc<dyn Any> = Rc::new(docs);
+    let call = || {
+        let outcome = registry
+            .adapters
+            .iter()
+            .find_map(|a| a.call(&capability, "listPages", vec![json!("a")], &h))
+            .expect("the documents adapter answers");
+        match outcome {
+            Outcome::Text(text) => text,
+            _ => panic!("listPages answers as text"),
+        }
+    };
+
+    let first = call();
+    let second = call();
+    assert!(Rc::ptr_eq(&first, &second));
+    assert_eq!(&*first, json!(rows).to_string());
+    assert_eq!(
+        h.outcome_text_raw(Outcome::Text(first.clone())),
+        h.outcome_text_raw(Outcome::Returned(json!(rows))),
+    );
+}

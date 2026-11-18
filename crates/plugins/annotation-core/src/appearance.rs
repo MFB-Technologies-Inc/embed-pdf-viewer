@@ -89,6 +89,11 @@ pub fn apply_change(
 
 /// `sourceDuring(model, id)`: how a record is drawn right now, its gesture included.
 pub fn source_during(model: &Model, id: &str) -> Source {
+    source_during_as(model, id, model.dragged_ids().is_some_and(|ids| ids.iter().any(|i| i == id)))
+}
+
+/// [`source_during`], told whether the draft's ids hold `id` (`dragged`).
+pub(crate) fn source_during_as(model: &Model, id: &str, dragged: bool) -> Source {
     let Some(record) = model.record(id) else { return Source::Baked };
     if !draws_live(&record.annotation, record.painter.is_some()) {
         return record.source;
@@ -102,8 +107,8 @@ pub fn source_during(model: &Model, id: &str) -> Source {
         Some(Draft::Handle(d)) if d.id == id => Source::Vector,
         Some(Draft::Caption(d)) if d.id == id => Source::Vector,
         Some(Draft::Leader(d)) if d.id == id => Source::Vector,
-        Some(Draft::Rotate(d)) if d.ids.iter().any(|i| i == id) => Source::Vector,
-        Some(Draft::Group(d)) if d.ids.iter().any(|i| i == id) => Source::Vector,
+        Some(Draft::Rotate(_)) if dragged => Source::Vector,
+        Some(Draft::Group(_)) if dragged => Source::Vector,
         _ => record.source,
     }
 }
@@ -135,6 +140,18 @@ pub fn raster_placement(
     view: Option<&ViewEnv>,
     shape_now: &Shape,
 ) -> RasterPlacement {
+    let dragged = model.dragged_ids().is_some_and(|ids| ids.iter().any(|i| i == id));
+    raster_placement_as(model, id, view, shape_now, dragged)
+}
+
+/// [`raster_placement`], told whether the draft's ids hold `id` (`dragged`).
+pub(crate) fn raster_placement_as(
+    model: &Model,
+    id: &str,
+    view: Option<&ViewEnv>,
+    shape_now: &Shape,
+    dragged: bool,
+) -> RasterPlacement {
     let Some(record) = model.record(id) else { return RasterPlacement::default() };
     let truthy = |x: f64| x != 0.0 && !x.is_nan();
     if kind_of(&record.annotation).caps.raster_only {
@@ -159,7 +176,7 @@ pub fn raster_placement(
     let mut rect = projected.map_or(ap_box, |(b, _)| b);
     let rot = normalize_deg(record.ap_rot.unwrap_or(0.0) + projected.map_or(0.0, |(_, r)| r));
     if let Some(Draft::Move(d)) = model.draft()
-        && d.ids.iter().any(|i| i == id)
+        && dragged
     {
         rect = Rect { x: rect.x + d.delta.x, y: rect.y + d.delta.y, ..rect };
     }

@@ -91,15 +91,20 @@ public final class SearchModel {
       let hits: [SearchHit]? = unchanged ? nil : try await self.search.hits()
       return (status, activeHitIndex, hitCount, progress, query, hits)
     }, apply: { snapshot in
-      self.status = self.submissionRefused ? .error : snapshot.0
-      self.activeHitIndex = snapshot.1
-      self.hitCount = snapshot.2
-      self.progress = snapshot.3
+      // Write only what changed, so the views reading these fields stay
+      // valid through a scroll or a zoom.
+      let status = self.submissionRefused ? .error : snapshot.0
+      if self.status != status { self.status = status }
+      if self.activeHitIndex != snapshot.1 { self.activeHitIndex = snapshot.1 }
+      if self.hitCount != snapshot.2 { self.hitCount = snapshot.2 }
+      if self.progress != snapshot.3 { self.progress = snapshot.3 }
       self.query = snapshot.4
       if let hits = snapshot.5 {
         self.hitsOutdated = false
-        self.hits = hits
-        self.pageHitCounts = hits.reduce(into: [:]) { counts, hit in counts[hit.page, default: 0] += 1 }
+        if self.hits != hits {
+          self.hits = hits
+          self.pageHitCounts = hits.reduce(into: [:]) { counts, hit in counts[hit.page, default: 0] += 1 }
+        }
       }
     }, failure: {
       self.status = .idle

@@ -1140,3 +1140,48 @@ fn a_numbered_create_makes_its_object_there_and_its_undo_and_redo_follow_it() {
     apply(&mut replay, "redo", "undo");
     assert!(listed(&mut replay).contains(&u64::from(held)), "the redo did not bring it back");
 }
+
+#[test]
+fn name_check_makes_no_annot_probes() {
+    use epdf_engine::features::annotation::write::create::name_taken;
+    use pdfium::call_count::{self, Call};
+    use pdfium::{Document, Library};
+
+    // A name is checked against `/Annots` without opening an annotation, and
+    // every `/NM` on the page is found taken.
+    let mut checked = 0;
+    for fixture in [
+        "tooling/engine-conformance/fixtures/annotation_base.pdf",
+        "tooling/engine-conformance/fixtures/annotation_kinds.pdf",
+        "tooling/engine-conformance/fixtures/annotation_appearances.pdf",
+        "tooling/engine-conformance/fixtures/form_fields.pdf",
+    ] {
+        let bytes = test_support::fixture(fixture);
+        let document = Document::from_bytes(Library::acquire(), &bytes, None).expect("open");
+        for page_index in 0..document.page_count() {
+            let count = document.raw_annotation_count(page_index).unwrap_or(0);
+            let names: Vec<String> = (0..count)
+                .filter_map(|at| document.raw_annotation(page_index, at))
+                .filter_map(|a| a.string_value("NM").ok().flatten())
+                .filter(|nm| !nm.is_empty())
+                .collect();
+            for nm in names.iter().map(String::as_str).chain(["no-such-name-on-this-page"]) {
+                call_count::reset();
+                let taken = name_taken(&document, page_index, nm);
+                assert_eq!(
+                    call_count::get(Call::GetAnnotRaw),
+                    0,
+                    "{fixture} page {page_index}: checking {nm:?} opened annotations"
+                );
+                assert_eq!(call_count::get(Call::GetAnnotIndexRaw), 1, "one index lookup");
+                assert_eq!(
+                    taken,
+                    names.iter().any(|n| n == nm),
+                    "{fixture} page {page_index}: {nm:?}"
+                );
+                checked += 1;
+            }
+        }
+    }
+    assert!(checked > 3, "the fixtures carry no named annotations");
+}

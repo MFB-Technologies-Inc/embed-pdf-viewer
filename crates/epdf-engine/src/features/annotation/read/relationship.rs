@@ -19,6 +19,8 @@
 //!   is between an unaddressable parent and no parent, and an address a client
 //!   cannot dereference is worse than an absent one.
 
+use std::collections::HashMap;
+
 use pdfium::Annotation;
 
 use super::dictionary_read;
@@ -89,10 +91,14 @@ pub fn deleted_with(
     annotations: &[serde_json::Value],
     reference: &AnnotationRef,
 ) -> Vec<serde_json::Value> {
-    let keys: Vec<Option<String>> =
-        annotations.iter().map(|annotation| key_at(annotation.get("ref"))).collect();
-    let find =
-        |key: Option<String>| key.and_then(|key| keys.iter().position(|k| *k == Some(key.clone())));
+    // The last annotation with a key is the one it names.
+    let mut by_key: HashMap<String, usize> = HashMap::with_capacity(annotations.len());
+    for (at, annotation) in annotations.iter().enumerate() {
+        if let Some(key) = key_at(annotation.get("ref")) {
+            by_key.insert(key, at);
+        }
+    }
+    let find = |key: Option<String>| key.and_then(|key| by_key.get(key.as_str()).copied());
     let Some(target) = find(Some(reference.key())) else { return Vec::new() };
     let is_popup = |annotation: &serde_json::Value| {
         annotation.get("subtype").and_then(|s| s.as_str()) == Some("popup")
@@ -201,5 +207,18 @@ mod tests {
         assert!(deleted_with(&annotations, &nothing).is_empty());
         let reference: AnnotationRef = serde_json::from_value(object(5)).unwrap();
         assert_eq!(names(&deleted_with(&annotations, &reference)), [object(7), object(5)]);
+    }
+
+    #[test]
+    fn a_ref_listed_twice_names_its_last_entry() {
+        let annotations = [
+            json!({ "ref": object(5), "subtype": "text" }),
+            json!({ "ref": object(5), "subtype": "square" }),
+            json!({ "ref": object(7), "subtype": "text", "reply": { "to": object(5) } }),
+        ];
+        let reference: AnnotationRef = serde_json::from_value(object(5)).unwrap();
+        let members = deleted_with(&annotations, &reference);
+        assert_eq!(names(&members), [object(7), object(5)]);
+        assert_eq!(members[1]["subtype"], "square");
     }
 }

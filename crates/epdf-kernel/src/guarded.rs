@@ -164,6 +164,16 @@ impl DocumentHandle for GuardedHandle {
         self.guard.promise(self.inner.call_answer(path, pon, args))
     }
 
+    fn call_answer_with(
+        &self,
+        facts: &CallFacts,
+        path: &str,
+        pon: Option<u32>,
+        args: Vec<Value>,
+    ) -> EngineCall<Answer> {
+        self.guard.promise(self.inner.call_answer_with(facts, path, pon, args))
+    }
+
     /// `page(ref)` throws synchronously; the guard maps the throw.
     fn page_index(&self, pon: u32) -> Result<u32, Error> {
         self.inner.page_index(pon).map_err(|e| to_plugin_error(&self.guard.capability, &e))
@@ -200,6 +210,15 @@ impl DocumentSecurity for GuardedSecurity {
     }
     fn allows_annotation_create(&self) -> bool {
         self.inner.allows_annotation_create()
+    }
+    fn try_allows(&self, capability: &str) -> Option<bool> {
+        self.inner.try_allows(capability)
+    }
+    fn try_allows_field(&self, action: &str, target: &Value) -> Option<bool> {
+        self.inner.try_allows_field(action, target)
+    }
+    fn try_allows_annotation_create(&self) -> Option<bool> {
+        self.inner.try_allows_annotation_create()
     }
     fn allows_annotation_mutation(&self, action: &str, target: &Value) -> bool {
         self.inner.allows_annotation_mutation(action, target)

@@ -106,6 +106,17 @@ pub fn hypot(a: f64, b: f64) -> f64 {
 /// kernel only for its harness, so it keeps its own copy, which
 /// `number_to_string_is_the_kernel_one` compares with the kernel's.
 pub fn number_to_string(x: f64) -> String {
+    // An integer below 2^53 in magnitude is exact, and its shortest digits
+    // are its decimal integer: one allocation, no layout.
+    if x.trunc() == x && x.abs() < 9_007_199_254_740_992.0 {
+        return (x as i64).to_string();
+    }
+    shortest_number_to_string(x)
+}
+
+/// [`number_to_string`] for any double: the shortest round-trip digits
+/// laid out as `Number::toString` lays them out.
+fn shortest_number_to_string(x: f64) -> String {
     if x.is_nan() {
         return "NaN".into();
     }
@@ -113,7 +124,7 @@ pub fn number_to_string(x: f64) -> String {
         return "0".into();
     }
     if x < 0.0 {
-        return format!("-{}", number_to_string(-x));
+        return format!("-{}", shortest_number_to_string(-x));
     }
     if x.is_infinite() {
         return "Infinity".into();
@@ -398,9 +409,47 @@ mod tests {
             (f64::NAN, "NaN"),
             (-12.5, "-12.5"),
             (123456789012345680000.0, "123456789012345680000"),
+            (9007199254740991.0, "9007199254740991"),
+            (9007199254740992.0, "9007199254740992"),
+            (9007199254740994.0, "9007199254740994"),
+            (-9007199254740991.0, "-9007199254740991"),
+            (-9007199254740992.0, "-9007199254740992"),
+            (4503599627370497.0, "4503599627370497"),
+            (1e15, "1000000000000000"),
+            (-42.0, "-42"),
+            (1152921504606846976.0, "1152921504606847000"),
+            (0.5, "0.5"),
+            (-0.5, "-0.5"),
         ];
         for (x, want) in cases {
             assert_eq!(number_to_string(*x), *want, "{x}");
+        }
+    }
+
+    fn integers_near_2_53() -> impl proptest::strategy::Strategy<Value = f64> {
+        use proptest::strategy::Strategy;
+        (-(1_i64 << 55)..(1_i64 << 55)).prop_map(|n| n as f64)
+    }
+
+    proptest::proptest! {
+        /// The integer fast path agrees with the shortest-digits layout,
+        /// which `number_to_string_matches_javascript` pins to JavaScript.
+        #[test]
+        fn number_to_string_matches_js_digits(x in proptest::num::f64::ANY) {
+            proptest::prop_assert_eq!(number_to_string(x), shortest_number_to_string(x));
+        }
+
+        #[test]
+        fn number_to_string_matches_js_digits_on_integers(x in integers_near_2_53()) {
+            proptest::prop_assert_eq!(number_to_string(x), shortest_number_to_string(x));
+            proptest::prop_assert_eq!(number_to_string(-x), shortest_number_to_string(-x));
+            proptest::prop_assert_eq!(number_to_string(x + 0.5), shortest_number_to_string(x + 0.5));
+        }
+
+        #[test]
+        fn number_to_string_matches_js_digits_on_any_bits(bits in proptest::num::u64::ANY) {
+            let x = f64::from_bits(bits);
+            proptest::prop_assert_eq!(number_to_string(x), shortest_number_to_string(x));
         }
     }
 

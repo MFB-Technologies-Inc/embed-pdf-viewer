@@ -54,6 +54,12 @@ pub trait Json: Sized {
     fn json(&self) -> Value {
         self.to_json().unwrap_or(Value::Null)
     }
+
+    /// Whether the value prints (`to_json` is `Some`), told without printing
+    /// it where the type knows.
+    fn is_present(&self) -> bool {
+        self.to_json().is_some()
+    }
 }
 
 fn present(value: Option<&Value>) -> Option<&Value> {
@@ -72,6 +78,9 @@ impl Json for f64 {
     fn to_json(&self) -> Option<Value> {
         Some(json::num(*self))
     }
+    fn is_present(&self) -> bool {
+        true
+    }
 }
 
 impl Json for bool {
@@ -80,6 +89,9 @@ impl Json for bool {
     }
     fn to_json(&self) -> Option<Value> {
         Some(Value::Bool(*self))
+    }
+    fn is_present(&self) -> bool {
+        true
     }
 }
 
@@ -94,6 +106,9 @@ impl Json for String {
     fn to_json(&self) -> Option<Value> {
         Some(Value::String(self.clone()))
     }
+    fn is_present(&self) -> bool {
+        true
+    }
 }
 
 impl Json for Value {
@@ -102,6 +117,9 @@ impl Json for Value {
     }
     fn to_json(&self) -> Option<Value> {
         Some(self.clone())
+    }
+    fn is_present(&self) -> bool {
+        true
     }
 }
 
@@ -115,6 +133,9 @@ impl Json for Object {
     }
     fn to_json(&self) -> Option<Value> {
         Some(Value::Object(self.clone()))
+    }
+    fn is_present(&self) -> bool {
+        true
     }
 }
 
@@ -130,6 +151,9 @@ impl<T: Json> Json for Option<T> {
     }
     fn to_json(&self) -> Option<Value> {
         self.as_ref().and_then(T::to_json)
+    }
+    fn is_present(&self) -> bool {
+        self.as_ref().is_some_and(T::is_present)
     }
 }
 
@@ -148,6 +172,9 @@ impl<T: Json> Json for Vec<T> {
     fn to_json(&self) -> Option<Value> {
         Some(Value::Array(self.iter().map(|item| item.to_json().unwrap_or(Value::Null)).collect()))
     }
+    fn is_present(&self) -> bool {
+        true
+    }
 }
 
 impl<T: Json> Json for Rc<T> {
@@ -156,6 +183,9 @@ impl<T: Json> Json for Rc<T> {
     }
     fn to_json(&self) -> Option<Value> {
         (**self).to_json()
+    }
+    fn is_present(&self) -> bool {
+        (**self).is_present()
     }
 }
 
@@ -169,6 +199,9 @@ impl Json for Point {
     }
     fn to_json(&self) -> Option<Value> {
         Some(json::point_value(*self))
+    }
+    fn is_present(&self) -> bool {
+        true
     }
 }
 
@@ -188,6 +221,9 @@ impl Json for Rect {
     fn to_json(&self) -> Option<Value> {
         Some(json::rect_value(*self))
     }
+    fn is_present(&self) -> bool {
+        true
+    }
 }
 
 impl Json for Quad {
@@ -205,6 +241,9 @@ impl Json for Quad {
     }
     fn to_json(&self) -> Option<Value> {
         Some(json::quad_value(*self))
+    }
+    fn is_present(&self) -> bool {
+        true
     }
 }
 
@@ -254,6 +293,9 @@ impl<T: Json> Json for Nullable<T> {
             Nullable::Value(v) => v.to_json().unwrap_or(Value::Null),
         })
     }
+    fn is_present(&self) -> bool {
+        true
+    }
 }
 
 /// The order an object's members print in: indices into its type's keys,
@@ -291,13 +333,15 @@ impl Order {
 
     /// Print `values` (one per declared key; `None` absent) in this order,
     /// members set since and not in it last, in declaration order.
-    pub fn print(&self, keys: &[&str], values: Vec<Option<Value>>) -> Map<String, Value> {
+    pub fn print(&self, keys: &[&str], mut values: Vec<Option<Value>>) -> Map<String, Value> {
         let mut out = Map::new();
         let mut done = vec![false; keys.len()];
         for &i in &self.0 {
             let i = i as usize;
-            if let Some(Some(value)) = values.get(i) {
-                out.insert(keys[i].into(), value.clone());
+            // A member named twice keeps its first place, as inserting it
+            // again would.
+            if let Some(value) = values.get_mut(i).and_then(Option::take) {
+                out.insert(keys[i].into(), value);
             }
             if i < done.len() {
                 done[i] = true;
@@ -361,7 +405,7 @@ macro_rules! js_object {
 
             /// Which members are present now, by declared key.
             pub fn present(&self) -> Vec<bool> {
-                vec![$( $crate::object::Json::to_json(&self.$field).is_some() ),*]
+                vec![$( $crate::object::Json::is_present(&self.$field) ),*]
             }
 
             /// Fix the member order to what is present now, so a member set
@@ -408,6 +452,9 @@ macro_rules! js_object {
             }
             fn to_json(&self) -> Option<serde_json::Value> {
                 Some(serde_json::Value::Object(self.to_object()))
+            }
+            fn is_present(&self) -> bool {
+                true
             }
         }
 
@@ -469,6 +516,9 @@ macro_rules! js_union {
                 }
                 Some(serde_json::Value::Object(out))
             }
+            fn is_present(&self) -> bool {
+                true
+            }
         }
 
         impl serde::Serialize for $name {
@@ -518,6 +568,9 @@ macro_rules! js_strings {
             }
             fn to_json(&self) -> Option<serde_json::Value> {
                 Some(serde_json::Value::String(self.as_str().into()))
+            }
+            fn is_present(&self) -> bool {
+                true
             }
         }
 

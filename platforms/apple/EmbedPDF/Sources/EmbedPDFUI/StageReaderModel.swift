@@ -17,12 +17,23 @@ public final class StageReaderModel {
   @available(*, deprecated, message: "Use pageIndex, an Int; this is the same position as a UInt32.")
   public var currentPageIndex: UInt32 { UInt32(exactly: pageIndex) ?? 0 }
   public private(set) var error: PDFError?
+  /// Whether the zoom is changing: a pinch is under way, or the zoom
+  /// animation a pinch's end or a double tap starts hasn't settled. Pages
+  /// render at banded scales while it is, and at the stage's own scale
+  /// otherwise (``renderScale(_:contentWidth:contentHeight:zooming:)``). A pan
+  /// or a fling moves the camera without changing the scale, so it leaves
+  /// this false and renders nothing new.
+  public private(set) var isZooming = false
   private var renderRevisions: [PageRef: UInt64] = [:]
   @ObservationIgnored public let stage: StageCapability
   @ObservationIgnored public let render: RenderCapability
   @ObservationIgnored private var lastTranslation = CGSize.zero
   @ObservationIgnored private var lastMagnification: CGFloat = 1
   @ObservationIgnored private var gestureOpen = false
+  @ObservationIgnored private var magnifying = false
+  /// A pinch's end or a double tap may start a zoom animation; it holds
+  /// until a refresh finds the stage still.
+  @ObservationIgnored private var zoomAnimating = false
   /// The last drag call, which the next one waits for. SwiftUI hands a
   /// gesture's change and end to separate tasks, and each call leaves the
   /// main actor while it reaches the stage, so without this an end could
@@ -36,12 +47,19 @@ public final class StageReaderModel {
   /// whole page stays within `maxPagePixels`. The reader renders pages whole
   /// until it draws the tile plane, so past the cap a deep zoom is soft
   /// rather than hundreds of megabytes a page. Sizes in page points.
+  ///
+  /// While zooming the scale is first rounded up to a width band
+  /// (``PageRenderResolution/bandedScale(_:pageWidth:)``), so a pinch
+  /// restarts a page's render only when it crosses a band. Otherwise it is
+  /// the stage's scale itself, so the page that stays on screen is drawn at
+  /// the size it is shown, not resampled from a wider band.
   public nonisolated static func renderScale(
-    _ scale: Double, contentWidth: Double, contentHeight: Double
+    _ scale: Double, contentWidth: Double, contentHeight: Double, zooming: Bool = false
   ) -> Double {
+    let wanted = zooming ? PageRenderResolution.bandedScale(scale, pageWidth: contentWidth) : scale
     let area = contentWidth * contentHeight
-    guard area > 0 else { return scale }
-    return min(scale, (maxPagePixels / area).squareRoot())
+    guard area > 0 else { return wanted }
+    return min(wanted, (maxPagePixels / area).squareRoot())
   }
 
   public init(stage: StageCapability, render: RenderCapability) {
@@ -74,7 +92,15 @@ public final class StageReaderModel {
 
   private func receiveStage(_ event: StageEvent) async {
     switch event {
-    case .cameraChanged, .motionEnded, .viewportChanged, .zoomChanged, .settingsChanged:
+    case let .cameraChanged(event):
+      // The event carries the camera; only the pages it shows are read back.
+      camera = event.camera
+      do {
+        visiblePages = try await stage.visiblePages()
+      } catch {
+        self.error = error
+      }
+    case .motionEnded, .viewportChanged, .zoomChanged, .settingsChanged:
       await refresh()
     case let .pageChanged(event):
       do {
@@ -139,7 +165,7 @@ public final class StageReaderModel {
     } catch {
       self.error = error
     }
-    await refresh()
+    // The pan's `cameraChanged` event brings the camera and pages back.
   }
 
   private func applyDragEnd(_ velocity: CGSize) async {
@@ -159,17 +185,22 @@ public final class StageReaderModel {
   }
 
   public func magnifyChanged(_ magnification: CGFloat, at location: CGPoint) {
+    magnifying = true
+    setZooming(true)
     let factor = magnification / lastMagnification
     lastMagnification = magnification
     stage.zoomAround(Point(x: location.x, y: location.y), factor: Double(factor))
   }
 
   public func magnifyEnded() async {
+    magnifying = false
+    zoomAnimating = true
     lastMagnification = 1
     await refresh()
   }
 
   public func doubleTapped(at location: CGPoint) async {
+    zoomAnimating = true
     do {
       try await stage.doubleTapZoom(Point(x: location.x, y: location.y))
     } catch {
@@ -178,12 +209,25 @@ public final class StageReaderModel {
     await refresh()
   }
 
+  /// Reads the pages, the camera and, after a pinch's end or a double tap,
+  /// whether the zoom animation still runs: the stage's `motionEnded` lands
+  /// here too. A failed read ends the animation, so ``isZooming`` can't stay
+  /// set.
   private func refresh() async {
     do {
       visiblePages = try await stage.visiblePages()
       camera = try await stage.camera()
+      if zoomAnimating {
+        zoomAnimating = try await stage.isMoving()
+      }
     } catch {
+      zoomAnimating = false
       self.error = error
     }
+    setZooming(magnifying || zoomAnimating)
+  }
+
+  private func setZooming(_ zooming: Bool) {
+    if isZooming != zooming { isZooming = zooming }
   }
 }

@@ -90,11 +90,11 @@ mounted at `/opt/pdfium`:
 ```sh
 export PDF_RUNTIME_LIB_DIR=/opt/pdfium
 export LD_LIBRARY_PATH=/opt/pdfium
-cargo build -p epdf-capi
-EPDF_NATIVE_DIR="$PWD/target/debug" dotnet test platforms/dotnet/EmbedPDF.Tests/EmbedPDF.Tests.csproj
+cargo rustc -p epdf-capi --release --crate-type cdylib
+EPDF_NATIVE_DIR="$PWD/target/release" dotnet test platforms/dotnet/EmbedPDF.Tests/EmbedPDF.Tests.csproj
 ```
 
-When `CARGO_TARGET_DIR` is configured, point `EPDF_NATIVE_DIR` to its `debug`
+When `CARGO_TARGET_DIR` is configured, point `EPDF_NATIVE_DIR` to its `release`
 directory. `EPDF_NATIVE_DIR` is read **only by the test assembly's resolver**;
 the production facade does not consume it or widen library search paths.
 From `platforms/dotnet`, the SDK resolver uses the scoped `global.json`.

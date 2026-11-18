@@ -33,12 +33,8 @@ pub struct Document {
 
 impl Document {
     /// Opens a document from bytes, copying them into an allocation the
-    /// Document owns.
-    ///
-    /// One copy is deliberate. Moving the Document moves the `Vec`'s three
-    /// words, never the heap allocation, so the pointer PDFium holds stays
-    /// valid; a borrowed `&[u8]` would put a lifetime on `Document` and make
-    /// it unusable from an owner thread's document map.
+    /// Document owns. A caller that already owns a `Vec` hands it to
+    /// [`Document::from_vec`] instead and skips the copy.
     ///
     /// The copy is reserved fallibly: a document larger than the process can
     /// hold is an error, not an abort. That is the admission check the
@@ -51,7 +47,22 @@ impl Document {
         let mut owned = Vec::new();
         owned.try_reserve_exact(bytes.len()).map_err(|_| PdfiumError::OutOfMemory)?;
         owned.extend_from_slice(bytes);
+        Self::from_vec(lib, owned, password)
+    }
 
+    /// Opens a document from bytes the Document takes ownership of, without
+    /// copying them.
+    ///
+    /// Moving the Document moves the `Vec`'s three words, never the heap
+    /// allocation, so the pointer PDFium holds stays valid; a borrowed
+    /// `&[u8]` would put a lifetime on `Document` and make it unusable from
+    /// an owner thread's document map. On failure the bytes are freed here,
+    /// after PDFium has returned no handle that could point into them.
+    pub fn from_vec(
+        lib: Rc<Library>,
+        owned: Vec<u8>,
+        password: Option<&str>,
+    ) -> Result<Self, PdfiumError> {
         // A NUL in the password would truncate silently, so reject it rather
         // than opening the document with a shorter password than was asked
         // for and reporting the failure as a wrong password.

@@ -588,3 +588,45 @@ fn a_submit_request_prints_in_field_order_not_the_resolvers() {
         r#"{"url":"https://example.test/submit","method":"POST","format":"html","charSet":"utf-8","entries":[],"origin":"user","event":{"type":"activate"}}"#
     );
 }
+
+// ── widget rows ───────────────────────────────────────────────────────────────
+
+/// A widget row of the form on page `page`.
+fn widget_row(number: u32, page: u32) -> Value {
+    json!({
+        "subtype": "widget",
+        "ref": { "kind": "objectNumber", "page": { "kind": "objectNumber", "objectNumber": page }, "objectNumber": number },
+        "page": { "kind": "objectNumber", "objectNumber": page },
+        "rect": { "x": 0, "y": 0, "width": 10, "height": 10 },
+    })
+}
+
+/// A page trigger reads the page's widgets out of the form in place, as
+/// the TypeScript's `snapshot.widgets.filter(...)` does: it copies the rows
+/// it keeps and no other. A click finds its widget by reference too.
+#[test]
+fn page_trigger_rows_do_not_clone_all_widgets() {
+    use epdf_kernel::geometry::PageRef;
+    use epdf_plugin_actions::services::annotation_rows::widget_row_copies;
+    use epdf_plugin_actions::{ActionTrigger, PageEventKind};
+    let viewer = Viewer::new(ActionsConfig::default());
+    let actions = viewer.open("a");
+    let widgets: Vec<Value> =
+        (0..5).map(|n| widget_row(100 + n, if n < 2 { 1 } else { 2 })).collect();
+    let form = Rc::new(json!({ "formKind": "acroform", "fields": [], "widgets": widgets }));
+    let _reader = actions.register_form_reader(Rc::new(move || Some(form.clone())));
+    let before = widget_row_copies();
+    let page = ActionTrigger::Page { event: PageEventKind::Open, page: PageRef::new(1) };
+    let _ = actions.dispatch(page, None);
+    rt::run_until_stalled();
+    assert_eq!(widget_row_copies(), before + 2, "the two rows on page 1");
+    let before = widget_row_copies();
+    let click = ActionTrigger::Activate {
+        annotation: widget_row(103, 2)["ref"].clone(),
+        page: PageRef::new(2),
+        source: None,
+    };
+    let _ = actions.dispatch(click, None);
+    rt::run_until_stalled();
+    assert_eq!(widget_row_copies(), before + 1, "the one row clicked");
+}

@@ -27,6 +27,12 @@ pub fn to_value<T: Serialize + ?Sized>(value: &T) -> Value {
         .unwrap_or_else(|e| panic!("[js] serialize: {e}"))
 }
 
+/// [`to_value`] printed: the same bytes, written straight to text
+/// without building the `Value` first.
+pub fn to_string<T: Serialize + ?Sized>(value: &T) -> String {
+    serde_json::to_string(&Js(value)).unwrap_or_else(|e| panic!("[js] serialize: {e}"))
+}
+
 /// The canonical spelling of a number.
 pub fn number(value: f64) -> Value {
     if value.is_nan() {
@@ -66,6 +72,17 @@ pub fn json_number(value: f64) -> Value {
 /// one, so the kernel keeps its own copy. The engine's measure `js_string` is
 /// a third; the geometry and engine tests compare both with this one.
 pub fn number_to_string(x: f64) -> String {
+    // An integer below 2^53 in magnitude is exact, and its shortest digits
+    // are its decimal integer: one allocation, no layout.
+    if x.trunc() == x && x.abs() < 9_007_199_254_740_992.0 {
+        return (x as i64).to_string();
+    }
+    shortest_number_to_string(x)
+}
+
+/// [`number_to_string`] for any double: the shortest round-trip digits
+/// laid out as `Number::toString` lays them out.
+fn shortest_number_to_string(x: f64) -> String {
     if x.is_nan() {
         return "NaN".into();
     }
@@ -73,7 +90,7 @@ pub fn number_to_string(x: f64) -> String {
         return "0".into();
     }
     if x < 0.0 {
-        return format!("-{}", number_to_string(-x));
+        return format!("-{}", shortest_number_to_string(-x));
     }
     if x.is_infinite() {
         return "Infinity".into();

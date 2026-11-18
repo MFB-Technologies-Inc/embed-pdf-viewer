@@ -19,6 +19,9 @@ impl DocumentSecurity for Security {
     fn allows(&self, _: &str) -> bool {
         !self.0.get()
     }
+    fn allows_field(&self, _: &str, _: &Value) -> bool {
+        !self.0.get()
+    }
     fn allows_annotation_create(&self) -> bool {
         !self.0.get()
     }

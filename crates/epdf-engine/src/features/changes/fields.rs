@@ -18,7 +18,8 @@ use serde_json::{Map, Value};
 use super::applier::{ChangeContext, Done, assert_expected, left_alone, values_equal};
 use super::forms::{
     ReadField, WIDGET_KEYS, field_item, form_item, mutator, objects_of, read_field,
-    read_field_by_number, revert_step, rows, try_read_field, try_read_field_by_number, unreadable,
+    read_field_by_number, read_field_in, revert_step, rows, try_read_field,
+    try_read_field_by_number, unreadable,
 };
 use super::item::ChangeItem;
 use super::objects::{
@@ -858,9 +859,13 @@ pub fn restore_calculation_order(
 ) -> Result<Done, EngineError> {
     ctx.authority.require(DocCapability::DocFormsModify)?;
     let document = ctx.session.document()?.document();
-    let now = read_calculation_order(&load_model(document)?);
+    let model = load_model(document)?;
+    let now = read_calculation_order(&model);
     let change = OrderChange { before: step.before.clone(), after: step.after.clone() };
-    let order = order_back(&now, &change, |n| try_read_field_by_number(ctx, n).is_some());
+    let order = order_back(&now, &change, |n| {
+        read_field_in(&model, &FormFieldRef::ObjectNumber { field: n }).is_ok()
+    });
+    drop(model);
     if same_order(&now, &order) {
         return left_alone(ctx, "forms.reorderCalculations");
     }

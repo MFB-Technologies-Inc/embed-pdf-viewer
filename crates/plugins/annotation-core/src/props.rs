@@ -1,5 +1,7 @@
 //! `props.ts`: the kind table's style-panel properties over a selection.
 
+use std::borrow::Cow;
+
 use serde_json::Value;
 
 use crate::editable::is_editable_by_hand;
@@ -40,9 +42,10 @@ pub fn properties_of(kind: &AnnotationKind) -> Vec<Value> {
 }
 
 /// `sharedProperties(kinds)`: the properties every kind has, in the first's order.
-pub fn shared_properties(kinds: &[AnnotationKind]) -> Vec<Value> {
+pub fn shared_properties(kinds: &[Cow<'_, AnnotationKind>]) -> Vec<Value> {
     let mut unique: Vec<&AnnotationKind> = Vec::new();
     for kind in kinds {
+        let kind: &AnnotationKind = kind;
         if !unique.contains(&kind) {
             unique.push(kind);
         }
@@ -92,7 +95,7 @@ fn kind_choice_of(editable: &EditableKinds, annotations: &[&Object]) -> Option<V
 /// `selectionProperties(model, annotations)`: the properties the selected
 /// annotations' kinds share, led by the kind they can become when they can.
 pub fn selection_properties(editable: &EditableKinds, annotations: &[&Object]) -> Vec<Value> {
-    let kinds: Vec<AnnotationKind> = annotations.iter().map(|a| kind_of(a)).collect();
+    let kinds: Vec<Cow<'_, AnnotationKind>> = annotations.iter().map(|a| kind_of(a)).collect();
     let shared = shared_properties(&kinds);
     match kind_choice_of(editable, annotations) {
         Some(choice) => std::iter::once(choice).chain(shared).collect(),

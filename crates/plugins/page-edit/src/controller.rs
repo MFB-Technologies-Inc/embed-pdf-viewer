@@ -798,11 +798,12 @@ impl PageEditCapability {
                 .cx
                 .document_handle(Some(&document_id))
                 .ok_or_else(|| not_found(format!("document '{document_id}' is not open")))?;
-            let other_pages = this.0.cx.get(&DOCUMENTS)?.list_pages(Some(&document_id));
+            let listed = this.0.cx.get(&DOCUMENTS)?.list_pages(Some(&document_id));
+            let other_pages: &[Value] = listed.as_array().map_or(&[], Vec::as_slice);
             let mut refs = Vec::with_capacity(pages.len());
             for page in &pages {
                 let found = match *page {
-                    PageArg::Index(index) => at_index(&other_pages, index),
+                    PageArg::Index(index) => at_index(other_pages, index),
                     PageArg::Ref(page) => other_pages.iter().find(|layout| page.names(layout)),
                     PageArg::ForeignRef(_) => None,
                 };

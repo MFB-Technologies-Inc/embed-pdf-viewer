@@ -22,6 +22,7 @@ pub mod functions;
 
 use std::any::Any;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use epdf_acrojs::java_script_program_from_action_tree;
@@ -33,12 +34,13 @@ use epdf_plugin_actions::{
     ACTIONS, ActionOrigin, DetachedScriptRealm, PdfAnnotationEventKind, ScriptDocument,
     ScriptRealmTarget,
 };
-use plugin_conformance::{Answer, Harness, HarnessPlugin, Outcome};
+use plugin_conformance::{Answer, Harness, HarnessPlugin, Outcome, TextMemo};
 use serde_json::{Value, json};
 
 use crate::FORM;
 use crate::controller::FormCapability;
 use crate::form_plugin;
+use crate::model::ShownWidget;
 use crate::scripting::controller::{
     FormScriptingController, FormScriptingControllerOptions, TransactionBody, TransactionPort,
 };
@@ -47,6 +49,26 @@ pub use functions::functions;
 
 /// The adapter.
 pub struct Form;
+
+/// `listWidgets`' and `listShownWidgets`' answers as printed: once per
+/// list, one text per page.
+#[derive(Default)]
+pub(crate) struct Printed {
+    widgets: RefCell<HashMap<String, Rc<TextMemo<Vec<Value>>>>>,
+    shown: RefCell<HashMap<String, Rc<TextMemo<Vec<ShownWidget>>>>>,
+}
+
+impl Printed {
+    fn widgets(&self, page: &Value, items: &Rc<Vec<Value>>) -> Rc<str> {
+        let memo = self.widgets.borrow_mut().entry(page.to_string()).or_default().clone();
+        memo.get_or_print(items)
+    }
+
+    fn shown(&self, page: &Value, shown: &Rc<Vec<ShownWidget>>) -> Rc<str> {
+        let memo = self.shown.borrow_mut().entry(page.to_string()).or_default().clone();
+        memo.get_or_print(shown)
+    }
+}
 
 /// The composed api's member order (`composeApi` over the controller's slices).
 const MEMBERS: &[&str] = &[
@@ -241,12 +263,16 @@ fn call_form(
         "validate" => Outcome::Returned(cap.validate().to_json()),
         "exportValues" => Outcome::Returned(owned(cap.export_values())),
         "listWidgets" => {
-            Outcome::Returned(Value::Array((*cap.list_widgets(&value(args, 0))).clone()))
+            let page = value(args, 0);
+            Outcome::Text(cap.printed.widgets(&page, &cap.list_widgets(&page)))
         }
-        "listShownWidgets" => Outcome::Returned(Value::Array(
-            cap.list_shown_widgets(&value(args, 0)).iter().map(|w| w.to_json()).collect(),
-        )),
-        "getAppearanceEpoch" => Outcome::Returned(json!(cap.get_appearance_epoch(&value(args, 0)))),
+        "listShownWidgets" => {
+            let page = value(args, 0);
+            Outcome::Text(cap.printed.shown(&page, &cap.list_shown_widgets(&page)))
+        }
+        "getAppearanceEpoch" => {
+            Outcome::Returned(json!(&*cap.get_appearance_epoch(&value(args, 0))))
+        }
         "renderAppearances" => Outcome::Promise(
             cap.render_appearances(&value(args, 0), number(args, 1), None)
                 .convert(|list| Ok(epdf_kernel::js::to_value(&**list))),

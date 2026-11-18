@@ -71,11 +71,27 @@ pub trait Engine {
     }
 }
 
+/// A document's security service: what the session may do with it.
+///
+/// Invariant: an answer changes only with a store write, a document event
+/// ([`DocumentHandle::subscribe`]) or a successful [`Self::unlock`]. A
+/// plugin context keeps each `allows*` answer until one of those moves
+/// (`PermissionMemo` in `plugin.rs`), where TypeScript asks the service on
+/// every check, so an engine whose rights change some other way must emit
+/// an event when they do, or plugins keep the old answer until something
+/// else moves. The native host and epdf-web's bridge change rights only
+/// by an unlock or with an event (a signing's new protection). A cloud
+/// engine is unverified; a change it makes without an event is the
+/// accepted divergence that `allows_keeps_an_answer_changed_without_an_event`
+/// (`crates/epdf-kernel/tests/runtime.rs`) pins.
 pub trait DocumentSecurity {
     fn allows(&self, capability: &str) -> bool;
-    fn allows_field(&self, _action: &str, _target: &Value) -> bool {
-        false
-    }
+    /// `allowsField(action, target)`: whether the session may `fill` or
+    /// `sign` the field in `target.groupId`, or `set-group` a field to it.
+    /// Required, not defaulted: a host that forgot it would refuse every
+    /// field, which is how epdf-web's `JsSecurity` once disabled every
+    /// widget of an unrestricted file.
+    fn allows_field(&self, action: &str, target: &Value) -> bool;
     fn allows_annotation(&self, action: &str, target: &Value) -> bool {
         if action == "create" {
             self.allows_annotation_create()
@@ -84,6 +100,19 @@ pub trait DocumentSecurity {
         }
     }
     fn allows_annotation_create(&self) -> bool;
+    /// [`Self::allows`], or `None` when the read failed (the document is
+    /// gone) and answered the refusing default. A memo keeps only answers.
+    fn try_allows(&self, capability: &str) -> Option<bool> {
+        Some(self.allows(capability))
+    }
+    /// [`Self::allows_field`], or `None` when the read failed.
+    fn try_allows_field(&self, action: &str, target: &Value) -> Option<bool> {
+        Some(self.allows_field(action, target))
+    }
+    /// [`Self::allows_annotation_create`], or `None` when the read failed.
+    fn try_allows_annotation_create(&self) -> Option<bool> {
+        Some(self.allows_annotation_create())
+    }
     fn allows_annotation_mutation(&self, action: &str, target: &Value) -> bool;
     fn allows_annotation_group_assignment(&self, group_id: &str) -> bool;
     fn effective_scope(&self) -> Vec<String>;
@@ -183,7 +212,19 @@ pub trait DocumentHandle {
     /// the turn `call` would, and keeps its abort. A host whose answers
     /// arrive as JSON text hands the text over unparsed.
     fn call_answer(&self, path: &str, pon: Option<u32>, args: Vec<Value>) -> EngineCall<Answer> {
-        self.call(path, pon, args).convert(|value| Ok(Answer::Value(value.clone())))
+        self.call(path, pon, args).convert_owned(|value| Ok(Answer::Value(value)))
+    }
+    /// [`call_with`](Self::call_with), with the answer as the host has it,
+    /// as [`call_answer`](Self::call_answer) gives it. A host that ranks
+    /// work by the facts and holds answers as JSON text overrides both.
+    fn call_answer_with(
+        &self,
+        facts: &CallFacts,
+        path: &str,
+        pon: Option<u32>,
+        args: Vec<Value>,
+    ) -> EngineCall<Answer> {
+        self.call_with(facts, path, pon, args).convert_owned(|value| Ok(Answer::Value(value)))
     }
     /// `page(ref)` for the page whose `PageRef` names object number `pon`:
     /// the page's display index, or `EngineError(NotFound)`.
@@ -230,11 +271,18 @@ pub enum Answer {
 }
 
 impl Answer {
-    /// Read the answer into a plugin's DTO.
+    /// Read the answer into a plugin's DTO. A malformed answer reads the
+    /// same as [`decode`]'s, without the text's line and column, so a host
+    /// that answers with text and one that answers with a value refuse it
+    /// in the same words.
     pub fn decode<R: serde::de::DeserializeOwned>(self) -> Result<R, Error> {
         match self {
-            Answer::Text(text) => serde_json::from_str(&text)
-                .map_err(|e| Error::new(format!("[engine] malformed answer: {e}"))),
+            Answer::Text(text) => serde_json::from_str(&text).map_err(|e| {
+                let message = e.to_string();
+                let at = format!(" at line {} column {}", e.line(), e.column());
+                let message = message.strip_suffix(&at).unwrap_or(&message);
+                Error::new(format!("[engine] malformed answer: {message}"))
+            }),
             Answer::Value(value) => decode(value),
         }
     }

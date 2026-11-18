@@ -84,13 +84,8 @@ pub fn resolve_annotation_index_raw(
     annotation_ref: &AnnotationRef,
 ) -> Result<u32, EngineError> {
     let page = annotation_ref.page().get();
-    let count = document.raw_annotation_count(page_index).unwrap_or(0);
     let index_of = |object_number: u32| {
-        (0..count).find(|index| {
-            document
-                .raw_annotation(page_index, *index)
-                .is_some_and(|annotation| annotation.object_number() == object_number)
-        })
+        document.raw_annotation_index_by_object_number(page_index, object_number)
     };
     match annotation_ref {
         AnnotationRef::ObjectNumber { annot, .. } => index_of(*annot).ok_or_else(|| {

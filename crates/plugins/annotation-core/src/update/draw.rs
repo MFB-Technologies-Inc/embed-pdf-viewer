@@ -16,7 +16,7 @@ use crate::record::writable_target;
 use crate::rect::union_rect;
 use crate::types::{
     CapturedEffect, CreateInk, CreateLine, CreatePointerMessage, CreatePoly, CreateRect, Draft,
-    Effect, InkShape, Model, Phase, Placement, PointerInput, PolyShape, Rect, Shape,
+    Effect, InkShape, Model, Phase, Placement, Point, PointerInput, PolyShape, Rect, Shape,
 };
 use crate::update::changes::{
     draft_of, is_poly_subtype, new_record, numbers_left, with_new_record,
@@ -162,18 +162,14 @@ pub fn create_pointer(
                             && d.page.object_number == input.page_number() =>
                     {
                         let mut strokes = d.strokes.clone();
-                        strokes.push(vec![input.point]);
-                        Some(Draft::CreateInk(CreateInk {
-                            strokes,
-                            drawing: Some(true),
-                            ..d.clone()
-                        }))
+                        strokes.push(Rc::new(vec![input.point]));
+                        Some(Draft::CreateInk(ink_with(d, strokes, Some(true))))
                     }
                     _ => Some(Draft::CreateInk(CreateInk {
                         subtype: subtype.into(),
                         preset: Some(preset),
                         page: input.page(),
-                        strokes: vec![vec![input.point]],
+                        strokes: vec![Rc::new(vec![input.point])],
                         drawing: Some(true),
                         intent: message.intent.clone(),
                         flags: message.flags.clone(),
@@ -215,30 +211,26 @@ pub fn create_pointer(
                 Some(Draft::CreateInk(d)) => {
                     let mut strokes = d.strokes.clone();
                     if let Some(last) = strokes.last_mut() {
-                        last.push(input.point);
+                        Rc::make_mut(last).push(input.point);
                     }
-                    Draft::CreateInk(CreateInk { strokes, ..d.clone() })
+                    Draft::CreateInk(ink_with(d, strokes, d.drawing))
                 }
                 _ => return Ok((model.clone(), Vec::new())),
             };
             Ok((Model { draft: Some(Rc::new(next)), ..model.clone() }, Vec::new()))
         }
         Phase::Up => {
-            let active = model.draft().cloned();
+            let active = model.draft();
             match active {
                 Some(Draft::CreateInk(d)) => {
                     let mut strokes = d.strokes.clone();
                     if let (Some(options), false) = (&message.straighten_ink, strokes.is_empty()) {
                         let last = strokes.len() - 1;
-                        strokes[last] = straighten_ink_stroke(&strokes[last], options);
+                        strokes[last] = Rc::new(straighten_ink_stroke(&strokes[last], options));
                     }
                     // The pen is up: the stroke draws as the curves it commits with.
                     let next = Model {
-                        draft: Some(Rc::new(Draft::CreateInk(CreateInk {
-                            strokes,
-                            drawing: Some(false),
-                            ..d.clone()
-                        }))),
+                        draft: Some(Rc::new(Draft::CreateInk(ink_with(d, strokes, Some(false))))),
                         ..model.clone()
                     };
                     if message.defer_ink_commit == Some(true) {
@@ -247,11 +239,26 @@ pub fn create_pointer(
                         finish_ink_create(&next)
                     }
                 }
-                Some(Draft::CreateRect(ref d)) => commit_shape(model, ShapeDraft::Rect(d), &input),
-                Some(Draft::CreateLine(ref d)) => commit_shape(model, ShapeDraft::Line(d), &input),
+                Some(Draft::CreateRect(d)) => commit_shape(model, ShapeDraft::Rect(d), &input),
+                Some(Draft::CreateLine(d)) => commit_shape(model, ShapeDraft::Line(d), &input),
                 _ => Ok((model.clone(), Vec::new())),
             }
         }
+    }
+}
+
+/// An ink draft with new strokes and pen state, built field by field so
+/// the old draft's strokes are not copied.
+fn ink_with(d: &CreateInk, strokes: Vec<Rc<Vec<Point>>>, drawing: Option<bool>) -> CreateInk {
+    CreateInk {
+        subtype: d.subtype.clone(),
+        preset: d.preset.clone(),
+        page: d.page.clone(),
+        strokes,
+        drawing,
+        intent: d.intent.clone(),
+        flags: d.flags.clone(),
+        order: d.order.clone(),
     }
 }
 
@@ -324,7 +331,7 @@ fn commit_shape(
 /// `finishInkCreate(model)`.
 pub fn finish_ink_create(model: &Model) -> CoreResult<(Model, Vec<Effect>)> {
     let Some(Draft::CreateInk(d)) = model.draft() else { return Ok((model.clone(), Vec::new())) };
-    let points: Vec<_> = d.strokes.concat();
+    let points: Vec<_> = d.strokes.iter().flat_map(|s| s.iter().copied()).collect();
     if !d.strokes.iter().any(|s| s.len() >= 2) || points.is_empty() {
         return Ok((Model { draft: None, ..model.clone() }, Vec::new()));
     }
@@ -333,7 +340,7 @@ pub fn finish_ink_create(model: &Model) -> CoreResult<(Model, Vec<Effect>)> {
         return Ok((Model { draft: None, ..model.clone() }, Vec::new()));
     }
     let shape = Shape::Ink(InkShape {
-        ink_list: d.strokes.clone(),
+        ink_list: d.strokes.iter().map(|s| (**s).clone()).collect(),
         rotation: 0.0,
         drawing: None,
         order: Default::default(),

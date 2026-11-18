@@ -31,8 +31,8 @@ impl Core {
         if record.unconfirmed == Some(true) {
             return None;
         }
-        let kind = kind_of(&record.annotation).name;
-        if kind.starts_with("widget") || kind == "link" {
+        let kind = kind_of(&record.annotation);
+        if kind.name.starts_with("widget") || kind.name == "link" {
             return None;
         }
         let root = |name: &str| {

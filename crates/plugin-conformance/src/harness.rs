@@ -15,6 +15,9 @@ use crate::fake_engine::FakeEngine;
 /// What a call did, before the harness writes it into the trace.
 pub enum Outcome {
     Returned(Value),
+    /// A returned value already printed as JSON text, written into the
+    /// trace as it is. A [`TextMemo`] makes one.
+    Text(Rc<str>),
     Threw(Error),
     Promise(Promise<Value>),
 }
@@ -48,6 +51,42 @@ impl Outcome {
         let (unit, resolver) = Promise::pending();
         promise.on_settle(move |result| resolver.settle(result.clone().map(|_| undefined())));
         Outcome::Promise(unit)
+    }
+}
+
+/// The JSON text of the last answer an adapter printed, kept until the
+/// adapter hands it a different `Rc`. The memo holds that `Rc`, so its
+/// address cannot be reused by a new answer while the text stands for it.
+pub struct TextMemo<T> {
+    last: RefCell<Option<(Rc<T>, Rc<str>)>>,
+}
+
+impl<T> Default for TextMemo<T> {
+    fn default() -> TextMemo<T> {
+        TextMemo { last: RefCell::new(None) }
+    }
+}
+
+impl<T> TextMemo<T> {
+    /// `value` as JSON text: the text printed last when `value` is the same
+    /// `Rc`, otherwise a new print. The text goes through a `Value`, so it is
+    /// byte-identical to an [`Outcome::Returned`] of
+    /// `serde_json::to_value(value)`.
+    pub fn get_or_print(&self, value: &Rc<T>) -> Rc<str>
+    where
+        T: serde::Serialize,
+    {
+        if let Some((source, text)) = &*self.last.borrow() {
+            if Rc::ptr_eq(source, value) {
+                return text.clone();
+            }
+        }
+        let text: Rc<str> = serde_json::to_value(&**value)
+            .expect("[harness] an answer does not serialize")
+            .to_string()
+            .into();
+        *self.last.borrow_mut() = Some((value.clone(), text.clone()));
+        text
     }
 }
 
@@ -165,6 +204,11 @@ impl LiveCount for RefTable {
 /// id) and the call's arguments, answered synchronously.
 pub type LiveFn = Rc<dyn Fn(&Value, Vec<Value>) -> Answer>;
 
+/// A live callback handed its arguments already printed: the `$fn` spec and
+/// the JSON text of the argument list. [`Callback::call_text`] calls it, so
+/// an adapter that holds an argument list's text passes it on unprinted.
+pub type LiveTextFn = Rc<dyn Fn(&Value, &Rc<str>) -> Answer>;
+
 /// A live host's hook for a function the Rust side no longer holds: called
 /// with a `$fn` name once the last [`Callback`] made from a spec naming it
 /// has dropped. The same name can back several callbacks at once (the host
@@ -185,6 +229,9 @@ pub(crate) struct Inner {
     /// answer, and the trace does not accumulate: `log` and `track`'s
     /// settlement recording are skipped.
     pub live: Option<LiveFn>,
+    /// Set on a live harness that takes printed arguments too: what
+    /// [`Callback::call_text`] calls.
+    pub live_text: Option<LiveTextFn>,
     /// Set on a live harness that can release functions: every callback
     /// made from a named `$fn` spec then holds a [`FnGuard`].
     pub release: Option<ReleaseFn>,
@@ -206,6 +253,7 @@ impl Harness {
         adapters: Vec<Rc<dyn HarnessPlugin>>,
         tokens: HashMap<String, AnyToken>,
         live: Option<LiveFn>,
+        live_text: Option<LiveTextFn>,
         release: Option<ReleaseFn>,
     ) -> Harness {
         let (refs, promises) = if live.is_some() {
@@ -226,6 +274,7 @@ impl Harness {
             adapters,
             built: RefCell::new(HashMap::new()),
             live,
+            live_text,
             release,
             held: RefCell::new(HashMap::new()),
         }))
@@ -236,7 +285,7 @@ impl Harness {
     /// `scenario::run` expects. Public so a plugin crate's own tests can
     /// build one directly, the way its harness module does at replay time.
     pub fn new(adapters: Vec<Rc<dyn HarnessPlugin>>, tokens: HashMap<String, AnyToken>) -> Harness {
-        Harness::with_live(adapters, tokens, None, None)
+        Harness::with_live(adapters, tokens, None, None, None)
     }
 
     /// A harness whose callbacks call straight into `live` instead of
@@ -248,7 +297,7 @@ impl Harness {
         tokens: HashMap<String, AnyToken>,
         live: LiveFn,
     ) -> Harness {
-        Harness::with_live(adapters, tokens, Some(live), None)
+        Harness::with_live(adapters, tokens, Some(live), None, None)
     }
 
     /// [`live`](Self::live), and `release` hears about each `$fn` name once
@@ -259,7 +308,20 @@ impl Harness {
         live: LiveFn,
         release: ReleaseFn,
     ) -> Harness {
-        Harness::with_live(adapters, tokens, Some(live), Some(release))
+        Harness::with_live(adapters, tokens, Some(live), None, Some(release))
+    }
+
+    /// [`live`](Self::live), with `live_text` for the callbacks an adapter
+    /// calls with printed arguments ([`Callback::call_text`]), and `release`
+    /// as [`live_with_release`](Self::live_with_release) has it.
+    pub fn live_with_text(
+        adapters: Vec<Rc<dyn HarnessPlugin>>,
+        tokens: HashMap<String, AnyToken>,
+        live: LiveFn,
+        live_text: LiveTextFn,
+        release: Option<ReleaseFn>,
+    ) -> Harness {
+        Harness::with_live(adapters, tokens, Some(live), Some(live_text), release)
     }
 
     /// Whether a live callback made from a spec naming `name` is still
@@ -607,6 +669,7 @@ impl Harness {
     pub fn outcome_json(&self, outcome: Outcome) -> Value {
         match outcome {
             Outcome::Returned(value) => json!({ "returned": crate::scrub(&value) }),
+            Outcome::Text(text) => json!({ "returned": crate::scrub(&parse_text(&text)) }),
             Outcome::Threw(error) => json!({ "threw": error.to_canonical() }),
             Outcome::Promise(promise) => {
                 let tracked = self.track(promise);
@@ -620,6 +683,7 @@ impl Harness {
     pub fn outcome_json_raw(&self, outcome: Outcome) -> Value {
         match outcome {
             Outcome::Returned(value) => json!({ "returned": value }),
+            Outcome::Text(text) => json!({ "returned": parse_text(&text) }),
             Outcome::Threw(error) => json!({ "threw": error.to_canonical() }),
             Outcome::Promise(promise) => {
                 let tracked = self.track(promise);
@@ -635,6 +699,7 @@ impl Harness {
     pub fn outcome_text_raw(&self, outcome: Outcome) -> String {
         let (key, value) = match outcome {
             Outcome::Returned(value) => ("returned", value),
+            Outcome::Text(text) => return format!("{{\"returned\":{text}}}"),
             Outcome::Threw(error) => ("threw", error.to_canonical()),
             Outcome::Promise(promise) => {
                 let mut tracked = self.track(promise);
@@ -649,6 +714,11 @@ impl Harness {
         out.push(b'}');
         String::from_utf8(out).expect("serde_json writes UTF-8")
     }
+}
+
+/// An [`Outcome::Text`] read back into the value it printed.
+fn parse_text(text: &str) -> Value {
+    serde_json::from_str(text).expect("[harness] an Outcome::Text is JSON")
 }
 
 /// What a scripted callback answered.
@@ -741,6 +811,21 @@ impl Callback {
             return Answer::Promise(Promise::resolved(value.clone()));
         }
         Answer::Returns(answer.get("returns").cloned().unwrap_or_else(undefined))
+    }
+
+    /// [`call`](Self::call) for an adapter that can hand over the argument
+    /// list printed: a harness made with [`Harness::live_with_text`] hands
+    /// the host what `text` gives; any other calls `args` for the values
+    /// and goes on as `call` does.
+    pub fn call_text(
+        &self,
+        text: impl FnOnce() -> Rc<str>,
+        args: impl FnOnce() -> Vec<Value>,
+    ) -> Answer {
+        match self.harness.0.live_text.as_ref() {
+            Some(live_text) => live_text(&self.spec, &text()),
+            None => self.call(args()),
+        }
     }
 }
 

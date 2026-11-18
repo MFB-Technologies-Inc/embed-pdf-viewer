@@ -7,9 +7,9 @@
 //! - text geometry is a page mirror (`geometry`): each page's
 //!   `page.text.layout` answer, loaded on demand, re-read when a confirmed
 //!   event changes a page's content (redaction apply, flatten) and dropped
-//!   when a page is deleted. The answer is the page-space geometry the
-//!   layout is built from (a `$textLayout` marker or the bare snapshot); the
-//!   built [`TextLayout`] is kept beside it, keyed by the answer's identity.
+//!   when a page is deleted. The answer (a `$textLayout` marker or the bare
+//!   page-space snapshot) is read into a [`TextLayout`] as it lands, and the
+//!   mirror holds the layout, not the answer.
 //! - `text_snapshots` holds per-page text promises for `read_text`, dropped
 //!   on the same content changes and when a page leaves the registry.
 //!
@@ -19,11 +19,13 @@
 
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
+use std::fmt;
 use std::rc::{Rc, Weak};
 
 use epdf_geometry::js::number_to_string;
 use epdf_geometry::{Point, Rect, bounds_of_rects, quad_bounds};
 use epdf_kernel::cancellable::cancellable;
+use epdf_kernel::engine::Answer;
 use epdf_kernel::error::{code, plugin_error};
 use epdf_kernel::event_hook::EventHookSource;
 use epdf_kernel::geometry::PageRef;
@@ -34,6 +36,8 @@ use epdf_kernel::rt::{self, Promise};
 use epdf_kernel::settings::InstanceSettings;
 use epdf_kernel::signal::AbortSignal;
 use epdf_kernel::{Controller, Error, Unsubscribe};
+use serde::de::{Error as _, IgnoredAny, MapAccess, Visitor};
+use serde::{Deserialize, Deserializer};
 use serde_json::Value;
 
 use crate::contract::*;
@@ -72,12 +76,26 @@ thread_local! {
     static REGISTRY_DECODES: Cell<usize> = const { Cell::new(0) };
 }
 
+#[cfg(feature = "harness")]
+thread_local! {
+    static LAYOUT_BUILDS: Cell<usize> = const { Cell::new(0) };
+}
+
 /// How many times this thread has decoded a page registry. M22's guard
 /// (`tests/scale.rs`) asserts a long select-all and read decode it a
 /// small constant number of times, not once per page.
 #[doc(hidden)]
 pub fn registry_decodes() -> usize {
     REGISTRY_DECODES.with(Cell::get)
+}
+
+/// How many page layouts this thread has built from geometry answers.
+/// `tests/geometry_decode.rs` asserts a page load builds its layout once
+/// and a read of a loaded page builds none. For the tests, with `harness`.
+#[cfg(feature = "harness")]
+#[doc(hidden)]
+pub fn layout_builds() -> usize {
+    LAYOUT_BUILDS.with(Cell::get)
 }
 
 impl Registry {
@@ -145,16 +163,14 @@ fn same_segment_lists(a: &SegmentsByPage, b: &SegmentsByPage) -> bool {
     a.len() == b.len() && a.iter().zip(b).all(|((ka, va), (kb, vb))| ka == kb && Rc::ptr_eq(va, vb))
 }
 
-/// A page's mirror answer and the layout built from it (`None` when the
-/// answer held no geometry).
-type BuiltLayout = (Rc<Value>, Option<Rc<TextLayout>>);
+/// What the geometry mirror holds for a page: its layout, `None` when the
+/// answer held no geometry.
+type Geometry = Option<Rc<TextLayout>>;
 
 struct Core {
     cx: Controller<SelectionState, Value>,
     settings: InstanceSettings,
-    geometry: PageMirror,
-    /// Each page's built layout, beside the mirror answer it was built from.
-    layouts: RefCell<HashMap<PageObjectNumber, BuiltLayout>>,
+    geometry: PageMirror<Geometry>,
     text_snapshots: RefCell<HashMap<PageObjectNumber, Promise<Rc<PageTextSnapshot>>>>,
     /// Bumped on every content change; a text read in flight across one
     /// fails (M23).
@@ -165,6 +181,9 @@ struct Core {
     changed: EventHookSource<SelectionChangedEvent>,
     committed: EventHookSource<SelectionCommittedEvent>,
     cleared: EventHookSource<SelectionClearedEvent>,
+    /// How many geometry loads were asked for, for the tests.
+    #[cfg(feature = "harness")]
+    load_starts: Cell<u64>,
 }
 
 /// `SelectionHostCapability`, which includes the public
@@ -233,10 +252,71 @@ fn page_key(page: PageRef) -> Value {
 
 /// A `page.text.layout` answer read into a layout: the `$textLayout`
 /// marker the conformance fake answers, or the bare page-space snapshot.
-/// `None` when it is neither, which reads as no geometry.
-fn hydrate(answer: &Value) -> Option<TextLayout> {
+/// `None` when it is neither, which reads as no geometry. Answer text that
+/// is not JSON fails the read, as `call` fails when it parses it.
+fn hydrate(answer: &Answer) -> Result<Geometry, Error> {
+    let snapshot = match answer {
+        Answer::Value(value) => snapshot_of(value),
+        // One pass over the text. An answer the pass refuses is read as a
+        // value, which settles what a repeated member or a marker after
+        // the runs means.
+        Answer::Text(text) => match serde_json::from_str::<WireAnswer>(text) {
+            Ok(WireAnswer(snapshot)) => Some(snapshot),
+            Err(_) => {
+                let value: Value = serde_json::from_str(text)
+                    .map_err(|e| Error::new(format!("[engine-bridge] malformed answer: {e}")))?;
+                snapshot_of(&value)
+            }
+        },
+    };
+    Ok(snapshot.map(|snapshot| {
+        #[cfg(feature = "harness")]
+        LAYOUT_BUILDS.with(|n| n.set(n.get() + 1));
+        Rc::new(create_text_layout(snapshot))
+    }))
+}
+
+/// The snapshot in a parsed answer: under `$textLayout`, or the answer itself.
+fn snapshot_of(answer: &Value) -> Option<PageGeometrySnapshot> {
     let snapshot = answer.get("$textLayout").unwrap_or(answer);
-    serde_json::from_value::<PageGeometrySnapshot>(snapshot.clone()).ok().map(create_text_layout)
+    PageGeometrySnapshot::deserialize(snapshot).ok()
+}
+
+/// A `page.text.layout` answer's snapshot, read from its text in one pass:
+/// the `$textLayout` member, else the answer's own `runs`. A member named
+/// twice, or an answer that is not an object, is refused.
+struct WireAnswer(PageGeometrySnapshot);
+
+impl<'de> Deserialize<'de> for WireAnswer {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct Members;
+        impl<'de> Visitor<'de> for Members {
+            type Value = WireAnswer;
+            fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                f.write_str("a page.text.layout answer")
+            }
+            fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<WireAnswer, A::Error> {
+                let (mut marked, mut runs) = (None, None);
+                while let Some(key) = map.next_key::<String>()? {
+                    match key.as_str() {
+                        "$textLayout" if marked.is_none() => marked = Some(map.next_value()?),
+                        "runs" if runs.is_none() => runs = Some(map.next_value()?),
+                        "$textLayout" | "runs" => {
+                            return Err(A::Error::custom(format!("duplicate field `{key}`")));
+                        }
+                        _ => {
+                            map.next_value::<IgnoredAny>()?;
+                        }
+                    }
+                }
+                marked
+                    .or_else(|| runs.map(|runs| PageGeometrySnapshot { runs }))
+                    .map(WireAnswer)
+                    .ok_or_else(|| A::Error::missing_field("runs"))
+            }
+        }
+        deserializer.deserialize_map(Members)
+    }
 }
 
 /// The settings the store holds, and why the whole value did not decode
@@ -275,7 +355,7 @@ pub(crate) fn create_selection_controller(
                 return Promise::rejected(Error::new("[selection] no document"));
             };
             let pon = PageRef::from_json(&page).map(|p| p.page_object_number);
-            doc.call("page.text.layout", pon, Vec::new())
+            doc.call_answer("page.text.layout", pon, Vec::new()).convert(hydrate)
         }),
         affected: Rc::new(|event| match content_changed_pages_of(event) {
             Some(pages) => Affected::Pages(pages.into_iter().map(page_json).collect()),
@@ -283,7 +363,7 @@ pub(crate) fn create_selection_controller(
         }),
         fold: None,
         predict: None,
-        changed: Some(Rc::new(move |change: PageMirrorChange| {
+        changed: Some(Rc::new(move |change: PageMirrorChange<Geometry>| {
             // A page's geometry arrived: a boundary page's segments can fill in.
             if change.cause != "load" {
                 return Ok(());
@@ -304,11 +384,12 @@ pub(crate) fn create_selection_controller(
         settings,
         geometry,
         cx,
-        layouts: RefCell::default(),
         text_snapshots: RefCell::default(),
         epoch: Cell::new(0),
         model: RefCell::new(None),
         registry: RefCell::new(None),
+        #[cfg(feature = "harness")]
+        load_starts: Cell::new(0),
     });
     *slot.borrow_mut() = Rc::downgrade(&core);
     let api = SelectionCapability(core);
@@ -469,16 +550,7 @@ impl SelectionCapability {
         if self.0.geometry.get_status(&key) != ResourceStatus::Ready {
             return None;
         }
-        let answer = self.0.geometry.get(&key)?;
-        let pon = page.page_object_number;
-        if let Some((built_from, layout)) = self.0.layouts.borrow().get(&pon)
-            && Rc::ptr_eq(built_from, &answer)
-        {
-            return layout.clone();
-        }
-        let layout = hydrate(&answer).map(Rc::new);
-        self.0.layouts.borrow_mut().insert(pon, (answer, layout.clone()));
-        layout
+        self.0.geometry.get(&key)?.as_ref().clone()
     }
 
     fn glyph_at(layout: &TextLayout, point: Point) -> Option<i64> {
@@ -488,6 +560,8 @@ impl SelectionCapability {
     /// Start loading a page's geometry, if this caller may read it and the
     /// page is in the document: the load `ensure_loaded` waits for.
     fn start_load(&self, page: PageRef) -> Option<Promise<()>> {
+        #[cfg(feature = "harness")]
+        self.0.load_starts.set(self.0.load_starts.get() + 1);
         // Authorized-only warming: without doc.text.select the read is
         // guaranteed to be refused, so it is not issued.
         if !self.can_select() || self.get_page(PageTarget::Ref(page)).is_none() {
@@ -793,7 +867,6 @@ impl SelectionCapability {
         let alive: HashSet<PageObjectNumber> =
             self.registry().pons.iter().flatten().copied().collect();
         self.0.text_snapshots.borrow_mut().retain(|pon, _| alive.contains(pon));
-        self.0.layouts.borrow_mut().retain(|pon, _| alive.contains(pon));
         if let Some(current) = self.state().selection {
             self.recompute(current);
         }
@@ -1095,6 +1168,14 @@ impl SelectionCapability {
         })
     }
 
+    /// How many geometry loads were asked for (`ensureLoaded` and the
+    /// warming reads), loaded pages included. For the tests.
+    #[cfg(feature = "harness")]
+    #[doc(hidden)]
+    pub fn load_starts(&self) -> u64 {
+        self.0.load_starts.get()
+    }
+
     /// Whether the page's text geometry is loaded and current.
     pub fn is_loaded(&self, page: PageRef) -> bool {
         self.0.geometry.get_status(&page_key(page)) == ResourceStatus::Ready
@@ -1157,5 +1238,52 @@ mod tests {
         let none = all::<u32>(Vec::new());
         rt::run_until_stalled();
         assert_eq!(none.peek().expect("settled").expect("resolved"), Vec::<u32>::new());
+    }
+
+    fn layout_of(answer: Answer) -> Result<Option<TextLayout>, ()> {
+        hydrate(&answer).map(|layout| layout.map(|l| (*l).clone())).map_err(|_| ())
+    }
+
+    const CORNERS: &str =
+        r#""upperRight":{"x":1,"y":0},"lowerLeft":{"x":0,"y":1},"lowerRight":{"x":1,"y":1}"#;
+    const CORNERS_X_TWICE: &str = r#""upperLeft":{"x":0,"y":0,"x":0},"upperRight":{"x":1,"y":0},"lowerLeft":{"x":0,"y":1},"lowerRight":{"x":1,"y":1}"#;
+
+    /// An answer's text reads as the value it parses to; text that is not
+    /// JSON fails the read, with the message `call` gives it.
+    #[test]
+    fn answer_text_reads_as_its_value() {
+        let run = r#"{"rect":{"x":0,"y":0,"width":12,"height":12},"start":0,"glyphs":[{"loose":{"x":0,"y":0,"width":6,"height":12}},{"loose":{"x":6,"y":0,"width":6,"height":12}}]}"#;
+        let other = r#"{"rect":{"x":0,"y":20,"width":6,"height":12},"start":0,"glyphs":[{"loose":{"x":0,"y":20,"width":6,"height":12}}]}"#;
+        let answers = [
+            format!(r#"{{"runs":[{run}]}}"#),
+            format!(r#"{{"runs":[{run}],"charAt":{{"$host":3}},"runs2":[]}}"#),
+            format!(r#"{{"$textLayout":{{"runs":[{run}]}}}}"#),
+            format!(r#"{{"runs":[{other}],"$textLayout":{{"runs":[{run}]}}}}"#),
+            format!(r#"{{"runs":5,"$textLayout":{{"runs":[{run}]}}}}"#),
+            format!(r#"{{"$textLayout":5,"runs":[{run}]}}"#),
+            format!(r#"{{"runs":[{other}],"runs":[{run}]}}"#),
+            format!(r#"{{"$textLayout":{{"runs":[]}},"$textLayout":{{"runs":[{run}]}}}}"#),
+            r#"{"runs":[{"rect":{"x":0,"y":0,"width":6,"height":12},"start":0,"glyphs":[{"loose":{"x":0,"y":0,"width":6,"height":12},"loose":{"x":1,"y":0,"width":6,"height":12}}]}]}"#.into(),
+            // An upright cell with every corner and a box: a repeated corner,
+            // or a corner's repeated `x`, keeps its last value, so the cell
+            // is a quad and the upright run refuses it.
+            format!(r#"{{"runs":[{{"rect":{{"x":0,"y":0,"width":6,"height":12}},"start":0,"glyphs":[{{"loose":{{"upperLeft":5,{CORNERS},"upperLeft":{{"x":0,"y":0}},"x":0,"y":0,"width":6,"height":12}}}}]}}]}}"#),
+            format!(r#"{{"runs":[{{"rect":{{"x":0,"y":0,"width":6,"height":12}},"start":0,"glyphs":[{{"loose":{{{CORNERS_X_TWICE},"x":0,"y":0,"width":6,"height":12}}}}]}}]}}"#),
+            r#"{"runs":[{"rect":{"x":0,"y":0,"width":6,"height":12},"start":0,"glyphs":[{"loose":{"x":0,"y":0,"width":6,"height":12}}]}]}"#.into(),
+            format!(r#"[[{run}]]"#),
+            "null".into(),
+            "5".into(),
+            "{}".into(),
+            r#"{"runs":5}"#.into(),
+        ];
+        for text in answers {
+            let value: Value = serde_json::from_str(&text).unwrap();
+            let read = layout_of(Answer::Text(text.as_str().into()));
+            assert_eq!(read, layout_of(Answer::Value(value)), "{text}");
+        }
+        for text in [r#"{"runs":["#, r#"{"runs":[]} x"#, ""] {
+            let error = hydrate(&Answer::Text(text.into())).expect_err(text);
+            assert!(error.to_string().contains("[engine-bridge] malformed answer: "), "{error}");
+        }
     }
 }

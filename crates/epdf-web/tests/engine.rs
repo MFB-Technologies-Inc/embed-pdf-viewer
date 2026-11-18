@@ -7,7 +7,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use epdf_kernel::engine::{
-    CallFacts, CallPriority, DocumentHandle, Engine, ObjectNumbersLost, ObjectNumbersLostReason,
+    Answer, CallFacts, CallPriority, DocumentHandle, Engine, ObjectNumbersLost,
+    ObjectNumbersLostReason,
 };
 use epdf_kernel::error::ErrorClass;
 use epdf_web::engine::{EngineBridge, JsEngine, UNINDEXED};
@@ -33,18 +34,23 @@ async fn js_sleep(ms: f64) {
 
 const STUB: &str = r#"
 const log = [];
-let listener = null;
+const listeners = new Set();
+const granted = new Set(['doc.render']);
 let lostListener = null;
 const held = [101, 102];
 return {
   log,
-  emit(json) { if (listener) listener(json); },
+  emit(json) { for (const l of [...listeners]) l(json); },
+  grant(permission) { granted.add(permission); },
   open(input, options) {
     log.push(['open', input, options ?? null]);
     return Promise.resolve(JSON.stringify(JSON.parse(input).id));
   },
   call(doc, path, pon, args) {
     log.push(['call', doc, path, pon ?? null, args]);
+    if (path === 'pages.list' && doc === 'kernel') {
+      return Promise.resolve('{"pageCount":0,"pages":[],"labels":[]}');
+    }
     if (path === 'pages.list') return Promise.resolve('{"pageCount":2,"pages":[]}');
     if (path === 'refuse') {
       return Promise.reject({ $error: { name: 'PermissionDenied', message: 'no', required: 'doc.render' } });
@@ -68,9 +74,16 @@ return {
   capabilities(doc) { return '{"pageEditSessions":"supported"}'; },
   security(doc, member, args) {
     log.push(['security', member, args]);
-    if (member === 'allows') return JSON.stringify(JSON.parse(args)[0] === 'doc.render');
-    if (member === 'passwordPrompt') return '{"state":"required"}';
+    if (member === 'allows' && JSON.parse(args)[0] === 'throws') throw new Error('gone');
+    if (member === 'allows') return JSON.stringify(granted.has(JSON.parse(args)[0]));
+    if (member === 'passwordPrompt') {
+      return doc === 'kernel' ? '{"state":"none"}' : '{"state":"required"}';
+    }
     if (member === 'effectiveScope') return '["doc.render"]';
+    if (member === 'allowsField') {
+      const [action, target] = JSON.parse(args);
+      return JSON.stringify(action === 'fill' && target.groupId === null);
+    }
     throw new Error('no such read');
   },
   pageIndex(doc, pon) {
@@ -85,8 +98,8 @@ return {
   lastServerSequence(doc) { return '42'; },
   subscribe(doc, l) {
     if (doc === 'refuses-subscribe') throw new Error('no listener for you');
-    listener = l;
-    return () => { listener = null; log.push(['off']); };
+    listeners.add(l);
+    return () => { listeners.delete(l); log.push(['off']); };
   },
   isLocal() { log.push(['isLocal']); return true; },
   isLocalDocument(doc) {
@@ -236,6 +249,22 @@ async fn synchronous_reads_go_to_the_bridge_each_time() {
     assert_eq!(
         log(&stub).as_array().unwrap().last().unwrap(),
         &json!(["call", "a", "security.unlock", null, r#"[{"password":"pw"}]"#])
+    );
+}
+
+#[wasm_bindgen_test]
+async fn a_field_check_goes_to_the_bridge() {
+    reset();
+    let stub = stub();
+    let doc = open(&stub).await;
+    let security = doc.security();
+    // `ctx.allowsField(action, field)` asks `doc.security.allowsField`
+    // (`packages/core/main/src/context.ts:264`), never a refusing default.
+    assert!(security.allows_field("fill", &json!({"groupId": null})));
+    assert!(!security.allows_field("sign", &json!({"groupId": null})));
+    assert_eq!(
+        log(&stub).as_array().unwrap().last().unwrap(),
+        &json!(["security", "allowsField", r#"["sign",{"groupId":null}]"#])
     );
 }
 
@@ -436,6 +465,26 @@ async fn call_with_sends_the_facts_as_json_text() {
     );
 }
 
+/// `call_answer_with` goes through `callWith` with the facts, and hands the
+/// answer over as the text the bridge returned.
+#[wasm_bindgen_test]
+async fn call_answer_with_sends_the_facts_and_keeps_the_text() {
+    reset();
+    let stub = stub();
+    let doc = open(&stub).await;
+    let facts = CallFacts { priority: Some(CallPriority::Low), view: None };
+    let list = doc.call_answer_with(&facts, "pages.list", None, vec![]);
+    js_sleep(0.0).await;
+    match list.peek().unwrap().unwrap() {
+        Answer::Text(text) => assert_eq!(&*text, r#"{"pageCount":2,"pages":[]}"#),
+        Answer::Value(value) => panic!("parsed where the text was expected: {value}"),
+    }
+    assert_eq!(
+        log(&stub).as_array().unwrap()[1..],
+        [json!(["callWith", "a", r#"{"priority":"low"}"#, "pages.list", null, "[]"])]
+    );
+}
+
 #[wasm_bindgen_test]
 async fn a_call_with_refusal_keeps_its_class_and_a_throw_rejects() {
     reset();
@@ -453,4 +502,81 @@ async fn a_call_with_refusal_keeps_its_class_and_a_throw_rejects() {
     assert_eq!(error.member("required"), Some(&json!("doc.render")));
     let error = thrown.peek().unwrap().unwrap_err();
     assert_eq!((error.name.as_str(), error.message.as_str()), ("Error", "sync"));
+}
+
+/// A kernel over the stub bridge with document `kernel` open, and that
+/// document's controller context.
+async fn kernel_context(stub: &JsValue) -> (epdf_kernel::Kernel, epdf_kernel::ControllerContext) {
+    let token = epdf_kernel::Token::<epdf_kernel::ControllerContext>::new("permissions");
+    let plugin = epdf_kernel::define::<Value, epdf_kernel::action::CoreAction>("permissions")
+        .document_scoped()
+        .create(&token, |ctx| Ok((ctx.cx.clone(), None)))
+        .build();
+    let engine = JsEngine::new(stub.clone().unchecked_into::<EngineBridge>());
+    let kernel =
+        epdf_kernel::Kernel::new(Rc::new(engine), vec![plugin], Default::default()).unwrap();
+    let started = kernel.start();
+    js_sleep(0.0).await;
+    started.peek().expect("started").unwrap();
+    let input = epdf_kernel::OpenSource::Input(json!({"kind": "bytes", "id": "kernel"}));
+    let opened = kernel.documents().open(input, epdf_kernel::OpenOptions::default());
+    js_sleep(0.0).await;
+    opened.peek().expect("opened").unwrap();
+    let ctx = kernel.capability(&token, Some("kernel")).unwrap();
+    (kernel, ctx)
+}
+
+fn security_calls(stub: &JsValue) -> usize {
+    log(stub).as_array().unwrap().iter().filter(|entry| entry[0] == "security").count()
+}
+
+#[wasm_bindgen_test]
+async fn allows_crosses_once_per_revision() {
+    reset();
+    let stub = stub();
+    let (_kernel, ctx) = kernel_context(&stub).await;
+    let before = security_calls(&stub);
+    for _ in 0..10 {
+        assert!(ctx.allows("doc.render"));
+    }
+    assert_eq!(security_calls(&stub), before + 1);
+}
+
+#[wasm_bindgen_test]
+async fn allows_rereads_after_security_event() {
+    reset();
+    let stub = stub();
+    let (kernel, ctx) = kernel_context(&stub).await;
+    assert!(!ctx.allows("doc.print"));
+    // The engine's answer changes and it says so with an event; nothing in
+    // the store changes.
+    let grant =
+        js_sys::Reflect::get(&stub, &"grant".into()).unwrap().unchecked_into::<js_sys::Function>();
+    grant.call1(&stub, &"doc.print".into()).unwrap();
+    // Until the event, this is the divergence the memo's invariant accepts
+    // (`DocumentSecurity` in epdf-kernel's engine.rs): TypeScript would ask
+    // and answer true; the memo answers without crossing the bridge.
+    let asked = security_calls(&stub);
+    assert!(!ctx.allows("doc.print"), "the same revision answers from the memo");
+    assert_eq!(security_calls(&stub), asked, "no question crossed the bridge");
+    let (count, core) = (ctx.store_change_count(), kernel.core_revision());
+    let emit =
+        js_sys::Reflect::get(&stub, &"emit".into()).unwrap().unchecked_into::<js_sys::Function>();
+    emit.call1(&stub, &r#"{"type":"signatures.prepared"}"#.into()).unwrap();
+    assert_eq!((ctx.store_change_count(), kernel.core_revision()), (count, core));
+    let before = security_calls(&stub);
+    assert!(ctx.allows("doc.print"));
+    assert!(ctx.allows("doc.print"));
+    assert_eq!(security_calls(&stub), before + 1);
+}
+
+#[wasm_bindgen_test]
+async fn a_permission_read_that_throws_answers_false_and_is_asked_again() {
+    reset();
+    let stub = stub();
+    let (_kernel, ctx) = kernel_context(&stub).await;
+    let before = security_calls(&stub);
+    assert!(!ctx.allows("throws"));
+    assert!(!ctx.allows("throws"));
+    assert_eq!(security_calls(&stub), before + 2);
 }

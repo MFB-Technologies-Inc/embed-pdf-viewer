@@ -126,6 +126,9 @@ struct OpenState {
     /// The document's stamp drawings, by content (`DrawingIndex`): new with
     /// each document it describes.
     drawings: std::cell::RefCell<crate::features::annotation::write::stamp::DrawingIndex>,
+    /// What search has read of this document's pages, at the current
+    /// cache sequence (`pageCorpusCache`).
+    search_corpus: crate::features::search::corpus::SearchCorpus,
 }
 
 /// One open, locked or closed document.
@@ -148,6 +151,11 @@ pub struct DocumentSession {
     /// (`DocumentSession.ts` `loadedSeq`).
     loaded_sequence: Cell<u64>,
     mutation_sequence: Cell<u64>,
+    /// The version caches built from the document key on
+    /// (`DocumentSession.ts` `cacheSeqCounter`): moved by every commit,
+    /// abort, install and finished write, so it moves wherever a write can
+    /// land, including a commit that never reaches `finish_mutation`.
+    cache_sequence: Cell<u64>,
     /// What this session's caller may do. Grants nothing until open sets it,
     /// so a session that failed to open cannot be read through.
     authority: SessionAuthority,
@@ -239,16 +247,17 @@ pub fn object_number_unavailable(number: u32, reason: &str) -> EngineError {
 }
 
 /// `bytes` as a fresh layer over a private memory base
-/// (`WorkerHost.openBytesAsLayer`). The layer document holds its base, and
-/// releases it after its own handle closes, so anything holding the document
-/// (a pooled page) keeps the base alive too.
+/// (`WorkerHost.openBytesAsLayer`). The base owns `bytes` without copying
+/// them. The layer document holds its base, and releases it after its own
+/// handle closes, so anything holding the document (a pooled page) keeps the
+/// base and its bytes alive too.
 ///
 /// A missing password reports `DocPasswordRequired` and a wrong one
 /// `DocPasswordIncorrect`, as a plain open does, so a locked document parks
 /// and unlocks the same way.
-fn open_bytes_as_layer(bytes: &[u8], password: Option<&str>) -> Result<Document, EngineError> {
+fn open_bytes_as_layer(bytes: Vec<u8>, password: Option<&str>) -> Result<Document, EngineError> {
     let base =
-        BaseDocument::from_bytes(Library::acquire(), bytes, password).map_err(|e| match e {
+        BaseDocument::from_vec(Library::acquire(), bytes, password).map_err(|e| match e {
             PdfiumError::Password if super::base_registry::password_given(password) => {
                 EngineError::with_message(
                     EngineErrorCode::DocPasswordIncorrect,
@@ -287,6 +296,7 @@ impl DocumentSession {
             password: None,
             loaded_sequence: Cell::new(0),
             mutation_sequence: Cell::new(0),
+            cache_sequence: Cell::new(0),
             authority: SessionAuthority::default(),
             retained: Vec::new(),
             object_number_authority: ObjectNumberAuthority::default(),
@@ -399,7 +409,7 @@ impl DocumentSession {
                 "document already open",
             ));
         }
-        let document = open_bytes_as_layer(&bytes, password)?;
+        let document = open_bytes_as_layer(bytes, password)?;
 
         // PDFium's own subsystems, forms especially, consult the permission
         // bits and would otherwise refuse work this engine has already
@@ -429,6 +439,7 @@ impl DocumentSession {
             records: Vec::new(),
             fully_enumerated: false,
             drawings: Default::default(),
+            search_corpus: Default::default(),
         });
         self.authority = authority;
         self.parked_bytes = None;
@@ -520,6 +531,7 @@ impl DocumentSession {
             records: Vec::new(),
             fully_enumerated: false,
             drawings: Default::default(),
+            search_corpus: Default::default(),
         });
         self.authority = authority;
         self.parked_bytes = None;
@@ -677,6 +689,8 @@ impl DocumentSession {
 
     /// Enumerate every page once, caching index to object number.
     ///
+    /// Reads the numbers from the page tree; no page is loaded.
+    ///
     /// A page with no indirect object number makes the document unusable for
     /// identity, so it is refused here with a message that says what is wrong
     /// rather than routed through a weak identity path. ISO 32000-1 7.7.3.3
@@ -688,13 +702,12 @@ impl DocumentSession {
         if state.fully_enumerated {
             return Ok(());
         }
-        let count = state.document.page_count();
+        let document = state.document.document();
+        let count = document.page_count();
         let mut records = Vec::with_capacity(count as usize);
         for index in 0..count {
-            let page = state.document.document().page(index).map_err(|e| {
-                EngineError::with_message(EngineErrorCode::RuntimeUnavailable, e.to_string())
-            })?;
-            let number = PageObjectNumber::new(page.object_number()).map_err(|_| {
+            let raw = document.page_object_number_by_index(index);
+            let number = PageObjectNumber::new(raw).map_err(|_| {
                 EngineError::with_message(
                     EngineErrorCode::MalformedPdf,
                     format!(
@@ -716,17 +729,8 @@ impl DocumentSession {
         page_object_number: PageObjectNumber,
     ) -> Result<PageRecord, EngineError> {
         self.ensure_full_page_registry()?;
-        self.state()?
-            .records
-            .iter()
-            .find(|record| record.page_object_number == page_object_number)
-            .copied()
-            .ok_or_else(|| {
-                EngineError::with_message(
-                    EngineErrorCode::NotFound,
-                    format!("no page with object number {page_object_number}"),
-                )
-            })
+        let page_index = self.state()?.document.page_index(page_object_number)?;
+        Ok(PageRecord { page_object_number, page_index })
     }
 
     /// Every page record, in display order.
@@ -746,6 +750,14 @@ impl DocumentSession {
         state.records.clear();
         state.fully_enumerated = false;
         self.ensure_full_page_registry()
+    }
+
+    /// The pages search has read, keyed by object number at the current
+    /// mutation sequence.
+    pub fn search_corpus(
+        &mut self,
+    ) -> Result<&mut crate::features::search::corpus::SearchCorpus, EngineError> {
+        Ok(&mut self.state_mut()?.search_corpus)
     }
 
     /// A page from the pool, shared with any other holder.
@@ -845,6 +857,23 @@ impl DocumentSession {
         self.mutation_sequence.get()
     }
 
+    /// The version key for a cache built from the document (`cacheSeq`):
+    /// an entry built at sequence N is valid exactly while this is still N.
+    ///
+    /// Not [`DocumentSession::mutation_sequence`], which only a finished
+    /// write moves: `document.applyChanges` commits each change on its own,
+    /// and a job that fails after a commit keeps that commit without
+    /// finishing, so the wire sequence stays where it was.
+    pub fn cache_sequence(&self) -> u64 {
+        self.cache_sequence.get()
+    }
+
+    /// `invalidateDerived`: make every cache keyed on
+    /// [`DocumentSession::cache_sequence`] build again.
+    fn invalidate_derived(&self) {
+        self.cache_sequence.set(self.cache_sequence.get().saturating_add(1));
+    }
+
     /// `hasUnsavedEdits`: a mutation since the current bytes were loaded.
     pub fn has_unsaved_edits(&self) -> bool {
         self.mutation_sequence.get() != self.loaded_sequence.get()
@@ -871,7 +900,7 @@ impl DocumentSession {
     /// that was not one persists no artifact from here on
     /// (`SignatureMutator.verifySealed`); a layer keeps what it had.
     pub fn install(&mut self, bytes: Vec<u8>) -> Result<(), EngineError> {
-        let document = open_bytes_as_layer(&bytes, self.password.as_deref())
+        let document = open_bytes_as_layer(bytes, self.password.as_deref())
             .map_err(|e| EngineError::with_message(EngineErrorCode::DocOpenFailed, e.message))?;
         if document.is_encrypted() {
             document.set_runtime_owner_permissions(true);
@@ -890,11 +919,13 @@ impl DocumentSession {
         state.records.clear();
         state.fully_enumerated = false;
         state.drawings.get_mut().forget();
+        state.search_corpus.clear();
         for pon in previous {
             state.revisions.bump(pon);
         }
         self.mutation_sequence.set(self.mutation_sequence.get().saturating_add(1));
         self.loaded_sequence.set(self.mutation_sequence.get());
+        self.invalidate_derived();
         // The new version's objects may sit at numbers this session held.
         self.held_object_numbers.clear();
         if let Some(open) = self.transaction.as_mut() {
@@ -907,6 +938,7 @@ impl DocumentSession {
     /// [`RevisionAuthority::bump`].
     pub fn note_mutation(&self) {
         self.mutation_sequence.set(self.mutation_sequence.get().saturating_add(1));
+        self.invalidate_derived();
     }
 
     /// Park a disposer to run when this session closes.
@@ -1043,6 +1075,9 @@ impl DocumentSession {
         for number in spent {
             self.release_held(number);
         }
+        // What the transaction wrote is kept whether or not the write goes
+        // on to finish, so caches built before it are stale from here.
+        self.invalidate_derived();
         Ok(())
     }
 
@@ -1126,6 +1161,8 @@ impl DocumentSession {
         if self.transaction.take().is_none() {
             return;
         }
+        // A cache may have been built from what the transaction wrote.
+        self.invalidate_derived();
         let Some(state) = self.open.as_mut() else { return };
         let aborted = state.document.document().layer_abort_transaction();
         state.drawings.get_mut().forget();
@@ -1285,7 +1322,7 @@ mod open_tests {
         let path = test_support::workspace_root()
             .join("tooling/engine-conformance/fixtures/encrypted-r4-aes-128.pdf");
         let bytes = std::fs::read(path).expect("read");
-        let code = |password| open_bytes_as_layer(&bytes, password).err().map(|e| e.code);
+        let code = |password| open_bytes_as_layer(bytes.clone(), password).err().map(|e| e.code);
         assert_eq!(code(Some("")), Some(EngineErrorCode::DocPasswordRequired));
         assert_eq!(code(None), Some(EngineErrorCode::DocPasswordRequired));
         assert_eq!(code(Some("wrong")), Some(EngineErrorCode::DocPasswordIncorrect));

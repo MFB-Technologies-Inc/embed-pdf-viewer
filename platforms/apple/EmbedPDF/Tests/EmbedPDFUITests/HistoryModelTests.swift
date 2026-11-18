@@ -27,6 +27,26 @@ struct HistoryModelTests {
     try await viewer.destroy()
   }
 
+  /// A revision that leaves the history as it was, as a scroll does, must not
+  /// invalidate the controls; an undo still must.
+  @Test func unchangedRevisionDoesNotNotify() async throws {
+    let (viewer, document, history, model) = try await opened()
+    let edit = try await viewer.pageEdit(for: document)
+    let page = try await viewer.pages(of: document)[0].page
+    _ = try await edit.rotate([page], by: .clockwise)
+    await model.refresh()
+    #expect(model.undoLabel != nil)
+    let shown = { @MainActor in
+      _ = (model.canUndo, model.canRedo, model.undoLabel, model.redoLabel, model.undoTitle, model.redoTitle)
+    }
+    #expect(await !observationFires(shown) { await model.refresh() })
+    #expect(try await observationFires({ model.canRedo }) {
+      try await history.undo()
+      await model.refresh()
+    })
+    try await viewer.destroy()
+  }
+
   @Test func externalEditsAndUndoReachTheObservingModel() async throws {
     let (viewer, document, _, model) = try await opened()
     let observing = Task { await model.task() }

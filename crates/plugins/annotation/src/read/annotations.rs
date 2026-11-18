@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use epdf_annotation_core::editable::is_editable_by_hand;
-use epdf_annotation_core::types::{Model, ModelAnnotation};
+use epdf_annotation_core::types::{Annotation, Model, ModelAnnotation};
 use epdf_kernel::Error;
 use epdf_kernel::error::{code, plugin_error};
 use serde_json::Value;
@@ -50,6 +50,12 @@ impl Core {
     /// `get(ref)`.
     pub fn get(&self, reference: &Value) -> Option<Value> {
         self.model().by_id.get(&key_or_none(reference)).map(|r| annotation_value(r))
+    }
+
+    /// `get(ref)` as the record holds it: the same `Rc` until the
+    /// annotation changes.
+    pub fn get_shared(&self, reference: &Value) -> Option<Annotation> {
+        self.model().by_id.get(&key_or_none(reference)).map(|r| r.annotation.clone())
     }
 
     /// `isPending(ref)`: it shows other than the engine has it.

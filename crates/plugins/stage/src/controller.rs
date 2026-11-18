@@ -30,6 +30,7 @@
 use epdf_kernel::Controller;
 use epdf_kernel::clock::{Cancel, PluginClock};
 use epdf_kernel::event_hook::EventHookSource;
+use epdf_kernel::types::DocumentMeta;
 use serde_json::Value;
 
 use crate::prelude::*;
@@ -116,6 +117,31 @@ impl PartialEq for JsNumber {
     }
 }
 
+/// What the scene key and the page reads are built from, held by
+/// identity: the same state and the same document record read the same.
+pub(crate) struct SceneInputs {
+    pub(crate) state: Rc<StageState>,
+    pub(crate) document: Option<Rc<DocumentMeta>>,
+}
+
+impl SceneInputs {
+    pub(crate) fn same(&self, other: &SceneInputs) -> bool {
+        Rc::ptr_eq(&self.state, &other.state)
+            && match (&self.document, &other.document) {
+                (Some(a), Some(b)) => Rc::ptr_eq(a, b),
+                (None, None) => true,
+                _ => false,
+            }
+    }
+}
+
+/// The memoized scene, its key, and the inputs the key was built from.
+pub(crate) struct SceneCache {
+    pub(crate) inputs: SceneInputs,
+    pub(crate) key: String,
+    pub(crate) scene: Rc<Scene>,
+}
+
 pub(crate) struct Inner {
     pub(crate) events: Events,
     /// `ctx.clock`: frames and timers, cancelled when the document closes.
@@ -123,7 +149,11 @@ pub(crate) struct Inner {
     pub(crate) placement: PlacementLatch,
     // services/scene
     pub(crate) grouping_memo: RefCell<Option<((u32, sc::SpreadMode), Rc<Grouping>)>>,
-    pub(crate) scene_cache: RefCell<Option<(String, Rc<Scene>)>>,
+    pub(crate) scene_cache: RefCell<Option<SceneCache>>,
+    /// How many scene keys `build_scene` built, for the tests.
+    pub(crate) scene_key_builds: Cell<u64>,
+    /// How many times the page-state feed read the lens, for the tests.
+    pub(crate) page_state_reads: Cell<u64>,
     /// One entry per registry row, `None` for a row that does not parse,
     /// so display indexes stay aligned with the document's.
     pub(crate) registry_cache: RefCell<Option<(Rc<Value>, Rc<Vec<Option<PageRow>>>)>>,
@@ -186,6 +216,8 @@ pub(crate) fn create_stage_controller(
             placement: PlacementLatch { started: Cell::new(false), pending: RefCell::new(None) },
             grouping_memo: RefCell::new(None),
             scene_cache: RefCell::new(None),
+            scene_key_builds: Cell::new(0),
+            page_state_reads: Cell::new(0),
             registry_cache: RefCell::new(None),
             gesture: Gesture::default(),
             turns: Default::default(),
@@ -240,6 +272,18 @@ impl StageCapability {
     #[doc(hidden)]
     pub fn lifetime(&self) -> &epdf_kernel::signal::AbortSignal {
         self.ctx.lifetime()
+    }
+
+    /// How many scene keys this lens built.
+    #[doc(hidden)]
+    pub fn scene_key_builds(&self) -> u64 {
+        self.inner.scene_key_builds.get()
+    }
+
+    /// How many times the page-state feed read this lens.
+    #[doc(hidden)]
+    pub fn page_state_reads(&self) -> u64 {
+        self.inner.page_state_reads.get()
     }
 
     /// `ctx.state.get()`.

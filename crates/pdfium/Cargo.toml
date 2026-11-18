@@ -7,6 +7,11 @@ publish.workspace = true
 [lib]
 crate-type = ["rlib"]
 
+[features]
+# Thread-local counters of hot PDFium calls, read by tests through
+# `pdfium::call_count`.
+call-count = []
+
 [dependencies]
 pdfium-sys = { path = "../pdfium-sys" }
 

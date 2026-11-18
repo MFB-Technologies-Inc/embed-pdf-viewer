@@ -58,20 +58,28 @@ pub(crate) fn is_persistent(cx: &MeasurementContext) -> Result<bool, Error> {
     Ok(cx.doc()?.has("page.measure"))
 }
 
+/// The session's own viewports for a page where the engine keeps none,
+/// which the memo keys on; `None` where the engine keeps them.
+fn local_of(cx: &MeasurementContext, layout: &PageRow, persistent: bool) -> Option<Rc<Value>> {
+    if persistent {
+        return None;
+    }
+    cx.state().local_viewports.get(&layout.page().page_object_number).cloned()
+}
+
+/// `viewportsOf(layout)` in place: the layout's viewports, or `local` where
+/// the engine keeps none; an empty list when there are none.
+fn listed<'a>(layout: &'a PageRow, local: Option<&'a Value>, persistent: bool) -> &'a [Value] {
+    let list = if persistent { layout.row().get("viewports") } else { local };
+    list.and_then(Value::as_array).map_or(&[], Vec::as_slice)
+}
+
 /// `viewportsOf(layout)`: a page's viewports, its layout's, or the
 /// session's own where the engine keeps none; an empty list when there are
-/// none. The second half is the session's list, which the memo keys on.
-fn viewports_of(
-    cx: &MeasurementContext,
-    layout: &PageRow,
-    persistent: bool,
-) -> (Vec<Value>, Option<Rc<Value>>) {
-    if persistent {
-        let list = layout.row().get("viewports").and_then(Value::as_array).cloned();
-        return (list.unwrap_or_default(), None);
-    }
-    let local = cx.state().local_viewports.get(&layout.page().page_object_number).cloned();
-    (local.as_deref().and_then(Value::as_array).cloned().unwrap_or_default(), local)
+/// none.
+fn viewports_of(cx: &MeasurementContext, layout: &PageRow, persistent: bool) -> Vec<Value> {
+    let local = local_of(cx, layout, persistent);
+    listed(layout, local.as_deref(), persistent).to_vec()
 }
 
 impl MeasurementCapability {
@@ -85,7 +93,7 @@ impl MeasurementCapability {
         };
         let pages = core.registry.pages();
         let persistent = is_persistent(&core.cx)?;
-        let (viewports, local) = viewports_of(&core.cx, &layout, persistent);
+        let local = local_of(&core.cx, &layout, persistent);
         let settings = core.settings.get();
         if let Some(memo) = core.scales.borrow().get(&pon)
             && same(&memo.pages, &pages)
@@ -96,7 +104,8 @@ impl MeasurementCapability {
             return Ok(memo.scale.clone());
         }
         let fallback = fallback_of(&settings, &layout)?;
-        let scale = Rc::new(select_page_scale(&viewports, layout.size(), &fallback, persistent));
+        let viewports = listed(&layout, local.as_deref(), persistent);
+        let scale = Rc::new(select_page_scale(viewports, layout.size(), &fallback, persistent));
         core.scales
             .borrow_mut()
             .insert(pon, ScaleMemo { pages, local, persistent, settings, scale: scale.clone() });
@@ -151,7 +160,7 @@ impl MeasurementCapability {
             move |layout: &PageRow, always: bool| -> Result<(), Error> {
                 let Some(core) = this.upgrade() else { return Ok(()) };
                 let persistent = is_persistent(&core.cx)?;
-                let (viewports, _) = viewports_of(&core.cx, layout, persistent);
+                let viewports = viewports_of(&core.cx, layout, persistent);
                 let pon = layout.page().page_object_number;
                 if !always && told.borrow().get(&pon) == Some(&viewports) {
                     return Ok(());

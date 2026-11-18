@@ -13,12 +13,39 @@ use serde_json::Value;
 use super::{all2, annotation_key, get};
 use crate::ActionsCapability;
 
-fn annotations_of(listed: &Value) -> Vec<Value> {
-    get(listed, "annotations").and_then(Value::as_array).cloned().unwrap_or_default()
+#[cfg(feature = "harness")]
+thread_local! {
+    static ROW_COPIES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
-fn widgets_of(snapshot: &Value) -> Vec<Value> {
-    get(snapshot, "widgets").and_then(Value::as_array).cloned().unwrap_or_default()
+/// How many widget rows the reads here have copied out of the form, on this
+/// thread.
+#[cfg(feature = "harness")]
+pub fn widget_row_copies() -> usize {
+    ROW_COPIES.with(std::cell::Cell::get)
+}
+
+/// A widget row the read keeps, copied out of the form.
+fn kept(row: &Value) -> Value {
+    #[cfg(feature = "harness")]
+    ROW_COPIES.with(|copies| copies.set(copies.get() + 1));
+    row.clone()
+}
+
+/// The `annotations` list of a `page.annotations.list` answer, moved out.
+fn annotations_of(listed: Value) -> Vec<Value> {
+    match listed {
+        Value::Object(mut listed) => match listed.remove("annotations") {
+            Some(Value::Array(annotations)) => annotations,
+            _ => Vec::new(),
+        },
+        _ => Vec::new(),
+    }
+}
+
+/// The form's widget rows, in place.
+fn widgets_of(snapshot: &Value) -> &[Value] {
+    get(snapshot, "widgets").and_then(Value::as_array).map_or(&[], Vec::as_slice)
 }
 
 fn page_number_of(annotation: &Value) -> Option<f64> {
@@ -43,7 +70,7 @@ impl ActionsCapability {
         let annotations = if self.allows("doc.annotate.read") {
             let list =
                 self.read(signal.as_ref(), self.list_page_annotations(page.page_object_number));
-            list.map(|listed| Ok(annotations_of(&listed)))
+            list.map(|listed| Ok(annotations_of(listed)))
         } else {
             Promise::resolved(Vec::new())
         };
@@ -51,8 +78,9 @@ impl ActionsCapability {
             let pon = f64::from(page.page_object_number);
             self.read_form(signal.as_ref()).map(move |snapshot| {
                 Ok(widgets_of(&snapshot)
-                    .into_iter()
+                    .iter()
                     .filter(|widget| page_number_of(widget) == Some(pon))
+                    .map(kept)
                     .collect::<Vec<_>>())
             })
         } else {
@@ -77,8 +105,8 @@ impl ActionsCapability {
         };
         if self.allows("doc.forms.read") {
             let snapshot = self.read_form(signal.as_ref()).await?;
-            if let Some(widget) = widgets_of(&snapshot).into_iter().find(|w| matches(w)) {
-                return Ok(Some(widget));
+            if let Some(widget) = widgets_of(&snapshot).iter().find(|w| matches(w)) {
+                return Ok(Some(kept(widget)));
             }
         }
         if !self.allows("doc.annotate.read") {
@@ -91,6 +119,6 @@ impl ActionsCapability {
             .and_then(Value::as_f64)
             .map_or(0, |n| n as u32);
         let listed = self.read(signal.as_ref(), self.list_page_annotations(pon)).await?;
-        Ok(annotations_of(&listed).into_iter().find(|a| matches(a)))
+        Ok(annotations_of(listed).into_iter().find(|a| matches(a)))
     }
 }

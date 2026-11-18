@@ -56,6 +56,7 @@ impl Document {
     /// it does not: an empty model is a model, and it reports a form kind of
     /// none and no fields.
     pub fn form_model(&self) -> Option<FormModel<'_>> {
+        count_call!(FormLoadModel);
         // SAFETY: the handle is live for the borrow this returns.
         let handle = unsafe { pdfium_sys::EPDFForm_LoadModel(self.as_raw()) };
         (!handle.is_null()).then_some(FormModel { handle, document: self, _not_send: PhantomData })

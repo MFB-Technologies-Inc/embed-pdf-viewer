@@ -185,6 +185,12 @@ impl DocumentChanges {
     pub fn shown(&self) -> Vec<PendingChange> {
         self.0.entries.borrow().clone()
     }
+    /// The first change of [`shown`](Self::shown) that `pred` picks, without
+    /// copying the list. `pred` runs while the list is read, so it must not
+    /// stage or settle a change.
+    pub fn find_shown(&self, pred: impl Fn(&PendingChange) -> bool) -> Option<PendingChange> {
+        self.0.entries.borrow().iter().find(|change| pred(change)).cloned()
+    }
     pub fn find(&self, id: &str) -> Option<PendingChange> {
         self.0.entries.borrow().iter().find(|e| e.op_id() == id).cloned()
     }
@@ -478,6 +484,11 @@ impl ChangeQueue {
     }
     pub fn pending(&self) -> Vec<PendingChange> {
         self.changes.shown()
+    }
+    /// `pending().find(pred)`, without copying the list. `pred` must not
+    /// stage or settle a change.
+    pub fn pending_find(&self, pred: impl Fn(&PendingChange) -> bool) -> Option<PendingChange> {
+        self.changes.find_shown(pred)
     }
     pub fn has_pending(&self) -> bool {
         !self.pending().is_empty()

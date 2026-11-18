@@ -45,6 +45,7 @@
 //! `crates/epdf-engine/tests/search_dialect.rs` lists what it still cannot
 //! reproduce.
 
+pub mod corpus;
 pub mod cursor;
 pub mod dialect;
 pub mod fold;
@@ -61,6 +62,44 @@ use crate::features::text::TextRange;
 /// `core/src/search/regex.ts`. Measured in UTF-16 code units, because that is
 /// what `pattern.length` counts in JavaScript.
 pub const SEARCH_REGEX_MAX_LENGTH: usize = 512;
+
+/// How many times this thread has validated and compiled a search pattern,
+/// for tests that prove a query builds its regex once rather than per page.
+/// Compiled only with the `call-count` feature.
+#[cfg(feature = "call-count")]
+#[doc(hidden)]
+pub mod build_count {
+    use std::cell::Cell;
+
+    thread_local! {
+        static VALIDATED: Cell<u64> = const { Cell::new(0) };
+        static COMPILED: Cell<u64> = const { Cell::new(0) };
+    }
+
+    /// Zeroes both counters on this thread.
+    pub fn reset() {
+        VALIDATED.with(|count| count.set(0));
+        COMPILED.with(|count| count.set(0));
+    }
+
+    /// Calls to [`super::validate_search_regex`] since the last [`reset`].
+    pub fn validated() -> u64 {
+        VALIDATED.with(Cell::get)
+    }
+
+    /// Calls to [`super::compile`] since the last [`reset`].
+    pub fn compiled() -> u64 {
+        COMPILED.with(Cell::get)
+    }
+
+    pub(super) fn record_validated() {
+        VALIDATED.with(|count| count.set(count.get() + 1));
+    }
+
+    pub(super) fn record_compiled() {
+        COMPILED.with(|count| count.set(count.get() + 1));
+    }
+}
 
 /// Why a pattern is not in the dialect. Wire spellings match
 /// `SearchRegexIssue` in `regex.ts`.
@@ -95,6 +134,8 @@ impl SearchRegexIssue {
 /// state, since `\1` and `(?=` only mean backreference and lookahead outside a
 /// class.
 pub fn validate_search_regex(pattern: &str) -> Result<(), SearchRegexIssue> {
+    #[cfg(feature = "call-count")]
+    build_count::record_validated();
     if pattern.is_empty() {
         return Err(SearchRegexIssue::Empty);
     }
@@ -167,6 +208,8 @@ pub fn validate_search_regex(pattern: &str) -> Result<(), SearchRegexIssue> {
 /// is always on, because `^` and `$` meaning line boundaries is what page-text
 /// search wants and what `regex.ts` hard-codes.
 pub fn compile(pattern: &str, match_case: bool) -> Result<regex::Regex, SearchRegexIssue> {
+    #[cfg(feature = "call-count")]
+    build_count::record_compiled();
     let translated = dialect::to_regex_syntax(pattern).ok_or(SearchRegexIssue::Syntax)?;
     regex::RegexBuilder::new(&translated)
         .multi_line(true)
@@ -239,17 +282,24 @@ pub fn match_regex(
 ) -> Result<Vec<TextRange>, SearchRegexIssue> {
     validate_search_regex(pattern)?;
     let regex = compile(pattern, match_case)?;
+    Ok(match_compiled_regex(text, &regex, dialect::has_line_anchor(pattern), whole_word))
+}
 
+/// [`match_regex`] with the pattern already validated and [`compile`]d, for
+/// a query that runs one pattern over many pages. `anchored` is
+/// [`dialect::has_line_anchor`] of the pattern.
+pub fn match_compiled_regex(
+    text: &str,
+    regex: &regex::Regex,
+    anchored: bool,
+    whole_word: bool,
+) -> Vec<TextRange> {
     // The `regex` crate breaks a line on `\n` and JavaScript breaks it on
     // `\r` and the two separators as well, so an anchored pattern is run
     // against a haystack whose terminators are normalized. See
     // `normalized_haystack` for what that costs and why it is scoped to
     // patterns that actually anchor.
-    let normalized = if dialect::has_line_anchor(pattern) {
-        dialect::normalize_line_terminators(text)
-    } else {
-        None
-    };
+    let normalized = if anchored { dialect::normalize_line_terminators(text) } else { None };
     let haystack: &str = normalized.as_ref().map_or(text, |(shadow, _)| shadow.as_str());
     let to_original = |offset: usize| match &normalized {
         Some((_, back)) => back[offset],
@@ -292,7 +342,7 @@ pub fn match_regex(
             count: (utf16_at[end] - utf16_at[start]) as u32,
         });
     }
-    Ok(out)
+    out
 }
 
 #[cfg(test)]

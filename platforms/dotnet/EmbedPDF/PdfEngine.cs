@@ -164,6 +164,7 @@ public sealed class PdfEngine : IAsyncDisposable
     internal Task<WireResult> Enqueue(ulong document, uint operation, object args, IReadOnlyList<ReadOnlyMemory<byte>>? payloads, CancellationToken cancellation)
         => dispatcher.Enqueue(document, operation, args, payloads, cancellation);
     internal Task CloseDocument(ulong document) => dispatcher.CloseDocument(document);
+    internal bool IsClosing => dispatcher.IsClosing;
     public int PendingRequests => dispatcher.PendingRequests;
     public long QueuedBytes => dispatcher.QueuedBytes;
     public ValueTask DisposeAsync() { GC.SuppressFinalize(this); return dispatcher.DisposeAsync(); }

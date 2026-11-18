@@ -20,12 +20,13 @@ use epdf_engine::auth::scope::{
     CollabAction, CollabTarget, DocCapability, FieldWriteAction, IdentityClaims,
     permission_flags_of, plugin_of_permission,
 };
+use epdf_engine::cancel::CancelToken;
 use epdf_engine::error::EngineError;
 use epdf_engine::features::render::raster::{
     PageLayerRights, PagePictureRights, RenderOptions, check_render_usage_for, resolve_page_layers,
 };
 use epdf_engine::features::signature::protection::{describe_protection, protected_capabilities};
-use epdf_engine::host::HostResponse;
+use epdf_engine::host::RequestEffect;
 use epdf_engine::session::authority::SessionAuthority;
 use epdf_ffi::KernelPost;
 use epdf_kernel::engine::{
@@ -39,7 +40,7 @@ use serde_json::{Value, json};
 
 use crate::engine_worker::EngineWorker;
 use crate::host_table::HostTable;
-use crate::translate::{self, Client, Decode, WireCall};
+use crate::translate::{self, Client, Decode, Reply, WireCall};
 
 type Pending = (u64, HashMap<u64, (String, Decode, Resolver<Value>)>);
 type Listener = Rc<dyn Fn(&Value)>;
@@ -128,7 +129,11 @@ fn next_job() -> u64 {
 
 impl Inner {
     /// Reserve a job id, build the call for document `doc` with it, and send
-    /// it. Aborting drops the reply and rejects with an `AbortError`.
+    /// it. Aborting rejects with an `AbortError` and cancels the call: one
+    /// still in line never runs, a running read stops at the host's next
+    /// check or completes, a running write completes, and either way its
+    /// reply is dropped. The reply is
+    /// read on the engine's client thread; the kernel thread only decodes it.
     fn send(
         &self,
         doc: &str,
@@ -142,15 +147,32 @@ impl Inner {
         };
         PENDING.with(|p| p.borrow_mut().1.insert(id, (doc.to_owned(), call.decode, resolver)));
         let post = self.post.clone();
+        let cancel = CancelToken::default();
+        let aborted = cancel.clone();
+        // `WorkerHost` runs a write in one go: an abort after it is sent
+        // discards the answer, never half the write.
+        let stops_mid_call = !matches!(
+            call.request.get("kind").and_then(Value::as_str).and_then(RequestEffect::of),
+            Some(RequestEffect::Write | RequestEffect::ContentWrite | RequestEffect::RuntimeWrite)
+        );
         self.worker.submit(
             call.request.to_string(),
             call.payloads,
+            cancel.clone(),
+            stops_mid_call,
             Box::new(move |response| {
-                post(Box::new(move || settle(id, response)));
+                // The abort that cancelled it settled it, so nothing reads
+                // the reply.
+                if aborted.is_cancelled() {
+                    return;
+                }
+                let reply = Reply::parse(response);
+                post(Box::new(move || settle(id, reply)));
             }),
         );
         promise.with_abort(move |reason| {
             if let Some((_, _, resolver)) = PENDING.with(|p| p.borrow_mut().1.remove(&id)) {
+                cancel.cancel();
                 resolver.reject(Error::abort(reason));
             }
         })
@@ -163,11 +185,11 @@ impl Inner {
     }
 }
 
-fn settle(id: u64, response: HostResponse) {
+fn settle(id: u64, reply: Reply) {
     let Some((doc, decode, resolver)) = PENDING.with(|p| p.borrow_mut().1.remove(&id)) else {
         return; // aborted; the late reply is dropped
     };
-    match translate::decode(&decode, response) {
+    match translate::decode(&decode, reply) {
         Ok(decoded) => {
             for event in &decoded.events {
                 publish(&doc, event);
@@ -992,7 +1014,13 @@ impl DocumentHandle for NativeDocument {
             return; // closed
         }
         let request = translate::working_set_request(&self.id, next_job(), view, pages);
-        self.inner.worker.submit(request.to_string(), Vec::new(), Box::new(|_| {}));
+        self.inner.worker.submit(
+            request.to_string(),
+            Vec::new(),
+            CancelToken::never(),
+            true,
+            Box::new(|_| {}),
+        );
     }
 }
 
@@ -1168,6 +1196,7 @@ mod tests {
     use std::rc::Rc;
     use std::sync::{Arc, Mutex};
 
+    use epdf_engine::cancel::CancelToken;
     use epdf_ffi::KernelThread;
     use epdf_kernel::engine::{DocumentHandle, Engine, ObjectNumbersLost, ObjectNumbersLostReason};
     use futures::channel::oneshot;
@@ -1361,6 +1390,8 @@ mod tests {
             worker.submit(
                 request.to_string(),
                 Vec::new(),
+                CancelToken::never(),
+                true,
                 Box::new(move |_| {
                     order.lock().unwrap().push(name);
                     let _ = tx.send(());
@@ -1371,5 +1402,169 @@ mod tests {
             rx.recv().unwrap();
         }
         assert_eq!(*order.lock().unwrap(), vec!["before", "working set", "after"]);
+    }
+
+    fn open_request(doc: &str, job: u64) -> Value {
+        json!({ "kind": "open.fatMem", "effect": "open", "jobId": job, "docId": doc,
+                "password": null, "scope": ["*"] })
+    }
+
+    fn list_request(doc: &str, job: u64) -> Value {
+        json!({ "kind": "pages.list", "effect": "read", "jobId": job, "docId": doc })
+    }
+
+    /// `WorkerQueue`'s abort of a job not yet sent: it never reaches the
+    /// host, and the calls around it are answered in submission order.
+    #[test]
+    fn pre_cancelled_call_never_runs() {
+        let worker = EngineWorker::spawn();
+        let (release, gate) = std::sync::mpsc::channel();
+        worker.hold(gate);
+        let answers = Arc::new(Mutex::new(Vec::new()));
+        let (tx, rx) = std::sync::mpsc::channel();
+        let bytes = test_support::fixture(test_support::REPORT);
+        let skipped = CancelToken::default();
+        let requests = [
+            ("open kept", open_request("kept", 1), vec![bytes.clone()], CancelToken::never()),
+            ("open skipped", open_request("skipped", 2), vec![bytes], skipped.clone()),
+            ("list skipped", list_request("skipped", 3), Vec::new(), CancelToken::never()),
+            ("list kept", list_request("kept", 4), Vec::new(), CancelToken::never()),
+        ];
+        for (name, request, payloads, cancel) in requests {
+            let answers = answers.clone();
+            let tx = tx.clone();
+            worker.submit(
+                request.to_string(),
+                payloads,
+                cancel,
+                true,
+                Box::new(move |response| {
+                    let answer: Value = serde_json::from_str(&response.json).unwrap();
+                    answers.lock().unwrap().push((name, answer));
+                    let _ = tx.send(());
+                }),
+            );
+        }
+        skipped.cancel();
+        release.send(()).unwrap();
+        for _ in 0..3 {
+            rx.recv().unwrap();
+        }
+        // Once the thread exits, every reply it gives has been given.
+        worker.join();
+        let answers = answers.lock().unwrap();
+        let names: Vec<_> = answers.iter().map(|(name, _)| *name).collect();
+        assert_eq!(names, vec!["open kept", "list skipped", "list kept"]);
+        assert!(answers[0].1.get("error").is_none(), "{}", answers[0].1);
+        // The host never opened it.
+        assert_eq!(answers[1].1["error"]["code"], "DocNotOpen", "{}", answers[1].1);
+        assert!(answers[2].1.get("error").is_none(), "{}", answers[2].1);
+    }
+
+    struct Aborted {
+        aborted: Result<Value, epdf_kernel::Error>,
+        after: Result<Value, epdf_kernel::Error>,
+        aborted_later: Option<Result<Value, epdf_kernel::Error>>,
+    }
+
+    /// An aborted call settles with the `AbortError` at once, and stays
+    /// so: whether or not the worker reaches it, its reply never settles
+    /// it again. A call made after it is still answered.
+    #[test]
+    fn cancelled_call_settles_with_abort() {
+        let worker = EngineWorker::spawn();
+        let thread = KernelThread::spawn(|post| Ok(NativeEngine::new(worker, post, None))).unwrap();
+        let answer = futures::executor::block_on(thread.call(|engine: &mut NativeEngine| {
+            let (tx, rx) = oneshot::channel::<Aborted>();
+            let input =
+                json!({ "$host": HostTable::put(test_support::fixture(test_support::REPORT)) });
+            let worker = engine.inner.worker.clone();
+            engine.open(input, None).on_settle(move |doc| {
+                let doc: Rc<dyn DocumentHandle> = doc.as_ref().ok().cloned().expect("opened");
+                let (release, gate) = std::sync::mpsc::channel();
+                worker.hold(gate);
+                let call = doc.call("pages.list", None, vec![]);
+                call.abort(Some(json!("gone")));
+                let aborted = call.peek().expect("settled by the abort");
+                let after = doc.call("pages.list", None, vec![]);
+                release.send(()).unwrap();
+                after.clone().on_settle(move |after| {
+                    let _ = tx.send(Aborted {
+                        aborted,
+                        after: after.clone(),
+                        aborted_later: call.peek(),
+                    });
+                });
+            });
+            rx
+        }))
+        .unwrap();
+        let a = futures::executor::block_on(answer).unwrap();
+        let error = a.aborted.expect_err("rejected");
+        assert!(error.is_abort(), "{error:?}");
+        assert_eq!(error, epdf_kernel::Error::abort(Some(json!("gone"))));
+        assert!(a.after.is_ok(), "{:?}", a.after);
+        assert_eq!(a.aborted_later.map(|r| r.map_err(|e| e.is_abort())), Some(Err(true)));
+    }
+
+    struct Committed {
+        aborted: Result<Value, epdf_kernel::Error>,
+        metadata: Result<Value, epdf_kernel::Error>,
+    }
+
+    /// `WorkerQueue`'s abort of a write already sent: its caller sees the
+    /// `AbortError` at once, and the write runs to its end, as `WorkerHost`
+    /// runs a write in one go. The document holds the whole change, never
+    /// part of it.
+    #[test]
+    fn a_write_cancelled_while_it_runs_completes_whole() {
+        let worker = EngineWorker::spawn();
+        let thread = KernelThread::spawn(|post| Ok(NativeEngine::new(worker, post, None))).unwrap();
+        let answer = futures::executor::block_on(thread.call(|engine: &mut NativeEngine| {
+            let (tx, rx) = oneshot::channel::<Committed>();
+            let input =
+                json!({ "$host": HostTable::put(test_support::fixture(test_support::REPORT)) });
+            let worker = engine.inner.worker.clone();
+            engine.open(input, None).on_settle(move |doc| {
+                let doc: Rc<dyn DocumentHandle> = doc.as_ref().ok().cloned().expect("opened");
+                let (started_tx, started) = std::sync::mpsc::channel();
+                let (go, go_rx) = std::sync::mpsc::channel::<()>();
+                worker.on_next_start(
+                    "document.apply",
+                    Box::new(move || {
+                        let _ = started_tx.send(());
+                        let _ = go_rx.recv();
+                    }),
+                );
+                // Each op is a unit of work the host checks the token
+                // between.
+                let change = json!({ "ops": [
+                    { "type": "metadata.update", "patch": { "title": "First" } },
+                    { "type": "metadata.update", "patch": { "subject": "Second" } },
+                    { "type": "metadata.update", "patch": { "keywords": "Third" } },
+                ] });
+                let call = doc.call("apply", None, vec![change, json!({})]);
+                // The worker has taken the write: abort it before the host
+                // runs it.
+                started.recv().unwrap();
+                call.abort(Some(json!("gone")));
+                go.send(()).unwrap();
+                let aborted = call.peek().expect("settled by the abort");
+                doc.call("metadata.get", None, vec![]).on_settle(move |metadata| {
+                    let _ = tx.send(Committed { aborted, metadata: metadata.clone() });
+                });
+            });
+            rx
+        }))
+        .unwrap();
+        let a = futures::executor::block_on(answer).unwrap();
+        let error = a.aborted.expect_err("rejected");
+        assert!(error.is_abort(), "{error:?}");
+        let metadata = a.metadata.expect("read");
+        assert_eq!(
+            (&metadata["title"], &metadata["subject"], &metadata["keywords"]),
+            (&json!("First"), &json!("Second"), &json!("Third")),
+            "{metadata}"
+        );
     }
 }

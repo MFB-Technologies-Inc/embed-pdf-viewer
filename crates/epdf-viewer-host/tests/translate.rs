@@ -14,7 +14,7 @@ use epdf_viewer_host::engine_worker::EngineWorker;
 use epdf_viewer_host::host_table::HostTable;
 use epdf_viewer_host::native_engine::NativeEngine;
 use epdf_viewer_host::translate::{
-    Client, Decode, Decoded, LOCAL_PATHS, PATHS, decode, maps, translate,
+    Client, Decode, Decoded, LOCAL_PATHS, PATHS, Reply, decode, maps, translate,
 };
 use futures::channel::oneshot;
 use serde_json::{Value, json};
@@ -37,8 +37,8 @@ fn client_allowing(allowed: &'static [&'static str]) -> Client {
     Client { authority: client().authority, allows: Box::new(|c| allowed.contains(&c)) }
 }
 
-fn answer(json: &str) -> HostResponse {
-    HostResponse { json: json.into(), payloads: Vec::new() }
+fn answer(json: &str) -> Reply {
+    Reply::parse(HostResponse { json: json.into(), payloads: Vec::new() })
 }
 
 /// A host with `fixture` open as `d`.
@@ -59,7 +59,7 @@ fn run(
     args: &[Value],
 ) -> Result<Decoded, epdf_kernel::Error> {
     let call = translate("d", path, pon, args, 7, &client())?;
-    decode(&call.decode, host.call(&call.request.to_string(), call.payloads))
+    decode(&call.decode, Reply::parse(host.call(&call.request.to_string(), call.payloads)))
 }
 
 fn first_page(host: &mut Host) -> u32 {
@@ -350,7 +350,7 @@ fn prepare_answers_its_digest_from_its_payload_beside_the_notice() {
         json: r#"{"result":{"result":{"signingId":"s","digest":{"payload":0},"digestAlgorithm":"sha256"}},"event":{"type":"signatures.prepared","signingId":"s"}}"#.into(),
         payloads: vec![vec![1, 2, 3]],
     };
-    let decoded = decode(&Decode::Inner, response).unwrap();
+    let decoded = decode(&Decode::Inner, Reply::parse(response)).unwrap();
     assert_eq!(decoded.value["signingId"], "s");
     assert_eq!(decoded.value["digestAlgorithm"], "sha256");
     assert_eq!(decoded.value["digest"], epdf_kernel::bytes::Bytes(vec![1, 2, 3]).to_json());
@@ -379,13 +379,43 @@ fn a_host_error_is_an_engine_error_with_its_details() {
     assert_eq!(error.member("details"), Some(&json!({ "field": "count" })));
 }
 
+/// The engine's client thread reads the reply; the kernel thread only
+/// decodes what it read. A reply that is not JSON is refused there, in the
+/// parser's own words.
+#[test]
+fn malformed_reply_is_rejected_off_kernel_thread() {
+    let reply = std::thread::spawn(|| answer(r#"{"result":"#)).join().unwrap();
+    let error = decode(&Decode::Result, reply).err().unwrap();
+    assert_eq!(
+        error.message,
+        "[epdf-viewer-host] the host answered unreadable JSON: \
+         EOF while parsing a value at line 1 column 10"
+    );
+}
+
+/// `serde_json`'s default depth limit: a reply nested 128 levels deep
+/// (two objects and 126 arrays) is unreadable; one level less reads.
+#[test]
+fn a_reply_nested_past_the_depth_limit_is_unreadable() {
+    let nested = |depth: usize| {
+        format!(r#"{{"result":{{"x":{}0{}}}}}"#, "[".repeat(depth), "]".repeat(depth))
+    };
+    assert!(decode(&Decode::Result, answer(&nested(125))).is_ok());
+    let error = decode(&Decode::Result, answer(&nested(126))).err().unwrap();
+    assert_eq!(
+        error.message,
+        "[epdf-viewer-host] the host answered unreadable JSON: \
+         recursion limit exceeded at line 1 column 141"
+    );
+}
+
 #[test]
 fn payloads_in_an_answer_come_back_as_bytes() {
     let response = HostResponse {
         json: r#"{"result":{"bundle":{"format":"x","resources":{"r0":{"payload":0}}}}}"#.into(),
         payloads: vec![vec![7, 8]],
     };
-    let bundle = decode(&Decode::Field("bundle"), response).unwrap().value;
+    let bundle = decode(&Decode::Field("bundle"), Reply::parse(response)).unwrap().value;
     assert_eq!(bundle["resources"]["r0"], epdf_kernel::bytes::Bytes(vec![7, 8]).to_json());
 }
 
@@ -395,7 +425,7 @@ fn a_raster_decodes_to_the_raw_pixels_the_render_plugin_reads() {
         json: r#"{"result":{"page":{"kind":"objectNumber","objectNumber":12},"area":{"x":0,"y":0,"width":2,"height":1},"raster":{"width":2,"height":1,"stride":8,"color":"rgba8","premultipliedAlpha":false,"data":{"payload":0}}}}"#.into(),
         payloads: vec![vec![9; 8]],
     };
-    let image = decode(&Decode::Raster, response).unwrap().value;
+    let image = decode(&Decode::Raster, Reply::parse(response)).unwrap().value;
     assert_eq!(image["width"], 2);
     assert_eq!(image["source"], json!({ "kind": "pixels", "$byteLength": 8 }));
     let id = image["$host"].as_u64().unwrap();
@@ -405,7 +435,7 @@ fn a_raster_decodes_to_the_raw_pixels_the_render_plugin_reads() {
         json: r#"{"result":{"page":{},"area":{},"raster":{"width":2,"height":1,"stride":8,"data":{"payload":0}}}}"#.into(),
         payloads: vec![vec![0; 4]],
     };
-    assert!(decode(&Decode::Raster, short).is_err());
+    assert!(decode(&Decode::Raster, Reply::parse(short)).is_err());
 }
 
 // ── against the host ──────────────────────────────────────────────────────

@@ -155,7 +155,7 @@ impl StampCapability {
             // What the scripts read of the document they stamp: its name,
             // page count and pages, as they were when the arm began.
             let target_document = Rc::new(DocumentMeta {
-                pages: Rc::new(Value::Array(documents.list_pages(Some(&document_id)))),
+                pages: documents.list_pages(Some(&document_id)),
                 ..(*meta).clone()
             });
 
@@ -512,7 +512,9 @@ impl StampCapability {
                 PageSelection::All => this
                     .documents()?
                     .list_pages(Some(&document_id))
-                    .iter()
+                    .as_array()
+                    .into_iter()
+                    .flatten()
                     .map(|page| page.get("ref").cloned().unwrap_or_else(undefined))
                     .collect(),
                 PageSelection::Pages(pages) => pages

@@ -115,7 +115,13 @@ fn refused(error: Error) -> Error {
 }
 
 fn args_json(args: &[Value]) -> String {
-    Value::Array(args.to_vec()).to_string()
+    serde_json::to_string(args).expect("a JSON value prints")
+}
+
+/// `doc.with(facts)`'s facts as the bridge takes them.
+fn facts_json(facts: &CallFacts) -> Result<String, Error> {
+    serde_json::to_string(facts)
+        .map_err(|error| Error::new(format!("[engine-bridge] call facts do not encode: {error}")))
 }
 
 /// Hand every `$host` in `value` back through `release_host`, nested ones
@@ -319,13 +325,9 @@ impl DocumentHandle for JsDocumentHandle {
         pon: Option<u32>,
         args: Vec<Value>,
     ) -> EngineCall<Value> {
-        let facts = match serde_json::to_string(facts) {
+        let facts = match facts_json(facts) {
             Ok(facts) => facts,
-            Err(error) => {
-                return Promise::rejected(Error::new(format!(
-                    "[engine-bridge] call facts do not encode: {error}"
-                )));
-            }
+            Err(error) => return Promise::rejected(error),
         };
         engine_call(self.bridge.call_with(&self.id, &facts, path, pon, &args_json(&args)))
     }
@@ -334,6 +336,23 @@ impl DocumentHandle for JsDocumentHandle {
         engine_call_with(self.bridge.call(&self.id, path, pon, &args_json(&args)), |text| {
             Ok(Answer::Text(text.into()))
         })
+    }
+
+    fn call_answer_with(
+        &self,
+        facts: &CallFacts,
+        path: &str,
+        pon: Option<u32>,
+        args: Vec<Value>,
+    ) -> EngineCall<Answer> {
+        let facts = match facts_json(facts) {
+            Ok(facts) => facts,
+            Err(error) => return Promise::rejected(error),
+        };
+        engine_call_with(
+            self.bridge.call_with(&self.id, &facts, path, pon, &args_json(&args)),
+            |text| Ok(Answer::Text(text.into())),
+        )
     }
 
     fn is_local(&self) -> bool {
@@ -452,8 +471,14 @@ impl JsSecurity {
         serde_json::from_str(&text).ok()
     }
 
+    /// A boolean read, or `None` when the bridge threw or answered
+    /// something else.
+    fn try_check(&self, member: &str, args: &[Value]) -> Option<bool> {
+        self.read(member, args).and_then(|v| v.as_bool())
+    }
+
     fn check(&self, member: &str, args: &[Value]) -> bool {
-        self.read(member, args).and_then(|v| v.as_bool()).unwrap_or(false)
+        self.try_check(member, args).unwrap_or(false)
     }
 }
 
@@ -462,8 +487,24 @@ impl DocumentSecurity for JsSecurity {
         self.check("allows", &[json!(capability)])
     }
 
+    fn allows_field(&self, action: &str, target: &Value) -> bool {
+        self.check("allowsField", &[json!(action), target.clone()])
+    }
+
     fn allows_annotation_create(&self) -> bool {
         self.check("allowsAnnotationCreate", &[])
+    }
+
+    fn try_allows(&self, capability: &str) -> Option<bool> {
+        self.try_check("allows", &[json!(capability)])
+    }
+
+    fn try_allows_field(&self, action: &str, target: &Value) -> Option<bool> {
+        self.try_check("allowsField", &[json!(action), target.clone()])
+    }
+
+    fn try_allows_annotation_create(&self) -> Option<bool> {
+        self.try_check("allowsAnnotationCreate", &[])
     }
 
     fn allows_annotation_mutation(&self, action: &str, target: &Value) -> bool {

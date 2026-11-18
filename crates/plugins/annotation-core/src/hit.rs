@@ -1,14 +1,19 @@
 //! `hit.ts`: paint order, what is under a point, and the hover cursor.
 
-use crate::anchor::{anchor_mode_of, anchored_geom, anchored_stroke_width};
+use std::borrow::Cow;
+
+use crate::anchor::{
+    AnchorMode, anchor_mode_as, anchor_mode_of, anchored_geom, anchored_stroke_width,
+};
 use crate::editable::is_transformable_by_hand;
-use crate::flags::{annot_interactive, viewable};
+use crate::flags::{annot_interactive_as, viewable};
 use crate::geometry::{
     geom_handles, geom_painted, place_rotate_knob, point_in_quad, rect_handles_for,
 };
 use crate::group::group_caps;
 use crate::js;
 use crate::js::IdSet;
+use crate::kinds::AnnotationKind;
 use crate::measurement::{
     caption_painted, distance_caption_hit, distance_handles, distance_layout, distance_painted,
     measurement_of,
@@ -22,11 +27,14 @@ use crate::selection::{Live, annotation_selection_frame, annotation_turn_pivot};
 use crate::shapes::boxes::is_in_turned_box;
 use crate::types::{
     ChromeGeometry, Cursor, GroupHandleTarget, HandleTarget, Id, Model, ModelAnnotation, PageRef,
-    Point, Rect, RotateTarget, Shape, Stroke, Target, ViewEnv,
+    Point, Rect, RotateTarget, Shape, Stroke, Style, Target, ViewEnv,
 };
 
-/// `paintOrder(model, page)`: page ids back to front, markup first, culled by `/F` and plane.
-pub fn paint_order(model: &Model, page: &PageRef) -> Vec<Id> {
+/// A record in paint order, with its kind.
+pub(crate) type PaintedRecord<'a> = (&'a Id, &'a ModelAnnotation, Cow<'static, AnnotationKind>);
+
+/// [`paint_order`]'s records, each with the kind it was ordered by.
+pub(crate) fn painted_records<'a>(model: &'a Model, page: &PageRef) -> Vec<PaintedRecord<'a>> {
     let mut markup = Vec::new();
     let mut other = Vec::new();
     for id in model.order.iter() {
@@ -40,19 +48,30 @@ pub fn paint_order(model: &Model, page: &PageRef) -> Vec<Id> {
         if is_substrate_only(&record.annotation) {
             continue;
         }
-        if kind_of(&record.annotation).caps.paints_beneath {
-            markup.push(id.clone())
+        let kind = kind_of(&record.annotation);
+        if kind.caps.paints_beneath {
+            markup.push((id, record, kind))
         } else {
-            other.push(id.clone())
+            other.push((id, record, kind))
         }
     }
     markup.extend(other);
     markup
 }
 
+/// `paintOrder(model, page)`: page ids back to front, markup first, culled by `/F` and plane.
+pub fn paint_order(model: &Model, page: &PageRef) -> Vec<Id> {
+    painted_records(model, page).into_iter().map(|(id, _, _)| id.clone()).collect()
+}
+
 /// `isSelectable(model, id)`.
 pub fn is_selectable(model: &Model, id: &str) -> bool {
-    model.record(id).is_some_and(|r| annot_interactive(r) && kind_of(&r.annotation).caps.selectable)
+    model.record(id).is_some_and(|r| is_selectable_as(r, &kind_of(&r.annotation)))
+}
+
+/// [`is_selectable`] for a record whose kind is `kind`.
+fn is_selectable_as(record: &ModelAnnotation, kind: &AnnotationKind) -> bool {
+    annot_interactive_as(record, kind) && kind.caps.selectable
 }
 
 fn text_bound(record: &ModelAnnotation) -> bool {
@@ -75,37 +94,43 @@ fn has_handles(model: &Model, record: &ModelAnnotation) -> bool {
     if !is_transformable_by_hand(&model.editable, record) || text_bound(record) {
         return false;
     }
-    let caps = kind_of(&record.annotation).caps;
-    caps.resizable || caps.vertex_editable
+    let kind = kind_of(&record.annotation);
+    kind.caps.resizable || kind.caps.vertex_editable
 }
 
 fn hit_geom_of(record: &ModelAnnotation, view: Option<&ViewEnv>) -> Shape {
     anchored_geom(&shape_of(&record.annotation), anchor_mode_of(record).as_ref(), view)
 }
 
-fn hit_stroke_of(record: &ModelAnnotation, view: Option<&ViewEnv>) -> f64 {
-    anchored_stroke_width(
-        style_of(&record.annotation).stroke_width,
-        anchor_mode_of(record).as_ref(),
-        view,
-    )
+fn hit_stroke_of(style: &Style, mode: Option<&AnchorMode>, view: Option<&ViewEnv>) -> f64 {
+    anchored_stroke_width(style.stroke_width, mode, view)
 }
 
-fn is_filled(record: &ModelAnnotation) -> bool {
-    let geometry = shape_of(&record.annotation);
-    let style = style_of(&record.annotation);
-    !style.interior_color.is_null()
-        || matches!(geometry, Shape::Quads(_))
-        || kind_of(&record.annotation).caps.opaque_body
+fn is_filled(kind: &AnnotationKind, shape: &Shape, style: &Style) -> bool {
+    !style.interior_color.is_null() || matches!(shape, Shape::Quads(_)) || kind.caps.opaque_body
 }
 
 /// `paintedOf(record, view)`: what the record paints where the pointer meets it.
 pub fn painted_of(record: &ModelAnnotation, view: Option<&ViewEnv>) -> Vec<PaintedPiece> {
-    let style = style_of(&record.annotation);
-    let measure = measurement_of(&record.annotation);
-    let geometry = hit_geom_of(record, view);
-    let mut stroked = style.clone();
-    stroked.stroke_width = hit_stroke_of(record, view);
+    painted_as(record, &kind_of(&record.annotation), view)
+}
+
+/// [`painted_of`] for a record whose kind is `kind`: its style, shape and
+/// anchor mode are read once.
+fn painted_as(
+    record: &ModelAnnotation,
+    kind: &AnnotationKind,
+    view: Option<&ViewEnv>,
+) -> Vec<PaintedPiece> {
+    let annotation = &record.annotation;
+    let style = kind.style_of(annotation);
+    let shape = kind.family.read(annotation);
+    let mode = anchor_mode_as(annotation, kind);
+    let measure = measurement_of(annotation);
+    let geometry = anchored_geom(&shape, mode.as_ref(), view);
+    let filled = is_filled(kind, &shape, &style);
+    let mut stroked = style;
+    stroked.stroke_width = hit_stroke_of(&stroked, mode.as_ref(), view);
     if let Some(m) = measure.as_ref().filter(|m| m.is_distance())
         && let Some(distance) = distance_layout(&geometry, m, stroked.stroke_width)
     {
@@ -115,7 +140,7 @@ pub fn painted_of(record: &ModelAnnotation, view: Option<&ViewEnv>) -> Vec<Paint
         .as_ref()
         .and_then(|m| measurement_layout(&geometry, m, &stroked))
         .and_then(|l| l.caption().cloned());
-    let shape = geom_painted(&geometry, stroked.stroke(), is_filled(record));
+    let shape = geom_painted(&geometry, stroked.stroke(), filled);
     match caption {
         Some(c) => {
             let mut out = caption_painted(Some(&c));
@@ -230,7 +255,7 @@ pub fn hit_test(
                 let style = style_of(&record.annotation);
                 let measure = measurement_of(&record.annotation);
                 let geometry = hit_geom_of(record, view);
-                let stroke = hit_stroke_of(record, view);
+                let stroke = hit_stroke_of(&style, anchor_mode_of(record).as_ref(), view);
                 let distance = measure
                     .as_ref()
                     .filter(|m| m.is_distance())
@@ -319,23 +344,22 @@ pub fn hit_test(
             }
         }
     }
-    let order = paint_order(model, page);
-    for id in order.iter().rev() {
-        let Some(record) = model.record(id) else { continue };
-        if inert.is_some_and(|set| set.has(id)) || !is_selectable(model, id) {
+    let order = painted_records(model, page);
+    for (id, record, kind) in order.iter().rev() {
+        if inert.is_some_and(|set| set.has(id)) || !is_selectable_as(record, kind) {
             continue;
         }
         if model.is_selected(id) && can_move(model, id) && in_frame(record, point, view) {
             return Target::annot(id);
         }
-        if painted_near(&painted_of(record, view), point, stroke_margin) {
+        if painted_near(&painted_as(record, kind, view), point, stroke_margin) {
             return Target::annot(id);
         }
     }
     if let Some(union) = selection_union_bounds(model, page, view)
         && in_rect(union, point)
     {
-        for id in order.iter().rev() {
+        for (id, _, _) in order.iter().rev() {
             if model.is_selected(id) && can_move(model, id) {
                 return Target::annot(id);
             }
