@@ -284,7 +284,12 @@ registerPlugin('signature-annotation', {
 type Dto = Record<string, unknown>;
 
 /** A signature DTO: field `n`, widget `100 + n` on page 1. */
-const dto = (index: number, n: number, name: string, over: Partial<Signature> = {}): Signature => ({
+const dto = (
+  index: number,
+  n: number,
+  name: string,
+  over: Partial<Signature> = {},
+): Signature => ({
   index,
   field: ref(n),
   fieldName: name,
@@ -411,10 +416,7 @@ const docOf = (o: DocOptions = {}): FakeDocumentSpec => ({
     { path: 'forms.setSignatureAppearance' },
     { path: 'signatures.cancel' },
     // No validation data: validation reads the security store first (67ed292a6).
-    {
-      path: 'signatures.getValidationInfo',
-      value: { certificates: [], ocspResponses: [], crls: [] },
-    },
+    { path: 'signatures.getValidationInfo', value: { certificates: [], ocspResponses: [], crls: [] } },
   ],
 });
 
@@ -458,13 +460,7 @@ const LONG_TERM_DOC = (signature: unknown, more: ResponseSpec[] = []): FakeDocum
 
 // ── steps ─────────────────────────────────────────────────────────────────────
 
-const ORIGIN = {
-  kind: 'local',
-  sessionId: 's1',
-  subject: null,
-  at: '1970-01-01T00:00:00.000Z',
-  serverSequence: null,
-} as const;
+const ORIGIN = { kind: 'local', sessionId: 's1', subject: null, at: '1970-01-01T00:00:00.000Z', serverSequence: null } as const;
 const start: Step = { op: 'call', target: 'kernel', method: 'start' };
 const open = (id = 'a'): Step => ({
   op: 'call',

@@ -1299,12 +1299,8 @@ const cases: ScenarioCase[] = [
       call('tools.getDefaults', ['ink']),
       call('tools.get', ['fine-pen']),
       call('tools.getDefaults', ['fine-pen']),
-      call('tools.register', [
-        { id: 'quick-note', extends: 'note', afterCreate: { select: false } },
-      ]),
-      call('tools.register', [
-        { id: 'quick-note-2', extends: 'quick-note', afterCreate: { tool: 'pointer' } },
-      ]),
+      call('tools.register', [{ id: 'quick-note', extends: 'note', afterCreate: { select: false } }]),
+      call('tools.register', [{ id: 'quick-note-2', extends: 'quick-note', afterCreate: { tool: 'pointer' } }]),
       call('tools.get', ['quick-note-2']),
     ],
   },
