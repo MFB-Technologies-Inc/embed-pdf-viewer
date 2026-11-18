@@ -49,6 +49,8 @@ export function connectAnnotation(
         enables: tool.enables,
         // Drag-create tools own single-finger touch; click-place tools do not.
         touch: toolTouchOf(tool.enables),
+        // Every tool here makes an annotation, so it needs that permission.
+        canUse: () => annotation.canCreate(),
       }),
     );
   }
@@ -57,12 +59,15 @@ export function connectAnnotation(
     createPlaceHandler(annotation, interaction),
     createEditHandler(annotation, interaction),
     createMarqueeHandler(annotation),
-    createDrawHandler(annotation, interaction, ctx.clock, (flush) => ctx.onSettle(flush)),
+    createDrawHandler(annotation, interaction),
   ]) {
     ctx.cleanup(interaction.registerHandler(handler));
   }
 
   ctx.listen(interaction.onToolChanged, () => {
+    // A pen drawing that waits for its next stroke is finished. A gesture, or
+    // a shape that needs more clicks, goes with the tool it was made with.
+    annotation.finishInkDraft();
     annotation.cancel();
     // A ghost belongs to the tool that showed it.
     annotation.clearGhost();

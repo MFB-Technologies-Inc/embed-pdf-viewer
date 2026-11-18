@@ -1,7 +1,11 @@
 /**
  * The validation popover (`signature-inspector` surface): what a signed
  * field's signature says and whether it holds — the four independent facts
- * (integrity, cryptography, trust, changes since) and the signer's claims,
+ * (integrity, cryptography, trust, changes since), the signer's claims and
+ * the timestamp an authority vouches for, whether the signer's certificate
+ * was withdrawn, and whether the file holds everything a reader needs to
+ * check the signature with no network, with a button that adds what is
+ * missing,
  * anchored at the widget when its box is known, plus the signed revision as
  * a download (the exact bytes the signature covers). Mounted in the Stage
  * overlay so `<Anchored>` can project onto the page.
@@ -9,7 +13,7 @@
 import { useEffect, useState } from 'react';
 import { Anchored } from '@embedpdf/react/anchored';
 import { FormToken } from '@embedpdf/react/form';
-import { useOptionalCapability } from '@embedpdf/react/runtime';
+import { isPluginError, useOptionalCapability } from '@embedpdf/react/runtime';
 import { useSurface } from '@embedpdf/react/shell';
 import { useT } from '@embedpdf/react/i18n';
 import { saveFile } from '@embedpdf/web';
@@ -35,6 +39,31 @@ const verdictKey = (verdict: SignatureVerdict | null): string =>
             : 'demo.verdictInvalid'
           : 'demo.verdictIndeterminate';
 
+/** A day as the viewer's format language writes it; the text itself if it isn't one. */
+const day = (iso: string, locale: string | undefined): string => {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime())
+    ? iso
+    : date.toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' });
+};
+
+/** The words for what keeps a signature from being checkable with no network. */
+const GAP_KEYS = {
+  'no-timestamp': 'demo.longTermNoTimestamp',
+  untrusted: 'demo.longTermUntrusted',
+  'no-answer': 'demo.longTermNoAnswer',
+  revoked: 'demo.longTermRevoked',
+} as const;
+
+/**
+ * The words for validation data that could not be added: an address that did not answer
+ * (the engine's `Network` code underneath), or anything else.
+ */
+const addFailureKey = (error: unknown): string =>
+  isPluginError(error) && (error as { cause?: { code?: unknown } }).cause?.code === 'Network'
+    ? 'demo.longTermAddUnreachable'
+    : 'demo.longTermAddFailed';
+
 /** A moment as the viewer's format language writes it; the text itself if it isn't one. */
 const dateTime = (iso: string, locale: string | undefined): string => {
   const date = new Date(iso);
@@ -59,13 +88,17 @@ export function SignatureInspector() {
   const status = useSignatureState((state) => state.status);
   useSignatureState((state) => state.signatures);
   const [validating, setValidating] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
   const field = surface.props?.field as FormFieldRef | undefined;
   const dto = field ? signature.getSignature(field) : null;
   const verdict = field ? signature.getVerdict(field) : null;
   const widget = dto?.widget ?? null;
-  // Where the signature shows is its widget's row in the form.
+  // Where the signature shows is its widget's row in the form. A box of no size shows nowhere
+  // (a document timestamp's, an invisible signature's), so there is nothing to anchor at.
   const form = useOptionalCapability(FormToken);
-  const box = (widget && form?.getWidget(widget)?.rect) ?? null;
+  const rect = (widget && form?.getWidget(widget)?.rect) ?? null;
+  const box = rect && rect.width > 0 && rect.height > 0 ? rect : null;
 
   // Open on a field never validated: judge it now.
   useEffect(() => {
@@ -81,8 +114,35 @@ export function SignatureInspector() {
     setValidating(true);
     void signature.validate().finally(() => setValidating(false));
   };
+  const longTerm = verdict?.longTerm ?? null;
+  const gap = longTerm?.missing[0] ?? null;
+  const longTermDetail = !longTerm
+    ? null
+    : longTerm.enabled
+      ? longTerm.expiresAt
+        ? t('demo.longTermUntil', { params: { date: day(longTerm.expiresAt, locale) } })
+        : null
+      : gap
+        ? t(GAP_KEYS[gap.reason], {
+            params: { name: gap.certificate ?? t('demo.longTermUnnamed') },
+          })
+        : null;
+  const addValidationInfo = () => {
+    setAdding(true);
+    setAddError(null);
+    signature
+      .addValidationInfo(field)
+      .catch((error: unknown) => {
+        console.error('[embedpdf] adding verification information failed:', error);
+        setAddError(t(addFailureKey(error)));
+      })
+      .finally(() => setAdding(false));
+  };
   const summary = verdict?.summary ?? null;
   const modifications = verdict?.modifications.verdict ?? null;
+  // The time an authority vouches for, beside the one the signer claims: toned by whether the
+  // token holds and its authority is trusted.
+  const timestamp = verdict?.timestamp ?? null;
   const row = (label: string, value: string, className = 'text-fg') => (
     <div className="flex items-baseline justify-between gap-3 text-xs">
       <span className="text-fg-muted">{label}</span>
@@ -113,6 +173,19 @@ export function SignatureInspector() {
         {dto.signer.signedAt
           ? row(t('demo.inspectTime'), dateTime(dto.signer.signedAt, locale))
           : null}
+        {timestamp ? (
+          <div className="flex items-baseline justify-between gap-3 text-xs">
+            <span className="text-fg-muted">{t('demo.inspectTimestamp')}</span>
+            <span className="text-end">
+              <span className={tone(timestamp.summary)}>
+                {timestamp.stampedAt ? dateTime(timestamp.stampedAt, locale) : '—'}
+              </span>
+              {timestamp.authorityName ? (
+                <span className="text-fg-muted block">{timestamp.authorityName}</span>
+              ) : null}
+            </span>
+          </div>
+        ) : null}
       </div>
       <div className="border-border-subtle mt-2 flex flex-col gap-1 border-t pt-2">
         {row(
@@ -128,6 +201,11 @@ export function SignatureInspector() {
         )}
         {row(t('demo.inspectCryptography'), verdict?.cryptography ?? '—')}
         {row(t('demo.inspectTrust'), verdict?.trust ?? '—')}
+        {verdict?.revocation === 'good'
+          ? row(t('demo.inspectRevocation'), t('demo.revocationGood'))
+          : verdict?.revocation === 'revoked'
+            ? row(t('demo.inspectRevocation'), t('demo.revocationRevoked'), 'text-red-600')
+            : null}
         {row(
           t('demo.inspectChanges'),
           modifications === 'unchanged'
@@ -144,7 +222,33 @@ export function SignatureInspector() {
         {verdict?.modifications.laterRevisions
           ? row(t('demo.inspectLaterRevisions'), String(verdict.modifications.laterRevisions))
           : null}
+        {longTerm ? (
+          <div className="flex items-baseline justify-between gap-3 text-xs" data-long-term>
+            <span className="text-fg-muted shrink-0">{t('demo.inspectLongTerm')}</span>
+            <span className="text-end">
+              <span className={longTerm.enabled ? 'text-green-600' : 'text-fg'}>
+                {t(longTerm.enabled ? 'demo.longTermEnabled' : 'demo.longTermNotEnabled')}
+              </span>
+              {longTermDetail ? (
+                <span className="text-fg-muted block">{longTermDetail}</span>
+              ) : null}
+            </span>
+          </div>
+        ) : null}
       </div>
+      {longTerm && !longTerm.enabled && signature.canAddValidationInfo() ? (
+        <div className="mt-2">
+          <button
+            type="button"
+            disabled={adding}
+            onClick={addValidationInfo}
+            className="border-border text-fg hover:bg-hover w-full rounded-md border px-2 py-1 text-xs disabled:opacity-60"
+          >
+            {adding ? t('demo.longTermAdding') : t('demo.longTermAdd')}
+          </button>
+          {addError ? <p className="mt-1 text-xs text-red-600">{addError}</p> : null}
+        </div>
+      ) : null}
       <div className="mt-3 flex justify-end gap-2">
         <button
           type="button"

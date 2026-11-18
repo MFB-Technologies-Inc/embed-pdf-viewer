@@ -7,10 +7,13 @@ import type {
   EventHook,
   EventOrigin,
   OperationOptions,
+  PluginError,
   ResourceStatus,
   SettingsApi,
 } from '@embedpdf/core';
 import type {
+  CmsSigner,
+  RevocationSource,
   SignatureVerdict,
   SignerPort,
   TrustPort,
@@ -33,6 +36,7 @@ import type {
   SignatureSignerInput,
   SignatureSnapshot,
   SignatureSubFilter,
+  ValidationInfoCounts,
 } from '@embedpdf/engine-core/runtime';
 import type { StampPlacement } from '@embedpdf/plugin-annotation/contract';
 import type { StampAsset, StampLibrary } from '@embedpdf/plugin-stamp/contract';
@@ -49,10 +53,21 @@ export type {
   Signature,
   SignaturePrepared,
   SignatureSnapshot,
+  ValidationInfoCounts,
 } from '@embedpdf/engine-core/runtime';
 export type {
+  AppliedValidationTime,
+  CmsSigner,
+  HttpRevocationSourceOptions,
+  HttpTimestampAuthorityOptions,
+  LongTermGap,
+  LongTermGapReason,
+  LongTermVerdict,
+  RevocationSource,
+  RevocationVerdict,
   SignatureVerdict,
   SignerPort,
+  TimestampVerdict,
   TrustPort,
   ValidationTime,
 } from '@embedpdf/core-signature';
@@ -72,14 +87,35 @@ export type SigningKey = SignerPort | (() => SignerPort | Promise<SignerPort>);
  * The signature plugin's settings. `signaturePlugin(config)` registers them
  * over {@link SIGNATURE_DEFAULTS}, and `updateSettings()` changes them for
  * every document while the app runs. Each is one value: a change replaces a
- * key or a trust port whole.
+ * key, a timestamp authority, a revocation source or a trust port whole.
  */
 export interface SignatureSettings {
   /** The key: a raw signer (the CMS is built here) or a CMS signer (a service builds it); `null` for none. */
   readonly signingKey: SigningKey | null;
   /** What a mark does in a field; `null` is `'sign'` with a key, else `'visual'`. */
   readonly mode: SignatureMode | null;
-  /** The certificates you trust, for checking signatures. Without them a verdict is at best `valid-untrusted`. */
+  /**
+   * The timestamp authority: every signature this plugin seals then carries a timestamp from
+   * it, and a timestamp that can't be had fails the signing. `null` for none.
+   */
+  readonly timestampAuthority: CmsSigner | null;
+  /**
+   * Where revocation answers come from. With one, every signature this plugin seals gets its
+   * validation data right after: the answers that say its certificates were good at its
+   * timestamp, stored in the file, so a reader can check it with no network. Needs `trust`.
+   * `null` for none.
+   */
+  readonly revocation: RevocationSource | null;
+  /**
+   * Add a document timestamp after the validation data, from `timestampAuthority`: proof that
+   * the data was in the file by then.
+   */
+  readonly documentTimestamp: boolean;
+  /**
+   * The certificates you trust: for checking signatures, where a verdict without them is at best
+   * `valid-untrusted`, and for sealing, where a timestamp from an authority they don't cover is
+   * refused.
+   */
   readonly trust: TrustPort | null;
   /** Let a first signature be a certification (still needs `doc.sign.certify`). */
   readonly allowCertify: boolean;
@@ -89,6 +125,9 @@ export interface SignatureSettings {
 export const SIGNATURE_DEFAULTS: SignatureSettings = {
   signingKey: null,
   mode: null,
+  timestampAuthority: null,
+  revocation: null,
+  documentTimestamp: false,
   trust: null,
   allowCertify: false,
 };
@@ -110,6 +149,8 @@ export interface SignFieldInput {
   mark: Mark;
   /** A per-call key; the `key` setting otherwise. */
   signingKey?: SigningKey;
+  /** A per-call timestamp authority; `null` signs this one without a timestamp. The setting otherwise. */
+  timestampAuthority?: CmsSigner | null;
   /** What the signature dictionary says about the signer; the name defaults to the certificate's subject. */
   signer?: SignatureSignerInput;
   /** Instead of the mark: a ready one-page appearance PDF the embedder composed itself. */
@@ -128,6 +169,8 @@ export interface PrepareSignatureInput {
   lock?: FieldLockSpec;
   subFilter?: SignatureSubFilter;
   digest?: Exclude<DigestAlgorithm, 'sha1'>;
+  /** A per-call timestamp authority; `null` seals this one without a timestamp. The setting otherwise. */
+  timestampAuthority?: CmsSigner | null;
 }
 
 /** The stamp-library kind that holds people's marks: one library per person. */
@@ -187,9 +230,34 @@ export interface SignatureInfo extends Signature {
   readonly verdict: SignatureVerdict | null;
 }
 
+/** What `addValidationInfo()` put into the file. */
+export interface ValidationInfoAdded {
+  /** How many entries of each kind were stored: all zero when the file already held them. */
+  readonly added: ValidationInfoCounts;
+  /** The field of the document timestamp added after them, or `null` when none was added. */
+  readonly documentTimestamp: FormFieldRef | null;
+}
+
+/**
+ * What a sealing resolves: the engine's facts about the signature, and what became of the
+ * validation data the `revocation` setting asks for. The signature is sealed either way.
+ */
+export interface SignFieldResult extends SignatureCompleteResult {
+  /**
+   * The validation data that followed the seal, as far as it got. `null` when none was to be
+   * added (no `revocation` setting, or a session without `doc.sign`), and when none was stored.
+   */
+  readonly validationInfo: ValidationInfoAdded | null;
+  /**
+   * Why the validation data, or the document timestamp after it, is not in the file: what
+   * `addValidationInfo()` would have rejected with. `null` when nothing failed.
+   */
+  readonly validationInfoError: PluginError | null;
+}
+
 /** What `placeMark` did: sealed, drawn, handed to the chrome (mode `ask`), or placed as a stamp. */
 export type PlaceMarkResult =
-  | { status: 'signed'; field: FormFieldRef; result: SignatureCompleteResult }
+  | { status: 'signed'; field: FormFieldRef; result: SignFieldResult }
   | { status: 'filled'; field: FormFieldRef }
   | { status: 'requested'; field: FormFieldRef }
   | { status: 'placed'; annotation: AnnotationRef };
@@ -236,8 +304,12 @@ export interface SignatureInspectionRequestedEvent {
 
 /** Options for `validate()` and `validateField()`. */
 export interface SignatureValidateOptions extends OperationOptions {
-  /** The moment the certificates are judged at; now by default. */
-  readonly validationTime?: ValidationTime;
+  /**
+   * The moment the certificates are judged at. By default each one is judged at the earliest
+   * trusted timestamp that covers what it signed, and now when there is none.
+   * `{ kind: 'now' }` judges them all as of now.
+   */
+  readonly validationTime?: ValidationTime | { readonly kind: 'earliest-timestamp' };
   /** `'persisted'` checks the file as it was opened; `'working-copy'` (the default) counts unsaved changes. */
   readonly until?: 'persisted' | 'working-copy';
 }
@@ -277,13 +349,19 @@ export interface SignatureCapability extends SettingsApi<SignatureSettings> {
   // ── signing ──
   /**
    * Sign a field: the mark becomes what it shows, the key seals the document,
-   * and the signed document is a new version. A signal that fires before the
-   * seal leaves nothing signed. Fires `onSigned`. Rejects `permission-denied`
-   * for a field you may not sign (`canSign`), or without `doc.sign.certify`
-   * to certify, `invalid-input` without a key, `not-found`,
-   * `operation-cancelled`.
+   * and the signed document is a new version. With a timestamp authority the
+   * signature carries its timestamp, or nothing is signed. A signal that fires
+   * before the seal leaves nothing signed. Fires `onSigned`. Rejects
+   * `permission-denied` for a field you may not sign (`canSign`), or without
+   * `doc.sign.certify` to certify, `invalid-input` without a key, `not-found`,
+   * `operation-cancelled`, and `operation-failed` when the key's answer or the
+   * timestamp is refused or the authority doesn't answer (`details.authority`).
+   *
+   * With the `revocation` setting, the signature's validation data is added right after the
+   * seal, and a document timestamp with `documentTimestamp`. A failure there can't undo the
+   * signature: it still resolves, with the failure in `validationInfoError`.
    */
-  sign(input: SignFieldInput, options?: OperationOptions): Promise<SignatureCompleteResult>;
+  sign(input: SignFieldInput, options?: OperationOptions): Promise<SignFieldResult>;
   /**
    * Signing in two steps, the first: resolves the digest for your key to sign,
    * and keeps the document from changing until `completeSignature()` or
@@ -293,17 +371,25 @@ export interface SignatureCapability extends SettingsApi<SignatureSettings> {
     input: PrepareSignatureInput,
     options?: OperationOptions,
   ): Promise<SignaturePrepared>;
-  /** Signing in two steps, the second: the key's CMS seals the document. Fires `onSigned`. Rejects `not-found` for a signing this session didn't prepare. */
+  /**
+   * Signing in two steps, the second: the key's CMS is checked against what
+   * was prepared, timestamped when a timestamp authority is set, and seals the
+   * document. Fires `onSigned`. When it fails nothing is written and the
+   * signing stays prepared: call it again with the same CMS when the authority
+   * didn't answer, or `cancelPending()`. Rejects `not-found` for a signing this
+   * session didn't prepare, `operation-failed` for a CMS or a timestamp that is
+   * refused. Validation data follows the seal as it does for `sign()`.
+   */
   completeSignature(
     signingId: string,
     cms: Uint8Array,
     options?: OperationOptions,
-  ): Promise<SignatureCompleteResult>;
+  ): Promise<SignFieldResult>;
   /** Give up a signature prepared in two steps, so the document can be changed again. */
   cancelPending(options?: OperationOptions): Promise<void>;
   /**
    * Draw a mark into a field without signing. Fires `onFilled`. Rejects
-   * `permission-denied` for a field you may not fill in (`canFill`),
+   * `permission-denied` for a field that isn't yours to sign (`canFill`),
    * `conflict` on a signed field.
    */
   fillField(field: FormFieldRef, mark: Mark, options?: OperationOptions): Promise<void>;
@@ -338,6 +424,21 @@ export interface SignatureCapability extends SettingsApi<SignatureSettings> {
     field: SignatureFieldAddress,
     options?: SignatureValidateOptions,
   ): Promise<SignatureVerdict>;
+  /**
+   * Keep a signed field checkable with no network: ask, through the `revocation` setting,
+   * whether its certificates were good at its timestamp, and store the answers in the file.
+   * Without `field`, for every signature. With `documentTimestamp`, a document timestamp
+   * follows when the answers aren't covered by one yet. All or nothing for the answers: when
+   * one is missing, nothing is stored. Rejects `permission-denied` without `doc.sign`,
+   * `invalid-input` without the `revocation` and `trust` settings, `not-found` for an unsigned
+   * or unknown field, and `operation-failed` when a signature can't be covered
+   * (`details.reason`, `details.certificate`, `details.field`), an address didn't answer
+   * (`details.source`), or the document timestamp failed (`details.authority`).
+   */
+  addValidationInfo(
+    field?: SignatureFieldAddress,
+    options?: OperationOptions,
+  ): Promise<ValidationInfoAdded>;
   /** What changed after a signature or a version of the file, rule by rule. */
   analyzeChanges(input: AnalyzeInput, options?: OperationOptions): Promise<ChangeAnalysis>;
   /**
@@ -358,14 +459,17 @@ export interface SignatureCapability extends SettingsApi<SignatureSettings> {
    */
   canSign(field: FormFieldRef): boolean;
   /**
-   * Whether drawing a mark into this field without signing is allowed:
-   * `doc.forms.fill`, or a `fields:fill` permission for its group.
+   * Whether drawing a mark into this field without signing is allowed. A
+   * mark in a signature field is its signer's to place, so it takes what
+   * signing takes: `doc.sign`, or a `fields:sign` permission for its group.
    */
   canFill(field: FormFieldRef): boolean;
   /** Whether a certification may be offered: the `allowCertify` setting and `doc.sign.certify`. */
   canCertify(): boolean;
   /** Whether the signed bytes may be read: `doc.download`. */
   canReadRevision(): boolean;
+  /** Whether validation data can be added: the `revocation` and `trust` settings, and `doc.sign`. */
+  canAddValidationInfo(): boolean;
 
   // ── events ──
   /** A field was signed, whoever signed it; fires once the facts show the sealed field. */

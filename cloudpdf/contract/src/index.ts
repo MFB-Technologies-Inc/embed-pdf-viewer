@@ -51,6 +51,9 @@ import {
   SignatureCompleteResultSchema,
   SignaturePreparedWireSchema,
   SignatureSnapshotSchema,
+  ValidationInfoAddBodySchema,
+  ValidationInfoAddResultSchema,
+  ValidationInfoWireSchema,
   AttachmentListSchema,
   wireTemplates,
 } from '@embedpdf/engine-core/wire';
@@ -2346,10 +2349,22 @@ export const LayerSignaturesAnalysisQuerySchema = z.object({
   'since.revision': z.coerce.number().int().min(0).optional(),
   level: z.enum(['none', 'lta', 'fill', 'annotate']).optional(),
 });
+export const VersionSignaturesQuerySchema = z.object({
+  engine: z
+    .string()
+    .describe(
+      "The `signatures` engine value from the layer's head (`engine.signatures`): what the answer is computed with besides the file. With it, the answer is cached.",
+    )
+    .optional(),
+});
 export const VersionAnalysisQuerySchema = LayerSignaturesAnalysisQuerySchema.extend({
   until: z.coerce.number().int().min(0).optional(),
-  /** The judging policy version the caller expects — a cache key on this immutable URL, not an input. */
-  policy: z.coerce.number().int().min(1).optional(),
+  engine: z
+    .string()
+    .describe(
+      "The `analysis` engine value from the layer's head (`engine.analysis`): the rules the answer is judged with. With it, a settled answer is cached.",
+    )
+    .optional(),
 });
 
 export const docOperations = {
@@ -2591,6 +2606,52 @@ export const docOperations = {
       '`level=fill|annotate|lta|none` evaluates exploratorily and never becomes a verdict. ' +
       'For history between two base revisions use the version analysis.',
   },
+  'doc.signatures.validationInfo': {
+    operationId: 'doc.signatures.validationInfo',
+    title: 'Read validation data',
+    summary:
+      "The certificates, OCSP responses and CRLs the layer's file holds for checking its signatures with no network.",
+    method: 'GET',
+    path: wireTemplates.layerSignaturesValidationInfo,
+    credentials: docCredentials,
+    scope: [],
+    docCapabilities: ['doc.forms.read'],
+    requestHeaders: [documentPasswordHeader],
+    params: DocLayerParamsSchema,
+    responses: {
+      200: { contentType: 'application/json', schema: ValidationInfoWireSchema },
+      404: errorResponse,
+    },
+    notes:
+      'Each entry is one DER object, base64. It reads the layer as it is now, so entries stored and not yet sealed by a signature are among them. ' +
+      'Arrived in 3.3.',
+  },
+  'doc.signatures.addValidationInfo': {
+    operationId: 'doc.signatures.addValidationInfo',
+    title: 'Store validation data',
+    summary:
+      "Store certificates, OCSP responses and CRLs in the layer's file, so its signatures can be checked with no network.",
+    method: 'POST',
+    path: wireTemplates.layerSignaturesValidationInfo,
+    credentials: docCredentials,
+    scope: [],
+    docCapabilities: ['doc.sign'],
+    requestHeaders: [documentPasswordHeader, idempotencyKeyHeader],
+    params: DocLayerParamsSchema,
+    body: { contentType: 'application/json', schema: ValidationInfoAddBodySchema },
+    responses: {
+      200: { contentType: 'application/json', schema: ValidationInfoAddResultSchema },
+      400: errorResponse,
+      404: errorResponse,
+      409: errorResponse,
+    },
+    notes:
+      'Each entry is one DER object of at most 16 MiB, base64. An entry the file already holds, byte for byte, is not stored again: `added` counts the new ones. ' +
+      'An entry that is not one DER object fails the request and nothing is stored; the error names it, as in `certificates[1]`. ' +
+      'The server stores what it is given and asks no certificate authority: collect the answers first. ' +
+      'It needs `doc.sign` for the document, not for a group of fields, and is refused after a certification that allows no changes. ' +
+      'It cannot be undone, and it leaves undo for earlier changes as it was. Arrived in 3.3.',
+  },
   'doc.signatures.prepare': {
     operationId: 'doc.signatures.prepare',
     title: 'Prepare a signature',
@@ -2614,6 +2675,8 @@ export const docOperations = {
       'Multipart: a JSON `body` part (field, subFilter, digest, contentsSize, signer, certify, lock), naming the appearance ' +
       "PDF it may carry as `resources: { appearance: '<key>' }`, and that PDF as the part `resource:<key>`. A certification (`certify.permission`) " +
       'additionally requires `doc.sign.certify`. The layer is read-only until the signing completes, is cancelled, or expires (15 minutes). ' +
+      "A document timestamp (`kind: 'timestamp'`) may leave `field` out, since 3.3: the engine then makes a field of no size for it, " +
+      'under a name no other field has, and the answer names it in `field`. That needs `doc.sign` for the document. ' +
       "The signature is made over the layer's own base: the upload, or the version its last signature made.",
   },
   'doc.signatures.complete': {
@@ -2679,7 +2742,7 @@ export const docOperations = {
   'doc.versions.signatures': {
     operationId: 'doc.versions.signatures',
     title: 'Version signatures',
-    summary: "The signature snapshot of one of a layer's versions (immutable).",
+    summary: "The signature snapshot of one of a layer's versions.",
     method: 'GET',
     path: wireTemplates.layerVersionSignatures,
     credentials: docCredentials,
@@ -2687,10 +2750,17 @@ export const docOperations = {
     docCapabilities: ['doc.forms.read'],
     requestHeaders: [documentPasswordHeader],
     params: DocVersionParamsSchema,
+    query: VersionSignaturesQuerySchema,
     responses: {
       200: { contentType: 'application/json', schema: SignatureSnapshotSchema },
+      400: errorResponse,
       404: errorResponse,
     },
+    notes:
+      'A version never changes, but what the server reads from it can: ' +
+      "with `engine`, the `signatures` value of the layer's head, the answer is `immutable`. " +
+      "Without it, or with another value, the answer is this server's own, with `no-store` and " +
+      'the current value in `EmbedPDF-Engine`.',
   },
   'doc.versions.signatureContents': {
     operationId: 'doc.versions.signatureContents',
@@ -2730,7 +2800,7 @@ export const docOperations = {
   'doc.versions.analysis': {
     operationId: 'doc.versions.analysis',
     title: 'Analyze version history',
-    summary: "What changed between two revisions of one of a layer's versions (immutable).",
+    summary: "What changed between two revisions of one of a layer's versions.",
     method: 'GET',
     path: wireTemplates.layerVersionAnalysis,
     credentials: docCredentials,
@@ -2746,7 +2816,10 @@ export const docOperations = {
     },
     notes:
       'Exactly one of `since.signature` / `since.revision`; `until=<revision>` defaults to the last. ' +
-      'The same answer for every caller.',
+      'The same answer for every caller. A version never changes, but the rules that judge it can: ' +
+      "with `engine`, the `analysis` value of the layer's head, a settled answer is `immutable`. " +
+      "Without it, or with another value, the answer is this server's own, with `no-store` and " +
+      'the current value in `EmbedPDF-Engine`.',
   },
   'doc.versions.download': {
     operationId: 'doc.versions.download',

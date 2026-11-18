@@ -1,6 +1,6 @@
 {
   "name": "@embedpdf/core-signature",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "private": false,
   "description": "Digital signatures for EmbedPDF: signs a PDF and validates the signatures it has. No DOM.",
   "type": "module",
@@ -9,6 +9,7 @@
   "types": "./dist/index.d.cts",
   "exports": {
     ".": "./src/index.ts",
+    "./server": "./src/server.ts",
     "./package.json": "./package.json"
   },
   "publishConfig": {
@@ -19,6 +20,10 @@
       ".": {
         "import": "./dist/index.js",
         "require": "./dist/index.cjs"
+      },
+      "./server": {
+        "import": "./dist/server.js",
+        "require": "./dist/server.cjs"
       },
       "./package.json": "./package.json"
     }
@@ -34,8 +39,8 @@
   },
   "dependencies": {
     "@embedpdf/engine-core": "workspace:*",
-    "asn1js": "^3.0.5",
-    "pkijs": "^3.2.4"
+    "asn1js": "^4.0.0",
+    "pkijs": "^4.0.1"
   },
   "devDependencies": {
     "@embedpdf/engine": "workspace:*",
@@ -45,9 +50,25 @@
   },
   "license": "Apache-2.0",
   "sideEffects": false,
+  "epdf": {
+    "bundleInCjs": [
+      "pkijs",
+      "asn1js",
+      "bytestreamjs",
+      "@peculiar/utils",
+      "@noble/hashes"
+    ]
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/embedpdf/embed-pdf-viewer.git",
     "directory": "packages/core/signature"
+  },
+  "inlinedDependencies": {
+    "@noble/hashes": "2.4.0",
+    "@peculiar/utils": "4.1.0",
+    "asn1js": "4.0.0",
+    "bytestreamjs": "3.0.0",
+    "pkijs": "4.0.1"
   }
 }

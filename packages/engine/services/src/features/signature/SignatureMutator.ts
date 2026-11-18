@@ -9,6 +9,7 @@ import type {
   SignaturePrepared,
 } from '@embedpdf/engine-core/runtime';
 import {
+  authorizeCapability,
   authorizeFieldWrite,
   EngineError,
   EngineErrorCode,
@@ -26,6 +27,7 @@ import {
 } from './internal/candidateStore';
 import { bakeWidgetAppearance } from './internal/appearance';
 import { assertSealedSignature, type SealExpectation } from './internal/sealCheck';
+import { createTimestampField } from './internal/timestampField';
 import { disposeSignatureModel } from './internal/signatureModelCache';
 import { DIGEST_CODE, SignatureReader } from './SignatureReader';
 import type { DocumentSession } from '../../document-session/DocumentSession';
@@ -140,6 +142,10 @@ export class SignatureMutator {
    * sign (its group, `fields:sign`). A field in a group, signed without a
    * `lock`, locks the rest of its group: nobody changes the buyer's fields
    * once the buyer signed.
+   *
+   * A document timestamp may name no field: one is made for it on the
+   * candidate, so it joins the document with the timestamp, in one revision.
+   * That takes `doc.sign` itself, not the right to sign a group's fields.
    */
   prepare(input: SignaturePrepareInput, authority: ChangeAuthority): SignaturePrepared {
     if (this.session.pendingSigning) {
@@ -148,10 +154,23 @@ export class SignatureMutator {
         `a signing is pending (${this.session.pendingSigning.prepared.signingId}); complete or cancel it first`,
       );
     }
+    if (!input.field && (input.kind ?? 'signature') !== 'timestamp') {
+      throw new EngineError(
+        EngineErrorCode.InvalidArg,
+        "a signature needs a `field`: only a document timestamp (`kind: 'timestamp'`) can be given one by the engine",
+        { details: { field: 'field' } },
+      );
+    }
     const reader = new SignatureReader(this.runtime, this.session);
-    const field = reader.resolveField(input.field);
-    const groupId = groupOfField(this.runtime, this.session, field.fieldObjectNumber);
-    authorizeFieldWrite(authority, groupId, 'sign');
+    // Null: the field is made on the candidate, below.
+    const field = input.field ? reader.resolveField(input.field) : null;
+    const groupId = field
+      ? groupOfField(this.runtime, this.session, field.fieldObjectNumber)
+      : null;
+    // A timestamp with no field is the document's to sign, not a group's: a caller whose
+    // signing is narrowed to a group's fields still adds it, when they hold `doc.sign`.
+    if (field) authorizeFieldWrite(authority, groupId, 'sign');
+    else authorizeCapability(authority, 'doc.sign');
     const lock: FieldLockSpec | undefined =
       input.lock ??
       (groupId !== null
@@ -160,16 +179,18 @@ export class SignatureMutator {
             fields: groupLockFields(this.runtime, this.session, groupId),
           }
         : undefined);
-    if (field.signed) {
+    if (field?.signed) {
       throw new EngineError(
         EngineErrorCode.SignatureRefused,
         'the signature field is already signed',
       );
     }
-    if (input.appearance && !field.widget) {
+    if (input.appearance && !field?.widget) {
       throw new EngineError(
         EngineErrorCode.SignatureRefused,
-        'the signature field has no widget to carry an appearance',
+        field
+          ? 'the signature field has no widget to carry an appearance'
+          : 'a timestamp with a field of its own shows nowhere, so it carries no appearance',
       );
     }
     const algorithm: Exclude<DigestAlgorithm, 'sha1'> = input.digest ?? 'sha256';
@@ -207,8 +228,10 @@ export class SignatureMutator {
       const candidate = this.openCandidate(signingId, stack);
       stack.push(() => candidate.close());
 
+      const made = field ? null : createTimestampField(this.runtime, candidate.docPtr);
+      const fieldObjectNumber = field ? field.fieldObjectNumber : made!.fieldObjectNumber;
       const signer = input.signer;
-      const valueObjNum = this.callPrepare(candidate.docPtr, field.fieldObjectNumber, {
+      const valueObjNum = this.callPrepare(candidate.docPtr, fieldObjectNumber, {
         subfilter: SUBFILTER_CODE[subFilter],
         digest: DIGEST_CODE[algorithm],
         contentsSize,
@@ -228,7 +251,7 @@ export class SignatureMutator {
           'the engine refused to author the signature (the field is signed, read-only or locked, a certification is not allowed here, the seed value requires what is not implemented, or the request is inconsistent)',
         );
       }
-      if (input.appearance && field.widget) {
+      if (input.appearance && field?.widget) {
         bakeWidgetAppearance(this.runtime, candidate.docPtr, field.widget, input.appearance.pdf, {
           recordFit: false,
         });
@@ -252,10 +275,12 @@ export class SignatureMutator {
         subFilter,
         expectedVersion,
         expiresAt: null,
+        ...(made ? { field: { kind: 'fqn', name: made.name } } : {}),
       };
       this.session.pendingSigning = {
         prepared,
-        fieldObjectNumber: field.fieldObjectNumber,
+        fieldObjectNumber,
+        madeField: made !== null,
         saved,
         contentsOffset: sealed.contentsOffset,
         contentsHexLength: sealed.contentsHexLength,
@@ -291,11 +316,16 @@ export class SignatureMutator {
       }
       throw new EngineError(EngineErrorCode.NotFound, `no pending signing '${input.signingId}'`);
     }
-    authorizeFieldWrite(
-      authority,
-      groupOfField(this.runtime, this.session, pending.fieldObjectNumber),
-      'sign',
-    );
+    // The right `prepare` took: the document's for a field made for a timestamp, else the field's.
+    if (pending.madeField) {
+      authorizeCapability(authority, 'doc.sign');
+    } else {
+      authorizeFieldWrite(
+        authority,
+        groupOfField(this.runtime, this.session, pending.fieldObjectNumber),
+        'sign',
+      );
+    }
     if (!sameVersion(pending.prepared.expectedVersion, input.expectedVersion)) {
       throw new EngineError(
         EngineErrorCode.SigningVersionMismatch,

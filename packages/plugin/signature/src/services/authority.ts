@@ -4,7 +4,7 @@
  * group (`ctx.allowsField`), as the engine checks it.
  */
 import { PluginError } from '@embedpdf/core';
-import type { SignerPort } from '@embedpdf/core-signature';
+import type { CmsSigner, SignerPort, TrustPort } from '@embedpdf/core-signature';
 import type { FormFieldRef } from '@embedpdf/engine-core/runtime';
 
 import type { SigningKey, SignatureMode } from '../contract';
@@ -28,6 +28,14 @@ export function createAuthority(ctx: SignatureContext, { form }: Pick<SignatureS
     }
     return typeof key === 'function' ? key() : key;
   };
+  /** The timestamp authority of one sealing: the call's, else the setting's; `null` for none. */
+  const resolveTimestampAuthority = (override?: CmsSigner | null): CmsSigner | null =>
+    override === undefined ? settings.get().timestampAuthority : override;
+  /**
+   * Who may timestamp what this plugin seals: the `trust` setting, when there is one. An app
+   * that says who it trusts never seals a timestamp from someone else.
+   */
+  const timestampTrust = (): TrustPort | undefined => settings.get().trust ?? undefined;
   /** Whether the session may `action` this field; `false` for a field the form doesn't have. */
   const allowsField = (action: 'fill' | 'sign', ref: FormFieldRef): boolean => {
     const field = form.get(ref);
@@ -42,11 +50,19 @@ export function createAuthority(ctx: SignatureContext, { form }: Pick<SignatureS
   return {
     mode,
     resolveKey,
+    resolveTimestampAuthority,
+    timestampTrust,
     assertAllowedField,
     canSign: (field: FormFieldRef) => allowsField('sign', field),
-    canFill: (field: FormFieldRef) => allowsField('fill', field),
+    // A mark in a signature field is its signer's to place: what the engine asks for.
+    canFill: (field: FormFieldRef) => allowsField('sign', field),
     canCertify: () => settings.get().allowCertify && ctx.allows('doc.sign.certify'),
     canReadRevision: () => ctx.allows('doc.download'),
+    /** Whether validation data can be added: someone to ask, someone to trust, and `doc.sign`. */
+    canAddValidationInfo: () => {
+      const { revocation, trust } = settings.get();
+      return revocation !== null && trust !== null && ctx.allows('doc.sign');
+    },
   };
 }
 export type SignatureAuthority = ReturnType<typeof createAuthority>;

@@ -39,6 +39,8 @@ import type {
   SignaturePrepared,
   SignatureSeedValue,
   SignatureSnapshot,
+  ValidationInfo,
+  ValidationInfoAddResult,
 } from '../signature/types';
 import type { PageGeometryRun, PageGeometrySnapshot } from '../dto/PageGeometrySnapshot';
 import { charMapViolation } from '../text/charmap';
@@ -2064,6 +2066,8 @@ export const SignaturePreparedWireSchema = z.object({
   subFilter: z.string(),
   expectedVersion: DocumentVersionRefSchema,
   expiresAt: IsoDateTimeSchema.nullable(),
+  /** The field the engine made for a document timestamp prepared with none. */
+  field: FormFieldRefSchema.optional(),
 });
 export type SignaturePreparedWire = z.infer<typeof SignaturePreparedWireSchema>;
 
@@ -2085,6 +2089,51 @@ export const SignatureCompleteBodySchema = z.object({
   expectedVersion: DocumentVersionRefSchema,
 });
 export type SignatureCompleteBody = z.infer<typeof SignatureCompleteBodySchema>;
+
+/**
+ * A document's validation data with each entry as base64, as a completion
+ * carries its CMS: the certificates, OCSP responses and CRLs the file holds.
+ */
+export const ValidationInfoWireSchema = z.object({
+  certificates: z.array(Base64Schema),
+  ocspResponses: z.array(Base64Schema),
+  crls: z.array(Base64Schema),
+});
+export type ValidationInfoWire = z.infer<typeof ValidationInfoWireSchema>;
+
+export function encodeValidationInfo(info: ValidationInfo): ValidationInfoWire {
+  return {
+    certificates: info.certificates.map(toBase64),
+    ocspResponses: info.ocspResponses.map(toBase64),
+    crls: info.crls.map(toBase64),
+  };
+}
+
+export function decodeValidationInfo(wire: ValidationInfoWire): ValidationInfo {
+  return {
+    certificates: wire.certificates.map(fromBase64),
+    ocspResponses: wire.ocspResponses.map(fromBase64),
+    crls: wire.crls.map(fromBase64),
+  };
+}
+
+/** The JSON body that stores validation data: the entries to add, each as base64. */
+export const ValidationInfoAddBodySchema = z.object({
+  certificates: z.array(Base64Schema).optional(),
+  ocspResponses: z.array(Base64Schema).optional(),
+  crls: z.array(Base64Schema).optional(),
+});
+export type ValidationInfoAddBody = z.infer<typeof ValidationInfoAddBodySchema>;
+
+/** What storing validation data answers: how many entries of each kind were new. */
+export const ValidationInfoAddResultSchema: z.ZodType<ValidationInfoAddResult> = z.object({
+  added: z.object({
+    certificates: z.number().int().nonnegative(),
+    ocspResponses: z.number().int().nonnegative(),
+    crls: z.number().int().nonnegative(),
+  }),
+  meta: MutationMetaSchema,
+});
 
 // ---------------------------------------------------------------------------
 // Digital signatures: the read-side DTOs, the prepare body, the analysis
@@ -2271,7 +2320,8 @@ export type SignatureAppearanceBody = z.infer<typeof SignatureAppearanceBodySche
  * appearance artwork named by the key of its part instead of inline bytes.
  */
 export const SignaturePrepareBodySchema = z.object({
-  field: FormFieldRefSchema,
+  /** Left out only for a document timestamp: the engine then makes the field. */
+  field: FormFieldRefSchema.optional(),
   kind: z.enum(['signature', 'timestamp']).optional(),
   subFilter: z.enum(['adbe.pkcs7.detached', 'ETSI.CAdES.detached']).optional(),
   digest: z.enum(['sha256', 'sha384', 'sha512']).optional(),
@@ -2298,7 +2348,19 @@ export const LayerAnalysisQuerySchema = z
   });
 export type LayerAnalysisQuery = z.infer<typeof LayerAnalysisQuerySchema>;
 
-/** Version analysis query: as the layer's, plus `until` (a revision index; default the last). */
+/**
+ * The query of a stored version's signature list: `engine`, the `signatures` engine value the
+ * caller read from `/head`. The answer is cached under the server's own value, and never
+ * refused under another or under none.
+ */
+export const VersionSignaturesQuerySchema = z.object({ engine: z.string().optional() });
+export type VersionSignaturesQuery = z.infer<typeof VersionSignaturesQuerySchema>;
+
+/**
+ * Version analysis query: as the layer's, plus `until` (a revision index; default the last) and
+ * `engine`. A query parameter this schema doesn't name is dropped, so the `policy` a client of
+ * 3.0 to 3.2 sends is read past.
+ */
 export const VersionAnalysisQuerySchema = z
   .object({
     'since.signature': optionalIndex,
@@ -2306,8 +2368,12 @@ export const VersionAnalysisQuerySchema = z
     until: optionalIndex,
     level: ModificationLevelSchema.optional(),
     detail: AnalysisDetailSchema.optional(),
-    /** The judging policy version the caller expects — a cache key, not an input (version responses are immutable). */
-    policy: optionalIndex,
+    /**
+     * The `analysis` engine value the caller read from `/head`: what the answer is computed
+     * with besides the file. The answer is cached under the server's own value, and never
+     * refused under another or under none.
+     */
+    engine: z.string().optional(),
   })
   .refine((q) => (q['since.signature'] === undefined) !== (q['since.revision'] === undefined), {
     message: 'exactly one of since.signature / since.revision is required',
