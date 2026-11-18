@@ -41,3 +41,8 @@ fn timestamps_over_http_and_the_revocation_route_match_the_typescript() {
 fn revocation_long_term_and_collecting_match_the_typescript() {
     replay("core/signature-revocation.json");
 }
+
+#[test]
+fn trusted_timestamps_long_term_and_answers_match_the_typescript() {
+    replay("core/signature-long-term.json");
+}

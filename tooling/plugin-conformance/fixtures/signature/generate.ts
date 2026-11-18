@@ -274,6 +274,8 @@ const keys = {
   rsa3072: storedKey('rsa3072') ?? (await generate('rsa', 3072)),
   // An 8192-bit key: past the 4096 bits RustCrypto's `rsa` imports by default, within WebCrypto's 16384.
   rsa8192: storedKey('rsa8192') ?? (await generate('rsa', 8192)),
+  // A timestamp authority's key (CU-C4b).
+  tsa: storedKey('tsa') ?? (await generate('rsa')),
 };
 
 const rootName = 'Conformance Root CA';
@@ -732,6 +734,29 @@ if (stored) {
   for (const [name, value] of Object.entries(stored.certs)) certs[name] = fromB64(value);
   for (const [name, value] of Object.entries(stored.cms)) cms[name] = fromB64(value);
 }
+
+// Timestamp authorities (CU-C4b): self-signed, digitalSignature alone, and an extended key usage
+// of id-kp-timeStamping marked critical (RFC 3161 2.3), as upstream's
+// packages/core/signature/test/fixtures/long-term/timestamp-authority.cer has it. Two more that a validator refuses:
+// the purpose not marked critical, and a second purpose beside it.
+const eku = (...purposes: Uint8Array[]) => {
+  const body = purposes.flatMap((p) => [0x06, p.length, ...p]);
+  return ab(new Uint8Array([0x30, body.length, ...body]));
+};
+const TIME_STAMPING = new Uint8Array([0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x08]);
+const CODE_SIGNING = new Uint8Array([0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x03]);
+certs.tsa = await certificate({
+  subject: 'Conformance Timestamp Authority', key: keys.tsa, serial: 60, ...VALID, keyUsage: [0x80, 7],
+  extra: [['2.5.29.37', eku(TIME_STAMPING), true]],
+});
+certs.tsaNotCritical = await certificate({
+  subject: 'Conformance Timestamp Authority Not Critical', key: keys.tsa, serial: 61, ...VALID, keyUsage: [0x80, 7],
+  extra: [['2.5.29.37', eku(TIME_STAMPING), false]],
+});
+certs.tsaTwoPurposes = await certificate({
+  subject: 'Conformance Timestamp Authority Two Purposes', key: keys.tsa, serial: 62, ...VALID, keyUsage: [0x80, 7],
+  extra: [['2.5.29.37', eku(TIME_STAMPING, CODE_SIGNING), true]],
+});
 
 // A small DER reader and writer, for surgery pkijs would normalise away.
 interface Der {

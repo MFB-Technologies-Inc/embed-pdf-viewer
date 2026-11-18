@@ -31,6 +31,8 @@ import { fileURLToPath } from 'node:url';
 import type { AnyPlugin } from '@embedpdf/core';
 
 import {
+  attachSignatureTimestamp,
+  completeSignature,
   addValidationInfo,
   buildDetachedCms,
   certificateCommonName,
@@ -57,7 +59,17 @@ import {
   type RawSigner,
 } from '../../../../packages/core/signature/src/index';
 import { buildTestToken } from '../../../../packages/core/signature/test/helpers/tokens';
-import { certificateFromDer } from '../../../../packages/core/signature/src/cms/parse';
+import { certificateFromDer, parseCmsInternal } from '../../../../packages/core/signature/src/cms/parse';
+import { timestampTokenAttribute } from '../../../../packages/core/signature/src/cms/attach';
+import { addUnsignedAttribute } from '../../../../packages/core/signature/src/cms/splice';
+import { signatureValueOf } from '../../../../packages/core/signature/src/cms/verify-timestamp';
+import { checkRevocationAnswer, type RevocationAnswerCheck } from '../../../../packages/core/signature/src/revocation/answer';
+import {
+  buildCrl,
+  buildOcspResponse,
+  issueCertificate,
+  type Issuer,
+} from '../../../../packages/core/signature/src/signers/test-authority';
 import { buildOcspRequest } from '../../../../packages/core/signature/src/revocation/request';
 
 import type { FakeDocumentSpec, ResponseSpec } from '../fake-engine';
@@ -269,6 +281,19 @@ function scriptedFetch(replies: ScriptedReply[]) {
   return { fetch, sent };
 }
 
+/** A revocation answer check as plain JSON: its times as ISO strings. */
+function answerJson(check: RevocationAnswerCheck) {
+  if (check.says === 'nothing') return { says: check.says, kind: check.kind, problem: check.problem, detail: check.detail };
+  return {
+    says: check.says,
+    kind: check.kind,
+    thisUpdate: check.thisUpdate.toISOString(),
+    nextUpdate: check.nextUpdate ? check.nextUpdate.toISOString() : null,
+    responder: check.responder,
+    ...(check.says === 'revoked' ? { revokedAt: check.revokedAt.toISOString(), reason: check.reason } : {}),
+  };
+}
+
 /** An error as the probe reports it: its code, message and details. */
 function errorOf(error: unknown) {
   const e = error as { code?: unknown; message?: unknown; details?: unknown };
@@ -322,6 +347,17 @@ function signaturePlugin(env: PluginEnv): AnyPlugin {
           }
         })(),
       verifyTimestampToken: (input: Parameters<typeof verifyTimestampToken>[0]) => verifyTimestampToken(input),
+      attachSignatureTimestamp: (input: Parameters<typeof attachSignatureTimestamp>[0]) => attachSignatureTimestamp(input),
+      completeSignature: (documentId: string, input: Parameters<typeof completeSignature>[1]) =>
+        completeSignature(ctx.documentHandle(documentId)!, input),
+      checkRevocationAnswer: async (input: { kind: 'ocsp' | 'crl'; der: Uint8Array; certificate: Uint8Array; issuer: Uint8Array }) =>
+        answerJson(
+          await checkRevocationAnswer({
+            answer: { kind: input.kind, der: input.der },
+            certificate: certificateFromDer(input.certificate),
+            issuer: certificateFromDer(input.issuer),
+          }),
+        ),
       addValidationInfo: (documentId: string, options: Parameters<typeof addValidationInfo>[1]) =>
         addValidationInfo(ctx.documentHandle(documentId)!, options),
       ecdsaRawFromDer: (der: Uint8Array, curve: Parameters<typeof ecdsaRawFromDer>[1]) => ecdsaRawFromDer(der, curve),
@@ -1445,6 +1481,265 @@ const revocationCases: ScenarioCase[] = [
   ], ltvDoc(authority.cmsGood, stored(), [stores({ certificates: 2 })])),
 ];
 
+// ── trusted timestamps, document timestamps, attaching, and answers in detail ─
+
+const HOUR_MS = 3600 * 1000;
+const TOKEN_TIME = JAN_2026 + HOUR_MS / 2;
+/** The fixture timestamp authority as a raw key: what its tokens are signed with. */
+const tsaRaw = (cert = 'tsa'): RawSigner => ({
+  kind: 'raw',
+  certificateChain: [bytesOf(fixtures.certs[cert]!)],
+  algorithm: 'RSA-PKCS1-v1_5',
+  hash: 'sha256',
+  sign: async (data) => rawSignature('tsa', 'RSA-PKCS1-v1_5', 'sha256', data),
+});
+const sha256 = (bytes: Uint8Array) => new Uint8Array(createHash('sha256').update(bytes).digest());
+const goodSignatureValue = signatureValueOf(parseCmsInternal(authority.cmsGood).signerInfo);
+const stamp = (over: Partial<Parameters<typeof buildTestToken>[0]> = {}) =>
+  buildTestToken({ digest: sha256(goodSignatureValue), authority: tsaRaw(), genTime: new Date(TOKEN_TIME), ...over });
+const sigToken = await stamp();
+const cmsStamped = addUnsignedAttribute(authority.cmsGood, timestampTokenAttribute(sigToken));
+const cmsWrongStamp = addUnsignedAttribute(authority.cmsGood, timestampTokenAttribute(await stamp({ digest: digestBytes(32, 5) })));
+const docToken = await buildTestToken({
+  digest: authority.digest,
+  authority: tsaRaw(),
+  genTime: new Date(TOKEN_TIME + HOUR_MS),
+});
+const tsTrust = (...extra: string[]) => ({
+  anchors: { $fn: 'trust.anchors', resolves: [$b(b64(authority.root)), ...extra.map(certArg)] },
+});
+const tsaKey = (token: Uint8Array | null, hash?: string) => ({
+  kind: 'cms',
+  ...(hash ? { hash } : {}),
+  sign: token ? { $fn: 'tsa.sign', resolves: $b(b64(token)) } : { $fn: 'tsa.sign', resolves: $b('AQID') },
+});
+const docTimestampSignature = {
+  ...ltvSignature,
+  index: 1,
+  field: { kind: 'fqn', name: 'TS1' },
+  fieldName: 'TS1',
+  kind: 'timestamp',
+  filter: 'Adobe.PPKLite',
+  subFilter: 'ETSI.RFC3161',
+  revisionIndex: 1,
+  signer: null,
+};
+/** A signature in revision 0 and a document timestamp in revision 1 over the same bytes. */
+const twoRevisionDoc = (info: ReturnType<typeof stored>, token = docToken): Record<string, FakeDocumentSpec> => ({
+  d: {
+    pages: [],
+    services: ['signatures'],
+    responses: [
+      {
+        path: 'signatures.list',
+        value: { chainValid: true, revisions: [{ index: 0 }, { index: 1 }], signatures: [ltvSignature, docTimestampSignature], protection: {} },
+      },
+      { path: 'signatures.getValidationInfo', value: info },
+      { path: 'signatures.getContents', args: [{ kind: 'fqn', name: 'Sig1' }], value: $b(b64(authority.cmsGood)) },
+      { path: 'signatures.getContents', args: [{ kind: 'fqn', name: 'TS1' }], value: $b(b64(token)) },
+      { path: 'signatures.getDigest', value: $b(b64(authority.digest)) },
+      {
+        path: 'signatures.analyze',
+        value: { current: { verdict: 'permitted', primary: null }, basis: { source: 'persisted' }, later: { revisionCount: 1, undoneObjectNumbers: [] } },
+      },
+    ],
+  },
+});
+const ltPrepared = (over: Record<string, unknown> = {}) =>
+  prepared({ digest: $b(b64(authority.digest)), contentsSizeBytes: 16384, ...over });
+const completes: ResponseSpec = { path: 'signatures.complete', value: { status: 'completed', signature: { index: 0, fieldName: 'Sig1' } } };
+
+/**
+ * Answers built with the test authority's builders under the scripted WebCrypto: a root and a
+ * signer of their own, a delegated responder, and answers each branch of `checkRevocationAnswer`
+ * takes. `wellFormed` is the issuer's own good answer, from which the malformed ones are cut.
+ */
+const answers = await withWebCrypto(() => {}, async () => {
+  const at = new Date(JAN_2026);
+  const keys = await generateSigningKeyPair('RSA-PKCS1-v1_5', 'sha256', true);
+  const dates = { notBefore: new Date(JAN_2026 - 24 * HOUR_MS), notAfter: new Date(JAN_2026 + 365 * 24 * HOUR_MS) };
+  const root: Issuer = {
+    certificate: await issueCertificate({ kind: 'authority', commonName: 'Answers Root', publicKey: keys.publicKey, privateKey: keys.privateKey, ...dates }),
+    privateKey: keys.privateKey,
+  };
+  const other: Issuer = {
+    certificate: await issueCertificate({ kind: 'authority', commonName: 'Other Root', publicKey: keys.publicKey, privateKey: keys.privateKey, ...dates }),
+    privateKey: keys.privateKey,
+  };
+  const signer = await issueCertificate({ kind: 'signer', commonName: 'Answers Signer', publicKey: keys.publicKey, issuer: root, ...dates });
+  const responder: Issuer = {
+    certificate: await issueCertificate({ kind: 'responder', commonName: 'Answers Responder', publicKey: keys.publicKey, issuer: root, ...dates }),
+    privateKey: keys.privateKey,
+  };
+  const notResponder: Issuer = {
+    certificate: await issueCertificate({ kind: 'signer', commonName: 'Not A Responder', publicKey: keys.publicKey, issuer: root, ...dates }),
+    privateKey: keys.privateKey,
+  };
+  const expiredResponder: Issuer = {
+    certificate: await issueCertificate({
+      kind: 'responder', commonName: 'Expired Responder', publicKey: keys.publicKey, issuer: root,
+      notBefore: new Date(JAN_2026 - 48 * HOUR_MS), notAfter: new Date(JAN_2026 - 24 * HOUR_MS),
+    }),
+    privateKey: keys.privateKey,
+  };
+  const foreignResponder: Issuer = {
+    certificate: await issueCertificate({ kind: 'responder', commonName: 'Answers Responder', publicKey: keys.publicKey, issuer: other, ...dates }),
+    privateKey: keys.privateKey,
+  };
+  const ocsp = (over: Partial<Parameters<typeof buildOcspResponse>[0]> = {}) =>
+    buildOcspResponse({
+      certificate: signer, issuer: root.certificate, signer: root, status: 'good',
+      producedAt: at, thisUpdate: at, nextUpdate: new Date(JAN_2026 + HOUR_MS), ...over,
+    });
+  const crl = (over: Partial<Parameters<typeof buildCrl>[0]> = {}) =>
+    buildCrl({ issuer: root, thisUpdate: at, nextUpdate: new Date(JAN_2026 + 7 * 24 * HOUR_MS), revoked: [], ...over });
+  // pkijs is the signature package's dependency, not this tool's.
+  const pkijs = await import('../../../../packages/core/signature/node_modules/pkijs/build/index.js');
+  const make = (extnID: string, value: number[], critical = false) =>
+    new pkijs.Extension({ extnID, critical, extnValue: new Uint8Array(value).buffer });
+  const der = (cert: { toSchema: (b: boolean) => { toBER: (b: boolean) => ArrayBuffer } }) => new Uint8Array(cert.toSchema(true).toBER(false));
+  const good = await ocsp();
+  const swap = (bytes: Uint8Array, from: number[], to: number[]) => {
+    for (let i = 0; i + from.length <= bytes.length; i++) {
+      if (from.every((b, j) => bytes[i + j] === b)) {
+        const out = bytes.slice();
+        out.set(to, i);
+        return out;
+      }
+    }
+    throw new Error('[signature-core] no bytes to swap');
+  };
+  return {
+    root: der(root.certificate),
+    otherRoot: der(other.certificate),
+    signer: der(signer),
+    ocsp: {
+      good,
+      byKey: await ocsp({ responderId: 'key' }),
+      sha256Id: await ocsp({ idHash: 'SHA-256' }),
+      revoked: await ocsp({ status: { revokedAt: new Date(JAN_2026 - HOUR_MS), reason: 'key-compromise' } }),
+      revokedNoReason: await ocsp({ status: { revokedAt: new Date(JAN_2026 - HOUR_MS) } }),
+      unknown: await ocsp({ status: 'unknown' }),
+      openWindow: await ocsp({ nextUpdate: null }),
+      delegated: await ocsp({ signer: responder }),
+      notDelegated: await ocsp({ signer: notResponder }),
+      expiredResponder: await ocsp({ signer: expiredResponder }),
+      foreignResponder: await ocsp({ signer: foreignResponder }),
+      otherCertificate: await ocsp({ certificate: root.certificate }),
+      constructedGood: swap(good, [0x80, 0x00, 0x18, 0x0f], [0xa0, 0x00, 0x18, 0x0f]),
+      primitiveRevoked: swap(good, [0x80, 0x00, 0x18, 0x0f], [0x81, 0x00, 0x18, 0x0f]),
+      status1: new Uint8Array([0x30, 0x03, 0x0a, 0x01, 0x01]),
+      status9: new Uint8Array([0x30, 0x03, 0x0a, 0x01, 0x09]),
+      noBytes: new Uint8Array([0x30, 0x03, 0x0a, 0x01, 0x00]),
+      otherType: new Uint8Array([0x30, 0x13, 0x0a, 0x01, 0x00, 0xa0, 0x0e, 0x30, 0x0c, 0x06, 0x05, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x04, 0x03, 0x01, 0x02, 0x03]),
+      innerGarbage: new Uint8Array([0x30, 0x16, 0x0a, 0x01, 0x00, 0xa0, 0x11, 0x30, 0x0f, 0x06, 0x09, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x30, 0x01, 0x01, 0x04, 0x02, 0x01, 0x02]),
+      notDer: new Uint8Array([0x30, 0x80]),
+      badSignature: (() => { const out = good.slice(); out[out.length - 1] ^= 1; return out; })(),
+    },
+    crl: {
+      good: await crl(),
+      revoked: await crl({ revoked: [{ serialNumber: signer.serialNumber, at: new Date(JAN_2026 - HOUR_MS), reason: 'superseded' }] }),
+      revokedNoReason: await crl({ revoked: [{ serialNumber: signer.serialNumber, at: new Date(JAN_2026 - HOUR_MS) }] }),
+      otherIssuer: await crl({ issuer: other }),
+      delta: await crl({ extensions: [make('2.5.29.27', [0x02, 0x01, 0x01], true)] }),
+      indirect: await crl({ extensions: [make('2.5.29.28', [0x30, 0x03, 0x84, 0x01, 0xff], true)] }),
+      onlyCa: await crl({ extensions: [make('2.5.29.28', [0x30, 0x03, 0x82, 0x01, 0xff], true)] }),
+      onlyUser: await crl({ extensions: [make('2.5.29.28', [0x30, 0x03, 0x81, 0x01, 0xff], true)] }),
+      someReasons: await crl({ extensions: [make('2.5.29.28', [0x30, 0x04, 0x83, 0x02, 0x07, 0x80], true)] }),
+      badScope: await crl({ extensions: [make('2.5.29.28', [0x04, 0x00], true)] }),
+      unknownCritical: await crl({ extensions: [make('1.3.6.1.4.1.99999.2', [0x05, 0x00], true)] }),
+      notDer: new Uint8Array([0x30, 0x80]),
+      notCrl: new Uint8Array([0x30, 0x03, 0x02, 0x01, 0x01]),
+    },
+  };
+});
+const check = (kind: 'ocsp' | 'crl', der: Uint8Array, certificate = answers.signer, issuer = answers.root) =>
+  call('checkRevocationAnswer', { kind, der: $b(b64(der)), certificate: $b(b64(certificate)), issuer: $b(b64(issuer)) });
+
+const longTermCases2: ScenarioCase[] = [
+  scenario('lt-timestamped-enabled', 'A signature with a trusted timestamp and a stored answer good at its time is long-term enabled.', [
+    call('validateSignatures', 'd', { trust: tsTrust('tsa') }),
+    call('validateSignatures', 'd', { trust: tsTrust('tsa'), validationTime: { kind: 'now' } }),
+  ], ltvDoc(cmsStamped, stored({ ocspResponses: [authority.ocspGood] }))),
+  scenario('lt-timestamped-no-answer', 'A trusted timestamp with nothing stored: no answer for the signer at that time.', [
+    call('validateSignatures', 'd', { trust: tsTrust('tsa') }),
+  ], ltvDoc(cmsStamped, stored())),
+  scenario('lt-timestamp-untrusted', "Without the authority's certificate among the anchors, the timestamp proves no time to you.", [
+    call('validateSignatures', 'd', { trust: tsTrust() }),
+    call('validateSignatures', 'd', {}),
+  ], ltvDoc(cmsStamped, stored({ ocspResponses: [authority.ocspGood] }))),
+  scenario('lt-timestamp-not-its-own', 'A timestamp over other bytes is invalid; the signature stays valid.', [
+    call('validateSignatures', 'd', { trust: tsTrust('tsa') }),
+  ], ltvDoc(cmsWrongStamp, stored())),
+  scenario('lt-tsa-purposes', 'An authority whose timestamping purpose is not critical, or not its only one, is not trusted to say the time.', [
+    call('verifyTimestampToken', { token: $b(b64(await buildTestToken({ digest: TSA_DIGEST, authority: tsaRaw('tsaNotCritical'), genTime: new Date(TOKEN_TIME) }))), digest: $b(b64(TSA_DIGEST)), algorithm: 'sha256', trust: tsTrust('tsaNotCritical') }),
+    call('verifyTimestampToken', { token: $b(b64(await buildTestToken({ digest: TSA_DIGEST, authority: tsaRaw('tsaTwoPurposes'), genTime: new Date(TOKEN_TIME) }))), digest: $b(b64(TSA_DIGEST)), algorithm: 'sha256', trust: tsTrust('tsaTwoPurposes') }),
+    call('verifyTimestampToken', { token: $b(b64(await buildTestToken({ digest: TSA_DIGEST, authority: tsaRaw(), genTime: new Date(Date.UTC(2050, 0, 1)) }))), digest: $b(b64(TSA_DIGEST)), algorithm: 'sha256', trust: tsTrust('tsa') }),
+    call('verifyTimestampToken', { token: $b(b64(await buildTestToken({ digest: TSA_DIGEST, authority: tsaRaw(), genTime: new Date(TOKEN_TIME) }))), digest: $b(b64(TSA_DIGEST)), algorithm: 'sha256', trust: { anchors: { $fn: 'trust.anchors', resolves: [] }, timestampAnchors: { $fn: 'trust.timestampAnchors', resolves: [certArg('tsa')] } } }),
+    call('verifyTimestampToken', { token: $b(b64(await buildTestToken({ digest: TSA_DIGEST, authority: tsaRaw(), genTime: new Date(TOKEN_TIME) }))), digest: $b(b64(TSA_DIGEST)), algorithm: 'sha256', trust: { anchors: { $fn: 'trust.anchors', resolves: [certArg('tsa')] }, timestampAnchors: { $fn: 'trust.timestampAnchors', resolves: [] } } }),
+  ]),
+  scenario('lt-document-timestamp', 'A document timestamp after the signature: it vouches for the signature at its time, and is judged now itself.', [
+    call('validateSignatures', 'd', { trust: tsTrust('tsa') }),
+    call('validateSignatures', 'd', { trust: tsTrust('tsa'), validationTime: { kind: 'earliest-timestamp' } }),
+  ], twoRevisionDoc(stored({ ocspResponses: [authority.ocspGood] }))),
+  scenario('lt-document-timestamp-other-bytes', 'A document timestamp over other bytes: integrity invalid, the token judged against what it stamps.', [
+    call('validateSignatures', 'd', { trust: tsTrust('tsa') }),
+  ], twoRevisionDoc(stored(), await buildTestToken({ digest: digestBytes(32, 77), authority: tsaRaw(), genTime: new Date(TOKEN_TIME) }))),
+  scenario('lt-document-timestamp-unreadable', 'A document timestamp whose contents are no token.', [
+    call('validateSignatures', 'd', { trust: tsTrust('tsa') }),
+  ], twoRevisionDoc(stored(), new Uint8Array([1, 2, 3]))),
+  scenario('lt-collect-timestamped', 'addValidationInfo for a timestamped signature asks for the answer and stores it with the paths.', [
+    call('addValidationInfo', 'd', { trust: tsTrust('tsa'), revocation: source(authority.ocspGood) }),
+    call('addValidationInfo', 'd', { trust: tsTrust('tsa'), revocation: source(authority.ocspGood), partial: true }),
+    call('addValidationInfo', 'd', { trust: tsTrust('tsa'), revocation: source(null) }),
+    call('addValidationInfo', 'd', { trust: tsTrust('tsa'), revocation: source(authority.ocspWithdrawn) }),
+  ], ltvDoc(cmsStamped, stored(), [stores({ certificates: 3, ocspResponses: 1 })])),
+  scenario('lt-collect-stored', 'addValidationInfo when the file already holds the answer: nothing new to store.', [
+    call('addValidationInfo', 'd', { trust: tsTrust('tsa') }),
+  ], ltvDoc(cmsStamped, stored({ ocspResponses: [authority.ocspGood], certificates: [authority.good, authority.root, bytesOf(fixtures.certs.tsa!)] }), [stores({})])),
+  scenario('attach-timestamp', "attachSignatureTimestamp: a token over the signature value, spliced in as an unsigned attribute; and what it refuses.", [
+    call('attachSignatureTimestamp', { cms: $b(b64(authority.cmsGood)), authority: tsaKey(sigToken) }),
+    call('attachSignatureTimestamp', { cms: $b(b64(authority.cmsGood)), authority: tsaKey(sigToken), trust: tsTrust('tsa') }),
+    call('attachSignatureTimestamp', { cms: $b(b64(authority.cmsGood)), authority: tsaKey(sigToken), trust: tsTrust() }),
+    call('attachSignatureTimestamp', { cms: $b(b64(cmsStamped)), authority: tsaKey(sigToken) }),
+    call('attachSignatureTimestamp', { cms: $b(b64(authority.cmsGood)), authority: tsaKey(await stamp({ digest: digestBytes(32, 5) })) }),
+    call('attachSignatureTimestamp', { cms: $b(b64(authority.cmsGood)), authority: tsaKey(await stamp({ hash: 'sha384', digest: digestBytes(48, 5) })) }),
+    call('attachSignatureTimestamp', { cms: $b(b64(authority.cmsGood)), authority: tsaKey(null) }),
+    call('attachSignatureTimestamp', { cms: $b(b64(authority.cmsGood)), authority: tsaKey(sigToken, 'sha384') }),
+    call('attachSignatureTimestamp', { cms: $b('AQID'), authority: tsaKey(sigToken) }),
+    call('attachSignatureTimestamp', { cms: $b(b64(new Uint8Array([...authority.cmsGood, 0, 0, 0]))), authority: tsaKey(sigToken) }),
+    call('attachSignatureTimestamp', { cms: $b(b64(new Uint8Array([...authority.cmsGood, 7]))), authority: tsaKey(sigToken) }),
+  ]),
+  scenario('complete-signature', 'completeSignature: the gate, the timestamp, the gate again, complete; and its refusals.', [
+    call('completeSignature', 'd', { prepared: ltPrepared(), cms: $b(b64(authority.cmsGood)), timestampAuthority: tsaKey(sigToken) }),
+    call('completeSignature', 'd', { prepared: ltPrepared(), cms: $b(b64(authority.cmsGood)) }),
+    call('completeSignature', 'd', { prepared: ltPrepared(), cms: $b(b64(authority.cmsGood)), timestampTrust: tsTrust('tsa') }),
+    call('completeSignature', 'd', { prepared: ltPrepared({ digest: $b(b64(digestBytes(32, 9))) }), cms: $b(b64(authority.cmsGood)) }),
+    call('completeSignature', 'd', { prepared: ltPrepared({ subFilter: 'ETSI.RFC3161' }), cms: $b(b64(docToken)), timestampAuthority: tsaKey(sigToken) }),
+    call('completeSignature', 'd', { prepared: ltPrepared({ subFilter: 'ETSI.RFC3161' }), cms: $b(b64(docToken)), timestampTrust: tsTrust('tsa') }),
+    call('completeSignature', 'd', { prepared: ltPrepared({ subFilter: 'ETSI.RFC3161' }), cms: $b(b64(docToken)), timestampTrust: tsTrust() }),
+  ], { d: { pages: [], services: ['signatures'], responses: [completes] } }),
+  scenario('gate-signature-timestamps', "The gate refuses a CMS whose timestamp stamps other bytes, and checks a document timestamp's token.", [
+    call('verifyForCompletion', { cms: $b(b64(cmsWrongStamp)), prepared: ltPrepared(), profile: 'cades-b' }),
+    call('verifyForCompletion', { cms: $b(b64(cmsStamped)), prepared: ltPrepared(), profile: 'cades-b' }),
+    call('verifyForCompletion', { cms: $b(b64(await buildTestToken({ digest: authority.digest, authority: tsaRaw(), genTime: new Date(TOKEN_TIME), carriesCertificate: false }))), prepared: ltPrepared(), profile: 'timestamp' }),
+    call('verifyForCompletion', { cms: $b(b64(await buildTestToken({ digest: authority.digest, authority: tsaRaw(), genTime: new Date(TOKEN_TIME), binding: null }))), prepared: ltPrepared(), profile: 'timestamp' }),
+    call('verifyForCompletion', { cms: $b(b64(await buildTestToken({ digest: authority.digest, authority: tsaRaw(), genTime: new Date(TOKEN_TIME), binding: { version: 2, certHash: digestBytes(32, 1) } }))), prepared: ltPrepared(), profile: 'timestamp' }),
+    call('verifyForCompletion', { cms: $b(b64(await buildTestToken({ digest: authority.digest, authority: tsaRaw(), genTime: new Date(TOKEN_TIME), binding: { version: 2, hashOid: '1.2.3.4' } }))), prepared: ltPrepared(), profile: 'timestamp' }),
+    call('verifyForCompletion', { cms: $b(b64(await buildTestToken({ digest: authority.digest, authority: tsaRaw(), genTime: new Date(TOKEN_TIME), binding: { version: 1 } }))), prepared: ltPrepared(), profile: 'timestamp' }),
+    call('verifyForCompletion', { cms: $b(b64(await buildTestToken({ digest: authority.digest, authority: tsaRaw(), genTime: new Date(TOKEN_TIME), swapsContent: true }))), prepared: ltPrepared(), profile: 'timestamp' }),
+    call('verifyForCompletion', { cms: $b(b64(docToken)), prepared: ltPrepared({ algorithm: 'sha384' }), profile: 'timestamp' }),
+  ]),
+  scenario('answers-ocsp', 'checkRevocationAnswer over OCSP responses: each branch, the well-formed ones and the malformed.', [
+    ...Object.values(answers.ocsp).map((der) => check('ocsp', der)),
+    check('ocsp', answers.ocsp.good, answers.signer, answers.otherRoot),
+  ]),
+  scenario('answers-crl', 'checkRevocationAnswer over CRLs: each branch, the well-formed ones and the malformed.', [
+    ...Object.values(answers.crl).map((der) => check('crl', der)),
+    check('crl', answers.crl.good, answers.root, answers.root),
+  ]),
+];
+
 export const suites: Suite[] = [
   {
     kind: 'function',
@@ -1491,5 +1786,12 @@ export const suites: Suite[] = [
     describes:
       'packages/core/signature: revocation answers from a test certificate authority, long-term validation, and addValidationInfo.',
     cases: revocationCases,
+  },
+  {
+    kind: 'scenario',
+    file: 'core/signature-long-term.json',
+    describes:
+      'packages/core/signature: trusted signature and document timestamps, long-term validation, attachSignatureTimestamp, completeSignature, the gate on tokens, and checkRevocationAnswer branch by branch.',
+    cases: longTermCases2,
   },
 ];

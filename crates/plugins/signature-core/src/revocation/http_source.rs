@@ -24,6 +24,9 @@ pub struct HttpRevocationSourceOptions {
     pub timeout_ms: Option<u32>,
     /// Further attempts when no answer came. Default 1.
     pub retries: Option<u32>,
+    /// The largest answer read, in bytes. Default 2 MiB, the revocation
+    /// route's `maxBytes` default.
+    pub max_reply_bytes: Option<u32>,
 }
 
 /// `RevocationRouteRequest`: what the route is sent, as JSON. `body` is an
@@ -81,7 +84,7 @@ impl RevocationSource for HttpRevocationSource {
                 headers: options.headers.clone(),
                 body: serde_json::to_vec(&route_request(&request)).unwrap_or_default(),
                 timeout_ms,
-                max_reply_bytes: MAX_REVOCATION_REPLY_BYTES,
+                max_reply_bytes: options.max_reply_bytes.unwrap_or(MAX_REVOCATION_REPLY_BYTES),
             };
             let exchanged = post_with_retries(
                 &transport,

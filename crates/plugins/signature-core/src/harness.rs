@@ -19,6 +19,8 @@ use rsa::pkcs8::DecodePrivateKey as _;
 use rsa::{Pkcs1v15Sign, RsaPrivateKey};
 use serde_json::{Map, Value, json};
 
+use crate::attach::attach_signature_timestamp;
+use crate::cert::Certificate;
 use crate::cms::{
     BuildInput, Profile, RawAlgorithm, RawSigner, build_detached_cms, verify_cms_signature,
 };
@@ -28,9 +30,11 @@ use crate::gate::{CompletionProfile, Prepared, verify_for_completion};
 use crate::judgement::Requested;
 use crate::oids::Digest;
 use crate::parse::{bytes_json, parse_detached_cms};
+use crate::revocation::answer::{AnswerKind, RevocationAnswer, check_revocation_answer};
 use crate::revocation::http_source::{HttpRevocationSourceOptions, http_revocation_source};
 use crate::revocation::source::{RevocationRequest, RevocationSource};
 use crate::sign::{CmsSignRequest, CmsSigner, SignerPort, profile_for, sign};
+use crate::sign::{TimestampOptions, complete_signature};
 use crate::signers::{
     CryptoKey, CryptoKeyPair, MemoryKeyStore, PersonalKeyRecord, PersonalKeyStore, WebCrypto,
     certificate_common_name, create_test_signer, generate_signing_key_pair, personal_signer,
@@ -317,6 +321,8 @@ fn revocation_source(h: &Harness, value: Option<&Value>) -> Option<Rc<dyn Revoca
 struct ScriptedTrust {
     harness: Harness,
     spec: Value,
+    /// `timestampAnchors`, when the port has the member.
+    timestamp_spec: Option<Value>,
 }
 
 impl TrustPort for ScriptedTrust {
@@ -324,11 +330,22 @@ impl TrustPort for ScriptedTrust {
         scripted(&self.harness, &self.spec, vec![])
             .map(|v| Ok(v.as_array().map(|a| a.iter().map(bytes).collect()).unwrap_or_default()))
     }
+
+    fn timestamp_anchors(&self) -> Option<Promise<Vec<Vec<u8>>>> {
+        let spec = self.timestamp_spec.as_ref()?;
+        Some(
+            scripted(&self.harness, spec, vec![]).map(|v| {
+                Ok(v.as_array().map(|a| a.iter().map(bytes).collect()).unwrap_or_default())
+            }),
+        )
+    }
 }
 
 fn trust_port(h: &Harness, value: Option<&Value>) -> Option<Rc<dyn TrustPort>> {
-    let spec = present(value)?.get("anchors")?.clone();
-    Some(Rc::new(ScriptedTrust { harness: h.clone(), spec }))
+    let value = present(value)?;
+    let spec = value.get("anchors")?.clone();
+    let timestamp_spec = present(value.get("timestampAnchors")).cloned();
+    Some(Rc::new(ScriptedTrust { harness: h.clone(), spec, timestamp_spec }))
 }
 
 fn validation_time(value: Option<&Value>) -> Option<ValidationTime> {
@@ -582,6 +599,50 @@ impl SignatureCapability {
                     validate_signatures(doc, options).await
                 })
             }
+            "attachSignatureTimestamp" => {
+                let input = arg(0);
+                let authority = cms_signer(&h, &input["authority"]);
+                let trust = trust_port(&h, input.get("trust"));
+                spawn(async move {
+                    Ok(bytes_json(
+                        &attach_signature_timestamp(&bytes(&input["cms"]), &authority, trust)
+                            .await?,
+                    ))
+                })
+            }
+            "completeSignature" => {
+                let doc = self.ctx.document_handle(arg(0).as_str());
+                let input = arg(1);
+                let options = TimestampOptions {
+                    timestamp_authority: present(input.get("timestampAuthority"))
+                        .map(|a| cms_signer(&h, a)),
+                    timestamp_trust: trust_port(&h, input.get("timestampTrust")),
+                };
+                spawn(async move {
+                    let doc = doc.ok_or_else(|| Error::new("[signature-core] no document"))?;
+                    complete_signature(
+                        doc,
+                        input["prepared"].clone(),
+                        bytes(&input["cms"]),
+                        options,
+                    )
+                    .await
+                })
+            }
+            "checkRevocationAnswer" => {
+                let input = arg(0);
+                spawn(async move {
+                    let kind = if input["kind"].as_str() == Some("ocsp") {
+                        AnswerKind::Ocsp
+                    } else {
+                        AnswerKind::Crl
+                    };
+                    let certificate = Certificate::from_ber(&bytes(&input["certificate"]))?;
+                    let issuer = Certificate::from_ber(&bytes(&input["issuer"]))?;
+                    let answer = RevocationAnswer { kind, der: bytes(&input["der"]) };
+                    Ok(check_revocation_answer(&answer, &certificate, &issuer).to_json())
+                })
+            }
             "addValidationInfo" => {
                 let doc = self.ctx.document_handle(arg(0).as_str());
                 let options = present(args.get(1)).cloned().unwrap_or(Value::Null);
@@ -674,6 +735,7 @@ impl SignatureCapability {
                             .and_then(Value::as_u64)
                             .map(|n| n as u32),
                         retries: options.get("retries").and_then(Value::as_u64).map(|n| n as u32),
+                        max_reply_bytes: None,
                     },
                 );
                 let url = request["url"].as_str().unwrap_or_default().to_string();
