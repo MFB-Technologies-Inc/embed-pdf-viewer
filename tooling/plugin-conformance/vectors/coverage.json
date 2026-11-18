@@ -1,8 +1,8 @@
 {
   "total": {
-    "statements": "77842/82243",
-    "branches": "15375/16906",
-    "unsnapshottedOnlyLines": 2645,
+    "statements": "77907/82243",
+    "branches": "15410/16940",
+    "unsnapshottedOnlyLines": 2659,
     "unloadedFiles": 42
   },
   "unloaded": [
@@ -989,7 +989,7 @@
     },
     "packages/core/annotation/src/update/draw.ts": {
       "statements": "374/375",
-      "branches": "149/151",
+      "branches": "150/152",
       "uncoveredLines": [
         149
       ],
@@ -2721,7 +2721,7 @@
     },
     "packages/core/signature/src/collect.ts": {
       "statements": "212/213",
-      "branches": "53/60",
+      "branches": "54/61",
       "uncoveredLines": [
         175
       ],
@@ -2735,7 +2735,10 @@
         "199:53#0"
       ],
       "unsnapshottedOnly": [
-        "67-161",
+        "73-78",
+        "84-89",
+        "93-99",
+        "106-160",
         "164-174",
         "176-187",
         "190-213"
@@ -5603,7 +5606,7 @@
     },
     "packages/plugin/annotation/src/tools/ghost.ts": {
       "statements": "218/221",
-      "branches": "38/47",
+      "branches": "37/46",
       "uncoveredLines": [
         39,
         40,
@@ -5776,7 +5779,7 @@
     },
     "packages/plugin/annotation/src/write/drafts.ts": {
       "statements": "171/171",
-      "branches": "48/56",
+      "branches": "49/56",
       "uncoveredLines": [],
       "uncoveredBranches": [
         "57:36#0",
@@ -5785,8 +5788,7 @@
         "66:37#0",
         "98:44#0",
         "101:37#0",
-        "124:16#0",
-        "163:25#0"
+        "124:16#0"
       ]
     },
     "packages/plugin/annotation/src/write/icons.ts": {
@@ -6239,7 +6241,7 @@
     },
     "packages/plugin/form/src/model.ts": {
       "statements": "478/523",
-      "branches": "133/158",
+      "branches": "135/159",
       "uncoveredLines": [
         151,
         152,
@@ -6308,7 +6310,6 @@
         "331:73#0",
         "347:25#0",
         "354:32#0",
-        "411:29#0",
         "416:25#0",
         "417:25#0",
         "422:23#0",
@@ -6837,7 +6838,7 @@
     },
     "packages/plugin/form/src/sync/fields.ts": {
       "statements": "58/61",
-      "branches": "16/18",
+      "branches": "15/17",
       "uncoveredLines": [
         49,
         50,
@@ -6850,7 +6851,7 @@
     },
     "packages/plugin/form/src/sync/predict.ts": {
       "statements": "477/538",
-      "branches": "92/126",
+      "branches": "93/125",
       "uncoveredLines": [
         86,
         134,
@@ -6931,12 +6932,10 @@
         "252:18#0",
         "275:38#0",
         "283:15#0",
-        "286:17#0",
         "289:2#0",
         "293:42#0",
         "317:31#0",
         "329:15#0",
-        "334:20#0",
         "332:82#0",
         "349:75#0",
         "351:79#0",
@@ -9029,15 +9028,12 @@
       ]
     },
     "packages/plugin/signature/src/services/authority.ts": {
-      "statements": "65/68",
-      "branches": "19/20",
-      "uncoveredLines": [
-        63,
-        64,
-        65
-      ],
-      "uncoveredBranches": [
-        "33:44#0"
+      "statements": "68/68",
+      "branches": "26/26",
+      "uncoveredLines": [],
+      "uncoveredBranches": [],
+      "unsnapshottedOnly": [
+        "63-65"
       ]
     },
     "packages/plugin/signature/src/services/errors.ts": {
@@ -9168,7 +9164,7 @@
     },
     "packages/plugin/signature/src/write/sign.ts": {
       "statements": "206/219",
-      "branches": "36/52",
+      "branches": "38/52",
       "uncoveredLines": [
         56,
         57,
@@ -9192,11 +9188,9 @@
         "130:12#0",
         "133:31#0",
         "112:47#0",
-        "155:12#0",
         "157:43#0",
         "169:8#0",
         "169:34#0",
-        "187:12#0",
         "189:6#0",
         "182:85#0",
         "200:6#0",
@@ -9204,40 +9198,9 @@
       ]
     },
     "packages/plugin/signature/src/write/validation-info.ts": {
-      "statements": "66/151",
-      "branches": "3/5",
+      "statements": "128/151",
+      "branches": "25/33",
       "uncoveredLines": [
-        34,
-        35,
-        36,
-        37,
-        38,
-        39,
-        40,
-        41,
-        42,
-        43,
-        44,
-        45,
-        46,
-        47,
-        48,
-        49,
-        50,
-        51,
-        60,
-        61,
-        62,
-        63,
-        64,
-        65,
-        66,
-        67,
-        68,
-        69,
-        70,
-        71,
-        72,
         73,
         74,
         75,
@@ -9255,47 +9218,27 @@
         87,
         88,
         89,
-        90,
         91,
         92,
         93,
         94,
         95,
-        96,
-        99,
-        100,
-        101,
-        102,
-        103,
-        104,
-        105,
-        106,
-        107,
-        108,
-        109,
-        110,
-        111,
-        112,
-        113,
-        114,
-        115,
-        116,
-        117,
-        118,
-        132,
-        133,
-        134,
-        135,
-        136,
-        137,
-        138,
-        139,
-        140,
-        141
+        134
       ],
       "uncoveredBranches": [
-        "128:24#0",
-        "131:4#0"
+        "50:43#0",
+        "69:81#0",
+        "71:4#0",
+        "72:20#0",
+        "90:20#0",
+        "66:80#0",
+        "112:33#0",
+        "136:6#0"
+      ],
+      "unsnapshottedOnly": [
+        "37-42",
+        "44-49",
+        "99-118"
       ]
     },
     "packages/plugin/stage/src/camera/animation.ts": {
