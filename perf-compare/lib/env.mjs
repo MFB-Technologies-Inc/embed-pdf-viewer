@@ -135,7 +135,7 @@ export function compatible(a, b) {
 // display's rate, so this is the interval the scroll saw: `main`'s samples read
 // 16.66 to 16.67 ms in the 16.7 ms runs and 10.5 to 11.8 ms in the 11 ms runs,
 // apart from one at 17.3 ms. Every arm of a run agrees within 0.32 ms whatever
-// its load, and `main`'s drawInk settle is 180 intervals plus the same 870 to
+// its load, and `main`'s drawInk settle (now `wallMs`) is 180 intervals plus the same 870 to
 // 885 ms at both.
 export function frameInterval(samples, arm) {
   const xs = samples

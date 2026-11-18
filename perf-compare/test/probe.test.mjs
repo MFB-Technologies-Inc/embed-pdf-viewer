@@ -15,6 +15,7 @@ function harness() {
   const images = [];
   const listeners = {};
   const styleReads = new Map();
+  let samples = 0;
   class Element {
     parentElement = null;
     style = { overflowX: 'visible', overflowY: 'visible', display: 'block', visibility: 'visible' };
@@ -68,7 +69,8 @@ function harness() {
     }
   }
   const root = {
-    querySelectorAll: () => images.filter((i) => i.isConnected),
+    // One call per probe sample.
+    querySelectorAll: () => (samples++, images.filter((i) => i.isConnected)),
     addEventListener: (type, fn) => {
       listeners[type] = fn;
     },
@@ -104,6 +106,9 @@ function harness() {
   return {
     probe: ctx.window.__probe,
     styleReads,
+    get samples() {
+      return samples;
+    },
     Element,
     add(src = 'a', top = 0) {
       const img = new Img(src);
@@ -131,11 +136,14 @@ function harness() {
       listeners.load?.({ target: img });
       await flush();
     },
-    async advance(t) {
+    // `raf: false` runs only timers, as when the browser throttles frames.
+    async advance(t, { raf = true } = {}) {
       now = t;
-      const dueFrames = frames;
-      frames = [];
-      dueFrames.forEach((fn) => fn(t));
+      if (raf) {
+        const dueFrames = frames;
+        frames = [];
+        dueFrames.forEach((fn) => fn(t));
+      }
       const due = timers.filter((timer) => timer.at <= now);
       for (const timer of due) {
         timers.splice(timers.indexOf(timer), 1);
@@ -400,4 +408,27 @@ test('a hidden ancestor still hides every image under it', async () => {
   await h.advance(31000);
   assert.equal(r.status, 'rejected');
   assert.match(r.error.message, /never settled|no page-image change/);
+});
+
+test('a settle check reuses the frame sample instead of sampling again', async () => {
+  const { h, img } = await ready();
+  const r = result(h.probe.settledAt(301));
+  img.rect = { ...img.rect, left: 20, right: 120 };
+  const before = h.samples;
+  // Each step runs one frame, then the settle check's timer.
+  for (let t = 316; t <= 700; t += 16) await h.advance(t);
+  assert.equal(r.status, 'resolved');
+  assert.equal(r.time, 316);
+  assert.equal(h.samples - before, (700 - 316) / 16 + 1);
+});
+
+test('a settle check samples on its own when frames are throttled', async () => {
+  const { h, img } = await ready();
+  const r = result(h.probe.settledAt(301));
+  img.rect = { ...img.rect, left: 20, right: 120 };
+  for (let t = 316; t <= 700; t += 16) await h.advance(t, { raf: false });
+  // The first check 100 ms after the last frame sees the move, and each
+  // check after it samples, so quiet time counts as before.
+  assert.equal(r.status, 'resolved');
+  assert.equal(r.time, 412);
 });

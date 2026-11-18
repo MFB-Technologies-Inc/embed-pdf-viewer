@@ -158,6 +158,49 @@ test('hover, on a viewer without one, ends at its last pointer move and watches 
   }
 });
 
+// Page time that moves 10 ms per pointer move, so a test can tell time
+// counted from the first move from time counted from the last.
+function pacedClock() {
+  const real = globalThis.performance;
+  let clock = 0;
+  globalThis.performance = { now: () => clock };
+  return { tick: () => (clock += 10), restore: () => (globalThis.performance = real) };
+}
+
+test('hover and drawInk count settleMs from the last pointer move and wallMs from the first, as scroll does', async () => {
+  const clock = pacedClock();
+  const hover = fakeRun({ capabilities: [], pageBox: box, annotations: () => highlights, onInput: (n) => n === 'mouse.move' && clock.tick() });
+  try {
+    const r = await FLOWS.hover.measure(hover.page, hover.cdp);
+    // Three highlights, one move each; the stub settles at doneAt.
+    assert.equal(r.metrics.settleMs, 0);
+    assert.equal(r.metrics.wallMs, 30);
+  } finally {
+    hover.restore();
+  }
+  let ups = 0;
+  let polls = 0;
+  const ink = fakeRun({
+    capabilities: [],
+    pageBox: box,
+    execute: () => {},
+    annotationCount: () => (ups === 3 ? 1 : 0),
+    watch: () => 0,
+    // The ink lands on the third poll after the last stroke, 20 ms later.
+    read: () => (ups === 3 && ++polls >= 3 ? 1 : (ups === 3 && clock.tick(), 0)),
+    onInput: (name) => (name === 'mouse.move' && clock.tick(), name === 'mouse.up' && ups++),
+  });
+  try {
+    const r = await FLOWS.drawInk.measure(ink.page, ink.cdp);
+    // Three strokes of 60 moves.
+    assert.equal(r.metrics.settleMs, 20);
+    assert.equal(r.metrics.wallMs, 1820);
+  } finally {
+    ink.restore();
+    clock.restore();
+  }
+});
+
 test('a failed annotate or select warm-up is logged and kept for the sample line, not swallowed', async () => {
   const run = fakeRun({
     capabilities: [],

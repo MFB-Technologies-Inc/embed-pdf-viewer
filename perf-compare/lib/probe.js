@@ -5,6 +5,11 @@
   let visible = new Map();
   let lastFrame = null;
   let paintCandidate = null;
+  // When the latest sample and the latest frame ran. While frames run, a
+  // settle check reuses the frame's sample, so the probe samples once a
+  // frame, not once a frame and again every 16 ms.
+  let sampledAt = null;
+  let tickedAt = null;
   const mark = () => {
     state.lastChange = performance.now();
   };
@@ -108,6 +113,7 @@
   }
 
   function sample() {
+    sampledAt = performance.now();
     const next = new Map();
     const seen = new Map();
     for (const img of root()?.querySelectorAll('img[draggable="false"]') ?? []) {
@@ -127,6 +133,10 @@
     visible = next;
   }
 
+  // Longer than any frame interval while frames run, so a settle check
+  // samples only when frames have stopped.
+  const THROTTLED_MS = 100;
+
   const allDecoded = () =>
     visible.size > 0 &&
     [...visible].every(
@@ -137,6 +147,7 @@
   const tick = (t) => {
     if (lastFrame !== null) state.frames.push(t - lastFrame);
     lastFrame = t;
+    tickedAt = performance.now();
     sample();
     if (state.firstPaintAt === null) {
       if (allDecoded()) {
@@ -170,7 +181,10 @@
         waiters.add(fail);
         const check = () => {
           if (finished) return;
-          sample();
+          // Reuse the frame's sample while requestAnimationFrame runs; sample
+          // here, every check, once no frame has run for THROTTLED_MS, as
+          // when the browser throttles frames.
+          if (tickedAt === null || performance.now() - tickedAt >= THROTTLED_MS) sample();
           if (finished) return;
           const now = performance.now();
           const changed = state.lastChange !== null && state.lastChange >= sinceMs;
@@ -185,7 +199,9 @@
               ),
             );
           const settledAt = Math.max(changed ? state.lastChange : sinceMs, doneAt);
-          if ((!requireChange || changed) && now - settledAt >= 250 && allDecoded())
+          // Quiet time counts to the sample that saw it, not to now: a change
+          // since that sample is unseen until the next one.
+          if ((!requireChange || changed) && sampledAt - settledAt >= 250 && allDecoded())
             return finish(resolve, settledAt);
           setTimeout(check, 16);
         };

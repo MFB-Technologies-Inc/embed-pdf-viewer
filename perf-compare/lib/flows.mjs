@@ -223,7 +223,9 @@ async function hoverAcross(page, points) {
 // The arm handled the hover once the viewer reports the last highlight as
 // the annotation under the pointer. Only viewers with a hover read
 // (`hovered`, lib/done.mjs) can say so; on the others the flow ends at its
-// last pointer move, and the report marks those rows.
+// last pointer move, and the report marks those rows. As in `scroll`,
+// `settleMs` counts from the last pointer move and `wallMs` from the first:
+// the 80 moves are frame-paced, so a settle from t0 is mostly pacing.
 /** @type {Flow} */
 const hoverFlow = {
   fixture: 'annots',
@@ -245,6 +247,7 @@ const hoverFlow = {
     // The pointer enters the page on the first highlight and moves down
     // across all 20, four steps from one centre to the next.
     await hoverAcross(page, points);
+    const tLast = await now(page);
     const done = reads
       ? await waitFor(
           page,
@@ -253,9 +256,12 @@ const hoverFlow = {
           'the last highlight to be hovered',
           10_000,
         )
-      : await now(page);
+      : tLast;
     const settled = await settle(page, t0, { doneAt: done, requireChange: false });
-    return { metrics: { settleMs: settled - t0, ...(await cpu(cdp, before)) }, answers: { highlights: points.length } };
+    return {
+      metrics: { settleMs: settled - tLast, wallMs: settled - t0, ...(await cpu(cdp, before)) },
+      answers: { highlights: points.length },
+    };
   },
 };
 
@@ -335,7 +341,9 @@ async function drawStrokes(page, strokes) {
 // The ink tool groups strokes drawn within 800 ms into one annotation
 // (`groupStrokesMs` in packages/plugin/annotation/src/tools/definitions.ts on
 // both generations), so the three strokes make one ink annotation, added once
-// the grouping window closes.
+// the grouping window closes. As in `scroll`, `settleMs` counts from the last
+// pointer move (so it holds the grouping window) and `wallMs` from the first:
+// the 180 moves are frame-paced.
 /** @type {Flow} */
 const drawInkFlow = {
   fixture: 'annots',
@@ -360,6 +368,7 @@ const drawInkFlow = {
     const before = await cdp.cpuStart();
     const t0 = await now(page);
     await drawStrokes(page, strokes);
+    const tLast = await now(page);
     const done = await waitFor(
       page,
       ([id, n]) => window.__perf.read(id) === n + 1,
@@ -370,7 +379,7 @@ const drawInkFlow = {
     const settled = await settle(page, t0, { doneAt: done, requireChange: false });
     const load = await cpu(cdp, before);
     const countAfter = await page.evaluate((i) => window.__perf.annotationCount(i), INK_PAGE);
-    return { metrics: { settleMs: settled - t0, ...load }, answers: { countBefore, countAfter } };
+    return { metrics: { settleMs: settled - tLast, wallMs: settled - t0, ...load }, answers: { countBefore, countAfter } };
   },
 };
 
