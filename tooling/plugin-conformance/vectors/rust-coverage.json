@@ -1,8 +1,8 @@
 {
   "total": {
-    "replayLines": "68345/118359",
-    "unitOnlyLines": 38382,
-    "files": 700,
+    "replayLines": "68348/118503",
+    "unitOnlyLines": 38496,
+    "files": 701,
     "excludedFiles": 76
   },
   "files": {
@@ -10280,7 +10280,9 @@
     },
     "crates/plugins/signature-core/src/oids.rs": {
       "replayLines": "56/59",
-      "unitOnlyLines": []
+      "unitOnlyLines": [
+        "131"
+      ]
     },
     "crates/plugins/signature-core/src/parse.rs": {
       "replayLines": "375/419",
@@ -10378,10 +10380,11 @@
       ]
     },
     "crates/plugins/signature-core/src/transport.rs": {
-      "replayLines": "42/59",
+      "replayLines": "45/63",
       "unitOnlyLines": [
-        "91-94",
-        "163"
+        "90",
+        "99-102",
+        "171"
       ]
     },
     "crates/plugins/signature-core/src/trust.rs": {
@@ -10503,6 +10506,38 @@
     "crates/plugins/signature/src/tools/armed_mark.rs": {
       "replayLines": "46/50",
       "unitOnlyLines": []
+    },
+    "crates/plugins/signature/src/transport.rs": {
+      "replayLines": "0/140",
+      "unitOnlyLines": [
+        "59-61",
+        "66-71",
+        "74",
+        "105-107",
+        "109-117",
+        "119",
+        "121-123",
+        "125-127",
+        "132-140",
+        "142",
+        "146-153",
+        "156-159",
+        "164-169",
+        "171",
+        "173",
+        "176",
+        "178-182",
+        "184",
+        "188-197",
+        "199",
+        "201-203",
+        "209-219",
+        "221-226",
+        "228",
+        "231-237",
+        "239-240",
+        "242-246"
+      ]
     },
     "crates/plugins/signature/src/write/fill.rs": {
       "replayLines": "72/72",
