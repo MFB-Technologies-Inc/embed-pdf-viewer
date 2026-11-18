@@ -1499,6 +1499,20 @@ const stamp = (over: Partial<Parameters<typeof buildTestToken>[0]> = {}) =>
   buildTestToken({ digest: sha256(goodSignatureValue), authority: tsaRaw(), genTime: new Date(TOKEN_TIME), ...over });
 const sigToken = await stamp();
 const cmsStamped = addUnsignedAttribute(authority.cmsGood, timestampTokenAttribute(sigToken));
+/**
+ * The long-term fixtures `signature-plugin.ts` reuses: the authority's root, its signer and the
+ * timestamp authority's certificate (base64), its OCSP answer for the signer, the signed digest,
+ * a CAdES signature timestamped by the authority, and the signature it is listed as.
+ */
+export const LONG_TERM = {
+  root: b64(authority.root),
+  good: b64(authority.good),
+  tsa: fixtures.certs.tsa!,
+  ocspGood: b64(authority.ocspGood),
+  digest: b64(authority.digest),
+  cmsStamped: b64(cmsStamped),
+  signature: ltvSignature,
+};
 const cmsWrongStamp = addUnsignedAttribute(authority.cmsGood, timestampTokenAttribute(await stamp({ digest: digestBytes(32, 5) })));
 const docToken = await buildTestToken({
   digest: authority.digest,

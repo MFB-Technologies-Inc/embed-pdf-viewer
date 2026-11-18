@@ -101,6 +101,7 @@ import { sample } from './annotation-live-inputs';
 import './interaction';
 import { assetDoc, assetPage, opens, PDF, png, STAMP } from './stamp-current-fixtures';
 import { SEED, seedDoc, appendDoc } from './stamp-mutation-fixtures';
+import { LONG_TERM } from './signature-core';
 
 /** Why these cases record no state; see `ScenarioCase` in `../scenario`. */
 const UNSNAPSHOTTED = {
@@ -417,6 +418,44 @@ const docOf = (o: DocOptions = {}): FakeDocumentSpec => ({
   ],
 });
 
+/** The long-term signature of `signature-core.ts`, listed as Sig1 (by name) or Sig2 (by ref). */
+const LT_SIG1 = LONG_TERM.signature;
+const LT_SIG2 = { ...LONG_TERM.signature, field: ref(2), fieldName: 'Sig2' };
+/**
+ * A document whose one signature is the timestamped CAdES signature of `signature-core.ts`, on
+ * an intact chain, whose file already holds the answer and the certificates it needs (as
+ * `lt-collect-stored`), so the engine stores nothing new. Prepares as the signing cases do.
+ */
+const LONG_TERM_DOC = (signature: unknown, more: ResponseSpec[] = []): FakeDocumentSpec =>
+  docOf({
+    signatures: [signature],
+    responses: [
+      ...more,
+      // Only the two reads `addValidationInfo` makes of each call see the chain intact: the
+      // load, its validation, and the validation each call starts after it see it broken, so
+      // none of them reads a CMS (see the header).
+      listed([signature], {}, { times: 2 }),
+      listed([signature], { chainValid: true }, { times: 2 }),
+      listed([signature], {}, { times: 1 }),
+      listed([signature], { chainValid: true }, { times: 2 }),
+      {
+        path: 'signatures.getValidationInfo',
+        value: {
+          certificates: [LONG_TERM.good, LONG_TERM.root, LONG_TERM.tsa].map($b),
+          ocspResponses: [$b(LONG_TERM.ocspGood)],
+          crls: [],
+        },
+      },
+      { path: 'signatures.getContents', value: $b(LONG_TERM.cmsStamped) },
+      { path: 'signatures.getDigest', value: $b(LONG_TERM.digest) },
+      {
+        path: 'signatures.addValidationInfo',
+        value: { added: { certificates: 0, ocspResponses: 0, crls: 0 } },
+      },
+      { path: 'signatures.prepare', value: prepared() },
+    ],
+  });
+
 // ── steps ─────────────────────────────────────────────────────────────────────
 
 const ORIGIN = {
@@ -440,6 +479,8 @@ const close = (id = 'a'): Step => ({
   args: [id],
 });
 const boot = [start, open()];
+/** Boot with the clock at 2026-01-15, the long-term authority's day, as `signature-core.ts` runs. */
+const LONG_TERM_BOOT: Step[] = [start, { op: 'advance', ms: Date.UTC(2026, 0, 15) }, open()];
 const sig = (method: keyof SignatureCapability, ...args: unknown[]): Step => ({
   op: 'call',
   target: { token: 'signature', doc: 'a' },
@@ -858,6 +899,50 @@ const reads: ScenarioCase[] = [
       drain,
       sig('validate', { validationTime: { kind: 'earliest-timestamp' } }),
       sig('validate', { validationTime: { kind: 'now' } }),
+    ],
+  },
+  {
+    name: 'validation-info-added',
+    covers:
+      'addValidationInfo with trust and revocation over a timestamped signature whose answer the file already holds: nothing new is stored, for every signature and for one named field, and no document timestamp is asked for (32571b4b7).',
+    plugins: FORM_SIG({
+      trust: { anchors: { resolves: [$b(LONG_TERM.root), $b(LONG_TERM.tsa)] } },
+      revocation: { answer: { resolves: $b(LONG_TERM.ocspGood) } },
+    }),
+    engine: { documents: { a: LONG_TERM_DOC(LT_SIG1) } },
+    snapshot: ['signature::a'],
+    awaitCalls: true,
+    steps: [
+      ...LONG_TERM_BOOT,
+      drain,
+      sig('addValidationInfo'),
+      drain,
+      sig('addValidationInfo', { kind: 'fqn', name: 'Sig1' }),
+      drain,
+    ],
+  },
+  {
+    name: 'validation-info-and-a-failed-document-timestamp',
+    covers:
+      'With documentTimestamp: nothing new stored, but the signature has no document timestamp over it, so one is asked for, for a named field (the fqn branch of covered) and for every signature; the authority does not answer and addValidationInfo rejects with its failure (32571b4b7).',
+    plugins: FORM_SIG({
+      trust: { anchors: { resolves: [$b(LONG_TERM.root), $b(LONG_TERM.tsa)] } },
+      revocation: { answer: { resolves: $b(LONG_TERM.ocspGood) } },
+      timestampAuthority: {
+        answer: { rejects: { name: 'EngineError', code: 'Network', message: 'no authority' } },
+      },
+      documentTimestamp: true,
+    }),
+    engine: { documents: { a: LONG_TERM_DOC(LT_SIG1) } },
+    snapshot: ['signature::a'],
+    awaitCalls: true,
+    steps: [
+      ...LONG_TERM_BOOT,
+      drain,
+      sig('addValidationInfo', { kind: 'fqn', name: 'Sig1' }),
+      drain,
+      sig('addValidationInfo'),
+      drain,
     ],
   },
   {
@@ -1375,6 +1460,33 @@ const signing: ScenarioCase[] = [
     snapshot: ['signature::a'],
     awaitCalls: true,
     steps: [...boot, listen('onSigned'), drain, sig('sign', { field: ref(2), mark: MARK }), drain],
+  },
+  {
+    name: 'sign-then-validation-info-and-a-failed-document-timestamp',
+    covers:
+      'With revocation, documentTimestamp and a timestamp authority that does not answer: the seal (no timestamp, per call) is followed by its validation data for the field it signed (the ref branch of covered), already complete, then the document timestamp fails. sign resolves with both validationInfo and validationInfoError (32571b4b7).',
+    plugins: FORM_SIG({
+      signer: CMS_SIGNER,
+      trust: { anchors: { resolves: [$b(LONG_TERM.root), $b(LONG_TERM.tsa)] } },
+      revocation: { answer: { resolves: $b(LONG_TERM.ocspGood) } },
+      timestampAuthority: {
+        answer: { rejects: { name: 'EngineError', code: 'Network', message: 'no authority' } },
+      },
+      documentTimestamp: true,
+    }),
+    engine: {
+      documents: {
+        a: LONG_TERM_DOC(LT_SIG2, [PREPARE, COMPLETE]),
+      },
+    },
+    snapshot: ['signature::a'],
+    awaitCalls: true,
+    steps: [
+      ...LONG_TERM_BOOT,
+      drain,
+      sig('sign', { field: ref(2), mark: MARK, timestampAuthority: null }),
+      drain,
+    ],
   },
   {
     name: 'prepare-with-a-timestamp-authority',
