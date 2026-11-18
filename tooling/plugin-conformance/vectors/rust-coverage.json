@@ -1,7 +1,7 @@
 {
   "total": {
-    "replayLines": "64883/113809",
-    "unitOnlyLines": 37519,
+    "replayLines": "64882/113799",
+    "unitOnlyLines": 37520,
     "files": 675,
     "excludedFiles": 75
   },
@@ -7449,7 +7449,7 @@
       ]
     },
     "crates/epdf-kernel/src/js.rs": {
-      "replayLines": "266/440",
+      "replayLines": "265/440",
       "unitOnlyLines": [
         "32-34",
         "39",
@@ -7457,6 +7457,7 @@
         "43",
         "59-64",
         "87",
+        "93",
         "96",
         "144",
         "146-149",
@@ -8381,7 +8382,7 @@
       ]
     },
     "crates/plugins/annotation-core/src/update/page_bound.rs": {
-      "replayLines": "72/93",
+      "replayLines": "72/83",
       "unitOnlyLines": []
     },
     "crates/plugins/annotation-core/src/update/selection_edits.rs": {
