@@ -54,7 +54,14 @@ for slice in "${SLICES[@]}"; do
   # the host `cc`, which is Apple clang and rejects every GNU ld flag rustc
   # passes.
   linker="CARGO_TARGET_$(echo "$rust" | tr 'a-z-' 'A-Z_')_LINKER"
-  env "$linker=$TC/bin/$triple$API-clang" \
+  # The fork's arm64 libyuv has SME rows that call compiler-rt's SME ABI
+  # routines (`__arm_get_current_vg`, `__arm_tpidr2_save`). rustc links with
+  # -nodefaultlibs, so clang's builtins never come in and the .so leaves them
+  # undefined; dlopen on the device then fails. The NDK's builtins archive
+  # has them, and only the members that answer an undefined symbol are taken.
+  builtins="$(ls "$TC"/lib/clang/*/lib/linux/libclang_rt.builtins-"${triple%%-*}"-android.a | head -1)"
+  rustflags="CARGO_TARGET_$(echo "$rust" | tr 'a-z-' 'A-Z_')_RUSTFLAGS"
+  env "$linker=$TC/bin/$triple$API-clang" "$rustflags=-C link-arg=$builtins" \
     cargo build -p epdf-uniffi --target "$rust" --profile "$PROFILE" --manifest-path "$ROOT/Cargo.toml"
 
   jni="$PROJECT/library/src/main/jniLibs/$abi"
@@ -78,6 +85,13 @@ for slice in "${SLICES[@]}"; do
     fi
     echo "  $(basename "$so") LOAD alignment $align"
   done
+  # Neither bionic nor libc++_shared exports a compiler-rt routine, so one
+  # left undefined is a library that will not load.
+  missing="$("$TC/bin/llvm-nm" -D --undefined-only "$jni/libepdf_uniffi.so" | awk '/ U __arm_/ { print $2 }')"
+  if [[ -n "$missing" ]]; then
+    echo "libepdf_uniffi.so ($abi) leaves compiler-rt routines undefined: $missing" >&2
+    exit 1
+  fi
 done
 
 echo "generating bindings"

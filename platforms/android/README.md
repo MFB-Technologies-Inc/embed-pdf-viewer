@@ -53,6 +53,21 @@ both by reflection, so R8 sees no reference and strips them; the failure is an
 `UnsatisfiedLinkError` in release builds only, naming a class the source
 obviously contains.
 
+## compiler-rt's SME routines
+
+The fork's arm64 libyuv has SME rows (`rotate_sme.o`, `row_sme.o`,
+`scale_sme.o`) that call `__arm_get_current_vg` and `__arm_tpidr2_save`.
+Those live in clang's builtins, and rustc links with `-nodefaultlibs`, so the
+`.so` used to leave them undefined. Every smoke test then failed at `dlopen`:
+
+```
+cannot locate symbol "__arm_get_current_vg" referenced by ".../libepdf_uniffi.so"
+```
+
+`build-aar.sh` passes the NDK's `libclang_rt.builtins-<arch>-android.a` as a
+link argument, which takes only the members that answer an undefined symbol,
+and fails the build if the library still imports an `__arm_` routine.
+
 ## The smoke test
 
 `library/src/androidTest/kotlin/com/embedpdf/SmokeTest.kt` asserts what
@@ -65,6 +80,9 @@ Results, 2026-09-23: 8 tests, 0 failures, on the `Pixel_4` AVD running
 is the 16 KB page-size one, confirmed by `getconf PAGE_SIZE` reporting 16384 on
 the device, so this is the 16 KB emulator run the plan asks for and not a 4 KB
 image that happens to load a 16 KB-aligned library.
+
+Again on 2026-11-18, with the slices from fork `af480d0ce` and the builtins
+link above: 8 tests, 0 failures, same AVD, `getconf PAGE_SIZE` 16384.
 
 Not covered: a signed run on physical hardware, which needs a device and a
 signing identity, and `x86_64`, which is built and checked but not executed
