@@ -458,6 +458,9 @@ pub struct StampLibraryPatch {
 /// `ImportLibraryOptions`.
 #[derive(Clone, Default)]
 pub struct ImportLibraryOptions {
+    /// The library's id, over the one the file names; a fresh one when left
+    /// out or taken.
+    pub id: Option<String>,
     /// Fallback name when the PDF carries no `/Title`. Default `'Stamps'`.
     pub name: Option<String>,
     pub categories: Option<Vec<String>>,

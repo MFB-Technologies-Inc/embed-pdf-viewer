@@ -244,12 +244,16 @@ impl StampCapability {
         let pages: Vec<Value> = array(&member(&layout, "pages")?, "layout.pages", "map")?.clone();
 
         // Library identity: /Title (Acrobat), then format version 1
-        // PieceInfo, then the caller's fallback.
+        // PieceInfo, then the caller's fallback. The id is the caller's
+        // word, else the file's.
         let catalog = call(doc, "pieceInfo.get", vec![json!(STAMP_LIBRARY_PIECEINFO_APP)]).await?;
         let catalog_entries = optional_object(&catalog, "entries");
         let mut taken: HashSet<String> = self.state().libraries.keys().cloned().collect();
-        let library_id =
-            allocate_id(entry_string(&catalog_entries, "Id").as_deref(), "stamp-lib", &mut taken);
+        let library_id = allocate_id(
+            options.id.clone().or_else(|| entry_string(&catalog_entries, "Id")).as_deref(),
+            "stamp-lib",
+            &mut taken,
+        );
         let doc_meta = call(doc, "metadata.get", Vec::new()).await?;
         let title = member(&doc_meta, "title")?;
         let title_text = title.as_str().filter(|t| !t.is_empty()).map(str::to_string);

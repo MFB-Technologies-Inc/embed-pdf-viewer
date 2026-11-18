@@ -331,11 +331,16 @@ pub struct StampImportOptions {
     pub kind: Option<StampAssetKind>,
     #[uniffi(default = None)]
     pub library_kind: Option<String>,
+    /// The library's id, over the one the file names; a fresh one when
+    /// left out or taken.
+    #[uniffi(default = None)]
+    pub id: Option<String>,
 }
 
 impl From<StampImportOptions> for ImportLibraryOptions {
     fn from(o: StampImportOptions) -> Self {
         ImportLibraryOptions {
+            id: o.id,
             name: o.name,
             categories: o.categories,
             asset_kind: o.kind,

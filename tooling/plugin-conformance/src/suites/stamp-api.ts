@@ -193,6 +193,34 @@ const libraries: ScenarioCase[] = [
     ],
   },
   {
+    name: 'import-under-the-callers-id',
+    covers:
+      'importLibrary takes the id to import under over the one the file names (a97140dd0); an id already taken gets a fresh one, as an unnamed file does.',
+    plugins: STAMP(),
+    engine: namedEngine(
+      {
+        named: assetDoc(ONE, {
+          catalog: { Id: str('nl') },
+          catalogWrites: [{ id: 'marks' }],
+          namedPages: [named('Check', 100)],
+        }),
+        taken: assetDoc(ONE, {
+          catalog: { Id: str('nl') },
+          catalogWrites: [{ id: 'stamp-lib-0-2' }],
+          namedPages: [named('Cross', 100)],
+        }),
+      },
+      ['named', 'taken'],
+    ),
+    steps: [
+      start,
+      stamp('importLibrary', [PDF, { id: 'marks' }]),
+      stamp('importLibrary', [PDF, { id: 'marks' }]),
+      stamp('listLibraries'),
+      stamp('listAssets'),
+    ],
+  },
+  {
     name: 'registry-refusals',
     covers:
       'Empty/duplicate identifiers and a deliberately malformed absent registry refuse exactly; custom library kind survives successful recovery.',

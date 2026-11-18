@@ -534,6 +534,7 @@ fn import_options(value: Option<&Value>, h: &Harness) -> Result<ImportLibraryOpt
         }) as Rc<dyn Fn(f64) -> Result<Option<String>, Error>>
     });
     Ok(ImportLibraryOptions {
+        id: string(member(value, "id")),
         name: string(member(value, "name")),
         categories: decoded(member(value, "categories"))?,
         asset_kind: decoded(member(value, "assetKind"))?,
