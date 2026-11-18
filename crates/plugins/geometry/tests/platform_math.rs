@@ -74,6 +74,13 @@ fn a_degenerate_quad_is_labelled_only_as_one_ulp_of_the_platform_atan2_allows() 
             within_one_ulp(rust, typescript),
             "atan2({dy:e}, {dx:e}) is {rust:e}, the runtime's {typescript:e}"
         );
+        // `angleOf` is in the entry too: the ported function gives the same
+        // platform answer, so its argument order is held as well.
+        assert_eq!(
+            angle_of([dx, dy, 0.0, 0.0, 0.0, 0.0]).to_bits(),
+            rust.to_bits(),
+            "angle_of([{dx:e}, {dy:e}, ..])"
+        );
         rust
     });
 

@@ -330,6 +330,18 @@ arbitraries in `src/differential/<crate>.ts`, and compares the outcomes canonica
 it prints the shrunk input as a function case to paste into the suite. `geometry` is the only
 crate so far.
 
+Shrinking evaluates at most `--shrink-limit` candidates per mismatch, 10000 by default. fast-check
+shrinks a double by halving its distance to the target in the order of doubles, so a mismatch that
+needs two values within a few ulps of each other, such as a near-tie in `normalizePdfQuad`'s sort,
+moves a few ulps per step and never finishes. Past the limit the remaining candidates count as
+passing without being run, and the case printed is the last input that failed, judged again with
+the ledger as any case is. The output then says
+`shrinking stopped after 10000 attempts; this case may not be minimal`: the input reproduces the
+mismatch, but a smaller one may exist. Otherwise it says `shrunk in <n> attempts`. The limit is a
+count, not a time, so a seed prints the same case on any machine; a non-default limit is named in
+the first line, since the case repeats only with it. The run still exits 1. The mutations recorded
+in `docs/research/conformance-verification.md` shrink to the end in at most 3023 attempts.
+
 The last full runs, with their seeds, counts and the mismatches they found, are recorded in
 `docs/research/conformance-verification.md`.
 
