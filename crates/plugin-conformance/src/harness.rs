@@ -76,10 +76,10 @@ impl<T> TextMemo<T> {
     where
         T: serde::Serialize,
     {
-        if let Some((source, text)) = &*self.last.borrow() {
-            if Rc::ptr_eq(source, value) {
-                return text.clone();
-            }
+        if let Some((source, text)) = &*self.last.borrow()
+            && Rc::ptr_eq(source, value)
+        {
+            return text.clone();
         }
         let text: Rc<str> = serde_json::to_value(&**value)
             .expect("[harness] an answer does not serialize")
