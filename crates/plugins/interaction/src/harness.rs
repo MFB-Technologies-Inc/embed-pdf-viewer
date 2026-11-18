@@ -509,6 +509,7 @@ const MEMBERS: &[&str] = &[
     "listTools",
     "getTool",
     "hasTool",
+    "canUseTool",
     "activateTool",
     "activateDefaultTool",
     "pushTool",
