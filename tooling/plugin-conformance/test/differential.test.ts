@@ -90,6 +90,115 @@ test('differential reports a planted mismatch', async () => {
     `{ name: 'diff-rectFromCorners-${SEED}', fn: 'rectFromCorners', args: [{ x: NaN, y: 0 }, { x: 0, y: 0 }] },`,
   );
   assert.match(mismatch.difference, /^\$\.returned\.x: expected \{"\$number":"NaN"\}, got 0$/);
+  assert.equal(mismatch.shrinkStopped, false, 'shrinking ran to the end');
+});
+
+// Shrinking. fast-check shrinks a double by halving its distance to the
+// target in the order of doubles. A threshold takes a few dozen candidates;
+// a mismatch only where two doubles are within a few ulps of each other (a
+// near-tie in a sort) moves a few ulps per step, so it never finishes.
+
+/** A server whose `fn` answers 1 where `fails(args)` and 0 elsewhere, as the
+ *  TypeScript always does, counting its calls. */
+function failingWhere(fails: (args: number[]) => boolean): FunctionServer & { calls: number } {
+  const server = {
+    calls: 0,
+    async call(_table: string, _fn: string, args: readonly unknown[]) {
+      server.calls++;
+      return { returned: fails(args as number[]) ? 1 : 0 };
+    },
+    async math(): Promise<number> {
+      throw new Error('no math here');
+    },
+    async close() {},
+  };
+  return server;
+}
+
+/** A table of one function, `zero`, that returns 0 for any arguments. */
+function zeroTable(arbitrary: fc.Arbitrary<unknown[]>): CrateTable {
+  return {
+    table: 'test',
+    suites: [
+      {
+        kind: 'function',
+        file: 'test.json',
+        describes: 'test',
+        functions: { zero: () => 0 },
+        cases: [],
+      },
+    ],
+    arbitraries: { zero: arbitrary },
+    skips: {},
+  };
+}
+
+const double = fc.double({ min: -1e4, max: 1e4, noNaN: true });
+
+/** Two doubles one ulp apart near -1e4, the start of the hang a near-tie
+ *  bug in `normalize_pdf_quad` showed, each shrinking as `double` does. */
+class NearTie extends fc.Arbitrary<unknown[]> {
+  private readonly pair = fc.tuple(double, double);
+  generate(): fc.Value<unknown[]> {
+    return new fc.Value([-9999.999999955, adjacent(-9999.999999955, 1)], undefined);
+  }
+  canShrinkWithoutContext(value: unknown): value is unknown[] {
+    return this.pair.canShrinkWithoutContext(value);
+  }
+  shrink(value: unknown[], context: unknown): fc.Stream<fc.Value<unknown[]>> {
+    return this.pair.shrink(value as [number, number], context);
+  }
+}
+
+const nearTie = ([a, b]: number[]) =>
+  a !== b && Math.abs(a - b) <= 4 * Number.EPSILON * Math.max(Math.abs(a), Math.abs(b));
+
+test('a mismatch that shrinks within the limit is minimal and not flagged', async () => {
+  const report = await runDifferential({
+    table: zeroTable(fc.tuple(double) as fc.Arbitrary<unknown[]>),
+    server: failingWhere(([x]) => x <= -1),
+    runs: 100,
+    seed: SEED,
+    ledger: [],
+  });
+  assert.equal(report.mismatches.length, 1);
+  const [mismatch] = report.mismatches;
+  assert.deepEqual(mismatch.args, [-1]);
+  assert.equal(mismatch.shrinkStopped, false);
+  assert.ok(mismatch.shrinkAttempts > 0);
+});
+
+test('shrinking a near-tie stops at the limit with a failing input, flagged, and the run still fails', async () => {
+  const run = async (shrinkLimit: number) => {
+    const server = failingWhere(nearTie);
+    const report = await runDifferential({
+      table: zeroTable(new NearTie()),
+      server,
+      runs: 100,
+      seed: SEED,
+      ledger: [],
+      shrinkLimit,
+    });
+    return { report, calls: server.calls };
+  };
+  // A thousand times the limit below is still far from the end.
+  const long = await run(20000);
+  assert.equal(long.report.mismatches[0].shrinkStopped, true);
+  assert.ok((long.report.mismatches[0].args[0] as number) < -9999);
+
+  const { report, calls } = await run(20);
+  assert.equal(report.mismatches.length, 1);
+  const [mismatch] = report.mismatches;
+  assert.equal(mismatch.shrinkStopped, true);
+  assert.equal(mismatch.shrinkAttempts, 20);
+  // The case was judged again and fails: an input that was evaluated, not a
+  // candidate the limit passed unseen.
+  assert.ok(nearTie(mismatch.args as number[]), String(mismatch.args));
+  assert.equal(mismatch.difference, '$.returned: expected 0, got 1');
+  // The first input, 20 candidates and the judgment of the case: nothing
+  // past the limit reached the server.
+  assert.equal(report.runs.zero, 1);
+  assert.equal(calls, 1 + 20 + 1);
 });
 
 // The vectors print -0 as 0 (canonical.ts) and replay

@@ -4,6 +4,7 @@
  * compares a vector.
  *
  *   pnpm run differential --crate geometry --runs 1000 --seed 42 [--fn name]...
+ *     [--shrink-limit n]
  *
  * For each function of the crate's suites that `src/differential/<crate>.ts`
  * gives an arbitrary, fast-check generates arguments. The TypeScript runs
@@ -18,8 +19,10 @@
  *
  * On a mismatch fast-check shrinks the input, and the tool prints a function
  * case, `{ name: 'diff-<fn>-<seed>', fn, args }`, to paste into the suite;
- * the generator then freezes it as a vector. It exits 1 when any function
- * mismatched.
+ * the generator then freezes it as a vector. Shrinking evaluates at most
+ * `--shrink-limit` candidates (`DEFAULT_SHRINK_LIMIT`); past that the case
+ * is the smallest failing input found, and the output says it may not be
+ * minimal. It exits 1 when any function mismatched.
  *
  * A kept divergence is allowed by a `differentialSkip` on its
  * `divergences.json` entry, `{ "fn", "when" }`, with the predicate in
@@ -112,6 +115,11 @@ export interface Mismatch {
   readonly rust: unknown;
   /** The function case to paste into the suite. */
   readonly printed: string;
+  /** Inputs evaluated while shrinking, after the first failing one. */
+  readonly shrinkAttempts: number;
+  /** Shrinking hit `shrinkLimit` with candidates left, so `args` is the
+   *  smallest failing input found, not necessarily a minimal one. */
+  readonly shrinkStopped: boolean;
 }
 
 export interface Report {
@@ -135,7 +143,22 @@ export interface Options {
   /** Only these functions; a name the table's suites do not hold, or one
    *  with no arbitrary, throws. */
   readonly only?: readonly string[];
+  /** Inputs evaluated while shrinking one function's mismatch before the
+   *  rest count as passing; `DEFAULT_SHRINK_LIMIT` when absent. */
+  readonly shrinkLimit?: number;
 }
+
+/**
+ * How many shrink candidates one mismatch may evaluate. fast-check shrinks a
+ * double by halving its distance, in the order of doubles, to the target, so
+ * a mismatch that needs two values within a few ulps of each other (a
+ * near-tie in a sort) moves a few ulps per step at up to about 60 server
+ * calls a step, and never reaches the end. A count, not a time, so the
+ * printed case is the same on any machine. The mutations recorded in
+ * `docs/research/conformance-verification.md` shrink to the end in 3023
+ * at most.
+ */
+export const DEFAULT_SHRINK_LIMIT = 10000;
 
 export function readLedger(file = ledgerFile): LedgerEntry[] {
   return JSON.parse(readFileSync(file, 'utf8')) as LedgerEntry[];
@@ -227,7 +250,7 @@ export function literal(value: unknown): string {
 }
 
 export async function runDifferential(options: Options): Promise<Report> {
-  const { table, server, runs, seed } = options;
+  const { table, server, runs, seed, shrinkLimit = DEFAULT_SHRINK_LIMIT } = options;
   const skips = resolveSkips(table, options.ledger, await everyFunction(table));
   const functions = functionsOf(table);
   const unknown = (options.only ?? []).filter((name) => !functions.has(name));
@@ -279,9 +302,20 @@ export async function runDifferential(options: Options): Promise<Report> {
       return { allowedBy: null, refusals };
     };
     let shrinking = false;
+    let shrinkAttempts = 0;
+    let shrinkStopped = false;
     let skipped = 0;
     const skippedBy: Record<string, number> = {};
     const property = fc.asyncProperty(arbitrary, async (raw) => {
+      if (shrinking) {
+        // Past the limit a candidate passes unevaluated, so fast-check runs
+        // out of candidates and keeps the last input that did fail.
+        if (shrinkAttempts >= shrinkLimit) {
+          shrinkStopped = true;
+          return true;
+        }
+        shrinkAttempts++;
+      }
       const { args, outcome, reply, failed } = await compare(raw);
       if (failed === null) return true;
       const { allowedBy } = await judge(raw, args, outcome, reply);
@@ -319,6 +353,8 @@ export async function runDifferential(options: Options): Promise<Report> {
       typescript: outcome,
       rust: reply,
       printed,
+      shrinkAttempts,
+      shrinkStopped,
     });
   }
   return report;
@@ -403,6 +439,7 @@ function parseArgs(argv: readonly string[]) {
   let runs = 1000;
   let seed: number | null = null;
   let server: string | null = null;
+  let shrinkLimit = DEFAULT_SHRINK_LIMIT;
   const only: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
@@ -419,19 +456,33 @@ function parseArgs(argv: readonly string[]) {
     else if (flag === '--seed') seed = Number(need());
     else if (flag === '--fn') only.push(...need().split(','));
     else if (flag === '--server') server = need();
+    else if (flag === '--shrink-limit') shrinkLimit = Number(need());
     else throw new Error(`unknown argument ${flag}`);
   }
   if (!crates[crate]) throw new Error(`--crate is one of: ${Object.keys(crates).join(', ')}`);
   if (!Number.isInteger(runs) || runs < 1) throw new Error('--runs is a positive integer');
   if (seed !== null && !Number.isInteger(seed)) throw new Error('--seed is an integer');
-  return { crate, runs, seed: seed ?? (Date.now() ^ (Math.random() * 0x100000000)) | 0, server, only };
+  if (!Number.isInteger(shrinkLimit) || shrinkLimit < 0) {
+    throw new Error('--shrink-limit is a non-negative integer');
+  }
+  return {
+    crate,
+    runs,
+    seed: seed ?? (Date.now() ^ (Math.random() * 0x100000000)) | 0,
+    server,
+    only,
+    shrinkLimit,
+  };
 }
 
 /** The command line: `src/cli/differential.ts` calls it. */
 export async function main() {
-  const { crate, runs, seed, server: serverPath, only } = parseArgs(process.argv.slice(2));
+  const args = parseArgs(process.argv.slice(2));
+  const { crate, runs, seed, server: serverPath, only, shrinkLimit } = args;
   // Before the run, so a run that dies still names the seed that repeats it.
-  console.log(`differential --crate ${crate} --runs ${runs} --seed ${seed}`);
+  // The limit decides where shrinking stops, so the case repeats only with it.
+  const limit = shrinkLimit === DEFAULT_SHRINK_LIMIT ? '' : ` --shrink-limit ${shrinkLimit}`;
+  console.log(`differential --crate ${crate} --runs ${runs} --seed ${seed}${limit}`);
   const table = await crates[crate]();
   const server = spawnFunctionServer(serverPath ?? buildFunctionServer());
   let report: Report;
@@ -443,6 +494,7 @@ export async function main() {
       seed,
       ledger: readLedger(),
       only: only.length ? only : undefined,
+      shrinkLimit,
     });
   } finally {
     await server.close();
@@ -459,6 +511,11 @@ export async function main() {
     console.log(`  TypeScript: ${JSON.stringify(mismatch.typescript)}`);
     console.log(`  Rust:       ${JSON.stringify(mismatch.rust)}`);
     console.log(`  case for the suite:\n  ${mismatch.printed}`);
+    console.log(
+      mismatch.shrinkStopped
+        ? `  shrinking stopped after ${mismatch.shrinkAttempts} attempts; this case may not be minimal`
+        : `  shrunk in ${mismatch.shrinkAttempts} attempts`,
+    );
   }
   const total = Object.values(report.runs).reduce((a, b) => a + b, 0);
   const allowed = Object.values(report.skippedBy).reduce((a, b) => a + b, 0);
