@@ -480,7 +480,7 @@ impl From<SignatureValidationTime> for epdf_signature_core::ValidationTime {
         match t {
             SignatureValidationTime::Now => epdf_signature_core::ValidationTime::Now,
             SignatureValidationTime::Timestamp { gen_time } => {
-                epdf_signature_core::ValidationTime::Timestamp { gen_time }
+                epdf_signature_core::ValidationTime::Timestamp { stamped_at: gen_time }
             }
         }
     }

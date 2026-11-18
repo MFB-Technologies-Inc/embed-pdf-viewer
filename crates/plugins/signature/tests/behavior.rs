@@ -184,6 +184,7 @@ fn cms_key(on_sign: impl Fn() + 'static) -> SigningKey {
             on_sign();
             Promise::resolved(cms.clone())
         }),
+        hash: None,
     }))
 }
 

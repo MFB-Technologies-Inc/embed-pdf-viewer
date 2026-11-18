@@ -156,6 +156,7 @@ fn port_from(sign: Callback, value: &Value) -> Result<SignerPort, Error> {
             sign: Rc::new(move |request: CmsSignRequest| {
                 answer(sign.call(vec![request.to_json()])).map(|v| Ok(bytes(&v)))
             }),
+            hash: None,
         }));
     }
     Ok(SignerPort::Raw(RawSigner {
@@ -288,7 +289,7 @@ fn validate_options(value: Option<&Value>) -> SignatureValidateOptions {
     let at = present(opts.get("validationTime")).map(|at| {
         match at.get("kind").and_then(Value::as_str) {
             Some("timestamp") => ValidationTime::Timestamp {
-                gen_time: at.get("genTime").and_then(Value::as_str).unwrap_or_default().into(),
+                stamped_at: at.get("genTime").and_then(Value::as_str).unwrap_or_default().into(),
             },
             _ => ValidationTime::Now,
         }
