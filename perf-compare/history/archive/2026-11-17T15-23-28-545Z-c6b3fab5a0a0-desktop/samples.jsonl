@@ -1,0 +1,12 @@
+{"arm":"main-now","flow":"hover","fixture":"annots","round":0,"metrics":{"settleMs":1335.3350000083447,"mainTaskMs":373.8090000000001,"mainJsMs":331.475}}
+{"arm":"main-now","flow":"dragAnnot","fixture":"annots","round":0,"metrics":{"settleMs":430.3400000035763,"mainTaskMs":185.4150000000002,"mainJsMs":153.493}}
+{"arm":"main-now","flow":"drawInk","fixture":"annots","round":0,"metrics":{"settleMs":5843.92499999702,"mainTaskMs":2933.229,"mainJsMs":2242.016}}
+{"arm":"main-now","flow":"typeField","fixture":"forms","round":0,"metrics":{"settleMs":224.64499999582767,"mainTaskMs":173.73000000000002,"mainJsMs":108.903}}
+{"arm":"main-now","flow":"hover","fixture":"annots","round":1,"metrics":{"settleMs":1382.7250000089407,"mainTaskMs":689.4000000000001,"mainJsMs":627.336}}
+{"arm":"main-now","flow":"dragAnnot","fixture":"annots","round":1,"metrics":{"settleMs":429.7150000035763,"mainTaskMs":187.34000000000003,"mainJsMs":155.375}}
+{"arm":"main-now","flow":"drawInk","fixture":"annots","round":1,"metrics":{"settleMs":3866.285000011325,"mainTaskMs":1200.6689999999999,"mainJsMs":910.763}}
+{"arm":"main-now","flow":"typeField","fixture":"forms","round":1,"metrics":{"settleMs":115.94499999284744,"mainTaskMs":97.298,"mainJsMs":69.651}}
+{"arm":"main-now","flow":"hover","fixture":"annots","round":2,"metrics":{"settleMs":1335.0349999964237,"mainTaskMs":356.644,"mainJsMs":317.504}}
+{"arm":"main-now","flow":"dragAnnot","fixture":"annots","round":2,"metrics":{"settleMs":414.9450000077486,"mainTaskMs":177.62599999999986,"mainJsMs":146.327}}
+{"arm":"main-now","flow":"drawInk","fixture":"annots","round":2,"metrics":{"settleMs":6226.280000001192,"mainTaskMs":3083.4319999999993,"mainJsMs":2345.444}}
+{"arm":"main-now","flow":"typeField","fixture":"forms","round":2,"metrics":{"settleMs":423.95499999821186,"mainTaskMs":312.1460000000002,"mainJsMs":204.035}}

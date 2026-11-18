@@ -1,0 +1,183 @@
+{
+  "runId": "2026-10-01T02-19-00-897Z-2023MBP16Grey-desktop",
+  "harnessCommit": "0569b6daaf43ae53c0208506820c38a9cd9886f9",
+  "harnessDirty": false,
+  "host": "2023MBP16Grey",
+  "arms": {
+    "main": {
+      "worktree": "main",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "2516e2786ee894383220ecd436fbd248182ef444",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "98c2368a774de4f8c507c0f57d189cb80474fcc21cb85f8d4688cec9eae64545",
+      "kernelWasmSha256": null
+    },
+    "main-aa": {
+      "worktree": "main",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "2516e2786ee894383220ecd436fbd248182ef444",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "98c2368a774de4f8c507c0f57d189cb80474fcc21cb85f8d4688cec9eae64545",
+      "kernelWasmSha256": null
+    },
+    "plugins-bump": {
+      "worktree": "plugins-bump",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/rust-kernel-bump",
+      "sha": "dd1b86fcc71af563f88d56f4561cc86d9c03f3cf",
+      "payload": "built",
+      "fork": {
+        "sha": "d045f389de885dd616e03077301df5ef5aa8c84e",
+        "target": "wasm32-eh",
+        "libSha256": "5bf368ce10d378dbff69969628e542fa5a16e1fd3c4bf4218bdee60388c53b7a"
+      },
+      "engineWasmSha256": "0f7407599d9390b413cd12efe862fe9745e0b455627ddd07e66ebd686a8e2ea5",
+      "kernelWasmSha256": "764d1ef49e62be74906dfdbdccc09c512fd4757ebab9524969b092b212775dd3"
+    },
+    "plugins-head": {
+      "worktree": "plugins-head",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "51130b042a9d587768c3f0ccc908304a380fa60f",
+      "payload": "built",
+      "fork": {
+        "sha": "d045f389de885dd616e03077301df5ef5aa8c84e",
+        "target": "wasm32-eh",
+        "libSha256": "5bf368ce10d378dbff69969628e542fa5a16e1fd3c4bf4218bdee60388c53b7a"
+      },
+      "engineWasmSha256": "0f7407599d9390b413cd12efe862fe9745e0b455627ddd07e66ebd686a8e2ea5",
+      "kernelWasmSha256": "8118f9d9ee269906c2fb5a42719079444efe4d6060e1c65760d8b94ad2ce28a1"
+    },
+    "plugins-buildlto": {
+      "worktree": "plugins-buildlto",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/rust-kernel-build-lto",
+      "sha": "99d1a8c04c92192d154ea8e63973790f5b6e0308",
+      "payload": "built",
+      "fork": {
+        "sha": "d045f389de885dd616e03077301df5ef5aa8c84e",
+        "target": "wasm32-eh",
+        "libSha256": "5bf368ce10d378dbff69969628e542fa5a16e1fd3c4bf4218bdee60388c53b7a"
+      },
+      "engineWasmSha256": "0f7407599d9390b413cd12efe862fe9745e0b455627ddd07e66ebd686a8e2ea5",
+      "kernelWasmSha256": "764d1ef49e62be74906dfdbdccc09c512fd4757ebab9524969b092b212775dd3"
+    },
+    "plugins-wasmopt": {
+      "worktree": "plugins-wasmopt",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/rust-kernel-wasm-opt",
+      "sha": "e981e0cb9d088c2c84781d25e311a33923fb3105",
+      "payload": "built",
+      "fork": {
+        "sha": "d045f389de885dd616e03077301df5ef5aa8c84e",
+        "target": "wasm32-eh",
+        "libSha256": "5bf368ce10d378dbff69969628e542fa5a16e1fd3c4bf4218bdee60388c53b7a"
+      },
+      "engineWasmSha256": "0f7407599d9390b413cd12efe862fe9745e0b455627ddd07e66ebd686a8e2ea5",
+      "kernelWasmSha256": "d6276d5fb70d35d02e6879b70670b180f9f9ab0fb0ab5f7d859a17fd4ae197f9"
+    }
+  },
+  "fixtures": {
+    "ebook": "2e539f62b5fa605fc33b038ff31f019c94123342115a0c1e52d741ca2f737997",
+    "large": "10c8668fe55cd301138afdd52e20138b2311c173bf99fdb090cd1a07845264f9"
+  },
+  "browserVersion": "140.0.7339.16",
+  "playwrightVersion": "1.55.0",
+  "nodeVersion": "v24.20.0",
+  "os": "Darwin 27.0.0 arm64",
+  "cpuModel": "Apple M2 Max",
+  "cpuCores": 12,
+  "totalMemoryBytes": 68719476736,
+  "powerSource": "AC Power",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "deviceScaleFactor": 2,
+  "profile": "desktop",
+  "throttleRate": 1,
+  "flows": [
+    "open",
+    "scroll",
+    "jump",
+    "zoom",
+    "select",
+    "search",
+    "annotate",
+    "soak"
+  ],
+  "rounds": 3,
+  "quick": false,
+  "armsRun": [
+    "main",
+    "main-aa",
+    "plugins-bump",
+    "plugins-head",
+    "plugins-buildlto",
+    "plugins-wasmopt"
+  ],
+  "sizes": {
+    "main": {
+      "engineWasmBytes": 7544455,
+      "engineWasmBrotliBytes": 2257280,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3536532,
+      "jsBrotliBytes": 1007392
+    },
+    "main-aa": {
+      "engineWasmBytes": 7544455,
+      "engineWasmBrotliBytes": 2257280,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3536535,
+      "jsBrotliBytes": 1007447
+    },
+    "plugins-bump": {
+      "engineWasmBytes": 11084440,
+      "engineWasmBrotliBytes": 2972439,
+      "kernelWasmBytes": 12254473,
+      "kernelWasmBrotliBytes": 1973466,
+      "jsBytes": 2747975,
+      "jsBrotliBytes": 838277
+    },
+    "plugins-head": {
+      "engineWasmBytes": 11084440,
+      "engineWasmBrotliBytes": 2972439,
+      "kernelWasmBytes": 11332878,
+      "kernelWasmBrotliBytes": 1855014,
+      "jsBytes": 2747985,
+      "jsBrotliBytes": 838256
+    },
+    "plugins-buildlto": {
+      "engineWasmBytes": 11084440,
+      "engineWasmBrotliBytes": 2972439,
+      "kernelWasmBytes": 12254473,
+      "kernelWasmBrotliBytes": 1973466,
+      "jsBytes": 2747979,
+      "jsBrotliBytes": 838361
+    },
+    "plugins-wasmopt": {
+      "engineWasmBytes": 11084440,
+      "engineWasmBrotliBytes": 2972439,
+      "kernelWasmBytes": 8311869,
+      "kernelWasmBrotliBytes": 1784994,
+      "jsBytes": 2747988,
+      "jsBrotliBytes": 838487
+    }
+  },
+  "memorySource": "uasm",
+  "workerThrottled": null,
+  "startedAt": "2026-10-01T02:19:00.897Z",
+  "completedAt": "2026-10-01T02:41:07.091Z"
+}

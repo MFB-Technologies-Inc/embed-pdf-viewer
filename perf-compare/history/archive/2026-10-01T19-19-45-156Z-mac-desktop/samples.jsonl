@@ -1,0 +1,2 @@
+{"arm":"impl-ts","flow":"search","fixture":"ebook","round":0,"metrics":{"searchMs":50.38499999046326,"mainTaskMs":4.491,"mainJsMs":3.083}}
+{"arm":"plugins-lto","flow":"search","fixture":"ebook","round":0,"metrics":{"searchMs":73.2199999988079,"mainTaskMs":34.144000000000005,"mainJsMs":24.656}}

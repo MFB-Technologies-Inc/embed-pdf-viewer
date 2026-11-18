@@ -1,0 +1,93 @@
+{
+  "runId": "2026-10-22T22-02-08-182Z-mac-desktop",
+  "harnessCommit": "b5db930c78ee8b82819b713f846a4443f3000a76",
+  "harnessDirty": true,
+  "probeSha256": "29ce19545e8b4b6d009c1a8523332e0d40f95ffdf66fc1fb8b48dc900c2e515a",
+  "host": "mac",
+  "arms": {
+    "main": {
+      "worktree": "main",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "2516e2786ee894383220ecd436fbd248182ef444",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "98c2368a774de4f8c507c0f57d189cb80474fcc21cb85f8d4688cec9eae64545",
+      "kernelWasmSha256": null
+    },
+    "main-aa": {
+      "worktree": "main",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "2516e2786ee894383220ecd436fbd248182ef444",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "98c2368a774de4f8c507c0f57d189cb80474fcc21cb85f8d4688cec9eae64545",
+      "kernelWasmSha256": null
+    }
+  },
+  "fixtures": {
+    "ebook": "2e539f62b5fa605fc33b038ff31f019c94123342115a0c1e52d741ca2f737997",
+    "large": "10c8668fe55cd301138afdd52e20138b2311c173bf99fdb090cd1a07845264f9"
+  },
+  "browserVersion": "140.0.7339.16",
+  "playwrightVersion": "1.55.0",
+  "nodeVersion": "v26.12.1",
+  "os": "Darwin 27.0.0 arm64",
+  "cpuModel": "Apple M4 Max",
+  "cpuCores": 16,
+  "totalMemoryBytes": 68719476736,
+  "powerSource": "AC Power",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "deviceScaleFactor": 2,
+  "profile": "desktop",
+  "throttleRate": 1,
+  "flows": [
+    "open",
+    "scroll",
+    "coldScroll",
+    "jump",
+    "zoom",
+    "zoomLarge",
+    "select",
+    "selectLarge",
+    "search",
+    "searchLarge",
+    "annotate",
+    "annotateLarge",
+    "soak"
+  ],
+  "rounds": 3,
+  "quick": true,
+  "armsRun": [
+    "main",
+    "main-aa"
+  ],
+  "sizes": {
+    "main": {
+      "engineWasmBytes": 7544455,
+      "engineWasmBrotliBytes": 2257280,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3536548,
+      "jsBrotliBytes": 1007250
+    },
+    "main-aa": {
+      "engineWasmBytes": 7544455,
+      "engineWasmBrotliBytes": 2257280,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3536551,
+      "jsBrotliBytes": 1007497
+    }
+  },
+  "memorySource": "uasm",
+  "workerThrottled": null,
+  "startedAt": "2026-10-22T22:02:08.182Z",
+  "completedAt": "2026-10-22T22:10:09.075Z"
+}

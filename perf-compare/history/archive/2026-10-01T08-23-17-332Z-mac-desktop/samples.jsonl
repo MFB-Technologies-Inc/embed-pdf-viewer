@@ -1,0 +1,2 @@
+{"arm":"plugins-now","flow":"coldScroll","fixture":"large","round":0,"metrics":{"settleMs":0,"wallMs":2042.234999999404,"frameP50Ms":8.329999999999984,"frameP95Ms":9.215249999999992,"jankFrames":0,"longTasks":0,"longTaskMs":0,"mainTaskMs":759.623,"mainJsMs":655.76}}
+{"arm":"plugins-slicetext","flow":"coldScroll","fixture":"large","round":0,"metrics":{"settleMs":0,"wallMs":2010.5050000026822,"frameP50Ms":8.329999999999927,"frameP95Ms":8.984749999999986,"jankFrames":0,"longTasks":0,"longTaskMs":0,"mainTaskMs":616.5550000000001,"mainJsMs":509.062}}

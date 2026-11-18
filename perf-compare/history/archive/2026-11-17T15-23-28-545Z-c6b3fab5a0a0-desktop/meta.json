@@ -1,0 +1,69 @@
+{
+  "runId": "2026-11-17T15-23-28-545Z-c6b3fab5a0a0-desktop",
+  "harnessCommit": "7d9648d6d2723c38beda4a38494486855b21653a",
+  "harnessDirty": true,
+  "probeSha256": "d3edaa2559472460e08dadfc42a92aab02e93bf3328d4e3715074c5d45bde48d",
+  "host": "c6b3fab5a0a0",
+  "arms": {
+    "main-now": {
+      "worktree": "main-now",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "ed064e0c867e7688234ad36c0350377544ef93f9",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "7195838021c8318416117611b961614ab52eedcad585db5945681f86164e40f9",
+      "kernelWasmSha256": null
+    }
+  },
+  "fixtures": {
+    "ebook": "2e539f62b5fa605fc33b038ff31f019c94123342115a0c1e52d741ca2f737997",
+    "large": "10c8668fe55cd301138afdd52e20138b2311c173bf99fdb090cd1a07845264f9",
+    "annots": "f27197ce9ac982859cb460c3126b2d04cf78fa1c5834f5cbfdf7dbec74d52a19",
+    "forms": "b973ccec7bf664b565b636d71af9eebfe121d9fa9e9002ec063be00617ddebef"
+  },
+  "browserVersion": "140.0.7339.16",
+  "playwrightVersion": "1.55.0",
+  "nodeVersion": "v24.20.0",
+  "os": "Linux 7.0.14-linuxkit arm64",
+  "cpuModel": "unknown",
+  "cpuCores": 16,
+  "totalMemoryBytes": 33597603840,
+  "powerSource": "unknown",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "deviceScaleFactor": 2,
+  "profile": "desktop",
+  "throttleRate": 1,
+  "flows": [
+    "hover",
+    "dragAnnot",
+    "drawInk",
+    "typeField"
+  ],
+  "rounds": 3,
+  "quick": true,
+  "armsRun": [
+    "main-now"
+  ],
+  "skipped": {
+    "main-now": []
+  },
+  "sizes": {
+    "main-now": {
+      "engineWasmBytes": 7880343,
+      "engineWasmBrotliBytes": 2467295,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 9962545,
+      "jsBrotliBytes": 3275782
+    }
+  },
+  "memorySource": null,
+  "workerThrottled": null,
+  "startedAt": "2026-11-17T15:23:28.545Z",
+  "completedAt": "2026-11-17T15:25:51.767Z"
+}

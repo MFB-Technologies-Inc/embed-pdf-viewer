@@ -1,0 +1,2 @@
+{"arm":"plugins-lazy","flow":"search","fixture":"ebook","round":0,"metrics":{"searchMs":56.73999999463558,"mainTaskMs":14.361999999999966,"mainJsMs":6.277}}
+{"arm":"plugins-lazy","flow":"searchLarge","fixture":"large","round":0,"metrics":{"searchMs":1885.8549999892712,"mainTaskMs":935.4660000000001,"mainJsMs":894.742}}

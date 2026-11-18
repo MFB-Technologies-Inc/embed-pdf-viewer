@@ -1,0 +1,205 @@
+{
+  "runId": "2026-11-17T04-18-50-584Z-macmini2020-desktop",
+  "harnessCommit": "7e527a415a9dc50b775cadf65ddb4a8d9c97d8f5",
+  "harnessDirty": true,
+  "probeSha256": "29ce19545e8b4b6d009c1a8523332e0d40f95ffdf66fc1fb8b48dc900c2e515a",
+  "host": "macmini2020",
+  "arms": {
+    "main": {
+      "worktree": "main",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "2516e2786ee894383220ecd436fbd248182ef444",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "98c2368a774de4f8c507c0f57d189cb80474fcc21cb85f8d4688cec9eae64545",
+      "kernelWasmSha256": null
+    },
+    "main-aa": {
+      "worktree": "main",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "2516e2786ee894383220ecd436fbd248182ef444",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "98c2368a774de4f8c507c0f57d189cb80474fcc21cb85f8d4688cec9eae64545",
+      "kernelWasmSha256": null
+    },
+    "main-now": {
+      "worktree": "main-now",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "ed064e0c867e7688234ad36c0350377544ef93f9",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "7195838021c8318416117611b961614ab52eedcad585db5945681f86164e40f9",
+      "kernelWasmSha256": null
+    },
+    "phase-c-base": {
+      "worktree": "plugins-next",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/perf-fixes",
+      "sha": "0de4effd922631c607fe44ca352a3aa9b2d52555",
+      "payload": "built",
+      "fork": {
+        "sha": "17d8073d49bab5c29d956568345652bf893b459c",
+        "target": "wasm32-eh",
+        "libSha256": "315bb221a6f1baea8485881e1fd7d22fb49926c9054afeefd8e1f504ba1aef36"
+      },
+      "engineWasmSha256": "2ecd0bd985745ce43282fbf381d4bb0a0c1f61c06cf17d20c870249d744eee41",
+      "kernelWasmSha256": "3db0d63cf08a84c3f6fd1c293ed2477dc320d3724cb5ed4f03e3af6c485e96ca"
+    },
+    "phase-c-end": {
+      "worktree": "phase-c-end",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/perf-fixes",
+      "sha": "af9ff5d2b1950fc0940931612d3b2c862448ef2e",
+      "payload": "built",
+      "fork": {
+        "sha": "17d8073d49bab5c29d956568345652bf893b459c",
+        "target": "wasm32-eh",
+        "libSha256": "315bb221a6f1baea8485881e1fd7d22fb49926c9054afeefd8e1f504ba1aef36"
+      },
+      "engineWasmSha256": "2ecd0bd985745ce43282fbf381d4bb0a0c1f61c06cf17d20c870249d744eee41",
+      "kernelWasmSha256": "57b1b6d020441cb25b45b88f62e5db7a0c5f7f0e9155aa4783de62a32f9a28ac"
+    },
+    "phase-d-end": {
+      "worktree": "phase-d-end",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/perf-fixes",
+      "sha": "0d18fb1776331c12dcf332632f6e4c6d74a876fa",
+      "payload": "built",
+      "fork": {
+        "sha": "17d8073d49bab5c29d956568345652bf893b459c",
+        "target": "wasm32-eh",
+        "libSha256": "315bb221a6f1baea8485881e1fd7d22fb49926c9054afeefd8e1f504ba1aef36"
+      },
+      "engineWasmSha256": "2ecd0bd985745ce43282fbf381d4bb0a0c1f61c06cf17d20c870249d744eee41",
+      "kernelWasmSha256": "d5eefdeebf9531df4a0335d0ad53f91ac419f478cc65d4cba118e4babcbd9926"
+    }
+  },
+  "fixtures": {
+    "ebook": "2e539f62b5fa605fc33b038ff31f019c94123342115a0c1e52d741ca2f737997",
+    "large": "10c8668fe55cd301138afdd52e20138b2311c173bf99fdb090cd1a07845264f9",
+    "annots": "f27197ce9ac982859cb460c3126b2d04cf78fa1c5834f5cbfdf7dbec74d52a19",
+    "forms": "b973ccec7bf664b565b636d71af9eebfe121d9fa9e9002ec063be00617ddebef"
+  },
+  "browserVersion": "140.0.7339.16",
+  "playwrightVersion": "1.55.0",
+  "nodeVersion": "v24.20.0",
+  "os": "Darwin 27.3.0 arm64",
+  "cpuModel": "Apple M1",
+  "cpuCores": 8,
+  "totalMemoryBytes": 17179869184,
+  "powerSource": "AC Power",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "deviceScaleFactor": 2,
+  "profile": "desktop",
+  "throttleRate": 1,
+  "flows": [
+    "open",
+    "scroll",
+    "scrollMid",
+    "coldScroll",
+    "jump",
+    "zoom",
+    "zoomLarge",
+    "select",
+    "selectLarge",
+    "search",
+    "searchLarge",
+    "annotate",
+    "annotateLarge",
+    "hover",
+    "dragAnnot",
+    "drawInk",
+    "typeField",
+    "undo",
+    "soak"
+  ],
+  "rounds": 10,
+  "quick": false,
+  "armsRun": [
+    "main",
+    "main-aa",
+    "main-now",
+    "phase-c-base",
+    "phase-c-end",
+    "phase-d-end"
+  ],
+  "skipped": {
+    "main": [
+      "undo"
+    ],
+    "main-aa": [
+      "undo"
+    ],
+    "main-now": [],
+    "phase-c-base": [],
+    "phase-c-end": [],
+    "phase-d-end": []
+  },
+  "sizes": {
+    "main": {
+      "engineWasmBytes": 7544455,
+      "engineWasmBrotliBytes": 2257280,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3537469,
+      "jsBrotliBytes": 1007592
+    },
+    "main-aa": {
+      "engineWasmBytes": 7544455,
+      "engineWasmBrotliBytes": 2257280,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3537472,
+      "jsBrotliBytes": 1007525
+    },
+    "main-now": {
+      "engineWasmBytes": 7880343,
+      "engineWasmBrotliBytes": 2467295,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 9961651,
+      "jsBrotliBytes": 3275547
+    },
+    "phase-c-base": {
+      "engineWasmBytes": 14955128,
+      "engineWasmBrotliBytes": 3972349,
+      "kernelWasmBytes": 10848190,
+      "kernelWasmBrotliBytes": 2563425,
+      "jsBytes": 8908535,
+      "jsBrotliBytes": 3040933
+    },
+    "phase-c-end": {
+      "engineWasmBytes": 14955128,
+      "engineWasmBrotliBytes": 3972349,
+      "kernelWasmBytes": 11218290,
+      "kernelWasmBrotliBytes": 2618259,
+      "jsBytes": 8909248,
+      "jsBrotliBytes": 3041368
+    },
+    "phase-d-end": {
+      "engineWasmBytes": 14955128,
+      "engineWasmBrotliBytes": 3972349,
+      "kernelWasmBytes": 11249261,
+      "kernelWasmBrotliBytes": 2626282,
+      "jsBytes": 8909248,
+      "jsBrotliBytes": 3041365
+    }
+  },
+  "memorySource": "uasm",
+  "workerThrottled": null,
+  "startedAt": "2026-11-17T04:18:50.584Z",
+  "completedAt": "2026-11-17T06:28:56.354Z"
+}

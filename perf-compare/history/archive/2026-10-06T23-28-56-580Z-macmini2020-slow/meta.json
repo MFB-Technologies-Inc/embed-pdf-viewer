@@ -1,0 +1,140 @@
+{
+  "runId": "2026-10-06T23-28-56-580Z-macmini2020-slow",
+  "harnessCommit": "61027635dbe6511c6053f5660e76acaef4a19a29",
+  "harnessDirty": false,
+  "host": "macmini2020",
+  "arms": {
+    "main": {
+      "worktree": "main",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "2516e2786ee894383220ecd436fbd248182ef444",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "98c2368a774de4f8c507c0f57d189cb80474fcc21cb85f8d4688cec9eae64545",
+      "kernelWasmSha256": null
+    },
+    "main-aa": {
+      "worktree": "main",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "2516e2786ee894383220ecd436fbd248182ef444",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "98c2368a774de4f8c507c0f57d189cb80474fcc21cb85f8d4688cec9eae64545",
+      "kernelWasmSha256": null
+    },
+    "plugins-tip5": {
+      "worktree": "plugins-tip5",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "a8252d0ead1c7267dd569aebc94a0279cf73349e",
+      "payload": "built",
+      "fork": {
+        "sha": "7c7b600b1dfcef78bbedb25e79e5c46bf9f3e150",
+        "target": "wasm32-eh",
+        "libSha256": "2bc254d7f1a4ea947e831ffe307200cfa1025242ddbeed6502a7dfbe8efb2c0f"
+      },
+      "engineWasmSha256": "c888920f5d275eccf907ca74ee376a19b00e24c5075a97111238bf2c3d748500",
+      "kernelWasmSha256": "aee9b94600085b201124c351319754d5c52e881546e35e35dcc36d56da295f6c"
+    },
+    "plugins-coalesce": {
+      "worktree": "plugins-coalesce",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/rust-kernel-coalesce-notify",
+      "sha": "c0fcd2746eb7c7c1bb22844758010ba305f71469",
+      "payload": "built",
+      "fork": {
+        "sha": "7c7b600b1dfcef78bbedb25e79e5c46bf9f3e150",
+        "target": "wasm32-eh",
+        "libSha256": "2bc254d7f1a4ea947e831ffe307200cfa1025242ddbeed6502a7dfbe8efb2c0f"
+      },
+      "engineWasmSha256": "c888920f5d275eccf907ca74ee376a19b00e24c5075a97111238bf2c3d748500",
+      "kernelWasmSha256": "aee9b94600085b201124c351319754d5c52e881546e35e35dcc36d56da295f6c"
+    }
+  },
+  "fixtures": {
+    "ebook": "2e539f62b5fa605fc33b038ff31f019c94123342115a0c1e52d741ca2f737997",
+    "large": "10c8668fe55cd301138afdd52e20138b2311c173bf99fdb090cd1a07845264f9"
+  },
+  "browserVersion": "140.0.7339.16",
+  "playwrightVersion": "1.55.0",
+  "nodeVersion": "v24.20.0",
+  "os": "Darwin 27.2.0 arm64",
+  "cpuModel": "Apple M1",
+  "cpuCores": 8,
+  "totalMemoryBytes": 17179869184,
+  "powerSource": "AC Power",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "deviceScaleFactor": 2,
+  "profile": "slow",
+  "throttleRate": 4,
+  "flows": [
+    "open",
+    "scroll",
+    "coldScroll",
+    "jump",
+    "zoom",
+    "zoomLarge",
+    "select",
+    "selectLarge",
+    "search",
+    "searchLarge",
+    "annotate",
+    "annotateLarge",
+    "soak"
+  ],
+  "rounds": 10,
+  "quick": false,
+  "armsRun": [
+    "main",
+    "main-aa",
+    "plugins-tip5",
+    "plugins-coalesce"
+  ],
+  "sizes": {
+    "main": {
+      "engineWasmBytes": 7544455,
+      "engineWasmBrotliBytes": 2257280,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3536548,
+      "jsBrotliBytes": 1007250
+    },
+    "main-aa": {
+      "engineWasmBytes": 7544455,
+      "engineWasmBrotliBytes": 2257280,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3536551,
+      "jsBrotliBytes": 1007497
+    },
+    "plugins-tip5": {
+      "engineWasmBytes": 10164511,
+      "engineWasmBrotliBytes": 2984616,
+      "kernelWasmBytes": 8430929,
+      "kernelWasmBrotliBytes": 1806558,
+      "jsBytes": 2760405,
+      "jsBrotliBytes": 839202
+    },
+    "plugins-coalesce": {
+      "engineWasmBytes": 10164511,
+      "engineWasmBrotliBytes": 2984616,
+      "kernelWasmBytes": 8430929,
+      "kernelWasmBrotliBytes": 1806558,
+      "jsBytes": 2760504,
+      "jsBrotliBytes": 839427
+    }
+  },
+  "memorySource": "uasm",
+  "workerThrottled": false,
+  "startedAt": "2026-10-06T23:28:56.580Z",
+  "completedAt": "2026-10-07T00:41:23.675Z"
+}

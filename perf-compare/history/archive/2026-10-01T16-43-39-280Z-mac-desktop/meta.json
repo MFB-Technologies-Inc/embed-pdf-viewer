@@ -1,0 +1,65 @@
+{
+  "runId": "2026-10-01T16-43-39-280Z-mac-desktop",
+  "harnessCommit": "92190f9e0a69d37a50e3438cd37e55a65ff9d1e2",
+  "harnessDirty": true,
+  "host": "mac",
+  "arms": {
+    "plugins-lazy": {
+      "worktree": "plugins-lazy",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/rust-kernel-lazy-state",
+      "sha": "f83e606542021d233208c27b00b16c70047b4f05",
+      "payload": "built",
+      "fork": {
+        "sha": "7c7b600b1dfcef78bbedb25e79e5c46bf9f3e150",
+        "target": "wasm32-eh",
+        "libSha256": "2bc254d7f1a4ea947e831ffe307200cfa1025242ddbeed6502a7dfbe8efb2c0f"
+      },
+      "engineWasmSha256": "c888920f5d275eccf907ca74ee376a19b00e24c5075a97111238bf2c3d748500",
+      "kernelWasmSha256": "5c2e682425ebf1bf64f98c3e6ae5aca006654a8822f87acf8f7dac975e637066"
+    }
+  },
+  "fixtures": {
+    "ebook": "2e539f62b5fa605fc33b038ff31f019c94123342115a0c1e52d741ca2f737997",
+    "large": "10c8668fe55cd301138afdd52e20138b2311c173bf99fdb090cd1a07845264f9"
+  },
+  "browserVersion": "140.0.7339.16",
+  "playwrightVersion": "1.55.0",
+  "nodeVersion": "v24.20.0",
+  "os": "Darwin 27.0.0 arm64",
+  "cpuModel": "Apple M4 Max",
+  "cpuCores": 16,
+  "totalMemoryBytes": 68719476736,
+  "powerSource": "AC Power",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "deviceScaleFactor": 2,
+  "profile": "desktop",
+  "throttleRate": 1,
+  "flows": [
+    "search",
+    "searchLarge"
+  ],
+  "rounds": 1,
+  "quick": false,
+  "armsRun": [
+    "plugins-lazy"
+  ],
+  "sizes": {
+    "plugins-lazy": {
+      "engineWasmBytes": 10164511,
+      "engineWasmBrotliBytes": 2984616,
+      "kernelWasmBytes": 8327913,
+      "kernelWasmBrotliBytes": 1788355,
+      "jsBytes": 2758251,
+      "jsBrotliBytes": 838568
+    }
+  },
+  "memorySource": null,
+  "workerThrottled": null,
+  "startedAt": "2026-10-01T16:43:39.280Z",
+  "completedAt": "2026-10-01T16:44:21.560Z"
+}

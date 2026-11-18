@@ -1,0 +1,183 @@
+{
+  "runId": "2026-10-01T03-11-14-653Z-2023MBP16Grey-desktop",
+  "harnessCommit": "87a569bdf55d1d0cd371797befc55a42021c0431",
+  "harnessDirty": true,
+  "host": "2023MBP16Grey",
+  "arms": {
+    "main": {
+      "worktree": "main",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "2516e2786ee894383220ecd436fbd248182ef444",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "98c2368a774de4f8c507c0f57d189cb80474fcc21cb85f8d4688cec9eae64545",
+      "kernelWasmSha256": null
+    },
+    "main-aa": {
+      "worktree": "main",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "2516e2786ee894383220ecd436fbd248182ef444",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "98c2368a774de4f8c507c0f57d189cb80474fcc21cb85f8d4688cec9eae64545",
+      "kernelWasmSha256": null
+    },
+    "impl-head": {
+      "worktree": "impl-head",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "research/multi-platform-rust-core-impl",
+      "sha": "485d0b89326ccecfb9643da0ca652ac649e53283",
+      "payload": "built",
+      "fork": {
+        "sha": "d045f389de885dd616e03077301df5ef5aa8c84e",
+        "target": "wasm32-eh",
+        "libSha256": "5bf368ce10d378dbff69969628e542fa5a16e1fd3c4bf4218bdee60388c53b7a"
+      },
+      "engineWasmSha256": "0f7407599d9390b413cd12efe862fe9745e0b455627ddd07e66ebd686a8e2ea5",
+      "kernelWasmSha256": null
+    },
+    "impl-enginelink": {
+      "worktree": "impl-enginelink",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "research/rust-core-engine-link",
+      "sha": "7ed02e3996251fc6298293887f53ea919c6a10ab",
+      "payload": "built",
+      "fork": {
+        "sha": "d045f389de885dd616e03077301df5ef5aa8c84e",
+        "target": "wasm32-eh",
+        "libSha256": "5bf368ce10d378dbff69969628e542fa5a16e1fd3c4bf4218bdee60388c53b7a"
+      },
+      "engineWasmSha256": "484daac6bf4a6da58dc215550c666448611a0248ea72f543d3b207d9018f8ebb",
+      "kernelWasmSha256": null
+    },
+    "plugins-tip": {
+      "worktree": "plugins-tip",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "e981e0cb9d088c2c84781d25e311a33923fb3105",
+      "payload": "built",
+      "fork": {
+        "sha": "d045f389de885dd616e03077301df5ef5aa8c84e",
+        "target": "wasm32-eh",
+        "libSha256": "5bf368ce10d378dbff69969628e542fa5a16e1fd3c4bf4218bdee60388c53b7a"
+      },
+      "engineWasmSha256": "0f7407599d9390b413cd12efe862fe9745e0b455627ddd07e66ebd686a8e2ea5",
+      "kernelWasmSha256": "d6276d5fb70d35d02e6879b70670b180f9f9ab0fb0ab5f7d859a17fd4ae197f9"
+    },
+    "plugins-enginelink": {
+      "worktree": "plugins-enginelink",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/rust-kernel-engine-link",
+      "sha": "dfb5c43c82e456c444c413bcb241594b080b51d6",
+      "payload": "built",
+      "fork": {
+        "sha": "d045f389de885dd616e03077301df5ef5aa8c84e",
+        "target": "wasm32-eh",
+        "libSha256": "5bf368ce10d378dbff69969628e542fa5a16e1fd3c4bf4218bdee60388c53b7a"
+      },
+      "engineWasmSha256": "484daac6bf4a6da58dc215550c666448611a0248ea72f543d3b207d9018f8ebb",
+      "kernelWasmSha256": "d6276d5fb70d35d02e6879b70670b180f9f9ab0fb0ab5f7d859a17fd4ae197f9"
+    }
+  },
+  "fixtures": {
+    "ebook": "2e539f62b5fa605fc33b038ff31f019c94123342115a0c1e52d741ca2f737997",
+    "large": "10c8668fe55cd301138afdd52e20138b2311c173bf99fdb090cd1a07845264f9"
+  },
+  "browserVersion": "140.0.7339.16",
+  "playwrightVersion": "1.55.0",
+  "nodeVersion": "v24.20.0",
+  "os": "Darwin 27.0.0 arm64",
+  "cpuModel": "Apple M2 Max",
+  "cpuCores": 12,
+  "totalMemoryBytes": 68719476736,
+  "powerSource": "AC Power",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "deviceScaleFactor": 2,
+  "profile": "desktop",
+  "throttleRate": 1,
+  "flows": [
+    "open",
+    "scroll",
+    "jump",
+    "zoom",
+    "select",
+    "search",
+    "annotate",
+    "soak"
+  ],
+  "rounds": 3,
+  "quick": false,
+  "armsRun": [
+    "main",
+    "main-aa",
+    "impl-head",
+    "impl-enginelink",
+    "plugins-tip",
+    "plugins-enginelink"
+  ],
+  "sizes": {
+    "main": {
+      "engineWasmBytes": 7544455,
+      "engineWasmBrotliBytes": 2257280,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3536532,
+      "jsBrotliBytes": 1007392
+    },
+    "main-aa": {
+      "engineWasmBytes": 7544455,
+      "engineWasmBrotliBytes": 2257280,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3536535,
+      "jsBrotliBytes": 1007447
+    },
+    "impl-head": {
+      "engineWasmBytes": 11084440,
+      "engineWasmBrotliBytes": 2972439,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3513872,
+      "jsBrotliBytes": 1005610
+    },
+    "impl-enginelink": {
+      "engineWasmBytes": 10065349,
+      "engineWasmBrotliBytes": 2960256,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3490805,
+      "jsBrotliBytes": 997989
+    },
+    "plugins-tip": {
+      "engineWasmBytes": 11084440,
+      "engineWasmBrotliBytes": 2972439,
+      "kernelWasmBytes": 8311869,
+      "kernelWasmBrotliBytes": 1784994,
+      "jsBytes": 2747984,
+      "jsBrotliBytes": 838265
+    },
+    "plugins-enginelink": {
+      "engineWasmBytes": 10065349,
+      "engineWasmBrotliBytes": 2960256,
+      "kernelWasmBytes": 8311869,
+      "kernelWasmBrotliBytes": 1784994,
+      "jsBytes": 2724918,
+      "jsBrotliBytes": 830685
+    }
+  },
+  "memorySource": "uasm",
+  "workerThrottled": null,
+  "startedAt": "2026-10-01T03:11:14.653Z",
+  "completedAt": "2026-10-01T03:32:21.904Z"
+}
