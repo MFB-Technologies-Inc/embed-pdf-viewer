@@ -16,6 +16,7 @@
  * (`crates/plugins/signature/src/transport.rs`, `request_json` and
  * `outcome_from_json`).
  */
+import { EngineError, EngineErrorCode } from '@embedpdf/engine-core/runtime';
 import type {
   httpRevocationSource as HttpRevocationSource,
   httpTimestampAuthority as HttpTimestampAuthority,
@@ -65,6 +66,12 @@ export interface FetchTransportOptions {
  * its message, and for a timestamp query in a page the clients' hint that
  * an authority is reached through a route; a body that breaks off answers
  * `failed` with `the reply broke off: ...`. Never rejects.
+ *
+ * Those three body outcomes are for a 2xx reply. A reply with any other
+ * status whose body can't be read (it stalls, breaks off or runs past the
+ * limit) answers `replied` with that status and an empty body: upstream's
+ * timestamp client never reads such a body, and its revocation client
+ * swallows the read error, so the status alone decides there too.
  */
 export function fetchTransport(options: FetchTransportOptions = {}): SignatureTransport {
   return async (request) => {
@@ -92,8 +99,11 @@ export function fetchTransport(options: FetchTransportOptions = {}): SignatureTr
         return { kind: 'failed', message: `${messageOf(error)}${hint}` };
       }
       const body = await readUpTo(response, request.maxReplyBytes);
-      if (body === 'too-large') return { kind: 'tooLarge' };
       if (body instanceof Uint8Array) return { kind: 'replied', status: response.status, body };
+      if (response.status < 200 || response.status > 299) {
+        return { kind: 'replied', status: response.status, body: new Uint8Array() };
+      }
+      if (body === 'too-large') return { kind: 'tooLarge' };
       if (timeout.signal.aborted) return { kind: 'timedOut' };
       return { kind: 'failed', message: `the reply broke off: ${messageOf(body.error)}` };
     } finally {
@@ -125,10 +135,11 @@ async function readUpTo(
       return { error };
     }
   }
-  const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
   let size = 0;
   try {
+    // Inside the `try`: a body already read or locked throws here.
+    const reader = response.body.getReader();
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -160,9 +171,20 @@ async function readUpTo(
  */
 export const httpTimestampAuthority: typeof HttpTimestampAuthority = (options) => {
   const { fetch, ...rest } = options;
-  return { ...rest, transport: fetchTransport({ fetch }) } as unknown as ReturnType<
-    typeof HttpTimestampAuthority
-  >;
+  return {
+    ...rest,
+    transport: fetchTransport({ fetch }),
+    // What a caller sees who uses it as a signing key: upstream's refusal.
+    // The adapter reads `transport` first, so the Rust plugin never calls it.
+    kind: 'cms',
+    async sign() {
+      throw new EngineError(
+        EngineErrorCode.InvalidArg,
+        "a timestamp authority can't sign a document: pass it as `timestampAuthority`, or sign with `kind: 'timestamp'`",
+        { details: { authority: options.url } },
+      );
+    },
+  } as unknown as ReturnType<typeof HttpTimestampAuthority>;
 };
 
 /**

@@ -235,6 +235,62 @@ describe('fetchTransport against a stubbed fetch', () => {
   });
 });
 
+describe('fetchTransport: a reply that is not 2xx', () => {
+  test('whose body breaks off, stalls or runs past the limit is the status with no body', async () => {
+    const broken = stubFetch(
+      () => new Response(streamed([new Uint8Array([1])], 'error'), { status: 400 }),
+    );
+    expect(await fetchTransport({ fetch: broken.fetch })(request())).toEqual({
+      kind: 'replied',
+      status: 400,
+      body: new Uint8Array(),
+    });
+    const oversized = stubFetch(() => new Response(streamed([new Uint8Array(8)]), { status: 503 }));
+    expect(await fetchTransport({ fetch: oversized.fetch })(request({ maxReplyBytes: 7 }))).toEqual(
+      { kind: 'replied', status: 503, body: new Uint8Array() },
+    );
+    const stalled = (async (_: unknown, init?: RequestInit) =>
+      new Response(streamed([new Uint8Array([1])], 'hang', init!.signal!), {
+        status: 429,
+      })) as typeof globalThis.fetch;
+    expect(await fetchTransport({ fetch: stalled })(request({ timeoutMs: 40 }))).toEqual({
+      kind: 'replied',
+      status: 429,
+      body: new Uint8Array(),
+    });
+  });
+
+  test('a body that cannot be read at all fails a 2xx and never rejects', async () => {
+    const locked = stubFetch(() => {
+      const response = new Response(new Uint8Array([1, 2]));
+      response.body!.getReader();
+      return response;
+    });
+    const outcome = await fetchTransport({ fetch: locked.fetch })(request());
+    expect(outcome.kind).toBe('failed');
+    expect(outcome.kind === 'failed' && outcome.message).toMatch(/^the reply broke off: /);
+  });
+});
+
+describe('httpTimestampAuthority used as a signing key', () => {
+  test("refuses as upstream's does", async () => {
+    const authority = httpTimestampAuthority({ url: 'https://tsa.example/' });
+    expect(authority.kind).toBe('cms');
+    await expect(
+      authority.sign({
+        digest: new Uint8Array(32),
+        algorithm: 'sha256',
+        subFilter: 'ETSI.CAdES.detached',
+      }),
+    ).rejects.toMatchObject({
+      code: 'InvalidArg',
+      message:
+        "a timestamp authority can't sign a document: pass it as `timestampAuthority`, or sign with `kind: 'timestamp'`",
+      details: { authority: 'https://tsa.example/' },
+    });
+  });
+});
+
 /** A server on a free loopback port; `handle` answers each request. */
 async function listen(
   handle: (
@@ -541,6 +597,9 @@ async function signatureKernel(signature = signaturePlugin()) {
 }
 
 const FIELD = { kind: 'fqn', name: 'sig' } as const;
+/** The engine error codes upstream's clients raise: refused, and no answer. */
+const KIND_REFUSED = 'SignatureRefused';
+const KIND_NO_ANSWER = 'Network';
 
 async function refusal(promise: Promise<unknown>): Promise<Error> {
   try {
@@ -703,6 +762,63 @@ describe('the Rust signature plugin over the transport', () => {
     expect(error.message).toBe(
       'the timestamp authority at https://app.example/api/timestamp did not answer: HTTP 503',
     );
+    expect(asked).toBe(2);
+  });
+
+  test("a 4xx whose body breaks off is upstream's refusal, asked once", async () => {
+    let asked = 0;
+    const authority = (async () => {
+      asked++;
+      return new Response(streamed([new Uint8Array([1])], 'error'), { status: 400 });
+    }) as typeof globalThis.fetch;
+    const signature = await signatureKernel();
+    const error = await refusal(
+      signature.sign({
+        field: FIELD,
+        signingKey: await signingKey(),
+        appearance: artwork,
+        timestampAuthority: httpTimestampAuthority({
+          url: 'https://tsa.example/',
+          fetch: authority,
+        }),
+      } as never),
+    );
+    expect(error.message).toBe(
+      'the timestamp authority at https://tsa.example/ refused the request: HTTP 400',
+    );
+    expect((error as Error & { cause?: { code?: unknown } }).cause?.code).toBe(KIND_REFUSED);
+    expect(asked).toBe(1);
+  });
+
+  test("a 5xx whose body runs past the limit is upstream's no answer, asked again", async () => {
+    let asked = 0;
+    const authority = (async () => {
+      asked++;
+      return new Response(
+        new ReadableStream<Uint8Array>({
+          pull(controller) {
+            controller.enqueue(new Uint8Array(64 * 1024));
+          },
+        }),
+        { status: 503 },
+      );
+    }) as typeof globalThis.fetch;
+    const signature = await signatureKernel();
+    const error = await refusal(
+      signature.sign({
+        field: FIELD,
+        signingKey: await signingKey(),
+        appearance: artwork,
+        timestampAuthority: httpTimestampAuthority({
+          url: 'https://tsa.example/',
+          fetch: authority,
+        }),
+      } as never),
+    );
+    expect(error.message).toBe(
+      'the timestamp authority at https://tsa.example/ did not answer: HTTP 503',
+    );
+    expect((error as Error & { cause?: { code?: unknown } }).cause?.code).toBe(KIND_NO_ANSWER);
     expect(asked).toBe(2);
   });
 });
