@@ -1,0 +1,275 @@
+name: release-dotnet
+
+# Builds, tests, packs and validates the EmbedPDF.Engine .NET package for
+# linux-arm64 and uploads the five release assets as the artifact
+# dotnet-release. It reproduces the hand-run sequence in
+# docs/research/upstream-catchup-2026-11-18/scripts/cu-c10/dotnet-release.sh,
+# which made the dotnet-engine-0.0.0-local-* releases, and depends on nothing
+# else in the release train: the PDFium it packs is the upstream runtime
+# archive pinned by packages/engine/runtime/engine-runtime-build.json.
+#
+#   image    resolves debian:trixie to its linux/arm64 manifest digest.
+#   package  runs in that exact image on a native arm64 runner: the facade
+#            tests, the parity self-test, the packaging unit tests, the
+#            release epdf-capi build, pack.sh, validate.sh, then the
+#            existing-app guide's steps in a fresh project.
+#
+# Microsoft publishes no Debian trixie .NET SDK image (no 10.0.403-trixie
+# tag), so the job installs SDK 10.0.403 into debian:trixie, the same
+# Debian the repository devcontainer and the earlier releases used.
+#
+# This workflow never publishes; the orchestrator does. dry_run exists so every
+# release workflow takes the same inputs, and changes nothing here.
+
+on:
+  workflow_call:
+    inputs:
+      dry_run:
+        description: Accepted for symmetry with the other release workflows. This one never publishes either way.
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  RID: linux-arm64
+  RUST_TARGET: aarch64-unknown-linux-gnu
+  PACKAGE: EmbedPDF.Engine.0.0.0-local
+
+jobs:
+  image:
+    runs-on: ubuntu-24.04-arm
+    outputs:
+      digest: ${{ steps.digest.outputs.digest }}
+    steps:
+      # The platform manifest digest, not the index digest: it names exactly
+      # the arm64 image this run pulls, and `docker pull debian@<digest>`
+      # fetches it again. validate.sh records it as environment.imageId,
+      # whose schema is a bare sha256:<hex>.
+      - name: Resolve debian:trixie for linux/arm64
+        id: digest
+        run: |
+          digest=$(docker manifest inspect debian:trixie \
+            | jq -r '[.manifests[] | select(.platform.os == "linux" and .platform.architecture == "arm64")] | if length == 1 then .[0].digest else empty end')
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "::error::no single linux/arm64 manifest for debian:trixie (got '$digest')"; exit 1; }
+          echo "debian:trixie linux/arm64 = $digest"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+
+  package:
+    needs: image
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 90
+    container:
+      image: debian:trixie@${{ needs.image.outputs.digest }}
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+      CARGO_INCREMENTAL: "0"
+      # validate.sh refuses a Linux run without it and records it in the
+      # validation record.
+      EPDF_IMAGE_ID: ${{ needs.image.outputs.digest }}
+      EPDF_HOST_OS: linux
+    steps:
+      # Before checkout: without git, actions/checkout downloads a tarball,
+      # and package.py reads the source identity from git.
+      - name: Install system packages
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates curl git jq zstd xz-utils \
+            build-essential clang libclang-dev python3 \
+            libicu-dev tzdata zlib1g fonts-dejavu-core
+          rm -rf /var/lib/apt/lists/*
+
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      # The workspace belongs to the runner user and the container runs as
+      # root; git refuses the repository without this.
+      - name: Trust the workspace
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Install .NET SDK 10.0.403
+        run: |
+          curl -fsSL --retry 3 https://dot.net/v1/dotnet-install.sh -o "$RUNNER_TEMP/dotnet-install.sh"
+          bash "$RUNNER_TEMP/dotnet-install.sh" --version 10.0.403 --install-dir /usr/share/dotnet
+          echo "DOTNET_ROOT=/usr/share/dotnet" >> "$GITHUB_ENV"
+          echo "/usr/share/dotnet" >> "$GITHUB_PATH"
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - uses: ./.github/actions/setup-rust
+        with:
+          targets: aarch64-unknown-linux-gnu
+          cache-key: dotnet-linux-arm64
+
+      - uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('platforms/dotnet/**/*.csproj', 'platforms/dotnet/global.json') }}
+
+      # Upstream's runtime-f2ea75972 linux-arm64 archive, checked against the
+      # pin. pack.sh never downloads; it reads this from build/cache.
+      - name: Fetch the pinned runtime archive
+        run: bash packages/engine/runtime/scripts/fetch-libpdfium.sh "$RID"
+
+      # Every later step reads these. The test steps add LD_LIBRARY_PATH;
+      # pack and validate run without it.
+      - name: Set paths
+        run: |
+          {
+            echo "PDF_RUNTIME_LIB_DIR=$GITHUB_WORKSPACE/packages/engine/runtime/build/libpdfium"
+            echo "RUNTIME_ARCHIVE=$GITHUB_WORKSPACE/packages/engine/runtime/build/cache/libembedpdf-runtime-$RID.tar.gz"
+            echo "RUNTIME_MANIFEST=$GITHUB_WORKSPACE/packages/engine/runtime/engine-runtime-build.json"
+            # Outside platforms/dotnet: package.py hashes untracked files
+            # there into the source identity and would mark the package dirty.
+            echo "OUT=$RUNNER_TEMP/dotnet"
+            echo "FONTS=$RUNNER_TEMP/fonts/fonts.json"
+          } >> "$GITHUB_ENV"
+
+      - name: Toolchain versions
+        run: |
+          echo "checkout $(git rev-parse HEAD) dirty=[$(git status --porcelain --untracked-files=no | wc -l)]"
+          echo "dotnet $(cd platforms/dotnet && dotnet --version) $(rustc --version) $(ldd --version | head -1)"
+
+      - name: Build epdf-capi (debug)
+        run: cargo build --locked -p epdf-capi
+
+      - name: dotnet test
+        run: |
+          export EPDF_NATIVE_DIR="$GITHUB_WORKSPACE/target/debug"
+          export LD_LIBRARY_PATH="$PDF_RUNTIME_LIB_DIR/$RID/lib"
+          dotnet test platforms/dotnet/EmbedPDF.Tests/EmbedPDF.Tests.csproj
+
+      - name: Parity self-test
+        working-directory: platforms/dotnet
+        run: |
+          export LD_LIBRARY_PATH="$PDF_RUNTIME_LIB_DIR/$RID/lib"
+          dotnet run --project EmbedPDF.Parity -- self-test | tee "$RUNNER_TEMP/parity.log"
+          echo "passed=$(grep -c '"status":"passed"' "$RUNNER_TEMP/parity.log")"
+
+      - name: Packaging unit tests
+        run: python3 -m unittest discover -s platforms/dotnet/packaging -v
+
+      - name: Build epdf-capi (release)
+        run: cargo build --locked -p epdf-capi --release --target "$RUST_TARGET"
+
+      - name: Write the font manifest
+        run: |
+          bash platforms/dotnet/packaging/ci-fonts.sh "$FONTS"
+          cat "$FONTS"
+
+      - name: pack.sh
+        run: |
+          unset LD_LIBRARY_PATH DYLD_LIBRARY_PATH
+          bash platforms/dotnet/pack.sh --rid "$RID" --out "$OUT/pack" --runtime-manifest "$RUNTIME_MANIFEST" \
+            --runtime-archive "$RUNTIME_ARCHIVE" --font-manifest "$FONTS"
+
+      # No --font-manifest, as in the hand-run release: the record's inputs
+      # name the checked-in packaging/fonts.json.
+      - name: validate.sh
+        run: |
+          unset LD_LIBRARY_PATH DYLD_LIBRARY_PATH
+          bash platforms/dotnet/validate.sh --rid "$RID" --runtime-manifest "$RUNTIME_MANIFEST" --record "$OUT/validate-record.json" \
+            --package "$OUT/pack/$PACKAGE.nupkg" --manifest "$OUT/pack/package-manifest.$RID.json"
+          status=$(jq -r --arg rid "$RID" '.rids[$rid].status' "$OUT/pack/package-manifest.$RID.json")
+          [[ "$status" == VALIDATED ]] || { echo "::error::package manifest status for $RID is '$status', not VALIDATED"; exit 1; }
+
+      # The guide's steps, in a fresh application with its own NuGet cache.
+      # The C# below is the guide's PdfPreview class
+      # (platforms/dotnet/EmbedPDF-CSharp-Existing-App.md, section 4).
+      - name: Existing-app guide
+        run: |
+          set -e
+          unset LD_LIBRARY_PATH PDF_RUNTIME_LIB_DIR
+          G=$OUT/guide
+          mkdir -p "$G/app/local-packages"
+          cp "$OUT/pack/$PACKAGE.nupkg" "$G/app/local-packages/"
+          cd "$G/app"
+          export NUGET_PACKAGES=$G/nuget-cache
+          dotnet new console --framework net10.0 --name YourApp --output .
+          cat > NuGet.Config <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <add key="EmbedPDFLocal" value="./local-packages" />
+            </packageSources>
+          </configuration>
+          XML
+          dotnet add ./YourApp.csproj package EmbedPDF.Engine --version 0.0.0-local
+          cat > PdfPreview.cs <<'CS'
+          using System;
+          using System.IO;
+          using System.Threading.Tasks;
+          using System.Collections.Immutable;
+          using EmbedPDF.Engine;
+
+          public static class PdfPreview
+          {
+              public static async Task<RgbaImage> RenderFirstPageAsync(byte[] pdf)
+              {
+                  var font = await File.ReadAllBytesAsync(
+                      Path.Combine(AppContext.BaseDirectory, "000-DejaVuSans.ttf"));
+
+                  await using var engine = await PdfEngine.CreateAsync(new()
+                  {
+                      StartupFonts = ImmutableArray.Create(
+                          new StartupFont("parity-dejavu", font)
+                          {
+                              FamilyName = "DejaVu Sans",
+                              Weight = 400,
+                              Italic = false,
+                              Fallback = true
+                          })
+                  });
+
+                  await using var document = await engine.OpenAsync(pdf);
+                  return await document.RenderAsync(
+                      new PageIndex(0), new RenderOptions { Scale = 1.5 });
+              }
+          }
+          CS
+          cat > Program.cs <<'CS'
+          var pdfBytes = await System.IO.File.ReadAllBytesAsync(args[0]);
+          var image = await PdfPreview.RenderFirstPageAsync(pdfBytes);
+          System.Console.WriteLine($"rendered {image.Width}x{image.Height} stride={image.Stride} bytes={image.Bytes.Length}");
+          CS
+          dotnet publish ./YourApp.csproj -c Release --runtime "$RID" --self-contained false --output ./publish
+          ./publish/YourApp "$GITHUB_WORKSPACE/tooling/engine-conformance/fixtures/non_identity_text.pdf" | tee "$G/run.log"
+          grep -q '^rendered ' "$G/run.log"
+
+      - name: Collect the release assets
+        run: |
+          R=$GITHUB_WORKSPACE/dotnet-release
+          mkdir -p "$R"
+          cp "$OUT/pack/$PACKAGE.nupkg" "$R/"
+          (cd "$R" && sha256sum "$PACKAGE.nupkg" > "$PACKAGE.nupkg.sha256")
+          cp "$OUT/pack/package-manifest.$RID.json" "$R/$PACKAGE.provenance.json"
+          cp "$OUT/validate-record.json" "$R/$PACKAGE.validation.$RID.json"
+          cp platforms/dotnet/EmbedPDF-CSharp-Existing-App.md "$R/"
+          {
+            echo "### $PACKAGE ($RID)"
+            echo
+            echo "- image: \`debian:trixie@$EPDF_IMAGE_ID\`"
+            echo "- sha256: \`$(cut -d' ' -f1 "$R/$PACKAGE.nupkg.sha256")\`, $(stat -c %s "$R/$PACKAGE.nupkg") bytes"
+            echo "- highest GLIBC symbol: \`$(objdump -T "$OUT"/pack/*/runtimes/"$RID"/native/lib*.so 2>/dev/null | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1)\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          ls -l "$R"
+
+      # A workspace-relative path: in a container job runner.temp is the
+      # host's path, not the container's.
+      - uses: actions/upload-artifact@v6
+        with:
+          name: dotnet-release
+          path: dotnet-release
+          if-no-files-found: error
