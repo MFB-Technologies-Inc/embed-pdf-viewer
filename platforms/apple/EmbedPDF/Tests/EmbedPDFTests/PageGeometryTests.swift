@@ -16,6 +16,44 @@ extension BaseSuite {
       _ = PageGeometry(rotation: .min, pageSize: size)
     }
 
+    @Test func degreesReduceToAQuarterTurn() {
+      expectNoDifference(RenderRotation(degrees: -90), .clockwise270)
+      expectNoDifference(RenderRotation(degrees: 450), .clockwise90)
+      expectNoDifference(RenderRotation(degrees: 89.6), .clockwise90)
+      expectNoDifference(RenderRotation(degrees: -90.4), .clockwise270)
+      expectNoDifference(RenderRotation(degrees: Int.max).degrees % 90, 0)
+      expectNoDifference(RenderRotation(degrees: Int.min).degrees % 90, 0)
+      expectNoDifference(RenderRotation(degrees: Double.nan), .none)
+      expectNoDifference(RenderRotation(degrees: Double.infinity), .none)
+      expectNoDifference(RenderRotation(degrees: 1e12).degrees % 90, 0)
+    }
+
+    @Test func turnReportsItsDegrees() {
+      expectNoDifference(Self.turns.map(\.degrees), [0, 90, 180, 270])
+      expectNoDifference(Self.turns.map(\.isQuarterTurn), [false, true, false, true])
+      let geometry = PageGeometry(turn: .clockwise270, pageSize: size)
+      expectNoDifference(geometry.rotation, 270)
+      expectNoDifference(geometry, PageGeometry(rotation: 270, pageSize: size))
+    }
+
+    @Test(arguments: turns)
+    func coreGraphicsValuesMatchPageValues(turn: RenderRotation) {
+      let geometry = PageGeometry(turn: turn, pageSize: Size(width: 612, height: 792))
+      let point = Point(x: 30, y: 20)
+      let rect = Rect(x: 10, y: 20, width: 100, height: 12)
+      expectNoDifference(Point(geometry.toDisplay(CGPoint(point))), geometry.toDisplay(point))
+      expectNoDifference(Point(geometry.toPage(CGPoint(point))), geometry.toPage(point))
+      expectNoDifference(Rect(geometry.toDisplay(CGRect(rect))), geometry.toDisplay(rect))
+      expectNoDifference(Rect(geometry.toPage(CGRect(rect))), geometry.toPage(rect))
+      expectNoDifference(Size(geometry.displayCGSize), geometry.displaySize)
+    }
+
+    @Test func imageSwapsItsSidesOnAQuarterTurn() throws {
+      let image = try #require(Self.context(width: 4, height: 2)?.makeImage())
+      let turned = try PageGeometry(turn: .clockwise90, pageSize: size).toDisplay(image)
+      expectNoDifference([turned.width, turned.height], [2, 4])
+    }
+
     @Test(arguments: [0, 90, 180, 270])
     func pointsRoundTrip(rotation: Int) {
       let geometry = PageGeometry(rotation: rotation, pageSize: size)
@@ -30,15 +68,15 @@ extension BaseSuite {
       expectNoDifference(
         geometry.toDisplay(Rect(x: 10, y: 20, width: 30, height: 40)),
         Rect(x: 40, y: 10, width: 40, height: 30))
-      expectNoDifference(geometry.renderRotation, .clockwise90)
+      expectNoDifference(geometry.turn, .clockwise90)
     }
 
     @Test func imageTurnsClockwiseWithThePage() throws {
       // 2x1 bitmap: left pixel red, right pixel blue. A clockwise quarter
       // turn makes it 1x2 with red on top.
       let image = try #require(Self.bitmap(left: .red, right: .blue))
-      #expect(PageGeometry(rotation: 0, pageSize: size).toDisplay(image) === image)
-      let turned = PageGeometry(rotation: 90, pageSize: size).toDisplay(image)
+      #expect(try PageGeometry(rotation: 0, pageSize: size).toDisplay(image) === image)
+      let turned = try PageGeometry(rotation: 90, pageSize: size).toDisplay(image)
       expectNoDifference([turned.width, turned.height], [1, 2])
       expectNoDifference(Self.pixel(turned, x: 0, y: 0), .red)
       expectNoDifference(Self.pixel(turned, x: 0, y: 1), .blue)
@@ -60,15 +98,17 @@ extension BaseSuite {
       let render = try await viewer.render(in: document)
       // report.pdf is portrait (612 by 792); turned, it renders landscape.
       let rendered = try await render.renderPage(
-        page.page, options: RenderPageOptions(rotation: geometry.renderRotation, width: 200))
+        page.page, options: RenderPageOptions(rotation: geometry.turn, width: 200))
       #expect(rendered.image.width > rendered.image.height)
       let thumbnail = try await render.renderThumbnail(page.page)
       #expect(thumbnail.image.height > thumbnail.image.width)
-      let turned = geometry.toDisplay(thumbnail.image)
+      let turned = try geometry.toDisplay(thumbnail.image)
       expectNoDifference(turned.width, thumbnail.image.height)
       expectNoDifference(turned.height, thumbnail.image.width)
       try await viewer.destroy()
     }
+
+    static let turns: [RenderRotation] = [.none, .clockwise90, .clockwise180, .clockwise270]
 
     enum Pixel: Equatable { case red, blue, other }
 
