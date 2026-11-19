@@ -1,0 +1,175 @@
+name: release-payload
+
+# Publishes the wasm runtime payload as runtime-payloads-<hash> on the release
+# repo, with scripts/publish-engine-payload.mjs --only wasm. The script builds,
+# verifies and publishes in one run, so it runs in one job. Its PDFium is the
+# wasm32-eh slice release-fork-slices.yml uploaded (fork-slice-wasm32-eh),
+# stamped into buildFork's cache so the fork is not built again.
+#
+#   key      computes the payload hash (runtime-payload-hash.sh) and asks the
+#            release repo whether that payload is out. Then nothing else runs.
+#   publish  stamps the slice and runs the script under the release
+#            environment with the App token.
+#
+# dry_run runs the script with --dry-run, without the environment or the
+# token: it builds and packs the payload and prints the gh command.
+
+on:
+  workflow_call:
+    inputs:
+      dry_run:
+        description: Build and pack the payload and print the publish command without running it.
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      RELEASE_APP_ID:
+        description: GitHub App that can write releases on the release repo.
+        required: false
+      RELEASE_APP_KEY:
+        description: That App's private key.
+        required: false
+    outputs:
+      payload_tag:
+        description: The payload release tag, runtime-payloads-<hash>.
+        value: ${{ jobs.key.outputs.payload_tag }}
+      published:
+        description: "'true' when the payload was already published and this run skipped it."
+        value: ${{ jobs.key.outputs.published }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  EMBEDPDF_RELEASE_REPO: MFB-Technologies-Inc/embed-pdf-runtime
+
+jobs:
+  key:
+    runs-on: ubuntu-24.04
+    outputs:
+      payload_tag: ${{ steps.key.outputs.payload_tag }}
+      published: ${{ steps.key.outputs.published }}
+    steps:
+      # The hash reads the runtime-src gitlink from the index, not the
+      # submodule's files.
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      # Published means what the script's releaseVerdict means: not a draft,
+      # with the archive and its .sha256. A draft or partial release still
+      # goes to the publish job, where the script stops on it with its own
+      # message. The release repo is public, so the run's token can read it.
+      - name: Compute the payload tag
+        id: key
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ASSET: engine-runtime-payload-wasm32.tar.gz
+        run: |
+          hash=$(bash packages/engine/runtime/scripts/runtime-payload-hash.sh)
+          [[ "$hash" =~ ^[0-9a-f]{16}$ ]] || { echo "::error::runtime-payload-hash.sh printed '$hash'"; exit 1; }
+          tag="runtime-payloads-$hash"
+          echo "payload_tag=$tag" >> "$GITHUB_OUTPUT"
+          if view=$(gh release view "$tag" -R "$EMBEDPDF_RELEASE_REPO" --json assets,isDraft 2>&1); then
+            if jq -e --arg a "$ASSET" '(.isDraft | not) and any(.assets[]; .name == $a) and any(.assets[]; .name == $a + ".sha256")' <<<"$view" >/dev/null; then
+              echo "$tag is already published on $EMBEDPDF_RELEASE_REPO; nothing to do."
+              echo "published=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "::warning::$tag exists on $EMBEDPDF_RELEASE_REPO but is a draft or lacks $ASSET; the publish job will stop on it."
+              echo "published=false" >> "$GITHUB_OUTPUT"
+            fi
+          elif grep -qi 'release not found' <<<"$view"; then
+            echo "$tag is not on $EMBEDPDF_RELEASE_REPO yet."
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::gh couldn't say whether $tag exists on $EMBEDPDF_RELEASE_REPO: $view"
+            exit 1
+          fi
+
+  publish:
+    needs: key
+    if: needs.key.outputs.published == 'false'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    # No environment on a dry run: nothing to approve.
+    environment: ${{ !inputs.dry_run && 'release' || '' }}
+    env:
+      PAYLOAD_TAG: ${{ needs.key.outputs.payload_tag }}
+      DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      # Full runtime-src history at the gitlink: buildFork clones the fork from
+      # this checkout, and the script runs git merge-base --is-ancestor in it.
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set the work directory
+        run: echo "PERF_WORK_DIR=$RUNNER_TEMP/work" >> "$GITHUB_ENV"
+
+      # bindgen, for pdfium-sys on wasm32-unknown-emscripten.
+      - name: Install libclang
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libclang-dev
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - uses: ./.github/actions/setup-rust
+        with:
+          targets: wasm32-unknown-emscripten
+          cache-key: release-payload
+
+      # Where the script looks for emsdk (workDir()/emsdk), at
+      # build-arm.mjs's EH_EMSDK_VERSION, with the sysroot bindgen reads.
+      - uses: ./.github/actions/setup-emsdk
+        with:
+          version: 4.0.0
+          dir: ${{ env.PERF_WORK_DIR }}/emsdk
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: fork-slice-wasm32-eh
+          path: ${{ runner.temp }}/fork-slice-wasm32-eh
+
+      # Exit 65 when the slice isn't wasm32-eh at the runtime-src gitlink.
+      - name: Stamp the fork slice
+        run: node scripts/release/stamp-fork-slice.mjs wasm32-eh "$RUNNER_TEMP/fork-slice-wasm32-eh/staging"
+
+      - name: Create the release token
+        id: token
+        if: ${{ !inputs.dry_run }}
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_KEY }}
+          owner: MFB-Technologies-Inc
+          repositories: embed-pdf-runtime
+
+      # The script recomputes the hash and skips a payload that is already
+      # out, so a release made since the key job is not made twice.
+      - name: Publish the payload
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token || github.token }}
+        run: |
+          args=(--only wasm)
+          if [[ "$DRY_RUN" == true ]]; then
+            args+=(--dry-run)
+          fi
+          echo "publishing $PAYLOAD_TAG"
+          node scripts/publish-engine-payload.mjs "${args[@]}"
+          hash=$(bash packages/engine/runtime/scripts/runtime-payload-hash.sh)
+          if [[ "runtime-payloads-$hash" != "$PAYLOAD_TAG" ]]; then
+            echo "::error::the payload hash moved during the run: $PAYLOAD_TAG, now runtime-payloads-$hash"
+            exit 1
+          fi
+
+      - name: Disk usage
+        if: always()
+        run: df -h
