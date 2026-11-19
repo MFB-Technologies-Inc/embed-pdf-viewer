@@ -354,7 +354,7 @@ extension AnnotationInfo.Shape: Decodable {
   }
 }
 
-private struct ReadLinePoints: Decodable {
+struct ReadLinePoints: Decodable {
   let start: ReadPoint
   let end: ReadPoint
 }

@@ -438,10 +438,40 @@ public struct AnnotationToolsCapability: Sendable {
     try await defaults(for: ToolID(rawValue: toolID))
   }
 
+  /// The tool's defaults as the patch of its subtype (`InkAnnotationPatch`
+  /// for `.ink`): what `updateDefaults(_:for:)` wrote, read back typed.
+  ///
+  /// A default the tool doesn't set is `nil`, and one set to nothing is
+  /// `.null`: the engine leaves the first out of its JSON and writes `null`
+  /// for the second. A default the patch has no member for is left unread;
+  /// `defaults(for:)` has every one. `common.nm` is the name the defaults
+  /// hold, which only the JSON overload can put there.
+  ///
+  /// Throws `invalid-input` when the defaults don't read as `type`: a
+  /// member of the patch holds a value of another shape, as it can after
+  /// the JSON overload stored one, or after asking for another subtype's
+  /// patch.
+  public func defaults<P: AnnotationPatch>(for toolID: ToolID, as type: P.Type)
+    async throws(PDFError) -> P
+  {
+    let json = try await defaults(for: toolID)
+    do {
+      return try JSONDecoder().decode(type, from: Data(json.utf8))
+    } catch {
+      throw PDFError(
+        name: "DecodingError", code: .invalidInput,
+        detail: "the defaults of \(toolID.rawValue) don't read as \(type): \(error)")
+    }
+  }
+
   /// Merge `changes` over the tool's defaults, which every annotation the
   /// tool creates starts from. Pass the patch of the tool's subtype
   /// (`InkAnnotationPatch` for `.ink`); a create keeps only the defaults
   /// its subtype declares, and drops the rest without a word.
+  ///
+  /// The patch's `common` is stored too. A `reply` or `groupID` set there
+  /// makes every annotation the tool creates a reply to that annotation or
+  /// a member of that group.
   public func updateDefaults(_ changes: some AnnotationPatch, for toolID: ToolID)
     async throws(PDFError)
   {

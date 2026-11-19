@@ -40,8 +40,21 @@ public protocol AnnotationDraft: Encodable, Sendable {}
 
 /// A typed patch: the members of one subtype to change.
 /// `AnnotationCapability.update(_:_:)` and
-/// `AnnotationToolsCapability.updateDefaults(_:for:)` take one.
-public protocol AnnotationPatch: Encodable, Sendable {}
+/// `AnnotationToolsCapability.updateDefaults(_:for:)` take one, and
+/// `AnnotationToolsCapability.defaults(for:as:)` reads a tool's defaults as
+/// one.
+///
+/// A patch decodes from the field bag it encodes to, one key list for both
+/// ways. A key the patch doesn't declare is ignored. A missing key leaves
+/// its member `nil`. `null` reads as `.null` on a `Nullable` member and as
+/// left out on any other. A declared key whose value the member can't hold
+/// throws.
+///
+/// One member doesn't come back as it went: no patch writes `common.nm`,
+/// so it is `nil` after an encode and a decode. A field bag from elsewhere
+/// can hold an `nm`, as a tool's defaults can, and a decoded patch's
+/// `common.nm` is then that name.
+public protocol AnnotationPatch: Codable, Sendable {}
 
 extension AnnotationDraft {
   /// The field bag as the engine reads it: keys sorted, so the same draft is
@@ -84,6 +97,18 @@ extension Nullable: Encodable where Value: Encodable {
   }
 }
 
+/// `null` decodes to `.null`, anything else to `.value`.
+///
+/// As an optional member, `Nullable<Value>?`, read it with a check for the
+/// key first, as the patches do: `decodeIfPresent`, and so a synthesized
+/// `init(from:)`, reads `null` as `nil`, the same as a missing key.
+extension Nullable: Decodable where Value: Decodable {
+  public init(from decoder: any Decoder) throws {
+    let container = try decoder.singleValueContainer()
+    self = container.decodeNil() ? .null : .value(try container.decode(Value.self))
+  }
+}
+
 extension Nullable: ExpressibleByUnicodeScalarLiteral
 where Value: ExpressibleByStringLiteral, Value.StringLiteralType == String {
   public init(unicodeScalarLiteral value: String) { self = .value(Value(stringLiteral: value)) }
@@ -119,21 +144,21 @@ extension Nullable: ExpressibleByArrayLiteral where Value == [Double] {
 /// `beveled` and `inset` too, but refuses to write them on anything but a
 /// widget (`read_field`, `"borderStyle"`, in
 /// `crates/epdf-engine/src/features/annotation/write/prepare.rs`).
-public enum AnnotationBorderStyle: String, Encodable, Sendable, Hashable, CaseIterable {
+public enum AnnotationBorderStyle: String, Codable, Sendable, Hashable, CaseIterable {
   case solid
   case dashed
 }
 
 /// An ink annotation's `/IT`: the one intent the engine writes for ink
 /// (`intents_of` in `prepare.rs`). An ink without one is pen ink.
-public enum AnnotationInkIntent: String, Encodable, Sendable, Hashable, CaseIterable {
+public enum AnnotationInkIntent: String, Codable, Sendable, Hashable, CaseIterable {
   /// `ink-highlight`: a freehand highlighter.
   case inkHighlight = "ink-highlight"
 }
 
 /// A note's `/Name` icon, as the engine spells it (`NoteIcon` in
 /// `crates/epdf-engine/src/features/annotation/vocabulary.rs`).
-public enum AnnotationNoteIcon: String, Encodable, Sendable, Hashable, CaseIterable {
+public enum AnnotationNoteIcon: String, Codable, Sendable, Hashable, CaseIterable {
   case comment
   case key
   case note
@@ -211,33 +236,33 @@ public enum AnnotationVerticalAlignment: String, Codable, Sendable, Hashable, Ca
 
 /// A strikeout's `/IT` (`intents_of` in `prepare.rs`). A strikeout without
 /// one is a plain strikeout.
-public enum AnnotationStrikeoutIntent: String, Encodable, Sendable, Hashable, CaseIterable {
+public enum AnnotationStrikeoutIntent: String, Codable, Sendable, Hashable, CaseIterable {
   /// `strikeout-text-edit`: text marked for deletion.
   case strikeoutTextEdit = "strikeout-text-edit"
 }
 
 /// A line's `/IT`. A line without one is a plain line.
-public enum AnnotationLineIntent: String, Encodable, Sendable, Hashable, CaseIterable {
+public enum AnnotationLineIntent: String, Codable, Sendable, Hashable, CaseIterable {
   case lineArrow = "line-arrow"
   /// `line-dimension`: a distance measurement. Its scale is `measure`.
   case lineDimension = "line-dimension"
 }
 
 /// A polygon's `/IT`. A polygon without one is a plain polygon.
-public enum AnnotationPolygonIntent: String, Encodable, Sendable, Hashable, CaseIterable {
+public enum AnnotationPolygonIntent: String, Codable, Sendable, Hashable, CaseIterable {
   case polygonCloud = "polygon-cloud"
   /// `polygon-dimension`: an area measurement. Its scale is `measure`.
   case polygonDimension = "polygon-dimension"
 }
 
 /// A polyline's `/IT`. A polyline without one is a plain polyline.
-public enum AnnotationPolylineIntent: String, Encodable, Sendable, Hashable, CaseIterable {
+public enum AnnotationPolylineIntent: String, Codable, Sendable, Hashable, CaseIterable {
   /// `polyline-dimension`: a perimeter measurement. Its scale is `measure`.
   case polylineDimension = "polyline-dimension"
 }
 
 /// A free text's `/IT`.
-public enum AnnotationFreeTextIntent: String, Encodable, Sendable, Hashable, CaseIterable {
+public enum AnnotationFreeTextIntent: String, Codable, Sendable, Hashable, CaseIterable {
   /// A text box.
   case freeText = "free-text"
   /// A text box with a leader line, `calloutLine`, to what it calls out.
@@ -245,7 +270,7 @@ public enum AnnotationFreeTextIntent: String, Encodable, Sendable, Hashable, Cas
 }
 
 /// A caret's `/IT`. A caret without one marks an insertion.
-public enum AnnotationCaretIntent: String, Encodable, Sendable, Hashable, CaseIterable {
+public enum AnnotationCaretIntent: String, Codable, Sendable, Hashable, CaseIterable {
   /// `replace`: the caret of a replacement, paired with a strikeout.
   case replace
 }
@@ -309,6 +334,15 @@ public enum AnnotationCaptionCenter: Sendable, Hashable, Encodable {
 public enum AnnotationCalloutLine: Sendable, Hashable, Encodable {
   case straight(from: Point, to: Point)
   case kneed(from: Point, knee: Point, to: Point)
+
+  /// The line through two or three points, or `nil` for any other count.
+  init?(points: [Point]) {
+    switch points.count {
+    case 2: self = .straight(from: points[0], to: points[1])
+    case 3: self = .kneed(from: points[0], knee: points[1], to: points[2])
+    default: return nil
+    }
+  }
 
   /// The two or three points, in order.
   public var points: [Point] {
@@ -568,6 +602,22 @@ public struct InkAnnotationPatch: AnnotationPatch, Hashable {
     try AnnotationSharedMembers.encode(richText: richText, to: encoder)
     try common.encodeAsPatch(to: encoder)
   }
+
+  public init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    inkList = try container.decodeIfPresent([[ReadPoint]].self, forKey: .inkList)?.map { $0.map(\.point) }
+    color = try container.decodeNullableIfPresent(AnnotationColor.self, forKey: .color)
+    opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+    strokeWidth = try container.decodeIfPresent(Double.self, forKey: .strokeWidth)
+    borderStyle = try container.decodeIfPresent(AnnotationBorderStyle.self, forKey: .borderStyle)
+    dashArray = try container.decodeNullableIfPresent([Double].self, forKey: .dashArray)
+    intent = try container.decodeNullableIfPresent(AnnotationInkIntent.self, forKey: .intent)
+    rotation = try container.decodeNullableIfPresent(Double.self, forKey: .rotation)
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
+    blendMode = try container.decodeIfPresent(AnnotationBlendMode.self, forKey: .blendMode)
+    richText = try AnnotationSharedMembers.decodeRichText(from: decoder)
+    common = try AnnotationCommonFields(from: decoder)
+  }
 }
 
 // ── highlight ───────────────────────────────────────────────────────────────
@@ -670,6 +720,17 @@ public struct HighlightAnnotationPatch: AnnotationPatch, Hashable {
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
     try AnnotationSharedMembers.encode(richText: richText, to: encoder)
     try common.encodeAsPatch(to: encoder)
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    quadPoints = try container.decodeQuadsIfPresent(forKey: .quadPoints)
+    color = try container.decodeIfPresent(AnnotationColor.self, forKey: .color)
+    opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
+    blendMode = try container.decodeIfPresent(AnnotationBlendMode.self, forKey: .blendMode)
+    richText = try AnnotationSharedMembers.decodeRichText(from: decoder)
+    common = try AnnotationCommonFields(from: decoder)
   }
 }
 
@@ -808,9 +869,24 @@ public struct NoteAnnotationPatch: AnnotationPatch, Hashable {
     try AnnotationSharedMembers.encode(richText: richText, to: encoder)
     try common.encodeAsPatch(to: encoder)
   }
+
+  public init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    rect = try container.decodeRectIfPresent(forKey: .rect)
+    color = try container.decodeIfPresent(AnnotationColor.self, forKey: .color)
+    opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+    icon = try container.decodeIfPresent(AnnotationNoteIcon.self, forKey: .icon)
+    open = try container.decodeIfPresent(Bool.self, forKey: .open)
+    state = try container.decodeNullableIfPresent(String.self, forKey: .state)
+    stateModel = try container.decodeNullableIfPresent(String.self, forKey: .stateModel)
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
+    blendMode = try container.decodeIfPresent(AnnotationBlendMode.self, forKey: .blendMode)
+    richText = try AnnotationSharedMembers.decodeRichText(from: decoder)
+    common = try AnnotationCommonFields(from: decoder)
+  }
 }
 
-// ── encoding ────────────────────────────────────────────────────────────────
+// ── encoding and decoding ───────────────────────────────────────────────────
 
 enum AnnotationFieldBag {
   /// Sorted keys make the bytes stable, and unescaped slashes keep a
@@ -828,6 +904,22 @@ enum AnnotationFieldBag {
   }
 }
 
+/// A patch's geometry members, read from the shapes the `Wire` types below
+/// write. A key that is missing or `null` reads as `nil`.
+extension KeyedDecodingContainer {
+  func decodeRectIfPresent(forKey key: Key) throws -> Rect? {
+    try decodeIfPresent(ReadRect.self, forKey: key)?.rect
+  }
+
+  func decodeQuadsIfPresent(forKey key: Key) throws -> [Quad]? {
+    try decodeIfPresent([ReadQuad].self, forKey: key)?.map(\.quad)
+  }
+
+  func decodePointsIfPresent(forKey key: Key) throws -> [Point]? {
+    try decodeIfPresent([ReadPoint].self, forKey: key)?.map(\.point)
+  }
+}
+
 /// Page-space geometry as the plugin reads it: `{x, y}` points,
 /// `upperLeft`…`lowerRight` quads (`NamedPdfQuad` in
 /// `crates/epdf-engine/src/geom.rs`) and `{x, y, width, height}` boxes.
@@ -838,6 +930,8 @@ struct WirePoint: Encodable {
   init(_ point: Point) {
     (x, y) = (point.x, point.y)
   }
+
+  var point: Point { Point(x: x, y: y) }
 }
 
 struct WireQuad: Encodable {

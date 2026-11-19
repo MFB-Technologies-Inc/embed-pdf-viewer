@@ -195,6 +195,21 @@ public struct FreeTextAnnotationPatch: AnnotationPatch, Hashable {
     try AnnotationSharedMembers.encode(richText: richText, to: encoder)
     try common.encodeAsPatch(to: encoder)
   }
+
+  public init(from decoder: any Decoder) throws {
+    let fields = try FreeTextFields(from: decoder)
+    self.init(
+      box: fields.box, contents: fields.contents, fontFamily: fields.fontFamily,
+      fontSize: fields.fontSize, fontColor: fields.fontColor, textAlign: fields.textAlign,
+      verticalAlign: fields.verticalAlign, color: fields.color,
+      interiorColor: fields.interiorColor, opacity: fields.opacity,
+      strokeWidth: fields.strokeWidth, borderStyle: fields.borderStyle,
+      dashArray: fields.dashArray, cloudyIntensity: fields.cloudyIntensity,
+      rotation: fields.rotation, intent: fields.intent, calloutLine: fields.calloutLine,
+      lineEnding: fields.lineEnding, blendMode: fields.blendMode,
+      richText: try AnnotationSharedMembers.decodeFreeTextRichText(from: decoder),
+      common: try AnnotationCommonFields(from: decoder))
+  }
 }
 
 private struct FreeTextFields: Encodable {
@@ -247,6 +262,44 @@ private struct FreeTextFields: Encodable {
     try container.encodeIfPresent(calloutLine, forKey: .calloutLine)
     try container.encodeIfPresent(lineEnding, forKey: .lineEnding)
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
+  }
+}
+
+extension FreeTextFields {
+  /// A patch's members.
+  init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    box = try container.decodeRectIfPresent(forKey: .box)
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
+    fontFamily = try container.decodeIfPresent(String.self, forKey: .fontFamily)
+    fontSize = try container.decodeIfPresent(Double.self, forKey: .fontSize)
+    fontColor = try container.decodeIfPresent(AnnotationColor.self, forKey: .fontColor)
+    textAlign = try container.decodeIfPresent(AnnotationTextAlignment.self, forKey: .textAlign)
+    verticalAlign = try container.decodeIfPresent(AnnotationVerticalAlignment.self, forKey: .verticalAlign)
+    color = try container.decodeIfPresent(AnnotationColor.self, forKey: .color)
+    interiorColor = try container.decodeNullableIfPresent(AnnotationColor.self, forKey: .interiorColor)
+    opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+    strokeWidth = try container.decodeIfPresent(Double.self, forKey: .strokeWidth)
+    borderStyle = try container.decodeIfPresent(AnnotationBorderStyle.self, forKey: .borderStyle)
+    dashArray = try container.decodeNullableIfPresent([Double].self, forKey: .dashArray)
+    cloudyIntensity = try container.decodeNullableIfPresent(Double.self, forKey: .cloudyIntensity)
+    rotation = try container.decodeNullableIfPresent(Double.self, forKey: .rotation)
+    intent = try container.decodeNullableIfPresent(AnnotationFreeTextIntent.self, forKey: .intent)
+    if container.contains(.calloutLine) {
+      if try container.decodeNil(forKey: .calloutLine) {
+        calloutLine = .null
+      } else {
+        let points = try container.decode([ReadPoint].self, forKey: .calloutLine).map(\.point)
+        guard let line = AnnotationCalloutLine(points: points) else {
+          throw DecodingError.dataCorruptedError(
+            forKey: .calloutLine, in: container,
+            debugDescription: "a callout line has two or three points")
+        }
+        calloutLine = .value(line)
+      }
+    }
+    lineEnding = try container.decodeNullableIfPresent(AnnotationLineEnding.self, forKey: .lineEnding)
+    blendMode = try container.decodeIfPresent(AnnotationBlendMode.self, forKey: .blendMode)
   }
 }
 
@@ -349,6 +402,15 @@ public struct CaretAnnotationPatch: AnnotationPatch, Hashable {
     try AnnotationSharedMembers.encode(richText: richText, to: encoder)
     try common.encodeAsPatch(to: encoder)
   }
+
+  public init(from decoder: any Decoder) throws {
+    let fields = try CaretFields(from: decoder)
+    self.init(
+      box: fields.box, color: fields.color, opacity: fields.opacity, rotation: fields.rotation,
+      intent: fields.intent, contents: fields.contents, blendMode: fields.blendMode,
+      richText: try AnnotationSharedMembers.decodeRichText(from: decoder),
+      common: try AnnotationCommonFields(from: decoder))
+  }
 }
 
 private struct CaretFields: Encodable {
@@ -375,6 +437,20 @@ private struct CaretFields: Encodable {
     try container.encodeIfPresent(intent, forKey: .intent)
     try container.encodeIfPresent(contents, forKey: .contents)
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
+  }
+}
+
+extension CaretFields {
+  /// A patch's members.
+  init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    box = try container.decodeRectIfPresent(forKey: .box)
+    color = try container.decodeIfPresent(AnnotationColor.self, forKey: .color)
+    opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+    rotation = try container.decodeNullableIfPresent(Double.self, forKey: .rotation)
+    intent = try container.decodeNullableIfPresent(AnnotationCaretIntent.self, forKey: .intent)
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
+    blendMode = try container.decodeIfPresent(AnnotationBlendMode.self, forKey: .blendMode)
   }
 }
 
@@ -434,6 +510,14 @@ public struct LinkAnnotationPatch: AnnotationPatch, Hashable {
     try LinkFields(subtype: nil, rect: rect, target: target, contents: contents).encode(to: encoder)
     try common.encodeAsPatch(to: encoder)
   }
+
+  /// Throws for a `target` outside the three `AnnotationLinkTarget` holds.
+  public init(from decoder: any Decoder) throws {
+    let fields = try LinkFields(from: decoder)
+    self.init(
+      rect: fields.rect, target: fields.target, contents: fields.contents,
+      common: try AnnotationCommonFields(from: decoder))
+  }
 }
 
 private struct LinkFields: Encodable {
@@ -452,6 +536,16 @@ private struct LinkFields: Encodable {
     try container.encodeIfPresent(rect.map(WireRect.init), forKey: .rect)
     try container.encodeIfPresent(target, forKey: .target)
     try container.encodeIfPresent(contents, forKey: .contents)
+  }
+}
+
+extension LinkFields {
+  /// A patch's members.
+  init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    rect = try container.decodeRectIfPresent(forKey: .rect)
+    target = try container.decodeNullableIfPresent(AnnotationLinkTarget.self, forKey: .target)
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
   }
 }
 
@@ -516,6 +610,18 @@ public struct StampAnnotationPatch: AnnotationPatch, Hashable {
     try AnnotationSharedMembers.encode(richText: richText, to: encoder)
     try common.encodeAsPatch(to: encoder)
   }
+
+  public init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    box = try container.decodeRectIfPresent(forKey: .box)
+    opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+    rotation = try container.decodeNullableIfPresent(Double.self, forKey: .rotation)
+    name = try container.decodeNullableIfPresent(String.self, forKey: .name)
+    fit = try container.decodeNullableIfPresent(AnnotationStampFit.self, forKey: .fit)
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
+    richText = try AnnotationSharedMembers.decodeRichText(from: decoder)
+    common = try AnnotationCommonFields(from: decoder)
+  }
 }
 
 // ── file attachment ─────────────────────────────────────────────────────────
@@ -570,5 +676,17 @@ public struct FileAttachmentAnnotationPatch: AnnotationPatch, Hashable {
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
     try AnnotationSharedMembers.encode(richText: richText, to: encoder)
     try common.encodeAsPatch(to: encoder)
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    rect = try container.decodeRectIfPresent(forKey: .rect)
+    icon = try container.decodeIfPresent(AnnotationFileAttachmentIcon.self, forKey: .icon)
+    color = try container.decodeIfPresent(AnnotationColor.self, forKey: .color)
+    opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
+    blendMode = try container.decodeIfPresent(AnnotationBlendMode.self, forKey: .blendMode)
+    richText = try AnnotationSharedMembers.decodeRichText(from: decoder)
+    common = try AnnotationCommonFields(from: decoder)
   }
 }

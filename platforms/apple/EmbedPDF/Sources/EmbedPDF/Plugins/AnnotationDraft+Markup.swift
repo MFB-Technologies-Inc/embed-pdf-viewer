@@ -92,6 +92,15 @@ public struct UnderlineAnnotationPatch: AnnotationPatch, Hashable {
     try AnnotationSharedMembers.encode(richText: richText, to: encoder)
     try common.encodeAsPatch(to: encoder)
   }
+
+  public init(from decoder: any Decoder) throws {
+    let fields = try TextMarkupFields(from: decoder, strikeout: false)
+    self.init(
+      quadPoints: fields.quadPoints, color: fields.color, opacity: fields.opacity,
+      contents: fields.contents, blendMode: fields.blendMode,
+      richText: try AnnotationSharedMembers.decodeRichText(from: decoder),
+      common: try AnnotationCommonFields(from: decoder))
+  }
 }
 
 // ── squiggly ────────────────────────────────────────────────────────────────
@@ -179,6 +188,15 @@ public struct SquigglyAnnotationPatch: AnnotationPatch, Hashable {
     ).encode(to: encoder)
     try AnnotationSharedMembers.encode(richText: richText, to: encoder)
     try common.encodeAsPatch(to: encoder)
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let fields = try TextMarkupFields(from: decoder, strikeout: false)
+    self.init(
+      quadPoints: fields.quadPoints, color: fields.color, opacity: fields.opacity,
+      contents: fields.contents, blendMode: fields.blendMode,
+      richText: try AnnotationSharedMembers.decodeRichText(from: decoder),
+      common: try AnnotationCommonFields(from: decoder))
   }
 }
 
@@ -276,6 +294,15 @@ public struct StrikeoutAnnotationPatch: AnnotationPatch, Hashable {
     try AnnotationSharedMembers.encode(richText: richText, to: encoder)
     try common.encodeAsPatch(to: encoder)
   }
+
+  public init(from decoder: any Decoder) throws {
+    let fields = try TextMarkupFields(from: decoder, strikeout: true)
+    self.init(
+      quadPoints: fields.quadPoints, color: fields.color, opacity: fields.opacity,
+      intent: fields.intent, contents: fields.contents, blendMode: fields.blendMode,
+      richText: try AnnotationSharedMembers.decodeRichText(from: decoder),
+      common: try AnnotationCommonFields(from: decoder))
+  }
 }
 
 /// The field bag the three text markups share; `subtype` is `nil` on a
@@ -302,6 +329,22 @@ private struct TextMarkupFields: Encodable {
     try container.encodeIfPresent(contents, forKey: .contents)
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
     try container.encodeIfPresent(intent, forKey: .intent)
+  }
+}
+
+extension TextMarkupFields {
+  /// A patch's members. Only a strikeout declares `intent`, so the other
+  /// two leave the key unread.
+  init(from decoder: any Decoder, strikeout: Bool) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    quadPoints = try container.decodeQuadsIfPresent(forKey: .quadPoints)
+    color = try container.decodeIfPresent(AnnotationColor.self, forKey: .color)
+    opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
+    blendMode = try container.decodeIfPresent(AnnotationBlendMode.self, forKey: .blendMode)
+    if strikeout {
+      intent = try container.decodeNullableIfPresent(AnnotationStrikeoutIntent.self, forKey: .intent)
+    }
   }
 }
 
@@ -447,6 +490,18 @@ public struct RedactionAnnotationPatch: AnnotationPatch, Hashable {
     try AnnotationSharedMembers.encode(richText: richText, to: encoder)
     try common.encodeAsPatch(to: encoder)
   }
+
+  public init(from decoder: any Decoder) throws {
+    let fields = try RedactionFields(from: decoder)
+    self.init(
+      quadPoints: fields.quadPoints, rect: fields.rect, color: fields.color,
+      opacity: fields.opacity, interiorColor: fields.interiorColor,
+      overlayText: fields.overlayText, repeat: fields.repeat, fontFamily: fields.fontFamily,
+      fontSize: fields.fontSize, fontColor: fields.fontColor, textAlign: fields.textAlign,
+      contents: fields.contents, blendMode: fields.blendMode,
+      richText: try AnnotationSharedMembers.decodeRichText(from: decoder),
+      common: try AnnotationCommonFields(from: decoder))
+  }
 }
 
 private struct RedactionFields: Encodable {
@@ -486,5 +541,25 @@ private struct RedactionFields: Encodable {
     try container.encodeIfPresent(textAlign, forKey: .textAlign)
     try container.encodeIfPresent(contents, forKey: .contents)
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
+  }
+}
+
+extension RedactionFields {
+  /// A patch's members.
+  init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    quadPoints = try container.decodeQuadsIfPresent(forKey: .quadPoints)
+    rect = try container.decodeRectIfPresent(forKey: .rect)
+    color = try container.decodeIfPresent(AnnotationColor.self, forKey: .color)
+    opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+    interiorColor = try container.decodeNullableIfPresent(AnnotationColor.self, forKey: .interiorColor)
+    overlayText = try container.decodeNullableIfPresent(String.self, forKey: .overlayText)
+    `repeat` = try container.decodeIfPresent(Bool.self, forKey: .repeat)
+    fontFamily = try container.decodeIfPresent(String.self, forKey: .fontFamily)
+    fontSize = try container.decodeIfPresent(Double.self, forKey: .fontSize)
+    fontColor = try container.decodeIfPresent(AnnotationColor.self, forKey: .fontColor)
+    textAlign = try container.decodeIfPresent(AnnotationTextAlignment.self, forKey: .textAlign)
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
+    blendMode = try container.decodeIfPresent(AnnotationBlendMode.self, forKey: .blendMode)
   }
 }

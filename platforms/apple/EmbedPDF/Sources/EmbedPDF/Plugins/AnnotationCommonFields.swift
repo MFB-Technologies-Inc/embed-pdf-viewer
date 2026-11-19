@@ -60,7 +60,9 @@ public struct AnnotationReply: Codable, Sendable, Hashable {
 /// annotation are a fresh `nm`, `print` on and every other flag off.
 ///
 /// A patch given to `AnnotationToolsCapability.updateDefaults(_:for:)`
-/// stores these with the tool's other defaults.
+/// stores these with the tool's other defaults. A `reply` or `groupID`
+/// stored that way makes every annotation the tool creates a reply to that
+/// annotation or a member of that group.
 public struct AnnotationCommonFields: Codable, Sendable, Hashable {
   /// `/NM`: the annotation's name, unique on its page. A draft left without
   /// one gets a fresh name; `.null` or an empty string asks for none. The

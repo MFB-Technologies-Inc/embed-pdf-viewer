@@ -37,6 +37,26 @@ enum AnnotationSharedMembers {
     var container = encoder.container(keyedBy: CodingKeys.self)
     try container.encodeIfPresent(measure?.map(WireMeasurement.init), forKey: .measure)
   }
+
+  /// A patch's rich text: `nil` when the key is missing, `.null` for `null`.
+  static func decodeRichText(from decoder: any Decoder) throws -> Nullable<AnnotationRichText>? {
+    try decoder.container(keyedBy: CodingKeys.self)
+      .decodeNullableIfPresent(AnnotationRichText.self, forKey: .richText)
+  }
+
+  /// A free-text patch's rich text, which has no `null`: `nil` when the key
+  /// is missing or `null`.
+  static func decodeFreeTextRichText(from decoder: any Decoder) throws -> AnnotationRichText? {
+    try decoder.container(keyedBy: CodingKeys.self)
+      .decodeIfPresent(AnnotationRichText.self, forKey: .richText)
+  }
+
+  /// A patch's measure, through the wire mirror: `nil` when the key is
+  /// missing, `.null` for `null`.
+  static func decodeMeasure(from decoder: any Decoder) throws -> Nullable<PdfMeasurement>? {
+    try decoder.container(keyedBy: CodingKeys.self)
+      .decodeNullableIfPresent(WireMeasurement.self, forKey: .measure)?.map(\.measurement)
+  }
 }
 
 extension KeyedDecodingContainer {
