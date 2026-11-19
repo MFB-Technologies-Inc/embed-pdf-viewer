@@ -13,7 +13,8 @@ import SwiftUI
 /// `PDFReaderModel.unlock(password:)`, with the reason below the field after
 /// a wrong password. A failure shows the error's detail. A ready document
 /// shows a `StageReaderView`, with a `SearchBar` above it when the model has
-/// `.search`; the reader scrolls to each hit the bar makes active.
+/// `.search`; the reader scrolls to each hit the bar reports active, and
+/// not again when the view comes back with the same hit.
 ///
 /// Touch on a ready document divides this way. A drag pans, a pinch zooms
 /// and a double tap zooms. With `.selection`, a long press and then a drag
@@ -109,24 +110,29 @@ extension PDFReaderView where Overlay == EmptyView {
   }
 }
 
-/// A `SearchBar` that brings each hit it makes active into view.
+/// A `SearchBar` that brings each hit it reports active into view, and
+/// reveals at no other time.
 @MainActor
 private struct RevealingSearchBar: View {
   let model: SearchModel
+  /// The reported hit whose reveal has not finished.
+  @State private var reveals = SearchHitReveals()
 
   var body: some View {
-    SearchBar(model: model)
-      // One reveal at a time: a new active hit cancels the wait for the
-      // last one's reveal and starts its own.
+    SearchBar(model: model) { _ in reveals.hitReported() }
+      // One reveal waits at a time: a newer report cancels the wait for the
+      // last one's reveal and starts its own. The task also runs when the
+      // view appears again, and then finds nothing waiting.
       //
       // Performance: the engine already reveals on a next or previous step,
-      // so each step makes a second reveal call with the same target and
-      // settings; only the first hit of a new search needs this one. A
-      // search event that tells a scan's first hit from a step lets the
-      // view skip the repeat. The id is also compared by value, segments
-      // and snippet included, on every evaluation of this body.
-      .task(id: model.activeHit) {
-        if model.activeHit != nil { await model.revealActiveHit() }
+      // so each step the bar reports makes a second reveal call with the
+      // same target and settings; only the first hit of a new search needs
+      // this one. A search event that tells a scan's first hit from a step
+      // lets the view skip the repeat.
+      .task(id: reveals.waiting) {
+        guard let request = reveals.waiting else { return }
+        await model.revealActiveHit()
+        reveals.finished(request)
       }
   }
 }

@@ -159,11 +159,10 @@ public final class PDFReaderModel {
   }
 
   /// Closes the document and destroys the viewer. ``phase`` is
-  /// ``Phase/idle`` at once; the engine has shut down when this returns. A
-  /// later open starts a new viewer.
-  ///
-  /// An open made before this close has run supersedes it. The close then
-  /// returns with the viewer still running, and the open uses that viewer.
+  /// ``Phase/idle`` at once, and the engine has shut down when this returns
+  /// unless an open made before the close ran superseded it: the close then
+  /// returns with the viewer still running, and that open uses it. An open
+  /// made after the close has run starts a new viewer.
   public func close() async {
     let mine = supersede()
     phase = .idle

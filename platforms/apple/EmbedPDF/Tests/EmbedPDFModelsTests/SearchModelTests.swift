@@ -36,15 +36,25 @@ struct SearchModelTests {
     await model.searchSubmitted()
     await model.nextButtonTapped()
     expectNoDifference(model.activeHitIndex, 1)
+    let active = try #require(model.activeHit)
+    // The step already revealed the hit, so scroll away from it first.
+    let last = try #require(try await viewer.pages(of: document).last)
+    #expect(last.page != active.page)
+    try await stage.goToPage(last.page, options: StageGoToOptions(behavior: .instant))
+    #expect(!(try await stage.isPageVisible(active.page)))
     await model.revealActiveHit()
+    // The search settings reveal with a smooth scroll.
+    let deadline = ContinuousClock.now + .seconds(5)
+    while !(try await stage.isPageVisible(active.page)), ContinuousClock.now < deadline {
+      try await Task.sleep(for: .milliseconds(20))
+    }
+    #expect(try await stage.isPageVisible(active.page))
     // Safe to repeat.
     await model.revealActiveHit()
     expectNoDifference(model.error, nil)
     expectNoDifference(model.activeHitIndex, 1)
     let kernel: Int? = try await viewer.search(for: document).activeHitIndex()
     expectNoDifference(kernel, 1)
-    let active = try #require(model.activeHit)
-    #expect(try await stage.isPageVisible(active.page))
     try await viewer.destroy()
   }
 
