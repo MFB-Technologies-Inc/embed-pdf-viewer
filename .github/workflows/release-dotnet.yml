@@ -1,8 +1,8 @@
 name: release-dotnet
 
 # Builds, tests, packs and validates the EmbedPDF.Engine .NET package for
-# linux-arm64 and uploads the five release assets as the artifact
-# dotnet-release. It reproduces the hand-run sequence in
+# linux-arm64 and uploads the release files as the artifact dotnet-release.
+# It reproduces the hand-run sequence in
 # docs/research/upstream-catchup-2026-11-18/scripts/cu-c10/dotnet-release.sh,
 # which made the dotnet-engine-0.0.0-local-* releases, and depends on nothing
 # else in the release train: the PDFium it packs is the upstream runtime
@@ -13,6 +13,13 @@ name: release-dotnet
 #            tests, the parity self-test, the packaging unit tests, the
 #            release epdf-capi build, pack.sh, validate.sh, then the
 #            existing-app guide's steps in a fresh project.
+#
+# The artifact holds four release assets (the nupkg, its .sha256, the
+# provenance manifest and the validation record) plus the guide template
+# EmbedPDF-CSharp-Existing-App.md.in and guide-facts.json. The guide names the
+# release tag and the commit, which belong to the later pin commit, so the
+# orchestrator renders it with platforms/dotnet/packaging/render-guide.sh and
+# publishes it as the fifth asset.
 #
 # Microsoft publishes no Debian trixie .NET SDK image (no 10.0.403-trixie
 # tag), so the job installs SDK 10.0.403 into debian:trixie, the same
@@ -97,10 +104,20 @@ jobs:
       - name: Trust the workspace
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
+      # The SDK compiles the shipped DLL, so its tarball is checked against
+      # the SHA-512 from Microsoft's .NET 10 release metadata. The same hash
+      # is in .devcontainer/Dockerfile (DOTNET_SDK_VERSION); change both.
       - name: Install .NET SDK 10.0.403
+        env:
+          SDK_SHA512: 0966aa2b70f4677b8319be9df447a78a0dcd6164836425b55a68fd714f4023feb87b4cac21b9a996b79472ad54487cd0adcd2a9dfd570e2b2a1d26423a2baa9b
         run: |
-          curl -fsSL --retry 3 https://dot.net/v1/dotnet-install.sh -o "$RUNNER_TEMP/dotnet-install.sh"
-          bash "$RUNNER_TEMP/dotnet-install.sh" --version 10.0.403 --install-dir /usr/share/dotnet
+          sdk=$RUNNER_TEMP/dotnet-sdk.tar.gz
+          curl -fsSL --retry 3 -o "$sdk" \
+            https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-linux-arm64.tar.gz
+          echo "$SDK_SHA512  $sdk" | sha512sum -c -
+          mkdir -p /usr/share/dotnet
+          tar -xzf "$sdk" -C /usr/share/dotnet
+          rm "$sdk"
           echo "DOTNET_ROOT=/usr/share/dotnet" >> "$GITHUB_ENV"
           echo "/usr/share/dotnet" >> "$GITHUB_PATH"
 
@@ -187,7 +204,7 @@ jobs:
 
       # The guide's steps, in a fresh application with its own NuGet cache.
       # The C# below is the guide's PdfPreview class
-      # (platforms/dotnet/EmbedPDF-CSharp-Existing-App.md, section 4).
+      # (platforms/dotnet/EmbedPDF-CSharp-Existing-App.md.in, section 4).
       - name: Existing-app guide
         run: |
           set -e
@@ -256,7 +273,22 @@ jobs:
           (cd "$R" && sha256sum "$PACKAGE.nupkg" > "$PACKAGE.nupkg.sha256")
           cp "$OUT/pack/package-manifest.$RID.json" "$R/$PACKAGE.provenance.json"
           cp "$OUT/validate-record.json" "$R/$PACKAGE.validation.$RID.json"
-          cp platforms/dotnet/EmbedPDF-CSharp-Existing-App.md "$R/"
+          cp platforms/dotnet/EmbedPDF-CSharp-Existing-App.md.in "$R/"
+          # The build facts the guide states; render-guide.sh documents the
+          # format. glibc is the version validate.sh and the guide ran with.
+          jq -n \
+            --arg sha "$(cut -d' ' -f1 "$R/$PACKAGE.nupkg.sha256")" \
+            --argjson bytes "$(stat -c %s "$R/$PACKAGE.nupkg")" \
+            --arg runtimeTag "$(jq -r --arg rid "$RID" '.artifacts[$rid].url | capture("/releases/download/(?<tag>[^/]+)/").tag' "$RUNTIME_MANIFEST")" \
+            --arg glibc "$(ldd --version | head -1 | awk '{print $NF}')" \
+            --arg renderSize "$(sed -n 's/^rendered \([0-9]*x[0-9]*\) .*/\1/p' "$OUT/guide/run.log")" \
+            '{nupkgSha256: $sha, nupkgBytes: $bytes, runtimeTag: $runtimeTag, glibc: $glibc, renderSize: $renderSize}' \
+            > "$R/guide-facts.json"
+          cat "$R/guide-facts.json"
+          # Checks the facts and the template now rather than at publish time.
+          # The rendered file is thrown away: the tag and commit are stand-ins.
+          bash platforms/dotnet/packaging/render-guide.sh "$R/EmbedPDF-CSharp-Existing-App.md.in" "$R/guide-facts.json" \
+            "$GITHUB_REPOSITORY" check "$(git rev-parse HEAD)" "$RUNNER_TEMP/guide-check.md"
           {
             echo "### $PACKAGE ($RID)"
             echo

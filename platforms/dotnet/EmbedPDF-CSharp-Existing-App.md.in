@@ -5,29 +5,29 @@ Use the `EmbedPDF.Engine` package downloaded as a GitHub release asset as a libr
 ## Package and platform
 
 - Package: `EmbedPDF.Engine`, version `0.0.0-local`. This is a local evaluation package, not a published NuGet release.
-- This package was built from viewer commit `f37adb44799db8ae50158343dcbe042241ee284d`. The `linux-arm64` PDFium inside it is upstream's runtime release `runtime-f2ea75972`, pinned by `packages/engine/runtime/engine-runtime-build.json`; the `runtime-src` checkout at that commit is runtime fork `af480d0ce`, which merges upstream runtime `f2ea75972`.
+- This package was built from viewer commit `@COMMIT@`. The `linux-arm64` PDFium inside it is upstream's runtime release `@RUNTIME_TAG@`, pinned by `packages/engine/runtime/engine-runtime-build.json`.
 - Target framework: `net10.0`. The validated SDK is .NET `10.0.403`.
-- Packaged native platform: Linux ARM64. Validation ran with glibc 2.41; this is the tested environment, not a declared minimum. Windows, macOS and other RIDs are not covered by this package.
+- Packaged native platform: Linux ARM64. Validation ran with glibc @GLIBC@; this is the tested environment, not a declared minimum. Windows, macOS and other RIDs are not covered by this package.
 - The package includes the managed library, both native libraries, the DejaVu Sans fallback font, manifests and license notices. No companion native NuGet package is needed.
 
-The package source is [viewer commit f37adb44799db8ae50158343dcbe042241ee284d](https://github.com/roanutil/embed-pdf-viewer/tree/f37adb44799db8ae50158343dcbe042241ee284d). The [tested package consumer](https://github.com/roanutil/embed-pdf-viewer/blob/f37adb44799db8ae50158343dcbe042241ee284d/platforms/dotnet/packaging/Smoke.cs) and [C# source/API](https://github.com/roanutil/embed-pdf-viewer/tree/f37adb44799db8ae50158343dcbe042241ee284d/platforms/dotnet/EmbedPDF) are available for reference. Source checkout is optional.
+The package source is [viewer commit @COMMIT@](https://github.com/@REPO@/tree/@COMMIT@). The [tested package consumer](https://github.com/@REPO@/blob/@COMMIT@/platforms/dotnet/packaging/Smoke.cs) and [C# source/API](https://github.com/@REPO@/tree/@COMMIT@/platforms/dotnet/EmbedPDF) are available for reference. Source checkout is optional.
 
 The native libraries keep build-container paths in their debug and provenance metadata. Those strings are not personal host paths, credentials, or load locations. Deploy the bundled native libraries, font, manifests and notices together; they are loaded relative to the application output. The relocated Linux ARM64 package check for this build passed with `LD_LIBRARY_PATH` unset, using native `$ORIGIN` lookup.
 
 ## 1. Obtain the package
 
-Download the package and checksum from this [GitHub prerelease](https://github.com/roanutil/embed-pdf-viewer/releases/tag/dotnet-engine-0.0.0-local-f37adb44799d). This is a release asset, not a NuGet.org publication. From your existing application's directory:
+Download the package and checksum from this [GitHub prerelease](https://github.com/@REPO@/releases/tag/@TAG@). This is a release asset, not a NuGet.org publication. From your existing application's directory:
 
 ```bash
 mkdir -p local-packages
 cd local-packages
-curl --fail --location --remote-name https://github.com/roanutil/embed-pdf-viewer/releases/download/dotnet-engine-0.0.0-local-f37adb44799d/EmbedPDF.Engine.0.0.0-local.nupkg
-curl --fail --location --remote-name https://github.com/roanutil/embed-pdf-viewer/releases/download/dotnet-engine-0.0.0-local-f37adb44799d/EmbedPDF.Engine.0.0.0-local.nupkg.sha256
+curl --fail --location --remote-name https://github.com/@REPO@/releases/download/@TAG@/EmbedPDF.Engine.0.0.0-local.nupkg
+curl --fail --location --remote-name https://github.com/@REPO@/releases/download/@TAG@/EmbedPDF.Engine.0.0.0-local.nupkg.sha256
 sha256sum --check EmbedPDF.Engine.0.0.0-local.nupkg.sha256
 cd ..
 ```
 
-Expected package SHA-256: `08a575929ca3d3821b9c8ed9f2949218be6b427e5112686c849f5221bb2447d9` (9,384,244 bytes). Keep the package unchanged; no Rust/PDFium build is required.
+Expected package SHA-256: `@NUPKG_SHA256@` (@NUPKG_SIZE@ bytes). Keep the package unchanged; no Rust/PDFium build is required.
 
 ## 2. Configure the local NuGet feed
 
@@ -119,4 +119,4 @@ dotnet publish ./YourApp.csproj -c Release \
 
 Run the app on Linux ARM64 with a compatible .NET 10 runtime. Deploy the entire publish directory, including both native libraries, the font, manifests and notices. Do not distribute only `EmbedPDF.Engine.dll`. The package avoids a local Rust or PDFium build.
 
-The steps in sections 2 to 5 were run for this release in a Linux ARM64 container (glibc 2.41, SDK 10.0.403): `dotnet add`, `dotnet publish --runtime linux-arm64 --self-contained false`, and the `PdfPreview` class above rendering page 0 of `tooling/engine-conformance/fixtures/non_identity_text.pdf` to a 918x1188 image. Compatibility with a different deployment image or font bundle needs its own check.
+The steps in sections 2 to 5 were run for this release in a Linux ARM64 container (glibc @GLIBC@, SDK 10.0.403): `dotnet add`, `dotnet publish --runtime linux-arm64 --self-contained false`, and the `PdfPreview` class above rendering page 0 of `tooling/engine-conformance/fixtures/non_identity_text.pdf` to a @RENDER_SIZE@ image. Compatibility with a different deployment image or font bundle needs its own check.
