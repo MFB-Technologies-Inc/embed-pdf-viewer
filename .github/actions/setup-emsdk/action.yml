@@ -1,0 +1,87 @@
+name: Set up emsdk
+description: >
+  Restore or install and activate one emsdk version in a directory, and put
+  it on PATH. The whole directory is cached, the built sysroot included.
+
+inputs:
+  version:
+    description: emsdk version to install and activate, for example 3.1.72 or 4.0.0.
+    required: true
+  dir:
+    description: >
+      emsdk directory. Relative paths resolve against the workspace. An
+      existing emsdk checkout there (a submodule) is used as is.
+    required: false
+    default: ""
+
+outputs:
+  dir:
+    description: Absolute path of the emsdk directory (also exported as EMSDK).
+    value: ${{ steps.resolve.outputs.dir }}
+  cache-hit:
+    description: "'true' when the emsdk directory came from the cache."
+    value: ${{ steps.cache.outputs.cache-hit }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve the emsdk directory
+      id: resolve
+      shell: bash
+      env:
+        EMSDK_DIR: ${{ inputs.dir }}
+      run: |
+        dir=${EMSDK_DIR:-$RUNNER_TEMP/emsdk}
+        case "$dir" in
+          /*) ;;
+          *) dir="$GITHUB_WORKSPACE/$dir" ;;
+        esac
+        echo "dir=$dir" >> "$GITHUB_OUTPUT"
+
+    - name: Restore emsdk
+      id: cache
+      uses: actions/cache@v5
+      with:
+        path: ${{ steps.resolve.outputs.dir }}
+        key: emsdk-${{ inputs.version }}-${{ runner.os }}-${{ runner.arch }}
+
+    - name: Install emsdk
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        EMSDK_DIR: ${{ steps.resolve.outputs.dir }}
+        EMSDK_VERSION: ${{ inputs.version }}
+      run: |
+        if [ ! -x "$EMSDK_DIR/emsdk" ]; then
+          git clone --depth 1 https://github.com/emscripten-core/emsdk.git "$EMSDK_DIR"
+        fi
+        "$EMSDK_DIR/emsdk" install "$EMSDK_VERSION"
+
+    # Activation writes .emscripten inside the directory, so it is cheap and
+    # safe to repeat on a cache hit.
+    - name: Activate emsdk
+      shell: bash
+      env:
+        EMSDK_DIR: ${{ steps.resolve.outputs.dir }}
+        EMSDK_VERSION: ${{ inputs.version }}
+      run: |
+        "$EMSDK_DIR/emsdk" activate "$EMSDK_VERSION"
+        echo "EMSDK=$EMSDK_DIR" >> "$GITHUB_ENV"
+        {
+          echo "$EMSDK_DIR"
+          echo "$EMSDK_DIR/upstream/emscripten"
+          echo "$EMSDK_DIR/upstream/bin"
+        } >> "$GITHUB_PATH"
+        "$EMSDK_DIR/upstream/emscripten/emcc" --version
+
+    # The Rust bindgen for wasm32-unknown-emscripten reads
+    # $EMSDK/upstream/emscripten/cache/sysroot, which 4.0.0 only creates on
+    # demand. Built on a miss, then cached with the rest of the directory.
+    - name: Build the emscripten sysroot
+      if: inputs.version == '4.0.0' && steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        EMSDK_DIR: ${{ steps.resolve.outputs.dir }}
+      run: |
+        "$EMSDK_DIR/upstream/emscripten/embuilder" build sysroot
+        test -d "$EMSDK_DIR/upstream/emscripten/cache/sysroot"

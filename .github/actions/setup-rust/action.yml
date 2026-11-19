@@ -1,0 +1,83 @@
+name: Set up Rust
+description: >
+  Install the toolchain pinned in rust-toolchain.toml, its llvm-tools and any
+  extra targets, export EMBEDPDF_NM on macOS, restore the cargo cache and fetch
+  the locked dependencies.
+
+inputs:
+  targets:
+    description: >
+      Extra rustup targets, space or comma separated. rust-toolchain.toml
+      already lists every target the build uses, so this is usually a no-op
+      that documents what the job needs.
+    required: false
+    default: ""
+  cache-key:
+    description: Swatinem/rust-cache shared-key. Jobs of the same kind share one cache.
+    required: false
+    default: ""
+
+outputs:
+  llvm-nm:
+    description: Path to the pinned toolchain's llvm-nm (macOS only, empty elsewhere).
+    value: ${{ steps.nm.outputs.path }}
+
+runs:
+  using: composite
+  steps:
+    # Hosted images ship rustup; containers such as the .NET SDK image do not.
+    - name: Install rustup if missing
+      shell: bash
+      run: |
+        if command -v rustup >/dev/null 2>&1; then
+          rustup --version
+          exit 0
+        fi
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+          | sh -s -- -y --profile minimal --default-toolchain none
+        echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> "$GITHUB_PATH"
+
+    # No-argument `rustup toolchain install` reads rust-toolchain.toml at the
+    # working directory (the repo root), so the channel and its targets come
+    # from that file rather than from this action.
+    - name: Install the pinned toolchain
+      shell: bash
+      env:
+        EXTRA_TARGETS: ${{ inputs.targets }}
+      run: |
+        export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
+        rustup toolchain install
+        rustup component add llvm-tools
+        targets=$(printf '%s' "$EXTRA_TARGETS" | tr ',' ' ')
+        if [ -n "${targets// /}" ]; then
+          # Word splitting is the point: one argument per target.
+          # shellcheck disable=SC2086
+          rustup target add $targets
+        fi
+        rustup show active-toolchain
+        rustc -vV
+
+    # Xcode 27.2's nm cannot read Rust 1.98 bitcode; the toolchain's own
+    # llvm-nm can.
+    - name: Export EMBEDPDF_NM
+      id: nm
+      if: runner.os == 'macOS'
+      shell: bash
+      run: |
+        export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
+        host=$(rustc -vV | sed -n 's/^host: //p')
+        nm="$(rustc --print sysroot)/lib/rustlib/$host/bin/llvm-nm"
+        test -x "$nm" || { echo "::error::llvm-nm not found at $nm"; exit 1; }
+        "$nm" --version
+        echo "EMBEDPDF_NM=$nm" >> "$GITHUB_ENV"
+        echo "path=$nm" >> "$GITHUB_OUTPUT"
+
+    - uses: Swatinem/rust-cache@v2
+      with:
+        shared-key: ${{ inputs.cache-key }}
+
+    - name: Fetch locked dependencies
+      shell: bash
+      run: |
+        export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
+        cargo fetch --locked
