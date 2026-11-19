@@ -24,12 +24,13 @@ import Foundation
 // engine can set to nothing is a `Nullable`, whose `.null`
 // writes `null`.
 //
-// Every type carries its subtype's data fields (`kind_fields`) and two base
-// fields, `contents` and `blendMode`. A link and a stamp take no
-// `blendMode`: the engine writes `/BM` while it draws an appearance, and it
-// draws neither. The JSON-string overloads stay for
-// what they leave out: the other base fields (`nm`, `subject`, the `/F`
-// flags, `reply`, `groupId`), a markup comment's `richText`, a measurement's
+// Every type carries its subtype's data fields (`kind_fields`) and the base
+// fields: `contents` and `blendMode` as its own members, and the rest
+// (`nm`, `subject`, the `/F` flags, `reply`, `groupId`) in `common`, an
+// `AnnotationCommonFields` that encodes flat beside them. A link and a
+// stamp take no `blendMode`: the engine writes `/BM` while it draws an
+// appearance, and it draws neither. The JSON-string overloads stay for
+// what they leave out: a markup comment's `richText`, a measurement's
 // `measure`, and the widget and popup subtypes.
 
 /// A typed create draft: the engine's field bag for one subtype, with its
@@ -441,6 +442,8 @@ public struct InkAnnotationDraft: AnnotationDraft, Hashable {
   public var contents: Nullable<String>?
   /// How the appearance blends with the page under it (`/BM` on `/AP /N`).
   public var blendMode: AnnotationBlendMode?
+  /// The fields every annotation shares.
+  public var common: AnnotationCommonFields
 
   public init(
     inkList: [[Point]], color: Nullable<AnnotationColor>? = nil, opacity: Double? = nil,
@@ -448,7 +451,8 @@ public struct InkAnnotationDraft: AnnotationDraft, Hashable {
     dashArray: Nullable<[Double]>? = nil,
     intent: Nullable<AnnotationInkIntent>? = nil,
     rotation: Nullable<Double>? = nil, contents: Nullable<String>? = nil,
-    blendMode: AnnotationBlendMode? = nil
+    blendMode: AnnotationBlendMode? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.inkList = inkList
     self.color = color
@@ -460,6 +464,7 @@ public struct InkAnnotationDraft: AnnotationDraft, Hashable {
     self.rotation = rotation
     self.contents = contents
     self.blendMode = blendMode
+    self.common = common
   }
 
   private enum CodingKeys: String, CodingKey {
@@ -480,6 +485,7 @@ public struct InkAnnotationDraft: AnnotationDraft, Hashable {
     try container.encodeIfPresent(rotation, forKey: .rotation)
     try container.encodeIfPresent(contents, forKey: .contents)
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
+    try common.encode(to: encoder)
   }
 }
 
@@ -504,6 +510,8 @@ public struct InkAnnotationPatch: AnnotationPatch, Hashable {
   public var contents: Nullable<String>?
   /// How the appearance blends with the page under it (`/BM` on `/AP /N`).
   public var blendMode: AnnotationBlendMode?
+  /// The fields every annotation shares. A patch leaves `nm` out.
+  public var common: AnnotationCommonFields
 
   public init(
     inkList: [[Point]]? = nil, color: Nullable<AnnotationColor>? = nil, opacity: Double? = nil,
@@ -511,7 +519,8 @@ public struct InkAnnotationPatch: AnnotationPatch, Hashable {
     dashArray: Nullable<[Double]>? = nil,
     intent: Nullable<AnnotationInkIntent>? = nil,
     rotation: Nullable<Double>? = nil, contents: Nullable<String>? = nil,
-    blendMode: AnnotationBlendMode? = nil
+    blendMode: AnnotationBlendMode? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.inkList = inkList
     self.color = color
@@ -523,6 +532,7 @@ public struct InkAnnotationPatch: AnnotationPatch, Hashable {
     self.rotation = rotation
     self.contents = contents
     self.blendMode = blendMode
+    self.common = common
   }
 
   private enum CodingKeys: String, CodingKey {
@@ -542,6 +552,7 @@ public struct InkAnnotationPatch: AnnotationPatch, Hashable {
     try container.encodeIfPresent(rotation, forKey: .rotation)
     try container.encodeIfPresent(contents, forKey: .contents)
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
+    try common.encodeAsPatch(to: encoder)
   }
 }
 
@@ -560,16 +571,20 @@ public struct HighlightAnnotationDraft: AnnotationDraft, Hashable {
   public var contents: Nullable<String>?
   /// How the appearance blends with the page under it (`/BM` on `/AP /N`).
   public var blendMode: AnnotationBlendMode?
+  /// The fields every annotation shares.
+  public var common: AnnotationCommonFields
 
   public init(
     quadPoints: [Quad], color: AnnotationColor? = nil, opacity: Double? = nil,
-    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil
+    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.quadPoints = quadPoints
     self.color = color
     self.opacity = opacity
     self.contents = contents
     self.blendMode = blendMode
+    self.common = common
   }
 
   private enum CodingKeys: String, CodingKey {
@@ -584,6 +599,7 @@ public struct HighlightAnnotationDraft: AnnotationDraft, Hashable {
     try container.encodeIfPresent(opacity, forKey: .opacity)
     try container.encodeIfPresent(contents, forKey: .contents)
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
+    try common.encode(to: encoder)
   }
 }
 
@@ -598,16 +614,20 @@ public struct HighlightAnnotationPatch: AnnotationPatch, Hashable {
   public var contents: Nullable<String>?
   /// How the appearance blends with the page under it (`/BM` on `/AP /N`).
   public var blendMode: AnnotationBlendMode?
+  /// The fields every annotation shares. A patch leaves `nm` out.
+  public var common: AnnotationCommonFields
 
   public init(
     quadPoints: [Quad]? = nil, color: AnnotationColor? = nil, opacity: Double? = nil,
-    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil
+    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.quadPoints = quadPoints
     self.color = color
     self.opacity = opacity
     self.contents = contents
     self.blendMode = blendMode
+    self.common = common
   }
 
   private enum CodingKeys: String, CodingKey {
@@ -621,6 +641,7 @@ public struct HighlightAnnotationPatch: AnnotationPatch, Hashable {
     try container.encodeIfPresent(opacity, forKey: .opacity)
     try container.encodeIfPresent(contents, forKey: .contents)
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
+    try common.encodeAsPatch(to: encoder)
   }
 }
 
@@ -646,12 +667,15 @@ public struct NoteAnnotationDraft: AnnotationDraft, Hashable {
   public var contents: Nullable<String>?
   /// How the appearance blends with the page under it (`/BM` on `/AP /N`).
   public var blendMode: AnnotationBlendMode?
+  /// The fields every annotation shares.
+  public var common: AnnotationCommonFields
 
   public init(
     rect: Rect, color: AnnotationColor? = nil, opacity: Double? = nil, icon: AnnotationNoteIcon? = nil,
     open: Bool? = nil, state: Nullable<String>? = nil,
     stateModel: Nullable<String>? = nil, contents: Nullable<String>? = nil,
-    blendMode: AnnotationBlendMode? = nil
+    blendMode: AnnotationBlendMode? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.rect = rect
     self.color = color
@@ -662,6 +686,7 @@ public struct NoteAnnotationDraft: AnnotationDraft, Hashable {
     self.stateModel = stateModel
     self.contents = contents
     self.blendMode = blendMode
+    self.common = common
   }
 
   private enum CodingKeys: String, CodingKey {
@@ -680,6 +705,7 @@ public struct NoteAnnotationDraft: AnnotationDraft, Hashable {
     try container.encodeIfPresent(stateModel, forKey: .stateModel)
     try container.encodeIfPresent(contents, forKey: .contents)
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
+    try common.encode(to: encoder)
   }
 }
 
@@ -701,12 +727,15 @@ public struct NoteAnnotationPatch: AnnotationPatch, Hashable {
   public var contents: Nullable<String>?
   /// How the appearance blends with the page under it (`/BM` on `/AP /N`).
   public var blendMode: AnnotationBlendMode?
+  /// The fields every annotation shares. A patch leaves `nm` out.
+  public var common: AnnotationCommonFields
 
   public init(
     rect: Rect? = nil, color: AnnotationColor? = nil, opacity: Double? = nil,
     icon: AnnotationNoteIcon? = nil, open: Bool? = nil, state: Nullable<String>? = nil,
     stateModel: Nullable<String>? = nil, contents: Nullable<String>? = nil,
-    blendMode: AnnotationBlendMode? = nil
+    blendMode: AnnotationBlendMode? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.rect = rect
     self.color = color
@@ -717,6 +746,7 @@ public struct NoteAnnotationPatch: AnnotationPatch, Hashable {
     self.stateModel = stateModel
     self.contents = contents
     self.blendMode = blendMode
+    self.common = common
   }
 
   private enum CodingKeys: String, CodingKey {
@@ -734,6 +764,7 @@ public struct NoteAnnotationPatch: AnnotationPatch, Hashable {
     try container.encodeIfPresent(stateModel, forKey: .stateModel)
     try container.encodeIfPresent(contents, forKey: .contents)
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
+    try common.encodeAsPatch(to: encoder)
   }
 }
 

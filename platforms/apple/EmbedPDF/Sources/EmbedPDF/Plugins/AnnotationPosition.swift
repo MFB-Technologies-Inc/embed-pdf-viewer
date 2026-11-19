@@ -43,7 +43,7 @@ public enum AnnotationPosition: Sendable, Hashable, Codable {
   }
 
   private enum Neighbour: String, CodingKey { case before, after }
-  private enum RefKey: String, CodingKey { case kind, page, objectNumber, baseIndex }
+  enum RefKey: String, CodingKey { case kind, page, objectNumber, baseIndex }
 
   public init(from decoder: any Decoder) throws {
     if let end = try? decoder.singleValueContainer().decode(String.self) {
@@ -81,7 +81,7 @@ public enum AnnotationPosition: Sendable, Hashable, Codable {
     }
   }
 
-  private static func ref(_ container: KeyedDecodingContainer<RefKey>) throws -> AnnotationRef {
+  static func ref(_ container: KeyedDecodingContainer<RefKey>) throws -> AnnotationRef {
     let pageContainer = try container.nestedContainer(keyedBy: RefKey.self, forKey: .page)
     let page = PageRef(pageObjectNumber: try pageContainer.decode(UInt32.self, forKey: .objectNumber))
     switch try container.decode(String.self, forKey: .kind) {
@@ -95,7 +95,7 @@ public enum AnnotationPosition: Sendable, Hashable, Codable {
     }
   }
 
-  private static func encode(_ annotation: AnnotationRef, into container: KeyedEncodingContainer<RefKey>) throws {
+  static func encode(_ annotation: AnnotationRef, into container: KeyedEncodingContainer<RefKey>) throws {
     var container = container
     let page: PageRef
     switch annotation {

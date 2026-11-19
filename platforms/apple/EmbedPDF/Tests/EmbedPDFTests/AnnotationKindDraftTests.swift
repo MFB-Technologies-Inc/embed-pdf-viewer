@@ -341,7 +341,7 @@ extension BaseSuite {
       let stamp = try #require(await annotations.get(stampRef))
       let stampPatch = StampAnnotationPatch(
         box: Rect(x: 150, y: 310, width: 100, height: 40), opacity: 0.5, rotation: 90,
-        name: "Draft", fit: .value(.cover), contents: "Changed")
+        name: "Draft", fit: .value(.cover), contents: "Changed", common: Self.sharedFields)
       try await annotations.update(stamp.annotationRef, stampPatch)
       let stampRead = try #require(try await annotations.get(stamp.annotationRef))
       try expectWritten(try stampPatch.json(), in: stampRead.fieldsJSON, "StampAnnotationPatch")
@@ -350,7 +350,7 @@ extension BaseSuite {
       let attachment = try #require(try await kinds.list().first { $0.subtype == .fileAttachment })
       let attachmentPatch = FileAttachmentAnnotationPatch(
         rect: Rect(x: 470, y: 620, width: 24, height: 24), icon: .tag, color: "#00ff00",
-        opacity: 0.5, contents: "Changed", blendMode: .multiply)
+        opacity: 0.5, contents: "Changed", blendMode: .multiply, common: Self.sharedFields)
       try await kinds.update(attachment.annotationRef, attachmentPatch)
       let attachmentRead = try #require(try await kinds.get(attachment.annotationRef))
       try expectWritten(
@@ -371,6 +371,195 @@ extension BaseSuite {
       try await annotations.update(square, SquareAnnotationPatch(blendMode: .screen))
       let readSquare = try await annotations.get(square)
       expectNoDifference(readSquare?.blendMode, .screen)
+    }
+
+    // ── common fields ───────────────────────────────────────────────────
+
+    /// The fields every kind shares, each away from what a create defaults
+    /// to. No `nm`, which is one annotation's on its page, and no `reply`,
+    /// which needs an annotation to answer.
+    static var sharedFields: AnnotationCommonFields {
+      var common = AnnotationCommonFields()
+      common.subject = "S"
+      common.groupID = "reviewers"
+      common.print = true
+      common.locked = true
+      return common
+    }
+
+    func sharing<Draft: AnnotationDraft>(
+      _ draft: Draft, _ common: WritableKeyPath<Draft, AnnotationCommonFields>
+    ) -> any AnnotationDraft {
+      var draft = draft
+      draft[keyPath: common] = Self.sharedFields
+      return draft
+    }
+
+    @Test func commonFieldsEncodeFlatBesideTheKinds() throws {
+      var common = AnnotationCommonFields()
+      common.nm = "note-1"
+      common.subject = .null
+      common.groupID = "reviewers"
+      common.reply = .value(
+        AnnotationReply(
+          to: .objectNumber(page: PageRef(pageObjectNumber: 2), annotObjectNumber: 9), type: .group))
+      common.invisible = false
+      common.hidden = true
+      common.print = false
+      common.noZoom = true
+      common.noRotate = true
+      common.noView = false
+      common.readOnly = true
+      common.locked = true
+      common.toggleNoView = false
+      common.lockedContents = true
+      expectNoDifference(
+        try NoteAnnotationDraft(rect: AnnotationDraftTests.noteRect, icon: .key, common: common).json(),
+        ##"{"groupId":"reviewers","hidden":true,"icon":"key","invisible":false,"locked":true,"lockedContents":true,"nm":"note-1","noRotate":true,"noView":false,"noZoom":true,"print":false,"readOnly":true,"rect":{"height":24,"width":24,"x":40,"y":40},"reply":{"to":{"kind":"objectNumber","objectNumber":9,"page":{"kind":"objectNumber","objectNumber":2}},"type":"group"},"subject":null,"subtype":"text","toggleNoView":false}"##
+      )
+      // A patch writes the same members but `nm`: a name can't change
+      // after create.
+      expectNoDifference(
+        try NoteAnnotationPatch(icon: .key, common: common).json(),
+        ##"{"groupId":"reviewers","hidden":true,"icon":"key","invisible":false,"locked":true,"lockedContents":true,"noRotate":true,"noView":false,"noZoom":true,"print":false,"readOnly":true,"reply":{"to":{"kind":"objectNumber","objectNumber":9,"page":{"kind":"objectNumber","objectNumber":2}},"type":"group"},"subject":null,"toggleNoView":false}"##
+      )
+      var unanswered = AnnotationCommonFields()
+      unanswered.reply = .null
+      unanswered.groupID = .null
+      expectNoDifference(
+        try SquareAnnotationPatch(common: unanswered).json(), ##"{"groupId":null,"reply":null}"##)
+    }
+
+    @Test func commonFieldsDecodeWhatTheyEncode() throws {
+      var common = AnnotationCommonFields()
+      common.nm = "note-1"
+      common.subject = .null
+      common.reply = .value(
+        AnnotationReply(to: .index(page: PageRef(pageObjectNumber: 2), index: 3), type: nil))
+      common.print = false
+      let data = try JSONEncoder().encode(common)
+      expectNoDifference(try JSONDecoder().decode(AnnotationCommonFields.self, from: data), common)
+      expectNoDifference(
+        try JSONDecoder().decode(AnnotationCommonFields.self, from: Data("{}".utf8)),
+        AnnotationCommonFields())
+      expectNoDifference(AnnotationReplyType.allCases.map(\.rawValue), ["reply", "group"])
+    }
+
+    /// Every kind's draft writes the shared fields, and the engine reads
+    /// them back as written.
+    @Test func everyDraftWritesItsCommonFields() async throws {
+      let (page, annotations) = try await opened()
+      let drafts: [any AnnotationDraft] = [
+        sharing(AnnotationDraftTests.fullInk, \.common),
+        sharing(AnnotationDraftTests.fullHighlight, \.common),
+        sharing(AnnotationDraftTests.fullNote, \.common),
+        sharing(Self.fullUnderline, \.common), sharing(Self.fullSquiggly, \.common),
+        sharing(Self.fullStrikeout, \.common), sharing(Self.fullRedaction, \.common),
+        sharing(Self.fullSquare, \.common), sharing(Self.fullCircle, \.common),
+        sharing(Self.fullLine, \.common), sharing(Self.fullPolygon, \.common),
+        sharing(Self.fullPolyline, \.common), sharing(Self.fullFreeText, \.common),
+        sharing(Self.fullCaret, \.common), sharing(Self.fullLink, \.common),
+      ]
+      for draft in drafts {
+        let json = try draft.json()
+        let read = try #require(try await annotations.get(annotations.create(draft, on: page)))
+        let fields = try object(read.fieldsJSON)
+        expectNoDifference(fields["subject"] as? String, "S", "\(type(of: draft))")
+        expectNoDifference(fields["print"] as? Bool, true, "\(type(of: draft))")
+        expectNoDifference(fields["locked"] as? Bool, true, "\(type(of: draft))")
+        expectNoDifference(read.groupID, "reviewers", "\(type(of: draft))")
+        try expectWritten(json, in: read.fieldsJSON, "\(type(of: draft))")
+      }
+    }
+
+    /// Every kind's patch writes the shared fields. Each annotation starts
+    /// from a draft without them.
+    @Test func everyPatchWritesItsCommonFields() async throws {
+      let (page, annotations) = try await opened()
+      let common = Self.sharedFields
+      let cases: [(any AnnotationDraft, any AnnotationPatch)] = [
+        (AnnotationDraftTests.fullInk, InkAnnotationPatch(common: common)),
+        (AnnotationDraftTests.fullHighlight, HighlightAnnotationPatch(common: common)),
+        (AnnotationDraftTests.fullNote, NoteAnnotationPatch(common: common)),
+        (Self.fullUnderline, UnderlineAnnotationPatch(common: common)),
+        (Self.fullSquiggly, SquigglyAnnotationPatch(common: common)),
+        (Self.fullStrikeout, StrikeoutAnnotationPatch(common: common)),
+        (Self.fullRedaction, RedactionAnnotationPatch(common: common)),
+        (Self.fullSquare, SquareAnnotationPatch(common: common)),
+        (Self.fullCircle, CircleAnnotationPatch(common: common)),
+        (Self.fullLine, LineAnnotationPatch(common: common)),
+        (Self.fullPolygon, PolygonAnnotationPatch(common: common)),
+        (Self.fullPolyline, PolylineAnnotationPatch(common: common)),
+        (Self.fullFreeText, FreeTextAnnotationPatch(common: common)),
+        (Self.fullCaret, CaretAnnotationPatch(common: common)),
+        (Self.fullLink, LinkAnnotationPatch(common: common)),
+      ]
+      for (draft, patch) in cases {
+        let ref = try await annotations.create(draft, on: page)
+        try await annotations.update(ref, patch)
+        let read = try #require(try await annotations.get(ref))
+        expectNoDifference(
+          try patch.json(),
+          ##"{"groupId":"reviewers","locked":true,"print":true,"subject":"S"}"##, "\(type(of: patch))")
+        try expectWritten(try patch.json(), in: read.fieldsJSON, "\(type(of: patch))")
+      }
+    }
+
+    @Test func aReplyLinksANoteToTheAnnotationItAnswers() async throws {
+      let (page, annotations) = try await opened()
+      let other = try await annotations.create(NoteAnnotationDraft(rect: Self.box), on: page)
+      var common = AnnotationCommonFields()
+      common.reply = .value(AnnotationReply(to: other, type: nil))
+      let answer = try await annotations.create(
+        NoteAnnotationDraft(rect: AnnotationDraftTests.noteRect, common: common), on: page)
+      let read = try #require(try await annotations.get(answer))
+      expectNoDifference(read.inReplyTo, other)
+      let reply = try #require(try object(read.fieldsJSON)["reply"] as? [String: Any])
+      expectNoDifference(reply["type"] as? String, "reply")
+
+      common.reply = .value(AnnotationReply(to: other, type: .group))
+      try await annotations.update(answer, NoteAnnotationPatch(common: common))
+      let grouped = try #require(try await annotations.get(answer))
+      expectNoDifference(grouped.inReplyTo, other)
+      let group = try #require(try object(grouped.fieldsJSON)["reply"] as? [String: Any])
+      expectNoDifference(group["type"] as? String, "group")
+
+      common.reply = .null
+      try await annotations.update(answer, NoteAnnotationPatch(common: common))
+      let alone = try #require(try await annotations.get(answer))
+      expectNoDifference(alone.inReplyTo, nil)
+    }
+
+    /// A draft names its annotation; a patch that carries a name leaves it
+    /// out, where the engine would refuse the change.
+    @Test func aNameIsTheDraftsToSet() async throws {
+      let (page, annotations) = try await opened()
+      var common = AnnotationCommonFields()
+      common.nm = "typed-name"
+      let ref = try await annotations.create(
+        SquareAnnotationDraft(box: Self.box, common: common), on: page)
+      let created = try #require(try await annotations.get(ref))
+      expectNoDifference(try object(created.fieldsJSON)["nm"] as? String, "typed-name")
+
+      common.nm = "another-name"
+      common.subject = "Renamed"
+      try await annotations.update(ref, SquareAnnotationPatch(common: common))
+      let read = try #require(try await annotations.get(ref))
+      let fields = try object(read.fieldsJSON)
+      expectNoDifference(fields["nm"] as? String, "typed-name")
+      expectNoDifference(fields["subject"] as? String, "Renamed")
+      await #expect {
+        try await annotations.update(ref, ##"{"nm":"another-name"}"##)
+      } throws: {
+        ($0 as? PDFError)?.code == .invalidInput
+      }
+
+      common = AnnotationCommonFields()
+      common.nm = .null
+      let unnamed = try #require(
+        try await annotations.get(
+          annotations.create(SquareAnnotationDraft(box: Self.box, common: common), on: page)))
+      #expect(try object(unnamed.fieldsJSON)["nm"] is NSNull)
     }
 
     // ── typed reads ─────────────────────────────────────────────────────
