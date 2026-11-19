@@ -44,8 +44,9 @@ public struct StageReaderView<PageOverlay: View>: View {
         .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
         .clipped()
         .contentShape(Rectangle())
-        // Masked rather than `isEnabled:`, which older SDKs lack. Overlay
-        // gestures stay live either way.
+        // Masked rather than `gesture(_:isEnabled:)`, which needs iOS 18
+        // while the package supports iOS 17. Overlay gestures stay live
+        // either way.
         .gesture(
           DragGesture(minimumDistance: 0)
             .onChanged { value in Task { await model.dragChanged(translation: value.translation) } }

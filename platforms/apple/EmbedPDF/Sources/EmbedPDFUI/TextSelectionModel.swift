@@ -20,6 +20,7 @@ public final class TextSelectionModel {
   public private(set) var rects: [PageRef: [Rect]] = [:]
   /// Whether a drag has begun on text and not yet ended.
   public private(set) var isSelecting = false
+  /// The last error the engine threw, kept until the next one replaces it.
   public private(set) var error: PDFError?
   /// `extend(to:on:)` calls made so far.
   @ObservationIgnored var extensionCount = 0
@@ -69,7 +70,9 @@ public final class TextSelectionModel {
   }
 
   /// Starts a selection at `point`. False when the point has no text; the
-  /// model then stays idle until the next begin.
+  /// model then stays idle until the next begin. With `.word`, a failure
+  /// after the word is selected leaves it selected with ``isSelecting``
+  /// false and the error in ``error``.
   public func dragBegan(at point: Point, on page: PageRef, start: Start = .caret) async -> Bool {
     await enqueue { await $0.applyBegin(at: point, on: page, start: start) }.value
   }

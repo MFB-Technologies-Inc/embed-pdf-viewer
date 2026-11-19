@@ -35,7 +35,9 @@ public final class StageReaderModel {
       if oldValue, !isPanEnabled { _ = enqueueDragCall { await $0.applyDragEnd(.zero) } }
     }
   }
-  /// Per-page render revisions, counted while ``task()`` runs.
+  /// Per-page render revisions, counted while ``task()`` runs. This model's
+  /// ``task()`` runs ``RenderRevisions/task()``, so callers must not run it
+  /// as well.
   public let revisions: RenderRevisions
   @ObservationIgnored public let stage: StageCapability
   @ObservationIgnored public let render: RenderCapability

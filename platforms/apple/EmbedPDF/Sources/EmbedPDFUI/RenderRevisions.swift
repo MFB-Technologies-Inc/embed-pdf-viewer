@@ -13,7 +13,8 @@ public final class RenderRevisions {
   @ObservationIgnored private var subscribed: AsyncStream<RenderEvent>?
 
   /// Subscribes at once, so a page invalidated before the first ``task()``
-  /// still counts.
+  /// still counts. The subscription buffers every render event until
+  /// ``task()`` runs, so run it soon after creating the model.
   public init(render: RenderCapability) {
     self.render = render
     subscribed = render.events

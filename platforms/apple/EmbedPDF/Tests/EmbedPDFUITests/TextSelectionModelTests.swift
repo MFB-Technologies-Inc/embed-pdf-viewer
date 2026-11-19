@@ -50,6 +50,22 @@ struct TextSelectionModelTests {
     try await viewer.destroy()
   }
 
+  @Test func aChangeThatArrivesWhileTheBeginWaitsAppliesInsideIt() async throws {
+    let (viewer, page, selection, model) = try await Self.opened()
+    let start = try await Self.pointOverText(page, selection)
+    let begin = Task { await model.dragBegan(at: start, on: page.page) }
+    // Lets the begin enqueue first, so the change queues behind it.
+    await Task.yield()
+    model.dragChanged(to: Point(x: start.x + 120, y: start.y), on: page.page)
+    let end = Task { await model.dragEnded() }
+    #expect(await begin.value)
+    await end.value
+    #expect(!model.isSelecting)
+    #expect(!(try await selection.isSelecting()))
+    expectNoDifference(model.extensionCount, 1)
+    try await viewer.destroy()
+  }
+
   @Test func aDragThatStartsOffTextSelectsNothing() async throws {
     let (viewer, page, selection, model) = try await Self.opened()
     let margin = try await Self.pointOffText(page, selection)
@@ -77,10 +93,37 @@ struct TextSelectionModelTests {
     await observing.value
   }
 
-  static func opened() async throws -> (PDFViewer, PageInfo, SelectionCapability, TextSelectionModel) {
+  @Test func aSelectionClearedElsewhereEmptiesTheRects() async throws {
+    let (viewer, page, selection, model) = try await Self.opened()
+    let observing = Task { await model.task() }
+    try await expectObserved({ model.rects[page.page]?.isEmpty == false }, equals: true) {
+      try await selection.ensureLoaded(page.page)
+      try await selection.selectPage(page.page)
+    }
+    try await expectObserved({ model.rects.isEmpty }, equals: true) {
+      try await selection.clear()
+    }
+    try await viewer.destroy()
+    await observing.value
+  }
+
+  @Test func closingTheDocumentEndsTheTask() async throws {
+    let (viewer, document) = try await Self.openedDocument()
+    let model = TextSelectionModel(selection: try await viewer.selection(for: document))
+    let observing = Task { await model.task() }
+    try await viewer.close(document)
+    await observing.value
+    try await viewer.destroy()
+  }
+
+  static func openedDocument() async throws -> (PDFViewer, DocumentInfo) {
     let viewer = try PDFViewer(ViewerConfig(interaction: true, selection: true))
     try await viewer.start()
-    let document = try await viewer.open(pluginFixture())
+    return (viewer, try await viewer.open(pluginFixture()))
+  }
+
+  static func opened() async throws -> (PDFViewer, PageInfo, SelectionCapability, TextSelectionModel) {
+    let (viewer, document) = try await openedDocument()
     let page = try #require(try await viewer.pages(of: document).first)
     let selection = try await viewer.selection(for: document)
     return (viewer, page, selection, TextSelectionModel(selection: selection))
