@@ -191,6 +191,37 @@ struct SearchModelTests {
     expectNoDifference(model.activeIndex, 1)
   }
 
+  @Test func theActiveHitAndSummaryFollowNavigation() async throws {
+    let (model, _) = try await model()
+    expectNoDifference(model.activeHit, nil)
+    expectNoDifference(model.summary, nil)
+    model.text = "trace"
+    await model.searchSubmitted()
+    expectNoDifference(model.status, .complete)
+    #expect(model.hitCount > 1)
+    expectNoDifference(model.activeHit, model.hits[0])
+    expectNoDifference(model.summary, "1 of \(model.hitCount)")
+    await model.nextButtonTapped()
+    expectNoDifference(model.activeHit, model.hits[1])
+    expectNoDifference(model.summary, "2 of \(model.hitCount)")
+    await model.clearButtonTapped()
+    expectNoDifference(model.activeHit, nil)
+    expectNoDifference(model.summary, nil)
+  }
+
+  @Test func theSummaryMarksACountThatIsStillGrowing() {
+    // A running scan has found 12 hits so far, not 12 in all.
+    expectNoDifference(SearchModel.summary(activeHitIndex: 2, hitCount: 12, status: .searching), "3 of 12+")
+    expectNoDifference(SearchModel.summary(activeHitIndex: 2, hitCount: 12, status: .complete), "3 of 12")
+    // A cancelled scan keeps its hits and finds no more.
+    expectNoDifference(SearchModel.summary(activeHitIndex: 2, hitCount: 12, status: .cancelled), "3 of 12")
+    expectNoDifference(SearchModel.summary(activeHitIndex: nil, hitCount: 12, status: .complete), nil)
+    expectNoDifference(SearchModel.summary(activeHitIndex: nil, hitCount: 0, status: .searching), nil)
+    // The index and the count come from separate reads and can disagree
+    // for one refresh.
+    expectNoDifference(SearchModel.summary(activeHitIndex: 12, hitCount: 12, status: .complete), nil)
+  }
+
   @Test func clearingEmptiesTheModel() async throws {
     let (model, _) = try await model()
     model.text = "the"

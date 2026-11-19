@@ -1,4 +1,5 @@
 import EmbedPDF
+import Foundation
 import Observation
 
 /// A document's search session for SwiftUI.
@@ -55,6 +56,36 @@ public final class SearchModel {
 
   /// Hits found so far on one page, counted from ``hits``.
   public func hitCount(on page: PageRef) -> Int { pageHitCounts[page] ?? 0 }
+
+  /// The hit at ``activeHitIndex`` in ``hits``, `nil` when no hit is active.
+  /// The index and the list come from separate reads, so for one refresh the
+  /// index can point past the list; that reads `nil` too.
+  public var activeHit: SearchHit? {
+    guard let activeHitIndex, hits.indices.contains(activeHitIndex) else { return nil }
+    return hits[activeHitIndex]
+  }
+
+  /// The active hit's place among the hits, counted from 1, as `"3 of 12"`;
+  /// `nil` when no hit is active, which includes a session with no hits.
+  ///
+  /// While ``status`` is `SearchStatus.searching`, ``hitCount`` is the hits
+  /// found so far and still grows, so the text ends in a plus sign:
+  /// `"3 of 12+"`. After a cancelled or failed scan it is the count of the
+  /// hits that scan kept, which is every hit the session navigates.
+  ///
+  /// The text is English, looked up in the app's main bundle under the keys
+  /// `"%lld of %lld"` and `"%lld of %lld+"`. An app that words it another
+  /// way builds its own from ``activeHitIndex``, ``hitCount`` and ``status``.
+  public var summary: String? {
+    Self.summary(activeHitIndex: activeHitIndex, hitCount: hitCount, status: status)
+  }
+
+  static func summary(activeHitIndex: Int?, hitCount: Int, status: SearchStatus) -> String? {
+    guard let activeHitIndex, activeHitIndex < hitCount else { return nil }
+    return status == .searching
+      ? String(localized: "\(activeHitIndex + 1) of \(hitCount)+")
+      : String(localized: "\(activeHitIndex + 1) of \(hitCount)")
+  }
 
   public func task() async {
     observation &+= 1
