@@ -168,8 +168,6 @@ struct PDFReaderModelTests {
     await model.close()
   }
 
-  /// Returns once an `open` started in another task has set `.loading`,
-  /// which it does before its first suspension.
   @Test func configureAddsAPlugin() async throws {
     let model = PDFReaderModel(configure: { $0.metadata() })
     await model.open(try pluginFixture(), name: "report.pdf")
@@ -180,7 +178,7 @@ struct PDFReaderModelTests {
     await model.close()
   }
 
-  @Test func theDefaultModelHasOnlyItsFeaturesPlugins() async throws {
+  @Test func theDefaultModelLeavesOutTheMetadataPlugin() async throws {
     let model = PDFReaderModel()
     await model.open(try pluginFixture(), name: "report.pdf")
     let session = try Self.session(model)
@@ -222,6 +220,8 @@ struct PDFReaderModelTests {
     await model.close()
   }
 
+  /// Returns once an `open` started in another task has set `.loading`,
+  /// which it does before its first suspension.
   static func untilLoading(_ model: PDFReaderModel) async throws {
     for _ in 0..<1000 {
       if case .loading = model.phase { return }

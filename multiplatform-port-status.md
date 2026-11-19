@@ -222,8 +222,8 @@ check, which proves the arm exists and says nothing about what it does;
 
 Every Rust plugin crate is wrapped for Swift in `platforms/apple/EmbedPDF`,
 per `docs/superpowers/plans/2026-10-06-swift-plugins/00-umbrella.md` and the
-November 6 Swift parity additions. The latter require a local source or packaged
-engine until a matching public release is published and pinned. Each
+November 6 Swift parity additions. The latter run on the pinned engine release,
+`apple-engine-8a472a28bcfb9c14`, which both package manifests download by default. Each
 row is the plugin's `ViewerConfig` field, its Swift source under
 `Sources/EmbedPDF/Plugins/`, and the test file under `Tests/EmbedPDFTests/`
 that runs it on the iOS simulator. `every_plugin_builds_together` in

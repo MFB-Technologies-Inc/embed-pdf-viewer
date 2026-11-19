@@ -3,13 +3,20 @@
 The Apple package exposes the Rust viewer through typed Swift capabilities and
 SwiftUI controls on iOS 17 and macOS 14 or later.
 
-**This branch requires the local source engine or locally packaged engine.**
-The published engine pins predate the app-facing document, settings, editing and
-snapshot APIs validated on this branch.
-Use the nested package at `platforms/apple/EmbedPDF` with one of the local modes
-below. The repository-root package remains pinned to the previous release; a
-matching engine must be published and both manifests updated before default
-downloaded-package consumption is supported.
+Both manifests pin the engine release `apple-engine-8a472a28bcfb9c14`:
+`platforms/apple/EmbedPDF/Package.swift:9` and the repository-root
+`Package.swift:16`. SwiftPM downloads that binary by default, so nothing builds
+Rust, and the package's tests and the demo run on it.
+`bash platforms/apple/check-apple-engine.sh` still reports the pin as not
+current on this branch, because `platforms/apple/build-xcframework.sh` is an
+input to the engine hash (`platforms/apple/apple-engine-hash.sh:40`) and this
+branch changed it. A release with the new hash has to be published and pinned
+in both manifests before that check passes.
+
+Two local modes remain for engine work: `EMBEDPDF_LOCAL_ENGINE=1` builds
+against the source engine and `EMBEDPDF_PREBUILT_ENGINE=local` against a
+locally packaged framework. [Where the engine comes from](#where-the-engine-comes-from)
+has both. The local source recipe:
 
 ```bash
 bash platforms/apple/build-xcframework.sh
@@ -440,9 +447,12 @@ struct ReaderScreen: View {
   @Environment(\.openURL) private var openURL
 
   var body: some View {
-    PDFReaderView(model: model) { activation in
-      if case let .uri(uri) = activation, let url = URL(string: uri) { openURL(url) }
-    }
+    PDFReaderView(
+      model: model,
+      onLinkActivation: { activation in
+        if case let .uri(uri) = activation, let url = URL(string: uri) { openURL(url) }
+      }
+    )
     .task { await model.open(data, name: "report.pdf") }
   }
 }
@@ -467,22 +477,32 @@ Touch on a ready document divides like this. A drag pans, a pinch zooms and a
 double tap zooms. With `.selection`, a long press followed by a drag selects
 text, and a tap clears the selection. With `.links`, a tap on a link activates
 it and the outcome reaches the view's `onLinkActivation`; opening a `.uri` is
-the app's job. While a tool other than the default is active, a drag goes to
-that tool instead of the pan, and text selection is off until the default
-tool is back.
+the app's job. `.links` needs no other feature: the reader loads each page's
+links when the page first comes into view. While a tool other than the default
+is active, a drag goes to that tool instead of the pan, and text selection is
+off until the default tool is back.
 
-Long-press selection has a cost for flings. With `.selection`, a still touch
-or a tap doesn't stop a fling: the page keeps moving until the finger drags.
-A reader without `.selection` stops a fling where the touch lands. We checked
-both halves on the simulator: after a fling a tap left the page moving, and a
-20-point drag stopped it.
+Long-press selection has two costs for the pan. With `.selection`, a pan
+begins only once the finger has moved more than 10 points, so the first 10
+points of a drag don't scroll. The pan starts from the point where the drag
+crosses 10 points, so the page doesn't jump. A still touch or a tap also
+doesn't stop a fling: the page keeps moving until the finger drags past the
+10 points. A reader without `.selection` pans from touch-down and stops a
+fling where the touch lands. `Tests/EmbedPDFUITests/StageReaderModelTests.swift`
+pins both halves: `aTapThatMovesWithinTenPointsLeavesADoubleTapZooming` and
+`withPanBeginsOnMovementThePanStartsAtTheCrossingWithNoJump` with
+`StageReaderModel.panBeginsOnMovement` on, which is how `.selection` gets this
+behavior, and `aZeroTranslationChangeBeginsAPanByDefault` with it off.
 
 The view scrolls to each search hit the bar reports active. It draws no
 highlight on hits. An app that wants one composes it from `SearchModel.hits`
 in the `pageOverlay`. The view places no tool picker either: give
 `Session.tools` to a `ToolPicker` where your layout wants one. It runs the
-reader's and the search bar's `task()` itself, so don't run them again: a
-second `task()` on one model supersedes the first.
+reader's and the search bar's `task()` itself, so don't run them again. The
+reason differs by model. A second `SearchModel.task()` supersedes the first,
+so the bar's own run stops updating the model. A second
+`StageReaderModel.task()` supersedes nothing: both run, so the model handles
+every stage event twice and registers the link tap handler twice.
 
 The features cover search, selection, tools and links. For any other plugin,
 pass `configure:`. It gets the `ViewerConfigBuilder` the model prepared for
@@ -512,8 +532,12 @@ of `features` instead. One more cost of the model: it reads every page's
 
 A `StageReaderModel` made with an `InteractionCapability` sends the reader's
 touches to the document's pointer hub, so the active tool draws. Made with a
-`LinkCapability` too, it activates the link under a tap. `ToolModel` mirrors
-the hub's tools for SwiftUI and `ToolPicker` shows one toggle per tool.
+`LinkCapability` too, it activates the link under a tap. It loads a page's
+links when the page first comes into view, so there's no
+`LinkCapability.ensureLoaded` for you to call. That costs one engine call per
+page the first time it shows, and a tap that lands before its page's load has
+finished finds no link. `ToolModel` mirrors the hub's tools for SwiftUI and
+`ToolPicker` shows one toggle per tool.
 
 ```swift
 let interaction = try await viewer.interaction(for: document)
@@ -525,9 +549,12 @@ let tools = ToolModel(interaction: interaction)
 
 ```swift
 VStack {
-  StageReaderView(model: reader) { activation in
-    if case let .uri(uri) = activation, let url = URL(string: uri) { openURL(url) }
-  }
+  StageReaderView(
+    model: reader,
+    onLinkActivation: { activation in
+      if case let .uri(uri) = activation, let url = URL(string: uri) { openURL(url) }
+    }
+  )
   ToolPicker(model: tools, tools: [.ink, .highlight]) { id in
     Label(id.rawValue.capitalized, systemImage: "pencil")
   }
@@ -535,8 +562,10 @@ VStack {
 ```
 
 A tool's annotation appears when its gesture commits. An ink stroke shows when
-the finger lifts, not while it moves: the reader draws no live preview. We
-checked this on the simulator with the demo's ink tool.
+the finger lifts, not while it moves: the reader draws no live preview.
+`aForwardedDragUnderTheInkToolCreatesInk` in
+`Tests/EmbedPDFModelsTests/StagePointerForwarderTests.swift` pins the commit:
+one ink annotation after the lift.
 
 Under the default tool a drag pans. Under any other tool the drag goes to that
 tool, and the route is chosen when the drag starts. A tap reaches the hub once
@@ -796,8 +825,11 @@ folder. The open menu takes a PDF from Files or one of two bundled samples.
 `hôtel`.
 
 The Xcode project is generated by Tuist from `Project.swift` and isn't checked in.
-`mise.toml` pins the Tuist version. The package downloads its pinned engine, so
-nothing builds Rust first:
+`mise.toml` pins the Tuist version. The demo builds against the engine the
+package resolves. By default that's the pinned download, `engineRelease` at
+`platforms/apple/EmbedPDF/Package.swift:9`, so nothing builds Rust first.
+`EMBEDPDF_LOCAL_ENGINE=1` and `EMBEDPDF_PREBUILT_ENGINE=local` select a local
+engine instead.
 
 ```sh
 cd platforms/apple/EmbedPDFDemo
