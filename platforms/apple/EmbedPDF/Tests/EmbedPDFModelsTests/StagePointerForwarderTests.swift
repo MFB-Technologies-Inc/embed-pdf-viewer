@@ -134,10 +134,12 @@ struct StagePointerForwarderTests {
     expectNoDifference(cancelled, before)
 
     expectNoDifference(model.activeToolID, .ink)
+    phases = []
     model.pointerDown(at: try point(in: model, 0.50))
     model.pointerMoved(to: try point(in: model, 0.60))
     model.pointerUp(at: try point(in: model, 0.60))
     await model.pointerCallsFinished()
+    expectNoDifference(phases, [.down, .move, .up])
     try await reader.annotations.drafts.finishInkDraft()
     let after = try await inkCount(reader.annotations)
     expectNoDifference(after, before + 1)
@@ -169,6 +171,142 @@ struct StagePointerForwarderTests {
     model.pointerUp(at: last)
     await model.pointerCallsFinished()
     expectNoDifference(samples.last?.phase, .up)
+    try await reader.viewer.destroy()
+    await reader.observing.value
+  }
+
+  /// One sample as a test compares it: its phase and where it was.
+  struct Sent: Equatable {
+    var phase: PointerPhase
+    var x: Double
+    var y: Double
+
+    init(_ phase: PointerPhase, _ location: CGPoint) {
+      self.phase = phase
+      x = location.x
+      y = location.y
+    }
+
+    init(_ sample: PointerSample) {
+      phase = sample.phase
+      x = sample.viewport.x
+      y = sample.viewport.y
+    }
+  }
+
+  /// A reader under the ink tool that records every sample it sends.
+  func recording() async throws -> (Reader, () -> [Sent]) {
+    let reader = try await reader()
+    try await reader.interaction.activateTool(.ink)
+    var sent: [Sent] = []
+    reader.model.pointerSampleDispatched = { sent.append(Sent($0)) }
+    return (reader, { sent })
+  }
+
+  @Test func gesturesSentInOneTurnKeepTheirOwnMoves() async throws {
+    let (reader, sent) = try await recording()
+    let model = reader.model
+    let at = try (1...6).map { try point(in: model, 0.1 * Double($0)) }
+    model.pointerDown(at: at[0])
+    model.pointerMoved(to: at[1])
+    model.pointerUp(at: at[2])
+    model.pointerDown(at: at[3])
+    model.pointerMoved(to: at[4])
+    model.pointerUp(at: at[5])
+    await model.pointerCallsFinished()
+    expectNoDifference(
+      sent(),
+      [
+        Sent(.down, at[0]), Sent(.move, at[1]), Sent(.up, at[2]),
+        Sent(.down, at[3]), Sent(.move, at[4]), Sent(.up, at[5]),
+      ])
+    try await reader.viewer.destroy()
+    await reader.observing.value
+  }
+
+  /// A down right after an up leaves the earlier gesture's waiting move in
+  /// place, and a tap does too.
+  @Test func aNewGestureDoesNotDropTheLastOnesWaitingMove() async throws {
+    let (reader, sent) = try await recording()
+    let model = reader.model
+    let at = try (1...5).map { try point(in: model, 0.1 * Double($0)) }
+    model.pointerDown(at: at[0])
+    model.pointerMoved(to: at[1])
+    model.pointerUp(at: at[1])
+    model.pointerDown(at: at[2])
+    model.pointerMoved(to: at[3])
+    model.pointerUp(at: at[3])
+    model.tapped(at: at[4])
+    await model.pointerCallsFinished()
+    expectNoDifference(
+      sent(),
+      [
+        Sent(.down, at[0]), Sent(.move, at[1]), Sent(.up, at[1]),
+        Sent(.down, at[2]), Sent(.move, at[3]), Sent(.up, at[3]),
+        Sent(.down, at[4]), Sent(.up, at[4]),
+      ])
+    try await reader.viewer.destroy()
+    await reader.observing.value
+  }
+
+  /// The cancel's sample is at the dropped move's point: the last place
+  /// the touch was.
+  @Test func aCancelDropsOnlyItsOwnWaitingMove() async throws {
+    let (reader, sent) = try await recording()
+    let model = reader.model
+    let before = try await inkCount(reader.annotations)
+    let at = try (1...5).map { try point(in: model, 0.1 * Double($0)) }
+    model.pointerDown(at: at[0])
+    model.pointerMoved(to: at[1])
+    model.pointerCancelled()
+    model.pointerDown(at: at[2])
+    model.pointerMoved(to: at[3])
+    model.pointerUp(at: at[4])
+    await model.pointerCallsFinished()
+    expectNoDifference(
+      sent(),
+      [
+        Sent(.down, at[0]), Sent(.cancel, at[1]),
+        Sent(.down, at[2]), Sent(.move, at[3]), Sent(.up, at[4]),
+      ])
+    try await reader.annotations.drafts.finishInkDraft()
+    let after = try await inkCount(reader.annotations)
+    expectNoDifference(after, before + 1)
+    try await reader.viewer.destroy()
+    await reader.observing.value
+  }
+
+  /// A pinch's first finger opens a tool gesture. The pinch cancels it, and
+  /// the rest of that touch sends nothing; the next touch draws again.
+  @Test func aPinchCancelsTheOpenToolGesture() async throws {
+    let (reader, sent) = try await recording()
+    let model = reader.model
+    let before = try await inkCount(reader.annotations)
+    let at = try (1...6).map { try point(in: model, 0.1 * Double($0)) }
+    model.pointerDown(at: at[0])
+    model.pointerMoved(to: at[1])
+    // The move has reached the hub when the pinch begins; one still waiting
+    // would be dropped by the cancel.
+    await model.pointerCallsFinished()
+    model.magnifyChanged(1.1, at: at[1])
+    model.pointerMoved(to: at[2])
+    model.magnifyChanged(1.2, at: at[1])
+    model.pointerMoved(to: at[3])
+    model.pointerUp(at: at[3])
+    model.pointerCancelled()
+    await model.magnifyEnded()
+    await model.pointerCallsFinished()
+    expectNoDifference(sent(), [Sent(.down, at[0]), Sent(.move, at[1]), Sent(.cancel, at[1])])
+    try await reader.annotations.drafts.finishInkDraft()
+    let pinched = try await inkCount(reader.annotations)
+    expectNoDifference(pinched, before)
+
+    model.pointerDown(at: at[4])
+    model.pointerMoved(to: at[5])
+    model.pointerUp(at: at[5])
+    await model.pointerCallsFinished()
+    expectNoDifference(
+      Array(sent().dropFirst(3)), [Sent(.down, at[4]), Sent(.move, at[5]), Sent(.up, at[5])])
     try await reader.viewer.destroy()
     await reader.observing.value
   }

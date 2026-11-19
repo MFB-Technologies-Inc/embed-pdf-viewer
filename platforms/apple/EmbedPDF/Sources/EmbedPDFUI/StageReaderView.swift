@@ -9,9 +9,17 @@ import SwiftUI
 /// the active tool under any other
 /// (``StageReaderModel/forwardsDrags``); the route is chosen when the drag
 /// starts and holds until it ends. A tap goes to the hub once either way: as
-/// ``StageReaderModel/tapped(at:)`` when drags pan, and as the forwarded
-/// drag's own down and up when they do not. A forwarded drag the system
-/// cancels is cancelled at the hub too, so the tool does not commit it.
+/// ``StageReaderModel/tapped(at:)`` when its touch pans, and as the
+/// forwarded drag's own down and up when it does not. A forwarded drag the
+/// system cancels is cancelled at the hub too, so the tool does not commit
+/// it, and so is one a pinch joins: its first finger draws nothing.
+///
+/// The tap is not masked and does not yield to a page overlay. A tap an
+/// overlay's own gesture handles reaches ``StageReaderModel/tapped(at:)``
+/// as well, with ``StageReaderModel/isPanEnabled`` true or false, so a link
+/// under the overlay activates and the default tool sees the tap. An
+/// overlay that must keep its taps from the hub cannot do so through this
+/// view.
 public struct StageReaderView<PageOverlay: View>: View {
   let model: StageReaderModel
   let pageOverlay: (StageVisiblePage) -> PageOverlay
@@ -21,6 +29,11 @@ public struct StageReaderView<PageOverlay: View>: View {
   private enum DragRoute { case pan, tool }
   /// The open drag's route, or `nil` when no drag is open.
   @State private var drag: DragRoute?
+  /// Whether the current touch's drag went to the tool, which then has its
+  /// down and up already. Outlives `drag` by one turn so the tap that ends
+  /// with the drag reads the route the touch began with, not the tool as it
+  /// is by then.
+  @State private var touchForwarded = false
   /// True while a drag is down. SwiftUI resets it when it cancels the
   /// gesture without calling `onEnded`.
   @GestureState private var touching = false
@@ -31,7 +44,9 @@ public struct StageReaderView<PageOverlay: View>: View {
   /// viewport point. The overlay's own gestures take priority over the
   /// reader's drag, whether that drag pans or goes to the active tool; set
   /// ``StageReaderModel/isPanEnabled`` to false when the overlay needs
-  /// every touch that would pan.
+  /// every touch that would pan. They do not take priority over the
+  /// reader's tap: a tap the overlay handles still goes to the hub, where a
+  /// link under it activates.
   ///
   /// `onLinkActivation` receives each of the model's
   /// ``StageReaderModel/linkActivations`` while the view is shown. Opening a
@@ -94,11 +109,11 @@ public struct StageReaderView<PageOverlay: View>: View {
           SpatialTapGesture(count: 2, coordinateSpace: .local)
             .onEnded { value in Task { await model.doubleTapped(at: value.location) } }
         )
-        // While drags are forwarded the drag above has already sent this
-        // touch's down and up; a second pair would be a second tap.
+        // A forwarded drag has already sent this touch's down and up; a
+        // second pair would be a second tap.
         .simultaneousGesture(
           SpatialTapGesture(count: 1, coordinateSpace: .local)
-            .onEnded { value in if !model.forwardsDrags { model.tapped(at: value.location) } }
+            .onEnded { value in if !touchForwarded { model.tapped(at: value.location) } }
         )
         .task { await model.task() }
         .task {
@@ -115,6 +130,7 @@ public struct StageReaderView<PageOverlay: View>: View {
     let route = drag ?? (model.forwardsDrags ? .tool : .pan)
     let opening = drag == nil
     drag = route
+    if opening { touchForwarded = route == .tool }
     switch route {
     case .pan:
       Task { await model.dragChanged(translation: value.translation) }
@@ -127,6 +143,8 @@ public struct StageReaderView<PageOverlay: View>: View {
   private func dragEnded(_ value: DragGesture.Value, model: StageReaderModel) {
     let route = drag ?? .pan
     drag = nil
+    // After the turn this touch's tap ends in.
+    Task { if drag == nil { touchForwarded = false } }
     switch route {
     case .pan:
       Task { await model.dragEnded(velocity: value.velocity) }
@@ -140,6 +158,7 @@ public struct StageReaderView<PageOverlay: View>: View {
   private func dragDropped(model: StageReaderModel) {
     guard let route = drag else { return }
     drag = nil
+    touchForwarded = false
     if route == .tool { model.pointerCancelled() }
   }
 }

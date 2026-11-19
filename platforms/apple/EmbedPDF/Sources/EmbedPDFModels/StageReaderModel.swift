@@ -48,13 +48,16 @@ public final class StageReaderModel {
   /// ``pointerDown(at:)``, ``pointerMoved(to:)`` and ``pointerUp(at:)``
   /// instead of ``dragChanged(translation:)``. It replaces only the pan.
   /// ``isPanEnabled`` does not gate it, and a page overlay's own gestures
-  /// still take a touch before the reader's drag sees it.
+  /// still take a touch before the reader's drag sees it. A tap is
+  /// different: the view sends it to ``tapped(at:)`` whether or not an
+  /// overlay also handled it.
   public private(set) var forwardsDrags = false
   /// Whether a drag pans the stage. Turn it off while a page overlay needs
   /// every touch. Turning it off mid-drag ends the open stage gesture without
   /// a fling, since SwiftUI cancels a disabled gesture without calling its
   /// end. It gates the pan only: while ``forwardsDrags`` is true a drag
-  /// still goes to the active tool.
+  /// still goes to the active tool, and a tap still reaches ``tapped(at:)``
+  /// with the pan off.
   public var isPanEnabled = true {
     didSet {
       // Joins the drag chain before returning, so a drag call made after
@@ -184,7 +187,7 @@ public final class StageReaderModel {
         group.addTask {
           for await event in linkEvents {
             guard !Task.isCancelled else { return }
-            if case let .activated(event) = event { await self.linkFeed.yield(event.activation) }
+            if case let .activated(event) = event { self.linkFeed.yield(event.activation) }
           }
         }
       }
@@ -240,14 +243,17 @@ public final class StageReaderModel {
 
   /// Sends a pointer move. Moves that arrive while an earlier pointer call
   /// is still on its way collapse into the newest, so the hub sees fewer
-  /// samples than a fast drag makes and always the latest position.
+  /// samples than a fast drag makes and always the latest position. A
+  /// collapsed move reaches the hub before the up or cancel that follows it
+  /// and never joins another gesture.
   public func pointerMoved(to location: CGPoint) { pointer?.move(to: location) }
 
   /// Sends a pointer up, after any move still waiting.
   public func pointerUp(at location: CGPoint) { pointer?.up(at: location) }
 
   /// Sends a pointer cancel at the last location, so the tool drops the
-  /// gesture instead of committing it. A move still waiting is dropped.
+  /// gesture instead of committing it. A move of this gesture still waiting
+  /// is dropped; an earlier gesture's samples are not.
   /// Call it when the system takes a drag away without ending it.
   public func pointerCancelled() { pointer?.cancel() }
 
@@ -341,7 +347,12 @@ public final class StageReaderModel {
     await refresh()
   }
 
+  /// A pinch's first finger may already have opened a pointer gesture
+  /// (``pointerDown(at:)``). The pinch cancels it at the hub, so the tool
+  /// commits nothing, and the pointer calls for the rest of that touch send
+  /// nothing; the next ``pointerDown(at:)`` or ``tapped(at:)`` sends again.
   public func magnifyChanged(_ magnification: CGFloat, at location: CGPoint) {
+    pointer?.interrupt()
     zoomPhase = .pinching
     setZooming(true)
     let factor = magnification / lastMagnification
