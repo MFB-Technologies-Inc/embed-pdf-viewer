@@ -32,12 +32,11 @@ public final class StageReaderModel {
     didSet {
       // Joins the drag chain before returning, so a drag call made after
       // this setter runs after the end.
-      if oldValue, !isPanEnabled { _ = enqueueDragCall { await $0.applyDragEnd(.zero) } }
+      if oldValue, !isPanEnabled { dragCalls.enqueue { await self.applyDragEnd(.zero) } }
     }
   }
-  /// Per-page render revisions, counted while ``task()`` runs. This model's
-  /// ``task()`` runs ``RenderRevisions/task()``, so callers must not run it
-  /// as well.
+  /// Per-page render revisions. The counter observes by itself, whether or
+  /// not ``task()`` runs.
   public let revisions: RenderRevisions
   @ObservationIgnored public let stage: StageCapability
   @ObservationIgnored public let render: RenderCapability
@@ -63,11 +62,11 @@ public final class StageReaderModel {
   /// Runs in a refresh after its `isMoving()` read returns and before the
   /// read is applied. Tests hold it so a double tap can run first.
   @ObservationIgnored var zoomReadReturned: (@MainActor () async -> Void)?
-  /// The last drag call, which the next one waits for. SwiftUI hands a
+  /// The drag calls, each run after every earlier one. SwiftUI hands a
   /// gesture's change and end to separate tasks, and each call leaves the
   /// main actor while it reaches the stage, so without this an end could
   /// reach the stage before the begin it closes.
-  @ObservationIgnored private var lastDragCall: Task<Void, Never>?
+  @ObservationIgnored private let dragCalls = SerialCalls()
 
   /// The most pixels one page renders at: 4096 by 4096, 64 MB of RGBA.
   public nonisolated static let maxPagePixels: Double = 4096 * 4096
@@ -97,7 +96,7 @@ public final class StageReaderModel {
     revisions = RenderRevisions(render: render)
   }
 
-  /// Run for the view's lifetime, projecting stage and render events.
+  /// Run for the view's lifetime, projecting stage events.
   public func task() async {
     let stageEvents = stage.events
     await withTaskGroup(of: Void.self) { group in
@@ -107,7 +106,6 @@ public final class StageReaderModel {
           await self.receiveStage(event)
         }
       }
-      group.addTask { await self.revisions.task() }
       await refresh()
       _ = await group.next()
       group.cancelAll()
@@ -152,34 +150,14 @@ public final class StageReaderModel {
   /// Runs after every earlier drag call has finished. Does nothing to the
   /// stage while ``isPanEnabled`` is false.
   public func dragChanged(translation: CGSize) async {
-    await afterEarlierDragCalls { await $0.applyDragChange(translation) }
+    await dragCalls.enqueue { await self.applyDragChange(translation) }.value
   }
 
   /// `velocity` in points per second, as `DragGesture.Value.velocity`
   /// reports. Runs after every earlier drag call has finished. Skips the
   /// fling while ``isPanEnabled`` is false.
   public func dragEnded(velocity: CGSize) async {
-    await afterEarlierDragCalls { await $0.applyDragEnd(velocity) }
-  }
-
-  private func afterEarlierDragCalls(
-    _ work: @escaping @MainActor @Sendable (StageReaderModel) async -> Void
-  ) async {
-    await enqueueDragCall(work).value
-  }
-
-  /// Chains `work` after the last drag call and records it as the last one
-  /// before returning.
-  private func enqueueDragCall(
-    _ work: @escaping @MainActor @Sendable (StageReaderModel) async -> Void
-  ) -> Task<Void, Never> {
-    let previous = lastDragCall
-    let call = Task { @MainActor in
-      await previous?.value
-      await work(self)
-    }
-    lastDragCall = call
-    return call
+    await dragCalls.enqueue { await self.applyDragEnd(velocity) }.value
   }
 
   private func applyDragChange(_ translation: CGSize) async {

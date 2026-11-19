@@ -4,39 +4,44 @@ import Observation
 /// A per-page counter that rises each time the engine invalidates a page's
 /// render. Views key their page images on it, so an edit redraws only the
 /// pages it touched.
+///
+/// The model observes by itself from `init` until the document closes or the
+/// model is released; there is no task to run. Releasing it ends its event
+/// subscription, so nothing buffers for a model no one holds.
 @MainActor
 @Observable
 public final class RenderRevisions {
   private var revisions: [PageRef: UInt64] = [:]
-  @ObservationIgnored private let render: RenderCapability
-  /// The stream `init` subscribed, held until the first `task()` takes it.
-  @ObservationIgnored private var subscribed: AsyncStream<RenderEvent>?
+  /// The task counting invalidations, cancelled when the model is released.
+  @ObservationIgnored private var observation: CancelOnRelease?
 
-  /// Subscribes at once, so a page invalidated before the first ``task()``
-  /// still counts. The subscription buffers every render event until
-  /// ``task()`` runs, so run it soon after creating the model.
+  /// Subscribes at once, so a page invalidated right after `init` counts.
   public init(render: RenderCapability) {
-    self.render = render
-    subscribed = render.events
+    let events = render.events
+    // Holds the model weakly, and only while it counts one event, so the
+    // task never keeps the model alive.
+    observation = CancelOnRelease(
+      Task { [weak self] in
+        for await event in events { self?.count(event) }
+      })
   }
 
-  /// Counts invalidations until the document closes or the task is
-  /// cancelled. The first run consumes the subscription `init` made; each
-  /// later run subscribes again, so the model survives a view's `.task`
-  /// restarting. Run one at a time: concurrent runs are not supported.
-  public func task() async {
-    // Taken before the first suspension, so a restart misses nothing sent
-    // after it begins.
-    let events = subscribed ?? render.events
-    subscribed = nil
-    for await event in events {
-      guard !Task.isCancelled else { return }
-      if case let .invalidated(pages, _) = event {
-        for page in pages { revisions[page, default: 0] &+= 1 }
-      }
+  private func count(_ event: RenderEvent) {
+    if case let .invalidated(pages, _) = event {
+      for page in pages { revisions[page, default: 0] &+= 1 }
     }
   }
 
   /// `0` for a page never invalidated.
   public func revision(for page: PageRef) -> UInt64 { revisions[page, default: 0] }
+}
+
+/// Cancels its task when released. A cancelled task leaves its event loop,
+/// which ends the loop's subscription.
+private final class CancelOnRelease: Sendable {
+  private let task: Task<Void, Never>
+
+  init(_ task: Task<Void, Never>) { self.task = task }
+
+  deinit { task.cancel() }
 }
