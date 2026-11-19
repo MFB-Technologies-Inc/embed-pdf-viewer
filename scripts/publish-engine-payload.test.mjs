@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { copyFileSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { pinEngine, releaseRepo } from './publish-engine-payload.mjs';
+import { libRootFor, pinEngine, releaseRepo } from './publish-engine-payload.mjs';
 
 const repo = fileURLToPath(new URL('..', import.meta.url));
 
@@ -49,4 +49,23 @@ test('honors EMBEDPDF_RELEASE_REPO', (t) => {
   assert.equal(releaseRepo(), 'MFB-Technologies-Inc/embed-pdf-runtime');
   process.env.EMBEDPDF_RELEASE_REPO = 'x/y';
   assert.equal(releaseRepo(), 'x/y');
+});
+
+test('lays stagings at any path out as one LIB_ROOT', (t) => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'lib-root-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  // As CI downloads them: one fork-slice-<target> artifact each, holding staging/.
+  const stamps = ['ios-arm64', 'ios-sim-arm64', 'darwin-static-arm64', 'darwin-static-x64'].map(
+    (target) => {
+      const staging = path.join(dir, `fork-slice-${target}`, 'staging');
+      mkdirSync(path.join(staging, 'lib'), { recursive: true });
+      writeFileSync(path.join(staging, 'lib/libembedpdf.a'), target);
+      return { target, staging };
+    },
+  );
+  const root = libRootFor(stamps);
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  for (const { target } of stamps) {
+    assert.equal(readFileSync(path.join(root, target, 'lib/libembedpdf.a'), 'utf8'), target);
+  }
 });

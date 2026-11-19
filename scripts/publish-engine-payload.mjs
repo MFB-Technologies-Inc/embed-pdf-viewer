@@ -85,6 +85,7 @@ import {
   renameSync,
   rmSync,
   statSync,
+  symlinkSync,
   utimesSync,
   writeFileSync,
 } from 'node:fs';
@@ -826,6 +827,16 @@ function linkAgainstCommittedBindings(fork) {
   return { unbound, staged };
 }
 
+// build-xcframework.sh reads every slice as $LIB_ROOT/<target>/lib/libembedpdf.a.
+// buildFork's stagings sit side by side like that; slices CI built and stamped
+// sit wherever they were downloaded. A temporary root with one link per target
+// takes either. The caller removes it.
+export function libRootFor(stamps) {
+  const root = mkdtempSync(path.join(tmpdir(), 'apple-lib-root-'));
+  for (const { target, staging } of stamps) symlinkSync(staging, path.join(root, target), 'dir');
+  return root;
+}
+
 function publishApple() {
   const ZIP = 'EmbedPDFBindings.xcframework.zip';
   // A manifest that pinEngine can't rewrite would only be found after the
@@ -934,10 +945,12 @@ function publishApple() {
     if (new Set([device.sha, simulator.sha, macArm64.sha, macX64.sha]).size !== 1) {
       throw new Error('Apple slices do not share one runtime source commit');
     }
-    // Both targets stage under the same root, as <target>/lib/libembedpdf.a.
-    sh(
-      `LIB_ROOT=${JSON.stringify(path.dirname(device.staging))} bash platforms/apple/build-xcframework.sh`,
-    );
+    const libRoot = libRootFor([device, simulator, macArm64, macX64]);
+    try {
+      sh(`LIB_ROOT=${JSON.stringify(libRoot)} bash platforms/apple/build-xcframework.sh`);
+    } finally {
+      rmSync(libRoot, { recursive: true, force: true });
+    }
     console.log('  $ bash platforms/apple/package-engine-framework.sh');
     const packaged = execFileSync('bash', [path.join(apple, 'package-engine-framework.sh')], {
       cwd: repo,
