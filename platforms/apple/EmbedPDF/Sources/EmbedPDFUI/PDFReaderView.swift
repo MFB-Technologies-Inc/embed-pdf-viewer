@@ -58,7 +58,9 @@ public struct PDFReaderView<Overlay: View>: View {
         .accessibilityLabel("Opening document")
         .accessibilityIdentifier("readerLoading")
     case let .locked(document):
-      PDFPasswordPrompt(model: model, document: document)
+      // Keyed to the document, so a second locked document starts with an
+      // empty field.
+      PDFPasswordPrompt(model: model, document: document).id(document.id)
     case let .ready(session):
       ready(session)
     case let .failed(error):
@@ -78,12 +80,7 @@ public struct PDFReaderView<Overlay: View>: View {
   private func ready(_ session: PDFReaderModel.Session) -> some View {
     VStack(spacing: 0) {
       if let search = session.search {
-        SearchBar(model: search) { hit in
-          // A reveal fails only once the document has closed, when this
-          // view is on its way out.
-          Task { try? await session.reader.stage.reveal(hit.page, options: StageRevealOptions(rect: hit.bounds)) }
-        }
-        .padding(8)
+        RevealingSearchBar(model: search).padding(8)
       }
       StageReaderView(
         model: session.reader,
@@ -109,6 +106,28 @@ extension PDFReaderView where Overlay == EmptyView {
   /// activation while a document shows.
   public init(model: PDFReaderModel, onLinkActivation: @escaping @MainActor (LinkActivation) -> Void = { _ in }) {
     self.init(model: model, pageOverlay: { _, _ in EmptyView() }, onLinkActivation: onLinkActivation)
+  }
+}
+
+/// A `SearchBar` that brings each hit it makes active into view.
+@MainActor
+private struct RevealingSearchBar: View {
+  let model: SearchModel
+
+  var body: some View {
+    SearchBar(model: model)
+      // One reveal at a time: a new active hit cancels the wait for the
+      // last one's reveal and starts its own.
+      //
+      // Performance: the engine already reveals on a next or previous step,
+      // so each step makes a second reveal call with the same target and
+      // settings; only the first hit of a new search needs this one. A
+      // search event that tells a scan's first hit from a step lets the
+      // view skip the repeat. The id is also compared by value, segments
+      // and snippet included, on every evaluation of this body.
+      .task(id: model.activeHit) {
+        if model.activeHit != nil { await model.revealActiveHit() }
+      }
   }
 }
 

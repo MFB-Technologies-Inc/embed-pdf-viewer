@@ -207,6 +207,19 @@ public final class SearchModel {
     await refresh()
   }
 
+  /// Scrolls the document's stage to the active hit, placed as the search
+  /// settings say: the reveal a next or previous step already makes. The
+  /// first hit of a new search becomes active without one, so a view calls
+  /// this to bring it into view. Repeating it is safe, and it leaves the
+  /// active hit as it is. A failure lands in ``error``.
+  public func revealActiveHit() async {
+    do {
+      try await search.revealActiveHit()
+    } catch {
+      self.error = error
+    }
+  }
+
   public func clearButtonTapped() async {
     do {
       try await search.clear()

@@ -16,7 +16,8 @@ import Observation
 /// returns without touching ``phase``, and ``phase`` follows the later call.
 ///
 /// The model owns its viewer. ``close()`` destroys it and returns when the
-/// engine has shut down. A model released without ``close()`` releases the
+/// engine has shut down, unless an open made while it waited superseded it.
+/// A model released without ``close()`` releases the
 /// viewer, which shuts the engine down once nothing else holds it: a
 /// ``Session`` the app kept, or a capability taken from one, keeps the viewer
 /// alive until it is released too.
@@ -160,6 +161,9 @@ public final class PDFReaderModel {
   /// Closes the document and destroys the viewer. ``phase`` is
   /// ``Phase/idle`` at once; the engine has shut down when this returns. A
   /// later open starts a new viewer.
+  ///
+  /// An open made before this close has run supersedes it. The close then
+  /// returns with the viewer still running, and the open uses that viewer.
   public func close() async {
     let mine = supersede()
     phase = .idle
@@ -242,8 +246,10 @@ public final class PDFReaderModel {
   private func applyClose(as mine: Int) async {
     guard generation == mine, let viewer else { return }
     self.viewer = nil
-    // Closing has no way to report a failure, and none leaves the engine
-    // running: the viewer is released here, and its release shuts it down.
+    // Closing has no way to report a failure, so one is dropped. The viewer
+    // is released here, and its release shuts the engine down, unless the
+    // app kept a `Session` or a capability from one: those hold the viewer,
+    // so a failed destroy then leaves the engine running until they go.
     try? await viewer.destroy()
   }
 
@@ -274,7 +280,7 @@ public final class PDFReaderModel {
 
   private func session(for document: DocumentInfo, in viewer: PDFViewer) async throws(PDFError) -> Session {
     // Each accessor below is its own trip to the engine, made one after
-    // another: up to nine per open with every feature on. They do not
+    // another: up to eight per open with every feature on. They do not
     // depend on each other, so `async let` runs them together if opening
     // shows up in a profile.
     let stage = try await viewer.stage(for: document)
@@ -289,8 +295,15 @@ public final class PDFReaderModel {
     let search = features.contains(.search) ? SearchModel(search: try await viewer.search(for: document)) : nil
     let selection = features.contains(.selection)
       ? TextSelectionModel(selection: try await viewer.selection(for: document)) : nil
+    // Every page's `PageInfo` crosses the bridge here, at each open and
+    // after each unlock: a payload that grows with the page count and
+    // delays the first frame of a document with thousands of pages. The
+    // session needs a page's info only once the stage shows it, so reading
+    // `viewer.page(_:in:)` for visible pages and caching by `PageRef`
+    // removes the up-front cost.
+    let pages = try await viewer.pages(of: document)
     return Session(
-      viewer: viewer, document: document, pages: try await viewer.pages(of: document),
+      viewer: viewer, document: document, pages: pages,
       reader: StageReaderModel(stage: stage, render: render, interaction: interaction, link: link),
       search: search, selection: selection,
       tools: features.contains(.tools) ? interaction.map { ToolModel(interaction: $0) } : nil)

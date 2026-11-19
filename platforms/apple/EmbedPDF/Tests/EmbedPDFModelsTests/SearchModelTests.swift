@@ -25,6 +25,48 @@ struct SearchModelTests {
     return (viewer, document, search, SearchModel(search: search))
   }
 
+  @Test func revealingTheActiveHitLeavesItActive() async throws {
+    let viewer = try PDFViewer(ViewerConfig(search: SearchConfig(), render: RenderConfig(), stage: StageConfig()))
+    try await viewer.start()
+    let document = try await viewer.open(pluginFixture())
+    let stage = try await viewer.stage(for: document)
+    try await stage.setViewportSize(Size(width: 400, height: 600))
+    let model = SearchModel(search: try await viewer.search(for: document))
+    model.text = "the"
+    await model.searchSubmitted()
+    await model.nextButtonTapped()
+    expectNoDifference(model.activeHitIndex, 1)
+    await model.revealActiveHit()
+    // Safe to repeat.
+    await model.revealActiveHit()
+    expectNoDifference(model.error, nil)
+    expectNoDifference(model.activeHitIndex, 1)
+    let kernel: Int? = try await viewer.search(for: document).activeHitIndex()
+    expectNoDifference(kernel, 1)
+    let active = try #require(model.activeHit)
+    #expect(try await stage.isPageVisible(active.page))
+    try await viewer.destroy()
+  }
+
+  @Test func revealingWithNoActiveHitOrNoStageIsNotAnError() async throws {
+    let (model, _) = try await self.model()
+    await model.revealActiveHit()
+    expectNoDifference(model.error, nil)
+    model.text = "the"
+    await model.searchSubmitted()
+    await model.revealActiveHit()
+    expectNoDifference(model.error, nil)
+    expectNoDifference(model.activeHitIndex, 0)
+  }
+
+  @Test func revealingOnAClosedDocumentSetsTheError() async throws {
+    let (viewer, document, _, model) = try await opened()
+    try await viewer.close(document)
+    await model.revealActiveHit()
+    #expect(model.error != nil)
+    try await viewer.destroy()
+  }
+
   @Test func resubmittingAfterAnEditRereadsHitsWhoseCountDidNotChange() async throws {
     let (viewer, document, search, model) = try await opened()
     model.text = "the"
