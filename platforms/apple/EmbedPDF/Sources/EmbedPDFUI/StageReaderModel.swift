@@ -24,7 +24,8 @@ public final class StageReaderModel {
   /// or a fling moves the camera without changing the scale, so it leaves
   /// this false and renders nothing new.
   public private(set) var isZooming = false
-  private var renderRevisions: [PageRef: UInt64] = [:]
+  /// Per-page render revisions, counted while ``task()`` runs.
+  public let revisions: RenderRevisions
   @ObservationIgnored public let stage: StageCapability
   @ObservationIgnored public let render: RenderCapability
   @ObservationIgnored private var lastTranslation = CGSize.zero
@@ -80,12 +81,12 @@ public final class StageReaderModel {
   public init(stage: StageCapability, render: RenderCapability) {
     self.stage = stage
     self.render = render
+    revisions = RenderRevisions(render: render)
   }
 
   /// Run for the view's lifetime, projecting stage and render events.
   public func task() async {
     let stageEvents = stage.events
-    let renderEvents = render.events
     await withTaskGroup(of: Void.self) { group in
       group.addTask {
         for await event in stageEvents {
@@ -93,9 +94,7 @@ public final class StageReaderModel {
           await self.receiveStage(event)
         }
       }
-      group.addTask {
-        for await event in renderEvents { await self.receiveRender(event) }
-      }
+      group.addTask { await self.revisions.task() }
       await refresh()
       _ = await group.next()
       group.cancelAll()
@@ -103,7 +102,7 @@ public final class StageReaderModel {
   }
 
   /// A presentation revision that changes when Rust invalidates this page.
-  public func renderRevision(for page: PageRef) -> UInt64 { renderRevisions[page, default: 0] }
+  public func renderRevision(for page: PageRef) -> UInt64 { revisions.revision(for: page) }
 
   private func receiveStage(_ event: StageEvent) async {
     switch event {
@@ -124,11 +123,6 @@ public final class StageReaderModel {
         self.error = error
       }
     }
-  }
-
-  private func receiveRender(_ event: RenderEvent) {
-    guard !Task.isCancelled, case let .invalidated(pages, _) = event else { return }
-    for page in pages { renderRevisions[page, default: 0] &+= 1 }
   }
 
   public func sizeChanged(_ size: CGSize, displayScale: CGFloat) async {

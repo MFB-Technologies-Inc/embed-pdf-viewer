@@ -297,6 +297,15 @@ Models and views should own the consuming task for their visible lifetime.
 Each panel may subscribe independently; no panel needs to forward revisions to
 another panel.
 
+`RenderRevisions` counts render invalidations per page. `revision(for:)` is
+`0` for a page never invalidated and rises by one each time the engine
+invalidates it, so a view can key a page image on it and redraw only the pages
+an edit touched. The model subscribes in `init`, so an invalidation before the
+first `task()` still counts. Run `task()` from the view's `.task`: it returns
+when the document closes, and a restart after cancellation subscribes again.
+Only one `task()` may run at a time. `StageReaderModel` owns one as
+`revisions`.
+
 ## Page rotation
 
 Engine geometry is in unrotated page space. Annotation rects, text boxes and
