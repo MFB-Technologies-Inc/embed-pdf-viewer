@@ -17,3 +17,15 @@ test('refuses a missing out dir', () => {
   const result = run('wasm32');
   assert.equal(result.status, 64, result.stderr);
 });
+
+// wasm32-eh is both a buildFork target and a fork-script target; it is one
+// target to the caller.
+test('lists every target once', () => {
+  const result = run();
+  assert.equal(result.status, 64, result.stderr);
+  const names = result.stderr.match(/<([^>]*)>/)[1].split('|');
+  assert.deepEqual(names, [...new Set(names)]);
+  for (const name of ['wasm32', 'wasm32-eh', 'linux-arm64', 'ios-arm64', 'darwin-static-x64']) {
+    assert.ok(names.includes(name), name);
+  }
+});

@@ -7,11 +7,13 @@
 // Leaves the slice's staging dir at <out-dir>/staging and its archive,
 // libembedpdf-runtime-<target>-<sha7>.tar.gz, in <out-dir>.
 //
-// buildFork's targets (wasm32-eh, iOS, macOS) go through buildFork, so the
-// slice matches what the publish script would build. The others are built by
-// the fork's own scripts in the runtime-src checkout, which must be checked
-// out at the gitlink; a wasm32 build also needs the emsdk its
-// emsdk-version.sh pins already active in runtime-src/third_party/emsdk.
+// The Linux, Android and wasm targets are built by the fork's own scripts in
+// the runtime-src checkout, which must be checked out at the gitlink; a wasm
+// build also needs the emsdk its emsdk-version.sh pins already active in
+// runtime-src/third_party/emsdk, where a CI cache can restore it. The iOS and
+// macOS targets go through buildFork, so the slice matches what the publish
+// script would build. wasm32-eh is one of buildFork's targets too, but takes
+// the fork-script path here: buildFork would install its emsdk uncached.
 //
 // Exit 64: bad arguments.
 
@@ -22,10 +24,10 @@ import { fileURLToPath } from 'node:url';
 import { buildFork, FORK_TARGETS } from '../../perf-compare/scripts/build-arm.mjs';
 import { workDir } from '../../perf-compare/scripts/materialize.mjs';
 
-const FORK_SCRIPT_TARGETS = ['linux-arm64', 'android-arm64', 'android-x64', 'wasm32'];
+const FORK_SCRIPT_TARGETS = ['linux-arm64', 'android-arm64', 'android-x64', 'wasm32', 'wasm32-eh'];
 
 const [target, outArg] = process.argv.slice(2);
-const targets = [...FORK_TARGETS, ...FORK_SCRIPT_TARGETS];
+const targets = [...new Set([...FORK_TARGETS, ...FORK_SCRIPT_TARGETS])];
 if (!targets.includes(target) || !outArg) {
   if (target && !targets.includes(target)) console.error(`unknown target ${target}`);
   console.error(`usage: build-fork-slice.mjs <${targets.join('|')}> <out-dir>`);
@@ -61,11 +63,7 @@ mkdirSync(out, { recursive: true });
 
 let staging;
 let archive;
-if (FORK_TARGETS.includes(target)) {
-  const stamp = buildFork(repo, target);
-  staging = stamp.staging;
-  archive = archiveIn(path.join(workDir(), 'fork', stamp.sha, 'artifacts'));
-} else {
+if (FORK_SCRIPT_TARGETS.includes(target)) {
   // The same depot_tools buildFork uses, which a CI cache can restore.
   const depotTools = path.join(workDir(), 'depot_tools');
   if (!existsSync(path.join(depotTools, 'python3_bin_reldir.txt'))) {
@@ -94,6 +92,10 @@ if (FORK_TARGETS.includes(target)) {
   process.stdout.write(packaged);
   archive = packaged.trim().split('\n').at(-1);
   staging = path.join(src, 'out/embedpdf-runtime-staging', target);
+} else {
+  const stamp = buildFork(repo, target);
+  staging = stamp.staging;
+  archive = archiveIn(path.join(workDir(), 'fork', stamp.sha, 'artifacts'));
 }
 
 cpSync(staging, path.join(out, 'staging'), { recursive: true });
