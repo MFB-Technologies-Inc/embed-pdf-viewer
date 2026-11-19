@@ -24,8 +24,10 @@ import SwiftUI
 /// selection is off.
 ///
 /// With `.selection` the view sets the reader's `panBeginsOnMovement`, so a
-/// pan begins once the finger moves, and a still touch or a tap does not
-/// stop a fling. Without `.selection` a touch stops one where it lands.
+/// pan begins once the finger has moved more than 10 points. The first 10
+/// points of a drag do not scroll, and a still touch or a tap does not stop
+/// a fling. Without `.selection` a pan begins on touch-down and a touch
+/// stops a fling where it lands.
 ///
 /// The view shows no tool picker: which tools to offer is the app's choice.
 /// Give `Session.tools` to a `ToolPicker`. The view runs the reader's and
@@ -103,9 +105,9 @@ public struct PDFReaderView<Overlay: View>: View {
         },
         onLinkActivation: onLinkActivation)
         // The long press above delays the reader's drag to the first move
-        // or the lift, so a tap's drag must not open a stage gesture: it
-        // would cancel the double tap's zoom or the link's scroll that the
-        // same tap started.
+        // or the lift, so a tap's drag, which may carry a few points of
+        // movement, must not open a stage gesture: it would cancel the
+        // double tap's zoom or the link's scroll that the same tap started.
         .task(id: ObjectIdentifier(session.reader)) {
           session.reader.panBeginsOnMovement = session.selection != nil
         }

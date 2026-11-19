@@ -56,3 +56,21 @@ final class ObservationFlag: @unchecked Sendable {
   func set() { lock.withLock { fired = true } }
   var value: Bool { lock.withLock { fired } }
 }
+
+/// The first value `stream` yields, or `nil` when none arrives within
+/// `limit` or the stream finishes first.
+func firstValue<Value: Sendable>(of stream: AsyncStream<Value>, within limit: Duration) async -> Value? {
+  await withTaskGroup(of: Value?.self) { group in
+    group.addTask {
+      for await value in stream { return value }
+      return nil
+    }
+    group.addTask {
+      try? await Task.sleep(for: limit)
+      return nil
+    }
+    let first = await group.next() ?? nil
+    group.cancelAll()
+    return first
+  }
+}

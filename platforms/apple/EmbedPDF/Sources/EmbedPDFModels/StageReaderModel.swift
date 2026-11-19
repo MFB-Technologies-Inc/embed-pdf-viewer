@@ -66,21 +66,33 @@ public final class StageReaderModel {
       if oldValue, !isPanEnabled { dragCalls.enqueue { await self.applyDragEnd(.zero) } }
     }
   }
-  /// Whether a pan begins only once the finger has moved: a drag change
-  /// with no translation then opens no stage gesture. False by default, so
-  /// a touch opens the gesture where it lands and stops a fling under it.
+  /// Whether a pan begins only once the finger has moved more than 10
+  /// points from where it landed, the system's default minimum distance
+  /// for a drag. Until a
+  /// drag's translation is longer than that, its changes open no stage
+  /// gesture, and a drag that ends before then flings nothing. False by
+  /// default, so a touch opens the gesture where it lands and stops a fling
+  /// under it.
   ///
   /// Turn it on when something above the reader delays its drag until the
   /// touch moves or lifts, as a page overlay's long-press gesture does. A
-  /// tap's drag then reports only at the lift, after the tap's own effect
-  /// has started, and the stage gesture it would open and close cancels
-  /// that effect: a double tap's zoom, or the scroll to a link's
-  /// destination. `PDFReaderView` turns it on while it shows its
-  /// long-press text selection.
+  /// tap's drag then reports only at the lift, carrying whatever small
+  /// translation the finger made, after the tap's own effect has started.
+  /// The stage gesture it would open and close cancels that effect: a
+  /// double tap's zoom, or the scroll to a link's destination.
+  /// `PDFReaderView` turns it on while it shows its long-press text
+  /// selection.
   ///
-  /// The cost: with it on, a still touch or a tap does not stop a fling.
-  /// The finger must move.
+  /// The pan begins from the point where the drag crosses the 10 points,
+  /// so the page does not jump when it starts.
+  ///
+  /// The cost: with it on, the first 10 points of a drag do not scroll,
+  /// and a still touch or a tap does not stop a fling. The finger must
+  /// move more than 10 points.
   @ObservationIgnored public var panBeginsOnMovement = false
+  /// How far, in points, a drag moves before it pans while
+  /// ``panBeginsOnMovement`` is on.
+  static let panMovementThreshold: CGFloat = 10
   /// Per-page render revisions. The counter observes by itself, whether or
   /// not ``task()`` runs.
   public let revisions: RenderRevisions
@@ -340,20 +352,30 @@ public final class StageReaderModel {
 
   /// `velocity` in points per second, as `DragGesture.Value.velocity`
   /// reports. Runs after every earlier drag call has finished. Skips the
-  /// fling while ``isPanEnabled`` is false.
+  /// fling while ``isPanEnabled`` is false, and for a drag that never began
+  /// a pan under ``panBeginsOnMovement``.
   public func dragEnded(velocity: CGSize) async {
     await dragCalls.enqueue { await self.applyDragEnd(velocity) }.value
   }
 
   private func applyDragChange(_ translation: CGSize) async {
     guard isPanEnabled else { return }
-    // A touch that has not moved. Opening the gesture here would stop
-    // whatever motion the touch's tap has just started.
-    if panBeginsOnMovement, !gestureOpen, translation == .zero { return }
+    var origin = CGSize.zero
+    if panBeginsOnMovement, !gestureOpen {
+      // A touch that has not moved past the threshold may be a tap.
+      // Opening the gesture here would stop whatever motion that tap has
+      // just started.
+      let distance = hypot(translation.width, translation.height)
+      guard distance > Self.panMovementThreshold else { return }
+      // The pan starts where the drag crossed the threshold, so the page
+      // does not jump by the distance the finger had already moved.
+      let crossing = Self.panMovementThreshold / distance
+      origin = CGSize(width: translation.width * crossing, height: translation.height * crossing)
+    }
     do {
       if !gestureOpen {
         gestureOpen = true
-        lastTranslation = .zero
+        lastTranslation = origin
         try await stage.beginGesture(elastic: true)
       }
       // `panBy` follows the finger: a finger moving up scrolls down.
@@ -368,12 +390,15 @@ public final class StageReaderModel {
   }
 
   private func applyDragEnd(_ velocity: CGSize) async {
+    // A drag that never passed the threshold panned nothing, so it flings
+    // nothing: a tap's lift can carry a velocity.
+    let panned = gestureOpen || !panBeginsOnMovement
     do {
       if gestureOpen {
         gestureOpen = false
         try await stage.endGesture()
       }
-      if velocity != .zero, isPanEnabled {
+      if velocity != .zero, isPanEnabled, panned {
         try await stage.fling(velocityX: velocity.width, velocityY: velocity.height)
       }
       pageIndex = try await stage.currentPageIndex()
