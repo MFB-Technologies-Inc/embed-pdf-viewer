@@ -49,9 +49,9 @@ take the engine's own payload: `ViewerConfigBuilder.annotation(settingsJSON:)`, 
 and `addWidget(to:placementJSON:)` overloads. Needing the raw generated API means asking us for a
 typed member, not importing the bindings.
 
-We decided against an `EmbedPDFBindings` library product, on 2026-11-10. It would make all 685
+We decided against an `EmbedPDFBindings` library product, on 2026-11-10. It would make all 710
 public generated types API. Every Rust change to a record, method or callback interface would then
-be a break consumers see, where today only the 515 types that `EmbedPDF` re-exports are. It would
+be a break consumers see, where today only the 539 types that `EmbedPDF` re-exports are. It would
 also leave the module half-usable: the linker settings (`c++`, `CoreFoundation`, `CoreGraphics`,
 `Foundation`, and `AppKit` on macOS) live on the `EmbedPDFBindings` target in the source layout
 (`Package.swift:34-40`), but in the binary layouts that target is a `.binaryTarget` with no
@@ -609,6 +609,7 @@ The deprecated spellings, with their replacements:
 | `StageReaderModel.currentPageIndex` | `pageIndex` |
 | `AnnotationInfo.fieldsJson`, `groupId` | `fieldsJSON`, `groupID` |
 | `get(_:)`, `list(_:)`, `selected()` and `hitTest(at:on:)` returning `AnnotationRecord` | the overloads returning `AnnotationInfo`; `AnnotationInfo.record` gives the record |
+| `PDFViewer.render(in:)`, `search(in:)` | `render(for:)`, `search(for:)` |
 
 The two renamed types go in a future release, not yet chosen, and their deprecation messages say so:
 
@@ -620,7 +621,9 @@ The two renamed types go in a future release, not yet chosen, and their deprecat
 Every other shim above is removed no earlier than 0.0.0-swift.6. The rule is
 that a deprecated shim survives at least one tagged release: 0.0.0-swift.5
 ships with all of them in place, so a project can build against it, read the
-warnings and move over before anything is deleted. We haven't picked a release
+warnings and move over before anything is deleted. `render(in:)` and
+`search(in:)` are the exception: they are deprecated as of the next tag after
+0.0.0-swift.7 and survive at least that release. We haven't picked a release
 for the overloads beyond that floor. `AliasRemovalTests` fails if `PDFDocument`
 or `Annotation` is deleted early or its message stops saying it will be removed.
 
