@@ -1,10 +1,18 @@
 import CoreGraphics
 import EmbedPDF
+import Foundation
 import Observation
 
 /// What a scrolling reader shows, and the gestures it forwards. The stage
 /// lays out; this model only mirrors its visible pages and camera onto the
 /// main actor and turns SwiftUI gesture values into stage calls.
+///
+/// Given an `InteractionCapability`, it also sends touches to the document's
+/// pointer hub (``pointerDown(at:)`` and its siblings, ``tapped(at:)``), so
+/// the active tool draws and a tap reaches whatever handles taps. Given a
+/// `LinkCapability` too, a tap on a link activates it and the outcome
+/// arrives on ``linkActivations``. Without an `InteractionCapability` the
+/// pointer calls do nothing.
 @MainActor
 @Observable
 public final class StageReaderModel {
@@ -24,10 +32,29 @@ public final class StageReaderModel {
   /// or a fling moves the camera without changing the scale, so it leaves
   /// this false and renders nothing new.
   public private(set) var isZooming = false
+  /// The hub's active tool, read when ``task()`` starts and followed from
+  /// the hub's `toolChanged` events while it runs. `nil` before the first
+  /// read, after a failed one, and always without an
+  /// `InteractionCapability`.
+  public private(set) var activeToolID: ToolID?
+  /// Whether a drag belongs to the active tool rather than to the pan: true
+  /// when the model has an `InteractionCapability` and ``activeToolID`` is
+  /// not the hub's `defaultToolID()`. Follows the hub as ``activeToolID``
+  /// does, so it is false until ``task()`` has read the tool. The default
+  /// tool is read again with each tool change; a settings change that names
+  /// another default shows at the next one.
+  ///
+  /// `StageReaderView` reads it when a drag starts: true sends the drag to
+  /// ``pointerDown(at:)``, ``pointerMoved(to:)`` and ``pointerUp(at:)``
+  /// instead of ``dragChanged(translation:)``. It replaces only the pan.
+  /// ``isPanEnabled`` does not gate it, and a page overlay's own gestures
+  /// still take a touch before the reader's drag sees it.
+  public private(set) var forwardsDrags = false
   /// Whether a drag pans the stage. Turn it off while a page overlay needs
   /// every touch. Turning it off mid-drag ends the open stage gesture without
   /// a fling, since SwiftUI cancels a disabled gesture without calling its
-  /// end.
+  /// end. It gates the pan only: while ``forwardsDrags`` is true a drag
+  /// still goes to the active tool.
   public var isPanEnabled = true {
     didSet {
       // Joins the drag chain before returning, so a drag call made after
@@ -69,6 +96,16 @@ public final class StageReaderModel {
   /// main actor while it reaches the stage, so without this an end could
   /// reach the stage before the begin it closes.
   @ObservationIgnored private let dragCalls = SerialCalls()
+  @ObservationIgnored private let interaction: InteractionCapability?
+  @ObservationIgnored private let link: LinkCapability?
+  /// Sends the pointer calls to the hub. `nil` without an
+  /// `InteractionCapability`.
+  @ObservationIgnored private let pointer: StagePointerForwarder?
+  @ObservationIgnored private let linkFeed = LinkActivationFeed()
+  /// Runs as each pointer sample is handed to the hub. Tests record them.
+  @ObservationIgnored var pointerSampleDispatched: (@MainActor (PointerSample) -> Void)? {
+    didSet { pointer?.dispatched = pointerSampleDispatched }
+  }
 
   /// The most pixels one page renders at: 4096 by 4096, 64 MB of RGBA.
   public nonisolated static let maxPagePixels: Double = 4096 * 4096
@@ -92,15 +129,41 @@ public final class StageReaderModel {
     return min(wanted, (maxPagePixels / area).squareRoot())
   }
 
-  public init(stage: StageCapability, render: RenderCapability) {
+  /// Creates a reader model.
+  ///
+  /// - Parameters:
+  ///   - stage: The stage that lays the pages out.
+  ///   - render: The capability that renders them.
+  ///   - interaction: The document's pointer hub. With it the model follows
+  ///     the active tool and the pointer calls reach the hub; without it
+  ///     they do nothing.
+  ///   - link: The document's links. With it ``task()`` lets taps on the
+  ///     hub follow links and ``linkActivations`` reports them.
+  public init(
+    stage: StageCapability, render: RenderCapability, interaction: InteractionCapability? = nil,
+    link: LinkCapability? = nil
+  ) {
     self.stage = stage
     self.render = render
+    self.interaction = interaction
+    self.link = link
     revisions = RenderRevisions(render: render)
+    pointer = interaction.map { StagePointerForwarder(stage: stage, interaction: $0) }
+    pointer?.failed = { [weak self] error in self?.error = error }
   }
 
-  /// Run for the view's lifetime, projecting stage events.
+  /// Run for the view's lifetime, projecting stage events. With an
+  /// `InteractionCapability` it also follows the active tool, and with a
+  /// `LinkCapability` as well it registers the link tap handler, once, and
+  /// keeps the registration until it returns.
   public func task() async {
     let stageEvents = stage.events
+    // Subscribed before the first read and before the handler registers, so
+    // no tool change and no activation falls between.
+    let toolEvents = interaction?.events
+    let linkEvents = link?.events
+    let linkTaps = await registerLinkTaps()
+    defer { linkTaps?.unregister() }
     await withTaskGroup(of: Void.self) { group in
       group.addTask {
         for await event in stageEvents {
@@ -108,11 +171,92 @@ public final class StageReaderModel {
           await self.receiveStage(event)
         }
       }
+      if let toolEvents {
+        group.addTask {
+          await self.refreshTool()
+          for await event in toolEvents {
+            guard !Task.isCancelled else { return }
+            if case .toolChanged = event { await self.refreshTool() }
+          }
+        }
+      }
+      if let linkEvents {
+        group.addTask {
+          for await event in linkEvents {
+            guard !Task.isCancelled else { return }
+            if case let .activated(event) = event { await self.linkFeed.yield(event.activation) }
+          }
+        }
+      }
       await refresh()
       _ = await group.next()
       group.cancelAll()
     }
   }
+
+  /// `nil` without a `LinkCapability`, or when registering fails; the
+  /// failure is in ``error``.
+  private func registerLinkTaps() async -> Registration? {
+    guard let link else { return nil }
+    do {
+      return try await link.registerTapHandler()
+    } catch {
+      self.error = error
+      return nil
+    }
+  }
+
+  /// Reads the active and the default tool. A failed read leaves no tool
+  /// and no forwarding.
+  private func refreshTool() async {
+    guard let interaction else { return }
+    do {
+      let active = try await interaction.activeToolID()
+      let fallback = try await interaction.defaultToolID()
+      if activeToolID != active { activeToolID = active }
+      if forwardsDrags != (active != fallback) { forwardsDrags = active != fallback }
+    } catch {
+      if activeToolID != nil { activeToolID = nil }
+      if forwardsDrags { forwardsDrags = false }
+      self.error = error
+    }
+  }
+
+  /// Link activations the document reports while ``task()`` runs: the
+  /// outcome of a tap that lands on a link, and also of an activation the
+  /// app makes itself through `LinkCapability`. A `.uri` is the app's to
+  /// open. Never yields without a `LinkCapability`.
+  ///
+  /// Each read is a new stream, and every stream open when an activation
+  /// arrives gets it, so a second reader takes nothing from the first. A
+  /// stream gets no activation from before it was read. It finishes when
+  /// the model is released.
+  public var linkActivations: AsyncStream<LinkActivation> { linkFeed.stream() }
+
+  /// Sends a pointer down at `location`, a point in the reader's viewport,
+  /// to the hub, with the page the stage finds under it. Returns at once;
+  /// the pointer calls reach the hub in the order they are made.
+  public func pointerDown(at location: CGPoint) { pointer?.down(at: location) }
+
+  /// Sends a pointer move. Moves that arrive while an earlier pointer call
+  /// is still on its way collapse into the newest, so the hub sees fewer
+  /// samples than a fast drag makes and always the latest position.
+  public func pointerMoved(to location: CGPoint) { pointer?.move(to: location) }
+
+  /// Sends a pointer up, after any move still waiting.
+  public func pointerUp(at location: CGPoint) { pointer?.up(at: location) }
+
+  /// Sends a pointer cancel at the last location, so the tool drops the
+  /// gesture instead of committing it. A move still waiting is dropped.
+  /// Call it when the system takes a drag away without ending it.
+  public func pointerCancelled() { pointer?.cancel() }
+
+  /// Sends a down and an up at `location`, each with a click count of 1:
+  /// a tap for the active tool, and for a link under the default tool.
+  public func tapped(at location: CGPoint) { pointer?.tap(at: location) }
+
+  /// Returns once every pointer call made so far has been handed to the hub.
+  func pointerCallsFinished() async { await pointer?.finished() }
 
   /// A presentation revision that changes when Rust invalidates this page.
   public func renderRevision(for page: PageRef) -> UInt64 { revisions.revision(for: page) }
@@ -254,5 +398,37 @@ public final class StageReaderModel {
 
   private func setZooming(_ zooming: Bool) {
     if isZooming != zooming { isZooming = zooming }
+  }
+}
+
+/// Hands each link activation to every stream open when it arrives.
+private final class LinkActivationFeed: @unchecked Sendable {
+  private let lock = NSLock()
+  private var nextID: UInt64 = 0
+  private var continuations: [UInt64: AsyncStream<LinkActivation>.Continuation] = [:]
+
+  /// A new stream of the activations yielded from now on. Ending its
+  /// iteration removes it.
+  func stream() -> AsyncStream<LinkActivation> {
+    let (stream, continuation) = AsyncStream<LinkActivation>.makeStream()
+    let id = lock.withLock {
+      nextID &+= 1
+      continuations[nextID] = continuation
+      return nextID
+    }
+    continuation.onTermination = { [weak self] _ in self?.remove(id) }
+    return stream
+  }
+
+  func yield(_ activation: LinkActivation) {
+    for continuation in lock.withLock({ Array(continuations.values) }) { continuation.yield(activation) }
+  }
+
+  private func remove(_ id: UInt64) {
+    _ = lock.withLock { continuations.removeValue(forKey: id) }
+  }
+
+  deinit {
+    for continuation in continuations.values { continuation.finish() }
   }
 }

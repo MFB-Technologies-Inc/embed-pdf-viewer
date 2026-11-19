@@ -417,6 +417,9 @@ struct StageReaderModelTests {
     if let model {
       _ = StageReaderView(model: model)
       _ = StageReaderView(model: model) { page in Text("\(page.pageIndex)") }
+      _ = StageReaderView(model: model, onLinkActivation: { _ in })
+      _ = StageReaderView(
+        model: model, pageOverlay: { page in Text("\(page.pageIndex)") }, onLinkActivation: { _ in })
     }
   }
 }
