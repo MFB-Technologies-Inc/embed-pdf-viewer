@@ -10,7 +10,8 @@ public import Foundation
 //
 // A member whose read vocabulary is the write vocabulary takes the drafts'
 // enum (`AnnotationLineEndings`, `AnnotationTextAlignment`, …).
-// `borderStyle` and `intent` stay text, as on `Ink`: a read can name a
+// `borderStyle` and `intent` take the open read types instead
+// (`AnnotationInfo.BorderStyle`, `AnnotationIntent`): a read can name a
 // border style a write refuses (`beveled`, `inset`).
 
 extension AnnotationInfo {
@@ -34,7 +35,7 @@ extension AnnotationInfo {
     public let quadPoints: [Quad]
     /// `/IT`: `strikeout-text-edit` for text marked for deletion, `nil` for
     /// a plain strikeout.
-    public let intent: String?
+    public let intent: AnnotationIntent?
   }
 
   /// A square's or circle's members.
@@ -45,7 +46,7 @@ extension AnnotationInfo {
     public let opacity: Double
     public let strokeWidth: Double
     /// `solid`, `dashed`, `beveled` or `inset`.
-    public let borderStyle: String
+    public let borderStyle: BorderStyle
     /// The dash pattern, or `nil` when the border isn't dashed or names none.
     public let dashArray: [Double]?
     /// `/IC`, the fill, or `nil` for none.
@@ -65,7 +66,7 @@ extension AnnotationInfo {
     public let opacity: Double
     public let strokeWidth: Double
     /// `solid`, `dashed`, `beveled` or `inset`.
-    public let borderStyle: String
+    public let borderStyle: BorderStyle
     public let dashArray: [Double]?
     /// `/IC`: what fills a closed line ending.
     public let interiorColor: AnnotationColor?
@@ -75,7 +76,7 @@ extension AnnotationInfo {
     public let lineEndings: AnnotationLineEndings
     public let rotation: Double?
     /// `/IT`: `line-arrow`, `line-dimension`, or `nil` for a plain line.
-    public let intent: String?
+    public let intent: AnnotationIntent?
     /// `/Cap`, `false` when the file has none.
     public let captionEnabled: Bool
     public let captionPosition: AnnotationCaptionPosition
@@ -93,7 +94,7 @@ extension AnnotationInfo {
     public let opacity: Double
     public let strokeWidth: Double
     /// `solid`, `dashed`, `beveled` or `inset`.
-    public let borderStyle: String
+    public let borderStyle: BorderStyle
     public let dashArray: [Double]?
     /// `/IC`, the fill, or `nil` for none.
     public let interiorColor: AnnotationColor?
@@ -102,7 +103,7 @@ extension AnnotationInfo {
     public let rotation: Double?
     /// `/IT`: `polygon-cloud`, `polygon-dimension`, or `nil` for a plain
     /// polygon.
-    public let intent: String?
+    public let intent: AnnotationIntent?
     /// `/BE`: the cloudy border's intensity, or `nil` for a plain border.
     public let cloudyIntensity: Double?
     public let captionEnabled: Bool?
@@ -118,7 +119,7 @@ extension AnnotationInfo {
     public let opacity: Double
     public let strokeWidth: Double
     /// `solid`, `dashed`, `beveled` or `inset`.
-    public let borderStyle: String
+    public let borderStyle: BorderStyle
     public let dashArray: [Double]?
     /// `/IC`: what fills a closed line ending.
     public let interiorColor: AnnotationColor?
@@ -127,7 +128,7 @@ extension AnnotationInfo {
     public let lineEndings: AnnotationLineEndings
     public let rotation: Double?
     /// `/IT`: `polyline-dimension`, or `nil` for a plain polyline.
-    public let intent: String?
+    public let intent: AnnotationIntent?
     public let captionEnabled: Bool?
     /// The caption's centre, page space, or `nil` when the engine places it.
     public let captionCenter: Point?
@@ -139,7 +140,7 @@ extension AnnotationInfo {
     /// The text box, page space, before rotation.
     public let box: Rect
     /// `free-text` or `free-text-callout`.
-    public let intent: String
+    public let intent: AnnotationIntent
     public let fontFamily: String
     public let fontSize: Double
     public let fontColor: AnnotationColor
@@ -153,7 +154,7 @@ extension AnnotationInfo {
     public let opacity: Double
     public let strokeWidth: Double
     /// `solid`, `dashed`, `beveled` or `inset`.
-    public let borderStyle: String
+    public let borderStyle: BorderStyle
     public let dashArray: [Double]?
     public let cloudyIntensity: Double?
     public let rotation: Double?
@@ -171,7 +172,7 @@ extension AnnotationInfo {
     public let box: Rect
     public let rotation: Double?
     /// `/IT`: `replace`, or `nil` for an insertion.
-    public let intent: String?
+    public let intent: AnnotationIntent?
   }
 
   /// A stamp's members. Its image is the appearance, which the record
@@ -286,7 +287,7 @@ extension AnnotationInfo.Strikeout: Decodable {
     color = try members.decode(AnnotationColor.self, forKey: .color)
     opacity = try members.decode(Double.self, forKey: .opacity)
     quadPoints = try members.quads()
-    intent = try members.decodeIfPresent(String.self, forKey: .intent)
+    intent = try members.decodeIfPresent(AnnotationIntent.self, forKey: .intent)
   }
 }
 
@@ -296,7 +297,7 @@ extension AnnotationInfo.Shape: Decodable {
     color = try members.decodeIfPresent(AnnotationColor.self, forKey: .color)
     opacity = try members.decode(Double.self, forKey: .opacity)
     strokeWidth = try members.decode(Double.self, forKey: .strokeWidth)
-    borderStyle = try members.decode(String.self, forKey: .borderStyle)
+    borderStyle = try members.decode(AnnotationInfo.BorderStyle.self, forKey: .borderStyle)
     dashArray = try members.decodeIfPresent([Double].self, forKey: .dashArray)
     interiorColor = try members.decodeIfPresent(AnnotationColor.self, forKey: .interiorColor)
     box = try members.box()
@@ -316,7 +317,7 @@ extension AnnotationInfo.Line: Decodable {
     color = try members.decodeIfPresent(AnnotationColor.self, forKey: .color)
     opacity = try members.decode(Double.self, forKey: .opacity)
     strokeWidth = try members.decode(Double.self, forKey: .strokeWidth)
-    borderStyle = try members.decode(String.self, forKey: .borderStyle)
+    borderStyle = try members.decode(AnnotationInfo.BorderStyle.self, forKey: .borderStyle)
     dashArray = try members.decodeIfPresent([Double].self, forKey: .dashArray)
     interiorColor = try members.decodeIfPresent(AnnotationColor.self, forKey: .interiorColor)
     let linePoints = try members.decode(ReadLinePoints.self, forKey: .linePoints)
@@ -324,7 +325,7 @@ extension AnnotationInfo.Line: Decodable {
     end = linePoints.end.point
     lineEndings = try members.decode(AnnotationLineEndings.self, forKey: .lineEndings)
     rotation = try members.decodeIfPresent(Double.self, forKey: .rotation)
-    intent = try members.decodeIfPresent(String.self, forKey: .intent)
+    intent = try members.decodeIfPresent(AnnotationIntent.self, forKey: .intent)
     captionEnabled = try members.decode(Bool.self, forKey: .captionEnabled)
     captionPosition = try members.decode(AnnotationCaptionPosition.self, forKey: .captionPosition)
     captionOffset = try members.decodeIfPresent(AnnotationCaptionOffset.self, forKey: .captionOffset)
@@ -338,12 +339,12 @@ extension AnnotationInfo.Polygon: Decodable {
     color = try members.decodeIfPresent(AnnotationColor.self, forKey: .color)
     opacity = try members.decode(Double.self, forKey: .opacity)
     strokeWidth = try members.decode(Double.self, forKey: .strokeWidth)
-    borderStyle = try members.decode(String.self, forKey: .borderStyle)
+    borderStyle = try members.decode(AnnotationInfo.BorderStyle.self, forKey: .borderStyle)
     dashArray = try members.decodeIfPresent([Double].self, forKey: .dashArray)
     interiorColor = try members.decodeIfPresent(AnnotationColor.self, forKey: .interiorColor)
     vertices = try members.points(.vertices)
     rotation = try members.decodeIfPresent(Double.self, forKey: .rotation)
-    intent = try members.decodeIfPresent(String.self, forKey: .intent)
+    intent = try members.decodeIfPresent(AnnotationIntent.self, forKey: .intent)
     cloudyIntensity = try members.decodeIfPresent(Double.self, forKey: .cloudyIntensity)
     captionEnabled = try members.decodeIfPresent(Bool.self, forKey: .captionEnabled)
     captionCenter = try members.decodeIfPresent(ReadPoint.self, forKey: .captionCenter)?.point
@@ -356,13 +357,13 @@ extension AnnotationInfo.Polyline: Decodable {
     color = try members.decodeIfPresent(AnnotationColor.self, forKey: .color)
     opacity = try members.decode(Double.self, forKey: .opacity)
     strokeWidth = try members.decode(Double.self, forKey: .strokeWidth)
-    borderStyle = try members.decode(String.self, forKey: .borderStyle)
+    borderStyle = try members.decode(AnnotationInfo.BorderStyle.self, forKey: .borderStyle)
     dashArray = try members.decodeIfPresent([Double].self, forKey: .dashArray)
     interiorColor = try members.decodeIfPresent(AnnotationColor.self, forKey: .interiorColor)
     vertices = try members.points(.vertices)
     lineEndings = try members.decode(AnnotationLineEndings.self, forKey: .lineEndings)
     rotation = try members.decodeIfPresent(Double.self, forKey: .rotation)
-    intent = try members.decodeIfPresent(String.self, forKey: .intent)
+    intent = try members.decodeIfPresent(AnnotationIntent.self, forKey: .intent)
     captionEnabled = try members.decodeIfPresent(Bool.self, forKey: .captionEnabled)
     captionCenter = try members.decodeIfPresent(ReadPoint.self, forKey: .captionCenter)?.point
   }
@@ -372,7 +373,7 @@ extension AnnotationInfo.FreeText: Decodable {
   public init(from decoder: any Decoder) throws {
     let members = try decoder.container(keyedBy: MemberKey.self)
     box = try members.box()
-    intent = try members.decode(String.self, forKey: .intent)
+    intent = try members.decode(AnnotationIntent.self, forKey: .intent)
     fontFamily = try members.decode(String.self, forKey: .fontFamily)
     fontSize = try members.decode(Double.self, forKey: .fontSize)
     fontColor = try members.decode(AnnotationColor.self, forKey: .fontColor)
@@ -382,7 +383,7 @@ extension AnnotationInfo.FreeText: Decodable {
     interiorColor = try members.decodeIfPresent(AnnotationColor.self, forKey: .interiorColor)
     opacity = try members.decode(Double.self, forKey: .opacity)
     strokeWidth = try members.decode(Double.self, forKey: .strokeWidth)
-    borderStyle = try members.decode(String.self, forKey: .borderStyle)
+    borderStyle = try members.decode(AnnotationInfo.BorderStyle.self, forKey: .borderStyle)
     dashArray = try members.decodeIfPresent([Double].self, forKey: .dashArray)
     cloudyIntensity = try members.decodeIfPresent(Double.self, forKey: .cloudyIntensity)
     rotation = try members.decodeIfPresent(Double.self, forKey: .rotation)
@@ -407,7 +408,7 @@ extension AnnotationInfo.Caret: Decodable {
     opacity = try members.decode(Double.self, forKey: .opacity)
     box = try members.box()
     rotation = try members.decodeIfPresent(Double.self, forKey: .rotation)
-    intent = try members.decodeIfPresent(String.self, forKey: .intent)
+    intent = try members.decodeIfPresent(AnnotationIntent.self, forKey: .intent)
   }
 }
 

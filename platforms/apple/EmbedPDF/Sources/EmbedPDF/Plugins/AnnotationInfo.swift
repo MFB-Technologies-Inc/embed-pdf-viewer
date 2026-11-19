@@ -240,14 +240,14 @@ extension AnnotationInfo {
     public let opacity: Double
     public let strokeWidth: Double
     /// `solid`, `dashed`, `beveled` or `inset`.
-    public let borderStyle: String
+    public let borderStyle: BorderStyle
     /// The dash pattern, or `nil` when the border isn't dashed or names none.
     public let dashArray: [Double]?
     /// `/InkList`: one array of page-space points per stroke.
     public let inkList: [[Point]]
     /// `/IT`. `nil` for ordinary pen ink; `ink-highlight` for a freehand
     /// highlighter.
-    public let intent: String?
+    public let intent: AnnotationIntent?
     public let rotation: Double?
   }
 
@@ -328,10 +328,10 @@ extension AnnotationInfo.Ink: Decodable {
     color = try container.decodeIfPresent(AnnotationColor.self, forKey: .color)
     opacity = try container.decode(Double.self, forKey: .opacity)
     strokeWidth = try container.decode(Double.self, forKey: .strokeWidth)
-    borderStyle = try container.decode(String.self, forKey: .borderStyle)
+    borderStyle = try container.decode(AnnotationInfo.BorderStyle.self, forKey: .borderStyle)
     dashArray = try container.decodeIfPresent([Double].self, forKey: .dashArray)
     inkList = try container.decode([[ReadPoint]].self, forKey: .inkList).map { $0.map(\.point) }
-    intent = try container.decodeIfPresent(String.self, forKey: .intent)
+    intent = try container.decodeIfPresent(AnnotationIntent.self, forKey: .intent)
     rotation = try container.decodeIfPresent(Double.self, forKey: .rotation)
   }
 }

@@ -448,10 +448,10 @@ struct InkSeen: Equatable {
   var color: AnnotationColor?
   var opacity: Double
   var strokeWidth: Double
-  var borderStyle: String
+  var borderStyle: AnnotationInfo.BorderStyle
   var dashArray: [Double]?
   var inkList: [[Point]]
-  var intent: String?
+  var intent: AnnotationIntent?
   var rotation: Double?
 }
 
