@@ -351,14 +351,32 @@ public enum AnnotationLinkVerb: String, Codable, Sendable, Hashable, CaseIterabl
 /// engine writes (`LinkTargetWrite` in `prepare.rs`). A link read from a
 /// file can point elsewhere too (another file, a launch, a script); read
 /// those from `AnnotationInfo.fieldsJSON`.
-public enum AnnotationLinkTarget: Sendable, Hashable, Encodable {
-  /// A place in this document.
-  case goto(PdfDestination)
+///
+/// It encodes and decodes as the plugins' `LinkTarget` record. Decoding
+/// throws for a target outside these three, and for a `named` verb outside
+/// `AnnotationLinkVerb`.
+public enum AnnotationLinkTarget: Sendable, Hashable, Codable {
+  /// A place in this document, in page space: measured from the top-left of
+  /// the visible box of the page it goes to, y down.
+  case goto(PageDestination)
   case uri(String)
   case named(AnnotationLinkVerb)
 
   private enum CodingKeys: String, CodingKey {
     case kind, destination, uri, name
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    switch try container.decode(String.self, forKey: .kind) {
+    case "goto":
+      self = .goto(try container.decode(WireDestination.self, forKey: .destination).destination)
+    case "uri": self = .uri(try container.decode(String.self, forKey: .uri))
+    case "named": self = .named(try container.decode(AnnotationLinkVerb.self, forKey: .name))
+    case let kind:
+      throw DecodingError.dataCorruptedError(
+        forKey: .kind, in: container, debugDescription: "not a link target a draft writes: \(kind)")
+    }
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -373,6 +391,24 @@ public enum AnnotationLinkTarget: Sendable, Hashable, Encodable {
     case let .named(verb):
       try container.encode("named", forKey: .kind)
       try container.encode(verb, forKey: .name)
+    }
+  }
+
+  /// The `LinkTarget` record the JSON entry points take.
+  func json() throws(PDFError) -> String {
+    try AnnotationFieldBag.json(of: self)
+  }
+
+  /// The target in a `LinkTarget` record the engine returned. Throws
+  /// `operation-failed` for a record this type can't hold, so a target is
+  /// never read as a different one.
+  init(json: String) throws(PDFError) {
+    do {
+      self = try JSONDecoder().decode(Self.self, from: Data(json.utf8))
+    } catch {
+      throw PDFError(
+        name: "DecodingError", code: .operationFailed,
+        detail: "the link target doesn't read as an AnnotationLinkTarget: \(error)")
     }
   }
 }
@@ -781,62 +817,60 @@ struct WirePage: Codable {
   var page: PageRef { PageRef(pageObjectNumber: objectNumber) }
 }
 
-/// A destination as the engine's JSON spells it (`PdfDestination` in
-/// `crates/epdf-engine/src/features/actions/destination.rs`): tagged by
-/// `kind`, its optional coordinates written as `null` when absent, which is
-/// the PDF's "keep the current value".
+/// A page-space destination as the plugins' JSON spells it
+/// (`PageDestination` in
+/// `crates/epdf-engine/src/page_space/destinations.rs`): tagged by `kind`.
+/// An optional coordinate that is absent is written as `null`, and reads
+/// back from `null` or a missing member: the PDF's "keep the current
+/// value".
 struct WireDestination: Codable {
-  let destination: PdfDestination
+  let destination: PageDestination
 
-  init(_ destination: PdfDestination) {
+  init(_ destination: PageDestination) {
     self.destination = destination
   }
 
   private enum CodingKeys: String, CodingKey {
-    case kind, page, left, top, zoom, bottom, right
+    case kind, page, x, y, zoom, width, height
   }
 
   func encode(to encoder: any Encoder) throws {
     var container = encoder.container(keyedBy: CodingKeys.self)
+    func place(_ kind: String, _ page: PageRef) throws {
+      try container.encode(kind, forKey: .kind)
+      try container.encode(WirePage(page), forKey: .page)
+    }
     func coordinate(_ value: Double?, _ key: CodingKeys) throws {
       if let value { try container.encode(value, forKey: key) } else { try container.encodeNil(forKey: key) }
     }
     switch destination {
-    case let .xyz(page, left, top, zoom):
-      try container.encode("xyz", forKey: .kind)
-      try container.encode(WirePage(page), forKey: .page)
-      try coordinate(left, .left)
-      try coordinate(top, .top)
+    case let .xyz(page, x, y, zoom):
+      try place("xyz", page)
+      try coordinate(x, .x)
+      try coordinate(y, .y)
       try coordinate(zoom, .zoom)
     case let .fit(page):
-      try container.encode("fit", forKey: .kind)
-      try container.encode(WirePage(page), forKey: .page)
-    case let .fitH(page, top):
-      try container.encode("fitH", forKey: .kind)
-      try container.encode(WirePage(page), forKey: .page)
-      try coordinate(top, .top)
-    case let .fitV(page, left):
-      try container.encode("fitV", forKey: .kind)
-      try container.encode(WirePage(page), forKey: .page)
-      try coordinate(left, .left)
-    case let .fitR(page, left, bottom, right, top):
-      try container.encode("fitR", forKey: .kind)
-      try container.encode(WirePage(page), forKey: .page)
-      try container.encode(left, forKey: .left)
-      try container.encode(bottom, forKey: .bottom)
-      try container.encode(right, forKey: .right)
-      try container.encode(top, forKey: .top)
+      try place("fit", page)
+    case let .fitH(page, y):
+      try place("fitH", page)
+      try coordinate(y, .y)
+    case let .fitV(page, x):
+      try place("fitV", page)
+      try coordinate(x, .x)
+    case let .fitR(page, x, y, width, height):
+      try place("fitR", page)
+      try container.encode(x, forKey: .x)
+      try container.encode(y, forKey: .y)
+      try container.encode(width, forKey: .width)
+      try container.encode(height, forKey: .height)
     case let .fitB(page):
-      try container.encode("fitB", forKey: .kind)
-      try container.encode(WirePage(page), forKey: .page)
-    case let .fitBh(page, top):
-      try container.encode("fitBH", forKey: .kind)
-      try container.encode(WirePage(page), forKey: .page)
-      try coordinate(top, .top)
-    case let .fitBv(page, left):
-      try container.encode("fitBV", forKey: .kind)
-      try container.encode(WirePage(page), forKey: .page)
-      try coordinate(left, .left)
+      try place("fitB", page)
+    case let .fitBh(page, y):
+      try place("fitBH", page)
+      try coordinate(y, .y)
+    case let .fitBv(page, x):
+      try place("fitBV", page)
+      try coordinate(x, .x)
     }
   }
 
@@ -848,19 +882,19 @@ struct WireDestination: Codable {
     }
     switch try container.decode(String.self, forKey: .kind) {
     case "xyz":
-      destination = .xyz(page: page, left: try coordinate(.left), top: try coordinate(.top), zoom: try coordinate(.zoom))
+      destination = .xyz(page: page, x: try coordinate(.x), y: try coordinate(.y), zoom: try coordinate(.zoom))
     case "fit": destination = .fit(page: page)
-    case "fitH": destination = .fitH(page: page, top: try coordinate(.top))
-    case "fitV": destination = .fitV(page: page, left: try coordinate(.left))
+    case "fitH": destination = .fitH(page: page, y: try coordinate(.y))
+    case "fitV": destination = .fitV(page: page, x: try coordinate(.x))
     case "fitR":
       destination = .fitR(
-        page: page, left: try container.decode(Double.self, forKey: .left),
-        bottom: try container.decode(Double.self, forKey: .bottom),
-        right: try container.decode(Double.self, forKey: .right),
-        top: try container.decode(Double.self, forKey: .top))
+        page: page, x: try container.decode(Double.self, forKey: .x),
+        y: try container.decode(Double.self, forKey: .y),
+        width: try container.decode(Double.self, forKey: .width),
+        height: try container.decode(Double.self, forKey: .height))
     case "fitB": destination = .fitB(page: page)
-    case "fitBH": destination = .fitBh(page: page, top: try coordinate(.top))
-    case "fitBV": destination = .fitBv(page: page, left: try coordinate(.left))
+    case "fitBH": destination = .fitBh(page: page, y: try coordinate(.y))
+    case "fitBV": destination = .fitBv(page: page, x: try coordinate(.x))
     case let kind:
       throw DecodingError.dataCorruptedError(
         forKey: .kind, in: container, debugDescription: "not a destination kind: \(kind)")

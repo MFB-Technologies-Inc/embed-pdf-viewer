@@ -32,7 +32,8 @@ public enum AnnotationPosition: Sendable, Hashable, Codable {
     #"{"kind":"objectNumber","objectNumber":"# + String(page.pageObjectNumber) + "}"
   }
 
-  private static func json(_ annotation: AnnotationRef) -> String {
+  /// The engine's `AnnotationRef` record.
+  static func json(_ annotation: AnnotationRef) -> String {
     switch annotation {
     case let .objectNumber(page, number):
       #"{"kind":"objectNumber","page":"# + json(page) + #","objectNumber":"# + String(number) + "}"

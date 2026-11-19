@@ -422,29 +422,11 @@ extension AnnotationInfo.Stamp: Decodable {
   }
 }
 
-/// A link target as the engine reads it, or `nil` for one a draft can't
-/// write.
-private struct ReadLinkTarget: Decodable {
-  let target: AnnotationLinkTarget?
-
-  private enum Key: String, CodingKey { case kind, destination, uri, name }
-
-  init(from decoder: any Decoder) throws {
-    let container = try decoder.container(keyedBy: Key.self)
-    target =
-      switch try container.decode(String.self, forKey: .kind) {
-      case "goto": .goto(try container.decode(WireDestination.self, forKey: .destination).destination)
-      case "uri": .uri(try container.decode(String.self, forKey: .uri))
-      case "named": (try? container.decode(AnnotationLinkVerb.self, forKey: .name)).map(AnnotationLinkTarget.named)
-      default: nil
-      }
-  }
-}
-
 extension AnnotationInfo.Link: Decodable {
   public init(from decoder: any Decoder) throws {
     let members = try decoder.container(keyedBy: MemberKey.self)
-    target = (try? members.decodeIfPresent(ReadLinkTarget.self, forKey: .target))??.target
+    // A target a draft can't write doesn't decode, and reads as `nil`.
+    target = (try? members.decodeIfPresent(AnnotationLinkTarget.self, forKey: .target)) ?? nil
   }
 }
 

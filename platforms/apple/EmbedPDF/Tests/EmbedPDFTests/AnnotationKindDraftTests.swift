@@ -141,17 +141,17 @@ extension BaseSuite {
     @Test func aLinkTargetIsTaggedByKind() throws {
       let page = PageRef(pageObjectNumber: 7)
       expectNoDifference(
-        try LinkAnnotationPatch(target: .value(.goto(.xyz(page: page, left: 10, top: nil, zoom: 2))))
+        try LinkAnnotationPatch(target: .value(.goto(.xyz(page: page, x: 10, y: nil, zoom: 2))))
           .json(),
-        ##"{"target":{"destination":{"kind":"xyz","left":10,"page":{"kind":"objectNumber","objectNumber":7},"top":null,"zoom":2},"kind":"goto"}}"##
+        ##"{"target":{"destination":{"kind":"xyz","page":{"kind":"objectNumber","objectNumber":7},"x":10,"y":null,"zoom":2},"kind":"goto"}}"##
       )
       expectNoDifference(
         try LinkAnnotationPatch(target: .value(.named(.previousPage))).json(),
         ##"{"target":{"kind":"named","name":"PrevPage"}}"##)
       expectNoDifference(
-        try LinkAnnotationPatch(target: .value(.goto(.fitR(page: page, left: 1, bottom: 2, right: 3, top: 4))))
+        try LinkAnnotationPatch(target: .value(.goto(.fitR(page: page, x: 1, y: 2, width: 3, height: 4))))
           .json(),
-        ##"{"target":{"destination":{"bottom":2,"kind":"fitR","left":1,"page":{"kind":"objectNumber","objectNumber":7},"right":3,"top":4},"kind":"goto"}}"##
+        ##"{"target":{"destination":{"height":4,"kind":"fitR","page":{"kind":"objectNumber","objectNumber":7},"width":3,"x":1,"y":2},"kind":"goto"}}"##
       )
       expectNoDifference(try LinkAnnotationPatch(target: .null).json(), ##"{"target":null}"##)
     }

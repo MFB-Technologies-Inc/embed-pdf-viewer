@@ -361,6 +361,12 @@ public struct AnnotationSelectionCapability: Sendable {
     try await bridgedCancellable { token in try await handle.update(patchJson: patchJSON, cancel: token) }
   }
 
+  /// Change every selected annotation with a typed patch. Each member
+  /// takes the fields its kind has, as with the JSON form.
+  public func update(_ patch: some AnnotationPatch) async throws(PDFError) -> AnnotationBatchResult {
+    try await update(try patch.json())
+  }
+
   public func delete() async throws(PDFError) -> AnnotationBatchResult {
     try await bridgedCancellable { token in try await handle.delete(cancel: token) }
   }
@@ -851,11 +857,23 @@ public struct AnnotationThreadsCapability: Sendable {
     try await bridged { try await handle.link(annotationRef: ref) }
   }
 
+  /// The link attached to an annotation, or `nil` when it has none. Throws
+  /// `operation-failed` for a target `AnnotationLinkTarget` can't hold
+  /// (another file, a launch, a script); read those with `link(_:)`.
+  public func linkTarget(_ ref: AnnotationRef) async throws(PDFError) -> AnnotationLinkTarget? {
+    guard let json = try await link(ref) else { return nil }
+    return try AnnotationLinkTarget(json: json)
+  }
+
   /// `targetJSON` is the engine's `LinkTarget`.
   public func setLink(_ targetJSON: String, on ref: AnnotationRef) async throws(PDFError) {
     try await bridgedCancellable { token in
       try await handle.setLink(annotationRef: ref, targetJson: targetJSON, cancel: token)
     }
+  }
+
+  public func setLink(_ target: AnnotationLinkTarget, on ref: AnnotationRef) async throws(PDFError) {
+    try await setLink(try target.json(), on: ref)
   }
 
   public func clearLink(_ ref: AnnotationRef) async throws(PDFError) {

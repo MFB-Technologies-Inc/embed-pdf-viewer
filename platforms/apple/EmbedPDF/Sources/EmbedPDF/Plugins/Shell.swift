@@ -56,6 +56,12 @@ public struct ShellCapability: Sendable {
     try await bridged { try await handle.toggleSurface(id: id, options: options) }
   }
 
+  public func toggle<Props: Encodable & Sendable>(_ id: String, exclusive: String? = nil, props: Props)
+    async throws(PDFError)
+  {
+    try await toggle(id, exclusive: exclusive, propsJSON: try encoded(props))
+  }
+
   /// Change a surface's props without reopening it.
   public func updateProps(of id: String, propsJSON: String) async throws(PDFError) {
     try await bridged { try await handle.updateSurfaceProps(id: id, propsJson: propsJSON) }

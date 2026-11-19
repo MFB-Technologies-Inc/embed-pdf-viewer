@@ -90,6 +90,12 @@ public struct MeasurementCapability: Sendable {
     try await bridged { try await handle.readout(annotationJson: annotationJSON) }
   }
 
+  /// A measurement annotation's value in its own scale, from the
+  /// annotation as `AnnotationCapability` reads it.
+  public func readout(_ annotation: AnnotationInfo) async throws(PDFError) -> MeasurementReading {
+    try await readout(annotationJSON: AnnotationPosition.json(annotation.annotationRef))
+  }
+
   public func measureDistance(on page: PageRef, from: Point, to: Point) async throws(PDFError)
     -> MeasurementReading
   {

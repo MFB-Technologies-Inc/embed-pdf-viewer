@@ -66,12 +66,21 @@ public struct LinkCapability: Sendable {
     try await bridged { try await handle.resolve(targetJson: targetJSON) }
   }
 
+  /// What activating a typed target would do, with no side effect.
+  public func resolve(_ target: AnnotationLinkTarget) async throws(PDFError) -> LinkResolution {
+    try await resolve(targetJSON: try target.json())
+  }
+
   public func activate(_ link: LinkItem) async throws(PDFError) -> LinkActivation {
     try await bridged { try await handle.activate(input: .link(page: link.page, id: link.id)) }
   }
 
   public func activate(targetJSON: String) async throws(PDFError) -> LinkActivation {
     try await bridged { try await handle.activate(input: .target(targetJson: targetJSON)) }
+  }
+
+  public func activate(_ target: AnnotationLinkTarget) async throws(PDFError) -> LinkActivation {
+    try await activate(targetJSON: try target.json())
   }
 
   /// `nil` when no link is under the point.
@@ -87,6 +96,10 @@ public struct LinkCapability: Sendable {
   /// link, an outline entry): the URL, `Go to destination`, ...
   public func label(forTargetJSON targetJSON: String) async throws(PDFError) -> String {
     try await bridged { try await handle.label(input: .target(targetJson: targetJSON)) }
+  }
+
+  public func label(for target: AnnotationLinkTarget) async throws(PDFError) -> String {
+    try await label(forTargetJSON: try target.json())
   }
 
   public func isNavigationEngaged() async throws(PDFError) -> Bool {
