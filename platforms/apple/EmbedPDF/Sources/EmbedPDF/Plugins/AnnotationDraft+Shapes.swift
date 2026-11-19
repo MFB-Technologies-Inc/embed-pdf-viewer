@@ -6,9 +6,7 @@ import Foundation
 // rule is the engine's (`read_field` in
 // `crates/epdf-engine/src/features/annotation/write/prepare.rs`).
 //
-// A stroked shape's `color` takes `.null`, which draws no stroke. A
-// dimension intent's scale (`measure`) is left to the JSON-string
-// overloads.
+// A stroked shape's `color` takes `.null`, which draws no stroke.
 
 // ── square and circle ───────────────────────────────────────────────────────
 
@@ -35,6 +33,10 @@ public struct SquareAnnotationDraft: AnnotationDraft, Hashable {
   /// `/Contents`. `.null` is none.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a draft that gives both needs them to agree. `.null` is a
+  /// plain comment.
+  public var richText: Nullable<AnnotationRichText>?
   /// The fields every annotation shares.
   public var common: AnnotationCommonFields
 
@@ -44,6 +46,7 @@ public struct SquareAnnotationDraft: AnnotationDraft, Hashable {
     dashArray: Nullable<[Double]>? = nil, interiorColor: Nullable<AnnotationColor>? = nil,
     rotation: Nullable<Double>? = nil, cloudyIntensity: Nullable<Double>? = nil,
     contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
     common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.box = box
@@ -57,6 +60,7 @@ public struct SquareAnnotationDraft: AnnotationDraft, Hashable {
     self.cloudyIntensity = cloudyIntensity
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
     self.common = common
   }
 
@@ -66,6 +70,7 @@ public struct SquareAnnotationDraft: AnnotationDraft, Hashable {
       borderStyle: borderStyle, dashArray: dashArray, interiorColor: interiorColor,
       rotation: rotation, cloudyIntensity: cloudyIntensity, contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
     try common.encode(to: encoder)
   }
 }
@@ -91,6 +96,10 @@ public struct SquareAnnotationPatch: AnnotationPatch, Hashable {
   /// `.null` removes `/Contents`.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a patch that gives both needs them to agree. `.null` makes
+  /// the comment plain and keeps `contents`.
+  public var richText: Nullable<AnnotationRichText>?
   /// The fields every annotation shares. A patch leaves `nm` out.
   public var common: AnnotationCommonFields
 
@@ -100,6 +109,7 @@ public struct SquareAnnotationPatch: AnnotationPatch, Hashable {
     dashArray: Nullable<[Double]>? = nil, interiorColor: Nullable<AnnotationColor>? = nil,
     rotation: Nullable<Double>? = nil, cloudyIntensity: Nullable<Double>? = nil,
     contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
     common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.box = box
@@ -113,6 +123,7 @@ public struct SquareAnnotationPatch: AnnotationPatch, Hashable {
     self.cloudyIntensity = cloudyIntensity
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
     self.common = common
   }
 
@@ -122,6 +133,7 @@ public struct SquareAnnotationPatch: AnnotationPatch, Hashable {
       borderStyle: borderStyle, dashArray: dashArray, interiorColor: interiorColor,
       rotation: rotation, cloudyIntensity: cloudyIntensity, contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
     try common.encodeAsPatch(to: encoder)
   }
 }
@@ -148,6 +160,10 @@ public struct CircleAnnotationDraft: AnnotationDraft, Hashable {
   /// `/Contents`. `.null` is none.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a draft that gives both needs them to agree. `.null` is a
+  /// plain comment.
+  public var richText: Nullable<AnnotationRichText>?
   /// The fields every annotation shares.
   public var common: AnnotationCommonFields
 
@@ -157,6 +173,7 @@ public struct CircleAnnotationDraft: AnnotationDraft, Hashable {
     dashArray: Nullable<[Double]>? = nil, interiorColor: Nullable<AnnotationColor>? = nil,
     rotation: Nullable<Double>? = nil, cloudyIntensity: Nullable<Double>? = nil,
     contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
     common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.box = box
@@ -170,6 +187,7 @@ public struct CircleAnnotationDraft: AnnotationDraft, Hashable {
     self.cloudyIntensity = cloudyIntensity
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
     self.common = common
   }
 
@@ -179,6 +197,7 @@ public struct CircleAnnotationDraft: AnnotationDraft, Hashable {
       borderStyle: borderStyle, dashArray: dashArray, interiorColor: interiorColor,
       rotation: rotation, cloudyIntensity: cloudyIntensity, contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
     try common.encode(to: encoder)
   }
 }
@@ -204,6 +223,10 @@ public struct CircleAnnotationPatch: AnnotationPatch, Hashable {
   /// `.null` removes `/Contents`.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a patch that gives both needs them to agree. `.null` makes
+  /// the comment plain and keeps `contents`.
+  public var richText: Nullable<AnnotationRichText>?
   /// The fields every annotation shares. A patch leaves `nm` out.
   public var common: AnnotationCommonFields
 
@@ -213,6 +236,7 @@ public struct CircleAnnotationPatch: AnnotationPatch, Hashable {
     dashArray: Nullable<[Double]>? = nil, interiorColor: Nullable<AnnotationColor>? = nil,
     rotation: Nullable<Double>? = nil, cloudyIntensity: Nullable<Double>? = nil,
     contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
     common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.box = box
@@ -226,6 +250,7 @@ public struct CircleAnnotationPatch: AnnotationPatch, Hashable {
     self.cloudyIntensity = cloudyIntensity
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
     self.common = common
   }
 
@@ -235,6 +260,7 @@ public struct CircleAnnotationPatch: AnnotationPatch, Hashable {
       borderStyle: borderStyle, dashArray: dashArray, interiorColor: interiorColor,
       rotation: rotation, cloudyIntensity: cloudyIntensity, contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
     try common.encodeAsPatch(to: encoder)
   }
 }
@@ -272,6 +298,15 @@ public struct LineAnnotationDraft: AnnotationDraft, Hashable {
   /// `/Contents`, and the caption when `captionEnabled`. `.null` is none.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a draft that gives both needs them to agree. `.null` is a
+  /// plain comment.
+  public var richText: Nullable<AnnotationRichText>?
+  /// `/Measure`: the scale a dimension intent measures in. With one, the
+  /// engine sets `contents` to the measured value's label. Only a
+  /// `rectilinear` scale that has its `x`, `distance` and `area` formats is
+  /// written; any other throws `invalid-input`. `.null` is none.
+  public var measure: Nullable<PdfMeasurement>?
   /// The fields every annotation shares.
   public var common: AnnotationCommonFields
 
@@ -285,6 +320,7 @@ public struct LineAnnotationDraft: AnnotationDraft, Hashable {
     captionOffset: Nullable<AnnotationCaptionOffset>? = nil,
     leader: Nullable<AnnotationLineLeader>? = nil, contents: Nullable<String>? = nil,
     blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil, measure: Nullable<PdfMeasurement>? = nil,
     common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.start = start
@@ -304,6 +340,8 @@ public struct LineAnnotationDraft: AnnotationDraft, Hashable {
     self.leader = leader
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.measure = measure
     self.common = common
   }
 
@@ -315,6 +353,8 @@ public struct LineAnnotationDraft: AnnotationDraft, Hashable {
       captionEnabled: captionEnabled, captionPosition: captionPosition,
       captionOffset: captionOffset, leader: leader, contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try AnnotationSharedMembers.encode(measure: measure, to: encoder)
     try common.encode(to: encoder)
   }
 }
@@ -348,6 +388,14 @@ public struct LineAnnotationPatch: AnnotationPatch, Hashable {
   /// `.null` removes `/Contents`.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a patch that gives both needs them to agree. `.null` makes
+  /// the comment plain and keeps `contents`.
+  public var richText: Nullable<AnnotationRichText>?
+  /// Replaces the scale, on the draft's rules. `.null` removes it. A scale
+  /// read with another subtype (`geospatial`, `unknown`) may be sent back as
+  /// it was read, which keeps it.
+  public var measure: Nullable<PdfMeasurement>?
   /// The fields every annotation shares. A patch leaves `nm` out.
   public var common: AnnotationCommonFields
 
@@ -361,6 +409,7 @@ public struct LineAnnotationPatch: AnnotationPatch, Hashable {
     captionOffset: Nullable<AnnotationCaptionOffset>? = nil,
     leader: Nullable<AnnotationLineLeader>? = nil, contents: Nullable<String>? = nil,
     blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil, measure: Nullable<PdfMeasurement>? = nil,
     common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.start = start
@@ -380,6 +429,8 @@ public struct LineAnnotationPatch: AnnotationPatch, Hashable {
     self.leader = leader
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.measure = measure
     self.common = common
   }
 
@@ -400,6 +451,8 @@ public struct LineAnnotationPatch: AnnotationPatch, Hashable {
       captionEnabled: captionEnabled, captionPosition: captionPosition,
       captionOffset: captionOffset, leader: leader, contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try AnnotationSharedMembers.encode(measure: measure, to: encoder)
     try common.encodeAsPatch(to: encoder)
   }
 }
@@ -480,6 +533,15 @@ public struct PolygonAnnotationDraft: AnnotationDraft, Hashable {
   /// `/Contents`, and the caption when `captionEnabled`. `.null` is none.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a draft that gives both needs them to agree. `.null` is a
+  /// plain comment.
+  public var richText: Nullable<AnnotationRichText>?
+  /// `/Measure`: the scale a dimension intent measures in. With one, the
+  /// engine sets `contents` to the measured value's label. Only a
+  /// `rectilinear` scale that has its `x`, `distance` and `area` formats is
+  /// written; any other throws `invalid-input`. `.null` is none.
+  public var measure: Nullable<PdfMeasurement>?
   /// The fields every annotation shares.
   public var common: AnnotationCommonFields
 
@@ -491,6 +553,7 @@ public struct PolygonAnnotationDraft: AnnotationDraft, Hashable {
     cloudyIntensity: Nullable<Double>? = nil, captionEnabled: Nullable<Bool>? = nil,
     captionCenter: AnnotationCaptionCenter? = nil, contents: Nullable<String>? = nil,
     blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil, measure: Nullable<PdfMeasurement>? = nil,
     common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.vertices = vertices
@@ -507,6 +570,8 @@ public struct PolygonAnnotationDraft: AnnotationDraft, Hashable {
     self.captionCenter = captionCenter
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.measure = measure
     self.common = common
   }
 
@@ -518,6 +583,8 @@ public struct PolygonAnnotationDraft: AnnotationDraft, Hashable {
       cloudyIntensity: cloudyIntensity, lineEndings: nil, captionEnabled: captionEnabled,
       captionCenter: captionCenter, contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try AnnotationSharedMembers.encode(measure: measure, to: encoder)
     try common.encode(to: encoder)
   }
 }
@@ -547,6 +614,14 @@ public struct PolygonAnnotationPatch: AnnotationPatch, Hashable {
   /// `.null` removes `/Contents`.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a patch that gives both needs them to agree. `.null` makes
+  /// the comment plain and keeps `contents`.
+  public var richText: Nullable<AnnotationRichText>?
+  /// Replaces the scale, on the draft's rules. `.null` removes it. A scale
+  /// read with another subtype (`geospatial`, `unknown`) may be sent back as
+  /// it was read, which keeps it.
+  public var measure: Nullable<PdfMeasurement>?
   /// The fields every annotation shares. A patch leaves `nm` out.
   public var common: AnnotationCommonFields
 
@@ -558,6 +633,7 @@ public struct PolygonAnnotationPatch: AnnotationPatch, Hashable {
     cloudyIntensity: Nullable<Double>? = nil, captionEnabled: Nullable<Bool>? = nil,
     captionCenter: AnnotationCaptionCenter? = nil, contents: Nullable<String>? = nil,
     blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil, measure: Nullable<PdfMeasurement>? = nil,
     common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.vertices = vertices
@@ -574,6 +650,8 @@ public struct PolygonAnnotationPatch: AnnotationPatch, Hashable {
     self.captionCenter = captionCenter
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.measure = measure
     self.common = common
   }
 
@@ -585,6 +663,8 @@ public struct PolygonAnnotationPatch: AnnotationPatch, Hashable {
       cloudyIntensity: cloudyIntensity, lineEndings: nil, captionEnabled: captionEnabled,
       captionCenter: captionCenter, contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try AnnotationSharedMembers.encode(measure: measure, to: encoder)
     try common.encodeAsPatch(to: encoder)
   }
 }
@@ -615,6 +695,15 @@ public struct PolylineAnnotationDraft: AnnotationDraft, Hashable {
   /// `/Contents`, and the caption when `captionEnabled`. `.null` is none.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a draft that gives both needs them to agree. `.null` is a
+  /// plain comment.
+  public var richText: Nullable<AnnotationRichText>?
+  /// `/Measure`: the scale a dimension intent measures in. With one, the
+  /// engine sets `contents` to the measured value's label. Only a
+  /// `rectilinear` scale that has its `x`, `distance` and `area` formats is
+  /// written; any other throws `invalid-input`. `.null` is none.
+  public var measure: Nullable<PdfMeasurement>?
   /// The fields every annotation shares.
   public var common: AnnotationCommonFields
 
@@ -626,6 +715,7 @@ public struct PolylineAnnotationDraft: AnnotationDraft, Hashable {
     intent: Nullable<AnnotationPolylineIntent>? = nil, captionEnabled: Nullable<Bool>? = nil,
     captionCenter: AnnotationCaptionCenter? = nil, contents: Nullable<String>? = nil,
     blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil, measure: Nullable<PdfMeasurement>? = nil,
     common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.vertices = vertices
@@ -642,6 +732,8 @@ public struct PolylineAnnotationDraft: AnnotationDraft, Hashable {
     self.captionCenter = captionCenter
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.measure = measure
     self.common = common
   }
 
@@ -653,6 +745,8 @@ public struct PolylineAnnotationDraft: AnnotationDraft, Hashable {
       cloudyIntensity: nil, lineEndings: lineEndings, captionEnabled: captionEnabled,
       captionCenter: captionCenter, contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try AnnotationSharedMembers.encode(measure: measure, to: encoder)
     try common.encode(to: encoder)
   }
 }
@@ -681,6 +775,14 @@ public struct PolylineAnnotationPatch: AnnotationPatch, Hashable {
   /// `.null` removes `/Contents`.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a patch that gives both needs them to agree. `.null` makes
+  /// the comment plain and keeps `contents`.
+  public var richText: Nullable<AnnotationRichText>?
+  /// Replaces the scale, on the draft's rules. `.null` removes it. A scale
+  /// read with another subtype (`geospatial`, `unknown`) may be sent back as
+  /// it was read, which keeps it.
+  public var measure: Nullable<PdfMeasurement>?
   /// The fields every annotation shares. A patch leaves `nm` out.
   public var common: AnnotationCommonFields
 
@@ -692,6 +794,7 @@ public struct PolylineAnnotationPatch: AnnotationPatch, Hashable {
     intent: Nullable<AnnotationPolylineIntent>? = nil, captionEnabled: Nullable<Bool>? = nil,
     captionCenter: AnnotationCaptionCenter? = nil, contents: Nullable<String>? = nil,
     blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil, measure: Nullable<PdfMeasurement>? = nil,
     common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.vertices = vertices
@@ -708,6 +811,8 @@ public struct PolylineAnnotationPatch: AnnotationPatch, Hashable {
     self.captionCenter = captionCenter
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.measure = measure
     self.common = common
   }
 
@@ -719,6 +824,8 @@ public struct PolylineAnnotationPatch: AnnotationPatch, Hashable {
       cloudyIntensity: nil, lineEndings: lineEndings, captionEnabled: captionEnabled,
       captionCenter: captionCenter, contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try AnnotationSharedMembers.encode(measure: measure, to: encoder)
     try common.encodeAsPatch(to: encoder)
   }
 }

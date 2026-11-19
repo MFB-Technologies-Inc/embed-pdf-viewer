@@ -670,6 +670,334 @@ extension BaseSuite {
       expectNoDifference(redaction.textAlign, .center)
     }
 
+    // ── rich text ───────────────────────────────────────────────────────
+
+    static let styledText = AnnotationRichText(paragraphs: [
+      AnnotationRichText.Paragraph(runs: [
+        AnnotationRichText.Run(text: "Plain and "),
+        AnnotationRichText.Run(text: "bold", style: ["weight": .number(700)]),
+      ]),
+      AnnotationRichText.Paragraph(runs: [AnnotationRichText.Run(text: "Second line")]),
+    ])
+
+    /// The text of each paragraph's runs, joined.
+    func texts(_ richText: AnnotationRichText?) -> [String]? {
+      richText?.paragraphs.map { $0.runs.map(\.text).joined() }
+    }
+
+    @Test func richTextEncodesItsOpenMapsFlat() throws {
+      let richText = AnnotationRichText(
+        body: ["size": .number(12), "decoration": .array([.string("underline")]), "margins": .null],
+        paragraphs: [
+          AnnotationRichText.Paragraph(
+            runs: [AnnotationRichText.Run(text: "Hi", style: ["italic": .bool(true)])],
+            properties: ["align": .string("center"), "spacing": .object(["before": .number(2)])])
+        ])
+      let json =
+        ##"{"body":{"decoration":["underline"],"margins":null,"size":12},"paragraphs":[{"align":"center","runs":[{"style":{"italic":true},"text":"Hi"}],"spacing":{"before":2}}]}"##
+      expectNoDifference(
+        try FreeTextAnnotationPatch(richText: richText).json(), ##"{"richText":\##(json)}"##)
+      expectNoDifference(
+        try JSONDecoder().decode(AnnotationRichText.self, from: Data(json.utf8)), richText)
+      expectNoDifference(
+        try SquareAnnotationPatch(richText: .null).json(), ##"{"richText":null}"##)
+      expectNoDifference(
+        AnnotationRichText(plain: "One\r\nTwo\nThree"),
+        AnnotationRichText(paragraphs: [
+          AnnotationRichText.Paragraph(runs: [AnnotationRichText.Run(text: "One")]),
+          AnnotationRichText.Paragraph(runs: [AnnotationRichText.Run(text: "Two")]),
+          AnnotationRichText.Paragraph(runs: [AnnotationRichText.Run(text: "Three")]),
+        ]))
+      expectNoDifference(Self.styledText.plainText, "Plain and bold\nSecond line")
+    }
+
+    @Test func aFreeTextReadsItsRichTextBack() async throws {
+      let (page, annotations) = try await opened()
+      let ref = try await annotations.create(
+        FreeTextAnnotationDraft(
+          box: Self.box, contents: "Plain and bold\nSecond line", fontSize: 14,
+          richText: Self.styledText),
+        on: page)
+      let read = try #require(try await annotations.get(ref))
+      expectNoDifference(read.contents, "Plain and bold\nSecond line")
+      let richText = try #require(read.freeText?.richText)
+      expectNoDifference(richText.paragraphs.map(\.runs), Self.styledText.paragraphs.map(\.runs))
+      // The body is the draft's text style, stated whole.
+      expectNoDifference(richText.body?["size"], .number(14))
+
+      // What a read hands out, a patch takes back, and nothing is lost.
+      try await annotations.update(ref, FreeTextAnnotationPatch(richText: richText))
+      let again = try #require(try await annotations.get(ref))
+      expectNoDifference(again.freeText?.richText, richText)
+
+      // `contents` that isn't the rich text's plain text is refused, on a
+      // patch and on a draft.
+      await #expect {
+        try await annotations.update(
+          ref,
+          FreeTextAnnotationPatch(
+            contents: "Something else", richText: AnnotationRichText(plain: "New text")))
+      } throws: {
+        ($0 as? PDFError)?.code == .invalidInput
+      }
+      await #expect {
+        try await annotations.create(
+          FreeTextAnnotationDraft(
+            box: Self.box, contents: "Something else", richText: Self.styledText),
+          on: page)
+      } throws: {
+        ($0 as? PDFError)?.code == .invalidInput
+      }
+    }
+
+    /// The engine keeps a free text's text as rich text, so plain
+    /// `contents` reads back as one unstyled run per line.
+    @Test func aPlainFreeTextReadsRichText() async throws {
+      let (page, annotations) = try await opened()
+      let read = try #require(
+        try await annotations.get(
+          annotations.create(
+            FreeTextAnnotationDraft(box: Self.box, contents: "One\nTwo"), on: page)))
+      expectNoDifference(
+        read.freeText?.richText?.paragraphs, AnnotationRichText(plain: "One\nTwo").paragraphs)
+    }
+
+    @Test func aCommentsRichTextBringsItsContents() async throws {
+      let (page, annotations) = try await opened()
+      let ref = try await annotations.create(
+        SquareAnnotationDraft(box: Self.box, richText: .value(Self.styledText)), on: page)
+      let rich = try #require(try await annotations.get(ref))
+      expectNoDifference(rich.contents, "Plain and bold\nSecond line")
+      expectNoDifference(texts(rich.square?.richText), ["Plain and bold", "Second line"])
+
+      // New plain contents on a rich comment become its paragraphs.
+      try await annotations.update(ref, SquareAnnotationPatch(contents: "Changed"))
+      let changed = try #require(try await annotations.get(ref))
+      expectNoDifference(texts(changed.square?.richText), ["Changed"])
+
+      // `.null` makes the comment plain and keeps `contents`.
+      try await annotations.update(ref, SquareAnnotationPatch(richText: .null))
+      let plain = try #require(try await annotations.get(ref))
+      expectNoDifference(plain.square?.richText, nil)
+      expectNoDifference(plain.contents, "Changed")
+
+      // A comment that was never rich reads none.
+      let never = try #require(
+        try await annotations.get(annotations.create(Self.fullSquare, on: page)))
+      expectNoDifference(never.square?.richText, nil)
+    }
+
+    /// Every kind that declares `richText` writes it and reads it back.
+    @Test func everyKindWritesItsRichText() async throws {
+      let (page, annotations) = try await opened()
+      let comment = AnnotationRichText(plain: "A comment")
+      let cases: [(any AnnotationDraft, any AnnotationPatch, (AnnotationInfo) -> AnnotationRichText?)] = [
+        (AnnotationDraftTests.fullInk, InkAnnotationPatch(richText: .value(comment)), { $0.ink?.richText }),
+        (
+          AnnotationDraftTests.fullHighlight, HighlightAnnotationPatch(richText: .value(comment)),
+          { $0.highlight?.richText }
+        ),
+        (AnnotationDraftTests.fullNote, NoteAnnotationPatch(richText: .value(comment)), { $0.note?.richText }),
+        (Self.fullUnderline, UnderlineAnnotationPatch(richText: .value(comment)), { $0.underline?.richText }),
+        (Self.fullSquiggly, SquigglyAnnotationPatch(richText: .value(comment)), { $0.squiggly?.richText }),
+        (Self.fullStrikeout, StrikeoutAnnotationPatch(richText: .value(comment)), { $0.strikeout?.richText }),
+        (Self.fullRedaction, RedactionAnnotationPatch(richText: .value(comment)), { $0.redaction?.richText }),
+        (Self.fullSquare, SquareAnnotationPatch(richText: .value(comment)), { $0.square?.richText }),
+        (Self.fullCircle, CircleAnnotationPatch(richText: .value(comment)), { $0.circle?.richText }),
+        (Self.fullLine, LineAnnotationPatch(richText: .value(comment)), { $0.line?.richText }),
+        (Self.fullPolygon, PolygonAnnotationPatch(richText: .value(comment)), { $0.polygon?.richText }),
+        (Self.fullPolyline, PolylineAnnotationPatch(richText: .value(comment)), { $0.polyline?.richText }),
+        (Self.fullFreeText, FreeTextAnnotationPatch(richText: comment), { $0.freeText?.richText }),
+        (Self.fullCaret, CaretAnnotationPatch(richText: .value(comment)), { $0.caret?.richText }),
+      ]
+      for (draft, patch, richText) in cases {
+        let ref = try await annotations.create(draft, on: page)
+        try await annotations.update(ref, patch)
+        let read = try #require(try await annotations.get(ref))
+        expectNoDifference(texts(richText(read)), ["A comment"], "\(type(of: patch))")
+        expectNoDifference(read.contents, "A comment", "\(type(of: patch))")
+      }
+
+      let drafts: [(any AnnotationDraft, (AnnotationInfo) -> AnnotationRichText?)] = [
+        (
+          InkAnnotationDraft(inkList: [AnnotationDraftTests.stroke], richText: .value(comment)),
+          { $0.ink?.richText }
+        ),
+        (
+          HighlightAnnotationDraft(quadPoints: [Self.quad], richText: .value(comment)),
+          { $0.highlight?.richText }
+        ),
+        (
+          NoteAnnotationDraft(rect: AnnotationDraftTests.noteRect, richText: .value(comment)),
+          { $0.note?.richText }
+        ),
+        (
+          UnderlineAnnotationDraft(quadPoints: [Self.quad], richText: .value(comment)),
+          { $0.underline?.richText }
+        ),
+        (
+          SquigglyAnnotationDraft(quadPoints: [Self.quad], richText: .value(comment)),
+          { $0.squiggly?.richText }
+        ),
+        (
+          StrikeoutAnnotationDraft(quadPoints: [Self.quad], richText: .value(comment)),
+          { $0.strikeout?.richText }
+        ),
+        (
+          RedactionAnnotationDraft(quadPoints: [Self.quad], richText: .value(comment)),
+          { $0.redaction?.richText }
+        ),
+        (CircleAnnotationDraft(box: Self.box, richText: .value(comment)), { $0.circle?.richText }),
+        (
+          LineAnnotationDraft(
+            start: Point(x: 10, y: 10), end: Point(x: 100, y: 50), richText: .value(comment)),
+          { $0.line?.richText }
+        ),
+        (
+          PolygonAnnotationDraft(
+            vertices: [Point(x: 10, y: 10), Point(x: 100, y: 10), Point(x: 50, y: 80)],
+            richText: .value(comment)),
+          { $0.polygon?.richText }
+        ),
+        (
+          PolylineAnnotationDraft(
+            vertices: [Point(x: 10, y: 10), Point(x: 60, y: 80)], richText: .value(comment)),
+          { $0.polyline?.richText }
+        ),
+        (
+          CaretAnnotationDraft(
+            box: Rect(x: 72, y: 300, width: 12, height: 12), richText: .value(comment)),
+          { $0.caret?.richText }
+        ),
+      ]
+      for (draft, richText) in drafts {
+        let read = try #require(try await annotations.get(annotations.create(draft, on: page)))
+        expectNoDifference(texts(richText(read)), ["A comment"], "\(type(of: draft))")
+        expectNoDifference(read.contents, "A comment", "\(type(of: draft))")
+      }
+    }
+
+    @Test func stampAndFileAttachmentPatchesWriteRichText() async throws {
+      let (page, annotations) = try await opened()
+      let comment = AnnotationRichText(plain: "A comment")
+      let stampRef = try await annotations.drafts.placeStamp(
+        AnnotationStampSource(bytes: try AnnotationTests().tinyPng(), mimeType: "image/png"),
+        at: AnnotationStampPlacement(page: page, center: Point(x: 200, y: 200)), targetWidth: 80)
+      let stamp = try #require(await annotations.get(stampRef))
+      try await annotations.update(
+        stamp.annotationRef, StampAnnotationPatch(richText: .value(comment)))
+      let stampRead = try #require(try await annotations.get(stamp.annotationRef))
+      expectNoDifference(texts(stampRead.stamp?.richText), ["A comment"])
+
+      let (_, kinds) = try await opened("annotation_kinds")
+      let attachment = try #require(try await kinds.list().first { $0.subtype == .fileAttachment })
+      try await kinds.update(
+        attachment.annotationRef, FileAttachmentAnnotationPatch(richText: .value(comment)))
+      let attachmentRead = try #require(try await kinds.get(attachment.annotationRef))
+      expectNoDifference(texts(attachmentRead.fileAttachment?.richText), ["A comment"])
+    }
+
+    // ── measurement scales ──────────────────────────────────────────────
+
+    /// One inch on the page is one foot: every member a scale carries.
+    static let scale = PdfMeasurement(
+      subtype: "rectilinear", ratio: "1 in = 1 ft",
+      x: [
+        PdfNumberFormat(
+          unit: "ft", conversion: 0.125, fraction: .decimal, precision: 100, fixed: true,
+          thousands: ",", decimal: ".", prefixSpacing: "", suffixSpacing: " ",
+          labelPosition: .suffix)
+      ],
+      y: [PdfNumberFormat(unit: "ft", conversion: 0.25, fraction: .round, precision: 1)],
+      distance: [
+        PdfNumberFormat(unit: "ft", conversion: 1, fraction: .fraction, precision: 16),
+        PdfNumberFormat(unit: "in", conversion: 12, fraction: .truncate, precision: 1, labelPosition: .prefix),
+      ],
+      area: [PdfNumberFormat(unit: "sq ft", conversion: 1, fraction: .decimal, precision: 10)],
+      angle: [PdfNumberFormat(unit: "deg", conversion: 1, fraction: .decimal, precision: 1)],
+      slope: [PdfNumberFormat(unit: "%", conversion: 100, fraction: .decimal, precision: 1)],
+      cyx: 2)
+
+    @Test func aMeasureEncodesEveryMember() throws {
+      var scale = Self.scale
+      scale.origin = MeasureOrigin(x: 3, y: 4)
+      let json =
+        ##"{"angle":[{"conversion":1,"fraction":"decimal","precision":1,"unit":"deg"}],"area":[{"conversion":1,"fraction":"decimal","precision":10,"unit":"sq ft"}],"cyx":2,"distance":[{"conversion":1,"fraction":"fraction","precision":16,"unit":"ft"},{"conversion":12,"fraction":"truncate","labelPosition":"prefix","precision":1,"unit":"in"}],"origin":{"x":3,"y":4},"ratio":"1 in = 1 ft","slope":[{"conversion":100,"fraction":"decimal","precision":1,"unit":"%"}],"subtype":"rectilinear","x":[{"conversion":0.125,"decimal":".","fixed":true,"fraction":"decimal","labelPosition":"suffix","precision":100,"prefixSpacing":"","suffixSpacing":" ","thousands":",","unit":"ft"}],"y":[{"conversion":0.25,"fraction":"round","precision":1,"unit":"ft"}]}"##
+      expectNoDifference(
+        try PolygonAnnotationPatch(measure: .value(scale)).json(), ##"{"measure":\##(json)}"##)
+      expectNoDifference(try PolylineAnnotationPatch(measure: .null).json(), ##"{"measure":null}"##)
+    }
+
+    @Test func aDimensionLineReadsItsMeasureBack() async throws {
+      let (page, annotations) = try await opened()
+      let ref = try await annotations.create(
+        LineAnnotationDraft(
+          start: Point(x: 72, y: 72), end: Point(x: 216, y: 72), intent: .value(.lineDimension),
+          measure: .value(Self.scale)),
+        on: page)
+      let read = try #require(try await annotations.get(ref))
+      expectNoDifference(read.line?.intent, "line-dimension")
+      expectNoDifference(read.line?.measure, Self.scale)
+      // The engine works the label out from the points and the scale: 144
+      // points at 0.125 ft a point.
+      expectNoDifference(read.contents, "18 ft")
+
+      var metres = Self.scale
+      metres.ratio = "1 in = 1 m"
+      try await annotations.update(ref, LineAnnotationPatch(measure: .value(metres)))
+      let changed = try await annotations.get(ref)
+      expectNoDifference(changed?.line?.measure, metres)
+
+      try await annotations.update(ref, LineAnnotationPatch(measure: .null))
+      let cleared = try #require(try await annotations.get(ref))
+      expectNoDifference(cleared.line?.measure, nil)
+      #expect(cleared.details != .untyped)
+    }
+
+    @Test func polygonsAndPolylinesReadTheirMeasureBack() async throws {
+      let (page, annotations) = try await opened()
+      let vertices = [Point(x: 72, y: 72), Point(x: 216, y: 72), Point(x: 216, y: 216)]
+      let polygon = try await annotations.get(
+        annotations.create(
+          PolygonAnnotationDraft(
+            vertices: vertices, intent: .value(.polygonDimension), measure: .value(Self.scale)),
+          on: page))
+      expectNoDifference(polygon?.polygon?.measure, Self.scale)
+      let polyline = try await annotations.get(
+        annotations.create(
+          PolylineAnnotationDraft(
+            vertices: vertices, intent: .value(.polylineDimension), measure: .value(Self.scale)),
+          on: page))
+      expectNoDifference(polyline?.polyline?.measure, Self.scale)
+    }
+
+    /// A scale the engine can't model reads as its subtype alone, and a
+    /// draft can't write one.
+    @Test func aForeignMeasureReadsAsItsSubtypeAndIsRefusedOnADraft() async throws {
+      let (page, annotations) = try await opened()
+      let line = try #require(
+        try await annotations.get(
+          annotations.create(
+            LineAnnotationDraft(start: Point(x: 72, y: 72), end: Point(x: 216, y: 72)), on: page)))
+      var fields = try object(line.fieldsJSON)
+      fields["measure"] = ["subtype": "geospatial"]
+      var record = line.record
+      record.fieldsJson = String(
+        decoding: try JSONSerialization.data(withJSONObject: fields), as: UTF8.self)
+      expectNoDifference(
+        AnnotationInfo(record).line?.measure, PdfMeasurement(subtype: "geospatial"))
+
+      await #expect {
+        try await annotations.create(
+          LineAnnotationDraft(
+            start: Point(x: 72, y: 72), end: Point(x: 216, y: 72),
+            measure: .value(PdfMeasurement(subtype: "geospatial"))),
+          on: page)
+      } throws: {
+        ($0 as? PDFError)?.code == .invalidInput
+      }
+    }
+
     // ── tool defaults ───────────────────────────────────────────────────
 
     @Test func typedDefaultsReachTheTool() async throws {

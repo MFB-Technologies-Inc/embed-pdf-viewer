@@ -562,8 +562,8 @@ Writes take the same types. Every subtype the engine creates from a field
 bag has a typed draft (`UnderlineAnnotationDraft`, `LineAnnotationDraft`,
 `FreeTextAnnotationDraft`, …) and a patch, and stamps and file attachments
 have a patch only, since their create needs image or file bytes. The typed
-layer leaves out `richText`, `measure`, the `/F` flags, `nm`, `subject`,
-`reply` and `groupId`; the JSON-string overloads still take those. A link
+layer leaves out two subtypes, popup and widget; the JSON-string overloads
+still take those. A link
 and a stamp have no `blendMode`, because the engine writes `/BM` while it
 draws an appearance and draws neither (`write/update.rs` in
 `crates/epdf-engine/src/features/annotation`). The cost is that each typed

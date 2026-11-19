@@ -6,6 +6,8 @@ public typealias MeasurementConfig = EmbedPDFBindings.MeasurementConfig
 public typealias MeasurementDefaultScale = EmbedPDFBindings.MeasurementDefaultScale
 public typealias PdfMeasurement = EmbedPDFBindings.PdfMeasurement
 public typealias PdfNumberFormat = EmbedPDFBindings.PdfNumberFormat
+/// `PdfMeasurement.origin`: where the scale's coordinates start.
+public typealias MeasureOrigin = EmbedPDFBindings.MeasureOrigin
 public typealias MeasureFraction = EmbedPDFBindings.MeasureFraction
 public typealias MeasureLabelPosition = EmbedPDFBindings.MeasureLabelPosition
 public typealias ScalePreset = EmbedPDFBindings.ScalePreset

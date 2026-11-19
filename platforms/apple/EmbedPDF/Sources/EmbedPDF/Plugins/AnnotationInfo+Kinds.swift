@@ -4,9 +4,7 @@ public import Foundation
 // The typed members of every subtype `AnnotationInfo.Details` reads besides
 // ink, highlight and note (`AnnotationInfo.swift`). Each struct is the
 // engine's read record for its kind (`crates/epdf-engine/src/features/
-// annotation/read/kinds.rs`), minus the members the typed layer leaves in
-// `fieldsJSON`: a comment's or free text's `richText`, and a measurement's
-// `measure`.
+// annotation/read/kinds.rs`).
 //
 // A member whose read vocabulary is the write vocabulary takes the drafts'
 // enum (`AnnotationLineEndings`, `AnnotationTextAlignment`, …).
@@ -23,6 +21,9 @@ extension AnnotationInfo {
     public let opacity: Double
     /// `/QuadPoints`, page space: one quad per run of marked text.
     public let quadPoints: [Quad]
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
   }
 
   /// A strikeout's members.
@@ -36,6 +37,9 @@ extension AnnotationInfo {
     /// `/IT`: `strikeout-text-edit` for text marked for deletion, `nil` for
     /// a plain strikeout.
     public let intent: AnnotationIntent?
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
   }
 
   /// A square's or circle's members.
@@ -56,6 +60,9 @@ extension AnnotationInfo {
     public let rotation: Double?
     /// `/BE`: the cloudy border's intensity, or `nil` for a plain border.
     public let cloudyIntensity: Double?
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
   }
 
   /// A line's members.
@@ -84,6 +91,13 @@ extension AnnotationInfo {
     /// `/LL`, `/LLE` and `/LLO`; the engine reads a missing `/LLE` or `/LLO`
     /// as 0.
     public let leader: AnnotationLineLeader?
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
+    /// `/Measure`: the scale a dimension measures in, or `nil` for none. A
+    /// scale the engine can't model has only its `subtype` (`geospatial`,
+    /// `unknown`).
+    public let measure: PdfMeasurement?
   }
 
   /// A polygon's members.
@@ -109,6 +123,13 @@ extension AnnotationInfo {
     public let captionEnabled: Bool?
     /// The caption's centre, page space, or `nil` when the engine places it.
     public let captionCenter: Point?
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
+    /// `/Measure`: the scale a dimension measures in, or `nil` for none. A
+    /// scale the engine can't model has only its `subtype` (`geospatial`,
+    /// `unknown`).
+    public let measure: PdfMeasurement?
   }
 
   /// A polyline's members.
@@ -132,14 +153,21 @@ extension AnnotationInfo {
     public let captionEnabled: Bool?
     /// The caption's centre, page space, or `nil` when the engine places it.
     public let captionCenter: Point?
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
+    /// `/Measure`: the scale a dimension measures in, or `nil` for none. A
+    /// scale the engine can't model has only its `subtype` (`geospatial`,
+    /// `unknown`).
+    public let measure: PdfMeasurement?
   }
 
   /// A free text's members. Its text is `AnnotationInfo.contents`, plain;
-  /// the styled runs are `richText` in `fieldsJSON`.
+  /// the styled runs are `richText`.
   public struct FreeText: Sendable, Hashable {
     /// The text box, page space, before rotation.
     public let box: Rect
-    /// `free-text` or `free-text-callout`.
+    /// `free-text`, `free-text-callout` or `free-text-typewriter`.
     public let intent: AnnotationIntent
     public let fontFamily: String
     public let fontSize: Double
@@ -160,6 +188,10 @@ extension AnnotationInfo {
     public let rotation: Double?
     public let calloutLine: AnnotationCalloutLine?
     public let lineEnding: AnnotationLineEnding?
+    /// The text as styled runs; its plain text is `AnnotationInfo.contents`.
+    /// The engine reports one for every free text it reads, one unstyled run
+    /// per line when the text was written plain.
+    public let richText: AnnotationRichText?
   }
 
   /// A caret's members.
@@ -173,6 +205,9 @@ extension AnnotationInfo {
     public let rotation: Double?
     /// `/IT`: `replace`, or `nil` for an insertion.
     public let intent: AnnotationIntent?
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
   }
 
   /// A stamp's members. Its image is the appearance, which the record
@@ -186,6 +221,9 @@ extension AnnotationInfo {
     /// The stamp's box, page space, before rotation.
     public let box: Rect
     public let rotation: Double?
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
   }
 
   /// A link's members.
@@ -206,6 +244,9 @@ extension AnnotationInfo {
     /// The attached file's description, or `nil` when there is no readable
     /// `/FS`.
     public let file: AttachedFile?
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
   }
 
   /// The file a file attachment carries, without its bytes.
@@ -246,6 +287,9 @@ extension AnnotationInfo {
     public let fontSize: Double
     public let fontColor: AnnotationColor
     public let textAlign: AnnotationTextAlignment
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
   }
 }
 
@@ -255,7 +299,8 @@ private enum MemberKey: String, CodingKey {
   case color, opacity, quadPoints, intent, strokeWidth, borderStyle, dashArray, interiorColor,
     box, rotation, cloudyIntensity, linePoints, lineEndings, captionEnabled, captionPosition,
     captionOffset, leader, vertices, captionCenter, fontFamily, fontSize, fontColor, textAlign,
-    verticalAlign, calloutLine, lineEnding, name, fit, target, icon, file, overlayText, `repeat`
+    verticalAlign, calloutLine, lineEnding, name, fit, target, icon, file, overlayText, `repeat`,
+    richText, measure
 }
 
 extension KeyedDecodingContainer where Key == MemberKey {
@@ -278,6 +323,7 @@ extension AnnotationInfo.TextMarkup: Decodable {
     color = try members.decode(AnnotationColor.self, forKey: .color)
     opacity = try members.decode(Double.self, forKey: .opacity)
     quadPoints = try members.quads()
+    richText = try members.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
   }
 }
 
@@ -288,6 +334,7 @@ extension AnnotationInfo.Strikeout: Decodable {
     opacity = try members.decode(Double.self, forKey: .opacity)
     quadPoints = try members.quads()
     intent = try members.decodeIfPresent(AnnotationIntent.self, forKey: .intent)
+    richText = try members.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
   }
 }
 
@@ -303,6 +350,7 @@ extension AnnotationInfo.Shape: Decodable {
     box = try members.box()
     rotation = try members.decodeIfPresent(Double.self, forKey: .rotation)
     cloudyIntensity = try members.decodeIfPresent(Double.self, forKey: .cloudyIntensity)
+    richText = try members.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
   }
 }
 
@@ -330,6 +378,8 @@ extension AnnotationInfo.Line: Decodable {
     captionPosition = try members.decode(AnnotationCaptionPosition.self, forKey: .captionPosition)
     captionOffset = try members.decodeIfPresent(AnnotationCaptionOffset.self, forKey: .captionOffset)
     leader = try members.decodeIfPresent(AnnotationLineLeader.self, forKey: .leader)
+    richText = try members.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
+    measure = try members.decodeMeasureIfPresent(forKey: .measure)
   }
 }
 
@@ -348,6 +398,8 @@ extension AnnotationInfo.Polygon: Decodable {
     cloudyIntensity = try members.decodeIfPresent(Double.self, forKey: .cloudyIntensity)
     captionEnabled = try members.decodeIfPresent(Bool.self, forKey: .captionEnabled)
     captionCenter = try members.decodeIfPresent(ReadPoint.self, forKey: .captionCenter)?.point
+    richText = try members.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
+    measure = try members.decodeMeasureIfPresent(forKey: .measure)
   }
 }
 
@@ -366,6 +418,8 @@ extension AnnotationInfo.Polyline: Decodable {
     intent = try members.decodeIfPresent(AnnotationIntent.self, forKey: .intent)
     captionEnabled = try members.decodeIfPresent(Bool.self, forKey: .captionEnabled)
     captionCenter = try members.decodeIfPresent(ReadPoint.self, forKey: .captionCenter)?.point
+    richText = try members.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
+    measure = try members.decodeMeasureIfPresent(forKey: .measure)
   }
 }
 
@@ -398,6 +452,7 @@ extension AnnotationInfo.FreeText: Decodable {
       }
     }
     lineEnding = try members.decodeIfPresent(AnnotationLineEnding.self, forKey: .lineEnding)
+    richText = try members.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
   }
 }
 
@@ -409,6 +464,7 @@ extension AnnotationInfo.Caret: Decodable {
     box = try members.box()
     rotation = try members.decodeIfPresent(Double.self, forKey: .rotation)
     intent = try members.decodeIfPresent(AnnotationIntent.self, forKey: .intent)
+    richText = try members.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
   }
 }
 
@@ -420,6 +476,7 @@ extension AnnotationInfo.Stamp: Decodable {
     opacity = try members.decode(Double.self, forKey: .opacity)
     box = try members.box()
     rotation = try members.decodeIfPresent(Double.self, forKey: .rotation)
+    richText = try members.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
   }
 }
 
@@ -455,6 +512,7 @@ extension AnnotationInfo.FileAttachment: Decodable {
     color = try members.decode(AnnotationColor.self, forKey: .color)
     opacity = try members.decode(Double.self, forKey: .opacity)
     file = try members.decodeIfPresent(AnnotationInfo.AttachedFile.self, forKey: .file)
+    richText = try members.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
   }
 }
 
@@ -471,5 +529,6 @@ extension AnnotationInfo.Redaction: Decodable {
     fontSize = try members.decode(Double.self, forKey: .fontSize)
     fontColor = try members.decode(AnnotationColor.self, forKey: .fontColor)
     textAlign = try members.decode(AnnotationTextAlignment.self, forKey: .textAlign)
+    richText = try members.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
   }
 }
