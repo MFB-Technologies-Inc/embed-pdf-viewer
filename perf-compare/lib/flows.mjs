@@ -769,7 +769,7 @@ export const sampleFields = (r) => ({
 export function withDeadline(work, ms, what) {
   let timer;
   const late = new Promise((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`${what} did not finish in ${Math.round(ms / 1000)} s`)), ms);
+    timer = setTimeout(() => reject(Object.assign(new Error(`${what} did not finish in ${Math.round(ms / 1000)} s`), { deadline: true })), ms);
   });
   return Promise.race([work, late]).finally(() => clearTimeout(timer));
 }
@@ -780,14 +780,20 @@ const flowTimeoutMs = () => Number(process.env.PERF_FLOW_TIMEOUT ?? 300) * 1000;
 
 export async function runFlow(run, options) {
   const context = await run.browser.newContext({ viewport: options.viewport, deviceScaleFactor: options.deviceScaleFactor });
+  let stuck = false;
   try {
     const work = flowIn(context, run, options);
     // Closing the context below rejects whatever the flow still awaits.
     work.catch(() => {});
     return await withDeadline(work, flowTimeoutMs(), `${options.flow}/${options.fixture}`);
+  } catch (error) {
+    stuck = error.deadline === true;
+    throw error;
   } finally {
-    // A renderer stuck in a loop can hold the close as well.
+    // A renderer stuck in a loop can hold the close as well, and outlives it:
+    // the next flow gets a new browser.
     await withDeadline(context.close(), 30_000, 'closing the page').catch(() => {});
+    if (stuck) await run.restart();
   }
 }
 
