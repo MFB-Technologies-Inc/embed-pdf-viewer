@@ -191,6 +191,46 @@ struct SearchModelTests {
     expectNoDifference(model.activeIndex, 1)
   }
 
+  /// The summary's text with both numbers in the host locale's digits and
+  /// grouping, as `String(localized:)` formats them.
+  func summary(_ position: Int, of count: Int) -> String {
+    "\(position.formatted()) of \(count.formatted())"
+  }
+
+  @Test func theSummaryGroupsALargeCountAsTheLocaleDoes() {
+    expectNoDifference(
+      SearchModel.summary(activeHitIndex: 1233, hitCount: 12345, status: .complete), summary(1234, of: 12345))
+  }
+
+  @Test func clearIsAvailableForTextHitsOrASessionThatIsNotIdle() async throws {
+    let (model, _) = try await model()
+    #expect(!model.canClear)
+    model.text = "trace"
+    #expect(model.canClear)
+    await model.searchSubmitted()
+    // The field emptied by hand leaves the hits to clear.
+    model.text = ""
+    #expect(model.hitCount > 0)
+    #expect(model.canClear)
+    await model.clearButtonTapped()
+    #expect(!model.canClear)
+  }
+
+  @Test func clearIsAvailableAfterARefusedSearchWithAnEmptyField() async throws {
+    let viewer = try PDFViewer(ViewerConfig(scope: ["doc.open", "doc.render"], search: SearchConfig()))
+    try await viewer.start()
+    let model = SearchModel(search: try await viewer.search(for: try await viewer.open(pluginFixture())))
+    model.text = "the"
+    await model.searchSubmitted()
+    model.text = ""
+    expectNoDifference(model.status, .error)
+    expectNoDifference(model.hitCount, 0)
+    #expect(model.canClear)
+    await model.clearButtonTapped()
+    #expect(!model.canClear)
+    try await viewer.destroy()
+  }
+
   @Test func theActiveHitAndSummaryFollowNavigation() async throws {
     let (model, _) = try await model()
     expectNoDifference(model.activeHit, nil)
@@ -200,10 +240,10 @@ struct SearchModelTests {
     expectNoDifference(model.status, .complete)
     #expect(model.hitCount > 1)
     expectNoDifference(model.activeHit, model.hits[0])
-    expectNoDifference(model.summary, "1 of \(model.hitCount)")
+    expectNoDifference(model.summary, summary(1, of: model.hitCount))
     await model.nextButtonTapped()
     expectNoDifference(model.activeHit, model.hits[1])
-    expectNoDifference(model.summary, "2 of \(model.hitCount)")
+    expectNoDifference(model.summary, summary(2, of: model.hitCount))
     await model.clearButtonTapped()
     expectNoDifference(model.activeHit, nil)
     expectNoDifference(model.summary, nil)
@@ -211,10 +251,10 @@ struct SearchModelTests {
 
   @Test func theSummaryMarksACountThatIsStillGrowing() {
     // A running scan has found 12 hits so far, not 12 in all.
-    expectNoDifference(SearchModel.summary(activeHitIndex: 2, hitCount: 12, status: .searching), "3 of 12+")
-    expectNoDifference(SearchModel.summary(activeHitIndex: 2, hitCount: 12, status: .complete), "3 of 12")
+    expectNoDifference(SearchModel.summary(activeHitIndex: 2, hitCount: 12, status: .searching), summary(3, of: 12) + "+")
+    expectNoDifference(SearchModel.summary(activeHitIndex: 2, hitCount: 12, status: .complete), summary(3, of: 12))
     // A cancelled scan keeps its hits and finds no more.
-    expectNoDifference(SearchModel.summary(activeHitIndex: 2, hitCount: 12, status: .cancelled), "3 of 12")
+    expectNoDifference(SearchModel.summary(activeHitIndex: 2, hitCount: 12, status: .cancelled), summary(3, of: 12))
     expectNoDifference(SearchModel.summary(activeHitIndex: nil, hitCount: 12, status: .complete), nil)
     expectNoDifference(SearchModel.summary(activeHitIndex: nil, hitCount: 0, status: .searching), nil)
     // The index and the count come from separate reads and can disagree

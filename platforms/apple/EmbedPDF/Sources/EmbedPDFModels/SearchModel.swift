@@ -58,8 +58,13 @@ public final class SearchModel {
   public func hitCount(on page: PageRef) -> Int { pageHitCounts[page] ?? 0 }
 
   /// The hit at ``activeHitIndex`` in ``hits``, `nil` when no hit is active.
-  /// The index and the list come from separate reads, so for one refresh the
-  /// index can point past the list; that reads `nil` too.
+  ///
+  /// The index and the list come from separate reads. A refresh already
+  /// reading when a new search starts can apply the old search's index with
+  /// the new search's list. For that one refresh the index either points
+  /// past the list, which reads `nil`, or lands inside it, and this is then
+  /// a hit of the new search that is not its active one. The next refresh
+  /// corrects it.
   public var activeHit: SearchHit? {
     guard let activeHitIndex, hits.indices.contains(activeHitIndex) else { return nil }
     return hits[activeHitIndex]
@@ -82,10 +87,21 @@ public final class SearchModel {
 
   static func summary(activeHitIndex: Int?, hitCount: Int, status: SearchStatus) -> String? {
     guard let activeHitIndex, activeHitIndex < hitCount else { return nil }
+    // Performance: each read looks the key up in the main bundle's strings
+    // table and formats two numbers for the locale, and a view reads this on
+    // every body evaluation, each keystroke in a search field included. That
+    // is small for one label; a stored string rebuilt only when
+    // `activeHitIndex`, `hitCount` or `status` changes removes it.
     return status == .searching
       ? String(localized: "\(activeHitIndex + 1) of \(hitCount)+")
       : String(localized: "\(activeHitIndex + 1) of \(hitCount)")
   }
+
+  /// Whether a clear button has anything to clear: text in the field, hits,
+  /// or a session that is not idle. A running scan with no hits yet and a
+  /// refused search's `SearchStatus.error` both count, with an empty field
+  /// too.
+  package var canClear: Bool { !text.isEmpty || hitCount > 0 || status != .idle }
 
   public func task() async {
     observation &+= 1
@@ -109,6 +125,11 @@ public final class SearchModel {
   public func refresh() async {
     await snapshots.run(load: {
       let status = try await self.search.status()
+      // Performance: the active index here and the hit list below are two of
+      // this refresh's bridge round trips, and a search that starts between
+      // them pairs the old index with the new list (see `activeHit`). One
+      // capability read that returns the index and the hits from the same
+      // kernel state saves a round trip per refresh and closes that window.
       let activeHitIndex = try await self.search.activeHitIndex()
       let hitCount: Int = try await self.search.hitCount()
       let progress = try await self.search.progress()
@@ -119,6 +140,7 @@ public final class SearchModel {
       // an edit can find as many hits in other places.
       let unchanged = !self.hitsOutdated && query == self.query && hitCount == self.hits.count
         && status == self.status
+      // The second of the two reads noted at `activeHitIndex` above.
       let hits: [SearchHit]? = unchanged ? nil : try await self.search.hits()
       return (status, activeHitIndex, hitCount, progress, query, hits)
     }, apply: { snapshot in
