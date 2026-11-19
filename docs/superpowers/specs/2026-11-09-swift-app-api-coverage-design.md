@@ -5,7 +5,8 @@
 The user authorized merging `research/swift-api-plugin-parity-plan` into
 `research/multi-platform-rust-core-impl-plugins`, pushing to `fork`, transferring
 any independent non-plugin fixes to `research/multi-platform-rust-core-impl`,
-and closing remaining Swift binding gaps. They selected app-facing APIs over
+and closing remaining Swift binding gaps. (Since 2026-11-19 that branch is frozen;
+non-plugin fixes stay on `research/multi-platform-rust-core-impl-plugins`.) They selected app-facing APIs over
 exporting every public Rust implementation method.
 
 The merge is a separate first deliverable. Its compatibility fixes preserve

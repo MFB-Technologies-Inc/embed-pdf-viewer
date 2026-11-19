@@ -12,7 +12,7 @@ def main():
         os.environ.get("EMBEDPDF_REPOSITORY")
         or "https://github.com/MFB-Technologies-Inc/embed-pdf-viewer.git"
     )
-    branch = os.environ.get("EMBEDPDF_BRANCH") or "research/multi-platform-rust-core-impl"
+    branch = os.environ.get("EMBEDPDF_BRANCH") or "research/multi-platform-rust-core-impl-plugins"
 
     if (workspace / ".git").is_dir():
         print(f"Reusing repository at {workspace}")

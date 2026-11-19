@@ -6,8 +6,8 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 const script = resolve('scripts/sync-upstream.sh');
-const implBranch = 'research/multi-platform-rust-core-impl';
-const pluginsBranch = `${implBranch}-plugins`;
+const frozenBranch = 'research/multi-platform-rust-core-impl';
+const pluginsBranch = `${frozenBranch}-plugins`;
 const runtimeBranch = 'research/multi-platform-rust-core';
 const sub = 'packages/engine/runtime/runtime-src';
 
@@ -34,14 +34,12 @@ function fixture() {
   mkdirSync(join(viewer, 'packages/engine/runtime/scripts'), { recursive: true });
   writeFileSync(join(viewer, 'packages/engine/runtime/scripts/runtime-payload-hash.sh'), 'echo fixture\n');
   git(viewer, 'add', '.'); git(viewer, 'commit', '-m', 'viewer base');
-  git(viewer, 'branch', implBranch);
+  git(viewer, 'branch', pluginsBranch);
   git(join(viewer, sub), 'fetch', runtime, 'main'); git(join(viewer, sub), 'checkout', upstreamRuntime);
   git(viewer, 'add', sub); commit(viewer, 'main.txt', 'upstream');
   const main = git(viewer, 'rev-parse', 'HEAD');
-  const impl = join(root, 'impl'); git(viewer, 'worktree', 'add', impl, implBranch); commit(impl, 'impl.txt', 'impl');
-  git(viewer, 'branch', pluginsBranch, implBranch);
   const plugins = join(root, 'plugins'); git(viewer, 'worktree', 'add', plugins, pluginsBranch); commit(plugins, 'plugins.txt', 'plugins');
-  for (const path of [impl, plugins]) git(path, 'submodule', 'update', '--init');
+  git(plugins, 'submodule', 'update', '--init');
   for (const [url, path] of [
     ['https://github.com/embedpdf/embed-pdf-viewer.git', viewer],
     ['https://github.com/embedpdf/runtime.git', runtime],
@@ -54,119 +52,110 @@ function fixture() {
     const bare = join(root, `${name}.git`); git(root, 'init', '--bare', bare); git(viewer, 'remote', 'add', name, bare); hook(bare, name);
   }
   const run = (...args) => spawnSync('bash', [script, ...args], { cwd: plugins, env, encoding: 'utf8' });
-  const route = (...args) => run('--route', '--impl-worktree', impl, '--plugins-worktree', plugins, ...args);
   const head = path => git(path, 'rev-parse', 'HEAD');
   const ancestor = (path, before, after = 'HEAD') => git(path, 'merge-base', '--is-ancestor', before, after);
-  return { root, env, git, commit, runtime, forkRuntime, impl, plugins, viewer, main, base, upstreamRuntime, override, pushes,
-    run, route, head, ancestor, cleanup: () => rmSync(root, { recursive: true, force: true }) };
+  return { root, env, git, commit, runtime, forkRuntime, plugins, viewer, main, base, upstreamRuntime, override, pushes,
+    run, head, ancestor, cleanup: () => rmSync(root, { recursive: true, force: true }) };
 }
 function withFixture(name, body) {
   test(name, () => { const f = fixture(); try { body(f); } finally { f.cleanup(); } });
 }
 function success(result) { assert.equal(result.status, 0, result.stdout + result.stderr); }
 
-withFixture('route merges main into impl and impl into plugins with a fork runtime override', f => {
-  success(f.route('--runtime-commit', f.override));
-  f.ancestor(f.impl, f.main); f.ancestor(f.plugins, f.head(f.impl));
-  const pin = f.git(f.impl, 'rev-parse', `HEAD:${sub}`);
-  assert.equal(pin, f.git(f.plugins, 'rev-parse', `HEAD:${sub}`));
-  f.ancestor(join(f.impl, sub), f.override, pin);
+withFixture('merges main into plugins with a fork runtime override', f => {
+  success(f.run('--runtime-commit', f.override));
+  f.ancestor(f.plugins, f.main);
+  const pin = f.git(f.plugins, 'rev-parse', `HEAD:${sub}`);
+  f.ancestor(join(f.plugins, sub), f.override, pin);
   assert.equal(readFileSync(join(f.plugins, 'main.txt'), 'utf8'), 'upstream');
   assert.equal(readFileSync(f.pushes, 'utf8'), '');
-  const heads = [f.head(f.impl), f.head(f.plugins)]; success(f.route('--runtime-commit', f.override));
-  assert.deepEqual([f.head(f.impl), f.head(f.plugins)], heads);
+  const before = f.head(f.plugins); success(f.run('--runtime-commit', f.override));
+  assert.equal(f.head(f.plugins), before);
 });
-withFixture('route pushes runtime, then impl, then plugins to the fork remote', f => {
-  success(f.route('--push'));
-  assert.deepEqual(readFileSync(f.pushes, 'utf8').trim().split('\n'), ['runtime', 'fork', 'fork']);
+withFixture('pushes runtime, then plugins to the fork remote', f => {
+  success(f.run('--push'));
+  assert.deepEqual(readFileSync(f.pushes, 'utf8').trim().split('\n'), ['runtime', 'fork']);
   assert.equal(f.git(f.viewer, 'ls-remote', 'fork', `refs/heads/${pluginsBranch}`).split('\t')[0], f.head(f.plugins));
 });
-withFixture('route refuses a wrong destination branch before changing impl or runtime', f => {
-  f.git(f.plugins, 'checkout', '-b', 'human-work');
-  const before = [f.head(f.impl), f.head(join(f.impl, sub))];
-  const result = f.route(); assert.notEqual(result.status, 0); assert.match(result.stderr, /expected.*plugins/);
-  assert.deepEqual([f.head(f.impl), f.head(join(f.impl, sub))], before);
+withFixture('refuses the frozen impl branch before changing the runtime', f => {
+  f.git(f.plugins, 'checkout', '-b', frozenBranch);
+  const before = [f.head(f.plugins), f.head(join(f.plugins, sub))];
+  const result = f.run(); assert.notEqual(result.status, 0); assert.match(result.stderr, /is frozen/);
+  assert.deepEqual([f.head(f.plugins), f.head(join(f.plugins, sub))], before);
 });
-withFixture('route refuses dirty plugins before changing impl', f => {
-  writeFileSync(join(f.plugins, 'plugins.txt'), 'dirty'); const before = f.head(f.impl);
-  const result = f.route(); assert.notEqual(result.status, 0); assert.match(result.stderr, /commit or discard/); assert.equal(f.head(f.impl), before);
+withFixture('refuses a dirty branch', f => {
+  writeFileSync(join(f.plugins, 'plugins.txt'), 'dirty'); const before = f.head(f.plugins);
+  const result = f.run(); assert.notEqual(result.status, 0); assert.match(result.stderr, /commit or discard/); assert.equal(f.head(f.plugins), before);
 });
-withFixture('route stops on impl conflicts without merging or pushing plugins', f => {
-  f.commit(f.impl, 'main.txt', 'impl conflict'); const before = f.head(f.plugins);
-  const result = f.route('--push'); assert.notEqual(result.status, 0); assert.match(result.stderr, /merge conflicts/);
-  assert.equal(f.head(f.plugins), before); assert.equal(readFileSync(f.pushes, 'utf8'), '');
-  assert.equal(f.git(f.impl, 'diff', '--name-only', '--diff-filter=U'), 'main.txt');
+withFixture('stops on viewer conflicts without pushing', f => {
+  f.commit(f.plugins, 'main.txt', 'plugins conflict');
+  const result = f.run('--push'); assert.notEqual(result.status, 0); assert.match(result.stderr, /merge conflicts/);
+  assert.equal(readFileSync(f.pushes, 'utf8'), '');
+  assert.equal(f.git(f.plugins, 'diff', '--name-only', '--diff-filter=U'), 'main.txt');
 });
 withFixture('single-branch local source mode remains available', f => {
-  success(f.run('--from', implBranch)); f.ancestor(f.plugins, f.head(f.impl));
+  success(f.run('--from', 'main')); f.ancestor(f.plugins, f.main);
 });
-
-withFixture('route refuses a runtime override that omits the source runtime', f => {
-  const before = [f.head(f.impl), f.head(f.plugins)];
-  const result = f.route('--runtime-commit', f.base); assert.notEqual(result.status, 0);
+withFixture('refuses a runtime override that omits the source runtime', f => {
+  const before = f.head(f.plugins);
+  const result = f.run('--runtime-commit', f.base); assert.notEqual(result.status, 0);
   assert.match(result.stderr, /does not contain.*source runtime/);
-  assert.deepEqual([f.head(f.impl), f.head(f.plugins)], before);
+  assert.equal(f.head(f.plugins), before);
 });
-withFixture('route does not push viewers when the runtime push is rejected', f => {
+withFixture('does not push the viewer when the runtime push is rejected', f => {
   writeFileSync(join(f.forkRuntime, 'hooks/pre-receive'), '#!/bin/sh\nexit 1\n', { mode: 0o755 });
-  const result = f.route('--push'); assert.notEqual(result.status, 0);
+  const result = f.run('--push'); assert.notEqual(result.status, 0);
   assert.equal(readFileSync(f.pushes, 'utf8'), '');
-  assert.equal(f.git(f.viewer, 'ls-remote', 'fork', `refs/heads/${implBranch}`), '');
+  assert.equal(f.git(f.viewer, 'ls-remote', 'fork', `refs/heads/${pluginsBranch}`), '');
 });
-withFixture('route stops before mirroring plugins when the impl push is rejected', f => {
-  writeFileSync(join(f.root, 'fork.git/hooks/pre-receive'), '#!/bin/sh\nexit 1\n', { mode: 0o755 });
-  const result = f.route('--push'); assert.notEqual(result.status, 0);
-  assert.equal(readFileSync(f.pushes, 'utf8'), 'runtime\n');
-});
-withFixture('route preserves plugins runtime commits outside the impl merge', f => {
+withFixture('keeps unpushed local runtime commits', f => {
   const runtime = join(f.plugins, sub); f.git(runtime, 'checkout', runtimeBranch);
-  const before = f.commit(runtime, 'plugins-runtime', 'keep');
-  const result = f.route(); assert.notEqual(result.status, 0); assert.match(result.stderr, /local commits/);
-  assert.equal(f.head(runtime), before);
+  const local = f.commit(runtime, 'plugins-runtime', 'keep');
+  success(f.run()); f.ancestor(runtime, local, f.git(f.plugins, 'rev-parse', `HEAD:${sub}`));
 });
-withFixture('route refuses detached plugins before changing impl', f => {
-  f.git(f.plugins, 'checkout', '--detach'); const before = f.head(f.impl);
-  const result = f.route(); assert.notEqual(result.status, 0); assert.match(result.stderr, /detached HEAD/); assert.equal(f.head(f.impl), before);
+withFixture('refuses a detached HEAD', f => {
+  f.git(f.plugins, 'checkout', '--detach'); const before = f.head(f.plugins);
+  const result = f.run(); assert.notEqual(result.status, 0); assert.match(result.stderr, /detached HEAD/); assert.equal(f.head(f.plugins), before);
 });
-withFixture('route refuses dirty plugins runtime before changing impl', f => {
-  writeFileSync(join(f.plugins, sub, 'untracked'), 'keep'); const before = f.head(f.impl);
-  const result = f.route(); assert.notEqual(result.status, 0); assert.match(result.stderr, /uncommitted changes/); assert.equal(f.head(f.impl), before);
+withFixture('refuses a dirty runtime', f => {
+  writeFileSync(join(f.plugins, sub, 'untracked'), 'keep'); const before = f.head(f.plugins);
+  const result = f.run(); assert.notEqual(result.status, 0); assert.match(result.stderr, /uncommitted changes/); assert.equal(f.head(f.plugins), before);
 });
-withFixture('route refuses an existing plugins merge before changing impl', f => {
-  f.git(f.plugins, 'merge', '--no-commit', '--no-ff', 'main'); const before = f.head(f.impl);
-  const result = f.route(); assert.notEqual(result.status, 0); assert.match(result.stderr, /merge is in progress/); assert.equal(f.head(f.impl), before);
+withFixture('refuses an existing merge', f => {
+  f.git(f.plugins, 'merge', '--no-commit', '--no-ff', 'main');
+  const result = f.run(); assert.notEqual(result.status, 0); assert.match(result.stderr, /merge is in progress/);
 });
-withFixture('route resumes after an impl conflict is committed', f => {
-  f.commit(f.impl, 'main.txt', 'impl conflict'); assert.notEqual(f.route().status, 0);
-  f.git(f.impl, 'add', 'main.txt'); f.git(f.impl, 'commit', '-m', 'resolve main');
-  success(f.route()); f.ancestor(f.plugins, f.head(f.impl));
+withFixture('resumes after a viewer conflict is committed', f => {
+  f.commit(f.plugins, 'main.txt', 'plugins conflict'); assert.notEqual(f.run().status, 0);
+  f.git(f.plugins, 'checkout', '--theirs', 'main.txt'); f.git(f.plugins, 'add', 'main.txt'); f.git(f.plugins, 'commit', '--no-edit');
+  success(f.run()); f.ancestor(f.plugins, f.main);
 });
-withFixture('explicit viewer remotes replace the plugins mirror defaults', f => {
-  success(f.route('--push', '--viewer-remote', 'mirror'));
-  assert.deepEqual(readFileSync(f.pushes, 'utf8').trim().split('\n'), ['runtime', 'fork', 'mirror']);
+withFixture('explicit viewer remotes replace the fork default', f => {
+  success(f.run('--push', '--viewer-remote', 'mirror'));
+  assert.deepEqual(readFileSync(f.pushes, 'utf8').trim().split('\n'), ['runtime', 'mirror']);
 });
 
-withFixture('runtime conflicts stop before either viewer changes', f => {
+withFixture('runtime conflicts stop before the viewer changes', f => {
   const target = f.commit(f.runtime, 'fork', 'upstream conflict');
-  const before = [f.head(f.impl), f.head(f.plugins)]; const result = f.route('--runtime-commit', target, '--push');
+  const before = f.head(f.plugins); const result = f.run('--runtime-commit', target, '--push');
   assert.notEqual(result.status, 0); assert.match(result.stderr, /runtime merge conflicts/);
-  assert.deepEqual([f.head(f.impl), f.head(f.plugins)], before);
-  assert.equal(f.git(join(f.impl, sub), 'diff', '--name-only', '--diff-filter=U'), 'fork');
+  assert.equal(f.head(f.plugins), before);
+  assert.equal(f.git(join(f.plugins, sub), 'diff', '--name-only', '--diff-filter=U'), 'fork');
   assert.equal(readFileSync(f.pushes, 'utf8'), '');
 });
-withFixture('an unavailable runtime override stops before viewer merges or pushes', f => {
-  const before = [f.head(f.impl), f.head(f.plugins)]; const result = f.route('--runtime-commit', 'missing-ref', '--push');
-  assert.notEqual(result.status, 0); assert.deepEqual([f.head(f.impl), f.head(f.plugins)], before);
+withFixture('an unavailable runtime override stops before the viewer merge or pushes', f => {
+  const before = f.head(f.plugins); const result = f.run('--runtime-commit', 'missing-ref', '--push');
+  assert.notEqual(result.status, 0); assert.equal(f.head(f.plugins), before);
   assert.equal(readFileSync(f.pushes, 'utf8'), '');
 });
 withFixture('single-branch URL source mode still merges upstream', f => {
   success(f.run('--from', 'https://github.com/embedpdf/embed-pdf-viewer.git', 'main'));
   f.ancestor(f.plugins, f.main);
 });
-withFixture('all three route merges disable the commit graph', f => {
-  const trace = join(f.root, 'git-trace'); f.env.GIT_TRACE2_EVENT = trace; success(f.route());
+withFixture('both merges disable the commit graph', f => {
+  const trace = join(f.root, 'git-trace'); f.env.GIT_TRACE2_EVENT = trace; success(f.run());
   const merges = readFileSync(trace, 'utf8').trim().split('\n').map(line => JSON.parse(line))
     .filter(event => event.event === 'start' && event.argv.includes('merge') && event.argv.includes('-q'));
-  assert.equal(merges.length, 3);
+  assert.equal(merges.length, 2);
   for (const { argv } of merges) assert.deepEqual(argv.slice(1, 4), ['-c', 'core.commitGraph=false', 'merge']);
 });

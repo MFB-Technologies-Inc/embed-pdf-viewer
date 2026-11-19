@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Syncs the runtime fork, then a viewer branch or the main → impl → plugins route.
-# Route mode requires both worktrees on their named branches. Conflicts remain
+# Syncs the runtime fork, then merges upstream main (or --from) into the current
+# branch, normally research/multi-platform-rust-core-impl-plugins. Conflicts remain
 # in place for resolution; rerunning skips completed merges. Pushes are opt-in.
 #
-# Single branch: scripts/sync-upstream.sh [--from <local-branch> | --from <url> <branch>]
-# Route: scripts/sync-upstream.sh --route --impl-worktree <path> --plugins-worktree <path>
+# Usage: scripts/sync-upstream.sh [--from <local-branch> | --from <url> <branch>]
 # Options: --runtime-commit <ref>, --push, --viewer-remote <remote> (repeatable).
-# Pushes go to the fork remote by default; --viewer-remote replaces it for plugins (route) or the branch.
+# Pushes go to the fork remote by default; --viewer-remote replaces it.
+#
+# research/multi-platform-rust-core-impl is frozen as of 2026-11-19: plugins holds
+# everything it has, so the script refuses to sync it.
 set -euo pipefail
 
 UPSTREAM_VIEWER=https://github.com/embedpdf/embed-pdf-viewer.git
@@ -14,11 +16,7 @@ UPSTREAM_RUNTIME=https://github.com/embedpdf/runtime.git
 FORK_RUNTIME=https://github.com/MFB-Technologies-Inc/embed-pdf-runtime.git
 FORK_BRANCH=research/multi-platform-rust-core
 VIEWER_REMOTES=()
-ROUTE=0
-IMPL_WORKTREE=
-PLUGINS_WORKTREE=
-IMPL_BRANCH=research/multi-platform-rust-core-impl
-PLUGINS_BRANCH=research/multi-platform-rust-core-impl-plugins
+FROZEN_BRANCH=research/multi-platform-rust-core-impl
 RUNTIME_COMMIT=
 # merge-ort opens a submodule's alternates; its commit graph can fail even when
 # verification passes. Disable it for every git command, including runtime merges.
@@ -30,14 +28,11 @@ FROM_URL="$UPSTREAM_VIEWER"
 FROM_BRANCH=main
 FROM_LOCAL=0
 usage() {
-  echo "usage: $0 [--route --impl-worktree <path> --plugins-worktree <path>] [--push] [--runtime-commit <ref>] [--viewer-remote <remote>] [--from <url> <branch> | --from <local-branch>]" >&2
+  echo "usage: $0 [--push] [--runtime-commit <ref>] [--viewer-remote <remote>] [--from <url> <branch> | --from <local-branch>]" >&2
   exit 1
 }
 while (($#)); do
   case "$1" in
-    --route) ROUTE=1; shift ;;
-    --impl-worktree) [[ $# -ge 2 && -n "$2" ]] || usage; IMPL_WORKTREE="$2"; shift 2 ;;
-    --plugins-worktree) [[ $# -ge 2 && -n "$2" ]] || usage; PLUGINS_WORKTREE="$2"; shift 2 ;;
     --runtime-commit) [[ $# -ge 2 && -n "$2" && "$2" != -* ]] || usage; RUNTIME_COMMIT="$2"; shift 2 ;;
     --viewer-remote) [[ $# -ge 2 && -n "$2" && "$2" != -* ]] || usage; VIEWER_REMOTES+=("$2"); shift 2 ;;
     --push)
@@ -77,9 +72,9 @@ die() {
 }
 
 check_worktree() {
-  local expected="${1:-}"
   BRANCH="$(git symbolic-ref --short HEAD)" || die "detached HEAD; check out the branch to sync"
-  [[ -z "$expected" || "$BRANCH" == "$expected" ]] || die "expected $expected in $PWD; found $BRANCH"
+  [[ "$BRANCH" != "$FROZEN_BRANCH" ]] ||
+    die "$FROZEN_BRANCH is frozen; sync research/multi-platform-rust-core-impl-plugins instead"
 
   [[ -f "$(git rev-parse --git-path MERGE_HEAD)" ]] &&
     die "a merge is in progress here; finish it with \`git commit\`, then rerun"
@@ -225,45 +220,5 @@ sync_branch() (
   fi
 )
 
-if ((ROUTE)); then
-  [[ -n "$IMPL_WORKTREE" && -n "$PLUGINS_WORKTREE" ]] || usage
-  if ((FROM_LOCAL)) || [[ "$FROM_URL" != "$UPSTREAM_VIEWER" || "$FROM_BRANCH" != main ]]; then
-    die "--route uses upstream main; --from is only available for a single branch"
-  fi
-  IMPL_WORKTREE="$(cd "$IMPL_WORKTREE" && pwd -P)"
-  PLUGINS_WORKTREE="$(cd "$PLUGINS_WORKTREE" && pwd -P)"
-  [[ "$IMPL_WORKTREE" != "$PLUGINS_WORKTREE" ]] || die "route requires distinct worktrees"
-  (cd "$IMPL_WORKTREE"; check_worktree "$IMPL_BRANCH")
-  (cd "$PLUGINS_WORKTREE"; check_worktree "$PLUGINS_BRANCH")
-  [[ "$(git -C "$IMPL_WORKTREE" rev-parse --path-format=absolute --git-common-dir)" == "$(git -C "$PLUGINS_WORKTREE" rev-parse --path-format=absolute --git-common-dir)" ]] ||
-    die "route worktrees must belong to the same viewer repository"
-  if ((${#VIEWER_REMOTES[@]} == 0)); then VIEWER_REMOTES=(fork); fi
-  REQUESTED_PUSH="$PUSH"
-  PUSH=0
-  (cd "$IMPL_WORKTREE"; sync_branch)
-  RUNTIME_NEW="$(git -C "$IMPL_WORKTREE/$SUB" rev-parse HEAD)"
-  # The first merge is local until both viewer steps succeed. Transfer its
-  # runtime objects directly, preserving every local runtime commit.
-  (
-    cd "$PLUGINS_WORKTREE/$SUB"
-    git fetch -q "$IMPL_WORKTREE/$SUB" "$RUNTIME_NEW"
-    for need in "$(git -C "$PLUGINS_WORKTREE" rev-parse "HEAD:$SUB")" "$(git rev-parse HEAD)" "$(git rev-parse --verify "refs/heads/$FORK_BRANCH" 2>/dev/null || git rev-parse HEAD)"; do
-      git merge-base --is-ancestor "$need" "$RUNTIME_NEW" ||
-        die "plugins runtime has local commits outside the impl runtime merge; reconcile them before rerunning"
-    done
-    git checkout -q -B "$FORK_BRANCH" "$RUNTIME_NEW"
-  )
-  (cd "$PLUGINS_WORKTREE"; FROM_LOCAL=1; FROM_BRANCH="$IMPL_BRANCH";
-    SOURCE_NAME="$IMPL_BRANCH"; MERGE_MSG_SOURCE="$IMPL_BRANCH"; RUNTIME_COMMIT=; sync_branch)
-  if ((REQUESTED_PUSH)); then
-    git -C "$IMPL_WORKTREE/$SUB" push -q "$FORK_RUNTIME" "$FORK_BRANCH"
-    git -C "$IMPL_WORKTREE" push -q fork "$IMPL_BRANCH"
-    for remote in "${VIEWER_REMOTES[@]}"; do
-      git -C "$PLUGINS_WORKTREE" push -q "$remote" "$PLUGINS_BRANCH"
-    done
-  fi
-else
-  [[ -z "$IMPL_WORKTREE" && -z "$PLUGINS_WORKTREE" ]] || usage
-  if ((${#VIEWER_REMOTES[@]} == 0)); then VIEWER_REMOTES=(fork); fi
-  sync_branch
-fi
+if ((${#VIEWER_REMOTES[@]} == 0)); then VIEWER_REMOTES=(fork); fi
+sync_branch

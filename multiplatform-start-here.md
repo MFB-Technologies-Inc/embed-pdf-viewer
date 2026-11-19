@@ -9,6 +9,10 @@ TypeScript. The engine is TypeScript over PDFium, with a Rust core linked into t
 PDFium payload that today serves page geometry only. Nothing here is published, and it's a
 research branch, not a release candidate.
 
+The engine-only branch, `research/multi-platform-rust-core-impl`, has been frozen since 2026-11-19
+at `ae3ce9944`. This branch holds everything in it. Don't commit to it, merge into it or sync it:
+work, fixes and upstream syncs (`scripts/sync-upstream.sh`) land here.
+
 Read these five, in order. Everything else at the root is a detail they link to.
 
 1. [`multiplatform-plan.md`](multiplatform-plan.md): the plan. The goal and the architecture, one

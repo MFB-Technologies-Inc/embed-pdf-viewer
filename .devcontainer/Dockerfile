@@ -44,7 +44,7 @@ RUN mkdir -p /workspaces/embed-pdf-viewer \
     && git config --system credential.helper /home/node/.npm-global/bin/git-credential-forwarder-client
 COPY .devcontainer/clone.py /usr/local/share/embedpdf/clone.py
 ENV EMBEDPDF_REPOSITORY=https://github.com/MFB-Technologies-Inc/embed-pdf-viewer.git \
-    EMBEDPDF_BRANCH=research/multi-platform-rust-core-impl \
+    EMBEDPDF_BRANCH=research/multi-platform-rust-core-impl-plugins \
     EMBEDPDF_WORKSPACE=/workspaces/embed-pdf-viewer \
     OAUTH2_FORWARDER_SERVER=host.docker.internal:18080 \
     GIT_CREDENTIAL_FORWARDER_SERVER=host.docker.internal:18081 \
