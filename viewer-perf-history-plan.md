@@ -9,7 +9,7 @@ Node, TypeScript or JavaScript runs on the Mac host.
 
 ## Status
 
-Last updated 2026-11-18.
+Last updated 2026-11-19.
 
 | Task | State |
 | --- | --- |
@@ -20,8 +20,8 @@ Last updated 2026-11-18.
 | 5. `scripts/history-record.mjs`, first run recorded | done, `db5605bee` |
 | 6. `scripts/history-chart.mjs` and the page | done, `0b7f7c7a0`: 3 of 19 points plotted |
 | 7. README section | done, `3ca600b8f` |
-| 8. Build every point | not started. Next. Needs no Mac mini time |
-| 9. Measure the points on the Mac mini | blocked: the Mac mini is busy, wait for the user's word |
+| 8. Build every point | done 2026-11-19: 19 of 21 build, 2 skipped (see the log) |
+| 9. Measure the points on the Mac mini | running since 2026-11-19, three batches |
 | 10. Merge into the harness branch | blocked on review |
 
 Nothing on this branch is pushed yet: it exists only in the `embed-pdf-perf` container's clone.
@@ -29,6 +29,28 @@ Pushing and merging need the user's confirmation.
 
 ### Progress log
 
+- 2026-11-19: Task 8, every point that can build is built. What it took, all in the container:
+  - The builds share the harness branch's work directory:
+    `PERF_WORK_DIR=/workspaces/wt-harness/perf-compare/.work`, which already had `main`, `main-now`
+    and `perf-fixes-end`. `build-entry.mjs` does not create a worktree, and `materialize.mjs` creates
+    all of them, so `~/hist-build/build.sh` in the container materializes one arm's worktree and
+    then builds it, one arm at a time, with a log per arm under `~/hist-build/<batch>/`.
+  - `PATH=/workspaces/perf-task2/bin:$PATH`. That directory holds a `clang` shim an earlier build
+    session wrote: `generate-functions.mjs` dumps the fork headers with the host `clang`, where
+    `uint64_t` is `unsigned long` and comes out as `i32`, so the shim points that one call at
+    `wasm32-unknown-emscripten`. Without it the link fails with "2 of 1061 bound functions don't
+    match their bindings".
+  - `node_modules` in this worktree is now a real copy, not a symlink: `remote.mjs` copies it to the
+    remote, and a link into `/workspaces` is dead there.
+  - The fork commits `7c7b600b1` and `d045f389d` (the points up to 2026-10-13) list a `reclient`
+    cipd package that has no linux-arm64 build, so `gclient sync` fails. In the harness's private
+    fork clones (`.work/fork/<sha>/runtime-src`) their `DEPS` has that one entry switched off with
+    `'condition': 'False'`, committed locally because `gclient` refuses a modified tree. No
+    compiled source changes.
+  - `49b09030c` (2026-10-27) and `920a52876` (2026-11-03) are skipped: from the first upstream
+    catch-up until the web shell followed, `packages/core-wasm` does not type-check against the
+    viewer packages. Two milestones bracket the gap instead: `735f6e492`, the last commit before
+    that catch-up, and `92f844a18`, where the shell caught up. So 21 points, 19 to measure.
 - 2026-11-18: a temporary SSH key for the backfill, so a batch doesn't wait on a password-manager
   unlock. It is in the `embed-pdf-perf` container at `~/.ssh/perf-mini-temp` (outside the repo, no
   passphrase), authorized on the Mac mini with `restrict` and `expiry-time="202611202359"`, and
@@ -179,7 +201,7 @@ cd /workspaces/wt-perf-history/perf-compare
 node --test test/*.test.mjs
 ```
 
-`node_modules` there is a symlink to `/workspaces/wt-harness/perf-compare/node_modules`
+`node_modules` there is a copy of `/workspaces/wt-harness/perf-compare/node_modules`
 (untracked). The container's clone has no local plugins branch; `history-points.mjs` reads it from
 a remote, so fetch first:
 

@@ -81,11 +81,20 @@
     },
     {
       "series": "plugins",
+      "sha": "735f6e49234481b12cb29637b6628ff63967cc7c",
+      "date": "2026-10-26T19:22:34.000Z",
+      "why": "milestone",
+      "note": "the last commit before the first upstream catch-up",
+      "arm": "hist-735f6e492"
+    },
+    {
+      "series": "plugins",
       "sha": "49b09030c3cb75aa16bdfb6c0fff61e2b3d0c2a7",
       "date": "2026-10-27T18:04:47.000Z",
       "why": "milestone",
       "note": "the first upstream catch-up merged",
-      "arm": "hist-49b09030c"
+      "arm": "hist-49b09030c",
+      "skip": "its web shell (packages/core-wasm) does not type-check against the viewer packages: the first upstream catch-up changed the plugin shape, and the shell followed in the 2026-11-07 catch-up"
     },
     {
       "series": "plugins",
@@ -93,7 +102,16 @@
       "date": "2026-11-03T22:56:00.000Z",
       "why": "interval",
       "note": "the last commit on or before 2026-11-03",
-      "arm": "hist-920a52876"
+      "arm": "hist-920a52876",
+      "skip": "its web shell (packages/core-wasm) does not type-check against the viewer packages: the first upstream catch-up changed the plugin shape, and the shell followed in the 2026-11-07 catch-up"
+    },
+    {
+      "series": "plugins",
+      "sha": "92f844a18d1dbb48d3eada5864b04c17de806a97",
+      "date": "2026-11-07T14:36:01.000Z",
+      "why": "milestone",
+      "note": "the web shell caught up with the 2026-11-07 catch-up (upstream 074a190c9)",
+      "arm": "hist-92f844a18"
     },
     {
       "series": "plugins",

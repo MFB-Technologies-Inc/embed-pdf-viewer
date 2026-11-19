@@ -323,6 +323,16 @@
       "ref": "research/multi-platform-rust-core-impl-plugins",
       "sha": "bac82a2cd1a4e3a5d3888ff1f0fb460b593a5fb9",
       "recipe": "rust-kernel"
+    },
+    "hist-735f6e492": {
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "735f6e49234481b12cb29637b6628ff63967cc7c",
+      "recipe": "rust-kernel"
+    },
+    "hist-92f844a18": {
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "92f844a18d1dbb48d3eada5864b04c17de806a97",
+      "recipe": "rust-kernel"
     }
   },
   "arms": {
@@ -676,6 +686,16 @@
     },
     "hist-bac82a2cd": {
       "worktree": "hist-bac82a2cd",
+      "kernel": "rust",
+      "rustReads": false
+    },
+    "hist-735f6e492": {
+      "worktree": "hist-735f6e492",
+      "kernel": "rust",
+      "rustReads": false
+    },
+    "hist-92f844a18": {
+      "worktree": "hist-92f844a18",
       "kernel": "rust",
       "rustReads": false
     }
