@@ -97,10 +97,12 @@ public final class PDFReaderModel {
     public func pageInfo(for visiblePage: StageVisiblePage) -> PageInfo? {
       let index = Int(visiblePage.pageIndex)
       if pages.indices.contains(index), pages[index].page == visiblePage.page { return pages[index] }
-      // A page edit moved the page since the document opened. This scans
-      // every page once per call, and a reader calls it per visible page
-      // per redraw; a dictionary by `PageRef` built with the session makes
-      // it constant if documents whose pages move grow large.
+      // A page edit moved the page since the document opened.
+      //
+      // Performance: this scans every page once per call, and a reader
+      // calls it per visible page per redraw; a dictionary by `PageRef`
+      // built with the session makes it constant if documents whose pages
+      // move grow large.
       return pages.first { $0.page == visiblePage.page }
     }
   }
@@ -278,10 +280,10 @@ public final class PDFReaderModel {
   }
 
   private func session(for document: DocumentInfo, in viewer: PDFViewer) async throws(PDFError) -> Session {
-    // Each accessor below is its own trip to the engine, made one after
-    // another: up to eight per open with every feature on. They do not
-    // depend on each other, so `async let` runs them together if opening
-    // shows up in a profile.
+    // Performance: each accessor below is its own trip to the engine, made
+    // one after another: up to eight per open with every feature on. They do
+    // not depend on each other, so `async let` runs them together if
+    // opening shows up in a profile.
     let stage = try await viewer.stage(for: document)
     let render = try await viewer.render(for: document)
     let interaction = features.needsInteraction ? try await viewer.interaction(for: document) : nil
@@ -294,9 +296,9 @@ public final class PDFReaderModel {
     let search = features.contains(.search) ? SearchModel(search: try await viewer.search(for: document)) : nil
     let selection = features.contains(.selection)
       ? TextSelectionModel(selection: try await viewer.selection(for: document)) : nil
-    // Every page's `PageInfo` crosses the bridge here, at each open and
-    // after each unlock: a payload that grows with the page count and
-    // delays the first frame of a document with thousands of pages. The
+    // Performance: every page's `PageInfo` crosses the bridge here, at each
+    // open and after each unlock: a payload that grows with the page count
+    // and delays the first frame of a document with thousands of pages. The
     // session needs a page's info only once the stage shows it, so reading
     // `viewer.page(_:in:)` for visible pages and caching by `PageRef`
     // removes the up-front cost.

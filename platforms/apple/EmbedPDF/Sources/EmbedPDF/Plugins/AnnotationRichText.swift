@@ -10,7 +10,8 @@ import Foundation
 /// style, each run's style and each paragraph's properties are open maps it
 /// passes through, held here as `JSONValue` with every key kept.
 ///
-/// `contents` is always the rich text's plain text, `plainText`:
+/// `contents` is always the rich text's plain text: `plainText`, with a
+/// `\r\n` or `\r` inside a run's text spelled `\n`.
 ///
 /// - A draft or patch that gives `richText` gets `contents` from it. Giving
 ///   both is allowed only when they agree, line breaks however spelled;

@@ -163,8 +163,8 @@ public final class TextSelectionModel {
     do {
       // Performance: one `isLoaded` round trip before every extension,
       // though a drag stays on one page for most of its points. A set of the
-      // pages this drag has loaded skips the read, provided nothing unloads
-      // a page while the drag is open.
+      // pages this drag has loaded skips the read, if it drops a page when
+      // the page's content changes: the engine unloads the page's text then.
       if !(try await selection.isLoaded(page)) {
         try await selection.ensureLoaded(page)
       }
