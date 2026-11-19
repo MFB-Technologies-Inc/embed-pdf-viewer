@@ -1,0 +1,368 @@
+name: release-train
+
+# One dispatch releases everything a commit of this branch ships: the PDFium
+# runtime, the wasm payload and the Apple engine on the release repo, then the
+# Swift package, the Rust viewer bundle and the C# engine as prereleases here.
+#
+#   t0          preflight, the three slice groups and the .NET package start
+#               together.
+#   runtime     needs the five runtime slices (slices-runtime, slices-eh).
+#   payload     needs the wasm32-eh slice.
+#   apple       needs the four Apple slices.
+#   viewer      needs payload: it fetches the released payload. A dry run
+#               that built a new payload has nothing to fetch, so it builds
+#               from the payload-wasm32 artifact instead.
+#   pin         needs apple, runtime and payload: commits the Apple manifests
+#               pinned to the engine release and pushes it to this branch.
+#   *-release   tag the pin commit and make the three prereleases.
+#
+# runtime, payload and apple also wait for preflight, so a bad input stops the
+# train before it publishes anything. Every job after a reusable workflow skips
+# what is already out, so a rerun picks up where a failed run stopped.
+#
+# dry_run builds and tests everything and prints each push, tag and release
+# command instead of running it. The pin commit is made and shown but not
+# pushed, so the releases would name the dispatched commit.
+
+on:
+  workflow_dispatch:
+    inputs:
+      swift_version:
+        description: Swift package tag, 0.0.0-swift.<n>. docs/releases/<swift_version>.md holds its notes.
+        required: true
+        type: string
+      viewer_version:
+        description: Rust viewer bundle version, 0.0.0-preview.<n>, as packages/rust-viewer-bundle/package.json has it. docs/releases/rust-viewer-<viewer_version>.md holds its notes.
+        required: true
+        type: string
+      dry_run:
+        description: Build and test everything, print every push, tag and release command instead of running it.
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-train
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  RELEASE_REPO: MFB-Technologies-Inc/embed-pdf-runtime
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      SWIFT_VERSION: ${{ inputs.swift_version }}
+      VIEWER_VERSION: ${{ inputs.viewer_version }}
+      REF_TYPE: ${{ github.ref_type }}
+      REF_NAME: ${{ github.ref_name }}
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Check the inputs
+        run: |
+          status=0
+          err() { echo "::error::$*"; status=1; }
+          # pin pushes its commit to the dispatched branch.
+          [[ "$REF_TYPE" == branch ]] || err "dispatch the train from a branch, not the $REF_TYPE $REF_NAME"
+          [[ "$SWIFT_VERSION" =~ ^0\.0\.0-swift\.[0-9]+$ ]] || err "swift_version must look like 0.0.0-swift.8, got '$SWIFT_VERSION'"
+          [[ "$VIEWER_VERSION" =~ ^0\.0\.0-preview\.[0-9]+$ ]] || err "viewer_version must look like 0.0.0-preview.4, got '$VIEWER_VERSION'"
+          for notes in "docs/releases/$SWIFT_VERSION.md" "docs/releases/rust-viewer-$VIEWER_VERSION.md" docs/releases/dotnet-engine.md; do
+            [[ -s "$notes" ]] || err "no release notes at $notes; write them and commit before dispatching"
+          done
+          have=$(jq -r .version packages/rust-viewer-bundle/package.json)
+          [[ "$have" == "$VIEWER_VERSION" ]] || err "packages/rust-viewer-bundle/package.json is $have, viewer_version is $VIEWER_VERSION"
+          exit "$status"
+
+      # A tag with no release stops the train here; a complete release is
+      # skipped by its release job.
+      - name: Check the Swift and viewer releases
+        id: releases
+        run: |
+          swift=$(bash scripts/release/github-release.sh check "$SWIFT_VERSION")
+          viewer=$(bash scripts/release/github-release.sh check "rust-viewer-$VIEWER_VERSION" "mfb-embedpdf-rust-viewer-$VIEWER_VERSION.tgz")
+          {
+            echo "swift=$swift"
+            echo "viewer=$viewer"
+          } >> "$GITHUB_OUTPUT"
+
+      # For the summary only: the reusable workflows compute these again.
+      - name: Summarize
+        env:
+          SWIFT_STATE: ${{ steps.releases.outputs.swift }}
+          VIEWER_STATE: ${{ steps.releases.outputs.viewer }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          runtime_sha=$(git ls-tree HEAD packages/engine/runtime/runtime-src | awk '{print $3}')
+          payload_tag="runtime-payloads-$(bash packages/engine/runtime/scripts/runtime-payload-hash.sh)"
+          apple_tag="apple-engine-$(bash platforms/apple/apple-engine-hash.sh)"
+          on_release_repo() {
+            local view
+            if view=$(gh release view "$1" -R "$RELEASE_REPO" --json isDraft 2>&1); then
+              jq -r 'if .isDraft then "draft" else "released" end' <<<"$view"
+            elif grep -qi 'release not found' <<<"$view"; then
+              echo "not released"
+            else
+              echo "unknown"
+            fi
+          }
+          {
+            echo "## Release train at \`${GITHUB_SHA:0:9}\` on \`$REF_NAME\`$([[ "$DRY_RUN" == true ]] && echo ' (dry run)')"
+            echo
+            echo "| Release | Tag | State |"
+            echo "| --- | --- | --- |"
+            echo "| PDFium runtime | \`runtime-$runtime_sha\` | $(on_release_repo "runtime-$runtime_sha") on $RELEASE_REPO |"
+            echo "| wasm payload | \`$payload_tag\` | $(on_release_repo "$payload_tag") on $RELEASE_REPO |"
+            echo "| Apple engine | \`$apple_tag\` | $(on_release_repo "$apple_tag") on $RELEASE_REPO |"
+            echo "| Swift package | \`$SWIFT_VERSION\` | $SWIFT_STATE |"
+            echo "| Rust viewer bundle | \`rust-viewer-$VIEWER_VERSION\` | $VIEWER_STATE |"
+            echo "| C# engine | \`dotnet-engine-0.0.0-local-<pin commit>\` | tagged after pin |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat "$GITHUB_STEP_SUMMARY"
+
+  slices-apple:
+    uses: ./.github/workflows/release-fork-slices.yml
+    with:
+      targets: '["ios-arm64","ios-sim-arm64","darwin-static-arm64","darwin-static-x64"]'
+
+  slices-eh:
+    uses: ./.github/workflows/release-fork-slices.yml
+    with:
+      targets: '["wasm32-eh"]'
+
+  slices-runtime:
+    uses: ./.github/workflows/release-fork-slices.yml
+    with:
+      targets: '["linux-arm64","android-arm64","android-x64","wasm32"]'
+
+  dotnet:
+    uses: ./.github/workflows/release-dotnet.yml
+    with:
+      dry_run: ${{ inputs.dry_run }}
+
+  # Its five archives: four from slices-runtime, wasm32-eh from slices-eh.
+  runtime:
+    needs: [preflight, slices-runtime, slices-eh]
+    uses: ./.github/workflows/release-runtime.yml
+    with:
+      runtime_sha: ${{ needs.slices-runtime.outputs.runtime_sha }}
+      dry_run: ${{ inputs.dry_run }}
+    secrets:
+      RELEASE_APP_ID: ${{ secrets.RELEASE_APP_ID }}
+      RELEASE_APP_KEY: ${{ secrets.RELEASE_APP_KEY }}
+
+  payload:
+    needs: [preflight, slices-eh]
+    uses: ./.github/workflows/release-payload.yml
+    with:
+      dry_run: ${{ inputs.dry_run }}
+    secrets:
+      RELEASE_APP_ID: ${{ secrets.RELEASE_APP_ID }}
+      RELEASE_APP_KEY: ${{ secrets.RELEASE_APP_KEY }}
+
+  apple:
+    needs: [preflight, slices-apple]
+    uses: ./.github/workflows/release-apple.yml
+    with:
+      dry_run: ${{ inputs.dry_run }}
+    secrets:
+      RELEASE_APP_ID: ${{ secrets.RELEASE_APP_ID }}
+      RELEASE_APP_KEY: ${{ secrets.RELEASE_APP_KEY }}
+
+  # payload's publish job, when it runs, ends before payload does, so the
+  # payload is released by the time this starts. The one case it isn't is a
+  # dry run that built a new payload: then the build uses payload-wasm32.
+  viewer:
+    needs: payload
+    uses: ./.github/workflows/release-rust-viewer.yml
+    with:
+      version: ${{ inputs.viewer_version }}
+      ref: ${{ github.sha }}
+      payload_artifact: ${{ (inputs.dry_run && needs.payload.outputs.published == 'false') && 'payload-wasm32' || '' }}
+
+  # The Apple manifests name an engine built from the runtime-src gitlink, so
+  # they are committed only once the runtime and payload of that gitlink are
+  # out too. The pin commit is the one the three releases tag.
+  pin:
+    needs: [apple, runtime, payload]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # No environment on a dry run: nothing to approve.
+    environment: ${{ !inputs.dry_run && 'release' || '' }}
+    permissions:
+      contents: write
+    outputs:
+      pin_sha: ${{ steps.pin.outputs.pin_sha }}
+    env:
+      STATE: ${{ needs.apple.outputs.state }}
+      TAG: ${{ needs.apple.outputs.apple_tag }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      REF_TYPE: ${{ github.ref_type }}
+      REF_NAME: ${{ github.ref_name }}
+    steps:
+      - name: Check the ref and the Apple state
+        run: |
+          [[ "$REF_TYPE" == branch ]] || { echo "::error::the train pushes to its branch; $REF_NAME is a $REF_TYPE"; exit 1; }
+          case "$STATE" in
+            current|build|pin) echo "apple: $TAG $STATE" ;;
+            *) echo "::error::release-apple.yml reported state '$STATE'"; exit 1 ;;
+          esac
+
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - uses: actions/download-artifact@v7
+        if: needs.apple.outputs.state != 'current'
+        with:
+          name: apple-manifests
+          path: ${{ runner.temp }}/apple-manifests
+
+      - name: Commit the pinned manifests
+        id: pin
+        run: |
+          if [[ "$STATE" == current ]]; then
+            echo "both manifests already pin $TAG; the releases tag $GITHUB_SHA"
+            echo "pin_sha=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          src=$RUNNER_TEMP/apple-manifests
+          nested=platforms/apple/EmbedPDF/Package.swift
+          cp "$src/Package.swift" Package.swift
+          cp "$src/$nested" "$nested"
+          grep -qxF "let engineRelease = \"$TAG\"" "$nested" \
+            || { echo "::error::apple-manifests' $nested does not pin $TAG"; exit 1; }
+          grep -qF "/releases/download/$TAG/EmbedPDFBindings.xcframework.zip\"" Package.swift \
+            || { echo "::error::apple-manifests' Package.swift does not pin $TAG"; exit 1; }
+          changed=$(git status --porcelain)
+          [[ -n "$changed" ]] || { echo "::error::release-apple.yml reported $STATE, but its manifests match the checkout"; exit 1; }
+          git add Package.swift "$nested"
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898333+github-actions[bot]@users.noreply.github.com' \
+              commit -m "build(apple): pin $TAG"
+          git show --stat HEAD
+          [[ -z "$(git status --porcelain)" ]] || { echo "::error::apple-manifests changed files other than the two manifests"; git status --porcelain; exit 1; }
+          if [[ "$DRY_RUN" == true ]]; then
+            echo "dry run: would run git push origin HEAD:refs/heads/$REF_NAME"
+            echo "dry run: the releases name $GITHUB_SHA, the commit this run built"
+            echo "pin_sha=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # No force: a branch that moved since the dispatch fails the push.
+          git push origin "HEAD:refs/heads/$REF_NAME"
+          pin_sha=$(git rev-parse HEAD)
+          echo "pushed $pin_sha to $REF_NAME"
+          echo "pin_sha=$pin_sha" >> "$GITHUB_OUTPUT"
+
+  swift-release:
+    needs: [pin, viewer]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: ${{ !inputs.dry_run && 'release' || '' }}
+    permissions:
+      contents: write
+    env:
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      PIN_SHA: ${{ needs.pin.outputs.pin_sha }}
+      VERSION: ${{ inputs.swift_version }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.pin.outputs.pin_sha }}
+          fetch-depth: 1
+
+      # No assets: SwiftPM resolves the package from the tag.
+      - name: Release the Swift package
+        run: |
+          bash scripts/release/github-release.sh publish "$VERSION" "$PIN_SHA" \
+            "Swift package $VERSION" "docs/releases/$VERSION.md"
+
+  viewer-release:
+    needs: [pin, viewer]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: ${{ !inputs.dry_run && 'release' || '' }}
+    permissions:
+      contents: write
+    env:
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      PIN_SHA: ${{ needs.pin.outputs.pin_sha }}
+      VERSION: ${{ inputs.viewer_version }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.pin.outputs.pin_sha }}
+          fetch-depth: 1
+
+      # Built at the dispatched commit; the pin commit changes only the two
+      # Apple manifests, so it is the same tarball.
+      - uses: actions/download-artifact@v7
+        with:
+          name: rust-viewer-tarball
+          path: ${{ runner.temp }}/rust-viewer-tarball
+
+      - name: Release the Rust viewer bundle
+        run: |
+          bash scripts/release/github-release.sh publish "rust-viewer-$VERSION" "$PIN_SHA" \
+            "Rust viewer bundle $VERSION" "docs/releases/rust-viewer-$VERSION.md" \
+            "$RUNNER_TEMP/rust-viewer-tarball/mfb-embedpdf-rust-viewer-$VERSION.tgz"
+
+  dotnet-release:
+    needs: [pin, dotnet]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: ${{ !inputs.dry_run && 'release' || '' }}
+    permissions:
+      contents: write
+    env:
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      PIN_SHA: ${{ needs.pin.outputs.pin_sha }}
+      PACKAGE: EmbedPDF.Engine.0.0.0-local
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.pin.outputs.pin_sha }}
+          fetch-depth: 1
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: dotnet-release
+          path: ${{ runner.temp }}/dotnet-release
+
+      # The guide names the tag and the pin commit, so it is rendered here.
+      - name: Render the existing-app guide
+        run: |
+          R=$RUNNER_TEMP/dotnet-release
+          (cd "$R" && sha256sum -c "$PACKAGE.nupkg.sha256")
+          tag="dotnet-engine-0.0.0-local-${PIN_SHA:0:12}"
+          echo "TAG=$tag" >> "$GITHUB_ENV"
+          bash platforms/dotnet/packaging/render-guide.sh "$R/EmbedPDF-CSharp-Existing-App.md.in" "$R/guide-facts.json" \
+            "$GH_REPO" "$tag" "$PIN_SHA" "$R/EmbedPDF-CSharp-Existing-App.md"
+
+      - name: Release the C# engine
+        run: |
+          R=$RUNNER_TEMP/dotnet-release
+          bash scripts/release/github-release.sh publish "$TAG" "$PIN_SHA" \
+            "C# engine 0.0.0-local (${PIN_SHA:0:9})" docs/releases/dotnet-engine.md \
+            "$R/$PACKAGE.nupkg" "$R/$PACKAGE.nupkg.sha256" "$R/$PACKAGE.provenance.json" \
+            "$R/$PACKAGE.validation.linux-arm64.json" "$R/EmbedPDF-CSharp-Existing-App.md"
