@@ -250,23 +250,97 @@ struct ToolModelTests {
       [InteractionToolChangedEvent(toolId: ToolID.ink.rawValue, previousToolId: tools.fallback.rawValue)])
   }
 
-  @Test func everyButtonIsDisabledWhileAnActivationIsInFlight() async throws {
+  /// A model with no `task()` running: its only reads are the ones a test
+  /// causes.
+  func unobserved() async throws -> (PDFViewer, InteractionCapability, ToolModel) {
+    let viewer = try PDFViewer(ViewerConfig(interaction: true, annotation: ""))
+    try await viewer.start()
+    let document = try await viewer.open(pluginFixture("annotation_kinds"))
+    let interaction = try await viewer.interaction(for: document)
+    return (viewer, interaction, ToolModel(interaction: interaction))
+  }
+
+  @Test func everyButtonIsDisabledWhileTheHubCallIsOut() async throws {
     let tools = try await tools()
     let model = tools.model
     #expect(!model.submitting)
-    var inFlight: [Bool] = []
-    // The activation's own read: the hub has answered, the snapshot has not
-    // landed.
-    model.snapshots.readFinished = {
-      inFlight = [model.submitting, model.isDisabled(.ink), model.isDisabled(.pan)]
-    }
-    await model.activate(.ink)
-    model.snapshots.readFinished = nil
-    expectNoDifference(inFlight, [true, true, true])
+    let activation = Task { await model.activate(.ink) }
+    // The hub call leaves the main actor, so the flag is set and the call
+    // still out when this loop sees it.
+    for _ in 0..<1000 where !model.submitting { await Task.yield() }
+    expectNoDifference([model.submitting, model.isDisabled(.ink), model.isDisabled(.pan)], [true, true, true])
+    await activation.value
     expectNoDifference([model.submitting, model.isDisabled(.ink), model.isDisabled(.pan)], [false, false, false])
     expectNoDifference(model.activeToolID, .ink)
     try await tools.viewer.destroy()
     await tools.observing.value
+  }
+
+  /// The guard covers the hub call alone: by the time the action's read
+  /// has finished, the active tool is written and the buttons are back.
+  @Test func theButtonsAreEnabledAgainBeforeTheActivationsRead() async throws {
+    let (viewer, _, model) = try await unobserved()
+    await model.refresh()
+    var duringRead: [Bool] = []
+    var activeDuringRead: ToolID?
+    model.snapshots.readFinished = {
+      duringRead = [model.submitting, model.isDisabled(.ink), model.isDisabled(.pan), model.isSelected(.ink)]
+      activeDuringRead = model.activeToolID
+    }
+    await model.activate(.ink)
+    model.snapshots.readFinished = nil
+    expectNoDifference(duringRead, [false, false, false, true])
+    expectNoDifference(activeDuringRead, .ink)
+    try await viewer.destroy()
+  }
+
+  /// The action writes the active tool itself. Here its read is dropped,
+  /// so nothing else could have, and `tools` trails by that one read.
+  @Test func theActiveToolIsTheRequestedOneWhenActivateReturnsWithNoTaskRunning() async throws {
+    let (viewer, interaction, model) = try await unobserved()
+    model.snapshots.readFinished = { model.snapshots.invalidate() }
+    await model.activate(.ink)
+    model.snapshots.readFinished = nil
+    expectNoDifference(model.activeToolID, .ink)
+    expectNoDifference(model.submitting, false)
+    expectNoDifference(model.error, nil)
+    expectNoDifference(model.tools, [])
+    let kernel = try await interaction.activeToolID()
+    expectNoDifference(kernel, .ink)
+    await model.refresh()
+    let snapshot = try await kernelSnapshot(interaction)
+    expectNoDifference(model.tools, snapshot.0)
+    expectNoDifference(model.usable, snapshot.2)
+    expectNoDifference(model.activeToolID, .ink)
+    try await viewer.destroy()
+  }
+
+  @Test func theActiveToolIsTheDefaultWhenActivateDefaultReturnsWithNoTaskRunning() async throws {
+    let (viewer, interaction, model) = try await unobserved()
+    let fallback = try await interaction.defaultToolID()
+    await model.activate(.ink)
+    model.snapshots.readFinished = { model.snapshots.invalidate() }
+    await model.activateDefault()
+    model.snapshots.readFinished = nil
+    expectNoDifference(model.activeToolID, fallback)
+    expectNoDifference(model.submitting, false)
+    try await viewer.destroy()
+  }
+
+  /// A read that started before the hub answered holds the tool from
+  /// before. Landing after the action, it must not put that tool back.
+  @Test func aReadFromBeforeTheActivationDoesNotPutTheOldToolBack() async throws {
+    let (viewer, _, model) = try await unobserved()
+    await model.refresh()
+    let (reached, release) = holdingFirstRead(of: model.snapshots)
+    let stale = Task { await model.refresh() }
+    for await _ in reached { break }
+    await model.activate(.ink)
+    expectNoDifference(model.activeToolID, .ink)
+    release()
+    await stale.value
+    expectNoDifference(model.activeToolID, .ink)
+    try await viewer.destroy()
   }
 
   @Test func aFailedActivationEndsTheFlight() async throws {
@@ -332,137 +406,8 @@ struct ToolModelTests {
     await tools.observing.value
   }
 
-  @Test func anActivationReadsOnceHoweverManyRevisionsArriveDuringIt() async throws {
-    let tools = try await tools()
-    let model = tools.model
-    // A revision arrives during each of the next 20 reads, the way the
-    // observation delivers it.
-    var revisions = 20
-    var readsWhileSubmitting = 0
-    var revisionsLeftWhenSubmittingCleared: Int?
-    model.snapshots.readFinished = {
-      if model.submitting {
-        readsWhileSubmitting += 1
-      } else if revisionsLeftWhenSubmittingCleared == nil {
-        revisionsLeftWhenSubmittingCleared = revisions
-      }
-      guard revisions > 0 else { return }
-      revisions -= 1
-      Task { await model.observedChange() }
-    }
-    await model.activate(.ink)
-    expectNoDifference(readsWhileSubmitting, 1)
-    expectNoDifference(model.submitting, false)
-    expectNoDifference(model.activeToolID, .ink)
-    // The flight ended with revisions still to come: 19 were left at the
-    // first read after it.
-    expectNoDifference(revisions, 19)
-    while revisions > 0 { await Task.yield() }
-    expectNoDifference(revisionsLeftWhenSubmittingCleared, 19)
-    model.snapshots.readFinished = nil
-    await model.refresh()
-    let kernel = try await kernelSnapshot(tools.interaction)
-    expectNoDifference(model.tools, kernel.0)
-    expectNoDifference(model.activeToolID, .ink)
-    expectNoDifference(model.usable, kernel.2)
-    try await tools.viewer.destroy()
-    await tools.observing.value
-  }
-
-  @Test func aRevisionThatArrivesDuringTheActivationsReadStillReachesTheModel() async throws {
-    let tools = try await tools()
-    let model = tools.model
-    let interaction = tools.interaction
-    var held = false
-    var waited = false
-    // The activation's read has finished and not landed: a tool is
-    // registered now, and its revision arrives while `submitting` is set
-    // and waits.
-    model.snapshots.readFinished = {
-      guard model.submitting, !held else { return }
-      held = true
-      _ = try? await interaction.registerTool(InteractionTool(id: "late", cursor: "crosshair", enables: []))
-      for _ in 0..<10_000 where model.flightWaiters.isEmpty { await Task.yield() }
-      waited = !model.flightWaiters.isEmpty
-    }
-    await model.activate(.ink)
-    #expect(held)
-    #expect(waited)
-    expectNoDifference(model.submitting, false)
-    try await expectObserved({ model.tools.contains { $0.id == "late" } }, equals: true) {}
-    model.snapshots.readFinished = nil
-    let kernel = try await kernelSnapshot(interaction)
-    try await expectObserved({ model.usable }, equals: kernel.2) {}
-    expectNoDifference(model.tools, kernel.0)
-    expectNoDifference(model.activeToolID, .ink)
-    try await tools.viewer.destroy()
-    await tools.observing.value
-  }
-
-  @Test func aChangeObservedDuringARefusedActivationIsStillRead() async throws {
-    let viewer = try PDFViewer(ViewerConfig(interaction: true, annotation: ""))
-    try await viewer.start()
-    let document = try await viewer.open(pluginFixture("annotation_kinds"))
-    let interaction = try await viewer.interaction(for: document)
-    // No `task()`: the only reads are the ones this test causes.
-    let model = ToolModel(interaction: interaction)
-    await model.refresh()
-    _ = try await interaction.registerTool(InteractionTool(id: "late", cursor: "crosshair", enables: []))
-    #expect(!model.tools.contains { $0.id == "late" })
-    let refused = Task { await model.activate("nobody-registered-this") }
-    // Runs while the refused call is out.
-    let observed = Task {
-      let inFlight = model.submitting
-      await model.observedChange()
-      return inFlight
-    }
-    await refused.value
-    let inFlight = await observed.value
-    #expect(inFlight)
-    expectNoDifference(model.error?.code, .notFound)
-    expectNoDifference(model.submitting, false)
-    #expect(model.tools.contains { $0.id == "late" })
-    try await viewer.destroy()
-  }
-
-  @Test func aChangeObservedBeforeACancelledActivationsReadIsStillRead() async throws {
-    let viewer = try PDFViewer(ViewerConfig(interaction: true, annotation: ""))
-    try await viewer.start()
-    let document = try await viewer.open(pluginFixture("annotation_kinds"))
-    let interaction = try await viewer.interaction(for: document)
-    // No `task()`: `observed` below is the observation's side, and the only
-    // other read is the activation's.
-    let model = ToolModel(interaction: interaction)
-    await model.refresh()
-    let fallback = try await interaction.defaultToolID()
-    expectNoDifference(model.activeToolID, fallback)
-    let activation = Task { await model.activate(.ink) }
-    // Runs while the hub call is out, before the activation's read starts.
-    let observed = Task {
-      let inFlight = model.submitting
-      await model.observedChange()
-      return inFlight
-    }
-    // The activation's read finishes in a cancelled task and is dropped.
-    model.snapshots.readFinished = {
-      if model.submitting { activation.cancel() }
-    }
-    await activation.value
-    let inFlight = await observed.value
-    model.snapshots.readFinished = nil
-    #expect(inFlight)
-    #expect(activation.isCancelled)
-    expectNoDifference(model.submitting, false)
-    let kernel = try await kernelSnapshot(interaction)
-    expectNoDifference(kernel.1, .ink)
-    expectNoDifference(model.activeToolID, .ink)
-    expectNoDifference(model.tools, kernel.0)
-    expectNoDifference(model.usable, kernel.2)
-    try await viewer.destroy()
-  }
-
   /// Cancels an activation's task at `point` and expects the model, once at
-  /// rest, to hold what the capability reads.
+  /// rest with `task()` running, to hold what the hub holds.
   func expectAtRestAfterCancelling(_ point: (Task<Void, Never>, ToolModel) async -> Void) async throws {
     let tools = try await tools()
     let model = tools.model
@@ -470,12 +415,13 @@ struct ToolModelTests {
     await point(activation, model)
     await activation.value
     model.snapshots.readFinished = nil
+    #expect(activation.isCancelled)
     expectNoDifference(model.submitting, false)
-    try await Task.sleep(for: .milliseconds(300))
+    // The hub call has returned, so the hub's tool no longer moves.
     let kernel = try await kernelSnapshot(tools.interaction)
-    expectNoDifference(model.activeToolID, kernel.1)
-    expectNoDifference(model.tools, kernel.0)
-    expectNoDifference(model.usable, kernel.2)
+    try await expectObserved({ model.activeToolID }, equals: kernel.1) {}
+    try await expectObserved({ model.tools }, equals: kernel.0) {}
+    try await expectObserved({ model.usable }, equals: kernel.2) {}
     expectNoDifference(model.submitting, false)
     try await tools.viewer.destroy()
     await tools.observing.value
@@ -492,10 +438,13 @@ struct ToolModelTests {
     }
   }
 
+  /// The cancelled task drops the action's read. The active tool is
+  /// already written, and the read `task()` makes for the action's event
+  /// brings the rest.
   @Test func anActivationCancelledDuringItsReadLeavesTheModelCurrent() async throws {
     try await expectAtRestAfterCancelling { activation, model in
       model.snapshots.readFinished = {
-        if model.submitting { activation.cancel() }
+        if model.activeToolID == .ink { activation.cancel() }
       }
     }
   }

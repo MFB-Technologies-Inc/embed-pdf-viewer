@@ -9,21 +9,24 @@ import Observation
 /// ``task()`` runs, and after each action. A snapshot is one revision behind
 /// the hub until its refresh lands; the `InteractionCapability` reads answer
 /// with the hub's current value. A refresh that started earlier never
-/// overwrites one that started later. A failed read, as when the document
-/// closes, empties the model and sets ``error``; ``task()`` ends with one
-/// more refresh, so a closed document leaves the model empty.
+/// overwrites one that started later, and that rule is the only arbitration
+/// between the reads. A failed read, as when the document closes, empties
+/// the model and sets ``error``; ``task()`` ends with one more refresh, so a
+/// closed document leaves the model empty.
 ///
-/// ``submitting`` is `true` from the start of ``activate(_:)`` or
-/// ``activateDefault()`` until the call fails or the one read the action
-/// starts after the hub answers has finished. State revisions and events
-/// start no read in that time; one the action's read does not cover is
-/// read once ``submitting`` is `false`. ``activeToolID`` holds the action's
-/// result when ``submitting`` clears, with two exceptions: the action's
-/// task was cancelled, which drops its read, or a ``refresh()`` the app
-/// called superseded that read. After a cancelled action the result arrives
-/// with the read ``task()`` makes for the action's own event; without
-/// ``task()`` running, call ``refresh()``. A second action asked for while
-/// ``submitting`` is `true` is ignored.
+/// ``activate(_:)`` and ``activateDefault()`` write ``activeToolID``
+/// themselves when the hub accepts, then start one refresh for ``tools``
+/// and ``usable``. So ``activeToolID`` holds the action's result when the
+/// action returns, with or without ``task()`` running, and ``tools`` and
+/// ``usable`` can trail it by one read: the action's refresh is dropped
+/// when a newer read supersedes it or the calling task is cancelled, and
+/// the newer read, or the next one ``task()`` makes, brings them. After an
+/// action whose task was cancelled, without ``task()`` running, call
+/// ``refresh()``.
+///
+/// ``submitting`` is `true` while the hub call of ``activate(_:)`` or
+/// ``activateDefault()`` is out, and `false` again before the action's
+/// refresh starts. A second action asked for while it is `true` is ignored.
 ///
 /// ``usable`` holds each registered tool whose `canUseTool` is `true`. A
 /// tool registered or removed is a state revision, so ``usable`` follows it
@@ -35,7 +38,8 @@ import Observation
 /// ``error`` is the latest failure of an action or a read. A successful
 /// ``activate(_:)`` or ``activateDefault()`` clears it. A successful
 /// background refresh clears the error of an earlier read and keeps the
-/// error of an action.
+/// error of an action. A caller that polls it can miss a failure one of
+/// those cleared.
 @MainActor
 @Observable
 public final class ToolModel {
@@ -45,17 +49,12 @@ public final class ToolModel {
   public private(set) var activeToolID: ToolID?
   public private(set) var usable: Set<ToolID> = []
   public private(set) var error: PDFError?
-  /// Whether an ``activate(_:)`` or ``activateDefault()`` is in flight.
+  /// Whether the hub call of an ``activate(_:)`` or ``activateDefault()``
+  /// is out.
   public private(set) var submitting = false
   /// Whether ``error`` came from a read, which the next successful read
   /// clears, and not from an action.
   @ObservationIgnored private var readFailed = false
-  /// Whether the action in flight has started its read.
-  @ObservationIgnored private var flightReadStarted = false
-  /// The observed changes waiting for the action in flight to end, each
-  /// with whether it arrived before the action's read started. A waiter is
-  /// resumed with whether that read covered its change.
-  @ObservationIgnored private(set) var flightWaiters: [(arrivedBeforeRead: Bool, CheckedContinuation<Bool, Never>)] = []
   @ObservationIgnored let interaction: InteractionCapability
   @ObservationIgnored let snapshots = SnapshotRefresh()
   @ObservationIgnored private var observation: UInt64 = 0
@@ -70,62 +69,36 @@ public final class ToolModel {
     defer { if observation == session { snapshots.invalidate() } }
     await observeCapability(
       viewer: interaction.viewer, events: interaction.events,
-      initial: { if self.observation == session { await self.observedChange() } },
+      initial: { if self.observation == session { await self.refresh() } },
       // Performance: runs for every coalesced state revision, and most are
       // a scroll or a zoom that leaves the tools alone. The viewer's
       // revision stream does not say what changed, so each one costs a full
-      // read (see `read()`), except while an action is in flight.
-      refresh: { if self.observation == session { await self.observedChange() } },
+      // read (see `refresh()`).
+      refresh: { if self.observation == session { await self.refresh() } },
       receive: { event in
         // Gestures and cursor moves leave the tools alone.
         guard self.observation == session, case .toolChanged = event else { return }
-        await self.observedChange()
+        await self.refresh()
       })
     if observation == session { await refresh() }
   }
 
-  /// A state revision or a `toolChanged` event. While an action is in
-  /// flight it starts no read, so it cannot supersede the action's read or
-  /// be superseded by it in turn: it waits for the flight to end. The
-  /// action's read covers a change that arrived before it started, if it
-  /// landed. Any other change is read here, on the observation's side, so a
-  /// refused call or an action whose task was cancelled loses none.
-  func observedChange() async {
-    while submitting {
-      let arrivedBeforeRead = !flightReadStarted
-      let covered = await withCheckedContinuation { flightWaiters.append((arrivedBeforeRead, $0)) }
-      if covered { return }
-    }
-    // Performance: after a flight this is one more full read, started once
-    // `submitting` has cleared, so it never holds the buttons. The action's
-    // own `toolChanged` causes it when the event arrives during the
-    // action's read; telling that event from another caller's needs an id
-    // on the event. The revision and the event of one flight can each wait
-    // and each read, the later superseding the earlier.
-    await refresh()
-  }
-
-  public func refresh() async { _ = await read() }
-
-  /// Whether this read's result reached the model; `false` when a newer
-  /// read superseded it or its task was cancelled.
-  private func read() async -> Bool {
-    var landed = false
+  public func refresh() async {
     await snapshots.run(load: {
       let tools = try await self.interaction.tools()
       let active = try await self.interaction.activeToolID()
       var usable: Set<ToolID> = []
       // Performance: one `canUseTool` round trip to the kernel thread per
       // registered tool, one after another, on every coalesced state
-      // revision, a scroll or a zoom included. With the annotation plugin's
-      // tools that is 20 calls, 22 with the two reads above, per revision,
-      // and a `ToolPermission.canUse()` the app registered is asked at that
-      // rate, and an action's flight lasts one such read. Rereading
-      // `usable` only when `tools` differs or on `toolChanged` removes the
-      // cost, but a permission can change with no revision and no event
-      // (see the type's comment), so that needs a signal for permission
-      // changes first. A single engine call that answers for every tool
-      // removes the round trips without one.
+      // revision, a scroll or a zoom included, and once more after each
+      // action. With the annotation plugin's tools that is 20 calls, 22
+      // with the two reads above, per read, and a `ToolPermission.canUse()`
+      // the app registered is asked at that rate. Rereading `usable` only
+      // when `tools` differs or on `toolChanged` removes the cost, but a
+      // permission can change with no revision and no event (see the type's
+      // comment), so that needs a signal for permission changes first. A
+      // single engine call that answers for every tool removes the round
+      // trips without one.
       for tool in tools {
         let id = ToolID(tool.id)
         if try await self.interaction.canUseTool(id) { usable.insert(id) }
@@ -141,56 +114,64 @@ public final class ToolModel {
         self.readFailed = false
         self.error = nil
       }
-      landed = true
     }, failure: {
       self.tools = []
       self.activeToolID = nil
       self.usable = []
       self.error = controlError($0)
       self.readFailed = true
-      landed = true
     })
-    return landed
   }
 
-  /// Makes `id` the active tool. An id nobody registered sets ``error`` to
+  /// Makes `id` the active tool. ``activeToolID`` is `id` when this returns
+  /// after the hub accepted. An id nobody registered sets ``error`` to
   /// `not-found` and leaves ``activeToolID``.
   public func activate(_ id: ToolID) async {
-    await submit { () throws(PDFError) in try await self.interaction.activateTool(id) }
+    await submit { () throws(PDFError) in
+      try await self.interaction.activateTool(id)
+      return id
+    }
   }
 
-  /// Returns to the hub's default tool.
+  /// Returns to the hub's default tool. ``activeToolID`` is that tool when
+  /// this returns after the hub accepted.
   public func activateDefault() async {
-    await submit { () throws(PDFError) in try await self.interaction.activateDefaultTool() }
+    await submit { () throws(PDFError) in
+      try await self.interaction.activateDefaultTool()
+      // Performance: one more round trip per return to the default tool,
+      // inside the time `submitting` is set, because the hub call does not
+      // say which tool is the default. An `activateDefaultTool` that
+      // returns the tool's id removes it.
+      return try await self.interaction.activeToolID()
+    }
   }
 
-  /// The time ``submitting`` is set: the hub call and, when the hub
-  /// accepts, one read.
-  private func submit(_ action: () async throws(PDFError) -> Void) async {
+  /// Runs one action's hub call with ``submitting`` set, writes the active
+  /// tool it returns, and then refreshes. Nothing suspends between that
+  /// write and the start of the refresh, so a read that started before the
+  /// hub answered is superseded and cannot put the old tool back.
+  private func submit(_ action: () async throws(PDFError) -> ToolID) async {
     guard !submitting else { return }
     submitting = true
-    flightReadStarted = false
-    var landed = false
-    defer {
-      submitting = false
-      let waiting = flightWaiters
-      flightWaiters = []
-      for (arrivedBeforeRead, waiter) in waiting { waiter.resume(returning: landed && arrivedBeforeRead) }
-    }
+    let active: ToolID
     do {
-      try await action()
-      error = nil
-      readFailed = false
+      active = try await action()
     } catch {
+      submitting = false
       self.error = error
       readFailed = false
       return
     }
-    // This read starts after the hub answered, and no observed change
-    // starts a read that could supersede it: one read ends the flight,
-    // however many revisions arrive.
-    flightReadStarted = true
-    landed = await read()
+    submitting = false
+    error = nil
+    readFailed = false
+    if activeToolID != active { activeToolID = active }
+    // Performance: a full read after every action (see `refresh()`), and
+    // while `task()` runs the action's own `toolChanged` event starts a
+    // second one, the later superseding the earlier when they overlap.
+    // Telling that event from another caller's needs an id on the event;
+    // with it, the event's read could be skipped.
+    await refresh()
   }
 
   /// Whether a picker shows `id`'s button as on.

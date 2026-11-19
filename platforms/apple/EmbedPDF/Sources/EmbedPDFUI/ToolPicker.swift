@@ -3,7 +3,8 @@ import SwiftUI
 
 /// One toggle button per tool in `tools`, in that order, on for the active
 /// tool. A button is disabled while its tool is neither active nor in
-/// `ToolModel.usable`, and every button while `ToolModel.submitting`.
+/// `ToolModel.usable`, and every button while `ToolModel.submitting`, which
+/// lasts for an activation's hub call.
 /// Tapping a tool activates it; tapping the active tool returns to the
 /// default tool. The picker runs the model's `task()`.
 ///
@@ -34,10 +35,12 @@ public struct ToolPicker: View {
           //
           // Performance: every button reads `activeToolID`, `usable` and
           // `submitting` in this one body, so a change to any of them
-          // evaluates all the buttons again, twice per activation for
-          // `submitting`. That is small for a handful of tools; a row per
-          // tool in its own view limits each change to the buttons it
-          // affects.
+          // evaluates all the buttons again. One activation does that up
+          // to twice: when `submitting` is set, and when the hub answers
+          // and `submitting` and `activeToolID` change together. The read
+          // after it adds a third only if `tools` or `usable` changed. That
+          // is small for a handful of tools; a row per tool in its own view
+          // limits each change to the buttons it affects.
           Toggle(isOn: Binding(get: { model.isSelected(id) }, set: { _ in Task { await model.buttonTapped(id) } })) {
             label(id)
           }
