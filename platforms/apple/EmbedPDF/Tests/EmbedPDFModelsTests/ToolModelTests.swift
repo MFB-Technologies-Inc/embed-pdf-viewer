@@ -171,8 +171,111 @@ struct ToolModelTests {
     #expect(!model.isSelected(.ink))
     #expect(!model.isDisabled(.ink))
     #expect(model.isDisabled("nobody-registered-this"))
-    try await expectObserved({ model.isSelected(.ink) }, equals: true) { await model.activate(.ink) }
+    await model.activate(.ink)
+    #expect(model.isSelected(.ink))
     #expect(!model.isSelected(.pan))
+    #expect(!model.isDisabled(.pan))
+    try await tools.viewer.destroy()
+    await tools.observing.value
+  }
+
+  @Test func theActiveToolsButtonStaysEnabledWhenItsToolIsNoLongerUsable() async throws {
+    let tools = try await tools()
+    let model = tools.model
+    let gate = Gate()
+    gate.set(true)
+    let gated: ToolID = "gated"
+    _ = try await expectRegistered(gated, in: tools, permission: gate)
+    await model.activate(gated)
+    #expect(model.isSelected(gated))
+    gate.set(false)
+    try await expectObserved({ model.usable.contains(gated) }, equals: false) { await model.refresh() }
+    // Still the way back to the default tool.
+    #expect(model.isSelected(gated))
+    #expect(!model.isDisabled(gated))
+    await model.buttonTapped(gated)
+    expectNoDifference(model.activeToolID, tools.fallback)
+    #expect(model.isDisabled(gated))
+    try await tools.viewer.destroy()
+    await tools.observing.value
+  }
+
+  /// Every `toolChanged` the hub sends from now until the viewer is
+  /// destroyed.
+  func toolChanges(_ interaction: InteractionCapability) -> Task<[InteractionToolChangedEvent], Never> {
+    let events = interaction.events
+    return Task {
+      var changes: [InteractionToolChangedEvent] = []
+      for await event in events {
+        if case let .toolChanged(change) = event { changes.append(change) }
+      }
+      return changes
+    }
+  }
+
+  @Test func aSecondTapWhileAnActivationIsInFlightIsIgnored() async throws {
+    let tools = try await tools()
+    let model = tools.model
+    let changes = toolChanges(tools.interaction)
+    let first = Task { await model.buttonTapped(.ink) }
+    let second = Task { await model.buttonTapped(.ink) }
+    await first.value
+    await second.value
+    // Neither toggled off nor activated twice.
+    expectNoDifference(model.activeToolID, .ink)
+    expectNoDifference(model.submitting, false)
+    try await tools.viewer.destroy()
+    await tools.observing.value
+    let seen = await changes.value
+    expectNoDifference(
+      seen,
+      [InteractionToolChangedEvent(toolId: ToolID.ink.rawValue, previousToolId: tools.fallback.rawValue)])
+  }
+
+  @Test func aRequestForAnotherToolWhileAnActivationIsInFlightIsIgnored() async throws {
+    let tools = try await tools()
+    let model = tools.model
+    let changes = toolChanges(tools.interaction)
+    let first = Task { await model.activate(.ink) }
+    let second = Task { await model.activate(.pan) }
+    await first.value
+    await second.value
+    expectNoDifference(model.activeToolID, .ink)
+    expectNoDifference(model.submitting, false)
+    try await tools.viewer.destroy()
+    await tools.observing.value
+    let seen = await changes.value
+    expectNoDifference(
+      seen,
+      [InteractionToolChangedEvent(toolId: ToolID.ink.rawValue, previousToolId: tools.fallback.rawValue)])
+  }
+
+  @Test func everyButtonIsDisabledWhileAnActivationIsInFlight() async throws {
+    let tools = try await tools()
+    let model = tools.model
+    #expect(!model.submitting)
+    var inFlight: [Bool] = []
+    // The activation's own read: the hub has answered, the snapshot has not
+    // landed.
+    model.snapshots.readFinished = {
+      inFlight = [model.submitting, model.isDisabled(.ink), model.isDisabled(.pan)]
+    }
+    await model.activate(.ink)
+    model.snapshots.readFinished = nil
+    expectNoDifference(inFlight, [true, true, true])
+    expectNoDifference([model.submitting, model.isDisabled(.ink), model.isDisabled(.pan)], [false, false, false])
+    expectNoDifference(model.activeToolID, .ink)
+    try await tools.viewer.destroy()
+    await tools.observing.value
+  }
+
+  @Test func aFailedActivationEndsTheFlight() async throws {
+    let tools = try await tools()
+    let model = tools.model
+    await model.activate("nobody-registered-this")
+    expectNoDifference(model.error?.code, .notFound)
+    expectNoDifference(model.submitting, false)
+    #expect(!model.isDisabled(.ink))
     try await tools.viewer.destroy()
     await tools.observing.value
   }
