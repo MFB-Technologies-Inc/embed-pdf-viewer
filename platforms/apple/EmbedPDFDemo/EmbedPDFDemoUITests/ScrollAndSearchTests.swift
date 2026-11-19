@@ -27,11 +27,11 @@ final class ScrollAndSearchTests: XCTestCase {
     field.typeText("trace\n")
 
     let summary = app.staticTexts["searchSummary"]
-    let found = NSPredicate(format: "label CONTAINS '/'")
+    let found = NSPredicate(format: "label CONTAINS ' of '")
     expectation(for: found, evaluatedWith: summary)
     waitForExpectations(timeout: 30)
 
-    let next = app.buttons["Next"]
+    let next = app.buttons["searchNext"]
     for _ in 0..<10 { next.tap() }
 
     if let hold = ProcessInfo.processInfo.environment["EMBEDPDF_HOLD_AT_END"].flatMap(Double.init) {

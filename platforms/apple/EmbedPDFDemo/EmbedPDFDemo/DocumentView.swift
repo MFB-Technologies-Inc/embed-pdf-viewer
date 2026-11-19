@@ -9,27 +9,38 @@ struct DocumentView: View {
 
   var body: some View {
     NavigationStack {
-      Group {
-        if let opened = model.opened {
-          PagesView(opened: opened)
-        } else if model.isOpening {
-          ProgressView("Opening…")
-        } else {
-          ContentUnavailableView("No document", systemImage: "doc", description: Text("Open a PDF from Files or a sample."))
+      PDFReaderView(model: model.reader) { model.linkActivated($0) }
+        // Names the reader for the UI tests. An identifier on the reader
+        // view itself would replace the ones its search bar and password
+        // prompt carry.
+        .background {
+          Color.clear
+            .accessibilityElement()
+            .accessibilityAddTraits(.isImage)
+            .accessibilityIdentifier("pages")
         }
-      }
-      .navigationTitle(model.opened?.document.name ?? "EmbedPDF")
-      .navigationBarTitleDisplayMode(.inline)
-      .toolbar { toolbar }
+        // Floats over the reader: a label that changed the reader's height
+        // would resize the viewport while the link's reveal is animating.
+        .overlay(alignment: .bottom) {
+          if let activation = model.linkActivation {
+            Text("Link: \(String(describing: activation))")
+              .font(.caption).lineLimit(1)
+              .padding(.horizontal, 12).padding(.vertical, 6)
+              .background(.regularMaterial, in: Capsule())
+              .padding(8)
+              .allowsHitTesting(false)
+              .accessibilityIdentifier("linkActivation")
+          }
+        }
+        .safeAreaInset(edge: .bottom) { controls }
+        .navigationTitle(model.session?.document.name ?? "EmbedPDF")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar { toolbar }
     }
     .task { await model.task() }
+    .task(id: model.session?.document.id) { await model.sessionChanged() }
     .fileImporter(isPresented: $model.isImporting, allowedContentTypes: [.pdf]) { result in
       Task { await model.fileImported(result) }
-    }
-    .alert("Password required", isPresented: $model.passwordPrompt.isPresented, presenting: model.passwordPrompt) { _ in
-      SecureField("Password", text: $model.passwordPrompt.password)
-      Button("Open") { Task { await model.passwordSubmitted() } }
-      Button("Cancel", role: .cancel) {}
     }
     .alert("Something went wrong", isPresented: $model.error.isPresented, presenting: model.error) { _ in
       Button("OK") { model.errorDismissed() }
@@ -37,23 +48,43 @@ struct DocumentView: View {
       Text(error.detail)
     }
     .sheet(isPresented: $showingBookmarks) {
-      if let opened = model.opened {
+      if let panels = model.panels {
         NavigationStack {
-          OutlinePanel(model: opened.outline)
+          OutlinePanel(model: panels.outline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showingBookmarks = false } } }
         }
       }
     }
     .sheet(isPresented: $showingAttachments) {
-      if let opened = model.opened {
+      if let panels = model.panels {
         NavigationStack {
-          AttachmentPanel(model: opened.attachments)
+          AttachmentPanel(model: panels.attachments)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showingAttachments = false } } }
         }
       }
     }
     .sheet(item: $model.metadataSheet) { sheet in
       MetadataView(metadata: sheet.metadata, custom: sheet.custom)
+    }
+  }
+
+  /// The tool picker and the history buttons, under the reader. The reader view places no tool picker of its own.
+  @ViewBuilder
+  private var controls: some View {
+    if let session = model.session {
+      VStack(alignment: .leading, spacing: 8) {
+        if let tools = session.tools {
+          ToolPicker(model: tools, tools: [.pointer, .ink]) { id in
+            id == .ink ? Label("Ink", systemImage: "pencil.tip") : Label("Select", systemImage: "hand.point.up.left")
+          }
+        }
+        if let panels = model.panels, panels.document.id == session.document.id {
+          HistoryControls(model: panels.history)
+        }
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding([.horizontal, .top])
+      .background(.bar)
     }
   }
 
@@ -76,74 +107,17 @@ struct DocumentView: View {
     }
     ToolbarItem(placement: .topBarTrailing) {
       Button("Bookmarks", systemImage: "bookmark") { showingBookmarks = true }
-        .disabled(model.opened == nil)
+        .disabled(model.panels == nil)
         .accessibilityIdentifier("showBookmarks")
     }
     ToolbarItem(placement: .topBarTrailing) {
       Button("Attachments", systemImage: "paperclip") { showingAttachments = true }
-        .disabled(model.opened == nil)
+        .disabled(model.panels == nil)
         .accessibilityIdentifier("showAttachments")
     }
     ToolbarItem(placement: .topBarTrailing) {
       Button("Info", systemImage: "info.circle") { Task { await model.metadataButtonTapped() } }
-        .disabled(model.opened == nil)
-    }
-  }
-}
-
-private struct PagesView: View {
-  let opened: DocumentModel.Opened
-  var body: some View {
-    StageReaderView(model: opened.reader)
-      .accessibilityIdentifier("pages")
-      .safeAreaInset(edge: .bottom) {
-        VStack(spacing: 0) {
-          HistoryControls(model: opened.history).padding([.horizontal, .top])
-          SearchBar(search: opened.search)
-        }.background(.bar)
-      }
-      .task(id: opened.document.id) { await opened.search.task() }
-  }
-}
-
-private struct SearchBar: View {
-  @Bindable var search: SearchModel
-
-  var body: some View {
-    HStack {
-      TextField("Search", text: $search.text)
-        .textFieldStyle(.roundedBorder)
-        .submitLabel(.search)
-        .accessibilityIdentifier("searchField")
-        .onSubmit { Task { await search.searchSubmitted() } }
-      Text(summary)
-        .accessibilityIdentifier("searchSummary")
-        .font(.caption.monospacedDigit())
-        .foregroundStyle(.secondary)
-      Button("Previous", systemImage: "chevron.up") { Task { await search.previousButtonTapped() } }
-        .labelStyle(.iconOnly)
-        .disabled(search.hits.isEmpty)
-      Button("Next", systemImage: "chevron.down") { Task { await search.nextButtonTapped() } }
-        .labelStyle(.iconOnly)
-        .disabled(search.hits.isEmpty)
-      Button("Clear", systemImage: "xmark.circle.fill") { Task { await search.clearButtonTapped() } }
-        .labelStyle(.iconOnly)
-        .disabled(search.text.isEmpty && search.hits.isEmpty)
-    }
-    .padding()
-    .background(.bar)
-  }
-
-  private var summary: String {
-    switch search.status {
-    case .searching: "…"
-    case .idle: ""
-    default:
-      if let index = search.activeHitIndex, !search.hits.isEmpty {
-        "\(index + 1)/\(search.hits.count)"
-      } else {
-        "\(search.hits.count) hits"
-      }
+        .disabled(model.panels == nil)
     }
   }
 }
@@ -155,12 +129,5 @@ extension Optional {
       guard !newValue else { return }
       self = nil
     }
-  }
-}
-
-extension Optional where Wrapped == DocumentModel.PasswordPrompt {
-  fileprivate var password: String {
-    get { self?.password ?? "" }
-    set { self?.password = newValue }
   }
 }

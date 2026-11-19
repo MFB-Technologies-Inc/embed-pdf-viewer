@@ -232,7 +232,7 @@ that runs it on the iOS simulator. `every_plugin_builds_together` in
 | Plugin | `ViewerConfig` | Swift | Tests |
 |---|---|---|---|
 | metadata | `metadata` | `Metadata.swift` | `MetadataTests.swift` |
-| search | `search` | `Search.swift` | `SearchTests.swift`, `EmbedPDFUITests/SearchModelTests.swift` |
+| search | `search` | `Search.swift` | `SearchTests.swift`, `EmbedPDFModelsTests/SearchModelTests.swift` |
 | render | `render` | `Render.swift` | `RenderTests.swift`, `RenderViewportTests.swift` |
 | interaction | `interaction` | `Interaction.swift` | `InteractionTests.swift`, `PointerLatencyTests.swift` |
 | feedback | `feedback` | `Feedback.swift` | `FeedbackTests.swift` |
