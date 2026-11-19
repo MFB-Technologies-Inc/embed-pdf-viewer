@@ -1,0 +1,152 @@
+name: release-fork-slices
+
+# Builds the PDFium fork (the runtime-src submodule) at its gitlink for every
+# release target, one runner each, and uploads each slice as the artifact
+# fork-slice-<target>: the packaged staging dir under staging/ and the archive
+# libembedpdf-runtime-<target>-<sha7>.tar.gz. scripts/release/build-fork-slice.mjs
+# does the build; this workflow only provisions the runner around it.
+#
+# A slice is cached per target, runtime-src commit, FORK_RECIPE and the fork
+# scripts that shape the build, so a release whose gitlink did not move skips
+# the clone, sync and build and only re-uploads the cached slice.
+
+on:
+  workflow_call:
+    outputs:
+      runtime_sha:
+        description: The runtime-src gitlink the slices were built at.
+        value: ${{ jobs.slice.outputs.runtime_sha }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  slice:
+    name: slice (${{ matrix.target }})
+    runs-on: ${{ matrix.runs-on }}
+    # An empty image runs the job on the host, as the macOS legs need.
+    container: ${{ matrix.container }}
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: linux-arm64, runs-on: ubuntu-24.04, container: 'debian:trixie' }
+          - { target: android-arm64, runs-on: ubuntu-24.04, container: 'debian:trixie' }
+          - { target: android-x64, runs-on: ubuntu-24.04, container: 'debian:trixie' }
+          - { target: wasm32, runs-on: ubuntu-24.04, container: 'debian:trixie' }
+          - { target: wasm32-eh, runs-on: ubuntu-24.04, container: 'debian:trixie' }
+          # Preview image label; actionlint 1.7.12 does not list it yet.
+          - { target: ios-arm64, runs-on: xcode-27, container: '' }
+          - { target: ios-sim-arm64, runs-on: xcode-27, container: '' }
+          - { target: darwin-static-arm64, runs-on: xcode-27, container: '' }
+          - { target: darwin-static-x64, runs-on: xcode-27, container: '' }
+    outputs:
+      # Every leg computes the same value.
+      runtime_sha: ${{ steps.key.outputs.runtime_sha }}
+    env:
+      SLICE_DIR: fork-slice-out
+    steps:
+      # The packages a debian:trixie fork build has needed, minus nodejs:
+      # setup-node supplies Node 24 below. git must exist before checkout, or checkout
+      # falls back to a tarball without submodules.
+      - name: Install build tools
+        if: matrix.container != ''
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            git python3 curl ca-certificates xz-utils bzip2 lsb-release file \
+            pkg-config tar patch unzip sudo
+          # The workspace and the submodule belong to the host's runner user.
+          git config --global --add safe.directory '*'
+
+      # Full history: buildFork clones runtime-src from the submodule and
+      # checks out the gitlink commit there.
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Resolve the slice key
+        id: key
+        env:
+          TARGET: ${{ matrix.target }}
+          SCRIPTS_HASH: >-
+            ${{ hashFiles(
+              'packages/engine/runtime/runtime-src/scripts/embedpdf-runtime/target-args.sh',
+              'packages/engine/runtime/runtime-src/scripts/embedpdf-runtime/emsdk-version.sh',
+              'packages/engine/runtime/runtime-src/scripts/embedpdf-runtime/build-target.sh',
+              'packages/engine/runtime/runtime-src/scripts/embedpdf-runtime/package-target.sh',
+              'packages/engine/runtime/runtime-src/patches/**',
+              'scripts/release/build-fork-slice.mjs') }}
+        run: |
+          sha=$(git ls-tree HEAD packages/engine/runtime/runtime-src | awk '{print $3}')
+          recipe=$(sed -n 's/^const FORK_RECIPE = \([0-9][0-9]*\);.*/\1/p' perf-compare/scripts/build-arm.mjs)
+          test -n "$sha" || { echo "::error::no runtime-src gitlink at HEAD"; exit 1; }
+          test -n "$recipe" || { echo "::error::no FORK_RECIPE in perf-compare/scripts/build-arm.mjs"; exit 1; }
+          test -n "$SCRIPTS_HASH" || { echo "::error::the fork scripts hashed to nothing; is the submodule checked out?"; exit 1; }
+          work="$RUNNER_TEMP/work"
+          echo "PERF_WORK_DIR=$work" >> "$GITHUB_ENV"
+          {
+            echo "runtime_sha=$sha"
+            echo "slice=fork-slice-v1-$TARGET-$sha-$recipe-$SCRIPTS_HASH"
+            echo "week=$(date -u +%G-W%V)"
+            echo "work=$work"
+          } >> "$GITHUB_OUTPUT"
+          echo "runtime-src $sha, FORK_RECIPE $recipe, work dir $work"
+
+      - name: Restore the slice
+        id: cache
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ env.SLICE_DIR }}
+          key: ${{ steps.key.outputs.slice }}
+
+      - uses: actions/setup-node@v6
+        if: steps.cache.outputs.cache-hit != 'true'
+        with:
+          node-version: 24
+
+      - uses: ./.github/actions/setup-xcode-27
+        if: steps.cache.outputs.cache-hit != 'true' && matrix.container == ''
+
+      # The fork's GN toolchain reads only runtime-src/third_party/emsdk, and
+      # emsdk-version.sh --check refuses any other version there. wasm32-eh
+      # needs nothing here: buildFork installs 4.0.0 into its own clone.
+      - uses: ./.github/actions/setup-emsdk
+        if: steps.cache.outputs.cache-hit != 'true' && matrix.target == 'wasm32'
+        with:
+          version: 3.1.72
+          dir: packages/engine/runtime/runtime-src/third_party/emsdk
+
+      # Both build paths in build-fork-slice.mjs bootstrap depot_tools at
+      # $PERF_WORK_DIR/depot_tools and skip it when already bootstrapped.
+      - name: Restore depot_tools
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.key.outputs.work }}/depot_tools
+          key: depot-tools-${{ runner.os }}-${{ runner.arch }}-${{ steps.key.outputs.week }}
+
+      - name: Build the slice
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          TARGET: ${{ matrix.target }}
+        run: node scripts/release/build-fork-slice.mjs "$TARGET" "$SLICE_DIR"
+
+      - name: Save the slice
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ env.SLICE_DIR }}
+          key: ${{ steps.key.outputs.slice }}
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: fork-slice-${{ matrix.target }}
+          path: ${{ env.SLICE_DIR }}/
+          if-no-files-found: error
