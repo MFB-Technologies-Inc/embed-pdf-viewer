@@ -1,7 +1,8 @@
 name: release-fork-slices
 
-# Builds the PDFium fork (the runtime-src submodule) at its gitlink for every
-# release target, one runner each, and uploads each slice as the artifact
+# Builds the PDFium fork (the runtime-src submodule) at its gitlink for the
+# release targets inputs.targets names, one runner each, and uploads each slice
+# as the artifact
 # fork-slice-<target>: the packaged staging dir under staging/ and the archive
 # libembedpdf-runtime-<target>-<sha7>.tar.gz. scripts/release/build-fork-slice.mjs
 # does the build; this workflow only provisions the runner around it.
@@ -12,6 +13,11 @@ name: release-fork-slices
 
 on:
   workflow_call:
+    inputs:
+      targets:
+        description: 'JSON array of the targets to build, e.g. ["wasm32-eh"]. Each must be a target in the plan job''s table.'
+        required: true
+        type: string
     outputs:
       runtime_sha:
         description: The runtime-src gitlink the slices were built at.
@@ -25,29 +31,52 @@ defaults:
     shell: bash
 
 jobs:
+  # The slice matrix, cut down to inputs.targets. A matrix include can't
+  # filter: an entry that matches no other row adds a leg of its own.
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      # toolchain goes into the slice key: change what a leg builds with (the
+      # Xcode setup-xcode-27 selects, an emsdk version, the container image)
+      # and bump it here, so only that leg's slices rebuild. An empty container
+      # runs the leg on the host, as the macOS legs need. xcode-27 is a preview
+      # image label.
+      - name: Plan the slices
+        id: plan
+        env:
+          TARGETS: ${{ inputs.targets }}
+        run: |
+          all='[
+            {"target": "linux-arm64", "runs-on": "ubuntu-24.04", "container": "debian:trixie", "toolchain": "trixie"},
+            {"target": "android-arm64", "runs-on": "ubuntu-24.04", "container": "debian:trixie", "toolchain": "trixie"},
+            {"target": "android-x64", "runs-on": "ubuntu-24.04", "container": "debian:trixie", "toolchain": "trixie"},
+            {"target": "wasm32", "runs-on": "ubuntu-24.04", "container": "debian:trixie", "toolchain": "emsdk-3.1.72"},
+            {"target": "wasm32-eh", "runs-on": "ubuntu-24.04", "container": "debian:trixie", "toolchain": "emsdk-4.0.0"},
+            {"target": "ios-arm64", "runs-on": "xcode-27", "container": "", "toolchain": "xcode-27.2"},
+            {"target": "ios-sim-arm64", "runs-on": "xcode-27", "container": "", "toolchain": "xcode-27.2"},
+            {"target": "darwin-static-arm64", "runs-on": "xcode-27", "container": "", "toolchain": "xcode-27.2"},
+            {"target": "darwin-static-x64", "runs-on": "xcode-27", "container": "", "toolchain": "xcode-27.2"}
+          ]'
+          jq -e 'type == "array" and length > 0 and all(.[]; type == "string")' <<<"$TARGETS" >/dev/null 2>&1 \
+            || { echo "::error::targets must be a non-empty JSON array of strings, got '$TARGETS'"; exit 1; }
+          unknown=$(jq -nr --argjson all "$all" --argjson want "$TARGETS" '$want - [$all[].target] | join(", ")')
+          [[ -z "$unknown" ]] || { echo "::error::unknown targets: $unknown"; exit 1; }
+          matrix=$(jq -nc --argjson all "$all" --argjson want "$TARGETS" '{include: [$all[] | select(.target as $t | $want | index($t))]}')
+          echo "$matrix" | jq .
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
   slice:
     name: slice (${{ matrix.target }})
+    needs: plan
     runs-on: ${{ matrix.runs-on }}
     # An empty image runs the job on the host, as the macOS legs need.
     container: ${{ matrix.container }}
     timeout-minutes: 300
     strategy:
       fail-fast: false
-      matrix:
-        # toolchain goes into the slice key: change what a leg builds with
-        # (the Xcode setup-xcode-27 selects, an emsdk version, the container
-        # image) and bump it there, so only that leg's slices rebuild.
-        include:
-          - { target: linux-arm64, runs-on: ubuntu-24.04, container: 'debian:trixie', toolchain: trixie }
-          - { target: android-arm64, runs-on: ubuntu-24.04, container: 'debian:trixie', toolchain: trixie }
-          - { target: android-x64, runs-on: ubuntu-24.04, container: 'debian:trixie', toolchain: trixie }
-          - { target: wasm32, runs-on: ubuntu-24.04, container: 'debian:trixie', toolchain: emsdk-3.1.72 }
-          - { target: wasm32-eh, runs-on: ubuntu-24.04, container: 'debian:trixie', toolchain: emsdk-4.0.0 }
-          # Preview image label; actionlint 1.7.12 does not list it yet.
-          - { target: ios-arm64, runs-on: xcode-27, container: '', toolchain: xcode-27.2 }
-          - { target: ios-sim-arm64, runs-on: xcode-27, container: '', toolchain: xcode-27.2 }
-          - { target: darwin-static-arm64, runs-on: xcode-27, container: '', toolchain: xcode-27.2 }
-          - { target: darwin-static-x64, runs-on: xcode-27, container: '', toolchain: xcode-27.2 }
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     outputs:
       # Every leg computes the same value.
       runtime_sha: ${{ steps.key.outputs.runtime_sha }}

@@ -6,7 +6,9 @@ name: release-rust-viewer
 #
 # The PDFium payload (runtime-payloads-<hash>) comes from the payload release
 # repo; release-payload.yml publishes it earlier in the train, so the caller's
-# `needs` guarantees it exists and the fetch does not poll.
+# `needs` guarantees it exists and the fetch does not poll. On a dry run that
+# payload is not released, so the caller passes payload_artifact instead: the
+# payload-wasm32 artifact release-payload.yml's verify job built.
 #
 # The bundle's vite.config.ts records `git rev-parse HEAD`, the branch and a
 # dirty flag in `buildInfo`, so the build runs on a clean checkout of
@@ -24,6 +26,11 @@ on:
         description: The commit, branch or tag to build.
         required: true
         type: string
+      payload_artifact:
+        description: An artifact of this run holding npm/wasm32/lib, used instead of fetching the released payload. It must be the payload for ref.
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -109,9 +116,33 @@ jobs:
           [[ "$opt" =~ ^wasm-opt\ version\ ${BINARYEN_VERSION}([^0-9]|$) ]] || { echo "::error::expected wasm-opt version $BINARYEN_VERSION, got '$opt'"; exit 1; }
 
       - name: Fetch the runtime payload
+        if: inputs.payload_artifact == ''
         env:
           EPDF_PAYLOAD_REPO: MFB-Technologies-Inc/embed-pdf-runtime
         run: pnpm --filter @embedpdf/engine-runtime run fetch:payload
+
+      - uses: actions/download-artifact@v7
+        if: inputs.payload_artifact != ''
+        with:
+          name: ${{ inputs.payload_artifact }}
+          path: packages/engine/runtime/npm/wasm32/lib
+
+      # publish-engine-payload.mjs --dry-run marks what it built
+      # dry-run-<hash>; the hash must be the one this checkout derives.
+      - name: Check the payload artifact
+        if: inputs.payload_artifact != ''
+        env:
+          ARTIFACT: ${{ inputs.payload_artifact }}
+        run: |
+          marker=packages/engine/runtime/npm/wasm32/lib/.payload-source
+          test -f "$marker" || { echo "::error::$ARTIFACT has no .payload-source"; exit 1; }
+          have=$(<"$marker")
+          want=$(bash packages/engine/runtime/scripts/runtime-payload-hash.sh)
+          if [[ "${have#dry-run-}" != "$want" ]]; then
+            echo "::error::$ARTIFACT is payload '$have', but $REF needs $want"
+            exit 1
+          fi
+          echo "payload $have from $ARTIFACT"
 
       - name: Build the engine runtime
         run: pnpm --filter @embedpdf/engine-runtime build

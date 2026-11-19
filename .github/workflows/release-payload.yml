@@ -8,8 +8,9 @@ name: release-payload
 #   key      computes the payload hash (runtime-payload-hash.sh) and asks the
 #            release repo whether that payload is out. Then nothing else runs.
 #   verify   runs the whole script with --dry-run: build, verify, pack, and
-#            print the gh command. No environment, no token. On dry_run this
-#            is the last job.
+#            print the gh command. No environment, no token. Uploads the
+#            built npm/wasm32/lib as payload-wasm32. On dry_run this is the
+#            last job.
 #   publish  under the release environment, after its reviewers approve:
 #            runs --dry-run again as a warm-up (the shared Rust cache makes it
 #            quick), then mints the App token and runs the script for real.
@@ -152,6 +153,16 @@ jobs:
             echo "::error::the payload hash moved during the run: $PAYLOAD_TAG, now runtime-payloads-$hash"
             exit 1
           fi
+
+      # A successful --dry-run leaves the payload it built in npm/wasm32/lib,
+      # marked dry-run-<hash> in .payload-source. The train's dry run builds
+      # the viewer from it, since no release holds it yet.
+      - uses: actions/upload-artifact@v6
+        with:
+          name: payload-wasm32
+          path: packages/engine/runtime/npm/wasm32/lib/
+          include-hidden-files: true
+          if-no-files-found: error
 
       - name: Disk usage
         if: always()
