@@ -11,8 +11,9 @@ import Observation
 /// pointer hub (``pointerDown(at:)`` and its siblings, ``tapped(at:)``), so
 /// the active tool draws and a tap reaches whatever handles taps. Given a
 /// `LinkCapability` too, a tap on a link activates it and the outcome
-/// arrives on ``linkActivations``. Without an `InteractionCapability` the
-/// pointer calls do nothing.
+/// arrives on ``linkActivations``; the model loads the links of each page
+/// as it comes into view, so the app calls no `ensureLoaded`. Without an
+/// `InteractionCapability` the pointer calls do nothing.
 @MainActor
 @Observable
 public final class StageReaderModel {
@@ -120,6 +121,12 @@ public final class StageReaderModel {
   /// `InteractionCapability`.
   @ObservationIgnored private let pointer: StagePointerForwarder?
   @ObservationIgnored private let linkFeed = LinkActivationFeed()
+  /// The link loads, one set of newly visible pages after another, off the
+  /// stage event loop so a slow load never holds back the pages.
+  @ObservationIgnored private let linkLoads = SerialCalls()
+  /// The pages whose links have loaded or are loading. A page whose load
+  /// failed leaves it, and loads again the next time it comes into view.
+  @ObservationIgnored private var linkPages: Set<PageRef> = []
   /// Runs as each pointer sample is handed to the hub. Tests record them.
   @ObservationIgnored var pointerSampleDispatched: (@MainActor (PointerSample) -> Void)? {
     didSet { pointer?.dispatched = pointerSampleDispatched }
@@ -156,7 +163,9 @@ public final class StageReaderModel {
   ///     the active tool and the pointer calls reach the hub; without it
   ///     they do nothing.
   ///   - link: The document's links. With it ``task()`` lets taps on the
-  ///     hub follow links and ``linkActivations`` reports them.
+  ///     hub follow links and ``linkActivations`` reports them, and the
+  ///     model loads each page's links when the page first comes into view.
+  ///     A tap that lands before its page's load has finished finds no link.
   public init(
     stage: StageCapability, render: RenderCapability, interaction: InteractionCapability? = nil,
     link: LinkCapability? = nil
@@ -279,6 +288,9 @@ public final class StageReaderModel {
   /// Returns once every pointer call made so far has been handed to the hub.
   func pointerCallsFinished() async { await pointer?.finished() }
 
+  /// Returns once every link load started so far has finished.
+  func linkLoadsFinished() async { await linkLoads.enqueue {}.value }
+
   /// A presentation revision that changes when Rust invalidates this page.
   public func renderRevision(for page: PageRef) -> UInt64 { revisions.revision(for: page) }
 
@@ -294,7 +306,7 @@ public final class StageReaderModel {
       // waits, or an event that carries the pages, keeps it to one read per
       // frame.
       do {
-        visiblePages = try await stage.visiblePages()
+        show(try await stage.visiblePages())
       } catch {
         self.error = error
       }
@@ -421,7 +433,7 @@ public final class StageReaderModel {
       // and `settingsChanged` event and each gesture end. One stage read
       // that returns the pages, the camera and whether the stage moves
       // makes it one.
-      visiblePages = try await stage.visiblePages()
+      show(try await stage.visiblePages())
       camera = try await stage.camera()
       if zoomPhase == .settling, mayJudge {
         let moving = try await stage.isMoving()
@@ -434,6 +446,39 @@ public final class StageReaderModel {
       self.error = error
     }
     setZooming(zoomPhase != .idle)
+  }
+
+  /// Takes the stage's visible pages and, with a `LinkCapability`, starts
+  /// loading the links of those that were not in view before.
+  private func show(_ pages: [StageVisiblePage]) {
+    let shown = Set(visiblePages.map(\.page))
+    visiblePages = pages
+    guard let link else { return }
+    let fresh = pages.map(\.page).filter { !shown.contains($0) && linkPages.insert($0).inserted }
+    guard !fresh.isEmpty else { return }
+    linkLoads.enqueue { await self.loadLinks(on: fresh, from: link) }
+  }
+
+  /// A failed load is in ``error``, and its page loads again the next time
+  /// it comes into view.
+  private func loadLinks(on pages: [PageRef], from link: LinkCapability) async {
+    for page in pages {
+      // Performance: one bridge call per page the first time it comes into
+      // view, in a task of its own per set of new pages. A fast scroll
+      // through a long document makes one per page passed, and the loads
+      // queue behind each other. With the annotation plugin installed the
+      // call returns at once without reading anything, because that
+      // plugin's model already holds the links; the model cannot tell that
+      // case apart without a call of its own. A link call that takes a
+      // list of pages, or a flag on the capability that says the
+      // annotation plugin owns the links, removes the per-page hop.
+      do {
+        try await link.ensureLoaded(page)
+      } catch {
+        linkPages.remove(page)
+        self.error = error
+      }
+    }
   }
 
   private func setZooming(_ zooming: Bool) {

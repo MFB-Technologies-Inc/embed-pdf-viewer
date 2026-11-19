@@ -357,4 +357,95 @@ struct StagePointerForwarderTests {
     try await reader.viewer.destroy()
     await reader.observing.value
   }
+
+  /// Without the annotation plugin a tap reads the link plugin's own page
+  /// mirror, which is empty until the page loads. The reader loads each page
+  /// it shows, so the test loads nothing itself.
+  @Test func aReaderWithOnlyTheLinksFeatureActivatesALinkOnATap() async throws {
+    let reader = PDFReaderModel(features: [.links])
+    await reader.open(try pluginFixture("features"), name: "features.pdf")
+    guard case let .ready(session) = reader.phase else {
+      Issue.record("expected .ready, got \(reader.phase)")
+      return
+    }
+    do {
+      _ = try await session.viewer.annotations(for: session.document)
+      Issue.record("expected no annotation plugin")
+    } catch {
+      expectNoDifference(error.code, .unsupported)
+    }
+    let model = session.reader
+    let observing = Task { await model.task() }
+    defer { observing.cancel() }
+    await model.sizeChanged(CGSize(width: 390, height: 844), displayScale: 2)
+    // The link tap handler registers in `task()`, before the tool is read.
+    try await expectObserved({ model.activeToolID != nil }, equals: true) {}
+    let activation = try await tapAVisibleLink(model, try await session.viewer.link(for: session.document))
+    #expect(activation != nil, "the tap found no link")
+    #expect(model.error == nil)
+    await reader.close()
+  }
+
+  /// The same for a reader built by hand on a viewer with the link and
+  /// interaction plugins and no annotation plugin.
+  @Test func aHandBuiltReaderWithoutTheAnnotationPluginActivatesALinkOnATap() async throws {
+    let viewer = try PDFViewer(
+      ViewerConfig(render: RenderConfig(), interaction: true, stage: StageConfig(), link: true))
+    try await viewer.start()
+    let document = try await viewer.open(pluginFixture("features"))
+    let link = try await viewer.link(for: document)
+    let model = StageReaderModel(
+      stage: try await viewer.stage(for: document), render: try await viewer.render(for: document),
+      interaction: try await viewer.interaction(for: document), link: link)
+    let observing = Task { await model.task() }
+    await model.sizeChanged(CGSize(width: 390, height: 844), displayScale: 2)
+    try await expectObserved({ model.activeToolID != nil }, equals: true) {}
+    let activation = try await tapAVisibleLink(model, link)
+    #expect(activation != nil, "the tap found no link")
+    #expect(model.error == nil)
+    try await viewer.destroy()
+    await observing.value
+  }
+
+  /// A page the reader has scrolled to gets its links loaded too, once.
+  @Test func aPageScrolledIntoViewHasItsLinksLoaded() async throws {
+    let viewer = try PDFViewer(
+      ViewerConfig(render: RenderConfig(), interaction: true, stage: StageConfig(), link: true))
+    try await viewer.start()
+    let document = try await viewer.open(pluginFixture())
+    let link = try await viewer.link(for: document)
+    let pages = try await viewer.pages(of: document)
+    let last = try #require(pages.last?.page)
+    let model = StageReaderModel(
+      stage: try await viewer.stage(for: document), render: try await viewer.render(for: document),
+      interaction: try await viewer.interaction(for: document), link: link)
+    let observing = Task { await model.task() }
+    await model.sizeChanged(CGSize(width: 390, height: 844), displayScale: 2)
+    #expect(!model.visiblePages.map(\.page).contains(last))
+    let before = try await link.isLoaded(last)
+    #expect(!before)
+    try await expectObserved({ model.visiblePages.map(\.page).contains(last) }, equals: true) {
+      try await model.stage.goToPage(last)
+    }
+    await model.linkLoadsFinished()
+    let after = try await link.isLoaded(last)
+    #expect(after)
+    try await viewer.destroy()
+    await observing.value
+  }
+
+  /// Taps the first link on the reader's first visible page and returns the
+  /// activation, or `nil` when none arrives in 10 seconds. Loads no links
+  /// itself: `links(on:)` is empty unless the reader loaded the page.
+  func tapAVisibleLink(_ model: StageReaderModel, _ links: LinkCapability) async throws -> LinkActivation? {
+    await model.linkLoadsFinished()
+    let page = try #require(model.visiblePages.first?.page)
+    let link = try #require(try await links.links(on: page).first, "the reader did not load the page's links")
+    let center = Point(
+      x: link.bounds.x + link.bounds.width / 2, y: link.bounds.y + link.bounds.height / 2)
+    let spot = try #require(try await model.stage.pageToViewport(page, center))
+    let activations = model.linkActivations
+    model.tapped(at: CGPoint(x: spot.x, y: spot.y))
+    return await firstValue(of: activations, within: .seconds(10))
+  }
 }
