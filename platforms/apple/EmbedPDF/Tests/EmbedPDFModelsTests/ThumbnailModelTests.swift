@@ -65,17 +65,94 @@ struct ThumbnailModelTests {
     try await viewer.destroy()
   }
 
-  @Test func aCancelledLoadLeavesNoImageAndNoError() async throws {
+  /// Holds the model's first render, before it reaches the engine, until
+  /// `release` runs or the render is cancelled. `reached` yields once the
+  /// render is held.
+  func holdingFirstRender(of model: ThumbnailModel) -> (reached: AsyncStream<Void>, release: @MainActor () -> Void) {
+    let (reached, reach) = AsyncStream<Void>.makeStream()
+    let (gate, open) = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
+    var held = false
+    model.renderStarted = {
+      guard !held else { return }
+      held = true
+      reach.yield(())
+      // Ends when the gate opens, and also when the render is cancelled.
+      for await _ in gate { break }
+    }
+    return (reached, {
+      open.yield(())
+      open.finish()
+    })
+  }
+
+  @Test func aLoadCancelledInFlightLeavesNoImageAndNoError() async throws {
     let (viewer, _, pages, render) = try await opened()
     let model = ThumbnailModel(render: render, pages: pages)
     let page = pages[0].page
+    let (reached, release) = holdingFirstRender(of: model)
     let load = Task { await model.load(page) }
+    for await _ in reached { break }
+    expectNoDifference(model.renderCount, 1)
+    expectNoDifference(model.waiterCount(for: page), 1)
+
+    // The gate stays shut, so the load returns only because its
+    // cancellation cancelled the held render.
     load.cancel()
     await load.value
+    #expect(model.image(for: page) == nil)
     #expect(model.error == nil)
+    expectNoDifference(model.waiterCount(for: page), 0)
+
     // The page loads once someone waits for it again.
+    release()
     await model.load(page)
     #expect(model.image(for: page) != nil)
+    expectNoDifference(model.renderCount, 2)
+    try await viewer.destroy()
+  }
+
+  @Test func aCancelledWaiterLeavesTheRenderToTheOtherWaiter() async throws {
+    let (viewer, _, pages, render) = try await opened()
+    let model = ThumbnailModel(render: render, pages: pages)
+    let page = pages[0].page
+    let (reached, release) = holdingFirstRender(of: model)
+    let first = Task { await model.load(page) }
+    for await _ in reached { break }
+    let second = Task { await model.load(page) }
+    while model.waiterCount(for: page) < 2 { await Task.yield() }
+
+    first.cancel()
+    while model.waiterCount(for: page) > 1 { await Task.yield() }
+    release()
+    await second.value
+    await first.value
+    #expect(model.image(for: page) != nil)
+    #expect(model.error == nil)
+    expectNoDifference(model.renderCount, 1)
+    try await viewer.destroy()
+  }
+
+  @Test func anInvalidationInFlightSupersedesTheRender() async throws {
+    let (viewer, _, pages, render) = try await opened()
+    let model = ThumbnailModel(render: render, pages: pages)
+    let page = pages[0].page
+    let (reached, _) = holdingFirstRender(of: model)
+    let stale = Task { await model.load(page) }
+    for await _ in reached { break }
+    try await expectObserved({ model.revision(for: page) }, equals: 1) {
+      try await render.invalidate([page], scope: .annotations)
+    }
+
+    // The gate stays shut: this load cancels the held render and starts one
+    // for the new revision.
+    await model.load(page)
+    await stale.value
+    expectNoDifference(model.renderCount, 2)
+    #expect(model.image(for: page) != nil)
+    #expect(model.error == nil)
+    // The image is cached at the new revision, so nothing renders again.
+    await model.load(page)
+    expectNoDifference(model.renderCount, 2)
     try await viewer.destroy()
   }
 
@@ -97,8 +174,11 @@ struct ThumbnailModelTests {
     #expect(model.image(for: page) === earlier)
     await model.load(pages[1].page)
     #expect(model.image(for: pages[1].page) == nil)
-    // Each load of a failed page tries again.
     expectNoDifference(model.renderCount, 3)
+    // Each load of a failed page tries again.
+    await model.load(page)
+    expectNoDifference(model.renderCount, 4)
+    expectNoDifference(model.error?.code, .instanceClosed)
     try await viewer.destroy()
   }
 

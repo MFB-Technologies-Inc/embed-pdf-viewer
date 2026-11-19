@@ -6,9 +6,11 @@ import SwiftUI
 /// The strip is a scroll view around a lazy stack along `axis`. Each cell is
 /// 96 points across the strip and as long as the page's shape as shown makes
 /// it, so a cell keeps its size when its image lands. A cell loads its
-/// thumbnail when it appears and again when the engine invalidates its page,
-/// and stops waiting when it leaves; until an image lands it is a plain
-/// placeholder. The cell for `current` has an accent outline.
+/// thumbnail when it appears and again when the engine invalidates its page.
+/// When it leaves, its load is cancelled, which cancels the render unless
+/// another load of that page still waits on it. Until an image lands the
+/// cell is a plain placeholder. The cell for `current` has an accent
+/// outline.
 ///
 /// Each cell is a button that calls `onSelect` with its page. VoiceOver
 /// reads a cell as "Page" and its one-based number, and `current` as
@@ -92,6 +94,11 @@ private struct ThumbnailCell: View {
     .buttonStyle(.plain)
     .accessibilityLabel("Page \(page.index + 1)")
     .accessibilityAddTraits(isCurrent ? .isSelected : [])
+    // Performance: `revision(for:)` reads one observed dictionary that holds
+    // every page's revision, so one page's invalidation evaluates the body
+    // of every cell the lazy stack has made, not only that page's. It bites
+    // on each annotation edit once a long strip has been scrolled. A stored
+    // observable value per page limits an invalidation to its own cell.
     .task(id: LoadID(page: page.page, revision: model.revision(for: page.page))) {
       await model.load(page.page)
     }

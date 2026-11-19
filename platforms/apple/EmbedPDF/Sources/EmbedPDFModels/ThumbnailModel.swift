@@ -24,10 +24,14 @@ import Observation
 /// ``load(_:)`` call. A thumbnail is up to 1 MiB of pixels (512 by 512 at 4
 /// bytes each), so the cache stays within about 128 MiB however long the
 /// document is. A page dropped from the cache has no image until it is
-/// loaded again.
+/// loaded again. Nothing loads it by itself: a cell still on screen when its
+/// page is dropped, as can happen when two views share one model, shows no
+/// image until something calls ``load(_:)`` for it.
 ///
 /// ``error`` is the latest failed load. It clears when the page it is for
-/// loads; another page's thumbnail leaves it. A failed load leaves the
+/// loads; another page's thumbnail leaves it. The failure for a page that is
+/// not in `pages` therefore never clears, since that page cannot load in
+/// this model. A failed load leaves the
 /// page's earlier image, if it has one, in ``image(for:)``, and the next
 /// ``load(_:)`` of that page renders again. A cancelled load is not a
 /// failure.
@@ -51,9 +55,20 @@ public final class ThumbnailModel {
   @ObservationIgnored private let geometries: [PageRef: PageGeometry]
   @ObservationIgnored private let revisions: RenderRevisions
   /// How many thumbnails the cache keeps. Tests lower it.
+  // Performance: the cache keeps each thumbnail at the engine's 512 pixels,
+  // up to about 128 MiB in all, and nothing drops them under memory
+  // pressure. A strip draws a cell 96 points across, 288 pixels at 3x, so
+  // most of that is never shown. It bites on a long document on a device
+  // short of memory. Scaling each image down to the drawn size before
+  // caching it, or emptying the cache on a memory warning, cuts it.
   @ObservationIgnored var cacheLimit = 128
   /// How many renders have started. Tests read it.
   @ObservationIgnored var renderCount = 0
+  /// Runs when a render has started, before it reaches the engine. Tests
+  /// hold a render open with it.
+  @ObservationIgnored var renderStarted: (@MainActor () async -> Void)?
+  /// How many ``load(_:)`` calls wait on the page's render. Tests read it.
+  func waiterCount(for page: PageRef) -> Int { loads[page]?.waiters ?? 0 }
 
   private struct Thumbnail {
     let image: CGImage
@@ -86,12 +101,18 @@ public final class ThumbnailModel {
   public func revision(for page: PageRef) -> UInt64 { revisions.revision(for: page) }
 
   /// Renders the page's thumbnail unless the cache holds one for the page's
-  /// current render revision, and returns when it has landed or failed.
+  /// current render revision, and returns when that render ends.
   ///
-  /// Calls for one page at one revision share a single render. The render is
+  /// Calls for one page at one revision share a single render, and each
+  /// returns when it ends: with the image cached, with ``error`` set, or
+  /// with neither when the render was cancelled or superseded. The render is
   /// cancelled when every call waiting on it is cancelled, or when a call
-  /// arrives after the page's revision has moved on. A page that is not in
-  /// the model's `pages` sets ``error`` to `not-found` without rendering.
+  /// arrives after the page's revision has moved on; the later call's render
+  /// supersedes it. Cancelling one call does not return it early. It gives
+  /// up its claim on the render and still returns when the render ends,
+  /// which is when the image lands if another call is still waiting. A page
+  /// that is not in the model's `pages` sets ``error`` to `not-found`
+  /// without rendering.
   public func load(_ page: PageRef) async {
     guard !Task.isCancelled else { return }
     guard let geometry = geometries[page] else {
@@ -143,6 +164,7 @@ public final class ThumbnailModel {
 
   private func render(_ page: PageRef, geometry: PageGeometry, revision: UInt64, id: Int) async {
     renderCount += 1
+    await renderStarted?()
     do {
       let rendered = try await render.renderThumbnail(page)
       // A cancelled or superseded load no longer owns the page.
