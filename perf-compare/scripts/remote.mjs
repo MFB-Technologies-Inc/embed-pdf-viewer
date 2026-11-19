@@ -15,7 +15,7 @@
 // It never touches a checkout on the remote, so arms built from commits
 // that exist only here work too.
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfig } from '../lib/config.mjs';
@@ -123,6 +123,7 @@ for (;;) {
 }
 const after = ssh(`ls ~/${remoteRoot}/results`, { stdio: ['ignore', 'pipe', 'inherit'] }).split('\n');
 const fresh = after.filter((d) => d && !before.has(d));
+mkdirSync(path.join(here, 'results'), { recursive: true });
 for (const run of fresh) {
   rsync([`${host}:${remoteRoot}/results/${run}/`, path.join(here, 'results', run) + '/']);
   console.log(`fetched results/${run}`);
