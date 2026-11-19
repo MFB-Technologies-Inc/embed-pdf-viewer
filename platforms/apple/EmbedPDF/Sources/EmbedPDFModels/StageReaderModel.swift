@@ -25,7 +25,22 @@ public final class StageReaderModel {
   /// stage reports it as one.
   @available(*, deprecated, message: "Use pageIndex, an Int; this is the same position as a UInt32.")
   public var currentPageIndex: UInt32 { UInt32(exactly: pageIndex) ?? 0 }
+  /// The latest failure of one of the model's calls, `nil` when the latest
+  /// call of that kind succeeded. The kinds are: a read of the stage's
+  /// pages and camera, ``sizeChanged(_:displayScale:)``, a drag call,
+  /// ``doubleTapped(at:)``, the tool read, the link tap registration in
+  /// ``task()``, a page's link load, and a pointer sample's page lookup. A
+  /// failure of any kind replaces the error. Only a later success of the
+  /// kind that set it clears it, so a good read of the pages does not hide a
+  /// failed link load, and the next good link load does.
+  ///
+  /// The cost: a caller that polls this can miss a failure a later success
+  /// cleared. Observe it to see each one.
   public private(set) var error: PDFError?
+  /// The kinds of call whose failure lands in ``error``.
+  enum Call { case read, resize, drag, doubleTap, toolRead, linkTapRegistration, linkLoad, pageLookup }
+  /// The kind of call that set ``error``, `nil` while it is `nil`.
+  @ObservationIgnored private var failedCall: Call?
   /// Whether the zoom is changing: a pinch is under way, or the zoom
   /// animation a pinch's end or a double tap starts hasn't settled. Pages
   /// render at banded scales while it is, and at the stage's own scale
@@ -188,7 +203,9 @@ public final class StageReaderModel {
     self.link = link
     revisions = RenderRevisions(render: render)
     pointer = interaction.map { StagePointerForwarder(stage: stage, interaction: $0) }
-    pointer?.failed = { [weak self] error in self?.error = error }
+    pointer?.lookedUp = { [weak self] error in
+      if let error { self?.failed(.pageLookup, error) } else { self?.succeeded(.pageLookup) }
+    }
   }
 
   /// Run for the view's lifetime, projecting stage events. With an
@@ -238,9 +255,11 @@ public final class StageReaderModel {
   private func registerLinkTaps() async -> Registration? {
     guard let link else { return nil }
     do {
-      return try await link.registerTapHandler()
+      let registration = try await link.registerTapHandler()
+      succeeded(.linkTapRegistration)
+      return registration
     } catch {
-      self.error = error
+      failed(.linkTapRegistration, error)
       return nil
     }
   }
@@ -254,10 +273,11 @@ public final class StageReaderModel {
       let fallback = try await interaction.defaultToolID()
       if activeToolID != active { activeToolID = active }
       if forwardsDrags != (active != fallback) { forwardsDrags = active != fallback }
+      succeeded(.toolRead)
     } catch {
       if activeToolID != nil { activeToolID = nil }
       if forwardsDrags { forwardsDrags = false }
-      self.error = error
+      failed(.toolRead, error)
     }
   }
 
@@ -319,8 +339,9 @@ public final class StageReaderModel {
       // frame.
       do {
         show(try await stage.visiblePages())
+        succeeded(.read)
       } catch {
-        self.error = error
+        failed(.read, error)
       }
     case .motionEnded, .viewportChanged, .zoomChanged, .settingsChanged:
       await refresh()
@@ -328,7 +349,7 @@ public final class StageReaderModel {
       do {
         pageIndex = try event.pageIndex.toInt("page index")
       } catch {
-        self.error = error
+        failed(.read, error)
       }
     }
   }
@@ -338,8 +359,9 @@ public final class StageReaderModel {
       try await stage.setDevicePixelRatio(Double(displayScale))
       try await stage.setViewportSize(Size(width: size.width, height: size.height))
       pageIndex = try await stage.currentPageIndex()
+      succeeded(.resize)
     } catch {
-      self.error = error
+      failed(.resize, error)
     }
     await refresh()
   }
@@ -393,8 +415,9 @@ public final class StageReaderModel {
         dx: translation.width - lastTranslation.width,
         dy: translation.height - lastTranslation.height)
       lastTranslation = translation
+      succeeded(.drag)
     } catch {
-      self.error = error
+      failed(.drag, error)
     }
     // The pan's `cameraChanged` event brings the camera and pages back.
   }
@@ -412,8 +435,9 @@ public final class StageReaderModel {
         try await stage.fling(velocityX: velocity.width, velocityY: velocity.height)
       }
       pageIndex = try await stage.currentPageIndex()
+      succeeded(.drag)
     } catch {
-      self.error = error
+      failed(.drag, error)
     }
     await refresh()
   }
@@ -445,8 +469,9 @@ public final class StageReaderModel {
     await zoomStartReached?()
     do {
       try await stage.doubleTapZoom(Point(x: location.x, y: location.y))
+      succeeded(.doubleTap)
     } catch {
-      self.error = error
+      failed(.doubleTap, error)
     }
     zoomStartsInFlight -= 1
     zoomEpoch &+= 1
@@ -476,9 +501,10 @@ public final class StageReaderModel {
         // A pinch may have started while the read was out.
         if epoch == zoomEpoch, zoomPhase == .settling, !moving { zoomPhase = .idle }
       }
+      succeeded(.read)
     } catch {
       if mayJudge, epoch == zoomEpoch, zoomPhase == .settling { zoomPhase = .idle }
-      self.error = error
+      failed(.read, error)
     }
     setZooming(zoomPhase != .idle)
   }
@@ -509,11 +535,25 @@ public final class StageReaderModel {
       // annotation plugin owns the links, removes the per-page hop.
       do {
         try await link.ensureLoaded(page)
+        succeeded(.linkLoad)
       } catch {
         linkPages.remove(page)
-        self.error = error
+        failed(.linkLoad, error)
       }
     }
+  }
+
+  /// Records a failed call of one kind in ``error``.
+  func failed(_ call: Call, _ error: PDFError) {
+    self.error = error
+    failedCall = call
+  }
+
+  /// Clears ``error`` when the call that set it was of this kind.
+  private func succeeded(_ call: Call) {
+    guard failedCall == call else { return }
+    failedCall = nil
+    error = nil
   }
 
   private func setZooming(_ zooming: Bool) {

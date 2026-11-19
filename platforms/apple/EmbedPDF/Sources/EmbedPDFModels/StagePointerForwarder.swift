@@ -33,8 +33,10 @@ final class StagePointerForwarder {
   /// Whether ``interrupt()`` closed the gesture. Until the next down or
   /// tap, a move, an up and a cancel send nothing.
   private var interrupted = false
-  /// Receives a failed page lookup. The sample still goes out, with no page.
-  var failed: (@MainActor (PDFError) -> Void)?
+  /// Receives each page lookup's outcome: `nil` for one that answered, the
+  /// error for one that failed. A sample whose lookup failed still goes
+  /// out, with no page.
+  var lookedUp: (@MainActor (PDFError?) -> Void)?
   /// Runs as each sample is handed to the hub. Tests record them.
   var dispatched: (@MainActor (PointerSample) -> Void)?
 
@@ -130,11 +132,13 @@ final class StagePointerForwarder {
       // under a drag rarely changes between moves; mapping the point through
       // the last hit's page and transform while the camera stands still
       // saves the lookup.
-      guard let hit = try await stage.page(at: Point(x: location.x, y: location.y)) else { return nil }
+      let hit = try await stage.page(at: Point(x: location.x, y: location.y))
+      lookedUp?(nil)
+      guard let hit else { return nil }
       return PointerPageHit(
         page: hit.page, point: hit.point, scale: hit.scale, rotation: hit.rotation, zoom: hit.zoom)
     } catch {
-      failed?(error)
+      lookedUp?(error)
       return nil
     }
   }

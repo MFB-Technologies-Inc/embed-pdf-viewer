@@ -177,6 +177,20 @@ struct SearchModelTests {
     try await viewer.destroy()
   }
 
+  /// The bar draws ``SearchModel/error``; a clear that succeeds leaves
+  /// nothing under the empty field.
+  @Test func aSuccessfulClearClearsARefusedSearchsError() async throws {
+    let viewer = try PDFViewer(ViewerConfig(scope: ["doc.open", "doc.render"], search: SearchConfig()))
+    try await viewer.start()
+    let model = SearchModel(search: try await viewer.search(for: try await viewer.open(pluginFixture())))
+    model.text = "the"
+    await model.searchSubmitted()
+    #expect(model.error != nil)
+    await model.clearButtonTapped()
+    expectNoDifference(model.error, nil)
+    try await viewer.destroy()
+  }
+
   @Test func thePluginsOwnRerunAfterAnEditReachesTheObservingModel() async throws {
     let (viewer, document, search, model) = try await opened()
     model.text = "the"

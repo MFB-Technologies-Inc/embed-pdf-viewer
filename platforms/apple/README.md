@@ -315,6 +315,21 @@ an edit touched. The model observes by itself, from `init` until the document
 closes or the model is released. It has no `task()` to run. `StageReaderModel`
 owns one as `revisions`, and `ThumbnailModel` keeps its own.
 
+A model's `error` is a state, not a log. It holds the model's latest failure,
+whether an action the app called failed or a read the model made by itself
+did, and it is cleared when the call that failed next succeeds. A success of
+another kind leaves it, so a scroll's read does not wipe a refused action.
+`StageReaderModel` records which kind of call failed and clears on the next
+good call of that kind; the comment on `error` in
+`platforms/apple/EmbedPDF/Sources/EmbedPDFModels/StageReaderModel.swift` lists
+the eight kinds. `ToolModel` clears an action's error on the next good
+`activate(_:)` or `activateDefault()`, and a read's error on the next good
+read. The two models with a session clear when the session starts over:
+`SearchModel` on a good `searchSubmitted()` or `clearButtonTapped()`, and
+`TextSelectionModel` on the next `dragBegan(at:on:start:)` or `clear()`. The
+cost: code that polls `error` can miss a failure that a later success cleared.
+Observe it, as a SwiftUI view does, to see each one.
+
 ## Page overlays
 
 `StageReaderView` takes a `pageOverlay` closure and lays its view over each

@@ -16,9 +16,10 @@ import Observation
 ///
 /// ``error`` is the latest failure of an action or a read. A successful
 /// background refresh does not clear it; a successful ``searchSubmitted()``
-/// does. After a refused ``searchSubmitted()``, ``status`` stays
-/// `SearchStatus.error` through background refreshes until the next submitted
-/// search or ``clearButtonTapped()``.
+/// or ``clearButtonTapped()`` does, so a caller that polls it can miss a
+/// failure one of those cleared. After a refused ``searchSubmitted()``,
+/// ``status`` stays `SearchStatus.error` through background refreshes until
+/// the next submitted search or ``clearButtonTapped()``.
 ///
 /// The search plugin reruns its query by itself after every confirmed edit.
 /// Each search event rereads ``hits``, so a rerun that finds as many hits in
@@ -224,6 +225,7 @@ public final class SearchModel {
   public func clearButtonTapped() async {
     do {
       try await search.clear()
+      error = nil
       submissionRefused = false
     } catch {
       self.error = error
