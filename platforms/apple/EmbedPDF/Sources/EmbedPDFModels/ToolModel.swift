@@ -14,9 +14,15 @@ import Observation
 /// more refresh, so a closed document leaves the model empty.
 ///
 /// ``submitting`` is `true` from the start of ``activate(_:)`` or
-/// ``activateDefault()`` until the call fails or a read started after the
-/// hub answered has landed, so ``activeToolID`` holds the action's result
-/// when it returns. A second action asked for in that time is ignored.
+/// ``activateDefault()`` until the call fails or the one read the action
+/// starts after the hub answers has finished. State revisions and events
+/// start no read in that time; one the action's read does not cover is
+/// read once ``submitting`` is `false`. ``activeToolID``
+/// holds the action's result when ``submitting`` clears, with two
+/// exceptions: the action's task was cancelled, or a ``refresh()`` the app
+/// called superseded the action's read. In both the result arrives with the
+/// next read that lands. A second action asked for while ``submitting`` is
+/// `true` is ignored.
 ///
 /// ``usable`` holds each registered tool whose `canUseTool` is `true`. A
 /// tool registered or removed is a state revision, so ``usable`` follows it
@@ -43,6 +49,12 @@ public final class ToolModel {
   /// Whether ``error`` came from a read, which the next successful read
   /// clears, and not from an action.
   @ObservationIgnored private var readFailed = false
+  /// Whether the action in flight has started its read.
+  @ObservationIgnored private var flightReadStarted = false
+  /// Whether a change was observed in this flight before its read started.
+  @ObservationIgnored private var flightMissedChange = false
+  /// The observed changes waiting for the action in flight to end.
+  @ObservationIgnored private(set) var flightWaiters: [CheckedContinuation<Void, Never>] = []
   @ObservationIgnored let interaction: InteractionCapability
   @ObservationIgnored let snapshots = SnapshotRefresh()
   @ObservationIgnored private var observation: UInt64 = 0
@@ -57,26 +69,42 @@ public final class ToolModel {
     defer { if observation == session { snapshots.invalidate() } }
     await observeCapability(
       viewer: interaction.viewer, events: interaction.events,
-      initial: { if self.observation == session { await self.refresh() } },
+      initial: { if self.observation == session { await self.observedChange() } },
       // Performance: runs for every coalesced state revision, and most are
       // a scroll or a zoom that leaves the tools alone. The viewer's
       // revision stream does not say what changed, so each one costs a full
-      // read (see `read`).
-      refresh: { if self.observation == session { await self.refresh() } },
+      // read (see `read`), except while an action is in flight.
+      refresh: { if self.observation == session { await self.observedChange() } },
       receive: { event in
         // Gestures and cursor moves leave the tools alone.
         guard self.observation == session, case .toolChanged = event else { return }
-        await self.refresh()
+        await self.observedChange()
       })
     if observation == session { await refresh() }
   }
 
-  public func refresh() async { _ = await read() }
+  /// A state revision or a `toolChanged` event. While an action is in
+  /// flight it starts no read, so it cannot supersede the action's read or
+  /// be superseded by it in turn. One that arrives before the action's read
+  /// starts is in that read. A later one waits for the flight to end and
+  /// reads then.
+  func observedChange() async {
+    if submitting {
+      guard flightReadStarted else {
+        flightMissedChange = true
+        return
+      }
+      // Performance: one more full read per flight, after `submitting`
+      // clears, so it never holds the buttons. The action's own
+      // `toolChanged` causes it when the event arrives during the action's
+      // read; telling that event from another caller's needs an id on the
+      // event.
+      await withCheckedContinuation { flightWaiters.append($0) }
+    }
+    await refresh()
+  }
 
-  /// Whether this read's result reached the model; `false` when a newer
-  /// read superseded it or the task was cancelled.
-  private func read() async -> Bool {
-    var landed = false
+  public func refresh() async {
     await snapshots.run(load: {
       let tools = try await self.interaction.tools()
       let active = try await self.interaction.activeToolID()
@@ -86,12 +114,12 @@ public final class ToolModel {
       // revision, a scroll or a zoom included. With the annotation plugin's
       // tools that is 20 calls, 22 with the two reads above, per revision,
       // and a `ToolPermission.canUse()` the app registered is asked at that
-      // rate. It also widens the window in which reads supersede each other
-      // (see `submit`). Rereading `usable` only when `tools` differs or on
-      // `toolChanged` removes the cost, but a permission can change with no
-      // revision and no event (see the type's comment), so that needs a
-      // signal for permission changes first. A single engine call that
-      // answers for every tool removes the round trips without one.
+      // rate, and an action's flight lasts one such read. Rereading
+      // `usable` only when `tools` differs or on `toolChanged` removes the
+      // cost, but a permission can change with no revision and no event
+      // (see the type's comment), so that needs a signal for permission
+      // changes first. A single engine call that answers for every tool
+      // removes the round trips without one.
       for tool in tools {
         let id = ToolID(tool.id)
         if try await self.interaction.canUseTool(id) { usable.insert(id) }
@@ -107,16 +135,13 @@ public final class ToolModel {
         self.readFailed = false
         self.error = nil
       }
-      landed = true
     }, failure: {
       self.tools = []
       self.activeToolID = nil
       self.usable = []
       self.error = controlError($0)
       self.readFailed = true
-      landed = true
     })
-    return landed
   }
 
   /// Makes `id` the active tool. An id nobody registered sets ``error`` to
@@ -132,8 +157,27 @@ public final class ToolModel {
 
   private func submit(_ action: () async throws(PDFError) -> Void) async {
     guard !submitting else { return }
+    await flight(action)
+    // A refused call starts no read, so a change observed while it was out
+    // is read here, after `submitting` clears.
+    if flightMissedChange {
+      flightMissedChange = false
+      await refresh()
+    }
+  }
+
+  /// The time ``submitting`` is set: the hub call and, when the hub
+  /// accepts, one read.
+  private func flight(_ action: () async throws(PDFError) -> Void) async {
     submitting = true
-    defer { submitting = false }
+    flightReadStarted = false
+    flightMissedChange = false
+    defer {
+      submitting = false
+      let waiting = flightWaiters
+      flightWaiters = []
+      for waiter in waiting { waiter.resume() }
+    }
     do {
       try await action()
       error = nil
@@ -143,16 +187,12 @@ public final class ToolModel {
       readFailed = false
       return
     }
-    // The read the `toolChanged` event starts can supersede this one; read
-    // again until one that started after the hub answered lands.
-    //
-    // Performance: each pass is a full read, and this loop and the
-    // revision-driven refresh supersede each other. During a steady run of
-    // revisions (a scroll in progress) neither lands, so `submitting` stays
-    // set and the picker's buttons stay disabled until a read gets through
-    // between two revisions. A cheaper read narrows that window; letting the
-    // newer read's result stand for this one, by awaiting it, closes it.
-    while await !read(), !Task.isCancelled {}
+    // This read starts after the hub answered, and no observed change
+    // starts a read that could supersede it: one read ends the flight,
+    // however many revisions arrive.
+    flightReadStarted = true
+    flightMissedChange = false
+    await refresh()
   }
 
   /// Whether a picker shows `id`'s button as on.
