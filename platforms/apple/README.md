@@ -321,7 +321,9 @@ StageReaderView(model: reader) { page in
     .onTapGesture { location in
       Task {
         // A page point, or nil when the location is off the page.
-        let point = try await reader.stage.viewportToPage(page.page, page.viewportPoint(location))
+        if let point = try? await reader.stage.viewportToPage(page.page, page.viewportPoint(location)) {
+          print("tapped", point)
+        }
       }
     }
 }
@@ -353,7 +355,9 @@ let geometry = page.geometry
 let rendered = try await render.renderPage(
   page.page, options: RenderPageOptions(rotation: geometry.renderRotation, width: 400))
 let thumbnail = geometry.toDisplay(try await render.renderThumbnail(page.page).image)
-let tapOnPage = geometry.toPage(tapInView)
+// A point on the page as shown, in PDF points.
+let shownPoint = Point(x: 72, y: 36)
+let unrotatedPoint = geometry.toPage(shownPoint)
 ```
 
 ## Text selection
@@ -366,25 +370,85 @@ engine call per extension, not one per frame.
 
 ```swift
 let model = TextSelectionModel(selection: try await viewer.selection(for: document))
+```
 
-DragGesture(minimumDistance: 0)
-  .onChanged { value in
-    let point = page.geometry.toPage(Point(x: value.location.x, y: value.location.y))
-    if value.translation == .zero {
-      Task { await model.dragBegan(at: point, on: page.page) }
-    } else {
-      model.dragChanged(to: point, on: page.page)
+The likely host is a `StageReaderView` page overlay, as in
+[Page overlays](#page-overlays). Its drag points are view points with the
+origin at the page's top left, while the model wants unrotated PDF points, and
+the two differ at any zoom. Scale first: multiply by the width of the page as
+shown, `geometry.displaySize.width`, over the width it is drawn at,
+`page.transform.viewWidth` in an overlay. Then pass the scaled point to
+`geometry.toPage(_:)`. Drawing `rects` is the reverse: `geometry.toDisplay(_:)`,
+then divide by the same scale.
+
+```swift
+struct SelectionOverlay: View {
+  let page: StageVisiblePage
+  let info: PageInfo
+  let model: TextSelectionModel
+  @State private var dragging = false
+  @GestureState private var touching = false
+
+  /// PDF points of the page as shown per view point.
+  private var scale: Double { info.geometry.displaySize.width / page.transform.viewWidth }
+
+  private func pagePoint(_ local: CGPoint) -> Point {
+    info.geometry.toPage(Point(x: Double(local.x) * scale, y: Double(local.y) * scale))
+  }
+
+  private func finish() {
+    guard dragging else { return }
+    dragging = false
+    Task { await model.dragEnded() }
+  }
+
+  var body: some View {
+    ZStack(alignment: .topLeading) {
+      Color.clear.contentShape(Rectangle())
+      ForEach(Array((model.rects[page.page] ?? []).enumerated()), id: \.offset) { _, rect in
+        let shown = info.geometry.toDisplay(rect)
+        Rectangle()
+          .fill(.blue.opacity(0.3))
+          .frame(width: shown.width / scale, height: shown.height / scale)
+          .offset(x: shown.x / scale, y: shown.y / scale)
+      }
+    }
+    .gesture(
+      DragGesture(minimumDistance: 0)
+        .updating($touching) { _, touching, _ in touching = true }
+        .onChanged { value in
+          let point = pagePoint(value.location)
+          if dragging {
+            model.dragChanged(to: point, on: page.page)
+          } else {
+            dragging = true
+            Task { await model.dragBegan(at: point, on: page.page) }
+          }
+        }
+        .onEnded { _ in finish() }
+    )
+    .onChange(of: touching) { _, touching in
+      if !touching { finish() }
     }
   }
-  .onEnded { _ in Task { await model.dragEnded() } }
+}
+
+// `pages` holds the document's `PageInfo` values, from `viewer.pages(of:)`.
+StageReaderView(model: reader) { page in
+  SelectionOverlay(page: page, info: pages[Int(page.pageIndex)], model: model)
+}
 ```
+
+The `dragging` flag marks the first point of a drag, which `dragBegan` takes.
+SwiftUI can cancel a `DragGesture` without calling `onEnded`, but it still
+resets `@GestureState`, so the `onChange` above runs `dragEnded()` either way.
 
 `dragBegan` returns false off text, and the drag then selects nothing. Pass
 `start: .word` to start from the word under the finger. Run `task()` from the
 view's `.task` so `rects` also follows selections made elsewhere, such as
 `selectAll()`; it returns when the document closes. `rects` holds unrotated
-page points per page. Draw them on a rotated page with `PageInfo.geometry`, as
-in [Page rotation](#page-rotation).
+page points per page. To draw them, turn them with `PageInfo.geometry`, as in
+[Page rotation](#page-rotation), then divide by the overlay's scale.
 
 ## What the generated Swift gives the facade
 
