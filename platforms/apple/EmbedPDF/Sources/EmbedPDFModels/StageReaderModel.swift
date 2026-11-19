@@ -65,6 +65,21 @@ public final class StageReaderModel {
       if oldValue, !isPanEnabled { dragCalls.enqueue { await self.applyDragEnd(.zero) } }
     }
   }
+  /// Whether a pan begins only once the finger has moved: a drag change
+  /// with no translation then opens no stage gesture. False by default, so
+  /// a touch opens the gesture where it lands and stops a fling under it.
+  ///
+  /// Turn it on when something above the reader delays its drag until the
+  /// touch moves or lifts, as a page overlay's long-press gesture does. A
+  /// tap's drag then reports only at the lift, after the tap's own effect
+  /// has started, and the stage gesture it would open and close cancels
+  /// that effect: a double tap's zoom, or the scroll to a link's
+  /// destination. `PDFReaderView` turns it on while it shows its
+  /// long-press text selection.
+  ///
+  /// The cost: with it on, a still touch or a tap does not stop a fling.
+  /// The finger must move.
+  @ObservationIgnored public var panBeginsOnMovement = false
   /// Per-page render revisions. The counter observes by itself, whether or
   /// not ``task()`` runs.
   public let revisions: RenderRevisions
@@ -320,6 +335,9 @@ public final class StageReaderModel {
 
   private func applyDragChange(_ translation: CGSize) async {
     guard isPanEnabled else { return }
+    // A touch that has not moved. Opening the gesture here would stop
+    // whatever motion the touch's tap has just started.
+    if panBeginsOnMovement, !gestureOpen, translation == .zero { return }
     do {
       if !gestureOpen {
         gestureOpen = true

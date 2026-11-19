@@ -23,6 +23,10 @@ import SwiftUI
 /// active (`.tools`), a drag goes to that tool instead of the pan and text
 /// selection is off.
 ///
+/// With `.selection` the view sets the reader's `panBeginsOnMovement`, so a
+/// pan begins once the finger moves, and a still touch or a tap does not
+/// stop a fling. Without `.selection` a touch stops one where it lands.
+///
 /// The view shows no tool picker: which tools to offer is the app's choice.
 /// Give `Session.tools` to a `ToolPicker`. The view runs the reader's and
 /// the search bar's `task()`; an app does not run them again.
@@ -98,6 +102,13 @@ public struct PDFReaderView<Overlay: View>: View {
           }
         },
         onLinkActivation: onLinkActivation)
+        // The long press above delays the reader's drag to the first move
+        // or the lift, so a tap's drag must not open a stage gesture: it
+        // would cancel the double tap's zoom or the link's scroll that the
+        // same tap started.
+        .task(id: ObjectIdentifier(session.reader)) {
+          session.reader.panBeginsOnMovement = session.selection != nil
+        }
     }
   }
 }
