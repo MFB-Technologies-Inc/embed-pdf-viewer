@@ -45,7 +45,7 @@ function fixture() {
   for (const [url, path] of [
     ['https://github.com/embedpdf/embed-pdf-viewer.git', viewer],
     ['https://github.com/embedpdf/runtime.git', runtime],
-    ['https://github.com/roanutil/embed-pdf-runtime.git', forkRuntime],
+    ['https://github.com/MFB-Technologies-Inc/embed-pdf-runtime.git', forkRuntime],
   ]) git(root, 'config', '--global', `url.file://${path}.insteadOf`, url);
   const pushes = join(root, 'pushes'); writeFileSync(pushes, '');
   const hook = (bare, name) => writeFileSync(join(bare, 'hooks/pre-receive'), `#!/bin/sh\necho ${name} >> '${pushes}'\ncat >/dev/null\n`, { mode: 0o755 });

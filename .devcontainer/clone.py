@@ -10,7 +10,7 @@ def main():
     workspace = Path(os.environ.get("EMBEDPDF_WORKSPACE") or "/workspaces/embed-pdf-viewer")
     repository = (
         os.environ.get("EMBEDPDF_REPOSITORY")
-        or "https://github.com/roanutil/embed-pdf-viewer.git"
+        or "https://github.com/MFB-Technologies-Inc/embed-pdf-viewer.git"
     )
     branch = os.environ.get("EMBEDPDF_BRANCH") or "research/multi-platform-rust-core-impl"
 

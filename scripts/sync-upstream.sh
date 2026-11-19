@@ -11,7 +11,7 @@ set -euo pipefail
 
 UPSTREAM_VIEWER=https://github.com/embedpdf/embed-pdf-viewer.git
 UPSTREAM_RUNTIME=https://github.com/embedpdf/runtime.git
-FORK_RUNTIME=https://github.com/roanutil/embed-pdf-runtime.git
+FORK_RUNTIME=https://github.com/MFB-Technologies-Inc/embed-pdf-runtime.git
 FORK_BRANCH=research/multi-platform-rust-core
 VIEWER_REMOTES=()
 ROUTE=0
