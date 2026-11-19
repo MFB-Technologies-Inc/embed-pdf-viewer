@@ -63,7 +63,10 @@ Two fixtures exist for the annotation and form flows, both written by `fixtures/
 has 1,000 text and checkbox fields over 100 pages. `hover`, `dragAnnot`, `drawInk`, `typeField` and
 `undo` run on them, and the gate compares each one's answer. `dragAnnot` drags a stamp: neither
 viewer API generation moves a highlight. A flow can declare what it `needs` (`lib/flows.mjs`), and
-an arm whose viewer lacks it (`capabilities` in `entry/api-v*.ts`) skips that flow. `undo` needs a
+an arm whose viewer lacks it (`capabilities` in `entry/api-v*.ts`) skips that flow. An arm can also
+list flows under `without` in `arms.json`: a flow known to fail at that commit, left out of the gate
+and the rounds so the arm's other flows are still timed. `hist-bac82a2cd` and `hist-3aa47e708` leave
+out `typeField`, which times out waiting for the typed value there. `undo` needs a
 history plugin, which `main` 2516e2786 doesn't have, so `main` and `main-aa` skip it. The gate
 runs every flow once on every arm, whatever `--flows` says, so it always has an `undo` answer from
 the arms with history. It compares that answer with `arms.json`'s `fallbackReference` (`main-now`)

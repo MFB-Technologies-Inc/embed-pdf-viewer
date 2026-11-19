@@ -662,6 +662,7 @@
     "hist-3aa47e708": {
       "worktree": "hist-3aa47e708",
       "kernel": "rust",
+      "without": ["typeField"],
       "rustReads": false
     },
     "hist-074a190c9": {
@@ -687,6 +688,7 @@
     "hist-bac82a2cd": {
       "worktree": "hist-bac82a2cd",
       "kernel": "rust",
+      "without": ["typeField"],
       "rustReads": false
     },
     "hist-735f6e492": {

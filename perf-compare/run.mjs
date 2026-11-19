@@ -72,7 +72,7 @@ try {
   for (const [id, g] of Object.entries(gate)) console.log(`gate ${id}: ${g.pass ? 'pass' : `excluded: ${g.reason}`}`);
   const timed = arms.filter((id) => gate[id].pass);
   // Flows an arm leaves out because its viewer lacks what they need (lib/flows.mjs `needs`).
-  const skipped = Object.fromEntries(timed.map((id) => [id, flows.filter((f) => f !== 'open' && !armRuns(f, gate[id].capabilities))]));
+  const skipped = Object.fromEntries(timed.map((id) => [id, flows.filter((f) => f !== 'open' && !armRuns(f, gate[id].capabilities, config.arms[id].without))]));
   for (const [id, list] of Object.entries(skipped)) if (list.length) console.log(`${id} skips ${list.join(', ')}`);
 
   const samples = path.join(out, 'samples.jsonl');

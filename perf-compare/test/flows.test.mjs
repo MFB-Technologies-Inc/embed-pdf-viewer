@@ -7,6 +7,8 @@ test('undo needs a history plugin', () => {
   assert.deepEqual(FLOWS.undo.needs, ['history']);
   assert.equal(armRuns('undo', []), false);
   assert.equal(armRuns('undo', ['history']), true);
+  assert.equal(armRuns('undo', ['history'], ['undo']), false);
+  assert.equal(armRuns('typeField', [], ['undo']), true);
 });
 
 test('a flow that needs nothing runs on every arm', () => {

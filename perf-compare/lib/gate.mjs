@@ -88,7 +88,7 @@ const fixtureCounts = (read) => async (page) => {
   return page.evaluate((c) => window.__perf[c](), read.count);
 };
 
-async function answersFor(run, arm, origin, env) {
+async function answersFor(run, arm, origin, env, without) {
   const opts = { origin, rate: 1, ...env };
   const large = await runFlow(run, {
     ...opts,
@@ -126,7 +126,7 @@ async function answersFor(run, arm, origin, env) {
   const flowAnswers = {};
   const skipped = [];
   for (const flow of FIXTURE_FLOWS) {
-    if (!armRuns(flow, capabilities)) {
+    if (!armRuns(flow, capabilities, without)) {
       skipped.push(flow);
       continue;
     }
@@ -234,7 +234,7 @@ export async function runGate(run, { config, arms, urls, stamps, env }) {
   const collected = {};
   for (const id of arms) {
     try {
-      collected[id] = await answersFor(run, id, urls[id], env);
+      collected[id] = await answersFor(run, id, urls[id], env, config.arms[id].without);
     } catch (error) {
       results[id] = { pass: false, reason: `harness: ${String(error.message ?? error).split('\n')[0]}` };
     }

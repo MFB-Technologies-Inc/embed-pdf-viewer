@@ -716,9 +716,11 @@ export const FLOWS = {
 export const FLOW_ORDER = Object.keys(FLOWS);
 
 // Whether an arm whose viewer has `capabilities` (window.__perf.capabilities,
-// from entry/api-v*.ts) runs `flow`: it has everything the flow `needs`.
-export const armRuns = (flow, capabilities) =>
-  (FLOWS[flow]?.needs ?? []).every((need) => capabilities.includes(need));
+// from entry/api-v*.ts) runs `flow`: it has everything the flow `needs`, and
+// arms.json does not list the flow under the arm's `without` (a flow known
+// to fail at that commit, left out so the rest of the arm can be timed).
+export const armRuns = (flow, capabilities, without = []) =>
+  !without.includes(flow) && (FLOWS[flow]?.needs ?? []).every((need) => capabilities.includes(need));
 
 // Cold open on a page the runner prepared: parked on /__blank with CDP
 // attached and the throttle on.

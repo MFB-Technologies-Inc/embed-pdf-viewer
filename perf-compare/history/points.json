@@ -111,7 +111,8 @@
       "date": "2026-11-07T14:36:01.000Z",
       "why": "milestone",
       "note": "the web shell caught up with the 2026-11-07 catch-up (upstream 074a190c9)",
-      "arm": "hist-92f844a18"
+      "arm": "hist-92f844a18",
+      "skip": "it builds, but opening the 400-page fixture never settles: the gate stopped `open/large` after 300 s on the Mac mini (2026-11-19)"
     },
     {
       "series": "plugins",
