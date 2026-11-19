@@ -401,6 +401,34 @@ struct StageReaderModelTests {
     #expect(!model.gestureOpen)
   }
 
+  /// The gesture system can take a pan away without ending it. The dropped
+  /// pan closes the stage gesture, and the next drag begins a gesture of its
+  /// own and pans by its own translation, not from where the dropped one
+  /// stopped.
+  @Test func aDroppedPanClosesTheGestureAndTheNextDragDoesNotJump() async throws {
+    let (model, task) = try await model()
+    defer { task.cancel() }
+    await model.sizeChanged(CGSize(width: 390, height: 844), displayScale: 3)
+    // Scrolled down first, so the drags stay inside the document.
+    await model.dragChanged(translation: CGSize(width: 0, height: -400))
+    await model.dragEnded(velocity: .zero)
+    try await untilStill(model)
+    await model.dragChanged(translation: CGSize(width: 0, height: -50))
+    #expect(model.gestureOpen)
+    await model.dragCancelled()
+    #expect(!model.gestureOpen)
+    try await untilStill(model)
+    let dropped = try await model.stage.camera()
+    await model.dragChanged(translation: .zero)
+    #expect(model.gestureOpen)
+    let began = try await model.stage.camera()
+    expectNoDifference(began, dropped)
+    await model.dragChanged(translation: CGSize(width: 0, height: -30))
+    let panned = try await model.stage.camera()
+    #expect(panned.y > dropped.y, "the new drag did not pan: y \(dropped.y) to \(panned.y)")
+    await model.dragEnded(velocity: .zero)
+  }
+
   /// By default a touch opens the stage gesture before it moves, which is
   /// what stops a fling under the finger.
   @Test func aZeroTranslationChangeBeginsAPanByDefault() async throws {

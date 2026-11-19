@@ -358,6 +358,16 @@ public final class StageReaderModel {
     await dragCalls.enqueue { await self.applyDragEnd(velocity) }.value
   }
 
+  /// Ends a pan the gesture system took away without ending it: closes the
+  /// open stage gesture with no fling, so the next drag begins a gesture of
+  /// its own. Call it when a drag stops without its end, as a SwiftUI
+  /// gesture does when the system cancels it. Runs after every earlier drag
+  /// call has finished, and does nothing to the stage's gesture when none is
+  /// open.
+  public func dragCancelled() async {
+    await dragCalls.enqueue { await self.applyDragEnd(.zero) }.value
+  }
+
   private func applyDragChange(_ translation: CGSize) async {
     guard isPanEnabled else { return }
     var origin = CGSize.zero

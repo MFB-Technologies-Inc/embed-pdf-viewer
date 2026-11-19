@@ -163,13 +163,28 @@ public struct StageReaderView<PageOverlay: View>: View {
     }
   }
 
-  /// Closes a drag SwiftUI cancelled without calling `onEnded`. A forwarded
-  /// one is cancelled at the hub; the model ends a pan the mask cut off.
+  /// Closes a drag SwiftUI cancelled without calling `onEnded`, whatever
+  /// took it: a system gesture, the app leaving the foreground, or the mask
+  /// when ``StageReaderModel/isPanEnabled`` turns false. A forwarded one is
+  /// cancelled at the hub. A pan is ended with no fling, so the stage
+  /// gesture closes and the next drag pans from its own start. In the mask
+  /// case the model has already ended the pan, and this second end finds no
+  /// gesture open.
   private func dragDropped(model: StageReaderModel) {
     guard let route = drag else { return }
     drag = nil
     touchForwarded = false
-    if route == .tool { model.pointerCancelled() }
+    switch route {
+    case .pan:
+      // Performance: when the mask cut the pan off, the model's own end has
+      // already run, and this one repeats its `currentPageIndex` read and
+      // refresh: three stage round trips for each pan dropped that way.
+      // Skipping the reads in the model when no gesture was open removes
+      // them.
+      Task { await model.dragCancelled() }
+    case .tool:
+      model.pointerCancelled()
+    }
   }
 }
 
