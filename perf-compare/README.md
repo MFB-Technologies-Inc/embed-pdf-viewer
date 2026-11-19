@@ -143,6 +143,18 @@ end it. Its output goes to `.work/remote-run.log` on the remote, which `remote.m
 15 s, and its exit status to `.work/remote-run.exit`. If `remote.mjs` stops early, the run finishes
 anyway, and its `results/<run-id>/` can be copied back with `rsync`.
 
+A GitHub Actions job starting on the remote halfway through would land in the numbers, so the run
+goes through `scripts/remote-guard.sh` there. If the remote has a runner installed as a service
+(`~/actions-runner/.service`, or `PERF_RUNNER_DIR`), the guard waits for the job it is running to
+end, stops the service with `launchctl bootout`, runs, and starts the service again with
+`launchctl bootstrap`, whatever the run's exit status. It never cuts a job short: after
+`PERF_RUNNER_WAIT` seconds (default 3600) of a job still running it gives up with status 75 and
+times nothing. Jobs queued while the service is down wait on GitHub and start when it returns. A
+service that was already stopped is left stopped, and a remote with no runner is timed as before.
+The cost is that the runner is offline for the whole run, about 3 hours for a history batch. If the
+guard itself is killed with `SIGKILL`, the service stays down; `launchctl bootstrap gui/$(id -u)
+<the plist named in .service>` on the remote brings it back.
+
 One run per host. `PERF_PORT_OFFSET` lets two runs share a machine without colliding, and
 `scripts/concurrency-check.mjs` tests whether their numbers survive it. On the Mac mini M1
 (`macmini2020`) they don't: against a solo run, two concurrent runs of `main` and the plugins kernel

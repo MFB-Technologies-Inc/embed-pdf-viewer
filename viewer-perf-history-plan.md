@@ -29,6 +29,13 @@ Pushing and merging need the user's confirmation.
 
 ### Progress log
 
+- 2026-11-18: the Mac mini also hosts a GitHub Actions runner, a LaunchAgent in `gui/<uid>` with
+  its directory at `~/actions-runner`. `scripts/remote.mjs` now starts every remote run through
+  `scripts/remote-guard.sh`, which waits for a running job to end, stops the runner service, runs,
+  and starts the service again (README, "Timing on another machine"). Tested against a fake
+  `launchctl` and `pgrep` in `test/remote-guard.test.mjs`; the real stop and start on the Mac mini
+  have not been exercised yet, so watch the first lines of the first batch's log for
+  `runner: stopping` and its end for `runner: starting`.
 - 2026-11-18: Tasks 2 to 7. 110 tests pass (`node --test test/*.test.mjs`, 4 skipped as before).
   `history-points.mjs` chose 19 points: 12 milestones and 3 weekly commits of the port
   (`dfd2937d4`, `920a52876`, `bac82a2cd`), and 4 of upstream. 12 reuse an arm `arms.json` already
@@ -347,6 +354,12 @@ PERF_REMOTE=user@remote-host node scripts/remote.mjs --rounds 10 --profile deskt
 node scripts/history-record.mjs results/<run-id>
 node scripts/history-chart.mjs
 ```
+
+Nothing extra is needed for the Actions runner on the Mac mini: `remote.mjs` stops it before the
+run and starts it after (`scripts/remote-guard.sh`). A batch that begins while a job is running
+waits up to an hour for it. After each batch, check that the runner is back:
+`ssh user@remote-host 'launchctl print gui/$(id -u)/<label>'`, where the label is the plist name in
+`~/actions-runner/.service`.
 
 `main-now` rides along so the gate has an `undo` reference. Six points and the three fixed arms
 are about 3.2 h a batch. Commit `history/runs/<run-id>/`, `data.json` and `index.html` after each

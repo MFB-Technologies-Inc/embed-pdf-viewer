@@ -9,6 +9,9 @@
 // brings its `results/<run-id>/` back into this checkout's `results/`. The
 // remote needs mise (for this machine's Node version) and rsync; Chromium is
 // installed there on first use.
+// The run goes through `scripts/remote-guard.sh` on the remote, which stops
+// a GitHub Actions runner there for the length of the run and starts it
+// again afterwards. PERF_RUNNER_DIR and PERF_RUNNER_WAIT pass through to it.
 // It never touches a checkout on the remote, so arms built from commits
 // that exist only here work too.
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -70,16 +73,22 @@ const node = `mise exec node@${process.versions.node} -- node`;
 // The run is detached from this ssh session: a full run outlasts a dropped
 // connection, and whatever runs this script may stop it before the end. Its
 // output goes to a log, which is followed from here; its exit status to a
-// file next to it.
+// file next to it. The guard writes that file, after it has started the
+// runner again.
 const log = `.work/remote-run.log`;
 const exitFile = `.work/remote-run.exit`;
 const run = `PERF_HARNESS_COMMIT=${commit} PERF_HARNESS_DIRTY=${dirty ? 1 : 0} caffeinate -ims ${node} run.mjs ${quoted}`;
+const shq = (text) => `'${text.replaceAll("'", "'\\''")}'`;
+const guardEnv = ['PERF_RUNNER_DIR', 'PERF_RUNNER_WAIT']
+  .filter((name) => process.env[name])
+  .map((name) => `${name}=${shq(process.env[name])} `)
+  .join('');
 const script = [
   `cd ~/${remoteRoot}`,
   `mise install node@${process.versions.node} >/dev/null 2>&1`,
   `${node} node_modules/playwright-core/cli.js install chromium >/dev/null`,
   `rm -f ${exitFile}`,
-  `(nohup sh -c '${run.replaceAll("'", "'\\''")}; echo \\$? > ${exitFile}' > ${log} 2>&1 < /dev/null &)`,
+  `(${guardEnv}nohup sh scripts/remote-guard.sh ${exitFile} ${shq(run)} > ${log} 2>&1 < /dev/null &)`,
 ].join(' && ');
 const before = new Set(ssh(`ls ~/${remoteRoot}/results`, { stdio: ['ignore', 'pipe', 'inherit'] }).split('\n'));
 ssh(`zsh -lc "${script.replaceAll('"', '\\"')}"`);
@@ -107,6 +116,8 @@ for (;;) {
   shown += Buffer.byteLength(text);
   const status = out.slice(at + '\n@@exit:'.length).trim();
   if (status === '') continue;
+  if (status === '75') throw new Error(`a GitHub Actions job on ${host} outlasted the wait, so nothing was timed; run again when it is idle, or raise PERF_RUNNER_WAIT`);
+  if (status === '70') throw new Error(`a GitHub Actions runner on ${host} could not be stopped, so nothing was timed; see ~/${remoteRoot}/${log} there`);
   if (status !== '0') throw new Error(`the remote run exited ${status}; see ~/${remoteRoot}/${log} on ${host}`);
   break;
 }
