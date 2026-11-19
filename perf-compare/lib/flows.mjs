@@ -764,47 +764,69 @@ export const sampleFields = (r) => ({
 // throttle there (same origin, so the viewer's navigation keeps the process
 // and the throttle), then open and run. `inspect(page)`, when given, runs
 // after the measurement and its answer comes back as `inspected`.
-export async function runFlow(run, { origin, flow, fixture, rate, viewport, deviceScaleFactor, inspect }) {
-  const context = await run.browser.newContext({ viewport, deviceScaleFactor });
+// Rejects when `work` has not settled after `ms`. The caller still has to stop
+// the work itself; runFlow does that by closing the browser context.
+export function withDeadline(work, ms, what) {
+  let timer;
+  const late = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${what} did not finish in ${Math.round(ms / 1000)} s`)), ms);
+  });
+  return Promise.race([work, late]).finally(() => clearTimeout(timer));
+}
+
+// A viewer that never settles would otherwise hold the whole run: a page
+// evaluate has no timeout of its own. PERF_FLOW_TIMEOUT is in seconds.
+const flowTimeoutMs = () => Number(process.env.PERF_FLOW_TIMEOUT ?? 300) * 1000;
+
+export async function runFlow(run, options) {
+  const context = await run.browser.newContext({ viewport: options.viewport, deviceScaleFactor: options.deviceScaleFactor });
   try {
-    await context.addInitScript({ path: probePath });
-    const page = await context.newPage();
-    if (process.env.PERF_DEBUG) console.error('[flow]', flow, fixture, origin);
-    await page.goto(`${origin}/__blank`);
-    const cdp = await openCdp(page, run.cdp);
-    try {
-      await cdp.throttle(rate);
-      if (process.env.PERF_DEBUG) console.error('[flow] throttled');
-      const url = `${origin}/?doc=${fixture}`;
-      let result;
-      if (flow === 'open') {
-        result = await openFlow(page, cdp, url);
-      } else {
-        const f = FLOWS[flow];
-        await page.goto(url);
-        await page.waitForFunction(() => window.__perf, null, { timeout: 60_000 });
-        await page.evaluate(() => window.__perf.opened);
-        await settle(page, 0);
-        await f.start(page);
-        if (f.warmup) {
-          await f.warmup(page, cdp);
-          await f.start(page);
-        }
-        await page.evaluate(() => window.__probe.reset());
-        result = await f.measure(page, cdp);
-      }
-      const warmup = warmupFailureOn(page);
-      const inspected = inspect ? await inspect(page) : undefined;
-      return {
-        ...result,
-        ...(warmup ? { warmupFailed: warmup } : {}),
-        inspected,
-        workerThrottled: rate === 1 ? null : cdp.workerThrottled,
-      };
-    } finally {
-      await cdp.close();
-    }
+    const work = flowIn(context, run, options);
+    // Closing the context below rejects whatever the flow still awaits.
+    work.catch(() => {});
+    return await withDeadline(work, flowTimeoutMs(), `${options.flow}/${options.fixture}`);
   } finally {
-    await context.close();
+    // A renderer stuck in a loop can hold the close as well.
+    await withDeadline(context.close(), 30_000, 'closing the page').catch(() => {});
+  }
+}
+
+async function flowIn(context, run, { origin, flow, fixture, rate, inspect }) {
+  await context.addInitScript({ path: probePath });
+  const page = await context.newPage();
+  if (process.env.PERF_DEBUG) console.error('[flow]', flow, fixture, origin);
+  await page.goto(`${origin}/__blank`);
+  const cdp = await openCdp(page, run.cdp);
+  try {
+    await cdp.throttle(rate);
+    if (process.env.PERF_DEBUG) console.error('[flow] throttled');
+    const url = `${origin}/?doc=${fixture}`;
+    let result;
+    if (flow === 'open') {
+      result = await openFlow(page, cdp, url);
+    } else {
+      const f = FLOWS[flow];
+      await page.goto(url);
+      await page.waitForFunction(() => window.__perf, null, { timeout: 60_000 });
+      await page.evaluate(() => window.__perf.opened);
+      await settle(page, 0);
+      await f.start(page);
+      if (f.warmup) {
+        await f.warmup(page, cdp);
+        await f.start(page);
+      }
+      await page.evaluate(() => window.__probe.reset());
+      result = await f.measure(page, cdp);
+    }
+    const warmup = warmupFailureOn(page);
+    const inspected = inspect ? await inspect(page) : undefined;
+    return {
+      ...result,
+      ...(warmup ? { warmupFailed: warmup } : {}),
+      inspected,
+      workerThrottled: rate === 1 ? null : cdp.workerThrottled,
+    };
+  } finally {
+    await cdp.close().catch(() => {});
   }
 }

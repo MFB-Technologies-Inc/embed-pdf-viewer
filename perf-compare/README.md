@@ -155,6 +155,10 @@ The cost is that the runner is offline for the whole run, about 3 hours for a hi
 guard itself is killed with `SIGKILL`, the service stays down; `launchctl bootstrap gui/$(id -u)
 <the plist named in .service>` on the remote brings it back.
 
+A flow that has not finished after 300 seconds is stopped and recorded as an error, and in the gate
+that excludes its arm. `PERF_FLOW_TIMEOUT` changes the limit, in seconds. Without it, a viewer that
+never settles held a 9-arm run for 8.5 hours on 2026-11-19.
+
 One run per host. `PERF_PORT_OFFSET` lets two runs share a machine without colliding, and
 `scripts/concurrency-check.mjs` tests whether their numbers survive it. On the Mac mini M1
 (`macmini2020`) they don't: against a solo run, two concurrent runs of `main` and the plugins kernel
