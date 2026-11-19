@@ -1,0 +1,524 @@
+name: release-apple
+
+# Publishes the iOS/macOS engine, EmbedPDFBindings.xcframework.zip, as the
+# prerelease apple-engine-<hash> on the release repo, with
+# scripts/publish-engine-payload.mjs --only apple split into its two stages.
+# Its PDFium is the four Apple slices release-fork-slices.yml uploaded
+# (fork-slice-<target>), stamped into buildFork's cache so the fork is not
+# built again.
+#
+#   check            runs check-apple-engine.sh. Its verdict is the state:
+#                    current (exit 0, the manifests pin this tree's engine:
+#                    nothing else runs), build (exit 1, not released yet) or
+#                    pin (exit 2, released but not pinned).
+#   build            --stage build. On build it makes the zip and its facts
+#                    and uploads them as apple-xcframework. On pin the script
+#                    pins both manifests from the existing release, makes no
+#                    zip, and this job uploads the manifests as apple-manifests;
+#                    nothing after it runs.
+#   test-ios,        the published bytes, unzipped beside the manifest, under
+#   test-mac-arm64,  EMBEDPDF_PREBUILT_ENGINE=local: the tests publishApple
+#   test-mac-x86_64  runs between its build and its release, one runner each.
+#   publish          --stage publish under the release environment: creates the
+#                    release with the App token, pins both manifests and
+#                    uploads them as apple-manifests.
+#
+# dry_run runs every job; publish runs without the environment or the token,
+# prints the gh command, and pins the manifests to the tag and checksum the
+# release would have, so apple-manifests looks as it would after a real run.
+#
+# The pinned manifests are uploaded, not committed: the release names the
+# commit it was built from, which can't also hold its checksum.
+
+on:
+  workflow_call:
+    inputs:
+      dry_run:
+        description: Build and test the engine and print the publish command without running it.
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      RELEASE_APP_ID:
+        description: GitHub App that can write releases on the release repo.
+        required: false
+      RELEASE_APP_KEY:
+        description: That App's private key.
+        required: false
+    outputs:
+      apple_tag:
+        description: This tree's engine release tag, apple-engine-<hash>.
+        value: ${{ jobs.check.outputs.tag }}
+      checksum:
+        description: The SwiftPM checksum the manifests pin for apple_tag. Empty when state is current.
+        value: ${{ jobs.publish.outputs.checksum || jobs.build.outputs.checksum }}
+      state:
+        description: "current (nothing to do), build (built, tested and published) or pin (already released, only pinned). apple-manifests exists for build and pin."
+        value: ${{ jobs.check.outputs.state }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  EMBEDPDF_RELEASE_REPO: MFB-Technologies-Inc/embed-pdf-runtime
+  # check-apple-engine.sh reads this one; the publish script sets it from
+  # EMBEDPDF_RELEASE_REPO when it runs the check itself.
+  EMBEDPDF_RUNTIME_REPO: MFB-Technologies-Inc/embed-pdf-runtime
+
+jobs:
+  check:
+    # Preview image label; actionlint 1.7.12 does not list it yet.
+    runs-on: xcode-27
+    timeout-minutes: 10
+    outputs:
+      state: ${{ steps.check.outputs.state }}
+      tag: ${{ steps.check.outputs.tag }}
+    steps:
+      # The hash reads the runtime-src gitlink from the index, not the
+      # submodule's files.
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      # The release repo is public, so the run's token can read it.
+      - name: Check the pinned engine
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh --version | head -1
+          hash=$(bash platforms/apple/apple-engine-hash.sh)
+          [[ "$hash" =~ ^[0-9a-f]{16}$ ]] || { echo "::error::apple-engine-hash.sh printed '$hash'"; exit 1; }
+          echo "tag=apple-engine-$hash" >> "$GITHUB_OUTPUT"
+          status=0
+          bash platforms/apple/check-apple-engine.sh || status=$?
+          case $status in
+            0) state=current ;;
+            1) state=build ;;
+            2) state=pin ;;
+            *) echo "::error::check-apple-engine.sh failed (exit $status)"; exit 1 ;;
+          esac
+          echo "apple-engine-$hash: $state"
+          echo "state=$state" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: check
+    if: needs.check.outputs.state != 'current'
+    runs-on: xcode-27
+    timeout-minutes: 240
+    outputs:
+      checksum: ${{ steps.result.outputs.checksum }}
+    env:
+      STATE: ${{ needs.check.outputs.state }}
+      TAG: ${{ needs.check.outputs.tag }}
+    steps:
+      # Full runtime-src history at the gitlink: the script refuses a
+      # submodule that isn't checked out there.
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+
+      # build-xcframework.sh passes it to cargo as -j; the job env can't run
+      # sysctl.
+      - name: Set the work directory and build parallelism
+        run: |
+          {
+            echo "PERF_WORK_DIR=$RUNNER_TEMP/work"
+            echo "CARGO_BUILD_JOBS=$(sysctl -n hw.ncpu)"
+          } >> "$GITHUB_ENV"
+
+      # The script and its imports use Node's built-ins only, so no pnpm
+      # install.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - uses: ./.github/actions/setup-xcode-27
+
+      # Also exports EMBEDPDF_NM, which build-xcframework.sh needs: Xcode
+      # 27.2's nm cannot read the toolchain's bitcode.
+      - uses: ./.github/actions/setup-rust
+        with:
+          targets: aarch64-apple-ios aarch64-apple-ios-sim aarch64-apple-darwin x86_64-apple-darwin
+          cache-key: apple
+
+      - uses: actions/download-artifact@v7
+        if: env.STATE == 'build'
+        with:
+          name: fork-slice-ios-arm64
+          path: ${{ runner.temp }}/fork-slice-ios-arm64
+
+      - uses: actions/download-artifact@v7
+        if: env.STATE == 'build'
+        with:
+          name: fork-slice-ios-sim-arm64
+          path: ${{ runner.temp }}/fork-slice-ios-sim-arm64
+
+      - uses: actions/download-artifact@v7
+        if: env.STATE == 'build'
+        with:
+          name: fork-slice-darwin-static-arm64
+          path: ${{ runner.temp }}/fork-slice-darwin-static-arm64
+
+      - uses: actions/download-artifact@v7
+        if: env.STATE == 'build'
+        with:
+          name: fork-slice-darwin-static-x64
+          path: ${{ runner.temp }}/fork-slice-darwin-static-x64
+
+      # Exit 65 when a slice isn't its target at the runtime-src gitlink.
+      - name: Stamp the fork slices
+        if: env.STATE == 'build'
+        run: |
+          for target in ios-arm64 ios-sim-arm64 darwin-static-arm64 darwin-static-x64; do
+            node scripts/release/stamp-fork-slice.mjs "$target" "$RUNNER_TEMP/fork-slice-$target/staging"
+          done
+
+      # On build: the zip and its facts in platforms/apple/.build/publish, the
+      # zip unpacked to platforms/apple/EmbedPDF/EmbedPDFBindings.xcframework.
+      # On pin: both manifests rewritten from the release's .sha256, no zip.
+      - name: Build the engine
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/publish-engine-payload.mjs --only apple --stage build
+
+      # The zip and its facts only. upload-artifact stores symlinks as copies,
+      # and the macOS framework in the unpacked xcframework is built of them,
+      # so the test jobs unpack the zip themselves, as
+      # package-engine-framework.sh does.
+      - name: Collect the build
+        id: result
+        run: |
+          if [[ "$STATE" == pin ]]; then
+            line="let engineRelease = \"$TAG\""
+            grep -qxF "$line" platforms/apple/EmbedPDF/Package.swift \
+              || { echo "::error::the script did not pin $TAG in platforms/apple/EmbedPDF/Package.swift"; exit 1; }
+            checksum=$(sed -n 's/^let engineChecksum = "\([0-9a-f]\{64\}\)"$/\1/p' platforms/apple/EmbedPDF/Package.swift)
+            [[ -n "$checksum" ]] || { echo "::error::no engineChecksum in platforms/apple/EmbedPDF/Package.swift"; exit 1; }
+            git diff --stat
+          else
+            pub=platforms/apple/.build/publish
+            zip=$pub/EmbedPDFBindings.xcframework.zip
+            facts=$zip.json
+            [[ -f "$zip" && -f "$facts" ]] || { echo "::error::--stage build left no zip or facts in $pub"; exit 1; }
+            built=$(jq -r .tag "$facts")
+            [[ "$built" == "$TAG" ]] || { echo "::error::the zip is $built, but check found $TAG"; exit 1; }
+            checksum=$(shasum -a 256 "$zip" | awk '{print $1}')
+            out=$RUNNER_TEMP/apple-xcframework
+            mkdir -p "$out"
+            cp "$zip" "$facts" "$out/"
+            cat "$facts"
+          fi
+          echo "$TAG checksum $checksum"
+          echo "checksum=$checksum" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v6
+        if: env.STATE == 'build'
+        with:
+          name: apple-xcframework
+          path: ${{ runner.temp }}/apple-xcframework/
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v6
+        if: env.STATE == 'pin'
+        with:
+          name: apple-manifests
+          path: |
+            Package.swift
+            platforms/apple/EmbedPDF/Package.swift
+          if-no-files-found: error
+
+      - name: Disk usage
+        if: always()
+        run: df -h
+
+  test-ios:
+    needs: [check, build]
+    if: needs.check.outputs.state == 'build'
+    runs-on: xcode-27
+    timeout-minutes: 90
+    env:
+      CHECKSUM: ${{ needs.build.outputs.checksum }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-xcode-27
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: apple-xcframework
+          path: ${{ runner.temp }}/apple-xcframework
+
+      # Where package-engine-framework.sh leaves it, from the same zip.
+      - name: Unpack the engine
+        run: |
+          zip=$RUNNER_TEMP/apple-xcframework/EmbedPDFBindings.xcframework.zip
+          echo "$CHECKSUM  $zip" | shasum -a 256 -c -
+          rm -rf platforms/apple/EmbedPDF/EmbedPDFBindings.xcframework
+          ditto -x -k "$zip" platforms/apple/EmbedPDF
+          ls platforms/apple/EmbedPDF/EmbedPDFBindings.xcframework
+
+      # Gitignored, so neither the checkout nor the artifact has them. The
+      # lists are read from build-xcframework.sh, which copies them there.
+      - name: Copy the test fixtures
+        run: |
+          eval "$(sed -n -e '/^TEST_TARGETS=(/p' -e '/^FIXTURES=(/,/^)/p' platforms/apple/build-xcframework.sh)"
+          (( ${#TEST_TARGETS[@]} > 0 && ${#FIXTURES[@]} > 0 )) || { echo "::error::no TEST_TARGETS or FIXTURES in build-xcframework.sh"; exit 1; }
+          for tests in "${TEST_TARGETS[@]}"; do
+            mkdir -p "platforms/apple/EmbedPDF/Tests/$tests/Fixtures"
+            for fixture in "${FIXTURES[@]}"; do
+              # shellcheck disable=SC2086
+              cp $fixture "platforms/apple/EmbedPDF/Tests/$tests/Fixtures/"
+            done
+          done
+
+      # publishApple's iOS test, on the simulator setup-xcode-27 chose.
+      - name: Test the packaged engine on iOS
+        working-directory: platforms/apple/EmbedPDF
+        env:
+          EMBEDPDF_PREBUILT_ENGINE: local
+        run: |
+          xcodebuild test -scheme EmbedPDF-Package \
+            -destination "platform=iOS Simulator,id=$SIM_ID" \
+            -derivedDataPath "$RUNNER_TEMP/derived-ios"
+
+  test-mac-arm64:
+    needs: [check, build]
+    if: needs.check.outputs.state == 'build'
+    runs-on: xcode-27
+    timeout-minutes: 90
+    env:
+      CHECKSUM: ${{ needs.build.outputs.checksum }}
+      ARCH: arm64
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-xcode-27
+
+      # macos-consumer.mjs uses Node's built-ins only.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: apple-xcframework
+          path: ${{ runner.temp }}/apple-xcframework
+
+      # Where package-engine-framework.sh leaves it, from the same zip.
+      - name: Unpack the engine
+        run: |
+          zip=$RUNNER_TEMP/apple-xcframework/EmbedPDFBindings.xcframework.zip
+          echo "$CHECKSUM  $zip" | shasum -a 256 -c -
+          rm -rf platforms/apple/EmbedPDF/EmbedPDFBindings.xcframework
+          ditto -x -k "$zip" platforms/apple/EmbedPDF
+          ls platforms/apple/EmbedPDF/EmbedPDFBindings.xcframework
+
+      # Gitignored, so neither the checkout nor the artifact has them. The
+      # lists are read from build-xcframework.sh, which copies them there.
+      - name: Copy the test fixtures
+        run: |
+          eval "$(sed -n -e '/^TEST_TARGETS=(/p' -e '/^FIXTURES=(/,/^)/p' platforms/apple/build-xcframework.sh)"
+          (( ${#TEST_TARGETS[@]} > 0 && ${#FIXTURES[@]} > 0 )) || { echo "::error::no TEST_TARGETS or FIXTURES in build-xcframework.sh"; exit 1; }
+          for tests in "${TEST_TARGETS[@]}"; do
+            mkdir -p "platforms/apple/EmbedPDF/Tests/$tests/Fixtures"
+            for fixture in "${FIXTURES[@]}"; do
+              # shellcheck disable=SC2086
+              cp $fixture "platforms/apple/EmbedPDF/Tests/$tests/Fixtures/"
+            done
+          done
+
+      # publishApple's Mac test: a private manifest that adds macOS, outside
+      # the repository, with the variables that would select another engine
+      # cleared.
+      - name: Test the packaged engine on macOS
+        run: |
+          pkg=$RUNNER_TEMP/mac-consumer/EmbedPDF
+          mkdir -p "$(dirname "$pkg")"
+          node platforms/apple/macos-consumer.mjs platforms/apple/EmbedPDF "$pkg"
+          cd "$pkg"
+          env -u EMBEDPDF_LOCAL_ENGINE -u EMBEDPDF_EXPERIMENTAL_BRIDGE \
+            -u PDF_RUNTIME_LIB_DIR -u EMBEDPDF_FORK_TARGET -u LIB_ROOT \
+            -u DYLD_LIBRARY_PATH -u DYLD_FALLBACK_LIBRARY_PATH \
+            EMBEDPDF_PREBUILT_ENGINE=local xcodebuild test -scheme EmbedPDF-Package \
+            -destination "platform=macOS,arch=$ARCH" -jobs 2 \
+            -derivedDataPath "$RUNNER_TEMP/derived-$ARCH"
+
+  test-mac-x86_64:
+    needs: [check, build]
+    if: needs.check.outputs.state == 'build'
+    runs-on: xcode-27
+    timeout-minutes: 90
+    env:
+      CHECKSUM: ${{ needs.build.outputs.checksum }}
+      # Runs under Rosetta, which setup-xcode-27 makes sure of.
+      ARCH: x86_64
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-xcode-27
+
+      # macos-consumer.mjs uses Node's built-ins only.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: apple-xcframework
+          path: ${{ runner.temp }}/apple-xcframework
+
+      # Where package-engine-framework.sh leaves it, from the same zip.
+      - name: Unpack the engine
+        run: |
+          zip=$RUNNER_TEMP/apple-xcframework/EmbedPDFBindings.xcframework.zip
+          echo "$CHECKSUM  $zip" | shasum -a 256 -c -
+          rm -rf platforms/apple/EmbedPDF/EmbedPDFBindings.xcframework
+          ditto -x -k "$zip" platforms/apple/EmbedPDF
+          ls platforms/apple/EmbedPDF/EmbedPDFBindings.xcframework
+
+      # Gitignored, so neither the checkout nor the artifact has them. The
+      # lists are read from build-xcframework.sh, which copies them there.
+      - name: Copy the test fixtures
+        run: |
+          eval "$(sed -n -e '/^TEST_TARGETS=(/p' -e '/^FIXTURES=(/,/^)/p' platforms/apple/build-xcframework.sh)"
+          (( ${#TEST_TARGETS[@]} > 0 && ${#FIXTURES[@]} > 0 )) || { echo "::error::no TEST_TARGETS or FIXTURES in build-xcframework.sh"; exit 1; }
+          for tests in "${TEST_TARGETS[@]}"; do
+            mkdir -p "platforms/apple/EmbedPDF/Tests/$tests/Fixtures"
+            for fixture in "${FIXTURES[@]}"; do
+              # shellcheck disable=SC2086
+              cp $fixture "platforms/apple/EmbedPDF/Tests/$tests/Fixtures/"
+            done
+          done
+
+      # publishApple's Mac test: a private manifest that adds macOS, outside
+      # the repository, with the variables that would select another engine
+      # cleared.
+      - name: Test the packaged engine on macOS
+        run: |
+          pkg=$RUNNER_TEMP/mac-consumer/EmbedPDF
+          mkdir -p "$(dirname "$pkg")"
+          node platforms/apple/macos-consumer.mjs platforms/apple/EmbedPDF "$pkg"
+          cd "$pkg"
+          env -u EMBEDPDF_LOCAL_ENGINE -u EMBEDPDF_EXPERIMENTAL_BRIDGE \
+            -u PDF_RUNTIME_LIB_DIR -u EMBEDPDF_FORK_TARGET -u LIB_ROOT \
+            -u DYLD_LIBRARY_PATH -u DYLD_FALLBACK_LIBRARY_PATH \
+            EMBEDPDF_PREBUILT_ENGINE=local xcodebuild test -scheme EmbedPDF-Package \
+            -destination "platform=macOS,arch=$ARCH" -jobs 2 \
+            -derivedDataPath "$RUNNER_TEMP/derived-$ARCH"
+
+  publish:
+    needs: [check, build, test-ios, test-mac-arm64, test-mac-x86_64]
+    if: needs.check.outputs.state == 'build'
+    runs-on: xcode-27
+    timeout-minutes: 45
+    # No environment on a dry run: nothing to approve.
+    environment: ${{ !inputs.dry_run && 'release' || '' }}
+    outputs:
+      checksum: ${{ steps.pinned.outputs.checksum }}
+    env:
+      TAG: ${{ needs.check.outputs.tag }}
+      CHECKSUM: ${{ needs.build.outputs.checksum }}
+      DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      # The script's startup checks run here too: a clean tracked tree,
+      # runtime-src checked out at the gitlink, cargo metadata and rustc.
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - uses: ./.github/actions/setup-rust
+        with:
+          cache-key: apple
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: apple-xcframework
+          path: ${{ runner.temp }}/apple-xcframework
+
+      # Where --stage build left them; the script refuses facts that name
+      # another tag or commit.
+      - name: Put the zip back
+        run: |
+          pub=platforms/apple/.build/publish
+          mkdir -p "$pub"
+          cp "$RUNNER_TEMP"/apple-xcframework/EmbedPDFBindings.xcframework.zip{,.json} "$pub/"
+          echo "$CHECKSUM  $pub/EmbedPDFBindings.xcframework.zip" | shasum -a 256 -c -
+
+      - name: Create the release token
+        id: token
+        if: ${{ !inputs.dry_run }}
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_KEY }}
+          owner: MFB-Technologies-Inc
+          repositories: embed-pdf-runtime
+
+      # The script runs check-apple-engine.sh again: a release made since the
+      # check job is pinned from, not uploaded over. On a dry run it prints the
+      # gh command and leaves the manifests alone, so they are pinned here
+      # with its own pinEngine to what the release would carry.
+      - name: Publish the engine
+        env:
+          # A dry run has no App token; the run's token reads the public repo.
+          GH_TOKEN: ${{ steps.token.outputs.token || github.token }}
+        run: |
+          if [[ "$DRY_RUN" == true ]]; then
+            node scripts/publish-engine-payload.mjs --only apple --stage publish --dry-run
+            node --input-type=module -e '
+              import { pinEngine } from "./scripts/publish-engine-payload.mjs";
+              pinEngine(process.env.TAG, process.env.CHECKSUM);'
+          else
+            node scripts/publish-engine-payload.mjs --only apple --stage publish
+          fi
+
+      - name: Check the pinned manifests
+        id: pinned
+        run: |
+          nested=platforms/apple/EmbedPDF/Package.swift
+          grep -qxF "let engineRelease = \"$TAG\"" "$nested" \
+            || { echo "::error::$nested does not pin $TAG"; exit 1; }
+          checksum=$(sed -n 's/^let engineChecksum = "\([0-9a-f]\{64\}\)"$/\1/p' "$nested")
+          [[ -n "$checksum" ]] || { echo "::error::no engineChecksum in $nested"; exit 1; }
+          grep -qF "/releases/download/$TAG/EmbedPDFBindings.xcframework.zip\"" Package.swift \
+            || { echo "::error::Package.swift does not pin $TAG"; exit 1; }
+          grep -qF "checksum: \"$checksum\"" Package.swift \
+            || { echo "::error::Package.swift and $nested pin different checksums"; exit 1; }
+          # Differs only when a release made since the check job was pinned
+          # instead of this build.
+          if [[ "$checksum" != "$CHECKSUM" ]]; then
+            echo "::warning::$TAG was released by another run; pinned its checksum $checksum, not this build's $CHECKSUM"
+          fi
+          git diff --stat
+          echo "checksum=$checksum" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: apple-manifests
+          path: |
+            Package.swift
+            platforms/apple/EmbedPDF/Package.swift
+          if-no-files-found: error
