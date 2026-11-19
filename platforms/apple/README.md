@@ -306,6 +306,35 @@ when the document closes, and a restart after cancellation subscribes again.
 Only one `task()` may run at a time. `StageReaderModel` owns one as
 `revisions`.
 
+## Page overlays
+
+`StageReaderView` takes a `pageOverlay` closure and lays its view over each
+visible page, above the page image. The overlay gets the page's frame, origin
+at the page's top left, and the `StageVisiblePage` it covers.
+`viewportPoint(_:)` turns a point in the overlay into the viewport point
+`StageCapability.viewportToPage(_:_:)` takes.
+
+```swift
+StageReaderView(model: reader) { page in
+  Color.clear
+    .contentShape(Rectangle())
+    .onTapGesture { location in
+      Task {
+        // A page point, or nil when the location is off the page.
+        let point = try await reader.stage.viewportToPage(page.page, page.viewportPoint(location))
+      }
+    }
+}
+```
+
+SwiftUI already gives an overlay's own gestures priority over the reader's
+drag, so an overlay's tap or drag gesture needs nothing more. An overlay
+that needs every touch, such as a drawing tool or a UIKit recognizer, sets
+`reader.isPanEnabled = false` while it works. The reader then stops panning and
+ends any drag it had started, without a fling. Pinch and double tap stay active
+alongside overlay gestures either way. `StageReaderView(model:)` still builds a
+reader with no overlay.
+
 ## Page rotation
 
 Engine geometry is in unrotated page space. Annotation rects, text boxes and

@@ -3,6 +3,7 @@ import EmbedPDF
 @testable import EmbedPDFUI
 import Foundation
 import Observation
+import SwiftUI
 import Testing
 
 @MainActor
@@ -305,6 +306,50 @@ struct StageReaderModelTests {
     #expect(model.isZooming)
     try await expectObserved({ model.isZooming }, equals: false) {}
     #expect(try await !model.stage.isMoving())
+  }
+
+  @Test func disablingPanLeavesTheCameraAlone() async throws {
+    let (model, task) = try await model()
+    defer { task.cancel() }
+    await model.sizeChanged(CGSize(width: 390, height: 844), displayScale: 3)
+    let before = try await model.stage.camera()
+    model.isPanEnabled = false
+    await model.dragChanged(translation: CGSize(width: 0, height: -200))
+    await model.dragEnded(velocity: .zero)
+    let after = try await model.stage.camera()
+    expectNoDifference(after, before)
+  }
+
+  @Test func disablingPanMidDragClosesTheStageGesture() async throws {
+    let (model, task) = try await model()
+    defer { task.cancel() }
+    await model.sizeChanged(CGSize(width: 390, height: 844), displayScale: 3)
+    await model.dragChanged(translation: CGSize(width: 0, height: -50))
+    #expect(model.gestureOpen)
+    // SwiftUI cancels a disabled gesture without calling onEnded, so no
+    // dragEnded arrives. A no-op chained call waits for the queued end.
+    model.isPanEnabled = false
+    await model.dragChanged(translation: .zero)
+    #expect(!model.gestureOpen)
+  }
+
+  @Test func overlayOriginIsThePageOrigin() async throws {
+    let (model, task) = try await model()
+    defer { task.cancel() }
+    await model.sizeChanged(CGSize(width: 390, height: 844), displayScale: 3)
+    try await expectObserved({ !model.visiblePages.isEmpty }, equals: true) {}
+    let page = try #require(model.visiblePages.first)
+    let origin = try #require(try await model.stage.pageToViewport(page.page, Point(x: 0, y: 0)))
+    let local = page.viewportPoint(.zero)
+    #expect(abs(origin.x - local.x) <= 1.0 / 3 && abs(origin.y - local.y) <= 1.0 / 3)
+  }
+
+  @Test func bothInitializersBuild() {
+    let model: StageReaderModel? = nil
+    if let model {
+      _ = StageReaderView(model: model)
+      _ = StageReaderView(model: model) { page in Text("\(page.pageIndex)") }
+    }
   }
 }
 
