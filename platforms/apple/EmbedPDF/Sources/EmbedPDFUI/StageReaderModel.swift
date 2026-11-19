@@ -43,12 +43,14 @@ public final class StageReaderModel {
   @ObservationIgnored private var lastTranslation = CGSize.zero
   @ObservationIgnored private var lastMagnification: CGFloat = 1
   @ObservationIgnored private(set) var gestureOpen = false
-  @ObservationIgnored private var magnifying = false
-  /// A pinch's end or a double tap may start a zoom animation; it holds
-  /// until a refresh finds the stage still.
-  @ObservationIgnored private var zoomAnimating = false
+  /// Where a zoom stands. A pinch's end or a double tap may start a zoom
+  /// animation; `settling` holds until a refresh finds the stage still. An
+  /// open pinch outranks that animation: a double tap during a pinch leaves
+  /// `pinching`, and the pinch's end starts the settling.
+  private enum ZoomPhase { case idle, pinching, settling }
+  @ObservationIgnored private var zoomPhase = ZoomPhase.idle
   /// Bumped when a zoom start begins and when its stage call returns. A
-  /// refresh judges `zoomAnimating` only if no start was in flight when it
+  /// refresh judges `settling` only if no start was in flight when it
   /// began and this is unchanged when its read lands. Each stage call hops
   /// off the main actor before it reaches the stage, so a refresh that began
   /// near a double tap can read `isMoving()` before `doubleTapZoom` runs and
@@ -196,7 +198,7 @@ public final class StageReaderModel {
   }
 
   public func magnifyChanged(_ magnification: CGFloat, at location: CGPoint) {
-    magnifying = true
+    zoomPhase = .pinching
     setZooming(true)
     let factor = magnification / lastMagnification
     lastMagnification = magnification
@@ -204,15 +206,14 @@ public final class StageReaderModel {
   }
 
   public func magnifyEnded() async {
-    magnifying = false
-    zoomAnimating = true
+    zoomPhase = .settling
     zoomEpoch &+= 1
     lastMagnification = 1
     await refresh()
   }
 
   public func doubleTapped(at location: CGPoint) async {
-    zoomAnimating = true
+    if zoomPhase != .pinching { zoomPhase = .settling }
     zoomEpoch &+= 1
     zoomStartsInFlight += 1
     await zoomStartReached?()
@@ -238,16 +239,17 @@ public final class StageReaderModel {
     do {
       visiblePages = try await stage.visiblePages()
       camera = try await stage.camera()
-      if zoomAnimating, mayJudge {
+      if zoomPhase == .settling, mayJudge {
         let moving = try await stage.isMoving()
         await zoomReadReturned?()
-        if epoch == zoomEpoch { zoomAnimating = moving }
+        // A pinch may have started while the read was out.
+        if epoch == zoomEpoch, zoomPhase == .settling, !moving { zoomPhase = .idle }
       }
     } catch {
-      if mayJudge, epoch == zoomEpoch { zoomAnimating = false }
+      if mayJudge, epoch == zoomEpoch, zoomPhase == .settling { zoomPhase = .idle }
       self.error = error
     }
-    setZooming(magnifying || zoomAnimating)
+    setZooming(zoomPhase != .idle)
   }
 
   private func setZooming(_ zooming: Bool) {

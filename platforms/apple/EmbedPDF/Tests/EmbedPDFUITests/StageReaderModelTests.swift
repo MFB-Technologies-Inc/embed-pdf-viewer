@@ -308,6 +308,73 @@ struct StageReaderModelTests {
     #expect(try await !model.stage.isMoving())
   }
 
+  /// A double tap while a pinch is open starts a zoom animation. When that
+  /// animation settles the pinch is still open, so the reader keeps zooming
+  /// until the pinch ends too.
+  @Test func aDoubleTapDuringAPinchKeepsZoomingUntilThePinchEnds() async throws {
+    let (model, task) = try await model()
+    defer { task.cancel() }
+    let size = CGSize(width: 390, height: 844)
+    await model.sizeChanged(size, displayScale: 3)
+    model.magnifyChanged(1.2, at: CGPoint(x: 195, y: 422))
+    #expect(model.isZooming)
+    await model.doubleTapped(at: CGPoint(x: 195, y: 422))
+    #expect(model.isZooming)
+    let fired = armObservation { model.isZooming }
+    let deadline = ContinuousClock.now + .seconds(20)
+    while try await model.stage.isMoving(), ContinuousClock.now < deadline {
+      try await Task.sleep(for: .milliseconds(50))
+    }
+    #expect(try await !model.stage.isMoving())
+    // Ends in a refresh, which reads the still stage with no start in flight.
+    await model.sizeChanged(size, displayScale: 3)
+    #expect(!fired.value, "the double tap's settling ended the zoom under an open pinch")
+    #expect(model.isZooming)
+    try await expectObserved({ model.isZooming }, equals: false) {
+      await model.magnifyEnded()
+    }
+  }
+
+  /// A pinch's end reads the still stage. If a new pinch starts before that
+  /// read lands, the read must not end the new pinch's zoom.
+  @Test func aPinchStartedWhileASettleReadIsOutKeepsZooming() async throws {
+    let (model, task) = try await model()
+    defer { task.cancel() }
+    let size = CGSize(width: 390, height: 844)
+    await model.sizeChanged(size, displayScale: 3)
+    let (reached, reach) = AsyncStream<Void>.makeStream()
+    // Every settle read is held, not only the first: a refresh the first
+    // pinch's `zoomChanged` event started can reach the hook ahead of the
+    // pinch end's own, and its read is the one the epoch check drops.
+    var isOpen = false
+    var held: [CheckedContinuation<Void, Never>] = []
+    model.zoomReadReturned = {
+      reach.yield(())
+      if !isOpen { await withCheckedContinuation { held.append($0) } }
+    }
+    // A pinch starts no motion, so the refresh at its end reads the still
+    // stage and is held there.
+    model.magnifyChanged(1.2, at: CGPoint(x: 195, y: 422))
+    let pinch = Task { await model.magnifyEnded() }
+    for await _ in reached { break }
+    // The pinch end's refresh makes three stage calls before the hook. Three
+    // more from here return after them, so its read is held by now too.
+    for _ in 1...3 { #expect(try await !model.stage.isMoving()) }
+    model.magnifyChanged(1.1, at: CGPoint(x: 195, y: 422))
+    #expect(model.isZooming)
+    let ended = await observationFires({ model.isZooming }) {
+      isOpen = true
+      for continuation in held { continuation.resume() }
+      held = []
+      await pinch.value
+    }
+    #expect(!ended, "a settle read taken before the pinch ended its zoom")
+    #expect(model.isZooming)
+    try await expectObserved({ model.isZooming }, equals: false) {
+      await model.magnifyEnded()
+    }
+  }
+
   @Test func disablingPanLeavesTheCameraAlone() async throws {
     let (model, task) = try await model()
     defer { task.cancel() }
