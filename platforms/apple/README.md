@@ -327,6 +327,36 @@ let thumbnail = geometry.toDisplay(try await render.renderThumbnail(page.page).i
 let tapOnPage = geometry.toPage(tapInView)
 ```
 
+## Text selection
+
+`TextSelectionModel` turns a drag into a text selection. Hand its three
+callbacks to a `DragGesture` and each call runs after the ones before it, even
+though SwiftUI delivers them on separate tasks. Points that arrive while the
+engine is still extending collapse into the newest one, so a fast drag costs one
+engine call per extension, not one per frame.
+
+```swift
+let model = TextSelectionModel(selection: try await viewer.selection(for: document))
+
+DragGesture(minimumDistance: 0)
+  .onChanged { value in
+    let point = page.geometry.toPage(Point(x: value.location.x, y: value.location.y))
+    if value.translation == .zero {
+      Task { await model.dragBegan(at: point, on: page.page) }
+    } else {
+      model.dragChanged(to: point, on: page.page)
+    }
+  }
+  .onEnded { _ in Task { await model.dragEnded() } }
+```
+
+`dragBegan` returns false off text, and the drag then selects nothing. Pass
+`start: .word` to start from the word under the finger. Run `task()` from the
+view's `.task` so `rects` also follows selections made elsewhere, such as
+`selectAll()`; it returns when the document closes. `rects` holds unrotated
+page points per page. Draw them on a rotated page with `PageInfo.geometry`, as
+in [Page rotation](#page-rotation).
+
 ## What the generated Swift gives the facade
 
 Records conform to everything the facade needs to re-export them. uniffi 0.32
