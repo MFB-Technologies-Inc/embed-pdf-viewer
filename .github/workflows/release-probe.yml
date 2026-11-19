@@ -3,8 +3,15 @@ name: release-probe
 # Throwaway probe for the release workflows: records the facts the release
 # jobs depend on (Xcode 27.2 path, Rosetta, simulators, disk, cores, memory)
 # from each hosted runner. Removed once those workflows land.
+#
+# workflow_dispatch alone cannot start it: the API only dispatches workflows
+# that exist on the default branch. The push trigger, scoped to this branch
+# and this file, runs it from the branch instead.
 on:
   workflow_dispatch:
+  push:
+    branches: [ci/release-workflows]
+    paths: [.github/workflows/release-probe.yml]
 
 permissions:
   contents: read
