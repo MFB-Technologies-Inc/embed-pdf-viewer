@@ -50,11 +50,12 @@ struct TextSelectionModelTests {
     try await viewer.destroy()
   }
 
-  @Test func aChangeThatArrivesWhileTheBeginWaitsAppliesInsideIt() async throws {
+  @Test func aChangeQueuedBehindTheBeginAppliesOnce() async throws {
     let (viewer, page, selection, model) = try await Self.opened()
     let start = try await Self.pointOverText(page, selection)
     let begin = Task { await model.dragBegan(at: start, on: page.page) }
-    // Lets the begin enqueue first, so the change queues behind it.
+    // Lets the begin enqueue first. A change queued behind it applies exactly
+    // once, and the end still closes the engine gesture.
     await Task.yield()
     model.dragChanged(to: Point(x: start.x + 120, y: start.y), on: page.page)
     let end = Task { await model.dragEnded() }

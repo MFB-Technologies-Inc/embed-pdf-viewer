@@ -320,7 +320,7 @@ StageReaderView(model: reader) { page in
     .contentShape(Rectangle())
     .onTapGesture { location in
       Task {
-        // A page point, or nil when the location is off the page.
+        // A page point, or nil when the location is off the page or the call fails.
         if let point = try? await reader.stage.viewportToPage(page.page, page.viewportPoint(location)) {
           print("tapped", point)
         }
@@ -375,11 +375,15 @@ let model = TextSelectionModel(selection: try await viewer.selection(for: docume
 The likely host is a `StageReaderView` page overlay, as in
 [Page overlays](#page-overlays). Its drag points are view points with the
 origin at the page's top left, while the model wants unrotated PDF points, and
-the two differ at any zoom. Scale first: multiply by the width of the page as
-shown, `geometry.displaySize.width`, over the width it is drawn at,
-`page.transform.viewWidth` in an overlay. Then pass the scaled point to
-`geometry.toPage(_:)`. Drawing `rects` is the reverse: `geometry.toDisplay(_:)`,
-then divide by the same scale.
+the two differ unless the page is drawn at one view point per PDF point. Build
+the `PageGeometry` from the stage page's rotation, `page.transform.rotation`,
+which includes the stage's view rotation (`setViewRotation`, `rotateViewBy`).
+`PageInfo.geometry` has only the page's own rotation, so it fits views that show
+the page that way, not a rotated stage. Scale first: multiply by the width of
+the page as shown, `geometry.displaySize.width`, over the width it is drawn at,
+`page.transform.viewWidth`. Then pass the scaled point to `geometry.toPage(_:)`.
+Drawing `rects` is the reverse: `geometry.toDisplay(_:)`, then divide by the
+same scale.
 
 ```swift
 struct SelectionOverlay: View {
@@ -389,11 +393,18 @@ struct SelectionOverlay: View {
   @State private var dragging = false
   @GestureState private var touching = false
 
+  /// The page as the stage shows it, view rotation included.
+  private var geometry: PageGeometry {
+    PageGeometry(
+      rotation: Int(page.transform.rotation.rounded()),
+      pageSize: Size(width: info.width, height: info.height))
+  }
+
   /// PDF points of the page as shown per view point.
-  private var scale: Double { info.geometry.displaySize.width / page.transform.viewWidth }
+  private var scale: Double { geometry.displaySize.width / page.transform.viewWidth }
 
   private func pagePoint(_ local: CGPoint) -> Point {
-    info.geometry.toPage(Point(x: Double(local.x) * scale, y: Double(local.y) * scale))
+    geometry.toPage(Point(x: Double(local.x) * scale, y: Double(local.y) * scale))
   }
 
   private func finish() {
@@ -406,7 +417,7 @@ struct SelectionOverlay: View {
     ZStack(alignment: .topLeading) {
       Color.clear.contentShape(Rectangle())
       ForEach(Array((model.rects[page.page] ?? []).enumerated()), id: \.offset) { _, rect in
-        let shown = info.geometry.toDisplay(rect)
+        let shown = geometry.toDisplay(rect)
         Rectangle()
           .fill(.blue.opacity(0.3))
           .frame(width: shown.width / scale, height: shown.height / scale)
@@ -447,8 +458,10 @@ resets `@GestureState`, so the `onChange` above runs `dragEnded()` either way.
 `start: .word` to start from the word under the finger. Run `task()` from the
 view's `.task` so `rects` also follows selections made elsewhere, such as
 `selectAll()`; it returns when the document closes. `rects` holds unrotated
-page points per page. To draw them, turn them with `PageInfo.geometry`, as in
-[Page rotation](#page-rotation), then divide by the overlay's scale.
+page points per page. To draw them over a stage page, turn them with the
+geometry built from `page.transform.rotation`, since it includes the view
+rotation, then divide by the overlay's scale. A view that shows the page at its
+own rotation uses `PageInfo.geometry`, as in [Page rotation](#page-rotation).
 
 ## What the generated Swift gives the facade
 
