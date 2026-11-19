@@ -60,6 +60,9 @@ jobs:
       published: ${{ steps.view.outputs.published }}
     steps:
       # The release repo is public, so the run's own token can read it.
+      # Published means not a draft and carrying all six assets: the five
+      # archives and the manifest. A draft or partial release (a create that
+      # failed midway) stops the run instead of passing as published.
       - name: Look for the release
         id: view
         env:
@@ -68,15 +71,26 @@ jobs:
           [[ "$RUNTIME_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::runtime_sha must be a full commit sha, got '$RUNTIME_SHA'"; exit 1; }
           tag="runtime-$RUNTIME_SHA"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          if err=$(gh release view "$tag" -R "$RELEASE_REPO" --json tagName 2>&1 >/dev/null); then
-            echo "$tag is already published on $RELEASE_REPO; nothing to do."
-            echo "published=true" >> "$GITHUB_OUTPUT"
-          elif grep -qi 'release not found' <<<"$err"; then
+          if view=$(gh release view "$tag" -R "$RELEASE_REPO" --json isDraft,assets 2>&1); then
+            if jq -e '
+                [.assets[].name] as $names
+                | (.isDraft | not)
+                  and any($names[]; . == "pdf-runtime-build.generated.json")
+                  and all("linux-arm64", "android-arm64", "android-x64", "wasm32", "wasm32-eh";
+                          . as $t | any($names[]; test("^libembedpdf-runtime-" + $t + "-[0-9a-f]{7,40}\\.tar\\.gz$")))
+              ' <<<"$view" >/dev/null; then
+              echo "$tag is already published on $RELEASE_REPO; nothing to do."
+              echo "published=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "::error::$tag exists on $RELEASE_REPO but is a draft or lacks some of its six assets; finish or delete it, then run again: $(jq -c '{isDraft, assets: [.assets[].name]}' <<<"$view")"
+              exit 1
+            fi
+          elif grep -qi 'release not found' <<<"$view"; then
             echo "$tag is not on $RELEASE_REPO yet."
             echo "published=false" >> "$GITHUB_OUTPUT"
           else
             # Unknown (network, rate limit): don't act on a guess.
-            echo "::error::gh couldn't say whether $tag exists on $RELEASE_REPO: $err"
+            echo "::error::gh couldn't say whether $tag exists on $RELEASE_REPO: $view"
             exit 1
           fi
 
@@ -222,10 +236,13 @@ jobs:
           GH_TOKEN: ${{ steps.token.outputs.token }}
         run: |
           OUT=$RUNNER_TEMP/runtime-release
-          assets=()
-          for target in linux-arm64 android-arm64 android-x64 wasm32 wasm32-eh; do
-            assets+=("$OUT"/assets/libembedpdf-runtime-"$target"-*.tar.gz)
-          done
+          # prepare's Collect step put exactly one archive per target here and
+          # nothing else; a per-target glob would let wasm32-* match wasm32-eh.
+          assets=("$OUT"/assets/*.tar.gz)
+          if [[ ${#assets[@]} -ne 5 ]]; then
+            echo "::error::expected 5 archives in runtime-release, found ${#assets[@]}: ${assets[*]##*/}"
+            exit 1
+          fi
           assets+=("$OUT/assets/pdf-runtime-build.generated.json")
           ls -la "${assets[@]}"
           args=(release create "$TAG" "${assets[@]}"
