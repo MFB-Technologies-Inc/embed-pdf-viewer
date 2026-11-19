@@ -55,7 +55,7 @@ public struct InteractionCapability: Sendable {
   }
 
   let handle: InteractionHandle
-  let viewer: PDFViewer
+  package let viewer: PDFViewer
 
   public func activeTool() async throws(PDFError) -> InteractionTool {
     try await bridged { try await handle.activeTool() }
