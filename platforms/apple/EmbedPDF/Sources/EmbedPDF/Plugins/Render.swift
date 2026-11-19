@@ -76,7 +76,7 @@ public struct RenderSnapshot: Sendable {
   }
 }
 
-/// A document's page rasters. Get one with `PDFViewer.render(in:)`; the
+/// A document's page rasters. Get one with `PDFViewer.render(for:)`; the
 /// viewer needs `ViewerConfig(render: RenderConfig())`. It keeps the viewer
 /// alive. After its document closes, every call throws `instance-closed`.
 ///
@@ -358,6 +358,7 @@ public struct RenderCapability: Sendable {
 
   /// Invalidations, and rasters resolving or failing. Finishes when the
   /// document closes (at once if it already has) or the viewer is destroyed.
+  /// Each read is a new subscription.
   public var events: AsyncStream<RenderEvent> {
     viewer.registry.stream { handle.subscribe(listener: $0) }
   }
@@ -455,8 +456,13 @@ extension EventRelay: RenderSnapshotListener where Event == RenderSnapshot? {
 }
 
 extension PDFViewer {
-  public func render(in document: DocumentInfo) async throws(PDFError) -> RenderCapability {
+  public func render(for document: DocumentInfo) async throws(PDFError) -> RenderCapability {
     let handle = try await bridged { try await host.render(documentId: document.id) }
     return RenderCapability(handle: handle, viewer: self)
+  }
+
+  @available(*, deprecated, renamed: "render(for:)")
+  public func render(in document: DocumentInfo) async throws(PDFError) -> RenderCapability {
+    try await render(for: document)
   }
 }

@@ -23,6 +23,14 @@ public typealias PluginErrorInfo = EmbedPDFBindings.PluginErrorInfo
 public typealias HostError = EmbedPDFBindings.HostError
 public typealias HostFailure = EmbedPDFBindings.HostFailure
 public typealias DocumentEvent = EmbedPDFBindings.DocumentEvent
+/// The transport for URL document sources, passed to
+/// `PDFViewer.init(_:documentFetcher:)`. `fetch(url:completion:)` reports
+/// once on its `DocumentFetchCompletion` and returns the
+/// `DocumentFetchCancellation` that stops the request.
+/// `URLSessionDocumentFetcher` is the default.
+public typealias DocumentFetcher = EmbedPDFBindings.DocumentFetcher
+public typealias DocumentFetchCompletion = EmbedPDFBindings.DocumentFetchCompletion
+public typealias DocumentFetchCancellation = EmbedPDFBindings.DocumentFetchCancellation
 public typealias SaveMode = EmbedPDFBindings.SaveMode
 
 extension HostFailure {

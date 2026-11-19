@@ -10,7 +10,7 @@ struct RenderRevisionsTests {
     let viewer = try PDFViewer(ViewerConfig(render: RenderConfig()))
     try await viewer.start()
     let document = try await viewer.open(pluginFixture())
-    return (viewer, document, try await viewer.pages(of: document), try await viewer.render(in: document))
+    return (viewer, document, try await viewer.pages(of: document), try await viewer.render(for: document))
   }
 
   @Test func invalidatingAPageBumpsOnlyThatPage() async throws {

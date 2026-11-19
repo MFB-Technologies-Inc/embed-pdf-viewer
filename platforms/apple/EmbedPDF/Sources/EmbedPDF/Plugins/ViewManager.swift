@@ -149,7 +149,7 @@ public struct ViewManagerCapability: Sendable {
   }
 
   /// Pane events. Finishes when the viewer is destroyed (at once if it
-  /// already has been).
+  /// already has been). Each read is a new subscription.
   public var events: AsyncStream<ViewManagerEvent> {
     viewer.registry.stream { handle.subscribe(listener: $0) }
   }

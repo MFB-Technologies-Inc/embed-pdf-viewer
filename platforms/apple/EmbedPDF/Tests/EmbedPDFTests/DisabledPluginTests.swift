@@ -56,8 +56,8 @@ extension BaseSuite {
 
     static let accessors: [Accessor] = [
       Accessor("metadata", install: { $0.metadata = true }) { _ = try await $0.metadata(for: $1) },
-      Accessor("search", install: { $0.search = SearchConfig() }) { _ = try await $0.search(in: $1) },
-      Accessor("render", install: { $0.render = RenderConfig() }) { _ = try await $0.render(in: $1) },
+      Accessor("search", install: { $0.search = SearchConfig() }) { _ = try await $0.search(for: $1) },
+      Accessor("render", install: { $0.render = RenderConfig() }) { _ = try await $0.render(for: $1) },
       Accessor("interaction", install: { $0.interaction = true }) {
         _ = try await $0.interaction(for: $1)
       },

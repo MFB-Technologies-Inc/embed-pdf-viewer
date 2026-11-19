@@ -117,7 +117,7 @@ public struct LinkCapability: Sendable {
   }
 
   /// Finishes when the document closes (at once if it already has) or the
-  /// viewer is destroyed.
+  /// viewer is destroyed. Each read is a new subscription.
   public var events: AsyncStream<LinkEvent> {
     viewer.registry.stream { handle.subscribe(listener: $0) }
   }

@@ -131,8 +131,8 @@ struct Opened {
     try await viewer.start()
     document = try await viewer.open(Fixture.data(fixture))
     pages = try await viewer.pages(of: document)
-    search = try await viewer.search(in: document)
-    render = try await viewer.render(in: document)
+    search = try await viewer.search(for: document)
+    render = try await viewer.render(for: document)
     manualSearch = try await ManualSearch.open(viewer, document)
     manualRender = try await ManualRender.open(viewer, document)
   }

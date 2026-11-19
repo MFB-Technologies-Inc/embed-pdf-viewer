@@ -111,6 +111,7 @@ public struct ShellCapability: Sendable {
 
   /// Surface and menu events. Finishes when the document closes (at once
   /// if it already has) or the viewer is destroyed.
+  /// Each read is a new subscription.
   public var events: AsyncStream<ShellEvent> {
     viewer.registry.stream { handle.subscribe(listener: $0) }
   }

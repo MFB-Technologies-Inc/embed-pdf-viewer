@@ -95,7 +95,7 @@ extension BaseSuite {
       expectNoDifference(geometry.displaySize, Size(width: before.height, height: before.width))
       let corner = Point(x: 10, y: 20)
       expectNoDifference(geometry.toPage(geometry.toDisplay(corner)), corner)
-      let render = try await viewer.render(in: document)
+      let render = try await viewer.render(for: document)
       // report.pdf is portrait (612 by 792); turned, it renders landscape.
       let rendered = try await render.renderPage(
         page.page, options: RenderPageOptions(rotation: geometry.turn, width: 200))

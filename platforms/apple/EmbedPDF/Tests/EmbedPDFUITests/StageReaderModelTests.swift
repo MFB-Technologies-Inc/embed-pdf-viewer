@@ -16,7 +16,7 @@ struct StageReaderModelTests {
     let document = try await viewer.open(pluginFixture())
     let pages = try await viewer.pages(of: document)
     let stage = try await viewer.stage(for: document)
-    let render = try await viewer.render(in: document)
+    let render = try await viewer.render(for: document)
     try await stage.setViewportSize(Size(width: 800, height: 600))
     let model = StageReaderModel(stage: stage, render: render)
     let observing = Task { await model.task() }
@@ -41,7 +41,7 @@ struct StageReaderModelTests {
     let url = try #require(Bundle.module.url(forResource: "report", withExtension: "pdf", subdirectory: "Fixtures"))
     let document = try await viewer.open(try Data(contentsOf: url))
     let model = StageReaderModel(
-      stage: try await viewer.stage(for: document), render: try await viewer.render(in: document))
+      stage: try await viewer.stage(for: document), render: try await viewer.render(for: document))
     let task = Task { await model.task() }
     return (model, task)
   }

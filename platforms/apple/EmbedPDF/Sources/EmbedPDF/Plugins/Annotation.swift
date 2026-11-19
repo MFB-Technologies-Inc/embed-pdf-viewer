@@ -10,8 +10,7 @@ public import Foundation
 // which types the timestamps, the subtype and the common subtypes' members
 // (AnnotationInfo.swift). Create fields, patches, tool defaults and
 // selection values are the engine's field bags, passed as JSON objects;
-// ink, highlight and note drafts and patches also come typed
-// (AnnotationDraft.swift).
+// drafts and patches also come typed (AnnotationDraft.swift).
 public typealias CreationDraftAnchor = EmbedPDFBindings.CreationDraftAnchor
 public typealias AnnotationRecord = EmbedPDFBindings.AnnotationRecord
 public typealias AnnotationCreationDraft = EmbedPDFBindings.AnnotationCreationDraft
@@ -191,11 +190,17 @@ public struct AnnotationCapability: Sendable {
   }
 
   /// Resolves with the created annotation's ref once the engine confirmed
-  /// it. `draft` is an ink, highlight or note annotation
-  /// (`InkAnnotationDraft`, `HighlightAnnotationDraft`,
-  /// `NoteAnnotationDraft`). `tool` picks the tool whose defaults it starts
-  /// from; `select` selects it afterwards. Throws `invalid-input` for a
-  /// value the engine refuses, naming the field.
+  /// it. `draft` is one of the typed drafts: `InkAnnotationDraft`,
+  /// `HighlightAnnotationDraft`, `UnderlineAnnotationDraft`,
+  /// `StrikeoutAnnotationDraft`, `SquigglyAnnotationDraft`,
+  /// `NoteAnnotationDraft`, `FreeTextAnnotationDraft`,
+  /// `SquareAnnotationDraft`, `CircleAnnotationDraft`,
+  /// `LineAnnotationDraft`, `PolylineAnnotationDraft`,
+  /// `PolygonAnnotationDraft`, `CaretAnnotationDraft`,
+  /// `LinkAnnotationDraft` or `RedactionAnnotationDraft`. `tool` picks the
+  /// tool whose defaults it starts from; `select` selects it afterwards.
+  /// Throws `invalid-input` for a value the engine refuses, naming the
+  /// field.
   public func create(
     _ draft: some AnnotationDraft, on page: PageRef, tool: ToolID? = nil, select: Bool = false
   ) async throws(PDFError) -> AnnotationRef {
@@ -249,10 +254,18 @@ public struct AnnotationCapability: Sendable {
     }
   }
 
-  /// Change an ink, highlight or note annotation (`InkAnnotationPatch`,
-  /// `HighlightAnnotationPatch`, `NoteAnnotationPatch`). Members the patch
-  /// leaves `nil` keep their values. Throws `invalid-input` for a value the
-  /// engine refuses, including a patch of another subtype's fields.
+  /// Change an annotation with the typed patch for its subtype:
+  /// `InkAnnotationPatch`, `HighlightAnnotationPatch`,
+  /// `UnderlineAnnotationPatch`, `StrikeoutAnnotationPatch`,
+  /// `SquigglyAnnotationPatch`, `NoteAnnotationPatch`,
+  /// `FreeTextAnnotationPatch`, `SquareAnnotationPatch`,
+  /// `CircleAnnotationPatch`, `LineAnnotationPatch`,
+  /// `PolylineAnnotationPatch`, `PolygonAnnotationPatch`,
+  /// `CaretAnnotationPatch`, `LinkAnnotationPatch`,
+  /// `RedactionAnnotationPatch`, `StampAnnotationPatch` or
+  /// `FileAttachmentAnnotationPatch`. Members the patch leaves `nil` keep
+  /// their values. Throws `invalid-input` for a value the engine refuses,
+  /// including a patch of another subtype's fields.
   public func update(_ ref: AnnotationRef, _ patch: some AnnotationPatch) async throws(PDFError) {
     try await update(ref, try patch.json())
   }
@@ -320,7 +333,7 @@ public struct AnnotationCapability: Sendable {
   /// and comment-thread changes. Finishes when the document closes (at
   /// once if it already has) or the viewer is destroyed. A `.created` or
   /// `.updated` event's `annotationInfo` is its annotation as an
-  /// `AnnotationInfo`.
+  /// `AnnotationInfo`. Each read is a new subscription.
   public var events: AsyncStream<AnnotationEvent> {
     viewer.registry.stream { handle.subscribe(listener: $0) }
   }

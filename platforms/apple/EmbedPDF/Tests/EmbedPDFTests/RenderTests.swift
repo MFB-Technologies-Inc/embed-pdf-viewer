@@ -10,7 +10,7 @@ extension BaseSuite {
       try await viewer.start()
       let document = try await viewer.open(Fixture.data("colors"))
       let page = try await viewer.pages(of: document)[0].page
-      return (viewer, document, page, try await viewer.render(in: document))
+      return (viewer, document, page, try await viewer.render(for: document))
     }
 
     @Test func aPageRendersToACGImageThatOutlivesTheViewer() async throws {

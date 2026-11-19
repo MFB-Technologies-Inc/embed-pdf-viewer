@@ -10,7 +10,7 @@ extension BaseSuite {
       try await viewer.start()
       let document = try await viewer.open(Fixture.data("colors"))
       let page = try await viewer.pages(of: document)[0].page
-      let render = try await viewer.render(in: document)
+      let render = try await viewer.render(for: document)
       let interaction = try await viewer.interaction(for: document)
       #expect(try await render.canSnapshot())
       #expect(try await render.snapshot() == nil)

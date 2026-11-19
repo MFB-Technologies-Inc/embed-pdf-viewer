@@ -67,6 +67,7 @@ public struct MetadataCapability: Sendable {
 
   /// Confirmed changes, whoever made them. Finishes when the document closes
   /// (at once if it already has) or the viewer is destroyed.
+  /// Each read is a new subscription.
   public var events: AsyncStream<MetadataEvent> {
     viewer.registry.stream { handle.subscribe(listener: $0) }
   }

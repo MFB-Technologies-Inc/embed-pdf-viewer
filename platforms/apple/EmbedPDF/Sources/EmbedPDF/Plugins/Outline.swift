@@ -116,6 +116,7 @@ public struct OutlineCapability: Sendable {
     try await bridged { try await handle.collapseAll() }
   }
 
+  /// Each read is a new subscription.
   public var events: AsyncStream<OutlineEvent> { viewer.registry.stream { handle.subscribe(listener: $0) } }
 }
 

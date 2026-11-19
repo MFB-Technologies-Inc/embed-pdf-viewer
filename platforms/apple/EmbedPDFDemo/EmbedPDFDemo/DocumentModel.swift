@@ -129,14 +129,14 @@ final class DocumentModel {
       opened = Opened(
         document: document,
         pages: try await viewer.pages(of: document),
-        render: try await viewer.render(in: document),
-        search: SearchModel(search: try await viewer.search(in: document)),
+        render: try await viewer.render(for: document),
+        search: SearchModel(search: try await viewer.search(for: document)),
         metadata: try await viewer.metadata(for: document),
         annotations: try await viewer.annotations(for: document),
         history: HistoryModel(viewer: viewer, history: try await viewer.history(for: document)),
         outline: OutlineModel(viewer: viewer, outline: try await viewer.outline(for: document)),
         attachments: AttachmentModel(viewer: viewer, attachments: try await viewer.attachments(for: document)),
-        reader: StageReaderModel(stage: try await viewer.stage(for: document), render: try await viewer.render(in: document))
+        reader: StageReaderModel(stage: try await viewer.stage(for: document), render: try await viewer.render(for: document))
       )
       canAddNote = try await opened?.annotations.canCreate() ?? false
       error = nil

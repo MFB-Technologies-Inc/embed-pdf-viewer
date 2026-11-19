@@ -44,7 +44,7 @@ struct TiledPageImageLifecycleTests {
       let document = try await viewer.open(Data(contentsOf: url))
       let pages = try await viewer.pages(of: document)
       try #require(pages.count >= 2)
-      let render = try await viewer.render(in: document)
+      let render = try await viewer.render(for: document)
       let demand = try await render.viewDemand("c8-model-replacement")
       let old = TiledPageModel(render: render, demand: demand, page: pages[0].page)
       let new = TiledPageModel(render: render, demand: demand, page: pages[1].page)

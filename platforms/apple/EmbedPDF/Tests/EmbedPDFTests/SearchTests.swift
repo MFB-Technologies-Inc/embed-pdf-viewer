@@ -8,7 +8,7 @@ extension BaseSuite {
       let viewer = try PDFViewer(ViewerConfig(search: SearchConfig()))
       try await viewer.start()
       let document = try await viewer.open(Fixture.data("report"))
-      return (viewer, document, try await viewer.search(in: document))
+      return (viewer, document, try await viewer.search(for: document))
     }
 
     @Test func aQueryFindsHitsAndNavigatesThem() async throws {
@@ -80,7 +80,7 @@ extension BaseSuite {
     func openedWithoutCopy() async throws -> SearchCapability {
       let viewer = try PDFViewer(ViewerConfig(scope: ["doc.open", "doc.text.search"], search: SearchConfig()))
       try await viewer.start()
-      return try await viewer.search(in: try await viewer.open(Fixture.data("report")))
+      return try await viewer.search(for: try await viewer.open(Fixture.data("report")))
     }
 
     @Test func canSearchLeftOutIsWithoutSnippets() async throws {

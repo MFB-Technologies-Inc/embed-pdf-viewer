@@ -63,24 +63,24 @@ if a typed member can't cover a real use.
 This isn't a hard wall. `EmbedPDF` writes `public import EmbedPDFBindings` in the files that
 re-export, so a client that imports only `EmbedPDF` sees the generated types below, and
 `ProductsTests` fails if either manifest gains a `.library`. We checked by compiling a file that
-imports only `EmbedPDF` and names each of the 685 generated public types unqualified:
+imports only `EmbedPDF` and names each of the 710 generated public types unqualified:
 
-- 515 resolve, through the same-name `public typealias X = EmbedPDFBindings.X` lines in
+- 539 resolve, through the same-name `public typealias X = EmbedPDFBindings.X` lines in
   `Sources/EmbedPDF/Exports.swift` and `Sources/EmbedPDF/Plugins/*.swift`. (The deprecated
   `PDFDocument` and `Annotation` aren't among them: they alias `DocumentInfo` and
   `AnnotationRecord`.) `RenderSnapshot` also resolves, but to the handwritten
   `EmbedPDF.RenderSnapshot` (`Plugins/Render.swift:58`), not the generated type.
-- 169 don't: `ViewerHost`, `CancelToken`, `Subscription` and `PdfError`, 60 `*Handle` and
-  `*HandleProtocol` types, 23 `*EventListener` types, 42 `*Impl` types, 15 other `*Protocol`
-  types, and 25 more records and callback types such as `PdfEngine`, `RenderBatch` and
+- 170 don't: `ViewerHost`, `CancelToken`, `Subscription` and `PdfError`, 60 `*Handle` and
+  `*HandleProtocol` types, 22 `*EventListener` types, 45 `*Impl` types, 17 other `*Protocol`
+  types, and 22 more records and callback types such as `PdfEngine`, `RenderBatch` and
   `ViewerDelegate`.
 
-Three of those 169 do appear in a public signature: `DocumentFetcher`, `DocumentFetchCompletion`
-and `DocumentFetchCancellation`, in `PDFViewer.init(_:documentFetcher:)` and
-`URLSessionDocumentFetcher.fetch(url:completion:)`. A caller can pass the default fetcher, but
-can't write their own without importing the bindings module, which isn't a product. We haven't
-changed that here. It needs either three more typealiases or a handwritten protocol, and either
-is new API.
+Three of the names that resolve are there so you can write your own fetcher: `DocumentFetcher`,
+`DocumentFetchCompletion` and `DocumentFetchCancellation`, aliased in
+`Sources/EmbedPDF/Exports.swift`. They are the types in `PDFViewer.init(_:documentFetcher:)` and
+`URLSessionDocumentFetcher.fetch(url:completion:)`, so a conformer imports only `EmbedPDF`.
+`FetcherExportTests` compiles one and opens a URL document through it. The cost is that all three
+are generated types, so their shape follows the engine's interface, not a protocol we wrote.
 
 Could UniFFI hide the generated layer instead, so we'd get this by construction? Not with 0.32.0,
 the version pinned as `=0.32.0` in `crates/uniffi-bindgen/Cargo.toml:14`, each plugin crate
@@ -170,7 +170,7 @@ It has to. The release names a commit, and that commit can't contain its own che
 | actions | `ActionsCapability`, `JavaScriptCoreEngineFactory` | `actions: .forCurrentTimeZone(javascript: ActionsJavaScriptConfig(enabled: true, engine: JavaScriptCoreEngineFactory()))` | `2026-10-06-swift-plugins/15-actions.md` |
 | signature | `SignatureCapability`, `KeychainSigner`, `TrustAnchors` | `interaction: true, form: FormConfig(), signature: SignatureConfig()` | `2026-10-06-swift-plugins/16-signature.md` |
 
-A plugin left out of `ViewerConfig` is refused at its accessor. `search(in:)`, `stamps()` and the
+A plugin left out of `ViewerConfig` is refused at its accessor. `search(for:)`, `stamps()` and the
 other accessors throw `PDFError` with code `.unsupported`, even for a document that is closed or
 still loading, so a capability you hold has its own plugin. `DisabledPluginTests` checks every
 accessor and fails when `ViewerConfig` gains a plugin without a row.
@@ -756,7 +756,7 @@ try await viewer.start()
 let document = try await viewer.open(pdfData)
 let screen = PluginReader(
   reader: StageReaderModel(stage: try await viewer.stage(for: document),
-    render: try await viewer.render(in: document)),
+    render: try await viewer.render(for: document)),
   history: HistoryModel(viewer: viewer, history: try await viewer.history(for: document)),
   outline: OutlineModel(viewer: viewer, outline: try await viewer.outline(for: document)),
   attachments: AttachmentModel(viewer: viewer, attachments: try await viewer.attachments(for: document)))

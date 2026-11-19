@@ -99,7 +99,7 @@ extension BaseSuite {
         (error as? PDFError)?.code == .notReady
       }
       await #expect {
-        _ = try await viewer.search(in: locked)
+        _ = try await viewer.search(for: locked)
       } throws: { error in
         (error as? PDFError)?.code == .unsupported
       }

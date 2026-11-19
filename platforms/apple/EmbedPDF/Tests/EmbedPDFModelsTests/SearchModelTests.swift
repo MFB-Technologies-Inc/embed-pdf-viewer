@@ -13,7 +13,7 @@ struct SearchModelTests {
     let viewer = try PDFViewer(ViewerConfig(search: SearchConfig()))
     try await viewer.start()
     let document = try await viewer.open(Data(contentsOf: url))
-    let search = try await viewer.search(in: document)
+    let search = try await viewer.search(for: document)
     return (SearchModel(search: search), search)
   }
 
@@ -21,7 +21,7 @@ struct SearchModelTests {
     let viewer = try PDFViewer(ViewerConfig(search: SearchConfig(), pageEdit: true))
     try await viewer.start()
     let document = try await viewer.open(pluginFixture())
-    let search = try await viewer.search(in: document)
+    let search = try await viewer.search(for: document)
     return (viewer, document, search, SearchModel(search: search))
   }
 
@@ -103,7 +103,7 @@ struct SearchModelTests {
     // session reads still answer.
     let viewer = try PDFViewer(ViewerConfig(scope: ["doc.open", "doc.render"], search: SearchConfig()))
     try await viewer.start()
-    let model = SearchModel(search: try await viewer.search(in: try await viewer.open(pluginFixture())))
+    let model = SearchModel(search: try await viewer.search(for: try await viewer.open(pluginFixture())))
     model.text = "the"
     await model.searchSubmitted()
     let refused = try #require(model.error)
@@ -116,7 +116,7 @@ struct SearchModelTests {
   @Test func clearingAfterARefusedSearchLeavesTheErrorStatus() async throws {
     let viewer = try PDFViewer(ViewerConfig(scope: ["doc.open", "doc.render"], search: SearchConfig()))
     try await viewer.start()
-    let model = SearchModel(search: try await viewer.search(in: try await viewer.open(pluginFixture())))
+    let model = SearchModel(search: try await viewer.search(for: try await viewer.open(pluginFixture())))
     model.text = "the"
     await model.searchSubmitted()
     expectNoDifference(model.status, .error)

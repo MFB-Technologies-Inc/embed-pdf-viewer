@@ -42,7 +42,7 @@ struct StageReaderDragLagTests {
     let url = try #require(Bundle.module.url(forResource: "report", withExtension: "pdf", subdirectory: "Fixtures"))
     let document = try await viewer.open(try Data(contentsOf: url))
     let model = StageReaderModel(
-      stage: try await viewer.stage(for: document), render: try await viewer.render(in: document))
+      stage: try await viewer.stage(for: document), render: try await viewer.render(for: document))
     let loop = Task { await model.task() }
     defer { loop.cancel() }
     await model.sizeChanged(CGSize(width: 390, height: 844), displayScale: 3)

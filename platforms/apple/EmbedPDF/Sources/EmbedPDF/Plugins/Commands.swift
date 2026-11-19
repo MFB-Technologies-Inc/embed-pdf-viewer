@@ -300,7 +300,7 @@ public struct CommandsCapability: Sendable {
     try await bridged { try await handle.menuTarget(id: id) }
   }
 
-  /// Finishes when the viewer is destroyed.
+  /// Finishes when the viewer is destroyed. Each read is a new subscription.
   public var events: AsyncStream<CommandsEvent> {
     viewer.registry.stream { handle.subscribe(listener: $0) }
   }

@@ -13,7 +13,7 @@ struct TiledPageModelTests {
       let url = try #require(Bundle.module.url(forResource: "report", withExtension: "pdf", subdirectory: "Fixtures"))
       let document = try await viewer.open(Data(contentsOf: url))
       let page = try await viewer.pages(of: document)[0]
-      let render = try await viewer.render(in: document)
+      let render = try await viewer.render(for: document)
       let demand = try await render.viewDemand("c8-pages")
       let model = TiledPageModel(render: render, demand: demand, page: page.page)
       do {
