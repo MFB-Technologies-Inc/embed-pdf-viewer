@@ -1,0 +1,248 @@
+{
+  "runId": "2026-11-19T20-03-18-892Z-macmini2020-desktop",
+  "harnessCommit": "4eb3e391a90e6342c7405826f9bbd730821068f8",
+  "harnessDirty": false,
+  "probeSha256": "af209e7644d8a277d5396213a9cca16e3c7bc2d2c148a611363a99114c535deb",
+  "host": "macmini2020",
+  "arms": {
+    "main": {
+      "worktree": "main",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "2516e2786ee894383220ecd436fbd248182ef444",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "98c2368a774de4f8c507c0f57d189cb80474fcc21cb85f8d4688cec9eae64545",
+      "kernelWasmSha256": null
+    },
+    "main-aa": {
+      "worktree": "main",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "2516e2786ee894383220ecd436fbd248182ef444",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "98c2368a774de4f8c507c0f57d189cb80474fcc21cb85f8d4688cec9eae64545",
+      "kernelWasmSha256": null
+    },
+    "plugins-tip7": {
+      "worktree": "plugins-tip7",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "9d6c2eca100ab612faa1dcb87135c2527b81b450",
+      "payload": "built",
+      "fork": {
+        "sha": "7c7b600b1dfcef78bbedb25e79e5c46bf9f3e150",
+        "target": "wasm32-eh",
+        "libSha256": "2bc254d7f1a4ea947e831ffe307200cfa1025242ddbeed6502a7dfbe8efb2c0f"
+      },
+      "engineWasmSha256": "375c2a9a3b4ebbdc1e1b24aa27ad02727bbdee376759efd6a3cdea2af6ac6da0",
+      "kernelWasmSha256": "5c2193f335c8b4c6f678c8c7f09d28c61e6e149df5992bb38ea2f9badd11c190"
+    },
+    "main-now": {
+      "worktree": "main-now",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "ed064e0c867e7688234ad36c0350377544ef93f9",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "7195838021c8318416117611b961614ab52eedcad585db5945681f86164e40f9",
+      "kernelWasmSha256": null
+    },
+    "hist-074a190c9": {
+      "worktree": "hist-074a190c9",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "074a190c910a66181fe7294737f7de55e279b189",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "bf9a2e39d5cecb890b1c0aacbefb17222c090fc92526831d255ff7fb252d30d4",
+      "kernelWasmSha256": null
+    },
+    "hist-dfd2937d4": {
+      "worktree": "hist-dfd2937d4",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "dfd2937d45c5a1fed0d68159226692d179a0039a",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "966f689b310de818ba12c23d4eb509ef695764e330d5cddaa4f43438a3fe8bf5",
+      "kernelWasmSha256": "5bbf171a68e14a7f0ec29939bf7a9b53d592bc30473bda9b41e8201dfe562d5f"
+    },
+    "hist-bac82a2cd": {
+      "worktree": "hist-bac82a2cd",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "bac82a2cd1a4e3a5d3888ff1f0fb460b593a5fb9",
+      "payload": "built",
+      "fork": {
+        "sha": "3c6e0229738d19c8f724251bb9c479aecbd18a00",
+        "target": "wasm32-eh",
+        "libSha256": "7a160f611a9ab21c2edd596ce42c0f3fcc8b0013935e63c99a30089b08356cd3"
+      },
+      "engineWasmSha256": "5fc6e76c3830632c684fc0d4be344339a6df14cd9a9465843e88bd4e5c85e3c0",
+      "kernelWasmSha256": "cf699d9fac584f1208385e4a87c24ae426297ee70088a68de2b15355498ad2c3"
+    },
+    "hist-735f6e492": {
+      "worktree": "hist-735f6e492",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "735f6e49234481b12cb29637b6628ff63967cc7c",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "966f689b310de818ba12c23d4eb509ef695764e330d5cddaa4f43438a3fe8bf5",
+      "kernelWasmSha256": "5bbf171a68e14a7f0ec29939bf7a9b53d592bc30473bda9b41e8201dfe562d5f"
+    }
+  },
+  "fixtures": {
+    "ebook": "2e539f62b5fa605fc33b038ff31f019c94123342115a0c1e52d741ca2f737997",
+    "large": "10c8668fe55cd301138afdd52e20138b2311c173bf99fdb090cd1a07845264f9",
+    "annots": "f27197ce9ac982859cb460c3126b2d04cf78fa1c5834f5cbfdf7dbec74d52a19",
+    "forms": "b973ccec7bf664b565b636d71af9eebfe121d9fa9e9002ec063be00617ddebef"
+  },
+  "browserVersion": "140.0.7339.16",
+  "playwrightVersion": "1.55.0",
+  "nodeVersion": "v24.20.0",
+  "os": "Darwin 27.3.0 arm64",
+  "cpuModel": "Apple M1",
+  "cpuCores": 8,
+  "totalMemoryBytes": 17179869184,
+  "powerSource": "AC Power",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "deviceScaleFactor": 2,
+  "profile": "desktop",
+  "throttleRate": 1,
+  "flows": [
+    "open",
+    "scroll",
+    "scrollMid",
+    "coldScroll",
+    "jump",
+    "zoom",
+    "zoomLarge",
+    "select",
+    "selectLarge",
+    "search",
+    "searchLarge",
+    "annotate",
+    "annotateLarge",
+    "hover",
+    "dragAnnot",
+    "drawInk",
+    "typeField",
+    "undo",
+    "soak"
+  ],
+  "rounds": 10,
+  "quick": false,
+  "armsRun": [
+    "main",
+    "main-aa",
+    "plugins-tip7",
+    "main-now",
+    "hist-074a190c9",
+    "hist-dfd2937d4",
+    "hist-bac82a2cd",
+    "hist-735f6e492"
+  ],
+  "skipped": {
+    "main": [
+      "undo"
+    ],
+    "main-aa": [
+      "undo"
+    ],
+    "plugins-tip7": [
+      "undo"
+    ],
+    "main-now": [],
+    "hist-074a190c9": [],
+    "hist-dfd2937d4": [
+      "undo"
+    ],
+    "hist-735f6e492": [
+      "undo"
+    ]
+  },
+  "sizes": {
+    "main": {
+      "engineWasmBytes": 7544455,
+      "engineWasmBrotliBytes": 2257280,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3538279,
+      "jsBrotliBytes": 1007860
+    },
+    "main-aa": {
+      "engineWasmBytes": 7544455,
+      "engineWasmBrotliBytes": 2257280,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3538282,
+      "jsBrotliBytes": 1007832
+    },
+    "plugins-tip7": {
+      "engineWasmBytes": 10164275,
+      "engineWasmBrotliBytes": 2986390,
+      "kernelWasmBytes": 8754970,
+      "kernelWasmBrotliBytes": 1855058,
+      "jsBytes": 2764668,
+      "jsBrotliBytes": 840529
+    },
+    "main-now": {
+      "engineWasmBytes": 7880343,
+      "engineWasmBrotliBytes": 2467295,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 9962545,
+      "jsBrotliBytes": 3275782
+    },
+    "hist-074a190c9": {
+      "engineWasmBytes": 7871530,
+      "engineWasmBrotliBytes": 2466787,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 9892138,
+      "jsBrotliBytes": 3258463
+    },
+    "hist-dfd2937d4": {
+      "engineWasmBytes": 10777724,
+      "engineWasmBrotliBytes": 3137718,
+      "kernelWasmBytes": 8750437,
+      "kernelWasmBrotliBytes": 1851653,
+      "jsBytes": 2764670,
+      "jsBrotliBytes": 840573
+    },
+    "hist-bac82a2cd": {
+      "engineWasmBytes": 14788265,
+      "engineWasmBrotliBytes": 3942431,
+      "kernelWasmBytes": 10628189,
+      "kernelWasmBrotliBytes": 2518723,
+      "jsBytes": 8862598,
+      "jsBrotliBytes": 3031205
+    },
+    "hist-735f6e492": {
+      "engineWasmBytes": 10777724,
+      "engineWasmBrotliBytes": 3137718,
+      "kernelWasmBytes": 8750437,
+      "kernelWasmBrotliBytes": 1851653,
+      "jsBytes": 2764670,
+      "jsBrotliBytes": 840564
+    }
+  },
+  "memorySource": "uasm",
+  "workerThrottled": null,
+  "startedAt": "2026-11-19T20:03:18.892Z",
+  "completedAt": "2026-11-19T22:23:33.616Z"
+}
