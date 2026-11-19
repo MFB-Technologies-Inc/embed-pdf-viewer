@@ -1,6 +1,6 @@
 import CustomDump
 import EmbedPDF
-import EmbedPDFUI
+@testable import EmbedPDFUI
 import Testing
 
 @MainActor
@@ -35,9 +35,11 @@ struct RenderRevisionsTests {
   @Test func aReleasedModelStopsObservingWhileTheDocumentStaysOpen() async throws {
     let (viewer, _, pages, render) = try await opened()
     weak var released: RenderRevisions?
+    let observation: Task<Void, Never>?
     do {
       let revisions = RenderRevisions(render: render)
       released = revisions
+      observation = revisions.observationTask
       // The model is observing by the time it is released.
       try await expectObserved({ revisions.revision(for: pages[0].page) }, equals: 1) {
         try await render.invalidate([pages[0].page], scope: .annotations)
@@ -52,6 +54,10 @@ struct RenderRevisionsTests {
       return
     }
     expectNoDifference(invalidated, [pages[1].page])
+    // The document is still open, so the counting task ends only if the
+    // release cancelled it.
+    let task = try #require(observation)
+    await task.value
     try await viewer.destroy()
   }
 
@@ -62,8 +68,9 @@ struct RenderRevisionsTests {
       try await render.invalidate([pages[0].page], scope: .annotations)
     }
     try await viewer.close(document)
-    // Lets the model's observation see its stream finish.
-    for _ in 0..<10 { await Task.yield() }
+    // The close finishes the stream, which ends the counting task.
+    let task = try #require(revisions.observationTask)
+    await task.value
     expectNoDifference(revisions.revision(for: pages[0].page), 1)
     expectNoDifference(revisions.revision(for: pages[1].page), 0)
     try await viewer.destroy()

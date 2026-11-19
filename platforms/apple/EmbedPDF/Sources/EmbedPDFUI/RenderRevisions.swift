@@ -14,6 +14,9 @@ public final class RenderRevisions {
   private var revisions: [PageRef: UInt64] = [:]
   /// The task counting invalidations, cancelled when the model is released.
   @ObservationIgnored private var observation: CancelOnRelease?
+  /// The counting task, which finishes when the document closes or the model
+  /// is released. Tests await it.
+  var observationTask: Task<Void, Never>? { observation?.task }
 
   /// Subscribes at once, so a page invalidated right after `init` counts.
   public init(render: RenderCapability) {
@@ -39,7 +42,7 @@ public final class RenderRevisions {
 /// Cancels its task when released. A cancelled task leaves its event loop,
 /// which ends the loop's subscription.
 private final class CancelOnRelease: Sendable {
-  private let task: Task<Void, Never>
+  let task: Task<Void, Never>
 
   init(_ task: Task<Void, Never>) { self.task = task }
 
