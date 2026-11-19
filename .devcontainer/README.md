@@ -5,7 +5,7 @@ agents, browser authentication, and Git credential forwarding work independently
 of VS Code. An editor integration can automate setup and port forwarding; the
 commands below perform those steps explicitly.
 
-The container clones `https://github.com/roanutil/embed-pdf-viewer.git`, branch
+The container clones `https://github.com/MFB-Technologies-Inc/embed-pdf-viewer.git`, branch
 `research/multi-platform-rust-core-impl`, into `/workspaces/embed-pdf-viewer`
 inside the Docker volume `embedpdf-workspace`. The host repository is not mounted.
 Dependencies, generated files, commits, and edits stay in that volume across
