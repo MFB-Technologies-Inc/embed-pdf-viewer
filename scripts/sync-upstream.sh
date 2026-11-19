@@ -6,7 +6,7 @@
 # Single branch: scripts/sync-upstream.sh [--from <local-branch> | --from <url> <branch>]
 # Route: scripts/sync-upstream.sh --route --impl-worktree <path> --plugins-worktree <path>
 # Options: --runtime-commit <ref>, --push, --viewer-remote <remote> (repeatable).
-# Route pushes impl to private-fork and plugins to fork and private-fork by default.
+# Pushes go to the fork remote by default; --viewer-remote replaces it for plugins (route) or the branch.
 set -euo pipefail
 
 UPSTREAM_VIEWER=https://github.com/embedpdf/embed-pdf-viewer.git
@@ -237,7 +237,7 @@ if ((ROUTE)); then
   (cd "$PLUGINS_WORKTREE"; check_worktree "$PLUGINS_BRANCH")
   [[ "$(git -C "$IMPL_WORKTREE" rev-parse --path-format=absolute --git-common-dir)" == "$(git -C "$PLUGINS_WORKTREE" rev-parse --path-format=absolute --git-common-dir)" ]] ||
     die "route worktrees must belong to the same viewer repository"
-  if ((${#VIEWER_REMOTES[@]} == 0)); then VIEWER_REMOTES=(fork private-fork); fi
+  if ((${#VIEWER_REMOTES[@]} == 0)); then VIEWER_REMOTES=(fork); fi
   REQUESTED_PUSH="$PUSH"
   PUSH=0
   (cd "$IMPL_WORKTREE"; sync_branch)
@@ -257,13 +257,13 @@ if ((ROUTE)); then
     SOURCE_NAME="$IMPL_BRANCH"; MERGE_MSG_SOURCE="$IMPL_BRANCH"; RUNTIME_COMMIT=; sync_branch)
   if ((REQUESTED_PUSH)); then
     git -C "$IMPL_WORKTREE/$SUB" push -q "$FORK_RUNTIME" "$FORK_BRANCH"
-    git -C "$IMPL_WORKTREE" push -q private-fork "$IMPL_BRANCH"
+    git -C "$IMPL_WORKTREE" push -q fork "$IMPL_BRANCH"
     for remote in "${VIEWER_REMOTES[@]}"; do
       git -C "$PLUGINS_WORKTREE" push -q "$remote" "$PLUGINS_BRANCH"
     done
   fi
 else
   [[ -z "$IMPL_WORKTREE" && -z "$PLUGINS_WORKTREE" ]] || usage
-  if ((${#VIEWER_REMOTES[@]} == 0)); then VIEWER_REMOTES=(private-fork); fi
+  if ((${#VIEWER_REMOTES[@]} == 0)); then VIEWER_REMOTES=(fork); fi
   sync_branch
 fi

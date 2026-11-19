@@ -50,7 +50,7 @@ function fixture() {
   const pushes = join(root, 'pushes'); writeFileSync(pushes, '');
   const hook = (bare, name) => writeFileSync(join(bare, 'hooks/pre-receive'), `#!/bin/sh\necho ${name} >> '${pushes}'\ncat >/dev/null\n`, { mode: 0o755 });
   hook(forkRuntime, 'runtime');
-  for (const name of ['fork', 'private-fork']) {
+  for (const name of ['fork', 'mirror']) {
     const bare = join(root, `${name}.git`); git(root, 'init', '--bare', bare); git(viewer, 'remote', 'add', name, bare); hook(bare, name);
   }
   const run = (...args) => spawnSync('bash', [script, ...args], { cwd: plugins, env, encoding: 'utf8' });
@@ -76,10 +76,10 @@ withFixture('route merges main into impl and impl into plugins with a fork runti
   const heads = [f.head(f.impl), f.head(f.plugins)]; success(f.route('--runtime-commit', f.override));
   assert.deepEqual([f.head(f.impl), f.head(f.plugins)], heads);
 });
-withFixture('route pushes runtime before impl and mirrors plugins to both viewer remotes', f => {
+withFixture('route pushes runtime, then impl, then plugins to the fork remote', f => {
   success(f.route('--push'));
-  assert.deepEqual(readFileSync(f.pushes, 'utf8').trim().split('\n'), ['runtime', 'private-fork', 'fork', 'private-fork']);
-  for (const name of ['fork', 'private-fork']) assert.equal(f.git(f.viewer, 'ls-remote', name, `refs/heads/${pluginsBranch}`).split('\t')[0], f.head(f.plugins));
+  assert.deepEqual(readFileSync(f.pushes, 'utf8').trim().split('\n'), ['runtime', 'fork', 'fork']);
+  assert.equal(f.git(f.viewer, 'ls-remote', 'fork', `refs/heads/${pluginsBranch}`).split('\t')[0], f.head(f.plugins));
 });
 withFixture('route refuses a wrong destination branch before changing impl or runtime', f => {
   f.git(f.plugins, 'checkout', '-b', 'human-work');
@@ -111,10 +111,10 @@ withFixture('route does not push viewers when the runtime push is rejected', f =
   writeFileSync(join(f.forkRuntime, 'hooks/pre-receive'), '#!/bin/sh\nexit 1\n', { mode: 0o755 });
   const result = f.route('--push'); assert.notEqual(result.status, 0);
   assert.equal(readFileSync(f.pushes, 'utf8'), '');
-  assert.equal(f.git(f.viewer, 'ls-remote', 'private-fork', `refs/heads/${implBranch}`), '');
+  assert.equal(f.git(f.viewer, 'ls-remote', 'fork', `refs/heads/${implBranch}`), '');
 });
 withFixture('route stops before mirroring plugins when the impl push is rejected', f => {
-  writeFileSync(join(f.root, 'private-fork.git/hooks/pre-receive'), '#!/bin/sh\nexit 1\n', { mode: 0o755 });
+  writeFileSync(join(f.root, 'fork.git/hooks/pre-receive'), '#!/bin/sh\nexit 1\n', { mode: 0o755 });
   const result = f.route('--push'); assert.notEqual(result.status, 0);
   assert.equal(readFileSync(f.pushes, 'utf8'), 'runtime\n');
 });
@@ -142,8 +142,8 @@ withFixture('route resumes after an impl conflict is committed', f => {
   success(f.route()); f.ancestor(f.plugins, f.head(f.impl));
 });
 withFixture('explicit viewer remotes replace the plugins mirror defaults', f => {
-  success(f.route('--push', '--viewer-remote', 'fork'));
-  assert.deepEqual(readFileSync(f.pushes, 'utf8').trim().split('\n'), ['runtime', 'private-fork', 'fork']);
+  success(f.route('--push', '--viewer-remote', 'mirror'));
+  assert.deepEqual(readFileSync(f.pushes, 'utf8').trim().split('\n'), ['runtime', 'fork', 'mirror']);
 });
 
 withFixture('runtime conflicts stop before either viewer changes', f => {
