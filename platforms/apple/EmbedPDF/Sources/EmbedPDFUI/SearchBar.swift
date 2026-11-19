@@ -11,7 +11,8 @@ import SwiftUI
 /// The bar runs the model's `task()`. An app does not also run `task()` for
 /// a model it gives to a `SearchBar`: a second `task()` on one model
 /// supersedes the first, so the app's own run stops refreshing the model
-/// once the bar starts, and nothing refreshes it after the bar goes away.
+/// once the bar starts, and no state revision or search event refreshes it
+/// after the bar goes away.
 ///
 /// `onActiveHit` is called whenever the bar observes the model's
 /// `activeHit` change to a hit: the first hit of a new search, each previous
@@ -20,10 +21,11 @@ import SwiftUI
 /// it appears over a search that already exists. A query submitted again
 /// whose first hit equals the hit active before it may or may not be
 /// reported. It is not called when the hits clear. An app that scrolls to
-/// the hit in this callback therefore scrolls once when the bar appears over
-/// an existing search, can scroll to a hit that is already in view, and can
-/// miss a scroll for a repeated query, so the scroll should be safe to
-/// repeat and not the only way back to the active hit.
+/// the hit in this callback therefore can scroll once when the bar appears
+/// over an existing search (not when the model already holds that hit), can
+/// scroll to a hit that is already in view, and can miss a scroll for a
+/// repeated query, so the scroll should be safe to repeat and not the only
+/// way back to the active hit.
 ///
 ///     SearchBar(model: search) { hit in currentPage = hit.page }
 @MainActor
@@ -42,10 +44,10 @@ public struct SearchBar: View {
       ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
       : AnyLayout(HStackLayout())
     // Performance: this one body reads `text`, `activeHit`, `summary`,
-    // `hitCount`, `canClear` and `error`, so each keystroke and each batch of hits a
-    // running scan adds evaluates the whole bar again. That is one row of
-    // five controls; the field and the navigation buttons in their own views
-    // limit a keystroke to the field.
+    // `hitCount`, `canClear` and `error`, so each keystroke and each batch
+    // of hits a running scan adds evaluates the whole bar again. That is one
+    // row of five controls; the field and the navigation buttons in their
+    // own views limit a keystroke to the field.
     VStack(alignment: .leading, spacing: 4) {
       controls {
         TextField("Search", text: $model.text)

@@ -31,10 +31,9 @@ import Observation
 /// ``error`` is the latest failed load. It clears when the page it is for
 /// loads; another page's thumbnail leaves it. The failure for a page that is
 /// not in `pages` therefore never clears, since that page cannot load in
-/// this model. A failed load leaves the
-/// page's earlier image, if it has one, in ``image(for:)``, and the next
-/// ``load(_:)`` of that page renders again. A cancelled load is not a
-/// failure.
+/// this model. A failed load leaves the page's earlier image, if it has one,
+/// in ``image(for:)``, and the next ``load(_:)`` of that page renders again.
+/// A cancelled load is not a failure.
 @MainActor
 @Observable
 public final class ThumbnailModel {
@@ -58,7 +57,7 @@ public final class ThumbnailModel {
   // Performance: the cache keeps each thumbnail at the engine's 512 pixels,
   // up to about 128 MiB in all, and nothing drops them under memory
   // pressure. A strip draws a cell 96 points across, 288 pixels at 3x, so
-  // most of that is never shown. It bites on a long document on a device
+  // much of that is never shown. It bites on a long document on a device
   // short of memory. Scaling each image down to the drawn size before
   // caching it, or emptying the cache on a memory warning, cuts it.
   @ObservationIgnored var cacheLimit = 128

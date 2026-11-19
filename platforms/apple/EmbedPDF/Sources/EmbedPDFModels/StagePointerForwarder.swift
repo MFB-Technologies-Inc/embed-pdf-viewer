@@ -124,6 +124,12 @@ final class StagePointerForwarder {
 
   private func pageHit(at location: CGPoint) async -> PointerPageHit? {
     do {
+      // Performance: every sample awaits this lookup before its dispatch, so
+      // a sample costs a round trip to the stage on top of the dispatch, and
+      // a move waits a full lookup behind the sample before it. The page
+      // under a drag rarely changes between moves; mapping the point through
+      // the last hit's page and transform while the camera stands still
+      // saves the lookup.
       guard let hit = try await stage.page(at: Point(x: location.x, y: location.y)) else { return nil }
       return PointerPageHit(
         page: hit.page, point: hit.point, scale: hit.scale, rotation: hit.rotation, zoom: hit.zoom)

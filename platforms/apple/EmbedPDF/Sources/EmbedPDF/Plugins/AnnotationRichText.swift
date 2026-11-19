@@ -51,7 +51,8 @@ public struct AnnotationRichText: Codable, Sendable, Hashable {
   }
 
   /// The text without its styles: each paragraph's runs joined, one
-  /// paragraph per line. This is what the engine writes to `contents`.
+  /// paragraph per line. The engine writes the same to `contents`, after
+  /// spelling a `\r\n` or `\r` inside a run's text as `\n`.
   public var plainText: String {
     paragraphs.map { $0.runs.map(\.text).joined() }.joined(separator: "\n")
   }
@@ -81,6 +82,12 @@ public struct AnnotationRichText: Codable, Sendable, Hashable {
       let container = try decoder.container(keyedBy: Key.self)
       runs = try container.decode([Run].self, forKey: .runs)
       properties = [:]
+      // Performance: `allKeys` builds a key array for every paragraph, most
+      // of which hold only `runs`, and `AnnotationInfo` decodes the whole
+      // rich text for every annotation it reads, whether or not the caller
+      // reads `richText`. It bites on a list of many annotations with long
+      // styled text. Keeping the rich text's JSON and decoding it on first
+      // read defers the cost to the annotations that are shown.
       for key in container.allKeys where key.stringValue != Key.runs.stringValue {
         properties[key.stringValue] = try container.decode(JSONValue.self, forKey: key)
       }

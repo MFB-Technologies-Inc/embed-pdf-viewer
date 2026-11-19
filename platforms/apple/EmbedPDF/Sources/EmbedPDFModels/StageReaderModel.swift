@@ -272,6 +272,12 @@ public final class StageReaderModel {
     case let .cameraChanged(event):
       // The event carries the camera; only the pages it shows are read back.
       camera = event.camera
+      // Performance: one `visiblePages` round trip per camera event, and a
+      // pan, a pinch or a fling emits one per step. The events are handled
+      // one at a time, so a read slower than the steps queues them and the
+      // pages trail the camera. Skipping the read while a newer camera event
+      // waits, or an event that carries the pages, keeps it to one read per
+      // frame.
       do {
         visiblePages = try await stage.visiblePages()
       } catch {
@@ -392,6 +398,11 @@ public final class StageReaderModel {
     let epoch = zoomEpoch
     let mayJudge = zoomStartsInFlight == 0
     do {
+      // Performance: two round trips in sequence, three while a zoom
+      // settles, for each `motionEnded`, `viewportChanged`, `zoomChanged`
+      // and `settingsChanged` event and each gesture end. One stage read
+      // that returns the pages, the camera and whether the stage moves
+      // makes it one.
       visiblePages = try await stage.visiblePages()
       camera = try await stage.camera()
       if zoomPhase == .settling, mayJudge {
@@ -421,6 +432,10 @@ private final class LinkActivationFeed: @unchecked Sendable {
   /// A new stream of the activations yielded from now on. Ending its
   /// iteration removes it.
   func stream() -> AsyncStream<LinkActivation> {
+    // Performance: the default buffering policy has no bound, so a stream
+    // that is read and never iterated keeps every activation until the
+    // model is released. Activations come one per tap, so it grows slowly;
+    // `.bufferingNewest` with a small count bounds it.
     let (stream, continuation) = AsyncStream<LinkActivation>.makeStream()
     let id = lock.withLock {
       nextID &+= 1

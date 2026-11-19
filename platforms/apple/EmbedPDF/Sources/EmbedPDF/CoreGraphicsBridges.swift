@@ -32,6 +32,8 @@ extension CGSize {
 extension Rect {
   /// The same rect, from a CoreGraphics value. A rect with a negative width
   /// or height is standardized: the origin is its minimum corner.
+  /// `CGRect.null` becomes an empty rect with its origin at positive
+  /// infinity on both axes.
   public init(_ rect: CGRect) {
     self.init(
       x: Double(rect.minX), y: Double(rect.minY), width: Double(rect.width),

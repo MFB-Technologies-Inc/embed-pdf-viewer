@@ -115,6 +115,11 @@ public struct PageGeometry: Hashable, Sendable {
     case .clockwise180: angle = -.pi
     case .clockwise270: angle = -.pi * 3 / 2
     }
+    // Performance: every call for a turned page allocates a bitmap of the
+    // whole image, 4 bytes a pixel, and draws the image into it. It bites
+    // when a caller turns the same render again on each body evaluation or
+    // frame; such a caller keeps the turned image, keyed by the render and
+    // the turn.
     let width = turn.isQuarterTurn ? image.height : image.width
     let height = turn.isQuarterTurn ? image.width : image.height
     let space =
@@ -143,6 +148,10 @@ public struct PageGeometry: Hashable, Sendable {
   }
 
   private static func bounds(of rect: Rect, converting convert: (Point) -> Point) -> Rect {
+    // Performance: three small arrays per rect. It adds up when a view
+    // converts every selected rect or search hit on each body evaluation. A
+    // switch on the turn that builds the rect from the two opposite corners
+    // allocates nothing.
     let corners = [
       Point(x: rect.x, y: rect.y),
       Point(x: rect.x + rect.width, y: rect.y),

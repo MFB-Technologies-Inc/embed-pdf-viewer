@@ -63,8 +63,8 @@ public final class SearchModel {
   /// reading when a new search starts can apply the old search's index with
   /// the new search's list. For that one refresh the index either points
   /// past the list, which reads `nil`, or lands inside it, and this is then
-  /// a hit of the new search that is not its active one. The next refresh
-  /// corrects it.
+  /// a hit of the new search that may not be its active one. The next
+  /// refresh corrects it.
   public var activeHit: SearchHit? {
     guard let activeHitIndex, hits.indices.contains(activeHitIndex) else { return nil }
     return hits[activeHitIndex]
@@ -129,7 +129,8 @@ public final class SearchModel {
       // this refresh's bridge round trips, and a search that starts between
       // them pairs the old index with the new list (see `activeHit`). One
       // capability read that returns the index and the hits from the same
-      // kernel state saves a round trip per refresh and closes that window.
+      // kernel state saves a round trip on each refresh that rereads the
+      // hits, and closes that window.
       let activeHitIndex = try await self.search.activeHitIndex()
       let hitCount: Int = try await self.search.hitCount()
       let progress = try await self.search.progress()

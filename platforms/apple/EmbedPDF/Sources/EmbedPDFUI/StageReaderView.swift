@@ -64,6 +64,12 @@ public struct StageReaderView<PageOverlay: View>: View {
     ModelScope(model: model) { model in
       GeometryReader { geometry in
         ZStack(alignment: .topLeading) {
+          // Performance: this body reads `visiblePages`, which changes with
+          // every camera event, so each step of a pan or a pinch evaluates
+          // every visible page's row again and calls `pageOverlay` for each.
+          // It bites with an overlay that is costly to build. Page positions
+          // in content space under one offset for the camera leave the rows
+          // unchanged through a pan.
           ForEach(model.visiblePages, id: \.page.pageObjectNumber) { page in
             ZStack(alignment: .topLeading) {
               PageImageView(
@@ -133,6 +139,10 @@ public struct StageReaderView<PageOverlay: View>: View {
     if opening { touchForwarded = route == .tool }
     switch route {
     case .pan:
+      // Performance: three tasks per drag change: this one and the two
+      // `SerialCalls` makes for it. After the gesture's begin has returned,
+      // the model's pan step never suspends, so a synchronous model call
+      // for a change in an open gesture needs no task.
       Task { await model.dragChanged(translation: value.translation) }
     case .tool:
       if opening { model.pointerDown(at: value.startLocation) }

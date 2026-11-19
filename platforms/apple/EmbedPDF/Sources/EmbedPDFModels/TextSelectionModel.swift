@@ -70,17 +70,24 @@ public final class TextSelectionModel {
   private func follow(_ event: SelectionEvent) {
     switch event {
     case .changed, .committed:
+      // Performance: every `changed` or `committed` event queues a full
+      // rects refresh, and an extension that moves the selection emits one.
+      // `applyPending` already refreshes after its own extension, so a drag
+      // point pays two rounds of reads, and the second delays the next
+      // extension in the chain. A queued flag, as `extensionQueued` is for
+      // drag points, collapses back-to-back event refreshes into one.
       enqueue { await $0.refreshRects() }
     case .cleared:
       enqueue { $0.rects = [:] }
     }
   }
 
-  /// Starts a selection at `point` and clears ``error``. Returns at once;
-  /// ``isSelecting`` turns true when the engine finds text at the point, and
-  /// ``dragEnded()`` reports whether it did. With `.word`, a failure after
-  /// the word is selected leaves it selected with ``isSelecting`` false and
-  /// the error in ``error``.
+  /// Starts a selection at `point`. Returns at once: the begin runs after
+  /// the calls made before it, and ``error`` clears when it runs, not when
+  /// this returns. ``isSelecting`` turns true when the engine finds text at
+  /// the point, and ``dragEnded()`` reports whether it did. With `.word`, a
+  /// failure after the word is selected leaves it selected with
+  /// ``isSelecting`` false and the error in ``error``.
   public func dragBegan(at point: Point, on page: PageRef, start: Start = .caret) {
     // A point left by a drag that never began belongs to that drag.
     pending = nil
@@ -154,6 +161,10 @@ public final class TextSelectionModel {
     guard let (point, page) = pending else { return }
     pending = nil
     do {
+      // Performance: one `isLoaded` round trip before every extension,
+      // though a drag stays on one page for most of its points. A set of the
+      // pages this drag has loaded skips the read, provided nothing unloads
+      // a page while the drag is open.
       if !(try await selection.isLoaded(page)) {
         try await selection.ensureLoaded(page)
       }
@@ -191,6 +202,11 @@ public final class TextSelectionModel {
   private func refreshRects() async {
     var next: [PageRef: [Rect]] = [:]
     do {
+      // Performance: one round trip for the page list and one more per
+      // selected page, in sequence, on every refresh. It bites on a drag
+      // across several pages, where each extension rereads every page's
+      // rects. One capability read that returns the rects of every selected
+      // page makes it a single trip.
       for page in try await selection.selectedPages() {
         next[page] = try await selection.rects(on: page)
       }

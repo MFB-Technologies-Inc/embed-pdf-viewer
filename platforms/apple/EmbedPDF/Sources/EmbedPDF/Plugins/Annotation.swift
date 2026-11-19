@@ -462,12 +462,18 @@ public struct AnnotationToolsCapability: Sendable {
   ///
   /// Throws `invalid-input` when the defaults don't read as `type`: a
   /// member of the patch holds a value of another shape, as it can after
-  /// the JSON overload stored one, or after asking for another subtype's
-  /// patch.
+  /// the JSON overload stored one. Asking for another subtype's patch reads
+  /// only the members the two subtypes share, and throws only when a shared
+  /// key holds a value of another shape.
   public func defaults<P: AnnotationPatch>(for toolID: ToolID, as type: P.Type)
     async throws(PDFError) -> P
   {
     let json = try await defaults(for: toolID)
+    // Performance: the engine writes the defaults as a JSON string and this
+    // parses it again, with a new `JSONDecoder`, on every call; nothing is
+    // kept between calls. It bites when a view reads a tool's defaults on
+    // each body evaluation, as a style panel can. Such a caller keeps the
+    // typed value and reads it again when the defaults change.
     do {
       return try JSONDecoder().decode(type, from: Data(json.utf8))
     } catch {
@@ -483,8 +489,9 @@ public struct AnnotationToolsCapability: Sendable {
   /// its subtype declares, and drops the rest without a word.
   ///
   /// The patch's `common` is stored too. A `reply` or `groupID` set there
-  /// makes every annotation the tool creates a reply to that annotation or
-  /// a member of that group.
+  /// is the default for an annotation created with this tool: it becomes a
+  /// reply to that annotation or a member of that group unless its draft
+  /// sets its own value. A create without `tool:` takes no defaults.
   public func updateDefaults(_ changes: some AnnotationPatch, for toolID: ToolID)
     async throws(PDFError)
   {

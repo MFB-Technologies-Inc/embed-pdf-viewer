@@ -11,6 +11,11 @@ import Observation
 @MainActor
 @Observable
 public final class RenderRevisions {
+  // Performance: one observed dictionary holds every page's revision, so
+  // one page's invalidation evaluates again every view that read any page's
+  // revision. It bites on an edit while many pages or thumbnails are on
+  // screen. An observable box per page limits an invalidation to the views
+  // of its own page.
   private var revisions: [PageRef: UInt64] = [:]
   /// The task counting invalidations, cancelled when the model is released.
   @ObservationIgnored private var observation: CancelOnRelease?

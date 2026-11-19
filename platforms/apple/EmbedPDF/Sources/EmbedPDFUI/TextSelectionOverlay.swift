@@ -89,6 +89,12 @@ public struct TextSelectionOverlay: View {
       let size = proxy.size
       gestured(in: size) {
         Color.clear.contentShape(Rectangle())
+        // Performance: each evaluation copies the page's rects into an array
+        // and builds one `Rectangle` view per rect, and `rects` is one
+        // observed dictionary, so a change on any page evaluates every
+        // page's overlay. It bites on a drag over dense text with several
+        // pages on screen. One `Path` that holds every rect fills them in a
+        // single view.
         ForEach(Array((model.rects[page] ?? []).enumerated()), id: \.offset) { _, rect in
           let local = Self.localRect(rect, in: size, geometry: geometry)
           Rectangle()

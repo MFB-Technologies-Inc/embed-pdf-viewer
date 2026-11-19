@@ -1,7 +1,8 @@
 /// Any JSON value: what a member holds when the engine passes it through
 /// without fixing its shape (`AnnotationRichText`'s body, run styles and
-/// paragraph properties). Decoding and encoding again keeps every key and
-/// value; a number is a `Double`, as JSON's is.
+/// paragraph properties). Decoding and encoding again keeps every key, and
+/// every value but some numbers: a number is a `Double`, so an integer above
+/// 2^53 in magnitude may not come back exactly.
 public enum JSONValue: Codable, Sendable, Hashable {
   case null
   case bool(Bool)
@@ -12,6 +13,12 @@ public enum JSONValue: Codable, Sendable, Hashable {
 
   public init(from decoder: any Decoder) throws {
     let container = try decoder.singleValueContainer()
+    // Performance: each value tries the cases in order, and every failed
+    // `try?` builds and drops a `DecodingError`: two for a string, four for
+    // an object. It bites on a read of many annotations with rich text,
+    // whose body, run styles and paragraph properties are all `JSONValue`.
+    // Trying string and number first, the commonest style values, removes
+    // most of the failures.
     if container.decodeNil() {
       self = .null
     } else if let bool = try? container.decode(Bool.self) {

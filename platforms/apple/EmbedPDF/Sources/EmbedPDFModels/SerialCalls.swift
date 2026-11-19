@@ -14,6 +14,10 @@ final class SerialCalls {
       await previous?.value
       return await work()
     }
+    // Performance: a second task per call, only to erase `call`'s result
+    // type so `last` can hold it. It bites where calls arrive per frame, as
+    // drag points do. A `Task<Void, Never>` that runs `work` and hands its
+    // result out through a typed value halves the task count.
     last = Task { _ = await call.value }
     return call
   }
