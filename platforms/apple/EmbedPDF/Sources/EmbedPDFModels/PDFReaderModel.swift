@@ -3,8 +3,9 @@ import Foundation
 import Observation
 
 /// A reader in one model: it starts a viewer with the plugins its
-/// ``Features`` need, opens one document at a time and builds the models a
-/// reader view shows. `PDFReaderView` (EmbedPDFUI) draws ``phase``.
+/// ``Features`` need and those ``init(features:configure:)`` adds, opens
+/// one document at a time and builds the models a reader view shows.
+/// `PDFReaderView` (EmbedPDFUI) draws ``phase``.
 ///
 ///     let model = PDFReaderModel()
 ///     await model.open(data, name: "report.pdf")
@@ -47,16 +48,16 @@ public final class PDFReaderModel {
     /// Whether any of these features needs the pointer hub.
     var needsInteraction: Bool { !isDisjoint(with: [.selection, .tools, .links]) }
 
-    /// The plugins these features need, over the render and stage plugins
-    /// every reader has.
-    var config: ViewerConfig {
+    /// A builder with the plugins these features need, over the render and
+    /// stage plugins every reader has.
+    var builder: ViewerConfigBuilder {
       var builder = ViewerConfigBuilder().render(RenderConfig()).stage(StageConfig())
       if needsInteraction { builder = builder.interaction() }
       if contains(.search) { builder = builder.search(SearchConfig()) }
       if contains(.selection) { builder = builder.selection() }
       if contains(.tools) { builder = builder.annotation() }
       if contains(.links) { builder = builder.link() }
-      return builder.build()
+      return builder
     }
   }
 
@@ -114,6 +115,8 @@ public final class PDFReaderModel {
   /// password is `permission-denied`. `nil` once an unlock succeeds and
   /// after the next open or ``close()``.
   public private(set) var unlockError: PDFError?
+  /// Changes the features' viewer configuration before a viewer starts.
+  @ObservationIgnored private let configure: @MainActor (ViewerConfigBuilder) -> ViewerConfigBuilder
   /// The running viewer: made by the first open, destroyed by ``close()``.
   @ObservationIgnored private(set) var viewer: PDFViewer?
   /// Orders the opens, the unlocks and the close, so one document's close
@@ -131,8 +134,28 @@ public final class PDFReaderModel {
     case url(URL, name: String?)
   }
 
-  public init(features: Features = .all) {
+  /// Creates a reader with `features`.
+  ///
+  /// `configure` adds what the features leave out. It gets the builder the
+  /// model has prepared, with the render and stage plugins and the plugins
+  /// `features` need, and returns the builder to start the viewer with:
+  ///
+  ///     let model = PDFReaderModel(configure: { $0.history().outline() })
+  ///
+  /// The model calls it on the main actor once for each viewer it starts:
+  /// at the first open, and at the first open after each ``close()``. The
+  /// app reaches the added plugins' capabilities through ``Session/viewer``,
+  /// as `session.viewer.history(for: session.document)`.
+  ///
+  /// A `configure` that turns off a plugin a feature needs makes every open
+  /// end in ``Phase/failed(_:)`` with that capability's `unsupported` error.
+  /// Leave the feature out of `features` instead.
+  public init(
+    features: Features = .all,
+    configure: @escaping @MainActor (ViewerConfigBuilder) -> ViewerConfigBuilder = { $0 }
+  ) {
     self.features = features
+    self.configure = configure
   }
 
   /// Opens PDF bytes, closing the document that was open. Ends in
@@ -257,7 +280,7 @@ public final class PDFReaderModel {
   /// The viewer, made and started on first use.
   private func startedViewer() async throws(PDFError) -> PDFViewer {
     if let viewer { return viewer }
-    let viewer = try PDFViewer(features.config)
+    let viewer = try PDFViewer(configure(features.builder).build())
     try await viewer.start()
     self.viewer = viewer
     return viewer

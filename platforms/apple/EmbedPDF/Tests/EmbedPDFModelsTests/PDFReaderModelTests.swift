@@ -170,6 +170,58 @@ struct PDFReaderModelTests {
 
   /// Returns once an `open` started in another task has set `.loading`,
   /// which it does before its first suspension.
+  @Test func configureAddsAPlugin() async throws {
+    let model = PDFReaderModel(configure: { $0.metadata() })
+    await model.open(try pluginFixture(), name: "report.pdf")
+    let session = try Self.session(model)
+    _ = try await session.viewer.metadata(for: session.document)
+    // The features' own plugins are still there.
+    #expect(session.search != nil)
+    await model.close()
+  }
+
+  @Test func theDefaultModelHasOnlyItsFeaturesPlugins() async throws {
+    let model = PDFReaderModel()
+    await model.open(try pluginFixture(), name: "report.pdf")
+    let session = try Self.session(model)
+    do {
+      _ = try await session.viewer.metadata(for: session.document)
+      Issue.record("expected the metadata plugin to be left out")
+    } catch {
+      expectNoDifference(error.code, .unsupported)
+    }
+    await model.close()
+  }
+
+  @Test func configureAppliesToEachViewerTheModelStarts() async throws {
+    var calls = 0
+    let model = PDFReaderModel(configure: {
+      calls += 1
+      return $0.metadata()
+    })
+    await model.open(try pluginFixture())
+    await model.close()
+    await model.open(try pluginFixture())
+    let session = try Self.session(model)
+    _ = try await session.viewer.metadata(for: session.document)
+    expectNoDifference(calls, 2)
+    await model.close()
+  }
+
+  @Test func turningOffAFeaturesPluginFailsTheOpen() async throws {
+    let model = PDFReaderModel(configure: { $0.selection(false) })
+    await model.open(try pluginFixture())
+    guard case let .failed(error) = model.phase else {
+      Issue.record("expected .failed, got \(model.phase)")
+      return
+    }
+    expectNoDifference(error.code, .unsupported)
+    // Nothing is left open, and the model is not stuck.
+    let left: Int? = try await model.viewer?.documentCount()
+    expectNoDifference(left, 0)
+    await model.close()
+  }
+
   static func untilLoading(_ model: PDFReaderModel) async throws {
     for _ in 0..<1000 {
       if case .loading = model.phase { return }
