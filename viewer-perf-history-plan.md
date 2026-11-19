@@ -29,6 +29,16 @@ Pushing and merging need the user's confirmation.
 
 ### Progress log
 
+- 2026-11-18: a temporary SSH key for the backfill, so a batch doesn't wait on a password-manager
+  unlock. It is in the `embed-pdf-perf` container at `~/.ssh/perf-mini-temp` (outside the repo, no
+  passphrase), authorized on the Mac mini with `restrict` and `expiry-time="202611202359"`, and
+  used through the `perf-mini` alias in the container's `~/.ssh/config`, with the host key pinned in
+  `~/.ssh/known_hosts`. So Task 9 runs `PERF_REMOTE=perf-mini node scripts/remote.mjs ...` from the
+  container. `rsync` was missing from the container and is now installed with `apt-get`; a rebuilt
+  container needs both again. After the last batch: delete the line ending
+  `perf-history-temp-2026-11-18` from `~/.ssh/authorized_keys` on the Mac mini, delete
+  `~/.ssh/perf-mini-temp*` in the container, and check that `ssh perf-mini true` is refused. If the
+  backfill runs past 2026-11-20 the key has expired and needs a new one.
 - 2026-11-18: the Mac mini also hosts a GitHub Actions runner, a LaunchAgent in `gui/<uid>` with
   its directory at `~/actions-runner`. `scripts/remote.mjs` now starts every remote run through
   `scripts/remote-guard.sh`, which waits for a running job to end, stops the runner service, runs,
@@ -349,7 +359,7 @@ This needs no Mac mini time and can start before Task 9 is unblocked.
 Wait for the user to say the Mac mini is free. Then one batch at a time:
 
 ```sh
-PERF_REMOTE=user@remote-host node scripts/remote.mjs --rounds 10 --profile desktop \
+PERF_REMOTE=perf-mini node scripts/remote.mjs --rounds 10 --profile desktop \
   --arms main,main-aa,main-now,<arm>,<arm>,...
 node scripts/history-record.mjs results/<run-id>
 node scripts/history-chart.mjs
