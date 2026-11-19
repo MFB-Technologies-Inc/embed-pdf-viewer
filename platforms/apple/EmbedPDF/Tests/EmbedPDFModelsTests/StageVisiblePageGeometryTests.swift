@@ -1,7 +1,7 @@
 import CoreGraphics
 import CustomDump
 import EmbedPDF
-import EmbedPDFUI
+import EmbedPDFModels
 import Testing
 
 @Suite struct StageVisiblePageGeometryTests {

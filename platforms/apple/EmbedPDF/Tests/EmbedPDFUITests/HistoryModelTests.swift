@@ -1,5 +1,6 @@
 import CustomDump
 import EmbedPDF
+@testable import EmbedPDFModels
 @testable import EmbedPDFUI
 import Testing
 

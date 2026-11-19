@@ -1,6 +1,6 @@
 import CustomDump
 import EmbedPDF
-import EmbedPDFUI
+import EmbedPDFModels
 import Foundation
 import Testing
 

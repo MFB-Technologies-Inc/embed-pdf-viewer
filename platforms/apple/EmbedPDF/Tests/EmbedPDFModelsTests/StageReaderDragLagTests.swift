@@ -1,5 +1,5 @@
 import EmbedPDF
-import EmbedPDFUI
+import EmbedPDFModels
 import Foundation
 import Observation
 import Testing

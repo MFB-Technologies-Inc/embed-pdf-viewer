@@ -7,6 +7,7 @@ let package = Package(
     platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
         .library(name: "EmbedPDF", targets: ["EmbedPDF"]),
+        .library(name: "EmbedPDFModels", targets: ["EmbedPDFModels"]),
         .library(name: "EmbedPDFUI", targets: ["EmbedPDFUI"]),
     ],
     targets: [
@@ -28,8 +29,13 @@ let package = Package(
             ]
         ),
         .target(
-            name: "EmbedPDFUI",
+            name: "EmbedPDFModels",
             dependencies: ["EmbedPDF"],
+            path: "platforms/apple/EmbedPDF/Sources/EmbedPDFModels"
+        ),
+        .target(
+            name: "EmbedPDFUI",
+            dependencies: ["EmbedPDF", "EmbedPDFModels"],
             path: "platforms/apple/EmbedPDF/Sources/EmbedPDFUI"
         ),
     ]

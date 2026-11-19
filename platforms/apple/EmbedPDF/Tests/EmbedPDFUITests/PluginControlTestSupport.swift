@@ -1,5 +1,4 @@
 import CustomDump
-@testable import EmbedPDFUI
 import Foundation
 import Observation
 import Testing
@@ -28,26 +27,6 @@ func expectObserved<Value: Equatable>(
     arm()
   }
   expectNoDifference(read(), expected)
-}
-
-/// Holds the first read that finishes on `snapshots` until `release` runs,
-/// so a refresh started after it can land first. `reached` yields once the
-/// read is held.
-@MainActor
-func holdingFirstRead(of snapshots: SnapshotRefresh) -> (reached: AsyncStream<Void>, release: @MainActor () -> Void) {
-  let (reached, reach) = AsyncStream<Void>.makeStream()
-  let (gate, open) = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
-  var held = false
-  snapshots.readFinished = {
-    guard !held else { return }
-    held = true
-    reach.yield(())
-    for await _ in gate { break }
-  }
-  return (reached, {
-    open.yield(())
-    open.finish()
-  })
 }
 
 /// Whether one observation of `read`, armed before `action` runs, fires

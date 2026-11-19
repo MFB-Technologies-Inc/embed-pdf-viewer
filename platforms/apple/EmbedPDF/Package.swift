@@ -16,6 +16,7 @@ let package = Package(
   ],
   products: [
     .library(name: "EmbedPDF", targets: ["EmbedPDF"]),
+    .library(name: "EmbedPDFModels", targets: ["EmbedPDFModels"]),
     .library(name: "EmbedPDFUI", targets: ["EmbedPDFUI"]),
   ],
   dependencies: [
@@ -46,9 +47,16 @@ let package = Package(
       ]
     ),
     .target(
+      name: "EmbedPDFModels",
+      dependencies: [
+        "EmbedPDF",
+      ]
+    ),
+    .target(
       name: "EmbedPDFUI",
       dependencies: [
         "EmbedPDF",
+        "EmbedPDFModels",
       ]
     ),
     .testTarget(
@@ -69,6 +77,16 @@ let package = Package(
       resources: [
         .copy("Fixtures"),
         .copy("Locales"),
+      ]
+    ),
+    .testTarget(
+      name: "EmbedPDFModelsTests",
+      dependencies: [
+        "EmbedPDFModels",
+        .product(name: "CustomDump", package: "swift-custom-dump"),
+      ],
+      resources: [
+        .copy("Fixtures"),
       ]
     ),
     .testTarget(
