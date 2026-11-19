@@ -15,7 +15,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Payloads with the Rust core linked in are published to the runtime fork by
 # scripts/publish-engine-payload.mjs; upstream never has these hashes.
-REPO="${EPDF_PAYLOAD_REPO:-roanutil/embed-pdf-runtime}"
+REPO="${EPDF_PAYLOAD_REPO:-MFB-Technologies-Inc/embed-pdf-runtime}"
 WAIT_MINUTES="${EPDF_PAYLOAD_WAIT_MINUTES:-0}"
 TARGETS=("${@:-wasm32}")
 

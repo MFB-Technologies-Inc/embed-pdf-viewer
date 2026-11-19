@@ -108,7 +108,7 @@ if !usesLocalEngine {
     package.targets.append(
       .binaryTarget(
         name: "EmbedPDFBindings",
-        url: "https://github.com/roanutil/embed-pdf-runtime/releases/download/\(engineRelease)/EmbedPDFBindings.xcframework.zip",
+        url: "https://github.com/MFB-Technologies-Inc/embed-pdf-runtime/releases/download/\(engineRelease)/EmbedPDFBindings.xcframework.zip",
         checksum: engineChecksum
       )
     )

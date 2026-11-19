@@ -21,7 +21,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-RUNTIME_REPO="roanutil/embed-pdf-runtime"
+RUNTIME_REPO="MFB-Technologies-Inc/embed-pdf-runtime"
 MANIFEST="$REPO_ROOT/platforms/apple/EmbedPDF/Package.swift"
 
 while [[ $# -gt 0 ]]; do

@@ -108,7 +108,7 @@ import {
 
 import { stageMacConsumer } from '../platforms/apple/macos-consumer.mjs';
 
-const RELEASE_REPO = 'roanutil/embed-pdf-runtime';
+const RELEASE_REPO = 'MFB-Technologies-Inc/embed-pdf-runtime';
 const TARGET = 'wasm32';
 const ASSET = `engine-runtime-payload-${TARGET}.tar.gz`;
 
