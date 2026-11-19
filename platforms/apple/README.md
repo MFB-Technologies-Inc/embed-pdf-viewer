@@ -297,6 +297,27 @@ Models and views should own the consuming task for their visible lifetime.
 Each panel may subscribe independently; no panel needs to forward revisions to
 another panel.
 
+## Page rotation
+
+Engine geometry is in unrotated page space. Annotation rects, text boxes and
+search hits all ignore the page's rotation. `PageInfo.geometry` returns a
+`PageGeometry` that converts points and rects between that space and the page
+as shown, turned clockwise. Both spaces put the origin at the top left with y
+pointing down.
+
+Renders follow the same split. `renderPage` draws unrotated unless you pass
+`geometry.renderRotation`. `renderThumbnail` has no rotation option, so turn
+its image with `geometry.toDisplay(_:)`, which costs one extra bitmap copy per
+thumbnail.
+
+```swift
+let geometry = page.geometry
+let rendered = try await render.renderPage(
+  page.page, options: RenderPageOptions(rotation: geometry.renderRotation, width: 400))
+let thumbnail = geometry.toDisplay(try await render.renderThumbnail(page.page).image)
+let tapOnPage = geometry.toPage(tapInView)
+```
+
 ## What the generated Swift gives the facade
 
 Records conform to everything the facade needs to re-export them. uniffi 0.32
