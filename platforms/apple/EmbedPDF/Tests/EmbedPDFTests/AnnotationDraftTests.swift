@@ -18,14 +18,16 @@ extension BaseSuite {
     /// Every ink member set, none to its default.
     static let fullInk = InkAnnotationDraft(
       inkList: [stroke], color: "#1f6feb", opacity: 0.75, strokeWidth: 3, borderStyle: .dashed,
-      dashArray: [4, 2], intent: .value(.inkHighlight), rotation: 30, contents: "Ink text")
+      dashArray: [4, 2], intent: .value(.inkHighlight), rotation: 30, contents: "Ink text",
+      blendMode: .screen)
     /// Every highlight member set, none to its default.
     static let fullHighlight = HighlightAnnotationDraft(
-      quadPoints: [quad], color: "#ffcd45", opacity: 0.5, contents: "Highlight text")
+      quadPoints: [quad], color: "#ffcd45", opacity: 0.5, contents: "Highlight text",
+      blendMode: .multiply)
     /// Every note member set, none to its default.
     static let fullNote = NoteAnnotationDraft(
       rect: noteRect, color: "#e5484d", opacity: 0.5, icon: .key, open: true, state: "accepted",
-      stateModel: "review", contents: "Typed note")
+      stateModel: "review", contents: "Typed note", blendMode: .darken)
 
     func opened() async throws -> (PageRef, AnnotationCapability) {
       let viewer = try PDFViewer(ViewerConfig(interaction: true, annotation: ""))
@@ -46,7 +48,7 @@ extension BaseSuite {
     @Test func anInkDraftEncodesEveryMember() throws {
       expectNoDifference(
         try Self.fullInk.json(),
-        ##"{"borderStyle":"dashed","color":"#1f6feb","contents":"Ink text","dashArray":[4,2],"inkList":[[{"x":100,"y":100},{"x":140,"y":120},{"x":180,"y":100}]],"intent":"ink-highlight","opacity":0.75,"rotation":30,"strokeWidth":3,"subtype":"ink"}"##
+        ##"{"blendMode":"screen","borderStyle":"dashed","color":"#1f6feb","contents":"Ink text","dashArray":[4,2],"inkList":[[{"x":100,"y":100},{"x":140,"y":120},{"x":180,"y":100}]],"intent":"ink-highlight","opacity":0.75,"rotation":30,"strokeWidth":3,"subtype":"ink"}"##
       )
     }
 
@@ -76,14 +78,14 @@ extension BaseSuite {
     @Test func aHighlightDraftEncodesEveryMember() throws {
       expectNoDifference(
         try Self.fullHighlight.json(),
-        ##"{"color":"#ffcd45","contents":"Highlight text","opacity":0.5,"quadPoints":[{"lowerLeft":{"x":72,"y":312},"lowerRight":{"x":200,"y":312},"upperLeft":{"x":72,"y":300},"upperRight":{"x":200,"y":300}}],"subtype":"highlight"}"##
+        ##"{"blendMode":"multiply","color":"#ffcd45","contents":"Highlight text","opacity":0.5,"quadPoints":[{"lowerLeft":{"x":72,"y":312},"lowerRight":{"x":200,"y":312},"upperLeft":{"x":72,"y":300},"upperRight":{"x":200,"y":300}}],"subtype":"highlight"}"##
       )
     }
 
     @Test func aNoteDraftEncodesEveryMember() throws {
       expectNoDifference(
         try Self.fullNote.json(),
-        ##"{"color":"#e5484d","contents":"Typed note","icon":"key","opacity":0.5,"open":true,"rect":{"height":24,"width":24,"x":40,"y":40},"state":"accepted","stateModel":"review","subtype":"text"}"##
+        ##"{"blendMode":"darken","color":"#e5484d","contents":"Typed note","icon":"key","opacity":0.5,"open":true,"rect":{"height":24,"width":24,"x":40,"y":40},"state":"accepted","stateModel":"review","subtype":"text"}"##
       )
       expectNoDifference(
         try NoteAnnotationDraft(rect: Self.noteRect, state: .null, stateModel: .null, contents: .null)
@@ -110,10 +112,10 @@ extension BaseSuite {
       let patch = InkAnnotationPatch(
         inkList: [[Point(x: 1, y: 2)], [Point(x: 3, y: 4)]], color: "#00ff00", opacity: 0.25,
         strokeWidth: 5, borderStyle: .solid, dashArray: [1], intent: .value(.inkHighlight),
-        rotation: 90, contents: "Changed")
+        rotation: 90, contents: "Changed", blendMode: .normal)
       expectNoDifference(
         try patch.json(),
-        ##"{"borderStyle":"solid","color":"#00ff00","contents":"Changed","dashArray":[1],"inkList":[[{"x":1,"y":2}],[{"x":3,"y":4}]],"intent":"ink-highlight","opacity":0.25,"rotation":90,"strokeWidth":5}"##
+        ##"{"blendMode":"normal","borderStyle":"solid","color":"#00ff00","contents":"Changed","dashArray":[1],"inkList":[[{"x":1,"y":2}],[{"x":3,"y":4}]],"intent":"ink-highlight","opacity":0.25,"rotation":90,"strokeWidth":5}"##
       )
     }
 
@@ -132,10 +134,11 @@ extension BaseSuite {
 
     @Test func aHighlightPatchEncodesEveryMember() throws {
       let patch = HighlightAnnotationPatch(
-        quadPoints: [Self.quad], color: "#00ff00", opacity: 1, contents: "Changed")
+        quadPoints: [Self.quad], color: "#00ff00", opacity: 1, contents: "Changed",
+        blendMode: .normal)
       expectNoDifference(
         try patch.json(),
-        ##"{"color":"#00ff00","contents":"Changed","opacity":1,"quadPoints":[{"lowerLeft":{"x":72,"y":312},"lowerRight":{"x":200,"y":312},"upperLeft":{"x":72,"y":300},"upperRight":{"x":200,"y":300}}]}"##
+        ##"{"blendMode":"normal","color":"#00ff00","contents":"Changed","opacity":1,"quadPoints":[{"lowerLeft":{"x":72,"y":312},"lowerRight":{"x":200,"y":312},"upperLeft":{"x":72,"y":300},"upperRight":{"x":200,"y":300}}]}"##
       )
     }
 
@@ -173,6 +176,7 @@ extension BaseSuite {
       let ink = try #require(try await annotations.get(annotations.create(Self.fullInk, on: page)))
       expectNoDifference(ink.subtype, .ink)
       expectNoDifference(ink.contents, "Ink text")
+      expectNoDifference(ink.blendMode, .screen)
       expectNoDifference(
         ink.ink.map(InkSeen.init),
         InkSeen(
@@ -183,6 +187,7 @@ extension BaseSuite {
         try await annotations.get(annotations.create(Self.fullHighlight, on: page)))
       expectNoDifference(highlight.subtype, .highlight)
       expectNoDifference(highlight.contents, "Highlight text")
+      expectNoDifference(highlight.blendMode, .multiply)
       expectNoDifference(
         highlight.highlight.map(HighlightSeen.init),
         HighlightSeen(color: "#ffcd45", opacity: 0.5, quadPoints: [Self.quad]))
@@ -191,6 +196,7 @@ extension BaseSuite {
       expectNoDifference(note.subtype, .text)
       expectNoDifference(note.rect, Self.noteRect)
       expectNoDifference(note.contents, "Typed note")
+      expectNoDifference(note.blendMode, .darken)
       expectNoDifference(
         note.note.map(NoteSeen.init),
         NoteSeen(

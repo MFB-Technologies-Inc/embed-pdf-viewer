@@ -297,6 +297,172 @@ Models and views should own the consuming task for their visible lifetime.
 Each panel may subscribe independently; no panel needs to forward revisions to
 another panel.
 
+`RenderRevisions` counts render invalidations per page. `revision(for:)` is
+`0` for a page never invalidated and rises by one each time the engine
+invalidates it, so a view can key a page image on it and redraw only the pages
+an edit touched. The model subscribes in `init`, so an invalidation before the
+first `task()` still counts. Run `task()` from the view's `.task`: it returns
+when the document closes, and a restart after cancellation subscribes again.
+Only one `task()` may run at a time. `StageReaderModel` owns one as
+`revisions`.
+
+## Page overlays
+
+`StageReaderView` takes a `pageOverlay` closure and lays its view over each
+visible page, above the page image. The overlay gets the page's frame, origin
+at the page's top left, and the `StageVisiblePage` it covers.
+`viewportPoint(_:)` turns a point in the overlay into the viewport point
+`StageCapability.viewportToPage(_:_:)` takes.
+
+```swift
+StageReaderView(model: reader) { page in
+  Color.clear
+    .contentShape(Rectangle())
+    .onTapGesture { location in
+      Task {
+        // A page point, or nil when the location is off the page or the call fails.
+        if let point = try? await reader.stage.viewportToPage(page.page, page.viewportPoint(location)) {
+          print("tapped", point)
+        }
+      }
+    }
+}
+```
+
+SwiftUI already gives an overlay's own gestures priority over the reader's
+drag, so an overlay's tap or drag gesture needs nothing more. An overlay
+that needs every touch, such as a drawing tool or a UIKit recognizer, sets
+`reader.isPanEnabled = false` while it works. The reader then stops panning and
+ends any drag it had started, without a fling. Pinch and double tap stay active
+alongside overlay gestures either way. `StageReaderView(model:)` still builds a
+reader with no overlay.
+
+## Page rotation
+
+Engine geometry is in unrotated page space. Annotation rects, text boxes and
+search hits all ignore the page's rotation. `PageInfo.geometry` returns a
+`PageGeometry` that converts points and rects between that space and the page
+as shown, turned clockwise. Both spaces put the origin at the top left with y
+pointing down.
+
+Renders follow the same split. `renderPage` draws unrotated unless you pass
+`geometry.renderRotation`. `renderThumbnail` has no rotation option, so turn
+its image with `geometry.toDisplay(_:)`, which costs one extra bitmap copy per
+thumbnail.
+
+```swift
+let geometry = page.geometry
+let rendered = try await render.renderPage(
+  page.page, options: RenderPageOptions(rotation: geometry.renderRotation, width: 400))
+let thumbnail = geometry.toDisplay(try await render.renderThumbnail(page.page).image)
+// A point on the page as shown, in PDF points.
+let shownPoint = Point(x: 72, y: 36)
+let unrotatedPoint = geometry.toPage(shownPoint)
+```
+
+## Text selection
+
+`TextSelectionModel` turns a drag into a text selection. Hand its three
+callbacks to a `DragGesture` and each call runs after the ones before it, even
+though SwiftUI delivers them on separate tasks. Points that arrive while the
+engine is still extending collapse into the newest one, so a fast drag costs one
+engine call per extension, not one per frame.
+
+```swift
+let model = TextSelectionModel(selection: try await viewer.selection(for: document))
+```
+
+The likely host is a `StageReaderView` page overlay, as in
+[Page overlays](#page-overlays). Its drag points are view points with the
+origin at the page's top left, while the model wants unrotated PDF points, and
+the two differ unless the page is drawn at one view point per PDF point. Build
+the `PageGeometry` from the stage page's rotation, `page.transform.rotation`,
+which includes the stage's view rotation (`setViewRotation`, `rotateViewBy`).
+`PageInfo.geometry` has only the page's own rotation, so it fits views that show
+the page that way, not a rotated stage. Scale first: multiply by the width of
+the page as shown, `geometry.displaySize.width`, over the width it is drawn at,
+`page.transform.viewWidth`. Then pass the scaled point to `geometry.toPage(_:)`.
+Drawing `rects` is the reverse: `geometry.toDisplay(_:)`, then divide by the
+same scale.
+
+```swift
+struct SelectionOverlay: View {
+  let page: StageVisiblePage
+  let info: PageInfo
+  let model: TextSelectionModel
+  @State private var dragging = false
+  @GestureState private var touching = false
+
+  /// The page as the stage shows it, view rotation included.
+  private var geometry: PageGeometry {
+    PageGeometry(
+      rotation: Int(page.transform.rotation.rounded()),
+      pageSize: Size(width: info.width, height: info.height))
+  }
+
+  /// PDF points of the page as shown per view point.
+  private var scale: Double { geometry.displaySize.width / page.transform.viewWidth }
+
+  private func pagePoint(_ local: CGPoint) -> Point {
+    geometry.toPage(Point(x: Double(local.x) * scale, y: Double(local.y) * scale))
+  }
+
+  private func finish() {
+    guard dragging else { return }
+    dragging = false
+    Task { await model.dragEnded() }
+  }
+
+  var body: some View {
+    ZStack(alignment: .topLeading) {
+      Color.clear.contentShape(Rectangle())
+      ForEach(Array((model.rects[page.page] ?? []).enumerated()), id: \.offset) { _, rect in
+        let shown = geometry.toDisplay(rect)
+        Rectangle()
+          .fill(.blue.opacity(0.3))
+          .frame(width: shown.width / scale, height: shown.height / scale)
+          .offset(x: shown.x / scale, y: shown.y / scale)
+      }
+    }
+    .gesture(
+      DragGesture(minimumDistance: 0)
+        .updating($touching) { _, touching, _ in touching = true }
+        .onChanged { value in
+          let point = pagePoint(value.location)
+          if dragging {
+            model.dragChanged(to: point, on: page.page)
+          } else {
+            dragging = true
+            Task { await model.dragBegan(at: point, on: page.page) }
+          }
+        }
+        .onEnded { _ in finish() }
+    )
+    .onChange(of: touching) { _, touching in
+      if !touching { finish() }
+    }
+  }
+}
+
+// `pages` holds the document's `PageInfo` values, from `viewer.pages(of:)`.
+StageReaderView(model: reader) { page in
+  SelectionOverlay(page: page, info: pages[Int(page.pageIndex)], model: model)
+}
+```
+
+The `dragging` flag marks the first point of a drag, which `dragBegan` takes.
+SwiftUI can cancel a `DragGesture` without calling `onEnded`, but it still
+resets `@GestureState`, so the `onChange` above runs `dragEnded()` either way.
+
+`dragBegan` returns false off text, and the drag then selects nothing. Pass
+`start: .word` to start from the word under the finger. Run `task()` from the
+view's `.task` so `rects` also follows selections made elsewhere, such as
+`selectAll()`; it returns when the document closes. `rects` holds unrotated
+page points per page. To draw them over a stage page, turn them with the
+geometry built from `page.transform.rotation`, since it includes the view
+rotation, then divide by the overlay's scale. A view that shows the page at its
+own rotation uses `PageInfo.geometry`, as in [Page rotation](#page-rotation).
+
 ## What the generated Swift gives the facade
 
 Records conform to everything the facade needs to re-export them. uniffi 0.32
@@ -388,8 +554,21 @@ limit as `PDFDocument`.
 
 Reads no longer hand out `AnnotationRecord` itself. `get(_:)`, `list(_:)`,
 `selected()` and `hitTest(at:on:)` return `AnnotationInfo`, a hand-written
-struct over it with `Date` timestamps and typed ink, highlight and note
-members, and `AnnotationInfo.record` gives the generated record back.
+struct over it with `Date` timestamps, a typed `blendMode`, and typed members
+for every subtype but popup and widget. `AnnotationInfo.record` gives the
+generated record back.
+
+Writes take the same types. Every subtype the engine creates from a field
+bag has a typed draft (`UnderlineAnnotationDraft`, `LineAnnotationDraft`,
+`FreeTextAnnotationDraft`, …) and a patch, and stamps and file attachments
+have a patch only, since their create needs image or file bytes. The typed
+layer leaves out `richText`, `measure`, the `/F` flags, `nm`, `subject`,
+`reply` and `groupId`; the JSON-string overloads still take those. A link
+and a stamp have no `blendMode`, because the engine writes `/BM` while it
+draws an appearance and draws neither (`write/update.rs` in
+`crates/epdf-engine/src/features/annotation`). The cost is that each typed
+member has to track the engine's schema. `AnnotationKindDraftTests` writes
+every member through the engine and fails if one doesn't come back.
 
 ## Moving from 0.0.0-swift.4
 

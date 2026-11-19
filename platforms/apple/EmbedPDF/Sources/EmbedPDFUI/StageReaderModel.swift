@@ -24,12 +24,26 @@ public final class StageReaderModel {
   /// or a fling moves the camera without changing the scale, so it leaves
   /// this false and renders nothing new.
   public private(set) var isZooming = false
-  private var renderRevisions: [PageRef: UInt64] = [:]
+  /// Whether a drag pans the stage. Turn it off while a page overlay needs
+  /// every touch. Turning it off mid-drag ends the open stage gesture without
+  /// a fling, since SwiftUI cancels a disabled gesture without calling its
+  /// end.
+  public var isPanEnabled = true {
+    didSet {
+      // Joins the drag chain before returning, so a drag call made after
+      // this setter runs after the end.
+      if oldValue, !isPanEnabled { _ = enqueueDragCall { await $0.applyDragEnd(.zero) } }
+    }
+  }
+  /// Per-page render revisions, counted while ``task()`` runs. This model's
+  /// ``task()`` runs ``RenderRevisions/task()``, so callers must not run it
+  /// as well.
+  public let revisions: RenderRevisions
   @ObservationIgnored public let stage: StageCapability
   @ObservationIgnored public let render: RenderCapability
   @ObservationIgnored private var lastTranslation = CGSize.zero
   @ObservationIgnored private var lastMagnification: CGFloat = 1
-  @ObservationIgnored private var gestureOpen = false
+  @ObservationIgnored private(set) var gestureOpen = false
   @ObservationIgnored private var magnifying = false
   /// A pinch's end or a double tap may start a zoom animation; it holds
   /// until a refresh finds the stage still.
@@ -80,12 +94,12 @@ public final class StageReaderModel {
   public init(stage: StageCapability, render: RenderCapability) {
     self.stage = stage
     self.render = render
+    revisions = RenderRevisions(render: render)
   }
 
   /// Run for the view's lifetime, projecting stage and render events.
   public func task() async {
     let stageEvents = stage.events
-    let renderEvents = render.events
     await withTaskGroup(of: Void.self) { group in
       group.addTask {
         for await event in stageEvents {
@@ -93,9 +107,7 @@ public final class StageReaderModel {
           await self.receiveStage(event)
         }
       }
-      group.addTask {
-        for await event in renderEvents { await self.receiveRender(event) }
-      }
+      group.addTask { await self.revisions.task() }
       await refresh()
       _ = await group.next()
       group.cancelAll()
@@ -103,7 +115,7 @@ public final class StageReaderModel {
   }
 
   /// A presentation revision that changes when Rust invalidates this page.
-  public func renderRevision(for page: PageRef) -> UInt64 { renderRevisions[page, default: 0] }
+  public func renderRevision(for page: PageRef) -> UInt64 { revisions.revision(for: page) }
 
   private func receiveStage(_ event: StageEvent) async {
     switch event {
@@ -126,11 +138,6 @@ public final class StageReaderModel {
     }
   }
 
-  private func receiveRender(_ event: RenderEvent) {
-    guard !Task.isCancelled, case let .invalidated(pages, _) = event else { return }
-    for page in pages { renderRevisions[page, default: 0] &+= 1 }
-  }
-
   public func sizeChanged(_ size: CGSize, displayScale: CGFloat) async {
     do {
       try await stage.setDevicePixelRatio(Double(displayScale))
@@ -142,13 +149,15 @@ public final class StageReaderModel {
     await refresh()
   }
 
-  /// Runs after every earlier drag call has finished.
+  /// Runs after every earlier drag call has finished. Does nothing to the
+  /// stage while ``isPanEnabled`` is false.
   public func dragChanged(translation: CGSize) async {
     await afterEarlierDragCalls { await $0.applyDragChange(translation) }
   }
 
   /// `velocity` in points per second, as `DragGesture.Value.velocity`
-  /// reports. Runs after every earlier drag call has finished.
+  /// reports. Runs after every earlier drag call has finished. Skips the
+  /// fling while ``isPanEnabled`` is false.
   public func dragEnded(velocity: CGSize) async {
     await afterEarlierDragCalls { await $0.applyDragEnd(velocity) }
   }
@@ -156,16 +165,25 @@ public final class StageReaderModel {
   private func afterEarlierDragCalls(
     _ work: @escaping @MainActor @Sendable (StageReaderModel) async -> Void
   ) async {
+    await enqueueDragCall(work).value
+  }
+
+  /// Chains `work` after the last drag call and records it as the last one
+  /// before returning.
+  private func enqueueDragCall(
+    _ work: @escaping @MainActor @Sendable (StageReaderModel) async -> Void
+  ) -> Task<Void, Never> {
     let previous = lastDragCall
     let call = Task { @MainActor in
       await previous?.value
       await work(self)
     }
     lastDragCall = call
-    await call.value
+    return call
   }
 
   private func applyDragChange(_ translation: CGSize) async {
+    guard isPanEnabled else { return }
     do {
       if !gestureOpen {
         gestureOpen = true
@@ -189,7 +207,7 @@ public final class StageReaderModel {
         gestureOpen = false
         try await stage.endGesture()
       }
-      if velocity != .zero {
+      if velocity != .zero, isPanEnabled {
         try await stage.fling(velocityX: velocity.width, velocityY: velocity.height)
       }
       pageIndex = try await stage.currentPageIndex()
