@@ -38,13 +38,3 @@ public final class RenderRevisions {
   /// `0` for a page never invalidated.
   public func revision(for page: PageRef) -> UInt64 { revisions[page, default: 0] }
 }
-
-/// Cancels its task when released. A cancelled task leaves its event loop,
-/// which ends the loop's subscription.
-private final class CancelOnRelease: Sendable {
-  let task: Task<Void, Never>
-
-  init(_ task: Task<Void, Never>) { self.task = task }
-
-  deinit { task.cancel() }
-}

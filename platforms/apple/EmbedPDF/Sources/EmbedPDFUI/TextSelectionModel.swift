@@ -5,6 +5,10 @@ import Observation
 /// selection's rects onto the main actor. Every call runs after the calls
 /// made before it, and drag points that arrive while an extension waits
 /// collapse into the newest one.
+///
+/// The model observes by itself from `init` until the document closes or the
+/// model is released; there is no task to run. Releasing it ends its event
+/// subscription, so nothing buffers for a model no one holds.
 @MainActor
 @Observable
 public final class TextSelectionModel {
@@ -20,61 +24,67 @@ public final class TextSelectionModel {
   public private(set) var rects: [PageRef: [Rect]] = [:]
   /// Whether a drag has begun on text and not yet ended.
   public private(set) var isSelecting = false
-  /// The last error the engine threw, kept until the next one replaces it.
+  /// The last error the engine threw, kept until the next ``dragBegan(at:on:start:)``
+  /// or ``clear()`` runs.
   public private(set) var error: PDFError?
   /// `extend(to:on:)` calls made so far.
   @ObservationIgnored var extensionCount = 0
+  /// Runs after a refresh's reads return and before they are applied. Tests
+  /// hold a refresh here.
+  @ObservationIgnored var rectsReadReturned: (@MainActor () async -> Void)?
   @ObservationIgnored private let selection: SelectionCapability
-  /// The stream `init` subscribed, held until the first `task()` takes it.
-  @ObservationIgnored private var subscribed: AsyncStream<SelectionEvent>?
-  /// The last call, which the next one waits for. SwiftUI hands a gesture's
-  /// change and end to separate tasks, and each call leaves the main actor
-  /// while it reaches the engine, so without this an end could reach the
-  /// engine before the begin it closes.
-  @ObservationIgnored private var lastCall: Task<Void, Never>?
+  /// Orders the drag calls and every rects refresh. SwiftUI hands a
+  /// gesture's change and end to separate callbacks, and each call leaves
+  /// the main actor while it reaches the engine, so without this an end
+  /// could reach the engine before the begin it closes, and an older rects
+  /// read could overwrite a newer one.
+  @ObservationIgnored private let calls = SerialCalls()
+  /// The task following selection events, cancelled when the model is
+  /// released.
+  @ObservationIgnored private var observation: CancelOnRelease?
+  /// The event-following task, which finishes when the document closes or
+  /// the model is released. Tests await it.
+  var observationTask: Task<Void, Never>? { observation?.task }
   /// The newest drag point no extension has applied yet.
   @ObservationIgnored private var pending: (point: Point, page: PageRef)?
   /// Whether an extension waits in the chain; it applies whatever
   /// `pending` holds when it runs.
   @ObservationIgnored private var extensionQueued = false
-  /// Bumped when a rects refresh starts and when `rects` is emptied. A
-  /// refresh writes only if this is unchanged when its reads land, so an
-  /// older read never overwrites a newer one.
-  @ObservationIgnored private var rectsEpoch = 0
 
-  /// Subscribes at once, so a selection made before the first ``task()``
-  /// still reaches ``rects``.
+  /// Subscribes at once, so a selection made right after `init` still
+  /// reaches ``rects``.
   public init(selection: SelectionCapability) {
     self.selection = selection
-    subscribed = selection.events
+    let events = selection.events
+    // Holds the model weakly, and only while it queues one event's refresh,
+    // so the task never keeps the model alive.
+    observation = CancelOnRelease(
+      Task { [weak self] in
+        for await event in events { self?.follow(event) }
+      })
   }
 
-  /// Keeps ``rects`` in step with selections made elsewhere until the
-  /// document closes or the task is cancelled. The first run consumes the
-  /// subscription `init` made; each later run subscribes again. Run one at a
-  /// time: concurrent runs are not supported.
-  public func task() async {
-    // Taken before the first suspension, so a restart misses nothing sent
-    // after it begins.
-    let events = subscribed ?? selection.events
-    subscribed = nil
-    for await event in events {
-      guard !Task.isCancelled else { return }
-      switch event {
-      case .changed, .committed:
-        await refreshRects()
-      case .cleared:
-        emptyRects()
-      }
+  /// Queues the event's effect on ``rects`` behind the calls made so far, so
+  /// a selection made elsewhere never lands out of order with a drag's own
+  /// refresh.
+  private func follow(_ event: SelectionEvent) {
+    switch event {
+    case .changed, .committed:
+      enqueue { await $0.refreshRects() }
+    case .cleared:
+      enqueue { $0.rects = [:] }
     }
   }
 
-  /// Starts a selection at `point`. False when the point has no text; the
-  /// model then stays idle until the next begin. With `.word`, a failure
-  /// after the word is selected leaves it selected with ``isSelecting``
-  /// false and the error in ``error``.
-  public func dragBegan(at point: Point, on page: PageRef, start: Start = .caret) async -> Bool {
-    await enqueue { await $0.applyBegin(at: point, on: page, start: start) }.value
+  /// Starts a selection at `point` and clears ``error``. Returns at once;
+  /// ``isSelecting`` turns true when the engine finds text at the point, and
+  /// ``dragEnded()`` reports whether it did. With `.word`, a failure after
+  /// the word is selected leaves it selected with ``isSelecting`` false and
+  /// the error in ``error``.
+  public func dragBegan(at point: Point, on page: PageRef, start: Start = .caret) {
+    // A point left by a drag that never began belongs to that drag.
+    pending = nil
+    enqueue { await $0.applyBegin(at: point, on: page, start: start) }
   }
 
   /// Moves the selection's focus to `point`. Points that arrive while an
@@ -92,12 +102,16 @@ public final class TextSelectionModel {
     }
   }
 
-  /// Ends the drag, keeping the selection and ``rects``.
-  public func dragEnded() async {
+  /// Ends the drag, keeping the selection. True when the drag began on text;
+  /// false when the point had no text, the begin failed, or no drag was
+  /// open. ``rects`` are final when this returns: every refresh queued
+  /// before the end, a selection event's included, has been applied in order.
+  @discardableResult
+  public func dragEnded() async -> Bool {
     await enqueue { await $0.applyEnd() }.value
   }
 
-  /// Clears the selection and ``rects``.
+  /// Clears the selection, ``rects`` and ``error``.
   public func clear() async {
     await enqueue { await $0.applyClear() }.value
   }
@@ -106,16 +120,11 @@ public final class TextSelectionModel {
   private func enqueue<Result: Sendable>(
     _ work: @escaping @MainActor @Sendable (TextSelectionModel) async -> Result
   ) -> Task<Result, Never> {
-    let previous = lastCall
-    let call = Task { @MainActor in
-      await previous?.value
-      return await work(self)
-    }
-    lastCall = Task { _ = await call.value }
-    return call
+    calls.enqueue { await work(self) }
   }
 
-  private func applyBegin(at point: Point, on page: PageRef, start: Start) async -> Bool {
+  private func applyBegin(at point: Point, on page: PageRef, start: Start) async {
+    error = nil
     do {
       try await selection.ensureLoaded(page)
       let began: Bool
@@ -126,11 +135,11 @@ public final class TextSelectionModel {
         began = try await selection.selectWord(at: point, on: page)
         if began { try await selection.beginGesture() }
       }
-      guard began else { return false }
+      guard began else { return }
       isSelecting = true
     } catch {
       self.error = error
-      return false
+      return
     }
     // A point that arrived before or during the begin applies inside this
     // call, so an end queued behind the begin finds it applied.
@@ -139,7 +148,6 @@ public final class TextSelectionModel {
     } else {
       await refreshRects()
     }
-    return true
   }
 
   private func applyPending() async {
@@ -158,35 +166,29 @@ public final class TextSelectionModel {
     await refreshRects()
   }
 
-  private func applyEnd() async {
+  private func applyEnd() async -> Bool {
     pending = nil
-    if isSelecting {
-      do {
-        try await selection.endGesture()
-      } catch {
-        self.error = error
-      }
+    guard isSelecting else { return false }
+    do {
+      try await selection.endGesture()
+    } catch {
+      self.error = error
     }
     isSelecting = false
+    return true
   }
 
   private func applyClear() async {
+    error = nil
     do {
       try await selection.clear()
     } catch {
       self.error = error
     }
-    emptyRects()
-  }
-
-  private func emptyRects() {
-    rectsEpoch += 1
     rects = [:]
   }
 
   private func refreshRects() async {
-    rectsEpoch += 1
-    let epoch = rectsEpoch
     var next: [PageRef: [Rect]] = [:]
     do {
       for page in try await selection.selectedPages() {
@@ -196,7 +198,7 @@ public final class TextSelectionModel {
       self.error = error
       return
     }
-    guard epoch == rectsEpoch else { return }
+    await rectsReadReturned?()
     rects = next
   }
 }
