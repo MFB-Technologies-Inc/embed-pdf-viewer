@@ -88,11 +88,34 @@ public sealed class JintScriptEngineTests
     }
 
     [Fact]
+    public async Task ARunawayRegexStopsNearTheLimit()
+    {
+        using var engine = (JintRealm)new JintScriptEngineFactory().Create();
+        var clock = Stopwatch.StartNew();
+        var answer = engine.Evaluate("JSON.stringify(/(a+)+$/.test('a'.repeat(32) + 'b'))", 50);
+        Assert.IsType<ScriptEvaluation.TimedOut>(answer);
+        // The interpreter's own regex timeout stops the match, so the realm's thread goes idle soon after.
+        for (var i = 0; i < 100 && engine.Busy; i++) await Task.Delay(10);
+        Assert.False(engine.Busy, "the realm thread was still matching");
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(2), $"took {clock.Elapsed}");
+    }
+
+    [Fact]
+    public async Task ARunawayRegexInADocumentScriptIsABudgetFailure()
+    {
+        var clock = Stopwatch.StartNew();
+        var check = await ScriptEngineCheck.RunAsync(new JintScriptEngineFactory(), "/(a+)+$/.test('a'.repeat(32) + 'b')");
+        Assert.NotNull(check.Error);
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(2), $"took {clock.Elapsed}");
+    }
+
+    [Fact]
     public void BadOptionsAreRefused()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => new JintScriptEngineFactory(new JintScriptEngineOptions { MaxCallDepth = 0 }));
         Assert.Throws<ArgumentOutOfRangeException>(() => new JintScriptEngineFactory(new JintScriptEngineOptions { MaxMemoryBytes = 0 }));
         Assert.Throws<ArgumentOutOfRangeException>(() => new JintScriptEngineFactory(new JintScriptEngineOptions { ThreadStackBytes = 1024 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new JintScriptEngineFactory(new JintScriptEngineOptions { RegexTimeout = TimeSpan.Zero }));
     }
 
     static async Task<(PdfViewer Viewer, ActionsCapability Actions, PdfActionTree AlertTree)> ScriptingViewer(IScriptEngineFactory factory)

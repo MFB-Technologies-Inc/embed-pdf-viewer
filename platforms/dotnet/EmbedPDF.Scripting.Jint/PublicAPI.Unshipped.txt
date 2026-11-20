@@ -10,6 +10,8 @@ EmbedPDF.Scripting.Jint.JintScriptEngineOptions.MaxCallDepth.get -> int
 EmbedPDF.Scripting.Jint.JintScriptEngineOptions.MaxCallDepth.init -> void
 EmbedPDF.Scripting.Jint.JintScriptEngineOptions.MaxMemoryBytes.get -> long
 EmbedPDF.Scripting.Jint.JintScriptEngineOptions.MaxMemoryBytes.init -> void
+EmbedPDF.Scripting.Jint.JintScriptEngineOptions.RegexTimeout.get -> System.TimeSpan
+EmbedPDF.Scripting.Jint.JintScriptEngineOptions.RegexTimeout.init -> void
 EmbedPDF.Scripting.Jint.JintScriptEngineOptions.ThreadStackBytes.get -> int
 EmbedPDF.Scripting.Jint.JintScriptEngineOptions.ThreadStackBytes.init -> void
 override EmbedPDF.Scripting.Jint.JintScriptEngineOptions.Equals(object? obj) -> bool

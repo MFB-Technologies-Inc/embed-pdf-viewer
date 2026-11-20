@@ -27,6 +27,16 @@ public sealed record JintScriptEngineOptions
     /// <see cref="MaxCallDepth"/> can safely go. Default 16 MiB, at least 256 KiB.
     /// </summary>
     public int ThreadStackBytes { get; init; } = 16 * 1024 * 1024;
+
+    /// <summary>
+    /// How long one regular expression match may run. A match runs inside one
+    /// interpreter step, where the evaluation's time limit can't stop it, and
+    /// Jint fixes this timeout when a realm is built, so it can't follow each
+    /// evaluation's limit. Default 300 ms: the default script budget (50 ms)
+    /// plus the 250 ms the viewer waits past a limit before abandoning a realm.
+    /// Past it the evaluation fails and, once its limit has passed, times out.
+    /// </summary>
+    public TimeSpan RegexTimeout { get; init; } = TimeSpan.FromMilliseconds(300);
 }
 
 /// <summary>
@@ -51,6 +61,7 @@ public sealed class JintScriptEngineFactory : IScriptEngineFactory
         ArgumentOutOfRangeException.ThrowIfLessThan(options.MaxCallDepth, 1, nameof(options));
         ArgumentOutOfRangeException.ThrowIfLessThan(options.MaxMemoryBytes, 1, nameof(options));
         ArgumentOutOfRangeException.ThrowIfLessThan(options.ThreadStackBytes, 256 * 1024, nameof(options));
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(options.RegexTimeout, TimeSpan.Zero, nameof(options));
         this.options = options;
     }
 
@@ -68,6 +79,10 @@ internal sealed class JintRealm : IScriptEngine
     readonly Lock gate = new();
     readonly Deadline deadline = new();
     bool unusable;
+    int busy;
+
+    /// <summary>Whether the realm's thread is evaluating; for tests.</summary>
+    internal bool Busy => Volatile.Read(ref busy) != 0;
 
     internal JintRealm(JintScriptEngineOptions options)
     {
@@ -119,6 +134,11 @@ internal sealed class JintRealm : IScriptEngine
     {
         var engine = new Engine(o =>
         {
+            // A regex match runs inside one interpreter step, out of the
+            // deadline constraint's reach, so it gets its own timeout. Jint
+            // fixes it when the engine is built, so it can't follow each
+            // evaluation's limit.
+            o.Constraints.RegexTimeout = options.RegexTimeout;
             o.LimitMemory(options.MaxMemoryBytes);
             o.Constraints.MaxExecutionStackCount = options.MaxCallDepth;
             o.Constraint(deadline);
@@ -131,6 +151,7 @@ internal sealed class JintRealm : IScriptEngine
         foreach (var item in work.GetConsumingEnumerable())
         {
             deadline.Until = Environment.TickCount64 + item.TimeLimitMs;
+            Volatile.Write(ref busy, 1);
             item.Started.Set();
             try
             {
@@ -153,6 +174,7 @@ internal sealed class JintRealm : IScriptEngine
             {
                 item.Answer = new ScriptEvaluation.Threw(error.Message);
             }
+            Volatile.Write(ref busy, 0);
             item.Done.Set();
         }
     }
