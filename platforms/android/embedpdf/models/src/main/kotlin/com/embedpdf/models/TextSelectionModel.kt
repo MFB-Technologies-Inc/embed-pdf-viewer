@@ -8,6 +8,8 @@ import com.embedpdf.SelectionCapability
 import com.embedpdf.SelectionEvent
 import com.embedpdf.SelectionEventCleared
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,15 +24,26 @@ import kotlinx.coroutines.launch
  *
  * Swift's model follows the selection from `init` with a task of its own. A
  * model here owns no scope, so [run] does both jobs: it follows selection
- * events into [rects] and sends the drag calls as they are made. Without
- * [run], [dragBegan] and [dragChanged] wait in the queue until the next
- * [dragEnded] or [clear], which sends everything queued before it.
+ * events into [rects] and sends the drag calls as they are made. When
+ * [dragBegan] or [dragChanged] is called while [run] is not running, the
+ * model starts one drain of its queue in `actionScope`, the caller's scope,
+ * when the constructor was given one. Without one the call waits in the queue
+ * until the next [dragEnded] or [clear], which sends everything queued before
+ * it, and the first such call sets [error] to `invalid-state` to say that
+ * [run] is not running.
  *
  * The state lives on the main thread: every call switches to
  * `Dispatchers.Main.immediate` itself, and [dragBegan] and [dragChanged] are
  * made there.
  */
-public class TextSelectionModel(private val selection: SelectionCapability) {
+public class TextSelectionModel(
+    private val selection: SelectionCapability,
+    /**
+     * Where a drag call made while [run] is not running starts the drain that
+     * sends it; `null` leaves the call queued until the next suspend call.
+     */
+    actionScope: CoroutineScope? = null,
+) {
     /** What a drag's first point selects. */
     public enum class Start {
         /** An empty selection at the point, grown by the drag. */
@@ -64,7 +77,10 @@ public class TextSelectionModel(private val selection: SelectionCapability) {
      * the engine before the begin it closes, and an older rects read never
      * overwrites a newer one.
      */
-    private val calls = SerialCalls()
+    private val calls = SerialCalls(actionScope) { reportNotRunning() }
+
+    /** Whether [error] has said once that a drag call waits for [run]. */
+    private var reportedNotRunning = false
 
     /** A drag point no extension has applied yet, and the drag it belongs to. */
     private class Pending(val point: Point, val page: PageRef, val drag: Long)
@@ -88,7 +104,7 @@ public class TextSelectionModel(private val selection: SelectionCapability) {
     public suspend fun run(): Unit = onMain {
         coroutineScope {
             val events = subscribe(selection.observeEvents())
-            val draining = launch { calls.drainContinuously() }
+            val draining = launch(start = CoroutineStart.UNDISPATCHED) { calls.drainContinuously() }
             for (event in events) follow(event)
             draining.cancel()
         }
@@ -124,7 +140,7 @@ public class TextSelectionModel(private val selection: SelectionCapability) {
         val began = ++drag
         pending = null
         extensionQueued = false
-        calls.enqueue { applyBegin(point, page, start, began) }
+        calls.post { applyBegin(point, page, start, began) }
     }
 
     /**
@@ -138,7 +154,7 @@ public class TextSelectionModel(private val selection: SelectionCapability) {
         pending = Pending(point, page, current)
         if (extensionQueued) return
         extensionQueued = true
-        calls.enqueue {
+        calls.post {
             if (drag == current) extensionQueued = false
             // Before a begin succeeds, the point waits for it.
             if (_isSelecting.value) applyPending(current)
@@ -158,6 +174,18 @@ public class TextSelectionModel(private val selection: SelectionCapability) {
 
     /** Clears the selection, [rects] and [error]. */
     public suspend fun clear(): Unit = onMain { calls.enqueue { applyClear() }.await() }
+
+    /** Sets [error], the first time only, to say that a drag call waits because [run] is not running. */
+    private fun reportNotRunning() {
+        if (reportedNotRunning) return
+        reportedNotRunning = true
+        _error.value = PdfException(
+            PdfException.Code.INVALID_STATE,
+            "TextSelectionModel.run() is not running and the model has no actionScope, " +
+                "so drag calls wait until dragEnded() or clear()",
+            "InvalidStateError",
+        )
+    }
 
     private suspend fun applyBegin(point: Point, page: PageRef, start: Start, began: Long) {
         _error.value = null

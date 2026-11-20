@@ -390,6 +390,33 @@ class StageReaderModelTest {
         reader.viewer.destroy()
     }
 
+    /** Without `run()`, a model given an action scope sends pointer calls as they are made. */
+    @Test
+    fun anActionScopeSendsPointerCallsWithoutRun() = mainTest {
+        val viewer = started(ViewerConfig(render = RenderConfig(), interaction = true, stage = StageConfig()))
+        val document = viewer.open(Fixture.bytes("report"))
+        val model = StageReaderModel(viewer.stage(document), viewer.render(document), viewer.interaction(document), actionScope = this)
+        model.sizeChanged(390f, 844f, 2f)
+        val phases = mutableListOf<PointerPhase>()
+        model.pointerSampleDispatched = { phases += it.phase }
+        model.pointerDown(100f, 100f)
+        model.pointerUp(100f, 100f)
+        expectObserved({ phases.toList() }, listOf(PointerPhase.DOWN, PointerPhase.UP))
+        assertNull(model.error.value)
+        viewer.destroy()
+    }
+
+    /** A pointer call queued with neither `run()` nor an action scope says so in `error`. */
+    @Test
+    fun aPointerCallWithNothingToSendItRecordsTheError() = mainTest {
+        val viewer = started(ViewerConfig(render = RenderConfig(), interaction = true, stage = StageConfig()))
+        val document = viewer.open(Fixture.bytes("report"))
+        val model = StageReaderModel(viewer.stage(document), viewer.render(document), viewer.interaction(document))
+        model.pointerDown(10f, 10f)
+        assertEquals(PdfException.Code.INVALID_STATE, model.error.value?.code)
+        viewer.destroy()
+    }
+
     @Test
     fun aPinchCancelsTheOpenToolGesture() = mainTest {
         val reader = reader()

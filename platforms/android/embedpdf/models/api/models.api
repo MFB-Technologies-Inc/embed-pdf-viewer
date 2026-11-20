@@ -94,8 +94,8 @@ public final class com/embedpdf/models/OutlineModel {
 
 public final class com/embedpdf/models/PdfReaderModel {
 	public fun <init> ()V
-	public fun <init> (Ljava/util/Set;Lkotlin/jvm/functions/Function1;)V
-	public synthetic fun <init> (Ljava/util/Set;Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/util/Set;Lkotlin/jvm/functions/Function1;Lkotlinx/coroutines/CoroutineScope;)V
+	public synthetic fun <init> (Ljava/util/Set;Lkotlin/jvm/functions/Function1;Lkotlinx/coroutines/CoroutineScope;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun close (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun getFeatures ()Ljava/util/Set;
 	public final fun getPhase ()Lkotlinx/coroutines/flow/StateFlow;
@@ -226,8 +226,8 @@ public final class com/embedpdf/models/StageReaderModel {
 	public static final field Companion Lcom/embedpdf/models/StageReaderModel$Companion;
 	public static final field MAX_PAGE_PIXELS D
 	public static final field PAN_MOVEMENT_THRESHOLD D
-	public fun <init> (Lcom/embedpdf/StageCapability;Lcom/embedpdf/RenderCapability;Lcom/embedpdf/InteractionCapability;Lcom/embedpdf/LinkCapability;)V
-	public synthetic fun <init> (Lcom/embedpdf/StageCapability;Lcom/embedpdf/RenderCapability;Lcom/embedpdf/InteractionCapability;Lcom/embedpdf/LinkCapability;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Lcom/embedpdf/StageCapability;Lcom/embedpdf/RenderCapability;Lcom/embedpdf/InteractionCapability;Lcom/embedpdf/LinkCapability;Lkotlinx/coroutines/CoroutineScope;)V
+	public synthetic fun <init> (Lcom/embedpdf/StageCapability;Lcom/embedpdf/RenderCapability;Lcom/embedpdf/InteractionCapability;Lcom/embedpdf/LinkCapability;Lkotlinx/coroutines/CoroutineScope;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun doubleTapped (FFLkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun dragCancelled (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun dragChanged (FFLkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -273,7 +273,8 @@ public final class com/embedpdf/models/StageVisiblePageViewportKt {
 }
 
 public final class com/embedpdf/models/TextSelectionModel {
-	public fun <init> (Lcom/embedpdf/SelectionCapability;)V
+	public fun <init> (Lcom/embedpdf/SelectionCapability;Lkotlinx/coroutines/CoroutineScope;)V
+	public synthetic fun <init> (Lcom/embedpdf/SelectionCapability;Lkotlinx/coroutines/CoroutineScope;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun clear (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun dragBegan (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Lcom/embedpdf/models/TextSelectionModel$Start;)V
 	public static synthetic fun dragBegan$default (Lcom/embedpdf/models/TextSelectionModel;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Lcom/embedpdf/models/TextSelectionModel$Start;ILjava/lang/Object;)V

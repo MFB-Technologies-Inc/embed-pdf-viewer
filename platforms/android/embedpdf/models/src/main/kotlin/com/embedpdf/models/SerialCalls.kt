@@ -1,8 +1,12 @@
 package com.embedpdf.models
 
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
@@ -23,8 +27,16 @@ import kotlin.coroutines.cancellation.CancellationException
  * started goes back to the front of the queue for the next drainer; a call
  * it had started ends cancelled for its awaiter and never runs again. Used on
  * the main thread only.
+ *
+ * A call made to return at once ([post]) needs a drainer it does not wait
+ * for. When no `run()` drains the queue, [post] starts one drain in
+ * [actionScope], the caller's scope; without one it calls [unattended] so the
+ * model can report that the call waits.
  */
-internal class SerialCalls {
+internal class SerialCalls(
+    private val actionScope: CoroutineScope? = null,
+    private val unattended: (() -> Unit)? = null,
+) {
     /** One queued call. */
     inner class Call<R> internal constructor(private val work: suspend () -> R) {
         internal val result = CompletableDeferred<R>()
@@ -84,6 +96,12 @@ internal class SerialCalls {
     private val mutex = Mutex()
     private val arrivals = Channel<Unit>(Channel.CONFLATED)
 
+    /** [drainContinuously] calls under way. */
+    private var continuousDrainers = 0
+
+    /** Whether a drain [post] started in [actionScope] has not yet finished. */
+    private var actionDrainActive = false
+
     /** Queues [work] after every earlier call; it joins the queue before this returns. */
     fun <R> enqueue(work: suspend () -> R): Call<R> {
         val call = Call(work)
@@ -92,13 +110,47 @@ internal class SerialCalls {
         return call
     }
 
+    /**
+     * Queues [work] for a caller that does not wait for it. Unless a drainer
+     * is running, starts a drain in [actionScope], or calls [unattended]
+     * when there is no scope.
+     */
+    fun post(work: suspend () -> Unit): Call<Unit> {
+        val call = enqueue(work)
+        if (continuousDrainers > 0 || actionDrainActive) return call
+        val scope = actionScope
+        if (scope == null) {
+            unattended?.invoke()
+            return call
+        }
+        actionDrainActive = true
+        // Atomic, so the flag clears even when the scope is already cancelled.
+        scope.launch(Dispatchers.Main.immediate, start = CoroutineStart.ATOMIC) {
+            try {
+                drain()
+            } finally {
+                actionDrainActive = false
+            }
+        }
+        return call
+    }
+
     /** Runs every queued call, in order, including those queued while it runs. */
     suspend fun drain() = drainThrough(null)
 
-    /** Drains each time a call arrives, until cancelled. A model's `run()` calls it. */
+    /**
+     * Drains each time a call arrives, until cancelled. A model's `run()`
+     * calls it, from a coroutine started undispatched so the queue counts as
+     * drained from the moment `run()` launches it.
+     */
     suspend fun drainContinuously() {
-        drain()
-        for (arrival in arrivals) drain()
+        continuousDrainers += 1
+        try {
+            drain()
+            for (arrival in arrivals) drain()
+        } finally {
+            continuousDrainers -= 1
+        }
     }
 
     /** Runs queued calls in order until [target] has finished, or until the queue is empty. */

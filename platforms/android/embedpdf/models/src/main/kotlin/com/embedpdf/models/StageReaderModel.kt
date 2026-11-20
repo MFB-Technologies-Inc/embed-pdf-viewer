@@ -21,6 +21,8 @@ import com.embedpdf.StageEventPageChanged
 import com.embedpdf.StageVisiblePage
 import com.embedpdf.ToolId
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.coroutineScope
@@ -52,7 +54,12 @@ import kotlin.math.sqrt
  *
  * The pointer calls, [isPanEnabled]'s drag end and the link loads return at
  * once and reach the engine as [run] drains them, in the order they were
- * made: run [run] for the reader's lifetime. The state lives on the main
+ * made: run [run] for the reader's lifetime. When one of them is made while
+ * [run] is not running, the model starts one drain in `actionScope`, the
+ * caller's scope, when the constructor was given one; without one the call
+ * waits until a later suspend call of its kind or [run], and the first such
+ * call sets [error] to `invalid-state` to say that [run] is not running.
+ * The state lives on the main
  * thread: every call switches to `Dispatchers.Main.immediate` itself, and
  * the calls that return at once are made there.
  */
@@ -61,6 +68,11 @@ public class StageReaderModel(
     public val render: RenderCapability,
     private val interaction: InteractionCapability? = null,
     private val link: LinkCapability? = null,
+    /**
+     * Where a call that returns at once, made while [run] is not running,
+     * starts the drain that sends it; `null` leaves it queued.
+     */
+    actionScope: CoroutineScope? = null,
 ) {
     private val _visiblePages = MutableStateFlow<List<StageVisiblePage>>(emptyList())
     private val _camera = MutableStateFlow<Camera?>(null)
@@ -81,8 +93,10 @@ public class StageReaderModel(
      * The latest failure of one of the model's calls, `null` when the latest
      * call of that kind succeeded. The kinds are: a read of the stage's pages
      * and camera, [sizeChanged], a drag call, [doubleTapped], the tool read,
-     * the link tap registration in [run], a page's link load, and a pointer
-     * sample's page lookup. A failure of any kind replaces the error. Only a
+     * the link tap registration in [run], a page's link load, a pointer
+     * sample's page lookup, and a call queued while neither [run] nor an
+     * action scope can send it (reported once, and never cleared by a
+     * success). A failure of any kind replaces the error. Only a
      * later success of the kind that set it clears it, so a good read of the
      * pages does not hide a failed link load, and the next good link load
      * does. The cost: a caller that polls this can miss a failure a later
@@ -130,7 +144,7 @@ public class StageReaderModel(
             // this setter runs after the end.
             if (was && !value) {
                 waitingDrag = null
-                dragCalls.enqueue { applyDragEnd(0.0, 0.0) }
+                dragCalls.post { applyDragEnd(0.0, 0.0) }
             }
         }
 
@@ -168,7 +182,7 @@ public class StageReaderModel(
     public val linkActivations: SharedFlow<LinkActivation> = _linkActivations.asSharedFlow()
 
     /** The kinds of call whose failure lands in [error]. */
-    internal enum class Call { READ, RESIZE, DRAG, DOUBLE_TAP, TOOL_READ, LINK_TAP_REGISTRATION, LINK_LOAD, PAGE_LOOKUP }
+    internal enum class Call { READ, RESIZE, DRAG, DOUBLE_TAP, TOOL_READ, LINK_TAP_REGISTRATION, LINK_LOAD, PAGE_LOOKUP, NOT_RUNNING }
 
     /** The kind of call that set [error], `null` while it is `null`. */
     private var failedCall: Call? = null
@@ -195,8 +209,11 @@ public class StageReaderModel(
     /** Runs in a refresh after its `isMoving()` read returns and before it is applied. Tests hold it. */
     internal var zoomReadReturned: (suspend () -> Unit)? = null
 
+    /** Whether [error] has said once that a call waits for [run]. */
+    private var reportedNotRunning = false
+
     /** The drag calls, each run after every earlier one. */
-    private val dragCalls = SerialCalls()
+    private val dragCalls = SerialCalls(actionScope) { reportNotRunning() }
 
     /** A drag change waiting in the queue. The call that applies it reads the translation when it runs. */
     private class WaitingDrag(var translationX: Double, var translationY: Double) {
@@ -211,10 +228,11 @@ public class StageReaderModel(
     internal var lastDragChangeApplied: Pair<Double, Double>? = null
 
     /** Sends the pointer calls to the hub; `null` without an [InteractionCapability]. */
-    private val pointer: StagePointerForwarder? = interaction?.let { StagePointerForwarder(stage, it) }
+    private val pointer: StagePointerForwarder? =
+        interaction?.let { StagePointerForwarder(stage, it, SerialCalls(actionScope) { reportNotRunning() }) }
 
     /** The link loads, one set of newly visible pages after another, off the stage event loop. */
-    private val linkLoads = SerialCalls()
+    private val linkLoads = SerialCalls(actionScope) { reportNotRunning() }
 
     /** The pages whose links have loaded or are loading. A failed page leaves it. */
     private val linkPages = HashSet<PageRef>()
@@ -249,9 +267,10 @@ public class StageReaderModel(
             try {
                 val background = listOfNotNull(
                     launch { revisions.run() },
-                    launch { dragCalls.drainContinuously() },
-                    launch { linkLoads.drainContinuously() },
-                    pointer?.let { launch { it.calls.drainContinuously() } },
+                    // Undispatched, so a call made from here on finds its queue drained.
+                    launch(start = CoroutineStart.UNDISPATCHED) { dragCalls.drainContinuously() },
+                    launch(start = CoroutineStart.UNDISPATCHED) { linkLoads.drainContinuously() },
+                    pointer?.let { launch(start = CoroutineStart.UNDISPATCHED) { it.calls.drainContinuously() } },
                     linkEvents?.let { events ->
                         launch {
                             for (event in events) {
@@ -591,7 +610,7 @@ public class StageReaderModel(
         _visiblePages.value = pages
         val fresh = pages.map { it.page }.filter { it !in shown && linkPages.add(it) }
         if (fresh.isEmpty()) return
-        linkLoads.enqueue { loadLinks(fresh, link) }
+        linkLoads.post { loadLinks(fresh, link) }
     }
 
     /** A failed load is in [error], and its page loads again the next time it comes into view. */
@@ -610,6 +629,21 @@ public class StageReaderModel(
                 failed(Call.LINK_LOAD, e)
             }
         }
+    }
+
+    /** Sets [error], the first time only, to say that a call waits because [run] is not running. */
+    private fun reportNotRunning() {
+        if (reportedNotRunning) return
+        reportedNotRunning = true
+        failed(
+            Call.NOT_RUNNING,
+            PdfException(
+                PdfException.Code.INVALID_STATE,
+                "StageReaderModel.run() is not running and the model has no actionScope, " +
+                    "so pointer, pan and link calls wait in their queues",
+                "InvalidStateError",
+            ),
+        )
     }
 
     /** Records a failed call of one kind in [error]. */

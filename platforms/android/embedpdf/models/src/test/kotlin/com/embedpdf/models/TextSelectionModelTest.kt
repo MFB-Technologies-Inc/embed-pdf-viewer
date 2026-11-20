@@ -3,6 +3,7 @@ package com.embedpdf.models
 import com.embedpdf.Fixture
 import com.embedpdf.PageInfo
 import com.embedpdf.PageRef
+import com.embedpdf.PdfException
 import com.embedpdf.PdfViewer
 import com.embedpdf.Point
 import com.embedpdf.Rect
@@ -138,6 +139,38 @@ class TextSelectionModelTest {
         assertTrue(o.model.dragEnded())
         assertEquals(1, o.model.extensionCount)
         assertEquals(selectionRects(start, end, o.page, o.selection), o.model.rects.value[o.page.page])
+        o.viewer.destroy()
+    }
+
+    /** Without `run()`, a model given an action scope sends drag calls as they are made. */
+    @Test
+    fun anActionScopeSendsDragCallsWithoutRun() = mainTest {
+        val viewer = started(ViewerConfig(interaction = true, selection = true))
+        val document = viewer.open(Fixture.bytes("report"))
+        val selection = viewer.selection(document)
+        val page = viewer.pages(document).first()
+        val model = TextSelectionModel(selection, actionScope = this)
+        val start = pointOverText(page, selection)
+        expectObserved(model.isSelecting, true) { model.dragBegan(start, page.page) }
+        expectObserved({ model.extensionCount }, 1) { model.dragChanged(Point(start.x + 120, start.y), page.page) }
+        assertNull(model.error.value)
+        assertTrue(model.dragEnded())
+        viewer.destroy()
+    }
+
+    /** A drag call queued with neither `run()` nor an action scope says so in `error`, once. */
+    @Test
+    fun aDragCallWithNothingToSendItRecordsTheErrorOnce() = mainTest {
+        val o = opened()
+        val start = pointOverText(o.page, o.selection)
+        o.model.dragBegan(start, o.page.page)
+        assertEquals(PdfException.Code.INVALID_STATE, o.model.error.value?.code)
+        assertTrue(o.model.dragEnded())
+        assertNull(o.model.error.value)
+        o.model.dragBegan(start, o.page.page)
+        o.model.dragChanged(Point(start.x + 40, start.y), o.page.page)
+        assertNull(o.model.error.value)
+        assertTrue(o.model.dragEnded())
         o.viewer.destroy()
     }
 

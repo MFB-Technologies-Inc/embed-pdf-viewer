@@ -20,15 +20,16 @@ import kotlinx.coroutines.CancellationException
  * gesture's down, its newest move, then its up or cancel, with no sample of
  * another gesture between them.
  *
- * The samples go out as [calls] drains: from the owning model's `run()`, or
- * from [finished]. Used on the main thread only.
+ * The samples go out as [calls] drains: from the owning model's `run()`,
+ * from a drain [calls] starts in the owner's action scope, or from
+ * [finished]. Used on the main thread only.
  */
 internal class StagePointerForwarder(
     private val stage: StageCapability,
     private val interaction: InteractionCapability,
-) {
     /** Orders the samples, each of which leaves the main thread while the stage finds its page. */
-    val calls = SerialCalls()
+    val calls: SerialCalls,
+) {
 
     /** A move waiting in the queue. The call that sends it reads [point] when it runs. */
     private class WaitingMove(var point: Point?)
@@ -57,7 +58,7 @@ internal class StagePointerForwarder(
         interrupted = false
         gestureOpen = true
         lastLocation = location
-        calls.enqueue { send(PointerPhase.DOWN, location) }
+        calls.post { send(PointerPhase.DOWN, location) }
     }
 
     fun move(location: Point) {
@@ -69,11 +70,11 @@ internal class StagePointerForwarder(
         }
         val move = WaitingMove(location)
         waitingMove = move
-        calls.enqueue {
+        calls.post {
             // Let go before the send suspends: a move that arrives during it
             // queues a call of its own.
             if (waitingMove === move) waitingMove = null
-            val point = move.point ?: return@enqueue
+            val point = move.point ?: return@post
             send(PointerPhase.MOVE, point)
         }
     }
@@ -84,7 +85,7 @@ internal class StagePointerForwarder(
         waitingMove = null
         gestureOpen = false
         lastLocation = location
-        calls.enqueue { send(PointerPhase.UP, location) }
+        calls.post { send(PointerPhase.UP, location) }
     }
 
     /** Drops this gesture's move if one still waits and sends a cancel at the last location. */
@@ -94,7 +95,7 @@ internal class StagePointerForwarder(
         waitingMove = null
         gestureOpen = false
         val location = lastLocation
-        calls.enqueue { send(PointerPhase.CANCEL, location) }
+        calls.post { send(PointerPhase.CANCEL, location) }
     }
 
     /**
@@ -118,7 +119,7 @@ internal class StagePointerForwarder(
         interrupted = false
         gestureOpen = false
         lastLocation = location
-        calls.enqueue {
+        calls.post {
             val page = pageHit(location)
             dispatch(sample(PointerPhase.DOWN, location, page, 1u))
             dispatch(sample(PointerPhase.UP, location, page, 1u))

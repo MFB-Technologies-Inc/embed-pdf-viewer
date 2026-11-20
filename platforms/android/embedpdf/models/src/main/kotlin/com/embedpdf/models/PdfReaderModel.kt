@@ -17,6 +17,7 @@ import com.embedpdf.search
 import com.embedpdf.selection
 import com.embedpdf.stage
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,7 +48,8 @@ import java.net.URL
  * collection; call [close] when the reader goes away.
  *
  * Each session's [StageReaderModel], and its [TextSelectionModel] when it
- * has one, wants its `run()` running while a view shows it.
+ * has one, wants its `run()` running while a view shows it; with an
+ * `actionScope` their calls that return at once still go out without it.
  *
  * The state lives on the main thread: every call switches to
  * `Dispatchers.Main.immediate` itself.
@@ -65,6 +67,12 @@ public class PdfReaderModel(
      * end in [Phase.Failed] with that capability's `unsupported` error.
      */
     private val configure: (ViewerConfigBuilder) -> ViewerConfigBuilder = { it },
+    /**
+     * Passed to each session's [StageReaderModel] and [TextSelectionModel]:
+     * where a call that returns at once, made while that model's `run()` is
+     * not running, starts the drain that sends it.
+     */
+    private val actionScope: CoroutineScope? = null,
 ) {
     /** What the reader offers beyond showing and scrolling pages. Each installs the plugins it needs. */
     public enum class Feature {
@@ -349,7 +357,7 @@ public class PdfReaderModel(
             stage.registerScrollHandler()
         }
         val search = if (Feature.SEARCH in features) SearchModel(viewer.search(document)) else null
-        val selection = if (Feature.SELECTION in features) TextSelectionModel(viewer.selection(document)) else null
+        val selection = if (Feature.SELECTION in features) TextSelectionModel(viewer.selection(document), actionScope) else null
         // Performance: every page's `PageInfo` crosses the bridge here, at
         // each open and after each unlock: a payload that grows with the page
         // count.
@@ -358,7 +366,7 @@ public class PdfReaderModel(
             viewer = viewer,
             document = document,
             pages = pages,
-            reader = StageReaderModel(stage, render, interaction, link),
+            reader = StageReaderModel(stage, render, interaction, link, actionScope),
             search = search,
             selection = selection,
             tools = if (Feature.TOOLS in features) interaction?.let { ToolModel(it) } else null,
