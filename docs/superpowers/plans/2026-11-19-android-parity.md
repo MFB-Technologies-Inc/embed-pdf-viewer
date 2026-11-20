@@ -253,11 +253,11 @@ touches a `View` without posting to the main looper (Review Focus 3).
 About 1.5 weeks. Exit: every model in `Sources/EmbedPDFModels/` has a Kotlin counterpart with its
 tests ported, runnable on the JVM with `kotlinx-coroutines-test`.
 
-- [ ] Port the 20 models. Each exposes `StateFlow` properties and `suspend` or fire-and-forget
+- [x] Port the 20 models. Each exposes `StateFlow` properties and `suspend` or fire-and-forget
   actions, owns no `CoroutineScope` it didn't receive, and has a `run()` suspend function that is
   the Kotlin form of Swift's `task()`. A thin `PdfViewerViewModel` in `models` holds a viewer
   across configuration changes and calls `destroy()` in `onCleared()`.
-- [ ] Keep each Swift model's documented contract (snapshot lag, error clearing, close behaviour,
+- [x] Keep each Swift model's documented contract (snapshot lag, error clearing, close behaviour,
   as in the `SearchModel` header). The KDoc carries the same rules.
 
 ## Phase 5: Compose UI
