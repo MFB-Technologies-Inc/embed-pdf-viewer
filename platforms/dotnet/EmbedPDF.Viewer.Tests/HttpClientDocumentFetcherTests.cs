@@ -129,6 +129,21 @@ public sealed class HttpClientDocumentFetcherTests
         Assert.Equal(("InvalidResponse", "operation-failed"), (call.Name, call.Code));
     }
 
+    [Theory]
+    [InlineData("null task")]
+    [InlineData("null response")]
+    [InlineData("null content")]
+    public async Task AMissingResponseIsAnInvalidResponse(string shape)
+    {
+        var call = (HostFailure)await Outcome(_ => shape switch
+        {
+            "null task" => null!,
+            "null response" => Task.FromResult<DocumentFetchResponse>(null!),
+            _ => Task.FromResult(new DocumentFetchResponse(200, null!)),
+        });
+        Assert.Equal(("InvalidResponse", "operation-failed", "The document fetcher returned no response."), (call.Name, call.Code, call.Detail));
+    }
+
     [Fact]
     public async Task TheAdaptersCancellationCancelsTheFetch()
     {

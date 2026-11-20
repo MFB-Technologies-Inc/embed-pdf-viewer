@@ -110,8 +110,15 @@ internal sealed class FetcherAdapter(IDocumentFetcher fetcher) : GH.DocumentFetc
         DocumentFetchResponse? response = null;
         try
         {
-            response = await fetcher.FetchAsync(url, cancellation.Token).ConfigureAwait(false);
-            if (response.StatusCode is < 0 or > ushort.MaxValue)
+            // A fetcher that breaks its contract with a null task, response or
+            // body fails the tab rather than throwing on the thread pool.
+            var fetching = fetcher.FetchAsync(url, cancellation.Token);
+            response = fetching is null ? null : await fetching.ConfigureAwait(false);
+            if (response?.Content is null)
+            {
+                failure = new GF.HostFailure("InvalidResponse", "The document fetcher returned no response.", "operation-failed");
+            }
+            else if (response.StatusCode is < 0 or > ushort.MaxValue)
             {
                 failure = new GF.HostFailure("InvalidResponse", "The response has an invalid HTTP status.", "operation-failed");
             }
@@ -131,9 +138,10 @@ internal sealed class FetcherAdapter(IDocumentFetcher fetcher) : GH.DocumentFetc
                 completion.Finish((ushort)response!.StatusCode, response.Content);
             }
         }
-        catch (Exception error) when (error is ObjectDisposedException or GF.ViewerException)
+        catch (Exception)
         {
-            // The viewer shut down first; nobody waits for this answer.
+            // The viewer shut down first, so nobody waits for this answer; an
+            // exception here would only go unobserved on the thread pool.
         }
         finally
         {
