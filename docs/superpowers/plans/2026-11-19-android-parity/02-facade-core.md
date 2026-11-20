@@ -1,6 +1,6 @@
 # Android Parity Phase 2: Facade Core
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** A hand-written `embedpdf` module whose `PdfViewer` does everything Swift's `PDFViewer` does, in Kotlin idiom, tested on the JVM against the Linux host library.
 
@@ -43,8 +43,8 @@ internal suspend fun <T> bridgedCancellable(block: suspend (CancelToken) -> T): 
 ```
 Codes and their wire strings come from `PDFError.swift` (`PDFError.Code` constants); the set is open like Swift's, so `Code` is a value class, not an enum.
 
-- [ ] Tests: each generated error variant maps to the right `code`, `name` and `detail` (port `PDFErrorTests.swift`); `bridgedCancellable` calls `token.cancel()` when the coroutine is cancelled.
-- [ ] Implement, run `./gradlew :embedpdf:testDebugUnitTest`, commit.
+- [x] Tests: each generated error variant maps to the right `code`, `name` and `detail` (port `PDFErrorTests.swift`); `bridgedCancellable` calls `token.cancel()` when the coroutine is cancelled.
+- [x] Implement, run `./gradlew :embedpdf:testDebugUnitTest`, commit.
 
 ### Task 2: `PdfViewer` lifecycle, documents, pages, settings
 
@@ -71,8 +71,8 @@ fun viewerConfig(block: ViewerConfigBuilder.() -> Unit): ViewerConfig
 ```
 Deprecated Swift spellings are not ported.
 
-- [ ] Port each listed Swift test file's cases; they are the spec. Fixtures from `pdfium-multiplatform-prototype/fixtures/` and the Apple test fixtures generator (check `platforms/apple/build-xcframework.sh` for which fixtures it copies).
-- [ ] Implement until green; commit per file group.
+- [x] Port each listed Swift test file's cases; they are the spec. Fixtures from `pdfium-multiplatform-prototype/fixtures/` and the Apple test fixtures generator (check `platforms/apple/build-xcframework.sh` for which fixtures it copies).
+- [x] Implement until green; commit per file group.
 
 ### Task 3: Document fetchers
 
@@ -80,8 +80,8 @@ Deprecated Swift spellings are not ported.
 - Create: `HttpDocumentFetcher.kt` (`HttpURLConnection`, port of `DocumentFetch.swift` contract: cancellation, status and non-PDF handling), `ContentResolverDocumentFetcher.kt` (`content://` and `file://` URIs through a `ContentResolver`, delegating other schemes to an inner fetcher), `PdfViewer.open(uri: android.net.Uri, ...)` overload
 - Test: `FetcherTest.kt` with an in-process loopback HTTP server (port `LoopbackServer.swift`), `ContentResolverFetcherTest.kt` under Robolectric
 
-- [ ] Tests first: 200 PDF opens; 404 leaves a failed tab that `retry` can reopen; non-PDF body fails; cancelling the collecting coroutine during a stalled response closes the tab (Review Focus 1); an exception thrown by a custom fetcher is reported, not fatal (Review Focus 3).
-- [ ] Implement, commit.
+- [x] Tests first: 200 PDF opens; 404 leaves a failed tab that `retry` can reopen; non-PDF body fails; cancelling the collecting coroutine during a stalled response closes the tab (Review Focus 1); an exception thrown by a custom fetcher is reported, not fatal (Review Focus 3).
+- [x] Implement, commit.
 
 ### Task 4: API coverage and API dump
 
@@ -89,7 +89,7 @@ Deprecated Swift spellings are not ported.
 - Create: `scripts/check-api-coverage.py` (generalized from `platforms/apple/check-swift-api-coverage.py`; `--platform swift` keeps the exact current behaviour and output), `platforms/android/kotlin-api-coverage.json`
 - Modify: `platforms/apple/check-swift-api-coverage.py` (becomes a thin wrapper calling the shared script with `--platform swift`), `build-aar.sh` (runs `--platform kotlin` and `./gradlew apiCheck`)
 
-- [ ] The Kotlin manifest lists every member the Swift manifest lists, with `kotlin` set to the Kotlin symbol for members ported in this phase and `"pending": "phase-3-<wave>"` for the rest. The check passes when every non-pending member's symbol is found as `fun <name>` / `val <name>` in `platforms/android/embedpdf/*/src/main/kotlin`.
-- [ ] `python3 platforms/apple/check-swift-api-coverage.py` output is byte-identical before and after.
-- [ ] Add the binary-compatibility-validator plugin, run `./gradlew apiDump`, commit `embedpdf/api/embedpdf.api`.
-- [ ] Commit.
+- [x] The Kotlin manifest lists every member the Swift manifest lists, with `kotlin` set to the Kotlin symbol for members ported in this phase and `"pending": "phase-3-<wave>"` for the rest. The check passes when every non-pending member's symbol is found as `fun <name>` / `val <name>` in `platforms/android/embedpdf/*/src/main/kotlin`.
+- [x] `python3 platforms/apple/check-swift-api-coverage.py` output is byte-identical before and after.
+- [x] Add the binary-compatibility-validator plugin, run `./gradlew apiDump`, commit `embedpdf/api/embedpdf.api`.
+- [x] Commit.

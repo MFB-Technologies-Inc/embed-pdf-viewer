@@ -206,14 +206,14 @@ Port, from `platforms/apple/EmbedPDF/Sources/EmbedPDF/`: `PDFViewer.swift`, `PDF
 `WireInteger.swift`, `Registration.swift`, `Exports.swift`, `ContentInclusion.swift`,
 `Experimental.swift` and `Signposts.swift` (as `androidx.tracing` sections).
 
-- [ ] `HttpDocumentFetcher` on `HttpURLConnection`, no new HTTP dependency, matching
+- [x] `HttpDocumentFetcher` on `HttpURLConnection`, no new HTTP dependency, matching
   `URLSessionDocumentFetcher`'s cancellation and error mapping. `ContentResolverDocumentFetcher`
   for `content://` URIs.
-- [ ] Generalize `platforms/apple/check-swift-api-coverage.py` into
+- [x] Generalize `platforms/apple/check-swift-api-coverage.py` into
   `scripts/check-api-coverage.py --platform swift|kotlin`, with a Kotlin matcher and
   `platforms/android/kotlin-api-coverage.json`. Members not yet ported are listed as `pending`
   with the phase that owns them, so the check passes from day one and shrinks to zero.
-- [ ] Wire D5's `apiCheck` into `build-aar.sh`.
+- [x] Wire D5's `apiCheck` into `build-aar.sh`.
 - [ ] Tests: port `ViewerTests`, `DocumentAPITests`, `PDFErrorTests`, `RevisionHubTests`,
   `StreamRuleTests`, `IntegerSurfaceTests`, `FetcherExportTests`, `ViewerConfigBuilderTests`,
   `DisabledPluginTests` and `ProductsTests` (as a check that only the four artifacts publish).
