@@ -7,7 +7,9 @@ import androidx.javascriptengine.JavaScriptIsolate
 import androidx.javascriptengine.JavaScriptSandbox
 import com.embedpdf.EmbedPdfEngineIntegration
 import com.embedpdf.HostExceptionFailed
+import com.embedpdf.PdfException
 import com.embedpdf.PdfViewer
+import com.embedpdf.ScriptEngineReporter
 import com.embedpdf.ScriptEngine
 import com.embedpdf.ScriptEngineAvailability
 import com.embedpdf.ScriptEngineFactory
@@ -19,6 +21,7 @@ import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import java.lang.ref.WeakReference
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -45,7 +48,11 @@ import java.util.concurrent.atomic.AtomicBoolean
  *
  * A realm that runs past its budget is closed: the call returns `timedOut`
  * and the realm is abandoned. Whether closing stops the running script
- * depends on the sandbox's isolate termination feature. Memory and stack
+ * depends on the sandbox's isolate termination feature. A sandbox without it
+ * is reported once to each viewer built with this factory, through
+ * [PdfViewer.observeReportedErrors] (`unsupported`), when the first realm
+ * connects: a runaway script there keeps running after its realm is
+ * abandoned. Memory and stack
  * budgets aren't enforced; the sandbox's own limits apply. A result that
  * isn't a string is given back as the sandbox's string form of it.
  */
@@ -67,6 +74,14 @@ public class JavaScriptSandboxEngineFactory internal constructor(
 
     private val closed = AtomicBoolean(false)
 
+    private val lock = Any()
+
+    /** The viewers built with this factory, held weakly. */
+    private val reporters = mutableListOf<WeakReference<ScriptEngineReporter>>()
+
+    /** The termination report, once a sandbox without the feature connected. */
+    private var limitation: PdfException? = null
+
     init {
         connection?.retain()
         connection?.prewarm()
@@ -80,11 +95,34 @@ public class JavaScriptSandboxEngineFactory internal constructor(
         unavailableReason?.let { throw HostExceptionFailed(it) }
         if (closed.get()) throw HostExceptionFailed(CLOSED)
         val live = connection ?: throw HostExceptionFailed(UNAVAILABLE_BELOW_API_26)
-        return try {
-            IsolateScriptEngine(live.isolate(CONNECT_TIMEOUT_MS))
+        val (sandbox, isolate) = try {
+            live.isolate(CONNECT_TIMEOUT_MS)
         } catch (e: Exception) {
             throw HostExceptionFailed("the JavaScript sandbox failed to start: ${readable(e)}")
         }
+        if (!sandbox.terminatesIsolates) reportNoTermination()
+        return IsolateScriptEngine(isolate)
+    }
+
+    /** Holds [reporter] weakly; sends it the termination report at once if there is one. */
+    override fun attach(reporter: ScriptEngineReporter) {
+        val known = synchronized(lock) {
+            reporters.removeAll { it.get() == null }
+            reporters.add(WeakReference(reporter))
+            limitation
+        }
+        known?.let(reporter::report)
+    }
+
+    /** Reports, once per viewer, that a runaway script can't be stopped. */
+    private fun reportNoTermination() {
+        val (report, targets) = synchronized(lock) {
+            if (limitation != null) return
+            val report = PdfException(PdfException.Code.UNSUPPORTED, NO_TERMINATION, "NotSupportedError")
+            limitation = report
+            report to reporters.mapNotNull { it.get() }
+        }
+        for (target in targets) target.report(report)
     }
 
     /**
@@ -99,6 +137,8 @@ public class JavaScriptSandboxEngineFactory internal constructor(
         val UNAVAILABLE_BELOW_API_26 = "PDF JavaScript needs API 26 or later; JavaScript is disabled."
         val UNSUPPORTED_SANDBOX = "This device's WebView provides no JavaScript sandbox; JavaScript is disabled."
         val CLOSED = "the JavaScript sandbox factory is closed"
+        val NO_TERMINATION =
+            "This device's JavaScript sandbox can't stop a running script; a script past its time budget runs on after its realm is abandoned."
         val CONNECT_TIMEOUT_MS = 10_000L
 
         /** The SDK gate: below 26 the sandbox classes aren't touched at all. */
@@ -132,6 +172,9 @@ internal interface ScriptIsolate {
 
 /** A connected sandbox, as [SandboxConnectionHolder] uses it. */
 internal interface ScriptSandbox {
+    /** Whether closing an isolate stops a script running in it. */
+    val terminatesIsolates: Boolean
+
     fun createIsolate(): ScriptIsolate
 
     fun close()
@@ -168,15 +211,17 @@ internal class SandboxConnectionHolder(private val connect: () -> Future<ScriptS
     }
 
     /**
-     * A new isolate. When waiting for the connection or making the isolate
-     * throws, the connection is closed and a new one tried, once.
+     * A new isolate and the sandbox it lives in. When waiting for the
+     * connection or making the isolate throws, the connection is closed and a
+     * new one tried, once.
      */
-    fun isolate(timeoutMs: Long): ScriptIsolate {
+    fun isolate(timeoutMs: Long): Pair<ScriptSandbox, ScriptIsolate> {
         var failure: Exception? = null
         repeat(2) {
             val future = synchronized(lock) { connection() }
             try {
-                return awaitConnection(future, timeoutMs).createIsolate()
+                val sandbox = awaitConnection(future, timeoutMs)
+                return sandbox to sandbox.createIsolate()
             } catch (e: Exception) {
                 failure = e
                 discard(future)
@@ -233,6 +278,9 @@ private object SharedSandbox {
 
 @RequiresApi(Build.VERSION_CODES.O)
 private class PlatformSandbox(private val sandbox: JavaScriptSandbox) : ScriptSandbox {
+    override val terminatesIsolates: Boolean
+        get() = sandbox.isFeatureSupported(JavaScriptSandbox.JS_FEATURE_ISOLATE_TERMINATION)
+
     override fun createIsolate(): ScriptIsolate = SandboxIsolate(sandbox.createIsolate())
 
     override fun close() {

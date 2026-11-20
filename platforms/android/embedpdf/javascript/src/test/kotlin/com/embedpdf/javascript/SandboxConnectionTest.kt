@@ -1,6 +1,9 @@
 package com.embedpdf.javascript
 
+import com.embedpdf.EmbedPdfEngineIntegration
 import com.embedpdf.HostExceptionFailed
+import com.embedpdf.PdfException
+import com.embedpdf.ScriptEngineReporter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -12,10 +15,13 @@ import java.util.concurrent.Future
  * The connection every factory shares, through fake sandboxes: Robolectric
  * has no sandbox service.
  */
+@OptIn(EmbedPdfEngineIntegration::class)
 class SandboxConnectionTest {
     /** A sandbox whose isolates come from [isolate], counting closes. */
-    internal class FakeSandbox(private val isolate: () -> ScriptIsolate = { FakeIsolate { CompletableFuture.completedFuture("1") } }) :
-        ScriptSandbox {
+    internal class FakeSandbox(
+        override val terminatesIsolates: Boolean = true,
+        private val isolate: () -> ScriptIsolate = { FakeIsolate { CompletableFuture.completedFuture("1") } },
+    ) : ScriptSandbox {
         var closes = 0
 
         override fun createIsolate(): ScriptIsolate = isolate()
@@ -99,7 +105,7 @@ class SandboxConnectionTest {
 
     @Test
     fun anIsolateThatCantBeMadeClosesTheConnectionAndRetriesOnce() {
-        val broken = FakeSandbox { throw IllegalStateException("sandbox died") }
+        val broken = FakeSandbox(isolate = { throw IllegalStateException("sandbox died") })
         val service = FakeService(ready(broken), ready(FakeSandbox()))
         factory(service).create()
         assertEquals(1, broken.closes)
@@ -108,8 +114,8 @@ class SandboxConnectionTest {
 
     @Test
     fun twoFailuresInARowFailTheRealm() {
-        val first = FakeSandbox { throw IllegalStateException("sandbox died") }
-        val second = FakeSandbox { throw IllegalStateException("sandbox died again") }
+        val first = FakeSandbox(isolate = { throw IllegalStateException("sandbox died") })
+        val second = FakeSandbox(isolate = { throw IllegalStateException("sandbox died again") })
         val service = FakeService(ready(first), ready(second))
         try {
             factory(service).create()
@@ -119,5 +125,37 @@ class SandboxConnectionTest {
         }
         assertEquals(1, first.closes)
         assertEquals(1, second.closes)
+    }
+
+    @Test
+    fun aSandboxThatCantStopScriptsIsReportedOncePerViewer() {
+        val service = FakeService(ready(FakeSandbox(terminatesIsolates = false)))
+        val factory = factory(service)
+        val early = mutableListOf<PdfException>()
+        val late = mutableListOf<PdfException>()
+        val earlyReporter = ScriptEngineReporter { early.add(it) }
+        val lateReporter = ScriptEngineReporter { late.add(it) }
+        factory.attach(earlyReporter)
+        factory.create()
+        factory.create()
+        assertEquals(listOf(JavaScriptSandboxEngineFactory.NO_TERMINATION), early.map { it.detail })
+        assertEquals(PdfException.Code.UNSUPPORTED, early.single().code)
+        // A viewer built after the sandbox connected hears at once.
+        factory.attach(lateReporter)
+        assertEquals(listOf(JavaScriptSandboxEngineFactory.NO_TERMINATION), late.map { it.detail })
+        factory.create()
+        assertEquals(1, early.size)
+        assertEquals(1, late.size)
+    }
+
+    @Test
+    fun aSandboxThatStopsScriptsReportsNothing() {
+        val service = FakeService(ready(FakeSandbox()))
+        val factory = factory(service)
+        val reports = mutableListOf<PdfException>()
+        val reporter = ScriptEngineReporter { reports.add(it) }
+        factory.attach(reporter)
+        factory.create()
+        assertEquals(emptyList<PdfException>(), reports)
     }
 }
