@@ -353,8 +353,8 @@ subscribe when the method returns (`BroadcastHub.cs`). `AddEmbedPdf` lives in
 `platforms/dotnet/EmbedPDF.Extensions.DependencyInjection/`. The coverage check is
 `scripts/check-api-coverage.py --platform csharp` over `platforms/dotnet/csharp-api-coverage.json`:
 880 members, 39 ported, 706 pending, 135 exclusions. `EmbedPDF.Viewer.Tests` runs 293 test cases,
-all passing; `EmbedPDF.Tests` passes its 36 with `EPDF_NATIVE_DIR` and PDFium on
-`LD_LIBRARY_PATH`, and `packaging` its 26.
+all passing (321 after the review fixes below); `EmbedPDF.Tests` passes its 36 with
+`EPDF_NATIVE_DIR` and PDFium on `LD_LIBRARY_PATH`, and `packaging` its 26.
 
 Deviations, each with its reason:
 
@@ -386,11 +386,36 @@ Deviations, each with its reason:
   id is `Experimental.Diagnostic`. `PageGeometry` has no image overload until Wave A's
   `PixelBuffer`.
 - `HttpClientDocumentFetcher` reads `file:` URLs itself, which `URLSession` did for Swift.
-- `scripts/check-api-coverage.py` copies the Apple script's logic, and the Apple script is
-  unchanged. Swift mode prints the same 18 errors and exit code 1 as
-  `platforms/apple/check-swift-api-coverage.py` on this branch, before and after, which is a
-  Rust inventory drift that predates this phase. The cost: two copies of the Swift logic until
-  the Apple script becomes a wrapper.
+- `scripts/check-api-coverage.py` holds the Swift check, and
+  `platforms/apple/check-swift-api-coverage.py` is now a wrapper over it (`0d6c8b0b3`) with the
+  same command line and the `inventory`/`validate` functions `platforms/apple/tests` import.
+  Its output and exit code are byte-identical before and after, for no flag, `--allow-pending`
+  and a bad flag. Both still print 18 errors and exit 1 on this branch, a Rust inventory drift
+  that predates this phase.
+
+
+Review fixes (2026-11-20). An independent review asked for these, each landed with a test that
+failed first:
+
+- A fetch cancelled by something other than the kernel, such as `HttpClient.Timeout`, now fails
+  the tab with no code, so it is retryable; only a kernel cancel is `AbortError`.
+- `PdfViewer` implements `IDisposable` as well, so a container disposed synchronously works.
+- Disposal finishes even when releasing the host throws, on the finalizer path too, and a call
+  that disposal aborted reports `instance-closed` rather than `operation-cancelled`.
+- Every public member checks reference arguments up front; a closed viewer refuses a file or
+  stream open before reading it; read errors of the caller's file or stream escape unwrapped,
+  as `PdfException`'s remarks now say.
+- Fewer copies: whole arrays pass without one, seekable streams and sized HTTP bodies read into
+  one buffer, and the shared client recycles pooled connections every 2 minutes.
+- A fetcher returning a null task, response or body fails the tab as `InvalidResponse`.
+- `BroadcastHub` no longer leaks a token registration when it completes mid-subscribe.
+- `PdfException(PdfErrorCode, string, string)` is gone: three strings bound to it and to
+  `(name, code, detail)` alike.
+- `Registration.Dispose` releases the native handle; `AddEmbedPdf` twice keeps the first.
+- The C# coverage check matches overloads by parameter types and asserts each pending row's
+  wave from a crate table in `scripts/check-api-coverage.py`.
+- `release-dotnet.yml` already ran `EmbedPDF.Viewer.Tests` in `runtime-pack`; it now runs the
+  coverage check there too.
 
 What Phase 3 inherits:
 
