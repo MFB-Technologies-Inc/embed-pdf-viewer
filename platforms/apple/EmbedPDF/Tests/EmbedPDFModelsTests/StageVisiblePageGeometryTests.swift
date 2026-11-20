@@ -23,6 +23,22 @@ import Testing
       visibleRect: Rect(x: 0, y: 0, width: info.width, height: info.height))
   }
 
+  /// A page the stage has not sized yet has a zero view width, and a
+  /// malformed one can have a zero page width. Neither divides by zero.
+  @Test func aZeroWidthMapsToZeroNotToInfinity() {
+    var unsized = visiblePage(rotation: 0)
+    unsized.transform.viewWidth = 0
+    // Every overlay point is the page's top left corner.
+    expectNoDifference(unsized.pagePoint(CGPoint(x: 100, y: 50), info: info), Point(x: 0, y: 0))
+    expectNoDifference(
+      unsized.localRect(Rect(x: 10, y: 20, width: 30, height: 40), info: info), .zero)
+
+    let empty = PageInfo(page: info.page, index: 0, width: 0, height: 792, rotation: 0)
+    let page = visiblePage(rotation: 0)
+    expectNoDifference(page.pagePoint(CGPoint(x: 100, y: 50), info: empty), Point(x: 0, y: 0))
+    expectNoDifference(page.localRect(Rect(x: 10, y: 20, width: 30, height: 40), info: empty), .zero)
+  }
+
   @Test func geometryTakesItsTurnFromTheStage() {
     expectNoDifference(
       visiblePage(rotation: 90).geometry(for: info),

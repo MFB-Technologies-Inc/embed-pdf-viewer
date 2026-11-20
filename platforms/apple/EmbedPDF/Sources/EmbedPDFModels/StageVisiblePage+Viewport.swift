@@ -21,26 +21,35 @@ extension StageVisiblePage {
   }
 
   /// The point in unrotated page space at `local`, a point in this page's
-  /// overlay with its origin at the page's top left.
+  /// overlay with its origin at the page's top left. Both axes scale by the
+  /// page's width as shown over `transform.viewWidth`.
+  ///
+  /// When `transform.viewWidth` is not greater than zero, every `local`
+  /// maps to the page point at the top left of the page as shown, so the
+  /// result is finite for a page the stage has not sized.
   public func pagePoint(_ local: CGPoint, info: PageInfo) -> Point {
     let geometry = geometry(for: info)
-    let scale = pointsPerViewPoint(geometry)
+    let scale = Self.ratio(geometry.displaySize.width, over: transform.viewWidth)
     return geometry.toPage(Point(x: Double(local.x) * scale, y: Double(local.y) * scale))
   }
 
   /// Where `pageRect`, a rect in unrotated page space, sits in this page's
-  /// overlay, with the origin at the page's top left.
+  /// overlay, with the origin at the page's top left. The inverse of
+  /// ``pagePoint(_:info:)``.
+  ///
+  /// When the page's width as shown is not greater than zero, the result
+  /// is `CGRect.zero`, and it is too when `transform.viewWidth` is zero.
   public func localRect(_ pageRect: Rect, info: PageInfo) -> CGRect {
     let geometry = geometry(for: info)
-    let scale = pointsPerViewPoint(geometry)
+    let scale = Self.ratio(transform.viewWidth, over: geometry.displaySize.width)
     let shown = geometry.toDisplay(pageRect)
     return CGRect(
-      x: shown.x / scale, y: shown.y / scale, width: shown.width / scale,
-      height: shown.height / scale)
+      x: shown.x * scale, y: shown.y * scale, width: shown.width * scale,
+      height: shown.height * scale)
   }
 
-  /// PDF points of the page as shown per view point of the overlay.
-  private func pointsPerViewPoint(_ geometry: PageGeometry) -> Double {
-    geometry.displaySize.width / transform.viewWidth
+  /// `length / divisor`, or 0 when `divisor` is not greater than zero.
+  private static func ratio(_ length: Double, over divisor: Double) -> Double {
+    divisor > 0 ? length / divisor : 0
   }
 }
