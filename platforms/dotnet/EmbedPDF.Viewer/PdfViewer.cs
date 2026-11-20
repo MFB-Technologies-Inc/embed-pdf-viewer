@@ -36,7 +36,7 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
     readonly ILogger logger;
     readonly BroadcastHub<long> revisions = new(1);
     readonly BroadcastHub<PdfException> reportedErrors = new(16);
-    readonly BroadcastHub<DocumentEvent> documentEvents = new(1024);
+    readonly BroadcastHub<DocumentEvent> documentEvents = new(null);
     readonly Lock gate = new();
     readonly HashSet<GF.CancelToken> cancellable = [];
     readonly TaskCompletionSource drained = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -114,9 +114,9 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
 
     /// <summary>
     /// A fresh subscription to document events, installed before this
-    /// returns. Each subscription buffers up to 1,024 events and drops the
-    /// oldest past that; it ends when cancelled or when the viewer is
-    /// disposed. Enumerate it once.
+    /// returns. Each subscription keeps every event until it is read, so a
+    /// reader that stops reading holds them in memory; it ends when cancelled
+    /// or when the viewer is disposed. Enumerate it once.
     /// </summary>
     public IAsyncEnumerable<DocumentEvent> ObserveDocumentEvents(CancellationToken cancellationToken = default)
     {
@@ -381,6 +381,8 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
     }
 
     internal GH.ViewerHost Host => host;
+
+    internal int? DocumentEventCapacity => documentEvents.Capacity;
 
     /// <summary>Forwards the kernel's callbacks to the hubs. It holds no viewer, so an abandoned viewer can be collected.</summary>
     sealed class StateRelay(BroadcastHub<long> revisions, BroadcastHub<PdfException> errors, ILogger logger) : GH.ViewerDelegate

@@ -186,4 +186,23 @@ public sealed class RevisionHubTests
         await Task.WhenAll(tasks);
         Assert.Equal(0, hub.SubscriberCountForTests);
     }
+
+    [Fact]
+    public async Task AnUnboundedHubKeepsEveryValueForASlowReader()
+    {
+        var hub = new BroadcastHub<int>(null);
+        var stream = hub.Subscribe();
+        for (var i = 0; i < 5000; i++) hub.Publish(i);
+        hub.Complete();
+        var seen = new List<int>();
+        await foreach (var value in stream) seen.Add(value);
+        Assert.Equal(Enumerable.Range(0, 5000), seen);
+    }
+
+    [Fact]
+    public async Task DocumentEventsAreNeverDropped()
+    {
+        await using var viewer = await PdfViewer.CreateAsync();
+        Assert.Null(viewer.DocumentEventCapacity);
+    }
 }

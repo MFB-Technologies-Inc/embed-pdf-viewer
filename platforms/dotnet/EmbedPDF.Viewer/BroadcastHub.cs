@@ -10,13 +10,17 @@ namespace EmbedPDF;
 /// </summary>
 /// <remarks>
 /// <see cref="Publish"/> runs on whatever thread the kernel calls back on and
-/// never blocks: a full channel drops its oldest value. With capacity 1 a slow
-/// consumer keeps only the newest value, which is how state revisions coalesce.
+/// never blocks. With a capacity a full channel drops its oldest value: with
+/// capacity 1 a slow consumer keeps only the newest, which is how state
+/// revisions coalesce. With no capacity (<see langword="null"/>) every value is
+/// kept, for streams where a dropped value would mislead, such as document events.
 /// </remarks>
-internal sealed class BroadcastHub<T>(int capacity)
+internal sealed class BroadcastHub<T>(int? capacity)
 {
     readonly Lock gate = new();
     readonly HashSet<Subscription<T>> subscribers = [];
+
+    internal int? Capacity => capacity;
     bool completed;
 
     /// <summary>Runs between the two steps of <see cref="Subscribe(CancellationToken, Action?)"/>; a seam for race tests.</summary>
@@ -110,16 +114,18 @@ internal sealed class Subscription<T> : IAsyncEnumerable<T>
         get { lock (gate) return registered; }
     }
 
-    internal Subscription(BroadcastHub<T> hub, int capacity, Action? onEnd)
+    internal Subscription(BroadcastHub<T> hub, int? capacity, Action? onEnd)
     {
         this.hub = hub;
         this.onEnd = onEnd;
-        channel = Channel.CreateBounded<T>(new BoundedChannelOptions(capacity)
-        {
-            FullMode = BoundedChannelFullMode.DropOldest,
-            SingleReader = true,
-            SingleWriter = false,
-        });
+        channel = capacity is { } bound
+            ? Channel.CreateBounded<T>(new BoundedChannelOptions(bound)
+            {
+                FullMode = BoundedChannelFullMode.DropOldest,
+                SingleReader = true,
+                SingleWriter = false,
+            })
+            : Channel.CreateUnbounded<T>(new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
     }
 
     internal ChannelWriter<T> Writer => channel.Writer;

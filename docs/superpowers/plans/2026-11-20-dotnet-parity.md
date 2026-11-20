@@ -372,8 +372,11 @@ Deviations, each with its reason:
   counterpart, so `DeprecatedStreamTests` is not ported.
 - `DisposeAsync` replaces Swift's `destroy()`. A call after it throws `PdfException` with
   `instance-closed`, never `ObjectDisposedException`.
-- Document events buffer 1,024 per subscription and drop the oldest past that, where Swift's
-  stream is unbounded. The kernel thread must never wait on a slow reader.
+- Document events are unbounded per subscriber, as Swift's stream is (changed after review,
+  2026-11-20; the first cut dropped the oldest past 1,024). `TryWrite` on an unbounded channel
+  never blocks the kernel thread, and a dropped `Opened` or `Closed` would leave a consumer's
+  tab list wrong. The cost: a subscriber that stops reading holds every later event in memory.
+  Revisions (newest 1) and reported errors (newest 16) stay bounded.
 - `PageRef` and page indexes are `int`. A `uint` the engine answers past `int.MaxValue` throws
   `invalid-state`; Swift's 64-bit `Int` never does.
 - `Exception.Message` is the detail, Swift's `localizedDescription`. There is no
