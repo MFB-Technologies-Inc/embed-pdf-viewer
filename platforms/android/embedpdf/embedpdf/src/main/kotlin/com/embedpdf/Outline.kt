@@ -21,11 +21,6 @@ public typealias OutlineEvent = uniffi.epdf_plugin_outline.OutlineEvent
 public typealias OutlineEventChanged = uniffi.epdf_plugin_outline.OutlineEvent.Changed
 public typealias OutlineEventResynced = uniffi.epdf_plugin_outline.OutlineEvent.Resynced
 
-// The link plugin's records the outline answers with. The link capability
-// itself arrives with wave C.
-public typealias PageLinkTarget = uniffi.epdf_ffi.PageLinkTarget
-public typealias LinkActivation = uniffi.epdf_plugin_link.LinkActivation
-
 /**
  * Outline reads, navigation and undoable edits for one open document. Get one
  * with [PdfViewer.outline]; the viewer needs `ViewerConfig(outline = true)`.

@@ -2687,7 +2687,10 @@
       "path": "crates/plugins/link/src/controller.rs",
       "owner": "LinkCapability",
       "symbol": "lifetime",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Link.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "link",
@@ -2701,91 +2704,130 @@
       "path": "crates/plugins/link/src/controller.rs",
       "owner": "LinkCapability",
       "symbol": "list_links",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Link.kt",
+        "symbol": "links"
+      }
     },
     {
       "crate": "link",
       "path": "crates/plugins/link/src/controller.rs",
       "owner": "LinkCapability",
       "symbol": "get_link",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Link.kt",
+        "symbol": "link"
+      }
     },
     {
       "crate": "link",
       "path": "crates/plugins/link/src/controller.rs",
       "owner": "LinkCapability",
       "symbol": "get_link_at",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Link.kt",
+        "symbol": "link"
+      }
     },
     {
       "crate": "link",
       "path": "crates/plugins/link/src/controller.rs",
       "owner": "LinkCapability",
       "symbol": "read_all_links",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Link.kt",
+        "symbol": "allLinks"
+      }
     },
     {
       "crate": "link",
       "path": "crates/plugins/link/src/controller.rs",
       "owner": "LinkCapability",
       "symbol": "ensure_loaded",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Link.kt",
+        "symbol": "ensureLoaded"
+      }
     },
     {
       "crate": "link",
       "path": "crates/plugins/link/src/controller.rs",
       "owner": "LinkCapability",
       "symbol": "is_loaded",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Link.kt",
+        "symbol": "isLoaded"
+      }
     },
     {
       "crate": "link",
       "path": "crates/plugins/link/src/controller.rs",
       "owner": "LinkCapability",
       "symbol": "get_status",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Link.kt",
+        "symbol": "status"
+      }
     },
     {
       "crate": "link",
       "path": "crates/plugins/link/src/controller.rs",
       "owner": "LinkCapability",
       "symbol": "resolve",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Link.kt",
+        "symbol": "resolve"
+      }
     },
     {
       "crate": "link",
       "path": "crates/plugins/link/src/controller.rs",
       "owner": "LinkCapability",
       "symbol": "activate",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Link.kt",
+        "symbol": "activate"
+      }
     },
     {
       "crate": "link",
       "path": "crates/plugins/link/src/controller.rs",
       "owner": "LinkCapability",
       "symbol": "activate_at",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Link.kt",
+        "symbol": "activate"
+      }
     },
     {
       "crate": "link",
       "path": "crates/plugins/link/src/controller.rs",
       "owner": "LinkCapability",
       "symbol": "get_label",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Link.kt",
+        "symbol": "label"
+      }
     },
     {
       "crate": "link",
       "path": "crates/plugins/link/src/controller.rs",
       "owner": "LinkCapability",
       "symbol": "on_activated",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Link.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "link",
       "path": "crates/plugins/link/src/controller.rs",
       "owner": "LinkCapability",
       "symbol": "on_loaded",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Link.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "link",
@@ -2799,7 +2841,10 @@
       "path": "crates/plugins/link/src/controller.rs",
       "owner": "LinkCapability",
       "symbol": "is_navigation_engaged",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Link.kt",
+        "symbol": "isNavigationEngaged"
+      }
     },
     {
       "crate": "measurement",

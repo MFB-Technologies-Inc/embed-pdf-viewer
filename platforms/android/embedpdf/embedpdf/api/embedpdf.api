@@ -259,6 +259,29 @@ public final class com/embedpdf/InteractionKt {
 	public static final fun interaction (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class com/embedpdf/LinkCapability {
+	public final fun activate (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun activate (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun activate (Luniffi/epdf_plugin_link/LinkItem;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun allLinks (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun ensureLoaded (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun isLoaded (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun isNavigationEngaged (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun label (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun label (Luniffi/epdf_plugin_link/LinkItem;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun link (Ljava/lang/String;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun link (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun links (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
+	public final fun registerTapHandler (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun resolve (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun status (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/LinkKt {
+	public static final fun link (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class com/embedpdf/MetadataCapability {
 	public final fun canUpdate (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun customSnapshot (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
