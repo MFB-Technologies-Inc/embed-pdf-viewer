@@ -1260,6 +1260,96 @@ EmbedPDF.LinkActivation.Uri.Equals(EmbedPDF.LinkActivation.Uri? other) -> bool
 EmbedPDF.LinkActivation.Uri.Uri(string! Value) -> void
 EmbedPDF.LinkActivation.Uri.Value.get -> string!
 EmbedPDF.LinkActivation.Uri.Value.init -> void
+EmbedPDF.LinkCapability
+EmbedPDF.LinkCapability.ActivateAsync(EmbedPDF.LinkItem! link, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.LinkActivation!>!
+EmbedPDF.LinkCapability.ActivateAsync(string! targetJson, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.LinkActivation!>!
+EmbedPDF.LinkCapability.ActivateAtAsync(EmbedPDF.PageRef page, EmbedPDF.PdfPoint point, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.LinkActivation?>!
+EmbedPDF.LinkCapability.Dispose() -> void
+EmbedPDF.LinkCapability.EnsureLoadedAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.LinkCapability.GetAllLinksAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.LinkItem!>!>!
+EmbedPDF.LinkCapability.GetLabelAsync(EmbedPDF.LinkItem! link, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+EmbedPDF.LinkCapability.GetLabelAsync(string! targetJson, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+EmbedPDF.LinkCapability.GetLinkAsync(EmbedPDF.PageRef page, string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.LinkItem?>!
+EmbedPDF.LinkCapability.GetLinkAtAsync(EmbedPDF.PageRef page, EmbedPDF.PdfPoint point, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.LinkItem?>!
+EmbedPDF.LinkCapability.GetLinksAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.LinkItem!>!>!
+EmbedPDF.LinkCapability.GetStatusAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+EmbedPDF.LinkCapability.IsLoadedAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.LinkCapability.IsNavigationEngagedAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.LinkCapability.ObserveEvents(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.LinkEvent!>!
+EmbedPDF.LinkCapability.RegisterTapHandlerAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.Registration!>!
+EmbedPDF.LinkCapability.ResolveAsync(string! targetJson, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.LinkResolution!>!
+EmbedPDF.LinkEvent
+EmbedPDF.LinkEvent.Activated
+EmbedPDF.LinkEvent.Activated.Activated(string! TargetJson, EmbedPDF.LinkActivation! Activation) -> void
+EmbedPDF.LinkEvent.Activated.Activation.get -> EmbedPDF.LinkActivation!
+EmbedPDF.LinkEvent.Activated.Activation.init -> void
+EmbedPDF.LinkEvent.Activated.Deconstruct(out string! TargetJson, out EmbedPDF.LinkActivation! Activation) -> void
+EmbedPDF.LinkEvent.Activated.Equals(EmbedPDF.LinkEvent.Activated? other) -> bool
+EmbedPDF.LinkEvent.Activated.TargetJson.get -> string!
+EmbedPDF.LinkEvent.Activated.TargetJson.init -> void
+EmbedPDF.LinkEvent.LinkEvent(EmbedPDF.LinkEvent! original) -> void
+EmbedPDF.LinkEvent.Loaded
+EmbedPDF.LinkEvent.Loaded.Deconstruct(out EmbedPDF.PageRef Page) -> void
+EmbedPDF.LinkEvent.Loaded.Equals(EmbedPDF.LinkEvent.Loaded? other) -> bool
+EmbedPDF.LinkEvent.Loaded.Loaded(EmbedPDF.PageRef Page) -> void
+EmbedPDF.LinkEvent.Loaded.Page.get -> EmbedPDF.PageRef
+EmbedPDF.LinkEvent.Loaded.Page.init -> void
+EmbedPDF.LinkHoverFlags
+EmbedPDF.LinkHoverFlags.<Clone>$() -> EmbedPDF.LinkHoverFlags!
+EmbedPDF.LinkHoverFlags.Deconstruct(out bool Enter, out bool Exit) -> void
+EmbedPDF.LinkHoverFlags.Enter.get -> bool
+EmbedPDF.LinkHoverFlags.Enter.init -> void
+EmbedPDF.LinkHoverFlags.Equals(EmbedPDF.LinkHoverFlags? other) -> bool
+EmbedPDF.LinkHoverFlags.Exit.get -> bool
+EmbedPDF.LinkHoverFlags.Exit.init -> void
+EmbedPDF.LinkHoverFlags.LinkHoverFlags(bool Enter, bool Exit) -> void
+EmbedPDF.LinkItem
+EmbedPDF.LinkItem.<Clone>$() -> EmbedPDF.LinkItem!
+EmbedPDF.LinkItem.AnnotationJson.get -> string?
+EmbedPDF.LinkItem.AnnotationJson.init -> void
+EmbedPDF.LinkItem.Attached.get -> bool
+EmbedPDF.LinkItem.Attached.init -> void
+EmbedPDF.LinkItem.Bounds.get -> EmbedPDF.PdfRect
+EmbedPDF.LinkItem.Bounds.init -> void
+EmbedPDF.LinkItem.Deconstruct(out string! Id, out EmbedPDF.PageRef Page, out EmbedPDF.PdfRect Bounds, out string! TargetJson, out bool Attached, out string? AnnotationJson, out bool HasAction, out EmbedPDF.LinkHoverFlags? Hover) -> void
+EmbedPDF.LinkItem.Equals(EmbedPDF.LinkItem? other) -> bool
+EmbedPDF.LinkItem.HasAction.get -> bool
+EmbedPDF.LinkItem.HasAction.init -> void
+EmbedPDF.LinkItem.Hover.get -> EmbedPDF.LinkHoverFlags?
+EmbedPDF.LinkItem.Hover.init -> void
+EmbedPDF.LinkItem.Id.get -> string!
+EmbedPDF.LinkItem.Id.init -> void
+EmbedPDF.LinkItem.LinkItem(string! Id, EmbedPDF.PageRef Page, EmbedPDF.PdfRect Bounds, string! TargetJson, bool Attached, string? AnnotationJson, bool HasAction, EmbedPDF.LinkHoverFlags? Hover) -> void
+EmbedPDF.LinkItem.Page.get -> EmbedPDF.PageRef
+EmbedPDF.LinkItem.Page.init -> void
+EmbedPDF.LinkItem.TargetJson.get -> string!
+EmbedPDF.LinkItem.TargetJson.init -> void
+EmbedPDF.LinkResolution
+EmbedPDF.LinkResolution.Destination
+EmbedPDF.LinkResolution.Destination.Deconstruct(out string! DestinationJson) -> void
+EmbedPDF.LinkResolution.Destination.Destination(string! DestinationJson) -> void
+EmbedPDF.LinkResolution.Destination.DestinationJson.get -> string!
+EmbedPDF.LinkResolution.Destination.DestinationJson.init -> void
+EmbedPDF.LinkResolution.Destination.Equals(EmbedPDF.LinkResolution.Destination? other) -> bool
+EmbedPDF.LinkResolution.LinkResolution(EmbedPDF.LinkResolution! original) -> void
+EmbedPDF.LinkResolution.Named
+EmbedPDF.LinkResolution.Named.Deconstruct(out string! Name) -> void
+EmbedPDF.LinkResolution.Named.Equals(EmbedPDF.LinkResolution.Named? other) -> bool
+EmbedPDF.LinkResolution.Named.Name.get -> string!
+EmbedPDF.LinkResolution.Named.Name.init -> void
+EmbedPDF.LinkResolution.Named.Named(string! Name) -> void
+EmbedPDF.LinkResolution.Reported
+EmbedPDF.LinkResolution.Reported.Deconstruct(out string! TargetJson) -> void
+EmbedPDF.LinkResolution.Reported.Equals(EmbedPDF.LinkResolution.Reported? other) -> bool
+EmbedPDF.LinkResolution.Reported.Reported(string! TargetJson) -> void
+EmbedPDF.LinkResolution.Reported.TargetJson.get -> string!
+EmbedPDF.LinkResolution.Reported.TargetJson.init -> void
+EmbedPDF.LinkResolution.Uri
+EmbedPDF.LinkResolution.Uri.Deconstruct(out string! Value) -> void
+EmbedPDF.LinkResolution.Uri.Equals(EmbedPDF.LinkResolution.Uri? other) -> bool
+EmbedPDF.LinkResolution.Uri.Uri(string! Value) -> void
+EmbedPDF.LinkResolution.Uri.Value.get -> string!
+EmbedPDF.LinkResolution.Uri.Value.init -> void
 EmbedPDF.LocaleInfo
 EmbedPDF.LocaleInfo.<Clone>$() -> EmbedPDF.LocaleInfo!
 EmbedPDF.LocaleInfo.Code.get -> string!
@@ -1937,6 +2027,7 @@ EmbedPDF.PdfViewer.GetFeedbackAsync(System.Threading.CancellationToken cancellat
 EmbedPDF.PdfViewer.GetHistoryAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.HistoryCapability!>!
 EmbedPDF.PdfViewer.GetI18nAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.I18nCapability!>!
 EmbedPDF.PdfViewer.GetInteractionAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.InteractionCapability!>!
+EmbedPDF.PdfViewer.GetLinkAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.LinkCapability!>!
 EmbedPDF.PdfViewer.GetMetadataAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.MetadataCapability!>!
 EmbedPDF.PdfViewer.GetOutlineAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.OutlineCapability!>!
 EmbedPDF.PdfViewer.GetPageAsync(EmbedPDF.PageRef page, EmbedPDF.DocumentInfo? document = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageInfo?>!
@@ -3982,6 +4073,8 @@ abstract EmbedPDF.I18nEvent.<Clone>$() -> EmbedPDF.I18nEvent!
 abstract EmbedPDF.I18nParam.<Clone>$() -> EmbedPDF.I18nParam!
 abstract EmbedPDF.InteractionEvent.<Clone>$() -> EmbedPDF.InteractionEvent!
 abstract EmbedPDF.LinkActivation.<Clone>$() -> EmbedPDF.LinkActivation!
+abstract EmbedPDF.LinkEvent.<Clone>$() -> EmbedPDF.LinkEvent!
+abstract EmbedPDF.LinkResolution.<Clone>$() -> EmbedPDF.LinkResolution!
 abstract EmbedPDF.MetadataEvent.<Clone>$() -> EmbedPDF.MetadataEvent!
 abstract EmbedPDF.OutlineEvent.<Clone>$() -> EmbedPDF.OutlineEvent!
 abstract EmbedPDF.OutlinePosition.<Clone>$() -> EmbedPDF.OutlinePosition!
@@ -4476,6 +4569,42 @@ override EmbedPDF.LinkActivation.Uri.<Clone>$() -> EmbedPDF.LinkActivation.Uri!
 override EmbedPDF.LinkActivation.Uri.Equals(object? obj) -> bool
 override EmbedPDF.LinkActivation.Uri.GetHashCode() -> int
 override EmbedPDF.LinkActivation.Uri.ToString() -> string!
+override EmbedPDF.LinkEvent.Activated.<Clone>$() -> EmbedPDF.LinkEvent.Activated!
+override EmbedPDF.LinkEvent.Activated.Equals(object? obj) -> bool
+override EmbedPDF.LinkEvent.Activated.GetHashCode() -> int
+override EmbedPDF.LinkEvent.Activated.ToString() -> string!
+override EmbedPDF.LinkEvent.Equals(object? obj) -> bool
+override EmbedPDF.LinkEvent.GetHashCode() -> int
+override EmbedPDF.LinkEvent.Loaded.<Clone>$() -> EmbedPDF.LinkEvent.Loaded!
+override EmbedPDF.LinkEvent.Loaded.Equals(object? obj) -> bool
+override EmbedPDF.LinkEvent.Loaded.GetHashCode() -> int
+override EmbedPDF.LinkEvent.Loaded.ToString() -> string!
+override EmbedPDF.LinkEvent.ToString() -> string!
+override EmbedPDF.LinkHoverFlags.Equals(object? obj) -> bool
+override EmbedPDF.LinkHoverFlags.GetHashCode() -> int
+override EmbedPDF.LinkHoverFlags.ToString() -> string!
+override EmbedPDF.LinkItem.Equals(object? obj) -> bool
+override EmbedPDF.LinkItem.GetHashCode() -> int
+override EmbedPDF.LinkItem.ToString() -> string!
+override EmbedPDF.LinkResolution.Destination.<Clone>$() -> EmbedPDF.LinkResolution.Destination!
+override EmbedPDF.LinkResolution.Destination.Equals(object? obj) -> bool
+override EmbedPDF.LinkResolution.Destination.GetHashCode() -> int
+override EmbedPDF.LinkResolution.Destination.ToString() -> string!
+override EmbedPDF.LinkResolution.Equals(object? obj) -> bool
+override EmbedPDF.LinkResolution.GetHashCode() -> int
+override EmbedPDF.LinkResolution.Named.<Clone>$() -> EmbedPDF.LinkResolution.Named!
+override EmbedPDF.LinkResolution.Named.Equals(object? obj) -> bool
+override EmbedPDF.LinkResolution.Named.GetHashCode() -> int
+override EmbedPDF.LinkResolution.Named.ToString() -> string!
+override EmbedPDF.LinkResolution.Reported.<Clone>$() -> EmbedPDF.LinkResolution.Reported!
+override EmbedPDF.LinkResolution.Reported.Equals(object? obj) -> bool
+override EmbedPDF.LinkResolution.Reported.GetHashCode() -> int
+override EmbedPDF.LinkResolution.Reported.ToString() -> string!
+override EmbedPDF.LinkResolution.ToString() -> string!
+override EmbedPDF.LinkResolution.Uri.<Clone>$() -> EmbedPDF.LinkResolution.Uri!
+override EmbedPDF.LinkResolution.Uri.Equals(object? obj) -> bool
+override EmbedPDF.LinkResolution.Uri.GetHashCode() -> int
+override EmbedPDF.LinkResolution.Uri.ToString() -> string!
 override EmbedPDF.LocaleInfo.Equals(object? obj) -> bool
 override EmbedPDF.LocaleInfo.GetHashCode() -> int
 override EmbedPDF.LocaleInfo.ToString() -> string!
@@ -5358,6 +5487,12 @@ override sealed EmbedPDF.LinkActivation.None.Equals(EmbedPDF.LinkActivation? oth
 override sealed EmbedPDF.LinkActivation.Reported.Equals(EmbedPDF.LinkActivation? other) -> bool
 override sealed EmbedPDF.LinkActivation.Revealed.Equals(EmbedPDF.LinkActivation? other) -> bool
 override sealed EmbedPDF.LinkActivation.Uri.Equals(EmbedPDF.LinkActivation? other) -> bool
+override sealed EmbedPDF.LinkEvent.Activated.Equals(EmbedPDF.LinkEvent? other) -> bool
+override sealed EmbedPDF.LinkEvent.Loaded.Equals(EmbedPDF.LinkEvent? other) -> bool
+override sealed EmbedPDF.LinkResolution.Destination.Equals(EmbedPDF.LinkResolution? other) -> bool
+override sealed EmbedPDF.LinkResolution.Named.Equals(EmbedPDF.LinkResolution? other) -> bool
+override sealed EmbedPDF.LinkResolution.Reported.Equals(EmbedPDF.LinkResolution? other) -> bool
+override sealed EmbedPDF.LinkResolution.Uri.Equals(EmbedPDF.LinkResolution? other) -> bool
 override sealed EmbedPDF.MetadataEvent.CustomResynced.Equals(EmbedPDF.MetadataEvent? other) -> bool
 override sealed EmbedPDF.MetadataEvent.CustomUpdated.Equals(EmbedPDF.MetadataEvent? other) -> bool
 override sealed EmbedPDF.MetadataEvent.Resynced.Equals(EmbedPDF.MetadataEvent? other) -> bool
@@ -5756,6 +5891,26 @@ static EmbedPDF.LinkActivation.Uri.operator !=(EmbedPDF.LinkActivation.Uri? left
 static EmbedPDF.LinkActivation.Uri.operator ==(EmbedPDF.LinkActivation.Uri? left, EmbedPDF.LinkActivation.Uri? right) -> bool
 static EmbedPDF.LinkActivation.operator !=(EmbedPDF.LinkActivation? left, EmbedPDF.LinkActivation? right) -> bool
 static EmbedPDF.LinkActivation.operator ==(EmbedPDF.LinkActivation? left, EmbedPDF.LinkActivation? right) -> bool
+static EmbedPDF.LinkEvent.Activated.operator !=(EmbedPDF.LinkEvent.Activated? left, EmbedPDF.LinkEvent.Activated? right) -> bool
+static EmbedPDF.LinkEvent.Activated.operator ==(EmbedPDF.LinkEvent.Activated? left, EmbedPDF.LinkEvent.Activated? right) -> bool
+static EmbedPDF.LinkEvent.Loaded.operator !=(EmbedPDF.LinkEvent.Loaded? left, EmbedPDF.LinkEvent.Loaded? right) -> bool
+static EmbedPDF.LinkEvent.Loaded.operator ==(EmbedPDF.LinkEvent.Loaded? left, EmbedPDF.LinkEvent.Loaded? right) -> bool
+static EmbedPDF.LinkEvent.operator !=(EmbedPDF.LinkEvent? left, EmbedPDF.LinkEvent? right) -> bool
+static EmbedPDF.LinkEvent.operator ==(EmbedPDF.LinkEvent? left, EmbedPDF.LinkEvent? right) -> bool
+static EmbedPDF.LinkHoverFlags.operator !=(EmbedPDF.LinkHoverFlags? left, EmbedPDF.LinkHoverFlags? right) -> bool
+static EmbedPDF.LinkHoverFlags.operator ==(EmbedPDF.LinkHoverFlags? left, EmbedPDF.LinkHoverFlags? right) -> bool
+static EmbedPDF.LinkItem.operator !=(EmbedPDF.LinkItem? left, EmbedPDF.LinkItem? right) -> bool
+static EmbedPDF.LinkItem.operator ==(EmbedPDF.LinkItem? left, EmbedPDF.LinkItem? right) -> bool
+static EmbedPDF.LinkResolution.Destination.operator !=(EmbedPDF.LinkResolution.Destination? left, EmbedPDF.LinkResolution.Destination? right) -> bool
+static EmbedPDF.LinkResolution.Destination.operator ==(EmbedPDF.LinkResolution.Destination? left, EmbedPDF.LinkResolution.Destination? right) -> bool
+static EmbedPDF.LinkResolution.Named.operator !=(EmbedPDF.LinkResolution.Named? left, EmbedPDF.LinkResolution.Named? right) -> bool
+static EmbedPDF.LinkResolution.Named.operator ==(EmbedPDF.LinkResolution.Named? left, EmbedPDF.LinkResolution.Named? right) -> bool
+static EmbedPDF.LinkResolution.Reported.operator !=(EmbedPDF.LinkResolution.Reported? left, EmbedPDF.LinkResolution.Reported? right) -> bool
+static EmbedPDF.LinkResolution.Reported.operator ==(EmbedPDF.LinkResolution.Reported? left, EmbedPDF.LinkResolution.Reported? right) -> bool
+static EmbedPDF.LinkResolution.Uri.operator !=(EmbedPDF.LinkResolution.Uri? left, EmbedPDF.LinkResolution.Uri? right) -> bool
+static EmbedPDF.LinkResolution.Uri.operator ==(EmbedPDF.LinkResolution.Uri? left, EmbedPDF.LinkResolution.Uri? right) -> bool
+static EmbedPDF.LinkResolution.operator !=(EmbedPDF.LinkResolution? left, EmbedPDF.LinkResolution? right) -> bool
+static EmbedPDF.LinkResolution.operator ==(EmbedPDF.LinkResolution? left, EmbedPDF.LinkResolution? right) -> bool
 static EmbedPDF.LocaleInfo.operator !=(EmbedPDF.LocaleInfo? left, EmbedPDF.LocaleInfo? right) -> bool
 static EmbedPDF.LocaleInfo.operator ==(EmbedPDF.LocaleInfo? left, EmbedPDF.LocaleInfo? right) -> bool
 static EmbedPDF.LocalePack.FromJson(string! json) -> EmbedPDF.LocalePack!
@@ -6362,6 +6517,12 @@ virtual EmbedPDF.InteractionEvent.PrintMembers(System.Text.StringBuilder! builde
 virtual EmbedPDF.LinkActivation.EqualityContract.get -> System.Type!
 virtual EmbedPDF.LinkActivation.Equals(EmbedPDF.LinkActivation? other) -> bool
 virtual EmbedPDF.LinkActivation.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.LinkEvent.EqualityContract.get -> System.Type!
+virtual EmbedPDF.LinkEvent.Equals(EmbedPDF.LinkEvent? other) -> bool
+virtual EmbedPDF.LinkEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.LinkResolution.EqualityContract.get -> System.Type!
+virtual EmbedPDF.LinkResolution.Equals(EmbedPDF.LinkResolution? other) -> bool
+virtual EmbedPDF.LinkResolution.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual EmbedPDF.MetadataEvent.EqualityContract.get -> System.Type!
 virtual EmbedPDF.MetadataEvent.Equals(EmbedPDF.MetadataEvent? other) -> bool
 virtual EmbedPDF.MetadataEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
