@@ -15,10 +15,12 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1"/>
     <PackageReference Include="xunit" Version="2.9.3"/>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0"/>
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4"/>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../EmbedPDF.Viewer/EmbedPDF.Viewer.csproj"/>
+    <ProjectReference Include="../EmbedPDF.Extensions.DependencyInjection/EmbedPDF.Extensions.DependencyInjection.csproj"/>
     <None Include="$(EpdfViewerNativeDir)libepdf_viewer_host.so" Link="libepdf_viewer_host.so" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(EpdfViewerNativeDir)libepdf_viewer_host.so')"/>
     <None Include="$(EpdfViewerNativeDir)libepdf_viewer_host.dylib" Link="libepdf_viewer_host.dylib" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(EpdfViewerNativeDir)libepdf_viewer_host.dylib')"/>
     <None Include="$(EpdfViewerNativeDir)epdf_viewer_host.dll" Link="epdf_viewer_host.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(EpdfViewerNativeDir)epdf_viewer_host.dll')"/>

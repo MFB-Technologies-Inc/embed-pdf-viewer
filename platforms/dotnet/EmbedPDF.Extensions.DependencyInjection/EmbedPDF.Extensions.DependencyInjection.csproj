@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    services.AddEmbedPdf(...) for apps that use a service container
+    (docs/superpowers/plans/2026-11-20-dotnet-parity.md, D4). A separate
+    package, so the EmbedPDF package carries no container dependency.
+  -->
+  <PropertyGroup>
+    <AssemblyName>EmbedPDF.Extensions.DependencyInjection</AssemblyName>
+    <RootNamespace>EmbedPDF</RootNamespace>
+    <PackageId>EmbedPDF.Extensions.DependencyInjection</PackageId>
+    <Version>0.0.0-local</Version>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <Description>Registers an EmbedPDF PdfViewer with a service collection.</Description>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../EmbedPDF.Viewer/EmbedPDF.Viewer.csproj" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0" PrivateAssets="all" />
+    <AdditionalFiles Include="PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
+  </ItemGroup>
+</Project>
