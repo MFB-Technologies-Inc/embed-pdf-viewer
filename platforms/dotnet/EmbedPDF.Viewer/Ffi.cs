@@ -4,7 +4,7 @@ using GF = uniffi.epdf_ffi;
 namespace EmbedPDF;
 
 /// <summary>Maps between the generated records and the public ones.</summary>
-internal static class Ffi
+internal static partial class Ffi
 {
     internal static PluginErrorInfo ToPublic(GF.PluginErrorInfo error) =>
         new(new PdfErrorCode(error.Code), error.Message, error.Capability, error.Permission);

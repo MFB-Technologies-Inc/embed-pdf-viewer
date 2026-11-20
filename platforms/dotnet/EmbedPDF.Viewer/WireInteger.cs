@@ -36,6 +36,14 @@ internal static class WireInteger
         value is >= int.MinValue and <= int.MaxValue ? (int)value
             : throw Past(value.ToString(System.Globalization.CultureInfo.InvariantCulture), result);
 
+    /// <summary>A 64-bit count or version the engine answered, as <see cref="long"/>; past <see cref="long.MaxValue"/> throws <c>invalid-state</c>.</summary>
+    internal static long ToLong(ulong value, string result) =>
+        value <= long.MaxValue ? (long)value
+            : throw new PdfException("RangeError", PdfErrorCode.InvalidState, $"{result} {value} is outside 0...{long.MaxValue}");
+
+    /// <summary>A caller's optional index for the engine; see <see cref="ToUInt32(int, string)"/>.</summary>
+    internal static uint? ToUInt32(int? value, string argument) => value is { } v ? ToUInt32(v, argument) : null;
+
     static PdfException Past(string value, string result) =>
         new("RangeError", PdfErrorCode.InvalidState, $"{result} {value} is outside {int.MinValue}...{int.MaxValue}");
 }

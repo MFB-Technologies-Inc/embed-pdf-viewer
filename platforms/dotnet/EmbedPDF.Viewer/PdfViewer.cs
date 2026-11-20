@@ -223,6 +223,7 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
         revisions.Complete();
         reportedErrors.Complete();
         documentEvents.Complete();
+        EndStreams();
     }
 
     /// <summary>How the host is released; a seam for tests.</summary>
