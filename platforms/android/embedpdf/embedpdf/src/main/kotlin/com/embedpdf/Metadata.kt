@@ -33,7 +33,12 @@ public class MetadataCapability internal constructor(
 
     public suspend fun customStatus(): ResourceStatus = viewer.call { handle.customStatus() }
 
-    /** Sets keys mapped to a value and removes keys mapped to `null`; a key left out stays. */
+    /**
+     * Sets keys mapped to a value and removes keys mapped to `null`; a key left out stays.
+     *
+     * A change that started lands even when the caller is cancelled, and the caller then sees its
+     * cancellation rather than the result (see the README's Cancellation section).
+     */
     public suspend fun updateCustom(patch: Map<String, String?>): CustomMetadata =
         viewer.callCancellable { token -> handle.updateCustom(patch, token) }
 
@@ -62,7 +67,12 @@ public class MetadataCapability internal constructor(
         viewer.callCancellable { token -> handle.ensureLoaded(token) }
     }
 
-    /** Returns once the confirmed change has reached the snapshot and [observeEvents]. */
+    /**
+     * Returns once the confirmed change has reached the snapshot and [observeEvents].
+     *
+     * A change that started lands even when the caller is cancelled, and the caller then sees its
+     * cancellation rather than the result (see the README's Cancellation section).
+     */
     public suspend fun update(patch: MetadataPatch): DocumentMetadata =
         viewer.callCancellable { token -> handle.update(patch, token) }
 

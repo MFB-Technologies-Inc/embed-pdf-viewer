@@ -57,9 +57,17 @@ public class AttachmentCapability internal constructor(
         viewer.callCancellable { token -> handle.refresh(token) }
     }
 
+    /**
+     * A change that started lands even when the caller is cancelled, and the caller then sees its
+     * cancellation rather than the result (see the README's Cancellation section).
+     */
     public suspend fun add(sources: List<AttachmentFileSource>): List<AttachedFile> =
         viewer.callCancellable { token -> handle.add(sources, token) }
 
+    /**
+     * A change that started lands even when the caller is cancelled, and the caller then sees its
+     * cancellation rather than the result (see the README's Cancellation section).
+     */
     public suspend fun remove(file: AttachedFile) {
         viewer.callCancellable { token -> handle.remove(file, token) }
     }

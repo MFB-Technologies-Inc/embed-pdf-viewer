@@ -176,7 +176,10 @@ public class PdfViewer(
      * Opens a URL through the kernel's loading tab using the viewer's
      * [DocumentFetcher]. Cancelling the calling coroutine closes the tab and
      * cancels its transport before the cancellation propagates, also when the
-     * document finished opening as the cancel arrived. HTTP failures
+     * document finished opening as the cancel arrived. One narrow window
+     * remains: a cancel that arrives after the open returned its answer and
+     * the discard check passed, but before the caller resumed, leaves the
+     * document open while the caller sees its cancellation. HTTP failures
      * and non-PDF responses leave a failed tab that [retry] can reopen.
      */
     public suspend fun open(
@@ -207,7 +210,8 @@ public class PdfViewer(
 
     /**
      * Restores a `saveLayer` artifact over its original PDF base. Cancelling the
-     * calling coroutine closes its loading tab. The engine validates the
+     * calling coroutine closes its loading tab, apart from the narrow window
+     * the URL [open] describes. The engine validates the
      * artifact and base.
      */
     public suspend fun open(
@@ -327,6 +331,9 @@ public class PdfViewer(
      * writes a fresh, smaller file without the revision history, and a signed
      * document refuses it with `permission-denied`. Needs `doc.download` in
      * `ViewerConfig.scope`.
+     *
+     * A save that started runs to its end even when the caller is cancelled, and the caller then
+     * sees its cancellation rather than the bytes (see the README's Cancellation section).
      */
     public suspend fun save(document: DocumentInfo, mode: SaveMode = SaveMode.INCREMENTAL): ByteArray =
         measured("save") {
@@ -336,6 +343,9 @@ public class PdfViewer(
     /**
      * An editing-layer artifact, which needs its original base to restore with
      * `open(base, layer)`. Use [save] for a standalone PDF. Needs `doc.download`.
+     *
+     * A save that started runs to its end even when the caller is cancelled, and the caller then
+     * sees its cancellation rather than the bytes (see the README's Cancellation section).
      */
     public suspend fun saveLayer(document: DocumentInfo): ByteArray =
         callCancellable { token -> host.saveLayer(document.id, token) }

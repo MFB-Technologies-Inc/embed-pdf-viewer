@@ -46,6 +46,29 @@ it. `python3 scripts/check-api-coverage.py --platform kotlin` checks
 ported, with the Kotlin symbol it maps to, or `pending` with the phase that
 ports it. `build-aar.sh` runs both.
 
+## Cancellation
+
+A cancelled caller never gets a value from the facade. Cancelling the
+coroutine cancels the call's `CancelToken`, waits for the kernel's answer,
+and then throws the caller's own `CancellationException`, even when the work
+finished first. Kotlin would drop that value at the caller's next suspension
+anyway (`withTimeout` and `async` do), so handing it back would only look
+like a promise we can't keep. The rule lives in `bridgedCancellable` in
+`embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Bridging.kt`.
+
+Swift differs here. A cancelled task in `EmbedPDF` still receives what the
+call returned (`bridgedCancellable` in
+`platforms/apple/EmbedPDF/Sources/EmbedPDF/PDFError.swift`), because Swift
+cancellation is cooperative and a value that arrives is delivered.
+
+The cost is on calls that change something. An edit, an outline change, a
+metadata update, an attachment add or a save that had started when the
+cancel arrived still lands, and the caller sees only its cancellation. Each
+such call says so in its KDoc; after a cancelled one, read the state again.
+Opens are the exception: they pass an `onDiscard` that closes the document
+the cancelled open made. A cancel that arrives after that check passed but
+before the caller resumed still leaves the document open.
+
 ## Building in the dev container
 
 Everything runs in the dev container on amd64, which has JDK 21, the Android

@@ -34,12 +34,18 @@ internal suspend fun <T> bridged(block: suspend () -> T): T =
  * Cancelling the calling coroutine cancels the token, which aborts the call on
  * the kernel thread, and a cancelled caller still waits for the kernel's
  * answer before it sees its cancellation. The wait is what makes cancellation
- * observable: when a cancelled `open(url)` throws, its loading tab is already
- * closed. A caller cancelled before the call cancels the token before the
- * call starts.
+ * observable: when a cancelled `open(url)` throws, its loading tab is
+ * normally already closed. One window stays open: a caller cancelled after
+ * the discard check below passed, but before it resumes, gets its
+ * cancellation at its next suspension and the value is dropped without
+ * [onDiscard]. A caller cancelled before the call cancels the token before
+ * the call starts.
  *
  * A cancelled caller never gets a value: Kotlin would drop it at the caller's
- * next suspension anyway (`withTimeout` and `async` do). When the kernel
+ * next suspension anyway (`withTimeout` and `async` do). So a call that
+ * changes something and has no [onDiscard] can land its change while its
+ * caller sees cancellation; each such call says so in its KDoc, and the
+ * README's Cancellation section says why this differs from Swift. When the kernel
  * answers with a value after the caller was cancelled (the cancel lost the
  * race with the work), [onDiscard] runs on that value, without cancellation,
  * so a call that made something (an open that made a tab) can undo it; then

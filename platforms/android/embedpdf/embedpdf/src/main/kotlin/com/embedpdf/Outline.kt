@@ -72,17 +72,34 @@ public class OutlineCapability internal constructor(
         viewer.callCancellable { token -> handle.refresh(token) }
     }
 
+    /**
+     * A change that started lands even when the caller is cancelled, and the caller then sees its
+     * cancellation rather than the result (see the README's Cancellation section).
+     */
     public suspend fun create(input: OutlineItemInput, options: OutlineCreateOptions = OutlineCreateOptions()): OutlineItem =
         viewer.callCancellable { token -> handle.create(input, options, token) }
 
+    /**
+     * A change that started lands even when the caller is cancelled, and the caller then sees its
+     * cancellation rather than the result (see the README's Cancellation section).
+     */
     public suspend fun update(ref: OutlineItemRef, patch: OutlineItemPatch): OutlineItem =
         viewer.callCancellable { token -> handle.update(ref, patch, token) }
 
-    /** Moves [refs] under [parent], the top level when `null`, at [position]. */
+    /**
+     * Moves [refs] under [parent], the top level when `null`, at [position].
+     *
+     * A change that started lands even when the caller is cancelled, and the caller then sees its
+     * cancellation rather than the result (see the README's Cancellation section).
+     */
     public suspend fun move(refs: List<OutlineItemRef>, parent: OutlineItemRef?, position: OutlinePosition = OutlinePositionEnd) {
         viewer.callCancellable { token -> handle.moveItems(refs, parent, position, token) }
     }
 
+    /**
+     * A change that started lands even when the caller is cancelled, and the caller then sees its
+     * cancellation rather than the result (see the README's Cancellation section).
+     */
     public suspend fun delete(refs: List<OutlineItemRef>) {
         viewer.callCancellable { token -> handle.deleteItems(refs, token) }
     }

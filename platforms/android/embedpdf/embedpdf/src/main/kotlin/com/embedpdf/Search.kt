@@ -85,6 +85,9 @@ public class SearchCapability internal constructor(
      * coroutine cancels the scan and keeps the hits found so far). An empty
      * `query.text` clears the session. [start] is the page the scan starts on; `null`
      * is the stage's current page when a stage is installed.
+     *
+     * A search that started replaces the session even when the caller is cancelled, and the caller
+     * then sees its cancellation rather than the result (see the README's Cancellation section).
      */
     public suspend fun search(query: SearchQuery, start: PageRef? = null): SearchResult = measured("search") {
         viewer.callCancellable { token -> handle.search(query, start, token) }
