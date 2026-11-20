@@ -22,9 +22,8 @@ Last updated 2026-11-20.
 | 7. README section | done, `3ca600b8f` |
 | 8. Build every point | done 2026-11-19: 19 of 21 build, 2 skipped (see the log) |
 | 9. Measure the points on the Mac mini | done 2026-11-20: 18 of 18 measured in four batches, 3 of 21 skipped (see the log) |
-| 10. Merge into the harness branch | blocked on review |
+| 10. Merge into the plugins branch | done 2026-11-20, `05a1ba7f4` |
 
-Nothing on this branch is pushed yet: it exists only in the `embed-pdf-perf` container's clone.
 Pushing and merging need the user's confirmation.
 
 ### Progress log
