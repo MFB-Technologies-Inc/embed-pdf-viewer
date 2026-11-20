@@ -511,9 +511,18 @@ public final class StageReaderModel {
   /// Takes the stage's visible pages and, with a `LinkCapability`, starts
   /// loading the links of those that were not in view before.
   private func show(_ pages: [StageVisiblePage]) {
+    guard let link else {
+      visiblePages = pages
+      return
+    }
+    // Performance: with a `LinkCapability`, each camera event builds a set
+    // of the pages shown before it and filters the new list against it,
+    // and a pan or a pinch emits one event per step. The lists hold the
+    // few pages on screen, so each pass is short, but most steps show the
+    // same pages. Comparing the two page lists first and returning when
+    // they are equal skips the set and the filter for those steps.
     let shown = Set(visiblePages.map(\.page))
     visiblePages = pages
-    guard let link else { return }
     let fresh = pages.map(\.page).filter { !shown.contains($0) && linkPages.insert($0).inserted }
     guard !fresh.isEmpty else { return }
     linkLoads.enqueue { await self.loadLinks(on: fresh, from: link) }
