@@ -11,6 +11,8 @@ serialization = "1.9.0"
 junit = "4.13.2"
 json = "20250517"
 tracing = "1.2.0"
+# Declares minSdk 26; the library manifest overrides it and gates use at runtime.
+javascriptengine = "1.1.1"
 robolectric = "4.16"
 bcv = "0.18.1"
 # What the binary-compatibility validator's dump task runs on.
@@ -22,6 +24,7 @@ kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-c
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 androidx-tracing = { module = "androidx.tracing:tracing", version.ref = "tracing" }
+androidx-javascriptengine = { module = "androidx.javascriptengine:javascriptengine", version.ref = "javascriptengine" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
 asm-tree = { module = "org.ow2.asm:asm-tree", version.ref = "asm" }

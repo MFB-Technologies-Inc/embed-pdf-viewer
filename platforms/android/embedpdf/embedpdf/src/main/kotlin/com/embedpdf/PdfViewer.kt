@@ -35,9 +35,19 @@ public class PdfViewer(
     /** Whether [close] released the native handle. */
     internal val isReleased: Boolean get() = released.get()
 
+    /**
+     * Why PDF JavaScript is off although the config enables it: its
+     * [JavaScriptSandboxEngineFactory] has no sandbox on this device. Reported
+     * once, by [reportUnavailableJavaScript].
+     */
+    private val javaScriptUnavailable: String? = config.actions?.javascript
+        ?.takeIf { it.enabled }
+        ?.let { (it.engine as? JavaScriptSandboxEngineFactory)?.unavailableReason }
+    private val javaScriptReported = AtomicBoolean(false)
+
     internal val host: ViewerHost = try {
         ViewerHost.newWithFetcher(
-            config,
+            withoutUnavailableJavaScript(config),
             StateRelay(revisionHub, errorHub),
             GuardedFetcher(documentFetcher, errorHub),
         )
@@ -143,7 +153,7 @@ public class PdfViewer(
         activate: Boolean = true,
     ): DocumentInfo = measured("open") {
         call { host.openDocument(bytes, OpenDocumentOptions(name, password, activate)) }
-    }
+    }.also { reportUnavailableJavaScript() }
 
     /**
      * Opens a URL through the kernel's loading tab using the viewer's
@@ -176,7 +186,7 @@ public class PdfViewer(
             callCancellable(closeDiscarded) { token ->
                 host.openUrl(url, OpenDocumentOptions(name, password, activate), token)
             }
-        }
+        }.also { reportUnavailableJavaScript() }
 
     /**
      * Restores a `saveLayer` artifact over its original PDF base. Cancelling the
@@ -193,7 +203,7 @@ public class PdfViewer(
         callCancellable(closeDiscarded) { token ->
             host.openLayerDocument(base, layer, OpenDocumentOptions(name, password, activate), token)
         }
-    }
+    }.also { reportUnavailableJavaScript() }
 
     /**
      * Retries a failed source in its tab position without activating it. Use
@@ -353,6 +363,25 @@ public class PdfViewer(
 
     /** Closes a document an open made after its caller was cancelled. */
     private val closeDiscarded: suspend (DocumentInfo) -> Unit = { document -> host.closeDocument(document.id) }
+
+    /**
+     * Sends the one report that PDF JavaScript is off, the first time a
+     * document opens or [actions] is asked for, so it reaches collectors that
+     * subscribed after the viewer was built.
+     */
+    internal fun reportUnavailableJavaScript() {
+        val reason = javaScriptUnavailable ?: return
+        if (!javaScriptReported.compareAndSet(false, true)) return
+        errorHub.send(PdfException(PdfException.Code.UNSUPPORTED, reason, "NotSupportedError"))
+    }
+
+    /** [config] with JavaScript disabled when its sandbox factory has no sandbox here. */
+    private fun withoutUnavailableJavaScript(config: ViewerConfig): ViewerConfig {
+        if (javaScriptUnavailable == null) return config
+        val actions = config.actions ?: return config
+        val javascript = actions.javascript ?: return config
+        return config.copy(actions = actions.copy(javascript = javascript.copy(enabled = false, engine = null)))
+    }
 
     private fun closedException() =
         PdfException(PdfException.Code.INSTANCE_CLOSED, "The viewer has shut down.", "Closed")

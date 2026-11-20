@@ -256,6 +256,15 @@ public final class com/embedpdf/InteractionKt {
 	public static final fun interaction (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class com/embedpdf/JavaScriptSandboxEngineFactory : uniffi/epdf_plugin_actions/ScriptEngineFactory {
+	public static final field UNAVAILABLE_BELOW_API_26 Ljava/lang/String;
+	public static final field UNSUPPORTED_SANDBOX Ljava/lang/String;
+	public fun <init> (Landroid/content/Context;)V
+	public fun create ()Luniffi/epdf_plugin_actions/ScriptEngine;
+	public final fun getUnavailableReason ()Ljava/lang/String;
+	public final fun isAvailable ()Z
+}
+
 public final class com/embedpdf/MetadataCapability {
 	public final fun canUpdate (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun customSnapshot (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -569,6 +578,11 @@ public final class com/embedpdf/RenderedPage {
 public final class com/embedpdf/RenderedPageResult {
 	public final fun getPage ()Luniffi/epdf_ffi/PageRef;
 	public final fun getRendered ()Lcom/embedpdf/RenderedPage;
+}
+
+public final class com/embedpdf/ScriptEngineCheck {
+	public static final field INSTANCE Lcom/embedpdf/ScriptEngineCheck;
+	public final fun run (Luniffi/epdf_plugin_actions/ScriptEngineFactory;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class com/embedpdf/SearchCapability {

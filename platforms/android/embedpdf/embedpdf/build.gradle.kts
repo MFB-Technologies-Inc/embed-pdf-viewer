@@ -48,6 +48,8 @@ dependencies {
     // Typed shell props encode through it, so a caller's serializers do too.
     api(libs.kotlinx.serialization.json)
     implementation(libs.androidx.tracing)
+    // JavaScriptSandboxEngineFactory runs PDF JavaScript in it.
+    implementation(libs.androidx.javascriptengine)
 
     testImplementation(libs.jna)
     testImplementation(libs.junit)
