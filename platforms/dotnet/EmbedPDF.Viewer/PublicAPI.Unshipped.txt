@@ -49,6 +49,15 @@ EmbedPDF.DocumentEvent.PagesChanged.DocumentId.get -> string!
 EmbedPDF.DocumentEvent.PagesChanged.DocumentId.init -> void
 EmbedPDF.DocumentEvent.PagesChanged.Equals(EmbedPDF.DocumentEvent.PagesChanged? other) -> bool
 EmbedPDF.DocumentEvent.PagesChanged.PagesChanged(string! DocumentId) -> void
+EmbedPDF.DocumentFetchResponse
+EmbedPDF.DocumentFetchResponse.<Clone>$() -> EmbedPDF.DocumentFetchResponse!
+EmbedPDF.DocumentFetchResponse.Content.get -> byte[]!
+EmbedPDF.DocumentFetchResponse.Content.init -> void
+EmbedPDF.DocumentFetchResponse.Deconstruct(out int StatusCode, out byte[]! Content) -> void
+EmbedPDF.DocumentFetchResponse.DocumentFetchResponse(int StatusCode, byte[]! Content) -> void
+EmbedPDF.DocumentFetchResponse.Equals(EmbedPDF.DocumentFetchResponse? other) -> bool
+EmbedPDF.DocumentFetchResponse.StatusCode.get -> int
+EmbedPDF.DocumentFetchResponse.StatusCode.init -> void
 EmbedPDF.DocumentInfo
 EmbedPDF.DocumentInfo.<Clone>$() -> EmbedPDF.DocumentInfo!
 EmbedPDF.DocumentInfo.Deconstruct(out string! Id, out string? Name, out int PageCount, out EmbedPDF.DocumentStatus Status, out EmbedPDF.PluginErrorInfo? Error) -> void
@@ -84,10 +93,15 @@ EmbedPDF.FormConfig
 EmbedPDF.FormConfig.<Clone>$() -> EmbedPDF.FormConfig!
 EmbedPDF.FormConfig.Equals(EmbedPDF.FormConfig? other) -> bool
 EmbedPDF.FormConfig.FormConfig() -> void
+EmbedPDF.HttpClientDocumentFetcher
+EmbedPDF.HttpClientDocumentFetcher.FetchAsync(string! url, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<EmbedPDF.DocumentFetchResponse!>!
+EmbedPDF.HttpClientDocumentFetcher.HttpClientDocumentFetcher(System.Net.Http.HttpClient? client = null) -> void
 EmbedPDF.I18nConfig
 EmbedPDF.I18nConfig.<Clone>$() -> EmbedPDF.I18nConfig!
 EmbedPDF.I18nConfig.Equals(EmbedPDF.I18nConfig? other) -> bool
 EmbedPDF.I18nConfig.I18nConfig() -> void
+EmbedPDF.IDocumentFetcher
+EmbedPDF.IDocumentFetcher.FetchAsync(string! url, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<EmbedPDF.DocumentFetchResponse!>!
 EmbedPDF.MeasurementConfig
 EmbedPDF.MeasurementConfig.<Clone>$() -> EmbedPDF.MeasurementConfig!
 EmbedPDF.MeasurementConfig.Equals(EmbedPDF.MeasurementConfig? other) -> bool
@@ -206,6 +220,8 @@ EmbedPDF.PdfViewerOptions.Attachment.get -> bool
 EmbedPDF.PdfViewerOptions.Attachment.init -> void
 EmbedPDF.PdfViewerOptions.Commands.get -> bool
 EmbedPDF.PdfViewerOptions.Commands.init -> void
+EmbedPDF.PdfViewerOptions.DocumentFetcher.get -> EmbedPDF.IDocumentFetcher?
+EmbedPDF.PdfViewerOptions.DocumentFetcher.init -> void
 EmbedPDF.PdfViewerOptions.Equals(EmbedPDF.PdfViewerOptions? other) -> bool
 EmbedPDF.PdfViewerOptions.Feedback.get -> EmbedPDF.FeedbackConfig?
 EmbedPDF.PdfViewerOptions.Feedback.init -> void
@@ -258,6 +274,7 @@ EmbedPDF.PdfViewerOptionsBuilder.Annotation(string! settingsJson = "") -> EmbedP
 EmbedPDF.PdfViewerOptionsBuilder.Attachment(bool enabled = true) -> EmbedPDF.PdfViewerOptionsBuilder!
 EmbedPDF.PdfViewerOptionsBuilder.Build() -> EmbedPDF.PdfViewerOptions!
 EmbedPDF.PdfViewerOptionsBuilder.Commands(bool enabled = true) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.DocumentFetcher(EmbedPDF.IDocumentFetcher! fetcher) -> EmbedPDF.PdfViewerOptionsBuilder!
 EmbedPDF.PdfViewerOptionsBuilder.Feedback(EmbedPDF.FeedbackConfig! config) -> EmbedPDF.PdfViewerOptionsBuilder!
 EmbedPDF.PdfViewerOptionsBuilder.Form(EmbedPDF.FormConfig! config) -> EmbedPDF.PdfViewerOptionsBuilder!
 EmbedPDF.PdfViewerOptionsBuilder.History(bool enabled = true) -> EmbedPDF.PdfViewerOptionsBuilder!
@@ -399,6 +416,9 @@ override EmbedPDF.DocumentEvent.PagesChanged.Equals(object? obj) -> bool
 override EmbedPDF.DocumentEvent.PagesChanged.GetHashCode() -> int
 override EmbedPDF.DocumentEvent.PagesChanged.ToString() -> string!
 override EmbedPDF.DocumentEvent.ToString() -> string!
+override EmbedPDF.DocumentFetchResponse.Equals(object? obj) -> bool
+override EmbedPDF.DocumentFetchResponse.GetHashCode() -> int
+override EmbedPDF.DocumentFetchResponse.ToString() -> string!
 override EmbedPDF.DocumentInfo.Equals(object? obj) -> bool
 override EmbedPDF.DocumentInfo.GetHashCode() -> int
 override EmbedPDF.DocumentInfo.ToString() -> string!
@@ -479,6 +499,8 @@ static EmbedPDF.DocumentEvent.PagesChanged.operator !=(EmbedPDF.DocumentEvent.Pa
 static EmbedPDF.DocumentEvent.PagesChanged.operator ==(EmbedPDF.DocumentEvent.PagesChanged? left, EmbedPDF.DocumentEvent.PagesChanged? right) -> bool
 static EmbedPDF.DocumentEvent.operator !=(EmbedPDF.DocumentEvent? left, EmbedPDF.DocumentEvent? right) -> bool
 static EmbedPDF.DocumentEvent.operator ==(EmbedPDF.DocumentEvent? left, EmbedPDF.DocumentEvent? right) -> bool
+static EmbedPDF.DocumentFetchResponse.operator !=(EmbedPDF.DocumentFetchResponse? left, EmbedPDF.DocumentFetchResponse? right) -> bool
+static EmbedPDF.DocumentFetchResponse.operator ==(EmbedPDF.DocumentFetchResponse? left, EmbedPDF.DocumentFetchResponse? right) -> bool
 static EmbedPDF.DocumentInfo.operator !=(EmbedPDF.DocumentInfo? left, EmbedPDF.DocumentInfo? right) -> bool
 static EmbedPDF.DocumentInfo.operator ==(EmbedPDF.DocumentInfo? left, EmbedPDF.DocumentInfo? right) -> bool
 static EmbedPDF.DocumentPermission.AnnotateImport.get -> EmbedPDF.DocumentPermission

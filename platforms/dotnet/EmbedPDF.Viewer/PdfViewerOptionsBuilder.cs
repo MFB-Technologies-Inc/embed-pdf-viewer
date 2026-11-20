@@ -105,6 +105,9 @@ public sealed class PdfViewerOptionsBuilder
     /// <summary>Installs the signature plugin. Needs <see cref="Form"/>.</summary>
     public PdfViewerOptionsBuilder Signature(SignatureConfig config) => With(o => o with { Signature = config });
 
+    /// <summary>The transport for URL document sources.</summary>
+    public PdfViewerOptionsBuilder DocumentFetcher(IDocumentFetcher fetcher) => With(o => o with { DocumentFetcher = fetcher });
+
     /// <summary>Where diagnostics go.</summary>
     public PdfViewerOptionsBuilder Logger(ILogger logger) => With(o => o with { Logger = logger });
 }
