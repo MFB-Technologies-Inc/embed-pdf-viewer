@@ -90,6 +90,16 @@ def check_exports(exported, prefix=""):
         if not re.search(r"\b"+prefix+name+r"(?:\s|$)", exported, re.M):
             raise ValueError(f"missing required C ABI export: {name}")
 
+FOREIGN_LOADERS = {"linux-x64": "/lib64/ld-linux-x86-64.so.2", "linux-arm64": "/lib/ld-linux-aarch64.so.1"}
+
+def list_dependencies(path, rid):
+    """`ldd -r`, or the RID's own loader in trace mode when the host is another
+    architecture (an emulated or cross-built slice), since ldd only knows its own."""
+    if host_rid() == rid:
+        return run(["ldd", "-r", str(path)])
+    env = dict(os.environ, LD_TRACE_LOADED_OBJECTS="1", LD_WARN="yes", LD_BIND_NOW="yes")
+    return run([FOREIGN_LOADERS[rid], str(path)], env=env)
+
 def inspect(native, rid):
     details = {}
     for path in sorted(native.iterdir()):
@@ -97,7 +107,7 @@ def inspect(native, rid):
             continue
         if rid.startswith("linux"):
             dynamic = run(["readelf", "-d", str(path)])
-            dependencies = run(["ldd", "-r", str(path)])
+            dependencies = list_dependencies(path, rid)
             check_elf(path.name, dynamic, dependencies)
             for name, resolved in re.findall(r"^\s*(\S+) => (\S+)", dependencies, re.M):
                 if name == "libembedpdf.so" and Path(resolved).resolve().parent != native.resolve():

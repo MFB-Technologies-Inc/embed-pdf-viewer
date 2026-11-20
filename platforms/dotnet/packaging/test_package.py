@@ -265,6 +265,21 @@ class RuntimeTests(unittest.TestCase):
         self.assertIn("emulation is recorded only for linux-x64", result.stdout)
 
 class NativeInspectionTests(unittest.TestCase):
+    def test_foreign_rid_uses_its_own_loader(self):
+        import package
+        calls = []
+        original = (package.host_rid, package.run)
+        package.host_rid = lambda: "linux-arm64"
+        package.run = lambda command, cwd=None, env=None: calls.append((command, env)) or ""
+        try:
+            package.list_dependencies(Path("/x/libepdf_viewer_host.so"), "linux-x64")
+            package.list_dependencies(Path("/x/libepdf_viewer_host.so"), "linux-arm64")
+        finally:
+            package.host_rid, package.run = original
+        self.assertEqual(["/lib64/ld-linux-x86-64.so.2", "/x/libepdf_viewer_host.so"], calls[0][0])
+        self.assertEqual("1", calls[0][1]["LD_TRACE_LOADED_OBJECTS"])
+        self.assertEqual(["ldd", "-r", "/x/libepdf_viewer_host.so"], calls[1][0])
+
     def test_rejects_wrong_or_incomplete_abi_exports(self):
         from package import check_exports
         with self.assertRaisesRegex(ValueError, "epdf_abi_version"):
