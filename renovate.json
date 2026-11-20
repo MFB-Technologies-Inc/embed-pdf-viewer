@@ -2,5 +2,94 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "github>MFB-Technologies-Inc/renovate-config"
+  ],
+  "description": "This repository is a fork of embedpdf/embed-pdf-viewer. Renovate reads only the files the fork owns, listed in includePaths; everything else, including package.json, pnpm-lock.yaml and the upstream workflows, changes only through upstream syncs.",
+  "includePaths": [
+    ".devcontainer/**",
+    ".github/actions/setup-emsdk/**",
+    ".github/actions/setup-node-pnpm/**",
+    ".github/actions/setup-rust/**",
+    ".github/actions/setup-xcode-27/**",
+    ".github/workflows/apple-swift.yml",
+    ".github/workflows/devcontainer-pins.yml",
+    ".github/workflows/engine-rust.yml",
+    ".github/workflows/perf-history-pages.yml",
+    ".github/workflows/plugin-rust.yml",
+    ".github/workflows/release-apple.yml",
+    ".github/workflows/release-dotnet.yml",
+    ".github/workflows/release-fork-slices.yml",
+    ".github/workflows/release-payload.yml",
+    ".github/workflows/release-probe.yml",
+    ".github/workflows/release-runtime.yml",
+    ".github/workflows/release-rust-viewer.yml",
+    ".github/workflows/release-train.yml",
+    ".github/workflows/viewer-e2e.yml",
+    "Cargo.toml",
+    "Cargo.lock",
+    "crates/**",
+    "tooling/engine-timer/**",
+    "rust-toolchain.toml",
+    "mise.toml",
+    "perf-compare/**",
+    "platforms/**"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Tool pins marked with a `# renovate:` comment on the line above.",
+      "managerFilePatterns": [
+        "/^\\.devcontainer/Dockerfile$/",
+        "/^\\.github/workflows/release-rust-viewer\\.yml$/"
+      ],
+      "matchStrings": [
+        "#\\s*renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: extractVersion=(?<extractVersion>\\S+))?(?: versioning=(?<versioning>\\S+))?\\s*\\n\\s*(?:ARG\\s+)?[A-Z0-9_]+\\s*[=:]\\s*'?(?<currentValue>[^'\\s]+)'?"
+      ]
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "pnpm must equal packageManager in package.json, which upstream owns.",
+      "matchManagers": ["mise"],
+      "matchDepNames": ["pnpm"],
+      "enabled": false
+    },
+    {
+      "description": "The image's Node base and mise.toml must move together; check-pins.py enforces it.",
+      "matchManagers": ["dockerfile", "mise"],
+      "matchDepNames": ["node"],
+      "groupName": "Node.js"
+    },
+    {
+      "description": "A new Node major line is a decision, not a routine bump.",
+      "matchManagers": ["dockerfile", "mise"],
+      "matchDepNames": ["node"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "wasm-bindgen-cli must equal the wasm-bindgen crate pin in crates/epdf-web/Cargo.toml.",
+      "matchPackageNames": [
+        "wasm-bindgen",
+        "wasm-bindgen-cli",
+        "wasm-bindgen-futures",
+        "wasm-bindgen-test",
+        "js-sys",
+        "web-sys"
+      ],
+      "groupName": "wasm-bindgen"
+    },
+    {
+      "description": "The .NET SDK pin lives in global.json, the Dockerfile and release-dotnet.yml, with a SHA-512 per archive.",
+      "matchDepNames": ["dotnet-sdk"],
+      "groupName": ".NET SDK"
+    },
+    {
+      "description": "Pins with checksums beside them: Renovate cannot compute those, so it asks first and the PR needs them filled in by hand.",
+      "matchDepNames": ["dotnet-sdk", "WebAssembly/binaryen", "rust-lang/rustup"],
+      "dependencyDashboardApproval": true,
+      "prBodyNotes": [
+        "This pin has checksums Renovate cannot update. Fill them in from the upstream release, along with the other files `.devcontainer/check-pins.py` names; the `Development image pins` check fails until they match the published values."
+      ]
+    }
   ]
 }

@@ -2,7 +2,8 @@ name: Development image pins
 
 # .devcontainer/Dockerfile repeats toolchain versions that other files own
 # (mise.toml, the release workflows, crates/epdf-web/Cargo.toml). This fails
-# when one side is bumped without the other.
+# when one side is bumped without the other, and when a pinned checksum
+# differs from the one its project publishes (Renovate bumps versions, not hashes).
 
 on:
   pull_request:
@@ -15,6 +16,8 @@ on:
       - '.github/workflows/release-dotnet.yml'
       - '.github/workflows/release-rust-viewer.yml'
       - '.github/workflows/devcontainer-pins.yml'
+      - 'platforms/dotnet/global.json'
+      - 'renovate.json'
   workflow_dispatch: {}
 
 permissions:
@@ -29,4 +32,4 @@ jobs:
         with:
           persist-credentials: false
       - name: Compare pins
-        run: python3 .devcontainer/check-pins.py
+        run: python3 .devcontainer/check-pins.py --verify-checksums

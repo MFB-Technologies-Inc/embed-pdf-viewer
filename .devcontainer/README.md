@@ -123,6 +123,15 @@ home directory and authentication sessions; push work and save any files outside
 `/workspaces` that you want to keep before removing it. Keep `embedpdf-workspace`
 to preserve the repository.
 
+Renovate opens the bumps for pins marked with a `# renovate:` comment in `Dockerfile`,
+and for the Node base image together with `mise.toml`. It cannot compute checksums.
+For binaryen, rustup-init and the .NET SDK it waits for approval on the Dependency
+Dashboard, and the pull request still needs the new hashes by hand; `check-pins.py
+--verify-checksums` prints the published values. The emsdk pins have no annotation:
+`build-engine-runtime.yml` belongs to upstream, so they move only with an upstream sync.
+The Android NDK has none either, because Google publishes no machine-readable release
+list for it.
+
 ## Editor integration
 
 The optional `devcontainer.json` lets a compatible editor run cloning and setup

@@ -43,9 +43,11 @@ defaults:
     shell: bash
 
 env:
+  # renovate: datasource=github-releases depName=WebAssembly/binaryen extractVersion=^version_(?<version>\d+)$ versioning=loose
   BINARYEN_VERSION: '133'
   # The published .sha256 for binaryen-version_133-x86_64-linux.tar.gz.
   BINARYEN_SHA256: 2dc9c7813f5375db93d96ead4b78222fcc3e2677bbb832297af4797782a37489
+  # renovate: datasource=crate depName=wasm-bindgen-cli
   WASM_BINDGEN_VERSION: 0.2.127
 
 jobs:

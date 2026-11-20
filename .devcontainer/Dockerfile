@@ -11,6 +11,7 @@ ARG EMSDK_VERSION=3.1.72
 # EH_EMSDK_VERSION in perf-compare/scripts/build-arm.mjs: the Rust-core payload links with it.
 ARG EMSDK_EH_VERSION=4.0.0
 # Must equal BINARYEN_VERSION and BINARYEN_SHA256 in .github/workflows/release-rust-viewer.yml.
+# renovate: datasource=github-releases depName=WebAssembly/binaryen extractVersion=^version_(?<version>\d+)$ versioning=loose
 ARG BINARYEN_VERSION=133
 ARG BINARYEN_SHA256_AMD64=2dc9c7813f5375db93d96ead4b78222fcc3e2677bbb832297af4797782a37489
 ARG BINARYEN_SHA256_ARM64=89c07ea56faf38d0fbecf36ca8ec0721756716185f265b568e133d427f299bf8
@@ -18,15 +19,22 @@ ARG BINARYEN_SHA256_ARM64=89c07ea56faf38d0fbecf36ca8ec0721756716185f265b568e133d
 # from an archive that matched it.
 ARG NDK_SHA256=4abbbcdc842f3d4879206e9695d52709603e52dd68d3c1fff04b3b5e7a308ecf
 # Must equal the version and SHA512 in .github/workflows/release-dotnet.yml.
+# renovate: datasource=dotnet-version depName=dotnet-sdk
 ARG DOTNET_SDK_VERSION=10.0.403
+# renovate: datasource=github-tags depName=rust-lang/rustup
 ARG RUSTUP_VERSION=1.29.3
 ARG RUSTUP_SHA256_AMD64=b1c8cb14e30889e7e2999e6b69e62d9e9b9ffc0f4df8180564d306d9680e6c55
 ARG RUSTUP_SHA256_ARM64=9f608c142e0e38a78957d0661ba1dfaf0b6fb37184cfaa4b9a0aa57af6184282
+# renovate: datasource=crate depName=cargo-ndk
 ARG CARGO_NDK_VERSION=4.1.2
+# renovate: datasource=crate depName=cargo-llvm-cov
 ARG CARGO_LLVM_COV_VERSION=0.9.1
 # Must equal the `wasm-bindgen` pin in crates/epdf-web/Cargo.toml.
+# renovate: datasource=crate depName=wasm-bindgen-cli
 ARG WASM_BINDGEN_VERSION=0.2.127
+# renovate: datasource=npm depName=oauth2-forwarder
 ARG OAUTH2_FORWARDER_VERSION=1.9.4
+# renovate: datasource=npm depName=git-credential-forwarder
 ARG GIT_CREDENTIAL_FORWARDER_VERSION=1.8.0
 
 # The slim base omits what the full buildpack image supplied; git, ssh, procps, file
