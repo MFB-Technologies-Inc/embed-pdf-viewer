@@ -1,5 +1,5 @@
-# Phase 0 spike: C# generator configuration, passed to every component with
-# `uniffi-bindgen-cs --library ... --config platforms/dotnet/spike/uniffi-cs.toml`.
+# C# generator configuration for the EmbedPDF facade, passed to every component
+# by platforms/dotnet/generate-bindings.sh.
 # Renames are keyed by crate, then by the Rust path (`Type.method`,
 # `Enum.Variant.field`); the new name is converted to PascalCase.
 [bindings.csharp]

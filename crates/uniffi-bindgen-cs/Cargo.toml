@@ -10,7 +10,7 @@ path = "src/main.rs"
 
 # The C# generator is not on crates.io, so it comes from git. Its release tag
 # v0.12.0+v0.32.0 (fc32e9b) targets this uniffi but does not build or generate
-# compilable C# for epdf-viewer-host as released, so this spike uses a fork
+# compilable C# for epdf-viewer-host as released, so this uses a fork
 # branch, epdf/v0.12.0-v0.32.0, that is the tag plus two open upstream pull
 # requests:
 #
@@ -23,9 +23,10 @@ path = "src/main.rs"
 #       BigEndianStream, so an object from another crate inside an optional,
 #       sequence or record fails to compile with CS1503.
 #
-# SPIKE ONLY: the fork lives in the dev container at /workspaces/uniffi-bindgen-cs.
-# Phase 1 needs it pushed somewhere every build can fetch, or a release tag
-# that carries both fixes.
+# The fork lives only in the dev container at /workspaces/uniffi-bindgen-cs.
+# It has to be pushed somewhere every build can fetch, or replaced by a
+# release tag that carries both fixes, before this builds anywhere else.
+# platforms/dotnet/generate-bindings.sh runs this binary.
 #
 # uniffi =0.32.0 is here only to hold the generator's uniffi_bindgen (a caret
 # range upstream) to the workspace pin: the metadata reader has to match the
