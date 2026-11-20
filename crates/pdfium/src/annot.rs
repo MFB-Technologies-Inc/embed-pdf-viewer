@@ -286,7 +286,7 @@ impl Annotation<'_> {
     /// RGB only. Annotation transparency is `/CA` and is read through
     /// [`Annotation::opacity`], so there is one place it can come from.
     pub fn color(&self, color_type: i32) -> Option<(u8, u8, u8)> {
-        let color_type = color_type as u32;
+        let color_type = color_type as pdfium_sys::FPDFANNOT_COLORTYPE;
         let (mut r, mut g, mut b) = (0u32, 0u32, 0u32);
         // SAFETY: the handle is live and the three out-parameters are valid.
         let ok = unsafe {
@@ -424,7 +424,8 @@ impl Annotation<'_> {
     /// `/LE`, as the two raw `FPDF_ANNOT_LINE_END` codes. `None` when the
     /// annotation has no entry.
     pub fn line_endings(&self) -> Option<(i32, i32)> {
-        let (mut start, mut end) = (0u32, 0u32);
+        let mut start: pdfium_sys::FPDF_ANNOT_LINE_END = 0;
+        let mut end: pdfium_sys::FPDF_ANNOT_LINE_END = 0;
         // SAFETY: the handle is live and both out-parameters are valid.
         let ok = unsafe {
             pdfium_sys::EPDFAnnot_GetLineEndings(self.handle, &raw mut start, &raw mut end)
@@ -796,7 +797,7 @@ impl Annotation<'_> {
         let ok = unsafe {
             pdfium_sys::EPDFAnnot_GetMKColor(
                 self.handle,
-                which as u32,
+                which as pdfium_sys::EPDF_MK_COLORTYPE,
                 &raw mut r,
                 &raw mut g,
                 &raw mut b,
@@ -1433,10 +1434,11 @@ impl<'owner> Attachment<'owner> {
     pub fn extract(&self, max_decoded_bytes: u64) -> Result<Vec<u8>, AttachmentExtractError> {
         let mut buffer: *mut std::ffi::c_void = std::ptr::null_mut();
         let mut size = 0u32;
-        // The fork's status enum is unsigned, and `u32::MAX` is a value it
-        // never issues, so an untouched out-parameter is distinguishable from
-        // every real status.
-        let mut status = u32::MAX;
+        // `u32::MAX` is a value the fork's status enum never issues, so an
+        // untouched out-parameter is distinguishable from every real status.
+        // The enum is unsigned under the Unix ABIs and signed under MSVC's,
+        // where this is -1 and reads back as `u32::MAX` below.
+        let mut status = u32::MAX as pdfium_sys::EPDFAttachmentExtractStatus;
 
         // SAFETY: the handle is live and all three out-parameters are valid.
         let ok = unsafe {
@@ -1449,7 +1451,7 @@ impl<'owner> Attachment<'owner> {
             )
         };
         if ok == 0 {
-            return Err(AttachmentExtractError::from_status(status));
+            return Err(AttachmentExtractError::from_status(status as u32));
         }
         if size == 0 || buffer.is_null() {
             // Still free it: a zero-size success can hand back a buffer.

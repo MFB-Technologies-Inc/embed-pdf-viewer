@@ -31,7 +31,7 @@ pub enum StampFit {
 }
 
 impl StampFit {
-    fn code(self) -> u32 {
+    fn code(self) -> pdfium_sys::EPDF_STAMP_FIT {
         match self {
             Self::Contain => 0,
             Self::Cover => 1,

@@ -165,7 +165,7 @@ impl Annotation<'_> {
         unsafe {
             pdfium_sys::EPDFAnnot_SetColor(
                 self.as_raw(),
-                color_type as u32,
+                color_type as pdfium_sys::FPDFANNOT_COLORTYPE,
                 u32::from(r),
                 u32::from(g),
                 u32::from(b),
@@ -282,7 +282,12 @@ impl Annotation<'_> {
     /// `/Q`, as an `FPDF_TEXT_ALIGNMENT` code.
     pub fn set_text_alignment(&self, alignment: i32) -> bool {
         // SAFETY: the handle is live.
-        unsafe { pdfium_sys::EPDFAnnot_SetTextAlignment(self.as_raw(), alignment as u32) != 0 }
+        unsafe {
+            pdfium_sys::EPDFAnnot_SetTextAlignment(
+                self.as_raw(),
+                alignment as pdfium_sys::FPDF_TEXT_ALIGNMENT,
+            ) != 0
+        }
     }
 
     /// `/CL`, a free-text callout's leader line.
@@ -329,7 +334,7 @@ impl Annotation<'_> {
         unsafe {
             pdfium_sys::EPDFAnnot_SetMKColor(
                 self.as_raw(),
-                which as u32,
+                which as pdfium_sys::EPDF_MK_COLORTYPE,
                 u32::from(color.0),
                 u32::from(color.1),
                 u32::from(color.2),
@@ -358,7 +363,12 @@ impl Annotation<'_> {
     /// Remove one `/MK` colour entry.
     pub fn clear_mk_color(&self, which: i32) -> bool {
         // SAFETY: the handle is live.
-        unsafe { pdfium_sys::EPDFAnnot_ClearMKColor(self.as_raw(), which as u32) != 0 }
+        unsafe {
+            pdfium_sys::EPDFAnnot_ClearMKColor(
+                self.as_raw(),
+                which as pdfium_sys::EPDF_MK_COLORTYPE,
+            ) != 0
+        }
     }
 
     /// `/OverlayText`, a redaction's label.
@@ -430,7 +440,11 @@ impl Annotation<'_> {
     pub fn set_border_style(&self, style_code: i32, width: f32) -> bool {
         // SAFETY: the handle is live.
         unsafe {
-            pdfium_sys::EPDFAnnot_SetBorderStyle(self.as_raw(), style_code as u32, width) != 0
+            pdfium_sys::EPDFAnnot_SetBorderStyle(
+                self.as_raw(),
+                style_code as pdfium_sys::FPDF_ANNOT_BORDER_STYLE,
+                width,
+            ) != 0
         }
     }
 
@@ -475,13 +489,23 @@ impl Annotation<'_> {
     /// 32000's "no colour; transparent", which Acrobat draws as none.
     pub fn set_no_color(&self, color_type: i32) -> bool {
         // SAFETY: the handle is live.
-        unsafe { pdfium_sys::EPDFAnnot_SetNoColor(self.as_raw(), color_type as u32) != 0 }
+        unsafe {
+            pdfium_sys::EPDFAnnot_SetNoColor(
+                self.as_raw(),
+                color_type as pdfium_sys::FPDFANNOT_COLORTYPE,
+            ) != 0
+        }
     }
 
     /// Remove one colour entry.
     pub fn clear_color(&self, color_type: i32) -> bool {
         // SAFETY: the handle is live.
-        unsafe { pdfium_sys::EPDFAnnot_ClearColor(self.as_raw(), color_type as u32) != 0 }
+        unsafe {
+            pdfium_sys::EPDFAnnot_ClearColor(
+                self.as_raw(),
+                color_type as pdfium_sys::FPDFANNOT_COLORTYPE,
+            ) != 0
+        }
     }
 
     /// `/Vertices`, the point list of a polygon or polyline.
@@ -512,7 +536,11 @@ impl Annotation<'_> {
     pub fn set_line_endings(&self, start: i32, end: i32) -> bool {
         // SAFETY: the handle is live.
         unsafe {
-            pdfium_sys::EPDFAnnot_SetLineEndings(self.as_raw(), start as u32, end as u32) != 0
+            pdfium_sys::EPDFAnnot_SetLineEndings(
+                self.as_raw(),
+                start as pdfium_sys::FPDF_ANNOT_LINE_END,
+                end as pdfium_sys::FPDF_ANNOT_LINE_END,
+            ) != 0
         }
     }
 
@@ -584,8 +612,10 @@ impl Annotation<'_> {
             match blend {
                 None => pdfium_sys::EPDFAnnot_GenerateAppearance(self.as_raw()) != 0,
                 Some(blend) => {
-                    pdfium_sys::EPDFAnnot_GenerateAppearanceWithBlend(self.as_raw(), blend as u32)
-                        != 0
+                    pdfium_sys::EPDFAnnot_GenerateAppearanceWithBlend(
+                        self.as_raw(),
+                        blend as pdfium_sys::FPDF_BLENDMODE,
+                    ) != 0
                 }
             }
         }
