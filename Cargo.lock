@@ -2863,7 +2863,7 @@ dependencies = [
 [[package]]
 name = "uniffi-bindgen-cs"
 version = "0.12.0+v0.32.0"
-source = "git+file:///workspaces/uniffi-bindgen-cs?rev=91345690ef91dd2dbc9fa0738967c8f49478f056#91345690ef91dd2dbc9fa0738967c8f49478f056"
+source = "git+https://github.com/MFB-Technologies-Inc/uniffi-bindgen-cs.git?rev=91345690ef91dd2dbc9fa0738967c8f49478f056#91345690ef91dd2dbc9fa0738967c8f49478f056"
 dependencies = [
  "anyhow",
  "askama 0.13.1",

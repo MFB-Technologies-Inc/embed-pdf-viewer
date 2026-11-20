@@ -385,14 +385,14 @@ upstream pull requests:
 
 The fork is branch `epdf/v0.12.0-v0.32.0` at `91345690ef91dd2dbc9fa0738967c8f49478f056`: the
 tag, plus `370010a` (PR 196), plus `d24df88` cherry-picked as `9134569` (PR 186, our side of
-the `CHANGELOG.md` conflict kept). It lives only in the dev container at
-`/workspaces/uniffi-bindgen-cs`. `crates/uniffi-bindgen-cs` (package `epdf-uniffi-bindgen-cs`,
-binary `uniffi-bindgen-cs`, the package name differs because Cargo otherwise finds two
-`uniffi-bindgen-cs` packages and `-p` is ambiguous) takes it as
-`git = "file:///workspaces/uniffi-bindgen-cs"` at that revision. Cost: until the fork is hosted
-at a URL every machine can fetch, any workspace build outside that container fails to resolve,
-because Cargo loads every member's git dependencies. Phase 1 must host the fork (user decision)
-or wait for an upstream release with both pull requests. The wrapper adds 48 packages to
+the `CHANGELOG.md` conflict kept). The spike took it from a container-only path
+(`file:///workspaces/uniffi-bindgen-cs`). *Changed 2026-11-20 in Phase 1:* the user chose to host
+the fork, and `crates/uniffi-bindgen-cs` (package `epdf-uniffi-bindgen-cs`, binary
+`uniffi-bindgen-cs`, the package name differs because Cargo otherwise finds two
+`uniffi-bindgen-cs` packages and `-p` is ambiguous) now takes it from the hosted repository's
+HTTPS git URL at that same revision (`crates/uniffi-bindgen-cs/Cargo.toml`). Any machine that can
+fetch from that host resolves the workspace. Cost: every UniFFI bump in this repo still needs a
+matching fork bump until an upstream release carries both pull requests. The wrapper adds 48 packages to
 `Cargo.lock` (askama 0.13, clap 3 and their trees) and changes no existing version.
 
 Other open upstream pull requests worth tracking: 190 (variant fields that collide with sibling
@@ -498,7 +498,7 @@ weeks old are out of bounds then.
 ### Decisions after Phase 0
 
 D1 changed: C# generation works, but only from a fork (tag plus pull requests 196 and 186)
-until upstream releases both, and the fork has to be hosted before Phase 1 merges anything. The
+until upstream releases both. The fork is hosted (Phase 1, user decision 2026-11-20). The
 cost named in D1 applies now rather than as a fallback. D3 is confirmed as written: internal
 works, callbacks included. D2, D4, D5 (with Jint 4.18.0 and Acornima 1.9.1 recorded above), D6,
 D7 and D8 are confirmed 2026-11-20 (execute instruction).

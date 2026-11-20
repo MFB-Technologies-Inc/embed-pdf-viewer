@@ -23,10 +23,8 @@ path = "src/main.rs"
 #       BigEndianStream, so an object from another crate inside an optional,
 #       sequence or record fails to compile with CS1503.
 #
-# The fork lives only in the dev container at /workspaces/uniffi-bindgen-cs.
-# It has to be pushed somewhere every build can fetch, or replaced by a
-# release tag that carries both fixes, before this builds anywhere else.
-# platforms/dotnet/generate-bindings.sh runs this binary.
+# The fork is the git URL below, branch epdf/v0.12.0-v0.32.0. Move back to
+# an upstream release tag once one carries both fixes. platforms/dotnet/generate-bindings.sh runs this binary.
 #
 # uniffi =0.32.0 is here only to hold the generator's uniffi_bindgen (a caret
 # range upstream) to the workspace pin: the metadata reader has to match the
@@ -34,4 +32,4 @@ path = "src/main.rs"
 [dependencies]
 anyhow = "1"
 uniffi = { version = "=0.32.0" }
-uniffi-bindgen-cs = { git = "file:///workspaces/uniffi-bindgen-cs", rev = "91345690ef91dd2dbc9fa0738967c8f49478f056" }
+uniffi-bindgen-cs = { git = "https://github.com/MFB-Technologies-Inc/uniffi-bindgen-cs.git", rev = "91345690ef91dd2dbc9fa0738967c8f49478f056" }

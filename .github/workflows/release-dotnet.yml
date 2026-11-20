@@ -41,7 +41,7 @@ name: release-dotnet
 #
 # The runtime, runtime-pack and runtime-validate jobs build the viewer
 # packages, EmbedPDF.Runtime and EmbedPDF, from all five RIDs; their comment
-# below says what they produce and why they can't run yet.
+# below says what they produce.
 #
 # This workflow never publishes; the orchestrator does. dry_run exists so every
 # release workflow takes the same inputs, and changes nothing here.
@@ -478,10 +478,9 @@ jobs:
   # into one package and packs the EmbedPDF facade against it; runtime-validate
   # runs the local-feed consumer on each native host.
   #
-  # Not run yet: crates/uniffi-bindgen-cs takes its generator from
-  # file:///workspaces/uniffi-bindgen-cs, which exists only in the dev
-  # container, and Cargo resolves every workspace member's git dependencies,
-  # so every cargo step here fails until that fork is hosted.
+  # Not run yet. Cargo resolves every workspace member's git dependencies, so
+  # each cargo step here also fetches the hosted generator fork that
+  # crates/uniffi-bindgen-cs names.
   runtime:
     needs: image
     name: runtime slice (${{ matrix.rid }})
