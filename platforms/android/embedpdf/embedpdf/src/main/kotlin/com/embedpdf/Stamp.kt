@@ -267,8 +267,9 @@ public suspend fun PdfViewer.stamps(): StampCapability = StampCapability(call { 
  * percent-encoded, plus `.pdf`. The constructor
  * creates the directory; one it can't create throws `IOException`. A write
  * goes to a temporary file first, synced to the disk, and then replaces the
- * library's file, so a reader sees the old library or the new one, also
- * after a crash. [list] skips a file whose name this store would not have
+ * library's file, so a reader sees the old library or the new one, never a
+ * partial file. The directory is not synced after the rename, so a power loss
+ * right after a write can leave the old library in place. [list] skips a file whose name this store would not have
  * given, so a stray file in the directory never fails a restore. Each call
  * throws [HostException] for a file it can't read, write or delete.
  */
