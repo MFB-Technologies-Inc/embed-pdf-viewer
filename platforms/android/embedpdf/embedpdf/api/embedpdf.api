@@ -1,3 +1,26 @@
+public final class com/embedpdf/AttachmentCapability {
+	public final fun add (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canAdd (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canDownload (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canRemove (Luniffi/epdf_plugin_attachment/AttachedFile;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun download (Luniffi/epdf_plugin_attachment/AttachedFile;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun ensureLoaded (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun file (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun files (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun isPending (Luniffi/epdf_plugin_attachment/AttachedFile;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
+	public final fun refresh (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun remove (Luniffi/epdf_plugin_attachment/AttachedFile;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun reveal (Luniffi/epdf_plugin_attachment/AttachedFile;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun select (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun selectedFiles (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun status (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/AttachmentKt {
+	public static final fun attachments (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class com/embedpdf/ContentInclusion : java/lang/Enum {
 	public static final field ALWAYS Lcom/embedpdf/ContentInclusion;
 	public static final field NEVER Lcom/embedpdf/ContentInclusion;

@@ -1109,119 +1109,170 @@
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "list",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Attachment.kt",
+        "symbol": "files"
+      }
     },
     {
       "crate": "attachment",
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "get",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Attachment.kt",
+        "symbol": "file"
+      }
     },
     {
       "crate": "attachment",
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "get_selected",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Attachment.kt",
+        "symbol": "selectedFiles"
+      }
     },
     {
       "crate": "attachment",
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "select",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Attachment.kt",
+        "symbol": "select"
+      }
     },
     {
       "crate": "attachment",
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "is_pending",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Attachment.kt",
+        "symbol": "isPending"
+      }
     },
     {
       "crate": "attachment",
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "get_status",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Attachment.kt",
+        "symbol": "status"
+      }
     },
     {
       "crate": "attachment",
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "ensure_loaded",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Attachment.kt",
+        "symbol": "ensureLoaded"
+      }
     },
     {
       "crate": "attachment",
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "refresh",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Attachment.kt",
+        "symbol": "refresh"
+      }
     },
     {
       "crate": "attachment",
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "can_download",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Attachment.kt",
+        "symbol": "canDownload"
+      }
     },
     {
       "crate": "attachment",
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "can_create",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Attachment.kt",
+        "symbol": "canAdd"
+      }
     },
     {
       "crate": "attachment",
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "can_delete",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Attachment.kt",
+        "symbol": "canRemove"
+      }
     },
     {
       "crate": "attachment",
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "create",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Attachment.kt",
+        "symbol": "add"
+      }
     },
     {
       "crate": "attachment",
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "delete",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Attachment.kt",
+        "symbol": "remove"
+      }
     },
     {
       "crate": "attachment",
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "download",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Attachment.kt",
+        "symbol": "download"
+      }
     },
     {
       "crate": "attachment",
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "reveal",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Attachment.kt",
+        "symbol": "reveal"
+      }
     },
     {
       "crate": "attachment",
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "on_changed",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Attachment.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "attachment",
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "on_resynced",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Attachment.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "commands",
