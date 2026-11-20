@@ -21,11 +21,14 @@ extension BaseSuite {
       expectNoDifference(RenderRotation(degrees: 450), .clockwise90)
       expectNoDifference(RenderRotation(degrees: 89.6), .clockwise90)
       expectNoDifference(RenderRotation(degrees: -90.4), .clockwise270)
-      expectNoDifference(RenderRotation(degrees: Int.max).degrees % 90, 0)
-      expectNoDifference(RenderRotation(degrees: Int.min).degrees % 90, 0)
+      // `Int.max` is 7 modulo 360 and `Int.min` is 352: both nearest 0.
+      expectNoDifference(RenderRotation(degrees: Int.max), .none)
+      expectNoDifference(RenderRotation(degrees: Int.min), .none)
       expectNoDifference(RenderRotation(degrees: Double.nan), .none)
       expectNoDifference(RenderRotation(degrees: Double.infinity), .none)
-      expectNoDifference(RenderRotation(degrees: 1e12).degrees % 90, 0)
+      expectNoDifference(RenderRotation(degrees: -Double.infinity), .none)
+      // 1e12 is 280 modulo 360.
+      expectNoDifference(RenderRotation(degrees: 1e12), .clockwise270)
     }
 
     @Test func turnReportsItsDegrees() {
