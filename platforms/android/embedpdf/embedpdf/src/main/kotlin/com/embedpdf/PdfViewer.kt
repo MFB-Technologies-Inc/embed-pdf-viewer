@@ -32,6 +32,9 @@ public class PdfViewer(
     internal val registry: StreamRegistry = StreamRegistry()
     private val released = AtomicBoolean(false)
 
+    /** Whether [close] released the native handle. */
+    internal val isReleased: Boolean get() = released.get()
+
     internal val host: ViewerHost = try {
         ViewerHost.newWithFetcher(
             config,

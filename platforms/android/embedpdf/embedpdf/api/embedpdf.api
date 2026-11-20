@@ -91,6 +91,17 @@ public final class com/embedpdf/ExportsKt {
 	public static final fun HostFailure (Ljava/lang/Throwable;)Luniffi/epdf_ffi/HostFailure;
 }
 
+public final class com/embedpdf/FeedbackCapability {
+	public final fun impact (Luniffi/epdf_plugin_interaction/FeedbackImpactWeight;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun impact$default (Lcom/embedpdf/FeedbackCapability;Luniffi/epdf_plugin_interaction/FeedbackImpactWeight;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun notify (Luniffi/epdf_plugin_interaction/FeedbackNotifyKind;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun selection (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/FeedbackKt {
+	public static final fun feedback (Lcom/embedpdf/PdfViewer;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class com/embedpdf/GeometryBridgesKt {
 	public static final fun toPoint (Landroid/graphics/PointF;)Luniffi/epdf_ffi/Point;
 	public static final fun toPointF (Luniffi/epdf_ffi/Point;)Landroid/graphics/PointF;
@@ -124,6 +135,56 @@ public final class com/embedpdf/HttpDocumentFetcher : uniffi/epdf_viewer_host/Do
 	public fun <init> (Lkotlin/jvm/functions/Function1;)V
 	public synthetic fun <init> (Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun fetch (Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentFetchCompletion;)Luniffi/epdf_viewer_host/DocumentFetchCancellation;
+}
+
+public final class com/embedpdf/InteractionCapability {
+	public final fun activateDefaultTool (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun activateTool-N6U4bZY (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun activeTool (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun activeToolEnables (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun activeToolId-UI0PC0A (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canUseTool-N6U4bZY (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun claimCursor (Ljava/lang/String;Ljava/lang/String;DLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun claimCursor$default (Lcom/embedpdf/InteractionCapability;Ljava/lang/String;Ljava/lang/String;DLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun cursor (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun defaultToolId-UI0PC0A (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun dispatchPointer (Luniffi/epdf_ffi/PointerSample;)V
+	public final fun hasCursorClaim (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun hasTool-N6U4bZY (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
+	public final fun popTool (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun pushTool-N6U4bZY (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun registerHandler (Lcom/embedpdf/InteractionHandler;Ljava/lang/String;DLjava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun registerHandler$default (Lcom/embedpdf/InteractionCapability;Lcom/embedpdf/InteractionHandler;Ljava/lang/String;DLjava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun registerTool (Luniffi/epdf_plugin_interaction/InteractionTool;ZLuniffi/epdf_plugin_interaction/ToolPermission;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun registerTool$default (Lcom/embedpdf/InteractionCapability;Luniffi/epdf_plugin_interaction/InteractionTool;ZLuniffi/epdf_plugin_interaction/ToolPermission;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun resetSettings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setToolCursor-eRCDJDM (Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun settings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun tool-N6U4bZY (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun tools (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun updateSettings (Luniffi/epdf_plugin_interaction/InteractionSettingsPatch;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun wouldClaimTouch (Luniffi/epdf_ffi/PointerSample;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public abstract interface class com/embedpdf/InteractionHandler : uniffi/epdf_plugin_interaction/InteractionHandler {
+	public fun claimsTouch (Luniffi/epdf_ffi/PointerSample;)Z
+	public fun onCancel (Luniffi/epdf_ffi/PointerSample;)V
+	public fun onHover (Luniffi/epdf_ffi/PointerSample;)V
+	public fun onMove (Luniffi/epdf_ffi/PointerSample;)V
+	public fun onUp (Luniffi/epdf_ffi/PointerSample;)V
+}
+
+public final class com/embedpdf/InteractionHandler$DefaultImpls {
+	public static fun claimsTouch (Lcom/embedpdf/InteractionHandler;Luniffi/epdf_ffi/PointerSample;)Z
+	public static fun onCancel (Lcom/embedpdf/InteractionHandler;Luniffi/epdf_ffi/PointerSample;)V
+	public static fun onHover (Lcom/embedpdf/InteractionHandler;Luniffi/epdf_ffi/PointerSample;)V
+	public static fun onMove (Lcom/embedpdf/InteractionHandler;Luniffi/epdf_ffi/PointerSample;)V
+	public static fun onUp (Lcom/embedpdf/InteractionHandler;Luniffi/epdf_ffi/PointerSample;)V
+}
+
+public final class com/embedpdf/InteractionKt {
+	public static final fun interaction (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class com/embedpdf/MetadataCapability {
@@ -511,6 +572,78 @@ public final class com/embedpdf/ShellKt {
 	public static final fun props (Luniffi/epdf_plugin_shell/ShellSurface;Lkotlinx/serialization/DeserializationStrategy;)Ljava/lang/Object;
 	public static final fun props (Luniffi/epdf_plugin_shell/ShellSurfaceOpenedEvent;Lkotlinx/serialization/DeserializationStrategy;)Ljava/lang/Object;
 	public static final fun shell (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/ToolId {
+	public static final field Companion Lcom/embedpdf/ToolId$Companion;
+	public static final synthetic fun box-impl (Ljava/lang/String;)Lcom/embedpdf/ToolId;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public final synthetic class com/embedpdf/ToolId$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/embedpdf/ToolId$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun deserialize-UI0PC0A (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/String;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public final fun serialize-wr27VYM (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/String;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/embedpdf/ToolId$Companion {
+	public final fun getAREA-10NITR4 ()Ljava/lang/String;
+	public final fun getATTACHMENT-10NITR4 ()Ljava/lang/String;
+	public final fun getCALIBRATE-10NITR4 ()Ljava/lang/String;
+	public final fun getCIRCLE-10NITR4 ()Ljava/lang/String;
+	public final fun getDISTANCE-10NITR4 ()Ljava/lang/String;
+	public final fun getFORM_BUTTON-10NITR4 ()Ljava/lang/String;
+	public final fun getFORM_CHECKBOX-10NITR4 ()Ljava/lang/String;
+	public final fun getFORM_COMBOBOX-10NITR4 ()Ljava/lang/String;
+	public final fun getFORM_EDIT-10NITR4 ()Ljava/lang/String;
+	public final fun getFORM_FILL-10NITR4 ()Ljava/lang/String;
+	public final fun getFORM_LISTBOX-10NITR4 ()Ljava/lang/String;
+	public final fun getFORM_RADIO-10NITR4 ()Ljava/lang/String;
+	public final fun getFORM_SIGNATURE-10NITR4 ()Ljava/lang/String;
+	public final fun getFORM_TEXT-10NITR4 ()Ljava/lang/String;
+	public final fun getFREE_TEXT-10NITR4 ()Ljava/lang/String;
+	public final fun getFREE_TEXT_CALLOUT-10NITR4 ()Ljava/lang/String;
+	public final fun getHIGHLIGHT-10NITR4 ()Ljava/lang/String;
+	public final fun getINK-10NITR4 ()Ljava/lang/String;
+	public final fun getINK_HIGHLIGHT-10NITR4 ()Ljava/lang/String;
+	public final fun getINSERT_TEXT-10NITR4 ()Ljava/lang/String;
+	public final fun getLINE-10NITR4 ()Ljava/lang/String;
+	public final fun getLINK-10NITR4 ()Ljava/lang/String;
+	public final fun getNOTE-10NITR4 ()Ljava/lang/String;
+	public final fun getNamed ()Ljava/util/List;
+	public final fun getPAN-10NITR4 ()Ljava/lang/String;
+	public final fun getPERIMETER-10NITR4 ()Ljava/lang/String;
+	public final fun getPOINTER-10NITR4 ()Ljava/lang/String;
+	public final fun getPOLYGON-10NITR4 ()Ljava/lang/String;
+	public final fun getPOLYLINE-10NITR4 ()Ljava/lang/String;
+	public final fun getREDACT-10NITR4 ()Ljava/lang/String;
+	public final fun getREPLACE_TEXT-10NITR4 ()Ljava/lang/String;
+	public final fun getSNAPSHOT-10NITR4 ()Ljava/lang/String;
+	public final fun getSQUARE-10NITR4 ()Ljava/lang/String;
+	public final fun getSQUIGGLY-10NITR4 ()Ljava/lang/String;
+	public final fun getSTAMP-10NITR4 ()Ljava/lang/String;
+	public final fun getSTRIKEOUT-10NITR4 ()Ljava/lang/String;
+	public final fun getUNDERLINE-10NITR4 ()Ljava/lang/String;
+	public final fun getZOOM-10NITR4 ()Ljava/lang/String;
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/embedpdf/ToolIdKt {
+	public static final fun getToolId (Luniffi/epdf_plugin_interaction/InteractionTool;)Ljava/lang/String;
 }
 
 public final class com/embedpdf/ViewManagerCapability {

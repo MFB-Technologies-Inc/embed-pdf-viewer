@@ -78,6 +78,8 @@ tasks.withType<Test>().configureEach {
         ).joinToString(File.pathSeparator) { repoRoot.resolve(it).path },
     )
     environment("LD_LIBRARY_PATH", linuxHost["runtimeLibDir"].toString())
+    // PointerLatencyTest runs only when asked for.
+    System.getenv("EMBEDPDF_LATENCY")?.let { environment("EMBEDPDF_LATENCY", it) }
     testLogging {
         events("passed", "failed", "skipped")
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL

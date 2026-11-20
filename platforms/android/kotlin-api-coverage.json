@@ -2279,21 +2279,30 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "get_settings",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "settings"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "update_settings",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "updateSettings"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "reset_settings",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "resetSettings"
+      }
     },
     {
       "crate": "interaction",
@@ -2310,182 +2319,260 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "get_active_tool",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "activeTool"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "get_active_tool_id",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "activeToolId"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "get_default_tool_id",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "defaultToolId"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "list_tools",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "tools"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "get_tool",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "tool"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "has_tool",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "hasTool"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "can_use_tool",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "canUseTool"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "activate_tool",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "activateTool"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "activate_default_tool",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "activateDefaultTool"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "push_tool",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "pushTool"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "pop_tool",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "popTool"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "set_tool_cursor",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "setToolCursor"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "register_tool",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "registerTool"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "on_tool_changed",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "on_gesture_started",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "on_gesture_ended",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "on_gesture_cancelled",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "active_tool_enables",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "activeToolEnables"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "register_handler",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "registerHandler"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "claim_cursor",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "claimCursor"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "has_cursor_claim",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "hasCursorClaim"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "get_cursor",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "cursor"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "on_cursor_changed",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "would_claim_touch",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "wouldClaimTouch"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "dispatch_pointer",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "dispatchPointer"
+      }
     },
     {
       "crate": "interaction",
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "lifetime",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Interaction.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "link",

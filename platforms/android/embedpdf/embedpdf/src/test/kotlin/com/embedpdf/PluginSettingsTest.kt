@@ -50,4 +50,19 @@ class PluginSettingsTest {
         assertEquals(registered, render.settings())
         viewer.destroy()
     }
+
+    @Test
+    fun interactionDefaultAppliesToNewDocuments() = viewerTest {
+        val viewer = started(ViewerConfig(interaction = true))
+        val first = viewer.open(Fixture.bytes("report"))
+        val interaction = viewer.interaction(first)
+        val registered = interaction.settings()
+        interaction.updateSettings(InteractionSettingsPatch(defaultTool = "pan"))
+        val second = viewer.open(Fixture.bytes("report"))
+        val other = viewer.interaction(second)
+        assertEquals(ToolId.PAN, other.activeToolId())
+        other.resetSettings()
+        assertEquals(registered, interaction.settings())
+        viewer.destroy()
+    }
 }
