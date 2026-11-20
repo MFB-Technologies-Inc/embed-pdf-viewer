@@ -3,3 +3,4 @@
 !.devcontainer/**
 !package.json
 !rust-toolchain.toml
+!tooling/viewer-e2e/package.json

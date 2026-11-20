@@ -1,7 +1,11 @@
 {
-  "name": "EmbedPDF TypeScript + Rust",
+  "name": "EmbedPDF TypeScript, Rust and .NET",
   "workspaceMount": "source=embedpdf-workspace,target=/workspaces,type=volume",
   "workspaceFolder": "/workspaces/embed-pdf-viewer",
+  "mounts": [
+    "source=embedpdf-cargo-registry,target=/home/node/.cargo/registry,type=volume",
+    "source=embedpdf-cache,target=/home/node/.cache,type=volume"
+  ],
   "build": {
     "dockerfile": "Dockerfile",
     "context": ".."
@@ -15,7 +19,9 @@
   "containerEnv": {
     "NPM_TOKEN": "",
     "OAUTH2_FORWARDER_SERVER": "host.docker.internal:${localEnv:OAUTH2_FORWARDER_PORT:18080}",
-    "GIT_CREDENTIAL_FORWARDER_SERVER": "host.docker.internal:${localEnv:GIT_CREDENTIAL_FORWARDER_PORT:18081}"
+    "GIT_CREDENTIAL_FORWARDER_SERVER": "host.docker.internal:${localEnv:GIT_CREDENTIAL_FORWARDER_PORT:18081}",
+    "EMBEDPDF_GIT_NAME": "${localEnv:EMBEDPDF_GIT_NAME}",
+    "EMBEDPDF_GIT_EMAIL": "${localEnv:EMBEDPDF_GIT_EMAIL}"
   },
   "onCreateCommand": "python3 /usr/local/share/embedpdf/clone.py",
   "postCreateCommand": "python3 .devcontainer/setup.py",
@@ -29,7 +35,6 @@
     "vscode": {
       "extensions": [
         "rust-lang.rust-analyzer",
-        "swiftlang.swift-vscode",
         "tamasfe.even-better-toml",
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode"

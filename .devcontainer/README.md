@@ -1,7 +1,7 @@
 # EmbedPDF development container
 
-Use Docker directly with any editor or terminal. The compiler toolchains, coding
-agents, browser authentication, and Git credential forwarding work independently
+Use Docker directly with any editor or terminal. The compiler toolchains, browser
+authentication, and Git credential forwarding work independently
 of VS Code. An editor integration can automate setup and port forwarding; the
 commands below perform those steps explicitly.
 
@@ -36,8 +36,14 @@ may need a local relay.
 1. Build the image:
 
    ```sh
-   docker build -f .devcontainer/Dockerfile -t embedpdf-dev .
+   .devcontainer/build.sh
    ```
+
+   The script tags the image `embedpdf-dev:<date>-<commit>` as well as `latest`, and
+   labels it with the commit. To see which commit a container's image came from, run
+   `docker inspect -f '{{index .Config.Labels "org.opencontainers.image.revision"}}' embed-pdf`.
+   A plain `docker build -f .devcontainer/Dockerfile -t embedpdf-dev .` still works; its
+   label reads `unknown`.
 
 2. Start each host forwarder in its own terminal and leave both running:
 
@@ -54,6 +60,10 @@ may need a local relay.
    ```sh
    docker run -d --init --name embed-pdf --user node \
      --mount type=volume,source=embedpdf-workspace,target=/workspaces \
+     --mount type=volume,source=embedpdf-cargo-registry,target=/home/node/.cargo/registry \
+     --mount type=volume,source=embedpdf-cache,target=/home/node/.cache \
+     -e EMBEDPDF_GIT_NAME="$(git config user.name)" \
+     -e EMBEDPDF_GIT_EMAIL="$(git config user.email)" \
      --publish 127.0.0.1:3000:3000 \
      --publish 127.0.0.1:5173:5173 \
      --workdir /workspaces/embed-pdf-viewer embedpdf-dev
@@ -68,6 +78,8 @@ may need a local relay.
 
    First build and setup take approximately **15–30 minutes**, depending on
    downloads and emulation. The clone script preserves an existing checkout.
+   Setup sets the global Git identity from `EMBEDPDF_GIT_NAME` and
+   `EMBEDPDF_GIT_EMAIL` when the container has none yet.
 
 5. Open a development shell:
 
@@ -79,9 +91,15 @@ The Docker build context includes only container definitions and toolchain pins.
 The clone and setup scripts use Python 3's standard library, with no pip packages.
 Setup invokes the existing package-manager, compiler, and runtime-fetch tools.
 To override pinned image tools, pass build arguments such as
-`--build-arg CODEX_VERSION=VERSION`, `--build-arg CLAUDE_CODE_VERSION=VERSION`,
-`--build-arg OAUTH2_FORWARDER_VERSION=VERSION`, or
-`--build-arg GIT_CREDENTIAL_FORWARDER_VERSION=VERSION` to `docker build`.
+`--build-arg OAUTH2_FORWARDER_VERSION=VERSION` or
+`--build-arg GIT_CREDENTIAL_FORWARDER_VERSION=VERSION` to `.devcontainer/build.sh`.
+
+Two more named volumes hold caches that would otherwise be downloaded again for
+every new container: `embedpdf-cargo-registry` (crate sources) and `embedpdf-cache`
+(`~/.cache`, including the 2 GB of Playwright browsers). Containers can share them.
+Cargo's `target/` stays in the workspace volume. A default `CARGO_TARGET_DIR` is not
+set because `crates/epdf-web/scripts/build.sh`, `packages/engine/runtime/scripts/build-target.sh`
+and `perf-compare/scripts/build-arm.mjs` read `$ROOT/target/` directly.
 
 ## Stop, resume, and rebuild
 
@@ -98,7 +116,8 @@ After dependency or runtime pin changes, rerun `python3 .devcontainer/setup.py`
 inside the container. Missing published artifacts fail setup; the fetch scripts
 report the expected release and recovery command.
 
-After changing image toolchain pins, rebuild the image, stop and remove the old
+After changing image toolchain pins, run `python3 .devcontainer/check-pins.py`,
+which the `Development image pins` workflow also runs on pull requests. Then rebuild the image, stop and remove the old
 container, then repeat creation and setup. Removing the container discards its
 home directory and authentication sessions; push work and save any files outside
 `/workspaces` that you want to keep before removing it. Keep `embedpdf-workspace`
@@ -117,20 +136,19 @@ for these editor and lifecycle settings.
 
 | Tool                                                      | Version/source                                       |
 | --------------------------------------------------------- | ---------------------------------------------------- |
-| Node                                                      | 24.20.0                                              |
+| Node                                                      | 24.20.0, `node:24.20.0-trixie-slim`; matches `mise.toml` |
 | pnpm                                                      | `package.json` `packageManager`                      |
-| Rust, Cargo, rustfmt, Clippy, rust-src, cross-target std  | `rust-toolchain.toml`                                |
+| Rust, Cargo, rustfmt, Clippy, rust-src, llvm-tools, cross-target std | `rust-toolchain.toml`; rustup-init 1.29.3, SHA-256 verified |
+| cargo-llvm-cov                                            | 0.9.1                                                |
 | .NET SDK                                                  | 10.0.403; Microsoft archives verified with SHA512      |
 | Clang/libclang, LLD, CMake, Ninja, C/C++ compiler, Python | Debian Trixie packages                               |
-| Emscripten / Binaryen                                     | 3.1.72 / 133, on `PATH`; its `.emscripten` selects Binaryen |
+| Emscripten / Binaryen                                     | 3.1.72 / 133 (SHA-256 verified), on `PATH`; its `.emscripten` selects Binaryen |
 | Emscripten for `wasm32-eh`                                | 4.0.0 with its own Binaryen, sysroot built; `/opt/emsdk-eh` (`$EMSDK_EH`) |
 | wasm-bindgen-cli                                          | 0.2.127, matching `crates/epdf-web/Cargo.toml`       |
-| Android NDK / cargo-ndk                                   | 29.0.14206865 (amd64 only) / 4.1.2                   |
-| swiftly / Swift toolchain                                 | 1.1.4 / 6.3.1; `swiftly` manages further toolchains  |
-| Git, Git LFS, GitHub CLI, ripgrep, jq, ShellCheck         | Debian packages                                      |
-| Codex / Claude Code                                       | Latest at image build; overridable build arguments   |
+| Android NDK / cargo-ndk                                   | 29.0.14206865 (amd64 only, SHA-256 verified) / 4.1.2 |
+| Git, Git LFS, GitHub CLI, rsync, ripgrep, jq, ShellCheck  | Debian packages                                      |
 | OAuth2 / Git credential forwarding clients                | oauth2-forwarder 1.9.4 / git-credential-forwarder 1.8.0 |
-| Chromium, Firefox, WebKit                                 | Workspace Playwright version; installed during setup |
+| Chromium, Firefox, WebKit                                 | Workspace Playwright version; system libraries in the image, browsers installed during setup |
 
 Docker selects the host architecture: **linux/arm64** on Apple Silicon and ARM64
 Linux, or **linux/amd64** on x86-64 hosts. Emscripten detects that architecture;
@@ -139,7 +157,7 @@ Binaryen and the native PDFium artifact are selected to match it.
 ## .NET
 
 The image installs SDK 10.0.403 into `/opt/dotnet` for both supported Linux
-architectures. `DOTNET_ROOT`, `PATH` and `/usr/local/bin/dotnet` expose it to the
+architectures. `DOTNET_ROOT` and `/usr/local/bin/dotnet` expose it to the
 `node` user in login and non-login shells. Debian dependencies and libclang for
 Rust bindgen are already installed by the image. The SDK supports Linux managed
 builds and native interop; macOS and Windows native builds still require their
@@ -155,30 +173,19 @@ Check the installation with `dotnet --info` and `dotnet --list-sdks`. Run manage
 project builds with `dotnet build path/to/project.csproj`; no root `global.json`
 is imposed on consumers by this container configuration.
 
-## Swift
-
-`swift` and `swiftly` are on `PATH` for the `node` user. The image pins Swift 6.3.1;
-`swiftly install 6.2.1 --use`, `swiftly list-available`, and `swiftly use` switch
-toolchains without a rebuild, and `swiftly` reads a `.swift-version` file if the
-working directory has one. Toolchains land in `/home/node/.local/share/swiftly`,
-which lives in the image rather than the workspace volume, so a container rebuild discards
-anything installed after the build. To change the pin permanently, edit
-`SWIFT_VERSION` in `.devcontainer/Dockerfile`.
-
-swiftly detects the host as `debian13` and refuses it, because swift.org publishes no
-Trixie toolchain. The build passes `--platform debian12` to `swiftly init`, so the
-Bookworm build runs against Trixie's newer glibc, and the apt list installs swiftly's
-`debian12` dependency set including `libstdc++-12-dev` (12.4.0-5 in Trixie) so
-`swiftly install` doesn't stop on a missing package. `swift build` and `swift test`
-were verified against a scratch package on arm64 under this arrangement. `swift repl`
-and `lldb` are broken: they link `libpython3.11.so.1.0`, which Trixie doesn't ship,
-and fail with `error while loading shared libraries`.
+## Android, Swift and iOS
 
 The Android NDK is installed only on amd64: Google does not publish Linux ARM64
 host binaries. ARM64 containers still support the TypeScript engine, native Rust
-engine, WASM toolchain, and both coding CLIs. Android compilation requires an
+engine, and WASM toolchain. Android compilation requires an
 amd64 environment; Android Studio, an emulator, and the Android application SDK
-are not included. iOS compilation still requires macOS/Xcode.
+are not included.
+
+The image has no Swift toolchain. Swift, Xcode and iOS work runs on the macOS host,
+which also runs the coding agents; they reach this container through `docker exec`.
+The Linux Swift toolchain cost 3.55 GB, and the only scripts that used it on Linux
+were the benchmarks under `viewer-rust-port-benchmarks/swift-geometry-only` and
+`pdfium-multiplatform-prototype/build/test-swift.sh`.
 
 ## Use
 
@@ -204,11 +211,9 @@ For custom ports, start the host servers with the desired values and pass
 `-e GIT_CREDENTIAL_FORWARDER_SERVER=host.docker.internal:PORT` to `docker run`.
 No host socket mounts are required.
 
-Run `codex` and `claude` in the container terminal to authenticate. Their local
-sessions live in the container user's home and must be recreated after a rebuild.
 The forwarders use the host browser and Git credential manager without copying
 host credentials into the image. The `node` user has sudo for development tools.
-Use the build arguments described above to pin the agents or forwarding tools.
+Use the build arguments described above to change the forwarding tool versions.
 
 For viewer development, bind the dev server to `0.0.0.0`; the Docker command above
 publishes ports 3000 and 5173 on the host loopback interface. Editor integration also

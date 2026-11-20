@@ -1,0 +1,32 @@
+name: Development image pins
+
+# .devcontainer/Dockerfile repeats toolchain versions that other files own
+# (mise.toml, the release workflows, crates/epdf-web/Cargo.toml). This fails
+# when one side is bumped without the other.
+
+on:
+  pull_request:
+    paths:
+      - '.devcontainer/**'
+      - 'mise.toml'
+      - 'crates/epdf-web/Cargo.toml'
+      - 'perf-compare/scripts/build-arm.mjs'
+      - '.github/workflows/build-engine-runtime.yml'
+      - '.github/workflows/release-dotnet.yml'
+      - '.github/workflows/release-rust-viewer.yml'
+      - '.github/workflows/devcontainer-pins.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Compare pins
+        run: python3 .devcontainer/check-pins.py

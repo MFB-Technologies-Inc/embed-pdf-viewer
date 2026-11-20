@@ -1,54 +1,47 @@
 # syntax=docker/dockerfile:1
 # Docker selects the host architecture; supported hosts are amd64 and arm64.
-FROM node:24.20.0-trixie
+# Must equal `node` in mise.toml; .devcontainer/check-pins.py enforces it.
+FROM node:24.20.0-trixie-slim
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ARG TARGETARCH
+# Must equal EMSDK_VERSION in .github/workflows/build-engine-runtime.yml.
 ARG EMSDK_VERSION=3.1.72
 # The wasm32-eh pin in the runtime fork's scripts/embedpdf-runtime/emsdk-version.sh and
 # EH_EMSDK_VERSION in perf-compare/scripts/build-arm.mjs: the Rust-core payload links with it.
 ARG EMSDK_EH_VERSION=4.0.0
+# Must equal BINARYEN_VERSION and BINARYEN_SHA256 in .github/workflows/release-rust-viewer.yml.
 ARG BINARYEN_VERSION=133
+ARG BINARYEN_SHA256_AMD64=2dc9c7813f5375db93d96ead4b78222fcc3e2677bbb832297af4797782a37489
+ARG BINARYEN_SHA256_ARM64=89c07ea56faf38d0fbecf36ca8ec0721756716185f265b568e133d427f299bf8
+# Google publishes SHA-1 (87e2bb7e9be5d6a1c6cdf5ec40dd4e0c6d07c30b); this SHA-256 was taken
+# from an archive that matched it.
+ARG NDK_SHA256=4abbbcdc842f3d4879206e9695d52709603e52dd68d3c1fff04b3b5e7a308ecf
+# Must equal the version and SHA512 in .github/workflows/release-dotnet.yml.
+ARG DOTNET_SDK_VERSION=10.0.403
+ARG RUSTUP_VERSION=1.29.3
+ARG RUSTUP_SHA256_AMD64=b1c8cb14e30889e7e2999e6b69e62d9e9b9ffc0f4df8180564d306d9680e6c55
+ARG RUSTUP_SHA256_ARM64=9f608c142e0e38a78957d0661ba1dfaf0b6fb37184cfaa4b9a0aa57af6184282
 ARG CARGO_NDK_VERSION=4.1.2
+ARG CARGO_LLVM_COV_VERSION=0.9.1
 # Must equal the `wasm-bindgen` pin in crates/epdf-web/Cargo.toml.
 ARG WASM_BINDGEN_VERSION=0.2.127
-ARG SWIFTLY_VERSION=1.1.4
-ARG SWIFT_VERSION=6.3.1
-# swiftly has no Debian 13 entry and swift.org publishes no trixie toolchain;
-# the bookworm build runs on trixie's newer glibc.
-ARG SWIFT_PLATFORM=debian12
-ARG CODEX_VERSION=latest
-ARG CLAUDE_CODE_VERSION=latest
 ARG OAUTH2_FORWARDER_VERSION=1.9.4
 ARG GIT_CREDENTIAL_FORWARDER_VERSION=1.8.0
 
+# The slim base omits what the full buildpack image supplied; git, ssh, procps, file
+# and bzip2 are restored here. libicu76 and zlib1g are .NET runtime dependencies.
 RUN case "$TARGETARCH" in amd64|arm64) ;; *) echo "Unsupported architecture: $TARGETARCH" >&2; exit 1 ;; esac \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
        build-essential clang libclang-dev lld cmake ninja-build pkg-config \
        libssl-dev python3 python3-venv git git-lfs gh curl ca-certificates \
+       openssh-client procps file bzip2 rsync \
        unzip zip xz-utils jq ripgrep fd-find less sudo shellcheck \
-       gnupg tzdata libicu-dev libcurl4-openssl-dev libedit-dev libsqlite3-dev \
-       libncurses-dev libpython3-dev libxml2-dev uuid-dev libstdc++-12-dev \
+       tzdata libicu76 zlib1g \
     && rm -rf /var/lib/apt/lists/* \
     && echo 'node ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/node \
     && chmod 0440 /etc/sudoers.d/node
-
-# Read the package-manager and Rust pins from the checkout at image build time.
-COPY package.json rust-toolchain.toml /opt/embedpdf-pins/
-RUN npm install -g "$(node -p "require('/opt/embedpdf-pins/package.json').packageManager")"
-
-# Seed a Docker-managed volume with writable directories, never a host checkout.
-RUN mkdir -p /workspaces/embed-pdf-viewer \
-    && chown -R node:node /workspaces \
-    && git config --system credential.helper /home/node/.npm-global/bin/git-credential-forwarder-client
-COPY .devcontainer/clone.py /usr/local/share/embedpdf/clone.py
-ENV EMBEDPDF_REPOSITORY=https://github.com/MFB-Technologies-Inc/embed-pdf-viewer.git \
-    EMBEDPDF_BRANCH=research/multi-platform-rust-core-impl-plugins \
-    EMBEDPDF_WORKSPACE=/workspaces/embed-pdf-viewer \
-    OAUTH2_FORWARDER_SERVER=host.docker.internal:18080 \
-    GIT_CREDENTIAL_FORWARDER_SERVER=host.docker.internal:18081 \
-    BROWSER=o2f-browser
 
 RUN git clone --depth 1 --branch "$EMSDK_VERSION" https://github.com/emscripten-core/emsdk.git /opt/emsdk \
     && /opt/emsdk/emsdk install "$EMSDK_VERSION" \
@@ -57,88 +50,37 @@ RUN git clone --depth 1 --branch "$EMSDK_VERSION" https://github.com/emscripten-
     && chown -R node:node /opt/emsdk
 # A second emsdk for wasm32-eh, with its own binaryen and a built sysroot: pdfium-sys runs
 # bindgen against the cache's sysroot before emcc has installed any headers there.
-RUN git clone --depth 1 https://github.com/emscripten-core/emsdk.git /opt/emsdk-eh \
+RUN git clone --depth 1 --branch "$EMSDK_EH_VERSION" https://github.com/emscripten-core/emsdk.git /opt/emsdk-eh \
     && /opt/emsdk-eh/emsdk install "$EMSDK_EH_VERSION" \
     && /opt/emsdk-eh/emsdk activate "$EMSDK_EH_VERSION" \
     && bash -c 'unset EM_CONFIG; source /opt/emsdk-eh/emsdk_env.sh >/dev/null 2>&1 && embuilder build sysroot && emcc --version | grep -F " $0 "' "$EMSDK_EH_VERSION" \
     && chown -R node:node /opt/emsdk-eh
-RUN case "$TARGETARCH" in amd64) binaryen_arch=x86_64 ;; arm64) binaryen_arch=aarch64 ;; esac \
+RUN case "$TARGETARCH" in \
+      amd64) binaryen_arch=x86_64; binaryen_sha256="$BINARYEN_SHA256_AMD64" ;; \
+      arm64) binaryen_arch=aarch64; binaryen_sha256="$BINARYEN_SHA256_ARM64" ;; \
+    esac \
     && curl -fsSL --retry 3 \
       "https://github.com/WebAssembly/binaryen/releases/download/version_${BINARYEN_VERSION}/binaryen-version_${BINARYEN_VERSION}-${binaryen_arch}-linux.tar.gz" \
       -o /tmp/binaryen.tar.gz \
+    && echo "$binaryen_sha256  /tmp/binaryen.tar.gz" | sha256sum -c - \
     && mkdir /opt/binaryen \
     && tar -xzf /tmp/binaryen.tar.gz -C /opt/binaryen --strip-components=1 \
     && rm /tmp/binaryen.tar.gz
 
-# NDK r29 = 29.0.14206865; checksum from developer.android.com/ndk/downloads.
-# Google provides Linux host binaries only for x86-64.
+# NDK r29 = 29.0.14206865. Google provides Linux host binaries only for x86-64.
 RUN if [ "$TARGETARCH" = amd64 ]; then \
       curl -fsSL --retry 3 https://dl.google.com/android/repository/android-ndk-r29-linux.zip -o /tmp/ndk.zip \
-    && echo '87e2bb7e9be5d6a1c6cdf5ec40dd4e0c6d07c30b  /tmp/ndk.zip' | sha1sum -c - \
+    && echo "$NDK_SHA256  /tmp/ndk.zip" | sha256sum -c - \
     && unzip -q /tmp/ndk.zip -d /opt \
     && rm /tmp/ndk.zip; \
     else \
       echo 'Android NDK omitted: Google does not provide a Linux ARM64 host toolchain.'; \
     fi
 
-ENV EMSDK=/opt/emsdk \
-    EM_CONFIG=/opt/emsdk/.emscripten \
-    EMSDK_EH=/opt/emsdk-eh \
-    ANDROID_NDK_HOME=/opt/android-ndk-r29 \
-    SWIFTLY_HOME_DIR=/home/node/.local/share/swiftly \
-    SWIFTLY_BIN_DIR=/home/node/.local/share/swiftly/bin \
-    NPM_CONFIG_PREFIX=/home/node/.npm-global
-ENV PATH="/home/node/.cargo/bin:/home/node/.local/share/swiftly/bin:/home/node/.npm-global/bin:/opt/emsdk/upstream/emscripten:/opt/emsdk/upstream/bin:/opt/binaryen/bin:${PATH}"
-
-USER node
-WORKDIR /home/node
-RUN curl -fsSL --retry 3 https://sh.rustup.rs -o /tmp/install-rust.sh \
-    && bash /tmp/install-rust.sh -y --profile minimal --default-toolchain none \
-    && rm /tmp/install-rust.sh \
-    && rust_version="$(python3 -c 'import tomllib; print(tomllib.load(open("/opt/embedpdf-pins/rust-toolchain.toml", "rb"))["toolchain"]["channel"])')" \
-    && rustup toolchain install "$rust_version" --profile minimal --component rustfmt,clippy,rust-src \
-    && rustup default "$rust_version" \
-    && python3 -c 'import subprocess,tomllib; t=tomllib.load(open("/opt/embedpdf-pins/rust-toolchain.toml", "rb"))["toolchain"]; subprocess.run(["rustup", "target", "add", "--toolchain", t["channel"], *t["targets"]], check=True)' \
-    && cargo install --locked cargo-ndk --version "$CARGO_NDK_VERSION" \
-    && cargo install --locked wasm-bindgen-cli --version "$WASM_BINDGEN_VERSION"
-
-# swiftly writes ~/.profile so login shells, which reset PATH via /etc/profile,
-# still find the toolchain; the ENV above covers non-login shells.
-RUN case "$TARGETARCH" in amd64) swiftly_arch=x86_64 ;; arm64) swiftly_arch=aarch64 ;; esac \
-    && curl -fsSL --retry 3 \
-      "https://download.swift.org/swiftly/linux/swiftly-${SWIFTLY_VERSION}-${swiftly_arch}.tar.gz" \
-      -o /tmp/swiftly.tar.gz \
-    && mkdir /tmp/swiftly \
-    && tar -xzf /tmp/swiftly.tar.gz -C /tmp/swiftly \
-    && /tmp/swiftly/swiftly init --assume-yes --skip-install \
-       --quiet-shell-followup --platform "$SWIFT_PLATFORM" \
-    && rm -rf /tmp/swiftly /tmp/swiftly.tar.gz \
-    && "$SWIFTLY_BIN_DIR/swiftly" install "$SWIFT_VERSION" --use --assume-yes
-
-# Installed as the development user so both CLIs can be upgraded without sudo.
-ENV PATH="/opt/binaryen/bin:${PATH}"
-RUN npm install -g "@openai/codex@${CODEX_VERSION}" "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" \
-       "oauth2-forwarder@${OAUTH2_FORWARDER_VERSION}" "git-credential-forwarder@${GIT_CREDENTIAL_FORWARDER_VERSION}" \
-    && o2f-client --version && gcf-client --version \
-    && codex --version && claude --version \
-    && rustc --version && swift --version && pnpm --version && emcc --version \
-    && wasm-opt --version | grep -F "version ${BINARYEN_VERSION}" \
-    && wasm-bindgen --version | grep -F "$WASM_BINDGEN_VERSION"
-
-# Login shells (`bash -l`, which VS Code may open) reset PATH in /etc/profile
-# and lose the ENV entries above that no ~/.profile hook restores.
-RUN printf '%s\n' \
-      'export PATH="/opt/binaryen/bin:/home/node/.npm-global/bin:/opt/emsdk/upstream/emscripten:/opt/emsdk/upstream/bin:$PATH"' \
-    | sudo tee /etc/profile.d/embedpdf-toolchain.sh >/dev/null \
-    && bash -lc 'command -v emcc && command -v claude && wasm-opt --version | grep -F "version ${BINARYEN_VERSION}"'
-
-USER root
-ARG DOTNET_SDK_VERSION=10.0.403
 # SHA512 values from Microsoft's .NET 10 release metadata, matched to this SDK.
 RUN case "$TARGETARCH" in \
       amd64) dotnet_arch=x64; dotnet_sha512=b7b3d8461cf98b07d2552ce9199702fa3ad010ac2671a5f8cd5136f7534e50f6855ba7bbb02b11494563f1d04156276a31cda1103b900e5eecd0d9473dc7b9c5 ;; \
       arm64) dotnet_arch=arm64; dotnet_sha512=0966aa2b70f4677b8319be9df447a78a0dcd6164836425b55a68fd714f4023feb87b4cac21b9a996b79472ad54487cd0adcd2a9dfd570e2b2a1d26423a2baa9b ;; \
-      *) echo "Unsupported .NET architecture: $TARGETARCH" >&2; exit 1 ;; \
     esac \
     && curl -fsSL --retry 3 \
       "https://builds.dotnet.microsoft.com/dotnet/Sdk/${DOTNET_SDK_VERSION}/dotnet-sdk-${DOTNET_SDK_VERSION}-linux-${dotnet_arch}.tar.gz" \
@@ -149,16 +91,91 @@ RUN case "$TARGETARCH" in \
     && rm /tmp/dotnet-sdk.tar.gz \
     && ln -s /opt/dotnet/dotnet /usr/local/bin/dotnet
 
-ENV DOTNET_ROOT=/opt/dotnet \
-    DOTNET_CLI_TELEMETRY_OPTOUT=1 \
-    DOTNET_NOLOGO=1
-ENV PATH="/opt/dotnet:${PATH}"
-USER node
-RUN test "$(dotnet --version)" = "$DOTNET_SDK_VERSION" \
-    && bash -lc 'test "$(command -v dotnet)" = /usr/local/bin/dotnet'
+# Seed a Docker-managed volume with writable directories, never a host checkout.
+RUN mkdir -p /workspaces/embed-pdf-viewer \
+    && chown -R node:node /workspaces \
+    && git config --system credential.helper /home/node/.npm-global/bin/git-credential-forwarder-client
+COPY .devcontainer/clone.py /usr/local/share/embedpdf/clone.py
 
-# Login shells reset PATH; retain the npm clients and browser helper there too.
-RUN printf '%s\n' 'export PATH="/home/node/.npm-global/bin:$PATH"' \
-    | sudo tee /etc/profile.d/embedpdf-forwarders.sh >/dev/null
+ENV EMBEDPDF_REPOSITORY=https://github.com/MFB-Technologies-Inc/embed-pdf-viewer.git \
+    EMBEDPDF_BRANCH=research/multi-platform-rust-core-impl-plugins \
+    EMBEDPDF_WORKSPACE=/workspaces/embed-pdf-viewer \
+    OAUTH2_FORWARDER_SERVER=host.docker.internal:18080 \
+    GIT_CREDENTIAL_FORWARDER_SERVER=host.docker.internal:18081 \
+    BROWSER=o2f-browser \
+    EMSDK=/opt/emsdk \
+    EM_CONFIG=/opt/emsdk/.emscripten \
+    EMSDK_EH=/opt/emsdk-eh \
+    ANDROID_NDK_HOME=/opt/android-ndk-r29 \
+    DOTNET_ROOT=/opt/dotnet \
+    DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+    DOTNET_NOLOGO=1 \
+    NPM_CONFIG_PREFIX=/home/node/.npm-global
+# Binaryen comes before emsdk's own bin directory, which ships an older wasm-opt.
+ENV PATH="/opt/binaryen/bin:/home/node/.cargo/bin:/home/node/.npm-global/bin:/opt/emsdk/upstream/emscripten:/opt/emsdk/upstream/bin:${PATH}"
+# Login shells (`bash -l`, which VS Code may open) reset PATH in /etc/profile.
+RUN printf '%s\n' \
+      'export PATH="/opt/binaryen/bin:/home/node/.cargo/bin:/home/node/.npm-global/bin:/opt/emsdk/upstream/emscripten:/opt/emsdk/upstream/bin:$PATH"' \
+      > /etc/profile.d/embedpdf-toolchain.sh
+
+USER node
+WORKDIR /home/node
+# The registry and cache directories exist so named volumes mounted there start owned by node.
+RUN case "$TARGETARCH" in \
+      amd64) rustup_triple=x86_64-unknown-linux-gnu; rustup_sha256="$RUSTUP_SHA256_AMD64" ;; \
+      arm64) rustup_triple=aarch64-unknown-linux-gnu; rustup_sha256="$RUSTUP_SHA256_ARM64" ;; \
+    esac \
+    && curl -fsSL --retry 3 \
+      "https://static.rust-lang.org/rustup/archive/${RUSTUP_VERSION}/${rustup_triple}/rustup-init" \
+      -o /tmp/rustup-init \
+    && echo "$rustup_sha256  /tmp/rustup-init" | sha256sum -c - \
+    && chmod +x /tmp/rustup-init \
+    && /tmp/rustup-init -y --profile minimal --default-toolchain none \
+    && rm /tmp/rustup-init \
+    && mkdir -p /home/node/.cargo/registry /home/node/.cache
+
+# Toolchain pins are copied as late as possible: a change to one file rebuilds only the
+# layers after it, not the emsdk, NDK and .NET layers above.
+COPY rust-toolchain.toml /opt/embedpdf-pins/
+RUN rust_version="$(python3 -c 'import tomllib; print(tomllib.load(open("/opt/embedpdf-pins/rust-toolchain.toml", "rb"))["toolchain"]["channel"])')" \
+    && rustup toolchain install "$rust_version" --profile minimal --component rustfmt,clippy,rust-src,llvm-tools \
+    && rustup default "$rust_version" \
+    && python3 -c 'import subprocess,tomllib; t=tomllib.load(open("/opt/embedpdf-pins/rust-toolchain.toml", "rb"))["toolchain"]; subprocess.run(["rustup", "target", "add", "--toolchain", t["channel"], *t["targets"]], check=True)' \
+    && cargo install --locked cargo-ndk --version "$CARGO_NDK_VERSION" \
+    && cargo install --locked wasm-bindgen-cli --version "$WASM_BINDGEN_VERSION" \
+    && cargo install --locked cargo-llvm-cov --version "$CARGO_LLVM_COV_VERSION" \
+    && rm -rf /home/node/.cargo/registry/* /home/node/.cargo/git
+
+RUN npm install -g "oauth2-forwarder@${OAUTH2_FORWARDER_VERSION}" \
+       "git-credential-forwarder@${GIT_CREDENTIAL_FORWARDER_VERSION}" \
+    && npm cache clean --force
+
+COPY package.json /opt/embedpdf-pins/
+RUN npm install -g "$(node -p "require('/opt/embedpdf-pins/package.json').packageManager")" \
+    && npm cache clean --force
+
+# Playwright's system libraries, for the version the workspace pins. setup.py installs
+# the browsers themselves into ~/.cache/ms-playwright.
+COPY tooling/viewer-e2e/package.json /opt/embedpdf-pins/viewer-e2e/
+USER root
+RUN playwright_version="$(node -p "require('/opt/embedpdf-pins/viewer-e2e/package.json').devDependencies['@playwright/test']")" \
+    && npx -y "playwright@${playwright_version}" install-deps chromium firefox webkit \
+    && rm -rf /var/lib/apt/lists/* /root/.npm
+USER node
+
+RUN o2f-client --version && gcf-client --version \
+    && rustc --version && cargo llvm-cov --version && pnpm --version && emcc --version && dotnet --version \
+    && test "$(dotnet --version)" = "$DOTNET_SDK_VERSION" \
+    && wasm-opt --version | grep -F "version ${BINARYEN_VERSION}" \
+    && wasm-bindgen --version | grep -F "$WASM_BINDGEN_VERSION" \
+    && bash -lc 'command -v emcc && command -v cargo && command -v pnpm && command -v o2f-browser && test "$(command -v dotnet)" = /usr/local/bin/dotnet && wasm-opt --version | grep -F "version ${BINARYEN_VERSION}"'
+
+# Set by .devcontainer/build.sh. Kept last so a new revision rebuilds only this layer.
+ARG VCS_REF=unknown
+ARG BUILD_DATE=unknown
+LABEL org.opencontainers.image.title="embedpdf-dev" \
+      org.opencontainers.image.source="https://github.com/MFB-Technologies-Inc/embed-pdf-viewer" \
+      org.opencontainers.image.revision="$VCS_REF" \
+      org.opencontainers.image.created="$BUILD_DATE"
 
 CMD ["sleep", "infinity"]

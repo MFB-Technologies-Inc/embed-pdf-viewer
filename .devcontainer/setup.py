@@ -11,8 +11,20 @@ def run(*command, check=True):
     return subprocess.run(command, check=check)
 
 
+def configure_git_identity():
+    """Set the commit identity from EMBEDPDF_GIT_NAME/EMAIL unless one is already set."""
+    for key, variable in (("user.name", "EMBEDPDF_GIT_NAME"), ("user.email", "EMBEDPDF_GIT_EMAIL")):
+        value = os.environ.get(variable, "").strip()
+        current = subprocess.run(
+            ["git", "config", "--global", key], capture_output=True, text=True
+        ).stdout.strip()
+        if value and not current:
+            run("git", "config", "--global", key, value)
+
+
 def main():
     os.chdir(Path(__file__).resolve().parent.parent)
+    configure_git_identity()
     # Public dependencies need no publishing token; preserve one if supplied.
     os.environ.setdefault("NPM_TOKEN", "")
     subprocess.run(
@@ -44,13 +56,9 @@ def main():
         work_emsdk.symlink_to(image_emsdk)
 
     run("bash", "packages/engine/runtime/scripts/fetch-payload.sh", "wasm32")
-    for package in (
-        "@embedpdf/engine-runtime",
-        "@embedpdf/engine-core",
-        "@embedpdf/engine-services",
-        "@embedpdf/engine",
-    ):
-        run("pnpm", "--filter", package, "build")
+    # The trailing "..." builds the engine's workspace dependencies first, in order,
+    # so a new one (such as @embedpdf/core-fonts) needs no change here.
+    run("pnpm", "--filter", "@embedpdf/engine...", "build")
 
     # The engine worker and stamp locales used by the Rust kernel eval app.
     run("pnpm", "--filter", "@embedpdf/example-rust-kernel-eval", "bootstrap")
