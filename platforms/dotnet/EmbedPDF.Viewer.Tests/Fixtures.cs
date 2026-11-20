@@ -10,6 +10,7 @@ static class Fixture
         ["colors"] = "pdfium-multiplatform-prototype/fixtures/colors.pdf",
         ["features"] = "tooling/viewer-e2e/fixtures/features.pdf",
         ["signed_two_approvals"] = "packages/engine/main/test/fixtures/signed_two_approvals.pdf",
+        ["document_actions"] = "tooling/engine-conformance/fixtures/document_actions.pdf",
     };
 
     public static string Path(string name)

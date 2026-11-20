@@ -38,6 +38,12 @@ public sealed class NullArgumentTests
         _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>) =>
             Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(type.GetGenericArguments())),
         _ when type == typeof(System.Reflection.Assembly) => typeof(NullArgumentTests).Assembly,
+        _ when type == typeof(PdfActionTree) => ActionsTests.UriTree("https://a.test/"),
+        _ when type == typeof(ActionContext) => ActionsTests.User,
+        _ when type == typeof(ActionTreeSource) => new ActionTreeSource.Document(null),
+        _ when type == typeof(ActionTrigger) => new ActionTrigger.Document(DocumentTriggerEvent.Open),
+        _ when type == typeof(IActionExecutor) => new RecordingExecutor(),
+        _ when type == typeof(Func<Task>) => (Func<Task>)(() => Task.CompletedTask),
         _ when type.IsValueType => Activator.CreateInstance(type),
         _ when type.GetConstructor(Type.EmptyTypes) is { } constructor => constructor.Invoke(null),
         _ when type == typeof(IDocumentFetcher) => new HttpClientDocumentFetcher(),
@@ -107,16 +113,18 @@ public sealed class NullArgumentTests
     [Fact]
     public async Task EveryWaveBCapabilityChecksEveryReferenceArgument()
     {
-        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true, Feedback = new(), I18n = new() });
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true, Feedback = new(), I18n = new(), Actions = new() { OpenSequence = OpenSequence.Off } });
         var document = await viewer.OpenAsync(Fixture.Data("report"));
         object[] targets =
         [
             await viewer.GetInteractionAsync(document), await viewer.GetFeedbackAsync(), await viewer.GetI18nAsync(),
+            await viewer.GetActionsAsync(document),
             new EmbeddedResourceLocaleLoader(typeof(NullArgumentTests).Assembly),
         ];
         foreach (var target in targets) Assert.Empty(await Unchecked(target));
         Assert.Throws<ArgumentNullException>(() => new EmbeddedResourceLocaleLoader(null!));
         Assert.Throws<ArgumentNullException>(() => LocalePack.FromJson(null!));
+        Assert.Throws<ArgumentNullException>(() => PdfActionTree.FromJson(null!));
     }
 
     [Fact]

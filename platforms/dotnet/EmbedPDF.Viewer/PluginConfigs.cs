@@ -1,8 +1,5 @@
-using GA = uniffi.epdf_plugin_actions;
 using GF = uniffi.epdf_plugin_form;
 using GH = uniffi.epdf_viewer_host;
-using GI = uniffi.epdf_plugin_interaction;
-using GL = uniffi.epdf_plugin_i18n;
 using GM = uniffi.epdf_plugin_measurement;
 using GR = uniffi.epdf_plugin_render;
 using GRd = uniffi.epdf_plugin_redaction;
@@ -57,12 +54,6 @@ public sealed record MeasurementConfig
 public sealed record StampConfig
 {
     internal GSp.StampConfig ToFfi() => new();
-}
-
-/// <summary>Installs the actions plugin.</summary>
-public sealed record ActionsConfig
-{
-    internal GA.ActionsConfig ToFfi(PluginContext context) => new();
 }
 
 /// <summary>Installs the signature plugin. Needs <see cref="PdfViewerOptions.Form"/>.</summary>

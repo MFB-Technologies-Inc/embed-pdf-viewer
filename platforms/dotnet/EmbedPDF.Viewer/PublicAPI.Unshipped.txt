@@ -1,8 +1,575 @@
 #nullable enable
+EmbedPDF.ActionAlertOptions
+EmbedPDF.ActionAlertOptions.<Clone>$() -> EmbedPDF.ActionAlertOptions!
+EmbedPDF.ActionAlertOptions.ActionAlertOptions(EmbedPDF.ActionOrigin Origin, EmbedPDF.ScriptPhase Phase, double Icon, string? Title) -> void
+EmbedPDF.ActionAlertOptions.Deconstruct(out EmbedPDF.ActionOrigin Origin, out EmbedPDF.ScriptPhase Phase, out double Icon, out string? Title) -> void
+EmbedPDF.ActionAlertOptions.Equals(EmbedPDF.ActionAlertOptions? other) -> bool
+EmbedPDF.ActionAlertOptions.Icon.get -> double
+EmbedPDF.ActionAlertOptions.Icon.init -> void
+EmbedPDF.ActionAlertOptions.Origin.get -> EmbedPDF.ActionOrigin
+EmbedPDF.ActionAlertOptions.Origin.init -> void
+EmbedPDF.ActionAlertOptions.Phase.get -> EmbedPDF.ScriptPhase
+EmbedPDF.ActionAlertOptions.Phase.init -> void
+EmbedPDF.ActionAlertOptions.Title.get -> string?
+EmbedPDF.ActionAlertOptions.Title.init -> void
+EmbedPDF.ActionAnnotationTreeEvent
+EmbedPDF.ActionAnnotationTreeEvent.ActionAnnotationTreeEvent(EmbedPDF.ActionAnnotationTreeEvent! original) -> void
+EmbedPDF.ActionAnnotationTreeEvent.Activate
+EmbedPDF.ActionAnnotationTreeEvent.Activate.Activate() -> void
+EmbedPDF.ActionAnnotationTreeEvent.Activate.Equals(EmbedPDF.ActionAnnotationTreeEvent.Activate? other) -> bool
+EmbedPDF.ActionAnnotationTreeEvent.Event
+EmbedPDF.ActionAnnotationTreeEvent.Event.Deconstruct(out EmbedPDF.PdfAnnotationEventKind Kind) -> void
+EmbedPDF.ActionAnnotationTreeEvent.Event.Equals(EmbedPDF.ActionAnnotationTreeEvent.Event? other) -> bool
+EmbedPDF.ActionAnnotationTreeEvent.Event.Event(EmbedPDF.PdfAnnotationEventKind Kind) -> void
+EmbedPDF.ActionAnnotationTreeEvent.Event.Kind.get -> EmbedPDF.PdfAnnotationEventKind
+EmbedPDF.ActionAnnotationTreeEvent.Event.Kind.init -> void
+EmbedPDF.ActionContext
+EmbedPDF.ActionContext.<Clone>$() -> EmbedPDF.ActionContext!
+EmbedPDF.ActionContext.ActionContext(EmbedPDF.ActionOrigin Origin, EmbedPDF.ActionSource! Source, EmbedPDF.ActionTriggerEvent! Event) -> void
+EmbedPDF.ActionContext.Deconstruct(out EmbedPDF.ActionOrigin Origin, out EmbedPDF.ActionSource! Source, out EmbedPDF.ActionTriggerEvent! Event) -> void
+EmbedPDF.ActionContext.Equals(EmbedPDF.ActionContext? other) -> bool
+EmbedPDF.ActionContext.Event.get -> EmbedPDF.ActionTriggerEvent!
+EmbedPDF.ActionContext.Event.init -> void
+EmbedPDF.ActionContext.Origin.get -> EmbedPDF.ActionOrigin
+EmbedPDF.ActionContext.Origin.init -> void
+EmbedPDF.ActionContext.Source.get -> EmbedPDF.ActionSource!
+EmbedPDF.ActionContext.Source.init -> void
+EmbedPDF.ActionDiagnostic
+EmbedPDF.ActionDiagnostic.<Clone>$() -> EmbedPDF.ActionDiagnostic!
+EmbedPDF.ActionDiagnostic.ActionDiagnostic(EmbedPDF.ActionDiagnosticCode Code, string! Message) -> void
+EmbedPDF.ActionDiagnostic.Code.get -> EmbedPDF.ActionDiagnosticCode
+EmbedPDF.ActionDiagnostic.Code.init -> void
+EmbedPDF.ActionDiagnostic.Deconstruct(out EmbedPDF.ActionDiagnosticCode Code, out string! Message) -> void
+EmbedPDF.ActionDiagnostic.Equals(EmbedPDF.ActionDiagnostic? other) -> bool
+EmbedPDF.ActionDiagnostic.Message.get -> string!
+EmbedPDF.ActionDiagnostic.Message.init -> void
+EmbedPDF.ActionDiagnosticCode
+EmbedPDF.ActionDiagnosticCode.Blocked = 1 -> EmbedPDF.ActionDiagnosticCode
+EmbedPDF.ActionDiagnosticCode.CascadeBudget = 12 -> EmbedPDF.ActionDiagnosticCode
+EmbedPDF.ActionDiagnosticCode.DuplicateExecutor = 6 -> EmbedPDF.ActionDiagnosticCode
+EmbedPDF.ActionDiagnosticCode.ExecutorFailed = 8 -> EmbedPDF.ActionDiagnosticCode
+EmbedPDF.ActionDiagnosticCode.ExecutorInert = 7 -> EmbedPDF.ActionDiagnosticCode
+EmbedPDF.ActionDiagnosticCode.IncompleteTree = 0 -> EmbedPDF.ActionDiagnosticCode
+EmbedPDF.ActionDiagnosticCode.NoAdapter = 3 -> EmbedPDF.ActionDiagnosticCode
+EmbedPDF.ActionDiagnosticCode.NoCommitSink = 10 -> EmbedPDF.ActionDiagnosticCode
+EmbedPDF.ActionDiagnosticCode.NoExecutor = 2 -> EmbedPDF.ActionDiagnosticCode
+EmbedPDF.ActionDiagnosticCode.NoSessionSink = 4 -> EmbedPDF.ActionDiagnosticCode
+EmbedPDF.ActionDiagnosticCode.NoSubmitResolver = 15 -> EmbedPDF.ActionDiagnosticCode
+EmbedPDF.ActionDiagnosticCode.NoSubmitSink = 14 -> EmbedPDF.ActionDiagnosticCode
+EmbedPDF.ActionDiagnosticCode.OpenSequenceReplayed = 13 -> EmbedPDF.ActionDiagnosticCode
+EmbedPDF.ActionDiagnosticCode.ReentrantPrint = 18 -> EmbedPDF.ActionDiagnosticCode
+EmbedPDF.ActionDiagnosticCode.SubmitEntryUnsupported = 17 -> EmbedPDF.ActionDiagnosticCode
+EmbedPDF.ActionDiagnosticCode.SubmitPayloadUnavailable = 16 -> EmbedPDF.ActionDiagnosticCode
+EmbedPDF.ActionDiagnosticCode.TriggerDisabled = 9 -> EmbedPDF.ActionDiagnosticCode
+EmbedPDF.ActionDiagnosticCode.TriggerFailed = 11 -> EmbedPDF.ActionDiagnosticCode
+EmbedPDF.ActionDiagnosticCode.UnresolvedTarget = 5 -> EmbedPDF.ActionDiagnosticCode
+EmbedPDF.ActionDispatchResult
+EmbedPDF.ActionDispatchResult.<Clone>$() -> EmbedPDF.ActionDispatchResult!
+EmbedPDF.ActionDispatchResult.ActionDispatchResult(EmbedPDF.ActionResultStatus Status, System.Collections.Generic.IReadOnlyList<EmbedPDF.ActionNodeResult!>! Nodes, System.Collections.Generic.IReadOnlyList<EmbedPDF.ActionDiagnostic!>! Diagnostics) -> void
+EmbedPDF.ActionDispatchResult.Deconstruct(out EmbedPDF.ActionResultStatus Status, out System.Collections.Generic.IReadOnlyList<EmbedPDF.ActionNodeResult!>! Nodes, out System.Collections.Generic.IReadOnlyList<EmbedPDF.ActionDiagnostic!>! Diagnostics) -> void
+EmbedPDF.ActionDispatchResult.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.ActionDiagnostic!>!
+EmbedPDF.ActionDispatchResult.Diagnostics.init -> void
+EmbedPDF.ActionDispatchResult.Equals(EmbedPDF.ActionDispatchResult? other) -> bool
+EmbedPDF.ActionDispatchResult.Nodes.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.ActionNodeResult!>!
+EmbedPDF.ActionDispatchResult.Nodes.init -> void
+EmbedPDF.ActionDispatchResult.Status.get -> EmbedPDF.ActionResultStatus
+EmbedPDF.ActionDispatchResult.Status.init -> void
+EmbedPDF.ActionExecutorResult
+EmbedPDF.ActionExecutorResult.ActionExecutorResult(EmbedPDF.ActionExecutorResult! original) -> void
+EmbedPDF.ActionExecutorResult.Executed
+EmbedPDF.ActionExecutorResult.Executed.Equals(EmbedPDF.ActionExecutorResult.Executed? other) -> bool
+EmbedPDF.ActionExecutorResult.Executed.Executed() -> void
+EmbedPDF.ActionExecutorResult.Inert
+EmbedPDF.ActionExecutorResult.Inert.Deconstruct(out string! Reason) -> void
+EmbedPDF.ActionExecutorResult.Inert.Equals(EmbedPDF.ActionExecutorResult.Inert? other) -> bool
+EmbedPDF.ActionExecutorResult.Inert.Inert(string! Reason) -> void
+EmbedPDF.ActionExecutorResult.Inert.Reason.get -> string!
+EmbedPDF.ActionExecutorResult.Inert.Reason.init -> void
+EmbedPDF.ActionNodeResult
+EmbedPDF.ActionNodeResult.<Clone>$() -> EmbedPDF.ActionNodeResult!
+EmbedPDF.ActionNodeResult.ActionNodeResult(System.Collections.Generic.IReadOnlyList<int>! Path, string! NodeType, EmbedPDF.ActionNodeStatus Status, string? Detail) -> void
+EmbedPDF.ActionNodeResult.Deconstruct(out System.Collections.Generic.IReadOnlyList<int>! Path, out string! NodeType, out EmbedPDF.ActionNodeStatus Status, out string? Detail) -> void
+EmbedPDF.ActionNodeResult.Detail.get -> string?
+EmbedPDF.ActionNodeResult.Detail.init -> void
+EmbedPDF.ActionNodeResult.Equals(EmbedPDF.ActionNodeResult? other) -> bool
+EmbedPDF.ActionNodeResult.NodeType.get -> string!
+EmbedPDF.ActionNodeResult.NodeType.init -> void
+EmbedPDF.ActionNodeResult.Path.get -> System.Collections.Generic.IReadOnlyList<int>!
+EmbedPDF.ActionNodeResult.Path.init -> void
+EmbedPDF.ActionNodeResult.Status.get -> EmbedPDF.ActionNodeStatus
+EmbedPDF.ActionNodeResult.Status.init -> void
+EmbedPDF.ActionNodeStatus
+EmbedPDF.ActionNodeStatus.Blocked = 1 -> EmbedPDF.ActionNodeStatus
+EmbedPDF.ActionNodeStatus.Executed = 0 -> EmbedPDF.ActionNodeStatus
+EmbedPDF.ActionNodeStatus.Failed = 4 -> EmbedPDF.ActionNodeStatus
+EmbedPDF.ActionNodeStatus.Inert = 3 -> EmbedPDF.ActionNodeStatus
+EmbedPDF.ActionNodeStatus.NoExecutor = 2 -> EmbedPDF.ActionNodeStatus
+EmbedPDF.ActionNodeStatus.Skipped = 5 -> EmbedPDF.ActionNodeStatus
+EmbedPDF.ActionOrigin
+EmbedPDF.ActionOrigin.Hover = 1 -> EmbedPDF.ActionOrigin
+EmbedPDF.ActionOrigin.Lifecycle = 2 -> EmbedPDF.ActionOrigin
+EmbedPDF.ActionOrigin.User = 0 -> EmbedPDF.ActionOrigin
+EmbedPDF.ActionPolicy
+EmbedPDF.ActionPolicy.<Clone>$() -> EmbedPDF.ActionPolicy!
+EmbedPDF.ActionPolicy.ActionPolicy(EmbedPDF.ActionPolicyRow! Goto, EmbedPDF.ActionPolicyRow! Named, EmbedPDF.ActionPolicyRow! Hide, EmbedPDF.ActionPolicyRow! ResetForm, EmbedPDF.ActionPolicyRow! JavaScript, EmbedPDF.ActionPolicyRow! Uri, EmbedPDF.ActionPolicyRow! Print, EmbedPDF.ActionPolicyRow! SubmitForm) -> void
+EmbedPDF.ActionPolicy.Deconstruct(out EmbedPDF.ActionPolicyRow! Goto, out EmbedPDF.ActionPolicyRow! Named, out EmbedPDF.ActionPolicyRow! Hide, out EmbedPDF.ActionPolicyRow! ResetForm, out EmbedPDF.ActionPolicyRow! JavaScript, out EmbedPDF.ActionPolicyRow! Uri, out EmbedPDF.ActionPolicyRow! Print, out EmbedPDF.ActionPolicyRow! SubmitForm) -> void
+EmbedPDF.ActionPolicy.Equals(EmbedPDF.ActionPolicy? other) -> bool
+EmbedPDF.ActionPolicy.Goto.get -> EmbedPDF.ActionPolicyRow!
+EmbedPDF.ActionPolicy.Goto.init -> void
+EmbedPDF.ActionPolicy.Hide.get -> EmbedPDF.ActionPolicyRow!
+EmbedPDF.ActionPolicy.Hide.init -> void
+EmbedPDF.ActionPolicy.JavaScript.get -> EmbedPDF.ActionPolicyRow!
+EmbedPDF.ActionPolicy.JavaScript.init -> void
+EmbedPDF.ActionPolicy.Named.get -> EmbedPDF.ActionPolicyRow!
+EmbedPDF.ActionPolicy.Named.init -> void
+EmbedPDF.ActionPolicy.Print.get -> EmbedPDF.ActionPolicyRow!
+EmbedPDF.ActionPolicy.Print.init -> void
+EmbedPDF.ActionPolicy.ResetForm.get -> EmbedPDF.ActionPolicyRow!
+EmbedPDF.ActionPolicy.ResetForm.init -> void
+EmbedPDF.ActionPolicy.SubmitForm.get -> EmbedPDF.ActionPolicyRow!
+EmbedPDF.ActionPolicy.SubmitForm.init -> void
+EmbedPDF.ActionPolicy.Uri.get -> EmbedPDF.ActionPolicyRow!
+EmbedPDF.ActionPolicy.Uri.init -> void
+EmbedPDF.ActionPolicyDecision
+EmbedPDF.ActionPolicyDecision.Adapter = 1 -> EmbedPDF.ActionPolicyDecision
+EmbedPDF.ActionPolicyDecision.Allow = 0 -> EmbedPDF.ActionPolicyDecision
+EmbedPDF.ActionPolicyDecision.Block = 3 -> EmbedPDF.ActionPolicyDecision
+EmbedPDF.ActionPolicyDecision.Report = 2 -> EmbedPDF.ActionPolicyDecision
+EmbedPDF.ActionPolicyPatch
+EmbedPDF.ActionPolicyPatch.<Clone>$() -> EmbedPDF.ActionPolicyPatch!
+EmbedPDF.ActionPolicyPatch.ActionPolicyPatch() -> void
+EmbedPDF.ActionPolicyPatch.Equals(EmbedPDF.ActionPolicyPatch? other) -> bool
+EmbedPDF.ActionPolicyPatch.Goto.get -> EmbedPDF.PartialActionPolicyRow?
+EmbedPDF.ActionPolicyPatch.Goto.init -> void
+EmbedPDF.ActionPolicyPatch.Hide.get -> EmbedPDF.PartialActionPolicyRow?
+EmbedPDF.ActionPolicyPatch.Hide.init -> void
+EmbedPDF.ActionPolicyPatch.JavaScript.get -> EmbedPDF.PartialActionPolicyRow?
+EmbedPDF.ActionPolicyPatch.JavaScript.init -> void
+EmbedPDF.ActionPolicyPatch.Named.get -> EmbedPDF.PartialActionPolicyRow?
+EmbedPDF.ActionPolicyPatch.Named.init -> void
+EmbedPDF.ActionPolicyPatch.Print.get -> EmbedPDF.PartialActionPolicyRow?
+EmbedPDF.ActionPolicyPatch.Print.init -> void
+EmbedPDF.ActionPolicyPatch.ResetForm.get -> EmbedPDF.PartialActionPolicyRow?
+EmbedPDF.ActionPolicyPatch.ResetForm.init -> void
+EmbedPDF.ActionPolicyPatch.SubmitForm.get -> EmbedPDF.PartialActionPolicyRow?
+EmbedPDF.ActionPolicyPatch.SubmitForm.init -> void
+EmbedPDF.ActionPolicyPatch.Uri.get -> EmbedPDF.PartialActionPolicyRow?
+EmbedPDF.ActionPolicyPatch.Uri.init -> void
+EmbedPDF.ActionPolicyRow
+EmbedPDF.ActionPolicyRow.<Clone>$() -> EmbedPDF.ActionPolicyRow!
+EmbedPDF.ActionPolicyRow.ActionPolicyRow(EmbedPDF.ActionPolicyDecision User, EmbedPDF.ActionPolicyDecision Hover, EmbedPDF.ActionPolicyDecision Lifecycle) -> void
+EmbedPDF.ActionPolicyRow.Deconstruct(out EmbedPDF.ActionPolicyDecision User, out EmbedPDF.ActionPolicyDecision Hover, out EmbedPDF.ActionPolicyDecision Lifecycle) -> void
+EmbedPDF.ActionPolicyRow.Equals(EmbedPDF.ActionPolicyRow? other) -> bool
+EmbedPDF.ActionPolicyRow.Hover.get -> EmbedPDF.ActionPolicyDecision
+EmbedPDF.ActionPolicyRow.Hover.init -> void
+EmbedPDF.ActionPolicyRow.Lifecycle.get -> EmbedPDF.ActionPolicyDecision
+EmbedPDF.ActionPolicyRow.Lifecycle.init -> void
+EmbedPDF.ActionPolicyRow.User.get -> EmbedPDF.ActionPolicyDecision
+EmbedPDF.ActionPolicyRow.User.init -> void
+EmbedPDF.ActionResultStatus
+EmbedPDF.ActionResultStatus.Cancelled = 4 -> EmbedPDF.ActionResultStatus
+EmbedPDF.ActionResultStatus.Executed = 0 -> EmbedPDF.ActionResultStatus
+EmbedPDF.ActionResultStatus.Inert = 2 -> EmbedPDF.ActionResultStatus
+EmbedPDF.ActionResultStatus.Partial = 1 -> EmbedPDF.ActionResultStatus
+EmbedPDF.ActionResultStatus.Refused = 3 -> EmbedPDF.ActionResultStatus
+EmbedPDF.ActionSource
+EmbedPDF.ActionSource.ActionSource(EmbedPDF.ActionSource! original) -> void
+EmbedPDF.ActionSource.Annotation
+EmbedPDF.ActionSource.Annotation.Annotation(EmbedPDF.PdfObjectRef! AnnotationRef, EmbedPDF.PageRef PageRef) -> void
+EmbedPDF.ActionSource.Annotation.AnnotationRef.get -> EmbedPDF.PdfObjectRef!
+EmbedPDF.ActionSource.Annotation.AnnotationRef.init -> void
+EmbedPDF.ActionSource.Annotation.Deconstruct(out EmbedPDF.PdfObjectRef! AnnotationRef, out EmbedPDF.PageRef PageRef) -> void
+EmbedPDF.ActionSource.Annotation.Equals(EmbedPDF.ActionSource.Annotation? other) -> bool
+EmbedPDF.ActionSource.Annotation.PageRef.get -> EmbedPDF.PageRef
+EmbedPDF.ActionSource.Annotation.PageRef.init -> void
+EmbedPDF.ActionSource.Api
+EmbedPDF.ActionSource.Api.Api() -> void
+EmbedPDF.ActionSource.Api.Equals(EmbedPDF.ActionSource.Api? other) -> bool
+EmbedPDF.ActionSource.Document
+EmbedPDF.ActionSource.Document.Document() -> void
+EmbedPDF.ActionSource.Document.Equals(EmbedPDF.ActionSource.Document? other) -> bool
+EmbedPDF.ActionSource.Link
+EmbedPDF.ActionSource.Link.AnnotationRef.get -> EmbedPDF.PdfObjectRef?
+EmbedPDF.ActionSource.Link.AnnotationRef.init -> void
+EmbedPDF.ActionSource.Link.Deconstruct(out EmbedPDF.PdfObjectRef? AnnotationRef, out EmbedPDF.PageRef? PageRef) -> void
+EmbedPDF.ActionSource.Link.Equals(EmbedPDF.ActionSource.Link? other) -> bool
+EmbedPDF.ActionSource.Link.Link(EmbedPDF.PdfObjectRef? AnnotationRef, EmbedPDF.PageRef? PageRef) -> void
+EmbedPDF.ActionSource.Link.PageRef.get -> EmbedPDF.PageRef?
+EmbedPDF.ActionSource.Link.PageRef.init -> void
+EmbedPDF.ActionSource.Outline
+EmbedPDF.ActionSource.Outline.Deconstruct(out EmbedPDF.PdfObjectRef! Item) -> void
+EmbedPDF.ActionSource.Outline.Equals(EmbedPDF.ActionSource.Outline? other) -> bool
+EmbedPDF.ActionSource.Outline.Item.get -> EmbedPDF.PdfObjectRef!
+EmbedPDF.ActionSource.Outline.Item.init -> void
+EmbedPDF.ActionSource.Outline.Outline(EmbedPDF.PdfObjectRef! Item) -> void
+EmbedPDF.ActionSource.Page
+EmbedPDF.ActionSource.Page.Deconstruct(out EmbedPDF.PageRef PageRef) -> void
+EmbedPDF.ActionSource.Page.Equals(EmbedPDF.ActionSource.Page? other) -> bool
+EmbedPDF.ActionSource.Page.Page(EmbedPDF.PageRef PageRef) -> void
+EmbedPDF.ActionSource.Page.PageRef.get -> EmbedPDF.PageRef
+EmbedPDF.ActionSource.Page.PageRef.init -> void
+EmbedPDF.ActionSource.Widget
+EmbedPDF.ActionSource.Widget.AnnotationRef.get -> EmbedPDF.PdfObjectRef!
+EmbedPDF.ActionSource.Widget.AnnotationRef.init -> void
+EmbedPDF.ActionSource.Widget.Deconstruct(out EmbedPDF.PdfObjectRef! Field, out EmbedPDF.PdfObjectRef! AnnotationRef, out EmbedPDF.PageRef PageRef) -> void
+EmbedPDF.ActionSource.Widget.Equals(EmbedPDF.ActionSource.Widget? other) -> bool
+EmbedPDF.ActionSource.Widget.Field.get -> EmbedPDF.PdfObjectRef!
+EmbedPDF.ActionSource.Widget.Field.init -> void
+EmbedPDF.ActionSource.Widget.PageRef.get -> EmbedPDF.PageRef
+EmbedPDF.ActionSource.Widget.PageRef.init -> void
+EmbedPDF.ActionSource.Widget.Widget(EmbedPDF.PdfObjectRef! Field, EmbedPDF.PdfObjectRef! AnnotationRef, EmbedPDF.PageRef PageRef) -> void
+EmbedPDF.ActionStepResult
+EmbedPDF.ActionStepResult.<Clone>$() -> EmbedPDF.ActionStepResult!
+EmbedPDF.ActionStepResult.ActionStepResult(EmbedPDF.ActionSource! Source, EmbedPDF.PdfActionTree! Tree, EmbedPDF.ActionDispatchResult! Result) -> void
+EmbedPDF.ActionStepResult.Deconstruct(out EmbedPDF.ActionSource! Source, out EmbedPDF.PdfActionTree! Tree, out EmbedPDF.ActionDispatchResult! Result) -> void
+EmbedPDF.ActionStepResult.Equals(EmbedPDF.ActionStepResult? other) -> bool
+EmbedPDF.ActionStepResult.Result.get -> EmbedPDF.ActionDispatchResult!
+EmbedPDF.ActionStepResult.Result.init -> void
+EmbedPDF.ActionStepResult.Source.get -> EmbedPDF.ActionSource!
+EmbedPDF.ActionStepResult.Source.init -> void
+EmbedPDF.ActionStepResult.Tree.get -> EmbedPDF.PdfActionTree!
+EmbedPDF.ActionStepResult.Tree.init -> void
+EmbedPDF.ActionSubmitRequest
+EmbedPDF.ActionSubmitRequest.<Clone>$() -> EmbedPDF.ActionSubmitRequest!
+EmbedPDF.ActionSubmitRequest.ActionSubmitRequest(string? Url, string! Method, string! Format, string? CharSet, System.Collections.Generic.IReadOnlyList<EmbedPDF.FormSubmissionEntry!>! Entries, EmbedPDF.ActionOrigin Origin, EmbedPDF.ActionTriggerEvent! Event) -> void
+EmbedPDF.ActionSubmitRequest.CharSet.get -> string?
+EmbedPDF.ActionSubmitRequest.CharSet.init -> void
+EmbedPDF.ActionSubmitRequest.Deconstruct(out string? Url, out string! Method, out string! Format, out string? CharSet, out System.Collections.Generic.IReadOnlyList<EmbedPDF.FormSubmissionEntry!>! Entries, out EmbedPDF.ActionOrigin Origin, out EmbedPDF.ActionTriggerEvent! Event) -> void
+EmbedPDF.ActionSubmitRequest.Entries.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.FormSubmissionEntry!>!
+EmbedPDF.ActionSubmitRequest.Entries.init -> void
+EmbedPDF.ActionSubmitRequest.Equals(EmbedPDF.ActionSubmitRequest? other) -> bool
+EmbedPDF.ActionSubmitRequest.Event.get -> EmbedPDF.ActionTriggerEvent!
+EmbedPDF.ActionSubmitRequest.Event.init -> void
+EmbedPDF.ActionSubmitRequest.Format.get -> string!
+EmbedPDF.ActionSubmitRequest.Format.init -> void
+EmbedPDF.ActionSubmitRequest.Method.get -> string!
+EmbedPDF.ActionSubmitRequest.Method.init -> void
+EmbedPDF.ActionSubmitRequest.Origin.get -> EmbedPDF.ActionOrigin
+EmbedPDF.ActionSubmitRequest.Origin.init -> void
+EmbedPDF.ActionSubmitRequest.Url.get -> string?
+EmbedPDF.ActionSubmitRequest.Url.init -> void
+EmbedPDF.ActionTreeSource
+EmbedPDF.ActionTreeSource.ActionTreeSource(EmbedPDF.ActionTreeSource! original) -> void
+EmbedPDF.ActionTreeSource.Annotation
+EmbedPDF.ActionTreeSource.Annotation.Annotation(EmbedPDF.PdfObjectRef! AnnotationRef, EmbedPDF.PageRef PageRef, EmbedPDF.ActionAnnotationTreeEvent? Event) -> void
+EmbedPDF.ActionTreeSource.Annotation.AnnotationRef.get -> EmbedPDF.PdfObjectRef!
+EmbedPDF.ActionTreeSource.Annotation.AnnotationRef.init -> void
+EmbedPDF.ActionTreeSource.Annotation.Deconstruct(out EmbedPDF.PdfObjectRef! AnnotationRef, out EmbedPDF.PageRef PageRef, out EmbedPDF.ActionAnnotationTreeEvent? Event) -> void
+EmbedPDF.ActionTreeSource.Annotation.Equals(EmbedPDF.ActionTreeSource.Annotation? other) -> bool
+EmbedPDF.ActionTreeSource.Annotation.Event.get -> EmbedPDF.ActionAnnotationTreeEvent?
+EmbedPDF.ActionTreeSource.Annotation.Event.init -> void
+EmbedPDF.ActionTreeSource.Annotation.PageRef.get -> EmbedPDF.PageRef
+EmbedPDF.ActionTreeSource.Annotation.PageRef.init -> void
+EmbedPDF.ActionTreeSource.Document
+EmbedPDF.ActionTreeSource.Document.Deconstruct(out EmbedPDF.DocumentTriggerEvent? Event) -> void
+EmbedPDF.ActionTreeSource.Document.Document(EmbedPDF.DocumentTriggerEvent? Event) -> void
+EmbedPDF.ActionTreeSource.Document.Equals(EmbedPDF.ActionTreeSource.Document? other) -> bool
+EmbedPDF.ActionTreeSource.Document.Event.get -> EmbedPDF.DocumentTriggerEvent?
+EmbedPDF.ActionTreeSource.Document.Event.init -> void
+EmbedPDF.ActionTreeSource.Field
+EmbedPDF.ActionTreeSource.Field.Deconstruct(out EmbedPDF.PdfObjectRef! FieldRef, out EmbedPDF.PdfFieldEventKind Event) -> void
+EmbedPDF.ActionTreeSource.Field.Equals(EmbedPDF.ActionTreeSource.Field? other) -> bool
+EmbedPDF.ActionTreeSource.Field.Event.get -> EmbedPDF.PdfFieldEventKind
+EmbedPDF.ActionTreeSource.Field.Event.init -> void
+EmbedPDF.ActionTreeSource.Field.Field(EmbedPDF.PdfObjectRef! FieldRef, EmbedPDF.PdfFieldEventKind Event) -> void
+EmbedPDF.ActionTreeSource.Field.FieldRef.get -> EmbedPDF.PdfObjectRef!
+EmbedPDF.ActionTreeSource.Field.FieldRef.init -> void
+EmbedPDF.ActionTreeSource.Outline
+EmbedPDF.ActionTreeSource.Outline.Deconstruct(out EmbedPDF.PdfObjectRef! Item) -> void
+EmbedPDF.ActionTreeSource.Outline.Equals(EmbedPDF.ActionTreeSource.Outline? other) -> bool
+EmbedPDF.ActionTreeSource.Outline.Item.get -> EmbedPDF.PdfObjectRef!
+EmbedPDF.ActionTreeSource.Outline.Item.init -> void
+EmbedPDF.ActionTreeSource.Outline.Outline(EmbedPDF.PdfObjectRef! Item) -> void
+EmbedPDF.ActionTreeSource.Page
+EmbedPDF.ActionTreeSource.Page.Deconstruct(out EmbedPDF.PageRef PageRef, out EmbedPDF.PageEventKind? Event) -> void
+EmbedPDF.ActionTreeSource.Page.Equals(EmbedPDF.ActionTreeSource.Page? other) -> bool
+EmbedPDF.ActionTreeSource.Page.Event.get -> EmbedPDF.PageEventKind?
+EmbedPDF.ActionTreeSource.Page.Event.init -> void
+EmbedPDF.ActionTreeSource.Page.Page(EmbedPDF.PageRef PageRef, EmbedPDF.PageEventKind? Event) -> void
+EmbedPDF.ActionTreeSource.Page.PageRef.get -> EmbedPDF.PageRef
+EmbedPDF.ActionTreeSource.Page.PageRef.init -> void
+EmbedPDF.ActionTrigger
+EmbedPDF.ActionTrigger.ActionTrigger(EmbedPDF.ActionTrigger! original) -> void
+EmbedPDF.ActionTrigger.Activate
+EmbedPDF.ActionTrigger.Activate.Activate(EmbedPDF.PdfObjectRef! AnnotationRef, EmbedPDF.PageRef PageRef, EmbedPDF.ActionSource? Source) -> void
+EmbedPDF.ActionTrigger.Activate.AnnotationRef.get -> EmbedPDF.PdfObjectRef!
+EmbedPDF.ActionTrigger.Activate.AnnotationRef.init -> void
+EmbedPDF.ActionTrigger.Activate.Deconstruct(out EmbedPDF.PdfObjectRef! AnnotationRef, out EmbedPDF.PageRef PageRef, out EmbedPDF.ActionSource? Source) -> void
+EmbedPDF.ActionTrigger.Activate.Equals(EmbedPDF.ActionTrigger.Activate? other) -> bool
+EmbedPDF.ActionTrigger.Activate.PageRef.get -> EmbedPDF.PageRef
+EmbedPDF.ActionTrigger.Activate.PageRef.init -> void
+EmbedPDF.ActionTrigger.Activate.Source.get -> EmbedPDF.ActionSource?
+EmbedPDF.ActionTrigger.Activate.Source.init -> void
+EmbedPDF.ActionTrigger.Annotation
+EmbedPDF.ActionTrigger.Annotation.Annotation(EmbedPDF.PdfAnnotationEventKind Event, EmbedPDF.PdfObjectRef! AnnotationRef, EmbedPDF.PageRef PageRef, EmbedPDF.ActionSource? Source) -> void
+EmbedPDF.ActionTrigger.Annotation.AnnotationRef.get -> EmbedPDF.PdfObjectRef!
+EmbedPDF.ActionTrigger.Annotation.AnnotationRef.init -> void
+EmbedPDF.ActionTrigger.Annotation.Deconstruct(out EmbedPDF.PdfAnnotationEventKind Event, out EmbedPDF.PdfObjectRef! AnnotationRef, out EmbedPDF.PageRef PageRef, out EmbedPDF.ActionSource? Source) -> void
+EmbedPDF.ActionTrigger.Annotation.Equals(EmbedPDF.ActionTrigger.Annotation? other) -> bool
+EmbedPDF.ActionTrigger.Annotation.Event.get -> EmbedPDF.PdfAnnotationEventKind
+EmbedPDF.ActionTrigger.Annotation.Event.init -> void
+EmbedPDF.ActionTrigger.Annotation.PageRef.get -> EmbedPDF.PageRef
+EmbedPDF.ActionTrigger.Annotation.PageRef.init -> void
+EmbedPDF.ActionTrigger.Annotation.Source.get -> EmbedPDF.ActionSource?
+EmbedPDF.ActionTrigger.Annotation.Source.init -> void
+EmbedPDF.ActionTrigger.Document
+EmbedPDF.ActionTrigger.Document.Deconstruct(out EmbedPDF.DocumentTriggerEvent Event) -> void
+EmbedPDF.ActionTrigger.Document.Document(EmbedPDF.DocumentTriggerEvent Event) -> void
+EmbedPDF.ActionTrigger.Document.Equals(EmbedPDF.ActionTrigger.Document? other) -> bool
+EmbedPDF.ActionTrigger.Document.Event.get -> EmbedPDF.DocumentTriggerEvent
+EmbedPDF.ActionTrigger.Document.Event.init -> void
+EmbedPDF.ActionTrigger.Page
+EmbedPDF.ActionTrigger.Page.Deconstruct(out EmbedPDF.PageEventKind Event, out EmbedPDF.PageRef PageRef) -> void
+EmbedPDF.ActionTrigger.Page.Equals(EmbedPDF.ActionTrigger.Page? other) -> bool
+EmbedPDF.ActionTrigger.Page.Event.get -> EmbedPDF.PageEventKind
+EmbedPDF.ActionTrigger.Page.Event.init -> void
+EmbedPDF.ActionTrigger.Page.Page(EmbedPDF.PageEventKind Event, EmbedPDF.PageRef PageRef) -> void
+EmbedPDF.ActionTrigger.Page.PageRef.get -> EmbedPDF.PageRef
+EmbedPDF.ActionTrigger.Page.PageRef.init -> void
+EmbedPDF.ActionTriggerEvent
+EmbedPDF.ActionTriggerEvent.ActionTriggerEvent(EmbedPDF.ActionTriggerEvent! original) -> void
+EmbedPDF.ActionTriggerEvent.Activate
+EmbedPDF.ActionTriggerEvent.Activate.Activate() -> void
+EmbedPDF.ActionTriggerEvent.Activate.Equals(EmbedPDF.ActionTriggerEvent.Activate? other) -> bool
+EmbedPDF.ActionTriggerEvent.Annotation
+EmbedPDF.ActionTriggerEvent.Annotation.Annotation(EmbedPDF.PdfAnnotationEventKind Event) -> void
+EmbedPDF.ActionTriggerEvent.Annotation.Deconstruct(out EmbedPDF.PdfAnnotationEventKind Event) -> void
+EmbedPDF.ActionTriggerEvent.Annotation.Equals(EmbedPDF.ActionTriggerEvent.Annotation? other) -> bool
+EmbedPDF.ActionTriggerEvent.Annotation.Event.get -> EmbedPDF.PdfAnnotationEventKind
+EmbedPDF.ActionTriggerEvent.Annotation.Event.init -> void
+EmbedPDF.ActionTriggerEvent.Document
+EmbedPDF.ActionTriggerEvent.Document.Deconstruct(out EmbedPDF.DocumentTriggerEvent Event) -> void
+EmbedPDF.ActionTriggerEvent.Document.Document(EmbedPDF.DocumentTriggerEvent Event) -> void
+EmbedPDF.ActionTriggerEvent.Document.Equals(EmbedPDF.ActionTriggerEvent.Document? other) -> bool
+EmbedPDF.ActionTriggerEvent.Document.Event.get -> EmbedPDF.DocumentTriggerEvent
+EmbedPDF.ActionTriggerEvent.Document.Event.init -> void
+EmbedPDF.ActionTriggerEvent.Page
+EmbedPDF.ActionTriggerEvent.Page.Deconstruct(out EmbedPDF.PageEventKind Event) -> void
+EmbedPDF.ActionTriggerEvent.Page.Equals(EmbedPDF.ActionTriggerEvent.Page? other) -> bool
+EmbedPDF.ActionTriggerEvent.Page.Event.get -> EmbedPDF.PageEventKind
+EmbedPDF.ActionTriggerEvent.Page.Event.init -> void
+EmbedPDF.ActionTriggerEvent.Page.Page(EmbedPDF.PageEventKind Event) -> void
+EmbedPDF.ActionTriggerResult
+EmbedPDF.ActionTriggerResult.<Clone>$() -> EmbedPDF.ActionTriggerResult!
+EmbedPDF.ActionTriggerResult.ActionTriggerResult(EmbedPDF.ActionResultStatus Status, System.Collections.Generic.IReadOnlyList<EmbedPDF.ActionStepResult!>! Steps, System.Collections.Generic.IReadOnlyList<EmbedPDF.ActionDiagnostic!>! Diagnostics) -> void
+EmbedPDF.ActionTriggerResult.Deconstruct(out EmbedPDF.ActionResultStatus Status, out System.Collections.Generic.IReadOnlyList<EmbedPDF.ActionStepResult!>! Steps, out System.Collections.Generic.IReadOnlyList<EmbedPDF.ActionDiagnostic!>! Diagnostics) -> void
+EmbedPDF.ActionTriggerResult.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.ActionDiagnostic!>!
+EmbedPDF.ActionTriggerResult.Diagnostics.init -> void
+EmbedPDF.ActionTriggerResult.Equals(EmbedPDF.ActionTriggerResult? other) -> bool
+EmbedPDF.ActionTriggerResult.Status.get -> EmbedPDF.ActionResultStatus
+EmbedPDF.ActionTriggerResult.Status.init -> void
+EmbedPDF.ActionTriggerResult.Steps.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.ActionStepResult!>!
+EmbedPDF.ActionTriggerResult.Steps.init -> void
+EmbedPDF.ActionTriggers
+EmbedPDF.ActionTriggers.<Clone>$() -> EmbedPDF.ActionTriggers!
+EmbedPDF.ActionTriggers.ActionTriggers(bool Document, bool Page, bool Annotation) -> void
+EmbedPDF.ActionTriggers.Annotation.get -> bool
+EmbedPDF.ActionTriggers.Annotation.init -> void
+EmbedPDF.ActionTriggers.Deconstruct(out bool Document, out bool Page, out bool Annotation) -> void
+EmbedPDF.ActionTriggers.Document.get -> bool
+EmbedPDF.ActionTriggers.Document.init -> void
+EmbedPDF.ActionTriggers.Equals(EmbedPDF.ActionTriggers? other) -> bool
+EmbedPDF.ActionTriggers.Page.get -> bool
+EmbedPDF.ActionTriggers.Page.init -> void
+EmbedPDF.ActionUiContext
+EmbedPDF.ActionUiContext.<Clone>$() -> EmbedPDF.ActionUiContext!
+EmbedPDF.ActionUiContext.ActionUiContext(EmbedPDF.ActionOrigin Origin, EmbedPDF.ScriptPhase Phase) -> void
+EmbedPDF.ActionUiContext.Deconstruct(out EmbedPDF.ActionOrigin Origin, out EmbedPDF.ScriptPhase Phase) -> void
+EmbedPDF.ActionUiContext.Equals(EmbedPDF.ActionUiContext? other) -> bool
+EmbedPDF.ActionUiContext.Origin.get -> EmbedPDF.ActionOrigin
+EmbedPDF.ActionUiContext.Origin.init -> void
+EmbedPDF.ActionUiContext.Phase.get -> EmbedPDF.ScriptPhase
+EmbedPDF.ActionUiContext.Phase.init -> void
+EmbedPDF.ActionUiSupport
+EmbedPDF.ActionUiSupport.<Clone>$() -> EmbedPDF.ActionUiSupport!
+EmbedPDF.ActionUiSupport.ActionUiSupport(bool Alert = true, bool GotoPage = true) -> void
+EmbedPDF.ActionUiSupport.Alert.get -> bool
+EmbedPDF.ActionUiSupport.Alert.init -> void
+EmbedPDF.ActionUiSupport.Deconstruct(out bool Alert, out bool GotoPage) -> void
+EmbedPDF.ActionUiSupport.Equals(EmbedPDF.ActionUiSupport? other) -> bool
+EmbedPDF.ActionUiSupport.GotoPage.get -> bool
+EmbedPDF.ActionUiSupport.GotoPage.init -> void
+EmbedPDF.ActionUriOptions
+EmbedPDF.ActionUriOptions.<Clone>$() -> EmbedPDF.ActionUriOptions!
+EmbedPDF.ActionUriOptions.ActionUriOptions(bool IsMap, EmbedPDF.ActionOrigin Origin) -> void
+EmbedPDF.ActionUriOptions.Deconstruct(out bool IsMap, out EmbedPDF.ActionOrigin Origin) -> void
+EmbedPDF.ActionUriOptions.Equals(EmbedPDF.ActionUriOptions? other) -> bool
+EmbedPDF.ActionUriOptions.IsMap.get -> bool
+EmbedPDF.ActionUriOptions.IsMap.init -> void
+EmbedPDF.ActionUriOptions.Origin.get -> EmbedPDF.ActionOrigin
+EmbedPDF.ActionUriOptions.Origin.init -> void
+EmbedPDF.ActionsCapability
+EmbedPDF.ActionsCapability.CanDispatchAsync(EmbedPDF.ActionTrigger! trigger, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.ActionsCapability.CanExecuteAsync(EmbedPDF.PdfActionTree! tree, EmbedPDF.ActionContext! context, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.ActionsCapability.CanExecuteNamedAsync(string! name, EmbedPDF.PartialActionContext? context = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.ActionsCapability.DispatchAsync(EmbedPDF.ActionTrigger! trigger, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ActionTriggerResult!>!
+EmbedPDF.ActionsCapability.Dispose() -> void
+EmbedPDF.ActionsCapability.ExecuteAsync(EmbedPDF.PdfActionTree! tree, EmbedPDF.ActionContext! context, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ActionDispatchResult!>!
+EmbedPDF.ActionsCapability.ExecuteNamedAsync(string! name, EmbedPDF.PartialActionContext? context = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ActionDispatchResult!>!
+EmbedPDF.ActionsCapability.GetActionTreeAsync(EmbedPDF.ActionTreeSource! source, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PdfActionTree?>!
+EmbedPDF.ActionsCapability.GetPolicyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ActionPolicy!>!
+EmbedPDF.ActionsCapability.GetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ActionsSettings!>!
+EmbedPDF.ActionsCapability.IsScriptingEnabledAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.ActionsCapability.ObserveEvents(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.ActionsEvent!>!
+EmbedPDF.ActionsCapability.PrepareCloseAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ActionTriggerResult!>!
+EmbedPDF.ActionsCapability.RegisterExecutorAsync(string! actionType, EmbedPDF.IActionExecutor! executor, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.Registration!>!
+EmbedPDF.ActionsCapability.ResetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ActionsCapability.RunDocumentVerbAsync(EmbedPDF.DocumentVerb verb, System.Func<System.Threading.Tasks.Task!>! operation, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ActionsCapability.SetSubmitHandlerAsync(EmbedPDF.IActionSubmitHandler? handler, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.Registration!>!
+EmbedPDF.ActionsCapability.SetUiHandlerAsync(EmbedPDF.IActionUiHandler? handler, EmbedPDF.ActionUiSupport? support = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.Registration!>!
+EmbedPDF.ActionsCapability.UpdatePolicyAsync(EmbedPDF.ActionPolicyPatch! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ActionsCapability.UpdateSettingsAsync(EmbedPDF.ActionsSettingsPatch! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.ActionsConfig
 EmbedPDF.ActionsConfig.<Clone>$() -> EmbedPDF.ActionsConfig!
 EmbedPDF.ActionsConfig.ActionsConfig() -> void
 EmbedPDF.ActionsConfig.Equals(EmbedPDF.ActionsConfig? other) -> bool
+EmbedPDF.ActionsConfig.JavaScript.get -> EmbedPDF.ActionsJavaScriptConfig?
+EmbedPDF.ActionsConfig.JavaScript.init -> void
+EmbedPDF.ActionsConfig.OpenSequence.get -> EmbedPDF.OpenSequence?
+EmbedPDF.ActionsConfig.OpenSequence.init -> void
+EmbedPDF.ActionsConfig.Policy.get -> EmbedPDF.ActionPolicyPatch?
+EmbedPDF.ActionsConfig.Policy.init -> void
+EmbedPDF.ActionsConfig.Triggers.get -> EmbedPDF.TriggerGates?
+EmbedPDF.ActionsConfig.Triggers.init -> void
+EmbedPDF.ActionsConfig.UtcOffsetMinutes.get -> int?
+EmbedPDF.ActionsConfig.UtcOffsetMinutes.init -> void
+EmbedPDF.ActionsEvent
+EmbedPDF.ActionsEvent.ActionsEvent(EmbedPDF.ActionsEvent! original) -> void
+EmbedPDF.ActionsEvent.DiagnosticReported
+EmbedPDF.ActionsEvent.DiagnosticReported.Action.get -> string?
+EmbedPDF.ActionsEvent.DiagnosticReported.Action.init -> void
+EmbedPDF.ActionsEvent.DiagnosticReported.Code.get -> EmbedPDF.ActionDiagnosticCode
+EmbedPDF.ActionsEvent.DiagnosticReported.Code.init -> void
+EmbedPDF.ActionsEvent.DiagnosticReported.Deconstruct(out EmbedPDF.ActionDiagnosticCode Code, out string? Action, out EmbedPDF.ActionSource? Source) -> void
+EmbedPDF.ActionsEvent.DiagnosticReported.DiagnosticReported(EmbedPDF.ActionDiagnosticCode Code, string? Action, EmbedPDF.ActionSource? Source) -> void
+EmbedPDF.ActionsEvent.DiagnosticReported.Equals(EmbedPDF.ActionsEvent.DiagnosticReported? other) -> bool
+EmbedPDF.ActionsEvent.DiagnosticReported.Source.get -> EmbedPDF.ActionSource?
+EmbedPDF.ActionsEvent.DiagnosticReported.Source.init -> void
+EmbedPDF.ActionsEvent.Executed
+EmbedPDF.ActionsEvent.Executed.Deconstruct(out EmbedPDF.PdfActionTree! Tree, out EmbedPDF.ActionDispatchResult! Result, out EmbedPDF.ActionSource! Source) -> void
+EmbedPDF.ActionsEvent.Executed.Equals(EmbedPDF.ActionsEvent.Executed? other) -> bool
+EmbedPDF.ActionsEvent.Executed.Executed(EmbedPDF.PdfActionTree! Tree, EmbedPDF.ActionDispatchResult! Result, EmbedPDF.ActionSource! Source) -> void
+EmbedPDF.ActionsEvent.Executed.Result.get -> EmbedPDF.ActionDispatchResult!
+EmbedPDF.ActionsEvent.Executed.Result.init -> void
+EmbedPDF.ActionsEvent.Executed.Source.get -> EmbedPDF.ActionSource!
+EmbedPDF.ActionsEvent.Executed.Source.init -> void
+EmbedPDF.ActionsEvent.Executed.Tree.get -> EmbedPDF.PdfActionTree!
+EmbedPDF.ActionsEvent.Executed.Tree.init -> void
+EmbedPDF.ActionsEvent.OpenSequenceCompleted
+EmbedPDF.ActionsEvent.OpenSequenceCompleted.Deconstruct(out EmbedPDF.ActionTriggerResult! Result) -> void
+EmbedPDF.ActionsEvent.OpenSequenceCompleted.Equals(EmbedPDF.ActionsEvent.OpenSequenceCompleted? other) -> bool
+EmbedPDF.ActionsEvent.OpenSequenceCompleted.OpenSequenceCompleted(EmbedPDF.ActionTriggerResult! Result) -> void
+EmbedPDF.ActionsEvent.OpenSequenceCompleted.Result.get -> EmbedPDF.ActionTriggerResult!
+EmbedPDF.ActionsEvent.OpenSequenceCompleted.Result.init -> void
+EmbedPDF.ActionsEvent.ScriptDiagnosticReported
+EmbedPDF.ActionsEvent.ScriptDiagnosticReported.Code.get -> EmbedPDF.ScriptDiagnosticCode
+EmbedPDF.ActionsEvent.ScriptDiagnosticReported.Code.init -> void
+EmbedPDF.ActionsEvent.ScriptDiagnosticReported.Deconstruct(out EmbedPDF.ScriptDiagnosticCode Code, out string! Message) -> void
+EmbedPDF.ActionsEvent.ScriptDiagnosticReported.Equals(EmbedPDF.ActionsEvent.ScriptDiagnosticReported? other) -> bool
+EmbedPDF.ActionsEvent.ScriptDiagnosticReported.Message.get -> string!
+EmbedPDF.ActionsEvent.ScriptDiagnosticReported.Message.init -> void
+EmbedPDF.ActionsEvent.ScriptDiagnosticReported.ScriptDiagnosticReported(EmbedPDF.ScriptDiagnosticCode Code, string! Message) -> void
+EmbedPDF.ActionsEvent.ScriptFailed
+EmbedPDF.ActionsEvent.ScriptFailed.Deconstruct(out EmbedPDF.ScriptExecutionError! Error, out EmbedPDF.ActionSource? Source) -> void
+EmbedPDF.ActionsEvent.ScriptFailed.Equals(EmbedPDF.ActionsEvent.ScriptFailed? other) -> bool
+EmbedPDF.ActionsEvent.ScriptFailed.Error.get -> EmbedPDF.ScriptExecutionError!
+EmbedPDF.ActionsEvent.ScriptFailed.Error.init -> void
+EmbedPDF.ActionsEvent.ScriptFailed.ScriptFailed(EmbedPDF.ScriptExecutionError! Error, EmbedPDF.ActionSource? Source) -> void
+EmbedPDF.ActionsEvent.ScriptFailed.Source.get -> EmbedPDF.ActionSource?
+EmbedPDF.ActionsEvent.ScriptFailed.Source.init -> void
+EmbedPDF.ActionsJavaScriptConfig
+EmbedPDF.ActionsJavaScriptConfig.<Clone>$() -> EmbedPDF.ActionsJavaScriptConfig!
+EmbedPDF.ActionsJavaScriptConfig.ActionsJavaScriptConfig(bool Enabled) -> void
+EmbedPDF.ActionsJavaScriptConfig.Budget.get -> EmbedPDF.ActionsScriptBudget?
+EmbedPDF.ActionsJavaScriptConfig.Budget.init -> void
+EmbedPDF.ActionsJavaScriptConfig.Deconstruct(out bool Enabled) -> void
+EmbedPDF.ActionsJavaScriptConfig.Enabled.get -> bool
+EmbedPDF.ActionsJavaScriptConfig.Enabled.init -> void
+EmbedPDF.ActionsJavaScriptConfig.Equals(EmbedPDF.ActionsJavaScriptConfig? other) -> bool
+EmbedPDF.ActionsJavaScriptConfig.MaxScriptNodesPerDispatch.get -> int?
+EmbedPDF.ActionsJavaScriptConfig.MaxScriptNodesPerDispatch.init -> void
+EmbedPDF.ActionsJavaScriptSettings
+EmbedPDF.ActionsJavaScriptSettings.<Clone>$() -> EmbedPDF.ActionsJavaScriptSettings!
+EmbedPDF.ActionsJavaScriptSettings.ActionsJavaScriptSettings(bool Enabled, EmbedPDF.ActionsScriptIdentitySetting? Identity) -> void
+EmbedPDF.ActionsJavaScriptSettings.Deconstruct(out bool Enabled, out EmbedPDF.ActionsScriptIdentitySetting? Identity) -> void
+EmbedPDF.ActionsJavaScriptSettings.Enabled.get -> bool
+EmbedPDF.ActionsJavaScriptSettings.Enabled.init -> void
+EmbedPDF.ActionsJavaScriptSettings.Equals(EmbedPDF.ActionsJavaScriptSettings? other) -> bool
+EmbedPDF.ActionsJavaScriptSettings.Identity.get -> EmbedPDF.ActionsScriptIdentitySetting?
+EmbedPDF.ActionsJavaScriptSettings.Identity.init -> void
+EmbedPDF.ActionsJavaScriptSettingsPatch
+EmbedPDF.ActionsJavaScriptSettingsPatch.<Clone>$() -> EmbedPDF.ActionsJavaScriptSettingsPatch!
+EmbedPDF.ActionsJavaScriptSettingsPatch.ActionsJavaScriptSettingsPatch() -> void
+EmbedPDF.ActionsJavaScriptSettingsPatch.ClearIdentity.get -> bool
+EmbedPDF.ActionsJavaScriptSettingsPatch.ClearIdentity.init -> void
+EmbedPDF.ActionsJavaScriptSettingsPatch.Enabled.get -> bool?
+EmbedPDF.ActionsJavaScriptSettingsPatch.Enabled.init -> void
+EmbedPDF.ActionsJavaScriptSettingsPatch.Equals(EmbedPDF.ActionsJavaScriptSettingsPatch? other) -> bool
+EmbedPDF.ActionsJavaScriptSettingsPatch.Identity.get -> EmbedPDF.ActionsScriptIdentity?
+EmbedPDF.ActionsJavaScriptSettingsPatch.Identity.init -> void
+EmbedPDF.ActionsScriptBudget
+EmbedPDF.ActionsScriptBudget.<Clone>$() -> EmbedPDF.ActionsScriptBudget!
+EmbedPDF.ActionsScriptBudget.ActionsScriptBudget(int MaxExecutionMs, long MaxMemoryBytes, long MaxStackBytes, int MaxEffects, long MaxOutputBytes) -> void
+EmbedPDF.ActionsScriptBudget.Deconstruct(out int MaxExecutionMs, out long MaxMemoryBytes, out long MaxStackBytes, out int MaxEffects, out long MaxOutputBytes) -> void
+EmbedPDF.ActionsScriptBudget.Equals(EmbedPDF.ActionsScriptBudget? other) -> bool
+EmbedPDF.ActionsScriptBudget.MaxEffects.get -> int
+EmbedPDF.ActionsScriptBudget.MaxEffects.init -> void
+EmbedPDF.ActionsScriptBudget.MaxExecutionMs.get -> int
+EmbedPDF.ActionsScriptBudget.MaxExecutionMs.init -> void
+EmbedPDF.ActionsScriptBudget.MaxMemoryBytes.get -> long
+EmbedPDF.ActionsScriptBudget.MaxMemoryBytes.init -> void
+EmbedPDF.ActionsScriptBudget.MaxOutputBytes.get -> long
+EmbedPDF.ActionsScriptBudget.MaxOutputBytes.init -> void
+EmbedPDF.ActionsScriptBudget.MaxStackBytes.get -> long
+EmbedPDF.ActionsScriptBudget.MaxStackBytes.init -> void
+EmbedPDF.ActionsScriptIdentity
+EmbedPDF.ActionsScriptIdentity.<Clone>$() -> EmbedPDF.ActionsScriptIdentity!
+EmbedPDF.ActionsScriptIdentity.ActionsScriptIdentity() -> void
+EmbedPDF.ActionsScriptIdentity.Corporation.get -> string?
+EmbedPDF.ActionsScriptIdentity.Corporation.init -> void
+EmbedPDF.ActionsScriptIdentity.Email.get -> string?
+EmbedPDF.ActionsScriptIdentity.Email.init -> void
+EmbedPDF.ActionsScriptIdentity.Equals(EmbedPDF.ActionsScriptIdentity? other) -> bool
+EmbedPDF.ActionsScriptIdentity.LoginName.get -> string?
+EmbedPDF.ActionsScriptIdentity.LoginName.init -> void
+EmbedPDF.ActionsScriptIdentity.Name.get -> string?
+EmbedPDF.ActionsScriptIdentity.Name.init -> void
+EmbedPDF.ActionsScriptIdentitySetting
+EmbedPDF.ActionsScriptIdentitySetting.ActionsScriptIdentitySetting(EmbedPDF.ActionsScriptIdentitySetting! original) -> void
+EmbedPDF.ActionsScriptIdentitySetting.RegisteredProvider
+EmbedPDF.ActionsScriptIdentitySetting.RegisteredProvider.Equals(EmbedPDF.ActionsScriptIdentitySetting.RegisteredProvider? other) -> bool
+EmbedPDF.ActionsScriptIdentitySetting.RegisteredProvider.RegisteredProvider() -> void
+EmbedPDF.ActionsScriptIdentitySetting.Value
+EmbedPDF.ActionsScriptIdentitySetting.Value.Deconstruct(out EmbedPDF.ActionsScriptIdentity! Identity) -> void
+EmbedPDF.ActionsScriptIdentitySetting.Value.Equals(EmbedPDF.ActionsScriptIdentitySetting.Value? other) -> bool
+EmbedPDF.ActionsScriptIdentitySetting.Value.Identity.get -> EmbedPDF.ActionsScriptIdentity!
+EmbedPDF.ActionsScriptIdentitySetting.Value.Identity.init -> void
+EmbedPDF.ActionsScriptIdentitySetting.Value.Value(EmbedPDF.ActionsScriptIdentity! Identity) -> void
+EmbedPDF.ActionsSettings
+EmbedPDF.ActionsSettings.<Clone>$() -> EmbedPDF.ActionsSettings!
+EmbedPDF.ActionsSettings.ActionsSettings(EmbedPDF.ActionPolicy! Policy, EmbedPDF.ActionTriggers! Triggers, EmbedPDF.OpenSequence OpenSequence, EmbedPDF.ActionsJavaScriptSettings! JavaScript) -> void
+EmbedPDF.ActionsSettings.Deconstruct(out EmbedPDF.ActionPolicy! Policy, out EmbedPDF.ActionTriggers! Triggers, out EmbedPDF.OpenSequence OpenSequence, out EmbedPDF.ActionsJavaScriptSettings! JavaScript) -> void
+EmbedPDF.ActionsSettings.Equals(EmbedPDF.ActionsSettings? other) -> bool
+EmbedPDF.ActionsSettings.JavaScript.get -> EmbedPDF.ActionsJavaScriptSettings!
+EmbedPDF.ActionsSettings.JavaScript.init -> void
+EmbedPDF.ActionsSettings.OpenSequence.get -> EmbedPDF.OpenSequence
+EmbedPDF.ActionsSettings.OpenSequence.init -> void
+EmbedPDF.ActionsSettings.Policy.get -> EmbedPDF.ActionPolicy!
+EmbedPDF.ActionsSettings.Policy.init -> void
+EmbedPDF.ActionsSettings.Triggers.get -> EmbedPDF.ActionTriggers!
+EmbedPDF.ActionsSettings.Triggers.init -> void
+EmbedPDF.ActionsSettingsPatch
+EmbedPDF.ActionsSettingsPatch.<Clone>$() -> EmbedPDF.ActionsSettingsPatch!
+EmbedPDF.ActionsSettingsPatch.ActionsSettingsPatch() -> void
+EmbedPDF.ActionsSettingsPatch.Equals(EmbedPDF.ActionsSettingsPatch? other) -> bool
+EmbedPDF.ActionsSettingsPatch.JavaScript.get -> EmbedPDF.ActionsJavaScriptSettingsPatch?
+EmbedPDF.ActionsSettingsPatch.JavaScript.init -> void
+EmbedPDF.ActionsSettingsPatch.OpenSequence.get -> EmbedPDF.OpenSequence?
+EmbedPDF.ActionsSettingsPatch.OpenSequence.init -> void
+EmbedPDF.ActionsSettingsPatch.Policy.get -> EmbedPDF.ActionPolicyPatch?
+EmbedPDF.ActionsSettingsPatch.Policy.init -> void
+EmbedPDF.ActionsSettingsPatch.Triggers.get -> EmbedPDF.TriggerGates?
+EmbedPDF.ActionsSettingsPatch.Triggers.init -> void
 EmbedPDF.AnnotationRef
 EmbedPDF.AnnotationRef.AnnotationRef(EmbedPDF.AnnotationRef! original) -> void
 EmbedPDF.AnnotationRef.Index
@@ -278,6 +845,16 @@ EmbedPDF.DocumentStatus.Failed = 3 -> EmbedPDF.DocumentStatus
 EmbedPDF.DocumentStatus.Loading = 0 -> EmbedPDF.DocumentStatus
 EmbedPDF.DocumentStatus.Locked = 1 -> EmbedPDF.DocumentStatus
 EmbedPDF.DocumentStatus.Ready = 2 -> EmbedPDF.DocumentStatus
+EmbedPDF.DocumentTriggerEvent
+EmbedPDF.DocumentTriggerEvent.DidPrint = 4 -> EmbedPDF.DocumentTriggerEvent
+EmbedPDF.DocumentTriggerEvent.DidSave = 2 -> EmbedPDF.DocumentTriggerEvent
+EmbedPDF.DocumentTriggerEvent.Open = 0 -> EmbedPDF.DocumentTriggerEvent
+EmbedPDF.DocumentTriggerEvent.WillClose = 5 -> EmbedPDF.DocumentTriggerEvent
+EmbedPDF.DocumentTriggerEvent.WillPrint = 3 -> EmbedPDF.DocumentTriggerEvent
+EmbedPDF.DocumentTriggerEvent.WillSave = 1 -> EmbedPDF.DocumentTriggerEvent
+EmbedPDF.DocumentVerb
+EmbedPDF.DocumentVerb.Print = 1 -> EmbedPDF.DocumentVerb
+EmbedPDF.DocumentVerb.Save = 0 -> EmbedPDF.DocumentVerb
 EmbedPDF.EmbeddedResourceLocaleLoader
 EmbedPDF.EmbeddedResourceLocaleLoader.EmbeddedResourceLocaleLoader(System.Reflection.Assembly! assembly, string! resourcePrefix = "") -> void
 EmbedPDF.EmbeddedResourceLocaleLoader.LoadAsync(string! code) -> System.Threading.Tasks.Task<EmbedPDF.LocalePack!>!
@@ -304,6 +881,32 @@ EmbedPDF.FormConfig
 EmbedPDF.FormConfig.<Clone>$() -> EmbedPDF.FormConfig!
 EmbedPDF.FormConfig.Equals(EmbedPDF.FormConfig? other) -> bool
 EmbedPDF.FormConfig.FormConfig() -> void
+EmbedPDF.FormSubmissionEntry
+EmbedPDF.FormSubmissionEntry.<Clone>$() -> EmbedPDF.FormSubmissionEntry!
+EmbedPDF.FormSubmissionEntry.Deconstruct(out string! Name, out EmbedPDF.FormSubmissionValue! Value) -> void
+EmbedPDF.FormSubmissionEntry.Equals(EmbedPDF.FormSubmissionEntry? other) -> bool
+EmbedPDF.FormSubmissionEntry.FormSubmissionEntry(string! Name, EmbedPDF.FormSubmissionValue! Value) -> void
+EmbedPDF.FormSubmissionEntry.Name.get -> string!
+EmbedPDF.FormSubmissionEntry.Name.init -> void
+EmbedPDF.FormSubmissionEntry.Value.get -> EmbedPDF.FormSubmissionValue!
+EmbedPDF.FormSubmissionEntry.Value.init -> void
+EmbedPDF.FormSubmissionValue
+EmbedPDF.FormSubmissionValue.FormSubmissionValue(EmbedPDF.FormSubmissionValue! original) -> void
+EmbedPDF.FormSubmissionValue.List
+EmbedPDF.FormSubmissionValue.List.Deconstruct(out System.Collections.Generic.IReadOnlyList<string!>! Values) -> void
+EmbedPDF.FormSubmissionValue.List.Equals(EmbedPDF.FormSubmissionValue.List? other) -> bool
+EmbedPDF.FormSubmissionValue.List.List(System.Collections.Generic.IReadOnlyList<string!>! Values) -> void
+EmbedPDF.FormSubmissionValue.List.Values.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.FormSubmissionValue.List.Values.init -> void
+EmbedPDF.FormSubmissionValue.NameOnly
+EmbedPDF.FormSubmissionValue.NameOnly.Equals(EmbedPDF.FormSubmissionValue.NameOnly? other) -> bool
+EmbedPDF.FormSubmissionValue.NameOnly.NameOnly() -> void
+EmbedPDF.FormSubmissionValue.Text
+EmbedPDF.FormSubmissionValue.Text.Deconstruct(out string! Value) -> void
+EmbedPDF.FormSubmissionValue.Text.Equals(EmbedPDF.FormSubmissionValue.Text? other) -> bool
+EmbedPDF.FormSubmissionValue.Text.Text(string! Value) -> void
+EmbedPDF.FormSubmissionValue.Text.Value.get -> string!
+EmbedPDF.FormSubmissionValue.Text.Value.init -> void
 EmbedPDF.HistoryCapability
 EmbedPDF.HistoryCapability.CanRedoAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 EmbedPDF.HistoryCapability.CanUndoAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
@@ -475,6 +1078,15 @@ EmbedPDF.I18nSettingsPatch.Locale.get -> string?
 EmbedPDF.I18nSettingsPatch.Locale.init -> void
 EmbedPDF.I18nSettingsPatch.Locales.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.LocalePack!>?
 EmbedPDF.I18nSettingsPatch.Locales.init -> void
+EmbedPDF.IActionExecutor
+EmbedPDF.IActionExecutor.ExecuteAsync(EmbedPDF.PdfActionNode! node, EmbedPDF.ActionContext! context) -> System.Threading.Tasks.Task<EmbedPDF.ActionExecutorResult!>!
+EmbedPDF.IActionSubmitHandler
+EmbedPDF.IActionSubmitHandler.Submit(EmbedPDF.ActionSubmitRequest! request) -> void
+EmbedPDF.IActionUiHandler
+EmbedPDF.IActionUiHandler.Alert(string! message, EmbedPDF.ActionAlertOptions! options) -> void
+EmbedPDF.IActionUiHandler.GotoPage(double page, EmbedPDF.ActionUiContext! context) -> void
+EmbedPDF.IActionUiHandler.OpenUri(string! uri, EmbedPDF.ActionUriOptions! options) -> void
+EmbedPDF.IActionUiHandler.Print(EmbedPDF.ActionUiContext? context) -> void
 EmbedPDF.IDocumentFetcher
 EmbedPDF.IDocumentFetcher.FetchAsync(string! url, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<EmbedPDF.DocumentFetchResponse!>!
 EmbedPDF.IInteractionHandler
@@ -758,6 +1370,10 @@ EmbedPDF.OpenDocumentOptions.Name.init -> void
 EmbedPDF.OpenDocumentOptions.OpenDocumentOptions() -> void
 EmbedPDF.OpenDocumentOptions.Password.get -> string?
 EmbedPDF.OpenDocumentOptions.Password.init -> void
+EmbedPDF.OpenSequence
+EmbedPDF.OpenSequence.Auto = 0 -> EmbedPDF.OpenSequence
+EmbedPDF.OpenSequence.Headless = 1 -> EmbedPDF.OpenSequence
+EmbedPDF.OpenSequence.Off = 2 -> EmbedPDF.OpenSequence
 EmbedPDF.OutlineCapability
 EmbedPDF.OutlineCapability.ActivateAsync(EmbedPDF.OutlineItemRef item, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.LinkActivation!>!
 EmbedPDF.OutlineCapability.CanEditAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
@@ -1057,6 +1673,11 @@ EmbedPDF.PageEditTurn
 EmbedPDF.PageEditTurn.Clockwise = 0 -> EmbedPDF.PageEditTurn
 EmbedPDF.PageEditTurn.CounterClockwise = 1 -> EmbedPDF.PageEditTurn
 EmbedPDF.PageEditTurn.Half = 2 -> EmbedPDF.PageEditTurn
+EmbedPDF.PageEventKind
+EmbedPDF.PageEventKind.Close = 1 -> EmbedPDF.PageEventKind
+EmbedPDF.PageEventKind.Invisible = 3 -> EmbedPDF.PageEventKind
+EmbedPDF.PageEventKind.Open = 0 -> EmbedPDF.PageEventKind
+EmbedPDF.PageEventKind.Visible = 2 -> EmbedPDF.PageEventKind
 EmbedPDF.PageGeometry
 EmbedPDF.PageGeometry.Deconstruct(out EmbedPDF.RenderRotation Turn, out EmbedPDF.PdfSize PageSize) -> void
 EmbedPDF.PageGeometry.DisplaySize.get -> EmbedPDF.PdfSize
@@ -1150,11 +1771,47 @@ EmbedPDF.PaneInfo.Equals(EmbedPDF.PaneInfo? other) -> bool
 EmbedPDF.PaneInfo.Id.get -> string!
 EmbedPDF.PaneInfo.Id.init -> void
 EmbedPDF.PaneInfo.PaneInfo(string! Id, System.Collections.Generic.IReadOnlyList<string!>! DocumentIds, string? ActiveDocumentId) -> void
+EmbedPDF.PartialActionContext
+EmbedPDF.PartialActionContext.<Clone>$() -> EmbedPDF.PartialActionContext!
+EmbedPDF.PartialActionContext.Equals(EmbedPDF.PartialActionContext? other) -> bool
+EmbedPDF.PartialActionContext.Event.get -> EmbedPDF.ActionTriggerEvent?
+EmbedPDF.PartialActionContext.Event.init -> void
+EmbedPDF.PartialActionContext.Origin.get -> EmbedPDF.ActionOrigin?
+EmbedPDF.PartialActionContext.Origin.init -> void
+EmbedPDF.PartialActionContext.PartialActionContext() -> void
+EmbedPDF.PartialActionContext.Source.get -> EmbedPDF.ActionSource?
+EmbedPDF.PartialActionContext.Source.init -> void
+EmbedPDF.PartialActionPolicyRow
+EmbedPDF.PartialActionPolicyRow.<Clone>$() -> EmbedPDF.PartialActionPolicyRow!
+EmbedPDF.PartialActionPolicyRow.Equals(EmbedPDF.PartialActionPolicyRow? other) -> bool
+EmbedPDF.PartialActionPolicyRow.Hover.get -> EmbedPDF.ActionPolicyDecision?
+EmbedPDF.PartialActionPolicyRow.Hover.init -> void
+EmbedPDF.PartialActionPolicyRow.Lifecycle.get -> EmbedPDF.ActionPolicyDecision?
+EmbedPDF.PartialActionPolicyRow.Lifecycle.init -> void
+EmbedPDF.PartialActionPolicyRow.PartialActionPolicyRow() -> void
+EmbedPDF.PartialActionPolicyRow.User.get -> EmbedPDF.ActionPolicyDecision?
+EmbedPDF.PartialActionPolicyRow.User.init -> void
+EmbedPDF.PdfActionNode
+EmbedPDF.PdfActionNode.<Clone>$() -> EmbedPDF.PdfActionNode!
+EmbedPDF.PdfActionNode.Deconstruct(out string! NodeType, out string! Json) -> void
+EmbedPDF.PdfActionNode.Equals(EmbedPDF.PdfActionNode? other) -> bool
+EmbedPDF.PdfActionNode.Json.get -> string!
+EmbedPDF.PdfActionNode.Json.init -> void
+EmbedPDF.PdfActionNode.NodeType.get -> string!
+EmbedPDF.PdfActionNode.NodeType.init -> void
+EmbedPDF.PdfActionNode.PdfActionNode(string! NodeType, string! Json) -> void
 EmbedPDF.PdfActionTree
 EmbedPDF.PdfActionTree.Dispose() -> void
 EmbedPDF.PdfActionTree.IsIncomplete.get -> bool
 EmbedPDF.PdfActionTree.Json.get -> string!
 EmbedPDF.PdfActionTree.RootType.get -> string?
+EmbedPDF.PdfAnnotationEventKind
+EmbedPDF.PdfAnnotationEventKind.Blur = 5 -> EmbedPDF.PdfAnnotationEventKind
+EmbedPDF.PdfAnnotationEventKind.CursorEnter = 0 -> EmbedPDF.PdfAnnotationEventKind
+EmbedPDF.PdfAnnotationEventKind.CursorExit = 1 -> EmbedPDF.PdfAnnotationEventKind
+EmbedPDF.PdfAnnotationEventKind.Focus = 4 -> EmbedPDF.PdfAnnotationEventKind
+EmbedPDF.PdfAnnotationEventKind.MouseDown = 2 -> EmbedPDF.PdfAnnotationEventKind
+EmbedPDF.PdfAnnotationEventKind.MouseUp = 3 -> EmbedPDF.PdfAnnotationEventKind
 EmbedPDF.PdfErrorCode
 EmbedPDF.PdfErrorCode.Deconstruct(out string! Value) -> void
 EmbedPDF.PdfErrorCode.Equals(EmbedPDF.PdfErrorCode other) -> bool
@@ -1172,6 +1829,18 @@ EmbedPDF.PdfException.PdfException(string! message) -> void
 EmbedPDF.PdfException.PdfException(string! message, System.Exception! innerException) -> void
 EmbedPDF.PdfException.PdfException(string! name, EmbedPDF.PdfErrorCode code, string! detail) -> void
 EmbedPDF.PdfException.PdfException(string! name, EmbedPDF.PdfErrorCode code, string! detail, System.Exception? innerException) -> void
+EmbedPDF.PdfFieldEventKind
+EmbedPDF.PdfFieldEventKind.Calculate = 3 -> EmbedPDF.PdfFieldEventKind
+EmbedPDF.PdfFieldEventKind.Format = 1 -> EmbedPDF.PdfFieldEventKind
+EmbedPDF.PdfFieldEventKind.Keystroke = 0 -> EmbedPDF.PdfFieldEventKind
+EmbedPDF.PdfFieldEventKind.Validate = 2 -> EmbedPDF.PdfFieldEventKind
+EmbedPDF.PdfObjectRef
+EmbedPDF.PdfObjectRef.<Clone>$() -> EmbedPDF.PdfObjectRef!
+EmbedPDF.PdfObjectRef.Deconstruct(out string! Json) -> void
+EmbedPDF.PdfObjectRef.Equals(EmbedPDF.PdfObjectRef? other) -> bool
+EmbedPDF.PdfObjectRef.Json.get -> string!
+EmbedPDF.PdfObjectRef.Json.init -> void
+EmbedPDF.PdfObjectRef.PdfObjectRef(string! Json) -> void
 EmbedPDF.PdfPoint
 EmbedPDF.PdfPoint.Deconstruct(out double X, out double Y) -> void
 EmbedPDF.PdfPoint.Equals(EmbedPDF.PdfPoint other) -> bool
@@ -1224,6 +1893,7 @@ EmbedPDF.PdfViewer.CloseAllAsync(System.Threading.CancellationToken cancellation
 EmbedPDF.PdfViewer.CloseAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.PdfViewer.Dispose() -> void
 EmbedPDF.PdfViewer.DisposeAsync() -> System.Threading.Tasks.ValueTask
+EmbedPDF.PdfViewer.GetActionsAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ActionsCapability!>!
 EmbedPDF.PdfViewer.GetActiveDocumentAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.DocumentInfo?>!
 EmbedPDF.PdfViewer.GetActiveDocumentIdAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string?>!
 EmbedPDF.PdfViewer.GetAttachmentsAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.AttachmentCapability!>!
@@ -1853,6 +2523,30 @@ EmbedPDF.ResourceStatus.Ready = 2 -> EmbedPDF.ResourceStatus
 EmbedPDF.SaveMode
 EmbedPDF.SaveMode.Incremental = 0 -> EmbedPDF.SaveMode
 EmbedPDF.SaveMode.Rewrite = 1 -> EmbedPDF.SaveMode
+EmbedPDF.ScriptDiagnosticCode
+EmbedPDF.ScriptDiagnosticCode.BlockedNetwork = 0 -> EmbedPDF.ScriptDiagnosticCode
+EmbedPDF.ScriptDiagnosticCode.InvalidFieldValue = 2 -> EmbedPDF.ScriptDiagnosticCode
+EmbedPDF.ScriptDiagnosticCode.ScriptError = 3 -> EmbedPDF.ScriptDiagnosticCode
+EmbedPDF.ScriptDiagnosticCode.UiEffectSuppressed = 4 -> EmbedPDF.ScriptDiagnosticCode
+EmbedPDF.ScriptDiagnosticCode.UnsupportedApi = 1 -> EmbedPDF.ScriptDiagnosticCode
+EmbedPDF.ScriptErrorKind
+EmbedPDF.ScriptErrorKind.Budget = 1 -> EmbedPDF.ScriptErrorKind
+EmbedPDF.ScriptErrorKind.Exception = 0 -> EmbedPDF.ScriptErrorKind
+EmbedPDF.ScriptErrorKind.InvalidOutput = 2 -> EmbedPDF.ScriptErrorKind
+EmbedPDF.ScriptExecutionError
+EmbedPDF.ScriptExecutionError.<Clone>$() -> EmbedPDF.ScriptExecutionError!
+EmbedPDF.ScriptExecutionError.Deconstruct(out EmbedPDF.ScriptErrorKind Kind, out string! Message, out string? Stack) -> void
+EmbedPDF.ScriptExecutionError.Equals(EmbedPDF.ScriptExecutionError? other) -> bool
+EmbedPDF.ScriptExecutionError.Kind.get -> EmbedPDF.ScriptErrorKind
+EmbedPDF.ScriptExecutionError.Kind.init -> void
+EmbedPDF.ScriptExecutionError.Message.get -> string!
+EmbedPDF.ScriptExecutionError.Message.init -> void
+EmbedPDF.ScriptExecutionError.ScriptExecutionError(EmbedPDF.ScriptErrorKind Kind, string! Message, string? Stack) -> void
+EmbedPDF.ScriptExecutionError.Stack.get -> string?
+EmbedPDF.ScriptExecutionError.Stack.init -> void
+EmbedPDF.ScriptPhase
+EmbedPDF.ScriptPhase.Boot = 0 -> EmbedPDF.ScriptPhase
+EmbedPDF.ScriptPhase.User = 1 -> EmbedPDF.ScriptPhase
 EmbedPDF.SearchBlendMode
 EmbedPDF.SearchBlendMode.Color = 14 -> EmbedPDF.SearchBlendMode
 EmbedPDF.SearchBlendMode.ColorBurn = 7 -> EmbedPDF.SearchBlendMode
@@ -2250,6 +2944,16 @@ EmbedPDF.ToolId.ToolId() -> void
 EmbedPDF.ToolId.ToolId(string! Value) -> void
 EmbedPDF.ToolId.Value.get -> string!
 EmbedPDF.ToolId.Value.init -> void
+EmbedPDF.TriggerGates
+EmbedPDF.TriggerGates.<Clone>$() -> EmbedPDF.TriggerGates!
+EmbedPDF.TriggerGates.Annotation.get -> bool?
+EmbedPDF.TriggerGates.Annotation.init -> void
+EmbedPDF.TriggerGates.Document.get -> bool?
+EmbedPDF.TriggerGates.Document.init -> void
+EmbedPDF.TriggerGates.Equals(EmbedPDF.TriggerGates? other) -> bool
+EmbedPDF.TriggerGates.Page.get -> bool?
+EmbedPDF.TriggerGates.Page.init -> void
+EmbedPDF.TriggerGates.TriggerGates() -> void
 EmbedPDF.ViewManagerCapability
 EmbedPDF.ViewManagerCapability.AddDocumentAsync(EmbedPDF.DocumentInfo! document, string! paneId, int? index = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.ViewManagerCapability.CreatePaneAsync(System.Collections.Generic.IEnumerable<EmbedPDF.DocumentInfo!>? documents = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
@@ -2325,10 +3029,19 @@ EmbedPDF.ViewerSettingsPatch.PageBackground.init -> void
 EmbedPDF.ViewerSettingsPatch.PageShadow.get -> string?
 EmbedPDF.ViewerSettingsPatch.PageShadow.init -> void
 EmbedPDF.ViewerSettingsPatch.ViewerSettingsPatch() -> void
+abstract EmbedPDF.ActionAnnotationTreeEvent.<Clone>$() -> EmbedPDF.ActionAnnotationTreeEvent!
+abstract EmbedPDF.ActionExecutorResult.<Clone>$() -> EmbedPDF.ActionExecutorResult!
+abstract EmbedPDF.ActionSource.<Clone>$() -> EmbedPDF.ActionSource!
+abstract EmbedPDF.ActionTreeSource.<Clone>$() -> EmbedPDF.ActionTreeSource!
+abstract EmbedPDF.ActionTrigger.<Clone>$() -> EmbedPDF.ActionTrigger!
+abstract EmbedPDF.ActionTriggerEvent.<Clone>$() -> EmbedPDF.ActionTriggerEvent!
+abstract EmbedPDF.ActionsEvent.<Clone>$() -> EmbedPDF.ActionsEvent!
+abstract EmbedPDF.ActionsScriptIdentitySetting.<Clone>$() -> EmbedPDF.ActionsScriptIdentitySetting!
 abstract EmbedPDF.AnnotationRef.<Clone>$() -> EmbedPDF.AnnotationRef!
 abstract EmbedPDF.AttachmentEvent.<Clone>$() -> EmbedPDF.AttachmentEvent!
 abstract EmbedPDF.AttachmentHome.<Clone>$() -> EmbedPDF.AttachmentHome!
 abstract EmbedPDF.DocumentEvent.<Clone>$() -> EmbedPDF.DocumentEvent!
+abstract EmbedPDF.FormSubmissionValue.<Clone>$() -> EmbedPDF.FormSubmissionValue!
 abstract EmbedPDF.HistoryEvent.<Clone>$() -> EmbedPDF.HistoryEvent!
 abstract EmbedPDF.HistoryLabelValue.<Clone>$() -> EmbedPDF.HistoryLabelValue!
 abstract EmbedPDF.I18nEvent.<Clone>$() -> EmbedPDF.I18nEvent!
@@ -2355,9 +3068,223 @@ abstract EmbedPDF.ShellEvent.<Clone>$() -> EmbedPDF.ShellEvent!
 abstract EmbedPDF.ViewManagerEvent.<Clone>$() -> EmbedPDF.ViewManagerEvent!
 const EmbedPDF.PageRenderResolution.DeviceWidthStep = 128 -> double
 const EmbedPDF.PageRenderResolution.OffScreenDeviceWidth = 256 -> double
+override EmbedPDF.ActionAlertOptions.Equals(object? obj) -> bool
+override EmbedPDF.ActionAlertOptions.GetHashCode() -> int
+override EmbedPDF.ActionAlertOptions.ToString() -> string!
+override EmbedPDF.ActionAnnotationTreeEvent.Activate.<Clone>$() -> EmbedPDF.ActionAnnotationTreeEvent.Activate!
+override EmbedPDF.ActionAnnotationTreeEvent.Activate.Equals(object? obj) -> bool
+override EmbedPDF.ActionAnnotationTreeEvent.Activate.GetHashCode() -> int
+override EmbedPDF.ActionAnnotationTreeEvent.Activate.ToString() -> string!
+override EmbedPDF.ActionAnnotationTreeEvent.Equals(object? obj) -> bool
+override EmbedPDF.ActionAnnotationTreeEvent.Event.<Clone>$() -> EmbedPDF.ActionAnnotationTreeEvent.Event!
+override EmbedPDF.ActionAnnotationTreeEvent.Event.Equals(object? obj) -> bool
+override EmbedPDF.ActionAnnotationTreeEvent.Event.GetHashCode() -> int
+override EmbedPDF.ActionAnnotationTreeEvent.Event.ToString() -> string!
+override EmbedPDF.ActionAnnotationTreeEvent.GetHashCode() -> int
+override EmbedPDF.ActionAnnotationTreeEvent.ToString() -> string!
+override EmbedPDF.ActionContext.Equals(object? obj) -> bool
+override EmbedPDF.ActionContext.GetHashCode() -> int
+override EmbedPDF.ActionContext.ToString() -> string!
+override EmbedPDF.ActionDiagnostic.Equals(object? obj) -> bool
+override EmbedPDF.ActionDiagnostic.GetHashCode() -> int
+override EmbedPDF.ActionDiagnostic.ToString() -> string!
+override EmbedPDF.ActionDispatchResult.Equals(object? obj) -> bool
+override EmbedPDF.ActionDispatchResult.GetHashCode() -> int
+override EmbedPDF.ActionDispatchResult.ToString() -> string!
+override EmbedPDF.ActionExecutorResult.Equals(object? obj) -> bool
+override EmbedPDF.ActionExecutorResult.Executed.<Clone>$() -> EmbedPDF.ActionExecutorResult.Executed!
+override EmbedPDF.ActionExecutorResult.Executed.Equals(object? obj) -> bool
+override EmbedPDF.ActionExecutorResult.Executed.GetHashCode() -> int
+override EmbedPDF.ActionExecutorResult.Executed.ToString() -> string!
+override EmbedPDF.ActionExecutorResult.GetHashCode() -> int
+override EmbedPDF.ActionExecutorResult.Inert.<Clone>$() -> EmbedPDF.ActionExecutorResult.Inert!
+override EmbedPDF.ActionExecutorResult.Inert.Equals(object? obj) -> bool
+override EmbedPDF.ActionExecutorResult.Inert.GetHashCode() -> int
+override EmbedPDF.ActionExecutorResult.Inert.ToString() -> string!
+override EmbedPDF.ActionExecutorResult.ToString() -> string!
+override EmbedPDF.ActionNodeResult.Equals(object? obj) -> bool
+override EmbedPDF.ActionNodeResult.GetHashCode() -> int
+override EmbedPDF.ActionNodeResult.ToString() -> string!
+override EmbedPDF.ActionPolicy.Equals(object? obj) -> bool
+override EmbedPDF.ActionPolicy.GetHashCode() -> int
+override EmbedPDF.ActionPolicy.ToString() -> string!
+override EmbedPDF.ActionPolicyPatch.Equals(object? obj) -> bool
+override EmbedPDF.ActionPolicyPatch.GetHashCode() -> int
+override EmbedPDF.ActionPolicyPatch.ToString() -> string!
+override EmbedPDF.ActionPolicyRow.Equals(object? obj) -> bool
+override EmbedPDF.ActionPolicyRow.GetHashCode() -> int
+override EmbedPDF.ActionPolicyRow.ToString() -> string!
+override EmbedPDF.ActionSource.Annotation.<Clone>$() -> EmbedPDF.ActionSource.Annotation!
+override EmbedPDF.ActionSource.Annotation.Equals(object? obj) -> bool
+override EmbedPDF.ActionSource.Annotation.GetHashCode() -> int
+override EmbedPDF.ActionSource.Annotation.ToString() -> string!
+override EmbedPDF.ActionSource.Api.<Clone>$() -> EmbedPDF.ActionSource.Api!
+override EmbedPDF.ActionSource.Api.Equals(object? obj) -> bool
+override EmbedPDF.ActionSource.Api.GetHashCode() -> int
+override EmbedPDF.ActionSource.Api.ToString() -> string!
+override EmbedPDF.ActionSource.Document.<Clone>$() -> EmbedPDF.ActionSource.Document!
+override EmbedPDF.ActionSource.Document.Equals(object? obj) -> bool
+override EmbedPDF.ActionSource.Document.GetHashCode() -> int
+override EmbedPDF.ActionSource.Document.ToString() -> string!
+override EmbedPDF.ActionSource.Equals(object? obj) -> bool
+override EmbedPDF.ActionSource.GetHashCode() -> int
+override EmbedPDF.ActionSource.Link.<Clone>$() -> EmbedPDF.ActionSource.Link!
+override EmbedPDF.ActionSource.Link.Equals(object? obj) -> bool
+override EmbedPDF.ActionSource.Link.GetHashCode() -> int
+override EmbedPDF.ActionSource.Link.ToString() -> string!
+override EmbedPDF.ActionSource.Outline.<Clone>$() -> EmbedPDF.ActionSource.Outline!
+override EmbedPDF.ActionSource.Outline.Equals(object? obj) -> bool
+override EmbedPDF.ActionSource.Outline.GetHashCode() -> int
+override EmbedPDF.ActionSource.Outline.ToString() -> string!
+override EmbedPDF.ActionSource.Page.<Clone>$() -> EmbedPDF.ActionSource.Page!
+override EmbedPDF.ActionSource.Page.Equals(object? obj) -> bool
+override EmbedPDF.ActionSource.Page.GetHashCode() -> int
+override EmbedPDF.ActionSource.Page.ToString() -> string!
+override EmbedPDF.ActionSource.ToString() -> string!
+override EmbedPDF.ActionSource.Widget.<Clone>$() -> EmbedPDF.ActionSource.Widget!
+override EmbedPDF.ActionSource.Widget.Equals(object? obj) -> bool
+override EmbedPDF.ActionSource.Widget.GetHashCode() -> int
+override EmbedPDF.ActionSource.Widget.ToString() -> string!
+override EmbedPDF.ActionStepResult.Equals(object? obj) -> bool
+override EmbedPDF.ActionStepResult.GetHashCode() -> int
+override EmbedPDF.ActionStepResult.ToString() -> string!
+override EmbedPDF.ActionSubmitRequest.Equals(object? obj) -> bool
+override EmbedPDF.ActionSubmitRequest.GetHashCode() -> int
+override EmbedPDF.ActionSubmitRequest.ToString() -> string!
+override EmbedPDF.ActionTreeSource.Annotation.<Clone>$() -> EmbedPDF.ActionTreeSource.Annotation!
+override EmbedPDF.ActionTreeSource.Annotation.Equals(object? obj) -> bool
+override EmbedPDF.ActionTreeSource.Annotation.GetHashCode() -> int
+override EmbedPDF.ActionTreeSource.Annotation.ToString() -> string!
+override EmbedPDF.ActionTreeSource.Document.<Clone>$() -> EmbedPDF.ActionTreeSource.Document!
+override EmbedPDF.ActionTreeSource.Document.Equals(object? obj) -> bool
+override EmbedPDF.ActionTreeSource.Document.GetHashCode() -> int
+override EmbedPDF.ActionTreeSource.Document.ToString() -> string!
+override EmbedPDF.ActionTreeSource.Equals(object? obj) -> bool
+override EmbedPDF.ActionTreeSource.Field.<Clone>$() -> EmbedPDF.ActionTreeSource.Field!
+override EmbedPDF.ActionTreeSource.Field.Equals(object? obj) -> bool
+override EmbedPDF.ActionTreeSource.Field.GetHashCode() -> int
+override EmbedPDF.ActionTreeSource.Field.ToString() -> string!
+override EmbedPDF.ActionTreeSource.GetHashCode() -> int
+override EmbedPDF.ActionTreeSource.Outline.<Clone>$() -> EmbedPDF.ActionTreeSource.Outline!
+override EmbedPDF.ActionTreeSource.Outline.Equals(object? obj) -> bool
+override EmbedPDF.ActionTreeSource.Outline.GetHashCode() -> int
+override EmbedPDF.ActionTreeSource.Outline.ToString() -> string!
+override EmbedPDF.ActionTreeSource.Page.<Clone>$() -> EmbedPDF.ActionTreeSource.Page!
+override EmbedPDF.ActionTreeSource.Page.Equals(object? obj) -> bool
+override EmbedPDF.ActionTreeSource.Page.GetHashCode() -> int
+override EmbedPDF.ActionTreeSource.Page.ToString() -> string!
+override EmbedPDF.ActionTreeSource.ToString() -> string!
+override EmbedPDF.ActionTrigger.Activate.<Clone>$() -> EmbedPDF.ActionTrigger.Activate!
+override EmbedPDF.ActionTrigger.Activate.Equals(object? obj) -> bool
+override EmbedPDF.ActionTrigger.Activate.GetHashCode() -> int
+override EmbedPDF.ActionTrigger.Activate.ToString() -> string!
+override EmbedPDF.ActionTrigger.Annotation.<Clone>$() -> EmbedPDF.ActionTrigger.Annotation!
+override EmbedPDF.ActionTrigger.Annotation.Equals(object? obj) -> bool
+override EmbedPDF.ActionTrigger.Annotation.GetHashCode() -> int
+override EmbedPDF.ActionTrigger.Annotation.ToString() -> string!
+override EmbedPDF.ActionTrigger.Document.<Clone>$() -> EmbedPDF.ActionTrigger.Document!
+override EmbedPDF.ActionTrigger.Document.Equals(object? obj) -> bool
+override EmbedPDF.ActionTrigger.Document.GetHashCode() -> int
+override EmbedPDF.ActionTrigger.Document.ToString() -> string!
+override EmbedPDF.ActionTrigger.Equals(object? obj) -> bool
+override EmbedPDF.ActionTrigger.GetHashCode() -> int
+override EmbedPDF.ActionTrigger.Page.<Clone>$() -> EmbedPDF.ActionTrigger.Page!
+override EmbedPDF.ActionTrigger.Page.Equals(object? obj) -> bool
+override EmbedPDF.ActionTrigger.Page.GetHashCode() -> int
+override EmbedPDF.ActionTrigger.Page.ToString() -> string!
+override EmbedPDF.ActionTrigger.ToString() -> string!
+override EmbedPDF.ActionTriggerEvent.Activate.<Clone>$() -> EmbedPDF.ActionTriggerEvent.Activate!
+override EmbedPDF.ActionTriggerEvent.Activate.Equals(object? obj) -> bool
+override EmbedPDF.ActionTriggerEvent.Activate.GetHashCode() -> int
+override EmbedPDF.ActionTriggerEvent.Activate.ToString() -> string!
+override EmbedPDF.ActionTriggerEvent.Annotation.<Clone>$() -> EmbedPDF.ActionTriggerEvent.Annotation!
+override EmbedPDF.ActionTriggerEvent.Annotation.Equals(object? obj) -> bool
+override EmbedPDF.ActionTriggerEvent.Annotation.GetHashCode() -> int
+override EmbedPDF.ActionTriggerEvent.Annotation.ToString() -> string!
+override EmbedPDF.ActionTriggerEvent.Document.<Clone>$() -> EmbedPDF.ActionTriggerEvent.Document!
+override EmbedPDF.ActionTriggerEvent.Document.Equals(object? obj) -> bool
+override EmbedPDF.ActionTriggerEvent.Document.GetHashCode() -> int
+override EmbedPDF.ActionTriggerEvent.Document.ToString() -> string!
+override EmbedPDF.ActionTriggerEvent.Equals(object? obj) -> bool
+override EmbedPDF.ActionTriggerEvent.GetHashCode() -> int
+override EmbedPDF.ActionTriggerEvent.Page.<Clone>$() -> EmbedPDF.ActionTriggerEvent.Page!
+override EmbedPDF.ActionTriggerEvent.Page.Equals(object? obj) -> bool
+override EmbedPDF.ActionTriggerEvent.Page.GetHashCode() -> int
+override EmbedPDF.ActionTriggerEvent.Page.ToString() -> string!
+override EmbedPDF.ActionTriggerEvent.ToString() -> string!
+override EmbedPDF.ActionTriggerResult.Equals(object? obj) -> bool
+override EmbedPDF.ActionTriggerResult.GetHashCode() -> int
+override EmbedPDF.ActionTriggerResult.ToString() -> string!
+override EmbedPDF.ActionTriggers.Equals(object? obj) -> bool
+override EmbedPDF.ActionTriggers.GetHashCode() -> int
+override EmbedPDF.ActionTriggers.ToString() -> string!
+override EmbedPDF.ActionUiContext.Equals(object? obj) -> bool
+override EmbedPDF.ActionUiContext.GetHashCode() -> int
+override EmbedPDF.ActionUiContext.ToString() -> string!
+override EmbedPDF.ActionUiSupport.Equals(object? obj) -> bool
+override EmbedPDF.ActionUiSupport.GetHashCode() -> int
+override EmbedPDF.ActionUiSupport.ToString() -> string!
+override EmbedPDF.ActionUriOptions.Equals(object? obj) -> bool
+override EmbedPDF.ActionUriOptions.GetHashCode() -> int
+override EmbedPDF.ActionUriOptions.ToString() -> string!
 override EmbedPDF.ActionsConfig.Equals(object? obj) -> bool
 override EmbedPDF.ActionsConfig.GetHashCode() -> int
 override EmbedPDF.ActionsConfig.ToString() -> string!
+override EmbedPDF.ActionsEvent.DiagnosticReported.<Clone>$() -> EmbedPDF.ActionsEvent.DiagnosticReported!
+override EmbedPDF.ActionsEvent.DiagnosticReported.Equals(object? obj) -> bool
+override EmbedPDF.ActionsEvent.DiagnosticReported.GetHashCode() -> int
+override EmbedPDF.ActionsEvent.DiagnosticReported.ToString() -> string!
+override EmbedPDF.ActionsEvent.Equals(object? obj) -> bool
+override EmbedPDF.ActionsEvent.Executed.<Clone>$() -> EmbedPDF.ActionsEvent.Executed!
+override EmbedPDF.ActionsEvent.Executed.Equals(object? obj) -> bool
+override EmbedPDF.ActionsEvent.Executed.GetHashCode() -> int
+override EmbedPDF.ActionsEvent.Executed.ToString() -> string!
+override EmbedPDF.ActionsEvent.GetHashCode() -> int
+override EmbedPDF.ActionsEvent.OpenSequenceCompleted.<Clone>$() -> EmbedPDF.ActionsEvent.OpenSequenceCompleted!
+override EmbedPDF.ActionsEvent.OpenSequenceCompleted.Equals(object? obj) -> bool
+override EmbedPDF.ActionsEvent.OpenSequenceCompleted.GetHashCode() -> int
+override EmbedPDF.ActionsEvent.OpenSequenceCompleted.ToString() -> string!
+override EmbedPDF.ActionsEvent.ScriptDiagnosticReported.<Clone>$() -> EmbedPDF.ActionsEvent.ScriptDiagnosticReported!
+override EmbedPDF.ActionsEvent.ScriptDiagnosticReported.Equals(object? obj) -> bool
+override EmbedPDF.ActionsEvent.ScriptDiagnosticReported.GetHashCode() -> int
+override EmbedPDF.ActionsEvent.ScriptDiagnosticReported.ToString() -> string!
+override EmbedPDF.ActionsEvent.ScriptFailed.<Clone>$() -> EmbedPDF.ActionsEvent.ScriptFailed!
+override EmbedPDF.ActionsEvent.ScriptFailed.Equals(object? obj) -> bool
+override EmbedPDF.ActionsEvent.ScriptFailed.GetHashCode() -> int
+override EmbedPDF.ActionsEvent.ScriptFailed.ToString() -> string!
+override EmbedPDF.ActionsEvent.ToString() -> string!
+override EmbedPDF.ActionsJavaScriptConfig.Equals(object? obj) -> bool
+override EmbedPDF.ActionsJavaScriptConfig.GetHashCode() -> int
+override EmbedPDF.ActionsJavaScriptConfig.ToString() -> string!
+override EmbedPDF.ActionsJavaScriptSettings.Equals(object? obj) -> bool
+override EmbedPDF.ActionsJavaScriptSettings.GetHashCode() -> int
+override EmbedPDF.ActionsJavaScriptSettings.ToString() -> string!
+override EmbedPDF.ActionsJavaScriptSettingsPatch.Equals(object? obj) -> bool
+override EmbedPDF.ActionsJavaScriptSettingsPatch.GetHashCode() -> int
+override EmbedPDF.ActionsJavaScriptSettingsPatch.ToString() -> string!
+override EmbedPDF.ActionsScriptBudget.Equals(object? obj) -> bool
+override EmbedPDF.ActionsScriptBudget.GetHashCode() -> int
+override EmbedPDF.ActionsScriptBudget.ToString() -> string!
+override EmbedPDF.ActionsScriptIdentity.Equals(object? obj) -> bool
+override EmbedPDF.ActionsScriptIdentity.GetHashCode() -> int
+override EmbedPDF.ActionsScriptIdentity.ToString() -> string!
+override EmbedPDF.ActionsScriptIdentitySetting.Equals(object? obj) -> bool
+override EmbedPDF.ActionsScriptIdentitySetting.GetHashCode() -> int
+override EmbedPDF.ActionsScriptIdentitySetting.RegisteredProvider.<Clone>$() -> EmbedPDF.ActionsScriptIdentitySetting.RegisteredProvider!
+override EmbedPDF.ActionsScriptIdentitySetting.RegisteredProvider.Equals(object? obj) -> bool
+override EmbedPDF.ActionsScriptIdentitySetting.RegisteredProvider.GetHashCode() -> int
+override EmbedPDF.ActionsScriptIdentitySetting.RegisteredProvider.ToString() -> string!
+override EmbedPDF.ActionsScriptIdentitySetting.ToString() -> string!
+override EmbedPDF.ActionsScriptIdentitySetting.Value.<Clone>$() -> EmbedPDF.ActionsScriptIdentitySetting.Value!
+override EmbedPDF.ActionsScriptIdentitySetting.Value.Equals(object? obj) -> bool
+override EmbedPDF.ActionsScriptIdentitySetting.Value.GetHashCode() -> int
+override EmbedPDF.ActionsScriptIdentitySetting.Value.ToString() -> string!
+override EmbedPDF.ActionsSettings.Equals(object? obj) -> bool
+override EmbedPDF.ActionsSettings.GetHashCode() -> int
+override EmbedPDF.ActionsSettings.ToString() -> string!
+override EmbedPDF.ActionsSettingsPatch.Equals(object? obj) -> bool
+override EmbedPDF.ActionsSettingsPatch.GetHashCode() -> int
+override EmbedPDF.ActionsSettingsPatch.ToString() -> string!
 override EmbedPDF.AnnotationRef.Equals(object? obj) -> bool
 override EmbedPDF.AnnotationRef.GetHashCode() -> int
 override EmbedPDF.AnnotationRef.Index.<Clone>$() -> EmbedPDF.AnnotationRef.Index!
@@ -2454,6 +3381,24 @@ override EmbedPDF.FeedbackConfig.ToString() -> string!
 override EmbedPDF.FormConfig.Equals(object? obj) -> bool
 override EmbedPDF.FormConfig.GetHashCode() -> int
 override EmbedPDF.FormConfig.ToString() -> string!
+override EmbedPDF.FormSubmissionEntry.Equals(object? obj) -> bool
+override EmbedPDF.FormSubmissionEntry.GetHashCode() -> int
+override EmbedPDF.FormSubmissionEntry.ToString() -> string!
+override EmbedPDF.FormSubmissionValue.Equals(object? obj) -> bool
+override EmbedPDF.FormSubmissionValue.GetHashCode() -> int
+override EmbedPDF.FormSubmissionValue.List.<Clone>$() -> EmbedPDF.FormSubmissionValue.List!
+override EmbedPDF.FormSubmissionValue.List.Equals(object? obj) -> bool
+override EmbedPDF.FormSubmissionValue.List.GetHashCode() -> int
+override EmbedPDF.FormSubmissionValue.List.ToString() -> string!
+override EmbedPDF.FormSubmissionValue.NameOnly.<Clone>$() -> EmbedPDF.FormSubmissionValue.NameOnly!
+override EmbedPDF.FormSubmissionValue.NameOnly.Equals(object? obj) -> bool
+override EmbedPDF.FormSubmissionValue.NameOnly.GetHashCode() -> int
+override EmbedPDF.FormSubmissionValue.NameOnly.ToString() -> string!
+override EmbedPDF.FormSubmissionValue.Text.<Clone>$() -> EmbedPDF.FormSubmissionValue.Text!
+override EmbedPDF.FormSubmissionValue.Text.Equals(object? obj) -> bool
+override EmbedPDF.FormSubmissionValue.Text.GetHashCode() -> int
+override EmbedPDF.FormSubmissionValue.Text.ToString() -> string!
+override EmbedPDF.FormSubmissionValue.ToString() -> string!
 override EmbedPDF.HistoryChangeLabel.Equals(object? obj) -> bool
 override EmbedPDF.HistoryChangeLabel.GetHashCode() -> int
 override EmbedPDF.HistoryChangeLabel.ToString() -> string!
@@ -2783,8 +3728,20 @@ override EmbedPDF.PageRenderResolution.GetHashCode() -> int
 override EmbedPDF.PaneInfo.Equals(object? obj) -> bool
 override EmbedPDF.PaneInfo.GetHashCode() -> int
 override EmbedPDF.PaneInfo.ToString() -> string!
+override EmbedPDF.PartialActionContext.Equals(object? obj) -> bool
+override EmbedPDF.PartialActionContext.GetHashCode() -> int
+override EmbedPDF.PartialActionContext.ToString() -> string!
+override EmbedPDF.PartialActionPolicyRow.Equals(object? obj) -> bool
+override EmbedPDF.PartialActionPolicyRow.GetHashCode() -> int
+override EmbedPDF.PartialActionPolicyRow.ToString() -> string!
+override EmbedPDF.PdfActionNode.Equals(object? obj) -> bool
+override EmbedPDF.PdfActionNode.GetHashCode() -> int
+override EmbedPDF.PdfActionNode.ToString() -> string!
 override EmbedPDF.PdfErrorCode.GetHashCode() -> int
 override EmbedPDF.PdfErrorCode.ToString() -> string!
+override EmbedPDF.PdfObjectRef.Equals(object? obj) -> bool
+override EmbedPDF.PdfObjectRef.GetHashCode() -> int
+override EmbedPDF.PdfObjectRef.ToString() -> string!
 override EmbedPDF.PdfPoint.GetHashCode() -> int
 override EmbedPDF.PdfQuad.GetHashCode() -> int
 override EmbedPDF.PdfRect.GetHashCode() -> int
@@ -2939,6 +3896,9 @@ override EmbedPDF.RenderedPage.ToString() -> string!
 override EmbedPDF.RenderedPageResult.Equals(object? obj) -> bool
 override EmbedPDF.RenderedPageResult.GetHashCode() -> int
 override EmbedPDF.RenderedPageResult.ToString() -> string!
+override EmbedPDF.ScriptExecutionError.Equals(object? obj) -> bool
+override EmbedPDF.ScriptExecutionError.GetHashCode() -> int
+override EmbedPDF.ScriptExecutionError.ToString() -> string!
 override EmbedPDF.SearchConfig.Equals(object? obj) -> bool
 override EmbedPDF.SearchConfig.GetHashCode() -> int
 override EmbedPDF.SearchConfig.ToString() -> string!
@@ -3073,6 +4033,9 @@ override EmbedPDF.TextSegment.GetHashCode() -> int
 override EmbedPDF.TextSegment.ToString() -> string!
 override EmbedPDF.ToolId.GetHashCode() -> int
 override EmbedPDF.ToolId.ToString() -> string!
+override EmbedPDF.TriggerGates.Equals(object? obj) -> bool
+override EmbedPDF.TriggerGates.GetHashCode() -> int
+override EmbedPDF.TriggerGates.ToString() -> string!
 override EmbedPDF.ViewManagerEvent.DocumentMoved.<Clone>$() -> EmbedPDF.ViewManagerEvent.DocumentMoved!
 override EmbedPDF.ViewManagerEvent.DocumentMoved.Equals(object? obj) -> bool
 override EmbedPDF.ViewManagerEvent.DocumentMoved.GetHashCode() -> int
@@ -3098,6 +4061,37 @@ override EmbedPDF.ViewerSettings.ToString() -> string!
 override EmbedPDF.ViewerSettingsPatch.Equals(object? obj) -> bool
 override EmbedPDF.ViewerSettingsPatch.GetHashCode() -> int
 override EmbedPDF.ViewerSettingsPatch.ToString() -> string!
+override sealed EmbedPDF.ActionAnnotationTreeEvent.Activate.Equals(EmbedPDF.ActionAnnotationTreeEvent? other) -> bool
+override sealed EmbedPDF.ActionAnnotationTreeEvent.Event.Equals(EmbedPDF.ActionAnnotationTreeEvent? other) -> bool
+override sealed EmbedPDF.ActionExecutorResult.Executed.Equals(EmbedPDF.ActionExecutorResult? other) -> bool
+override sealed EmbedPDF.ActionExecutorResult.Inert.Equals(EmbedPDF.ActionExecutorResult? other) -> bool
+override sealed EmbedPDF.ActionSource.Annotation.Equals(EmbedPDF.ActionSource? other) -> bool
+override sealed EmbedPDF.ActionSource.Api.Equals(EmbedPDF.ActionSource? other) -> bool
+override sealed EmbedPDF.ActionSource.Document.Equals(EmbedPDF.ActionSource? other) -> bool
+override sealed EmbedPDF.ActionSource.Link.Equals(EmbedPDF.ActionSource? other) -> bool
+override sealed EmbedPDF.ActionSource.Outline.Equals(EmbedPDF.ActionSource? other) -> bool
+override sealed EmbedPDF.ActionSource.Page.Equals(EmbedPDF.ActionSource? other) -> bool
+override sealed EmbedPDF.ActionSource.Widget.Equals(EmbedPDF.ActionSource? other) -> bool
+override sealed EmbedPDF.ActionTreeSource.Annotation.Equals(EmbedPDF.ActionTreeSource? other) -> bool
+override sealed EmbedPDF.ActionTreeSource.Document.Equals(EmbedPDF.ActionTreeSource? other) -> bool
+override sealed EmbedPDF.ActionTreeSource.Field.Equals(EmbedPDF.ActionTreeSource? other) -> bool
+override sealed EmbedPDF.ActionTreeSource.Outline.Equals(EmbedPDF.ActionTreeSource? other) -> bool
+override sealed EmbedPDF.ActionTreeSource.Page.Equals(EmbedPDF.ActionTreeSource? other) -> bool
+override sealed EmbedPDF.ActionTrigger.Activate.Equals(EmbedPDF.ActionTrigger? other) -> bool
+override sealed EmbedPDF.ActionTrigger.Annotation.Equals(EmbedPDF.ActionTrigger? other) -> bool
+override sealed EmbedPDF.ActionTrigger.Document.Equals(EmbedPDF.ActionTrigger? other) -> bool
+override sealed EmbedPDF.ActionTrigger.Page.Equals(EmbedPDF.ActionTrigger? other) -> bool
+override sealed EmbedPDF.ActionTriggerEvent.Activate.Equals(EmbedPDF.ActionTriggerEvent? other) -> bool
+override sealed EmbedPDF.ActionTriggerEvent.Annotation.Equals(EmbedPDF.ActionTriggerEvent? other) -> bool
+override sealed EmbedPDF.ActionTriggerEvent.Document.Equals(EmbedPDF.ActionTriggerEvent? other) -> bool
+override sealed EmbedPDF.ActionTriggerEvent.Page.Equals(EmbedPDF.ActionTriggerEvent? other) -> bool
+override sealed EmbedPDF.ActionsEvent.DiagnosticReported.Equals(EmbedPDF.ActionsEvent? other) -> bool
+override sealed EmbedPDF.ActionsEvent.Executed.Equals(EmbedPDF.ActionsEvent? other) -> bool
+override sealed EmbedPDF.ActionsEvent.OpenSequenceCompleted.Equals(EmbedPDF.ActionsEvent? other) -> bool
+override sealed EmbedPDF.ActionsEvent.ScriptDiagnosticReported.Equals(EmbedPDF.ActionsEvent? other) -> bool
+override sealed EmbedPDF.ActionsEvent.ScriptFailed.Equals(EmbedPDF.ActionsEvent? other) -> bool
+override sealed EmbedPDF.ActionsScriptIdentitySetting.RegisteredProvider.Equals(EmbedPDF.ActionsScriptIdentitySetting? other) -> bool
+override sealed EmbedPDF.ActionsScriptIdentitySetting.Value.Equals(EmbedPDF.ActionsScriptIdentitySetting? other) -> bool
 override sealed EmbedPDF.AnnotationRef.Index.Equals(EmbedPDF.AnnotationRef? other) -> bool
 override sealed EmbedPDF.AnnotationRef.ObjectNumber.Equals(EmbedPDF.AnnotationRef? other) -> bool
 override sealed EmbedPDF.AttachmentEvent.Changed.Equals(EmbedPDF.AttachmentEvent? other) -> bool
@@ -3110,6 +4104,9 @@ override sealed EmbedPDF.DocumentEvent.Locked.Equals(EmbedPDF.DocumentEvent? oth
 override sealed EmbedPDF.DocumentEvent.OpenFailed.Equals(EmbedPDF.DocumentEvent? other) -> bool
 override sealed EmbedPDF.DocumentEvent.Opened.Equals(EmbedPDF.DocumentEvent? other) -> bool
 override sealed EmbedPDF.DocumentEvent.PagesChanged.Equals(EmbedPDF.DocumentEvent? other) -> bool
+override sealed EmbedPDF.FormSubmissionValue.List.Equals(EmbedPDF.FormSubmissionValue? other) -> bool
+override sealed EmbedPDF.FormSubmissionValue.NameOnly.Equals(EmbedPDF.FormSubmissionValue? other) -> bool
+override sealed EmbedPDF.FormSubmissionValue.Text.Equals(EmbedPDF.FormSubmissionValue? other) -> bool
 override sealed EmbedPDF.HistoryEvent.SettingsChanged.Equals(EmbedPDF.HistoryEvent? other) -> bool
 override sealed EmbedPDF.HistoryEvent.UndoFailed.Equals(EmbedPDF.HistoryEvent? other) -> bool
 override sealed EmbedPDF.HistoryEvent.Undone.Equals(EmbedPDF.HistoryEvent? other) -> bool
@@ -3191,8 +4188,131 @@ override sealed EmbedPDF.ViewManagerEvent.DocumentMoved.Equals(EmbedPDF.ViewMana
 override sealed EmbedPDF.ViewManagerEvent.FocusChanged.Equals(EmbedPDF.ViewManagerEvent? other) -> bool
 override sealed EmbedPDF.ViewManagerEvent.PaneCreated.Equals(EmbedPDF.ViewManagerEvent? other) -> bool
 override sealed EmbedPDF.ViewManagerEvent.PaneRemoved.Equals(EmbedPDF.ViewManagerEvent? other) -> bool
+static EmbedPDF.ActionAlertOptions.operator !=(EmbedPDF.ActionAlertOptions? left, EmbedPDF.ActionAlertOptions? right) -> bool
+static EmbedPDF.ActionAlertOptions.operator ==(EmbedPDF.ActionAlertOptions? left, EmbedPDF.ActionAlertOptions? right) -> bool
+static EmbedPDF.ActionAnnotationTreeEvent.Activate.operator !=(EmbedPDF.ActionAnnotationTreeEvent.Activate? left, EmbedPDF.ActionAnnotationTreeEvent.Activate? right) -> bool
+static EmbedPDF.ActionAnnotationTreeEvent.Activate.operator ==(EmbedPDF.ActionAnnotationTreeEvent.Activate? left, EmbedPDF.ActionAnnotationTreeEvent.Activate? right) -> bool
+static EmbedPDF.ActionAnnotationTreeEvent.Event.operator !=(EmbedPDF.ActionAnnotationTreeEvent.Event? left, EmbedPDF.ActionAnnotationTreeEvent.Event? right) -> bool
+static EmbedPDF.ActionAnnotationTreeEvent.Event.operator ==(EmbedPDF.ActionAnnotationTreeEvent.Event? left, EmbedPDF.ActionAnnotationTreeEvent.Event? right) -> bool
+static EmbedPDF.ActionAnnotationTreeEvent.operator !=(EmbedPDF.ActionAnnotationTreeEvent? left, EmbedPDF.ActionAnnotationTreeEvent? right) -> bool
+static EmbedPDF.ActionAnnotationTreeEvent.operator ==(EmbedPDF.ActionAnnotationTreeEvent? left, EmbedPDF.ActionAnnotationTreeEvent? right) -> bool
+static EmbedPDF.ActionContext.operator !=(EmbedPDF.ActionContext? left, EmbedPDF.ActionContext? right) -> bool
+static EmbedPDF.ActionContext.operator ==(EmbedPDF.ActionContext? left, EmbedPDF.ActionContext? right) -> bool
+static EmbedPDF.ActionDiagnostic.operator !=(EmbedPDF.ActionDiagnostic? left, EmbedPDF.ActionDiagnostic? right) -> bool
+static EmbedPDF.ActionDiagnostic.operator ==(EmbedPDF.ActionDiagnostic? left, EmbedPDF.ActionDiagnostic? right) -> bool
+static EmbedPDF.ActionDispatchResult.operator !=(EmbedPDF.ActionDispatchResult? left, EmbedPDF.ActionDispatchResult? right) -> bool
+static EmbedPDF.ActionDispatchResult.operator ==(EmbedPDF.ActionDispatchResult? left, EmbedPDF.ActionDispatchResult? right) -> bool
+static EmbedPDF.ActionExecutorResult.Executed.operator !=(EmbedPDF.ActionExecutorResult.Executed? left, EmbedPDF.ActionExecutorResult.Executed? right) -> bool
+static EmbedPDF.ActionExecutorResult.Executed.operator ==(EmbedPDF.ActionExecutorResult.Executed? left, EmbedPDF.ActionExecutorResult.Executed? right) -> bool
+static EmbedPDF.ActionExecutorResult.Inert.operator !=(EmbedPDF.ActionExecutorResult.Inert? left, EmbedPDF.ActionExecutorResult.Inert? right) -> bool
+static EmbedPDF.ActionExecutorResult.Inert.operator ==(EmbedPDF.ActionExecutorResult.Inert? left, EmbedPDF.ActionExecutorResult.Inert? right) -> bool
+static EmbedPDF.ActionExecutorResult.operator !=(EmbedPDF.ActionExecutorResult? left, EmbedPDF.ActionExecutorResult? right) -> bool
+static EmbedPDF.ActionExecutorResult.operator ==(EmbedPDF.ActionExecutorResult? left, EmbedPDF.ActionExecutorResult? right) -> bool
+static EmbedPDF.ActionNodeResult.operator !=(EmbedPDF.ActionNodeResult? left, EmbedPDF.ActionNodeResult? right) -> bool
+static EmbedPDF.ActionNodeResult.operator ==(EmbedPDF.ActionNodeResult? left, EmbedPDF.ActionNodeResult? right) -> bool
+static EmbedPDF.ActionPolicy.operator !=(EmbedPDF.ActionPolicy? left, EmbedPDF.ActionPolicy? right) -> bool
+static EmbedPDF.ActionPolicy.operator ==(EmbedPDF.ActionPolicy? left, EmbedPDF.ActionPolicy? right) -> bool
+static EmbedPDF.ActionPolicyPatch.operator !=(EmbedPDF.ActionPolicyPatch? left, EmbedPDF.ActionPolicyPatch? right) -> bool
+static EmbedPDF.ActionPolicyPatch.operator ==(EmbedPDF.ActionPolicyPatch? left, EmbedPDF.ActionPolicyPatch? right) -> bool
+static EmbedPDF.ActionPolicyRow.operator !=(EmbedPDF.ActionPolicyRow? left, EmbedPDF.ActionPolicyRow? right) -> bool
+static EmbedPDF.ActionPolicyRow.operator ==(EmbedPDF.ActionPolicyRow? left, EmbedPDF.ActionPolicyRow? right) -> bool
+static EmbedPDF.ActionSource.Annotation.operator !=(EmbedPDF.ActionSource.Annotation? left, EmbedPDF.ActionSource.Annotation? right) -> bool
+static EmbedPDF.ActionSource.Annotation.operator ==(EmbedPDF.ActionSource.Annotation? left, EmbedPDF.ActionSource.Annotation? right) -> bool
+static EmbedPDF.ActionSource.Api.operator !=(EmbedPDF.ActionSource.Api? left, EmbedPDF.ActionSource.Api? right) -> bool
+static EmbedPDF.ActionSource.Api.operator ==(EmbedPDF.ActionSource.Api? left, EmbedPDF.ActionSource.Api? right) -> bool
+static EmbedPDF.ActionSource.Document.operator !=(EmbedPDF.ActionSource.Document? left, EmbedPDF.ActionSource.Document? right) -> bool
+static EmbedPDF.ActionSource.Document.operator ==(EmbedPDF.ActionSource.Document? left, EmbedPDF.ActionSource.Document? right) -> bool
+static EmbedPDF.ActionSource.Link.operator !=(EmbedPDF.ActionSource.Link? left, EmbedPDF.ActionSource.Link? right) -> bool
+static EmbedPDF.ActionSource.Link.operator ==(EmbedPDF.ActionSource.Link? left, EmbedPDF.ActionSource.Link? right) -> bool
+static EmbedPDF.ActionSource.Outline.operator !=(EmbedPDF.ActionSource.Outline? left, EmbedPDF.ActionSource.Outline? right) -> bool
+static EmbedPDF.ActionSource.Outline.operator ==(EmbedPDF.ActionSource.Outline? left, EmbedPDF.ActionSource.Outline? right) -> bool
+static EmbedPDF.ActionSource.Page.operator !=(EmbedPDF.ActionSource.Page? left, EmbedPDF.ActionSource.Page? right) -> bool
+static EmbedPDF.ActionSource.Page.operator ==(EmbedPDF.ActionSource.Page? left, EmbedPDF.ActionSource.Page? right) -> bool
+static EmbedPDF.ActionSource.Widget.operator !=(EmbedPDF.ActionSource.Widget? left, EmbedPDF.ActionSource.Widget? right) -> bool
+static EmbedPDF.ActionSource.Widget.operator ==(EmbedPDF.ActionSource.Widget? left, EmbedPDF.ActionSource.Widget? right) -> bool
+static EmbedPDF.ActionSource.operator !=(EmbedPDF.ActionSource? left, EmbedPDF.ActionSource? right) -> bool
+static EmbedPDF.ActionSource.operator ==(EmbedPDF.ActionSource? left, EmbedPDF.ActionSource? right) -> bool
+static EmbedPDF.ActionStepResult.operator !=(EmbedPDF.ActionStepResult? left, EmbedPDF.ActionStepResult? right) -> bool
+static EmbedPDF.ActionStepResult.operator ==(EmbedPDF.ActionStepResult? left, EmbedPDF.ActionStepResult? right) -> bool
+static EmbedPDF.ActionSubmitRequest.operator !=(EmbedPDF.ActionSubmitRequest? left, EmbedPDF.ActionSubmitRequest? right) -> bool
+static EmbedPDF.ActionSubmitRequest.operator ==(EmbedPDF.ActionSubmitRequest? left, EmbedPDF.ActionSubmitRequest? right) -> bool
+static EmbedPDF.ActionTreeSource.Annotation.operator !=(EmbedPDF.ActionTreeSource.Annotation? left, EmbedPDF.ActionTreeSource.Annotation? right) -> bool
+static EmbedPDF.ActionTreeSource.Annotation.operator ==(EmbedPDF.ActionTreeSource.Annotation? left, EmbedPDF.ActionTreeSource.Annotation? right) -> bool
+static EmbedPDF.ActionTreeSource.Document.operator !=(EmbedPDF.ActionTreeSource.Document? left, EmbedPDF.ActionTreeSource.Document? right) -> bool
+static EmbedPDF.ActionTreeSource.Document.operator ==(EmbedPDF.ActionTreeSource.Document? left, EmbedPDF.ActionTreeSource.Document? right) -> bool
+static EmbedPDF.ActionTreeSource.Field.operator !=(EmbedPDF.ActionTreeSource.Field? left, EmbedPDF.ActionTreeSource.Field? right) -> bool
+static EmbedPDF.ActionTreeSource.Field.operator ==(EmbedPDF.ActionTreeSource.Field? left, EmbedPDF.ActionTreeSource.Field? right) -> bool
+static EmbedPDF.ActionTreeSource.Outline.operator !=(EmbedPDF.ActionTreeSource.Outline? left, EmbedPDF.ActionTreeSource.Outline? right) -> bool
+static EmbedPDF.ActionTreeSource.Outline.operator ==(EmbedPDF.ActionTreeSource.Outline? left, EmbedPDF.ActionTreeSource.Outline? right) -> bool
+static EmbedPDF.ActionTreeSource.Page.operator !=(EmbedPDF.ActionTreeSource.Page? left, EmbedPDF.ActionTreeSource.Page? right) -> bool
+static EmbedPDF.ActionTreeSource.Page.operator ==(EmbedPDF.ActionTreeSource.Page? left, EmbedPDF.ActionTreeSource.Page? right) -> bool
+static EmbedPDF.ActionTreeSource.operator !=(EmbedPDF.ActionTreeSource? left, EmbedPDF.ActionTreeSource? right) -> bool
+static EmbedPDF.ActionTreeSource.operator ==(EmbedPDF.ActionTreeSource? left, EmbedPDF.ActionTreeSource? right) -> bool
+static EmbedPDF.ActionTrigger.Activate.operator !=(EmbedPDF.ActionTrigger.Activate? left, EmbedPDF.ActionTrigger.Activate? right) -> bool
+static EmbedPDF.ActionTrigger.Activate.operator ==(EmbedPDF.ActionTrigger.Activate? left, EmbedPDF.ActionTrigger.Activate? right) -> bool
+static EmbedPDF.ActionTrigger.Annotation.operator !=(EmbedPDF.ActionTrigger.Annotation? left, EmbedPDF.ActionTrigger.Annotation? right) -> bool
+static EmbedPDF.ActionTrigger.Annotation.operator ==(EmbedPDF.ActionTrigger.Annotation? left, EmbedPDF.ActionTrigger.Annotation? right) -> bool
+static EmbedPDF.ActionTrigger.Document.operator !=(EmbedPDF.ActionTrigger.Document? left, EmbedPDF.ActionTrigger.Document? right) -> bool
+static EmbedPDF.ActionTrigger.Document.operator ==(EmbedPDF.ActionTrigger.Document? left, EmbedPDF.ActionTrigger.Document? right) -> bool
+static EmbedPDF.ActionTrigger.Page.operator !=(EmbedPDF.ActionTrigger.Page? left, EmbedPDF.ActionTrigger.Page? right) -> bool
+static EmbedPDF.ActionTrigger.Page.operator ==(EmbedPDF.ActionTrigger.Page? left, EmbedPDF.ActionTrigger.Page? right) -> bool
+static EmbedPDF.ActionTrigger.operator !=(EmbedPDF.ActionTrigger? left, EmbedPDF.ActionTrigger? right) -> bool
+static EmbedPDF.ActionTrigger.operator ==(EmbedPDF.ActionTrigger? left, EmbedPDF.ActionTrigger? right) -> bool
+static EmbedPDF.ActionTriggerEvent.Activate.operator !=(EmbedPDF.ActionTriggerEvent.Activate? left, EmbedPDF.ActionTriggerEvent.Activate? right) -> bool
+static EmbedPDF.ActionTriggerEvent.Activate.operator ==(EmbedPDF.ActionTriggerEvent.Activate? left, EmbedPDF.ActionTriggerEvent.Activate? right) -> bool
+static EmbedPDF.ActionTriggerEvent.Annotation.operator !=(EmbedPDF.ActionTriggerEvent.Annotation? left, EmbedPDF.ActionTriggerEvent.Annotation? right) -> bool
+static EmbedPDF.ActionTriggerEvent.Annotation.operator ==(EmbedPDF.ActionTriggerEvent.Annotation? left, EmbedPDF.ActionTriggerEvent.Annotation? right) -> bool
+static EmbedPDF.ActionTriggerEvent.Document.operator !=(EmbedPDF.ActionTriggerEvent.Document? left, EmbedPDF.ActionTriggerEvent.Document? right) -> bool
+static EmbedPDF.ActionTriggerEvent.Document.operator ==(EmbedPDF.ActionTriggerEvent.Document? left, EmbedPDF.ActionTriggerEvent.Document? right) -> bool
+static EmbedPDF.ActionTriggerEvent.Page.operator !=(EmbedPDF.ActionTriggerEvent.Page? left, EmbedPDF.ActionTriggerEvent.Page? right) -> bool
+static EmbedPDF.ActionTriggerEvent.Page.operator ==(EmbedPDF.ActionTriggerEvent.Page? left, EmbedPDF.ActionTriggerEvent.Page? right) -> bool
+static EmbedPDF.ActionTriggerEvent.operator !=(EmbedPDF.ActionTriggerEvent? left, EmbedPDF.ActionTriggerEvent? right) -> bool
+static EmbedPDF.ActionTriggerEvent.operator ==(EmbedPDF.ActionTriggerEvent? left, EmbedPDF.ActionTriggerEvent? right) -> bool
+static EmbedPDF.ActionTriggerResult.operator !=(EmbedPDF.ActionTriggerResult? left, EmbedPDF.ActionTriggerResult? right) -> bool
+static EmbedPDF.ActionTriggerResult.operator ==(EmbedPDF.ActionTriggerResult? left, EmbedPDF.ActionTriggerResult? right) -> bool
+static EmbedPDF.ActionTriggers.operator !=(EmbedPDF.ActionTriggers? left, EmbedPDF.ActionTriggers? right) -> bool
+static EmbedPDF.ActionTriggers.operator ==(EmbedPDF.ActionTriggers? left, EmbedPDF.ActionTriggers? right) -> bool
+static EmbedPDF.ActionUiContext.operator !=(EmbedPDF.ActionUiContext? left, EmbedPDF.ActionUiContext? right) -> bool
+static EmbedPDF.ActionUiContext.operator ==(EmbedPDF.ActionUiContext? left, EmbedPDF.ActionUiContext? right) -> bool
+static EmbedPDF.ActionUiSupport.operator !=(EmbedPDF.ActionUiSupport? left, EmbedPDF.ActionUiSupport? right) -> bool
+static EmbedPDF.ActionUiSupport.operator ==(EmbedPDF.ActionUiSupport? left, EmbedPDF.ActionUiSupport? right) -> bool
+static EmbedPDF.ActionUriOptions.operator !=(EmbedPDF.ActionUriOptions? left, EmbedPDF.ActionUriOptions? right) -> bool
+static EmbedPDF.ActionUriOptions.operator ==(EmbedPDF.ActionUriOptions? left, EmbedPDF.ActionUriOptions? right) -> bool
+static EmbedPDF.ActionsConfig.ForCurrentTimeZone() -> EmbedPDF.ActionsConfig!
 static EmbedPDF.ActionsConfig.operator !=(EmbedPDF.ActionsConfig? left, EmbedPDF.ActionsConfig? right) -> bool
 static EmbedPDF.ActionsConfig.operator ==(EmbedPDF.ActionsConfig? left, EmbedPDF.ActionsConfig? right) -> bool
+static EmbedPDF.ActionsEvent.DiagnosticReported.operator !=(EmbedPDF.ActionsEvent.DiagnosticReported? left, EmbedPDF.ActionsEvent.DiagnosticReported? right) -> bool
+static EmbedPDF.ActionsEvent.DiagnosticReported.operator ==(EmbedPDF.ActionsEvent.DiagnosticReported? left, EmbedPDF.ActionsEvent.DiagnosticReported? right) -> bool
+static EmbedPDF.ActionsEvent.Executed.operator !=(EmbedPDF.ActionsEvent.Executed? left, EmbedPDF.ActionsEvent.Executed? right) -> bool
+static EmbedPDF.ActionsEvent.Executed.operator ==(EmbedPDF.ActionsEvent.Executed? left, EmbedPDF.ActionsEvent.Executed? right) -> bool
+static EmbedPDF.ActionsEvent.OpenSequenceCompleted.operator !=(EmbedPDF.ActionsEvent.OpenSequenceCompleted? left, EmbedPDF.ActionsEvent.OpenSequenceCompleted? right) -> bool
+static EmbedPDF.ActionsEvent.OpenSequenceCompleted.operator ==(EmbedPDF.ActionsEvent.OpenSequenceCompleted? left, EmbedPDF.ActionsEvent.OpenSequenceCompleted? right) -> bool
+static EmbedPDF.ActionsEvent.ScriptDiagnosticReported.operator !=(EmbedPDF.ActionsEvent.ScriptDiagnosticReported? left, EmbedPDF.ActionsEvent.ScriptDiagnosticReported? right) -> bool
+static EmbedPDF.ActionsEvent.ScriptDiagnosticReported.operator ==(EmbedPDF.ActionsEvent.ScriptDiagnosticReported? left, EmbedPDF.ActionsEvent.ScriptDiagnosticReported? right) -> bool
+static EmbedPDF.ActionsEvent.ScriptFailed.operator !=(EmbedPDF.ActionsEvent.ScriptFailed? left, EmbedPDF.ActionsEvent.ScriptFailed? right) -> bool
+static EmbedPDF.ActionsEvent.ScriptFailed.operator ==(EmbedPDF.ActionsEvent.ScriptFailed? left, EmbedPDF.ActionsEvent.ScriptFailed? right) -> bool
+static EmbedPDF.ActionsEvent.operator !=(EmbedPDF.ActionsEvent? left, EmbedPDF.ActionsEvent? right) -> bool
+static EmbedPDF.ActionsEvent.operator ==(EmbedPDF.ActionsEvent? left, EmbedPDF.ActionsEvent? right) -> bool
+static EmbedPDF.ActionsJavaScriptConfig.operator !=(EmbedPDF.ActionsJavaScriptConfig? left, EmbedPDF.ActionsJavaScriptConfig? right) -> bool
+static EmbedPDF.ActionsJavaScriptConfig.operator ==(EmbedPDF.ActionsJavaScriptConfig? left, EmbedPDF.ActionsJavaScriptConfig? right) -> bool
+static EmbedPDF.ActionsJavaScriptSettings.operator !=(EmbedPDF.ActionsJavaScriptSettings? left, EmbedPDF.ActionsJavaScriptSettings? right) -> bool
+static EmbedPDF.ActionsJavaScriptSettings.operator ==(EmbedPDF.ActionsJavaScriptSettings? left, EmbedPDF.ActionsJavaScriptSettings? right) -> bool
+static EmbedPDF.ActionsJavaScriptSettingsPatch.operator !=(EmbedPDF.ActionsJavaScriptSettingsPatch? left, EmbedPDF.ActionsJavaScriptSettingsPatch? right) -> bool
+static EmbedPDF.ActionsJavaScriptSettingsPatch.operator ==(EmbedPDF.ActionsJavaScriptSettingsPatch? left, EmbedPDF.ActionsJavaScriptSettingsPatch? right) -> bool
+static EmbedPDF.ActionsScriptBudget.operator !=(EmbedPDF.ActionsScriptBudget? left, EmbedPDF.ActionsScriptBudget? right) -> bool
+static EmbedPDF.ActionsScriptBudget.operator ==(EmbedPDF.ActionsScriptBudget? left, EmbedPDF.ActionsScriptBudget? right) -> bool
+static EmbedPDF.ActionsScriptIdentity.operator !=(EmbedPDF.ActionsScriptIdentity? left, EmbedPDF.ActionsScriptIdentity? right) -> bool
+static EmbedPDF.ActionsScriptIdentity.operator ==(EmbedPDF.ActionsScriptIdentity? left, EmbedPDF.ActionsScriptIdentity? right) -> bool
+static EmbedPDF.ActionsScriptIdentitySetting.RegisteredProvider.operator !=(EmbedPDF.ActionsScriptIdentitySetting.RegisteredProvider? left, EmbedPDF.ActionsScriptIdentitySetting.RegisteredProvider? right) -> bool
+static EmbedPDF.ActionsScriptIdentitySetting.RegisteredProvider.operator ==(EmbedPDF.ActionsScriptIdentitySetting.RegisteredProvider? left, EmbedPDF.ActionsScriptIdentitySetting.RegisteredProvider? right) -> bool
+static EmbedPDF.ActionsScriptIdentitySetting.Value.operator !=(EmbedPDF.ActionsScriptIdentitySetting.Value? left, EmbedPDF.ActionsScriptIdentitySetting.Value? right) -> bool
+static EmbedPDF.ActionsScriptIdentitySetting.Value.operator ==(EmbedPDF.ActionsScriptIdentitySetting.Value? left, EmbedPDF.ActionsScriptIdentitySetting.Value? right) -> bool
+static EmbedPDF.ActionsScriptIdentitySetting.operator !=(EmbedPDF.ActionsScriptIdentitySetting? left, EmbedPDF.ActionsScriptIdentitySetting? right) -> bool
+static EmbedPDF.ActionsScriptIdentitySetting.operator ==(EmbedPDF.ActionsScriptIdentitySetting? left, EmbedPDF.ActionsScriptIdentitySetting? right) -> bool
+static EmbedPDF.ActionsSettings.operator !=(EmbedPDF.ActionsSettings? left, EmbedPDF.ActionsSettings? right) -> bool
+static EmbedPDF.ActionsSettings.operator ==(EmbedPDF.ActionsSettings? left, EmbedPDF.ActionsSettings? right) -> bool
+static EmbedPDF.ActionsSettingsPatch.operator !=(EmbedPDF.ActionsSettingsPatch? left, EmbedPDF.ActionsSettingsPatch? right) -> bool
+static EmbedPDF.ActionsSettingsPatch.operator ==(EmbedPDF.ActionsSettingsPatch? left, EmbedPDF.ActionsSettingsPatch? right) -> bool
 static EmbedPDF.AnnotationRef.Index.operator !=(EmbedPDF.AnnotationRef.Index? left, EmbedPDF.AnnotationRef.Index? right) -> bool
 static EmbedPDF.AnnotationRef.Index.operator ==(EmbedPDF.AnnotationRef.Index? left, EmbedPDF.AnnotationRef.Index? right) -> bool
 static EmbedPDF.AnnotationRef.ObjectNumber.operator !=(EmbedPDF.AnnotationRef.ObjectNumber? left, EmbedPDF.AnnotationRef.ObjectNumber? right) -> bool
@@ -3282,6 +4402,16 @@ static EmbedPDF.FeedbackConfig.operator !=(EmbedPDF.FeedbackConfig? left, EmbedP
 static EmbedPDF.FeedbackConfig.operator ==(EmbedPDF.FeedbackConfig? left, EmbedPDF.FeedbackConfig? right) -> bool
 static EmbedPDF.FormConfig.operator !=(EmbedPDF.FormConfig? left, EmbedPDF.FormConfig? right) -> bool
 static EmbedPDF.FormConfig.operator ==(EmbedPDF.FormConfig? left, EmbedPDF.FormConfig? right) -> bool
+static EmbedPDF.FormSubmissionEntry.operator !=(EmbedPDF.FormSubmissionEntry? left, EmbedPDF.FormSubmissionEntry? right) -> bool
+static EmbedPDF.FormSubmissionEntry.operator ==(EmbedPDF.FormSubmissionEntry? left, EmbedPDF.FormSubmissionEntry? right) -> bool
+static EmbedPDF.FormSubmissionValue.List.operator !=(EmbedPDF.FormSubmissionValue.List? left, EmbedPDF.FormSubmissionValue.List? right) -> bool
+static EmbedPDF.FormSubmissionValue.List.operator ==(EmbedPDF.FormSubmissionValue.List? left, EmbedPDF.FormSubmissionValue.List? right) -> bool
+static EmbedPDF.FormSubmissionValue.NameOnly.operator !=(EmbedPDF.FormSubmissionValue.NameOnly? left, EmbedPDF.FormSubmissionValue.NameOnly? right) -> bool
+static EmbedPDF.FormSubmissionValue.NameOnly.operator ==(EmbedPDF.FormSubmissionValue.NameOnly? left, EmbedPDF.FormSubmissionValue.NameOnly? right) -> bool
+static EmbedPDF.FormSubmissionValue.Text.operator !=(EmbedPDF.FormSubmissionValue.Text? left, EmbedPDF.FormSubmissionValue.Text? right) -> bool
+static EmbedPDF.FormSubmissionValue.Text.operator ==(EmbedPDF.FormSubmissionValue.Text? left, EmbedPDF.FormSubmissionValue.Text? right) -> bool
+static EmbedPDF.FormSubmissionValue.operator !=(EmbedPDF.FormSubmissionValue? left, EmbedPDF.FormSubmissionValue? right) -> bool
+static EmbedPDF.FormSubmissionValue.operator ==(EmbedPDF.FormSubmissionValue? left, EmbedPDF.FormSubmissionValue? right) -> bool
 static EmbedPDF.HistoryChangeLabel.operator !=(EmbedPDF.HistoryChangeLabel? left, EmbedPDF.HistoryChangeLabel? right) -> bool
 static EmbedPDF.HistoryChangeLabel.operator ==(EmbedPDF.HistoryChangeLabel? left, EmbedPDF.HistoryChangeLabel? right) -> bool
 static EmbedPDF.HistoryEvent.SettingsChanged.operator !=(EmbedPDF.HistoryEvent.SettingsChanged? left, EmbedPDF.HistoryEvent.SettingsChanged? right) -> bool
@@ -3472,6 +4602,13 @@ static EmbedPDF.PageRenderResolution.operator !=(EmbedPDF.PageRenderResolution l
 static EmbedPDF.PageRenderResolution.operator ==(EmbedPDF.PageRenderResolution left, EmbedPDF.PageRenderResolution right) -> bool
 static EmbedPDF.PaneInfo.operator !=(EmbedPDF.PaneInfo? left, EmbedPDF.PaneInfo? right) -> bool
 static EmbedPDF.PaneInfo.operator ==(EmbedPDF.PaneInfo? left, EmbedPDF.PaneInfo? right) -> bool
+static EmbedPDF.PartialActionContext.operator !=(EmbedPDF.PartialActionContext? left, EmbedPDF.PartialActionContext? right) -> bool
+static EmbedPDF.PartialActionContext.operator ==(EmbedPDF.PartialActionContext? left, EmbedPDF.PartialActionContext? right) -> bool
+static EmbedPDF.PartialActionPolicyRow.operator !=(EmbedPDF.PartialActionPolicyRow? left, EmbedPDF.PartialActionPolicyRow? right) -> bool
+static EmbedPDF.PartialActionPolicyRow.operator ==(EmbedPDF.PartialActionPolicyRow? left, EmbedPDF.PartialActionPolicyRow? right) -> bool
+static EmbedPDF.PdfActionNode.operator !=(EmbedPDF.PdfActionNode? left, EmbedPDF.PdfActionNode? right) -> bool
+static EmbedPDF.PdfActionNode.operator ==(EmbedPDF.PdfActionNode? left, EmbedPDF.PdfActionNode? right) -> bool
+static EmbedPDF.PdfActionTree.FromJson(string! json) -> EmbedPDF.PdfActionTree!
 static EmbedPDF.PdfErrorCode.Conflict.get -> EmbedPDF.PdfErrorCode
 static EmbedPDF.PdfErrorCode.InstanceClosed.get -> EmbedPDF.PdfErrorCode
 static EmbedPDF.PdfErrorCode.InvalidInput.get -> EmbedPDF.PdfErrorCode
@@ -3485,6 +4622,8 @@ static EmbedPDF.PdfErrorCode.Unsupported.get -> EmbedPDF.PdfErrorCode
 static EmbedPDF.PdfErrorCode.implicit operator EmbedPDF.PdfErrorCode(string! value) -> EmbedPDF.PdfErrorCode
 static EmbedPDF.PdfErrorCode.operator !=(EmbedPDF.PdfErrorCode left, EmbedPDF.PdfErrorCode right) -> bool
 static EmbedPDF.PdfErrorCode.operator ==(EmbedPDF.PdfErrorCode left, EmbedPDF.PdfErrorCode right) -> bool
+static EmbedPDF.PdfObjectRef.operator !=(EmbedPDF.PdfObjectRef? left, EmbedPDF.PdfObjectRef? right) -> bool
+static EmbedPDF.PdfObjectRef.operator ==(EmbedPDF.PdfObjectRef? left, EmbedPDF.PdfObjectRef? right) -> bool
 static EmbedPDF.PdfPoint.operator !=(EmbedPDF.PdfPoint left, EmbedPDF.PdfPoint right) -> bool
 static EmbedPDF.PdfPoint.operator ==(EmbedPDF.PdfPoint left, EmbedPDF.PdfPoint right) -> bool
 static EmbedPDF.PdfQuad.operator !=(EmbedPDF.PdfQuad left, EmbedPDF.PdfQuad right) -> bool
@@ -3590,6 +4729,8 @@ static EmbedPDF.RenderedPage.operator !=(EmbedPDF.RenderedPage? left, EmbedPDF.R
 static EmbedPDF.RenderedPage.operator ==(EmbedPDF.RenderedPage? left, EmbedPDF.RenderedPage? right) -> bool
 static EmbedPDF.RenderedPageResult.operator !=(EmbedPDF.RenderedPageResult? left, EmbedPDF.RenderedPageResult? right) -> bool
 static EmbedPDF.RenderedPageResult.operator ==(EmbedPDF.RenderedPageResult? left, EmbedPDF.RenderedPageResult? right) -> bool
+static EmbedPDF.ScriptExecutionError.operator !=(EmbedPDF.ScriptExecutionError? left, EmbedPDF.ScriptExecutionError? right) -> bool
+static EmbedPDF.ScriptExecutionError.operator ==(EmbedPDF.ScriptExecutionError? left, EmbedPDF.ScriptExecutionError? right) -> bool
 static EmbedPDF.SearchConfig.operator !=(EmbedPDF.SearchConfig? left, EmbedPDF.SearchConfig? right) -> bool
 static EmbedPDF.SearchConfig.operator ==(EmbedPDF.SearchConfig? left, EmbedPDF.SearchConfig? right) -> bool
 static EmbedPDF.SearchEvent.ActiveHitChanged.operator !=(EmbedPDF.SearchEvent.ActiveHitChanged? left, EmbedPDF.SearchEvent.ActiveHitChanged? right) -> bool
@@ -3709,6 +4850,8 @@ static EmbedPDF.ToolId.Zoom.get -> EmbedPDF.ToolId
 static EmbedPDF.ToolId.implicit operator EmbedPDF.ToolId(string! value) -> EmbedPDF.ToolId
 static EmbedPDF.ToolId.operator !=(EmbedPDF.ToolId left, EmbedPDF.ToolId right) -> bool
 static EmbedPDF.ToolId.operator ==(EmbedPDF.ToolId left, EmbedPDF.ToolId right) -> bool
+static EmbedPDF.TriggerGates.operator !=(EmbedPDF.TriggerGates? left, EmbedPDF.TriggerGates? right) -> bool
+static EmbedPDF.TriggerGates.operator ==(EmbedPDF.TriggerGates? left, EmbedPDF.TriggerGates? right) -> bool
 static EmbedPDF.ViewManagerEvent.DocumentMoved.operator !=(EmbedPDF.ViewManagerEvent.DocumentMoved? left, EmbedPDF.ViewManagerEvent.DocumentMoved? right) -> bool
 static EmbedPDF.ViewManagerEvent.DocumentMoved.operator ==(EmbedPDF.ViewManagerEvent.DocumentMoved? left, EmbedPDF.ViewManagerEvent.DocumentMoved? right) -> bool
 static EmbedPDF.ViewManagerEvent.FocusChanged.operator !=(EmbedPDF.ViewManagerEvent.FocusChanged? left, EmbedPDF.ViewManagerEvent.FocusChanged? right) -> bool
@@ -3723,6 +4866,30 @@ static EmbedPDF.ViewerSettings.operator !=(EmbedPDF.ViewerSettings? left, EmbedP
 static EmbedPDF.ViewerSettings.operator ==(EmbedPDF.ViewerSettings? left, EmbedPDF.ViewerSettings? right) -> bool
 static EmbedPDF.ViewerSettingsPatch.operator !=(EmbedPDF.ViewerSettingsPatch? left, EmbedPDF.ViewerSettingsPatch? right) -> bool
 static EmbedPDF.ViewerSettingsPatch.operator ==(EmbedPDF.ViewerSettingsPatch? left, EmbedPDF.ViewerSettingsPatch? right) -> bool
+virtual EmbedPDF.ActionAnnotationTreeEvent.EqualityContract.get -> System.Type!
+virtual EmbedPDF.ActionAnnotationTreeEvent.Equals(EmbedPDF.ActionAnnotationTreeEvent? other) -> bool
+virtual EmbedPDF.ActionAnnotationTreeEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.ActionExecutorResult.EqualityContract.get -> System.Type!
+virtual EmbedPDF.ActionExecutorResult.Equals(EmbedPDF.ActionExecutorResult? other) -> bool
+virtual EmbedPDF.ActionExecutorResult.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.ActionSource.EqualityContract.get -> System.Type!
+virtual EmbedPDF.ActionSource.Equals(EmbedPDF.ActionSource? other) -> bool
+virtual EmbedPDF.ActionSource.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.ActionTreeSource.EqualityContract.get -> System.Type!
+virtual EmbedPDF.ActionTreeSource.Equals(EmbedPDF.ActionTreeSource? other) -> bool
+virtual EmbedPDF.ActionTreeSource.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.ActionTrigger.EqualityContract.get -> System.Type!
+virtual EmbedPDF.ActionTrigger.Equals(EmbedPDF.ActionTrigger? other) -> bool
+virtual EmbedPDF.ActionTrigger.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.ActionTriggerEvent.EqualityContract.get -> System.Type!
+virtual EmbedPDF.ActionTriggerEvent.Equals(EmbedPDF.ActionTriggerEvent? other) -> bool
+virtual EmbedPDF.ActionTriggerEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.ActionsEvent.EqualityContract.get -> System.Type!
+virtual EmbedPDF.ActionsEvent.Equals(EmbedPDF.ActionsEvent? other) -> bool
+virtual EmbedPDF.ActionsEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.ActionsScriptIdentitySetting.EqualityContract.get -> System.Type!
+virtual EmbedPDF.ActionsScriptIdentitySetting.Equals(EmbedPDF.ActionsScriptIdentitySetting? other) -> bool
+virtual EmbedPDF.ActionsScriptIdentitySetting.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual EmbedPDF.AnnotationRef.EqualityContract.get -> System.Type!
 virtual EmbedPDF.AnnotationRef.Equals(EmbedPDF.AnnotationRef? other) -> bool
 virtual EmbedPDF.AnnotationRef.PrintMembers(System.Text.StringBuilder! builder) -> bool
@@ -3735,6 +4902,9 @@ virtual EmbedPDF.AttachmentHome.PrintMembers(System.Text.StringBuilder! builder)
 virtual EmbedPDF.DocumentEvent.EqualityContract.get -> System.Type!
 virtual EmbedPDF.DocumentEvent.Equals(EmbedPDF.DocumentEvent? other) -> bool
 virtual EmbedPDF.DocumentEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.FormSubmissionValue.EqualityContract.get -> System.Type!
+virtual EmbedPDF.FormSubmissionValue.Equals(EmbedPDF.FormSubmissionValue? other) -> bool
+virtual EmbedPDF.FormSubmissionValue.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual EmbedPDF.HistoryEvent.EqualityContract.get -> System.Type!
 virtual EmbedPDF.HistoryEvent.Equals(EmbedPDF.HistoryEvent? other) -> bool
 virtual EmbedPDF.HistoryEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool

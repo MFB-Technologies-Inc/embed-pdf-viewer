@@ -75,6 +75,24 @@ internal static class KernelCallback
     }
 
     /// <summary>
+    /// Runs app code marked for a trait member that declares the host error:
+    /// whatever the code throws reaches the kernel as
+    /// <c>HostException.Failed</c> with its message.
+    /// </summary>
+    internal static void RunOrFail(KernelMark mark, Action body)
+    {
+        using var _ = Enter(mark);
+        try
+        {
+            body();
+        }
+        catch (Exception error)
+        {
+            throw new uniffi.epdf_ffi.HostException.Failed(error.Message);
+        }
+    }
+
+    /// <summary>
     /// A disposal started inside a callback: awaiting it works, blocking on it
     /// before it finishes throws, because the blocked thread is the one the
     /// disposal needs.

@@ -25,6 +25,20 @@ public sealed class EnumMirrorTests
         { typeof(FeedbackImpactWeight), typeof(uniffi.epdf_plugin_interaction.FeedbackImpactWeight) },
         { typeof(FeedbackNotifyKind), typeof(uniffi.epdf_plugin_interaction.FeedbackNotifyKind) },
         { typeof(TextDirection), typeof(uniffi.epdf_plugin_i18n.TextDirection) },
+        { typeof(ActionOrigin), typeof(uniffi.epdf_plugin_actions.ActionOrigin) },
+        { typeof(ActionPolicyDecision), typeof(uniffi.epdf_plugin_actions.ActionPolicyDecision) },
+        { typeof(ActionResultStatus), typeof(uniffi.epdf_plugin_actions.ActionResultStatus) },
+        { typeof(ActionNodeStatus), typeof(uniffi.epdf_plugin_actions.ActionNodeStatus) },
+        { typeof(ActionDiagnosticCode), typeof(uniffi.epdf_plugin_actions.ActionDiagnosticCode) },
+        { typeof(DocumentTriggerEvent), typeof(uniffi.epdf_plugin_actions.DocumentTriggerEvent) },
+        { typeof(DocumentVerb), typeof(uniffi.epdf_plugin_actions.DocumentVerb) },
+        { typeof(OpenSequence), typeof(uniffi.epdf_plugin_actions.OpenSequence) },
+        { typeof(PageEventKind), typeof(uniffi.epdf_plugin_actions.PageEventKind) },
+        { typeof(PdfAnnotationEventKind), typeof(uniffi.epdf_plugin_actions.PdfAnnotationEventKind) },
+        { typeof(PdfFieldEventKind), typeof(uniffi.epdf_plugin_actions.PdfFieldEventKind) },
+        { typeof(ScriptDiagnosticCode), typeof(uniffi.epdf_plugin_actions.ScriptDiagnosticCode) },
+        { typeof(ScriptErrorKind), typeof(uniffi.epdf_plugin_actions.ScriptErrorKind) },
+        { typeof(ScriptPhase), typeof(uniffi.epdf_plugin_actions.ScriptPhase) },
     };
 
     [Theory]

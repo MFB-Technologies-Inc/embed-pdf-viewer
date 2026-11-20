@@ -137,10 +137,16 @@
       "path": "crates/plugins/actions/src/controller.rs",
       "owner": "ActionsCapability",
       "symbol": "lifetime",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/actions/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ActionsCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -148,10 +154,16 @@
       "path": "crates/plugins/actions/src/controller.rs",
       "owner": "ActionsCapability",
       "symbol": "get_settings",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/actions/src/ffi/settings.rs",
         "symbol": "settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ActionsCapability",
+        "member": "GetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -159,10 +171,17 @@
       "path": "crates/plugins/actions/src/controller.rs",
       "owner": "ActionsCapability",
       "symbol": "update_settings",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/actions/src/ffi/settings.rs",
         "symbol": "update_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ActionsCapability",
+        "member": "UpdateSettingsAsync",
+        "parameters": [
+          "EmbedPDF.ActionsSettingsPatch",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -170,10 +189,16 @@
       "path": "crates/plugins/actions/src/controller.rs",
       "owner": "ActionsCapability",
       "symbol": "reset_settings",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/actions/src/ffi/settings.rs",
         "symbol": "reset_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ActionsCapability",
+        "member": "ResetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -181,10 +206,16 @@
       "path": "crates/plugins/actions/src/controller.rs",
       "owner": "ActionsCapability",
       "symbol": "on_settings_changed",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/epdf-viewer-host/src/lib.rs",
         "symbol": "state_revision"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PdfViewer",
+        "member": "ObserveStateRevisions",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -192,10 +223,16 @@
       "path": "crates/plugins/actions/src/controller.rs",
       "owner": "ActionsCapability",
       "symbol": "on_executed",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/actions/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ActionsCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -203,10 +240,16 @@
       "path": "crates/plugins/actions/src/controller.rs",
       "owner": "ActionsCapability",
       "symbol": "on_diagnostic_reported",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/actions/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ActionsCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -214,10 +257,16 @@
       "path": "crates/plugins/actions/src/controller.rs",
       "owner": "ActionsCapability",
       "symbol": "on_script_diagnostic_reported",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/actions/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ActionsCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -225,10 +274,16 @@
       "path": "crates/plugins/actions/src/controller.rs",
       "owner": "ActionsCapability",
       "symbol": "on_script_failed",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/actions/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ActionsCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -236,10 +291,16 @@
       "path": "crates/plugins/actions/src/controller.rs",
       "owner": "ActionsCapability",
       "symbol": "on_open_sequence_completed",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/actions/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ActionsCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -247,10 +308,18 @@
       "path": "crates/plugins/actions/src/dispatch/dispatcher.rs",
       "owner": "ActionsCapability",
       "symbol": "execute",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/actions/src/ffi.rs",
         "symbol": "execute"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ActionsCapability",
+        "member": "ExecuteAsync",
+        "parameters": [
+          "EmbedPDF.PdfActionTree",
+          "EmbedPDF.ActionContext",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -258,10 +327,18 @@
       "path": "crates/plugins/actions/src/dispatch/dispatcher.rs",
       "owner": "ActionsCapability",
       "symbol": "can_execute",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/actions/src/ffi.rs",
         "symbol": "can_execute"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ActionsCapability",
+        "member": "CanExecuteAsync",
+        "parameters": [
+          "EmbedPDF.PdfActionTree",
+          "EmbedPDF.ActionContext",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -269,10 +346,17 @@
       "path": "crates/plugins/actions/src/dispatch/dispatcher.rs",
       "owner": "ActionsCapability",
       "symbol": "dispatch",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/actions/src/ffi.rs",
         "symbol": "dispatch"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ActionsCapability",
+        "member": "DispatchAsync",
+        "parameters": [
+          "EmbedPDF.ActionTrigger",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -280,10 +364,17 @@
       "path": "crates/plugins/actions/src/dispatch/dispatcher.rs",
       "owner": "ActionsCapability",
       "symbol": "can_dispatch",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/actions/src/ffi.rs",
         "symbol": "can_dispatch"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ActionsCapability",
+        "member": "CanDispatchAsync",
+        "parameters": [
+          "EmbedPDF.ActionTrigger",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -291,10 +382,16 @@
       "path": "crates/plugins/actions/src/dispatch/dispatcher.rs",
       "owner": "ActionsCapability",
       "symbol": "prepare_close",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/actions/src/ffi.rs",
         "symbol": "prepare_close"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ActionsCapability",
+        "member": "PrepareCloseAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -302,10 +399,18 @@
       "path": "crates/plugins/actions/src/dispatch/dispatcher.rs",
       "owner": "ActionsCapability",
       "symbol": "execute_named",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/actions/src/ffi.rs",
         "symbol": "execute_named"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ActionsCapability",
+        "member": "ExecuteNamedAsync",
+        "parameters": [
+          "System.String",
+          "EmbedPDF.PartialActionContext",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -313,10 +418,18 @@
       "path": "crates/plugins/actions/src/dispatch/dispatcher.rs",
       "owner": "ActionsCapability",
       "symbol": "can_execute_named",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/actions/src/ffi.rs",
         "symbol": "can_execute_named"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ActionsCapability",
+        "member": "CanExecuteNamedAsync",
+        "parameters": [
+          "System.String",
+          "EmbedPDF.PartialActionContext",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -324,10 +437,17 @@
       "path": "crates/plugins/actions/src/dispatch/dispatcher.rs",
       "owner": "ActionsCapability",
       "symbol": "read_action_tree",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/actions/src/ffi.rs",
         "symbol": "action_tree"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ActionsCapability",
+        "member": "GetActionTreeAsync",
+        "parameters": [
+          "EmbedPDF.ActionTreeSource",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -335,10 +455,18 @@
       "path": "crates/plugins/actions/src/lifecycle/document_events.rs",
       "owner": "ActionsCapability",
       "symbol": "run_document_verb",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/actions/src/ffi/ports.rs",
         "symbol": "run_document_verb"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ActionsCapability",
+        "member": "RunDocumentVerbAsync",
+        "parameters": [
+          "EmbedPDF.DocumentVerb",
+          "System.Func<System.Threading.Tasks.Task>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -346,10 +474,18 @@
       "path": "crates/plugins/actions/src/lifecycle/open_sequence.rs",
       "owner": "ActionsCapability",
       "symbol": "set_ui_adapter",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/actions/src/ffi/ports.rs",
         "symbol": "set_ui_adapter"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ActionsCapability",
+        "member": "SetUiHandlerAsync",
+        "parameters": [
+          "EmbedPDF.IActionUiHandler",
+          "EmbedPDF.ActionUiSupport",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -365,10 +501,16 @@
       "path": "crates/plugins/actions/src/scripting/realm.rs",
       "owner": "ActionsCapability",
       "symbol": "is_scripting_enabled",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/actions/src/ffi.rs",
         "symbol": "is_scripting_enabled"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ActionsCapability",
+        "member": "IsScriptingEnabledAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -408,10 +550,18 @@
       "path": "crates/plugins/actions/src/services/ports.rs",
       "owner": "ActionsCapability",
       "symbol": "register_executor",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/actions/src/ffi/ports.rs",
         "symbol": "register_executor"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ActionsCapability",
+        "member": "RegisterExecutorAsync",
+        "parameters": [
+          "System.String",
+          "EmbedPDF.IActionExecutor",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -443,10 +593,17 @@
       "path": "crates/plugins/actions/src/services/ports.rs",
       "owner": "ActionsCapability",
       "symbol": "set_submit_handler",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/actions/src/ffi/ports.rs",
         "symbol": "set_submit_handler"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ActionsCapability",
+        "member": "SetSubmitHandlerAsync",
+        "parameters": [
+          "EmbedPDF.IActionSubmitHandler",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {

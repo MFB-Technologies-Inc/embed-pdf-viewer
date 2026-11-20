@@ -70,7 +70,7 @@ public sealed class DisabledPluginTests
         new("Shell", None, o => o with { Shell = true }, Public((v, d) => v.GetShellAsync(d))),
         new("I18n", None, o => o with { I18n = new() }, Public((v, _) => v.GetI18nAsync())),
         new("Commands", None, o => o with { Commands = true }, Global(h => h.Commands())),
-        new("Actions", None, o => o with { Actions = new() }, Of((h, id) => h.Actions(id))),
+        new("Actions", None, o => o with { Actions = new() }, Public((v, d) => v.GetActionsAsync(d))),
         new("Signature", o => o with { Interaction = true, Form = new() }, o => o with { Signature = new() }, Of((h, id) => h.Signature(id))),
     ];
 

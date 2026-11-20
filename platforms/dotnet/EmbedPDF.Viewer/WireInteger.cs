@@ -41,6 +41,12 @@ internal static class WireInteger
         value <= long.MaxValue ? (long)value
             : throw new PdfException("RangeError", PdfErrorCode.InvalidState, $"{result} {value} is outside 0...{long.MaxValue}");
 
+    /// <summary><paramref name="value"/> as the engine's <see cref="ulong"/>; a negative value throws <c>invalid-input</c>.</summary>
+    internal static ulong ToUInt64(long value, string argument) =>
+        value >= 0 ? (ulong)value
+            : throw new PdfException("RangeError", PdfErrorCode.InvalidInput,
+                $"{argument} {value} is outside {ulong.MinValue}...{ulong.MaxValue}");
+
     /// <summary>A caller's optional index for the engine; see <see cref="ToUInt32(int, string)"/>.</summary>
     internal static uint? ToUInt32(int? value, string argument) => value is { } v ? ToUInt32(v, argument) : null;
 

@@ -204,6 +204,26 @@ public sealed class PdfActionTree : IDisposable
 
     internal GA.PdfActionTree Handle { get; }
 
+    /// <summary>
+    /// A tree in the engine's JSON shape (<c>{root, incomplete, warningFlags, warnings}</c>).
+    /// Throws <see cref="PdfException"/> with <see cref="PdfErrorCode.InvalidInput"/> for a malformed tree.
+    /// </summary>
+    public static PdfActionTree FromJson(string json)
+    {
+        ArgumentNullException.ThrowIfNull(json);
+        NativeRuntime.EnsureLoaded();
+        GA.PdfActionTree tree;
+        try
+        {
+            tree = GA.PdfActionTree.FromJson(json);
+        }
+        catch (Exception error)
+        {
+            throw PdfException.From(error);
+        }
+        return new PdfActionTree(tree);
+    }
+
     /// <summary>Whether extraction stopped early, leaving part of the tree out.</summary>
     public bool IsIncomplete { get; }
 
