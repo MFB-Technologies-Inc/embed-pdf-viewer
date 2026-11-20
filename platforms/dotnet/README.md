@@ -121,3 +121,57 @@ with SIGSEGV in the broad engine
 test ([issue #16](https://github.com/roanutil/embed-pdf-viewer/issues/16)).
 Ordinary facade default rendering is covered separately and does not reproduce
 that held-layer-page case. No test is skipped and no alternate runtime is used.
+
+## Viewer packages
+
+The viewer is two new packages beside `EmbedPDF.Engine`, with no dependency between them.
+`EmbedPDF.Runtime` holds the `epdf-viewer-host` library and the PDFium it links, under
+`runtimes/<rid>/native/`, and no managed code. `EmbedPDF` is the facade. It compiles the generated
+bindings as internal types and depends on `EmbedPDF.Runtime` at the version pinned in
+`EmbedPDF.Runtime/EmbedPDF.Runtime.props`. Today the facade is a skeleton: `NativeRuntime` loads the
+host and reads a page count, and the document API arrives in Phase 2 of
+`docs/superpowers/plans/2026-11-20-dotnet-parity.md`.
+
+The runtime is versioned `0.0.0-engine.<hash>`, where the hash comes from `dotnet-engine-hash.sh`.
+Facade work that leaves the Rust alone keeps the same runtime. `check-dotnet-engine.sh` fails when
+the pin and the tree disagree.
+
+The facade's resolver loads PDFium from the host's directory, then the host. It looks beside the
+application first, then in `runtimes/<rid>/native` under it. A runtime with no library fails with
+`NativeRuntimeNotFoundException`, a `PdfException` that names the RID and every path it tried.
+The packaged Linux host also carries a `$ORIGIN` runpath. `LD_LIBRARY_PATH` is never needed.
+
+Build and check one RID in the dev container, from the repository root:
+
+```sh
+bash platforms/dotnet/build-viewer-host.sh linux-arm64          # prints the library path
+python3 platforms/dotnet/packaging/package.py stage-runtime --rid linux-arm64 \
+  --native-lib target/aarch64-unknown-linux-gnu/release/libepdf_viewer_host.so --out /tmp/rt/slice-linux-arm64
+python3 platforms/dotnet/packaging/package.py pack-runtime --slice /tmp/rt/slice-linux-arm64 --out /tmp/rt/pack
+cargo rustc -p epdf-viewer-host --release --locked --crate-type cdylib   # unstripped, for the generator
+bash platforms/dotnet/generate-bindings.sh
+python3 platforms/dotnet/packaging/package.py pack-facade \
+  --runtime-package /tmp/rt/pack/EmbedPDF.Runtime.<version>.nupkg --out /tmp/rt/pack
+EPDF_IMAGE_ID=sha256:<image> python3 platforms/dotnet/packaging/package.py validate-runtime --rid linux-arm64 \
+  --package /tmp/rt/pack/EmbedPDF.Runtime.<version>.nupkg --facade /tmp/rt/pack/EmbedPDF.0.0.0-local.nupkg \
+  --manifest /tmp/rt/pack/package-manifest.runtime.json --record /tmp/rt/record.json
+```
+
+`pack-runtime` takes one `--slice` per RID. It re-checks every staged file against the slice's
+record, so a slice edited after staging can't be packed. The generator needs an unstripped host,
+because the uniffi metadata lives in the symbol table that `build-viewer-host.sh` strips.
+
+Sizes measured at `2fefea8ab` (engine `0.0.0-engine.18469524870238e6`), in bytes:
+
+| RID | `libepdf_viewer_host` | PDFium (`libembedpdf`) | glibc floor (host, PDFium) | Validation |
+|---|---|---|---|---|
+| `linux-arm64` | 29,367,528 | 11,376,920 | 2.35, 2.25 | native, `validation/2026-11-20-phase-1-runtime-linux-arm64` |
+| `linux-x64` | 33,652,040 | 11,616,560 | 2.35, 2.25 | container-emulated, `validation/2026-11-20-phase-1-runtime-linux-x64` |
+| `osx-arm64`, `osx-x64`, `win-x64` | not built here | | | `UNVALIDATED` |
+
+The `EmbedPDF.Runtime` nupkg with those two RIDs is 38,057,860 bytes, and the `EmbedPDF` nupkg is
+1,221,728. The linux-x64 host was cross-built on arm64 and run under emulation. That is not
+native-host evidence. `.github/workflows/release-dotnet.yml` builds and validates the macOS and
+Windows RIDs, but it has not run yet.
+
+An app that loads both `EmbedPDF.Engine` and `EmbedPDF` loads two PDFium copies. Pick one.

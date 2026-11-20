@@ -237,19 +237,55 @@ receives one foreign-trait callback, on `linux-arm64` in the dev container.
 ## Phase 1: Runtime package
 
 About 4 days. Exit: `EmbedPDF.Runtime` packs for all five RIDs, and a consumer project restoring
-it from a local feed loads the library and passes the Phase 0 test on `linux-arm64` and
-`osx-arm64`, with validation records.
+it from a local feed loads the library and passes the Phase 0 test on `linux-arm64`, with a
+validation record. *Changed 2026-11-20:* the Phase 1 job could not use the macOS host, so
+`osx-arm64` validation comes from `.github/workflows/release-dotnet.yml` (`runtime-validate`) or a
+later manual run, and the five-RID pack is that workflow's `runtime-pack` job. In the container,
+`linux-arm64` and `linux-x64` packed into one package.
 
-- [ ] `crates/uniffi-bindgen-cs` wrapper (D1) and a `platforms/dotnet/generate-bindings.sh` that
-  writes generated C# under `platforms/dotnet/EmbedPDF/Generated/`, git-ignored.
-- [ ] Build `epdf-viewer-host` as a cdylib per RID. Extend `platforms/dotnet/packaging/package.py`
+- [x] `crates/uniffi-bindgen-cs` wrapper (D1) and a `platforms/dotnet/generate-bindings.sh` that
+  writes generated C# under `platforms/dotnet/EmbedPDF.Viewer/Generated/`, git-ignored.
+- [x] Build `epdf-viewer-host` as a cdylib per RID. Extend `platforms/dotnet/packaging/package.py`
   and its schema to a second package, keeping the checksum-verified input rule.
-- [ ] `platforms/dotnet/dotnet-engine-hash.sh` and `check-dotnet-engine.sh`, mirroring
+- [x] `platforms/dotnet/dotnet-engine-hash.sh` and `check-dotnet-engine.sh`, mirroring
   `platforms/apple/apple-engine-hash.sh` and `check-apple-engine.sh`.
-- [ ] A `NativeLibrary.SetDllImportResolver` that maps the generated library name to the package
+- [x] A `NativeLibrary.SetDllImportResolver` that maps the generated library name to the package
   layout and turns a missing RID into a typed error (Review Focus 5).
-- [ ] Record the packaged library size per RID in the README. The number belongs in the record,
+- [x] Record the packaged library size per RID in the README. The number belongs in the record,
   not a guess.
+
+### Phase 1 notes (2026-11-20)
+
+Task plan: `docs/superpowers/plans/2026-11-20-dotnet-parity/01-runtime-package.md`. Branch
+`research/dotnet-parity-p1`, not pushed.
+
+Naming. `platforms/dotnet/EmbedPDF` is the `EmbedPDF.Engine` package and stays untouched, so the
+facade lives at `platforms/dotnet/EmbedPDF.Viewer/` (assembly and package id `EmbedPDF`, namespace
+`EmbedPDF`) and the runtime package project at `platforms/dotnet/EmbedPDF.Runtime/`. Generated C#
+goes to `platforms/dotnet/EmbedPDF.Viewer/Generated/`. The four spike tests moved to
+`platforms/dotnet/EmbedPDF.Viewer.Tests/`, and `platforms/dotnet/spike/` is gone.
+
+Packaging. `package.py` gained `stage-runtime` (one RID: host plus checksum-verified PDFium, the
+runpath set to `$ORIGIN` with `patchelf` or to `@loader_path` with `install_name_tool`, native
+inspection, a slice record), `pack-runtime` (merges slices after re-hashing every file),
+`pack-facade` and `validate-runtime`. The manifest schema takes `EmbedPDF.Runtime` with several
+packed RIDs and no fonts, and the record schema takes `package` and `phase` in place of `slice`.
+`crates/epdf-viewer-host/build.rs` is unchanged: it is an `apple-engine-hash.sh` input, so the
+runpath is fixed at staging rather than at link time.
+
+Two findings. The host is linked with `-C strip=symbols` (29,367,528 bytes on `linux-arm64`
+instead of 37,946,320), and stripping removes the uniffi metadata the generator reads, so bindings
+come from an unstripped build of the same tree. The consumer run shows they match the stripped
+library. Second, `package.py` is a hash input, so any change to it moves the engine version; the
+pin is the last commit before staging.
+
+Validation. `linux-arm64`: native, in the dev container. `linux-x64`: cross-built with
+`crossbuild-essential-amd64`, then staged and consumed under the container's x86_64 emulation with
+the x64 SDK 10.0.403, recorded as `container-emulated`. Both consumers pass the RID-specific and
+portable layouts, report `NativeRuntimeNotFoundException` naming the RID when the host is hidden,
+and fail when PDFium is hidden. `osx-arm64`, `osx-x64` and `win-x64` stay `UNVALIDATED`; the
+workflow builds, packs and validates them but has not run. Sizes are in `platforms/dotnet/README.md`,
+"Viewer packages".
 
 ## Phase 2: Facade core
 
@@ -343,7 +379,9 @@ entry.
 `csharp-api-coverage.json` has no `pending` rows and the coverage check passes. Every Swift test
 file under `EmbedPDFTests` and `EmbedPDFModelsTests` has a C# counterpart or a recorded reason it
 doesn't apply. PublicApiAnalyzers passes. The console sample runs from packed packages and as a
-NativeAOT binary. Validation records exist for `linux-x64`, `linux-arm64` and `osx-arm64`;
+NativeAOT binary. Validation records exist for `linux-x64`, `linux-arm64` and `osx-arm64`
+(`osx-arm64` from the release workflow or a later manual run, since Phase 1 could not use a macOS
+host);
 `osx-x64` and `win-x64` stay `UNVALIDATED` until someone runs them on an Intel Mac and a Windows
 host. One release is published once the user approves it.
 
