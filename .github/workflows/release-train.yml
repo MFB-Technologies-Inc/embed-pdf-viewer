@@ -23,7 +23,10 @@ name: release-train
 #
 # runtime, payload and apple also wait for preflight, so a bad input stops the
 # train before it publishes anything. Every job after a reusable workflow skips
-# what is already out, so a rerun picks up where a failed run stopped.
+# what is already out, so "Re-run failed jobs" picks up where a failed run
+# stopped. Once pin has pushed, don't use "Re-run all jobs": pin commits on
+# github.sha again and its push fails as non-fast-forward. Dispatch a fresh
+# run from the branch tip instead.
 #
 # dry_run builds and tests everything and prints each push, tag and release
 # command instead of running it. The pin commit is made and shown but not
