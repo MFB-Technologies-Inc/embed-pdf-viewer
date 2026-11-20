@@ -432,7 +432,8 @@ struct StagePointerForwarderTests {
     await observing.value
   }
 
-  /// A page the reader has scrolled to gets its links loaded too, once.
+  /// A page the reader has scrolled to gets its links loaded too: the last
+  /// page is not loaded before the scroll and is loaded after it.
   @Test func aPageScrolledIntoViewHasItsLinksLoaded() async throws {
     let viewer = try PDFViewer(
       ViewerConfig(render: RenderConfig(), interaction: true, stage: StageConfig(), link: true))
