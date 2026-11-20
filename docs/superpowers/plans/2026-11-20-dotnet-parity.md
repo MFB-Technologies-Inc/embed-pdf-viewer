@@ -575,9 +575,11 @@ Deviations, each with its reason:
 ### Phase 3 wave B notes (2026-11-20)
 
 Task plan: `docs/superpowers/plans/2026-11-20-dotnet-parity/03b-wave-b.md`. Branch
-`research/dotnet-parity-p3b` from `research/dotnet-parity-p3a` at `7e62f53a1`, not pushed. It
-does not carry wave A's later Phase 2 follow-ups (`30bcc1c35`, `99c258f75`); the second one
-edits the same `PdfViewer.Dispose` remarks this wave replaces, so the merge needs a hand there.
+`research/dotnet-parity-p3b` from `research/dotnet-parity-p3a` at `7e62f53a1`, not pushed. Wave
+A's close (`110916bf9`, with the Phase 2 follow-ups `30bcc1c35` and `99c258f75`) is merged in at
+`b6731ee64`. The one conflict was the `Dispose`/`DisposeAsync` remarks in `PdfViewer.cs`; the
+merge keeps the kernel-thread guard and its wording and folds in `99c258f75`'s point that
+starting disposal from a callback is safe.
 
 What exists. Four capabilities under `platforms/dotnet/EmbedPDF.Viewer/Plugins/`:
 `InteractionCapability` (with `ToolId`, the pointer records and `IInteractionHandler`),
@@ -589,8 +591,8 @@ What exists. Four capabilities under `platforms/dotnet/EmbedPDF.Viewer/Plugins/`
 (package `EmbedPDF.Scripting.Jint`, Jint 4.18.0). The coverage check reads 880 members: 293
 ported, 452 pending (C 167, D 143, E 142), 135 exclusions. All 68 wave B rows are ported
 (interaction 30, i18n 15, actions 23); none needed an exclusion, and feedback has no rows, as
-the manifest's crate note says. `EmbedPDF.Viewer.Tests` runs 549 cases, 548 passing twice in a
-row and one skipped (the pointer latency test, which runs with `EMBEDPDF_LATENCY=1`: p95
+the manifest's crate note says. `EmbedPDF.Viewer.Tests` runs 596 cases after the merge, 595 passing twice
+in a row and one skipped (the pointer latency test, which runs with `EMBEDPDF_LATENCY=1`: p95
 0.101 ms against an 8.33 ms frame on `linux-arm64`). `EmbedPDF.Tests` passes its 36,
 `packaging` its 30 and `scripts/test_check_api_coverage.py` its 11. Release builds of the
 facade, the DI package, the Jint package, the tests and `EmbedPDF.ApiDump` report 0 warnings.
@@ -625,6 +627,19 @@ limit (64 MiB by default) and `Constraints.MaxExecutionStackCount` (1,000). The 
 per-call `Constraint`, so a runaway script stops inside the interpreter and frees its thread;
 the wait gives up 250 ms past the limit in case it doesn't. Packing the package into a release
 is Phase 6.
+
+Wave A's review rules apply here too (`6d674ac69`). Every wave B stream goes through
+`PdfViewer.Stream` and so the `StreamRegistry`, and
+`LifetimeTests.LiveWaveBStreamsAndCallbacksDoNotKeepAnAbandonedViewerAlive` abandons a viewer
+holding interaction, i18n and actions streams plus a handler, a tool permission, a feedback
+provider, a UI handler and an executor, and expects the viewer collected and every stream ended.
+Public enums reach the engine through `Ffi.Defined` or an explicit arm (`EnumRangeTests`, 18 new
+rows). Conversions run inside the `Run` lambda, so an invalid argument faults the task
+(`ValidationShapeTests.InvalidWaveBArgumentsFaultTheReturnedTask`; `DispatchPointer` returns no
+task and throws at once). A null element or dictionary value throws `ArgumentException` up front
+in methods that are not `async` (`Arguments.NoNullElements`, and `Arguments.NoNullValues` for
+cursor, translation and parameter dictionaries); `RegisterToolAsync` and `RegisterLocaleAsync`
+are declared `async` and fault their task instead, per the null-argument rule.
 
 Deviations, each with its reason:
 
