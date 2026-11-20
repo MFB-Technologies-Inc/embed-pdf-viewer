@@ -96,6 +96,54 @@ public sealed class NullArgumentTests
         Assert.Empty(await Unchecked(new PixelBuffer(new byte[4], 1, 1, 4)));
     }
 
+    /// <summary>Each (method, parameter index) whose parameter is a collection of a reference type.</summary>
+    static IEnumerable<(MethodInfo Method, int Index, Type Element)> CollectionCases(Type type) =>
+        from method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+        where !method.IsSpecialName && !method.IsGenericMethodDefinition
+        let parameters = method.GetParameters()
+        from index in Enumerable.Range(0, parameters.Length)
+        let parameter = parameters[index].ParameterType
+        where parameter.IsGenericType && parameter.GetGenericTypeDefinition() == typeof(IEnumerable<>)
+        let element = parameter.GetGenericArguments()[0]
+        where !element.IsValueType
+        select (method, index, element);
+
+    [Fact]
+    public async Task EveryWaveACapabilityRefusesANullElement()
+    {
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Attachment = true, ViewManager = true, Shell = true });
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        var shell = await viewer.GetShellAsync(document);
+        object[] targets = [await viewer.GetAttachmentsAsync(document), await viewer.GetViewManagerAsync(), shell];
+        var missing = new List<string>();
+        var checkedCount = 0;
+        foreach (var target in targets)
+        {
+            foreach (var (method, index, element) in CollectionCases(target.GetType()))
+            {
+                checkedCount++;
+                var withNull = Array.CreateInstance(element, 1);
+                var arguments = method.GetParameters().Select((p, i) => i == index ? withNull : Valid(p.ParameterType)).ToArray();
+                Exception? error;
+                try
+                {
+                    // Up front: the call itself throws, before any task exists.
+                    _ = method.Invoke(target, arguments);
+                    error = null;
+                }
+                catch (TargetInvocationException invocation)
+                {
+                    error = invocation.InnerException;
+                }
+                if (error is not ArgumentException) missing.Add($"{target.GetType().Name}.{method.Name}: {error?.GetType().Name ?? "no error"}");
+            }
+        }
+        Assert.Empty(missing);
+        Assert.Equal(3, checkedCount);
+        Assert.Throws<ArgumentException>(() => { _ = shell.ApplySnapshotAsync(new ShellSnapshot([null!], [])); });
+        Assert.Throws<ArgumentException>(() => { _ = shell.ApplySnapshotAsync(new ShellSnapshot([], [null!])); });
+    }
+
     [Fact]
     public async Task TheBuilderAndTheFetcherCheckEveryReferenceArgument()
     {

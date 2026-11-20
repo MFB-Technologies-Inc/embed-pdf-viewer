@@ -88,9 +88,10 @@ public sealed class ViewManagerCapability : IDisposable
     /// <summary>A new pane, focused. Each document moves in from wherever it was. Returns its id.</summary>
     public Task<string> CreatePaneAsync(IEnumerable<DocumentInfo>? documents = null, CancellationToken cancellationToken = default)
     {
+        var list = documents is null ? [] : Arguments.NoNullElements(documents, nameof(documents));
         return viewer.Run(() =>
         {
-            string[] ids = documents is null ? [] : [.. documents.Select(d => d.Id)];
+            string[] ids = [.. list.Select(d => d.Id)];
             return handle.CreatePane(ids);
         }, cancellationToken);
     }

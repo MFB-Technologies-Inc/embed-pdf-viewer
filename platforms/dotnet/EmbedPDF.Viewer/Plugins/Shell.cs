@@ -196,6 +196,10 @@ public sealed class ShellCapability : IDisposable
     public Task ApplySnapshotAsync(ShellSnapshot snapshot, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(snapshot.Surfaces, nameof(snapshot));
+        ArgumentNullException.ThrowIfNull(snapshot.OpenMenus, nameof(snapshot));
+        Arguments.NoNullElements(snapshot.Surfaces, nameof(snapshot));
+        Arguments.NoNullElements(snapshot.OpenMenus, nameof(snapshot));
         return viewer.Run(() =>
         {
             var ffi = Ffi.ToFfi(snapshot);

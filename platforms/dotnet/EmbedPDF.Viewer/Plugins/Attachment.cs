@@ -104,9 +104,10 @@ public sealed class AttachmentCapability : IDisposable
     public Task SelectAsync(IEnumerable<AttachedFile> files, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(files);
+        var list = Arguments.NoNullElements(files, nameof(files));
         return viewer.Run(() =>
         {
-            var ffi = files.Select(Ffi.ToFfi).ToArray();
+            var ffi = list.Select(Ffi.ToFfi).ToArray();
             return handle.Select(ffi);
         }, cancellationToken);
     }
@@ -145,9 +146,15 @@ public sealed class AttachmentCapability : IDisposable
     public Task RefreshAsync(CancellationToken cancellationToken = default) => viewer.RunCancellable(token => handle.Refresh(token), cancellationToken);
 
     /// <summary>Embeds files, in order. A name already taken gets a numbered one. Returns the new files.</summary>
-    public async Task<IReadOnlyList<AttachedFile>> AddAsync(IEnumerable<AttachmentFileSource> sources, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<AttachedFile>> AddAsync(IEnumerable<AttachmentFileSource> sources, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(sources);
+        var list = Arguments.NoNullElements(sources, nameof(sources));
+        return Add(list, cancellationToken);
+    }
+
+    async Task<IReadOnlyList<AttachedFile>> Add(AttachmentFileSource[] sources, CancellationToken cancellationToken)
+    {
         var ffi = sources.Select(s => new GT.AttachmentFileSource(Bytes.Array(s.Data), s.Name, s.MimeType, s.Description)).ToArray();
         return Ffi.ToPublic(await viewer.RunCancellable(token => handle.Add(ffi, token), cancellationToken).ConfigureAwait(false));
     }
