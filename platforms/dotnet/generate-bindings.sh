@@ -11,8 +11,11 @@
 #
 # The generator reads the uniffi metadata baked into the library, so the
 # library has to come from the same tree. Build it first with
-# `cargo rustc -p epdf-viewer-host --release --locked --crate-type cdylib`
-# or platforms/dotnet/build-viewer-host.sh.
+# `cargo rustc -p epdf-viewer-host --release --locked --crate-type cdylib`.
+# The metadata lives in the symbol table, which build-viewer-host.sh strips
+# from the packaged library, so generate from this unstripped build. The
+# bindings match the stripped library all the same: the checksums they call
+# are exported functions.
 #
 # Exit 64: bad arguments. Exit 66: the library is missing.
 set -euo pipefail
@@ -50,7 +53,7 @@ mkdir -p "$OUT"
 
 count=$(find "$OUT" -maxdepth 1 -name '*.cs' | wc -l | tr -d ' ')
 if ((count == 0)); then
-  echo "the generator wrote no C# into $OUT" >&2
+  echo "the generator wrote no C# into $OUT; a stripped library has no uniffi metadata" >&2
   exit 1
 fi
 echo "generated $count files in $OUT"

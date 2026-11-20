@@ -431,7 +431,9 @@ def relocate(host, rid):
         run(["codesign", "--force", "--sign", "-", str(host)])
 
 def stage_runtime(args):
-    check_toolchain()
+    # Staging builds nothing managed, so a slice row needs Rust but no .NET SDK.
+    if not run(["rustc", "--version"]).startswith("rustc 1.98.0 "):
+        raise ValueError("Rust 1.98.0 required")
     target, fork_target, host_name, runtime_relative = VIEWER_RIDS[args.rid]
     pin_path = Path(args.runtime_manifest).resolve()
     pin = read(pin_path)
