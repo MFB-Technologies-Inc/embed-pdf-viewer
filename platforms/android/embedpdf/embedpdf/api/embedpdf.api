@@ -1,0 +1,225 @@
+public final class com/embedpdf/ContentInclusion : java/lang/Enum {
+	public static final field ALWAYS Lcom/embedpdf/ContentInclusion;
+	public static final field NEVER Lcom/embedpdf/ContentInclusion;
+	public static final field WHEN_PERMITTED Lcom/embedpdf/ContentInclusion;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/embedpdf/ContentInclusion;
+	public static fun values ()[Lcom/embedpdf/ContentInclusion;
+}
+
+public final class com/embedpdf/ContentResolverDocumentFetcher : uniffi/epdf_viewer_host/DocumentFetcher {
+	public fun <init> (Landroid/content/ContentResolver;Luniffi/epdf_viewer_host/DocumentFetcher;)V
+	public synthetic fun <init> (Landroid/content/ContentResolver;Luniffi/epdf_viewer_host/DocumentFetcher;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun fetch (Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentFetchCompletion;)Luniffi/epdf_viewer_host/DocumentFetchCancellation;
+}
+
+public final class com/embedpdf/DocumentPermission {
+	public static final field Companion Lcom/embedpdf/DocumentPermission$Companion;
+	public static final synthetic fun box-impl (Ljava/lang/String;)Lcom/embedpdf/DocumentPermission;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/DocumentPermission$Companion {
+	public final fun getANNOTATE_IMPORT-P_4gTio ()Ljava/lang/String;
+	public final fun getANNOTATE_MODIFY-P_4gTio ()Ljava/lang/String;
+	public final fun getANNOTATE_READ-P_4gTio ()Ljava/lang/String;
+	public final fun getANNOTATIONS_CREATE-P_4gTio ()Ljava/lang/String;
+	public final fun getATTACHMENTS_MODIFY-P_4gTio ()Ljava/lang/String;
+	public final fun getCONTENT_COPY-P_4gTio ()Ljava/lang/String;
+	public final fun getDOWNLOAD-P_4gTio ()Ljava/lang/String;
+	public final fun getDOWNLOAD_FLATTENED-P_4gTio ()Ljava/lang/String;
+	public final fun getFORMS_FILL-P_4gTio ()Ljava/lang/String;
+	public final fun getFORMS_IMPORT-P_4gTio ()Ljava/lang/String;
+	public final fun getFORMS_MODIFY-P_4gTio ()Ljava/lang/String;
+	public final fun getFORMS_READ-P_4gTio ()Ljava/lang/String;
+	public final fun getFORMS_SCRIPT-P_4gTio ()Ljava/lang/String;
+	public final fun getFORMS_SUBMIT-P_4gTio ()Ljava/lang/String;
+	public final fun getMETADATA_MODIFY-P_4gTio ()Ljava/lang/String;
+	public final fun getNamed ()Ljava/util/List;
+	public final fun getOPEN-P_4gTio ()Ljava/lang/String;
+	public final fun getOUTLINE_MODIFY-P_4gTio ()Ljava/lang/String;
+	public final fun getPAGES_ASSEMBLE-P_4gTio ()Ljava/lang/String;
+	public final fun getPAGES_MODIFY-P_4gTio ()Ljava/lang/String;
+	public final fun getPRINT-P_4gTio ()Ljava/lang/String;
+	public final fun getPRINT_HIGH-P_4gTio ()Ljava/lang/String;
+	public final fun getREDACT-P_4gTio ()Ljava/lang/String;
+	public final fun getRENDER-P_4gTio ()Ljava/lang/String;
+	public final fun getRENDER_THUMBNAIL-P_4gTio ()Ljava/lang/String;
+	public final fun getSIGN-P_4gTio ()Ljava/lang/String;
+	public final fun getSIGN_CERTIFY-P_4gTio ()Ljava/lang/String;
+	public final fun getTEXT_COPY-P_4gTio ()Ljava/lang/String;
+	public final fun getTEXT_SEARCH-P_4gTio ()Ljava/lang/String;
+	public final fun getTEXT_SELECT-P_4gTio ()Ljava/lang/String;
+}
+
+public abstract interface annotation class com/embedpdf/ExperimentalEmbedPdfApi : java/lang/annotation/Annotation {
+}
+
+public final class com/embedpdf/ExportsKt {
+	public static final fun HostFailure (Ljava/lang/Throwable;)Luniffi/epdf_ffi/HostFailure;
+}
+
+public final class com/embedpdf/HttpDocumentFetcher : uniffi/epdf_viewer_host/DocumentFetcher {
+	public fun <init> ()V
+	public fun <init> (Lkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun fetch (Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentFetchCompletion;)Luniffi/epdf_viewer_host/DocumentFetchCancellation;
+}
+
+public final class com/embedpdf/PdfException : java/lang/Exception {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCode-5Tiv_48 ()Ljava/lang/String;
+	public final fun getDetail ()Ljava/lang/String;
+	public final fun getName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/PdfException$Code {
+	public static final field Companion Lcom/embedpdf/PdfException$Code$Companion;
+	public static final synthetic fun box-impl (Ljava/lang/String;)Lcom/embedpdf/PdfException$Code;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/PdfException$Code$Companion {
+	public final fun getCONFLICT-5Tiv_48 ()Ljava/lang/String;
+	public final fun getINSTANCE_CLOSED-5Tiv_48 ()Ljava/lang/String;
+	public final fun getINVALID_INPUT-5Tiv_48 ()Ljava/lang/String;
+	public final fun getINVALID_STATE-5Tiv_48 ()Ljava/lang/String;
+	public final fun getNOT_FOUND-5Tiv_48 ()Ljava/lang/String;
+	public final fun getNOT_READY-5Tiv_48 ()Ljava/lang/String;
+	public final fun getOPERATION_CANCELLED-5Tiv_48 ()Ljava/lang/String;
+	public final fun getOPERATION_FAILED-5Tiv_48 ()Ljava/lang/String;
+	public final fun getPERMISSION_DENIED-5Tiv_48 ()Ljava/lang/String;
+	public final fun getUNSUPPORTED-5Tiv_48 ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/PdfViewer : java/lang/AutoCloseable {
+	public fun <init> (Lcom/embedpdf/ViewerConfigBuilder;Luniffi/epdf_viewer_host/DocumentFetcher;)V
+	public synthetic fun <init> (Lcom/embedpdf/ViewerConfigBuilder;Luniffi/epdf_viewer_host/DocumentFetcher;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Luniffi/epdf_viewer_host/ViewerConfig;Luniffi/epdf_viewer_host/DocumentFetcher;)V
+	public synthetic fun <init> (Luniffi/epdf_viewer_host/ViewerConfig;Luniffi/epdf_viewer_host/DocumentFetcher;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun activeDocument (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun activeDocumentId (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun allows-bhzWrRQ (Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun allows-bhzWrRQ$default (Lcom/embedpdf/PdfViewer;Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun canDownload (Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun canDownload$default (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public fun close ()V
+	public final fun close (Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun closeAll (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun destroy (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun document (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun document$default (Lcom/embedpdf/PdfViewer;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun documentCount (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun documentOrder (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun documents (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun hasDocument (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun index (Luniffi/epdf_ffi/PageRef;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun index$default (Lcom/embedpdf/PdfViewer;Luniffi/epdf_ffi/PageRef;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun move (Luniffi/epdf_viewer_host/DocumentInfo;ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun observeDocumentEvents ()Lkotlinx/coroutines/flow/Flow;
+	public final fun observeReportedErrors ()Lkotlinx/coroutines/flow/Flow;
+	public final fun observeStateRevisions ()Lkotlinx/coroutines/flow/Flow;
+	public final fun open (Landroid/net/Uri;Ljava/lang/String;Ljava/lang/String;ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun open (Ljava/net/URL;Ljava/lang/String;Ljava/lang/String;ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun open ([BLjava/lang/String;Ljava/lang/String;ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun open ([B[BLjava/lang/String;Ljava/lang/String;ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun open$default (Lcom/embedpdf/PdfViewer;Landroid/net/Uri;Ljava/lang/String;Ljava/lang/String;ZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun open$default (Lcom/embedpdf/PdfViewer;Ljava/net/URL;Ljava/lang/String;Ljava/lang/String;ZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun open$default (Lcom/embedpdf/PdfViewer;[BLjava/lang/String;Ljava/lang/String;ZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun open$default (Lcom/embedpdf/PdfViewer;[B[BLjava/lang/String;Ljava/lang/String;ZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun page (ILuniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun page (Luniffi/epdf_ffi/PageRef;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun page$default (Lcom/embedpdf/PdfViewer;ILuniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun page$default (Lcom/embedpdf/PdfViewer;Luniffi/epdf_ffi/PageRef;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun pageRevision (Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun pageRevision$default (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun pages (Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun rename (Luniffi/epdf_viewer_host/DocumentInfo;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun resetSettings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun retry (Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun save (Luniffi/epdf_viewer_host/DocumentInfo;Luniffi/epdf_viewer_host/SaveMode;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun save$default (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Luniffi/epdf_viewer_host/SaveMode;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun saveLayer (Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setActive (Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setDocumentOrder (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun settings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun start (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun swap (Luniffi/epdf_viewer_host/DocumentInfo;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun unlock (Luniffi/epdf_viewer_host/DocumentInfo;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun updateSettings (Luniffi/epdf_viewer_host/ViewerSettingsPatch;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/Registration {
+	public final fun unregister ()V
+}
+
+public final class com/embedpdf/ViewerConfigBuilder {
+	public fun <init> ()V
+	public fun <init> (Luniffi/epdf_viewer_host/ViewerConfig;)V
+	public synthetic fun <init> (Luniffi/epdf_viewer_host/ViewerConfig;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun actions (Luniffi/epdf_plugin_actions/ActionsConfig;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun annotation (Ljava/lang/String;)Lcom/embedpdf/ViewerConfigBuilder;
+	public static synthetic fun annotation$default (Lcom/embedpdf/ViewerConfigBuilder;Ljava/lang/String;ILjava/lang/Object;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun attachment (Z)Lcom/embedpdf/ViewerConfigBuilder;
+	public static synthetic fun attachment$default (Lcom/embedpdf/ViewerConfigBuilder;ZILjava/lang/Object;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun build ()Luniffi/epdf_viewer_host/ViewerConfig;
+	public final fun commands (Z)Lcom/embedpdf/ViewerConfigBuilder;
+	public static synthetic fun commands$default (Lcom/embedpdf/ViewerConfigBuilder;ZILjava/lang/Object;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun feedback (Luniffi/epdf_plugin_interaction/FeedbackConfig;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun form (Luniffi/epdf_plugin_form/FormConfig;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun history (Z)Lcom/embedpdf/ViewerConfigBuilder;
+	public static synthetic fun history$default (Lcom/embedpdf/ViewerConfigBuilder;ZILjava/lang/Object;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun i18n (Luniffi/epdf_plugin_i18n/I18nConfig;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun interaction (Z)Lcom/embedpdf/ViewerConfigBuilder;
+	public static synthetic fun interaction$default (Lcom/embedpdf/ViewerConfigBuilder;ZILjava/lang/Object;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun link (Z)Lcom/embedpdf/ViewerConfigBuilder;
+	public static synthetic fun link$default (Lcom/embedpdf/ViewerConfigBuilder;ZILjava/lang/Object;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun measurement (Luniffi/epdf_plugin_measurement/MeasurementConfig;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun metadata (Z)Lcom/embedpdf/ViewerConfigBuilder;
+	public static synthetic fun metadata$default (Lcom/embedpdf/ViewerConfigBuilder;ZILjava/lang/Object;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun outline (Z)Lcom/embedpdf/ViewerConfigBuilder;
+	public static synthetic fun outline$default (Lcom/embedpdf/ViewerConfigBuilder;ZILjava/lang/Object;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun pageEdit (Z)Lcom/embedpdf/ViewerConfigBuilder;
+	public static synthetic fun pageEdit$default (Lcom/embedpdf/ViewerConfigBuilder;ZILjava/lang/Object;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun redaction (Luniffi/epdf_plugin_redaction/RedactionConfig;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun render (Luniffi/epdf_plugin_render/RenderConfig;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun scope (Ljava/util/List;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun search (Luniffi/epdf_plugin_search/SearchConfig;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun selection (Z)Lcom/embedpdf/ViewerConfigBuilder;
+	public static synthetic fun selection$default (Lcom/embedpdf/ViewerConfigBuilder;ZILjava/lang/Object;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun shell (Z)Lcom/embedpdf/ViewerConfigBuilder;
+	public static synthetic fun shell$default (Lcom/embedpdf/ViewerConfigBuilder;ZILjava/lang/Object;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun signature (Luniffi/epdf_plugin_signature/SignatureConfig;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun stage (Luniffi/epdf_plugin_stage/StageConfig;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun stamp (Luniffi/epdf_plugin_stamp/StampConfig;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun standardCommands (Ljava/util/List;)Lcom/embedpdf/ViewerConfigBuilder;
+	public final fun viewManager (Z)Lcom/embedpdf/ViewerConfigBuilder;
+	public static synthetic fun viewManager$default (Lcom/embedpdf/ViewerConfigBuilder;ZILjava/lang/Object;)Lcom/embedpdf/ViewerConfigBuilder;
+}
+
+public final class com/embedpdf/ViewerConfigBuilderKt {
+	public static final fun viewerConfig (Lkotlin/jvm/functions/Function1;)Luniffi/epdf_viewer_host/ViewerConfig;
+}
+

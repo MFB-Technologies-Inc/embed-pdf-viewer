@@ -71,3 +71,42 @@ tasks.withType<Test>().configureEach {
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
 }
+
+// The public surface, dumped to api/embedpdf.api. The binary-compatibility
+// validator wires its tasks to the Kotlin Android plugin, which AGP's built-in
+// Kotlin replaces, so its tasks are registered here over the release classes.
+val abiRuntime: Configuration = configurations.create("abiRuntime") {
+    isCanBeConsumed = false
+}
+
+dependencies {
+    abiRuntime(libs.asm)
+    abiRuntime(libs.asm.tree)
+    abiRuntime(libs.kotlin.metadata.jvm)
+}
+
+val apiFile = layout.projectDirectory.file("api/embedpdf.api")
+
+val apiBuild = tasks.register<kotlinx.validation.KotlinApiBuildTask>("apiBuild") {
+    description = "Builds the public API dump of the release classes."
+    val compile = tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileReleaseKotlin")
+    inputClassesDirs.from(compile.flatMap { it.destinationDirectory })
+    outputApiFile.set(layout.buildDirectory.file("api/embedpdf.api"))
+    runtimeClasspath.from(abiRuntime)
+}
+
+tasks.register<Copy>("apiDump") {
+    description = "Writes the public API dump to api/embedpdf.api."
+    group = "verification"
+    from(apiBuild.flatMap { it.outputApiFile })
+    into(apiFile.asFile.parentFile)
+}
+
+val apiCheck = tasks.register<kotlinx.validation.KotlinApiCompareTask>("apiCheck") {
+    description = "Fails when the public API differs from api/embedpdf.api."
+    group = "verification"
+    projectApiFile.set(apiFile)
+    generatedApiFile.set(apiBuild.flatMap { it.outputApiFile })
+}
+
+tasks.named("check") { dependsOn(apiCheck) }

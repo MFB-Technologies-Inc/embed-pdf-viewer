@@ -13,10 +13,22 @@ and a version catalog, `gradle/libs.versions.toml`.
 | Module | What it is | Published |
 |---|---|---|
 | `bindings` | `libepdf_viewer_host.so` per ABI and the generated `uniffi.*` Kotlin | yes, as the AAR |
+| `embedpdf` | the hand-written `com.embedpdf` facade: `PdfViewer`, `PdfException`, the document fetchers | not yet |
 | `smoke` | JVM tests of the engine-only `epdf-uniffi` crate | no |
 
-The facade, models and Compose modules come in later phases of
+The models and Compose modules come in later phases of
 `docs/superpowers/plans/2026-11-19-android-parity.md`.
+
+`embedpdf/api/embedpdf.api` is the facade's public surface. `./gradlew
+:embedpdf:apiCheck` fails when the code and the dump disagree, and
+`./gradlew :embedpdf:apiDump` rewrites the dump; a change to the surface
+commits both. The tasks are registered in `embedpdf/build.gradle.kts` rather
+than by the binary-compatibility validator plugin, because the plugin only
+wires itself to the Kotlin Android plugin and AGP 9 compiles Kotlin without
+it. `python3 scripts/check-api-coverage.py --platform kotlin` checks
+`kotlin-api-coverage.json`: every member the Swift manifest lists is either
+ported, with the Kotlin symbol it maps to, or `pending` with the phase that
+ports it. `build-aar.sh` runs both.
 
 ## Building in the dev container
 
@@ -40,7 +52,7 @@ bindings:
 
 ```bash
 cd platforms/android/embedpdf
-./gradlew :bindings:testDebugUnitTest :smoke:test
+./gradlew :bindings:testDebugUnitTest :embedpdf:testDebugUnitTest :smoke:test
 ```
 
 `bindings` builds `epdf-viewer-host` for the container (`target/debug`) and
