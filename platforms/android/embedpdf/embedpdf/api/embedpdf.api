@@ -193,6 +193,45 @@ public final class com/embedpdf/Registration {
 	public final fun unregister ()V
 }
 
+public final class com/embedpdf/SearchCapability {
+	public final fun activeHit (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun activeHitIndex (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canSearch (ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun canSearch$default (Lcom/embedpdf/SearchCapability;ZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun cancel (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun clear (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun error (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun findAll (Luniffi/epdf_plugin_search/SearchQuery;Lcom/embedpdf/ContentInclusion;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun findAll$default (Lcom/embedpdf/SearchCapability;Luniffi/epdf_plugin_search/SearchQuery;Lcom/embedpdf/ContentInclusion;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun goToHit (ILuniffi/epdf_plugin_search/SearchRevealOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun goToHit$default (Lcom/embedpdf/SearchCapability;ILuniffi/epdf_plugin_search/SearchRevealOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun hitCount (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun hitCount$default (Lcom/embedpdf/SearchCapability;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun hits (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun hits$default (Lcom/embedpdf/SearchCapability;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun nextHit (Luniffi/epdf_plugin_search/SearchRevealOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun nextHit$default (Lcom/embedpdf/SearchCapability;Luniffi/epdf_plugin_search/SearchRevealOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
+	public final fun pagesWithHits (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun previousHit (Luniffi/epdf_plugin_search/SearchRevealOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun previousHit$default (Lcom/embedpdf/SearchCapability;Luniffi/epdf_plugin_search/SearchRevealOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun progress (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun query (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun refresh (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun resetSettings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun revealActiveHit (Luniffi/epdf_plugin_search/SearchRevealOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun revealActiveHit$default (Lcom/embedpdf/SearchCapability;Luniffi/epdf_plugin_search/SearchRevealOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun search (Luniffi/epdf_plugin_search/SearchQuery;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun search$default (Lcom/embedpdf/SearchCapability;Luniffi/epdf_plugin_search/SearchQuery;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun settings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun status (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun updateSettings (Luniffi/epdf_plugin_search/SearchSettingsPatch;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/SearchKt {
+	public static final fun search (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class com/embedpdf/ViewerConfigBuilder {
 	public fun <init> ()V
 	public fun <init> (Luniffi/epdf_viewer_host/ViewerConfig;)V

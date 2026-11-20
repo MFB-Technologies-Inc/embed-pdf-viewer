@@ -3743,21 +3743,30 @@
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "get_settings",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "settings"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "update_settings",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "updateSettings"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "reset_settings",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "resetSettings"
+      }
     },
     {
       "crate": "search",
@@ -3774,189 +3783,270 @@
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "can_search",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "canSearch"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "search",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "search"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "refresh",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "refresh"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "cancel",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "cancel"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "clear",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "clear"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "next_hit",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "nextHit"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "previous_hit",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "previousHit"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "go_to_hit",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "goToHit"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "reveal_active_hit",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "revealActiveHit"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "get_query",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "query"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "get_status",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "status"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "list_hits",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "hits"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "get_hit_count",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "hitCount"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "list_pages_with_hits",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "pagesWithHits"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "get_active_hit_index",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "activeHitIndex"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "get_active_hit",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "activeHit"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "get_progress",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "progress"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "get_error",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "error"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "find_all",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "findAll"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "on_started",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "on_progress_changed",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "on_completed",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "on_cancelled",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "on_failed",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "on_active_hit_changed",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "on_cleared",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "search",
       "path": "crates/plugins/search/src/controller.rs",
       "owner": "SearchCapability",
       "symbol": "lifetime",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Search.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "selection",

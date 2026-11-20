@@ -42,11 +42,12 @@ class DisabledPluginTest {
 
     private val accessors = listOf(
         Accessor("metadata", install = { it.copy(metadata = true) }) { viewer, document -> viewer.metadata(document) },
+        Accessor("search", install = { it.copy(search = SearchConfig()) }) { viewer, document -> viewer.search(document) },
     )
 
     /** Plugins whose accessors later waves of the port add. */
     private val pending = setOf(
-        "search", "render", "interaction", "feedback", "stage", "selection", "link", "annotation", "history",
+        "render", "interaction", "feedback", "stage", "selection", "link", "annotation", "history",
         "outline", "attachment", "form", "redaction", "measurement", "stamp", "pageEdit", "viewManager", "shell",
         "i18n", "commands", "actions", "signature",
     )
