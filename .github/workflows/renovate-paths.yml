@@ -1,0 +1,39 @@
+name: Renovate paths
+
+# renovate.json lists the files the fork owns in includePaths, so Renovate never
+# edits an upstream-owned file. This fails when an entry covers an upstream-owned
+# file or nothing at all, or when a fork-owned manifest is neither covered nor
+# listed as excluded in scripts/check-renovate-paths.py. Upstream syncs can change
+# what upstream owns, so it also runs weekly.
+
+on:
+  pull_request: {}
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      # Trees only: the check needs upstream's file list, not its contents.
+      - name: Fetch upstream main
+        run: |
+          for attempt in 1 2 3; do
+            git fetch --depth=1 --filter=blob:none --no-tags https://github.com/embedpdf/embed-pdf-viewer.git main && exit 0
+            sleep $((attempt * 10))
+          done
+          exit 1
+      # The token only reads upstream's public commit history (a path that
+      # upstream deleted is not a new fork manifest).
+      - name: Compare includePaths with upstream
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/check-renovate-paths.py FETCH_HEAD

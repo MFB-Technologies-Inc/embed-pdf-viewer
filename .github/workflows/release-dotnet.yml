@@ -36,8 +36,8 @@ name: release-dotnet
 # needs no font. The existing-app guide registers DejaVu Sans, so it stays
 # the linux-arm64 walkthrough.
 #
-# Microsoft publishes no Debian trixie .NET SDK image (no 10.0.403-trixie
-# tag), so every row installs SDK 10.0.403 from Microsoft's archive.
+# Microsoft publishes no Debian trixie .NET SDK image, so every row installs
+# the SDK from Microsoft's archive.
 #
 # This workflow never publishes; the orchestrator does. dry_run exists so every
 # release workflow takes the same inputs, and changes nothing here.
@@ -88,11 +88,12 @@ jobs:
     name: package (${{ matrix.rid }})
     strategy:
       fail-fast: false
-      # SDK archives: the 10.0.403 SDK `files` entries of
-      # https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json,
-      # read 2026-11-19. The SDK compiles the shipped DLL, so each archive is
-      # checked against its SHA-512 before it is unpacked. The two Linux hashes
-      # are also in .devcontainer/Dockerfile (DOTNET_SDK_VERSION); change both.
+      # SDK archives: the SDK's `files` entries in Microsoft's .NET release
+      # metadata (https://builds.dotnet.microsoft.com/dotnet/release-metadata/).
+      # The SDK compiles the shipped DLL, so each archive is checked against
+      # its SHA-512 before it is unpacked. The version, the two Linux hashes and
+      # platforms/dotnet/global.json must match .devcontainer/Dockerfile;
+      # `.devcontainer/check-pins.py --verify-checksums` checks all of them.
       matrix:
         include:
           - rid: linux-arm64
