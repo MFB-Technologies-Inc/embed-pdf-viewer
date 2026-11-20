@@ -412,6 +412,39 @@ public final class com/embedpdf/SearchKt {
 	public static final fun search (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class com/embedpdf/ShellCapability {
+	public final fun applySnapshot (Luniffi/epdf_plugin_shell/ShellSnapshot;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun close (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun closeAll (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun closeAllMenus (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun closeMenu (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun isMenuOpen (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun isOpen (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
+	public final fun open (Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;Lkotlinx/serialization/SerializationStrategy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun open (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun open$default (Lcom/embedpdf/ShellCapability;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;Lkotlinx/serialization/SerializationStrategy;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun open$default (Lcom/embedpdf/ShellCapability;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun openMenu (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun openMenus (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun openSurfaces (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun snapshot (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun surface (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun toggle (Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;Lkotlinx/serialization/SerializationStrategy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun toggle (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun toggle$default (Lcom/embedpdf/ShellCapability;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;Lkotlinx/serialization/SerializationStrategy;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun toggle$default (Lcom/embedpdf/ShellCapability;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun toggleMenu (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun updateProps (Ljava/lang/String;Ljava/lang/Object;Lkotlinx/serialization/SerializationStrategy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun updateProps (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/ShellKt {
+	public static final fun props (Luniffi/epdf_plugin_shell/ShellSurface;Lkotlinx/serialization/DeserializationStrategy;)Ljava/lang/Object;
+	public static final fun props (Luniffi/epdf_plugin_shell/ShellSurfaceOpenedEvent;Lkotlinx/serialization/DeserializationStrategy;)Ljava/lang/Object;
+	public static final fun shell (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class com/embedpdf/ViewManagerCapability {
 	public final fun addDocument (Luniffi/epdf_viewer_host/DocumentInfo;Ljava/lang/String;Ljava/lang/Integer;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun addDocument$default (Lcom/embedpdf/ViewManagerCapability;Luniffi/epdf_viewer_host/DocumentInfo;Ljava/lang/String;Ljava/lang/Integer;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;

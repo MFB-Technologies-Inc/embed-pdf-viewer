@@ -4601,140 +4601,200 @@
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "is_open",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Shell.kt",
+        "symbol": "isOpen"
+      }
     },
     {
       "crate": "shell",
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "get_surface",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Shell.kt",
+        "symbol": "surface"
+      }
     },
     {
       "crate": "shell",
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "list_open_surfaces",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Shell.kt",
+        "symbol": "openSurfaces"
+      }
     },
     {
       "crate": "shell",
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "open",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Shell.kt",
+        "symbol": "open"
+      }
     },
     {
       "crate": "shell",
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "close",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Shell.kt",
+        "symbol": "close"
+      }
     },
     {
       "crate": "shell",
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "toggle",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Shell.kt",
+        "symbol": "toggle"
+      }
     },
     {
       "crate": "shell",
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "update_surface_props",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Shell.kt",
+        "symbol": "updateProps"
+      }
     },
     {
       "crate": "shell",
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "close_all",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Shell.kt",
+        "symbol": "closeAll"
+      }
     },
     {
       "crate": "shell",
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "is_menu_open",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Shell.kt",
+        "symbol": "isMenuOpen"
+      }
     },
     {
       "crate": "shell",
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "list_open_menus",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Shell.kt",
+        "symbol": "openMenus"
+      }
     },
     {
       "crate": "shell",
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "open_menu",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Shell.kt",
+        "symbol": "openMenu"
+      }
     },
     {
       "crate": "shell",
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "close_menu",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Shell.kt",
+        "symbol": "closeMenu"
+      }
     },
     {
       "crate": "shell",
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "toggle_menu",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Shell.kt",
+        "symbol": "toggleMenu"
+      }
     },
     {
       "crate": "shell",
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "close_all_menus",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Shell.kt",
+        "symbol": "closeAllMenus"
+      }
     },
     {
       "crate": "shell",
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "get_snapshot",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Shell.kt",
+        "symbol": "snapshot"
+      }
     },
     {
       "crate": "shell",
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "apply_snapshot",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Shell.kt",
+        "symbol": "applySnapshot"
+      }
     },
     {
       "crate": "shell",
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "on_surface_opened",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Shell.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "shell",
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "on_surface_closed",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Shell.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "shell",
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "on_menu_opened",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Shell.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "shell",
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "on_menu_closed",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Shell.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "signature",

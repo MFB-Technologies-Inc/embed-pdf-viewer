@@ -2,6 +2,9 @@
 // `PdfException` and the `com.embedpdf` names an app writes against.
 plugins {
     alias(libs.plugins.android.library)
+    // `@Serializable` types: the tests' shell props now, the typed annotation
+    // drafts later.
+    alias(libs.plugins.kotlin.serialization)
 }
 
 val repoRoot: File = rootDir.resolve("../../..").canonicalFile
@@ -42,6 +45,8 @@ dependencies {
     // consumer compiles against the bindings too.
     api(project(":bindings"))
     api(libs.kotlinx.coroutines.core)
+    // Typed shell props encode through it, so a caller's serializers do too.
+    api(libs.kotlinx.serialization.json)
     implementation(libs.androidx.tracing)
 
     testImplementation(libs.jna)
