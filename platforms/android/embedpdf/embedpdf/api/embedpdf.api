@@ -381,6 +381,27 @@ public final class com/embedpdf/PageImage {
 	public final fun toBitmap ()Landroid/graphics/Bitmap;
 }
 
+public final class com/embedpdf/PageNavigator {
+	public final fun canGoNext (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canGoPrevious (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun currentPage (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun currentPageIndex (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun getStage ()Lcom/embedpdf/StageCapability;
+	public final fun goToFirstPage (Luniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun goToFirstPage$default (Lcom/embedpdf/PageNavigator;Luniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun goToLastPage (Luniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun goToLastPage$default (Lcom/embedpdf/PageNavigator;Luniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun goToPage (Luniffi/epdf_ffi/PageRef;Luniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun goToPage$default (Lcom/embedpdf/PageNavigator;Luniffi/epdf_ffi/PageRef;Luniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun goToPageIndex (ILuniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun goToPageIndex$default (Lcom/embedpdf/PageNavigator;ILuniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun nextPage (Luniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun nextPage$default (Lcom/embedpdf/PageNavigator;Luniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun pageCount (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun previousPage (Luniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun previousPage$default (Lcom/embedpdf/PageNavigator;Luniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
 public final class com/embedpdf/PageRenderResolution {
 	public static final field Companion Lcom/embedpdf/PageRenderResolution$Companion;
 	public static final field DEVICE_WIDTH_STEP D
@@ -402,6 +423,20 @@ public final class com/embedpdf/PageRenderResolution$Companion {
 	public final fun bandedScale (DD)D
 	public final fun forPage (DDZD)Lcom/embedpdf/PageRenderResolution;
 	public static synthetic fun forPage$default (Lcom/embedpdf/PageRenderResolution$Companion;DDZDILjava/lang/Object;)Lcom/embedpdf/PageRenderResolution;
+}
+
+public final class com/embedpdf/PageZoom {
+	public final fun canZoomIn (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canZoomOut (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun fitPage (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun fitWidth (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun getStage ()Lcom/embedpdf/StageCapability;
+	public final fun zoomIn (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun zoomLevel (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun zoomMode (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun zoomOut (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun zoomTo (Luniffi/epdf_plugin_stage/StageZoomTarget;Luniffi/epdf_ffi/Point;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun zoomTo$default (Lcom/embedpdf/PageZoom;Luniffi/epdf_plugin_stage/StageZoomTarget;Luniffi/epdf_ffi/Point;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 }
 
 public final class com/embedpdf/PdfException : java/lang/Exception {
@@ -765,6 +800,12 @@ public final class com/embedpdf/StageKt {
 	public static final fun stage (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class com/embedpdf/TaskEntryPointsKt {
+	public static final fun pageNavigator (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun pageZoom (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun toolSwitcher (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class com/embedpdf/ToolId {
 	public static final field Companion Lcom/embedpdf/ToolId$Companion;
 	public static final synthetic fun box-impl (Ljava/lang/String;)Lcom/embedpdf/ToolId;
@@ -835,6 +876,18 @@ public final class com/embedpdf/ToolId$Companion {
 
 public final class com/embedpdf/ToolIdKt {
 	public static final fun getToolId (Luniffi/epdf_plugin_interaction/InteractionTool;)Ljava/lang/String;
+}
+
+public final class com/embedpdf/ToolSwitcher {
+	public final fun activateDefaultTool (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun activateTool-N6U4bZY (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun activeToolId-UI0PC0A (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun defaultToolId-UI0PC0A (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun getInteraction ()Lcom/embedpdf/InteractionCapability;
+	public final fun hasTool-N6U4bZY (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun popTool (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun pushTool-N6U4bZY (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun tools (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class com/embedpdf/ViewManagerCapability {
