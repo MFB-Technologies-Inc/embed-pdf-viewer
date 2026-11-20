@@ -83,11 +83,10 @@ public final class StageReaderModel {
   }
   /// Whether a pan begins only once the finger has moved more than 10
   /// points from where it landed, the system's default minimum distance
-  /// for a drag. Until a
-  /// drag's translation is longer than that, its changes open no stage
-  /// gesture, and a drag that ends before then flings nothing. False by
-  /// default, so a touch opens the gesture where it lands and stops a fling
-  /// under it.
+  /// for a drag. Until a drag's translation is longer than that, its
+  /// changes open no stage gesture, and a drag that ends before then flings
+  /// nothing. False by default, so a touch opens the gesture where it lands
+  /// and stops a fling under it.
   ///
   /// Turn it on when something above the reader delays its drag until the
   /// touch moves or lifts, as a page overlay's long-press gesture does. A

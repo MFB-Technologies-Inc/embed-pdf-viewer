@@ -65,9 +65,10 @@ public generated types API. Every Rust change to a record, method or callback in
 be a break consumers see, where today only the 539 types that `EmbedPDF` re-exports are. It would
 also leave the module half-usable: the linker settings (`c++`, `CoreFoundation`, `CoreGraphics`,
 `Foundation`, and `AppKit` on macOS) live on the `EmbedPDFBindings` target in the source layout
-(`Package.swift:34-40`), but in the binary layouts that target is a `.binaryTarget` with no
-settings, and the loop that adds them (`Package.swift:116-124`) only touches `EmbedPDF`. The
-root `Package.swift` declares the same settings inline on its `EmbedPDF` target (lines 22-28). A
+(`platforms/apple/EmbedPDF/Package.swift:35-41`), but in the binary layouts that target is a
+`.binaryTarget` with no settings, and the loop that adds them
+(`platforms/apple/EmbedPDF/Package.swift:134-142`) only touches `EmbedPDF`. The root manifest
+declares the same settings inline on its `EmbedPDF` target (`Package.swift:23-29`). A
 direct importer of the binary would have to repeat them. We'll revisit this
 if a typed member can't cover a real use.
 
@@ -121,7 +122,12 @@ manifest is evaluated:
 The downloaded engine needs Xcode 27.1 or later: its `.swiftinterface` was written by Swift 6.4
 with `-language-mode 5`, and only the Xcode 27.1 toolchain has been checked against it.
 
-The pin goes stale whenever a crate the engine links changes. `bash
+The pin goes stale whenever an input to the engine hash changes. There are two
+kinds. One is source: the tracked files of each crate the engine links and of
+`crates/uniffi-bindgen`, and the commit of `packages/engine/runtime/runtime-src`.
+The other is the build inputs `platforms/apple/apple-engine-hash.sh:36-46`
+lists: `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, four scripts under
+`platforms/apple` and `perf-compare/scripts/build-arm.mjs`. `bash
 platforms/apple/check-apple-engine.sh` hashes the tree with `apple-engine-hash.sh` and compares
 the result with `engineRelease`. Exit 0 means the pin is current. Exit 1 means it's stale and
 nothing is published for this tree yet. Exit 2 means the release exists and only the
@@ -426,8 +432,8 @@ waits for the long press to fail, so it reports at the first move or at the
 lift, not on touch-down. A tap's drag then reaches the stage after the tap's
 own effect has started and cancels it: a double tap's zoom, or the scroll to a
 link's destination. Set `StageReaderModel.panBeginsOnMovement` to `true` on a
-reader under a `.longPress` overlay, so a drag that hasn't moved opens no
-stage gesture. With it on, a still touch or a tap no longer stops a fling; the
+reader under a `.longPress` overlay, so a drag opens no stage gesture until
+it has moved more than 10 points. With it on, a still touch or a tap no longer stops a fling; the
 finger has to move. `PDFReaderView` uses this form and sets the switch itself;
 see [A reader in one view](#a-reader-in-one-view).
 
