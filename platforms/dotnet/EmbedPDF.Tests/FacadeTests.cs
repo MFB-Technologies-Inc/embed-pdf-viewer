@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
 using System.Text.Json;
 using EmbedPDF.Engine;
 using Xunit;
@@ -11,8 +12,20 @@ public class FacadeTests
 {
     internal static string Root => FindRoot();
     static string FindRoot() { var p = new DirectoryInfo(AppContext.BaseDirectory); while (p != null && !Directory.Exists(Path.Combine(p.FullName, "crates"))) p = p.Parent; return p!.FullName; }
-    internal static void StageWindowsDependency(string runtimeDirectory, string outputDirectory) =>
-        File.Copy(Path.Combine(runtimeDirectory, "embedpdf.dll"), Path.Combine(outputDirectory, "embedpdf.dll"), overwrite: true);
+    // A child test process may stage into an output directory whose embedpdf.dll the parent host has loaded,
+    // and Windows refuses to overwrite a loaded image, so identical bytes are left in place.
+    internal static void StageWindowsDependency(string runtimeDirectory, string outputDirectory)
+    {
+        string source = Path.Combine(runtimeDirectory, "embedpdf.dll"), destination = Path.Combine(outputDirectory, "embedpdf.dll");
+        if (!SameBytes(source, destination)) File.Copy(source, destination, overwrite: true);
+    }
+    static bool SameBytes(string source, string destination)
+    {
+        var length = new FileInfo(source).Length;
+        if (!File.Exists(destination) || new FileInfo(destination).Length != length) return false;
+        using var a = File.OpenRead(source); using var b = File.OpenRead(destination);
+        return SHA256.HashData(a).AsSpan().SequenceEqual(SHA256.HashData(b));
+    }
 
     [ModuleInitializer]
     internal static void LoadNative()
