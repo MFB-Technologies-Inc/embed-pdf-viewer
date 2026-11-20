@@ -3,7 +3,7 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePath
 import platform
 import re
 import shutil
@@ -402,6 +402,14 @@ VIEWER_SOURCES = ("Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "crates", "
 SLICE_RECORD = "runtime-slice.json"
 ENGINE_VERSION = re.compile(r"^0\.0\.0-engine\.[0-9a-f]{16}$")
 
+def package_path(path, base):
+    """A file's path inside the package: relative, forward slashes, on any OS."""
+    path = path if isinstance(path, PurePath) else PurePath(path)
+    return path.relative_to(base).as_posix()
+
+def package_file_record(path, base):
+    return {"path": package_path(path, base), "sha256": sha(path), "bytes": Path(path).stat().st_size}
+
 def check_viewer_exports(exported, prefix=""):
     # Every uniffi library exports its contract version; the generated C#
     # calls it first and refuses a library from another uniffi.
@@ -480,7 +488,7 @@ def stage_runtime(args):
     write(output / "native-inspection.json", details)
     record = {"schemaVersion":1,"rid":args.rid,"source":viewer_source_identity(),
               "runtimeFork":pin["sha"],"runtimeArchiveSha256":sha(archive),"runtimeTarget":fork_target,
-              "files":[file_record(path, output) for path in sorted(native.iterdir()) if path.is_file()]}
+              "files":[package_file_record(path, output) for path in sorted(native.iterdir()) if path.is_file()]}
     write(output / SLICE_RECORD, record)
     for entry in record["files"]:
         print(f"{entry['bytes']:>12}  {entry['path']}")
@@ -491,6 +499,10 @@ def read_slice(directory):
     record = read(directory / SLICE_RECORD)
     if record.get("schemaVersion") != 1 or record.get("rid") not in VIEWER_RIDS:
         raise ValueError(f"{directory}: not a runtime slice record")
+    # Records are read on Linux whatever OS staged them, and the paths are
+    # package paths, so a backslash means a record from an older stager.
+    if any("\\" in entry["path"] for entry in record["files"]):
+        raise ValueError(f"{directory}: slice paths must use forward slashes")
     recorded = {entry["path"] for entry in record["files"]}
     for entry in record["files"]:
         path = directory / entry["path"]
@@ -547,7 +559,7 @@ def pack_runtime(args):
             raise ValueError(f"dotnet pack wrote no {package.name}")
         # Stage-relative paths are the package paths, so the manifest names
         # what a consumer finds in the nupkg.
-        staged = [file_record(path, stage) for path in sorted(stage.rglob("*")) if path.is_file()]
+        staged = [package_file_record(path, stage) for path in sorted(stage.rglob("*")) if path.is_file()]
     with zipfile.ZipFile(package) as bundle:
         names = set(bundle.namelist())
         for entry in staged:

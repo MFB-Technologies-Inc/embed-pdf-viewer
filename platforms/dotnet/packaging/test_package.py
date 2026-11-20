@@ -235,6 +235,22 @@ class RuntimeTests(unittest.TestCase):
             self.assertNotEqual(0, result.returncode)
             self.assertIn("linux-arm64: runtime archive differs from the pinned manifest", result.stdout)
 
+    def test_slice_paths_are_package_paths_on_any_os(self):
+        from package import package_path
+        self.assertEqual("runtimes/win-x64/native/EmbedPDF-LICENSE",
+            package_path(PureWindowsPath(r"C:\s\runtimes\win-x64\native\EmbedPDF-LICENSE"), PureWindowsPath(r"C:\s")))
+
+    def test_pack_runtime_rejects_backslash_slice_paths(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            self.slice(Path(temporary))
+            record_path = Path(temporary) / "runtime-slice.json"
+            record = json.loads(record_path.read_text())
+            record["files"][0]["path"] = record["files"][0]["path"].replace("/", "\\")
+            record_path.write_text(json.dumps(record))
+            result = self.pack_runtime(Path(temporary))
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("slice paths must use forward slashes", result.stdout)
+
     def test_pack_runtime_rejects_duplicate_rid_and_mixed_sources(self):
         with tempfile.TemporaryDirectory() as first, tempfile.TemporaryDirectory() as second:
             self.slice(Path(first))
