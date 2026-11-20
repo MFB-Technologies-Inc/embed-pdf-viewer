@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -231,6 +232,45 @@ class RasterModelTest {
             assertTrue(pool.pooledBytes > 0)
             model.update(8.0, page.width, visible)
             assertTrue(model.tiles.value.isNotEmpty())
+        }
+    }
+
+    /** Without frame acknowledgements a retired bitmap waits two reconciles and a quarter second. */
+    @Test
+    fun withoutFrameAcknowledgementsARetiredBaseWaitsBeforeItIsPooled() = mainTest {
+        val pool = BitmapPool(64L * 1024 * 1024)
+        withTiledModel(pool) { model, page ->
+            model.update(128 / page.width, page.width, null)
+            val first = checkNotNull(model.base.value)
+            var pooledAtFirstReconcile: Long? = null
+            model.reconciled = { if (pooledAtFirstReconcile == null) pooledAtFirstReconcile = pool.pooledBytes }
+            // The new update restarts the poll loop; its first reconcile comes
+            // straight after the base it replaced left the model.
+            model.update(256 / page.width, page.width, null)
+            assertNotSame(first, model.base.value)
+            assertEquals(0L, pooledAtFirstReconcile)
+            // The update polls on until the held bitmap has gone back.
+            assertEquals(first.allocationByteCount.toLong(), pool.pooledBytes)
+        }
+    }
+
+    /** With frame acknowledgements a retired bitmap waits for two frames after it left, however many reconciles pass. */
+    @Test
+    fun withFrameAcknowledgementsARetiredBaseWaitsForTwoFrames() = mainTest {
+        val pool = BitmapPool(64L * 1024 * 1024)
+        withTiledModel(pool) { model, page ->
+            model.frameDisplayed()
+            model.update(128 / page.width, page.width, null)
+            val first = checkNotNull(model.base.value)
+            model.update(256 / page.width, page.width, null)
+            model.update(256 / page.width, page.width, null)
+            assertNotSame(first, model.base.value)
+            assertEquals(0L, pool.pooledBytes)
+            // The first frame may have drawn the old base; the second did not.
+            model.frameDisplayed()
+            assertEquals(0L, pool.pooledBytes)
+            model.frameDisplayed()
+            assertEquals(first.allocationByteCount.toLong(), pool.pooledBytes)
         }
     }
 

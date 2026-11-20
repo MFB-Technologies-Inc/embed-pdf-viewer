@@ -21,6 +21,7 @@ import kotlinx.coroutines.withContext
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeMark
 import kotlin.time.TimeSource
 
 /**
@@ -35,12 +36,17 @@ import kotlin.time.TimeSource
  * host must request an update after pixel changes. Errors are suppressed; a
  * missing base or incomplete tiles do not provide a diagnostic error.
  *
- * With a [pool], tile and base bitmaps come from it, and a bitmap goes back
- * to it one reconcile after it left [tiles] or [base]: about two frames
- * later at the 32 ms poll. A painter draws only from the current [tiles] and
- * [base], read on the main thread, and never keeps a bitmap past the next
- * value. Without a pool every bitmap is new and left to the garbage
- * collector.
+ * With a [pool], tile and base bitmaps come from it, and a bitmap that left
+ * [tiles] or [base] goes back to it only once no frame can still show it. A
+ * painter that calls [frameDisplayed] once per frame decides when: the
+ * bitmap goes back after the second call that follows its leaving, since the
+ * frame between them was drawn without it. Until the first [frameDisplayed]
+ * call, as in a host that never makes one, a bitmap waits at least two
+ * reconciles and 250 milliseconds instead, and [update] keeps polling until
+ * the bitmaps it holds that way have gone back. A painter draws only from the
+ * current [tiles] and [base], read on the main thread, and never keeps a
+ * bitmap past the next value. Without a pool every bitmap is new and left to
+ * the garbage collector.
  *
  * The state lives on the main thread: every call switches to
  * `Dispatchers.Main.immediate` itself; bitmaps are filled on
@@ -89,8 +95,20 @@ public class TiledPageModel(
     private val renderWork = PageRenderTask()
     private var demandGeneration = 0
 
-    /** Bitmaps that left the model at the last reconcile, pooled at the next. */
-    private var retiring = mutableListOf<Bitmap>()
+    /** A bitmap that left [tiles] or [base], with when it left. */
+    private class Retired(val bitmap: Bitmap, val frame: Long, val reconcile: Long, val left: TimeMark)
+
+    /** Bitmaps that left the model and may still be on screen; empty without a pool. */
+    private val retiring = ArrayList<Retired>()
+
+    /** [frameDisplayed] calls so far. */
+    private var frames = 0L
+
+    /** Reconciles so far. */
+    private var reconciles = 0L
+
+    /** Runs after each reconcile. Tests read the pool there. */
+    internal var reconciled: (() -> Unit)? = null
 
     private val annotations: ContentInclusion
         get() = if (includeAnnotations) ContentInclusion.ALWAYS else ContentInclusion.NEVER
@@ -150,6 +168,19 @@ public class TiledPageModel(
     }
 
     /**
+     * Acknowledges that the painter has started a new frame, which shows only
+     * the [tiles] and [base] current when it was composed. Call it once per
+     * frame on the main thread, as a Compose painter does from
+     * `withFrameNanos`. A bitmap that left the model goes back to the pool
+     * after the second call that follows its leaving. A host that never calls
+     * it gets the time-based hold described on the class instead.
+     */
+    public fun frameDisplayed() {
+        frames += 1
+        returnRetired()
+    }
+
+    /**
      * Releases this page's tile demand and clears local tile images. Cancels
      * and joins previous page work first, so an in-flight response cannot
      * repopulate the retired tiles. The base raster and its key remain;
@@ -187,7 +218,7 @@ public class TiledPageModel(
                     pool?.release(bitmap)
                     return
                 }
-                _base.value?.let { retiring += it }
+                _base.value?.let(::retire)
                 _base.value = bitmap
                 baseKey = key
             }
@@ -223,7 +254,7 @@ public class TiledPageModel(
             }
             if (changed || waiting) {
                 quietSince = clock.markNow()
-            } else if (quietSince.elapsedNow() >= QUIET_PERIOD) {
+            } else if (quietSince.elapsedNow() >= QUIET_PERIOD && !holdsUnacknowledged()) {
                 return
             }
             delay(POLL_INTERVAL)
@@ -231,9 +262,8 @@ public class TiledPageModel(
     }
 
     private suspend fun reconcile(plan: RenderTilePlan) {
-        // Bitmaps retired at the last reconcile have been off screen since.
-        pool?.let { pool -> retiring.forEach(pool::release) }
-        retiring = mutableListOf()
+        reconciles += 1
+        returnRetired()
         for (source in plan.paint) {
             if (source.key in images) continue
             val tile = try {
@@ -252,7 +282,7 @@ public class TiledPageModel(
         }
         val wanted = plan.paint.mapTo(HashSet()) { it.key }
         for (key in images.keys - wanted) {
-            images.remove(key)?.let { retiring += it }
+            images.remove(key)?.let(::retire)
             if (painted.remove(key)) {
                 try {
                     demand.markUnpainted(page, key)
@@ -265,11 +295,37 @@ public class TiledPageModel(
         }
         val next = plan.paint.mapNotNull { source -> images[source.key]?.let { Tile(source.key, source.rect, source.z, it) } }
         if (next != _tiles.value) _tiles.value = next
+        reconciled?.invoke()
     }
 
     private fun retire(bitmaps: Collection<Bitmap>) {
-        retiring += bitmaps
+        bitmaps.forEach(::retire)
     }
+
+    /** Holds [bitmap], which just left [tiles] or [base], until no frame can show it. */
+    private fun retire(bitmap: Bitmap) {
+        if (pool == null) return
+        retiring += Retired(bitmap, frames, reconciles, TimeSource.Monotonic.markNow())
+    }
+
+    /** Gives the pool every held bitmap no frame can show any more. */
+    private fun returnRetired() {
+        val pool = pool ?: return
+        retiring.removeAll { retired -> mayReturn(retired).also { if (it) pool.release(retired.bitmap) } }
+    }
+
+    private fun mayReturn(retired: Retired): Boolean =
+        if (frames > 0) {
+            // The first acknowledgement after the bitmap left may start a
+            // frame composed before it left; the second starts one after a
+            // frame drawn without it.
+            frames - retired.frame >= 2
+        } else {
+            reconciles - retired.reconcile >= 2 && retired.left.elapsedNow() >= RETIRED_HOLD
+        }
+
+    /** Whether a bitmap waits on the time-based hold, which only a reconcile ends. */
+    private fun holdsUnacknowledged(): Boolean = frames == 0L && retiring.isNotEmpty()
 
     private suspend fun bitmap(rendered: RenderedPage): Bitmap = withContext(Dispatchers.Default) {
         if (pool != null) rendered.image.toBitmap(pool) else rendered.image.toBitmap()
@@ -285,6 +341,9 @@ public class TiledPageModel(
          * 150, which holds fetches back after a demand change.
          */
         val QUIET_PERIOD: Duration = 250.milliseconds
+
+        /** The least time a bitmap that left the model waits before it goes back to the pool while no frame is acknowledged. */
+        val RETIRED_HOLD: Duration = 250.milliseconds
 
         /** The longest an update keeps polling, so a plan that never fills can't poll forever. */
         val POLL_LIMIT: Duration = 5.seconds
