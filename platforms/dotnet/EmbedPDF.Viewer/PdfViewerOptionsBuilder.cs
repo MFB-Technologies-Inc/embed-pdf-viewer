@@ -23,7 +23,7 @@ public sealed class PdfViewerOptionsBuilder
     public PdfViewerOptionsBuilder() : this(new PdfViewerOptions()) { }
 
     /// <summary>Starts from <paramref name="options"/>, to change a few of its fields.</summary>
-    public PdfViewerOptionsBuilder(PdfViewerOptions options) => this.options = options;
+    public PdfViewerOptionsBuilder(PdfViewerOptions options) => this.options = options ?? throw new ArgumentNullException(nameof(options));
 
     /// <summary>The options the calls so far describe.</summary>
     public PdfViewerOptions Build() => options;
@@ -37,19 +37,19 @@ public sealed class PdfViewerOptionsBuilder
     public PdfViewerOptionsBuilder Metadata(bool enabled = true) => With(o => o with { Metadata = enabled });
 
     /// <summary>Installs the search plugin.</summary>
-    public PdfViewerOptionsBuilder Search(SearchConfig config) => With(o => o with { Search = config });
+    public PdfViewerOptionsBuilder Search(SearchConfig config) => config is null ? throw new ArgumentNullException(nameof(config)) : With(o => o with { Search = config });
 
     /// <summary>Installs the render plugin.</summary>
-    public PdfViewerOptionsBuilder Render(RenderConfig config) => With(o => o with { Render = config });
+    public PdfViewerOptionsBuilder Render(RenderConfig config) => config is null ? throw new ArgumentNullException(nameof(config)) : With(o => o with { Render = config });
 
     /// <summary>Installs the pointer hub that selection, link, annotation, form and measurement need.</summary>
     public PdfViewerOptionsBuilder Interaction(bool enabled = true) => With(o => o with { Interaction = enabled });
 
     /// <summary>Installs the feedback plugin.</summary>
-    public PdfViewerOptionsBuilder Feedback(FeedbackConfig config) => With(o => o with { Feedback = config });
+    public PdfViewerOptionsBuilder Feedback(FeedbackConfig config) => config is null ? throw new ArgumentNullException(nameof(config)) : With(o => o with { Feedback = config });
 
     /// <summary>Installs the stage plugin.</summary>
-    public PdfViewerOptionsBuilder Stage(StageConfig config) => With(o => o with { Stage = config });
+    public PdfViewerOptionsBuilder Stage(StageConfig config) => config is null ? throw new ArgumentNullException(nameof(config)) : With(o => o with { Stage = config });
 
     /// <summary>Installs text selection. Needs <see cref="Interaction"/>.</summary>
     public PdfViewerOptionsBuilder Selection(bool enabled = true) => With(o => o with { Selection = enabled });
@@ -58,7 +58,7 @@ public sealed class PdfViewerOptionsBuilder
     public PdfViewerOptionsBuilder Link(bool enabled = true) => With(o => o with { Link = enabled });
 
     /// <summary>Installs the annotation plugin; <paramref name="settingsJson"/> is registered over the defaults, <c>""</c> is the defaults. Needs <see cref="Interaction"/>.</summary>
-    public PdfViewerOptionsBuilder Annotation(string settingsJson = "") => With(o => o with { Annotation = settingsJson });
+    public PdfViewerOptionsBuilder Annotation(string settingsJson = "") => settingsJson is null ? throw new ArgumentNullException(nameof(settingsJson)) : With(o => o with { Annotation = settingsJson });
 
     /// <summary>Installs undo and redo.</summary>
     public PdfViewerOptionsBuilder History(bool enabled = true) => With(o => o with { History = enabled });
@@ -70,16 +70,16 @@ public sealed class PdfViewerOptionsBuilder
     public PdfViewerOptionsBuilder Attachment(bool enabled = true) => With(o => o with { Attachment = enabled });
 
     /// <summary>Installs the form plugin. Needs <see cref="Interaction"/>.</summary>
-    public PdfViewerOptionsBuilder Form(FormConfig config) => With(o => o with { Form = config });
+    public PdfViewerOptionsBuilder Form(FormConfig config) => config is null ? throw new ArgumentNullException(nameof(config)) : With(o => o with { Form = config });
 
     /// <summary>Installs the redaction plugin. Needs <see cref="Annotation"/>.</summary>
-    public PdfViewerOptionsBuilder Redaction(RedactionConfig config) => With(o => o with { Redaction = config });
+    public PdfViewerOptionsBuilder Redaction(RedactionConfig config) => config is null ? throw new ArgumentNullException(nameof(config)) : With(o => o with { Redaction = config });
 
     /// <summary>Installs the measurement plugin. Needs <see cref="Interaction"/> and <see cref="Annotation"/>.</summary>
-    public PdfViewerOptionsBuilder Measurement(MeasurementConfig config) => With(o => o with { Measurement = config });
+    public PdfViewerOptionsBuilder Measurement(MeasurementConfig config) => config is null ? throw new ArgumentNullException(nameof(config)) : With(o => o with { Measurement = config });
 
     /// <summary>Installs the stamp plugin.</summary>
-    public PdfViewerOptionsBuilder Stamp(StampConfig config) => With(o => o with { Stamp = config });
+    public PdfViewerOptionsBuilder Stamp(StampConfig config) => config is null ? throw new ArgumentNullException(nameof(config)) : With(o => o with { Stamp = config });
 
     /// <summary>Installs page editing.</summary>
     public PdfViewerOptionsBuilder PageEdit(bool enabled = true) => With(o => o with { PageEdit = enabled });
@@ -91,23 +91,23 @@ public sealed class PdfViewerOptionsBuilder
     public PdfViewerOptionsBuilder Shell(bool enabled = true) => With(o => o with { Shell = enabled });
 
     /// <summary>Installs the i18n plugin.</summary>
-    public PdfViewerOptionsBuilder I18n(I18nConfig config) => With(o => o with { I18n = config });
+    public PdfViewerOptionsBuilder I18n(I18nConfig config) => config is null ? throw new ArgumentNullException(nameof(config)) : With(o => o with { I18n = config });
 
     /// <summary>Installs the commands plugin.</summary>
     public PdfViewerOptionsBuilder Commands(bool enabled = true) => With(o => o with { Commands = enabled });
 
     /// <summary>The owners' standard command lists. Needs <see cref="Commands"/>.</summary>
-    public PdfViewerOptionsBuilder StandardCommands(IEnumerable<StandardCommandList> lists) => With(o => o with { StandardCommands = lists.ToArray() });
+    public PdfViewerOptionsBuilder StandardCommands(IEnumerable<StandardCommandList> lists) => lists is null ? throw new ArgumentNullException(nameof(lists)) : With(o => o with { StandardCommands = lists.ToArray() });
 
     /// <summary>Installs the actions plugin.</summary>
-    public PdfViewerOptionsBuilder Actions(ActionsConfig config) => With(o => o with { Actions = config });
+    public PdfViewerOptionsBuilder Actions(ActionsConfig config) => config is null ? throw new ArgumentNullException(nameof(config)) : With(o => o with { Actions = config });
 
     /// <summary>Installs the signature plugin. Needs <see cref="Form"/>.</summary>
-    public PdfViewerOptionsBuilder Signature(SignatureConfig config) => With(o => o with { Signature = config });
+    public PdfViewerOptionsBuilder Signature(SignatureConfig config) => config is null ? throw new ArgumentNullException(nameof(config)) : With(o => o with { Signature = config });
 
     /// <summary>The transport for URL document sources.</summary>
-    public PdfViewerOptionsBuilder DocumentFetcher(IDocumentFetcher fetcher) => With(o => o with { DocumentFetcher = fetcher });
+    public PdfViewerOptionsBuilder DocumentFetcher(IDocumentFetcher fetcher) => fetcher is null ? throw new ArgumentNullException(nameof(fetcher)) : With(o => o with { DocumentFetcher = fetcher });
 
     /// <summary>Where diagnostics go.</summary>
-    public PdfViewerOptionsBuilder Logger(ILogger logger) => With(o => o with { Logger = logger });
+    public PdfViewerOptionsBuilder Logger(ILogger logger) => logger is null ? throw new ArgumentNullException(nameof(logger)) : With(o => o with { Logger = logger });
 }

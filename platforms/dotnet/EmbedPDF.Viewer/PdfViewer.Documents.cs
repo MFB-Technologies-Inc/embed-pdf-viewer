@@ -85,16 +85,26 @@ public sealed partial class PdfViewer
     /// the returned document: the engine may replace the pending tab's id.
     /// Close its loading tab to cancel; the token does not cancel a retry once posted.
     /// </summary>
-    public async Task<DocumentInfo> RetryAsync(DocumentInfo document, CancellationToken cancellationToken = default) =>
-        Ffi.ToPublic(await CallAsync(h => h.RetryDocument(document.Id), cancellationToken).ConfigureAwait(false));
+    public async Task<DocumentInfo> RetryAsync(DocumentInfo document, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        return Ffi.ToPublic(await CallAsync(h => h.RetryDocument(document.Id), cancellationToken).ConfigureAwait(false));
+    }
 
     /// <summary>Renames a document's tab.</summary>
-    public Task RenameAsync(DocumentInfo document, string name, CancellationToken cancellationToken = default) =>
-        CallAsync(h => h.RenameDocument(document.Id, name), cancellationToken);
+    public Task RenameAsync(DocumentInfo document, string name, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(name);
+        return CallAsync(h => h.RenameDocument(document.Id, name), cancellationToken);
+    }
 
     /// <summary>Closes a document.</summary>
-    public Task CloseAsync(DocumentInfo document, CancellationToken cancellationToken = default) =>
-        CallAsync(h => h.CloseDocument(document.Id), cancellationToken);
+    public Task CloseAsync(DocumentInfo document, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        return CallAsync(h => h.CloseDocument(document.Id), cancellationToken);
+    }
 
     /// <summary>Closes every document.</summary>
     public Task CloseAllAsync(CancellationToken cancellationToken = default) => CallAsync(h => h.CloseAllDocuments(), cancellationToken);
@@ -104,16 +114,23 @@ public sealed partial class PdfViewer
     /// Throws <c>permission-denied</c> for a wrong password, with the engine's
     /// own message ("incorrect document password"); the tab stays locked.
     /// </summary>
-    public Task UnlockAsync(DocumentInfo document, string password, CancellationToken cancellationToken = default) =>
-        CallAsync(h => h.UnlockDocument(document.Id, password), cancellationToken);
+    public Task UnlockAsync(DocumentInfo document, string password, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(password);
+        return CallAsync(h => h.UnlockDocument(document.Id, password), cancellationToken);
+    }
 
     /// <summary>A document by id, including loading, failed and locked tabs; <see langword="null"/> selects the active tab.</summary>
     public async Task<DocumentInfo?> GetDocumentAsync(string? id = null, CancellationToken cancellationToken = default) =>
         Ffi.ToPublicOrNull(await CallAsync(h => h.Document(id), cancellationToken).ConfigureAwait(false));
 
     /// <summary>Whether the viewer has a document with this id.</summary>
-    public Task<bool> HasDocumentAsync(string id, CancellationToken cancellationToken = default) =>
-        CallAsync(h => h.HasDocument(id), cancellationToken);
+    public Task<bool> HasDocumentAsync(string id, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        return CallAsync(h => h.HasDocument(id), cancellationToken);
+    }
 
     /// <summary>How many documents the viewer has, tabs of every status included.</summary>
     public async Task<int> GetDocumentCountAsync(CancellationToken cancellationToken = default) =>
@@ -132,8 +149,11 @@ public sealed partial class PdfViewer
         CallAsync(h => h.ActiveDocumentId(), cancellationToken);
 
     /// <summary>Makes <paramref name="document"/> the active one.</summary>
-    public Task SetActiveAsync(DocumentInfo document, CancellationToken cancellationToken = default) =>
-        CallAsync(h => h.SetActiveDocument(document.Id), cancellationToken);
+    public Task SetActiveAsync(DocumentInfo document, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        return CallAsync(h => h.SetActiveDocument(document.Id), cancellationToken);
+    }
 
     /// <summary>The document ids in tab order.</summary>
     public async Task<IReadOnlyList<string>> GetDocumentOrderAsync(CancellationToken cancellationToken = default) =>
@@ -142,22 +162,32 @@ public sealed partial class PdfViewer
     /// <summary>Sets the tab order. It must be a permutation of the current order, or throws <c>invalid-input</c>.</summary>
     public Task SetDocumentOrderAsync(IEnumerable<string> ids, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(ids);
         var order = ids.ToArray();
         return CallAsync(h => h.SetDocumentOrder(order), cancellationToken);
     }
 
     /// <summary>Moves a document to <paramref name="index"/>, clamped into the order.</summary>
-    public Task MoveAsync(DocumentInfo document, int index, CancellationToken cancellationToken = default) =>
-        CallAsync(h => h.MoveDocument(document.Id, WireInteger.ToInt64(index)), cancellationToken);
+    public Task MoveAsync(DocumentInfo document, int index, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        return CallAsync(h => h.MoveDocument(document.Id, WireInteger.ToInt64(index)), cancellationToken);
+    }
 
     /// <summary>Swaps two documents' tab positions.</summary>
-    public Task SwapAsync(DocumentInfo first, DocumentInfo second, CancellationToken cancellationToken = default) =>
-        CallAsync(h => h.SwapDocuments(first.Id, second.Id), cancellationToken);
+    public Task SwapAsync(DocumentInfo first, DocumentInfo second, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(first);
+        ArgumentNullException.ThrowIfNull(second);
+        return CallAsync(h => h.SwapDocuments(first.Id, second.Id), cancellationToken);
+    }
 
     /// <summary>A document's pages. Throws <c>not-found</c> for a document the viewer doesn't have.</summary>
-    public Task<IReadOnlyList<PageInfo>> GetPagesAsync(DocumentInfo document, CancellationToken cancellationToken = default) =>
-        Telemetry.Measured("pages", async () => (IReadOnlyList<PageInfo>)(await CallAsync(h => h.Pages(document.Id), cancellationToken).ConfigureAwait(false))
-            .Select(Ffi.ToPublic).ToArray());
+    public Task<IReadOnlyList<PageInfo>> GetPagesAsync(DocumentInfo document, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        return Telemetry.Measured("pages", async () => (IReadOnlyList<PageInfo>)(await CallAsync(h => h.Pages(document.Id), cancellationToken).ConfigureAwait(false)) .Select(Ffi.ToPublic).ToArray());
+    }
 
     /// <summary>A page by its reference, in <paramref name="document"/> or the active document. A missing or closed reference is <see langword="null"/>.</summary>
     public async Task<PageInfo?> GetPageAsync(PageRef page, DocumentInfo? document = null, CancellationToken cancellationToken = default)
@@ -197,16 +227,22 @@ public sealed partial class PdfViewer
     /// <c>permission-denied</c>. Needs <c>doc.download</c> in the scope.
     /// Cancelling the token aborts the save.
     /// </summary>
-    public Task<byte[]> SaveAsync(DocumentInfo document, SaveMode mode = SaveMode.Incremental, CancellationToken cancellationToken = default) =>
-        Telemetry.Measured("save", () => CallCancellableAsync((h, token) => h.Save(document.Id, Ffi.ToFfi(mode), token), cancellationToken));
+    public Task<byte[]> SaveAsync(DocumentInfo document, SaveMode mode = SaveMode.Incremental, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        return Telemetry.Measured("save", () => CallCancellableAsync((h, token) => h.Save(document.Id, Ffi.ToFfi(mode), token), cancellationToken));
+    }
 
     /// <summary>
     /// An editing-layer artifact that needs its original PDF to restore
     /// (<see cref="OpenLayerAsync"/>). Use <see cref="SaveAsync"/> for a
     /// standalone PDF. Needs <c>doc.download</c>.
     /// </summary>
-    public Task<byte[]> SaveLayerAsync(DocumentInfo document, CancellationToken cancellationToken = default) =>
-        CallCancellableAsync((h, token) => h.SaveLayer(document.Id, token), cancellationToken);
+    public Task<byte[]> SaveLayerAsync(DocumentInfo document, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        return CallCancellableAsync((h, token) => h.SaveLayer(document.Id, token), cancellationToken);
+    }
 
     /// <summary>Presentation hints for the app's own chrome.</summary>
     public async Task<ViewerSettings> GetSettingsAsync(CancellationToken cancellationToken = default) =>
@@ -215,6 +251,7 @@ public sealed partial class PdfViewer
     /// <summary>Changes the settings. Omitted fields stay unchanged; observe the change through <see cref="ObserveStateRevisions"/>.</summary>
     public Task UpdateSettingsAsync(ViewerSettingsPatch patch, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(patch);
         var ffi = Ffi.ToFfi(patch);
         return CallAsync(h => h.UpdateViewerSettings(ffi), cancellationToken);
     }

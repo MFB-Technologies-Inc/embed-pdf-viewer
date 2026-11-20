@@ -52,6 +52,7 @@ public sealed class HttpClientDocumentFetcher : IDocumentFetcher
     /// <inheritdoc/>
     public async Task<DocumentFetchResponse> FetchAsync(string url, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(url);
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
         {
             throw new PdfException("InvalidURL", PdfErrorCode.InvalidInput, "The document URL is invalid.");
