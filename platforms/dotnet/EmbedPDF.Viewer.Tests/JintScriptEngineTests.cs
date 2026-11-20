@@ -4,7 +4,7 @@ using Xunit;
 
 namespace EmbedPDF.Viewer.Tests;
 
-/// <summary>The port of the Swift JavaScriptCore engine tests, plus the limits Jint adds.</summary>
+/// <summary>The port of the Swift script engine tests, plus the limits the Jint engine adds.</summary>
 public sealed class JintScriptEngineTests
 {
     [Fact]
