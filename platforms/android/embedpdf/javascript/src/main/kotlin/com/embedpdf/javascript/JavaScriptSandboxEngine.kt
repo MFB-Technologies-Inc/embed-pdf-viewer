@@ -15,11 +15,11 @@ import com.embedpdf.ScriptEvaluation
 import com.embedpdf.ScriptEvaluationThrew
 import com.embedpdf.ScriptEvaluationTimedOut
 import com.embedpdf.ScriptEvaluationValue
-import com.google.common.util.concurrent.ListenableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * PDF JavaScript in the platform's JavaScript sandbox (`androidx.javascriptengine`),
@@ -31,55 +31,85 @@ import java.util.concurrent.TimeoutException
  * with JavaScript disabled instead, and reports once through
  * [PdfViewer.observeReportedErrors] (`unsupported`, [unavailableReason] as the
  * detail) when its first document opens or [PdfViewer.actions] is first
- * called, rather than failing every action.
+ * called, rather than failing every action. The report isn't replayed: a
+ * collector subscribed after that first open misses it.
  *
- * The first realm connects to the sandbox service, which blocks the kernel
- * thread for the connection; later realms reuse the connection. A realm that
- * runs past its budget is closed: the call returns `timedOut` and the realm
- * is abandoned. Whether closing stops the running script depends on the
- * sandbox's isolate termination feature. Memory and stack budgets aren't
- * enforced; the sandbox's own limits apply. A result that isn't a string is
- * given back as the sandbox's string form of it.
+ * Every factory in the process shares one connection to the sandbox service.
+ * Building a factory starts connecting (a prewarm), and [close] releases the
+ * factory's hold on the connection, which closes when the last factory lets
+ * go. The connection completes on the main looper, so the first realm needs
+ * a free main looper: a main thread blocked waiting for the viewer while a
+ * document's first script runs stalls that script until the connect times out.
+ * A connection that fails, or whose isolate can't be made, is closed and
+ * tried once more.
+ *
+ * A realm that runs past its budget is closed: the call returns `timedOut`
+ * and the realm is abandoned. Whether closing stops the running script
+ * depends on the sandbox's isolate termination feature. Memory and stack
+ * budgets aren't enforced; the sandbox's own limits apply. A result that
+ * isn't a string is given back as the sandbox's string form of it.
  */
 @OptIn(EmbedPdfEngineIntegration::class)
-public class JavaScriptSandboxEngineFactory(context: Context) : ScriptEngineFactory, ScriptEngineAvailability {
-    private val context: Context = context.applicationContext ?: context
-
+public class JavaScriptSandboxEngineFactory internal constructor(
     /** Why JavaScript can't run here, or `null` when the sandbox is there. */
-    override val unavailableReason: String? = unavailableReason(Build.VERSION.SDK_INT) {
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && sandboxSupported()
-    }
+    override val unavailableReason: String?,
+    private val connection: SandboxConnectionHolder?,
+) : ScriptEngineFactory, ScriptEngineAvailability, AutoCloseable {
+    public constructor(context: Context) : this(context, platformUnavailableReason())
+
+    private constructor(context: Context, reason: String?) : this(
+        reason,
+        if (reason == null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) SharedSandbox.holder(context) else null,
+    )
 
     /** Whether the sandbox is there: API 26 or later and `JavaScriptSandbox.isSupported()`. */
     public val isAvailable: Boolean get() = unavailableReason == null
 
-    private val lock = Any()
-    private var connection: SandboxConnection? = null
+    private val closed = AtomicBoolean(false)
+
+    init {
+        connection?.retain()
+        connection?.prewarm()
+    }
 
     /**
-     * A new realm. Throws (as a `HostError`) where the sandbox is missing, or
-     * when connecting to it fails.
+     * A new realm. Throws (as a `HostError`) where the sandbox is missing,
+     * after [close], or when connecting to it fails twice.
      */
     override fun create(): ScriptEngine {
         unavailableReason?.let { throw HostExceptionFailed(it) }
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) throw HostExceptionFailed(UNAVAILABLE_BELOW_API_26)
-        val live = synchronized(lock) { connection ?: SandboxConnection(context).also { connection = it } }
+        if (closed.get()) throw HostExceptionFailed(CLOSED)
+        val live = connection ?: throw HostExceptionFailed(UNAVAILABLE_BELOW_API_26)
         return try {
-            IsolateScriptEngine(live.isolate())
+            IsolateScriptEngine(live.isolate(CONNECT_TIMEOUT_MS))
         } catch (e: Exception) {
             throw HostExceptionFailed("the JavaScript sandbox failed to start: ${readable(e)}")
         }
     }
 
+    /**
+     * Releases this factory's hold on the shared connection. Realms already
+     * made keep running until the connection closes. Idempotent.
+     */
+    override fun close() {
+        if (closed.compareAndSet(false, true)) connection?.release()
+    }
+
     internal companion object {
         val UNAVAILABLE_BELOW_API_26 = "PDF JavaScript needs API 26 or later; JavaScript is disabled."
         val UNSUPPORTED_SANDBOX = "This device's WebView provides no JavaScript sandbox; JavaScript is disabled."
+        val CLOSED = "the JavaScript sandbox factory is closed"
+        val CONNECT_TIMEOUT_MS = 10_000L
 
         /** The SDK gate: below 26 the sandbox classes aren't touched at all. */
         fun unavailableReason(sdk: Int, supported: () -> Boolean): String? = when {
             sdk < Build.VERSION_CODES.O -> UNAVAILABLE_BELOW_API_26
             !supported() -> UNSUPPORTED_SANDBOX
             else -> null
+        }
+
+        private fun platformUnavailableReason(): String? = unavailableReason(Build.VERSION.SDK_INT) {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && sandboxSupported()
         }
 
         @RequiresApi(Build.VERSION_CODES.O)
@@ -100,29 +130,132 @@ internal interface ScriptIsolate {
     fun close()
 }
 
-/** The one connection to the sandbox service, made when the first realm needs it. */
-@RequiresApi(Build.VERSION_CODES.O)
-private class SandboxConnection(private val context: Context) {
+/** A connected sandbox, as [SandboxConnectionHolder] uses it. */
+internal interface ScriptSandbox {
+    fun createIsolate(): ScriptIsolate
+
+    fun close()
+}
+
+/**
+ * One connection to the sandbox service, shared by the factories that
+ * [retain] it and closed when the last one calls [release]. [connect] starts a
+ * connection; the holder makes at most one at a time.
+ */
+internal class SandboxConnectionHolder(private val connect: () -> Future<ScriptSandbox>) {
     private val lock = Any()
-    private var sandbox: ListenableFuture<JavaScriptSandbox>? = null
+    private var references = 0
+    private var current: Future<ScriptSandbox>? = null
 
-    fun isolate(): ScriptIsolate {
-        val future = synchronized(lock) {
-            sandbox ?: JavaScriptSandbox.createConnectedInstanceAsync(context).also { sandbox = it }
+    fun retain() {
+        synchronized(lock) { references++ }
+    }
+
+    /** The last release closes the connection; the next retain connects again. */
+    fun release() {
+        val closing = synchronized(lock) {
+            if (references == 0) return
+            references--
+            if (references > 0) return
+            current.also { current = null }
         }
-        val connected = try {
-            future.get(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        closing?.let(::closeQuietly)
+    }
+
+    /** Starts connecting now, when nothing is connected or connecting. */
+    fun prewarm() {
+        synchronized(lock) { connection() }
+    }
+
+    /**
+     * A new isolate. When waiting for the connection or making the isolate
+     * throws, the connection is closed and a new one tried, once.
+     */
+    fun isolate(timeoutMs: Long): ScriptIsolate {
+        var failure: Exception? = null
+        repeat(2) {
+            val future = synchronized(lock) { connection() }
+            try {
+                return awaitConnection(future, timeoutMs).createIsolate()
+            } catch (e: Exception) {
+                failure = e
+                discard(future)
+            }
+        }
+        throw failure!!
+    }
+
+    /** The connection, started when there is none. Hold [lock]. */
+    private fun connection(): Future<ScriptSandbox> = current ?: connect().also { current = it }
+
+    /** Closes [failed] and forgets it, when it is still the current connection. */
+    private fun discard(failed: Future<ScriptSandbox>) {
+        val forgotten = synchronized(lock) {
+            if (current !== failed) return
+            current = null
+            true
+        }
+        if (forgotten) closeQuietly(failed)
+    }
+
+    private fun awaitConnection(future: Future<ScriptSandbox>, timeoutMs: Long): ScriptSandbox =
+        try {
+            future.get(timeoutMs, TimeUnit.MILLISECONDS)
+        } catch (e: ExecutionException) {
+            throw e.cause as? Exception ?: e
+        }
+
+    private fun closeQuietly(future: Future<ScriptSandbox>) {
+        if (!future.isDone) {
+            future.cancel(true)
+            return
+        }
+        try {
+            future.get().close()
         } catch (e: Exception) {
-            // The next realm tries again.
-            synchronized(lock) { if (sandbox === future) sandbox = null }
-            throw (e as? ExecutionException)?.cause as? Exception ?: e
+            // A connection that failed or already closed has nothing to close.
         }
-        return SandboxIsolate(connected.createIsolate())
+    }
+}
+
+/** The process-wide connection every [JavaScriptSandboxEngineFactory] shares. */
+@RequiresApi(Build.VERSION_CODES.O)
+private object SharedSandbox {
+    private var holder: SandboxConnectionHolder? = null
+
+    @Synchronized
+    fun holder(context: Context): SandboxConnectionHolder {
+        // The application context lives as long as the process.
+        val application = context.applicationContext ?: context
+        return holder ?: SandboxConnectionHolder { PlatformSandbox.connect(application) }.also { holder = it }
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+private class PlatformSandbox(private val sandbox: JavaScriptSandbox) : ScriptSandbox {
+    override fun createIsolate(): ScriptIsolate = SandboxIsolate(sandbox.createIsolate())
+
+    override fun close() {
+        sandbox.close()
     }
 
-    private companion object {
-        const val CONNECT_TIMEOUT_SECONDS = 10L
+    companion object {
+        fun connect(context: Context): Future<ScriptSandbox> =
+            MappedFuture(JavaScriptSandbox.createConnectedInstanceAsync(context), ::PlatformSandbox)
     }
+}
+
+/** [source] with [map] applied to its value. */
+private class MappedFuture<A, B>(private val source: Future<A>, private val map: (A) -> B) : Future<B> {
+    override fun cancel(mayInterruptIfRunning: Boolean): Boolean = source.cancel(mayInterruptIfRunning)
+
+    override fun isCancelled(): Boolean = source.isCancelled
+
+    override fun isDone(): Boolean = source.isDone
+
+    override fun get(): B = map(source.get())
+
+    override fun get(timeout: Long, unit: TimeUnit): B = map(source.get(timeout, unit))
 }
 
 @RequiresApi(Build.VERSION_CODES.O)

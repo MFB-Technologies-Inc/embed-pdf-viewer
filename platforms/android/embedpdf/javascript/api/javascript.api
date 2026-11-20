@@ -1,6 +1,7 @@
-public final class com/embedpdf/javascript/JavaScriptSandboxEngineFactory : com/embedpdf/ScriptEngineAvailability, uniffi/epdf_plugin_actions/ScriptEngineFactory {
+public final class com/embedpdf/javascript/JavaScriptSandboxEngineFactory : com/embedpdf/ScriptEngineAvailability, java/lang/AutoCloseable, uniffi/epdf_plugin_actions/ScriptEngineFactory {
 	public fun <init> (Landroid/content/Context;)V
 	public fun attach (Lcom/embedpdf/ScriptEngineReporter;)V
+	public fun close ()V
 	public fun create ()Luniffi/epdf_plugin_actions/ScriptEngine;
 	public fun getUnavailableReason ()Ljava/lang/String;
 	public final fun isAvailable ()Z
