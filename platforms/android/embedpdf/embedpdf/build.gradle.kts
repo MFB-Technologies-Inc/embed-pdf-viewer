@@ -77,6 +77,7 @@ tasks.withType<Test>().configureEach {
             "tooling/viewer-e2e/fixtures",
             "tooling/engine-conformance/fixtures",
             "packages/engine/main/test/fixtures",
+            "crates/test-support/fixtures",
         ).joinToString(File.pathSeparator) { repoRoot.resolve(it).path },
     )
     environment("LD_LIBRARY_PATH", linuxHost["runtimeLibDir"].toString())

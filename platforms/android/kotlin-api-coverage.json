@@ -3358,21 +3358,30 @@
       "path": "crates/plugins/measurement/src/controller.rs",
       "owner": "MeasurementCapability",
       "symbol": "lifetime",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/controller.rs",
       "owner": "MeasurementCapability",
       "symbol": "can_calibrate",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "canCalibrate"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/controller.rs",
       "owner": "MeasurementCapability",
       "symbol": "get_settings",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "settings"
+      }
     },
     {
       "crate": "measurement",
@@ -3386,7 +3395,10 @@
       "path": "crates/plugins/measurement/src/controller.rs",
       "owner": "MeasurementCapability",
       "symbol": "update_settings",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "updateSettings"
+      }
     },
     {
       "crate": "measurement",
@@ -3400,7 +3412,10 @@
       "path": "crates/plugins/measurement/src/controller.rs",
       "owner": "MeasurementCapability",
       "symbol": "reset_settings",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "resetSettings"
+      }
     },
     {
       "crate": "measurement",
@@ -3427,189 +3442,270 @@
       "path": "crates/plugins/measurement/src/controller.rs",
       "owner": "MeasurementCapability",
       "symbol": "on_scale_changed",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/controller.rs",
       "owner": "MeasurementCapability",
       "symbol": "on_calibration_requested",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/controller.rs",
       "owner": "MeasurementCapability",
       "symbol": "on_calibration_completed",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/controller.rs",
       "owner": "MeasurementCapability",
       "symbol": "on_calibration_dismissed",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "can_measure",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "canMeasure"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "get_page_scale",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "pageScale"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "is_busy",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "isBusy"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "list_last_reports",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "lastReports"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "list_presets",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "presets"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "list_presets_json",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "presets"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "list_units",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "units"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "list_area_units",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "areaUnits"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "get_readout",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "readout"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "measure_distance",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "measureDistance"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "measure_area",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "measureArea"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "get_calibration_request",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "calibrationRequest"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/sync/viewports.rs",
       "owner": "MeasurementCapability",
       "symbol": "ensure_loaded",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "ensureLoaded"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/write/calibration.rs",
       "owner": "MeasurementCapability",
       "symbol": "start_calibration",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "startCalibration"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/write/calibration.rs",
       "owner": "MeasurementCapability",
       "symbol": "dismiss_calibration",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "dismissCalibration"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/write/create.rs",
       "owner": "MeasurementCapability",
       "symbol": "create_measurement",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "createMeasurement"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/write/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "set_scale",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "setScale"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/write/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "calibrate",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "calibrate"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/write/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "set_unit",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "setUnit"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/write/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "set_area_unit",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "setAreaUnit"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/write/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "set_precision",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "setPrecision"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/write/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "set_preset",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "setPreset"
+      }
     },
     {
       "crate": "measurement",
       "path": "crates/plugins/measurement/src/write/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "clear_scale",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Measurement.kt",
+        "symbol": "clearScale"
+      }
     },
     {
       "crate": "metadata",

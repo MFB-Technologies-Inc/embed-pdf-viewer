@@ -195,4 +195,19 @@ class PluginSettingsTest {
         assertEquals(registered, redaction.settings())
         viewer.destroy()
     }
+
+    @Test
+    fun measurementDefaultScaleChangesAndResets() = viewerTest {
+        val viewer = started(ViewerConfig(interaction = true, annotation = "", measurement = MeasurementConfig()))
+        val document = viewer.open(Fixture.bytes("report"))
+        val measurement = viewer.measurement(document)
+        val registered = measurement.settings()
+        measurement.updateSettings(MeasurementConfig(defaultScale = MeasurementDefaultScaleImperial))
+        val changed = measurement.settings()
+        assertEquals(MeasurementDefaultScaleImperial, changed.defaultScale)
+        assertEquals(registered.presets, changed.presets)
+        measurement.resetSettings()
+        assertEquals(registered, measurement.settings())
+        viewer.destroy()
+    }
 }

@@ -2412,6 +2412,49 @@ public final class com/embedpdf/LinkKt {
 	public static final fun link (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class com/embedpdf/MeasurementCapability {
+	public final fun areaUnits (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun calibrate (Luniffi/epdf_plugin_measurement/MeasurementCalibrateInput;Luniffi/epdf_plugin_measurement/MeasurementCalibrateOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun calibrate$default (Lcom/embedpdf/MeasurementCapability;Luniffi/epdf_plugin_measurement/MeasurementCalibrateInput;Luniffi/epdf_plugin_measurement/MeasurementCalibrateOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun calibrationRequest (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canCalibrate (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canMeasure (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun clearScale (Luniffi/epdf_plugin_measurement/MeasurementPageTarget;Luniffi/epdf_plugin_measurement/MeasurementScaleChangeOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun clearScale$default (Lcom/embedpdf/MeasurementCapability;Luniffi/epdf_plugin_measurement/MeasurementPageTarget;Luniffi/epdf_plugin_measurement/MeasurementScaleChangeOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun createMeasurement (Luniffi/epdf_plugin_measurement/CreateMeasurementInput;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun dismissCalibration (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun ensureLoaded (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun isBusy (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun lastReports (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun measureArea (Luniffi/epdf_ffi/PageRef;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun measureDistance (Luniffi/epdf_ffi/PageRef;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/Point;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
+	public final fun pageScale (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun presets (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun readout (Lcom/embedpdf/AnnotationInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun readout (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun readout (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun resetSettings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setAreaUnit (Luniffi/epdf_plugin_measurement/MeasurementPageTarget;Ljava/lang/String;Luniffi/epdf_plugin_measurement/MeasurementScaleChangeOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun setAreaUnit$default (Lcom/embedpdf/MeasurementCapability;Luniffi/epdf_plugin_measurement/MeasurementPageTarget;Ljava/lang/String;Luniffi/epdf_plugin_measurement/MeasurementScaleChangeOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun setPrecision (Luniffi/epdf_plugin_measurement/MeasurementPageTarget;DLuniffi/epdf_plugin_measurement/MeasurementScaleChangeOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun setPrecision$default (Lcom/embedpdf/MeasurementCapability;Luniffi/epdf_plugin_measurement/MeasurementPageTarget;DLuniffi/epdf_plugin_measurement/MeasurementScaleChangeOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun setPreset (Luniffi/epdf_plugin_measurement/MeasurementPageTarget;Ljava/lang/String;Luniffi/epdf_plugin_measurement/MeasurementScaleChangeOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun setPreset$default (Lcom/embedpdf/MeasurementCapability;Luniffi/epdf_plugin_measurement/MeasurementPageTarget;Ljava/lang/String;Luniffi/epdf_plugin_measurement/MeasurementScaleChangeOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun setScale (Luniffi/epdf_plugin_measurement/MeasurementPageTarget;Luniffi/epdf_plugin_measurement/PdfMeasurement;Luniffi/epdf_plugin_measurement/MeasurementScaleChangeOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun setScale$default (Lcom/embedpdf/MeasurementCapability;Luniffi/epdf_plugin_measurement/MeasurementPageTarget;Luniffi/epdf_plugin_measurement/PdfMeasurement;Luniffi/epdf_plugin_measurement/MeasurementScaleChangeOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun setUnit (Luniffi/epdf_plugin_measurement/MeasurementPageTarget;Ljava/lang/String;Luniffi/epdf_plugin_measurement/MeasurementScaleChangeOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun setUnit$default (Lcom/embedpdf/MeasurementCapability;Luniffi/epdf_plugin_measurement/MeasurementPageTarget;Ljava/lang/String;Luniffi/epdf_plugin_measurement/MeasurementScaleChangeOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun settings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun startCalibration (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun units (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun updateSettings (Luniffi/epdf_plugin_measurement/MeasurementConfig;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/MeasurementKt {
+	public static final fun measurement (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class com/embedpdf/MetadataCapability {
 	public final fun canUpdate (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun customSnapshot (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;

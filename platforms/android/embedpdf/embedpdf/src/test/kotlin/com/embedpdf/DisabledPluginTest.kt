@@ -75,11 +75,16 @@ class DisabledPluginTest {
             prerequisites = { it.copy(interaction = true, annotation = "") },
             install = { it.copy(redaction = RedactionConfig()) },
         ) { viewer, document -> viewer.redaction(document) },
+        Accessor(
+            "measurement",
+            prerequisites = { it.copy(interaction = true, annotation = "") },
+            install = { it.copy(measurement = MeasurementConfig()) },
+        ) { viewer, document -> viewer.measurement(document) },
     )
 
     /** Plugins whose accessors later waves of the port add. */
     private val pending = setOf(
-        "measurement", "stamp", "signature",
+        "stamp", "signature",
     )
 
     @Test
