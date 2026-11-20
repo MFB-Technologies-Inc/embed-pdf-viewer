@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    EmbedPDF.Runtime: the viewer host (epdf-viewer-host) and its PDFium under
+    runtimes/<rid>/native/, and nothing else. No managed code. Packed only by
+    platforms/dotnet/packaging/package.py pack-runtime, which passes the
+    checksum-verified slices as EpdfNativeAssets and the engine version.
+  -->
+  <PropertyGroup>
+    <PackageId>EmbedPDF.Runtime</PackageId>
+    <Version>0.0.0-local</Version>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <Description>Native viewer host library for the EmbedPDF package, one per runtime identifier. Reference EmbedPDF rather than this package.</Description>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <!-- NU5128: no lib/ folder is intended; the package holds native assets only. -->
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="$(EpdfNativeAssets)/**/*" Pack="true" PackagePath="runtimes/" Condition="'$(EpdfNativeAssets)' != ''" />
+  </ItemGroup>
+  <Target Name="RequireNativeAssets" BeforeTargets="GenerateNuspec">
+    <Error Condition="'$(EpdfNativeAssets)' == ''" Text="Native assets are required. Use platforms/dotnet/packaging/package.py pack-runtime with staged RID slices." />
+  </Target>
+</Project>

@@ -5,7 +5,7 @@ def validate(value, schema, root=None, path="$"):
     root = schema if root is None else root
     supported = {"$schema", "$defs", "$ref", "title", "description", "type", "const",
                  "enum", "required", "properties", "additionalProperties", "items",
-                 "minItems", "minLength", "minimum", "maximum", "pattern", "allOf", "if", "then"}
+                 "minItems", "minLength", "minimum", "maximum", "pattern", "allOf", "if", "then", "else"}
     unknown = set(schema) - supported
     if unknown:
         raise ValueError(f"Unsupported schema keywords: {unknown}")
@@ -20,7 +20,7 @@ def validate(value, schema, root=None, path="$"):
         try:
             validate(value, schema["if"], root, path)
         except ValueError:
-            pass
+            validate(value, schema.get("else", {}), root, path)
         else:
             validate(value, schema.get("then", {}), root, path)
     types = {"object": dict, "array": list, "string": str, "integer": int, "boolean": bool}

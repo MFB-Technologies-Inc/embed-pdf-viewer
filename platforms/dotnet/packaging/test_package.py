@@ -117,6 +117,119 @@ class SingleRidTests(unittest.TestCase):
         self.assertNotEqual(0, result.returncode)
         self.assertIn("packaged RID identity", result.stdout)
 
+class RuntimeTests(unittest.TestCase):
+    """EmbedPDF.Runtime: several RIDs in one package, staged slices, the viewer host."""
+    def setUp(self):
+        from package import RIDS
+        self.root = Path(__file__).resolve().parents[1]
+        self.schema = json.loads((self.root / "package-manifest.schema.json").read_text())
+        self.records = json.loads((self.root / "validation/record.schema.json").read_text())
+        file = {"path":"package.nupkg","sha256":"a"*64,"bytes":1}
+        self.manifest = {"schemaVersion":1,"packageId":"EmbedPDF.Runtime","version":"0.0.0-engine."+"0"*16,
+            "source":{"commit":"a"*40,"dirty":False},"runtimeFork":"b"*40,"runtimeManifest":file,"abi":1,
+            "rids":{rid:{"status":"PACKED_UNVALIDATED" if rid in ("linux-arm64","linux-x64") else "UNVALIDATED",
+                         "reason":"test evidence"} for rid in RIDS},"files":[file],"limitations":[]}
+        self.record = {"schemaVersion":1,"package":"EmbedPDF.Runtime","phase":1,"rid":"linux-arm64",
+            "source":{"commit":"a"*40,"dirty":False,"runtimeFork":"b"*40},
+            "environment":{"kind":"container","os":"Linux","arch":"arm64","emulated":False,
+                "tools":{},"imageId":"sha256:"+"c"*64},
+            "inputs":[],"commands":[{"command":"test","cwd":".","exitCode":0,"results":"pass"}],
+            "artifacts":[],"limitations":[]}
+
+    def test_runtime_manifest_allows_several_packed_rids(self):
+        validate(self.manifest, self.schema)
+
+    def test_engine_manifest_rule_unchanged(self):
+        forged = copy.deepcopy(self.manifest)
+        forged["packageId"] = "EmbedPDF.Engine"
+        forged["fontManifest"] = forged["runtimeManifest"]
+        with self.assertRaises(ValueError):
+            validate(forged, self.schema)
+        forged.pop("fontManifest")
+        forged["rids"]["linux-x64"]["status"] = "UNVALIDATED"
+        with self.assertRaisesRegex(ValueError, "fontManifest"):
+            validate(forged, self.schema)
+
+    def test_unknown_package_id_rejected(self):
+        self.manifest["packageId"] = "EmbedPDF.Other"
+        with self.assertRaises(ValueError):
+            validate(self.manifest, self.schema)
+
+    def test_record_requires_phase_for_runtime(self):
+        validate(self.record, self.records)
+        record = copy.deepcopy(self.record)
+        record.pop("phase")
+        with self.assertRaisesRegex(ValueError, "phase"):
+            validate(record, self.records)
+        record.pop("package")
+        with self.assertRaisesRegex(ValueError, "slice"):
+            validate(record, self.records)
+        record["slice"] = 6
+        validate(record, self.records)
+
+    def test_viewer_host_needs_origin_runpath(self):
+        from package import check_elf
+        with self.assertRaisesRegex(ValueError, "relative"):
+            check_elf("libepdf_viewer_host.so", "(RUNPATH) Library runpath: [/workspaces/x/lib]", "")
+        with self.assertRaisesRegex(ValueError, "relative"):
+            check_elf("libepdf_viewer_host.so", "(NEEDED) Shared library: [libembedpdf.so]", "")
+        check_elf("libepdf_viewer_host.so", "(RUNPATH) Library runpath: [$ORIGIN]", "")
+
+    def test_viewer_exports(self):
+        from package import check_viewer_exports
+        with self.assertRaisesRegex(ValueError, "contract_version"):
+            check_viewer_exports("epdf_abi_version")
+        check_viewer_exports("0000 T _ffi_epdf_viewer_host_uniffi_contract_version", "_")
+
+    def slice(self, directory, rid="linux-arm64", commit="a"*40):
+        native = directory / "runtimes" / rid / "native"
+        native.mkdir(parents=True)
+        (native / "libepdf_viewer_host.so").write_bytes(b"host")
+        files = [{"path":f"runtimes/{rid}/native/libepdf_viewer_host.so",
+                  "sha256":hashlib.sha256(b"host").hexdigest(),"bytes":4}]
+        (directory / "runtime-slice.json").write_text(json.dumps({"schemaVersion":1,"rid":rid,
+            "source":{"commit":commit,"dirty":False},"runtimeFork":"b"*40,"runtimeArchiveSha256":"c"*64,
+            "runtimeTarget":rid,"files":files}))
+        return native
+
+    def pack_runtime(self, *slices):
+        with tempfile.TemporaryDirectory() as out:
+            command = [sys.executable, str(self.root / "packaging/package.py"), "pack-runtime",
+                       "--version", "0.0.0-engine."+"0"*16, "--out", out]
+            for directory in slices:
+                command += ["--slice", str(directory)]
+            return subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    def test_pack_runtime_rejects_edited_slice(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            native = self.slice(Path(temporary))
+            (native / "libepdf_viewer_host.so").write_bytes(b"HOST")
+            result = self.pack_runtime(Path(temporary))
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("slice checksum mismatch: runtimes/linux-arm64/native/libepdf_viewer_host.so", result.stdout)
+
+    def test_pack_runtime_rejects_unrecorded_file(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            native = self.slice(Path(temporary))
+            (native / "extra.so").write_bytes(b"x")
+            result = self.pack_runtime(Path(temporary))
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("unrecorded file", result.stdout)
+
+    def test_pack_runtime_rejects_duplicate_rid_and_mixed_sources(self):
+        with tempfile.TemporaryDirectory() as first, tempfile.TemporaryDirectory() as second:
+            self.slice(Path(first))
+            self.slice(Path(second))
+            result = self.pack_runtime(Path(first), Path(second))
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("two slices for linux-arm64", result.stdout)
+        with tempfile.TemporaryDirectory() as first, tempfile.TemporaryDirectory() as second:
+            self.slice(Path(first))
+            self.slice(Path(second), rid="linux-x64", commit="d"*40)
+            result = self.pack_runtime(Path(first), Path(second))
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("different source commits", result.stdout)
+
 class NativeInspectionTests(unittest.TestCase):
     def test_rejects_wrong_or_incomplete_abi_exports(self):
         from package import check_exports

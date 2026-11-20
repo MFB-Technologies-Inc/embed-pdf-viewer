@@ -1,0 +1,10 @@
+<Project>
+  <!--
+    The EmbedPDF.Runtime version the EmbedPDF facade depends on:
+    0.0.0-engine.<hash>, the hash from platforms/dotnet/dotnet-engine-hash.sh.
+    platforms/dotnet/check-dotnet-engine.sh fails when it differs from the tree.
+  -->
+  <PropertyGroup>
+    <EmbedPdfRuntimeVersion>0.0.0-engine.0000000000000000</EmbedPdfRuntimeVersion>
+  </PropertyGroup>
+</Project>
