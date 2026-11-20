@@ -591,7 +591,7 @@ What exists. Four capabilities under `platforms/dotnet/EmbedPDF.Viewer/Plugins/`
 (package `EmbedPDF.Scripting.Jint`, Jint 4.18.0). The coverage check reads 880 members: 293
 ported, 452 pending (C 167, D 143, E 142), 135 exclusions. All 68 wave B rows are ported
 (interaction 30, i18n 15, actions 23); none needed an exclusion, and feedback has no rows, as
-the manifest's crate note says. `EmbedPDF.Viewer.Tests` runs 596 cases after the merge, 595 passing twice
+the manifest's crate note says. `EmbedPDF.Viewer.Tests` runs 610 cases after the merge and review fixes, 609 passing twice
 in a row and one skipped (the pointer latency test, which runs with `EMBEDPDF_LATENCY=1`: p95
 0.101 ms against an 8.33 ms frame on `linux-arm64`). `EmbedPDF.Tests` passes its 36,
 `packaging` its 30 and `scripts/test_check_api_coverage.py` its 11. Release builds of the
@@ -623,10 +623,26 @@ assembly. Those are its CLR interop paths, which the engine never enables, but t
 Jint is not a dependency of `EmbedPDF`: an AOT consumer that wants document JavaScript takes
 the warnings with `EmbedPDF.Scripting.Jint`, and one that doesn't never sees them. Each realm
 owns a background thread with a 16 MiB stack and one `Jint.Engine` with no CLR access, a memory
-limit (64 MiB by default) and `Constraints.MaxExecutionStackCount` (1,000). The time limit is a
-per-call `Constraint`, so a runaway script stops inside the interpreter and frees its thread;
-the wait gives up 250 ms past the limit in case it doesn't. Packing the package into a release
-is Phase 6.
+limit (64 MiB by default), `Constraints.StackOverflowGuard` and a regex timeout (300 ms by
+default). The time limit is a per-call `Constraint`, so a runaway script stops inside the
+interpreter and frees its thread; the wait gives up 250 ms past the limit in case it doesn't,
+and anything that stops a script after its limit reads as a timeout. Packing the package into a
+release is Phase 6.
+
+Review fixes (2026-11-20). The first cut capped recursion with
+`Constraints.MaxExecutionStackCount`, which counts call expressions only. A probe showed a
+getter, a Proxy trap, a `toString` coercion or `new` recursing past it overflowed the native
+stack and ended the process, on a 16 MiB stack as on 1 MiB; setting that count also turns off
+Jint's `StackOverflowGuard`. The guard measures the stack on every entry into a script function
+and raises a catchable `RangeError`, so the engine now uses it alone (`39ad80a0f`), and
+`MaxCallDepth` is gone: `ThreadStackBytes` (at least 1 MiB, about 2 KiB per plain call) is the
+bound. `JintScriptEngineTests.AnIndirectRecursionIsABudgetFailure` crashed the test host before
+the change. A catastrophic regex used to run for Jint's default 10 s after its script timed out;
+`JintScriptEngineOptions.RegexTimeout` (`4b5c0af02`) stops it, as a fixed value because Jint
+reads it once when the engine is built. The executor adapter releases the node and context it
+is given (`d9cb05ac4`), the guarded disposal task flows the execution context (`70864e8fc`), and
+the callback docs now say what a registered or configured callback keeps alive and that none may
+block waiting for the viewer.
 
 Wave A's review rules apply here too (`6d674ac69`). Every wave B stream goes through
 `PdfViewer.Stream` and so the `StreamRegistry`, and
@@ -659,7 +675,10 @@ Deviations, each with its reason:
   case's property can't share a name with a sibling case (`ActionSource.Annotation`). The Phase 0
   generator renames hit the same rule.
 - A UI handler that throws fails the whole `ExecuteAsync` with `HostError`, not one node. That
-  is the engine's documented behaviour; the plan's first cut assumed a failed node.
+  is the engine's documented behaviour; the plan's first cut assumed a failed node. A submit
+  handler that throws fails only its node, with the message as the detail
+  (`ActionsTests.AThrowingSubmitHandlerFailsTheNodeAndTheViewerKeepsWorking`), and is called
+  only when the form plugin is installed.
 - `PdfObjectRef` is a record over its JSON and `PdfActionNode` a record of type and JSON; Swift
   passes the generated objects. A malformed reference is `invalid-input` when it is sent.
 - Jint answers a memory-limit stop as `Threw("out of memory: ...")`, which the viewer reports as
