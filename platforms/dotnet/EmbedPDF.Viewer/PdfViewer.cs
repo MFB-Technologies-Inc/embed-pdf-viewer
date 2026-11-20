@@ -358,12 +358,18 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
         }
     }
 
-    static Exception Map(Exception error, CancellationToken cancellationToken)
+    /// <summary>
+    /// Maps a generated call's error. A cancellation is the caller's when
+    /// their token fired; one that disposal caused is <c>instance-closed</c>.
+    /// </summary>
+    Exception Map(Exception error, CancellationToken cancellationToken)
     {
         var mapped = PdfException.From(error);
-        return mapped.Code == PdfErrorCode.OperationCancelled && cancellationToken.IsCancellationRequested
-            ? new OperationCanceledException(mapped.Detail, mapped, cancellationToken)
-            : mapped;
+        if (mapped.Code != PdfErrorCode.OperationCancelled) return mapped;
+        if (cancellationToken.IsCancellationRequested) return new OperationCanceledException(mapped.Detail, mapped, cancellationToken);
+        bool closing;
+        lock (gate) closing = closed;
+        return closing ? PdfException.Closed(mapped) : mapped;
     }
 
     internal GH.ViewerHost Host => host;

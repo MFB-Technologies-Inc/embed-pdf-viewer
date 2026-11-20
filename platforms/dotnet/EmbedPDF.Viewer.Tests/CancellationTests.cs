@@ -102,8 +102,8 @@ public sealed class CancellationTests
         var opening = viewer.OpenAsync(new Uri("https://embedpdf.test/late.pdf"));
         await fetcher.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
         await viewer.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(15));
-        var error = await Record.ExceptionAsync(() => opening);
-        Assert.True(error is PdfException or OperationCanceledException, $"{error}");
+        // Disposal, not the caller, cancelled it: the viewer closed.
+        Assert.Equal(PdfErrorCode.InstanceClosed, (await Assert.ThrowsAsync<PdfException>(() => opening)).Code);
         fetcher.Release.SetResult();
         await fetcher.Answered.Task.WaitAsync(TimeSpan.FromSeconds(5));
         await Task.Delay(100);
