@@ -99,6 +99,10 @@ class HttpSignatureTransportTest {
             x.sendResponseHeaders(503, 0)
             x.responseBody.write(bytes(2000))
         }
+        route("/redirect") { x ->
+            x.responseHeaders.add("location", "/echo")
+            x.sendResponseHeaders(302, -1)
+        }
         route("/error-body") { x ->
             val body = "nope".toByteArray()
             x.sendResponseHeaders(404, body.size.toLong())
@@ -247,6 +251,24 @@ class HttpSignatureTransportTest {
             answering.join(5000)
             notHttp.close()
         }
+    }
+
+    @Test
+    fun aRedirectIsRepliedWithItsStatusAndNotFollowed() {
+        val answers = send(request("$base/redirect"))
+        assertEquals(listOf("replied 302 0"), answers.got)
+        assertEquals(listOf("/redirect"), seen.map { it.path })
+    }
+
+    @Test
+    fun anAddressThatIsNotHttpIsFailedBeforeAnythingIsSent() {
+        for (url in listOf("file:///etc/hosts", "ftp://127.0.0.1/api", "jar:file:/x.jar!/y")) {
+            val answers = send(request(url))
+            assertEquals(1, answers.got.size)
+            assertTrue(answers.got[0], answers.got[0].startsWith("failed the transport sends only to http and https"))
+            assertEquals(1, answers.released.get())
+        }
+        assertTrue(seen.isEmpty())
     }
 
     /** Through the generated completion, as the viewer calls it. */

@@ -198,6 +198,29 @@ class StampTest {
     }
 
     @Test
+    fun theFileStoreSkipsFilesItWouldNotHaveNamed() {
+        val directory = temporaryDirectory()
+        val store = FileStampLibraryStore(directory)
+        store.put("kept", byteArrayOf(1))
+        // Not `%XX`, not the name the id would get, not UTF-8, not this store's at all.
+        for (name in listOf("50%off.pdf", "%6Bept.pdf", "%FF.pdf", "notes.txt", "with space.pdf", ".stamp-1.tmp")) {
+            directory.resolve(name).writeBytes(byteArrayOf(9))
+        }
+        assertEquals(listOf("kept"), store.list().map { it.id })
+    }
+
+    @Test
+    fun theFileStoreWritesALongIdThroughAShortTemporaryName() {
+        val directory = temporaryDirectory()
+        val store = FileStampLibraryStore(directory)
+        // Encoded, the id is 240 characters; a temporary name built from it would pass 255.
+        val id = "\u00e9".repeat(40)
+        store.put(id, byteArrayOf(5))
+        assertEquals(listOf(id), store.list().map { it.id })
+        assertEquals(1, directory.list()!!.size)
+    }
+
+    @Test
     fun aDestroyedViewersPersistThrows() = viewerTest {
         val store = FileStampLibraryStore(temporaryDirectory())
         val (viewer, stamps) = started()

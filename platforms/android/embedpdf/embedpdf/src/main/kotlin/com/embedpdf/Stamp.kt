@@ -8,7 +8,7 @@ import uniffi.epdf_plugin_stamp.StampEventListener
 import uniffi.epdf_plugin_stamp.StampHandle
 import java.io.File
 import java.io.IOException
-import java.net.URLDecoder
+import java.io.FileOutputStream
 
 public typealias StampSettings = uniffi.epdf_plugin_stamp.StampSettings
 
@@ -266,9 +266,11 @@ public suspend fun PdfViewer.stamps(): StampCapability = StampCapability(call { 
  * after the library's id with every character but an ASCII letter or digit
  * percent-encoded, plus `.pdf`. The constructor
  * creates the directory; one it can't create throws `IOException`. A write
- * goes to a temporary file first and then replaces the library's file, so a
- * reader sees the old library or the new one. Each call throws
- * [HostException] for a file it can't read, write or delete.
+ * goes to a temporary file first, synced to the disk, and then replaces the
+ * library's file, so a reader sees the old library or the new one, also
+ * after a crash. [list] skips a file whose name this store would not have
+ * given, so a stray file in the directory never fails a restore. Each call
+ * throws [HostException] for a file it can't read, write or delete.
  */
 public class FileStampLibraryStore(public val directory: File) : StampLibraryStore {
     init {
@@ -286,19 +288,60 @@ public class FileStampLibraryStore(public val directory: File) : StampLibrarySto
         return directory.resolve("$name.pdf")
     }
 
+    /** The names [file] gives: ASCII letters, digits and `%XX`, then `.pdf`. */
+    private val storedName = Regex("[A-Za-z0-9%]*\\.pdf")
+
     override fun list(): List<StoredStampLibrary> = hostFailure {
         val files = directory.listFiles() ?: throw IOException("can't list $directory")
-        files.filter { it.isFile && it.extension == "pdf" }
+        files.filter { it.isFile && storedName.matches(it.name) }
             .sortedBy { it.name }
-            .map { StoredStampLibrary(URLDecoder.decode(it.nameWithoutExtension, "UTF-8"), it.readBytes()) }
+            .mapNotNull { file -> decodedId(file.nameWithoutExtension)?.let { StoredStampLibrary(it, file.readBytes()) } }
+    }
+
+    /**
+     * The id a stored name encodes, or `null` for a name this store would
+     * not have written: a `%` not followed by two hex digits, a byte encoded
+     * that needs no encoding, or bytes that aren't UTF-8.
+     */
+    private fun decodedId(name: String): String? {
+        val bytes = java.io.ByteArrayOutputStream()
+        var index = 0
+        while (index < name.length) {
+            val char = name[index]
+            if (char != '%') {
+                bytes.write(char.code)
+                index += 1
+                continue
+            }
+            val hex = name.substring(index + 1, (index + 3).coerceAtMost(name.length))
+            if (hex.length != 2 || !hex.all { it in '0'..'9' || it in 'A'..'F' }) return null
+            bytes.write(hex.toInt(16))
+            index += 3
+        }
+        val decoder = Charsets.UTF_8.newDecoder()
+            .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+            .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)
+        val id = try {
+            decoder.decode(java.nio.ByteBuffer.wrap(bytes.toByteArray())).toString()
+        } catch (e: java.nio.charset.CharacterCodingException) {
+            return null
+        }
+        // Only the name this store gives the id round-trips.
+        return id.takeIf { file(it).nameWithoutExtension == name }
     }
 
     override fun put(id: String, bytes: ByteArray) {
         hostFailure {
             val target = file(id)
-            val temporary = File.createTempFile(".${target.name}", ".tmp", directory)
+            // A short name of its own: the id's encoding can be up to three
+            // times the id, near the file system's name limit already.
+            val temporary = File.createTempFile(".stamp-", ".tmp", directory)
             try {
-                temporary.writeBytes(bytes)
+                FileOutputStream(temporary).use { output ->
+                    output.write(bytes)
+                    output.flush()
+                    output.fd.sync()
+                }
                 if (!temporary.renameTo(target)) throw IOException("can't replace $target")
             } finally {
                 temporary.delete()

@@ -6,6 +6,7 @@ import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.SocketTimeoutException
 import java.net.URI
+import java.net.URISyntaxException
 import java.net.URL
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
@@ -39,6 +40,10 @@ import uniffi.epdf_plugin_signature.SignatureTransportCompletionInterface
  *   is still arriving at the deadline is `replied` with its status and no
  *   body, so the client decides by the status, as upstream's clients do.
  * - A reply with no readable status (`getResponseCode()` is -1) is `failed`.
+ * - Redirects are not followed: a 3xx is `replied` with its status, and the
+ *   client decides, as for any other status.
+ * - An address that is not `http` or `https` is `failed` before anything is
+ *   sent.
  *
  * The completion is answered exactly once, whichever of the reply, the
  * deadline or a failure comes first, and released after.
@@ -68,6 +73,16 @@ public class HttpSignatureTransport internal constructor(
         released: () -> Unit = {},
     ) {
         val exchange = Exchange(request, completion, released)
+        val scheme = try {
+            URI(request.url).scheme?.lowercase()
+        } catch (error: URISyntaxException) {
+            exchange.settle { it.failed("${request.url} is not an address: ${error.message}") }
+            return
+        }
+        if (scheme != "http" && scheme != "https") {
+            exchange.settle { it.failed("the transport sends only to http and https addresses, not ${request.url}") }
+            return
+        }
         val deadline = try {
             timer.schedule(exchange::expire, request.timeoutMs.toLong(), TimeUnit.MILLISECONDS)
         } catch (error: RejectedExecutionException) {
@@ -143,6 +158,8 @@ public class HttpSignatureTransport internal constructor(
             c.connectTimeout = timeout
             c.readTimeout = timeout
             c.requestMethod = "POST"
+            // A redirect is the client's to judge, as every other status is.
+            c.instanceFollowRedirects = false
             c.doOutput = true
             c.useCaches = false
             // content-type first, then the request's headers: a later one wins.

@@ -33,9 +33,10 @@ public final class com/embedpdf/ActionsKt {
 
 public final class com/embedpdf/AndroidKeyStoreSigner : uniffi/epdf_plugin_signature/SignatureSigner {
 	public static final field Companion Lcom/embedpdf/AndroidKeyStoreSigner$Companion;
-	public fun <init> (Ljava/lang/String;Ljava/security/KeyStore;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/security/KeyStore;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public fun <init> (Ljava/security/PrivateKey;Ljava/util/List;)V
+	public fun <init> (Ljava/lang/String;Ljava/security/KeyStore;Lcom/embedpdf/SignatureProvider;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/security/KeyStore;Lcom/embedpdf/SignatureProvider;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/security/PrivateKey;Ljava/util/List;Lcom/embedpdf/SignatureProvider;)V
+	public synthetic fun <init> (Ljava/security/PrivateKey;Ljava/util/List;Lcom/embedpdf/SignatureProvider;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun algorithm ()Luniffi/epdf_plugin_signature/SignatureKeyAlgorithm;
 	public fun certificateChain ()Ljava/util/List;
 	public fun digest ()Luniffi/epdf_plugin_signature/SignatureDigest;
@@ -3434,6 +3435,15 @@ public final class com/embedpdf/SignatureKt {
 	public static final fun signatures (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public abstract interface class com/embedpdf/SignatureProvider {
+	public static final field Companion Lcom/embedpdf/SignatureProvider$Companion;
+	public abstract fun signature (Ljava/lang/String;Ljava/security/PrivateKey;)Ljava/security/Signature;
+}
+
+public final class com/embedpdf/SignatureProvider$Companion {
+	public final fun getDEFAULT ()Lcom/embedpdf/SignatureProvider;
+}
+
 public final class com/embedpdf/SquareAnnotationDraft : com/embedpdf/AnnotationDraft {
 	public fun <init> (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/Nullable;Ljava/lang/Double;Ljava/lang/Double;Lcom/embedpdf/AnnotationBorderStyle;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;)V
 	public synthetic fun <init> (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/Nullable;Ljava/lang/Double;Ljava/lang/Double;Lcom/embedpdf/AnnotationBorderStyle;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -3924,6 +3934,8 @@ public final class com/embedpdf/TrustAnchors : uniffi/epdf_plugin_signature/Sign
 
 public final class com/embedpdf/TrustAnchors$Companion {
 	public final fun fromAssets (Landroid/content/res/AssetManager;Ljava/util/List;)Lcom/embedpdf/TrustAnchors;
+	public final fun fromBytes ([B)Lcom/embedpdf/TrustAnchors;
+	public final fun fromPem (Ljava/lang/String;)Lcom/embedpdf/TrustAnchors;
 }
 
 public final class com/embedpdf/UnderlineAnnotationDraft : com/embedpdf/AnnotationDraft {

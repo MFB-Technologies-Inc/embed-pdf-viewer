@@ -1,5 +1,6 @@
 package com.embedpdf
 
+import android.os.Build
 import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.UserNotAuthenticatedException
 import java.security.GeneralSecurityException
@@ -22,10 +23,17 @@ import java.util.concurrent.Executors
  *
  * A key that needs the user to authenticate (`setUserAuthenticationRequired`)
  * signs only after the app has authenticated them, with a biometric or
- * device-credential prompt of its own. Signing before that fails with
+ * device-credential prompt of its own. A key with a validity window signs
+ * for that window after any prompt. A key that needs a prompt for every use
+ * (a validity of 0) needs the prompt to unlock the very `Signature` that
+ * signs: pass a [SignatureProvider] that shows a `BiometricPrompt` with a
+ * `CryptoObject` over the signature and returns it once the user has
+ * authenticated. Signing without authentication fails with
  * `permission-denied` (`UserNotAuthenticated`), and a key the system
  * invalidated (a new fingerprint, say) with `permission-denied`
  * (`KeyPermanentlyInvalidated`); neither crashes.
+ *
+ * Both constructors throw `invalid-input` for an empty certificate chain.
  */
 public class AndroidKeyStoreSigner internal constructor(
     private val key: PrivateKey,
@@ -33,6 +41,12 @@ public class AndroidKeyStoreSigner internal constructor(
     /** The JCA signature; a test passes one that fails as a Keystore would. */
     private val signing: (PrivateKey, String, ByteArray) -> ByteArray,
 ) : SignatureSigner {
+    init {
+        if (certificates.isEmpty()) {
+            throw PdfException(PdfException.Code.INVALID_INPUT, "a signer needs its certificate chain, leaf first", "UnreadableKey")
+        }
+    }
+
     private val chain: List<ByteArray> = certificates.map { it.encoded }
 
     private val keyAlgorithm: SignatureKeyAlgorithm = when (key.algorithm) {
@@ -47,15 +61,22 @@ public class AndroidKeyStoreSigner internal constructor(
 
     /**
      * The key and chain stored under [alias] in [keyStore], the Android
-     * Keystore unless a test passes another. Throws `not-found` when the
-     * alias holds no private key, and `operation-failed` when the store can't
-     * be read.
+     * Keystore unless a test passes another, signing through [signatures].
+     * Throws `not-found` when the alias holds no private key, and
+     * `operation-failed` when the store can't be read.
      */
-    public constructor(alias: String, keyStore: KeyStore = androidKeyStore()) :
-        this(keyStore.privateKey(alias), keyStore.chain(alias), ::jcaSign)
+    public constructor(
+        alias: String,
+        keyStore: KeyStore = androidKeyStore(),
+        signatures: SignatureProvider = SignatureProvider.DEFAULT,
+    ) : this(keyStore.privateKey(alias), keyStore.chain(alias), signatures.signing())
 
-    /** [privateKey] with [certificates], leaf first. */
-    public constructor(privateKey: PrivateKey, certificates: List<X509Certificate>) : this(privateKey, certificates, ::jcaSign)
+    /** [privateKey] with [certificates], leaf first, signing through [signatures]. */
+    public constructor(
+        privateKey: PrivateKey,
+        certificates: List<X509Certificate>,
+        signatures: SignatureProvider = SignatureProvider.DEFAULT,
+    ) : this(privateKey, certificates, signatures.signing())
 
     override fun certificateChain(): List<ByteArray> = chain.map { it.copyOf() }
 
@@ -66,13 +87,15 @@ public class AndroidKeyStoreSigner internal constructor(
     /**
      * Called on the viewer's kernel thread, and returns at once: the signing
      * runs on a thread of its own, so the viewer keeps serving other calls
-     * while the key works. A failure fails the signing with its code.
+     * while the key works, and a [SignatureProvider] there may block while
+     * it prompts. A failure fails the signing with its code, an `Error`
+     * included, so the engine is always answered.
      */
     override fun sign(message: ByteArray, completion: SignatureSignCompletion) {
         executor.execute {
             val signature = try {
                 sign(message)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 completion.fail(e)
                 return@execute
             }
@@ -99,6 +122,16 @@ public class AndroidKeyStoreSigner internal constructor(
         } catch (e: KeyPermanentlyInvalidatedException) {
             throw PdfException(PdfException.Code.PERMISSION_DENIED, "the key is no longer valid: ${readable(e)}", "KeyPermanentlyInvalidated", e)
         } catch (e: GeneralSecurityException) {
+            // A per-use key signed without its prompt: the Keystore reports it
+            // as a `SignatureException` caused by a `KeyStoreException`.
+            if (e.needsUserAuthentication()) {
+                throw PdfException(
+                    PdfException.Code.PERMISSION_DENIED,
+                    "the key needs the user to authenticate first: ${readable(e)}",
+                    "UserNotAuthenticated",
+                    e,
+                )
+            }
             throw PdfException(PdfException.Code.OPERATION_FAILED, readable(e), "SigningError", e)
         } catch (e: RuntimeException) {
             // A provider that fails outside the checked exceptions, such as
@@ -116,11 +149,31 @@ public class AndroidKeyStoreSigner internal constructor(
             Thread(task, "embedpdf-signer").apply { isDaemon = true }
         }
 
-        private fun jcaSign(key: PrivateKey, algorithm: String, message: ByteArray): ByteArray =
-            Signature.getInstance(algorithm).run {
-                initSign(key)
+        private fun SignatureProvider.signing(): (PrivateKey, String, ByteArray) -> ByteArray = { key, algorithm, message ->
+            signature(algorithm, key).run {
                 update(message)
                 sign()
+            }
+        }
+
+        /**
+         * Whether a user-not-authenticated failure is in this exception's
+         * cause chain: a [UserNotAuthenticatedException], or the Keystore's
+         * own `KeyStoreException` for a key that needs authentication. That
+         * class is public from API 33; before it, its message says so.
+         */
+        private fun Throwable.needsUserAuthentication(): Boolean =
+            generateSequence(this) { it.cause }.take(16).any { cause ->
+                cause is UserNotAuthenticatedException ||
+                    (cause.javaClass.name == "android.security.KeyStoreException" && keyStoreNeedsUser(cause))
+            }
+
+        private fun keyStoreNeedsUser(error: Throwable): Boolean =
+            if (Build.VERSION.SDK_INT >= 33) {
+                (error as android.security.KeyStoreException).numericErrorCode ==
+                    android.security.KeyStoreException.ERROR_USER_AUTHENTICATION_REQUIRED
+            } else {
+                error.message?.contains("not authenticated", ignoreCase = true) == true
             }
 
         private fun KeyStore.privateKey(alias: String): PrivateKey {
@@ -157,6 +210,27 @@ public class AndroidKeyStoreSigner internal constructor(
 
         internal fun malformedSignature(): PdfException =
             PdfException(PdfException.Code.OPERATION_FAILED, "the key's ECDSA signature isn't DER", "SigningError")
+    }
+}
+
+/**
+ * Makes the [Signature] an [AndroidKeyStoreSigner] signs with, initialised
+ * for signing with the key. Called on the signer's own thread, never the
+ * main thread, so it may block: while the app shows a `BiometricPrompt` with
+ * a `CryptoObject(signature)` for a key that needs a prompt for every use,
+ * say, returning the signature once the user has authenticated. A failure it
+ * throws fails the signing; a `UserNotAuthenticatedException` there is
+ * `permission-denied`.
+ */
+public fun interface SignatureProvider {
+    /** A signature for [algorithm] (`SHA256withECDSA` or `SHA256withRSA`), initialised to sign with [key]. */
+    public fun signature(algorithm: String, key: PrivateKey): Signature
+
+    public companion object {
+        /** `Signature.getInstance(algorithm)`, initialised with the key: for keys that need no prompt per use. */
+        public val DEFAULT: SignatureProvider = SignatureProvider { algorithm, key ->
+            Signature.getInstance(algorithm).apply { initSign(key) }
+        }
     }
 }
 

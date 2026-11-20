@@ -16,6 +16,9 @@ import org.robolectric.annotation.Config
 import uniffi.epdf_plugin_signature.NoHandle
 import java.security.KeyPairGenerator
 import java.security.KeyStore
+import java.security.PrivateKey
+import java.security.PublicKey
+import java.security.SignatureException
 import java.security.Signature
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
@@ -166,6 +169,75 @@ class AndroidKeyStoreSignerTest {
         assertTrue(signedOn != null && signedOn != caller)
     }
 
+    /** A JCA signature whose signing throws [failure], as a Keystore key behind a prompt does. */
+    private class FailingSignature(private val failure: Exception) : Signature("SHA256withRSA") {
+        override fun engineInitVerify(publicKey: PublicKey?) {}
+
+        override fun engineInitSign(privateKey: PrivateKey?) {}
+
+        override fun engineUpdate(b: Byte) {}
+
+        override fun engineUpdate(b: ByteArray?, off: Int, len: Int) {}
+
+        override fun engineSign(): ByteArray = throw failure
+
+        override fun engineVerify(sigBytes: ByteArray?): Boolean = false
+
+        @Deprecated("JCA")
+        override fun engineSetParameter(param: String?, value: Any?) {}
+
+        @Deprecated("JCA")
+        override fun engineGetParameter(param: String?): Any? = null
+    }
+
+    /** A per-use key: the provider prompts on the signer's thread and returns the signature it unlocked. */
+    @Test
+    fun aSignatureProviderMakesTheSignatureOnTheSignersThread() = viewerTest {
+        val caller = Thread.currentThread()
+        var asked: Pair<String, Thread>? = null
+        val signer = AndroidKeyStoreSigner(TestKeys.privateKey, listOf(certificate)) { algorithm: String, key: PrivateKey ->
+            asked = algorithm to Thread.currentThread()
+            Signature.getInstance(algorithm).apply { initSign(key) }
+        }
+        val completion = Answer()
+        signer.sign("x".toByteArray(), completion)
+        val answer = withTimeout(10_000) { completion.answer.await() }
+        assertArrayEquals(testSigner().sign("x".toByteArray()), answer as ByteArray)
+        assertEquals("SHA256withRSA", asked?.first)
+        assertTrue(asked?.second != null && asked?.second != caller)
+    }
+
+    /** A per-use key signed without its prompt: the Keystore's `SignatureException` wraps the reason. */
+    @Test
+    fun aPerUseKeySignedWithoutItsPromptIsPermissionDenied() = viewerTest {
+        val unauthenticated = SignatureException("Key user not authenticated", UserNotAuthenticatedException("User not authenticated"))
+        val signer = AndroidKeyStoreSigner(TestKeys.privateKey, listOf(certificate)) { _: String, key: PrivateKey ->
+            FailingSignature(unauthenticated).apply { initSign(key) }
+        }
+        val error = expectCode(PdfException.Code.PERMISSION_DENIED) { signer.sign("x".toByteArray()) }
+        assertEquals("UserNotAuthenticated", error.name)
+        // Any other signing failure stays operation-failed.
+        val broken = AndroidKeyStoreSigner(TestKeys.privateKey, listOf(certificate)) { _: String, key: PrivateKey ->
+            FailingSignature(SignatureException("hardware gone")).apply { initSign(key) }
+        }
+        assertEquals("SigningError", expectCode(PdfException.Code.OPERATION_FAILED) { broken.sign("x".toByteArray()) }.name)
+    }
+
+    /** An `Error` in the signing still answers the engine, so no signing is left waiting. */
+    @Test
+    fun anErrorInTheSigningStillAnswers() = viewerTest {
+        val signer = AndroidKeyStoreSigner(TestKeys.privateKey, listOf(certificate)) { _, _, _ -> throw AssertionError("boom") }
+        val completion = Answer()
+        signer.sign("x".toByteArray(), completion)
+        val answer = withTimeout(10_000) { completion.answer.await() }
+        assertTrue("$answer", answer is HostFailure)
+    }
+
+    @Test
+    fun anEmptyCertificateChainIsRefused() = viewerTest {
+        expectCode(PdfException.Code.INVALID_INPUT) { AndroidKeyStoreSigner(TestKeys.privateKey, emptyList()) }
+    }
+
     /** `SignatureTests.theTestCertificateAsAnAnchorIsTrusted`, with this signer and anchors read from assets. */
     @Test
     fun aKeyStoreSignatureIsTrustedByAnchorsFromAssets() = viewerTest {
@@ -196,6 +268,17 @@ class TrustAnchorsTest {
         assertArrayEquals(TestKeys.certificate, anchors.anchors()[0])
         assertArrayEquals(anchors.anchors()[0], anchors.anchors()[1])
         assertEquals(0x30, anchors.anchors()[0][0].toInt())
+    }
+
+    /** Swift builds its anchors from PEM strings; Kotlin takes PEM text or DER bytes too. */
+    @Test
+    fun pemTextAndDerBytesAreAnchors() = viewerTest {
+        val pem = Fixture.file("TEST-ONLY-signer", "pem").readText()
+        assertArrayEquals(TestKeys.certificate, TrustAnchors.fromPem(pem).anchors().single())
+        assertArrayEquals(TestKeys.certificate, TrustAnchors.fromBytes(TestKeys.certificate).anchors().single())
+        assertEquals(2, TrustAnchors.fromPem(pem + "\n" + pem).certificates.size)
+        expectCode(PdfException.Code.INVALID_INPUT) { TrustAnchors.fromPem("not a certificate") }
+        expectCode(PdfException.Code.INVALID_INPUT) { TrustAnchors.fromBytes(byteArrayOf(1, 2, 3)) }
     }
 
     @Test
