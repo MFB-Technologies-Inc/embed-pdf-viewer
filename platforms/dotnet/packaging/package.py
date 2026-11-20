@@ -640,7 +640,8 @@ def smoke_runtime(args):
         shutil.copy2(FIXTURE, directory/"input.pdf")
         (directory/"Consumer.csproj").write_text(
             '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>'
-            '<ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><UseAppHost>false</UseAppHost></PropertyGroup>'
+            '<ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><UseAppHost>false</UseAppHost>'
+            '<SelfContained>false</SelfContained><EnableRuntimePackDownload>false</EnableRuntimePackDownload></PropertyGroup>'
             '<ItemGroup><PackageReference Include="EmbedPDF" Version="'+facade_version+'"/></ItemGroup></Project>')
         env = os.environ.copy()
         for name in SCRUBBED_ENV:
