@@ -144,6 +144,29 @@ public final class com/embedpdf/HttpDocumentFetcher : uniffi/epdf_viewer_host/Do
 	public fun fetch (Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentFetchCompletion;)Luniffi/epdf_viewer_host/DocumentFetchCancellation;
 }
 
+public final class com/embedpdf/I18nCapability {
+	public final fun addTranslations (Ljava/util/Map;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun direction (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun hasKey (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun loadingLocale (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun locale (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun locales (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
+	public final fun register (Luniffi/epdf_plugin_i18n/LocalePack;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun resetSettings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setLocale (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun settings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun t (Ljava/lang/String;Ljava/util/Map;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun t$default (Lcom/embedpdf/I18nCapability;Ljava/lang/String;Ljava/util/Map;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun updateSettings (Luniffi/epdf_plugin_i18n/I18nSettingsPatch;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/I18nKt {
+	public static final fun decode (Luniffi/epdf_plugin_i18n/LocalePack$Companion;Ljava/lang/String;)Luniffi/epdf_plugin_i18n/LocalePack;
+	public static final fun fail (Luniffi/epdf_plugin_i18n/LocaleLoadCompletion;Ljava/lang/Throwable;)V
+	public static final fun i18n (Lcom/embedpdf/PdfViewer;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class com/embedpdf/InteractionCapability {
 	public final fun activateDefaultTool (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun activateTool-N6U4bZY (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;

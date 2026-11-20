@@ -65,4 +65,18 @@ class PluginSettingsTest {
         assertEquals(registered, interaction.settings())
         viewer.destroy()
     }
+
+    @Test
+    fun localeSettingsPreserveLazyLoaderAcrossUpdateAndReset() = viewerTest {
+        val (viewer, i18n) = I18nTest.started()
+        val registered = i18n.settings()
+        i18n.updateSettings(I18nSettingsPatch(fallbackLocale = "es"))
+        i18n.setLocale("es")
+        assertEquals("2 páginas", i18n.t("pages", params = mapOf("count" to I18nParamNumber(2.0))))
+        i18n.updateSettings(I18nSettingsPatch(clearLocale = true))
+        assertEquals(null, i18n.settings().locale)
+        i18n.resetSettings()
+        assertEquals(registered, i18n.settings())
+        viewer.destroy()
+    }
 }

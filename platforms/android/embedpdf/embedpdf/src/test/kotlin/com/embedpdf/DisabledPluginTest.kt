@@ -51,6 +51,7 @@ class DisabledPluginTest {
         Accessor("viewManager", install = { it.copy(viewManager = true) }) { viewer, _ -> viewer.viewManager() },
         Accessor("shell", install = { it.copy(shell = true) }) { viewer, document -> viewer.shell(document) },
         Accessor("interaction", install = { it.copy(interaction = true) }) { viewer, document -> viewer.interaction(document) },
+        Accessor("i18n", install = { it.copy(i18n = I18nConfig()) }) { viewer, _ -> viewer.i18n() },
         Accessor("feedback", install = { it.copy(feedback = FeedbackConfig(RecordingFeedback())) }) { viewer, _ -> viewer.feedback() },
     )
 
@@ -58,7 +59,7 @@ class DisabledPluginTest {
     private val pending = setOf(
         "stage", "selection", "link", "annotation",
         "form", "redaction", "measurement", "stamp",
-        "i18n", "commands", "actions", "signature",
+        "commands", "actions", "signature",
     )
 
     @Test

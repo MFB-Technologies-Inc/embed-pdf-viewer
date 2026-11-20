@@ -2157,14 +2157,20 @@
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "get_settings",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/I18n.kt",
+        "symbol": "settings"
+      }
     },
     {
       "crate": "i18n",
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "update_settings",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/I18n.kt",
+        "symbol": "updateSettings"
+      }
     },
     {
       "crate": "i18n",
@@ -2178,7 +2184,10 @@
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "reset_settings",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/I18n.kt",
+        "symbol": "resetSettings"
+      }
     },
     {
       "crate": "i18n",
@@ -2195,7 +2204,10 @@
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "t",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/I18n.kt",
+        "symbol": "t"
+      }
     },
     {
       "crate": "i18n",
@@ -2209,70 +2221,100 @@
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "has_key",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/I18n.kt",
+        "symbol": "hasKey"
+      }
     },
     {
       "crate": "i18n",
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "get_locale",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/I18n.kt",
+        "symbol": "locale"
+      }
     },
     {
       "crate": "i18n",
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "get_direction",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/I18n.kt",
+        "symbol": "direction"
+      }
     },
     {
       "crate": "i18n",
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "list_locales",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/I18n.kt",
+        "symbol": "locales"
+      }
     },
     {
       "crate": "i18n",
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "get_loading_locale",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/I18n.kt",
+        "symbol": "loadingLocale"
+      }
     },
     {
       "crate": "i18n",
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "set_locale",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/I18n.kt",
+        "symbol": "setLocale"
+      }
     },
     {
       "crate": "i18n",
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "register_locale",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/I18n.kt",
+        "symbol": "register"
+      }
     },
     {
       "crate": "i18n",
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "add_translations",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/I18n.kt",
+        "symbol": "addTranslations"
+      }
     },
     {
       "crate": "i18n",
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "on_locale_changed",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/I18n.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "i18n",
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "on_locale_load_failed",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/I18n.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "interaction",
