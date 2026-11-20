@@ -7,6 +7,7 @@ public sealed class NativeLibraryResolverTests
     sealed class FakeLoader(params string[] present) : INativeLoader
     {
         readonly HashSet<string> files = [.. present];
+        public readonly HashSet<string> Broken = [];
         public readonly List<string> Loaded = [];
         public int Calls;
         public bool Exists(string path)
@@ -14,12 +15,13 @@ public sealed class NativeLibraryResolverTests
             Calls++;
             return files.Contains(path);
         }
-        public bool TryLoad(string path, out IntPtr handle)
+        public IntPtr Load(string path)
         {
             Calls++;
             Loaded.Add(path);
-            handle = files.Contains(path) ? new IntPtr(Loaded.Count) : IntPtr.Zero;
-            return handle != IntPtr.Zero;
+            if (Broken.Contains(path)) throw new BadImageFormatException($"broken: {path}");
+            if (!files.Contains(path)) throw new DllNotFoundException($"missing: {path}");
+            return new IntPtr(Loaded.Count);
         }
     }
 
@@ -79,6 +81,53 @@ public sealed class NativeLibraryResolverTests
             Path.Combine(Base, "runtimes", "osx-arm64", "native", "libepdf_viewer_host.dylib"));
         NativeLibraryResolver.Resolve("osx-arm64", Base, loader);
         Assert.Equal([Path.Combine(Base, "libembedpdf.dylib"), Path.Combine(Base, "libepdf_viewer_host.dylib")], loader.Loaded);
+    }
+
+    [Fact]
+    public void FoundButUnloadableHostKeepsTheLoaderError()
+    {
+        var rid = NativeRuntime.RuntimeIdentifier;
+        var directory = Directory.CreateTempSubdirectory("epdf-broken-");
+        try
+        {
+            var host = Path.Combine(directory.FullName, NativeLibraryResolver.FileNames(rid).Host);
+            File.WriteAllText(host, "not a native library");
+            var error = Assert.Throws<NativeRuntimeNotFoundException>(() =>
+                NativeLibraryResolver.Resolve(rid, directory.FullName, new SystemNativeLoader()));
+            Assert.Contains("found but failed to load", error.Message);
+            Assert.Contains($"'{rid}'", error.Message);
+            Assert.Contains(host, error.Message);
+            Assert.NotNull(error.InnerException);
+            Assert.IsNotType<AggregateException>(error.InnerException);
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void SeveralLoadFailuresAreAggregated()
+    {
+        var native = Path.Combine(Base, "runtimes", "linux-x64", "native");
+        var hosts = new[] { Path.Combine(Base, "libepdf_viewer_host.so"), Path.Combine(native, "libepdf_viewer_host.so") };
+        var loader = new FakeLoader(hosts);
+        loader.Broken.UnionWith(hosts);
+        var error = Assert.Throws<NativeRuntimeNotFoundException>(() =>
+            NativeLibraryResolver.Resolve("linux-x64", Base, loader, () => IntPtr.Zero));
+        Assert.Contains("found but failed to load", error.Message);
+        var inner = Assert.IsType<AggregateException>(error.InnerException);
+        Assert.Equal(2, inner.InnerExceptions.Count);
+        Assert.All(inner.InnerExceptions, e => Assert.IsType<BadImageFormatException>(e));
+    }
+
+    [Fact]
+    public void MissingFilesAreNotLoadFailures()
+    {
+        var error = Assert.Throws<NativeRuntimeNotFoundException>(() =>
+            NativeLibraryResolver.Resolve("linux-arm64", Base, new FakeLoader()));
+        Assert.DoesNotContain("failed to load", error.Message);
+        Assert.Null(error.InnerException);
     }
 
     [Fact]
