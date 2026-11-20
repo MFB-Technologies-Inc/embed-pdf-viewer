@@ -284,6 +284,12 @@ class RuntimeTests(unittest.TestCase):
         self.assertIn("emulation is recorded only for linux-x64", result.stdout)
 
 class NativeInspectionTests(unittest.TestCase):
+    def test_consumer_inputs_exist(self):
+        from package import FIXTURE, FIXTURE_PAGES, SCRUBBED_ENV
+        self.assertTrue(FIXTURE.is_file())
+        self.assertEqual(14, FIXTURE_PAGES)
+        self.assertIn("LD_LIBRARY_PATH", SCRUBBED_ENV)
+
     def test_runner_image_is_recorded_from_the_hosted_runner(self):
         from package import runner_image
         self.assertEqual("ubuntu24 20261115.1", runner_image({"ImageOS":"ubuntu24","ImageVersion":"20261115.1"}))

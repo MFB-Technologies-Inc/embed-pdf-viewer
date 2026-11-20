@@ -569,6 +569,10 @@ def pack_runtime(args):
     write(output / "package-manifest.runtime.json", manifest)
     print(f"Runtime package: {package}")
 
+FIXTURE = ROOT / "pdfium-multiplatform-prototype/fixtures/report.pdf"
+FIXTURE_PAGES = 14
+SCRUBBED_ENV = ["EPDF_NATIVE_DIR","PDF_RUNTIME_LIB_DIR","LD_LIBRARY_PATH","DYLD_LIBRARY_PATH","DYLD_FALLBACK_LIBRARY_PATH"]
+
 def pinned_runtime_version():
     props = (DOTNET / "EmbedPDF.Runtime/EmbedPDF.Runtime.props").read_text()
     match = re.search(r"<EmbedPdfRuntimeVersion>(.*?)</EmbedPdfRuntimeVersion>", props)
