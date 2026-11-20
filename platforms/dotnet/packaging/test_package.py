@@ -321,7 +321,7 @@ class NativeInspectionTests(unittest.TestCase):
             # A Windows-style path: a foreign RID is always Linux, so the loader
             # gets forward slashes whatever OS runs the inspection.
             package.list_dependencies(PureWindowsPath(r"\x\libepdf_viewer_host.so"), "linux-x64")
-            package.list_dependencies(Path("/x/libepdf_viewer_host.so"), "linux-arm64")
+            package.list_dependencies(PureWindowsPath(r"\x\libepdf_viewer_host.so"), "linux-arm64")
         finally:
             package.host_rid, package.run = original
         self.assertEqual(["/lib64/ld-linux-x86-64.so.2", "/x/libepdf_viewer_host.so"], calls[0][0])

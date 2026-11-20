@@ -96,7 +96,7 @@ def list_dependencies(path, rid):
     """`ldd -r`, or the RID's own loader in trace mode when the host is another
     architecture (an emulated or cross-built slice), since ldd only knows its own."""
     if host_rid() == rid:
-        return run(["ldd", "-r", str(path)])
+        return run(["ldd", "-r", path.as_posix()])
     env = dict(os.environ, LD_TRACE_LOADED_OBJECTS="1", LD_WARN="yes", LD_BIND_NOW="yes")
     return run([FOREIGN_LOADERS[rid], path.as_posix()], env=env)
 
