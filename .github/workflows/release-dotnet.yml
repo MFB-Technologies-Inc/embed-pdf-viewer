@@ -39,6 +39,10 @@ name: release-dotnet
 # Microsoft publishes no Debian trixie .NET SDK image (no 10.0.403-trixie
 # tag), so every row installs SDK 10.0.403 from Microsoft's archive.
 #
+# The runtime, runtime-pack and runtime-validate jobs build the viewer
+# packages, EmbedPDF.Runtime and EmbedPDF, from all five RIDs; their comment
+# below says what they produce and why they can't run yet.
+#
 # This workflow never publishes; the orchestrator does. dry_run exists so every
 # release workflow takes the same inputs, and changes nothing here.
 
@@ -466,4 +470,292 @@ jobs:
         with:
           name: dotnet-release-${{ matrix.rid }}
           path: dotnet-release
+          if-no-files-found: error
+
+  # EmbedPDF.Runtime (docs/superpowers/plans/2026-11-20-dotnet-parity/01-runtime-package.md).
+  # One row per RID builds the viewer host (stripped) and stages it with its
+  # checksum-verified PDFium as a slice; runtime-pack merges the five slices
+  # into one package and packs the EmbedPDF facade against it; runtime-validate
+  # runs the local-feed consumer on each native host.
+  #
+  # Not run yet: crates/uniffi-bindgen-cs takes its generator from
+  # file:///workspaces/uniffi-bindgen-cs, which exists only in the dev
+  # container, and Cargo resolves every workspace member's git dependencies,
+  # so every cargo step here fails until that fork is hosted.
+  runtime:
+    needs: image
+    name: runtime slice (${{ matrix.rid }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: linux-arm64
+            runner: ubuntu-24.04-arm
+            image_arch: arm64
+            rust_target: aarch64-unknown-linux-gnu
+            fork_target: linux-arm64
+          - rid: linux-x64
+            runner: ubuntu-24.04
+            image_arch: amd64
+            rust_target: x86_64-unknown-linux-gnu
+            fork_target: linux-x64
+          - rid: osx-arm64
+            runner: macos-15
+            rust_target: aarch64-apple-darwin
+            fork_target: darwin-arm64
+          - rid: osx-x64
+            runner: macos-15-intel
+            rust_target: x86_64-apple-darwin
+            fork_target: darwin-x64
+          - rid: win-x64
+            runner: windows-2022
+            rust_target: x86_64-pc-windows-msvc
+            fork_target: win32-x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    container: ${{ matrix.image_arch && format('debian:trixie@{0}', needs.image.outputs[matrix.image_arch]) || '' }}
+    env:
+      RID: ${{ matrix.rid }}
+      FORK_TARGET: ${{ matrix.fork_target }}
+      CARGO_INCREMENTAL: "0"
+    steps:
+      # patchelf gives the Linux host a $ORIGIN runpath at staging.
+      - name: Install system packages
+        if: runner.os == 'Linux'
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates curl git jq zstd xz-utils \
+            build-essential clang libclang-dev python3 patchelf
+          rm -rf /var/lib/apt/lists/*
+
+      - name: Check out LF on Windows
+        if: runner.os == 'Windows'
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Trust the workspace
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - uses: ./.github/actions/setup-rust
+        with:
+          targets: ${{ matrix.rust_target }}
+          cache-key: dotnet-runtime-${{ matrix.rid }}
+
+      - name: Windows build tools
+        if: runner.os == 'Windows'
+        run: |
+          llvm='C:\Program Files\LLVM\bin'
+          test -f "$(cygpath -u "$llvm")/libclang.dll" || { echo "::error::no libclang.dll in $llvm"; exit 1; }
+          echo "LIBCLANG_PATH=$llvm" >> "$GITHUB_ENV"
+          vs=$("/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" \
+            -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+          vs=$(cygpath -u "$vs")
+          msvc=$(tr -d '[:space:]' < "$vs/VC/Auxiliary/Build/Microsoft.VCToolsVersion.default.txt")
+          bin=$vs/VC/Tools/MSVC/$msvc/bin/Hostx64/x64
+          test -x "$bin/dumpbin.exe" || { echo "::error::no dumpbin.exe in $bin"; exit 1; }
+          cygpath -w "$bin" >> "$GITHUB_PATH"
+          echo "PYTHON=python" >> "$GITHUB_ENV"
+
+      - name: Fetch the pinned runtime archive
+        run: bash packages/engine/runtime/scripts/fetch-libpdfium.sh "$FORK_TARGET"
+
+      - name: Build the viewer host
+        run: |
+          bash platforms/dotnet/build-viewer-host.sh "$RID" | tee "$RUNNER_TEMP/host.txt"
+          echo "HOST_LIB=$(tail -1 "$RUNNER_TEMP/host.txt")" >> "$GITHUB_ENV"
+
+      # A workspace-relative slice: in a container job runner.temp is the
+      # host's path, not the container's.
+      - name: Stage the slice
+        run: |
+          "${PYTHON:-python3}" platforms/dotnet/packaging/package.py stage-runtime --rid "$RID" \
+            --native-lib "$HOST_LIB" --out "runtime-slice" \
+            --runtime-archive "packages/engine/runtime/build/cache/libembedpdf-runtime-$FORK_TARGET.tar.gz"
+          jq -r '.files[] | "\(.bytes)  \(.path)"' runtime-slice/runtime-slice.json >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: dotnet-runtime-slice-${{ matrix.rid }}
+          path: runtime-slice
+          if-no-files-found: error
+
+  runtime-pack:
+    needs: [image, runtime]
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 60
+    container: debian:trixie@${{ needs.image.outputs.arm64 }}
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+      CARGO_INCREMENTAL: "0"
+      EPDF_IMAGE_ID: ${{ needs.image.outputs.arm64 }}
+      EPDF_HOST_OS: linux
+    steps:
+      - name: Install system packages
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates curl git jq zstd xz-utils \
+            build-essential clang libclang-dev python3 libicu-dev tzdata zlib1g
+          rm -rf /var/lib/apt/lists/*
+
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Trust the workspace
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Install .NET SDK 10.0.403
+        run: |
+          sdk=$RUNNER_TEMP/dotnet-sdk.tar.gz
+          curl -fsSL --retry 3 -o "$sdk" https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-linux-arm64.tar.gz
+          echo "0966aa2b70f4677b8319be9df447a78a0dcd6164836425b55a68fd714f4023feb87b4cac21b9a996b79472ad54487cd0adcd2a9dfd570e2b2a1d26423a2baa9b  $sdk" | sha512sum -c -
+          mkdir -p /usr/share/dotnet
+          tar -xzf "$sdk" -C /usr/share/dotnet
+          rm "$sdk"
+          echo "DOTNET_ROOT=/usr/share/dotnet" >> "$GITHUB_ENV"
+          echo "/usr/share/dotnet" >> "$GITHUB_PATH"
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - uses: ./.github/actions/setup-rust
+        with:
+          targets: aarch64-unknown-linux-gnu
+          cache-key: dotnet-runtime-pack
+
+      - name: Check the engine pin
+        run: bash platforms/dotnet/check-dotnet-engine.sh
+
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: dotnet-runtime-slice-*
+          path: slices
+
+      - name: Pack EmbedPDF.Runtime
+        run: |
+          args=()
+          for slice in slices/*/; do args+=(--slice "$slice"); done
+          python3 platforms/dotnet/packaging/package.py pack-runtime "${args[@]}" --out dotnet-runtime
+
+      # The packaged hosts are stripped, and the uniffi metadata the generator
+      # reads goes with the symbol table, so the bindings come from an
+      # unstripped build of the same tree.
+      - name: Generate the bindings
+        run: |
+          bash packages/engine/runtime/scripts/fetch-libpdfium.sh linux-arm64
+          cargo rustc -p epdf-viewer-host --release --locked --crate-type cdylib
+          bash platforms/dotnet/generate-bindings.sh
+
+      - name: Viewer tests
+        run: dotnet test platforms/dotnet/EmbedPDF.Viewer.Tests/EmbedPDF.Viewer.Tests.csproj
+
+      - name: Pack EmbedPDF
+        run: |
+          python3 platforms/dotnet/packaging/package.py pack-facade \
+            --runtime-package dotnet-runtime/EmbedPDF.Runtime.*.nupkg --out dotnet-runtime
+
+      - name: Validate linux-arm64
+        run: |
+          python3 platforms/dotnet/packaging/package.py validate-runtime --rid linux-arm64 \
+            --package dotnet-runtime/EmbedPDF.Runtime.*.nupkg --facade dotnet-runtime/EmbedPDF.0.0.0-local.nupkg \
+            --manifest dotnet-runtime/package-manifest.runtime.json --record dotnet-runtime/validation.linux-arm64.json
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: dotnet-runtime
+          path: |
+            dotnet-runtime/*.nupkg
+            dotnet-runtime/*.json
+          if-no-files-found: error
+
+  # The macOS and Windows consumers. The manifest each row updates is its own
+  # copy; the record is the evidence.
+  runtime-validate:
+    needs: runtime-pack
+    name: runtime validate (${{ matrix.rid }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: osx-arm64
+            runner: macos-15
+            sdk_url: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-osx-arm64.tar.gz
+            sdk_sha512: 5893c66b48ea3674c7da18501059d606e96f3672fabe4d5e41762e692c7c83df3ee0b2b9dc5a0786191da2dc413d7335158101c14c935ab217f31ac2529770f3
+          - rid: osx-x64
+            runner: macos-15-intel
+            sdk_url: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-osx-x64.tar.gz
+            sdk_sha512: ce95d225b86d2401f111c2aa6df0f5e6855c375b7b34ab4a73df90c56f2b0fc2a44398cfe455cb689670bc8590012e943b64c7a590122af98cdc067721b12223
+          - rid: win-x64
+            runner: windows-2022
+            sdk_url: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-win-x64.zip
+            sdk_sha512: 7a114c318fa7f1d9822991b534b2814d0e78386ceda816b371f5141acefe741d87ccb606ede06cadac8f9ac5070e32b708a67bbd1619ff5e5a7858a27874ef48
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    env:
+      RID: ${{ matrix.rid }}
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+    steps:
+      - name: Check out LF on Windows
+        if: runner.os == 'Windows'
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install .NET SDK 10.0.403
+        env:
+          SDK_URL: ${{ matrix.sdk_url }}
+          SDK_SHA512: ${{ matrix.sdk_sha512 }}
+        run: |
+          sdk=$RUNNER_TEMP/${SDK_URL##*/}
+          curl -fsSL --retry 3 -o "$sdk" "$SDK_URL"
+          if command -v sha512sum >/dev/null 2>&1; then
+            echo "$SDK_SHA512  $sdk" | sha512sum -c -
+          else
+            echo "$SDK_SHA512  $sdk" | shasum -a 512 -c -
+          fi
+          root=$RUNNER_TEMP/dotnet
+          mkdir -p "$root"
+          if [[ "$sdk" == *.zip ]]; then
+            "$(cygpath -u "$SYSTEMROOT")/System32/tar.exe" -xf "$sdk" -C "$root"
+          else
+            tar -xzf "$sdk" -C "$root"
+          fi
+          rm "$sdk"
+          echo "DOTNET_ROOT=$root" >> "$GITHUB_ENV"
+          echo "$root" >> "$GITHUB_PATH"
+          if [[ "$RUNNER_OS" == Windows ]]; then echo "PYTHON=python" >> "$GITHUB_ENV"; else echo "PYTHON=python3" >> "$GITHUB_ENV"; fi
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: dotnet-runtime
+          path: dotnet-runtime
+
+      - name: Validate
+        run: |
+          runtime=$(ls dotnet-runtime/EmbedPDF.Runtime.*.nupkg)
+          "$PYTHON" platforms/dotnet/packaging/package.py validate-runtime --rid "$RID" \
+            --package "$runtime" --facade dotnet-runtime/EmbedPDF.0.0.0-local.nupkg \
+            --manifest dotnet-runtime/package-manifest.runtime.json --record "dotnet-runtime-validation.$RID.json"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: dotnet-runtime-validation-${{ matrix.rid }}
+          path: dotnet-runtime-validation.${{ matrix.rid }}.json
           if-no-files-found: error
