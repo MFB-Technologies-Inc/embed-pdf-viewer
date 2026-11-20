@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using uniffi.epdf_ffi;
 using uniffi.epdf_plugin_render;
 using Xunit;
 
@@ -15,15 +14,14 @@ public sealed class LifetimeTests
         var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Render = new RenderConfig() });
         var document = await viewer.OpenAsync(Fixture.Data("report"));
         var pages = await viewer.GetPagesAsync(document);
-        // Through the generated render handle until Wave A adds the capability.
-        var render = await viewer.CallAsync(h => h.Render(document.Id), default);
-        var tokens = new List<CancelToken>();
+        // Through the generated render handle until Wave A adds the
+        // capability; CallCancellableAsync maps its errors and counts it in flight.
+        using var render = await viewer.CallAsync(h => h.Render(document.Id), default);
         var work = new List<Task>();
         foreach (var page in pages.Take(8))
         {
-            var token = new CancelToken();
-            tokens.Add(token);
-            work.Add(render.RenderPage(Ffi.ToFfi(page.Page), new RenderPageOptions(Width: 1600), token));
+            var reference = Ffi.ToFfi(page.Page);
+            work.Add(viewer.CallCancellableAsync((_, token) => render.RenderPage(reference, new RenderPageOptions(Width: 1600), token), default));
         }
         work.Add(viewer.SaveAsync(document, SaveMode.Rewrite));
         work.Add(viewer.GetPagesAsync(document));
@@ -31,11 +29,13 @@ public sealed class LifetimeTests
         await viewer.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(10));
         foreach (var task in work)
         {
+            // Each call either finished before the kernel closed or reports that it closed.
             var error = await Record.ExceptionAsync(() => task.WaitAsync(TimeSpan.FromSeconds(5)));
-            Assert.True(error is null or PdfException or OperationCanceledException or ViewerException, $"{error}");
+            if (error is not null)
+            {
+                Assert.Equal(PdfErrorCode.InstanceClosed, Assert.IsType<PdfException>(error).Code);
+            }
         }
-        foreach (var token in tokens) token.Dispose();
-        render.Dispose();
         Assert.Equal(PdfErrorCode.InstanceClosed, (await Assert.ThrowsAsync<PdfException>(() => viewer.GetDocumentsAsync())).Code);
     }
 
@@ -44,11 +44,20 @@ public sealed class LifetimeTests
     {
         var viewer = await PdfViewer.CreateAsync();
         _ = await viewer.OpenAsync(Fixture.Data("report"));
-        var first = viewer.DisposeAsync().AsTask();
-        var second = viewer.DisposeAsync().AsTask();
-        Assert.Same(first, second);
-        await Task.WhenAll(first, second).WaitAsync(TimeSpan.FromSeconds(10));
-        await viewer.DisposeAsync();
+        using var start = new Barrier(2);
+        // StartNew, not Run: Run would unwrap the inner task, and the test
+        // compares the two disposal tasks themselves.
+        Task<Task> Racer() => Task.Factory.StartNew(() =>
+        {
+            start.SignalAndWait();
+            return viewer.DisposeAsync().AsTask();
+        }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+        var first = Racer();
+        var second = Racer();
+        var (a, b) = (await first, await second);
+        Assert.Same(a, b);
+        await Task.WhenAll(a, b).WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.Same(a, viewer.DisposeAsync().AsTask());
     }
 
     [Fact]

@@ -189,9 +189,11 @@ public sealed class ViewerTests
     public async Task DisposingFinishesTheStreams()
     {
         var viewer = await Started();
-        var events = Task.Run(async () => { await foreach (var _ in viewer.ObserveDocumentEvents()) { } });
-        var revisions = Task.Run(async () => { await foreach (var _ in viewer.ObserveStateRevisions()) { } });
-        await Task.Delay(100);
+        // Subscribed here, on the test thread, before disposal begins.
+        var eventStream = viewer.ObserveDocumentEvents();
+        var revisionStream = viewer.ObserveStateRevisions();
+        var events = Task.Run(async () => { await foreach (var _ in eventStream) { } });
+        var revisions = Task.Run(async () => { await foreach (var _ in revisionStream) { } });
         await viewer.DisposeAsync();
         await Task.WhenAll(events, revisions).WaitAsync(TimeSpan.FromSeconds(5));
     }
