@@ -128,7 +128,10 @@ public class StageReaderModel(
             _isPanEnabled.value = value
             // Joins the drag queue before returning, so a drag call made after
             // this setter runs after the end.
-            if (was && !value) dragCalls.enqueue { applyDragEnd(0.0, 0.0) }
+            if (was && !value) {
+                waitingDrag = null
+                dragCalls.enqueue { applyDragEnd(0.0, 0.0) }
+            }
         }
 
     /** [isPanEnabled] as a flow. */
@@ -194,6 +197,18 @@ public class StageReaderModel(
 
     /** The drag calls, each run after every earlier one. */
     private val dragCalls = SerialCalls()
+
+    /** A drag change waiting in the queue. The call that applies it reads the translation when it runs. */
+    private class WaitingDrag(var translationX: Double, var translationY: Double) {
+        lateinit var call: SerialCalls.Call<Unit>
+    }
+
+    /** The waiting change later changes collapse into. A drag end lets go of it. */
+    private var waitingDrag: WaitingDrag? = null
+
+    /** Drag changes applied so far, and the translation of the latest. Tests read them. */
+    internal var dragChangesApplied = 0
+    internal var lastDragChangeApplied: Pair<Double, Double>? = null
 
     /** Sends the pointer calls to the hub; `null` without an [InteractionCapability]. */
     private val pointer: StagePointerForwarder? = interaction?.let { StagePointerForwarder(stage, it) }
@@ -393,11 +408,28 @@ public class StageReaderModel(
 
     /**
      * The drag's translation from where it began. Runs after every earlier
-     * drag call has finished. Does nothing to the stage while [isPanEnabled]
-     * is false.
+     * drag call has finished. Changes made while an earlier one is still
+     * waiting collapse into it, so only the newest translation reaches the
+     * stage, and each of those calls returns once it has. Does nothing to the
+     * stage while [isPanEnabled] is false.
      */
     public suspend fun dragChanged(translationX: Float, translationY: Float): Unit = onMain {
-        dragCalls.enqueue { applyDragChange(translationX.toDouble(), translationY.toDouble()) }.await()
+        val x = translationX.toDouble()
+        val y = translationY.toDouble()
+        waitingDrag?.let { waiting ->
+            waiting.translationX = x
+            waiting.translationY = y
+            return@onMain waiting.call.await()
+        }
+        val change = WaitingDrag(x, y)
+        waitingDrag = change
+        change.call = dragCalls.enqueue {
+            // Let go before the stage call suspends: a change made during it
+            // queues a call of its own.
+            if (waitingDrag === change) waitingDrag = null
+            applyDragChange(change.translationX, change.translationY)
+        }
+        change.call.await()
     }
 
     /**
@@ -407,6 +439,7 @@ public class StageReaderModel(
      * [panBeginsOnMovement].
      */
     public suspend fun dragEnded(velocityX: Float, velocityY: Float): Unit = onMain {
+        waitingDrag = null
         dragCalls.enqueue { applyDragEnd(velocityX.toDouble(), velocityY.toDouble()) }.await()
     }
 
@@ -415,10 +448,13 @@ public class StageReaderModel(
      * open stage gesture with no fling. Runs after every earlier drag call.
      */
     public suspend fun dragCancelled(): Unit = onMain {
+        waitingDrag = null
         dragCalls.enqueue { applyDragEnd(0.0, 0.0) }.await()
     }
 
     private suspend fun applyDragChange(translationX: Double, translationY: Double) {
+        dragChangesApplied += 1
+        lastDragChangeApplied = translationX to translationY
         if (!isPanEnabled) return
         var originX = 0.0
         var originY = 0.0

@@ -28,6 +28,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -169,6 +170,24 @@ class StageReaderModelTest {
         }
         untilStill(model)
         assertEquals(resting, model.stage.camera())
+    }
+
+    /** Drag changes made while one is on its way collapse into the newest, which the stage gets. */
+    @Test
+    fun dragChangesBehindOneInFlightCollapse() = mainTest {
+        val model = plain().model
+        model.sizeChanged(390f, 844f, 3f)
+        val start = model.stage.camera()
+        model.dragChanged(0f, 0f)
+        val before = model.dragChangesApplied
+        // None of the three has reached the stage when the next is made.
+        val changes = (1..3).map { step -> launch { model.dragChanged(0f, -100f * step) } }
+        changes.joinAll()
+        val applied = model.dragChangesApplied - before
+        assertTrue("$applied applied", applied < 3)
+        assertEquals(0.0 to -300.0, model.lastDragChangeApplied)
+        model.dragEnded(0f, 0f)
+        assertNotEquals(start, model.stage.camera())
     }
 
     @Test
