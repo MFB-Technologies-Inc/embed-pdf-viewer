@@ -331,7 +331,7 @@ public sealed class InteractionTests
 public sealed class ToolIdTests
 {
     [Fact]
-    public void NamedToolsAreDistinctAndInSwiftsOrder()
+    public void NamedToolsAreDistinctAndInReferenceOrder()
     {
         Assert.Equal(37, ToolId.Named.Count);
         Assert.Equal(37, ToolId.Named.Distinct().Count());

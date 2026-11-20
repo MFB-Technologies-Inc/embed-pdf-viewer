@@ -4,7 +4,7 @@ using Xunit;
 
 namespace EmbedPDF.Viewer.Tests;
 
-/// <summary>The port of the Swift JavaScriptCore engine tests, plus the limits Jint adds.</summary>
+/// <summary>The port of the Swift script engine tests, plus the limits the Jint engine adds.</summary>
 public sealed class JintScriptEngineTests
 {
     [Fact]
@@ -49,6 +49,37 @@ public sealed class JintScriptEngineTests
         Assert.Equal(ScriptErrorKind.Budget, check.Error?.Kind);
     }
 
+    /// <summary>
+    /// Recursion that reaches a function by a route other than a call
+    /// expression. Counting calls misses these, and an unguarded one ends the
+    /// test host with a native stack overflow.
+    /// </summary>
+    public static TheoryData<string> IndirectRecursions =>
+    [
+        "var o = {}; Object.defineProperty(o, 'x', { get: function () { return o.x } }); o.x",
+        "var p = new Proxy({}, { get: function (t, k) { return p[k] } }); p.x",
+        "var a = { toString: function () { return String(a) } }; String(a)",
+        "function C() { new C() } new C()",
+        "(function f() { return eval('f()') })()",
+        "(function f(n) { return [1].map(function () { return f(n + 1) }) })(0)",
+    ];
+
+    [Theory]
+    [MemberData(nameof(IndirectRecursions))]
+    public async Task AnIndirectRecursionIsABudgetFailure(string source)
+    {
+        var check = await ScriptEngineCheck.RunAsync(new JintScriptEngineFactory(), source);
+        Assert.Equal(ScriptErrorKind.Budget, check.Error?.Kind);
+    }
+
+    [Fact]
+    public async Task ASmallStackStillStopsRecursionAsABudgetFailure()
+    {
+        var factory = new JintScriptEngineFactory(new JintScriptEngineOptions { ThreadStackBytes = 1024 * 1024 });
+        var check = await ScriptEngineCheck.RunAsync(factory, "var o = {}; Object.defineProperty(o, 'x', { get: function () { return o.x } }); o.x");
+        Assert.Equal(ScriptErrorKind.Budget, check.Error?.Kind);
+    }
+
     [Fact]
     public void ScriptsReachNoClrType()
     {
@@ -88,11 +119,33 @@ public sealed class JintScriptEngineTests
     }
 
     [Fact]
+    public async Task ARunawayRegexStopsNearTheLimit()
+    {
+        using var engine = (JintRealm)new JintScriptEngineFactory().Create();
+        var clock = Stopwatch.StartNew();
+        var answer = engine.Evaluate("JSON.stringify(/(a+)+$/.test('a'.repeat(32) + 'b'))", 50);
+        Assert.IsType<ScriptEvaluation.TimedOut>(answer);
+        // The interpreter's own regex timeout stops the match, so the realm's thread goes idle soon after.
+        for (var i = 0; i < 100 && engine.Busy; i++) await Task.Delay(10);
+        Assert.False(engine.Busy, "the realm thread was still matching");
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(2), $"took {clock.Elapsed}");
+    }
+
+    [Fact]
+    public async Task ARunawayRegexInADocumentScriptIsABudgetFailure()
+    {
+        var clock = Stopwatch.StartNew();
+        var check = await ScriptEngineCheck.RunAsync(new JintScriptEngineFactory(), "/(a+)+$/.test('a'.repeat(32) + 'b')");
+        Assert.NotNull(check.Error);
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(2), $"took {clock.Elapsed}");
+    }
+
+    [Fact]
     public void BadOptionsAreRefused()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new JintScriptEngineFactory(new JintScriptEngineOptions { MaxCallDepth = 0 }));
         Assert.Throws<ArgumentOutOfRangeException>(() => new JintScriptEngineFactory(new JintScriptEngineOptions { MaxMemoryBytes = 0 }));
         Assert.Throws<ArgumentOutOfRangeException>(() => new JintScriptEngineFactory(new JintScriptEngineOptions { ThreadStackBytes = 1024 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new JintScriptEngineFactory(new JintScriptEngineOptions { RegexTimeout = TimeSpan.Zero }));
     }
 
     static async Task<(PdfViewer Viewer, ActionsCapability Actions, PdfActionTree AlertTree)> ScriptingViewer(IScriptEngineFactory factory)

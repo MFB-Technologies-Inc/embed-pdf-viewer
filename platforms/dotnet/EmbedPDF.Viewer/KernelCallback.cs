@@ -127,10 +127,16 @@ internal static class KernelCallback
         public void OnCompleted(Action<object?> continuation, object? state, short token, ValueTaskSourceOnCompletedFlags flags)
         {
             var context = (flags & ValueTaskSourceOnCompletedFlags.UseSchedulingContext) != 0 ? SynchronizationContext.Current : null;
-            disposal.ConfigureAwait(false).GetAwaiter().UnsafeOnCompleted(() =>
+            var flowed = (flags & ValueTaskSourceOnCompletedFlags.FlowExecutionContext) != 0 ? ExecutionContext.Capture() : null;
+            void Invoke()
             {
                 if (context is null) continuation(state);
                 else context.Post(s => continuation(s), state);
+            }
+            disposal.ConfigureAwait(false).GetAwaiter().UnsafeOnCompleted(() =>
+            {
+                if (flowed is null) Invoke();
+                else ExecutionContext.Run(flowed, _ => Invoke(), null);
             });
         }
 

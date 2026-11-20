@@ -22,9 +22,13 @@ public interface IActionExecutor
 /// <summary>The UI a document's actions reach: links, prints, script alerts and page changes.</summary>
 /// <remarks>
 /// The kernel calls every member on its own thread, synchronously, inside the
-/// dispatch: return at once and do the work elsewhere.
-/// <see cref="PdfViewer.Dispose"/> throws here. An exception fails the node
-/// with its message.
+/// dispatch: return at once and do the work elsewhere. Never block waiting
+/// for the viewer here: a viewer call queues behind this callback, so waiting
+/// for it deadlocks. <see cref="PdfViewer.Dispose"/> throws here. An exception fails the whole
+/// dispatch, not one node: the <see cref="ActionsCapability.ExecuteAsync"/> or
+/// <see cref="ActionsCapability.DispatchAsync"/> that reached the handler
+/// throws <see cref="PdfException"/> named <c>HostError</c> with the
+/// exception's message.
 /// </remarks>
 public interface IActionUiHandler
 {
@@ -41,10 +45,15 @@ public interface IActionUiHandler
     void GotoPage(double page, ActionUiContext context);
 }
 
-/// <summary>Receives form submissions. Return to accept (the network call is yours, and its outcome is yours to report); throw to fail the node.</summary>
+/// <summary>Receives form submissions. Return to accept (the network call is yours, and its outcome is yours to report); throw to fail the submit node.</summary>
 /// <remarks>
-/// Called on the kernel thread, synchronously: return at once.
-/// <see cref="PdfViewer.Dispose"/> throws here.
+/// Called on the kernel thread, synchronously: return at once. Never block
+/// waiting for the viewer here: a viewer call queues behind this callback, so
+/// waiting for it deadlocks. <see cref="PdfViewer.Dispose"/> throws here. An
+/// exception fails the submit
+/// node with the exception's message as its detail; the rest of the dispatch
+/// goes on. The viewer only calls it when the form plugin is installed, which
+/// resolves the submitted fields.
 /// </remarks>
 public interface IActionSubmitHandler
 {
@@ -198,7 +207,7 @@ public sealed class ActionsCapability : IDisposable
     public async Task<ActionTriggerResult> PrepareCloseAsync(CancellationToken cancellationToken = default) =>
         Ffi.ToPublic(await viewer.Run(() => handle.PrepareClose(), cancellationToken).ConfigureAwait(false));
 
-    /// <summary>Runs nodes of <paramref name="actionType"/> with <paramref name="executor"/>. The last registration per type wins.</summary>
+    /// <summary>Runs nodes of <paramref name="actionType"/> with <paramref name="executor"/>. The last registration per type wins. The viewer keeps it until the registration is unregistered or the document closes, and with it anything it captures: one that captures the viewer or this capability keeps the viewer alive until then.</summary>
     public async Task<Registration> RegisterExecutorAsync(string actionType, IActionExecutor executor, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(actionType);
@@ -207,7 +216,7 @@ public sealed class ActionsCapability : IDisposable
         return new(await viewer.Run(() => handle.RegisterExecutor(actionType, adapter), cancellationToken).ConfigureAwait(false));
     }
 
-    /// <summary>Installs the UI handler; <see langword="null"/> uninstalls it. Installing one releases an <see cref="OpenSequence.Auto"/> open sequence.</summary>
+    /// <summary>Installs the UI handler; <see langword="null"/> uninstalls it. Installing one releases an <see cref="OpenSequence.Auto"/> open sequence. The viewer keeps it until the registration is unregistered or the document closes, and with it anything it captures: one that captures the viewer or this capability keeps the viewer alive until then.</summary>
     public async Task<Registration> SetUiHandlerAsync(IActionUiHandler? handler, ActionUiSupport? support = null, CancellationToken cancellationToken = default)
     {
         var adapter = handler is null ? null : new UiAdapter(handler, viewer.Mark);
@@ -215,7 +224,7 @@ public sealed class ActionsCapability : IDisposable
         return new(await viewer.Run(() => handle.SetUiAdapter(adapter, ffiSupport), cancellationToken).ConfigureAwait(false));
     }
 
-    /// <summary>Installs the submit handler; <see langword="null"/> uninstalls it.</summary>
+    /// <summary>Installs the submit handler; <see langword="null"/> uninstalls it. The viewer keeps it until the registration is unregistered or the document closes, and with it anything it captures: one that captures the viewer or this capability keeps the viewer alive until then.</summary>
     public async Task<Registration> SetSubmitHandlerAsync(IActionSubmitHandler? handler, CancellationToken cancellationToken = default)
     {
         var adapter = handler is null ? null : new SubmitAdapter(handler, viewer.Mark);
@@ -258,20 +267,33 @@ public sealed class ActionsCapability : IDisposable
     }
 
     /// <summary>Runs the app's executor on the thread pool and answers the kernel once.</summary>
-    sealed class ExecutorAdapter(IActionExecutor executor, ILogger logger) : GA.ActionExecutor
+    internal sealed class ExecutorAdapter(IActionExecutor executor, ILogger logger) : GA.ActionExecutor
     {
-        public void Execute(GA.PdfActionNode node, GA.ActionContext context, GA.ActionExecutorCompletion completion)
+        public void Execute(GA.PdfActionNode node, GA.ActionContext context, GA.ActionExecutorCompletion completion) =>
+            Start(node, context, completion);
+
+        /// <summary>
+        /// Reads the node and context, releasing both, then runs the executor
+        /// on the thread pool. A node or context that can't be read fails it.
+        /// </summary>
+        internal void Start(GA.PdfActionNode node, GA.ActionContext context, GA.IActionExecutorCompletion completion)
         {
-            var publicNode = new PdfActionNode(node.NodeType(), node.Json());
+            PdfActionNode publicNode;
             ActionContext publicContext;
             try
             {
+                publicNode = new PdfActionNode(node.NodeType(), node.Json());
                 publicContext = Ffi.ToPublic(context);
             }
             catch (Exception error)
             {
                 Answer(completion, () => completion.Failed(error.Message));
                 return;
+            }
+            finally
+            {
+                node.Dispose();
+                context.Dispose();
             }
             _ = Task.Run(async () =>
             {
@@ -299,7 +321,7 @@ public sealed class ActionsCapability : IDisposable
             });
         }
 
-        static void Answer(GA.ActionExecutorCompletion completion, Action answer)
+        static void Answer(GA.IActionExecutorCompletion completion, Action answer)
         {
             try
             {
@@ -311,12 +333,12 @@ public sealed class ActionsCapability : IDisposable
             }
             finally
             {
-                completion.Dispose();
+                (completion as IDisposable)?.Dispose();
             }
         }
     }
 
-    /// <summary>Called on the kernel thread, marked; a throw fails the node.</summary>
+    /// <summary>Called on the kernel thread, marked; a throw fails the whole dispatch with <c>HostError</c>.</summary>
     sealed class UiAdapter(IActionUiHandler app, KernelMark mark) : GA.ActionUiHandler
     {
         public void OpenUri(string uri, GA.ActionUriOptions options) =>
@@ -335,7 +357,7 @@ public sealed class ActionsCapability : IDisposable
         static ActionUiContext Context(GA.ActionUiContext context) => new((ActionOrigin)(int)context.Origin, (ScriptPhase)(int)context.Phase);
     }
 
-    /// <summary>Called on the kernel thread, marked; a throw fails the node.</summary>
+    /// <summary>Called on the kernel thread, marked; a throw fails the submit node.</summary>
     sealed class SubmitAdapter(IActionSubmitHandler app, KernelMark mark) : GA.ActionSubmitHandler
     {
         public void Submit(GA.ActionSubmitRequest request) => KernelCallback.RunOrFail(mark, () => app.Submit(Ffi.ToPublic(request)));

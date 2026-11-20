@@ -162,7 +162,10 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
     /// finishes throws <see cref="InvalidOperationException"/>, since the
     /// blocked thread is the one disposal needs. Never block on
     /// <c>AsTask()</c> there either; that wait cannot be detected, and it would
-    /// stop both for good.
+    /// stop both for good. The task returned there stays unblockable until
+    /// disposal completes, whichever thread later holds it: awaiting it, or
+    /// <c>AsTask()</c> off the kernel thread, is fine, but
+    /// <c>GetAwaiter().GetResult()</c> on it before then throws on any thread.
     /// </remarks>
     public ValueTask DisposeAsync()
     {

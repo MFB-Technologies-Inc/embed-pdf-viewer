@@ -164,7 +164,11 @@ public sealed class LifetimeTests
         {
             Interaction = true, Feedback = new() { Provider = new RecordingFeedback() },
             I18n = new() { Loader = new EmbeddedResourceLocaleLoader(typeof(LifetimeTests).Assembly, "Locales."), LazyLocales = ["es"] },
-            Actions = new() { OpenSequence = OpenSequence.Off },
+            Actions = new()
+            {
+                OpenSequence = OpenSequence.Off,
+                JavaScript = new(true) { Engine = new EmbedPDF.Scripting.Jint.JintScriptEngineFactory() },
+            },
         });
         var document = await viewer.OpenAsync(Fixture.Data("document_actions"));
         var interaction = await viewer.GetInteractionAsync(document);
@@ -174,7 +178,17 @@ public sealed class LifetimeTests
         var actions = await viewer.GetActionsAsync(document);
         await actions.SetUiHandlerAsync(new RecordingUI());
         await actions.RegisterExecutorAsync("goto", new RecordingExecutor());
+        await actions.SetSubmitHandlerAsync(new NoSubmit());
+        // Runs a script, so the engine factory has made a live realm.
+        Assert.True(await actions.IsScriptingEnabledAsync());
+        var ran = await actions.ExecuteAsync(ActionsTests.ScriptTree("var ran = true;"), ActionsTests.User);
+        Assert.Equal([ActionNodeStatus.Executed], ran.Nodes.Select(n => n.Status));
         return (new WeakReference(viewer), interaction.ObserveEvents(), i18n.ObserveEvents(), actions.ObserveEvents());
+    }
+
+    sealed class NoSubmit : IActionSubmitHandler
+    {
+        public void Submit(ActionSubmitRequest request) { }
     }
 
     [Fact]

@@ -31,8 +31,10 @@ public enum FeedbackNotifyKind
 /// </summary>
 /// <remarks>
 /// The kernel calls every member on its own thread, synchronously: return at
-/// once, and hop to a UI thread yourself if the platform needs one.
-/// <see cref="PdfViewer.Dispose"/> throws here. An exception is logged and
+/// once, and hop to a UI thread yourself if the platform needs one. Never
+/// block waiting for the viewer here: a viewer call queues behind this
+/// callback, so waiting for it deadlocks. <see cref="PdfViewer.Dispose"/>
+/// throws here. An exception is logged and
 /// dropped.
 /// </remarks>
 public interface IPlatformFeedback
@@ -50,7 +52,11 @@ public interface IPlatformFeedback
 /// <summary>Installs the feedback plugin: haptics for the plugins that use them.</summary>
 public sealed record FeedbackConfig
 {
-    /// <summary>Where feedback goes. <see langword="null"/> does nothing, which suits a desktop.</summary>
+    /// <summary>
+    /// Where feedback goes. <see langword="null"/> does nothing, which suits a desktop. The viewer holds it until it is disposed, so one that captures the
+    /// viewer or a capability keeps an abandoned viewer from being collected;
+    /// dispose the viewer, or keep the viewer out of it.
+    /// </summary>
     public IPlatformFeedback? Provider { get; init; }
 
     internal GI.FeedbackConfig ToFfi(PluginContext context) =>

@@ -55,6 +55,11 @@ public sealed class ActionsTests
     internal static PdfActionTree UriTree(string uri) => PdfActionTree.FromJson(
         $$"""{"root":{"type":"uri","subtype":"URI","uri":"{{uri}}","isMap":false,"next":[]},"incomplete":false,"warningFlags":0,"warnings":[]}""");
 
+    /// <summary>A one-node JavaScript tree.</summary>
+    internal static PdfActionTree ScriptTree(string script) => PdfActionTree.FromJson(
+        "{\"root\":{\"type\":\"javascript\",\"subtype\":\"JavaScript\",\"script\":" + System.Text.Json.JsonSerializer.Serialize(script)
+        + ",\"next\":[]},\"incomplete\":false,\"warningFlags\":0,\"warnings\":[]}");
+
     static PdfActionTree GotoTree() => PdfActionTree.FromJson(
         """{"root":{"type":"goto","subtype":"GoTo","destination":{"kind":"fit","page":{"kind":"objectNumber","pageObjectNumber":1}},"next":[]},"incomplete":false,"warningFlags":0,"warnings":[]}""");
 
@@ -95,6 +100,81 @@ public sealed class ActionsTests
         await actions.SetUiHandlerAsync(new RecordingUI());
         var result = await actions.ExecuteAsync(UriTree("https://a.test/"), User);
         Assert.Equal([ActionNodeStatus.Executed], result.Nodes.Select(n => n.Status));
+    }
+
+    sealed class ThrowingSubmit : IActionSubmitHandler
+    {
+        public int Calls;
+        public void Submit(ActionSubmitRequest request)
+        {
+            Calls++;
+            throw new InvalidOperationException("offline");
+        }
+    }
+
+    static PdfActionTree SubmitTree() => PdfActionTree.FromJson(
+        """{"root":{"type":"submit-form","subtype":"SubmitForm","payload":{"url":"https://home.test/submit","fields":null,"exclude":false,"includeNoValueFields":false,"format":"html","method":"post","submitCoordinates":false,"includeAppendSaves":false,"includeAnnotations":false,"canonicalFormat":false,"exclNonUserAnnots":false,"exclFKey":false,"embedForm":false},"next":[]},"incomplete":false,"warningFlags":0,"warnings":[]}""");
+
+    [Fact]
+    public async Task AThrowingSubmitHandlerFailsTheNodeAndTheViewerKeepsWorking()
+    {
+        var (viewer, _, actions) = await Opened(new PdfViewerOptions
+        {
+            Interaction = true, Form = new(), Actions = new() { OpenSequence = OpenSequence.Off },
+        });
+        await using var _v = viewer;
+        var submit = new ThrowingSubmit();
+        await actions.SetSubmitHandlerAsync(submit);
+        var result = await actions.ExecuteAsync(SubmitTree(), User);
+        Assert.Equal(1, submit.Calls);
+        var node = Assert.Single(result.Nodes);
+        Assert.Equal(ActionNodeStatus.Failed, node.Status);
+        Assert.Equal("offline", node.Detail);
+        await actions.GetPolicyAsync();
+    }
+
+    sealed class RecordingCompletion : uniffi.epdf_plugin_actions.IActionExecutorCompletion, IDisposable
+    {
+        public readonly TaskCompletionSource<string> Answer = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public bool Disposed;
+        public void Executed() => Answer.TrySetResult("executed");
+        public void Failed(string error) => Answer.TrySetResult("failed " + error);
+        public void Inert(string reason) => Answer.TrySetResult("inert " + reason);
+        public void Dispose() => Disposed = true;
+    }
+
+    static uniffi.epdf_plugin_actions.PdfActionNode GotoNode() => uniffi.epdf_plugin_actions.PdfActionNode.FromJson(
+        """{"type":"goto","subtype":"GoTo","destination":{"kind":"fit","page":{"kind":"objectNumber","pageObjectNumber":1}},"next":[]}""");
+
+    static uniffi.epdf_plugin_actions.ActionContext ApiContext() => new(
+        uniffi.epdf_plugin_actions.ActionOrigin.User, new uniffi.epdf_plugin_actions.ActionSource.Api(), new uniffi.epdf_plugin_actions.ActionTriggerEvent.Activate());
+
+    [Fact]
+    public async Task TheExecutorAdapterReleasesTheNodeItWasGiven()
+    {
+        NativeRuntime.EnsureLoaded();
+        var node = GotoNode();
+        var completion = new RecordingCompletion();
+        var executor = new RecordingExecutor();
+        new ActionsCapability.ExecutorAdapter(executor, new RecordingLogger()).Start(node, ApiContext(), completion);
+        Assert.Throws<ObjectDisposedException>(() => node.Json());
+        Assert.Equal("executed", await completion.Answer.Task.WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.Equal(["goto"], executor.Types);
+        Assert.True(completion.Disposed);
+    }
+
+    [Fact]
+    public async Task TheExecutorAdapterFailsANodeItCannotRead()
+    {
+        NativeRuntime.EnsureLoaded();
+        var node = GotoNode();
+        node.Dispose();
+        var completion = new RecordingCompletion();
+        var executor = new RecordingExecutor();
+        new ActionsCapability.ExecutorAdapter(executor, new RecordingLogger()).Start(node, ApiContext(), completion);
+        Assert.StartsWith("failed", await completion.Answer.Task.WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.Empty(executor.Types);
+        Assert.True(completion.Disposed);
     }
 
     [Fact]
