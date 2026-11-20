@@ -19,6 +19,9 @@ internal sealed class BroadcastHub<T>(int capacity)
     readonly HashSet<Subscription<T>> subscribers = [];
     bool completed;
 
+    /// <summary>Runs between the two steps of <see cref="Subscribe(CancellationToken, Action?)"/>; a seam for race tests.</summary>
+    internal Action? BetweenStepsForTests { get; set; }
+
     internal int SubscriberCountForTests
     {
         get { lock (gate) return subscribers.Count; }
@@ -34,20 +37,19 @@ internal sealed class BroadcastHub<T>(int capacity)
     internal Subscription<T> Subscribe(CancellationToken cancellationToken, Action? onEnd)
     {
         var subscription = new Subscription<T>(this, capacity, onEnd);
+        // Watch first: a token that has already fired ends the subscription
+        // here, and the install below then skips it.
+        subscription.Watch(cancellationToken);
+        BetweenStepsForTests?.Invoke();
         bool live;
         lock (gate)
         {
-            live = !completed;
+            // End takes this lock to remove, so a subscription is either
+            // installed before End removes it or seen as ended here.
+            live = !completed && !subscription.HasEnded;
             if (live) subscribers.Add(subscription);
         }
-        if (live)
-        {
-            subscription.Watch(cancellationToken);
-        }
-        else
-        {
-            subscription.End();
-        }
+        if (!live) subscription.End();
         return subscription;
     }
 
@@ -94,10 +96,19 @@ internal sealed class Subscription<T> : IAsyncEnumerable<T>
     readonly BroadcastHub<T> hub;
     readonly Channel<T> channel;
     readonly Action? onEnd;
+    readonly Lock gate = new();
     CancellationToken subscribed;
     CancellationTokenRegistration registration;
     int enumerated;
     int ended;
+    bool registered;
+
+    internal bool HasEndedForTests => HasEnded;
+
+    internal bool HasRegistrationForTests
+    {
+        get { lock (gate) return registered; }
+    }
 
     internal Subscription(BroadcastHub<T> hub, int capacity, Action? onEnd)
     {
@@ -113,13 +124,24 @@ internal sealed class Subscription<T> : IAsyncEnumerable<T>
 
     internal ChannelWriter<T> Writer => channel.Writer;
 
+    internal bool HasEnded => Volatile.Read(ref ended) != 0;
+
     internal void Watch(CancellationToken cancellationToken)
     {
         subscribed = cancellationToken;
-        if (cancellationToken.CanBeCanceled)
+        if (!cancellationToken.CanBeCanceled) return;
+        // Register may run End at once, on this thread, for a fired token.
+        var watching = cancellationToken.Register(static state => ((Subscription<T>)state!).End(), this);
+        lock (gate)
         {
-            registration = cancellationToken.Register(static state => ((Subscription<T>)state!).End(), this);
+            if (!HasEnded)
+            {
+                registration = watching;
+                registered = true;
+                return;
+            }
         }
+        watching.Dispose();
     }
 
     /// <summary>Stops the subscription: no more values arrive, and what is buffered still drains.</summary>
@@ -128,7 +150,14 @@ internal sealed class Subscription<T> : IAsyncEnumerable<T>
         if (Interlocked.Exchange(ref ended, 1) != 0) return;
         hub.Remove(this);
         channel.Writer.TryComplete();
-        registration.Dispose();
+        CancellationTokenRegistration watching;
+        lock (gate)
+        {
+            watching = registration;
+            registration = default;
+            registered = false;
+        }
+        watching.Dispose();
         onEnd?.Invoke();
     }
 

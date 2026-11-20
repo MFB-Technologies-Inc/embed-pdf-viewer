@@ -117,4 +117,73 @@ public sealed class RevisionHubTests
         cancellation.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => waiting);
     }
+
+    [Fact]
+    public void CompletingBetweenTheStepsOfASubscriptionLeavesNoRegistration()
+    {
+        var hub = new BroadcastHub<long>(1);
+        hub.BetweenStepsForTests = hub.Complete;
+        using var cancellation = new CancellationTokenSource();
+        var subscription = hub.Subscribe(cancellation.Token, null);
+        Assert.True(subscription.HasEndedForTests);
+        Assert.False(subscription.HasRegistrationForTests);
+        Assert.Equal(0, hub.SubscriberCountForTests);
+    }
+
+    [Fact]
+    public void CancellingBetweenTheStepsOfASubscriptionLeavesNoSubscriber()
+    {
+        var hub = new BroadcastHub<long>(1);
+        using var cancellation = new CancellationTokenSource();
+        hub.BetweenStepsForTests = cancellation.Cancel;
+        var subscription = hub.Subscribe(cancellation.Token, null);
+        Assert.True(subscription.HasEndedForTests);
+        Assert.Equal(0, hub.SubscriberCountForTests);
+    }
+
+    [Fact]
+    public async Task SubscribingWhileTheHubCompletesLeavesNoLiveRegistration()
+    {
+        for (var round = 0; round < 50; round++)
+        {
+            var hub = new BroadcastHub<long>(1);
+            var subscriptions = new System.Collections.Concurrent.ConcurrentBag<Subscription<long>>();
+            using var cancellation = new CancellationTokenSource();
+            using var start = new Barrier(5);
+            var subscribers = Enumerable.Range(0, 4).Select(_ => Task.Run(() =>
+            {
+                start.SignalAndWait();
+                for (var i = 0; i < 200; i++) subscriptions.Add(hub.Subscribe(cancellation.Token, null));
+            })).ToArray();
+            start.SignalAndWait();
+            hub.Complete();
+            await Task.WhenAll(subscribers);
+            Assert.Equal(0, hub.SubscriberCountForTests);
+            Assert.All(subscriptions, subscription =>
+            {
+                Assert.True(subscription.HasEndedForTests);
+                Assert.False(subscription.HasRegistrationForTests);
+            });
+        }
+    }
+
+    [Fact]
+    public async Task SubscribingAndCancellingConcurrentlyLeavesNoSubscriber()
+    {
+        var hub = new BroadcastHub<long>(1);
+        var tasks = Enumerable.Range(0, 8).Select(_ => Task.Run(() =>
+        {
+            for (var i = 0; i < 500; i++)
+            {
+                using var cancellation = new CancellationTokenSource();
+                var subscription = hub.Subscribe(cancellation.Token, null);
+                var cancelling = Task.Run(cancellation.Cancel);
+                hub.Publish(i);
+                cancelling.Wait();
+                Assert.True(subscription.HasEndedForTests);
+            }
+        }));
+        await Task.WhenAll(tasks);
+        Assert.Equal(0, hub.SubscriberCountForTests);
+    }
 }
