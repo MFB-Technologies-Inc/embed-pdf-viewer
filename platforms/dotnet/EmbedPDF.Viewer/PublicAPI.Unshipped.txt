@@ -8727,6 +8727,10 @@ EmbedPDF.TriggerGates.Equals(EmbedPDF.TriggerGates? other) -> bool
 EmbedPDF.TriggerGates.Page.get -> bool?
 EmbedPDF.TriggerGates.Page.init -> void
 EmbedPDF.TriggerGates.TriggerGates() -> void
+EmbedPDF.TrustAnchors
+EmbedPDF.TrustAnchors.Certificates.get -> System.Collections.Generic.IReadOnlyList<System.ReadOnlyMemory<byte>>!
+EmbedPDF.TrustAnchors.GetAnchors() -> System.Collections.Generic.IReadOnlyList<System.ReadOnlyMemory<byte>>!
+EmbedPDF.TrustAnchors.TrustAnchors(System.Collections.Generic.IEnumerable<System.ReadOnlyMemory<byte>>! der) -> void
 EmbedPDF.UnderlineAnnotationDraft
 EmbedPDF.UnderlineAnnotationDraft.BlendMode.get -> EmbedPDF.AnnotationBlendMode?
 EmbedPDF.UnderlineAnnotationDraft.BlendMode.init -> void
@@ -8840,6 +8844,15 @@ EmbedPDF.ViewerSettingsPatch.PageBackground.init -> void
 EmbedPDF.ViewerSettingsPatch.PageShadow.get -> string?
 EmbedPDF.ViewerSettingsPatch.PageShadow.init -> void
 EmbedPDF.ViewerSettingsPatch.ViewerSettingsPatch() -> void
+EmbedPDF.X509CertificateSigner
+EmbedPDF.X509CertificateSigner.Algorithm.get -> EmbedPDF.SignatureKeyAlgorithm
+EmbedPDF.X509CertificateSigner.Certificate.get -> System.Security.Cryptography.X509Certificates.X509Certificate2!
+EmbedPDF.X509CertificateSigner.Digest.get -> EmbedPDF.SignatureDigest
+EmbedPDF.X509CertificateSigner.Dispose() -> void
+EmbedPDF.X509CertificateSigner.GetCertificateChain() -> System.Collections.Generic.IReadOnlyList<System.ReadOnlyMemory<byte>>!
+EmbedPDF.X509CertificateSigner.Sign(System.ReadOnlyMemory<byte> message) -> System.ReadOnlyMemory<byte>
+EmbedPDF.X509CertificateSigner.SignAsync(System.ReadOnlyMemory<byte> message) -> System.Threading.Tasks.Task<System.ReadOnlyMemory<byte>>!
+EmbedPDF.X509CertificateSigner.X509CertificateSigner(System.Security.Cryptography.X509Certificates.X509Certificate2! certificate, System.Collections.Generic.IEnumerable<System.Security.Cryptography.X509Certificates.X509Certificate2!>? intermediates = null) -> void
 EmbedPDF.ZoomMode
 EmbedPDF.ZoomMode.Automatic = 0 -> EmbedPDF.ZoomMode
 EmbedPDF.ZoomMode.FitAll = 3 -> EmbedPDF.ZoomMode
@@ -13607,6 +13620,9 @@ static EmbedPDF.ToolId.operator !=(EmbedPDF.ToolId left, EmbedPDF.ToolId right) 
 static EmbedPDF.ToolId.operator ==(EmbedPDF.ToolId left, EmbedPDF.ToolId right) -> bool
 static EmbedPDF.TriggerGates.operator !=(EmbedPDF.TriggerGates? left, EmbedPDF.TriggerGates? right) -> bool
 static EmbedPDF.TriggerGates.operator ==(EmbedPDF.TriggerGates? left, EmbedPDF.TriggerGates? right) -> bool
+static EmbedPDF.TrustAnchors.FromCertificates(System.Collections.Generic.IEnumerable<System.Security.Cryptography.X509Certificates.X509Certificate2!>! certificates) -> EmbedPDF.TrustAnchors!
+static EmbedPDF.TrustAnchors.FromEmbeddedResources(System.Reflection.Assembly! assembly, string! prefix) -> EmbedPDF.TrustAnchors!
+static EmbedPDF.TrustAnchors.FromPem(System.Collections.Generic.IEnumerable<string!>! pem) -> EmbedPDF.TrustAnchors!
 static EmbedPDF.UnderlineAnnotationDraft.operator !=(EmbedPDF.UnderlineAnnotationDraft? left, EmbedPDF.UnderlineAnnotationDraft? right) -> bool
 static EmbedPDF.UnderlineAnnotationDraft.operator ==(EmbedPDF.UnderlineAnnotationDraft? left, EmbedPDF.UnderlineAnnotationDraft? right) -> bool
 static EmbedPDF.UnderlineAnnotationPatch.FromJson(string! json) -> EmbedPDF.UnderlineAnnotationPatch!
@@ -13628,6 +13644,9 @@ static EmbedPDF.ViewerSettings.operator !=(EmbedPDF.ViewerSettings? left, EmbedP
 static EmbedPDF.ViewerSettings.operator ==(EmbedPDF.ViewerSettings? left, EmbedPDF.ViewerSettings? right) -> bool
 static EmbedPDF.ViewerSettingsPatch.operator !=(EmbedPDF.ViewerSettingsPatch? left, EmbedPDF.ViewerSettingsPatch? right) -> bool
 static EmbedPDF.ViewerSettingsPatch.operator ==(EmbedPDF.ViewerSettingsPatch? left, EmbedPDF.ViewerSettingsPatch? right) -> bool
+static EmbedPDF.X509CertificateSigner.FromPkcs12(System.ReadOnlyMemory<byte> data, string? password = null) -> EmbedPDF.X509CertificateSigner!
+static EmbedPDF.X509CertificateSigner.FromPkcs12File(string! path, string? password = null) -> EmbedPDF.X509CertificateSigner!
+static EmbedPDF.X509CertificateSigner.FromStore(string! thumbprint, System.Security.Cryptography.X509Certificates.StoreName storeName = System.Security.Cryptography.X509Certificates.StoreName.My, System.Security.Cryptography.X509Certificates.StoreLocation location = System.Security.Cryptography.X509Certificates.StoreLocation.CurrentUser) -> EmbedPDF.X509CertificateSigner!
 static EmbedPDF.ZoomSpec.Level.operator !=(EmbedPDF.ZoomSpec.Level? left, EmbedPDF.ZoomSpec.Level? right) -> bool
 static EmbedPDF.ZoomSpec.Level.operator ==(EmbedPDF.ZoomSpec.Level? left, EmbedPDF.ZoomSpec.Level? right) -> bool
 static EmbedPDF.ZoomSpec.Mode.operator !=(EmbedPDF.ZoomSpec.Mode? left, EmbedPDF.ZoomSpec.Mode? right) -> bool

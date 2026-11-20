@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
 namespace EmbedPDF.Viewer.Tests;
@@ -14,20 +13,5 @@ static class TestKeys
     public static X509Certificate2 Certificate() => X509Certificate2.CreateFromPem(CertificatePem, PrivateKeyPem);
 
     /// <summary>A signer over the test key.</summary>
-    public static ISignatureSigner Signer() => new RsaSigner(Certificate());
-
-    sealed class RsaSigner(X509Certificate2 certificate) : ISignatureSigner
-    {
-        public IReadOnlyList<ReadOnlyMemory<byte>> GetCertificateChain() => [certificate.RawData];
-
-        public SignatureKeyAlgorithm Algorithm => SignatureKeyAlgorithm.RsaPkcs1;
-
-        public SignatureDigest Digest => SignatureDigest.Sha256;
-
-        public Task<ReadOnlyMemory<byte>> SignAsync(ReadOnlyMemory<byte> message)
-        {
-            using var key = certificate.GetRSAPrivateKey()!;
-            return Task.FromResult<ReadOnlyMemory<byte>>(key.SignData(message.Span, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1));
-        }
-    }
+    public static ISignatureSigner Signer() => new X509CertificateSigner(Certificate());
 }
