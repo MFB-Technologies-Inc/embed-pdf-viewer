@@ -118,7 +118,7 @@ jobs:
       - name: Fetch the runtime payload
         if: inputs.payload_artifact == ''
         env:
-          EPDF_PAYLOAD_REPO: MFB-Technologies-Inc/embed-pdf-runtime
+          EPDF_PAYLOAD_REPO: ${{ github.repository }}
         run: pnpm --filter @embedpdf/engine-runtime run fetch:payload
 
       - uses: actions/download-artifact@v7

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Builds the engine's two binaries and publishes each as a release on the
-// runtime fork:
+// viewer repo:
 //
 // - the wasm32 payload with the Rust core linked in, as `runtime-payloads-<hash>`,
 //   where packages/engine/runtime/scripts/fetch-payload.sh looks for it;
@@ -24,7 +24,7 @@
 // stops once the zip is packaged, leaving it and its facts (the
 // EmbedPDFBindings.xcframework.zip.json beside it) in platforms/apple/.build/
 // publish; `publish` takes those, skips the build and the tests, and creates
-// the release and pins it. Releases go to MFB-Technologies-Inc/embed-pdf-runtime
+// the release and pins it. Releases go to MFB-Technologies-Inc/embed-pdf-viewer
 // unless EMBEDPDF_RELEASE_REPO names another owner/repo.
 //
 // The wasm half checks the linked engine against the committed bindings
@@ -119,7 +119,7 @@ import {
 import { stageMacConsumer } from '../platforms/apple/macos-consumer.mjs';
 
 export const releaseRepo = () =>
-  process.env.EMBEDPDF_RELEASE_REPO ?? 'MFB-Technologies-Inc/embed-pdf-runtime';
+  process.env.EMBEDPDF_RELEASE_REPO ?? 'MFB-Technologies-Inc/embed-pdf-viewer';
 const TARGET = 'wasm32';
 const ASSET = `engine-runtime-payload-${TARGET}.tar.gz`;
 
@@ -134,7 +134,7 @@ const libBackup = path.join(runtime, 'npm', TARGET, '.lib-backup');
 // was none, nothing but this sentinel, so that a restore removes the new one.
 const ABSENT = '.absent';
 // Written into libBackup just before `gh release create`: a backup that has it
-// may belong to a release that went out, which the next run asks the fork about.
+// may belong to a release that went out, which the next run asks releaseRepo() about.
 const PUBLISHING = '.publishing';
 // Beside it, the sha256 of each file in libDir as it went into the release, so a
 // later run keeps libDir as published only while it is still that payload.
@@ -299,7 +299,7 @@ function releasedArchiveSha256(tag) {
     rmSync(out, { recursive: true, force: true });
   }
 }
-// What the fork has under `tag`, by releaseVerdict: only a release that isn't a
+// What releaseRepo() has under `tag`, by releaseVerdict: only a release that isn't a
 // draft and has `asset` and its .sha256 is published. gh's "release not found"
 // is missing; any other gh failure (login, network) throws, since the answer
 // is unknown and nothing may act on a guess.
@@ -355,7 +355,7 @@ if (invoked) {
     console.error(
       `runtime-src isn't checked out at ${sha.slice(0, 9)}. From the repo root:\n` +
         `  git submodule init packages/engine/runtime/runtime-src\n` +
-        `  git config submodule.packages/engine/runtime/runtime-src.url https://github.com/${releaseRepo()}.git\n` +
+        `  git config submodule.packages/engine/runtime/runtime-src.url https://github.com/MFB-Technologies-Inc/embed-pdf-runtime.git\n` +
         `  git submodule update packages/engine/runtime/runtime-src`,
     );
     process.exit(1);
@@ -624,9 +624,10 @@ async function publishWasm() {
       `${archive}.sha256`,
       '--repo',
       releaseRepo(),
-      // The fork commit the payload's PDFium came from, which the fork has.
+      // The viewer commit the payload was built from; the notes name the fork
+      // commit, which the viewer repo doesn't have.
       '--target',
-      fork.sha,
+      head,
       '--title',
       tag,
       '--notes',
@@ -1045,9 +1046,9 @@ function publishApple() {
     `${zip}.sha256`,
     '--repo',
     releaseRepo(),
-    // As for the wasm payload: the fork commit both slices' PDFium came from.
+    // As for the wasm payload: the viewer commit the zip was built from.
     '--target',
-    facts.forkSha,
+    facts.head,
     '--title',
     tag,
     '--notes',
@@ -1065,9 +1066,10 @@ function publishApple() {
 
 // Points both manifests' binary target at a published release: engineRelease
 // and engineChecksum in platforms/apple/EmbedPDF/Package.swift, the
-// EmbedPDFBindings url's tag and its checksum in the root Package.swift. Each
-// sits on its own line, and a second match would mean a manifest changed shape
-// under this script.
+// EmbedPDFBindings url's tag and its checksum in the root Package.swift. Both
+// manifests' url prefix is rewritten to releaseRepo()'s release downloads, so a
+// pin also moves a url still naming another repo. Each sits on its own line,
+// and a second match would mean a manifest changed shape under this script.
 export function pinEngine(
   tag,
   checksum,
@@ -1085,6 +1087,7 @@ export function pinEngine(
     }
     return text;
   };
+  const downloads = `https://github.com/${releaseRepo()}/releases/download/`;
   const nestedText = rewrite(nested, [
     [
       '`let engineRelease = "` line',
@@ -1096,12 +1099,17 @@ export function pinEngine(
       /^let engineChecksum = ".*"$/gm,
       `let engineChecksum = "${checksum}"`,
     ],
+    [
+      'EmbedPDFBindings url line',
+      /^([ \t]*url: ")[^"]*\/releases\/download\/(\\\(engineRelease\)\/EmbedPDFBindings\.xcframework\.zip",)$/gm,
+      `$1${downloads}$2`,
+    ],
   ]);
   const rootText = rewrite(root, [
     [
       'EmbedPDFBindings url line',
-      /^([ \t]*url: "[^"]*\/releases\/download\/)[^/"]*(\/EmbedPDFBindings\.xcframework\.zip",)$/gm,
-      `$1${tag}$2`,
+      /^([ \t]*url: ")[^"]*\/releases\/download\/[^/"]*(\/EmbedPDFBindings\.xcframework\.zip",)$/gm,
+      `$1${downloads}${tag}$2`,
     ],
     ['binary target checksum line', /^([ \t]*checksum: ")[^"]*(")$/gm, `$1${checksum}$2`],
   ]);

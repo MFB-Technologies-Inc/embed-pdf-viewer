@@ -1,8 +1,8 @@
 name: release-train
 
-# One dispatch releases everything a commit of this branch ships: the PDFium
-# runtime, the wasm payload and the Apple engine on the release repo, then the
-# Swift package, the Rust viewer bundle and the C# engine as prereleases here.
+# One dispatch releases everything a commit of this branch ships, all as
+# prereleases on this repo: the PDFium runtime, the wasm payload and the Apple
+# engine, then the Swift package, the Rust viewer bundle and the C# engine.
 #
 #   t0          preflight, the three slice groups and the .NET package start
 #               together.
@@ -62,7 +62,7 @@ defaults:
     shell: bash
 
 env:
-  RELEASE_REPO: MFB-Technologies-Inc/embed-pdf-runtime
+  RELEASE_REPO: ${{ github.repository }}
 
 jobs:
   preflight:
@@ -218,33 +218,32 @@ jobs:
       dry_run: ${{ inputs.dry_run }}
 
   # Its five archives: four from slices-runtime, wasm32-eh from slices-eh.
+  # runtime, payload and apple grant contents: write so their publish jobs
+  # can ask for it; every other job in them stays at contents: read.
   runtime:
     needs: [preflight, slices-runtime, slices-eh]
     uses: ./.github/workflows/release-runtime.yml
+    permissions:
+      contents: write
     with:
       runtime_sha: ${{ needs.slices-runtime.outputs.runtime_sha }}
       dry_run: ${{ inputs.dry_run }}
-    secrets:
-      RELEASE_APP_ID: ${{ secrets.RELEASE_APP_ID }}
-      RELEASE_APP_KEY: ${{ secrets.RELEASE_APP_KEY }}
 
   payload:
     needs: [preflight, slices-eh]
     uses: ./.github/workflows/release-payload.yml
+    permissions:
+      contents: write
     with:
       dry_run: ${{ inputs.dry_run }}
-    secrets:
-      RELEASE_APP_ID: ${{ secrets.RELEASE_APP_ID }}
-      RELEASE_APP_KEY: ${{ secrets.RELEASE_APP_KEY }}
 
   apple:
     needs: [preflight, slices-apple]
     uses: ./.github/workflows/release-apple.yml
+    permissions:
+      contents: write
     with:
       dry_run: ${{ inputs.dry_run }}
-    secrets:
-      RELEASE_APP_ID: ${{ secrets.RELEASE_APP_ID }}
-      RELEASE_APP_KEY: ${{ secrets.RELEASE_APP_KEY }}
 
   # payload's publish job, when it runs, ends before payload does, so the
   # payload is released by the time this starts. The one case it isn't is a

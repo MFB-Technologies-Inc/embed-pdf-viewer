@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Remotes: `fork` = `MFB-Technologies-Inc/embed-pdf-viewer` / `MFB-Technologies-Inc/embed-pdf-runtime`, `roanutil` = the retired repos, `origin` = upstream. Never push to `origin` or `roanutil`.
-- Every release is a prerelease. Every release this train makes goes to the MFB repos.
+- Every release is a prerelease. Every release this train makes goes to `MFB-Technologies-Inc/embed-pdf-viewer`, the repo it runs in, and is published with the job's `GITHUB_TOKEN`.
 - Runners: hosted only. `xcode-27` (preview) for macOS jobs, with `DEVELOPER_DIR=/Applications/Xcode_27.2.app/Contents/Developer`. No self-hosted runner.
 - Toolchain pins: Rust `1.98.0` (`rust-toolchain.toml`), pnpm `10.34.0` (`package.json` `packageManager`), Node `24`, .NET `10.0.403` (`platforms/dotnet/global.json`), emsdk `3.1.72` (wasm32) and `4.0.0` (wasm32-eh), wasm-bindgen-cli `0.2.127`, binaryen `133`.
 - `EMBEDPDF_NM` = the Rust 1.98.0 toolchain's `llvm-nm` on every Apple job (Xcode 27.2's `nm` can't read Rust 1.98 bitcode).
@@ -21,7 +21,7 @@
 - Commits: no Claude footer, no session URL, no Co-Authored-By (embed-pdf repos rule).
 - Repo prose (README, notes) is neutral: no names of other projects or people.
 - Concurrency: one release train at a time (`concurrency: release-train`, `cancel-in-progress: false`).
-- Secrets live in a `release` environment with a required reviewer; jobs that publish declare `environment: release`.
+- Jobs that publish declare `environment: release`, which has a required reviewer, and `permissions: contents: write`.
 
 ## Review Focus
 
@@ -362,7 +362,7 @@ Expected: `gh workflow list` shows them `disabled_manually`; a push to a researc
 
 - [ ] **Step 1: Prerequisites the user owns**
 
-A GitHub App (contents: write) installed on both MFB forks, with `RELEASE_APP_ID` and `RELEASE_APP_KEY` stored in the viewer fork's `release` environment, which has a required reviewer. Notes files written under `docs/releases/`.
+A `release` environment on the viewer fork with a required reviewer. Notes files written under `docs/releases/`.
 
 - [ ] **Step 2: Dispatch with `dry_run=false`**, approve the environment gate. Expected: six prereleases on the MFB repos, both manifests pinned to the new Apple engine in the pin commit, three tags at the pin commit.
 - [ ] **Step 3: Verify consumers**

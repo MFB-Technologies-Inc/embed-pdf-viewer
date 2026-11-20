@@ -1,7 +1,7 @@
 name: release-apple
 
 # Publishes the iOS/macOS engine, EmbedPDFBindings.xcframework.zip, as the
-# prerelease apple-engine-<hash> on the release repo, with
+# prerelease apple-engine-<hash> on this repo, with
 # scripts/publish-engine-payload.mjs --only apple split into its two stages.
 # Its PDFium is the four Apple slices release-fork-slices.yml uploaded
 # (fork-slice-<target>), stamped into buildFork's cache so the fork is not
@@ -20,11 +20,11 @@ name: release-apple
 #   test-mac-arm64,  EMBEDPDF_PREBUILT_ENGINE=local: the tests publishApple
 #   test-mac-x86_64  runs between its build and its release, one runner each.
 #   publish          --stage publish under the release environment: creates the
-#                    release with the App token, pins both manifests and
+#                    release with the job's token, pins both manifests and
 #                    uploads them as apple-manifests.
 #
-# dry_run runs every job; publish runs without the environment or the token,
-# prints the gh command, and pins the manifests to the tag and checksum the
+# dry_run runs every job; publish runs without the environment, prints the gh
+# command, and pins the manifests to the tag and checksum the
 # release would have, so apple-manifests looks as it would after a real run.
 #
 # The pinned manifests are uploaded, not committed: the release names the
@@ -38,13 +38,6 @@ on:
         required: false
         type: boolean
         default: false
-    secrets:
-      RELEASE_APP_ID:
-        description: GitHub App that can write releases on the release repo.
-        required: false
-      RELEASE_APP_KEY:
-        description: That App's private key.
-        required: false
     outputs:
       apple_tag:
         description: This tree's engine release tag, apple-engine-<hash>.
@@ -64,10 +57,10 @@ defaults:
     shell: bash
 
 env:
-  EMBEDPDF_RELEASE_REPO: MFB-Technologies-Inc/embed-pdf-runtime
+  EMBEDPDF_RELEASE_REPO: ${{ github.repository }}
   # check-apple-engine.sh reads this one; the publish script sets it from
   # EMBEDPDF_RELEASE_REPO when it runs the check itself.
-  EMBEDPDF_RUNTIME_REPO: MFB-Technologies-Inc/embed-pdf-runtime
+  EMBEDPDF_RUNTIME_REPO: ${{ github.repository }}
 
 jobs:
   check:
@@ -85,7 +78,6 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      # The release repo is public, so the run's token can read it.
       - name: Check the pinned engine
         id: check
         env:
@@ -430,6 +422,8 @@ jobs:
     timeout-minutes: 45
     # No environment on a dry run: nothing to approve.
     environment: ${{ !inputs.dry_run && 'release' || '' }}
+    permissions:
+      contents: write
     outputs:
       checksum: ${{ steps.pinned.outputs.checksum }}
     env:
@@ -467,24 +461,13 @@ jobs:
           cp "$RUNNER_TEMP"/apple-xcframework/EmbedPDFBindings.xcframework.zip{,.json} "$pub/"
           echo "$CHECKSUM  $pub/EmbedPDFBindings.xcframework.zip" | shasum -a 256 -c -
 
-      - name: Create the release token
-        id: token
-        if: ${{ !inputs.dry_run }}
-        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
-        with:
-          app-id: ${{ secrets.RELEASE_APP_ID }}
-          private-key: ${{ secrets.RELEASE_APP_KEY }}
-          owner: MFB-Technologies-Inc
-          repositories: embed-pdf-runtime
-
       # The script runs check-apple-engine.sh again: a release made since the
       # check job is pinned from, not uploaded over. On a dry run it prints the
       # gh command and leaves the manifests alone, so they are pinned here
       # with its own pinEngine to what the release would carry.
       - name: Publish the engine
         env:
-          # A dry run has no App token; the run's token reads the public repo.
-          GH_TOKEN: ${{ steps.token.outputs.token || github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [[ "$DRY_RUN" == true ]]; then
             node scripts/publish-engine-payload.mjs --only apple --stage publish --dry-run

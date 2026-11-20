@@ -1,18 +1,20 @@
 name: release-runtime
 
 # Publishes the PDFium fork (runtime-src) at one commit as the prerelease
-# runtime-<sha> on the release repo: the five slice archives that
+# runtime-<sha> on this repo: the five slice archives that
 # release-fork-slices.yml uploaded (fork-slice-<target>), plus the manifest
 # write-manifest.sh writes from them. Nothing is built here.
 #
 #   check    is runtime-<sha> already out? Then nothing else runs.
 #   prepare  downloads the slices, runs the fork's upstream freshness report
 #            and manifest scripts at <sha>, uploads the release files.
-#   publish  creates the release with the App token, under the release
+#   publish  creates the release with the job's token, under the release
 #            environment, so its reviewers approve after the work is done.
+#            The tag targets github.sha, the viewer commit whose gitlink
+#            names <sha>: the fork's commits aren't in this repo.
 #
-# dry_run runs every job without the environment or the token, and prints the
-# gh command instead of running it.
+# dry_run runs every job without the environment, and prints the gh command
+# instead of running it.
 
 on:
   workflow_call:
@@ -26,13 +28,6 @@ on:
         required: false
         type: boolean
         default: false
-    secrets:
-      RELEASE_APP_ID:
-        description: GitHub App that can write releases on the release repo.
-        required: false
-      RELEASE_APP_KEY:
-        description: That App's private key.
-        required: false
     outputs:
       tag:
         description: The runtime release tag, runtime-<sha>.
@@ -49,7 +44,7 @@ defaults:
     shell: bash
 
 env:
-  RELEASE_REPO: MFB-Technologies-Inc/embed-pdf-runtime
+  RELEASE_REPO: ${{ github.repository }}
   RUNTIME_SHA: ${{ inputs.runtime_sha }}
 
 jobs:
@@ -59,7 +54,6 @@ jobs:
       tag: ${{ steps.view.outputs.tag }}
       published: ${{ steps.view.outputs.published }}
     steps:
-      # The release repo is public, so the run's own token can read it.
       # Published means not a draft and carrying all six assets: the five
       # archives and the manifest. A draft or partial release (a create that
       # failed midway) stops the run instead of passing as published.
@@ -212,28 +206,19 @@ jobs:
     timeout-minutes: 30
     # No environment on a dry run: nothing to approve.
     environment: ${{ !inputs.dry_run && 'release' || '' }}
+    permissions:
+      contents: write
     env:
       TAG: ${{ needs.check.outputs.tag }}
       DRY_RUN: ${{ inputs.dry_run }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/download-artifact@v7
         with:
           name: runtime-release
           path: ${{ runner.temp }}/runtime-release
 
-      - name: Create the release token
-        id: token
-        if: ${{ !inputs.dry_run }}
-        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
-        with:
-          app-id: ${{ secrets.RELEASE_APP_ID }}
-          private-key: ${{ secrets.RELEASE_APP_KEY }}
-          owner: MFB-Technologies-Inc
-          repositories: embed-pdf-runtime
-
       - name: Publish the release
-        env:
-          GH_TOKEN: ${{ steps.token.outputs.token }}
         run: |
           OUT=$RUNNER_TEMP/runtime-release
           # prepare's Collect step put exactly one archive per target here and
@@ -247,7 +232,7 @@ jobs:
           ls -la "${assets[@]}"
           args=(release create "$TAG" "${assets[@]}"
             --repo "$RELEASE_REPO"
-            --target "$RUNTIME_SHA"
+            --target "$GITHUB_SHA"
             --title "EmbedPDF PDF Runtime $RUNTIME_SHA"
             --notes-file "$OUT/gate/notes.md"
             --prerelease)

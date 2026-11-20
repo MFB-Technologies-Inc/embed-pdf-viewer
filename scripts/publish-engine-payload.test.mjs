@@ -21,6 +21,12 @@ test('pins both manifests', (t) => {
   const tag = 'apple-engine-0123456789abcdef';
   const checksum = 'c'.repeat(64);
   t.mock.method(console, 'log', () => {});
+  const saved = process.env.EMBEDPDF_RELEASE_REPO;
+  t.after(() => {
+    if (saved === undefined) delete process.env.EMBEDPDF_RELEASE_REPO;
+    else process.env.EMBEDPDF_RELEASE_REPO = saved;
+  });
+  delete process.env.EMBEDPDF_RELEASE_REPO;
   pinEngine(tag, checksum, copies);
 
   const changed = (key) => {
@@ -29,12 +35,14 @@ test('pins both manifests', (t) => {
     assert.equal(after.length, before.length);
     return after.filter((line, i) => line !== before[i]);
   };
+  // The pin also moves both URLs to the release repo, whichever repo they named.
   assert.deepEqual(changed('nested'), [
     `let engineRelease = "${tag}"`,
     `let engineChecksum = "${checksum}"`,
+    `        url: "https://github.com/MFB-Technologies-Inc/embed-pdf-viewer/releases/download/\\(engineRelease)/EmbedPDFBindings.xcframework.zip",`,
   ]);
   assert.deepEqual(changed('root'), [
-    `            url: "https://github.com/MFB-Technologies-Inc/embed-pdf-runtime/releases/download/${tag}/EmbedPDFBindings.xcframework.zip",`,
+    `            url: "https://github.com/MFB-Technologies-Inc/embed-pdf-viewer/releases/download/${tag}/EmbedPDFBindings.xcframework.zip",`,
     `            checksum: "${checksum}"`,
   ]);
 });
@@ -46,9 +54,31 @@ test('honors EMBEDPDF_RELEASE_REPO', (t) => {
     else process.env.EMBEDPDF_RELEASE_REPO = saved;
   });
   delete process.env.EMBEDPDF_RELEASE_REPO;
-  assert.equal(releaseRepo(), 'MFB-Technologies-Inc/embed-pdf-runtime');
+  assert.equal(releaseRepo(), 'MFB-Technologies-Inc/embed-pdf-viewer');
   process.env.EMBEDPDF_RELEASE_REPO = 'x/y';
   assert.equal(releaseRepo(), 'x/y');
+});
+
+test('pins the URLs to EMBEDPDF_RELEASE_REPO', (t) => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'pin-engine-repo-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const copies = { nested: path.join(dir, 'nested.swift'), root: path.join(dir, 'root.swift') };
+  copyFileSync(path.join(repo, 'platforms/apple/EmbedPDF/Package.swift'), copies.nested);
+  copyFileSync(path.join(repo, 'Package.swift'), copies.root);
+  const saved = process.env.EMBEDPDF_RELEASE_REPO;
+  t.after(() => {
+    if (saved === undefined) delete process.env.EMBEDPDF_RELEASE_REPO;
+    else process.env.EMBEDPDF_RELEASE_REPO = saved;
+  });
+  process.env.EMBEDPDF_RELEASE_REPO = 'x/y';
+  t.mock.method(console, 'log', () => {});
+  pinEngine('apple-engine-0123456789abcdef', 'c'.repeat(64), copies);
+  for (const key of ['nested', 'root']) {
+    const urls = readFileSync(copies[key], 'utf8').match(
+      /https:\/\/github\.com\/[^"]*\/releases\/download\//g,
+    );
+    assert.deepEqual(urls, ['https://github.com/x/y/releases/download/']);
+  }
 });
 
 test('lays stagings at any path out as one LIB_ROOT', (t) => {

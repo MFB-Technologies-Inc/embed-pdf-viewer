@@ -1,21 +1,19 @@
 name: release-payload
 
-# Publishes the wasm runtime payload as runtime-payloads-<hash> on the release
-# repo, with scripts/publish-engine-payload.mjs --only wasm. Its PDFium is the
+# Publishes the wasm runtime payload as runtime-payloads-<hash> on this repo,
+# with scripts/publish-engine-payload.mjs --only wasm. Its PDFium is the
 # wasm32-eh slice release-fork-slices.yml uploaded (fork-slice-wasm32-eh),
 # stamped into buildFork's cache so the fork is not built again.
 #
 #   key      computes the payload hash (runtime-payload-hash.sh) and asks the
-#            release repo whether that payload is out. Then nothing else runs.
+#            repo's releases whether that payload is out. Then nothing else runs.
 #   verify   runs the whole script with --dry-run: build, verify, pack, and
 #            print the gh command. No environment, no token. Uploads the
 #            built npm/wasm32/lib as payload-wasm32. On dry_run this is the
 #            last job.
 #   publish  under the release environment, after its reviewers approve:
 #            runs --dry-run again as a warm-up (the shared Rust cache makes it
-#            quick), then mints the App token and runs the script for real.
-#            The token is minted only once the build is done, because an
-#            installation token expires after an hour.
+#            quick), then runs the script for real with the job's token.
 
 on:
   workflow_call:
@@ -25,13 +23,6 @@ on:
         required: false
         type: boolean
         default: false
-    secrets:
-      RELEASE_APP_ID:
-        description: GitHub App that can write releases on the release repo.
-        required: false
-      RELEASE_APP_KEY:
-        description: That App's private key.
-        required: false
     outputs:
       payload_tag:
         description: The payload release tag, runtime-payloads-<hash>.
@@ -48,7 +39,7 @@ defaults:
     shell: bash
 
 env:
-  EMBEDPDF_RELEASE_REPO: MFB-Technologies-Inc/embed-pdf-runtime
+  EMBEDPDF_RELEASE_REPO: ${{ github.repository }}
 
 jobs:
   key:
@@ -67,7 +58,7 @@ jobs:
       # Published means what the script's releaseVerdict means: not a draft,
       # with the archive and its .sha256. A draft or partial release still
       # goes to the publish job, where the script stops on it with its own
-      # message. The release repo is public, so the run's token can read it.
+      # message.
       - name: Compute the payload tag
         id: key
         env:
@@ -174,6 +165,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     environment: release
+    permissions:
+      contents: write
     env:
       PAYLOAD_TAG: ${{ needs.key.outputs.payload_tag }}
     steps:
@@ -218,25 +211,15 @@ jobs:
       - name: Stamp the fork slice
         run: node scripts/release/stamp-fork-slice.mjs wasm32-eh "$RUNNER_TEMP/fork-slice-wasm32-eh/staging"
 
-      # Builds into the warm cargo cache, so the real run below starts within
-      # minutes of the token being minted.
+      # Builds into the warm cargo cache, so the real run below is quick.
       - name: Warm up the build
         run: node scripts/publish-engine-payload.mjs --only wasm --dry-run
-
-      - name: Create the release token
-        id: token
-        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
-        with:
-          app-id: ${{ secrets.RELEASE_APP_ID }}
-          private-key: ${{ secrets.RELEASE_APP_KEY }}
-          owner: MFB-Technologies-Inc
-          repositories: embed-pdf-runtime
 
       # The script recomputes the hash and skips a payload that is already
       # out, so a release made since the key job is not made twice.
       - name: Publish the payload
         env:
-          GH_TOKEN: ${{ steps.token.outputs.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           echo "publishing $PAYLOAD_TAG"
           node scripts/publish-engine-payload.mjs --only wasm
