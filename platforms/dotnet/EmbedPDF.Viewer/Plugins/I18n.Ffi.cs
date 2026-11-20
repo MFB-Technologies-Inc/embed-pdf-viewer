@@ -13,8 +13,16 @@ internal static partial class Ffi
         return new(
             Code: pack.Code ?? throw new ArgumentException("The pack has no code.", nameof(pack)),
             Name: pack.Name ?? throw new ArgumentException("The pack has no name.", nameof(pack)),
-            Translations: (pack.Translations ?? new Dictionary<string, string>()).ToDictionary(pair => pair.Key, pair => pair.Value),
-            Dir: pack.Direction is { } dir ? (GL.TextDirection)(int)dir : null);
+            Translations: Translations(pack),
+            Dir: pack.Direction is { } dir ? (GL.TextDirection)(int)Defined(dir, "text direction") : null);
+    }
+
+    /// <summary>A pack's translations; a null value throws <see cref="ArgumentException"/>.</summary>
+    internal static Dictionary<string, string> Translations(LocalePack pack)
+    {
+        var translations = pack.Translations ?? new Dictionary<string, string>();
+        Arguments.NoNullValues(translations, nameof(pack));
+        return translations.ToDictionary(pair => pair.Key, pair => pair.Value);
     }
 
     internal static GL.I18nParam ToFfi(I18nParam value) => value switch

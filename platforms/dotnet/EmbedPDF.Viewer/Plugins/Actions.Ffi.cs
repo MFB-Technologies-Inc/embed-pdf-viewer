@@ -59,12 +59,12 @@ internal static partial class Ffi
         {
             null => null,
             ActionAnnotationTreeEvent.Activate => new GA.ActionAnnotationTreeEvent.Activate(),
-            ActionAnnotationTreeEvent.Event e => new GA.ActionAnnotationTreeEvent.Event((GA.PdfAnnotationEventKind)(int)e.Kind),
+            ActionAnnotationTreeEvent.Event e => new GA.ActionAnnotationTreeEvent.Event((GA.PdfAnnotationEventKind)(int)Defined(e.Kind, "annotation event")),
             _ => throw new ArgumentException("Unknown annotation tree event.", nameof(source)),
         }),
-        ActionTreeSource.Field f => new GA.ActionTreeSource.Field(ToFfi(f.FieldRef), (GA.PdfFieldEventKind)(int)f.Event),
-        ActionTreeSource.Page p => new GA.ActionTreeSource.Page(ToFfi(p.PageRef), p.Event is { } e ? (GA.PageEventKind)(int)e : null),
-        ActionTreeSource.Document d => new GA.ActionTreeSource.Document(d.Event is { } e ? (GA.DocumentTriggerEvent)(int)e : null),
+        ActionTreeSource.Field f => new GA.ActionTreeSource.Field(ToFfi(f.FieldRef), (GA.PdfFieldEventKind)(int)Defined(f.Event, "field event")),
+        ActionTreeSource.Page p => new GA.ActionTreeSource.Page(ToFfi(p.PageRef), p.Event is { } e ? (GA.PageEventKind)(int)Defined(e, "page event") : null),
+        ActionTreeSource.Document d => new GA.ActionTreeSource.Document(d.Event is { } e ? (GA.DocumentTriggerEvent)(int)Defined(e, "document event") : null),
         ActionTreeSource.Outline o => new GA.ActionTreeSource.Outline(ToFfi(o.Item)),
         _ => throw new ArgumentException("An action tree source is null.", nameof(source)),
     };
@@ -88,9 +88,9 @@ internal static partial class Ffi
     internal static GA.ActionTrigger ToFfi(ActionTrigger trigger) => trigger switch
     {
         ActionTrigger.Activate a => new GA.ActionTrigger.Activate(ToFfi(a.AnnotationRef), ToFfi(a.PageRef), ToFfiOrNull(a.Source)),
-        ActionTrigger.Annotation a => new GA.ActionTrigger.Annotation((GA.PdfAnnotationEventKind)(int)a.Event, ToFfi(a.AnnotationRef), ToFfi(a.PageRef), ToFfiOrNull(a.Source)),
-        ActionTrigger.Page p => new GA.ActionTrigger.Page((GA.PageEventKind)(int)p.Event, ToFfi(p.PageRef)),
-        ActionTrigger.Document d => new GA.ActionTrigger.Document((GA.DocumentTriggerEvent)(int)d.Event),
+        ActionTrigger.Annotation a => new GA.ActionTrigger.Annotation((GA.PdfAnnotationEventKind)(int)Defined(a.Event, "annotation event"), ToFfi(a.AnnotationRef), ToFfi(a.PageRef), ToFfiOrNull(a.Source)),
+        ActionTrigger.Page p => new GA.ActionTrigger.Page((GA.PageEventKind)(int)Defined(p.Event, "page event"), ToFfi(p.PageRef)),
+        ActionTrigger.Document d => new GA.ActionTrigger.Document((GA.DocumentTriggerEvent)(int)Defined(d.Event, "document event")),
         _ => throw new ArgumentException("An action trigger is null.", nameof(trigger)),
     };
 
@@ -106,9 +106,9 @@ internal static partial class Ffi
     internal static GA.ActionTriggerEvent ToFfi(ActionTriggerEvent e) => e switch
     {
         ActionTriggerEvent.Activate => new GA.ActionTriggerEvent.Activate(),
-        ActionTriggerEvent.Annotation a => new GA.ActionTriggerEvent.Annotation((GA.PdfAnnotationEventKind)(int)a.Event),
-        ActionTriggerEvent.Page p => new GA.ActionTriggerEvent.Page((GA.PageEventKind)(int)p.Event),
-        ActionTriggerEvent.Document d => new GA.ActionTriggerEvent.Document((GA.DocumentTriggerEvent)(int)d.Event),
+        ActionTriggerEvent.Annotation a => new GA.ActionTriggerEvent.Annotation((GA.PdfAnnotationEventKind)(int)Defined(a.Event, "annotation event")),
+        ActionTriggerEvent.Page p => new GA.ActionTriggerEvent.Page((GA.PageEventKind)(int)Defined(p.Event, "page event")),
+        ActionTriggerEvent.Document d => new GA.ActionTriggerEvent.Document((GA.DocumentTriggerEvent)(int)Defined(d.Event, "document event")),
         _ => throw new ArgumentException("An action trigger event is null.", nameof(e)),
     };
 
@@ -124,14 +124,14 @@ internal static partial class Ffi
     internal static GA.ActionContext ToFfi(ActionContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        return new((GA.ActionOrigin)(int)context.Origin, ToFfi(context.Source), ToFfi(context.Event));
+        return new((GA.ActionOrigin)(int)Defined(context.Origin, "action origin"), ToFfi(context.Source), ToFfi(context.Event));
     }
 
     internal static ActionContext ToPublic(GA.ActionContext context) =>
         new((ActionOrigin)(int)context.Origin, ToPublic(context.Source), ToPublic(context.Event));
 
     internal static GA.PartialActionContext? ToFfi(PartialActionContext? context) => context is null ? null : new(
-        Origin: context.Origin is { } o ? (GA.ActionOrigin)(int)o : null,
+        Origin: context.Origin is { } o ? (GA.ActionOrigin)(int)Defined(o, "action origin") : null,
         Source: ToFfiOrNull(context.Source),
         Event: context.Event is null ? null : ToFfi(context.Event));
 
@@ -143,9 +143,9 @@ internal static partial class Ffi
         ToPublic(p.Javascript), ToPublic(p.Uri), ToPublic(p.Print), ToPublic(p.SubmitForm));
 
     static GA.PartialActionPolicyRow? ToFfi(PartialActionPolicyRow? row) => row is null ? null : new(
-        User: row.User is { } u ? (GA.ActionPolicyDecision)(int)u : null,
-        Hover: row.Hover is { } h ? (GA.ActionPolicyDecision)(int)h : null,
-        Lifecycle: row.Lifecycle is { } l ? (GA.ActionPolicyDecision)(int)l : null);
+        User: row.User is { } u ? (GA.ActionPolicyDecision)(int)Defined(u, "policy decision") : null,
+        Hover: row.Hover is { } h ? (GA.ActionPolicyDecision)(int)Defined(h, "policy decision") : null,
+        Lifecycle: row.Lifecycle is { } l ? (GA.ActionPolicyDecision)(int)Defined(l, "policy decision") : null);
 
     internal static GA.ActionPolicyPatch? ToFfi(ActionPolicyPatch? p) => p is null ? null : new(
         Goto: ToFfi(p.Goto), Named: ToFfi(p.Named), Hide: ToFfi(p.Hide), ResetForm: ToFfi(p.ResetForm),
@@ -176,8 +176,12 @@ internal static partial class Ffi
     internal static GA.ActionsSettingsPatch ToFfi(ActionsSettingsPatch p) => new(
         Policy: ToFfi(p.Policy),
         Triggers: ToFfi(p.Triggers),
-        OpenSequence: p.OpenSequence is { } o ? (GA.OpenSequence)(int)o : null,
+        OpenSequence: p.OpenSequence is { } o ? ToFfi(o) : null,
         Javascript: p.JavaScript is null ? null : new GA.ActionsJavaScriptSettingsPatch(p.JavaScript.Enabled, ToFfi(p.JavaScript.Identity), p.JavaScript.ClearIdentity));
+
+    internal static GA.OpenSequence ToFfi(OpenSequence sequence) => (GA.OpenSequence)(int)Defined(sequence, "open sequence");
+
+    internal static GA.DocumentVerb ToFfi(DocumentVerb verb) => (GA.DocumentVerb)(int)Defined(verb, "document verb");
 
     internal static GA.ActionsScriptBudget ToFfi(ActionsScriptBudget b) => new(
         WireInteger.ToUInt32(b.MaxExecutionMs, "maxExecutionMs"),

@@ -17,4 +17,17 @@ internal static class Arguments
         }
         return array!;
     }
+
+    /// <summary>
+    /// Throws <see cref="ArgumentException"/> naming <paramref name="parameter"/>
+    /// and the key when a value of <paramref name="items"/> is null, before
+    /// anything reaches the engine.
+    /// </summary>
+    internal static void NoNullValues<TKey, TValue>(IEnumerable<KeyValuePair<TKey, TValue>> items, string parameter)
+    {
+        foreach (var (key, value) in items)
+        {
+            if (value is null) throw new ArgumentException($"{parameter} has a null value for {key}.", parameter);
+        }
+    }
 }

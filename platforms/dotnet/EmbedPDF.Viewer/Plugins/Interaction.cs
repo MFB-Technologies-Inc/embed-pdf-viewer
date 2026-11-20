@@ -207,8 +207,7 @@ public sealed class InteractionCapability : IDisposable
     public Task UpdateSettingsAsync(InteractionSettingsPatch patch, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(patch);
-        var ffi = new GI.InteractionSettingsPatch(patch.DefaultTool?.Value);
-        return viewer.Run(() => handle.UpdateSettings(ffi), cancellationToken);
+        return viewer.Run(() => handle.UpdateSettings(new GI.InteractionSettingsPatch(patch.DefaultTool?.Value)), cancellationToken);
     }
 
     /// <summary>Restores the values supplied at registration.</summary>
@@ -268,9 +267,8 @@ public sealed class InteractionCapability : IDisposable
     /// <summary>Replaces a tool's cursors by name; <see langword="null"/> brings the tool's own back.</summary>
     public Task SetToolCursorAsync(ToolId id, IReadOnlyDictionary<string, string>? cursors, CancellationToken cancellationToken = default)
     {
-        var wire = Ffi.Wire(id);
-        var ffi = cursors?.ToDictionary(pair => pair.Key, pair => pair.Value);
-        return viewer.Run(() => handle.SetToolCursor(wire, ffi), cancellationToken);
+        if (cursors is not null) Arguments.NoNullValues(cursors, nameof(cursors));
+        return viewer.Run(() => handle.SetToolCursor(Ffi.Wire(id), cursors?.ToDictionary(pair => pair.Key, pair => pair.Value)), cancellationToken);
     }
 
     /// <summary>
@@ -335,8 +333,7 @@ public sealed class InteractionCapability : IDisposable
     public Task<bool> WouldClaimTouchAsync(PointerSample sample, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(sample);
-        var ffi = Ffi.ToFfi(sample);
-        return viewer.Run(() => handle.WouldClaimTouch(ffi), cancellationToken);
+        return viewer.Run(() => handle.WouldClaimTouch(Ffi.ToFfi(sample)), cancellationToken);
     }
 
     /// <summary>

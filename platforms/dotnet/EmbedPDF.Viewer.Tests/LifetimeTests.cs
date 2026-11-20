@@ -157,4 +157,42 @@ public sealed class LifetimeTests
         // Releasing the kernel ends its subscriptions, so a reader still holding the stream ends too.
         Assert.True(await MetadataTests.Ends(stream));
     }
+
+    static async Task<(WeakReference Viewer, IAsyncEnumerable<InteractionEvent> Interaction, IAsyncEnumerable<I18nEvent> I18n, IAsyncEnumerable<ActionsEvent> Actions)> AbandonWithWaveBStreamsAndCallbacks()
+    {
+        var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions
+        {
+            Interaction = true, Feedback = new() { Provider = new RecordingFeedback() },
+            I18n = new() { Loader = new EmbeddedResourceLocaleLoader(typeof(LifetimeTests).Assembly, "Locales."), LazyLocales = ["es"] },
+            Actions = new() { OpenSequence = OpenSequence.Off },
+        });
+        var document = await viewer.OpenAsync(Fixture.Data("document_actions"));
+        var interaction = await viewer.GetInteractionAsync(document);
+        await interaction.RegisterHandlerAsync(new RecordingHandler(), "kept", 1);
+        await interaction.RegisterToolAsync(new InteractionTool("kept", "default", []), permission: () => true);
+        var i18n = await viewer.GetI18nAsync();
+        var actions = await viewer.GetActionsAsync(document);
+        await actions.SetUiHandlerAsync(new RecordingUI());
+        await actions.RegisterExecutorAsync("goto", new RecordingExecutor());
+        return (new WeakReference(viewer), interaction.ObserveEvents(), i18n.ObserveEvents(), actions.ObserveEvents());
+    }
+
+    [Fact]
+    public async Task LiveWaveBStreamsAndCallbacksDoNotKeepAnAbandonedViewerAlive()
+    {
+        var released = PdfViewer.AbandonedReleases;
+        var (reference, interaction, i18n, actions) = await AbandonWithWaveBStreamsAndCallbacks();
+        for (var i = 0; i < 20 && reference.IsAlive; i++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            await Task.Delay(20);
+        }
+        Assert.False(reference.IsAlive);
+        for (var i = 0; i < 500 && PdfViewer.AbandonedReleases == released; i++) await Task.Delay(10);
+        Assert.True(PdfViewer.AbandonedReleases > released);
+        Assert.True(await MetadataTests.Ends(interaction));
+        Assert.True(await MetadataTests.Ends(i18n));
+        Assert.True(await MetadataTests.Ends(actions));
+    }
 }

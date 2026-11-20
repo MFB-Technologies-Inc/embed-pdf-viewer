@@ -70,10 +70,10 @@ public sealed record FeedbackConfig
 
         public void Impact(GI.FeedbackImpactWeight? weight) =>
             KernelCallback.Run(context.Mark, context.Logger, "A feedback provider's Impact",
-                () => app.Impact(weight is { } w ? (FeedbackImpactWeight)(int)w : null));
+                () => app.Impact(weight is { } w ? Ffi.ToPublic(w) : null));
 
         public void Notify(GI.FeedbackNotifyKind kind) =>
-            KernelCallback.Run(context.Mark, context.Logger, "A feedback provider's Notify", () => app.Notify((FeedbackNotifyKind)(int)kind));
+            KernelCallback.Run(context.Mark, context.Logger, "A feedback provider's Notify", () => app.Notify(Ffi.ToPublic(kind)));
     }
 }
 
@@ -99,18 +99,38 @@ public sealed class FeedbackCapability : IDisposable
     public Task SelectionAsync(CancellationToken cancellationToken = default) => viewer.Run(() => handle.Selection(), cancellationToken);
 
     /// <summary>Impact feedback; <see langword="null"/> is the platform's default weight.</summary>
-    public Task ImpactAsync(FeedbackImpactWeight? weight = null, CancellationToken cancellationToken = default)
-    {
-        GI.FeedbackImpactWeight? ffi = weight is { } w ? (GI.FeedbackImpactWeight)(int)w : null;
-        return viewer.Run(() => handle.Impact(ffi), cancellationToken);
-    }
+    public Task ImpactAsync(FeedbackImpactWeight? weight = null, CancellationToken cancellationToken = default) =>
+        viewer.Run(() => handle.Impact(weight is { } w ? Ffi.ToFfi(w) : null), cancellationToken);
 
     /// <summary>Notification feedback.</summary>
     public Task NotifyAsync(FeedbackNotifyKind kind, CancellationToken cancellationToken = default) =>
-        viewer.Run(() => handle.Notify((GI.FeedbackNotifyKind)(int)kind), cancellationToken);
+        viewer.Run(() => handle.Notify(Ffi.ToFfi(kind)), cancellationToken);
 
     /// <summary>Releases the native handle. Calls after it throw <see cref="PdfErrorCode.InstanceClosed"/>.</summary>
     public void Dispose() => handle.Dispose();
+}
+
+internal static partial class Ffi
+{
+    internal static GI.FeedbackImpactWeight ToFfi(FeedbackImpactWeight weight) => weight switch
+    {
+        FeedbackImpactWeight.Light => GI.FeedbackImpactWeight.Light,
+        FeedbackImpactWeight.Medium => GI.FeedbackImpactWeight.Medium,
+        FeedbackImpactWeight.Heavy => GI.FeedbackImpactWeight.Heavy,
+        _ => throw Undefined(weight, "impact weight"),
+    };
+
+    internal static GI.FeedbackNotifyKind ToFfi(FeedbackNotifyKind kind) => kind switch
+    {
+        FeedbackNotifyKind.Success => GI.FeedbackNotifyKind.Success,
+        FeedbackNotifyKind.Warning => GI.FeedbackNotifyKind.Warning,
+        FeedbackNotifyKind.Error => GI.FeedbackNotifyKind.Error,
+        _ => throw Undefined(kind, "notify kind"),
+    };
+
+    internal static FeedbackImpactWeight ToPublic(GI.FeedbackImpactWeight weight) => (FeedbackImpactWeight)(int)weight;
+
+    internal static FeedbackNotifyKind ToPublic(GI.FeedbackNotifyKind kind) => (FeedbackNotifyKind)(int)kind;
 }
 
 public sealed partial class PdfViewer

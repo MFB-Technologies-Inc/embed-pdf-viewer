@@ -181,4 +181,28 @@ public sealed class NullArgumentTests
         Assert.Empty(await Unchecked(new PdfViewerOptionsBuilder()));
         Assert.Empty(await Unchecked(new HttpClientDocumentFetcher()));
     }
+
+    [Fact]
+    public async Task EveryWaveBCapabilityRefusesANullElementUpFront()
+    {
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true, I18n = new() });
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        using var interaction = await viewer.GetInteractionAsync(document);
+        using var i18n = await viewer.GetI18nAsync();
+        var pack = new LocalePack("x", "x", new Dictionary<string, string> { ["k"] = null! });
+        Action[] calls =
+        [
+            () => _ = interaction.SetToolCursorAsync(ToolId.Pointer, new Dictionary<string, string> { ["default"] = null! }),
+            () => _ = i18n.TranslateAsync("k", new Dictionary<string, I18nParam> { ["name"] = null! }),
+            () => _ = i18n.AddTranslationsAsync("x", new Dictionary<string, string> { ["k"] = null! }),
+            () => _ = i18n.UpdateSettingsAsync(new I18nSettingsPatch { Locales = [null!] }),
+            () => _ = i18n.UpdateSettingsAsync(new I18nSettingsPatch { Locales = [pack] }),
+            () => _ = new PdfViewer(new PdfViewerOptions { I18n = new() { Locales = [null!] } }),
+            () => _ = new PdfViewer(new PdfViewerOptions { I18n = new() { LazyLocales = [null!] } }),
+        ];
+        foreach (var call in calls) Assert.Throws<ArgumentException>(call);
+        // Declared async, so a null element faults the task (the null-argument rule).
+        await Assert.ThrowsAsync<ArgumentException>(() => interaction.RegisterToolAsync(new InteractionTool("x", "default", [null!])));
+        await Assert.ThrowsAsync<ArgumentException>(() => i18n.RegisterLocaleAsync(pack));
+    }
 }

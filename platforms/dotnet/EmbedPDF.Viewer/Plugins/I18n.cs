@@ -177,8 +177,8 @@ public sealed record I18nConfig
     internal GL.I18nConfig ToFfi(PluginContext context) => new(
         Locale: Locale,
         FallbackLocale: FallbackLocale,
-        Locales: [.. (Locales ?? []).Select(Ffi.ToFfi)],
-        LazyLocales: [.. LazyLocales ?? []],
+        Locales: [.. Arguments.NoNullElements(Locales ?? [], nameof(Locales)).Select(Ffi.ToFfi)],
+        LazyLocales: Arguments.NoNullElements(LazyLocales ?? [], nameof(LazyLocales)),
         Loader: Loader is null ? null : new LoaderAdapter(Loader, context.Logger));
 
     /// <summary>Runs the app's loader on the thread pool and answers the kernel once.</summary>
@@ -251,8 +251,11 @@ public sealed class I18nCapability : IDisposable
     public Task UpdateSettingsAsync(I18nSettingsPatch patch, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(patch);
-        var ffi = Ffi.ToFfi(patch);
-        return viewer.Run(() => handle.UpdateSettings(ffi), cancellationToken);
+        if (patch.Locales is not null)
+        {
+            foreach (var pack in Arguments.NoNullElements(patch.Locales, nameof(patch))) Ffi.Translations(pack);
+        }
+        return viewer.Run(() => handle.UpdateSettings(Ffi.ToFfi(patch)), cancellationToken);
     }
 
     /// <summary>Restores the values supplied at registration.</summary>
@@ -266,8 +269,9 @@ public sealed class I18nCapability : IDisposable
     public Task<string> TranslateAsync(string key, IReadOnlyDictionary<string, I18nParam>? parameters = null, string? fallback = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(key);
-        var ffi = (parameters ?? new Dictionary<string, I18nParam>()).ToDictionary(pair => pair.Key, pair => Ffi.ToFfi(pair.Value));
-        return viewer.Run(() => handle.T(key, ffi, fallback), cancellationToken);
+        var values = parameters ?? new Dictionary<string, I18nParam>();
+        Arguments.NoNullValues(values, nameof(parameters));
+        return viewer.Run(() => handle.T(key, values.ToDictionary(pair => pair.Key, pair => Ffi.ToFfi(pair.Value)), fallback), cancellationToken);
     }
 
     /// <summary>Whether any loaded locale has <paramref name="key"/>.</summary>
@@ -319,8 +323,8 @@ public sealed class I18nCapability : IDisposable
     {
         ArgumentNullException.ThrowIfNull(code);
         ArgumentNullException.ThrowIfNull(translations);
-        var ffi = translations.ToDictionary(pair => pair.Key, pair => pair.Value);
-        return viewer.Run(() => handle.AddTranslations(code, ffi), cancellationToken);
+        Arguments.NoNullValues(translations, nameof(translations));
+        return viewer.Run(() => handle.AddTranslations(code, translations.ToDictionary(pair => pair.Key, pair => pair.Value)), cancellationToken);
     }
 
     /// <summary>

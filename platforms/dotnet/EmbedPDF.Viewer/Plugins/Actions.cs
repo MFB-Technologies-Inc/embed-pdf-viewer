@@ -88,7 +88,7 @@ public sealed record ActionsConfig
     internal GA.ActionsConfig ToFfi(PluginContext context) => new(
         Policy: Ffi.ToFfi(Policy),
         Triggers: Ffi.ToFfi(Triggers),
-        OpenSequence: OpenSequence is { } o ? (GA.OpenSequence)(int)o : null,
+        OpenSequence: OpenSequence is { } o ? Ffi.ToFfi(o) : null,
         Javascript: JavaScript?.ToFfi(context),
         UtcOffsetMinutes: UtcOffsetMinutes);
 }
@@ -119,8 +119,7 @@ public sealed class ActionsCapability : IDisposable
     public Task UpdateSettingsAsync(ActionsSettingsPatch patch, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(patch);
-        var ffi = Ffi.ToFfi(patch);
-        return viewer.Run(() => handle.UpdateSettings(ffi), cancellationToken);
+        return viewer.Run(() => handle.UpdateSettings(Ffi.ToFfi(patch)), cancellationToken);
     }
 
     /// <summary>Restores the values supplied at registration.</summary>
@@ -134,8 +133,7 @@ public sealed class ActionsCapability : IDisposable
     public Task UpdatePolicyAsync(ActionPolicyPatch patch, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(patch);
-        var ffi = Ffi.ToFfi(patch)!;
-        return viewer.Run(() => handle.UpdatePolicy(ffi), cancellationToken);
+        return viewer.Run(() => handle.UpdatePolicy(Ffi.ToFfi(patch)!), cancellationToken);
     }
 
     /// <summary>Whether document JavaScript runs.</summary>
@@ -153,8 +151,8 @@ public sealed class ActionsCapability : IDisposable
     public Task<bool> CanExecuteAsync(PdfActionTree tree, ActionContext context, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(tree);
-        var ffi = Ffi.ToFfi(context);
-        return viewer.Run(() => handle.CanExecute(tree.Handle, ffi), cancellationToken);
+        ArgumentNullException.ThrowIfNull(context);
+        return viewer.Run(() => handle.CanExecute(tree.Handle, Ffi.ToFfi(context)), cancellationToken);
     }
 
     /// <summary>Runs a named action (<c>NextPage</c>, <c>Print</c>, ...).</summary>
@@ -169,8 +167,7 @@ public sealed class ActionsCapability : IDisposable
     public Task<bool> CanExecuteNamedAsync(string name, PartialActionContext? context = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(name);
-        var ffi = Ffi.ToFfi(context);
-        return viewer.Run(() => handle.CanExecuteNamed(name, ffi), cancellationToken);
+        return viewer.Run(() => handle.CanExecuteNamed(name, Ffi.ToFfi(context)), cancellationToken);
     }
 
     /// <summary>Reads a tree from the document, or <see langword="null"/> when there is none.</summary>
@@ -194,8 +191,7 @@ public sealed class ActionsCapability : IDisposable
     public Task<bool> CanDispatchAsync(ActionTrigger trigger, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(trigger);
-        var ffi = Ffi.ToFfi(trigger);
-        return viewer.Run(() => handle.CanDispatch(ffi), cancellationToken);
+        return viewer.Run(() => handle.CanDispatch(Ffi.ToFfi(trigger)), cancellationToken);
     }
 
     /// <summary>Runs the document's will-close trees. Call before <see cref="PdfViewer.CloseAsync"/>.</summary>
@@ -235,7 +231,7 @@ public sealed class ActionsCapability : IDisposable
     {
         ArgumentNullException.ThrowIfNull(operation);
         var adapter = new VerbAdapter(operation, viewer.Logger);
-        return viewer.Run(() => handle.RunDocumentVerb((GA.DocumentVerb)(int)verb, adapter), cancellationToken);
+        return viewer.Run(() => handle.RunDocumentVerb(Ffi.ToFfi(verb), adapter), cancellationToken);
     }
 
     /// <summary>

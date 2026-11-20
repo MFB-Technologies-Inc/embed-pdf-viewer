@@ -113,4 +113,47 @@ public sealed class ValidationShapeTests
         foreach (var (name, call) in calls) await ExpectFaulted(name, call);
         await view.DisposeAsync();
     }
+
+    [Fact]
+    public async Task InvalidWaveBArgumentsFaultTheReturnedTask()
+    {
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions
+        {
+            Interaction = true, Feedback = new(), I18n = new(), Actions = new() { OpenSequence = OpenSequence.Off },
+        });
+        var document = await viewer.OpenAsync(Fixture.Data("document_actions"));
+        using var interaction = await viewer.GetInteractionAsync(document);
+        using var feedback = await viewer.GetFeedbackAsync();
+        using var i18n = await viewer.GetI18nAsync();
+        using var actions = await viewer.GetActionsAsync(document);
+        var sample = new PointerSample((PointerPhase)9, default, default);
+        var badPack = new LocalePack("x", "x", new Dictionary<string, string>()) { Direction = (TextDirection)9 };
+        var badContext = new ActionContext((ActionOrigin)9, new ActionSource.Api(), new ActionTriggerEvent.Activate());
+        var badRef = new PdfObjectRef("{");
+        var tree = ActionsTests.UriTree("https://a.test/");
+        var calls = new (string, Func<Task>)[]
+        {
+            ("Interaction.WouldClaimTouchAsync", () => interaction.WouldClaimTouchAsync(sample)),
+            ("Interaction.WouldClaimTouchAsync(page)", () => interaction.WouldClaimTouchAsync(new PointerSample(PointerPhase.Down, default, default) { Page = new PointerPageHit(Bad, default) })),
+            ("Interaction.RegisterToolAsync", () => interaction.RegisterToolAsync(new InteractionTool("x", "default", []) { Touch = (InteractionToolTouch)9 })),
+            ("Feedback.ImpactAsync", () => feedback.ImpactAsync((FeedbackImpactWeight)9)),
+            ("Feedback.NotifyAsync", () => feedback.NotifyAsync((FeedbackNotifyKind)9)),
+            ("I18n.RegisterLocaleAsync", () => i18n.RegisterLocaleAsync(badPack)),
+            ("I18n.UpdateSettingsAsync", () => i18n.UpdateSettingsAsync(new I18nSettingsPatch { Locales = [badPack] })),
+            ("Actions.ExecuteAsync", () => actions.ExecuteAsync(tree, badContext)),
+            ("Actions.CanExecuteAsync", () => actions.CanExecuteAsync(tree, badContext)),
+            ("Actions.ExecuteNamedAsync", () => actions.ExecuteNamedAsync("NextPage", new PartialActionContext { Origin = (ActionOrigin)9 })),
+            ("Actions.CanExecuteNamedAsync", () => actions.CanExecuteNamedAsync("NextPage", new PartialActionContext { Origin = (ActionOrigin)9 })),
+            ("Actions.GetActionTreeAsync", () => actions.GetActionTreeAsync(new ActionTreeSource.Page(Bad, null))),
+            ("Actions.GetActionTreeAsync(ref)", () => actions.GetActionTreeAsync(new ActionTreeSource.Outline(badRef))),
+            ("Actions.DispatchAsync", () => actions.DispatchAsync(new ActionTrigger.Page((PageEventKind)9, new PageRef(1)))),
+            ("Actions.CanDispatchAsync", () => actions.CanDispatchAsync(new ActionTrigger.Activate(badRef, new PageRef(1), null))),
+            ("Actions.UpdatePolicyAsync", () => actions.UpdatePolicyAsync(new ActionPolicyPatch { Goto = new PartialActionPolicyRow { Hover = (ActionPolicyDecision)9 } })),
+            ("Actions.UpdateSettingsAsync", () => actions.UpdateSettingsAsync(new ActionsSettingsPatch { OpenSequence = (OpenSequence)9 })),
+            ("Actions.RunDocumentVerbAsync", () => actions.RunDocumentVerbAsync((DocumentVerb)9, () => Task.CompletedTask)),
+        };
+        foreach (var (name, call) in calls) await ExpectFaulted(name, call);
+        // DispatchPointer returns no task, so it refuses at once.
+        Assert.Equal(PdfErrorCode.InvalidInput, Assert.Throws<PdfException>(() => interaction.DispatchPointer(sample)).Code);
+    }
 }

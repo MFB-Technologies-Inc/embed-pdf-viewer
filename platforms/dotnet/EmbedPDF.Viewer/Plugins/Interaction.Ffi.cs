@@ -18,9 +18,9 @@ internal static partial class Ffi
     internal static GI.InteractionTool ToFfi(InteractionTool tool) => new(
         Id: Wire(tool.Id),
         Cursor: tool.Cursor ?? throw new ArgumentException("The tool has no cursor.", nameof(tool)),
-        Enables: [.. tool.Enables ?? []],
+        Enables: Arguments.NoNullElements(tool.Enables ?? [], nameof(tool)),
         GapCursor: tool.GapCursor,
-        Touch: tool.Touch is { } touch ? (GI.InteractionToolTouch)(int)touch : null);
+        Touch: tool.Touch is { } touch ? (GI.InteractionToolTouch)(int)Defined(touch, "tool touch") : null);
 
     internal static PointerSample ToPublic(GF.PointerSample sample) =>
         new((PointerPhase)(int)sample.Phase, ToPublic(sample.Viewport),
@@ -36,15 +36,15 @@ internal static partial class Ffi
         };
 
     internal static GF.PointerSample ToFfi(PointerSample sample) => new(
-        Phase: (GF.PointerPhase)(int)sample.Phase,
+        Phase: (GF.PointerPhase)(int)Defined(sample.Phase, "pointer phase"),
         Viewport: ToFfi(sample.Viewport),
         Modifiers: new GF.Modifiers(sample.Modifiers.Shift, sample.Modifiers.Alt, sample.Modifiers.Ctrl, sample.Modifiers.Meta),
         Page: sample.Page is { } hit
             ? new GF.PointerPageHit(ToFfi(hit.Page), ToFfi(hit.Point), hit.Scale, hit.Rotation, hit.Zoom)
             : null,
         ClickCount: WireInteger.ToUInt32(sample.ClickCount, "clickCount"),
-        PointerType: sample.PointerType is { } kind ? (GF.PointerKind)(int)kind : null,
-        Gesture: sample.Gesture is { } gesture ? (GF.PointerGesture)(int)gesture : null,
+        PointerType: sample.PointerType is { } kind ? (GF.PointerKind)(int)Defined(kind, "pointer kind") : null,
+        Gesture: sample.Gesture is { } gesture ? (GF.PointerGesture)(int)Defined(gesture, "pointer gesture") : null,
         Source: sample.Source);
 
     internal static InteractionEvent ToPublic(GI.InteractionEvent e) => e switch
