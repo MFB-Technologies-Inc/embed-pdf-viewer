@@ -485,6 +485,8 @@ EmbedPDF.ActionsJavaScriptConfig.Budget.init -> void
 EmbedPDF.ActionsJavaScriptConfig.Deconstruct(out bool Enabled) -> void
 EmbedPDF.ActionsJavaScriptConfig.Enabled.get -> bool
 EmbedPDF.ActionsJavaScriptConfig.Enabled.init -> void
+EmbedPDF.ActionsJavaScriptConfig.Engine.get -> EmbedPDF.IScriptEngineFactory?
+EmbedPDF.ActionsJavaScriptConfig.Engine.init -> void
 EmbedPDF.ActionsJavaScriptConfig.Equals(EmbedPDF.ActionsJavaScriptConfig? other) -> bool
 EmbedPDF.ActionsJavaScriptConfig.MaxScriptNodesPerDispatch.get -> int?
 EmbedPDF.ActionsJavaScriptConfig.MaxScriptNodesPerDispatch.init -> void
@@ -1103,6 +1105,10 @@ EmbedPDF.IPlatformFeedback
 EmbedPDF.IPlatformFeedback.Impact(EmbedPDF.FeedbackImpactWeight? weight) -> void
 EmbedPDF.IPlatformFeedback.Notify(EmbedPDF.FeedbackNotifyKind kind) -> void
 EmbedPDF.IPlatformFeedback.Selection() -> void
+EmbedPDF.IScriptEngine
+EmbedPDF.IScriptEngine.Evaluate(string! program, int timeLimitMs) -> EmbedPDF.ScriptEvaluation!
+EmbedPDF.IScriptEngineFactory
+EmbedPDF.IScriptEngineFactory.Create() -> EmbedPDF.IScriptEngine!
 EmbedPDF.InteractionCapability
 EmbedPDF.InteractionCapability.ActivateDefaultToolAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.InteractionCapability.ActivateToolAsync(EmbedPDF.ToolId id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -2523,16 +2529,45 @@ EmbedPDF.ResourceStatus.Ready = 2 -> EmbedPDF.ResourceStatus
 EmbedPDF.SaveMode
 EmbedPDF.SaveMode.Incremental = 0 -> EmbedPDF.SaveMode
 EmbedPDF.SaveMode.Rewrite = 1 -> EmbedPDF.SaveMode
+EmbedPDF.ScriptCheck
+EmbedPDF.ScriptCheck.<Clone>$() -> EmbedPDF.ScriptCheck!
+EmbedPDF.ScriptCheck.Alerts.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.ScriptCheck.Alerts.init -> void
+EmbedPDF.ScriptCheck.Deconstruct(out System.Collections.Generic.IReadOnlyList<string!>! Alerts, out EmbedPDF.ScriptExecutionError? Error, out bool Disposed) -> void
+EmbedPDF.ScriptCheck.Disposed.get -> bool
+EmbedPDF.ScriptCheck.Disposed.init -> void
+EmbedPDF.ScriptCheck.Equals(EmbedPDF.ScriptCheck? other) -> bool
+EmbedPDF.ScriptCheck.Error.get -> EmbedPDF.ScriptExecutionError?
+EmbedPDF.ScriptCheck.Error.init -> void
+EmbedPDF.ScriptCheck.ScriptCheck(System.Collections.Generic.IReadOnlyList<string!>! Alerts, EmbedPDF.ScriptExecutionError? Error, bool Disposed) -> void
 EmbedPDF.ScriptDiagnosticCode
 EmbedPDF.ScriptDiagnosticCode.BlockedNetwork = 0 -> EmbedPDF.ScriptDiagnosticCode
 EmbedPDF.ScriptDiagnosticCode.InvalidFieldValue = 2 -> EmbedPDF.ScriptDiagnosticCode
 EmbedPDF.ScriptDiagnosticCode.ScriptError = 3 -> EmbedPDF.ScriptDiagnosticCode
 EmbedPDF.ScriptDiagnosticCode.UiEffectSuppressed = 4 -> EmbedPDF.ScriptDiagnosticCode
 EmbedPDF.ScriptDiagnosticCode.UnsupportedApi = 1 -> EmbedPDF.ScriptDiagnosticCode
+EmbedPDF.ScriptEngineCheck
 EmbedPDF.ScriptErrorKind
 EmbedPDF.ScriptErrorKind.Budget = 1 -> EmbedPDF.ScriptErrorKind
 EmbedPDF.ScriptErrorKind.Exception = 0 -> EmbedPDF.ScriptErrorKind
 EmbedPDF.ScriptErrorKind.InvalidOutput = 2 -> EmbedPDF.ScriptErrorKind
+EmbedPDF.ScriptEvaluation
+EmbedPDF.ScriptEvaluation.ScriptEvaluation(EmbedPDF.ScriptEvaluation! original) -> void
+EmbedPDF.ScriptEvaluation.Threw
+EmbedPDF.ScriptEvaluation.Threw.Deconstruct(out string! Detail) -> void
+EmbedPDF.ScriptEvaluation.Threw.Detail.get -> string!
+EmbedPDF.ScriptEvaluation.Threw.Detail.init -> void
+EmbedPDF.ScriptEvaluation.Threw.Equals(EmbedPDF.ScriptEvaluation.Threw? other) -> bool
+EmbedPDF.ScriptEvaluation.Threw.Threw(string! Detail) -> void
+EmbedPDF.ScriptEvaluation.TimedOut
+EmbedPDF.ScriptEvaluation.TimedOut.Equals(EmbedPDF.ScriptEvaluation.TimedOut? other) -> bool
+EmbedPDF.ScriptEvaluation.TimedOut.TimedOut() -> void
+EmbedPDF.ScriptEvaluation.Value
+EmbedPDF.ScriptEvaluation.Value.Deconstruct(out string! Json) -> void
+EmbedPDF.ScriptEvaluation.Value.Equals(EmbedPDF.ScriptEvaluation.Value? other) -> bool
+EmbedPDF.ScriptEvaluation.Value.Json.get -> string!
+EmbedPDF.ScriptEvaluation.Value.Json.init -> void
+EmbedPDF.ScriptEvaluation.Value.Value(string! Json) -> void
 EmbedPDF.ScriptExecutionError
 EmbedPDF.ScriptExecutionError.<Clone>$() -> EmbedPDF.ScriptExecutionError!
 EmbedPDF.ScriptExecutionError.Deconstruct(out EmbedPDF.ScriptErrorKind Kind, out string! Message, out string? Stack) -> void
@@ -3062,6 +3097,7 @@ abstract EmbedPDF.RenderQuantize.<Clone>$() -> EmbedPDF.RenderQuantize!
 abstract EmbedPDF.RenderTilesPatch.<Clone>$() -> EmbedPDF.RenderTilesPatch!
 abstract EmbedPDF.RenderTilesSetting.<Clone>$() -> EmbedPDF.RenderTilesSetting!
 abstract EmbedPDF.RenderViewport.<Clone>$() -> EmbedPDF.RenderViewport!
+abstract EmbedPDF.ScriptEvaluation.<Clone>$() -> EmbedPDF.ScriptEvaluation!
 abstract EmbedPDF.SearchEvent.<Clone>$() -> EmbedPDF.SearchEvent!
 abstract EmbedPDF.SearchRevealAxis.<Clone>$() -> EmbedPDF.SearchRevealAxis!
 abstract EmbedPDF.ShellEvent.<Clone>$() -> EmbedPDF.ShellEvent!
@@ -3896,6 +3932,24 @@ override EmbedPDF.RenderedPage.ToString() -> string!
 override EmbedPDF.RenderedPageResult.Equals(object? obj) -> bool
 override EmbedPDF.RenderedPageResult.GetHashCode() -> int
 override EmbedPDF.RenderedPageResult.ToString() -> string!
+override EmbedPDF.ScriptCheck.Equals(object? obj) -> bool
+override EmbedPDF.ScriptCheck.GetHashCode() -> int
+override EmbedPDF.ScriptCheck.ToString() -> string!
+override EmbedPDF.ScriptEvaluation.Equals(object? obj) -> bool
+override EmbedPDF.ScriptEvaluation.GetHashCode() -> int
+override EmbedPDF.ScriptEvaluation.Threw.<Clone>$() -> EmbedPDF.ScriptEvaluation.Threw!
+override EmbedPDF.ScriptEvaluation.Threw.Equals(object? obj) -> bool
+override EmbedPDF.ScriptEvaluation.Threw.GetHashCode() -> int
+override EmbedPDF.ScriptEvaluation.Threw.ToString() -> string!
+override EmbedPDF.ScriptEvaluation.TimedOut.<Clone>$() -> EmbedPDF.ScriptEvaluation.TimedOut!
+override EmbedPDF.ScriptEvaluation.TimedOut.Equals(object? obj) -> bool
+override EmbedPDF.ScriptEvaluation.TimedOut.GetHashCode() -> int
+override EmbedPDF.ScriptEvaluation.TimedOut.ToString() -> string!
+override EmbedPDF.ScriptEvaluation.ToString() -> string!
+override EmbedPDF.ScriptEvaluation.Value.<Clone>$() -> EmbedPDF.ScriptEvaluation.Value!
+override EmbedPDF.ScriptEvaluation.Value.Equals(object? obj) -> bool
+override EmbedPDF.ScriptEvaluation.Value.GetHashCode() -> int
+override EmbedPDF.ScriptEvaluation.Value.ToString() -> string!
 override EmbedPDF.ScriptExecutionError.Equals(object? obj) -> bool
 override EmbedPDF.ScriptExecutionError.GetHashCode() -> int
 override EmbedPDF.ScriptExecutionError.ToString() -> string!
@@ -4169,6 +4223,9 @@ override sealed EmbedPDF.RenderTilesSetting.On.Equals(EmbedPDF.RenderTilesSettin
 override sealed EmbedPDF.RenderViewport.Scale.Equals(EmbedPDF.RenderViewport? other) -> bool
 override sealed EmbedPDF.RenderViewport.Thumbnail.Equals(EmbedPDF.RenderViewport? other) -> bool
 override sealed EmbedPDF.RenderViewport.Width.Equals(EmbedPDF.RenderViewport? other) -> bool
+override sealed EmbedPDF.ScriptEvaluation.Threw.Equals(EmbedPDF.ScriptEvaluation? other) -> bool
+override sealed EmbedPDF.ScriptEvaluation.TimedOut.Equals(EmbedPDF.ScriptEvaluation? other) -> bool
+override sealed EmbedPDF.ScriptEvaluation.Value.Equals(EmbedPDF.ScriptEvaluation? other) -> bool
 override sealed EmbedPDF.SearchEvent.ActiveHitChanged.Equals(EmbedPDF.SearchEvent? other) -> bool
 override sealed EmbedPDF.SearchEvent.Cancelled.Equals(EmbedPDF.SearchEvent? other) -> bool
 override sealed EmbedPDF.SearchEvent.Completed.Equals(EmbedPDF.SearchEvent? other) -> bool
@@ -4729,6 +4786,17 @@ static EmbedPDF.RenderedPage.operator !=(EmbedPDF.RenderedPage? left, EmbedPDF.R
 static EmbedPDF.RenderedPage.operator ==(EmbedPDF.RenderedPage? left, EmbedPDF.RenderedPage? right) -> bool
 static EmbedPDF.RenderedPageResult.operator !=(EmbedPDF.RenderedPageResult? left, EmbedPDF.RenderedPageResult? right) -> bool
 static EmbedPDF.RenderedPageResult.operator ==(EmbedPDF.RenderedPageResult? left, EmbedPDF.RenderedPageResult? right) -> bool
+static EmbedPDF.ScriptCheck.operator !=(EmbedPDF.ScriptCheck? left, EmbedPDF.ScriptCheck? right) -> bool
+static EmbedPDF.ScriptCheck.operator ==(EmbedPDF.ScriptCheck? left, EmbedPDF.ScriptCheck? right) -> bool
+static EmbedPDF.ScriptEngineCheck.RunAsync(EmbedPDF.IScriptEngineFactory! factory, string! source, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ScriptCheck!>!
+static EmbedPDF.ScriptEvaluation.Threw.operator !=(EmbedPDF.ScriptEvaluation.Threw? left, EmbedPDF.ScriptEvaluation.Threw? right) -> bool
+static EmbedPDF.ScriptEvaluation.Threw.operator ==(EmbedPDF.ScriptEvaluation.Threw? left, EmbedPDF.ScriptEvaluation.Threw? right) -> bool
+static EmbedPDF.ScriptEvaluation.TimedOut.operator !=(EmbedPDF.ScriptEvaluation.TimedOut? left, EmbedPDF.ScriptEvaluation.TimedOut? right) -> bool
+static EmbedPDF.ScriptEvaluation.TimedOut.operator ==(EmbedPDF.ScriptEvaluation.TimedOut? left, EmbedPDF.ScriptEvaluation.TimedOut? right) -> bool
+static EmbedPDF.ScriptEvaluation.Value.operator !=(EmbedPDF.ScriptEvaluation.Value? left, EmbedPDF.ScriptEvaluation.Value? right) -> bool
+static EmbedPDF.ScriptEvaluation.Value.operator ==(EmbedPDF.ScriptEvaluation.Value? left, EmbedPDF.ScriptEvaluation.Value? right) -> bool
+static EmbedPDF.ScriptEvaluation.operator !=(EmbedPDF.ScriptEvaluation? left, EmbedPDF.ScriptEvaluation? right) -> bool
+static EmbedPDF.ScriptEvaluation.operator ==(EmbedPDF.ScriptEvaluation? left, EmbedPDF.ScriptEvaluation? right) -> bool
 static EmbedPDF.ScriptExecutionError.operator !=(EmbedPDF.ScriptExecutionError? left, EmbedPDF.ScriptExecutionError? right) -> bool
 static EmbedPDF.ScriptExecutionError.operator ==(EmbedPDF.ScriptExecutionError? left, EmbedPDF.ScriptExecutionError? right) -> bool
 static EmbedPDF.SearchConfig.operator !=(EmbedPDF.SearchConfig? left, EmbedPDF.SearchConfig? right) -> bool
@@ -4959,6 +5027,9 @@ virtual EmbedPDF.RenderTilesSetting.PrintMembers(System.Text.StringBuilder! buil
 virtual EmbedPDF.RenderViewport.EqualityContract.get -> System.Type!
 virtual EmbedPDF.RenderViewport.Equals(EmbedPDF.RenderViewport? other) -> bool
 virtual EmbedPDF.RenderViewport.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.ScriptEvaluation.EqualityContract.get -> System.Type!
+virtual EmbedPDF.ScriptEvaluation.Equals(EmbedPDF.ScriptEvaluation? other) -> bool
+virtual EmbedPDF.ScriptEvaluation.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual EmbedPDF.SearchEvent.EqualityContract.get -> System.Type!
 virtual EmbedPDF.SearchEvent.Equals(EmbedPDF.SearchEvent? other) -> bool
 virtual EmbedPDF.SearchEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
