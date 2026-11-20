@@ -264,12 +264,13 @@ struct ToolModelTests {
     let tools = try await tools()
     let model = tools.model
     #expect(!model.submitting)
-    let activation = Task { await model.activate(.ink) }
-    // The hub call leaves the main actor, so the flag is set and the call
-    // still out when this loop sees it.
-    for _ in 0..<1000 where !model.submitting { await Task.yield() }
-    expectNoDifference([model.submitting, model.isDisabled(.ink), model.isDisabled(.pan)], [true, true, true])
-    await activation.value
+    var duringCall: [Bool] = []
+    model.hubCallStarting = {
+      duringCall = [model.submitting, model.isDisabled(.ink), model.isDisabled(.pan)]
+    }
+    await model.activate(.ink)
+    model.hubCallStarting = nil
+    expectNoDifference(duringCall, [true, true, true])
     expectNoDifference([model.submitting, model.isDisabled(.ink), model.isDisabled(.pan)], [false, false, false])
     expectNoDifference(model.activeToolID, .ink)
     try await tools.viewer.destroy()

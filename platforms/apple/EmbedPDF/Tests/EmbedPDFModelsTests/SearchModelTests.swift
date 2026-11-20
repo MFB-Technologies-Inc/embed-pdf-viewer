@@ -77,13 +77,31 @@ struct SearchModelTests {
     try await viewer.destroy()
   }
 
+  /// Moves `page` to the end and waits for the search plugin's own rerun
+  /// of the query to finish. The plugin starts it 250 ms after the edit
+  /// (`RERUN_DELAY_MS` in `crates/plugins/search/src/controller.rs`) and it
+  /// supersedes a search still running then, so a search submitted before it
+  /// can return with the rerun's empty start.
+  func moveToEndAndAwaitRerun(
+    _ page: PageRef, viewer: PDFViewer, document: DocumentInfo, search: SearchCapability,
+    hits before: [SearchHit]
+  ) async throws {
+    _ = try await viewer.pageEdit(for: document).movePages([page], to: .end)
+    let deadline = ContinuousClock.now + .seconds(10)
+    while ContinuousClock.now < deadline {
+      if try await search.status() == .complete, try await search.hits() != before { return }
+      try await Task.sleep(for: .milliseconds(20))
+    }
+    Issue.record("the plugin's rerun after the move did not finish")
+  }
+
   @Test func resubmittingAfterAnEditRereadsHitsWhoseCountDidNotChange() async throws {
     let (viewer, document, search, model) = try await opened()
     model.text = "the"
     await model.searchSubmitted()
     let before = model.hits
     let page = try #require(before.first).page
-    _ = try await viewer.pageEdit(for: document).movePages([page], to: .end)
+    try await moveToEndAndAwaitRerun(page, viewer: viewer, document: document, search: search, hits: before)
     await model.searchSubmitted()
     let kernel = try await search.hits()
     // The rerun finds as many hits, at other positions.
@@ -99,7 +117,7 @@ struct SearchModelTests {
     await model.searchSubmitted()
     let before = model.hits
     let page = try #require(before.first).page
-    _ = try await viewer.pageEdit(for: document).movePages([page], to: .end)
+    try await moveToEndAndAwaitRerun(page, viewer: viewer, document: document, search: search, hits: before)
     // A revision lands while the submitted refresh is reading: the newer
     // refresh supersedes it and must still reread the hit list.
     var overtaken = false

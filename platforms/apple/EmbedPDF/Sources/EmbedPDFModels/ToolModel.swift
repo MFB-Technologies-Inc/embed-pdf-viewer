@@ -58,6 +58,9 @@ public final class ToolModel {
   @ObservationIgnored private var readFailed = false
   @ObservationIgnored let interaction: InteractionCapability
   @ObservationIgnored let snapshots = SnapshotRefresh()
+  /// Runs with ``submitting`` set, right before an action's hub call.
+  /// Tests read the buttons' state here.
+  @ObservationIgnored var hubCallStarting: (@MainActor () async -> Void)?
   @ObservationIgnored private var observation: UInt64 = 0
 
   public init(interaction: InteractionCapability) {
@@ -154,6 +157,7 @@ public final class ToolModel {
   private func submit(_ action: () async throws(PDFError) -> ToolID) async {
     guard !submitting else { return }
     submitting = true
+    await hubCallStarting?()
     let active: ToolID
     do {
       active = try await action()
