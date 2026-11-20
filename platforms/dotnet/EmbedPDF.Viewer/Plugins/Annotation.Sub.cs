@@ -46,7 +46,7 @@ public sealed class AnnotationSelectionCapability : IDisposable
     public async Task<AnnotationBatchResult> UpdateAsync(string patchJson, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(patchJson);
-        return Ffi.ToPublic(await viewer.RunCancellable(token => handle.Update(patchJson, token), cancellationToken).ConfigureAwait(false));
+        return Ffi.ToPublic(await viewer.RunCancellable(token => handle.Update(Ffi.WellFormed(patchJson, "patch"), token), cancellationToken).ConfigureAwait(false));
     }
 
     /// <summary>Changes every selected annotation with a typed patch.</summary>
@@ -159,7 +159,7 @@ public sealed class AnnotationToolsCapability : IDisposable
     {
         ArgumentNullException.ThrowIfNull(changesJson);
         ArgumentNullException.ThrowIfNull(toolId.Value, nameof(toolId));
-        return viewer.Run(() => handle.UpdateDefaults(toolId.Value, changesJson), cancellationToken);
+        return viewer.Run(() => handle.UpdateDefaults(toolId.Value, Ffi.WellFormed(changesJson, "defaults")), cancellationToken);
     }
 
     /// <summary>What the tool's style panel shows.</summary>
@@ -242,7 +242,7 @@ public sealed class AnnotationDraftsCapability : IDisposable
     {
         ArgumentNullException.ThrowIfNull(subtype.Value, nameof(subtype));
         ArgumentNullException.ThrowIfNull(quadsJson);
-        return viewer.Run(() => handle.CreateMarkup(Ffi.ToFfi(page), subtype.Value, quadsJson, preset?.Value), cancellationToken);
+        return viewer.Run(() => handle.CreateMarkup(Ffi.ToFfi(page), subtype.Value, Ffi.WellFormed(quadsJson, "quads"), preset?.Value), cancellationToken);
     }
 
     /// <summary>An insert caret at the end of a run of text.</summary>
@@ -257,7 +257,7 @@ public sealed class AnnotationDraftsCapability : IDisposable
     {
         ArgumentNullException.ThrowIfNull(quadsJson);
         ArgumentNullException.ThrowIfNull(anchor);
-        return viewer.Run(() => handle.CreateReplaceText(Ffi.ToFfi(page), quadsJson, Ffi.ToFfi(anchor), preset?.Value), cancellationToken);
+        return viewer.Run(() => handle.CreateReplaceText(Ffi.ToFfi(page), Ffi.WellFormed(quadsJson, "quads"), Ffi.ToFfi(anchor), preset?.Value), cancellationToken);
     }
 
     /// <summary>Shows a markup preview over quads on several pages.</summary>
@@ -448,7 +448,7 @@ public sealed class AnnotationThreadsCapability : IDisposable
     {
         ArgumentNullException.ThrowIfNull(annotationRef);
         ArgumentNullException.ThrowIfNull(targetJson);
-        return viewer.RunCancellable(token => handle.SetLink(Ffi.ToFfi(annotationRef), targetJson, token), cancellationToken);
+        return viewer.RunCancellable(token => handle.SetLink(Ffi.ToFfi(annotationRef), Ffi.WellFormed(targetJson, "target"), token), cancellationToken);
     }
 
     /// <summary>Attaches a typed link.</summary>

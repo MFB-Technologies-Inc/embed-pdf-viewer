@@ -223,6 +223,15 @@ public sealed class AnnotationDraftJsonTests
     }
 
     [Fact]
+    public void AStringWithAnUnpairedSurrogateIsInvalidInput()
+    {
+        var error = Assert.Throws<PdfException>(() => new HighlightAnnotationPatch { Contents = "a\uD800" }.ToJson());
+        Assert.Equal(PdfErrorCode.InvalidInput, error.Code);
+        Assert.Equal("EncodingError", error.Name);
+        Assert.Contains("contents", new HighlightAnnotationPatch { Contents = "\uD83D\uDE00" }.ToJson(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ALineDraftEncodesItsStructuredMembers()
     {
         Assert.Equal(

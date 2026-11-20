@@ -326,10 +326,10 @@ internal static partial class Ffi
         new(Bytes.Array(f.Bytes), f.Name ?? throw new ArgumentException("An attachment needs its name.", nameof(f)), f.MimeType, f.Description);
 
     internal static GA.AnnotationTextEndAnchor ToFfi(AnnotationTextEndAnchor a) =>
-        new(a.AnchorJson ?? throw new ArgumentException("An anchor needs its JSON.", nameof(a)));
+        new(Ffi.WellFormed(a.AnchorJson ?? throw new ArgumentException("An anchor needs its JSON.", nameof(a)), "anchor"));
 
     internal static GA.AnnotationPageQuads ToFfi(AnnotationPageQuads q) =>
-        new(ToFfi(q.Page), q.QuadsJson ?? throw new ArgumentException("Page quads need their JSON.", nameof(q)));
+        new(ToFfi(q.Page), Ffi.WellFormed(q.QuadsJson ?? throw new ArgumentException("Page quads need their JSON.", nameof(q)), "quads"));
 
     internal static AnnotationTool ToPublic(GA.AnnotationTool t) =>
         new(new ToolId(t.Id), new AnnotationSubtype(t.Subtype), t.Preset, t.Cursor, t.Enables, t.Upright, t.ToolJson);

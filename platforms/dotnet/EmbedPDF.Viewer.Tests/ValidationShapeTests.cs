@@ -195,6 +195,61 @@ public sealed class ValidationShapeTests
         foreach (var (name, call) in calls) await ExpectFaulted(name, call);
     }
 
+    /// <summary>
+    /// JSON bound for the engine with an unpaired surrogate would cross as
+    /// U+FFFD and change what it says, so every wave D member that takes JSON
+    /// text refuses it, as the commands and link members do.
+    /// </summary>
+    [Fact]
+    public async Task WaveDJsonWithAnUnpairedSurrogateIsInvalidInput()
+    {
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true, Annotation = "", Form = new() });
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        var page = (await viewer.GetPagesAsync(document))[0].Page;
+        using var annotations = await viewer.GetAnnotationAsync(document);
+        await annotations.RefreshAsync();
+        using var selection = annotations.GetSelection();
+        using var tools = annotations.GetTools();
+        using var drafts = annotations.GetDrafts();
+        using var threads = annotations.GetThreads();
+        using var form = await viewer.GetFormAsync(document);
+        var square = await annotations.CreateAsync(new SquareAnnotationDraft(new PdfRect(10, 10, 20, 20)), page);
+        var field = new FormFieldRef.Fqn("x");
+        const string bad = "{\"contents\":\"\uD800\"}";
+        var anchor = new AnnotationTextEndAnchor("\"\uDC00\"");
+        var calls = new (string, Func<Task>)[]
+        {
+            ("Annotation.UpdateSettingsAsync", () => annotations.UpdateSettingsAsync(bad)),
+            ("Annotation.ImportAsync(bundle)", () => annotations.ImportAsync(bad)),
+            ("Annotation.ImportAsync(options)", () => annotations.ImportAsync("{}", bad)),
+            ("Annotation.CreateAsync(json)", () => annotations.CreateAsync(bad, page)),
+            ("Annotation.UpdateAsync(json)", () => annotations.UpdateAsync(square, bad)),
+            ("Selection.UpdateAsync(json)", () => selection.UpdateAsync(bad)),
+            ("Tools.UpdateDefaultsAsync(json)", () => tools.UpdateDefaultsAsync(bad, ToolId.Ink)),
+            ("Drafts.CreateMarkupAsync", () => drafts.CreateMarkupAsync(AnnotationSubtype.Highlight, bad, page)),
+            ("Drafts.CreateReplaceTextAsync(quads)", () => drafts.CreateReplaceTextAsync(bad, new AnnotationTextEndAnchor("{}"), page)),
+            ("Drafts.CreateReplaceTextAsync(anchor)", () => drafts.CreateReplaceTextAsync("[]", anchor, page)),
+            ("Drafts.CreateCaretAsync", () => drafts.CreateCaretAsync(anchor, page)),
+            ("Drafts.PreviewMarkupAsync", () => drafts.PreviewMarkupAsync(AnnotationSubtype.Highlight, [new AnnotationPageQuads(page, bad)])),
+            ("Threads.SetLinkAsync(json)", () => threads.SetLinkAsync(square, bad)),
+            ("Annotation.CreateAsync(draft)", () => annotations.CreateAsync(new SquareAnnotationDraft(new PdfRect(0, 0, 1, 1)) { Contents = "\uD800" }, page)),
+            ("Form.ImportValuesAsync", () => form.ImportValuesAsync(bad)),
+            ("Form.CreateAsync(json)", () => form.CreateAsync(bad)),
+            ("Form.UpdateAsync(json)", () => form.UpdateAsync(field, bad)),
+            ("Form.AddWidgetAsync(json)", () => form.AddWidgetAsync(field, bad)),
+            ("Form.UpdateWidgetAsync", () => form.UpdateWidgetAsync(square, bad)),
+            ("Form.ImportAsync(bundle)", () => form.ImportAsync(bad)),
+            ("Form.ImportAsync(options)", () => form.ImportAsync("{}", bad)),
+        };
+        foreach (var (name, call) in calls)
+        {
+            await ExpectFaulted(name, call);
+            var error = await Assert.ThrowsAsync<PdfException>(call);
+            Assert.True(error.Code == PdfErrorCode.InvalidInput && error.Name == "EncodingError", $"{name}: {error.Name} {error.Code}");
+        }
+        Assert.Single(await annotations.ListAsync());
+    }
+
     [Fact]
     public async Task InvalidWaveDArgumentsFaultTheReturnedTask()
     {

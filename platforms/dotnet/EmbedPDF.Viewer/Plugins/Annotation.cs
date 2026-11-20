@@ -19,6 +19,9 @@ namespace EmbedPDF;
 /// editing goes through the interaction hub:
 /// <see cref="InteractionCapability.DispatchPointer"/> reaches the plugin's
 /// handlers under the active tool.
+/// JSON text, and a typed draft's or patch's strings, with an unpaired
+/// surrogate are <see cref="PdfErrorCode.InvalidInput"/>, since they would
+/// reach the engine as U+FFFD.
 /// </remarks>
 [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Typed and JSON overloads of create and update, as in Swift.")]
 public sealed class AnnotationCapability : IDisposable
@@ -39,7 +42,7 @@ public sealed class AnnotationCapability : IDisposable
     public Task UpdateSettingsAsync(string changesJson, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(changesJson);
-        return viewer.Run(() => handle.UpdateSettings(changesJson), cancellationToken);
+        return viewer.Run(() => handle.UpdateSettings(Ffi.WellFormed(changesJson, "settings")), cancellationToken);
     }
 
     /// <summary>Restores the registered settings.</summary>
@@ -91,7 +94,7 @@ public sealed class AnnotationCapability : IDisposable
     {
         ArgumentNullException.ThrowIfNull(bundleJson);
         ArgumentNullException.ThrowIfNull(optionsJson);
-        return Ffi.ToPublic(await viewer.RunCancellable(token => handle.Import(bundleJson, optionsJson, token), cancellationToken).ConfigureAwait(false));
+        return Ffi.ToPublic(await viewer.RunCancellable(token => handle.Import(Ffi.WellFormed(bundleJson, "bundle"), Ffi.WellFormed(optionsJson, "import options"), token), cancellationToken).ConfigureAwait(false));
     }
 
     /// <summary>The topmost annotation under a page-space point.</summary>
@@ -136,7 +139,7 @@ public sealed class AnnotationCapability : IDisposable
     {
         ArgumentNullException.ThrowIfNull(fieldsJson);
         return Ffi.ToPublic(await viewer.RunCancellable(
-            token => handle.Create(Ffi.ToFfi(page), fieldsJson, options?.Tool?.Value, options?.Select ?? false, token), cancellationToken).ConfigureAwait(false));
+            token => handle.Create(Ffi.ToFfi(page), Ffi.WellFormed(fieldsJson, "fields"), options?.Tool?.Value, options?.Select ?? false, token), cancellationToken).ConfigureAwait(false));
     }
 
     /// <summary>Changes an annotation with the typed patch of its subtype. Members the patch leaves null keep their values; another subtype's fields are <see cref="PdfErrorCode.InvalidInput"/>.</summary>
@@ -153,7 +156,7 @@ public sealed class AnnotationCapability : IDisposable
     {
         ArgumentNullException.ThrowIfNull(annotationRef);
         ArgumentNullException.ThrowIfNull(patchJson);
-        return viewer.RunCancellable(token => handle.Update(Ffi.ToFfi(annotationRef), patchJson, token), cancellationToken);
+        return viewer.RunCancellable(token => handle.Update(Ffi.ToFfi(annotationRef), Ffi.WellFormed(patchJson, "patch"), token), cancellationToken);
     }
 
     /// <summary>Deletes an annotation.</summary>

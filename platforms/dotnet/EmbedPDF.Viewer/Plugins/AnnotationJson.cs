@@ -221,9 +221,24 @@ internal sealed class FieldBag
                 writer.WriteEndArray();
                 break;
             default:
+                // A string with an unpaired surrogate would reach the engine as
+                // U+FFFD or a lone escape, so it is refused, as the JSON text
+                // members refuse it (Ffi.WellFormed).
+                if (node.GetValueKind() == JsonValueKind.String && !WellFormed(node.GetValue<string>()))
+                    throw new FieldBagException("a string has an unpaired surrogate");
                 node.WriteTo(writer);
                 break;
         }
+    }
+
+    static bool WellFormed(string text)
+    {
+        for (var i = 0; i < text.Length; i++)
+        {
+            if (char.IsHighSurrogate(text[i]) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1])) { i++; continue; }
+            if (char.IsSurrogate(text[i])) return false;
+        }
+        return true;
     }
 
     /// <summary>Runs a write, turning a value JSON can't hold into <c>invalid-input</c>.</summary>

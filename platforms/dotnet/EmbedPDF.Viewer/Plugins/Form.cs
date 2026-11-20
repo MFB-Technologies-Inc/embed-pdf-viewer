@@ -16,6 +16,9 @@ namespace EmbedPDF;
 /// <see cref="UpdateAsync(FormFieldRef, string, CancellationToken)"/> a patch,
 /// <see cref="AddWidgetAsync(FormFieldRef, string, CancellationToken)"/> a
 /// placement and <see cref="UpdateWidgetAsync"/> a widget patch.
+/// JSON text, and a typed draft's or patch's strings, with an unpaired
+/// surrogate are <see cref="PdfErrorCode.InvalidInput"/>, since they would
+/// reach the engine as U+FFFD.
 /// </remarks>
 [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Typed and JSON overloads, as in Swift.")]
 public sealed class FormCapability : IDisposable
@@ -160,7 +163,7 @@ public sealed class FormCapability : IDisposable
     {
         ArgumentNullException.ThrowIfNull(widget);
         ArgumentNullException.ThrowIfNull(patchJson);
-        return Ffi.ToPublic(await viewer.RunCancellable(token => handle.UpdateWidget(Ffi.ToFfi(widget), patchJson, token), cancellationToken).ConfigureAwait(false));
+        return Ffi.ToPublic(await viewer.RunCancellable(token => handle.UpdateWidget(Ffi.ToFfi(widget), Ffi.WellFormed(patchJson, "widget patch"), token), cancellationToken).ConfigureAwait(false));
     }
 
     /// <summary>Deletes a widget; answers its field after, or <see langword="null"/> when the field went with it.</summary>
@@ -217,7 +220,7 @@ public sealed class FormCapability : IDisposable
     public async Task<FormBatchResult> ImportValuesAsync(string valuesJson, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(valuesJson);
-        return Ffi.ToPublic(await viewer.RunCancellable(token => handle.ImportValues(valuesJson, token), cancellationToken).ConfigureAwait(false));
+        return Ffi.ToPublic(await viewer.RunCancellable(token => handle.ImportValues(Ffi.WellFormed(valuesJson, "values"), token), cancellationToken).ConfigureAwait(false));
     }
 
     /// <summary>Resets fields to their defaults, or every field; answers the fields reset.</summary>
@@ -238,7 +241,7 @@ public sealed class FormCapability : IDisposable
     public async Task<FormField> CreateAsync(string draftJson, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(draftJson);
-        return Ffi.ToPublic(await viewer.RunCancellable(token => handle.CreateDraft(draftJson, token), cancellationToken).ConfigureAwait(false));
+        return Ffi.ToPublic(await viewer.RunCancellable(token => handle.CreateDraft(Ffi.WellFormed(draftJson, "field draft"), token), cancellationToken).ConfigureAwait(false));
     }
 
     /// <summary>Creates a field with its first widget.</summary>
@@ -253,7 +256,7 @@ public sealed class FormCapability : IDisposable
     {
         ArgumentNullException.ThrowIfNull(field);
         ArgumentNullException.ThrowIfNull(patchJson);
-        return Ffi.ToPublic(await viewer.RunCancellable(token => handle.UpdatePatch(Ffi.ToFfi(field), patchJson, token), cancellationToken).ConfigureAwait(false));
+        return Ffi.ToPublic(await viewer.RunCancellable(token => handle.UpdatePatch(Ffi.ToFfi(field), Ffi.WellFormed(patchJson, "field patch"), token), cancellationToken).ConfigureAwait(false));
     }
 
     /// <summary>Changes a field.</summary>
@@ -269,7 +272,7 @@ public sealed class FormCapability : IDisposable
     {
         ArgumentNullException.ThrowIfNull(field);
         ArgumentNullException.ThrowIfNull(placementJson);
-        var r = await viewer.RunCancellable(token => handle.AddWidgetPlacement(Ffi.ToFfi(field), placementJson, token), cancellationToken).ConfigureAwait(false);
+        var r = await viewer.RunCancellable(token => handle.AddWidgetPlacement(Ffi.ToFfi(field), Ffi.WellFormed(placementJson, "placement"), token), cancellationToken).ConfigureAwait(false);
         return new(Ffi.ToPublic(r.Field), r.WidgetJson);
     }
 
@@ -309,7 +312,7 @@ public sealed class FormCapability : IDisposable
     {
         ArgumentNullException.ThrowIfNull(bundleJson);
         ArgumentNullException.ThrowIfNull(optionsJson);
-        return Ffi.ToPublic(await viewer.RunCancellable(token => handle.Import(bundleJson, optionsJson, token), cancellationToken).ConfigureAwait(false));
+        return Ffi.ToPublic(await viewer.RunCancellable(token => handle.Import(Ffi.WellFormed(bundleJson, "bundle"), Ffi.WellFormed(optionsJson, "import options"), token), cancellationToken).ConfigureAwait(false));
     }
 
     /// <summary>Repairs the form's structure, and with <paramref name="bakeAppearances"/> draws every appearance; answers a report as JSON.</summary>
