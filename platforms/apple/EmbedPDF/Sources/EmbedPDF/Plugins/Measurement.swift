@@ -93,9 +93,18 @@ public struct MeasurementCapability: Sendable {
   }
 
   /// A measurement annotation's value in its own scale, from the
-  /// annotation as `AnnotationCapability` reads it.
+  /// annotation's ref: the one `AnnotationCapability.create` returns, or an
+  /// `AnnotationInfo.annotationRef`. The engine reads nothing else of the
+  /// annotation from the caller.
+  public func readout(_ ref: AnnotationRef) async throws(PDFError) -> MeasurementReading {
+    try await readout(annotationJSON: AnnotationPosition.json(ref))
+  }
+
+  /// A measurement annotation's value in its own scale, from the
+  /// annotation as `AnnotationCapability` reads it. It forwards the
+  /// annotation's ref to the overload that takes an `AnnotationRef`.
   public func readout(_ annotation: AnnotationInfo) async throws(PDFError) -> MeasurementReading {
-    try await readout(annotationJSON: AnnotationPosition.json(annotation.annotationRef))
+    try await readout(annotation.annotationRef)
   }
 
   public func measureDistance(on page: PageRef, from: Point, to: Point) async throws(PDFError)

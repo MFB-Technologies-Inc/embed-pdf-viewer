@@ -180,6 +180,28 @@ extension BaseSuite {
       expectNoDifference(typed, fromJSON)
     }
 
+    /// The ref alone is enough: no read of the annotation comes first.
+    @Test func aMeasurementReadsOutFromItsRef() async throws {
+      let (viewer, document, page, _) = try await opened()
+      let measurement = try await viewer.measurement(for: document)
+      try await measurement.ensureLoaded(page)
+      let json = try await measurement.createMeasurement(
+        CreateMeasurementInput(kind: .distance, page: page, points: [Point(x: 10, y: 10), Point(x: 82, y: 10)]))
+      let objectNumber = try #require(try object(json)["objectNumber"] as? UInt32)
+      let ref = AnnotationRef.objectNumber(page: page, annotObjectNumber: objectNumber)
+
+      let reading = try await measurement.readout(ref)
+      guard case let .value(readout) = reading else {
+        Issue.record("expected a readout, got \(reading)")
+        return
+      }
+      expectNoDifference(readout.kind, .distance)
+      // 72 points is one inch, in the page's default metric scale.
+      #expect(abs(readout.value - 0.0254) < 1e-6)
+      let fromJSON = try await measurement.readout(annotationJSON: json)
+      expectNoDifference(reading, fromJSON)
+    }
+
     @Test func aSurfaceOpensWithTypedProps() async throws {
       let shell = try await shell()
       let props = StyleProps(annotationId: "a1", page: 3)
