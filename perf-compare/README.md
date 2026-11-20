@@ -66,7 +66,8 @@ viewer API generation moves a highlight. A flow can declare what it `needs` (`li
 an arm whose viewer lacks it (`capabilities` in `entry/api-v*.ts`) skips that flow. An arm can also
 list flows under `without` in `arms.json`: a flow known to fail at that commit, left out of the gate
 and the rounds so the arm's other flows are still timed. `hist-bac82a2cd` and `hist-3aa47e708` leave
-out `typeField`, which times out waiting for the typed value there. `undo` needs a
+out `typeField`, which times out waiting for the typed value there. `plugins` leaves out `typeField`
+for the same reason and `drawInk`, which never finishes. `undo` needs a
 history plugin, which `main` 2516e2786 doesn't have, so `main` and `main-aa` skip it. The gate
 runs every flow once on every arm, whatever `--flows` says, so it always has an `undo` answer from
 the arms with history. It compares that answer with `arms.json`'s `fallbackReference` (`main-now`)

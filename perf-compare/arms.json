@@ -358,6 +358,7 @@
     },
     "plugins": {
       "worktree": "plugins",
+      "without": ["drawInk", "typeField"],
       "kernel": "rust",
       "rustReads": false
     },
