@@ -281,6 +281,14 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
         }, null);
     }
 
+    void ThrowIfClosed()
+    {
+        lock (gate)
+        {
+            if (closed) throw PdfException.Closed();
+        }
+    }
+
     void Enter(GF.CancelToken? token)
     {
         lock (gate)

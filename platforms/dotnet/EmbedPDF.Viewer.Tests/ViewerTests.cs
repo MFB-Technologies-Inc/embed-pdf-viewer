@@ -31,6 +31,26 @@ public sealed class ViewerTests
     }
 
     [Fact]
+    public async Task ADisposedViewerReadsNoFileOrStream()
+    {
+        var viewer = await Started();
+        await viewer.DisposeAsync();
+        var missing = Path.Combine(Path.GetTempPath(), $"epdf-missing-{Guid.NewGuid():N}.pdf");
+        Assert.Equal(PdfErrorCode.InstanceClosed, (await Assert.ThrowsAsync<PdfException>(() => viewer.OpenFileAsync(missing))).Code);
+        using var stream = new MemoryStream(Fixture.Data("report"));
+        Assert.Equal(PdfErrorCode.InstanceClosed, (await Assert.ThrowsAsync<PdfException>(() => viewer.OpenAsync(stream))).Code);
+        Assert.Equal(0, stream.Position);
+    }
+
+    [Fact]
+    public async Task AMissingFileEscapesAsTheReadersOwnError()
+    {
+        await using var viewer = await Started();
+        var missing = Path.Combine(Path.GetTempPath(), $"epdf-missing-{Guid.NewGuid():N}.pdf");
+        await Assert.ThrowsAsync<FileNotFoundException>(() => viewer.OpenFileAsync(missing));
+    }
+
+    [Fact]
     public async Task ALockedDocumentOpensAsALockedTab()
     {
         await using var viewer = await Started();

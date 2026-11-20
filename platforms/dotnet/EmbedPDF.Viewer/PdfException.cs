@@ -21,7 +21,9 @@ namespace EmbedPDF;
 /// <c>catch (PdfException e) when (e.Code == PdfErrorCode.PermissionDenied)</c>.
 /// A call whose <see cref="CancellationToken"/> fired throws
 /// <see cref="OperationCanceledException"/> instead, with this exception as
-/// its inner exception when the kernel answered.
+/// its inner exception when the kernel answered. Argument errors throw
+/// <see cref="ArgumentException"/> before any call, and an open that reads the
+/// caller's file or stream lets that read's own exception escape unwrapped.
 /// </para>
 /// </remarks>
 public class PdfException : Exception

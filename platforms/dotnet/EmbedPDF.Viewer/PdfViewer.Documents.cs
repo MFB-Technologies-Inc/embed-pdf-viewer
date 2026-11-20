@@ -40,19 +40,35 @@ public sealed partial class PdfViewer
         Telemetry.Measured("open", async () => Ffi.ToPublic(await CallAsync(
             h => h.OpenDocument(pdf.ToArray(), Options(options)), cancellationToken).ConfigureAwait(false)));
 
-    /// <summary>Reads <paramref name="pdf"/> to its end and opens the bytes, as <see cref="OpenAsync(ReadOnlyMemory{byte}, OpenDocumentOptions?, CancellationToken)"/> does. The stream stays open.</summary>
+    /// <summary>
+    /// Reads <paramref name="pdf"/> to its end and opens the bytes, as
+    /// <see cref="OpenAsync(ReadOnlyMemory{byte}, OpenDocumentOptions?, CancellationToken)"/>
+    /// does. The stream stays open. A disposed viewer throws before reading.
+    /// What the stream throws while it is read (an <see cref="IOException"/>,
+    /// <see cref="NotSupportedException"/>, <see cref="ObjectDisposedException"/>)
+    /// escapes unwrapped: it is the caller's stream, not the engine, that failed.
+    /// </summary>
     public async Task<DocumentInfo> OpenAsync(Stream pdf, OpenDocumentOptions? options = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pdf);
+        ThrowIfClosed();
         using var buffer = new MemoryStream();
         await pdf.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
         return await OpenAsync(buffer.GetBuffer().AsMemory(0, (int)buffer.Length), options, cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>Reads the file at <paramref name="path"/> and opens it. The name defaults to the file's name.</summary>
+    /// <summary>
+    /// Reads the file at <paramref name="path"/> and opens it. The name
+    /// defaults to the file's name. A disposed viewer throws before reading.
+    /// A file that can't be read throws the reader's own exception
+    /// (<see cref="FileNotFoundException"/>, <see cref="DirectoryNotFoundException"/>,
+    /// <see cref="UnauthorizedAccessException"/>, <see cref="IOException"/>),
+    /// unwrapped, as <see cref="File.ReadAllBytesAsync(string, CancellationToken)"/> does.
+    /// </summary>
     public async Task<DocumentInfo> OpenFileAsync(string path, OpenDocumentOptions? options = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(path);
+        ThrowIfClosed();
         var bytes = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
         options ??= new OpenDocumentOptions();
         return await OpenAsync(bytes, options with { Name = options.Name ?? Path.GetFileName(path) }, cancellationToken).ConfigureAwait(false);
