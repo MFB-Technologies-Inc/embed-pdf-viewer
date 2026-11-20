@@ -47,7 +47,7 @@
 - Modify: `platforms/android/build-aar.sh` (build `-p epdf-viewer-host`, `--crate-type cdylib` through `cargo rustc` if the crate doesn't declare one; check `crates/epdf-viewer-host/Cargo.toml`), `bindings/consumer-rules.pro` (`-keep class uniffi.** { *; }`, JNA rules unchanged)
 - Create: `platforms/android/embedpdf/smoke/` (JVM test module holding `SmokeTest` as a local test)
 
-- [x] Fetch the Android slices from `MFB-Technologies-Inc/embed-pdf-runtime` release `runtime-af480d0ce420ed916db0de8d2e8827822ad7be1e` into `packages/engine/runtime/build/libpdfium/android-{arm64,x64}` with a new `platforms/android/fetch-android-runtime.sh` that verifies each archive against `pdf-runtime-build.generated.json` in that release. `build-aar.sh` calls it when a slice is missing.
+- [x] Fetch the Android slices from the runtime fork's release `runtime-af480d0ce420ed916db0de8d2e8827822ad7be1e` into `packages/engine/runtime/build/libpdfium/android-{arm64,x64}` with a new `platforms/android/fetch-android-runtime.sh` that verifies each archive against `pdf-runtime-build.generated.json` in that release. `build-aar.sh` calls it when a slice is missing.
 - [x] Build both ABIs. Expected: `libepdf_viewer_host.so` per ABI, `LOAD alignment 0x4000`, no undefined `__arm_` symbol.
 - [x] Generate Kotlin for every component into `bindings/src/main/kotlin`. Expected: `./gradlew :bindings:assembleRelease` compiles.
 - [x] Record `.so` sizes per ABI (`du -h`) for the README.

@@ -1,5 +1,7 @@
 package com.embedpdf.javascript
 
+import android.content.Context
+import android.content.ContextWrapper
 import com.embedpdf.ActionContext
 import com.embedpdf.ActionOrigin
 import com.embedpdf.ActionSourceApi
@@ -28,6 +30,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RuntimeEnvironment
@@ -153,6 +156,23 @@ class JavaScriptSandboxEngineTest {
         }
         val engine = IsolateScriptEngine(FakeIsolate { failed })
         assertEquals(ScriptEvaluationThrew("RangeError: Maximum call stack size exceeded"), engine.evaluate("f()", 50u))
+    }
+
+    /** The shared connection never keeps an activity, or any context that isn't the application's. */
+    @Test
+    fun theSharedConnectionKeepsOnlyTheApplicationContext() {
+        val application = RuntimeEnvironment.getApplication()
+        assertTrue(applicationContextOf(application) === application)
+        assertTrue(applicationContextOf(ContextWrapper(application)) === application)
+        val orphan = object : ContextWrapper(null) {
+            override fun getApplicationContext(): Context? = null
+        }
+        try {
+            applicationContextOf(orphan)
+            fail("a context without an application context was kept")
+        } catch (e: IllegalArgumentException) {
+            // Expected.
+        }
     }
 }
 

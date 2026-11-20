@@ -36,14 +36,15 @@ public object ScriptEngineCheck {
 /**
  * Marks the hooks a script engine module uses to talk to [PdfViewer]. An app
  * never needs them; an engine module opts in with
- * `@OptIn(EmbedPdfEngineIntegration::class)`.
+ * `@OptIn(EmbedPdfEngineIntegration::class)`, and marks its own overrides of
+ * them with this annotation, so they stay out of an app's reach too.
  */
 @RequiresOptIn(
     message = "This hook is for script engine modules, not apps.",
     level = RequiresOptIn.Level.ERROR,
 )
 @Retention(AnnotationRetention.BINARY)
-@Target(AnnotationTarget.CLASS)
+@Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY)
 public annotation class EmbedPdfEngineIntegration
 
 /**
@@ -54,7 +55,7 @@ public annotation class EmbedPdfEngineIntegration
  * [unavailableReason] isn't `null` runs with JavaScript disabled, and reports
  * the reason once through [PdfViewer.observeReportedErrors] (`unsupported`).
  */
-@EmbedPdfEngineIntegration
+@JvmDefaultWithoutCompatibility
 public interface ScriptEngineAvailability {
     /** Why scripts can't run on this device, or `null` when they can. Read once, when a viewer is built. */
     public val unavailableReason: String?
@@ -64,6 +65,7 @@ public interface ScriptEngineAvailability {
      * viewer's [PdfViewer.observeReportedErrors]. The viewer holds [reporter]
      * strongly, so a factory that keeps it weakly lets the viewer go.
      */
+    @EmbedPdfEngineIntegration
     public fun attach(reporter: ScriptEngineReporter) {}
 }
 

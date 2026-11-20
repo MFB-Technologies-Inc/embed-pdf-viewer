@@ -75,7 +75,10 @@ public typealias StandardCommandCompletion = uniffi.epdf_viewer_host.StandardCom
  * `withContext(Dispatchers.Main)`. What it throws fails the command with its
  * code (a [PdfException] keeps its own, a `CancellationException` is
  * `operation-cancelled`, anything else `operation-failed` with its message).
- * Without [run], the command finishes at once.
+ * Without [run], the command finishes at once. The coroutine belongs to no
+ * scope of the viewer's: destroying the viewer doesn't cancel a [run] body
+ * already running, which finishes on its own (a viewer call it makes then
+ * throws `instance-closed`).
  *
  * The viewer keeps a registered handler until [Registration.unregister] runs
  * or the viewer is destroyed; closing a document doesn't release it. A

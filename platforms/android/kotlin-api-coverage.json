@@ -6039,7 +6039,7 @@
       "symbol": "get_page_at",
       "kotlin": {
         "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
-        "symbol": "page"
+        "symbol": "pageAt"
       }
     },
     {

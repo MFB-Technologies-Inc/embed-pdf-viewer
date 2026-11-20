@@ -7,7 +7,7 @@
 #                 (default: platforms/android/embedpdf/gradle.properties)
 #
 # EMBEDPDF_RUNTIME_REPO names the owner/repo whose releases it asks about
-# (default: MFB-Technologies-Inc/embed-pdf-viewer).
+# (default: the viewer fork, as RUNTIME_REPO below spells it).
 #
 # Exit 0: the pin is current. Prints `current android-engine-<hash>`.
 # Exit 1: the pin is stale and the tree's release isn't published yet.

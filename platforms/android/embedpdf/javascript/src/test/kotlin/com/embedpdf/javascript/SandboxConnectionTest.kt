@@ -5,11 +5,13 @@ import com.embedpdf.HostExceptionFailed
 import com.embedpdf.PdfException
 import com.embedpdf.ScriptEngineReporter
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Future
+import java.util.concurrent.TimeoutException
 
 /**
  * The connection every factory shares, through fake sandboxes: Robolectric
@@ -104,8 +106,8 @@ class SandboxConnectionTest {
     }
 
     @Test
-    fun anIsolateThatCantBeMadeClosesTheConnectionAndRetriesOnce() {
-        val broken = FakeSandbox(isolate = { throw IllegalStateException("sandbox died") })
+    fun aDeadSandboxClosesTheConnectionAndRetriesOnce() {
+        val broken = FakeSandbox(isolate = { throw DeadSandboxException("sandbox died") })
         val service = FakeService(ready(broken), ready(FakeSandbox()))
         factory(service).create()
         assertEquals(1, broken.closes)
@@ -114,8 +116,8 @@ class SandboxConnectionTest {
 
     @Test
     fun twoFailuresInARowFailTheRealm() {
-        val first = FakeSandbox(isolate = { throw IllegalStateException("sandbox died") })
-        val second = FakeSandbox(isolate = { throw IllegalStateException("sandbox died again") })
+        val first = FakeSandbox(isolate = { throw DeadSandboxException("sandbox died") })
+        val second = FakeSandbox(isolate = { throw DeadSandboxException("sandbox died again") })
         val service = FakeService(ready(first), ready(second))
         try {
             factory(service).create()
@@ -125,6 +127,64 @@ class SandboxConnectionTest {
         }
         assertEquals(1, first.closes)
         assertEquals(1, second.closes)
+    }
+
+    /** An isolate the live sandbox refuses fails that realm alone: the connection stays for the next factory's. */
+    @Test
+    fun anIsolateFailureOfALiveSandboxKeepsTheConnection() {
+        var refusals = 1
+        val sandbox = FakeSandbox(isolate = {
+            if (refusals-- > 0) throw IllegalArgumentException("too many isolates")
+            FakeIsolate { CompletableFuture.completedFuture("1") }
+        })
+        val service = FakeService(ready(sandbox), ready(FakeSandbox()))
+        val first = factory(service)
+        val second = factory(service)
+        try {
+            first.create()
+            fail("a realm without an isolate")
+        } catch (e: HostExceptionFailed) {
+            assertTrue(e.detail, e.detail.contains("too many isolates"))
+        }
+        second.create()
+        assertEquals(0, sandbox.closes)
+        assertEquals(1, service.connects)
+    }
+
+    /** The connect's own timeout is the only one: no second wait, and the pending connect is kept. */
+    @Test
+    fun aConnectThatTimesOutIsNotRetried() {
+        val pending = CompletableFuture<ScriptSandbox>()
+        val service = FakeService({ pending })
+        service.holder.retain()
+        try {
+            service.holder.isolate(timeoutMs = 20)
+            fail("a pending connect gave an isolate")
+        } catch (e: TimeoutException) {
+            // Expected.
+        }
+        assertEquals(1, service.connects)
+        assertFalse(pending.isCancelled)
+        pending.complete(FakeSandbox())
+        service.holder.isolate(timeoutMs = 20)
+        assertEquals(1, service.connects)
+    }
+
+    /** A create that passed its factory's check after the last release doesn't connect again. */
+    @Test
+    fun aReleasedConnectionRefusesToConnect() {
+        val service = FakeService(ready(FakeSandbox()), ready(FakeSandbox()))
+        val first = factory(service)
+        val second = factory(service)
+        first.close()
+        second.close()
+        try {
+            service.holder.isolate(timeoutMs = 20)
+            fail("a released connection connected")
+        } catch (e: ClosedConnectionException) {
+            assertEquals(JavaScriptSandboxEngineFactory.CLOSED, e.message)
+        }
+        assertEquals(1, service.connects)
     }
 
     @Test

@@ -1132,10 +1132,6 @@ public abstract interface class com/embedpdf/ScriptEngineAvailability {
 	public abstract fun getUnavailableReason ()Ljava/lang/String;
 }
 
-public final class com/embedpdf/ScriptEngineAvailability$DefaultImpls {
-	public static fun attach (Lcom/embedpdf/ScriptEngineAvailability;Lcom/embedpdf/ScriptEngineReporter;)V
-}
-
 public final class com/embedpdf/ScriptEngineCheck {
 	public static final field INSTANCE Lcom/embedpdf/ScriptEngineCheck;
 	public final fun run (Luniffi/epdf_plugin_actions/ScriptEngineFactory;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -1300,7 +1296,7 @@ public final class com/embedpdf/StageCapability {
 	public final fun nextPage (Luniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun nextPage$default (Lcom/embedpdf/StageCapability;Luniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
-	public final fun page (Luniffi/epdf_ffi/Point;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun pageAt (Luniffi/epdf_ffi/Point;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun pageCount (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun pageFrame (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun pageRectToViewport (Luniffi/epdf_ffi/PageRef;Luniffi/epdf_ffi/Rect;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;

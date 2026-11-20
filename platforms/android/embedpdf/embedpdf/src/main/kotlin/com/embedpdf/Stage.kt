@@ -178,7 +178,7 @@ public class StageCapability internal constructor(
     public suspend fun pageFrame(page: PageRef): StageVisiblePage? = viewer.call { handle.pageFrame(page) }
 
     /** The page under a viewport point, or `null` over a gap. */
-    public suspend fun page(point: Point): StagePageHit? = viewer.call { handle.pageAt(point) }
+    public suspend fun pageAt(point: Point): StagePageHit? = viewer.call { handle.pageAt(point) }
 
     public suspend fun viewportToPage(page: PageRef, point: Point): Point? = viewer.call { handle.viewportToPage(page, point) }
 

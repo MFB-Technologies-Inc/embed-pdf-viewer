@@ -137,7 +137,7 @@ Checked 2026-11-20: its `minSdk` is 26, two above ours; the decision record abov
 consequence.
 
 **D4. Publishing.** Recommendation: a Maven repository in GitHub Packages on
-`MFB-Technologies-Inc/embed-pdf-runtime`, `embedpdf-bindings` versioned `0.0.0-engine.<hash>` and
+the runtime fork, `embedpdf-bindings` versioned `0.0.0-engine.<hash>` and
 the other three by package release. Cost: GitHub Packages requires a token even for reads, which
 every consumer's Gradle setup must carry. Maven Central avoids that but needs a namespace and
 signing setup we don't have.
