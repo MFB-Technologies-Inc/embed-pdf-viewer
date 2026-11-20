@@ -21,9 +21,9 @@ Download the package and checksum from this [GitHub prerelease](https://github.c
 ```bash
 mkdir -p local-packages
 cd local-packages
-curl --fail --location --remote-name https://github.com/@REPO@/releases/download/@TAG@/EmbedPDF.Engine.0.0.0-local.nupkg
-curl --fail --location --remote-name https://github.com/@REPO@/releases/download/@TAG@/EmbedPDF.Engine.0.0.0-local.nupkg.sha256
-sha256sum --check EmbedPDF.Engine.0.0.0-local.nupkg.sha256
+curl --fail --location --remote-name https://github.com/@REPO@/releases/download/@TAG@/EmbedPDF.Engine.0.0.0-local.linux-arm64.nupkg
+curl --fail --location --remote-name https://github.com/@REPO@/releases/download/@TAG@/EmbedPDF.Engine.0.0.0-local.linux-arm64.nupkg.sha256
+sha256sum --check EmbedPDF.Engine.0.0.0-local.linux-arm64.nupkg.sha256
 cd ..
 ```
 

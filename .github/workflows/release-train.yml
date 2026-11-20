@@ -154,9 +154,11 @@ jobs:
           package=EmbedPDF.Engine.0.0.0-local
           check swift "$SWIFT_VERSION"
           check viewer "rust-viewer-$VIEWER_VERSION" "mfb-embedpdf-rust-viewer-$VIEWER_VERSION.tgz"
-          check dotnet "dotnet-engine-0.0.0-local-${GITHUB_SHA:0:12}" \
-            "$package.nupkg" "$package.nupkg.sha256" "$package.provenance.json" \
-            "$package.validation.linux-arm64.json" EmbedPDF-CSharp-Existing-App.md
+          dotnet_assets=()
+          for rid in linux-arm64 linux-x64 osx-arm64 win-x64; do
+            dotnet_assets+=("$package.$rid.nupkg" "$package.$rid.nupkg.sha256" "$package.$rid.provenance.json" "$package.validation.$rid.json")
+          done
+          check dotnet "dotnet-engine-0.0.0-local-${GITHUB_SHA:0:12}" "${dotnet_assets[@]}" EmbedPDF-CSharp-Existing-App.md
           exit "$status"
 
       # For the summary only: the reusable workflows compute these again.
@@ -418,16 +420,22 @@ jobs:
         with:
           fetch-depth: 1
 
+      # One artifact per RID (dotnet-release-<rid>), merged: their file names
+      # don't overlap.
       - uses: actions/download-artifact@v7
         with:
-          name: dotnet-release
+          pattern: dotnet-release-*
+          merge-multiple: true
           path: ${{ runner.temp }}/dotnet-release
 
       # The guide names the release tag and commit, so it is rendered here.
       - name: Render the existing-app guide
         run: |
           R=$RUNNER_TEMP/dotnet-release
-          (cd "$R" && sha256sum -c "$PACKAGE.nupkg.sha256")
+          ls -l "$R"
+          for rid in linux-arm64 linux-x64 osx-arm64 win-x64; do
+            (cd "$R" && sha256sum -c "$PACKAGE.$rid.nupkg.sha256")
+          done
           tag="dotnet-engine-0.0.0-local-${GITHUB_SHA:0:12}"
           echo "TAG=$tag" >> "$GITHUB_ENV"
           bash platforms/dotnet/packaging/render-guide.sh "$R/EmbedPDF-CSharp-Existing-App.md.in" "$R/guide-facts.json" \
@@ -436,7 +444,10 @@ jobs:
       - name: Release the C# engine
         run: |
           R=$RUNNER_TEMP/dotnet-release
+          assets=()
+          for rid in linux-arm64 linux-x64 osx-arm64 win-x64; do
+            assets+=("$R/$PACKAGE.$rid.nupkg" "$R/$PACKAGE.$rid.nupkg.sha256" "$R/$PACKAGE.$rid.provenance.json" "$R/$PACKAGE.validation.$rid.json")
+          done
           bash scripts/release/github-release.sh publish "$TAG" "$GITHUB_SHA" \
             "C# engine 0.0.0-local (${GITHUB_SHA:0:9})" docs/releases/dotnet-engine.md \
-            "$R/$PACKAGE.nupkg" "$R/$PACKAGE.nupkg.sha256" "$R/$PACKAGE.provenance.json" \
-            "$R/$PACKAGE.validation.linux-arm64.json" "$R/EmbedPDF-CSharp-Existing-App.md"
+            "${assets[@]}" "$R/EmbedPDF-CSharp-Existing-App.md"

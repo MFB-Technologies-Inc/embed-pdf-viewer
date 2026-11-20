@@ -46,7 +46,7 @@ out=$work/guide.md
 
 if grep -q '@[A-Z0-9_]*@' "$out"; then flunk "no placeholder left"; else pass "no placeholder left"; fi
 expect_line "$out" "Expected package SHA-256: \`$sha\` (9,384,244 bytes)." "checksum and grouped size"
-expect_line "$out" "https://github.com/$repo/releases/download/$tag/EmbedPDF.Engine.0.0.0-local.nupkg.sha256" "download URL"
+expect_line "$out" "https://github.com/$repo/releases/download/$tag/EmbedPDF.Engine.0.0.0-local.linux-arm64.nupkg.sha256" "download URL"
 expect_line "$out" "(https://github.com/$repo/releases/tag/$tag)" "release link"
 expect_line "$out" "[viewer commit $commit](https://github.com/$repo/tree/$commit)" "source link"
 expect_line "$out" "upstream's runtime release \`runtime-f2ea7597287f26bdcb450602de6616ff6939d506\`" "runtime tag"
