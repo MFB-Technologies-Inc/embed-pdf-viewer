@@ -32,6 +32,19 @@ else
   diff <(echo "$linked") <(echo "$listed")
 fi
 
+# Every file stage-runtime and pack-runtime put into the package must move the
+# hash. Each input is edited in place, rehashed and restored from a copy.
+for rel in LICENSE packages/engine/runtime/engine-runtime-build.json \
+           platforms/dotnet/packaging/package.py platforms/dotnet/EmbedPDF.Runtime/EmbedPDF.Runtime.csproj \
+           platforms/dotnet/build-viewer-host.sh crates/epdf-viewer-host/src/lib.rs; do
+  cp "$ROOT/$rel" "$TMP/backup"
+  printf '\n' >> "$ROOT/$rel"
+  edited="$(bash "$HERE/dotnet-engine-hash.sh")"
+  cp "$TMP/backup" "$ROOT/$rel"
+  [[ "$edited" != "$short" ]] && pass "hash moves with $rel" || fail "hash moves with $rel"
+done
+[[ "$(bash "$HERE/dotnet-engine-hash.sh")" == "$short" ]] && pass "inputs restored" || fail "inputs restored"
+
 props="$TMP/EmbedPDF.Runtime.props"
 printf '<Project><PropertyGroup><EmbedPdfRuntimeVersion>0.0.0-engine.%s</EmbedPdfRuntimeVersion></PropertyGroup></Project>\n' "$short" > "$props"
 out="$(bash "$HERE/check-dotnet-engine.sh" --props "$props" 2>&1)"

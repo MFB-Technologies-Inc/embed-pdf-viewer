@@ -39,6 +39,10 @@ INPUTS=(
   "platforms/dotnet/build-viewer-host.sh"
   "platforms/dotnet/packaging/package.py"
   "platforms/dotnet/EmbedPDF.Runtime/EmbedPDF.Runtime.csproj"
+  # stage-runtime copies both into every slice. The pin also names the PDFium
+  # archive (and its licenses) by checksum, so it stands for those bytes.
+  "LICENSE"
+  "packages/engine/runtime/engine-runtime-build.json"
 )
 for crate in "${DOTNET_CRATES[@]}"; do
   count=0
