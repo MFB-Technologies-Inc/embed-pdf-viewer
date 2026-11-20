@@ -1,3 +1,7 @@
 # zstd-compressed conformance vectors: never diff or merge them as text.
 tooling/plugin-conformance/vectors/**/*.json.zst binary
 crates/plugin-conformance/tests/data/*.json.zst binary
+# Shipped byte for byte in the EmbedPDF.Runtime package (as EmbedPDF-LICENSE
+# and epdf-runtime.json). No line-ending conversion, on any checkout.
+/LICENSE -text
+/packages/engine/runtime/engine-runtime-build.json -text
