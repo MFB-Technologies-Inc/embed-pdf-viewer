@@ -93,6 +93,23 @@ internal static class KernelCallback
     }
 
     /// <summary>
+    /// <see cref="RunOrFail(KernelMark, Action)"/> for a trait member that
+    /// answers a value.
+    /// </summary>
+    internal static T RunOrFail<T>(KernelMark mark, Func<T> body)
+    {
+        using var _ = Enter(mark);
+        try
+        {
+            return body();
+        }
+        catch (Exception error)
+        {
+            throw new uniffi.epdf_ffi.HostException.Failed(error.Message);
+        }
+    }
+
+    /// <summary>
     /// A disposal started inside a callback: awaiting it works, blocking on it
     /// before it finishes throws, because the blocked thread is the one the
     /// disposal needs.

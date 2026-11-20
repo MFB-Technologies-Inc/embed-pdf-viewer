@@ -39,6 +39,17 @@ public sealed class EnumMirrorTests
         { typeof(ScriptDiagnosticCode), typeof(uniffi.epdf_plugin_actions.ScriptDiagnosticCode) },
         { typeof(ScriptErrorKind), typeof(uniffi.epdf_plugin_actions.ScriptErrorKind) },
         { typeof(ScriptPhase), typeof(uniffi.epdf_plugin_actions.ScriptPhase) },
+        { typeof(ZoomMode), typeof(uniffi.epdf_ffi.ZoomMode) },
+        { typeof(StageAlign), typeof(uniffi.epdf_ffi.StageAlign) },
+        { typeof(StageDirection), typeof(uniffi.epdf_ffi.StageDirection) },
+        { typeof(StageSpreadMode), typeof(uniffi.epdf_ffi.StageSpreadMode) },
+        { typeof(StageSizingMode), typeof(uniffi.epdf_ffi.StageSizingMode) },
+        { typeof(StageFlow), typeof(uniffi.epdf_plugin_stage.StageFlow) },
+        { typeof(StageLayout), typeof(uniffi.epdf_plugin_stage.StageLayout) },
+        { typeof(StageOrientation), typeof(uniffi.epdf_plugin_stage.StageOrientation) },
+        { typeof(StageRevealWord), typeof(uniffi.epdf_plugin_stage.StageRevealWord) },
+        { typeof(StageScrollBehavior), typeof(uniffi.epdf_plugin_stage.StageScrollBehavior) },
+        { typeof(StageSettingKey), typeof(uniffi.epdf_plugin_stage.StageSettingKey) },
     };
 
     [Theory]

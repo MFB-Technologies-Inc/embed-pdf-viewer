@@ -694,6 +694,17 @@ EmbedPDF.AttachmentRef.Deconstruct(out string! Key) -> void
 EmbedPDF.AttachmentRef.Equals(EmbedPDF.AttachmentRef other) -> bool
 EmbedPDF.AttachmentRef.Key.get -> string!
 EmbedPDF.AttachmentRef.Key.init -> void
+EmbedPDF.Camera
+EmbedPDF.Camera.Camera() -> void
+EmbedPDF.Camera.Camera(double X, double Y, double Zoom) -> void
+EmbedPDF.Camera.Deconstruct(out double X, out double Y, out double Zoom) -> void
+EmbedPDF.Camera.Equals(EmbedPDF.Camera other) -> bool
+EmbedPDF.Camera.X.get -> double
+EmbedPDF.Camera.X.init -> void
+EmbedPDF.Camera.Y.get -> double
+EmbedPDF.Camera.Y.init -> void
+EmbedPDF.Camera.Zoom.get -> double
+EmbedPDF.Camera.Zoom.init -> void
 EmbedPDF.ContentInclusion
 EmbedPDF.ContentInclusion.Always = 1 -> EmbedPDF.ContentInclusion
 EmbedPDF.ContentInclusion.Never = 2 -> EmbedPDF.ContentInclusion
@@ -1109,6 +1120,8 @@ EmbedPDF.IScriptEngine
 EmbedPDF.IScriptEngine.Evaluate(string! program, int timeLimitMs) -> EmbedPDF.ScriptEvaluation!
 EmbedPDF.IScriptEngineFactory
 EmbedPDF.IScriptEngineFactory.Create() -> EmbedPDF.IScriptEngine!
+EmbedPDF.IStageInitialViewProvider
+EmbedPDF.IStageInitialViewProvider.InitialView() -> EmbedPDF.StageViewState?
 EmbedPDF.InteractionCapability
 EmbedPDF.InteractionCapability.ActivateDefaultToolAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.InteractionCapability.ActivateToolAsync(EmbedPDF.ToolId id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -1684,6 +1697,19 @@ EmbedPDF.PageEventKind.Close = 1 -> EmbedPDF.PageEventKind
 EmbedPDF.PageEventKind.Invisible = 3 -> EmbedPDF.PageEventKind
 EmbedPDF.PageEventKind.Open = 0 -> EmbedPDF.PageEventKind
 EmbedPDF.PageEventKind.Visible = 2 -> EmbedPDF.PageEventKind
+EmbedPDF.PageFrameInsets
+EmbedPDF.PageFrameInsets.Bottom.get -> double
+EmbedPDF.PageFrameInsets.Bottom.init -> void
+EmbedPDF.PageFrameInsets.Deconstruct(out double Top, out double Right, out double Bottom, out double Left) -> void
+EmbedPDF.PageFrameInsets.Equals(EmbedPDF.PageFrameInsets other) -> bool
+EmbedPDF.PageFrameInsets.Left.get -> double
+EmbedPDF.PageFrameInsets.Left.init -> void
+EmbedPDF.PageFrameInsets.PageFrameInsets() -> void
+EmbedPDF.PageFrameInsets.PageFrameInsets(double Top, double Right, double Bottom, double Left) -> void
+EmbedPDF.PageFrameInsets.Right.get -> double
+EmbedPDF.PageFrameInsets.Right.init -> void
+EmbedPDF.PageFrameInsets.Top.get -> double
+EmbedPDF.PageFrameInsets.Top.init -> void
 EmbedPDF.PageGeometry
 EmbedPDF.PageGeometry.Deconstruct(out EmbedPDF.RenderRotation Turn, out EmbedPDF.PdfSize PageSize) -> void
 EmbedPDF.PageGeometry.DisplaySize.get -> EmbedPDF.PdfSize
@@ -1923,6 +1949,7 @@ EmbedPDF.PdfViewer.GetRenderAsync(EmbedPDF.DocumentInfo! document, System.Thread
 EmbedPDF.PdfViewer.GetSearchAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.SearchCapability!>!
 EmbedPDF.PdfViewer.GetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ViewerSettings!>!
 EmbedPDF.PdfViewer.GetShellAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ShellCapability!>!
+EmbedPDF.PdfViewer.GetStageAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.StageCapability!>!
 EmbedPDF.PdfViewer.GetViewManagerAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ViewManagerCapability!>!
 EmbedPDF.PdfViewer.HasDocumentAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 EmbedPDF.PdfViewer.MoveAsync(EmbedPDF.DocumentInfo! document, int index, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -2942,10 +2969,648 @@ EmbedPDF.SignatureConfig
 EmbedPDF.SignatureConfig.<Clone>$() -> EmbedPDF.SignatureConfig!
 EmbedPDF.SignatureConfig.Equals(EmbedPDF.SignatureConfig? other) -> bool
 EmbedPDF.SignatureConfig.SignatureConfig() -> void
+EmbedPDF.StageAlign
+EmbedPDF.StageAlign.Center = 1 -> EmbedPDF.StageAlign
+EmbedPDF.StageAlign.End = 2 -> EmbedPDF.StageAlign
+EmbedPDF.StageAlign.Start = 0 -> EmbedPDF.StageAlign
+EmbedPDF.StageAlignValue
+EmbedPDF.StageAlignValue.Fraction
+EmbedPDF.StageAlignValue.Fraction.Deconstruct(out double Value) -> void
+EmbedPDF.StageAlignValue.Fraction.Equals(EmbedPDF.StageAlignValue.Fraction? other) -> bool
+EmbedPDF.StageAlignValue.Fraction.Fraction(double Value) -> void
+EmbedPDF.StageAlignValue.Fraction.Value.get -> double
+EmbedPDF.StageAlignValue.Fraction.Value.init -> void
+EmbedPDF.StageAlignValue.Named
+EmbedPDF.StageAlignValue.Named.Align.get -> EmbedPDF.StageAlign
+EmbedPDF.StageAlignValue.Named.Align.init -> void
+EmbedPDF.StageAlignValue.Named.Deconstruct(out EmbedPDF.StageAlign Align) -> void
+EmbedPDF.StageAlignValue.Named.Equals(EmbedPDF.StageAlignValue.Named? other) -> bool
+EmbedPDF.StageAlignValue.Named.Named(EmbedPDF.StageAlign Align) -> void
+EmbedPDF.StageAlignValue.StageAlignValue(EmbedPDF.StageAlignValue! original) -> void
+EmbedPDF.StageAlignment
+EmbedPDF.StageAlignment.<Clone>$() -> EmbedPDF.StageAlignment!
+EmbedPDF.StageAlignment.Deconstruct(out EmbedPDF.StageAlign X, out EmbedPDF.StageAlign Y) -> void
+EmbedPDF.StageAlignment.Equals(EmbedPDF.StageAlignment? other) -> bool
+EmbedPDF.StageAlignment.StageAlignment(EmbedPDF.StageAlign X, EmbedPDF.StageAlign Y) -> void
+EmbedPDF.StageAlignment.X.get -> EmbedPDF.StageAlign
+EmbedPDF.StageAlignment.X.init -> void
+EmbedPDF.StageAlignment.Y.get -> EmbedPDF.StageAlign
+EmbedPDF.StageAlignment.Y.init -> void
+EmbedPDF.StageAlignmentValue
+EmbedPDF.StageAlignmentValue.<Clone>$() -> EmbedPDF.StageAlignmentValue!
+EmbedPDF.StageAlignmentValue.Deconstruct(out EmbedPDF.StageAlignValue! X, out EmbedPDF.StageAlignValue! Y) -> void
+EmbedPDF.StageAlignmentValue.Equals(EmbedPDF.StageAlignmentValue? other) -> bool
+EmbedPDF.StageAlignmentValue.StageAlignmentValue(EmbedPDF.StageAlignValue! X, EmbedPDF.StageAlignValue! Y) -> void
+EmbedPDF.StageAlignmentValue.X.get -> EmbedPDF.StageAlignValue!
+EmbedPDF.StageAlignmentValue.X.init -> void
+EmbedPDF.StageAlignmentValue.Y.get -> EmbedPDF.StageAlignValue!
+EmbedPDF.StageAlignmentValue.Y.init -> void
+EmbedPDF.StageArrivalAlignValue
+EmbedPDF.StageArrivalAlignValue.Align
+EmbedPDF.StageArrivalAlignValue.Align.Align(EmbedPDF.StageAlignValue! Value) -> void
+EmbedPDF.StageArrivalAlignValue.Align.Deconstruct(out EmbedPDF.StageAlignValue! Value) -> void
+EmbedPDF.StageArrivalAlignValue.Align.Equals(EmbedPDF.StageArrivalAlignValue.Align? other) -> bool
+EmbedPDF.StageArrivalAlignValue.Align.Value.get -> EmbedPDF.StageAlignValue!
+EmbedPDF.StageArrivalAlignValue.Align.Value.init -> void
+EmbedPDF.StageArrivalAlignValue.Keep
+EmbedPDF.StageArrivalAlignValue.Keep.Equals(EmbedPDF.StageArrivalAlignValue.Keep? other) -> bool
+EmbedPDF.StageArrivalAlignValue.Keep.Keep() -> void
+EmbedPDF.StageArrivalAlignValue.StageArrivalAlignValue(EmbedPDF.StageArrivalAlignValue! original) -> void
+EmbedPDF.StageArrivalAlignment
+EmbedPDF.StageArrivalAlignment.<Clone>$() -> EmbedPDF.StageArrivalAlignment!
+EmbedPDF.StageArrivalAlignment.Deconstruct(out EmbedPDF.StageArrivalAlignValue! X, out EmbedPDF.StageArrivalAlignValue! Y) -> void
+EmbedPDF.StageArrivalAlignment.Equals(EmbedPDF.StageArrivalAlignment? other) -> bool
+EmbedPDF.StageArrivalAlignment.StageArrivalAlignment(EmbedPDF.StageArrivalAlignValue! X, EmbedPDF.StageArrivalAlignValue! Y) -> void
+EmbedPDF.StageArrivalAlignment.X.get -> EmbedPDF.StageArrivalAlignValue!
+EmbedPDF.StageArrivalAlignment.X.init -> void
+EmbedPDF.StageArrivalAlignment.Y.get -> EmbedPDF.StageArrivalAlignValue!
+EmbedPDF.StageArrivalAlignment.Y.init -> void
+EmbedPDF.StageBoxQuery
+EmbedPDF.StageBoxQuery.<Clone>$() -> EmbedPDF.StageBoxQuery!
+EmbedPDF.StageBoxQuery.Equals(EmbedPDF.StageBoxQuery? other) -> bool
+EmbedPDF.StageBoxQuery.MaxHeight.get -> double?
+EmbedPDF.StageBoxQuery.MaxHeight.init -> void
+EmbedPDF.StageBoxQuery.MaxWidth.get -> double?
+EmbedPDF.StageBoxQuery.MaxWidth.init -> void
+EmbedPDF.StageBoxQuery.MinHeight.get -> double?
+EmbedPDF.StageBoxQuery.MinHeight.init -> void
+EmbedPDF.StageBoxQuery.MinWidth.get -> double?
+EmbedPDF.StageBoxQuery.MinWidth.init -> void
+EmbedPDF.StageBoxQuery.Orientation.get -> EmbedPDF.StageOrientation?
+EmbedPDF.StageBoxQuery.Orientation.init -> void
+EmbedPDF.StageBoxQuery.StageBoxQuery() -> void
+EmbedPDF.StageCapability
+EmbedPDF.StageCapability.ApplyViewStateAsync(EmbedPDF.StageViewState! view, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.BeginGestureAsync(bool elastic = false, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.BeginZoomDragAsync(EmbedPDF.PdfPoint point, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.CanGoNextAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.StageCapability.CanGoPreviousAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.StageCapability.CanZoomInAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.StageCapability.CanZoomOutAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.StageCapability.CancelZoomDragAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.Dispose() -> void
+EmbedPDF.StageCapability.DoubleTapZoomAsync(EmbedPDF.PdfPoint point, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.EndGestureAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.EndZoomDragAsync(bool zoomOut = false, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.FitAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.FitAutomaticAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.FitPageAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.FitWidthAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.FlingAsync(double velocityX, double velocityY, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.GetActiveRulesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
+EmbedPDF.StageCapability.GetCameraAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.Camera>!
+EmbedPDF.StageCapability.GetCurrentDestinationAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageDestination?>!
+EmbedPDF.StageCapability.GetCurrentItemPagesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.PageInfo!>!>!
+EmbedPDF.StageCapability.GetCurrentPageAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageRef?>!
+EmbedPDF.StageCapability.GetCurrentPageIndexAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+EmbedPDF.StageCapability.GetCurrentPagesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.PageInfo!>!>!
+EmbedPDF.StageCapability.GetLensIdAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+EmbedPDF.StageCapability.GetPageAtAsync(EmbedPDF.PdfPoint point, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.StagePageHit?>!
+EmbedPDF.StageCapability.GetPageCountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+EmbedPDF.StageCapability.GetPageFrameAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.StageVisiblePage?>!
+EmbedPDF.StageCapability.GetScrollMetricsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.StageScrollMetrics>!
+EmbedPDF.StageCapability.GetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.StageSettings!>!
+EmbedPDF.StageCapability.GetViewRotationAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<double>!
+EmbedPDF.StageCapability.GetViewStateAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.StageViewState!>!
+EmbedPDF.StageCapability.GetViewpointAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.StageViewpoint!>!
+EmbedPDF.StageCapability.GetViewportSizeAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PdfSize>!
+EmbedPDF.StageCapability.GetVisiblePagesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.StageVisiblePage!>!>!
+EmbedPDF.StageCapability.GetZoomBoxAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PdfRect?>!
+EmbedPDF.StageCapability.GetZoomLevelAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<double>!
+EmbedPDF.StageCapability.GetZoomModeAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.StageZoomMode!>!
+EmbedPDF.StageCapability.GoToDestinationAsync(EmbedPDF.PageDestination! destination, EmbedPDF.StageScrollBehavior? behavior = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.GoToFirstPageAsync(EmbedPDF.StageGoToOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.GoToLastPageAsync(EmbedPDF.StageGoToOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.GoToPageAsync(EmbedPDF.PageRef page, EmbedPDF.StageGoToOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.GoToPageIndexAsync(int index, EmbedPDF.StageGoToOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.IsMovingAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.StageCapability.IsPageVisibleAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.StageCapability.MatchesRuleAsync(string! name, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.StageCapability.MoveZoomDragAsync(EmbedPDF.PdfPoint point, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.NextPageAsync(EmbedPDF.StageGoToOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.ObserveEvents(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.StageEvent!>!
+EmbedPDF.StageCapability.PageRectToViewportAsync(EmbedPDF.PageRef page, EmbedPDF.PdfRect rect, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PdfRect?>!
+EmbedPDF.StageCapability.PageToViewportAsync(EmbedPDF.PageRef page, EmbedPDF.PdfPoint point, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PdfPoint?>!
+EmbedPDF.StageCapability.PageToWorldAsync(EmbedPDF.PageRef page, EmbedPDF.PdfPoint point, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PdfPoint?>!
+EmbedPDF.StageCapability.PanBy(double dx, double dy) -> void
+EmbedPDF.StageCapability.PlaceInitialAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.PreviousPageAsync(EmbedPDF.StageGoToOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.ProvideInitialViewAsync(EmbedPDF.IStageInitialViewProvider! provider, double priority = 0, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.Registration!>!
+EmbedPDF.StageCapability.RefitAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.RegisterScrollHandlerAsync(bool panFallback = true, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.Registration!>!
+EmbedPDF.StageCapability.ResetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.ResetViewAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.RevealAsync(EmbedPDF.PageRef page, EmbedPDF.StageRevealOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.RevealIndexAsync(int index, EmbedPDF.StageRevealOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.RotateViewByAsync(double delta, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.ScrollBy(EmbedPDF.StageScrollToOptions! options) -> void
+EmbedPDF.StageCapability.ScrollToAsync(EmbedPDF.StageScrollToOptions! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.SetCamera(EmbedPDF.Camera camera) -> void
+EmbedPDF.StageCapability.SetDevicePixelRatioAsync(double ratio, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.SetResponsiveRulesAsync(System.Collections.Generic.IEnumerable<EmbedPDF.StageResponsiveRule!>! rules, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.SetViewRotationAsync(double degrees, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.SetViewportSizeAsync(EmbedPDF.PdfSize size, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.StopMotionAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.UpdateSettingsAsync(EmbedPDF.StageSettingsPatch! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.ViewportToPageAsync(EmbedPDF.PageRef page, EmbedPDF.PdfPoint point, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PdfPoint?>!
+EmbedPDF.StageCapability.ViewportToWorldAsync(EmbedPDF.PdfPoint point, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PdfPoint>!
+EmbedPDF.StageCapability.WheelByAsync(double dx, double dy, double timeMs, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.StageCapability.WorldToViewportAsync(EmbedPDF.PdfPoint point, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PdfPoint>!
+EmbedPDF.StageCapability.ZoomAround(EmbedPDF.PdfPoint point, double factor) -> void
+EmbedPDF.StageCapability.ZoomByAsync(double factor, EmbedPDF.PdfPoint? around = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.ZoomInAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.ZoomOutAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StageCapability.ZoomToAsync(EmbedPDF.StageZoomTarget! target, EmbedPDF.PdfPoint? around = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.StageConfig
 EmbedPDF.StageConfig.<Clone>$() -> EmbedPDF.StageConfig!
 EmbedPDF.StageConfig.Equals(EmbedPDF.StageConfig? other) -> bool
+EmbedPDF.StageConfig.Responsive.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.StageResponsiveRule!>?
+EmbedPDF.StageConfig.Responsive.init -> void
+EmbedPDF.StageConfig.Settings.get -> EmbedPDF.StageSettingsPatch?
+EmbedPDF.StageConfig.Settings.init -> void
 EmbedPDF.StageConfig.StageConfig() -> void
+EmbedPDF.StageDirection
+EmbedPDF.StageDirection.Ltr = 0 -> EmbedPDF.StageDirection
+EmbedPDF.StageDirection.Rtl = 1 -> EmbedPDF.StageDirection
+EmbedPDF.StageEvent
+EmbedPDF.StageEvent.CameraChanged
+EmbedPDF.StageEvent.CameraChanged.Camera.get -> EmbedPDF.Camera
+EmbedPDF.StageEvent.CameraChanged.Camera.init -> void
+EmbedPDF.StageEvent.CameraChanged.CameraChanged(EmbedPDF.Camera Camera) -> void
+EmbedPDF.StageEvent.CameraChanged.Deconstruct(out EmbedPDF.Camera Camera) -> void
+EmbedPDF.StageEvent.CameraChanged.Equals(EmbedPDF.StageEvent.CameraChanged? other) -> bool
+EmbedPDF.StageEvent.MotionEnded
+EmbedPDF.StageEvent.MotionEnded.Camera.get -> EmbedPDF.Camera
+EmbedPDF.StageEvent.MotionEnded.Camera.init -> void
+EmbedPDF.StageEvent.MotionEnded.Deconstruct(out EmbedPDF.Camera Camera) -> void
+EmbedPDF.StageEvent.MotionEnded.Equals(EmbedPDF.StageEvent.MotionEnded? other) -> bool
+EmbedPDF.StageEvent.MotionEnded.MotionEnded(EmbedPDF.Camera Camera) -> void
+EmbedPDF.StageEvent.PageChanged
+EmbedPDF.StageEvent.PageChanged.Deconstruct(out EmbedPDF.PageRef? Page, out int PageIndex, out int PreviousPageIndex) -> void
+EmbedPDF.StageEvent.PageChanged.Equals(EmbedPDF.StageEvent.PageChanged? other) -> bool
+EmbedPDF.StageEvent.PageChanged.Page.get -> EmbedPDF.PageRef?
+EmbedPDF.StageEvent.PageChanged.Page.init -> void
+EmbedPDF.StageEvent.PageChanged.PageChanged(EmbedPDF.PageRef? Page, int PageIndex, int PreviousPageIndex) -> void
+EmbedPDF.StageEvent.PageChanged.PageIndex.get -> int
+EmbedPDF.StageEvent.PageChanged.PageIndex.init -> void
+EmbedPDF.StageEvent.PageChanged.PreviousPageIndex.get -> int
+EmbedPDF.StageEvent.PageChanged.PreviousPageIndex.init -> void
+EmbedPDF.StageEvent.SettingsChanged
+EmbedPDF.StageEvent.SettingsChanged.Changed.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.StageSettingKey>!
+EmbedPDF.StageEvent.SettingsChanged.Changed.init -> void
+EmbedPDF.StageEvent.SettingsChanged.Deconstruct(out EmbedPDF.StageSettings! Settings, out System.Collections.Generic.IReadOnlyList<EmbedPDF.StageSettingKey>! Changed) -> void
+EmbedPDF.StageEvent.SettingsChanged.Equals(EmbedPDF.StageEvent.SettingsChanged? other) -> bool
+EmbedPDF.StageEvent.SettingsChanged.Settings.get -> EmbedPDF.StageSettings!
+EmbedPDF.StageEvent.SettingsChanged.Settings.init -> void
+EmbedPDF.StageEvent.SettingsChanged.SettingsChanged(EmbedPDF.StageSettings! Settings, System.Collections.Generic.IReadOnlyList<EmbedPDF.StageSettingKey>! Changed) -> void
+EmbedPDF.StageEvent.StageEvent(EmbedPDF.StageEvent! original) -> void
+EmbedPDF.StageEvent.ViewportChanged
+EmbedPDF.StageEvent.ViewportChanged.Deconstruct(out EmbedPDF.PdfSize Size) -> void
+EmbedPDF.StageEvent.ViewportChanged.Equals(EmbedPDF.StageEvent.ViewportChanged? other) -> bool
+EmbedPDF.StageEvent.ViewportChanged.Size.get -> EmbedPDF.PdfSize
+EmbedPDF.StageEvent.ViewportChanged.Size.init -> void
+EmbedPDF.StageEvent.ViewportChanged.ViewportChanged(EmbedPDF.PdfSize Size) -> void
+EmbedPDF.StageEvent.ZoomChanged
+EmbedPDF.StageEvent.ZoomChanged.Deconstruct(out double Level, out double PreviousLevel, out EmbedPDF.StageZoomMode! Mode) -> void
+EmbedPDF.StageEvent.ZoomChanged.Equals(EmbedPDF.StageEvent.ZoomChanged? other) -> bool
+EmbedPDF.StageEvent.ZoomChanged.Level.get -> double
+EmbedPDF.StageEvent.ZoomChanged.Level.init -> void
+EmbedPDF.StageEvent.ZoomChanged.Mode.get -> EmbedPDF.StageZoomMode!
+EmbedPDF.StageEvent.ZoomChanged.Mode.init -> void
+EmbedPDF.StageEvent.ZoomChanged.PreviousLevel.get -> double
+EmbedPDF.StageEvent.ZoomChanged.PreviousLevel.init -> void
+EmbedPDF.StageEvent.ZoomChanged.ZoomChanged(double Level, double PreviousLevel, EmbedPDF.StageZoomMode! Mode) -> void
+EmbedPDF.StageFlow
+EmbedPDF.StageFlow.Continuous = 0 -> EmbedPDF.StageFlow
+EmbedPDF.StageFlow.Paged = 1 -> EmbedPDF.StageFlow
+EmbedPDF.StageGap
+EmbedPDF.StageGap.Px
+EmbedPDF.StageGap.Px.Deconstruct(out double Value) -> void
+EmbedPDF.StageGap.Px.Equals(EmbedPDF.StageGap.Px? other) -> bool
+EmbedPDF.StageGap.Px.Px(double Value) -> void
+EmbedPDF.StageGap.Px.Value.get -> double
+EmbedPDF.StageGap.Px.Value.init -> void
+EmbedPDF.StageGap.StageGap(EmbedPDF.StageGap! original) -> void
+EmbedPDF.StageGap.World
+EmbedPDF.StageGap.World.Deconstruct(out double Units) -> void
+EmbedPDF.StageGap.World.Equals(EmbedPDF.StageGap.World? other) -> bool
+EmbedPDF.StageGap.World.Units.get -> double
+EmbedPDF.StageGap.World.Units.init -> void
+EmbedPDF.StageGap.World.World(double Units) -> void
+EmbedPDF.StageGoToOptions
+EmbedPDF.StageGoToOptions.<Clone>$() -> EmbedPDF.StageGoToOptions!
+EmbedPDF.StageGoToOptions.ArrivalAlign.get -> EmbedPDF.StagePartialArrivalAlignment?
+EmbedPDF.StageGoToOptions.ArrivalAlign.init -> void
+EmbedPDF.StageGoToOptions.Behavior.get -> EmbedPDF.StageScrollBehavior?
+EmbedPDF.StageGoToOptions.Behavior.init -> void
+EmbedPDF.StageGoToOptions.Equals(EmbedPDF.StageGoToOptions? other) -> bool
+EmbedPDF.StageGoToOptions.StageGoToOptions() -> void
+EmbedPDF.StageGoToOptions.Viewpoint.get -> EmbedPDF.StageViewpoint?
+EmbedPDF.StageGoToOptions.Viewpoint.init -> void
+EmbedPDF.StageGridColumns
+EmbedPDF.StageGridColumns.Auto
+EmbedPDF.StageGridColumns.Auto.Auto() -> void
+EmbedPDF.StageGridColumns.Auto.Equals(EmbedPDF.StageGridColumns.Auto? other) -> bool
+EmbedPDF.StageGridColumns.Count
+EmbedPDF.StageGridColumns.Count.Count(int Value) -> void
+EmbedPDF.StageGridColumns.Count.Deconstruct(out int Value) -> void
+EmbedPDF.StageGridColumns.Count.Equals(EmbedPDF.StageGridColumns.Count? other) -> bool
+EmbedPDF.StageGridColumns.Count.Value.get -> int
+EmbedPDF.StageGridColumns.Count.Value.init -> void
+EmbedPDF.StageGridColumns.Square
+EmbedPDF.StageGridColumns.Square.Equals(EmbedPDF.StageGridColumns.Square? other) -> bool
+EmbedPDF.StageGridColumns.Square.Square() -> void
+EmbedPDF.StageGridColumns.StageGridColumns(EmbedPDF.StageGridColumns! original) -> void
+EmbedPDF.StageLayout
+EmbedPDF.StageLayout.Grid = 2 -> EmbedPDF.StageLayout
+EmbedPDF.StageLayout.Horizontal = 1 -> EmbedPDF.StageLayout
+EmbedPDF.StageLayout.Vertical = 0 -> EmbedPDF.StageLayout
+EmbedPDF.StageOrientation
+EmbedPDF.StageOrientation.Landscape = 1 -> EmbedPDF.StageOrientation
+EmbedPDF.StageOrientation.Portrait = 0 -> EmbedPDF.StageOrientation
+EmbedPDF.StagePageHit
+EmbedPDF.StagePageHit.<Clone>$() -> EmbedPDF.StagePageHit!
+EmbedPDF.StagePageHit.Deconstruct(out EmbedPDF.PageRef Page, out EmbedPDF.PdfPoint Point, out double Scale, out double Rotation, out double Zoom) -> void
+EmbedPDF.StagePageHit.Equals(EmbedPDF.StagePageHit? other) -> bool
+EmbedPDF.StagePageHit.Page.get -> EmbedPDF.PageRef
+EmbedPDF.StagePageHit.Page.init -> void
+EmbedPDF.StagePageHit.Point.get -> EmbedPDF.PdfPoint
+EmbedPDF.StagePageHit.Point.init -> void
+EmbedPDF.StagePageHit.Rotation.get -> double
+EmbedPDF.StagePageHit.Rotation.init -> void
+EmbedPDF.StagePageHit.Scale.get -> double
+EmbedPDF.StagePageHit.Scale.init -> void
+EmbedPDF.StagePageHit.StagePageHit(EmbedPDF.PageRef Page, EmbedPDF.PdfPoint Point, double Scale, double Rotation, double Zoom) -> void
+EmbedPDF.StagePageHit.Zoom.get -> double
+EmbedPDF.StagePageHit.Zoom.init -> void
+EmbedPDF.StagePageTransform
+EmbedPDF.StagePageTransform.<Clone>$() -> EmbedPDF.StagePageTransform!
+EmbedPDF.StagePageTransform.BaseScale.get -> double
+EmbedPDF.StagePageTransform.BaseScale.init -> void
+EmbedPDF.StagePageTransform.ContentHeight.get -> double
+EmbedPDF.StagePageTransform.ContentHeight.init -> void
+EmbedPDF.StagePageTransform.ContentWidth.get -> double
+EmbedPDF.StagePageTransform.ContentWidth.init -> void
+EmbedPDF.StagePageTransform.Deconstruct(out double Rotation, out double ViewWidth, out double ViewHeight, out double ContentWidth, out double ContentHeight, out double DeviceWidth, out double DeviceHeight, out double RenderScale, out double ViewScale, out double BaseScale, out double Zoom) -> void
+EmbedPDF.StagePageTransform.DeviceHeight.get -> double
+EmbedPDF.StagePageTransform.DeviceHeight.init -> void
+EmbedPDF.StagePageTransform.DeviceWidth.get -> double
+EmbedPDF.StagePageTransform.DeviceWidth.init -> void
+EmbedPDF.StagePageTransform.Equals(EmbedPDF.StagePageTransform? other) -> bool
+EmbedPDF.StagePageTransform.RenderScale.get -> double
+EmbedPDF.StagePageTransform.RenderScale.init -> void
+EmbedPDF.StagePageTransform.Rotation.get -> double
+EmbedPDF.StagePageTransform.Rotation.init -> void
+EmbedPDF.StagePageTransform.StagePageTransform(double Rotation, double ViewWidth, double ViewHeight, double ContentWidth, double ContentHeight, double DeviceWidth, double DeviceHeight, double RenderScale, double ViewScale, double BaseScale, double Zoom) -> void
+EmbedPDF.StagePageTransform.ViewHeight.get -> double
+EmbedPDF.StagePageTransform.ViewHeight.init -> void
+EmbedPDF.StagePageTransform.ViewScale.get -> double
+EmbedPDF.StagePageTransform.ViewScale.init -> void
+EmbedPDF.StagePageTransform.ViewWidth.get -> double
+EmbedPDF.StagePageTransform.ViewWidth.init -> void
+EmbedPDF.StagePageTransform.Zoom.get -> double
+EmbedPDF.StagePageTransform.Zoom.init -> void
+EmbedPDF.StagePartialArrivalAlignment
+EmbedPDF.StagePartialArrivalAlignment.<Clone>$() -> EmbedPDF.StagePartialArrivalAlignment!
+EmbedPDF.StagePartialArrivalAlignment.Equals(EmbedPDF.StagePartialArrivalAlignment? other) -> bool
+EmbedPDF.StagePartialArrivalAlignment.StagePartialArrivalAlignment() -> void
+EmbedPDF.StagePartialArrivalAlignment.X.get -> EmbedPDF.StageArrivalAlignValue?
+EmbedPDF.StagePartialArrivalAlignment.X.init -> void
+EmbedPDF.StagePartialArrivalAlignment.Y.get -> EmbedPDF.StageArrivalAlignValue?
+EmbedPDF.StagePartialArrivalAlignment.Y.init -> void
+EmbedPDF.StageResponsiveRule
+EmbedPDF.StageResponsiveRule.<Clone>$() -> EmbedPDF.StageResponsiveRule!
+EmbedPDF.StageResponsiveRule.Deconstruct(out EmbedPDF.StageBoxQuery! When) -> void
+EmbedPDF.StageResponsiveRule.Equals(EmbedPDF.StageResponsiveRule? other) -> bool
+EmbedPDF.StageResponsiveRule.Name.get -> string?
+EmbedPDF.StageResponsiveRule.Name.init -> void
+EmbedPDF.StageResponsiveRule.Settings.get -> EmbedPDF.StageSettingsPatch?
+EmbedPDF.StageResponsiveRule.Settings.init -> void
+EmbedPDF.StageResponsiveRule.StageResponsiveRule(EmbedPDF.StageBoxQuery! When) -> void
+EmbedPDF.StageResponsiveRule.When.get -> EmbedPDF.StageBoxQuery!
+EmbedPDF.StageResponsiveRule.When.init -> void
+EmbedPDF.StageRevealAnchor
+EmbedPDF.StageRevealAnchor.<Clone>$() -> EmbedPDF.StageRevealAnchor!
+EmbedPDF.StageRevealAnchor.Equals(EmbedPDF.StageRevealAnchor? other) -> bool
+EmbedPDF.StageRevealAnchor.StageRevealAnchor() -> void
+EmbedPDF.StageRevealAnchor.X.get -> EmbedPDF.StageRevealAnchorValue?
+EmbedPDF.StageRevealAnchor.X.init -> void
+EmbedPDF.StageRevealAnchor.Y.get -> EmbedPDF.StageRevealAnchorValue?
+EmbedPDF.StageRevealAnchor.Y.init -> void
+EmbedPDF.StageRevealAnchorValue
+EmbedPDF.StageRevealAnchorValue.Fraction
+EmbedPDF.StageRevealAnchorValue.Fraction.Deconstruct(out double Value) -> void
+EmbedPDF.StageRevealAnchorValue.Fraction.Equals(EmbedPDF.StageRevealAnchorValue.Fraction? other) -> bool
+EmbedPDF.StageRevealAnchorValue.Fraction.Fraction(double Value) -> void
+EmbedPDF.StageRevealAnchorValue.Fraction.Value.get -> double
+EmbedPDF.StageRevealAnchorValue.Fraction.Value.init -> void
+EmbedPDF.StageRevealAnchorValue.StageRevealAnchorValue(EmbedPDF.StageRevealAnchorValue! original) -> void
+EmbedPDF.StageRevealAnchorValue.Word
+EmbedPDF.StageRevealAnchorValue.Word.Deconstruct(out EmbedPDF.StageRevealWord Value) -> void
+EmbedPDF.StageRevealAnchorValue.Word.Equals(EmbedPDF.StageRevealAnchorValue.Word? other) -> bool
+EmbedPDF.StageRevealAnchorValue.Word.Value.get -> EmbedPDF.StageRevealWord
+EmbedPDF.StageRevealAnchorValue.Word.Value.init -> void
+EmbedPDF.StageRevealAnchorValue.Word.Word(EmbedPDF.StageRevealWord Value) -> void
+EmbedPDF.StageRevealOptions
+EmbedPDF.StageRevealOptions.<Clone>$() -> EmbedPDF.StageRevealOptions!
+EmbedPDF.StageRevealOptions.Anchor.get -> EmbedPDF.StageRevealAnchor?
+EmbedPDF.StageRevealOptions.Anchor.init -> void
+EmbedPDF.StageRevealOptions.Behavior.get -> EmbedPDF.StageScrollBehavior?
+EmbedPDF.StageRevealOptions.Behavior.init -> void
+EmbedPDF.StageRevealOptions.Equals(EmbedPDF.StageRevealOptions? other) -> bool
+EmbedPDF.StageRevealOptions.Rect.get -> EmbedPDF.PdfRect?
+EmbedPDF.StageRevealOptions.Rect.init -> void
+EmbedPDF.StageRevealOptions.StageRevealOptions() -> void
+EmbedPDF.StageRevealOptions.Zoom.get -> EmbedPDF.StageRevealZoom?
+EmbedPDF.StageRevealOptions.Zoom.init -> void
+EmbedPDF.StageRevealWord
+EmbedPDF.StageRevealWord.Center = 2 -> EmbedPDF.StageRevealWord
+EmbedPDF.StageRevealWord.End = 3 -> EmbedPDF.StageRevealWord
+EmbedPDF.StageRevealWord.Keep = 0 -> EmbedPDF.StageRevealWord
+EmbedPDF.StageRevealWord.Start = 1 -> EmbedPDF.StageRevealWord
+EmbedPDF.StageRevealZoom
+EmbedPDF.StageRevealZoom.Fit
+EmbedPDF.StageRevealZoom.Fit.Equals(EmbedPDF.StageRevealZoom.Fit? other) -> bool
+EmbedPDF.StageRevealZoom.Fit.Fit() -> void
+EmbedPDF.StageRevealZoom.FitHeight
+EmbedPDF.StageRevealZoom.FitHeight.Equals(EmbedPDF.StageRevealZoom.FitHeight? other) -> bool
+EmbedPDF.StageRevealZoom.FitHeight.FitHeight() -> void
+EmbedPDF.StageRevealZoom.FitWidth
+EmbedPDF.StageRevealZoom.FitWidth.Equals(EmbedPDF.StageRevealZoom.FitWidth? other) -> bool
+EmbedPDF.StageRevealZoom.FitWidth.FitWidth() -> void
+EmbedPDF.StageRevealZoom.Keep
+EmbedPDF.StageRevealZoom.Keep.Equals(EmbedPDF.StageRevealZoom.Keep? other) -> bool
+EmbedPDF.StageRevealZoom.Keep.Keep() -> void
+EmbedPDF.StageRevealZoom.Level
+EmbedPDF.StageRevealZoom.Level.Deconstruct(out double Value) -> void
+EmbedPDF.StageRevealZoom.Level.Equals(EmbedPDF.StageRevealZoom.Level? other) -> bool
+EmbedPDF.StageRevealZoom.Level.Level(double Value) -> void
+EmbedPDF.StageRevealZoom.Level.Value.get -> double
+EmbedPDF.StageRevealZoom.Level.Value.init -> void
+EmbedPDF.StageRevealZoom.StageRevealZoom(EmbedPDF.StageRevealZoom! original) -> void
+EmbedPDF.StageScrollBehavior
+EmbedPDF.StageScrollBehavior.Instant = 1 -> EmbedPDF.StageScrollBehavior
+EmbedPDF.StageScrollBehavior.Smooth = 0 -> EmbedPDF.StageScrollBehavior
+EmbedPDF.StageScrollMetrics
+EmbedPDF.StageScrollMetrics.ClientHeight.get -> double
+EmbedPDF.StageScrollMetrics.ClientHeight.init -> void
+EmbedPDF.StageScrollMetrics.ClientWidth.get -> double
+EmbedPDF.StageScrollMetrics.ClientWidth.init -> void
+EmbedPDF.StageScrollMetrics.Deconstruct(out double ScrollLeft, out double ScrollTop, out double ScrollWidth, out double ScrollHeight, out double ClientWidth, out double ClientHeight, out bool ScrollableX, out bool ScrollableY) -> void
+EmbedPDF.StageScrollMetrics.Equals(EmbedPDF.StageScrollMetrics other) -> bool
+EmbedPDF.StageScrollMetrics.ScrollHeight.get -> double
+EmbedPDF.StageScrollMetrics.ScrollHeight.init -> void
+EmbedPDF.StageScrollMetrics.ScrollLeft.get -> double
+EmbedPDF.StageScrollMetrics.ScrollLeft.init -> void
+EmbedPDF.StageScrollMetrics.ScrollTop.get -> double
+EmbedPDF.StageScrollMetrics.ScrollTop.init -> void
+EmbedPDF.StageScrollMetrics.ScrollWidth.get -> double
+EmbedPDF.StageScrollMetrics.ScrollWidth.init -> void
+EmbedPDF.StageScrollMetrics.ScrollableX.get -> bool
+EmbedPDF.StageScrollMetrics.ScrollableX.init -> void
+EmbedPDF.StageScrollMetrics.ScrollableY.get -> bool
+EmbedPDF.StageScrollMetrics.ScrollableY.init -> void
+EmbedPDF.StageScrollMetrics.StageScrollMetrics() -> void
+EmbedPDF.StageScrollMetrics.StageScrollMetrics(double ScrollLeft, double ScrollTop, double ScrollWidth, double ScrollHeight, double ClientWidth, double ClientHeight, bool ScrollableX, bool ScrollableY) -> void
+EmbedPDF.StageScrollToOptions
+EmbedPDF.StageScrollToOptions.<Clone>$() -> EmbedPDF.StageScrollToOptions!
+EmbedPDF.StageScrollToOptions.Behavior.get -> EmbedPDF.StageScrollBehavior?
+EmbedPDF.StageScrollToOptions.Behavior.init -> void
+EmbedPDF.StageScrollToOptions.Equals(EmbedPDF.StageScrollToOptions? other) -> bool
+EmbedPDF.StageScrollToOptions.Left.get -> double?
+EmbedPDF.StageScrollToOptions.Left.init -> void
+EmbedPDF.StageScrollToOptions.StageScrollToOptions() -> void
+EmbedPDF.StageScrollToOptions.Top.get -> double?
+EmbedPDF.StageScrollToOptions.Top.init -> void
+EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.AnchorAlign = 13 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.ArrivalAlign = 11 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.Bounded = 5 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.Columns = 4 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.Direction = 9 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.FitAlign = 10 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.Flow = 0 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.Gap = 7 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.Interaction = 19 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.Layout = 1 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.MaxZoom = 17 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.MinZoom = 16 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.Padding = 6 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.PageFrame = 8 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.PanFallback = 20 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.ScrollBehavior = 18 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.ScrollChaining = 23 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.Sizing = 3 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.Spread = 2 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.TurnGestures = 22 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.ViewRotation = 14 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.ViewUnitsPerPoint = 25 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.Zoom = 15 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.ZoomAlign = 12 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.ZoomBox = 24 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettingKey.ZoomGestures = 21 -> EmbedPDF.StageSettingKey
+EmbedPDF.StageSettings
+EmbedPDF.StageSettings.<Clone>$() -> EmbedPDF.StageSettings!
+EmbedPDF.StageSettings.AnchorAlign.get -> EmbedPDF.StageAlignmentValue!
+EmbedPDF.StageSettings.AnchorAlign.init -> void
+EmbedPDF.StageSettings.ArrivalAlign.get -> EmbedPDF.StageArrivalAlignment!
+EmbedPDF.StageSettings.ArrivalAlign.init -> void
+EmbedPDF.StageSettings.Bounded.get -> bool
+EmbedPDF.StageSettings.Bounded.init -> void
+EmbedPDF.StageSettings.Columns.get -> EmbedPDF.StageGridColumns!
+EmbedPDF.StageSettings.Columns.init -> void
+EmbedPDF.StageSettings.Deconstruct(out EmbedPDF.StageFlow Flow, out EmbedPDF.StageLayout Layout, out EmbedPDF.StageSpreadMode Spread, out EmbedPDF.StageSizingMode Sizing, out EmbedPDF.StageGridColumns! Columns, out bool Bounded, out double Padding, out EmbedPDF.StageGap! Gap, out EmbedPDF.PageFrameInsets PageFrame, out EmbedPDF.StageDirection Direction, out EmbedPDF.StageAlignment! FitAlign, out EmbedPDF.StageArrivalAlignment! ArrivalAlign, out EmbedPDF.StageAlignmentValue! ZoomAlign, out EmbedPDF.StageAlignmentValue! AnchorAlign, out double ViewRotation, out EmbedPDF.ZoomSpec! Zoom, out double MinZoom, out double MaxZoom, out EmbedPDF.StageScrollBehavior ScrollBehavior, out bool Interaction, out bool PanFallback, out bool ZoomGestures, out bool TurnGestures, out bool ScrollChaining, out EmbedPDF.StageZoomBoxLook! ZoomBox, out double ViewUnitsPerPoint) -> void
+EmbedPDF.StageSettings.Direction.get -> EmbedPDF.StageDirection
+EmbedPDF.StageSettings.Direction.init -> void
+EmbedPDF.StageSettings.Equals(EmbedPDF.StageSettings? other) -> bool
+EmbedPDF.StageSettings.FitAlign.get -> EmbedPDF.StageAlignment!
+EmbedPDF.StageSettings.FitAlign.init -> void
+EmbedPDF.StageSettings.Flow.get -> EmbedPDF.StageFlow
+EmbedPDF.StageSettings.Flow.init -> void
+EmbedPDF.StageSettings.Gap.get -> EmbedPDF.StageGap!
+EmbedPDF.StageSettings.Gap.init -> void
+EmbedPDF.StageSettings.Interaction.get -> bool
+EmbedPDF.StageSettings.Interaction.init -> void
+EmbedPDF.StageSettings.Layout.get -> EmbedPDF.StageLayout
+EmbedPDF.StageSettings.Layout.init -> void
+EmbedPDF.StageSettings.MaxZoom.get -> double
+EmbedPDF.StageSettings.MaxZoom.init -> void
+EmbedPDF.StageSettings.MinZoom.get -> double
+EmbedPDF.StageSettings.MinZoom.init -> void
+EmbedPDF.StageSettings.Padding.get -> double
+EmbedPDF.StageSettings.Padding.init -> void
+EmbedPDF.StageSettings.PageFrame.get -> EmbedPDF.PageFrameInsets
+EmbedPDF.StageSettings.PageFrame.init -> void
+EmbedPDF.StageSettings.PanFallback.get -> bool
+EmbedPDF.StageSettings.PanFallback.init -> void
+EmbedPDF.StageSettings.ScrollBehavior.get -> EmbedPDF.StageScrollBehavior
+EmbedPDF.StageSettings.ScrollBehavior.init -> void
+EmbedPDF.StageSettings.ScrollChaining.get -> bool
+EmbedPDF.StageSettings.ScrollChaining.init -> void
+EmbedPDF.StageSettings.Sizing.get -> EmbedPDF.StageSizingMode
+EmbedPDF.StageSettings.Sizing.init -> void
+EmbedPDF.StageSettings.Spread.get -> EmbedPDF.StageSpreadMode
+EmbedPDF.StageSettings.Spread.init -> void
+EmbedPDF.StageSettings.StageSettings(EmbedPDF.StageFlow Flow, EmbedPDF.StageLayout Layout, EmbedPDF.StageSpreadMode Spread, EmbedPDF.StageSizingMode Sizing, EmbedPDF.StageGridColumns! Columns, bool Bounded, double Padding, EmbedPDF.StageGap! Gap, EmbedPDF.PageFrameInsets PageFrame, EmbedPDF.StageDirection Direction, EmbedPDF.StageAlignment! FitAlign, EmbedPDF.StageArrivalAlignment! ArrivalAlign, EmbedPDF.StageAlignmentValue! ZoomAlign, EmbedPDF.StageAlignmentValue! AnchorAlign, double ViewRotation, EmbedPDF.ZoomSpec! Zoom, double MinZoom, double MaxZoom, EmbedPDF.StageScrollBehavior ScrollBehavior, bool Interaction, bool PanFallback, bool ZoomGestures, bool TurnGestures, bool ScrollChaining, EmbedPDF.StageZoomBoxLook! ZoomBox, double ViewUnitsPerPoint) -> void
+EmbedPDF.StageSettings.TurnGestures.get -> bool
+EmbedPDF.StageSettings.TurnGestures.init -> void
+EmbedPDF.StageSettings.ViewRotation.get -> double
+EmbedPDF.StageSettings.ViewRotation.init -> void
+EmbedPDF.StageSettings.ViewUnitsPerPoint.get -> double
+EmbedPDF.StageSettings.ViewUnitsPerPoint.init -> void
+EmbedPDF.StageSettings.Zoom.get -> EmbedPDF.ZoomSpec!
+EmbedPDF.StageSettings.Zoom.init -> void
+EmbedPDF.StageSettings.ZoomAlign.get -> EmbedPDF.StageAlignmentValue!
+EmbedPDF.StageSettings.ZoomAlign.init -> void
+EmbedPDF.StageSettings.ZoomBox.get -> EmbedPDF.StageZoomBoxLook!
+EmbedPDF.StageSettings.ZoomBox.init -> void
+EmbedPDF.StageSettings.ZoomGestures.get -> bool
+EmbedPDF.StageSettings.ZoomGestures.init -> void
+EmbedPDF.StageSettingsPatch
+EmbedPDF.StageSettingsPatch.<Clone>$() -> EmbedPDF.StageSettingsPatch!
+EmbedPDF.StageSettingsPatch.AnchorAlign.get -> EmbedPDF.StageAlignmentValue?
+EmbedPDF.StageSettingsPatch.AnchorAlign.init -> void
+EmbedPDF.StageSettingsPatch.ArrivalAlign.get -> EmbedPDF.StageArrivalAlignment?
+EmbedPDF.StageSettingsPatch.ArrivalAlign.init -> void
+EmbedPDF.StageSettingsPatch.Bounded.get -> bool?
+EmbedPDF.StageSettingsPatch.Bounded.init -> void
+EmbedPDF.StageSettingsPatch.Columns.get -> EmbedPDF.StageGridColumns?
+EmbedPDF.StageSettingsPatch.Columns.init -> void
+EmbedPDF.StageSettingsPatch.Direction.get -> EmbedPDF.StageDirection?
+EmbedPDF.StageSettingsPatch.Direction.init -> void
+EmbedPDF.StageSettingsPatch.Equals(EmbedPDF.StageSettingsPatch? other) -> bool
+EmbedPDF.StageSettingsPatch.FitAlign.get -> EmbedPDF.StageAlignment?
+EmbedPDF.StageSettingsPatch.FitAlign.init -> void
+EmbedPDF.StageSettingsPatch.Flow.get -> EmbedPDF.StageFlow?
+EmbedPDF.StageSettingsPatch.Flow.init -> void
+EmbedPDF.StageSettingsPatch.Gap.get -> EmbedPDF.StageGap?
+EmbedPDF.StageSettingsPatch.Gap.init -> void
+EmbedPDF.StageSettingsPatch.Interaction.get -> bool?
+EmbedPDF.StageSettingsPatch.Interaction.init -> void
+EmbedPDF.StageSettingsPatch.Layout.get -> EmbedPDF.StageLayout?
+EmbedPDF.StageSettingsPatch.Layout.init -> void
+EmbedPDF.StageSettingsPatch.MaxZoom.get -> double?
+EmbedPDF.StageSettingsPatch.MaxZoom.init -> void
+EmbedPDF.StageSettingsPatch.MinZoom.get -> double?
+EmbedPDF.StageSettingsPatch.MinZoom.init -> void
+EmbedPDF.StageSettingsPatch.Padding.get -> double?
+EmbedPDF.StageSettingsPatch.Padding.init -> void
+EmbedPDF.StageSettingsPatch.PageFrame.get -> EmbedPDF.PageFrameInsets?
+EmbedPDF.StageSettingsPatch.PageFrame.init -> void
+EmbedPDF.StageSettingsPatch.PanFallback.get -> bool?
+EmbedPDF.StageSettingsPatch.PanFallback.init -> void
+EmbedPDF.StageSettingsPatch.ScrollBehavior.get -> EmbedPDF.StageScrollBehavior?
+EmbedPDF.StageSettingsPatch.ScrollBehavior.init -> void
+EmbedPDF.StageSettingsPatch.ScrollChaining.get -> bool?
+EmbedPDF.StageSettingsPatch.ScrollChaining.init -> void
+EmbedPDF.StageSettingsPatch.Sizing.get -> EmbedPDF.StageSizingMode?
+EmbedPDF.StageSettingsPatch.Sizing.init -> void
+EmbedPDF.StageSettingsPatch.Spread.get -> EmbedPDF.StageSpreadMode?
+EmbedPDF.StageSettingsPatch.Spread.init -> void
+EmbedPDF.StageSettingsPatch.StageSettingsPatch() -> void
+EmbedPDF.StageSettingsPatch.TurnGestures.get -> bool?
+EmbedPDF.StageSettingsPatch.TurnGestures.init -> void
+EmbedPDF.StageSettingsPatch.ViewRotation.get -> double?
+EmbedPDF.StageSettingsPatch.ViewRotation.init -> void
+EmbedPDF.StageSettingsPatch.ViewUnitsPerPoint.get -> double?
+EmbedPDF.StageSettingsPatch.ViewUnitsPerPoint.init -> void
+EmbedPDF.StageSettingsPatch.Zoom.get -> EmbedPDF.ZoomSpec?
+EmbedPDF.StageSettingsPatch.Zoom.init -> void
+EmbedPDF.StageSettingsPatch.ZoomAlign.get -> EmbedPDF.StageAlignmentValue?
+EmbedPDF.StageSettingsPatch.ZoomAlign.init -> void
+EmbedPDF.StageSettingsPatch.ZoomBox.get -> EmbedPDF.StageZoomBoxLook?
+EmbedPDF.StageSettingsPatch.ZoomBox.init -> void
+EmbedPDF.StageSettingsPatch.ZoomGestures.get -> bool?
+EmbedPDF.StageSettingsPatch.ZoomGestures.init -> void
+EmbedPDF.StageSizingMode
+EmbedPDF.StageSizingMode.Intrinsic = 0 -> EmbedPDF.StageSizingMode
+EmbedPDF.StageSizingMode.Uniform = 1 -> EmbedPDF.StageSizingMode
+EmbedPDF.StageSpreadMode
+EmbedPDF.StageSpreadMode.Even = 2 -> EmbedPDF.StageSpreadMode
+EmbedPDF.StageSpreadMode.None = 0 -> EmbedPDF.StageSpreadMode
+EmbedPDF.StageSpreadMode.Odd = 1 -> EmbedPDF.StageSpreadMode
+EmbedPDF.StageViewState
+EmbedPDF.StageViewState.<Clone>$() -> EmbedPDF.StageViewState!
+EmbedPDF.StageViewState.Anchor.get -> EmbedPDF.ViewAnchor
+EmbedPDF.StageViewState.Anchor.init -> void
+EmbedPDF.StageViewState.Cursor.get -> int?
+EmbedPDF.StageViewState.Cursor.init -> void
+EmbedPDF.StageViewState.Deconstruct(out EmbedPDF.StageSettings! Settings, out int? Cursor, out EmbedPDF.ViewAnchor Anchor) -> void
+EmbedPDF.StageViewState.Equals(EmbedPDF.StageViewState? other) -> bool
+EmbedPDF.StageViewState.Settings.get -> EmbedPDF.StageSettings!
+EmbedPDF.StageViewState.Settings.init -> void
+EmbedPDF.StageViewState.StageViewState(EmbedPDF.StageSettings! Settings, int? Cursor, EmbedPDF.ViewAnchor Anchor) -> void
+EmbedPDF.StageViewpoint
+EmbedPDF.StageViewpoint.<Clone>$() -> EmbedPDF.StageViewpoint!
+EmbedPDF.StageViewpoint.Anchor.get -> EmbedPDF.ViewAnchor
+EmbedPDF.StageViewpoint.Anchor.init -> void
+EmbedPDF.StageViewpoint.Deconstruct(out EmbedPDF.ViewAnchor Anchor, out EmbedPDF.ZoomSpec! Zoom) -> void
+EmbedPDF.StageViewpoint.Equals(EmbedPDF.StageViewpoint? other) -> bool
+EmbedPDF.StageViewpoint.StageViewpoint(EmbedPDF.ViewAnchor Anchor, EmbedPDF.ZoomSpec! Zoom) -> void
+EmbedPDF.StageViewpoint.Zoom.get -> EmbedPDF.ZoomSpec!
+EmbedPDF.StageViewpoint.Zoom.init -> void
+EmbedPDF.StageVisiblePage
+EmbedPDF.StageVisiblePage.<Clone>$() -> EmbedPDF.StageVisiblePage!
+EmbedPDF.StageVisiblePage.ContentScale.get -> double
+EmbedPDF.StageVisiblePage.ContentScale.init -> void
+EmbedPDF.StageVisiblePage.Deconstruct(out EmbedPDF.PageRef Page, out int PageIndex, out double X, out double Y, out double Width, out double Height, out double Rotation, out double ContentScale, out double ScreenX, out double ScreenY, out EmbedPDF.StagePageTransform! Transform, out EmbedPDF.PdfRect VisibleRect) -> void
+EmbedPDF.StageVisiblePage.Equals(EmbedPDF.StageVisiblePage? other) -> bool
+EmbedPDF.StageVisiblePage.Height.get -> double
+EmbedPDF.StageVisiblePage.Height.init -> void
+EmbedPDF.StageVisiblePage.Page.get -> EmbedPDF.PageRef
+EmbedPDF.StageVisiblePage.Page.init -> void
+EmbedPDF.StageVisiblePage.PageIndex.get -> int
+EmbedPDF.StageVisiblePage.PageIndex.init -> void
+EmbedPDF.StageVisiblePage.Rotation.get -> double
+EmbedPDF.StageVisiblePage.Rotation.init -> void
+EmbedPDF.StageVisiblePage.ScreenX.get -> double
+EmbedPDF.StageVisiblePage.ScreenX.init -> void
+EmbedPDF.StageVisiblePage.ScreenY.get -> double
+EmbedPDF.StageVisiblePage.ScreenY.init -> void
+EmbedPDF.StageVisiblePage.StageVisiblePage(EmbedPDF.PageRef Page, int PageIndex, double X, double Y, double Width, double Height, double Rotation, double ContentScale, double ScreenX, double ScreenY, EmbedPDF.StagePageTransform! Transform, EmbedPDF.PdfRect VisibleRect) -> void
+EmbedPDF.StageVisiblePage.Transform.get -> EmbedPDF.StagePageTransform!
+EmbedPDF.StageVisiblePage.Transform.init -> void
+EmbedPDF.StageVisiblePage.VisibleRect.get -> EmbedPDF.PdfRect
+EmbedPDF.StageVisiblePage.VisibleRect.init -> void
+EmbedPDF.StageVisiblePage.Width.get -> double
+EmbedPDF.StageVisiblePage.Width.init -> void
+EmbedPDF.StageVisiblePage.X.get -> double
+EmbedPDF.StageVisiblePage.X.init -> void
+EmbedPDF.StageVisiblePage.Y.get -> double
+EmbedPDF.StageVisiblePage.Y.init -> void
+EmbedPDF.StageZoomBoxLook
+EmbedPDF.StageZoomBoxLook.<Clone>$() -> EmbedPDF.StageZoomBoxLook!
+EmbedPDF.StageZoomBoxLook.Equals(EmbedPDF.StageZoomBoxLook? other) -> bool
+EmbedPDF.StageZoomBoxLook.Fill.get -> string?
+EmbedPDF.StageZoomBoxLook.Fill.init -> void
+EmbedPDF.StageZoomBoxLook.StageZoomBoxLook() -> void
+EmbedPDF.StageZoomBoxLook.Stroke.get -> string?
+EmbedPDF.StageZoomBoxLook.Stroke.init -> void
+EmbedPDF.StageZoomMode
+EmbedPDF.StageZoomMode.Custom
+EmbedPDF.StageZoomMode.Custom.Custom() -> void
+EmbedPDF.StageZoomMode.Custom.Equals(EmbedPDF.StageZoomMode.Custom? other) -> bool
+EmbedPDF.StageZoomMode.Mode
+EmbedPDF.StageZoomMode.Mode.Deconstruct(out EmbedPDF.ZoomMode Value) -> void
+EmbedPDF.StageZoomMode.Mode.Equals(EmbedPDF.StageZoomMode.Mode? other) -> bool
+EmbedPDF.StageZoomMode.Mode.Mode(EmbedPDF.ZoomMode Value) -> void
+EmbedPDF.StageZoomMode.Mode.Value.get -> EmbedPDF.ZoomMode
+EmbedPDF.StageZoomMode.Mode.Value.init -> void
+EmbedPDF.StageZoomMode.StageZoomMode(EmbedPDF.StageZoomMode! original) -> void
+EmbedPDF.StageZoomTarget
+EmbedPDF.StageZoomTarget.Level
+EmbedPDF.StageZoomTarget.Level.Deconstruct(out double Value) -> void
+EmbedPDF.StageZoomTarget.Level.Equals(EmbedPDF.StageZoomTarget.Level? other) -> bool
+EmbedPDF.StageZoomTarget.Level.Level(double Value) -> void
+EmbedPDF.StageZoomTarget.Level.Value.get -> double
+EmbedPDF.StageZoomTarget.Level.Value.init -> void
+EmbedPDF.StageZoomTarget.Spec
+EmbedPDF.StageZoomTarget.Spec.Deconstruct(out EmbedPDF.ZoomSpec! Value) -> void
+EmbedPDF.StageZoomTarget.Spec.Equals(EmbedPDF.StageZoomTarget.Spec? other) -> bool
+EmbedPDF.StageZoomTarget.Spec.Spec(EmbedPDF.ZoomSpec! Value) -> void
+EmbedPDF.StageZoomTarget.Spec.Value.get -> EmbedPDF.ZoomSpec!
+EmbedPDF.StageZoomTarget.Spec.Value.init -> void
+EmbedPDF.StageZoomTarget.StageZoomTarget(EmbedPDF.StageZoomTarget! original) -> void
 EmbedPDF.StampConfig
 EmbedPDF.StampConfig.<Clone>$() -> EmbedPDF.StampConfig!
 EmbedPDF.StampConfig.Equals(EmbedPDF.StampConfig? other) -> bool
@@ -2989,6 +3654,17 @@ EmbedPDF.TriggerGates.Equals(EmbedPDF.TriggerGates? other) -> bool
 EmbedPDF.TriggerGates.Page.get -> bool?
 EmbedPDF.TriggerGates.Page.init -> void
 EmbedPDF.TriggerGates.TriggerGates() -> void
+EmbedPDF.ViewAnchor
+EmbedPDF.ViewAnchor.Deconstruct(out int PageIndex, out double Fx, out double Fy) -> void
+EmbedPDF.ViewAnchor.Equals(EmbedPDF.ViewAnchor other) -> bool
+EmbedPDF.ViewAnchor.Fx.get -> double
+EmbedPDF.ViewAnchor.Fx.init -> void
+EmbedPDF.ViewAnchor.Fy.get -> double
+EmbedPDF.ViewAnchor.Fy.init -> void
+EmbedPDF.ViewAnchor.PageIndex.get -> int
+EmbedPDF.ViewAnchor.PageIndex.init -> void
+EmbedPDF.ViewAnchor.ViewAnchor() -> void
+EmbedPDF.ViewAnchor.ViewAnchor(int PageIndex, double Fx, double Fy) -> void
 EmbedPDF.ViewManagerCapability
 EmbedPDF.ViewManagerCapability.AddDocumentAsync(EmbedPDF.DocumentInfo! document, string! paneId, int? index = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.ViewManagerCapability.CreatePaneAsync(System.Collections.Generic.IEnumerable<EmbedPDF.DocumentInfo!>? documents = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
@@ -3064,6 +3740,37 @@ EmbedPDF.ViewerSettingsPatch.PageBackground.init -> void
 EmbedPDF.ViewerSettingsPatch.PageShadow.get -> string?
 EmbedPDF.ViewerSettingsPatch.PageShadow.init -> void
 EmbedPDF.ViewerSettingsPatch.ViewerSettingsPatch() -> void
+EmbedPDF.ZoomMode
+EmbedPDF.ZoomMode.Automatic = 0 -> EmbedPDF.ZoomMode
+EmbedPDF.ZoomMode.FitAll = 3 -> EmbedPDF.ZoomMode
+EmbedPDF.ZoomMode.FitPage = 1 -> EmbedPDF.ZoomMode
+EmbedPDF.ZoomMode.FitWidth = 2 -> EmbedPDF.ZoomMode
+EmbedPDF.ZoomSpec
+EmbedPDF.ZoomSpec.Level
+EmbedPDF.ZoomSpec.Level.Deconstruct(out double Value) -> void
+EmbedPDF.ZoomSpec.Level.Equals(EmbedPDF.ZoomSpec.Level? other) -> bool
+EmbedPDF.ZoomSpec.Level.Level(double Value) -> void
+EmbedPDF.ZoomSpec.Level.Value.get -> double
+EmbedPDF.ZoomSpec.Level.Value.init -> void
+EmbedPDF.ZoomSpec.Mode
+EmbedPDF.ZoomSpec.Mode.Deconstruct(out EmbedPDF.ZoomMode Value) -> void
+EmbedPDF.ZoomSpec.Mode.Equals(EmbedPDF.ZoomSpec.Mode? other) -> bool
+EmbedPDF.ZoomSpec.Mode.Mode(EmbedPDF.ZoomMode Value) -> void
+EmbedPDF.ZoomSpec.Mode.Value.get -> EmbedPDF.ZoomMode
+EmbedPDF.ZoomSpec.Mode.Value.init -> void
+EmbedPDF.ZoomSpec.PageHeight
+EmbedPDF.ZoomSpec.PageHeight.Deconstruct(out double Value) -> void
+EmbedPDF.ZoomSpec.PageHeight.Equals(EmbedPDF.ZoomSpec.PageHeight? other) -> bool
+EmbedPDF.ZoomSpec.PageHeight.PageHeight(double Value) -> void
+EmbedPDF.ZoomSpec.PageHeight.Value.get -> double
+EmbedPDF.ZoomSpec.PageHeight.Value.init -> void
+EmbedPDF.ZoomSpec.PageWidth
+EmbedPDF.ZoomSpec.PageWidth.Deconstruct(out double Value) -> void
+EmbedPDF.ZoomSpec.PageWidth.Equals(EmbedPDF.ZoomSpec.PageWidth? other) -> bool
+EmbedPDF.ZoomSpec.PageWidth.PageWidth(double Value) -> void
+EmbedPDF.ZoomSpec.PageWidth.Value.get -> double
+EmbedPDF.ZoomSpec.PageWidth.Value.init -> void
+EmbedPDF.ZoomSpec.ZoomSpec(EmbedPDF.ZoomSpec! original) -> void
 abstract EmbedPDF.ActionAnnotationTreeEvent.<Clone>$() -> EmbedPDF.ActionAnnotationTreeEvent!
 abstract EmbedPDF.ActionExecutorResult.<Clone>$() -> EmbedPDF.ActionExecutorResult!
 abstract EmbedPDF.ActionSource.<Clone>$() -> EmbedPDF.ActionSource!
@@ -3101,7 +3808,17 @@ abstract EmbedPDF.ScriptEvaluation.<Clone>$() -> EmbedPDF.ScriptEvaluation!
 abstract EmbedPDF.SearchEvent.<Clone>$() -> EmbedPDF.SearchEvent!
 abstract EmbedPDF.SearchRevealAxis.<Clone>$() -> EmbedPDF.SearchRevealAxis!
 abstract EmbedPDF.ShellEvent.<Clone>$() -> EmbedPDF.ShellEvent!
+abstract EmbedPDF.StageAlignValue.<Clone>$() -> EmbedPDF.StageAlignValue!
+abstract EmbedPDF.StageArrivalAlignValue.<Clone>$() -> EmbedPDF.StageArrivalAlignValue!
+abstract EmbedPDF.StageEvent.<Clone>$() -> EmbedPDF.StageEvent!
+abstract EmbedPDF.StageGap.<Clone>$() -> EmbedPDF.StageGap!
+abstract EmbedPDF.StageGridColumns.<Clone>$() -> EmbedPDF.StageGridColumns!
+abstract EmbedPDF.StageRevealAnchorValue.<Clone>$() -> EmbedPDF.StageRevealAnchorValue!
+abstract EmbedPDF.StageRevealZoom.<Clone>$() -> EmbedPDF.StageRevealZoom!
+abstract EmbedPDF.StageZoomMode.<Clone>$() -> EmbedPDF.StageZoomMode!
+abstract EmbedPDF.StageZoomTarget.<Clone>$() -> EmbedPDF.StageZoomTarget!
 abstract EmbedPDF.ViewManagerEvent.<Clone>$() -> EmbedPDF.ViewManagerEvent!
+abstract EmbedPDF.ZoomSpec.<Clone>$() -> EmbedPDF.ZoomSpec!
 const EmbedPDF.PageRenderResolution.DeviceWidthStep = 128 -> double
 const EmbedPDF.PageRenderResolution.OffScreenDeviceWidth = 256 -> double
 override EmbedPDF.ActionAlertOptions.Equals(object? obj) -> bool
@@ -3364,6 +4081,7 @@ override EmbedPDF.AttachmentHome.Page.GetHashCode() -> int
 override EmbedPDF.AttachmentHome.Page.ToString() -> string!
 override EmbedPDF.AttachmentHome.ToString() -> string!
 override EmbedPDF.AttachmentRef.GetHashCode() -> int
+override EmbedPDF.Camera.GetHashCode() -> int
 override EmbedPDF.CustomMetadataUpdatedEvent.Equals(object? obj) -> bool
 override EmbedPDF.CustomMetadataUpdatedEvent.GetHashCode() -> int
 override EmbedPDF.CustomMetadataUpdatedEvent.ToString() -> string!
@@ -3732,6 +4450,7 @@ override EmbedPDF.PageEditPlacement.Start.Equals(object? obj) -> bool
 override EmbedPDF.PageEditPlacement.Start.GetHashCode() -> int
 override EmbedPDF.PageEditPlacement.Start.ToString() -> string!
 override EmbedPDF.PageEditPlacement.ToString() -> string!
+override EmbedPDF.PageFrameInsets.GetHashCode() -> int
 override EmbedPDF.PageGeometry.GetHashCode() -> int
 override EmbedPDF.PageInfo.Equals(object? obj) -> bool
 override EmbedPDF.PageInfo.GetHashCode() -> int
@@ -4076,9 +4795,195 @@ override EmbedPDF.ShellSurface.ToString() -> string!
 override EmbedPDF.SignatureConfig.Equals(object? obj) -> bool
 override EmbedPDF.SignatureConfig.GetHashCode() -> int
 override EmbedPDF.SignatureConfig.ToString() -> string!
+override EmbedPDF.StageAlignValue.Equals(object? obj) -> bool
+override EmbedPDF.StageAlignValue.Fraction.<Clone>$() -> EmbedPDF.StageAlignValue.Fraction!
+override EmbedPDF.StageAlignValue.Fraction.Equals(object? obj) -> bool
+override EmbedPDF.StageAlignValue.Fraction.GetHashCode() -> int
+override EmbedPDF.StageAlignValue.Fraction.ToString() -> string!
+override EmbedPDF.StageAlignValue.GetHashCode() -> int
+override EmbedPDF.StageAlignValue.Named.<Clone>$() -> EmbedPDF.StageAlignValue.Named!
+override EmbedPDF.StageAlignValue.Named.Equals(object? obj) -> bool
+override EmbedPDF.StageAlignValue.Named.GetHashCode() -> int
+override EmbedPDF.StageAlignValue.Named.ToString() -> string!
+override EmbedPDF.StageAlignValue.ToString() -> string!
+override EmbedPDF.StageAlignment.Equals(object? obj) -> bool
+override EmbedPDF.StageAlignment.GetHashCode() -> int
+override EmbedPDF.StageAlignment.ToString() -> string!
+override EmbedPDF.StageAlignmentValue.Equals(object? obj) -> bool
+override EmbedPDF.StageAlignmentValue.GetHashCode() -> int
+override EmbedPDF.StageAlignmentValue.ToString() -> string!
+override EmbedPDF.StageArrivalAlignValue.Align.<Clone>$() -> EmbedPDF.StageArrivalAlignValue.Align!
+override EmbedPDF.StageArrivalAlignValue.Align.Equals(object? obj) -> bool
+override EmbedPDF.StageArrivalAlignValue.Align.GetHashCode() -> int
+override EmbedPDF.StageArrivalAlignValue.Align.ToString() -> string!
+override EmbedPDF.StageArrivalAlignValue.Equals(object? obj) -> bool
+override EmbedPDF.StageArrivalAlignValue.GetHashCode() -> int
+override EmbedPDF.StageArrivalAlignValue.Keep.<Clone>$() -> EmbedPDF.StageArrivalAlignValue.Keep!
+override EmbedPDF.StageArrivalAlignValue.Keep.Equals(object? obj) -> bool
+override EmbedPDF.StageArrivalAlignValue.Keep.GetHashCode() -> int
+override EmbedPDF.StageArrivalAlignValue.Keep.ToString() -> string!
+override EmbedPDF.StageArrivalAlignValue.ToString() -> string!
+override EmbedPDF.StageArrivalAlignment.Equals(object? obj) -> bool
+override EmbedPDF.StageArrivalAlignment.GetHashCode() -> int
+override EmbedPDF.StageArrivalAlignment.ToString() -> string!
+override EmbedPDF.StageBoxQuery.Equals(object? obj) -> bool
+override EmbedPDF.StageBoxQuery.GetHashCode() -> int
+override EmbedPDF.StageBoxQuery.ToString() -> string!
 override EmbedPDF.StageConfig.Equals(object? obj) -> bool
 override EmbedPDF.StageConfig.GetHashCode() -> int
 override EmbedPDF.StageConfig.ToString() -> string!
+override EmbedPDF.StageEvent.CameraChanged.<Clone>$() -> EmbedPDF.StageEvent.CameraChanged!
+override EmbedPDF.StageEvent.CameraChanged.Equals(object? obj) -> bool
+override EmbedPDF.StageEvent.CameraChanged.GetHashCode() -> int
+override EmbedPDF.StageEvent.CameraChanged.ToString() -> string!
+override EmbedPDF.StageEvent.Equals(object? obj) -> bool
+override EmbedPDF.StageEvent.GetHashCode() -> int
+override EmbedPDF.StageEvent.MotionEnded.<Clone>$() -> EmbedPDF.StageEvent.MotionEnded!
+override EmbedPDF.StageEvent.MotionEnded.Equals(object? obj) -> bool
+override EmbedPDF.StageEvent.MotionEnded.GetHashCode() -> int
+override EmbedPDF.StageEvent.MotionEnded.ToString() -> string!
+override EmbedPDF.StageEvent.PageChanged.<Clone>$() -> EmbedPDF.StageEvent.PageChanged!
+override EmbedPDF.StageEvent.PageChanged.Equals(object? obj) -> bool
+override EmbedPDF.StageEvent.PageChanged.GetHashCode() -> int
+override EmbedPDF.StageEvent.PageChanged.ToString() -> string!
+override EmbedPDF.StageEvent.SettingsChanged.<Clone>$() -> EmbedPDF.StageEvent.SettingsChanged!
+override EmbedPDF.StageEvent.SettingsChanged.Equals(object? obj) -> bool
+override EmbedPDF.StageEvent.SettingsChanged.GetHashCode() -> int
+override EmbedPDF.StageEvent.SettingsChanged.ToString() -> string!
+override EmbedPDF.StageEvent.ToString() -> string!
+override EmbedPDF.StageEvent.ViewportChanged.<Clone>$() -> EmbedPDF.StageEvent.ViewportChanged!
+override EmbedPDF.StageEvent.ViewportChanged.Equals(object? obj) -> bool
+override EmbedPDF.StageEvent.ViewportChanged.GetHashCode() -> int
+override EmbedPDF.StageEvent.ViewportChanged.ToString() -> string!
+override EmbedPDF.StageEvent.ZoomChanged.<Clone>$() -> EmbedPDF.StageEvent.ZoomChanged!
+override EmbedPDF.StageEvent.ZoomChanged.Equals(object? obj) -> bool
+override EmbedPDF.StageEvent.ZoomChanged.GetHashCode() -> int
+override EmbedPDF.StageEvent.ZoomChanged.ToString() -> string!
+override EmbedPDF.StageGap.Equals(object? obj) -> bool
+override EmbedPDF.StageGap.GetHashCode() -> int
+override EmbedPDF.StageGap.Px.<Clone>$() -> EmbedPDF.StageGap.Px!
+override EmbedPDF.StageGap.Px.Equals(object? obj) -> bool
+override EmbedPDF.StageGap.Px.GetHashCode() -> int
+override EmbedPDF.StageGap.Px.ToString() -> string!
+override EmbedPDF.StageGap.ToString() -> string!
+override EmbedPDF.StageGap.World.<Clone>$() -> EmbedPDF.StageGap.World!
+override EmbedPDF.StageGap.World.Equals(object? obj) -> bool
+override EmbedPDF.StageGap.World.GetHashCode() -> int
+override EmbedPDF.StageGap.World.ToString() -> string!
+override EmbedPDF.StageGoToOptions.Equals(object? obj) -> bool
+override EmbedPDF.StageGoToOptions.GetHashCode() -> int
+override EmbedPDF.StageGoToOptions.ToString() -> string!
+override EmbedPDF.StageGridColumns.Auto.<Clone>$() -> EmbedPDF.StageGridColumns.Auto!
+override EmbedPDF.StageGridColumns.Auto.Equals(object? obj) -> bool
+override EmbedPDF.StageGridColumns.Auto.GetHashCode() -> int
+override EmbedPDF.StageGridColumns.Auto.ToString() -> string!
+override EmbedPDF.StageGridColumns.Count.<Clone>$() -> EmbedPDF.StageGridColumns.Count!
+override EmbedPDF.StageGridColumns.Count.Equals(object? obj) -> bool
+override EmbedPDF.StageGridColumns.Count.GetHashCode() -> int
+override EmbedPDF.StageGridColumns.Count.ToString() -> string!
+override EmbedPDF.StageGridColumns.Equals(object? obj) -> bool
+override EmbedPDF.StageGridColumns.GetHashCode() -> int
+override EmbedPDF.StageGridColumns.Square.<Clone>$() -> EmbedPDF.StageGridColumns.Square!
+override EmbedPDF.StageGridColumns.Square.Equals(object? obj) -> bool
+override EmbedPDF.StageGridColumns.Square.GetHashCode() -> int
+override EmbedPDF.StageGridColumns.Square.ToString() -> string!
+override EmbedPDF.StageGridColumns.ToString() -> string!
+override EmbedPDF.StagePageHit.Equals(object? obj) -> bool
+override EmbedPDF.StagePageHit.GetHashCode() -> int
+override EmbedPDF.StagePageHit.ToString() -> string!
+override EmbedPDF.StagePageTransform.Equals(object? obj) -> bool
+override EmbedPDF.StagePageTransform.GetHashCode() -> int
+override EmbedPDF.StagePageTransform.ToString() -> string!
+override EmbedPDF.StagePartialArrivalAlignment.Equals(object? obj) -> bool
+override EmbedPDF.StagePartialArrivalAlignment.GetHashCode() -> int
+override EmbedPDF.StagePartialArrivalAlignment.ToString() -> string!
+override EmbedPDF.StageResponsiveRule.Equals(object? obj) -> bool
+override EmbedPDF.StageResponsiveRule.GetHashCode() -> int
+override EmbedPDF.StageResponsiveRule.ToString() -> string!
+override EmbedPDF.StageRevealAnchor.Equals(object? obj) -> bool
+override EmbedPDF.StageRevealAnchor.GetHashCode() -> int
+override EmbedPDF.StageRevealAnchor.ToString() -> string!
+override EmbedPDF.StageRevealAnchorValue.Equals(object? obj) -> bool
+override EmbedPDF.StageRevealAnchorValue.Fraction.<Clone>$() -> EmbedPDF.StageRevealAnchorValue.Fraction!
+override EmbedPDF.StageRevealAnchorValue.Fraction.Equals(object? obj) -> bool
+override EmbedPDF.StageRevealAnchorValue.Fraction.GetHashCode() -> int
+override EmbedPDF.StageRevealAnchorValue.Fraction.ToString() -> string!
+override EmbedPDF.StageRevealAnchorValue.GetHashCode() -> int
+override EmbedPDF.StageRevealAnchorValue.ToString() -> string!
+override EmbedPDF.StageRevealAnchorValue.Word.<Clone>$() -> EmbedPDF.StageRevealAnchorValue.Word!
+override EmbedPDF.StageRevealAnchorValue.Word.Equals(object? obj) -> bool
+override EmbedPDF.StageRevealAnchorValue.Word.GetHashCode() -> int
+override EmbedPDF.StageRevealAnchorValue.Word.ToString() -> string!
+override EmbedPDF.StageRevealOptions.Equals(object? obj) -> bool
+override EmbedPDF.StageRevealOptions.GetHashCode() -> int
+override EmbedPDF.StageRevealOptions.ToString() -> string!
+override EmbedPDF.StageRevealZoom.Equals(object? obj) -> bool
+override EmbedPDF.StageRevealZoom.Fit.<Clone>$() -> EmbedPDF.StageRevealZoom.Fit!
+override EmbedPDF.StageRevealZoom.Fit.Equals(object? obj) -> bool
+override EmbedPDF.StageRevealZoom.Fit.GetHashCode() -> int
+override EmbedPDF.StageRevealZoom.Fit.ToString() -> string!
+override EmbedPDF.StageRevealZoom.FitHeight.<Clone>$() -> EmbedPDF.StageRevealZoom.FitHeight!
+override EmbedPDF.StageRevealZoom.FitHeight.Equals(object? obj) -> bool
+override EmbedPDF.StageRevealZoom.FitHeight.GetHashCode() -> int
+override EmbedPDF.StageRevealZoom.FitHeight.ToString() -> string!
+override EmbedPDF.StageRevealZoom.FitWidth.<Clone>$() -> EmbedPDF.StageRevealZoom.FitWidth!
+override EmbedPDF.StageRevealZoom.FitWidth.Equals(object? obj) -> bool
+override EmbedPDF.StageRevealZoom.FitWidth.GetHashCode() -> int
+override EmbedPDF.StageRevealZoom.FitWidth.ToString() -> string!
+override EmbedPDF.StageRevealZoom.GetHashCode() -> int
+override EmbedPDF.StageRevealZoom.Keep.<Clone>$() -> EmbedPDF.StageRevealZoom.Keep!
+override EmbedPDF.StageRevealZoom.Keep.Equals(object? obj) -> bool
+override EmbedPDF.StageRevealZoom.Keep.GetHashCode() -> int
+override EmbedPDF.StageRevealZoom.Keep.ToString() -> string!
+override EmbedPDF.StageRevealZoom.Level.<Clone>$() -> EmbedPDF.StageRevealZoom.Level!
+override EmbedPDF.StageRevealZoom.Level.Equals(object? obj) -> bool
+override EmbedPDF.StageRevealZoom.Level.GetHashCode() -> int
+override EmbedPDF.StageRevealZoom.Level.ToString() -> string!
+override EmbedPDF.StageRevealZoom.ToString() -> string!
+override EmbedPDF.StageScrollMetrics.GetHashCode() -> int
+override EmbedPDF.StageScrollToOptions.Equals(object? obj) -> bool
+override EmbedPDF.StageScrollToOptions.GetHashCode() -> int
+override EmbedPDF.StageScrollToOptions.ToString() -> string!
+override EmbedPDF.StageSettings.Equals(object? obj) -> bool
+override EmbedPDF.StageSettings.GetHashCode() -> int
+override EmbedPDF.StageSettings.ToString() -> string!
+override EmbedPDF.StageSettingsPatch.Equals(object? obj) -> bool
+override EmbedPDF.StageSettingsPatch.GetHashCode() -> int
+override EmbedPDF.StageSettingsPatch.ToString() -> string!
+override EmbedPDF.StageViewState.Equals(object? obj) -> bool
+override EmbedPDF.StageViewState.GetHashCode() -> int
+override EmbedPDF.StageViewState.ToString() -> string!
+override EmbedPDF.StageViewpoint.Equals(object? obj) -> bool
+override EmbedPDF.StageViewpoint.GetHashCode() -> int
+override EmbedPDF.StageViewpoint.ToString() -> string!
+override EmbedPDF.StageVisiblePage.Equals(object? obj) -> bool
+override EmbedPDF.StageVisiblePage.GetHashCode() -> int
+override EmbedPDF.StageVisiblePage.ToString() -> string!
+override EmbedPDF.StageZoomBoxLook.Equals(object? obj) -> bool
+override EmbedPDF.StageZoomBoxLook.GetHashCode() -> int
+override EmbedPDF.StageZoomBoxLook.ToString() -> string!
+override EmbedPDF.StageZoomMode.Custom.<Clone>$() -> EmbedPDF.StageZoomMode.Custom!
+override EmbedPDF.StageZoomMode.Custom.Equals(object? obj) -> bool
+override EmbedPDF.StageZoomMode.Custom.GetHashCode() -> int
+override EmbedPDF.StageZoomMode.Custom.ToString() -> string!
+override EmbedPDF.StageZoomMode.Equals(object? obj) -> bool
+override EmbedPDF.StageZoomMode.GetHashCode() -> int
+override EmbedPDF.StageZoomMode.Mode.<Clone>$() -> EmbedPDF.StageZoomMode.Mode!
+override EmbedPDF.StageZoomMode.Mode.Equals(object? obj) -> bool
+override EmbedPDF.StageZoomMode.Mode.GetHashCode() -> int
+override EmbedPDF.StageZoomMode.Mode.ToString() -> string!
+override EmbedPDF.StageZoomMode.ToString() -> string!
+override EmbedPDF.StageZoomTarget.Equals(object? obj) -> bool
+override EmbedPDF.StageZoomTarget.GetHashCode() -> int
+override EmbedPDF.StageZoomTarget.Level.<Clone>$() -> EmbedPDF.StageZoomTarget.Level!
+override EmbedPDF.StageZoomTarget.Level.Equals(object? obj) -> bool
+override EmbedPDF.StageZoomTarget.Level.GetHashCode() -> int
+override EmbedPDF.StageZoomTarget.Level.ToString() -> string!
+override EmbedPDF.StageZoomTarget.Spec.<Clone>$() -> EmbedPDF.StageZoomTarget.Spec!
+override EmbedPDF.StageZoomTarget.Spec.Equals(object? obj) -> bool
+override EmbedPDF.StageZoomTarget.Spec.GetHashCode() -> int
+override EmbedPDF.StageZoomTarget.Spec.ToString() -> string!
+override EmbedPDF.StageZoomTarget.ToString() -> string!
 override EmbedPDF.StampConfig.Equals(object? obj) -> bool
 override EmbedPDF.StampConfig.GetHashCode() -> int
 override EmbedPDF.StampConfig.ToString() -> string!
@@ -4090,6 +4995,7 @@ override EmbedPDF.ToolId.ToString() -> string!
 override EmbedPDF.TriggerGates.Equals(object? obj) -> bool
 override EmbedPDF.TriggerGates.GetHashCode() -> int
 override EmbedPDF.TriggerGates.ToString() -> string!
+override EmbedPDF.ViewAnchor.GetHashCode() -> int
 override EmbedPDF.ViewManagerEvent.DocumentMoved.<Clone>$() -> EmbedPDF.ViewManagerEvent.DocumentMoved!
 override EmbedPDF.ViewManagerEvent.DocumentMoved.Equals(object? obj) -> bool
 override EmbedPDF.ViewManagerEvent.DocumentMoved.GetHashCode() -> int
@@ -4115,6 +5021,25 @@ override EmbedPDF.ViewerSettings.ToString() -> string!
 override EmbedPDF.ViewerSettingsPatch.Equals(object? obj) -> bool
 override EmbedPDF.ViewerSettingsPatch.GetHashCode() -> int
 override EmbedPDF.ViewerSettingsPatch.ToString() -> string!
+override EmbedPDF.ZoomSpec.Equals(object? obj) -> bool
+override EmbedPDF.ZoomSpec.GetHashCode() -> int
+override EmbedPDF.ZoomSpec.Level.<Clone>$() -> EmbedPDF.ZoomSpec.Level!
+override EmbedPDF.ZoomSpec.Level.Equals(object? obj) -> bool
+override EmbedPDF.ZoomSpec.Level.GetHashCode() -> int
+override EmbedPDF.ZoomSpec.Level.ToString() -> string!
+override EmbedPDF.ZoomSpec.Mode.<Clone>$() -> EmbedPDF.ZoomSpec.Mode!
+override EmbedPDF.ZoomSpec.Mode.Equals(object? obj) -> bool
+override EmbedPDF.ZoomSpec.Mode.GetHashCode() -> int
+override EmbedPDF.ZoomSpec.Mode.ToString() -> string!
+override EmbedPDF.ZoomSpec.PageHeight.<Clone>$() -> EmbedPDF.ZoomSpec.PageHeight!
+override EmbedPDF.ZoomSpec.PageHeight.Equals(object? obj) -> bool
+override EmbedPDF.ZoomSpec.PageHeight.GetHashCode() -> int
+override EmbedPDF.ZoomSpec.PageHeight.ToString() -> string!
+override EmbedPDF.ZoomSpec.PageWidth.<Clone>$() -> EmbedPDF.ZoomSpec.PageWidth!
+override EmbedPDF.ZoomSpec.PageWidth.Equals(object? obj) -> bool
+override EmbedPDF.ZoomSpec.PageWidth.GetHashCode() -> int
+override EmbedPDF.ZoomSpec.PageWidth.ToString() -> string!
+override EmbedPDF.ZoomSpec.ToString() -> string!
 override sealed EmbedPDF.ActionAnnotationTreeEvent.Activate.Equals(EmbedPDF.ActionAnnotationTreeEvent? other) -> bool
 override sealed EmbedPDF.ActionAnnotationTreeEvent.Event.Equals(EmbedPDF.ActionAnnotationTreeEvent? other) -> bool
 override sealed EmbedPDF.ActionExecutorResult.Executed.Equals(EmbedPDF.ActionExecutorResult? other) -> bool
@@ -4241,10 +5166,40 @@ override sealed EmbedPDF.ShellEvent.MenuClosed.Equals(EmbedPDF.ShellEvent? other
 override sealed EmbedPDF.ShellEvent.MenuOpened.Equals(EmbedPDF.ShellEvent? other) -> bool
 override sealed EmbedPDF.ShellEvent.SurfaceClosed.Equals(EmbedPDF.ShellEvent? other) -> bool
 override sealed EmbedPDF.ShellEvent.SurfaceOpened.Equals(EmbedPDF.ShellEvent? other) -> bool
+override sealed EmbedPDF.StageAlignValue.Fraction.Equals(EmbedPDF.StageAlignValue? other) -> bool
+override sealed EmbedPDF.StageAlignValue.Named.Equals(EmbedPDF.StageAlignValue? other) -> bool
+override sealed EmbedPDF.StageArrivalAlignValue.Align.Equals(EmbedPDF.StageArrivalAlignValue? other) -> bool
+override sealed EmbedPDF.StageArrivalAlignValue.Keep.Equals(EmbedPDF.StageArrivalAlignValue? other) -> bool
+override sealed EmbedPDF.StageEvent.CameraChanged.Equals(EmbedPDF.StageEvent? other) -> bool
+override sealed EmbedPDF.StageEvent.MotionEnded.Equals(EmbedPDF.StageEvent? other) -> bool
+override sealed EmbedPDF.StageEvent.PageChanged.Equals(EmbedPDF.StageEvent? other) -> bool
+override sealed EmbedPDF.StageEvent.SettingsChanged.Equals(EmbedPDF.StageEvent? other) -> bool
+override sealed EmbedPDF.StageEvent.ViewportChanged.Equals(EmbedPDF.StageEvent? other) -> bool
+override sealed EmbedPDF.StageEvent.ZoomChanged.Equals(EmbedPDF.StageEvent? other) -> bool
+override sealed EmbedPDF.StageGap.Px.Equals(EmbedPDF.StageGap? other) -> bool
+override sealed EmbedPDF.StageGap.World.Equals(EmbedPDF.StageGap? other) -> bool
+override sealed EmbedPDF.StageGridColumns.Auto.Equals(EmbedPDF.StageGridColumns? other) -> bool
+override sealed EmbedPDF.StageGridColumns.Count.Equals(EmbedPDF.StageGridColumns? other) -> bool
+override sealed EmbedPDF.StageGridColumns.Square.Equals(EmbedPDF.StageGridColumns? other) -> bool
+override sealed EmbedPDF.StageRevealAnchorValue.Fraction.Equals(EmbedPDF.StageRevealAnchorValue? other) -> bool
+override sealed EmbedPDF.StageRevealAnchorValue.Word.Equals(EmbedPDF.StageRevealAnchorValue? other) -> bool
+override sealed EmbedPDF.StageRevealZoom.Fit.Equals(EmbedPDF.StageRevealZoom? other) -> bool
+override sealed EmbedPDF.StageRevealZoom.FitHeight.Equals(EmbedPDF.StageRevealZoom? other) -> bool
+override sealed EmbedPDF.StageRevealZoom.FitWidth.Equals(EmbedPDF.StageRevealZoom? other) -> bool
+override sealed EmbedPDF.StageRevealZoom.Keep.Equals(EmbedPDF.StageRevealZoom? other) -> bool
+override sealed EmbedPDF.StageRevealZoom.Level.Equals(EmbedPDF.StageRevealZoom? other) -> bool
+override sealed EmbedPDF.StageZoomMode.Custom.Equals(EmbedPDF.StageZoomMode? other) -> bool
+override sealed EmbedPDF.StageZoomMode.Mode.Equals(EmbedPDF.StageZoomMode? other) -> bool
+override sealed EmbedPDF.StageZoomTarget.Level.Equals(EmbedPDF.StageZoomTarget? other) -> bool
+override sealed EmbedPDF.StageZoomTarget.Spec.Equals(EmbedPDF.StageZoomTarget? other) -> bool
 override sealed EmbedPDF.ViewManagerEvent.DocumentMoved.Equals(EmbedPDF.ViewManagerEvent? other) -> bool
 override sealed EmbedPDF.ViewManagerEvent.FocusChanged.Equals(EmbedPDF.ViewManagerEvent? other) -> bool
 override sealed EmbedPDF.ViewManagerEvent.PaneCreated.Equals(EmbedPDF.ViewManagerEvent? other) -> bool
 override sealed EmbedPDF.ViewManagerEvent.PaneRemoved.Equals(EmbedPDF.ViewManagerEvent? other) -> bool
+override sealed EmbedPDF.ZoomSpec.Level.Equals(EmbedPDF.ZoomSpec? other) -> bool
+override sealed EmbedPDF.ZoomSpec.Mode.Equals(EmbedPDF.ZoomSpec? other) -> bool
+override sealed EmbedPDF.ZoomSpec.PageHeight.Equals(EmbedPDF.ZoomSpec? other) -> bool
+override sealed EmbedPDF.ZoomSpec.PageWidth.Equals(EmbedPDF.ZoomSpec? other) -> bool
 static EmbedPDF.ActionAlertOptions.operator !=(EmbedPDF.ActionAlertOptions? left, EmbedPDF.ActionAlertOptions? right) -> bool
 static EmbedPDF.ActionAlertOptions.operator ==(EmbedPDF.ActionAlertOptions? left, EmbedPDF.ActionAlertOptions? right) -> bool
 static EmbedPDF.ActionAnnotationTreeEvent.Activate.operator !=(EmbedPDF.ActionAnnotationTreeEvent.Activate? left, EmbedPDF.ActionAnnotationTreeEvent.Activate? right) -> bool
@@ -4396,6 +5351,8 @@ static EmbedPDF.AttachmentHome.operator !=(EmbedPDF.AttachmentHome? left, EmbedP
 static EmbedPDF.AttachmentHome.operator ==(EmbedPDF.AttachmentHome? left, EmbedPDF.AttachmentHome? right) -> bool
 static EmbedPDF.AttachmentRef.operator !=(EmbedPDF.AttachmentRef left, EmbedPDF.AttachmentRef right) -> bool
 static EmbedPDF.AttachmentRef.operator ==(EmbedPDF.AttachmentRef left, EmbedPDF.AttachmentRef right) -> bool
+static EmbedPDF.Camera.operator !=(EmbedPDF.Camera left, EmbedPDF.Camera right) -> bool
+static EmbedPDF.Camera.operator ==(EmbedPDF.Camera left, EmbedPDF.Camera right) -> bool
 static EmbedPDF.CustomMetadataUpdatedEvent.operator !=(EmbedPDF.CustomMetadataUpdatedEvent? left, EmbedPDF.CustomMetadataUpdatedEvent? right) -> bool
 static EmbedPDF.CustomMetadataUpdatedEvent.operator ==(EmbedPDF.CustomMetadataUpdatedEvent? left, EmbedPDF.CustomMetadataUpdatedEvent? right) -> bool
 static EmbedPDF.DocumentEvent.ActiveChanged.operator !=(EmbedPDF.DocumentEvent.ActiveChanged? left, EmbedPDF.DocumentEvent.ActiveChanged? right) -> bool
@@ -4635,6 +5592,8 @@ static EmbedPDF.PageEditPlacement.Start.operator !=(EmbedPDF.PageEditPlacement.S
 static EmbedPDF.PageEditPlacement.Start.operator ==(EmbedPDF.PageEditPlacement.Start? left, EmbedPDF.PageEditPlacement.Start? right) -> bool
 static EmbedPDF.PageEditPlacement.operator !=(EmbedPDF.PageEditPlacement? left, EmbedPDF.PageEditPlacement? right) -> bool
 static EmbedPDF.PageEditPlacement.operator ==(EmbedPDF.PageEditPlacement? left, EmbedPDF.PageEditPlacement? right) -> bool
+static EmbedPDF.PageFrameInsets.operator !=(EmbedPDF.PageFrameInsets left, EmbedPDF.PageFrameInsets right) -> bool
+static EmbedPDF.PageFrameInsets.operator ==(EmbedPDF.PageFrameInsets left, EmbedPDF.PageFrameInsets right) -> bool
 static EmbedPDF.PageGeometry.operator !=(EmbedPDF.PageGeometry left, EmbedPDF.PageGeometry right) -> bool
 static EmbedPDF.PageGeometry.operator ==(EmbedPDF.PageGeometry left, EmbedPDF.PageGeometry right) -> bool
 static EmbedPDF.PageInfo.operator !=(EmbedPDF.PageInfo? left, EmbedPDF.PageInfo? right) -> bool
@@ -4871,8 +5830,116 @@ static EmbedPDF.ShellSurface.operator !=(EmbedPDF.ShellSurface? left, EmbedPDF.S
 static EmbedPDF.ShellSurface.operator ==(EmbedPDF.ShellSurface? left, EmbedPDF.ShellSurface? right) -> bool
 static EmbedPDF.SignatureConfig.operator !=(EmbedPDF.SignatureConfig? left, EmbedPDF.SignatureConfig? right) -> bool
 static EmbedPDF.SignatureConfig.operator ==(EmbedPDF.SignatureConfig? left, EmbedPDF.SignatureConfig? right) -> bool
+static EmbedPDF.StageAlignValue.Fraction.operator !=(EmbedPDF.StageAlignValue.Fraction? left, EmbedPDF.StageAlignValue.Fraction? right) -> bool
+static EmbedPDF.StageAlignValue.Fraction.operator ==(EmbedPDF.StageAlignValue.Fraction? left, EmbedPDF.StageAlignValue.Fraction? right) -> bool
+static EmbedPDF.StageAlignValue.Named.operator !=(EmbedPDF.StageAlignValue.Named? left, EmbedPDF.StageAlignValue.Named? right) -> bool
+static EmbedPDF.StageAlignValue.Named.operator ==(EmbedPDF.StageAlignValue.Named? left, EmbedPDF.StageAlignValue.Named? right) -> bool
+static EmbedPDF.StageAlignValue.operator !=(EmbedPDF.StageAlignValue? left, EmbedPDF.StageAlignValue? right) -> bool
+static EmbedPDF.StageAlignValue.operator ==(EmbedPDF.StageAlignValue? left, EmbedPDF.StageAlignValue? right) -> bool
+static EmbedPDF.StageAlignment.operator !=(EmbedPDF.StageAlignment? left, EmbedPDF.StageAlignment? right) -> bool
+static EmbedPDF.StageAlignment.operator ==(EmbedPDF.StageAlignment? left, EmbedPDF.StageAlignment? right) -> bool
+static EmbedPDF.StageAlignmentValue.operator !=(EmbedPDF.StageAlignmentValue? left, EmbedPDF.StageAlignmentValue? right) -> bool
+static EmbedPDF.StageAlignmentValue.operator ==(EmbedPDF.StageAlignmentValue? left, EmbedPDF.StageAlignmentValue? right) -> bool
+static EmbedPDF.StageArrivalAlignValue.Align.operator !=(EmbedPDF.StageArrivalAlignValue.Align? left, EmbedPDF.StageArrivalAlignValue.Align? right) -> bool
+static EmbedPDF.StageArrivalAlignValue.Align.operator ==(EmbedPDF.StageArrivalAlignValue.Align? left, EmbedPDF.StageArrivalAlignValue.Align? right) -> bool
+static EmbedPDF.StageArrivalAlignValue.Keep.operator !=(EmbedPDF.StageArrivalAlignValue.Keep? left, EmbedPDF.StageArrivalAlignValue.Keep? right) -> bool
+static EmbedPDF.StageArrivalAlignValue.Keep.operator ==(EmbedPDF.StageArrivalAlignValue.Keep? left, EmbedPDF.StageArrivalAlignValue.Keep? right) -> bool
+static EmbedPDF.StageArrivalAlignValue.operator !=(EmbedPDF.StageArrivalAlignValue? left, EmbedPDF.StageArrivalAlignValue? right) -> bool
+static EmbedPDF.StageArrivalAlignValue.operator ==(EmbedPDF.StageArrivalAlignValue? left, EmbedPDF.StageArrivalAlignValue? right) -> bool
+static EmbedPDF.StageArrivalAlignment.operator !=(EmbedPDF.StageArrivalAlignment? left, EmbedPDF.StageArrivalAlignment? right) -> bool
+static EmbedPDF.StageArrivalAlignment.operator ==(EmbedPDF.StageArrivalAlignment? left, EmbedPDF.StageArrivalAlignment? right) -> bool
+static EmbedPDF.StageBoxQuery.operator !=(EmbedPDF.StageBoxQuery? left, EmbedPDF.StageBoxQuery? right) -> bool
+static EmbedPDF.StageBoxQuery.operator ==(EmbedPDF.StageBoxQuery? left, EmbedPDF.StageBoxQuery? right) -> bool
 static EmbedPDF.StageConfig.operator !=(EmbedPDF.StageConfig? left, EmbedPDF.StageConfig? right) -> bool
 static EmbedPDF.StageConfig.operator ==(EmbedPDF.StageConfig? left, EmbedPDF.StageConfig? right) -> bool
+static EmbedPDF.StageEvent.CameraChanged.operator !=(EmbedPDF.StageEvent.CameraChanged? left, EmbedPDF.StageEvent.CameraChanged? right) -> bool
+static EmbedPDF.StageEvent.CameraChanged.operator ==(EmbedPDF.StageEvent.CameraChanged? left, EmbedPDF.StageEvent.CameraChanged? right) -> bool
+static EmbedPDF.StageEvent.MotionEnded.operator !=(EmbedPDF.StageEvent.MotionEnded? left, EmbedPDF.StageEvent.MotionEnded? right) -> bool
+static EmbedPDF.StageEvent.MotionEnded.operator ==(EmbedPDF.StageEvent.MotionEnded? left, EmbedPDF.StageEvent.MotionEnded? right) -> bool
+static EmbedPDF.StageEvent.PageChanged.operator !=(EmbedPDF.StageEvent.PageChanged? left, EmbedPDF.StageEvent.PageChanged? right) -> bool
+static EmbedPDF.StageEvent.PageChanged.operator ==(EmbedPDF.StageEvent.PageChanged? left, EmbedPDF.StageEvent.PageChanged? right) -> bool
+static EmbedPDF.StageEvent.SettingsChanged.operator !=(EmbedPDF.StageEvent.SettingsChanged? left, EmbedPDF.StageEvent.SettingsChanged? right) -> bool
+static EmbedPDF.StageEvent.SettingsChanged.operator ==(EmbedPDF.StageEvent.SettingsChanged? left, EmbedPDF.StageEvent.SettingsChanged? right) -> bool
+static EmbedPDF.StageEvent.ViewportChanged.operator !=(EmbedPDF.StageEvent.ViewportChanged? left, EmbedPDF.StageEvent.ViewportChanged? right) -> bool
+static EmbedPDF.StageEvent.ViewportChanged.operator ==(EmbedPDF.StageEvent.ViewportChanged? left, EmbedPDF.StageEvent.ViewportChanged? right) -> bool
+static EmbedPDF.StageEvent.ZoomChanged.operator !=(EmbedPDF.StageEvent.ZoomChanged? left, EmbedPDF.StageEvent.ZoomChanged? right) -> bool
+static EmbedPDF.StageEvent.ZoomChanged.operator ==(EmbedPDF.StageEvent.ZoomChanged? left, EmbedPDF.StageEvent.ZoomChanged? right) -> bool
+static EmbedPDF.StageEvent.operator !=(EmbedPDF.StageEvent? left, EmbedPDF.StageEvent? right) -> bool
+static EmbedPDF.StageEvent.operator ==(EmbedPDF.StageEvent? left, EmbedPDF.StageEvent? right) -> bool
+static EmbedPDF.StageGap.Px.operator !=(EmbedPDF.StageGap.Px? left, EmbedPDF.StageGap.Px? right) -> bool
+static EmbedPDF.StageGap.Px.operator ==(EmbedPDF.StageGap.Px? left, EmbedPDF.StageGap.Px? right) -> bool
+static EmbedPDF.StageGap.World.operator !=(EmbedPDF.StageGap.World? left, EmbedPDF.StageGap.World? right) -> bool
+static EmbedPDF.StageGap.World.operator ==(EmbedPDF.StageGap.World? left, EmbedPDF.StageGap.World? right) -> bool
+static EmbedPDF.StageGap.operator !=(EmbedPDF.StageGap? left, EmbedPDF.StageGap? right) -> bool
+static EmbedPDF.StageGap.operator ==(EmbedPDF.StageGap? left, EmbedPDF.StageGap? right) -> bool
+static EmbedPDF.StageGoToOptions.operator !=(EmbedPDF.StageGoToOptions? left, EmbedPDF.StageGoToOptions? right) -> bool
+static EmbedPDF.StageGoToOptions.operator ==(EmbedPDF.StageGoToOptions? left, EmbedPDF.StageGoToOptions? right) -> bool
+static EmbedPDF.StageGridColumns.Auto.operator !=(EmbedPDF.StageGridColumns.Auto? left, EmbedPDF.StageGridColumns.Auto? right) -> bool
+static EmbedPDF.StageGridColumns.Auto.operator ==(EmbedPDF.StageGridColumns.Auto? left, EmbedPDF.StageGridColumns.Auto? right) -> bool
+static EmbedPDF.StageGridColumns.Count.operator !=(EmbedPDF.StageGridColumns.Count? left, EmbedPDF.StageGridColumns.Count? right) -> bool
+static EmbedPDF.StageGridColumns.Count.operator ==(EmbedPDF.StageGridColumns.Count? left, EmbedPDF.StageGridColumns.Count? right) -> bool
+static EmbedPDF.StageGridColumns.Square.operator !=(EmbedPDF.StageGridColumns.Square? left, EmbedPDF.StageGridColumns.Square? right) -> bool
+static EmbedPDF.StageGridColumns.Square.operator ==(EmbedPDF.StageGridColumns.Square? left, EmbedPDF.StageGridColumns.Square? right) -> bool
+static EmbedPDF.StageGridColumns.operator !=(EmbedPDF.StageGridColumns? left, EmbedPDF.StageGridColumns? right) -> bool
+static EmbedPDF.StageGridColumns.operator ==(EmbedPDF.StageGridColumns? left, EmbedPDF.StageGridColumns? right) -> bool
+static EmbedPDF.StagePageHit.operator !=(EmbedPDF.StagePageHit? left, EmbedPDF.StagePageHit? right) -> bool
+static EmbedPDF.StagePageHit.operator ==(EmbedPDF.StagePageHit? left, EmbedPDF.StagePageHit? right) -> bool
+static EmbedPDF.StagePageTransform.operator !=(EmbedPDF.StagePageTransform? left, EmbedPDF.StagePageTransform? right) -> bool
+static EmbedPDF.StagePageTransform.operator ==(EmbedPDF.StagePageTransform? left, EmbedPDF.StagePageTransform? right) -> bool
+static EmbedPDF.StagePartialArrivalAlignment.operator !=(EmbedPDF.StagePartialArrivalAlignment? left, EmbedPDF.StagePartialArrivalAlignment? right) -> bool
+static EmbedPDF.StagePartialArrivalAlignment.operator ==(EmbedPDF.StagePartialArrivalAlignment? left, EmbedPDF.StagePartialArrivalAlignment? right) -> bool
+static EmbedPDF.StageResponsiveRule.operator !=(EmbedPDF.StageResponsiveRule? left, EmbedPDF.StageResponsiveRule? right) -> bool
+static EmbedPDF.StageResponsiveRule.operator ==(EmbedPDF.StageResponsiveRule? left, EmbedPDF.StageResponsiveRule? right) -> bool
+static EmbedPDF.StageRevealAnchor.operator !=(EmbedPDF.StageRevealAnchor? left, EmbedPDF.StageRevealAnchor? right) -> bool
+static EmbedPDF.StageRevealAnchor.operator ==(EmbedPDF.StageRevealAnchor? left, EmbedPDF.StageRevealAnchor? right) -> bool
+static EmbedPDF.StageRevealAnchorValue.Fraction.operator !=(EmbedPDF.StageRevealAnchorValue.Fraction? left, EmbedPDF.StageRevealAnchorValue.Fraction? right) -> bool
+static EmbedPDF.StageRevealAnchorValue.Fraction.operator ==(EmbedPDF.StageRevealAnchorValue.Fraction? left, EmbedPDF.StageRevealAnchorValue.Fraction? right) -> bool
+static EmbedPDF.StageRevealAnchorValue.Word.operator !=(EmbedPDF.StageRevealAnchorValue.Word? left, EmbedPDF.StageRevealAnchorValue.Word? right) -> bool
+static EmbedPDF.StageRevealAnchorValue.Word.operator ==(EmbedPDF.StageRevealAnchorValue.Word? left, EmbedPDF.StageRevealAnchorValue.Word? right) -> bool
+static EmbedPDF.StageRevealAnchorValue.operator !=(EmbedPDF.StageRevealAnchorValue? left, EmbedPDF.StageRevealAnchorValue? right) -> bool
+static EmbedPDF.StageRevealAnchorValue.operator ==(EmbedPDF.StageRevealAnchorValue? left, EmbedPDF.StageRevealAnchorValue? right) -> bool
+static EmbedPDF.StageRevealOptions.operator !=(EmbedPDF.StageRevealOptions? left, EmbedPDF.StageRevealOptions? right) -> bool
+static EmbedPDF.StageRevealOptions.operator ==(EmbedPDF.StageRevealOptions? left, EmbedPDF.StageRevealOptions? right) -> bool
+static EmbedPDF.StageRevealZoom.Fit.operator !=(EmbedPDF.StageRevealZoom.Fit? left, EmbedPDF.StageRevealZoom.Fit? right) -> bool
+static EmbedPDF.StageRevealZoom.Fit.operator ==(EmbedPDF.StageRevealZoom.Fit? left, EmbedPDF.StageRevealZoom.Fit? right) -> bool
+static EmbedPDF.StageRevealZoom.FitHeight.operator !=(EmbedPDF.StageRevealZoom.FitHeight? left, EmbedPDF.StageRevealZoom.FitHeight? right) -> bool
+static EmbedPDF.StageRevealZoom.FitHeight.operator ==(EmbedPDF.StageRevealZoom.FitHeight? left, EmbedPDF.StageRevealZoom.FitHeight? right) -> bool
+static EmbedPDF.StageRevealZoom.FitWidth.operator !=(EmbedPDF.StageRevealZoom.FitWidth? left, EmbedPDF.StageRevealZoom.FitWidth? right) -> bool
+static EmbedPDF.StageRevealZoom.FitWidth.operator ==(EmbedPDF.StageRevealZoom.FitWidth? left, EmbedPDF.StageRevealZoom.FitWidth? right) -> bool
+static EmbedPDF.StageRevealZoom.Keep.operator !=(EmbedPDF.StageRevealZoom.Keep? left, EmbedPDF.StageRevealZoom.Keep? right) -> bool
+static EmbedPDF.StageRevealZoom.Keep.operator ==(EmbedPDF.StageRevealZoom.Keep? left, EmbedPDF.StageRevealZoom.Keep? right) -> bool
+static EmbedPDF.StageRevealZoom.Level.operator !=(EmbedPDF.StageRevealZoom.Level? left, EmbedPDF.StageRevealZoom.Level? right) -> bool
+static EmbedPDF.StageRevealZoom.Level.operator ==(EmbedPDF.StageRevealZoom.Level? left, EmbedPDF.StageRevealZoom.Level? right) -> bool
+static EmbedPDF.StageRevealZoom.operator !=(EmbedPDF.StageRevealZoom? left, EmbedPDF.StageRevealZoom? right) -> bool
+static EmbedPDF.StageRevealZoom.operator ==(EmbedPDF.StageRevealZoom? left, EmbedPDF.StageRevealZoom? right) -> bool
+static EmbedPDF.StageScrollMetrics.operator !=(EmbedPDF.StageScrollMetrics left, EmbedPDF.StageScrollMetrics right) -> bool
+static EmbedPDF.StageScrollMetrics.operator ==(EmbedPDF.StageScrollMetrics left, EmbedPDF.StageScrollMetrics right) -> bool
+static EmbedPDF.StageScrollToOptions.operator !=(EmbedPDF.StageScrollToOptions? left, EmbedPDF.StageScrollToOptions? right) -> bool
+static EmbedPDF.StageScrollToOptions.operator ==(EmbedPDF.StageScrollToOptions? left, EmbedPDF.StageScrollToOptions? right) -> bool
+static EmbedPDF.StageSettings.operator !=(EmbedPDF.StageSettings? left, EmbedPDF.StageSettings? right) -> bool
+static EmbedPDF.StageSettings.operator ==(EmbedPDF.StageSettings? left, EmbedPDF.StageSettings? right) -> bool
+static EmbedPDF.StageSettingsPatch.operator !=(EmbedPDF.StageSettingsPatch? left, EmbedPDF.StageSettingsPatch? right) -> bool
+static EmbedPDF.StageSettingsPatch.operator ==(EmbedPDF.StageSettingsPatch? left, EmbedPDF.StageSettingsPatch? right) -> bool
+static EmbedPDF.StageViewState.operator !=(EmbedPDF.StageViewState? left, EmbedPDF.StageViewState? right) -> bool
+static EmbedPDF.StageViewState.operator ==(EmbedPDF.StageViewState? left, EmbedPDF.StageViewState? right) -> bool
+static EmbedPDF.StageViewpoint.operator !=(EmbedPDF.StageViewpoint? left, EmbedPDF.StageViewpoint? right) -> bool
+static EmbedPDF.StageViewpoint.operator ==(EmbedPDF.StageViewpoint? left, EmbedPDF.StageViewpoint? right) -> bool
+static EmbedPDF.StageVisiblePage.operator !=(EmbedPDF.StageVisiblePage? left, EmbedPDF.StageVisiblePage? right) -> bool
+static EmbedPDF.StageVisiblePage.operator ==(EmbedPDF.StageVisiblePage? left, EmbedPDF.StageVisiblePage? right) -> bool
+static EmbedPDF.StageZoomBoxLook.operator !=(EmbedPDF.StageZoomBoxLook? left, EmbedPDF.StageZoomBoxLook? right) -> bool
+static EmbedPDF.StageZoomBoxLook.operator ==(EmbedPDF.StageZoomBoxLook? left, EmbedPDF.StageZoomBoxLook? right) -> bool
+static EmbedPDF.StageZoomMode.Custom.operator !=(EmbedPDF.StageZoomMode.Custom? left, EmbedPDF.StageZoomMode.Custom? right) -> bool
+static EmbedPDF.StageZoomMode.Custom.operator ==(EmbedPDF.StageZoomMode.Custom? left, EmbedPDF.StageZoomMode.Custom? right) -> bool
+static EmbedPDF.StageZoomMode.Mode.operator !=(EmbedPDF.StageZoomMode.Mode? left, EmbedPDF.StageZoomMode.Mode? right) -> bool
+static EmbedPDF.StageZoomMode.Mode.operator ==(EmbedPDF.StageZoomMode.Mode? left, EmbedPDF.StageZoomMode.Mode? right) -> bool
+static EmbedPDF.StageZoomMode.operator !=(EmbedPDF.StageZoomMode? left, EmbedPDF.StageZoomMode? right) -> bool
+static EmbedPDF.StageZoomMode.operator ==(EmbedPDF.StageZoomMode? left, EmbedPDF.StageZoomMode? right) -> bool
+static EmbedPDF.StageZoomTarget.Level.operator !=(EmbedPDF.StageZoomTarget.Level? left, EmbedPDF.StageZoomTarget.Level? right) -> bool
+static EmbedPDF.StageZoomTarget.Level.operator ==(EmbedPDF.StageZoomTarget.Level? left, EmbedPDF.StageZoomTarget.Level? right) -> bool
+static EmbedPDF.StageZoomTarget.Spec.operator !=(EmbedPDF.StageZoomTarget.Spec? left, EmbedPDF.StageZoomTarget.Spec? right) -> bool
+static EmbedPDF.StageZoomTarget.Spec.operator ==(EmbedPDF.StageZoomTarget.Spec? left, EmbedPDF.StageZoomTarget.Spec? right) -> bool
+static EmbedPDF.StageZoomTarget.operator !=(EmbedPDF.StageZoomTarget? left, EmbedPDF.StageZoomTarget? right) -> bool
+static EmbedPDF.StageZoomTarget.operator ==(EmbedPDF.StageZoomTarget? left, EmbedPDF.StageZoomTarget? right) -> bool
 static EmbedPDF.StampConfig.operator !=(EmbedPDF.StampConfig? left, EmbedPDF.StampConfig? right) -> bool
 static EmbedPDF.StampConfig.operator ==(EmbedPDF.StampConfig? left, EmbedPDF.StampConfig? right) -> bool
 static EmbedPDF.TextSegment.operator !=(EmbedPDF.TextSegment? left, EmbedPDF.TextSegment? right) -> bool
@@ -4920,6 +5987,8 @@ static EmbedPDF.ToolId.operator !=(EmbedPDF.ToolId left, EmbedPDF.ToolId right) 
 static EmbedPDF.ToolId.operator ==(EmbedPDF.ToolId left, EmbedPDF.ToolId right) -> bool
 static EmbedPDF.TriggerGates.operator !=(EmbedPDF.TriggerGates? left, EmbedPDF.TriggerGates? right) -> bool
 static EmbedPDF.TriggerGates.operator ==(EmbedPDF.TriggerGates? left, EmbedPDF.TriggerGates? right) -> bool
+static EmbedPDF.ViewAnchor.operator !=(EmbedPDF.ViewAnchor left, EmbedPDF.ViewAnchor right) -> bool
+static EmbedPDF.ViewAnchor.operator ==(EmbedPDF.ViewAnchor left, EmbedPDF.ViewAnchor right) -> bool
 static EmbedPDF.ViewManagerEvent.DocumentMoved.operator !=(EmbedPDF.ViewManagerEvent.DocumentMoved? left, EmbedPDF.ViewManagerEvent.DocumentMoved? right) -> bool
 static EmbedPDF.ViewManagerEvent.DocumentMoved.operator ==(EmbedPDF.ViewManagerEvent.DocumentMoved? left, EmbedPDF.ViewManagerEvent.DocumentMoved? right) -> bool
 static EmbedPDF.ViewManagerEvent.FocusChanged.operator !=(EmbedPDF.ViewManagerEvent.FocusChanged? left, EmbedPDF.ViewManagerEvent.FocusChanged? right) -> bool
@@ -4934,6 +6003,16 @@ static EmbedPDF.ViewerSettings.operator !=(EmbedPDF.ViewerSettings? left, EmbedP
 static EmbedPDF.ViewerSettings.operator ==(EmbedPDF.ViewerSettings? left, EmbedPDF.ViewerSettings? right) -> bool
 static EmbedPDF.ViewerSettingsPatch.operator !=(EmbedPDF.ViewerSettingsPatch? left, EmbedPDF.ViewerSettingsPatch? right) -> bool
 static EmbedPDF.ViewerSettingsPatch.operator ==(EmbedPDF.ViewerSettingsPatch? left, EmbedPDF.ViewerSettingsPatch? right) -> bool
+static EmbedPDF.ZoomSpec.Level.operator !=(EmbedPDF.ZoomSpec.Level? left, EmbedPDF.ZoomSpec.Level? right) -> bool
+static EmbedPDF.ZoomSpec.Level.operator ==(EmbedPDF.ZoomSpec.Level? left, EmbedPDF.ZoomSpec.Level? right) -> bool
+static EmbedPDF.ZoomSpec.Mode.operator !=(EmbedPDF.ZoomSpec.Mode? left, EmbedPDF.ZoomSpec.Mode? right) -> bool
+static EmbedPDF.ZoomSpec.Mode.operator ==(EmbedPDF.ZoomSpec.Mode? left, EmbedPDF.ZoomSpec.Mode? right) -> bool
+static EmbedPDF.ZoomSpec.PageHeight.operator !=(EmbedPDF.ZoomSpec.PageHeight? left, EmbedPDF.ZoomSpec.PageHeight? right) -> bool
+static EmbedPDF.ZoomSpec.PageHeight.operator ==(EmbedPDF.ZoomSpec.PageHeight? left, EmbedPDF.ZoomSpec.PageHeight? right) -> bool
+static EmbedPDF.ZoomSpec.PageWidth.operator !=(EmbedPDF.ZoomSpec.PageWidth? left, EmbedPDF.ZoomSpec.PageWidth? right) -> bool
+static EmbedPDF.ZoomSpec.PageWidth.operator ==(EmbedPDF.ZoomSpec.PageWidth? left, EmbedPDF.ZoomSpec.PageWidth? right) -> bool
+static EmbedPDF.ZoomSpec.operator !=(EmbedPDF.ZoomSpec? left, EmbedPDF.ZoomSpec? right) -> bool
+static EmbedPDF.ZoomSpec.operator ==(EmbedPDF.ZoomSpec? left, EmbedPDF.ZoomSpec? right) -> bool
 virtual EmbedPDF.ActionAnnotationTreeEvent.EqualityContract.get -> System.Type!
 virtual EmbedPDF.ActionAnnotationTreeEvent.Equals(EmbedPDF.ActionAnnotationTreeEvent? other) -> bool
 virtual EmbedPDF.ActionAnnotationTreeEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
@@ -5039,14 +6118,48 @@ virtual EmbedPDF.SearchRevealAxis.PrintMembers(System.Text.StringBuilder! builde
 virtual EmbedPDF.ShellEvent.EqualityContract.get -> System.Type!
 virtual EmbedPDF.ShellEvent.Equals(EmbedPDF.ShellEvent? other) -> bool
 virtual EmbedPDF.ShellEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.StageAlignValue.EqualityContract.get -> System.Type!
+virtual EmbedPDF.StageAlignValue.Equals(EmbedPDF.StageAlignValue? other) -> bool
+virtual EmbedPDF.StageAlignValue.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.StageArrivalAlignValue.EqualityContract.get -> System.Type!
+virtual EmbedPDF.StageArrivalAlignValue.Equals(EmbedPDF.StageArrivalAlignValue? other) -> bool
+virtual EmbedPDF.StageArrivalAlignValue.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.StageEvent.EqualityContract.get -> System.Type!
+virtual EmbedPDF.StageEvent.Equals(EmbedPDF.StageEvent? other) -> bool
+virtual EmbedPDF.StageEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.StageGap.EqualityContract.get -> System.Type!
+virtual EmbedPDF.StageGap.Equals(EmbedPDF.StageGap? other) -> bool
+virtual EmbedPDF.StageGap.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.StageGridColumns.EqualityContract.get -> System.Type!
+virtual EmbedPDF.StageGridColumns.Equals(EmbedPDF.StageGridColumns? other) -> bool
+virtual EmbedPDF.StageGridColumns.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.StageRevealAnchorValue.EqualityContract.get -> System.Type!
+virtual EmbedPDF.StageRevealAnchorValue.Equals(EmbedPDF.StageRevealAnchorValue? other) -> bool
+virtual EmbedPDF.StageRevealAnchorValue.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.StageRevealZoom.EqualityContract.get -> System.Type!
+virtual EmbedPDF.StageRevealZoom.Equals(EmbedPDF.StageRevealZoom? other) -> bool
+virtual EmbedPDF.StageRevealZoom.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.StageZoomMode.EqualityContract.get -> System.Type!
+virtual EmbedPDF.StageZoomMode.Equals(EmbedPDF.StageZoomMode? other) -> bool
+virtual EmbedPDF.StageZoomMode.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.StageZoomTarget.EqualityContract.get -> System.Type!
+virtual EmbedPDF.StageZoomTarget.Equals(EmbedPDF.StageZoomTarget? other) -> bool
+virtual EmbedPDF.StageZoomTarget.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual EmbedPDF.ViewManagerEvent.EqualityContract.get -> System.Type!
 virtual EmbedPDF.ViewManagerEvent.Equals(EmbedPDF.ViewManagerEvent? other) -> bool
 virtual EmbedPDF.ViewManagerEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.ZoomSpec.EqualityContract.get -> System.Type!
+virtual EmbedPDF.ZoomSpec.Equals(EmbedPDF.ZoomSpec? other) -> bool
+virtual EmbedPDF.ZoomSpec.PrintMembers(System.Text.StringBuilder! builder) -> bool
 ~override EmbedPDF.AttachmentRef.Equals(object obj) -> bool
 ~override EmbedPDF.AttachmentRef.ToString() -> string
+~override EmbedPDF.Camera.Equals(object obj) -> bool
+~override EmbedPDF.Camera.ToString() -> string
 ~override EmbedPDF.DocumentPermission.Equals(object obj) -> bool
 ~override EmbedPDF.OutlineItemRef.Equals(object obj) -> bool
 ~override EmbedPDF.OutlineItemRef.ToString() -> string
+~override EmbedPDF.PageFrameInsets.Equals(object obj) -> bool
+~override EmbedPDF.PageFrameInsets.ToString() -> string
 ~override EmbedPDF.PageGeometry.Equals(object obj) -> bool
 ~override EmbedPDF.PageGeometry.ToString() -> string
 ~override EmbedPDF.PageRef.Equals(object obj) -> bool
@@ -5064,4 +6177,8 @@ virtual EmbedPDF.ViewManagerEvent.PrintMembers(System.Text.StringBuilder! builde
 ~override EmbedPDF.PdfSize.ToString() -> string
 ~override EmbedPDF.PointerModifiers.Equals(object obj) -> bool
 ~override EmbedPDF.PointerModifiers.ToString() -> string
+~override EmbedPDF.StageScrollMetrics.Equals(object obj) -> bool
+~override EmbedPDF.StageScrollMetrics.ToString() -> string
 ~override EmbedPDF.ToolId.Equals(object obj) -> bool
+~override EmbedPDF.ViewAnchor.Equals(object obj) -> bool
+~override EmbedPDF.ViewAnchor.ToString() -> string

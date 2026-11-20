@@ -29,7 +29,15 @@ internal sealed record PluginContext(KernelMark Mark, Microsoft.Extensions.Loggi
 /// <summary>Installs the stage plugin: the viewport lens, one per document.</summary>
 public sealed record StageConfig
 {
-    internal GSt.StageConfig ToFfi() => new();
+    /// <summary>Settings over the engine's defaults.</summary>
+    public StageSettingsPatch? Settings { get; init; }
+
+    /// <summary>Responsive rules installed with the plugin.</summary>
+    public IReadOnlyList<StageResponsiveRule>? Responsive { get; init; }
+
+    internal GSt.StageConfig ToFfi() => new(
+        Settings is null ? null : Ffi.ToFfi(Settings),
+        Responsive is null ? null : [.. Arguments.NoNullElements(Responsive, nameof(Responsive)).Select(Ffi.ToFfi)]);
 }
 
 /// <summary>Installs the form plugin. Needs <see cref="PdfViewerOptions.Interaction"/>.</summary>

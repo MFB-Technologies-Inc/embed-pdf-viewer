@@ -8638,10 +8638,16 @@
       "path": "crates/plugins/stage/src/camera/animation.rs",
       "owner": "StageCapability",
       "symbol": "is_moving",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "is_moving"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "IsMovingAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8649,10 +8655,16 @@
       "path": "crates/plugins/stage/src/camera/animation.rs",
       "owner": "StageCapability",
       "symbol": "stop_motion",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "stop_motion"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "StopMotionAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8660,10 +8672,16 @@
       "path": "crates/plugins/stage/src/camera/gestures.rs",
       "owner": "StageCapability",
       "symbol": "set_camera",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "set_camera"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "SetCamera",
+        "parameters": [
+          "EmbedPDF.Camera"
+        ]
       }
     },
     {
@@ -8679,10 +8697,17 @@
       "path": "crates/plugins/stage/src/camera/gestures.rs",
       "owner": "StageCapability",
       "symbol": "pan_by",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "pan_by"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "PanBy",
+        "parameters": [
+          "System.Double",
+          "System.Double"
+        ]
       }
     },
     {
@@ -8690,10 +8715,17 @@
       "path": "crates/plugins/stage/src/camera/gestures.rs",
       "owner": "StageCapability",
       "symbol": "scroll_to",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "scroll_to"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "ScrollToAsync",
+        "parameters": [
+          "EmbedPDF.StageScrollToOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8701,10 +8733,16 @@
       "path": "crates/plugins/stage/src/camera/gestures.rs",
       "owner": "StageCapability",
       "symbol": "scroll_by",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "scroll_by"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "ScrollBy",
+        "parameters": [
+          "EmbedPDF.StageScrollToOptions"
+        ]
       }
     },
     {
@@ -8712,10 +8750,17 @@
       "path": "crates/plugins/stage/src/camera/gestures.rs",
       "owner": "StageCapability",
       "symbol": "zoom_around",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "zoom_around"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "ZoomAround",
+        "parameters": [
+          "EmbedPDF.PdfPoint",
+          "System.Double"
+        ]
       }
     },
     {
@@ -8723,10 +8768,17 @@
       "path": "crates/plugins/stage/src/camera/gestures.rs",
       "owner": "StageCapability",
       "symbol": "begin_gesture",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "begin_gesture"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "BeginGestureAsync",
+        "parameters": [
+          "System.Boolean",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8734,10 +8786,16 @@
       "path": "crates/plugins/stage/src/camera/gestures.rs",
       "owner": "StageCapability",
       "symbol": "end_gesture",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "end_gesture"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "EndGestureAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8745,10 +8803,18 @@
       "path": "crates/plugins/stage/src/camera/gestures.rs",
       "owner": "StageCapability",
       "symbol": "fling",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "fling"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "FlingAsync",
+        "parameters": [
+          "System.Double",
+          "System.Double",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8756,7 +8822,20 @@
       "path": "crates/plugins/stage/src/camera/wheel.rs",
       "owner": "StageCapability",
       "symbol": "wheel_by",
-      "pending": "phase-3-wave-C"
+      "export": {
+        "path": "crates/plugins/stage/src/ffi.rs",
+        "symbol": "wheel_by"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "WheelByAsync",
+        "parameters": [
+          "System.Double",
+          "System.Double",
+          "System.Double",
+          "System.Threading.CancellationToken"
+        ]
+      }
     },
     {
       "crate": "stage",
@@ -8771,10 +8850,16 @@
       "path": "crates/plugins/stage/src/controller.rs",
       "owner": "StageCapability",
       "symbol": "lifetime",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8782,24 +8867,34 @@
       "path": "crates/plugins/stage/src/controller.rs",
       "owner": "StageCapability",
       "symbol": "scene_key_builds",
-      "pending": "phase-3-wave-C"
+      "exclusion": "Test counter (`#[doc(hidden)]`, no export): how many scene keys the lens built. Not a capability member.",
+      "classification": "internal-resource"
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/controller.rs",
       "owner": "StageCapability",
       "symbol": "page_state_reads",
-      "pending": "phase-3-wave-C"
+      "exclusion": "Test counter (`#[doc(hidden)]`, no export): how many times the page-state feed read the lens. Not a capability member.",
+      "classification": "internal-resource"
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/arrive.rs",
       "owner": "StageCapability",
       "symbol": "go_to_page",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "go_to_page_index"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GoToPageIndexAsync",
+        "parameters": [
+          "System.Int32",
+          "EmbedPDF.StageGoToOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8807,10 +8902,17 @@
       "path": "crates/plugins/stage/src/navigation/arrive.rs",
       "owner": "StageCapability",
       "symbol": "go_to_first_page",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "go_to_first_page"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GoToFirstPageAsync",
+        "parameters": [
+          "EmbedPDF.StageGoToOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8818,10 +8920,17 @@
       "path": "crates/plugins/stage/src/navigation/arrive.rs",
       "owner": "StageCapability",
       "symbol": "go_to_last_page",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "go_to_last_page"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GoToLastPageAsync",
+        "parameters": [
+          "EmbedPDF.StageGoToOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8829,10 +8938,16 @@
       "path": "crates/plugins/stage/src/navigation/arrive.rs",
       "owner": "StageCapability",
       "symbol": "can_go_next",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "can_go_next"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "CanGoNextAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8840,10 +8955,16 @@
       "path": "crates/plugins/stage/src/navigation/arrive.rs",
       "owner": "StageCapability",
       "symbol": "can_go_previous",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "can_go_previous"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "CanGoPreviousAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8851,10 +8972,17 @@
       "path": "crates/plugins/stage/src/navigation/arrive.rs",
       "owner": "StageCapability",
       "symbol": "next_page",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "next_page"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "NextPageAsync",
+        "parameters": [
+          "EmbedPDF.StageGoToOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8862,10 +8990,17 @@
       "path": "crates/plugins/stage/src/navigation/arrive.rs",
       "owner": "StageCapability",
       "symbol": "previous_page",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "previous_page"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "PreviousPageAsync",
+        "parameters": [
+          "EmbedPDF.StageGoToOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8873,10 +9008,16 @@
       "path": "crates/plugins/stage/src/navigation/arrive.rs",
       "owner": "StageCapability",
       "symbol": "reset_view",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "reset_view"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "ResetViewAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8884,10 +9025,18 @@
       "path": "crates/plugins/stage/src/navigation/reveal.rs",
       "owner": "StageCapability",
       "symbol": "reveal",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "reveal"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "RevealAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "EmbedPDF.StageRevealOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8895,10 +9044,18 @@
       "path": "crates/plugins/stage/src/navigation/reveal.rs",
       "owner": "StageCapability",
       "symbol": "go_to_destination",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "go_to_destination"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GoToDestinationAsync",
+        "parameters": [
+          "EmbedPDF.PageDestination",
+          "System.Nullable<EmbedPDF.StageScrollBehavior>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8906,10 +9063,17 @@
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "double_tap_zoom",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "double_tap_zoom"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "DoubleTapZoomAsync",
+        "parameters": [
+          "EmbedPDF.PdfPoint",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8917,10 +9081,16 @@
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "zoom_in",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "zoom_in"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "ZoomInAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8928,10 +9098,16 @@
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "zoom_out",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "zoom_out"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "ZoomOutAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8939,10 +9115,16 @@
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "can_zoom_in",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "can_zoom_in"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "CanZoomInAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8950,10 +9132,16 @@
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "can_zoom_out",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "can_zoom_out"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "CanZoomOutAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8961,10 +9149,18 @@
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "zoom_to",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "zoom_to"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "ZoomToAsync",
+        "parameters": [
+          "EmbedPDF.StageZoomTarget",
+          "System.Nullable<EmbedPDF.PdfPoint>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8972,10 +9168,18 @@
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "zoom_by",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "zoom_by"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "ZoomByAsync",
+        "parameters": [
+          "System.Double",
+          "System.Nullable<EmbedPDF.PdfPoint>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8983,10 +9187,16 @@
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "fit_width",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "fit_width"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "FitWidthAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8994,10 +9204,16 @@
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "fit_page",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "fit_page"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "FitPageAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9005,10 +9221,16 @@
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "fit_all",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "fit_all"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "FitAllAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9016,10 +9238,16 @@
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "fit_automatic",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "fit_automatic"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "FitAutomaticAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9027,10 +9255,17 @@
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "set_view_rotation",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "set_view_rotation"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "SetViewRotationAsync",
+        "parameters": [
+          "System.Double",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9038,10 +9273,17 @@
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "rotate_view_by",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "rotate_view_by"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "RotateViewByAsync",
+        "parameters": [
+          "System.Double",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9049,10 +9291,17 @@
       "path": "crates/plugins/stage/src/navigation/zoom_drag.rs",
       "owner": "StageCapability",
       "symbol": "begin_zoom_drag",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "begin_zoom_drag"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "BeginZoomDragAsync",
+        "parameters": [
+          "EmbedPDF.PdfPoint",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9060,10 +9309,17 @@
       "path": "crates/plugins/stage/src/navigation/zoom_drag.rs",
       "owner": "StageCapability",
       "symbol": "move_zoom_drag",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "move_zoom_drag"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "MoveZoomDragAsync",
+        "parameters": [
+          "EmbedPDF.PdfPoint",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9071,10 +9327,17 @@
       "path": "crates/plugins/stage/src/navigation/zoom_drag.rs",
       "owner": "StageCapability",
       "symbol": "end_zoom_drag",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "end_zoom_drag"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "EndZoomDragAsync",
+        "parameters": [
+          "System.Boolean",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9082,10 +9345,16 @@
       "path": "crates/plugins/stage/src/navigation/zoom_drag.rs",
       "owner": "StageCapability",
       "symbol": "cancel_zoom_drag",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "cancel_zoom_drag"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "CancelZoomDragAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9093,10 +9362,16 @@
       "path": "crates/plugins/stage/src/navigation/zoom_drag.rs",
       "owner": "StageCapability",
       "symbol": "get_zoom_box",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "zoom_box"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GetZoomBoxAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9104,10 +9379,16 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_camera",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "camera"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GetCameraAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9115,10 +9396,16 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_viewport_size",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "viewport_size"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GetViewportSizeAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9126,10 +9413,16 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_scroll_metrics",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "scroll_metrics"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GetScrollMetricsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9137,10 +9430,16 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "list_visible_pages",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "visible_pages"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GetVisiblePagesAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9148,10 +9447,17 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "is_page_visible",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "is_page_visible"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "IsPageVisibleAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9159,10 +9465,16 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_current_page_index",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "current_page_index"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GetCurrentPageIndexAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9170,10 +9482,16 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_current_page",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "current_page"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GetCurrentPageAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9181,10 +9499,16 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_page_count",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "page_count"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GetPageCountAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9192,10 +9516,16 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "list_current_item_pages",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "current_item_pages"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GetCurrentItemPagesAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9203,10 +9533,16 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "list_current_pages",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "current_pages"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GetCurrentPagesAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9214,10 +9550,17 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_page_box",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "page_frame"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GetPageFrameAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9225,10 +9568,17 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_page_at",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "page_at"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GetPageAtAsync",
+        "parameters": [
+          "EmbedPDF.PdfPoint",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9236,10 +9586,18 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "viewport_to_page",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "viewport_to_page"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "ViewportToPageAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "EmbedPDF.PdfPoint",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9247,10 +9605,18 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "page_to_world",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "page_to_world"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "PageToWorldAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "EmbedPDF.PdfPoint",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9258,10 +9624,18 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "page_rect_to_viewport",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "page_rect_to_viewport"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "PageRectToViewportAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "EmbedPDF.PdfRect",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9269,10 +9643,17 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "world_to_viewport",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "world_to_viewport"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "WorldToViewportAsync",
+        "parameters": [
+          "EmbedPDF.PdfPoint",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9280,10 +9661,17 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "viewport_to_world",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "viewport_to_world"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "ViewportToWorldAsync",
+        "parameters": [
+          "EmbedPDF.PdfPoint",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9291,10 +9679,18 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "page_to_viewport",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "page_to_viewport"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "PageToViewportAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "EmbedPDF.PdfPoint",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9302,10 +9698,16 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_view_rotation",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "view_rotation"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GetViewRotationAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9313,10 +9715,16 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_zoom_level",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "zoom_level"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GetZoomLevelAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9324,10 +9732,16 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_zoom_mode",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "zoom_mode"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GetZoomModeAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9335,10 +9749,16 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_viewpoint",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "viewpoint"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GetViewpointAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9346,10 +9766,16 @@
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_current_destination",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "current_destination"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GetCurrentDestinationAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9357,10 +9783,16 @@
       "path": "crates/plugins/stage/src/services/events.rs",
       "owner": "StageCapability",
       "symbol": "on_page_changed",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9368,10 +9800,16 @@
       "path": "crates/plugins/stage/src/services/events.rs",
       "owner": "StageCapability",
       "symbol": "on_zoom_changed",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9379,10 +9817,16 @@
       "path": "crates/plugins/stage/src/services/events.rs",
       "owner": "StageCapability",
       "symbol": "on_camera_changed",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9390,10 +9834,16 @@
       "path": "crates/plugins/stage/src/services/events.rs",
       "owner": "StageCapability",
       "symbol": "on_motion_ended",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9401,10 +9851,16 @@
       "path": "crates/plugins/stage/src/services/events.rs",
       "owner": "StageCapability",
       "symbol": "on_settings_changed",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9412,10 +9868,16 @@
       "path": "crates/plugins/stage/src/services/events.rs",
       "owner": "StageCapability",
       "symbol": "on_viewport_changed",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9423,10 +9885,16 @@
       "path": "crates/plugins/stage/src/settings/area.rs",
       "owner": "StageCapability",
       "symbol": "get_settings",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9434,10 +9902,16 @@
       "path": "crates/plugins/stage/src/settings/area.rs",
       "owner": "StageCapability",
       "symbol": "reset_settings",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "reset_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "ResetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9445,10 +9919,17 @@
       "path": "crates/plugins/stage/src/settings/area.rs",
       "owner": "StageCapability",
       "symbol": "update_settings",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "update_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "UpdateSettingsAsync",
+        "parameters": [
+          "EmbedPDF.StageSettingsPatch",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9456,10 +9937,17 @@
       "path": "crates/plugins/stage/src/settings/area.rs",
       "owner": "StageCapability",
       "symbol": "set_responsive_rules",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "set_responsive_rules"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "SetResponsiveRulesAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.StageResponsiveRule>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9467,10 +9955,17 @@
       "path": "crates/plugins/stage/src/settings/area.rs",
       "owner": "StageCapability",
       "symbol": "matches_rule",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "matches_rule"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "MatchesRuleAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9478,10 +9973,16 @@
       "path": "crates/plugins/stage/src/settings/area.rs",
       "owner": "StageCapability",
       "symbol": "list_active_rules",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "active_rules"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GetActiveRulesAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9489,10 +9990,17 @@
       "path": "crates/plugins/stage/src/settings/area.rs",
       "owner": "StageCapability",
       "symbol": "apply_view_state",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "apply_view_state"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "ApplyViewStateAsync",
+        "parameters": [
+          "EmbedPDF.StageViewState",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9516,10 +10024,17 @@
       "path": "crates/plugins/stage/src/view/lifecycle.rs",
       "owner": "StageCapability",
       "symbol": "set_viewport_size",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "set_viewport_size"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "SetViewportSizeAsync",
+        "parameters": [
+          "EmbedPDF.PdfSize",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9527,10 +10042,17 @@
       "path": "crates/plugins/stage/src/view/lifecycle.rs",
       "owner": "StageCapability",
       "symbol": "set_device_pixel_ratio",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "set_device_pixel_ratio"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "SetDevicePixelRatioAsync",
+        "parameters": [
+          "System.Double",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9538,10 +10060,16 @@
       "path": "crates/plugins/stage/src/view/lifecycle.rs",
       "owner": "StageCapability",
       "symbol": "refit",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "refit"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "RefitAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9549,10 +10077,16 @@
       "path": "crates/plugins/stage/src/view/lifecycle.rs",
       "owner": "StageCapability",
       "symbol": "get_view_state",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "view_state"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GetViewStateAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9560,10 +10094,16 @@
       "path": "crates/plugins/stage/src/view/lifecycle.rs",
       "owner": "StageCapability",
       "symbol": "get_lens_id",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "lens_id"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "GetLensIdAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9571,10 +10111,18 @@
       "path": "crates/plugins/stage/src/view/lifecycle.rs",
       "owner": "StageCapability",
       "symbol": "provide_initial_view",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "provide_initial_view"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "ProvideInitialViewAsync",
+        "parameters": [
+          "EmbedPDF.IStageInitialViewProvider",
+          "System.Double",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9582,10 +10130,16 @@
       "path": "crates/plugins/stage/src/view/lifecycle.rs",
       "owner": "StageCapability",
       "symbol": "place_initial",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/stage/src/ffi.rs",
         "symbol": "place_initial"
+      },
+      "csharp": {
+        "type": "EmbedPDF.StageCapability",
+        "member": "PlaceInitialAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {

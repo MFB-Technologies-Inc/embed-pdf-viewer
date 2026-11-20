@@ -43,6 +43,16 @@ public sealed class EnumRangeTests
         { "document event", () => Ffi.ToFfi(new ActionTrigger.Document((DocumentTriggerEvent)9)) },
         { "document event", () => Ffi.ToFfi(new ActionTreeSource.Document((DocumentTriggerEvent)9)) },
         { "document verb", () => Ffi.ToFfi((DocumentVerb)9) },
+        { "scroll behavior", () => Ffi.ToFfi(new StageScrollToOptions { Behavior = (StageScrollBehavior)9 }) },
+        { "flow", () => Ffi.ToFfi(new StageSettingsPatch { Flow = (StageFlow)9 }) },
+        { "layout", () => Ffi.ToFfi(new StageSettingsPatch { Layout = (StageLayout)9 }) },
+        { "spread mode", () => Ffi.ToFfi(new StageSettingsPatch { Spread = (StageSpreadMode)9 }) },
+        { "sizing mode", () => Ffi.ToFfi(new StageSettingsPatch { Sizing = (StageSizingMode)9 }) },
+        { "direction", () => Ffi.ToFfi(new StageSettingsPatch { Direction = (StageDirection)9 }) },
+        { "align", () => Ffi.ToFfi(new StageSettingsPatch { FitAlign = new StageAlignment((StageAlign)9, StageAlign.Start) }) },
+        { "zoom mode", () => Ffi.ToFfi(new StageSettingsPatch { Zoom = new ZoomSpec.Mode((ZoomMode)9) }) },
+        { "orientation", () => Ffi.ToFfi(new StageBoxQuery { Orientation = (StageOrientation)9 }) },
+        { "reveal word", () => Ffi.ToFfiOrNull(new StageRevealOptions { Anchor = new StageRevealAnchor { X = new StageRevealAnchorValue.Word((StageRevealWord)9) } }) },
     };
 
     [Theory]
