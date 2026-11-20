@@ -4,22 +4,22 @@
   "phase": 1,
   "rid": "linux-x64",
   "source": {
-    "commit": "0d97ddc53ead779bca0fe41ccfafc593e55b6d88",
+    "commit": "8709bf4fba43d94de86e5f968014449ad18aedba",
     "dirty": false,
     "runtimeFork": "f2ea7597287f26bdcb450602de6616ff6939d506"
   },
   "environment": {
     "kind": "container",
-    "os": "Linux-7.0.14-linuxkit-aarch64-with-glibc2.41",
+    "os": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.41",
     "arch": "x64",
-    "emulated": true,
+    "emulated": false,
     "tools": {
       "dotnet": "10.0.403",
-      "rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+      "rustc": "unavailable",
       "libc": "ldd (Debian GLIBC 2.41-12+deb13u4) 2.41"
     },
-    "imageId": "sha256:798d19df35a8ea4b0e50631f72d61e8d5541c985ca06bd36b9c31291116af75b",
-    "hostOs": "macos"
+    "imageId": "sha256:bfc36aecdece0387418759dba474aa856c026ca8087da3606b41b90ab0509c99",
+    "hostOs": "linux"
   },
   "inputs": [
     {
@@ -35,31 +35,30 @@
   ],
   "commands": [
     {
-      "command": "/usr/bin/python3 /workspaces/embed-pdf-viewer/platforms/dotnet/packaging/package.py smoke-runtime --rid linux-x64 --package /tmp/epdf-rt/pack/EmbedPDF.Runtime.0.0.0-engine.96f2f8af10194b63.nupkg --facade /tmp/epdf-rt/pack/EmbedPDF.0.0.0-local.nupkg --manifest /tmp/epdf-rt/pack/package-manifest.runtime.json",
-      "cwd": "/workspaces/embed-pdf-viewer",
+      "command": "/usr/bin/python3 /__w/embed-pdf-viewer/embed-pdf-viewer/platforms/dotnet/packaging/package.py smoke-runtime --rid linux-x64 --package /__w/embed-pdf-viewer/embed-pdf-viewer/dotnet-runtime/EmbedPDF.Runtime.0.0.0-engine.822686307291c580.nupkg --facade /__w/embed-pdf-viewer/embed-pdf-viewer/dotnet-runtime/EmbedPDF.0.0.0-local.nupkg --manifest /__w/embed-pdf-viewer/embed-pdf-viewer/dotnet-runtime/package-manifest.runtime.json",
+      "cwd": "/__w/embed-pdf-viewer/embed-pdf-viewer",
       "exitCode": 0,
-      "results": "  Determining projects to restore...\n  Restored /tmp/epdf-runtime-consumer-d8zh649j/Consumer.csproj (in 600 ms).\n  Consumer -> /tmp/epdf-runtime-consumer-d8zh649j/app-rid/Consumer.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:03.72\nPASS: rid=linux-x64 pages=14\nNativeRuntimeNotFoundException: rid=linux-x64: No EmbedPDF native library could be loaded for runtime 'linux-x64'. Reference EmbedPDF.Runtime, which ships libepdf_viewer_host.so and libembedpdf.so for this runtime, or put both beside the application. Searched: /tmp/epdf-runtime-consumer-d8zh649j/app-rid/libepdf_viewer_host.so, /tmp/epdf-runtime-consumer-d8zh649j/app-rid/runtimes/linux-x64/native/libepdf_viewer_host.so.\nNativeRuntimeNotFoundException: rid=linux-x64: The EmbedPDF native library for runtime 'linux-x64' was found but failed to load: /tmp/epdf-runtime-consumer-d8zh649j/app-rid/libepdf_viewer_host.so. The inner exception has the loader's error.\n  Determining projects to restore...\n  Restored /tmp/epdf-runtime-consumer-d8zh649j/Consumer.csproj (in 258 ms).\n  Consumer -> /tmp/epdf-runtime-consumer-d8zh649j/app-portable/Consumer.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:01.94\nPASS: rid=linux-x64 pages=14\nNativeRuntimeNotFoundException: rid=linux-x64: No EmbedPDF native library could be loaded for runtime 'linux-x64'. Reference EmbedPDF.Runtime, which ships libepdf_viewer_host.so and libembedpdf.so for this runtime, or put both beside the application. Searched: /tmp/epdf-runtime-consumer-d8zh649j/app-portable/libepdf_viewer_host.so, /tmp/epdf-runtime-consumer-d8zh649j/app-portable/runtimes/linux-x64/native/libepdf_viewer_host.so.\nPASS: RID-specific and portable consumers, missing-host and missing-PDFium checks\n"
+      "results": "  Determining projects to restore...\n  Restored /tmp/epdf-runtime-consumer-7_rf7yye/Consumer.csproj (in 1.14 sec).\n  Consumer -> /tmp/epdf-runtime-consumer-7_rf7yye/app-rid/Consumer.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:02.18\nPASS: rid=linux-x64 pages=14\nNativeRuntimeNotFoundException: rid=linux-x64: No EmbedPDF native library could be loaded for runtime 'linux-x64'. Reference EmbedPDF.Runtime, which ships libepdf_viewer_host.so and libembedpdf.so for this runtime, or put both beside the application. Searched: /tmp/epdf-runtime-consumer-7_rf7yye/app-rid/libepdf_viewer_host.so, /tmp/epdf-runtime-consumer-7_rf7yye/app-rid/runtimes/linux-x64/native/libepdf_viewer_host.so.\nNativeRuntimeNotFoundException: rid=linux-x64: The EmbedPDF native library for runtime 'linux-x64' was found but failed to load: /tmp/epdf-runtime-consumer-7_rf7yye/app-rid/libepdf_viewer_host.so. The inner exception has the loader's error.\n  Determining projects to restore...\n  Restored /tmp/epdf-runtime-consumer-7_rf7yye/Consumer.csproj (in 347 ms).\n  Consumer -> /tmp/epdf-runtime-consumer-7_rf7yye/app-portable/Consumer.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:01.55\nPASS: rid=linux-x64 pages=14\nNativeRuntimeNotFoundException: rid=linux-x64: No EmbedPDF native library could be loaded for runtime 'linux-x64'. Reference EmbedPDF.Runtime, which ships libepdf_viewer_host.so and libembedpdf.so for this runtime, or put both beside the application. Searched: /tmp/epdf-runtime-consumer-7_rf7yye/app-portable/libepdf_viewer_host.so, /tmp/epdf-runtime-consumer-7_rf7yye/app-portable/runtimes/linux-x64/native/libepdf_viewer_host.so.\nPASS: RID-specific and portable consumers, missing-host and missing-PDFium checks\n"
     }
   ],
   "artifacts": [
     {
-      "path": "../../tmp/epdf-rt/pack/EmbedPDF.Runtime.0.0.0-engine.96f2f8af10194b63.nupkg",
-      "sha256": "8be1c212a630c688068a3cf4e7b7977e494d01bce0b543982ebab04219011651",
-      "bytes": 38057855
+      "path": "dotnet-runtime/EmbedPDF.Runtime.0.0.0-engine.822686307291c580.nupkg",
+      "sha256": "ec3b0e203a263caf9cb1aa0ae5aa93b8f935f55040b6cf14aa03541a55981098",
+      "bytes": 96125498
     },
     {
-      "path": "../../tmp/epdf-rt/pack/EmbedPDF.0.0.0-local.nupkg",
-      "sha256": "63521ef8ee08b5bad2b7bbf8c061f2b1ca7ea614445dc1fac553dfebd33eaa37",
-      "bytes": 1221724
+      "path": "dotnet-runtime/EmbedPDF.0.0.0-local.nupkg",
+      "sha256": "9bd5087d8c8fb0f45a750fc0ebf245dd508f944f4f0ceab2875ac6e63220b24d",
+      "bytes": 1221777
     },
     {
-      "path": "../../tmp/epdf-rt/pack/package-manifest.runtime.json",
-      "sha256": "0c6c5d4844f87de2b93e08ac5c7e90772874687f09bf79f0ca457957ddef1f4e",
-      "bytes": 3574
+      "path": "dotnet-runtime/package-manifest.runtime.json",
+      "sha256": "c10b3fc9a70dac669230c2bdd17c1a460ff86bfa0fd09c74a3d0f06dfc43d0aa",
+      "bytes": 6846
     }
   ],
   "limitations": [
-    "Phase 1 checks loading and one document open; the facade API is Phase 2.",
-    "Status: container-emulated. The x64 consumer ran under emulation on an arm64 host. Emulation does not substitute for native-host evidence."
+    "Phase 1 checks loading and one document open; the facade API is Phase 2."
   ]
 }
