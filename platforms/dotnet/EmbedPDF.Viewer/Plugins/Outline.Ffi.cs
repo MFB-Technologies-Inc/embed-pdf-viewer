@@ -39,7 +39,12 @@ internal static partial class Ffi
 
     internal static GO.OutlineItemPatch ToFfi(OutlineItemPatch p) =>
         new(p.Title, ToFfiOrNull(p.Target), p.Color, p.Bold, p.Italic, p.Open,
-            [.. p.Clear.Select(key => key == OutlinePatchKey.Target ? GO.OutlinePatchKey.Target : GO.OutlinePatchKey.Color)]);
+            [.. p.Clear.Select(key => key switch
+            {
+                OutlinePatchKey.Target => GO.OutlinePatchKey.Target,
+                OutlinePatchKey.Color => GO.OutlinePatchKey.Color,
+                _ => throw Undefined(key, "outline patch key"),
+            })]);
 
     internal static OutlineEvent ToPublic(GO.OutlineEvent e) => e switch
     {

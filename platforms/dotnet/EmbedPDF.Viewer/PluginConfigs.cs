@@ -92,6 +92,7 @@ internal static class StandardCommandListMapping
             StandardCommandList.Annotation => GH.StandardCommandList.Annotation,
             StandardCommandList.History => GH.StandardCommandList.History,
             StandardCommandList.Render => GH.StandardCommandList.Render,
-            _ => GH.StandardCommandList.Document,
+            StandardCommandList.Document => GH.StandardCommandList.Document,
+            _ => throw Ffi.Undefined(list, "standard command list"),
         };
 }

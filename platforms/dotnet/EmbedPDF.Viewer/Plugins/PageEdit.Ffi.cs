@@ -17,7 +17,8 @@ internal static partial class Ffi
     {
         PageEditTurn.Clockwise => GP.PageEditTurn.Clockwise,
         PageEditTurn.CounterClockwise => GP.PageEditTurn.CounterClockwise,
-        _ => GP.PageEditTurn.Half,
+        PageEditTurn.Half => GP.PageEditTurn.Half,
+        _ => throw Undefined(turn, "turn"),
     };
 
     internal static GP.PageEditRotation ToFfi(PageEditRotation rotation) => rotation switch
@@ -25,7 +26,8 @@ internal static partial class Ffi
         PageEditRotation.None => GP.PageEditRotation.None,
         PageEditRotation.Clockwise90 => GP.PageEditRotation.Clockwise90,
         PageEditRotation.Clockwise180 => GP.PageEditRotation.Clockwise180,
-        _ => GP.PageEditRotation.Clockwise270,
+        PageEditRotation.Clockwise270 => GP.PageEditRotation.Clockwise270,
+        _ => throw Undefined(rotation, "rotation"),
     };
 
     internal static GP.PageEditBlankOptions ToFfi(PageEditBlankOptions o) =>

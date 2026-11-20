@@ -29,8 +29,11 @@ public sealed class SearchCapability : IDisposable
     public Task UpdateSettingsAsync(SearchSettingsPatch patch, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(patch);
-        var ffi = Ffi.ToFfi(patch);
-        return viewer.Run(() => handle.UpdateSettings(ffi), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var ffi = Ffi.ToFfi(patch);
+            return handle.UpdateSettings(ffi);
+        }, cancellationToken);
     }
 
     /// <summary>Restores the values supplied at registration.</summary>
@@ -94,8 +97,11 @@ public sealed class SearchCapability : IDisposable
     /// <summary>Scrolls the stage to the active hit.</summary>
     public Task RevealActiveHitAsync(SearchRevealOptions? reveal = null, CancellationToken cancellationToken = default)
     {
-        var ffi = Ffi.ToFfiOrNull(reveal);
-        return viewer.Run(() => handle.RevealActiveHit(ffi), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var ffi = Ffi.ToFfiOrNull(reveal);
+            return handle.RevealActiveHit(ffi);
+        }, cancellationToken);
     }
 
     /// <summary>The session's query, if any.</summary>
@@ -164,7 +170,9 @@ public sealed class SearchCapability : IDisposable
     /// Session events, subscribed when this returns. Ends when the document
     /// closes (at once if it already has), when the viewer is disposed, or
     /// when <paramref name="cancellationToken"/> fires. Each call is a new
-    /// subscription; enumerate it once.
+    /// subscription; enumerate it once. A stream that is never enumerated
+    /// still holds a native listener until its document closes, the viewer is disposed or
+    /// <paramref name="cancellationToken"/> fires.
     /// </summary>
     public IAsyncEnumerable<SearchEvent> ObserveEvents(CancellationToken cancellationToken = default)
     {
@@ -172,7 +180,13 @@ public sealed class SearchCapability : IDisposable
         return viewer.Stream(relay, _ => handle.Subscribe(relay), cancellationToken);
     }
 
-    /// <summary>Releases the native handle. Calls after it throw <see cref="PdfErrorCode.InstanceClosed"/>.</summary>
+    /// <summary>
+    /// Releases the native handle. Calls after it throw
+    /// <see cref="PdfErrorCode.InstanceClosed"/>. It does not end the
+    /// streams from <see cref="ObserveEvents"/>;
+    /// a stream still ends when its document closes, the viewer is disposed or
+    /// its token fires.
+    /// </summary>
     public void Dispose() => handle.Dispose();
 
     sealed class Relay() : EventRelay<GS.SearchEvent, SearchEvent>(Ffi.ToPublic), GS.SearchEventListener

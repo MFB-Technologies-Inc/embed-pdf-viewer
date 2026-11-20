@@ -156,11 +156,13 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
     /// <remarks>
     /// Destroying the kernel runs on the kernel thread. Called from a callback
     /// the kernel makes on that thread (an interaction handler, a feedback
-    /// provider, a script engine), it starts disposal and returns a task that
-    /// can be awaited but not blocked on: <c>GetAwaiter().GetResult()</c> before
-    /// it finishes throws <see cref="InvalidOperationException"/>, since the
+    /// provider, a script engine, or any other adapter it calls on its own
+    /// thread), it starts disposal, which is safe, and returns a task that can
+    /// be awaited but not blocked on: <c>GetAwaiter().GetResult()</c> before it
+    /// finishes throws <see cref="InvalidOperationException"/>, since the
     /// blocked thread is the one disposal needs. Never block on
-    /// <c>AsTask()</c> there either; that wait cannot be detected.
+    /// <c>AsTask()</c> there either; that wait cannot be detected, and it would
+    /// stop both for good.
     /// </remarks>
     public ValueTask DisposeAsync()
     {
@@ -181,6 +183,11 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
     /// ends; the disposal runs on the thread pool, so blocking a thread that
     /// owns a synchronization context does not deadlock it.
     /// </summary>
+    /// <remarks>
+    /// Disposal needs the kernel thread, so blocking that thread from a
+    /// callback the kernel makes on it would deadlock. See
+    /// <see cref="DisposeAsync"/>.
+    /// </remarks>
     /// <exception cref="InvalidOperationException">
     /// Called from a callback the kernel makes on its own thread, where
     /// waiting for disposal would hold the thread it needs. Call
@@ -293,7 +300,7 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
     {
         // A constructor that threw leaves no host to release.
         if (Volatile.Read(ref disposal) is not null || host is null) return;
-        var (abandoned, release, log, r, e, d) = (host, ReleaseHost, logger, revisions, reportedErrors, documentEvents);
+        var (abandoned, release, log, r, e, d, p) = (host, ReleaseHost, logger, revisions, reportedErrors, documentEvents, streams);
         ThreadPool.UnsafeQueueUserWorkItem(_ =>
         {
             try
@@ -302,6 +309,7 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
                 r.Complete();
                 e.Complete();
                 d.Complete();
+                p.Close();
             }
             finally
             {

@@ -175,8 +175,11 @@ public sealed class OutlineCapability : IDisposable
     public Task SelectAsync(IEnumerable<OutlineItemRef> items, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(items);
-        var ffi = Ffi.ToFfi(items);
-        return viewer.Run(() => handle.Select(ffi), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var ffi = Ffi.ToFfi(items);
+            return handle.Select(ffi);
+        }, cancellationToken);
     }
 
     /// <summary>Where the read stands.</summary>
@@ -189,8 +192,11 @@ public sealed class OutlineCapability : IDisposable
     /// <summary>Whether an item's children show.</summary>
     public Task<bool> IsExpandedAsync(OutlineItemRef item, CancellationToken cancellationToken = default)
     {
-        var ffi = Ffi.ToFfi(item);
-        return viewer.Run(() => handle.IsExpanded(ffi), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var ffi = Ffi.ToFfi(item);
+            return handle.IsExpanded(ffi);
+        }, cancellationToken);
     }
 
     /// <summary>Whether this caller may edit the outline.</summary>
@@ -234,18 +240,24 @@ public sealed class OutlineCapability : IDisposable
     public Task MoveAsync(IEnumerable<OutlineItemRef> items, OutlineItemRef? parent, OutlinePosition? position = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(items);
-        var ffi = Ffi.ToFfi(items);
-        var ffiParent = Ffi.ToFfiOrNull(parent);
-        var ffiPosition = Ffi.ToFfi(position ?? new OutlinePosition.End());
-        return viewer.RunCancellable(token => handle.MoveItems(ffi, ffiParent, ffiPosition, token), cancellationToken);
+        return viewer.RunCancellable(token =>
+        {
+            var ffi = Ffi.ToFfi(items);
+            var ffiParent = Ffi.ToFfiOrNull(parent);
+            var ffiPosition = Ffi.ToFfi(position ?? new OutlinePosition.End());
+            return handle.MoveItems(ffi, ffiParent, ffiPosition, token);
+        }, cancellationToken);
     }
 
     /// <summary>Deletes items and their children.</summary>
     public Task DeleteAsync(IEnumerable<OutlineItemRef> items, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(items);
-        var ffi = Ffi.ToFfi(items);
-        return viewer.RunCancellable(token => handle.DeleteItems(ffi, token), cancellationToken);
+        return viewer.RunCancellable(token =>
+        {
+            var ffi = Ffi.ToFfi(items);
+            return handle.DeleteItems(ffi, token);
+        }, cancellationToken);
     }
 
     /// <summary>Shows an item's children.</summary>
@@ -270,7 +282,9 @@ public sealed class OutlineCapability : IDisposable
     /// Confirmed changes and resyncs, subscribed when this returns. Ends when
     /// the document closes (at once if it already has), when the viewer is
     /// disposed, or when <paramref name="cancellationToken"/> fires. Each call
-    /// is a new subscription; enumerate it once.
+    /// is a new subscription; enumerate it once. A stream that is never
+    /// enumerated still holds a native listener until its document closes, the viewer is disposed or
+    /// <paramref name="cancellationToken"/> fires.
     /// </summary>
     public IAsyncEnumerable<OutlineEvent> ObserveEvents(CancellationToken cancellationToken = default)
     {
@@ -278,13 +292,22 @@ public sealed class OutlineCapability : IDisposable
         return viewer.Stream(relay, _ => handle.Subscribe(relay), cancellationToken);
     }
 
-    /// <summary>Releases the native handle. Calls after it throw <see cref="PdfErrorCode.InstanceClosed"/>.</summary>
+    /// <summary>
+    /// Releases the native handle. Calls after it throw
+    /// <see cref="PdfErrorCode.InstanceClosed"/>. It does not end the
+    /// streams from <see cref="ObserveEvents"/>;
+    /// a stream still ends when its document closes, the viewer is disposed or
+    /// its token fires.
+    /// </summary>
     public void Dispose() => handle.Dispose();
 
     Task OnItem(OutlineItemRef item, Func<GO.OutlineItemRef, Task> call, CancellationToken cancellationToken)
     {
-        var ffi = Ffi.ToFfi(item);
-        return viewer.Run(() => call(ffi), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var ffi = Ffi.ToFfi(item);
+            return call(ffi);
+        }, cancellationToken);
     }
 
     sealed class Relay() : EventRelay<GO.OutlineEvent, OutlineEvent>(Ffi.ToPublic), GO.OutlineEventListener

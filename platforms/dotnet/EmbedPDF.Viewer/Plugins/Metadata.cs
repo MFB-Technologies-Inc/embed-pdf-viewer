@@ -180,7 +180,10 @@ public sealed class MetadataCapability : IDisposable
     /// Confirmed changes, whoever made them, subscribed when this returns. The
     /// stream ends when the document closes (at once if it already has), when
     /// the viewer is disposed, or when <paramref name="cancellationToken"/>
-    /// fires. Each call is a new subscription; enumerate it once.
+    /// fires. Each call is a new subscription; enumerate it once. A stream
+    /// that is never enumerated still holds a native listener until its
+    /// document closes, the viewer is disposed or
+    /// <paramref name="cancellationToken"/> fires.
     /// </summary>
     public IAsyncEnumerable<MetadataEvent> ObserveEvents(CancellationToken cancellationToken = default)
     {
@@ -188,7 +191,13 @@ public sealed class MetadataCapability : IDisposable
         return viewer.Stream(relay, _ => handle.Subscribe(relay), cancellationToken);
     }
 
-    /// <summary>Releases the native handle. Calls after it throw <see cref="PdfErrorCode.InstanceClosed"/>.</summary>
+    /// <summary>
+    /// Releases the native handle. Calls after it throw
+    /// <see cref="PdfErrorCode.InstanceClosed"/>. It does not end the
+    /// streams from <see cref="ObserveEvents"/>;
+    /// a stream still ends when its document closes, the viewer is disposed or
+    /// its token fires.
+    /// </summary>
     public void Dispose() => handle.Dispose();
 
     sealed class Relay() : EventRelay<GM.MetadataEvent, MetadataEvent>(Ffi.ToPublic), GM.MetadataEventListener

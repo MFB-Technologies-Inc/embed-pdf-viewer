@@ -114,8 +114,11 @@ public sealed class HistoryCapability : IDisposable
     public Task UpdateSettingsAsync(HistorySettingsPatch patch, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(patch);
-        var ffi = new GH.HistorySettingsPatch(patch.Limit);
-        return viewer.Run(() => handle.UpdateSettings(ffi), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var ffi = new GH.HistorySettingsPatch(patch.Limit);
+            return handle.UpdateSettings(ffi);
+        }, cancellationToken);
     }
 
     /// <summary>Restores the values supplied at registration.</summary>
@@ -125,7 +128,10 @@ public sealed class HistoryCapability : IDisposable
     /// Undo and redo outcomes and settings changes, subscribed when this
     /// returns. Ends when the document closes (at once if it already has),
     /// when the viewer is disposed, or when <paramref name="cancellationToken"/>
-    /// fires. Each call is a new subscription; enumerate it once.
+    /// fires. Each call is a new subscription; enumerate it once. A stream
+    /// that is never enumerated still holds a native listener until its
+    /// document closes, the viewer is disposed or
+    /// <paramref name="cancellationToken"/> fires.
     /// </summary>
     public IAsyncEnumerable<HistoryEvent> ObserveEvents(CancellationToken cancellationToken = default)
     {
@@ -133,7 +139,13 @@ public sealed class HistoryCapability : IDisposable
         return viewer.Stream(relay, _ => handle.Subscribe(relay), cancellationToken);
     }
 
-    /// <summary>Releases the native handle. Calls after it throw <see cref="PdfErrorCode.InstanceClosed"/>.</summary>
+    /// <summary>
+    /// Releases the native handle. Calls after it throw
+    /// <see cref="PdfErrorCode.InstanceClosed"/>. It does not end the
+    /// streams from <see cref="ObserveEvents"/>;
+    /// a stream still ends when its document closes, the viewer is disposed or
+    /// its token fires.
+    /// </summary>
     public void Dispose() => handle.Dispose();
 
     sealed class Relay() : EventRelay<GH.HistoryEvent, HistoryEvent>(Ffi.ToPublic), GH.HistoryEventListener

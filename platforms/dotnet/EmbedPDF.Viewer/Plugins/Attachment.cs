@@ -104,8 +104,12 @@ public sealed class AttachmentCapability : IDisposable
     public Task SelectAsync(IEnumerable<AttachedFile> files, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(files);
-        var ffi = files.Select(Ffi.ToFfi).ToArray();
-        return viewer.Run(() => handle.Select(ffi), cancellationToken);
+        var list = Arguments.NoNullElements(files, nameof(files));
+        return viewer.Run(() =>
+        {
+            var ffi = list.Select(Ffi.ToFfi).ToArray();
+            return handle.Select(ffi);
+        }, cancellationToken);
     }
 
     /// <summary>Whether a change to the file is waiting for confirmation.</summary>
@@ -128,8 +132,11 @@ public sealed class AttachmentCapability : IDisposable
     public Task RevealAsync(AttachedFile file, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(file);
-        var ffi = Ffi.ToFfi(file);
-        return viewer.Run(() => handle.Reveal(ffi), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var ffi = Ffi.ToFfi(file);
+            return handle.Reveal(ffi);
+        }, cancellationToken);
     }
 
     /// <summary>Reads the files unless they are loaded or loading. Nothing reads them until this or <see cref="RefreshAsync"/> asks.</summary>
@@ -139,9 +146,15 @@ public sealed class AttachmentCapability : IDisposable
     public Task RefreshAsync(CancellationToken cancellationToken = default) => viewer.RunCancellable(token => handle.Refresh(token), cancellationToken);
 
     /// <summary>Embeds files, in order. A name already taken gets a numbered one. Returns the new files.</summary>
-    public async Task<IReadOnlyList<AttachedFile>> AddAsync(IEnumerable<AttachmentFileSource> sources, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<AttachedFile>> AddAsync(IEnumerable<AttachmentFileSource> sources, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(sources);
+        var list = Arguments.NoNullElements(sources, nameof(sources));
+        return Add(list, cancellationToken);
+    }
+
+    async Task<IReadOnlyList<AttachedFile>> Add(AttachmentFileSource[] sources, CancellationToken cancellationToken)
+    {
         var ffi = sources.Select(s => new GT.AttachmentFileSource(Bytes.Array(s.Data), s.Name, s.MimeType, s.Description)).ToArray();
         return Ffi.ToPublic(await viewer.RunCancellable(token => handle.Add(ffi, token), cancellationToken).ConfigureAwait(false));
     }
@@ -150,8 +163,11 @@ public sealed class AttachmentCapability : IDisposable
     public Task RemoveAsync(AttachedFile file, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(file);
-        var ffi = Ffi.ToFfi(file);
-        return viewer.RunCancellable(token => handle.Remove(ffi, token), cancellationToken);
+        return viewer.RunCancellable(token =>
+        {
+            var ffi = Ffi.ToFfi(file);
+            return handle.Remove(ffi, token);
+        }, cancellationToken);
     }
 
     /// <summary>A file's bytes.</summary>
@@ -167,7 +183,9 @@ public sealed class AttachmentCapability : IDisposable
     /// Confirmed changes and resyncs, subscribed when this returns. Ends when
     /// the document closes (at once if it already has), when the viewer is
     /// disposed, or when <paramref name="cancellationToken"/> fires. Each call
-    /// is a new subscription; enumerate it once.
+    /// is a new subscription; enumerate it once. A stream that is never
+    /// enumerated still holds a native listener until its document closes, the viewer is disposed or
+    /// <paramref name="cancellationToken"/> fires.
     /// </summary>
     public IAsyncEnumerable<AttachmentEvent> ObserveEvents(CancellationToken cancellationToken = default)
     {
@@ -175,14 +193,23 @@ public sealed class AttachmentCapability : IDisposable
         return viewer.Stream(relay, _ => handle.Subscribe(relay), cancellationToken);
     }
 
-    /// <summary>Releases the native handle. Calls after it throw <see cref="PdfErrorCode.InstanceClosed"/>.</summary>
+    /// <summary>
+    /// Releases the native handle. Calls after it throw
+    /// <see cref="PdfErrorCode.InstanceClosed"/>. It does not end the
+    /// streams from <see cref="ObserveEvents"/>;
+    /// a stream still ends when its document closes, the viewer is disposed or
+    /// its token fires.
+    /// </summary>
     public void Dispose() => handle.Dispose();
 
     Task<bool> OnFile(AttachedFile file, Func<GT.AttachedFile, Task<bool>> call, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(file);
-        var ffi = Ffi.ToFfi(file);
-        return viewer.Run(() => call(ffi), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var ffi = Ffi.ToFfi(file);
+            return call(ffi);
+        }, cancellationToken);
     }
 
     sealed class Relay() : EventRelay<GT.AttachmentEvent, AttachmentEvent>(Ffi.ToPublic), GT.AttachmentEventListener

@@ -178,7 +178,7 @@ public sealed partial class PdfViewer
     public Task SetDocumentOrderAsync(IEnumerable<string> ids, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(ids);
-        var order = ids.ToArray();
+        var order = Arguments.NoNullElements(ids, nameof(ids));
         return CallAsync(h => h.SetDocumentOrder(order), cancellationToken);
     }
 
@@ -267,8 +267,7 @@ public sealed partial class PdfViewer
     public Task UpdateSettingsAsync(ViewerSettingsPatch patch, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(patch);
-        var ffi = Ffi.ToFfi(patch);
-        return CallAsync(h => h.UpdateViewerSettings(ffi), cancellationToken);
+        return CallAsync(h => h.UpdateViewerSettings(Ffi.ToFfi(patch)), cancellationToken);
     }
 
     /// <summary>Restores the settings the viewer started with.</summary>

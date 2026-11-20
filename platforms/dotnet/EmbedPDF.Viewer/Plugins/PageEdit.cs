@@ -103,8 +103,11 @@ public sealed class PageEditCapability : IDisposable
     public Task SelectAsync(IEnumerable<PageRef> pages, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pages);
-        var ffi = Ffi.ToFfi(pages);
-        return viewer.Run(() => handle.Select(ffi), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var ffi = Ffi.ToFfi(pages);
+            return handle.Select(ffi);
+        }, cancellationToken);
     }
 
     /// <summary>Whether this caller may edit pages.</summary>
@@ -117,16 +120,22 @@ public sealed class PageEditCapability : IDisposable
     public Task<PageEditLayout> RotateAsync(IEnumerable<PageRef> pages, PageEditTurn turn, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pages);
-        var ffi = Ffi.ToFfi(pages);
-        return Layout(token => handle.RotateBy(ffi, Ffi.ToFfi(turn), token), cancellationToken);
+        return Layout(token =>
+        {
+            var ffi = Ffi.ToFfi(pages);
+            return handle.RotateBy(ffi, Ffi.ToFfi(turn), token);
+        }, cancellationToken);
     }
 
     /// <summary>Sets pages to an absolute rotation.</summary>
     public Task<PageEditLayout> SetRotationAsync(PageEditRotation rotation, IEnumerable<PageRef> pages, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pages);
-        var ffi = Ffi.ToFfi(pages);
-        return Layout(token => handle.SetRotation(ffi, Ffi.ToFfi(rotation), token), cancellationToken);
+        return Layout(token =>
+        {
+            var ffi = Ffi.ToFfi(pages);
+            return handle.SetRotation(ffi, Ffi.ToFfi(rotation), token);
+        }, cancellationToken);
     }
 
     /// <summary>Moves pages to <paramref name="placement"/>; several pages keep their order as one block.</summary>
@@ -134,32 +143,44 @@ public sealed class PageEditCapability : IDisposable
     {
         ArgumentNullException.ThrowIfNull(pages);
         ArgumentNullException.ThrowIfNull(placement);
-        var ffi = Ffi.ToFfi(pages);
-        var to = Ffi.ToFfi(placement);
-        return Layout(token => handle.MovePages(ffi, to, token), cancellationToken);
+        return Layout(token =>
+        {
+            var ffi = Ffi.ToFfi(pages);
+            var to = Ffi.ToFfi(placement);
+            return handle.MovePages(ffi, to, token);
+        }, cancellationToken);
     }
 
     /// <summary>Deletes pages. Deleting every page throws and keeps them all.</summary>
     public Task<PageEditLayout> DeletePagesAsync(IEnumerable<PageRef> pages, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pages);
-        var ffi = Ffi.ToFfi(pages);
-        return Layout(token => handle.DeletePages(ffi, token), cancellationToken);
+        return Layout(token =>
+        {
+            var ffi = Ffi.ToFfi(pages);
+            return handle.DeletePages(ffi, token);
+        }, cancellationToken);
     }
 
     /// <summary>Inserts blank pages.</summary>
     public Task<PageEditInsertion> InsertBlankAsync(PageEditBlankOptions? options = null, CancellationToken cancellationToken = default)
     {
-        var ffi = Ffi.ToFfi(options ?? new PageEditBlankOptions());
-        return Insertion(token => handle.InsertBlank(ffi, token), cancellationToken);
+        return Insertion(token =>
+        {
+            var ffi = Ffi.ToFfi(options ?? new PageEditBlankOptions());
+            return handle.InsertBlank(ffi, token);
+        }, cancellationToken);
     }
 
     /// <summary>Inserts pages from a PDF's bytes.</summary>
     public Task<PageEditInsertion> InsertAsync(ReadOnlyMemory<byte> pdf, PageEditBytesOptions? options = null, CancellationToken cancellationToken = default)
     {
-        var ffi = Ffi.ToFfi(options ?? new PageEditBytesOptions());
-        var bytes = Bytes.Array(pdf);
-        return Insertion(token => handle.InsertFromBytes(bytes, ffi, token), cancellationToken);
+        return Insertion(token =>
+        {
+            var ffi = Ffi.ToFfi(options ?? new PageEditBytesOptions());
+            var bytes = Bytes.Array(pdf);
+            return handle.InsertFromBytes(bytes, ffi, token);
+        }, cancellationToken);
     }
 
     /// <summary>Inserts pages of another open document.</summary>
@@ -167,29 +188,44 @@ public sealed class PageEditCapability : IDisposable
     {
         ArgumentNullException.ThrowIfNull(pages);
         ArgumentNullException.ThrowIfNull(from);
-        var ffi = Ffi.ToFfi(pages);
-        var at = placement is null ? null : Ffi.ToFfi(placement);
-        return Insertion(token => handle.InsertFromDocument(from.Id, ffi, at, token), cancellationToken);
+        return Insertion(token =>
+        {
+            var ffi = Ffi.ToFfi(pages);
+            var at = placement is null ? null : Ffi.ToFfi(placement);
+            return handle.InsertFromDocument(from.Id, ffi, at, token);
+        }, cancellationToken);
     }
 
     /// <summary>Duplicates pages, by default right after them.</summary>
     public Task<PageEditInsertion> DuplicateAsync(IEnumerable<PageRef> pages, PageEditPlacement? placement = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pages);
-        var ffi = Ffi.ToFfi(pages);
-        var at = placement is null ? null : Ffi.ToFfi(placement);
-        return Insertion(token => handle.Duplicate(ffi, at, token), cancellationToken);
+        return Insertion(token =>
+        {
+            var ffi = Ffi.ToFfi(pages);
+            var at = placement is null ? null : Ffi.ToFfi(placement);
+            return handle.Duplicate(ffi, at, token);
+        }, cancellationToken);
     }
 
     /// <summary>A new PDF of these pages; the document is unchanged.</summary>
     public Task<byte[]> ExtractAsync(IEnumerable<PageRef> pages, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pages);
-        var ffi = Ffi.ToFfi(pages);
-        return viewer.RunCancellable(token => handle.Extract(ffi, token), cancellationToken);
+        return viewer.RunCancellable(token =>
+        {
+            var ffi = Ffi.ToFfi(pages);
+            return handle.Extract(ffi, token);
+        }, cancellationToken);
     }
 
-    /// <summary>Releases the native handle. Calls after it throw <see cref="PdfErrorCode.InstanceClosed"/>.</summary>
+    /// <summary>
+    /// Releases the native handle. Calls after it throw
+    /// <see cref="PdfErrorCode.InstanceClosed"/>. It does not end the
+    /// streams from <see cref="ObserveEvents"/>;
+    /// a stream still ends when its document closes, the viewer is disposed or
+    /// its token fires.
+    /// </summary>
     public void Dispose() => handle.Dispose();
 
     async Task<PageEditLayout> Layout(Func<uniffi.epdf_ffi.CancelToken, Task<GP.PageEditLayout>> call, CancellationToken cancellationToken) =>

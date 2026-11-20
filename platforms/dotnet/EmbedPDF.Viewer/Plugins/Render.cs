@@ -37,8 +37,11 @@ public sealed class RenderCapability : IDisposable
     public Task UpdateSettingsAsync(RenderSettingsPatch patch, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(patch);
-        var ffi = Ffi.ToFfi(patch);
-        return viewer.Run(() => handle.UpdateSettings(ffi), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var ffi = Ffi.ToFfi(patch);
+            return handle.UpdateSettings(ffi);
+        }, cancellationToken);
     }
 
     /// <summary>Restores the values supplied at registration.</summary>
@@ -64,7 +67,9 @@ public sealed class RenderCapability : IDisposable
     /// <summary>
     /// Captures, and clears as <see langword="null"/>, subscribed when this
     /// returns. Ends when the document closes, when the viewer is disposed or
-    /// when <paramref name="cancellationToken"/> fires. Enumerate it once.
+    /// when <paramref name="cancellationToken"/> fires. Enumerate it once. A
+    /// stream that is never enumerated still holds a native listener until
+    /// one of those happens.
     /// </summary>
     public IAsyncEnumerable<RenderSnapshot?> ObserveSnapshotChanges(CancellationToken cancellationToken = default)
     {
@@ -88,10 +93,12 @@ public sealed class RenderCapability : IDisposable
     /// </summary>
     public Task<RenderedPage> RenderPageAsync(PageRef page, RenderPageOptions? options = null, CancellationToken cancellationToken = default)
     {
-        var ffiPage = Ffi.ToFfi(page);
-        var ffi = Ffi.ToFfi(options ?? new RenderPageOptions());
         return Telemetry.Measured("renderPage", async () =>
-            Ffi.ToPublic(await viewer.RunCancellable(token => handle.RenderPage(ffiPage, ffi, token), cancellationToken).ConfigureAwait(false)));
+        {
+            var ffiPage = Ffi.ToFfi(page);
+            var ffi = Ffi.ToFfi(options ?? new RenderPageOptions());
+            return Ffi.ToPublic(await viewer.RunCancellable(token => handle.RenderPage(ffiPage, ffi, token), cancellationToken).ConfigureAwait(false));
+        });
     }
 
     /// <summary>
@@ -141,9 +148,12 @@ public sealed class RenderCapability : IDisposable
     /// <summary>Declares that page pixels changed: every page when <paramref name="pages"/> is <see langword="null"/>, <see cref="RenderInvalidateScope.Content"/> when <paramref name="scope"/> is.</summary>
     public Task InvalidateAsync(IEnumerable<PageRef>? pages = null, RenderInvalidateScope? scope = null, CancellationToken cancellationToken = default)
     {
-        var ffi = pages is null ? null : Ffi.ToFfi(pages);
-        GR.RenderInvalidateScope? ffiScope = scope is { } s ? (GR.RenderInvalidateScope)(int)s : null;
-        return viewer.Run(() => handle.Invalidate(ffi, ffiScope), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var ffi = pages is null ? null : Ffi.ToFfi(pages);
+            GR.RenderInvalidateScope? ffiScope = scope is { } s ? Ffi.ToFfi(s) : null;
+            return handle.Invalidate(ffi, ffiScope);
+        }, cancellationToken);
     }
 
     /// <summary>How render sizes are chosen.</summary>
@@ -170,9 +180,12 @@ public sealed class RenderCapability : IDisposable
         PageRef page, double scale, ContentInclusion includeAnnotations = ContentInclusion.WhenPermitted,
         ContentInclusion includeFormFields = ContentInclusion.WhenPermitted, bool thumbnail = false, CancellationToken cancellationToken = default)
     {
-        var ffi = Ffi.ToFfi(page);
-        var (annotations, fields) = (includeAnnotations.ToEngine(), includeFormFields.ToEngine());
-        return viewer.Run(() => handle.SourceKey(ffi, scale, annotations, fields, thumbnail), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var ffi = Ffi.ToFfi(page);
+            var (annotations, fields) = (includeAnnotations.ToEngine(), includeFormFields.ToEngine());
+            return handle.SourceKey(ffi, scale, annotations, fields, thumbnail);
+        }, cancellationToken);
     }
 
     /// <summary>The size a view showing <paramref name="page"/> at <paramref name="scale"/> should render.</summary>
@@ -205,7 +218,15 @@ public sealed class RenderCapability : IDisposable
         return viewer.Stream(relay, _ => handle.Subscribe(relay), cancellationToken);
     }
 
-    /// <summary>Releases the native handle. Calls after it throw <see cref="PdfErrorCode.InstanceClosed"/>.</summary>
+    /// <summary>
+    /// Releases the native handle. Calls after it throw
+    /// <see cref="PdfErrorCode.InstanceClosed"/>. It does not end the
+    /// streams from <see cref="ObserveEvents"/> or <see cref="ObserveSnapshotChanges"/>, the
+    /// <see cref="RenderViewDemand"/>s from <see cref="CreateViewDemandAsync"/>, or the
+    /// <see cref="RenderSnapshot"/>s it returned.
+    /// A stream still ends when its document closes, the viewer is disposed or
+    /// its token fires; dispose each view demand and snapshot yourself.
+    /// </summary>
     public void Dispose() => handle.Dispose();
 
     sealed class Relay() : EventRelay<GR.RenderEvent, RenderEvent>(Ffi.ToPublic), GR.RenderEventListener
@@ -277,9 +298,12 @@ public sealed class RenderViewDemand : IAsyncDisposable
         ContentInclusion includeFormFields = ContentInclusion.WhenPermitted, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(demand);
-        var (ffiPage, ffi) = (Ffi.ToFfi(page), Ffi.ToFfi(demand));
-        var (annotations, fields) = (includeAnnotations.ToEngine(), includeFormFields.ToEngine());
-        return viewer.Run(() => handle.SetDemand(ffiPage, ffi, annotations, fields), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var (ffiPage, ffi) = (Ffi.ToFfi(page), Ffi.ToFfi(demand));
+            var (annotations, fields) = (includeAnnotations.ToEngine(), includeFormFields.ToEngine());
+            return handle.SetDemand(ffiPage, ffi, annotations, fields);
+        }, cancellationToken);
     }
 
     /// <summary>What to paint for a page.</summary>
@@ -301,23 +325,32 @@ public sealed class RenderViewDemand : IAsyncDisposable
     public Task MarkPaintedAsync(PageRef page, string key, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(key);
-        var ffi = Ffi.ToFfi(page);
-        return viewer.Run(() => handle.MarkPainted(ffi, key), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var ffi = Ffi.ToFfi(page);
+            return handle.MarkPainted(ffi, key);
+        }, cancellationToken);
     }
 
     /// <summary>The view no longer shows this tile.</summary>
     public Task MarkUnpaintedAsync(PageRef page, string key, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(key);
-        var ffi = Ffi.ToFfi(page);
-        return viewer.Run(() => handle.MarkUnpainted(ffi, key), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var ffi = Ffi.ToFfi(page);
+            return handle.MarkUnpainted(ffi, key);
+        }, cancellationToken);
     }
 
     /// <summary>The view no longer shows the page.</summary>
     public Task ReleaseAsync(PageRef page, CancellationToken cancellationToken = default)
     {
-        var ffi = Ffi.ToFfi(page);
-        return viewer.Run(() => handle.Release(ffi), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var ffi = Ffi.ToFfi(page);
+            return handle.Release(ffi);
+        }, cancellationToken);
     }
 
     /// <summary>

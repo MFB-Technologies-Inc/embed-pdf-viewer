@@ -1,4 +1,6 @@
 using System.Net;
+using System.Net.Sockets;
+using System.Text;
 using Xunit;
 
 namespace EmbedPDF.Viewer.Tests;
@@ -80,4 +82,46 @@ public sealed class CopyTests
     [Fact]
     public void TheSharedClientRecyclesPooledConnections() =>
         Assert.Equal(TimeSpan.FromMinutes(2), HttpClientDocumentFetcher.SharedHandler.PooledConnectionLifetime);
+
+    [Fact]
+    public async Task ALyingContentLengthDoesNotAllocateWhatItClaims()
+    {
+        // A raw server that claims 1,500,000,000 bytes and sends 15, then closes.
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        var serving = Task.Run(async () =>
+        {
+            using var client = await listener.AcceptTcpClientAsync();
+            var stream = client.GetStream();
+            var request = new byte[4096];
+            _ = await stream.ReadAsync(request);
+            var head = "HTTP/1.1 200 OK\r\nContent-Length: 1500000000\r\nConnection: close\r\n\r\n%PDF-1.7 short!";
+            await stream.WriteAsync(Encoding.ASCII.GetBytes(head));
+            client.Client.Shutdown(SocketShutdown.Send);
+        });
+        try
+        {
+            using var http = new HttpClient();
+            var before = GC.GetTotalAllocatedBytes(precise: true);
+            var error = await Record.ExceptionAsync(() => new HttpClientDocumentFetcher(http).FetchAsync($"http://127.0.0.1:{port}/lie.pdf", default));
+            var allocated = GC.GetTotalAllocatedBytes(precise: true) - before;
+            // The body ends early, which the client reports as an I/O failure.
+            Assert.NotNull(error);
+            Assert.IsNotType<OutOfMemoryException>(error);
+            Assert.True(allocated < 64L * 1024 * 1024, $"allocated {allocated:N0} bytes");
+            await serving;
+        }
+        finally
+        {
+            listener.Stop();
+        }
+    }
+
+    [Fact]
+    public async Task ABodyLargerThanTheFirstBufferStillArrivesWhole()
+    {
+        var data = Enumerable.Range(0, 3 * 1024 * 1024 + 17).Select(i => (byte)(i * 7)).ToArray();
+        Assert.Equal(data, await HttpClientDocumentFetcher.ReadSized(new MemoryStream(data), data.Length, initialCap: 1024 * 1024, default));
+    }
 }

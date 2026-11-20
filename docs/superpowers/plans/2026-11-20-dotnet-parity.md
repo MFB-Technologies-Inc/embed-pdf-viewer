@@ -470,6 +470,15 @@ capability never lands before one it requires.
 Wave D is the largest single piece, as on Android: its own plan should split drafts from the
 capability. Each foreign-trait adapter documents which thread calls it.
 
+*Added 2026-11-20 from the Phase 2 review:* `PdfViewer.Dispose()`, or waiting on
+`DisposeAsync()`, from a callback on the kernel thread deadlocks, because destroying the kernel
+needs that thread. Phase 2 only documents it (`PdfViewer.cs`, the remarks on both members),
+since no public callback exists yet. When waves B and C add callback adapters (`CommandHandler`,
+interaction handlers, the script engine, document listeners), the adapter marks the kernel
+thread while it runs the app's code, and `Dispose()` and the disposal wait throw
+`InvalidOperationException` there instead of hanging. A test calls `Dispose()` from a handler
+and expects that exception. The cost is one thread-static check per disposal.
+
 ### Phase 3 wave A notes (2026-11-20)
 
 Task plan: `docs/superpowers/plans/2026-11-20-dotnet-parity/03a-wave-a.md`. Branch
@@ -495,6 +504,26 @@ What later waves reuse:
   Swift's `AsyncStream` is, ends on the kernel's `OnEnd`, the caller's token or viewer disposal,
   and cancels the kernel subscription exactly once. A mapping that throws drops that event and
   logs it rather than ending the stream.
+- Live streams are tracked by a `StreamRegistry` the viewer owns, and a stream's end callback
+  captures only that registry, never the viewer. The kernel's callback table holds each relay
+  until the kernel ends it, so a path from a relay to the viewer kept an abandoned viewer alive
+  for good (review fix, pinned by
+  `LifetimeTests.ALivePluginStreamDoesNotKeepAnAbandonedViewerAlive`). Kernel shutdown does not
+  call a listener's `OnEnd`: with the registry close removed from the finalizer path, that test's
+  reader never ended. Disposal and the finalizer path both close the registry, and that is what
+  ends a reader still holding a stream. Callback adapters in later waves should not count on
+  `OnEnd` at shutdown either.
+- Argument rules (review fixes): a null argument, or a null element in a collection argument
+  (`Arguments.NoNullElements`), throws `ArgumentException` while the call is made in every
+  method that is not itself `async`. A present but invalid argument (a negative index or page
+  number, an undefined enum value) faults the returned task, because conversions run inside the
+  `Run` lambda (`ValidationShapeTests`). The rule for every wave (decided 2026-11-20): a method
+  that is not `async` throws `ArgumentNullException` while the call is made; a method declared
+  `async` reports a null argument through its faulted task, and is not split to make it eager.
+- Public enums reach the engine only through `Ffi.Defined` or an explicit switch arm, so an
+  undefined value is `invalid-input` (`EnumRangeTests`). Phase 2's `SaveMode`,
+  `ViewerSettingsField` and `StandardCommandList` mappings follow the same rule since
+  `be98c4b1c`, and `SetDocumentOrderAsync` refuses a null id since `0a94b2e4a`.
 - `PdfViewer.Run` and `RunCancellable` wrap a capability call the way `CallAsync` wraps a host
   call, so disposal drains capability calls too.
 - `Plugins/Shared.cs` holds the cross-plugin types: `ResourceStatus`, `DocumentEventOrigin`,
@@ -515,6 +544,11 @@ Deviations, each with its reason:
   names are verbs, and `viewer.SearchAsync(document)` or `viewer.RenderAsync(document)` would
   read as doing the thing rather than returning a capability. D4 records the change; later
   waves follow it.
+- Plugin event streams are unbounded per subscriber, where D4's table says a bounded
+  `Channel<T>`. This follows the Phase 2 decision for document events: a dropped `Undone`,
+  `Changed` or `Closed` event would leave a consumer's state wrong, and `TryWrite` on an
+  unbounded channel never blocks the kernel thread. The cost is the same: a subscriber that
+  stops reading holds every later event in memory.
 - Capabilities are `IDisposable`, not `IAsyncDisposable`: releasing a capability handle never
   waits on the kernel. `RenderViewDemand` is `IAsyncDisposable` because its `DisposeAsync` is the
   engine's `dispose`, which is a kernel call.

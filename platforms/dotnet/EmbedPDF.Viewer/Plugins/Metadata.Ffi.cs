@@ -15,7 +15,8 @@ internal static partial class Ffi
     {
         DocumentMetadataTrapped.True => GM.DocumentMetadataTrapped.True,
         DocumentMetadataTrapped.False => GM.DocumentMetadataTrapped.False,
-        _ => GM.DocumentMetadataTrapped.Unknown,
+        DocumentMetadataTrapped.Unknown => GM.DocumentMetadataTrapped.Unknown,
+        _ => throw Undefined(trapped, "trapped"),
     };
 
     internal static DocumentMetadata ToPublic(GM.DocumentMetadata m) =>
@@ -32,7 +33,8 @@ internal static partial class Ffi
         MetadataField.Producer => GM.MetadataField.Producer,
         MetadataField.Creator => GM.MetadataField.Creator,
         MetadataField.CreatedAt => GM.MetadataField.CreatedAt,
-        _ => GM.MetadataField.ModifiedAt,
+        MetadataField.ModifiedAt => GM.MetadataField.ModifiedAt,
+        _ => throw Undefined(field, "metadata field"),
     };
 
     internal static GM.MetadataPatch ToFfi(MetadataPatch p) =>

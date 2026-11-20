@@ -105,8 +105,11 @@ public sealed class ShellCapability : IDisposable
     public Task OpenAsync(string id, string? exclusive = null, string? propsJson = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(id);
-        var options = new GS.ShellOpenOptions(exclusive, propsJson);
-        return viewer.Run(() => handle.OpenSurface(id, options), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var options = new GS.ShellOpenOptions(exclusive, propsJson);
+            return handle.OpenSurface(id, options);
+        }, cancellationToken);
     }
 
     /// <summary><see cref="OpenAsync(string, string?, string?, CancellationToken)"/> with typed props, encoded through <paramref name="typeInfo"/>.</summary>
@@ -114,7 +117,7 @@ public sealed class ShellCapability : IDisposable
     {
         ArgumentNullException.ThrowIfNull(id);
         ArgumentNullException.ThrowIfNull(typeInfo);
-        return OpenAsync(id, exclusive, Encode(props, typeInfo), cancellationToken);
+        return viewer.Run(() => handle.OpenSurface(id, new GS.ShellOpenOptions(exclusive, Encode(props, typeInfo))), cancellationToken);
     }
 
     /// <summary>Closes a surface.</summary>
@@ -128,8 +131,11 @@ public sealed class ShellCapability : IDisposable
     public Task ToggleAsync(string id, string? exclusive = null, string? propsJson = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(id);
-        var options = new GS.ShellOpenOptions(exclusive, propsJson);
-        return viewer.Run(() => handle.ToggleSurface(id, options), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var options = new GS.ShellOpenOptions(exclusive, propsJson);
+            return handle.ToggleSurface(id, options);
+        }, cancellationToken);
     }
 
     /// <summary><see cref="ToggleAsync(string, string?, string?, CancellationToken)"/> with typed props.</summary>
@@ -137,7 +143,7 @@ public sealed class ShellCapability : IDisposable
     {
         ArgumentNullException.ThrowIfNull(id);
         ArgumentNullException.ThrowIfNull(typeInfo);
-        return ToggleAsync(id, exclusive, Encode(props, typeInfo), cancellationToken);
+        return viewer.Run(() => handle.ToggleSurface(id, new GS.ShellOpenOptions(exclusive, Encode(props, typeInfo))), cancellationToken);
     }
 
     /// <summary>Changes a surface's props without reopening it.</summary>
@@ -153,7 +159,7 @@ public sealed class ShellCapability : IDisposable
     {
         ArgumentNullException.ThrowIfNull(id);
         ArgumentNullException.ThrowIfNull(typeInfo);
-        return UpdatePropsAsync(id, Encode(props, typeInfo), cancellationToken);
+        return viewer.Run(() => handle.UpdateSurfaceProps(id, Encode(props, typeInfo)), cancellationToken);
     }
 
     /// <summary>Closes every surface.</summary>
@@ -190,15 +196,24 @@ public sealed class ShellCapability : IDisposable
     public Task ApplySnapshotAsync(ShellSnapshot snapshot, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
-        var ffi = Ffi.ToFfi(snapshot);
-        return viewer.Run(() => handle.ApplySnapshot(ffi), cancellationToken);
+        ArgumentNullException.ThrowIfNull(snapshot.Surfaces, nameof(snapshot));
+        ArgumentNullException.ThrowIfNull(snapshot.OpenMenus, nameof(snapshot));
+        Arguments.NoNullElements(snapshot.Surfaces, nameof(snapshot));
+        Arguments.NoNullElements(snapshot.OpenMenus, nameof(snapshot));
+        return viewer.Run(() =>
+        {
+            var ffi = Ffi.ToFfi(snapshot);
+            return handle.ApplySnapshot(ffi);
+        }, cancellationToken);
     }
 
     /// <summary>
     /// Surface and menu events, subscribed when this returns. Ends when the
     /// document closes (at once if it already has), when the viewer is
     /// disposed, or when <paramref name="cancellationToken"/> fires. Each call
-    /// is a new subscription; enumerate it once.
+    /// is a new subscription; enumerate it once. A stream that is never
+    /// enumerated still holds a native listener until its document closes, the viewer is disposed or
+    /// <paramref name="cancellationToken"/> fires.
     /// </summary>
     public IAsyncEnumerable<ShellEvent> ObserveEvents(CancellationToken cancellationToken = default)
     {
@@ -206,7 +221,13 @@ public sealed class ShellCapability : IDisposable
         return viewer.Stream(relay, _ => handle.Subscribe(relay), cancellationToken);
     }
 
-    /// <summary>Releases the native handle. Calls after it throw <see cref="PdfErrorCode.InstanceClosed"/>.</summary>
+    /// <summary>
+    /// Releases the native handle. Calls after it throw
+    /// <see cref="PdfErrorCode.InstanceClosed"/>. It does not end the
+    /// streams from <see cref="ObserveEvents"/>;
+    /// a stream still ends when its document closes, the viewer is disposed or
+    /// its token fires.
+    /// </summary>
     public void Dispose() => handle.Dispose();
 
     Task OnMenu(string id, Func<string, Task> call, CancellationToken cancellationToken)

@@ -33,7 +33,12 @@ internal static partial class Ffi
 
     internal static PageInfo? ToPublicOrNull(GF.PageInfo? page) => page is null ? null : ToPublic(page);
 
-    internal static G.SaveMode ToFfi(SaveMode mode) => mode == SaveMode.Rewrite ? G.SaveMode.Rewrite : G.SaveMode.Incremental;
+    internal static G.SaveMode ToFfi(SaveMode mode) => mode switch
+    {
+        SaveMode.Incremental => G.SaveMode.Incremental,
+        SaveMode.Rewrite => G.SaveMode.Rewrite,
+        _ => throw Undefined(mode, "save mode"),
+    };
 
     internal static ViewerSettings ToPublic(G.ViewerSettings settings) => new(settings.Accent, settings.PageBackground, settings.PageShadow);
 
@@ -42,7 +47,8 @@ internal static partial class Ffi
         {
             ViewerSettingsField.Accent => G.ViewerSettingsField.Accent,
             ViewerSettingsField.PageBackground => G.ViewerSettingsField.PageBackground,
-            _ => G.ViewerSettingsField.PageShadow,
+            ViewerSettingsField.PageShadow => G.ViewerSettingsField.PageShadow,
+            _ => throw Undefined(field, "settings field"),
         }).ToArray());
 
     internal static DocumentEvent ToPublic(G.DocumentEvent @event) => @event switch
