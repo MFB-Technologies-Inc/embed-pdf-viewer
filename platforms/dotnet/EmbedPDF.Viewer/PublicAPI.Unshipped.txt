@@ -182,6 +182,90 @@ EmbedPDF.FormConfig
 EmbedPDF.FormConfig.<Clone>$() -> EmbedPDF.FormConfig!
 EmbedPDF.FormConfig.Equals(EmbedPDF.FormConfig? other) -> bool
 EmbedPDF.FormConfig.FormConfig() -> void
+EmbedPDF.HistoryCapability
+EmbedPDF.HistoryCapability.CanRedoAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.HistoryCapability.CanUndoAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.HistoryCapability.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.HistoryCapability.Dispose() -> void
+EmbedPDF.HistoryCapability.GetRedoLabelAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.HistoryChangeLabel?>!
+EmbedPDF.HistoryCapability.GetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.HistorySettings!>!
+EmbedPDF.HistoryCapability.GetUndoLabelAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.HistoryChangeLabel?>!
+EmbedPDF.HistoryCapability.ObserveEvents(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.HistoryEvent!>!
+EmbedPDF.HistoryCapability.RedoAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.HistoryCapability.ResetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.HistoryCapability.UndoAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.HistoryCapability.UpdateSettingsAsync(EmbedPDF.HistorySettingsPatch! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.HistoryChangeLabel
+EmbedPDF.HistoryChangeLabel.<Clone>$() -> EmbedPDF.HistoryChangeLabel!
+EmbedPDF.HistoryChangeLabel.Deconstruct(out string! Key, out System.Collections.Generic.IReadOnlyDictionary<string!, EmbedPDF.HistoryLabelValue!>! Values) -> void
+EmbedPDF.HistoryChangeLabel.Equals(EmbedPDF.HistoryChangeLabel? other) -> bool
+EmbedPDF.HistoryChangeLabel.HistoryChangeLabel(string! Key, System.Collections.Generic.IReadOnlyDictionary<string!, EmbedPDF.HistoryLabelValue!>! Values) -> void
+EmbedPDF.HistoryChangeLabel.Key.get -> string!
+EmbedPDF.HistoryChangeLabel.Key.init -> void
+EmbedPDF.HistoryChangeLabel.Values.get -> System.Collections.Generic.IReadOnlyDictionary<string!, EmbedPDF.HistoryLabelValue!>!
+EmbedPDF.HistoryChangeLabel.Values.init -> void
+EmbedPDF.HistoryEvent
+EmbedPDF.HistoryEvent.HistoryEvent(EmbedPDF.HistoryEvent! original) -> void
+EmbedPDF.HistoryEvent.SettingsChanged
+EmbedPDF.HistoryEvent.SettingsChanged.Changed.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.HistoryEvent.SettingsChanged.Changed.init -> void
+EmbedPDF.HistoryEvent.SettingsChanged.Deconstruct(out EmbedPDF.HistorySettings! Settings, out System.Collections.Generic.IReadOnlyList<string!>! Changed) -> void
+EmbedPDF.HistoryEvent.SettingsChanged.Equals(EmbedPDF.HistoryEvent.SettingsChanged? other) -> bool
+EmbedPDF.HistoryEvent.SettingsChanged.Settings.get -> EmbedPDF.HistorySettings!
+EmbedPDF.HistoryEvent.SettingsChanged.Settings.init -> void
+EmbedPDF.HistoryEvent.SettingsChanged.SettingsChanged(EmbedPDF.HistorySettings! Settings, System.Collections.Generic.IReadOnlyList<string!>! Changed) -> void
+EmbedPDF.HistoryEvent.UndoFailed
+EmbedPDF.HistoryEvent.UndoFailed.Deconstruct(out EmbedPDF.HistoryChangeLabel! Label, out bool Redo, out EmbedPDF.HistoryUndoFailure Reason, out EmbedPDF.PluginErrorInfo! Error) -> void
+EmbedPDF.HistoryEvent.UndoFailed.Equals(EmbedPDF.HistoryEvent.UndoFailed? other) -> bool
+EmbedPDF.HistoryEvent.UndoFailed.Error.get -> EmbedPDF.PluginErrorInfo!
+EmbedPDF.HistoryEvent.UndoFailed.Error.init -> void
+EmbedPDF.HistoryEvent.UndoFailed.Label.get -> EmbedPDF.HistoryChangeLabel!
+EmbedPDF.HistoryEvent.UndoFailed.Label.init -> void
+EmbedPDF.HistoryEvent.UndoFailed.Reason.get -> EmbedPDF.HistoryUndoFailure
+EmbedPDF.HistoryEvent.UndoFailed.Reason.init -> void
+EmbedPDF.HistoryEvent.UndoFailed.Redo.get -> bool
+EmbedPDF.HistoryEvent.UndoFailed.Redo.init -> void
+EmbedPDF.HistoryEvent.UndoFailed.UndoFailed(EmbedPDF.HistoryChangeLabel! Label, bool Redo, EmbedPDF.HistoryUndoFailure Reason, EmbedPDF.PluginErrorInfo! Error) -> void
+EmbedPDF.HistoryEvent.Undone
+EmbedPDF.HistoryEvent.Undone.Deconstruct(out EmbedPDF.HistoryChangeLabel! Label, out bool Redo, out long Skipped) -> void
+EmbedPDF.HistoryEvent.Undone.Equals(EmbedPDF.HistoryEvent.Undone? other) -> bool
+EmbedPDF.HistoryEvent.Undone.Label.get -> EmbedPDF.HistoryChangeLabel!
+EmbedPDF.HistoryEvent.Undone.Label.init -> void
+EmbedPDF.HistoryEvent.Undone.Redo.get -> bool
+EmbedPDF.HistoryEvent.Undone.Redo.init -> void
+EmbedPDF.HistoryEvent.Undone.Skipped.get -> long
+EmbedPDF.HistoryEvent.Undone.Skipped.init -> void
+EmbedPDF.HistoryEvent.Undone.Undone(EmbedPDF.HistoryChangeLabel! Label, bool Redo, long Skipped) -> void
+EmbedPDF.HistoryLabelValue
+EmbedPDF.HistoryLabelValue.HistoryLabelValue(EmbedPDF.HistoryLabelValue! original) -> void
+EmbedPDF.HistoryLabelValue.Number
+EmbedPDF.HistoryLabelValue.Number.Deconstruct(out double Value) -> void
+EmbedPDF.HistoryLabelValue.Number.Equals(EmbedPDF.HistoryLabelValue.Number? other) -> bool
+EmbedPDF.HistoryLabelValue.Number.Number(double Value) -> void
+EmbedPDF.HistoryLabelValue.Number.Value.get -> double
+EmbedPDF.HistoryLabelValue.Number.Value.init -> void
+EmbedPDF.HistoryLabelValue.Text
+EmbedPDF.HistoryLabelValue.Text.Deconstruct(out string! Value) -> void
+EmbedPDF.HistoryLabelValue.Text.Equals(EmbedPDF.HistoryLabelValue.Text? other) -> bool
+EmbedPDF.HistoryLabelValue.Text.Text(string! Value) -> void
+EmbedPDF.HistoryLabelValue.Text.Value.get -> string!
+EmbedPDF.HistoryLabelValue.Text.Value.init -> void
+EmbedPDF.HistorySettings
+EmbedPDF.HistorySettings.<Clone>$() -> EmbedPDF.HistorySettings!
+EmbedPDF.HistorySettings.Deconstruct(out double Limit) -> void
+EmbedPDF.HistorySettings.Equals(EmbedPDF.HistorySettings? other) -> bool
+EmbedPDF.HistorySettings.HistorySettings(double Limit) -> void
+EmbedPDF.HistorySettings.Limit.get -> double
+EmbedPDF.HistorySettings.Limit.init -> void
+EmbedPDF.HistorySettingsPatch
+EmbedPDF.HistorySettingsPatch.<Clone>$() -> EmbedPDF.HistorySettingsPatch!
+EmbedPDF.HistorySettingsPatch.Equals(EmbedPDF.HistorySettingsPatch? other) -> bool
+EmbedPDF.HistorySettingsPatch.HistorySettingsPatch() -> void
+EmbedPDF.HistorySettingsPatch.Limit.get -> double?
+EmbedPDF.HistorySettingsPatch.Limit.init -> void
+EmbedPDF.HistoryUndoFailure
+EmbedPDF.HistoryUndoFailure.Refused = 1 -> EmbedPDF.HistoryUndoFailure
+EmbedPDF.HistoryUndoFailure.Unavailable = 0 -> EmbedPDF.HistoryUndoFailure
 EmbedPDF.HttpClientDocumentFetcher
 EmbedPDF.HttpClientDocumentFetcher.FetchAsync(string! url, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<EmbedPDF.DocumentFetchResponse!>!
 EmbedPDF.HttpClientDocumentFetcher.HttpClientDocumentFetcher(System.Net.Http.HttpClient? client = null) -> void
@@ -631,6 +715,7 @@ EmbedPDF.PdfViewer.GetPageRevisionAsync(EmbedPDF.DocumentInfo? document = null, 
 EmbedPDF.PdfViewer.GetPagesAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.PageInfo!>!>!
 EmbedPDF.PdfViewer.GetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ViewerSettings!>!
 EmbedPDF.PdfViewer.HasDocumentAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.PdfViewer.HistoryAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.HistoryCapability!>!
 EmbedPDF.PdfViewer.MetadataAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.MetadataCapability!>!
 EmbedPDF.PdfViewer.MoveAsync(EmbedPDF.DocumentInfo! document, int index, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.PdfViewer.ObserveDocumentEvents(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.DocumentEvent!>!
@@ -835,6 +920,8 @@ EmbedPDF.ViewerSettingsPatch.PageShadow.init -> void
 EmbedPDF.ViewerSettingsPatch.ViewerSettingsPatch() -> void
 abstract EmbedPDF.AnnotationRef.<Clone>$() -> EmbedPDF.AnnotationRef!
 abstract EmbedPDF.DocumentEvent.<Clone>$() -> EmbedPDF.DocumentEvent!
+abstract EmbedPDF.HistoryEvent.<Clone>$() -> EmbedPDF.HistoryEvent!
+abstract EmbedPDF.HistoryLabelValue.<Clone>$() -> EmbedPDF.HistoryLabelValue!
 abstract EmbedPDF.LinkActivation.<Clone>$() -> EmbedPDF.LinkActivation!
 abstract EmbedPDF.MetadataEvent.<Clone>$() -> EmbedPDF.MetadataEvent!
 abstract EmbedPDF.PageDestination.<Clone>$() -> EmbedPDF.PageDestination!
@@ -911,6 +998,41 @@ override EmbedPDF.FeedbackConfig.ToString() -> string!
 override EmbedPDF.FormConfig.Equals(object? obj) -> bool
 override EmbedPDF.FormConfig.GetHashCode() -> int
 override EmbedPDF.FormConfig.ToString() -> string!
+override EmbedPDF.HistoryChangeLabel.Equals(object? obj) -> bool
+override EmbedPDF.HistoryChangeLabel.GetHashCode() -> int
+override EmbedPDF.HistoryChangeLabel.ToString() -> string!
+override EmbedPDF.HistoryEvent.Equals(object? obj) -> bool
+override EmbedPDF.HistoryEvent.GetHashCode() -> int
+override EmbedPDF.HistoryEvent.SettingsChanged.<Clone>$() -> EmbedPDF.HistoryEvent.SettingsChanged!
+override EmbedPDF.HistoryEvent.SettingsChanged.Equals(object? obj) -> bool
+override EmbedPDF.HistoryEvent.SettingsChanged.GetHashCode() -> int
+override EmbedPDF.HistoryEvent.SettingsChanged.ToString() -> string!
+override EmbedPDF.HistoryEvent.ToString() -> string!
+override EmbedPDF.HistoryEvent.UndoFailed.<Clone>$() -> EmbedPDF.HistoryEvent.UndoFailed!
+override EmbedPDF.HistoryEvent.UndoFailed.Equals(object? obj) -> bool
+override EmbedPDF.HistoryEvent.UndoFailed.GetHashCode() -> int
+override EmbedPDF.HistoryEvent.UndoFailed.ToString() -> string!
+override EmbedPDF.HistoryEvent.Undone.<Clone>$() -> EmbedPDF.HistoryEvent.Undone!
+override EmbedPDF.HistoryEvent.Undone.Equals(object? obj) -> bool
+override EmbedPDF.HistoryEvent.Undone.GetHashCode() -> int
+override EmbedPDF.HistoryEvent.Undone.ToString() -> string!
+override EmbedPDF.HistoryLabelValue.Equals(object? obj) -> bool
+override EmbedPDF.HistoryLabelValue.GetHashCode() -> int
+override EmbedPDF.HistoryLabelValue.Number.<Clone>$() -> EmbedPDF.HistoryLabelValue.Number!
+override EmbedPDF.HistoryLabelValue.Number.Equals(object? obj) -> bool
+override EmbedPDF.HistoryLabelValue.Number.GetHashCode() -> int
+override EmbedPDF.HistoryLabelValue.Number.ToString() -> string!
+override EmbedPDF.HistoryLabelValue.Text.<Clone>$() -> EmbedPDF.HistoryLabelValue.Text!
+override EmbedPDF.HistoryLabelValue.Text.Equals(object? obj) -> bool
+override EmbedPDF.HistoryLabelValue.Text.GetHashCode() -> int
+override EmbedPDF.HistoryLabelValue.Text.ToString() -> string!
+override EmbedPDF.HistoryLabelValue.ToString() -> string!
+override EmbedPDF.HistorySettings.Equals(object? obj) -> bool
+override EmbedPDF.HistorySettings.GetHashCode() -> int
+override EmbedPDF.HistorySettings.ToString() -> string!
+override EmbedPDF.HistorySettingsPatch.Equals(object? obj) -> bool
+override EmbedPDF.HistorySettingsPatch.GetHashCode() -> int
+override EmbedPDF.HistorySettingsPatch.ToString() -> string!
 override EmbedPDF.I18nConfig.Equals(object? obj) -> bool
 override EmbedPDF.I18nConfig.GetHashCode() -> int
 override EmbedPDF.I18nConfig.ToString() -> string!
@@ -1131,6 +1253,11 @@ override sealed EmbedPDF.DocumentEvent.Locked.Equals(EmbedPDF.DocumentEvent? oth
 override sealed EmbedPDF.DocumentEvent.OpenFailed.Equals(EmbedPDF.DocumentEvent? other) -> bool
 override sealed EmbedPDF.DocumentEvent.Opened.Equals(EmbedPDF.DocumentEvent? other) -> bool
 override sealed EmbedPDF.DocumentEvent.PagesChanged.Equals(EmbedPDF.DocumentEvent? other) -> bool
+override sealed EmbedPDF.HistoryEvent.SettingsChanged.Equals(EmbedPDF.HistoryEvent? other) -> bool
+override sealed EmbedPDF.HistoryEvent.UndoFailed.Equals(EmbedPDF.HistoryEvent? other) -> bool
+override sealed EmbedPDF.HistoryEvent.Undone.Equals(EmbedPDF.HistoryEvent? other) -> bool
+override sealed EmbedPDF.HistoryLabelValue.Number.Equals(EmbedPDF.HistoryLabelValue? other) -> bool
+override sealed EmbedPDF.HistoryLabelValue.Text.Equals(EmbedPDF.HistoryLabelValue? other) -> bool
 override sealed EmbedPDF.LinkActivation.Destination.Equals(EmbedPDF.LinkActivation? other) -> bool
 override sealed EmbedPDF.LinkActivation.Dispatched.Equals(EmbedPDF.LinkActivation? other) -> bool
 override sealed EmbedPDF.LinkActivation.Named.Equals(EmbedPDF.LinkActivation? other) -> bool
@@ -1230,6 +1357,26 @@ static EmbedPDF.FeedbackConfig.operator !=(EmbedPDF.FeedbackConfig? left, EmbedP
 static EmbedPDF.FeedbackConfig.operator ==(EmbedPDF.FeedbackConfig? left, EmbedPDF.FeedbackConfig? right) -> bool
 static EmbedPDF.FormConfig.operator !=(EmbedPDF.FormConfig? left, EmbedPDF.FormConfig? right) -> bool
 static EmbedPDF.FormConfig.operator ==(EmbedPDF.FormConfig? left, EmbedPDF.FormConfig? right) -> bool
+static EmbedPDF.HistoryChangeLabel.operator !=(EmbedPDF.HistoryChangeLabel? left, EmbedPDF.HistoryChangeLabel? right) -> bool
+static EmbedPDF.HistoryChangeLabel.operator ==(EmbedPDF.HistoryChangeLabel? left, EmbedPDF.HistoryChangeLabel? right) -> bool
+static EmbedPDF.HistoryEvent.SettingsChanged.operator !=(EmbedPDF.HistoryEvent.SettingsChanged? left, EmbedPDF.HistoryEvent.SettingsChanged? right) -> bool
+static EmbedPDF.HistoryEvent.SettingsChanged.operator ==(EmbedPDF.HistoryEvent.SettingsChanged? left, EmbedPDF.HistoryEvent.SettingsChanged? right) -> bool
+static EmbedPDF.HistoryEvent.UndoFailed.operator !=(EmbedPDF.HistoryEvent.UndoFailed? left, EmbedPDF.HistoryEvent.UndoFailed? right) -> bool
+static EmbedPDF.HistoryEvent.UndoFailed.operator ==(EmbedPDF.HistoryEvent.UndoFailed? left, EmbedPDF.HistoryEvent.UndoFailed? right) -> bool
+static EmbedPDF.HistoryEvent.Undone.operator !=(EmbedPDF.HistoryEvent.Undone? left, EmbedPDF.HistoryEvent.Undone? right) -> bool
+static EmbedPDF.HistoryEvent.Undone.operator ==(EmbedPDF.HistoryEvent.Undone? left, EmbedPDF.HistoryEvent.Undone? right) -> bool
+static EmbedPDF.HistoryEvent.operator !=(EmbedPDF.HistoryEvent? left, EmbedPDF.HistoryEvent? right) -> bool
+static EmbedPDF.HistoryEvent.operator ==(EmbedPDF.HistoryEvent? left, EmbedPDF.HistoryEvent? right) -> bool
+static EmbedPDF.HistoryLabelValue.Number.operator !=(EmbedPDF.HistoryLabelValue.Number? left, EmbedPDF.HistoryLabelValue.Number? right) -> bool
+static EmbedPDF.HistoryLabelValue.Number.operator ==(EmbedPDF.HistoryLabelValue.Number? left, EmbedPDF.HistoryLabelValue.Number? right) -> bool
+static EmbedPDF.HistoryLabelValue.Text.operator !=(EmbedPDF.HistoryLabelValue.Text? left, EmbedPDF.HistoryLabelValue.Text? right) -> bool
+static EmbedPDF.HistoryLabelValue.Text.operator ==(EmbedPDF.HistoryLabelValue.Text? left, EmbedPDF.HistoryLabelValue.Text? right) -> bool
+static EmbedPDF.HistoryLabelValue.operator !=(EmbedPDF.HistoryLabelValue? left, EmbedPDF.HistoryLabelValue? right) -> bool
+static EmbedPDF.HistoryLabelValue.operator ==(EmbedPDF.HistoryLabelValue? left, EmbedPDF.HistoryLabelValue? right) -> bool
+static EmbedPDF.HistorySettings.operator !=(EmbedPDF.HistorySettings? left, EmbedPDF.HistorySettings? right) -> bool
+static EmbedPDF.HistorySettings.operator ==(EmbedPDF.HistorySettings? left, EmbedPDF.HistorySettings? right) -> bool
+static EmbedPDF.HistorySettingsPatch.operator !=(EmbedPDF.HistorySettingsPatch? left, EmbedPDF.HistorySettingsPatch? right) -> bool
+static EmbedPDF.HistorySettingsPatch.operator ==(EmbedPDF.HistorySettingsPatch? left, EmbedPDF.HistorySettingsPatch? right) -> bool
 static EmbedPDF.I18nConfig.operator !=(EmbedPDF.I18nConfig? left, EmbedPDF.I18nConfig? right) -> bool
 static EmbedPDF.I18nConfig.operator ==(EmbedPDF.I18nConfig? left, EmbedPDF.I18nConfig? right) -> bool
 static EmbedPDF.LinkActivation.Destination.operator !=(EmbedPDF.LinkActivation.Destination? left, EmbedPDF.LinkActivation.Destination? right) -> bool
@@ -1379,6 +1526,12 @@ virtual EmbedPDF.AnnotationRef.PrintMembers(System.Text.StringBuilder! builder) 
 virtual EmbedPDF.DocumentEvent.EqualityContract.get -> System.Type!
 virtual EmbedPDF.DocumentEvent.Equals(EmbedPDF.DocumentEvent? other) -> bool
 virtual EmbedPDF.DocumentEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.HistoryEvent.EqualityContract.get -> System.Type!
+virtual EmbedPDF.HistoryEvent.Equals(EmbedPDF.HistoryEvent? other) -> bool
+virtual EmbedPDF.HistoryEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.HistoryLabelValue.EqualityContract.get -> System.Type!
+virtual EmbedPDF.HistoryLabelValue.Equals(EmbedPDF.HistoryLabelValue? other) -> bool
+virtual EmbedPDF.HistoryLabelValue.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual EmbedPDF.LinkActivation.EqualityContract.get -> System.Type!
 virtual EmbedPDF.LinkActivation.Equals(EmbedPDF.LinkActivation? other) -> bool
 virtual EmbedPDF.LinkActivation.PrintMembers(System.Text.StringBuilder! builder) -> bool
