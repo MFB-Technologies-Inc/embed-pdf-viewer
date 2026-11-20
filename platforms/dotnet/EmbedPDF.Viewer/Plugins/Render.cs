@@ -218,7 +218,15 @@ public sealed class RenderCapability : IDisposable
         return viewer.Stream(relay, _ => handle.Subscribe(relay), cancellationToken);
     }
 
-    /// <summary>Releases the native handle. Calls after it throw <see cref="PdfErrorCode.InstanceClosed"/>.</summary>
+    /// <summary>
+    /// Releases the native handle. Calls after it throw
+    /// <see cref="PdfErrorCode.InstanceClosed"/>. It does not end the
+    /// streams from <see cref="ObserveEvents"/> or <see cref="ObserveSnapshotChanges"/>, the
+    /// <see cref="RenderViewDemand"/>s from <see cref="CreateViewDemandAsync"/>, or the
+    /// <see cref="RenderSnapshot"/>s it returned.
+    /// A stream still ends when its document closes, the viewer is disposed or
+    /// its token fires; dispose each view demand and snapshot yourself.
+    /// </summary>
     public void Dispose() => handle.Dispose();
 
     sealed class Relay() : EventRelay<GR.RenderEvent, RenderEvent>(Ffi.ToPublic), GR.RenderEventListener
