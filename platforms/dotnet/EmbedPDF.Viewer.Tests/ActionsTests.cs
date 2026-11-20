@@ -97,6 +97,37 @@ public sealed class ActionsTests
         Assert.Equal([ActionNodeStatus.Executed], result.Nodes.Select(n => n.Status));
     }
 
+    sealed class ThrowingSubmit : IActionSubmitHandler
+    {
+        public int Calls;
+        public void Submit(ActionSubmitRequest request)
+        {
+            Calls++;
+            throw new InvalidOperationException("offline");
+        }
+    }
+
+    static PdfActionTree SubmitTree() => PdfActionTree.FromJson(
+        """{"root":{"type":"submit-form","subtype":"SubmitForm","payload":{"url":"https://home.test/submit","fields":null,"exclude":false,"includeNoValueFields":false,"format":"html","method":"post","submitCoordinates":false,"includeAppendSaves":false,"includeAnnotations":false,"canonicalFormat":false,"exclNonUserAnnots":false,"exclFKey":false,"embedForm":false},"next":[]},"incomplete":false,"warningFlags":0,"warnings":[]}""");
+
+    [Fact]
+    public async Task AThrowingSubmitHandlerFailsTheNodeAndTheViewerKeepsWorking()
+    {
+        var (viewer, _, actions) = await Opened(new PdfViewerOptions
+        {
+            Interaction = true, Form = new(), Actions = new() { OpenSequence = OpenSequence.Off },
+        });
+        await using var _v = viewer;
+        var submit = new ThrowingSubmit();
+        await actions.SetSubmitHandlerAsync(submit);
+        var result = await actions.ExecuteAsync(SubmitTree(), User);
+        Assert.Equal(1, submit.Calls);
+        var node = Assert.Single(result.Nodes);
+        Assert.Equal(ActionNodeStatus.Failed, node.Status);
+        Assert.Equal("offline", node.Detail);
+        await actions.GetPolicyAsync();
+    }
+
     [Fact]
     public async Task AnExecutorRunsItsNodes()
     {

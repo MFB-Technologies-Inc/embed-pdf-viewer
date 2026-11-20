@@ -23,8 +23,11 @@ public interface IActionExecutor
 /// <remarks>
 /// The kernel calls every member on its own thread, synchronously, inside the
 /// dispatch: return at once and do the work elsewhere.
-/// <see cref="PdfViewer.Dispose"/> throws here. An exception fails the node
-/// with its message.
+/// <see cref="PdfViewer.Dispose"/> throws here. An exception fails the whole
+/// dispatch, not one node: the <see cref="ActionsCapability.ExecuteAsync"/> or
+/// <see cref="ActionsCapability.DispatchAsync"/> that reached the handler
+/// throws <see cref="PdfException"/> named <c>HostError</c> with the
+/// exception's message.
 /// </remarks>
 public interface IActionUiHandler
 {
@@ -41,10 +44,13 @@ public interface IActionUiHandler
     void GotoPage(double page, ActionUiContext context);
 }
 
-/// <summary>Receives form submissions. Return to accept (the network call is yours, and its outcome is yours to report); throw to fail the node.</summary>
+/// <summary>Receives form submissions. Return to accept (the network call is yours, and its outcome is yours to report); throw to fail the submit node.</summary>
 /// <remarks>
 /// Called on the kernel thread, synchronously: return at once.
-/// <see cref="PdfViewer.Dispose"/> throws here.
+/// <see cref="PdfViewer.Dispose"/> throws here. An exception fails the submit
+/// node with the exception's message as its detail; the rest of the dispatch
+/// goes on. The viewer only calls it when the form plugin is installed, which
+/// resolves the submitted fields.
 /// </remarks>
 public interface IActionSubmitHandler
 {
@@ -316,7 +322,7 @@ public sealed class ActionsCapability : IDisposable
         }
     }
 
-    /// <summary>Called on the kernel thread, marked; a throw fails the node.</summary>
+    /// <summary>Called on the kernel thread, marked; a throw fails the whole dispatch with <c>HostError</c>.</summary>
     sealed class UiAdapter(IActionUiHandler app, KernelMark mark) : GA.ActionUiHandler
     {
         public void OpenUri(string uri, GA.ActionUriOptions options) =>
@@ -335,7 +341,7 @@ public sealed class ActionsCapability : IDisposable
         static ActionUiContext Context(GA.ActionUiContext context) => new((ActionOrigin)(int)context.Origin, (ScriptPhase)(int)context.Phase);
     }
 
-    /// <summary>Called on the kernel thread, marked; a throw fails the node.</summary>
+    /// <summary>Called on the kernel thread, marked; a throw fails the submit node.</summary>
     sealed class SubmitAdapter(IActionSubmitHandler app, KernelMark mark) : GA.ActionSubmitHandler
     {
         public void Submit(GA.ActionSubmitRequest request) => KernelCallback.RunOrFail(mark, () => app.Submit(Ffi.ToPublic(request)));
