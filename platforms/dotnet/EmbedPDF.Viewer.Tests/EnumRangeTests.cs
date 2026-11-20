@@ -55,6 +55,8 @@ public sealed class EnumRangeTests
         { "zoom mode", () => Ffi.ToFfi(new StageSettingsPatch { Zoom = new ZoomSpec.Mode((ZoomMode)9) }) },
         { "orientation", () => Ffi.ToFfi(new StageBoxQuery { Orientation = (StageOrientation)9 }) },
         { "reveal word", () => Ffi.ToFfiOrNull(new StageRevealOptions { Anchor = new StageRevealAnchor { X = new StageRevealAnchorValue.Word((StageRevealWord)9) } }) },
+        { "text format", () => Ffi.ToFfi((AnnotationTextFormat)9) },
+        { "thread status", () => Ffi.ToFfi((AnnotationThreadStatus)9) },
     };
 
     [Theory]
@@ -87,5 +89,21 @@ public sealed class EnumRangeTests
         var page = (await viewer.GetPagesAsync(document))[0].Page;
         Assert.Equal(PdfErrorCode.InvalidInput, (await Assert.ThrowsAsync<PdfException>(() => render.InvalidateAsync([page], (RenderInvalidateScope)9))).Code);
         Assert.Equal(PdfErrorCode.InvalidInput, (await Assert.ThrowsAsync<PdfException>(() => render.RenderThumbnailAsync(page, (ContentInclusion)9))).Code);
+    }
+
+    [Fact]
+    public async Task TheAnnotationCapabilityRefusesAnUndefinedValue()
+    {
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true, Annotation = "" });
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        using var annotations = await viewer.GetAnnotationAsync(document);
+        await annotations.RefreshAsync();
+        var page = (await viewer.GetPagesAsync(document))[0].Page;
+        var note = await annotations.CreateAsync(new NoteAnnotationDraft(new PdfRect(40, 40, 24, 24)), page);
+        using var selection = annotations.GetSelection();
+        await selection.SelectAsync([note]);
+        Assert.Equal(PdfErrorCode.InvalidInput, (await Assert.ThrowsAsync<PdfException>(() => selection.ToggleAsync((AnnotationTextFormat)9))).Code);
+        using var threads = annotations.GetThreads();
+        Assert.Equal(PdfErrorCode.InvalidInput, (await Assert.ThrowsAsync<PdfException>(() => threads.SetStatusAsync(note, (AnnotationThreadStatus)9))).Code);
     }
 }

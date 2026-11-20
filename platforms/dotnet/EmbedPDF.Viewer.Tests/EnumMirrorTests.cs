@@ -55,6 +55,11 @@ public sealed class EnumMirrorTests
         { typeof(CommandHook), typeof(uniffi.epdf_plugin_commands.CommandHook) },
         { typeof(CommandRejectReason), typeof(uniffi.epdf_plugin_commands.CommandRejectReason) },
         { typeof(CommandRefusalReason), typeof(uniffi.epdf_plugin_commands.CommandRefusalReason) },
+        { typeof(AnnotationTextFormat), typeof(uniffi.epdf_plugin_annotation.AnnotationTextFormat) },
+        { typeof(AnnotationThreadChange), typeof(uniffi.epdf_plugin_annotation.AnnotationThreadChange) },
+        { typeof(AnnotationThreadStatus), typeof(uniffi.epdf_plugin_annotation.AnnotationThreadStatus) },
+        { typeof(MeasureFraction), typeof(uniffi.epdf_plugin_measurement.MeasureFraction) },
+        { typeof(MeasureLabelPosition), typeof(uniffi.epdf_plugin_measurement.MeasureLabelPosition) },
     };
 
     [Theory]

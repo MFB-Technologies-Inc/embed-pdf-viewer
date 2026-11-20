@@ -5,7 +5,8 @@ namespace EmbedPDF.Viewer.Tests;
 public sealed partial class IntegerSurfaceTests
 {
     // The stage, signature and redaction cases of IntegerSurfaceTests.swift
-    // port with their Phase 3 waves.
+    // port with their Phase 3 waves. The annotation case below is the
+    // annotation half of aPendingRedactionCountIsInt.
 
     /// <summary>A C# int below zero; one past <c>UInt32.max</c> can't be written.</summary>
     static readonly int[] OutsideUInt32 = [-1, int.MinValue];
@@ -96,5 +97,41 @@ public sealed partial class IntegerSurfaceTests
         // The engine runs at least one render at a time.
         var batch = await render.RenderPagesAsync(pages, options, 0);
         Assert.Equal(pages, batch.Applied.Select(a => a.Page));
+    }
+
+    /// <summary>
+    /// The annotation capability takes int for the page and annotation numbers
+    /// a draft writes and for a text selection; one below zero is refused
+    /// before it reaches the engine.
+    /// </summary>
+    [Fact]
+    public async Task AnnotationNumbersBelowZeroThrowInvalidInput()
+    {
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true, Annotation = "" });
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        using var annotations = await viewer.GetAnnotationAsync(document);
+        await annotations.RefreshAsync();
+        var page = (await viewer.GetPagesAsync(document))[0].Page;
+        var box = new PdfRect(40, 40, 24, 24);
+        foreach (var value in OutsideUInt32)
+        {
+            await ExpectInvalidInput(() => annotations.CreateAsync(
+                new NoteAnnotationDraft(box) { Common = new() { Reply = new AnnotationReply(new AnnotationRef.ObjectNumber(new PageRef(value), 1)) } }, page));
+            await ExpectInvalidInput(() => annotations.CreateAsync(
+                new NoteAnnotationDraft(box) { Common = new() { Reply = new AnnotationReply(new AnnotationRef.ObjectNumber(page, value)) } }, page));
+            await ExpectInvalidInput(() => annotations.CreateAsync(
+                new NoteAnnotationDraft(box) { Common = new() { Reply = new AnnotationReply(new AnnotationRef.Index(page, value)) } }, page));
+            await ExpectInvalidInput(() => annotations.CreateAsync(
+                new LinkAnnotationDraft(box, new AnnotationLinkTarget.GoTo(new PageDestination.Fit(new PageRef(value)))), page));
+        }
+        var note = await annotations.CreateAsync(new NoteAnnotationDraft(box), page);
+        var reply = await annotations.CreateAsync(new NoteAnnotationDraft(box) { Common = new() { Reply = new AnnotationReply(note) } }, page);
+        Assert.Equal(note, (await annotations.GetAsync(reply))?.InReplyTo);
+        using var drafts = annotations.GetDrafts();
+        foreach (var value in OutsideUInt32)
+        {
+            await ExpectInvalidInput(() => drafts.SetTextSelectionAsync(note, value, 0));
+            await ExpectInvalidInput(() => drafts.SetTextSelectionAsync(note, 0, value));
+        }
     }
 }

@@ -2,11 +2,7 @@ using Xunit;
 
 namespace EmbedPDF.Viewer.Tests;
 
-/// <summary>
-/// Port of <c>AttachmentTests.swift</c>. Its page-attachment case creates the
-/// file through the annotation capability's drafts, which wave D ports, and
-/// moves there.
-/// </summary>
+/// <summary>Port of <c>AttachmentTests.swift</c>.</summary>
 public sealed class AttachmentTests
 {
     [Fact]
@@ -52,5 +48,23 @@ public sealed class AttachmentTests
         await attachments.RefreshAsync();
         await viewer.CloseAsync(document);
         Assert.True(await MetadataTests.Ends(attachments.ObserveEvents()));
+    }
+
+    [Fact]
+    public async Task PageAttachmentDownloadsAndRevealsThroughAnnotationCapability()
+    {
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true, Annotation = "", Attachment = true });
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        using var annotations = await viewer.GetAnnotationAsync(document);
+        var page = (await viewer.GetPagesAsync(document))[0].Page;
+        var data = "attached"u8.ToArray();
+        using var drafts = annotations.GetDrafts();
+        var annotationRef = await drafts.CreateAttachmentAsync(new AnnotationAttachmentFile(data, "page.txt"), page, new PdfPoint(40, 40));
+        using var attachments = await viewer.GetAttachmentsAsync(document);
+        await attachments.EnsureLoadedAsync();
+        var file = (await attachments.ListAsync()).First(f => f.Home is AttachmentHome.Page);
+        Assert.Equal(data, (await attachments.DownloadAsync(file)).Data);
+        await attachments.RevealAsync(file);
+        Assert.Contains(await annotations.GetSelectedAsync(), info => info.AnnotationRef == annotationRef);
     }
 }
