@@ -10,6 +10,8 @@ Renovate bumps those versions but cannot compute their hashes, so its pull reque
 fail here until the hashes are filled in.
 """
 
+import argparse
+import http.client
 import json
 from pathlib import Path
 import re
@@ -48,9 +50,10 @@ def fetch(url, attempts=3):
             with urllib.request.urlopen(request, timeout=20) as response:
                 return response.read().decode()
         except urllib.error.HTTPError as error:
-            if error.code < 500 or attempt == attempts:
+            retryable = error.code == 429 or error.code >= 500
+            if not retryable or attempt == attempts:
                 raise FetchError(f"{url}: HTTP {error.code}") from error
-        except (urllib.error.URLError, TimeoutError) as error:
+        except (urllib.error.URLError, TimeoutError, ConnectionError, http.client.HTTPException) as error:
             if attempt == attempts:
                 raise FetchError(f"{url}: {error}") from error
         time.sleep(2 * attempt)
@@ -123,6 +126,10 @@ def verify_checksums(failures):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0], allow_abbrev=False)
+    parser.add_argument("--verify-checksums", action="store_true",
+                        help="also compare the pinned checksums with the published ones")
+    args = parser.parse_args()
     failures = []
 
     def expect(label, image_value, path, other_value):
@@ -176,7 +183,7 @@ def main():
     expect(".NET SDK", arg("DOTNET_SDK_VERSION"), "platforms/dotnet/global.json",
            json.loads(read("platforms/dotnet/global.json"))["sdk"]["version"])
 
-    if "--verify-checksums" in sys.argv[1:]:
+    if args.verify_checksums:
         try:
             verify_checksums(failures)
         except FetchError as error:

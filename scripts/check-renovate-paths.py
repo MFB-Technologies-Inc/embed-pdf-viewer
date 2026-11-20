@@ -8,16 +8,29 @@ UPSTREAM_REF is a commit of embedpdf/embed-pdf-viewer main, such as FETCH_HEAD a
 there is upstream-owned. The check fails when:
 
 - an includePaths entry covers an upstream-owned file (Renovate would edit it),
-- an includePaths entry covers no tracked file (stale), or
+- an includePaths entry covers no tracked file (stale),
+- an includePaths entry covers a package.json (Renovate would resolve it against the
+  upstream-owned pnpm-lock.yaml), or
 - a fork-owned dependency manifest is neither covered nor listed in EXCLUDED below,
   so Renovate would silently skip it.
+
+A manifest absent from upstream main counts as fork-owned only when upstream's history
+never had that path either; otherwise upstream deleted or renamed it and the next sync
+removes it here. That lookup uses the GitHub API, with GITHUB_TOKEN when it is set.
 """
 
 from pathlib import Path
 import json
+import os
 import re
 import subprocess
 import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+
+UPSTREAM = "embedpdf/embed-pdf-viewer"
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -75,8 +88,25 @@ def glob_regex(pattern):
 
 
 def covers(pattern, path):
-    # Renovate matches includePaths as a glob or as a plain path prefix.
-    return path.startswith(pattern) or bool(glob_regex(pattern).match(path))
+    # Renovate matches includePaths as an exact path or a minimatch glob, not a prefix.
+    return path == pattern or bool(glob_regex(pattern).match(path))
+
+
+def upstream_ever_had(path):
+    """True when upstream main's history touched path. Raises when the API cannot answer."""
+    url = (f"https://api.github.com/repos/{UPSTREAM}/commits?sha=main&per_page=1&path="
+           + urllib.parse.quote(path))
+    headers = {"Accept": "application/vnd.github+json", "User-Agent": "embedpdf-check-renovate-paths"}
+    if os.environ.get("GITHUB_TOKEN"):
+        headers["Authorization"] = f"Bearer {os.environ['GITHUB_TOKEN']}"
+    for attempt in range(1, 4):
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=20) as response:
+                return len(json.load(response)) > 0
+        except (urllib.error.URLError, TimeoutError, ConnectionError, ValueError):
+            if attempt == 3:
+                raise
+            time.sleep(2 * attempt)
 
 
 def main():
@@ -91,9 +121,15 @@ def main():
         hits = [path for path in tracked if covers(pattern, path)]
         if not hits:
             failures.append(f"includePaths {pattern!r} covers no tracked file")
-        owned_upstream = sorted(path for path in hits if path in upstream and MANIFEST.search(path))
+        owned_upstream = sorted(path for path in hits if path in upstream)
         if owned_upstream:
             failures.append(f"includePaths {pattern!r} covers upstream-owned {', '.join(owned_upstream[:5])}")
+        packages = sorted(path for path in hits if path.endswith("package.json"))
+        if packages:
+            failures.append(
+                f"includePaths {pattern!r} covers {', '.join(packages[:5])}: Renovate would resolve it "
+                "against the upstream-owned pnpm-lock.yaml"
+            )
 
     for path in sorted(tracked - upstream):
         if not MANIFEST.search(path):
@@ -101,6 +137,13 @@ def main():
         if any(covers(pattern, path) for pattern in include):
             continue
         if any(path == key or path.startswith(key) for key in EXCLUDED):
+            continue
+        try:
+            if upstream_ever_had(path):
+                print(f"skipped {path}: upstream deleted or renamed it; the next sync removes it here")
+                continue
+        except Exception as error:
+            failures.append(f"{path}: could not ask GitHub whether upstream ever had it ({error})")
             continue
         failures.append(
             f"{path} is fork-owned but Renovate skips it: add it to includePaths in renovate.json, "

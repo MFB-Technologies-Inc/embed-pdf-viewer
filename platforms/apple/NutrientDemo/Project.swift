@@ -13,6 +13,7 @@ let signing: Settings = .settings(base: [
 let project = Project(
   name: "NutrientDemo",
   packages: [
+    // renovate: datasource=github-tags depName=PSPDFKit/PSPDFKit-SP
     .remote(url: "https://github.com/PSPDFKit/PSPDFKit-SP", requirement: .exact("26.11.0")),
   ],
   targets: [

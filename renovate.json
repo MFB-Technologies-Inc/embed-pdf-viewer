@@ -39,13 +39,16 @@
   "customManagers": [
     {
       "customType": "regex",
-      "description": "Tool pins marked with a `# renovate:` comment on the line above.",
+      "description": "Tool pins marked with a `# renovate:` (or `// renovate:`) comment on the line above: an ARG or env assignment, or a Tuist `.exact(\"...\")` requirement.",
       "managerFilePatterns": [
         "/^\\.devcontainer/Dockerfile$/",
-        "/^\\.github/workflows/release-rust-viewer\\.yml$/"
+        "/^\\.github/workflows/release-rust-viewer\\.yml$/",
+        "/^\\.github/workflows/release-train\\.yml$/",
+        "/^platforms/apple/NutrientDemo/Project\\.swift$/"
       ],
       "matchStrings": [
-        "#\\s*renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: extractVersion=(?<extractVersion>\\S+))?(?: versioning=(?<versioning>\\S+))?\\s*\\n\\s*(?:ARG\\s+)?[A-Z0-9_]+\\s*[=:]\\s*'?(?<currentValue>[^'\\s]+)'?"
+        "(?:#|//)\\s*renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: extractVersion=(?<extractVersion>\\S+))?(?: versioning=(?<versioning>\\S+))?\\s*\\n\\s*(?:ARG\\s+)?[A-Z0-9_]+\\s*[=:]\\s*'?(?<currentValue>[^'\\s]+)'?",
+        "(?:#|//)\\s*renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?\\s*\\n[^\\n]*\\.exact\\(\"(?<currentValue>[^\"]+)\"\\)"
       ]
     }
   ],
@@ -69,8 +72,32 @@
       "groupName": "GitHub Actions"
     },
     {
+      "description": "These workflows and composite actions run only on release, dispatch or schedule, so no pull request CI exercises a bump to them. Their action updates get a separate branch that waits for approval.",
+      "matchManagers": ["github-actions"],
+      "matchFileNames": [
+        ".github/actions/**",
+        ".github/workflows/apple-swift.yml",
+        ".github/workflows/perf-history-pages.yml",
+        ".github/workflows/release-*.yml"
+      ],
+      "groupName": "GitHub Actions (release workflows)"
+    },
+    {
+      "matchFileNames": [
+        ".github/actions/**",
+        ".github/workflows/apple-swift.yml",
+        ".github/workflows/perf-history-pages.yml",
+        ".github/workflows/release-*.yml"
+      ],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "A runner image change (ubuntu-24.04 to 26.04) is a decision for every workflow, tested or not.",
+      "matchDatasources": ["github-runners"],
+      "dependencyDashboardApproval": true
+    },
+    {
       "description": "pnpm must equal packageManager in package.json, which upstream owns.",
-      "matchManagers": ["mise"],
       "matchDepNames": ["pnpm"],
       "enabled": false
     },
