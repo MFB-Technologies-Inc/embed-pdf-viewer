@@ -102,7 +102,7 @@ public sealed class HttpClientDocumentFetcherTests
     [Fact]
     public async Task TheAdapterPassesAPdfExceptionOn()
     {
-        var call = await Outcome(_ => throw new PdfException(PdfErrorCode.NotFound, "no such document", "StubFetcher"));
+        var call = await Outcome(_ => throw new PdfException("StubFetcher", PdfErrorCode.NotFound, "no such document"));
         Assert.Equal(new HostFailure("StubFetcher", "no such document", "not-found"), call);
     }
 

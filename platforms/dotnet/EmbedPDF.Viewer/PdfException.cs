@@ -55,10 +55,6 @@ public class PdfException : Exception
     public PdfException(PdfErrorCode code, string detail)
         : this("PluginError", code, detail, null) { }
 
-    /// <summary>A handler or port failure with its own <paramref name="name"/>.</summary>
-    public PdfException(PdfErrorCode code, string detail, string name)
-        : this(name, code, detail, null) { }
-
     /// <summary>Creates an exception with every member named.</summary>
     public PdfException(string name, PdfErrorCode code, string detail)
         : this(name, code, detail, null) { }

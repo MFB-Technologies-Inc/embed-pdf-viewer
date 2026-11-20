@@ -61,7 +61,7 @@ public sealed class PdfErrorTests
         Assert.Equal("PluginError", error.Name);
         Assert.Equal(PdfErrorCode.PermissionDenied, error.Code);
         Assert.Equal("no", error.Detail);
-        Assert.Equal("Custom", new PdfException(PdfErrorCode.Conflict, "d", "Custom").Name);
+        Assert.Equal("Custom", new PdfException("Custom", PdfErrorCode.Conflict, "d").Name);
         Assert.Equal(PdfErrorCode.PermissionDenied, new PdfException("PluginError", PdfErrorCode.PermissionDenied, "no").Code);
     }
 
@@ -146,5 +146,23 @@ public sealed class PdfErrorTests
         Assert.Same(own, PdfException.From(own));
         var foreign = PdfException.From(new InvalidOperationException("nope"));
         Assert.Equal(("InvalidOperationException", PdfErrorCode.OperationFailed, "nope"), (foreign.Name, foreign.Code, foreign.Detail));
+    }
+
+    [Fact]
+    public void ThreeStringsHaveOneReading()
+    {
+        // With a (code, detail, name) overload, three strings could bind either
+        // way through the implicit string conversion. Only (name, code, detail) exists.
+        Assert.Null(typeof(PdfException).GetConstructor([typeof(PdfErrorCode), typeof(string), typeof(string)]));
+        var error = new PdfException("Custom", "not-found", "no page");
+        Assert.Equal(("Custom", PdfErrorCode.NotFound, "no page"), (error.Name, error.Code, error.Detail));
+    }
+
+    [Fact]
+    public void ADefaultCodeIsEmptyNotNull()
+    {
+        Assert.Equal("", default(PdfErrorCode).Value);
+        Assert.Equal("", default(PdfErrorCode).ToString());
+        Assert.Equal("", default(DocumentPermission).ToString());
     }
 }

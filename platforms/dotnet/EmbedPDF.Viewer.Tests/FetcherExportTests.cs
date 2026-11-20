@@ -14,7 +14,7 @@ public sealed class FetcherExportTests
         public Task<DocumentFetchResponse> FetchAsync(string url, CancellationToken cancellationToken) =>
             url.EndsWith("/report.pdf", StringComparison.Ordinal)
                 ? Task.FromResult(new DocumentFetchResponse(200, body))
-                : throw new PdfException(PdfErrorCode.NotFound, "no such document", "StubFetcher");
+                : throw new PdfException("StubFetcher", PdfErrorCode.NotFound, "no such document");
     }
 
     [Fact]

@@ -184,7 +184,6 @@ EmbedPDF.PdfException.Detail.get -> string!
 EmbedPDF.PdfException.Name.get -> string!
 EmbedPDF.PdfException.PdfException() -> void
 EmbedPDF.PdfException.PdfException(EmbedPDF.PdfErrorCode code, string! detail) -> void
-EmbedPDF.PdfException.PdfException(EmbedPDF.PdfErrorCode code, string! detail, string! name) -> void
 EmbedPDF.PdfException.PdfException(string! message) -> void
 EmbedPDF.PdfException.PdfException(string! message, System.Exception! innerException) -> void
 EmbedPDF.PdfException.PdfException(string! name, EmbedPDF.PdfErrorCode code, string! detail) -> void
