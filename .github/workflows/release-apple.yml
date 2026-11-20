@@ -87,6 +87,7 @@ jobs:
         id: check
         env:
           GH_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
           gh --version | sed -n 1p
           hash=$(bash platforms/apple/apple-engine-hash.sh)
@@ -102,6 +103,12 @@ jobs:
           esac
           echo "apple-engine-$hash: $state"
           echo "state=$state" >> "$GITHUB_OUTPUT"
+          # For the reviewers of the train's pin job, which has nothing to
+          # commit. On build and pin the job that pins the manifests says
+          # what it commits.
+          if [[ "$state" == current ]]; then
+            bash scripts/release/release-summary.sh pin "apple-engine-$hash" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
   # Each slice is a full LTO build of epdf-viewer-host; one after another on
   # one runner they took over 30 minutes. build puts all four back in
@@ -312,6 +319,25 @@ jobs:
           echo "$TAG checksum $checksum"
           echo "checksum=$checksum" >> "$GITHUB_OUTPUT"
 
+      # For the reviewers of the next gate: publish's on build, the train's
+      # pin job's on pin.
+      - name: Summarize the release
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+          CHECKSUM: ${{ steps.result.outputs.checksum }}
+        run: |
+          if [[ "$STATE" == pin ]]; then
+            bash scripts/release/release-summary.sh pin "$TAG" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          zip=$RUNNER_TEMP/apple-xcframework/EmbedPDFBindings.xcframework.zip
+          # The .sha256 asset --stage publish writes beside the zip.
+          sums=$RUNNER_TEMP/apple-summary/EmbedPDFBindings.xcframework.zip.sha256
+          mkdir -p "${sums%/*}"
+          printf '%s  %s\n' "$CHECKSUM" EmbedPDFBindings.xcframework.zip > "$sums"
+          bash scripts/release/release-summary.sh release "$TAG" "$TAG" "$(jq -r .head "$zip.json")" \
+            "$zip" "$sums" >> "$GITHUB_STEP_SUMMARY"
+
       - uses: actions/upload-artifact@v6
         if: env.STATE == 'build'
         with:
@@ -517,12 +543,15 @@ jobs:
             -derivedDataPath "$RUNNER_TEMP/derived-$ARCH"
 
   publish:
+    name: publish ${{ needs.check.outputs.tag }}
     needs: [check, build, test-ios, test-mac-arm64, test-mac-x86_64]
     if: needs.check.outputs.state == 'build'
     runs-on: xcode-27
     timeout-minutes: 45
     # No environment on a dry run: nothing to approve.
-    environment: ${{ !inputs.dry_run && 'release' || '' }}
+    environment:
+      name: ${{ !inputs.dry_run && 'release' || '' }}
+      url: https://github.com/${{ github.repository }}/releases/tag/${{ needs.check.outputs.tag }}
     permissions:
       contents: write
     outputs:
@@ -596,6 +625,10 @@ jobs:
           fi
           git diff --stat
           echo "checksum=$checksum" >> "$GITHUB_OUTPUT"
+
+      # For the reviewers of the train's pin job.
+      - name: Summarize the pin
+        run: bash scripts/release/release-summary.sh pin "$TAG" >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v6
         with:

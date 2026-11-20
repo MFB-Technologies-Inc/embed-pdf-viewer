@@ -193,6 +193,24 @@ jobs:
           jq -e '.sha == env.RUNTIME_SHA and (.artifacts | keys | sort) == ["android-arm64","android-x64","linux-arm64","wasm32","wasm32-eh"]' "$manifest" >/dev/null \
             || { echo "::error::the manifest doesn't list exactly the five targets at $RUNTIME_SHA"; exit 1; }
 
+      # For release-summary.sh only.
+      - uses: actions/checkout@v6
+        with:
+          path: viewer
+          fetch-depth: 1
+          sparse-checkout: scripts/release
+          persist-credentials: false
+
+      # For publish's reviewers: what it releases, as it releases it.
+      - name: Summarize the release
+        env:
+          TAG: ${{ needs.check.outputs.tag }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          OUT=$RUNNER_TEMP/runtime-release
+          bash viewer/scripts/release/release-summary.sh release "$TAG" "EmbedPDF PDF Runtime $RUNTIME_SHA" "$GITHUB_SHA" \
+            "$OUT"/assets/*.tar.gz "$OUT/assets/pdf-runtime-build.generated.json" >> "$GITHUB_STEP_SUMMARY"
+
       - uses: actions/upload-artifact@v6
         with:
           name: runtime-release
@@ -200,12 +218,15 @@ jobs:
           if-no-files-found: error
 
   publish:
+    name: publish ${{ needs.check.outputs.tag }}
     needs: [check, prepare]
     if: needs.check.outputs.published == 'false'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     # No environment on a dry run: nothing to approve.
-    environment: ${{ !inputs.dry_run && 'release' || '' }}
+    environment:
+      name: ${{ !inputs.dry_run && 'release' || '' }}
+      url: https://github.com/${{ github.repository }}/releases/tag/${{ needs.check.outputs.tag }}
     permissions:
       contents: write
     env:

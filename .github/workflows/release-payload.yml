@@ -145,6 +145,18 @@ jobs:
             exit 1
           fi
 
+      # For publish's reviewers: what --stage publish releases, titled with
+      # the tag and targeting the commit the facts name. Written on a dry run
+      # too, where publish doesn't run.
+      - name: Summarize the release
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          pub=packages/engine/runtime/.build/publish
+          asset=$pub/engine-runtime-payload-wasm32.tar.gz
+          bash scripts/release/release-summary.sh release "$PAYLOAD_TAG" "$PAYLOAD_TAG" "$(jq -r .head "$asset.json")" \
+            "$asset" "$asset.sha256" >> "$GITHUB_STEP_SUMMARY"
+
       # What --stage publish releases, from the gitignored dir --stage build
       # staged it in.
       - uses: actions/upload-artifact@v6
@@ -168,11 +180,14 @@ jobs:
         run: df -h
 
   publish:
+    name: publish ${{ needs.key.outputs.payload_tag }}
     needs: [key, verify]
     if: ${{ !inputs.dry_run && needs.key.outputs.published == 'false' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    environment: release
+    environment:
+      name: release
+      url: https://github.com/${{ github.repository }}/releases/tag/${{ needs.key.outputs.payload_tag }}
     permissions:
       contents: write
     env:

@@ -191,6 +191,13 @@ jobs:
             echo "- sha256: \`$(sha256sum "$TARBALL" | cut -d' ' -f1)\`, $(stat -c %s "$TARBALL") bytes"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # For the reviewers of the release train's viewer-release, which tags
+      # this commit with the tarball as its one asset.
+      - name: Summarize the release
+        run: |
+          bash scripts/release/release-summary.sh release "rust-viewer-$VERSION" "Rust viewer bundle $VERSION" \
+            "$(git rev-parse HEAD)" "packages/rust-viewer-bundle/$TARBALL" >> "$GITHUB_STEP_SUMMARY"
+
       - uses: actions/upload-artifact@v6
         with:
           name: rust-viewer-tarball

@@ -28,6 +28,11 @@ name: release-train
 # github.sha again and its push fails as non-fast-forward. Dispatch a fresh
 # run from the branch tip instead.
 #
+# GitHub's approval dialog names only the environment, so each gated job's
+# name carries its tag, and the job before each gate writes a step summary of
+# what it publishes (scripts/release/release-summary.sh). dotnet-summary
+# exists for that alone: no single dotnet runner holds all the .NET files.
+#
 # dry_run builds and tests everything and prints each push, tag and release
 # command instead of running it. The pin commit is made and shown but not
 # pushed, so the Swift release would name the dispatched commit too. Preflight
@@ -72,6 +77,11 @@ jobs:
       contents: read
       # GET repos/{repo}/environments/{name} needs actions: read.
       actions: read
+    # For job names, so each approval names what it releases.
+    outputs:
+      dotnet_tag: ${{ steps.releases.outputs.dotnet_tag }}
+      payload_tag: ${{ steps.summary.outputs.payload_tag }}
+      apple_tag: ${{ steps.summary.outputs.apple_tag }}
     env:
       SWIFT_VERSION: ${{ inputs.swift_version }}
       VIEWER_VERSION: ${{ inputs.viewer_version }}
@@ -152,17 +162,21 @@ jobs:
             rm -f "$err"
           }
           package=EmbedPDF.Engine.0.0.0-local
+          dotnet_tag="dotnet-engine-0.0.0-local-${GITHUB_SHA:0:12}"
+          echo "dotnet_tag=$dotnet_tag" >> "$GITHUB_OUTPUT"
           check swift "$SWIFT_VERSION"
           check viewer "rust-viewer-$VIEWER_VERSION" "mfb-embedpdf-rust-viewer-$VIEWER_VERSION.tgz"
           dotnet_assets=()
           for rid in linux-arm64 linux-x64 osx-arm64 win-x64; do
             dotnet_assets+=("$package.$rid.nupkg" "$package.$rid.nupkg.sha256" "$package.$rid.provenance.json" "$package.validation.$rid.json")
           done
-          check dotnet "dotnet-engine-0.0.0-local-${GITHUB_SHA:0:12}" "${dotnet_assets[@]}" EmbedPDF-CSharp-Existing-App.md
+          check dotnet "$dotnet_tag" "${dotnet_assets[@]}" EmbedPDF-CSharp-Existing-App.md
           exit "$status"
 
-      # For the summary only: the reusable workflows compute these again.
+      # For the summary and job names only: the reusable workflows compute
+      # these again.
       - name: Summarize
+        id: summary
         env:
           SWIFT_STATE: ${{ steps.releases.outputs.swift }}
           VIEWER_STATE: ${{ steps.releases.outputs.viewer }}
@@ -171,6 +185,10 @@ jobs:
           runtime_sha=$(git ls-tree HEAD packages/engine/runtime/runtime-src | awk '{print $3}')
           payload_tag="runtime-payloads-$(bash packages/engine/runtime/scripts/runtime-payload-hash.sh)"
           apple_tag="apple-engine-$(bash platforms/apple/apple-engine-hash.sh)"
+          {
+            echo "payload_tag=$payload_tag"
+            echo "apple_tag=$apple_tag"
+          } >> "$GITHUB_OUTPUT"
           on_release_repo() {
             local view
             if view=$(gh release view "$1" -R "$RELEASE_REPO" --json isDraft 2>&1); then
@@ -227,7 +245,7 @@ jobs:
   # runtime, payload and apple grant contents: write so their publish jobs
   # can ask for it; every other job in them stays at contents: read.
   runtime:
-    name: release-runtime.yml
+    name: release-runtime.yml (runtime-${{ needs.slices-runtime.outputs.runtime_sha }})
     needs: [preflight, slices-runtime, slices-eh]
     uses: ./.github/workflows/release-runtime.yml
     permissions:
@@ -237,7 +255,7 @@ jobs:
       dry_run: ${{ inputs.dry_run }}
 
   payload:
-    name: release-payload.yml
+    name: release-payload.yml (${{ needs.preflight.outputs.payload_tag }})
     needs: [preflight, slices-eh]
     uses: ./.github/workflows/release-payload.yml
     permissions:
@@ -246,7 +264,7 @@ jobs:
       dry_run: ${{ inputs.dry_run }}
 
   apple:
-    name: release-apple.yml
+    name: release-apple.yml (${{ needs.preflight.outputs.apple_tag }})
     needs: [preflight, slices-apple]
     uses: ./.github/workflows/release-apple.yml
     permissions:
@@ -258,7 +276,7 @@ jobs:
   # payload is released by the time this starts. The one case it isn't is a
   # dry run that built a new payload: then the build uses payload-wasm32.
   viewer:
-    name: release-rust-viewer.yml
+    name: release-rust-viewer.yml (rust-viewer-${{ inputs.viewer_version }})
     needs: payload
     uses: ./.github/workflows/release-rust-viewer.yml
     with:
@@ -270,12 +288,15 @@ jobs:
   # they are committed only once the runtime and payload of that gitlink are
   # out too. swift-release tags the pin commit.
   pin:
-    name: pin
+    name: pin ${{ needs.apple.outputs.apple_tag }}
     needs: [apple, runtime, payload]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    # No environment on a dry run: nothing to approve.
-    environment: ${{ !inputs.dry_run && 'release' || '' }}
+    # No environment on a dry run: nothing to approve. release-apple.yml's
+    # summary shows the manifest diffs; the url is the commit pin made.
+    environment:
+      name: ${{ !inputs.dry_run && 'release' || '' }}
+      url: https://github.com/${{ github.repository }}/commit/${{ steps.pin.outputs.pin_sha }}
     permissions:
       contents: write
     outputs:
@@ -342,12 +363,22 @@ jobs:
           echo "pushed $pin_sha to $REF_NAME"
           echo "pin_sha=$pin_sha" >> "$GITHUB_OUTPUT"
 
+      # For swift-release's reviewers: it tags the commit pin made.
+      - name: Summarize the Swift release
+        env:
+          VERSION: ${{ inputs.swift_version }}
+          PIN_SHA: ${{ steps.pin.outputs.pin_sha }}
+        run: |
+          bash scripts/release/release-summary.sh release "$VERSION" "Swift package $VERSION" "$PIN_SHA" >> "$GITHUB_STEP_SUMMARY"
+
   swift-release:
-    name: release swift
+    name: release swift ${{ inputs.swift_version }}
     needs: [pin, viewer]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    environment: ${{ !inputs.dry_run && 'release' || '' }}
+    environment:
+      name: ${{ !inputs.dry_run && 'release' || '' }}
+      url: https://github.com/${{ github.repository }}/releases/tag/${{ inputs.swift_version }}
     permissions:
       contents: write
     env:
@@ -372,11 +403,13 @@ jobs:
   # buildInfo. On a real run viewer fetched the released payload, so the
   # payload is out by now.
   viewer-release:
-    name: release viewer
+    name: release viewer rust-viewer-${{ inputs.viewer_version }}
     needs: viewer
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    environment: ${{ !inputs.dry_run && 'release' || '' }}
+    environment:
+      name: ${{ !inputs.dry_run && 'release' || '' }}
+      url: https://github.com/${{ github.repository }}/releases/tag/rust-viewer-${{ inputs.viewer_version }}
     permissions:
       contents: write
     env:
@@ -400,14 +433,58 @@ jobs:
             "Rust viewer bundle $VERSION" "docs/releases/rust-viewer-$VERSION.md" \
             "$RUNNER_TEMP/rust-viewer-tarball/mfb-embedpdf-rust-viewer-$VERSION.tgz"
 
-  # Tags github.sha, the commit the package was built from and its provenance
-  # record names. preflight checked the tag; dotnet itself doesn't wait for it.
-  dotnet-release:
-    name: release dotnet
+  # dotnet's four runners each hold one RID's files, so no job before
+  # dotnet-release has them all. This one gathers them for its reviewers:
+  # every asset dotnet-release publishes, with the guide rendered as it will
+  # render it.
+  dotnet-summary:
+    name: summarize ${{ needs.preflight.outputs.dotnet_tag }}
     needs: [preflight, dotnet]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    environment: ${{ !inputs.dry_run && 'release' || '' }}
+    permissions:
+      contents: read
+    env:
+      GH_REPO: ${{ github.repository }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      PACKAGE: EmbedPDF.Engine.0.0.0-local
+      TAG: ${{ needs.preflight.outputs.dotnet_tag }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: dotnet-release-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/dotnet-release
+
+      - name: Summarize the C# engine release
+        run: |
+          R=$RUNNER_TEMP/dotnet-release
+          guide=$RUNNER_TEMP/guide/EmbedPDF-CSharp-Existing-App.md
+          mkdir -p "${guide%/*}"
+          bash platforms/dotnet/packaging/render-guide.sh "$R/EmbedPDF-CSharp-Existing-App.md.in" "$R/guide-facts.json" \
+            "$GH_REPO" "$TAG" "$GITHUB_SHA" "$guide"
+          assets=()
+          for rid in linux-arm64 linux-x64 osx-arm64 win-x64; do
+            assets+=("$R/$PACKAGE.$rid.nupkg" "$R/$PACKAGE.$rid.nupkg.sha256" "$R/$PACKAGE.$rid.provenance.json" "$R/$PACKAGE.validation.$rid.json")
+          done
+          bash scripts/release/release-summary.sh release "$TAG" "C# engine 0.0.0-local (${GITHUB_SHA:0:9})" "$GITHUB_SHA" \
+            "${assets[@]}" "$guide" >> "$GITHUB_STEP_SUMMARY"
+
+  # Tags github.sha, the commit the package was built from and its provenance
+  # record names. preflight checked the tag; dotnet itself doesn't wait for it.
+  dotnet-release:
+    name: release dotnet ${{ needs.preflight.outputs.dotnet_tag }}
+    needs: [preflight, dotnet, dotnet-summary]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: ${{ !inputs.dry_run && 'release' || '' }}
+      url: https://github.com/${{ github.repository }}/releases/tag/${{ needs.preflight.outputs.dotnet_tag }}
     permissions:
       contents: write
     env:
