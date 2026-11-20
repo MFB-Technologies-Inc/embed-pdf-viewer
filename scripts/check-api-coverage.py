@@ -139,13 +139,25 @@ def validate_swift(root, manifest, discovered, allow_pending=False):
 
 
 # The Phase 3 wave that ports each plugin crate's capability
-# (docs/superpowers/plans/2026-11-20-dotnet-parity.md, "Phase 3").
-PENDING = {f'phase-3-wave-{wave}' for wave in 'ABCDE'}
+# (docs/superpowers/plans/2026-11-20-dotnet-parity.md, "Phase 3"). A pending
+# row must name its crate's wave, and a new plugin crate needs a row here.
+WAVES = {
+    'A': ['metadata', 'search', 'render', 'history', 'outline', 'attachment', 'page-edit', 'view-manager', 'shell'],
+    'B': ['interaction', 'i18n', 'actions'],
+    'C': ['stage', 'selection', 'link', 'commands'],
+    'D': ['annotation', 'form'],
+    'E': ['redaction', 'measurement', 'stamp', 'signature'],
+}
+WAVE_OF = {crate: f'phase-3-wave-{wave}' for wave, crates in WAVES.items() for crate in crates}
 RUST_EXPORT = r'\bpub\s+(?:async\s+)?fn\s+{symbol}\s*[(<]'
 
 
 def validate_csharp(root, manifest, discovered, dumped, check_crates=True):
-    """Every Rust member is mapped to a public C# member, pending, or excluded."""
+    """Every Rust member is mapped to a public C# member, pending in its wave, or excluded.
+
+    dumped is {'members': {"<type>.<member>"}, 'signatures': {"<type>.<method>(<parameter types>)"}}.
+    A mapping to a method names its overload with 'parameters'.
+    """
     errors = []
     entries = {key(member): member for member in manifest['members']}
     if len(entries) != len(manifest['members']):
@@ -154,6 +166,7 @@ def validate_csharp(root, manifest, discovered, dumped, check_crates=True):
     for member in discovered:
         if key(member) not in entries:
             errors.append(f"unaccounted Rust member: {member['path']}::{member['symbol']}")
+    methods = {signature.split('(', 1)[0] for signature in dumped['signatures']}
     for identity, member in entries.items():
         if identity not in actual:
             errors.append(f'stale Rust member: {identity}')
@@ -164,8 +177,11 @@ def validate_csharp(root, manifest, discovered, dumped, check_crates=True):
         if member.get('exclusion'):
             continue
         if member.get('pending'):
-            if member['pending'] not in PENDING:
-                errors.append(f"unknown pending value {member['pending']!r}: {identity}")
+            wave = WAVE_OF.get(member['crate'])
+            if wave is None:
+                errors.append(f"no Phase 3 wave for crate {member['crate']!r}: {identity}")
+            elif member['pending'] != wave:
+                errors.append(f"pending {member['pending']!r} is not the crate's wave {wave!r}: {identity}")
             continue
         target, export = member['csharp'], member.get('export')
         if not export:
@@ -174,7 +190,13 @@ def validate_csharp(root, manifest, discovered, dumped, check_crates=True):
         path = root / export['path']
         if not (path.exists() and re.search(RUST_EXPORT.format(symbol=re.escape(export['symbol'])), path.read_text())):
             errors.append(f'missing Rust export: {export}')
-        if f"{target['type']}.{target['member']}" not in dumped:
+        name = f"{target['type']}.{target['member']}"
+        if 'parameters' in target:
+            if f"{name}({', '.join(target['parameters'])})" not in dumped['signatures']:
+                errors.append(f'missing C#: {target}')
+        elif name in methods:
+            errors.append(f'needs parameters to name one overload: {target}')
+        elif name not in dumped['members']:
             errors.append(f'missing C#: {target}')
     if check_crates:
         actual_crates = {path.parent.name for path in (root / 'crates/plugins').glob('*/Cargo.toml')}
@@ -187,13 +209,13 @@ def validate_csharp(root, manifest, discovered, dumped, check_crates=True):
 
 
 def dump_csharp_members(root):
-    """The public members of the built assemblies, as <type>.<member> names."""
+    """The public members of the built assemblies: names and method signatures."""
     result = subprocess.run(
         ['dotnet', 'run', '-c', 'Release', '--project', str(root / 'platforms/dotnet/tools/EmbedPDF.ApiDump')],
         cwd=root, capture_output=True, text=True)
     if result.returncode != 0:
         raise SystemExit(f'EmbedPDF.ApiDump failed:\n{result.stdout}{result.stderr}')
-    return json.loads(result.stdout)['members']
+    return json.loads(result.stdout)
 
 
 def main_swift(args):
@@ -213,11 +235,9 @@ def main_swift(args):
 
 def main_csharp(args):
     manifest = json.loads((ROOT / 'platforms/dotnet/csharp-api-coverage.json').read_text())
-    if args.members:
-        dumped = json.loads(Path(args.members).read_text())['members']
-    else:
-        dumped = dump_csharp_members(ROOT)
-    errors = validate_csharp(ROOT, manifest, inventory(ROOT), set(dumped))
+    raw = json.loads(Path(args.members).read_text()) if args.members else dump_csharp_members(ROOT)
+    dumped = {'members': set(raw['members']), 'signatures': set(raw['signatures'])}
+    errors = validate_csharp(ROOT, manifest, inventory(ROOT), dumped)
     for error in errors:
         print(error, file=sys.stderr)
     if errors:

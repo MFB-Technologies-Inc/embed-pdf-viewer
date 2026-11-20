@@ -8717,7 +8717,10 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "GetSettingsAsync"
+        "member": "GetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8731,7 +8734,10 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "ObserveStateRevisions"
+        "member": "ObserveStateRevisions",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8745,7 +8751,11 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "UpdateSettingsAsync"
+        "member": "UpdateSettingsAsync",
+        "parameters": [
+          "EmbedPDF.ViewerSettingsPatch",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8759,7 +8769,10 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "ResetSettingsAsync"
+        "member": "ResetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8773,7 +8786,10 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "ObserveStateRevisions"
+        "member": "ObserveStateRevisions",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8947,7 +8963,10 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "StartAsync"
+        "member": "StartAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8961,7 +8980,8 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "DisposeAsync"
+        "member": "DisposeAsync",
+        "parameters": []
       }
     },
     {
@@ -8983,7 +9003,12 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "OpenAsync"
+        "member": "OpenAsync",
+        "parameters": [
+          "System.Uri",
+          "EmbedPDF.OpenDocumentOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -8997,7 +9022,12 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "UnlockAsync"
+        "member": "UnlockAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9011,7 +9041,12 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "OpenAsync"
+        "member": "OpenAsync",
+        "parameters": [
+          "System.ReadOnlyMemory<System.Byte>",
+          "EmbedPDF.OpenDocumentOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9025,7 +9060,11 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "RetryAsync"
+        "member": "RetryAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9039,7 +9078,12 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "RenameAsync"
+        "member": "RenameAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9061,7 +9105,12 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "UnlockAsync"
+        "member": "UnlockAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9075,7 +9124,11 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "CloseAsync"
+        "member": "CloseAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9089,7 +9142,10 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "CloseAllAsync"
+        "member": "CloseAllAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9103,7 +9159,11 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "SetActiveAsync"
+        "member": "SetActiveAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9117,7 +9177,10 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "GetActiveDocumentIdAsync"
+        "member": "GetActiveDocumentIdAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9131,7 +9194,10 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "GetActiveDocumentAsync"
+        "member": "GetActiveDocumentAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9145,7 +9211,10 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "GetDocumentsAsync"
+        "member": "GetDocumentsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9159,7 +9228,11 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "GetDocumentAsync"
+        "member": "GetDocumentAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9173,7 +9246,11 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "HasDocumentAsync"
+        "member": "HasDocumentAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9187,7 +9264,10 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "GetDocumentCountAsync"
+        "member": "GetDocumentCountAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9201,7 +9281,10 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "GetDocumentOrderAsync"
+        "member": "GetDocumentOrderAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9215,7 +9298,11 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "SetDocumentOrderAsync"
+        "member": "SetDocumentOrderAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<System.String>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9229,7 +9316,12 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "MoveAsync"
+        "member": "MoveAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "System.Int32",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9243,7 +9335,12 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "SwapAsync"
+        "member": "SwapAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "EmbedPDF.DocumentInfo",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9257,7 +9354,12 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "SaveAsync"
+        "member": "SaveAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "EmbedPDF.SaveMode",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9271,7 +9373,12 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "SaveAsync"
+        "member": "SaveAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "EmbedPDF.SaveMode",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9285,7 +9392,11 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "SaveLayerAsync"
+        "member": "SaveLayerAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9299,7 +9410,11 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "SaveLayerAsync"
+        "member": "SaveLayerAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9313,7 +9428,11 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "GetPagesAsync"
+        "member": "GetPagesAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9327,7 +9446,12 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "GetPageAsync"
+        "member": "GetPageAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "EmbedPDF.DocumentInfo",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9341,7 +9465,12 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "GetPageAtAsync"
+        "member": "GetPageAtAsync",
+        "parameters": [
+          "System.Int32",
+          "EmbedPDF.DocumentInfo",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9355,7 +9484,12 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "GetPageIndexAsync"
+        "member": "GetPageIndexAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "EmbedPDF.DocumentInfo",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9369,7 +9503,11 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "GetPageRevisionAsync"
+        "member": "GetPageRevisionAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9383,7 +9521,12 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "AllowsAsync"
+        "member": "AllowsAsync",
+        "parameters": [
+          "EmbedPDF.DocumentPermission",
+          "EmbedPDF.DocumentInfo",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9397,7 +9540,11 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "CanDownloadAsync"
+        "member": "CanDownloadAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9411,7 +9558,11 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "GetDocumentAsync"
+        "member": "GetDocumentAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9457,7 +9608,10 @@
       },
       "csharp": {
         "type": "EmbedPDF.PdfViewer",
-        "member": "ObserveDocumentEvents"
+        "member": "ObserveDocumentEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     }
   ]
