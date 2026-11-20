@@ -1762,10 +1762,16 @@
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "list",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/attachment/src/ffi.rs",
         "symbol": "files"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AttachmentCapability",
+        "member": "ListAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1773,10 +1779,17 @@
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "get",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/attachment/src/ffi.rs",
         "symbol": "file"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AttachmentCapability",
+        "member": "GetAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1784,10 +1797,16 @@
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "get_selected",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/attachment/src/ffi.rs",
         "symbol": "selected_files"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AttachmentCapability",
+        "member": "GetSelectedAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1795,10 +1814,17 @@
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "select",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/attachment/src/ffi.rs",
         "symbol": "select"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AttachmentCapability",
+        "member": "SelectAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.AttachedFile>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1806,10 +1832,17 @@
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "is_pending",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/attachment/src/ffi.rs",
         "symbol": "is_pending"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AttachmentCapability",
+        "member": "IsPendingAsync",
+        "parameters": [
+          "EmbedPDF.AttachedFile",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1817,10 +1850,16 @@
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "get_status",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/attachment/src/ffi.rs",
         "symbol": "status"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AttachmentCapability",
+        "member": "GetStatusAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1828,10 +1867,16 @@
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "ensure_loaded",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/attachment/src/ffi.rs",
         "symbol": "ensure_loaded"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AttachmentCapability",
+        "member": "EnsureLoadedAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1839,10 +1884,16 @@
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "refresh",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/attachment/src/ffi.rs",
         "symbol": "refresh"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AttachmentCapability",
+        "member": "RefreshAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1850,10 +1901,16 @@
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "can_download",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/attachment/src/ffi.rs",
         "symbol": "can_download"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AttachmentCapability",
+        "member": "CanDownloadAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1861,10 +1918,16 @@
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "can_create",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/attachment/src/ffi.rs",
         "symbol": "can_add"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AttachmentCapability",
+        "member": "CanAddAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1872,10 +1935,17 @@
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "can_delete",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/attachment/src/ffi.rs",
         "symbol": "can_remove"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AttachmentCapability",
+        "member": "CanRemoveAsync",
+        "parameters": [
+          "EmbedPDF.AttachedFile",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1883,10 +1953,17 @@
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "create",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/attachment/src/ffi.rs",
         "symbol": "add"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AttachmentCapability",
+        "member": "AddAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.AttachmentFileSource>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1894,10 +1971,17 @@
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "delete",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/attachment/src/ffi.rs",
         "symbol": "remove"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AttachmentCapability",
+        "member": "RemoveAsync",
+        "parameters": [
+          "EmbedPDF.AttachedFile",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1905,10 +1989,17 @@
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "download",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/attachment/src/ffi.rs",
         "symbol": "download"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AttachmentCapability",
+        "member": "DownloadAsync",
+        "parameters": [
+          "EmbedPDF.AttachedFile",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1916,10 +2007,17 @@
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "reveal",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/attachment/src/ffi.rs",
         "symbol": "reveal"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AttachmentCapability",
+        "member": "RevealAsync",
+        "parameters": [
+          "EmbedPDF.AttachedFile",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1927,10 +2025,16 @@
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "on_changed",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/attachment/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AttachmentCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1938,10 +2042,16 @@
       "path": "crates/plugins/attachment/src/controller.rs",
       "owner": "AttachmentCapability",
       "symbol": "on_resynced",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/attachment/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AttachmentCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
