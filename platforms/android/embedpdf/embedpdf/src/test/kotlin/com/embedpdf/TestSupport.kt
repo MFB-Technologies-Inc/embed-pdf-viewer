@@ -26,17 +26,7 @@ object Fixture {
     fun bytes(name: String, ext: String = "pdf"): ByteArray = file(name, ext).readBytes()
 }
 
-/** Stands in for a transport in tests that never open a URL. */
-object UnusedFetcher : DocumentFetcher {
-    override fun fetch(url: String, completion: DocumentFetchCompletion): DocumentFetchCancellation {
-        completion.failWith(HostFailure(name = "UnusedFetcher", code = "unsupported", detail = "no transport"))
-        return object : DocumentFetchCancellation {
-            override fun cancel() {}
-        }
-    }
-}
-
-fun viewer(config: ViewerConfig = ViewerConfig()): PdfViewer = PdfViewer(config, UnusedFetcher)
+fun viewer(config: ViewerConfig = ViewerConfig()): PdfViewer = PdfViewer(config)
 
 suspend fun started(config: ViewerConfig = ViewerConfig()): PdfViewer = viewer(config).also { it.start() }
 

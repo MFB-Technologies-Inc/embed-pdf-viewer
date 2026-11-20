@@ -1,5 +1,6 @@
 package com.embedpdf
 
+import android.net.Uri
 import kotlinx.coroutines.flow.Flow
 import uniffi.epdf_viewer_host.DocumentEventListener
 import uniffi.epdf_viewer_host.OpenDocumentOptions
@@ -15,12 +16,17 @@ import java.util.concurrent.atomic.AtomicBoolean
  * [start] before anything else and [destroy] when done; [close] is the
  * blocking, best-effort release for `use {}`.
  *
- * @param documentFetcher the transport for [open] with a URL. A fetcher that
+ * @param documentFetcher the transport for [open] with a URL or a `Uri`;
+ *   [HttpDocumentFetcher] by default, [ContentResolverDocumentFetcher] for
+ *   `content:` sources. A fetcher that
  *   throws fails that open and is reported on [observeReportedErrors]; it
  *   never reaches the kernel's thread.
  * @throws PdfException when the config is refused.
  */
-public class PdfViewer(config: ViewerConfig, documentFetcher: DocumentFetcher) : AutoCloseable {
+public class PdfViewer(
+    config: ViewerConfig,
+    documentFetcher: DocumentFetcher = HttpDocumentFetcher(),
+) : AutoCloseable {
     private val revisionHub = stateRevisionHub()
     private val errorHub = reportedErrorHub()
     internal val registry: StreamRegistry = StreamRegistry()
@@ -37,7 +43,7 @@ public class PdfViewer(config: ViewerConfig, documentFetcher: DocumentFetcher) :
     }
 
     /** `PdfViewer(config, documentFetcher)` for a config described by a builder. */
-    public constructor(builder: ViewerConfigBuilder, documentFetcher: DocumentFetcher) :
+    public constructor(builder: ViewerConfigBuilder, documentFetcher: DocumentFetcher = HttpDocumentFetcher()) :
         this(builder.build(), documentFetcher)
 
     // ── streams ──
@@ -132,11 +138,24 @@ public class PdfViewer(config: ViewerConfig, documentFetcher: DocumentFetcher) :
         name: String? = null,
         password: String? = null,
         activate: Boolean = true,
-    ): DocumentInfo = measured("open") {
-        callCancellable { token ->
-            host.openUrl(url.toString(), OpenDocumentOptions(name, password, activate), token)
+    ): DocumentInfo = openUrl(url.toString(), name, password, activate)
+
+    /**
+     * [open] with a URL, for an Android [Uri]. A `content:` Uri needs a
+     * [ContentResolverDocumentFetcher] as the viewer's fetcher; the default
+     * fetcher fails it.
+     */
+    public suspend fun open(
+        uri: Uri,
+        name: String? = null,
+        password: String? = null,
+        activate: Boolean = true,
+    ): DocumentInfo = openUrl(uri.toString(), name, password, activate)
+
+    private suspend fun openUrl(url: String, name: String?, password: String?, activate: Boolean): DocumentInfo =
+        measured("open") {
+            callCancellable { token -> host.openUrl(url, OpenDocumentOptions(name, password, activate), token) }
         }
-    }
 
     /**
      * Restores a `saveLayer` artifact over its original PDF base. Cancelling the
@@ -333,7 +352,7 @@ private class GuardedFetcher(
         } catch (e: Exception) {
             errors.send(PdfException.from(e))
             completion.failWith(HostFailure(e))
-            return NoCancellation
+            return EmptyCancellation
         }
         return GuardedCancellation(cancellation, errors)
     }
@@ -350,8 +369,4 @@ private class GuardedCancellation(
             errors.send(PdfException.from(e))
         }
     }
-}
-
-private object NoCancellation : DocumentFetchCancellation {
-    override fun cancel() {}
 }

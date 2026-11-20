@@ -133,7 +133,7 @@ class ViewerConfigBuilderTest {
 
     @Test
     fun aViewerTakesABuilder() = viewerTest {
-        val viewer = PdfViewer(ViewerConfigBuilder().metadata(), UnusedFetcher)
+        val viewer = PdfViewer(ViewerConfigBuilder().metadata())
         viewer.start()
         val document = viewer.open(Fixture.bytes("report"))
         viewer.call { viewer.host.metadata(document.id) }
