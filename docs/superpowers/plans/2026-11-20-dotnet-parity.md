@@ -470,6 +470,15 @@ capability never lands before one it requires.
 Wave D is the largest single piece, as on Android: its own plan should split drafts from the
 capability. Each foreign-trait adapter documents which thread calls it.
 
+*Added 2026-11-20 from the Phase 2 review:* `PdfViewer.Dispose()`, or waiting on
+`DisposeAsync()`, from a callback on the kernel thread deadlocks, because destroying the kernel
+needs that thread. Phase 2 only documents it (`PdfViewer.cs`, the remarks on both members),
+since no public callback exists yet. When waves B and C add callback adapters (`CommandHandler`,
+interaction handlers, the script engine, document listeners), the adapter marks the kernel
+thread while it runs the app's code, and `Dispose()` and the disposal wait throw
+`InvalidOperationException` there instead of hanging. A test calls `Dispose()` from a handler
+and expects that exception. The cost is one thread-static check per disposal.
+
 ### Phase 3 wave A notes (2026-11-20)
 
 Task plan: `docs/superpowers/plans/2026-11-20-dotnet-parity/03a-wave-a.md`. Branch
