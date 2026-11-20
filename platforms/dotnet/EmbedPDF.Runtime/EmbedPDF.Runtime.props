@@ -5,6 +5,6 @@
     platforms/dotnet/check-dotnet-engine.sh fails when it differs from the tree.
   -->
   <PropertyGroup>
-    <EmbedPdfRuntimeVersion>0.0.0-engine.9ff2d33b5e23774b</EmbedPdfRuntimeVersion>
+    <EmbedPdfRuntimeVersion>0.0.0-engine.75d795993848c8d6</EmbedPdfRuntimeVersion>
   </PropertyGroup>
 </Project>
