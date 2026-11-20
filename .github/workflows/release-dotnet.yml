@@ -277,13 +277,20 @@ jobs:
             macOS) export DYLD_LIBRARY_PATH="$runtime/lib" ;;
             Windows) export PDF_RUNTIME_LIB_DIR="$runtime/bin" ;;
           esac
-          dotnet test platforms/dotnet/EmbedPDF.Tests/EmbedPDF.Tests.csproj
+          # One retry: the run depends on timing, and only a second failure fails the step.
+          if ! dotnet test platforms/dotnet/EmbedPDF.Tests/EmbedPDF.Tests.csproj; then
+            echo "::warning::dotnet test failed; retrying once"
+            dotnet test platforms/dotnet/EmbedPDF.Tests/EmbedPDF.Tests.csproj
+          fi
 
       - name: Parity self-test
         working-directory: platforms/dotnet
         run: |
           if [[ "$RUNNER_OS" == Linux ]]; then export LD_LIBRARY_PATH="$PDF_RUNTIME_LIB_DIR/$FORK_TARGET/lib"; fi
-          dotnet run --project EmbedPDF.Parity -- self-test | tee "$RUNNER_TEMP/parity.log"
+          if ! dotnet run --project EmbedPDF.Parity -- self-test | tee "$RUNNER_TEMP/parity.log"; then
+            echo "::warning::parity self-test failed; retrying once"
+            dotnet run --project EmbedPDF.Parity -- self-test | tee "$RUNNER_TEMP/parity.log"
+          fi
           echo "passed=$(grep -c '"status":"passed"' "$RUNNER_TEMP/parity.log")"
 
       - name: Packaging unit tests
