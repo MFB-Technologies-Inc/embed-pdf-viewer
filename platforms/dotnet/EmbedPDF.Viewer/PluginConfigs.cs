@@ -43,7 +43,10 @@ public sealed record StageConfig
 /// <summary>Installs the form plugin. Needs <see cref="PdfViewerOptions.Interaction"/>.</summary>
 public sealed record FormConfig
 {
-    internal GF.FormConfig ToFfi() => new();
+    /// <summary>Whether the document's form scripts run; left out takes the engine's default.</summary>
+    public FormValidation? Validation { get; init; }
+
+    internal GF.FormConfig ToFfi() => new(Validation is { } v ? Ffi.ToFfi(v) : null);
 }
 
 /// <summary>Installs the redaction plugin. Needs <see cref="PdfViewerOptions.Annotation"/>.</summary>

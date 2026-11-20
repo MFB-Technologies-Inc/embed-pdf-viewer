@@ -112,7 +112,7 @@ public sealed class ActionsTests
         }
     }
 
-    static PdfActionTree SubmitTree() => PdfActionTree.FromJson(
+    internal static PdfActionTree SubmitTree() => PdfActionTree.FromJson(
         """{"root":{"type":"submit-form","subtype":"SubmitForm","payload":{"url":"https://home.test/submit","fields":null,"exclude":false,"includeNoValueFields":false,"format":"html","method":"post","submitCoordinates":false,"includeAppendSaves":false,"includeAnnotations":false,"canonicalFormat":false,"exclNonUserAnnots":false,"exclFKey":false,"embedForm":false},"next":[]},"incomplete":false,"warningFlags":0,"warnings":[]}""");
 
     [Fact]

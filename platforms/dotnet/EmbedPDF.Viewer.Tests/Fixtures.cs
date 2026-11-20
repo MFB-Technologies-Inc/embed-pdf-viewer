@@ -12,6 +12,7 @@ static class Fixture
         ["signed_two_approvals"] = "packages/engine/main/test/fixtures/signed_two_approvals.pdf",
         ["document_actions"] = "tooling/engine-conformance/fixtures/document_actions.pdf",
         ["annotation_kinds"] = "tooling/engine-conformance/fixtures/annotation_kinds.pdf",
+        ["form_fields"] = "tooling/engine-conformance/fixtures/form_fields.pdf",
         ["tiny.png"] = "tooling/engine-conformance/fixtures/tiny.png",
     };
 

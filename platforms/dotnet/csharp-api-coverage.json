@@ -3438,10 +3438,16 @@
       "path": "crates/plugins/form/src/controller.rs",
       "owner": "Core",
       "symbol": "can_read",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "can_read"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "CanReadAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3449,10 +3455,17 @@
       "path": "crates/plugins/form/src/controller.rs",
       "owner": "Core",
       "symbol": "can_fill",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "can_fill"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "CanFillAsync",
+        "parameters": [
+          "EmbedPDF.FormFieldRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3460,10 +3473,16 @@
       "path": "crates/plugins/form/src/controller.rs",
       "owner": "Core",
       "symbol": "can_design",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "can_design"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "CanDesignAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3471,10 +3490,16 @@
       "path": "crates/plugins/form/src/controller.rs",
       "owner": "Core",
       "symbol": "can_restore_attribution",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "can_restore_attribution"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "CanRestoreAttributionAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3482,10 +3507,16 @@
       "path": "crates/plugins/form/src/controller.rs",
       "owner": "Core",
       "symbol": "can_write_scripts",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "can_write_scripts"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "CanWriteScriptsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3493,10 +3524,16 @@
       "path": "crates/plugins/form/src/controller.rs",
       "owner": "Core",
       "symbol": "get_settings",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi/settings.rs",
         "symbol": "settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "GetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3504,10 +3541,17 @@
       "path": "crates/plugins/form/src/controller.rs",
       "owner": "Core",
       "symbol": "update_settings",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi/settings.rs",
         "symbol": "update_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "UpdateSettingsAsync",
+        "parameters": [
+          "EmbedPDF.FormSettingsPatch",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3515,10 +3559,16 @@
       "path": "crates/plugins/form/src/controller.rs",
       "owner": "Core",
       "symbol": "reset_settings",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi/settings.rs",
         "symbol": "reset_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "ResetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3526,10 +3576,16 @@
       "path": "crates/plugins/form/src/controller.rs",
       "owner": "Core",
       "symbol": "on_settings_changed",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/epdf-viewer-host/src/lib.rs",
         "symbol": "state_revision"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PdfViewer",
+        "member": "ObserveStateRevisions",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3537,10 +3593,16 @@
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "get_snapshot",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "snapshot"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "GetSnapshotAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3548,10 +3610,16 @@
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "get_status",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "status"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "GetStatusAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3559,10 +3627,16 @@
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "get_form_kind",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "snapshot"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "GetSnapshotAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3570,10 +3644,16 @@
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "refresh",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "refresh"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "RefreshAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3581,10 +3661,17 @@
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "get",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "field"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "GetFieldAsync",
+        "parameters": [
+          "EmbedPDF.FormFieldRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3592,10 +3679,17 @@
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "get_field_for_widget",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "field_for_widget"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "GetFieldForWidgetAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3603,10 +3697,17 @@
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "get_widget",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi/editing.rs",
         "symbol": "widget"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "GetWidgetAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3614,10 +3715,17 @@
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "get_widgets",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi/editing.rs",
         "symbol": "field_widgets"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "GetWidgetsAsync",
+        "parameters": [
+          "EmbedPDF.FormFieldRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3625,10 +3733,17 @@
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "list",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "fields"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "GetFieldsAsync",
+        "parameters": [
+          "EmbedPDF.FormFilter",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3636,10 +3751,17 @@
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "get_value",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "value"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "GetValueAsync",
+        "parameters": [
+          "EmbedPDF.FormFieldRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3647,10 +3769,16 @@
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "export_values",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "export_values"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "ExportValuesAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3658,10 +3786,16 @@
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "validate",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "validate"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "ValidateAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3669,10 +3803,16 @@
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "get_selected_field",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi/editing.rs",
         "symbol": "selected_field"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "GetSelectedFieldAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3680,10 +3820,17 @@
       "path": "crates/plugins/form/src/read/settings.rs",
       "owner": "Core",
       "symbol": "get_field_settings",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi/editing.rs",
         "symbol": "field_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "GetFieldSettingsAsync",
+        "parameters": [
+          "EmbedPDF.FormFieldRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3691,10 +3838,17 @@
       "path": "crates/plugins/form/src/read/widgets.rs",
       "owner": "Core",
       "symbol": "ensure_loaded",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "ensure_loaded"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "EnsureLoadedAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3702,10 +3856,18 @@
       "path": "crates/plugins/form/src/read/widgets.rs",
       "owner": "Core",
       "symbol": "get_widget_at",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "widget_at"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "GetWidgetAtAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "EmbedPDF.PdfPoint",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3713,10 +3875,17 @@
       "path": "crates/plugins/form/src/read/widgets.rs",
       "owner": "Core",
       "symbol": "list_widgets",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "widgets"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "GetFillItemsAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3724,10 +3893,17 @@
       "path": "crates/plugins/form/src/read/widgets.rs",
       "owner": "Core",
       "symbol": "get_page_box",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "page_box"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "GetPageBoxAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3743,10 +3919,18 @@
       "path": "crates/plugins/form/src/services/cursor.rs",
       "owner": "Core",
       "symbol": "attach_focus_target",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "attach_focus_target"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "AttachFocusTargetAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "EmbedPDF.IFormFocusTarget",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3834,10 +4018,17 @@
       "path": "crates/plugins/form/src/write/activation.rs",
       "owner": "Core",
       "symbol": "activate_widget",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "activate_widget"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "ActivateAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3845,10 +4036,19 @@
       "path": "crates/plugins/form/src/write/activation.rs",
       "owner": "Core",
       "symbol": "notify_widget_event",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "notify_widget_event"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "NotifyWidgetEventAsync",
+        "parameters": [
+          "EmbedPDF.FormFieldRef",
+          "EmbedPDF.AnnotationRef",
+          "EmbedPDF.FormWidgetEvent",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3856,24 +4056,33 @@
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "duplicate",
-      "pending": "phase-3-wave-D"
+      "exclusion": "No ffi.rs export and no Swift counterpart (added to the Rust controller after the Swift port, with annotation duplicate in f74c06c6d). Awaiting a decision on a later Swift and C# pass.",
+      "classification": "no-export"
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "duplicate_widgets",
-      "pending": "phase-3-wave-D"
+      "exclusion": "No ffi.rs export and no Swift counterpart: the lender hook annotation selection duplicate calls for widgets (write/fields.rs). Awaiting a decision on a later Swift and C# pass.",
+      "classification": "no-export"
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "create",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "create"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "CreateAsync",
+        "parameters": [
+          "EmbedPDF.FormCreateFieldInput",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3881,10 +4090,18 @@
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "add_widget",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "add_widget"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "AddWidgetAsync",
+        "parameters": [
+          "EmbedPDF.FormFieldRef",
+          "EmbedPDF.FormWidgetPlacement",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3892,10 +4109,18 @@
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "update",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "update"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "UpdateAsync",
+        "parameters": [
+          "EmbedPDF.FormFieldRef",
+          "EmbedPDF.FormFieldPatch",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3903,10 +4128,18 @@
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "reorder_calculations",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi/editing.rs",
         "symbol": "reorder_calculations"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "ReorderCalculationsAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.FormFieldRef>",
+          "EmbedPDF.FormCalculationPosition",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3914,10 +4147,17 @@
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "delete",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "delete"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "DeleteAsync",
+        "parameters": [
+          "EmbedPDF.FormFieldRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3925,10 +4165,18 @@
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "remove_widget",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "remove_widget"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "RemoveWidgetAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "EmbedPDF.FormFieldRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3936,10 +4184,18 @@
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "update_widget",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi/editing.rs",
         "symbol": "update_widget"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "UpdateWidgetAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3947,10 +4203,17 @@
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "delete_widget",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi/editing.rs",
         "symbol": "delete_widget"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "DeleteWidgetAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3958,10 +4221,17 @@
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "repair",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "repair"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "RepairAsync",
+        "parameters": [
+          "System.Boolean",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3969,10 +4239,18 @@
       "path": "crates/plugins/form/src/write/focus.rs",
       "owner": "Core",
       "symbol": "focus",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "focus"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "FocusAsync",
+        "parameters": [
+          "EmbedPDF.FormFieldRef",
+          "EmbedPDF.FormFocusOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3980,10 +4258,17 @@
       "path": "crates/plugins/form/src/write/focus.rs",
       "owner": "Core",
       "symbol": "focus_next",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "focus_next"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "FocusNextAsync",
+        "parameters": [
+          "EmbedPDF.FormFocusNextOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3991,10 +4276,16 @@
       "path": "crates/plugins/form/src/write/focus.rs",
       "owner": "Core",
       "symbol": "get_focused_field",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "focused_field"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "GetFocusedFieldAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4002,10 +4293,18 @@
       "path": "crates/plugins/form/src/write/focus.rs",
       "owner": "Core",
       "symbol": "move_in_group",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "move_in_group"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "MoveInGroupAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Boolean",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4013,10 +4312,17 @@
       "path": "crates/plugins/form/src/write/interchange.rs",
       "owner": "Core",
       "symbol": "export",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "export"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "ExportAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.FormFieldRef>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4024,10 +4330,18 @@
       "path": "crates/plugins/form/src/write/interchange.rs",
       "owner": "Core",
       "symbol": "import",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "import"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "ImportAsync",
+        "parameters": [
+          "System.String",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4035,10 +4349,17 @@
       "path": "crates/plugins/form/src/write/reset.rs",
       "owner": "Core",
       "symbol": "reset",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "reset"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "ResetAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.FormFieldRef>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4094,10 +4415,18 @@
       "path": "crates/plugins/form/src/write/values.rs",
       "owner": "Core",
       "symbol": "set_value",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "set_value"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "SetValueAsync",
+        "parameters": [
+          "EmbedPDF.FormFieldRef",
+          "EmbedPDF.FormValueInput",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4105,10 +4434,17 @@
       "path": "crates/plugins/form/src/write/values.rs",
       "owner": "Core",
       "symbol": "set_values",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "set_values"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "SetValuesAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.FormValueEntry>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4116,10 +4452,17 @@
       "path": "crates/plugins/form/src/write/values.rs",
       "owner": "Core",
       "symbol": "import_values",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "import_values"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "ImportValuesAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
