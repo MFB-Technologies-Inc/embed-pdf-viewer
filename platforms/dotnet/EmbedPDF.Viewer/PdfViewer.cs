@@ -147,6 +147,13 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
     /// Ends calls in flight, destroys the kernel, finishes every stream and
     /// releases the native viewer. Every call returns the same task.
     /// </summary>
+    /// <remarks>
+    /// Destroying the kernel runs on the kernel thread. Never wait for this
+    /// task, or call <see cref="Dispose"/>, from a callback the kernel makes
+    /// (a handler, listener or other adapter it calls on its own thread): the
+    /// wait would hold the thread the disposal needs, and both stop for good.
+    /// Starting it there without waiting is safe.
+    /// </remarks>
     public ValueTask DisposeAsync()
     {
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -162,6 +169,11 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
     /// ends; the disposal runs on the thread pool, so blocking a thread that
     /// owns a synchronization context does not deadlock it.
     /// </summary>
+    /// <remarks>
+    /// Never call it from a callback the kernel makes on its own thread (a
+    /// handler, listener or other adapter): disposal needs that thread, so
+    /// blocking it there deadlocks. See <see cref="DisposeAsync"/>.
+    /// </remarks>
     public void Dispose() => Task.Run(() => DisposeAsync().AsTask()).GetAwaiter().GetResult();
 
     async Task DisposeCore(TaskCompletionSource completion)
