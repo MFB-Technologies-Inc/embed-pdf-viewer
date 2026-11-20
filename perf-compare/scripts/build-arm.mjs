@@ -145,7 +145,8 @@ export function buildFork(dir, target = FORK_TARGET) {
     if (!existsSync(depotTools)) {
       sh(`git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git ${depotTools}`, workDir());
     }
-    sh('./ensure_bootstrap', depotTools);
+    // On PATH so the bootstrap's gsutil step finds depot_tools' own luci-auth.
+    sh('./ensure_bootstrap', depotTools, { PATH: `${depotTools}:${process.env.PATH}` });
   }
   // Recorded on disk so a rerun after a failed build still skips the resync.
   const seeded = existsSync(seededMarker);

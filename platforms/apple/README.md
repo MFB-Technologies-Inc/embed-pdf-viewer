@@ -111,8 +111,9 @@ layer, which re-export and conform them publicly, stop compiling.
 manifest is evaluated:
 
 - By default, SwiftPM downloads `EmbedPDFBindings.xcframework.zip` from the `engineRelease`
-  release on `MFB-Technologies-Inc/embed-pdf-runtime` and verifies it against `engineChecksum`. Nothing
-  builds Rust.
+  release on `MFB-Technologies-Inc/embed-pdf-viewer` and verifies it against `engineChecksum`. Nothing
+  builds Rust. Releases before `apple-engine-8a472a28bcfb9c14` (and that one) live on
+  `MFB-Technologies-Inc/embed-pdf-runtime`; the next pin moves the URL.
 - `EMBEDPDF_PREBUILT_ENGINE=local` uses the same binary target, read from
   `EmbedPDF/EmbedPDFBindings.xcframework`, which `package-engine-framework.sh` writes.
 - `EMBEDPDF_LOCAL_ENGINE=1` is the source layout above: `EmbedPDFFFI.xcframework` plus the

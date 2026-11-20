@@ -7,7 +7,7 @@
 #               (default: platforms/apple/EmbedPDF/Package.swift)
 #
 # EMBEDPDF_RUNTIME_REPO names the owner/repo whose releases it asks about
-# (default: MFB-Technologies-Inc/embed-pdf-runtime).
+# (default: MFB-Technologies-Inc/embed-pdf-viewer).
 #
 # Exit 0: the pin is current. Prints `current apple-engine-<hash>`.
 # Exit 1: the pin is stale and the tree's release isn't published yet.
@@ -24,7 +24,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-RUNTIME_REPO="${EMBEDPDF_RUNTIME_REPO:-MFB-Technologies-Inc/embed-pdf-runtime}"
+RUNTIME_REPO="${EMBEDPDF_RUNTIME_REPO:-MFB-Technologies-Inc/embed-pdf-viewer}"
 MANIFEST="$REPO_ROOT/platforms/apple/EmbedPDF/Package.swift"
 
 while [[ $# -gt 0 ]]; do

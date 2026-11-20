@@ -1,29 +1,43 @@
 name: release-dotnet
 
-# Builds, tests, packs and validates the EmbedPDF.Engine .NET package for
-# linux-arm64 and uploads the release files as the artifact dotnet-release.
-# It reproduces the hand-run sequence in
+# Builds, tests, packs and validates the EmbedPDF.Engine .NET package once per
+# RID, each on its own native host, and uploads each RID's release files as the
+# artifact dotnet-release-<rid>, for linux-arm64, linux-x64, osx-arm64 and
+# win-x64 (osx-x64 is not built). Each package carries one RID: the
+# packaging tooling validates a package only on the host its RID names
+# (platforms/dotnet/packaging/README.md), so there is no merged package.
+# linux-arm64 reproduces the hand-run sequence in
 # docs/research/upstream-catchup-2026-11-18/scripts/cu-c10/dotnet-release.sh,
-# which made the dotnet-engine-0.0.0-local-* releases, and depends on nothing
-# else in the release train: the PDFium it packs is the upstream runtime
-# archive pinned by packages/engine/runtime/engine-runtime-build.json.
+# which made the dotnet-engine-0.0.0-local-* releases. The workflow depends on
+# nothing else in the release train: the PDFium each row packs is the upstream
+# runtime archive pinned by packages/engine/runtime/engine-runtime-build.json.
 #
-#   image    resolves debian:trixie to its linux/arm64 manifest digest.
-#   package  runs in that exact image on a native arm64 runner: the facade
-#            tests, the parity self-test, the packaging unit tests, the
-#            release epdf-capi build, pack.sh, validate.sh, then the
+#   image    resolves debian:trixie to its linux/arm64 and linux/amd64
+#            manifest digests.
+#   package  one row per RID. The Linux rows run in that exact image on a
+#            native runner; the macOS and Windows rows run on the hosted
+#            image. Each row runs the facade tests, the parity self-test, the
+#            packaging unit tests, the release epdf-capi build, pack and
+#            validate (validate.ps1 on Windows). linux-arm64 then runs the
 #            existing-app guide's steps in a fresh project.
 #
-# The artifact holds four release assets (the nupkg, its .sha256, the
-# provenance manifest and the validation record) plus the guide template
+# Each artifact holds the RID's four release assets: the nupkg, its .sha256,
+# the provenance manifest and the validation record, the nupkg and provenance
+# names qualified with the RID. linux-arm64's also holds the guide template
 # EmbedPDF-CSharp-Existing-App.md.in and guide-facts.json. The guide names the
-# release tag and the commit, which belong to the later pin commit, so the
-# orchestrator renders it with platforms/dotnet/packaging/render-guide.sh and
-# publishes it as the fifth asset.
+# release tag and the commit, which belong to the release, so the orchestrator
+# renders it with platforms/dotnet/packaging/render-guide.sh and publishes it
+# beside the sixteen package assets.
+#
+# Fonts: the Linux rows pack Debian's fonts-dejavu-core DejaVu Sans
+# (packaging/ci-fonts.sh), as the hand-run release did. The macOS and Windows
+# rows pack the checked-in, empty packaging/fonts.json, as their hand
+# validations under platforms/dotnet/validation/ did; validation itself
+# needs no font. The existing-app guide registers DejaVu Sans, so it stays
+# the linux-arm64 walkthrough.
 #
 # Microsoft publishes no Debian trixie .NET SDK image (no 10.0.403-trixie
-# tag), so the job installs SDK 10.0.403 into debian:trixie, the same
-# Debian the repository devcontainer and the earlier releases used.
+# tag), so every row installs SDK 10.0.403 from Microsoft's archive.
 #
 # This workflow never publishes; the orchestrator does. dry_run exists so every
 # release workflow takes the same inputs, and changes nothing here.
@@ -45,47 +59,90 @@ defaults:
     shell: bash
 
 env:
-  RID: linux-arm64
-  RUST_TARGET: aarch64-unknown-linux-gnu
   PACKAGE: EmbedPDF.Engine.0.0.0-local
 
 jobs:
   image:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-24.04
     outputs:
-      digest: ${{ steps.digest.outputs.digest }}
+      arm64: ${{ steps.digest.outputs.arm64 }}
+      amd64: ${{ steps.digest.outputs.amd64 }}
     steps:
-      # The platform manifest digest, not the index digest: it names exactly
-      # the arm64 image this run pulls, and `docker pull debian@<digest>`
-      # fetches it again. validate.sh records it as environment.imageId,
-      # whose schema is a bare sha256:<hex>.
-      - name: Resolve debian:trixie for linux/arm64
+      # The platform manifest digests, not the index digest: each names exactly
+      # the image its row pulls, and `docker pull debian@<digest>` fetches it
+      # again. validate.sh records it as environment.imageId, whose schema is a
+      # bare sha256:<hex>.
+      - name: Resolve debian:trixie for linux/arm64 and linux/amd64
         id: digest
         run: |
-          digest=$(docker manifest inspect debian:trixie \
-            | jq -r '[.manifests[] | select(.platform.os == "linux" and .platform.architecture == "arm64")] | if length == 1 then .[0].digest else empty end')
-          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "::error::no single linux/arm64 manifest for debian:trixie (got '$digest')"; exit 1; }
-          echo "debian:trixie linux/arm64 = $digest"
-          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          index=$(docker manifest inspect debian:trixie)
+          for arch in arm64 amd64; do
+            digest=$(jq -r --arg arch "$arch" '[.manifests[] | select(.platform.os == "linux" and .platform.architecture == $arch)] | if length == 1 then .[0].digest else empty end' <<<"$index")
+            [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "::error::no single linux/$arch manifest for debian:trixie (got '$digest')"; exit 1; }
+            echo "debian:trixie linux/$arch = $digest"
+            echo "$arch=$digest" >> "$GITHUB_OUTPUT"
+          done
 
   package:
     needs: image
-    runs-on: ubuntu-24.04-arm
+    name: package (${{ matrix.rid }})
+    strategy:
+      fail-fast: false
+      # SDK archives: the 10.0.403 SDK `files` entries of
+      # https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json,
+      # read 2026-11-19. The SDK compiles the shipped DLL, so each archive is
+      # checked against its SHA-512 before it is unpacked. The two Linux hashes
+      # are also in .devcontainer/Dockerfile (DOTNET_SDK_VERSION); change both.
+      matrix:
+        include:
+          - rid: linux-arm64
+            runner: ubuntu-24.04-arm
+            image_arch: arm64
+            rust_target: aarch64-unknown-linux-gnu
+            fork_target: linux-arm64
+            sdk_url: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-linux-arm64.tar.gz
+            sdk_sha512: 0966aa2b70f4677b8319be9df447a78a0dcd6164836425b55a68fd714f4023feb87b4cac21b9a996b79472ad54487cd0adcd2a9dfd570e2b2a1d26423a2baa9b
+          - rid: linux-x64
+            runner: ubuntu-24.04
+            image_arch: amd64
+            rust_target: x86_64-unknown-linux-gnu
+            fork_target: linux-x64
+            sdk_url: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-linux-x64.tar.gz
+            sdk_sha512: b7b3d8461cf98b07d2552ce9199702fa3ad010ac2671a5f8cd5136f7534e50f6855ba7bbb02b11494563f1d04156276a31cda1103b900e5eecd0d9473dc7b9c5
+          - rid: osx-arm64
+            runner: macos-15
+            rust_target: aarch64-apple-darwin
+            fork_target: darwin-arm64
+            sdk_url: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-osx-arm64.tar.gz
+            sdk_sha512: 5893c66b48ea3674c7da18501059d606e96f3672fabe4d5e41762e692c7c83df3ee0b2b9dc5a0786191da2dc413d7335158101c14c935ab217f31ac2529770f3
+          - rid: win-x64
+            runner: windows-2022
+            rust_target: x86_64-pc-windows-msvc
+            fork_target: win32-x64
+            sdk_url: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-win-x64.zip
+            sdk_sha512: 7a114c318fa7f1d9822991b534b2814d0e78386ceda816b371f5141acefe741d87ccb606ede06cadac8f9ac5070e32b708a67bbd1619ff5e5a7858a27874ef48
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
-    container:
-      image: debian:trixie@${{ needs.image.outputs.digest }}
+    # Only the Linux rows have an image_arch; an empty container runs the job
+    # on the hosted image.
+    container: ${{ matrix.image_arch && format('debian:trixie@{0}', needs.image.outputs[matrix.image_arch]) || '' }}
     env:
+      RID: ${{ matrix.rid }}
+      RUST_TARGET: ${{ matrix.rust_target }}
+      FORK_TARGET: ${{ matrix.fork_target }}
       DOTNET_CLI_TELEMETRY_OPTOUT: "1"
       DOTNET_NOLOGO: "1"
       CARGO_INCREMENTAL: "0"
       # validate.sh refuses a Linux run without it and records it in the
-      # validation record.
-      EPDF_IMAGE_ID: ${{ needs.image.outputs.digest }}
-      EPDF_HOST_OS: linux
+      # validation record. Empty on macOS and Windows, which validate.sh then
+      # records as a host run.
+      EPDF_IMAGE_ID: ${{ matrix.image_arch && needs.image.outputs[matrix.image_arch] || '' }}
+      EPDF_HOST_OS: ${{ matrix.image_arch && 'linux' || '' }}
     steps:
       # Before checkout: without git, actions/checkout downloads a tarball,
       # and package.py reads the source identity from git.
       - name: Install system packages
+        if: runner.os == 'Linux'
         run: |
           apt-get update
           apt-get install -y --no-install-recommends \
@@ -94,32 +151,49 @@ jobs:
             libicu-dev tzdata zlib1g fonts-dejavu-core
           rm -rf /var/lib/apt/lists/*
 
+      # The hosted Windows image checks text out with CRLF. Bash refuses the
+      # scripts, and the fixtures and pinned inputs would no longer match
+      # their hashes.
+      - name: Check out LF on Windows
+        if: runner.os == 'Windows'
+        run: git config --global core.autocrlf false
+
       - uses: actions/checkout@v6
         with:
           fetch-depth: 1
           persist-credentials: false
 
-      # The workspace belongs to the runner user and the container runs as
-      # root; git refuses the repository without this.
+      # In the Linux container the workspace belongs to the runner user and
+      # the job runs as root; git refuses the repository without this.
       - name: Trust the workspace
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      # The SDK compiles the shipped DLL, so its tarball is checked against
-      # the SHA-512 from Microsoft's .NET 10 release metadata. The same hash
-      # is in .devcontainer/Dockerfile (DOTNET_SDK_VERSION); change both.
       - name: Install .NET SDK 10.0.403
         env:
-          SDK_SHA512: 0966aa2b70f4677b8319be9df447a78a0dcd6164836425b55a68fd714f4023feb87b4cac21b9a996b79472ad54487cd0adcd2a9dfd570e2b2a1d26423a2baa9b
+          SDK_URL: ${{ matrix.sdk_url }}
+          SDK_SHA512: ${{ matrix.sdk_sha512 }}
         run: |
-          sdk=$RUNNER_TEMP/dotnet-sdk.tar.gz
-          curl -fsSL --retry 3 -o "$sdk" \
-            https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-linux-arm64.tar.gz
-          echo "$SDK_SHA512  $sdk" | sha512sum -c -
-          mkdir -p /usr/share/dotnet
-          tar -xzf "$sdk" -C /usr/share/dotnet
+          sdk=$RUNNER_TEMP/${SDK_URL##*/}
+          curl -fsSL --retry 3 -o "$sdk" "$SDK_URL"
+          if command -v sha512sum >/dev/null 2>&1; then
+            echo "$SDK_SHA512  $sdk" | sha512sum -c -
+          else
+            echo "$SDK_SHA512  $sdk" | shasum -a 512 -c -
+          fi
+          case $RUNNER_OS in
+            Linux) root=/usr/share/dotnet ;;
+            *) root=$RUNNER_TEMP/dotnet ;;
+          esac
+          mkdir -p "$root"
+          if [[ "$sdk" == *.zip ]]; then
+            # Windows' own bsdtar reads zip; Git Bash's GNU tar does not.
+            "$(cygpath -u "$SYSTEMROOT")/System32/tar.exe" -xf "$sdk" -C "$root"
+          else
+            tar -xzf "$sdk" -C "$root"
+          fi
           rm "$sdk"
-          echo "DOTNET_ROOT=/usr/share/dotnet" >> "$GITHUB_ENV"
-          echo "/usr/share/dotnet" >> "$GITHUB_PATH"
+          echo "DOTNET_ROOT=$root" >> "$GITHUB_ENV"
+          echo "$root" >> "$GITHUB_PATH"
 
       - uses: actions/setup-node@v6
         with:
@@ -127,91 +201,151 @@ jobs:
 
       - uses: ./.github/actions/setup-rust
         with:
-          targets: aarch64-unknown-linux-gnu
-          cache-key: dotnet-linux-arm64
+          targets: ${{ matrix.rust_target }}
+          cache-key: dotnet-${{ matrix.rid }}
 
       - uses: actions/cache@v5
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('platforms/dotnet/**/*.csproj', 'platforms/dotnet/global.json') }}
 
-      # Upstream's runtime-f2ea75972 linux-arm64 archive, checked against the
-      # pin. pack.sh never downloads; it reads this from build/cache.
-      - name: Fetch the pinned runtime archive
-        run: bash packages/engine/runtime/scripts/fetch-libpdfium.sh "$RID"
+      # pdfium-sys runs bindgen, which needs libclang: the hosted image's LLVM.
+      # package.py inspects DLLs with dumpbin, which the image has but not on
+      # PATH.
+      - name: Windows build tools
+        if: runner.os == 'Windows'
+        run: |
+          llvm='C:\Program Files\LLVM\bin'
+          test -f "$(cygpath -u "$llvm")/libclang.dll" || { echo "::error::no libclang.dll in $llvm"; exit 1; }
+          echo "LIBCLANG_PATH=$llvm" >> "$GITHUB_ENV"
+          vs=$("/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" \
+            -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+          vs=$(cygpath -u "$vs")
+          msvc=$(tr -d '[:space:]' < "$vs/VC/Auxiliary/Build/Microsoft.VCToolsVersion.default.txt")
+          bin=$vs/VC/Tools/MSVC/$msvc/bin/Hostx64/x64
+          test -x "$bin/dumpbin.exe" || { echo "::error::no dumpbin.exe in $bin"; exit 1; }
+          cygpath -w "$bin" >> "$GITHUB_PATH"
 
-      # Every later step reads these. The test steps add LD_LIBRARY_PATH;
-      # pack and validate run without it.
+      # Upstream's runtime-f2ea75972 archive for this RID, checked against the
+      # pin. pack never downloads; it reads this from build/cache.
+      - name: Fetch the pinned runtime archive
+        run: bash packages/engine/runtime/scripts/fetch-libpdfium.sh "$FORK_TARGET"
+
+      # Every later step reads these. The test steps add the runtime's
+      # library directory; pack and validate run without it. FONTS is the
+      # manifest pack.sh takes: the Linux rows write theirs (ci-fonts.sh) and
+      # the others use the checked-in one.
       - name: Set paths
         run: |
           {
             echo "PDF_RUNTIME_LIB_DIR=$GITHUB_WORKSPACE/packages/engine/runtime/build/libpdfium"
-            echo "RUNTIME_ARCHIVE=$GITHUB_WORKSPACE/packages/engine/runtime/build/cache/libembedpdf-runtime-$RID.tar.gz"
+            echo "RUNTIME_ARCHIVE=$GITHUB_WORKSPACE/packages/engine/runtime/build/cache/libembedpdf-runtime-$FORK_TARGET.tar.gz"
             echo "RUNTIME_MANIFEST=$GITHUB_WORKSPACE/packages/engine/runtime/engine-runtime-build.json"
             # Outside platforms/dotnet: package.py hashes untracked files
             # there into the source identity and would mark the package dirty.
             echo "OUT=$RUNNER_TEMP/dotnet"
-            echo "FONTS=$RUNNER_TEMP/fonts/fonts.json"
+            if [[ "$RUNNER_OS" == Linux ]]; then
+              echo "FONTS=$RUNNER_TEMP/fonts/fonts.json"
+            else
+              echo "FONTS=$GITHUB_WORKSPACE/platforms/dotnet/packaging/fonts.json"
+            fi
+            # Git Bash on Windows has no python3.
+            if [[ "$RUNNER_OS" == Windows ]]; then echo "PYTHON=python"; else echo "PYTHON=python3"; fi
           } >> "$GITHUB_ENV"
 
       - name: Toolchain versions
         run: |
           echo "checkout $(git rev-parse HEAD) dirty=[$(git status --porcelain --untracked-files=no | wc -l)]"
-          echo "dotnet $(cd platforms/dotnet && dotnet --version) $(rustc --version) $(ldd --version | head -1)"
+          echo "dotnet $(cd platforms/dotnet && dotnet --version) $(rustc --version) $("$PYTHON" --version)"
+          if [[ "$RUNNER_OS" == Linux ]]; then ldd --version | head -1; else uname -a; fi
 
       - name: Build epdf-capi (debug)
         run: cargo build --locked -p epdf-capi
 
+      # The facade tests load the debug wrapper, which finds the runtime
+      # library through the loader path on Linux and macOS. On Windows the
+      # tests stage embedpdf.dll from PDF_RUNTIME_LIB_DIR instead
+      # (platforms/dotnet/packaging/README.md).
       - name: dotnet test
         run: |
           export EPDF_NATIVE_DIR="$GITHUB_WORKSPACE/target/debug"
-          export LD_LIBRARY_PATH="$PDF_RUNTIME_LIB_DIR/$RID/lib"
+          runtime=$PDF_RUNTIME_LIB_DIR/$FORK_TARGET
+          case $RUNNER_OS in
+            Linux) export LD_LIBRARY_PATH="$runtime/lib" ;;
+            macOS) export DYLD_LIBRARY_PATH="$runtime/lib" ;;
+            Windows) export PDF_RUNTIME_LIB_DIR="$runtime/bin" ;;
+          esac
           dotnet test platforms/dotnet/EmbedPDF.Tests/EmbedPDF.Tests.csproj
 
       - name: Parity self-test
         working-directory: platforms/dotnet
         run: |
-          export LD_LIBRARY_PATH="$PDF_RUNTIME_LIB_DIR/$RID/lib"
+          if [[ "$RUNNER_OS" == Linux ]]; then export LD_LIBRARY_PATH="$PDF_RUNTIME_LIB_DIR/$FORK_TARGET/lib"; fi
           dotnet run --project EmbedPDF.Parity -- self-test | tee "$RUNNER_TEMP/parity.log"
           echo "passed=$(grep -c '"status":"passed"' "$RUNNER_TEMP/parity.log")"
 
       - name: Packaging unit tests
-        run: python3 -m unittest discover -s platforms/dotnet/packaging -v
+        run: |
+          "$PYTHON" -m unittest discover -s platforms/dotnet/packaging -v
 
       - name: Build epdf-capi (release)
         run: cargo build --locked -p epdf-capi --release --target "$RUST_TARGET"
 
       - name: Write the font manifest
         run: |
-          bash platforms/dotnet/packaging/ci-fonts.sh "$FONTS"
+          if [[ "$RUNNER_OS" == Linux ]]; then
+            bash platforms/dotnet/packaging/ci-fonts.sh "$FONTS"
+          fi
           cat "$FONTS"
 
-      - name: pack.sh
+      # pack.sh is `exec python3 packaging/package.py pack`; Windows has no
+      # python3, so it runs package.py directly.
+      - name: pack
         run: |
           unset LD_LIBRARY_PATH DYLD_LIBRARY_PATH
-          bash platforms/dotnet/pack.sh --rid "$RID" --out "$OUT/pack" --runtime-manifest "$RUNTIME_MANIFEST" \
-            --runtime-archive "$RUNTIME_ARCHIVE" --font-manifest "$FONTS"
+          args=(--rid "$RID" --out "$OUT/pack" --runtime-manifest "$RUNTIME_MANIFEST"
+                --runtime-archive "$RUNTIME_ARCHIVE" --font-manifest "$FONTS")
+          if [[ "$RUNNER_OS" == Windows ]]; then
+            python platforms/dotnet/packaging/package.py pack "${args[@]}"
+          else
+            bash platforms/dotnet/pack.sh "${args[@]}"
+          fi
 
       # No --font-manifest, as in the hand-run release: the record's inputs
       # name the checked-in packaging/fonts.json.
       - name: validate.sh
+        if: runner.os != 'Windows'
         run: |
           unset LD_LIBRARY_PATH DYLD_LIBRARY_PATH
           bash platforms/dotnet/validate.sh --rid "$RID" --runtime-manifest "$RUNTIME_MANIFEST" --record "$OUT/validate-record.json" \
             --package "$OUT/pack/$PACKAGE.nupkg" --manifest "$OUT/pack/package-manifest.$RID.json"
+
+      # validate.ps1 takes no runtime manifest; its default is the same
+      # checked-in pin RUNTIME_MANIFEST names.
+      - name: validate.ps1
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          ./platforms/dotnet/validate.ps1 -Rid $env:RID -Record "$env:OUT/validate-record.json" `
+            -Package "$env:OUT/pack/$env:PACKAGE.nupkg" -Manifest "$env:OUT/pack/package-manifest.$env:RID.json"
+
+      - name: Check the validated status
+        run: |
           status=$(jq -r --arg rid "$RID" '.rids[$rid].status' "$OUT/pack/package-manifest.$RID.json")
           [[ "$status" == VALIDATED ]] || { echo "::error::package manifest status for $RID is '$status', not VALIDATED"; exit 1; }
 
-      # The guide's steps, in a fresh application with its own NuGet cache.
+      # The guide's steps, in a fresh application with its own NuGet cache,
+      # from the package under its release asset name.
       # The C# below is the guide's PdfPreview class
       # (platforms/dotnet/EmbedPDF-CSharp-Existing-App.md.in, section 4).
       - name: Existing-app guide
+        if: matrix.rid == 'linux-arm64'
         run: |
           set -e
           unset LD_LIBRARY_PATH PDF_RUNTIME_LIB_DIR
           G=$OUT/guide
           mkdir -p "$G/app/local-packages"
-          cp "$OUT/pack/$PACKAGE.nupkg" "$G/app/local-packages/"
+          cp "$OUT/pack/$PACKAGE.nupkg" "$G/app/local-packages/$PACKAGE.$RID.nupkg"
           cd "$G/app"
           export NUGET_PACKAGES=$G/nuget-cache
           dotnet new console --framework net10.0 --name YourApp --output .
@@ -265,21 +399,47 @@ jobs:
           ./publish/YourApp "$GITHUB_WORKSPACE/tooling/engine-conformance/fixtures/non_identity_text.pdf" | tee "$G/run.log"
           grep -q '^rendered ' "$G/run.log"
 
+      # The .sha256 line is written here rather than by sha256sum, whose
+      # Windows build marks the name binary (`*name`).
       - name: Collect the release assets
         run: |
           R=$GITHUB_WORKSPACE/dotnet-release
+          nupkg=$PACKAGE.$RID.nupkg
           mkdir -p "$R"
-          cp "$OUT/pack/$PACKAGE.nupkg" "$R/"
-          (cd "$R" && sha256sum "$PACKAGE.nupkg" > "$PACKAGE.nupkg.sha256")
-          cp "$OUT/pack/package-manifest.$RID.json" "$R/$PACKAGE.provenance.json"
+          cp "$OUT/pack/$PACKAGE.nupkg" "$R/$nupkg"
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha=$(sha256sum "$R/$nupkg" | cut -d' ' -f1)
+          else
+            sha=$(shasum -a 256 "$R/$nupkg" | cut -d' ' -f1)
+          fi
+          bytes=$(wc -c < "$R/$nupkg" | tr -d ' ')
+          printf '%s  %s\n' "$sha" "$nupkg" > "$R/$nupkg.sha256"
+          cp "$OUT/pack/package-manifest.$RID.json" "$R/$PACKAGE.$RID.provenance.json"
           cp "$OUT/validate-record.json" "$R/$PACKAGE.validation.$RID.json"
+          {
+            echo "### $PACKAGE ($RID)"
+            echo
+            if [[ -n "$EPDF_IMAGE_ID" ]]; then
+              echo "- image: \`debian:trixie@$EPDF_IMAGE_ID\`"
+              echo "- highest GLIBC symbol: \`$(objdump -T "$OUT"/pack/*/runtimes/"$RID"/native/lib*.so 2>/dev/null | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1)\`"
+            else
+              echo "- host: \`$ImageOS $ImageVersion\` ($RUNNER_ARCH)"
+            fi
+            echo "- sha256: \`$sha\`, $bytes bytes"
+          } >> "$GITHUB_STEP_SUMMARY"
+          ls -l "$R"
+
+      - name: Collect the guide
+        if: matrix.rid == 'linux-arm64'
+        run: |
+          R=$GITHUB_WORKSPACE/dotnet-release
           cp platforms/dotnet/EmbedPDF-CSharp-Existing-App.md.in "$R/"
           # The build facts the guide states; render-guide.sh documents the
           # format. glibc is the version validate.sh and the guide ran with.
           jq -n \
-            --arg sha "$(cut -d' ' -f1 "$R/$PACKAGE.nupkg.sha256")" \
-            --argjson bytes "$(stat -c %s "$R/$PACKAGE.nupkg")" \
-            --arg runtimeTag "$(jq -r --arg rid "$RID" '.artifacts[$rid].url | capture("/releases/download/(?<tag>[^/]+)/").tag' "$RUNTIME_MANIFEST")" \
+            --arg sha "$(cut -d' ' -f1 "$R/$PACKAGE.$RID.nupkg.sha256")" \
+            --argjson bytes "$(stat -c %s "$R/$PACKAGE.$RID.nupkg")" \
+            --arg runtimeTag "$(jq -r --arg target "$FORK_TARGET" '.artifacts[$target].url | capture("/releases/download/(?<tag>[^/]+)/").tag' "$RUNTIME_MANIFEST")" \
             --arg glibc "$(ldd --version | head -1 | awk '{print $NF}')" \
             --arg renderSize "$(sed -n 's/^rendered \([0-9]*x[0-9]*\) .*/\1/p' "$OUT/guide/run.log")" \
             '{nupkgSha256: $sha, nupkgBytes: $bytes, runtimeTag: $runtimeTag, glibc: $glibc, renderSize: $renderSize}' \
@@ -289,19 +449,12 @@ jobs:
           # The rendered file is thrown away: the tag and commit are stand-ins.
           bash platforms/dotnet/packaging/render-guide.sh "$R/EmbedPDF-CSharp-Existing-App.md.in" "$R/guide-facts.json" \
             "$GITHUB_REPOSITORY" check "$(git rev-parse HEAD)" "$RUNNER_TEMP/guide-check.md"
-          {
-            echo "### $PACKAGE ($RID)"
-            echo
-            echo "- image: \`debian:trixie@$EPDF_IMAGE_ID\`"
-            echo "- sha256: \`$(cut -d' ' -f1 "$R/$PACKAGE.nupkg.sha256")\`, $(stat -c %s "$R/$PACKAGE.nupkg") bytes"
-            echo "- highest GLIBC symbol: \`$(objdump -T "$OUT"/pack/*/runtimes/"$RID"/native/lib*.so 2>/dev/null | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1)\`"
-          } >> "$GITHUB_STEP_SUMMARY"
           ls -l "$R"
 
       # A workspace-relative path: in a container job runner.temp is the
       # host's path, not the container's.
       - uses: actions/upload-artifact@v6
         with:
-          name: dotnet-release
+          name: dotnet-release-${{ matrix.rid }}
           path: dotnet-release
           if-no-files-found: error

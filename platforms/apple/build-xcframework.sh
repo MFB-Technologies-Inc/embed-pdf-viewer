@@ -21,18 +21,46 @@
 # and the benchmark control exports, with the `EpdfManualFFI` module in the
 # modulemap. Use it with EMBEDPDF_EXPERIMENTAL_BRIDGE=1 (see Package.swift).
 # Run the script again without the flag to get the shipping XCFramework back.
+#
+#   bash platforms/apple/build-xcframework.sh --slice <fork target>
+#   bash platforms/apple/build-xcframework.sh --assemble
+#
+# split the build so each slice can build on its own machine, as
+# .github/workflows/release-apple.yml does. --slice builds one slice
+# (ios-arm64, ios-sim-arm64, darwin-static-arm64 or darwin-static-x64) into
+# .build/<fork>/libEmbedPDFFFI.a and its Swift into .build/generated-<fork>/,
+# and nothing else. --assemble builds no Rust: it takes those for all four
+# slices from .build and makes everything after them.
 set -euo pipefail
 
 EXPERIMENTAL=0
+ONLY_SLICE=""
+ASSEMBLE=0
+want_slice=0
 for arg in "$@"; do
+  if [[ $want_slice == 1 ]]; then
+    ONLY_SLICE="$arg"
+    want_slice=0
+    continue
+  fi
   case "$arg" in
     --experimental-manual-bridge) EXPERIMENTAL=1 ;;
+    --slice) want_slice=1 ;;
+    --assemble) ASSEMBLE=1 ;;
     *)
       echo "unknown argument: $arg" >&2
       exit 2
       ;;
   esac
 done
+if [[ $want_slice == 1 ]]; then
+  echo "--slice needs a fork target" >&2
+  exit 2
+fi
+if [[ -n $ONLY_SLICE && $ASSEMBLE == 1 ]]; then
+  echo "--slice and --assemble don't go together" >&2
+  exit 2
+fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT="$ROOT/platforms/apple/EmbedPDF"
@@ -65,6 +93,20 @@ SLICES=(
   "x86_64-apple-darwin:darwin-static-x64"
 )
 
+# The slices this run builds: all four, the one --slice names, or none.
+BUILD_SLICES=()
+if [[ -n $ONLY_SLICE ]]; then
+  for slice in "${SLICES[@]}"; do
+    [[ "${slice##*:}" == "$ONLY_SLICE" ]] && BUILD_SLICES=("$slice")
+  done
+  if ((${#BUILD_SLICES[@]} == 0)); then
+    echo "unknown slice: $ONLY_SLICE (one of: ${SLICES[*]##*:})" >&2
+    exit 2
+  fi
+elif [[ $ASSEMBLE == 0 ]]; then
+  BUILD_SLICES=("${SLICES[@]}")
+fi
+
 # Panic messages and debug info embed the source path of every crate, which
 # for registry crates and the toolchain's std is under the builder's home
 # directory (759 `$HOME` strings per slice before this). The published archive
@@ -75,7 +117,28 @@ SLICES=(
 # CARGO_ENCODED_RUSTFLAGS, which this does not handle.
 REMAP="--remap-path-prefix=$HOME=~ --remap-path-prefix=$ROOT=/embedpdf-viewer"
 
-rm -rf "$BUILD"
+if [[ -n $ONLY_SLICE ]]; then
+  # Only this slice's outputs; another slice's may sit beside them.
+  rm -rf "${BUILD:?}/$ONLY_SLICE" "$BUILD/generated-$ONLY_SLICE"
+elif [[ $ASSEMBLE == 1 ]]; then
+  # Built elsewhere and put back here; nothing to clear.
+  missing=0
+  for slice in "${SLICES[@]}"; do
+    fork="${slice##*:}"
+    for input in "$BUILD/$fork/libEmbedPDFFFI.a" "$BUILD/generated-$fork"; do
+      if [[ ! -e "$input" ]]; then
+        echo "missing $input" >&2
+        missing=1
+      fi
+    done
+  done
+  if [[ $missing == 1 ]]; then
+    echo "--assemble needs every slice from --slice <fork> in $BUILD" >&2
+    exit 1
+  fi
+else
+  rm -rf "$BUILD"
+fi
 mkdir -p "$BUILD"
 
 # Refuse partial symbol inventories: a skipped bitcode member can hide a
@@ -101,7 +164,7 @@ defined_symbols() {
   printf '%s\n' "$symbols" | grep -v -e ':$' -e '^$' | sort -u
 }
 
-for slice in "${SLICES[@]}"; do
+for slice in ${BUILD_SLICES[@]+"${BUILD_SLICES[@]}"}; do
   rust="${slice%%:*}"
   fork="${slice##*:}"
   if [[ ! -f "$LIB_ROOT/$fork/lib/libembedpdf.a" ]]; then
@@ -167,28 +230,38 @@ done
 # current shape, and a hand-kept header drifts silently. Library mode emits
 # Swift for every crate in the archive that has scaffolding: epdf_uniffi,
 # epdf_ffi, epdf_viewer_host and the plugins' ffi modules.
-echo "generating bindings"
-case "$(uname -m)" in
-  arm64 | aarch64) host_fork=darwin-static-arm64 ;;
-  x86_64) host_fork=darwin-static-x64 ;;
-  *) echo "unsupported Apple build host" >&2; exit 1 ;;
-esac
-(cd "$ROOT" && EMBEDPDF_FORK_TARGET="$host_fork" \
-  SDKROOT="$(xcrun --sdk macosx --show-sdk-path)" MACOSX_DEPLOYMENT_TARGET=14.0 \
-  cargo build --manifest-path "$ROOT/Cargo.toml" --offline --locked \
-    -j "${CARGO_BUILD_JOBS:-2}" -p uniffi-bindgen)
+if ((${#BUILD_SLICES[@]} > 0)); then
+  echo "generating bindings"
+  case "$(uname -m)" in
+    arm64 | aarch64) host_fork=darwin-static-arm64 ;;
+    x86_64) host_fork=darwin-static-x64 ;;
+    *) echo "unsupported Apple build host" >&2; exit 1 ;;
+  esac
+  (cd "$ROOT" && EMBEDPDF_FORK_TARGET="$host_fork" \
+    SDKROOT="$(xcrun --sdk macosx --show-sdk-path)" MACOSX_DEPLOYMENT_TARGET=14.0 \
+    cargo build --manifest-path "$ROOT/Cargo.toml" --offline --locked \
+      -j "${CARGO_BUILD_JOBS:-2}" -p uniffi-bindgen)
+  for slice in "${BUILD_SLICES[@]}"; do
+    rust="${slice%%:*}"
+    fork="${slice##*:}"
+    generated="$BUILD/generated-$fork"
+    mkdir -p "$generated"
+    "$TARGET_DIR/debug/uniffi-bindgen" generate \
+      --library "$TARGET_DIR/$rust/$PROFILE/libepdf_viewer_host.a" \
+      --language swift --out-dir "$generated"
+  done
+fi
+if [[ -n $ONLY_SLICE ]]; then
+  echo
+  echo "  $BUILD/$ONLY_SLICE/libEmbedPDFFFI.a"
+  echo "  $BUILD/generated-$ONLY_SLICE"
+  exit 0
+fi
 rm -rf "$BUILD/generated" "$BUILD/headers"
 mkdir -p "$BUILD/headers"
 generated_roots=()
 for slice in "${SLICES[@]}"; do
-  rust="${slice%%:*}"
-  fork="${slice##*:}"
-  generated="$BUILD/generated-$fork"
-  mkdir -p "$generated"
-  "$TARGET_DIR/debug/uniffi-bindgen" generate \
-    --library "$TARGET_DIR/$rust/$PROFILE/libepdf_viewer_host.a" \
-    --language swift --out-dir "$generated"
-  generated_roots+=("$generated")
+  generated_roots+=("$BUILD/generated-${slice##*:}")
 done
 python3 "$ROOT/platforms/apple/check-native-graph.py" \
   --compare-generated "${generated_roots[@]}"

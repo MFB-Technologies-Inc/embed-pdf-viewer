@@ -1,7 +1,7 @@
 name: release-apple
 
 # Publishes the iOS/macOS engine, EmbedPDFBindings.xcframework.zip, as the
-# prerelease apple-engine-<hash> on the release repo, with
+# prerelease apple-engine-<hash> on this repo, with
 # scripts/publish-engine-payload.mjs --only apple split into its two stages.
 # Its PDFium is the four Apple slices release-fork-slices.yml uploaded
 # (fork-slice-<target>), stamped into buildFork's cache so the fork is not
@@ -11,8 +11,13 @@ name: release-apple
 #                    current (exit 0, the manifests pin this tree's engine:
 #                    nothing else runs), build (exit 1, not released yet) or
 #                    pin (exit 2, released but not pinned).
+#   rust-slice       on build only, one runner per Apple target: that target's
+#                    Rust archive and generated Swift, from
+#                    build-xcframework.sh --slice, uploaded as
+#                    apple-rust-<target>.
 #   build            --stage build. On build it makes the zip and its facts
-#                    and uploads them as apple-xcframework. On pin the script
+#                    and uploads them as apple-xcframework, from the four
+#                    apple-rust-* (EMBEDPDF_APPLE_SLICES_PREBUILT=1). On pin the script
 #                    pins both manifests from the existing release, makes no
 #                    zip, and this job uploads the manifests as apple-manifests;
 #                    nothing after it runs.
@@ -20,11 +25,11 @@ name: release-apple
 #   test-mac-arm64,  EMBEDPDF_PREBUILT_ENGINE=local: the tests publishApple
 #   test-mac-x86_64  runs between its build and its release, one runner each.
 #   publish          --stage publish under the release environment: creates the
-#                    release with the App token, pins both manifests and
+#                    release with the job's token, pins both manifests and
 #                    uploads them as apple-manifests.
 #
-# dry_run runs every job; publish runs without the environment or the token,
-# prints the gh command, and pins the manifests to the tag and checksum the
+# dry_run runs every job; publish runs without the environment, prints the gh
+# command, and pins the manifests to the tag and checksum the
 # release would have, so apple-manifests looks as it would after a real run.
 #
 # The pinned manifests are uploaded, not committed: the release names the
@@ -38,13 +43,6 @@ on:
         required: false
         type: boolean
         default: false
-    secrets:
-      RELEASE_APP_ID:
-        description: GitHub App that can write releases on the release repo.
-        required: false
-      RELEASE_APP_KEY:
-        description: That App's private key.
-        required: false
     outputs:
       apple_tag:
         description: This tree's engine release tag, apple-engine-<hash>.
@@ -64,10 +62,10 @@ defaults:
     shell: bash
 
 env:
-  EMBEDPDF_RELEASE_REPO: MFB-Technologies-Inc/embed-pdf-runtime
+  EMBEDPDF_RELEASE_REPO: ${{ github.repository }}
   # check-apple-engine.sh reads this one; the publish script sets it from
   # EMBEDPDF_RELEASE_REPO when it runs the check itself.
-  EMBEDPDF_RUNTIME_REPO: MFB-Technologies-Inc/embed-pdf-runtime
+  EMBEDPDF_RUNTIME_REPO: ${{ github.repository }}
 
 jobs:
   check:
@@ -85,7 +83,6 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      # The release repo is public, so the run's token can read it.
       - name: Check the pinned engine
         id: check
         env:
@@ -106,9 +103,93 @@ jobs:
           echo "apple-engine-$hash: $state"
           echo "state=$state" >> "$GITHUB_OUTPUT"
 
-  build:
+  # Each slice is a full LTO build of epdf-viewer-host; one after another on
+  # one runner they took over 30 minutes. build puts all four back in
+  # platforms/apple/.build and assembles them.
+  rust-slice:
     needs: check
-    if: needs.check.outputs.state != 'current'
+    if: needs.check.outputs.state == 'build'
+    runs-on: xcode-27
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        fork: [ios-arm64, ios-sim-arm64, darwin-static-arm64, darwin-static-x64]
+    env:
+      FORK: ${{ matrix.fork }}
+    steps:
+      # No submodules: cargo reads PDFium from the fork slice, and the stamp
+      # reads the runtime-src gitlink from the index.
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      # build-xcframework.sh passes it to cargo as -j; the job env can't run
+      # sysctl.
+      - name: Set the work directory and build parallelism
+        run: |
+          {
+            echo "PERF_WORK_DIR=$RUNNER_TEMP/work"
+            echo "CARGO_BUILD_JOBS=$(sysctl -n hw.ncpu)"
+          } >> "$GITHUB_ENV"
+
+      # stamp-fork-slice.mjs uses Node's built-ins only.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - uses: ./.github/actions/setup-xcode-27
+
+      # Also exports EMBEDPDF_NM. One cache per slice, so the four don't
+      # overwrite each other's.
+      - uses: ./.github/actions/setup-rust
+        with:
+          targets: aarch64-apple-ios aarch64-apple-ios-sim aarch64-apple-darwin x86_64-apple-darwin
+          cache-key: apple-${{ matrix.fork }}
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: fork-slice-${{ matrix.fork }}
+          path: ${{ runner.temp }}/fork-slice-${{ matrix.fork }}
+
+      # Exit 65 when the slice isn't its target at the runtime-src gitlink.
+      # LIB_ROOT is the layout libRootFor gives build-xcframework.sh:
+      # <root>/<target> is the slice's staging.
+      - name: Stamp the fork slice
+        run: |
+          staging=$RUNNER_TEMP/fork-slice-$FORK/staging
+          node scripts/release/stamp-fork-slice.mjs "$FORK" "$staging"
+          root=$RUNNER_TEMP/lib-root
+          mkdir -p "$root"
+          ln -s "$staging" "$root/$FORK"
+          echo "LIB_ROOT=$root" >> "$GITHUB_ENV"
+
+      - name: Build the Rust slice
+        run: bash platforms/apple/build-xcframework.sh --slice "$FORK"
+
+      # Copied out of .build so the artifact's root is fixed: build downloads
+      # every apple-rust-* into platforms/apple/.build as they were.
+      - name: Collect the slice
+        run: |
+          out=$RUNNER_TEMP/apple-rust
+          mkdir -p "$out"
+          cp -R "platforms/apple/.build/$FORK" "platforms/apple/.build/generated-$FORK" "$out/"
+          find "$out" -maxdepth 2 -print
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: apple-rust-${{ matrix.fork }}
+          path: ${{ runner.temp }}/apple-rust/
+          if-no-files-found: error
+
+  build:
+    needs: [check, rust-slice]
+    # rust-slice runs on build only, so pin must not wait for its success.
+    if: >-
+      !cancelled() && (needs.check.outputs.state == 'pin'
+      || (needs.check.outputs.state == 'build' && needs.rust-slice.result == 'success'))
     runs-on: xcode-27
     timeout-minutes: 240
     outputs:
@@ -173,6 +254,15 @@ jobs:
           name: fork-slice-darwin-static-x64
           path: ${{ runner.temp }}/fork-slice-darwin-static-x64
 
+      # The Rust archives and their generated Swift, where
+      # build-xcframework.sh --slice left them on each rust-slice runner.
+      - uses: actions/download-artifact@v7
+        if: env.STATE == 'build'
+        with:
+          pattern: apple-rust-*
+          merge-multiple: true
+          path: platforms/apple/.build
+
       # Exit 65 when a slice isn't its target at the runtime-src gitlink.
       - name: Stamp the fork slices
         if: env.STATE == 'build'
@@ -184,9 +274,12 @@ jobs:
       # On build: the zip and its facts in platforms/apple/.build/publish, the
       # zip unpacked to platforms/apple/EmbedPDF/EmbedPDFBindings.xcframework.
       # On pin: both manifests rewritten from the release's .sha256, no zip.
+      # EMBEDPDF_APPLE_SLICES_PREBUILT=1 has build-xcframework.sh --assemble
+      # the downloaded slices rather than build them; pin builds nothing.
       - name: Build the engine
         env:
           GH_TOKEN: ${{ github.token }}
+          EMBEDPDF_APPLE_SLICES_PREBUILT: '1'
         run: node scripts/publish-engine-payload.mjs --only apple --stage build
 
       # The zip and its facts only. upload-artifact stores symlinks as copies,
@@ -430,6 +523,8 @@ jobs:
     timeout-minutes: 45
     # No environment on a dry run: nothing to approve.
     environment: ${{ !inputs.dry_run && 'release' || '' }}
+    permissions:
+      contents: write
     outputs:
       checksum: ${{ steps.pinned.outputs.checksum }}
     env:
@@ -437,21 +532,19 @@ jobs:
       CHECKSUM: ${{ needs.build.outputs.checksum }}
       DRY_RUN: ${{ inputs.dry_run }}
     steps:
-      # The script's startup checks run here too: a clean tracked tree,
-      # runtime-src checked out at the gitlink, cargo metadata and rustc.
+      # Its token can write to this repo, so nothing here runs build code:
+      # --stage publish checks only for a clean tracked tree and asks gh, and
+      # takes the toolchain from the build's facts. No submodules: the engine
+      # hash reads the runtime-src gitlink from the index.
       - uses: actions/checkout@v6
         with:
-          submodules: recursive
-          fetch-depth: 0
+          fetch-depth: 1
           persist-credentials: false
 
+      # The script imports only Node's built-ins and this repo's modules.
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-
-      - uses: ./.github/actions/setup-rust
-        with:
-          cache-key: apple
 
       - uses: actions/download-artifact@v7
         with:
@@ -467,24 +560,13 @@ jobs:
           cp "$RUNNER_TEMP"/apple-xcframework/EmbedPDFBindings.xcframework.zip{,.json} "$pub/"
           echo "$CHECKSUM  $pub/EmbedPDFBindings.xcframework.zip" | shasum -a 256 -c -
 
-      - name: Create the release token
-        id: token
-        if: ${{ !inputs.dry_run }}
-        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
-        with:
-          app-id: ${{ secrets.RELEASE_APP_ID }}
-          private-key: ${{ secrets.RELEASE_APP_KEY }}
-          owner: MFB-Technologies-Inc
-          repositories: embed-pdf-runtime
-
       # The script runs check-apple-engine.sh again: a release made since the
       # check job is pinned from, not uploaded over. On a dry run it prints the
       # gh command and leaves the manifests alone, so they are pinned here
       # with its own pinEngine to what the release would carry.
       - name: Publish the engine
         env:
-          # A dry run has no App token; the run's token reads the public repo.
-          GH_TOKEN: ${{ steps.token.outputs.token || github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [[ "$DRY_RUN" == true ]]; then
             node scripts/publish-engine-payload.mjs --only apple --stage publish --dry-run

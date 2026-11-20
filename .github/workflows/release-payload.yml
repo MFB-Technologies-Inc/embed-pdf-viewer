@@ -1,21 +1,20 @@
 name: release-payload
 
-# Publishes the wasm runtime payload as runtime-payloads-<hash> on the release
-# repo, with scripts/publish-engine-payload.mjs --only wasm. Its PDFium is the
+# Publishes the wasm runtime payload as runtime-payloads-<hash> on this repo,
+# with scripts/publish-engine-payload.mjs --only wasm. Its PDFium is the
 # wasm32-eh slice release-fork-slices.yml uploaded (fork-slice-wasm32-eh),
 # stamped into buildFork's cache so the fork is not built again.
 #
 #   key      computes the payload hash (runtime-payload-hash.sh) and asks the
-#            release repo whether that payload is out. Then nothing else runs.
-#   verify   runs the whole script with --dry-run: build, verify, pack, and
-#            print the gh command. No environment, no token. Uploads the
-#            built npm/wasm32/lib as payload-wasm32. On dry_run this is the
-#            last job.
+#            repo's releases whether that payload is out. Then nothing else runs.
+#   verify   runs the script's build stage (--stage build): link, verify,
+#            pack. No environment, no gh. Uploads the archive, its .sha256
+#            and its facts as payload-release, and the built npm/wasm32/lib
+#            as payload-wasm32. On dry_run this is the last job.
 #   publish  under the release environment, after its reviewers approve:
-#            runs --dry-run again as a warm-up (the shared Rust cache makes it
-#            quick), then mints the App token and runs the script for real.
-#            The token is minted only once the build is done, because an
-#            installation token expires after an hour.
+#            --stage publish with the job's token, on payload-release. It
+#            runs no build code (no pnpm install, cargo or emsdk), since its
+#            token can write to this repo.
 
 on:
   workflow_call:
@@ -25,13 +24,6 @@ on:
         required: false
         type: boolean
         default: false
-    secrets:
-      RELEASE_APP_ID:
-        description: GitHub App that can write releases on the release repo.
-        required: false
-      RELEASE_APP_KEY:
-        description: That App's private key.
-        required: false
     outputs:
       payload_tag:
         description: The payload release tag, runtime-payloads-<hash>.
@@ -48,7 +40,7 @@ defaults:
     shell: bash
 
 env:
-  EMBEDPDF_RELEASE_REPO: MFB-Technologies-Inc/embed-pdf-runtime
+  EMBEDPDF_RELEASE_REPO: ${{ github.repository }}
 
 jobs:
   key:
@@ -67,7 +59,7 @@ jobs:
       # Published means what the script's releaseVerdict means: not a draft,
       # with the archive and its .sha256. A draft or partial release still
       # goes to the publish job, where the script stops on it with its own
-      # message. The release repo is public, so the run's token can read it.
+      # message.
       - name: Compute the payload tag
         id: key
         env:
@@ -121,7 +113,6 @@ jobs:
 
       - uses: ./.github/actions/setup-node-pnpm
 
-      # One cache-key for verify and publish, so publish's builds are warm.
       - uses: ./.github/actions/setup-rust
         with:
           targets: wasm32-unknown-emscripten
@@ -143,20 +134,28 @@ jobs:
       - name: Stamp the fork slice
         run: node scripts/release/stamp-fork-slice.mjs wasm32-eh "$RUNNER_TEMP/fork-slice-wasm32-eh/staging"
 
-      # --dry-run never asks gh anything; GH_TOKEN is left unset.
+      # --stage build never asks gh anything; GH_TOKEN is left unset.
       - name: Build and verify the payload
         run: |
           echo "verifying $PAYLOAD_TAG"
-          node scripts/publish-engine-payload.mjs --only wasm --dry-run
+          node scripts/publish-engine-payload.mjs --only wasm --stage build
           hash=$(bash packages/engine/runtime/scripts/runtime-payload-hash.sh)
           if [[ "runtime-payloads-$hash" != "$PAYLOAD_TAG" ]]; then
             echo "::error::the payload hash moved during the run: $PAYLOAD_TAG, now runtime-payloads-$hash"
             exit 1
           fi
 
-      # A successful --dry-run leaves the payload it built in npm/wasm32/lib,
-      # marked dry-run-<hash> in .payload-source. The train's dry run builds
-      # the viewer from it, since no release holds it yet.
+      # What --stage publish releases, from the gitignored dir --stage build
+      # staged it in.
+      - uses: actions/upload-artifact@v6
+        with:
+          name: payload-release
+          path: packages/engine/runtime/.build/publish/
+          if-no-files-found: error
+
+      # A successful --stage build leaves the payload it built in
+      # npm/wasm32/lib, marked dry-run-<hash> in .payload-source. The train's
+      # dry run builds the viewer from it, since no release holds it yet.
       - uses: actions/upload-artifact@v6
         with:
           name: payload-wasm32
@@ -172,80 +171,42 @@ jobs:
     needs: [key, verify]
     if: ${{ !inputs.dry_run && needs.key.outputs.published == 'false' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    timeout-minutes: 15
     environment: release
+    permissions:
+      contents: write
     env:
       PAYLOAD_TAG: ${{ needs.key.outputs.payload_tag }}
     steps:
-      # Full runtime-src history at the gitlink: buildFork clones the fork from
-      # this checkout, and the script runs git merge-base --is-ancestor in it.
+      # No submodules: the payload hash reads the runtime-src gitlink from the
+      # index, and --stage publish needs no checkout of it.
       - uses: actions/checkout@v6
         with:
-          submodules: recursive
-          fetch-depth: 0
+          fetch-depth: 1
           persist-credentials: false
 
-      - name: Set the work directory
-        run: echo "PERF_WORK_DIR=$RUNNER_TEMP/work" >> "$GITHUB_ENV"
-
-      # bindgen, for pdfium-sys on wasm32-unknown-emscripten.
-      - name: Install libclang
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libclang-dev
-
-      - uses: ./.github/actions/setup-node-pnpm
-
-      # One cache-key for verify and publish, so publish's builds are warm.
-      - uses: ./.github/actions/setup-rust
+      # The script imports only Node's built-ins and this repo's modules, so
+      # no pnpm install.
+      - uses: actions/setup-node@v6
         with:
-          targets: wasm32-unknown-emscripten
-          cache-key: release-payload
-
-      # Where the script looks for emsdk (workDir()/emsdk), at
-      # build-arm.mjs's EH_EMSDK_VERSION, with the sysroot bindgen reads.
-      - uses: ./.github/actions/setup-emsdk
-        with:
-          version: 4.0.0
-          dir: ${{ env.PERF_WORK_DIR }}/emsdk
+          node-version: 24
 
       - uses: actions/download-artifact@v7
         with:
-          name: fork-slice-wasm32-eh
-          path: ${{ runner.temp }}/fork-slice-wasm32-eh
-
-      # Exit 65 when the slice isn't wasm32-eh at the runtime-src gitlink.
-      - name: Stamp the fork slice
-        run: node scripts/release/stamp-fork-slice.mjs wasm32-eh "$RUNNER_TEMP/fork-slice-wasm32-eh/staging"
-
-      # Builds into the warm cargo cache, so the real run below starts within
-      # minutes of the token being minted.
-      - name: Warm up the build
-        run: node scripts/publish-engine-payload.mjs --only wasm --dry-run
-
-      - name: Create the release token
-        id: token
-        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
-        with:
-          app-id: ${{ secrets.RELEASE_APP_ID }}
-          private-key: ${{ secrets.RELEASE_APP_KEY }}
-          owner: MFB-Technologies-Inc
-          repositories: embed-pdf-runtime
+          name: payload-release
+          path: packages/engine/runtime/.build/publish
 
       # The script recomputes the hash and skips a payload that is already
-      # out, so a release made since the key job is not made twice.
+      # out, so a release made since the key job is not made twice. It refuses
+      # a payload-release staged for another tag or commit.
       - name: Publish the payload
         env:
-          GH_TOKEN: ${{ steps.token.outputs.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           echo "publishing $PAYLOAD_TAG"
-          node scripts/publish-engine-payload.mjs --only wasm
+          node scripts/publish-engine-payload.mjs --only wasm --stage publish
           hash=$(bash packages/engine/runtime/scripts/runtime-payload-hash.sh)
           if [[ "runtime-payloads-$hash" != "$PAYLOAD_TAG" ]]; then
             echo "::error::the payload hash moved during the run: $PAYLOAD_TAG, now runtime-payloads-$hash"
             exit 1
           fi
-
-      - name: Disk usage
-        if: always()
-        run: df -h

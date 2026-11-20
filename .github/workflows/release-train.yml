@@ -1,8 +1,8 @@
 name: release-train
 
-# One dispatch releases everything a commit of this branch ships: the PDFium
-# runtime, the wasm payload and the Apple engine on the release repo, then the
-# Swift package, the Rust viewer bundle and the C# engine as prereleases here.
+# One dispatch releases everything a commit of this branch ships, all as
+# prereleases on this repo: the PDFium runtime, the wasm payload and the Apple
+# engine, then the Swift package, the Rust viewer bundle and the C# engine.
 #
 #   t0          preflight, the three slice groups and the .NET package start
 #               together.
@@ -62,7 +62,7 @@ defaults:
     shell: bash
 
 env:
-  RELEASE_REPO: MFB-Technologies-Inc/embed-pdf-runtime
+  RELEASE_REPO: ${{ github.repository }}
 
 jobs:
   preflight:
@@ -154,9 +154,11 @@ jobs:
           package=EmbedPDF.Engine.0.0.0-local
           check swift "$SWIFT_VERSION"
           check viewer "rust-viewer-$VIEWER_VERSION" "mfb-embedpdf-rust-viewer-$VIEWER_VERSION.tgz"
-          check dotnet "dotnet-engine-0.0.0-local-${GITHUB_SHA:0:12}" \
-            "$package.nupkg" "$package.nupkg.sha256" "$package.provenance.json" \
-            "$package.validation.linux-arm64.json" EmbedPDF-CSharp-Existing-App.md
+          dotnet_assets=()
+          for rid in linux-arm64 linux-x64 osx-arm64 win-x64; do
+            dotnet_assets+=("$package.$rid.nupkg" "$package.$rid.nupkg.sha256" "$package.$rid.provenance.json" "$package.validation.$rid.json")
+          done
+          check dotnet "dotnet-engine-0.0.0-local-${GITHUB_SHA:0:12}" "${dotnet_assets[@]}" EmbedPDF-CSharp-Existing-App.md
           exit "$status"
 
       # For the summary only: the reusable workflows compute these again.
@@ -198,58 +200,65 @@ jobs:
           cat "$GITHUB_STEP_SUMMARY"
 
   slices-apple:
+    name: release-fork-slices.yml (apple)
     uses: ./.github/workflows/release-fork-slices.yml
     with:
       targets: '["ios-arm64","ios-sim-arm64","darwin-static-arm64","darwin-static-x64"]'
 
   slices-eh:
+    name: release-fork-slices.yml (wasm32-eh)
     uses: ./.github/workflows/release-fork-slices.yml
     with:
       targets: '["wasm32-eh"]'
 
   slices-runtime:
+    name: release-fork-slices.yml (runtime)
     uses: ./.github/workflows/release-fork-slices.yml
     with:
       targets: '["linux-arm64","android-arm64","android-x64","wasm32"]'
 
   dotnet:
+    name: release-dotnet.yml
     uses: ./.github/workflows/release-dotnet.yml
     with:
       dry_run: ${{ inputs.dry_run }}
 
   # Its five archives: four from slices-runtime, wasm32-eh from slices-eh.
+  # runtime, payload and apple grant contents: write so their publish jobs
+  # can ask for it; every other job in them stays at contents: read.
   runtime:
+    name: release-runtime.yml
     needs: [preflight, slices-runtime, slices-eh]
     uses: ./.github/workflows/release-runtime.yml
+    permissions:
+      contents: write
     with:
       runtime_sha: ${{ needs.slices-runtime.outputs.runtime_sha }}
       dry_run: ${{ inputs.dry_run }}
-    secrets:
-      RELEASE_APP_ID: ${{ secrets.RELEASE_APP_ID }}
-      RELEASE_APP_KEY: ${{ secrets.RELEASE_APP_KEY }}
 
   payload:
+    name: release-payload.yml
     needs: [preflight, slices-eh]
     uses: ./.github/workflows/release-payload.yml
+    permissions:
+      contents: write
     with:
       dry_run: ${{ inputs.dry_run }}
-    secrets:
-      RELEASE_APP_ID: ${{ secrets.RELEASE_APP_ID }}
-      RELEASE_APP_KEY: ${{ secrets.RELEASE_APP_KEY }}
 
   apple:
+    name: release-apple.yml
     needs: [preflight, slices-apple]
     uses: ./.github/workflows/release-apple.yml
+    permissions:
+      contents: write
     with:
       dry_run: ${{ inputs.dry_run }}
-    secrets:
-      RELEASE_APP_ID: ${{ secrets.RELEASE_APP_ID }}
-      RELEASE_APP_KEY: ${{ secrets.RELEASE_APP_KEY }}
 
   # payload's publish job, when it runs, ends before payload does, so the
   # payload is released by the time this starts. The one case it isn't is a
   # dry run that built a new payload: then the build uses payload-wasm32.
   viewer:
+    name: release-rust-viewer.yml
     needs: payload
     uses: ./.github/workflows/release-rust-viewer.yml
     with:
@@ -261,6 +270,7 @@ jobs:
   # they are committed only once the runtime and payload of that gitlink are
   # out too. swift-release tags the pin commit.
   pin:
+    name: pin
     needs: [apple, runtime, payload]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -333,6 +343,7 @@ jobs:
           echo "pin_sha=$pin_sha" >> "$GITHUB_OUTPUT"
 
   swift-release:
+    name: release swift
     needs: [pin, viewer]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -361,6 +372,7 @@ jobs:
   # buildInfo. On a real run viewer fetched the released payload, so the
   # payload is out by now.
   viewer-release:
+    name: release viewer
     needs: viewer
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -391,6 +403,7 @@ jobs:
   # Tags github.sha, the commit the package was built from and its provenance
   # record names. preflight checked the tag; dotnet itself doesn't wait for it.
   dotnet-release:
+    name: release dotnet
     needs: [preflight, dotnet]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -407,16 +420,22 @@ jobs:
         with:
           fetch-depth: 1
 
+      # One artifact per RID (dotnet-release-<rid>), merged: their file names
+      # don't overlap.
       - uses: actions/download-artifact@v7
         with:
-          name: dotnet-release
+          pattern: dotnet-release-*
+          merge-multiple: true
           path: ${{ runner.temp }}/dotnet-release
 
       # The guide names the release tag and commit, so it is rendered here.
       - name: Render the existing-app guide
         run: |
           R=$RUNNER_TEMP/dotnet-release
-          (cd "$R" && sha256sum -c "$PACKAGE.nupkg.sha256")
+          ls -l "$R"
+          for rid in linux-arm64 linux-x64 osx-arm64 win-x64; do
+            (cd "$R" && sha256sum -c "$PACKAGE.$rid.nupkg.sha256")
+          done
           tag="dotnet-engine-0.0.0-local-${GITHUB_SHA:0:12}"
           echo "TAG=$tag" >> "$GITHUB_ENV"
           bash platforms/dotnet/packaging/render-guide.sh "$R/EmbedPDF-CSharp-Existing-App.md.in" "$R/guide-facts.json" \
@@ -425,7 +444,10 @@ jobs:
       - name: Release the C# engine
         run: |
           R=$RUNNER_TEMP/dotnet-release
+          assets=()
+          for rid in linux-arm64 linux-x64 osx-arm64 win-x64; do
+            assets+=("$R/$PACKAGE.$rid.nupkg" "$R/$PACKAGE.$rid.nupkg.sha256" "$R/$PACKAGE.$rid.provenance.json" "$R/$PACKAGE.validation.$rid.json")
+          done
           bash scripts/release/github-release.sh publish "$TAG" "$GITHUB_SHA" \
             "C# engine 0.0.0-local (${GITHUB_SHA:0:9})" docs/releases/dotnet-engine.md \
-            "$R/$PACKAGE.nupkg" "$R/$PACKAGE.nupkg.sha256" "$R/$PACKAGE.provenance.json" \
-            "$R/$PACKAGE.validation.linux-arm64.json" "$R/EmbedPDF-CSharp-Existing-App.md"
+            "${assets[@]}" "$R/EmbedPDF-CSharp-Existing-App.md"
