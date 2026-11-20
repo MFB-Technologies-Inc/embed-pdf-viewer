@@ -93,6 +93,30 @@ public final class com/embedpdf/MetadataKt {
 	public static final fun metadata (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class com/embedpdf/PageEditCapability {
+	public final fun canEdit (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canExtract (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun deletePages (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun duplicate (Ljava/util/List;Luniffi/epdf_plugin_page_edit/PageEditPlacement;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun duplicate$default (Lcom/embedpdf/PageEditCapability;Ljava/util/List;Luniffi/epdf_plugin_page_edit/PageEditPlacement;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun extract (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun insert (Ljava/util/List;Luniffi/epdf_viewer_host/DocumentInfo;Luniffi/epdf_plugin_page_edit/PageEditPlacement;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun insert ([BLuniffi/epdf_plugin_page_edit/PageEditBytesOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun insert$default (Lcom/embedpdf/PageEditCapability;Ljava/util/List;Luniffi/epdf_viewer_host/DocumentInfo;Luniffi/epdf_plugin_page_edit/PageEditPlacement;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun insert$default (Lcom/embedpdf/PageEditCapability;[BLuniffi/epdf_plugin_page_edit/PageEditBytesOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun insertBlank (Luniffi/epdf_plugin_page_edit/PageEditBlankOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun insertBlank$default (Lcom/embedpdf/PageEditCapability;Luniffi/epdf_plugin_page_edit/PageEditBlankOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun movePages (Ljava/util/List;Luniffi/epdf_plugin_page_edit/PageEditPlacement;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun rotate (Ljava/util/List;Luniffi/epdf_plugin_page_edit/PageEditTurn;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun select (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun selectedPages (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setRotation (Luniffi/epdf_plugin_page_edit/PageEditRotation;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/PageEditKt {
+	public static final fun pageEdit (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class com/embedpdf/PageImage {
 	public final fun copyPixels ()[B
 	public final fun getHeight ()I

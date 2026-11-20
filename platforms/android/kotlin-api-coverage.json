@@ -3118,91 +3118,130 @@
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "get_selected",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/PageEdit.kt",
+        "symbol": "selectedPages"
+      }
     },
     {
       "crate": "page-edit",
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "select",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/PageEdit.kt",
+        "symbol": "select"
+      }
     },
     {
       "crate": "page-edit",
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "can_edit",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/PageEdit.kt",
+        "symbol": "canEdit"
+      }
     },
     {
       "crate": "page-edit",
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "can_extract",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/PageEdit.kt",
+        "symbol": "canExtract"
+      }
     },
     {
       "crate": "page-edit",
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "rotate_by",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/PageEdit.kt",
+        "symbol": "rotate"
+      }
     },
     {
       "crate": "page-edit",
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "set_rotation",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/PageEdit.kt",
+        "symbol": "setRotation"
+      }
     },
     {
       "crate": "page-edit",
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "reorder",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/PageEdit.kt",
+        "symbol": "movePages"
+      }
     },
     {
       "crate": "page-edit",
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "delete",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/PageEdit.kt",
+        "symbol": "deletePages"
+      }
     },
     {
       "crate": "page-edit",
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "insert_blank",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/PageEdit.kt",
+        "symbol": "insertBlank"
+      }
     },
     {
       "crate": "page-edit",
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "insert_from_bytes",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/PageEdit.kt",
+        "symbol": "insert"
+      }
     },
     {
       "crate": "page-edit",
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "insert_from_document",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/PageEdit.kt",
+        "symbol": "insert"
+      }
     },
     {
       "crate": "page-edit",
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "duplicate",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/PageEdit.kt",
+        "symbol": "duplicate"
+      }
     },
     {
       "crate": "page-edit",
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "extract",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/PageEdit.kt",
+        "symbol": "extract"
+      }
     },
     {
       "crate": "redaction",
