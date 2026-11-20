@@ -2120,6 +2120,20 @@ EmbedPDF.PageLinkTarget.Uri.Equals(EmbedPDF.PageLinkTarget.Uri? other) -> bool
 EmbedPDF.PageLinkTarget.Uri.Uri(string! Value) -> void
 EmbedPDF.PageLinkTarget.Uri.Value.get -> string!
 EmbedPDF.PageLinkTarget.Uri.Value.init -> void
+EmbedPDF.PageNavigator
+EmbedPDF.PageNavigator.CanGoNextAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.PageNavigator.CanGoPreviousAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.PageNavigator.Dispose() -> void
+EmbedPDF.PageNavigator.GetCurrentPageAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageRef?>!
+EmbedPDF.PageNavigator.GetCurrentPageIndexAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+EmbedPDF.PageNavigator.GetPageCountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+EmbedPDF.PageNavigator.GoToFirstPageAsync(EmbedPDF.StageGoToOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PageNavigator.GoToLastPageAsync(EmbedPDF.StageGoToOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PageNavigator.GoToPageAsync(EmbedPDF.PageRef page, EmbedPDF.StageGoToOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PageNavigator.GoToPageIndexAsync(int index, EmbedPDF.StageGoToOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PageNavigator.NextPageAsync(EmbedPDF.StageGoToOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PageNavigator.PreviousPageAsync(EmbedPDF.StageGoToOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PageNavigator.Stage.get -> EmbedPDF.StageCapability!
 EmbedPDF.PageRef
 EmbedPDF.PageRef.Deconstruct(out int PageObjectNumber) -> void
 EmbedPDF.PageRef.Equals(EmbedPDF.PageRef other) -> bool
@@ -2137,6 +2151,18 @@ EmbedPDF.PageRenderResolution.IsFull.init -> void
 EmbedPDF.PageRenderResolution.PageRenderResolution() -> void
 EmbedPDF.PageRenderResolution.PageRenderResolution(double DeviceWidth, bool IsFull) -> void
 EmbedPDF.PageRenderResolution.UnrotatedDeviceWidth(double unrotatedWidth, double displayedWidth) -> double
+EmbedPDF.PageZoom
+EmbedPDF.PageZoom.CanZoomInAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.PageZoom.CanZoomOutAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.PageZoom.Dispose() -> void
+EmbedPDF.PageZoom.FitPageAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PageZoom.FitWidthAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PageZoom.GetZoomLevelAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<double>!
+EmbedPDF.PageZoom.GetZoomModeAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.StageZoomMode!>!
+EmbedPDF.PageZoom.Stage.get -> EmbedPDF.StageCapability!
+EmbedPDF.PageZoom.ZoomInAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PageZoom.ZoomOutAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PageZoom.ZoomToAsync(EmbedPDF.StageZoomTarget! target, EmbedPDF.PdfPoint? around = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.PaneInfo
 EmbedPDF.PaneInfo.<Clone>$() -> EmbedPDF.PaneInfo!
 EmbedPDF.PaneInfo.ActiveDocumentId.get -> string?
@@ -2290,7 +2316,9 @@ EmbedPDF.PdfViewer.GetPageAsync(EmbedPDF.PageRef page, EmbedPDF.DocumentInfo? do
 EmbedPDF.PdfViewer.GetPageAtAsync(int index, EmbedPDF.DocumentInfo? document = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageInfo?>!
 EmbedPDF.PdfViewer.GetPageEditAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageEditCapability!>!
 EmbedPDF.PdfViewer.GetPageIndexAsync(EmbedPDF.PageRef page, EmbedPDF.DocumentInfo? document = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+EmbedPDF.PdfViewer.GetPageNavigatorAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageNavigator!>!
 EmbedPDF.PdfViewer.GetPageRevisionAsync(EmbedPDF.DocumentInfo? document = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+EmbedPDF.PdfViewer.GetPageZoomAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageZoom!>!
 EmbedPDF.PdfViewer.GetPagesAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.PageInfo!>!>!
 EmbedPDF.PdfViewer.GetRenderAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RenderCapability!>!
 EmbedPDF.PdfViewer.GetSearchAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.SearchCapability!>!
@@ -2298,6 +2326,7 @@ EmbedPDF.PdfViewer.GetSelectionAsync(EmbedPDF.DocumentInfo! document, System.Thr
 EmbedPDF.PdfViewer.GetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ViewerSettings!>!
 EmbedPDF.PdfViewer.GetShellAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ShellCapability!>!
 EmbedPDF.PdfViewer.GetStageAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.StageCapability!>!
+EmbedPDF.PdfViewer.GetToolSwitcherAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ToolSwitcher!>!
 EmbedPDF.PdfViewer.GetViewManagerAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ViewManagerCapability!>!
 EmbedPDF.PdfViewer.HasDocumentAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 EmbedPDF.PdfViewer.MoveAsync(EmbedPDF.DocumentInfo! document, int index, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -4213,6 +4242,17 @@ EmbedPDF.ToolId.ToolId() -> void
 EmbedPDF.ToolId.ToolId(string! Value) -> void
 EmbedPDF.ToolId.Value.get -> string!
 EmbedPDF.ToolId.Value.init -> void
+EmbedPDF.ToolSwitcher
+EmbedPDF.ToolSwitcher.ActivateDefaultToolAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ToolSwitcher.ActivateToolAsync(EmbedPDF.ToolId id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ToolSwitcher.Dispose() -> void
+EmbedPDF.ToolSwitcher.GetActiveToolIdAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ToolId>!
+EmbedPDF.ToolSwitcher.GetDefaultToolIdAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ToolId>!
+EmbedPDF.ToolSwitcher.GetToolsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.InteractionTool!>!>!
+EmbedPDF.ToolSwitcher.HasToolAsync(EmbedPDF.ToolId id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.ToolSwitcher.Interaction.get -> EmbedPDF.InteractionCapability!
+EmbedPDF.ToolSwitcher.PopToolAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ToolSwitcher.PushToolAsync(EmbedPDF.ToolId id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.TriggerGates
 EmbedPDF.TriggerGates.<Clone>$() -> EmbedPDF.TriggerGates!
 EmbedPDF.TriggerGates.Annotation.get -> bool?
