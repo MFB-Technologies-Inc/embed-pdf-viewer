@@ -31,7 +31,7 @@ import Foundation
 // stamp take no `blendMode`: the engine writes `/BM` while it draws an
 // appearance, and it draws neither. `richText` and a dimension's `measure`
 // encode flat too, through `AnnotationSharedMembers`
-// (`AnnotationMeasure.swift`). The JSON-string overloads stay for the two
+// (`AnnotationSharedMembers.swift`). The JSON-string overloads stay for the two
 // subtypes the typed layer leaves out: popup and widget.
 
 /// A typed create draft: the engine's field bag for one subtype, with its
