@@ -3,7 +3,7 @@ using GR = uniffi.epdf_plugin_render;
 namespace EmbedPDF;
 
 /// <summary>
-/// A document's page rasters. Get one with <see cref="PdfViewer.RenderAsync"/>;
+/// A document's page rasters. Get one with <see cref="PdfViewer.GetRenderAsync"/>;
 /// the viewer needs <see cref="PdfViewerOptions.Render"/>. After its document
 /// closes, every call throws <see cref="PdfErrorCode.InstanceClosed"/>.
 /// </summary>
@@ -341,7 +341,7 @@ public sealed class RenderViewDemand : IAsyncDisposable
 public sealed partial class PdfViewer
 {
     /// <summary>The document's render capability. Throws <see cref="PdfErrorCode.Unsupported"/> without <see cref="PdfViewerOptions.Render"/>.</summary>
-    public async Task<RenderCapability> RenderAsync(DocumentInfo document, CancellationToken cancellationToken = default)
+    public async Task<RenderCapability> GetRenderAsync(DocumentInfo document, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(document);
         return new(this, await CallAsync(h => h.Render(document.Id), cancellationToken).ConfigureAwait(false));

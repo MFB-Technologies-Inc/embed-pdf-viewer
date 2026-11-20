@@ -160,8 +160,10 @@ fall back to Apple's arrangement and document the generated namespace as unsuppo
 | `print`/`Logger` | `ILogger<T>` taken from options, `NullLogger` by default |
 
 Names follow .NET design guidelines: `PdfViewer`, `PdfException`, `SearchCapability`,
-`OpenAsync`. Capability accessors keep Swift's member names (`viewer.Search(document)`), so the
-coverage manifest can share them across Swift, Kotlin and C#. Configuration takes a
+`OpenAsync`. *Changed 2026-11-20 in wave A:* capability accessors are `Get{Plugin}Async`
+(`viewer.GetSearchAsync(document)`, `GetViewManagerAsync()`), since .NET method names are verbs
+and `viewer.SearchAsync(document)` reads as searching the document. The coverage manifest maps
+capability members, not accessors, so the Swift names stay on the Swift side. Configuration takes a
 `PdfViewerOptions` class with init properties plus a fluent builder, and an optional
 `services.AddEmbedPdf(options => …)` extension in a separate
 `EmbedPDF.Extensions.DependencyInjection` assembly so the core package carries no DI dependency.
@@ -508,10 +510,11 @@ What later waves reuse:
 
 Deviations, each with its reason:
 
-- Accessors are `MetadataAsync(document)`, `SearchAsync(document)` and so on, Swift's name plus
-  the `Async` suffix D4 gives every task-returning member. D4's example reads
-  `viewer.Search(document)`; that would be the only awaited member without the suffix. Needs a
-  user decision before wave B copies it.
+- Accessors are `GetMetadataAsync(document)`, `GetSearchAsync(document)` and so on, through
+  `GetViewManagerAsync()`, not Swift's `search(for:)` shape. Decided 2026-11-20: .NET method
+  names are verbs, and `viewer.SearchAsync(document)` or `viewer.RenderAsync(document)` would
+  read as doing the thing rather than returning a capability. D4 records the change; later
+  waves follow it.
 - Capabilities are `IDisposable`, not `IAsyncDisposable`: releasing a capability handle never
   waits on the kernel. `RenderViewDemand` is `IAsyncDisposable` because its `DisposeAsync` is the
   engine's `dispose`, which is a kernel call.

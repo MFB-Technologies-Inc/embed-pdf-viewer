@@ -85,12 +85,12 @@ public sealed class NullArgumentTests
             PageEdit = true, ViewManager = true, Shell = true,
         });
         var document = await viewer.OpenAsync(Fixture.Data("report"));
-        var render = await viewer.RenderAsync(document);
+        var render = await viewer.GetRenderAsync(document);
         object[] targets =
         [
-            await viewer.MetadataAsync(document), await viewer.SearchAsync(document), render, await viewer.HistoryAsync(document),
-            await viewer.OutlineAsync(document), await viewer.AttachmentsAsync(document), await viewer.PageEditAsync(document),
-            await viewer.ViewManagerAsync(), await viewer.ShellAsync(document), await render.CreateViewDemandAsync("main"),
+            await viewer.GetMetadataAsync(document), await viewer.GetSearchAsync(document), render, await viewer.GetHistoryAsync(document),
+            await viewer.GetOutlineAsync(document), await viewer.GetAttachmentsAsync(document), await viewer.GetPageEditAsync(document),
+            await viewer.GetViewManagerAsync(), await viewer.GetShellAsync(document), await render.CreateViewDemandAsync("main"),
         ];
         foreach (var target in targets) Assert.Empty(await Unchecked(target));
         Assert.Empty(await Unchecked(new PixelBuffer(new byte[4], 1, 1, 4)));

@@ -19,7 +19,7 @@ public sealed class SearchTests : IAsyncLifetime
         var viewer = await PdfViewer.CreateAsync(options ?? new PdfViewerOptions { Search = new() });
         viewers.Add(viewer);
         var document = await viewer.OpenAsync(Fixture.Data("report"));
-        return (viewer, document, await viewer.SearchAsync(document));
+        return (viewer, document, await viewer.GetSearchAsync(document));
     }
 
     /// <summary>May search, may not copy: the scope where snippets change answers.</summary>

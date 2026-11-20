@@ -68,7 +68,7 @@ public abstract record HistoryEvent
 /// <summary>
 /// A document's history. Undo and redo return when submitted;
 /// <see cref="ObserveEvents"/> reports confirmation or refusal. Get one with
-/// <see cref="PdfViewer.HistoryAsync"/>; the viewer needs
+/// <see cref="PdfViewer.GetHistoryAsync"/>; the viewer needs
 /// <see cref="PdfViewerOptions.History"/>. After its document closes, every
 /// call throws <see cref="PdfErrorCode.InstanceClosed"/>.
 /// </summary>
@@ -147,7 +147,7 @@ public sealed class HistoryCapability : IDisposable
 public sealed partial class PdfViewer
 {
     /// <summary>The document's history capability. Throws <see cref="PdfErrorCode.Unsupported"/> without <see cref="PdfViewerOptions.History"/>.</summary>
-    public async Task<HistoryCapability> HistoryAsync(DocumentInfo document, CancellationToken cancellationToken = default)
+    public async Task<HistoryCapability> GetHistoryAsync(DocumentInfo document, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(document);
         return new(this, await CallAsync(h => h.History(document.Id), cancellationToken).ConfigureAwait(false));

@@ -36,7 +36,7 @@ public abstract record ViewManagerEvent
 /// <summary>
 /// Panes over the open documents: each pane is a tab strip with one active
 /// document, and the panes partition the documents. Get it with
-/// <see cref="PdfViewer.ViewManagerAsync"/>; the viewer needs
+/// <see cref="PdfViewer.GetViewManagerAsync"/>; the viewer needs
 /// <see cref="PdfViewerOptions.ViewManager"/>. One capability for the whole
 /// viewer; after the viewer is disposed every call throws
 /// <see cref="PdfErrorCode.InstanceClosed"/>.
@@ -186,6 +186,6 @@ public sealed class ViewManagerCapability : IDisposable
 public sealed partial class PdfViewer
 {
     /// <summary>The viewer's view manager. Throws <see cref="PdfErrorCode.Unsupported"/> without <see cref="PdfViewerOptions.ViewManager"/>.</summary>
-    public async Task<ViewManagerCapability> ViewManagerAsync(CancellationToken cancellationToken = default) =>
+    public async Task<ViewManagerCapability> GetViewManagerAsync(CancellationToken cancellationToken = default) =>
         new(this, await CallAsync(h => h.ViewManager(), cancellationToken).ConfigureAwait(false));
 }

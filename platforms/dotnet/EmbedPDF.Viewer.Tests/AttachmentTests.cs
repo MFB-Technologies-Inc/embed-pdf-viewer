@@ -14,7 +14,7 @@ public sealed class AttachmentTests
     {
         await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Attachment = true });
         var document = await viewer.OpenAsync(Fixture.Data("report"));
-        using var attachments = await viewer.AttachmentsAsync(document);
+        using var attachments = await viewer.GetAttachmentsAsync(document);
         await attachments.EnsureLoadedAsync();
         Assert.Equal(ResourceStatus.Ready, await attachments.GetStatusAsync());
         Assert.True(await attachments.CanAddAsync());
@@ -43,7 +43,7 @@ public sealed class AttachmentTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => attachments.AddAsync([new AttachmentFileSource(data) { Name = "cancelled" }], new CancellationToken(true)));
         var bytes = await viewer.SaveAsync(document);
         var reopened = await viewer.OpenAsync(bytes);
-        using var saved = await viewer.AttachmentsAsync(reopened);
+        using var saved = await viewer.GetAttachmentsAsync(reopened);
         await saved.EnsureLoadedAsync();
         var savedFile = (await saved.ListAsync()).First(f => f.Name == "Résumé.bin");
         Assert.Equal(data, (await saved.DownloadAsync(savedFile)).Data);

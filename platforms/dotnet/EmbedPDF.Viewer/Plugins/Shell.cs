@@ -61,7 +61,7 @@ public abstract record ShellEvent
 /// <summary>
 /// Which named surfaces (panels, sheets, inspectors) and menus are open in
 /// one document. Pure state: your views decide what a surface looks like and
-/// bind to this. Get one with <see cref="PdfViewer.ShellAsync"/>; the viewer
+/// bind to this. Get one with <see cref="PdfViewer.GetShellAsync"/>; the viewer
 /// needs <see cref="PdfViewerOptions.Shell"/>. A surface's props are a JSON
 /// object, given as text or as any value a <see cref="JsonTypeInfo{T}"/>
 /// encodes to an object. After its document closes, every call throws
@@ -244,7 +244,7 @@ public sealed class ShellCapability : IDisposable
 public sealed partial class PdfViewer
 {
     /// <summary>The document's shell capability. Throws <see cref="PdfErrorCode.Unsupported"/> without <see cref="PdfViewerOptions.Shell"/>.</summary>
-    public async Task<ShellCapability> ShellAsync(DocumentInfo document, CancellationToken cancellationToken = default)
+    public async Task<ShellCapability> GetShellAsync(DocumentInfo document, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(document);
         return new(this, await CallAsync(h => h.Shell(document.Id), cancellationToken).ConfigureAwait(false));

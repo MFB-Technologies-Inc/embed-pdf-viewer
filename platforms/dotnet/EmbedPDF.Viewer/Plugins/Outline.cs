@@ -126,7 +126,7 @@ public abstract record OutlineEvent
 
 /// <summary>
 /// A document's outline (bookmarks): read, expand and collapse, select,
-/// activate and edit. Get one with <see cref="PdfViewer.OutlineAsync"/>; the
+/// activate and edit. Get one with <see cref="PdfViewer.GetOutlineAsync"/>; the
 /// viewer needs <see cref="PdfViewerOptions.Outline"/>. After its document
 /// closes, every call throws <see cref="PdfErrorCode.InstanceClosed"/>.
 /// </summary>
@@ -298,7 +298,7 @@ public sealed class OutlineCapability : IDisposable
 public sealed partial class PdfViewer
 {
     /// <summary>The document's outline capability. Throws <see cref="PdfErrorCode.Unsupported"/> without <see cref="PdfViewerOptions.Outline"/>.</summary>
-    public async Task<OutlineCapability> OutlineAsync(DocumentInfo document, CancellationToken cancellationToken = default)
+    public async Task<OutlineCapability> GetOutlineAsync(DocumentInfo document, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(document);
         return new(this, await CallAsync(h => h.Outline(document.Id), cancellationToken).ConfigureAwait(false));

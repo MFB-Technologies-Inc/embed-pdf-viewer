@@ -6,7 +6,7 @@ namespace EmbedPDF;
 /// A document's text search: one session (<see cref="SearchAsync"/>,
 /// navigated with <see cref="NextHitAsync"/>, <see cref="PreviousHitAsync"/>
 /// and <see cref="GoToHitAsync"/>) and a session-free <see cref="FindAllAsync"/>.
-/// Get one with <see cref="PdfViewer.SearchAsync"/>; the viewer needs
+/// Get one with <see cref="PdfViewer.GetSearchAsync"/>; the viewer needs
 /// <see cref="PdfViewerOptions.Search"/>. After its document closes, every
 /// call throws <see cref="PdfErrorCode.InstanceClosed"/>.
 /// </summary>
@@ -186,7 +186,7 @@ public sealed class SearchCapability : IDisposable
 public sealed partial class PdfViewer
 {
     /// <summary>The document's search capability. Throws <see cref="PdfErrorCode.Unsupported"/> without <see cref="PdfViewerOptions.Search"/>.</summary>
-    public async Task<SearchCapability> SearchAsync(DocumentInfo document, CancellationToken cancellationToken = default)
+    public async Task<SearchCapability> GetSearchAsync(DocumentInfo document, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(document);
         return new(this, await CallAsync(h => h.Search(document.Id), cancellationToken).ConfigureAwait(false));

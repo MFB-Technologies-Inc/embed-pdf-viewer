@@ -11,9 +11,9 @@ public sealed class HistoryTests
         await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { History = true, PageEdit = true });
         var document = await viewer.OpenAsync(Fixture.Data("report"));
         var other = await viewer.OpenAsync(Fixture.Data("report"));
-        using var history = await viewer.HistoryAsync(document);
-        using var otherHistory = await viewer.HistoryAsync(other);
-        using var edit = await viewer.PageEditAsync(document);
+        using var history = await viewer.GetHistoryAsync(document);
+        using var otherHistory = await viewer.GetHistoryAsync(other);
+        using var edit = await viewer.GetPageEditAsync(document);
         var first = (await viewer.GetPagesAsync(document))[0].Page;
         var undone = Fixture.First(history.ObserveEvents(), e => e as HistoryEvent.Undone);
         _ = await edit.RotateAsync([first], PageEditTurn.Clockwise);
@@ -37,7 +37,7 @@ public sealed class HistoryTests
     {
         await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { History = true });
         var document = await viewer.OpenAsync(Fixture.Data("report"));
-        using var history = await viewer.HistoryAsync(document);
+        using var history = await viewer.GetHistoryAsync(document);
         await history.UndoAsync();
         await history.RedoAsync();
         var changed = Fixture.First(history.ObserveEvents(), e => e as HistoryEvent.SettingsChanged);
@@ -57,6 +57,6 @@ public sealed class HistoryTests
     {
         await using var viewer = await PdfViewer.CreateAsync();
         var document = await viewer.OpenAsync(Fixture.Data("report"));
-        Assert.Equal(PdfErrorCode.Unsupported, (await Assert.ThrowsAsync<PdfException>(() => viewer.HistoryAsync(document))).Code);
+        Assert.Equal(PdfErrorCode.Unsupported, (await Assert.ThrowsAsync<PdfException>(() => viewer.GetHistoryAsync(document))).Code);
     }
 }

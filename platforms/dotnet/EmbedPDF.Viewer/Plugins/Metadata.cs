@@ -109,7 +109,7 @@ public abstract record MetadataEvent
 
 /// <summary>
 /// A document's Info dictionary, read and edited. Get one with
-/// <see cref="PdfViewer.MetadataAsync"/>; the viewer needs
+/// <see cref="PdfViewer.GetMetadataAsync"/>; the viewer needs
 /// <see cref="PdfViewerOptions.Metadata"/>. After its document closes, every
 /// call throws <see cref="PdfException"/> with <see cref="PdfErrorCode.InstanceClosed"/>.
 /// </summary>
@@ -202,7 +202,7 @@ public sealed class MetadataCapability : IDisposable
 public sealed partial class PdfViewer
 {
     /// <summary>The document's metadata capability. Throws <see cref="PdfErrorCode.Unsupported"/> without <see cref="PdfViewerOptions.Metadata"/>.</summary>
-    public async Task<MetadataCapability> MetadataAsync(DocumentInfo document, CancellationToken cancellationToken = default)
+    public async Task<MetadataCapability> GetMetadataAsync(DocumentInfo document, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(document);
         return new(this, await CallAsync(h => h.Metadata(document.Id), cancellationToken).ConfigureAwait(false));

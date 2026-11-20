@@ -14,7 +14,7 @@ public sealed class PageEditTests : IAsyncLifetime
     {
         viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { PageEdit = true });
         document = await viewer.OpenAsync(Fixture.Data("report"));
-        edit = await viewer.PageEditAsync(document);
+        edit = await viewer.GetPageEditAsync(document);
     }
 
     public async Task DisposeAsync() => await viewer.DisposeAsync();

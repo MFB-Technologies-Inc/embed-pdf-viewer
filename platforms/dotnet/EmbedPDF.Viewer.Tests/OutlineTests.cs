@@ -10,7 +10,7 @@ public sealed class OutlineTests
     {
         await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Outline = true });
         var document = await viewer.OpenAsync(Fixture.Data("report"));
-        using var outline = await viewer.OutlineAsync(document);
+        using var outline = await viewer.GetOutlineAsync(document);
         await outline.EnsureLoadedAsync();
         Assert.Equal(ResourceStatus.Ready, await outline.GetStatusAsync());
         Assert.False(await outline.IsIncompleteAsync());
@@ -35,7 +35,7 @@ public sealed class OutlineTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => outline.RefreshAsync(new CancellationToken(true)));
         var bytes = await viewer.SaveAsync(document);
         var reopened = await viewer.OpenAsync(bytes);
-        using var saved = await viewer.OutlineAsync(reopened);
+        using var saved = await viewer.GetOutlineAsync(reopened);
         await saved.EnsureLoadedAsync();
         Assert.Equal("Renamed", (await saved.GetItemAsync(child.ItemRef))?.Title);
         await outline.DeleteAsync([child.ItemRef, parent.ItemRef]);
@@ -49,7 +49,7 @@ public sealed class OutlineTests
     {
         await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Outline = true });
         var document = await viewer.OpenAsync(Fixture.Data("report"));
-        using var outline = await viewer.OutlineAsync(document);
+        using var outline = await viewer.GetOutlineAsync(document);
         await outline.EnsureLoadedAsync();
         var page = (await viewer.GetPagesAsync(document))[1].Page;
         var target = new PageLinkTarget.GoTo(new PageDestination.Fit(page));
@@ -75,7 +75,7 @@ public sealed class OutlineTests
     {
         await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Scope = ["doc.open"], Outline = true });
         var document = await viewer.OpenAsync(Fixture.Data("report"));
-        using var outline = await viewer.OutlineAsync(document);
+        using var outline = await viewer.GetOutlineAsync(document);
         Assert.False(await outline.CanEditAsync());
         Assert.Equal(PdfErrorCode.PermissionDenied, (await Assert.ThrowsAsync<PdfException>(() => outline.CreateAsync(new OutlineItemInput { Title = "Denied" }))).Code);
     }

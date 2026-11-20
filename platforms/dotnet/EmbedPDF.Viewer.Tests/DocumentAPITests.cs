@@ -6,13 +6,13 @@ public sealed class DocumentAPITests
 {
     static async Task UpdateTitle(PdfViewer viewer, DocumentInfo document, string title)
     {
-        using var metadata = await viewer.MetadataAsync(document);
+        using var metadata = await viewer.GetMetadataAsync(document);
         _ = await metadata.UpdateAsync(new MetadataPatch { Title = title });
     }
 
     static async Task<string?> Title(PdfViewer viewer, DocumentInfo document)
     {
-        using var metadata = await viewer.MetadataAsync(document);
+        using var metadata = await viewer.GetMetadataAsync(document);
         await metadata.EnsureLoadedAsync();
         return (await metadata.GetSnapshotAsync())?.Title;
     }

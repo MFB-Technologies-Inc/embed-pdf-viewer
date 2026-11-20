@@ -22,7 +22,7 @@ public sealed class ShellTests : IAsyncLifetime
     {
         viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Shell = true });
         document = await viewer.OpenAsync(Fixture.Data("report"));
-        shell = await viewer.ShellAsync(document);
+        shell = await viewer.GetShellAsync(document);
     }
 
     public async Task DisposeAsync() => await viewer.DisposeAsync();
@@ -114,7 +114,7 @@ public sealed class ShellTests : IAsyncLifetime
     public async Task EachDocumentKeepsItsOwnSurfaces()
     {
         var colors = await viewer.OpenAsync(Fixture.Data("colors"));
-        using var second = await viewer.ShellAsync(colors);
+        using var second = await viewer.GetShellAsync(colors);
         await shell.OpenAsync("sidebar");
         Assert.True(await shell.IsOpenAsync("sidebar"));
         Assert.False(await second.IsOpenAsync("sidebar"));

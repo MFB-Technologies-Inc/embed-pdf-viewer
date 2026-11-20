@@ -9,7 +9,7 @@ public sealed class MetadataTests
     {
         var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Metadata = true });
         var document = await viewer.OpenAsync(Fixture.Data("report"));
-        return (viewer, document, await viewer.MetadataAsync(document));
+        return (viewer, document, await viewer.GetMetadataAsync(document));
     }
 
     /// <summary>Whether <paramref name="stream"/> ends within two seconds.</summary>

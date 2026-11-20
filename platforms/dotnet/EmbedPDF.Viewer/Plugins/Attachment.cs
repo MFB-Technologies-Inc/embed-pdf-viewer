@@ -70,7 +70,7 @@ public abstract record AttachmentEvent
 
 /// <summary>
 /// Embedded files from the document and, when installed, its annotation
-/// plugin. Get one with <see cref="PdfViewer.AttachmentsAsync"/>; the viewer
+/// plugin. Get one with <see cref="PdfViewer.GetAttachmentsAsync"/>; the viewer
 /// needs <see cref="PdfViewerOptions.Attachment"/>. After its document closes,
 /// every call throws <see cref="PdfErrorCode.InstanceClosed"/>.
 /// </summary>
@@ -196,7 +196,7 @@ public sealed class AttachmentCapability : IDisposable
 public sealed partial class PdfViewer
 {
     /// <summary>The document's attachment capability. Throws <see cref="PdfErrorCode.Unsupported"/> without <see cref="PdfViewerOptions.Attachment"/>.</summary>
-    public async Task<AttachmentCapability> AttachmentsAsync(DocumentInfo document, CancellationToken cancellationToken = default)
+    public async Task<AttachmentCapability> GetAttachmentsAsync(DocumentInfo document, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(document);
         return new(this, await CallAsync(h => h.Attachments(document.Id), cancellationToken).ConfigureAwait(false));

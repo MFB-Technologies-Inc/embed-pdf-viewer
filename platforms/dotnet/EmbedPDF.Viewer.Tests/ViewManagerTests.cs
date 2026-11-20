@@ -12,7 +12,7 @@ public sealed class ViewManagerTests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { ViewManager = true });
-        manager = await viewer.ViewManagerAsync();
+        manager = await viewer.GetViewManagerAsync();
         document = await viewer.OpenAsync(Fixture.Data("report"));
     }
 

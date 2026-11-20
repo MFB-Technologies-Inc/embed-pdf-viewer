@@ -13,7 +13,7 @@ public sealed class LifetimeTests
         var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Render = new RenderConfig() });
         var document = await viewer.OpenAsync(Fixture.Data("report"));
         var pages = await viewer.GetPagesAsync(document);
-        using var render = await viewer.RenderAsync(document);
+        using var render = await viewer.GetRenderAsync(document);
         var work = new List<Task>();
         foreach (var page in pages.Take(8))
         {

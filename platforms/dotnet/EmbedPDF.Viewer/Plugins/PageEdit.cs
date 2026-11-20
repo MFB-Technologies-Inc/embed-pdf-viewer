@@ -78,7 +78,7 @@ public sealed record PageEditInsertion(IReadOnlyList<PageRef> Inserted, IReadOnl
 
 /// <summary>
 /// A document's page edits: rotate, move, delete, insert, duplicate and
-/// extract. Get one with <see cref="PdfViewer.PageEditAsync"/>; the viewer
+/// extract. Get one with <see cref="PdfViewer.GetPageEditAsync"/>; the viewer
 /// needs <see cref="PdfViewerOptions.PageEdit"/>. After its document closes,
 /// every call throws <see cref="PdfErrorCode.InstanceClosed"/>. Every edit
 /// cancels only before it starts: once started, it lands.
@@ -205,7 +205,7 @@ public sealed class PageEditCapability : IDisposable
 public sealed partial class PdfViewer
 {
     /// <summary>The document's page-edit capability. Throws <see cref="PdfErrorCode.Unsupported"/> without <see cref="PdfViewerOptions.PageEdit"/>.</summary>
-    public async Task<PageEditCapability> PageEditAsync(DocumentInfo document, CancellationToken cancellationToken = default)
+    public async Task<PageEditCapability> GetPageEditAsync(DocumentInfo document, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(document);
         return new(this, await CallAsync(h => h.PageEdit(document.Id), cancellationToken).ConfigureAwait(false));

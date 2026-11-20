@@ -113,7 +113,7 @@ public sealed class ViewerTests
         await using var viewer = await Started(new PdfViewerOptions { Metadata = true });
         var locked = await viewer.OpenAsync(Fixture.Data("encrypted-hello"));
         // Through the generated accessors until Phase 3 adds the public ones.
-        var notReady = await Assert.ThrowsAsync<PdfException>(() => viewer.MetadataAsync(locked));
+        var notReady = await Assert.ThrowsAsync<PdfException>(() => viewer.GetMetadataAsync(locked));
         Assert.Equal(PdfErrorCode.NotReady, notReady.Code);
         var unsupported = await Assert.ThrowsAsync<PdfException>(() => viewer.CallAsync(h => h.Search(locked.Id), default));
         Assert.Equal(PdfErrorCode.Unsupported, unsupported.Code);

@@ -25,7 +25,7 @@ public sealed class RenderTests : IAsyncLifetime
         viewers.Add(viewer);
         var document = await viewer.OpenAsync(Fixture.Data(fixture));
         var page = (await viewer.GetPagesAsync(document))[0].Page;
-        return (viewer, document, page, await viewer.RenderAsync(document));
+        return (viewer, document, page, await viewer.GetRenderAsync(document));
     }
 
     static readonly CancellationToken Cancelled = new(true);
@@ -293,7 +293,7 @@ public sealed class RenderTests : IAsyncLifetime
     public async Task ARotatedPageReportsItsTurnAndRendersToMatch()
     {
         var (viewer, document, _, render) = await Opened(new PdfViewerOptions { Render = new(), PageEdit = true }, "report");
-        using var edit = await viewer.PageEditAsync(document);
+        using var edit = await viewer.GetPageEditAsync(document);
         var before = (await viewer.GetPagesAsync(document))[0];
         _ = await edit.SetRotationAsync(PageEditRotation.Clockwise90, [before.Page]);
         var page = (await viewer.GetPagesAsync(document))[0];

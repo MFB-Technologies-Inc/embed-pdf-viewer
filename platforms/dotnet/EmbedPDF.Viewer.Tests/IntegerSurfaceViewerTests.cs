@@ -40,7 +40,7 @@ public sealed partial class IntegerSurfaceTests
     public async Task SearchHitIndexesAreInt()
     {
         await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Search = new() });
-        using var search = await viewer.SearchAsync(await viewer.OpenAsync(Fixture.Data("report")));
+        using var search = await viewer.GetSearchAsync(await viewer.OpenAsync(Fixture.Data("report")));
         _ = await search.SearchAsync(new SearchQuery("the"));
         int count = await search.GetHitCountAsync();
         Assert.Equal(count, (await search.GetHitsAsync()).Count);
@@ -61,7 +61,7 @@ public sealed partial class IntegerSurfaceTests
     public async Task PaneAndTabIndexesAreInt()
     {
         await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { ViewManager = true });
-        using var manager = await viewer.ViewManagerAsync();
+        using var manager = await viewer.GetViewManagerAsync();
         var report = await viewer.OpenAsync(Fixture.Data("report"));
         var colors = await viewer.OpenAsync(Fixture.Data("colors"));
         var second = await manager.CreatePaneAsync();
@@ -89,7 +89,7 @@ public sealed partial class IntegerSurfaceTests
     {
         await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Render = new() });
         var document = await viewer.OpenAsync(Fixture.Data("colors"));
-        using var render = await viewer.RenderAsync(document);
+        using var render = await viewer.GetRenderAsync(document);
         var pages = (await viewer.GetPagesAsync(document)).Select(p => p.Page).ToList();
         var options = new RenderPageOptions { Width = 30 };
         foreach (var value in OutsideUInt32) await ExpectInvalidInput(() => render.RenderPagesAsync(pages, options, value));
