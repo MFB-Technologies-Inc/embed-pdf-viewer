@@ -44,6 +44,10 @@ public sealed record DocumentFetchResponse(int StatusCode, byte[] Content);
 public sealed class HttpClientDocumentFetcher : IDocumentFetcher
 {
     // Pooled connections are recycled so a long-lived client follows DNS changes.
+    // The first buffer for a sized body; a Content-Length larger than this
+    // grows the buffer as bytes arrive, so a false length allocates nothing up front.
+    internal const int InitialBodyBuffer = 16 * 1024 * 1024;
+
     internal static readonly SocketsHttpHandler SharedHandler = new() { PooledConnectionLifetime = TimeSpan.FromMinutes(2) };
     static readonly HttpClient Shared = new(SharedHandler, disposeHandler: false);
     readonly HttpClient client;
@@ -64,21 +68,32 @@ public sealed class HttpClientDocumentFetcher : IDocumentFetcher
             return new DocumentFetchResponse(200, await File.ReadAllBytesAsync(uri.LocalPath, cancellationToken).ConfigureAwait(false));
         }
         using var response = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-        // Read the body ourselves: with a Content-Length it lands in one
-        // buffer of that size rather than a growing one copied at the end.
+        // Read the body ourselves: with an honest Content-Length up to
+        // InitialBodyBuffer it lands in one buffer of that size.
         await using var body = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
         var bytes = response.Content.Headers.ContentLength is long length && length >= 0 && length <= Array.MaxLength
-            ? await ReadSized(body, (int)length, cancellationToken).ConfigureAwait(false)
+            ? await ReadSized(body, (int)length, InitialBodyBuffer, cancellationToken).ConfigureAwait(false)
             : await Bytes.ReadToEndAsync(body, cancellationToken).ConfigureAwait(false);
         return new DocumentFetchResponse((int)response.StatusCode, bytes);
     }
 
-    static async Task<byte[]> ReadSized(Stream body, int length, CancellationToken cancellationToken)
+    /// <summary>
+    /// Reads a body the server says is <paramref name="length"/> bytes. The
+    /// first buffer is at most <paramref name="initialCap"/> bytes and doubles,
+    /// never past <paramref name="length"/>, as bytes arrive: a header that
+    /// lies costs what was sent, not what was claimed. A body of the claimed
+    /// length or under the cap lands in one buffer with no copy.
+    /// </summary>
+    internal static async Task<byte[]> ReadSized(Stream body, int length, int initialCap, CancellationToken cancellationToken)
     {
-        var buffer = new byte[length];
+        var buffer = new byte[Math.Min(length, initialCap)];
         var read = 0;
         while (read < length)
         {
+            if (read == buffer.Length)
+            {
+                Array.Resize(ref buffer, (int)Math.Min(length, 2L * buffer.Length));
+            }
             var n = await body.ReadAsync(buffer.AsMemory(read), cancellationToken).ConfigureAwait(false);
             if (n == 0) return buffer.AsSpan(0, read).ToArray();
             read += n;
