@@ -517,13 +517,13 @@ What later waves reuse:
   (`Arguments.NoNullElements`), throws `ArgumentException` while the call is made in every
   method that is not itself `async`. A present but invalid argument (a negative index or page
   number, an undefined enum value) faults the returned task, because conversions run inside the
-  `Run` lambda (`ValidationShapeTests`). Methods declared `async`, here and in Phase 2's
-  `PdfViewer`, report a null argument through the task too; making those eager means splitting
-  each into a checking wrapper and an async body, which no wave has done yet.
+  `Run` lambda (`ValidationShapeTests`). The rule for every wave (decided 2026-11-20): a method
+  that is not `async` throws `ArgumentNullException` while the call is made; a method declared
+  `async` reports a null argument through its faulted task, and is not split to make it eager.
 - Public enums reach the engine only through `Ffi.Defined` or an explicit switch arm, so an
   undefined value is `invalid-input` (`EnumRangeTests`). Phase 2's `SaveMode`,
-  `ViewerSettingsField` and `StandardCommandList` mappings still fold an undefined value into a
-  real case.
+  `ViewerSettingsField` and `StandardCommandList` mappings follow the same rule since
+  `be98c4b1c`, and `SetDocumentOrderAsync` refuses a null id since `0a94b2e4a`.
 - `PdfViewer.Run` and `RunCancellable` wrap a capability call the way `CallAsync` wraps a host
   call, so disposal drains capability calls too.
 - `Plugins/Shared.cs` holds the cross-plugin types: `ResourceStatus`, `DocumentEventOrigin`,
