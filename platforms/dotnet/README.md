@@ -94,6 +94,8 @@ cargo rustc -p epdf-capi --release --crate-type cdylib
 EPDF_NATIVE_DIR="$PWD/target/release" dotnet test platforms/dotnet/EmbedPDF.Tests/EmbedPDF.Tests.csproj
 ```
 
+The library finds PDFium through `LD_LIBRARY_PATH` (above), so keep it set when the tests run, or loading `libepdf_capi.so` fails with `libembedpdf.so: cannot open shared object file`.
+
 When `CARGO_TARGET_DIR` is configured, point `EPDF_NATIVE_DIR` to its `release`
 directory. `EPDF_NATIVE_DIR` is read **only by the test assembly's resolver**;
 the production facade does not consume it or widen library search paths.
