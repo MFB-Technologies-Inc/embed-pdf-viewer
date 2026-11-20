@@ -4775,6 +4775,7 @@ EmbedPDF.PdfViewer.GetPageNavigatorAsync(EmbedPDF.DocumentInfo! document, System
 EmbedPDF.PdfViewer.GetPageRevisionAsync(EmbedPDF.DocumentInfo? document = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
 EmbedPDF.PdfViewer.GetPageZoomAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageZoom!>!
 EmbedPDF.PdfViewer.GetPagesAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.PageInfo!>!>!
+EmbedPDF.PdfViewer.GetRedactionAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RedactionCapability!>!
 EmbedPDF.PdfViewer.GetRenderAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RenderCapability!>!
 EmbedPDF.PdfViewer.GetSearchAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.SearchCapability!>!
 EmbedPDF.PdfViewer.GetSelectionAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.SelectionCapability!>!
@@ -5176,10 +5177,201 @@ EmbedPDF.RedactionAnnotationPatch.RichText.get -> EmbedPDF.JsonNullable<EmbedPDF
 EmbedPDF.RedactionAnnotationPatch.RichText.init -> void
 EmbedPDF.RedactionAnnotationPatch.TextAlign.get -> EmbedPDF.AnnotationTextAlignment?
 EmbedPDF.RedactionAnnotationPatch.TextAlign.init -> void
+EmbedPDF.RedactionApplyResult
+EmbedPDF.RedactionApplyResult.<Clone>$() -> EmbedPDF.RedactionApplyResult!
+EmbedPDF.RedactionApplyResult.Deconstruct(out EmbedPDF.RedactionApplyScope! Scope, out System.Collections.Generic.IReadOnlyList<EmbedPDF.RedactionPageResult!>! Results, out int RemovedAnnotationCount, out string? OpId) -> void
+EmbedPDF.RedactionApplyResult.Equals(EmbedPDF.RedactionApplyResult? other) -> bool
+EmbedPDF.RedactionApplyResult.OpId.get -> string?
+EmbedPDF.RedactionApplyResult.OpId.init -> void
+EmbedPDF.RedactionApplyResult.RedactionApplyResult(EmbedPDF.RedactionApplyScope! Scope, System.Collections.Generic.IReadOnlyList<EmbedPDF.RedactionPageResult!>! Results, int RemovedAnnotationCount, string? OpId) -> void
+EmbedPDF.RedactionApplyResult.RemovedAnnotationCount.get -> int
+EmbedPDF.RedactionApplyResult.RemovedAnnotationCount.init -> void
+EmbedPDF.RedactionApplyResult.Results.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.RedactionPageResult!>!
+EmbedPDF.RedactionApplyResult.Results.init -> void
+EmbedPDF.RedactionApplyResult.Scope.get -> EmbedPDF.RedactionApplyScope!
+EmbedPDF.RedactionApplyResult.Scope.init -> void
+EmbedPDF.RedactionApplyScope
+EmbedPDF.RedactionApplyScope.Annotations
+EmbedPDF.RedactionApplyScope.Annotations.Annotations(System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRef!>! Refs) -> void
+EmbedPDF.RedactionApplyScope.Annotations.Deconstruct(out System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRef!>! Refs) -> void
+EmbedPDF.RedactionApplyScope.Annotations.Equals(EmbedPDF.RedactionApplyScope.Annotations? other) -> bool
+EmbedPDF.RedactionApplyScope.Annotations.Refs.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRef!>!
+EmbedPDF.RedactionApplyScope.Annotations.Refs.init -> void
+EmbedPDF.RedactionApplyScope.Pages
+EmbedPDF.RedactionApplyScope.Pages.Deconstruct(out System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>! PagesValue) -> void
+EmbedPDF.RedactionApplyScope.Pages.Equals(EmbedPDF.RedactionApplyScope.Pages? other) -> bool
+EmbedPDF.RedactionApplyScope.Pages.Pages(System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>! PagesValue) -> void
+EmbedPDF.RedactionApplyScope.Pages.PagesValue.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>!
+EmbedPDF.RedactionApplyScope.Pages.PagesValue.init -> void
+EmbedPDF.RedactionApplyScope.RedactionApplyScope(EmbedPDF.RedactionApplyScope! original) -> void
+EmbedPDF.RedactionCapability
+EmbedPDF.RedactionCapability.ApplyAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RedactionApplyResult!>!
+EmbedPDF.RedactionCapability.ApplyAsync(System.Collections.Generic.IEnumerable<EmbedPDF.AnnotationRef!>! refs, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RedactionApplyResult!>!
+EmbedPDF.RedactionCapability.ApplyPagesAsync(System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>! pages, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RedactionApplyResult!>!
+EmbedPDF.RedactionCapability.CanApplyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.RedactionCapability.CanMarkAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.RedactionCapability.CanUnmarkAsync(EmbedPDF.AnnotationRef! annotation, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.RedactionCapability.CanUpdateLabelAsync(EmbedPDF.AnnotationRef! annotation, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.RedactionCapability.ClearPendingAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RedactionUnmarkResult!>!
+EmbedPDF.RedactionCapability.Dispose() -> void
+EmbedPDF.RedactionCapability.EstimateCollateralAsync(System.Collections.Generic.IEnumerable<EmbedPDF.AnnotationRef!>? refs = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RedactionCollateral!>!
+EmbedPDF.RedactionCapability.GetLastResultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RedactionApplyResult?>!
+EmbedPDF.RedactionCapability.GetPendingAsync(EmbedPDF.PageRef? page = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.RedactionMark!>!>!
+EmbedPDF.RedactionCapability.GetPendingCountAsync(EmbedPDF.PageRef? page = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+EmbedPDF.RedactionCapability.GetPendingItemAsync(EmbedPDF.AnnotationRef! annotation, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RedactionMark?>!
+EmbedPDF.RedactionCapability.GetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RedactionSettings!>!
+EmbedPDF.RedactionCapability.IsApplyingAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.RedactionCapability.MarkAreaAsync(EmbedPDF.PdfRect bounds, EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RedactionMark!>!
+EmbedPDF.RedactionCapability.MarkMatchesAsync(EmbedPDF.SearchQuery! query, System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>? pages = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.RedactionMark!>!>!
+EmbedPDF.RedactionCapability.MarkPageAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RedactionMark!>!
+EmbedPDF.RedactionCapability.MarkSelectionAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.RedactionMark!>!>!
+EmbedPDF.RedactionCapability.ObserveEvents(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.RedactionEvent!>!
+EmbedPDF.RedactionCapability.ResetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.RedactionCapability.UnmarkAsync(System.Collections.Generic.IEnumerable<EmbedPDF.AnnotationRef!>! refs, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RedactionUnmarkResult!>!
+EmbedPDF.RedactionCapability.UpdateLabelAsync(EmbedPDF.AnnotationRef! annotation, EmbedPDF.RedactionLabelPatch! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RedactionMark!>!
+EmbedPDF.RedactionCapability.UpdateSettingsAsync(EmbedPDF.RedactionConfig! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.RedactionCollateral
+EmbedPDF.RedactionCollateral.<Clone>$() -> EmbedPDF.RedactionCollateral!
+EmbedPDF.RedactionCollateral.Count.get -> int
+EmbedPDF.RedactionCollateral.Count.init -> void
+EmbedPDF.RedactionCollateral.Deconstruct(out int Count, out System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRef!>! Refs) -> void
+EmbedPDF.RedactionCollateral.Equals(EmbedPDF.RedactionCollateral? other) -> bool
+EmbedPDF.RedactionCollateral.RedactionCollateral(int Count, System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRef!>! Refs) -> void
+EmbedPDF.RedactionCollateral.Refs.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRef!>!
+EmbedPDF.RedactionCollateral.Refs.init -> void
 EmbedPDF.RedactionConfig
 EmbedPDF.RedactionConfig.<Clone>$() -> EmbedPDF.RedactionConfig!
 EmbedPDF.RedactionConfig.Equals(EmbedPDF.RedactionConfig? other) -> bool
+EmbedPDF.RedactionConfig.Fill.get -> string?
+EmbedPDF.RedactionConfig.Fill.init -> void
+EmbedPDF.RedactionConfig.OverlayText.get -> EmbedPDF.RedactionOverlayText?
+EmbedPDF.RedactionConfig.OverlayText.init -> void
 EmbedPDF.RedactionConfig.RedactionConfig() -> void
+EmbedPDF.RedactionEvent
+EmbedPDF.RedactionEvent.Applied
+EmbedPDF.RedactionEvent.Applied.Applied(EmbedPDF.RedactionApplyResult! Result) -> void
+EmbedPDF.RedactionEvent.Applied.Deconstruct(out EmbedPDF.RedactionApplyResult! Result) -> void
+EmbedPDF.RedactionEvent.Applied.Equals(EmbedPDF.RedactionEvent.Applied? other) -> bool
+EmbedPDF.RedactionEvent.Applied.Result.get -> EmbedPDF.RedactionApplyResult!
+EmbedPDF.RedactionEvent.Applied.Result.init -> void
+EmbedPDF.RedactionEvent.PendingChanged
+EmbedPDF.RedactionEvent.PendingChanged.Deconstruct(out System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>! Pages) -> void
+EmbedPDF.RedactionEvent.PendingChanged.Equals(EmbedPDF.RedactionEvent.PendingChanged? other) -> bool
+EmbedPDF.RedactionEvent.PendingChanged.Pages.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>!
+EmbedPDF.RedactionEvent.PendingChanged.Pages.init -> void
+EmbedPDF.RedactionEvent.PendingChanged.PendingChanged(System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>! Pages) -> void
+EmbedPDF.RedactionEvent.RedactionEvent(EmbedPDF.RedactionEvent! original) -> void
+EmbedPDF.RedactionLabelPatch
+EmbedPDF.RedactionLabelPatch.<Clone>$() -> EmbedPDF.RedactionLabelPatch!
+EmbedPDF.RedactionLabelPatch.ClearOverlayText.get -> bool
+EmbedPDF.RedactionLabelPatch.ClearOverlayText.init -> void
+EmbedPDF.RedactionLabelPatch.Equals(EmbedPDF.RedactionLabelPatch? other) -> bool
+EmbedPDF.RedactionLabelPatch.OverlayText.get -> string?
+EmbedPDF.RedactionLabelPatch.OverlayText.init -> void
+EmbedPDF.RedactionLabelPatch.RedactionLabelPatch() -> void
+EmbedPDF.RedactionLabelPatch.Repeat.get -> bool?
+EmbedPDF.RedactionLabelPatch.Repeat.init -> void
+EmbedPDF.RedactionMark
+EmbedPDF.RedactionMark.<Clone>$() -> EmbedPDF.RedactionMark!
+EmbedPDF.RedactionMark.AnnotationRef.get -> EmbedPDF.AnnotationRef!
+EmbedPDF.RedactionMark.AnnotationRef.init -> void
+EmbedPDF.RedactionMark.Bounds.get -> EmbedPDF.PdfRect
+EmbedPDF.RedactionMark.Bounds.init -> void
+EmbedPDF.RedactionMark.Deconstruct(out EmbedPDF.AnnotationRef! AnnotationRef, out EmbedPDF.PageRef Page, out int? PageIndex, out EmbedPDF.RedactionMarkKind Kind, out EmbedPDF.PdfRect Bounds, out string? OverlayText, out bool Repeat) -> void
+EmbedPDF.RedactionMark.Equals(EmbedPDF.RedactionMark? other) -> bool
+EmbedPDF.RedactionMark.Kind.get -> EmbedPDF.RedactionMarkKind
+EmbedPDF.RedactionMark.Kind.init -> void
+EmbedPDF.RedactionMark.OverlayText.get -> string?
+EmbedPDF.RedactionMark.OverlayText.init -> void
+EmbedPDF.RedactionMark.Page.get -> EmbedPDF.PageRef
+EmbedPDF.RedactionMark.Page.init -> void
+EmbedPDF.RedactionMark.PageIndex.get -> int?
+EmbedPDF.RedactionMark.PageIndex.init -> void
+EmbedPDF.RedactionMark.RedactionMark(EmbedPDF.AnnotationRef! AnnotationRef, EmbedPDF.PageRef Page, int? PageIndex, EmbedPDF.RedactionMarkKind Kind, EmbedPDF.PdfRect Bounds, string? OverlayText, bool Repeat) -> void
+EmbedPDF.RedactionMark.Repeat.get -> bool
+EmbedPDF.RedactionMark.Repeat.init -> void
+EmbedPDF.RedactionMarkKind
+EmbedPDF.RedactionMarkKind.Area = 0 -> EmbedPDF.RedactionMarkKind
+EmbedPDF.RedactionMarkKind.Text = 1 -> EmbedPDF.RedactionMarkKind
+EmbedPDF.RedactionOverlayText
+EmbedPDF.RedactionOverlayText.<Clone>$() -> EmbedPDF.RedactionOverlayText!
+EmbedPDF.RedactionOverlayText.Color.get -> string?
+EmbedPDF.RedactionOverlayText.Color.init -> void
+EmbedPDF.RedactionOverlayText.Equals(EmbedPDF.RedactionOverlayText? other) -> bool
+EmbedPDF.RedactionOverlayText.FontFamily.get -> string?
+EmbedPDF.RedactionOverlayText.FontFamily.init -> void
+EmbedPDF.RedactionOverlayText.FontSize.get -> double?
+EmbedPDF.RedactionOverlayText.FontSize.init -> void
+EmbedPDF.RedactionOverlayText.RedactionOverlayText() -> void
+EmbedPDF.RedactionPageResult
+EmbedPDF.RedactionPageResult.<Clone>$() -> EmbedPDF.RedactionPageResult!
+EmbedPDF.RedactionPageResult.Deconstruct(out EmbedPDF.PageRef Page, out EmbedPDF.RedactionPageStatus Status, out int RemovedAnnotationCount) -> void
+EmbedPDF.RedactionPageResult.Equals(EmbedPDF.RedactionPageResult? other) -> bool
+EmbedPDF.RedactionPageResult.Page.get -> EmbedPDF.PageRef
+EmbedPDF.RedactionPageResult.Page.init -> void
+EmbedPDF.RedactionPageResult.RedactionPageResult(EmbedPDF.PageRef Page, EmbedPDF.RedactionPageStatus Status, int RemovedAnnotationCount) -> void
+EmbedPDF.RedactionPageResult.RemovedAnnotationCount.get -> int
+EmbedPDF.RedactionPageResult.RemovedAnnotationCount.init -> void
+EmbedPDF.RedactionPageResult.Status.get -> EmbedPDF.RedactionPageStatus
+EmbedPDF.RedactionPageResult.Status.init -> void
+EmbedPDF.RedactionPageStatus
+EmbedPDF.RedactionPageStatus.Applied = 0 -> EmbedPDF.RedactionPageStatus
+EmbedPDF.RedactionPageStatus.Unchanged = 1 -> EmbedPDF.RedactionPageStatus
+EmbedPDF.RedactionSettings
+EmbedPDF.RedactionSettings.<Clone>$() -> EmbedPDF.RedactionSettings!
+EmbedPDF.RedactionSettings.Deconstruct(out string! Fill, out EmbedPDF.RedactionTextSettings! OverlayText) -> void
+EmbedPDF.RedactionSettings.Equals(EmbedPDF.RedactionSettings? other) -> bool
+EmbedPDF.RedactionSettings.Fill.get -> string!
+EmbedPDF.RedactionSettings.Fill.init -> void
+EmbedPDF.RedactionSettings.OverlayText.get -> EmbedPDF.RedactionTextSettings!
+EmbedPDF.RedactionSettings.OverlayText.init -> void
+EmbedPDF.RedactionSettings.RedactionSettings(string! Fill, EmbedPDF.RedactionTextSettings! OverlayText) -> void
+EmbedPDF.RedactionSkipped
+EmbedPDF.RedactionSkipped.<Clone>$() -> EmbedPDF.RedactionSkipped!
+EmbedPDF.RedactionSkipped.AnnotationRef.get -> EmbedPDF.AnnotationRef!
+EmbedPDF.RedactionSkipped.AnnotationRef.init -> void
+EmbedPDF.RedactionSkipped.Deconstruct(out EmbedPDF.AnnotationRef! AnnotationRef, out string! Reason) -> void
+EmbedPDF.RedactionSkipped.Equals(EmbedPDF.RedactionSkipped? other) -> bool
+EmbedPDF.RedactionSkipped.Reason.get -> string!
+EmbedPDF.RedactionSkipped.Reason.init -> void
+EmbedPDF.RedactionSkipped.RedactionSkipped(EmbedPDF.AnnotationRef! AnnotationRef, string! Reason) -> void
+EmbedPDF.RedactionTextSettings
+EmbedPDF.RedactionTextSettings.<Clone>$() -> EmbedPDF.RedactionTextSettings!
+EmbedPDF.RedactionTextSettings.Color.get -> string!
+EmbedPDF.RedactionTextSettings.Color.init -> void
+EmbedPDF.RedactionTextSettings.Deconstruct(out string! Color, out string! FontFamily, out double FontSize) -> void
+EmbedPDF.RedactionTextSettings.Equals(EmbedPDF.RedactionTextSettings? other) -> bool
+EmbedPDF.RedactionTextSettings.FontFamily.get -> string!
+EmbedPDF.RedactionTextSettings.FontFamily.init -> void
+EmbedPDF.RedactionTextSettings.FontSize.get -> double
+EmbedPDF.RedactionTextSettings.FontSize.init -> void
+EmbedPDF.RedactionTextSettings.RedactionTextSettings(string! Color, string! FontFamily, double FontSize) -> void
+EmbedPDF.RedactionUnmarkFailure
+EmbedPDF.RedactionUnmarkFailure.<Clone>$() -> EmbedPDF.RedactionUnmarkFailure!
+EmbedPDF.RedactionUnmarkFailure.AnnotationRef.get -> EmbedPDF.AnnotationRef!
+EmbedPDF.RedactionUnmarkFailure.AnnotationRef.init -> void
+EmbedPDF.RedactionUnmarkFailure.Capability.get -> string!
+EmbedPDF.RedactionUnmarkFailure.Capability.init -> void
+EmbedPDF.RedactionUnmarkFailure.Code.get -> string!
+EmbedPDF.RedactionUnmarkFailure.Code.init -> void
+EmbedPDF.RedactionUnmarkFailure.Deconstruct(out EmbedPDF.AnnotationRef! AnnotationRef, out string! Code, out string! Message, out string! Capability, out string? Permission) -> void
+EmbedPDF.RedactionUnmarkFailure.Equals(EmbedPDF.RedactionUnmarkFailure? other) -> bool
+EmbedPDF.RedactionUnmarkFailure.Message.get -> string!
+EmbedPDF.RedactionUnmarkFailure.Message.init -> void
+EmbedPDF.RedactionUnmarkFailure.Permission.get -> string?
+EmbedPDF.RedactionUnmarkFailure.Permission.init -> void
+EmbedPDF.RedactionUnmarkFailure.RedactionUnmarkFailure(EmbedPDF.AnnotationRef! AnnotationRef, string! Code, string! Message, string! Capability, string? Permission) -> void
+EmbedPDF.RedactionUnmarkResult
+EmbedPDF.RedactionUnmarkResult.<Clone>$() -> EmbedPDF.RedactionUnmarkResult!
+EmbedPDF.RedactionUnmarkResult.Applied.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRef!>!
+EmbedPDF.RedactionUnmarkResult.Applied.init -> void
+EmbedPDF.RedactionUnmarkResult.Deconstruct(out System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRef!>! Applied, out System.Collections.Generic.IReadOnlyList<EmbedPDF.RedactionSkipped!>! Skipped, out System.Collections.Generic.IReadOnlyList<EmbedPDF.RedactionUnmarkFailure!>! Failed) -> void
+EmbedPDF.RedactionUnmarkResult.Equals(EmbedPDF.RedactionUnmarkResult? other) -> bool
+EmbedPDF.RedactionUnmarkResult.Failed.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.RedactionUnmarkFailure!>!
+EmbedPDF.RedactionUnmarkResult.Failed.init -> void
+EmbedPDF.RedactionUnmarkResult.RedactionUnmarkResult(System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRef!>! Applied, System.Collections.Generic.IReadOnlyList<EmbedPDF.RedactionSkipped!>! Skipped, System.Collections.Generic.IReadOnlyList<EmbedPDF.RedactionUnmarkFailure!>! Failed) -> void
+EmbedPDF.RedactionUnmarkResult.Skipped.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.RedactionSkipped!>!
+EmbedPDF.RedactionUnmarkResult.Skipped.init -> void
 EmbedPDF.Registration
 EmbedPDF.Registration.Dispose() -> void
 EmbedPDF.Registration.Unregister() -> void
@@ -7231,6 +7423,8 @@ abstract EmbedPDF.PdfDestination.<Clone>$() -> EmbedPDF.PdfDestination!
 abstract EmbedPDF.PdfDestination.Page.get -> EmbedPDF.PageRef
 abstract EmbedPDF.PdfDestination.Page.init -> void
 abstract EmbedPDF.PdfLinkTarget.<Clone>$() -> EmbedPDF.PdfLinkTarget!
+abstract EmbedPDF.RedactionApplyScope.<Clone>$() -> EmbedPDF.RedactionApplyScope!
+abstract EmbedPDF.RedactionEvent.<Clone>$() -> EmbedPDF.RedactionEvent!
 abstract EmbedPDF.RenderEvent.<Clone>$() -> EmbedPDF.RenderEvent!
 abstract EmbedPDF.RenderPolicy.<Clone>$() -> EmbedPDF.RenderPolicy!
 abstract EmbedPDF.RenderQuantize.<Clone>$() -> EmbedPDF.RenderQuantize!
@@ -8762,9 +8956,64 @@ override EmbedPDF.RedactionAnnotationPatch.<Clone>$() -> EmbedPDF.RedactionAnnot
 override EmbedPDF.RedactionAnnotationPatch.Equals(object? obj) -> bool
 override EmbedPDF.RedactionAnnotationPatch.GetHashCode() -> int
 override EmbedPDF.RedactionAnnotationPatch.ToString() -> string!
+override EmbedPDF.RedactionApplyResult.Equals(object? obj) -> bool
+override EmbedPDF.RedactionApplyResult.GetHashCode() -> int
+override EmbedPDF.RedactionApplyResult.ToString() -> string!
+override EmbedPDF.RedactionApplyScope.Annotations.<Clone>$() -> EmbedPDF.RedactionApplyScope.Annotations!
+override EmbedPDF.RedactionApplyScope.Annotations.Equals(object? obj) -> bool
+override EmbedPDF.RedactionApplyScope.Annotations.GetHashCode() -> int
+override EmbedPDF.RedactionApplyScope.Annotations.ToString() -> string!
+override EmbedPDF.RedactionApplyScope.Equals(object? obj) -> bool
+override EmbedPDF.RedactionApplyScope.GetHashCode() -> int
+override EmbedPDF.RedactionApplyScope.Pages.<Clone>$() -> EmbedPDF.RedactionApplyScope.Pages!
+override EmbedPDF.RedactionApplyScope.Pages.Equals(object? obj) -> bool
+override EmbedPDF.RedactionApplyScope.Pages.GetHashCode() -> int
+override EmbedPDF.RedactionApplyScope.Pages.ToString() -> string!
+override EmbedPDF.RedactionApplyScope.ToString() -> string!
+override EmbedPDF.RedactionCollateral.Equals(object? obj) -> bool
+override EmbedPDF.RedactionCollateral.GetHashCode() -> int
+override EmbedPDF.RedactionCollateral.ToString() -> string!
 override EmbedPDF.RedactionConfig.Equals(object? obj) -> bool
 override EmbedPDF.RedactionConfig.GetHashCode() -> int
 override EmbedPDF.RedactionConfig.ToString() -> string!
+override EmbedPDF.RedactionEvent.Applied.<Clone>$() -> EmbedPDF.RedactionEvent.Applied!
+override EmbedPDF.RedactionEvent.Applied.Equals(object? obj) -> bool
+override EmbedPDF.RedactionEvent.Applied.GetHashCode() -> int
+override EmbedPDF.RedactionEvent.Applied.ToString() -> string!
+override EmbedPDF.RedactionEvent.Equals(object? obj) -> bool
+override EmbedPDF.RedactionEvent.GetHashCode() -> int
+override EmbedPDF.RedactionEvent.PendingChanged.<Clone>$() -> EmbedPDF.RedactionEvent.PendingChanged!
+override EmbedPDF.RedactionEvent.PendingChanged.Equals(object? obj) -> bool
+override EmbedPDF.RedactionEvent.PendingChanged.GetHashCode() -> int
+override EmbedPDF.RedactionEvent.PendingChanged.ToString() -> string!
+override EmbedPDF.RedactionEvent.ToString() -> string!
+override EmbedPDF.RedactionLabelPatch.Equals(object? obj) -> bool
+override EmbedPDF.RedactionLabelPatch.GetHashCode() -> int
+override EmbedPDF.RedactionLabelPatch.ToString() -> string!
+override EmbedPDF.RedactionMark.Equals(object? obj) -> bool
+override EmbedPDF.RedactionMark.GetHashCode() -> int
+override EmbedPDF.RedactionMark.ToString() -> string!
+override EmbedPDF.RedactionOverlayText.Equals(object? obj) -> bool
+override EmbedPDF.RedactionOverlayText.GetHashCode() -> int
+override EmbedPDF.RedactionOverlayText.ToString() -> string!
+override EmbedPDF.RedactionPageResult.Equals(object? obj) -> bool
+override EmbedPDF.RedactionPageResult.GetHashCode() -> int
+override EmbedPDF.RedactionPageResult.ToString() -> string!
+override EmbedPDF.RedactionSettings.Equals(object? obj) -> bool
+override EmbedPDF.RedactionSettings.GetHashCode() -> int
+override EmbedPDF.RedactionSettings.ToString() -> string!
+override EmbedPDF.RedactionSkipped.Equals(object? obj) -> bool
+override EmbedPDF.RedactionSkipped.GetHashCode() -> int
+override EmbedPDF.RedactionSkipped.ToString() -> string!
+override EmbedPDF.RedactionTextSettings.Equals(object? obj) -> bool
+override EmbedPDF.RedactionTextSettings.GetHashCode() -> int
+override EmbedPDF.RedactionTextSettings.ToString() -> string!
+override EmbedPDF.RedactionUnmarkFailure.Equals(object? obj) -> bool
+override EmbedPDF.RedactionUnmarkFailure.GetHashCode() -> int
+override EmbedPDF.RedactionUnmarkFailure.ToString() -> string!
+override EmbedPDF.RedactionUnmarkResult.Equals(object? obj) -> bool
+override EmbedPDF.RedactionUnmarkResult.GetHashCode() -> int
+override EmbedPDF.RedactionUnmarkResult.ToString() -> string!
 override EmbedPDF.RenderBatchFailure.Equals(object? obj) -> bool
 override EmbedPDF.RenderBatchFailure.GetHashCode() -> int
 override EmbedPDF.RenderBatchFailure.ToString() -> string!
@@ -9597,6 +9846,10 @@ override sealed EmbedPDF.PolylineAnnotationDraft.Equals(EmbedPDF.AnnotationDraft
 override sealed EmbedPDF.PolylineAnnotationPatch.Equals(EmbedPDF.AnnotationPatch? other) -> bool
 override sealed EmbedPDF.RedactionAnnotationDraft.Equals(EmbedPDF.AnnotationDraft? other) -> bool
 override sealed EmbedPDF.RedactionAnnotationPatch.Equals(EmbedPDF.AnnotationPatch? other) -> bool
+override sealed EmbedPDF.RedactionApplyScope.Annotations.Equals(EmbedPDF.RedactionApplyScope? other) -> bool
+override sealed EmbedPDF.RedactionApplyScope.Pages.Equals(EmbedPDF.RedactionApplyScope? other) -> bool
+override sealed EmbedPDF.RedactionEvent.Applied.Equals(EmbedPDF.RedactionEvent? other) -> bool
+override sealed EmbedPDF.RedactionEvent.PendingChanged.Equals(EmbedPDF.RedactionEvent? other) -> bool
 override sealed EmbedPDF.RenderEvent.Completed.Equals(EmbedPDF.RenderEvent? other) -> bool
 override sealed EmbedPDF.RenderEvent.Failed.Equals(EmbedPDF.RenderEvent? other) -> bool
 override sealed EmbedPDF.RenderEvent.Invalidated.Equals(EmbedPDF.RenderEvent? other) -> bool
@@ -10651,8 +10904,42 @@ static EmbedPDF.RedactionAnnotationDraft.operator ==(EmbedPDF.RedactionAnnotatio
 static EmbedPDF.RedactionAnnotationPatch.FromJson(string! json) -> EmbedPDF.RedactionAnnotationPatch!
 static EmbedPDF.RedactionAnnotationPatch.operator !=(EmbedPDF.RedactionAnnotationPatch? left, EmbedPDF.RedactionAnnotationPatch? right) -> bool
 static EmbedPDF.RedactionAnnotationPatch.operator ==(EmbedPDF.RedactionAnnotationPatch? left, EmbedPDF.RedactionAnnotationPatch? right) -> bool
+static EmbedPDF.RedactionApplyResult.operator !=(EmbedPDF.RedactionApplyResult? left, EmbedPDF.RedactionApplyResult? right) -> bool
+static EmbedPDF.RedactionApplyResult.operator ==(EmbedPDF.RedactionApplyResult? left, EmbedPDF.RedactionApplyResult? right) -> bool
+static EmbedPDF.RedactionApplyScope.Annotations.operator !=(EmbedPDF.RedactionApplyScope.Annotations? left, EmbedPDF.RedactionApplyScope.Annotations? right) -> bool
+static EmbedPDF.RedactionApplyScope.Annotations.operator ==(EmbedPDF.RedactionApplyScope.Annotations? left, EmbedPDF.RedactionApplyScope.Annotations? right) -> bool
+static EmbedPDF.RedactionApplyScope.Pages.operator !=(EmbedPDF.RedactionApplyScope.Pages? left, EmbedPDF.RedactionApplyScope.Pages? right) -> bool
+static EmbedPDF.RedactionApplyScope.Pages.operator ==(EmbedPDF.RedactionApplyScope.Pages? left, EmbedPDF.RedactionApplyScope.Pages? right) -> bool
+static EmbedPDF.RedactionApplyScope.operator !=(EmbedPDF.RedactionApplyScope? left, EmbedPDF.RedactionApplyScope? right) -> bool
+static EmbedPDF.RedactionApplyScope.operator ==(EmbedPDF.RedactionApplyScope? left, EmbedPDF.RedactionApplyScope? right) -> bool
+static EmbedPDF.RedactionCollateral.operator !=(EmbedPDF.RedactionCollateral? left, EmbedPDF.RedactionCollateral? right) -> bool
+static EmbedPDF.RedactionCollateral.operator ==(EmbedPDF.RedactionCollateral? left, EmbedPDF.RedactionCollateral? right) -> bool
 static EmbedPDF.RedactionConfig.operator !=(EmbedPDF.RedactionConfig? left, EmbedPDF.RedactionConfig? right) -> bool
 static EmbedPDF.RedactionConfig.operator ==(EmbedPDF.RedactionConfig? left, EmbedPDF.RedactionConfig? right) -> bool
+static EmbedPDF.RedactionEvent.Applied.operator !=(EmbedPDF.RedactionEvent.Applied? left, EmbedPDF.RedactionEvent.Applied? right) -> bool
+static EmbedPDF.RedactionEvent.Applied.operator ==(EmbedPDF.RedactionEvent.Applied? left, EmbedPDF.RedactionEvent.Applied? right) -> bool
+static EmbedPDF.RedactionEvent.PendingChanged.operator !=(EmbedPDF.RedactionEvent.PendingChanged? left, EmbedPDF.RedactionEvent.PendingChanged? right) -> bool
+static EmbedPDF.RedactionEvent.PendingChanged.operator ==(EmbedPDF.RedactionEvent.PendingChanged? left, EmbedPDF.RedactionEvent.PendingChanged? right) -> bool
+static EmbedPDF.RedactionEvent.operator !=(EmbedPDF.RedactionEvent? left, EmbedPDF.RedactionEvent? right) -> bool
+static EmbedPDF.RedactionEvent.operator ==(EmbedPDF.RedactionEvent? left, EmbedPDF.RedactionEvent? right) -> bool
+static EmbedPDF.RedactionLabelPatch.operator !=(EmbedPDF.RedactionLabelPatch? left, EmbedPDF.RedactionLabelPatch? right) -> bool
+static EmbedPDF.RedactionLabelPatch.operator ==(EmbedPDF.RedactionLabelPatch? left, EmbedPDF.RedactionLabelPatch? right) -> bool
+static EmbedPDF.RedactionMark.operator !=(EmbedPDF.RedactionMark? left, EmbedPDF.RedactionMark? right) -> bool
+static EmbedPDF.RedactionMark.operator ==(EmbedPDF.RedactionMark? left, EmbedPDF.RedactionMark? right) -> bool
+static EmbedPDF.RedactionOverlayText.operator !=(EmbedPDF.RedactionOverlayText? left, EmbedPDF.RedactionOverlayText? right) -> bool
+static EmbedPDF.RedactionOverlayText.operator ==(EmbedPDF.RedactionOverlayText? left, EmbedPDF.RedactionOverlayText? right) -> bool
+static EmbedPDF.RedactionPageResult.operator !=(EmbedPDF.RedactionPageResult? left, EmbedPDF.RedactionPageResult? right) -> bool
+static EmbedPDF.RedactionPageResult.operator ==(EmbedPDF.RedactionPageResult? left, EmbedPDF.RedactionPageResult? right) -> bool
+static EmbedPDF.RedactionSettings.operator !=(EmbedPDF.RedactionSettings? left, EmbedPDF.RedactionSettings? right) -> bool
+static EmbedPDF.RedactionSettings.operator ==(EmbedPDF.RedactionSettings? left, EmbedPDF.RedactionSettings? right) -> bool
+static EmbedPDF.RedactionSkipped.operator !=(EmbedPDF.RedactionSkipped? left, EmbedPDF.RedactionSkipped? right) -> bool
+static EmbedPDF.RedactionSkipped.operator ==(EmbedPDF.RedactionSkipped? left, EmbedPDF.RedactionSkipped? right) -> bool
+static EmbedPDF.RedactionTextSettings.operator !=(EmbedPDF.RedactionTextSettings? left, EmbedPDF.RedactionTextSettings? right) -> bool
+static EmbedPDF.RedactionTextSettings.operator ==(EmbedPDF.RedactionTextSettings? left, EmbedPDF.RedactionTextSettings? right) -> bool
+static EmbedPDF.RedactionUnmarkFailure.operator !=(EmbedPDF.RedactionUnmarkFailure? left, EmbedPDF.RedactionUnmarkFailure? right) -> bool
+static EmbedPDF.RedactionUnmarkFailure.operator ==(EmbedPDF.RedactionUnmarkFailure? left, EmbedPDF.RedactionUnmarkFailure? right) -> bool
+static EmbedPDF.RedactionUnmarkResult.operator !=(EmbedPDF.RedactionUnmarkResult? left, EmbedPDF.RedactionUnmarkResult? right) -> bool
+static EmbedPDF.RedactionUnmarkResult.operator ==(EmbedPDF.RedactionUnmarkResult? left, EmbedPDF.RedactionUnmarkResult? right) -> bool
 static EmbedPDF.RenderBatchFailure.operator !=(EmbedPDF.RenderBatchFailure? left, EmbedPDF.RenderBatchFailure? right) -> bool
 static EmbedPDF.RenderBatchFailure.operator ==(EmbedPDF.RenderBatchFailure? left, EmbedPDF.RenderBatchFailure? right) -> bool
 static EmbedPDF.RenderBatchResult.operator !=(EmbedPDF.RenderBatchResult? left, EmbedPDF.RenderBatchResult? right) -> bool
@@ -11207,6 +11494,12 @@ virtual EmbedPDF.PdfDestination.PrintMembers(System.Text.StringBuilder! builder)
 virtual EmbedPDF.PdfLinkTarget.EqualityContract.get -> System.Type!
 virtual EmbedPDF.PdfLinkTarget.Equals(EmbedPDF.PdfLinkTarget? other) -> bool
 virtual EmbedPDF.PdfLinkTarget.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.RedactionApplyScope.EqualityContract.get -> System.Type!
+virtual EmbedPDF.RedactionApplyScope.Equals(EmbedPDF.RedactionApplyScope? other) -> bool
+virtual EmbedPDF.RedactionApplyScope.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.RedactionEvent.EqualityContract.get -> System.Type!
+virtual EmbedPDF.RedactionEvent.Equals(EmbedPDF.RedactionEvent? other) -> bool
+virtual EmbedPDF.RedactionEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual EmbedPDF.RenderEvent.EqualityContract.get -> System.Type!
 virtual EmbedPDF.RenderEvent.Equals(EmbedPDF.RenderEvent? other) -> bool
 virtual EmbedPDF.RenderEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool

@@ -4,9 +4,9 @@ namespace EmbedPDF.Viewer.Tests;
 
 public sealed partial class IntegerSurfaceTests
 {
-    // The stage, signature and redaction cases of IntegerSurfaceTests.swift
-    // port with their Phase 3 waves. The annotation case below is the
-    // annotation half of aPendingRedactionCountIsInt.
+    // The viewer, plugin, stage, signature and redaction cases of
+    // IntegerSurfaceTests.swift. The deprecated fixed-width overloads have no
+    // C# counterpart: C# never shipped them.
 
     /// <summary>A C# int below zero; one past <c>UInt32.max</c> can't be written.</summary>
     static readonly int[] OutsideUInt32 = [-1, int.MinValue];
@@ -133,5 +133,18 @@ public sealed partial class IntegerSurfaceTests
             await ExpectInvalidInput(() => drafts.SetTextSelectionAsync(note, value, 0));
             await ExpectInvalidInput(() => drafts.SetTextSelectionAsync(note, 0, value));
         }
+    }
+
+    [Fact]
+    public async Task APendingRedactionCountIsInt()
+    {
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true, Annotation = "", Redaction = new RedactionConfig() });
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        using (var annotations = await viewer.GetAnnotationAsync(document)) await annotations.RefreshAsync();
+        using var redaction = await viewer.GetRedactionAsync(document);
+        var page = (await viewer.GetPagesAsync(document))[0].Page;
+        await redaction.MarkAreaAsync(new PdfRect(72, 72, 200, 20), page);
+        int count = await redaction.GetPendingCountAsync(page);
+        Assert.Equal(1, count);
     }
 }

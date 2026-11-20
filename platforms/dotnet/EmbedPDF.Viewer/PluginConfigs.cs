@@ -49,10 +49,20 @@ public sealed record FormConfig
     internal GF.FormConfig ToFfi() => new(Validation is { } v ? Ffi.ToFfi(v) : null);
 }
 
-/// <summary>Installs the redaction plugin. Needs <see cref="PdfViewerOptions.Annotation"/>.</summary>
+/// <summary>
+/// Installs the redaction plugin. Needs <see cref="PdfViewerOptions.Annotation"/>.
+/// It is also the patch <see cref="RedactionCapability.UpdateSettingsAsync"/>
+/// takes: a member left <see langword="null"/> keeps its value.
+/// </summary>
 public sealed record RedactionConfig
 {
-    internal GRd.RedactionConfig ToFfi() => new();
+    /// <summary>CSS hex colour applied redactions are filled with.</summary>
+    public string? Fill { get; init; }
+
+    /// <summary>The label drawn over applied redactions.</summary>
+    public RedactionOverlayText? OverlayText { get; init; }
+
+    internal GRd.RedactionConfig ToFfi() => new(Fill, OverlayText is null ? null : Ffi.ToFfi(OverlayText));
 }
 
 /// <summary>Installs the measurement plugin. Needs <see cref="PdfViewerOptions.Interaction"/> and <see cref="PdfViewerOptions.Annotation"/>.</summary>

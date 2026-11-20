@@ -7171,10 +7171,16 @@
       "path": "crates/plugins/redaction/src/controller.rs",
       "owner": "RedactionCapability",
       "symbol": "lifetime",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7182,10 +7188,16 @@
       "path": "crates/plugins/redaction/src/controller.rs",
       "owner": "RedactionCapability",
       "symbol": "get_settings",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi/settings.rs",
         "symbol": "settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "GetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7201,10 +7213,17 @@
       "path": "crates/plugins/redaction/src/controller.rs",
       "owner": "RedactionCapability",
       "symbol": "update_settings",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi/settings.rs",
         "symbol": "update_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "UpdateSettingsAsync",
+        "parameters": [
+          "EmbedPDF.RedactionConfig",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7220,10 +7239,16 @@
       "path": "crates/plugins/redaction/src/controller.rs",
       "owner": "RedactionCapability",
       "symbol": "reset_settings",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi/settings.rs",
         "symbol": "reset_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "ResetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7231,10 +7256,16 @@
       "path": "crates/plugins/redaction/src/controller.rs",
       "owner": "RedactionCapability",
       "symbol": "on_settings_changed",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/epdf-viewer-host/src/lib.rs",
         "symbol": "state_revision"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PdfViewer",
+        "member": "ObserveStateRevisions",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7242,10 +7273,16 @@
       "path": "crates/plugins/redaction/src/controller.rs",
       "owner": "RedactionCapability",
       "symbol": "on_settings_changed_json",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/epdf-viewer-host/src/lib.rs",
         "symbol": "state_revision"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PdfViewer",
+        "member": "ObserveStateRevisions",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7253,10 +7290,16 @@
       "path": "crates/plugins/redaction/src/controller.rs",
       "owner": "RedactionCapability",
       "symbol": "can_mark",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "can_mark"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "CanMarkAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7264,10 +7307,16 @@
       "path": "crates/plugins/redaction/src/controller.rs",
       "owner": "RedactionCapability",
       "symbol": "can_apply",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "can_apply"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "CanApplyAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7275,10 +7324,16 @@
       "path": "crates/plugins/redaction/src/controller.rs",
       "owner": "RedactionCapability",
       "symbol": "is_applying",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "is_applying"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "IsApplyingAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7286,10 +7341,16 @@
       "path": "crates/plugins/redaction/src/controller.rs",
       "owner": "RedactionCapability",
       "symbol": "get_last_result",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "last_result"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "GetLastResultAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7297,10 +7358,16 @@
       "path": "crates/plugins/redaction/src/controller.rs",
       "owner": "RedactionCapability",
       "symbol": "on_applied",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7308,10 +7375,16 @@
       "path": "crates/plugins/redaction/src/controller.rs",
       "owner": "RedactionCapability",
       "symbol": "on_pending_changed",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7319,10 +7392,17 @@
       "path": "crates/plugins/redaction/src/read/pending.rs",
       "owner": "RedactionCapability",
       "symbol": "list_pending",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "pending"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "GetPendingAsync",
+        "parameters": [
+          "System.Nullable<EmbedPDF.PageRef>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7330,10 +7410,17 @@
       "path": "crates/plugins/redaction/src/read/pending.rs",
       "owner": "RedactionCapability",
       "symbol": "get_pending",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "pending_item"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "GetPendingItemAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7341,17 +7428,25 @@
       "path": "crates/plugins/redaction/src/read/pending.rs",
       "owner": "RedactionCapability",
       "symbol": "page_list_calls",
-      "pending": "phase-3-wave-E"
+      "exclusion": "Test counter (`#[cfg(feature = \"harness\")]`, no export): how many page lists were read. Not a capability member.",
+      "classification": "internal-resource"
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/read/pending.rs",
       "owner": "RedactionCapability",
       "symbol": "get_pending_count",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "pending_count"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "GetPendingCountAsync",
+        "parameters": [
+          "System.Nullable<EmbedPDF.PageRef>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7359,10 +7454,17 @@
       "path": "crates/plugins/redaction/src/read/pending.rs",
       "owner": "RedactionCapability",
       "symbol": "estimate_collateral",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "estimate_collateral"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "EstimateCollateralAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.AnnotationRef>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7370,10 +7472,17 @@
       "path": "crates/plugins/redaction/src/write/apply.rs",
       "owner": "RedactionCapability",
       "symbol": "apply",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "apply"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "ApplyAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.AnnotationRef>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7381,10 +7490,17 @@
       "path": "crates/plugins/redaction/src/write/apply.rs",
       "owner": "RedactionCapability",
       "symbol": "apply_pages",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "apply_pages"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "ApplyPagesAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7392,10 +7508,16 @@
       "path": "crates/plugins/redaction/src/write/apply.rs",
       "owner": "RedactionCapability",
       "symbol": "apply_all",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "apply_all"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "ApplyAllAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7403,10 +7525,17 @@
       "path": "crates/plugins/redaction/src/write/marks.rs",
       "owner": "RedactionCapability",
       "symbol": "can_unmark",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "can_unmark"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "CanUnmarkAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7414,10 +7543,17 @@
       "path": "crates/plugins/redaction/src/write/marks.rs",
       "owner": "RedactionCapability",
       "symbol": "can_update_label",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "can_update_label"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "CanUpdateLabelAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7425,10 +7561,16 @@
       "path": "crates/plugins/redaction/src/write/marks.rs",
       "owner": "RedactionCapability",
       "symbol": "mark_selection",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "mark_selection"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "MarkSelectionAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7436,10 +7578,18 @@
       "path": "crates/plugins/redaction/src/write/marks.rs",
       "owner": "RedactionCapability",
       "symbol": "mark_area",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "mark_area"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "MarkAreaAsync",
+        "parameters": [
+          "EmbedPDF.PdfRect",
+          "EmbedPDF.PageRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7447,10 +7597,18 @@
       "path": "crates/plugins/redaction/src/write/marks.rs",
       "owner": "RedactionCapability",
       "symbol": "mark_area_json",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "mark_area"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "MarkAreaAsync",
+        "parameters": [
+          "EmbedPDF.PdfRect",
+          "EmbedPDF.PageRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7458,10 +7616,17 @@
       "path": "crates/plugins/redaction/src/write/marks.rs",
       "owner": "RedactionCapability",
       "symbol": "mark_page",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "mark_page"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "MarkPageAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7469,10 +7634,18 @@
       "path": "crates/plugins/redaction/src/write/marks.rs",
       "owner": "RedactionCapability",
       "symbol": "mark_matches",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "mark_matches"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "MarkMatchesAsync",
+        "parameters": [
+          "EmbedPDF.SearchQuery",
+          "System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7480,10 +7653,17 @@
       "path": "crates/plugins/redaction/src/write/marks.rs",
       "owner": "RedactionCapability",
       "symbol": "unmark",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "unmark"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "UnmarkAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.AnnotationRef>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7491,10 +7671,16 @@
       "path": "crates/plugins/redaction/src/write/marks.rs",
       "owner": "RedactionCapability",
       "symbol": "clear_pending",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "clear_pending"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "ClearPendingAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7502,10 +7688,18 @@
       "path": "crates/plugins/redaction/src/write/marks.rs",
       "owner": "RedactionCapability",
       "symbol": "update_label",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/redaction/src/ffi.rs",
         "symbol": "update_label"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RedactionCapability",
+        "member": "UpdateLabelAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "EmbedPDF.RedactionLabelPatch",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
