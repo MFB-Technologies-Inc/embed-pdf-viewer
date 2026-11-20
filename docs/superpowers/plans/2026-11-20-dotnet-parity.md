@@ -538,6 +538,87 @@ Deviations, each with its reason:
   interaction is wave B. Wave B switches it to the public capability.
 - History's task ran after page edit's, because `HistoryTests.swift` edits pages.
 
+### Phase 3 wave B notes (2026-11-20)
+
+Task plan: `docs/superpowers/plans/2026-11-20-dotnet-parity/03b-wave-b.md`. Branch
+`research/dotnet-parity-p3b` from `research/dotnet-parity-p3a` at `7e62f53a1`, not pushed. It
+does not carry wave A's later Phase 2 follow-ups (`30bcc1c35`, `99c258f75`); the second one
+edits the same `PdfViewer.Dispose` remarks this wave replaces, so the merge needs a hand there.
+
+What exists. Four capabilities under `platforms/dotnet/EmbedPDF.Viewer/Plugins/`:
+`InteractionCapability` (with `ToolId`, the pointer records and `IInteractionHandler`),
+`FeedbackCapability` (with `IPlatformFeedback`), `I18nCapability` (with `ILocaleLoader` and
+`EmbeddedResourceLocaleLoader`) and `ActionsCapability` (with `IActionExecutor`,
+`IActionUiHandler`, `IActionSubmitHandler`, `IScriptEngineFactory`, `IScriptEngine` and
+`ScriptEngineCheck`). `FeedbackConfig`, `I18nConfig` and `ActionsConfig` carry their fields.
+`JintScriptEngineFactory` ships in a new assembly, `platforms/dotnet/EmbedPDF.Scripting.Jint`
+(package `EmbedPDF.Scripting.Jint`, Jint 4.18.0). The coverage check reads 880 members: 293
+ported, 452 pending (C 167, D 143, E 142), 135 exclusions. All 68 wave B rows are ported
+(interaction 30, i18n 15, actions 23); none needed an exclusion, and feedback has no rows, as
+the manifest's crate note says. `EmbedPDF.Viewer.Tests` runs 549 cases, 548 passing twice in a
+row and one skipped (the pointer latency test, which runs with `EMBEDPDF_LATENCY=1`: p95
+0.101 ms against an 8.33 ms frame on `linux-arm64`). `EmbedPDF.Tests` passes its 36,
+`packaging` its 30 and `scripts/test_check_api_coverage.py` its 11. Release builds of the
+facade, the DI package, the Jint package, the tests and `EmbedPDF.ApiDump` report 0 warnings.
+
+Kernel callbacks. The Phase 3 note from the Phase 2 review (added on `research/dotnet-parity-p3a` in `99c258f75`) is done. `KernelCallback`
+(`platforms/dotnet/EmbedPDF.Viewer/KernelCallback.cs`) marks the thread with the viewer's
+`KernelMark` while app code runs on the kernel thread; the mark holds no reference to the
+viewer. `Dispose()` there throws `InvalidOperationException`. `DisposeAsync()` there starts
+disposal and returns a task that can be awaited, while blocking on it with
+`GetAwaiter().GetResult()` throws. Blocking through `AsTask()` cannot be detected, and the
+remarks say so. Tests dispose from an interaction handler, a feedback provider, a UI handler and
+a script engine. Every adapter catches what app code throws: a member with an error type
+(`OnDown`, the UI and submit handlers, the engine factory) answers `HostException.Failed` with
+the message, `Evaluate` answers `Threw`, a `bool` member answers `false`, and the rest log and
+drop it. Left alone, an exception from a member with no error type reaches Rust as an
+unexpected callback error, which panics the kernel thread.
+
+Calling threads. On the kernel thread, synchronous and marked: `IInteractionHandler`, the tool
+permission (`Func<bool>`), `IPlatformFeedback`, `IActionUiHandler`, `IActionSubmitHandler`,
+`IScriptEngineFactory` and `IScriptEngine`. On the thread pool, where disposing is safe:
+`ILocaleLoader`, `IActionExecutor` and the operation of `RunDocumentVerbAsync`. Each
+interface's remarks name its thread.
+
+Jint. `Jint.dll` for `net10.0` declares `IsAotCompatible` and builds with no analyzer warning,
+but a NativeAOT publish of a console app running one script reports IL2026 from
+`Jint.Options.Apply` and `DefaultTypeConverter.BuildDelegate` plus IL2104 and IL3053 for the
+assembly. Those are its CLR interop paths, which the engine never enables, but they are why
+Jint is not a dependency of `EmbedPDF`: an AOT consumer that wants document JavaScript takes
+the warnings with `EmbedPDF.Scripting.Jint`, and one that doesn't never sees them. Each realm
+owns a background thread with a 16 MiB stack and one `Jint.Engine` with no CLR access, a memory
+limit (64 MiB by default) and `Constraints.MaxExecutionStackCount` (1,000). The time limit is a
+per-call `Constraint`, so a runaway script stops inside the interpreter and frees its thread;
+the wait gives up 250 ms past the limit in case it doesn't. Packing the package into a release
+is Phase 6.
+
+Deviations, each with its reason:
+
+- Swift's completion objects (`LocaleLoadCompletion`, `ActionExecutorCompletion`,
+  `DocumentVerbCompletion`) are `Task`-returning members (`ILocaleLoader.LoadAsync`,
+  `IActionExecutor.ExecuteAsync` answering `ActionExecutorResult`, `Func<Task>` for a document
+  verb), as `IDocumentFetcher` was in Phase 2. `ToolPermission` is a `Func<bool>`.
+- Swift's `BundleLocaleLoader` is `EmbeddedResourceLocaleLoader(assembly, resourcePrefix)`; the
+  pack for `es` is the manifest resource `resourcePrefix + "es.json"`. The library bundles no
+  locale files, as Swift's doesn't; the test assembly embeds Swift's `es.json`.
+- `t` is `TranslateAsync`, `register` is `RegisterLocaleAsync`, `actionTree(for:)` is
+  `GetActionTreeAsync`, `setUIHandler` is `SetUiHandlerAsync`. Swift's deprecated string
+  overloads of the tool members have no counterpart.
+- `InteractionSettings.DefaultTool` and the tool event fields are `ToolId`, where Swift keeps
+  `String`.
+- Action unions name their reference fields `AnnotationRef`, `PageRef` and `FieldRef`, because a
+  case's property can't share a name with a sibling case (`ActionSource.Annotation`). The Phase 0
+  generator renames hit the same rule.
+- A UI handler that throws fails the whole `ExecuteAsync` with `HostError`, not one node. That
+  is the engine's documented behaviour; the plan's first cut assumed a failed node.
+- `PdfObjectRef` is a record over its JSON and `PdfActionNode` a record of type and JSON; Swift
+  passes the generated objects. A malformed reference is `invalid-input` when it is sent.
+- Jint answers a memory-limit stop as `Threw("out of memory: ...")`, which the viewer reports as
+  `InvalidOutput` and poisons the realm. Only a script-visible error can be `Budget`, and Jint's
+  memory stop is not one. JavaScriptCore enforces no memory budget at all.
+- `ScriptEngineCheck.RunAsync` takes a `CancellationToken` that is checked before the run starts;
+  the run itself cannot be cancelled, as in Swift.
+
 ## Phase 4: Models
 
 About 1.5 weeks. Exit: every model in `Sources/EmbedPDFModels/` has a C# counterpart with its
