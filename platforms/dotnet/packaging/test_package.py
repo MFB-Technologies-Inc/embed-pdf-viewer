@@ -230,6 +230,40 @@ class RuntimeTests(unittest.TestCase):
             self.assertNotEqual(0, result.returncode)
             self.assertIn("different source commits", result.stdout)
 
+    def smoke_runtime(self, manifest, rid="linux-arm64", emulated=False):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            package = directory / "EmbedPDF.Runtime.0.0.0-engine.0000000000000000.nupkg"
+            with zipfile.ZipFile(package, "w") as bundle:
+                bundle.writestr(f"runtimes/{rid}/native/epdf-assets.json", "{}")
+            facade = directory / "EmbedPDF.0.0.0-local.nupkg"
+            facade.write_bytes(b"facade")
+            manifest = copy.deepcopy(manifest)
+            manifest["files"] = [{"path":package.name,"sha256":hashlib.sha256(package.read_bytes()).hexdigest(),"bytes":package.stat().st_size}]
+            path = directory / "package-manifest.runtime.json"
+            path.write_text(json.dumps(manifest))
+            command = [sys.executable, str(self.root / "packaging/package.py"), "smoke-runtime", "--rid", rid,
+                       "--package", str(package), "--facade", str(facade), "--manifest", str(path)]
+            env = dict(os.environ, EPDF_IMAGE_ID="sha256:"+"c"*64, EPDF_EMULATED="true" if emulated else "false")
+            return subprocess.run(command, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    @unittest.skipUnless(platform.system() == "Linux" and platform.machine() == "aarch64", "CLI regression requires native Linux ARM64 author container")
+    def test_smoke_runtime_rejects_unpacked_rid(self):
+        manifest = copy.deepcopy(self.manifest)
+        manifest["rids"]["linux-arm64"]["status"] = "UNVALIDATED"
+        result = self.smoke_runtime(manifest)
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("no packed artifact", result.stdout)
+
+    @unittest.skipUnless(platform.system() == "Linux" and platform.machine() == "aarch64", "CLI regression requires native Linux ARM64 author container")
+    def test_smoke_runtime_rejects_foreign_rid_and_misplaced_emulation(self):
+        result = self.smoke_runtime(self.manifest, rid="osx-arm64")
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("differs from requested osx-arm64", result.stdout)
+        result = self.smoke_runtime(self.manifest, emulated=True)
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("emulation is recorded only for linux-x64", result.stdout)
+
 class NativeInspectionTests(unittest.TestCase):
     def test_rejects_wrong_or_incomplete_abi_exports(self):
         from package import check_exports

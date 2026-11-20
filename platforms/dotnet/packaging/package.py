@@ -543,6 +543,183 @@ def pack_runtime(args):
     write(output / "package-manifest.runtime.json", manifest)
     print(f"Runtime package: {package}")
 
+FIXTURE = ROOT / "pdfium-multiplatform-prototype/fixtures/report.pdf"
+FIXTURE_PAGES = 14
+SCRUBBED_ENV = ["EPDF_NATIVE_DIR","PDF_RUNTIME_LIB_DIR","LD_LIBRARY_PATH","DYLD_LIBRARY_PATH","DYLD_FALLBACK_LIBRARY_PATH"]
+
+def pinned_runtime_version():
+    props = (DOTNET / "EmbedPDF.Runtime/EmbedPDF.Runtime.props").read_text()
+    match = re.search(r"<EmbedPdfRuntimeVersion>(.*?)</EmbedPdfRuntimeVersion>", props)
+    if not match:
+        raise ValueError("EmbedPDF.Runtime.props has no EmbedPdfRuntimeVersion")
+    return match.group(1)
+
+def pack_facade(args):
+    """Packs the EmbedPDF facade against the runtime package it depends on."""
+    check_toolchain()
+    runtime = Path(args.runtime_package).resolve()
+    match = re.fullmatch(r"EmbedPDF\.Runtime\.(.+)\.nupkg", runtime.name)
+    if not match:
+        raise ValueError(f"not an EmbedPDF.Runtime package: {runtime.name}")
+    if match.group(1) != pinned_runtime_version():
+        raise ValueError(f"runtime package {match.group(1)} is not the pinned {pinned_runtime_version()}; run check-dotnet-engine.sh")
+    if not (DOTNET / "EmbedPDF.Viewer/Generated/epdf_viewer_host.cs").is_file():
+        raise ValueError("generated bindings are missing; run platforms/dotnet/generate-bindings.sh")
+    output = Path(args.out).resolve()
+    output.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="epdf-facade-") as cache:
+        env = dict(os.environ, NUGET_PACKAGES=cache)
+        run(["dotnet", "pack", str(DOTNET / "EmbedPDF.Viewer/EmbedPDF.Viewer.csproj"), "-c", "Release", "-o", str(output),
+             f"-p:PackageVersion={args.version}", "-p:EmbedPdfPackRuntime=true",
+             f"-p:RestoreAdditionalProjectSources={runtime.parent}"], cwd=DOTNET, env=env)
+    package = output / f"EmbedPDF.{args.version}.nupkg"
+    with zipfile.ZipFile(package) as bundle:
+        if "lib/net10.0/EmbedPDF.dll" not in bundle.namelist():
+            raise ValueError("facade assembly missing from package")
+        nuspec = bundle.read("EmbedPDF.nuspec").decode()
+        if f'id="EmbedPDF.Runtime" version="{match.group(1)}"' not in nuspec:
+            raise ValueError("facade package does not depend on the runtime package it was packed against")
+    print(f"Facade package: {package}")
+
+def smoke_runtime(args):
+    emulated = os.environ.get("EPDF_EMULATED","false").lower() == "true"
+    if platform.system() == "Linux" and not os.environ.get("EPDF_IMAGE_ID"):
+        raise ValueError("Linux validation requires the approved container EPDF_IMAGE_ID")
+    if emulated and args.rid != "linux-x64":
+        raise ValueError("emulation is recorded only for linux-x64")
+    if not emulated and host_rid() != args.rid:
+        raise ValueError(f"native host RID {host_rid()} differs from requested {args.rid}")
+    manifest_path = Path(args.manifest).resolve()
+    manifest = read(manifest_path)
+    validate(manifest, read(DOTNET / "package-manifest.schema.json"))
+    if manifest["packageId"] != "EmbedPDF.Runtime":
+        raise ValueError("manifest is not an EmbedPDF.Runtime manifest")
+    if manifest["rids"][args.rid]["status"] == "UNVALIDATED":
+        raise ValueError("manifest has no packed artifact for requested RID")
+    package = Path(args.package).resolve()
+    entry = next((entry for entry in manifest["files"] if (manifest_path.parent/entry["path"]).resolve()==package),None)
+    if entry is None or sha(package) != entry["sha256"]:
+        raise ValueError("package checksum/identity differs from manifest")
+    host_name = VIEWER_RIDS[args.rid][2]
+    pdfium_name = Path(VIEWER_RIDS[args.rid][3]).name
+    with zipfile.ZipFile(package) as bundle:
+        prefix = f"runtimes/{args.rid}/native/"
+        identity = json.loads(bundle.read(prefix+"epdf-assets.json"))
+        if identity.get("rid") != args.rid or identity.get("runtimeFork") != manifest["runtimeFork"]:
+            raise ValueError("packaged slice identity differs from manifest")
+        names = {Path(asset["path"]).name for asset in identity["files"]}
+        if not {host_name, pdfium_name} <= names:
+            raise ValueError("packaged native asset inventory must include the viewer host and PDFium")
+        for asset in identity["files"]:
+            payload = bundle.read(prefix+Path(asset["path"]).name)
+            if hashlib.sha256(payload).hexdigest() != asset["sha256"] or len(payload) != asset["bytes"]:
+                raise ValueError(f"packaged native asset checksum mismatch: {asset['path']}")
+    facade = Path(args.facade).resolve()
+    facade_version = re.fullmatch(r"EmbedPDF\.(.+)\.nupkg", facade.name).group(1)
+    dotnet = os.environ.get("EPDF_DOTNET", "dotnet")
+    with tempfile.TemporaryDirectory(prefix="epdf-runtime-consumer-") as temporary:
+        directory = Path(temporary)
+        feed = directory / "local"
+        feed.mkdir()
+        shutil.copy2(package, feed / package.name)
+        shutil.copy2(facade, feed / facade.name)
+        (directory/"global.json").write_text((DOTNET/"global.json").read_text())
+        shutil.copy2(DOTNET/"packaging/ViewerSmoke.cs", directory/"Program.cs")
+        shutil.copy2(FIXTURE, directory/"input.pdf")
+        (directory/"Consumer.csproj").write_text(
+            '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>'
+            '<ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><UseAppHost>false</UseAppHost></PropertyGroup>'
+            '<ItemGroup><PackageReference Include="EmbedPDF" Version="'+facade_version+'"/></ItemGroup></Project>')
+        env = os.environ.copy()
+        for name in SCRUBBED_ENV:
+            env.pop(name, None)
+        env["NUGET_PACKAGES"] = str(directory/"cache")
+        def consume(app, expect_code, expect_text):
+            result = subprocess.run([dotnet, str(app/"Consumer.dll"), str(directory/"input.pdf")], cwd=directory, env=env,
+                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            print(result.stdout, end="")
+            if expect_code is None and result.returncode == 0:
+                raise ValueError(f"{app.name}: expected a failure, got success")
+            if expect_code is not None and result.returncode != expect_code:
+                raise ValueError(f"{app.name}: exit {result.returncode}, expected {expect_code}")
+            for text in expect_text:
+                if text not in result.stdout:
+                    raise ValueError(f"{app.name}: output lacks {text!r}")
+        def hidden(path, body):
+            moved = path.with_suffix(path.suffix + ".hidden")
+            path.rename(moved)
+            try:
+                body()
+            finally:
+                moved.rename(path)
+        passed = [f"PASS: rid={args.rid} pages={FIXTURE_PAGES}"]
+        missing = ["NativeRuntimeNotFoundException", f"rid={args.rid}"]
+        # A RID-specific build: NuGet copies the native files beside the app.
+        run([dotnet,"restore","Consumer.csproj","--source",str(feed),"--runtime",args.rid],cwd=directory,env=env)
+        run([dotnet,"build","Consumer.csproj","-c","Release","--no-restore","--runtime",args.rid,"--self-contained","false",
+             "-o",str(directory/"app-rid")],cwd=directory,env=env)
+        app = directory/"app-rid"
+        consume(app, 0, passed)
+        hidden(app/host_name, lambda: consume(app, 3, missing))
+        hidden(app/pdfium_name, lambda: consume(app, None, []))
+        # A portable build: the files stay under runtimes/<rid>/native.
+        run([dotnet,"build","Consumer.csproj","-c","Release","-o",str(directory/"app-portable")],cwd=directory,env=env)
+        app = directory/"app-portable"
+        native = app/"runtimes"/args.rid/"native"
+        if not (native/host_name).is_file():
+            raise ValueError(f"portable build has no {native/host_name}")
+        consume(app, 0, passed)
+        hidden(native/host_name, lambda: consume(app, 3, missing))
+        print("PASS: RID-specific and portable consumers, missing-host and missing-PDFium checks")
+
+def validate_runtime(args):
+    record_path = Path(args.record).resolve()
+    pin_path = Path(args.runtime_manifest).resolve()
+    pin = read(pin_path)
+    source = viewer_source_identity()
+    source["runtimeFork"] = pin["sha"]
+    emulated = os.environ.get("EPDF_EMULATED","false").lower() == "true"
+    environment = {"kind":"container" if os.environ.get("EPDF_IMAGE_ID") else "host",
+        "os":platform.platform(),"arch":args.rid.split("-")[-1] if emulated else host_rid().split("-")[-1],
+        "emulated":emulated,"tools":{}}
+    if environment["kind"] == "container":
+        environment["imageId"] = os.environ["EPDF_IMAGE_ID"]
+        environment["hostOs"] = os.environ.get("EPDF_HOST_OS","unspecified")
+    record = {"schemaVersion":1,"package":"EmbedPDF.Runtime","phase":1,"rid":args.rid,"source":source,
+        "environment":environment,"inputs":[file_record(pin_path),file_record(FIXTURE)],
+        "commands":[],"artifacts":[],"limitations":["Phase 1 checks loading and one document open; the facade API is Phase 2."]}
+    command = [sys.executable, str(Path(__file__).resolve()), "smoke-runtime", "--rid", args.rid,
+               "--package", str(Path(args.package).resolve()), "--facade", str(Path(args.facade).resolve()),
+               "--manifest", str(Path(args.manifest).resolve())]
+    result = subprocess.run(command,cwd=ROOT,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+    print(result.stdout, end="")
+    dotnet = os.environ.get("EPDF_DOTNET", "dotnet")
+    for tool, command_version in [("dotnet",[dotnet,"--version"]),("rustc",["rustc","--version"]),("libc",["ldd","--version"])]:
+        try:
+            environment["tools"][tool] = subprocess.check_output(command_version,cwd=DOTNET,text=True,stderr=subprocess.STDOUT).splitlines()[0]
+        except (OSError,subprocess.CalledProcessError):
+            environment["tools"][tool] = "unavailable"
+    record["commands"].append({"command":subprocess.list2cmdline(command),"cwd":str(ROOT),"exitCode":result.returncode,
+                              "results":result.stdout[-16000:] or "No output"})
+    if result.returncode == 0:
+        manifest_path = Path(args.manifest).resolve()
+        manifest = read(manifest_path)
+        manifest["rids"][args.rid] = ({"status":"container-emulated",
+            "reason":"Consumer passed under emulation on an arm64 host; no native x64 run."} if emulated else
+            {"status":"VALIDATED","reason":"Local-feed consumer passed on the matching native architecture."})
+        validate(manifest, read(DOTNET / "package-manifest.schema.json"))
+        write(manifest_path, manifest)
+    for path in [args.package,args.facade,args.manifest]:
+        if Path(path).is_file():
+            record["artifacts"].append(file_record(Path(path)))
+    if result.returncode:
+        record["limitations"].append("Consumer validation failed; no RID success claim.")
+    if emulated:
+        record["limitations"].append("Status: container-emulated. The x64 consumer ran under emulation on an arm64 host. Emulation does not substitute for native-host evidence.")
+    validate(record, read(DOTNET / "validation/record.schema.json"))
+    write(record_path,record)
+    return result.returncode
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="action",required=True)
@@ -558,6 +735,19 @@ def main():
     merge.add_argument("--out",required=True)
     merge.add_argument("--version")
     merge.add_argument("--runtime-manifest",default=pin_default)
+    facade = sub.add_parser("pack-facade", help="pack the EmbedPDF facade against a runtime package")
+    facade.add_argument("--runtime-package",required=True)
+    facade.add_argument("--out",required=True)
+    facade.add_argument("--version",default="0.0.0-local")
+    for action in ["smoke-runtime","validate-runtime"]:
+        command = sub.add_parser(action, help="consume the runtime and facade packages from a local feed")
+        command.add_argument("--rid",choices=VIEWER_RIDS,required=True)
+        command.add_argument("--package",required=True)
+        command.add_argument("--facade",required=True)
+        command.add_argument("--manifest",required=True)
+        command.add_argument("--runtime-manifest",default=pin_default)
+        if action == "validate-runtime":
+            command.add_argument("--record",required=True)
     for action in ["pack","validate","smoke"]:
         command = sub.add_parser(action)
         command.add_argument("--rid",choices=RIDS,required=True)
@@ -580,7 +770,8 @@ def main():
         args.manifest = args.manifest or str(directory/f"package-manifest.{args.rid}.json")
     try:
         return {"pack":pack,"validate":validate_package,"smoke":smoke,
-                "stage-runtime":stage_runtime,"pack-runtime":pack_runtime}[args.action](args) or 0
+                "stage-runtime":stage_runtime,"pack-runtime":pack_runtime,"pack-facade":pack_facade,
+                "smoke-runtime":smoke_runtime,"validate-runtime":validate_runtime}[args.action](args) or 0
     except (ValueError,RuntimeError,OSError,KeyError,tarfile.TarError,zipfile.BadZipFile) as error:
         print(f"ERROR: {error}",file=sys.stderr)
         return 1
