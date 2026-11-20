@@ -147,6 +147,56 @@ class AnnotationPatchDecodingTest {
         assertEquals(FreeTextAnnotationPatch(), FreeTextAnnotationPatch.fromJson("""{"richText":null}"""))
     }
 
+    @Test
+    fun shapePatchesRoundTrip() {
+        val box = AnnotationKindDraftTest.box
+        val square = SquareAnnotationPatch(
+            box = box, color = Nullable.Clear, opacity = 0.5, strokeWidth = 3.0, borderStyle = AnnotationBorderStyle.DASHED,
+            dashArray = value(listOf(4.0, 2.0)), interiorColor = value(AnnotationColor("#00ff00")), rotation = value(15.0),
+            cloudyIntensity = value(2.0), contents = value("Square text"), blendMode = AnnotationBlendMode.MULTIPLY,
+            richText = value(comment), common = fullCommon,
+        )
+        expectRoundTrip(square, square.copy(common = unnamed), SquareAnnotationPatch)
+        val circle = CircleAnnotationPatch(
+            box = box, color = value(AnnotationColor("#0000ff")), opacity = 0.75, strokeWidth = 2.0,
+            borderStyle = AnnotationBorderStyle.SOLID, dashArray = value(listOf(1.0)), interiorColor = value(AnnotationColor("#ffff00")),
+            rotation = Nullable.Clear, cloudyIntensity = Nullable.Clear, contents = value("Circle text"),
+            blendMode = AnnotationBlendMode.OVERLAY, richText = value(comment), common = fullCommon,
+        )
+        expectRoundTrip(circle, circle.copy(common = unnamed), CircleAnnotationPatch)
+        val scale = AnnotationKindDraftTest.scale.copy(origin = MeasureOrigin(3.0, 4.0))
+        val line = LineAnnotationPatch(
+            start = Point(10.0, 10.0), end = Point(100.0, 50.0), color = value(AnnotationColor("#ff00ff")), opacity = 0.5,
+            strokeWidth = 2.0, borderStyle = AnnotationBorderStyle.DASHED, dashArray = value(listOf(3.0, 1.0)),
+            interiorColor = Nullable.Clear,
+            lineEndings = AnnotationLineEndings(AnnotationLineEnding.OPEN_ARROW, AnnotationLineEnding.REVERSED_CLOSED_ARROW),
+            rotation = value(45.0), intent = value(AnnotationLineIntent.LINE_DIMENSION), captionEnabled = true,
+            captionPosition = AnnotationCaptionPosition.TOP, captionOffset = value(AnnotationCaptionOffset(1.0, 2.0)),
+            leader = value(AnnotationLineLeader(5.0, 1.0, 2.0)), contents = value("Line text"),
+            blendMode = AnnotationBlendMode.HARD_LIGHT, richText = value(comment), measure = value(scale), common = fullCommon,
+        )
+        expectRoundTrip(line, line.copy(common = unnamed), LineAnnotationPatch)
+        val polygon = PolygonAnnotationPatch(
+            vertices = listOf(Point(10.0, 10.0), Point(100.0, 10.0), Point(50.0, 80.0)), color = value(AnnotationColor("#0000ff")),
+            opacity = 0.5, strokeWidth = 2.0, borderStyle = AnnotationBorderStyle.DASHED, dashArray = value(listOf(2.0, 2.0)),
+            interiorColor = value(AnnotationColor("#ffff00")), rotation = value(10.0), intent = value(AnnotationPolygonIntent.POLYGON_CLOUD),
+            cloudyIntensity = value(2.0), captionEnabled = value(true), captionCenter = AnnotationCaptionCenter.At(Point(50.0, 30.0)),
+            contents = value("Polygon text"), blendMode = AnnotationBlendMode.LIGHTEN, richText = value(comment),
+            measure = Nullable.Clear, common = fullCommon,
+        )
+        expectRoundTrip(polygon, polygon.copy(common = unnamed), PolygonAnnotationPatch)
+        val polyline = PolylineAnnotationPatch(
+            vertices = listOf(Point(10.0, 10.0), Point(60.0, 80.0), Point(100.0, 10.0)), color = value(AnnotationColor("#00ffff")),
+            opacity = 0.75, strokeWidth = 3.0, borderStyle = AnnotationBorderStyle.SOLID, dashArray = value(listOf(5.0)),
+            interiorColor = value(AnnotationColor("#ff0000")),
+            lineEndings = AnnotationLineEndings(AnnotationLineEnding.CIRCLE, AnnotationLineEnding.DIAMOND), rotation = value(20.0),
+            intent = value(AnnotationPolylineIntent.POLYLINE_DIMENSION), captionEnabled = Nullable.Clear,
+            captionCenter = AnnotationCaptionCenter.Automatic, contents = value("Polyline text"),
+            blendMode = AnnotationBlendMode.DIFFERENCE, richText = value(comment), measure = value(scale), common = fullCommon,
+        )
+        expectRoundTrip(polyline, polyline.copy(common = unnamed), PolylineAnnotationPatch)
+    }
+
     // ── the codec's rules ──
 
     @Test
@@ -158,6 +208,34 @@ class AnnotationPatchDecodingTest {
     }
 
     @Test
+    fun everyNullableMemberReadsNull() {
+        val line = LineAnnotationPatch.fromJson(
+            """{"captionOffset":null,"color":null,"contents":null,"dashArray":null,"intent":null,"interiorColor":null,"leader":null,"measure":null,"richText":null,"rotation":null,"subject":null}""",
+        )
+        assertEquals(
+            LineAnnotationPatch(
+                color = Nullable.Clear, dashArray = Nullable.Clear, interiorColor = Nullable.Clear, rotation = Nullable.Clear,
+                intent = Nullable.Clear, captionOffset = Nullable.Clear, leader = Nullable.Clear, contents = Nullable.Clear,
+                richText = Nullable.Clear, measure = Nullable.Clear, common = AnnotationCommonFields(subject = Nullable.Clear),
+            ),
+            line,
+        )
+        // A caption centre's `null` is a value, the engine's own placement.
+        assertEquals(
+            PolygonAnnotationPatch(captionCenter = AnnotationCaptionCenter.Automatic),
+            PolygonAnnotationPatch.fromJson("""{"captionCenter":null}"""),
+        )
+    }
+
+    @Test
+    fun aLinePatchReadsBothPoints() {
+        assertEquals(
+            LineAnnotationPatch(start = Point(1.0, 2.0), end = Point(3.0, 4.0)),
+            LineAnnotationPatch.fromJson("""{"linePoints":{"end":{"x":3,"y":4},"start":{"x":1,"y":2}}}"""),
+        )
+    }
+
+    @Test
     fun aPatchIgnoresKeysItDoesNotDeclare() {
         assertEquals(
             InkAnnotationPatch(strokeWidth = 5.0),
@@ -165,6 +243,8 @@ class AnnotationPatchDecodingTest {
         )
         // The kinds that share a field bag still ignore each other's members.
         assertEquals(UnderlineAnnotationPatch(opacity = 0.5), UnderlineAnnotationPatch.fromJson("""{"intent":7,"opacity":0.5}"""))
+        assertEquals(PolygonAnnotationPatch(opacity = 0.5), PolygonAnnotationPatch.fromJson("""{"lineEndings":7,"opacity":0.5}"""))
+        assertEquals(PolylineAnnotationPatch(opacity = 0.5), PolylineAnnotationPatch.fromJson("""{"cloudyIntensity":"x","opacity":0.5}"""))
         assertEquals(LinkAnnotationPatch(), LinkAnnotationPatch.fromJson("""{"blendMode":"normal","richText":7}"""))
     }
 
@@ -174,8 +254,10 @@ class AnnotationPatchDecodingTest {
             val error = assertThrows(json, PdfException::class.java) { InkAnnotationPatch.fromJson(json) }
             assertEquals(PdfException.Code.INVALID_INPUT, error.code)
         }
-        val error = assertThrows(PdfException::class.java) { FreeTextAnnotationPatch.fromJson("""{"calloutLine":[{"x":1,"y":2}]}""") }
-        assertEquals(PdfException.Code.INVALID_INPUT, error.code)
+        val callout = assertThrows(PdfException::class.java) { FreeTextAnnotationPatch.fromJson("""{"calloutLine":[{"x":1,"y":2}]}""") }
+        assertEquals(PdfException.Code.INVALID_INPUT, callout.code)
+        val intent = assertThrows(PdfException::class.java) { PolygonAnnotationPatch.fromJson("""{"intent":"polyline-dimension"}""") }
+        assertEquals(PdfException.Code.INVALID_INPUT, intent.code)
     }
 
     /** A patch never writes `nm`, but a field bag can hold one, and a read patch shows it. */
