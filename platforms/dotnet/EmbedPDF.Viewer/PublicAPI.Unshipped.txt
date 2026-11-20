@@ -898,6 +898,17 @@ EmbedPDF.PageRenderResolution.IsFull.init -> void
 EmbedPDF.PageRenderResolution.PageRenderResolution() -> void
 EmbedPDF.PageRenderResolution.PageRenderResolution(double DeviceWidth, bool IsFull) -> void
 EmbedPDF.PageRenderResolution.UnrotatedDeviceWidth(double unrotatedWidth, double displayedWidth) -> double
+EmbedPDF.PaneInfo
+EmbedPDF.PaneInfo.<Clone>$() -> EmbedPDF.PaneInfo!
+EmbedPDF.PaneInfo.ActiveDocumentId.get -> string?
+EmbedPDF.PaneInfo.ActiveDocumentId.init -> void
+EmbedPDF.PaneInfo.Deconstruct(out string! Id, out System.Collections.Generic.IReadOnlyList<string!>! DocumentIds, out string? ActiveDocumentId) -> void
+EmbedPDF.PaneInfo.DocumentIds.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.PaneInfo.DocumentIds.init -> void
+EmbedPDF.PaneInfo.Equals(EmbedPDF.PaneInfo? other) -> bool
+EmbedPDF.PaneInfo.Id.get -> string!
+EmbedPDF.PaneInfo.Id.init -> void
+EmbedPDF.PaneInfo.PaneInfo(string! Id, System.Collections.Generic.IReadOnlyList<string!>! DocumentIds, string? ActiveDocumentId) -> void
 EmbedPDF.PdfActionTree
 EmbedPDF.PdfActionTree.Dispose() -> void
 EmbedPDF.PdfActionTree.IsIncomplete.get -> bool
@@ -1013,6 +1024,7 @@ EmbedPDF.PdfViewer.StartAsync(System.Threading.CancellationToken cancellationTok
 EmbedPDF.PdfViewer.SwapAsync(EmbedPDF.DocumentInfo! first, EmbedPDF.DocumentInfo! second, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.PdfViewer.UnlockAsync(EmbedPDF.DocumentInfo! document, string! password, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.PdfViewer.UpdateSettingsAsync(EmbedPDF.ViewerSettingsPatch! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PdfViewer.ViewManagerAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ViewManagerCapability!>!
 EmbedPDF.PdfViewerOptions
 EmbedPDF.PdfViewerOptions.<Clone>$() -> EmbedPDF.PdfViewerOptions!
 EmbedPDF.PdfViewerOptions.Actions.get -> EmbedPDF.ActionsConfig?
@@ -1834,6 +1846,54 @@ EmbedPDF.TextSegment.Quad.init -> void
 EmbedPDF.TextSegment.Rect.get -> EmbedPDF.PdfRect
 EmbedPDF.TextSegment.Rect.init -> void
 EmbedPDF.TextSegment.TextSegment(EmbedPDF.PdfQuad Quad, EmbedPDF.PdfRect Rect, double Advance) -> void
+EmbedPDF.ViewManagerCapability
+EmbedPDF.ViewManagerCapability.AddDocumentAsync(EmbedPDF.DocumentInfo! document, string! paneId, int? index = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ViewManagerCapability.CreatePaneAsync(System.Collections.Generic.IEnumerable<EmbedPDF.DocumentInfo!>? documents = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+EmbedPDF.ViewManagerCapability.Dispose() -> void
+EmbedPDF.ViewManagerCapability.GetFocusedPaneIdAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string?>!
+EmbedPDF.ViewManagerCapability.GetPaneAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PaneInfo?>!
+EmbedPDF.ViewManagerCapability.GetPaneOfDocumentAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string?>!
+EmbedPDF.ViewManagerCapability.GetPaneOrderAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
+EmbedPDF.ViewManagerCapability.ListPanesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.PaneInfo!>!>!
+EmbedPDF.ViewManagerCapability.MoveDocumentAsync(EmbedPDF.DocumentInfo! document, string! from, string! to, int? index = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ViewManagerCapability.MoveDocumentAsync(EmbedPDF.DocumentInfo! document, string! paneId, int index, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ViewManagerCapability.MovePaneAsync(string! id, int index, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ViewManagerCapability.ObserveEvents(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.ViewManagerEvent!>!
+EmbedPDF.ViewManagerCapability.RemoveDocumentAsync(EmbedPDF.DocumentInfo! document, string! paneId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ViewManagerCapability.RemovePaneAsync(string! id, string? movingDocumentsTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ViewManagerCapability.SetActiveDocumentAsync(EmbedPDF.DocumentInfo? document, string! paneId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ViewManagerCapability.SetFocusedPaneAsync(string? id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ViewManagerCapability.SplitPaneAsync(EmbedPDF.DocumentInfo! document, string? from = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+EmbedPDF.ViewManagerEvent
+EmbedPDF.ViewManagerEvent.DocumentMoved
+EmbedPDF.ViewManagerEvent.DocumentMoved.Deconstruct(out string! DocumentId, out string? FromPaneId, out string? ToPaneId) -> void
+EmbedPDF.ViewManagerEvent.DocumentMoved.DocumentId.get -> string!
+EmbedPDF.ViewManagerEvent.DocumentMoved.DocumentId.init -> void
+EmbedPDF.ViewManagerEvent.DocumentMoved.DocumentMoved(string! DocumentId, string? FromPaneId, string? ToPaneId) -> void
+EmbedPDF.ViewManagerEvent.DocumentMoved.Equals(EmbedPDF.ViewManagerEvent.DocumentMoved? other) -> bool
+EmbedPDF.ViewManagerEvent.DocumentMoved.FromPaneId.get -> string?
+EmbedPDF.ViewManagerEvent.DocumentMoved.FromPaneId.init -> void
+EmbedPDF.ViewManagerEvent.DocumentMoved.ToPaneId.get -> string?
+EmbedPDF.ViewManagerEvent.DocumentMoved.ToPaneId.init -> void
+EmbedPDF.ViewManagerEvent.FocusChanged
+EmbedPDF.ViewManagerEvent.FocusChanged.Deconstruct(out string? PaneId) -> void
+EmbedPDF.ViewManagerEvent.FocusChanged.Equals(EmbedPDF.ViewManagerEvent.FocusChanged? other) -> bool
+EmbedPDF.ViewManagerEvent.FocusChanged.FocusChanged(string? PaneId) -> void
+EmbedPDF.ViewManagerEvent.FocusChanged.PaneId.get -> string?
+EmbedPDF.ViewManagerEvent.FocusChanged.PaneId.init -> void
+EmbedPDF.ViewManagerEvent.PaneCreated
+EmbedPDF.ViewManagerEvent.PaneCreated.Deconstruct(out string! PaneId) -> void
+EmbedPDF.ViewManagerEvent.PaneCreated.Equals(EmbedPDF.ViewManagerEvent.PaneCreated? other) -> bool
+EmbedPDF.ViewManagerEvent.PaneCreated.PaneCreated(string! PaneId) -> void
+EmbedPDF.ViewManagerEvent.PaneCreated.PaneId.get -> string!
+EmbedPDF.ViewManagerEvent.PaneCreated.PaneId.init -> void
+EmbedPDF.ViewManagerEvent.PaneRemoved
+EmbedPDF.ViewManagerEvent.PaneRemoved.Deconstruct(out string! PaneId) -> void
+EmbedPDF.ViewManagerEvent.PaneRemoved.Equals(EmbedPDF.ViewManagerEvent.PaneRemoved? other) -> bool
+EmbedPDF.ViewManagerEvent.PaneRemoved.PaneId.get -> string!
+EmbedPDF.ViewManagerEvent.PaneRemoved.PaneId.init -> void
+EmbedPDF.ViewManagerEvent.PaneRemoved.PaneRemoved(string! PaneId) -> void
+EmbedPDF.ViewManagerEvent.ViewManagerEvent(EmbedPDF.ViewManagerEvent! original) -> void
 EmbedPDF.ViewerSettings
 EmbedPDF.ViewerSettings.<Clone>$() -> EmbedPDF.ViewerSettings!
 EmbedPDF.ViewerSettings.Accent.get -> string?
@@ -1884,6 +1944,7 @@ abstract EmbedPDF.RenderTilesSetting.<Clone>$() -> EmbedPDF.RenderTilesSetting!
 abstract EmbedPDF.RenderViewport.<Clone>$() -> EmbedPDF.RenderViewport!
 abstract EmbedPDF.SearchEvent.<Clone>$() -> EmbedPDF.SearchEvent!
 abstract EmbedPDF.SearchRevealAxis.<Clone>$() -> EmbedPDF.SearchRevealAxis!
+abstract EmbedPDF.ViewManagerEvent.<Clone>$() -> EmbedPDF.ViewManagerEvent!
 const EmbedPDF.PageRenderResolution.DeviceWidthStep = 128 -> double
 const EmbedPDF.PageRenderResolution.OffScreenDeviceWidth = 256 -> double
 override EmbedPDF.ActionsConfig.Equals(object? obj) -> bool
@@ -2245,6 +2306,9 @@ override EmbedPDF.PageLinkTarget.Uri.GetHashCode() -> int
 override EmbedPDF.PageLinkTarget.Uri.ToString() -> string!
 override EmbedPDF.PageRef.GetHashCode() -> int
 override EmbedPDF.PageRenderResolution.GetHashCode() -> int
+override EmbedPDF.PaneInfo.Equals(object? obj) -> bool
+override EmbedPDF.PaneInfo.GetHashCode() -> int
+override EmbedPDF.PaneInfo.ToString() -> string!
 override EmbedPDF.PdfErrorCode.GetHashCode() -> int
 override EmbedPDF.PdfErrorCode.ToString() -> string!
 override EmbedPDF.PdfPoint.GetHashCode() -> int
@@ -2498,6 +2562,25 @@ override EmbedPDF.StampConfig.ToString() -> string!
 override EmbedPDF.TextSegment.Equals(object? obj) -> bool
 override EmbedPDF.TextSegment.GetHashCode() -> int
 override EmbedPDF.TextSegment.ToString() -> string!
+override EmbedPDF.ViewManagerEvent.DocumentMoved.<Clone>$() -> EmbedPDF.ViewManagerEvent.DocumentMoved!
+override EmbedPDF.ViewManagerEvent.DocumentMoved.Equals(object? obj) -> bool
+override EmbedPDF.ViewManagerEvent.DocumentMoved.GetHashCode() -> int
+override EmbedPDF.ViewManagerEvent.DocumentMoved.ToString() -> string!
+override EmbedPDF.ViewManagerEvent.Equals(object? obj) -> bool
+override EmbedPDF.ViewManagerEvent.FocusChanged.<Clone>$() -> EmbedPDF.ViewManagerEvent.FocusChanged!
+override EmbedPDF.ViewManagerEvent.FocusChanged.Equals(object? obj) -> bool
+override EmbedPDF.ViewManagerEvent.FocusChanged.GetHashCode() -> int
+override EmbedPDF.ViewManagerEvent.FocusChanged.ToString() -> string!
+override EmbedPDF.ViewManagerEvent.GetHashCode() -> int
+override EmbedPDF.ViewManagerEvent.PaneCreated.<Clone>$() -> EmbedPDF.ViewManagerEvent.PaneCreated!
+override EmbedPDF.ViewManagerEvent.PaneCreated.Equals(object? obj) -> bool
+override EmbedPDF.ViewManagerEvent.PaneCreated.GetHashCode() -> int
+override EmbedPDF.ViewManagerEvent.PaneCreated.ToString() -> string!
+override EmbedPDF.ViewManagerEvent.PaneRemoved.<Clone>$() -> EmbedPDF.ViewManagerEvent.PaneRemoved!
+override EmbedPDF.ViewManagerEvent.PaneRemoved.Equals(object? obj) -> bool
+override EmbedPDF.ViewManagerEvent.PaneRemoved.GetHashCode() -> int
+override EmbedPDF.ViewManagerEvent.PaneRemoved.ToString() -> string!
+override EmbedPDF.ViewManagerEvent.ToString() -> string!
 override EmbedPDF.ViewerSettings.Equals(object? obj) -> bool
 override EmbedPDF.ViewerSettings.GetHashCode() -> int
 override EmbedPDF.ViewerSettings.ToString() -> string!
@@ -2580,6 +2663,10 @@ override sealed EmbedPDF.SearchRevealAxis.End.Equals(EmbedPDF.SearchRevealAxis? 
 override sealed EmbedPDF.SearchRevealAxis.Fraction.Equals(EmbedPDF.SearchRevealAxis? other) -> bool
 override sealed EmbedPDF.SearchRevealAxis.Keep.Equals(EmbedPDF.SearchRevealAxis? other) -> bool
 override sealed EmbedPDF.SearchRevealAxis.Start.Equals(EmbedPDF.SearchRevealAxis? other) -> bool
+override sealed EmbedPDF.ViewManagerEvent.DocumentMoved.Equals(EmbedPDF.ViewManagerEvent? other) -> bool
+override sealed EmbedPDF.ViewManagerEvent.FocusChanged.Equals(EmbedPDF.ViewManagerEvent? other) -> bool
+override sealed EmbedPDF.ViewManagerEvent.PaneCreated.Equals(EmbedPDF.ViewManagerEvent? other) -> bool
+override sealed EmbedPDF.ViewManagerEvent.PaneRemoved.Equals(EmbedPDF.ViewManagerEvent? other) -> bool
 static EmbedPDF.ActionsConfig.operator !=(EmbedPDF.ActionsConfig? left, EmbedPDF.ActionsConfig? right) -> bool
 static EmbedPDF.ActionsConfig.operator ==(EmbedPDF.ActionsConfig? left, EmbedPDF.ActionsConfig? right) -> bool
 static EmbedPDF.AnnotationRef.Index.operator !=(EmbedPDF.AnnotationRef.Index? left, EmbedPDF.AnnotationRef.Index? right) -> bool
@@ -2818,6 +2905,8 @@ static EmbedPDF.PageRenderResolution.BandedScale(double scale, double pageWidth)
 static EmbedPDF.PageRenderResolution.ForPage(double viewWidth, double displayScale, double zoomScale = 1, bool isOnScreen = true) -> EmbedPDF.PageRenderResolution
 static EmbedPDF.PageRenderResolution.operator !=(EmbedPDF.PageRenderResolution left, EmbedPDF.PageRenderResolution right) -> bool
 static EmbedPDF.PageRenderResolution.operator ==(EmbedPDF.PageRenderResolution left, EmbedPDF.PageRenderResolution right) -> bool
+static EmbedPDF.PaneInfo.operator !=(EmbedPDF.PaneInfo? left, EmbedPDF.PaneInfo? right) -> bool
+static EmbedPDF.PaneInfo.operator ==(EmbedPDF.PaneInfo? left, EmbedPDF.PaneInfo? right) -> bool
 static EmbedPDF.PdfErrorCode.Conflict.get -> EmbedPDF.PdfErrorCode
 static EmbedPDF.PdfErrorCode.InstanceClosed.get -> EmbedPDF.PdfErrorCode
 static EmbedPDF.PdfErrorCode.InvalidInput.get -> EmbedPDF.PdfErrorCode
@@ -2992,6 +3081,16 @@ static EmbedPDF.StampConfig.operator !=(EmbedPDF.StampConfig? left, EmbedPDF.Sta
 static EmbedPDF.StampConfig.operator ==(EmbedPDF.StampConfig? left, EmbedPDF.StampConfig? right) -> bool
 static EmbedPDF.TextSegment.operator !=(EmbedPDF.TextSegment? left, EmbedPDF.TextSegment? right) -> bool
 static EmbedPDF.TextSegment.operator ==(EmbedPDF.TextSegment? left, EmbedPDF.TextSegment? right) -> bool
+static EmbedPDF.ViewManagerEvent.DocumentMoved.operator !=(EmbedPDF.ViewManagerEvent.DocumentMoved? left, EmbedPDF.ViewManagerEvent.DocumentMoved? right) -> bool
+static EmbedPDF.ViewManagerEvent.DocumentMoved.operator ==(EmbedPDF.ViewManagerEvent.DocumentMoved? left, EmbedPDF.ViewManagerEvent.DocumentMoved? right) -> bool
+static EmbedPDF.ViewManagerEvent.FocusChanged.operator !=(EmbedPDF.ViewManagerEvent.FocusChanged? left, EmbedPDF.ViewManagerEvent.FocusChanged? right) -> bool
+static EmbedPDF.ViewManagerEvent.FocusChanged.operator ==(EmbedPDF.ViewManagerEvent.FocusChanged? left, EmbedPDF.ViewManagerEvent.FocusChanged? right) -> bool
+static EmbedPDF.ViewManagerEvent.PaneCreated.operator !=(EmbedPDF.ViewManagerEvent.PaneCreated? left, EmbedPDF.ViewManagerEvent.PaneCreated? right) -> bool
+static EmbedPDF.ViewManagerEvent.PaneCreated.operator ==(EmbedPDF.ViewManagerEvent.PaneCreated? left, EmbedPDF.ViewManagerEvent.PaneCreated? right) -> bool
+static EmbedPDF.ViewManagerEvent.PaneRemoved.operator !=(EmbedPDF.ViewManagerEvent.PaneRemoved? left, EmbedPDF.ViewManagerEvent.PaneRemoved? right) -> bool
+static EmbedPDF.ViewManagerEvent.PaneRemoved.operator ==(EmbedPDF.ViewManagerEvent.PaneRemoved? left, EmbedPDF.ViewManagerEvent.PaneRemoved? right) -> bool
+static EmbedPDF.ViewManagerEvent.operator !=(EmbedPDF.ViewManagerEvent? left, EmbedPDF.ViewManagerEvent? right) -> bool
+static EmbedPDF.ViewManagerEvent.operator ==(EmbedPDF.ViewManagerEvent? left, EmbedPDF.ViewManagerEvent? right) -> bool
 static EmbedPDF.ViewerSettings.operator !=(EmbedPDF.ViewerSettings? left, EmbedPDF.ViewerSettings? right) -> bool
 static EmbedPDF.ViewerSettings.operator ==(EmbedPDF.ViewerSettings? left, EmbedPDF.ViewerSettings? right) -> bool
 static EmbedPDF.ViewerSettingsPatch.operator !=(EmbedPDF.ViewerSettingsPatch? left, EmbedPDF.ViewerSettingsPatch? right) -> bool
@@ -3059,6 +3158,9 @@ virtual EmbedPDF.SearchEvent.PrintMembers(System.Text.StringBuilder! builder) ->
 virtual EmbedPDF.SearchRevealAxis.EqualityContract.get -> System.Type!
 virtual EmbedPDF.SearchRevealAxis.Equals(EmbedPDF.SearchRevealAxis? other) -> bool
 virtual EmbedPDF.SearchRevealAxis.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.ViewManagerEvent.EqualityContract.get -> System.Type!
+virtual EmbedPDF.ViewManagerEvent.Equals(EmbedPDF.ViewManagerEvent? other) -> bool
+virtual EmbedPDF.ViewManagerEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
 ~override EmbedPDF.AttachmentRef.Equals(object obj) -> bool
 ~override EmbedPDF.AttachmentRef.ToString() -> string
 ~override EmbedPDF.DocumentPermission.Equals(object obj) -> bool

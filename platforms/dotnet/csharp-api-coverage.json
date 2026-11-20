@@ -9446,10 +9446,16 @@
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "list_panes",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/view-manager/src/ffi.rs",
         "symbol": "panes"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ViewManagerCapability",
+        "member": "ListPanesAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9457,10 +9463,17 @@
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "get_pane",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/view-manager/src/ffi.rs",
         "symbol": "pane"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ViewManagerCapability",
+        "member": "GetPaneAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9468,10 +9481,16 @@
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "get_pane_order",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/view-manager/src/ffi.rs",
         "symbol": "pane_order"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ViewManagerCapability",
+        "member": "GetPaneOrderAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9479,10 +9498,16 @@
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "get_focused_pane_id",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/view-manager/src/ffi.rs",
         "symbol": "focused_pane_id"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ViewManagerCapability",
+        "member": "GetFocusedPaneIdAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9490,10 +9515,17 @@
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "get_pane_of_document",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/view-manager/src/ffi.rs",
         "symbol": "pane_of_document"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ViewManagerCapability",
+        "member": "GetPaneOfDocumentAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9501,10 +9533,17 @@
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "create_pane",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/view-manager/src/ffi.rs",
         "symbol": "create_pane"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ViewManagerCapability",
+        "member": "CreatePaneAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.DocumentInfo>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9512,10 +9551,18 @@
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "delete_pane",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/view-manager/src/ffi.rs",
         "symbol": "remove_pane"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ViewManagerCapability",
+        "member": "RemovePaneAsync",
+        "parameters": [
+          "System.String",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9523,10 +9570,18 @@
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "move_pane",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/view-manager/src/ffi.rs",
         "symbol": "move_pane"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ViewManagerCapability",
+        "member": "MovePaneAsync",
+        "parameters": [
+          "System.String",
+          "System.Int32",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9534,10 +9589,17 @@
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "set_focused_pane",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/view-manager/src/ffi.rs",
         "symbol": "set_focused_pane"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ViewManagerCapability",
+        "member": "SetFocusedPaneAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9545,10 +9607,18 @@
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "split_pane",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/view-manager/src/ffi.rs",
         "symbol": "split_pane"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ViewManagerCapability",
+        "member": "SplitPaneAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9556,10 +9626,18 @@
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "set_active_document",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/view-manager/src/ffi.rs",
         "symbol": "set_active_document"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ViewManagerCapability",
+        "member": "SetActiveDocumentAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9567,10 +9645,19 @@
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "add_document",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/view-manager/src/ffi.rs",
         "symbol": "add_document"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ViewManagerCapability",
+        "member": "AddDocumentAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "System.String",
+          "System.Nullable<System.Int32>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9578,10 +9665,18 @@
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "remove_document",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/view-manager/src/ffi.rs",
         "symbol": "remove_document"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ViewManagerCapability",
+        "member": "RemoveDocumentAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9589,10 +9684,19 @@
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "move_document_within",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/view-manager/src/ffi.rs",
         "symbol": "move_document_within"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ViewManagerCapability",
+        "member": "MoveDocumentAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "System.String",
+          "System.Int32",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9600,10 +9704,20 @@
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "move_document_between",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/view-manager/src/ffi.rs",
         "symbol": "move_document_between"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ViewManagerCapability",
+        "member": "MoveDocumentAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "System.String",
+          "System.String",
+          "System.Nullable<System.Int32>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9611,10 +9725,16 @@
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "on_pane_created",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/view-manager/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ViewManagerCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9622,10 +9742,16 @@
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "on_pane_deleted",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/view-manager/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ViewManagerCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9633,10 +9759,16 @@
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "on_focus_changed",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/view-manager/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ViewManagerCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -9644,10 +9776,16 @@
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "on_document_moved",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/view-manager/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ViewManagerCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
