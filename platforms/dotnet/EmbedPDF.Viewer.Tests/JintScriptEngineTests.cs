@@ -49,6 +49,37 @@ public sealed class JintScriptEngineTests
         Assert.Equal(ScriptErrorKind.Budget, check.Error?.Kind);
     }
 
+    /// <summary>
+    /// Recursion that reaches a function by a route other than a call
+    /// expression. Counting calls misses these, and an unguarded one ends the
+    /// test host with a native stack overflow.
+    /// </summary>
+    public static TheoryData<string> IndirectRecursions =>
+    [
+        "var o = {}; Object.defineProperty(o, 'x', { get: function () { return o.x } }); o.x",
+        "var p = new Proxy({}, { get: function (t, k) { return p[k] } }); p.x",
+        "var a = { toString: function () { return String(a) } }; String(a)",
+        "function C() { new C() } new C()",
+        "(function f() { return eval('f()') })()",
+        "(function f(n) { return [1].map(function () { return f(n + 1) }) })(0)",
+    ];
+
+    [Theory]
+    [MemberData(nameof(IndirectRecursions))]
+    public async Task AnIndirectRecursionIsABudgetFailure(string source)
+    {
+        var check = await ScriptEngineCheck.RunAsync(new JintScriptEngineFactory(), source);
+        Assert.Equal(ScriptErrorKind.Budget, check.Error?.Kind);
+    }
+
+    [Fact]
+    public async Task ASmallStackStillStopsRecursionAsABudgetFailure()
+    {
+        var factory = new JintScriptEngineFactory(new JintScriptEngineOptions { ThreadStackBytes = 1024 * 1024 });
+        var check = await ScriptEngineCheck.RunAsync(factory, "var o = {}; Object.defineProperty(o, 'x', { get: function () { return o.x } }); o.x");
+        Assert.Equal(ScriptErrorKind.Budget, check.Error?.Kind);
+    }
+
     [Fact]
     public void ScriptsReachNoClrType()
     {
@@ -112,7 +143,6 @@ public sealed class JintScriptEngineTests
     [Fact]
     public void BadOptionsAreRefused()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new JintScriptEngineFactory(new JintScriptEngineOptions { MaxCallDepth = 0 }));
         Assert.Throws<ArgumentOutOfRangeException>(() => new JintScriptEngineFactory(new JintScriptEngineOptions { MaxMemoryBytes = 0 }));
         Assert.Throws<ArgumentOutOfRangeException>(() => new JintScriptEngineFactory(new JintScriptEngineOptions { ThreadStackBytes = 1024 }));
         Assert.Throws<ArgumentOutOfRangeException>(() => new JintScriptEngineFactory(new JintScriptEngineOptions { RegexTimeout = TimeSpan.Zero }));

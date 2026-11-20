@@ -6,8 +6,6 @@ EmbedPDF.Scripting.Jint.JintScriptEngineOptions
 EmbedPDF.Scripting.Jint.JintScriptEngineOptions.<Clone>$() -> EmbedPDF.Scripting.Jint.JintScriptEngineOptions!
 EmbedPDF.Scripting.Jint.JintScriptEngineOptions.Equals(EmbedPDF.Scripting.Jint.JintScriptEngineOptions? other) -> bool
 EmbedPDF.Scripting.Jint.JintScriptEngineOptions.JintScriptEngineOptions() -> void
-EmbedPDF.Scripting.Jint.JintScriptEngineOptions.MaxCallDepth.get -> int
-EmbedPDF.Scripting.Jint.JintScriptEngineOptions.MaxCallDepth.init -> void
 EmbedPDF.Scripting.Jint.JintScriptEngineOptions.MaxMemoryBytes.get -> long
 EmbedPDF.Scripting.Jint.JintScriptEngineOptions.MaxMemoryBytes.init -> void
 EmbedPDF.Scripting.Jint.JintScriptEngineOptions.RegexTimeout.get -> System.TimeSpan

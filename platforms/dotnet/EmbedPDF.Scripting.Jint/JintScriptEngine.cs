@@ -8,13 +8,6 @@ namespace EmbedPDF.Scripting.Jint;
 public sealed record JintScriptEngineOptions
 {
     /// <summary>
-    /// The deepest script call stack. Past it a script sees
-    /// <c>RangeError: Maximum call stack size exceeded</c>, which the viewer
-    /// reports as a budget failure. Default 1,000.
-    /// </summary>
-    public int MaxCallDepth { get; init; } = 1000;
-
-    /// <summary>
     /// What one evaluation may allocate, in bytes. Past it the evaluation
     /// stops and the realm is poisoned. It counts the interpreter's own
     /// allocations too (parsing the viewer's 48 KB prelude among them), so
@@ -23,8 +16,14 @@ public sealed record JintScriptEngineOptions
     public long MaxMemoryBytes { get; init; } = 64L * 1024 * 1024;
 
     /// <summary>
-    /// The stack of each realm's thread, in bytes; it bounds how deep
-    /// <see cref="MaxCallDepth"/> can safely go. Default 16 MiB, at least 256 KiB.
+    /// The stack of each realm's thread, in bytes, which is what bounds a
+    /// script's recursion. The interpreter measures the stack left on every
+    /// entry into a script function (a call, <c>new</c>, an accessor, a
+    /// coercion, a Proxy trap, <c>eval</c>) and raises
+    /// <c>RangeError: Maximum call stack size exceeded</c>, which the viewer
+    /// reports as a budget failure, while there is still stack to unwind on.
+    /// A plain recursive call takes about 2 KiB, so the default 16 MiB allows
+    /// about 8,000 levels and the 1 MiB minimum about 400.
     /// </summary>
     public int ThreadStackBytes { get; init; } = 16 * 1024 * 1024;
 
@@ -54,13 +53,12 @@ public sealed class JintScriptEngineFactory : IScriptEngineFactory
     readonly JintScriptEngineOptions options;
 
     /// <summary>A factory with <paramref name="options"/>, or the defaults.</summary>
-    /// <exception cref="ArgumentOutOfRangeException">A limit is not positive, or the thread stack is under 256 KiB.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A limit is not positive, or the thread stack is under 1 MiB.</exception>
     public JintScriptEngineFactory(JintScriptEngineOptions? options = null)
     {
         options ??= new JintScriptEngineOptions();
-        ArgumentOutOfRangeException.ThrowIfLessThan(options.MaxCallDepth, 1, nameof(options));
         ArgumentOutOfRangeException.ThrowIfLessThan(options.MaxMemoryBytes, 1, nameof(options));
-        ArgumentOutOfRangeException.ThrowIfLessThan(options.ThreadStackBytes, 256 * 1024, nameof(options));
+        ArgumentOutOfRangeException.ThrowIfLessThan(options.ThreadStackBytes, 1024 * 1024, nameof(options));
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(options.RegexTimeout, TimeSpan.Zero, nameof(options));
         this.options = options;
     }
@@ -108,13 +106,16 @@ internal sealed class JintRealm : IScriptEngine
             // The budget is the script's: the clock starts when the realm's
             // thread takes the work, not when it was posted.
             item.Started.Wait();
-            if (!item.Done.Wait(TimeSpan.FromMilliseconds(item.TimeLimitMs) + Grace))
+            var done = item.Done.Wait(TimeSpan.FromMilliseconds(item.TimeLimitMs) + Grace);
+            var (answer, poisons) = (item.Answer, item.Poisons);
+            item.Release();
+            if (!done)
             {
                 Poison();
                 return new ScriptEvaluation.TimedOut();
             }
-            if (item.Poisons) Poison();
-            return item.Answer!;
+            if (poisons) Poison();
+            return answer!;
         }
     }
 
@@ -140,7 +141,12 @@ internal sealed class JintRealm : IScriptEngine
             // evaluation's limit.
             o.Constraints.RegexTimeout = options.RegexTimeout;
             o.LimitMemory(options.MaxMemoryBytes);
-            o.Constraints.MaxExecutionStackCount = options.MaxCallDepth;
+            // Measures the stack rather than counting calls, so recursion by
+            // any route is a catchable RangeError instead of a native stack
+            // overflow that ends the process. Setting MaxExecutionStackCount
+            // would turn it off and leave accessor, Proxy and coercion
+            // recursion unguarded.
+            o.Constraints.StackOverflowGuard = true;
             o.Constraint(deadline);
         });
         // Warm the interpreter so the first real evaluation's budget isn't
@@ -176,6 +182,7 @@ internal sealed class JintRealm : IScriptEngine
             }
             Volatile.Write(ref busy, 0);
             item.Done.Set();
+            item.Release();
         }
     }
 
@@ -187,6 +194,21 @@ internal sealed class JintRealm : IScriptEngine
         public ManualResetEventSlim Done { get; } = new();
         public ScriptEvaluation? Answer { get; set; }
         public bool Poisons { get; set; }
+
+        int releases;
+
+        /// <summary>
+        /// The caller and the realm's thread each release the item once they
+        /// are done with its events; the second release disposes them. A
+        /// caller that gave up waiting releases first, so the thread, which
+        /// still sets <see cref="Done"/>, disposes them after.
+        /// </summary>
+        public void Release()
+        {
+            if (Interlocked.Increment(ref releases) != 2) return;
+            Started.Dispose();
+            Done.Dispose();
+        }
     }
 
     /// <summary>Stops a script at the current evaluation's deadline.</summary>
