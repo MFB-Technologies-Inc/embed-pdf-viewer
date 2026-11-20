@@ -5,7 +5,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -17,27 +17,30 @@ import kotlin.coroutines.cancellation.CancellationException
  *
  * Swift's `SerialCalls` starts a task per call. A model here owns no scope,
  * so a call runs in whichever coroutine drains the queue: the model's
- * `run()`, which drains as calls arrive, or a caller awaiting a result with
- * [Call.await], which first runs every call queued ahead of its own. Used on
- * the main thread only.
+ * `run()`, which drains as calls arrive ([drainContinuously]), or a caller
+ * awaiting a result with [Call.await], which runs every call queued ahead of
+ * its own and then its own. A call whose drainer is cancelled goes back to
+ * the front of the queue for the next drainer, so only [Call.cancel] drops
+ * one. Used on the main thread only.
  */
 internal class SerialCalls {
-    /** One queued call and the job running it, once it runs. */
+    /** One queued call. */
     inner class Call<R> internal constructor(private val work: suspend () -> R) {
         internal val result = CompletableDeferred<R>()
         private var job: Job? = null
         private var cancelled = false
 
-        /** Runs every call queued so far up to this one, and returns its result. */
+        /**
+         * Runs every call queued ahead of this one, then this one, and returns
+         * its result. Throws `CancellationException` when the call was
+         * cancelled with [cancel].
+         */
         suspend fun await(): R {
-            drain()
+            drainThrough(this)
             return result.await()
         }
 
-        /**
-         * Cancels this call: a queued call never runs, and a running one is
-         * cancelled. Calls after it still run.
-         */
+        /** Cancels this call: a queued call never runs, and a running one is cancelled. */
         fun cancel() {
             cancelled = true
             job?.cancel()
@@ -55,10 +58,10 @@ internal class SerialCalls {
                     result.complete(running.await())
                 }
             } catch (e: CancellationException) {
+                // The drainer's own cancellation leaves the call for the next
+                // drainer; the call's alone ends it.
+                if (!currentCoroutineContext().isActive) throw e
                 result.cancel(e)
-                // The drainer's own cancellation ends the drain; the call's
-                // alone lets the next call run.
-                currentCoroutineContext().ensureActive()
             } catch (e: Throwable) {
                 result.completeExceptionally(e)
             } finally {
@@ -80,18 +83,27 @@ internal class SerialCalls {
     }
 
     /** Runs every queued call, in order, including those queued while it runs. */
-    suspend fun drain() {
-        mutex.withLock {
-            while (true) {
-                val next = queue.removeFirstOrNull() ?: break
-                next.execute()
-            }
-        }
-    }
+    suspend fun drain() = drainThrough(null)
 
     /** Drains each time a call arrives, until cancelled. A model's `run()` calls it. */
     suspend fun drainContinuously() {
         drain()
         for (arrival in arrivals) drain()
+    }
+
+    /** Runs queued calls in order until [target] has finished, or until the queue is empty. */
+    private suspend fun drainThrough(target: Call<*>?) {
+        mutex.withLock {
+            while (target == null || !target.result.isCompleted) {
+                val next = queue.removeFirstOrNull() ?: break
+                try {
+                    next.execute()
+                } catch (e: CancellationException) {
+                    if (!next.result.isCompleted) queue.addFirst(next)
+                    arrivals.trySend(Unit)
+                    throw e
+                }
+            }
+        }
     }
 }
