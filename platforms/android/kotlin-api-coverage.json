@@ -1955,7 +1955,10 @@
       "path": "crates/plugins/history/src/controller.rs",
       "owner": "HistoryCapability",
       "symbol": "get_settings",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/History.kt",
+        "symbol": "settings"
+      }
     },
     {
       "crate": "history",
@@ -1969,7 +1972,10 @@
       "path": "crates/plugins/history/src/controller.rs",
       "owner": "HistoryCapability",
       "symbol": "update_settings",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/History.kt",
+        "symbol": "updateSettings"
+      }
     },
     {
       "crate": "history",
@@ -1983,14 +1989,20 @@
       "path": "crates/plugins/history/src/controller.rs",
       "owner": "HistoryCapability",
       "symbol": "reset_settings",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/History.kt",
+        "symbol": "resetSettings"
+      }
     },
     {
       "crate": "history",
       "path": "crates/plugins/history/src/controller.rs",
       "owner": "HistoryCapability",
       "symbol": "on_settings_changed",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/History.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "history",
@@ -2004,63 +2016,90 @@
       "path": "crates/plugins/history/src/controller.rs",
       "owner": "HistoryCapability",
       "symbol": "undo",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/History.kt",
+        "symbol": "undo"
+      }
     },
     {
       "crate": "history",
       "path": "crates/plugins/history/src/controller.rs",
       "owner": "HistoryCapability",
       "symbol": "redo",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/History.kt",
+        "symbol": "redo"
+      }
     },
     {
       "crate": "history",
       "path": "crates/plugins/history/src/controller.rs",
       "owner": "HistoryCapability",
       "symbol": "can_undo",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/History.kt",
+        "symbol": "canUndo"
+      }
     },
     {
       "crate": "history",
       "path": "crates/plugins/history/src/controller.rs",
       "owner": "HistoryCapability",
       "symbol": "can_redo",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/History.kt",
+        "symbol": "canRedo"
+      }
     },
     {
       "crate": "history",
       "path": "crates/plugins/history/src/controller.rs",
       "owner": "HistoryCapability",
       "symbol": "get_undo_label",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/History.kt",
+        "symbol": "undoLabel"
+      }
     },
     {
       "crate": "history",
       "path": "crates/plugins/history/src/controller.rs",
       "owner": "HistoryCapability",
       "symbol": "get_redo_label",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/History.kt",
+        "symbol": "redoLabel"
+      }
     },
     {
       "crate": "history",
       "path": "crates/plugins/history/src/controller.rs",
       "owner": "HistoryCapability",
       "symbol": "clear",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/History.kt",
+        "symbol": "clear"
+      }
     },
     {
       "crate": "history",
       "path": "crates/plugins/history/src/controller.rs",
       "owner": "HistoryCapability",
       "symbol": "on_undone",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/History.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "history",
       "path": "crates/plugins/history/src/controller.rs",
       "owner": "HistoryCapability",
       "symbol": "on_undo_failed",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/History.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "i18n",

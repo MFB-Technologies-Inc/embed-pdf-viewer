@@ -45,11 +45,12 @@ class DisabledPluginTest {
         Accessor("search", install = { it.copy(search = SearchConfig()) }) { viewer, document -> viewer.search(document) },
         Accessor("render", install = { it.copy(render = RenderConfig()) }) { viewer, document -> viewer.render(document) },
         Accessor("pageEdit", install = { it.copy(pageEdit = true) }) { viewer, document -> viewer.pageEdit(document) },
+        Accessor("history", install = { it.copy(history = true) }) { viewer, document -> viewer.history(document) },
     )
 
     /** Plugins whose accessors later waves of the port add. */
     private val pending = setOf(
-        "interaction", "feedback", "stage", "selection", "link", "annotation", "history",
+        "interaction", "feedback", "stage", "selection", "link", "annotation",
         "outline", "attachment", "form", "redaction", "measurement", "stamp", "viewManager", "shell",
         "i18n", "commands", "actions", "signature",
     )
