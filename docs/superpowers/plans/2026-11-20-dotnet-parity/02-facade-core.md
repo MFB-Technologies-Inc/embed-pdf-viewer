@@ -16,7 +16,7 @@
 - Branch `research/dotnet-parity-p2` from `research/dotnet-parity-p1` (`a54e4cd52`). Commits by explicit path, `feat(dotnet): ...`, `test(dotnet): ...` or `chore(dotnet): ...`, no trailers. No push, no merge.
 - No TypeScript or `packages/**` change; fixtures under `packages/` are read, never edited. No plugin Rust change, no `ffi.rs` change.
 - `platforms/dotnet/EmbedPDF` (`EmbedPDF.Engine`) untouched; `EmbedPDF.Tests` and `packaging/test_package.py` stay green.
-- Facade: `platforms/dotnet/EmbedPDF.Viewer/` (assembly and package `EmbedPDF`, namespace `EmbedPDF`). Tests: `platforms/dotnet/EmbedPDF.Viewer.Tests/`.
+- Facade: `platforms/dotnet/EmbedPDF.Viewer/` (package `EmbedPDF`, assembly `EmbedPDF.Viewer` since Phase 1's win-x64 fix, namespace `EmbedPDF`). Tests: `platforms/dotnet/EmbedPDF.Viewer.Tests/`.
 - Generated C# stays `internal`; no generated type appears in a public signature.
 - Public integers are `int` or `long`, never `uint` or `ulong` (D4).
 - `IsAotCompatible`, `TreatWarningsAsErrors`, `Nullable` on every assembly; 0 warnings. `PublicAPI.Unshipped.txt` changes in the same commit as the surface (D8).
