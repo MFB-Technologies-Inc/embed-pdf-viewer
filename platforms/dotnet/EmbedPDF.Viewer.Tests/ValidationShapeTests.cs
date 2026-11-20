@@ -194,4 +194,39 @@ public sealed class ValidationShapeTests
         };
         foreach (var (name, call) in calls) await ExpectFaulted(name, call);
     }
+
+    [Fact]
+    public async Task InvalidWaveDArgumentsFaultTheReturnedTask()
+    {
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true, Annotation = "", Form = new() });
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        using var annotations = await viewer.GetAnnotationAsync(document);
+        using var selection = annotations.GetSelection();
+        using var drafts = annotations.GetDrafts();
+        using var threads = annotations.GetThreads();
+        using var form = await viewer.GetFormAsync(document);
+        var note = new AnnotationRef.ObjectNumber(new PageRef(1), 1);
+        var field = new FormFieldRef.Fqn("x");
+        var calls = new (string, Func<Task>)[]
+        {
+            ("Annotation.ListAsync", () => annotations.ListAsync(new AnnotationFilter { Pages = [Bad] })),
+            ("Annotation.HitTestAsync", () => annotations.HitTestAsync(Bad, default)),
+            ("Annotation.GetAsync", () => annotations.GetAsync(new AnnotationRef.ObjectNumber(Bad, 1))),
+            ("Annotation.CreateAsync(NaN)", () => annotations.CreateAsync(new InkAnnotationDraft([[new(double.NaN, 0)]]), new PageRef(1))),
+            ("Annotation.CreateAsync(enum)", () => annotations.CreateAsync(new SquareAnnotationDraft(default) { BlendMode = (AnnotationBlendMode)99 }, new PageRef(1))),
+            ("Annotation.UpdateAsync(enum)", () => annotations.UpdateAsync(note, new SquareAnnotationPatch { BorderStyle = (AnnotationBorderStyle)9 })),
+            ("Selection.ToggleAsync", () => selection.ToggleAsync((AnnotationTextFormat)9)),
+            ("Selection.SelectInRectAsync", () => selection.SelectInRectAsync(Bad, default)),
+            ("Drafts.SetTextSelectionAsync", () => drafts.SetTextSelectionAsync(note, -1, 2)),
+            ("Drafts.PlaceAtAsync", () => drafts.PlaceAtAsync(Bad, default)),
+            ("Threads.SetStatusAsync", () => threads.SetStatusAsync(note, (AnnotationThreadStatus)9)),
+            ("Form.NotifyWidgetEventAsync", () => form.NotifyWidgetEventAsync(field, note, (FormWidgetEvent)9)),
+            ("Form.GetFillItemsAsync", () => form.GetFillItemsAsync(Bad)),
+            ("Form.GetFieldsAsync", () => form.GetFieldsAsync(new FormFilter { Family = (FormFieldFamily)99 })),
+            ("Form.UpdateAsync", () => form.UpdateAsync(field, new FormFieldPatch { MaxLength = -1 })),
+            ("Form.UpdateSettingsAsync", () => form.UpdateSettingsAsync(new FormSettingsPatch { Validation = (FormValidation)9 })),
+            ("Form.GetFieldAsync", () => form.GetFieldAsync(new FormFieldRef.ObjectNumber(-1))),
+        };
+        foreach (var (name, call) in calls) await ExpectFaulted(name, call);
+    }
 }

@@ -112,11 +112,11 @@
 
 **Files:** modify `DisabledPluginTests.cs`, `NullArgumentTests.cs`, `ValidationShapeTests.cs`, `LifetimeTests.cs`.
 
-- [ ] Switch the Annotation and Form rows of `DisabledPluginTests` to the public accessors.
-- [ ] `NullArgumentTests.EveryWaveDCapabilityChecksEveryReferenceArgument` over the five annotation capabilities and form; null elements in `SelectAsync`, `ReorderAsync`, `PreviewMarkupAsync`, `SetValuesAsync` throw `ArgumentException` up front.
-- [ ] `ValidationShapeTests.InvalidWaveDArgumentsFaultTheReturnedTask`: a negative text selection, an undefined `AnnotationThreadStatus`, `AnnotationTextFormat` and `FormWidgetEvent`, a bad `PageRef`, a NaN draft.
-- [ ] `LifetimeTests.LiveWaveDStreamsAndCallbacksDoNotKeepAnAbandonedViewerAlive` (review focus 5).
-- [ ] Run, PASS; commit `test(dotnet): extend the cross-cutting tests to wave D`.
+- [x] Switch the Annotation and Form rows of `DisabledPluginTests` to the public accessors.
+- [x] `NullArgumentTests.EveryWaveDCapabilityChecksEveryReferenceArgument` over the five annotation capabilities and form; null elements in `SelectAsync`, `ReorderAsync`, `PreviewMarkupAsync`, `SetValuesAsync` throw `ArgumentException` up front.
+- [x] `ValidationShapeTests.InvalidWaveDArgumentsFaultTheReturnedTask`: a negative text selection, an undefined `AnnotationThreadStatus`, `AnnotationTextFormat` and `FormWidgetEvent`, a bad `PageRef`, a NaN draft.
+- [x] `LifetimeTests.LiveWaveDStreamsAndCallbacksDoNotKeepAnAbandonedViewerAlive` (review focus 5).
+- [x] Run, PASS; commit `test(dotnet): extend the cross-cutting tests to wave D`.
 
 ### Task 7: Verify and record
 

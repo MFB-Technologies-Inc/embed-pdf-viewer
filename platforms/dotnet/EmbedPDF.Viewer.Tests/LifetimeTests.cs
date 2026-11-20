@@ -236,6 +236,48 @@ public sealed class LifetimeTests
         return (new WeakReference(viewer), stage.ObserveEvents(), selection.ObserveEvents(), link.ObserveEvents(), commands.ObserveEvents());
     }
 
+    sealed class NoPicker : IAnnotationFilePicker
+    {
+        public Task<AnnotationPickedFile?> PickAsync(AnnotationFilePromptRequest request) => Task.FromResult<AnnotationPickedFile?>(null);
+    }
+
+    sealed class NoFocus : IFormFocusTarget
+    {
+        public void Focus(bool select) { }
+    }
+
+    static async Task<(WeakReference Viewer, IAsyncEnumerable<AnnotationEvent> Annotation, IAsyncEnumerable<FormEvent> Form)> AbandonWithWaveDStreamsAndCallbacks()
+    {
+        var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true, Annotation = "", Form = new() });
+        var document = await viewer.OpenAsync(Fixture.Data("form_fields"));
+        var annotations = await viewer.GetAnnotationAsync(document);
+        await annotations.SetFilePickerAsync(new NoPicker());
+        var form = await viewer.GetFormAsync(document);
+        await form.RefreshAsync();
+        var widget = (await form.GetFieldsAsync()).SelectMany(f => f.Widgets).First(w => w.AnnotationRef is not null).AnnotationRef!;
+        _ = await form.AttachFocusTargetAsync(widget, new NoFocus());
+        return (new WeakReference(viewer), annotations.ObserveEvents(), form.ObserveEvents());
+    }
+
+    /// <summary>Annotation and form streams, a file picker and a focus target that capture nothing leave an abandoned viewer collectable.</summary>
+    [Fact]
+    public async Task LiveWaveDStreamsAndCallbacksDoNotKeepAnAbandonedViewerAlive()
+    {
+        var released = PdfViewer.AbandonedReleases;
+        var (reference, annotation, form) = await AbandonWithWaveDStreamsAndCallbacks();
+        for (var i = 0; i < 20 && reference.IsAlive; i++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            await Task.Delay(20);
+        }
+        Assert.False(reference.IsAlive);
+        for (var i = 0; i < 500 && PdfViewer.AbandonedReleases == released; i++) await Task.Delay(10);
+        Assert.True(PdfViewer.AbandonedReleases > released);
+        Assert.True(await MetadataTests.Ends(annotation));
+        Assert.True(await MetadataTests.Ends(form));
+    }
+
     /// <summary>
     /// Handlers and providers that hold neither the viewer nor a capability
     /// leave an abandoned viewer collectable. One whose delegates capture a

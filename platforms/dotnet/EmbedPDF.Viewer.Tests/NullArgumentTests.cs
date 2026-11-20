@@ -57,6 +57,20 @@ public sealed class NullArgumentTests
         _ when type == typeof(CommandDefinition) => new CommandDefinition("x:y", "x"),
         _ when type == typeof(CommandKeyStroke) => new CommandKeyStroke("x"),
         _ when type == typeof(ToolId) => ToolId.Pointer,
+        _ when type == typeof(AnnotationRef) => new AnnotationRef.ObjectNumber(new PageRef(1), 1),
+        _ when type == typeof(AnnotationDraft) => new SquareAnnotationDraft(new PdfRect(0, 0, 1, 1)),
+        _ when type == typeof(AnnotationPatch) => new SquareAnnotationPatch(),
+        _ when type == typeof(AnnotationPosition) => new AnnotationPosition.End(),
+        _ when type == typeof(AnnotationLinkTarget) => new AnnotationLinkTarget.Uri("https://a.test/"),
+        _ when type == typeof(AnnotationStampSource) => new AnnotationStampSource(new byte[] { 1 }),
+        _ when type == typeof(AnnotationStampPlacement) => new AnnotationStampPlacement(new PageRef(1), default),
+        _ when type == typeof(AnnotationAttachmentFile) => new AnnotationAttachmentFile(new byte[] { 1 }, "x"),
+        _ when type == typeof(AnnotationTextEndAnchor) => new AnnotationTextEndAnchor("{}"),
+        _ when type == typeof(FormFieldRef) => new FormFieldRef.Fqn("x"),
+        _ when type == typeof(FormValueInput) => new FormValueInput.Value("x"),
+        _ when type == typeof(FormCalculationPosition) => new FormCalculationPosition.End(),
+        _ when type == typeof(FormCreateFieldInput) => new FormCreateFieldInput(FormFieldFamily.Text, "x", new PageRef(1), default),
+        _ when type == typeof(IFormFocusTarget) => new NoFocus(),
         _ when type.IsValueType => Activator.CreateInstance(type),
         _ when type.GetConstructor(Type.EmptyTypes) is { } constructor => constructor.Invoke(null),
         _ when type == typeof(IDocumentFetcher) => new HttpClientDocumentFetcher(),
@@ -68,7 +82,7 @@ public sealed class NullArgumentTests
     static IEnumerable<(MethodInfo Method, int Index)> Cases(Type type) =>
         from method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
         where !method.IsSpecialName && method.DeclaringType == type
-        let closed = method.IsGenericMethodDefinition ? method.MakeGenericMethod(typeof(StyleProps)) : method
+        let closed = method.IsGenericMethodDefinition ? method.MakeGenericMethod(method.Name == "GetDefaultsAsync" ? typeof(InkAnnotationPatch) : typeof(StyleProps)) : method
         let parameters = closed.GetParameters()
         from index in Enumerable.Range(0, parameters.Length)
         let parameter = parameters[index]
@@ -223,6 +237,48 @@ public sealed class NullArgumentTests
         foreach (var call in calls) Assert.Throws<ArgumentException>(call);
         // Declared async, so a null element faults the task (the null-argument rule).
         await Assert.ThrowsAsync<ArgumentException>(() => commands.RegisterAsync(new CommandDefinition("x:y", "x") { Shortcuts = [null!] }));
+    }
+
+    sealed class NoFocus : IFormFocusTarget
+    {
+        public void Focus(bool select) { }
+    }
+
+    [Fact]
+    public async Task EveryWaveDCapabilityChecksEveryReferenceArgument()
+    {
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true, Annotation = "", Form = new() });
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        var annotations = await viewer.GetAnnotationAsync(document);
+        object[] targets =
+        [
+            annotations, annotations.GetSelection(), annotations.GetTools(), annotations.GetDrafts(), annotations.GetThreads(),
+            await viewer.GetFormAsync(document),
+        ];
+        foreach (var target in targets) Assert.Empty(await Unchecked(target));
+    }
+
+    [Fact]
+    public async Task EveryWaveDCapabilityRefusesANullElementUpFront()
+    {
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true, Annotation = "", Form = new() });
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        using var annotations = await viewer.GetAnnotationAsync(document);
+        using var selection = annotations.GetSelection();
+        using var drafts = annotations.GetDrafts();
+        using var form = await viewer.GetFormAsync(document);
+        Action[] calls =
+        [
+            () => _ = annotations.ReorderAsync([null!], new AnnotationPosition.End()),
+            () => _ = annotations.ExportAsync([null!]),
+            () => _ = selection.SelectAsync([null!]),
+            () => _ = drafts.PreviewMarkupAsync(AnnotationSubtype.Highlight, [null!]),
+        ];
+        foreach (var call in calls) Assert.Throws<ArgumentException>(call);
+        // Declared async, so a null element faults the task (the null-argument rule).
+        await Assert.ThrowsAsync<ArgumentException>(() => form.SetValuesAsync([null!]));
+        await Assert.ThrowsAsync<ArgumentException>(() => form.ResetAsync([null!]));
+        await Assert.ThrowsAsync<ArgumentException>(() => form.ReorderCalculationsAsync([null!], new FormCalculationPosition.End()));
     }
 
     [Fact]
