@@ -219,6 +219,11 @@ public sealed partial class PdfViewer : IAsyncDisposable
         host.Dispose();
     }
 
+    static int abandonedReleases;
+
+    /// <summary>How many abandoned viewers the finalizer path has released, for tests.</summary>
+    internal static int AbandonedReleases => Volatile.Read(ref abandonedReleases);
+
     /// <summary>Releases an abandoned viewer on the thread pool, so the finalizer thread never waits on the kernel.</summary>
     ~PdfViewer()
     {
@@ -228,6 +233,7 @@ public sealed partial class PdfViewer : IAsyncDisposable
         ThreadPool.UnsafeQueueUserWorkItem(_ =>
         {
             Release(abandoned);
+            Interlocked.Increment(ref abandonedReleases);
             r.Complete();
             e.Complete();
             d.Complete();
