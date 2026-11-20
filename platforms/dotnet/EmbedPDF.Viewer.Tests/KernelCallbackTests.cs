@@ -87,6 +87,20 @@ public sealed class KernelCallbackTests
     }
 
     [Fact]
+    public async Task TheGuardedDisposalCannotBeBlockedOnOffTheKernelThreadEither()
+    {
+        var viewer = await PdfViewer.CreateAsync();
+        ValueTask pending;
+        using (KernelCallback.Enter(viewer.Mark))
+        {
+            pending = viewer.DisposeAsync();
+        }
+        Assert.False(pending.IsCompleted);
+        Assert.Throws<InvalidOperationException>(() => pending.GetAwaiter().GetResult());
+        await viewer.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(10));
+    }
+
+    [Fact]
     public void NestedScopesRestore()
     {
         var a = new KernelMark();
