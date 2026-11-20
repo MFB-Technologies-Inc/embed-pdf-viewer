@@ -3,7 +3,10 @@
   "extends": [
     "github>MFB-Technologies-Inc/renovate-config"
   ],
-  "description": "This repository is a fork of embedpdf/embed-pdf-viewer. Renovate reads only the files the fork owns, listed in includePaths; everything else, including package.json, pnpm-lock.yaml and the upstream workflows, changes only through upstream syncs.",
+  "description": "This repository is a fork of embedpdf/embed-pdf-viewer. Renovate reads only the files the fork owns, listed in includePaths; everything else, including package.json, pnpm-lock.yaml and the upstream workflows, changes only through upstream syncs. Fork packages that are pnpm workspace members are left out because their versions live in the upstream-owned pnpm-lock.yaml.",
+  "ignorePresets": [
+    "group:allNonMajor"
+  ],
   "includePaths": [
     ".devcontainer/**",
     ".github/actions/setup-emsdk/**",
@@ -30,7 +33,6 @@
     "tooling/engine-timer/**",
     "rust-toolchain.toml",
     "mise.toml",
-    "perf-compare/**",
     "platforms/**"
   ],
   "customManagers": [
@@ -48,35 +50,85 @@
   ],
   "packageRules": [
     {
+      "description": "Rust crate updates that keep compatibility travel together; CI builds and tests them. A 0.x minor is a breaking change in Cargo, so those stay in their own pull requests.",
+      "matchManagers": ["cargo"],
+      "matchUpdateTypes": ["patch"],
+      "groupName": "Rust crates (compatible)"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchUpdateTypes": ["minor"],
+      "matchCurrentValue": "/^[=^~]?[1-9]/",
+      "groupName": "Rust crates (compatible)"
+    },
+    {
+      "description": "Action updates other than majors travel together.",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch", "digest", "pinDigest"],
+      "groupName": "GitHub Actions"
+    },
+    {
       "description": "pnpm must equal packageManager in package.json, which upstream owns.",
       "matchManagers": ["mise"],
       "matchDepNames": ["pnpm"],
       "enabled": false
     },
     {
-      "description": "The image's Node base and mise.toml must move together; check-pins.py enforces it.",
-      "matchManagers": ["dockerfile", "mise"],
-      "matchDepNames": ["node"],
-      "groupName": "Node.js"
+      "description": "mise writes Java as openjdk-<version>, which the java-version datasource does not produce, and nothing in CI reads the pin.",
+      "matchManagers": ["mise"],
+      "matchDepNames": ["java"],
+      "enabled": false
     },
     {
-      "description": "A new Node major line is a decision, not a routine bump.",
-      "matchManagers": ["dockerfile", "mise"],
-      "matchDepNames": ["node"],
-      "matchUpdateTypes": ["major"],
+      "description": "A workaround pin (crates/epdf-node/Cargo.toml): it stays until napi-derive ships a backend that agrees with it, and is removed by hand then.",
+      "matchPackageNames": ["napi-derive-backend"],
+      "enabled": false
+    },
+    {
+      "description": "napi-derive decides whether the napi-derive-backend workaround pin still holds; check that comment before approving.",
+      "matchPackageNames": ["napi", "napi-derive", "napi-build"],
+      "groupName": "napi",
       "dependencyDashboardApproval": true
     },
     {
-      "description": "wasm-bindgen-cli must equal the wasm-bindgen crate pin in crates/epdf-web/Cargo.toml.",
+      "description": "The image's Node base, mise.toml and the workflows' node-version move together. No CI builds the image, so every Node update waits for approval.",
+      "matchManagers": ["dockerfile", "mise", "github-actions"],
+      "matchDepNames": ["node"],
+      "groupName": "Node.js",
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "wasm-bindgen-cli in the Dockerfile and release-rust-viewer.yml must equal the wasm-bindgen crate pin in crates/epdf-web/Cargo.toml.",
       "matchPackageNames": [
         "wasm-bindgen",
         "wasm-bindgen-cli",
         "wasm-bindgen-futures",
         "wasm-bindgen-test",
-        "js-sys",
-        "web-sys"
+        "js-sys"
       ],
-      "groupName": "wasm-bindgen"
+      "groupName": "wasm-bindgen",
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "uniffi changes the generated Swift and Kotlin bindings, which no pull request CI builds.",
+      "matchPackageNames": ["uniffi"],
+      "groupName": "uniffi",
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "A Rust toolchain bump touches the Xcode nm workaround and the published engine binaries.",
+      "matchManagers": ["rust-toolchain"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "No pull request CI covers these: the development image, the Android and .NET bindings, the Swift package and the Apple demo apps.",
+      "matchFileNames": [
+        ".devcontainer/Dockerfile",
+        "platforms/android/**",
+        "platforms/dotnet/**",
+        "platforms/apple/**"
+      ],
+      "dependencyDashboardApproval": true
     },
     {
       "description": "The .NET SDK pin lives in global.json, the Dockerfile and release-dotnet.yml, with a SHA-512 per archive.",
@@ -84,11 +136,11 @@
       "groupName": ".NET SDK"
     },
     {
-      "description": "Pins with checksums beside them: Renovate cannot compute those, so it asks first and the PR needs them filled in by hand.",
+      "description": "Pins with checksums beside them: Renovate cannot compute those.",
       "matchDepNames": ["dotnet-sdk", "WebAssembly/binaryen", "rust-lang/rustup"],
       "dependencyDashboardApproval": true,
       "prBodyNotes": [
-        "This pin has checksums Renovate cannot update. Fill them in from the upstream release, along with the other files `.devcontainer/check-pins.py` names; the `Development image pins` check fails until they match the published values."
+        "This pin has checksums Renovate cannot update. Run `python3 .devcontainer/check-pins.py --verify-checksums`: it names every file to change and prints the published hashes. The `Development image pins` check fails until they match."
       ]
     }
   ]

@@ -123,14 +123,16 @@ home directory and authentication sessions; push work and save any files outside
 `/workspaces` that you want to keep before removing it. Keep `embedpdf-workspace`
 to preserve the repository.
 
-Renovate opens the bumps for pins marked with a `# renovate:` comment in `Dockerfile`,
-and for the Node base image together with `mise.toml`. It cannot compute checksums.
-For binaryen, rustup-init and the .NET SDK it waits for approval on the Dependency
-Dashboard, and the pull request still needs the new hashes by hand; `check-pins.py
---verify-checksums` prints the published values. The emsdk pins have no annotation:
-`build-engine-runtime.yml` belongs to upstream, so they move only with an upstream sync.
-The Android NDK has none either, because Google publishes no machine-readable release
-list for it.
+Renovate tracks the pins marked with a `# renovate:` comment in `Dockerfile` and in
+`.github/workflows/release-rust-viewer.yml`, and the Node base image together with
+`mise.toml` and the workflows' `node-version`. No CI builds the image, so every update
+to it waits for approval on the Dependency Dashboard. Renovate cannot compute
+checksums: a binaryen, rustup-init or .NET SDK pull request needs its hashes filled in
+by hand, and `check-pins.py --verify-checksums` prints the published values. The emsdk
+pins have no annotation, because `build-engine-runtime.yml` belongs to upstream and
+they move only with an upstream sync. The Android NDK has none either: its GitHub
+releases exist, but Google publishes only a SHA-1 for the archive, so a bump needs its
+SHA-256 computed by hand.
 
 ## Editor integration
 

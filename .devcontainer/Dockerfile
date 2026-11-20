@@ -25,12 +25,12 @@ ARG DOTNET_SDK_VERSION=10.0.403
 ARG RUSTUP_VERSION=1.29.3
 ARG RUSTUP_SHA256_AMD64=b1c8cb14e30889e7e2999e6b69e62d9e9b9ffc0f4df8180564d306d9680e6c55
 ARG RUSTUP_SHA256_ARM64=9f608c142e0e38a78957d0661ba1dfaf0b6fb37184cfaa4b9a0aa57af6184282
-# renovate: datasource=crate depName=cargo-ndk
+# renovate: datasource=crate depName=cargo-ndk versioning=semver
 ARG CARGO_NDK_VERSION=4.1.2
-# renovate: datasource=crate depName=cargo-llvm-cov
+# renovate: datasource=crate depName=cargo-llvm-cov versioning=semver
 ARG CARGO_LLVM_COV_VERSION=0.9.1
 # Must equal the `wasm-bindgen` pin in crates/epdf-web/Cargo.toml.
-# renovate: datasource=crate depName=wasm-bindgen-cli
+# renovate: datasource=crate depName=wasm-bindgen-cli versioning=semver
 ARG WASM_BINDGEN_VERSION=0.2.127
 # renovate: datasource=npm depName=oauth2-forwarder
 ARG OAUTH2_FORWARDER_VERSION=1.9.4

@@ -14,7 +14,9 @@ import json
 from pathlib import Path
 import re
 import sys
+import time
 import tomllib
+import urllib.error
 import urllib.request
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -34,19 +36,42 @@ def arg(name):
     return match(".devcontainer/Dockerfile", rf"^ARG {name}=(\S+)$")
 
 
-def fetch(url):
+class FetchError(Exception):
+    pass
+
+
+def fetch(url, attempts=3):
+    """GET url, retrying transient failures; FetchError names the URL when all fail."""
     request = urllib.request.Request(url, headers={"User-Agent": "embedpdf-check-pins"})
-    with urllib.request.urlopen(request, timeout=60) as response:
-        return response.read().decode()
+    for attempt in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=20) as response:
+                return response.read().decode()
+        except urllib.error.HTTPError as error:
+            if error.code < 500 or attempt == attempts:
+                raise FetchError(f"{url}: HTTP {error.code}") from error
+        except (urllib.error.URLError, TimeoutError) as error:
+            if attempt == attempts:
+                raise FetchError(f"{url}: {error}") from error
+        time.sleep(2 * attempt)
 
 
 def dotnet_matrix():
-    """The release-dotnet.yml matrix rows as (rid, sdk_url, sdk_sha512)."""
-    return re.findall(
-        r"^\s*- rid: (\S+)\n(?:\s+\w+: .*\n)*?\s+sdk_url: (\S+)\n\s+sdk_sha512: (\S+)$",
-        read(".github/workflows/release-dotnet.yml"),
-        re.MULTILINE,
-    )
+    """The release-dotnet.yml matrix rows as dicts, whatever order their keys are in."""
+    rows = []
+    for line in read(".github/workflows/release-dotnet.yml").splitlines():
+        row_start = re.match(r"^(\s*)- rid: (\S+)$", line)
+        if row_start:
+            rows.append({"rid": row_start.group(2), "indent": len(row_start.group(1)) + 2})
+            continue
+        if not rows:
+            continue
+        key = re.match(r"^(\s*)(\w+): (\S+)$", line)
+        if key and len(key.group(1)) == rows[-1]["indent"]:
+            rows[-1][key.group(2)] = key.group(3)
+        elif line.strip() and len(line) - len(line.lstrip()) < rows[-1]["indent"]:
+            rows[-1]["indent"] = -1  # left the row; later keys belong elsewhere
+    return rows
 
 
 def verify_checksums(failures):
@@ -90,9 +115,11 @@ def verify_checksums(failures):
     for dotnet_arch in ("x64", "arm64"):
         compare(f".NET SDK {sdk} linux-{dotnet_arch} SHA-512 in the Dockerfile",
                 dockerfile_hashes.get(dotnet_arch), published_sha512(f"linux-{dotnet_arch}", ".tar.gz"))
-    for rid, url, sha in dotnet_matrix():
+    for row in dotnet_matrix():
+        url = row.get("sdk_url", "")
         extension = ".zip" if url.endswith(".zip") else ".tar.gz"
-        compare(f".NET SDK {sdk} {rid} SHA-512 in release-dotnet.yml", sha, published_sha512(rid, extension))
+        compare(f".NET SDK {sdk} {row['rid']} SHA-512 in release-dotnet.yml",
+                row.get("sdk_sha512"), published_sha512(row["rid"], extension))
 
 
 def main():
@@ -134,18 +161,26 @@ def main():
            match(dotnet, r"^\s*- name: Install \.NET SDK (\S+)$"))
     # The workflow's matrix pins one SDK archive per RID; the image builds for
     # the two Linux ones.
+    sdk = arg("DOTNET_SDK_VERSION")
+    matrix = {row["rid"]: row for row in dotnet_matrix()}
     for rid in ("linux-arm64", "linux-x64"):
-        dotnet_sha = match(dotnet, rf"^\s*- rid: {rid}\n(?:\s+\w+: .*\n)*?\s+sdk_sha512: (\S+)$")
+        dotnet_sha = matrix.get(rid, {}).get("sdk_sha512")
         if dotnet_sha is None or dotnet_sha not in DOCKERFILE.read_text():
             failures.append(f".NET SDK {rid} SHA-512: {dotnet} has {dotnet_sha}, absent from the Dockerfile")
-    for rid, url, _ in dotnet_matrix():
-        if f"/Sdk/{arg('DOTNET_SDK_VERSION')}/" not in url:
-            failures.append(f".NET SDK {rid}: {dotnet} downloads {url}")
+    for rid, row in matrix.items():
+        url = row.get("sdk_url", "")
+        if not re.search(rf"/Sdk/{re.escape(sdk)}/dotnet-sdk-{re.escape(sdk)}-{re.escape(rid)}\.(tar\.gz|zip)$", url):
+            failures.append(f".NET SDK {rid}: {dotnet} downloads {url or 'nothing'}, not SDK {sdk}")
+        if not row.get("sdk_sha512"):
+            failures.append(f".NET SDK {rid}: {dotnet} has no sdk_sha512")
     expect(".NET SDK", arg("DOTNET_SDK_VERSION"), "platforms/dotnet/global.json",
            json.loads(read("platforms/dotnet/global.json"))["sdk"]["version"])
 
     if "--verify-checksums" in sys.argv[1:]:
-        verify_checksums(failures)
+        try:
+            verify_checksums(failures)
+        except FetchError as error:
+            failures.append(f"could not fetch a published checksum: {error}")
 
     if failures:
         print("Development image pins disagree with the repository:", file=sys.stderr)

@@ -8,7 +8,8 @@ name: Development image pins
 on:
   pull_request:
     paths:
-      - '.devcontainer/**'
+      - '.devcontainer/Dockerfile'
+      - '.devcontainer/check-pins.py'
       - 'mise.toml'
       - 'crates/epdf-web/Cargo.toml'
       - 'perf-compare/scripts/build-arm.mjs'
@@ -26,7 +27,7 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
         with:
