@@ -124,6 +124,23 @@ class TextSelectionModelTest {
         o.viewer.destroy()
     }
 
+    /** A point of the second drag never extends the first, and the second drag's own extension still runs. */
+    @Test
+    fun aSecondDragsPointStaysWithTheSecondDrag() = mainTest {
+        val o = opened()
+        val start = pointOverText(o.page, o.selection)
+        val end = Point(start.x + 120, start.y)
+        // No `run()`: every call waits in the queue until the end sends them.
+        o.model.dragBegan(start, o.page.page)
+        o.model.dragChanged(Point(start.x + 40, start.y), o.page.page)
+        o.model.dragBegan(start, o.page.page)
+        o.model.dragChanged(end, o.page.page)
+        assertTrue(o.model.dragEnded())
+        assertEquals(1, o.model.extensionCount)
+        assertEquals(selectionRects(start, end, o.page, o.selection), o.model.rects.value[o.page.page])
+        o.viewer.destroy()
+    }
+
     @Test
     fun aDragThatStartsOffTextSelectsNothing() = mainTest {
         val o = opened()

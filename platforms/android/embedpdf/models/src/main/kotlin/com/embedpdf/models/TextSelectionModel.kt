@@ -17,8 +17,8 @@ import kotlinx.coroutines.launch
 /**
  * Turns a drag over a page into a text selection and mirrors the
  * selection's rects onto the main thread. Every call runs after the calls
- * made before it, and drag points that arrive while an extension waits
- * collapse into the newest one.
+ * made before it, drag points that arrive while an extension waits collapse
+ * into the newest one, and a point only ever extends its own drag.
  *
  * Swift's model follows the selection from `init` with a task of its own. A
  * model here owns no scope, so [run] does both jobs: it follows selection
@@ -66,10 +66,19 @@ public class TextSelectionModel(private val selection: SelectionCapability) {
      */
     private val calls = SerialCalls()
 
-    /** The newest drag point no extension has applied yet. */
-    private var pending: Pair<Point, PageRef>? = null
+    /** A drag point no extension has applied yet, and the drag it belongs to. */
+    private class Pending(val point: Point, val page: PageRef, val drag: Long)
 
-    /** Whether an extension waits in the queue; it applies whatever [pending] holds when it runs. */
+    /** The newest drag point no extension has applied yet. */
+    private var pending: Pending? = null
+
+    /** Counts [dragBegan] calls, so each call knows which drag it belongs to. */
+    private var drag = 0L
+
+    /**
+     * Whether an extension of the current drag waits in the queue; it applies
+     * whatever [pending] holds when it runs, if that point is its drag's.
+     */
     private var extensionQueued = false
 
     /**
@@ -111,24 +120,28 @@ public class TextSelectionModel(private val selection: SelectionCapability) {
      * [error].
      */
     public fun dragBegan(point: Point, page: PageRef, start: Start = Start.CARET) {
-        // A point left by a drag that never began belongs to that drag.
+        // A point left by an earlier drag, and its queued extension, belong to that drag.
+        val began = ++drag
         pending = null
-        calls.enqueue { applyBegin(point, page, start) }
+        extensionQueued = false
+        calls.enqueue { applyBegin(point, page, start, began) }
     }
 
     /**
      * Moves the selection's focus to [point]. Points that arrive while an
      * extension waits replace each other, and only the newest reaches the
-     * engine.
+     * engine. A point belongs to the drag the latest [dragBegan] opened and
+     * never extends an earlier drag whose calls are still queued.
      */
     public fun dragChanged(point: Point, page: PageRef) {
-        pending = point to page
+        val current = drag
+        pending = Pending(point, page, current)
         if (extensionQueued) return
         extensionQueued = true
         calls.enqueue {
-            extensionQueued = false
+            if (drag == current) extensionQueued = false
             // Before a begin succeeds, the point waits for it.
-            if (_isSelecting.value) applyPending()
+            if (_isSelecting.value) applyPending(current)
         }
     }
 
@@ -138,12 +151,15 @@ public class TextSelectionModel(private val selection: SelectionCapability) {
      * open. [rects] are final when this returns: every refresh queued before
      * the end, a selection event's included, has been applied in order.
      */
-    public suspend fun dragEnded(): Boolean = onMain { calls.enqueue { applyEnd() }.await() }
+    public suspend fun dragEnded(): Boolean = onMain {
+        val ending = drag
+        calls.enqueue { applyEnd(ending) }.await()
+    }
 
     /** Clears the selection, [rects] and [error]. */
     public suspend fun clear(): Unit = onMain { calls.enqueue { applyClear() }.await() }
 
-    private suspend fun applyBegin(point: Point, page: PageRef, start: Start) {
+    private suspend fun applyBegin(point: Point, page: PageRef, start: Start, began: Long) {
         _error.value = null
         try {
             selection.ensureLoaded(page)
@@ -161,12 +177,16 @@ public class TextSelectionModel(private val selection: SelectionCapability) {
         }
         // A point that arrived before or during the begin applies inside this
         // call, so an end queued behind the begin finds it applied.
-        if (pending != null) applyPending() else refreshRects()
+        if (pending?.drag == began) applyPending(began) else refreshRects()
     }
 
-    private suspend fun applyPending() {
-        val (point, page) = pending ?: return
+    /** Applies [pending] when it belongs to drag [owner]; a later drag's point waits for that drag. */
+    private suspend fun applyPending(owner: Long) {
+        val next = pending ?: return
+        if (next.drag != owner) return
         pending = null
+        val point = next.point
+        val page = next.page
         try {
             // Performance: one `isLoaded` round trip before every extension,
             // though a drag stays on one page for most of its points.
@@ -182,8 +202,8 @@ public class TextSelectionModel(private val selection: SelectionCapability) {
         refreshRects()
     }
 
-    private suspend fun applyEnd(): Boolean {
-        pending = null
+    private suspend fun applyEnd(ending: Long): Boolean {
+        if (pending?.drag == ending) pending = null
         if (!_isSelecting.value) return false
         try {
             selection.endGesture()
