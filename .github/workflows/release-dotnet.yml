@@ -47,6 +47,8 @@ name: release-dotnet
 # release workflow takes the same inputs, and changes nothing here.
 
 on:
+  # Manual runs build and validate the packages on a branch. Nothing publishes.
+  workflow_dispatch: {}
   workflow_call:
     inputs:
       dry_run:
