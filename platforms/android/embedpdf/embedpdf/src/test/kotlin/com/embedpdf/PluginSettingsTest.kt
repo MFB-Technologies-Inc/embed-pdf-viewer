@@ -179,4 +179,20 @@ class PluginSettingsTest {
         assertEquals(registered, form.settings())
         viewer.destroy()
     }
+
+    @Test
+    fun redactionOverlayTextMergesAndResets() = viewerTest {
+        val viewer = started(ViewerConfig(interaction = true, annotation = "", redaction = RedactionConfig(fill = "#000000")))
+        val document = viewer.open(Fixture.bytes("report"))
+        val redaction = viewer.redaction(document)
+        val registered = redaction.settings()
+        redaction.updateSettings(RedactionConfig(overlayText = RedactionOverlayText(fontSize = 9.0)))
+        val changed = redaction.settings()
+        assertEquals(9.0, changed.overlayText.fontSize, 0.0)
+        assertEquals(registered.fill, changed.fill)
+        assertEquals(registered.overlayText.color, changed.overlayText.color)
+        redaction.resetSettings()
+        assertEquals(registered, redaction.settings())
+        viewer.destroy()
+    }
 }

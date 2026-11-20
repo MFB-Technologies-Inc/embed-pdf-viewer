@@ -3073,6 +3073,41 @@ public final class com/embedpdf/RedactionAnnotationPatch$Companion : com/embedpd
 	public fun fromJson (Ljava/lang/String;)Lcom/embedpdf/RedactionAnnotationPatch;
 }
 
+public final class com/embedpdf/RedactionCapability {
+	public final fun apply (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun applyAll (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun applyPages (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canApply (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canMark (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canUnmark (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canUpdateLabel (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun clearPending (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun estimateCollateral (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun estimateCollateral$default (Lcom/embedpdf/RedactionCapability;Ljava/util/List;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun isApplying (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun lastResult (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun markArea (Luniffi/epdf_ffi/Rect;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun markMatches (Luniffi/epdf_plugin_search/SearchQuery;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun markMatches$default (Lcom/embedpdf/RedactionCapability;Luniffi/epdf_plugin_search/SearchQuery;Ljava/util/List;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun markPage (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun markSelection (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
+	public final fun pending (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun pending$default (Lcom/embedpdf/RedactionCapability;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun pendingCount (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun pendingCount$default (Lcom/embedpdf/RedactionCapability;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun pendingItem (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun resetSettings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun settings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun unmark (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun updateLabel (Luniffi/epdf_ffi/AnnotationRef;Luniffi/epdf_plugin_redaction/RedactionLabelPatch;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun updateSettings (Luniffi/epdf_plugin_redaction/RedactionConfig;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/RedactionKt {
+	public static final fun redaction (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class com/embedpdf/Registration {
 	public final fun unregister ()V
 }

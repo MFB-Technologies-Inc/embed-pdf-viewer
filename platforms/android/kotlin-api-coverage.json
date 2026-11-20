@@ -4166,14 +4166,20 @@
       "path": "crates/plugins/redaction/src/controller.rs",
       "owner": "RedactionCapability",
       "symbol": "lifetime",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/controller.rs",
       "owner": "RedactionCapability",
       "symbol": "get_settings",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "settings"
+      }
     },
     {
       "crate": "redaction",
@@ -4187,7 +4193,10 @@
       "path": "crates/plugins/redaction/src/controller.rs",
       "owner": "RedactionCapability",
       "symbol": "update_settings",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "updateSettings"
+      }
     },
     {
       "crate": "redaction",
@@ -4201,7 +4210,10 @@
       "path": "crates/plugins/redaction/src/controller.rs",
       "owner": "RedactionCapability",
       "symbol": "reset_settings",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "resetSettings"
+      }
     },
     {
       "crate": "redaction",
@@ -4228,161 +4240,230 @@
       "path": "crates/plugins/redaction/src/controller.rs",
       "owner": "RedactionCapability",
       "symbol": "can_mark",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "canMark"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/controller.rs",
       "owner": "RedactionCapability",
       "symbol": "can_apply",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "canApply"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/controller.rs",
       "owner": "RedactionCapability",
       "symbol": "is_applying",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "isApplying"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/controller.rs",
       "owner": "RedactionCapability",
       "symbol": "get_last_result",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "lastResult"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/controller.rs",
       "owner": "RedactionCapability",
       "symbol": "on_applied",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/controller.rs",
       "owner": "RedactionCapability",
       "symbol": "on_pending_changed",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/read/pending.rs",
       "owner": "RedactionCapability",
       "symbol": "list_pending",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "pending"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/read/pending.rs",
       "owner": "RedactionCapability",
       "symbol": "get_pending",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "pendingItem"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/read/pending.rs",
       "owner": "RedactionCapability",
       "symbol": "get_pending_count",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "pendingCount"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/read/pending.rs",
       "owner": "RedactionCapability",
       "symbol": "estimate_collateral",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "estimateCollateral"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/write/apply.rs",
       "owner": "RedactionCapability",
       "symbol": "apply",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "apply"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/write/apply.rs",
       "owner": "RedactionCapability",
       "symbol": "apply_pages",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "applyPages"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/write/apply.rs",
       "owner": "RedactionCapability",
       "symbol": "apply_all",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "applyAll"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/write/marks.rs",
       "owner": "RedactionCapability",
       "symbol": "can_unmark",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "canUnmark"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/write/marks.rs",
       "owner": "RedactionCapability",
       "symbol": "can_update_label",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "canUpdateLabel"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/write/marks.rs",
       "owner": "RedactionCapability",
       "symbol": "mark_selection",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "markSelection"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/write/marks.rs",
       "owner": "RedactionCapability",
       "symbol": "mark_area",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "markArea"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/write/marks.rs",
       "owner": "RedactionCapability",
       "symbol": "mark_area_json",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "markArea"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/write/marks.rs",
       "owner": "RedactionCapability",
       "symbol": "mark_page",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "markPage"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/write/marks.rs",
       "owner": "RedactionCapability",
       "symbol": "mark_matches",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "markMatches"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/write/marks.rs",
       "owner": "RedactionCapability",
       "symbol": "unmark",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "unmark"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/write/marks.rs",
       "owner": "RedactionCapability",
       "symbol": "clear_pending",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "clearPending"
+      }
     },
     {
       "crate": "redaction",
       "path": "crates/plugins/redaction/src/write/marks.rs",
       "owner": "RedactionCapability",
       "symbol": "update_label",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt",
+        "symbol": "updateLabel"
+      }
     },
     {
       "crate": "render",
