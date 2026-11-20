@@ -112,6 +112,13 @@ public final class com/embedpdf/GeometryBridgesKt {
 	public static final fun toSizeF (Luniffi/epdf_ffi/Size;)Landroid/util/SizeF;
 }
 
+public final class com/embedpdf/HapticFeedback : uniffi/epdf_plugin_interaction/PlatformFeedback {
+	public fun <init> (Landroid/view/View;)V
+	public fun impact (Luniffi/epdf_plugin_interaction/FeedbackImpactWeight;)V
+	public fun notify (Luniffi/epdf_plugin_interaction/FeedbackNotifyKind;)V
+	public fun selection ()V
+}
+
 public final class com/embedpdf/HistoryCapability {
 	public final fun canRedo (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun canUndo (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
