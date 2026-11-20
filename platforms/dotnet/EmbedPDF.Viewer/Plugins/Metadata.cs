@@ -180,7 +180,10 @@ public sealed class MetadataCapability : IDisposable
     /// Confirmed changes, whoever made them, subscribed when this returns. The
     /// stream ends when the document closes (at once if it already has), when
     /// the viewer is disposed, or when <paramref name="cancellationToken"/>
-    /// fires. Each call is a new subscription; enumerate it once.
+    /// fires. Each call is a new subscription; enumerate it once. A stream
+    /// that is never enumerated still holds a native listener until its
+    /// document closes, the viewer is disposed or
+    /// <paramref name="cancellationToken"/> fires.
     /// </summary>
     public IAsyncEnumerable<MetadataEvent> ObserveEvents(CancellationToken cancellationToken = default)
     {

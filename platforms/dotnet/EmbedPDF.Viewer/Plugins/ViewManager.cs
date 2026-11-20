@@ -179,7 +179,9 @@ public sealed class ViewManagerCapability : IDisposable
     /// Pane events, subscribed when this returns. Ends when the viewer is
     /// disposed (at once if it already has been) or when
     /// <paramref name="cancellationToken"/> fires. Each call is a new
-    /// subscription; enumerate it once.
+    /// subscription; enumerate it once. A stream that is never enumerated
+    /// still holds a native listener until the viewer is disposed or
+    /// <paramref name="cancellationToken"/> fires.
     /// </summary>
     public IAsyncEnumerable<ViewManagerEvent> ObserveEvents(CancellationToken cancellationToken = default)
     {

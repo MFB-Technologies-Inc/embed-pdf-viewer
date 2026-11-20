@@ -170,7 +170,9 @@ public sealed class SearchCapability : IDisposable
     /// Session events, subscribed when this returns. Ends when the document
     /// closes (at once if it already has), when the viewer is disposed, or
     /// when <paramref name="cancellationToken"/> fires. Each call is a new
-    /// subscription; enumerate it once.
+    /// subscription; enumerate it once. A stream that is never enumerated
+    /// still holds a native listener until its document closes, the viewer is disposed or
+    /// <paramref name="cancellationToken"/> fires.
     /// </summary>
     public IAsyncEnumerable<SearchEvent> ObserveEvents(CancellationToken cancellationToken = default)
     {

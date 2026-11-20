@@ -67,7 +67,9 @@ public sealed class RenderCapability : IDisposable
     /// <summary>
     /// Captures, and clears as <see langword="null"/>, subscribed when this
     /// returns. Ends when the document closes, when the viewer is disposed or
-    /// when <paramref name="cancellationToken"/> fires. Enumerate it once.
+    /// when <paramref name="cancellationToken"/> fires. Enumerate it once. A
+    /// stream that is never enumerated still holds a native listener until
+    /// one of those happens.
     /// </summary>
     public IAsyncEnumerable<RenderSnapshot?> ObserveSnapshotChanges(CancellationToken cancellationToken = default)
     {
