@@ -20,6 +20,8 @@ public sealed class StreamRuleTests
 
     internal sealed record Reporting(PdfViewer Viewer, InteractionHandle Interaction, uniffi.epdf_ffi.PageRef Page) : IAsyncDisposable
     {
+        public Registration Registration { get; init; } = null!;
+
         public void Down() => Interaction.DispatchPointer(new PointerSample(
             PointerPhase.Down, new Point(10, 10), new Modifiers(), new PointerPageHit(Page, new Point(10, 10)),
             PointerType: PointerKind.Touch));
@@ -32,6 +34,16 @@ public sealed class StreamRuleTests
     }
 
     /// <summary>A viewer whose throwing handler reports one error per pointer down, through the generated interaction handle until Wave B.</summary>
+    internal static async Task<Reporting> ViewerThatReportsWithRegistration()
+    {
+        var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true });
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        var page = (await viewer.GetPagesAsync(document))[0].Page;
+        var interaction = await viewer.CallAsync(h => h.Interaction(document.Id), default);
+        var registration = new Registration(await interaction.RegisterHandler("throws", 5, null, new ThrowingHandler()));
+        return new Reporting(viewer, interaction, Ffi.ToFfi(page)) { Registration = registration };
+    }
+
     internal static async Task<Reporting> ViewerThatReports()
     {
         var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true });

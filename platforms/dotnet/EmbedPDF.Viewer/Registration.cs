@@ -4,21 +4,22 @@ namespace EmbedPDF;
 
 /// <summary>
 /// A registered tool, handler, command or locale. <see cref="Unregister"/>
-/// undoes it, and so does <see cref="Dispose"/>. Dropping this without
-/// calling either leaves the registration in place: there is no finalizer.
+/// undoes it and keeps the native handle; <see cref="Dispose"/> undoes it and
+/// releases the handle. Dropping this without calling either leaves the
+/// registration in place.
 /// </summary>
 public sealed class Registration : IDisposable
 {
-    readonly RegistrationHandle handle;
+    internal Registration(RegistrationHandle handle) => Handle = handle;
 
-    internal Registration(RegistrationHandle handle) => this.handle = handle;
+    internal RegistrationHandle Handle { get; }
 
     /// <summary>Undoes the registration. Idempotent; the kernel removes it after this returns.</summary>
     public void Unregister()
     {
         try
         {
-            handle.Unregister();
+            Handle.Unregister();
         }
         catch (ObjectDisposedException)
         {
@@ -26,6 +27,10 @@ public sealed class Registration : IDisposable
         }
     }
 
-    /// <summary><see cref="Unregister"/>.</summary>
-    public void Dispose() => Unregister();
+    /// <summary><see cref="Unregister"/>, then releases the native handle. Idempotent.</summary>
+    public void Dispose()
+    {
+        Unregister();
+        Handle.Dispose();
+    }
 }
