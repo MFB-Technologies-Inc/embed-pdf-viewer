@@ -20,11 +20,17 @@
 //
 // --dry-run builds, verifies and packs each payload and prints the release it
 // would create, without creating it or touching Package.swift. --only runs one
-// half. --stage, with --only apple, splits the Apple half in two: `build`
+// half. --stage, with --only, splits that half in two. For apple, `build`
 // stops once the zip is packaged, leaving it and its facts (the
 // EmbedPDFBindings.xcframework.zip.json beside it) in platforms/apple/.build/
 // publish; `publish` takes those, skips the build and the tests, and creates
-// the release and pins it. Releases go to MFB-Technologies-Inc/embed-pdf-viewer
+// the release and pins it. For wasm, `build` links, verifies and packs the
+// payload and leaves the archive, its .sha256 and its facts
+// (engine-runtime-payload-wasm32.tar.gz.json, which holds the release notes)
+// in packages/engine/runtime/.build/publish, without asking gh anything;
+// `publish` takes those and only creates the release. A `publish` stage runs
+// no cargo, rustc or pnpm and needs no runtime-src checkout, so a job holding
+// a token that can write releases runs no build code. Releases go to MFB-Technologies-Inc/embed-pdf-viewer
 // unless EMBEDPDF_RELEASE_REPO names another owner/repo.
 //
 // The wasm half checks the linked engine against the committed bindings
@@ -66,7 +72,7 @@
 // The fork build and emsdk are cached under perf-compare/.work (PERF_WORK_DIR
 // overrides), the same cache the perf harness uses: a cached fork makes a
 // publish a few minutes, a cold one several hours. Needs cargo, gh (logged in
-// with write access to the fork) and a committed, clean tree, because the
+// with write access to releaseRepo()) and a committed, clean tree, because the
 // release names the commit it was built from. The Apple half also needs Xcode
 // and an iOS simulator; EMBEDPDF_TEST_DESTINATION overrides the default one
 // when two simulators share its name.
@@ -188,18 +194,70 @@ const manifest = path.join(apple, 'EmbedPDF/Package.swift');
 const rootManifest = path.join(repo, 'Package.swift');
 // The fork target the wasm32 payload links, as build-arm.mjs builds it.
 const FORK_TARGET = buildArmConstant('FORK_TARGET');
-const dryRun = process.argv.includes('--dry-run');
-const onlyAt = process.argv.indexOf('--only');
-const only = onlyAt === -1 ? null : process.argv[onlyAt + 1];
-if (only !== null && only !== 'wasm' && only !== 'apple') {
-  console.error('--only takes wasm or apple');
+// --dry-run, --only wasm|apple and --stage build|publish; `error` when they
+// don't make sense together.
+export function parseArgs(argv) {
+  const dryRun = argv.includes('--dry-run');
+  const onlyAt = argv.indexOf('--only');
+  const only = onlyAt === -1 ? null : (argv[onlyAt + 1] ?? '');
+  if (only !== null && only !== 'wasm' && only !== 'apple') {
+    return { error: '--only takes wasm or apple' };
+  }
+  const stageAt = argv.indexOf('--stage');
+  const stage = stageAt === -1 ? null : (argv[stageAt + 1] ?? '');
+  if (stage !== null && ((stage !== 'build' && stage !== 'publish') || only === null)) {
+    return { error: '--stage takes build or publish, and needs --only wasm or --only apple' };
+  }
+  return { dryRun, only, stage };
+}
+const args = parseArgs(process.argv);
+if (args.error) {
+  console.error(args.error);
   process.exit(64);
 }
-const stageAt = process.argv.indexOf('--stage');
-const stage = stageAt === -1 ? null : process.argv[stageAt + 1];
-if (stage !== null && ((stage !== 'build' && stage !== 'publish') || only !== 'apple')) {
-  console.error('--stage takes build or publish, and needs --only apple');
-  process.exit(64);
+const { dryRun, only, stage } = args;
+
+// The startup checks that need the build's tools: the runtime-src checkout,
+// cargo metadata's crate lists, and rustc's version. --stage publish takes what
+// it needs from --stage build's facts, so it runs none of them.
+export function buildChecks({ stage }) {
+  const build = stage !== 'publish';
+  return { runtimeSrc: build, cargo: build, rustc: build };
+}
+
+// Where --only wasm --stage build leaves the payload for --stage publish
+// (gitignored).
+const wasmStageDir = path.join(runtime, '.build/publish');
+
+// The payload --stage build left in `dir`, by its facts (`<asset>.json`), once
+// they name `tag` at `head`, the archive still hashes to what was packed, and
+// the .sha256 beside it says the same. Throws otherwise.
+export function stagedRelease({ dir, asset, tag, head }) {
+  const archive = path.join(dir, asset);
+  const factsFile = `${archive}.json`;
+  for (const file of [archive, `${archive}.sha256`, factsFile]) {
+    if (!existsSync(file)) {
+      throw new Error(
+        `--stage publish needs ${asset}, ${asset}.sha256 and ${asset}.json from --stage build in ${dir}; ${path.basename(file)} is missing`,
+      );
+    }
+  }
+  const facts = JSON.parse(readFileSync(factsFile, 'utf8'));
+  if (facts.tag !== tag || facts.head !== head) {
+    throw new Error(
+      `${asset} is ${facts.tag} built at ${facts.head}, but this tree is ${tag} at ${head}`,
+    );
+  }
+  const digest = sha256(archive);
+  if (digest !== facts.archiveSha256) {
+    throw new Error(
+      `${asset} hashes to ${digest}, not the ${facts.archiveSha256} --stage build packed`,
+    );
+  }
+  if (readFileSync(`${archive}.sha256`, 'utf8') !== `${digest}  ${asset}\n`) {
+    throw new Error(`${asset}.sha256 doesn't name ${digest}  ${asset}`);
+  }
+  return facts;
 }
 
 const run = (cmd, args, opts = {}) =>
@@ -339,58 +397,71 @@ if (invoked) {
     process.exit(1);
   }
 
+  const checks = buildChecks({ stage });
+
   // buildFork clones the fork from the runtime-src checkout. Its commit may exist
   // only on the fork, which `git submodule update` won't fetch from upstream.
   // Untrimmed: the status's first column is a space when the commit matches.
-  const status = execFileSync(
-    'git',
-    ['submodule', 'status', 'packages/engine/runtime/runtime-src'],
-    {
-      cwd: repo,
-      encoding: 'utf8',
-    },
-  );
-  if (!status.startsWith(' ')) {
-    const sha = status.slice(1).split(' ')[0];
-    console.error(
-      `runtime-src isn't checked out at ${sha.slice(0, 9)}. From the repo root:\n` +
-        `  git submodule init packages/engine/runtime/runtime-src\n` +
-        `  git config submodule.packages/engine/runtime/runtime-src.url https://github.com/MFB-Technologies-Inc/embed-pdf-runtime.git\n` +
-        `  git submodule update packages/engine/runtime/runtime-src`,
+  if (checks.runtimeSrc) {
+    const status = execFileSync(
+      'git',
+      ['submodule', 'status', 'packages/engine/runtime/runtime-src'],
+      {
+        cwd: repo,
+        encoding: 'utf8',
+      },
     );
-    process.exit(1);
+    if (!status.startsWith(' ')) {
+      const sha = status.slice(1).split(' ')[0];
+      console.error(
+        `runtime-src isn't checked out at ${sha.slice(0, 9)}. From the repo root:\n` +
+          `  git submodule init packages/engine/runtime/runtime-src\n` +
+          `  git config submodule.packages/engine/runtime/runtime-src.url https://github.com/MFB-Technologies-Inc/embed-pdf-runtime.git\n` +
+          `  git submodule update packages/engine/runtime/runtime-src`,
+      );
+      process.exit(1);
+    }
   }
 
   // Each hash script lists the crates its binary links by hand. A crate missing
   // from a list would change that binary without changing its hash.
-  const metadata = JSON.parse(
-    run('cargo', ['metadata', '--format-version', '1'], { maxBuffer: 1 << 28 }),
-  );
-  const checkCrates = (root, script, variable) => {
-    const local = linkedLocalCrates(metadata, root);
-    const listed = listedCrates(readFileSync(script, 'utf8'), variable);
-    if (local.join() !== listed.join()) {
-      console.error(
-        `${variable} in ${path.basename(script)} is (${listed.join(' ')}),\n` +
-          `but ${root} links (${local.join(' ')}). Update the list first.`,
+  if (checks.cargo) {
+    const metadata = JSON.parse(
+      run('cargo', ['metadata', '--format-version', '1'], { maxBuffer: 1 << 28 }),
+    );
+    const checkCrates = (root, script, variable) => {
+      const local = linkedLocalCrates(metadata, root);
+      const listed = listedCrates(readFileSync(script, 'utf8'), variable);
+      if (local.join() !== listed.join()) {
+        console.error(
+          `${variable} in ${path.basename(script)} is (${listed.join(' ')}),\n` +
+            `but ${root} links (${local.join(' ')}). Update the list first.`,
+        );
+        process.exit(1);
+      }
+    };
+    if (only !== 'apple') {
+      checkCrates(
+        'epdf-wasm',
+        path.join(runtime, 'scripts/runtime-payload-hash.sh'),
+        'RUST_CRATES',
       );
-      process.exit(1);
     }
-  };
-  if (only !== 'apple') {
-    checkCrates('epdf-wasm', path.join(runtime, 'scripts/runtime-payload-hash.sh'), 'RUST_CRATES');
-  }
-  if (only !== 'wasm') {
-    checkCrates('epdf-viewer-host', path.join(apple, 'apple-engine-hash.sh'), 'APPLE_CRATES');
+    if (only !== 'wasm') {
+      checkCrates('epdf-viewer-host', path.join(apple, 'apple-engine-hash.sh'), 'APPLE_CRATES');
+    }
   }
 
   head = run('git', ['rev-parse', 'HEAD']);
-  rustc = run('rustc', ['--version']);
+  // --stage publish reads the toolchain from the build's facts.
+  if (checks.rustc) rustc = run('rustc', ['--version']);
   if (only !== 'apple') await publishWasm();
   if (only !== 'wasm') publishApple();
 }
 
 async function publishWasm() {
+  // The release only: libDir, the run lock and the backup are the build's.
+  if (stage === 'publish') return publishStagedWasm();
   takeRunLock();
   // A run killed while its new payload was in place leaves what was there before
   // in libBackup. One killed after its release went out leaves the new payload as
@@ -473,7 +544,8 @@ async function publishWasm() {
   const hash = run('bash', [path.join(runtime, 'scripts/runtime-payload-hash.sh')]);
   const tag = `runtime-payloads-${hash}`;
   let state = null;
-  if (!dryRun) {
+  // --stage build doesn't ask gh: --stage publish does, before it uploads.
+  if (!dryRun && stage !== 'build') {
     try {
       state = releaseState(tag, ASSET);
     } catch (error) {
@@ -616,6 +688,21 @@ async function publishWasm() {
     });
     if (dryRun) console.log(`\n--dry-run: the release notes would read:\n${notes}\n`);
 
+    if (stage === 'build') {
+      // For --stage publish, which has neither the build nor its toolchain.
+      rmSync(wasmStageDir, { recursive: true, force: true });
+      mkdirSync(wasmStageDir, { recursive: true });
+      cpSync(archive, path.join(wasmStageDir, ASSET));
+      cpSync(`${archive}.sha256`, path.join(wasmStageDir, `${ASSET}.sha256`));
+      writeFileSync(
+        path.join(wasmStageDir, `${ASSET}.json`),
+        JSON.stringify({ tag, hash, head, archiveSha256: digest, notes }, null, 2),
+      );
+      rmSync(out, { recursive: true, force: true });
+      temps.delete(out);
+      console.log(`staged ${tag} in ${path.relative(repo, wasmStageDir)}`);
+    }
+
     const args = [
       'release',
       'create',
@@ -634,7 +721,9 @@ async function publishWasm() {
       notes,
       '--prerelease',
     ];
-    if (dryRun) {
+    if (stage === 'build') {
+      // Nothing to release here; --stage publish does that.
+    } else if (dryRun) {
       console.log(`\n--dry-run: would run gh ${args.map((a) => JSON.stringify(a)).join(' ')}`);
       console.log(`payload left at ${out}`);
     } else {
@@ -664,11 +753,72 @@ async function publishWasm() {
       );
     }
     // A published payload matches its release, so fetch-payload.sh keeps it. A dry
-    // run's matches no release, so its marker names none and fetch-payload.sh
-    // fetches the published one over it.
-    writeFileSync(path.join(libDir, '.payload-source'), dryRun ? `dry-run-${hash}` : hash);
+    // run's, or --stage build's, isn't released yet, so its marker names none and
+    // fetch-payload.sh fetches the published one over it.
+    const unreleased = dryRun || stage === 'build';
+    writeFileSync(path.join(libDir, '.payload-source'), unreleased ? `dry-run-${hash}` : hash);
   }
-  console.log(`${dryRun ? 'built' : 'published'} ${tag}`);
+  console.log(`${dryRun || stage === 'build' ? 'built' : 'published'} ${tag}`);
+}
+
+// --only wasm --stage publish: the release of the payload --stage build staged,
+// and nothing else. It runs no build tool and leaves libDir alone.
+async function publishStagedWasm() {
+  const hash = run('bash', [path.join(runtime, 'scripts/runtime-payload-hash.sh')]);
+  const tag = `runtime-payloads-${hash}`;
+  if (!dryRun) {
+    let state;
+    try {
+      state = releaseState(tag, ASSET);
+    } catch (error) {
+      console.error(error.message);
+      process.exit(1);
+    }
+    if (state === 'published') {
+      console.log(`${tag} is already published on ${releaseRepo()}; nothing to do.`);
+      return;
+    }
+    if (state === 'incomplete') {
+      console.error(
+        `release ${tag} on ${releaseRepo()} is incomplete (a draft, or ${ASSET} or its .sha256 ` +
+          `missing); finish or delete it before publishing again.`,
+      );
+      process.exit(1);
+    }
+  }
+  let facts;
+  try {
+    facts = stagedRelease({ dir: wasmStageDir, asset: ASSET, tag, head });
+  } catch (error) {
+    console.error(error.message);
+    process.exit(1);
+  }
+  const archive = path.join(wasmStageDir, ASSET);
+  const args = [
+    'release',
+    'create',
+    tag,
+    archive,
+    `${archive}.sha256`,
+    '--repo',
+    releaseRepo(),
+    // The viewer commit the payload was built from; the notes name the fork
+    // commit, which the viewer repo doesn't have.
+    '--target',
+    head,
+    '--title',
+    tag,
+    '--notes',
+    facts.notes,
+    '--prerelease',
+  ];
+  if (dryRun) {
+    console.log(`\n--dry-run: the release notes would read:\n${facts.notes}\n`);
+    console.log(`\n--dry-run: would run gh ${args.map((a) => JSON.stringify(a)).join(' ')}`);
+    return;
+  }
+  execFileSync('gh', args, { cwd: repo, stdio: 'inherit' });
+  console.log(`published ${tag}`);
 }
 
 // build-arm.mjs's constants for the Rust-core link, read as runtime-payload-hash.sh reads

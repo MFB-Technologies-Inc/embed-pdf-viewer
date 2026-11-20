@@ -127,7 +127,7 @@ jobs:
           name: ${{ inputs.payload_artifact }}
           path: packages/engine/runtime/npm/wasm32/lib
 
-      # publish-engine-payload.mjs --dry-run marks what it built
+      # publish-engine-payload.mjs --dry-run and --stage build mark what they built
       # dry-run-<hash>; the hash must be the one this checkout derives.
       - name: Check the payload artifact
         if: inputs.payload_artifact != ''

@@ -431,21 +431,19 @@ jobs:
       CHECKSUM: ${{ needs.build.outputs.checksum }}
       DRY_RUN: ${{ inputs.dry_run }}
     steps:
-      # The script's startup checks run here too: a clean tracked tree,
-      # runtime-src checked out at the gitlink, cargo metadata and rustc.
+      # Its token can write to this repo, so nothing here runs build code:
+      # --stage publish checks only for a clean tracked tree and asks gh, and
+      # takes the toolchain from the build's facts. No submodules: the engine
+      # hash reads the runtime-src gitlink from the index.
       - uses: actions/checkout@v6
         with:
-          submodules: recursive
-          fetch-depth: 0
+          fetch-depth: 1
           persist-credentials: false
 
+      # The script imports only Node's built-ins and this repo's modules.
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-
-      - uses: ./.github/actions/setup-rust
-        with:
-          cache-key: apple
 
       - uses: actions/download-artifact@v7
         with:
