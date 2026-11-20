@@ -51,6 +51,13 @@ Swift files: `Plugins/{Interaction,Feedback,I18n,Actions,JavaScriptCoreEngine}.s
 Tests: `InteractionTests`, `FeedbackTests`, `PointerLatencyTests` (record the JVM number, don't assert Apple's), `I18nTests` (with `Tests/EmbedPDFTests/Locales` copied to test resources), `ActionsTests`, `JavaScriptCoreEngineTests` (as `JavaScriptSandboxEngineTest`; under Robolectric the sandbox is unavailable, so test the unavailable path and the adapter contract with a fake `ScriptEngine`).
 Android services: `HapticFeedback(view: View)` implementing `PlatformFeedback` with `View.performHapticFeedback` constants mapped from the Swift mapping; `AssetLocaleLoader(assets: AssetManager, directory: String = "embedpdf/locales")`; `JavaScriptSandboxEngineFactory(context: Context)`. `androidx.javascriptengine` declares `minSdk` 26 (Phase 1 finding), so the manifest uses `tools:overrideLibrary="androidx.javascriptengine"` and the factory reports JavaScript unavailable below API 26 (`@RequiresApi(26)` on the internals, a `Build.VERSION.SDK_INT` gate at the entry).
 
+- [x] One commit per plugin or service, tests green at each commit.
+- `ToolId` (Swift's `ToolID.swift`, listed under wave D) arrived with interaction, since the hub's calls take it; `AnnotationTool.toolId` stays with wave D. Swift's deprecated `String` overloads were not ported.
+- `InteractionHandler` is a Kotlin interface over the generated one with the hub's defaults for the optional members.
+- The JavaScript sandbox fallback: a viewer whose config enables JavaScript with a `JavaScriptSandboxEngineFactory` that has no sandbox builds with JavaScript disabled, and reports `unsupported` once, when the first document opens or `actions(document)` is first called.
+- `PointerLatencyTest` (opt in with `EMBEDPDF_LATENCY=1`) printed p50 876 us, p95 2427 us, max 50 ms on the container's JVM.
+- `EmbedPdfTestRunner` (in the wave A review fix) keeps uniffi and JNA out of Robolectric's sandbox class loader, which replaces `forkEvery = 1`.
+
 ### Task C: Wave C (stage, selection, link, commands)
 
 Swift files: `Plugins/{Stage,Selection,Link,Commands}.swift`.
