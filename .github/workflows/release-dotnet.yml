@@ -39,9 +39,9 @@ name: release-dotnet
 # Microsoft publishes no Debian trixie .NET SDK image (no 10.0.403-trixie
 # tag), so every row installs SDK 10.0.403 from Microsoft's archive.
 #
-# The runtime, runtime-pack and runtime-validate jobs build the viewer
-# packages, EmbedPDF.Runtime and EmbedPDF, from all five RIDs; their comment
-# below says what they produce.
+# The runtime, runtime-pack, runtime-validate and runtime-record jobs build
+# and validate the viewer packages, EmbedPDF.Runtime and EmbedPDF, for all
+# five RIDs; their comments below say what they produce.
 #
 # This workflow never publishes; the orchestrator does. dry_run exists so every
 # release workflow takes the same inputs, and changes nothing here.
@@ -680,15 +680,23 @@ jobs:
             dotnet-runtime/*.json
           if-no-files-found: error
 
-  # The macOS and Windows consumers. The manifest each row updates is its own
-  # copy; the record is the evidence.
+  # The consumer on each remaining RID's native host: linux-x64 in the same
+  # Debian image on an x64 runner, macOS and Windows on the hosted images.
+  # A passing row counts as VALIDATED (native); the record names the runner
+  # image or the container digest. Each row uploads its record and its copy
+  # of the manifest; runtime-record merges them.
   runtime-validate:
-    needs: runtime-pack
+    needs: [image, runtime-pack]
     name: runtime validate (${{ matrix.rid }})
     strategy:
       fail-fast: false
       matrix:
         include:
+          - rid: linux-x64
+            runner: ubuntu-24.04
+            image_arch: amd64
+            sdk_url: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-linux-x64.tar.gz
+            sdk_sha512: b7b3d8461cf98b07d2552ce9199702fa3ad010ac2671a5f8cd5136f7534e50f6855ba7bbb02b11494563f1d04156276a31cda1103b900e5eecd0d9473dc7b9c5
           - rid: osx-arm64
             runner: macos-15
             sdk_url: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-osx-arm64.tar.gz
@@ -703,11 +711,21 @@ jobs:
             sdk_sha512: 7a114c318fa7f1d9822991b534b2814d0e78386ceda816b371f5141acefe741d87ccb606ede06cadac8f9ac5070e32b708a67bbd1619ff5e5a7858a27874ef48
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
+    container: ${{ matrix.image_arch && format('debian:trixie@{0}', needs.image.outputs[matrix.image_arch]) || '' }}
     env:
       RID: ${{ matrix.rid }}
       DOTNET_CLI_TELEMETRY_OPTOUT: "1"
       DOTNET_NOLOGO: "1"
+      EPDF_IMAGE_ID: ${{ matrix.image_arch && needs.image.outputs[matrix.image_arch] || '' }}
+      EPDF_HOST_OS: ${{ matrix.image_arch && 'linux' || '' }}
     steps:
+      - name: Install system packages
+        if: runner.os == 'Linux'
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates curl git python3 libicu-dev tzdata zlib1g
+          rm -rf /var/lib/apt/lists/*
+
       - name: Check out LF on Windows
         if: runner.os == 'Windows'
         run: git config --global core.autocrlf false
@@ -716,6 +734,9 @@ jobs:
         with:
           fetch-depth: 1
           persist-credentials: false
+
+      - name: Trust the workspace
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Install .NET SDK 10.0.403
         env:
@@ -729,7 +750,10 @@ jobs:
           else
             echo "$SDK_SHA512  $sdk" | shasum -a 512 -c -
           fi
-          root=$RUNNER_TEMP/dotnet
+          case $RUNNER_OS in
+            Linux) root=/usr/share/dotnet ;;
+            *) root=$RUNNER_TEMP/dotnet ;;
+          esac
           mkdir -p "$root"
           if [[ "$sdk" == *.zip ]]; then
             "$(cygpath -u "$SYSTEMROOT")/System32/tar.exe" -xf "$sdk" -C "$root"
@@ -746,15 +770,67 @@ jobs:
           name: dotnet-runtime
           path: dotnet-runtime
 
+      # ImageOS and ImageVersion reach validate-runtime from the hosted
+      # runner's environment and name the image in the record.
       - name: Validate
         run: |
           runtime=$(ls dotnet-runtime/EmbedPDF.Runtime.*.nupkg)
           "$PYTHON" platforms/dotnet/packaging/package.py validate-runtime --rid "$RID" \
             --package "$runtime" --facade dotnet-runtime/EmbedPDF.0.0.0-local.nupkg \
-            --manifest dotnet-runtime/package-manifest.runtime.json --record "dotnet-runtime-validation.$RID.json"
+            --manifest dotnet-runtime/package-manifest.runtime.json --record "validation/record.$RID.json"
+          cp dotnet-runtime/package-manifest.runtime.json "validation/manifest.$RID.json"
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: dotnet-runtime-validation-${{ matrix.rid }}
+          path: validation
+          if-no-files-found: error
+
+  # One manifest for all five RIDs: runtime-pack's (linux-arm64 validated
+  # there), with each validate row's status for its own RID. A row that
+  # failed leaves its RID at PACKED_UNVALIDATED.
+  runtime-record:
+    needs: [runtime-pack, runtime-validate]
+    if: always() && needs.runtime-pack.result == 'success'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: dotnet-runtime
+          path: dotnet-runtime
+
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: dotnet-runtime-validation-*
+          path: validation
+          merge-multiple: true
+
+      - name: Merge the RID statuses
+        run: |
+          python3 - <<'PY'
+          import json, pathlib, sys
+          sys.path.insert(0, "platforms/dotnet/packaging")
+          from schema import validate
+          merged = json.loads(pathlib.Path("dotnet-runtime/package-manifest.runtime.json").read_text())
+          for path in sorted(pathlib.Path("validation").glob("manifest.*.json")):
+              rid = path.name.removeprefix("manifest.").removesuffix(".json")
+              merged["rids"][rid] = json.loads(path.read_text())["rids"][rid]
+          validate(merged, json.loads(pathlib.Path("platforms/dotnet/package-manifest.schema.json").read_text()))
+          pathlib.Path("validation/package-manifest.runtime.json").write_text(json.dumps(merged, indent=2) + "\n")
+          for rid, state in merged["rids"].items():
+              print(f"{rid}: {state['status']}")
+          PY
+          cp dotnet-runtime/validation.linux-arm64.json validation/record.linux-arm64.json
+          rm validation/manifest.*.json
 
       - uses: actions/upload-artifact@v6
         with:
-          name: dotnet-runtime-validation-${{ matrix.rid }}
-          path: dotnet-runtime-validation.${{ matrix.rid }}.json
+          name: dotnet-runtime-record
+          path: validation
           if-no-files-found: error

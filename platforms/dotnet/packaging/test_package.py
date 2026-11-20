@@ -284,6 +284,11 @@ class RuntimeTests(unittest.TestCase):
         self.assertIn("emulation is recorded only for linux-x64", result.stdout)
 
 class NativeInspectionTests(unittest.TestCase):
+    def test_runner_image_is_recorded_from_the_hosted_runner(self):
+        from package import runner_image
+        self.assertEqual("ubuntu24 20261115.1", runner_image({"ImageOS":"ubuntu24","ImageVersion":"20261115.1"}))
+        self.assertIsNone(runner_image({}))
+
     def test_foreign_rid_uses_its_own_loader(self):
         import package
         calls = []

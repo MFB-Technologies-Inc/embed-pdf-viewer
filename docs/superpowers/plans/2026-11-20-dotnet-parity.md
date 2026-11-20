@@ -72,6 +72,10 @@ third-party generators support least. It does use foreign traits: 45 `with_forei
   macOS and Windows runs are manual, recorded under `platforms/dotnet/validation/` against
   `validation/record.schema.json`, as slice 6 records are today. An RID with no record stays
   `UNVALIDATED`.
+- A passing row of a hosted CI runner in `.github/workflows/release-dotnet.yml` counts as a native
+  run (`VALIDATED`), recorded with the runner image (`ImageOS ImageVersion`) or the container
+  digest. There is no Windows development host, so for `win-x64` that row is the only route to
+  `VALIDATED`. An emulated run stays `container-emulated`.
 - RIDs: `linux-x64`, `linux-arm64`, `osx-arm64`, `osx-x64`, `win-x64`. `win-arm64` is out of scope
   unless the user adds it. There is no Windows development host, so `win-x64` is packed but stays
   `UNVALIDATED` until one is available; nothing in this plan may depend on Windows-only APIs.

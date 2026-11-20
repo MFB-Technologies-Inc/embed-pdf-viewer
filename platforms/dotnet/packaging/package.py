@@ -695,6 +695,13 @@ def smoke_runtime(args):
         hidden(native/host_name, lambda: consume(app, 3, missing))
         print("PASS: RID-specific and portable consumers, missing-host and missing-PDFium checks")
 
+def runner_image(env):
+    """The hosted CI runner image (`ImageOS ImageVersion`), or None off CI.
+    A passing CI row counts as a native run, so the record names its image."""
+    if env.get("ImageOS"):
+        return f"{env['ImageOS']} {env.get('ImageVersion', 'unknown')}"
+    return None
+
 def validate_runtime(args):
     record_path = Path(args.record).resolve()
     pin_path = Path(args.runtime_manifest).resolve()
@@ -722,6 +729,8 @@ def validate_runtime(args):
             environment["tools"][tool] = subprocess.check_output(command_version,cwd=DOTNET,text=True,stderr=subprocess.STDOUT).splitlines()[0]
         except (OSError,subprocess.CalledProcessError):
             environment["tools"][tool] = "unavailable"
+    if runner_image(os.environ):
+        environment["tools"]["runnerImage"] = runner_image(os.environ)
     record["commands"].append({"command":subprocess.list2cmdline(command),"cwd":str(ROOT),"exitCode":result.returncode,
                               "results":result.stdout[-16000:] or "No output"})
     if result.returncode == 0:
