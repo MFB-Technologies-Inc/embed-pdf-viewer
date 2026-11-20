@@ -75,6 +75,24 @@ public final class com/embedpdf/HttpDocumentFetcher : uniffi/epdf_viewer_host/Do
 	public fun fetch (Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentFetchCompletion;)Luniffi/epdf_viewer_host/DocumentFetchCancellation;
 }
 
+public final class com/embedpdf/MetadataCapability {
+	public final fun canUpdate (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun customSnapshot (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun customStatus (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun ensureLoaded (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
+	public final fun refresh (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun refreshCustom (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun snapshot (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun status (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun update (Luniffi/epdf_plugin_metadata/MetadataPatch;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun updateCustom (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/MetadataKt {
+	public static final fun metadata (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class com/embedpdf/PdfException : java/lang/Exception {
 	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;Lkotlin/jvm/internal/DefaultConstructorMarker;)V

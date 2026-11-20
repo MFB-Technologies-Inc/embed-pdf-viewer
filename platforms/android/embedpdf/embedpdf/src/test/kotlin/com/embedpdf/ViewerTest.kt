@@ -12,8 +12,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
-// Nested classes are not reachable through a typealias.
-import uniffi.epdf_viewer_host.DocumentEvent
 import kotlin.coroutines.cancellation.CancellationException
 
 class ViewerTest {
@@ -56,7 +54,7 @@ class ViewerTest {
         val events = subscribed(viewer.observeDocumentEvents())
         runCatching { viewer.open(notAPdf) }
         val tab = viewer.documents().first()
-        val failed = events.nextMapped { it as? DocumentEvent.OpenFailed }
+        val failed = events.nextMapped { it as? DocumentEventOpenFailed }
         assertEquals(tab.id, failed.documentId)
         assertEquals(tab.error, failed.error)
         assertEquals("operation-failed", failed.error.code)
@@ -69,7 +67,7 @@ class ViewerTest {
         val events = subscribed(viewer.observeDocumentEvents())
         val parked = viewer.open(Fixture.bytes("encrypted-hello"), password = "nope")
         assertEquals(DocumentStatus.LOCKED, parked.status)
-        val lockedEvent = events.nextMapped { it as? DocumentEvent.Locked }
+        val lockedEvent = events.nextMapped { it as? DocumentEventLocked }
         assertEquals(parked.id, lockedEvent.documentId)
         assertEquals(true, lockedEvent.passwordProvided)
 
@@ -103,7 +101,7 @@ class ViewerTest {
         val viewer = started()
         val events = subscribed(viewer.observeDocumentEvents())
         val document = viewer.open(Fixture.bytes("encrypted-hello"))
-        val locked = events.nextMapped { it as? DocumentEvent.Locked }
+        val locked = events.nextMapped { it as? DocumentEventLocked }
         assertEquals(document.id, locked.documentId)
         assertEquals(false, locked.passwordProvided)
         viewer.destroy()
@@ -175,8 +173,8 @@ class ViewerTest {
         withTimeout(5_000) {
             while (seen.size < 2) {
                 when (events.receive()) {
-                    is DocumentEvent.Opened -> seen += "opened"
-                    is DocumentEvent.Closed -> seen += "closed"
+                    is DocumentEventOpened -> seen += "opened"
+                    is DocumentEventClosed -> seen += "closed"
                     else -> {}
                 }
             }

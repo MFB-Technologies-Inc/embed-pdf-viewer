@@ -18,6 +18,16 @@ public typealias HostException = uniffi.epdf_ffi.HostException
 public typealias HostFailure = uniffi.epdf_ffi.HostFailure
 public typealias DocumentEvent = uniffi.epdf_viewer_host.DocumentEvent
 
+// A nested class isn't reachable through a typealias, so each variant of a
+// sealed type a caller matches on has a flat name, `<Parent><Variant>`.
+public typealias DocumentEventOpened = uniffi.epdf_viewer_host.DocumentEvent.Opened
+public typealias DocumentEventOpenFailed = uniffi.epdf_viewer_host.DocumentEvent.OpenFailed
+public typealias DocumentEventLocked = uniffi.epdf_viewer_host.DocumentEvent.Locked
+public typealias DocumentEventClosed = uniffi.epdf_viewer_host.DocumentEvent.Closed
+public typealias DocumentEventActiveChanged = uniffi.epdf_viewer_host.DocumentEvent.ActiveChanged
+public typealias DocumentEventPagesChanged = uniffi.epdf_viewer_host.DocumentEvent.PagesChanged
+public typealias HostExceptionFailed = uniffi.epdf_ffi.HostException.Failed
+
 /**
  * The transport for URL document sources, passed to [PdfViewer]'s constructor.
  * `fetch(url, completion)` reports once on its [DocumentFetchCompletion] and

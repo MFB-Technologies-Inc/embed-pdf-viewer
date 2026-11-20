@@ -1,6 +1,12 @@
 package com.embedpdf
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withTimeoutOrNull
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.channels.Channel
@@ -31,16 +37,57 @@ fun viewer(config: ViewerConfig = ViewerConfig()): PdfViewer = PdfViewer(config)
 suspend fun started(config: ViewerConfig = ViewerConfig()): PdfViewer = viewer(config).also { it.start() }
 
 /** Expects [body] to throw a [PdfException] with [code], and returns it. */
-suspend fun expectCode(code: PdfException.Code, body: suspend () -> Unit): PdfException {
+suspend fun expectCode(code: PdfException.Code, body: suspend () -> Unit): PdfException = expectCode(code, "", body)
+
+/** [expectCode] with [label] in front of a failure's message. */
+suspend fun expectCode(code: PdfException.Code, label: String, body: suspend () -> Unit): PdfException {
     try {
         body()
     } catch (e: PdfException) {
-        assertEquals(e.toString(), code, e.code)
+        assertEquals("$label $e", code, e.code)
         return e
     }
-    fail("expected $code")
+    fail("$label expected $code")
     throw AssertionError()
 }
+
+/**
+ * Calls [body] in a coroutine cancelled before the call, and expects the call
+ * to end in the coroutine's cancellation without finishing: the token was
+ * cancelled before the kernel started the work. A cancel that arrives while
+ * the work runs is timing, so these tests don't try it; the Rust tests hold
+ * an engine reply to pin that case.
+ */
+suspend fun expectCancelledBeforeItStarts(body: suspend () -> Any?) {
+    var finished = false
+    var thrown: Throwable? = null
+    coroutineScope {
+        launch(start = CoroutineStart.UNDISPATCHED) {
+            coroutineContext[Job]!!.cancel()
+            try {
+                body()
+                finished = true
+            } catch (e: Throwable) {
+                thrown = e
+                throw e
+            }
+        }.join()
+    }
+    assertFalse("a call made in a cancelled coroutine finished", finished)
+    assertTrue("$thrown", thrown is CancellationException && thrown !is PdfException)
+}
+
+/** Whether collecting [flow] completes within two seconds. */
+suspend fun <T> completes(flow: Flow<T>): Boolean = withTimeoutOrNull(2_000) { flow.collect {} } != null
+
+/**
+ * Collects [flow] from a coroutine subscribed by the time this returns, for
+ * [completes] to wait on later.
+ */
+fun <T> CoroutineScope.collecting(flow: Flow<T>): Job = launch(start = CoroutineStart.UNDISPATCHED) { flow.collect {} }
+
+/** Whether [job] completes within two seconds. */
+suspend fun finishes(job: Job): Boolean = withTimeoutOrNull(2_000) { job.join() } != null
 
 /** The first value of [flow] that [select] maps to non-null, within five seconds. */
 suspend fun <T, R : Any> Flow<T>.firstMapped(select: (T) -> R?): R =

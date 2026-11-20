@@ -19,6 +19,9 @@ and a version catalog, `gradle/libs.versions.toml`.
 The models and Compose modules come in later phases of
 `docs/superpowers/plans/2026-11-19-android-parity.md`.
 
+The facade is written for Kotlin callers. Calling it from Java isn't a goal,
+so it carries no `@JvmName` or `@JvmOverloads` adjustments.
+
 `embedpdf/api/embedpdf.api` is the facade's public surface. `./gradlew
 :embedpdf:apiCheck` fails when the code and the dump disagree, and
 `./gradlew :embedpdf:apiDump` rewrites the dump; a change to the surface

@@ -6,8 +6,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
-import uniffi.epdf_ffi.CancelToken
-import uniffi.epdf_plugin_metadata.MetadataPatch
 
 class DocumentApiTest {
     @Test
@@ -29,14 +27,12 @@ class DocumentApiTest {
         assertEquals(listOf(first.id, second.id), viewer.documentOrder())
         viewer.setDocumentOrder(listOf(second.id, first.id))
 
-        // The metadata capability is not wrapped yet; its handle stands in.
-        val metadata = viewer.call { viewer.host.metadata(first.id) }
-        CancelToken().use { metadata.update(MetadataPatch(title = "Saved layer title"), it) }
+        viewer.metadata(first).update(MetadataPatch(title = "Saved layer title"))
         val bytes = viewer.saveLayer(first)
         val restored = viewer.open(base = Fixture.bytes("report"), layer = bytes)
         assertEquals(14u, restored.pageCount)
-        val restoredMetadata = viewer.call { viewer.host.metadata(restored.id) }
-        CancelToken().use { restoredMetadata.ensureLoaded(it) }
+        val restoredMetadata = viewer.metadata(restored)
+        restoredMetadata.ensureLoaded()
         assertEquals("Saved layer title", restoredMetadata.snapshot()?.title)
 
         viewer.close(second)

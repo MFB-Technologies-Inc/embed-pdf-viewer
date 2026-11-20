@@ -2779,105 +2779,150 @@
       "path": "crates/plugins/metadata/src/controller.rs",
       "owner": "MetadataCapability",
       "symbol": "get_snapshot",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Metadata.kt",
+        "symbol": "snapshot"
+      }
     },
     {
       "crate": "metadata",
       "path": "crates/plugins/metadata/src/controller.rs",
       "owner": "MetadataCapability",
       "symbol": "get_status",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Metadata.kt",
+        "symbol": "status"
+      }
     },
     {
       "crate": "metadata",
       "path": "crates/plugins/metadata/src/controller.rs",
       "owner": "MetadataCapability",
       "symbol": "ensure_loaded",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Metadata.kt",
+        "symbol": "ensureLoaded"
+      }
     },
     {
       "crate": "metadata",
       "path": "crates/plugins/metadata/src/controller.rs",
       "owner": "MetadataCapability",
       "symbol": "can_update",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Metadata.kt",
+        "symbol": "canUpdate"
+      }
     },
     {
       "crate": "metadata",
       "path": "crates/plugins/metadata/src/controller.rs",
       "owner": "MetadataCapability",
       "symbol": "update",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Metadata.kt",
+        "symbol": "update"
+      }
     },
     {
       "crate": "metadata",
       "path": "crates/plugins/metadata/src/controller.rs",
       "owner": "MetadataCapability",
       "symbol": "refresh",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Metadata.kt",
+        "symbol": "refresh"
+      }
     },
     {
       "crate": "metadata",
       "path": "crates/plugins/metadata/src/controller.rs",
       "owner": "MetadataCapability",
       "symbol": "on_updated",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Metadata.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "metadata",
       "path": "crates/plugins/metadata/src/controller.rs",
       "owner": "MetadataCapability",
       "symbol": "on_resynced",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Metadata.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "metadata",
       "path": "crates/plugins/metadata/src/controller.rs",
       "owner": "MetadataCapability",
       "symbol": "custom",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Metadata.kt",
+        "symbol": "customSnapshot"
+      }
     },
     {
       "crate": "metadata",
       "path": "crates/plugins/metadata/src/controller.rs",
       "owner": "CustomMetadataCapability",
       "symbol": "get_snapshot",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Metadata.kt",
+        "symbol": "customSnapshot"
+      }
     },
     {
       "crate": "metadata",
       "path": "crates/plugins/metadata/src/controller.rs",
       "owner": "CustomMetadataCapability",
       "symbol": "get_status",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Metadata.kt",
+        "symbol": "customStatus"
+      }
     },
     {
       "crate": "metadata",
       "path": "crates/plugins/metadata/src/controller.rs",
       "owner": "CustomMetadataCapability",
       "symbol": "update",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Metadata.kt",
+        "symbol": "updateCustom"
+      }
     },
     {
       "crate": "metadata",
       "path": "crates/plugins/metadata/src/controller.rs",
       "owner": "CustomMetadataCapability",
       "symbol": "refresh",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Metadata.kt",
+        "symbol": "refreshCustom"
+      }
     },
     {
       "crate": "metadata",
       "path": "crates/plugins/metadata/src/controller.rs",
       "owner": "CustomMetadataCapability",
       "symbol": "on_updated",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Metadata.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "metadata",
       "path": "crates/plugins/metadata/src/controller.rs",
       "owner": "CustomMetadataCapability",
       "symbol": "on_resynced",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Metadata.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "outline",
