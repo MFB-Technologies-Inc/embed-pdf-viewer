@@ -379,6 +379,117 @@ EmbedPDF.I18nConfig.Equals(EmbedPDF.I18nConfig? other) -> bool
 EmbedPDF.I18nConfig.I18nConfig() -> void
 EmbedPDF.IDocumentFetcher
 EmbedPDF.IDocumentFetcher.FetchAsync(string! url, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<EmbedPDF.DocumentFetchResponse!>!
+EmbedPDF.IInteractionHandler
+EmbedPDF.IInteractionHandler.ClaimsTouch(EmbedPDF.PointerSample! sample) -> bool
+EmbedPDF.IInteractionHandler.EnabledFor(EmbedPDF.InteractionTool! tool) -> bool
+EmbedPDF.IInteractionHandler.OnCancel(EmbedPDF.PointerSample! sample) -> void
+EmbedPDF.IInteractionHandler.OnDown(EmbedPDF.PointerSample! sample) -> bool
+EmbedPDF.IInteractionHandler.OnHover(EmbedPDF.PointerSample! sample) -> void
+EmbedPDF.IInteractionHandler.OnMove(EmbedPDF.PointerSample! sample) -> void
+EmbedPDF.IInteractionHandler.OnUp(EmbedPDF.PointerSample! sample) -> void
+EmbedPDF.InteractionCapability
+EmbedPDF.InteractionCapability.ActivateDefaultToolAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.InteractionCapability.ActivateToolAsync(EmbedPDF.ToolId id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.InteractionCapability.ActiveToolEnablesAsync(string! behavior, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.InteractionCapability.CanUseToolAsync(EmbedPDF.ToolId id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.InteractionCapability.ClaimCursorAsync(string! token, string? cursor, double priority = 0, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.InteractionCapability.DispatchPointer(EmbedPDF.PointerSample! sample) -> void
+EmbedPDF.InteractionCapability.Dispose() -> void
+EmbedPDF.InteractionCapability.GetActiveToolAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.InteractionTool!>!
+EmbedPDF.InteractionCapability.GetActiveToolIdAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ToolId>!
+EmbedPDF.InteractionCapability.GetCursorAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+EmbedPDF.InteractionCapability.GetDefaultToolIdAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ToolId>!
+EmbedPDF.InteractionCapability.GetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.InteractionSettings!>!
+EmbedPDF.InteractionCapability.GetToolAsync(EmbedPDF.ToolId id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.InteractionTool?>!
+EmbedPDF.InteractionCapability.GetToolsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.InteractionTool!>!>!
+EmbedPDF.InteractionCapability.HasCursorClaimAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.InteractionCapability.HasToolAsync(EmbedPDF.ToolId id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.InteractionCapability.ObserveEvents(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.InteractionEvent!>!
+EmbedPDF.InteractionCapability.PopToolAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.InteractionCapability.PushToolAsync(EmbedPDF.ToolId id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.InteractionCapability.RegisterHandlerAsync(EmbedPDF.IInteractionHandler! handler, string! id, double priority, string? source = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.Registration!>!
+EmbedPDF.InteractionCapability.RegisterToolAsync(EmbedPDF.InteractionTool! tool, bool replace = false, System.Func<bool>? permission = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.Registration!>!
+EmbedPDF.InteractionCapability.ResetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.InteractionCapability.SetToolCursorAsync(EmbedPDF.ToolId id, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? cursors, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.InteractionCapability.UpdateSettingsAsync(EmbedPDF.InteractionSettingsPatch! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.InteractionCapability.WouldClaimTouchAsync(EmbedPDF.PointerSample! sample, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.InteractionEvent
+EmbedPDF.InteractionEvent.CursorChanged
+EmbedPDF.InteractionEvent.CursorChanged.Cursor.get -> string!
+EmbedPDF.InteractionEvent.CursorChanged.Cursor.init -> void
+EmbedPDF.InteractionEvent.CursorChanged.CursorChanged(string! Cursor) -> void
+EmbedPDF.InteractionEvent.CursorChanged.Deconstruct(out string! Cursor) -> void
+EmbedPDF.InteractionEvent.CursorChanged.Equals(EmbedPDF.InteractionEvent.CursorChanged? other) -> bool
+EmbedPDF.InteractionEvent.GestureCancelled
+EmbedPDF.InteractionEvent.GestureCancelled.Deconstruct(out EmbedPDF.ToolId ToolId, out EmbedPDF.PageRef? Page, out EmbedPDF.PointerKind PointerType) -> void
+EmbedPDF.InteractionEvent.GestureCancelled.Equals(EmbedPDF.InteractionEvent.GestureCancelled? other) -> bool
+EmbedPDF.InteractionEvent.GestureCancelled.GestureCancelled(EmbedPDF.ToolId ToolId, EmbedPDF.PageRef? Page, EmbedPDF.PointerKind PointerType) -> void
+EmbedPDF.InteractionEvent.GestureCancelled.Page.get -> EmbedPDF.PageRef?
+EmbedPDF.InteractionEvent.GestureCancelled.Page.init -> void
+EmbedPDF.InteractionEvent.GestureCancelled.PointerType.get -> EmbedPDF.PointerKind
+EmbedPDF.InteractionEvent.GestureCancelled.PointerType.init -> void
+EmbedPDF.InteractionEvent.GestureCancelled.ToolId.get -> EmbedPDF.ToolId
+EmbedPDF.InteractionEvent.GestureCancelled.ToolId.init -> void
+EmbedPDF.InteractionEvent.GestureEnded
+EmbedPDF.InteractionEvent.GestureEnded.Deconstruct(out EmbedPDF.ToolId ToolId, out EmbedPDF.PageRef? Page, out EmbedPDF.PointerKind PointerType) -> void
+EmbedPDF.InteractionEvent.GestureEnded.Equals(EmbedPDF.InteractionEvent.GestureEnded? other) -> bool
+EmbedPDF.InteractionEvent.GestureEnded.GestureEnded(EmbedPDF.ToolId ToolId, EmbedPDF.PageRef? Page, EmbedPDF.PointerKind PointerType) -> void
+EmbedPDF.InteractionEvent.GestureEnded.Page.get -> EmbedPDF.PageRef?
+EmbedPDF.InteractionEvent.GestureEnded.Page.init -> void
+EmbedPDF.InteractionEvent.GestureEnded.PointerType.get -> EmbedPDF.PointerKind
+EmbedPDF.InteractionEvent.GestureEnded.PointerType.init -> void
+EmbedPDF.InteractionEvent.GestureEnded.ToolId.get -> EmbedPDF.ToolId
+EmbedPDF.InteractionEvent.GestureEnded.ToolId.init -> void
+EmbedPDF.InteractionEvent.GestureStarted
+EmbedPDF.InteractionEvent.GestureStarted.Deconstruct(out EmbedPDF.ToolId ToolId, out EmbedPDF.PageRef? Page, out EmbedPDF.PointerKind PointerType) -> void
+EmbedPDF.InteractionEvent.GestureStarted.Equals(EmbedPDF.InteractionEvent.GestureStarted? other) -> bool
+EmbedPDF.InteractionEvent.GestureStarted.GestureStarted(EmbedPDF.ToolId ToolId, EmbedPDF.PageRef? Page, EmbedPDF.PointerKind PointerType) -> void
+EmbedPDF.InteractionEvent.GestureStarted.Page.get -> EmbedPDF.PageRef?
+EmbedPDF.InteractionEvent.GestureStarted.Page.init -> void
+EmbedPDF.InteractionEvent.GestureStarted.PointerType.get -> EmbedPDF.PointerKind
+EmbedPDF.InteractionEvent.GestureStarted.PointerType.init -> void
+EmbedPDF.InteractionEvent.GestureStarted.ToolId.get -> EmbedPDF.ToolId
+EmbedPDF.InteractionEvent.GestureStarted.ToolId.init -> void
+EmbedPDF.InteractionEvent.InteractionEvent(EmbedPDF.InteractionEvent! original) -> void
+EmbedPDF.InteractionEvent.ToolChanged
+EmbedPDF.InteractionEvent.ToolChanged.Deconstruct(out EmbedPDF.ToolId ToolId, out EmbedPDF.ToolId PreviousToolId) -> void
+EmbedPDF.InteractionEvent.ToolChanged.Equals(EmbedPDF.InteractionEvent.ToolChanged? other) -> bool
+EmbedPDF.InteractionEvent.ToolChanged.PreviousToolId.get -> EmbedPDF.ToolId
+EmbedPDF.InteractionEvent.ToolChanged.PreviousToolId.init -> void
+EmbedPDF.InteractionEvent.ToolChanged.ToolChanged(EmbedPDF.ToolId ToolId, EmbedPDF.ToolId PreviousToolId) -> void
+EmbedPDF.InteractionEvent.ToolChanged.ToolId.get -> EmbedPDF.ToolId
+EmbedPDF.InteractionEvent.ToolChanged.ToolId.init -> void
+EmbedPDF.InteractionSettings
+EmbedPDF.InteractionSettings.<Clone>$() -> EmbedPDF.InteractionSettings!
+EmbedPDF.InteractionSettings.Deconstruct(out EmbedPDF.ToolId DefaultTool) -> void
+EmbedPDF.InteractionSettings.DefaultTool.get -> EmbedPDF.ToolId
+EmbedPDF.InteractionSettings.DefaultTool.init -> void
+EmbedPDF.InteractionSettings.Equals(EmbedPDF.InteractionSettings? other) -> bool
+EmbedPDF.InteractionSettings.InteractionSettings(EmbedPDF.ToolId DefaultTool) -> void
+EmbedPDF.InteractionSettingsPatch
+EmbedPDF.InteractionSettingsPatch.<Clone>$() -> EmbedPDF.InteractionSettingsPatch!
+EmbedPDF.InteractionSettingsPatch.DefaultTool.get -> EmbedPDF.ToolId?
+EmbedPDF.InteractionSettingsPatch.DefaultTool.init -> void
+EmbedPDF.InteractionSettingsPatch.Equals(EmbedPDF.InteractionSettingsPatch? other) -> bool
+EmbedPDF.InteractionSettingsPatch.InteractionSettingsPatch() -> void
+EmbedPDF.InteractionTool
+EmbedPDF.InteractionTool.<Clone>$() -> EmbedPDF.InteractionTool!
+EmbedPDF.InteractionTool.Cursor.get -> string!
+EmbedPDF.InteractionTool.Cursor.init -> void
+EmbedPDF.InteractionTool.Deconstruct(out EmbedPDF.ToolId Id, out string! Cursor, out System.Collections.Generic.IReadOnlyList<string!>! Enables) -> void
+EmbedPDF.InteractionTool.Enables.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.InteractionTool.Enables.init -> void
+EmbedPDF.InteractionTool.Equals(EmbedPDF.InteractionTool? other) -> bool
+EmbedPDF.InteractionTool.GapCursor.get -> string?
+EmbedPDF.InteractionTool.GapCursor.init -> void
+EmbedPDF.InteractionTool.Id.get -> EmbedPDF.ToolId
+EmbedPDF.InteractionTool.Id.init -> void
+EmbedPDF.InteractionTool.InteractionTool(EmbedPDF.ToolId Id, string! Cursor, System.Collections.Generic.IReadOnlyList<string!>! Enables) -> void
+EmbedPDF.InteractionTool.Touch.get -> EmbedPDF.InteractionToolTouch?
+EmbedPDF.InteractionTool.Touch.init -> void
+EmbedPDF.InteractionToolTouch
+EmbedPDF.InteractionToolTouch.Draw = 0 -> EmbedPDF.InteractionToolTouch
+EmbedPDF.InteractionToolTouch.Tap = 1 -> EmbedPDF.InteractionToolTouch
 EmbedPDF.LinkActivation
 EmbedPDF.LinkActivation.Destination
 EmbedPDF.LinkActivation.Destination.Deconstruct(out string! DestinationJson) -> void
@@ -991,6 +1102,7 @@ EmbedPDF.PdfViewer.GetDocumentCountAsync(System.Threading.CancellationToken canc
 EmbedPDF.PdfViewer.GetDocumentOrderAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
 EmbedPDF.PdfViewer.GetDocumentsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.DocumentInfo!>!>!
 EmbedPDF.PdfViewer.GetHistoryAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.HistoryCapability!>!
+EmbedPDF.PdfViewer.GetInteractionAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.InteractionCapability!>!
 EmbedPDF.PdfViewer.GetMetadataAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.MetadataCapability!>!
 EmbedPDF.PdfViewer.GetOutlineAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.OutlineCapability!>!
 EmbedPDF.PdfViewer.GetPageAsync(EmbedPDF.PageRef page, EmbedPDF.DocumentInfo? document = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageInfo?>!
@@ -1144,6 +1256,66 @@ EmbedPDF.PluginErrorInfo.Message.init -> void
 EmbedPDF.PluginErrorInfo.Permission.get -> string?
 EmbedPDF.PluginErrorInfo.Permission.init -> void
 EmbedPDF.PluginErrorInfo.PluginErrorInfo(EmbedPDF.PdfErrorCode Code, string! Message, string! Capability, string? Permission) -> void
+EmbedPDF.PointerGesture
+EmbedPDF.PointerGesture.LongPress = 0 -> EmbedPDF.PointerGesture
+EmbedPDF.PointerKind
+EmbedPDF.PointerKind.Mouse = 0 -> EmbedPDF.PointerKind
+EmbedPDF.PointerKind.Pen = 1 -> EmbedPDF.PointerKind
+EmbedPDF.PointerKind.Touch = 2 -> EmbedPDF.PointerKind
+EmbedPDF.PointerModifiers
+EmbedPDF.PointerModifiers.Alt.get -> bool
+EmbedPDF.PointerModifiers.Alt.init -> void
+EmbedPDF.PointerModifiers.Ctrl.get -> bool
+EmbedPDF.PointerModifiers.Ctrl.init -> void
+EmbedPDF.PointerModifiers.Deconstruct(out bool Shift, out bool Alt, out bool Ctrl, out bool Meta) -> void
+EmbedPDF.PointerModifiers.Equals(EmbedPDF.PointerModifiers other) -> bool
+EmbedPDF.PointerModifiers.Meta.get -> bool
+EmbedPDF.PointerModifiers.Meta.init -> void
+EmbedPDF.PointerModifiers.PointerModifiers() -> void
+EmbedPDF.PointerModifiers.PointerModifiers(bool Shift = false, bool Alt = false, bool Ctrl = false, bool Meta = false) -> void
+EmbedPDF.PointerModifiers.Shift.get -> bool
+EmbedPDF.PointerModifiers.Shift.init -> void
+EmbedPDF.PointerPageHit
+EmbedPDF.PointerPageHit.<Clone>$() -> EmbedPDF.PointerPageHit!
+EmbedPDF.PointerPageHit.Deconstruct(out EmbedPDF.PageRef Page, out EmbedPDF.PdfPoint Point) -> void
+EmbedPDF.PointerPageHit.Equals(EmbedPDF.PointerPageHit? other) -> bool
+EmbedPDF.PointerPageHit.Page.get -> EmbedPDF.PageRef
+EmbedPDF.PointerPageHit.Page.init -> void
+EmbedPDF.PointerPageHit.Point.get -> EmbedPDF.PdfPoint
+EmbedPDF.PointerPageHit.Point.init -> void
+EmbedPDF.PointerPageHit.PointerPageHit(EmbedPDF.PageRef Page, EmbedPDF.PdfPoint Point) -> void
+EmbedPDF.PointerPageHit.Rotation.get -> double?
+EmbedPDF.PointerPageHit.Rotation.init -> void
+EmbedPDF.PointerPageHit.Scale.get -> double?
+EmbedPDF.PointerPageHit.Scale.init -> void
+EmbedPDF.PointerPageHit.Zoom.get -> double?
+EmbedPDF.PointerPageHit.Zoom.init -> void
+EmbedPDF.PointerPhase
+EmbedPDF.PointerPhase.Cancel = 3 -> EmbedPDF.PointerPhase
+EmbedPDF.PointerPhase.Down = 0 -> EmbedPDF.PointerPhase
+EmbedPDF.PointerPhase.Move = 1 -> EmbedPDF.PointerPhase
+EmbedPDF.PointerPhase.Up = 2 -> EmbedPDF.PointerPhase
+EmbedPDF.PointerSample
+EmbedPDF.PointerSample.<Clone>$() -> EmbedPDF.PointerSample!
+EmbedPDF.PointerSample.ClickCount.get -> int?
+EmbedPDF.PointerSample.ClickCount.init -> void
+EmbedPDF.PointerSample.Deconstruct(out EmbedPDF.PointerPhase Phase, out EmbedPDF.PdfPoint Viewport, out EmbedPDF.PointerModifiers Modifiers) -> void
+EmbedPDF.PointerSample.Equals(EmbedPDF.PointerSample? other) -> bool
+EmbedPDF.PointerSample.Gesture.get -> EmbedPDF.PointerGesture?
+EmbedPDF.PointerSample.Gesture.init -> void
+EmbedPDF.PointerSample.Modifiers.get -> EmbedPDF.PointerModifiers
+EmbedPDF.PointerSample.Modifiers.init -> void
+EmbedPDF.PointerSample.Page.get -> EmbedPDF.PointerPageHit?
+EmbedPDF.PointerSample.Page.init -> void
+EmbedPDF.PointerSample.Phase.get -> EmbedPDF.PointerPhase
+EmbedPDF.PointerSample.Phase.init -> void
+EmbedPDF.PointerSample.PointerSample(EmbedPDF.PointerPhase Phase, EmbedPDF.PdfPoint Viewport, EmbedPDF.PointerModifiers Modifiers) -> void
+EmbedPDF.PointerSample.PointerType.get -> EmbedPDF.PointerKind?
+EmbedPDF.PointerSample.PointerType.init -> void
+EmbedPDF.PointerSample.Source.get -> string?
+EmbedPDF.PointerSample.Source.init -> void
+EmbedPDF.PointerSample.Viewport.get -> EmbedPDF.PdfPoint
+EmbedPDF.PointerSample.Viewport.init -> void
 EmbedPDF.RedactionConfig
 EmbedPDF.RedactionConfig.<Clone>$() -> EmbedPDF.RedactionConfig!
 EmbedPDF.RedactionConfig.Equals(EmbedPDF.RedactionConfig? other) -> bool
@@ -1936,6 +2108,13 @@ EmbedPDF.TextSegment.Quad.init -> void
 EmbedPDF.TextSegment.Rect.get -> EmbedPDF.PdfRect
 EmbedPDF.TextSegment.Rect.init -> void
 EmbedPDF.TextSegment.TextSegment(EmbedPDF.PdfQuad Quad, EmbedPDF.PdfRect Rect, double Advance) -> void
+EmbedPDF.ToolId
+EmbedPDF.ToolId.Deconstruct(out string! Value) -> void
+EmbedPDF.ToolId.Equals(EmbedPDF.ToolId other) -> bool
+EmbedPDF.ToolId.ToolId() -> void
+EmbedPDF.ToolId.ToolId(string! Value) -> void
+EmbedPDF.ToolId.Value.get -> string!
+EmbedPDF.ToolId.Value.init -> void
 EmbedPDF.ViewManagerCapability
 EmbedPDF.ViewManagerCapability.AddDocumentAsync(EmbedPDF.DocumentInfo! document, string! paneId, int? index = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.ViewManagerCapability.CreatePaneAsync(System.Collections.Generic.IEnumerable<EmbedPDF.DocumentInfo!>? documents = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
@@ -2017,6 +2196,7 @@ abstract EmbedPDF.AttachmentHome.<Clone>$() -> EmbedPDF.AttachmentHome!
 abstract EmbedPDF.DocumentEvent.<Clone>$() -> EmbedPDF.DocumentEvent!
 abstract EmbedPDF.HistoryEvent.<Clone>$() -> EmbedPDF.HistoryEvent!
 abstract EmbedPDF.HistoryLabelValue.<Clone>$() -> EmbedPDF.HistoryLabelValue!
+abstract EmbedPDF.InteractionEvent.<Clone>$() -> EmbedPDF.InteractionEvent!
 abstract EmbedPDF.LinkActivation.<Clone>$() -> EmbedPDF.LinkActivation!
 abstract EmbedPDF.MetadataEvent.<Clone>$() -> EmbedPDF.MetadataEvent!
 abstract EmbedPDF.OutlineEvent.<Clone>$() -> EmbedPDF.OutlineEvent!
@@ -2175,6 +2355,38 @@ override EmbedPDF.HistorySettingsPatch.ToString() -> string!
 override EmbedPDF.I18nConfig.Equals(object? obj) -> bool
 override EmbedPDF.I18nConfig.GetHashCode() -> int
 override EmbedPDF.I18nConfig.ToString() -> string!
+override EmbedPDF.InteractionEvent.CursorChanged.<Clone>$() -> EmbedPDF.InteractionEvent.CursorChanged!
+override EmbedPDF.InteractionEvent.CursorChanged.Equals(object? obj) -> bool
+override EmbedPDF.InteractionEvent.CursorChanged.GetHashCode() -> int
+override EmbedPDF.InteractionEvent.CursorChanged.ToString() -> string!
+override EmbedPDF.InteractionEvent.Equals(object? obj) -> bool
+override EmbedPDF.InteractionEvent.GestureCancelled.<Clone>$() -> EmbedPDF.InteractionEvent.GestureCancelled!
+override EmbedPDF.InteractionEvent.GestureCancelled.Equals(object? obj) -> bool
+override EmbedPDF.InteractionEvent.GestureCancelled.GetHashCode() -> int
+override EmbedPDF.InteractionEvent.GestureCancelled.ToString() -> string!
+override EmbedPDF.InteractionEvent.GestureEnded.<Clone>$() -> EmbedPDF.InteractionEvent.GestureEnded!
+override EmbedPDF.InteractionEvent.GestureEnded.Equals(object? obj) -> bool
+override EmbedPDF.InteractionEvent.GestureEnded.GetHashCode() -> int
+override EmbedPDF.InteractionEvent.GestureEnded.ToString() -> string!
+override EmbedPDF.InteractionEvent.GestureStarted.<Clone>$() -> EmbedPDF.InteractionEvent.GestureStarted!
+override EmbedPDF.InteractionEvent.GestureStarted.Equals(object? obj) -> bool
+override EmbedPDF.InteractionEvent.GestureStarted.GetHashCode() -> int
+override EmbedPDF.InteractionEvent.GestureStarted.ToString() -> string!
+override EmbedPDF.InteractionEvent.GetHashCode() -> int
+override EmbedPDF.InteractionEvent.ToString() -> string!
+override EmbedPDF.InteractionEvent.ToolChanged.<Clone>$() -> EmbedPDF.InteractionEvent.ToolChanged!
+override EmbedPDF.InteractionEvent.ToolChanged.Equals(object? obj) -> bool
+override EmbedPDF.InteractionEvent.ToolChanged.GetHashCode() -> int
+override EmbedPDF.InteractionEvent.ToolChanged.ToString() -> string!
+override EmbedPDF.InteractionSettings.Equals(object? obj) -> bool
+override EmbedPDF.InteractionSettings.GetHashCode() -> int
+override EmbedPDF.InteractionSettings.ToString() -> string!
+override EmbedPDF.InteractionSettingsPatch.Equals(object? obj) -> bool
+override EmbedPDF.InteractionSettingsPatch.GetHashCode() -> int
+override EmbedPDF.InteractionSettingsPatch.ToString() -> string!
+override EmbedPDF.InteractionTool.Equals(object? obj) -> bool
+override EmbedPDF.InteractionTool.GetHashCode() -> int
+override EmbedPDF.InteractionTool.ToString() -> string!
 override EmbedPDF.LinkActivation.Destination.<Clone>$() -> EmbedPDF.LinkActivation.Destination!
 override EmbedPDF.LinkActivation.Destination.Equals(object? obj) -> bool
 override EmbedPDF.LinkActivation.Destination.GetHashCode() -> int
@@ -2412,6 +2624,13 @@ override EmbedPDF.PdfViewerOptions.ToString() -> string!
 override EmbedPDF.PluginErrorInfo.Equals(object? obj) -> bool
 override EmbedPDF.PluginErrorInfo.GetHashCode() -> int
 override EmbedPDF.PluginErrorInfo.ToString() -> string!
+override EmbedPDF.PointerModifiers.GetHashCode() -> int
+override EmbedPDF.PointerPageHit.Equals(object? obj) -> bool
+override EmbedPDF.PointerPageHit.GetHashCode() -> int
+override EmbedPDF.PointerPageHit.ToString() -> string!
+override EmbedPDF.PointerSample.Equals(object? obj) -> bool
+override EmbedPDF.PointerSample.GetHashCode() -> int
+override EmbedPDF.PointerSample.ToString() -> string!
 override EmbedPDF.RedactionConfig.Equals(object? obj) -> bool
 override EmbedPDF.RedactionConfig.GetHashCode() -> int
 override EmbedPDF.RedactionConfig.ToString() -> string!
@@ -2681,6 +2900,8 @@ override EmbedPDF.StampConfig.ToString() -> string!
 override EmbedPDF.TextSegment.Equals(object? obj) -> bool
 override EmbedPDF.TextSegment.GetHashCode() -> int
 override EmbedPDF.TextSegment.ToString() -> string!
+override EmbedPDF.ToolId.GetHashCode() -> int
+override EmbedPDF.ToolId.ToString() -> string!
 override EmbedPDF.ViewManagerEvent.DocumentMoved.<Clone>$() -> EmbedPDF.ViewManagerEvent.DocumentMoved!
 override EmbedPDF.ViewManagerEvent.DocumentMoved.Equals(object? obj) -> bool
 override EmbedPDF.ViewManagerEvent.DocumentMoved.GetHashCode() -> int
@@ -2723,6 +2944,11 @@ override sealed EmbedPDF.HistoryEvent.UndoFailed.Equals(EmbedPDF.HistoryEvent? o
 override sealed EmbedPDF.HistoryEvent.Undone.Equals(EmbedPDF.HistoryEvent? other) -> bool
 override sealed EmbedPDF.HistoryLabelValue.Number.Equals(EmbedPDF.HistoryLabelValue? other) -> bool
 override sealed EmbedPDF.HistoryLabelValue.Text.Equals(EmbedPDF.HistoryLabelValue? other) -> bool
+override sealed EmbedPDF.InteractionEvent.CursorChanged.Equals(EmbedPDF.InteractionEvent? other) -> bool
+override sealed EmbedPDF.InteractionEvent.GestureCancelled.Equals(EmbedPDF.InteractionEvent? other) -> bool
+override sealed EmbedPDF.InteractionEvent.GestureEnded.Equals(EmbedPDF.InteractionEvent? other) -> bool
+override sealed EmbedPDF.InteractionEvent.GestureStarted.Equals(EmbedPDF.InteractionEvent? other) -> bool
+override sealed EmbedPDF.InteractionEvent.ToolChanged.Equals(EmbedPDF.InteractionEvent? other) -> bool
 override sealed EmbedPDF.LinkActivation.Destination.Equals(EmbedPDF.LinkActivation? other) -> bool
 override sealed EmbedPDF.LinkActivation.Dispatched.Equals(EmbedPDF.LinkActivation? other) -> bool
 override sealed EmbedPDF.LinkActivation.Named.Equals(EmbedPDF.LinkActivation? other) -> bool
@@ -2903,6 +3129,24 @@ static EmbedPDF.HistorySettingsPatch.operator !=(EmbedPDF.HistorySettingsPatch? 
 static EmbedPDF.HistorySettingsPatch.operator ==(EmbedPDF.HistorySettingsPatch? left, EmbedPDF.HistorySettingsPatch? right) -> bool
 static EmbedPDF.I18nConfig.operator !=(EmbedPDF.I18nConfig? left, EmbedPDF.I18nConfig? right) -> bool
 static EmbedPDF.I18nConfig.operator ==(EmbedPDF.I18nConfig? left, EmbedPDF.I18nConfig? right) -> bool
+static EmbedPDF.InteractionEvent.CursorChanged.operator !=(EmbedPDF.InteractionEvent.CursorChanged? left, EmbedPDF.InteractionEvent.CursorChanged? right) -> bool
+static EmbedPDF.InteractionEvent.CursorChanged.operator ==(EmbedPDF.InteractionEvent.CursorChanged? left, EmbedPDF.InteractionEvent.CursorChanged? right) -> bool
+static EmbedPDF.InteractionEvent.GestureCancelled.operator !=(EmbedPDF.InteractionEvent.GestureCancelled? left, EmbedPDF.InteractionEvent.GestureCancelled? right) -> bool
+static EmbedPDF.InteractionEvent.GestureCancelled.operator ==(EmbedPDF.InteractionEvent.GestureCancelled? left, EmbedPDF.InteractionEvent.GestureCancelled? right) -> bool
+static EmbedPDF.InteractionEvent.GestureEnded.operator !=(EmbedPDF.InteractionEvent.GestureEnded? left, EmbedPDF.InteractionEvent.GestureEnded? right) -> bool
+static EmbedPDF.InteractionEvent.GestureEnded.operator ==(EmbedPDF.InteractionEvent.GestureEnded? left, EmbedPDF.InteractionEvent.GestureEnded? right) -> bool
+static EmbedPDF.InteractionEvent.GestureStarted.operator !=(EmbedPDF.InteractionEvent.GestureStarted? left, EmbedPDF.InteractionEvent.GestureStarted? right) -> bool
+static EmbedPDF.InteractionEvent.GestureStarted.operator ==(EmbedPDF.InteractionEvent.GestureStarted? left, EmbedPDF.InteractionEvent.GestureStarted? right) -> bool
+static EmbedPDF.InteractionEvent.ToolChanged.operator !=(EmbedPDF.InteractionEvent.ToolChanged? left, EmbedPDF.InteractionEvent.ToolChanged? right) -> bool
+static EmbedPDF.InteractionEvent.ToolChanged.operator ==(EmbedPDF.InteractionEvent.ToolChanged? left, EmbedPDF.InteractionEvent.ToolChanged? right) -> bool
+static EmbedPDF.InteractionEvent.operator !=(EmbedPDF.InteractionEvent? left, EmbedPDF.InteractionEvent? right) -> bool
+static EmbedPDF.InteractionEvent.operator ==(EmbedPDF.InteractionEvent? left, EmbedPDF.InteractionEvent? right) -> bool
+static EmbedPDF.InteractionSettings.operator !=(EmbedPDF.InteractionSettings? left, EmbedPDF.InteractionSettings? right) -> bool
+static EmbedPDF.InteractionSettings.operator ==(EmbedPDF.InteractionSettings? left, EmbedPDF.InteractionSettings? right) -> bool
+static EmbedPDF.InteractionSettingsPatch.operator !=(EmbedPDF.InteractionSettingsPatch? left, EmbedPDF.InteractionSettingsPatch? right) -> bool
+static EmbedPDF.InteractionSettingsPatch.operator ==(EmbedPDF.InteractionSettingsPatch? left, EmbedPDF.InteractionSettingsPatch? right) -> bool
+static EmbedPDF.InteractionTool.operator !=(EmbedPDF.InteractionTool? left, EmbedPDF.InteractionTool? right) -> bool
+static EmbedPDF.InteractionTool.operator ==(EmbedPDF.InteractionTool? left, EmbedPDF.InteractionTool? right) -> bool
 static EmbedPDF.LinkActivation.Destination.operator !=(EmbedPDF.LinkActivation.Destination? left, EmbedPDF.LinkActivation.Destination? right) -> bool
 static EmbedPDF.LinkActivation.Destination.operator ==(EmbedPDF.LinkActivation.Destination? left, EmbedPDF.LinkActivation.Destination? right) -> bool
 static EmbedPDF.LinkActivation.Dispatched.operator !=(EmbedPDF.LinkActivation.Dispatched? left, EmbedPDF.LinkActivation.Dispatched? right) -> bool
@@ -3056,6 +3300,12 @@ static EmbedPDF.PdfViewerOptions.operator !=(EmbedPDF.PdfViewerOptions? left, Em
 static EmbedPDF.PdfViewerOptions.operator ==(EmbedPDF.PdfViewerOptions? left, EmbedPDF.PdfViewerOptions? right) -> bool
 static EmbedPDF.PluginErrorInfo.operator !=(EmbedPDF.PluginErrorInfo? left, EmbedPDF.PluginErrorInfo? right) -> bool
 static EmbedPDF.PluginErrorInfo.operator ==(EmbedPDF.PluginErrorInfo? left, EmbedPDF.PluginErrorInfo? right) -> bool
+static EmbedPDF.PointerModifiers.operator !=(EmbedPDF.PointerModifiers left, EmbedPDF.PointerModifiers right) -> bool
+static EmbedPDF.PointerModifiers.operator ==(EmbedPDF.PointerModifiers left, EmbedPDF.PointerModifiers right) -> bool
+static EmbedPDF.PointerPageHit.operator !=(EmbedPDF.PointerPageHit? left, EmbedPDF.PointerPageHit? right) -> bool
+static EmbedPDF.PointerPageHit.operator ==(EmbedPDF.PointerPageHit? left, EmbedPDF.PointerPageHit? right) -> bool
+static EmbedPDF.PointerSample.operator !=(EmbedPDF.PointerSample? left, EmbedPDF.PointerSample? right) -> bool
+static EmbedPDF.PointerSample.operator ==(EmbedPDF.PointerSample? left, EmbedPDF.PointerSample? right) -> bool
 static EmbedPDF.RedactionConfig.operator !=(EmbedPDF.RedactionConfig? left, EmbedPDF.RedactionConfig? right) -> bool
 static EmbedPDF.RedactionConfig.operator ==(EmbedPDF.RedactionConfig? left, EmbedPDF.RedactionConfig? right) -> bool
 static EmbedPDF.RenderBatchFailure.operator !=(EmbedPDF.RenderBatchFailure? left, EmbedPDF.RenderBatchFailure? right) -> bool
@@ -3220,6 +3470,47 @@ static EmbedPDF.StampConfig.operator !=(EmbedPDF.StampConfig? left, EmbedPDF.Sta
 static EmbedPDF.StampConfig.operator ==(EmbedPDF.StampConfig? left, EmbedPDF.StampConfig? right) -> bool
 static EmbedPDF.TextSegment.operator !=(EmbedPDF.TextSegment? left, EmbedPDF.TextSegment? right) -> bool
 static EmbedPDF.TextSegment.operator ==(EmbedPDF.TextSegment? left, EmbedPDF.TextSegment? right) -> bool
+static EmbedPDF.ToolId.Area.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.Attachment.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.Calibrate.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.Circle.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.Distance.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.FormButton.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.FormCheckbox.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.FormCombobox.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.FormEdit.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.FormFill.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.FormListbox.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.FormRadio.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.FormSignature.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.FormText.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.FreeText.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.FreeTextCallout.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.Highlight.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.Ink.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.InkHighlight.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.InsertText.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.Line.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.Link.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.Named.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.ToolId>!
+static EmbedPDF.ToolId.Note.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.Pan.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.Perimeter.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.Pointer.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.Polygon.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.Polyline.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.Redact.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.ReplaceText.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.Snapshot.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.Square.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.Squiggly.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.Stamp.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.Strikeout.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.Underline.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.Zoom.get -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.implicit operator EmbedPDF.ToolId(string! value) -> EmbedPDF.ToolId
+static EmbedPDF.ToolId.operator !=(EmbedPDF.ToolId left, EmbedPDF.ToolId right) -> bool
+static EmbedPDF.ToolId.operator ==(EmbedPDF.ToolId left, EmbedPDF.ToolId right) -> bool
 static EmbedPDF.ViewManagerEvent.DocumentMoved.operator !=(EmbedPDF.ViewManagerEvent.DocumentMoved? left, EmbedPDF.ViewManagerEvent.DocumentMoved? right) -> bool
 static EmbedPDF.ViewManagerEvent.DocumentMoved.operator ==(EmbedPDF.ViewManagerEvent.DocumentMoved? left, EmbedPDF.ViewManagerEvent.DocumentMoved? right) -> bool
 static EmbedPDF.ViewManagerEvent.FocusChanged.operator !=(EmbedPDF.ViewManagerEvent.FocusChanged? left, EmbedPDF.ViewManagerEvent.FocusChanged? right) -> bool
@@ -3252,6 +3543,9 @@ virtual EmbedPDF.HistoryEvent.PrintMembers(System.Text.StringBuilder! builder) -
 virtual EmbedPDF.HistoryLabelValue.EqualityContract.get -> System.Type!
 virtual EmbedPDF.HistoryLabelValue.Equals(EmbedPDF.HistoryLabelValue? other) -> bool
 virtual EmbedPDF.HistoryLabelValue.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.InteractionEvent.EqualityContract.get -> System.Type!
+virtual EmbedPDF.InteractionEvent.Equals(EmbedPDF.InteractionEvent? other) -> bool
+virtual EmbedPDF.InteractionEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual EmbedPDF.LinkActivation.EqualityContract.get -> System.Type!
 virtual EmbedPDF.LinkActivation.Equals(EmbedPDF.LinkActivation? other) -> bool
 virtual EmbedPDF.LinkActivation.PrintMembers(System.Text.StringBuilder! builder) -> bool
@@ -3323,3 +3617,6 @@ virtual EmbedPDF.ViewManagerEvent.PrintMembers(System.Text.StringBuilder! builde
 ~override EmbedPDF.PdfRect.ToString() -> string
 ~override EmbedPDF.PdfSize.Equals(object obj) -> bool
 ~override EmbedPDF.PdfSize.ToString() -> string
+~override EmbedPDF.PointerModifiers.Equals(object obj) -> bool
+~override EmbedPDF.PointerModifiers.ToString() -> string
+~override EmbedPDF.ToolId.Equals(object obj) -> bool

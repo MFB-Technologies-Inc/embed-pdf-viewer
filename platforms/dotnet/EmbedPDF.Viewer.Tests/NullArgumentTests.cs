@@ -30,6 +30,10 @@ public sealed class NullArgumentTests
         _ when type == typeof(ShellSnapshot) => new ShellSnapshot([], []),
         _ when type == typeof(StyleProps) => new StyleProps("a", 1),
         _ when type == typeof(System.Text.Json.Serialization.Metadata.JsonTypeInfo<StyleProps>) => ShellJson.Default.StyleProps,
+        _ when type == typeof(PointerSample) => new PointerSample(PointerPhase.Down, new PdfPoint(0, 0), new PointerModifiers()),
+        _ when type == typeof(InteractionTool) => new InteractionTool("x", "default", []),
+        _ when type == typeof(IInteractionHandler) => new RecordingHandler(),
+        _ when type == typeof(Func<bool>) => (Func<bool>)(() => true),
         _ when type.IsValueType => Activator.CreateInstance(type),
         _ when type.GetConstructor(Type.EmptyTypes) is { } constructor => constructor.Invoke(null),
         _ when type == typeof(IDocumentFetcher) => new HttpClientDocumentFetcher(),
@@ -94,6 +98,18 @@ public sealed class NullArgumentTests
         ];
         foreach (var target in targets) Assert.Empty(await Unchecked(target));
         Assert.Empty(await Unchecked(new PixelBuffer(new byte[4], 1, 1, 4)));
+    }
+
+    [Fact]
+    public async Task EveryWaveBCapabilityChecksEveryReferenceArgument()
+    {
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true });
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        object[] targets =
+        [
+            await viewer.GetInteractionAsync(document),
+        ];
+        foreach (var target in targets) Assert.Empty(await Unchecked(target));
     }
 
     [Fact]

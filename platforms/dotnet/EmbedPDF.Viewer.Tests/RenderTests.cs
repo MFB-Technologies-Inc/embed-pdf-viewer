@@ -1,5 +1,4 @@
 using Xunit;
-using GF = uniffi.epdf_ffi;
 
 namespace EmbedPDF.Viewer.Tests;
 
@@ -163,16 +162,15 @@ public sealed class RenderTests : IAsyncLifetime
     public async Task SnapshotMetadataChangesAndOwnedPixelsSurviveClearAndClose()
     {
         var (viewer, document, page, render) = await Opened(new PdfViewerOptions { Render = new(), Interaction = true });
-        // Interaction is wave B: drive the snapshot tool through the generated handle.
-        using var interaction = await viewer.CallAsync(h => h.Interaction(document.Id), default);
+        using var interaction = await viewer.GetInteractionAsync(document);
         Assert.True(await render.CanSnapshotAsync());
         Assert.Null(await render.GetSnapshotAsync());
         await using var changes = render.ObserveSnapshotChanges().GetAsyncEnumerator();
-        await interaction.ActivateTool("snapshot");
-        GF.PointerSample Sample(GF.PointerPhase phase, double x, double y) =>
-            new(phase, new GF.Point(x, y), new GF.Modifiers(), new GF.PointerPageHit(Ffi.ToFfi(page), new GF.Point(x, y), Scale: 1, Rotation: 90));
-        interaction.DispatchPointer(Sample(GF.PointerPhase.Down, 20, 0));
-        interaction.DispatchPointer(Sample(GF.PointerPhase.Up, 60, 20));
+        await interaction.ActivateToolAsync(ToolId.Snapshot);
+        PointerSample Sample(PointerPhase phase, double x, double y) =>
+            new(phase, new PdfPoint(x, y), new PointerModifiers()) { Page = new PointerPageHit(page, new PdfPoint(x, y)) { Scale = 1, Rotation = 90 } };
+        interaction.DispatchPointer(Sample(PointerPhase.Down, 20, 0));
+        interaction.DispatchPointer(Sample(PointerPhase.Up, 60, 20));
         using var snapshot = Assert.IsType<RenderSnapshot>(await render.GetSnapshotAsync());
         Assert.Equal(page, snapshot.Page);
         Assert.Equal(new PdfRect(20, 0, 40, 20), snapshot.Rect);

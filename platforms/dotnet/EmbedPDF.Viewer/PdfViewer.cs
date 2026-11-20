@@ -47,6 +47,9 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
     /// <summary>This viewer's identity on its kernel thread; see <see cref="KernelCallback"/>.</summary>
     internal KernelMark Mark { get; } = new();
 
+    /// <summary>Where adapters log what app callbacks throw.</summary>
+    internal ILogger Logger => logger;
+
     /// <summary>Creates a viewer that is not started yet. Call <see cref="StartAsync"/> before anything else.</summary>
     /// <param name="options">What to install; <see langword="null"/> installs no plugin.</param>
     /// <exception cref="NativeRuntimeNotFoundException">The native runtime for this platform could not be loaded.</exception>

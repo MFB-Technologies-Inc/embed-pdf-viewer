@@ -3568,10 +3568,16 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "get_settings",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi/settings.rs",
         "symbol": "settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "GetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3579,10 +3585,17 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "update_settings",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi/settings.rs",
         "symbol": "update_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "UpdateSettingsAsync",
+        "parameters": [
+          "EmbedPDF.InteractionSettingsPatch",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3590,10 +3603,16 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "reset_settings",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi/settings.rs",
         "symbol": "reset_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "ResetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3601,10 +3620,16 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "on_settings_changed",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/epdf-viewer-host/src/lib.rs",
         "symbol": "state_revision"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PdfViewer",
+        "member": "ObserveStateRevisions",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3612,10 +3637,16 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "get_active_tool",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "active_tool"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "GetActiveToolAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3623,10 +3654,16 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "get_active_tool_id",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "active_tool_id"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "GetActiveToolIdAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3634,10 +3671,16 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "get_default_tool_id",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "default_tool_id"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "GetDefaultToolIdAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3645,10 +3688,16 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "list_tools",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "tools"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "GetToolsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3656,10 +3705,17 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "get_tool",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "tool"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "GetToolAsync",
+        "parameters": [
+          "EmbedPDF.ToolId",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3667,10 +3723,17 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "can_use_tool",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "can_use_tool"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "CanUseToolAsync",
+        "parameters": [
+          "EmbedPDF.ToolId",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3678,10 +3741,17 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "has_tool",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "has_tool"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "HasToolAsync",
+        "parameters": [
+          "EmbedPDF.ToolId",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3689,10 +3759,17 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "activate_tool",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "activate_tool"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "ActivateToolAsync",
+        "parameters": [
+          "EmbedPDF.ToolId",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3700,10 +3777,16 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "activate_default_tool",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "activate_default_tool"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "ActivateDefaultToolAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3711,10 +3794,17 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "push_tool",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "push_tool"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "PushToolAsync",
+        "parameters": [
+          "EmbedPDF.ToolId",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3722,10 +3812,16 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "pop_tool",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "pop_tool"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "PopToolAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3733,10 +3829,18 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "set_tool_cursor",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "set_tool_cursor"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "SetToolCursorAsync",
+        "parameters": [
+          "EmbedPDF.ToolId",
+          "System.Collections.Generic.IReadOnlyDictionary<System.String, System.String>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3744,10 +3848,19 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "register_tool",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "register_tool"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "RegisterToolAsync",
+        "parameters": [
+          "EmbedPDF.InteractionTool",
+          "System.Boolean",
+          "System.Func<System.Boolean>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3755,10 +3868,16 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "on_tool_changed",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3766,10 +3885,16 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "on_gesture_started",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3777,10 +3902,16 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "on_gesture_ended",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3788,10 +3919,16 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "on_gesture_cancelled",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3799,10 +3936,17 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "active_tool_enables",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "active_tool_enables"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "ActiveToolEnablesAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3810,10 +3954,20 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "register_handler",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "register_handler"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "RegisterHandlerAsync",
+        "parameters": [
+          "EmbedPDF.IInteractionHandler",
+          "System.String",
+          "System.Double",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3821,10 +3975,19 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "claim_cursor",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "claim_cursor"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "ClaimCursorAsync",
+        "parameters": [
+          "System.String",
+          "System.String",
+          "System.Double",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3832,10 +3995,16 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "has_cursor_claim",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "has_cursor_claim"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "HasCursorClaimAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3843,10 +4012,16 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "get_cursor",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "cursor"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "GetCursorAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3854,10 +4029,16 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "on_cursor_changed",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3865,10 +4046,17 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "would_claim_touch",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "would_claim_touch"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "WouldClaimTouchAsync",
+        "parameters": [
+          "EmbedPDF.PointerSample",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3876,10 +4064,16 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "dispatch_pointer",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "dispatch_pointer"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "DispatchPointer",
+        "parameters": [
+          "EmbedPDF.PointerSample"
+        ]
       }
     },
     {
@@ -3887,10 +4081,16 @@
       "path": "crates/plugins/interaction/src/controller.rs",
       "owner": "InteractionCapability",
       "symbol": "lifetime",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/interaction/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.InteractionCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {

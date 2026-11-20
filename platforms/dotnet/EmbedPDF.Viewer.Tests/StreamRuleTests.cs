@@ -1,5 +1,3 @@
-using uniffi.epdf_ffi;
-using uniffi.epdf_plugin_interaction;
 using Xunit;
 
 namespace EmbedPDF.Viewer.Tests;
@@ -7,24 +5,17 @@ namespace EmbedPDF.Viewer.Tests;
 public sealed class StreamRuleTests
 {
     /// <summary>Throws from every pointer down, which the kernel reports as a <c>HostError</c>.</summary>
-    sealed class ThrowingHandler : InteractionHandler
+    sealed class ThrowingHandler : IInteractionHandler
     {
         public bool EnabledFor(InteractionTool tool) => true;
-        public bool OnDown(PointerSample sample) => throw new HostException.Failed("refused");
-        public void OnMove(PointerSample sample) { }
-        public void OnUp(PointerSample sample) { }
-        public void OnCancel(PointerSample sample) { }
-        public void OnHover(PointerSample sample) { }
-        public bool ClaimsTouch(PointerSample sample) => false;
+        public bool OnDown(PointerSample sample) => throw new PdfException("refused");
     }
 
-    internal sealed record Reporting(PdfViewer Viewer, InteractionHandle Interaction, uniffi.epdf_ffi.PageRef Page) : IAsyncDisposable
+    internal sealed record Reporting(PdfViewer Viewer, InteractionCapability Interaction, PageRef Page) : IAsyncDisposable
     {
         public Registration Registration { get; init; } = null!;
 
-        public void Down() => Interaction.DispatchPointer(new PointerSample(
-            PointerPhase.Down, new Point(10, 10), new Modifiers(), new PointerPageHit(Page, new Point(10, 10)),
-            PointerType: PointerKind.Touch));
+        public void Down() => Interaction.DispatchPointer(Pointer.Sample(PointerPhase.Down, Page));
 
         public async ValueTask DisposeAsync()
         {
@@ -33,25 +24,23 @@ public sealed class StreamRuleTests
         }
     }
 
-    /// <summary>A viewer whose throwing handler reports one error per pointer down, through the generated interaction handle until Wave B.</summary>
+    /// <summary>A viewer whose throwing handler reports one error per pointer down.</summary>
     internal static async Task<Reporting> ViewerThatReportsWithRegistration()
     {
         var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true });
         var document = await viewer.OpenAsync(Fixture.Data("report"));
         var page = (await viewer.GetPagesAsync(document))[0].Page;
-        var interaction = await viewer.CallAsync(h => h.Interaction(document.Id), default);
-        var registration = new Registration(await interaction.RegisterHandler("throws", 5, null, new ThrowingHandler()));
-        return new Reporting(viewer, interaction, Ffi.ToFfi(page)) { Registration = registration };
+        var interaction = await viewer.GetInteractionAsync(document);
+        var registration = await interaction.RegisterHandlerAsync(new ThrowingHandler(), "throws", 5);
+        return new Reporting(viewer, interaction, page) { Registration = registration };
     }
 
     internal static async Task<Reporting> ViewerThatReports()
     {
-        var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true });
-        var document = await viewer.OpenAsync(Fixture.Data("report"));
-        var page = (await viewer.GetPagesAsync(document))[0].Page;
-        var interaction = await viewer.CallAsync(h => h.Interaction(document.Id), default);
-        (await interaction.RegisterHandler("throws", 5, null, new ThrowingHandler())).Dispose();
-        return new Reporting(viewer, interaction, Ffi.ToFfi(page));
+        var reporting = await ViewerThatReportsWithRegistration();
+        // Releasing the handle without unregistering leaves the handler installed.
+        reporting.Registration.Handle.Dispose();
+        return reporting;
     }
 
     static async Task<List<string>> Take(int count, IAsyncEnumerable<PdfException> stream)

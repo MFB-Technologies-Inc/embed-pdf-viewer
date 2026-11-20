@@ -18,6 +18,10 @@ public sealed class EnumMirrorTests
         { typeof(RenderRotation), typeof(uniffi.epdf_plugin_render.RenderRotation) },
         { typeof(RenderInvalidateScope), typeof(uniffi.epdf_plugin_render.RenderInvalidateScope) },
         { typeof(RenderEncodingFormat), typeof(uniffi.epdf_plugin_render.RenderEncodingFormat) },
+        { typeof(PointerPhase), typeof(uniffi.epdf_ffi.PointerPhase) },
+        { typeof(PointerKind), typeof(uniffi.epdf_ffi.PointerKind) },
+        { typeof(PointerGesture), typeof(uniffi.epdf_ffi.PointerGesture) },
+        { typeof(InteractionToolTouch), typeof(uniffi.epdf_plugin_interaction.InteractionToolTouch) },
     };
 
     [Theory]
