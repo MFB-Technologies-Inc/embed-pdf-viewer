@@ -20,6 +20,16 @@ public sealed class NullArgumentTests
         _ when type == typeof(IEnumerable<string>) => Array.Empty<string>(),
         _ when type == typeof(IEnumerable<StandardCommandList>) => Array.Empty<StandardCommandList>(),
         _ when type == typeof(CancellationToken) => CancellationToken.None,
+        _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>) => Array.CreateInstance(type.GetGenericArguments()[0], 0),
+        _ when type == typeof(IReadOnlyDictionary<string, string?>) => new Dictionary<string, string?>(),
+        _ when type == typeof(SearchQuery) => new SearchQuery("x"),
+        _ when type == typeof(AttachedFile) => new AttachedFile("x", new AttachmentHome.Document(new AttachmentRef("x")), "x", null, null, null, null, null, null),
+        _ when type == typeof(PageEditPlacement) => new PageEditPlacement.End(),
+        _ when type == typeof(OutlinePosition) => new OutlinePosition.End(),
+        _ when type == typeof(RenderPageViewDemand) => new RenderPageViewDemand(80),
+        _ when type == typeof(ShellSnapshot) => new ShellSnapshot([], []),
+        _ when type == typeof(StyleProps) => new StyleProps("a", 1),
+        _ when type == typeof(System.Text.Json.Serialization.Metadata.JsonTypeInfo<StyleProps>) => ShellJson.Default.StyleProps,
         _ when type.IsValueType => Activator.CreateInstance(type),
         _ when type.GetConstructor(Type.EmptyTypes) is { } constructor => constructor.Invoke(null),
         _ when type == typeof(IDocumentFetcher) => new HttpClientDocumentFetcher(),
@@ -31,11 +41,12 @@ public sealed class NullArgumentTests
     static IEnumerable<(MethodInfo Method, int Index)> Cases(Type type) =>
         from method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
         where !method.IsSpecialName && method.DeclaringType == type
-        let parameters = method.GetParameters()
+        let closed = method.IsGenericMethodDefinition ? method.MakeGenericMethod(typeof(StyleProps)) : method
+        let parameters = closed.GetParameters()
         from index in Enumerable.Range(0, parameters.Length)
         let parameter = parameters[index]
         where !parameter.ParameterType.IsValueType && Nullability.Create(parameter).WriteState == NullabilityState.NotNull
-        select (method, index);
+        select (closed, index);
 
     static async Task<List<string>> Unchecked(object target)
     {
@@ -63,6 +74,26 @@ public sealed class NullArgumentTests
     {
         await using var viewer = await PdfViewer.CreateAsync();
         Assert.Empty(await Unchecked(viewer));
+    }
+
+    [Fact]
+    public async Task EveryWaveACapabilityChecksEveryReferenceArgument()
+    {
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions
+        {
+            Metadata = true, Search = new(), Render = new(), History = true, Outline = true, Attachment = true,
+            PageEdit = true, ViewManager = true, Shell = true,
+        });
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        var render = await viewer.RenderAsync(document);
+        object[] targets =
+        [
+            await viewer.MetadataAsync(document), await viewer.SearchAsync(document), render, await viewer.HistoryAsync(document),
+            await viewer.OutlineAsync(document), await viewer.AttachmentsAsync(document), await viewer.PageEditAsync(document),
+            await viewer.ViewManagerAsync(), await viewer.ShellAsync(document), await render.CreateViewDemandAsync("main"),
+        ];
+        foreach (var target in targets) Assert.Empty(await Unchecked(target));
+        Assert.Empty(await Unchecked(new PixelBuffer(new byte[4], 1, 1, 4)));
     }
 
     [Fact]

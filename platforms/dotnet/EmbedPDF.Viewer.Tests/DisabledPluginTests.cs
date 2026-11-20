@@ -13,8 +13,9 @@ namespace EmbedPDF.Viewer.Tests;
 /// plugin without one.
 /// </summary>
 /// <remarks>
-/// The rows call the generated accessors through <c>PdfViewer.CallAsync</c>.
-/// Each Phase 3 wave replaces its rows' calls with the public accessor.
+/// Ported plugins' rows call the public accessor; the others call the
+/// generated accessors through <c>PdfViewer.CallAsync</c> until their Phase 3
+/// wave replaces them.
 /// </remarks>
 public sealed class DisabledPluginTests
 {
@@ -36,6 +37,9 @@ public sealed class DisabledPluginTests
     static Func<PdfViewer, DocumentInfo, Task> Of<T>(Func<ViewerHost, string, Task<T>> accessor) where T : IDisposable =>
         async (viewer, document) => (await viewer.CallAsync(h => accessor(h, document.Id), default)).Dispose();
 
+    static Func<PdfViewer, DocumentInfo, Task> Public<T>(Func<PdfViewer, DocumentInfo, Task<T>> accessor) where T : IDisposable =>
+        async (viewer, document) => (await accessor(viewer, document)).Dispose();
+
     static Func<PdfViewer, DocumentInfo, Task> Global<T>(Func<ViewerHost, Task<T>> accessor) where T : IDisposable =>
         async (viewer, _) => (await viewer.CallAsync(accessor, default)).Dispose();
 
@@ -45,25 +49,25 @@ public sealed class DisabledPluginTests
 
     internal static readonly IReadOnlyList<Accessor> Accessors =
     [
-        new("Metadata", None, o => o with { Metadata = true }, Of((h, id) => h.Metadata(id))),
-        new("Search", None, o => o with { Search = new() }, Of((h, id) => h.Search(id))),
-        new("Render", None, o => o with { Render = new() }, Of((h, id) => h.Render(id))),
+        new("Metadata", None, o => o with { Metadata = true }, Public((v, d) => v.MetadataAsync(d))),
+        new("Search", None, o => o with { Search = new() }, Public((v, d) => v.SearchAsync(d))),
+        new("Render", None, o => o with { Render = new() }, Public((v, d) => v.RenderAsync(d))),
         new("Interaction", None, o => o with { Interaction = true }, Of((h, id) => h.Interaction(id))),
         new("Feedback", None, o => o with { Feedback = new() }, Global(h => h.Feedback())),
         new("Stage", None, o => o with { Stage = new() }, Of((h, id) => h.Stage(id))),
         new("Selection", Interaction, o => o with { Selection = true }, Of((h, id) => h.Selection(id))),
         new("Link", Interaction, o => o with { Link = true }, Of((h, id) => h.Link(id))),
         new("Annotation", Interaction, o => o with { Annotation = "" }, Of((h, id) => h.Annotation(id))),
-        new("History", None, o => o with { History = true }, Of((h, id) => h.History(id))),
-        new("Outline", None, o => o with { Outline = true }, Of((h, id) => h.Outline(id))),
-        new("Attachment", None, o => o with { Attachment = true }, Of((h, id) => h.Attachments(id))),
+        new("History", None, o => o with { History = true }, Public((v, d) => v.HistoryAsync(d))),
+        new("Outline", None, o => o with { Outline = true }, Public((v, d) => v.OutlineAsync(d))),
+        new("Attachment", None, o => o with { Attachment = true }, Public((v, d) => v.AttachmentsAsync(d))),
         new("Form", Interaction, o => o with { Form = new() }, Of((h, id) => h.Form(id))),
         new("Redaction", Annotation, o => o with { Redaction = new() }, Of((h, id) => h.Redaction(id))),
         new("Measurement", Annotation, o => o with { Measurement = new() }, Of((h, id) => h.Measurement(id))),
         new("Stamp", None, o => o with { Stamp = new() }, Global(h => h.Stamp())),
-        new("PageEdit", None, o => o with { PageEdit = true }, Of((h, id) => h.PageEdit(id))),
-        new("ViewManager", None, o => o with { ViewManager = true }, Global(h => h.ViewManager())),
-        new("Shell", None, o => o with { Shell = true }, Of((h, id) => h.Shell(id))),
+        new("PageEdit", None, o => o with { PageEdit = true }, Public((v, d) => v.PageEditAsync(d))),
+        new("ViewManager", None, o => o with { ViewManager = true }, Public((v, _) => v.ViewManagerAsync())),
+        new("Shell", None, o => o with { Shell = true }, Public((v, d) => v.ShellAsync(d))),
         new("I18n", None, o => o with { I18n = new() }, Global(h => h.I18n())),
         new("Commands", None, o => o with { Commands = true }, Global(h => h.Commands())),
         new("Actions", None, o => o with { Actions = new() }, Of((h, id) => h.Actions(id))),
