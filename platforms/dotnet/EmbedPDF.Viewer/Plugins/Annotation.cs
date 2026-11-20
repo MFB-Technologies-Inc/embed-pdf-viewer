@@ -35,6 +35,19 @@ public sealed class AnnotationCapability : IDisposable
         this.handle = handle;
     }
 
+    /// <summary>A sub-capability's handle; after <see cref="Dispose"/> the call is <see cref="PdfErrorCode.InstanceClosed"/>, as every other member is.</summary>
+    static T Sub<T>(Func<T> make)
+    {
+        try
+        {
+            return make();
+        }
+        catch (ObjectDisposedException error)
+        {
+            throw PdfException.Closed(error);
+        }
+    }
+
     /// <summary>The settings, including the per-tool field bags, as JSON.</summary>
     public Task<string> GetSettingsAsync(CancellationToken cancellationToken = default) => viewer.Run(() => handle.Settings(), cancellationToken);
 
@@ -49,16 +62,16 @@ public sealed class AnnotationCapability : IDisposable
     public Task ResetSettingsAsync(CancellationToken cancellationToken = default) => viewer.Run(() => handle.ResetSettings(), cancellationToken);
 
     /// <summary>Selects, groups, rotates and restyles the selected annotations. A new handle each call; it keeps the viewer alive until disposed.</summary>
-    public AnnotationSelectionCapability GetSelection() => new(viewer, handle.Selection());
+    public AnnotationSelectionCapability GetSelection() => new(viewer, Sub(handle.Selection));
 
     /// <summary>The authoring tools, their defaults and style panels.</summary>
-    public AnnotationToolsCapability GetTools() => new(viewer, handle.Tools());
+    public AnnotationToolsCapability GetTools() => new(viewer, Sub(handle.Tools));
 
     /// <summary>Creation drafts, text editing, markup from text, stamps and placement.</summary>
-    public AnnotationDraftsCapability GetDrafts() => new(viewer, handle.Drafts());
+    public AnnotationDraftsCapability GetDrafts() => new(viewer, Sub(handle.Drafts));
 
     /// <summary>Comment threads and the links attached to annotations.</summary>
-    public AnnotationThreadsCapability GetThreads() => new(viewer, handle.Threads());
+    public AnnotationThreadsCapability GetThreads() => new(viewer, Sub(handle.Threads));
 
     /// <summary>An annotation, or <see langword="null"/> when the document doesn't have it.</summary>
     public async Task<AnnotationInfo?> GetAsync(AnnotationRef annotationRef, CancellationToken cancellationToken = default)

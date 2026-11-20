@@ -353,6 +353,16 @@ public sealed class AnnotationTests
     }
 
     [Fact]
+    public async Task ADisposedCapabilitysSubCapabilitiesAreInstanceClosed()
+    {
+        var (viewer, _, annotations) = await Opened("report");
+        await using var _v = viewer;
+        annotations.Dispose();
+        Func<object>[] calls = [annotations.GetSelection, annotations.GetTools, annotations.GetDrafts, annotations.GetThreads];
+        foreach (var call in calls) Assert.Equal(PdfErrorCode.InstanceClosed, Assert.Throws<PdfException>(call).Code);
+    }
+
+    [Fact]
     public async Task ANaNDraftNeverReachesTheEngine()
     {
         var (viewer, document, annotations) = await Opened("report");
