@@ -127,4 +127,37 @@ public sealed class PixelBufferTests
         var short_ = new uniffi.epdf_plugin_render.RenderedImage(2, 1, 4, 1, uniffi.epdf_plugin_render.RenderPixelFormat.Rgba8, [1, 2, 3, 4]);
         Assert.Equal(PdfErrorCode.InvalidState, Assert.Throws<PdfException>(() => Ffi.ToPublic(short_)).Code);
     }
+
+    [Fact]
+    public void AZeroSizedBufferConvertsAndTurns()
+    {
+        var empty = new PixelBuffer([], 0, 0, 0);
+        Assert.Equal(0, empty.Pixels.Length);
+        Assert.Same(empty, empty.ToPacked());
+        Assert.Equal((0, 0), (empty.ToFormat(PixelFormat.Bgra8).Width, empty.ToPremultiplied().Height));
+        Assert.Equal((0, 0), (new PageGeometry(90, Size).ToDisplay(empty).Width, new PageGeometry(90, Size).ToDisplay(empty).Height));
+        empty.CopyPixelsTo([], 0);
+        var noRows = new PixelBuffer(new byte[8], 2, 0, 8);
+        Assert.Equal(0, noRows.ToPacked().Pixels.Length);
+        var turned = new PageGeometry(90, Size).ToDisplay(noRows);
+        Assert.Equal((0, 2), (turned.Width, turned.Height));
+    }
+
+    [Fact]
+    public void PremultiplyingAtAlphaZeroClearsColor()
+    {
+        var image = Bitmap([[[255, 200, 100, 0]]]);
+        Assert.Equal([0, 0, 0, 0], Pixel(image.ToPremultiplied(), 0, 0));
+    }
+
+    [Fact]
+    public void AnAlreadyConvertedBufferComesBackPaddedAsItIs()
+    {
+        var padded = Bitmap([[Red], [Blue]], padding: 4);
+        Assert.Same(padded, padded.ToFormat(PixelFormat.Rgba8));
+        Assert.Equal(8, padded.ToFormat(PixelFormat.Rgba8).Stride);
+        var premultiplied = new PixelBuffer(padded.Pixels.ToArray(), 1, 2, 8, PixelFormat.Rgba8, isPremultiplied: true);
+        Assert.Same(premultiplied, premultiplied.ToPremultiplied());
+        Assert.Equal(8, premultiplied.ToPremultiplied().Stride);
+    }
 }

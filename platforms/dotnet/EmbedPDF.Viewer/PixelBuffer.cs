@@ -100,7 +100,11 @@ public sealed class PixelBuffer
         return new PixelBuffer(packed, Width, Height, row, Format, IsPremultiplied);
     }
 
-    /// <summary>The pixels in <paramref name="format"/>, packed; this instance when they already are in it.</summary>
+    /// <summary>
+    /// The pixels in <paramref name="format"/>, as a packed copy. When they are
+    /// already in it, this instance comes back unchanged, row padding and all;
+    /// call <see cref="ToPacked"/> as well if you need packed rows.
+    /// </summary>
     public PixelBuffer ToFormat(PixelFormat format)
     {
         if (format == Format) return this;
@@ -114,7 +118,11 @@ public sealed class PixelBuffer
         return new PixelBuffer(copy, Width, Height, row, format, IsPremultiplied);
     }
 
-    /// <summary>The pixels with color multiplied by alpha, packed; this instance when they already are.</summary>
+    /// <summary>
+    /// The pixels with color multiplied by alpha, as a packed copy. When they
+    /// already are, this instance comes back unchanged, row padding and all.
+    /// A pixel with alpha 0 becomes all zeros.
+    /// </summary>
     public PixelBuffer ToPremultiplied()
     {
         if (IsPremultiplied) return this;
