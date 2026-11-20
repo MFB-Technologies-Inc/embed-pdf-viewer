@@ -2374,6 +2374,12 @@ EmbedPDF.FileAttachmentAnnotationPatch.Rect.get -> EmbedPDF.PdfRect?
 EmbedPDF.FileAttachmentAnnotationPatch.Rect.init -> void
 EmbedPDF.FileAttachmentAnnotationPatch.RichText.get -> EmbedPDF.JsonNullable<EmbedPDF.AnnotationRichText!>?
 EmbedPDF.FileAttachmentAnnotationPatch.RichText.init -> void
+EmbedPDF.FileStampLibraryStore
+EmbedPDF.FileStampLibraryStore.Delete(string! id) -> void
+EmbedPDF.FileStampLibraryStore.Directory.get -> string!
+EmbedPDF.FileStampLibraryStore.FileStampLibraryStore(string? directory = null) -> void
+EmbedPDF.FileStampLibraryStore.List() -> System.Collections.Generic.IReadOnlyList<EmbedPDF.StoredStampLibrary!>!
+EmbedPDF.FileStampLibraryStore.Put(string! id, System.ReadOnlyMemory<byte> bytes) -> void
 EmbedPDF.FormActivationResult
 EmbedPDF.FormActivationResult.Committed
 EmbedPDF.FormActivationResult.Committed.Committed(EmbedPDF.FormCommitResult! Result) -> void
@@ -3473,6 +3479,10 @@ EmbedPDF.IScriptEngineFactory
 EmbedPDF.IScriptEngineFactory.Create() -> EmbedPDF.IScriptEngine!
 EmbedPDF.IStageInitialViewProvider
 EmbedPDF.IStageInitialViewProvider.InitialView() -> EmbedPDF.StageViewState?
+EmbedPDF.IStampLibraryStore
+EmbedPDF.IStampLibraryStore.Delete(string! id) -> void
+EmbedPDF.IStampLibraryStore.List() -> System.Collections.Generic.IReadOnlyList<EmbedPDF.StoredStampLibrary!>!
+EmbedPDF.IStampLibraryStore.Put(string! id, System.ReadOnlyMemory<byte> bytes) -> void
 EmbedPDF.IStandardCommandsPlatform
 EmbedPDF.IStandardCommandsPlatform.CopyImageAsync(byte[]! png) -> System.Threading.Tasks.Task!
 EmbedPDF.IStandardCommandsPlatform.CopyTextAsync(string! text) -> System.Threading.Tasks.Task!
@@ -5010,6 +5020,7 @@ EmbedPDF.PdfViewer.GetSelectionAsync(EmbedPDF.DocumentInfo! document, System.Thr
 EmbedPDF.PdfViewer.GetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ViewerSettings!>!
 EmbedPDF.PdfViewer.GetShellAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ShellCapability!>!
 EmbedPDF.PdfViewer.GetStageAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.StageCapability!>!
+EmbedPDF.PdfViewer.GetStampsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.StampCapability!>!
 EmbedPDF.PdfViewer.GetToolSwitcherAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ToolSwitcher!>!
 EmbedPDF.PdfViewer.GetViewManagerAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ViewManagerCapability!>!
 EmbedPDF.PdfViewer.HasDocumentAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
@@ -7425,6 +7436,30 @@ EmbedPDF.StageZoomTarget.Spec.Spec(EmbedPDF.ZoomSpec! Value) -> void
 EmbedPDF.StageZoomTarget.Spec.Value.get -> EmbedPDF.ZoomSpec!
 EmbedPDF.StageZoomTarget.Spec.Value.init -> void
 EmbedPDF.StageZoomTarget.StageZoomTarget(EmbedPDF.StageZoomTarget! original) -> void
+EmbedPDF.StampAddAssetInput
+EmbedPDF.StampAddAssetInput.<Clone>$() -> EmbedPDF.StampAddAssetInput!
+EmbedPDF.StampAddAssetInput.Categories.get -> System.Collections.Generic.IReadOnlyList<string!>?
+EmbedPDF.StampAddAssetInput.Categories.init -> void
+EmbedPDF.StampAddAssetInput.Equals(EmbedPDF.StampAddAssetInput? other) -> bool
+EmbedPDF.StampAddAssetInput.Kind.get -> EmbedPDF.StampAssetKind?
+EmbedPDF.StampAddAssetInput.Kind.init -> void
+EmbedPDF.StampAddAssetInput.Label.get -> string?
+EmbedPDF.StampAddAssetInput.Label.init -> void
+EmbedPDF.StampAddAssetInput.LibraryId.get -> string?
+EmbedPDF.StampAddAssetInput.LibraryId.init -> void
+EmbedPDF.StampAddAssetInput.Mark.get -> EmbedPDF.StampMark?
+EmbedPDF.StampAddAssetInput.Mark.init -> void
+EmbedPDF.StampAddAssetInput.Name.get -> string?
+EmbedPDF.StampAddAssetInput.Name.init -> void
+EmbedPDF.StampAddAssetInput.Preview.get -> System.ReadOnlyMemory<byte>?
+EmbedPDF.StampAddAssetInput.Preview.init -> void
+EmbedPDF.StampAddAssetInput.Size.get -> EmbedPDF.PdfSize?
+EmbedPDF.StampAddAssetInput.Size.init -> void
+EmbedPDF.StampAddAssetInput.Source.get -> System.ReadOnlyMemory<byte>?
+EmbedPDF.StampAddAssetInput.Source.init -> void
+EmbedPDF.StampAddAssetInput.StampAddAssetInput() -> void
+EmbedPDF.StampAddAssetInput.Subject.get -> string?
+EmbedPDF.StampAddAssetInput.Subject.init -> void
 EmbedPDF.StampAnnotationPatch
 EmbedPDF.StampAnnotationPatch.Box.get -> EmbedPDF.PdfRect?
 EmbedPDF.StampAnnotationPatch.Box.init -> void
@@ -7440,10 +7475,315 @@ EmbedPDF.StampAnnotationPatch.RichText.init -> void
 EmbedPDF.StampAnnotationPatch.Rotation.get -> EmbedPDF.JsonNullable<double>?
 EmbedPDF.StampAnnotationPatch.Rotation.init -> void
 EmbedPDF.StampAnnotationPatch.StampAnnotationPatch() -> void
+EmbedPDF.StampAsset
+EmbedPDF.StampAsset.<Clone>$() -> EmbedPDF.StampAsset!
+EmbedPDF.StampAsset.Categories.get -> System.Collections.Generic.IReadOnlyList<string!>?
+EmbedPDF.StampAsset.Categories.init -> void
+EmbedPDF.StampAsset.Deconstruct(out string! Id, out string! LibraryId, out EmbedPDF.StampAssetKind Kind, out string! Name, out string! Label, out EmbedPDF.PdfSize Size, out EmbedPDF.PageRef Page, out string? Subject, out System.Collections.Generic.IReadOnlyList<string!>? Categories) -> void
+EmbedPDF.StampAsset.Equals(EmbedPDF.StampAsset? other) -> bool
+EmbedPDF.StampAsset.Id.get -> string!
+EmbedPDF.StampAsset.Id.init -> void
+EmbedPDF.StampAsset.Kind.get -> EmbedPDF.StampAssetKind
+EmbedPDF.StampAsset.Kind.init -> void
+EmbedPDF.StampAsset.Label.get -> string!
+EmbedPDF.StampAsset.Label.init -> void
+EmbedPDF.StampAsset.LibraryId.get -> string!
+EmbedPDF.StampAsset.LibraryId.init -> void
+EmbedPDF.StampAsset.Name.get -> string!
+EmbedPDF.StampAsset.Name.init -> void
+EmbedPDF.StampAsset.Page.get -> EmbedPDF.PageRef
+EmbedPDF.StampAsset.Page.init -> void
+EmbedPDF.StampAsset.Size.get -> EmbedPDF.PdfSize
+EmbedPDF.StampAsset.Size.init -> void
+EmbedPDF.StampAsset.StampAsset(string! Id, string! LibraryId, EmbedPDF.StampAssetKind Kind, string! Name, string! Label, EmbedPDF.PdfSize Size, EmbedPDF.PageRef Page, string? Subject, System.Collections.Generic.IReadOnlyList<string!>? Categories) -> void
+EmbedPDF.StampAsset.Subject.get -> string?
+EmbedPDF.StampAsset.Subject.init -> void
+EmbedPDF.StampAssetFilter
+EmbedPDF.StampAssetFilter.<Clone>$() -> EmbedPDF.StampAssetFilter!
+EmbedPDF.StampAssetFilter.Category.get -> string?
+EmbedPDF.StampAssetFilter.Category.init -> void
+EmbedPDF.StampAssetFilter.Equals(EmbedPDF.StampAssetFilter? other) -> bool
+EmbedPDF.StampAssetFilter.Kind.get -> EmbedPDF.StampAssetKind?
+EmbedPDF.StampAssetFilter.Kind.init -> void
+EmbedPDF.StampAssetFilter.LibraryId.get -> string?
+EmbedPDF.StampAssetFilter.LibraryId.init -> void
+EmbedPDF.StampAssetFilter.StampAssetFilter() -> void
+EmbedPDF.StampAssetKind
+EmbedPDF.StampAssetKind.Initials = 2 -> EmbedPDF.StampAssetKind
+EmbedPDF.StampAssetKind.Signature = 1 -> EmbedPDF.StampAssetKind
+EmbedPDF.StampAssetKind.Stamp = 0 -> EmbedPDF.StampAssetKind
+EmbedPDF.StampAssetPatch
+EmbedPDF.StampAssetPatch.<Clone>$() -> EmbedPDF.StampAssetPatch!
+EmbedPDF.StampAssetPatch.Categories.get -> System.Collections.Generic.IReadOnlyList<string!>?
+EmbedPDF.StampAssetPatch.Categories.init -> void
+EmbedPDF.StampAssetPatch.ClearSubject.get -> bool
+EmbedPDF.StampAssetPatch.ClearSubject.init -> void
+EmbedPDF.StampAssetPatch.Equals(EmbedPDF.StampAssetPatch? other) -> bool
+EmbedPDF.StampAssetPatch.Label.get -> string?
+EmbedPDF.StampAssetPatch.Label.init -> void
+EmbedPDF.StampAssetPatch.StampAssetPatch() -> void
+EmbedPDF.StampAssetPatch.Subject.get -> string?
+EmbedPDF.StampAssetPatch.Subject.init -> void
+EmbedPDF.StampBatchFailure
+EmbedPDF.StampBatchFailure.<Clone>$() -> EmbedPDF.StampBatchFailure!
+EmbedPDF.StampBatchFailure.Deconstruct(out EmbedPDF.PageRef Page, out EmbedPDF.StampErrorInfo! Error) -> void
+EmbedPDF.StampBatchFailure.Equals(EmbedPDF.StampBatchFailure? other) -> bool
+EmbedPDF.StampBatchFailure.Error.get -> EmbedPDF.StampErrorInfo!
+EmbedPDF.StampBatchFailure.Error.init -> void
+EmbedPDF.StampBatchFailure.Page.get -> EmbedPDF.PageRef
+EmbedPDF.StampBatchFailure.Page.init -> void
+EmbedPDF.StampBatchFailure.StampBatchFailure(EmbedPDF.PageRef Page, EmbedPDF.StampErrorInfo! Error) -> void
+EmbedPDF.StampBatchResult
+EmbedPDF.StampBatchResult.<Clone>$() -> EmbedPDF.StampBatchResult!
+EmbedPDF.StampBatchResult.Applied.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRef!>!
+EmbedPDF.StampBatchResult.Applied.init -> void
+EmbedPDF.StampBatchResult.Deconstruct(out System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRef!>! Applied, out System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>! Skipped, out System.Collections.Generic.IReadOnlyList<EmbedPDF.StampBatchFailure!>! Failed) -> void
+EmbedPDF.StampBatchResult.Equals(EmbedPDF.StampBatchResult? other) -> bool
+EmbedPDF.StampBatchResult.Failed.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.StampBatchFailure!>!
+EmbedPDF.StampBatchResult.Failed.init -> void
+EmbedPDF.StampBatchResult.Skipped.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>!
+EmbedPDF.StampBatchResult.Skipped.init -> void
+EmbedPDF.StampBatchResult.StampBatchResult(System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRef!>! Applied, System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>! Skipped, System.Collections.Generic.IReadOnlyList<EmbedPDF.StampBatchFailure!>! Failed) -> void
+EmbedPDF.StampCapability
+EmbedPDF.StampCapability.ArmAsync(string! assetId, EmbedPDF.DocumentInfo! document, double? targetWidth = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StampCapability.CanCreateFromAnnotationsAsync(EmbedPDF.DocumentInfo? document = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.StampCapability.CanImportAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.StampCapability.CanPlaceAsync(EmbedPDF.DocumentInfo? document = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.StampCapability.CreateAssetAsync(EmbedPDF.StampAddAssetInput! input, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+EmbedPDF.StampCapability.CreateAssetFromAnnotationsAsync(System.Collections.Generic.IEnumerable<EmbedPDF.AnnotationRef!>! annotations, EmbedPDF.DocumentInfo! document, EmbedPDF.PageRef page, EmbedPDF.StampAddAssetInput? input = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+EmbedPDF.StampCapability.CreateLibraryAsync(string! name, EmbedPDF.StampCreateLibraryOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+EmbedPDF.StampCapability.DeleteAssetAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StampCapability.DeleteLibraryAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StampCapability.DisarmAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StampCapability.Dispose() -> void
+EmbedPDF.StampCapability.DuplicateAssetAsync(string! id, string? label = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+EmbedPDF.StampCapability.ExportLibraryAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.ReadOnlyMemory<byte>>!
+EmbedPDF.StampCapability.GetArmedAssetAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.StampAsset?>!
+EmbedPDF.StampCapability.GetAssetAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.StampAsset?>!
+EmbedPDF.StampCapability.GetAssetBytesAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.ReadOnlyMemory<byte>?>!
+EmbedPDF.StampCapability.GetAssetPreviewAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.StampPreview?>!
+EmbedPDF.StampCapability.GetAssetsAsync(EmbedPDF.StampAssetFilter? filter = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.StampAsset!>!>!
+EmbedPDF.StampCapability.GetLibrariesAsync(System.Collections.Generic.IEnumerable<string!>? kinds = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.StampLibrary!>!>!
+EmbedPDF.StampCapability.GetLibraryAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.StampLibrary?>!
+EmbedPDF.StampCapability.GetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.StampSettings!>!
+EmbedPDF.StampCapability.ImportLibraryAsync(System.ReadOnlyMemory<byte> data, EmbedPDF.StampImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+EmbedPDF.StampCapability.MoveAssetAsync(string! id, string! toLibraryId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+EmbedPDF.StampCapability.ObserveEvents(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.StampEvent!>!
+EmbedPDF.StampCapability.PersistAsync(EmbedPDF.IStampLibraryStore! store, System.Collections.Generic.IEnumerable<string!>? except = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.Registration!>!
+EmbedPDF.StampCapability.PlaceAsync(string! assetId, EmbedPDF.DocumentInfo! document, EmbedPDF.PageRef page, EmbedPDF.PdfPoint center, EmbedPDF.StampPlacementOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.AnnotationRef!>!
+EmbedPDF.StampCapability.PlaceOnPagesAsync(string! assetId, EmbedPDF.DocumentInfo! document, System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>? pages, EmbedPDF.PdfPoint center, EmbedPDF.StampPlacementOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.StampBatchResult!>!
+EmbedPDF.StampCapability.RenderAssetPreviewAsync(string! id, double width, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.StampPreview?>!
+EmbedPDF.StampCapability.ResetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StampCapability.RestoreAsync(EmbedPDF.IStampLibraryStore! store, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
+EmbedPDF.StampCapability.UpdateAssetAsync(string! id, EmbedPDF.StampAssetPatch! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StampCapability.UpdateLibraryAsync(string! id, EmbedPDF.StampLibraryPatch! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.StampCapability.UpdateSettingsAsync(EmbedPDF.StampConfig! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.StampConfig
 EmbedPDF.StampConfig.<Clone>$() -> EmbedPDF.StampConfig!
+EmbedPDF.StampConfig.Dynamic.get -> bool?
+EmbedPDF.StampConfig.Dynamic.init -> void
 EmbedPDF.StampConfig.Equals(EmbedPDF.StampConfig? other) -> bool
+EmbedPDF.StampConfig.PreviewWidth.get -> double?
+EmbedPDF.StampConfig.PreviewWidth.init -> void
 EmbedPDF.StampConfig.StampConfig() -> void
+EmbedPDF.StampCreateLibraryOptions
+EmbedPDF.StampCreateLibraryOptions.<Clone>$() -> EmbedPDF.StampCreateLibraryOptions!
+EmbedPDF.StampCreateLibraryOptions.Categories.get -> System.Collections.Generic.IReadOnlyList<string!>?
+EmbedPDF.StampCreateLibraryOptions.Categories.init -> void
+EmbedPDF.StampCreateLibraryOptions.Equals(EmbedPDF.StampCreateLibraryOptions? other) -> bool
+EmbedPDF.StampCreateLibraryOptions.Id.get -> string?
+EmbedPDF.StampCreateLibraryOptions.Id.init -> void
+EmbedPDF.StampCreateLibraryOptions.Kind.get -> string?
+EmbedPDF.StampCreateLibraryOptions.Kind.init -> void
+EmbedPDF.StampCreateLibraryOptions.StampCreateLibraryOptions() -> void
+EmbedPDF.StampErrorInfo
+EmbedPDF.StampErrorInfo.<Clone>$() -> EmbedPDF.StampErrorInfo!
+EmbedPDF.StampErrorInfo.Code.get -> string!
+EmbedPDF.StampErrorInfo.Code.init -> void
+EmbedPDF.StampErrorInfo.Deconstruct(out string! Code, out string! Detail) -> void
+EmbedPDF.StampErrorInfo.Detail.get -> string!
+EmbedPDF.StampErrorInfo.Detail.init -> void
+EmbedPDF.StampErrorInfo.Equals(EmbedPDF.StampErrorInfo? other) -> bool
+EmbedPDF.StampErrorInfo.StampErrorInfo(string! Code, string! Detail) -> void
+EmbedPDF.StampEvent
+EmbedPDF.StampEvent.ArmChanged
+EmbedPDF.StampEvent.ArmChanged.ArmChanged(string! DocumentId, EmbedPDF.StampAsset? Asset) -> void
+EmbedPDF.StampEvent.ArmChanged.Asset.get -> EmbedPDF.StampAsset?
+EmbedPDF.StampEvent.ArmChanged.Asset.init -> void
+EmbedPDF.StampEvent.ArmChanged.Deconstruct(out string! DocumentId, out EmbedPDF.StampAsset? Asset) -> void
+EmbedPDF.StampEvent.ArmChanged.DocumentId.get -> string!
+EmbedPDF.StampEvent.ArmChanged.DocumentId.init -> void
+EmbedPDF.StampEvent.ArmChanged.Equals(EmbedPDF.StampEvent.ArmChanged? other) -> bool
+EmbedPDF.StampEvent.AssetCreated
+EmbedPDF.StampEvent.AssetCreated.Asset.get -> EmbedPDF.StampAsset?
+EmbedPDF.StampEvent.AssetCreated.Asset.init -> void
+EmbedPDF.StampEvent.AssetCreated.AssetCreated(string! AssetId, string! LibraryId, EmbedPDF.StampAsset? Asset) -> void
+EmbedPDF.StampEvent.AssetCreated.AssetId.get -> string!
+EmbedPDF.StampEvent.AssetCreated.AssetId.init -> void
+EmbedPDF.StampEvent.AssetCreated.Deconstruct(out string! AssetId, out string! LibraryId, out EmbedPDF.StampAsset? Asset) -> void
+EmbedPDF.StampEvent.AssetCreated.Equals(EmbedPDF.StampEvent.AssetCreated? other) -> bool
+EmbedPDF.StampEvent.AssetCreated.LibraryId.get -> string!
+EmbedPDF.StampEvent.AssetCreated.LibraryId.init -> void
+EmbedPDF.StampEvent.AssetDeleted
+EmbedPDF.StampEvent.AssetDeleted.AssetDeleted(string! AssetId, string! LibraryId) -> void
+EmbedPDF.StampEvent.AssetDeleted.AssetId.get -> string!
+EmbedPDF.StampEvent.AssetDeleted.AssetId.init -> void
+EmbedPDF.StampEvent.AssetDeleted.Deconstruct(out string! AssetId, out string! LibraryId) -> void
+EmbedPDF.StampEvent.AssetDeleted.Equals(EmbedPDF.StampEvent.AssetDeleted? other) -> bool
+EmbedPDF.StampEvent.AssetDeleted.LibraryId.get -> string!
+EmbedPDF.StampEvent.AssetDeleted.LibraryId.init -> void
+EmbedPDF.StampEvent.AssetUpdated
+EmbedPDF.StampEvent.AssetUpdated.Asset.get -> EmbedPDF.StampAsset?
+EmbedPDF.StampEvent.AssetUpdated.Asset.init -> void
+EmbedPDF.StampEvent.AssetUpdated.AssetId.get -> string!
+EmbedPDF.StampEvent.AssetUpdated.AssetId.init -> void
+EmbedPDF.StampEvent.AssetUpdated.AssetUpdated(string! AssetId, string! LibraryId, EmbedPDF.StampAsset? Asset) -> void
+EmbedPDF.StampEvent.AssetUpdated.Deconstruct(out string! AssetId, out string! LibraryId, out EmbedPDF.StampAsset? Asset) -> void
+EmbedPDF.StampEvent.AssetUpdated.Equals(EmbedPDF.StampEvent.AssetUpdated? other) -> bool
+EmbedPDF.StampEvent.AssetUpdated.LibraryId.get -> string!
+EmbedPDF.StampEvent.AssetUpdated.LibraryId.init -> void
+EmbedPDF.StampEvent.LibraryChanged
+EmbedPDF.StampEvent.LibraryChanged.Deconstruct(out string! LibraryId, out EmbedPDF.StampLibraryChangeReason Reason) -> void
+EmbedPDF.StampEvent.LibraryChanged.Equals(EmbedPDF.StampEvent.LibraryChanged? other) -> bool
+EmbedPDF.StampEvent.LibraryChanged.LibraryChanged(string! LibraryId, EmbedPDF.StampLibraryChangeReason Reason) -> void
+EmbedPDF.StampEvent.LibraryChanged.LibraryId.get -> string!
+EmbedPDF.StampEvent.LibraryChanged.LibraryId.init -> void
+EmbedPDF.StampEvent.LibraryChanged.Reason.get -> EmbedPDF.StampLibraryChangeReason
+EmbedPDF.StampEvent.LibraryChanged.Reason.init -> void
+EmbedPDF.StampEvent.LibraryCreated
+EmbedPDF.StampEvent.LibraryCreated.Deconstruct(out string! LibraryId, out EmbedPDF.StampLibrary? Library) -> void
+EmbedPDF.StampEvent.LibraryCreated.Equals(EmbedPDF.StampEvent.LibraryCreated? other) -> bool
+EmbedPDF.StampEvent.LibraryCreated.Library.get -> EmbedPDF.StampLibrary?
+EmbedPDF.StampEvent.LibraryCreated.Library.init -> void
+EmbedPDF.StampEvent.LibraryCreated.LibraryCreated(string! LibraryId, EmbedPDF.StampLibrary? Library) -> void
+EmbedPDF.StampEvent.LibraryCreated.LibraryId.get -> string!
+EmbedPDF.StampEvent.LibraryCreated.LibraryId.init -> void
+EmbedPDF.StampEvent.LibraryDeleted
+EmbedPDF.StampEvent.LibraryDeleted.Deconstruct(out string! LibraryId) -> void
+EmbedPDF.StampEvent.LibraryDeleted.Equals(EmbedPDF.StampEvent.LibraryDeleted? other) -> bool
+EmbedPDF.StampEvent.LibraryDeleted.LibraryDeleted(string! LibraryId) -> void
+EmbedPDF.StampEvent.LibraryDeleted.LibraryId.get -> string!
+EmbedPDF.StampEvent.LibraryDeleted.LibraryId.init -> void
+EmbedPDF.StampEvent.LibraryUpdated
+EmbedPDF.StampEvent.LibraryUpdated.Deconstruct(out string! LibraryId, out EmbedPDF.StampLibrary? Library) -> void
+EmbedPDF.StampEvent.LibraryUpdated.Equals(EmbedPDF.StampEvent.LibraryUpdated? other) -> bool
+EmbedPDF.StampEvent.LibraryUpdated.Library.get -> EmbedPDF.StampLibrary?
+EmbedPDF.StampEvent.LibraryUpdated.Library.init -> void
+EmbedPDF.StampEvent.LibraryUpdated.LibraryId.get -> string!
+EmbedPDF.StampEvent.LibraryUpdated.LibraryId.init -> void
+EmbedPDF.StampEvent.LibraryUpdated.LibraryUpdated(string! LibraryId, EmbedPDF.StampLibrary? Library) -> void
+EmbedPDF.StampEvent.StampEvent(EmbedPDF.StampEvent! original) -> void
+EmbedPDF.StampImportOptions
+EmbedPDF.StampImportOptions.<Clone>$() -> EmbedPDF.StampImportOptions!
+EmbedPDF.StampImportOptions.Categories.get -> System.Collections.Generic.IReadOnlyList<string!>?
+EmbedPDF.StampImportOptions.Categories.init -> void
+EmbedPDF.StampImportOptions.Equals(EmbedPDF.StampImportOptions? other) -> bool
+EmbedPDF.StampImportOptions.Id.get -> string?
+EmbedPDF.StampImportOptions.Id.init -> void
+EmbedPDF.StampImportOptions.Kind.get -> EmbedPDF.StampAssetKind?
+EmbedPDF.StampImportOptions.Kind.init -> void
+EmbedPDF.StampImportOptions.LibraryKind.get -> string?
+EmbedPDF.StampImportOptions.LibraryKind.init -> void
+EmbedPDF.StampImportOptions.Name.get -> string?
+EmbedPDF.StampImportOptions.Name.init -> void
+EmbedPDF.StampImportOptions.StampImportOptions() -> void
+EmbedPDF.StampLibrary
+EmbedPDF.StampLibrary.<Clone>$() -> EmbedPDF.StampLibrary!
+EmbedPDF.StampLibrary.AssetIds.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.StampLibrary.AssetIds.init -> void
+EmbedPDF.StampLibrary.Categories.get -> System.Collections.Generic.IReadOnlyList<string!>?
+EmbedPDF.StampLibrary.Categories.init -> void
+EmbedPDF.StampLibrary.Deconstruct(out string! Id, out string! Name, out string! Kind, out System.Collections.Generic.IReadOnlyList<string!>! AssetIds, out string? Locale, out System.Collections.Generic.IReadOnlyList<string!>? Categories) -> void
+EmbedPDF.StampLibrary.Equals(EmbedPDF.StampLibrary? other) -> bool
+EmbedPDF.StampLibrary.Id.get -> string!
+EmbedPDF.StampLibrary.Id.init -> void
+EmbedPDF.StampLibrary.Kind.get -> string!
+EmbedPDF.StampLibrary.Kind.init -> void
+EmbedPDF.StampLibrary.Locale.get -> string?
+EmbedPDF.StampLibrary.Locale.init -> void
+EmbedPDF.StampLibrary.Name.get -> string!
+EmbedPDF.StampLibrary.Name.init -> void
+EmbedPDF.StampLibrary.StampLibrary(string! Id, string! Name, string! Kind, System.Collections.Generic.IReadOnlyList<string!>! AssetIds, string? Locale, System.Collections.Generic.IReadOnlyList<string!>? Categories) -> void
+EmbedPDF.StampLibraryChangeReason
+EmbedPDF.StampLibraryChangeReason.AssetCreated = 3 -> EmbedPDF.StampLibraryChangeReason
+EmbedPDF.StampLibraryChangeReason.AssetDeleted = 5 -> EmbedPDF.StampLibraryChangeReason
+EmbedPDF.StampLibraryChangeReason.AssetUpdated = 4 -> EmbedPDF.StampLibraryChangeReason
+EmbedPDF.StampLibraryChangeReason.Created = 0 -> EmbedPDF.StampLibraryChangeReason
+EmbedPDF.StampLibraryChangeReason.Deleted = 6 -> EmbedPDF.StampLibraryChangeReason
+EmbedPDF.StampLibraryChangeReason.Imported = 1 -> EmbedPDF.StampLibraryChangeReason
+EmbedPDF.StampLibraryChangeReason.Updated = 2 -> EmbedPDF.StampLibraryChangeReason
+EmbedPDF.StampLibraryPatch
+EmbedPDF.StampLibraryPatch.<Clone>$() -> EmbedPDF.StampLibraryPatch!
+EmbedPDF.StampLibraryPatch.Categories.get -> System.Collections.Generic.IReadOnlyList<string!>?
+EmbedPDF.StampLibraryPatch.Categories.init -> void
+EmbedPDF.StampLibraryPatch.Equals(EmbedPDF.StampLibraryPatch? other) -> bool
+EmbedPDF.StampLibraryPatch.Name.get -> string?
+EmbedPDF.StampLibraryPatch.Name.init -> void
+EmbedPDF.StampLibraryPatch.StampLibraryPatch() -> void
+EmbedPDF.StampMark
+EmbedPDF.StampMark.Image
+EmbedPDF.StampMark.Image.Bytes.get -> System.ReadOnlyMemory<byte>
+EmbedPDF.StampMark.Image.Bytes.init -> void
+EmbedPDF.StampMark.Image.Deconstruct(out System.ReadOnlyMemory<byte> Bytes) -> void
+EmbedPDF.StampMark.Image.Equals(EmbedPDF.StampMark.Image? other) -> bool
+EmbedPDF.StampMark.Image.Image(System.ReadOnlyMemory<byte> Bytes) -> void
+EmbedPDF.StampMark.Ink
+EmbedPDF.StampMark.Ink.Color.get -> string?
+EmbedPDF.StampMark.Ink.Color.init -> void
+EmbedPDF.StampMark.Ink.Deconstruct(out System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<EmbedPDF.PdfPoint>!>! Strokes, out string? Color, out double? StrokeWidth) -> void
+EmbedPDF.StampMark.Ink.Equals(EmbedPDF.StampMark.Ink? other) -> bool
+EmbedPDF.StampMark.Ink.Ink(System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<EmbedPDF.PdfPoint>!>! Strokes, string? Color, double? StrokeWidth) -> void
+EmbedPDF.StampMark.Ink.StrokeWidth.get -> double?
+EmbedPDF.StampMark.Ink.StrokeWidth.init -> void
+EmbedPDF.StampMark.Ink.Strokes.get -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<EmbedPDF.PdfPoint>!>!
+EmbedPDF.StampMark.Ink.Strokes.init -> void
+EmbedPDF.StampMark.Pdf
+EmbedPDF.StampMark.Pdf.Bytes.get -> System.ReadOnlyMemory<byte>
+EmbedPDF.StampMark.Pdf.Bytes.init -> void
+EmbedPDF.StampMark.Pdf.Deconstruct(out System.ReadOnlyMemory<byte> Bytes, out int? PageIndex) -> void
+EmbedPDF.StampMark.Pdf.Equals(EmbedPDF.StampMark.Pdf? other) -> bool
+EmbedPDF.StampMark.Pdf.PageIndex.get -> int?
+EmbedPDF.StampMark.Pdf.PageIndex.init -> void
+EmbedPDF.StampMark.Pdf.Pdf(System.ReadOnlyMemory<byte> Bytes, int? PageIndex) -> void
+EmbedPDF.StampMark.StampMark(EmbedPDF.StampMark! original) -> void
+EmbedPDF.StampMark.Text
+EmbedPDF.StampMark.Text.Color.get -> string?
+EmbedPDF.StampMark.Text.Color.init -> void
+EmbedPDF.StampMark.Text.Deconstruct(out string! TextValue, out string! FontFamily, out string? Color, out double? FontSize) -> void
+EmbedPDF.StampMark.Text.Equals(EmbedPDF.StampMark.Text? other) -> bool
+EmbedPDF.StampMark.Text.FontFamily.get -> string!
+EmbedPDF.StampMark.Text.FontFamily.init -> void
+EmbedPDF.StampMark.Text.FontSize.get -> double?
+EmbedPDF.StampMark.Text.FontSize.init -> void
+EmbedPDF.StampMark.Text.Text(string! TextValue, string! FontFamily, string? Color, double? FontSize) -> void
+EmbedPDF.StampMark.Text.TextValue.get -> string!
+EmbedPDF.StampMark.Text.TextValue.init -> void
+EmbedPDF.StampPlacementOptions
+EmbedPDF.StampPlacementOptions.<Clone>$() -> EmbedPDF.StampPlacementOptions!
+EmbedPDF.StampPlacementOptions.Equals(EmbedPDF.StampPlacementOptions? other) -> bool
+EmbedPDF.StampPlacementOptions.Rotation.get -> double?
+EmbedPDF.StampPlacementOptions.Rotation.init -> void
+EmbedPDF.StampPlacementOptions.StampPlacementOptions() -> void
+EmbedPDF.StampPlacementOptions.TargetWidth.get -> double?
+EmbedPDF.StampPlacementOptions.TargetWidth.init -> void
+EmbedPDF.StampPreview
+EmbedPDF.StampPreview.<Clone>$() -> EmbedPDF.StampPreview!
+EmbedPDF.StampPreview.Data.get -> System.ReadOnlyMemory<byte>?
+EmbedPDF.StampPreview.Data.init -> void
+EmbedPDF.StampPreview.Deconstruct(out System.ReadOnlyMemory<byte>? Data, out string? MimeType) -> void
+EmbedPDF.StampPreview.Equals(EmbedPDF.StampPreview? other) -> bool
+EmbedPDF.StampPreview.MimeType.get -> string?
+EmbedPDF.StampPreview.MimeType.init -> void
+EmbedPDF.StampPreview.StampPreview(System.ReadOnlyMemory<byte>? Data, string? MimeType) -> void
+EmbedPDF.StampSettings
+EmbedPDF.StampSettings.<Clone>$() -> EmbedPDF.StampSettings!
+EmbedPDF.StampSettings.Deconstruct(out double PreviewWidth, out bool Dynamic) -> void
+EmbedPDF.StampSettings.Dynamic.get -> bool
+EmbedPDF.StampSettings.Dynamic.init -> void
+EmbedPDF.StampSettings.Equals(EmbedPDF.StampSettings? other) -> bool
+EmbedPDF.StampSettings.PreviewWidth.get -> double
+EmbedPDF.StampSettings.PreviewWidth.init -> void
+EmbedPDF.StampSettings.StampSettings(double PreviewWidth, bool Dynamic) -> void
 EmbedPDF.StandardCommandList
 EmbedPDF.StandardCommandList.Annotation = 3 -> EmbedPDF.StandardCommandList
 EmbedPDF.StandardCommandList.Document = 6 -> EmbedPDF.StandardCommandList
@@ -7452,6 +7792,15 @@ EmbedPDF.StandardCommandList.Interaction = 1 -> EmbedPDF.StandardCommandList
 EmbedPDF.StandardCommandList.Render = 5 -> EmbedPDF.StandardCommandList
 EmbedPDF.StandardCommandList.Selection = 2 -> EmbedPDF.StandardCommandList
 EmbedPDF.StandardCommandList.Stage = 0 -> EmbedPDF.StandardCommandList
+EmbedPDF.StoredStampLibrary
+EmbedPDF.StoredStampLibrary.<Clone>$() -> EmbedPDF.StoredStampLibrary!
+EmbedPDF.StoredStampLibrary.Bytes.get -> System.ReadOnlyMemory<byte>
+EmbedPDF.StoredStampLibrary.Bytes.init -> void
+EmbedPDF.StoredStampLibrary.Deconstruct(out string! Id, out System.ReadOnlyMemory<byte> Bytes) -> void
+EmbedPDF.StoredStampLibrary.Equals(EmbedPDF.StoredStampLibrary? other) -> bool
+EmbedPDF.StoredStampLibrary.Id.get -> string!
+EmbedPDF.StoredStampLibrary.Id.init -> void
+EmbedPDF.StoredStampLibrary.StoredStampLibrary(string! Id, System.ReadOnlyMemory<byte> Bytes) -> void
 EmbedPDF.StrikeoutAnnotationDraft
 EmbedPDF.StrikeoutAnnotationDraft.BlendMode.get -> EmbedPDF.AnnotationBlendMode?
 EmbedPDF.StrikeoutAnnotationDraft.BlendMode.init -> void
@@ -7750,6 +8099,8 @@ abstract EmbedPDF.StageRevealAnchorValue.<Clone>$() -> EmbedPDF.StageRevealAncho
 abstract EmbedPDF.StageRevealZoom.<Clone>$() -> EmbedPDF.StageRevealZoom!
 abstract EmbedPDF.StageZoomMode.<Clone>$() -> EmbedPDF.StageZoomMode!
 abstract EmbedPDF.StageZoomTarget.<Clone>$() -> EmbedPDF.StageZoomTarget!
+abstract EmbedPDF.StampEvent.<Clone>$() -> EmbedPDF.StampEvent!
+abstract EmbedPDF.StampMark.<Clone>$() -> EmbedPDF.StampMark!
 abstract EmbedPDF.ViewManagerEvent.<Clone>$() -> EmbedPDF.ViewManagerEvent!
 abstract EmbedPDF.ZoomSpec.<Clone>$() -> EmbedPDF.ZoomSpec!
 const EmbedPDF.PageRenderResolution.DeviceWidthStep = 128 -> double
@@ -9971,13 +10322,112 @@ override EmbedPDF.StageZoomTarget.Spec.Equals(object? obj) -> bool
 override EmbedPDF.StageZoomTarget.Spec.GetHashCode() -> int
 override EmbedPDF.StageZoomTarget.Spec.ToString() -> string!
 override EmbedPDF.StageZoomTarget.ToString() -> string!
+override EmbedPDF.StampAddAssetInput.Equals(object? obj) -> bool
+override EmbedPDF.StampAddAssetInput.GetHashCode() -> int
+override EmbedPDF.StampAddAssetInput.ToString() -> string!
 override EmbedPDF.StampAnnotationPatch.<Clone>$() -> EmbedPDF.StampAnnotationPatch!
 override EmbedPDF.StampAnnotationPatch.Equals(object? obj) -> bool
 override EmbedPDF.StampAnnotationPatch.GetHashCode() -> int
 override EmbedPDF.StampAnnotationPatch.ToString() -> string!
+override EmbedPDF.StampAsset.Equals(object? obj) -> bool
+override EmbedPDF.StampAsset.GetHashCode() -> int
+override EmbedPDF.StampAsset.ToString() -> string!
+override EmbedPDF.StampAssetFilter.Equals(object? obj) -> bool
+override EmbedPDF.StampAssetFilter.GetHashCode() -> int
+override EmbedPDF.StampAssetFilter.ToString() -> string!
+override EmbedPDF.StampAssetPatch.Equals(object? obj) -> bool
+override EmbedPDF.StampAssetPatch.GetHashCode() -> int
+override EmbedPDF.StampAssetPatch.ToString() -> string!
+override EmbedPDF.StampBatchFailure.Equals(object? obj) -> bool
+override EmbedPDF.StampBatchFailure.GetHashCode() -> int
+override EmbedPDF.StampBatchFailure.ToString() -> string!
+override EmbedPDF.StampBatchResult.Equals(object? obj) -> bool
+override EmbedPDF.StampBatchResult.GetHashCode() -> int
+override EmbedPDF.StampBatchResult.ToString() -> string!
 override EmbedPDF.StampConfig.Equals(object? obj) -> bool
 override EmbedPDF.StampConfig.GetHashCode() -> int
 override EmbedPDF.StampConfig.ToString() -> string!
+override EmbedPDF.StampCreateLibraryOptions.Equals(object? obj) -> bool
+override EmbedPDF.StampCreateLibraryOptions.GetHashCode() -> int
+override EmbedPDF.StampCreateLibraryOptions.ToString() -> string!
+override EmbedPDF.StampErrorInfo.Equals(object? obj) -> bool
+override EmbedPDF.StampErrorInfo.GetHashCode() -> int
+override EmbedPDF.StampErrorInfo.ToString() -> string!
+override EmbedPDF.StampEvent.ArmChanged.<Clone>$() -> EmbedPDF.StampEvent.ArmChanged!
+override EmbedPDF.StampEvent.ArmChanged.Equals(object? obj) -> bool
+override EmbedPDF.StampEvent.ArmChanged.GetHashCode() -> int
+override EmbedPDF.StampEvent.ArmChanged.ToString() -> string!
+override EmbedPDF.StampEvent.AssetCreated.<Clone>$() -> EmbedPDF.StampEvent.AssetCreated!
+override EmbedPDF.StampEvent.AssetCreated.Equals(object? obj) -> bool
+override EmbedPDF.StampEvent.AssetCreated.GetHashCode() -> int
+override EmbedPDF.StampEvent.AssetCreated.ToString() -> string!
+override EmbedPDF.StampEvent.AssetDeleted.<Clone>$() -> EmbedPDF.StampEvent.AssetDeleted!
+override EmbedPDF.StampEvent.AssetDeleted.Equals(object? obj) -> bool
+override EmbedPDF.StampEvent.AssetDeleted.GetHashCode() -> int
+override EmbedPDF.StampEvent.AssetDeleted.ToString() -> string!
+override EmbedPDF.StampEvent.AssetUpdated.<Clone>$() -> EmbedPDF.StampEvent.AssetUpdated!
+override EmbedPDF.StampEvent.AssetUpdated.Equals(object? obj) -> bool
+override EmbedPDF.StampEvent.AssetUpdated.GetHashCode() -> int
+override EmbedPDF.StampEvent.AssetUpdated.ToString() -> string!
+override EmbedPDF.StampEvent.Equals(object? obj) -> bool
+override EmbedPDF.StampEvent.GetHashCode() -> int
+override EmbedPDF.StampEvent.LibraryChanged.<Clone>$() -> EmbedPDF.StampEvent.LibraryChanged!
+override EmbedPDF.StampEvent.LibraryChanged.Equals(object? obj) -> bool
+override EmbedPDF.StampEvent.LibraryChanged.GetHashCode() -> int
+override EmbedPDF.StampEvent.LibraryChanged.ToString() -> string!
+override EmbedPDF.StampEvent.LibraryCreated.<Clone>$() -> EmbedPDF.StampEvent.LibraryCreated!
+override EmbedPDF.StampEvent.LibraryCreated.Equals(object? obj) -> bool
+override EmbedPDF.StampEvent.LibraryCreated.GetHashCode() -> int
+override EmbedPDF.StampEvent.LibraryCreated.ToString() -> string!
+override EmbedPDF.StampEvent.LibraryDeleted.<Clone>$() -> EmbedPDF.StampEvent.LibraryDeleted!
+override EmbedPDF.StampEvent.LibraryDeleted.Equals(object? obj) -> bool
+override EmbedPDF.StampEvent.LibraryDeleted.GetHashCode() -> int
+override EmbedPDF.StampEvent.LibraryDeleted.ToString() -> string!
+override EmbedPDF.StampEvent.LibraryUpdated.<Clone>$() -> EmbedPDF.StampEvent.LibraryUpdated!
+override EmbedPDF.StampEvent.LibraryUpdated.Equals(object? obj) -> bool
+override EmbedPDF.StampEvent.LibraryUpdated.GetHashCode() -> int
+override EmbedPDF.StampEvent.LibraryUpdated.ToString() -> string!
+override EmbedPDF.StampEvent.ToString() -> string!
+override EmbedPDF.StampImportOptions.Equals(object? obj) -> bool
+override EmbedPDF.StampImportOptions.GetHashCode() -> int
+override EmbedPDF.StampImportOptions.ToString() -> string!
+override EmbedPDF.StampLibrary.Equals(object? obj) -> bool
+override EmbedPDF.StampLibrary.GetHashCode() -> int
+override EmbedPDF.StampLibrary.ToString() -> string!
+override EmbedPDF.StampLibraryPatch.Equals(object? obj) -> bool
+override EmbedPDF.StampLibraryPatch.GetHashCode() -> int
+override EmbedPDF.StampLibraryPatch.ToString() -> string!
+override EmbedPDF.StampMark.Equals(object? obj) -> bool
+override EmbedPDF.StampMark.GetHashCode() -> int
+override EmbedPDF.StampMark.Image.<Clone>$() -> EmbedPDF.StampMark.Image!
+override EmbedPDF.StampMark.Image.Equals(object? obj) -> bool
+override EmbedPDF.StampMark.Image.GetHashCode() -> int
+override EmbedPDF.StampMark.Image.ToString() -> string!
+override EmbedPDF.StampMark.Ink.<Clone>$() -> EmbedPDF.StampMark.Ink!
+override EmbedPDF.StampMark.Ink.Equals(object? obj) -> bool
+override EmbedPDF.StampMark.Ink.GetHashCode() -> int
+override EmbedPDF.StampMark.Ink.ToString() -> string!
+override EmbedPDF.StampMark.Pdf.<Clone>$() -> EmbedPDF.StampMark.Pdf!
+override EmbedPDF.StampMark.Pdf.Equals(object? obj) -> bool
+override EmbedPDF.StampMark.Pdf.GetHashCode() -> int
+override EmbedPDF.StampMark.Pdf.ToString() -> string!
+override EmbedPDF.StampMark.Text.<Clone>$() -> EmbedPDF.StampMark.Text!
+override EmbedPDF.StampMark.Text.Equals(object? obj) -> bool
+override EmbedPDF.StampMark.Text.GetHashCode() -> int
+override EmbedPDF.StampMark.Text.ToString() -> string!
+override EmbedPDF.StampMark.ToString() -> string!
+override EmbedPDF.StampPlacementOptions.Equals(object? obj) -> bool
+override EmbedPDF.StampPlacementOptions.GetHashCode() -> int
+override EmbedPDF.StampPlacementOptions.ToString() -> string!
+override EmbedPDF.StampPreview.Equals(object? obj) -> bool
+override EmbedPDF.StampPreview.GetHashCode() -> int
+override EmbedPDF.StampPreview.ToString() -> string!
+override EmbedPDF.StampSettings.Equals(object? obj) -> bool
+override EmbedPDF.StampSettings.GetHashCode() -> int
+override EmbedPDF.StampSettings.ToString() -> string!
+override EmbedPDF.StoredStampLibrary.Equals(object? obj) -> bool
+override EmbedPDF.StoredStampLibrary.GetHashCode() -> int
+override EmbedPDF.StoredStampLibrary.ToString() -> string!
 override EmbedPDF.StrikeoutAnnotationDraft.<Clone>$() -> EmbedPDF.StrikeoutAnnotationDraft!
 override EmbedPDF.StrikeoutAnnotationDraft.Equals(object? obj) -> bool
 override EmbedPDF.StrikeoutAnnotationDraft.GetHashCode() -> int
@@ -10346,6 +10796,18 @@ override sealed EmbedPDF.StageZoomMode.Mode.Equals(EmbedPDF.StageZoomMode? other
 override sealed EmbedPDF.StageZoomTarget.Level.Equals(EmbedPDF.StageZoomTarget? other) -> bool
 override sealed EmbedPDF.StageZoomTarget.Spec.Equals(EmbedPDF.StageZoomTarget? other) -> bool
 override sealed EmbedPDF.StampAnnotationPatch.Equals(EmbedPDF.AnnotationPatch? other) -> bool
+override sealed EmbedPDF.StampEvent.ArmChanged.Equals(EmbedPDF.StampEvent? other) -> bool
+override sealed EmbedPDF.StampEvent.AssetCreated.Equals(EmbedPDF.StampEvent? other) -> bool
+override sealed EmbedPDF.StampEvent.AssetDeleted.Equals(EmbedPDF.StampEvent? other) -> bool
+override sealed EmbedPDF.StampEvent.AssetUpdated.Equals(EmbedPDF.StampEvent? other) -> bool
+override sealed EmbedPDF.StampEvent.LibraryChanged.Equals(EmbedPDF.StampEvent? other) -> bool
+override sealed EmbedPDF.StampEvent.LibraryCreated.Equals(EmbedPDF.StampEvent? other) -> bool
+override sealed EmbedPDF.StampEvent.LibraryDeleted.Equals(EmbedPDF.StampEvent? other) -> bool
+override sealed EmbedPDF.StampEvent.LibraryUpdated.Equals(EmbedPDF.StampEvent? other) -> bool
+override sealed EmbedPDF.StampMark.Image.Equals(EmbedPDF.StampMark? other) -> bool
+override sealed EmbedPDF.StampMark.Ink.Equals(EmbedPDF.StampMark? other) -> bool
+override sealed EmbedPDF.StampMark.Pdf.Equals(EmbedPDF.StampMark? other) -> bool
+override sealed EmbedPDF.StampMark.Text.Equals(EmbedPDF.StampMark? other) -> bool
 override sealed EmbedPDF.StrikeoutAnnotationDraft.Equals(EmbedPDF.AnnotationDraft? other) -> bool
 override sealed EmbedPDF.StrikeoutAnnotationPatch.Equals(EmbedPDF.AnnotationPatch? other) -> bool
 override sealed EmbedPDF.UnderlineAnnotationDraft.Equals(EmbedPDF.AnnotationDraft? other) -> bool
@@ -10829,6 +11291,7 @@ static EmbedPDF.FeedbackConfig.operator ==(EmbedPDF.FeedbackConfig? left, EmbedP
 static EmbedPDF.FileAttachmentAnnotationPatch.FromJson(string! json) -> EmbedPDF.FileAttachmentAnnotationPatch!
 static EmbedPDF.FileAttachmentAnnotationPatch.operator !=(EmbedPDF.FileAttachmentAnnotationPatch? left, EmbedPDF.FileAttachmentAnnotationPatch? right) -> bool
 static EmbedPDF.FileAttachmentAnnotationPatch.operator ==(EmbedPDF.FileAttachmentAnnotationPatch? left, EmbedPDF.FileAttachmentAnnotationPatch? right) -> bool
+static EmbedPDF.FileStampLibraryStore.DefaultDirectory.get -> string!
 static EmbedPDF.FormActivationResult.Committed.operator !=(EmbedPDF.FormActivationResult.Committed? left, EmbedPDF.FormActivationResult.Committed? right) -> bool
 static EmbedPDF.FormActivationResult.Committed.operator ==(EmbedPDF.FormActivationResult.Committed? left, EmbedPDF.FormActivationResult.Committed? right) -> bool
 static EmbedPDF.FormActivationResult.Dispatched.operator !=(EmbedPDF.FormActivationResult.Dispatched? left, EmbedPDF.FormActivationResult.Dispatched? right) -> bool
@@ -11759,11 +12222,69 @@ static EmbedPDF.StageZoomTarget.Spec.operator !=(EmbedPDF.StageZoomTarget.Spec? 
 static EmbedPDF.StageZoomTarget.Spec.operator ==(EmbedPDF.StageZoomTarget.Spec? left, EmbedPDF.StageZoomTarget.Spec? right) -> bool
 static EmbedPDF.StageZoomTarget.operator !=(EmbedPDF.StageZoomTarget? left, EmbedPDF.StageZoomTarget? right) -> bool
 static EmbedPDF.StageZoomTarget.operator ==(EmbedPDF.StageZoomTarget? left, EmbedPDF.StageZoomTarget? right) -> bool
+static EmbedPDF.StampAddAssetInput.operator !=(EmbedPDF.StampAddAssetInput? left, EmbedPDF.StampAddAssetInput? right) -> bool
+static EmbedPDF.StampAddAssetInput.operator ==(EmbedPDF.StampAddAssetInput? left, EmbedPDF.StampAddAssetInput? right) -> bool
 static EmbedPDF.StampAnnotationPatch.FromJson(string! json) -> EmbedPDF.StampAnnotationPatch!
 static EmbedPDF.StampAnnotationPatch.operator !=(EmbedPDF.StampAnnotationPatch? left, EmbedPDF.StampAnnotationPatch? right) -> bool
 static EmbedPDF.StampAnnotationPatch.operator ==(EmbedPDF.StampAnnotationPatch? left, EmbedPDF.StampAnnotationPatch? right) -> bool
+static EmbedPDF.StampAsset.operator !=(EmbedPDF.StampAsset? left, EmbedPDF.StampAsset? right) -> bool
+static EmbedPDF.StampAsset.operator ==(EmbedPDF.StampAsset? left, EmbedPDF.StampAsset? right) -> bool
+static EmbedPDF.StampAssetFilter.operator !=(EmbedPDF.StampAssetFilter? left, EmbedPDF.StampAssetFilter? right) -> bool
+static EmbedPDF.StampAssetFilter.operator ==(EmbedPDF.StampAssetFilter? left, EmbedPDF.StampAssetFilter? right) -> bool
+static EmbedPDF.StampAssetPatch.operator !=(EmbedPDF.StampAssetPatch? left, EmbedPDF.StampAssetPatch? right) -> bool
+static EmbedPDF.StampAssetPatch.operator ==(EmbedPDF.StampAssetPatch? left, EmbedPDF.StampAssetPatch? right) -> bool
+static EmbedPDF.StampBatchFailure.operator !=(EmbedPDF.StampBatchFailure? left, EmbedPDF.StampBatchFailure? right) -> bool
+static EmbedPDF.StampBatchFailure.operator ==(EmbedPDF.StampBatchFailure? left, EmbedPDF.StampBatchFailure? right) -> bool
+static EmbedPDF.StampBatchResult.operator !=(EmbedPDF.StampBatchResult? left, EmbedPDF.StampBatchResult? right) -> bool
+static EmbedPDF.StampBatchResult.operator ==(EmbedPDF.StampBatchResult? left, EmbedPDF.StampBatchResult? right) -> bool
 static EmbedPDF.StampConfig.operator !=(EmbedPDF.StampConfig? left, EmbedPDF.StampConfig? right) -> bool
 static EmbedPDF.StampConfig.operator ==(EmbedPDF.StampConfig? left, EmbedPDF.StampConfig? right) -> bool
+static EmbedPDF.StampCreateLibraryOptions.operator !=(EmbedPDF.StampCreateLibraryOptions? left, EmbedPDF.StampCreateLibraryOptions? right) -> bool
+static EmbedPDF.StampCreateLibraryOptions.operator ==(EmbedPDF.StampCreateLibraryOptions? left, EmbedPDF.StampCreateLibraryOptions? right) -> bool
+static EmbedPDF.StampErrorInfo.operator !=(EmbedPDF.StampErrorInfo? left, EmbedPDF.StampErrorInfo? right) -> bool
+static EmbedPDF.StampErrorInfo.operator ==(EmbedPDF.StampErrorInfo? left, EmbedPDF.StampErrorInfo? right) -> bool
+static EmbedPDF.StampEvent.ArmChanged.operator !=(EmbedPDF.StampEvent.ArmChanged? left, EmbedPDF.StampEvent.ArmChanged? right) -> bool
+static EmbedPDF.StampEvent.ArmChanged.operator ==(EmbedPDF.StampEvent.ArmChanged? left, EmbedPDF.StampEvent.ArmChanged? right) -> bool
+static EmbedPDF.StampEvent.AssetCreated.operator !=(EmbedPDF.StampEvent.AssetCreated? left, EmbedPDF.StampEvent.AssetCreated? right) -> bool
+static EmbedPDF.StampEvent.AssetCreated.operator ==(EmbedPDF.StampEvent.AssetCreated? left, EmbedPDF.StampEvent.AssetCreated? right) -> bool
+static EmbedPDF.StampEvent.AssetDeleted.operator !=(EmbedPDF.StampEvent.AssetDeleted? left, EmbedPDF.StampEvent.AssetDeleted? right) -> bool
+static EmbedPDF.StampEvent.AssetDeleted.operator ==(EmbedPDF.StampEvent.AssetDeleted? left, EmbedPDF.StampEvent.AssetDeleted? right) -> bool
+static EmbedPDF.StampEvent.AssetUpdated.operator !=(EmbedPDF.StampEvent.AssetUpdated? left, EmbedPDF.StampEvent.AssetUpdated? right) -> bool
+static EmbedPDF.StampEvent.AssetUpdated.operator ==(EmbedPDF.StampEvent.AssetUpdated? left, EmbedPDF.StampEvent.AssetUpdated? right) -> bool
+static EmbedPDF.StampEvent.LibraryChanged.operator !=(EmbedPDF.StampEvent.LibraryChanged? left, EmbedPDF.StampEvent.LibraryChanged? right) -> bool
+static EmbedPDF.StampEvent.LibraryChanged.operator ==(EmbedPDF.StampEvent.LibraryChanged? left, EmbedPDF.StampEvent.LibraryChanged? right) -> bool
+static EmbedPDF.StampEvent.LibraryCreated.operator !=(EmbedPDF.StampEvent.LibraryCreated? left, EmbedPDF.StampEvent.LibraryCreated? right) -> bool
+static EmbedPDF.StampEvent.LibraryCreated.operator ==(EmbedPDF.StampEvent.LibraryCreated? left, EmbedPDF.StampEvent.LibraryCreated? right) -> bool
+static EmbedPDF.StampEvent.LibraryDeleted.operator !=(EmbedPDF.StampEvent.LibraryDeleted? left, EmbedPDF.StampEvent.LibraryDeleted? right) -> bool
+static EmbedPDF.StampEvent.LibraryDeleted.operator ==(EmbedPDF.StampEvent.LibraryDeleted? left, EmbedPDF.StampEvent.LibraryDeleted? right) -> bool
+static EmbedPDF.StampEvent.LibraryUpdated.operator !=(EmbedPDF.StampEvent.LibraryUpdated? left, EmbedPDF.StampEvent.LibraryUpdated? right) -> bool
+static EmbedPDF.StampEvent.LibraryUpdated.operator ==(EmbedPDF.StampEvent.LibraryUpdated? left, EmbedPDF.StampEvent.LibraryUpdated? right) -> bool
+static EmbedPDF.StampEvent.operator !=(EmbedPDF.StampEvent? left, EmbedPDF.StampEvent? right) -> bool
+static EmbedPDF.StampEvent.operator ==(EmbedPDF.StampEvent? left, EmbedPDF.StampEvent? right) -> bool
+static EmbedPDF.StampImportOptions.operator !=(EmbedPDF.StampImportOptions? left, EmbedPDF.StampImportOptions? right) -> bool
+static EmbedPDF.StampImportOptions.operator ==(EmbedPDF.StampImportOptions? left, EmbedPDF.StampImportOptions? right) -> bool
+static EmbedPDF.StampLibrary.operator !=(EmbedPDF.StampLibrary? left, EmbedPDF.StampLibrary? right) -> bool
+static EmbedPDF.StampLibrary.operator ==(EmbedPDF.StampLibrary? left, EmbedPDF.StampLibrary? right) -> bool
+static EmbedPDF.StampLibraryPatch.operator !=(EmbedPDF.StampLibraryPatch? left, EmbedPDF.StampLibraryPatch? right) -> bool
+static EmbedPDF.StampLibraryPatch.operator ==(EmbedPDF.StampLibraryPatch? left, EmbedPDF.StampLibraryPatch? right) -> bool
+static EmbedPDF.StampMark.Image.operator !=(EmbedPDF.StampMark.Image? left, EmbedPDF.StampMark.Image? right) -> bool
+static EmbedPDF.StampMark.Image.operator ==(EmbedPDF.StampMark.Image? left, EmbedPDF.StampMark.Image? right) -> bool
+static EmbedPDF.StampMark.Ink.operator !=(EmbedPDF.StampMark.Ink? left, EmbedPDF.StampMark.Ink? right) -> bool
+static EmbedPDF.StampMark.Ink.operator ==(EmbedPDF.StampMark.Ink? left, EmbedPDF.StampMark.Ink? right) -> bool
+static EmbedPDF.StampMark.Pdf.operator !=(EmbedPDF.StampMark.Pdf? left, EmbedPDF.StampMark.Pdf? right) -> bool
+static EmbedPDF.StampMark.Pdf.operator ==(EmbedPDF.StampMark.Pdf? left, EmbedPDF.StampMark.Pdf? right) -> bool
+static EmbedPDF.StampMark.Text.operator !=(EmbedPDF.StampMark.Text? left, EmbedPDF.StampMark.Text? right) -> bool
+static EmbedPDF.StampMark.Text.operator ==(EmbedPDF.StampMark.Text? left, EmbedPDF.StampMark.Text? right) -> bool
+static EmbedPDF.StampMark.operator !=(EmbedPDF.StampMark? left, EmbedPDF.StampMark? right) -> bool
+static EmbedPDF.StampMark.operator ==(EmbedPDF.StampMark? left, EmbedPDF.StampMark? right) -> bool
+static EmbedPDF.StampPlacementOptions.operator !=(EmbedPDF.StampPlacementOptions? left, EmbedPDF.StampPlacementOptions? right) -> bool
+static EmbedPDF.StampPlacementOptions.operator ==(EmbedPDF.StampPlacementOptions? left, EmbedPDF.StampPlacementOptions? right) -> bool
+static EmbedPDF.StampPreview.operator !=(EmbedPDF.StampPreview? left, EmbedPDF.StampPreview? right) -> bool
+static EmbedPDF.StampPreview.operator ==(EmbedPDF.StampPreview? left, EmbedPDF.StampPreview? right) -> bool
+static EmbedPDF.StampSettings.operator !=(EmbedPDF.StampSettings? left, EmbedPDF.StampSettings? right) -> bool
+static EmbedPDF.StampSettings.operator ==(EmbedPDF.StampSettings? left, EmbedPDF.StampSettings? right) -> bool
+static EmbedPDF.StoredStampLibrary.operator !=(EmbedPDF.StoredStampLibrary? left, EmbedPDF.StoredStampLibrary? right) -> bool
+static EmbedPDF.StoredStampLibrary.operator ==(EmbedPDF.StoredStampLibrary? left, EmbedPDF.StoredStampLibrary? right) -> bool
 static EmbedPDF.StrikeoutAnnotationDraft.operator !=(EmbedPDF.StrikeoutAnnotationDraft? left, EmbedPDF.StrikeoutAnnotationDraft? right) -> bool
 static EmbedPDF.StrikeoutAnnotationDraft.operator ==(EmbedPDF.StrikeoutAnnotationDraft? left, EmbedPDF.StrikeoutAnnotationDraft? right) -> bool
 static EmbedPDF.StrikeoutAnnotationPatch.FromJson(string! json) -> EmbedPDF.StrikeoutAnnotationPatch!
@@ -12070,6 +12591,12 @@ virtual EmbedPDF.StageZoomMode.PrintMembers(System.Text.StringBuilder! builder) 
 virtual EmbedPDF.StageZoomTarget.EqualityContract.get -> System.Type!
 virtual EmbedPDF.StageZoomTarget.Equals(EmbedPDF.StageZoomTarget? other) -> bool
 virtual EmbedPDF.StageZoomTarget.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.StampEvent.EqualityContract.get -> System.Type!
+virtual EmbedPDF.StampEvent.Equals(EmbedPDF.StampEvent? other) -> bool
+virtual EmbedPDF.StampEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.StampMark.EqualityContract.get -> System.Type!
+virtual EmbedPDF.StampMark.Equals(EmbedPDF.StampMark? other) -> bool
+virtual EmbedPDF.StampMark.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual EmbedPDF.ViewManagerEvent.EqualityContract.get -> System.Type!
 virtual EmbedPDF.ViewManagerEvent.Equals(EmbedPDF.ViewManagerEvent? other) -> bool
 virtual EmbedPDF.ViewManagerEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool

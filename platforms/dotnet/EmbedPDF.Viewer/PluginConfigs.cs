@@ -84,10 +84,21 @@ public sealed record MeasurementConfig
         Presets is null ? null : [.. Arguments.NoNullElements(Presets, nameof(Presets)).Select(Ffi.ToFfi)]);
 }
 
-/// <summary>Installs the stamp plugin.</summary>
+/// <summary>
+/// Installs the stamp plugin; placing also needs <see cref="PdfViewerOptions.Interaction"/>
+/// and <see cref="PdfViewerOptions.Annotation"/>. It is also the patch
+/// <see cref="StampCapability.UpdateSettingsAsync"/> takes: a member left
+/// <see langword="null"/> keeps its value.
+/// </summary>
 public sealed record StampConfig
 {
-    internal GSp.StampConfig ToFfi() => new();
+    /// <summary>Cached preview width in device pixels; the engine's default is 256.</summary>
+    public double? PreviewWidth { get; init; }
+
+    /// <summary>Whether form-backed assets are evaluated when armed; the engine's default is <see langword="true"/>. Scripting is the target document's actions plugin's switch.</summary>
+    public bool? Dynamic { get; init; }
+
+    internal GSp.StampConfig ToFfi() => new(PreviewWidth is { } w ? Ffi.Finite(w, "preview width") : null, Dynamic);
 }
 
 /// <summary>Installs the signature plugin. Needs <see cref="PdfViewerOptions.Form"/>.</summary>
