@@ -12,6 +12,18 @@ using DocumentEvent = uniffi.epdf_viewer_host.DocumentEvent;
 using DocumentInfo = uniffi.epdf_viewer_host.DocumentInfo;
 using DocumentStatus = uniffi.epdf_viewer_host.DocumentStatus;
 using OpenDocumentOptions = uniffi.epdf_viewer_host.OpenDocumentOptions;
+using CommandContext = uniffi.epdf_plugin_commands.CommandContext;
+using CommandHook = uniffi.epdf_plugin_commands.CommandHook;
+using CommandDefinition = uniffi.epdf_plugin_commands.CommandDefinition;
+using CommandSettingLock = uniffi.epdf_plugin_commands.CommandSettingLock;
+using CommandExecuteResult = uniffi.epdf_plugin_commands.CommandExecuteResult;
+using CommandRejectReason = uniffi.epdf_plugin_commands.CommandRejectReason;
+using IconAccent = uniffi.epdf_plugin_commands.IconAccent;
+using CommandKeyStroke = uniffi.epdf_plugin_commands.CommandKeyStroke;
+using CommandRefusalReason = uniffi.epdf_plugin_commands.CommandRefusalReason;
+using CommandShortcutMatch = uniffi.epdf_plugin_commands.CommandShortcutMatch;
+using ResolvedCommand = uniffi.epdf_plugin_commands.ResolvedCommand;
+using CommandsEvent = uniffi.epdf_plugin_commands.CommandsEvent;
 
 // The generated types are internal (the generator default access modifier),
 // so these tests see them through InternalsVisibleTo.

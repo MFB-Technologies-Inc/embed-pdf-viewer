@@ -2240,10 +2240,16 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "get_settings",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi/settings.rs",
         "symbol": "settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "GetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2251,10 +2257,17 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "update_settings",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi/settings.rs",
         "symbol": "update_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "UpdateSettingsAsync",
+        "parameters": [
+          "EmbedPDF.CommandsSettingsPatch",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2270,10 +2283,16 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "reset_settings",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi/settings.rs",
         "symbol": "reset_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "ResetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2281,10 +2300,16 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "on_settings_changed",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/epdf-viewer-host/src/lib.rs",
         "symbol": "state_revision"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PdfViewer",
+        "member": "ObserveStateRevisions",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2292,10 +2317,18 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "register_command",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "register_command"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "RegisterAsync",
+        "parameters": [
+          "EmbedPDF.CommandDefinition",
+          "System.Boolean",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2303,10 +2336,18 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "register_commands",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "register_commands"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "RegisterAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.CommandDefinition>",
+          "System.Boolean",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2314,10 +2355,17 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "has_command",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "has_command"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "HasCommandAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2325,10 +2373,17 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "get_command",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "command"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "GetCommandAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2336,10 +2391,16 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "list_command_ids",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "command_ids"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "GetCommandIdsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2347,10 +2408,18 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "resolve_command",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "resolve_command"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "ResolveAsync",
+        "parameters": [
+          "System.String",
+          "EmbedPDF.DocumentInfo",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2358,17 +2427,25 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "resolve_command_text",
-      "pending": "phase-3-wave-C"
+      "exclusion": "Conformance-harness helper (`#[cfg(feature = \"harness\")]`, no export): resolveCommand printed as JSON text. ResolveAsync returns the typed record.",
+      "classification": "equivalent-representation"
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "list_commands",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "commands"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "GetCommandsAsync",
+        "parameters": [
+          "EmbedPDF.DocumentInfo",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2376,10 +2453,18 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "search_commands",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "search_commands"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "SearchAsync",
+        "parameters": [
+          "System.String",
+          "EmbedPDF.DocumentInfo",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2387,10 +2472,16 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "list_shortcuts",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "shortcuts"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "GetShortcutsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2398,10 +2489,19 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "execute",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "execute"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "ExecuteAsync",
+        "parameters": [
+          "System.String",
+          "EmbedPDF.DocumentInfo",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2409,10 +2509,18 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "can_execute",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "can_execute"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "CanExecuteAsync",
+        "parameters": [
+          "System.String",
+          "EmbedPDF.DocumentInfo",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2420,10 +2528,18 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "get_refusal",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "refusal"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "GetRefusalAsync",
+        "parameters": [
+          "System.String",
+          "EmbedPDF.DocumentInfo",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2431,10 +2547,16 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "on_executed",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2442,10 +2564,16 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "on_execution_failed",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2453,10 +2581,19 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "match_stroke",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "match_stroke"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "MatchStrokeAsync",
+        "parameters": [
+          "EmbedPDF.CommandKeyStroke",
+          "System.Boolean",
+          "System.Boolean",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2464,10 +2601,17 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "get_menu_target",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "menu_target"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "GetMenuTargetAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2475,10 +2619,16 @@
       "path": "crates/plugins/commands/src/turning_off.rs",
       "owner": "CommandsCapability",
       "symbol": "get_disabled_categories",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "disabled_categories"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "GetDisabledCategoriesAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2486,10 +2636,17 @@
       "path": "crates/plugins/commands/src/turning_off.rs",
       "owner": "CommandsCapability",
       "symbol": "is_category_disabled",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "is_category_disabled"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "IsCategoryDisabledAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2497,10 +2654,17 @@
       "path": "crates/plugins/commands/src/turning_off.rs",
       "owner": "CommandsCapability",
       "symbol": "disable_category",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "disable_category"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "DisableCategoryAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2508,10 +2672,17 @@
       "path": "crates/plugins/commands/src/turning_off.rs",
       "owner": "CommandsCapability",
       "symbol": "enable_category",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "enable_category"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "EnableCategoryAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2519,10 +2690,17 @@
       "path": "crates/plugins/commands/src/turning_off.rs",
       "owner": "CommandsCapability",
       "symbol": "set_disabled_categories",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "set_disabled_categories"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "SetDisabledCategoriesAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<System.String>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2530,10 +2708,16 @@
       "path": "crates/plugins/commands/src/turning_off.rs",
       "owner": "CommandsCapability",
       "symbol": "get_disabled_commands",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "disabled_commands"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "GetDisabledCommandsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2541,10 +2725,17 @@
       "path": "crates/plugins/commands/src/turning_off.rs",
       "owner": "CommandsCapability",
       "symbol": "is_command_disabled",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "is_command_disabled"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "IsCommandDisabledAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2552,10 +2743,17 @@
       "path": "crates/plugins/commands/src/turning_off.rs",
       "owner": "CommandsCapability",
       "symbol": "disable_command",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "disable_command"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "DisableCommandAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2563,10 +2761,17 @@
       "path": "crates/plugins/commands/src/turning_off.rs",
       "owner": "CommandsCapability",
       "symbol": "enable_command",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "enable_command"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "EnableCommandAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -2574,10 +2779,17 @@
       "path": "crates/plugins/commands/src/turning_off.rs",
       "owner": "CommandsCapability",
       "symbol": "set_disabled_commands",
-      "pending": "phase-3-wave-C",
       "export": {
         "path": "crates/plugins/commands/src/ffi.rs",
         "symbol": "set_disabled_commands"
+      },
+      "csharp": {
+        "type": "EmbedPDF.CommandsCapability",
+        "member": "SetDisabledCommandsAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<System.String>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {

@@ -705,6 +705,245 @@ EmbedPDF.Camera.Y.get -> double
 EmbedPDF.Camera.Y.init -> void
 EmbedPDF.Camera.Zoom.get -> double
 EmbedPDF.Camera.Zoom.init -> void
+EmbedPDF.CommandContext
+EmbedPDF.CommandContext.<Clone>$() -> EmbedPDF.CommandContext!
+EmbedPDF.CommandContext.AppStateJson.get -> string!
+EmbedPDF.CommandContext.AppStateJson.init -> void
+EmbedPDF.CommandContext.ArgsJson.get -> string?
+EmbedPDF.CommandContext.ArgsJson.init -> void
+EmbedPDF.CommandContext.CommandContext(string! CommandId, string? DocumentId, string? ArgsJson, string! AppStateJson) -> void
+EmbedPDF.CommandContext.CommandId.get -> string!
+EmbedPDF.CommandContext.CommandId.init -> void
+EmbedPDF.CommandContext.Deconstruct(out string! CommandId, out string? DocumentId, out string? ArgsJson, out string! AppStateJson) -> void
+EmbedPDF.CommandContext.DocumentId.get -> string?
+EmbedPDF.CommandContext.DocumentId.init -> void
+EmbedPDF.CommandContext.Equals(EmbedPDF.CommandContext? other) -> bool
+EmbedPDF.CommandDefinition
+EmbedPDF.CommandDefinition.<Clone>$() -> EmbedPDF.CommandDefinition!
+EmbedPDF.CommandDefinition.Categories.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.CommandDefinition.Categories.init -> void
+EmbedPDF.CommandDefinition.CommandDefinition(string! Id, string! LabelKey) -> void
+EmbedPDF.CommandDefinition.Deconstruct(out string! Id, out string! LabelKey) -> void
+EmbedPDF.CommandDefinition.Equals(EmbedPDF.CommandDefinition? other) -> bool
+EmbedPDF.CommandDefinition.Handler.get -> EmbedPDF.CommandHandler?
+EmbedPDF.CommandDefinition.Handler.init -> void
+EmbedPDF.CommandDefinition.Icon.get -> string?
+EmbedPDF.CommandDefinition.Icon.init -> void
+EmbedPDF.CommandDefinition.Id.get -> string!
+EmbedPDF.CommandDefinition.Id.init -> void
+EmbedPDF.CommandDefinition.LabelKey.get -> string!
+EmbedPDF.CommandDefinition.LabelKey.init -> void
+EmbedPDF.CommandDefinition.Menu.get -> string?
+EmbedPDF.CommandDefinition.Menu.init -> void
+EmbedPDF.CommandDefinition.Modal.get -> string?
+EmbedPDF.CommandDefinition.Modal.init -> void
+EmbedPDF.CommandDefinition.Panel.get -> EmbedPDF.CommandPanel?
+EmbedPDF.CommandDefinition.Panel.init -> void
+EmbedPDF.CommandDefinition.Shortcuts.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.CommandDefinition.Shortcuts.init -> void
+EmbedPDF.CommandExecuteResult
+EmbedPDF.CommandExecuteResult.CommandExecuteResult(EmbedPDF.CommandExecuteResult! original) -> void
+EmbedPDF.CommandExecuteResult.Executed
+EmbedPDF.CommandExecuteResult.Executed.Equals(EmbedPDF.CommandExecuteResult.Executed? other) -> bool
+EmbedPDF.CommandExecuteResult.Executed.Executed() -> void
+EmbedPDF.CommandExecuteResult.Rejected
+EmbedPDF.CommandExecuteResult.Rejected.Deconstruct(out EmbedPDF.CommandRejectReason Reason) -> void
+EmbedPDF.CommandExecuteResult.Rejected.Equals(EmbedPDF.CommandExecuteResult.Rejected? other) -> bool
+EmbedPDF.CommandExecuteResult.Rejected.Reason.get -> EmbedPDF.CommandRejectReason
+EmbedPDF.CommandExecuteResult.Rejected.Reason.init -> void
+EmbedPDF.CommandExecuteResult.Rejected.Rejected(EmbedPDF.CommandRejectReason Reason) -> void
+EmbedPDF.CommandHandler
+EmbedPDF.CommandHandler.CommandHandler(System.Func<EmbedPDF.CommandContext!, System.Threading.Tasks.Task!>? run = null, System.Func<EmbedPDF.CommandContext!, bool>? enabled = null, System.Func<EmbedPDF.CommandContext!, bool>? active = null, System.Func<EmbedPDF.CommandContext!, bool>? visible = null, System.Func<EmbedPDF.CommandContext!, EmbedPDF.IconAccent?>? iconAccent = null, System.Func<EmbedPDF.CommandContext!, EmbedPDF.CommandSettingLock?>? locked = null) -> void
+EmbedPDF.CommandHandler.Hooks.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.CommandHook>!
+EmbedPDF.CommandHook
+EmbedPDF.CommandHook.Active = 2 -> EmbedPDF.CommandHook
+EmbedPDF.CommandHook.Enabled = 1 -> EmbedPDF.CommandHook
+EmbedPDF.CommandHook.IconAccent = 4 -> EmbedPDF.CommandHook
+EmbedPDF.CommandHook.Locked = 5 -> EmbedPDF.CommandHook
+EmbedPDF.CommandHook.Run = 0 -> EmbedPDF.CommandHook
+EmbedPDF.CommandHook.Visible = 3 -> EmbedPDF.CommandHook
+EmbedPDF.CommandKeyStroke
+EmbedPDF.CommandKeyStroke.<Clone>$() -> EmbedPDF.CommandKeyStroke!
+EmbedPDF.CommandKeyStroke.Alt.get -> bool
+EmbedPDF.CommandKeyStroke.Alt.init -> void
+EmbedPDF.CommandKeyStroke.Code.get -> string?
+EmbedPDF.CommandKeyStroke.Code.init -> void
+EmbedPDF.CommandKeyStroke.CommandKeyStroke(string! Key, string? Code = null, bool Ctrl = false, bool Meta = false, bool Alt = false, bool Shift = false) -> void
+EmbedPDF.CommandKeyStroke.Ctrl.get -> bool
+EmbedPDF.CommandKeyStroke.Ctrl.init -> void
+EmbedPDF.CommandKeyStroke.Deconstruct(out string! Key, out string? Code, out bool Ctrl, out bool Meta, out bool Alt, out bool Shift) -> void
+EmbedPDF.CommandKeyStroke.Equals(EmbedPDF.CommandKeyStroke? other) -> bool
+EmbedPDF.CommandKeyStroke.Key.get -> string!
+EmbedPDF.CommandKeyStroke.Key.init -> void
+EmbedPDF.CommandKeyStroke.Meta.get -> bool
+EmbedPDF.CommandKeyStroke.Meta.init -> void
+EmbedPDF.CommandKeyStroke.Shift.get -> bool
+EmbedPDF.CommandKeyStroke.Shift.init -> void
+EmbedPDF.CommandMenuTarget
+EmbedPDF.CommandMenuTarget.<Clone>$() -> EmbedPDF.CommandMenuTarget!
+EmbedPDF.CommandMenuTarget.CommandMenuTarget(string? Menu) -> void
+EmbedPDF.CommandMenuTarget.Deconstruct(out string? Menu) -> void
+EmbedPDF.CommandMenuTarget.Equals(EmbedPDF.CommandMenuTarget? other) -> bool
+EmbedPDF.CommandMenuTarget.Menu.get -> string?
+EmbedPDF.CommandMenuTarget.Menu.init -> void
+EmbedPDF.CommandPanel
+EmbedPDF.CommandPanel.<Clone>$() -> EmbedPDF.CommandPanel!
+EmbedPDF.CommandPanel.CommandPanel(string! Id) -> void
+EmbedPDF.CommandPanel.Deconstruct(out string! Id) -> void
+EmbedPDF.CommandPanel.Equals(EmbedPDF.CommandPanel? other) -> bool
+EmbedPDF.CommandPanel.Exclusive.get -> string?
+EmbedPDF.CommandPanel.Exclusive.init -> void
+EmbedPDF.CommandPanel.Focus.get -> bool?
+EmbedPDF.CommandPanel.Focus.init -> void
+EmbedPDF.CommandPanel.Id.get -> string!
+EmbedPDF.CommandPanel.Id.init -> void
+EmbedPDF.CommandRefusalInfo
+EmbedPDF.CommandRefusalInfo.<Clone>$() -> EmbedPDF.CommandRefusalInfo!
+EmbedPDF.CommandRefusalInfo.CommandRefusalInfo(EmbedPDF.CommandRefusalReason Reason, string! Message) -> void
+EmbedPDF.CommandRefusalInfo.Deconstruct(out EmbedPDF.CommandRefusalReason Reason, out string! Message) -> void
+EmbedPDF.CommandRefusalInfo.Equals(EmbedPDF.CommandRefusalInfo? other) -> bool
+EmbedPDF.CommandRefusalInfo.Message.get -> string!
+EmbedPDF.CommandRefusalInfo.Message.init -> void
+EmbedPDF.CommandRefusalInfo.Reason.get -> EmbedPDF.CommandRefusalReason
+EmbedPDF.CommandRefusalInfo.Reason.init -> void
+EmbedPDF.CommandRefusalReason
+EmbedPDF.CommandRefusalReason.Locked = 2 -> EmbedPDF.CommandRefusalReason
+EmbedPDF.CommandRefusalReason.NotAllowed = 1 -> EmbedPDF.CommandRefusalReason
+EmbedPDF.CommandRefusalReason.TurnedOff = 0 -> EmbedPDF.CommandRefusalReason
+EmbedPDF.CommandRejectReason
+EmbedPDF.CommandRejectReason.Disabled = 1 -> EmbedPDF.CommandRejectReason
+EmbedPDF.CommandRejectReason.Hidden = 2 -> EmbedPDF.CommandRejectReason
+EmbedPDF.CommandRejectReason.NotFound = 0 -> EmbedPDF.CommandRejectReason
+EmbedPDF.CommandSettingLock
+EmbedPDF.CommandSettingLock.<Clone>$() -> EmbedPDF.CommandSettingLock!
+EmbedPDF.CommandSettingLock.By.get -> string!
+EmbedPDF.CommandSettingLock.By.init -> void
+EmbedPDF.CommandSettingLock.CommandSettingLock(string! By, string? ReasonKey = null) -> void
+EmbedPDF.CommandSettingLock.Deconstruct(out string! By, out string? ReasonKey) -> void
+EmbedPDF.CommandSettingLock.Equals(EmbedPDF.CommandSettingLock? other) -> bool
+EmbedPDF.CommandSettingLock.ReasonKey.get -> string?
+EmbedPDF.CommandSettingLock.ReasonKey.init -> void
+EmbedPDF.CommandShortcutBinding
+EmbedPDF.CommandShortcutBinding.<Clone>$() -> EmbedPDF.CommandShortcutBinding!
+EmbedPDF.CommandShortcutBinding.CommandId.get -> string!
+EmbedPDF.CommandShortcutBinding.CommandId.init -> void
+EmbedPDF.CommandShortcutBinding.CommandShortcutBinding(string! CommandId, string! Shortcut) -> void
+EmbedPDF.CommandShortcutBinding.Deconstruct(out string! CommandId, out string! Shortcut) -> void
+EmbedPDF.CommandShortcutBinding.Equals(EmbedPDF.CommandShortcutBinding? other) -> bool
+EmbedPDF.CommandShortcutBinding.Shortcut.get -> string!
+EmbedPDF.CommandShortcutBinding.Shortcut.init -> void
+EmbedPDF.CommandShortcutMatch
+EmbedPDF.CommandShortcutMatch.<Clone>$() -> EmbedPDF.CommandShortcutMatch!
+EmbedPDF.CommandShortcutMatch.CommandId.get -> string!
+EmbedPDF.CommandShortcutMatch.CommandId.init -> void
+EmbedPDF.CommandShortcutMatch.CommandShortcutMatch(string! CommandId, EmbedPDF.CommandRefusalInfo? Refusal) -> void
+EmbedPDF.CommandShortcutMatch.Deconstruct(out string! CommandId, out EmbedPDF.CommandRefusalInfo? Refusal) -> void
+EmbedPDF.CommandShortcutMatch.Equals(EmbedPDF.CommandShortcutMatch? other) -> bool
+EmbedPDF.CommandShortcutMatch.Refusal.get -> EmbedPDF.CommandRefusalInfo?
+EmbedPDF.CommandShortcutMatch.Refusal.init -> void
+EmbedPDF.CommandSummary
+EmbedPDF.CommandSummary.<Clone>$() -> EmbedPDF.CommandSummary!
+EmbedPDF.CommandSummary.Categories.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.CommandSummary.Categories.init -> void
+EmbedPDF.CommandSummary.CommandSummary(string! Id, string? Label, string? LabelKey, string? Icon, System.Collections.Generic.IReadOnlyList<string!>! Shortcuts, System.Collections.Generic.IReadOnlyList<string!>! Categories, string? Menu, EmbedPDF.CommandPanel? Panel, string? Modal, bool HasRunner) -> void
+EmbedPDF.CommandSummary.Deconstruct(out string! Id, out string? Label, out string? LabelKey, out string? Icon, out System.Collections.Generic.IReadOnlyList<string!>! Shortcuts, out System.Collections.Generic.IReadOnlyList<string!>! Categories, out string? Menu, out EmbedPDF.CommandPanel? Panel, out string? Modal, out bool HasRunner) -> void
+EmbedPDF.CommandSummary.Equals(EmbedPDF.CommandSummary? other) -> bool
+EmbedPDF.CommandSummary.HasRunner.get -> bool
+EmbedPDF.CommandSummary.HasRunner.init -> void
+EmbedPDF.CommandSummary.Icon.get -> string?
+EmbedPDF.CommandSummary.Icon.init -> void
+EmbedPDF.CommandSummary.Id.get -> string!
+EmbedPDF.CommandSummary.Id.init -> void
+EmbedPDF.CommandSummary.Label.get -> string?
+EmbedPDF.CommandSummary.Label.init -> void
+EmbedPDF.CommandSummary.LabelKey.get -> string?
+EmbedPDF.CommandSummary.LabelKey.init -> void
+EmbedPDF.CommandSummary.Menu.get -> string?
+EmbedPDF.CommandSummary.Menu.init -> void
+EmbedPDF.CommandSummary.Modal.get -> string?
+EmbedPDF.CommandSummary.Modal.init -> void
+EmbedPDF.CommandSummary.Panel.get -> EmbedPDF.CommandPanel?
+EmbedPDF.CommandSummary.Panel.init -> void
+EmbedPDF.CommandSummary.Shortcuts.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.CommandSummary.Shortcuts.init -> void
+EmbedPDF.CommandsCapability
+EmbedPDF.CommandsCapability.CanExecuteAsync(string! id, EmbedPDF.DocumentInfo? document = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.CommandsCapability.DisableCategoryAsync(string! category, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.CommandsCapability.DisableCommandAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.CommandsCapability.Dispose() -> void
+EmbedPDF.CommandsCapability.EnableCategoryAsync(string! category, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.CommandsCapability.EnableCommandAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.CommandsCapability.ExecuteAsync(string! id, EmbedPDF.DocumentInfo? document = null, string? argsJson = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.CommandExecuteResult!>!
+EmbedPDF.CommandsCapability.GetCommandAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.CommandSummary?>!
+EmbedPDF.CommandsCapability.GetCommandIdsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
+EmbedPDF.CommandsCapability.GetCommandsAsync(EmbedPDF.DocumentInfo? document = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.ResolvedCommand!>!>!
+EmbedPDF.CommandsCapability.GetDisabledCategoriesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
+EmbedPDF.CommandsCapability.GetDisabledCommandsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
+EmbedPDF.CommandsCapability.GetMenuTargetAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.CommandMenuTarget?>!
+EmbedPDF.CommandsCapability.GetRefusalAsync(string! id, EmbedPDF.DocumentInfo? document = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.CommandRefusalInfo?>!
+EmbedPDF.CommandsCapability.GetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.CommandsSettings!>!
+EmbedPDF.CommandsCapability.GetShortcutsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.CommandShortcutBinding!>!>!
+EmbedPDF.CommandsCapability.HasCommandAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.CommandsCapability.IsCategoryDisabledAsync(string! category, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.CommandsCapability.IsCommandDisabledAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.CommandsCapability.MatchStrokeAsync(EmbedPDF.CommandKeyStroke! stroke, bool isMac, bool inTextField = false, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.CommandShortcutMatch?>!
+EmbedPDF.CommandsCapability.ObserveEvents(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.CommandsEvent!>!
+EmbedPDF.CommandsCapability.RegisterAsync(EmbedPDF.CommandDefinition! definition, bool replace = false, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.Registration!>!
+EmbedPDF.CommandsCapability.RegisterAsync(System.Collections.Generic.IEnumerable<EmbedPDF.CommandDefinition!>! definitions, bool replace = false, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.Registration!>!
+EmbedPDF.CommandsCapability.ResetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.CommandsCapability.ResolveAsync(string! id, EmbedPDF.DocumentInfo? document = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ResolvedCommand?>!
+EmbedPDF.CommandsCapability.SearchAsync(string! query, EmbedPDF.DocumentInfo? document = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.ResolvedCommand!>!>!
+EmbedPDF.CommandsCapability.SetAppStateAsync(string! json, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.CommandsCapability.SetDisabledCategoriesAsync(System.Collections.Generic.IEnumerable<string!>! categories, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.CommandsCapability.SetDisabledCommandsAsync(System.Collections.Generic.IEnumerable<string!>! ids, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.CommandsCapability.UpdateSettingsAsync(EmbedPDF.CommandsSettingsPatch! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.CommandsEvent
+EmbedPDF.CommandsEvent.CommandsEvent(EmbedPDF.CommandsEvent! original) -> void
+EmbedPDF.CommandsEvent.Executed
+EmbedPDF.CommandsEvent.Executed.ArgsJson.get -> string?
+EmbedPDF.CommandsEvent.Executed.ArgsJson.init -> void
+EmbedPDF.CommandsEvent.Executed.CommandId.get -> string!
+EmbedPDF.CommandsEvent.Executed.CommandId.init -> void
+EmbedPDF.CommandsEvent.Executed.Deconstruct(out string! CommandId, out string? DocumentId, out string? ArgsJson) -> void
+EmbedPDF.CommandsEvent.Executed.DocumentId.get -> string?
+EmbedPDF.CommandsEvent.Executed.DocumentId.init -> void
+EmbedPDF.CommandsEvent.Executed.Equals(EmbedPDF.CommandsEvent.Executed? other) -> bool
+EmbedPDF.CommandsEvent.Executed.Executed(string! CommandId, string? DocumentId, string? ArgsJson) -> void
+EmbedPDF.CommandsEvent.ExecutionFailed
+EmbedPDF.CommandsEvent.ExecutionFailed.CommandId.get -> string!
+EmbedPDF.CommandsEvent.ExecutionFailed.CommandId.init -> void
+EmbedPDF.CommandsEvent.ExecutionFailed.Deconstruct(out string! CommandId, out string? DocumentId, out EmbedPDF.PluginErrorInfo! Error) -> void
+EmbedPDF.CommandsEvent.ExecutionFailed.DocumentId.get -> string?
+EmbedPDF.CommandsEvent.ExecutionFailed.DocumentId.init -> void
+EmbedPDF.CommandsEvent.ExecutionFailed.Equals(EmbedPDF.CommandsEvent.ExecutionFailed? other) -> bool
+EmbedPDF.CommandsEvent.ExecutionFailed.Error.get -> EmbedPDF.PluginErrorInfo!
+EmbedPDF.CommandsEvent.ExecutionFailed.Error.init -> void
+EmbedPDF.CommandsEvent.ExecutionFailed.ExecutionFailed(string! CommandId, string? DocumentId, EmbedPDF.PluginErrorInfo! Error) -> void
+EmbedPDF.CommandsSettings
+EmbedPDF.CommandsSettings.<Clone>$() -> EmbedPDF.CommandsSettings!
+EmbedPDF.CommandsSettings.AppStateJson.get -> string!
+EmbedPDF.CommandsSettings.AppStateJson.init -> void
+EmbedPDF.CommandsSettings.CommandsSettings(System.Collections.Generic.IReadOnlyList<string!>! DisabledCategories, System.Collections.Generic.IReadOnlyList<string!>! DisabledCommands, EmbedPDF.NotAllowedMode NotAllowed, string! AppStateJson) -> void
+EmbedPDF.CommandsSettings.Deconstruct(out System.Collections.Generic.IReadOnlyList<string!>! DisabledCategories, out System.Collections.Generic.IReadOnlyList<string!>! DisabledCommands, out EmbedPDF.NotAllowedMode NotAllowed, out string! AppStateJson) -> void
+EmbedPDF.CommandsSettings.DisabledCategories.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.CommandsSettings.DisabledCategories.init -> void
+EmbedPDF.CommandsSettings.DisabledCommands.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.CommandsSettings.DisabledCommands.init -> void
+EmbedPDF.CommandsSettings.Equals(EmbedPDF.CommandsSettings? other) -> bool
+EmbedPDF.CommandsSettings.NotAllowed.get -> EmbedPDF.NotAllowedMode
+EmbedPDF.CommandsSettings.NotAllowed.init -> void
+EmbedPDF.CommandsSettingsPatch
+EmbedPDF.CommandsSettingsPatch.<Clone>$() -> EmbedPDF.CommandsSettingsPatch!
+EmbedPDF.CommandsSettingsPatch.AppStateJson.get -> string?
+EmbedPDF.CommandsSettingsPatch.AppStateJson.init -> void
+EmbedPDF.CommandsSettingsPatch.CommandsSettingsPatch() -> void
+EmbedPDF.CommandsSettingsPatch.DisabledCategories.get -> System.Collections.Generic.IReadOnlyList<string!>?
+EmbedPDF.CommandsSettingsPatch.DisabledCategories.init -> void
+EmbedPDF.CommandsSettingsPatch.DisabledCommands.get -> System.Collections.Generic.IReadOnlyList<string!>?
+EmbedPDF.CommandsSettingsPatch.DisabledCommands.init -> void
+EmbedPDF.CommandsSettingsPatch.Equals(EmbedPDF.CommandsSettingsPatch? other) -> bool
+EmbedPDF.CommandsSettingsPatch.NotAllowed.get -> EmbedPDF.NotAllowedMode?
+EmbedPDF.CommandsSettingsPatch.NotAllowed.init -> void
 EmbedPDF.ContentInclusion
 EmbedPDF.ContentInclusion.Always = 1 -> EmbedPDF.ContentInclusion
 EmbedPDF.ContentInclusion.Never = 2 -> EmbedPDF.ContentInclusion
@@ -1122,6 +1361,19 @@ EmbedPDF.IScriptEngineFactory
 EmbedPDF.IScriptEngineFactory.Create() -> EmbedPDF.IScriptEngine!
 EmbedPDF.IStageInitialViewProvider
 EmbedPDF.IStageInitialViewProvider.InitialView() -> EmbedPDF.StageViewState?
+EmbedPDF.IStandardCommandsPlatform
+EmbedPDF.IStandardCommandsPlatform.CopyImageAsync(byte[]! png) -> System.Threading.Tasks.Task!
+EmbedPDF.IStandardCommandsPlatform.CopyTextAsync(string! text) -> System.Threading.Tasks.Task!
+EmbedPDF.IStandardCommandsPlatform.SaveFile(byte[]! bytes, string! fileName, string! contentType) -> void
+EmbedPDF.IconAccent
+EmbedPDF.IconAccent.<Clone>$() -> EmbedPDF.IconAccent!
+EmbedPDF.IconAccent.Deconstruct(out string? Primary, out string? Secondary) -> void
+EmbedPDF.IconAccent.Equals(EmbedPDF.IconAccent? other) -> bool
+EmbedPDF.IconAccent.IconAccent(string? Primary, string? Secondary) -> void
+EmbedPDF.IconAccent.Primary.get -> string?
+EmbedPDF.IconAccent.Primary.init -> void
+EmbedPDF.IconAccent.Secondary.get -> string?
+EmbedPDF.IconAccent.Secondary.init -> void
 EmbedPDF.InteractionCapability
 EmbedPDF.InteractionCapability.ActivateDefaultToolAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.InteractionCapability.ActivateToolAsync(EmbedPDF.ToolId id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -1469,6 +1721,9 @@ EmbedPDF.NativeRuntimeNotFoundException.NativeRuntimeNotFoundException(string! r
 EmbedPDF.NativeRuntimeNotFoundException.NativeRuntimeNotFoundException(string! runtimeIdentifier, System.Collections.Generic.IReadOnlyList<string!>! searchedPaths, string! message, System.Exception! innerException) -> void
 EmbedPDF.NativeRuntimeNotFoundException.RuntimeIdentifier.get -> string!
 EmbedPDF.NativeRuntimeNotFoundException.SearchedPaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.NotAllowedMode
+EmbedPDF.NotAllowedMode.Disable = 1 -> EmbedPDF.NotAllowedMode
+EmbedPDF.NotAllowedMode.Hide = 0 -> EmbedPDF.NotAllowedMode
 EmbedPDF.OpenDocumentOptions
 EmbedPDF.OpenDocumentOptions.<Clone>$() -> EmbedPDF.OpenDocumentOptions!
 EmbedPDF.OpenDocumentOptions.Activate.get -> bool
@@ -2019,6 +2274,7 @@ EmbedPDF.PdfViewer.GetActionsAsync(EmbedPDF.DocumentInfo! document, System.Threa
 EmbedPDF.PdfViewer.GetActiveDocumentAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.DocumentInfo?>!
 EmbedPDF.PdfViewer.GetActiveDocumentIdAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string?>!
 EmbedPDF.PdfViewer.GetAttachmentsAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.AttachmentCapability!>!
+EmbedPDF.PdfViewer.GetCommandsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.CommandsCapability!>!
 EmbedPDF.PdfViewer.GetDocumentAsync(string? id = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.DocumentInfo?>!
 EmbedPDF.PdfViewer.GetDocumentCountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
 EmbedPDF.PdfViewer.GetDocumentOrderAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
@@ -2060,6 +2316,7 @@ EmbedPDF.PdfViewer.RetryAsync(EmbedPDF.DocumentInfo! document, System.Threading.
 EmbedPDF.PdfViewer.SaveAsync(EmbedPDF.DocumentInfo! document, EmbedPDF.SaveMode mode = EmbedPDF.SaveMode.Incremental, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<byte[]!>!
 EmbedPDF.PdfViewer.SaveLayerAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<byte[]!>!
 EmbedPDF.PdfViewer.SetActiveAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PdfViewer.SetCommandsPlatform(EmbedPDF.IStandardCommandsPlatform? platform) -> void
 EmbedPDF.PdfViewer.SetDocumentOrderAsync(System.Collections.Generic.IEnumerable<string!>! ids, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.PdfViewer.StartAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.PdfViewer.SwapAsync(EmbedPDF.DocumentInfo! first, EmbedPDF.DocumentInfo! second, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -2639,6 +2896,35 @@ EmbedPDF.RenderedPageResult.Page.init -> void
 EmbedPDF.RenderedPageResult.Rendered.get -> EmbedPDF.RenderedPage!
 EmbedPDF.RenderedPageResult.Rendered.init -> void
 EmbedPDF.RenderedPageResult.RenderedPageResult(EmbedPDF.PageRef Page, EmbedPDF.RenderedPage! Rendered) -> void
+EmbedPDF.ResolvedCommand
+EmbedPDF.ResolvedCommand.<Clone>$() -> EmbedPDF.ResolvedCommand!
+EmbedPDF.ResolvedCommand.Active.get -> bool
+EmbedPDF.ResolvedCommand.Active.init -> void
+EmbedPDF.ResolvedCommand.Categories.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.ResolvedCommand.Categories.init -> void
+EmbedPDF.ResolvedCommand.Deconstruct(out string! Id, out string! Label, out string? Icon, out EmbedPDF.IconAccent? IconAccent, out System.Collections.Generic.IReadOnlyList<string!>! Shortcuts, out string? Menu, out bool Enabled, out bool Active, out bool Pressable, out bool Visible, out System.Collections.Generic.IReadOnlyList<string!>! Categories, out string? DisabledReason) -> void
+EmbedPDF.ResolvedCommand.DisabledReason.get -> string?
+EmbedPDF.ResolvedCommand.DisabledReason.init -> void
+EmbedPDF.ResolvedCommand.Enabled.get -> bool
+EmbedPDF.ResolvedCommand.Enabled.init -> void
+EmbedPDF.ResolvedCommand.Equals(EmbedPDF.ResolvedCommand? other) -> bool
+EmbedPDF.ResolvedCommand.Icon.get -> string?
+EmbedPDF.ResolvedCommand.Icon.init -> void
+EmbedPDF.ResolvedCommand.IconAccent.get -> EmbedPDF.IconAccent?
+EmbedPDF.ResolvedCommand.IconAccent.init -> void
+EmbedPDF.ResolvedCommand.Id.get -> string!
+EmbedPDF.ResolvedCommand.Id.init -> void
+EmbedPDF.ResolvedCommand.Label.get -> string!
+EmbedPDF.ResolvedCommand.Label.init -> void
+EmbedPDF.ResolvedCommand.Menu.get -> string?
+EmbedPDF.ResolvedCommand.Menu.init -> void
+EmbedPDF.ResolvedCommand.Pressable.get -> bool
+EmbedPDF.ResolvedCommand.Pressable.init -> void
+EmbedPDF.ResolvedCommand.ResolvedCommand(string! Id, string! Label, string? Icon, EmbedPDF.IconAccent? IconAccent, System.Collections.Generic.IReadOnlyList<string!>! Shortcuts, string? Menu, bool Enabled, bool Active, bool Pressable, bool Visible, System.Collections.Generic.IReadOnlyList<string!>! Categories, string? DisabledReason) -> void
+EmbedPDF.ResolvedCommand.Shortcuts.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.ResolvedCommand.Shortcuts.init -> void
+EmbedPDF.ResolvedCommand.Visible.get -> bool
+EmbedPDF.ResolvedCommand.Visible.init -> void
 EmbedPDF.ResourceStatus
 EmbedPDF.ResourceStatus.Error = 4 -> EmbedPDF.ResourceStatus
 EmbedPDF.ResourceStatus.Forbidden = 3 -> EmbedPDF.ResourceStatus
@@ -4065,6 +4351,8 @@ abstract EmbedPDF.ActionsScriptIdentitySetting.<Clone>$() -> EmbedPDF.ActionsScr
 abstract EmbedPDF.AnnotationRef.<Clone>$() -> EmbedPDF.AnnotationRef!
 abstract EmbedPDF.AttachmentEvent.<Clone>$() -> EmbedPDF.AttachmentEvent!
 abstract EmbedPDF.AttachmentHome.<Clone>$() -> EmbedPDF.AttachmentHome!
+abstract EmbedPDF.CommandExecuteResult.<Clone>$() -> EmbedPDF.CommandExecuteResult!
+abstract EmbedPDF.CommandsEvent.<Clone>$() -> EmbedPDF.CommandsEvent!
 abstract EmbedPDF.DocumentEvent.<Clone>$() -> EmbedPDF.DocumentEvent!
 abstract EmbedPDF.FormSubmissionValue.<Clone>$() -> EmbedPDF.FormSubmissionValue!
 abstract EmbedPDF.HistoryEvent.<Clone>$() -> EmbedPDF.HistoryEvent!
@@ -4369,6 +4657,64 @@ override EmbedPDF.AttachmentHome.Page.ToString() -> string!
 override EmbedPDF.AttachmentHome.ToString() -> string!
 override EmbedPDF.AttachmentRef.GetHashCode() -> int
 override EmbedPDF.Camera.GetHashCode() -> int
+override EmbedPDF.CommandContext.Equals(object? obj) -> bool
+override EmbedPDF.CommandContext.GetHashCode() -> int
+override EmbedPDF.CommandContext.ToString() -> string!
+override EmbedPDF.CommandDefinition.Equals(object? obj) -> bool
+override EmbedPDF.CommandDefinition.GetHashCode() -> int
+override EmbedPDF.CommandDefinition.ToString() -> string!
+override EmbedPDF.CommandExecuteResult.Equals(object? obj) -> bool
+override EmbedPDF.CommandExecuteResult.Executed.<Clone>$() -> EmbedPDF.CommandExecuteResult.Executed!
+override EmbedPDF.CommandExecuteResult.Executed.Equals(object? obj) -> bool
+override EmbedPDF.CommandExecuteResult.Executed.GetHashCode() -> int
+override EmbedPDF.CommandExecuteResult.Executed.ToString() -> string!
+override EmbedPDF.CommandExecuteResult.GetHashCode() -> int
+override EmbedPDF.CommandExecuteResult.Rejected.<Clone>$() -> EmbedPDF.CommandExecuteResult.Rejected!
+override EmbedPDF.CommandExecuteResult.Rejected.Equals(object? obj) -> bool
+override EmbedPDF.CommandExecuteResult.Rejected.GetHashCode() -> int
+override EmbedPDF.CommandExecuteResult.Rejected.ToString() -> string!
+override EmbedPDF.CommandExecuteResult.ToString() -> string!
+override EmbedPDF.CommandKeyStroke.Equals(object? obj) -> bool
+override EmbedPDF.CommandKeyStroke.GetHashCode() -> int
+override EmbedPDF.CommandKeyStroke.ToString() -> string!
+override EmbedPDF.CommandMenuTarget.Equals(object? obj) -> bool
+override EmbedPDF.CommandMenuTarget.GetHashCode() -> int
+override EmbedPDF.CommandMenuTarget.ToString() -> string!
+override EmbedPDF.CommandPanel.Equals(object? obj) -> bool
+override EmbedPDF.CommandPanel.GetHashCode() -> int
+override EmbedPDF.CommandPanel.ToString() -> string!
+override EmbedPDF.CommandRefusalInfo.Equals(object? obj) -> bool
+override EmbedPDF.CommandRefusalInfo.GetHashCode() -> int
+override EmbedPDF.CommandRefusalInfo.ToString() -> string!
+override EmbedPDF.CommandSettingLock.Equals(object? obj) -> bool
+override EmbedPDF.CommandSettingLock.GetHashCode() -> int
+override EmbedPDF.CommandSettingLock.ToString() -> string!
+override EmbedPDF.CommandShortcutBinding.Equals(object? obj) -> bool
+override EmbedPDF.CommandShortcutBinding.GetHashCode() -> int
+override EmbedPDF.CommandShortcutBinding.ToString() -> string!
+override EmbedPDF.CommandShortcutMatch.Equals(object? obj) -> bool
+override EmbedPDF.CommandShortcutMatch.GetHashCode() -> int
+override EmbedPDF.CommandShortcutMatch.ToString() -> string!
+override EmbedPDF.CommandSummary.Equals(object? obj) -> bool
+override EmbedPDF.CommandSummary.GetHashCode() -> int
+override EmbedPDF.CommandSummary.ToString() -> string!
+override EmbedPDF.CommandsEvent.Equals(object? obj) -> bool
+override EmbedPDF.CommandsEvent.Executed.<Clone>$() -> EmbedPDF.CommandsEvent.Executed!
+override EmbedPDF.CommandsEvent.Executed.Equals(object? obj) -> bool
+override EmbedPDF.CommandsEvent.Executed.GetHashCode() -> int
+override EmbedPDF.CommandsEvent.Executed.ToString() -> string!
+override EmbedPDF.CommandsEvent.ExecutionFailed.<Clone>$() -> EmbedPDF.CommandsEvent.ExecutionFailed!
+override EmbedPDF.CommandsEvent.ExecutionFailed.Equals(object? obj) -> bool
+override EmbedPDF.CommandsEvent.ExecutionFailed.GetHashCode() -> int
+override EmbedPDF.CommandsEvent.ExecutionFailed.ToString() -> string!
+override EmbedPDF.CommandsEvent.GetHashCode() -> int
+override EmbedPDF.CommandsEvent.ToString() -> string!
+override EmbedPDF.CommandsSettings.Equals(object? obj) -> bool
+override EmbedPDF.CommandsSettings.GetHashCode() -> int
+override EmbedPDF.CommandsSettings.ToString() -> string!
+override EmbedPDF.CommandsSettingsPatch.Equals(object? obj) -> bool
+override EmbedPDF.CommandsSettingsPatch.GetHashCode() -> int
+override EmbedPDF.CommandsSettingsPatch.ToString() -> string!
 override EmbedPDF.CustomMetadataUpdatedEvent.Equals(object? obj) -> bool
 override EmbedPDF.CustomMetadataUpdatedEvent.GetHashCode() -> int
 override EmbedPDF.CustomMetadataUpdatedEvent.ToString() -> string!
@@ -4506,6 +4852,9 @@ override EmbedPDF.I18nSettings.ToString() -> string!
 override EmbedPDF.I18nSettingsPatch.Equals(object? obj) -> bool
 override EmbedPDF.I18nSettingsPatch.GetHashCode() -> int
 override EmbedPDF.I18nSettingsPatch.ToString() -> string!
+override EmbedPDF.IconAccent.Equals(object? obj) -> bool
+override EmbedPDF.IconAccent.GetHashCode() -> int
+override EmbedPDF.IconAccent.ToString() -> string!
 override EmbedPDF.InteractionEvent.CursorChanged.<Clone>$() -> EmbedPDF.InteractionEvent.CursorChanged!
 override EmbedPDF.InteractionEvent.CursorChanged.Equals(object? obj) -> bool
 override EmbedPDF.InteractionEvent.CursorChanged.GetHashCode() -> int
@@ -4974,6 +5323,9 @@ override EmbedPDF.RenderedPage.ToString() -> string!
 override EmbedPDF.RenderedPageResult.Equals(object? obj) -> bool
 override EmbedPDF.RenderedPageResult.GetHashCode() -> int
 override EmbedPDF.RenderedPageResult.ToString() -> string!
+override EmbedPDF.ResolvedCommand.Equals(object? obj) -> bool
+override EmbedPDF.ResolvedCommand.GetHashCode() -> int
+override EmbedPDF.ResolvedCommand.ToString() -> string!
 override EmbedPDF.ScriptCheck.Equals(object? obj) -> bool
 override EmbedPDF.ScriptCheck.GetHashCode() -> int
 override EmbedPDF.ScriptCheck.ToString() -> string!
@@ -5457,6 +5809,10 @@ override sealed EmbedPDF.AttachmentEvent.Changed.Equals(EmbedPDF.AttachmentEvent
 override sealed EmbedPDF.AttachmentEvent.Resynced.Equals(EmbedPDF.AttachmentEvent? other) -> bool
 override sealed EmbedPDF.AttachmentHome.Document.Equals(EmbedPDF.AttachmentHome? other) -> bool
 override sealed EmbedPDF.AttachmentHome.Page.Equals(EmbedPDF.AttachmentHome? other) -> bool
+override sealed EmbedPDF.CommandExecuteResult.Executed.Equals(EmbedPDF.CommandExecuteResult? other) -> bool
+override sealed EmbedPDF.CommandExecuteResult.Rejected.Equals(EmbedPDF.CommandExecuteResult? other) -> bool
+override sealed EmbedPDF.CommandsEvent.Executed.Equals(EmbedPDF.CommandsEvent? other) -> bool
+override sealed EmbedPDF.CommandsEvent.ExecutionFailed.Equals(EmbedPDF.CommandsEvent? other) -> bool
 override sealed EmbedPDF.DocumentEvent.ActiveChanged.Equals(EmbedPDF.DocumentEvent? other) -> bool
 override sealed EmbedPDF.DocumentEvent.Closed.Equals(EmbedPDF.DocumentEvent? other) -> bool
 override sealed EmbedPDF.DocumentEvent.Locked.Equals(EmbedPDF.DocumentEvent? other) -> bool
@@ -5744,6 +6100,42 @@ static EmbedPDF.AttachmentRef.operator !=(EmbedPDF.AttachmentRef left, EmbedPDF.
 static EmbedPDF.AttachmentRef.operator ==(EmbedPDF.AttachmentRef left, EmbedPDF.AttachmentRef right) -> bool
 static EmbedPDF.Camera.operator !=(EmbedPDF.Camera left, EmbedPDF.Camera right) -> bool
 static EmbedPDF.Camera.operator ==(EmbedPDF.Camera left, EmbedPDF.Camera right) -> bool
+static EmbedPDF.CommandContext.operator !=(EmbedPDF.CommandContext? left, EmbedPDF.CommandContext? right) -> bool
+static EmbedPDF.CommandContext.operator ==(EmbedPDF.CommandContext? left, EmbedPDF.CommandContext? right) -> bool
+static EmbedPDF.CommandDefinition.operator !=(EmbedPDF.CommandDefinition? left, EmbedPDF.CommandDefinition? right) -> bool
+static EmbedPDF.CommandDefinition.operator ==(EmbedPDF.CommandDefinition? left, EmbedPDF.CommandDefinition? right) -> bool
+static EmbedPDF.CommandExecuteResult.Executed.operator !=(EmbedPDF.CommandExecuteResult.Executed? left, EmbedPDF.CommandExecuteResult.Executed? right) -> bool
+static EmbedPDF.CommandExecuteResult.Executed.operator ==(EmbedPDF.CommandExecuteResult.Executed? left, EmbedPDF.CommandExecuteResult.Executed? right) -> bool
+static EmbedPDF.CommandExecuteResult.Rejected.operator !=(EmbedPDF.CommandExecuteResult.Rejected? left, EmbedPDF.CommandExecuteResult.Rejected? right) -> bool
+static EmbedPDF.CommandExecuteResult.Rejected.operator ==(EmbedPDF.CommandExecuteResult.Rejected? left, EmbedPDF.CommandExecuteResult.Rejected? right) -> bool
+static EmbedPDF.CommandExecuteResult.operator !=(EmbedPDF.CommandExecuteResult? left, EmbedPDF.CommandExecuteResult? right) -> bool
+static EmbedPDF.CommandExecuteResult.operator ==(EmbedPDF.CommandExecuteResult? left, EmbedPDF.CommandExecuteResult? right) -> bool
+static EmbedPDF.CommandKeyStroke.operator !=(EmbedPDF.CommandKeyStroke? left, EmbedPDF.CommandKeyStroke? right) -> bool
+static EmbedPDF.CommandKeyStroke.operator ==(EmbedPDF.CommandKeyStroke? left, EmbedPDF.CommandKeyStroke? right) -> bool
+static EmbedPDF.CommandMenuTarget.operator !=(EmbedPDF.CommandMenuTarget? left, EmbedPDF.CommandMenuTarget? right) -> bool
+static EmbedPDF.CommandMenuTarget.operator ==(EmbedPDF.CommandMenuTarget? left, EmbedPDF.CommandMenuTarget? right) -> bool
+static EmbedPDF.CommandPanel.operator !=(EmbedPDF.CommandPanel? left, EmbedPDF.CommandPanel? right) -> bool
+static EmbedPDF.CommandPanel.operator ==(EmbedPDF.CommandPanel? left, EmbedPDF.CommandPanel? right) -> bool
+static EmbedPDF.CommandRefusalInfo.operator !=(EmbedPDF.CommandRefusalInfo? left, EmbedPDF.CommandRefusalInfo? right) -> bool
+static EmbedPDF.CommandRefusalInfo.operator ==(EmbedPDF.CommandRefusalInfo? left, EmbedPDF.CommandRefusalInfo? right) -> bool
+static EmbedPDF.CommandSettingLock.operator !=(EmbedPDF.CommandSettingLock? left, EmbedPDF.CommandSettingLock? right) -> bool
+static EmbedPDF.CommandSettingLock.operator ==(EmbedPDF.CommandSettingLock? left, EmbedPDF.CommandSettingLock? right) -> bool
+static EmbedPDF.CommandShortcutBinding.operator !=(EmbedPDF.CommandShortcutBinding? left, EmbedPDF.CommandShortcutBinding? right) -> bool
+static EmbedPDF.CommandShortcutBinding.operator ==(EmbedPDF.CommandShortcutBinding? left, EmbedPDF.CommandShortcutBinding? right) -> bool
+static EmbedPDF.CommandShortcutMatch.operator !=(EmbedPDF.CommandShortcutMatch? left, EmbedPDF.CommandShortcutMatch? right) -> bool
+static EmbedPDF.CommandShortcutMatch.operator ==(EmbedPDF.CommandShortcutMatch? left, EmbedPDF.CommandShortcutMatch? right) -> bool
+static EmbedPDF.CommandSummary.operator !=(EmbedPDF.CommandSummary? left, EmbedPDF.CommandSummary? right) -> bool
+static EmbedPDF.CommandSummary.operator ==(EmbedPDF.CommandSummary? left, EmbedPDF.CommandSummary? right) -> bool
+static EmbedPDF.CommandsEvent.Executed.operator !=(EmbedPDF.CommandsEvent.Executed? left, EmbedPDF.CommandsEvent.Executed? right) -> bool
+static EmbedPDF.CommandsEvent.Executed.operator ==(EmbedPDF.CommandsEvent.Executed? left, EmbedPDF.CommandsEvent.Executed? right) -> bool
+static EmbedPDF.CommandsEvent.ExecutionFailed.operator !=(EmbedPDF.CommandsEvent.ExecutionFailed? left, EmbedPDF.CommandsEvent.ExecutionFailed? right) -> bool
+static EmbedPDF.CommandsEvent.ExecutionFailed.operator ==(EmbedPDF.CommandsEvent.ExecutionFailed? left, EmbedPDF.CommandsEvent.ExecutionFailed? right) -> bool
+static EmbedPDF.CommandsEvent.operator !=(EmbedPDF.CommandsEvent? left, EmbedPDF.CommandsEvent? right) -> bool
+static EmbedPDF.CommandsEvent.operator ==(EmbedPDF.CommandsEvent? left, EmbedPDF.CommandsEvent? right) -> bool
+static EmbedPDF.CommandsSettings.operator !=(EmbedPDF.CommandsSettings? left, EmbedPDF.CommandsSettings? right) -> bool
+static EmbedPDF.CommandsSettings.operator ==(EmbedPDF.CommandsSettings? left, EmbedPDF.CommandsSettings? right) -> bool
+static EmbedPDF.CommandsSettingsPatch.operator !=(EmbedPDF.CommandsSettingsPatch? left, EmbedPDF.CommandsSettingsPatch? right) -> bool
+static EmbedPDF.CommandsSettingsPatch.operator ==(EmbedPDF.CommandsSettingsPatch? left, EmbedPDF.CommandsSettingsPatch? right) -> bool
 static EmbedPDF.CustomMetadataUpdatedEvent.operator !=(EmbedPDF.CustomMetadataUpdatedEvent? left, EmbedPDF.CustomMetadataUpdatedEvent? right) -> bool
 static EmbedPDF.CustomMetadataUpdatedEvent.operator ==(EmbedPDF.CustomMetadataUpdatedEvent? left, EmbedPDF.CustomMetadataUpdatedEvent? right) -> bool
 static EmbedPDF.DocumentEvent.ActiveChanged.operator !=(EmbedPDF.DocumentEvent.ActiveChanged? left, EmbedPDF.DocumentEvent.ActiveChanged? right) -> bool
@@ -5857,6 +6249,8 @@ static EmbedPDF.I18nSettings.operator !=(EmbedPDF.I18nSettings? left, EmbedPDF.I
 static EmbedPDF.I18nSettings.operator ==(EmbedPDF.I18nSettings? left, EmbedPDF.I18nSettings? right) -> bool
 static EmbedPDF.I18nSettingsPatch.operator !=(EmbedPDF.I18nSettingsPatch? left, EmbedPDF.I18nSettingsPatch? right) -> bool
 static EmbedPDF.I18nSettingsPatch.operator ==(EmbedPDF.I18nSettingsPatch? left, EmbedPDF.I18nSettingsPatch? right) -> bool
+static EmbedPDF.IconAccent.operator !=(EmbedPDF.IconAccent? left, EmbedPDF.IconAccent? right) -> bool
+static EmbedPDF.IconAccent.operator ==(EmbedPDF.IconAccent? left, EmbedPDF.IconAccent? right) -> bool
 static EmbedPDF.InteractionEvent.CursorChanged.operator !=(EmbedPDF.InteractionEvent.CursorChanged? left, EmbedPDF.InteractionEvent.CursorChanged? right) -> bool
 static EmbedPDF.InteractionEvent.CursorChanged.operator ==(EmbedPDF.InteractionEvent.CursorChanged? left, EmbedPDF.InteractionEvent.CursorChanged? right) -> bool
 static EmbedPDF.InteractionEvent.GestureCancelled.operator !=(EmbedPDF.InteractionEvent.GestureCancelled? left, EmbedPDF.InteractionEvent.GestureCancelled? right) -> bool
@@ -6156,6 +6550,8 @@ static EmbedPDF.RenderedPage.operator !=(EmbedPDF.RenderedPage? left, EmbedPDF.R
 static EmbedPDF.RenderedPage.operator ==(EmbedPDF.RenderedPage? left, EmbedPDF.RenderedPage? right) -> bool
 static EmbedPDF.RenderedPageResult.operator !=(EmbedPDF.RenderedPageResult? left, EmbedPDF.RenderedPageResult? right) -> bool
 static EmbedPDF.RenderedPageResult.operator ==(EmbedPDF.RenderedPageResult? left, EmbedPDF.RenderedPageResult? right) -> bool
+static EmbedPDF.ResolvedCommand.operator !=(EmbedPDF.ResolvedCommand? left, EmbedPDF.ResolvedCommand? right) -> bool
+static EmbedPDF.ResolvedCommand.operator ==(EmbedPDF.ResolvedCommand? left, EmbedPDF.ResolvedCommand? right) -> bool
 static EmbedPDF.ScriptCheck.operator !=(EmbedPDF.ScriptCheck? left, EmbedPDF.ScriptCheck? right) -> bool
 static EmbedPDF.ScriptCheck.operator ==(EmbedPDF.ScriptCheck? left, EmbedPDF.ScriptCheck? right) -> bool
 static EmbedPDF.ScriptEngineCheck.RunAsync(EmbedPDF.IScriptEngineFactory! factory, string! source, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ScriptCheck!>!
@@ -6493,6 +6889,12 @@ virtual EmbedPDF.AttachmentEvent.PrintMembers(System.Text.StringBuilder! builder
 virtual EmbedPDF.AttachmentHome.EqualityContract.get -> System.Type!
 virtual EmbedPDF.AttachmentHome.Equals(EmbedPDF.AttachmentHome? other) -> bool
 virtual EmbedPDF.AttachmentHome.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.CommandExecuteResult.EqualityContract.get -> System.Type!
+virtual EmbedPDF.CommandExecuteResult.Equals(EmbedPDF.CommandExecuteResult? other) -> bool
+virtual EmbedPDF.CommandExecuteResult.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.CommandsEvent.EqualityContract.get -> System.Type!
+virtual EmbedPDF.CommandsEvent.Equals(EmbedPDF.CommandsEvent? other) -> bool
+virtual EmbedPDF.CommandsEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual EmbedPDF.DocumentEvent.EqualityContract.get -> System.Type!
 virtual EmbedPDF.DocumentEvent.Equals(EmbedPDF.DocumentEvent? other) -> bool
 virtual EmbedPDF.DocumentEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
