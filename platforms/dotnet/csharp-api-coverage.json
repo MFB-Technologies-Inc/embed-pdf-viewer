@@ -627,10 +627,16 @@
       "path": "crates/plugins/annotation/src/comments/comments.rs",
       "owner": "Core",
       "symbol": "comments_list_threads",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/threads.rs",
         "symbol": "threads"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationThreadsCapability",
+        "member": "GetThreadsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -638,10 +644,17 @@
       "path": "crates/plugins/annotation/src/comments/comments.rs",
       "owner": "Core",
       "symbol": "comments_get_thread",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/threads.rs",
         "symbol": "thread"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationThreadsCapability",
+        "member": "GetThreadAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -649,10 +662,17 @@
       "path": "crates/plugins/annotation/src/comments/comments.rs",
       "owner": "Core",
       "symbol": "comments_can_set_text",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/threads.rs",
         "symbol": "permissions"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationThreadsCapability",
+        "member": "GetPermissionsAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -660,10 +680,17 @@
       "path": "crates/plugins/annotation/src/comments/comments.rs",
       "owner": "Core",
       "symbol": "comments_can_delete_thread",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/threads.rs",
         "symbol": "permissions"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationThreadsCapability",
+        "member": "GetPermissionsAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -671,10 +698,18 @@
       "path": "crates/plugins/annotation/src/comments/comments.rs",
       "owner": "Core",
       "symbol": "comments_reply",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/threads.rs",
         "symbol": "reply"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationThreadsCapability",
+        "member": "ReplyAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -682,10 +717,18 @@
       "path": "crates/plugins/annotation/src/comments/comments.rs",
       "owner": "Core",
       "symbol": "comments_set_text",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/threads.rs",
         "symbol": "set_text"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationThreadsCapability",
+        "member": "SetTextAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -693,10 +736,18 @@
       "path": "crates/plugins/annotation/src/comments/comments.rs",
       "owner": "Core",
       "symbol": "comments_set_status",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/threads.rs",
         "symbol": "set_status"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationThreadsCapability",
+        "member": "SetStatusAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "EmbedPDF.AnnotationThreadStatus",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -704,10 +755,18 @@
       "path": "crates/plugins/annotation/src/comments/comments.rs",
       "owner": "Core",
       "symbol": "comments_set_marked",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/threads.rs",
         "symbol": "set_marked"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationThreadsCapability",
+        "member": "SetMarkedAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Boolean",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -715,10 +774,17 @@
       "path": "crates/plugins/annotation/src/comments/comments.rs",
       "owner": "Core",
       "symbol": "comments_delete",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/threads.rs",
         "symbol": "delete"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationThreadsCapability",
+        "member": "DeleteAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -726,10 +792,17 @@
       "path": "crates/plugins/annotation/src/comments/comments.rs",
       "owner": "Core",
       "symbol": "comments_delete_thread",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/threads.rs",
         "symbol": "delete_thread"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationThreadsCapability",
+        "member": "DeleteThreadAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -753,10 +826,16 @@
       "path": "crates/plugins/annotation/src/controller.rs",
       "owner": "Core",
       "symbol": "get_settings",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/handle.rs",
         "symbol": "settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "GetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -764,10 +843,17 @@
       "path": "crates/plugins/annotation/src/controller.rs",
       "owner": "Core",
       "symbol": "update_settings",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/handle.rs",
         "symbol": "update_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "UpdateSettingsAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -775,10 +861,16 @@
       "path": "crates/plugins/annotation/src/controller.rs",
       "owner": "Core",
       "symbol": "reset_settings",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/handle.rs",
         "symbol": "reset_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "ResetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -794,10 +886,17 @@
       "path": "crates/plugins/annotation/src/read/annotations.rs",
       "owner": "Core",
       "symbol": "get",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/handle.rs",
         "symbol": "get"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "GetAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -805,17 +904,25 @@
       "path": "crates/plugins/annotation/src/read/annotations.rs",
       "owner": "Core",
       "symbol": "get_shared",
-      "pending": "phase-3-wave-D"
+      "exclusion": "No ffi.rs export and no Swift counterpart (Rust-internal fast path: get as the record holds it, the same Rc). GetAsync answers the same record. Exporting it is a Rust change wave D may not make.",
+      "classification": "no-export"
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/read/annotations.rs",
       "owner": "Core",
       "symbol": "is_pending",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/handle.rs",
         "symbol": "is_pending"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "IsPendingAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -823,10 +930,17 @@
       "path": "crates/plugins/annotation/src/read/annotations.rs",
       "owner": "Core",
       "symbol": "list",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/handle.rs",
         "symbol": "list"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "ListAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationFilter",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -834,10 +948,16 @@
       "path": "crates/plugins/annotation/src/read/annotations.rs",
       "owner": "Core",
       "symbol": "list_selected",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/handle.rs",
         "symbol": "selected"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "GetSelectedAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -853,10 +973,16 @@
       "path": "crates/plugins/annotation/src/read/annotations.rs",
       "owner": "Core",
       "symbol": "get_editing",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "editing_ref"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "GetEditingRefAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -864,7 +990,8 @@
       "path": "crates/plugins/annotation/src/read/annotations.rs",
       "owner": "Core",
       "symbol": "is_movable",
-      "pending": "phase-3-wave-D"
+      "exclusion": "No ffi.rs export and no Swift counterpart (added to the Rust controller after the Swift port). Exporting it is a Rust change wave D may not make; awaiting a decision on a later Swift and C# pass.",
+      "classification": "no-export"
     },
     {
       "crate": "annotation",
@@ -895,10 +1022,18 @@
       "path": "crates/plugins/annotation/src/read/chrome.rs",
       "owner": "Core",
       "symbol": "annotation_at",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/handle.rs",
         "symbol": "hit_test_at"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "HitTestAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "EmbedPDF.PdfPoint",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -978,10 +1113,16 @@
       "path": "crates/plugins/annotation/src/services/authority.rs",
       "owner": "Core",
       "symbol": "can_read",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/handle.rs",
         "symbol": "can_read"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "CanReadAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -989,10 +1130,16 @@
       "path": "crates/plugins/annotation/src/services/authority.rs",
       "owner": "Core",
       "symbol": "can_create",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/handle.rs",
         "symbol": "can_create"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "CanCreateAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1000,10 +1147,17 @@
       "path": "crates/plugins/annotation/src/services/authority.rs",
       "owner": "Core",
       "symbol": "can_update",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/handle.rs",
         "symbol": "can_update"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "CanUpdateAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1011,10 +1165,17 @@
       "path": "crates/plugins/annotation/src/services/authority.rs",
       "owner": "Core",
       "symbol": "can_delete",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/handle.rs",
         "symbol": "can_delete"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "CanDeleteAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1022,17 +1183,24 @@
       "path": "crates/plugins/annotation/src/services/authority.rs",
       "owner": "Core",
       "symbol": "can_duplicate",
-      "pending": "phase-3-wave-D"
+      "exclusion": "No ffi.rs export and no Swift counterpart (added with duplicate in f74c06c6d, after the Swift port). Awaiting a decision on a later Swift and C# pass.",
+      "classification": "no-export"
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/services/events.rs",
       "owner": "Core",
       "symbol": "get_status",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/handle.rs",
         "symbol": "status"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "GetStatusAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1040,10 +1208,16 @@
       "path": "crates/plugins/annotation/src/services/events.rs",
       "owner": "Core",
       "symbol": "refresh",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/handle.rs",
         "symbol": "refresh"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "RefreshAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1051,10 +1225,16 @@
       "path": "crates/plugins/annotation/src/services/events.rs",
       "owner": "Core",
       "symbol": "when_synced",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/handle.rs",
         "symbol": "when_synced"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "WhenSyncedAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1062,10 +1242,17 @@
       "path": "crates/plugins/annotation/src/services/file_picker.rs",
       "owner": "Core",
       "symbol": "set_file_picker_provider",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/handle.rs",
         "symbol": "set_file_picker"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "SetFilePickerAsync",
+        "parameters": [
+          "EmbedPDF.IAnnotationFilePicker",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1105,10 +1292,16 @@
       "path": "crates/plugins/annotation/src/tools/ghost.rs",
       "owner": "Core",
       "symbol": "clear_ghost",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "clear_ghost"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "ClearGhostAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1116,10 +1309,21 @@
       "path": "crates/plugins/annotation/src/tools/ghost.rs",
       "owner": "Core",
       "symbol": "hover_ghost_at",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "hover_ghost_at"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "HoverGhostAsync",
+        "parameters": [
+          "EmbedPDF.ToolId",
+          "EmbedPDF.PageRef",
+          "EmbedPDF.PdfPoint",
+          "System.Nullable<System.Double>",
+          "System.Nullable<System.Double>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1135,10 +1339,20 @@
       "path": "crates/plugins/annotation/src/tools/ghost.rs",
       "owner": "Core",
       "symbol": "preview_placement",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "preview_placement"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "PreviewPlacementAsync",
+        "parameters": [
+          "EmbedPDF.ToolId",
+          "EmbedPDF.PageRef",
+          "EmbedPDF.PdfPoint",
+          "EmbedPDF.PdfPoint",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1146,10 +1360,16 @@
       "path": "crates/plugins/annotation/src/tools/ghost.rs",
       "owner": "Core",
       "symbol": "clear_placement_preview",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "clear_placement_preview"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "ClearPlacementPreviewAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1157,10 +1377,18 @@
       "path": "crates/plugins/annotation/src/tools/registry.rs",
       "owner": "Core",
       "symbol": "tools_update_defaults",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/tools.rs",
         "symbol": "update_defaults"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationToolsCapability",
+        "member": "UpdateDefaultsAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationPatch",
+          "EmbedPDF.ToolId",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1168,10 +1396,16 @@
       "path": "crates/plugins/annotation/src/tools/registry.rs",
       "owner": "Core",
       "symbol": "tools_list",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/tools.rs",
         "symbol": "tools"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationToolsCapability",
+        "member": "GetToolsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1179,10 +1413,17 @@
       "path": "crates/plugins/annotation/src/tools/registry.rs",
       "owner": "Core",
       "symbol": "tools_get",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/tools.rs",
         "symbol": "tool"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationToolsCapability",
+        "member": "GetToolAsync",
+        "parameters": [
+          "EmbedPDF.ToolId",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1198,10 +1439,17 @@
       "path": "crates/plugins/annotation/src/tools/registry.rs",
       "owner": "Core",
       "symbol": "tools_get_defaults",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/tools.rs",
         "symbol": "defaults"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationToolsCapability",
+        "member": "GetDefaultsAsync",
+        "parameters": [
+          "EmbedPDF.ToolId",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1209,10 +1457,17 @@
       "path": "crates/plugins/annotation/src/tools/registry.rs",
       "owner": "Core",
       "symbol": "tools_get_properties",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/tools.rs",
         "symbol": "properties"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationToolsCapability",
+        "member": "GetPropertiesAsync",
+        "parameters": [
+          "EmbedPDF.ToolId",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1244,10 +1499,19 @@
       "path": "crates/plugins/annotation/src/write/crud.rs",
       "owner": "Core",
       "symbol": "create",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/handle.rs",
         "symbol": "create"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "CreateAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationDraft",
+          "EmbedPDF.PageRef",
+          "EmbedPDF.AnnotationCreateOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1255,10 +1519,18 @@
       "path": "crates/plugins/annotation/src/write/crud.rs",
       "owner": "Core",
       "symbol": "update",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/handle.rs",
         "symbol": "update"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "UpdateAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "EmbedPDF.AnnotationPatch",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1266,10 +1538,17 @@
       "path": "crates/plugins/annotation/src/write/crud.rs",
       "owner": "Core",
       "symbol": "delete",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/handle.rs",
         "symbol": "delete"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "DeleteAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1277,10 +1556,18 @@
       "path": "crates/plugins/annotation/src/write/crud.rs",
       "owner": "Core",
       "symbol": "reorder",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/handle.rs",
         "symbol": "reorder"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "ReorderAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.AnnotationRef>",
+          "EmbedPDF.AnnotationPosition",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1288,10 +1575,18 @@
       "path": "crates/plugins/annotation/src/write/crud.rs",
       "owner": "Core",
       "symbol": "export",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/interchange.rs",
         "symbol": "export"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "ExportAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.AnnotationRef>",
+          "System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1299,10 +1594,18 @@
       "path": "crates/plugins/annotation/src/write/crud.rs",
       "owner": "Core",
       "symbol": "import",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/interchange.rs",
         "symbol": "import"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "ImportAsync",
+        "parameters": [
+          "System.String",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1310,17 +1613,25 @@
       "path": "crates/plugins/annotation/src/write/crud.rs",
       "owner": "Core",
       "symbol": "duplicate",
-      "pending": "phase-3-wave-D"
+      "exclusion": "No ffi.rs export and no Swift counterpart (added in f74c06c6d, after the Swift port). Awaiting a decision on a later Swift and C# pass.",
+      "classification": "no-export"
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/crud.rs",
       "owner": "Core",
       "symbol": "download_resource",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "read_attachment"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "ReadAttachmentAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1328,10 +1639,16 @@
       "path": "crates/plugins/annotation/src/write/drafts.rs",
       "owner": "Core",
       "symbol": "draft_get",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "creation_draft"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "GetCreationDraftAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1339,10 +1656,16 @@
       "path": "crates/plugins/annotation/src/write/drafts.rs",
       "owner": "Core",
       "symbol": "draft_finish",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "finish_creation_draft"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "FinishCreationDraftAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1350,10 +1673,16 @@
       "path": "crates/plugins/annotation/src/write/drafts.rs",
       "owner": "Core",
       "symbol": "cancel",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "cancel"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "CancelAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1361,10 +1690,16 @@
       "path": "crates/plugins/annotation/src/write/drafts.rs",
       "owner": "Core",
       "symbol": "finish_ink_draft",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "finish_ink_draft"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "FinishInkDraftAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1372,10 +1707,16 @@
       "path": "crates/plugins/annotation/src/write/drafts.rs",
       "owner": "Core",
       "symbol": "has_creation_awaiting_click",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "has_creation_awaiting_click"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "HasCreationAwaitingClickAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1391,10 +1732,20 @@
       "path": "crates/plugins/annotation/src/write/icons.rs",
       "owner": "Core",
       "symbol": "place_at",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "place_at"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "PlaceAtAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "EmbedPDF.PdfPoint",
+          "System.Nullable<System.Double>",
+          "System.Nullable<System.Double>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1402,10 +1753,17 @@
       "path": "crates/plugins/annotation/src/write/links.rs",
       "owner": "Core",
       "symbol": "links_get",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/threads.rs",
         "symbol": "link"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationThreadsCapability",
+        "member": "GetLinkAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1413,10 +1771,18 @@
       "path": "crates/plugins/annotation/src/write/links.rs",
       "owner": "Core",
       "symbol": "links_set",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/threads.rs",
         "symbol": "set_link"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationThreadsCapability",
+        "member": "SetLinkAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1424,10 +1790,17 @@
       "path": "crates/plugins/annotation/src/write/links.rs",
       "owner": "Core",
       "symbol": "links_clear",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/threads.rs",
         "symbol": "clear_link"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationThreadsCapability",
+        "member": "ClearLinkAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1435,10 +1808,20 @@
       "path": "crates/plugins/annotation/src/write/markup.rs",
       "owner": "Core",
       "symbol": "create_markup",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "create_markup"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "CreateMarkupAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationSubtype",
+          "System.String",
+          "EmbedPDF.PageRef",
+          "System.Nullable<EmbedPDF.ToolId>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1446,10 +1829,18 @@
       "path": "crates/plugins/annotation/src/write/markup.rs",
       "owner": "Core",
       "symbol": "create_caret",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "create_caret"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "CreateCaretAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationTextEndAnchor",
+          "EmbedPDF.PageRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1457,10 +1848,20 @@
       "path": "crates/plugins/annotation/src/write/markup.rs",
       "owner": "Core",
       "symbol": "create_replace_text",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "create_replace_text"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "CreateReplaceTextAsync",
+        "parameters": [
+          "System.String",
+          "EmbedPDF.AnnotationTextEndAnchor",
+          "EmbedPDF.PageRef",
+          "System.Nullable<EmbedPDF.ToolId>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1476,10 +1877,19 @@
       "path": "crates/plugins/annotation/src/write/markup.rs",
       "owner": "Core",
       "symbol": "preview_markup",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "preview_markup"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "PreviewMarkupAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationSubtype",
+          "System.Collections.Generic.IEnumerable<EmbedPDF.AnnotationPageQuads>",
+          "System.Nullable<EmbedPDF.ToolId>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1487,10 +1897,16 @@
       "path": "crates/plugins/annotation/src/write/markup.rs",
       "owner": "Core",
       "symbol": "clear_markup_preview",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "clear_markup_preview"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "ClearMarkupPreviewAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1498,10 +1914,18 @@
       "path": "crates/plugins/annotation/src/write/markup.rs",
       "owner": "Core",
       "symbol": "create_from_selection",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "create_from_selection"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "CreateFromSelectionAsync",
+        "parameters": [
+          "EmbedPDF.ToolId",
+          "System.Boolean",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1517,14 +1941,16 @@
       "path": "crates/plugins/annotation/src/write/measurement.rs",
       "owner": "Core",
       "symbol": "when_remeasurable",
-      "pending": "phase-3-wave-D"
+      "exclusion": "No ffi.rs export and no Swift counterpart: a measurement plugin hook (write/measurement.rs). Awaiting a decision on a later Swift and C# pass.",
+      "classification": "no-export"
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/measurement.rs",
       "owner": "Core",
       "symbol": "stage_remeasure",
-      "pending": "phase-3-wave-D"
+      "exclusion": "No ffi.rs export and no Swift counterpart: a measurement plugin hook that stages a rescale inside another change (write/measurement.rs). Awaiting a decision on a later Swift and C# pass.",
+      "classification": "no-export"
     },
     {
       "crate": "annotation",
@@ -1571,10 +1997,17 @@
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "toggle_format",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/selection.rs",
         "symbol": "toggle_text_format"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationSelectionCapability",
+        "member": "ToggleAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationTextFormat",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1582,10 +2015,18 @@
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_set",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/selection.rs",
         "symbol": "select"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationSelectionCapability",
+        "member": "SelectAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.AnnotationRef>",
+          "System.Boolean",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1593,10 +2034,18 @@
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_add",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/selection.rs",
         "symbol": "select"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationSelectionCapability",
+        "member": "SelectAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.AnnotationRef>",
+          "System.Boolean",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1604,10 +2053,17 @@
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_select_all",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/selection.rs",
         "symbol": "select_all"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationSelectionCapability",
+        "member": "SelectAllAsync",
+        "parameters": [
+          "System.Nullable<EmbedPDF.PageRef>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1615,10 +2071,18 @@
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_select_in_rect",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/selection.rs",
         "symbol": "select_in_rect"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationSelectionCapability",
+        "member": "SelectInRectAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "EmbedPDF.PdfRect",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1626,10 +2090,16 @@
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_clear",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/selection.rs",
         "symbol": "clear"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationSelectionCapability",
+        "member": "ClearAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1637,10 +2107,17 @@
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_update",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/selection.rs",
         "symbol": "update"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationSelectionCapability",
+        "member": "UpdateAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationPatch",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1648,10 +2125,17 @@
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_update_link",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/selection.rs",
         "symbol": "update_link"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationSelectionCapability",
+        "member": "UpdateLinkAsync",
+        "parameters": [
+          "EmbedPDF.PdfLinkTarget",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1659,10 +2143,16 @@
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_delete",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/selection.rs",
         "symbol": "delete"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationSelectionCapability",
+        "member": "DeleteAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1670,10 +2160,17 @@
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_rotate_by",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/selection.rs",
         "symbol": "rotate_by"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationSelectionCapability",
+        "member": "RotateByAsync",
+        "parameters": [
+          "System.Double",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1681,10 +2178,16 @@
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_reset_rotation",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/selection.rs",
         "symbol": "reset_rotation"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationSelectionCapability",
+        "member": "ResetRotationAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1700,10 +2203,16 @@
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_group",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/selection.rs",
         "symbol": "group"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationSelectionCapability",
+        "member": "GroupAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1711,10 +2220,16 @@
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_ungroup",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/selection.rs",
         "symbol": "ungroup"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationSelectionCapability",
+        "member": "UngroupAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1722,10 +2237,16 @@
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_can_group",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/selection.rs",
         "symbol": "can_group"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationSelectionCapability",
+        "member": "CanGroupAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1733,24 +2254,32 @@
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_duplicate",
-      "pending": "phase-3-wave-D"
+      "exclusion": "No ffi.rs export and no Swift counterpart (added with duplicate in f74c06c6d). Awaiting a decision on a later Swift and C# pass.",
+      "classification": "no-export"
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_can_duplicate",
-      "pending": "phase-3-wave-D"
+      "exclusion": "No ffi.rs export and no Swift counterpart (added with duplicate in f74c06c6d). Awaiting a decision on a later Swift and C# pass.",
+      "classification": "no-export"
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_can_ungroup",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/selection.rs",
         "symbol": "can_ungroup"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationSelectionCapability",
+        "member": "CanUngroupAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1758,10 +2287,18 @@
       "path": "crates/plugins/annotation/src/write/stamps.rs",
       "owner": "Core",
       "symbol": "stamps_arm",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "arm_stamp"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "ArmStampAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationStampSource",
+          "System.Nullable<System.Double>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1769,10 +2306,16 @@
       "path": "crates/plugins/annotation/src/write/stamps.rs",
       "owner": "Core",
       "symbol": "stamps_disarm",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "disarm_stamp"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "DisarmStampAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1780,10 +2323,16 @@
       "path": "crates/plugins/annotation/src/write/stamps.rs",
       "owner": "Core",
       "symbol": "stamps_is_armed",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "has_armed_stamp"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "HasArmedStampAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1791,10 +2340,19 @@
       "path": "crates/plugins/annotation/src/write/stamps.rs",
       "owner": "Core",
       "symbol": "stamps_place",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "place_stamp"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "PlaceStampAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationStampSource",
+          "EmbedPDF.AnnotationStampPlacement",
+          "System.Nullable<System.Double>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1802,10 +2360,19 @@
       "path": "crates/plugins/annotation/src/write/stamps.rs",
       "owner": "Core",
       "symbol": "place_armed_stamp",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "place_armed_stamp"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "PlaceArmedStampAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "EmbedPDF.PdfPoint",
+          "System.Nullable<System.Double>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1813,10 +2380,19 @@
       "path": "crates/plugins/annotation/src/write/stamps.rs",
       "owner": "Core",
       "symbol": "request_stamp_at",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "request_stamp_at"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "RequestStampAtAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "EmbedPDF.PdfPoint",
+          "System.Nullable<System.Double>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1840,10 +2416,17 @@
       "path": "crates/plugins/annotation/src/write/text_editing.rs",
       "owner": "Core",
       "symbol": "text_begin",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "begin_text_edit"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "BeginTextEditAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1851,10 +2434,16 @@
       "path": "crates/plugins/annotation/src/write/text_editing.rs",
       "owner": "Core",
       "symbol": "text_end",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "end_text_edit"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "EndTextEditAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1862,10 +2451,21 @@
       "path": "crates/plugins/annotation/src/write/text_editing.rs",
       "owner": "Core",
       "symbol": "begin_text_edit_at",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "begin_text_edit_at"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "BeginTextEditAtAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "EmbedPDF.PdfPoint",
+          "System.Nullable<System.Double>",
+          "System.Nullable<System.Double>",
+          "System.Nullable<System.Double>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1881,10 +2481,18 @@
       "path": "crates/plugins/annotation/src/write/text_editing.rs",
       "owner": "Core",
       "symbol": "draft_contents",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "draft_contents"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "DraftContentsAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -1900,10 +2508,19 @@
       "path": "crates/plugins/annotation/src/write/text_editing.rs",
       "owner": "Core",
       "symbol": "set_text_selection",
-      "pending": "phase-3-wave-D",
       "export": {
         "path": "crates/plugins/annotation/src/ffi/drafts.rs",
         "symbol": "set_text_selection"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationDraftsCapability",
+        "member": "SetTextSelectionAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Nullable<System.Int32>",
+          "System.Nullable<System.Int32>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {

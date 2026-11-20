@@ -144,6 +144,30 @@ public sealed class LinkCapability : IDisposable
         return await viewer.Run(() => handle.Label(new GL.LinkInput.Target(targetJson)), cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>What activating a typed target would do, with no side effect.</summary>
+    public async Task<LinkResolution> ResolveAsync(AnnotationLinkTarget target, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        var json = target.ToJson();
+        return await ResolveAsync(json, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Activates a typed target, such as an annotation's link.</summary>
+    public async Task<LinkActivation> ActivateAsync(AnnotationLinkTarget target, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        var json = target.ToJson();
+        return await ActivateAsync(json, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>A label for a typed target.</summary>
+    public async Task<string> GetLabelAsync(AnnotationLinkTarget target, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        var json = target.ToJson();
+        return await GetLabelAsync(json, cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>Whether a tap on a link is in flight.</summary>
     public Task<bool> IsNavigationEngagedAsync(CancellationToken cancellationToken = default) => viewer.Run(() => handle.IsNavigationEngaged(), cancellationToken);
 

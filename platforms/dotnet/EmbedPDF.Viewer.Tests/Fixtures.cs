@@ -11,6 +11,8 @@ static class Fixture
         ["features"] = "tooling/viewer-e2e/fixtures/features.pdf",
         ["signed_two_approvals"] = "packages/engine/main/test/fixtures/signed_two_approvals.pdf",
         ["document_actions"] = "tooling/engine-conformance/fixtures/document_actions.pdf",
+        ["annotation_kinds"] = "tooling/engine-conformance/fixtures/annotation_kinds.pdf",
+        ["tiny.png"] = "tooling/engine-conformance/fixtures/tiny.png",
     };
 
     public static string Path(string name)
