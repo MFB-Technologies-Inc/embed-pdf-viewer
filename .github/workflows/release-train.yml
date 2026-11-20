@@ -198,21 +198,25 @@ jobs:
           cat "$GITHUB_STEP_SUMMARY"
 
   slices-apple:
+    name: release-fork-slices.yml (apple)
     uses: ./.github/workflows/release-fork-slices.yml
     with:
       targets: '["ios-arm64","ios-sim-arm64","darwin-static-arm64","darwin-static-x64"]'
 
   slices-eh:
+    name: release-fork-slices.yml (wasm32-eh)
     uses: ./.github/workflows/release-fork-slices.yml
     with:
       targets: '["wasm32-eh"]'
 
   slices-runtime:
+    name: release-fork-slices.yml (runtime)
     uses: ./.github/workflows/release-fork-slices.yml
     with:
       targets: '["linux-arm64","android-arm64","android-x64","wasm32"]'
 
   dotnet:
+    name: release-dotnet.yml
     uses: ./.github/workflows/release-dotnet.yml
     with:
       dry_run: ${{ inputs.dry_run }}
@@ -221,6 +225,7 @@ jobs:
   # runtime, payload and apple grant contents: write so their publish jobs
   # can ask for it; every other job in them stays at contents: read.
   runtime:
+    name: release-runtime.yml
     needs: [preflight, slices-runtime, slices-eh]
     uses: ./.github/workflows/release-runtime.yml
     permissions:
@@ -230,6 +235,7 @@ jobs:
       dry_run: ${{ inputs.dry_run }}
 
   payload:
+    name: release-payload.yml
     needs: [preflight, slices-eh]
     uses: ./.github/workflows/release-payload.yml
     permissions:
@@ -238,6 +244,7 @@ jobs:
       dry_run: ${{ inputs.dry_run }}
 
   apple:
+    name: release-apple.yml
     needs: [preflight, slices-apple]
     uses: ./.github/workflows/release-apple.yml
     permissions:
@@ -249,6 +256,7 @@ jobs:
   # payload is released by the time this starts. The one case it isn't is a
   # dry run that built a new payload: then the build uses payload-wasm32.
   viewer:
+    name: release-rust-viewer.yml
     needs: payload
     uses: ./.github/workflows/release-rust-viewer.yml
     with:
@@ -260,6 +268,7 @@ jobs:
   # they are committed only once the runtime and payload of that gitlink are
   # out too. swift-release tags the pin commit.
   pin:
+    name: pin
     needs: [apple, runtime, payload]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -332,6 +341,7 @@ jobs:
           echo "pin_sha=$pin_sha" >> "$GITHUB_OUTPUT"
 
   swift-release:
+    name: release swift
     needs: [pin, viewer]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -360,6 +370,7 @@ jobs:
   # buildInfo. On a real run viewer fetched the released payload, so the
   # payload is out by now.
   viewer-release:
+    name: release viewer
     needs: viewer
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -390,6 +401,7 @@ jobs:
   # Tags github.sha, the commit the package was built from and its provenance
   # record names. preflight checked the tag; dotnet itself doesn't wait for it.
   dotnet-release:
+    name: release dotnet
     needs: [preflight, dotnet]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
