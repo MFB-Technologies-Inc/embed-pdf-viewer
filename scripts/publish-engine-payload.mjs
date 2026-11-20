@@ -16,10 +16,16 @@
 // payloads have hashes upstream never has.
 //
 //   node scripts/publish-engine-payload.mjs [--dry-run] [--only wasm|apple]
+//                                           [--stage build|publish]
 //
 // --dry-run builds, verifies and packs each payload and prints the release it
 // would create, without creating it or touching Package.swift. --only runs one
-// half.
+// half. --stage, with --only apple, splits the Apple half in two: `build`
+// stops once the zip is packaged, leaving it and its facts (the
+// EmbedPDFBindings.xcframework.zip.json beside it) in platforms/apple/.build/
+// publish; `publish` takes those, skips the build and the tests, and creates
+// the release and pins it. Releases go to MFB-Technologies-Inc/embed-pdf-runtime
+// unless EMBEDPDF_RELEASE_REPO names another owner/repo.
 //
 // The wasm half checks the linked engine against the committed bindings
 // (src/core/pdf-functions.generated.ts), not the ones the header generator
@@ -38,7 +44,7 @@
 // archive's contents unpacked into `staging`:
 //
 //   { "recipe": <build-arm.mjs's FORK_RECIPE>, "sha": "<the archive's fork commit>",
-//     "seeded": false, "staging": "<the unpacked archive>",
+//     "target": "wasm32-eh", "seeded": false, "staging": "<the unpacked archive>",
 //     "libSha256": "<sha256 of staging/lib/libembedpdf.a>",
 //     "source": { "archive": "<its file name>", "archivePath": "<the .tar.gz>",
 //                 "archiveSha256": "<its sha256>", "emsdk": "<the emsdk it was built with>" } }
@@ -51,9 +57,11 @@
 // emsdkVersion (the 6dfc03697 one) leaves source.emsdk the one stamp field
 // taken on trust.
 //
-// The Apple half rewrites engineRelease and engineChecksum in Package.swift
-// after it publishes, and leaves that edit for you to commit: the release names
-// the commit it was built from, which can't also contain its checksum.
+// The Apple half rewrites engineRelease and engineChecksum in
+// platforms/apple/EmbedPDF/Package.swift, and the EmbedPDFBindings url and
+// checksum in the root Package.swift, after it publishes, and leaves those
+// edits for you to commit: the release names the commit it was built from,
+// which can't also contain its checksum.
 //
 // The fork build and emsdk are cached under perf-compare/.work (PERF_WORK_DIR
 // overrides), the same cache the perf harness uses: a cached fork makes a
@@ -73,15 +81,17 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   renameSync,
   rmSync,
   statSync,
+  symlinkSync,
   utimesSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { buildFork } from '../perf-compare/scripts/build-arm.mjs';
 import { workDir } from '../perf-compare/scripts/materialize.mjs';
 import { forkContains } from './lib/fork-ancestry.mjs';
@@ -108,7 +118,8 @@ import {
 
 import { stageMacConsumer } from '../platforms/apple/macos-consumer.mjs';
 
-const RELEASE_REPO = 'MFB-Technologies-Inc/embed-pdf-runtime';
+export const releaseRepo = () =>
+  process.env.EMBEDPDF_RELEASE_REPO ?? 'MFB-Technologies-Inc/embed-pdf-runtime';
 const TARGET = 'wasm32';
 const ASSET = `engine-runtime-payload-${TARGET}.tar.gz`;
 
@@ -174,6 +185,7 @@ function takeRunLock() {
 
 const apple = path.join(repo, 'platforms/apple');
 const manifest = path.join(apple, 'EmbedPDF/Package.swift');
+const rootManifest = path.join(repo, 'Package.swift');
 // The fork target the wasm32 payload links, as build-arm.mjs builds it.
 const FORK_TARGET = buildArmConstant('FORK_TARGET');
 const dryRun = process.argv.includes('--dry-run');
@@ -181,6 +193,12 @@ const onlyAt = process.argv.indexOf('--only');
 const only = onlyAt === -1 ? null : process.argv[onlyAt + 1];
 if (only !== null && only !== 'wasm' && only !== 'apple') {
   console.error('--only takes wasm or apple');
+  process.exit(64);
+}
+const stageAt = process.argv.indexOf('--stage');
+const stage = stageAt === -1 ? null : process.argv[stageAt + 1];
+if (stage !== null && ((stage !== 'build' && stage !== 'publish') || only !== 'apple')) {
+  console.error('--stage takes build or publish, and needs --only apple');
   process.exit(64);
 }
 
@@ -264,7 +282,7 @@ function releasedArchiveSha256(tag) {
         'download',
         tag,
         '--repo',
-        RELEASE_REPO,
+        releaseRepo(),
         '--pattern',
         `${ASSET}.sha256`,
         '--dir',
@@ -288,76 +306,89 @@ function releasedArchiveSha256(tag) {
 const releaseState = (tag, asset) => {
   const view = spawnSync(
     'gh',
-    ['release', 'view', tag, '--repo', RELEASE_REPO, '--json', 'assets,isDraft'],
+    ['release', 'view', tag, '--repo', releaseRepo(), '--json', 'assets,isDraft'],
     { cwd: repo, encoding: 'utf8' },
   );
   if (view.status === 0) return releaseVerdict(JSON.parse(view.stdout), asset);
   if (/release not found/i.test(view.stderr ?? '')) return releaseVerdict(null, asset);
   throw new Error(
-    `gh couldn't say whether ${tag} exists on ${RELEASE_REPO}: ${(view.stderr || view.error?.message || `exit ${view.status}`).trim()}`,
+    `gh couldn't say whether ${tag} exists on ${releaseRepo()}: ${(view.stderr || view.error?.message || `exit ${view.status}`).trim()}`,
   );
 };
 
-// The release names a commit, so that commit has to be what was built.
-const dirty = run('git', ['status', '--porcelain', '--untracked-files=no']);
-if (dirty) {
-  console.error(`Commit or discard these first; the release records HEAD:\n${dirty}`);
-  // The header generator rewrites the committed bindings until the link puts
-  // them back, so a run killed in between leaves them changed.
-  if (dirty.includes('pdf-functions.generated.ts')) {
-    console.error(
-      'pdf-functions.generated.ts is what the header generator wrote in a run that was stopped; ' +
-        'restore it with git checkout -- packages/engine/runtime/src/core/pdf-functions.generated.ts',
-    );
+// Run as a script, not imported (as the tests import pinEngine).
+const invoked =
+  process.argv[1] !== undefined &&
+  import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href;
+// The commit and toolchain the releases name.
+let head;
+let rustc;
+if (invoked) {
+  // The release names a commit, so that commit has to be what was built.
+  const dirty = run('git', ['status', '--porcelain', '--untracked-files=no']);
+  if (dirty) {
+    console.error(`Commit or discard these first; the release records HEAD:\n${dirty}`);
+    // The header generator rewrites the committed bindings until the link puts
+    // them back, so a run killed in between leaves them changed.
+    if (dirty.includes('pdf-functions.generated.ts')) {
+      console.error(
+        'pdf-functions.generated.ts is what the header generator wrote in a run that was stopped; ' +
+          'restore it with git checkout -- packages/engine/runtime/src/core/pdf-functions.generated.ts',
+      );
+    }
+    process.exit(1);
   }
-  process.exit(1);
-}
 
-// buildFork clones the fork from the runtime-src checkout. Its commit may exist
-// only on the fork, which `git submodule update` won't fetch from upstream.
-// Untrimmed: the status's first column is a space when the commit matches.
-const status = execFileSync('git', ['submodule', 'status', 'packages/engine/runtime/runtime-src'], {
-  cwd: repo,
-  encoding: 'utf8',
-});
-if (!status.startsWith(' ')) {
-  const sha = status.slice(1).split(' ')[0];
-  console.error(
-    `runtime-src isn't checked out at ${sha.slice(0, 9)}. From the repo root:\n` +
-      `  git submodule init packages/engine/runtime/runtime-src\n` +
-      `  git config submodule.packages/engine/runtime/runtime-src.url https://github.com/${RELEASE_REPO}.git\n` +
-      `  git submodule update packages/engine/runtime/runtime-src`,
+  // buildFork clones the fork from the runtime-src checkout. Its commit may exist
+  // only on the fork, which `git submodule update` won't fetch from upstream.
+  // Untrimmed: the status's first column is a space when the commit matches.
+  const status = execFileSync(
+    'git',
+    ['submodule', 'status', 'packages/engine/runtime/runtime-src'],
+    {
+      cwd: repo,
+      encoding: 'utf8',
+    },
   );
-  process.exit(1);
-}
-
-// Each hash script lists the crates its binary links by hand. A crate missing
-// from a list would change that binary without changing its hash.
-const metadata = JSON.parse(
-  run('cargo', ['metadata', '--format-version', '1'], { maxBuffer: 1 << 28 }),
-);
-const checkCrates = (root, script, variable) => {
-  const local = linkedLocalCrates(metadata, root);
-  const listed = listedCrates(readFileSync(script, 'utf8'), variable);
-  if (local.join() !== listed.join()) {
+  if (!status.startsWith(' ')) {
+    const sha = status.slice(1).split(' ')[0];
     console.error(
-      `${variable} in ${path.basename(script)} is (${listed.join(' ')}),\n` +
-        `but ${root} links (${local.join(' ')}). Update the list first.`,
+      `runtime-src isn't checked out at ${sha.slice(0, 9)}. From the repo root:\n` +
+        `  git submodule init packages/engine/runtime/runtime-src\n` +
+        `  git config submodule.packages/engine/runtime/runtime-src.url https://github.com/${releaseRepo()}.git\n` +
+        `  git submodule update packages/engine/runtime/runtime-src`,
     );
     process.exit(1);
   }
-};
-if (only !== 'apple') {
-  checkCrates('epdf-wasm', path.join(runtime, 'scripts/runtime-payload-hash.sh'), 'RUST_CRATES');
-}
-if (only !== 'wasm') {
-  checkCrates('epdf-viewer-host', path.join(apple, 'apple-engine-hash.sh'), 'APPLE_CRATES');
-}
 
-const head = run('git', ['rev-parse', 'HEAD']);
-const rustc = run('rustc', ['--version']);
-if (only !== 'apple') await publishWasm();
-if (only !== 'wasm') publishApple();
+  // Each hash script lists the crates its binary links by hand. A crate missing
+  // from a list would change that binary without changing its hash.
+  const metadata = JSON.parse(
+    run('cargo', ['metadata', '--format-version', '1'], { maxBuffer: 1 << 28 }),
+  );
+  const checkCrates = (root, script, variable) => {
+    const local = linkedLocalCrates(metadata, root);
+    const listed = listedCrates(readFileSync(script, 'utf8'), variable);
+    if (local.join() !== listed.join()) {
+      console.error(
+        `${variable} in ${path.basename(script)} is (${listed.join(' ')}),\n` +
+          `but ${root} links (${local.join(' ')}). Update the list first.`,
+      );
+      process.exit(1);
+    }
+  };
+  if (only !== 'apple') {
+    checkCrates('epdf-wasm', path.join(runtime, 'scripts/runtime-payload-hash.sh'), 'RUST_CRATES');
+  }
+  if (only !== 'wasm') {
+    checkCrates('epdf-viewer-host', path.join(apple, 'apple-engine-hash.sh'), 'APPLE_CRATES');
+  }
+
+  head = run('git', ['rev-parse', 'HEAD']);
+  rustc = run('rustc', ['--version']);
+  if (only !== 'apple') await publishWasm();
+  if (only !== 'wasm') publishApple();
+}
 
 async function publishWasm() {
   takeRunLock();
@@ -451,12 +482,12 @@ async function publishWasm() {
     }
   }
   if (state === 'published') {
-    console.log(`${tag} is already published on ${RELEASE_REPO}; nothing to do.`);
+    console.log(`${tag} is already published on ${releaseRepo()}; nothing to do.`);
     return;
   }
   if (state === 'incomplete') {
     console.error(
-      `release ${tag} on ${RELEASE_REPO} is incomplete (a draft, or ${ASSET} or its .sha256 ` +
+      `release ${tag} on ${releaseRepo()} is incomplete (a draft, or ${ASSET} or its .sha256 ` +
         `missing); finish or delete it before publishing again.`,
     );
     process.exit(1);
@@ -592,7 +623,7 @@ async function publishWasm() {
       archive,
       `${archive}.sha256`,
       '--repo',
-      RELEASE_REPO,
+      releaseRepo(),
       // The fork commit the payload's PDFium came from, which the fork has.
       '--target',
       fork.sha,
@@ -796,17 +827,28 @@ function linkAgainstCommittedBindings(fork) {
   return { unbound, staged };
 }
 
+// build-xcframework.sh reads every slice as $LIB_ROOT/<target>/lib/libembedpdf.a.
+// buildFork's stagings sit side by side like that; slices CI built and stamped
+// sit wherever they were downloaded. A temporary root with one link per target
+// takes either. The caller removes it.
+export function libRootFor(stamps) {
+  const root = mkdtempSync(path.join(tmpdir(), 'apple-lib-root-'));
+  for (const { target, staging } of stamps) symlinkSync(staging, path.join(root, target), 'dir');
+  return root;
+}
+
 function publishApple() {
   const ZIP = 'EmbedPDFBindings.xcframework.zip';
   // A manifest that pinEngine can't rewrite would only be found after the
   // upload, so find it before anything is built.
-  pinEngine('', '', true);
+  pinEngine('', '', { validateOnly: true });
   // check-apple-engine.sh hashes the tree and compares it with the pin. Only
   // its verdicts (0, 1, 2) say what to do; anything else is gh, the manifest
   // or the hash failing, and building on a guess could upload over a release.
   const check = spawnSync('bash', [path.join(apple, 'check-apple-engine.sh')], {
     cwd: repo,
     encoding: 'utf8',
+    env: { ...process.env, EMBEDPDF_RUNTIME_REPO: releaseRepo() },
   });
   process.stdout.write(check.stdout);
   if (check.status === 0) {
@@ -831,15 +873,15 @@ function publishApple() {
     let release;
     try {
       release = JSON.parse(
-        run('gh', ['release', 'view', tag, '--repo', RELEASE_REPO, '--json', 'assets,isDraft']),
+        run('gh', ['release', 'view', tag, '--repo', releaseRepo(), '--json', 'assets,isDraft']),
       );
     } catch (err) {
-      console.error(`couldn't read release ${tag} on ${RELEASE_REPO}: ${err.message}`);
+      console.error(`couldn't read release ${tag} on ${releaseRepo()}: ${err.message}`);
       process.exit(1);
     }
     if (release.isDraft || !release.assets.some((a) => a.name === ZIP)) {
       console.error(
-        `release ${tag} on ${RELEASE_REPO} is incomplete (draft: ${release.isDraft}, ` +
+        `release ${tag} on ${releaseRepo()} is incomplete (draft: ${release.isDraft}, ` +
           `${ZIP} ${release.assets.some((a) => a.name === ZIP) ? 'present' : 'missing'}); ` +
           `finish or delete it before pinning.`,
       );
@@ -853,7 +895,7 @@ function publishApple() {
         'download',
         tag,
         '--repo',
-        RELEASE_REPO,
+        releaseRepo(),
         '--pattern',
         '*.sha256',
         '--dir',
@@ -875,83 +917,124 @@ function publishApple() {
     return;
   }
 
-  console.log(`building ${tag} at ${head.slice(0, 9)}`);
-  const device = buildFork(repo, 'ios-arm64');
-  const simulator = buildFork(repo, 'ios-sim-arm64');
-  const macArm64 = buildFork(repo, 'darwin-static-arm64');
-  const macX64 = buildFork(repo, 'darwin-static-x64');
-  if (new Set([device.sha, simulator.sha, macArm64.sha, macX64.sha]).size !== 1) {
-    throw new Error('Apple slices do not share one runtime source commit');
-  }
-  // Both targets stage under the same root, as <target>/lib/libembedpdf.a.
-  sh(
-    `LIB_ROOT=${JSON.stringify(path.dirname(device.staging))} bash platforms/apple/build-xcframework.sh`,
-  );
-  console.log('  $ bash platforms/apple/package-engine-framework.sh');
-  const packaged = execFileSync('bash', [path.join(apple, 'package-engine-framework.sh')], {
-    cwd: repo,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'inherit'],
-  }).trim();
-  process.stdout.write(`${packaged}\n`);
-  const checksum = packaged.split('\n').at(-1);
   const zip = path.join(apple, '.build/publish', ZIP);
-  // SwiftPM's checksum is the zip's sha256, so the .sha256 asset can carry it
-  // in the same form as the wasm payload's.
-  if (checksum !== sha256(zip)) {
-    console.error(
-      `swift package compute-checksum gave ${checksum}, but ${ZIP} hashes to ${sha256(zip)}`,
-    );
-    process.exit(1);
+  // What the release notes say about the build, kept beside the zip for a
+  // --stage publish run, which has neither the slices nor the build's toolchain.
+  const factsFile = `${zip}.json`;
+  let facts;
+  if (stage === 'publish') {
+    if (!existsSync(zip) || !existsSync(factsFile)) {
+      console.error(
+        `--stage publish needs ${ZIP} and ${path.basename(factsFile)} from --stage build in ${path.dirname(zip)}`,
+      );
+      process.exit(1);
+    }
+    facts = JSON.parse(readFileSync(factsFile, 'utf8'));
+    if (facts.tag !== tag || facts.head !== head) {
+      console.error(
+        `${ZIP} is ${facts.tag} built at ${facts.head}, but this tree is ${tag} at ${head}`,
+      );
+      process.exit(1);
+    }
+  } else {
+    console.log(`building ${tag} at ${head.slice(0, 9)}`);
+    const device = buildFork(repo, 'ios-arm64');
+    const simulator = buildFork(repo, 'ios-sim-arm64');
+    const macArm64 = buildFork(repo, 'darwin-static-arm64');
+    const macX64 = buildFork(repo, 'darwin-static-x64');
+    if (new Set([device.sha, simulator.sha, macArm64.sha, macX64.sha]).size !== 1) {
+      throw new Error('Apple slices do not share one runtime source commit');
+    }
+    const libRoot = libRootFor([device, simulator, macArm64, macX64]);
+    try {
+      sh(`LIB_ROOT=${JSON.stringify(libRoot)} bash platforms/apple/build-xcframework.sh`);
+    } finally {
+      rmSync(libRoot, { recursive: true, force: true });
+    }
+    console.log('  $ bash platforms/apple/package-engine-framework.sh');
+    const packaged = execFileSync('bash', [path.join(apple, 'package-engine-framework.sh')], {
+      cwd: repo,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'inherit'],
+    }).trim();
+    process.stdout.write(`${packaged}\n`);
+    const computed = packaged.split('\n').at(-1);
+    // SwiftPM's checksum is the zip's sha256, so the .sha256 asset can carry it
+    // in the same form as the wasm payload's.
+    if (computed !== sha256(zip)) {
+      console.error(
+        `swift package compute-checksum gave ${computed}, but ${ZIP} hashes to ${sha256(zip)}`,
+      );
+      process.exit(1);
+    }
+    facts = {
+      tag,
+      head,
+      forkSha: device.sha,
+      libSha256: {
+        'ios-arm64': device.libSha256,
+        'ios-sim-arm64': simulator.libSha256,
+        'darwin-static-arm64': macArm64.libSha256,
+        'darwin-static-x64': macX64.libSha256,
+      },
+      rustc,
+      xcode: run('xcodebuild', ['-version']).split('\n')[0],
+    };
+    writeFileSync(factsFile, JSON.stringify(facts, null, 2));
+    if (stage === 'build') {
+      console.log(`built ${zip}`);
+      return;
+    }
   }
+  const checksum = sha256(zip);
   writeFileSync(`${zip}.sha256`, `${checksum}  ${ZIP}\n`);
 
-  // The framework as published, which only this build exercises: a manifest
-  // evaluated in a fresh derived data directory, so it reads the variable.
-  const derived = mkdtempSync(path.join(tmpdir(), 'apple-engine-dd-'));
-  const destination =
-    process.env.EMBEDPDF_TEST_DESTINATION ?? 'platform=iOS Simulator,name=iPhone 17';
-  sh(
-    `EMBEDPDF_PREBUILT_ENGINE=local xcodebuild test -scheme EmbedPDF-Package ` +
-      `-destination ${JSON.stringify(destination)} -derivedDataPath ${JSON.stringify(derived)}`,
-    path.join(apple, 'EmbedPDF'),
-  );
-  rmSync(derived, { recursive: true, force: true });
+  if (stage !== 'publish') {
+    // The framework as published, which only this build exercises: a manifest
+    // evaluated in a fresh derived data directory, so it reads the variable.
+    const derived = mkdtempSync(path.join(tmpdir(), 'apple-engine-dd-'));
+    const destination =
+      process.env.EMBEDPDF_TEST_DESTINATION ?? 'platform=iOS Simulator,name=iPhone 17';
+    sh(
+      `EMBEDPDF_PREBUILT_ENGINE=local xcodebuild test -scheme EmbedPDF-Package ` +
+        `-destination ${JSON.stringify(destination)} -derivedDataPath ${JSON.stringify(derived)}`,
+      path.join(apple, 'EmbedPDF'),
+    );
+    rmSync(derived, { recursive: true, force: true });
 
-  // Test exact packaged bytes on Mac through a private manifest. The
-  // distributed platform declaration and pin change only after acceptance.
-  const macRoot = mkdtempSync(path.join(tmpdir(), 'apple-engine-mac-'));
-  const macPackage = path.join(macRoot, 'EmbedPDF');
-  try {
-    stageMacConsumer(path.join(apple, 'EmbedPDF'), macPackage);
-    for (const arch of ['arm64', 'x86_64']) {
-      sh(
-        `env -u EMBEDPDF_LOCAL_ENGINE -u EMBEDPDF_EXPERIMENTAL_BRIDGE ` +
-          `-u PDF_RUNTIME_LIB_DIR -u EMBEDPDF_FORK_TARGET -u LIB_ROOT ` +
-          `-u DYLD_LIBRARY_PATH -u DYLD_FALLBACK_LIBRARY_PATH ` +
-          `EMBEDPDF_PREBUILT_ENGINE=local xcodebuild test -scheme EmbedPDF-Package ` +
-          `-destination ${JSON.stringify(`platform=macOS,arch=${arch}`)} -jobs 2 ` +
-          `-derivedDataPath ${JSON.stringify(path.join(macRoot, `derived-${arch}`))}`,
-        macPackage,
-      );
+    // Test exact packaged bytes on Mac through a private manifest. The
+    // distributed platform declaration and pin change only after acceptance.
+    const macRoot = mkdtempSync(path.join(tmpdir(), 'apple-engine-mac-'));
+    const macPackage = path.join(macRoot, 'EmbedPDF');
+    try {
+      stageMacConsumer(path.join(apple, 'EmbedPDF'), macPackage);
+      for (const arch of ['arm64', 'x86_64']) {
+        sh(
+          `env -u EMBEDPDF_LOCAL_ENGINE -u EMBEDPDF_EXPERIMENTAL_BRIDGE ` +
+            `-u PDF_RUNTIME_LIB_DIR -u EMBEDPDF_FORK_TARGET -u LIB_ROOT ` +
+            `-u DYLD_LIBRARY_PATH -u DYLD_FALLBACK_LIBRARY_PATH ` +
+            `EMBEDPDF_PREBUILT_ENGINE=local xcodebuild test -scheme EmbedPDF-Package ` +
+            `-destination ${JSON.stringify(`platform=macOS,arch=${arch}`)} -jobs 2 ` +
+            `-derivedDataPath ${JSON.stringify(path.join(macRoot, `derived-${arch}`))}`,
+          macPackage,
+        );
+      }
+    } finally {
+      rmSync(macRoot, { recursive: true, force: true });
     }
-  } finally {
-    rmSync(macRoot, { recursive: true, force: true });
   }
 
-  const xcode = run('xcodebuild', ['-version']).split('\n')[0];
   const notes = [
     `iOS and universal macOS engine for platforms/apple/EmbedPDF/Package.swift: UniFFI Swift, Rust core and PDFium in static frameworks.`,
     '',
     `- Engine hash: \`${hash}\``,
-    `- Viewer commit: \`${head}\``,
-    `- Fork commit (runtime-src): \`${device.sha}\`, built for ios-arm64, ios-sim-arm64, darwin-static-arm64 and darwin-static-x64`,
-    `- ios-arm64 libembedpdf.a sha256: \`${device.libSha256}\``,
-    `- ios-sim-arm64 libembedpdf.a sha256: \`${simulator.libSha256}\``,
-    `- darwin-static-arm64 libembedpdf.a sha256: \`${macArm64.libSha256}\``,
-    `- darwin-static-x64 libembedpdf.a sha256: \`${macX64.libSha256}\``,
-    `- ${rustc}`,
-    `- ${xcode}`,
+    `- Viewer commit: \`${facts.head}\``,
+    `- Fork commit (runtime-src): \`${facts.forkSha}\`, built for ios-arm64, ios-sim-arm64, darwin-static-arm64 and darwin-static-x64`,
+    ...Object.entries(facts.libSha256).map(
+      ([target, digest]) => `- ${target} libembedpdf.a sha256: \`${digest}\``,
+    ),
+    `- ${facts.rustc}`,
+    `- ${facts.xcode}`,
     `- SwiftPM checksum (${ZIP} sha256): \`${checksum}\``,
   ].join('\n');
   const args = [
@@ -961,10 +1044,10 @@ function publishApple() {
     zip,
     `${zip}.sha256`,
     '--repo',
-    RELEASE_REPO,
+    releaseRepo(),
     // As for the wasm payload: the fork commit both slices' PDFium came from.
     '--target',
-    device.sha,
+    facts.forkSha,
     '--title',
     tag,
     '--notes',
@@ -980,28 +1063,54 @@ function publishApple() {
   console.log(`${dryRun ? 'built' : 'published'} ${tag}`);
 }
 
-// Points Package.swift's binary target at a published release. Each constant
-// sits on its own line, and a second match would mean the manifest changed
-// shape under this script.
-function pinEngine(tag, checksum, validateOnly = false) {
-  let text = readFileSync(manifest, 'utf8');
-  for (const [name, value] of [
-    ['engineRelease', tag],
-    ['engineChecksum', checksum],
-  ]) {
-    const line = new RegExp(`^let ${name} = ".*"$`, 'gm');
-    const count = text.match(line)?.length ?? 0;
-    if (count !== 1) {
-      console.error(`expected one \`let ${name} = "\` line in Package.swift, found ${count}`);
-      process.exit(1);
+// Points both manifests' binary target at a published release: engineRelease
+// and engineChecksum in platforms/apple/EmbedPDF/Package.swift, the
+// EmbedPDFBindings url's tag and its checksum in the root Package.swift. Each
+// sits on its own line, and a second match would mean a manifest changed shape
+// under this script.
+export function pinEngine(
+  tag,
+  checksum,
+  { nested = manifest, root = rootManifest, validateOnly = false } = {},
+) {
+  const rewrite = (file, edits) => {
+    let text = readFileSync(file, 'utf8');
+    for (const [what, line, value] of edits) {
+      const count = text.match(line)?.length ?? 0;
+      if (count !== 1) {
+        console.error(`expected one ${what} in ${file}, found ${count}`);
+        process.exit(1);
+      }
+      text = text.replace(line, value);
     }
-    text = text.replace(line, `let ${name} = "${value}"`);
-  }
+    return text;
+  };
+  const nestedText = rewrite(nested, [
+    [
+      '`let engineRelease = "` line',
+      /^let engineRelease = ".*"$/gm,
+      `let engineRelease = "${tag}"`,
+    ],
+    [
+      '`let engineChecksum = "` line',
+      /^let engineChecksum = ".*"$/gm,
+      `let engineChecksum = "${checksum}"`,
+    ],
+  ]);
+  const rootText = rewrite(root, [
+    [
+      'EmbedPDFBindings url line',
+      /^([ \t]*url: "[^"]*\/releases\/download\/)[^/"]*(\/EmbedPDFBindings\.xcframework\.zip",)$/gm,
+      `$1${tag}$2`,
+    ],
+    ['binary target checksum line', /^([ \t]*checksum: ")[^"]*(")$/gm, `$1${checksum}$2`],
+  ]);
   if (validateOnly) return;
   if (dryRun) {
-    console.log(`--dry-run: would pin Package.swift to ${tag}, checksum ${checksum}`);
+    console.log(`--dry-run: would pin both Package.swift files to ${tag}, checksum ${checksum}`);
     return;
   }
-  writeFileSync(manifest, text);
-  console.log('commit platforms/apple/EmbedPDF/Package.swift');
+  writeFileSync(nested, nestedText);
+  writeFileSync(root, rootText);
+  console.log('commit platforms/apple/EmbedPDF/Package.swift and Package.swift');
 }

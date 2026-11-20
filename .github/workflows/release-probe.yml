@@ -1,0 +1,138 @@
+name: release-probe
+
+# Throwaway probe for the release workflows: records the facts the release
+# jobs depend on (Xcode 27.2 path, Rosetta, simulators, disk, cores, memory)
+# from each hosted runner. Removed once those workflows land.
+#
+# workflow_dispatch alone cannot start it: the API only dispatches workflows
+# that exist on the default branch. The push trigger, scoped to this branch
+# and this file, runs it from the branch instead.
+on:
+  workflow_dispatch:
+  push:
+    branches: [ci/release-workflows]
+    paths: [.github/workflows/release-probe.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  xcode-27:
+    # Preview image label; actionlint 1.7.12 does not list it yet.
+    runs-on: xcode-27
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
+    steps:
+      - name: Start summary table
+        run: |
+          {
+            echo "## xcode-27"
+            echo
+            echo "| Probe | Value |"
+            echo "| --- | --- |"
+            echo "| uname -m | \`$(uname -m)\` |"
+            echo "| sw_vers | \`$(sw_vers -productVersion) ($(sw_vers -buildVersion))\` |"
+          } > "$RUNNER_TEMP/probe.md"
+          cat "$RUNNER_TEMP/probe.md"
+
+      - name: Xcode 27.2
+        run: |
+          apps="$(printf '%s ' /Applications/Xcode*.app)"
+          echo "$apps"
+          echo "| Xcode apps | \`$apps\` |" >> "$RUNNER_TEMP/probe.md"
+          echo "DEVELOPER_DIR=$DEVELOPER_DIR"
+          xcodebuild -version
+          ver="$(xcodebuild -version | tr '\n' ' ')"
+          {
+            echo "| DEVELOPER_DIR | \`$DEVELOPER_DIR\` |"
+            echo "| xcodebuild -version | \`$ver\` |"
+          } >> "$RUNNER_TEMP/probe.md"
+
+      - name: iPhone simulators
+        if: always()
+        run: |
+          sims="$(xcrun simctl list devices available iPhone -j | jq -c '[.devices[][]|.name]')"
+          echo "$sims"
+          runtimes="$(xcrun simctl list runtimes -j | jq -c '[.runtimes[]|select(.isAvailable)|.name]')"
+          echo "$runtimes"
+          {
+            echo "| iPhone simulators | \`$sims\` |"
+            echo "| Simulator runtimes | \`$runtimes\` |"
+          } >> "$RUNNER_TEMP/probe.md"
+
+      - name: Disk, CPU, memory
+        if: always()
+        run: |
+          df -h /
+          sysctl -n hw.ncpu hw.memsize
+          {
+            echo "| df -h / | \`$(df -h / | tail -1)\` |"
+            echo "| hw.ncpu | \`$(sysctl -n hw.ncpu)\` |"
+            echo "| hw.memsize | \`$(sysctl -n hw.memsize)\` |"
+          } >> "$RUNNER_TEMP/probe.md"
+
+      - name: Rosetta
+        if: always()
+        run: |
+          if /usr/bin/pgrep oahd; then
+            echo "| oahd before install | running |" >> "$RUNNER_TEMP/probe.md"
+          else
+            echo "| oahd before install | not running |" >> "$RUNNER_TEMP/probe.md"
+            if sudo softwareupdate --install-rosetta --agree-to-license; then
+              echo "| softwareupdate --install-rosetta | succeeded |" >> "$RUNNER_TEMP/probe.md"
+            else
+              echo "| softwareupdate --install-rosetta | FAILED |" >> "$RUNNER_TEMP/probe.md"
+              exit 1
+            fi
+          fi
+          if arch -x86_64 /usr/bin/true; then
+            echo "| arch -x86_64 /usr/bin/true | exit 0 |" >> "$RUNNER_TEMP/probe.md"
+          else
+            echo "| arch -x86_64 /usr/bin/true | FAILED |" >> "$RUNNER_TEMP/probe.md"
+            exit 1
+          fi
+
+      - name: Write summary
+        if: always()
+        run: |
+          cat "$RUNNER_TEMP/probe.md" >> "$GITHUB_STEP_SUMMARY"
+          cat "$RUNNER_TEMP/probe.md"
+
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - name: Disk, CPU, memory
+        run: |
+          df -h /
+          nproc
+          free -g
+          {
+            echo "## ${{ matrix.runner }}"
+            echo
+            echo "| Probe | Value |"
+            echo "| --- | --- |"
+            echo "| uname -m | \`$(uname -m)\` |"
+            echo "| df -h / | \`$(df -h / | tail -1)\` |"
+            echo "| nproc | \`$(nproc)\` |"
+            echo "| free -g (Mem) | \`$(free -g | awk '/^Mem:/')\` |"
+            echo "| free -g (Swap) | \`$(free -g | awk '/^Swap:/')\` |"
+          } > "$RUNNER_TEMP/probe.md"
+
+      - name: Disk after removing preinstalled toolchains
+        if: matrix.runner == 'ubuntu-24.04'
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL
+          df -h /
+          echo "| df -h / after cleanup | \`$(df -h / | tail -1)\` |" >> "$RUNNER_TEMP/probe.md"
+
+      - name: Write summary
+        if: always()
+        run: |
+          cat "$RUNNER_TEMP/probe.md" >> "$GITHUB_STEP_SUMMARY"
+          cat "$RUNNER_TEMP/probe.md"

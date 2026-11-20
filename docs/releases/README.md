@@ -1,0 +1,3 @@
+# Release notes
+
+The release train (`.github/workflows/release-train.yml`) reads each release's notes from this directory, so they are written and committed before you dispatch it. The Swift package's notes are `<swift_version>.md` (for example `0.0.0-swift.8.md`) and the Rust viewer bundle's are `rust-viewer-<viewer_version>.md`, each named for its tag. The C# engine's tag ends in the first 12 characters of the commit the train builds, so it can't be named ahead of time, and its notes are a single `dotnet-engine.md` that every C# release reuses: edit it in place when that release changes. On a real run the preflight job stops the train before anything is published if one of the three files is missing. A dry run only warns.

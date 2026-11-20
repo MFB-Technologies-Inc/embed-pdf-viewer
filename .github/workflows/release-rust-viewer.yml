@@ -1,0 +1,198 @@
+name: release-rust-viewer
+
+# Builds the self-contained Rust viewer tarball, mfb-embedpdf-rust-viewer-<version>.tgz,
+# from packages/rust-viewer-bundle (@mfb/embedpdf-rust-viewer), and uploads it as the
+# rust-viewer-tarball artifact for the release train.
+#
+# The PDFium payload (runtime-payloads-<hash>) comes from the payload release
+# repo; release-payload.yml publishes it earlier in the train, so the caller's
+# `needs` guarantees it exists and the fetch does not poll. On a dry run that
+# payload is not released, so the caller passes payload_artifact instead: the
+# payload-wasm32 artifact release-payload.yml's verify job built.
+#
+# The bundle's vite.config.ts records `git rev-parse HEAD`, the branch and a
+# dirty flag in `buildInfo`, so the build runs on a clean checkout of
+# inputs.ref and the job fails if the build left a tracked or untracked,
+# non-ignored file behind.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: The bundle version, e.g. 0.0.0-preview.4. Must equal packages/rust-viewer-bundle/package.json's version at ref.
+        required: true
+        type: string
+      ref:
+        description: The commit, branch or tag to build.
+        required: true
+        type: string
+      payload_artifact:
+        description: An artifact of this run holding npm/wasm32/lib, used instead of fetching the released payload. It must be the payload for ref.
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  BINARYEN_VERSION: '133'
+  # The published .sha256 for binaryen-version_133-x86_64-linux.tar.gz.
+  BINARYEN_SHA256: 2dc9c7813f5375db93d96ead4b78222fcc3e2677bbb832297af4797782a37489
+  WASM_BINDGEN_VERSION: 0.2.127
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      VERSION: ${{ inputs.version }}
+      REF: ${{ inputs.ref }}
+      TARBALL: mfb-embedpdf-rust-viewer-${{ inputs.version }}.tgz
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      # Before the long build: the tarball takes its version from package.json.
+      - name: Check the package version
+        run: |
+          have=$(jq -r .version packages/rust-viewer-bundle/package.json)
+          if [ "$have" != "$VERSION" ]; then
+            echo "::error::packages/rust-viewer-bundle/package.json is $have at $REF, the release asks for $VERSION"
+            exit 1
+          fi
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - uses: ./.github/actions/setup-rust
+        with:
+          targets: wasm32-unknown-unknown
+          cache-key: viewer
+
+      # Must equal the wasm-bindgen pin in crates/epdf-web/Cargo.toml and
+      # WASM_BINDGEN_VERSION in .devcontainer/Dockerfile.
+      - uses: taiki-e/install-action@75a7c0f87bd666af3cdb75c5b9e9d03ab6044e6f # v2.90.6
+        with:
+          tool: wasm-bindgen-cli@${{ env.WASM_BINDGEN_VERSION }}
+
+      # The tarball is cached, not the extracted tree, so the digest is checked
+      # on every run, cache hit or not.
+      - name: Restore binaryen
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/binaryen
+          key: binaryen-${{ env.BINARYEN_VERSION }}-${{ runner.os }}-${{ runner.arch }}
+
+      # BINARYEN_VERSION in .devcontainer/Dockerfile; build.sh needs wasm-opt.
+      - name: Install binaryen
+        run: |
+          archive="binaryen-version_${BINARYEN_VERSION}-x86_64-linux.tar.gz"
+          cache="$HOME/.cache/binaryen"
+          mkdir -p "$cache"
+          if [ ! -f "$cache/$archive" ]; then
+            curl -fsSL --retry 3 -o "$cache/$archive" \
+              "https://github.com/WebAssembly/binaryen/releases/download/version_${BINARYEN_VERSION}/$archive"
+          fi
+          echo "$BINARYEN_SHA256  $cache/$archive" | sha256sum -c -
+          dest="$RUNNER_TEMP/binaryen"
+          mkdir -p "$dest"
+          tar -xzf "$cache/$archive" -C "$dest" --strip-components=1
+          echo "$dest/bin" >> "$GITHUB_PATH"
+
+      - name: Check the wasm tool versions
+        run: |
+          bindgen=$(wasm-bindgen --version)
+          opt=$(wasm-opt --version)
+          echo "$bindgen"
+          echo "$opt"
+          [ "$bindgen" = "wasm-bindgen $WASM_BINDGEN_VERSION" ] || { echo "::error::expected wasm-bindgen $WASM_BINDGEN_VERSION, got '$bindgen'"; exit 1; }
+          [[ "$opt" =~ ^wasm-opt\ version\ ${BINARYEN_VERSION}([^0-9]|$) ]] || { echo "::error::expected wasm-opt version $BINARYEN_VERSION, got '$opt'"; exit 1; }
+
+      - name: Fetch the runtime payload
+        if: inputs.payload_artifact == ''
+        env:
+          EPDF_PAYLOAD_REPO: MFB-Technologies-Inc/embed-pdf-runtime
+        run: pnpm --filter @embedpdf/engine-runtime run fetch:payload
+
+      - uses: actions/download-artifact@v7
+        if: inputs.payload_artifact != ''
+        with:
+          name: ${{ inputs.payload_artifact }}
+          path: packages/engine/runtime/npm/wasm32/lib
+
+      # publish-engine-payload.mjs --dry-run marks what it built
+      # dry-run-<hash>; the hash must be the one this checkout derives.
+      - name: Check the payload artifact
+        if: inputs.payload_artifact != ''
+        env:
+          ARTIFACT: ${{ inputs.payload_artifact }}
+        run: |
+          marker=packages/engine/runtime/npm/wasm32/lib/.payload-source
+          test -f "$marker" || { echo "::error::$ARTIFACT has no .payload-source"; exit 1; }
+          have=$(<"$marker")
+          want=$(bash packages/engine/runtime/scripts/runtime-payload-hash.sh)
+          if [[ "${have#dry-run-}" != "$want" ]]; then
+            echo "::error::$ARTIFACT is payload '$have', but $REF needs $want"
+            exit 1
+          fi
+          echo "payload $have from $ARTIFACT"
+
+      - name: Build the engine runtime
+        run: pnpm --filter @embedpdf/engine-runtime build
+
+      - name: Build the viewer bundle and its inputs
+        run: pnpm --filter @mfb/embedpdf-rust-viewer build:all
+
+      - name: Pack the tarball
+        run: pnpm --filter @mfb/embedpdf-rust-viewer pack:tarball
+
+      # buildInfo.dirty reads git status; anything the build wrote outside
+      # .gitignore would mark the shipped bundle dirty.
+      - name: Check the tree is clean
+        run: |
+          status=$(git status --porcelain)
+          if [ -n "$status" ]; then
+            echo "::error::the build changed or added files that are not gitignored"
+            echo "$status"
+            exit 1
+          fi
+
+      - name: Check the tarball
+        run: |
+          shopt -s nullglob
+          cd packages/rust-viewer-bundle
+          found=(*.tgz)
+          if [ "${#found[@]}" -ne 1 ] || [ "${found[0]}" != "$TARBALL" ]; then
+            echo "::error::expected exactly $TARBALL, found: ${found[*]:-none}"
+            exit 1
+          fi
+          packed=$(tar -xOzf "$TARBALL" package/package.json | jq -r .version)
+          if [ "$packed" != "$VERSION" ]; then
+            echo "::error::$TARBALL's package/package.json is version $packed, expected $VERSION"
+            exit 1
+          fi
+          # buildInfo.commit, inlined by vite's define, names the checked-out commit.
+          sha=$(git rev-parse HEAD)
+          contents="$RUNNER_TEMP/rust-viewer-contents"
+          mkdir -p "$contents"
+          tar -xzf "$TARBALL" -C "$contents"
+          grep -rqF "$sha" "$contents/package/dist" || { echo "::error::$TARBALL's dist does not name commit $sha"; exit 1; }
+          {
+            echo "### $TARBALL"
+            echo
+            echo "- commit: \`$sha\`"
+            echo "- sha256: \`$(sha256sum "$TARBALL" | cut -d' ' -f1)\`, $(stat -c %s "$TARBALL") bytes"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: rust-viewer-tarball
+          path: packages/rust-viewer-bundle/${{ env.TARBALL }}
+          if-no-files-found: error

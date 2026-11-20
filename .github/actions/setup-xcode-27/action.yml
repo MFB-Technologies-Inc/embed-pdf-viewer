@@ -1,0 +1,66 @@
+name: Set up Xcode 27
+description: >
+  Select Xcode 27.2 through DEVELOPER_DIR, make sure Rosetta runs x86_64
+  binaries, and export the UDID of an iPhone simulator on the newest iOS
+  runtime matching the selected SDK as SIM_ID.
+
+inputs:
+  xcode-app:
+    description: Xcode application bundle to select.
+    required: false
+    default: /Applications/Xcode_27.2.app
+
+outputs:
+  sim-id:
+    description: UDID of the chosen iPhone simulator (also exported as SIM_ID).
+    value: ${{ steps.sim.outputs.id }}
+
+runs:
+  using: composite
+  steps:
+    - name: Select Xcode
+      shell: bash
+      env:
+        XCODE_APP: ${{ inputs.xcode-app }}
+      run: |
+        dev="$XCODE_APP/Contents/Developer"
+        test -d "$dev" || { echo "::error::$dev does not exist"; exit 1; }
+        echo "DEVELOPER_DIR=$dev" >> "$GITHUB_ENV"
+        DEVELOPER_DIR="$dev" xcodebuild -version
+
+    # The xcode-27 image already runs oahd, so this is normally a no-op.
+    - name: Ensure Rosetta
+      shell: bash
+      run: |
+        if arch -x86_64 /usr/bin/true 2>/dev/null; then
+          echo "Rosetta already present"
+          exit 0
+        fi
+        sudo softwareupdate --install-rosetta --agree-to-license
+        arch -x86_64 /usr/bin/true
+
+    # Simulator names repeat across runtimes and the image lists iOS 27.2
+    # twice, so choose the runtime by identifier and the device by UDID.
+    # Device-specific runtimes (iOS-27-2-iPhone19-4, which supports only the
+    # iPhone Duo) are skipped: they carry a different build from the general
+    # runtime and would win a newest-build sort.
+    - name: Pick an iPhone simulator
+      id: sim
+      shell: bash
+      run: |
+        sdk=$(xcrun --sdk iphonesimulator --show-sdk-version)
+        runtime=$(xcrun simctl list runtimes available -j | jq -r --arg sdk "$sdk" '
+          [.runtimes[]
+            | select(.platform == "iOS" and .isAvailable
+                     and ((.supportedDeviceTypes // []) | length) > 1
+                     and (.version == $sdk or (.version | startswith($sdk + "."))))]
+          | sort_by((.version | split(".") | map(tonumber)), .buildversion)
+          | last | .identifier // empty')
+        test -n "$runtime" || { echo "::error::no available iOS runtime for SDK $sdk"; exit 1; }
+        id=$(xcrun simctl list devices available -j | jq -r --arg rt "$runtime" '
+          [(.devices[$rt] // [])[] | select(.deviceTypeIdentifier | test("SimDeviceType[.]iPhone-"))]
+          | first | .udid // empty')
+        test -n "$id" || { echo "::error::no available iPhone simulator on $runtime"; exit 1; }
+        echo "SDK $sdk, runtime $runtime, simulator $id"
+        echo "SIM_ID=$id" >> "$GITHUB_ENV"
+        echo "id=$id" >> "$GITHUB_OUTPUT"

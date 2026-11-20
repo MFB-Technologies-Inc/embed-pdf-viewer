@@ -1,0 +1,22 @@
+name: Set up Node and pnpm
+description: >
+  Install pnpm at the version in package.json packageManager, Node 24 with the
+  pnpm store cached, and the workspace dependencies from the lockfile.
+
+runs:
+  using: composite
+  steps:
+    # No `version` input: pnpm/action-setup reads packageManager from the root
+    # package.json, so the pin lives in one place.
+    - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+      with:
+        run_install: false
+
+    - uses: actions/setup-node@v6
+      with:
+        node-version: 24
+        cache: pnpm
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile

@@ -35,6 +35,9 @@ const FORK_TARGET = 'wasm32-eh';
 // Bump to rebuild every cached fork archive. Not tied to this file's hash,
 // because a fork build takes minutes and most edits here don't touch it.
 const FORK_RECIPE = 4;
+// Exported apart from their declarations: runtime-payload-hash.sh greps
+// `^const FORK_RECIPE = ` into the wasm payload's hash.
+export { FORK_RECIPE, FORK_TARGETS };
 // The Emscripten the wasm32-eh target needs, for both the fork build and the
 // Rust-core link. Hard-coded, unlike every other emsdk version here, because
 // no branch declares it anywhere a script can read: compile.esm.sh passes
