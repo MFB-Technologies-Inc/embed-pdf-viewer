@@ -5289,21 +5289,30 @@
       "path": "crates/plugins/stage/src/camera/animation.rs",
       "owner": "StageCapability",
       "symbol": "is_moving",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "isMoving"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/camera/animation.rs",
       "owner": "StageCapability",
       "symbol": "stop_motion",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "stopMotion"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/camera/gestures.rs",
       "owner": "StageCapability",
       "symbol": "set_camera",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "setCamera"
+      }
     },
     {
       "crate": "stage",
@@ -5317,49 +5326,70 @@
       "path": "crates/plugins/stage/src/camera/gestures.rs",
       "owner": "StageCapability",
       "symbol": "pan_by",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "panBy"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/camera/gestures.rs",
       "owner": "StageCapability",
       "symbol": "scroll_to",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "scrollTo"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/camera/gestures.rs",
       "owner": "StageCapability",
       "symbol": "scroll_by",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "scrollBy"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/camera/gestures.rs",
       "owner": "StageCapability",
       "symbol": "zoom_around",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "zoomAround"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/camera/gestures.rs",
       "owner": "StageCapability",
       "symbol": "begin_gesture",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "beginGesture"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/camera/gestures.rs",
       "owner": "StageCapability",
       "symbol": "end_gesture",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "endGesture"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/camera/gestures.rs",
       "owner": "StageCapability",
       "symbol": "fling",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "fling"
+      }
     },
     {
       "crate": "stage",
@@ -5373,455 +5403,650 @@
       "path": "crates/plugins/stage/src/controller.rs",
       "owner": "StageCapability",
       "symbol": "lifetime",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/arrive.rs",
       "owner": "StageCapability",
       "symbol": "go_to_page",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "goToPageIndex"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/arrive.rs",
       "owner": "StageCapability",
       "symbol": "go_to_first_page",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "goToFirstPage"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/arrive.rs",
       "owner": "StageCapability",
       "symbol": "go_to_last_page",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "goToLastPage"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/arrive.rs",
       "owner": "StageCapability",
       "symbol": "can_go_next",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "canGoNext"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/arrive.rs",
       "owner": "StageCapability",
       "symbol": "can_go_previous",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "canGoPrevious"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/arrive.rs",
       "owner": "StageCapability",
       "symbol": "next_page",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "nextPage"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/arrive.rs",
       "owner": "StageCapability",
       "symbol": "previous_page",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "previousPage"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/arrive.rs",
       "owner": "StageCapability",
       "symbol": "reset_view",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "resetView"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/reveal.rs",
       "owner": "StageCapability",
       "symbol": "reveal",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "reveal"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/reveal.rs",
       "owner": "StageCapability",
       "symbol": "go_to_destination",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "goToDestination"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "double_tap_zoom",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "doubleTapZoom"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "zoom_in",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "zoomIn"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "zoom_out",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "zoomOut"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "can_zoom_in",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "canZoomIn"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "can_zoom_out",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "canZoomOut"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "zoom_to",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "zoomTo"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "zoom_by",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "zoomBy"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "fit_width",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "fitWidth"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "fit_page",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "fitPage"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "fit_all",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "fitAll"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "fit_automatic",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "fitAutomatic"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "set_view_rotation",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "setViewRotation"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/zoom.rs",
       "owner": "StageCapability",
       "symbol": "rotate_view_by",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "rotateViewBy"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/zoom_drag.rs",
       "owner": "StageCapability",
       "symbol": "begin_zoom_drag",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "beginZoomDrag"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/zoom_drag.rs",
       "owner": "StageCapability",
       "symbol": "move_zoom_drag",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "moveZoomDrag"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/zoom_drag.rs",
       "owner": "StageCapability",
       "symbol": "end_zoom_drag",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "endZoomDrag"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/zoom_drag.rs",
       "owner": "StageCapability",
       "symbol": "cancel_zoom_drag",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "cancelZoomDrag"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/navigation/zoom_drag.rs",
       "owner": "StageCapability",
       "symbol": "get_zoom_box",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "zoomBox"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_camera",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "camera"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_viewport_size",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "viewportSize"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_scroll_metrics",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "scrollMetrics"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "list_visible_pages",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "visiblePages"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "is_page_visible",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "isPageVisible"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_current_page_index",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "currentPageIndex"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_current_page",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "currentPage"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_page_count",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "pageCount"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "list_current_item_pages",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "currentItemPages"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "list_current_pages",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "currentPages"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_page_box",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "pageFrame"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_page_at",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "page"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "viewport_to_page",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "viewportToPage"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "page_to_world",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "pageToWorld"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "page_rect_to_viewport",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "pageRectToViewport"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "world_to_viewport",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "worldToViewport"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "viewport_to_world",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "viewportToWorld"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "page_to_viewport",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "pageToViewport"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_view_rotation",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "viewRotation"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_zoom_level",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "zoomLevel"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_zoom_mode",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "zoomMode"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_viewpoint",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "viewpoint"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/read/pages.rs",
       "owner": "StageCapability",
       "symbol": "get_current_destination",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "currentDestination"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/services/events.rs",
       "owner": "StageCapability",
       "symbol": "on_page_changed",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/services/events.rs",
       "owner": "StageCapability",
       "symbol": "on_zoom_changed",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/services/events.rs",
       "owner": "StageCapability",
       "symbol": "on_camera_changed",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/services/events.rs",
       "owner": "StageCapability",
       "symbol": "on_motion_ended",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/services/events.rs",
       "owner": "StageCapability",
       "symbol": "on_settings_changed",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/services/events.rs",
       "owner": "StageCapability",
       "symbol": "on_viewport_changed",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/settings/area.rs",
       "owner": "StageCapability",
       "symbol": "get_settings",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "settings"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/settings/area.rs",
       "owner": "StageCapability",
       "symbol": "reset_settings",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "resetSettings"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/settings/area.rs",
       "owner": "StageCapability",
       "symbol": "update_settings",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "updateSettings"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/settings/area.rs",
       "owner": "StageCapability",
       "symbol": "set_responsive_rules",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "setResponsiveRules"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/settings/area.rs",
       "owner": "StageCapability",
       "symbol": "matches_rule",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "matchesRule"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/settings/area.rs",
       "owner": "StageCapability",
       "symbol": "list_active_rules",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "activeRules"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/settings/area.rs",
       "owner": "StageCapability",
       "symbol": "apply_view_state",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "applyViewState"
+      }
     },
     {
       "crate": "stage",
@@ -5842,49 +6067,70 @@
       "path": "crates/plugins/stage/src/view/lifecycle.rs",
       "owner": "StageCapability",
       "symbol": "set_viewport_size",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "setViewportSize"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/view/lifecycle.rs",
       "owner": "StageCapability",
       "symbol": "set_device_pixel_ratio",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "setDevicePixelRatio"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/view/lifecycle.rs",
       "owner": "StageCapability",
       "symbol": "refit",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "refit"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/view/lifecycle.rs",
       "owner": "StageCapability",
       "symbol": "get_view_state",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "viewState"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/view/lifecycle.rs",
       "owner": "StageCapability",
       "symbol": "get_lens_id",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "lensId"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/view/lifecycle.rs",
       "owner": "StageCapability",
       "symbol": "provide_initial_view",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "provideInitialView"
+      }
     },
     {
       "crate": "stage",
       "path": "crates/plugins/stage/src/view/lifecycle.rs",
       "owner": "StageCapability",
       "symbol": "place_initial",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stage.kt",
+        "symbol": "placeInitial"
+      }
     },
     {
       "crate": "stamp",

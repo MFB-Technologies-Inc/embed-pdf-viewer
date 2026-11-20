@@ -657,6 +657,107 @@ public final class com/embedpdf/ShellKt {
 	public static final fun shell (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class com/embedpdf/StageCapability {
+	public final fun activeRules (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun applyViewState (Luniffi/epdf_plugin_stage/StageViewState;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun beginGesture (ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun beginGesture$default (Lcom/embedpdf/StageCapability;ZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun beginZoomDrag (Luniffi/epdf_ffi/Point;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun camera (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canGoNext (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canGoPrevious (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canZoomIn (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canZoomOut (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun cancelZoomDrag (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun currentDestination (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun currentItemPages (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun currentPage (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun currentPageIndex (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun currentPages (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun doubleTapZoom (Luniffi/epdf_ffi/Point;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun endGesture (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun endZoomDrag (ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun endZoomDrag$default (Lcom/embedpdf/StageCapability;ZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun fitAll (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun fitAutomatic (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun fitPage (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun fitWidth (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun fling (DDLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun goToDestination (Luniffi/epdf_plugin_stage/StagePageDestination;Luniffi/epdf_plugin_stage/StageScrollBehavior;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun goToDestination$default (Lcom/embedpdf/StageCapability;Luniffi/epdf_plugin_stage/StagePageDestination;Luniffi/epdf_plugin_stage/StageScrollBehavior;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun goToFirstPage (Luniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun goToFirstPage$default (Lcom/embedpdf/StageCapability;Luniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun goToLastPage (Luniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun goToLastPage$default (Lcom/embedpdf/StageCapability;Luniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun goToPage (Luniffi/epdf_ffi/PageRef;Luniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun goToPage$default (Lcom/embedpdf/StageCapability;Luniffi/epdf_ffi/PageRef;Luniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun goToPageIndex (ILuniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun goToPageIndex$default (Lcom/embedpdf/StageCapability;ILuniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun isMoving (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun isPageVisible (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun lensId (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun matchesRule (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun moveZoomDrag (Luniffi/epdf_ffi/Point;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun nextPage (Luniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun nextPage$default (Lcom/embedpdf/StageCapability;Luniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
+	public final fun page (Luniffi/epdf_ffi/Point;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun pageCount (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun pageFrame (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun pageRectToViewport (Luniffi/epdf_ffi/PageRef;Luniffi/epdf_ffi/Rect;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun pageToViewport (Luniffi/epdf_ffi/PageRef;Luniffi/epdf_ffi/Point;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun pageToWorld (Luniffi/epdf_ffi/PageRef;Luniffi/epdf_ffi/Point;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun panBy (DD)V
+	public final fun placeInitial (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun previousPage (Luniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun previousPage$default (Lcom/embedpdf/StageCapability;Luniffi/epdf_plugin_stage/StageGoToOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun provideInitialView (Luniffi/epdf_plugin_stage/StageInitialViewProvider;DLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun provideInitialView$default (Lcom/embedpdf/StageCapability;Luniffi/epdf_plugin_stage/StageInitialViewProvider;DLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun refit (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun registerScrollHandler (ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun registerScrollHandler$default (Lcom/embedpdf/StageCapability;ZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun resetSettings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun resetView (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun reveal (Luniffi/epdf_ffi/PageRef;Luniffi/epdf_plugin_stage/StageRevealOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun reveal$default (Lcom/embedpdf/StageCapability;Luniffi/epdf_ffi/PageRef;Luniffi/epdf_plugin_stage/StageRevealOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun revealIndex (ILuniffi/epdf_plugin_stage/StageRevealOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun revealIndex$default (Lcom/embedpdf/StageCapability;ILuniffi/epdf_plugin_stage/StageRevealOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun rotateViewBy (DLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun scrollBy (Luniffi/epdf_plugin_stage/StageScrollToOptions;)V
+	public final fun scrollMetrics (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun scrollTo (Luniffi/epdf_plugin_stage/StageScrollToOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setCamera (Luniffi/epdf_ffi/Camera;)V
+	public final fun setDevicePixelRatio (DLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setResponsiveRules (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setViewRotation (DLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setViewportSize (Luniffi/epdf_ffi/Size;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun settings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun stopMotion (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun updateSettings (Luniffi/epdf_plugin_stage/StageSettingsPatch;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun viewRotation (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun viewState (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun viewpoint (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun viewportSize (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun viewportToPage (Luniffi/epdf_ffi/PageRef;Luniffi/epdf_ffi/Point;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun viewportToWorld (Luniffi/epdf_ffi/Point;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun visiblePages (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun worldToViewport (Luniffi/epdf_ffi/Point;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun zoomAround (Luniffi/epdf_ffi/Point;D)V
+	public final fun zoomBox (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun zoomBy (DLuniffi/epdf_ffi/Point;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun zoomBy$default (Lcom/embedpdf/StageCapability;DLuniffi/epdf_ffi/Point;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun zoomIn (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun zoomLevel (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun zoomMode (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun zoomOut (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun zoomTo (Luniffi/epdf_plugin_stage/StageZoomTarget;Luniffi/epdf_ffi/Point;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun zoomTo$default (Lcom/embedpdf/StageCapability;Luniffi/epdf_plugin_stage/StageZoomTarget;Luniffi/epdf_ffi/Point;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/StageKt {
+	public static final fun stage (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class com/embedpdf/ToolId {
 	public static final field Companion Lcom/embedpdf/ToolId$Companion;
 	public static final synthetic fun box-impl (Ljava/lang/String;)Lcom/embedpdf/ToolId;

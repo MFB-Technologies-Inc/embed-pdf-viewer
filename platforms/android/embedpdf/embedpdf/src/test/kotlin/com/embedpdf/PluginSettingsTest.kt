@@ -79,4 +79,21 @@ class PluginSettingsTest {
         assertEquals(registered, i18n.settings())
         viewer.destroy()
     }
+
+    @Test
+    fun stageSettingsMergeAndReset() = viewerTest {
+        // Without responsive rules: the default ones rewrite padding once they apply.
+        val viewer = started(ViewerConfig(stage = StageConfig(responsive = emptyList())))
+        val stage = viewer.stage(viewer.open(Fixture.bytes("report")))
+        val registered = stage.settings()
+        stage.updateSettings(StageSettingsPatch(layout = StageLayout.HORIZONTAL, turnGestures = null))
+        stage.updateSettings(StageSettingsPatch(zoomGestures = !registered.zoomGestures, turnGestures = null))
+        val changed = stage.settings()
+        assertEquals(StageLayout.HORIZONTAL, changed.layout)
+        assertEquals(!registered.zoomGestures, changed.zoomGestures)
+        assertEquals(registered.flow, changed.flow)
+        stage.resetSettings()
+        assertEquals(registered, stage.settings())
+        viewer.destroy()
+    }
 }
