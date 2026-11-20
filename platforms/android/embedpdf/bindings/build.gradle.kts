@@ -77,6 +77,9 @@ val prebuiltHostDir = providers.gradleProperty("linuxHostDir").orNull
 val linuxHostDir = prebuiltHostDir?.let(::File) ?: repoRoot.resolve("target/debug")
 val runtimeSlice = if (System.getProperty("os.arch") == "aarch64") "linux-arm64" else "linux-x64"
 val runtimeLibDir = repoRoot.resolve("packages/engine/runtime/build/libpdfium/$runtimeSlice/lib")
+// Read by the modules whose JVM tests load the same library.
+extra["linuxHostDir"] = linuxHostDir.path
+extra["runtimeLibDir"] = runtimeLibDir.path
 
 val buildLinuxHost = tasks.register<Exec>("buildLinuxHost") {
     description = "Builds epdf-viewer-host for the JVM tests."

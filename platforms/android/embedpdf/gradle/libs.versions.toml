@@ -9,10 +9,16 @@ jna = "5.14.0"
 coroutines = "1.10.2"
 junit = "4.13.2"
 json = "20250517"
+tracing = "1.2.0"
+robolectric = "4.16"
+bcv = "0.18.1"
 
 [libraries]
 jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+androidx-tracing = { module = "androidx.tracing:tracing", version.ref = "tracing" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 junit = { module = "junit:junit", version.ref = "junit" }
 # org.json for JVM tests, where the Android platform copy is absent.
 json = { module = "org.json:json", version.ref = "json" }
@@ -20,4 +26,5 @@ json = { module = "org.json:json", version.ref = "json" }
 [plugins]
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+binary-compatibility-validator = { id = "org.jetbrains.kotlinx.binary-compatibility-validator", version.ref = "bcv" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
