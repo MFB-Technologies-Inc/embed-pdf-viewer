@@ -8,18 +8,25 @@
 #   bash platforms/android/build-aar.sh          # build and check
 #   bash platforms/android/build-aar.sh test     # also run on the emulator
 #
-# The `libembedpdf.a` slices come from `engine-runtime-build.local.json`, which
-# points at a local fork checkout. They cannot be built on this machine: the
-# fork's Android config asserts `host_os == "linux"`, so a macOS build fails at
-# `gn gen` before it compiles anything. What is used instead are artifacts from
-# fork commit af480d0ce, the commit runtime-src pins, built in a linux/amd64
-# container.
+# The `libembedpdf.a` slices come from the runtime release for the commit
+# runtime-src pins; fetch-android-runtime.sh downloads and verifies them when
+# one is missing. They cannot be built on macOS: the fork's Android config
+# asserts `host_os == "linux"`, so a macOS build fails at `gn gen` before it
+# compiles anything.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PROJECT="$ROOT/platforms/android/embedpdf"
+# `release` is what ships. `PROFILE=dev` builds far faster for iterating;
+# cargo writes the dev profile to target/<triple>/debug.
 PROFILE="${PROFILE:-release}"
+PROFILE_DIR="$([[ $PROFILE == dev ]] && echo debug || echo "$PROFILE")"
 
+# The dev container installs NDK r29 at /opt/android-ndk-r29; a macOS SDK
+# install keeps it under the SDK's ndk/ directory.
+if [[ -z "${ANDROID_NDK_HOME:-}" && -d /opt/android-ndk-r29 ]]; then
+  ANDROID_NDK_HOME=/opt/android-ndk-r29
+fi
 NDK="${ANDROID_NDK_HOME:-$HOME/Library/Android/sdk/ndk/29.0.14206865}"
 [[ -d "$NDK" ]] || { echo "no NDK at $NDK; set ANDROID_NDK_HOME" >&2; exit 1; }
 HOST_TAG="$(ls "$NDK/toolchains/llvm/prebuilt" | head -1)"
@@ -45,8 +52,7 @@ for slice in "${SLICES[@]}"; do
   fork="android-$([[ $abi == arm64-v8a ]] && echo arm64 || echo x64)"
 
   if [[ ! -f "$ROOT/packages/engine/runtime/build/libpdfium/$fork/lib/libembedpdf.a" ]]; then
-    echo "missing the $fork fork slice; see the header of this script" >&2
-    exit 1
+    bash "$ROOT/platforms/android/fetch-android-runtime.sh" "$fork"
   fi
 
   echo "building $rust"
@@ -66,7 +72,7 @@ for slice in "${SLICES[@]}"; do
 
   jni="$PROJECT/library/src/main/jniLibs/$abi"
   mkdir -p "$jni"
-  cp "$ROOT/target/$rust/$PROFILE/libepdf_uniffi.so" "$jni/"
+  cp "$ROOT/target/$rust/$PROFILE_DIR/libepdf_uniffi.so" "$jni/"
   # The NDK's libc++, which the .so has a NEEDED entry for. Android does not
   # ship one; an AAR that leaves it out loads on a device that happens to have
   # another copy and fails on one that does not.
@@ -98,7 +104,7 @@ echo "generating bindings"
 cargo build -p uniffi-bindgen --manifest-path "$ROOT/Cargo.toml"
 rm -rf "$PROJECT/library/src/main/kotlin"
 "$ROOT/target/debug/uniffi-bindgen" generate \
-  --library "$ROOT/target/aarch64-linux-android/$PROFILE/libepdf_uniffi.so" \
+  --library "$ROOT/target/aarch64-linux-android/$PROFILE_DIR/libepdf_uniffi.so" \
   --language kotlin --no-format --out-dir "$PROJECT/library/src/main/kotlin"
 
 # The smoke test reads the same fixtures the Rust and iOS tests read.
@@ -110,9 +116,9 @@ done
 
 cd "$PROJECT"
 if [[ "${1:-}" == "test" ]]; then
-  gradle --console=plain :library:connectedDebugAndroidTest
+  ./gradlew --console=plain :library:connectedDebugAndroidTest
 else
-  gradle --console=plain :library:assembleRelease
+  ./gradlew --console=plain :library:assembleRelease
 fi
 
 # The APK half of the alignment check. An ELF built with 16 KB LOAD segments

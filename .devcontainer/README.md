@@ -146,6 +146,8 @@ for these editor and lifecycle settings.
 | Emscripten for `wasm32-eh`                                | 4.0.0 with its own Binaryen, sysroot built; `/opt/emsdk-eh` (`$EMSDK_EH`) |
 | wasm-bindgen-cli                                          | 0.2.127, matching `crates/epdf-web/Cargo.toml`       |
 | Android NDK / cargo-ndk                                   | 29.0.14206865 (amd64 only, SHA-256 verified) / 4.1.2 |
+| JDK                                                       | 21, Debian `openjdk-21-jdk-headless`; `JAVA_HOME` set |
+| Android SDK                                               | command-line tools 23.0 (amd64 only, SHA-256 verified), `platforms;android-36`, `build-tools;36.0.0`, `platform-tools`; `/opt/android-sdk` (`$ANDROID_HOME`) |
 | Git, Git LFS, GitHub CLI, rsync, ripgrep, jq, ShellCheck  | Debian packages                                      |
 | OAuth2 / Git credential forwarding clients                | oauth2-forwarder 1.9.4 / git-credential-forwarder 1.8.0 |
 | Chromium, Firefox, WebKit                                 | Workspace Playwright version; system libraries in the image, browsers installed during setup |
@@ -175,11 +177,12 @@ is imposed on consumers by this container configuration.
 
 ## Android, Swift and iOS
 
-The Android NDK is installed only on amd64: Google does not publish Linux ARM64
-host binaries. ARM64 containers still support the TypeScript engine, native Rust
-engine, and WASM toolchain. Android compilation requires an
-amd64 environment; Android Studio, an emulator, and the Android application SDK
-are not included.
+The Android NDK and SDK are installed only on amd64: Google does not publish Linux
+ARM64 host binaries. ARM64 containers still support the TypeScript engine, native
+Rust engine, and WASM toolchain. Android compilation requires an amd64 environment.
+The SDK carries what `platforms/android` builds with (one platform, its build tools
+and `platform-tools`); Android Studio, system images and an emulator are not
+included, and an emulator could not run here anyway without nested virtualization.
 
 The image has no Swift toolchain. Swift, Xcode and iOS work runs on the macOS host,
 which also runs the coding agents; they reach this container through `docker exec`.
