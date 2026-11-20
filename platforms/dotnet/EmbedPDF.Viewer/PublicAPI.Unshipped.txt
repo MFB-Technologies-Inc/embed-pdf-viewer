@@ -1,10 +1,132 @@
 #nullable enable
+EmbedPDF.ContentInclusion
+EmbedPDF.ContentInclusion.Always = 1 -> EmbedPDF.ContentInclusion
+EmbedPDF.ContentInclusion.Never = 2 -> EmbedPDF.ContentInclusion
+EmbedPDF.ContentInclusion.WhenPermitted = 0 -> EmbedPDF.ContentInclusion
+EmbedPDF.DocumentEvent
+EmbedPDF.DocumentEvent.ActiveChanged
+EmbedPDF.DocumentEvent.ActiveChanged.ActiveChanged(string? DocumentId) -> void
+EmbedPDF.DocumentEvent.ActiveChanged.Deconstruct(out string? DocumentId) -> void
+EmbedPDF.DocumentEvent.ActiveChanged.DocumentId.get -> string?
+EmbedPDF.DocumentEvent.ActiveChanged.DocumentId.init -> void
+EmbedPDF.DocumentEvent.ActiveChanged.Equals(EmbedPDF.DocumentEvent.ActiveChanged? other) -> bool
+EmbedPDF.DocumentEvent.Closed
+EmbedPDF.DocumentEvent.Closed.Closed(string! DocumentId) -> void
+EmbedPDF.DocumentEvent.Closed.Deconstruct(out string! DocumentId) -> void
+EmbedPDF.DocumentEvent.Closed.DocumentId.get -> string!
+EmbedPDF.DocumentEvent.Closed.DocumentId.init -> void
+EmbedPDF.DocumentEvent.Closed.Equals(EmbedPDF.DocumentEvent.Closed? other) -> bool
+EmbedPDF.DocumentEvent.DocumentEvent(EmbedPDF.DocumentEvent! original) -> void
+EmbedPDF.DocumentEvent.Locked
+EmbedPDF.DocumentEvent.Locked.Deconstruct(out string! DocumentId, out bool PasswordProvided) -> void
+EmbedPDF.DocumentEvent.Locked.DocumentId.get -> string!
+EmbedPDF.DocumentEvent.Locked.DocumentId.init -> void
+EmbedPDF.DocumentEvent.Locked.Equals(EmbedPDF.DocumentEvent.Locked? other) -> bool
+EmbedPDF.DocumentEvent.Locked.Locked(string! DocumentId, bool PasswordProvided) -> void
+EmbedPDF.DocumentEvent.Locked.PasswordProvided.get -> bool
+EmbedPDF.DocumentEvent.Locked.PasswordProvided.init -> void
+EmbedPDF.DocumentEvent.OpenFailed
+EmbedPDF.DocumentEvent.OpenFailed.Deconstruct(out string! DocumentId, out EmbedPDF.PluginErrorInfo! Error) -> void
+EmbedPDF.DocumentEvent.OpenFailed.DocumentId.get -> string!
+EmbedPDF.DocumentEvent.OpenFailed.DocumentId.init -> void
+EmbedPDF.DocumentEvent.OpenFailed.Equals(EmbedPDF.DocumentEvent.OpenFailed? other) -> bool
+EmbedPDF.DocumentEvent.OpenFailed.Error.get -> EmbedPDF.PluginErrorInfo!
+EmbedPDF.DocumentEvent.OpenFailed.Error.init -> void
+EmbedPDF.DocumentEvent.OpenFailed.OpenFailed(string! DocumentId, EmbedPDF.PluginErrorInfo! Error) -> void
+EmbedPDF.DocumentEvent.Opened
+EmbedPDF.DocumentEvent.Opened.Deconstruct(out EmbedPDF.DocumentInfo! Document) -> void
+EmbedPDF.DocumentEvent.Opened.Document.get -> EmbedPDF.DocumentInfo!
+EmbedPDF.DocumentEvent.Opened.Document.init -> void
+EmbedPDF.DocumentEvent.Opened.Equals(EmbedPDF.DocumentEvent.Opened? other) -> bool
+EmbedPDF.DocumentEvent.Opened.Opened(EmbedPDF.DocumentInfo! Document) -> void
+EmbedPDF.DocumentEvent.PagesChanged
+EmbedPDF.DocumentEvent.PagesChanged.Deconstruct(out string! DocumentId) -> void
+EmbedPDF.DocumentEvent.PagesChanged.DocumentId.get -> string!
+EmbedPDF.DocumentEvent.PagesChanged.DocumentId.init -> void
+EmbedPDF.DocumentEvent.PagesChanged.Equals(EmbedPDF.DocumentEvent.PagesChanged? other) -> bool
+EmbedPDF.DocumentEvent.PagesChanged.PagesChanged(string! DocumentId) -> void
+EmbedPDF.DocumentInfo
+EmbedPDF.DocumentInfo.<Clone>$() -> EmbedPDF.DocumentInfo!
+EmbedPDF.DocumentInfo.Deconstruct(out string! Id, out string? Name, out int PageCount, out EmbedPDF.DocumentStatus Status, out EmbedPDF.PluginErrorInfo? Error) -> void
+EmbedPDF.DocumentInfo.DocumentInfo(string! Id, string? Name, int PageCount, EmbedPDF.DocumentStatus Status, EmbedPDF.PluginErrorInfo? Error) -> void
+EmbedPDF.DocumentInfo.Equals(EmbedPDF.DocumentInfo? other) -> bool
+EmbedPDF.DocumentInfo.Error.get -> EmbedPDF.PluginErrorInfo?
+EmbedPDF.DocumentInfo.Error.init -> void
+EmbedPDF.DocumentInfo.Id.get -> string!
+EmbedPDF.DocumentInfo.Id.init -> void
+EmbedPDF.DocumentInfo.Name.get -> string?
+EmbedPDF.DocumentInfo.Name.init -> void
+EmbedPDF.DocumentInfo.PageCount.get -> int
+EmbedPDF.DocumentInfo.PageCount.init -> void
+EmbedPDF.DocumentInfo.Status.get -> EmbedPDF.DocumentStatus
+EmbedPDF.DocumentInfo.Status.init -> void
+EmbedPDF.DocumentPermission
+EmbedPDF.DocumentPermission.Deconstruct(out string! Value) -> void
+EmbedPDF.DocumentPermission.DocumentPermission() -> void
+EmbedPDF.DocumentPermission.DocumentPermission(string! Value) -> void
+EmbedPDF.DocumentPermission.Equals(EmbedPDF.DocumentPermission other) -> bool
+EmbedPDF.DocumentPermission.Value.get -> string!
+EmbedPDF.DocumentPermission.Value.init -> void
+EmbedPDF.DocumentStatus
+EmbedPDF.DocumentStatus.Failed = 3 -> EmbedPDF.DocumentStatus
+EmbedPDF.DocumentStatus.Loading = 0 -> EmbedPDF.DocumentStatus
+EmbedPDF.DocumentStatus.Locked = 1 -> EmbedPDF.DocumentStatus
+EmbedPDF.DocumentStatus.Ready = 2 -> EmbedPDF.DocumentStatus
 EmbedPDF.NativeRuntime
 EmbedPDF.NativeRuntimeNotFoundException
 EmbedPDF.NativeRuntimeNotFoundException.NativeRuntimeNotFoundException(string! runtimeIdentifier, System.Collections.Generic.IReadOnlyList<string!>! searchedPaths, string! message) -> void
 EmbedPDF.NativeRuntimeNotFoundException.NativeRuntimeNotFoundException(string! runtimeIdentifier, System.Collections.Generic.IReadOnlyList<string!>! searchedPaths, string! message, System.Exception! innerException) -> void
 EmbedPDF.NativeRuntimeNotFoundException.RuntimeIdentifier.get -> string!
 EmbedPDF.NativeRuntimeNotFoundException.SearchedPaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.PageGeometry
+EmbedPDF.PageGeometry.Deconstruct(out EmbedPDF.RenderRotation Turn, out EmbedPDF.PdfSize PageSize) -> void
+EmbedPDF.PageGeometry.DisplaySize.get -> EmbedPDF.PdfSize
+EmbedPDF.PageGeometry.Equals(EmbedPDF.PageGeometry other) -> bool
+EmbedPDF.PageGeometry.PageGeometry() -> void
+EmbedPDF.PageGeometry.PageGeometry(EmbedPDF.RenderRotation Turn, EmbedPDF.PdfSize PageSize) -> void
+EmbedPDF.PageGeometry.PageGeometry(int rotation, EmbedPDF.PdfSize pageSize) -> void
+EmbedPDF.PageGeometry.PageSize.get -> EmbedPDF.PdfSize
+EmbedPDF.PageGeometry.PageSize.init -> void
+EmbedPDF.PageGeometry.Rotation.get -> int
+EmbedPDF.PageGeometry.ToDisplay(EmbedPDF.PdfPoint point) -> EmbedPDF.PdfPoint
+EmbedPDF.PageGeometry.ToDisplay(EmbedPDF.PdfRect rect) -> EmbedPDF.PdfRect
+EmbedPDF.PageGeometry.ToPage(EmbedPDF.PdfPoint point) -> EmbedPDF.PdfPoint
+EmbedPDF.PageGeometry.ToPage(EmbedPDF.PdfRect rect) -> EmbedPDF.PdfRect
+EmbedPDF.PageGeometry.Turn.get -> EmbedPDF.RenderRotation
+EmbedPDF.PageGeometry.Turn.init -> void
+EmbedPDF.PageInfo
+EmbedPDF.PageInfo.<Clone>$() -> EmbedPDF.PageInfo!
+EmbedPDF.PageInfo.Deconstruct(out EmbedPDF.PageRef Page, out int Index, out double Width, out double Height, out int Rotation) -> void
+EmbedPDF.PageInfo.Equals(EmbedPDF.PageInfo? other) -> bool
+EmbedPDF.PageInfo.Geometry.get -> EmbedPDF.PageGeometry
+EmbedPDF.PageInfo.Height.get -> double
+EmbedPDF.PageInfo.Height.init -> void
+EmbedPDF.PageInfo.Index.get -> int
+EmbedPDF.PageInfo.Index.init -> void
+EmbedPDF.PageInfo.Page.get -> EmbedPDF.PageRef
+EmbedPDF.PageInfo.Page.init -> void
+EmbedPDF.PageInfo.PageInfo(EmbedPDF.PageRef Page, int Index, double Width, double Height, int Rotation) -> void
+EmbedPDF.PageInfo.Rotation.get -> int
+EmbedPDF.PageInfo.Rotation.init -> void
+EmbedPDF.PageInfo.Width.get -> double
+EmbedPDF.PageInfo.Width.init -> void
+EmbedPDF.PageRef
+EmbedPDF.PageRef.Deconstruct(out int PageObjectNumber) -> void
+EmbedPDF.PageRef.Equals(EmbedPDF.PageRef other) -> bool
+EmbedPDF.PageRef.PageObjectNumber.get -> int
+EmbedPDF.PageRef.PageObjectNumber.init -> void
+EmbedPDF.PageRef.PageRef() -> void
+EmbedPDF.PageRef.PageRef(int PageObjectNumber) -> void
+EmbedPDF.PageRenderResolution
+EmbedPDF.PageRenderResolution.Deconstruct(out double DeviceWidth, out bool IsFull) -> void
+EmbedPDF.PageRenderResolution.DeviceWidth.get -> double
+EmbedPDF.PageRenderResolution.DeviceWidth.init -> void
+EmbedPDF.PageRenderResolution.Equals(EmbedPDF.PageRenderResolution other) -> bool
+EmbedPDF.PageRenderResolution.IsFull.get -> bool
+EmbedPDF.PageRenderResolution.IsFull.init -> void
+EmbedPDF.PageRenderResolution.PageRenderResolution() -> void
+EmbedPDF.PageRenderResolution.PageRenderResolution(double DeviceWidth, bool IsFull) -> void
+EmbedPDF.PageRenderResolution.UnrotatedDeviceWidth(double unrotatedWidth, double displayedWidth) -> double
 EmbedPDF.PdfErrorCode
 EmbedPDF.PdfErrorCode.Deconstruct(out string! Value) -> void
 EmbedPDF.PdfErrorCode.Equals(EmbedPDF.PdfErrorCode other) -> bool
@@ -23,11 +145,212 @@ EmbedPDF.PdfException.PdfException(string! message) -> void
 EmbedPDF.PdfException.PdfException(string! message, System.Exception! innerException) -> void
 EmbedPDF.PdfException.PdfException(string! name, EmbedPDF.PdfErrorCode code, string! detail) -> void
 EmbedPDF.PdfException.PdfException(string! name, EmbedPDF.PdfErrorCode code, string! detail, System.Exception? innerException) -> void
+EmbedPDF.PdfPoint
+EmbedPDF.PdfPoint.Deconstruct(out double X, out double Y) -> void
+EmbedPDF.PdfPoint.Equals(EmbedPDF.PdfPoint other) -> bool
+EmbedPDF.PdfPoint.PdfPoint() -> void
+EmbedPDF.PdfPoint.PdfPoint(double X, double Y) -> void
+EmbedPDF.PdfPoint.X.get -> double
+EmbedPDF.PdfPoint.X.init -> void
+EmbedPDF.PdfPoint.Y.get -> double
+EmbedPDF.PdfPoint.Y.init -> void
+EmbedPDF.PdfRect
+EmbedPDF.PdfRect.Deconstruct(out double X, out double Y, out double Width, out double Height) -> void
+EmbedPDF.PdfRect.Equals(EmbedPDF.PdfRect other) -> bool
+EmbedPDF.PdfRect.Height.get -> double
+EmbedPDF.PdfRect.Height.init -> void
+EmbedPDF.PdfRect.PdfRect() -> void
+EmbedPDF.PdfRect.PdfRect(double X, double Y, double Width, double Height) -> void
+EmbedPDF.PdfRect.Width.get -> double
+EmbedPDF.PdfRect.Width.init -> void
+EmbedPDF.PdfRect.X.get -> double
+EmbedPDF.PdfRect.X.init -> void
+EmbedPDF.PdfRect.Y.get -> double
+EmbedPDF.PdfRect.Y.init -> void
+EmbedPDF.PdfSize
+EmbedPDF.PdfSize.Deconstruct(out double Width, out double Height) -> void
+EmbedPDF.PdfSize.Equals(EmbedPDF.PdfSize other) -> bool
+EmbedPDF.PdfSize.Height.get -> double
+EmbedPDF.PdfSize.Height.init -> void
+EmbedPDF.PdfSize.PdfSize() -> void
+EmbedPDF.PdfSize.PdfSize(double Width, double Height) -> void
+EmbedPDF.PdfSize.Width.get -> double
+EmbedPDF.PdfSize.Width.init -> void
+EmbedPDF.PluginErrorInfo
+EmbedPDF.PluginErrorInfo.<Clone>$() -> EmbedPDF.PluginErrorInfo!
+EmbedPDF.PluginErrorInfo.Capability.get -> string!
+EmbedPDF.PluginErrorInfo.Capability.init -> void
+EmbedPDF.PluginErrorInfo.Code.get -> EmbedPDF.PdfErrorCode
+EmbedPDF.PluginErrorInfo.Code.init -> void
+EmbedPDF.PluginErrorInfo.Deconstruct(out EmbedPDF.PdfErrorCode Code, out string! Message, out string! Capability, out string? Permission) -> void
+EmbedPDF.PluginErrorInfo.Equals(EmbedPDF.PluginErrorInfo? other) -> bool
+EmbedPDF.PluginErrorInfo.Message.get -> string!
+EmbedPDF.PluginErrorInfo.Message.init -> void
+EmbedPDF.PluginErrorInfo.Permission.get -> string?
+EmbedPDF.PluginErrorInfo.Permission.init -> void
+EmbedPDF.PluginErrorInfo.PluginErrorInfo(EmbedPDF.PdfErrorCode Code, string! Message, string! Capability, string? Permission) -> void
+EmbedPDF.Registration
+EmbedPDF.Registration.Dispose() -> void
+EmbedPDF.Registration.Unregister() -> void
+EmbedPDF.RenderRotation
+EmbedPDF.RenderRotation.Clockwise180 = 2 -> EmbedPDF.RenderRotation
+EmbedPDF.RenderRotation.Clockwise270 = 3 -> EmbedPDF.RenderRotation
+EmbedPDF.RenderRotation.Clockwise90 = 1 -> EmbedPDF.RenderRotation
+EmbedPDF.RenderRotation.None = 0 -> EmbedPDF.RenderRotation
+EmbedPDF.RenderRotationExtensions
+EmbedPDF.SaveMode
+EmbedPDF.SaveMode.Incremental = 0 -> EmbedPDF.SaveMode
+EmbedPDF.SaveMode.Rewrite = 1 -> EmbedPDF.SaveMode
+EmbedPDF.ViewerSettings
+EmbedPDF.ViewerSettings.<Clone>$() -> EmbedPDF.ViewerSettings!
+EmbedPDF.ViewerSettings.Accent.get -> string?
+EmbedPDF.ViewerSettings.Accent.init -> void
+EmbedPDF.ViewerSettings.Deconstruct(out string? Accent, out string? PageBackground, out string? PageShadow) -> void
+EmbedPDF.ViewerSettings.Equals(EmbedPDF.ViewerSettings? other) -> bool
+EmbedPDF.ViewerSettings.PageBackground.get -> string?
+EmbedPDF.ViewerSettings.PageBackground.init -> void
+EmbedPDF.ViewerSettings.PageShadow.get -> string?
+EmbedPDF.ViewerSettings.PageShadow.init -> void
+EmbedPDF.ViewerSettings.ViewerSettings(string? Accent, string? PageBackground, string? PageShadow) -> void
+EmbedPDF.ViewerSettingsField
+EmbedPDF.ViewerSettingsField.Accent = 0 -> EmbedPDF.ViewerSettingsField
+EmbedPDF.ViewerSettingsField.PageBackground = 1 -> EmbedPDF.ViewerSettingsField
+EmbedPDF.ViewerSettingsField.PageShadow = 2 -> EmbedPDF.ViewerSettingsField
+EmbedPDF.ViewerSettingsPatch
+EmbedPDF.ViewerSettingsPatch.<Clone>$() -> EmbedPDF.ViewerSettingsPatch!
+EmbedPDF.ViewerSettingsPatch.Accent.get -> string?
+EmbedPDF.ViewerSettingsPatch.Accent.init -> void
+EmbedPDF.ViewerSettingsPatch.Clear.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.ViewerSettingsField>!
+EmbedPDF.ViewerSettingsPatch.Clear.init -> void
+EmbedPDF.ViewerSettingsPatch.Equals(EmbedPDF.ViewerSettingsPatch? other) -> bool
+EmbedPDF.ViewerSettingsPatch.PageBackground.get -> string?
+EmbedPDF.ViewerSettingsPatch.PageBackground.init -> void
+EmbedPDF.ViewerSettingsPatch.PageShadow.get -> string?
+EmbedPDF.ViewerSettingsPatch.PageShadow.init -> void
+EmbedPDF.ViewerSettingsPatch.ViewerSettingsPatch() -> void
+abstract EmbedPDF.DocumentEvent.<Clone>$() -> EmbedPDF.DocumentEvent!
+const EmbedPDF.PageRenderResolution.DeviceWidthStep = 128 -> double
+const EmbedPDF.PageRenderResolution.OffScreenDeviceWidth = 256 -> double
+override EmbedPDF.DocumentEvent.ActiveChanged.<Clone>$() -> EmbedPDF.DocumentEvent.ActiveChanged!
+override EmbedPDF.DocumentEvent.ActiveChanged.Equals(object? obj) -> bool
+override EmbedPDF.DocumentEvent.ActiveChanged.GetHashCode() -> int
+override EmbedPDF.DocumentEvent.ActiveChanged.ToString() -> string!
+override EmbedPDF.DocumentEvent.Closed.<Clone>$() -> EmbedPDF.DocumentEvent.Closed!
+override EmbedPDF.DocumentEvent.Closed.Equals(object? obj) -> bool
+override EmbedPDF.DocumentEvent.Closed.GetHashCode() -> int
+override EmbedPDF.DocumentEvent.Closed.ToString() -> string!
+override EmbedPDF.DocumentEvent.Equals(object? obj) -> bool
+override EmbedPDF.DocumentEvent.GetHashCode() -> int
+override EmbedPDF.DocumentEvent.Locked.<Clone>$() -> EmbedPDF.DocumentEvent.Locked!
+override EmbedPDF.DocumentEvent.Locked.Equals(object? obj) -> bool
+override EmbedPDF.DocumentEvent.Locked.GetHashCode() -> int
+override EmbedPDF.DocumentEvent.Locked.ToString() -> string!
+override EmbedPDF.DocumentEvent.OpenFailed.<Clone>$() -> EmbedPDF.DocumentEvent.OpenFailed!
+override EmbedPDF.DocumentEvent.OpenFailed.Equals(object? obj) -> bool
+override EmbedPDF.DocumentEvent.OpenFailed.GetHashCode() -> int
+override EmbedPDF.DocumentEvent.OpenFailed.ToString() -> string!
+override EmbedPDF.DocumentEvent.Opened.<Clone>$() -> EmbedPDF.DocumentEvent.Opened!
+override EmbedPDF.DocumentEvent.Opened.Equals(object? obj) -> bool
+override EmbedPDF.DocumentEvent.Opened.GetHashCode() -> int
+override EmbedPDF.DocumentEvent.Opened.ToString() -> string!
+override EmbedPDF.DocumentEvent.PagesChanged.<Clone>$() -> EmbedPDF.DocumentEvent.PagesChanged!
+override EmbedPDF.DocumentEvent.PagesChanged.Equals(object? obj) -> bool
+override EmbedPDF.DocumentEvent.PagesChanged.GetHashCode() -> int
+override EmbedPDF.DocumentEvent.PagesChanged.ToString() -> string!
+override EmbedPDF.DocumentEvent.ToString() -> string!
+override EmbedPDF.DocumentInfo.Equals(object? obj) -> bool
+override EmbedPDF.DocumentInfo.GetHashCode() -> int
+override EmbedPDF.DocumentInfo.ToString() -> string!
+override EmbedPDF.DocumentPermission.GetHashCode() -> int
+override EmbedPDF.DocumentPermission.ToString() -> string!
+override EmbedPDF.PageGeometry.GetHashCode() -> int
+override EmbedPDF.PageInfo.Equals(object? obj) -> bool
+override EmbedPDF.PageInfo.GetHashCode() -> int
+override EmbedPDF.PageInfo.ToString() -> string!
+override EmbedPDF.PageRef.GetHashCode() -> int
+override EmbedPDF.PageRenderResolution.GetHashCode() -> int
 override EmbedPDF.PdfErrorCode.GetHashCode() -> int
 override EmbedPDF.PdfErrorCode.ToString() -> string!
+override EmbedPDF.PdfPoint.GetHashCode() -> int
+override EmbedPDF.PdfRect.GetHashCode() -> int
+override EmbedPDF.PdfSize.GetHashCode() -> int
+override EmbedPDF.PluginErrorInfo.Equals(object? obj) -> bool
+override EmbedPDF.PluginErrorInfo.GetHashCode() -> int
+override EmbedPDF.PluginErrorInfo.ToString() -> string!
+override EmbedPDF.ViewerSettings.Equals(object? obj) -> bool
+override EmbedPDF.ViewerSettings.GetHashCode() -> int
+override EmbedPDF.ViewerSettings.ToString() -> string!
+override EmbedPDF.ViewerSettingsPatch.Equals(object? obj) -> bool
+override EmbedPDF.ViewerSettingsPatch.GetHashCode() -> int
+override EmbedPDF.ViewerSettingsPatch.ToString() -> string!
+override sealed EmbedPDF.DocumentEvent.ActiveChanged.Equals(EmbedPDF.DocumentEvent? other) -> bool
+override sealed EmbedPDF.DocumentEvent.Closed.Equals(EmbedPDF.DocumentEvent? other) -> bool
+override sealed EmbedPDF.DocumentEvent.Locked.Equals(EmbedPDF.DocumentEvent? other) -> bool
+override sealed EmbedPDF.DocumentEvent.OpenFailed.Equals(EmbedPDF.DocumentEvent? other) -> bool
+override sealed EmbedPDF.DocumentEvent.Opened.Equals(EmbedPDF.DocumentEvent? other) -> bool
+override sealed EmbedPDF.DocumentEvent.PagesChanged.Equals(EmbedPDF.DocumentEvent? other) -> bool
+static EmbedPDF.DocumentEvent.ActiveChanged.operator !=(EmbedPDF.DocumentEvent.ActiveChanged? left, EmbedPDF.DocumentEvent.ActiveChanged? right) -> bool
+static EmbedPDF.DocumentEvent.ActiveChanged.operator ==(EmbedPDF.DocumentEvent.ActiveChanged? left, EmbedPDF.DocumentEvent.ActiveChanged? right) -> bool
+static EmbedPDF.DocumentEvent.Closed.operator !=(EmbedPDF.DocumentEvent.Closed? left, EmbedPDF.DocumentEvent.Closed? right) -> bool
+static EmbedPDF.DocumentEvent.Closed.operator ==(EmbedPDF.DocumentEvent.Closed? left, EmbedPDF.DocumentEvent.Closed? right) -> bool
+static EmbedPDF.DocumentEvent.Locked.operator !=(EmbedPDF.DocumentEvent.Locked? left, EmbedPDF.DocumentEvent.Locked? right) -> bool
+static EmbedPDF.DocumentEvent.Locked.operator ==(EmbedPDF.DocumentEvent.Locked? left, EmbedPDF.DocumentEvent.Locked? right) -> bool
+static EmbedPDF.DocumentEvent.OpenFailed.operator !=(EmbedPDF.DocumentEvent.OpenFailed? left, EmbedPDF.DocumentEvent.OpenFailed? right) -> bool
+static EmbedPDF.DocumentEvent.OpenFailed.operator ==(EmbedPDF.DocumentEvent.OpenFailed? left, EmbedPDF.DocumentEvent.OpenFailed? right) -> bool
+static EmbedPDF.DocumentEvent.Opened.operator !=(EmbedPDF.DocumentEvent.Opened? left, EmbedPDF.DocumentEvent.Opened? right) -> bool
+static EmbedPDF.DocumentEvent.Opened.operator ==(EmbedPDF.DocumentEvent.Opened? left, EmbedPDF.DocumentEvent.Opened? right) -> bool
+static EmbedPDF.DocumentEvent.PagesChanged.operator !=(EmbedPDF.DocumentEvent.PagesChanged? left, EmbedPDF.DocumentEvent.PagesChanged? right) -> bool
+static EmbedPDF.DocumentEvent.PagesChanged.operator ==(EmbedPDF.DocumentEvent.PagesChanged? left, EmbedPDF.DocumentEvent.PagesChanged? right) -> bool
+static EmbedPDF.DocumentEvent.operator !=(EmbedPDF.DocumentEvent? left, EmbedPDF.DocumentEvent? right) -> bool
+static EmbedPDF.DocumentEvent.operator ==(EmbedPDF.DocumentEvent? left, EmbedPDF.DocumentEvent? right) -> bool
+static EmbedPDF.DocumentInfo.operator !=(EmbedPDF.DocumentInfo? left, EmbedPDF.DocumentInfo? right) -> bool
+static EmbedPDF.DocumentInfo.operator ==(EmbedPDF.DocumentInfo? left, EmbedPDF.DocumentInfo? right) -> bool
+static EmbedPDF.DocumentPermission.AnnotateImport.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.AnnotateModify.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.AnnotateRead.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.AnnotationsCreate.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.AttachmentsModify.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.ContentCopy.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.Download.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.DownloadFlattened.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.FormsFill.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.FormsImport.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.FormsModify.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.FormsRead.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.FormsScript.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.FormsSubmit.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.MetadataModify.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.Named.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.DocumentPermission>!
+static EmbedPDF.DocumentPermission.Open.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.OutlineModify.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.PagesAssemble.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.PagesModify.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.Print.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.PrintHigh.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.Redact.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.Render.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.RenderThumbnail.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.Sign.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.SignCertify.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.TextCopy.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.TextSearch.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.TextSelect.get -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.implicit operator EmbedPDF.DocumentPermission(string! value) -> EmbedPDF.DocumentPermission
+static EmbedPDF.DocumentPermission.operator !=(EmbedPDF.DocumentPermission left, EmbedPDF.DocumentPermission right) -> bool
+static EmbedPDF.DocumentPermission.operator ==(EmbedPDF.DocumentPermission left, EmbedPDF.DocumentPermission right) -> bool
 static EmbedPDF.NativeRuntime.EnsureLoaded() -> void
 static EmbedPDF.NativeRuntime.ReadPageCountAsync(System.ReadOnlyMemory<byte> pdf, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
 static EmbedPDF.NativeRuntime.RuntimeIdentifier.get -> string!
+static EmbedPDF.PageGeometry.operator !=(EmbedPDF.PageGeometry left, EmbedPDF.PageGeometry right) -> bool
+static EmbedPDF.PageGeometry.operator ==(EmbedPDF.PageGeometry left, EmbedPDF.PageGeometry right) -> bool
+static EmbedPDF.PageInfo.operator !=(EmbedPDF.PageInfo? left, EmbedPDF.PageInfo? right) -> bool
+static EmbedPDF.PageInfo.operator ==(EmbedPDF.PageInfo? left, EmbedPDF.PageInfo? right) -> bool
+static EmbedPDF.PageRef.operator !=(EmbedPDF.PageRef left, EmbedPDF.PageRef right) -> bool
+static EmbedPDF.PageRef.operator ==(EmbedPDF.PageRef left, EmbedPDF.PageRef right) -> bool
+static EmbedPDF.PageRenderResolution.BandedScale(double scale, double pageWidth) -> double
+static EmbedPDF.PageRenderResolution.ForPage(double viewWidth, double displayScale, double zoomScale = 1, bool isOnScreen = true) -> EmbedPDF.PageRenderResolution
+static EmbedPDF.PageRenderResolution.operator !=(EmbedPDF.PageRenderResolution left, EmbedPDF.PageRenderResolution right) -> bool
+static EmbedPDF.PageRenderResolution.operator ==(EmbedPDF.PageRenderResolution left, EmbedPDF.PageRenderResolution right) -> bool
 static EmbedPDF.PdfErrorCode.Conflict.get -> EmbedPDF.PdfErrorCode
 static EmbedPDF.PdfErrorCode.InstanceClosed.get -> EmbedPDF.PdfErrorCode
 static EmbedPDF.PdfErrorCode.InvalidInput.get -> EmbedPDF.PdfErrorCode
@@ -41,4 +364,36 @@ static EmbedPDF.PdfErrorCode.Unsupported.get -> EmbedPDF.PdfErrorCode
 static EmbedPDF.PdfErrorCode.implicit operator EmbedPDF.PdfErrorCode(string! value) -> EmbedPDF.PdfErrorCode
 static EmbedPDF.PdfErrorCode.operator !=(EmbedPDF.PdfErrorCode left, EmbedPDF.PdfErrorCode right) -> bool
 static EmbedPDF.PdfErrorCode.operator ==(EmbedPDF.PdfErrorCode left, EmbedPDF.PdfErrorCode right) -> bool
+static EmbedPDF.PdfPoint.operator !=(EmbedPDF.PdfPoint left, EmbedPDF.PdfPoint right) -> bool
+static EmbedPDF.PdfPoint.operator ==(EmbedPDF.PdfPoint left, EmbedPDF.PdfPoint right) -> bool
+static EmbedPDF.PdfRect.operator !=(EmbedPDF.PdfRect left, EmbedPDF.PdfRect right) -> bool
+static EmbedPDF.PdfRect.operator ==(EmbedPDF.PdfRect left, EmbedPDF.PdfRect right) -> bool
+static EmbedPDF.PdfSize.operator !=(EmbedPDF.PdfSize left, EmbedPDF.PdfSize right) -> bool
+static EmbedPDF.PdfSize.operator ==(EmbedPDF.PdfSize left, EmbedPDF.PdfSize right) -> bool
+static EmbedPDF.PluginErrorInfo.operator !=(EmbedPDF.PluginErrorInfo? left, EmbedPDF.PluginErrorInfo? right) -> bool
+static EmbedPDF.PluginErrorInfo.operator ==(EmbedPDF.PluginErrorInfo? left, EmbedPDF.PluginErrorInfo? right) -> bool
+static EmbedPDF.RenderRotationExtensions.Degrees(this EmbedPDF.RenderRotation rotation) -> int
+static EmbedPDF.RenderRotationExtensions.FromDegrees(double degrees) -> EmbedPDF.RenderRotation
+static EmbedPDF.RenderRotationExtensions.FromDegrees(int degrees) -> EmbedPDF.RenderRotation
+static EmbedPDF.RenderRotationExtensions.IsQuarterTurn(this EmbedPDF.RenderRotation rotation) -> bool
+static EmbedPDF.ViewerSettings.operator !=(EmbedPDF.ViewerSettings? left, EmbedPDF.ViewerSettings? right) -> bool
+static EmbedPDF.ViewerSettings.operator ==(EmbedPDF.ViewerSettings? left, EmbedPDF.ViewerSettings? right) -> bool
+static EmbedPDF.ViewerSettingsPatch.operator !=(EmbedPDF.ViewerSettingsPatch? left, EmbedPDF.ViewerSettingsPatch? right) -> bool
+static EmbedPDF.ViewerSettingsPatch.operator ==(EmbedPDF.ViewerSettingsPatch? left, EmbedPDF.ViewerSettingsPatch? right) -> bool
+virtual EmbedPDF.DocumentEvent.EqualityContract.get -> System.Type!
+virtual EmbedPDF.DocumentEvent.Equals(EmbedPDF.DocumentEvent? other) -> bool
+virtual EmbedPDF.DocumentEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
+~override EmbedPDF.DocumentPermission.Equals(object obj) -> bool
+~override EmbedPDF.PageGeometry.Equals(object obj) -> bool
+~override EmbedPDF.PageGeometry.ToString() -> string
+~override EmbedPDF.PageRef.Equals(object obj) -> bool
+~override EmbedPDF.PageRef.ToString() -> string
+~override EmbedPDF.PageRenderResolution.Equals(object obj) -> bool
+~override EmbedPDF.PageRenderResolution.ToString() -> string
 ~override EmbedPDF.PdfErrorCode.Equals(object obj) -> bool
+~override EmbedPDF.PdfPoint.Equals(object obj) -> bool
+~override EmbedPDF.PdfPoint.ToString() -> string
+~override EmbedPDF.PdfRect.Equals(object obj) -> bool
+~override EmbedPDF.PdfRect.ToString() -> string
+~override EmbedPDF.PdfSize.Equals(object obj) -> bool
+~override EmbedPDF.PdfSize.ToString() -> string

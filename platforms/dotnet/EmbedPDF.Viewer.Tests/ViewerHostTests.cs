@@ -6,6 +6,12 @@ using Xunit;
 
 namespace EmbedPDF.Viewer.Tests;
 
+// The facade declares public twins of these names in EmbedPDF, which an
+// enclosing namespace finds first.
+using DocumentEvent = uniffi.epdf_viewer_host.DocumentEvent;
+using DocumentInfo = uniffi.epdf_viewer_host.DocumentInfo;
+using DocumentStatus = uniffi.epdf_viewer_host.DocumentStatus;
+
 // The generated types are internal (the generator default access modifier),
 // so these tests see them through InternalsVisibleTo.
 public sealed class ViewerHostTests
