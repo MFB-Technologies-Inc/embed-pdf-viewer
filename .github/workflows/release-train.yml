@@ -65,6 +65,10 @@ jobs:
   preflight:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    permissions:
+      contents: read
+      # GET repos/{repo}/environments/{name} needs actions: read.
+      actions: read
     env:
       SWIFT_VERSION: ${{ inputs.swift_version }}
       VIEWER_VERSION: ${{ inputs.viewer_version }}
@@ -78,6 +82,27 @@ jobs:
         with:
           fetch-depth: 1
           persist-credentials: false
+
+      # The release environment's reviewers are the only gate before a real
+      # run publishes. A job that names a missing environment makes it with
+      # no rules, so the GITHUB_TOKEN release jobs would tag and publish
+      # unapproved. A dry run names no environment.
+      - name: Check the release environment
+        run: |
+          if [[ "$DRY_RUN" == true ]]; then
+            echo "dry run: not checking the release environment's reviewers"
+            exit 0
+          fi
+          if ! env_json=$(gh api "repos/$GH_REPO/environments/release" 2>&1); then
+            echo "::error::couldn't read the release environment on $GH_REPO; create it with a required-reviewers rule before a real run: $(tr '\n' ' ' <<<"$env_json")"
+            exit 1
+          fi
+          reviewers=$(jq '[.protection_rules[]? | select(.type == "required_reviewers")] | length' <<<"$env_json")
+          if [[ "$reviewers" -eq 0 ]]; then
+            echo "::error::the release environment on $GH_REPO has no required-reviewers rule; add one before a real run"
+            exit 1
+          fi
+          echo "release environment: $reviewers required-reviewers rule(s)"
 
       - name: Check the inputs
         run: |
@@ -162,6 +187,10 @@ jobs:
             echo "| Swift package | \`$SWIFT_VERSION\` | $SWIFT_STATE |"
             echo "| Rust viewer bundle | \`rust-viewer-$VIEWER_VERSION\` | $VIEWER_STATE |"
             echo "| C# engine | \`dotnet-engine-0.0.0-local-${GITHUB_SHA:0:12}\` | $DOTNET_STATE |"
+            if [[ "$DRY_RUN" == true ]]; then
+              echo
+              echo "Dry run: the \`release\` environment and its required reviewers were not checked."
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
           cat "$GITHUB_STEP_SUMMARY"
 
