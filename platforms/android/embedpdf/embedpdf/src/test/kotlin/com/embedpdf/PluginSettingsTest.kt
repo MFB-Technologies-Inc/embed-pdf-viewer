@@ -222,4 +222,19 @@ class PluginSettingsTest {
         assertEquals(true, stamps.settings().dynamic)
         viewer.destroy()
     }
+
+    @Test
+    fun signatureModeCanClearAndResetToRegisteredMode() = viewerTest {
+        val viewer = started(ViewerConfig(interaction = true, form = FormConfig(), signature = SignatureConfig(mode = SignatureMode.VISUAL)))
+        val document = viewer.open(Fixture.bytes("report"))
+        val signature = viewer.signatures(document)
+        signature.updateSettings(SignatureSettingsPatch(clearMode = true, allowCertify = true))
+        val changed = signature.settings()
+        assertEquals(null, changed.mode)
+        assertEquals(true, changed.allowCertify)
+        signature.resetSettings()
+        assertEquals(SignatureMode.VISUAL, signature.settings().mode)
+        assertEquals(false, signature.settings().allowCertify)
+        viewer.destroy()
+    }
 }

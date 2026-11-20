@@ -5827,7 +5827,10 @@
       "path": "crates/plugins/signature/src/controller.rs",
       "owner": "SignatureCapability",
       "symbol": "lifetime",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "signature",
@@ -5841,14 +5844,20 @@
       "path": "crates/plugins/signature/src/controller.rs",
       "owner": "SignatureCapability",
       "symbol": "get_settings",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "settings"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/controller.rs",
       "owner": "SignatureCapability",
       "symbol": "update_settings",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "updateSettings"
+      }
     },
     {
       "crate": "signature",
@@ -5862,7 +5871,10 @@
       "path": "crates/plugins/signature/src/controller.rs",
       "owner": "SignatureCapability",
       "symbol": "reset_settings",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "resetSettings"
+      }
     },
     {
       "crate": "signature",
@@ -5889,231 +5901,330 @@
       "path": "crates/plugins/signature/src/read/judging.rs",
       "owner": "SignatureCapability",
       "symbol": "refresh",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "refresh"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/read/judging.rs",
       "owner": "SignatureCapability",
       "symbol": "validate",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "validate"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/read/judging.rs",
       "owner": "SignatureCapability",
       "symbol": "validate_field",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "validate"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/read/judging.rs",
       "owner": "SignatureCapability",
       "symbol": "analyze_changes",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "analyzeChanges"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/read/judging.rs",
       "owner": "SignatureCapability",
       "symbol": "read_revision",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "readRevision"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "get_snapshot",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "snapshot"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "get_status",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "status"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "list_signatures",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "signatures"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "list_unsigned_fields",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "unsignedFields"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "get_signature",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "signature"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "list_verdicts",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "verdicts"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "get_verdict",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "verdict"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "get_protection",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "protection"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "get_pending",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "pending"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "get_pending_json",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "pending"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "is_busy",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "isBusy"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "get_target",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "target"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/services/authority.rs",
       "owner": "SignatureCapability",
       "symbol": "get_mode",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "mode"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/services/authority.rs",
       "owner": "SignatureCapability",
       "symbol": "can_sign",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "canSign"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/services/authority.rs",
       "owner": "SignatureCapability",
       "symbol": "can_fill",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "canFill"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/services/authority.rs",
       "owner": "SignatureCapability",
       "symbol": "can_certify",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "canCertify"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/services/authority.rs",
       "owner": "SignatureCapability",
       "symbol": "can_read_revision",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "canReadRevision"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/write/validation_info.rs",
       "owner": "SignatureCapability",
       "symbol": "add_validation_info",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "addValidationInfo"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/services/authority.rs",
       "owner": "SignatureCapability",
       "symbol": "can_add_validation_info",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "canAddValidationInfo"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/write/fill.rs",
       "owner": "SignatureCapability",
       "symbol": "fill_field",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "fill"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/write/fill.rs",
       "owner": "SignatureCapability",
       "symbol": "clear_field",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "clearField"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/write/place.rs",
       "owner": "SignatureCapability",
       "symbol": "set_target",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "setTarget"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/write/place.rs",
       "owner": "SignatureCapability",
       "symbol": "request_inspection",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "requestInspection"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/write/place.rs",
       "owner": "SignatureCapability",
       "symbol": "place_mark",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "place"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/write/sign.rs",
       "owner": "SignatureCapability",
       "symbol": "sign",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "sign"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/write/sign.rs",
       "owner": "SignatureCapability",
       "symbol": "prepare_signature",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "prepareSignature"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/write/sign.rs",
       "owner": "SignatureCapability",
       "symbol": "complete_signature",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "completeSignature"
+      }
     },
     {
       "crate": "signature",
       "path": "crates/plugins/signature/src/write/sign.rs",
       "owner": "SignatureCapability",
       "symbol": "cancel_pending",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Signature.kt",
+        "symbol": "cancelPending"
+      }
     },
     {
       "crate": "stage",

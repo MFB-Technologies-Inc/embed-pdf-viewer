@@ -80,6 +80,8 @@ tasks.withType<Test>().configureEach {
             "crates/test-support/fixtures",
             // The shipped English stamp library, as `stamps.pdf`.
             "packages/default-stamps/en",
+            // The test-only signing key and certificate.
+            "packages/engine/main/test/fixtures/signature-compat/keys",
         ).joinToString(File.pathSeparator) { repoRoot.resolve(it).path },
     )
     environment("LD_LIBRARY_PATH", linuxHost["runtimeLibDir"].toString())

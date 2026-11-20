@@ -81,12 +81,15 @@ class DisabledPluginTest {
             install = { it.copy(measurement = MeasurementConfig()) },
         ) { viewer, document -> viewer.measurement(document) },
         Accessor("stamp", install = { it.copy(stamp = StampConfig()) }) { viewer, _ -> viewer.stamps() },
+        Accessor(
+            "signature",
+            prerequisites = { it.copy(interaction = true, form = FormConfig()) },
+            install = { it.copy(signature = SignatureConfig()) },
+        ) { viewer, document -> viewer.signatures(document) },
     )
 
-    /** Plugins whose accessors later waves of the port add. */
-    private val pending = setOf(
-        "signature",
-    )
+    /** Plugins whose accessors later waves of the port add: none are left. */
+    private val pending = emptySet<String>()
 
     @Test
     fun everyPluginInViewerConfigHasARow() {

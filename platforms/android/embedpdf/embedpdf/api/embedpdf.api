@@ -3358,6 +3358,58 @@ public final class com/embedpdf/ShellKt {
 	public static final fun shell (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class com/embedpdf/SignatureCapability {
+	public final fun addValidationInfo (Luniffi/epdf_ffi/FormFieldRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun addValidationInfo$default (Lcom/embedpdf/SignatureCapability;Luniffi/epdf_ffi/FormFieldRef;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun analyzeChanges (ILuniffi/epdf_plugin_signature/SignatureModificationsBasis;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun analyzeChanges$default (Lcom/embedpdf/SignatureCapability;ILuniffi/epdf_plugin_signature/SignatureModificationsBasis;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun canAddValidationInfo (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canCertify (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canFill (Luniffi/epdf_ffi/FormFieldRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canReadRevision (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canSign (Luniffi/epdf_ffi/FormFieldRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun cancelPending (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun clearField (Luniffi/epdf_ffi/FormFieldRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun completeSignature (Ljava/lang/String;[BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun fill (Luniffi/epdf_ffi/FormFieldRef;Luniffi/epdf_plugin_signature/SignatureMark;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun isBusy (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun mode (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
+	public final fun pending (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun place (Luniffi/epdf_plugin_signature/SignatureMark;Luniffi/epdf_plugin_signature/SignaturePlaceTarget;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun prepareSignature (Luniffi/epdf_plugin_signature/SignaturePrepareInput;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun protection (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun readRevision (Luniffi/epdf_ffi/FormFieldRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun refresh (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun requestInspection (Luniffi/epdf_ffi/FormFieldRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun resetSettings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setTarget (Luniffi/epdf_ffi/FormFieldRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun settings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun sign (Luniffi/epdf_plugin_signature/SignatureSignInput;Luniffi/epdf_plugin_signature/SignatureSigner;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun sign$default (Lcom/embedpdf/SignatureCapability;Luniffi/epdf_plugin_signature/SignatureSignInput;Luniffi/epdf_plugin_signature/SignatureSigner;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun signature (Luniffi/epdf_ffi/FormFieldRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun signatures (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun snapshot (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun status (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun target (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun unsignedFields (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun updateSettings (Luniffi/epdf_plugin_signature/SignatureSettingsPatch;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun validate (Luniffi/epdf_ffi/FormFieldRef;Luniffi/epdf_plugin_signature/SignatureValidateRequest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun validate (Luniffi/epdf_plugin_signature/SignatureValidateRequest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun validate$default (Lcom/embedpdf/SignatureCapability;Luniffi/epdf_ffi/FormFieldRef;Luniffi/epdf_plugin_signature/SignatureValidateRequest;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun validate$default (Lcom/embedpdf/SignatureCapability;Luniffi/epdf_plugin_signature/SignatureValidateRequest;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun verdict (Luniffi/epdf_ffi/FormFieldRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun verdicts (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/SignatureKt {
+	public static final fun fail (Luniffi/epdf_plugin_signature/SignatureSignCompletion;Ljava/lang/Throwable;)V
+	public static final fun setSignatureTransport (Lcom/embedpdf/PdfViewer;Luniffi/epdf_plugin_signature/SignatureTransport;)V
+	public static final fun setSigner (Lcom/embedpdf/PdfViewer;Luniffi/epdf_plugin_signature/SignatureSigner;)V
+	public static final fun setTrust (Lcom/embedpdf/PdfViewer;Luniffi/epdf_plugin_signature/SignatureTrust;)V
+	public static final fun signatures (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class com/embedpdf/SquareAnnotationDraft : com/embedpdf/AnnotationDraft {
 	public fun <init> (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/Nullable;Ljava/lang/Double;Ljava/lang/Double;Lcom/embedpdf/AnnotationBorderStyle;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;)V
 	public synthetic fun <init> (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/Nullable;Ljava/lang/Double;Ljava/lang/Double;Lcom/embedpdf/AnnotationBorderStyle;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
