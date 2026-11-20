@@ -45,6 +45,22 @@ internal fun ULong.toIntResult(result: String): Int {
 /** [Long.toIntResult] for an unsigned answer. */
 internal fun UInt.toIntResult(result: String): Int = toULong().toIntResult(result)
 
+/**
+ * An unsigned 64-bit answer (an epoch, a revision) as `Long`. One past
+ * `Long`'s range didn't survive the boundary, so it throws `invalid-state`
+ * naming [result].
+ */
+internal fun ULong.toLongResult(result: String): Long {
+    if (this > Long.MAX_VALUE.toULong()) {
+        throw PdfException(
+            PdfException.Code.INVALID_STATE,
+            "$result $this is outside 0...${Long.MAX_VALUE}",
+            name = "RangeError",
+        )
+    }
+    return toLong()
+}
+
 private fun outsideInt(result: String, value: String) = PdfException(
     PdfException.Code.INVALID_STATE,
     "$result $value is outside ${Int.MIN_VALUE}...${Int.MAX_VALUE}",

@@ -93,6 +93,15 @@ public final class com/embedpdf/MetadataKt {
 	public static final fun metadata (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class com/embedpdf/PageImage {
+	public final fun copyPixels ()[B
+	public final fun getHeight ()I
+	public final fun getStride ()I
+	public final fun getWidth ()I
+	public final fun pixel (II)I
+	public final fun toBitmap ()Landroid/graphics/Bitmap;
+}
+
 public final class com/embedpdf/PdfException : java/lang/Exception {
 	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -191,6 +200,76 @@ public final class com/embedpdf/PdfViewer : java/lang/AutoCloseable {
 
 public final class com/embedpdf/Registration {
 	public final fun unregister ()V
+}
+
+public final class com/embedpdf/RenderBatchResult {
+	public final fun getApplied ()Ljava/util/List;
+	public final fun getFailed ()Ljava/util/List;
+}
+
+public final class com/embedpdf/RenderCapability {
+	public final fun canRender (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canRenderThumbnail (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canSnapshot (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun clearSnapshot (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun conformViewport (Luniffi/epdf_ffi/PageRef;DLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun invalidate (Ljava/util/List;Luniffi/epdf_plugin_render/RenderInvalidateScope;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun invalidate$default (Lcom/embedpdf/RenderCapability;Ljava/util/List;Luniffi/epdf_plugin_render/RenderInvalidateScope;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
+	public final fun observeSnapshotChanges ()Lkotlinx/coroutines/flow/Flow;
+	public final fun paintSettings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun renderEpoch (Luniffi/epdf_ffi/PageRef;Lcom/embedpdf/ContentInclusion;Lcom/embedpdf/ContentInclusion;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun renderEpoch$default (Lcom/embedpdf/RenderCapability;Luniffi/epdf_ffi/PageRef;Lcom/embedpdf/ContentInclusion;Lcom/embedpdf/ContentInclusion;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun renderPage (Luniffi/epdf_ffi/PageRef;Luniffi/epdf_plugin_render/RenderPageOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun renderPage$default (Lcom/embedpdf/RenderCapability;Luniffi/epdf_ffi/PageRef;Luniffi/epdf_plugin_render/RenderPageOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun renderPages (Ljava/util/List;Luniffi/epdf_plugin_render/RenderPageOptions;ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun renderPages$default (Lcom/embedpdf/RenderCapability;Ljava/util/List;Luniffi/epdf_plugin_render/RenderPageOptions;ILkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun renderPolicy (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun renderSource (Luniffi/epdf_ffi/PageRef;DLcom/embedpdf/ContentInclusion;Lcom/embedpdf/ContentInclusion;ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun renderSource$default (Lcom/embedpdf/RenderCapability;Luniffi/epdf_ffi/PageRef;DLcom/embedpdf/ContentInclusion;Lcom/embedpdf/ContentInclusion;ZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun renderThumbnail (Luniffi/epdf_ffi/PageRef;Lcom/embedpdf/ContentInclusion;Lcom/embedpdf/ContentInclusion;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun renderThumbnail$default (Lcom/embedpdf/RenderCapability;Luniffi/epdf_ffi/PageRef;Lcom/embedpdf/ContentInclusion;Lcom/embedpdf/ContentInclusion;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun resetSettings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun settings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun snapshot (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun snapshotBox (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun sourceKey (Luniffi/epdf_ffi/PageRef;DLcom/embedpdf/ContentInclusion;Lcom/embedpdf/ContentInclusion;ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun sourceKey$default (Lcom/embedpdf/RenderCapability;Luniffi/epdf_ffi/PageRef;DLcom/embedpdf/ContentInclusion;Lcom/embedpdf/ContentInclusion;ZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun updateSettings (Luniffi/epdf_plugin_render/RenderSettingsPatch;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun viewDemand (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/RenderKt {
+	public static final fun render (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/RenderSnapshot {
+	public final fun getPage ()Luniffi/epdf_ffi/PageRef;
+	public final fun getRect ()Luniffi/epdf_ffi/Rect;
+	public final fun image (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/RenderViewDemand {
+	public final fun dispose (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun markPainted (Luniffi/epdf_ffi/PageRef;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun markUnpainted (Luniffi/epdf_ffi/PageRef;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun plan (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun release (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setDemand (Luniffi/epdf_ffi/PageRef;Luniffi/epdf_plugin_render/RenderPageViewDemand;Lcom/embedpdf/ContentInclusion;Lcom/embedpdf/ContentInclusion;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun setDemand$default (Lcom/embedpdf/RenderViewDemand;Luniffi/epdf_ffi/PageRef;Luniffi/epdf_plugin_render/RenderPageViewDemand;Lcom/embedpdf/ContentInclusion;Lcom/embedpdf/ContentInclusion;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun tileImage (Luniffi/epdf_ffi/PageRef;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/RenderedPage {
+	public final fun getHeight ()I
+	public final fun getImage ()Lcom/embedpdf/PageImage;
+	public final fun getScale ()D
+	public final fun getWidth ()I
+}
+
+public final class com/embedpdf/RenderedPageResult {
+	public final fun getPage ()Luniffi/epdf_ffi/PageRef;
+	public final fun getRendered ()Lcom/embedpdf/RenderedPage;
 }
 
 public final class com/embedpdf/SearchCapability {

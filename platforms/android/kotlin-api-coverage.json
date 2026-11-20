@@ -3432,21 +3432,30 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "get_settings",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "settings"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "update_settings",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "updateSettings"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "reset_settings",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "resetSettings"
+      }
     },
     {
       "crate": "render",
@@ -3463,7 +3472,10 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "can_render",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "canRender"
+      }
     },
     {
       "crate": "render",
@@ -3505,84 +3517,120 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "render_page",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "renderPage"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "can_render_thumbnail",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "canRenderThumbnail"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "render_thumbnail",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "renderThumbnail"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "render_pages",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "renderPages"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "get_render_policy",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "renderPolicy"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "get_render_epoch",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "renderEpoch"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "invalidate",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "invalidate"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "on_invalidated",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "render_source",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "renderSource"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "get_source_key",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "sourceKey"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "conform_viewport",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "conformViewport"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "get_paint_settings",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "paintSettings"
+      }
     },
     {
       "crate": "render",
@@ -3596,7 +3644,10 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "create_view_demand",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "viewDemand"
+      }
     },
     {
       "crate": "render",
@@ -3624,49 +3675,70 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "on_render_completed",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "on_render_failed",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "can_snapshot",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "canSnapshot"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "get_snapshot",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "snapshot"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "clear_snapshot",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "clearSnapshot"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "on_snapshot_changed",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "observeSnapshotChanges"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "get_snapshot_box",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "snapshotBox"
+      }
     },
     {
       "crate": "render",
@@ -3687,42 +3759,60 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "ViewDemand",
       "symbol": "set_demand",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "setDemand"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "ViewDemand",
       "symbol": "get_plan",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "plan"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "ViewDemand",
       "symbol": "mark_painted",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "markPainted"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "ViewDemand",
       "symbol": "mark_unpainted",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "markUnpainted"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "ViewDemand",
       "symbol": "release",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "release"
+      }
     },
     {
       "crate": "render",
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "ViewDemand",
       "symbol": "destroy",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Render.kt",
+        "symbol": "dispose"
+      }
     },
     {
       "crate": "render",

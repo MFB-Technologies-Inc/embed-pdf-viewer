@@ -26,4 +26,28 @@ class PluginSettingsTest {
         assertEquals(registered, search.settings())
         viewer.destroy()
     }
+
+    @Test
+    fun renderTileAndSnapshotPatchesPreserveOtherSettings() = viewerTest {
+        val viewer = started(ViewerConfig(render = RenderConfig(fullPage = RenderFullPageOptions(maxWidth = 480.0))))
+        val document = viewer.open(Fixture.bytes("report"))
+        val render = viewer.render(document)
+        val registered = render.settings()
+        render.updateSettings(
+            RenderSettingsPatch(
+                tiles = RenderTilesPatchOff,
+                slowAfterMs = 800.0,
+                snapshot = RenderSnapshotPatch(scale = 3.0, boxLook = RenderSnapshotBox(fill = "red", stroke = "blue")),
+            ),
+        )
+        render.updateSettings(RenderSettingsPatch(snapshot = RenderSnapshotPatch(boxLook = RenderSnapshotBox(fill = "green"))))
+        val changed = render.settings()
+        assertEquals(480.0, changed.fullPage.maxWidth)
+        assertEquals(RenderTilesSettingOff, changed.tiles)
+        assertEquals(3.0, changed.snapshot.scale, 0.0)
+        assertEquals(null, changed.snapshot.boxLook.stroke)
+        render.resetSettings()
+        assertEquals(registered, render.settings())
+        viewer.destroy()
+    }
 }
