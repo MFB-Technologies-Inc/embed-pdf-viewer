@@ -10126,10 +10126,16 @@
       "path": "crates/plugins/signature/src/controller.rs",
       "owner": "SignatureCapability",
       "symbol": "lifetime",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10145,10 +10151,16 @@
       "path": "crates/plugins/signature/src/controller.rs",
       "owner": "SignatureCapability",
       "symbol": "get_settings",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/settings.rs",
         "symbol": "settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "GetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10156,10 +10168,17 @@
       "path": "crates/plugins/signature/src/controller.rs",
       "owner": "SignatureCapability",
       "symbol": "update_settings",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/settings.rs",
         "symbol": "update_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "UpdateSettingsAsync",
+        "parameters": [
+          "EmbedPDF.SignatureSettingsPatch",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10175,10 +10194,16 @@
       "path": "crates/plugins/signature/src/controller.rs",
       "owner": "SignatureCapability",
       "symbol": "reset_settings",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/settings.rs",
         "symbol": "reset_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "ResetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10186,10 +10211,16 @@
       "path": "crates/plugins/signature/src/controller.rs",
       "owner": "SignatureCapability",
       "symbol": "on_settings_changed",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/epdf-viewer-host/src/lib.rs",
         "symbol": "state_revision"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PdfViewer",
+        "member": "ObserveStateRevisions",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10197,10 +10228,16 @@
       "path": "crates/plugins/signature/src/controller.rs",
       "owner": "SignatureCapability",
       "symbol": "on_settings_changed_json",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/epdf-viewer-host/src/lib.rs",
         "symbol": "state_revision"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PdfViewer",
+        "member": "ObserveStateRevisions",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10208,10 +10245,16 @@
       "path": "crates/plugins/signature/src/read/judging.rs",
       "owner": "SignatureCapability",
       "symbol": "refresh",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "refresh"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "RefreshAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10219,10 +10262,17 @@
       "path": "crates/plugins/signature/src/read/judging.rs",
       "owner": "SignatureCapability",
       "symbol": "validate",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "validate"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "ValidateAsync",
+        "parameters": [
+          "EmbedPDF.SignatureValidateRequest",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10230,10 +10280,18 @@
       "path": "crates/plugins/signature/src/read/judging.rs",
       "owner": "SignatureCapability",
       "symbol": "validate_field",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "validate_field"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "ValidateFieldAsync",
+        "parameters": [
+          "EmbedPDF.FormFieldRef",
+          "EmbedPDF.SignatureValidateRequest",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10241,10 +10299,18 @@
       "path": "crates/plugins/signature/src/read/judging.rs",
       "owner": "SignatureCapability",
       "symbol": "analyze_changes",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "analyze_changes"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "AnalyzeChangesAsync",
+        "parameters": [
+          "System.Int32",
+          "EmbedPDF.SignatureModificationsBasis",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10252,10 +10318,17 @@
       "path": "crates/plugins/signature/src/read/judging.rs",
       "owner": "SignatureCapability",
       "symbol": "read_revision",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "read_revision"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "ReadRevisionAsync",
+        "parameters": [
+          "EmbedPDF.FormFieldRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10263,10 +10336,16 @@
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "get_snapshot",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "snapshot"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "GetSnapshotAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10274,10 +10353,16 @@
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "get_status",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "status"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "GetStatusAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10285,10 +10370,16 @@
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "list_signatures",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "signatures"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "GetSignaturesAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10296,10 +10387,16 @@
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "list_unsigned_fields",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "unsigned_fields"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "GetUnsignedFieldsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10307,10 +10404,17 @@
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "get_signature",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "unsigned_fields"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "GetSignatureAsync",
+        "parameters": [
+          "EmbedPDF.FormFieldRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10318,10 +10422,16 @@
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "list_verdicts",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "verdicts"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "GetVerdictsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10329,10 +10439,17 @@
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "get_verdict",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "verdict"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "GetVerdictAsync",
+        "parameters": [
+          "EmbedPDF.FormFieldRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10340,10 +10457,16 @@
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "get_protection",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "protection"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "GetProtectionAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10351,10 +10474,16 @@
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "get_pending",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "pending"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "GetPendingAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10362,10 +10491,16 @@
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "get_pending_json",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "pending"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "GetPendingAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10373,10 +10508,16 @@
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "is_busy",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "is_busy"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "IsBusyAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10384,10 +10525,16 @@
       "path": "crates/plugins/signature/src/read/signatures.rs",
       "owner": "SignatureCapability",
       "symbol": "get_target",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "target"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "GetTargetAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10395,10 +10542,16 @@
       "path": "crates/plugins/signature/src/services/authority.rs",
       "owner": "SignatureCapability",
       "symbol": "get_mode",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "mode"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "GetModeAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10406,10 +10559,17 @@
       "path": "crates/plugins/signature/src/services/authority.rs",
       "owner": "SignatureCapability",
       "symbol": "can_sign",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "can_sign"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "CanSignAsync",
+        "parameters": [
+          "EmbedPDF.FormFieldRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10417,10 +10577,17 @@
       "path": "crates/plugins/signature/src/services/authority.rs",
       "owner": "SignatureCapability",
       "symbol": "can_fill",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "can_fill"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "CanFillAsync",
+        "parameters": [
+          "EmbedPDF.FormFieldRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10428,10 +10595,16 @@
       "path": "crates/plugins/signature/src/services/authority.rs",
       "owner": "SignatureCapability",
       "symbol": "can_certify",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "can_certify"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "CanCertifyAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10439,10 +10612,16 @@
       "path": "crates/plugins/signature/src/services/authority.rs",
       "owner": "SignatureCapability",
       "symbol": "can_read_revision",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "can_read_revision"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "CanReadRevisionAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10450,10 +10629,16 @@
       "path": "crates/plugins/signature/src/services/authority.rs",
       "owner": "SignatureCapability",
       "symbol": "can_add_validation_info",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "can_add_validation_info"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "CanAddValidationInfoAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10461,10 +10646,18 @@
       "path": "crates/plugins/signature/src/write/fill.rs",
       "owner": "SignatureCapability",
       "symbol": "fill_field",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "fill_field"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "FillAsync",
+        "parameters": [
+          "EmbedPDF.FormFieldRef",
+          "EmbedPDF.SignatureMark",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10472,10 +10665,17 @@
       "path": "crates/plugins/signature/src/write/fill.rs",
       "owner": "SignatureCapability",
       "symbol": "clear_field",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "clear_field"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "ClearFieldAsync",
+        "parameters": [
+          "EmbedPDF.FormFieldRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10483,10 +10683,17 @@
       "path": "crates/plugins/signature/src/write/place.rs",
       "owner": "SignatureCapability",
       "symbol": "set_target",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "set_target"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "SetTargetAsync",
+        "parameters": [
+          "EmbedPDF.FormFieldRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10494,10 +10701,17 @@
       "path": "crates/plugins/signature/src/write/place.rs",
       "owner": "SignatureCapability",
       "symbol": "request_inspection",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "request_inspection"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "RequestInspectionAsync",
+        "parameters": [
+          "EmbedPDF.FormFieldRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10505,10 +10719,18 @@
       "path": "crates/plugins/signature/src/write/place.rs",
       "owner": "SignatureCapability",
       "symbol": "place_mark",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "place_mark"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "PlaceAsync",
+        "parameters": [
+          "EmbedPDF.SignatureMark",
+          "EmbedPDF.SignaturePlaceTarget",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10516,10 +10738,18 @@
       "path": "crates/plugins/signature/src/write/sign.rs",
       "owner": "SignatureCapability",
       "symbol": "sign",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "sign"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "SignAsync",
+        "parameters": [
+          "EmbedPDF.SignatureSignInput",
+          "EmbedPDF.ISignatureSigner",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10527,10 +10757,17 @@
       "path": "crates/plugins/signature/src/write/sign.rs",
       "owner": "SignatureCapability",
       "symbol": "prepare_signature",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "prepare_signature"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "PrepareSignatureAsync",
+        "parameters": [
+          "EmbedPDF.SignaturePrepareInput",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10538,10 +10775,18 @@
       "path": "crates/plugins/signature/src/write/sign.rs",
       "owner": "SignatureCapability",
       "symbol": "complete_signature",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "complete_signature"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "CompleteSignatureAsync",
+        "parameters": [
+          "System.String",
+          "System.ReadOnlyMemory<System.Byte>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10549,10 +10794,16 @@
       "path": "crates/plugins/signature/src/write/sign.rs",
       "owner": "SignatureCapability",
       "symbol": "cancel_pending",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "cancel_pending"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "CancelPendingAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -10560,10 +10811,17 @@
       "path": "crates/plugins/signature/src/write/validation_info.rs",
       "owner": "SignatureCapability",
       "symbol": "add_validation_info",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
         "symbol": "add_validation_info"
+      },
+      "csharp": {
+        "type": "EmbedPDF.SignatureCapability",
+        "member": "AddValidationInfoAsync",
+        "parameters": [
+          "EmbedPDF.FormFieldRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {

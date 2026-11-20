@@ -50,6 +50,12 @@ internal static class WireInteger
     /// <summary>A caller's optional index for the engine; see <see cref="ToUInt32(int, string)"/>.</summary>
     internal static uint? ToUInt32(int? value, string argument) => value is { } v ? ToUInt32(v, argument) : null;
 
+    /// <summary><paramref name="value"/> as the engine's <see cref="byte"/>, such as a permission level; outside 0 to 255 throws <c>invalid-input</c>.</summary>
+    internal static byte ToByte(int value, string argument) =>
+        value is >= byte.MinValue and <= byte.MaxValue ? (byte)value
+            : throw new PdfException("RangeError", PdfErrorCode.InvalidInput,
+                $"{argument} {value} is outside {byte.MinValue}...{byte.MaxValue}");
+
     static PdfException Past(string value, string result) =>
         new("RangeError", PdfErrorCode.InvalidState, $"{result} {value} is outside {int.MinValue}...{int.MaxValue}");
 }

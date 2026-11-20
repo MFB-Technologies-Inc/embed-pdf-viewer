@@ -101,10 +101,27 @@ public sealed record StampConfig
     internal GSp.StampConfig ToFfi() => new(PreviewWidth is { } w ? Ffi.Finite(w, "preview width") : null, Dynamic);
 }
 
-/// <summary>Installs the signature plugin. Needs <see cref="PdfViewerOptions.Form"/>.</summary>
+/// <summary>Installs the signature plugin. Needs <see cref="PdfViewerOptions.Interaction"/> and <see cref="PdfViewerOptions.Form"/>.</summary>
 public sealed record SignatureConfig
 {
-    internal GSg.SignatureConfig ToFfi() => new();
+    /// <summary>What placing a mark on a field does; left out, it is <see cref="SignatureMode.Sign"/> while a signer is set and <see cref="SignatureMode.Visual"/> otherwise.</summary>
+    public SignatureMode? Mode { get; init; }
+
+    /// <summary>Whether certifying signatures are allowed.</summary>
+    public bool? AllowCertify { get; init; }
+
+    /// <summary>The timestamp authority signings ask, over <see cref="PdfViewer.SetSignatureTransport"/>.</summary>
+    public SignatureTimestampAuthority? TimestampAuthority { get; init; }
+
+    /// <summary>The revocation route <see cref="SignatureCapability.AddValidationInfoAsync"/> asks, over the same transport.</summary>
+    public SignatureRevocationRoute? Revocation { get; init; }
+
+    /// <summary>Whether a long-term fill ends with a document timestamp.</summary>
+    public bool? DocumentTimestamp { get; init; }
+
+    internal GSg.SignatureConfig ToFfi() => new(
+        Mode is { } mode ? (GSg.SignatureMode)(int)Ffi.Defined(mode, "signature mode") : null, AllowCertify,
+        TimestampAuthority is null ? null : Ffi.ToFfi(TimestampAuthority), Revocation is null ? null : Ffi.ToFfi(Revocation), DocumentTimestamp);
 }
 
 /// <summary>An owner's standard command list, for <see cref="PdfViewerOptions.StandardCommands"/>.</summary>
