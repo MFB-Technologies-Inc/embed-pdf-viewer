@@ -1,4 +1,26 @@
-package com.embedpdf
+package com.embedpdf.javascript
+
+import com.embedpdf.ActionContext
+import com.embedpdf.ActionOrigin
+import com.embedpdf.ActionSourceApi
+import com.embedpdf.ActionTreeSourceDocument
+import com.embedpdf.ActionTriggerEventActivate
+import com.embedpdf.ActionsConfig
+import com.embedpdf.ActionsJavaScriptConfig
+import com.embedpdf.EmbedPdfTestRunner
+import com.embedpdf.Fixture
+import com.embedpdf.OpenSequence
+import com.embedpdf.PdfException
+import com.embedpdf.PdfViewer
+import com.embedpdf.ScriptEngineCheck
+import com.embedpdf.ScriptEvaluationThrew
+import com.embedpdf.ScriptEvaluationTimedOut
+import com.embedpdf.ScriptEvaluationValue
+import com.embedpdf.ViewerConfig
+import com.embedpdf.actions
+import com.embedpdf.expectCode
+import com.embedpdf.subscribed
+import com.embedpdf.viewerTest
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
@@ -23,6 +45,7 @@ import java.util.concurrent.Future
 @Config(sdk = [35])
 class JavaScriptSandboxEngineTest {
     private val factory = JavaScriptSandboxEngineFactory(RuntimeEnvironment.getApplication())
+    private val user = ActionContext(origin = ActionOrigin.USER, source = ActionSourceApi, event = ActionTriggerEventActivate)
 
     @Test
     fun withoutAWebViewTheSandboxIsUnavailable() {
@@ -65,7 +88,7 @@ class JavaScriptSandboxEngineTest {
         val actions = viewer.actions(document)
         assertFalse(actions.isScriptingEnabled())
         val open = actions.actionTree(ActionTreeSourceDocument(event = null))!!
-        repeat(3) { actions.execute(open, ActionsTest.user) }
+        repeat(3) { actions.execute(open, user) }
         actions.prepareClose()
         viewer.open(Fixture.bytes("document_actions"))
         delay(100)

@@ -1,48 +1,29 @@
-package com.embedpdf
+package com.embedpdf.javascript
 
 import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.javascriptengine.JavaScriptIsolate
 import androidx.javascriptengine.JavaScriptSandbox
+import com.embedpdf.EmbedPdfEngineIntegration
+import com.embedpdf.HostExceptionFailed
+import com.embedpdf.PdfViewer
+import com.embedpdf.ScriptEngine
+import com.embedpdf.ScriptEngineAvailability
+import com.embedpdf.ScriptEngineFactory
+import com.embedpdf.ScriptEvaluation
+import com.embedpdf.ScriptEvaluationThrew
+import com.embedpdf.ScriptEvaluationTimedOut
+import com.embedpdf.ScriptEvaluationValue
 import com.google.common.util.concurrent.ListenableFuture
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import uniffi.epdf_plugin_actions.checkScriptEngine
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 
-/** One JavaScript realm. Called on the viewer's kernel thread, which waits for each answer. */
-public typealias ScriptEngine = uniffi.epdf_plugin_actions.ScriptEngine
-
-/** Makes one realm per document (and per detached realm). */
-public typealias ScriptEngineFactory = uniffi.epdf_plugin_actions.ScriptEngineFactory
-public typealias ScriptEvaluation = uniffi.epdf_plugin_actions.ScriptEvaluation
-public typealias ScriptEvaluationValue = uniffi.epdf_plugin_actions.ScriptEvaluation.Value
-public typealias ScriptEvaluationThrew = uniffi.epdf_plugin_actions.ScriptEvaluation.Threw
-public typealias ScriptEvaluationTimedOut = uniffi.epdf_plugin_actions.ScriptEvaluation.TimedOut
-public typealias ScriptCheck = uniffi.epdf_plugin_actions.ScriptCheck
-
-/** A host's check that its script engine works. */
-public object ScriptEngineCheck {
-    /**
-     * Runs [source] once in a fresh realm from [factory], outside any
-     * document, with the default budget, on [Dispatchers.IO].
-     */
-    public suspend fun run(factory: ScriptEngineFactory, source: String): ScriptCheck = withContext(Dispatchers.IO) {
-        try {
-            checkScriptEngine(factory, source)
-        } catch (e: Exception) {
-            throw PdfException.from(e)
-        }
-    }
-}
-
 /**
  * PDF JavaScript in the platform's JavaScript sandbox (`androidx.javascriptengine`),
- * one isolate per realm. Pass it as
+ * one isolate per realm, from the `embedpdf-javascript` artifact. Pass it as
  * `ActionsJavaScriptConfig(enabled = true, engine = JavaScriptSandboxEngineFactory(context))`.
  *
  * The sandbox needs API 26 and a WebView that provides it. Where it is
@@ -60,11 +41,12 @@ public object ScriptEngineCheck {
  * enforced; the sandbox's own limits apply. A result that isn't a string is
  * given back as the sandbox's string form of it.
  */
-public class JavaScriptSandboxEngineFactory(context: Context) : ScriptEngineFactory {
+@OptIn(EmbedPdfEngineIntegration::class)
+public class JavaScriptSandboxEngineFactory(context: Context) : ScriptEngineFactory, ScriptEngineAvailability {
     private val context: Context = context.applicationContext ?: context
 
     /** Why JavaScript can't run here, or `null` when the sandbox is there. */
-    public val unavailableReason: String? = unavailableReason(Build.VERSION.SDK_INT) {
+    override val unavailableReason: String? = unavailableReason(Build.VERSION.SDK_INT) {
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && sandboxSupported()
     }
 
@@ -90,8 +72,8 @@ public class JavaScriptSandboxEngineFactory(context: Context) : ScriptEngineFact
     }
 
     internal companion object {
-        const val UNAVAILABLE_BELOW_API_26 = "PDF JavaScript needs API 26 or later; JavaScript is disabled."
-        const val UNSUPPORTED_SANDBOX = "This device's WebView provides no JavaScript sandbox; JavaScript is disabled."
+        val UNAVAILABLE_BELOW_API_26 = "PDF JavaScript needs API 26 or later; JavaScript is disabled."
+        val UNSUPPORTED_SANDBOX = "This device's WebView provides no JavaScript sandbox; JavaScript is disabled."
 
         /** The SDK gate: below 26 the sandbox classes aren't touched at all. */
         fun unavailableReason(sdk: Int, supported: () -> Boolean): String? = when {
@@ -202,3 +184,6 @@ internal class IsolateScriptEngine(private val isolate: ScriptIsolate) : ScriptE
         }
     }
 }
+
+/** A message for an error: its message, or its class name. */
+internal fun readable(error: Throwable): String = error.message ?: error.toString()

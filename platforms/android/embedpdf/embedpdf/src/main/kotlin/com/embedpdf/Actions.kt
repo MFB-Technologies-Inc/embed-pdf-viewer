@@ -281,8 +281,8 @@ public class ActionsCapability internal constructor(
 /**
  * The actions capability for [document]. Throws `unsupported` when the viewer
  * was built without the actions plugin, whatever the document's state. The
- * first call reports a JavaScript sandbox that isn't there (see
- * [JavaScriptSandboxEngineFactory]).
+ * first call sends the script engine's held reports, such as a JavaScript
+ * sandbox that isn't there (see [ScriptEngineAvailability]).
  */
 public suspend fun PdfViewer.actions(document: DocumentInfo): ActionsCapability {
     reportUnavailableJavaScript()

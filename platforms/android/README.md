@@ -14,7 +14,19 @@ and a version catalog, `gradle/libs.versions.toml`.
 |---|---|---|
 | `bindings` | `libepdf_viewer_host.so` per ABI and the generated `uniffi.*` Kotlin | yes, as the AAR |
 | `embedpdf` | the hand-written `com.embedpdf` facade: `PdfViewer`, `PdfException`, the document fetchers | not yet |
+| `javascript` | `com.embedpdf.javascript.JavaScriptSandboxEngineFactory`, PDF JavaScript in `androidx.javascriptengine`, as `embedpdf-javascript` | not yet |
 | `smoke` | JVM tests of the engine-only `epdf-uniffi` crate | no |
+
+`javascript` is a module of its own so that only an app that wants PDF
+JavaScript takes `androidx.javascriptengine`. That library declares minSdk 26
+and ours 24, so the module's manifest carries
+`tools:overrideLibrary="androidx.javascriptengine"` and the factory reports
+JavaScript unavailable below API 26 without touching the library. An app with
+minSdk 24 that depends on `:javascript` merges its manifest without a line of
+its own: a throwaway app module checked that on 2026-11-20 with a project
+dependency. The facade sees the factory only through
+`ScriptEngineAvailability`, an opt-in hook (`@EmbedPdfEngineIntegration`) that
+lets the viewer disable JavaScript and report why.
 
 The models and Compose modules come in later phases of
 `docs/superpowers/plans/2026-11-19-android-parity.md`.
@@ -22,10 +34,11 @@ The models and Compose modules come in later phases of
 The facade is written for Kotlin callers. Calling it from Java isn't a goal,
 so it carries no `@JvmName` or `@JvmOverloads` adjustments.
 
-`embedpdf/api/embedpdf.api` is the facade's public surface. `./gradlew
-:embedpdf:apiCheck` fails when the code and the dump disagree, and
-`./gradlew :embedpdf:apiDump` rewrites the dump; a change to the surface
-commits both. The tasks are registered in `embedpdf/build.gradle.kts` rather
+`embedpdf/api/embedpdf.api` is the facade's public surface, and
+`javascript/api/javascript.api` the javascript module's. `./gradlew apiCheck`
+fails when the code and a dump disagree, and `./gradlew apiDump` rewrites the
+dumps; a change to the surface commits both. The tasks are registered in each
+module's `build.gradle.kts` rather
 than by the binary-compatibility validator plugin, because the plugin only
 wires itself to the Kotlin Android plugin and AGP 9 compiles Kotlin without
 it. `python3 scripts/check-api-coverage.py --platform kotlin` checks

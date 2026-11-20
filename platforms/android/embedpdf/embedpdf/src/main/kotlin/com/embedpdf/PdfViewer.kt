@@ -36,14 +36,31 @@ public class PdfViewer(
     internal val isReleased: Boolean get() = released.get()
 
     /**
-     * Why PDF JavaScript is off although the config enables it: its
-     * [JavaScriptSandboxEngineFactory] has no sandbox on this device. Reported
-     * once, by [reportUnavailableJavaScript].
+     * The script engine's reports, held until the first document opens or
+     * [actions] is first asked for (see [reportUnavailableJavaScript]).
      */
-    private val javaScriptUnavailable: String? = config.actions?.javascript
+    private val scriptReports = HeldReports(errorHub)
+
+    /** The config's script engine, when it says whether it works here. */
+    @OptIn(EmbedPdfEngineIntegration::class)
+    private val scriptEngine: ScriptEngineAvailability? = config.actions?.javascript
         ?.takeIf { it.enabled }
-        ?.let { (it.engine as? JavaScriptSandboxEngineFactory)?.unavailableReason }
-    private val javaScriptReported = AtomicBoolean(false)
+        ?.engine as? ScriptEngineAvailability
+
+    /**
+     * Why PDF JavaScript is off although the config enables it: its engine
+     * doesn't work on this device. Reported once, through [scriptReports].
+     */
+    @OptIn(EmbedPdfEngineIntegration::class)
+    private val javaScriptUnavailable: String? = scriptEngine?.unavailableReason
+
+    init {
+        javaScriptUnavailable?.let {
+            scriptReports.report(PdfException(PdfException.Code.UNSUPPORTED, it, "NotSupportedError"))
+        }
+        @OptIn(EmbedPdfEngineIntegration::class)
+        scriptEngine?.attach(scriptReports)
+    }
 
     internal val host: ViewerHost = try {
         ViewerHost.newWithFetcher(
@@ -365,17 +382,18 @@ public class PdfViewer(
     private val closeDiscarded: suspend (DocumentInfo) -> Unit = { document -> host.closeDocument(document.id) }
 
     /**
-     * Sends the one report that PDF JavaScript is off, the first time a
-     * document opens or [actions] is asked for, so it reaches collectors that
-     * subscribed after the viewer was built.
+     * Sends the script engine's held reports (the one that PDF JavaScript is
+     * off among them) the first time a document opens or [actions] is asked
+     * for, and every later one at once. The error hub doesn't replay, so a
+     * report reaches the collectors subscribed when it is sent: holding them
+     * lets a collector that subscribed after the viewer was built, but before
+     * the first open, receive them.
      */
     internal fun reportUnavailableJavaScript() {
-        val reason = javaScriptUnavailable ?: return
-        if (!javaScriptReported.compareAndSet(false, true)) return
-        errorHub.send(PdfException(PdfException.Code.UNSUPPORTED, reason, "NotSupportedError"))
+        scriptReports.release()
     }
 
-    /** [config] with JavaScript disabled when its sandbox factory has no sandbox here. */
+    /** [config] with JavaScript disabled when its engine doesn't work here. */
     private fun withoutUnavailableJavaScript(config: ViewerConfig): ViewerConfig {
         if (javaScriptUnavailable == null) return config
         val actions = config.actions ?: return config

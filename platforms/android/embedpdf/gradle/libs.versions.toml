@@ -11,7 +11,7 @@ serialization = "1.9.0"
 junit = "4.13.2"
 json = "20250517"
 tracing = "1.2.0"
-# Declares minSdk 26; the library manifest overrides it and gates use at runtime.
+# Declares minSdk 26; the javascript module's manifest overrides it and gates use at runtime.
 javascriptengine = "1.1.1"
 robolectric = "4.16"
 bcv = "0.18.1"

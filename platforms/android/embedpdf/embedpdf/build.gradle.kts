@@ -25,6 +25,11 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    sourceSets {
+        // Fixtures and runners the javascript module's tests share.
+        getByName("test").kotlin.srcDir("src/testShared/kotlin")
+    }
+
     testOptions {
         unitTests {
             // Robolectric reads the merged manifest and resources.
@@ -48,8 +53,6 @@ dependencies {
     // Typed shell props encode through it, so a caller's serializers do too.
     api(libs.kotlinx.serialization.json)
     implementation(libs.androidx.tracing)
-    // JavaScriptSandboxEngineFactory runs PDF JavaScript in it.
-    implementation(libs.androidx.javascriptengine)
 
     testImplementation(libs.jna)
     testImplementation(libs.junit)

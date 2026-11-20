@@ -6,5 +6,6 @@ embedpdf/.kotlin/
 embedpdf/build/
 embedpdf/bindings/build/
 embedpdf/embedpdf/build/
+embedpdf/javascript/build/
 embedpdf/smoke/build/
 embedpdf/local.properties

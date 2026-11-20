@@ -88,15 +88,20 @@ counterpart.
 These are the calls an implementer can't make alone. The user asked for the plan to be executed
 on 2026-11-20 without changing them, so each recommendation below stands.
 
-**D1. Modules.** Four Gradle modules under `platforms/android/embedpdf/`, published as four
+**D1. Modules.** Five Gradle modules under `platforms/android/embedpdf/`, published as five
 artifacts under group `com.embedpdf`:
 
 | Module | Artifact | Apple counterpart | Depends on |
 |---|---|---|---|
 | `bindings` | `embedpdf-bindings` | `EmbedPDFBindings` binary target | JNA, coroutines |
 | `embedpdf` | `embedpdf` | `EmbedPDF` | `bindings` (as `api`) |
+| `javascript` | `embedpdf-javascript` | `JavaScriptCoreEngine` in `EmbedPDF` | `embedpdf` (as `api`), `androidx.javascriptengine` |
 | `models` | `embedpdf-models` | `EmbedPDFModels` | `embedpdf`, `androidx.lifecycle` (no Compose) |
 | `compose` | `embedpdf-compose` | `EmbedPDFUI` | `models`, Compose |
+
+The fifth, `javascript`, was split out of `embedpdf` in Phase 3 wave B's review (2026-11-20) so
+that only an app that wants PDF JavaScript takes `androidx.javascriptengine` and its minSdk 26
+override. Apple keeps `JavaScriptCoreEngine` in `EmbedPDF`, since JavaScriptCore ships with the OS.
 
 `bindings` holds the `.so` files and generated Kotlin and is versioned by engine hash, the way
 `apple-engine-<hash>` is. Facade, model and UI work then never rebuilds Rust. The cost is the same
@@ -216,7 +221,7 @@ Port, from `platforms/apple/EmbedPDF/Sources/EmbedPDF/`: `PDFViewer.swift`, `PDF
 - [x] Wire D5's `apiCheck` into `build-aar.sh`.
 - [ ] Tests: port `ViewerTests`, `DocumentAPITests`, `PDFErrorTests`, `RevisionHubTests`,
   `StreamRuleTests`, `IntegerSurfaceTests`, `FetcherExportTests`, `ViewerConfigBuilderTests`,
-  `DisabledPluginTests` and `ProductsTests` (as a check that only the four artifacts publish).
+  `DisabledPluginTests` and `ProductsTests` (as a check that only the five artifacts publish).
 
 ## Phase 3: Plugin capabilities
 
