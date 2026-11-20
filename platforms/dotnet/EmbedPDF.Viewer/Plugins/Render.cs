@@ -142,7 +142,7 @@ public sealed class RenderCapability : IDisposable
     public Task InvalidateAsync(IEnumerable<PageRef>? pages = null, RenderInvalidateScope? scope = null, CancellationToken cancellationToken = default)
     {
         var ffi = pages is null ? null : Ffi.ToFfi(pages);
-        GR.RenderInvalidateScope? ffiScope = scope is { } s ? (GR.RenderInvalidateScope)(int)s : null;
+        GR.RenderInvalidateScope? ffiScope = scope is { } s ? Ffi.ToFfi(s) : null;
         return viewer.Run(() => handle.Invalidate(ffi, ffiScope), cancellationToken);
     }
 

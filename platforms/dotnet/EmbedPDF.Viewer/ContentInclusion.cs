@@ -26,6 +26,7 @@ internal static class ContentInclusionExtensions
     {
         ContentInclusion.Always => true,
         ContentInclusion.Never => false,
-        _ => null,
+        ContentInclusion.WhenPermitted => null,
+        _ => throw Ffi.Undefined(inclusion, "content inclusion"),
     };
 }

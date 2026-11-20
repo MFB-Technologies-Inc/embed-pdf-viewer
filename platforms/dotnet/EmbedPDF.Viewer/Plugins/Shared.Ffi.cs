@@ -126,6 +126,17 @@ internal static partial class Ffi
         _ => throw Unknown(activation),
     };
 
+    /// <summary>
+    /// <paramref name="value"/> when it names a case of its enum; otherwise
+    /// <c>invalid-input</c>, so an out-of-range value never reaches the engine
+    /// as a case it happens to share a number with.
+    /// </summary>
+    internal static T Defined<T>(T value, string argument) where T : struct, Enum =>
+        Enum.IsDefined(value) ? value : throw Undefined(value, argument);
+
+    internal static PdfException Undefined<T>(T value, string argument) where T : struct, Enum =>
+        new("RangeError", PdfErrorCode.InvalidInput, $"{argument} {value} is not a {typeof(T).Name}");
+
     internal static PdfException Unknown(object value) =>
         new("RangeError", PdfErrorCode.InvalidState, $"unknown {value.GetType().Name}");
 }

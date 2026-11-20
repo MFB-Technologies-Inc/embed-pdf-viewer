@@ -23,7 +23,7 @@ internal static partial class Ffi
     }
 
     internal static GR.RenderPageOptions ToFfi(RenderPageOptions o) =>
-        new(o.Rect is { } rect ? ToFfi(rect) : null, o.Rotation is { } r ? (GR.RenderRotation)(int)r : null, o.Width, o.Scale,
+        new(o.Rect is { } rect ? ToFfi(rect) : null, o.Rotation is { } r ? (GR.RenderRotation)(int)Defined(r, "rotation") : null, o.Width, o.Scale,
             o.IncludeAnnotations.ToEngine(), o.IncludeFormFields.ToEngine());
 
     internal static RenderQuantize ToPublic(GR.RenderQuantize q) => q switch
@@ -84,7 +84,7 @@ internal static partial class Ffi
 
     internal static GR.RenderSettingsPatch ToFfi(RenderSettingsPatch p) =>
         new(p.FullPage is null ? null : ToFfi(p.FullPage), p.Tiles is null ? null : ToFfi(p.Tiles),
-            p.Format is { } f ? (GR.RenderEncodingFormat)(int)f : null, p.ClearFormat, p.Quality, p.ClearQuality, p.SlowAfterMs, p.Debug,
+            p.Format is { } f ? (GR.RenderEncodingFormat)(int)Defined(f, "encoding format") : null, p.ClearFormat, p.Quality, p.ClearQuality, p.SlowAfterMs, p.Debug,
             p.Snapshot is { } s ? new GR.RenderSnapshotPatch(s.Scale, s.BoxLook is { } b ? new GR.RenderSnapshotBox(b.Fill, b.Stroke) : null) : null);
 
     internal static RenderPolicy ToPublic(GR.RenderPolicy p) => p switch
@@ -103,6 +103,8 @@ internal static partial class Ffi
         GR.RenderViewport.Thumbnail => new RenderViewport.Thumbnail(),
         _ => throw Unknown(v),
     };
+
+    internal static GR.RenderInvalidateScope ToFfi(RenderInvalidateScope scope) => (GR.RenderInvalidateScope)(int)Defined(scope, "invalidate scope");
 
     internal static GR.RenderPageViewDemand ToFfi(RenderPageViewDemand d) =>
         new(d.DesiredDeviceWidth, d.VisibleRect is { } r ? ToFfi(r) : null, d.VelocityX, d.VelocityY);

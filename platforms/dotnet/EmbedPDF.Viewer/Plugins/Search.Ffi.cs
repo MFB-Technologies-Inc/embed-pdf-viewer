@@ -48,7 +48,7 @@ internal static partial class Ffi
         a is null ? null : new(a.X is null ? null : ToFfi(a.X), a.Y is null ? null : ToFfi(a.Y));
 
     internal static GS.SearchRevealOptions ToFfi(SearchRevealOptions o) =>
-        new(ToFfiOrNull(o.Anchor), o.Behavior is { } b ? (GS.SearchScrollBehavior)(int)b : null);
+        new(ToFfiOrNull(o.Anchor), o.Behavior is { } b ? (GS.SearchScrollBehavior)(int)Defined(b, "scroll behavior") : null);
 
     internal static GS.SearchRevealOptions? ToFfiOrNull(SearchRevealOptions? o) => o is null ? null : ToFfi(o);
 
@@ -57,8 +57,8 @@ internal static partial class Ffi
             new SearchHighlightSettings(s.Highlight.Color, s.Highlight.ActiveColor, (SearchBlendMode)(int)s.Highlight.BlendMode));
 
     internal static GS.SearchSettingsPatch ToFfi(SearchSettingsPatch p) =>
-        new(p.Reveal is { } r ? new GS.SearchRevealPatch(ToFfiOrNull(r.Anchor), r.ClearAnchor, r.Behavior is { } b ? (GS.SearchScrollBehavior)(int)b : null) : null,
-            p.Highlight is { } h ? new GS.SearchHighlightPatch(h.Color, h.ActiveColor, h.BlendMode is { } m ? (GS.SearchBlendMode)(int)m : null) : null);
+        new(p.Reveal is { } r ? new GS.SearchRevealPatch(ToFfiOrNull(r.Anchor), r.ClearAnchor, r.Behavior is { } b ? (GS.SearchScrollBehavior)(int)Defined(b, "scroll behavior") : null) : null,
+            p.Highlight is { } h ? new GS.SearchHighlightPatch(h.Color, h.ActiveColor, h.BlendMode is { } m ? (GS.SearchBlendMode)(int)Defined(m, "blend mode") : null) : null);
 
     internal static SearchEvent ToPublic(GS.SearchEvent e) => e switch
     {
