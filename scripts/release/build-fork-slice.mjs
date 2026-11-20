@@ -74,7 +74,8 @@ if (FORK_SCRIPT_TARGETS.includes(target)) {
         workDir(),
       );
     }
-    sh('./ensure_bootstrap', depotTools);
+    // On PATH so the bootstrap's gsutil step finds depot_tools' own luci-auth.
+    sh('./ensure_bootstrap', depotTools, { PATH: `${depotTools}:${process.env.PATH}` });
   }
   const env = {
     PATH: `${depotTools}:${process.env.PATH}`,
