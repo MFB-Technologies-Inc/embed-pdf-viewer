@@ -2,7 +2,7 @@ import EmbedPDF
 import Foundation
 import Observation
 
-/// A document's search session for SwiftUI.
+/// An observable model of a document's search session, which a view reads.
 ///
 /// ``status``, ``activeHitIndex``, ``hitCount``, ``progress`` and ``hits``
 /// are snapshots of the kernel, read again after each state revision and

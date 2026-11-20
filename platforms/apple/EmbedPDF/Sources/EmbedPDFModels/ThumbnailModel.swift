@@ -2,8 +2,8 @@ import CoreGraphics
 import EmbedPDF
 import Observation
 
-/// A document's page thumbnails for SwiftUI, each turned to the page as
-/// shown.
+/// An observable model of a document's page thumbnails, which a view
+/// reads, each turned to the page as shown.
 ///
 /// ``load(_:)`` renders a page with `RenderCapability.renderThumbnail`, which
 /// takes no size: the engine draws the whole page 512 pixels on its long

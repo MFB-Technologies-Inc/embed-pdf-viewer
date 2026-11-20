@@ -1,8 +1,9 @@
 import EmbedPDF
 import Observation
 
-/// A document's interaction tools for SwiftUI: which are registered, which
-/// is active, and which the user may use now.
+/// An observable model of a document's interaction tools, which a view
+/// reads: which are registered, which is active, and which the user may use
+/// now.
 ///
 /// ``tools``, ``activeToolID`` and ``usable`` are snapshots of the hub, read
 /// again after each state revision and each `toolChanged` event while

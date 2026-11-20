@@ -1,7 +1,7 @@
 import EmbedPDF
 import Observation
 
-/// The viewer's open documents, for SwiftUI.
+/// An observable model of the viewer's open documents, which a view reads.
 ///
 /// ``activeDocument`` and ``documentCount`` are snapshots of the kernel, read
 /// again after each state revision while ``task()`` runs. A snapshot is one
