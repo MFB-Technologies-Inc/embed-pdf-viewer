@@ -46,7 +46,7 @@ class ReleaseGate(unittest.TestCase):
         result = self.run_gate()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         for job in ("runtime-publish", "payload-publish", "apple-publish", "pin",
-                    "swift-release", "viewer-release", "dotnet-release"):
+                    "swift-release", "viewer-release", "dotnet-release", "deploy-demo"):
             self.assertIn(job, result.stdout)
 
     def test_a_release_job_without_approve_fails(self):
@@ -91,6 +91,21 @@ class ReleaseGate(unittest.TestCase):
             "      - run: gh release upload v1 notes.md\n"
         )
         self.assert_fails("upload publishes but doesn't need approve")
+
+    def test_a_demo_deploy_without_approve_fails(self):
+        self.edit("release-train.yml", "name: deploy demo\n    needs: [approve, viewer]",
+                  "name: deploy demo\n    needs: viewer")
+        self.assert_fails("deploy-demo publishes but doesn't need approve")
+
+    def test_a_wrangler_pages_deploy_without_approve_fails(self):
+        self.add_job(
+            "  pages:\n"
+            "    needs: preflight\n"
+            "    runs-on: ubuntu-24.04\n"
+            "    steps:\n"
+            "      - run: npx wrangler@4 pages deploy dist\n"
+        )
+        self.assert_fails("pages publishes but doesn't need approve")
 
     def test_a_contents_write_job_without_approve_fails(self):
         self.add_job(

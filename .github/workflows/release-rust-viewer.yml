@@ -2,7 +2,10 @@ name: release-rust-viewer
 
 # Builds the self-contained Rust viewer tarball, mfb-embedpdf-rust-viewer-<version>.tgz,
 # from packages/rust-viewer-bundle (@mfb/embedpdf-rust-viewer), and uploads it as the
-# rust-viewer-tarball artifact for the release train.
+# rust-viewer-tarball artifact for the release train. From the same build it
+# also builds the hosted demo, examples/rust-kernel-eval, and uploads its
+# dist/ as the rust-kernel-eval-site artifact, which the train's deploy-demo
+# job deploys.
 #
 # The PDFium payload (runtime-payloads-<hash>) is fetched from the payload
 # release repo when it is already released. When the train builds a new one,
@@ -153,6 +156,22 @@ jobs:
       - name: Pack the tarball
         run: pnpm --filter @mfb/embedpdf-rust-viewer pack:tarball
 
+      # vite build alone: build:all already built the demo's wasm kernel and
+      # ran its bootstrap. Its buildInfo names the checked-out commit too.
+      - name: Build the demo site
+        run: |
+          pnpm --filter @embedpdf/example-rust-kernel-eval exec vite build
+          site=examples/rust-kernel-eval/dist
+          test -f "$site/index.html" || { echo "::error::$site has no index.html"; exit 1; }
+          sha=$(git rev-parse HEAD)
+          grep -rqF "$sha" "$site/assets" || { echo "::error::$site does not name commit $sha"; exit 1; }
+          {
+            echo "### rust-kernel-eval site"
+            echo
+            echo "- commit: \`$sha\`"
+            echo "- $(find "$site" -type f | wc -l) files, $(du -sh "$site" | cut -f1)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       # buildInfo.dirty reads git status; anything the build wrote outside
       # .gitignore would mark the shipped bundle dirty.
       - name: Check the tree is clean
@@ -195,4 +214,10 @@ jobs:
         with:
           name: rust-viewer-tarball
           path: packages/rust-viewer-bundle/${{ env.TARBALL }}
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: rust-kernel-eval-site
+          path: examples/rust-kernel-eval/dist
           if-no-files-found: error

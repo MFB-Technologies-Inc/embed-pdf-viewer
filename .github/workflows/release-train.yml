@@ -3,6 +3,7 @@ name: release-train
 # One dispatch releases everything a commit of this branch ships, all as
 # prereleases on this repo: the PDFium runtime, the wasm payload and the Apple
 # engine, then the Swift package, the Rust viewer bundle and the C# engine.
+# It also redeploys the hosted demo, examples/rust-kernel-eval.
 #
 #   t0          preflight, the three slice groups and the .NET package start
 #               together.
@@ -30,6 +31,8 @@ name: release-train
 #               the one their files were built from and name: the bundle's
 #               buildInfo.commit and the .NET provenance record git rev-parse
 #               HEAD. They don't wait for pin.
+#   deploy-demo needs approve: deploys viewer's build of the demo site to its
+#               Cloudflare Worker, on every real run.
 #   pin         needs the three publishes: commits the Apple manifests
 #               pinned to the engine release and pushes it to this branch.
 #   swift-release   tags the pin commit: the Swift package is its manifests.
@@ -107,6 +110,8 @@ jobs:
       GH_REPO: ${{ github.repository }}
       GH_TOKEN: ${{ github.token }}
       DRY_RUN: ${{ inputs.dry_run }}
+      # Whether deploy-demo's secrets are set; their values stay with it.
+      HAS_CLOUDFLARE: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -154,6 +159,7 @@ jobs:
           for notes in "docs/releases/$SWIFT_VERSION.md" "docs/releases/rust-viewer-$VIEWER_VERSION.md" docs/releases/dotnet-engine.md; do
             [[ -s "$notes" ]] || soft "no release notes at $notes; write them and commit before dispatching"
           done
+          [[ "$HAS_CLOUDFLARE" == true ]] || soft "the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repository secrets must both be set for deploy-demo; see docs/releases/README.md"
           have=$(jq -r .version packages/rust-viewer-bundle/package.json)
           [[ "$have" == "$VIEWER_VERSION" ]] || err "packages/rust-viewer-bundle/package.json is $have, viewer_version is $VIEWER_VERSION"
           exit "$status"
@@ -459,6 +465,11 @@ jobs:
               done
               bash "$S" release "$DOTNET_TAG" "C# engine 0.0.0-local (${GITHUB_SHA:0:9})" "$GITHUB_SHA" "${assets[@]}" "$guide"
             fi
+
+            echo "## Demo site"
+            echo
+            echo "deploy-demo replaces what the \`embed-pdf-rust-kernel-eval\` Worker serves with this run's build of \`examples/rust-kernel-eval\` at \`${GITHUB_SHA:0:9}\`."
+            echo
           } >> "$GITHUB_STEP_SUMMARY"
 
   # The run's one approval, and the only job with an environment. It runs
@@ -692,3 +703,50 @@ jobs:
           bash scripts/release/github-release.sh publish "$TAG" "$GITHUB_SHA" \
             "C# engine 0.0.0-local (${GITHUB_SHA:0:9})" docs/releases/dotnet-engine.md \
             "${assets[@]}" "$R/EmbedPDF-CSharp-Existing-App.md"
+
+  # Replaces the hosted demo with viewer's build of examples/rust-kernel-eval
+  # on every real run, whether or not the viewer bundle is new, so a re-run
+  # deploys the same files again. The Cloudflare token is a repository
+  # secret: approve's is the train's only environment, so no other job can
+  # read environment secrets. A dry run checks the config with wrangler's
+  # --dry-run, which doesn't sign in.
+  deploy-demo:
+    name: deploy demo
+    needs: [approve, viewer]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      DRY_RUN: ${{ inputs.dry_run }}
+      WRANGLER_VERSION: 4.157.0
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: rust-kernel-eval-site
+          path: examples/rust-kernel-eval/dist
+
+      - name: Deploy the demo
+        working-directory: examples/rust-kernel-eval
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ !inputs.dry_run && secrets.CLOUDFLARE_API_TOKEN || '' }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ !inputs.dry_run && secrets.CLOUDFLARE_ACCOUNT_ID || '' }}
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          test -f dist/index.html || { echo "::error::rust-kernel-eval-site has no index.html"; exit 1; }
+          if [[ "$DRY_RUN" == true ]]; then
+            npx --yes "wrangler@$WRANGLER_VERSION" deploy --dry-run
+            echo "dry run: would run wrangler deploy for $(find dist -type f | wc -l) files"
+            exit 0
+          fi
+          npx --yes "wrangler@$WRANGLER_VERSION" deploy --message "release-train ${GITHUB_SHA:0:9}, run $GITHUB_RUN_ID"
+          echo "deployed ${GITHUB_SHA:0:9} to https://embed-pdf-rust-kernel-eval.roan-util-cloudfare.workers.dev" >> "$GITHUB_STEP_SUMMARY"
