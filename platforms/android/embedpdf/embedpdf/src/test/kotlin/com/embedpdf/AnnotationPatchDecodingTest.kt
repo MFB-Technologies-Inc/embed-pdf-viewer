@@ -75,6 +75,34 @@ class AnnotationPatchDecodingTest {
         expectRoundTrip(note, note.copy(common = unnamed), NoteAnnotationPatch)
     }
 
+    @Test
+    fun textMarkupAndRedactionPatchesRoundTrip() {
+        val underline = UnderlineAnnotationPatch(
+            quadPoints = listOf(quad), color = AnnotationColor("#0000ff"), opacity = 0.5, contents = Nullable.Clear,
+            blendMode = AnnotationBlendMode.MULTIPLY, richText = value(comment), common = fullCommon,
+        )
+        expectRoundTrip(underline, underline.copy(common = unnamed), UnderlineAnnotationPatch)
+        val squiggly = SquigglyAnnotationPatch(
+            quadPoints = listOf(quad), color = AnnotationColor("#00ff00"), opacity = 0.75, contents = value("Squiggly text"),
+            blendMode = AnnotationBlendMode.DARKEN, richText = Nullable.Clear, common = fullCommon,
+        )
+        expectRoundTrip(squiggly, squiggly.copy(common = unnamed), SquigglyAnnotationPatch)
+        val strikeout = StrikeoutAnnotationPatch(
+            quadPoints = listOf(quad), color = AnnotationColor("#ff0000"), opacity = 0.25,
+            intent = value(AnnotationStrikeoutIntent.STRIKEOUT_TEXT_EDIT), contents = Nullable.Clear,
+            blendMode = AnnotationBlendMode.SCREEN, richText = value(comment), common = fullCommon,
+        )
+        expectRoundTrip(strikeout, strikeout.copy(common = unnamed), StrikeoutAnnotationPatch)
+        val redaction = RedactionAnnotationPatch(
+            quadPoints = listOf(quad), rect = AnnotationKindDraftTest.box, color = AnnotationColor("#112233"), opacity = 0.5,
+            interiorColor = Nullable.Clear, overlayText = value("REDACTED"), repeat = true, fontFamily = "courier",
+            fontSize = 9.0, fontColor = AnnotationColor("#ffffff"), textAlign = AnnotationTextAlignment.CENTER,
+            contents = value("Redaction text"), blendMode = AnnotationBlendMode.NORMAL, richText = value(comment),
+            common = fullCommon,
+        )
+        expectRoundTrip(redaction, redaction.copy(common = unnamed), RedactionAnnotationPatch)
+    }
+
     // ── the codec's rules ──
 
     @Test
@@ -91,6 +119,8 @@ class AnnotationPatchDecodingTest {
             InkAnnotationPatch(strokeWidth = 5.0),
             InkAnnotationPatch.fromJson("""{"icon":5,"strokeWidth":5,"subtype":"ink","target":"nowhere","zzz":[1]}"""),
         )
+        // The kinds that share a field bag still ignore each other's members.
+        assertEquals(UnderlineAnnotationPatch(opacity = 0.5), UnderlineAnnotationPatch.fromJson("""{"intent":7,"opacity":0.5}"""))
     }
 
     @Test
