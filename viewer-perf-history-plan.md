@@ -9,7 +9,7 @@ Node, TypeScript or JavaScript runs on the Mac host.
 
 ## Status
 
-Last updated 2026-11-19.
+Last updated 2026-11-20.
 
 | Task | State |
 | --- | --- |
@@ -18,10 +18,10 @@ Last updated 2026-11-19.
 | 3. `lib/history.mjs` | done, `5426ee3fc`, extended in `db5605bee` |
 | 4. `scripts/history-points.mjs` and `history/points.json` | done, `66b7c9032`: 19 points |
 | 5. `scripts/history-record.mjs`, first run recorded | done, `db5605bee` |
-| 6. `scripts/history-chart.mjs` and the page | done, `0b7f7c7a0`: 3 of 19 points plotted |
+| 6. `scripts/history-chart.mjs` and the page | done, `0b7f7c7a0`: 18 of 18 points plotted |
 | 7. README section | done, `3ca600b8f` |
 | 8. Build every point | done 2026-11-19: 19 of 21 build, 2 skipped (see the log) |
-| 9. Measure the points on the Mac mini | running since 2026-11-19, three batches |
+| 9. Measure the points on the Mac mini | done 2026-11-20: 18 of 18 measured in four batches, 3 of 21 skipped (see the log) |
 | 10. Merge into the harness branch | blocked on review |
 
 Nothing on this branch is pushed yet: it exists only in the `embed-pdf-perf` container's clone.
@@ -29,6 +29,40 @@ Pushing and merging need the user's confirmation.
 
 ### Progress log
 
+- 2026-11-20: Task 9, every point that can be measured is measured: 18 of 18, with 3 of the 21
+  skipped. Four batches on the Mac mini, 10 rounds on the `desktop` profile, none with an errored
+  sample outside the `plugins` arm:
+  - `2026-11-19T03-19-38-603Z`: `main`, `main-now`, `phase-c-end`, `phase-d-end`, `plugins-next`,
+    `hist-c4e744345`.
+  - `2026-11-19T20-03-18-892Z`: `hist-074a190c9`, `hist-dfd2937d4`, `hist-735f6e492`,
+    `plugins-tip7`.
+  - `2026-11-19T22-24-58-725Z`: `plugins-tip6`, `plugins-tip4`, `plugins-tip3`, `plugins-fixed`.
+  - `2026-11-20T01-29-02-088Z`: `hist-bac82a2cd`, `hist-3aa47e708`, `plugins`.
+
+  What went wrong on the way, and what the harness does about it now:
+  - `remote.mjs` failed to copy the first batch back because `results/` did not exist in a fresh
+    worktree. It creates the directory now (`15204bdf0`).
+  - `92f844a18` builds, but opening the 400-page fixture never settles. A page evaluate has no
+    timeout, so the gate sat on it for 8.5 hours. A flow is now stopped after 300 s
+    (`PERF_FLOW_TIMEOUT`), and the browser is relaunched after one, because the stuck renderer
+    keeps a browser-wide trace open and every later sample then fails with "Tracing has already
+    been started" (`4eb3e391a` and the commit before it). `92f844a18` is marked `skip` in
+    `points.json`.
+  - `hist-bac82a2cd`, `hist-3aa47e708` and `plugins` were excluded by the gate for one failing
+    flow each (`typeField` times out waiting for the typed value; on `plugins`, `drawInk` also never
+    finishes). An arm can now list such flows under `without` in `arms.json`, and the gate and the
+    rounds leave them out. Those points have no `typeField` (or `drawInk`) row.
+  - `plugins` also fails three large-document flows in every round: `searchLarge` hits the 300 s
+    limit, `selectLarge` selects no text, `annotateLarge` never adds the highlight. Its rows for
+    those are empty, and each `searchLarge` attempt cost 5 minutes, which is why the last batch
+    took 268 minutes. Add them to its `without` before timing that arm again.
+  - `pkill -f "node run.mjs"` on the Mac mini also matches `remote-guard.sh`, whose command line
+    carries the run command. Killing a hung run that way left the Actions runner stopped. Kill the
+    node process by pid instead. The runner was started again by hand after the last batch and is
+    running.
+  - The temporary SSH key is gone: its line is out of `~/.ssh/authorized_keys` on the Mac mini, the
+    key files are deleted from the container, and `ssh perf-mini true` answers "Permission denied".
+    The `perf-mini` alias in the container's `~/.ssh/config` is left over and harmless.
 - 2026-11-19: Task 8, every point that can build is built. What it took, all in the container:
   - The builds share the harness branch's work directory:
     `PERF_WORK_DIR=/workspaces/wt-harness/perf-compare/.work`, which already had `main`, `main-now`
@@ -376,7 +410,7 @@ point alone, and the batches below leave it out.
 
 This needs no Mac mini time and can start before Task 9 is unblocked.
 
-### Task 9: measure (blocked)
+### Task 9: measure (done)
 
 Wait for the user to say the Mac mini is free. Then one batch at a time:
 
