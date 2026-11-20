@@ -1946,56 +1946,80 @@
       "path": "crates/plugins/form/src/controller.rs",
       "owner": "Core",
       "symbol": "can_read",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "canRead"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/controller.rs",
       "owner": "Core",
       "symbol": "can_fill",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "canFill"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/controller.rs",
       "owner": "Core",
       "symbol": "can_design",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "canDesign"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/controller.rs",
       "owner": "Core",
       "symbol": "can_restore_attribution",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "canRestoreAttribution"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/controller.rs",
       "owner": "Core",
       "symbol": "can_write_scripts",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "canWriteScripts"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/controller.rs",
       "owner": "Core",
       "symbol": "get_settings",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "settings"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/controller.rs",
       "owner": "Core",
       "symbol": "update_settings",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "updateSettings"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/controller.rs",
       "owner": "Core",
       "symbol": "reset_settings",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "resetSettings"
+      }
     },
     {
       "crate": "form",
@@ -2012,126 +2036,180 @@
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "get_snapshot",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "snapshot"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "get_status",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "status"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "get_form_kind",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "snapshot"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "refresh",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "refresh"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "get",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "field"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "get_field_for_widget",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "field"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "get_widget",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "widget"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "get_widgets",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "widgets"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "list",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "fields"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "get_value",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "value"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "export_values",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "exportValues"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "validate",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "validate"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/read/fields.rs",
       "owner": "Core",
       "symbol": "get_selected_field",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "selectedField"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/read/settings.rs",
       "owner": "Core",
       "symbol": "get_field_settings",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "fieldSettings"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/read/widgets.rs",
       "owner": "Core",
       "symbol": "ensure_loaded",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "ensureLoaded"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/read/widgets.rs",
       "owner": "Core",
       "symbol": "get_widget_at",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "widget"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/read/widgets.rs",
       "owner": "Core",
       "symbol": "list_widgets",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "widgets"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/read/widgets.rs",
       "owner": "Core",
       "symbol": "get_page_box",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "pageBox"
+      }
     },
     {
       "crate": "form",
@@ -2145,7 +2223,10 @@
       "path": "crates/plugins/form/src/services/cursor.rs",
       "owner": "Core",
       "symbol": "attach_focus_target",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "attachFocusTarget"
+      }
     },
     {
       "crate": "form",
@@ -2222,126 +2303,204 @@
       "path": "crates/plugins/form/src/write/activation.rs",
       "owner": "Core",
       "symbol": "activate_widget",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "activate"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/activation.rs",
       "owner": "Core",
       "symbol": "notify_widget_event",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "notifyWidgetEvent"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "create",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "create"
+      },
+      "overloads": [
+        {
+          "kotlin": {
+            "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+            "symbol": "create"
+          }
+        }
+      ]
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "add_widget",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "addWidget"
+      },
+      "overloads": [
+        {
+          "kotlin": {
+            "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+            "symbol": "addWidget"
+          }
+        }
+      ]
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "update",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "update"
+      },
+      "overloads": [
+        {
+          "kotlin": {
+            "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+            "symbol": "update"
+          }
+        }
+      ]
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "reorder_calculations",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "reorderCalculations"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "delete",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "delete"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "remove_widget",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "removeWidget"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "update_widget",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "updateWidget"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "delete_widget",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "deleteWidget"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "repair",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "repair"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/focus.rs",
       "owner": "Core",
       "symbol": "focus",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "focus"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/focus.rs",
       "owner": "Core",
       "symbol": "focus_next",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "focusNext"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/focus.rs",
       "owner": "Core",
       "symbol": "get_focused_field",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "focusedField"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/focus.rs",
       "owner": "Core",
       "symbol": "move_in_group",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "moveInGroup"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/interchange.rs",
       "owner": "Core",
       "symbol": "export",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "export"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/interchange.rs",
       "owner": "Core",
       "symbol": "import",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "import"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/reset.rs",
       "owner": "Core",
       "symbol": "reset",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "reset"
+      }
     },
     {
       "crate": "form",
@@ -2390,21 +2549,30 @@
       "path": "crates/plugins/form/src/write/values.rs",
       "owner": "Core",
       "symbol": "set_value",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "setValue"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/values.rs",
       "owner": "Core",
       "symbol": "set_values",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "setValues"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/values.rs",
       "owner": "Core",
       "symbol": "import_values",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "importValues"
+      }
     },
     {
       "crate": "history",

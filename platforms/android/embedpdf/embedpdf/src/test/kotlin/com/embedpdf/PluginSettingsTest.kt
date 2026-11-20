@@ -154,4 +154,29 @@ class PluginSettingsTest {
         assertEquals(registered, commands.settings())
         viewer.destroy()
     }
+
+    @Test
+    fun formSettingsKeepValidationWhileClearingFocusAndFieldBorders() = viewerTest {
+        val viewer = started(ViewerConfig(interaction = true, form = FormConfig(validation = FormValidation.NONE)))
+        val document = viewer.open(Fixture.bytes("report"))
+        val form = viewer.form(document)
+        val registered = form.settings()
+        form.updateSettings(
+            FormSettingsPatch(
+                focus = FormFocusSettingsPatch(color = "red"),
+                fields = FormFieldSettingsPatch(border = "blue", background = "white"),
+                fillable = FormFillableKinds(listOf(FormFieldFamily.TEXT, FormFieldFamily.CHECKBOX)),
+            ),
+        )
+        form.updateSettings(FormSettingsPatch(focus = FormFocusSettingsPatch(clearColor = true), fields = FormFieldSettingsPatch(clearBorder = true)))
+        val changed = form.settings()
+        assertEquals(FormValidation.NONE, changed.validation)
+        assertEquals(null, changed.focus.color)
+        assertEquals(null, changed.fields.border)
+        assertEquals("white", changed.fields.background)
+        assertEquals(FormFillableKinds(listOf(FormFieldFamily.TEXT, FormFieldFamily.CHECKBOX)), changed.fillable)
+        form.resetSettings()
+        assertEquals(registered, form.settings())
+        viewer.destroy()
+    }
 }

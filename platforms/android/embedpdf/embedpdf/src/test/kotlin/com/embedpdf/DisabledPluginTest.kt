@@ -67,11 +67,14 @@ class DisabledPluginTest {
         Accessor("annotation", prerequisites = { it.copy(interaction = true) }, install = { it.copy(annotation = "") }) { viewer, document ->
             viewer.annotations(document)
         },
+        Accessor("form", prerequisites = { it.copy(interaction = true) }, install = { it.copy(form = FormConfig()) }) { viewer, document ->
+            viewer.form(document)
+        },
     )
 
     /** Plugins whose accessors later waves of the port add. */
     private val pending = setOf(
-        "form", "redaction", "measurement", "stamp",
+        "redaction", "measurement", "stamp",
         "signature",
     )
 

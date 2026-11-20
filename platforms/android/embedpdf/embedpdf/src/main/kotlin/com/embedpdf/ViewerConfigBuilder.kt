@@ -1,7 +1,6 @@
 package com.embedpdf
 
 import uniffi.epdf_plugin_actions.ActionsConfig
-import uniffi.epdf_plugin_form.FormConfig
 import uniffi.epdf_plugin_i18n.I18nConfig
 import uniffi.epdf_plugin_interaction.FeedbackConfig
 import uniffi.epdf_plugin_measurement.MeasurementConfig
