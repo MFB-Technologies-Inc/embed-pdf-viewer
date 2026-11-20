@@ -25,6 +25,17 @@ EmbedPDF.ContentInclusion
 EmbedPDF.ContentInclusion.Always = 1 -> EmbedPDF.ContentInclusion
 EmbedPDF.ContentInclusion.Never = 2 -> EmbedPDF.ContentInclusion
 EmbedPDF.ContentInclusion.WhenPermitted = 0 -> EmbedPDF.ContentInclusion
+EmbedPDF.CustomMetadataUpdatedEvent
+EmbedPDF.CustomMetadataUpdatedEvent.<Clone>$() -> EmbedPDF.CustomMetadataUpdatedEvent!
+EmbedPDF.CustomMetadataUpdatedEvent.ChangedKeys.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.CustomMetadataUpdatedEvent.ChangedKeys.init -> void
+EmbedPDF.CustomMetadataUpdatedEvent.Custom.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+EmbedPDF.CustomMetadataUpdatedEvent.Custom.init -> void
+EmbedPDF.CustomMetadataUpdatedEvent.CustomMetadataUpdatedEvent(System.Collections.Generic.IReadOnlyDictionary<string!, string!>! Custom, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? Previous, System.Collections.Generic.IReadOnlyList<string!>! ChangedKeys) -> void
+EmbedPDF.CustomMetadataUpdatedEvent.Deconstruct(out System.Collections.Generic.IReadOnlyDictionary<string!, string!>! Custom, out System.Collections.Generic.IReadOnlyDictionary<string!, string!>? Previous, out System.Collections.Generic.IReadOnlyList<string!>! ChangedKeys) -> void
+EmbedPDF.CustomMetadataUpdatedEvent.Equals(EmbedPDF.CustomMetadataUpdatedEvent? other) -> bool
+EmbedPDF.CustomMetadataUpdatedEvent.Previous.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>?
+EmbedPDF.CustomMetadataUpdatedEvent.Previous.init -> void
 EmbedPDF.DocumentEvent
 EmbedPDF.DocumentEvent.ActiveChanged
 EmbedPDF.DocumentEvent.ActiveChanged.ActiveChanged(string? DocumentId) -> void
@@ -124,6 +135,33 @@ EmbedPDF.DocumentInfo.PageCount.get -> int
 EmbedPDF.DocumentInfo.PageCount.init -> void
 EmbedPDF.DocumentInfo.Status.get -> EmbedPDF.DocumentStatus
 EmbedPDF.DocumentInfo.Status.init -> void
+EmbedPDF.DocumentMetadata
+EmbedPDF.DocumentMetadata.<Clone>$() -> EmbedPDF.DocumentMetadata!
+EmbedPDF.DocumentMetadata.Author.get -> string?
+EmbedPDF.DocumentMetadata.Author.init -> void
+EmbedPDF.DocumentMetadata.CreatedAt.get -> string?
+EmbedPDF.DocumentMetadata.CreatedAt.init -> void
+EmbedPDF.DocumentMetadata.Creator.get -> string?
+EmbedPDF.DocumentMetadata.Creator.init -> void
+EmbedPDF.DocumentMetadata.Deconstruct(out string? Title, out string? Author, out string? Subject, out string? Keywords, out string? Producer, out string? Creator, out string? CreatedAt, out string? ModifiedAt, out EmbedPDF.DocumentMetadataTrapped Trapped) -> void
+EmbedPDF.DocumentMetadata.DocumentMetadata(string? Title, string? Author, string? Subject, string? Keywords, string? Producer, string? Creator, string? CreatedAt, string? ModifiedAt, EmbedPDF.DocumentMetadataTrapped Trapped) -> void
+EmbedPDF.DocumentMetadata.Equals(EmbedPDF.DocumentMetadata? other) -> bool
+EmbedPDF.DocumentMetadata.Keywords.get -> string?
+EmbedPDF.DocumentMetadata.Keywords.init -> void
+EmbedPDF.DocumentMetadata.ModifiedAt.get -> string?
+EmbedPDF.DocumentMetadata.ModifiedAt.init -> void
+EmbedPDF.DocumentMetadata.Producer.get -> string?
+EmbedPDF.DocumentMetadata.Producer.init -> void
+EmbedPDF.DocumentMetadata.Subject.get -> string?
+EmbedPDF.DocumentMetadata.Subject.init -> void
+EmbedPDF.DocumentMetadata.Title.get -> string?
+EmbedPDF.DocumentMetadata.Title.init -> void
+EmbedPDF.DocumentMetadata.Trapped.get -> EmbedPDF.DocumentMetadataTrapped
+EmbedPDF.DocumentMetadata.Trapped.init -> void
+EmbedPDF.DocumentMetadataTrapped
+EmbedPDF.DocumentMetadataTrapped.False = 1 -> EmbedPDF.DocumentMetadataTrapped
+EmbedPDF.DocumentMetadataTrapped.True = 0 -> EmbedPDF.DocumentMetadataTrapped
+EmbedPDF.DocumentMetadataTrapped.Unknown = 2 -> EmbedPDF.DocumentMetadataTrapped
 EmbedPDF.DocumentPermission
 EmbedPDF.DocumentPermission.Deconstruct(out string! Value) -> void
 EmbedPDF.DocumentPermission.DocumentPermission() -> void
@@ -192,6 +230,89 @@ EmbedPDF.MeasurementConfig
 EmbedPDF.MeasurementConfig.<Clone>$() -> EmbedPDF.MeasurementConfig!
 EmbedPDF.MeasurementConfig.Equals(EmbedPDF.MeasurementConfig? other) -> bool
 EmbedPDF.MeasurementConfig.MeasurementConfig() -> void
+EmbedPDF.MetadataCapability
+EmbedPDF.MetadataCapability.CanUpdateAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.MetadataCapability.Dispose() -> void
+EmbedPDF.MetadataCapability.EnsureLoadedAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.MetadataCapability.GetCustomSnapshotAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyDictionary<string!, string!>?>!
+EmbedPDF.MetadataCapability.GetCustomStatusAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ResourceStatus>!
+EmbedPDF.MetadataCapability.GetSnapshotAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.DocumentMetadata?>!
+EmbedPDF.MetadataCapability.GetStatusAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ResourceStatus>!
+EmbedPDF.MetadataCapability.ObserveEvents(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.MetadataEvent!>!
+EmbedPDF.MetadataCapability.RefreshAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.MetadataCapability.RefreshCustomAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.MetadataCapability.UpdateAsync(EmbedPDF.MetadataPatch! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.DocumentMetadata!>!
+EmbedPDF.MetadataCapability.UpdateCustomAsync(System.Collections.Generic.IReadOnlyDictionary<string!, string?>! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!>!
+EmbedPDF.MetadataEvent
+EmbedPDF.MetadataEvent.CustomResynced
+EmbedPDF.MetadataEvent.CustomResynced.Custom.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+EmbedPDF.MetadataEvent.CustomResynced.Custom.init -> void
+EmbedPDF.MetadataEvent.CustomResynced.CustomResynced(System.Collections.Generic.IReadOnlyDictionary<string!, string!>! Custom) -> void
+EmbedPDF.MetadataEvent.CustomResynced.Deconstruct(out System.Collections.Generic.IReadOnlyDictionary<string!, string!>! Custom) -> void
+EmbedPDF.MetadataEvent.CustomResynced.Equals(EmbedPDF.MetadataEvent.CustomResynced? other) -> bool
+EmbedPDF.MetadataEvent.CustomUpdated
+EmbedPDF.MetadataEvent.CustomUpdated.CustomUpdated(EmbedPDF.CustomMetadataUpdatedEvent! Event) -> void
+EmbedPDF.MetadataEvent.CustomUpdated.Deconstruct(out EmbedPDF.CustomMetadataUpdatedEvent! Event) -> void
+EmbedPDF.MetadataEvent.CustomUpdated.Equals(EmbedPDF.MetadataEvent.CustomUpdated? other) -> bool
+EmbedPDF.MetadataEvent.CustomUpdated.Event.get -> EmbedPDF.CustomMetadataUpdatedEvent!
+EmbedPDF.MetadataEvent.CustomUpdated.Event.init -> void
+EmbedPDF.MetadataEvent.MetadataEvent(EmbedPDF.MetadataEvent! original) -> void
+EmbedPDF.MetadataEvent.Resynced
+EmbedPDF.MetadataEvent.Resynced.Deconstruct(out EmbedPDF.DocumentMetadata! Metadata) -> void
+EmbedPDF.MetadataEvent.Resynced.Equals(EmbedPDF.MetadataEvent.Resynced? other) -> bool
+EmbedPDF.MetadataEvent.Resynced.Metadata.get -> EmbedPDF.DocumentMetadata!
+EmbedPDF.MetadataEvent.Resynced.Metadata.init -> void
+EmbedPDF.MetadataEvent.Resynced.Resynced(EmbedPDF.DocumentMetadata! Metadata) -> void
+EmbedPDF.MetadataEvent.Updated
+EmbedPDF.MetadataEvent.Updated.Deconstruct(out EmbedPDF.MetadataUpdatedEvent! Event) -> void
+EmbedPDF.MetadataEvent.Updated.Equals(EmbedPDF.MetadataEvent.Updated? other) -> bool
+EmbedPDF.MetadataEvent.Updated.Event.get -> EmbedPDF.MetadataUpdatedEvent!
+EmbedPDF.MetadataEvent.Updated.Event.init -> void
+EmbedPDF.MetadataEvent.Updated.Updated(EmbedPDF.MetadataUpdatedEvent! Event) -> void
+EmbedPDF.MetadataField
+EmbedPDF.MetadataField.Author = 1 -> EmbedPDF.MetadataField
+EmbedPDF.MetadataField.CreatedAt = 6 -> EmbedPDF.MetadataField
+EmbedPDF.MetadataField.Creator = 5 -> EmbedPDF.MetadataField
+EmbedPDF.MetadataField.Keywords = 3 -> EmbedPDF.MetadataField
+EmbedPDF.MetadataField.ModifiedAt = 7 -> EmbedPDF.MetadataField
+EmbedPDF.MetadataField.Producer = 4 -> EmbedPDF.MetadataField
+EmbedPDF.MetadataField.Subject = 2 -> EmbedPDF.MetadataField
+EmbedPDF.MetadataField.Title = 0 -> EmbedPDF.MetadataField
+EmbedPDF.MetadataPatch
+EmbedPDF.MetadataPatch.<Clone>$() -> EmbedPDF.MetadataPatch!
+EmbedPDF.MetadataPatch.Author.get -> string?
+EmbedPDF.MetadataPatch.Author.init -> void
+EmbedPDF.MetadataPatch.Clear.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.MetadataField>!
+EmbedPDF.MetadataPatch.Clear.init -> void
+EmbedPDF.MetadataPatch.CreatedAt.get -> string?
+EmbedPDF.MetadataPatch.CreatedAt.init -> void
+EmbedPDF.MetadataPatch.Creator.get -> string?
+EmbedPDF.MetadataPatch.Creator.init -> void
+EmbedPDF.MetadataPatch.Equals(EmbedPDF.MetadataPatch? other) -> bool
+EmbedPDF.MetadataPatch.Keywords.get -> string?
+EmbedPDF.MetadataPatch.Keywords.init -> void
+EmbedPDF.MetadataPatch.MetadataPatch() -> void
+EmbedPDF.MetadataPatch.ModifiedAt.get -> string?
+EmbedPDF.MetadataPatch.ModifiedAt.init -> void
+EmbedPDF.MetadataPatch.Producer.get -> string?
+EmbedPDF.MetadataPatch.Producer.init -> void
+EmbedPDF.MetadataPatch.Subject.get -> string?
+EmbedPDF.MetadataPatch.Subject.init -> void
+EmbedPDF.MetadataPatch.Title.get -> string?
+EmbedPDF.MetadataPatch.Title.init -> void
+EmbedPDF.MetadataPatch.Trapped.get -> EmbedPDF.DocumentMetadataTrapped?
+EmbedPDF.MetadataPatch.Trapped.init -> void
+EmbedPDF.MetadataUpdatedEvent
+EmbedPDF.MetadataUpdatedEvent.<Clone>$() -> EmbedPDF.MetadataUpdatedEvent!
+EmbedPDF.MetadataUpdatedEvent.ChangedKeys.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.MetadataUpdatedEvent.ChangedKeys.init -> void
+EmbedPDF.MetadataUpdatedEvent.Deconstruct(out EmbedPDF.DocumentMetadata! Metadata, out EmbedPDF.DocumentMetadata? Previous, out System.Collections.Generic.IReadOnlyList<string!>! ChangedKeys) -> void
+EmbedPDF.MetadataUpdatedEvent.Equals(EmbedPDF.MetadataUpdatedEvent? other) -> bool
+EmbedPDF.MetadataUpdatedEvent.Metadata.get -> EmbedPDF.DocumentMetadata!
+EmbedPDF.MetadataUpdatedEvent.Metadata.init -> void
+EmbedPDF.MetadataUpdatedEvent.MetadataUpdatedEvent(EmbedPDF.DocumentMetadata! Metadata, EmbedPDF.DocumentMetadata? Previous, System.Collections.Generic.IReadOnlyList<string!>! ChangedKeys) -> void
+EmbedPDF.MetadataUpdatedEvent.Previous.get -> EmbedPDF.DocumentMetadata?
+EmbedPDF.MetadataUpdatedEvent.Previous.init -> void
 EmbedPDF.NativeRuntime
 EmbedPDF.NativeRuntimeNotFoundException
 EmbedPDF.NativeRuntimeNotFoundException.NativeRuntimeNotFoundException(string! runtimeIdentifier, System.Collections.Generic.IReadOnlyList<string!>! searchedPaths, string! message) -> void
@@ -432,6 +553,7 @@ EmbedPDF.PdfViewer.GetPageRevisionAsync(EmbedPDF.DocumentInfo? document = null, 
 EmbedPDF.PdfViewer.GetPagesAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.PageInfo!>!>!
 EmbedPDF.PdfViewer.GetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ViewerSettings!>!
 EmbedPDF.PdfViewer.HasDocumentAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.PdfViewer.MetadataAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.MetadataCapability!>!
 EmbedPDF.PdfViewer.MoveAsync(EmbedPDF.DocumentInfo! document, int index, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.PdfViewer.ObserveDocumentEvents(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.DocumentEvent!>!
 EmbedPDF.PdfViewer.ObserveReportedErrors(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.PdfException!>!
@@ -635,6 +757,7 @@ EmbedPDF.ViewerSettingsPatch.ViewerSettingsPatch() -> void
 abstract EmbedPDF.AnnotationRef.<Clone>$() -> EmbedPDF.AnnotationRef!
 abstract EmbedPDF.DocumentEvent.<Clone>$() -> EmbedPDF.DocumentEvent!
 abstract EmbedPDF.LinkActivation.<Clone>$() -> EmbedPDF.LinkActivation!
+abstract EmbedPDF.MetadataEvent.<Clone>$() -> EmbedPDF.MetadataEvent!
 abstract EmbedPDF.PageDestination.<Clone>$() -> EmbedPDF.PageDestination!
 abstract EmbedPDF.PageDestination.Page.get -> EmbedPDF.PageRef
 abstract EmbedPDF.PageDestination.Page.init -> void
@@ -655,6 +778,9 @@ override EmbedPDF.AnnotationRef.ObjectNumber.Equals(object? obj) -> bool
 override EmbedPDF.AnnotationRef.ObjectNumber.GetHashCode() -> int
 override EmbedPDF.AnnotationRef.ObjectNumber.ToString() -> string!
 override EmbedPDF.AnnotationRef.ToString() -> string!
+override EmbedPDF.CustomMetadataUpdatedEvent.Equals(object? obj) -> bool
+override EmbedPDF.CustomMetadataUpdatedEvent.GetHashCode() -> int
+override EmbedPDF.CustomMetadataUpdatedEvent.ToString() -> string!
 override EmbedPDF.DocumentEvent.ActiveChanged.<Clone>$() -> EmbedPDF.DocumentEvent.ActiveChanged!
 override EmbedPDF.DocumentEvent.ActiveChanged.Equals(object? obj) -> bool
 override EmbedPDF.DocumentEvent.ActiveChanged.GetHashCode() -> int
@@ -694,6 +820,9 @@ override EmbedPDF.DocumentFetchResponse.ToString() -> string!
 override EmbedPDF.DocumentInfo.Equals(object? obj) -> bool
 override EmbedPDF.DocumentInfo.GetHashCode() -> int
 override EmbedPDF.DocumentInfo.ToString() -> string!
+override EmbedPDF.DocumentMetadata.Equals(object? obj) -> bool
+override EmbedPDF.DocumentMetadata.GetHashCode() -> int
+override EmbedPDF.DocumentMetadata.ToString() -> string!
 override EmbedPDF.DocumentPermission.GetHashCode() -> int
 override EmbedPDF.DocumentPermission.ToString() -> string!
 override EmbedPDF.FeedbackConfig.Equals(object? obj) -> bool
@@ -739,6 +868,31 @@ override EmbedPDF.LinkActivation.Uri.ToString() -> string!
 override EmbedPDF.MeasurementConfig.Equals(object? obj) -> bool
 override EmbedPDF.MeasurementConfig.GetHashCode() -> int
 override EmbedPDF.MeasurementConfig.ToString() -> string!
+override EmbedPDF.MetadataEvent.CustomResynced.<Clone>$() -> EmbedPDF.MetadataEvent.CustomResynced!
+override EmbedPDF.MetadataEvent.CustomResynced.Equals(object? obj) -> bool
+override EmbedPDF.MetadataEvent.CustomResynced.GetHashCode() -> int
+override EmbedPDF.MetadataEvent.CustomResynced.ToString() -> string!
+override EmbedPDF.MetadataEvent.CustomUpdated.<Clone>$() -> EmbedPDF.MetadataEvent.CustomUpdated!
+override EmbedPDF.MetadataEvent.CustomUpdated.Equals(object? obj) -> bool
+override EmbedPDF.MetadataEvent.CustomUpdated.GetHashCode() -> int
+override EmbedPDF.MetadataEvent.CustomUpdated.ToString() -> string!
+override EmbedPDF.MetadataEvent.Equals(object? obj) -> bool
+override EmbedPDF.MetadataEvent.GetHashCode() -> int
+override EmbedPDF.MetadataEvent.Resynced.<Clone>$() -> EmbedPDF.MetadataEvent.Resynced!
+override EmbedPDF.MetadataEvent.Resynced.Equals(object? obj) -> bool
+override EmbedPDF.MetadataEvent.Resynced.GetHashCode() -> int
+override EmbedPDF.MetadataEvent.Resynced.ToString() -> string!
+override EmbedPDF.MetadataEvent.ToString() -> string!
+override EmbedPDF.MetadataEvent.Updated.<Clone>$() -> EmbedPDF.MetadataEvent.Updated!
+override EmbedPDF.MetadataEvent.Updated.Equals(object? obj) -> bool
+override EmbedPDF.MetadataEvent.Updated.GetHashCode() -> int
+override EmbedPDF.MetadataEvent.Updated.ToString() -> string!
+override EmbedPDF.MetadataPatch.Equals(object? obj) -> bool
+override EmbedPDF.MetadataPatch.GetHashCode() -> int
+override EmbedPDF.MetadataPatch.ToString() -> string!
+override EmbedPDF.MetadataUpdatedEvent.Equals(object? obj) -> bool
+override EmbedPDF.MetadataUpdatedEvent.GetHashCode() -> int
+override EmbedPDF.MetadataUpdatedEvent.ToString() -> string!
 override EmbedPDF.OpenDocumentOptions.Equals(object? obj) -> bool
 override EmbedPDF.OpenDocumentOptions.GetHashCode() -> int
 override EmbedPDF.OpenDocumentOptions.ToString() -> string!
@@ -873,6 +1027,10 @@ override sealed EmbedPDF.LinkActivation.None.Equals(EmbedPDF.LinkActivation? oth
 override sealed EmbedPDF.LinkActivation.Reported.Equals(EmbedPDF.LinkActivation? other) -> bool
 override sealed EmbedPDF.LinkActivation.Revealed.Equals(EmbedPDF.LinkActivation? other) -> bool
 override sealed EmbedPDF.LinkActivation.Uri.Equals(EmbedPDF.LinkActivation? other) -> bool
+override sealed EmbedPDF.MetadataEvent.CustomResynced.Equals(EmbedPDF.MetadataEvent? other) -> bool
+override sealed EmbedPDF.MetadataEvent.CustomUpdated.Equals(EmbedPDF.MetadataEvent? other) -> bool
+override sealed EmbedPDF.MetadataEvent.Resynced.Equals(EmbedPDF.MetadataEvent? other) -> bool
+override sealed EmbedPDF.MetadataEvent.Updated.Equals(EmbedPDF.MetadataEvent? other) -> bool
 override sealed EmbedPDF.PageDestination.Fit.Equals(EmbedPDF.PageDestination? other) -> bool
 override sealed EmbedPDF.PageDestination.FitB.Equals(EmbedPDF.PageDestination? other) -> bool
 override sealed EmbedPDF.PageDestination.FitBH.Equals(EmbedPDF.PageDestination? other) -> bool
@@ -894,6 +1052,8 @@ static EmbedPDF.AnnotationRef.ObjectNumber.operator !=(EmbedPDF.AnnotationRef.Ob
 static EmbedPDF.AnnotationRef.ObjectNumber.operator ==(EmbedPDF.AnnotationRef.ObjectNumber? left, EmbedPDF.AnnotationRef.ObjectNumber? right) -> bool
 static EmbedPDF.AnnotationRef.operator !=(EmbedPDF.AnnotationRef? left, EmbedPDF.AnnotationRef? right) -> bool
 static EmbedPDF.AnnotationRef.operator ==(EmbedPDF.AnnotationRef? left, EmbedPDF.AnnotationRef? right) -> bool
+static EmbedPDF.CustomMetadataUpdatedEvent.operator !=(EmbedPDF.CustomMetadataUpdatedEvent? left, EmbedPDF.CustomMetadataUpdatedEvent? right) -> bool
+static EmbedPDF.CustomMetadataUpdatedEvent.operator ==(EmbedPDF.CustomMetadataUpdatedEvent? left, EmbedPDF.CustomMetadataUpdatedEvent? right) -> bool
 static EmbedPDF.DocumentEvent.ActiveChanged.operator !=(EmbedPDF.DocumentEvent.ActiveChanged? left, EmbedPDF.DocumentEvent.ActiveChanged? right) -> bool
 static EmbedPDF.DocumentEvent.ActiveChanged.operator ==(EmbedPDF.DocumentEvent.ActiveChanged? left, EmbedPDF.DocumentEvent.ActiveChanged? right) -> bool
 static EmbedPDF.DocumentEvent.Closed.operator !=(EmbedPDF.DocumentEvent.Closed? left, EmbedPDF.DocumentEvent.Closed? right) -> bool
@@ -916,6 +1076,8 @@ static EmbedPDF.DocumentFetchResponse.operator !=(EmbedPDF.DocumentFetchResponse
 static EmbedPDF.DocumentFetchResponse.operator ==(EmbedPDF.DocumentFetchResponse? left, EmbedPDF.DocumentFetchResponse? right) -> bool
 static EmbedPDF.DocumentInfo.operator !=(EmbedPDF.DocumentInfo? left, EmbedPDF.DocumentInfo? right) -> bool
 static EmbedPDF.DocumentInfo.operator ==(EmbedPDF.DocumentInfo? left, EmbedPDF.DocumentInfo? right) -> bool
+static EmbedPDF.DocumentMetadata.operator !=(EmbedPDF.DocumentMetadata? left, EmbedPDF.DocumentMetadata? right) -> bool
+static EmbedPDF.DocumentMetadata.operator ==(EmbedPDF.DocumentMetadata? left, EmbedPDF.DocumentMetadata? right) -> bool
 static EmbedPDF.DocumentPermission.AnnotateImport.get -> EmbedPDF.DocumentPermission
 static EmbedPDF.DocumentPermission.AnnotateModify.get -> EmbedPDF.DocumentPermission
 static EmbedPDF.DocumentPermission.AnnotateRead.get -> EmbedPDF.DocumentPermission
@@ -973,6 +1135,20 @@ static EmbedPDF.LinkActivation.operator !=(EmbedPDF.LinkActivation? left, EmbedP
 static EmbedPDF.LinkActivation.operator ==(EmbedPDF.LinkActivation? left, EmbedPDF.LinkActivation? right) -> bool
 static EmbedPDF.MeasurementConfig.operator !=(EmbedPDF.MeasurementConfig? left, EmbedPDF.MeasurementConfig? right) -> bool
 static EmbedPDF.MeasurementConfig.operator ==(EmbedPDF.MeasurementConfig? left, EmbedPDF.MeasurementConfig? right) -> bool
+static EmbedPDF.MetadataEvent.CustomResynced.operator !=(EmbedPDF.MetadataEvent.CustomResynced? left, EmbedPDF.MetadataEvent.CustomResynced? right) -> bool
+static EmbedPDF.MetadataEvent.CustomResynced.operator ==(EmbedPDF.MetadataEvent.CustomResynced? left, EmbedPDF.MetadataEvent.CustomResynced? right) -> bool
+static EmbedPDF.MetadataEvent.CustomUpdated.operator !=(EmbedPDF.MetadataEvent.CustomUpdated? left, EmbedPDF.MetadataEvent.CustomUpdated? right) -> bool
+static EmbedPDF.MetadataEvent.CustomUpdated.operator ==(EmbedPDF.MetadataEvent.CustomUpdated? left, EmbedPDF.MetadataEvent.CustomUpdated? right) -> bool
+static EmbedPDF.MetadataEvent.Resynced.operator !=(EmbedPDF.MetadataEvent.Resynced? left, EmbedPDF.MetadataEvent.Resynced? right) -> bool
+static EmbedPDF.MetadataEvent.Resynced.operator ==(EmbedPDF.MetadataEvent.Resynced? left, EmbedPDF.MetadataEvent.Resynced? right) -> bool
+static EmbedPDF.MetadataEvent.Updated.operator !=(EmbedPDF.MetadataEvent.Updated? left, EmbedPDF.MetadataEvent.Updated? right) -> bool
+static EmbedPDF.MetadataEvent.Updated.operator ==(EmbedPDF.MetadataEvent.Updated? left, EmbedPDF.MetadataEvent.Updated? right) -> bool
+static EmbedPDF.MetadataEvent.operator !=(EmbedPDF.MetadataEvent? left, EmbedPDF.MetadataEvent? right) -> bool
+static EmbedPDF.MetadataEvent.operator ==(EmbedPDF.MetadataEvent? left, EmbedPDF.MetadataEvent? right) -> bool
+static EmbedPDF.MetadataPatch.operator !=(EmbedPDF.MetadataPatch? left, EmbedPDF.MetadataPatch? right) -> bool
+static EmbedPDF.MetadataPatch.operator ==(EmbedPDF.MetadataPatch? left, EmbedPDF.MetadataPatch? right) -> bool
+static EmbedPDF.MetadataUpdatedEvent.operator !=(EmbedPDF.MetadataUpdatedEvent? left, EmbedPDF.MetadataUpdatedEvent? right) -> bool
+static EmbedPDF.MetadataUpdatedEvent.operator ==(EmbedPDF.MetadataUpdatedEvent? left, EmbedPDF.MetadataUpdatedEvent? right) -> bool
 static EmbedPDF.NativeRuntime.EnsureLoaded() -> void
 static EmbedPDF.NativeRuntime.ReadPageCountAsync(System.ReadOnlyMemory<byte> pdf, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
 static EmbedPDF.NativeRuntime.RuntimeIdentifier.get -> string!
@@ -1073,6 +1249,9 @@ virtual EmbedPDF.DocumentEvent.PrintMembers(System.Text.StringBuilder! builder) 
 virtual EmbedPDF.LinkActivation.EqualityContract.get -> System.Type!
 virtual EmbedPDF.LinkActivation.Equals(EmbedPDF.LinkActivation? other) -> bool
 virtual EmbedPDF.LinkActivation.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.MetadataEvent.EqualityContract.get -> System.Type!
+virtual EmbedPDF.MetadataEvent.Equals(EmbedPDF.MetadataEvent? other) -> bool
+virtual EmbedPDF.MetadataEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual EmbedPDF.PageDestination.EqualityContract.get -> System.Type!
 virtual EmbedPDF.PageDestination.Equals(EmbedPDF.PageDestination? other) -> bool
 virtual EmbedPDF.PageDestination.PrintMembers(System.Text.StringBuilder! builder) -> bool

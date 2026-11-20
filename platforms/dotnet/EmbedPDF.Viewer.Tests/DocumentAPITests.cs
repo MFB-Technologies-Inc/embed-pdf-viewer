@@ -1,5 +1,3 @@
-using uniffi.epdf_ffi;
-using uniffi.epdf_plugin_metadata;
 using Xunit;
 
 namespace EmbedPDF.Viewer.Tests;
@@ -8,17 +6,15 @@ public sealed class DocumentAPITests
 {
     static async Task UpdateTitle(PdfViewer viewer, DocumentInfo document, string title)
     {
-        using var metadata = await viewer.CallAsync(h => h.Metadata(document.Id), default);
-        using var token = new CancelToken();
-        _ = await metadata.Update(new MetadataPatch(Title: title), token);
+        using var metadata = await viewer.MetadataAsync(document);
+        _ = await metadata.UpdateAsync(new MetadataPatch { Title = title });
     }
 
     static async Task<string?> Title(PdfViewer viewer, DocumentInfo document)
     {
-        using var metadata = await viewer.CallAsync(h => h.Metadata(document.Id), default);
-        using var token = new CancelToken();
-        await metadata.EnsureLoaded(token);
-        return (await metadata.Snapshot())?.Title;
+        using var metadata = await viewer.MetadataAsync(document);
+        await metadata.EnsureLoadedAsync();
+        return (await metadata.GetSnapshotAsync())?.Title;
     }
 
     [Fact]
