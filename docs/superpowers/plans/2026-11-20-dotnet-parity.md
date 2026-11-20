@@ -320,23 +320,93 @@ Port, from `platforms/apple/EmbedPDF/Sources/EmbedPDF/`: `PDFViewer.swift`, `PDF
 `ContentInclusion.swift`, `Experimental.swift` (as `[Experimental("EPDF001")]`) and
 `Signposts.swift` (as `ActivitySource`).
 
-- [ ] `HttpClientDocumentFetcher` matching `URLSessionDocumentFetcher`'s cancellation and error
+- [x] `HttpClientDocumentFetcher` matching `URLSessionDocumentFetcher`'s cancellation and error
   mapping.
-- [ ] API coverage check for C#. If the Android plan's `scripts/check-api-coverage.py` exists,
+- [x] API coverage check for C#. If the Android plan's `scripts/check-api-coverage.py` exists,
   add `--platform csharp`; otherwise this phase creates it from
   `platforms/apple/check-swift-api-coverage.py`. Manifest at
   `platforms/dotnet/csharp-api-coverage.json`, matching public members by reflection over the
   built assembly. Unported members are `pending` with the phase that owns them, so the check
   passes from day one and shrinks to zero.
-- [ ] PublicApiAnalyzers (D8) on `EmbedPDF`.
-- [ ] `EmbedPDF.Extensions.DependencyInjection` with `AddEmbedPdf` (D4).
-- [ ] Every public entry point calls `NativeRuntime.EnsureLoaded()` before it touches generated
+- [x] PublicApiAnalyzers (D8) on `EmbedPDF`.
+- [x] `EmbedPDF.Extensions.DependencyInjection` with `AddEmbedPdf` (D4).
+- [x] Every public entry point calls `NativeRuntime.EnsureLoaded()` before it touches generated
   code, so a missing runtime reaches the caller as `NativeRuntimeNotFoundException`, not wrapped
   in a `TypeInitializationException` from a generated static constructor. A test pins it (deferred
   from the Phase 1 review).
-- [ ] Tests: port `ViewerTests`, `DocumentAPITests`, `PDFErrorTests`, `RevisionHubTests`,
+- [x] Tests: port `ViewerTests`, `DocumentAPITests`, `PDFErrorTests`, `RevisionHubTests`,
   `StreamRuleTests`, `IntegerSurfaceTests`, `FetcherExportTests`, `ViewerConfigBuilderTests` and
   `DisabledPluginTests`, plus the two Review Focus tests owned here.
+
+### Phase 2 notes (2026-11-20)
+
+Task plan: `docs/superpowers/plans/2026-11-20-dotnet-parity/02-facade-core.md`. Branch
+`research/dotnet-parity-p2` from `research/dotnet-parity-p1` at `a54e4cd52`, not pushed.
+
+What exists. `PdfViewer` (`platforms/dotnet/EmbedPDF.Viewer/PdfViewer.cs`,
+`PdfViewer.Documents.cs`) opens from `ReadOnlyMemory<byte>`, `Stream`, a file path
+(`OpenFileAsync`), a `Uri` and a saved layer (`OpenLayerAsync`), and covers every document member
+of `PDFViewer.swift`. `PdfException` carries `Name`, `PdfErrorCode Code` and `Detail`;
+`PdfViewerOptions` is a record with a fluent `PdfViewerOptionsBuilder`; `HttpClientDocumentFetcher`
+implements a public `IDocumentFetcher`; the three streams are `IAsyncEnumerable<T>` objects that
+subscribe when the method returns (`BroadcastHub.cs`). `AddEmbedPdf` lives in
+`platforms/dotnet/EmbedPDF.Extensions.DependencyInjection/`. The coverage check is
+`scripts/check-api-coverage.py --platform csharp` over `platforms/dotnet/csharp-api-coverage.json`:
+880 members, 39 ported, 706 pending, 135 exclusions. `EmbedPDF.Viewer.Tests` runs 293 test cases,
+all passing; `EmbedPDF.Tests` passes its 36 with `EPDF_NATIVE_DIR` and PDFium on
+`LD_LIBRARY_PATH`, and `packaging` its 26.
+
+Deviations, each with its reason:
+
+- An open takes an `OpenDocumentOptions` record (`Name`, `Password`, `Activate`) rather than
+  three optional parameters. PublicApiAnalyzers refuses several overloads with optional
+  parameters (RS0026); a record lets an open setting grow without a new overload.
+- The plugin config records (`SearchConfig` to `SignatureConfig`, `FeedbackConfig`) have no
+  members yet. They install their plugin with the engine's defaults, and `FeedbackConfig` passes a
+  no-op provider. Each wave adds its config's fields.
+- A call whose Rust export takes no `CancelToken` checks the .NET token before posting and then
+  runs to completion, as the Swift call does. Only `OpenAsync(Uri)`, `OpenLayerAsync`, `SaveAsync`
+  and `SaveLayerAsync` cancel mid-call. A cancelled token surfaces as
+  `OperationCanceledException` whose inner exception is the kernel's `operation-cancelled`.
+- Swift's deprecated single-consumer `stateRevisions` and `reportedErrors` have no
+  counterpart, so `DeprecatedStreamTests` is not ported.
+- `DisposeAsync` replaces Swift's `destroy()`. A call after it throws `PdfException` with
+  `instance-closed`, never `ObjectDisposedException`.
+- Document events buffer 1,024 per subscription and drop the oldest past that, where Swift's
+  stream is unbounded. The kernel thread must never wait on a slow reader.
+- `PageRef` and page indexes are `int`. A `uint` the engine answers past `int.MaxValue` throws
+  `invalid-state`; Swift's 64-bit `Int` never does.
+- `Exception.Message` is the detail, Swift's `localizedDescription`. There is no
+  `"code: detail"` description; `ToString()` stays the framework's.
+- No type ports `JSONValue.swift`: Wave D uses `JsonNode`. No member wears
+  `[Experimental("EPDF001")]` yet, since the packaged host has no `manual-bridge` exports; the
+  id is `Experimental.Diagnostic`. `PageGeometry` has no image overload until Wave A's
+  `PixelBuffer`.
+- `HttpClientDocumentFetcher` reads `file:` URLs itself, which `URLSession` did for Swift.
+- `scripts/check-api-coverage.py` copies the Apple script's logic, and the Apple script is
+  unchanged. Swift mode prints the same 18 errors and exit code 1 as
+  `platforms/apple/check-swift-api-coverage.py` on this branch, before and after, which is a
+  Rust inventory drift that predates this phase. The cost: two copies of the Swift logic until
+  the Apple script becomes a wrapper.
+
+What Phase 3 inherits:
+
+- A capability accessor goes through the internal `PdfViewer.CallAsync` or
+  `CallCancellableAsync`, which map errors and count the call in flight. Calls on a capability
+  handle should do the same, so `DisposeAsync` drains them; `LifetimeTests` renders through the
+  generated handle today, which bypasses that count.
+- `DisabledPluginTests` and the two accessor theories in `ViewerConfigBuilderTests` call the
+  generated accessors. Each wave switches its rows to the public accessor. The plugin cases of
+  `IntegerSurfaceTests.swift`, `StreamRuleTests`' generated interaction handle, and the
+  metadata calls in `DocumentAPITests` and `ViewerTests` move the same way.
+- A test in namespace `EmbedPDF.Viewer.Tests` finds `EmbedPDF`'s public twin before a generated
+  type of the same name, so it aliases the generated one after the namespace line
+  (`ViewerHostTests.cs`).
+- Pending rows keep Swift's `export` where Swift had one. A wave flips its rows to
+  `csharp: {type, member}`; the check then requires the member in the built assembly
+  (`platforms/dotnet/tools/EmbedPDF.ApiDump`).
+- RS0026 and RS0027 shape every overload set: one overload with optional parameters, or an
+  options record.
 
 ## Phase 3: Plugin capabilities
 

@@ -1,6 +1,6 @@
 # Phase 2: Facade Core Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** A public `PdfViewer` in the `EmbedPDF` assembly that starts, opens documents from bytes, a stream, a file path, a URI and a saved layer, and retries, renames, reorders, saves and closes them, with cancellation, streams, typed errors, a DI extension and a C# API coverage check.
 
@@ -44,11 +44,11 @@
 - Internal `PdfException.From(Exception)`: generated `ViewerException.Kernel` maps name, code (null to `operation-failed`) and detail; `ViewerException.Closed` and `ObjectDisposedException` to `("Closed", instance-closed, "The viewer has shut down.")`; `OperationCanceledException` to `("AbortError", operation-cancelled, "operation cancelled")`; a `PdfException` passes through; anything else `(type name, operation-failed, Message)`.
 - Internal `WireInteger`: `uint ToUInt32(int value, string argument)`, `long ToInt64(int value)`, `int ToInt(ulong|uint|long value, string result)`. Out of range input throws `("RangeError", invalid-input, "<argument> <value> is outside 0...4294967295")`; an engine value past `int` throws `invalid-state`.
 
-- [ ] **Step 1: Failing tests.** `PdfErrorTests`: each known code round trips its wire string (theory over the ten); `quota-exceeded` round trips and is none of them; a string compares with a code (`error.Code == "not-found"`); the short constructor names it `PluginError` and the long one keeps `Custom`; `catch (PdfException e) when (e.Code == PdfErrorCode.NotFound)` picks the right branch for not-found, permission-denied and conflict; `Message` is the detail; `From` maps a generated `Kernel` with a null code to `operation-failed`, `Closed` and `ObjectDisposedException` to `instance-closed`, and `OperationCanceledException` to `operation-cancelled`. `IntegerSurfaceTests`: `ToUInt32(-1, "index")` throws invalid-input with detail `index -1 is outside 0...4294967295`; `ToUInt32(0)` is 0 and `ToUInt32(int.MaxValue)` passes; `ToInt(ulong.MaxValue, "count")` throws invalid-state; `ToInt(uint.MaxValue)` throws invalid-state (C# `int` is 32-bit, unlike Swift's `Int`); `ToInt(-1L)` is -1.
-- [ ] **Step 2:** `dotnet test EmbedPDF.Viewer.Tests`. Expected: build FAIL.
-- [ ] **Step 3:** Implement. Disable test parallelization for the assembly (`[assembly: CollectionBehavior(DisableTestParallelization = true)]`), as Swift's `BaseSuite` is `.serialized`.
-- [ ] **Step 4:** Tests PASS, 0 warnings.
-- [ ] **Step 5:** Commit `feat(dotnet): add PdfErrorCode and the typed PdfException`.
+- [x] **Step 1: Failing tests.** `PdfErrorTests`: each known code round trips its wire string (theory over the ten); `quota-exceeded` round trips and is none of them; a string compares with a code (`error.Code == "not-found"`); the short constructor names it `PluginError` and the long one keeps `Custom`; `catch (PdfException e) when (e.Code == PdfErrorCode.NotFound)` picks the right branch for not-found, permission-denied and conflict; `Message` is the detail; `From` maps a generated `Kernel` with a null code to `operation-failed`, `Closed` and `ObjectDisposedException` to `instance-closed`, and `OperationCanceledException` to `operation-cancelled`. `IntegerSurfaceTests`: `ToUInt32(-1, "index")` throws invalid-input with detail `index -1 is outside 0...4294967295`; `ToUInt32(0)` is 0 and `ToUInt32(int.MaxValue)` passes; `ToInt(ulong.MaxValue, "count")` throws invalid-state; `ToInt(uint.MaxValue)` throws invalid-state (C# `int` is 32-bit, unlike Swift's `Int`); `ToInt(-1L)` is -1.
+- [x] **Step 2:** `dotnet test EmbedPDF.Viewer.Tests`. Expected: build FAIL.
+- [x] **Step 3:** Implement. Disable test parallelization for the assembly (`[assembly: CollectionBehavior(DisableTestParallelization = true)]`), as Swift's `BaseSuite` is `.serialized`.
+- [x] **Step 4:** Tests PASS, 0 warnings.
+- [x] **Step 5:** Commit `feat(dotnet): add PdfErrorCode and the typed PdfException`.
 
 ### Task 2: Value types and their mappings
 
@@ -66,11 +66,11 @@
 - `JSONValue.swift` maps to `System.Text.Json.Nodes.JsonNode` where Wave D needs it; Phase 2 adds no type.
 - Internal `Ffi` static class: `ToPublic(...)` for each generated record above, and `ToFfi(...)` for `PageRef`, `SaveMode`, `ViewerSettingsPatch`. A `uint` the engine answers converts with `WireInteger.ToInt`.
 
-- [ ] **Step 1: Failing tests.** Port `PageGeometryTests.swift` and `PageRenderResolutionTests.swift` without the Core Graphics cases. `MappingTests`: a generated `DocumentInfo` with a failed error maps every field; every `DocumentEvent` variant maps to its nested record; a patch maps `Clear` in order; `DocumentPermission.Named` has 29 distinct values starting `doc.open`; `ContentInclusion` maps to `null/true/false`.
-- [ ] **Step 2:** Run. Expected: build FAIL.
-- [ ] **Step 3:** Implement.
-- [ ] **Step 4:** Tests PASS, 0 warnings.
-- [ ] **Step 5:** Commit `feat(dotnet): add the facade's document, page and geometry types`.
+- [x] **Step 1: Failing tests.** Port `PageGeometryTests.swift` and `PageRenderResolutionTests.swift` without the Core Graphics cases. `MappingTests`: a generated `DocumentInfo` with a failed error maps every field; every `DocumentEvent` variant maps to its nested record; a patch maps `Clear` in order; `DocumentPermission.Named` has 29 distinct values starting `doc.open`; `ContentInclusion` maps to `null/true/false`.
+- [x] **Step 2:** Run. Expected: build FAIL.
+- [x] **Step 3:** Implement.
+- [x] **Step 4:** Tests PASS, 0 warnings.
+- [x] **Step 5:** Commit `feat(dotnet): add the facade's document, page and geometry types`.
 
 ### Task 3: Broadcast hub and subscriptions
 
@@ -81,11 +81,11 @@
 - Internal `sealed class BroadcastHub<T>(int capacity)`: `IAsyncEnumerable<T> Subscribe(CancellationToken cancellationToken = default)` installs a subscriber with its own `Channel.CreateBounded<T>(capacity, DropOldest, SingleReader)` before it returns; `void Publish(T value)` uses `TryWrite` and never blocks; `void Complete()` completes every channel and makes later subscriptions complete at once; a subscriber is removed when its enumerator is disposed or its token fires. Enumerating one subscription twice throws `InvalidOperationException`. Cancellation ends enumeration with `OperationCanceledException`. Revisions use capacity 1, reported errors 16, document events 1024.
 - Internal `sealed class Subscription<T> : IAsyncEnumerable<T>` is what `Subscribe` returns, so subscribing is eager, not deferred to the first `MoveNextAsync`.
 
-- [ ] **Step 1: Failing tests** (port `RevisionHubTests.swift`): two subscribers both read 2 after publishing 1 and 2 (coalescing); a cancelled subscriber leaves the survivor live for 20 rounds; `Complete` ends every subscriber and a later `Subscribe` ends at once; 20 errors into a capacity-16 hub with no reader yield the newest 16 in order (`StreamRuleTests.reportedErrorsKeepTheNewestSixteenPerObserver`); `Publish` past capacity with no reader returns at once (Review Focus 4); enumerating one subscription twice throws.
-- [ ] **Step 2:** Run. Expected: build FAIL.
-- [ ] **Step 3:** Implement.
-- [ ] **Step 4:** PASS.
-- [ ] **Step 5:** Commit `feat(dotnet): fan state revisions out over bounded channels`.
+- [x] **Step 1: Failing tests** (port `RevisionHubTests.swift`): two subscribers both read 2 after publishing 1 and 2 (coalescing); a cancelled subscriber leaves the survivor live for 20 rounds; `Complete` ends every subscriber and a later `Subscribe` ends at once; 20 errors into a capacity-16 hub with no reader yield the newest 16 in order (`StreamRuleTests.reportedErrorsKeepTheNewestSixteenPerObserver`); `Publish` past capacity with no reader returns at once (Review Focus 4); enumerating one subscription twice throws.
+- [x] **Step 2:** Run. Expected: build FAIL.
+- [x] **Step 3:** Implement.
+- [x] **Step 4:** PASS.
+- [x] **Step 5:** Commit `feat(dotnet): fan state revisions out over bounded channels`.
 
 ### Task 4: Options and the fluent builder
 
@@ -98,11 +98,11 @@
 - Plugin configs: `sealed record SearchConfig`, `RenderConfig`, `StageConfig`, `FormConfig`, `RedactionConfig`, `MeasurementConfig`, `StampConfig`, `I18nConfig`, `ActionsConfig`, `SignatureConfig`, `FeedbackConfig`, each with no members yet, and `enum StandardCommandList` matching the generated one. Each maps to the generated config with its defaults; `FeedbackConfig` passes an internal no-op `PlatformFeedback` (D5). Their fields port with the owning Phase 3 wave and stay `pending` in the coverage manifest.
 - `sealed class PdfViewerOptionsBuilder`: `()`, `(PdfViewerOptions)`, `Build()`, one method per field returning a new builder (`Scope`, `Metadata(bool enabled = true)`, `Search(SearchConfig)`, ..., `Annotation(string settingsJson = "")`, `StandardCommands(IEnumerable<StandardCommandList>)`), plus `DocumentFetcher(IDocumentFetcher)` and `Logger(ILogger)`.
 
-- [ ] **Step 1: Failing tests** (port `ViewerConfigBuilderTests.swift`): rows for the 25 fields; every generated `ViewerConfig` property (reflection over the internal record) has exactly one row; `new PdfViewerOptionsBuilder().Build().ToFfi()` equals `new ViewerConfig()` field by field (rendered as text, configs compared by null-ness); each row sets its field and no other; a builder is a value (`base.Selection()` leaves `base` unchanged); a builder starts from existing options.
-- [ ] **Step 2:** Run. Expected: build FAIL.
-- [ ] **Step 3:** Implement.
-- [ ] **Step 4:** PASS.
-- [ ] **Step 5:** Commit `feat(dotnet): add PdfViewerOptions and its fluent builder`.
+- [x] **Step 1: Failing tests** (port `ViewerConfigBuilderTests.swift`): rows for the 25 fields; every generated `ViewerConfig` property (reflection over the internal record) has exactly one row; `new PdfViewerOptionsBuilder().Build().ToFfi()` equals `new ViewerConfig()` field by field (rendered as text, configs compared by null-ness); each row sets its field and no other; a builder is a value (`base.Selection()` leaves `base` unchanged); a builder starts from existing options.
+- [x] **Step 2:** Run. Expected: build FAIL.
+- [x] **Step 3:** Implement.
+- [x] **Step 4:** PASS.
+- [x] **Step 5:** Commit `feat(dotnet): add PdfViewerOptions and its fluent builder`.
 
 ### Task 5: Document fetch
 
@@ -115,11 +115,11 @@
 - `public sealed class HttpClientDocumentFetcher(HttpClient? client = null) : IDocumentFetcher`: a URL that is not absolute throws `("InvalidURL", invalid-input, "The document URL is invalid.")`; `file:` URIs read the file; others `GET` and answer the status with the body whatever the status (the kernel maps refusals); a status outside 0 to 65535 throws `("InvalidResponse", operation-failed, "The response has an invalid HTTP status.")`. Default client: one shared static `HttpClient`.
 - Internal `FetcherAdapter : DocumentFetcher` (generated): runs `FetchAsync` with `Task.Run` so a fetcher never blocks the kernel thread, completes the generated completion exactly once (an `Interlocked` flag), disposes it, and returns a cancellation that cancels the fetch's `CancellationTokenSource`.
 
-- [ ] **Step 1: Failing tests** against `Loopback` (an `HttpListener` on `127.0.0.1` and a free port, with handlers that answer, answer 404, or stall until released): 200 returns status and bytes; 404 returns 404 and the body; a relative URL throws invalid-input; cancelling a stalled fetch throws `OperationCanceledException`; the adapter calls `Finish` once and maps a thrown `PdfException`, a cancellation and an `HttpRequestException` to the failures above (a recording `IDocumentFetchCompletion` test double through the internal seam).
-- [ ] **Step 2:** Run. Expected: build FAIL.
-- [ ] **Step 3:** Implement.
-- [ ] **Step 4:** PASS.
-- [ ] **Step 5:** Commit `feat(dotnet): add HttpClientDocumentFetcher`.
+- [x] **Step 1: Failing tests** against `Loopback` (an `HttpListener` on `127.0.0.1` and a free port, with handlers that answer, answer 404, or stall until released): 200 returns status and bytes; 404 returns 404 and the body; a relative URL throws invalid-input; cancelling a stalled fetch throws `OperationCanceledException`; the adapter calls `Finish` once and maps a thrown `PdfException`, a cancellation and an `HttpRequestException` to the failures above (a recording `IDocumentFetchCompletion` test double through the internal seam).
+- [x] **Step 2:** Run. Expected: build FAIL.
+- [x] **Step 3:** Implement.
+- [x] **Step 4:** PASS.
+- [x] **Step 5:** Commit `feat(dotnet): add HttpClientDocumentFetcher`.
 
 ### Task 6: PdfViewer
 
@@ -137,11 +137,11 @@
 - `Experimental.cs`: `internal const string Diagnostic = "EPDF001"`, the id `[Experimental]` uses. The generated bindings carry no experimental bridge exports (the host is built without `manual-bridge`), so no member wears it yet.
 - Every public entry point calls `NativeRuntime.EnsureLoaded()` before touching generated code. Internal `NativeRuntime.LoadOverride` (`AsyncLocal<Action?>`) runs in place of the real load when set.
 
-- [ ] **Step 1: Failing tests.** `Fixtures` finds `pdfium-multiplatform-prototype/fixtures/{report,encrypted-hello,colors}.pdf`, `tooling/viewer-e2e/fixtures/features.pdf` and `packages/engine/main/test/fixtures/signed_two_approvals.pdf` up the directory tree. Port every test of `ViewerTests.swift` (the metadata accessor case uses the internal `Host.Metadata` until Wave A); `DocumentAPITests.swift` (metadata through the internal host; the URL cases use `Loopback` with `HttpClientDocumentFetcher`: 404 then 200 leaves a failed tab that `RetryAsync` turns ready with 14 pages after two requests); `FetcherExportTests.swift` (a stub `IDocumentFetcher` written against the public API serves `report.pdf` and answers `not-found` otherwise); `StreamRuleTests.swift` (errors provoked through the internal interaction handle with a throwing handler; two observers each get three `HostError`s, a cancelled observer leaves the other live, disposal ends observers and a late subscription ends at once); `IntegerSurfaceTests.viewerPagesAndTabsTakeAndGiveInt`; `NativeLoadTests`: with `LoadOverride` throwing `NativeRuntimeNotFoundException`, `new PdfViewer()`, `PdfViewer.CreateAsync()` and `NativeRuntime.ReadPageCountAsync` each throw exactly that type; a call after `DisposeAsync` throws `PdfException` with `instance-closed`; `OpenFileAsync` and `OpenAsync(Stream)` open `report.pdf` with 14 pages, the file one named `report.pdf`; `TelemetryTests`: an `ActivityListener` on `EmbedPDF` sees `open` and `save`.
-- [ ] **Step 2:** Run. Expected: build FAIL.
-- [ ] **Step 3:** Implement.
-- [ ] **Step 4:** PASS, 0 warnings.
-- [ ] **Step 5:** Commit `feat(dotnet): add PdfViewer with document control and streams`.
+- [x] **Step 1: Failing tests.** `Fixtures` finds `pdfium-multiplatform-prototype/fixtures/{report,encrypted-hello,colors}.pdf`, `tooling/viewer-e2e/fixtures/features.pdf` and `packages/engine/main/test/fixtures/signed_two_approvals.pdf` up the directory tree. Port every test of `ViewerTests.swift` (the metadata accessor case uses the internal `Host.Metadata` until Wave A); `DocumentAPITests.swift` (metadata through the internal host; the URL cases use `Loopback` with `HttpClientDocumentFetcher`: 404 then 200 leaves a failed tab that `RetryAsync` turns ready with 14 pages after two requests); `FetcherExportTests.swift` (a stub `IDocumentFetcher` written against the public API serves `report.pdf` and answers `not-found` otherwise); `StreamRuleTests.swift` (errors provoked through the internal interaction handle with a throwing handler; two observers each get three `HostError`s, a cancelled observer leaves the other live, disposal ends observers and a late subscription ends at once); `IntegerSurfaceTests.viewerPagesAndTabsTakeAndGiveInt`; `NativeLoadTests`: with `LoadOverride` throwing `NativeRuntimeNotFoundException`, `new PdfViewer()`, `PdfViewer.CreateAsync()` and `NativeRuntime.ReadPageCountAsync` each throw exactly that type; a call after `DisposeAsync` throws `PdfException` with `instance-closed`; `OpenFileAsync` and `OpenAsync(Stream)` open `report.pdf` with 14 pages, the file one named `report.pdf`; `TelemetryTests`: an `ActivityListener` on `EmbedPDF` sees `open` and `save`.
+- [x] **Step 2:** Run. Expected: build FAIL.
+- [x] **Step 3:** Implement.
+- [x] **Step 4:** PASS, 0 warnings.
+- [x] **Step 5:** Commit `feat(dotnet): add PdfViewer with document control and streams`.
 
 ### Task 7: Cancellation and disposal under load
 
@@ -152,11 +152,11 @@
 **Interfaces:**
 - `DisposeAsync`: the first call starts one disposal task and every call returns it. Disposal marks the viewer closed (new calls answer `instance-closed`), cancels the Rust tokens of calls in flight, destroys the kernel, waits for calls in flight to settle, completes the hubs and subscriptions, then runs `Shutdown` and releases the host on the thread pool. The constructor calls `GC.SuppressFinalize` on the generated host so its finalizer cannot join the kernel thread on the finalizer thread; `PdfViewer`'s finalizer queues the shutdown and release to the thread pool and returns. Nothing the kernel calls back (delegate, listeners) holds the `PdfViewer`.
 
-- [ ] **Step 1: Failing tests.** `CancellationTests.OpenUriCancelsTheTransportAndClosesTheLoadingTab`: a stalling `Loopback`, `HttpClient` with a recording handler; start `OpenAsync(uri, token)`, wait until the request arrives and the tab is `Loading`, cancel; expect `OperationCanceledException`, an empty document list, the handler's request token cancelled; then the server releases the stalled reply and no unobserved task exception is raised after a forced GC. `ALateFetcherCompletionAfterDisposeIsIgnored`: a fetcher that completes after `DisposeAsync` raises nothing. `SaveCancelledBeforeItStartsIsCancelled` (port of `saveCancelsWhenTheTaskIsCancelled`) with an already-cancelled token. `LifetimeTests.DisposeWithRendersInFlightEnds`: 8 renders through the internal render handle plus `SaveAsync` in flight, `DisposeAsync` completes within 10 s and every in-flight task ends (result or `PdfException`/`OperationCanceledException`). `ConcurrentDisposeSharesCompletion`: two `DisposeAsync` calls return the same task, and both complete. `AbandonedViewerIsFinalizedWithoutBlocking`: a started viewer with an open document dropped in a `NoInlining` method is collected within 20 GC rounds, each `GC.WaitForPendingFinalizers()` returns within 1 s.
-- [ ] **Step 2:** Run. Expected: the new tests FAIL where Task 6 falls short.
-- [ ] **Step 3:** Implement what fails.
-- [ ] **Step 4:** PASS, then the whole suite 3 times in a row.
-- [ ] **Step 5:** Commit `test(dotnet): pin cancellation and disposal of PdfViewer`.
+- [x] **Step 1: Failing tests.** `CancellationTests.OpenUriCancelsTheTransportAndClosesTheLoadingTab`: a stalling `Loopback`, `HttpClient` with a recording handler; start `OpenAsync(uri, token)`, wait until the request arrives and the tab is `Loading`, cancel; expect `OperationCanceledException`, an empty document list, the handler's request token cancelled; then the server releases the stalled reply and no unobserved task exception is raised after a forced GC. `ALateFetcherCompletionAfterDisposeIsIgnored`: a fetcher that completes after `DisposeAsync` raises nothing. `SaveCancelledBeforeItStartsIsCancelled` (port of `saveCancelsWhenTheTaskIsCancelled`) with an already-cancelled token. `LifetimeTests.DisposeWithRendersInFlightEnds`: 8 renders through the internal render handle plus `SaveAsync` in flight, `DisposeAsync` completes within 10 s and every in-flight task ends (result or `PdfException`/`OperationCanceledException`). `ConcurrentDisposeSharesCompletion`: two `DisposeAsync` calls return the same task, and both complete. `AbandonedViewerIsFinalizedWithoutBlocking`: a started viewer with an open document dropped in a `NoInlining` method is collected within 20 GC rounds, each `GC.WaitForPendingFinalizers()` returns within 1 s.
+- [x] **Step 2:** Run. Expected: the new tests FAIL where Task 6 falls short.
+- [x] **Step 3:** Implement what fails.
+- [x] **Step 4:** PASS, then the whole suite 3 times in a row.
+- [x] **Step 5:** Commit `test(dotnet): pin cancellation and disposal of PdfViewer`.
 
 ### Task 8: Disabled plugins
 
@@ -166,9 +166,9 @@
 **Interfaces:**
 - Consumes the internal `PdfViewer.CallAsync` and the generated host accessors. Each Phase 3 wave replaces its rows' calls with the public accessor.
 
-- [ ] **Step 1:** Port `DisabledPluginTests.swift`: 23 rows (field, prerequisites, install, accessor call through `CallAsync` disposing the handle); every plugin property of `PdfViewerOptions` but `Scope` and `StandardCommands` has one row; left out is `unsupported`; installed succeeds; left out for a closed document and for a loading document (held `Loopback`) is `unsupported`. Also `ViewerConfigBuilderTests`' two accessor theories over the same rows.
-- [ ] **Step 2:** Run. Expected: PASS if Tasks 4 and 6 are right; a failing row is fixed in the option mapping, not the test.
-- [ ] **Step 3:** Commit `test(dotnet): port the disabled plugin table`.
+- [x] **Step 1:** Port `DisabledPluginTests.swift`: 23 rows (field, prerequisites, install, accessor call through `CallAsync` disposing the handle); every plugin property of `PdfViewerOptions` but `Scope` and `StandardCommands` has one row; left out is `unsupported`; installed succeeds; left out for a closed document and for a loading document (held `Loopback`) is `unsupported`. Also `ViewerConfigBuilderTests`' two accessor theories over the same rows.
+- [x] **Step 2:** Run. Expected: PASS if Tasks 4 and 6 are right; a failing row is fixed in the option mapping, not the test.
+- [x] **Step 3:** Commit `test(dotnet): port the disabled plugin table`.
 
 ### Task 9: Dependency injection
 
@@ -179,11 +179,11 @@
 **Interfaces:**
 - `public static IServiceCollection AddEmbedPdf(this IServiceCollection services, Func<PdfViewerOptionsBuilder, PdfViewerOptionsBuilder>? configure = null)` and `AddEmbedPdf(this IServiceCollection, PdfViewerOptions options)`. Registers the options and a singleton `PdfViewer` whose logger comes from `ILoggerFactory` when one is registered and the options carry none. The viewer is not started; the container disposes it.
 
-- [ ] **Step 1: Failing tests:** a provider built after `AddEmbedPdf(b => b.Metadata())` resolves one `PdfViewer` twice (same instance), which starts and opens `report.pdf`; the options resolve with `Metadata` true; `DisposeAsync` of the provider disposes the viewer (a later call is `instance-closed`).
-- [ ] **Step 2:** Run. Expected: build FAIL.
-- [ ] **Step 3:** Implement (`IsAotCompatible`, PublicApiAnalyzers, package id `EmbedPDF.Extensions.DependencyInjection`).
-- [ ] **Step 4:** PASS.
-- [ ] **Step 5:** Commit `feat(dotnet): add AddEmbedPdf`.
+- [x] **Step 1: Failing tests:** a provider built after `AddEmbedPdf(b => b.Metadata())` resolves one `PdfViewer` twice (same instance), which starts and opens `report.pdf`; the options resolve with `Metadata` true; `DisposeAsync` of the provider disposes the viewer (a later call is `instance-closed`).
+- [x] **Step 2:** Run. Expected: build FAIL.
+- [x] **Step 3:** Implement (`IsAotCompatible`, PublicApiAnalyzers, package id `EmbedPDF.Extensions.DependencyInjection`).
+- [x] **Step 4:** PASS.
+- [x] **Step 5:** Commit `feat(dotnet): add AddEmbedPdf`.
 
 ### Task 10: API coverage for C#
 
@@ -196,17 +196,17 @@
 - Manifest: `schemaVersion: 1`, `crates` and `kernel` as Swift's; one entry per Rust member the shared inventory finds, keyed like Swift's (`crate`, `path`, `owner`, `symbol`), each with exactly one of `csharp: {"type", "member"}` plus `export`, `exclusion` (copied from Swift), or `pending: "phase-3-wave-<A..E>"` (by crate, as the umbrella's wave table). The 38 kernel members Swift maps to `PDFViewer.swift`, and `Kernel.settings_revision`, map to `PdfViewer` members.
 - Check: unaccounted or stale Rust member fails; a `csharp` mapping whose `type.member` is not in the dump fails; an unknown `pending` value fails; pending rows pass. Summary line: `C# API accounting: N members (P ported, Q pending, R exclusions).`
 
-- [ ] **Step 1: Failing tests** in `test_check_api_coverage.py`: a manifest row naming a missing C# member fails with `missing C#`; an unknown pending value fails; a pending row passes; swift mode on the real manifest prints the same stderr and exit code as the Apple script.
-- [ ] **Step 2:** Run `python3 -m unittest scripts/test_check_api_coverage.py`. Expected: FAIL.
-- [ ] **Step 3:** Implement, generating the first manifest with a one-off script that is not committed.
-- [ ] **Step 4:** Tests PASS; `python3 scripts/check-api-coverage.py --platform csharp` exits 0; the Apple script's output before and after is identical.
-- [ ] **Step 5:** Commit `feat(dotnet): check C# API coverage against the Rust inventory`.
+- [x] **Step 1: Failing tests** in `test_check_api_coverage.py`: a manifest row naming a missing C# member fails with `missing C#`; an unknown pending value fails; a pending row passes; swift mode on the real manifest prints the same stderr and exit code as the Apple script.
+- [x] **Step 2:** Run `python3 -m unittest scripts/test_check_api_coverage.py`. Expected: FAIL.
+- [x] **Step 3:** Implement, generating the first manifest with a one-off script that is not committed.
+- [x] **Step 4:** Tests PASS; `python3 scripts/check-api-coverage.py --platform csharp` exits 0; the Apple script's output before and after is identical.
+- [x] **Step 5:** Commit `feat(dotnet): check C# API coverage against the Rust inventory`.
 
 ### Task 11: Verify and record
 
 **Files:**
 - Modify: `docs/superpowers/plans/2026-11-20-dotnet-parity.md` (Phase 2 boxes, "Phase 2 notes"), this plan's boxes
 
-- [ ] **Step 1:** Run every suite: `dotnet test EmbedPDF.Viewer.Tests`, `dotnet test EmbedPDF.Tests`, `python3 -m unittest discover -s platforms/dotnet/packaging`, `generate-bindings.test.sh`, `dotnet-engine-hash.test.sh`, the coverage check in both modes, and `dotnet build -c Release` of every new project with 0 warnings.
-- [ ] **Step 2:** Record test counts, coverage numbers, deviations and what Phase 3 inherits in the umbrella's Phase 2 notes.
-- [ ] **Step 3:** Commit `chore(dotnet): record Phase 2`.
+- [x] **Step 1:** Run every suite: `dotnet test EmbedPDF.Viewer.Tests`, `dotnet test EmbedPDF.Tests`, `python3 -m unittest discover -s platforms/dotnet/packaging`, `generate-bindings.test.sh`, `dotnet-engine-hash.test.sh`, the coverage check in both modes, and `dotnet build -c Release` of every new project with 0 warnings.
+- [x] **Step 2:** Record test counts, coverage numbers, deviations and what Phase 3 inherits in the umbrella's Phase 2 notes.
+- [x] **Step 3:** Commit `chore(dotnet): record Phase 2`.
