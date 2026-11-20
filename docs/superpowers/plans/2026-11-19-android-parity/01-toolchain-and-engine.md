@@ -35,10 +35,10 @@
 - Create: `platforms/android/embedpdf/gradlew`, `gradlew.bat`, `gradle/wrapper/*`, `gradle/libs.versions.toml`
 - Modify: `platforms/android/embedpdf/settings.gradle.kts`, `build.gradle.kts`, `library/build.gradle.kts`, `platforms/android/build-aar.sh` (`./gradlew`, `ANDROID_NDK_HOME` default `/opt/android-ndk-r29` when it exists)
 
-- [ ] Install the same layer into the running container by hand (the image is rebuilt from the branch at the end), SDK at `/opt/android-sdk`, `ANDROID_HOME` exported in `/etc/profile.d/android.sh`. Pin the command-line tools zip by SHA-256 in the Dockerfile.
-- [ ] Generate the wrapper, move versions into the catalog.
-- [ ] Run `bash platforms/android/build-aar.sh` (still `epdf-uniffi`). Expected: builds, both `.so` report `LOAD alignment 0x4000`.
-- [ ] Commit.
+- [x] Install the same layer into the running container by hand (the image is rebuilt from the branch at the end), SDK at `/opt/android-sdk`, `ANDROID_HOME` exported in `/etc/profile.d/android.sh`. Pin the command-line tools zip by SHA-256 in the Dockerfile.
+- [x] Generate the wrapper, move versions into the catalog.
+- [x] Run `bash platforms/android/build-aar.sh` (still `epdf-uniffi`). Expected: builds, both `.so` report `LOAD alignment 0x4000`.
+- [x] Commit.
 
 ### Task 2: `bindings` module from `epdf-viewer-host`
 
@@ -47,11 +47,11 @@
 - Modify: `platforms/android/build-aar.sh` (build `-p epdf-viewer-host`, `--crate-type cdylib` through `cargo rustc` if the crate doesn't declare one; check `crates/epdf-viewer-host/Cargo.toml`), `bindings/consumer-rules.pro` (`-keep class uniffi.** { *; }`, JNA rules unchanged)
 - Create: `platforms/android/embedpdf/smoke/` (JVM test module holding `SmokeTest` as a local test)
 
-- [ ] Fetch the Android slices from `MFB-Technologies-Inc/embed-pdf-runtime` release `runtime-af480d0ce420ed916db0de8d2e8827822ad7be1e` into `packages/engine/runtime/build/libpdfium/android-{arm64,x64}` with a new `platforms/android/fetch-android-runtime.sh` that verifies each archive against `pdf-runtime-build.generated.json` in that release. `build-aar.sh` calls it when a slice is missing.
-- [ ] Build both ABIs. Expected: `libepdf_viewer_host.so` per ABI, `LOAD alignment 0x4000`, no undefined `__arm_` symbol.
-- [ ] Generate Kotlin for every component into `bindings/src/main/kotlin`. Expected: `./gradlew :bindings:assembleRelease` compiles.
-- [ ] Record `.so` sizes per ABI (`du -h`) for the README.
-- [ ] Commit.
+- [x] Fetch the Android slices from `MFB-Technologies-Inc/embed-pdf-runtime` release `runtime-af480d0ce420ed916db0de8d2e8827822ad7be1e` into `packages/engine/runtime/build/libpdfium/android-{arm64,x64}` with a new `platforms/android/fetch-android-runtime.sh` that verifies each archive against `pdf-runtime-build.generated.json` in that release. `build-aar.sh` calls it when a slice is missing.
+- [x] Build both ABIs. Expected: `libepdf_viewer_host.so` per ABI, `LOAD alignment 0x4000`, no undefined `__arm_` symbol.
+- [x] Generate Kotlin for every component into `bindings/src/main/kotlin`. Expected: `./gradlew :bindings:assembleRelease` compiles.
+- [x] Record `.so` sizes per ABI (`du -h`) for the README.
+- [x] Commit.
 
 ### Task 3: JVM tests against the Linux host library
 
@@ -59,10 +59,10 @@
 - Create: `platforms/android/embedpdf/bindings/src/test/kotlin/com/embedpdf/bindings/ViewerHostLoadTest.kt`
 - Modify: `bindings/build.gradle.kts` (a `buildLinuxHost` task that runs `cargo build -p epdf-viewer-host` for the container's host target and sets `systemProperty("jna.library.path", ...)` on `testDebugUnitTest`; Robolectric not needed yet), `smoke/build.gradle.kts` the same for `epdf-uniffi`
 
-- [ ] Port `SmokeTest`'s eight tests to `smoke/src/test`, reading fixtures from `pdfium-multiplatform-prototype/fixtures/`. Expected: 8 pass.
-- [ ] `ViewerHostLoadTest`: build a `ViewerHost` with a config enabling every plugin, `start()`, open `report.pdf` bytes, assert 14 pages, `destroy()`. Expected: pass.
-- [ ] Port `platforms/android/tests/CommandContextTest.kt` into `bindings/src/test` so `test-command-context.sh` becomes a Gradle test. Keep the script working.
-- [ ] Commit.
+- [x] Port `SmokeTest`'s eight tests to `smoke/src/test`, reading fixtures from `pdfium-multiplatform-prototype/fixtures/`. Expected: 8 pass.
+- [x] `ViewerHostLoadTest`: build a `ViewerHost` with a config enabling every plugin, `start()`, open `report.pdf` bytes, assert 14 pages, `destroy()`. Expected: pass.
+- [x] Port `platforms/android/tests/CommandContextTest.kt` into `bindings/src/test` so `test-command-context.sh` becomes a Gradle test. Keep the script working.
+- [x] Commit.
 
 ### Task 4: Engine hash and check scripts, README
 
@@ -70,5 +70,5 @@
 - Create: `platforms/android/android-engine-hash.sh`, `platforms/android/check-android-engine.sh` (mirror `platforms/apple/apple-engine-hash.sh` and `check-apple-engine.sh`: same Rust inputs, plus `build-aar.sh` and the runtime slice SHA)
 - Modify: `platforms/android/README.md` (modules, how to build in the container, the no-emulator limitation, sizes)
 
-- [ ] `android-engine-hash.sh` prints a 16-hex hash; running it twice prints the same value; touching a file under `crates/epdf-viewer-host/src` changes it.
-- [ ] Commit.
+- [x] `android-engine-hash.sh` prints a 16-hex hash; running it twice prints the same value; touching a file under `crates/epdf-viewer-host/src` changes it.
+- [x] Commit.

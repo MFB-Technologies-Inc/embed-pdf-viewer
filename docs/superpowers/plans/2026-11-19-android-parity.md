@@ -29,6 +29,18 @@ Test.
 `docs/superpowers/plans/2026-11-18-swift-api-gaps.md`. Those plans already paid for the API design
 decisions. This one ports the outcome, not the path.
 
+**Decision record, 2026-11-20 (Phase 0).** D1, D2, D4 and D5 are confirmed as written. D1's
+`bindings` module exists now, built from `epdf-viewer-host`. D3 is confirmed with one change of
+detail: `androidx.javascriptengine` declares `minSdkVersion="26"` in every stable release (1.0.0,
+1.1.0, 1.1.1) and in 1.2.0-alpha01, above our `minSdk = 24`. The library that depends on it
+therefore needs `tools:overrideLibrary="androidx.javascriptengine"` in its manifest and must call
+`JavaScriptSandbox.isSupported()` only on API 26 and above, reporting JavaScript as unsupported below
+that. The cost is one manifest override and a version check that a raised `minSdk` would remove.
+The WebView version floor wasn't checked from the container; `isSupported()` is the runtime gate
+either way. Toolchain versions changed from the Tech Stack line: AGP 9.4.1 (it compiles Kotlin
+itself, so no separate Kotlin Android plugin is applied) and Gradle 9.8.2, which AGP 9 requires;
+Kotlin stays at 2.2.21 through the Kotlin Gradle plugin on the build classpath.
+
 ## Where Android is today
 
 The AAR packages `epdf-uniffi` (`platforms/android/build-aar.sh:65`), the engine-only crate with no
@@ -116,6 +128,8 @@ verbs (`viewer.search(document)`), so the coverage manifest can share member nam
 Cost: availability depends on the installed WebView, and the sandbox is async and out of process,
 so each script call pays IPC. The alternative, bundling QuickJS, adds a second native library and
 its own 16 KB and CVE upkeep. Phase 0 confirms the library's `minSdk` and the WebView floor.
+Checked 2026-11-20: its `minSdk` is 26, two above ours; the decision record above has the
+consequence.
 
 **D4. Publishing.** Recommendation: a Maven repository in GitHub Packages on
 `MFB-Technologies-Inc/embed-pdf-runtime`, `embedpdf-bindings` versioned `0.0.0-engine.<hash>` and
@@ -153,13 +167,13 @@ until the dump is updated in the same commit.
 
 About 2 days. Exit: `./gradlew :library:assembleRelease` works in the dev container.
 
-- [ ] Add a Gradle wrapper and `gradle/libs.versions.toml` under `platforms/android/embedpdf`.
+- [x] Add a Gradle wrapper and `gradle/libs.versions.toml` under `platforms/android/embedpdf`.
   `build-aar.sh` calls `./gradlew`.
-- [ ] Add Android SDK command-line tools, `platforms;android-36` and `build-tools` to
+- [x] Add Android SDK command-line tools, `platforms;android-36` and `build-tools` to
   `.devcontainer/Dockerfile` on amd64, SHA-256 pinned like the NDK layer, and a row in
   `.devcontainer/README.md`.
-- [ ] Record D1 to D5 as confirmed or changed at the top of this file.
-- [ ] Check `androidx.javascriptengine`'s `minSdk` and record it under D3.
+- [x] Record D1 to D5 as confirmed or changed at the top of this file.
+- [x] Check `androidx.javascriptengine`'s `minSdk` and record it under D3.
 
 ## Phase 1: Full engine artifact
 
@@ -167,18 +181,18 @@ About 4 days. Exit: an `embedpdf-bindings` AAR built from `epdf-viewer-host` pas
 `zipalign` checks, and a JVM test opens a document through the same generated Kotlin against the
 Linux host library.
 
-- [ ] Build `epdf-viewer-host` instead of `epdf-uniffi` in `build-aar.sh`, for both ABIs, with the
+- [x] Build `epdf-viewer-host` instead of `epdf-uniffi` in `build-aar.sh`, for both ABIs, with the
   builtins link argument and `__arm_` check unchanged. Generate Kotlin with the repo's
   `uniffi-bindgen`, which already applies `fix_external_error_buffers`.
-- [ ] Split the current `library` module into `bindings` (D1). The `epdf-uniffi` smoke test moves
+- [x] Split the current `library` module into `bindings` (D1). The `epdf-uniffi` smoke test moves
   to a separate `smoke` test module so its assertions stay identical to
   `crates/epdf-uniffi/tests/native_surface.rs`.
-- [ ] Extend `consumer-rules.pro` to keep every generated component package and every callback
+- [x] Extend `consumer-rules.pro` to keep every generated component package and every callback
   interface.
-- [ ] Add `platforms/android/android-engine-hash.sh` and `check-android-engine.sh`, mirroring
+- [x] Add `platforms/android/android-engine-hash.sh` and `check-android-engine.sh`, mirroring
   `platforms/apple/apple-engine-hash.sh` and `check-apple-engine.sh`, over the same inputs plus
   `build-aar.sh`.
-- [ ] Record the packaged `.so` sizes per ABI in the README. Today's `epdf-uniffi` slice is 16 MB
+- [x] Record the packaged `.so` sizes per ABI in the README. Today's `epdf-uniffi` slice is 16 MB
   per ABI; the full host will be larger and the number belongs in the record, not a guess.
 
 ## Phase 2: Facade core
