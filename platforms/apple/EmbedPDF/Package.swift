@@ -6,8 +6,8 @@ import PackageDescription
 // apple-engine release tag and the SHA-256 of its
 // EmbedPDFBindings.xcframework.zip. Both are "unpublished" until the first
 // publish.
-let engineRelease = "apple-engine-8a472a28bcfb9c14"
-let engineChecksum = "3660debb61e685bce3c3421fc7baa505088c467711bb474af157f04f3036207d"
+let engineRelease = "apple-engine-087f5a74ff6916ab"
+let engineChecksum = "241deb3731f2d5afbd637f3eef9c3de8af4a31bbf914e2f686fb31aac7716f2a"
 
 let package = Package(
   name: "EmbedPDF",
@@ -126,7 +126,7 @@ if !usesLocalEngine {
     package.targets.append(
       .binaryTarget(
         name: "EmbedPDFBindings",
-        url: "https://github.com/MFB-Technologies-Inc/embed-pdf-runtime/releases/download/\(engineRelease)/EmbedPDFBindings.xcframework.zip",
+        url: "https://github.com/MFB-Technologies-Inc/embed-pdf-viewer/releases/download/\(engineRelease)/EmbedPDFBindings.xcframework.zip",
         checksum: engineChecksum
       )
     )
