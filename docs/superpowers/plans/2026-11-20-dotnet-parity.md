@@ -310,6 +310,14 @@ public surface with `Microsoft.CodeAnalysis.PublicApiAnalyzers` 5.6.0 (D8). The 
 (`runtime-record`). Each fix that touched `package.py` moved the engine version: the pin is now
 `0.0.0-engine.96f2f8af10194b63` and both records were rerun at `0d97ddc53`.
 
+CI (2026-11-20). Run 44799578194 of `release-dotnet.yml` at `8709bf4fb` passed every job: all
+five runtime slices, the merged pack, and the local-feed consumer on each RID's native runner.
+All five RIDs are `VALIDATED` at engine `0.0.0-engine.822686307291c580`, and those records
+replaced the container ones under `platforms/dotnet/validation/2026-11-20-phase-1-runtime-<rid>/`.
+Two Windows bugs surfaced on the way and are fixed: backslash paths in slice records, and
+`EmbedPDF.dll` colliding with win-x64 PDFium's `embedpdf.dll` (now `EmbedPDF.Viewer.dll`, see D3).
+This supersedes the `osx-arm64` caveat in the Phase 1 exit above.
+
 ## Phase 2: Facade core
 
 About 1 week. Exit: `PdfViewer` opens, retries, renames and closes documents from bytes, a stream,
