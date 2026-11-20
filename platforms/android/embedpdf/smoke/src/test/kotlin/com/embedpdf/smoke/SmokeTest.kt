@@ -1,7 +1,6 @@
-package com.embedpdf
+package com.embedpdf.smoke
 
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
+import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import org.json.JSONObject
@@ -10,29 +9,26 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.runner.RunWith
 import uniffi.epdf_uniffi.PdfEngine
 import uniffi.epdf_uniffi.PdfException
 
 /**
- * The Phase 1 Android smoke run.
+ * The engine smoke run, on the JVM.
  *
- * Instrumented rather than local, and the assertions are a deliberate copy of
- * `crates/epdf-uniffi/tests/native_surface.rs`. What only a device can say is
- * that the AAR's `libepdf_uniffi.so` loads next to `libc++_shared.so` under
- * Android's linker, against the fork's own PDFium build. Identical assertions
- * mean a divergence is a packaging problem and nothing else.
+ * The assertions are a deliberate copy of
+ * `crates/epdf-uniffi/tests/native_surface.rs`, run through the same
+ * generated Kotlin an Android app would call, against `libepdf_uniffi.so`
+ * built for this machine. Identical assertions mean a divergence is a
+ * binding problem and nothing else.
  *
- * The emulator this is meant to run on is a 16 KB page-size image, which is
- * the configuration Android 15 requires and the one a 4 KB-aligned `.so`
- * fails to load on.
+ * It used to run instrumented on a 16 KB page-size emulator. The dev
+ * container has no emulator, so what only a device can say (that the `.so`
+ * maps under Android's linker) is covered by the static ELF and `zipalign`
+ * checks in `build-aar.sh` instead.
  */
-@RunWith(AndroidJUnit4::class)
 class SmokeTest {
     private fun fixture(name: String): ByteArray =
-        InstrumentationRegistry.getInstrumentation().context.assets.open("$name.pdf").use {
-            it.readBytes()
-        }
+        File(System.getProperty("embedpdf.fixtures"), "$name.pdf").readBytes()
 
     @Test
     fun aDocumentOpensAndReportsItsPages() {

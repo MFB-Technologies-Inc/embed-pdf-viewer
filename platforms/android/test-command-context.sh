@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 # Executes Kotlin command callbacks against the full native viewer host.
+#
+# The callbacks run as the Gradle test com.embedpdf.bindings.CommandContextTest
+# in the `bindings` module, against Kotlin generated from the same library the
+# test loads. The checksum gate is checked separately below with kotlinc,
+# since it needs a deliberately corrupted copy of one generated file.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
@@ -11,21 +16,27 @@ export JAVA_OPTS="${JAVA_OPTS:--Xmx2g -XX:ActiveProcessorCount=2}"
 TARGET_DIR="$(cargo metadata --format-version 1 --no-deps | python3 -c "import json,sys; print(json.load(sys.stdin)[\"target_directory\"])")"
 LIBRARY="${1:-$TARGET_DIR/debug/libepdf_viewer_host.so}"
 OUT="$TARGET_DIR/command-context-kotlin"
+BINDINGS="$ROOT/platforms/android/embedpdf/bindings"
 mkdir -p "$OUT/generated"
+cargo build -p uniffi-bindgen
 if [[ $# == 0 ]]; then
-  cargo build -p epdf-viewer-host -p uniffi-bindgen
+  cargo build -p epdf-viewer-host
 fi
 "$TARGET_DIR/debug/uniffi-bindgen" generate --no-format --library "$LIBRARY" \
   --language kotlin --out-dir "$OUT/generated"
-mapfile -t SOURCES < <(rg --files "$OUT/generated" -g "*.kt" | sort)
-CLASSPATH="$JNA_JAR:$COROUTINES_JAR"
-"$KOTLINC" "${SOURCES[@]}" platforms/android/tests/CommandContextTest.kt \
-  -classpath "$CLASSPATH" -include-runtime -d "$OUT/command-context-tests.jar"
-java -Djna.library.path="$(dirname "$LIBRARY")" \
-  -cp "$OUT/command-context-tests.jar:$CLASSPATH" com.embedpdf.tests.CommandContextTestKt
+
+# The module compiles the generated sources build-aar.sh writes; these are the
+# same components, generated from the library under test.
+rm -rf "$BINDINGS/src/main/kotlin"
+cp -R "$OUT/generated" "$BINDINGS/src/main/kotlin"
+(cd "$ROOT/platforms/android/embedpdf" &&
+  ./gradlew --console=plain :bindings:testDebugUnitTest \
+    --tests com.embedpdf.bindings.CommandContextTest \
+    -PlinuxHostDir="$(dirname "$LIBRARY")")
 
 # Corrupt one expected value in a separate copy; the generated source above
 # stays intact, and the native integrity gate must reject this test module.
+CLASSPATH="$JNA_JAR:$COROUTINES_JAR"
 NEGATIVE="$OUT/checksum-negative"
 mkdir -p "$NEGATIVE"
 python3 - "$OUT" <<'PYTHON'

@@ -72,12 +72,15 @@ dependencies {
 // The full viewer host for the machine running the tests. The generated
 // Kotlin in src/main/kotlin and this library come from the same sources, so
 // their uniffi checksums agree; a stale build fails loudly at the first call.
-val linuxHostDir = repoRoot.resolve("target/debug")
+// `-PlinuxHostDir=<dir>` tests an already-built library instead.
+val prebuiltHostDir = providers.gradleProperty("linuxHostDir").orNull
+val linuxHostDir = prebuiltHostDir?.let(::File) ?: repoRoot.resolve("target/debug")
 val runtimeSlice = if (System.getProperty("os.arch") == "aarch64") "linux-arm64" else "linux-x64"
 val runtimeLibDir = repoRoot.resolve("packages/engine/runtime/build/libpdfium/$runtimeSlice/lib")
 
-val buildLinuxHost by tasks.registering(Exec::class) {
+val buildLinuxHost = tasks.register<Exec>("buildLinuxHost") {
     description = "Builds epdf-viewer-host for the JVM tests."
+    onlyIf { prebuiltHostDir == null }
     workingDir = repoRoot
     commandLine("cargo", "build", "-p", "epdf-viewer-host", "--manifest-path", repoRoot.resolve("Cargo.toml").path)
 }
