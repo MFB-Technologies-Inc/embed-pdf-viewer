@@ -64,9 +64,12 @@ def main():
     dotnet = ".github/workflows/release-dotnet.yml"
     expect(".NET SDK", arg("DOTNET_SDK_VERSION"), dotnet,
            match(dotnet, r"^\s*- name: Install \.NET SDK (\S+)$"))
-    dotnet_sha = match(dotnet, r"^\s*SDK_SHA512: (\S+)$")
-    if dotnet_sha is None or dotnet_sha not in DOCKERFILE.read_text():
-        failures.append(f".NET SDK arm64 SHA-512: {dotnet} has {dotnet_sha}, absent from the Dockerfile")
+    # The workflow's matrix pins one SDK archive per RID; the image builds for
+    # the two Linux ones.
+    for rid in ("linux-arm64", "linux-x64"):
+        dotnet_sha = match(dotnet, rf"^\s*- rid: {rid}\n(?:\s+\w+: .*\n)*?\s+sdk_sha512: (\S+)$")
+        if dotnet_sha is None or dotnet_sha not in DOCKERFILE.read_text():
+            failures.append(f".NET SDK {rid} SHA-512: {dotnet} has {dotnet_sha}, absent from the Dockerfile")
 
     if failures:
         print("Development image pins disagree with the repository:", file=sys.stderr)
