@@ -14,6 +14,7 @@ and a version catalog, `gradle/libs.versions.toml`.
 |---|---|---|
 | `bindings` | `libepdf_viewer_host.so` per ABI and the generated `uniffi.*` Kotlin | yes, as the AAR |
 | `embedpdf` | the hand-written `com.embedpdf` facade: `PdfViewer`, `PdfException`, the document fetchers | not yet |
+| `models` | `com.embedpdf.models`: observable models over the facade, with no Compose dependency, as `embedpdf-models` | not yet |
 | `javascript` | `com.embedpdf.javascript.JavaScriptSandboxEngineFactory`, PDF JavaScript in `androidx.javascriptengine`, as `embedpdf-javascript` | not yet |
 | `smoke` | JVM tests of the engine-only `epdf-uniffi` crate | no |
 
@@ -68,6 +69,63 @@ such call says so in its KDoc; after a cancelled one, read the state again.
 Opens are the exception: they pass an `onDiscard` that closes the document
 the cancelled open made. A cancel that arrives after that check passed but
 before the caller resumed still leaves the document open.
+
+## Models
+
+`models` is the Kotlin counterpart of `EmbedPDFModels`: one plain class per
+Swift model (`SearchModel`, `HistoryModel`, `StageReaderModel`,
+`TextSelectionModel`, `TiledPageModel` and the rest), each taking its
+capabilities in the constructor and exposing `StateFlow`s. It works from a
+View-based app or from Compose, and takes no Compose dependency:
+`./gradlew :models:checkNoCompose` fails on an `androidx.compose` dependency,
+direct or transitive, or import. Its public surface is
+`models/api/models.api`, checked by `apiCheck` like the others.
+
+A model never creates a `CoroutineScope`. Swift's `task()` is
+`suspend fun run()`, which follows the capability's events and state
+revisions until the document closes or the caller cancels it. The caller
+picks the scope:
+
+```kotlin
+lifecycleScope.launch { repeatOnLifecycle(Lifecycle.State.STARTED) { search.run() } }
+```
+
+Actions are `suspend fun`s and switch to `Dispatchers.Main.immediate`
+themselves, where every model keeps its state.
+
+A few calls return at once and queue their work instead: the
+`TextSelectionModel` drag calls, the `StageReaderModel` pointer calls, its
+pan switch and its link loads. `run()` sends them. A model with such calls
+also takes `actionScope: CoroutineScope? = null`; when a call arrives while
+`run()` isn't draining, the model starts one drain in that scope, which is
+still the caller's. Without one the call waits for the next suspend call on
+its queue, and the first such call sets `error` to `invalid-state` saying
+that `run()` isn't running. `PdfReaderModel` passes its `actionScope` on to
+the models it builds. The cost of passing `viewModelScope` here is that a
+drag sent after the screen stops still reaches the engine, which is why it's
+opt-in.
+
+`PdfViewerViewModel` holds one `PdfViewer` across configuration changes. It
+starts the viewer when it's created and destroys it once in `onCleared()`,
+also when the start is still in flight:
+
+```kotlin
+private val holder: PdfViewerViewModel by viewModels {
+    PdfViewerViewModel.factory(ViewerConfig(render = RenderConfig(), stage = StageConfig()))
+}
+```
+
+Read `holder.viewer` to subscribe, and await `holder.startedViewer()` before
+an open.
+
+The module has no `Context`, so it can't read string resources. `HistoryModel`
+and `SearchModel` take optional `HistoryStrings` and `SearchStrings`
+providers, whose members all default to English (`undo`, `redo`, `change`,
+`undoTitle(label)`, `redoTitle(label)`, `notice(notice)`,
+`searchSummary(index, count, searching)`). The Compose layer passes
+resource-backed ones. `HistoryModel.notice` is a `HistoryNotice` value
+(`SkippedUndo(count)`, `SkippedRedo(count)`) for a caller that words it
+itself, and `noticeText` is the provider's wording.
 
 ## Building in the dev container
 
