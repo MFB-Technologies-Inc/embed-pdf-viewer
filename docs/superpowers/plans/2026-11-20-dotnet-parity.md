@@ -524,6 +524,11 @@ Deviations, each with its reason:
   names are verbs, and `viewer.SearchAsync(document)` or `viewer.RenderAsync(document)` would
   read as doing the thing rather than returning a capability. D4 records the change; later
   waves follow it.
+- Plugin event streams are unbounded per subscriber, where D4's table says a bounded
+  `Channel<T>`. This follows the Phase 2 decision for document events: a dropped `Undone`,
+  `Changed` or `Closed` event would leave a consumer's state wrong, and `TryWrite` on an
+  unbounded channel never blocks the kernel thread. The cost is the same: a subscriber that
+  stops reading holds every later event in memory.
 - Capabilities are `IDisposable`, not `IAsyncDisposable`: releasing a capability handle never
   waits on the kernel. `RenderViewDemand` is `IAsyncDisposable` because its `DisposeAsync` is the
   engine's `dispose`, which is a kernel call.
