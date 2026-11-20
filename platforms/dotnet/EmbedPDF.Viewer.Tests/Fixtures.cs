@@ -14,6 +14,13 @@ static class Fixture
         ["annotation_kinds"] = "tooling/engine-conformance/fixtures/annotation_kinds.pdf",
         ["form_fields"] = "tooling/engine-conformance/fixtures/form_fields.pdf",
         ["tiny.png"] = "tooling/engine-conformance/fixtures/tiny.png",
+        ["measure-foreign-viewport"] = "crates/test-support/fixtures/measure-foreign-viewport.pdf",
+        ["stamps"] = "packages/default-stamps/en/stamps.pdf",
+        ["signed_certified"] = "packages/engine/main/test/fixtures/signed_certified.pdf",
+        ["unsigned_sigfield"] = "packages/engine/main/test/fixtures/unsigned_sigfield.pdf",
+        ["signature_artwork"] = "packages/engine/main/test/fixtures/signature_artwork.pdf",
+        ["TEST-ONLY-signer.pem"] = "packages/engine/main/test/fixtures/signature-compat/keys/TEST-ONLY-signer.pem",
+        ["TEST-ONLY-private-key.pem"] = "packages/engine/main/test/fixtures/signature-compat/keys/TEST-ONLY-private-key.pem",
     };
 
     public static string Path(string name)

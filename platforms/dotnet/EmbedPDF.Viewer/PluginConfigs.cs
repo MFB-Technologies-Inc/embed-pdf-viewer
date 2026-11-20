@@ -65,10 +65,23 @@ public sealed record RedactionConfig
     internal GRd.RedactionConfig ToFfi() => new(Fill, OverlayText is null ? null : Ffi.ToFfi(OverlayText));
 }
 
-/// <summary>Installs the measurement plugin. Needs <see cref="PdfViewerOptions.Interaction"/> and <see cref="PdfViewerOptions.Annotation"/>.</summary>
+/// <summary>
+/// Installs the measurement plugin. Needs <see cref="PdfViewerOptions.Interaction"/>
+/// and <see cref="PdfViewerOptions.Annotation"/>. It is also the patch
+/// <see cref="MeasurementCapability.UpdateSettingsAsync"/> takes: a member
+/// left <see langword="null"/> keeps its value.
+/// </summary>
 public sealed record MeasurementConfig
 {
-    internal GM.MeasurementConfig ToFfi() => new();
+    /// <summary>The scale a page without one of its own measures in.</summary>
+    public MeasurementDefaultScale? DefaultScale { get; init; }
+
+    /// <summary>The scale presets offered for a page.</summary>
+    public IReadOnlyList<ScalePreset>? Presets { get; init; }
+
+    internal GM.MeasurementConfig ToFfi() => new(
+        DefaultScale is null ? null : Ffi.ToFfi(DefaultScale),
+        Presets is null ? null : [.. Arguments.NoNullElements(Presets, nameof(Presets)).Select(Ffi.ToFfi)]);
 }
 
 /// <summary>Installs the stamp plugin.</summary>

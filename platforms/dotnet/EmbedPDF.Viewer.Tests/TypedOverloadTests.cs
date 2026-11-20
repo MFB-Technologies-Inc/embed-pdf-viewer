@@ -4,9 +4,8 @@ namespace EmbedPDF.Viewer.Tests;
 
 /// <summary>
 /// The annotation and link cases of TypedOverloadTests.swift: each typed
-/// overload leaves the engine where its JSON twin does. The measurement
-/// readout cases port with wave E, which brings the measurement capability;
-/// the shell surface cases are in <see cref="ShellTests"/>.
+/// overload leaves the engine where its JSON twin does, with the measurement
+/// readout cases; the shell surface cases are in <see cref="ShellTests"/>.
 /// </summary>
 public sealed class TypedOverloadTests
 {
@@ -15,7 +14,7 @@ public sealed class TypedOverloadTests
 
     static async Task<(PdfViewer Viewer, DocumentInfo Document, PageRef Page, AnnotationCapability Annotations)> Opened(string fixture = "report")
     {
-        var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true, Link = true, Annotation = "" });
+        var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true, Link = true, Annotation = "", Measurement = new MeasurementConfig() });
         var document = await viewer.OpenAsync(Fixture.Data(fixture));
         var page = (await viewer.GetPagesAsync(document))[0].Page;
         var annotations = await viewer.GetAnnotationAsync(document);
@@ -142,5 +141,41 @@ public sealed class TypedOverloadTests
         Assert.Equal("xyz", (string?)destination["kind"]);
         Assert.Equal(30, (double?)destination["x"]);
         Assert.Equal(40, (double?)destination["y"]);
+    }
+
+    [Fact]
+    public async Task AMeasurementReadsOutFromItsAnnotation()
+    {
+        var (viewer, document, page, annotations) = await Opened();
+        await using var _v = viewer;
+        using var measurement = await viewer.GetMeasurementAsync(document);
+        await measurement.EnsureLoadedAsync(page);
+        var json = await measurement.CreateMeasurementAsync(new CreateMeasurementInput(MeasurementKind.Distance, page, [new(10, 10), new(82, 10)]));
+        var objectNumber = System.Text.Json.Nodes.JsonNode.Parse(json)!["objectNumber"]!.GetValue<int>();
+        var line = await annotations.GetAsync(new AnnotationRef.ObjectNumber(page, objectNumber));
+        Assert.NotNull(line);
+
+        var typed = await measurement.ReadoutAsync(line);
+        Assert.Equal(MeasurementReadoutKind.Distance, Assert.IsType<MeasurementReading.Value>(typed).Readout.Kind);
+        Assert.Equal(typed, await measurement.ReadoutAsync(json));
+    }
+
+    /// <summary>The ref alone is enough: no read of the annotation comes first.</summary>
+    [Fact]
+    public async Task AMeasurementReadsOutFromItsRef()
+    {
+        var (viewer, document, page, _) = await Opened();
+        await using var _v = viewer;
+        using var measurement = await viewer.GetMeasurementAsync(document);
+        await measurement.EnsureLoadedAsync(page);
+        var json = await measurement.CreateMeasurementAsync(new CreateMeasurementInput(MeasurementKind.Distance, page, [new(10, 10), new(82, 10)]));
+        var objectNumber = System.Text.Json.Nodes.JsonNode.Parse(json)!["objectNumber"]!.GetValue<int>();
+
+        var reading = await measurement.ReadoutAsync(new AnnotationRef.ObjectNumber(page, objectNumber));
+        var readout = Assert.IsType<MeasurementReading.Value>(reading).Readout;
+        Assert.Equal(MeasurementReadoutKind.Distance, readout.Kind);
+        // 72 points is one inch, in the page's default metric scale.
+        Assert.True(Math.Abs(readout.Value - 0.0254) < 1e-6);
+        Assert.Equal(reading, await measurement.ReadoutAsync(json));
     }
 }

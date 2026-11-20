@@ -95,3 +95,251 @@ public sealed record PdfMeasurement(string Subtype)
         };
     }
 }
+/// <summary>A create measurement input.</summary>
+/// <param name="Kind">The kind.</param>
+/// <param name="Page">The page.</param>
+/// <param name="Points">Page-space points: two for a distance, the vertices otherwise.</param>
+public sealed record CreateMeasurementInput(MeasurementKind Kind, PageRef Page, IReadOnlyList<PdfPoint> Points)
+{
+    /// <summary>The authoring tool whose defaults apply. <see langword="null"/> is the kind's own.</summary>
+    public string? Tool { get; init; }
+}
+
+/// <summary>Two page points and the real length between them, value in unit.</summary>
+/// <param name="Page">The page.</param>
+/// <param name="From">The from.</param>
+/// <param name="To">The to.</param>
+/// <param name="Value">The value.</param>
+/// <param name="Unit">The unit.</param>
+public sealed record MeasurementCalibrateInput(PageRef Page, PdfPoint From, PdfPoint To, double Value, string Unit);
+
+/// <summary>A measurement calibrate options.</summary>
+public sealed record MeasurementCalibrateOptions
+{
+    /// <summary>Re-measure the pages' measurement annotations. <see langword="null"/> is true.</summary>
+    public bool? Recalculate { get; init; }
+    /// <summary>Write the scale to these pages. <see langword="null"/> is the input's page.</summary>
+    public MeasurementPageTarget? ApplyTo { get; init; }
+}
+
+/// <summary>Two points the calibrate tool captured, awaiting the real length. Page space.</summary>
+/// <param name="Page">The page.</param>
+/// <param name="From">The from.</param>
+/// <param name="To">The to.</param>
+/// <param name="UserSpaceLength">The captured length in PDF user space.</param>
+public sealed record MeasurementCalibrationRequest(PageRef Page, PdfPoint From, PdfPoint To, double UserSpaceLength);
+
+/// <summary>An engine error as the plugin keeps it (SerializedEngineError).</summary>
+/// <param name="Code">The code.</param>
+/// <param name="Detail">The detail.</param>
+public sealed record MeasurementErrorInfo(string Code, string Detail);
+
+/// <summary>A page's resolved scale.</summary>
+/// <param name="Measure">The measure.</param>
+/// <param name="Source">The source.</param>
+/// <param name="Ready">The page's viewports are known: always, for a page of an open document (its layout carries them).</param>
+/// <param name="Persistent">The engine can persist a scale into the document.</param>
+/// <param name="Error">The error.</param>
+public sealed record MeasurementPageScale(PdfMeasurement? Measure, MeasurementScaleSource Source, bool Ready, bool Persistent, MeasurementErrorInfo? Error);
+
+/// <summary>A value in the scale's first format unit, and its label.</summary>
+/// <param name="Kind">The kind.</param>
+/// <param name="Label">The label.</param>
+/// <param name="Value">The value.</param>
+/// <param name="Perimeter">The perimeter.</param>
+public sealed record MeasurementReadout(MeasurementReadoutKind Kind, string Label, double Value, string? Perimeter);
+
+/// <summary>ScaleChangeOptions without the signal, which the handle's CancelToken carries.</summary>
+public sealed record MeasurementScaleChangeOptions
+{
+    /// <summary>Re-measure the pages' measurement annotations. <see langword="null"/> is true.</summary>
+    public bool? Recalculate { get; init; }
+}
+
+/// <summary>A measurement settings.</summary>
+/// <param name="DefaultScale">The default scale.</param>
+/// <param name="Presets">The presets.</param>
+public sealed record MeasurementSettings(MeasurementDefaultScale DefaultScale, IReadOnlyList<ScalePreset> Presets);
+
+/// <summary>A scale failed annotation.</summary>
+/// <param name="AnnotationJson">The AnnotationRef record.</param>
+/// <param name="Error">The error.</param>
+public sealed record ScaleFailedAnnotation(string AnnotationJson, MeasurementErrorInfo Error);
+
+/// <summary>A scale preset.</summary>
+/// <param name="Id">The id.</param>
+/// <param name="Label">The label.</param>
+/// <param name="Paper">The paper.</param>
+/// <param name="Real">The real.</param>
+/// <param name="Unit">The unit.</param>
+public sealed record ScalePreset(string Id, string Label, double Paper, double Real, string Unit);
+
+/// <summary>One page's re-measurement after a scale change.</summary>
+/// <param name="Page">The page.</param>
+/// <param name="Scale">The scale.</param>
+/// <param name="Error">The error.</param>
+/// <param name="UpdatedJson">The AnnotationRef records re-measured.</param>
+/// <param name="Skipped">The skipped.</param>
+/// <param name="Failed">The failed.</param>
+public sealed record ScaleRecalibration(PageRef Page, PdfMeasurement? Scale, MeasurementErrorInfo? Error, IReadOnlyList<string> UpdatedJson, IReadOnlyList<ScaleSkippedAnnotation> Skipped, IReadOnlyList<ScaleFailedAnnotation> Failed);
+
+/// <summary>A scale skipped annotation.</summary>
+/// <param name="AnnotationJson">The AnnotationRef record.</param>
+/// <param name="Reason">The reason.</param>
+public sealed record ScaleSkippedAnnotation(string AnnotationJson, ScaleSkipReason Reason);
+
+/// <summary>The fallback scale for a page with no viewport.</summary>
+public abstract record MeasurementDefaultScale
+{
+    private protected MeasurementDefaultScale() { }
+
+    /// <summary>Metric.</summary>
+    public sealed record Metric : MeasurementDefaultScale;
+
+    /// <summary>Imperial.</summary>
+    public sealed record Imperial : MeasurementDefaultScale;
+
+    /// <summary>Measure.</summary>
+    /// <param name="MeasureValue">The measure value.</param>
+    public sealed record Measure(PdfMeasurement MeasureValue) : MeasurementDefaultScale;
+
+}
+
+/// <summary>A measurement event.</summary>
+public abstract record MeasurementEvent
+{
+    private protected MeasurementEvent() { }
+
+    /// <summary>Scale changed.</summary>
+    /// <param name="Page">The page.</param>
+    /// <param name="Report">The report.</param>
+    public sealed record ScaleChanged(PageRef Page, ScaleChangeReport Report) : MeasurementEvent;
+
+    /// <summary>Calibration requested.</summary>
+    /// <param name="Request">The request.</param>
+    public sealed record CalibrationRequested(MeasurementCalibrationRequest Request) : MeasurementEvent;
+
+    /// <summary>Calibration completed.</summary>
+    /// <param name="Page">The page.</param>
+    public sealed record CalibrationCompleted(PageRef Page) : MeasurementEvent;
+
+    /// <summary>Calibration dismissed.</summary>
+    public sealed record CalibrationDismissed : MeasurementEvent;
+
+}
+
+/// <summary>A measurement page target.</summary>
+public abstract record MeasurementPageTarget
+{
+    private protected MeasurementPageTarget() { }
+
+    /// <summary>Page.</summary>
+    /// <param name="PageValue">The page value.</param>
+    public sealed record Page(PageRef PageValue) : MeasurementPageTarget;
+
+    /// <summary>Pages.</summary>
+    /// <param name="PagesValue">The pages value.</param>
+    public sealed record Pages(IReadOnlyList<PageRef> PagesValue) : MeasurementPageTarget;
+
+    /// <summary>All.</summary>
+    public sealed record All : MeasurementPageTarget;
+
+}
+
+/// <summary>A measurement reading.</summary>
+public abstract record MeasurementReading
+{
+    private protected MeasurementReading() { }
+
+    /// <summary>Value.</summary>
+    /// <param name="Readout">The readout.</param>
+    public sealed record Value(MeasurementReadout Readout) : MeasurementReading;
+
+    /// <summary>Unavailable.</summary>
+    /// <param name="Reason">The reason.</param>
+    public sealed record Unavailable(MeasurementUnavailable Reason) : MeasurementReading;
+
+}
+
+/// <summary>A scale change report.</summary>
+public abstract record ScaleChangeReport
+{
+    private protected ScaleChangeReport() { }
+
+    /// <summary>Recalibrated.</summary>
+    /// <param name="Report">The report.</param>
+    public sealed record Recalibrated(ScaleRecalibration Report) : ScaleChangeReport;
+
+    /// <summary>The page's viewport write failed; nothing on it was re-measured.</summary>
+    /// <param name="Page">The page.</param>
+    /// <param name="Error">The error.</param>
+    public sealed record ScaleFailed(PageRef Page, MeasurementErrorInfo Error) : ScaleChangeReport;
+
+}
+
+/// <summary>A measurement kind.</summary>
+public enum MeasurementKind
+{
+    /// <summary>Distance.</summary>
+    Distance,
+    /// <summary>Perimeter.</summary>
+    Perimeter,
+    /// <summary>Area.</summary>
+    Area,
+}
+
+/// <summary>A measurement readout kind.</summary>
+public enum MeasurementReadoutKind
+{
+    /// <summary>Distance.</summary>
+    Distance,
+    /// <summary>Perimeter.</summary>
+    Perimeter,
+    /// <summary>Area.</summary>
+    Area,
+}
+
+/// <summary>A measurement scale source.</summary>
+public enum MeasurementScaleSource
+{
+    /// <summary>EmbedPDF's own viewport.</summary>
+    Owned,
+    /// <summary>Another producer's viewport.</summary>
+    Foreign,
+    /// <summary>No viewport: the configured default.</summary>
+    Default,
+}
+
+/// <summary>A measurement unavailable.</summary>
+public enum MeasurementUnavailable
+{
+    /// <summary>Not dimension.</summary>
+    NotDimension,
+    /// <summary>No measure.</summary>
+    NoMeasure,
+    /// <summary>Foreign measure.</summary>
+    ForeignMeasure,
+    /// <summary>No scale.</summary>
+    NoScale,
+    /// <summary>No distance format.</summary>
+    NoDistanceFormat,
+    /// <summary>No area format.</summary>
+    NoAreaFormat,
+    /// <summary>Invalid format.</summary>
+    InvalidFormat,
+    /// <summary>Invalid geometry.</summary>
+    InvalidGeometry,
+}
+
+/// <summary>A scale skip reason.</summary>
+public enum ScaleSkipReason
+{
+    /// <summary>No authority.</summary>
+    NoAuthority,
+    /// <summary>Locked.</summary>
+    Locked,
+    /// <summary>Foreign measure.</summary>
+    ForeignMeasure,
+    /// <summary>Unavailable.</summary>
+    Unavailable,
+}

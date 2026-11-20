@@ -2165,6 +2165,19 @@ EmbedPDF.ContentInclusion
 EmbedPDF.ContentInclusion.Always = 1 -> EmbedPDF.ContentInclusion
 EmbedPDF.ContentInclusion.Never = 2 -> EmbedPDF.ContentInclusion
 EmbedPDF.ContentInclusion.WhenPermitted = 0 -> EmbedPDF.ContentInclusion
+EmbedPDF.CreateMeasurementInput
+EmbedPDF.CreateMeasurementInput.<Clone>$() -> EmbedPDF.CreateMeasurementInput!
+EmbedPDF.CreateMeasurementInput.CreateMeasurementInput(EmbedPDF.MeasurementKind Kind, EmbedPDF.PageRef Page, System.Collections.Generic.IReadOnlyList<EmbedPDF.PdfPoint>! Points) -> void
+EmbedPDF.CreateMeasurementInput.Deconstruct(out EmbedPDF.MeasurementKind Kind, out EmbedPDF.PageRef Page, out System.Collections.Generic.IReadOnlyList<EmbedPDF.PdfPoint>! Points) -> void
+EmbedPDF.CreateMeasurementInput.Equals(EmbedPDF.CreateMeasurementInput? other) -> bool
+EmbedPDF.CreateMeasurementInput.Kind.get -> EmbedPDF.MeasurementKind
+EmbedPDF.CreateMeasurementInput.Kind.init -> void
+EmbedPDF.CreateMeasurementInput.Page.get -> EmbedPDF.PageRef
+EmbedPDF.CreateMeasurementInput.Page.init -> void
+EmbedPDF.CreateMeasurementInput.Points.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.PdfPoint>!
+EmbedPDF.CreateMeasurementInput.Points.init -> void
+EmbedPDF.CreateMeasurementInput.Tool.get -> string?
+EmbedPDF.CreateMeasurementInput.Tool.init -> void
 EmbedPDF.CustomMetadataUpdatedEvent
 EmbedPDF.CustomMetadataUpdatedEvent.<Clone>$() -> EmbedPDF.CustomMetadataUpdatedEvent!
 EmbedPDF.CustomMetadataUpdatedEvent.ChangedKeys.get -> System.Collections.Generic.IReadOnlyList<string!>!
@@ -3894,10 +3907,224 @@ EmbedPDF.MeasureOrigin.X.get -> double
 EmbedPDF.MeasureOrigin.X.init -> void
 EmbedPDF.MeasureOrigin.Y.get -> double
 EmbedPDF.MeasureOrigin.Y.init -> void
+EmbedPDF.MeasurementCalibrateInput
+EmbedPDF.MeasurementCalibrateInput.<Clone>$() -> EmbedPDF.MeasurementCalibrateInput!
+EmbedPDF.MeasurementCalibrateInput.Deconstruct(out EmbedPDF.PageRef Page, out EmbedPDF.PdfPoint From, out EmbedPDF.PdfPoint To, out double Value, out string! Unit) -> void
+EmbedPDF.MeasurementCalibrateInput.Equals(EmbedPDF.MeasurementCalibrateInput? other) -> bool
+EmbedPDF.MeasurementCalibrateInput.From.get -> EmbedPDF.PdfPoint
+EmbedPDF.MeasurementCalibrateInput.From.init -> void
+EmbedPDF.MeasurementCalibrateInput.MeasurementCalibrateInput(EmbedPDF.PageRef Page, EmbedPDF.PdfPoint From, EmbedPDF.PdfPoint To, double Value, string! Unit) -> void
+EmbedPDF.MeasurementCalibrateInput.Page.get -> EmbedPDF.PageRef
+EmbedPDF.MeasurementCalibrateInput.Page.init -> void
+EmbedPDF.MeasurementCalibrateInput.To.get -> EmbedPDF.PdfPoint
+EmbedPDF.MeasurementCalibrateInput.To.init -> void
+EmbedPDF.MeasurementCalibrateInput.Unit.get -> string!
+EmbedPDF.MeasurementCalibrateInput.Unit.init -> void
+EmbedPDF.MeasurementCalibrateInput.Value.get -> double
+EmbedPDF.MeasurementCalibrateInput.Value.init -> void
+EmbedPDF.MeasurementCalibrateOptions
+EmbedPDF.MeasurementCalibrateOptions.<Clone>$() -> EmbedPDF.MeasurementCalibrateOptions!
+EmbedPDF.MeasurementCalibrateOptions.ApplyTo.get -> EmbedPDF.MeasurementPageTarget?
+EmbedPDF.MeasurementCalibrateOptions.ApplyTo.init -> void
+EmbedPDF.MeasurementCalibrateOptions.Equals(EmbedPDF.MeasurementCalibrateOptions? other) -> bool
+EmbedPDF.MeasurementCalibrateOptions.MeasurementCalibrateOptions() -> void
+EmbedPDF.MeasurementCalibrateOptions.Recalculate.get -> bool?
+EmbedPDF.MeasurementCalibrateOptions.Recalculate.init -> void
+EmbedPDF.MeasurementCalibrationRequest
+EmbedPDF.MeasurementCalibrationRequest.<Clone>$() -> EmbedPDF.MeasurementCalibrationRequest!
+EmbedPDF.MeasurementCalibrationRequest.Deconstruct(out EmbedPDF.PageRef Page, out EmbedPDF.PdfPoint From, out EmbedPDF.PdfPoint To, out double UserSpaceLength) -> void
+EmbedPDF.MeasurementCalibrationRequest.Equals(EmbedPDF.MeasurementCalibrationRequest? other) -> bool
+EmbedPDF.MeasurementCalibrationRequest.From.get -> EmbedPDF.PdfPoint
+EmbedPDF.MeasurementCalibrationRequest.From.init -> void
+EmbedPDF.MeasurementCalibrationRequest.MeasurementCalibrationRequest(EmbedPDF.PageRef Page, EmbedPDF.PdfPoint From, EmbedPDF.PdfPoint To, double UserSpaceLength) -> void
+EmbedPDF.MeasurementCalibrationRequest.Page.get -> EmbedPDF.PageRef
+EmbedPDF.MeasurementCalibrationRequest.Page.init -> void
+EmbedPDF.MeasurementCalibrationRequest.To.get -> EmbedPDF.PdfPoint
+EmbedPDF.MeasurementCalibrationRequest.To.init -> void
+EmbedPDF.MeasurementCalibrationRequest.UserSpaceLength.get -> double
+EmbedPDF.MeasurementCalibrationRequest.UserSpaceLength.init -> void
+EmbedPDF.MeasurementCapability
+EmbedPDF.MeasurementCapability.CalibrateAsync(EmbedPDF.MeasurementCalibrateInput! input, EmbedPDF.MeasurementCalibrateOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.ScaleChangeReport!>!>!
+EmbedPDF.MeasurementCapability.CanCalibrateAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.MeasurementCapability.CanMeasureAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.MeasurementCapability.ClearScaleAsync(EmbedPDF.MeasurementPageTarget! pages, EmbedPDF.MeasurementScaleChangeOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.ScaleChangeReport!>!>!
+EmbedPDF.MeasurementCapability.CreateMeasurementAsync(EmbedPDF.CreateMeasurementInput! input, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+EmbedPDF.MeasurementCapability.DismissCalibrationAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.MeasurementCapability.Dispose() -> void
+EmbedPDF.MeasurementCapability.EnsureLoadedAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.MeasurementCapability.GetAreaUnitsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
+EmbedPDF.MeasurementCapability.GetCalibrationRequestAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.MeasurementCalibrationRequest?>!
+EmbedPDF.MeasurementCapability.GetLastReportsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.ScaleChangeReport!>!>!
+EmbedPDF.MeasurementCapability.GetPageScaleAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.MeasurementPageScale!>!
+EmbedPDF.MeasurementCapability.GetPresetsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.ScalePreset!>!>!
+EmbedPDF.MeasurementCapability.GetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.MeasurementSettings!>!
+EmbedPDF.MeasurementCapability.GetUnitsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
+EmbedPDF.MeasurementCapability.IsBusyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.MeasurementCapability.MeasureAreaAsync(EmbedPDF.PageRef page, System.Collections.Generic.IEnumerable<EmbedPDF.PdfPoint>! vertices, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.MeasurementReading!>!
+EmbedPDF.MeasurementCapability.MeasureDistanceAsync(EmbedPDF.PageRef page, EmbedPDF.PdfPoint from, EmbedPDF.PdfPoint to, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.MeasurementReading!>!
+EmbedPDF.MeasurementCapability.ObserveEvents(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.MeasurementEvent!>!
+EmbedPDF.MeasurementCapability.ReadoutAsync(EmbedPDF.AnnotationInfo! annotation, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.MeasurementReading!>!
+EmbedPDF.MeasurementCapability.ReadoutAsync(EmbedPDF.AnnotationRef! annotation, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.MeasurementReading!>!
+EmbedPDF.MeasurementCapability.ReadoutAsync(string! annotationJson, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.MeasurementReading!>!
+EmbedPDF.MeasurementCapability.ResetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.MeasurementCapability.SetAreaUnitAsync(EmbedPDF.MeasurementPageTarget! pages, string! unit, EmbedPDF.MeasurementScaleChangeOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.ScaleChangeReport!>!>!
+EmbedPDF.MeasurementCapability.SetPrecisionAsync(EmbedPDF.MeasurementPageTarget! pages, double precision, EmbedPDF.MeasurementScaleChangeOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.ScaleChangeReport!>!>!
+EmbedPDF.MeasurementCapability.SetPresetAsync(EmbedPDF.MeasurementPageTarget! pages, string! presetId, EmbedPDF.MeasurementScaleChangeOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.ScaleChangeReport!>!>!
+EmbedPDF.MeasurementCapability.SetScaleAsync(EmbedPDF.MeasurementPageTarget! pages, EmbedPDF.PdfMeasurement! measure, EmbedPDF.MeasurementScaleChangeOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.ScaleChangeReport!>!>!
+EmbedPDF.MeasurementCapability.SetUnitAsync(EmbedPDF.MeasurementPageTarget! pages, string! unit, EmbedPDF.MeasurementScaleChangeOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.ScaleChangeReport!>!>!
+EmbedPDF.MeasurementCapability.StartCalibrationAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.MeasurementCapability.UpdateSettingsAsync(EmbedPDF.MeasurementConfig! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.MeasurementConfig
 EmbedPDF.MeasurementConfig.<Clone>$() -> EmbedPDF.MeasurementConfig!
+EmbedPDF.MeasurementConfig.DefaultScale.get -> EmbedPDF.MeasurementDefaultScale?
+EmbedPDF.MeasurementConfig.DefaultScale.init -> void
 EmbedPDF.MeasurementConfig.Equals(EmbedPDF.MeasurementConfig? other) -> bool
 EmbedPDF.MeasurementConfig.MeasurementConfig() -> void
+EmbedPDF.MeasurementConfig.Presets.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.ScalePreset!>?
+EmbedPDF.MeasurementConfig.Presets.init -> void
+EmbedPDF.MeasurementDefaultScale
+EmbedPDF.MeasurementDefaultScale.Imperial
+EmbedPDF.MeasurementDefaultScale.Imperial.Equals(EmbedPDF.MeasurementDefaultScale.Imperial? other) -> bool
+EmbedPDF.MeasurementDefaultScale.Imperial.Imperial() -> void
+EmbedPDF.MeasurementDefaultScale.Measure
+EmbedPDF.MeasurementDefaultScale.Measure.Deconstruct(out EmbedPDF.PdfMeasurement! MeasureValue) -> void
+EmbedPDF.MeasurementDefaultScale.Measure.Equals(EmbedPDF.MeasurementDefaultScale.Measure? other) -> bool
+EmbedPDF.MeasurementDefaultScale.Measure.Measure(EmbedPDF.PdfMeasurement! MeasureValue) -> void
+EmbedPDF.MeasurementDefaultScale.Measure.MeasureValue.get -> EmbedPDF.PdfMeasurement!
+EmbedPDF.MeasurementDefaultScale.Measure.MeasureValue.init -> void
+EmbedPDF.MeasurementDefaultScale.MeasurementDefaultScale(EmbedPDF.MeasurementDefaultScale! original) -> void
+EmbedPDF.MeasurementDefaultScale.Metric
+EmbedPDF.MeasurementDefaultScale.Metric.Equals(EmbedPDF.MeasurementDefaultScale.Metric? other) -> bool
+EmbedPDF.MeasurementDefaultScale.Metric.Metric() -> void
+EmbedPDF.MeasurementErrorInfo
+EmbedPDF.MeasurementErrorInfo.<Clone>$() -> EmbedPDF.MeasurementErrorInfo!
+EmbedPDF.MeasurementErrorInfo.Code.get -> string!
+EmbedPDF.MeasurementErrorInfo.Code.init -> void
+EmbedPDF.MeasurementErrorInfo.Deconstruct(out string! Code, out string! Detail) -> void
+EmbedPDF.MeasurementErrorInfo.Detail.get -> string!
+EmbedPDF.MeasurementErrorInfo.Detail.init -> void
+EmbedPDF.MeasurementErrorInfo.Equals(EmbedPDF.MeasurementErrorInfo? other) -> bool
+EmbedPDF.MeasurementErrorInfo.MeasurementErrorInfo(string! Code, string! Detail) -> void
+EmbedPDF.MeasurementEvent
+EmbedPDF.MeasurementEvent.CalibrationCompleted
+EmbedPDF.MeasurementEvent.CalibrationCompleted.CalibrationCompleted(EmbedPDF.PageRef Page) -> void
+EmbedPDF.MeasurementEvent.CalibrationCompleted.Deconstruct(out EmbedPDF.PageRef Page) -> void
+EmbedPDF.MeasurementEvent.CalibrationCompleted.Equals(EmbedPDF.MeasurementEvent.CalibrationCompleted? other) -> bool
+EmbedPDF.MeasurementEvent.CalibrationCompleted.Page.get -> EmbedPDF.PageRef
+EmbedPDF.MeasurementEvent.CalibrationCompleted.Page.init -> void
+EmbedPDF.MeasurementEvent.CalibrationDismissed
+EmbedPDF.MeasurementEvent.CalibrationDismissed.CalibrationDismissed() -> void
+EmbedPDF.MeasurementEvent.CalibrationDismissed.Equals(EmbedPDF.MeasurementEvent.CalibrationDismissed? other) -> bool
+EmbedPDF.MeasurementEvent.CalibrationRequested
+EmbedPDF.MeasurementEvent.CalibrationRequested.CalibrationRequested(EmbedPDF.MeasurementCalibrationRequest! Request) -> void
+EmbedPDF.MeasurementEvent.CalibrationRequested.Deconstruct(out EmbedPDF.MeasurementCalibrationRequest! Request) -> void
+EmbedPDF.MeasurementEvent.CalibrationRequested.Equals(EmbedPDF.MeasurementEvent.CalibrationRequested? other) -> bool
+EmbedPDF.MeasurementEvent.CalibrationRequested.Request.get -> EmbedPDF.MeasurementCalibrationRequest!
+EmbedPDF.MeasurementEvent.CalibrationRequested.Request.init -> void
+EmbedPDF.MeasurementEvent.MeasurementEvent(EmbedPDF.MeasurementEvent! original) -> void
+EmbedPDF.MeasurementEvent.ScaleChanged
+EmbedPDF.MeasurementEvent.ScaleChanged.Deconstruct(out EmbedPDF.PageRef Page, out EmbedPDF.ScaleChangeReport! Report) -> void
+EmbedPDF.MeasurementEvent.ScaleChanged.Equals(EmbedPDF.MeasurementEvent.ScaleChanged? other) -> bool
+EmbedPDF.MeasurementEvent.ScaleChanged.Page.get -> EmbedPDF.PageRef
+EmbedPDF.MeasurementEvent.ScaleChanged.Page.init -> void
+EmbedPDF.MeasurementEvent.ScaleChanged.Report.get -> EmbedPDF.ScaleChangeReport!
+EmbedPDF.MeasurementEvent.ScaleChanged.Report.init -> void
+EmbedPDF.MeasurementEvent.ScaleChanged.ScaleChanged(EmbedPDF.PageRef Page, EmbedPDF.ScaleChangeReport! Report) -> void
+EmbedPDF.MeasurementKind
+EmbedPDF.MeasurementKind.Area = 2 -> EmbedPDF.MeasurementKind
+EmbedPDF.MeasurementKind.Distance = 0 -> EmbedPDF.MeasurementKind
+EmbedPDF.MeasurementKind.Perimeter = 1 -> EmbedPDF.MeasurementKind
+EmbedPDF.MeasurementPageScale
+EmbedPDF.MeasurementPageScale.<Clone>$() -> EmbedPDF.MeasurementPageScale!
+EmbedPDF.MeasurementPageScale.Deconstruct(out EmbedPDF.PdfMeasurement? Measure, out EmbedPDF.MeasurementScaleSource Source, out bool Ready, out bool Persistent, out EmbedPDF.MeasurementErrorInfo? Error) -> void
+EmbedPDF.MeasurementPageScale.Equals(EmbedPDF.MeasurementPageScale? other) -> bool
+EmbedPDF.MeasurementPageScale.Error.get -> EmbedPDF.MeasurementErrorInfo?
+EmbedPDF.MeasurementPageScale.Error.init -> void
+EmbedPDF.MeasurementPageScale.Measure.get -> EmbedPDF.PdfMeasurement?
+EmbedPDF.MeasurementPageScale.Measure.init -> void
+EmbedPDF.MeasurementPageScale.MeasurementPageScale(EmbedPDF.PdfMeasurement? Measure, EmbedPDF.MeasurementScaleSource Source, bool Ready, bool Persistent, EmbedPDF.MeasurementErrorInfo? Error) -> void
+EmbedPDF.MeasurementPageScale.Persistent.get -> bool
+EmbedPDF.MeasurementPageScale.Persistent.init -> void
+EmbedPDF.MeasurementPageScale.Ready.get -> bool
+EmbedPDF.MeasurementPageScale.Ready.init -> void
+EmbedPDF.MeasurementPageScale.Source.get -> EmbedPDF.MeasurementScaleSource
+EmbedPDF.MeasurementPageScale.Source.init -> void
+EmbedPDF.MeasurementPageTarget
+EmbedPDF.MeasurementPageTarget.All
+EmbedPDF.MeasurementPageTarget.All.All() -> void
+EmbedPDF.MeasurementPageTarget.All.Equals(EmbedPDF.MeasurementPageTarget.All? other) -> bool
+EmbedPDF.MeasurementPageTarget.MeasurementPageTarget(EmbedPDF.MeasurementPageTarget! original) -> void
+EmbedPDF.MeasurementPageTarget.Page
+EmbedPDF.MeasurementPageTarget.Page.Deconstruct(out EmbedPDF.PageRef PageValue) -> void
+EmbedPDF.MeasurementPageTarget.Page.Equals(EmbedPDF.MeasurementPageTarget.Page? other) -> bool
+EmbedPDF.MeasurementPageTarget.Page.Page(EmbedPDF.PageRef PageValue) -> void
+EmbedPDF.MeasurementPageTarget.Page.PageValue.get -> EmbedPDF.PageRef
+EmbedPDF.MeasurementPageTarget.Page.PageValue.init -> void
+EmbedPDF.MeasurementPageTarget.Pages
+EmbedPDF.MeasurementPageTarget.Pages.Deconstruct(out System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>! PagesValue) -> void
+EmbedPDF.MeasurementPageTarget.Pages.Equals(EmbedPDF.MeasurementPageTarget.Pages? other) -> bool
+EmbedPDF.MeasurementPageTarget.Pages.Pages(System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>! PagesValue) -> void
+EmbedPDF.MeasurementPageTarget.Pages.PagesValue.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>!
+EmbedPDF.MeasurementPageTarget.Pages.PagesValue.init -> void
+EmbedPDF.MeasurementReading
+EmbedPDF.MeasurementReading.MeasurementReading(EmbedPDF.MeasurementReading! original) -> void
+EmbedPDF.MeasurementReading.Unavailable
+EmbedPDF.MeasurementReading.Unavailable.Deconstruct(out EmbedPDF.MeasurementUnavailable Reason) -> void
+EmbedPDF.MeasurementReading.Unavailable.Equals(EmbedPDF.MeasurementReading.Unavailable? other) -> bool
+EmbedPDF.MeasurementReading.Unavailable.Reason.get -> EmbedPDF.MeasurementUnavailable
+EmbedPDF.MeasurementReading.Unavailable.Reason.init -> void
+EmbedPDF.MeasurementReading.Unavailable.Unavailable(EmbedPDF.MeasurementUnavailable Reason) -> void
+EmbedPDF.MeasurementReading.Value
+EmbedPDF.MeasurementReading.Value.Deconstruct(out EmbedPDF.MeasurementReadout! Readout) -> void
+EmbedPDF.MeasurementReading.Value.Equals(EmbedPDF.MeasurementReading.Value? other) -> bool
+EmbedPDF.MeasurementReading.Value.Readout.get -> EmbedPDF.MeasurementReadout!
+EmbedPDF.MeasurementReading.Value.Readout.init -> void
+EmbedPDF.MeasurementReading.Value.Value(EmbedPDF.MeasurementReadout! Readout) -> void
+EmbedPDF.MeasurementReadout
+EmbedPDF.MeasurementReadout.<Clone>$() -> EmbedPDF.MeasurementReadout!
+EmbedPDF.MeasurementReadout.Deconstruct(out EmbedPDF.MeasurementReadoutKind Kind, out string! Label, out double Value, out string? Perimeter) -> void
+EmbedPDF.MeasurementReadout.Equals(EmbedPDF.MeasurementReadout? other) -> bool
+EmbedPDF.MeasurementReadout.Kind.get -> EmbedPDF.MeasurementReadoutKind
+EmbedPDF.MeasurementReadout.Kind.init -> void
+EmbedPDF.MeasurementReadout.Label.get -> string!
+EmbedPDF.MeasurementReadout.Label.init -> void
+EmbedPDF.MeasurementReadout.MeasurementReadout(EmbedPDF.MeasurementReadoutKind Kind, string! Label, double Value, string? Perimeter) -> void
+EmbedPDF.MeasurementReadout.Perimeter.get -> string?
+EmbedPDF.MeasurementReadout.Perimeter.init -> void
+EmbedPDF.MeasurementReadout.Value.get -> double
+EmbedPDF.MeasurementReadout.Value.init -> void
+EmbedPDF.MeasurementReadoutKind
+EmbedPDF.MeasurementReadoutKind.Area = 2 -> EmbedPDF.MeasurementReadoutKind
+EmbedPDF.MeasurementReadoutKind.Distance = 0 -> EmbedPDF.MeasurementReadoutKind
+EmbedPDF.MeasurementReadoutKind.Perimeter = 1 -> EmbedPDF.MeasurementReadoutKind
+EmbedPDF.MeasurementScaleChangeOptions
+EmbedPDF.MeasurementScaleChangeOptions.<Clone>$() -> EmbedPDF.MeasurementScaleChangeOptions!
+EmbedPDF.MeasurementScaleChangeOptions.Equals(EmbedPDF.MeasurementScaleChangeOptions? other) -> bool
+EmbedPDF.MeasurementScaleChangeOptions.MeasurementScaleChangeOptions() -> void
+EmbedPDF.MeasurementScaleChangeOptions.Recalculate.get -> bool?
+EmbedPDF.MeasurementScaleChangeOptions.Recalculate.init -> void
+EmbedPDF.MeasurementScaleSource
+EmbedPDF.MeasurementScaleSource.Default = 2 -> EmbedPDF.MeasurementScaleSource
+EmbedPDF.MeasurementScaleSource.Foreign = 1 -> EmbedPDF.MeasurementScaleSource
+EmbedPDF.MeasurementScaleSource.Owned = 0 -> EmbedPDF.MeasurementScaleSource
+EmbedPDF.MeasurementSettings
+EmbedPDF.MeasurementSettings.<Clone>$() -> EmbedPDF.MeasurementSettings!
+EmbedPDF.MeasurementSettings.Deconstruct(out EmbedPDF.MeasurementDefaultScale! DefaultScale, out System.Collections.Generic.IReadOnlyList<EmbedPDF.ScalePreset!>! Presets) -> void
+EmbedPDF.MeasurementSettings.DefaultScale.get -> EmbedPDF.MeasurementDefaultScale!
+EmbedPDF.MeasurementSettings.DefaultScale.init -> void
+EmbedPDF.MeasurementSettings.Equals(EmbedPDF.MeasurementSettings? other) -> bool
+EmbedPDF.MeasurementSettings.MeasurementSettings(EmbedPDF.MeasurementDefaultScale! DefaultScale, System.Collections.Generic.IReadOnlyList<EmbedPDF.ScalePreset!>! Presets) -> void
+EmbedPDF.MeasurementSettings.Presets.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.ScalePreset!>!
+EmbedPDF.MeasurementSettings.Presets.init -> void
+EmbedPDF.MeasurementUnavailable
+EmbedPDF.MeasurementUnavailable.ForeignMeasure = 2 -> EmbedPDF.MeasurementUnavailable
+EmbedPDF.MeasurementUnavailable.InvalidFormat = 6 -> EmbedPDF.MeasurementUnavailable
+EmbedPDF.MeasurementUnavailable.InvalidGeometry = 7 -> EmbedPDF.MeasurementUnavailable
+EmbedPDF.MeasurementUnavailable.NoAreaFormat = 5 -> EmbedPDF.MeasurementUnavailable
+EmbedPDF.MeasurementUnavailable.NoDistanceFormat = 4 -> EmbedPDF.MeasurementUnavailable
+EmbedPDF.MeasurementUnavailable.NoMeasure = 1 -> EmbedPDF.MeasurementUnavailable
+EmbedPDF.MeasurementUnavailable.NoScale = 3 -> EmbedPDF.MeasurementUnavailable
+EmbedPDF.MeasurementUnavailable.NotDimension = 0 -> EmbedPDF.MeasurementUnavailable
 EmbedPDF.MetadataCapability
 EmbedPDF.MetadataCapability.CanUpdateAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 EmbedPDF.MetadataCapability.Dispose() -> void
@@ -4765,6 +4992,7 @@ EmbedPDF.PdfViewer.GetHistoryAsync(EmbedPDF.DocumentInfo! document, System.Threa
 EmbedPDF.PdfViewer.GetI18nAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.I18nCapability!>!
 EmbedPDF.PdfViewer.GetInteractionAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.InteractionCapability!>!
 EmbedPDF.PdfViewer.GetLinkAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.LinkCapability!>!
+EmbedPDF.PdfViewer.GetMeasurementAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.MeasurementCapability!>!
 EmbedPDF.PdfViewer.GetMetadataAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.MetadataCapability!>!
 EmbedPDF.PdfViewer.GetOutlineAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.OutlineCapability!>!
 EmbedPDF.PdfViewer.GetPageAsync(EmbedPDF.PageRef page, EmbedPDF.DocumentInfo? document = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageInfo?>!
@@ -5802,6 +6030,77 @@ EmbedPDF.ResourceStatus.Ready = 2 -> EmbedPDF.ResourceStatus
 EmbedPDF.SaveMode
 EmbedPDF.SaveMode.Incremental = 0 -> EmbedPDF.SaveMode
 EmbedPDF.SaveMode.Rewrite = 1 -> EmbedPDF.SaveMode
+EmbedPDF.ScaleChangeReport
+EmbedPDF.ScaleChangeReport.Recalibrated
+EmbedPDF.ScaleChangeReport.Recalibrated.Deconstruct(out EmbedPDF.ScaleRecalibration! Report) -> void
+EmbedPDF.ScaleChangeReport.Recalibrated.Equals(EmbedPDF.ScaleChangeReport.Recalibrated? other) -> bool
+EmbedPDF.ScaleChangeReport.Recalibrated.Recalibrated(EmbedPDF.ScaleRecalibration! Report) -> void
+EmbedPDF.ScaleChangeReport.Recalibrated.Report.get -> EmbedPDF.ScaleRecalibration!
+EmbedPDF.ScaleChangeReport.Recalibrated.Report.init -> void
+EmbedPDF.ScaleChangeReport.ScaleChangeReport(EmbedPDF.ScaleChangeReport! original) -> void
+EmbedPDF.ScaleChangeReport.ScaleFailed
+EmbedPDF.ScaleChangeReport.ScaleFailed.Deconstruct(out EmbedPDF.PageRef Page, out EmbedPDF.MeasurementErrorInfo! Error) -> void
+EmbedPDF.ScaleChangeReport.ScaleFailed.Equals(EmbedPDF.ScaleChangeReport.ScaleFailed? other) -> bool
+EmbedPDF.ScaleChangeReport.ScaleFailed.Error.get -> EmbedPDF.MeasurementErrorInfo!
+EmbedPDF.ScaleChangeReport.ScaleFailed.Error.init -> void
+EmbedPDF.ScaleChangeReport.ScaleFailed.Page.get -> EmbedPDF.PageRef
+EmbedPDF.ScaleChangeReport.ScaleFailed.Page.init -> void
+EmbedPDF.ScaleChangeReport.ScaleFailed.ScaleFailed(EmbedPDF.PageRef Page, EmbedPDF.MeasurementErrorInfo! Error) -> void
+EmbedPDF.ScaleFailedAnnotation
+EmbedPDF.ScaleFailedAnnotation.<Clone>$() -> EmbedPDF.ScaleFailedAnnotation!
+EmbedPDF.ScaleFailedAnnotation.AnnotationJson.get -> string!
+EmbedPDF.ScaleFailedAnnotation.AnnotationJson.init -> void
+EmbedPDF.ScaleFailedAnnotation.Deconstruct(out string! AnnotationJson, out EmbedPDF.MeasurementErrorInfo! Error) -> void
+EmbedPDF.ScaleFailedAnnotation.Equals(EmbedPDF.ScaleFailedAnnotation? other) -> bool
+EmbedPDF.ScaleFailedAnnotation.Error.get -> EmbedPDF.MeasurementErrorInfo!
+EmbedPDF.ScaleFailedAnnotation.Error.init -> void
+EmbedPDF.ScaleFailedAnnotation.ScaleFailedAnnotation(string! AnnotationJson, EmbedPDF.MeasurementErrorInfo! Error) -> void
+EmbedPDF.ScalePreset
+EmbedPDF.ScalePreset.<Clone>$() -> EmbedPDF.ScalePreset!
+EmbedPDF.ScalePreset.Deconstruct(out string! Id, out string! Label, out double Paper, out double Real, out string! Unit) -> void
+EmbedPDF.ScalePreset.Equals(EmbedPDF.ScalePreset? other) -> bool
+EmbedPDF.ScalePreset.Id.get -> string!
+EmbedPDF.ScalePreset.Id.init -> void
+EmbedPDF.ScalePreset.Label.get -> string!
+EmbedPDF.ScalePreset.Label.init -> void
+EmbedPDF.ScalePreset.Paper.get -> double
+EmbedPDF.ScalePreset.Paper.init -> void
+EmbedPDF.ScalePreset.Real.get -> double
+EmbedPDF.ScalePreset.Real.init -> void
+EmbedPDF.ScalePreset.ScalePreset(string! Id, string! Label, double Paper, double Real, string! Unit) -> void
+EmbedPDF.ScalePreset.Unit.get -> string!
+EmbedPDF.ScalePreset.Unit.init -> void
+EmbedPDF.ScaleRecalibration
+EmbedPDF.ScaleRecalibration.<Clone>$() -> EmbedPDF.ScaleRecalibration!
+EmbedPDF.ScaleRecalibration.Deconstruct(out EmbedPDF.PageRef Page, out EmbedPDF.PdfMeasurement? Scale, out EmbedPDF.MeasurementErrorInfo? Error, out System.Collections.Generic.IReadOnlyList<string!>! UpdatedJson, out System.Collections.Generic.IReadOnlyList<EmbedPDF.ScaleSkippedAnnotation!>! Skipped, out System.Collections.Generic.IReadOnlyList<EmbedPDF.ScaleFailedAnnotation!>! Failed) -> void
+EmbedPDF.ScaleRecalibration.Equals(EmbedPDF.ScaleRecalibration? other) -> bool
+EmbedPDF.ScaleRecalibration.Error.get -> EmbedPDF.MeasurementErrorInfo?
+EmbedPDF.ScaleRecalibration.Error.init -> void
+EmbedPDF.ScaleRecalibration.Failed.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.ScaleFailedAnnotation!>!
+EmbedPDF.ScaleRecalibration.Failed.init -> void
+EmbedPDF.ScaleRecalibration.Page.get -> EmbedPDF.PageRef
+EmbedPDF.ScaleRecalibration.Page.init -> void
+EmbedPDF.ScaleRecalibration.Scale.get -> EmbedPDF.PdfMeasurement?
+EmbedPDF.ScaleRecalibration.Scale.init -> void
+EmbedPDF.ScaleRecalibration.ScaleRecalibration(EmbedPDF.PageRef Page, EmbedPDF.PdfMeasurement? Scale, EmbedPDF.MeasurementErrorInfo? Error, System.Collections.Generic.IReadOnlyList<string!>! UpdatedJson, System.Collections.Generic.IReadOnlyList<EmbedPDF.ScaleSkippedAnnotation!>! Skipped, System.Collections.Generic.IReadOnlyList<EmbedPDF.ScaleFailedAnnotation!>! Failed) -> void
+EmbedPDF.ScaleRecalibration.Skipped.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.ScaleSkippedAnnotation!>!
+EmbedPDF.ScaleRecalibration.Skipped.init -> void
+EmbedPDF.ScaleRecalibration.UpdatedJson.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.ScaleRecalibration.UpdatedJson.init -> void
+EmbedPDF.ScaleSkipReason
+EmbedPDF.ScaleSkipReason.ForeignMeasure = 2 -> EmbedPDF.ScaleSkipReason
+EmbedPDF.ScaleSkipReason.Locked = 1 -> EmbedPDF.ScaleSkipReason
+EmbedPDF.ScaleSkipReason.NoAuthority = 0 -> EmbedPDF.ScaleSkipReason
+EmbedPDF.ScaleSkipReason.Unavailable = 3 -> EmbedPDF.ScaleSkipReason
+EmbedPDF.ScaleSkippedAnnotation
+EmbedPDF.ScaleSkippedAnnotation.<Clone>$() -> EmbedPDF.ScaleSkippedAnnotation!
+EmbedPDF.ScaleSkippedAnnotation.AnnotationJson.get -> string!
+EmbedPDF.ScaleSkippedAnnotation.AnnotationJson.init -> void
+EmbedPDF.ScaleSkippedAnnotation.Deconstruct(out string! AnnotationJson, out EmbedPDF.ScaleSkipReason Reason) -> void
+EmbedPDF.ScaleSkippedAnnotation.Equals(EmbedPDF.ScaleSkippedAnnotation? other) -> bool
+EmbedPDF.ScaleSkippedAnnotation.Reason.get -> EmbedPDF.ScaleSkipReason
+EmbedPDF.ScaleSkippedAnnotation.Reason.init -> void
+EmbedPDF.ScaleSkippedAnnotation.ScaleSkippedAnnotation(string! AnnotationJson, EmbedPDF.ScaleSkipReason Reason) -> void
 EmbedPDF.ScriptCheck
 EmbedPDF.ScriptCheck.<Clone>$() -> EmbedPDF.ScriptCheck!
 EmbedPDF.ScriptCheck.Alerts.get -> System.Collections.Generic.IReadOnlyList<string!>!
@@ -7411,6 +7710,10 @@ abstract EmbedPDF.InteractionEvent.<Clone>$() -> EmbedPDF.InteractionEvent!
 abstract EmbedPDF.LinkActivation.<Clone>$() -> EmbedPDF.LinkActivation!
 abstract EmbedPDF.LinkEvent.<Clone>$() -> EmbedPDF.LinkEvent!
 abstract EmbedPDF.LinkResolution.<Clone>$() -> EmbedPDF.LinkResolution!
+abstract EmbedPDF.MeasurementDefaultScale.<Clone>$() -> EmbedPDF.MeasurementDefaultScale!
+abstract EmbedPDF.MeasurementEvent.<Clone>$() -> EmbedPDF.MeasurementEvent!
+abstract EmbedPDF.MeasurementPageTarget.<Clone>$() -> EmbedPDF.MeasurementPageTarget!
+abstract EmbedPDF.MeasurementReading.<Clone>$() -> EmbedPDF.MeasurementReading!
 abstract EmbedPDF.MetadataEvent.<Clone>$() -> EmbedPDF.MetadataEvent!
 abstract EmbedPDF.OutlineEvent.<Clone>$() -> EmbedPDF.OutlineEvent!
 abstract EmbedPDF.OutlinePosition.<Clone>$() -> EmbedPDF.OutlinePosition!
@@ -7431,6 +7734,7 @@ abstract EmbedPDF.RenderQuantize.<Clone>$() -> EmbedPDF.RenderQuantize!
 abstract EmbedPDF.RenderTilesPatch.<Clone>$() -> EmbedPDF.RenderTilesPatch!
 abstract EmbedPDF.RenderTilesSetting.<Clone>$() -> EmbedPDF.RenderTilesSetting!
 abstract EmbedPDF.RenderViewport.<Clone>$() -> EmbedPDF.RenderViewport!
+abstract EmbedPDF.ScaleChangeReport.<Clone>$() -> EmbedPDF.ScaleChangeReport!
 abstract EmbedPDF.ScriptEvaluation.<Clone>$() -> EmbedPDF.ScriptEvaluation!
 abstract EmbedPDF.SearchEvent.<Clone>$() -> EmbedPDF.SearchEvent!
 abstract EmbedPDF.SearchRevealAxis.<Clone>$() -> EmbedPDF.SearchRevealAxis!
@@ -8061,6 +8365,9 @@ override EmbedPDF.CommandsSettings.ToString() -> string!
 override EmbedPDF.CommandsSettingsPatch.Equals(object? obj) -> bool
 override EmbedPDF.CommandsSettingsPatch.GetHashCode() -> int
 override EmbedPDF.CommandsSettingsPatch.ToString() -> string!
+override EmbedPDF.CreateMeasurementInput.Equals(object? obj) -> bool
+override EmbedPDF.CreateMeasurementInput.GetHashCode() -> int
+override EmbedPDF.CreateMeasurementInput.ToString() -> string!
 override EmbedPDF.CustomMetadataUpdatedEvent.Equals(object? obj) -> bool
 override EmbedPDF.CustomMetadataUpdatedEvent.GetHashCode() -> int
 override EmbedPDF.CustomMetadataUpdatedEvent.ToString() -> string!
@@ -8610,9 +8917,93 @@ override EmbedPDF.LocalePack.Equals(object? obj) -> bool
 override EmbedPDF.LocalePack.GetHashCode() -> int
 override EmbedPDF.LocalePack.ToString() -> string!
 override EmbedPDF.MeasureOrigin.GetHashCode() -> int
+override EmbedPDF.MeasurementCalibrateInput.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementCalibrateInput.GetHashCode() -> int
+override EmbedPDF.MeasurementCalibrateInput.ToString() -> string!
+override EmbedPDF.MeasurementCalibrateOptions.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementCalibrateOptions.GetHashCode() -> int
+override EmbedPDF.MeasurementCalibrateOptions.ToString() -> string!
+override EmbedPDF.MeasurementCalibrationRequest.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementCalibrationRequest.GetHashCode() -> int
+override EmbedPDF.MeasurementCalibrationRequest.ToString() -> string!
 override EmbedPDF.MeasurementConfig.Equals(object? obj) -> bool
 override EmbedPDF.MeasurementConfig.GetHashCode() -> int
 override EmbedPDF.MeasurementConfig.ToString() -> string!
+override EmbedPDF.MeasurementDefaultScale.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementDefaultScale.GetHashCode() -> int
+override EmbedPDF.MeasurementDefaultScale.Imperial.<Clone>$() -> EmbedPDF.MeasurementDefaultScale.Imperial!
+override EmbedPDF.MeasurementDefaultScale.Imperial.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementDefaultScale.Imperial.GetHashCode() -> int
+override EmbedPDF.MeasurementDefaultScale.Imperial.ToString() -> string!
+override EmbedPDF.MeasurementDefaultScale.Measure.<Clone>$() -> EmbedPDF.MeasurementDefaultScale.Measure!
+override EmbedPDF.MeasurementDefaultScale.Measure.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementDefaultScale.Measure.GetHashCode() -> int
+override EmbedPDF.MeasurementDefaultScale.Measure.ToString() -> string!
+override EmbedPDF.MeasurementDefaultScale.Metric.<Clone>$() -> EmbedPDF.MeasurementDefaultScale.Metric!
+override EmbedPDF.MeasurementDefaultScale.Metric.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementDefaultScale.Metric.GetHashCode() -> int
+override EmbedPDF.MeasurementDefaultScale.Metric.ToString() -> string!
+override EmbedPDF.MeasurementDefaultScale.ToString() -> string!
+override EmbedPDF.MeasurementErrorInfo.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementErrorInfo.GetHashCode() -> int
+override EmbedPDF.MeasurementErrorInfo.ToString() -> string!
+override EmbedPDF.MeasurementEvent.CalibrationCompleted.<Clone>$() -> EmbedPDF.MeasurementEvent.CalibrationCompleted!
+override EmbedPDF.MeasurementEvent.CalibrationCompleted.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementEvent.CalibrationCompleted.GetHashCode() -> int
+override EmbedPDF.MeasurementEvent.CalibrationCompleted.ToString() -> string!
+override EmbedPDF.MeasurementEvent.CalibrationDismissed.<Clone>$() -> EmbedPDF.MeasurementEvent.CalibrationDismissed!
+override EmbedPDF.MeasurementEvent.CalibrationDismissed.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementEvent.CalibrationDismissed.GetHashCode() -> int
+override EmbedPDF.MeasurementEvent.CalibrationDismissed.ToString() -> string!
+override EmbedPDF.MeasurementEvent.CalibrationRequested.<Clone>$() -> EmbedPDF.MeasurementEvent.CalibrationRequested!
+override EmbedPDF.MeasurementEvent.CalibrationRequested.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementEvent.CalibrationRequested.GetHashCode() -> int
+override EmbedPDF.MeasurementEvent.CalibrationRequested.ToString() -> string!
+override EmbedPDF.MeasurementEvent.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementEvent.GetHashCode() -> int
+override EmbedPDF.MeasurementEvent.ScaleChanged.<Clone>$() -> EmbedPDF.MeasurementEvent.ScaleChanged!
+override EmbedPDF.MeasurementEvent.ScaleChanged.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementEvent.ScaleChanged.GetHashCode() -> int
+override EmbedPDF.MeasurementEvent.ScaleChanged.ToString() -> string!
+override EmbedPDF.MeasurementEvent.ToString() -> string!
+override EmbedPDF.MeasurementPageScale.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementPageScale.GetHashCode() -> int
+override EmbedPDF.MeasurementPageScale.ToString() -> string!
+override EmbedPDF.MeasurementPageTarget.All.<Clone>$() -> EmbedPDF.MeasurementPageTarget.All!
+override EmbedPDF.MeasurementPageTarget.All.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementPageTarget.All.GetHashCode() -> int
+override EmbedPDF.MeasurementPageTarget.All.ToString() -> string!
+override EmbedPDF.MeasurementPageTarget.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementPageTarget.GetHashCode() -> int
+override EmbedPDF.MeasurementPageTarget.Page.<Clone>$() -> EmbedPDF.MeasurementPageTarget.Page!
+override EmbedPDF.MeasurementPageTarget.Page.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementPageTarget.Page.GetHashCode() -> int
+override EmbedPDF.MeasurementPageTarget.Page.ToString() -> string!
+override EmbedPDF.MeasurementPageTarget.Pages.<Clone>$() -> EmbedPDF.MeasurementPageTarget.Pages!
+override EmbedPDF.MeasurementPageTarget.Pages.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementPageTarget.Pages.GetHashCode() -> int
+override EmbedPDF.MeasurementPageTarget.Pages.ToString() -> string!
+override EmbedPDF.MeasurementPageTarget.ToString() -> string!
+override EmbedPDF.MeasurementReading.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementReading.GetHashCode() -> int
+override EmbedPDF.MeasurementReading.ToString() -> string!
+override EmbedPDF.MeasurementReading.Unavailable.<Clone>$() -> EmbedPDF.MeasurementReading.Unavailable!
+override EmbedPDF.MeasurementReading.Unavailable.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementReading.Unavailable.GetHashCode() -> int
+override EmbedPDF.MeasurementReading.Unavailable.ToString() -> string!
+override EmbedPDF.MeasurementReading.Value.<Clone>$() -> EmbedPDF.MeasurementReading.Value!
+override EmbedPDF.MeasurementReading.Value.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementReading.Value.GetHashCode() -> int
+override EmbedPDF.MeasurementReading.Value.ToString() -> string!
+override EmbedPDF.MeasurementReadout.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementReadout.GetHashCode() -> int
+override EmbedPDF.MeasurementReadout.ToString() -> string!
+override EmbedPDF.MeasurementScaleChangeOptions.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementScaleChangeOptions.GetHashCode() -> int
+override EmbedPDF.MeasurementScaleChangeOptions.ToString() -> string!
+override EmbedPDF.MeasurementSettings.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementSettings.GetHashCode() -> int
+override EmbedPDF.MeasurementSettings.ToString() -> string!
 override EmbedPDF.MetadataEvent.CustomResynced.<Clone>$() -> EmbedPDF.MetadataEvent.CustomResynced!
 override EmbedPDF.MetadataEvent.CustomResynced.Equals(object? obj) -> bool
 override EmbedPDF.MetadataEvent.CustomResynced.GetHashCode() -> int
@@ -9151,6 +9542,29 @@ override EmbedPDF.RenderedPageResult.ToString() -> string!
 override EmbedPDF.ResolvedCommand.Equals(object? obj) -> bool
 override EmbedPDF.ResolvedCommand.GetHashCode() -> int
 override EmbedPDF.ResolvedCommand.ToString() -> string!
+override EmbedPDF.ScaleChangeReport.Equals(object? obj) -> bool
+override EmbedPDF.ScaleChangeReport.GetHashCode() -> int
+override EmbedPDF.ScaleChangeReport.Recalibrated.<Clone>$() -> EmbedPDF.ScaleChangeReport.Recalibrated!
+override EmbedPDF.ScaleChangeReport.Recalibrated.Equals(object? obj) -> bool
+override EmbedPDF.ScaleChangeReport.Recalibrated.GetHashCode() -> int
+override EmbedPDF.ScaleChangeReport.Recalibrated.ToString() -> string!
+override EmbedPDF.ScaleChangeReport.ScaleFailed.<Clone>$() -> EmbedPDF.ScaleChangeReport.ScaleFailed!
+override EmbedPDF.ScaleChangeReport.ScaleFailed.Equals(object? obj) -> bool
+override EmbedPDF.ScaleChangeReport.ScaleFailed.GetHashCode() -> int
+override EmbedPDF.ScaleChangeReport.ScaleFailed.ToString() -> string!
+override EmbedPDF.ScaleChangeReport.ToString() -> string!
+override EmbedPDF.ScaleFailedAnnotation.Equals(object? obj) -> bool
+override EmbedPDF.ScaleFailedAnnotation.GetHashCode() -> int
+override EmbedPDF.ScaleFailedAnnotation.ToString() -> string!
+override EmbedPDF.ScalePreset.Equals(object? obj) -> bool
+override EmbedPDF.ScalePreset.GetHashCode() -> int
+override EmbedPDF.ScalePreset.ToString() -> string!
+override EmbedPDF.ScaleRecalibration.Equals(object? obj) -> bool
+override EmbedPDF.ScaleRecalibration.GetHashCode() -> int
+override EmbedPDF.ScaleRecalibration.ToString() -> string!
+override EmbedPDF.ScaleSkippedAnnotation.Equals(object? obj) -> bool
+override EmbedPDF.ScaleSkippedAnnotation.GetHashCode() -> int
+override EmbedPDF.ScaleSkippedAnnotation.ToString() -> string!
 override EmbedPDF.ScriptCheck.Equals(object? obj) -> bool
 override EmbedPDF.ScriptCheck.GetHashCode() -> int
 override EmbedPDF.ScriptCheck.ToString() -> string!
@@ -9796,6 +10210,18 @@ override sealed EmbedPDF.LinkResolution.Destination.Equals(EmbedPDF.LinkResoluti
 override sealed EmbedPDF.LinkResolution.Named.Equals(EmbedPDF.LinkResolution? other) -> bool
 override sealed EmbedPDF.LinkResolution.Reported.Equals(EmbedPDF.LinkResolution? other) -> bool
 override sealed EmbedPDF.LinkResolution.Uri.Equals(EmbedPDF.LinkResolution? other) -> bool
+override sealed EmbedPDF.MeasurementDefaultScale.Imperial.Equals(EmbedPDF.MeasurementDefaultScale? other) -> bool
+override sealed EmbedPDF.MeasurementDefaultScale.Measure.Equals(EmbedPDF.MeasurementDefaultScale? other) -> bool
+override sealed EmbedPDF.MeasurementDefaultScale.Metric.Equals(EmbedPDF.MeasurementDefaultScale? other) -> bool
+override sealed EmbedPDF.MeasurementEvent.CalibrationCompleted.Equals(EmbedPDF.MeasurementEvent? other) -> bool
+override sealed EmbedPDF.MeasurementEvent.CalibrationDismissed.Equals(EmbedPDF.MeasurementEvent? other) -> bool
+override sealed EmbedPDF.MeasurementEvent.CalibrationRequested.Equals(EmbedPDF.MeasurementEvent? other) -> bool
+override sealed EmbedPDF.MeasurementEvent.ScaleChanged.Equals(EmbedPDF.MeasurementEvent? other) -> bool
+override sealed EmbedPDF.MeasurementPageTarget.All.Equals(EmbedPDF.MeasurementPageTarget? other) -> bool
+override sealed EmbedPDF.MeasurementPageTarget.Page.Equals(EmbedPDF.MeasurementPageTarget? other) -> bool
+override sealed EmbedPDF.MeasurementPageTarget.Pages.Equals(EmbedPDF.MeasurementPageTarget? other) -> bool
+override sealed EmbedPDF.MeasurementReading.Unavailable.Equals(EmbedPDF.MeasurementReading? other) -> bool
+override sealed EmbedPDF.MeasurementReading.Value.Equals(EmbedPDF.MeasurementReading? other) -> bool
 override sealed EmbedPDF.MetadataEvent.CustomResynced.Equals(EmbedPDF.MetadataEvent? other) -> bool
 override sealed EmbedPDF.MetadataEvent.CustomUpdated.Equals(EmbedPDF.MetadataEvent? other) -> bool
 override sealed EmbedPDF.MetadataEvent.Resynced.Equals(EmbedPDF.MetadataEvent? other) -> bool
@@ -9864,6 +10290,8 @@ override sealed EmbedPDF.RenderTilesSetting.On.Equals(EmbedPDF.RenderTilesSettin
 override sealed EmbedPDF.RenderViewport.Scale.Equals(EmbedPDF.RenderViewport? other) -> bool
 override sealed EmbedPDF.RenderViewport.Thumbnail.Equals(EmbedPDF.RenderViewport? other) -> bool
 override sealed EmbedPDF.RenderViewport.Width.Equals(EmbedPDF.RenderViewport? other) -> bool
+override sealed EmbedPDF.ScaleChangeReport.Recalibrated.Equals(EmbedPDF.ScaleChangeReport? other) -> bool
+override sealed EmbedPDF.ScaleChangeReport.ScaleFailed.Equals(EmbedPDF.ScaleChangeReport? other) -> bool
 override sealed EmbedPDF.ScriptEvaluation.Threw.Equals(EmbedPDF.ScriptEvaluation? other) -> bool
 override sealed EmbedPDF.ScriptEvaluation.TimedOut.Equals(EmbedPDF.ScriptEvaluation? other) -> bool
 override sealed EmbedPDF.ScriptEvaluation.Value.Equals(EmbedPDF.ScriptEvaluation? other) -> bool
@@ -10335,6 +10763,8 @@ static EmbedPDF.CommandsSettings.operator !=(EmbedPDF.CommandsSettings? left, Em
 static EmbedPDF.CommandsSettings.operator ==(EmbedPDF.CommandsSettings? left, EmbedPDF.CommandsSettings? right) -> bool
 static EmbedPDF.CommandsSettingsPatch.operator !=(EmbedPDF.CommandsSettingsPatch? left, EmbedPDF.CommandsSettingsPatch? right) -> bool
 static EmbedPDF.CommandsSettingsPatch.operator ==(EmbedPDF.CommandsSettingsPatch? left, EmbedPDF.CommandsSettingsPatch? right) -> bool
+static EmbedPDF.CreateMeasurementInput.operator !=(EmbedPDF.CreateMeasurementInput? left, EmbedPDF.CreateMeasurementInput? right) -> bool
+static EmbedPDF.CreateMeasurementInput.operator ==(EmbedPDF.CreateMeasurementInput? left, EmbedPDF.CreateMeasurementInput? right) -> bool
 static EmbedPDF.CustomMetadataUpdatedEvent.operator !=(EmbedPDF.CustomMetadataUpdatedEvent? left, EmbedPDF.CustomMetadataUpdatedEvent? right) -> bool
 static EmbedPDF.CustomMetadataUpdatedEvent.operator ==(EmbedPDF.CustomMetadataUpdatedEvent? left, EmbedPDF.CustomMetadataUpdatedEvent? right) -> bool
 static EmbedPDF.DocumentEvent.ActiveChanged.operator !=(EmbedPDF.DocumentEvent.ActiveChanged? left, EmbedPDF.DocumentEvent.ActiveChanged? right) -> bool
@@ -10692,8 +11122,56 @@ static EmbedPDF.LocalePack.operator !=(EmbedPDF.LocalePack? left, EmbedPDF.Local
 static EmbedPDF.LocalePack.operator ==(EmbedPDF.LocalePack? left, EmbedPDF.LocalePack? right) -> bool
 static EmbedPDF.MeasureOrigin.operator !=(EmbedPDF.MeasureOrigin left, EmbedPDF.MeasureOrigin right) -> bool
 static EmbedPDF.MeasureOrigin.operator ==(EmbedPDF.MeasureOrigin left, EmbedPDF.MeasureOrigin right) -> bool
+static EmbedPDF.MeasurementCalibrateInput.operator !=(EmbedPDF.MeasurementCalibrateInput? left, EmbedPDF.MeasurementCalibrateInput? right) -> bool
+static EmbedPDF.MeasurementCalibrateInput.operator ==(EmbedPDF.MeasurementCalibrateInput? left, EmbedPDF.MeasurementCalibrateInput? right) -> bool
+static EmbedPDF.MeasurementCalibrateOptions.operator !=(EmbedPDF.MeasurementCalibrateOptions? left, EmbedPDF.MeasurementCalibrateOptions? right) -> bool
+static EmbedPDF.MeasurementCalibrateOptions.operator ==(EmbedPDF.MeasurementCalibrateOptions? left, EmbedPDF.MeasurementCalibrateOptions? right) -> bool
+static EmbedPDF.MeasurementCalibrationRequest.operator !=(EmbedPDF.MeasurementCalibrationRequest? left, EmbedPDF.MeasurementCalibrationRequest? right) -> bool
+static EmbedPDF.MeasurementCalibrationRequest.operator ==(EmbedPDF.MeasurementCalibrationRequest? left, EmbedPDF.MeasurementCalibrationRequest? right) -> bool
 static EmbedPDF.MeasurementConfig.operator !=(EmbedPDF.MeasurementConfig? left, EmbedPDF.MeasurementConfig? right) -> bool
 static EmbedPDF.MeasurementConfig.operator ==(EmbedPDF.MeasurementConfig? left, EmbedPDF.MeasurementConfig? right) -> bool
+static EmbedPDF.MeasurementDefaultScale.Imperial.operator !=(EmbedPDF.MeasurementDefaultScale.Imperial? left, EmbedPDF.MeasurementDefaultScale.Imperial? right) -> bool
+static EmbedPDF.MeasurementDefaultScale.Imperial.operator ==(EmbedPDF.MeasurementDefaultScale.Imperial? left, EmbedPDF.MeasurementDefaultScale.Imperial? right) -> bool
+static EmbedPDF.MeasurementDefaultScale.Measure.operator !=(EmbedPDF.MeasurementDefaultScale.Measure? left, EmbedPDF.MeasurementDefaultScale.Measure? right) -> bool
+static EmbedPDF.MeasurementDefaultScale.Measure.operator ==(EmbedPDF.MeasurementDefaultScale.Measure? left, EmbedPDF.MeasurementDefaultScale.Measure? right) -> bool
+static EmbedPDF.MeasurementDefaultScale.Metric.operator !=(EmbedPDF.MeasurementDefaultScale.Metric? left, EmbedPDF.MeasurementDefaultScale.Metric? right) -> bool
+static EmbedPDF.MeasurementDefaultScale.Metric.operator ==(EmbedPDF.MeasurementDefaultScale.Metric? left, EmbedPDF.MeasurementDefaultScale.Metric? right) -> bool
+static EmbedPDF.MeasurementDefaultScale.operator !=(EmbedPDF.MeasurementDefaultScale? left, EmbedPDF.MeasurementDefaultScale? right) -> bool
+static EmbedPDF.MeasurementDefaultScale.operator ==(EmbedPDF.MeasurementDefaultScale? left, EmbedPDF.MeasurementDefaultScale? right) -> bool
+static EmbedPDF.MeasurementErrorInfo.operator !=(EmbedPDF.MeasurementErrorInfo? left, EmbedPDF.MeasurementErrorInfo? right) -> bool
+static EmbedPDF.MeasurementErrorInfo.operator ==(EmbedPDF.MeasurementErrorInfo? left, EmbedPDF.MeasurementErrorInfo? right) -> bool
+static EmbedPDF.MeasurementEvent.CalibrationCompleted.operator !=(EmbedPDF.MeasurementEvent.CalibrationCompleted? left, EmbedPDF.MeasurementEvent.CalibrationCompleted? right) -> bool
+static EmbedPDF.MeasurementEvent.CalibrationCompleted.operator ==(EmbedPDF.MeasurementEvent.CalibrationCompleted? left, EmbedPDF.MeasurementEvent.CalibrationCompleted? right) -> bool
+static EmbedPDF.MeasurementEvent.CalibrationDismissed.operator !=(EmbedPDF.MeasurementEvent.CalibrationDismissed? left, EmbedPDF.MeasurementEvent.CalibrationDismissed? right) -> bool
+static EmbedPDF.MeasurementEvent.CalibrationDismissed.operator ==(EmbedPDF.MeasurementEvent.CalibrationDismissed? left, EmbedPDF.MeasurementEvent.CalibrationDismissed? right) -> bool
+static EmbedPDF.MeasurementEvent.CalibrationRequested.operator !=(EmbedPDF.MeasurementEvent.CalibrationRequested? left, EmbedPDF.MeasurementEvent.CalibrationRequested? right) -> bool
+static EmbedPDF.MeasurementEvent.CalibrationRequested.operator ==(EmbedPDF.MeasurementEvent.CalibrationRequested? left, EmbedPDF.MeasurementEvent.CalibrationRequested? right) -> bool
+static EmbedPDF.MeasurementEvent.ScaleChanged.operator !=(EmbedPDF.MeasurementEvent.ScaleChanged? left, EmbedPDF.MeasurementEvent.ScaleChanged? right) -> bool
+static EmbedPDF.MeasurementEvent.ScaleChanged.operator ==(EmbedPDF.MeasurementEvent.ScaleChanged? left, EmbedPDF.MeasurementEvent.ScaleChanged? right) -> bool
+static EmbedPDF.MeasurementEvent.operator !=(EmbedPDF.MeasurementEvent? left, EmbedPDF.MeasurementEvent? right) -> bool
+static EmbedPDF.MeasurementEvent.operator ==(EmbedPDF.MeasurementEvent? left, EmbedPDF.MeasurementEvent? right) -> bool
+static EmbedPDF.MeasurementPageScale.operator !=(EmbedPDF.MeasurementPageScale? left, EmbedPDF.MeasurementPageScale? right) -> bool
+static EmbedPDF.MeasurementPageScale.operator ==(EmbedPDF.MeasurementPageScale? left, EmbedPDF.MeasurementPageScale? right) -> bool
+static EmbedPDF.MeasurementPageTarget.All.operator !=(EmbedPDF.MeasurementPageTarget.All? left, EmbedPDF.MeasurementPageTarget.All? right) -> bool
+static EmbedPDF.MeasurementPageTarget.All.operator ==(EmbedPDF.MeasurementPageTarget.All? left, EmbedPDF.MeasurementPageTarget.All? right) -> bool
+static EmbedPDF.MeasurementPageTarget.Page.operator !=(EmbedPDF.MeasurementPageTarget.Page? left, EmbedPDF.MeasurementPageTarget.Page? right) -> bool
+static EmbedPDF.MeasurementPageTarget.Page.operator ==(EmbedPDF.MeasurementPageTarget.Page? left, EmbedPDF.MeasurementPageTarget.Page? right) -> bool
+static EmbedPDF.MeasurementPageTarget.Pages.operator !=(EmbedPDF.MeasurementPageTarget.Pages? left, EmbedPDF.MeasurementPageTarget.Pages? right) -> bool
+static EmbedPDF.MeasurementPageTarget.Pages.operator ==(EmbedPDF.MeasurementPageTarget.Pages? left, EmbedPDF.MeasurementPageTarget.Pages? right) -> bool
+static EmbedPDF.MeasurementPageTarget.operator !=(EmbedPDF.MeasurementPageTarget? left, EmbedPDF.MeasurementPageTarget? right) -> bool
+static EmbedPDF.MeasurementPageTarget.operator ==(EmbedPDF.MeasurementPageTarget? left, EmbedPDF.MeasurementPageTarget? right) -> bool
+static EmbedPDF.MeasurementReading.Unavailable.operator !=(EmbedPDF.MeasurementReading.Unavailable? left, EmbedPDF.MeasurementReading.Unavailable? right) -> bool
+static EmbedPDF.MeasurementReading.Unavailable.operator ==(EmbedPDF.MeasurementReading.Unavailable? left, EmbedPDF.MeasurementReading.Unavailable? right) -> bool
+static EmbedPDF.MeasurementReading.Value.operator !=(EmbedPDF.MeasurementReading.Value? left, EmbedPDF.MeasurementReading.Value? right) -> bool
+static EmbedPDF.MeasurementReading.Value.operator ==(EmbedPDF.MeasurementReading.Value? left, EmbedPDF.MeasurementReading.Value? right) -> bool
+static EmbedPDF.MeasurementReading.operator !=(EmbedPDF.MeasurementReading? left, EmbedPDF.MeasurementReading? right) -> bool
+static EmbedPDF.MeasurementReading.operator ==(EmbedPDF.MeasurementReading? left, EmbedPDF.MeasurementReading? right) -> bool
+static EmbedPDF.MeasurementReadout.operator !=(EmbedPDF.MeasurementReadout? left, EmbedPDF.MeasurementReadout? right) -> bool
+static EmbedPDF.MeasurementReadout.operator ==(EmbedPDF.MeasurementReadout? left, EmbedPDF.MeasurementReadout? right) -> bool
+static EmbedPDF.MeasurementScaleChangeOptions.operator !=(EmbedPDF.MeasurementScaleChangeOptions? left, EmbedPDF.MeasurementScaleChangeOptions? right) -> bool
+static EmbedPDF.MeasurementScaleChangeOptions.operator ==(EmbedPDF.MeasurementScaleChangeOptions? left, EmbedPDF.MeasurementScaleChangeOptions? right) -> bool
+static EmbedPDF.MeasurementSettings.operator !=(EmbedPDF.MeasurementSettings? left, EmbedPDF.MeasurementSettings? right) -> bool
+static EmbedPDF.MeasurementSettings.operator ==(EmbedPDF.MeasurementSettings? left, EmbedPDF.MeasurementSettings? right) -> bool
 static EmbedPDF.MetadataEvent.CustomResynced.operator !=(EmbedPDF.MetadataEvent.CustomResynced? left, EmbedPDF.MetadataEvent.CustomResynced? right) -> bool
 static EmbedPDF.MetadataEvent.CustomResynced.operator ==(EmbedPDF.MetadataEvent.CustomResynced? left, EmbedPDF.MetadataEvent.CustomResynced? right) -> bool
 static EmbedPDF.MetadataEvent.CustomUpdated.operator !=(EmbedPDF.MetadataEvent.CustomUpdated? left, EmbedPDF.MetadataEvent.CustomUpdated? right) -> bool
@@ -11026,6 +11504,20 @@ static EmbedPDF.RenderedPageResult.operator !=(EmbedPDF.RenderedPageResult? left
 static EmbedPDF.RenderedPageResult.operator ==(EmbedPDF.RenderedPageResult? left, EmbedPDF.RenderedPageResult? right) -> bool
 static EmbedPDF.ResolvedCommand.operator !=(EmbedPDF.ResolvedCommand? left, EmbedPDF.ResolvedCommand? right) -> bool
 static EmbedPDF.ResolvedCommand.operator ==(EmbedPDF.ResolvedCommand? left, EmbedPDF.ResolvedCommand? right) -> bool
+static EmbedPDF.ScaleChangeReport.Recalibrated.operator !=(EmbedPDF.ScaleChangeReport.Recalibrated? left, EmbedPDF.ScaleChangeReport.Recalibrated? right) -> bool
+static EmbedPDF.ScaleChangeReport.Recalibrated.operator ==(EmbedPDF.ScaleChangeReport.Recalibrated? left, EmbedPDF.ScaleChangeReport.Recalibrated? right) -> bool
+static EmbedPDF.ScaleChangeReport.ScaleFailed.operator !=(EmbedPDF.ScaleChangeReport.ScaleFailed? left, EmbedPDF.ScaleChangeReport.ScaleFailed? right) -> bool
+static EmbedPDF.ScaleChangeReport.ScaleFailed.operator ==(EmbedPDF.ScaleChangeReport.ScaleFailed? left, EmbedPDF.ScaleChangeReport.ScaleFailed? right) -> bool
+static EmbedPDF.ScaleChangeReport.operator !=(EmbedPDF.ScaleChangeReport? left, EmbedPDF.ScaleChangeReport? right) -> bool
+static EmbedPDF.ScaleChangeReport.operator ==(EmbedPDF.ScaleChangeReport? left, EmbedPDF.ScaleChangeReport? right) -> bool
+static EmbedPDF.ScaleFailedAnnotation.operator !=(EmbedPDF.ScaleFailedAnnotation? left, EmbedPDF.ScaleFailedAnnotation? right) -> bool
+static EmbedPDF.ScaleFailedAnnotation.operator ==(EmbedPDF.ScaleFailedAnnotation? left, EmbedPDF.ScaleFailedAnnotation? right) -> bool
+static EmbedPDF.ScalePreset.operator !=(EmbedPDF.ScalePreset? left, EmbedPDF.ScalePreset? right) -> bool
+static EmbedPDF.ScalePreset.operator ==(EmbedPDF.ScalePreset? left, EmbedPDF.ScalePreset? right) -> bool
+static EmbedPDF.ScaleRecalibration.operator !=(EmbedPDF.ScaleRecalibration? left, EmbedPDF.ScaleRecalibration? right) -> bool
+static EmbedPDF.ScaleRecalibration.operator ==(EmbedPDF.ScaleRecalibration? left, EmbedPDF.ScaleRecalibration? right) -> bool
+static EmbedPDF.ScaleSkippedAnnotation.operator !=(EmbedPDF.ScaleSkippedAnnotation? left, EmbedPDF.ScaleSkippedAnnotation? right) -> bool
+static EmbedPDF.ScaleSkippedAnnotation.operator ==(EmbedPDF.ScaleSkippedAnnotation? left, EmbedPDF.ScaleSkippedAnnotation? right) -> bool
 static EmbedPDF.ScriptCheck.operator !=(EmbedPDF.ScriptCheck? left, EmbedPDF.ScriptCheck? right) -> bool
 static EmbedPDF.ScriptCheck.operator ==(EmbedPDF.ScriptCheck? left, EmbedPDF.ScriptCheck? right) -> bool
 static EmbedPDF.ScriptEngineCheck.RunAsync(EmbedPDF.IScriptEngineFactory! factory, string! source, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ScriptCheck!>!
@@ -11470,6 +11962,18 @@ virtual EmbedPDF.LinkEvent.PrintMembers(System.Text.StringBuilder! builder) -> b
 virtual EmbedPDF.LinkResolution.EqualityContract.get -> System.Type!
 virtual EmbedPDF.LinkResolution.Equals(EmbedPDF.LinkResolution? other) -> bool
 virtual EmbedPDF.LinkResolution.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.MeasurementDefaultScale.EqualityContract.get -> System.Type!
+virtual EmbedPDF.MeasurementDefaultScale.Equals(EmbedPDF.MeasurementDefaultScale? other) -> bool
+virtual EmbedPDF.MeasurementDefaultScale.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.MeasurementEvent.EqualityContract.get -> System.Type!
+virtual EmbedPDF.MeasurementEvent.Equals(EmbedPDF.MeasurementEvent? other) -> bool
+virtual EmbedPDF.MeasurementEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.MeasurementPageTarget.EqualityContract.get -> System.Type!
+virtual EmbedPDF.MeasurementPageTarget.Equals(EmbedPDF.MeasurementPageTarget? other) -> bool
+virtual EmbedPDF.MeasurementPageTarget.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.MeasurementReading.EqualityContract.get -> System.Type!
+virtual EmbedPDF.MeasurementReading.Equals(EmbedPDF.MeasurementReading? other) -> bool
+virtual EmbedPDF.MeasurementReading.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual EmbedPDF.MetadataEvent.EqualityContract.get -> System.Type!
 virtual EmbedPDF.MetadataEvent.Equals(EmbedPDF.MetadataEvent? other) -> bool
 virtual EmbedPDF.MetadataEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
@@ -11518,6 +12022,9 @@ virtual EmbedPDF.RenderTilesSetting.PrintMembers(System.Text.StringBuilder! buil
 virtual EmbedPDF.RenderViewport.EqualityContract.get -> System.Type!
 virtual EmbedPDF.RenderViewport.Equals(EmbedPDF.RenderViewport? other) -> bool
 virtual EmbedPDF.RenderViewport.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.ScaleChangeReport.EqualityContract.get -> System.Type!
+virtual EmbedPDF.ScaleChangeReport.Equals(EmbedPDF.ScaleChangeReport? other) -> bool
+virtual EmbedPDF.ScaleChangeReport.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual EmbedPDF.ScriptEvaluation.EqualityContract.get -> System.Type!
 virtual EmbedPDF.ScriptEvaluation.Equals(EmbedPDF.ScriptEvaluation? other) -> bool
 virtual EmbedPDF.ScriptEvaluation.PrintMembers(System.Text.StringBuilder! builder) -> bool

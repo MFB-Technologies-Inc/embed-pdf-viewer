@@ -5810,10 +5810,16 @@
       "path": "crates/plugins/measurement/src/controller.rs",
       "owner": "MeasurementCapability",
       "symbol": "lifetime",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5821,10 +5827,16 @@
       "path": "crates/plugins/measurement/src/controller.rs",
       "owner": "MeasurementCapability",
       "symbol": "can_calibrate",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "can_calibrate"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "CanCalibrateAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5832,10 +5844,16 @@
       "path": "crates/plugins/measurement/src/controller.rs",
       "owner": "MeasurementCapability",
       "symbol": "get_settings",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi/settings.rs",
         "symbol": "settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "GetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5851,10 +5869,17 @@
       "path": "crates/plugins/measurement/src/controller.rs",
       "owner": "MeasurementCapability",
       "symbol": "update_settings",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi/settings.rs",
         "symbol": "update_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "UpdateSettingsAsync",
+        "parameters": [
+          "EmbedPDF.MeasurementConfig",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5870,10 +5895,16 @@
       "path": "crates/plugins/measurement/src/controller.rs",
       "owner": "MeasurementCapability",
       "symbol": "reset_settings",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi/settings.rs",
         "symbol": "reset_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "ResetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5881,10 +5912,16 @@
       "path": "crates/plugins/measurement/src/controller.rs",
       "owner": "MeasurementCapability",
       "symbol": "on_settings_changed",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/epdf-viewer-host/src/lib.rs",
         "symbol": "state_revision"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PdfViewer",
+        "member": "ObserveStateRevisions",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5892,10 +5929,16 @@
       "path": "crates/plugins/measurement/src/controller.rs",
       "owner": "MeasurementCapability",
       "symbol": "on_settings_changed_json",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/epdf-viewer-host/src/lib.rs",
         "symbol": "state_revision"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PdfViewer",
+        "member": "ObserveStateRevisions",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5903,10 +5946,16 @@
       "path": "crates/plugins/measurement/src/controller.rs",
       "owner": "MeasurementCapability",
       "symbol": "on_scale_changed",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5914,10 +5963,16 @@
       "path": "crates/plugins/measurement/src/controller.rs",
       "owner": "MeasurementCapability",
       "symbol": "on_calibration_requested",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5925,10 +5980,16 @@
       "path": "crates/plugins/measurement/src/controller.rs",
       "owner": "MeasurementCapability",
       "symbol": "on_calibration_completed",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5936,10 +5997,16 @@
       "path": "crates/plugins/measurement/src/controller.rs",
       "owner": "MeasurementCapability",
       "symbol": "on_calibration_dismissed",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5947,10 +6014,17 @@
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "can_measure",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "can_measure"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "CanMeasureAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5958,10 +6032,17 @@
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "get_page_scale",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "page_scale"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "GetPageScaleAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5969,10 +6050,16 @@
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "is_busy",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "is_busy"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "IsBusyAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5980,10 +6067,16 @@
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "list_last_reports",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "last_reports"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "GetLastReportsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5991,10 +6084,16 @@
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "list_presets",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "presets"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "GetPresetsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -6002,10 +6101,16 @@
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "list_presets_json",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "presets"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "GetPresetsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -6013,10 +6118,16 @@
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "list_units",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "units"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "GetUnitsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -6024,10 +6135,16 @@
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "list_area_units",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "area_units"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "GetAreaUnitsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -6035,10 +6152,17 @@
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "get_readout",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "readout"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "ReadoutAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -6046,10 +6170,19 @@
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "measure_distance",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "measure_distance"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "MeasureDistanceAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "EmbedPDF.PdfPoint",
+          "EmbedPDF.PdfPoint",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -6057,10 +6190,18 @@
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "measure_area",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "measure_area"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "MeasureAreaAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "System.Collections.Generic.IEnumerable<EmbedPDF.PdfPoint>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -6068,10 +6209,16 @@
       "path": "crates/plugins/measurement/src/read/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "get_calibration_request",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "calibration_request"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "GetCalibrationRequestAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -6079,10 +6226,17 @@
       "path": "crates/plugins/measurement/src/sync/viewports.rs",
       "owner": "MeasurementCapability",
       "symbol": "ensure_loaded",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "ensure_loaded"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "EnsureLoadedAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -6090,10 +6244,16 @@
       "path": "crates/plugins/measurement/src/write/calibration.rs",
       "owner": "MeasurementCapability",
       "symbol": "start_calibration",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "start_calibration"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "StartCalibrationAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -6101,10 +6261,16 @@
       "path": "crates/plugins/measurement/src/write/calibration.rs",
       "owner": "MeasurementCapability",
       "symbol": "dismiss_calibration",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "dismiss_calibration"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "DismissCalibrationAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -6112,10 +6278,17 @@
       "path": "crates/plugins/measurement/src/write/create.rs",
       "owner": "MeasurementCapability",
       "symbol": "create_measurement",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "create_measurement"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "CreateMeasurementAsync",
+        "parameters": [
+          "EmbedPDF.CreateMeasurementInput",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -6123,10 +6296,19 @@
       "path": "crates/plugins/measurement/src/write/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "set_scale",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "set_scale"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "SetScaleAsync",
+        "parameters": [
+          "EmbedPDF.MeasurementPageTarget",
+          "EmbedPDF.PdfMeasurement",
+          "EmbedPDF.MeasurementScaleChangeOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -6134,10 +6316,18 @@
       "path": "crates/plugins/measurement/src/write/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "calibrate",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "calibrate"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "CalibrateAsync",
+        "parameters": [
+          "EmbedPDF.MeasurementCalibrateInput",
+          "EmbedPDF.MeasurementCalibrateOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -6145,10 +6335,19 @@
       "path": "crates/plugins/measurement/src/write/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "set_unit",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "set_unit"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "SetUnitAsync",
+        "parameters": [
+          "EmbedPDF.MeasurementPageTarget",
+          "System.String",
+          "EmbedPDF.MeasurementScaleChangeOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -6156,10 +6355,19 @@
       "path": "crates/plugins/measurement/src/write/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "set_area_unit",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "set_area_unit"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "SetAreaUnitAsync",
+        "parameters": [
+          "EmbedPDF.MeasurementPageTarget",
+          "System.String",
+          "EmbedPDF.MeasurementScaleChangeOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -6167,10 +6375,19 @@
       "path": "crates/plugins/measurement/src/write/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "set_precision",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "set_precision"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "SetPrecisionAsync",
+        "parameters": [
+          "EmbedPDF.MeasurementPageTarget",
+          "System.Double",
+          "EmbedPDF.MeasurementScaleChangeOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -6178,10 +6395,19 @@
       "path": "crates/plugins/measurement/src/write/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "set_preset",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "set_preset"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "SetPresetAsync",
+        "parameters": [
+          "EmbedPDF.MeasurementPageTarget",
+          "System.String",
+          "EmbedPDF.MeasurementScaleChangeOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -6189,10 +6415,18 @@
       "path": "crates/plugins/measurement/src/write/scale.rs",
       "owner": "MeasurementCapability",
       "symbol": "clear_scale",
-      "pending": "phase-3-wave-E",
       "export": {
         "path": "crates/plugins/measurement/src/ffi.rs",
         "symbol": "clear_scale"
+      },
+      "csharp": {
+        "type": "EmbedPDF.MeasurementCapability",
+        "member": "ClearScaleAsync",
+        "parameters": [
+          "EmbedPDF.MeasurementPageTarget",
+          "EmbedPDF.MeasurementScaleChangeOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {

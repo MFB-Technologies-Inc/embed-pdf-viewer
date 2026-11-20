@@ -40,7 +40,7 @@ public abstract record AnnotationPosition
 
     static string PageJson(PageRef page) => "{\"kind\":\"objectNumber\",\"objectNumber\":" + WireInteger.ToUInt32(page.PageObjectNumber, "page object number") + "}";
 
-    static string RefJson(AnnotationRef annotation) => annotation switch
+    internal static string RefJson(AnnotationRef annotation) => annotation switch
     {
         AnnotationRef.ObjectNumber n => "{\"kind\":\"objectNumber\",\"page\":" + PageJson(n.Page) + ",\"objectNumber\":" + WireInteger.ToUInt32(n.AnnotObjectNumber, "annotation object number") + "}",
         AnnotationRef.Index i => "{\"kind\":\"baseIndex\",\"page\":" + PageJson(i.Page) + ",\"baseIndex\":" + WireInteger.ToUInt32(i.Value, "annotation index") + "}",
