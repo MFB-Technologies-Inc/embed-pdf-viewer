@@ -52,6 +52,18 @@ public sealed class DependencyInjectionTests
         viewer.Dispose();
     }
 
+    [Fact]
+    public async Task AddingTwiceKeepsTheFirstRegistration()
+    {
+        var services = new ServiceCollection().AddEmbedPdf(b => b.Metadata()).AddEmbedPdf(b => b.History());
+        Assert.Single(services, d => d.ServiceType == typeof(PdfViewer));
+        Assert.Single(services, d => d.ServiceType == typeof(PdfViewerOptions));
+        await using var provider = services.BuildServiceProvider();
+        var options = provider.GetRequiredService<PdfViewerOptions>();
+        Assert.True(options.Metadata);
+        Assert.False(options.History);
+    }
+
     sealed class CountingFactory : ILoggerFactory
     {
         public int Created;

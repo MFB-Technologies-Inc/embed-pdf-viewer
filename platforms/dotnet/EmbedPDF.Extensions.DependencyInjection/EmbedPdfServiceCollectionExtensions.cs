@@ -1,4 +1,5 @@
 using EmbedPDF;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -30,7 +31,8 @@ public static class EmbedPdfServiceCollectionExtensions
     /// Registers <paramref name="options"/> and one <see cref="PdfViewer"/>
     /// made from them. When the options keep the default null logger and the
     /// container has an <see cref="ILoggerFactory"/>, the viewer logs through
-    /// a logger from that factory.
+    /// a logger from that factory. A second call adds nothing: the first
+    /// registration stands, as with the framework's own <c>Add</c> helpers.
     /// </summary>
     /// <param name="services">The collection to add to.</param>
     /// <param name="options">What the viewer installs.</param>
@@ -38,8 +40,8 @@ public static class EmbedPdfServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(options);
-        services.AddSingleton(options);
-        services.AddSingleton(provider =>
+        services.TryAddSingleton(options);
+        services.TryAddSingleton(provider =>
         {
             var resolved = provider.GetRequiredService<PdfViewerOptions>();
             if (ReferenceEquals(resolved.Logger, NullLogger.Instance) && provider.GetService<ILoggerFactory>() is { } factory)
