@@ -30,7 +30,7 @@ namespace EmbedPDF;
 /// after the garbage collector finds it.
 /// </para>
 /// </remarks>
-public sealed partial class PdfViewer : IAsyncDisposable
+public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
 {
     readonly GH.ViewerHost host;
     readonly ILogger logger;
@@ -152,11 +152,19 @@ public sealed partial class PdfViewer : IAsyncDisposable
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var existing = Interlocked.CompareExchange(ref disposal, completion.Task, null);
         if (existing is not null) return new ValueTask(existing);
-        _ = Dispose(completion);
+        _ = DisposeCore(completion);
         return new ValueTask(completion.Task);
     }
 
-    async Task Dispose(TaskCompletionSource completion)
+    /// <summary>
+    /// <see cref="DisposeAsync"/> for a caller that can't await, such as a
+    /// service container disposed synchronously. It blocks until disposal
+    /// ends; the disposal runs on the thread pool, so blocking a thread that
+    /// owns a synchronization context does not deadlock it.
+    /// </summary>
+    public void Dispose() => Task.Run(() => DisposeAsync().AsTask()).GetAwaiter().GetResult();
+
+    async Task DisposeCore(TaskCompletionSource completion)
     {
         GF.CancelToken[] tokens;
         lock (gate)

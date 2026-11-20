@@ -31,6 +31,27 @@ public sealed class DependencyInjectionTests
         Assert.Equal(PdfErrorCode.InstanceClosed, (await Assert.ThrowsAsync<PdfException>(() => viewer.GetDocumentsAsync())).Code);
     }
 
+    [Fact]
+    public async Task ASynchronouslyDisposedProviderDisposesTheViewer()
+    {
+        PdfViewer viewer;
+        using (var provider = new ServiceCollection().AddEmbedPdf().BuildServiceProvider())
+        {
+            viewer = provider.GetRequiredService<PdfViewer>();
+            await viewer.StartAsync();
+        }
+        Assert.Equal(PdfErrorCode.InstanceClosed, (await Assert.ThrowsAsync<PdfException>(() => viewer.GetDocumentsAsync())).Code);
+    }
+
+    [Fact]
+    public async Task DisposeAndDisposeAsyncShareOneDisposal()
+    {
+        var viewer = await PdfViewer.CreateAsync();
+        viewer.Dispose();
+        await viewer.DisposeAsync();
+        viewer.Dispose();
+    }
+
     sealed class CountingFactory : ILoggerFactory
     {
         public int Created;
