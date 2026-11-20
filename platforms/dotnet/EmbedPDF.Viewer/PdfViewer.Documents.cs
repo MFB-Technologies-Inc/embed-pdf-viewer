@@ -38,7 +38,7 @@ public sealed partial class PdfViewer
     /// <param name="cancellationToken">Checked before the open is posted; the open itself runs to completion.</param>
     public Task<DocumentInfo> OpenAsync(ReadOnlyMemory<byte> pdf, OpenDocumentOptions? options = null, CancellationToken cancellationToken = default) =>
         Telemetry.Measured("open", async () => Ffi.ToPublic(await CallAsync(
-            h => h.OpenDocument(pdf.ToArray(), Options(options)), cancellationToken).ConfigureAwait(false)));
+            h => h.OpenDocument(Bytes.Array(pdf), Options(options)), cancellationToken).ConfigureAwait(false)));
 
     /// <summary>
     /// Reads <paramref name="pdf"/> to its end and opens the bytes, as
@@ -52,9 +52,8 @@ public sealed partial class PdfViewer
     {
         ArgumentNullException.ThrowIfNull(pdf);
         ThrowIfClosed();
-        using var buffer = new MemoryStream();
-        await pdf.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
-        return await OpenAsync(buffer.GetBuffer().AsMemory(0, (int)buffer.Length), options, cancellationToken).ConfigureAwait(false);
+        var bytes = await Bytes.ReadToEndAsync(pdf, cancellationToken).ConfigureAwait(false);
+        return await OpenAsync(bytes, options, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -94,7 +93,7 @@ public sealed partial class PdfViewer
     /// </summary>
     public Task<DocumentInfo> OpenLayerAsync(ReadOnlyMemory<byte> basePdf, ReadOnlyMemory<byte> layer, OpenDocumentOptions? options = null, CancellationToken cancellationToken = default) =>
         Telemetry.Measured("open", async () => Ffi.ToPublic(await CallCancellableAsync(
-            (h, token) => h.OpenLayerDocument(basePdf.ToArray(), layer.ToArray(), Options(options), token), cancellationToken).ConfigureAwait(false)));
+            (h, token) => h.OpenLayerDocument(Bytes.Array(basePdf), Bytes.Array(layer), Options(options), token), cancellationToken).ConfigureAwait(false)));
 
     /// <summary>
     /// Retries a failed source in its tab position without activating it. Use

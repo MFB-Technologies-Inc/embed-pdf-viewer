@@ -43,7 +43,9 @@ public sealed record DocumentFetchResponse(int StatusCode, byte[] Content);
 /// </summary>
 public sealed class HttpClientDocumentFetcher : IDocumentFetcher
 {
-    static readonly HttpClient Shared = new();
+    // Pooled connections are recycled so a long-lived client follows DNS changes.
+    internal static readonly SocketsHttpHandler SharedHandler = new() { PooledConnectionLifetime = TimeSpan.FromMinutes(2) };
+    static readonly HttpClient Shared = new(SharedHandler, disposeHandler: false);
     readonly HttpClient client;
 
     /// <summary>Fetches through <paramref name="client"/>, or a shared client when it is <see langword="null"/>.</summary>
@@ -61,9 +63,27 @@ public sealed class HttpClientDocumentFetcher : IDocumentFetcher
         {
             return new DocumentFetchResponse(200, await File.ReadAllBytesAsync(uri.LocalPath, cancellationToken).ConfigureAwait(false));
         }
-        using var response = await client.GetAsync(uri, HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
-        var body = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
-        return new DocumentFetchResponse((int)response.StatusCode, body);
+        using var response = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        // Read the body ourselves: with a Content-Length it lands in one
+        // buffer of that size rather than a growing one copied at the end.
+        await using var body = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        var bytes = response.Content.Headers.ContentLength is long length && length >= 0 && length <= Array.MaxLength
+            ? await ReadSized(body, (int)length, cancellationToken).ConfigureAwait(false)
+            : await Bytes.ReadToEndAsync(body, cancellationToken).ConfigureAwait(false);
+        return new DocumentFetchResponse((int)response.StatusCode, bytes);
+    }
+
+    static async Task<byte[]> ReadSized(Stream body, int length, CancellationToken cancellationToken)
+    {
+        var buffer = new byte[length];
+        var read = 0;
+        while (read < length)
+        {
+            var n = await body.ReadAsync(buffer.AsMemory(read), cancellationToken).ConfigureAwait(false);
+            if (n == 0) return buffer.AsSpan(0, read).ToArray();
+            read += n;
+        }
+        return buffer;
     }
 }
 
