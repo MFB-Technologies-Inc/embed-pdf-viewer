@@ -267,8 +267,7 @@ public sealed partial class PdfViewer
     public Task UpdateSettingsAsync(ViewerSettingsPatch patch, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(patch);
-        var ffi = Ffi.ToFfi(patch);
-        return CallAsync(h => h.UpdateViewerSettings(ffi), cancellationToken);
+        return CallAsync(h => h.UpdateViewerSettings(Ffi.ToFfi(patch)), cancellationToken);
     }
 
     /// <summary>Restores the settings the viewer started with.</summary>

@@ -22,6 +22,9 @@ public sealed class EnumRangeTests
         { "content inclusion", () => Ffi.ToFfi(new RenderPageOptions { IncludeAnnotations = (ContentInclusion)9 }) },
         { "encoding format", () => Ffi.ToFfi(new RenderSettingsPatch { Format = (RenderEncodingFormat)9 }) },
         { "invalidate scope", () => Ffi.ToFfi((RenderInvalidateScope)9) },
+        { "save mode", () => Ffi.ToFfi((SaveMode)9) },
+        { "settings field", () => Ffi.ToFfi(new ViewerSettingsPatch { Clear = [(ViewerSettingsField)9] }) },
+        { "standard command list", () => ((StandardCommandList)9).ToFfi() },
     };
 
     [Theory]
@@ -31,6 +34,18 @@ public sealed class EnumRangeTests
         var error = Assert.Throws<PdfException>(convert);
         Assert.Equal((PdfErrorCode.InvalidInput, "RangeError"), (error.Code, error.Name));
         Assert.StartsWith(argument + " 9", error.Detail);
+    }
+
+    [Fact]
+    public async Task TheViewerRefusesAnUndefinedValue()
+    {
+        Assert.Equal(PdfErrorCode.InvalidInput, Assert.Throws<PdfException>(() => new PdfViewer(new PdfViewerOptions { StandardCommands = [(StandardCommandList)9] })).Code);
+        await using var viewer = await PdfViewer.CreateAsync();
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        var save = viewer.SaveAsync(document, (SaveMode)9);
+        Assert.Equal(PdfErrorCode.InvalidInput, (await Assert.ThrowsAsync<PdfException>(() => save)).Code);
+        var update = viewer.UpdateSettingsAsync(new ViewerSettingsPatch { Clear = [(ViewerSettingsField)9] });
+        Assert.Equal(PdfErrorCode.InvalidInput, (await Assert.ThrowsAsync<PdfException>(() => update)).Code);
     }
 
     [Fact]
