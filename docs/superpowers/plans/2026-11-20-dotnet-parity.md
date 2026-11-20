@@ -691,6 +691,11 @@ Deviations, each with its reason:
 
 Task plan: `docs/superpowers/plans/2026-11-20-dotnet-parity/03c-wave-c.md`. Branch
 `research/dotnet-parity-p3c` from `research/dotnet-parity-p3b` at `2e7df6c39`, not pushed.
+Wave B's close (`f820ffc16`) is merged in at `d8f574ce4` with no conflicts. After the merge the
+wave C callbacks carry wave B's documentation rules: the initial-view provider, the
+`CommandHandler` hooks and `SaveFile` say not to block on the viewer there, and
+`ProvideInitialViewAsync` and `SetCommandsPlatform` say what a capture keeps alive. Their
+ExecutionContext behaviour is unchanged.
 
 What exists. Four capabilities under `platforms/dotnet/EmbedPDF.Viewer/Plugins/`:
 `StageCapability` (`Stage.cs`, `Stage.Types.cs`, `Stage.Ffi.cs`, with `IStageInitialViewProvider`),
@@ -700,8 +705,8 @@ What exists. Four capabilities under `platforms/dotnet/EmbedPDF.Viewer/Plugins/`
 `TaskEntryPoints.swift`. `StageConfig` gained `Settings` and `Responsive`;
 `PdfViewer.SetCommandsPlatform` is the port of `setCommandsPlatform`. The coverage check reads 880
 members: 456 ported, 285 pending (D 143, E 142), 139 exclusions. All 167 wave C rows are done: 163
-ported and 4 excluded. `EmbedPDF.Viewer.Tests` runs 752 cases, 751 passing twice in a row and one
-skipped (the latency test); `packaging` passes its 30 and `scripts/test_check_api_coverage.py` its
+ported and 4 excluded. `EmbedPDF.Viewer.Tests` runs 766 cases after the merge, 765 passing twice in a row and
+one skipped (the latency test); `packaging` passes its 30 and `scripts/test_check_api_coverage.py` its
 11. Release builds of the facade, the DI package, the Jint package, the tests and
 `EmbedPDF.ApiDump` report 0 warnings.
 

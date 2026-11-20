@@ -366,7 +366,10 @@ public sealed class StageCapability : IDisposable
     /// <summary>
     /// Registers a provider asked, on the kernel thread, for the view this
     /// document opens at when the stage first places it. The highest
-    /// <paramref name="priority"/> answers.
+    /// <paramref name="priority"/> answers. The viewer keeps the provider
+    /// until the registration is unregistered or the document closes, and with
+    /// it anything it captures: a provider that captures the viewer or this
+    /// capability keeps the viewer alive until then.
     /// </summary>
     public async Task<Registration> ProvideInitialViewAsync(IStageInitialViewProvider provider, double priority = 0, CancellationToken cancellationToken = default)
     {

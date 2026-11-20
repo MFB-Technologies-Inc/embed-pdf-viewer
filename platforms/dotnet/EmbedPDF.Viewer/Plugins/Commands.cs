@@ -387,7 +387,11 @@ public sealed partial class PdfViewer
     /// (<see cref="PdfViewerOptions.StandardCommands"/>), read when a command
     /// runs. With <see langword="null"/>, a copy fails with
     /// <see cref="PdfErrorCode.InvalidInput"/> and a save saves nothing.
-    /// Throws <see cref="PdfErrorCode.InstanceClosed"/> after disposal.
+    /// Throws <see cref="PdfErrorCode.InstanceClosed"/> after disposal. The
+    /// viewer holds the platform until it is replaced or the viewer is
+    /// disposed, so one that captures the viewer or a capability keeps an
+    /// abandoned viewer from being collected; dispose the viewer, or keep the
+    /// viewer out of it.
     /// </summary>
     public void SetCommandsPlatform(IStandardCommandsPlatform? platform)
     {

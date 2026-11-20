@@ -198,8 +198,9 @@ public abstract record CommandsEvent
 /// anything else is <c>operation-failed</c> with its message.</para>
 /// <para><c>enabled</c>, <c>active</c>, <c>visible</c>, <c>iconAccent</c>
 /// and <c>locked</c> run on the viewer's kernel thread, synchronously, on
-/// every resolve: answer from state you already have, and never wait on
-/// another thread there. Disposing the viewer there throws
+/// every resolve: answer from state you already have, and never block
+/// waiting for the viewer there: a viewer call queues behind the hook, so
+/// waiting for it deadlocks. Disposing the viewer there throws
 /// <see cref="InvalidOperationException"/>. What they throw reaches the
 /// kernel as a host error, which leaves the command out of that resolve.</para>
 /// </remarks>
@@ -248,7 +249,9 @@ public sealed class CommandHandler
 /// </summary>
 /// <remarks>
 /// <see cref="SaveFile"/> runs on the viewer's kernel thread, synchronously,
-/// and what it throws is logged and dropped. <see cref="CopyTextAsync"/> and
+/// and what it throws is logged and dropped. Never block waiting for the
+/// viewer there: a viewer call queues behind it, so waiting for it deadlocks,
+/// and <see cref="PdfViewer.Dispose"/> throws there. <see cref="CopyTextAsync"/> and
 /// <see cref="CopyImageAsync"/> run on the thread pool; a fault fails the
 /// copy command as <see cref="CommandHandler"/>'s run does.
 /// </remarks>

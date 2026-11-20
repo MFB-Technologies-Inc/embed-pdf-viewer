@@ -472,7 +472,9 @@ public abstract record StageEvent
 /// <summary>
 /// Answers the view a document opens at, the first time the stage places it.
 /// Called on the viewer's kernel thread, synchronously: answer from state
-/// you already have. Disposing the viewer there throws
+/// you already have. Never block waiting for the viewer here: a viewer call
+/// queues behind this callback, so waiting for it deadlocks. Disposing the
+/// viewer there throws
 /// <see cref="InvalidOperationException"/>; whatever else the provider
 /// throws is the kernel's host error, and the stage places the document as
 /// if no provider had answered.
