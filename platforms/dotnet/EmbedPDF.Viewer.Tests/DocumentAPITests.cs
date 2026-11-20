@@ -100,4 +100,25 @@ public sealed class DocumentAPITests
         Assert.Equal(14, retried.PageCount);
         Assert.Equal(2, server.Requests.Count);
     }
+
+    [Fact]
+    public async Task AnHttpTimeoutFailsTheTabRetryably()
+    {
+        var requests = 0;
+        var body = Fixture.Data("report");
+        await using var server = Loopback.Start(async context =>
+        {
+            // The first request stalls past the client's timeout; the retry is answered.
+            if (Interlocked.Increment(ref requests) == 1) await Task.Delay(TimeSpan.FromSeconds(5));
+            await Loopback.Reply(context, 200, body);
+        });
+        using var client = new HttpClient { Timeout = TimeSpan.FromMilliseconds(300) };
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { DocumentFetcher = new HttpClientDocumentFetcher(client) });
+        var error = await Assert.ThrowsAsync<PdfException>(() => viewer.OpenAsync(server.Url("slow.pdf")));
+        Assert.NotEqual(PdfErrorCode.OperationCancelled, error.Code);
+        var failed = (await viewer.GetDocumentsAsync()).Single();
+        Assert.Equal(DocumentStatus.Failed, failed.Status);
+        var retried = await viewer.RetryAsync(failed);
+        Assert.Equal((DocumentStatus.Ready, 14), (retried.Status, retried.PageCount));
+    }
 }

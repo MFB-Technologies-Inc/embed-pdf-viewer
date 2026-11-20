@@ -13,8 +13,11 @@ namespace EmbedPDF;
 /// failed tab (a 404 is <c>not-found</c>) that <see cref="PdfViewer.RetryAsync"/>
 /// can fetch again. Throw for a transport failure: a <see cref="PdfException"/>
 /// keeps its name, code and detail; an <see cref="OperationCanceledException"/>
-/// is <c>operation-cancelled</c>; anything else is reported under its type
-/// name with no code, which the kernel answers as <c>operation-failed</c>.
+/// is <c>operation-cancelled</c> only when the token passed in fired. Anything
+/// else, including a cancellation the kernel did not ask for (an
+/// <see cref="HttpClient.Timeout"/> elapsing), is reported under its type name
+/// with no code: the tab fails, and <see cref="PdfViewer.RetryAsync"/> can
+/// fetch it again.
 /// </para>
 /// <para>
 /// The token fires when the open is cancelled or its loading tab closes. The
@@ -94,7 +97,7 @@ internal sealed class FetcherAdapter(IDocumentFetcher fetcher) : GH.DocumentFetc
         }
         catch (Exception error)
         {
-            failure = Failure(error);
+            failure = Failure(error, cancellation.IsCancellationRequested);
         }
         try
         {
@@ -118,10 +121,15 @@ internal sealed class FetcherAdapter(IDocumentFetcher fetcher) : GH.DocumentFetc
         }
     }
 
-    internal static GF.HostFailure Failure(Exception error) => error switch
+    /// <summary>
+    /// The kernel's failure for <paramref name="error"/>. A cancellation is an
+    /// abort only when the kernel <paramref name="cancelled"/> the fetch; any
+    /// other one, such as a client timeout, is a transport failure.
+    /// </summary>
+    internal static GF.HostFailure Failure(Exception error, bool cancelled) => error switch
     {
         PdfException pdf => new GF.HostFailure(pdf.Name, pdf.Detail, pdf.Code.Value),
-        OperationCanceledException => new GF.HostFailure("AbortError", error.Message, "operation-cancelled"),
+        OperationCanceledException when cancelled => new GF.HostFailure("AbortError", error.Message, "operation-cancelled"),
         _ => new GF.HostFailure(error.GetType().Name, error.Message, null),
     };
 

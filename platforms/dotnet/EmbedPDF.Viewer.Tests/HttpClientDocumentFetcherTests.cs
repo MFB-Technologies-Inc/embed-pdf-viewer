@@ -107,10 +107,12 @@ public sealed class HttpClientDocumentFetcherTests
     }
 
     [Fact]
-    public async Task TheAdapterReportsACancellationAsAnAbort()
+    public async Task ACancellationTheKernelDidNotAskForIsATransportFailure()
     {
-        var call = (HostFailure)await Outcome(_ => throw new OperationCanceledException());
-        Assert.Equal(("AbortError", "operation-cancelled"), (call.Name, call.Code));
+        // An HttpClient timeout is a TaskCanceledException, but nobody cancelled
+        // the fetch: it must fail the tab, retryably, not report a cancel.
+        var call = (HostFailure)await Outcome(_ => throw new TaskCanceledException("timed out", new TimeoutException()));
+        Assert.Equal(("TaskCanceledException", null), (call.Name, call.Code));
     }
 
     [Fact]
