@@ -1,0 +1,36 @@
+[package]
+name = "epdf-uniffi-bindgen-cs"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "uniffi-bindgen-cs"
+path = "src/main.rs"
+
+# The C# generator is not on crates.io, so it comes from git. Its release tag
+# v0.12.0+v0.32.0 (fc32e9b) targets this uniffi but does not build or generate
+# compilable C# for epdf-viewer-host as released, so this spike uses a fork
+# branch, epdf/v0.12.0-v0.32.0, that is the tag plus two open upstream pull
+# requests:
+#
+#   196 (370010a): widen the generator's toml range to uniffi_bindgen's
+#       (>=0.9,<2). uniffi_bindgen resolves to toml 1 in this workspace, the
+#       generator's <0.10 to toml 0.9, and the two then disagree on
+#       toml::Value, so the generator fails to compile.
+#   186 (cherry-picked as 9134569): forward external object converters
+#       instead of aliasing them. Each generated file has its own
+#       BigEndianStream, so an object from another crate inside an optional,
+#       sequence or record fails to compile with CS1503.
+#
+# SPIKE ONLY: the fork lives in the dev container at /workspaces/uniffi-bindgen-cs.
+# Phase 1 needs it pushed somewhere every build can fetch, or a release tag
+# that carries both fixes.
+#
+# uniffi =0.32.0 is here only to hold the generator's uniffi_bindgen (a caret
+# range upstream) to the workspace pin: the metadata reader has to match the
+# version that wrote the library.
+[dependencies]
+anyhow = "1"
+uniffi = { version = "=0.32.0" }
+uniffi-bindgen-cs = { git = "file:///workspaces/uniffi-bindgen-cs", rev = "91345690ef91dd2dbc9fa0738967c8f49478f056" }
