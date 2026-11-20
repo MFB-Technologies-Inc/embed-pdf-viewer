@@ -19,9 +19,10 @@ import kotlin.coroutines.cancellation.CancellationException
  * so a call runs in whichever coroutine drains the queue: the model's
  * `run()`, which drains as calls arrive ([drainContinuously]), or a caller
  * awaiting a result with [Call.await], which runs every call queued ahead of
- * its own and then its own. A call whose drainer is cancelled goes back to
- * the front of the queue for the next drainer, so only [Call.cancel] drops
- * one. Used on the main thread only.
+ * its own and then its own. When a drainer is cancelled, a call it had not
+ * started goes back to the front of the queue for the next drainer; a call
+ * it had started ends cancelled for its awaiter and never runs again. Used on
+ * the main thread only.
  */
 internal class SerialCalls {
     /** One queued call. */
@@ -33,7 +34,8 @@ internal class SerialCalls {
         /**
          * Runs every call queued ahead of this one, then this one, and returns
          * its result. Throws `CancellationException` when the call was
-         * cancelled with [cancel].
+         * cancelled with [cancel], or when another drainer started it and was
+         * cancelled.
          */
         suspend fun await(): R {
             drainThrough(this)
@@ -51,16 +53,24 @@ internal class SerialCalls {
                 result.cancel()
                 return
             }
+            var started = false
             try {
                 supervisorScope {
-                    val running = async { work() }
+                    val running = async {
+                        started = true
+                        work()
+                    }
                     job = running
                     result.complete(running.await())
                 }
             } catch (e: CancellationException) {
-                // The drainer's own cancellation leaves the call for the next
-                // drainer; the call's alone ends it.
-                if (!currentCoroutineContext().isActive) throw e
+                // The drainer's own cancellation leaves a call that never
+                // started for the next drainer. A started call ends cancelled:
+                // running it again would repeat what it already did.
+                if (!currentCoroutineContext().isActive) {
+                    if (started) result.cancel(e)
+                    throw e
+                }
                 result.cancel(e)
             } catch (e: Throwable) {
                 result.completeExceptionally(e)

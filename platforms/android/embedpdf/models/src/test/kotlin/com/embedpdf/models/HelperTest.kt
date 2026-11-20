@@ -14,6 +14,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import kotlin.coroutines.cancellation.CancellationException
 
 /** `SnapshotRefreshTests` and `SerialCallsTests`, on a virtual-time main dispatcher. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -121,6 +122,31 @@ class HelperTest {
         testScheduler.runCurrent()
         assertTrue(ran)
         drainer.cancel()
+    }
+
+    @Test
+    fun aCancelledDrainerEndsTheStartedCallAndLeavesTheRestForTheNextDrainer() = runTest(main) {
+        val calls = SerialCalls()
+        val gate = CompletableDeferred<Unit>()
+        var starts = 0
+        val started = calls.enqueue {
+            starts += 1
+            gate.await()
+        }
+        var laterRan = false
+        val later = calls.enqueue { laterRan = true }
+        val drainer = launch { calls.drainContinuously() }
+        testScheduler.runCurrent()
+        assertEquals(1, starts)
+        drainer.cancel()
+        testScheduler.runCurrent()
+        gate.complete(Unit)
+        // The next drainer runs the call that never started, and not the started one again.
+        later.await()
+        assertTrue(laterRan)
+        assertEquals(1, starts)
+        val outcome = runCatching { started.await() }
+        assertTrue(outcome.exceptionOrNull() is CancellationException)
     }
 
     @Test
