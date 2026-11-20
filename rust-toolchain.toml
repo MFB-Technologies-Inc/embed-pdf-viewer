@@ -1,5 +1,9 @@
 [toolchain]
 channel = "1.98.0"
+# rust-analyzer ships per toolchain. Without it here, the rustup shim fails with
+# "Unknown binary 'rust-analyzer'" after every channel bump, and editor/agent
+# LSP integrations silently lose Rust code intelligence.
+components = ["rust-analyzer"]
 # Every target the multiplatform build cross-compiles for. rustup installs these
 # for THIS toolchain when a cargo command runs anywhere under the repo root.
 # Without them here, `rustup target add` adds them to the DEFAULT toolchain
