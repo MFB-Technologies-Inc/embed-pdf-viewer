@@ -5929,133 +5929,190 @@
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "list_panes",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/ViewManager.kt",
+        "symbol": "panes"
+      }
     },
     {
       "crate": "view-manager",
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "get_pane",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/ViewManager.kt",
+        "symbol": "pane"
+      }
     },
     {
       "crate": "view-manager",
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "get_pane_order",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/ViewManager.kt",
+        "symbol": "paneOrder"
+      }
     },
     {
       "crate": "view-manager",
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "get_focused_pane_id",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/ViewManager.kt",
+        "symbol": "focusedPaneId"
+      }
     },
     {
       "crate": "view-manager",
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "get_pane_of_document",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/ViewManager.kt",
+        "symbol": "pane"
+      }
     },
     {
       "crate": "view-manager",
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "create_pane",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/ViewManager.kt",
+        "symbol": "createPane"
+      }
     },
     {
       "crate": "view-manager",
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "delete_pane",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/ViewManager.kt",
+        "symbol": "removePane"
+      }
     },
     {
       "crate": "view-manager",
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "move_pane",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/ViewManager.kt",
+        "symbol": "movePane"
+      }
     },
     {
       "crate": "view-manager",
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "set_focused_pane",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/ViewManager.kt",
+        "symbol": "setFocusedPane"
+      }
     },
     {
       "crate": "view-manager",
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "split_pane",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/ViewManager.kt",
+        "symbol": "splitPane"
+      }
     },
     {
       "crate": "view-manager",
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "set_active_document",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/ViewManager.kt",
+        "symbol": "setActiveDocument"
+      }
     },
     {
       "crate": "view-manager",
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "add_document",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/ViewManager.kt",
+        "symbol": "addDocument"
+      }
     },
     {
       "crate": "view-manager",
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "remove_document",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/ViewManager.kt",
+        "symbol": "removeDocument"
+      }
     },
     {
       "crate": "view-manager",
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "move_document_within",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/ViewManager.kt",
+        "symbol": "moveDocument"
+      }
     },
     {
       "crate": "view-manager",
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "move_document_between",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/ViewManager.kt",
+        "symbol": "moveDocument"
+      }
     },
     {
       "crate": "view-manager",
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "on_pane_created",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/ViewManager.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "view-manager",
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "on_pane_deleted",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/ViewManager.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "view-manager",
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "on_focus_changed",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/ViewManager.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "view-manager",
       "path": "crates/plugins/view-manager/src/controller.rs",
       "owner": "ViewManagerCapability",
       "symbol": "on_document_moved",
-      "pending": "phase-3-a"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/ViewManager.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "epdf-kernel",

@@ -412,6 +412,34 @@ public final class com/embedpdf/SearchKt {
 	public static final fun search (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class com/embedpdf/ViewManagerCapability {
+	public final fun addDocument (Luniffi/epdf_viewer_host/DocumentInfo;Ljava/lang/String;Ljava/lang/Integer;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun addDocument$default (Lcom/embedpdf/ViewManagerCapability;Luniffi/epdf_viewer_host/DocumentInfo;Ljava/lang/String;Ljava/lang/Integer;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun createPane (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun createPane$default (Lcom/embedpdf/ViewManagerCapability;Ljava/util/List;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun focusedPaneId (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun moveDocument (Luniffi/epdf_viewer_host/DocumentInfo;Ljava/lang/String;ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun moveDocument (Luniffi/epdf_viewer_host/DocumentInfo;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun moveDocument$default (Lcom/embedpdf/ViewManagerCapability;Luniffi/epdf_viewer_host/DocumentInfo;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun movePane (Ljava/lang/String;ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
+	public final fun pane (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun pane (Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun paneOrder (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun panes (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun removeDocument (Luniffi/epdf_viewer_host/DocumentInfo;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun removePane (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun removePane$default (Lcom/embedpdf/ViewManagerCapability;Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun setActiveDocument (Luniffi/epdf_viewer_host/DocumentInfo;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setFocusedPane (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun splitPane (Luniffi/epdf_viewer_host/DocumentInfo;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun splitPane$default (Lcom/embedpdf/ViewManagerCapability;Luniffi/epdf_viewer_host/DocumentInfo;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/ViewManagerKt {
+	public static final fun viewManager (Lcom/embedpdf/PdfViewer;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class com/embedpdf/ViewerConfigBuilder {
 	public fun <init> ()V
 	public fun <init> (Luniffi/epdf_viewer_host/ViewerConfig;)V
