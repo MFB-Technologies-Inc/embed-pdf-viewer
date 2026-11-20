@@ -16,10 +16,9 @@ namespace EmbedPDF;
 // Each plugin's settings arrive with its capability in Phase 3; until then a
 // config installs its plugin with the engine's defaults.
 
-/// <summary>Installs the search plugin: text search, a session per document.</summary>
-public sealed record SearchConfig
+public sealed partial record SearchConfig
 {
-    internal GS.SearchConfig ToFfi() => new();
+    internal GS.SearchConfig ToFfi() => new(Reveal is null ? null : Ffi.ToFfi(Reveal));
 }
 
 /// <summary>Installs the render plugin: page rasters as owned pixels.</summary>

@@ -733,6 +733,7 @@ EmbedPDF.PdfViewer.ResetSettingsAsync(System.Threading.CancellationToken cancell
 EmbedPDF.PdfViewer.RetryAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.DocumentInfo!>!
 EmbedPDF.PdfViewer.SaveAsync(EmbedPDF.DocumentInfo! document, EmbedPDF.SaveMode mode = EmbedPDF.SaveMode.Incremental, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<byte[]!>!
 EmbedPDF.PdfViewer.SaveLayerAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<byte[]!>!
+EmbedPDF.PdfViewer.SearchAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.SearchCapability!>!
 EmbedPDF.PdfViewer.SetActiveAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.PdfViewer.SetDocumentOrderAsync(System.Collections.Generic.IEnumerable<string!>! ids, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.PdfViewer.StartAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -867,10 +868,273 @@ EmbedPDF.ResourceStatus.Ready = 2 -> EmbedPDF.ResourceStatus
 EmbedPDF.SaveMode
 EmbedPDF.SaveMode.Incremental = 0 -> EmbedPDF.SaveMode
 EmbedPDF.SaveMode.Rewrite = 1 -> EmbedPDF.SaveMode
+EmbedPDF.SearchBlendMode
+EmbedPDF.SearchBlendMode.Color = 14 -> EmbedPDF.SearchBlendMode
+EmbedPDF.SearchBlendMode.ColorBurn = 7 -> EmbedPDF.SearchBlendMode
+EmbedPDF.SearchBlendMode.ColorDodge = 6 -> EmbedPDF.SearchBlendMode
+EmbedPDF.SearchBlendMode.Darken = 4 -> EmbedPDF.SearchBlendMode
+EmbedPDF.SearchBlendMode.Difference = 10 -> EmbedPDF.SearchBlendMode
+EmbedPDF.SearchBlendMode.Exclusion = 11 -> EmbedPDF.SearchBlendMode
+EmbedPDF.SearchBlendMode.HardLight = 8 -> EmbedPDF.SearchBlendMode
+EmbedPDF.SearchBlendMode.Hue = 12 -> EmbedPDF.SearchBlendMode
+EmbedPDF.SearchBlendMode.Lighten = 5 -> EmbedPDF.SearchBlendMode
+EmbedPDF.SearchBlendMode.Luminosity = 15 -> EmbedPDF.SearchBlendMode
+EmbedPDF.SearchBlendMode.Multiply = 1 -> EmbedPDF.SearchBlendMode
+EmbedPDF.SearchBlendMode.Normal = 0 -> EmbedPDF.SearchBlendMode
+EmbedPDF.SearchBlendMode.Overlay = 3 -> EmbedPDF.SearchBlendMode
+EmbedPDF.SearchBlendMode.Saturation = 13 -> EmbedPDF.SearchBlendMode
+EmbedPDF.SearchBlendMode.Screen = 2 -> EmbedPDF.SearchBlendMode
+EmbedPDF.SearchBlendMode.SoftLight = 9 -> EmbedPDF.SearchBlendMode
+EmbedPDF.SearchCancelReason
+EmbedPDF.SearchCancelReason.Cancelled = 1 -> EmbedPDF.SearchCancelReason
+EmbedPDF.SearchCancelReason.Cleared = 2 -> EmbedPDF.SearchCancelReason
+EmbedPDF.SearchCancelReason.Superseded = 0 -> EmbedPDF.SearchCancelReason
+EmbedPDF.SearchCapability
+EmbedPDF.SearchCapability.CanSearchAsync(bool snippets = false, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.SearchCapability.CancelAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.SearchCapability.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.SearchCapability.Dispose() -> void
+EmbedPDF.SearchCapability.FindAllAsync(EmbedPDF.SearchQuery! query, EmbedPDF.ContentInclusion snippets = EmbedPDF.ContentInclusion.WhenPermitted, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.SearchHit!>!>!
+EmbedPDF.SearchCapability.GetActiveHitAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.SearchHit?>!
+EmbedPDF.SearchCapability.GetActiveHitIndexAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int?>!
+EmbedPDF.SearchCapability.GetErrorAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PluginErrorInfo?>!
+EmbedPDF.SearchCapability.GetHitCountAsync(EmbedPDF.PageRef? page = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+EmbedPDF.SearchCapability.GetHitsAsync(EmbedPDF.PageRef? page = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.SearchHit!>!>!
+EmbedPDF.SearchCapability.GetPagesWithHitsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>!>!
+EmbedPDF.SearchCapability.GetProgressAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.SearchProgress!>!
+EmbedPDF.SearchCapability.GetQueryAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.SearchQuery?>!
+EmbedPDF.SearchCapability.GetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.SearchSettings!>!
+EmbedPDF.SearchCapability.GetStatusAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.SearchStatus>!
+EmbedPDF.SearchCapability.GoToHitAsync(int index, EmbedPDF.SearchRevealOptions? reveal = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.SearchHit?>!
+EmbedPDF.SearchCapability.NextHitAsync(EmbedPDF.SearchRevealOptions? reveal = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.SearchHit?>!
+EmbedPDF.SearchCapability.ObserveEvents(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.SearchEvent!>!
+EmbedPDF.SearchCapability.PreviousHitAsync(EmbedPDF.SearchRevealOptions? reveal = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.SearchHit?>!
+EmbedPDF.SearchCapability.RefreshAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.SearchCapability.ResetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.SearchCapability.RevealActiveHitAsync(EmbedPDF.SearchRevealOptions? reveal = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.SearchCapability.SearchAsync(EmbedPDF.SearchQuery! query, EmbedPDF.PageRef? from = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.SearchResult!>!
+EmbedPDF.SearchCapability.UpdateSettingsAsync(EmbedPDF.SearchSettingsPatch! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.SearchConfig
 EmbedPDF.SearchConfig.<Clone>$() -> EmbedPDF.SearchConfig!
 EmbedPDF.SearchConfig.Equals(EmbedPDF.SearchConfig? other) -> bool
+EmbedPDF.SearchConfig.Reveal.get -> EmbedPDF.SearchRevealOptions?
+EmbedPDF.SearchConfig.Reveal.init -> void
 EmbedPDF.SearchConfig.SearchConfig() -> void
+EmbedPDF.SearchEvent
+EmbedPDF.SearchEvent.ActiveHitChanged
+EmbedPDF.SearchEvent.ActiveHitChanged.ActiveHitChanged(int? Index, EmbedPDF.SearchHit? Hit) -> void
+EmbedPDF.SearchEvent.ActiveHitChanged.Deconstruct(out int? Index, out EmbedPDF.SearchHit? Hit) -> void
+EmbedPDF.SearchEvent.ActiveHitChanged.Equals(EmbedPDF.SearchEvent.ActiveHitChanged? other) -> bool
+EmbedPDF.SearchEvent.ActiveHitChanged.Hit.get -> EmbedPDF.SearchHit?
+EmbedPDF.SearchEvent.ActiveHitChanged.Hit.init -> void
+EmbedPDF.SearchEvent.ActiveHitChanged.Index.get -> int?
+EmbedPDF.SearchEvent.ActiveHitChanged.Index.init -> void
+EmbedPDF.SearchEvent.Cancelled
+EmbedPDF.SearchEvent.Cancelled.Cancelled(EmbedPDF.SearchCancelReason Reason) -> void
+EmbedPDF.SearchEvent.Cancelled.Deconstruct(out EmbedPDF.SearchCancelReason Reason) -> void
+EmbedPDF.SearchEvent.Cancelled.Equals(EmbedPDF.SearchEvent.Cancelled? other) -> bool
+EmbedPDF.SearchEvent.Cancelled.Reason.get -> EmbedPDF.SearchCancelReason
+EmbedPDF.SearchEvent.Cancelled.Reason.init -> void
+EmbedPDF.SearchEvent.Completed
+EmbedPDF.SearchEvent.Completed.Completed(int HitCount) -> void
+EmbedPDF.SearchEvent.Completed.Deconstruct(out int HitCount) -> void
+EmbedPDF.SearchEvent.Completed.Equals(EmbedPDF.SearchEvent.Completed? other) -> bool
+EmbedPDF.SearchEvent.Completed.HitCount.get -> int
+EmbedPDF.SearchEvent.Completed.HitCount.init -> void
+EmbedPDF.SearchEvent.Failed
+EmbedPDF.SearchEvent.Failed.Deconstruct(out EmbedPDF.PluginErrorInfo! Error) -> void
+EmbedPDF.SearchEvent.Failed.Equals(EmbedPDF.SearchEvent.Failed? other) -> bool
+EmbedPDF.SearchEvent.Failed.Error.get -> EmbedPDF.PluginErrorInfo!
+EmbedPDF.SearchEvent.Failed.Error.init -> void
+EmbedPDF.SearchEvent.Failed.Failed(EmbedPDF.PluginErrorInfo! Error) -> void
+EmbedPDF.SearchEvent.ProgressChanged
+EmbedPDF.SearchEvent.ProgressChanged.Deconstruct(out double PagesSearched, out double PageCount, out int HitCount) -> void
+EmbedPDF.SearchEvent.ProgressChanged.Equals(EmbedPDF.SearchEvent.ProgressChanged? other) -> bool
+EmbedPDF.SearchEvent.ProgressChanged.HitCount.get -> int
+EmbedPDF.SearchEvent.ProgressChanged.HitCount.init -> void
+EmbedPDF.SearchEvent.ProgressChanged.PageCount.get -> double
+EmbedPDF.SearchEvent.ProgressChanged.PageCount.init -> void
+EmbedPDF.SearchEvent.ProgressChanged.PagesSearched.get -> double
+EmbedPDF.SearchEvent.ProgressChanged.PagesSearched.init -> void
+EmbedPDF.SearchEvent.ProgressChanged.ProgressChanged(double PagesSearched, double PageCount, int HitCount) -> void
+EmbedPDF.SearchEvent.SearchEvent(EmbedPDF.SearchEvent! original) -> void
+EmbedPDF.SearchEvent.Started
+EmbedPDF.SearchEvent.Started.Deconstruct(out EmbedPDF.SearchQuery! Query) -> void
+EmbedPDF.SearchEvent.Started.Equals(EmbedPDF.SearchEvent.Started? other) -> bool
+EmbedPDF.SearchEvent.Started.Query.get -> EmbedPDF.SearchQuery!
+EmbedPDF.SearchEvent.Started.Query.init -> void
+EmbedPDF.SearchEvent.Started.Started(EmbedPDF.SearchQuery! Query) -> void
+EmbedPDF.SearchHighlightPatch
+EmbedPDF.SearchHighlightPatch.<Clone>$() -> EmbedPDF.SearchHighlightPatch!
+EmbedPDF.SearchHighlightPatch.ActiveColor.get -> string?
+EmbedPDF.SearchHighlightPatch.ActiveColor.init -> void
+EmbedPDF.SearchHighlightPatch.BlendMode.get -> EmbedPDF.SearchBlendMode?
+EmbedPDF.SearchHighlightPatch.BlendMode.init -> void
+EmbedPDF.SearchHighlightPatch.Color.get -> string?
+EmbedPDF.SearchHighlightPatch.Color.init -> void
+EmbedPDF.SearchHighlightPatch.Equals(EmbedPDF.SearchHighlightPatch? other) -> bool
+EmbedPDF.SearchHighlightPatch.SearchHighlightPatch() -> void
+EmbedPDF.SearchHighlightSettings
+EmbedPDF.SearchHighlightSettings.<Clone>$() -> EmbedPDF.SearchHighlightSettings!
+EmbedPDF.SearchHighlightSettings.ActiveColor.get -> string!
+EmbedPDF.SearchHighlightSettings.ActiveColor.init -> void
+EmbedPDF.SearchHighlightSettings.BlendMode.get -> EmbedPDF.SearchBlendMode
+EmbedPDF.SearchHighlightSettings.BlendMode.init -> void
+EmbedPDF.SearchHighlightSettings.Color.get -> string!
+EmbedPDF.SearchHighlightSettings.Color.init -> void
+EmbedPDF.SearchHighlightSettings.Deconstruct(out string! Color, out string! ActiveColor, out EmbedPDF.SearchBlendMode BlendMode) -> void
+EmbedPDF.SearchHighlightSettings.Equals(EmbedPDF.SearchHighlightSettings? other) -> bool
+EmbedPDF.SearchHighlightSettings.SearchHighlightSettings(string! Color, string! ActiveColor, EmbedPDF.SearchBlendMode BlendMode) -> void
+EmbedPDF.SearchHit
+EmbedPDF.SearchHit.<Clone>$() -> EmbedPDF.SearchHit!
+EmbedPDF.SearchHit.Bounds.get -> EmbedPDF.PdfRect?
+EmbedPDF.SearchHit.Bounds.init -> void
+EmbedPDF.SearchHit.Count.get -> double
+EmbedPDF.SearchHit.Count.init -> void
+EmbedPDF.SearchHit.Deconstruct(out EmbedPDF.PageRef Page, out int PageIndex, out double Start, out double Count, out System.Collections.Generic.IReadOnlyList<EmbedPDF.TextSegment!>! Segments, out EmbedPDF.PdfRect? Bounds, out EmbedPDF.SearchSnippet? Snippet) -> void
+EmbedPDF.SearchHit.Equals(EmbedPDF.SearchHit? other) -> bool
+EmbedPDF.SearchHit.Page.get -> EmbedPDF.PageRef
+EmbedPDF.SearchHit.Page.init -> void
+EmbedPDF.SearchHit.PageIndex.get -> int
+EmbedPDF.SearchHit.PageIndex.init -> void
+EmbedPDF.SearchHit.SearchHit(EmbedPDF.PageRef Page, int PageIndex, double Start, double Count, System.Collections.Generic.IReadOnlyList<EmbedPDF.TextSegment!>! Segments, EmbedPDF.PdfRect? Bounds, EmbedPDF.SearchSnippet? Snippet) -> void
+EmbedPDF.SearchHit.Segments.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.TextSegment!>!
+EmbedPDF.SearchHit.Segments.init -> void
+EmbedPDF.SearchHit.Snippet.get -> EmbedPDF.SearchSnippet?
+EmbedPDF.SearchHit.Snippet.init -> void
+EmbedPDF.SearchHit.Start.get -> double
+EmbedPDF.SearchHit.Start.init -> void
+EmbedPDF.SearchProgress
+EmbedPDF.SearchProgress.<Clone>$() -> EmbedPDF.SearchProgress!
+EmbedPDF.SearchProgress.Deconstruct(out double PagesSearched, out double PageCount) -> void
+EmbedPDF.SearchProgress.Equals(EmbedPDF.SearchProgress? other) -> bool
+EmbedPDF.SearchProgress.PageCount.get -> double
+EmbedPDF.SearchProgress.PageCount.init -> void
+EmbedPDF.SearchProgress.PagesSearched.get -> double
+EmbedPDF.SearchProgress.PagesSearched.init -> void
+EmbedPDF.SearchProgress.SearchProgress(double PagesSearched, double PageCount) -> void
+EmbedPDF.SearchQuery
+EmbedPDF.SearchQuery.<Clone>$() -> EmbedPDF.SearchQuery!
+EmbedPDF.SearchQuery.Deconstruct(out string! Text) -> void
+EmbedPDF.SearchQuery.Equals(EmbedPDF.SearchQuery? other) -> bool
+EmbedPDF.SearchQuery.IgnoreWhitespace.get -> bool?
+EmbedPDF.SearchQuery.IgnoreWhitespace.init -> void
+EmbedPDF.SearchQuery.MatchCase.get -> bool?
+EmbedPDF.SearchQuery.MatchCase.init -> void
+EmbedPDF.SearchQuery.MatchDiacritics.get -> bool?
+EmbedPDF.SearchQuery.MatchDiacritics.init -> void
+EmbedPDF.SearchQuery.Regex.get -> bool?
+EmbedPDF.SearchQuery.Regex.init -> void
+EmbedPDF.SearchQuery.SearchQuery(string! Text) -> void
+EmbedPDF.SearchQuery.Text.get -> string!
+EmbedPDF.SearchQuery.Text.init -> void
+EmbedPDF.SearchQuery.WholeWord.get -> bool?
+EmbedPDF.SearchQuery.WholeWord.init -> void
+EmbedPDF.SearchResult
+EmbedPDF.SearchResult.<Clone>$() -> EmbedPDF.SearchResult!
+EmbedPDF.SearchResult.Deconstruct(out EmbedPDF.SearchResultStatus Status, out int HitCount) -> void
+EmbedPDF.SearchResult.Equals(EmbedPDF.SearchResult? other) -> bool
+EmbedPDF.SearchResult.HitCount.get -> int
+EmbedPDF.SearchResult.HitCount.init -> void
+EmbedPDF.SearchResult.SearchResult(EmbedPDF.SearchResultStatus Status, int HitCount) -> void
+EmbedPDF.SearchResult.Status.get -> EmbedPDF.SearchResultStatus
+EmbedPDF.SearchResult.Status.init -> void
+EmbedPDF.SearchResultStatus
+EmbedPDF.SearchResultStatus.Cancelled = 2 -> EmbedPDF.SearchResultStatus
+EmbedPDF.SearchResultStatus.Complete = 0 -> EmbedPDF.SearchResultStatus
+EmbedPDF.SearchResultStatus.Superseded = 1 -> EmbedPDF.SearchResultStatus
+EmbedPDF.SearchRevealAnchor
+EmbedPDF.SearchRevealAnchor.<Clone>$() -> EmbedPDF.SearchRevealAnchor!
+EmbedPDF.SearchRevealAnchor.Equals(EmbedPDF.SearchRevealAnchor? other) -> bool
+EmbedPDF.SearchRevealAnchor.SearchRevealAnchor() -> void
+EmbedPDF.SearchRevealAnchor.X.get -> EmbedPDF.SearchRevealAxis?
+EmbedPDF.SearchRevealAnchor.X.init -> void
+EmbedPDF.SearchRevealAnchor.Y.get -> EmbedPDF.SearchRevealAxis?
+EmbedPDF.SearchRevealAnchor.Y.init -> void
+EmbedPDF.SearchRevealAxis
+EmbedPDF.SearchRevealAxis.Center
+EmbedPDF.SearchRevealAxis.Center.Center() -> void
+EmbedPDF.SearchRevealAxis.Center.Equals(EmbedPDF.SearchRevealAxis.Center? other) -> bool
+EmbedPDF.SearchRevealAxis.End
+EmbedPDF.SearchRevealAxis.End.End() -> void
+EmbedPDF.SearchRevealAxis.End.Equals(EmbedPDF.SearchRevealAxis.End? other) -> bool
+EmbedPDF.SearchRevealAxis.Fraction
+EmbedPDF.SearchRevealAxis.Fraction.Deconstruct(out double Value) -> void
+EmbedPDF.SearchRevealAxis.Fraction.Equals(EmbedPDF.SearchRevealAxis.Fraction? other) -> bool
+EmbedPDF.SearchRevealAxis.Fraction.Fraction(double Value) -> void
+EmbedPDF.SearchRevealAxis.Fraction.Value.get -> double
+EmbedPDF.SearchRevealAxis.Fraction.Value.init -> void
+EmbedPDF.SearchRevealAxis.Keep
+EmbedPDF.SearchRevealAxis.Keep.Equals(EmbedPDF.SearchRevealAxis.Keep? other) -> bool
+EmbedPDF.SearchRevealAxis.Keep.Keep() -> void
+EmbedPDF.SearchRevealAxis.SearchRevealAxis(EmbedPDF.SearchRevealAxis! original) -> void
+EmbedPDF.SearchRevealAxis.Start
+EmbedPDF.SearchRevealAxis.Start.Equals(EmbedPDF.SearchRevealAxis.Start? other) -> bool
+EmbedPDF.SearchRevealAxis.Start.Start() -> void
+EmbedPDF.SearchRevealOptions
+EmbedPDF.SearchRevealOptions.<Clone>$() -> EmbedPDF.SearchRevealOptions!
+EmbedPDF.SearchRevealOptions.Anchor.get -> EmbedPDF.SearchRevealAnchor?
+EmbedPDF.SearchRevealOptions.Anchor.init -> void
+EmbedPDF.SearchRevealOptions.Behavior.get -> EmbedPDF.SearchScrollBehavior?
+EmbedPDF.SearchRevealOptions.Behavior.init -> void
+EmbedPDF.SearchRevealOptions.Equals(EmbedPDF.SearchRevealOptions? other) -> bool
+EmbedPDF.SearchRevealOptions.SearchRevealOptions() -> void
+EmbedPDF.SearchRevealPatch
+EmbedPDF.SearchRevealPatch.<Clone>$() -> EmbedPDF.SearchRevealPatch!
+EmbedPDF.SearchRevealPatch.Anchor.get -> EmbedPDF.SearchRevealAnchor?
+EmbedPDF.SearchRevealPatch.Anchor.init -> void
+EmbedPDF.SearchRevealPatch.Behavior.get -> EmbedPDF.SearchScrollBehavior?
+EmbedPDF.SearchRevealPatch.Behavior.init -> void
+EmbedPDF.SearchRevealPatch.ClearAnchor.get -> bool
+EmbedPDF.SearchRevealPatch.ClearAnchor.init -> void
+EmbedPDF.SearchRevealPatch.Equals(EmbedPDF.SearchRevealPatch? other) -> bool
+EmbedPDF.SearchRevealPatch.SearchRevealPatch() -> void
+EmbedPDF.SearchRevealSettings
+EmbedPDF.SearchRevealSettings.<Clone>$() -> EmbedPDF.SearchRevealSettings!
+EmbedPDF.SearchRevealSettings.Anchor.get -> EmbedPDF.SearchRevealAnchor?
+EmbedPDF.SearchRevealSettings.Anchor.init -> void
+EmbedPDF.SearchRevealSettings.Behavior.get -> EmbedPDF.SearchScrollBehavior
+EmbedPDF.SearchRevealSettings.Behavior.init -> void
+EmbedPDF.SearchRevealSettings.Deconstruct(out EmbedPDF.SearchRevealAnchor? Anchor, out EmbedPDF.SearchScrollBehavior Behavior) -> void
+EmbedPDF.SearchRevealSettings.Equals(EmbedPDF.SearchRevealSettings? other) -> bool
+EmbedPDF.SearchRevealSettings.SearchRevealSettings(EmbedPDF.SearchRevealAnchor? Anchor, EmbedPDF.SearchScrollBehavior Behavior) -> void
+EmbedPDF.SearchScrollBehavior
+EmbedPDF.SearchScrollBehavior.Instant = 1 -> EmbedPDF.SearchScrollBehavior
+EmbedPDF.SearchScrollBehavior.Smooth = 0 -> EmbedPDF.SearchScrollBehavior
+EmbedPDF.SearchSettings
+EmbedPDF.SearchSettings.<Clone>$() -> EmbedPDF.SearchSettings!
+EmbedPDF.SearchSettings.Deconstruct(out EmbedPDF.SearchRevealSettings! Reveal, out EmbedPDF.SearchHighlightSettings! Highlight) -> void
+EmbedPDF.SearchSettings.Equals(EmbedPDF.SearchSettings? other) -> bool
+EmbedPDF.SearchSettings.Highlight.get -> EmbedPDF.SearchHighlightSettings!
+EmbedPDF.SearchSettings.Highlight.init -> void
+EmbedPDF.SearchSettings.Reveal.get -> EmbedPDF.SearchRevealSettings!
+EmbedPDF.SearchSettings.Reveal.init -> void
+EmbedPDF.SearchSettings.SearchSettings(EmbedPDF.SearchRevealSettings! Reveal, EmbedPDF.SearchHighlightSettings! Highlight) -> void
+EmbedPDF.SearchSettingsPatch
+EmbedPDF.SearchSettingsPatch.<Clone>$() -> EmbedPDF.SearchSettingsPatch!
+EmbedPDF.SearchSettingsPatch.Equals(EmbedPDF.SearchSettingsPatch? other) -> bool
+EmbedPDF.SearchSettingsPatch.Highlight.get -> EmbedPDF.SearchHighlightPatch?
+EmbedPDF.SearchSettingsPatch.Highlight.init -> void
+EmbedPDF.SearchSettingsPatch.Reveal.get -> EmbedPDF.SearchRevealPatch?
+EmbedPDF.SearchSettingsPatch.Reveal.init -> void
+EmbedPDF.SearchSettingsPatch.SearchSettingsPatch() -> void
+EmbedPDF.SearchSnippet
+EmbedPDF.SearchSnippet.<Clone>$() -> EmbedPDF.SearchSnippet!
+EmbedPDF.SearchSnippet.After.get -> string!
+EmbedPDF.SearchSnippet.After.init -> void
+EmbedPDF.SearchSnippet.Before.get -> string!
+EmbedPDF.SearchSnippet.Before.init -> void
+EmbedPDF.SearchSnippet.Deconstruct(out string! Before, out string! Matched, out string! After) -> void
+EmbedPDF.SearchSnippet.Equals(EmbedPDF.SearchSnippet? other) -> bool
+EmbedPDF.SearchSnippet.Matched.get -> string!
+EmbedPDF.SearchSnippet.Matched.init -> void
+EmbedPDF.SearchSnippet.SearchSnippet(string! Before, string! Matched, string! After) -> void
+EmbedPDF.SearchStatus
+EmbedPDF.SearchStatus.Cancelled = 3 -> EmbedPDF.SearchStatus
+EmbedPDF.SearchStatus.Complete = 2 -> EmbedPDF.SearchStatus
+EmbedPDF.SearchStatus.Error = 4 -> EmbedPDF.SearchStatus
+EmbedPDF.SearchStatus.Idle = 0 -> EmbedPDF.SearchStatus
+EmbedPDF.SearchStatus.Searching = 1 -> EmbedPDF.SearchStatus
 EmbedPDF.SignatureConfig
 EmbedPDF.SignatureConfig.<Clone>$() -> EmbedPDF.SignatureConfig!
 EmbedPDF.SignatureConfig.Equals(EmbedPDF.SignatureConfig? other) -> bool
@@ -891,6 +1155,17 @@ EmbedPDF.StandardCommandList.Interaction = 1 -> EmbedPDF.StandardCommandList
 EmbedPDF.StandardCommandList.Render = 5 -> EmbedPDF.StandardCommandList
 EmbedPDF.StandardCommandList.Selection = 2 -> EmbedPDF.StandardCommandList
 EmbedPDF.StandardCommandList.Stage = 0 -> EmbedPDF.StandardCommandList
+EmbedPDF.TextSegment
+EmbedPDF.TextSegment.<Clone>$() -> EmbedPDF.TextSegment!
+EmbedPDF.TextSegment.Advance.get -> double
+EmbedPDF.TextSegment.Advance.init -> void
+EmbedPDF.TextSegment.Deconstruct(out EmbedPDF.PdfQuad Quad, out EmbedPDF.PdfRect Rect, out double Advance) -> void
+EmbedPDF.TextSegment.Equals(EmbedPDF.TextSegment? other) -> bool
+EmbedPDF.TextSegment.Quad.get -> EmbedPDF.PdfQuad
+EmbedPDF.TextSegment.Quad.init -> void
+EmbedPDF.TextSegment.Rect.get -> EmbedPDF.PdfRect
+EmbedPDF.TextSegment.Rect.init -> void
+EmbedPDF.TextSegment.TextSegment(EmbedPDF.PdfQuad Quad, EmbedPDF.PdfRect Rect, double Advance) -> void
 EmbedPDF.ViewerSettings
 EmbedPDF.ViewerSettings.<Clone>$() -> EmbedPDF.ViewerSettings!
 EmbedPDF.ViewerSettings.Accent.get -> string?
@@ -929,6 +1204,8 @@ abstract EmbedPDF.PageDestination.Page.get -> EmbedPDF.PageRef
 abstract EmbedPDF.PageDestination.Page.init -> void
 abstract EmbedPDF.PageEditPlacement.<Clone>$() -> EmbedPDF.PageEditPlacement!
 abstract EmbedPDF.PageLinkTarget.<Clone>$() -> EmbedPDF.PageLinkTarget!
+abstract EmbedPDF.SearchEvent.<Clone>$() -> EmbedPDF.SearchEvent!
+abstract EmbedPDF.SearchRevealAxis.<Clone>$() -> EmbedPDF.SearchRevealAxis!
 const EmbedPDF.PageRenderResolution.DeviceWidthStep = 128 -> double
 const EmbedPDF.PageRenderResolution.OffScreenDeviceWidth = 256 -> double
 override EmbedPDF.ActionsConfig.Equals(object? obj) -> bool
@@ -1230,6 +1507,95 @@ override EmbedPDF.RenderConfig.ToString() -> string!
 override EmbedPDF.SearchConfig.Equals(object? obj) -> bool
 override EmbedPDF.SearchConfig.GetHashCode() -> int
 override EmbedPDF.SearchConfig.ToString() -> string!
+override EmbedPDF.SearchEvent.ActiveHitChanged.<Clone>$() -> EmbedPDF.SearchEvent.ActiveHitChanged!
+override EmbedPDF.SearchEvent.ActiveHitChanged.Equals(object? obj) -> bool
+override EmbedPDF.SearchEvent.ActiveHitChanged.GetHashCode() -> int
+override EmbedPDF.SearchEvent.ActiveHitChanged.ToString() -> string!
+override EmbedPDF.SearchEvent.Cancelled.<Clone>$() -> EmbedPDF.SearchEvent.Cancelled!
+override EmbedPDF.SearchEvent.Cancelled.Equals(object? obj) -> bool
+override EmbedPDF.SearchEvent.Cancelled.GetHashCode() -> int
+override EmbedPDF.SearchEvent.Cancelled.ToString() -> string!
+override EmbedPDF.SearchEvent.Completed.<Clone>$() -> EmbedPDF.SearchEvent.Completed!
+override EmbedPDF.SearchEvent.Completed.Equals(object? obj) -> bool
+override EmbedPDF.SearchEvent.Completed.GetHashCode() -> int
+override EmbedPDF.SearchEvent.Completed.ToString() -> string!
+override EmbedPDF.SearchEvent.Equals(object? obj) -> bool
+override EmbedPDF.SearchEvent.Failed.<Clone>$() -> EmbedPDF.SearchEvent.Failed!
+override EmbedPDF.SearchEvent.Failed.Equals(object? obj) -> bool
+override EmbedPDF.SearchEvent.Failed.GetHashCode() -> int
+override EmbedPDF.SearchEvent.Failed.ToString() -> string!
+override EmbedPDF.SearchEvent.GetHashCode() -> int
+override EmbedPDF.SearchEvent.ProgressChanged.<Clone>$() -> EmbedPDF.SearchEvent.ProgressChanged!
+override EmbedPDF.SearchEvent.ProgressChanged.Equals(object? obj) -> bool
+override EmbedPDF.SearchEvent.ProgressChanged.GetHashCode() -> int
+override EmbedPDF.SearchEvent.ProgressChanged.ToString() -> string!
+override EmbedPDF.SearchEvent.Started.<Clone>$() -> EmbedPDF.SearchEvent.Started!
+override EmbedPDF.SearchEvent.Started.Equals(object? obj) -> bool
+override EmbedPDF.SearchEvent.Started.GetHashCode() -> int
+override EmbedPDF.SearchEvent.Started.ToString() -> string!
+override EmbedPDF.SearchEvent.ToString() -> string!
+override EmbedPDF.SearchHighlightPatch.Equals(object? obj) -> bool
+override EmbedPDF.SearchHighlightPatch.GetHashCode() -> int
+override EmbedPDF.SearchHighlightPatch.ToString() -> string!
+override EmbedPDF.SearchHighlightSettings.Equals(object? obj) -> bool
+override EmbedPDF.SearchHighlightSettings.GetHashCode() -> int
+override EmbedPDF.SearchHighlightSettings.ToString() -> string!
+override EmbedPDF.SearchHit.Equals(object? obj) -> bool
+override EmbedPDF.SearchHit.GetHashCode() -> int
+override EmbedPDF.SearchHit.ToString() -> string!
+override EmbedPDF.SearchProgress.Equals(object? obj) -> bool
+override EmbedPDF.SearchProgress.GetHashCode() -> int
+override EmbedPDF.SearchProgress.ToString() -> string!
+override EmbedPDF.SearchQuery.Equals(object? obj) -> bool
+override EmbedPDF.SearchQuery.GetHashCode() -> int
+override EmbedPDF.SearchQuery.ToString() -> string!
+override EmbedPDF.SearchResult.Equals(object? obj) -> bool
+override EmbedPDF.SearchResult.GetHashCode() -> int
+override EmbedPDF.SearchResult.ToString() -> string!
+override EmbedPDF.SearchRevealAnchor.Equals(object? obj) -> bool
+override EmbedPDF.SearchRevealAnchor.GetHashCode() -> int
+override EmbedPDF.SearchRevealAnchor.ToString() -> string!
+override EmbedPDF.SearchRevealAxis.Center.<Clone>$() -> EmbedPDF.SearchRevealAxis.Center!
+override EmbedPDF.SearchRevealAxis.Center.Equals(object? obj) -> bool
+override EmbedPDF.SearchRevealAxis.Center.GetHashCode() -> int
+override EmbedPDF.SearchRevealAxis.Center.ToString() -> string!
+override EmbedPDF.SearchRevealAxis.End.<Clone>$() -> EmbedPDF.SearchRevealAxis.End!
+override EmbedPDF.SearchRevealAxis.End.Equals(object? obj) -> bool
+override EmbedPDF.SearchRevealAxis.End.GetHashCode() -> int
+override EmbedPDF.SearchRevealAxis.End.ToString() -> string!
+override EmbedPDF.SearchRevealAxis.Equals(object? obj) -> bool
+override EmbedPDF.SearchRevealAxis.Fraction.<Clone>$() -> EmbedPDF.SearchRevealAxis.Fraction!
+override EmbedPDF.SearchRevealAxis.Fraction.Equals(object? obj) -> bool
+override EmbedPDF.SearchRevealAxis.Fraction.GetHashCode() -> int
+override EmbedPDF.SearchRevealAxis.Fraction.ToString() -> string!
+override EmbedPDF.SearchRevealAxis.GetHashCode() -> int
+override EmbedPDF.SearchRevealAxis.Keep.<Clone>$() -> EmbedPDF.SearchRevealAxis.Keep!
+override EmbedPDF.SearchRevealAxis.Keep.Equals(object? obj) -> bool
+override EmbedPDF.SearchRevealAxis.Keep.GetHashCode() -> int
+override EmbedPDF.SearchRevealAxis.Keep.ToString() -> string!
+override EmbedPDF.SearchRevealAxis.Start.<Clone>$() -> EmbedPDF.SearchRevealAxis.Start!
+override EmbedPDF.SearchRevealAxis.Start.Equals(object? obj) -> bool
+override EmbedPDF.SearchRevealAxis.Start.GetHashCode() -> int
+override EmbedPDF.SearchRevealAxis.Start.ToString() -> string!
+override EmbedPDF.SearchRevealAxis.ToString() -> string!
+override EmbedPDF.SearchRevealOptions.Equals(object? obj) -> bool
+override EmbedPDF.SearchRevealOptions.GetHashCode() -> int
+override EmbedPDF.SearchRevealOptions.ToString() -> string!
+override EmbedPDF.SearchRevealPatch.Equals(object? obj) -> bool
+override EmbedPDF.SearchRevealPatch.GetHashCode() -> int
+override EmbedPDF.SearchRevealPatch.ToString() -> string!
+override EmbedPDF.SearchRevealSettings.Equals(object? obj) -> bool
+override EmbedPDF.SearchRevealSettings.GetHashCode() -> int
+override EmbedPDF.SearchRevealSettings.ToString() -> string!
+override EmbedPDF.SearchSettings.Equals(object? obj) -> bool
+override EmbedPDF.SearchSettings.GetHashCode() -> int
+override EmbedPDF.SearchSettings.ToString() -> string!
+override EmbedPDF.SearchSettingsPatch.Equals(object? obj) -> bool
+override EmbedPDF.SearchSettingsPatch.GetHashCode() -> int
+override EmbedPDF.SearchSettingsPatch.ToString() -> string!
+override EmbedPDF.SearchSnippet.Equals(object? obj) -> bool
+override EmbedPDF.SearchSnippet.GetHashCode() -> int
+override EmbedPDF.SearchSnippet.ToString() -> string!
 override EmbedPDF.SignatureConfig.Equals(object? obj) -> bool
 override EmbedPDF.SignatureConfig.GetHashCode() -> int
 override EmbedPDF.SignatureConfig.ToString() -> string!
@@ -1239,6 +1605,9 @@ override EmbedPDF.StageConfig.ToString() -> string!
 override EmbedPDF.StampConfig.Equals(object? obj) -> bool
 override EmbedPDF.StampConfig.GetHashCode() -> int
 override EmbedPDF.StampConfig.ToString() -> string!
+override EmbedPDF.TextSegment.Equals(object? obj) -> bool
+override EmbedPDF.TextSegment.GetHashCode() -> int
+override EmbedPDF.TextSegment.ToString() -> string!
 override EmbedPDF.ViewerSettings.Equals(object? obj) -> bool
 override EmbedPDF.ViewerSettings.GetHashCode() -> int
 override EmbedPDF.ViewerSettings.ToString() -> string!
@@ -1286,6 +1655,17 @@ override sealed EmbedPDF.PageLinkTarget.GoToRemote.Equals(EmbedPDF.PageLinkTarge
 override sealed EmbedPDF.PageLinkTarget.Launch.Equals(EmbedPDF.PageLinkTarget? other) -> bool
 override sealed EmbedPDF.PageLinkTarget.Named.Equals(EmbedPDF.PageLinkTarget? other) -> bool
 override sealed EmbedPDF.PageLinkTarget.Uri.Equals(EmbedPDF.PageLinkTarget? other) -> bool
+override sealed EmbedPDF.SearchEvent.ActiveHitChanged.Equals(EmbedPDF.SearchEvent? other) -> bool
+override sealed EmbedPDF.SearchEvent.Cancelled.Equals(EmbedPDF.SearchEvent? other) -> bool
+override sealed EmbedPDF.SearchEvent.Completed.Equals(EmbedPDF.SearchEvent? other) -> bool
+override sealed EmbedPDF.SearchEvent.Failed.Equals(EmbedPDF.SearchEvent? other) -> bool
+override sealed EmbedPDF.SearchEvent.ProgressChanged.Equals(EmbedPDF.SearchEvent? other) -> bool
+override sealed EmbedPDF.SearchEvent.Started.Equals(EmbedPDF.SearchEvent? other) -> bool
+override sealed EmbedPDF.SearchRevealAxis.Center.Equals(EmbedPDF.SearchRevealAxis? other) -> bool
+override sealed EmbedPDF.SearchRevealAxis.End.Equals(EmbedPDF.SearchRevealAxis? other) -> bool
+override sealed EmbedPDF.SearchRevealAxis.Fraction.Equals(EmbedPDF.SearchRevealAxis? other) -> bool
+override sealed EmbedPDF.SearchRevealAxis.Keep.Equals(EmbedPDF.SearchRevealAxis? other) -> bool
+override sealed EmbedPDF.SearchRevealAxis.Start.Equals(EmbedPDF.SearchRevealAxis? other) -> bool
 static EmbedPDF.ActionsConfig.operator !=(EmbedPDF.ActionsConfig? left, EmbedPDF.ActionsConfig? right) -> bool
 static EmbedPDF.ActionsConfig.operator ==(EmbedPDF.ActionsConfig? left, EmbedPDF.ActionsConfig? right) -> bool
 static EmbedPDF.AnnotationRef.Index.operator !=(EmbedPDF.AnnotationRef.Index? left, EmbedPDF.AnnotationRef.Index? right) -> bool
@@ -1510,12 +1890,66 @@ static EmbedPDF.RenderRotationExtensions.FromDegrees(int degrees) -> EmbedPDF.Re
 static EmbedPDF.RenderRotationExtensions.IsQuarterTurn(this EmbedPDF.RenderRotation rotation) -> bool
 static EmbedPDF.SearchConfig.operator !=(EmbedPDF.SearchConfig? left, EmbedPDF.SearchConfig? right) -> bool
 static EmbedPDF.SearchConfig.operator ==(EmbedPDF.SearchConfig? left, EmbedPDF.SearchConfig? right) -> bool
+static EmbedPDF.SearchEvent.ActiveHitChanged.operator !=(EmbedPDF.SearchEvent.ActiveHitChanged? left, EmbedPDF.SearchEvent.ActiveHitChanged? right) -> bool
+static EmbedPDF.SearchEvent.ActiveHitChanged.operator ==(EmbedPDF.SearchEvent.ActiveHitChanged? left, EmbedPDF.SearchEvent.ActiveHitChanged? right) -> bool
+static EmbedPDF.SearchEvent.Cancelled.operator !=(EmbedPDF.SearchEvent.Cancelled? left, EmbedPDF.SearchEvent.Cancelled? right) -> bool
+static EmbedPDF.SearchEvent.Cancelled.operator ==(EmbedPDF.SearchEvent.Cancelled? left, EmbedPDF.SearchEvent.Cancelled? right) -> bool
+static EmbedPDF.SearchEvent.Completed.operator !=(EmbedPDF.SearchEvent.Completed? left, EmbedPDF.SearchEvent.Completed? right) -> bool
+static EmbedPDF.SearchEvent.Completed.operator ==(EmbedPDF.SearchEvent.Completed? left, EmbedPDF.SearchEvent.Completed? right) -> bool
+static EmbedPDF.SearchEvent.Failed.operator !=(EmbedPDF.SearchEvent.Failed? left, EmbedPDF.SearchEvent.Failed? right) -> bool
+static EmbedPDF.SearchEvent.Failed.operator ==(EmbedPDF.SearchEvent.Failed? left, EmbedPDF.SearchEvent.Failed? right) -> bool
+static EmbedPDF.SearchEvent.ProgressChanged.operator !=(EmbedPDF.SearchEvent.ProgressChanged? left, EmbedPDF.SearchEvent.ProgressChanged? right) -> bool
+static EmbedPDF.SearchEvent.ProgressChanged.operator ==(EmbedPDF.SearchEvent.ProgressChanged? left, EmbedPDF.SearchEvent.ProgressChanged? right) -> bool
+static EmbedPDF.SearchEvent.Started.operator !=(EmbedPDF.SearchEvent.Started? left, EmbedPDF.SearchEvent.Started? right) -> bool
+static EmbedPDF.SearchEvent.Started.operator ==(EmbedPDF.SearchEvent.Started? left, EmbedPDF.SearchEvent.Started? right) -> bool
+static EmbedPDF.SearchEvent.operator !=(EmbedPDF.SearchEvent? left, EmbedPDF.SearchEvent? right) -> bool
+static EmbedPDF.SearchEvent.operator ==(EmbedPDF.SearchEvent? left, EmbedPDF.SearchEvent? right) -> bool
+static EmbedPDF.SearchHighlightPatch.operator !=(EmbedPDF.SearchHighlightPatch? left, EmbedPDF.SearchHighlightPatch? right) -> bool
+static EmbedPDF.SearchHighlightPatch.operator ==(EmbedPDF.SearchHighlightPatch? left, EmbedPDF.SearchHighlightPatch? right) -> bool
+static EmbedPDF.SearchHighlightSettings.operator !=(EmbedPDF.SearchHighlightSettings? left, EmbedPDF.SearchHighlightSettings? right) -> bool
+static EmbedPDF.SearchHighlightSettings.operator ==(EmbedPDF.SearchHighlightSettings? left, EmbedPDF.SearchHighlightSettings? right) -> bool
+static EmbedPDF.SearchHit.operator !=(EmbedPDF.SearchHit? left, EmbedPDF.SearchHit? right) -> bool
+static EmbedPDF.SearchHit.operator ==(EmbedPDF.SearchHit? left, EmbedPDF.SearchHit? right) -> bool
+static EmbedPDF.SearchProgress.operator !=(EmbedPDF.SearchProgress? left, EmbedPDF.SearchProgress? right) -> bool
+static EmbedPDF.SearchProgress.operator ==(EmbedPDF.SearchProgress? left, EmbedPDF.SearchProgress? right) -> bool
+static EmbedPDF.SearchQuery.operator !=(EmbedPDF.SearchQuery? left, EmbedPDF.SearchQuery? right) -> bool
+static EmbedPDF.SearchQuery.operator ==(EmbedPDF.SearchQuery? left, EmbedPDF.SearchQuery? right) -> bool
+static EmbedPDF.SearchResult.operator !=(EmbedPDF.SearchResult? left, EmbedPDF.SearchResult? right) -> bool
+static EmbedPDF.SearchResult.operator ==(EmbedPDF.SearchResult? left, EmbedPDF.SearchResult? right) -> bool
+static EmbedPDF.SearchRevealAnchor.operator !=(EmbedPDF.SearchRevealAnchor? left, EmbedPDF.SearchRevealAnchor? right) -> bool
+static EmbedPDF.SearchRevealAnchor.operator ==(EmbedPDF.SearchRevealAnchor? left, EmbedPDF.SearchRevealAnchor? right) -> bool
+static EmbedPDF.SearchRevealAxis.Center.operator !=(EmbedPDF.SearchRevealAxis.Center? left, EmbedPDF.SearchRevealAxis.Center? right) -> bool
+static EmbedPDF.SearchRevealAxis.Center.operator ==(EmbedPDF.SearchRevealAxis.Center? left, EmbedPDF.SearchRevealAxis.Center? right) -> bool
+static EmbedPDF.SearchRevealAxis.End.operator !=(EmbedPDF.SearchRevealAxis.End? left, EmbedPDF.SearchRevealAxis.End? right) -> bool
+static EmbedPDF.SearchRevealAxis.End.operator ==(EmbedPDF.SearchRevealAxis.End? left, EmbedPDF.SearchRevealAxis.End? right) -> bool
+static EmbedPDF.SearchRevealAxis.Fraction.operator !=(EmbedPDF.SearchRevealAxis.Fraction? left, EmbedPDF.SearchRevealAxis.Fraction? right) -> bool
+static EmbedPDF.SearchRevealAxis.Fraction.operator ==(EmbedPDF.SearchRevealAxis.Fraction? left, EmbedPDF.SearchRevealAxis.Fraction? right) -> bool
+static EmbedPDF.SearchRevealAxis.Keep.operator !=(EmbedPDF.SearchRevealAxis.Keep? left, EmbedPDF.SearchRevealAxis.Keep? right) -> bool
+static EmbedPDF.SearchRevealAxis.Keep.operator ==(EmbedPDF.SearchRevealAxis.Keep? left, EmbedPDF.SearchRevealAxis.Keep? right) -> bool
+static EmbedPDF.SearchRevealAxis.Start.operator !=(EmbedPDF.SearchRevealAxis.Start? left, EmbedPDF.SearchRevealAxis.Start? right) -> bool
+static EmbedPDF.SearchRevealAxis.Start.operator ==(EmbedPDF.SearchRevealAxis.Start? left, EmbedPDF.SearchRevealAxis.Start? right) -> bool
+static EmbedPDF.SearchRevealAxis.operator !=(EmbedPDF.SearchRevealAxis? left, EmbedPDF.SearchRevealAxis? right) -> bool
+static EmbedPDF.SearchRevealAxis.operator ==(EmbedPDF.SearchRevealAxis? left, EmbedPDF.SearchRevealAxis? right) -> bool
+static EmbedPDF.SearchRevealOptions.operator !=(EmbedPDF.SearchRevealOptions? left, EmbedPDF.SearchRevealOptions? right) -> bool
+static EmbedPDF.SearchRevealOptions.operator ==(EmbedPDF.SearchRevealOptions? left, EmbedPDF.SearchRevealOptions? right) -> bool
+static EmbedPDF.SearchRevealPatch.operator !=(EmbedPDF.SearchRevealPatch? left, EmbedPDF.SearchRevealPatch? right) -> bool
+static EmbedPDF.SearchRevealPatch.operator ==(EmbedPDF.SearchRevealPatch? left, EmbedPDF.SearchRevealPatch? right) -> bool
+static EmbedPDF.SearchRevealSettings.operator !=(EmbedPDF.SearchRevealSettings? left, EmbedPDF.SearchRevealSettings? right) -> bool
+static EmbedPDF.SearchRevealSettings.operator ==(EmbedPDF.SearchRevealSettings? left, EmbedPDF.SearchRevealSettings? right) -> bool
+static EmbedPDF.SearchSettings.operator !=(EmbedPDF.SearchSettings? left, EmbedPDF.SearchSettings? right) -> bool
+static EmbedPDF.SearchSettings.operator ==(EmbedPDF.SearchSettings? left, EmbedPDF.SearchSettings? right) -> bool
+static EmbedPDF.SearchSettingsPatch.operator !=(EmbedPDF.SearchSettingsPatch? left, EmbedPDF.SearchSettingsPatch? right) -> bool
+static EmbedPDF.SearchSettingsPatch.operator ==(EmbedPDF.SearchSettingsPatch? left, EmbedPDF.SearchSettingsPatch? right) -> bool
+static EmbedPDF.SearchSnippet.operator !=(EmbedPDF.SearchSnippet? left, EmbedPDF.SearchSnippet? right) -> bool
+static EmbedPDF.SearchSnippet.operator ==(EmbedPDF.SearchSnippet? left, EmbedPDF.SearchSnippet? right) -> bool
 static EmbedPDF.SignatureConfig.operator !=(EmbedPDF.SignatureConfig? left, EmbedPDF.SignatureConfig? right) -> bool
 static EmbedPDF.SignatureConfig.operator ==(EmbedPDF.SignatureConfig? left, EmbedPDF.SignatureConfig? right) -> bool
 static EmbedPDF.StageConfig.operator !=(EmbedPDF.StageConfig? left, EmbedPDF.StageConfig? right) -> bool
 static EmbedPDF.StageConfig.operator ==(EmbedPDF.StageConfig? left, EmbedPDF.StageConfig? right) -> bool
 static EmbedPDF.StampConfig.operator !=(EmbedPDF.StampConfig? left, EmbedPDF.StampConfig? right) -> bool
 static EmbedPDF.StampConfig.operator ==(EmbedPDF.StampConfig? left, EmbedPDF.StampConfig? right) -> bool
+static EmbedPDF.TextSegment.operator !=(EmbedPDF.TextSegment? left, EmbedPDF.TextSegment? right) -> bool
+static EmbedPDF.TextSegment.operator ==(EmbedPDF.TextSegment? left, EmbedPDF.TextSegment? right) -> bool
 static EmbedPDF.ViewerSettings.operator !=(EmbedPDF.ViewerSettings? left, EmbedPDF.ViewerSettings? right) -> bool
 static EmbedPDF.ViewerSettings.operator ==(EmbedPDF.ViewerSettings? left, EmbedPDF.ViewerSettings? right) -> bool
 static EmbedPDF.ViewerSettingsPatch.operator !=(EmbedPDF.ViewerSettingsPatch? left, EmbedPDF.ViewerSettingsPatch? right) -> bool
@@ -1547,6 +1981,12 @@ virtual EmbedPDF.PageEditPlacement.PrintMembers(System.Text.StringBuilder! build
 virtual EmbedPDF.PageLinkTarget.EqualityContract.get -> System.Type!
 virtual EmbedPDF.PageLinkTarget.Equals(EmbedPDF.PageLinkTarget? other) -> bool
 virtual EmbedPDF.PageLinkTarget.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.SearchEvent.EqualityContract.get -> System.Type!
+virtual EmbedPDF.SearchEvent.Equals(EmbedPDF.SearchEvent? other) -> bool
+virtual EmbedPDF.SearchEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.SearchRevealAxis.EqualityContract.get -> System.Type!
+virtual EmbedPDF.SearchRevealAxis.Equals(EmbedPDF.SearchRevealAxis? other) -> bool
+virtual EmbedPDF.SearchRevealAxis.PrintMembers(System.Text.StringBuilder! builder) -> bool
 ~override EmbedPDF.DocumentPermission.Equals(object obj) -> bool
 ~override EmbedPDF.PageGeometry.Equals(object obj) -> bool
 ~override EmbedPDF.PageGeometry.ToString() -> string
