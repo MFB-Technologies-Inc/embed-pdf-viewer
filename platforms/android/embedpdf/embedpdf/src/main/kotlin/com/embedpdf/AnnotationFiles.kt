@@ -5,13 +5,22 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import java.io.FileNotFoundException
+import java.io.IOException
+import java.io.InputStream
 
 // The files a stamp, an attachment or a file picker hands the annotation
 // plugin, read from a document the user picked through the storage access
 // framework (a `content:` URI) or any other URI a `ContentResolver` opens.
-// Each reads the whole file into memory on `Dispatchers.IO`. A URI the
-// resolver can't open throws `not-found`.
+// Each reads the whole file into memory on `Dispatchers.IO`, up to
+// `maxBytes` (`DEFAULT_MAX_FILE_BYTES`, 64 MiB, unless given). A URI the
+// resolver can't open throws `not-found`, one the app may not read
+// `permission-denied`, a failed read `operation-failed`, and a file over
+// `maxBytes` `invalid-input`.
+
+/** The most bytes a picked file reads unless the call names its own cap: 64 MiB. */
+public const val DEFAULT_MAX_FILE_BYTES: Long = 64L * 1024 * 1024
 
 /**
  * A file attachment's file from [uri]. Its name is the provider's display
@@ -22,8 +31,9 @@ public suspend fun AnnotationAttachmentFile(
     resolver: ContentResolver,
     uri: Uri,
     description: String? = null,
+    maxBytes: Long = DEFAULT_MAX_FILE_BYTES,
 ): AnnotationAttachmentFile {
-    val file = resolver.readFile(uri)
+    val file = resolver.readFile(uri, maxBytes)
     return AnnotationAttachmentFile(file.bytes, file.name ?: "attachment", file.mimeType, description)
 }
 
@@ -32,8 +42,9 @@ public suspend fun AnnotationStampSource(
     resolver: ContentResolver,
     uri: Uri,
     subject: String? = null,
+    maxBytes: Long = DEFAULT_MAX_FILE_BYTES,
 ): AnnotationStampSource {
-    val file = resolver.readFile(uri)
+    val file = resolver.readFile(uri, maxBytes)
     return AnnotationStampSource(file.bytes, file.mimeType, file.name, subject)
 }
 
@@ -41,20 +52,45 @@ public suspend fun AnnotationStampSource(
  * What an [AnnotationFilePicker] answers for the document the user picked at
  * [uri], with the provider's display name and MIME type.
  */
-public suspend fun AnnotationPickedFile(resolver: ContentResolver, uri: Uri): AnnotationPickedFile {
-    val file = resolver.readFile(uri)
+public suspend fun AnnotationPickedFile(
+    resolver: ContentResolver,
+    uri: Uri,
+    maxBytes: Long = DEFAULT_MAX_FILE_BYTES,
+): AnnotationPickedFile {
+    val file = resolver.readFile(uri, maxBytes)
     return AnnotationPickedFile(file.bytes, file.name, file.mimeType)
 }
 
 private class ResolvedFile(val bytes: ByteArray, val name: String?, val mimeType: String?)
 
-private suspend fun ContentResolver.readFile(uri: Uri): ResolvedFile = withContext(Dispatchers.IO) {
+private suspend fun ContentResolver.readFile(uri: Uri, maxBytes: Long): ResolvedFile = withContext(Dispatchers.IO) {
+    require(maxBytes >= 0) { "maxBytes $maxBytes is negative" }
     try {
-        val bytes = openInputStream(uri)?.use { it.readBytes() }
+        val bytes = openInputStream(uri)?.use { it.readAtMost(maxBytes, uri) }
             ?: throw FileNotFoundException("The content provider has no stream for $uri.")
         ResolvedFile(bytes, displayName(uri) ?: uri.lastPathSegment, getType(uri))
     } catch (e: FileNotFoundException) {
         throw PdfException(PdfException.Code.NOT_FOUND, readable(e), "FileNotFoundException", e)
+    } catch (e: SecurityException) {
+        throw PdfException(PdfException.Code.PERMISSION_DENIED, readable(e), "SecurityException", e)
+    } catch (e: IOException) {
+        throw PdfException(PdfException.Code.OPERATION_FAILED, readable(e), e.javaClass.simpleName, e)
+    }
+}
+
+/** The whole stream, or `invalid-input` once it passes [maxBytes]. */
+private fun InputStream.readAtMost(maxBytes: Long, uri: Uri): ByteArray {
+    val out = ByteArrayOutputStream()
+    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+    var total = 0L
+    while (true) {
+        val count = read(buffer)
+        if (count < 0) return out.toByteArray()
+        total += count
+        if (total > maxBytes) {
+            throw PdfException(PdfException.Code.INVALID_INPUT, "$uri is larger than $maxBytes bytes", "FileTooLarge")
+        }
+        out.write(buffer, 0, count)
     }
 }
 

@@ -178,6 +178,46 @@ class WireValueTest {
         assertEquals("""{"a":[1,0.25,-3],"b":true}""", AnnotationFieldBag.json(Json.parseToJsonElement("""{"b":true,"a":[1.0,0.25,-3]}""")))
     }
 
+    /** Swift's `JSONEncoder` spelling: `Double.description` with `.0` dropped. */
+    @Test
+    fun aFieldBagSpellsNumbersAsSwiftDoes() {
+        val spellings = listOf(
+            72.0 to "72", -3.0 to "-3", 0.0 to "0", -0.0 to "-0", 0.75 to "0.75", 1.5 to "1.5",
+            0.1 to "0.1", 0.0005 to "0.0005", 0.0001 to "0.0001", 0.00001 to "1e-05", 1e-7 to "1e-07",
+            1.5e-7 to "1.5e-07", 12345678.5 to "12345678.5", 1e7 to "10000000",
+            9007199254740992.0 to "9007199254740992", 9007199254740994.0 to "9007199254740994",
+            1e15 to "1000000000000000", 1e16 to "1e+16", 1.25e16 to "1.25e+16", 1e100 to "1e+100",
+            -2.5e-300 to "-2.5e-300", 1.7976931348623157e308 to "1.7976931348623157e+308",
+            123.456 to "123.456", 7.000000000000001 to "7.000000000000001",
+        )
+        for ((number, spelling) in spellings) {
+            assertEquals("$number", "{\"n\":$spelling}", AnnotationFieldBag.json(JsonObject(mapOf("n" to JsonPrimitive(number)))))
+        }
+    }
+
+    /**
+     * Foundation's `.sortedKeys`: case-insensitive, digit runs by value, ties
+     * by the characters themselves. No Swift test expectation has two keys
+     * that the plain order and this one sort apart.
+     */
+    @Test
+    fun aFieldBagSortsKeysAsFoundationDoes() {
+        val keys = listOf("inReplyTo", "inkList", "Zeta", "alpha", "a10", "a9", "B", "b", "a")
+        val members = JsonObject(keys.associateWith { JsonPrimitive(1) })
+        assertEquals(
+            """{"a":1,"a9":1,"a10":1,"alpha":1,"B":1,"b":1,"inkList":1,"inReplyTo":1,"Zeta":1}""",
+            AnnotationFieldBag.json(members),
+        )
+    }
+
+    @Test
+    fun aPageOfAnotherKindIsRefused() {
+        assertThrows(SerializationException::class.java) {
+            AnnotationWire.page(Json.parseToJsonElement("""{"kind":"index","objectNumber":3}"""))
+        }
+        assertEquals(PageRef(3u), AnnotationWire.page(Json.parseToJsonElement("""{"kind":"objectNumber","objectNumber":3}""")))
+    }
+
     // ── common fields and rich text ──
 
     private val parent = AnnotationRefObjectNumber(PageRef(1u), 7u)

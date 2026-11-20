@@ -7,6 +7,7 @@ import androidx.annotation.RequiresApi
 import androidx.javascriptengine.JavaScriptIsolate
 import androidx.javascriptengine.JavaScriptSandbox
 import androidx.javascriptengine.SandboxDeadException
+import androidx.javascriptengine.TerminationInfo
 import com.embedpdf.EmbedPdfEngineIntegration
 import com.embedpdf.HostExceptionFailed
 import com.embedpdf.PdfException
@@ -20,12 +21,14 @@ import com.embedpdf.ScriptEvaluationThrew
 import com.embedpdf.ScriptEvaluationTimedOut
 import com.embedpdf.ScriptEvaluationValue
 import java.util.concurrent.CancellationException
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.lang.ref.WeakReference
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * PDF JavaScript in the platform's JavaScript sandbox (`androidx.javascriptengine`),
@@ -102,8 +105,11 @@ public class JavaScriptSandboxEngineFactory internal constructor(
         unavailableReason?.let { throw HostExceptionFailed(it) }
         if (closed.get()) throw HostExceptionFailed(CLOSED)
         val live = connection ?: throw HostExceptionFailed(UNAVAILABLE_BELOW_API_26)
-        val (sandbox, isolate) = try {
+        val realm = try {
             live.isolate(CONNECT_TIMEOUT_MS)
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            throw HostExceptionFailed("interrupted while connecting to the JavaScript sandbox")
         } catch (e: ClosedConnectionException) {
             // Every factory let go of the connection while this one was
             // between its own check and the connect.
@@ -113,8 +119,8 @@ public class JavaScriptSandboxEngineFactory internal constructor(
         } catch (e: Exception) {
             throw HostExceptionFailed("the JavaScript sandbox failed to start: ${readable(e)}")
         }
-        if (!sandbox.terminatesIsolates) reportNoTermination()
-        return IsolateScriptEngine(isolate)
+        if (!realm.sandbox.terminatesIsolates) reportNoTermination()
+        return IsolateScriptEngine(realm.isolate, realm.sandboxDied)
     }
 
     /** Holds [reporter] weakly; sends it the termination report at once if there is one. */
@@ -190,8 +196,13 @@ internal interface ScriptSandbox {
     /** Whether closing an isolate stops a script running in it. */
     val terminatesIsolates: Boolean
 
-    /** Throws [DeadSandboxException] when the sandbox died or was closed. */
-    fun createIsolate(): ScriptIsolate
+    /**
+     * A new isolate. Throws [DeadSandboxException] when the sandbox died or
+     * was closed, including when the fresh isolate reports at once that its
+     * sandbox is dead. [onSandboxDead] runs once, on any thread, when the
+     * isolate later reports its sandbox dead.
+     */
+    fun createIsolate(onSandboxDead: () -> Unit): ScriptIsolate
 
     fun close()
 }
@@ -202,6 +213,12 @@ internal class DeadSandboxException(message: String, cause: Throwable? = null) :
 /** Every factory released the connection: nothing may connect for it. */
 internal class ClosedConnectionException : Exception(JavaScriptSandboxEngineFactory.CLOSED)
 
+/**
+ * A realm's isolate, the sandbox it lives in, and [sandboxDied], which forgets
+ * that sandbox's connection so the next realm connects again.
+ */
+internal class SandboxRealm(val sandbox: ScriptSandbox, val isolate: ScriptIsolate, val sandboxDied: () -> Unit)
+
 /** Connecting failed: its future completed with an error or was cancelled. */
 private class ConnectionFailedException(cause: Throwable) : Exception(readable(cause), cause)
 
@@ -210,10 +227,10 @@ private class ConnectionFailedException(cause: Throwable) : Exception(readable(c
  * [retain] it and closed when the last one calls [release]. [connect] starts a
  * connection; the holder makes at most one at a time.
  */
-internal class SandboxConnectionHolder(private val connect: () -> Future<ScriptSandbox>) {
+internal class SandboxConnectionHolder(private val connect: () -> CompletableFuture<ScriptSandbox>) {
     private val lock = Any()
     private var references = 0
-    private var current: Future<ScriptSandbox>? = null
+    private var current: CompletableFuture<ScriptSandbox>? = null
 
     fun retain() {
         synchronized(lock) { references++ }
@@ -243,9 +260,10 @@ internal class SandboxConnectionHolder(private val connect: () -> Future<ScriptS
      * thrown as it is and keeps the connection. Throws
      * [ClosedConnectionException] when no factory holds the connection, so a
      * create racing the last [release] can't leave a connection nothing
-     * releases.
+     * releases. An isolate that reports its sandbox dead later closes and
+     * forgets the connection, as [SandboxRealm.sandboxDied] does.
      */
-    fun isolate(timeoutMs: Long): Pair<ScriptSandbox, ScriptIsolate> {
+    fun isolate(timeoutMs: Long): SandboxRealm {
         var failure: Exception? = null
         repeat(2) {
             val future = synchronized(lock) {
@@ -254,7 +272,8 @@ internal class SandboxConnectionHolder(private val connect: () -> Future<ScriptS
             }
             try {
                 val sandbox = awaitConnection(future, timeoutMs)
-                return sandbox to sandbox.createIsolate()
+                val died = { discard(future) }
+                return SandboxRealm(sandbox, sandbox.createIsolate(died), died)
             } catch (e: ConnectionFailedException) {
                 failure = e.cause as? Exception ?: e
                 discard(future)
@@ -267,10 +286,10 @@ internal class SandboxConnectionHolder(private val connect: () -> Future<ScriptS
     }
 
     /** The connection, started when there is none. Hold [lock]. */
-    private fun connection(): Future<ScriptSandbox> = current ?: connect().also { current = it }
+    private fun connection(): CompletableFuture<ScriptSandbox> = current ?: connect().also { current = it }
 
     /** Closes [failed] and forgets it, when it is still the current connection. */
-    private fun discard(failed: Future<ScriptSandbox>) {
+    private fun discard(failed: CompletableFuture<ScriptSandbox>) {
         val forgotten = synchronized(lock) {
             if (current !== failed) return
             current = null
@@ -288,15 +307,18 @@ internal class SandboxConnectionHolder(private val connect: () -> Future<ScriptS
             throw ConnectionFailedException(e)
         }
 
-    private fun closeQuietly(future: Future<ScriptSandbox>) {
-        if (!future.isDone) {
-            future.cancel(true)
-            return
-        }
-        try {
-            future.get().close()
-        } catch (e: Exception) {
-            // A connection that failed or already closed has nothing to close.
+    /**
+     * Closes the connection's sandbox. A connect still pending is left to
+     * finish, and its sandbox closed then: cancelling it would leave the
+     * service bound.
+     */
+    private fun closeQuietly(future: CompletableFuture<ScriptSandbox>) {
+        future.whenComplete { sandbox, _ ->
+            try {
+                sandbox?.close()
+            } catch (e: Exception) {
+                // A sandbox that already closed has nothing to close.
+            }
         }
     }
 }
@@ -329,16 +351,26 @@ private class PlatformSandbox(private val sandbox: JavaScriptSandbox) : ScriptSa
     override val terminatesIsolates: Boolean
         get() = sandbox.isFeatureSupported(JavaScriptSandbox.JS_FEATURE_ISOLATE_TERMINATION)
 
-    override fun createIsolate(): ScriptIsolate = try {
-        SandboxIsolate(sandbox.createIsolate())
-    } catch (e: IllegalStateException) {
-        // "Cannot create isolate in closed sandbox".
-        throw DeadSandboxException(readable(e), e)
-    } catch (e: RuntimeException) {
-        // The sandbox kills itself on a failed binder call and rethrows it
-        // wrapped; a dead process is a `DeadObjectException`.
-        if (e.cause is android.os.RemoteException || e.cause is SandboxDeadException) throw DeadSandboxException(readable(e), e)
-        throw e
+    override fun createIsolate(onSandboxDead: () -> Unit): ScriptIsolate {
+        val isolate = try {
+            sandbox.createIsolate()
+        } catch (e: IllegalStateException) {
+            // "Cannot create isolate in closed sandbox".
+            throw DeadSandboxException(readable(e), e)
+        } catch (e: RuntimeException) {
+            // The sandbox kills itself on a failed binder call and rethrows it
+            // wrapped; a dead process is a `DeadObjectException`.
+            if (e.cause is android.os.RemoteException || e.cause is SandboxDeadException) throw DeadSandboxException(readable(e), e)
+            throw e
+        }
+        // A sandbox that died doesn't refuse the isolate: it hands out one
+        // that is already terminated, and says so through this callback.
+        watchForSandboxDeath(
+            register = { report -> isolate.addOnTerminatedCallback(Runnable::run) { info -> report(info.status) } },
+            close = isolate::close,
+            onSandboxDead = onSandboxDead,
+        )
+        return SandboxIsolate(isolate)
     }
 
     override fun close() {
@@ -346,23 +378,55 @@ private class PlatformSandbox(private val sandbox: JavaScriptSandbox) : ScriptSa
     }
 
     companion object {
-        fun connect(context: Context): Future<ScriptSandbox> =
-            MappedFuture(JavaScriptSandbox.createConnectedInstanceAsync(context), ::PlatformSandbox)
+        fun connect(context: Context): CompletableFuture<ScriptSandbox> {
+            val source = JavaScriptSandbox.createConnectedInstanceAsync(context)
+            val connected = CompletableFuture<ScriptSandbox>()
+            source.addListener({
+                try {
+                    connected.complete(PlatformSandbox(source.get()))
+                } catch (e: ExecutionException) {
+                    connected.completeExceptionally(e.cause ?: e)
+                } catch (e: Exception) {
+                    connected.completeExceptionally(e)
+                }
+            }, Runnable::run)
+            return connected
+        }
     }
 }
 
-/** [source] with [map] applied to its value. */
-private class MappedFuture<A, B>(private val source: Future<A>, private val map: (A) -> B) : Future<B> {
-    override fun cancel(mayInterruptIfRunning: Boolean): Boolean = source.cancel(mayInterruptIfRunning)
-
-    override fun isCancelled(): Boolean = source.isCancelled
-
-    override fun isDone(): Boolean = source.isDone
-
-    override fun get(): B = map(source.get())
-
-    override fun get(timeout: Long, unit: TimeUnit): B = map(source.get(timeout, unit))
+/**
+ * Watches an isolate for its sandbox dying. [register] adds the isolate's
+ * termination callback, which passes on a `TerminationInfo` status. A
+ * `STATUS_SANDBOX_DEAD` reported while registering (the isolate came from a
+ * dead sandbox) closes it and throws [DeadSandboxException]; one reported
+ * later runs [onSandboxDead], once. Other statuses end only that isolate.
+ */
+internal fun watchForSandboxDeath(
+    register: (report: (Int) -> Unit) -> Unit,
+    close: () -> Unit,
+    onSandboxDead: () -> Unit,
+) {
+    val state = AtomicInteger(REGISTERING)
+    register { status ->
+        if (status != TerminationInfo.STATUS_SANDBOX_DEAD) return@register
+        if (state.compareAndSet(REGISTERING, DEAD_AT_BIRTH)) return@register
+        if (state.compareAndSet(LIVE, REPORTED)) onSandboxDead()
+    }
+    if (!state.compareAndSet(REGISTERING, LIVE)) {
+        try {
+            close()
+        } catch (e: Exception) {
+            // A dead isolate is gone either way.
+        }
+        throw DeadSandboxException("the JavaScript sandbox died")
+    }
 }
+
+private const val REGISTERING = 0
+private const val LIVE = 1
+private const val DEAD_AT_BIRTH = 2
+private const val REPORTED = 3
 
 @RequiresApi(Build.VERSION_CODES.O)
 private class SandboxIsolate(private val isolate: JavaScriptIsolate) : ScriptIsolate {
@@ -377,7 +441,11 @@ private class SandboxIsolate(private val isolate: JavaScriptIsolate) : ScriptIso
  * The [ScriptEngine] contract over an isolate: a value, a throw, or a timeout
  * that abandons the realm.
  */
-internal class IsolateScriptEngine(private val isolate: ScriptIsolate) : ScriptEngine {
+internal class IsolateScriptEngine(
+    private val isolate: ScriptIsolate,
+    /** Runs when an evaluation finds the sandbox dead. */
+    private val onSandboxDead: () -> Unit = {},
+) : ScriptEngine {
     private val lock = Any()
     private var abandoned = false
 
@@ -386,6 +454,7 @@ internal class IsolateScriptEngine(private val isolate: ScriptIsolate) : ScriptE
         val answer = try {
             isolate.evaluate(program)
         } catch (e: Exception) {
+            if (diedOf(e)) onSandboxDead()
             return ScriptEvaluationThrew(readable(e))
         }
         return try {
@@ -395,6 +464,7 @@ internal class IsolateScriptEngine(private val isolate: ScriptIsolate) : ScriptE
             answer.cancel(true)
             ScriptEvaluationTimedOut
         } catch (e: ExecutionException) {
+            if (diedOf(e)) onSandboxDead()
             ScriptEvaluationThrew(readable(e.cause ?: e))
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
@@ -407,6 +477,10 @@ internal class IsolateScriptEngine(private val isolate: ScriptIsolate) : ScriptE
     override fun dispose() {
         abandon()
     }
+
+    /** Whether [error] or one of its causes says the sandbox died. */
+    private fun diedOf(error: Throwable): Boolean =
+        generateSequence(error) { it.cause.takeIf { cause -> cause !== it } }.any { it is SandboxDeadException }
 
     private fun abandon() {
         val first = synchronized(lock) {

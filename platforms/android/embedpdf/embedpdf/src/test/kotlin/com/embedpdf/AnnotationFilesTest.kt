@@ -56,4 +56,25 @@ class AnnotationFilesTest {
             AnnotationPickedFile(resolver, Uri.fromFile(Fixture.file("tiny", "png").resolveSibling("missing.png")))
         }
     }
+
+    @Test
+    fun aFileOverTheCapIsInvalidInput() = viewerTest {
+        expectCode(PdfException.Code.INVALID_INPUT) {
+            AnnotationPickedFile(resolver, registered("big.png"), maxBytes = png.size - 1L)
+        }
+        assertArrayEquals(png, AnnotationPickedFile(resolver, registered("exact.png"), maxBytes = png.size.toLong()).bytes)
+    }
+
+    @Test
+    fun aRefusedOrFailedReadIsAPdfException() = viewerTest {
+        val refused = Uri.parse("content://com.embedpdf.test/files/refused.png")
+        shadowOf(resolver).registerInputStreamSupplier(refused) { throw SecurityException("no grant") }
+        expectCode(PdfException.Code.PERMISSION_DENIED) { AnnotationPickedFile(resolver, refused) }
+        val broken = Uri.parse("content://com.embedpdf.test/files/broken.png")
+        shadowOf(resolver).registerInputStream(broken, object : java.io.InputStream() {
+            override fun read(): Int = throw java.io.IOException("device gone")
+            override fun read(b: ByteArray, off: Int, len: Int): Int = throw java.io.IOException("device gone")
+        })
+        expectCode(PdfException.Code.OPERATION_FAILED) { AnnotationPickedFile(resolver, broken) }
+    }
 }

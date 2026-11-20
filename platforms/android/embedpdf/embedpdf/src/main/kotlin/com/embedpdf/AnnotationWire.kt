@@ -161,7 +161,8 @@ internal object AnnotationWire {
 
     fun page(element: JsonElement): PageRef {
         val page = element.asObject("page")
-        page.string("kind")
+        val kind = page.string("kind")
+        if (kind != "objectNumber") throw SerializationException("not a page ref kind: $kind")
         return PageRef(page.unsigned("objectNumber"))
     }
 
@@ -274,8 +275,9 @@ internal object AnnotationWire {
 }
 
 /**
- * Field bags as the engine reads them: keys sorted, so the same value is
- * always the same bytes, and numbers spelled as Swift's `JSONEncoder` spells
+ * Field bags as the engine reads them: keys sorted as Foundation's
+ * `.sortedKeys` sorts them ([KEY_ORDER]), so the same value is always the
+ * same bytes, and numbers spelled as Swift's `JSONEncoder` spells
  * them (`72`, not `72.0`), so a Kotlin bag and a Swift bag compare byte for
  * byte. Throws `invalid-input` for a number JSON can't hold (NaN or an
  * infinity).
@@ -288,7 +290,7 @@ internal object AnnotationFieldBag {
             is JsonNull -> out.append("null")
             is JsonObject -> {
                 out.append('{')
-                element.keys.sorted().forEachIndexed { index, key ->
+                element.keys.sortedWith(KEY_ORDER).forEachIndexed { index, key ->
                     if (index > 0) out.append(',')
                     out.append(JsonPrimitive(key).toString()).append(':')
                     write(element.getValue(key), out)
@@ -312,11 +314,81 @@ internal object AnnotationFieldBag {
         value.longOrNull?.let { return it.toString() }
         val number = value.doubleOrNull ?: notFinite(value.content)
         if (!number.isFinite()) notFinite(value.content)
-        // Swift writes an integral double without a fraction. Other doubles
-        // differ only in exponent spelling (`1.0E-7` here, `1e-07` there),
-        // which no field bag the drafts write reaches.
-        if (number == Math.rint(number) && Math.abs(number) < 9.007199254740992E15) return number.toLong().toString()
-        return number.toString()
+        return number(number)
+    }
+
+    /**
+     * Foundation's `.sortedKeys` order: case-insensitive, runs of digits
+     * compared by value, and ties broken by the keys' own characters
+     * (`String.CompareOptions` `.caseInsensitive`, `.numeric` and
+     * `.forcedOrdering`).
+     */
+    val KEY_ORDER: Comparator<String> = Comparator { left, right ->
+        var i = 0
+        var j = 0
+        while (i < left.length && j < right.length) {
+            if (left[i].isAsciiDigit() && right[j].isAsciiDigit()) {
+                val leftEnd = digitsEnd(left, i)
+                val rightEnd = digitsEnd(right, j)
+                val leftRun = left.substring(i, leftEnd).trimStart('0')
+                val rightRun = right.substring(j, rightEnd).trimStart('0')
+                val order = if (leftRun.length != rightRun.length) leftRun.length - rightRun.length else leftRun.compareTo(rightRun)
+                if (order != 0) return@Comparator order
+                i = leftEnd
+                j = rightEnd
+            } else {
+                val order = left[i].lowercaseChar().compareTo(right[j].lowercaseChar())
+                if (order != 0) return@Comparator order
+                i += 1
+                j += 1
+            }
+        }
+        val order = (left.length - i).compareTo(right.length - j)
+        if (order != 0) order else left.compareTo(right)
+    }
+
+    private fun Char.isAsciiDigit(): Boolean = this in '0'..'9'
+
+    private fun digitsEnd(text: String, start: Int): Int {
+        var end = start
+        while (end < text.length && text[end].isAsciiDigit()) end += 1
+        return end
+    }
+
+    /**
+     * A finite double as Swift's `JSONEncoder` writes it: `Double.description`
+     * with a trailing `.0` dropped. That is the shortest digits that read
+     * back as the same double, in plain notation for a decimal exponent from
+     * -4 up to 15 (`0.0005`, `12345678.5`, `72`) and otherwise as `1e-07` or
+     * `1e+16`: lowercase `e`, a sign and at least two exponent digits.
+     * Negative zero is `-0`.
+     */
+    fun number(number: Double): String {
+        if (number == 0.0) return if (1.0 / number < 0) "-0" else "0"
+        // `Double.toString` gives the shortest round-trip digits; only its
+        // notation differs from Swift's.
+        val text = Math.abs(number).toString()
+        val mantissa = text.substringBefore('E')
+        val exponent = text.substringAfter('E', "0").toInt()
+        val whole = mantissa.substringBefore('.')
+        var digits = whole + mantissa.substringAfter('.', "")
+        // Where the decimal point falls, counted in `digits`.
+        var point = whole.length + exponent
+        val leadingZeros = digits.indexOfFirst { it != '0' }
+        digits = digits.substring(leadingZeros).trimEnd('0')
+        point -= leadingZeros
+        val decimalExponent = point - 1
+        val body = when {
+            decimalExponent !in -4 until 16 -> {
+                val significand = if (digits.length == 1) digits else digits[0] + "." + digits.substring(1)
+                val sign = if (decimalExponent < 0) '-' else '+'
+                significand + "e" + sign + Math.abs(decimalExponent).toString().padStart(2, '0')
+            }
+            point <= 0 -> "0." + "0".repeat(-point) + digits
+            point >= digits.length -> digits + "0".repeat(point - digits.length)
+            else -> digits.substring(0, point) + "." + digits.substring(point)
+        }
+        return if (number < 0) "-$body" else body
     }
 
     private fun notFinite(content: String): Nothing = throw PdfException(

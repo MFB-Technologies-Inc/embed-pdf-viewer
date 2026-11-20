@@ -193,11 +193,13 @@ public final class com/embedpdf/AnnotationDraftsCapability {
 }
 
 public final class com/embedpdf/AnnotationFilesKt {
-	public static final fun AnnotationAttachmentFile (Landroid/content/ContentResolver;Landroid/net/Uri;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static synthetic fun AnnotationAttachmentFile$default (Landroid/content/ContentResolver;Landroid/net/Uri;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public static final fun AnnotationPickedFile (Landroid/content/ContentResolver;Landroid/net/Uri;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static final fun AnnotationStampSource (Landroid/content/ContentResolver;Landroid/net/Uri;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static synthetic fun AnnotationStampSource$default (Landroid/content/ContentResolver;Landroid/net/Uri;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final field DEFAULT_MAX_FILE_BYTES J
+	public static final fun AnnotationAttachmentFile (Landroid/content/ContentResolver;Landroid/net/Uri;Ljava/lang/String;JLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun AnnotationAttachmentFile$default (Landroid/content/ContentResolver;Landroid/net/Uri;Ljava/lang/String;JLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun AnnotationPickedFile (Landroid/content/ContentResolver;Landroid/net/Uri;JLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun AnnotationPickedFile$default (Landroid/content/ContentResolver;Landroid/net/Uri;JLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun AnnotationStampSource (Landroid/content/ContentResolver;Landroid/net/Uri;Ljava/lang/String;JLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun AnnotationStampSource$default (Landroid/content/ContentResolver;Landroid/net/Uri;Ljava/lang/String;JLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 }
 
 public final class com/embedpdf/AnnotationInfo {
