@@ -68,6 +68,45 @@ public final class com/embedpdf/AnnotationBorderStyle$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public abstract interface class com/embedpdf/AnnotationCalloutLine {
+	public static final field Companion Lcom/embedpdf/AnnotationCalloutLine$Companion;
+	public abstract fun getPoints ()Ljava/util/List;
+}
+
+public final class com/embedpdf/AnnotationCalloutLine$Companion {
+	public final fun of (Ljava/util/List;)Lcom/embedpdf/AnnotationCalloutLine;
+}
+
+public final class com/embedpdf/AnnotationCalloutLine$Kneed : com/embedpdf/AnnotationCalloutLine {
+	public fun <init> (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/Point;)V
+	public final fun component1 ()Luniffi/epdf_ffi/Point;
+	public final fun component2 ()Luniffi/epdf_ffi/Point;
+	public final fun component3 ()Luniffi/epdf_ffi/Point;
+	public final fun copy (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/Point;)Lcom/embedpdf/AnnotationCalloutLine$Kneed;
+	public static synthetic fun copy$default (Lcom/embedpdf/AnnotationCalloutLine$Kneed;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/Point;ILjava/lang/Object;)Lcom/embedpdf/AnnotationCalloutLine$Kneed;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFrom ()Luniffi/epdf_ffi/Point;
+	public final fun getKnee ()Luniffi/epdf_ffi/Point;
+	public fun getPoints ()Ljava/util/List;
+	public final fun getTo ()Luniffi/epdf_ffi/Point;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/AnnotationCalloutLine$Straight : com/embedpdf/AnnotationCalloutLine {
+	public fun <init> (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/Point;)V
+	public final fun component1 ()Luniffi/epdf_ffi/Point;
+	public final fun component2 ()Luniffi/epdf_ffi/Point;
+	public final fun copy (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/Point;)Lcom/embedpdf/AnnotationCalloutLine$Straight;
+	public static synthetic fun copy$default (Lcom/embedpdf/AnnotationCalloutLine$Straight;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/Point;ILjava/lang/Object;)Lcom/embedpdf/AnnotationCalloutLine$Straight;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFrom ()Luniffi/epdf_ffi/Point;
+	public fun getPoints ()Ljava/util/List;
+	public final fun getTo ()Luniffi/epdf_ffi/Point;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class com/embedpdf/AnnotationCapability {
 	public final fun canCreate (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun canDelete (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -100,6 +139,19 @@ public final class com/embedpdf/AnnotationCapability {
 	public final fun update (Luniffi/epdf_ffi/AnnotationRef;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun updateSettings (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun whenSynced (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/AnnotationCaretIntent : java/lang/Enum {
+	public static final field Companion Lcom/embedpdf/AnnotationCaretIntent$Companion;
+	public static final field REPLACE Lcom/embedpdf/AnnotationCaretIntent;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public final fun getValue ()Ljava/lang/String;
+	public static fun valueOf (Ljava/lang/String;)Lcom/embedpdf/AnnotationCaretIntent;
+	public static fun values ()[Lcom/embedpdf/AnnotationCaretIntent;
+}
+
+public final class com/embedpdf/AnnotationCaretIntent$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
 public final class com/embedpdf/AnnotationColor {
@@ -210,6 +262,22 @@ public final class com/embedpdf/AnnotationDraftsCapability {
 	public final fun setTextSelection (Lkotlin/ranges/IntRange;Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class com/embedpdf/AnnotationFileAttachmentIcon : java/lang/Enum {
+	public static final field Companion Lcom/embedpdf/AnnotationFileAttachmentIcon$Companion;
+	public static final field GRAPH Lcom/embedpdf/AnnotationFileAttachmentIcon;
+	public static final field PAPERCLIP Lcom/embedpdf/AnnotationFileAttachmentIcon;
+	public static final field PUSH_PIN Lcom/embedpdf/AnnotationFileAttachmentIcon;
+	public static final field TAG Lcom/embedpdf/AnnotationFileAttachmentIcon;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public final fun getValue ()Ljava/lang/String;
+	public static fun valueOf (Ljava/lang/String;)Lcom/embedpdf/AnnotationFileAttachmentIcon;
+	public static fun values ()[Lcom/embedpdf/AnnotationFileAttachmentIcon;
+}
+
+public final class com/embedpdf/AnnotationFileAttachmentIcon$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class com/embedpdf/AnnotationFilesKt {
 	public static final field DEFAULT_MAX_FILE_BYTES J
 	public static final fun AnnotationAttachmentFile (Landroid/content/ContentResolver;Landroid/net/Uri;Ljava/lang/String;JLkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -218,6 +286,20 @@ public final class com/embedpdf/AnnotationFilesKt {
 	public static synthetic fun AnnotationPickedFile$default (Landroid/content/ContentResolver;Landroid/net/Uri;JLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public static final fun AnnotationStampSource (Landroid/content/ContentResolver;Landroid/net/Uri;Ljava/lang/String;JLkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun AnnotationStampSource$default (Landroid/content/ContentResolver;Landroid/net/Uri;Ljava/lang/String;JLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/AnnotationFreeTextIntent : java/lang/Enum {
+	public static final field Companion Lcom/embedpdf/AnnotationFreeTextIntent$Companion;
+	public static final field FREE_TEXT Lcom/embedpdf/AnnotationFreeTextIntent;
+	public static final field FREE_TEXT_CALLOUT Lcom/embedpdf/AnnotationFreeTextIntent;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public final fun getValue ()Ljava/lang/String;
+	public static fun valueOf (Ljava/lang/String;)Lcom/embedpdf/AnnotationFreeTextIntent;
+	public static fun values ()[Lcom/embedpdf/AnnotationFreeTextIntent;
+}
+
+public final class com/embedpdf/AnnotationFreeTextIntent$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
 public final class com/embedpdf/AnnotationInfo {
@@ -305,6 +387,28 @@ public final class com/embedpdf/AnnotationIntent$Companion {
 
 public final class com/embedpdf/AnnotationKt {
 	public static final fun annotations (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/AnnotationLineEnding : java/lang/Enum {
+	public static final field BUTT Lcom/embedpdf/AnnotationLineEnding;
+	public static final field CIRCLE Lcom/embedpdf/AnnotationLineEnding;
+	public static final field CLOSED_ARROW Lcom/embedpdf/AnnotationLineEnding;
+	public static final field Companion Lcom/embedpdf/AnnotationLineEnding$Companion;
+	public static final field DIAMOND Lcom/embedpdf/AnnotationLineEnding;
+	public static final field NONE Lcom/embedpdf/AnnotationLineEnding;
+	public static final field OPEN_ARROW Lcom/embedpdf/AnnotationLineEnding;
+	public static final field REVERSED_CLOSED_ARROW Lcom/embedpdf/AnnotationLineEnding;
+	public static final field REVERSED_OPEN_ARROW Lcom/embedpdf/AnnotationLineEnding;
+	public static final field SLASH Lcom/embedpdf/AnnotationLineEnding;
+	public static final field SQUARE Lcom/embedpdf/AnnotationLineEnding;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public final fun getValue ()Ljava/lang/String;
+	public static fun valueOf (Ljava/lang/String;)Lcom/embedpdf/AnnotationLineEnding;
+	public static fun values ()[Lcom/embedpdf/AnnotationLineEnding;
+}
+
+public final class com/embedpdf/AnnotationLineEnding$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
 public abstract interface class com/embedpdf/AnnotationLinkTarget {
@@ -543,6 +647,21 @@ public final class com/embedpdf/AnnotationSelectionCapability {
 	public final fun updateLink (Luniffi/epdf_ffi/PdfLinkTarget;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class com/embedpdf/AnnotationStampFit : java/lang/Enum {
+	public static final field CONTAIN Lcom/embedpdf/AnnotationStampFit;
+	public static final field COVER Lcom/embedpdf/AnnotationStampFit;
+	public static final field Companion Lcom/embedpdf/AnnotationStampFit$Companion;
+	public static final field FILL Lcom/embedpdf/AnnotationStampFit;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public final fun getValue ()Ljava/lang/String;
+	public static fun valueOf (Ljava/lang/String;)Lcom/embedpdf/AnnotationStampFit;
+	public static fun values ()[Lcom/embedpdf/AnnotationStampFit;
+}
+
+public final class com/embedpdf/AnnotationStampFit$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class com/embedpdf/AnnotationStrikeoutIntent : java/lang/Enum {
 	public static final field Companion Lcom/embedpdf/AnnotationStrikeoutIntent$Companion;
 	public static final field STRIKEOUT_TEXT_EDIT Lcom/embedpdf/AnnotationStrikeoutIntent;
@@ -652,6 +771,21 @@ public final class com/embedpdf/AnnotationToolsCapability {
 	public final fun updateDefaults-BHdyqVw (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class com/embedpdf/AnnotationVerticalAlignment : java/lang/Enum {
+	public static final field BOTTOM Lcom/embedpdf/AnnotationVerticalAlignment;
+	public static final field Companion Lcom/embedpdf/AnnotationVerticalAlignment$Companion;
+	public static final field MIDDLE Lcom/embedpdf/AnnotationVerticalAlignment;
+	public static final field TOP Lcom/embedpdf/AnnotationVerticalAlignment;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public final fun getValue ()Ljava/lang/String;
+	public static fun valueOf (Ljava/lang/String;)Lcom/embedpdf/AnnotationVerticalAlignment;
+	public static fun values ()[Lcom/embedpdf/AnnotationVerticalAlignment;
+}
+
+public final class com/embedpdf/AnnotationVerticalAlignment$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class com/embedpdf/AssetLocaleLoader : uniffi/epdf_plugin_i18n/LocaleLoader {
 	public fun <init> (Landroid/content/res/AssetManager;Ljava/lang/String;)V
 	public synthetic fun <init> (Landroid/content/res/AssetManager;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -679,6 +813,71 @@ public final class com/embedpdf/AttachmentCapability {
 
 public final class com/embedpdf/AttachmentKt {
 	public static final fun attachments (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/CaretAnnotationDraft : com/embedpdf/AnnotationDraft {
+	public fun <init> (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/AnnotationColor;Ljava/lang/Double;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;)V
+	public synthetic fun <init> (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/AnnotationColor;Ljava/lang/Double;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Luniffi/epdf_ffi/Rect;
+	public final fun component2 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component3 ()Ljava/lang/Double;
+	public final fun component4 ()Lcom/embedpdf/Nullable;
+	public final fun component5 ()Lcom/embedpdf/Nullable;
+	public final fun component6 ()Lcom/embedpdf/Nullable;
+	public final fun component7 ()Lcom/embedpdf/AnnotationBlendMode;
+	public final fun component8 ()Lcom/embedpdf/Nullable;
+	public final fun component9 ()Lcom/embedpdf/AnnotationCommonFields;
+	public final fun copy (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/AnnotationColor;Ljava/lang/Double;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;)Lcom/embedpdf/CaretAnnotationDraft;
+	public static synthetic fun copy$default (Lcom/embedpdf/CaretAnnotationDraft;Luniffi/epdf_ffi/Rect;Lcom/embedpdf/AnnotationColor;Ljava/lang/Double;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;ILjava/lang/Object;)Lcom/embedpdf/CaretAnnotationDraft;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBlendMode ()Lcom/embedpdf/AnnotationBlendMode;
+	public final fun getBox ()Luniffi/epdf_ffi/Rect;
+	public final fun getColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getCommon ()Lcom/embedpdf/AnnotationCommonFields;
+	public final fun getContents ()Lcom/embedpdf/Nullable;
+	public final fun getIntent ()Lcom/embedpdf/Nullable;
+	public final fun getOpacity ()Ljava/lang/Double;
+	public final fun getRichText ()Lcom/embedpdf/Nullable;
+	public final fun getRotation ()Lcom/embedpdf/Nullable;
+	public fun hashCode ()I
+	public fun json ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/CaretAnnotationPatch : com/embedpdf/AnnotationPatch {
+	public static final field Companion Lcom/embedpdf/CaretAnnotationPatch$Companion;
+	public fun <init> ()V
+	public fun <init> (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/AnnotationColor;Ljava/lang/Double;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;)V
+	public synthetic fun <init> (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/AnnotationColor;Ljava/lang/Double;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Luniffi/epdf_ffi/Rect;
+	public final fun component2 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component3 ()Ljava/lang/Double;
+	public final fun component4 ()Lcom/embedpdf/Nullable;
+	public final fun component5 ()Lcom/embedpdf/Nullable;
+	public final fun component6 ()Lcom/embedpdf/Nullable;
+	public final fun component7 ()Lcom/embedpdf/AnnotationBlendMode;
+	public final fun component8 ()Lcom/embedpdf/Nullable;
+	public final fun component9 ()Lcom/embedpdf/AnnotationCommonFields;
+	public final fun copy (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/AnnotationColor;Ljava/lang/Double;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;)Lcom/embedpdf/CaretAnnotationPatch;
+	public static synthetic fun copy$default (Lcom/embedpdf/CaretAnnotationPatch;Luniffi/epdf_ffi/Rect;Lcom/embedpdf/AnnotationColor;Ljava/lang/Double;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;ILjava/lang/Object;)Lcom/embedpdf/CaretAnnotationPatch;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBlendMode ()Lcom/embedpdf/AnnotationBlendMode;
+	public final fun getBox ()Luniffi/epdf_ffi/Rect;
+	public final fun getColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getCommon ()Lcom/embedpdf/AnnotationCommonFields;
+	public final fun getContents ()Lcom/embedpdf/Nullable;
+	public final fun getIntent ()Lcom/embedpdf/Nullable;
+	public final fun getOpacity ()Ljava/lang/Double;
+	public final fun getRichText ()Lcom/embedpdf/Nullable;
+	public final fun getRotation ()Lcom/embedpdf/Nullable;
+	public fun hashCode ()I
+	public fun json ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/CaretAnnotationPatch$Companion : com/embedpdf/AnnotationPatch$Reader {
+	public synthetic fun fromJson (Ljava/lang/String;)Lcom/embedpdf/AnnotationPatch;
+	public fun fromJson (Ljava/lang/String;)Lcom/embedpdf/CaretAnnotationPatch;
 }
 
 public final class com/embedpdf/CommandHandler : uniffi/epdf_plugin_commands/CommandRunner {
@@ -828,6 +1027,40 @@ public final class com/embedpdf/FeedbackKt {
 	public static final fun feedback (Lcom/embedpdf/PdfViewer;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class com/embedpdf/FileAttachmentAnnotationPatch : com/embedpdf/AnnotationPatch {
+	public static final field Companion Lcom/embedpdf/FileAttachmentAnnotationPatch$Companion;
+	public fun <init> ()V
+	public fun <init> (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/AnnotationFileAttachmentIcon;Lcom/embedpdf/AnnotationColor;Ljava/lang/Double;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;)V
+	public synthetic fun <init> (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/AnnotationFileAttachmentIcon;Lcom/embedpdf/AnnotationColor;Ljava/lang/Double;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Luniffi/epdf_ffi/Rect;
+	public final fun component2 ()Lcom/embedpdf/AnnotationFileAttachmentIcon;
+	public final fun component3 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component4 ()Ljava/lang/Double;
+	public final fun component5 ()Lcom/embedpdf/Nullable;
+	public final fun component6 ()Lcom/embedpdf/AnnotationBlendMode;
+	public final fun component7 ()Lcom/embedpdf/Nullable;
+	public final fun component8 ()Lcom/embedpdf/AnnotationCommonFields;
+	public final fun copy (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/AnnotationFileAttachmentIcon;Lcom/embedpdf/AnnotationColor;Ljava/lang/Double;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;)Lcom/embedpdf/FileAttachmentAnnotationPatch;
+	public static synthetic fun copy$default (Lcom/embedpdf/FileAttachmentAnnotationPatch;Luniffi/epdf_ffi/Rect;Lcom/embedpdf/AnnotationFileAttachmentIcon;Lcom/embedpdf/AnnotationColor;Ljava/lang/Double;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;ILjava/lang/Object;)Lcom/embedpdf/FileAttachmentAnnotationPatch;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBlendMode ()Lcom/embedpdf/AnnotationBlendMode;
+	public final fun getColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getCommon ()Lcom/embedpdf/AnnotationCommonFields;
+	public final fun getContents ()Lcom/embedpdf/Nullable;
+	public final fun getIcon ()Lcom/embedpdf/AnnotationFileAttachmentIcon;
+	public final fun getOpacity ()Ljava/lang/Double;
+	public final fun getRect ()Luniffi/epdf_ffi/Rect;
+	public final fun getRichText ()Lcom/embedpdf/Nullable;
+	public fun hashCode ()I
+	public fun json ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/FileAttachmentAnnotationPatch$Companion : com/embedpdf/AnnotationPatch$Reader {
+	public synthetic fun fromJson (Ljava/lang/String;)Lcom/embedpdf/AnnotationPatch;
+	public fun fromJson (Ljava/lang/String;)Lcom/embedpdf/FileAttachmentAnnotationPatch;
+}
+
 public final class com/embedpdf/FormCapability {
 	public final fun activate (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun addWidget (Luniffi/epdf_ffi/FormFieldRef;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -892,6 +1125,119 @@ public final class com/embedpdf/FormCapability {
 
 public final class com/embedpdf/FormKt {
 	public static final fun form (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/FreeTextAnnotationDraft : com/embedpdf/AnnotationDraft {
+	public fun <init> (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/Nullable;Ljava/lang/String;Ljava/lang/Double;Lcom/embedpdf/AnnotationColor;Lcom/embedpdf/AnnotationTextAlignment;Lcom/embedpdf/AnnotationVerticalAlignment;Lcom/embedpdf/AnnotationColor;Lcom/embedpdf/Nullable;Ljava/lang/Double;Ljava/lang/Double;Lcom/embedpdf/AnnotationBorderStyle;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/AnnotationRichText;Lcom/embedpdf/AnnotationCommonFields;)V
+	public synthetic fun <init> (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/Nullable;Ljava/lang/String;Ljava/lang/Double;Lcom/embedpdf/AnnotationColor;Lcom/embedpdf/AnnotationTextAlignment;Lcom/embedpdf/AnnotationVerticalAlignment;Lcom/embedpdf/AnnotationColor;Lcom/embedpdf/Nullable;Ljava/lang/Double;Ljava/lang/Double;Lcom/embedpdf/AnnotationBorderStyle;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/AnnotationRichText;Lcom/embedpdf/AnnotationCommonFields;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Luniffi/epdf_ffi/Rect;
+	public final fun component10 ()Ljava/lang/Double;
+	public final fun component11 ()Ljava/lang/Double;
+	public final fun component12 ()Lcom/embedpdf/AnnotationBorderStyle;
+	public final fun component13 ()Lcom/embedpdf/Nullable;
+	public final fun component14 ()Lcom/embedpdf/Nullable;
+	public final fun component15 ()Lcom/embedpdf/Nullable;
+	public final fun component16 ()Lcom/embedpdf/Nullable;
+	public final fun component17 ()Lcom/embedpdf/Nullable;
+	public final fun component18 ()Lcom/embedpdf/Nullable;
+	public final fun component19 ()Lcom/embedpdf/AnnotationBlendMode;
+	public final fun component2 ()Lcom/embedpdf/Nullable;
+	public final fun component20 ()Lcom/embedpdf/AnnotationRichText;
+	public final fun component21 ()Lcom/embedpdf/AnnotationCommonFields;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/Double;
+	public final fun component5 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component6 ()Lcom/embedpdf/AnnotationTextAlignment;
+	public final fun component7 ()Lcom/embedpdf/AnnotationVerticalAlignment;
+	public final fun component8 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component9 ()Lcom/embedpdf/Nullable;
+	public final fun copy (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/Nullable;Ljava/lang/String;Ljava/lang/Double;Lcom/embedpdf/AnnotationColor;Lcom/embedpdf/AnnotationTextAlignment;Lcom/embedpdf/AnnotationVerticalAlignment;Lcom/embedpdf/AnnotationColor;Lcom/embedpdf/Nullable;Ljava/lang/Double;Ljava/lang/Double;Lcom/embedpdf/AnnotationBorderStyle;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/AnnotationRichText;Lcom/embedpdf/AnnotationCommonFields;)Lcom/embedpdf/FreeTextAnnotationDraft;
+	public static synthetic fun copy$default (Lcom/embedpdf/FreeTextAnnotationDraft;Luniffi/epdf_ffi/Rect;Lcom/embedpdf/Nullable;Ljava/lang/String;Ljava/lang/Double;Lcom/embedpdf/AnnotationColor;Lcom/embedpdf/AnnotationTextAlignment;Lcom/embedpdf/AnnotationVerticalAlignment;Lcom/embedpdf/AnnotationColor;Lcom/embedpdf/Nullable;Ljava/lang/Double;Ljava/lang/Double;Lcom/embedpdf/AnnotationBorderStyle;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/AnnotationRichText;Lcom/embedpdf/AnnotationCommonFields;ILjava/lang/Object;)Lcom/embedpdf/FreeTextAnnotationDraft;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBlendMode ()Lcom/embedpdf/AnnotationBlendMode;
+	public final fun getBorderStyle ()Lcom/embedpdf/AnnotationBorderStyle;
+	public final fun getBox ()Luniffi/epdf_ffi/Rect;
+	public final fun getCalloutLine ()Lcom/embedpdf/Nullable;
+	public final fun getCloudyIntensity ()Lcom/embedpdf/Nullable;
+	public final fun getColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getCommon ()Lcom/embedpdf/AnnotationCommonFields;
+	public final fun getContents ()Lcom/embedpdf/Nullable;
+	public final fun getDashArray ()Lcom/embedpdf/Nullable;
+	public final fun getFontColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getFontFamily ()Ljava/lang/String;
+	public final fun getFontSize ()Ljava/lang/Double;
+	public final fun getIntent ()Lcom/embedpdf/Nullable;
+	public final fun getInteriorColor ()Lcom/embedpdf/Nullable;
+	public final fun getLineEnding ()Lcom/embedpdf/Nullable;
+	public final fun getOpacity ()Ljava/lang/Double;
+	public final fun getRichText ()Lcom/embedpdf/AnnotationRichText;
+	public final fun getRotation ()Lcom/embedpdf/Nullable;
+	public final fun getStrokeWidth ()Ljava/lang/Double;
+	public final fun getTextAlign ()Lcom/embedpdf/AnnotationTextAlignment;
+	public final fun getVerticalAlign ()Lcom/embedpdf/AnnotationVerticalAlignment;
+	public fun hashCode ()I
+	public fun json ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/FreeTextAnnotationPatch : com/embedpdf/AnnotationPatch {
+	public static final field Companion Lcom/embedpdf/FreeTextAnnotationPatch$Companion;
+	public fun <init> ()V
+	public fun <init> (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/Nullable;Ljava/lang/String;Ljava/lang/Double;Lcom/embedpdf/AnnotationColor;Lcom/embedpdf/AnnotationTextAlignment;Lcom/embedpdf/AnnotationVerticalAlignment;Lcom/embedpdf/AnnotationColor;Lcom/embedpdf/Nullable;Ljava/lang/Double;Ljava/lang/Double;Lcom/embedpdf/AnnotationBorderStyle;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/AnnotationRichText;Lcom/embedpdf/AnnotationCommonFields;)V
+	public synthetic fun <init> (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/Nullable;Ljava/lang/String;Ljava/lang/Double;Lcom/embedpdf/AnnotationColor;Lcom/embedpdf/AnnotationTextAlignment;Lcom/embedpdf/AnnotationVerticalAlignment;Lcom/embedpdf/AnnotationColor;Lcom/embedpdf/Nullable;Ljava/lang/Double;Ljava/lang/Double;Lcom/embedpdf/AnnotationBorderStyle;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/AnnotationRichText;Lcom/embedpdf/AnnotationCommonFields;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Luniffi/epdf_ffi/Rect;
+	public final fun component10 ()Ljava/lang/Double;
+	public final fun component11 ()Ljava/lang/Double;
+	public final fun component12 ()Lcom/embedpdf/AnnotationBorderStyle;
+	public final fun component13 ()Lcom/embedpdf/Nullable;
+	public final fun component14 ()Lcom/embedpdf/Nullable;
+	public final fun component15 ()Lcom/embedpdf/Nullable;
+	public final fun component16 ()Lcom/embedpdf/Nullable;
+	public final fun component17 ()Lcom/embedpdf/Nullable;
+	public final fun component18 ()Lcom/embedpdf/Nullable;
+	public final fun component19 ()Lcom/embedpdf/AnnotationBlendMode;
+	public final fun component2 ()Lcom/embedpdf/Nullable;
+	public final fun component20 ()Lcom/embedpdf/AnnotationRichText;
+	public final fun component21 ()Lcom/embedpdf/AnnotationCommonFields;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/Double;
+	public final fun component5 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component6 ()Lcom/embedpdf/AnnotationTextAlignment;
+	public final fun component7 ()Lcom/embedpdf/AnnotationVerticalAlignment;
+	public final fun component8 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component9 ()Lcom/embedpdf/Nullable;
+	public final fun copy (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/Nullable;Ljava/lang/String;Ljava/lang/Double;Lcom/embedpdf/AnnotationColor;Lcom/embedpdf/AnnotationTextAlignment;Lcom/embedpdf/AnnotationVerticalAlignment;Lcom/embedpdf/AnnotationColor;Lcom/embedpdf/Nullable;Ljava/lang/Double;Ljava/lang/Double;Lcom/embedpdf/AnnotationBorderStyle;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/AnnotationRichText;Lcom/embedpdf/AnnotationCommonFields;)Lcom/embedpdf/FreeTextAnnotationPatch;
+	public static synthetic fun copy$default (Lcom/embedpdf/FreeTextAnnotationPatch;Luniffi/epdf_ffi/Rect;Lcom/embedpdf/Nullable;Ljava/lang/String;Ljava/lang/Double;Lcom/embedpdf/AnnotationColor;Lcom/embedpdf/AnnotationTextAlignment;Lcom/embedpdf/AnnotationVerticalAlignment;Lcom/embedpdf/AnnotationColor;Lcom/embedpdf/Nullable;Ljava/lang/Double;Ljava/lang/Double;Lcom/embedpdf/AnnotationBorderStyle;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationBlendMode;Lcom/embedpdf/AnnotationRichText;Lcom/embedpdf/AnnotationCommonFields;ILjava/lang/Object;)Lcom/embedpdf/FreeTextAnnotationPatch;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBlendMode ()Lcom/embedpdf/AnnotationBlendMode;
+	public final fun getBorderStyle ()Lcom/embedpdf/AnnotationBorderStyle;
+	public final fun getBox ()Luniffi/epdf_ffi/Rect;
+	public final fun getCalloutLine ()Lcom/embedpdf/Nullable;
+	public final fun getCloudyIntensity ()Lcom/embedpdf/Nullable;
+	public final fun getColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getCommon ()Lcom/embedpdf/AnnotationCommonFields;
+	public final fun getContents ()Lcom/embedpdf/Nullable;
+	public final fun getDashArray ()Lcom/embedpdf/Nullable;
+	public final fun getFontColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getFontFamily ()Ljava/lang/String;
+	public final fun getFontSize ()Ljava/lang/Double;
+	public final fun getIntent ()Lcom/embedpdf/Nullable;
+	public final fun getInteriorColor ()Lcom/embedpdf/Nullable;
+	public final fun getLineEnding ()Lcom/embedpdf/Nullable;
+	public final fun getOpacity ()Ljava/lang/Double;
+	public final fun getRichText ()Lcom/embedpdf/AnnotationRichText;
+	public final fun getRotation ()Lcom/embedpdf/Nullable;
+	public final fun getStrokeWidth ()Ljava/lang/Double;
+	public final fun getTextAlign ()Lcom/embedpdf/AnnotationTextAlignment;
+	public final fun getVerticalAlign ()Lcom/embedpdf/AnnotationVerticalAlignment;
+	public fun hashCode ()I
+	public fun json ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/FreeTextAnnotationPatch$Companion : com/embedpdf/AnnotationPatch$Reader {
+	public synthetic fun fromJson (Ljava/lang/String;)Lcom/embedpdf/AnnotationPatch;
+	public fun fromJson (Ljava/lang/String;)Lcom/embedpdf/FreeTextAnnotationPatch;
 }
 
 public final class com/embedpdf/GeometryBridgesKt {
@@ -1141,6 +1487,51 @@ public final class com/embedpdf/InteractionHandler$DefaultImpls {
 
 public final class com/embedpdf/InteractionKt {
 	public static final fun interaction (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/LinkAnnotationDraft : com/embedpdf/AnnotationDraft {
+	public fun <init> (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/AnnotationLinkTarget;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;)V
+	public synthetic fun <init> (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/AnnotationLinkTarget;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Luniffi/epdf_ffi/Rect;
+	public final fun component2 ()Lcom/embedpdf/AnnotationLinkTarget;
+	public final fun component3 ()Lcom/embedpdf/Nullable;
+	public final fun component4 ()Lcom/embedpdf/AnnotationCommonFields;
+	public final fun copy (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/AnnotationLinkTarget;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;)Lcom/embedpdf/LinkAnnotationDraft;
+	public static synthetic fun copy$default (Lcom/embedpdf/LinkAnnotationDraft;Luniffi/epdf_ffi/Rect;Lcom/embedpdf/AnnotationLinkTarget;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;ILjava/lang/Object;)Lcom/embedpdf/LinkAnnotationDraft;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCommon ()Lcom/embedpdf/AnnotationCommonFields;
+	public final fun getContents ()Lcom/embedpdf/Nullable;
+	public final fun getRect ()Luniffi/epdf_ffi/Rect;
+	public final fun getTarget ()Lcom/embedpdf/AnnotationLinkTarget;
+	public fun hashCode ()I
+	public fun json ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/LinkAnnotationPatch : com/embedpdf/AnnotationPatch {
+	public static final field Companion Lcom/embedpdf/LinkAnnotationPatch$Companion;
+	public fun <init> ()V
+	public fun <init> (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;)V
+	public synthetic fun <init> (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Luniffi/epdf_ffi/Rect;
+	public final fun component2 ()Lcom/embedpdf/Nullable;
+	public final fun component3 ()Lcom/embedpdf/Nullable;
+	public final fun component4 ()Lcom/embedpdf/AnnotationCommonFields;
+	public final fun copy (Luniffi/epdf_ffi/Rect;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;)Lcom/embedpdf/LinkAnnotationPatch;
+	public static synthetic fun copy$default (Lcom/embedpdf/LinkAnnotationPatch;Luniffi/epdf_ffi/Rect;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;ILjava/lang/Object;)Lcom/embedpdf/LinkAnnotationPatch;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCommon ()Lcom/embedpdf/AnnotationCommonFields;
+	public final fun getContents ()Lcom/embedpdf/Nullable;
+	public final fun getRect ()Luniffi/epdf_ffi/Rect;
+	public final fun getTarget ()Lcom/embedpdf/Nullable;
+	public fun hashCode ()I
+	public fun json ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/LinkAnnotationPatch$Companion : com/embedpdf/AnnotationPatch$Reader {
+	public synthetic fun fromJson (Ljava/lang/String;)Lcom/embedpdf/AnnotationPatch;
+	public fun fromJson (Ljava/lang/String;)Lcom/embedpdf/LinkAnnotationPatch;
 }
 
 public final class com/embedpdf/LinkCapability {
@@ -1991,6 +2382,40 @@ public final class com/embedpdf/StageCapability {
 
 public final class com/embedpdf/StageKt {
 	public static final fun stage (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/StampAnnotationPatch : com/embedpdf/AnnotationPatch {
+	public static final field Companion Lcom/embedpdf/StampAnnotationPatch$Companion;
+	public fun <init> ()V
+	public fun <init> (Luniffi/epdf_ffi/Rect;Ljava/lang/Double;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;)V
+	public synthetic fun <init> (Luniffi/epdf_ffi/Rect;Ljava/lang/Double;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Luniffi/epdf_ffi/Rect;
+	public final fun component2 ()Ljava/lang/Double;
+	public final fun component3 ()Lcom/embedpdf/Nullable;
+	public final fun component4 ()Lcom/embedpdf/Nullable;
+	public final fun component5 ()Lcom/embedpdf/Nullable;
+	public final fun component6 ()Lcom/embedpdf/Nullable;
+	public final fun component7 ()Lcom/embedpdf/Nullable;
+	public final fun component8 ()Lcom/embedpdf/AnnotationCommonFields;
+	public final fun copy (Luniffi/epdf_ffi/Rect;Ljava/lang/Double;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;)Lcom/embedpdf/StampAnnotationPatch;
+	public static synthetic fun copy$default (Lcom/embedpdf/StampAnnotationPatch;Luniffi/epdf_ffi/Rect;Ljava/lang/Double;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/Nullable;Lcom/embedpdf/AnnotationCommonFields;ILjava/lang/Object;)Lcom/embedpdf/StampAnnotationPatch;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBox ()Luniffi/epdf_ffi/Rect;
+	public final fun getCommon ()Lcom/embedpdf/AnnotationCommonFields;
+	public final fun getContents ()Lcom/embedpdf/Nullable;
+	public final fun getFit ()Lcom/embedpdf/Nullable;
+	public final fun getName ()Lcom/embedpdf/Nullable;
+	public final fun getOpacity ()Ljava/lang/Double;
+	public final fun getRichText ()Lcom/embedpdf/Nullable;
+	public final fun getRotation ()Lcom/embedpdf/Nullable;
+	public fun hashCode ()I
+	public fun json ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/StampAnnotationPatch$Companion : com/embedpdf/AnnotationPatch$Reader {
+	public synthetic fun fromJson (Ljava/lang/String;)Lcom/embedpdf/AnnotationPatch;
+	public fun fromJson (Ljava/lang/String;)Lcom/embedpdf/StampAnnotationPatch;
 }
 
 public final class com/embedpdf/StrikeoutAnnotationDraft : com/embedpdf/AnnotationDraft {

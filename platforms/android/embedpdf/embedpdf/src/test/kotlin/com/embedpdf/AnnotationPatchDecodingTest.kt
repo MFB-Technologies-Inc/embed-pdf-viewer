@@ -103,6 +103,50 @@ class AnnotationPatchDecodingTest {
         expectRoundTrip(redaction, redaction.copy(common = unnamed), RedactionAnnotationPatch)
     }
 
+    @Test
+    fun boxPatchesRoundTrip() {
+        val box = AnnotationKindDraftTest.box
+        val freeText = FreeTextAnnotationPatch(
+            box = box, contents = value("Styled comment"), fontFamily = "times-roman", fontSize = 14.0,
+            fontColor = AnnotationColor("#112233"), textAlign = AnnotationTextAlignment.JUSTIFY,
+            verticalAlign = AnnotationVerticalAlignment.MIDDLE, color = AnnotationColor("#445566"),
+            interiorColor = value(AnnotationColor("#ffffcc")), opacity = 0.75, strokeWidth = 2.0,
+            borderStyle = AnnotationBorderStyle.DASHED, dashArray = value(listOf(2.0, 1.0)), cloudyIntensity = value(1.0),
+            rotation = Nullable.Clear, intent = value(AnnotationFreeTextIntent.FREE_TEXT_CALLOUT),
+            calloutLine = value(AnnotationCalloutLine.Kneed(Point(20.0, 20.0), Point(60.0, 60.0), Point(100.0, 130.0))),
+            lineEnding = value(AnnotationLineEnding.OPEN_ARROW), blendMode = AnnotationBlendMode.MULTIPLY, richText = comment,
+            common = fullCommon,
+        )
+        expectRoundTrip(freeText, freeText.copy(common = unnamed), FreeTextAnnotationPatch)
+        val caret = CaretAnnotationPatch(
+            box = box, color = AnnotationColor("#ff0000"), opacity = 0.5, rotation = value(90.0),
+            intent = value(AnnotationCaretIntent.REPLACE), contents = Nullable.Clear, blendMode = AnnotationBlendMode.MULTIPLY,
+            richText = value(comment), common = fullCommon,
+        )
+        expectRoundTrip(caret, caret.copy(common = unnamed), CaretAnnotationPatch)
+        val link = LinkAnnotationPatch(
+            rect = box, target = value(AnnotationLinkTarget.Goto(PageDestinationXyz(PageRef(4u), 10.0, null, 2.0))),
+            contents = Nullable.Clear, common = fullCommon,
+        )
+        expectRoundTrip(link, link.copy(common = unnamed), LinkAnnotationPatch)
+        val stamp = StampAnnotationPatch(
+            box = box, opacity = 0.5, rotation = value(90.0), name = value("Approved"), fit = Nullable.Clear,
+            contents = value("Stamp text"), richText = value(comment), common = fullCommon,
+        )
+        expectRoundTrip(stamp, stamp.copy(common = unnamed), StampAnnotationPatch)
+        val attachment = FileAttachmentAnnotationPatch(
+            rect = box, icon = AnnotationFileAttachmentIcon.PUSH_PIN, color = AnnotationColor("#facc15"), opacity = 0.5,
+            contents = Nullable.Clear, blendMode = AnnotationBlendMode.MULTIPLY, richText = value(comment), common = fullCommon,
+        )
+        expectRoundTrip(attachment, attachment.copy(common = unnamed), FileAttachmentAnnotationPatch)
+    }
+
+    /** A free text's rich text has no clearing: `null` reads as left out. */
+    @Test
+    fun aFreeTextsNullRichTextReadsAsLeftOut() {
+        assertEquals(FreeTextAnnotationPatch(), FreeTextAnnotationPatch.fromJson("""{"richText":null}"""))
+    }
+
     // ── the codec's rules ──
 
     @Test
@@ -121,6 +165,7 @@ class AnnotationPatchDecodingTest {
         )
         // The kinds that share a field bag still ignore each other's members.
         assertEquals(UnderlineAnnotationPatch(opacity = 0.5), UnderlineAnnotationPatch.fromJson("""{"intent":7,"opacity":0.5}"""))
+        assertEquals(LinkAnnotationPatch(), LinkAnnotationPatch.fromJson("""{"blendMode":"normal","richText":7}"""))
     }
 
     @Test
@@ -129,6 +174,8 @@ class AnnotationPatchDecodingTest {
             val error = assertThrows(json, PdfException::class.java) { InkAnnotationPatch.fromJson(json) }
             assertEquals(PdfException.Code.INVALID_INPUT, error.code)
         }
+        val error = assertThrows(PdfException::class.java) { FreeTextAnnotationPatch.fromJson("""{"calloutLine":[{"x":1,"y":2}]}""") }
+        assertEquals(PdfException.Code.INVALID_INPUT, error.code)
     }
 
     /** A patch never writes `nm`, but a field bag can hold one, and a read patch shows it. */
