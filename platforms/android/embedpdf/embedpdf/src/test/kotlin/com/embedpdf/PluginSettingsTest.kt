@@ -96,4 +96,35 @@ class PluginSettingsTest {
         assertEquals(registered, stage.settings())
         viewer.destroy()
     }
+
+    @Test
+    fun selectionColorsClearAndSettingsReachBothDocuments() = viewerTest {
+        val viewer = started(ViewerConfig(interaction = true, selection = true))
+        val first = viewer.open(Fixture.bytes("report"))
+        val second = viewer.open(Fixture.bytes("report"))
+        val selection = viewer.selection(first)
+        val other = viewer.selection(second)
+        val registered = selection.settings()
+        selection.updateSettings(
+            SelectionSettingsPatch(
+                dragThresholdPx = 11.0,
+                color = "red",
+                handles = SelectionHandleSettingsPatch(color = "blue", shadow = "none"),
+            ),
+        )
+        selection.updateSettings(SelectionSettingsPatch(clearColor = true))
+        val cleared = other.settings()
+        assertEquals(null, cleared.color)
+        assertEquals(11.0, cleared.dragThresholdPx, 0.0)
+        assertEquals("blue", cleared.handles.color)
+        selection.updateSettings(SelectionSettingsPatch(handles = SelectionHandleSettingsPatch(clearColor = true)))
+        assertEquals("none", other.settings().handles.shadow)
+        assertEquals(null, other.settings().handles.color)
+        other.resetSettings()
+        assertEquals(registered, selection.settings())
+        viewer.close(first)
+        expectCode(PdfException.Code.INSTANCE_CLOSED) { selection.settings() }
+        assertEquals(registered, other.settings())
+        viewer.destroy()
+    }
 }

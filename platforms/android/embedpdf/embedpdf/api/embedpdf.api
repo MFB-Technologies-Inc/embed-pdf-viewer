@@ -666,6 +666,45 @@ public final class com/embedpdf/SearchKt {
 	public static final fun search (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class com/embedpdf/SelectionCapability {
+	public final fun anchor (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun beginGesture (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun beginGesture (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canCopy (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canSelect (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun clear (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun endGesture (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun ensureLoaded (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun extend (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun hasSelection (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun isHighlightVisible (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun isLoaded (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun isOverText (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun isSelecting (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
+	public final fun range (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun readText (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun readText (Luniffi/epdf_plugin_selection/SelectionTextRange;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun rects (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun resetSettings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun segments (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun select (Luniffi/epdf_plugin_search/SearchHit;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun select (Luniffi/epdf_plugin_selection/SelectionInput;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun selectAll (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun selectLine (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun selectPage (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun selectWord (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun selectedPages (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setHighlightVisible (ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun settings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun snapshot (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun updateSettings (Luniffi/epdf_plugin_selection/SelectionSettingsPatch;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/SelectionKt {
+	public static final fun selection (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class com/embedpdf/ShellCapability {
 	public final fun applySnapshot (Luniffi/epdf_plugin_shell/ShellSnapshot;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun close (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;

@@ -4548,28 +4548,40 @@
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "lifetime",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "get_settings",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "settings"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "update_settings",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "updateSettings"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "reset_settings",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "resetSettings"
+      }
     },
     {
       "crate": "selection",
@@ -4586,210 +4598,300 @@
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "can_select",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "canSelect"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "can_copy",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "canCopy"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "select",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "select"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "select_all",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "selectAll"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "select_page",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "selectPage"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "select_word_at",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "selectWord"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "select_line_at",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "selectLine"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "extend_to",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "extend"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "clear",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "clear"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "has_selection",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "hasSelection"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "is_selecting",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "isSelecting"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "get_snapshot",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "snapshot"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "get_range",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "range"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "list_selected_pages",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "selectedPages"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "list_segments",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "segments"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "list_rects",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "rects"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "get_anchor",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "anchor"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "read_text",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "readText"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "read_text_in_range",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "readText"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "on_changed",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "on_committed",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "on_cleared",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "ensure_loaded",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "ensureLoaded"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "is_loaded",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "isLoaded"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "is_over_text",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "isOverText"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "begin_gesture",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "beginGesture"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "begin_gesture_at",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "beginGesture"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "end_gesture",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "endGesture"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "set_highlight_visible",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "setHighlightVisible"
+      }
     },
     {
       "crate": "selection",
       "path": "crates/plugins/selection/src/controller.rs",
       "owner": "SelectionCapability",
       "symbol": "is_highlight_visible",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Selection.kt",
+        "symbol": "isHighlightVisible"
+      }
     },
     {
       "crate": "shell",

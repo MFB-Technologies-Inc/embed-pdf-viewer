@@ -57,11 +57,14 @@ class DisabledPluginTest {
         },
         Accessor("feedback", install = { it.copy(feedback = FeedbackConfig(RecordingFeedback())) }) { viewer, _ -> viewer.feedback() },
         Accessor("stage", install = { it.copy(stage = StageConfig()) }) { viewer, document -> viewer.stage(document) },
+        Accessor("selection", prerequisites = { it.copy(interaction = true) }, install = { it.copy(selection = true) }) { viewer, document ->
+            viewer.selection(document)
+        },
     )
 
     /** Plugins whose accessors later waves of the port add. */
     private val pending = setOf(
-        "selection", "link", "annotation",
+        "link", "annotation",
         "form", "redaction", "measurement", "stamp",
         "commands", "signature",
     )
