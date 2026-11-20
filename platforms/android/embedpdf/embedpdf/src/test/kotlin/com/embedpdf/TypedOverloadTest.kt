@@ -10,22 +10,54 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Each typed overload leaves the engine where its JSON twin does. The typed
- * drafts and patches, and the measurement and shell cases, are their waves'.
+ * Each typed overload leaves the engine where its JSON twin does. The
+ * measurement and shell cases are their waves'.
  */
 class TypedOverloadTest {
-    private val box = """{"subtype":"square","box":{"x":100,"y":120,"width":80,"height":40}}"""
+    private val box = SquareAnnotationDraft(Rect(100.0, 120.0, 80.0, 40.0))
     private val uriJson = """{"kind":"uri","uri":"https://example.com"}"""
 
     data class Opened(val viewer: PdfViewer, val document: DocumentInfo, val page: PageRef, val annotations: AnnotationCapability)
 
-    private suspend fun opened(): Opened {
+    private suspend fun opened(fixture: String = "report"): Opened {
         val viewer = started(ViewerConfig(interaction = true, link = true, annotation = ""))
-        val document = viewer.open(Fixture.bytes("report"))
+        val document = viewer.open(Fixture.bytes(fixture))
         val page = viewer.pages(document)[0].page
         val annotations = viewer.annotations(document)
         annotations.refresh()
         return Opened(viewer, document, page, annotations)
+    }
+
+    @Test
+    fun aSelectionTakesATypedPatch() = viewerTest {
+        val (viewer, _, page, annotations) = opened("annotation_kinds")
+        // The fixture has one highlight; the second is made here.
+        val fixture = annotations.list().first { it.subtype == AnnotationSubtype.HIGHLIGHT }
+        val created = annotations.create(AnnotationDraftTest.fullHighlight, page)
+        val highlights = listOf(fixture.annotationRef, created)
+        annotations.selection.select(highlights)
+
+        val typed = annotations.selection.update(HighlightAnnotationPatch(opacity = 0.4))
+        assertEquals(highlights.toSet(), typed.applied.toSet())
+        assertEquals(emptyList<AnnotationBatchFailure>(), typed.failed)
+        for (highlight in highlights) assertEquals(0.4, annotations.get(highlight)?.highlight?.opacity)
+
+        val json = annotations.selection.update("""{"opacity":0.4}""")
+        assertEquals(typed, json)
+        for (highlight in highlights) assertEquals(0.4, annotations.get(highlight)?.highlight?.opacity)
+        viewer.destroy()
+    }
+
+    @Test
+    fun aDraftedGotoKeepsItsCoordinates() = viewerTest {
+        val (viewer, _, page, annotations) = opened()
+        val target = AnnotationLinkTarget.Goto(PageDestinationXyz(page, 30.0, 40.0, null))
+        val ref = annotations.create(LinkAnnotationDraft(Rect(100.0, 120.0, 80.0, 40.0), target), page)
+        assertEquals(target, annotations.get(ref)?.link?.target)
+        val area = AnnotationLinkTarget.Goto(PageDestinationFitR(page, 10.0, 20.0, 100.0, 50.0))
+        annotations.update(ref, LinkAnnotationPatch(target = value(area)))
+        assertEquals(area, annotations.get(ref)?.link?.target)
+        viewer.destroy()
     }
 
     @Test

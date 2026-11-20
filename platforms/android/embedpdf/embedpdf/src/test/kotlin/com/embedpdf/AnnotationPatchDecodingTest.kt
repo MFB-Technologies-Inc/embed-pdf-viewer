@@ -1,13 +1,17 @@
 package com.embedpdf
 
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Test
 
 /**
  * The typed patches read back, as `AnnotationPatchDecodingTests`: a patch
- * reads from the field bag it writes.
+ * reads from the field bag it writes, and
+ * [AnnotationToolsCapability.defaults] reads a tool's defaults as one.
  */
 class AnnotationPatchDecodingTest {
     companion object {
@@ -266,5 +270,96 @@ class AnnotationPatchDecodingTest {
         val note = NoteAnnotationPatch.fromJson("""{"nm":"note-1","open":true}""")
         assertEquals(value("note-1"), note.common.nm)
         assertEquals("""{"open":true}""", note.json())
+    }
+
+    // ── tool defaults ──
+
+    private suspend fun tools(): Pair<PdfViewer, AnnotationToolsCapability> {
+        val (viewer, _, annotations) = AnnotationTest.opened("report")
+        return viewer to annotations.tools
+    }
+
+    @Test
+    fun defaultsReadBackWhatUpdateDefaultsWrote() = viewerTest {
+        val (viewer, tools) = tools()
+        val common = AnnotationCommonFields(subject = value("Review"), groupId = value("reviewers"), locked = true)
+        tools.updateDefaults(InkAnnotationPatch(strokeWidth = 5.0, common = common), ToolId.INK)
+        val ink = tools.defaults(ToolId.INK, InkAnnotationPatch)
+        assertEquals(5.0, ink.strokeWidth)
+        assertEquals(value("Review"), ink.common.subject)
+        assertEquals(value("reviewers"), ink.common.groupId)
+        assertEquals(true, ink.common.locked)
+        // The members the patch left alone are the tool's own.
+        assertEquals(true, ink.common.print)
+        assertEquals(AnnotationBorderStyle.SOLID, ink.borderStyle)
+        viewer.destroy()
+    }
+
+    /** The engine reports a default set to nothing as `null` and leaves an unset one out; the typed read keeps them apart. */
+    @Test
+    fun aNullDefaultAndAnUnsetOneReadApart() = viewerTest {
+        val (viewer, tools) = tools()
+        val fresh = tools.defaults(ToolId.INK, InkAnnotationPatch)
+        assertEquals(value(AnnotationColor("#ef4444")), fresh.color)
+        assertEquals(Nullable.Unchanged, fresh.dashArray)
+        assertEquals(Nullable.Unchanged, fresh.rotation)
+        assertEquals(Nullable.Unchanged, fresh.contents)
+        assertEquals(Nullable.Unchanged, fresh.common.subject)
+
+        tools.updateDefaults(InkAnnotationPatch(color = Nullable.Clear, dashArray = Nullable.Clear), ToolId.INK)
+        val raw = jsonObject(tools.defaults(ToolId.INK))
+        assertEquals(JsonNull, raw["color"])
+        assertEquals(JsonNull, raw["dashArray"])
+        assertFalse("rotation" in raw)
+        val ink = tools.defaults(ToolId.INK, InkAnnotationPatch)
+        assertEquals(Nullable.Clear, ink.color)
+        assertEquals(Nullable.Clear, ink.dashArray)
+        assertEquals(Nullable.Unchanged, ink.rotation)
+        viewer.destroy()
+    }
+
+    @Test
+    fun everyToolsDefaultsReadAsItsPatch() = viewerTest {
+        val (viewer, tools) = tools()
+        suspend fun reads(reader: AnnotationPatch.Reader<*>, ids: List<ToolId>) {
+            for (id in ids) tools.defaults(id, reader)
+        }
+        reads(InkAnnotationPatch, listOf(ToolId.INK, ToolId.INK_HIGHLIGHT))
+        reads(HighlightAnnotationPatch, listOf(ToolId.HIGHLIGHT))
+        reads(UnderlineAnnotationPatch, listOf(ToolId.UNDERLINE))
+        reads(SquigglyAnnotationPatch, listOf(ToolId.SQUIGGLY))
+        reads(StrikeoutAnnotationPatch, listOf(ToolId.STRIKEOUT))
+        reads(RedactionAnnotationPatch, listOf(ToolId.REDACT))
+        reads(SquareAnnotationPatch, listOf(ToolId.SQUARE))
+        reads(CircleAnnotationPatch, listOf(ToolId.CIRCLE))
+        reads(LineAnnotationPatch, listOf(ToolId.LINE, ToolId.DISTANCE, ToolId.CALIBRATE))
+        reads(PolygonAnnotationPatch, listOf(ToolId.POLYGON, ToolId.AREA))
+        reads(PolylineAnnotationPatch, listOf(ToolId.POLYLINE, ToolId.PERIMETER))
+        reads(FreeTextAnnotationPatch, listOf(ToolId.FREE_TEXT, ToolId.FREE_TEXT_CALLOUT))
+        reads(CaretAnnotationPatch, listOf(ToolId.INSERT_TEXT, ToolId.REPLACE_TEXT))
+        reads(StampAnnotationPatch, listOf(ToolId.STAMP))
+        reads(LinkAnnotationPatch, listOf(ToolId.LINK))
+        reads(NoteAnnotationPatch, listOf(ToolId.NOTE))
+        reads(FileAttachmentAnnotationPatch, listOf(ToolId.ATTACHMENT))
+
+        val distance = tools.defaults(ToolId.DISTANCE, LineAnnotationPatch)
+        assertEquals(value(AnnotationLineIntent.LINE_DIMENSION), distance.intent)
+        assertEquals(value(AnnotationLineLeader(12.0, 5.0, 0.0)), distance.leader)
+        assertEquals(AnnotationLineEndings(AnnotationLineEnding.CLOSED_ARROW, AnnotationLineEnding.CLOSED_ARROW), distance.lineEndings)
+        viewer.destroy()
+    }
+
+    /** The defaults are an open field bag: the JSON overload stores a name, and a value no patch member holds. */
+    @Test
+    fun defaultsThatDoNotReadAsThePatchThrowInvalidInput() = viewerTest {
+        val (viewer, tools) = tools()
+        tools.updateDefaults("""{"nm":"fixed-name"}""", ToolId.INK)
+        assertEquals(value("fixed-name"), tools.defaults(ToolId.INK, InkAnnotationPatch).common.nm)
+
+        tools.updateDefaults("""{"strokeWidth":"wide"}""", ToolId.INK)
+        expectCode(PdfException.Code.INVALID_INPUT) { tools.defaults(ToolId.INK, InkAnnotationPatch) }
+        // Another kind's patch doesn't read `strokeWidth`, so it still reads.
+        assertNull(tools.defaults(ToolId.INK, HighlightAnnotationPatch).quadPoints)
+        viewer.destroy()
     }
 }

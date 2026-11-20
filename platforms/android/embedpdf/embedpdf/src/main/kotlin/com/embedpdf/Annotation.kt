@@ -14,9 +14,11 @@ import uniffi.epdf_plugin_annotation.AnnotationToolsHandle
 // The plugin speaks the engine's records: a record carries its ref, page,
 // subtype, rect, text members and authority typed, and the rest as JSON
 // (`AnnotationRecord.fieldsJson`). Reads hand it out as `AnnotationInfo`,
-// which types the timestamps, the subtype and the blend mode. Create fields,
-// patches, tool defaults and selection values are the engine's field bags,
-// passed as JSON objects.
+// which types the timestamps, the subtype, the blend mode and each kind's
+// members. Create fields, patches, tool defaults and selection values are the
+// engine's field bags: typed as `AnnotationDraft` and `AnnotationPatch`
+// (`AnnotationDraft.kt`), or passed as JSON objects for what the typed forms
+// don't cover.
 public typealias CreationDraftAnchor = uniffi.epdf_ffi.CreationDraftAnchor
 public typealias AnnotationRecord = uniffi.epdf_plugin_annotation.AnnotationRecord
 public typealias AnnotationCreationDraft = uniffi.epdf_plugin_annotation.AnnotationCreationDraft
@@ -186,6 +188,26 @@ public class AnnotationCapability internal constructor(
         viewer.callCancellable { token -> handle.create(page, fieldsJson, tool?.value, select, token) }
 
     /**
+     * Resolves with the created annotation's ref once the engine confirmed
+     * it. [draft] is one of the typed drafts: [InkAnnotationDraft],
+     * [HighlightAnnotationDraft], [UnderlineAnnotationDraft],
+     * [StrikeoutAnnotationDraft], [SquigglyAnnotationDraft],
+     * [NoteAnnotationDraft], [FreeTextAnnotationDraft],
+     * [SquareAnnotationDraft], [CircleAnnotationDraft], [LineAnnotationDraft],
+     * [PolylineAnnotationDraft], [PolygonAnnotationDraft],
+     * [CaretAnnotationDraft], [LinkAnnotationDraft] or
+     * [RedactionAnnotationDraft]. [tool] picks the tool whose defaults it
+     * starts from; [select] selects it afterwards. Throws `invalid-input` for
+     * a value the engine refuses, naming the field, or for a number JSON
+     * can't hold.
+     *
+     * A create that started lands even when the caller is cancelled, as with
+     * the JSON form.
+     */
+    public suspend fun create(draft: AnnotationDraft, page: PageRef, tool: ToolId? = null, select: Boolean = false): AnnotationRef =
+        create(draft.json(), page, tool, select)
+
+    /**
      * Changes an annotation. [patchJson] is the engine's field bag: members it
      * leaves out keep their values, and `null` clears one. Throws
      * `invalid-input` for a value the engine refuses, including another
@@ -196,6 +218,27 @@ public class AnnotationCapability internal constructor(
      */
     public suspend fun update(ref: AnnotationRef, patchJson: String) {
         viewer.callCancellable { token -> handle.update(ref, patchJson, token) }
+    }
+
+    /**
+     * Changes an annotation with the typed patch for its subtype:
+     * [InkAnnotationPatch], [HighlightAnnotationPatch],
+     * [UnderlineAnnotationPatch], [StrikeoutAnnotationPatch],
+     * [SquigglyAnnotationPatch], [NoteAnnotationPatch],
+     * [FreeTextAnnotationPatch], [SquareAnnotationPatch],
+     * [CircleAnnotationPatch], [LineAnnotationPatch],
+     * [PolylineAnnotationPatch], [PolygonAnnotationPatch],
+     * [CaretAnnotationPatch], [LinkAnnotationPatch],
+     * [RedactionAnnotationPatch], [StampAnnotationPatch] or
+     * [FileAttachmentAnnotationPatch]. Members the patch leaves out keep
+     * their values. Throws `invalid-input` for a value the engine refuses,
+     * including a patch of another subtype's fields.
+     *
+     * A change that started lands even when the caller is cancelled, as with
+     * the JSON form.
+     */
+    public suspend fun update(ref: AnnotationRef, patch: AnnotationPatch) {
+        update(ref, patch.json())
     }
 
     /**
@@ -300,6 +343,13 @@ public class AnnotationSelectionCapability internal constructor(
         viewer.callCancellable { token -> handle.update(patchJson, token) }
 
     /**
+     * Changes every selected annotation with a typed patch. Each member takes
+     * the fields its kind has, as with the JSON form, and a change that
+     * started lands even when the caller is cancelled.
+     */
+    public suspend fun update(patch: AnnotationPatch): AnnotationBatchResult = update(patch.json())
+
+    /**
      * A delete that started lands even when the caller is cancelled (see the
      * README's Cancellation section).
      */
@@ -357,6 +407,42 @@ public class AnnotationToolsCapability internal constructor(
     public suspend fun defaults(tool: ToolId): String = viewer.call { handle.defaults(tool.value) }
 
     /**
+     * The tool's defaults as the patch of its subtype, read by that patch's
+     * companion: `defaults(ToolId.INK, InkAnnotationPatch)`. What
+     * [updateDefaults] wrote, read back typed.
+     *
+     * A default the tool doesn't set is left out of the patch (`null` or
+     * [Nullable.Unchanged]), and one set to nothing is [Nullable.Clear]: the
+     * engine leaves the first out of its JSON and writes `null` for the
+     * second. A default the patch has no member for is left unread; the JSON
+     * overload has every one. `common.nm` is the name the defaults hold,
+     * which only the JSON overload can put there.
+     *
+     * Throws `invalid-input` when the defaults don't read as the patch: a
+     * member of the patch holds a value of another shape, as it can after the
+     * JSON overload stored one. Asking for another subtype's patch reads only
+     * the members the two subtypes share, and throws only when a shared key
+     * holds a value of another shape.
+     */
+    public suspend fun <P : AnnotationPatch> defaults(tool: ToolId, type: AnnotationPatch.Reader<P>): P {
+        val json = defaults(tool)
+        // Performance: the engine writes the defaults as a JSON string and
+        // this parses it again on every call; nothing is kept between calls.
+        // A style panel that reads a tool's defaults on every recomposition
+        // keeps the typed value and reads it again when the defaults change.
+        return try {
+            type.fromJson(json)
+        } catch (e: PdfException) {
+            throw PdfException(
+                PdfException.Code.INVALID_INPUT,
+                "the defaults of ${tool.value} don't read as this patch: ${e.detail}",
+                "DecodingError",
+                e,
+            )
+        }
+    }
+
+    /**
      * Merges [changesJson], a field bag, over the tool's defaults, which every
      * annotation the tool creates starts from. A create keeps only the
      * defaults its subtype declares, and drops the rest without a word. A
@@ -365,6 +451,21 @@ public class AnnotationToolsCapability internal constructor(
      */
     public suspend fun updateDefaults(changesJson: String, tool: ToolId) {
         viewer.call { handle.updateDefaults(tool.value, changesJson) }
+    }
+
+    /**
+     * Merges [changes] over the tool's defaults, which every annotation the
+     * tool creates starts from. Pass the patch of the tool's subtype
+     * ([InkAnnotationPatch] for [ToolId.INK]); a create keeps only the
+     * defaults its subtype declares, and drops the rest without a word.
+     *
+     * The patch's `common` is stored too. A `reply` or `groupId` set there is
+     * the default for an annotation created with this tool: it becomes a reply
+     * to that annotation or a member of that group unless its draft sets its
+     * own value. A create without `tool` takes no defaults.
+     */
+    public suspend fun updateDefaults(changes: AnnotationPatch, tool: ToolId) {
+        updateDefaults(changes.json(), tool)
     }
 
     /** What the tool's style panel shows. */
