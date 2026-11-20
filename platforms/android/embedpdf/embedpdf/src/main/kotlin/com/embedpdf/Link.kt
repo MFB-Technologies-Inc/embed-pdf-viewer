@@ -104,11 +104,16 @@ public class LinkCapability internal constructor(
     /** What activating a target would do, with no side effect. */
     public suspend fun resolve(targetJson: String): LinkResolution = viewer.call { handle.resolve(targetJson) }
 
+    /** What activating a typed target would do, with no side effect. */
+    public suspend fun resolve(target: AnnotationLinkTarget): LinkResolution = resolve(target.json())
+
     public suspend fun activate(link: LinkItem): LinkActivation =
         viewer.call { handle.activate(LinkInputLink(page = link.page, id = link.id)) }
 
     public suspend fun activate(targetJson: String): LinkActivation =
         viewer.call { handle.activate(LinkInputTarget(targetJson)) }
+
+    public suspend fun activate(target: AnnotationLinkTarget): LinkActivation = activate(target.json())
 
     /** `null` when no link is under the point. */
     public suspend fun activate(point: Point, page: PageRef): LinkActivation? = viewer.call { handle.activateAt(page, point) }
@@ -121,6 +126,8 @@ public class LinkCapability internal constructor(
      * an outline entry): the URL, `Go to destination`, ...
      */
     public suspend fun label(targetJson: String): String = viewer.call { handle.label(LinkInputTarget(targetJson)) }
+
+    public suspend fun label(target: AnnotationLinkTarget): String = label(target.json())
 
     public suspend fun isNavigationEngaged(): Boolean = viewer.call { handle.isNavigationEngaged() }
 

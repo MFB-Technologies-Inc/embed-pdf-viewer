@@ -54,6 +54,40 @@ public final class com/embedpdf/AnnotationBlendMode : java/lang/Enum {
 	public static fun values ()[Lcom/embedpdf/AnnotationBlendMode;
 }
 
+public final class com/embedpdf/AnnotationCapability {
+	public final fun canCreate (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canDelete (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canRead (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canUpdate (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun create-0zluWlU (Ljava/lang/String;Luniffi/epdf_ffi/PageRef;Ljava/lang/String;ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun create-0zluWlU$default (Lcom/embedpdf/AnnotationCapability;Ljava/lang/String;Luniffi/epdf_ffi/PageRef;Ljava/lang/String;ZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun delete (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun export (Ljava/util/List;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun export$default (Lcom/embedpdf/AnnotationCapability;Ljava/util/List;Ljava/util/List;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun get (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun getDrafts ()Lcom/embedpdf/AnnotationDraftsCapability;
+	public final fun getSelection ()Lcom/embedpdf/AnnotationSelectionCapability;
+	public final fun getThreads ()Lcom/embedpdf/AnnotationThreadsCapability;
+	public final fun getTools ()Lcom/embedpdf/AnnotationToolsCapability;
+	public final fun hitTest (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun import (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun import$default (Lcom/embedpdf/AnnotationCapability;Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun isPending (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun list (Luniffi/epdf_plugin_annotation/AnnotationFilter;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun list$default (Lcom/embedpdf/AnnotationCapability;Luniffi/epdf_plugin_annotation/AnnotationFilter;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
+	public final fun refresh (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun reorder (Ljava/util/List;Lcom/embedpdf/AnnotationPosition;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun resetSettings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun selected (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setFilePicker (Luniffi/epdf_plugin_annotation/AnnotationFilePicker;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun settings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun status (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun update (Luniffi/epdf_ffi/AnnotationRef;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun updateSettings (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun whenSynced (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class com/embedpdf/AnnotationColor {
 	public static final field Companion Lcom/embedpdf/AnnotationColor$Companion;
 	public fun <init> (III)V
@@ -112,6 +146,50 @@ public final class com/embedpdf/AnnotationCommonFields {
 	public final fun getToggleNoView ()Ljava/lang/Boolean;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/AnnotationDraftsCapability {
+	public final fun armStamp (Luniffi/epdf_plugin_annotation/AnnotationStampSource;Ljava/lang/Double;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun armStamp$default (Lcom/embedpdf/AnnotationDraftsCapability;Luniffi/epdf_plugin_annotation/AnnotationStampSource;Ljava/lang/Double;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun beginTextEdit (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun beginTextEdit (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Ljava/lang/Double;Ljava/lang/Double;Ljava/lang/Double;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun beginTextEdit$default (Lcom/embedpdf/AnnotationDraftsCapability;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Ljava/lang/Double;Ljava/lang/Double;Ljava/lang/Double;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun cancel (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun clearGhost (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun clearMarkupPreview (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun clearPlacementPreview (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun createAttachment (Luniffi/epdf_plugin_annotation/AnnotationAttachmentFile;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun createCaret (Luniffi/epdf_plugin_annotation/AnnotationTextEndAnchor;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun createFromSelection-eRCDJDM (Ljava/lang/String;ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun createFromSelection-eRCDJDM$default (Lcom/embedpdf/AnnotationDraftsCapability;Ljava/lang/String;ZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun createMarkup-TvwJ9Kw (Ljava/lang/String;Ljava/lang/String;Luniffi/epdf_ffi/PageRef;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun createMarkup-TvwJ9Kw$default (Lcom/embedpdf/AnnotationDraftsCapability;Ljava/lang/String;Ljava/lang/String;Luniffi/epdf_ffi/PageRef;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun createReplaceText-fV35l1s (Ljava/lang/String;Luniffi/epdf_plugin_annotation/AnnotationTextEndAnchor;Luniffi/epdf_ffi/PageRef;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun createReplaceText-fV35l1s$default (Lcom/embedpdf/AnnotationDraftsCapability;Ljava/lang/String;Luniffi/epdf_plugin_annotation/AnnotationTextEndAnchor;Luniffi/epdf_ffi/PageRef;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun creationDraft (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun disarmStamp (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun draftContents (Ljava/lang/String;Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun editingRef (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun endTextEdit (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun finishCreationDraft (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun finishInkDraft (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun hasArmedStamp (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun hasCreationAwaitingClick (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun hoverGhost-RbNXG9E (Ljava/lang/String;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Ljava/lang/Double;Ljava/lang/Double;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun hoverGhost-RbNXG9E$default (Lcom/embedpdf/AnnotationDraftsCapability;Ljava/lang/String;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Ljava/lang/Double;Ljava/lang/Double;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun place (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Ljava/lang/Double;Ljava/lang/Double;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun place$default (Lcom/embedpdf/AnnotationDraftsCapability;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Ljava/lang/Double;Ljava/lang/Double;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun placeArmedStamp (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Ljava/lang/Double;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun placeArmedStamp$default (Lcom/embedpdf/AnnotationDraftsCapability;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Ljava/lang/Double;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun placeStamp (Luniffi/epdf_plugin_annotation/AnnotationStampSource;Luniffi/epdf_plugin_annotation/AnnotationStampPlacement;Ljava/lang/Double;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun placeStamp$default (Lcom/embedpdf/AnnotationDraftsCapability;Luniffi/epdf_plugin_annotation/AnnotationStampSource;Luniffi/epdf_plugin_annotation/AnnotationStampPlacement;Ljava/lang/Double;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun previewMarkup-vo3SJxg (Ljava/lang/String;Ljava/util/List;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun previewMarkup-vo3SJxg$default (Lcom/embedpdf/AnnotationDraftsCapability;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun previewPlacement-8sXqZo0 (Ljava/lang/String;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun readAttachment (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun requestStamp (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Ljava/lang/Double;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun requestStamp$default (Lcom/embedpdf/AnnotationDraftsCapability;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Ljava/lang/Double;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun setTextSelection (Lkotlin/ranges/IntRange;Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class com/embedpdf/AnnotationFilesKt {
@@ -190,6 +268,10 @@ public final class com/embedpdf/AnnotationIntent$Companion {
 	public final fun getREPLACE-DtC7LEc ()Ljava/lang/String;
 	public final fun getSTRIKEOUT_TEXT_EDIT-DtC7LEc ()Ljava/lang/String;
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/embedpdf/AnnotationKt {
+	public static final fun annotations (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public abstract interface class com/embedpdf/AnnotationLinkTarget {
@@ -380,6 +462,27 @@ public final class com/embedpdf/AnnotationRichText$Run {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class com/embedpdf/AnnotationSelectionCapability {
+	public final fun canGroup (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canUngroup (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun clear (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun delete (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun group (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun props (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun refs (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun resetRotation (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun rotate (DLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun select (Ljava/util/List;ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun select (Luniffi/epdf_ffi/Rect;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun select$default (Lcom/embedpdf/AnnotationSelectionCapability;Ljava/util/List;ZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun selectAll (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun selectAll$default (Lcom/embedpdf/AnnotationSelectionCapability;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun toggle (Luniffi/epdf_plugin_annotation/AnnotationTextFormat;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun ungroup (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun update (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun updateLink (Luniffi/epdf_ffi/PdfLinkTarget;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class com/embedpdf/AnnotationSubtype {
 	public static final field Companion Lcom/embedpdf/AnnotationSubtype$Companion;
 	public static final synthetic fun box-impl (Ljava/lang/String;)Lcom/embedpdf/AnnotationSubtype;
@@ -433,6 +536,31 @@ public final class com/embedpdf/AnnotationSubtype$Companion {
 
 public final class com/embedpdf/AnnotationSubtypeKt {
 	public static final fun getToolId (Luniffi/epdf_plugin_annotation/AnnotationTool;)Ljava/lang/String;
+}
+
+public final class com/embedpdf/AnnotationThreadsCapability {
+	public final fun clearLink (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun delete (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun deleteThread (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun link (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun linkTarget (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun permissions (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun reply (Luniffi/epdf_ffi/AnnotationRef;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setLink (Lcom/embedpdf/AnnotationLinkTarget;Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setLink (Ljava/lang/String;Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setMarked (ZLuniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setStatus (Luniffi/epdf_plugin_annotation/AnnotationThreadStatus;Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setText (Ljava/lang/String;Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun thread (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun threads (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/AnnotationToolsCapability {
+	public final fun defaults-N6U4bZY (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun properties-N6U4bZY (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun tool-N6U4bZY (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun tools (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun updateDefaults-BHdyqVw (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class com/embedpdf/AssetLocaleLoader : uniffi/epdf_plugin_i18n/LocaleLoader {
@@ -727,6 +855,7 @@ public final class com/embedpdf/InteractionKt {
 }
 
 public final class com/embedpdf/LinkCapability {
+	public final fun activate (Lcom/embedpdf/AnnotationLinkTarget;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun activate (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun activate (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun activate (Luniffi/epdf_plugin_link/LinkItem;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -734,6 +863,7 @@ public final class com/embedpdf/LinkCapability {
 	public final fun ensureLoaded (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun isLoaded (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun isNavigationEngaged (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun label (Lcom/embedpdf/AnnotationLinkTarget;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun label (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun label (Luniffi/epdf_plugin_link/LinkItem;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun link (Ljava/lang/String;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -741,6 +871,7 @@ public final class com/embedpdf/LinkCapability {
 	public final fun links (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
 	public final fun registerTapHandler (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun resolve (Lcom/embedpdf/AnnotationLinkTarget;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun resolve (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun status (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }

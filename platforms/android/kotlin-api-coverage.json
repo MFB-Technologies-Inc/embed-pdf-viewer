@@ -307,70 +307,100 @@
       "path": "crates/plugins/annotation/src/comments/comments.rs",
       "owner": "Core",
       "symbol": "comments_list_threads",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "threads"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/comments/comments.rs",
       "owner": "Core",
       "symbol": "comments_get_thread",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "thread"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/comments/comments.rs",
       "owner": "Core",
       "symbol": "comments_can_set_text",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "permissions"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/comments/comments.rs",
       "owner": "Core",
       "symbol": "comments_can_delete_thread",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "permissions"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/comments/comments.rs",
       "owner": "Core",
       "symbol": "comments_reply",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "reply"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/comments/comments.rs",
       "owner": "Core",
       "symbol": "comments_set_text",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "setText"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/comments/comments.rs",
       "owner": "Core",
       "symbol": "comments_set_status",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "setStatus"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/comments/comments.rs",
       "owner": "Core",
       "symbol": "comments_set_marked",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "setMarked"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/comments/comments.rs",
       "owner": "Core",
       "symbol": "comments_delete",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "delete"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/comments/comments.rs",
       "owner": "Core",
       "symbol": "comments_delete_thread",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "deleteThread"
+      }
     },
     {
       "crate": "annotation",
@@ -391,21 +421,30 @@
       "path": "crates/plugins/annotation/src/controller.rs",
       "owner": "Core",
       "symbol": "get_settings",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "settings"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/controller.rs",
       "owner": "Core",
       "symbol": "update_settings",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "updateSettings"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/controller.rs",
       "owner": "Core",
       "symbol": "reset_settings",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "resetSettings"
+      }
     },
     {
       "crate": "annotation",
@@ -419,28 +458,40 @@
       "path": "crates/plugins/annotation/src/read/annotations.rs",
       "owner": "Core",
       "symbol": "get",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "get"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/read/annotations.rs",
       "owner": "Core",
       "symbol": "is_pending",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "isPending"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/read/annotations.rs",
       "owner": "Core",
       "symbol": "list",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "list"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/read/annotations.rs",
       "owner": "Core",
       "symbol": "list_selected",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "selected"
+      }
     },
     {
       "crate": "annotation",
@@ -454,7 +505,10 @@
       "path": "crates/plugins/annotation/src/read/annotations.rs",
       "owner": "Core",
       "symbol": "get_editing",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "editingRef"
+      }
     },
     {
       "crate": "annotation",
@@ -482,7 +536,10 @@
       "path": "crates/plugins/annotation/src/read/chrome.rs",
       "owner": "Core",
       "symbol": "annotation_at",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "hitTest"
+      }
     },
     {
       "crate": "annotation",
@@ -552,56 +609,80 @@
       "path": "crates/plugins/annotation/src/services/authority.rs",
       "owner": "Core",
       "symbol": "can_read",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "canRead"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/services/authority.rs",
       "owner": "Core",
       "symbol": "can_create",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "canCreate"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/services/authority.rs",
       "owner": "Core",
       "symbol": "can_update",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "canUpdate"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/services/authority.rs",
       "owner": "Core",
       "symbol": "can_delete",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "canDelete"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/services/events.rs",
       "owner": "Core",
       "symbol": "get_status",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "status"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/services/events.rs",
       "owner": "Core",
       "symbol": "refresh",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "refresh"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/services/events.rs",
       "owner": "Core",
       "symbol": "when_synced",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "whenSynced"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/services/file_picker.rs",
       "owner": "Core",
       "symbol": "set_file_picker_provider",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "setFilePicker"
+      }
     },
     {
       "crate": "annotation",
@@ -636,14 +717,20 @@
       "path": "crates/plugins/annotation/src/tools/ghost.rs",
       "owner": "Core",
       "symbol": "clear_ghost",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "clearGhost"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/tools/ghost.rs",
       "owner": "Core",
       "symbol": "hover_ghost_at",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "hoverGhost"
+      }
     },
     {
       "crate": "annotation",
@@ -657,35 +744,50 @@
       "path": "crates/plugins/annotation/src/tools/ghost.rs",
       "owner": "Core",
       "symbol": "preview_placement",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "previewPlacement"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/tools/ghost.rs",
       "owner": "Core",
       "symbol": "clear_placement_preview",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "clearPlacementPreview"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/tools/registry.rs",
       "owner": "Core",
       "symbol": "tools_update_defaults",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "updateDefaults"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/tools/registry.rs",
       "owner": "Core",
       "symbol": "tools_list",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "tools"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/tools/registry.rs",
       "owner": "Core",
       "symbol": "tools_get",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "tool"
+      }
     },
     {
       "crate": "annotation",
@@ -699,14 +801,20 @@
       "path": "crates/plugins/annotation/src/tools/registry.rs",
       "owner": "Core",
       "symbol": "tools_get_defaults",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "defaults"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/tools/registry.rs",
       "owner": "Core",
       "symbol": "tools_get_properties",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "properties"
+      }
     },
     {
       "crate": "annotation",
@@ -734,84 +842,120 @@
       "path": "crates/plugins/annotation/src/write/crud.rs",
       "owner": "Core",
       "symbol": "create",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "create"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/crud.rs",
       "owner": "Core",
       "symbol": "update",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "update"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/crud.rs",
       "owner": "Core",
       "symbol": "delete",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "delete"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/crud.rs",
       "owner": "Core",
       "symbol": "reorder",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "reorder"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/crud.rs",
       "owner": "Core",
       "symbol": "export",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "export"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/crud.rs",
       "owner": "Core",
       "symbol": "import",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "import"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/crud.rs",
       "owner": "Core",
       "symbol": "download_resource",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "readAttachment"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/drafts.rs",
       "owner": "Core",
       "symbol": "draft_get",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "creationDraft"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/drafts.rs",
       "owner": "Core",
       "symbol": "draft_finish",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "finishCreationDraft"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/drafts.rs",
       "owner": "Core",
       "symbol": "cancel",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "cancel"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/drafts.rs",
       "owner": "Core",
       "symbol": "finish_ink_draft",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "finishInkDraft"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/drafts.rs",
       "owner": "Core",
       "symbol": "has_creation_awaiting_click",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "hasCreationAwaitingClick"
+      }
     },
     {
       "crate": "annotation",
@@ -825,49 +969,70 @@
       "path": "crates/plugins/annotation/src/write/icons.rs",
       "owner": "Core",
       "symbol": "place_at",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "place"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/links.rs",
       "owner": "Core",
       "symbol": "links_get",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "link"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/links.rs",
       "owner": "Core",
       "symbol": "links_set",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "setLink"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/links.rs",
       "owner": "Core",
       "symbol": "links_clear",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "clearLink"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/markup.rs",
       "owner": "Core",
       "symbol": "create_markup",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "createMarkup"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/markup.rs",
       "owner": "Core",
       "symbol": "create_caret",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "createCaret"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/markup.rs",
       "owner": "Core",
       "symbol": "create_replace_text",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "createReplaceText"
+      }
     },
     {
       "crate": "annotation",
@@ -881,21 +1046,30 @@
       "path": "crates/plugins/annotation/src/write/markup.rs",
       "owner": "Core",
       "symbol": "preview_markup",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "previewMarkup"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/markup.rs",
       "owner": "Core",
       "symbol": "clear_markup_preview",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "clearMarkupPreview"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/markup.rs",
       "owner": "Core",
       "symbol": "create_from_selection",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "createFromSelection"
+      }
     },
     {
       "crate": "annotation",
@@ -951,77 +1125,110 @@
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "toggle_format",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "toggle"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_set",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "select"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_add",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "select"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_select_all",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "selectAll"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_select_in_rect",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "select"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_clear",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "clear"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_update",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "update"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_update_link",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "updateLink"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_delete",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "delete"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_rotate_by",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "rotate"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_reset_rotation",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "resetRotation"
+      }
     },
     {
       "crate": "annotation",
@@ -1035,70 +1242,100 @@
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_group",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "group"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_ungroup",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "ungroup"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_can_group",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "canGroup"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_can_ungroup",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "canUngroup"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/stamps.rs",
       "owner": "Core",
       "symbol": "stamps_arm",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "armStamp"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/stamps.rs",
       "owner": "Core",
       "symbol": "stamps_disarm",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "disarmStamp"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/stamps.rs",
       "owner": "Core",
       "symbol": "stamps_is_armed",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "hasArmedStamp"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/stamps.rs",
       "owner": "Core",
       "symbol": "stamps_place",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "placeStamp"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/stamps.rs",
       "owner": "Core",
       "symbol": "place_armed_stamp",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "placeArmedStamp"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/stamps.rs",
       "owner": "Core",
       "symbol": "request_stamp_at",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "requestStamp"
+      }
     },
     {
       "crate": "annotation",
@@ -1119,21 +1356,30 @@
       "path": "crates/plugins/annotation/src/write/text_editing.rs",
       "owner": "Core",
       "symbol": "text_begin",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "beginTextEdit"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/text_editing.rs",
       "owner": "Core",
       "symbol": "text_end",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "endTextEdit"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/text_editing.rs",
       "owner": "Core",
       "symbol": "begin_text_edit_at",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "beginTextEdit"
+      }
     },
     {
       "crate": "annotation",
@@ -1147,7 +1393,10 @@
       "path": "crates/plugins/annotation/src/write/text_editing.rs",
       "owner": "Core",
       "symbol": "draft_contents",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "draftContents"
+      }
     },
     {
       "crate": "annotation",
@@ -1161,7 +1410,10 @@
       "path": "crates/plugins/annotation/src/write/text_editing.rs",
       "owner": "Core",
       "symbol": "set_text_selection",
-      "pending": "phase-3-d"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "setTextSelection"
+      }
     },
     {
       "crate": "annotation",

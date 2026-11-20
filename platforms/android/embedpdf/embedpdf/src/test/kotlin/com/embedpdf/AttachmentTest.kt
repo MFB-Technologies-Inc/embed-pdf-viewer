@@ -50,4 +50,22 @@ class AttachmentTest {
 
     // The Swift suite's page attachment case creates its attachment through
     // the annotation capability, which arrives with wave D.
+
+    @Test
+    fun aPageAttachmentDownloadsAndRevealsThroughTheAnnotationCapability() = viewerTest {
+        val viewer = started(ViewerConfig(interaction = true, annotation = "", attachment = true))
+        val document = viewer.open(Fixture.bytes("report"))
+        val annotations = viewer.annotations(document)
+        val page = viewer.pages(document)[0].page
+        val data = "attached".toByteArray()
+        val ref = annotations.drafts.createAttachment(AnnotationAttachmentFile(data, "page.txt"), Point(40.0, 40.0), page)
+        assertArrayEquals(data, annotations.drafts.readAttachment(ref))
+        val attachments = viewer.attachments(document)
+        attachments.ensureLoaded()
+        val file = attachments.files().first { it.home is AttachmentHomePage }
+        assertArrayEquals(data, attachments.download(file).data)
+        attachments.reveal(file)
+        assertTrue(annotations.selected().any { it.annotationRef == ref })
+        viewer.destroy()
+    }
 }

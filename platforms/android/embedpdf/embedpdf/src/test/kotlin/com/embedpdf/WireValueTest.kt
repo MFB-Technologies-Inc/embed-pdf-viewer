@@ -11,6 +11,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** Encode with kotlinx.serialization, decode the text back, and return both. */
@@ -238,5 +239,111 @@ class WireValueTest {
             paragraphs = listOf(AnnotationRichText.Paragraph(listOf(AnnotationRichText.Run("x")), mapOf("runs" to JsonPrimitive(1)))),
         )
         assertEquals("""{"paragraphs":[{"runs":[{"text":"x"}]}]}""", Json.encodeToString(AnnotationRichText.serializer(), text))
+    }
+
+    // ── against the engine ──
+
+    /** A fresh copy of the fixture, and the refs on the page with the most annotations, in paint order. */
+    private suspend fun crowdedPage(): Pair<AnnotationCapability, List<AnnotationRef>> {
+        val annotations = AnnotationTest.opened().annotations
+        val page = annotations.list().groupBy { it.page }.maxBy { it.value.size }.key
+        val refs = order(annotations, page)
+        assertTrue(refs.size >= 3)
+        return annotations to refs
+    }
+
+    private suspend fun order(annotations: AnnotationCapability, page: PageRef): List<AnnotationRef> =
+        annotations.list(AnnotationFilter(pages = listOf(page))).map { it.annotationRef }
+
+    private fun page(ref: AnnotationRef): PageRef = when (ref) {
+        is AnnotationRefObjectNumber -> ref.page
+        is AnnotationRefIndex -> ref.page
+    }
+
+    @Test
+    fun eachTypedPositionMovesTheAnnotationWhereItSays() = viewerTest {
+        val (annotations, original) = crowdedPage()
+        val page = page(original[0])
+        val (first, second, last) = Triple(original[0], original[1], original.last())
+
+        annotations.reorder(listOf(first), AnnotationPosition.End)
+        assertEquals(first, order(annotations, page).last())
+
+        annotations.reorder(listOf(first), AnnotationPosition.Start)
+        assertEquals(first, order(annotations, page).first())
+
+        annotations.reorder(listOf(first), AnnotationPosition.After(last))
+        assertEquals(first, order(annotations, page).last())
+
+        annotations.reorder(listOf(first), AnnotationPosition.Before(second))
+        val beforeSecond = order(annotations, page)
+        assertEquals(first, beforeSecond[beforeSecond.indexOf(second) - 1])
+        annotations.viewer.destroy()
+    }
+
+    @Test
+    fun aNeighbourOnAnotherPageOrMissingIsRefused() = viewerTest {
+        val (annotations, original) = crowdedPage()
+        val missing = AnnotationRefObjectNumber(page(original[0]), 999_999u)
+        expectCode(PdfException.Code.NOT_FOUND) { annotations.reorder(listOf(original[0]), AnnotationPosition.Before(missing)) }
+        assertEquals(original, order(annotations, page(original[0])))
+        annotations.viewer.destroy()
+    }
+
+    @Test
+    fun everyAnnotationToolIsANamedToolId() = viewerTest {
+        val viewer = started(ViewerConfig(interaction = true, annotation = ""))
+        val document = viewer.open(Fixture.bytes("report"))
+        val annotationTools = viewer.annotations(document).tools.tools()
+        assertEquals(emptyList<ToolId>(), annotationTools.map { it.toolId }.filter { it !in ToolId.named })
+        assertTrue(annotationTools.any { it.toolId == ToolId.HIGHLIGHT })
+        viewer.destroy()
+    }
+
+    @Test
+    fun aTypedToolReachesTheAnnotationTools() = viewerTest {
+        val viewer = started(ViewerConfig(interaction = true, annotation = ""))
+        val document = viewer.open(Fixture.bytes("report"))
+        val tools = viewer.annotations(document).tools
+        assertEquals("highlight", tools.tool(ToolId.HIGHLIGHT)?.id)
+        tools.updateDefaults("""{"color": "#00ff00"}""", ToolId.HIGHLIGHT)
+        assertTrue(tools.defaults(ToolId.HIGHLIGHT).contains("#00ff00"))
+        tools.properties(ToolId.HIGHLIGHT)
+        assertEquals(null, tools.tool(ToolId("laser")))
+        viewer.destroy()
+    }
+
+    private val quads = """[{"upperLeft":{"x":72,"y":72},"upperRight":{"x":172,"y":72},"lowerLeft":{"x":72,"y":92},"lowerRight":{"x":172,"y":92}}]"""
+    private val anchor = AnnotationTextEndAnchor(
+        """{"glyphQuad":{"upperLeft":{"x":172,"y":72},"upperRight":{"x":178,"y":72},"lowerLeft":{"x":172,"y":92},"lowerRight":{"x":178,"y":92}},"advance":1}""",
+    )
+    private val square = """{"subtype": "square", "box": {"x": 200, "y": 200, "width": 10, "height": 10}}"""
+
+    @Test
+    fun typedSubtypesAndToolsReachTheDrafts() = viewerTest {
+        val viewer = started(ViewerConfig(interaction = true, selection = true, annotation = ""))
+        val document = viewer.open(Fixture.bytes("report"))
+        val page = viewer.pages(document)[0].page
+        val annotations = viewer.annotations(document)
+        annotations.refresh()
+        val selection = viewer.selection(document)
+        selection.ensureLoaded(page)
+        val drafts = annotations.drafts
+        annotations.create(square, page, tool = ToolId.SQUARE)
+        drafts.createMarkup(AnnotationSubtype.UNDERLINE, quads, page, preset = ToolId.UNDERLINE)
+        drafts.createReplaceText(quads, anchor, page, preset = ToolId.REPLACE_TEXT)
+        drafts.previewMarkup(AnnotationSubtype.HIGHLIGHT, listOf(AnnotationPageQuads(page, quads)), preset = ToolId.HIGHLIGHT)
+        drafts.clearMarkupPreview()
+        drafts.hoverGhost(ToolId.NOTE, Point(300.0, 300.0), page)
+        drafts.clearGhost()
+        drafts.previewPlacement(ToolId.SQUARE, Point(300.0, 300.0), Point(340.0, 340.0), page)
+        drafts.clearPlacementPreview()
+        selection.selectPage(page)
+        assertTrue(drafts.createFromSelection(ToolId.HIGHLIGHT).isNotEmpty())
+        assertEquals(
+            setOf(AnnotationSubtype.SQUARE, AnnotationSubtype.UNDERLINE, AnnotationSubtype.STRIKEOUT, AnnotationSubtype.CARET, AnnotationSubtype.HIGHLIGHT),
+            annotations.list().map { it.subtype }.toSet(),
+        )
+        viewer.destroy()
     }
 }
