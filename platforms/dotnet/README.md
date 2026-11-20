@@ -178,7 +178,6 @@ Every RID was built and validated on its own native runner; the records are unde
 | `win-x64` | 44,866,560 | 10,510,848 | native, `win22 20261116.370.1` |
 
 The five-RID `EmbedPDF.Runtime` nupkg is 96,125,498 bytes, and the `EmbedPDF` nupkg is 1,221,777.
-Built in the dev container, both Linux hosts need GLIBC 2.35 and their PDFium 2.25. The Windows
-host is the largest because it keeps its symbol table; `-C strip=symbols` does not shrink a PE.
+Built in the dev container, both Linux hosts need GLIBC 2.35 and their PDFium 2.25.
 
 An app that loads both `EmbedPDF.Engine` and `EmbedPDF` loads two PDFium copies. Pick one.
