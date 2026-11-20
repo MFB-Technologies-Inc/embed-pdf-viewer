@@ -47,16 +47,19 @@ NDK is found at `$ANDROID_NDK_HOME`, defaulting to
 `~/Library/Android/sdk/ndk/29.0.14206865`. A missing runtime slice is fetched by
 `fetch-android-runtime.sh`, described below.
 
-The JVM tests can also run on their own once `build-aar.sh` has generated the
-bindings:
+The JVM tests can also run on their own, from a fresh checkout too:
 
 ```bash
 cd platforms/android/embedpdf
 ./gradlew :bindings:testDebugUnitTest :embedpdf:testDebugUnitTest :smoke:test
 ```
 
-`bindings` builds `epdf-viewer-host` for the container (`target/debug`) and
-`smoke` builds `epdf-uniffi` and generates its Kotlin into its own build
+`bindings` builds `epdf-viewer-host` and `uniffi-bindgen` for the container
+(in `$CARGO_TARGET_DIR/debug`, `target/debug` by default). When
+`bindings/src/main/kotlin` is missing, or older than that library or the
+generator, `generateLinuxBindings` writes it from the Linux library before the
+debug compile; `build-aar.sh` still writes it from the Android library for the
+AAR. `smoke` builds `epdf-uniffi` and generates its Kotlin into its own build
 directory. Gradle sets `jna.library.path`, `LD_LIBRARY_PATH` for the Linux
 runtime slice and the fixture directory itself, so no shell setup is needed.
 `ViewerHostLoadTest` builds a viewer with every plugin, opens `report.pdf` and

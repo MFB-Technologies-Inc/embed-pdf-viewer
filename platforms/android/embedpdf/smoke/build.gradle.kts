@@ -7,10 +7,17 @@ plugins {
 }
 
 val repoRoot: File = rootDir.resolve("../../..").canonicalFile
-val cargoTarget = repoRoot.resolve("target/debug")
+// CARGO_TARGET_DIR as cargo reads it, relative to the workspace when relative.
+val cargoTarget: File = (
+    System.getenv("CARGO_TARGET_DIR")?.takeIf { it.isNotEmpty() }?.let { repoRoot.resolve(it) }
+        ?: repoRoot.resolve("target")
+    ).resolve("debug")
 val generated = layout.buildDirectory.dir("generated/uniffi/kotlin")
 val runtimeSlice = if (System.getProperty("os.arch") == "aarch64") "linux-arm64" else "linux-x64"
-val runtimeLibDir = repoRoot.resolve("packages/engine/runtime/build/libpdfium/$runtimeSlice/lib")
+val runtimeLibDir: File = (
+    System.getenv("PDF_RUNTIME_LIB_DIR")?.takeIf { it.isNotEmpty() }?.let(::File)
+        ?: repoRoot.resolve("packages/engine/runtime/build/libpdfium")
+    ).resolve("$runtimeSlice/lib")
 
 kotlin {
     jvmToolchain(21)
@@ -38,6 +45,8 @@ val generateEngineBindings = tasks.register<Exec>("generateEngineBindings") {
     description = "Generates the epdf-uniffi Kotlin bindings."
     dependsOn(buildLinuxEngine)
     val out = generated.get().asFile
+    // Regenerated whenever the library or the generator changes.
+    inputs.files(cargoTarget.resolve("libepdf_uniffi.so"), cargoTarget.resolve("uniffi-bindgen"))
     outputs.dir(out)
     doFirst { out.deleteRecursively() }
     commandLine(

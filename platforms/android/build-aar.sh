@@ -40,6 +40,10 @@ TC="$NDK/toolchains/llvm/prebuilt/$HOST_TAG"
 # reference symbols the device does not have.
 API=24
 
+# Where fetch-android-runtime.sh unpacks the slices and the Rust build reads
+# them; both honour PDF_RUNTIME_LIB_DIR.
+RUNTIME_LIB_DIR="${PDF_RUNTIME_LIB_DIR:-$ROOT/packages/engine/runtime/build/libpdfium}"
+
 # Rust target -> Android ABI directory name -> NDK triple.
 SLICES=(
   "aarch64-linux-android:arm64-v8a:aarch64-linux-android"
@@ -54,7 +58,7 @@ for slice in "${SLICES[@]}"; do
   triple="${rest##*:}"
   fork="android-$([[ $abi == arm64-v8a ]] && echo arm64 || echo x64)"
 
-  if [[ ! -f "$ROOT/packages/engine/runtime/build/libpdfium/$fork/lib/libembedpdf.a" ]]; then
+  if [[ ! -f "$RUNTIME_LIB_DIR/$fork/lib/libembedpdf.a" ]]; then
     bash "$ROOT/platforms/android/fetch-android-runtime.sh" "$fork"
   fi
 

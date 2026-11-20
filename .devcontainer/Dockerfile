@@ -17,7 +17,7 @@ ARG BINARYEN_SHA256_ARM64=89c07ea56faf38d0fbecf36ca8ec0721756716185f265b568e133d
 # Google publishes SHA-1 (87e2bb7e9be5d6a1c6cdf5ec40dd4e0c6d07c30b); this SHA-256 was taken
 # from an archive that matched it.
 ARG NDK_SHA256=4abbbcdc842f3d4879206e9695d52709603e52dd68d3c1fff04b3b5e7a308ecf
-# Android SDK command-line tools 23.0. Google publishes SHA-1
+# Android SDK command-line tools 23.0. The vendor publishes SHA-1
 # (e025545c62a8e64c7559119566a569fb1dec5f60); this SHA-256 was taken from an archive
 # that matched it.
 ARG ANDROID_CMDLINE_TOOLS_BUILD=16111833
@@ -86,7 +86,7 @@ RUN if [ "$TARGETARCH" = amd64 ]; then \
 
 # JDK 21 runs Gradle and the JVM tests of platforms/android; the Android SDK, like the
 # NDK, has Linux host binaries only for x86-64. sdkmanager fetches the platform and
-# build-tools packages, which Google verifies against its own repository manifest.
+# build-tools packages, which sdkmanager verifies against the vendor's repository manifest.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends openjdk-21-jdk-headless \
     && rm -rf /var/lib/apt/lists/* \
@@ -108,7 +108,7 @@ RUN apt-get update \
       'export PATH="/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:$PATH"' \
       > /etc/profile.d/android.sh; \
     else \
-      echo 'Android SDK omitted: Google does not provide Linux ARM64 host build tools.'; \
+      echo 'Android SDK omitted: upstream does not provide Linux ARM64 host build tools.'; \
     fi
 
 # SHA512 values from Microsoft's .NET 10 release metadata, matched to this SDK.

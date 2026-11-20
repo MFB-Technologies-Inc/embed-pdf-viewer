@@ -74,18 +74,56 @@ dependencies {
 // their uniffi checksums agree; a stale build fails loudly at the first call.
 // `-PlinuxHostDir=<dir>` tests an already-built library instead.
 val prebuiltHostDir = providers.gradleProperty("linuxHostDir").orNull
-val linuxHostDir = prebuiltHostDir?.let(::File) ?: repoRoot.resolve("target/debug")
+// Where cargo writes, as cargo reads it: CARGO_TARGET_DIR, relative to the
+// workspace when it is relative, or the workspace's `target`.
+val cargoTargetDir: File = System.getenv("CARGO_TARGET_DIR")?.takeIf { it.isNotEmpty() }
+    ?.let { repoRoot.resolve(it) } ?: repoRoot.resolve("target")
+val linuxHostDir = prebuiltHostDir?.let(::File) ?: cargoTargetDir.resolve("debug")
 val runtimeSlice = if (System.getProperty("os.arch") == "aarch64") "linux-arm64" else "linux-x64"
-val runtimeLibDir = repoRoot.resolve("packages/engine/runtime/build/libpdfium/$runtimeSlice/lib")
+// fetch-android-runtime.sh and the Rust build read PDF_RUNTIME_LIB_DIR too.
+val runtimeRoot: File = System.getenv("PDF_RUNTIME_LIB_DIR")?.takeIf { it.isNotEmpty() }
+    ?.let(::File) ?: repoRoot.resolve("packages/engine/runtime/build/libpdfium")
+val runtimeLibDir = runtimeRoot.resolve("$runtimeSlice/lib")
 // Read by the modules whose JVM tests load the same library.
 extra["linuxHostDir"] = linuxHostDir.path
 extra["runtimeLibDir"] = runtimeLibDir.path
+extra["cargoTargetDir"] = cargoTargetDir.path
+
+val hostLibrary = linuxHostDir.resolve("libepdf_viewer_host.so")
+val bindgen = cargoTargetDir.resolve("debug/uniffi-bindgen")
 
 val buildLinuxHost = tasks.register<Exec>("buildLinuxHost") {
-    description = "Builds epdf-viewer-host for the JVM tests."
-    onlyIf { prebuiltHostDir == null }
+    description = "Builds epdf-viewer-host and uniffi-bindgen for the JVM tests."
     workingDir = repoRoot
-    commandLine("cargo", "build", "-p", "epdf-viewer-host", "--manifest-path", repoRoot.resolve("Cargo.toml").path)
+    val packages = if (prebuiltHostDir == null) listOf("-p", "epdf-viewer-host") else emptyList()
+    commandLine(
+        listOf("cargo", "build") + packages +
+            listOf("-p", "uniffi-bindgen", "--manifest-path", repoRoot.resolve("Cargo.toml").path),
+    )
+}
+
+// build-aar.sh generates src/main/kotlin from the Android library for the
+// AAR. A checkout that never ran it, or whose Rust changed since, gets the
+// same Kotlin from the Linux library here, so the JVM tests need no script
+// first. Kotlin newer than both the library and the generator is left alone.
+val kotlinSources: File = layout.projectDirectory.dir("src/main/kotlin").asFile
+val generateLinuxBindings = tasks.register<Exec>("generateLinuxBindings") {
+    description = "Generates the uniffi Kotlin from the Linux host library when it is missing or stale."
+    dependsOn(buildLinuxHost)
+    inputs.files(hostLibrary, bindgen)
+    onlyIf("the generated Kotlin is missing or older than the library or uniffi-bindgen") {
+        val newest = kotlinSources.walk().filter { it.isFile }.maxOfOrNull { it.lastModified() }
+        newest == null || newest < maxOf(hostLibrary.lastModified(), bindgen.lastModified())
+    }
+    doFirst { kotlinSources.deleteRecursively() }
+    commandLine(
+        bindgen.path, "generate", "--library", hostLibrary.path,
+        "--language", "kotlin", "--no-format", "--out-dir", kotlinSources.path,
+    )
+}
+
+tasks.matching { it.name == "compileDebugKotlin" }.configureEach {
+    dependsOn(generateLinuxBindings)
 }
 
 tasks.withType<Test>().configureEach {

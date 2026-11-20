@@ -177,7 +177,7 @@ is imposed on consumers by this container configuration.
 
 ## Android, Swift and iOS
 
-The Android NDK and SDK are installed only on amd64: Google does not publish Linux
+The Android NDK and SDK are installed only on amd64: upstream does not publish Linux
 ARM64 host binaries. ARM64 containers still support the TypeScript engine, native
 Rust engine, and WASM toolchain. Android compilation requires an amd64 environment.
 The SDK carries what `platforms/android` builds with (one platform, its build tools

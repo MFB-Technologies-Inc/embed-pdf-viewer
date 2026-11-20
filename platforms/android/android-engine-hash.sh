@@ -46,6 +46,8 @@ INPUTS=(
   "platforms/android/build-aar.sh"
   "platforms/android/fetch-android-runtime.sh"
   "platforms/android/embedpdf/gradle/libs.versions.toml"
+  "platforms/android/embedpdf/gradle/wrapper/gradle-wrapper.properties"
+  "platforms/android/embedpdf/build.gradle.kts"
   "platforms/android/embedpdf/bindings/build.gradle.kts"
   "platforms/android/embedpdf/bindings/consumer-rules.pro"
   "platforms/android/embedpdf/bindings/src/main/AndroidManifest.xml"
