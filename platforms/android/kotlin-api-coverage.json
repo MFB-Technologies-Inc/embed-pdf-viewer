@@ -7,28 +7,40 @@
       "path": "crates/plugins/actions/src/controller.rs",
       "owner": "ActionsCapability",
       "symbol": "lifetime",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Actions.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "actions",
       "path": "crates/plugins/actions/src/controller.rs",
       "owner": "ActionsCapability",
       "symbol": "get_settings",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Actions.kt",
+        "symbol": "settings"
+      }
     },
     {
       "crate": "actions",
       "path": "crates/plugins/actions/src/controller.rs",
       "owner": "ActionsCapability",
       "symbol": "update_settings",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Actions.kt",
+        "symbol": "updateSettings"
+      }
     },
     {
       "crate": "actions",
       "path": "crates/plugins/actions/src/controller.rs",
       "owner": "ActionsCapability",
       "symbol": "reset_settings",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Actions.kt",
+        "symbol": "resetSettings"
+      }
     },
     {
       "crate": "actions",
@@ -45,105 +57,150 @@
       "path": "crates/plugins/actions/src/controller.rs",
       "owner": "ActionsCapability",
       "symbol": "on_executed",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Actions.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "actions",
       "path": "crates/plugins/actions/src/controller.rs",
       "owner": "ActionsCapability",
       "symbol": "on_diagnostic_reported",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Actions.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "actions",
       "path": "crates/plugins/actions/src/controller.rs",
       "owner": "ActionsCapability",
       "symbol": "on_script_diagnostic_reported",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Actions.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "actions",
       "path": "crates/plugins/actions/src/controller.rs",
       "owner": "ActionsCapability",
       "symbol": "on_script_failed",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Actions.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "actions",
       "path": "crates/plugins/actions/src/controller.rs",
       "owner": "ActionsCapability",
       "symbol": "on_open_sequence_completed",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Actions.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "actions",
       "path": "crates/plugins/actions/src/dispatch/dispatcher.rs",
       "owner": "ActionsCapability",
       "symbol": "execute",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Actions.kt",
+        "symbol": "execute"
+      }
     },
     {
       "crate": "actions",
       "path": "crates/plugins/actions/src/dispatch/dispatcher.rs",
       "owner": "ActionsCapability",
       "symbol": "can_execute",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Actions.kt",
+        "symbol": "canExecute"
+      }
     },
     {
       "crate": "actions",
       "path": "crates/plugins/actions/src/dispatch/dispatcher.rs",
       "owner": "ActionsCapability",
       "symbol": "dispatch",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Actions.kt",
+        "symbol": "dispatch"
+      }
     },
     {
       "crate": "actions",
       "path": "crates/plugins/actions/src/dispatch/dispatcher.rs",
       "owner": "ActionsCapability",
       "symbol": "can_dispatch",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Actions.kt",
+        "symbol": "canDispatch"
+      }
     },
     {
       "crate": "actions",
       "path": "crates/plugins/actions/src/dispatch/dispatcher.rs",
       "owner": "ActionsCapability",
       "symbol": "prepare_close",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Actions.kt",
+        "symbol": "prepareClose"
+      }
     },
     {
       "crate": "actions",
       "path": "crates/plugins/actions/src/dispatch/dispatcher.rs",
       "owner": "ActionsCapability",
       "symbol": "execute_named",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Actions.kt",
+        "symbol": "executeNamed"
+      }
     },
     {
       "crate": "actions",
       "path": "crates/plugins/actions/src/dispatch/dispatcher.rs",
       "owner": "ActionsCapability",
       "symbol": "can_execute_named",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Actions.kt",
+        "symbol": "canExecuteNamed"
+      }
     },
     {
       "crate": "actions",
       "path": "crates/plugins/actions/src/dispatch/dispatcher.rs",
       "owner": "ActionsCapability",
       "symbol": "read_action_tree",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Actions.kt",
+        "symbol": "actionTree"
+      }
     },
     {
       "crate": "actions",
       "path": "crates/plugins/actions/src/lifecycle/document_events.rs",
       "owner": "ActionsCapability",
       "symbol": "run_document_verb",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Actions.kt",
+        "symbol": "runDocumentVerb"
+      }
     },
     {
       "crate": "actions",
       "path": "crates/plugins/actions/src/lifecycle/open_sequence.rs",
       "owner": "ActionsCapability",
       "symbol": "set_ui_adapter",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Actions.kt",
+        "symbol": "setUiHandler"
+      }
     },
     {
       "crate": "actions",
@@ -157,7 +214,10 @@
       "path": "crates/plugins/actions/src/scripting/realm.rs",
       "owner": "ActionsCapability",
       "symbol": "is_scripting_enabled",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Actions.kt",
+        "symbol": "isScriptingEnabled"
+      }
     },
     {
       "crate": "actions",
@@ -192,7 +252,10 @@
       "path": "crates/plugins/actions/src/services/ports.rs",
       "owner": "ActionsCapability",
       "symbol": "register_executor",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Actions.kt",
+        "symbol": "registerExecutor"
+      }
     },
     {
       "crate": "actions",
@@ -220,7 +283,10 @@
       "path": "crates/plugins/actions/src/services/ports.rs",
       "owner": "ActionsCapability",
       "symbol": "set_submit_handler",
-      "pending": "phase-3-b"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Actions.kt",
+        "symbol": "setSubmitHandler"
+      }
     },
     {
       "crate": "actions",

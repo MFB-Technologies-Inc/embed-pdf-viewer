@@ -1,3 +1,36 @@
+public final class com/embedpdf/ActionsCapability {
+	public final fun actionTree (Luniffi/epdf_plugin_actions/ActionTreeSource;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canDispatch (Luniffi/epdf_plugin_actions/ActionTrigger;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canExecute (Luniffi/epdf_plugin_actions/PdfActionTree;Luniffi/epdf_plugin_actions/ActionContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canExecuteNamed (Ljava/lang/String;Luniffi/epdf_plugin_actions/PartialActionContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun canExecuteNamed$default (Lcom/embedpdf/ActionsCapability;Ljava/lang/String;Luniffi/epdf_plugin_actions/PartialActionContext;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun dispatch (Luniffi/epdf_plugin_actions/ActionTrigger;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun execute (Luniffi/epdf_plugin_actions/PdfActionTree;Luniffi/epdf_plugin_actions/ActionContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun executeNamed (Ljava/lang/String;Luniffi/epdf_plugin_actions/PartialActionContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun executeNamed$default (Lcom/embedpdf/ActionsCapability;Ljava/lang/String;Luniffi/epdf_plugin_actions/PartialActionContext;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun isScriptingEnabled (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
+	public final fun policy (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun prepareClose (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun registerExecutor (Ljava/lang/String;Luniffi/epdf_plugin_actions/ActionExecutor;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun resetSettings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun runDocumentVerb (Luniffi/epdf_plugin_actions/DocumentVerb;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setSubmitHandler (Luniffi/epdf_plugin_actions/ActionSubmitHandler;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setUiHandler (Luniffi/epdf_plugin_actions/ActionUiHandler;Luniffi/epdf_plugin_actions/ActionUiSupport;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun setUiHandler$default (Lcom/embedpdf/ActionsCapability;Luniffi/epdf_plugin_actions/ActionUiHandler;Luniffi/epdf_plugin_actions/ActionUiSupport;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun settings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun updatePolicy (Luniffi/epdf_plugin_actions/ActionPolicyPatch;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun updateSettings (Luniffi/epdf_plugin_actions/ActionsSettingsPatch;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/ActionsKt {
+	public static final fun actions (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun decode (Luniffi/epdf_plugin_actions/PdfActionTree$Companion;Ljava/lang/String;)Luniffi/epdf_plugin_actions/PdfActionTree;
+	public static final fun fail (Luniffi/epdf_plugin_actions/DocumentVerbCompletion;Ljava/lang/Throwable;)V
+	public static final fun forCurrentTimeZone (Luniffi/epdf_plugin_actions/ActionsConfig$Companion;Luniffi/epdf_plugin_actions/ActionPolicyPatch;Luniffi/epdf_plugin_actions/TriggerGates;Luniffi/epdf_plugin_actions/OpenSequence;Luniffi/epdf_plugin_actions/ActionsJavaScriptConfig;)Luniffi/epdf_plugin_actions/ActionsConfig;
+	public static synthetic fun forCurrentTimeZone$default (Luniffi/epdf_plugin_actions/ActionsConfig$Companion;Luniffi/epdf_plugin_actions/ActionPolicyPatch;Luniffi/epdf_plugin_actions/TriggerGates;Luniffi/epdf_plugin_actions/OpenSequence;Luniffi/epdf_plugin_actions/ActionsJavaScriptConfig;ILjava/lang/Object;)Luniffi/epdf_plugin_actions/ActionsConfig;
+}
+
 public final class com/embedpdf/AssetLocaleLoader : uniffi/epdf_plugin_i18n/LocaleLoader {
 	public fun <init> (Landroid/content/res/AssetManager;Ljava/lang/String;)V
 	public synthetic fun <init> (Landroid/content/res/AssetManager;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
