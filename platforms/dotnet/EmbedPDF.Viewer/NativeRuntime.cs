@@ -15,8 +15,18 @@ public static class NativeRuntime
 
     /// <summary>Loads the native host now rather than on first use.</summary>
     /// <exception cref="NativeRuntimeNotFoundException">No host for this runtime could be loaded.</exception>
-    public static void EnsureLoaded() =>
+    public static void EnsureLoaded()
+    {
+        if (LoadOverride.Value is { } load)
+        {
+            load();
+            return;
+        }
         NativeLibraryResolver.Load(typeof(NativeRuntime).Assembly, null);
+    }
+
+    /// <summary>A test seam: when set, runs in place of the real load on this async flow.</summary>
+    internal static readonly AsyncLocal<Action?> LoadOverride = new();
 
     /// <summary>
     /// A load check: opens <paramref name="pdf"/> in a throwaway viewer and
@@ -32,7 +42,7 @@ public static class NativeRuntime
         await host.Start().ConfigureAwait(false);
         try
         {
-            var info = await host.OpenDocument(pdf.ToArray(), new OpenDocumentOptions()).ConfigureAwait(false);
+            var info = await host.OpenDocument(pdf.ToArray(), new uniffi.epdf_viewer_host.OpenDocumentOptions()).ConfigureAwait(false);
             return checked((int)info.PageCount);
         }
         finally

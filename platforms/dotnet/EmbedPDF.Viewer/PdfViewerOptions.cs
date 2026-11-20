@@ -92,7 +92,7 @@ public sealed record PdfViewerOptions
     /// <summary>Installs the signature plugin. Needs <see cref="Form"/>.</summary>
     public SignatureConfig? Signature { get; init; }
 
-    /// <summary>The transport for <see cref="PdfViewer.OpenAsync(Uri, string?, string?, bool, CancellationToken)"/>. <see langword="null"/> is an <see cref="HttpClientDocumentFetcher"/> over a shared client.</summary>
+    /// <summary>The transport for <see cref="PdfViewer.OpenAsync(Uri, OpenDocumentOptions?, CancellationToken)"/>. <see langword="null"/> is an <see cref="HttpClientDocumentFetcher"/> over a shared client.</summary>
     public IDocumentFetcher? DocumentFetcher { get; init; }
 
     /// <summary>Where diagnostics go. Defaults to <see cref="NullLogger.Instance"/>.</summary>

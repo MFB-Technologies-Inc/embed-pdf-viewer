@@ -11,6 +11,7 @@ namespace EmbedPDF.Viewer.Tests;
 using DocumentEvent = uniffi.epdf_viewer_host.DocumentEvent;
 using DocumentInfo = uniffi.epdf_viewer_host.DocumentInfo;
 using DocumentStatus = uniffi.epdf_viewer_host.DocumentStatus;
+using OpenDocumentOptions = uniffi.epdf_viewer_host.OpenDocumentOptions;
 
 // The generated types are internal (the generator default access modifier),
 // so these tests see them through InternalsVisibleTo.

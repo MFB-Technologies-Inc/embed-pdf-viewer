@@ -112,6 +112,16 @@ EmbedPDF.NativeRuntimeNotFoundException.NativeRuntimeNotFoundException(string! r
 EmbedPDF.NativeRuntimeNotFoundException.NativeRuntimeNotFoundException(string! runtimeIdentifier, System.Collections.Generic.IReadOnlyList<string!>! searchedPaths, string! message, System.Exception! innerException) -> void
 EmbedPDF.NativeRuntimeNotFoundException.RuntimeIdentifier.get -> string!
 EmbedPDF.NativeRuntimeNotFoundException.SearchedPaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.OpenDocumentOptions
+EmbedPDF.OpenDocumentOptions.<Clone>$() -> EmbedPDF.OpenDocumentOptions!
+EmbedPDF.OpenDocumentOptions.Activate.get -> bool
+EmbedPDF.OpenDocumentOptions.Activate.init -> void
+EmbedPDF.OpenDocumentOptions.Equals(EmbedPDF.OpenDocumentOptions? other) -> bool
+EmbedPDF.OpenDocumentOptions.Name.get -> string?
+EmbedPDF.OpenDocumentOptions.Name.init -> void
+EmbedPDF.OpenDocumentOptions.OpenDocumentOptions() -> void
+EmbedPDF.OpenDocumentOptions.Password.get -> string?
+EmbedPDF.OpenDocumentOptions.Password.init -> void
 EmbedPDF.PageGeometry
 EmbedPDF.PageGeometry.Deconstruct(out EmbedPDF.RenderRotation Turn, out EmbedPDF.PdfSize PageSize) -> void
 EmbedPDF.PageGeometry.DisplaySize.get -> EmbedPDF.PdfSize
@@ -210,6 +220,46 @@ EmbedPDF.PdfSize.PdfSize() -> void
 EmbedPDF.PdfSize.PdfSize(double Width, double Height) -> void
 EmbedPDF.PdfSize.Width.get -> double
 EmbedPDF.PdfSize.Width.init -> void
+EmbedPDF.PdfViewer
+EmbedPDF.PdfViewer.AllowsAsync(EmbedPDF.DocumentPermission permission, EmbedPDF.DocumentInfo? document = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.PdfViewer.CanDownloadAsync(EmbedPDF.DocumentInfo? document = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.PdfViewer.CloseAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PdfViewer.CloseAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PdfViewer.DisposeAsync() -> System.Threading.Tasks.ValueTask
+EmbedPDF.PdfViewer.GetActiveDocumentAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.DocumentInfo?>!
+EmbedPDF.PdfViewer.GetActiveDocumentIdAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string?>!
+EmbedPDF.PdfViewer.GetDocumentAsync(string? id = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.DocumentInfo?>!
+EmbedPDF.PdfViewer.GetDocumentCountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+EmbedPDF.PdfViewer.GetDocumentOrderAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
+EmbedPDF.PdfViewer.GetDocumentsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.DocumentInfo!>!>!
+EmbedPDF.PdfViewer.GetPageAsync(EmbedPDF.PageRef page, EmbedPDF.DocumentInfo? document = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageInfo?>!
+EmbedPDF.PdfViewer.GetPageAtAsync(int index, EmbedPDF.DocumentInfo? document = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageInfo?>!
+EmbedPDF.PdfViewer.GetPageIndexAsync(EmbedPDF.PageRef page, EmbedPDF.DocumentInfo? document = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+EmbedPDF.PdfViewer.GetPageRevisionAsync(EmbedPDF.DocumentInfo? document = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+EmbedPDF.PdfViewer.GetPagesAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.PageInfo!>!>!
+EmbedPDF.PdfViewer.GetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ViewerSettings!>!
+EmbedPDF.PdfViewer.HasDocumentAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.PdfViewer.MoveAsync(EmbedPDF.DocumentInfo! document, int index, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PdfViewer.ObserveDocumentEvents(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.DocumentEvent!>!
+EmbedPDF.PdfViewer.ObserveReportedErrors(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.PdfException!>!
+EmbedPDF.PdfViewer.ObserveStateRevisions(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<long>!
+EmbedPDF.PdfViewer.OpenAsync(System.IO.Stream! pdf, EmbedPDF.OpenDocumentOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.DocumentInfo!>!
+EmbedPDF.PdfViewer.OpenAsync(System.ReadOnlyMemory<byte> pdf, EmbedPDF.OpenDocumentOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.DocumentInfo!>!
+EmbedPDF.PdfViewer.OpenAsync(System.Uri! url, EmbedPDF.OpenDocumentOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.DocumentInfo!>!
+EmbedPDF.PdfViewer.OpenFileAsync(string! path, EmbedPDF.OpenDocumentOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.DocumentInfo!>!
+EmbedPDF.PdfViewer.OpenLayerAsync(System.ReadOnlyMemory<byte> basePdf, System.ReadOnlyMemory<byte> layer, EmbedPDF.OpenDocumentOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.DocumentInfo!>!
+EmbedPDF.PdfViewer.PdfViewer(EmbedPDF.PdfViewerOptions? options = null) -> void
+EmbedPDF.PdfViewer.RenameAsync(EmbedPDF.DocumentInfo! document, string! name, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PdfViewer.ResetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PdfViewer.RetryAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.DocumentInfo!>!
+EmbedPDF.PdfViewer.SaveAsync(EmbedPDF.DocumentInfo! document, EmbedPDF.SaveMode mode = EmbedPDF.SaveMode.Incremental, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<byte[]!>!
+EmbedPDF.PdfViewer.SaveLayerAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<byte[]!>!
+EmbedPDF.PdfViewer.SetActiveAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PdfViewer.SetDocumentOrderAsync(System.Collections.Generic.IEnumerable<string!>! ids, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PdfViewer.StartAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PdfViewer.SwapAsync(EmbedPDF.DocumentInfo! first, EmbedPDF.DocumentInfo! second, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PdfViewer.UnlockAsync(EmbedPDF.DocumentInfo! document, string! password, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PdfViewer.UpdateSettingsAsync(EmbedPDF.ViewerSettingsPatch! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.PdfViewerOptions
 EmbedPDF.PdfViewerOptions.<Clone>$() -> EmbedPDF.PdfViewerOptions!
 EmbedPDF.PdfViewerOptions.Actions.get -> EmbedPDF.ActionsConfig?
@@ -436,6 +486,9 @@ override EmbedPDF.I18nConfig.ToString() -> string!
 override EmbedPDF.MeasurementConfig.Equals(object? obj) -> bool
 override EmbedPDF.MeasurementConfig.GetHashCode() -> int
 override EmbedPDF.MeasurementConfig.ToString() -> string!
+override EmbedPDF.OpenDocumentOptions.Equals(object? obj) -> bool
+override EmbedPDF.OpenDocumentOptions.GetHashCode() -> int
+override EmbedPDF.OpenDocumentOptions.ToString() -> string!
 override EmbedPDF.PageGeometry.GetHashCode() -> int
 override EmbedPDF.PageInfo.Equals(object? obj) -> bool
 override EmbedPDF.PageInfo.GetHashCode() -> int
@@ -547,6 +600,8 @@ static EmbedPDF.MeasurementConfig.operator ==(EmbedPDF.MeasurementConfig? left, 
 static EmbedPDF.NativeRuntime.EnsureLoaded() -> void
 static EmbedPDF.NativeRuntime.ReadPageCountAsync(System.ReadOnlyMemory<byte> pdf, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
 static EmbedPDF.NativeRuntime.RuntimeIdentifier.get -> string!
+static EmbedPDF.OpenDocumentOptions.operator !=(EmbedPDF.OpenDocumentOptions? left, EmbedPDF.OpenDocumentOptions? right) -> bool
+static EmbedPDF.OpenDocumentOptions.operator ==(EmbedPDF.OpenDocumentOptions? left, EmbedPDF.OpenDocumentOptions? right) -> bool
 static EmbedPDF.PageGeometry.operator !=(EmbedPDF.PageGeometry left, EmbedPDF.PageGeometry right) -> bool
 static EmbedPDF.PageGeometry.operator ==(EmbedPDF.PageGeometry left, EmbedPDF.PageGeometry right) -> bool
 static EmbedPDF.PageInfo.operator !=(EmbedPDF.PageInfo? left, EmbedPDF.PageInfo? right) -> bool
@@ -576,6 +631,7 @@ static EmbedPDF.PdfRect.operator !=(EmbedPDF.PdfRect left, EmbedPDF.PdfRect righ
 static EmbedPDF.PdfRect.operator ==(EmbedPDF.PdfRect left, EmbedPDF.PdfRect right) -> bool
 static EmbedPDF.PdfSize.operator !=(EmbedPDF.PdfSize left, EmbedPDF.PdfSize right) -> bool
 static EmbedPDF.PdfSize.operator ==(EmbedPDF.PdfSize left, EmbedPDF.PdfSize right) -> bool
+static EmbedPDF.PdfViewer.CreateAsync(EmbedPDF.PdfViewerOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PdfViewer!>!
 static EmbedPDF.PdfViewerOptions.operator !=(EmbedPDF.PdfViewerOptions? left, EmbedPDF.PdfViewerOptions? right) -> bool
 static EmbedPDF.PdfViewerOptions.operator ==(EmbedPDF.PdfViewerOptions? left, EmbedPDF.PdfViewerOptions? right) -> bool
 static EmbedPDF.PluginErrorInfo.operator !=(EmbedPDF.PluginErrorInfo? left, EmbedPDF.PluginErrorInfo? right) -> bool
