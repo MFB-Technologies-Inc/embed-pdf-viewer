@@ -1804,6 +1804,14 @@ public final class com/embedpdf/FileAttachmentAnnotationPatch$Companion : com/em
 	public fun fromJson (Ljava/lang/String;)Lcom/embedpdf/FileAttachmentAnnotationPatch;
 }
 
+public final class com/embedpdf/FileStampLibraryStore : uniffi/epdf_plugin_stamp/StampLibraryStore {
+	public fun <init> (Ljava/io/File;)V
+	public fun delete (Ljava/lang/String;)V
+	public final fun getDirectory ()Ljava/io/File;
+	public fun list ()Ljava/util/List;
+	public fun put (Ljava/lang/String;[B)V
+}
+
 public final class com/embedpdf/FormCapability {
 	public final fun activate (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun addWidget (Luniffi/epdf_ffi/FormFieldRef;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -3621,6 +3629,63 @@ public final class com/embedpdf/StampAnnotationPatch : com/embedpdf/AnnotationPa
 public final class com/embedpdf/StampAnnotationPatch$Companion : com/embedpdf/AnnotationPatch$Reader {
 	public synthetic fun fromJson (Ljava/lang/String;)Lcom/embedpdf/AnnotationPatch;
 	public fun fromJson (Ljava/lang/String;)Lcom/embedpdf/StampAnnotationPatch;
+}
+
+public final class com/embedpdf/StampCapability {
+	public final fun arm (Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentInfo;Ljava/lang/Double;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun arm$default (Lcom/embedpdf/StampCapability;Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentInfo;Ljava/lang/Double;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun armedAsset (Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun asset (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun assetBytes (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun assetPreview (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun assets (Luniffi/epdf_plugin_stamp/StampAssetFilter;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun assets$default (Lcom/embedpdf/StampCapability;Luniffi/epdf_plugin_stamp/StampAssetFilter;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun canCreateFromAnnotations (Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun canCreateFromAnnotations$default (Lcom/embedpdf/StampCapability;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun canImport (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canPlace (Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun canPlace$default (Lcom/embedpdf/StampCapability;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun createAsset (Ljava/util/List;Luniffi/epdf_viewer_host/DocumentInfo;Luniffi/epdf_ffi/PageRef;Luniffi/epdf_plugin_stamp/StampAddAssetInput;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun createAsset (Luniffi/epdf_plugin_stamp/StampAddAssetInput;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun createAsset$default (Lcom/embedpdf/StampCapability;Ljava/util/List;Luniffi/epdf_viewer_host/DocumentInfo;Luniffi/epdf_ffi/PageRef;Luniffi/epdf_plugin_stamp/StampAddAssetInput;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun createLibrary (Ljava/lang/String;Luniffi/epdf_plugin_stamp/StampCreateLibraryOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun createLibrary$default (Lcom/embedpdf/StampCapability;Ljava/lang/String;Luniffi/epdf_plugin_stamp/StampCreateLibraryOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun deleteAsset (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun deleteLibrary (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun disarm (Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun duplicateAsset (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun duplicateAsset$default (Lcom/embedpdf/StampCapability;Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun exportLibrary (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun importLibrary ([BLuniffi/epdf_plugin_stamp/StampImportOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun importLibrary$default (Lcom/embedpdf/StampCapability;[BLuniffi/epdf_plugin_stamp/StampImportOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun libraries (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun libraries$default (Lcom/embedpdf/StampCapability;Ljava/util/List;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun library (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun moveAsset (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
+	public final fun persist (Luniffi/epdf_plugin_stamp/StampLibraryStore;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun persist$default (Lcom/embedpdf/StampCapability;Luniffi/epdf_plugin_stamp/StampLibraryStore;Ljava/util/List;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun place (Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentInfo;Ljava/util/List;Luniffi/epdf_ffi/Point;Ljava/lang/Double;Ljava/lang/Double;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun place (Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentInfo;Luniffi/epdf_ffi/PageRef;Luniffi/epdf_ffi/Point;Ljava/lang/Double;Ljava/lang/Double;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun place$default (Lcom/embedpdf/StampCapability;Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentInfo;Ljava/util/List;Luniffi/epdf_ffi/Point;Ljava/lang/Double;Ljava/lang/Double;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun place$default (Lcom/embedpdf/StampCapability;Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentInfo;Luniffi/epdf_ffi/PageRef;Luniffi/epdf_ffi/Point;Ljava/lang/Double;Ljava/lang/Double;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun renderAssetPreview (Ljava/lang/String;DLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun resetSettings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun restore (Luniffi/epdf_plugin_stamp/StampLibraryStore;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun settings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun updateAsset (Ljava/lang/String;Luniffi/epdf_plugin_stamp/StampAssetPatch;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun updateLibrary (Ljava/lang/String;Luniffi/epdf_plugin_stamp/StampLibraryPatch;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun updateSettings (Luniffi/epdf_plugin_stamp/StampConfig;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/StampKt {
+	public static final fun stamps (Lcom/embedpdf/PdfViewer;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/StampPreview {
+	public final fun getBytes ()[B
+	public final fun getMimeType ()Ljava/lang/String;
+	public final fun toBitmap ()Landroid/graphics/Bitmap;
 }
 
 public final class com/embedpdf/StrikeoutAnnotationDraft : com/embedpdf/AnnotationDraft {

@@ -6975,14 +6975,20 @@
       "path": "crates/plugins/stamp/src/controller.rs",
       "owner": "StampCapability",
       "symbol": "get_settings",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "settings"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/controller.rs",
       "owner": "StampCapability",
       "symbol": "update_settings",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "updateSettings"
+      }
     },
     {
       "crate": "stamp",
@@ -6996,7 +7002,10 @@
       "path": "crates/plugins/stamp/src/controller.rs",
       "owner": "StampCapability",
       "symbol": "reset_settings",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "resetSettings"
+      }
     },
     {
       "crate": "stamp",
@@ -7023,238 +7032,340 @@
       "path": "crates/plugins/stamp/src/controller.rs",
       "owner": "StampCapability",
       "symbol": "on_library_changed",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/controller.rs",
       "owner": "StampCapability",
       "symbol": "on_library_created",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/controller.rs",
       "owner": "StampCapability",
       "symbol": "on_library_updated",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/controller.rs",
       "owner": "StampCapability",
       "symbol": "on_library_deleted",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/controller.rs",
       "owner": "StampCapability",
       "symbol": "on_asset_created",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/controller.rs",
       "owner": "StampCapability",
       "symbol": "on_asset_updated",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/controller.rs",
       "owner": "StampCapability",
       "symbol": "on_asset_deleted",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/controller.rs",
       "owner": "StampCapability",
       "symbol": "on_arm_changed",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/read/catalog.rs",
       "owner": "StampCapability",
       "symbol": "list_libraries",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "libraries"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/read/catalog.rs",
       "owner": "StampCapability",
       "symbol": "get_library",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "library"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/read/catalog.rs",
       "owner": "StampCapability",
       "symbol": "list_assets",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "assets"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/read/catalog.rs",
       "owner": "StampCapability",
       "symbol": "get_asset",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "asset"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/read/catalog.rs",
       "owner": "StampCapability",
       "symbol": "get_asset_preview",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "assetPreview"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/read/catalog.rs",
       "owner": "StampCapability",
       "symbol": "render_asset_preview",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "renderAssetPreview"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/read/catalog.rs",
       "owner": "StampCapability",
       "symbol": "get_asset_bytes",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "assetBytes"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/read/catalog.rs",
       "owner": "StampCapability",
       "symbol": "export_library",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "exportLibrary"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/read/catalog.rs",
       "owner": "StampCapability",
       "symbol": "can_place",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "canPlace"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/read/catalog.rs",
       "owner": "StampCapability",
       "symbol": "can_create_from_annotations",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "canCreateFromAnnotations"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/services/asset_engine.rs",
       "owner": "StampCapability",
       "symbol": "can_import",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "canImport"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/write/assets.rs",
       "owner": "StampCapability",
       "symbol": "create_asset",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "createAsset"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/write/assets.rs",
       "owner": "StampCapability",
       "symbol": "create_asset_from_annotations",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "createAsset"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/write/assets.rs",
       "owner": "StampCapability",
       "symbol": "delete_asset",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "deleteAsset"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/write/assets.rs",
       "owner": "StampCapability",
       "symbol": "update_asset",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "updateAsset"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/write/assets.rs",
       "owner": "StampCapability",
       "symbol": "move_asset",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "moveAsset"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/write/assets.rs",
       "owner": "StampCapability",
       "symbol": "duplicate_asset",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "duplicateAsset"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/write/libraries.rs",
       "owner": "StampCapability",
       "symbol": "create_library",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "createLibrary"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/write/libraries.rs",
       "owner": "StampCapability",
       "symbol": "import_library",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "importLibrary"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/write/libraries.rs",
       "owner": "StampCapability",
       "symbol": "delete_library",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "deleteLibrary"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/write/libraries.rs",
       "owner": "StampCapability",
       "symbol": "update_library",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "updateLibrary"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/write/placement.rs",
       "owner": "StampCapability",
       "symbol": "arm_asset",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "arm"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/write/placement.rs",
       "owner": "StampCapability",
       "symbol": "get_armed_asset",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "armedAsset"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/write/placement.rs",
       "owner": "StampCapability",
       "symbol": "disarm",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "disarm"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/write/placement.rs",
       "owner": "StampCapability",
       "symbol": "place_asset",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "place"
+      }
     },
     {
       "crate": "stamp",
       "path": "crates/plugins/stamp/src/write/placement.rs",
       "owner": "StampCapability",
       "symbol": "place_asset_on_pages",
-      "pending": "phase-3-e"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Stamp.kt",
+        "symbol": "place"
+      }
     },
     {
       "crate": "view-manager",

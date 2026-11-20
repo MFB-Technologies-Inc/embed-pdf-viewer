@@ -80,11 +80,12 @@ class DisabledPluginTest {
             prerequisites = { it.copy(interaction = true, annotation = "") },
             install = { it.copy(measurement = MeasurementConfig()) },
         ) { viewer, document -> viewer.measurement(document) },
+        Accessor("stamp", install = { it.copy(stamp = StampConfig()) }) { viewer, _ -> viewer.stamps() },
     )
 
     /** Plugins whose accessors later waves of the port add. */
     private val pending = setOf(
-        "stamp", "signature",
+        "signature",
     )
 
     @Test

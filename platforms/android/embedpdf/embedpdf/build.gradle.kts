@@ -78,6 +78,8 @@ tasks.withType<Test>().configureEach {
             "tooling/engine-conformance/fixtures",
             "packages/engine/main/test/fixtures",
             "crates/test-support/fixtures",
+            // The shipped English stamp library, as `stamps.pdf`.
+            "packages/default-stamps/en",
         ).joinToString(File.pathSeparator) { repoRoot.resolve(it).path },
     )
     environment("LD_LIBRARY_PATH", linuxHost["runtimeLibDir"].toString())

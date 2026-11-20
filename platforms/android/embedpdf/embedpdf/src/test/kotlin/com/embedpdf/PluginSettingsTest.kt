@@ -210,4 +210,16 @@ class PluginSettingsTest {
         assertEquals(registered, measurement.settings())
         viewer.destroy()
     }
+
+    @Test
+    fun stampResetRestoresRegisteredPreviewWidth() = viewerTest {
+        val viewer = started(ViewerConfig(stamp = StampConfig(previewWidth = 320.0, dynamic = true)))
+        val stamps = viewer.stamps()
+        stamps.updateSettings(StampConfig(dynamic = false))
+        assertEquals(320.0, stamps.settings().previewWidth, 0.0)
+        assertEquals(false, stamps.settings().dynamic)
+        stamps.resetSettings()
+        assertEquals(true, stamps.settings().dynamic)
+        viewer.destroy()
+    }
 }
