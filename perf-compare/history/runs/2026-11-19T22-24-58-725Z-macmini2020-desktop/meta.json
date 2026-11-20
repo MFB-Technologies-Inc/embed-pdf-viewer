@@ -1,0 +1,262 @@
+{
+  "runId": "2026-11-19T22-24-58-725Z-macmini2020-desktop",
+  "harnessCommit": "c53539b3e3089a35776f8b35999fe68a40f4c2ff",
+  "harnessDirty": false,
+  "probeSha256": "af209e7644d8a277d5396213a9cca16e3c7bc2d2c148a611363a99114c535deb",
+  "host": "macmini2020",
+  "arms": {
+    "main": {
+      "worktree": "main",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "2516e2786ee894383220ecd436fbd248182ef444",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "98c2368a774de4f8c507c0f57d189cb80474fcc21cb85f8d4688cec9eae64545",
+      "kernelWasmSha256": null
+    },
+    "main-aa": {
+      "worktree": "main",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "2516e2786ee894383220ecd436fbd248182ef444",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "98c2368a774de4f8c507c0f57d189cb80474fcc21cb85f8d4688cec9eae64545",
+      "kernelWasmSha256": null
+    },
+    "plugins": {
+      "worktree": "plugins",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "bef223d9d1702703dbffae9ce8180ee9f4690615",
+      "payload": "built",
+      "fork": {
+        "sha": "d045f389de885dd616e03077301df5ef5aa8c84e",
+        "target": "wasm32-eh",
+        "libSha256": "5bf368ce10d378dbff69969628e542fa5a16e1fd3c4bf4218bdee60388c53b7a"
+      },
+      "engineWasmSha256": "6fa4c3a7f8605d655a251e726bd4b3039ed60625404fc6677cabe59e072ac8ea",
+      "kernelWasmSha256": "63db1b2ace4dcc1f0bfc30f1dcada66c71282c8b3ed847174429b6071c88e5ec"
+    },
+    "plugins-fixed": {
+      "worktree": "plugins-fixed",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "c9201919264bf5fdc309b11b3f2cdbd70936634f",
+      "payload": "built",
+      "fork": {
+        "sha": "7c7b600b1dfcef78bbedb25e79e5c46bf9f3e150",
+        "target": "wasm32-eh",
+        "libSha256": "2bc254d7f1a4ea947e831ffe307200cfa1025242ddbeed6502a7dfbe8efb2c0f"
+      },
+      "engineWasmSha256": "598550081d5f3750a6b25047baecda90ecd91760bfabf1649940b6c22a627fb0",
+      "kernelWasmSha256": "accc5ec3a0114d9f94a8e6492791398fa659999bde8caab6503861c78ccb7f4c"
+    },
+    "plugins-tip3": {
+      "worktree": "plugins-tip3",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "373b7f73b1b1d0d4bf202ecfafdcbbc84f18ba31",
+      "payload": "built",
+      "fork": {
+        "sha": "7c7b600b1dfcef78bbedb25e79e5c46bf9f3e150",
+        "target": "wasm32-eh",
+        "libSha256": "2bc254d7f1a4ea947e831ffe307200cfa1025242ddbeed6502a7dfbe8efb2c0f"
+      },
+      "engineWasmSha256": "375c2a9a3b4ebbdc1e1b24aa27ad02727bbdee376759efd6a3cdea2af6ac6da0",
+      "kernelWasmSha256": "b7fc2750ded91391ba9700b3d462cdc56110cb66202ea0f0a75c375d7a9b63dc"
+    },
+    "plugins-tip4": {
+      "worktree": "plugins-tip4",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "7455a529410a8d8464e5a9b1a45dfba7a8e97916",
+      "payload": "built",
+      "fork": {
+        "sha": "7c7b600b1dfcef78bbedb25e79e5c46bf9f3e150",
+        "target": "wasm32-eh",
+        "libSha256": "2bc254d7f1a4ea947e831ffe307200cfa1025242ddbeed6502a7dfbe8efb2c0f"
+      },
+      "engineWasmSha256": "375c2a9a3b4ebbdc1e1b24aa27ad02727bbdee376759efd6a3cdea2af6ac6da0",
+      "kernelWasmSha256": "e38f52a1b5885605d93186641e9f326a9ef4e2be61e7c1844cedf35db202132d"
+    },
+    "plugins-tip6": {
+      "worktree": "plugins-tip6",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "faa2c6189eeecb1c62552fc8cfe7fa09a7c1c7cb",
+      "payload": "built",
+      "fork": {
+        "sha": "7c7b600b1dfcef78bbedb25e79e5c46bf9f3e150",
+        "target": "wasm32-eh",
+        "libSha256": "2bc254d7f1a4ea947e831ffe307200cfa1025242ddbeed6502a7dfbe8efb2c0f"
+      },
+      "engineWasmSha256": "375c2a9a3b4ebbdc1e1b24aa27ad02727bbdee376759efd6a3cdea2af6ac6da0",
+      "kernelWasmSha256": "d94fdb035f4b9207f44d9cea0b509e46d04ed8f8407d23758b53d109ab163287"
+    },
+    "main-now": {
+      "worktree": "main-now",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "ed064e0c867e7688234ad36c0350377544ef93f9",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "7195838021c8318416117611b961614ab52eedcad585db5945681f86164e40f9",
+      "kernelWasmSha256": null
+    }
+  },
+  "fixtures": {
+    "ebook": "2e539f62b5fa605fc33b038ff31f019c94123342115a0c1e52d741ca2f737997",
+    "large": "10c8668fe55cd301138afdd52e20138b2311c173bf99fdb090cd1a07845264f9",
+    "annots": "f27197ce9ac982859cb460c3126b2d04cf78fa1c5834f5cbfdf7dbec74d52a19",
+    "forms": "b973ccec7bf664b565b636d71af9eebfe121d9fa9e9002ec063be00617ddebef"
+  },
+  "browserVersion": "140.0.7339.16",
+  "playwrightVersion": "1.55.0",
+  "nodeVersion": "v24.20.0",
+  "os": "Darwin 27.3.0 arm64",
+  "cpuModel": "Apple M1",
+  "cpuCores": 8,
+  "totalMemoryBytes": 17179869184,
+  "powerSource": "AC Power",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "deviceScaleFactor": 2,
+  "profile": "desktop",
+  "throttleRate": 1,
+  "flows": [
+    "open",
+    "scroll",
+    "scrollMid",
+    "coldScroll",
+    "jump",
+    "zoom",
+    "zoomLarge",
+    "select",
+    "selectLarge",
+    "search",
+    "searchLarge",
+    "annotate",
+    "annotateLarge",
+    "hover",
+    "dragAnnot",
+    "drawInk",
+    "typeField",
+    "undo",
+    "soak"
+  ],
+  "rounds": 10,
+  "quick": false,
+  "armsRun": [
+    "main",
+    "main-aa",
+    "plugins",
+    "plugins-fixed",
+    "plugins-tip3",
+    "plugins-tip4",
+    "plugins-tip6",
+    "main-now"
+  ],
+  "skipped": {
+    "main": [
+      "undo"
+    ],
+    "main-aa": [
+      "undo"
+    ],
+    "plugins-fixed": [
+      "undo"
+    ],
+    "plugins-tip3": [
+      "undo"
+    ],
+    "plugins-tip4": [
+      "undo"
+    ],
+    "plugins-tip6": [
+      "undo"
+    ],
+    "main-now": []
+  },
+  "sizes": {
+    "main": {
+      "engineWasmBytes": 7544455,
+      "engineWasmBrotliBytes": 2257280,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3538279,
+      "jsBrotliBytes": 1007860
+    },
+    "main-aa": {
+      "engineWasmBytes": 7544455,
+      "engineWasmBrotliBytes": 2257280,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3538282,
+      "jsBrotliBytes": 1007832
+    },
+    "plugins": {
+      "engineWasmBytes": 11084184,
+      "engineWasmBrotliBytes": 2973877,
+      "kernelWasmBytes": 11301168,
+      "kernelWasmBrotliBytes": 1848876,
+      "jsBytes": 2747464,
+      "jsBrotliBytes": 838329
+    },
+    "plugins-fixed": {
+      "engineWasmBytes": 11119786,
+      "engineWasmBrotliBytes": 2991617,
+      "kernelWasmBytes": 8303216,
+      "kernelWasmBrotliBytes": 1784120,
+      "jsBytes": 2760996,
+      "jsBrotliBytes": 839389
+    },
+    "plugins-tip3": {
+      "engineWasmBytes": 10164275,
+      "engineWasmBrotliBytes": 2986390,
+      "kernelWasmBytes": 8319234,
+      "kernelWasmBrotliBytes": 1786622,
+      "jsBytes": 2760217,
+      "jsBrotliBytes": 839226
+    },
+    "plugins-tip4": {
+      "engineWasmBytes": 10164275,
+      "engineWasmBrotliBytes": 2986390,
+      "kernelWasmBytes": 8413729,
+      "kernelWasmBrotliBytes": 1801321,
+      "jsBytes": 2760993,
+      "jsBrotliBytes": 839444
+    },
+    "plugins-tip6": {
+      "engineWasmBytes": 10164275,
+      "engineWasmBrotliBytes": 2986390,
+      "kernelWasmBytes": 8437368,
+      "kernelWasmBrotliBytes": 1807908,
+      "jsBytes": 2762231,
+      "jsBrotliBytes": 839878
+    },
+    "main-now": {
+      "engineWasmBytes": 7880343,
+      "engineWasmBrotliBytes": 2467295,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 9962545,
+      "jsBrotliBytes": 3275782
+    }
+  },
+  "memorySource": "uasm",
+  "workerThrottled": null,
+  "startedAt": "2026-11-19T22:24:58.725Z",
+  "completedAt": "2026-11-20T01:12:31.097Z"
+}
