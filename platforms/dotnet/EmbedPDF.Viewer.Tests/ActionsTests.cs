@@ -133,6 +133,50 @@ public sealed class ActionsTests
         await actions.GetPolicyAsync();
     }
 
+    sealed class RecordingCompletion : uniffi.epdf_plugin_actions.IActionExecutorCompletion, IDisposable
+    {
+        public readonly TaskCompletionSource<string> Answer = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public bool Disposed;
+        public void Executed() => Answer.TrySetResult("executed");
+        public void Failed(string error) => Answer.TrySetResult("failed " + error);
+        public void Inert(string reason) => Answer.TrySetResult("inert " + reason);
+        public void Dispose() => Disposed = true;
+    }
+
+    static uniffi.epdf_plugin_actions.PdfActionNode GotoNode() => uniffi.epdf_plugin_actions.PdfActionNode.FromJson(
+        """{"type":"goto","subtype":"GoTo","destination":{"kind":"fit","page":{"kind":"objectNumber","pageObjectNumber":1}},"next":[]}""");
+
+    static uniffi.epdf_plugin_actions.ActionContext ApiContext() => new(
+        uniffi.epdf_plugin_actions.ActionOrigin.User, new uniffi.epdf_plugin_actions.ActionSource.Api(), new uniffi.epdf_plugin_actions.ActionTriggerEvent.Activate());
+
+    [Fact]
+    public async Task TheExecutorAdapterReleasesTheNodeItWasGiven()
+    {
+        NativeRuntime.EnsureLoaded();
+        var node = GotoNode();
+        var completion = new RecordingCompletion();
+        var executor = new RecordingExecutor();
+        new ActionsCapability.ExecutorAdapter(executor, new RecordingLogger()).Start(node, ApiContext(), completion);
+        Assert.Throws<ObjectDisposedException>(() => node.Json());
+        Assert.Equal("executed", await completion.Answer.Task.WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.Equal(["goto"], executor.Types);
+        Assert.True(completion.Disposed);
+    }
+
+    [Fact]
+    public async Task TheExecutorAdapterFailsANodeItCannotRead()
+    {
+        NativeRuntime.EnsureLoaded();
+        var node = GotoNode();
+        node.Dispose();
+        var completion = new RecordingCompletion();
+        var executor = new RecordingExecutor();
+        new ActionsCapability.ExecutorAdapter(executor, new RecordingLogger()).Start(node, ApiContext(), completion);
+        Assert.StartsWith("failed", await completion.Answer.Task.WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.Empty(executor.Types);
+        Assert.True(completion.Disposed);
+    }
+
     [Fact]
     public async Task AnExecutorRunsItsNodes()
     {

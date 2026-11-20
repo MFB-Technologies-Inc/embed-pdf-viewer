@@ -267,20 +267,33 @@ public sealed class ActionsCapability : IDisposable
     }
 
     /// <summary>Runs the app's executor on the thread pool and answers the kernel once.</summary>
-    sealed class ExecutorAdapter(IActionExecutor executor, ILogger logger) : GA.ActionExecutor
+    internal sealed class ExecutorAdapter(IActionExecutor executor, ILogger logger) : GA.ActionExecutor
     {
-        public void Execute(GA.PdfActionNode node, GA.ActionContext context, GA.ActionExecutorCompletion completion)
+        public void Execute(GA.PdfActionNode node, GA.ActionContext context, GA.ActionExecutorCompletion completion) =>
+            Start(node, context, completion);
+
+        /// <summary>
+        /// Reads the node and context, releasing both, then runs the executor
+        /// on the thread pool. A node or context that can't be read fails it.
+        /// </summary>
+        internal void Start(GA.PdfActionNode node, GA.ActionContext context, GA.IActionExecutorCompletion completion)
         {
-            var publicNode = new PdfActionNode(node.NodeType(), node.Json());
+            PdfActionNode publicNode;
             ActionContext publicContext;
             try
             {
+                publicNode = new PdfActionNode(node.NodeType(), node.Json());
                 publicContext = Ffi.ToPublic(context);
             }
             catch (Exception error)
             {
                 Answer(completion, () => completion.Failed(error.Message));
                 return;
+            }
+            finally
+            {
+                node.Dispose();
+                context.Dispose();
             }
             _ = Task.Run(async () =>
             {
@@ -308,7 +321,7 @@ public sealed class ActionsCapability : IDisposable
             });
         }
 
-        static void Answer(GA.ActionExecutorCompletion completion, Action answer)
+        static void Answer(GA.IActionExecutorCompletion completion, Action answer)
         {
             try
             {
@@ -320,7 +333,7 @@ public sealed class ActionsCapability : IDisposable
             }
             finally
             {
-                completion.Dispose();
+                (completion as IDisposable)?.Dispose();
             }
         }
     }
