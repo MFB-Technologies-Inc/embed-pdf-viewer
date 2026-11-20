@@ -4,6 +4,8 @@ import android.app.Application
 import android.content.pm.ActivityInfo
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewmodel.MutableCreationExtras
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import com.embedpdf.EmbedPdfTestRunner
@@ -15,6 +17,7 @@ import com.embedpdf.expectCode
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Before
 import org.junit.Rule
@@ -71,6 +74,26 @@ class PdfViewerViewModelTest {
         }
         // `onCleared` again starts nothing more.
         assertSame(teardown, first!!.teardown)
+    }
+
+    /** Clearing the view model while the viewer still starts tears it down cleanly. */
+    @Test
+    fun clearingWhileTheStartIsInFlightDestroysTheViewer() {
+        val application = ApplicationProvider.getApplicationContext<Application>()
+        val store = ViewModelStore()
+        val extras = MutableCreationExtras().apply { set(ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY, application) }
+        val model = ViewModelProvider(store, PdfViewerViewModel.factory(ViewerConfig()), extras)[PdfViewerViewModel::class.java]
+        // The start began on creation and has not had a chance to finish.
+        store.clear()
+        val teardown = checkNotNull(model.teardown)
+        runBlocking {
+            withTimeout(30_000) {
+                teardown.join()
+                expectCode(PdfException.Code.INSTANCE_CLOSED) { model.startedViewer() }
+                expectCode(PdfException.Code.INSTANCE_CLOSED) { model.viewer.documentCount() }
+            }
+        }
+        assertFalse(teardown.isCancelled)
     }
 
     @Test
