@@ -36,8 +36,10 @@ name: release-train
 #
 # Nothing publishes before approve: preflight runs
 # scripts/release/check-release-gate.py, which fails the run when a job that
-# publishes doesn't need approve, directly or through another job, or when
-# any job but approve names an environment.
+# publishes or can write contents doesn't need approve, directly or through
+# another job, when one could run after approve fails (an always() or
+# !cancelled() without needs.approve.result == 'success'), or when any job
+# but approve names an environment.
 #
 # runtime, payload and apple also wait for preflight, so a bad input stops the
 # train before it builds anything long. Every job after a reusable workflow
@@ -112,8 +114,11 @@ jobs:
           persist-credentials: false
 
       # Before anything else: every job that publishes waits for approve.
+      # The check's own tests run first, on copies of these workflows.
       - name: Check the release gate
-        run: python3 scripts/release/check-release-gate.py .github/workflows/release-train.yml
+        run: |
+          python3 scripts/release/check-release-gate.test.py
+          python3 scripts/release/check-release-gate.py .github/workflows/release-train.yml
 
       # The release environment's reviewers are the only gate before a real
       # run publishes. A job that names a missing environment makes it with

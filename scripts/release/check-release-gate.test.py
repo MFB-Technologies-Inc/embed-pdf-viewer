@@ -73,7 +73,64 @@ class ReleaseGate(unittest.TestCase):
         self.edit("release-runtime.yml",
                   "if: inputs.stage == 'publish' && inputs.published == 'false'",
                   "if: inputs.published == 'false'")
-        self.assert_fails("release-runtime.yml job publish publishes but its if doesn't ask for inputs.stage == 'publish'")
+        self.assert_fails(
+            "runtime calls ./.github/workflows/release-runtime.yml, whose job publish publishes"
+            " or can write contents but whose if doesn't ask for inputs.stage == 'publish'"
+        )
+
+    def add_job(self, text):
+        path = self.train
+        path.write_text(path.read_text().rstrip("\n") + "\n\n" + text)
+
+    def test_a_release_upload_without_approve_fails(self):
+        self.add_job(
+            "  upload:\n"
+            "    needs: preflight\n"
+            "    runs-on: ubuntu-24.04\n"
+            "    steps:\n"
+            "      - run: gh release upload v1 notes.md\n"
+        )
+        self.assert_fails("upload publishes but doesn't need approve")
+
+    def test_a_contents_write_job_without_approve_fails(self):
+        self.add_job(
+            "  writer:\n"
+            "    needs: preflight\n"
+            "    runs-on: ubuntu-24.04\n"
+            "    permissions:\n"
+            "      contents: write\n"
+            "    steps:\n"
+            "      - run: echo nothing that looks like a release\n"
+        )
+        self.assert_fails("writer publishes but doesn't need approve")
+
+    def test_a_contents_write_job_after_approve_passes(self):
+        self.add_job(
+            "  writer:\n"
+            "    needs: approve\n"
+            "    runs-on: ubuntu-24.04\n"
+            "    permissions:\n"
+            "      contents: write\n"
+            "    steps:\n"
+            "      - run: echo after approval\n"
+        )
+        self.assertEqual(self.run_gate().returncode, 0)
+
+    def test_always_on_a_release_job_fails(self):
+        self.edit("release-train.yml", "    name: release viewer\n",
+                  "    name: release viewer\n    if: always()\n")
+        self.assert_fails("viewer-release has if: always(), which can run viewer-release after approve fails")
+
+    def test_not_cancelled_between_approve_and_a_release_job_fails(self):
+        # apple-publish sits between approve and pin.
+        self.edit("release-train.yml", "    name: release-apple.yml (publish)\n",
+                  "    name: release-apple.yml (publish)\n    if: ${{ !cancelled() }}\n")
+        self.assert_fails("apple-publish has if: ${{ !cancelled() }}, which can run pin after approve fails")
+
+    def test_always_that_requires_approve_passes(self):
+        self.edit("release-train.yml", "    name: release viewer\n",
+                  "    name: release viewer\n    if: always() && needs.approve.result == 'success'\n")
+        self.assertEqual(self.run_gate().returncode, 0, self.run_gate().stdout)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fails when a release train job could publish before its one approval.
+"""Fails when a release train job could publish without its one approval.
 
     check-release-gate.py <release-train.yml>
 
@@ -9,28 +9,47 @@ approve once, after everything is built. This checks that
   - approve exists and names an environment, and no other job, in the train or
     in a workflow it calls, names one;
   - every train job that publishes needs approve, directly or through other
-    jobs. A job publishes when its own lines push (git push), tag and release
-    (gh release create, github-release.sh publish), or when it calls a local
-    workflow with `stage: publish` or one whose publishing job doesn't wait
-    for that stage;
-  - in each called workflow, a job that publishes (the same commands, or
-    publish-engine-payload.mjs --stage publish) runs only when its `if:` asks
-    for inputs.stage == 'publish'.
+    jobs. A job publishes when one of its lines pushes or tags (git push,
+    git tag), makes or changes a release (gh release create, upload, edit or
+    delete; github-release.sh publish; publish-engine-payload.mjs --stage
+    publish; a release action such as softprops/action-gh-release), when its
+    token can write contents, or when it calls a local workflow with
+    `stage: publish` or one with a publishing job that doesn't wait for that
+    stage;
+  - in each called workflow, a job that publishes by the same test runs only
+    when its `if:` asks for inputs.stage == 'publish'. A called job's token
+    can write contents when its own permissions say so or, with no
+    permissions of its own or at its workflow's top, when the caller job
+    grants it;
+  - neither a publishing job nor any job between it and approve has an `if:`
+    that runs it after approve failed or was rejected (always(), cancelled(),
+    !cancelled(), failure()) unless that `if:` also requires
+    needs.approve.result == 'success'.
 
 Runners don't promise PyYAML, so this reads the workflows line by line. It
 understands the subset these files use (two-space indents, job ids at indent
-2, job keys at indent 4, `needs` as a name, a [flow, list] or a block list)
-and stops on anything else it finds where it looks, rather than guess.
-Comment lines are ignored, so a comment that mentions git push is not a push.
+2, job keys at indent 4, `needs` as a name, a [flow, list] or a block list,
+permissions as a word, a {flow: map} or a block map) and stops on anything else
+it finds where it looks, rather than guess. Comment lines are ignored, so a
+comment that mentions git push is not a push.
 """
 
 import re
 import sys
 from pathlib import Path
 
-PUBLISHES = re.compile(r"\bgit push\b|\brelease create\b|github-release\.sh publish|--stage publish\b")
+PUBLISHES = re.compile(
+    r"\bgit push\b|\bgit tag\b|\bgh release (create|upload|edit|delete)\b|\brelease create\b"
+    r"|github-release\.sh publish|--stage publish\b"
+    r"|uses:\s*(softprops/action-gh-release|ncipollo/release-action|actions/create-release"
+    r"|actions/upload-release-asset|svenstaro/upload-release-action)\b"
+)
+STATUS = re.compile(r"\balways\(\)|\bcancelled\(\)|\bfailure\(\)")
+APPROVED = "needs.approve.result == 'success'"
+STAGED = "inputs.stage == 'publish'"
 JOB = re.compile(r"^  ([A-Za-z0-9_-]+):\s*(#.*)?$")
 KEY = re.compile(r"^    ([A-Za-z0-9_-]+):\s*(.*?)\s*$")
+UNSET = object()
 
 
 class GateError(Exception):
@@ -41,13 +60,48 @@ def strip_comment(value):
     return re.sub(r"\s+#.*$", "", value).strip()
 
 
-def parse_jobs(path):
-    """{job id: {"needs": [...], "if": str, "uses": str, "with": {}, "environment": bool, "lines": [...]}}"""
+def inline_permissions(value, where):
+    """A permissions value written on its key's line."""
+    if value in ("read-all", "write-all"):
+        return value
+    if value.startswith("{") and value.endswith("}"):
+        perms = {}
+        for entry in filter(None, (e.strip() for e in value[1:-1].split(","))):
+            key, sep, level = entry.partition(":")
+            if not sep:
+                raise GateError(f"{where}: can't read permissions {value!r}")
+            perms[key.strip()] = level.strip()
+        return perms
+    raise GateError(f"{where}: can't read permissions {value!r}")
+
+
+def writes_contents(perms):
+    return perms == "write-all" or (isinstance(perms, dict) and perms.get("contents") == "write")
+
+
+def parse_workflow(path):
+    """(top-level permissions or UNSET, {job id: job})"""
     lines = Path(path).read_text().splitlines()
     try:
         start = lines.index("jobs:")
     except ValueError:
         raise GateError(f"{path}: no top-level jobs:")
+
+    top = UNSET
+    for number, line in enumerate(lines[:start], 1):
+        if line.startswith("permissions:"):
+            value = strip_comment(line[len("permissions:"):])
+            if value:
+                top = inline_permissions(value, f"{path}:{number}")
+            else:
+                top = {}
+                for entry in lines[number:start]:
+                    if entry.strip() and not entry.startswith(" "):
+                        break
+                    item = re.match(r"^  ([a-z-]+):\s*(\S+)", entry)
+                    if item:
+                        top[item.group(1)] = strip_comment(item.group(2))
+
     jobs = {}
     job = None
     block = None  # the job key whose indented lines follow
@@ -60,7 +114,8 @@ def parse_jobs(path):
         if match:
             job = jobs.setdefault(
                 match.group(1),
-                {"needs": [], "if": "", "uses": "", "with": {}, "environment": False, "lines": []},
+                {"needs": [], "if": "", "uses": "", "with": {}, "environment": False,
+                 "permissions": UNSET, "lines": []},
             )
             block = None
             continue
@@ -86,6 +141,8 @@ def parse_jobs(path):
                 job["uses"] = value
             elif key == "environment":
                 job["environment"] = True
+            elif key == "permissions":
+                job["permissions"] = {} if block else inline_permissions(value, f"{path}:{number}")
             continue
         if block == "needs":
             item = re.match(r"^      - ([A-Za-z0-9_-]+)$", re.sub(r"\s+#.*$", "", line).rstrip())
@@ -96,9 +153,14 @@ def parse_jobs(path):
             item = re.match(r"^      ([A-Za-z0-9_-]+):\s*(.*)$", line)
             if item:
                 job["with"][item.group(1)] = strip_comment(item.group(2)).strip("'\"")
+        elif block == "permissions":
+            item = re.match(r"^      ([a-z-]+):\s*(\S+)", line)
+            if not item:
+                raise GateError(f"{path}:{number}: can't read this permission: {line!r}")
+            job["permissions"][item.group(1)] = strip_comment(item.group(2))
         elif block == "if" and line.startswith("      "):
             job["if"] += " " + line.strip()
-    return jobs
+    return top, jobs
 
 
 def publishing_lines(job):
@@ -109,7 +171,7 @@ def check(train):
     train = Path(train)
     root = train.resolve().parents[2]
     errors = []
-    jobs = parse_jobs(train)
+    top, jobs = parse_workflow(train)
     if "approve" not in jobs:
         raise GateError(f"{train}: no approve job")
     if not jobs["approve"]["environment"]:
@@ -121,27 +183,39 @@ def check(train):
         if name != "approve" and job["environment"]:
             errors.append(f"{name} names an environment; only approve may")
 
-    called = {}
+    def own(job, fallback):
+        # A token with no permissions anywhere gets the repository default,
+        # which can write; count it as writing.
+        perms = job["permissions"] if job["permissions"] is not UNSET else fallback
+        return "write-all" if perms is UNSET else perms
+
+    # A call publishes on its own when the workflow it calls has a publishing
+    # job that doesn't wait for stage publish.
+    ungated_calls = set()
+    seen = set()
     for name, job in jobs.items():
         uses = job["uses"]
-        if not uses.startswith("./") or uses in called:
+        if not uses.startswith("./"):
             continue
-        workflow = parse_jobs(root / uses[2:])
-        ungated = []
-        for inner, inner_job in workflow.items():
-            if inner_job["environment"]:
+        grant = own(job, top)
+        called_top, called = parse_workflow(root / uses[2:])
+        for inner, inner_job in called.items():
+            if inner_job["environment"] and uses not in seen:
                 errors.append(f"{uses} job {inner} names an environment; only the train's approve may")
-            if publishing_lines(inner_job) and "inputs.stage == 'publish'" not in inner_job["if"]:
-                ungated.append(inner)
-                errors.append(f"{uses} job {inner} publishes but its if doesn't ask for inputs.stage == 'publish'")
-        called[uses] = ungated
+            fallback = called_top if called_top is not UNSET else grant
+            publishes = publishing_lines(inner_job) or writes_contents(own(inner_job, fallback))
+            if publishes and STAGED not in inner_job["if"]:
+                ungated_calls.add(name)
+                errors.append(
+                    f"{name} calls {uses}, whose job {inner} publishes or can write contents"
+                    f" but whose if doesn't ask for {STAGED}"
+                )
+        seen.add(uses)
 
-    def publishes(job):
-        if publishing_lines(job):
-            return True
+    def publishes(name, job):
         if job["uses"].startswith("./"):
-            return job["with"].get("stage") == "publish" or bool(called.get(job["uses"]))
-        return False
+            return job["with"].get("stage") == "publish" or name in ungated_calls
+        return bool(publishing_lines(job)) or writes_contents(own(job, top))
 
     def ancestors(name, seen=None):
         seen = set() if seen is None else seen
@@ -151,13 +225,25 @@ def check(train):
                 ancestors(need, seen)
         return seen
 
-    publishers = [name for name, job in jobs.items() if publishes(job)]
+    publishers = [name for name, job in jobs.items() if publishes(name, job)]
     if not publishers:
         errors.append("no job publishes; the patterns no longer match the train")
     for name in publishers:
-        if "approve" not in ancestors(name):
+        above = ancestors(name)
+        if "approve" not in above:
             errors.append(f"{name} publishes but doesn't need approve, directly or through another job")
-    return publishers, errors
+            continue
+        # Every job from approve down to this one: a status function in any
+        # of their ifs can run it after approve failed or was rejected.
+        path = [name] + sorted(a for a in above if "approve" in ancestors(a))
+        for step in path:
+            condition = jobs[step]["if"]
+            if STATUS.search(condition) and APPROVED not in condition:
+                errors.append(
+                    f"{step} has if: {condition}, which can run {name} after approve fails;"
+                    f" add {APPROVED} to it"
+                )
+    return publishers, sorted(set(errors), key=errors.index)
 
 
 def main(argv):

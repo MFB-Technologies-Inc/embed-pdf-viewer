@@ -7,7 +7,9 @@ name: release-apple
 # (fork-slice-<target>), stamped into buildFork's cache so the fork is not
 # built again. The caller runs it twice, once per stage, with its approval
 # between them: stage build runs check through the test jobs, stage publish
-# runs publish only, given the build stage's state, apple_tag and checksum.
+# runs publish-verdict and publish, given the build stage's state, apple_tag
+# and checksum. publish-verdict always runs in stage publish and checks
+# those inputs.
 #
 #   check            runs check-apple-engine.sh. Its verdict is the state:
 #                    current (exit 0, the manifests pin this tree's engine:
@@ -46,7 +48,7 @@ on:
         type: boolean
         default: false
       stage:
-        description: build (check through the tests) or publish (publish only).
+        description: build (check through the tests) or publish (publish-verdict and publish).
         required: false
         type: string
         default: build
@@ -538,6 +540,27 @@ jobs:
             EMBEDPDF_PREBUILT_ENGINE=local xcodebuild test -scheme EmbedPDF-Package \
             -destination "platform=macOS,arch=$ARCH" -jobs 2 \
             -derivedDataPath "$RUNNER_TEMP/derived-$ARCH"
+
+  # Stage publish always runs this. A call whose jobs all skip may count as
+  # skipped rather than successful, and the train's pin, which needs the
+  # call, would then skip too; this keeps one job running. It also stops on
+  # a verdict the build stage can't have given.
+  publish-verdict:
+    if: inputs.stage == 'publish'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Report the build stage's verdict
+        env:
+          STATE: ${{ inputs.state }}
+          TAG: ${{ inputs.apple_tag }}
+        run: |
+          [[ "$TAG" =~ ^apple-engine-[0-9a-f]{16}$ ]] || { echo "::error::stage publish needs apple_tag, got '$TAG'"; exit 1; }
+          case "$STATE" in
+            build) echo "publish releases $TAG" ;;
+            current|pin) echo "$TAG is already out ($STATE); nothing to publish" ;;
+            *) echo "::error::stage publish needs state build, pin or current, got '$STATE'"; exit 1 ;;
+          esac
 
   # The caller's approval gates it; apple-xcframework comes from the build
   # stage's call in the same run.

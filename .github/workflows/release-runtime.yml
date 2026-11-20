@@ -13,6 +13,7 @@ name: release-runtime
 #            and manifest scripts at <sha>, uploads the release files.
 #
 #   stage publish, given the build stage's published output:
+#   publish-verdict  always runs: checks the input and says what publish does.
 #   publish  creates the release from prepare's files with the job's token.
 #            The tag targets github.sha, the viewer commit whose gitlink
 #            names <sha>: the fork's commits aren't in this repo.
@@ -32,7 +33,7 @@ on:
         type: boolean
         default: false
       stage:
-        description: build (check and prepare) or publish (publish only).
+        description: build (check and prepare) or publish (publish-verdict and publish).
         required: false
         type: string
         default: build
@@ -212,6 +213,25 @@ jobs:
           name: runtime-release
           path: ${{ runner.temp }}/runtime-release/
           if-no-files-found: error
+
+  # Stage publish always runs this. A call whose jobs all skip may count as
+  # skipped rather than successful, and the train's pin, which needs the
+  # call, would then skip too; this keeps one job running. It also stops on
+  # a verdict the build stage can't have given.
+  publish-verdict:
+    if: inputs.stage == 'publish'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Report the build stage's verdict
+        env:
+          PUBLISHED: ${{ inputs.published }}
+        run: |
+          case "$PUBLISHED" in
+            false) echo "publish releases runtime-$RUNTIME_SHA" ;;
+            true) echo "runtime-$RUNTIME_SHA is already out; nothing to publish" ;;
+            *) echo "::error::stage publish needs published true or false, got '$PUBLISHED'"; exit 1 ;;
+          esac
 
   # The caller's approval gates it; prepare's files come from the build
   # stage's call in the same run.
