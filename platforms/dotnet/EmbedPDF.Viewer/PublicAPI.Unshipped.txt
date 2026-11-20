@@ -5,10 +5,40 @@ EmbedPDF.NativeRuntimeNotFoundException.NativeRuntimeNotFoundException(string! r
 EmbedPDF.NativeRuntimeNotFoundException.NativeRuntimeNotFoundException(string! runtimeIdentifier, System.Collections.Generic.IReadOnlyList<string!>! searchedPaths, string! message, System.Exception! innerException) -> void
 EmbedPDF.NativeRuntimeNotFoundException.RuntimeIdentifier.get -> string!
 EmbedPDF.NativeRuntimeNotFoundException.SearchedPaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.PdfErrorCode
+EmbedPDF.PdfErrorCode.Deconstruct(out string! Value) -> void
+EmbedPDF.PdfErrorCode.Equals(EmbedPDF.PdfErrorCode other) -> bool
+EmbedPDF.PdfErrorCode.PdfErrorCode() -> void
+EmbedPDF.PdfErrorCode.PdfErrorCode(string! Value) -> void
+EmbedPDF.PdfErrorCode.Value.get -> string!
+EmbedPDF.PdfErrorCode.Value.init -> void
 EmbedPDF.PdfException
+EmbedPDF.PdfException.Code.get -> EmbedPDF.PdfErrorCode
+EmbedPDF.PdfException.Detail.get -> string!
+EmbedPDF.PdfException.Name.get -> string!
 EmbedPDF.PdfException.PdfException() -> void
+EmbedPDF.PdfException.PdfException(EmbedPDF.PdfErrorCode code, string! detail) -> void
+EmbedPDF.PdfException.PdfException(EmbedPDF.PdfErrorCode code, string! detail, string! name) -> void
 EmbedPDF.PdfException.PdfException(string! message) -> void
 EmbedPDF.PdfException.PdfException(string! message, System.Exception! innerException) -> void
+EmbedPDF.PdfException.PdfException(string! name, EmbedPDF.PdfErrorCode code, string! detail) -> void
+EmbedPDF.PdfException.PdfException(string! name, EmbedPDF.PdfErrorCode code, string! detail, System.Exception? innerException) -> void
+override EmbedPDF.PdfErrorCode.GetHashCode() -> int
+override EmbedPDF.PdfErrorCode.ToString() -> string!
 static EmbedPDF.NativeRuntime.EnsureLoaded() -> void
 static EmbedPDF.NativeRuntime.ReadPageCountAsync(System.ReadOnlyMemory<byte> pdf, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
 static EmbedPDF.NativeRuntime.RuntimeIdentifier.get -> string!
+static EmbedPDF.PdfErrorCode.Conflict.get -> EmbedPDF.PdfErrorCode
+static EmbedPDF.PdfErrorCode.InstanceClosed.get -> EmbedPDF.PdfErrorCode
+static EmbedPDF.PdfErrorCode.InvalidInput.get -> EmbedPDF.PdfErrorCode
+static EmbedPDF.PdfErrorCode.InvalidState.get -> EmbedPDF.PdfErrorCode
+static EmbedPDF.PdfErrorCode.NotFound.get -> EmbedPDF.PdfErrorCode
+static EmbedPDF.PdfErrorCode.NotReady.get -> EmbedPDF.PdfErrorCode
+static EmbedPDF.PdfErrorCode.OperationCancelled.get -> EmbedPDF.PdfErrorCode
+static EmbedPDF.PdfErrorCode.OperationFailed.get -> EmbedPDF.PdfErrorCode
+static EmbedPDF.PdfErrorCode.PermissionDenied.get -> EmbedPDF.PdfErrorCode
+static EmbedPDF.PdfErrorCode.Unsupported.get -> EmbedPDF.PdfErrorCode
+static EmbedPDF.PdfErrorCode.implicit operator EmbedPDF.PdfErrorCode(string! value) -> EmbedPDF.PdfErrorCode
+static EmbedPDF.PdfErrorCode.operator !=(EmbedPDF.PdfErrorCode left, EmbedPDF.PdfErrorCode right) -> bool
+static EmbedPDF.PdfErrorCode.operator ==(EmbedPDF.PdfErrorCode left, EmbedPDF.PdfErrorCode right) -> bool
+~override EmbedPDF.PdfErrorCode.Equals(object obj) -> bool
