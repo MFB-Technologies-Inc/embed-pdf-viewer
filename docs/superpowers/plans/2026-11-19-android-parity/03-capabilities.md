@@ -58,11 +58,18 @@ Android services: `HapticFeedback(view: View)` implementing `PlatformFeedback` w
 - `PointerLatencyTest` (opt in with `EMBEDPDF_LATENCY=1`) printed p50 876 us, p95 2427 us, max 50 ms on the container's JVM.
 - `EmbedPdfTestRunner` (in the wave A review fix) keeps uniffi and JNA out of Robolectric's sandbox class loader, which replaces `forkEvery = 1`.
 
-### Task C: Wave C (stage, selection, link, commands)
+### Task C: Wave C (stage, selection, link, commands, task entry points)
 
 Swift files: `Plugins/{Stage,Selection,Link,Commands}.swift`.
 Tests: `StageTests`, `SelectionTests`, `LinkTests`, `CommandsTests`, plus `platforms/android/tests/CommandContextTest.kt` cases.
 Android services: `CommandHandler` fun-interface adapter (`commands.register(id) { context -> ... }`).
+
+- [x] One commit per plugin, tests green at each commit; `TaskEntryPoints` (`PageNavigator`, `PageZoom`, `ToolSwitcher`) has its own commit after stage.
+- `CommandHandler` is a class of optional lambdas with `run` last, not a fun interface: it has to report which hooks it implements (`hooks`), and a fun interface can't tell an overridden default from an inherited one. The trailing-lambda forms are `CommandHandler { context -> ... }` and `commands.register("doc:save") { context -> ... }`, whose `labelKey` defaults to the id. `run` runs on `Dispatchers.Default`; the derive hooks run on the kernel thread, and one that throws answers as a failed hook.
+- Swift argument labels became overloads by type: `link(point, page)` beside `link(id, page)`, `selectWord(point, page)`, `activate(point, page)`, `label(targetJson)`, `page(point)` on the stage. Points come before pages, as in Swift.
+- Not ported: the `AnnotationLinkTarget` overloads of `LinkCapability.resolve`, `activate` and `label`, since the typed target arrives with wave D; Swift's deprecated `UInt32` and `Bool?` overloads.
+- `TaskEntryPointTest` checks the forwarding by reflection (same name, parameter and result types on the capability) instead of Swift's compile-time table and source audit.
+- `StageSettingsPatch.turnGestures` has no default in the generated Kotlin, so every patch passes `turnGestures = null`. The stage's default responsive rules rewrite `padding` once they apply, so `resetSettings()` can differ from the first `settings()` read; the settings test opts out with `StageConfig(responsive = emptyList())`.
 
 ### Task D: Wave D (annotation, form)
 
