@@ -1947,6 +1947,7 @@ EmbedPDF.PdfViewer.GetPageRevisionAsync(EmbedPDF.DocumentInfo? document = null, 
 EmbedPDF.PdfViewer.GetPagesAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.PageInfo!>!>!
 EmbedPDF.PdfViewer.GetRenderAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RenderCapability!>!
 EmbedPDF.PdfViewer.GetSearchAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.SearchCapability!>!
+EmbedPDF.PdfViewer.GetSelectionAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.SelectionCapability!>!
 EmbedPDF.PdfViewer.GetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ViewerSettings!>!
 EmbedPDF.PdfViewer.GetShellAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ShellCapability!>!
 EmbedPDF.PdfViewer.GetStageAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.StageCapability!>!
@@ -2876,6 +2877,197 @@ EmbedPDF.SearchStatus.Complete = 2 -> EmbedPDF.SearchStatus
 EmbedPDF.SearchStatus.Error = 4 -> EmbedPDF.SearchStatus
 EmbedPDF.SearchStatus.Idle = 0 -> EmbedPDF.SearchStatus
 EmbedPDF.SearchStatus.Searching = 1 -> EmbedPDF.SearchStatus
+EmbedPDF.SelectionAnchor
+EmbedPDF.SelectionAnchor.<Clone>$() -> EmbedPDF.SelectionAnchor!
+EmbedPDF.SelectionAnchor.Bounds.get -> EmbedPDF.PdfRect
+EmbedPDF.SelectionAnchor.Bounds.init -> void
+EmbedPDF.SelectionAnchor.Deconstruct(out EmbedPDF.PageRef Page, out EmbedPDF.PdfRect Bounds) -> void
+EmbedPDF.SelectionAnchor.Equals(EmbedPDF.SelectionAnchor? other) -> bool
+EmbedPDF.SelectionAnchor.Page.get -> EmbedPDF.PageRef
+EmbedPDF.SelectionAnchor.Page.init -> void
+EmbedPDF.SelectionAnchor.SelectionAnchor(EmbedPDF.PageRef Page, EmbedPDF.PdfRect Bounds) -> void
+EmbedPDF.SelectionCapability
+EmbedPDF.SelectionCapability.BeginGestureAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.SelectionCapability.BeginGestureAtAsync(EmbedPDF.PageRef page, EmbedPDF.PdfPoint point, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.SelectionCapability.CanCopyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.SelectionCapability.CanSelectAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.SelectionCapability.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.SelectionCapability.Dispose() -> void
+EmbedPDF.SelectionCapability.EndGestureAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.SelectionCapability.EnsureLoadedAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.SelectionCapability.ExtendToAsync(EmbedPDF.PageRef page, EmbedPDF.PdfPoint point, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.SelectionCapability.GetAnchorAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.SelectionAnchor?>!
+EmbedPDF.SelectionCapability.GetRangeAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.SelectionTextRange?>!
+EmbedPDF.SelectionCapability.GetRectsAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.PdfRect>!>!
+EmbedPDF.SelectionCapability.GetSegmentsAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.SelectionSegment!>!>!
+EmbedPDF.SelectionCapability.GetSelectedPagesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>!>!
+EmbedPDF.SelectionCapability.GetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.SelectionSettings!>!
+EmbedPDF.SelectionCapability.GetSnapshotAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.SelectionSnapshot!>!
+EmbedPDF.SelectionCapability.HasSelectionAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.SelectionCapability.IsHighlightVisibleAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.SelectionCapability.IsLoadedAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.SelectionCapability.IsOverTextAsync(EmbedPDF.PageRef page, EmbedPDF.PdfPoint point, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.SelectionCapability.IsSelectingAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.SelectionCapability.ObserveEvents(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.SelectionEvent!>!
+EmbedPDF.SelectionCapability.ReadTextAsync(EmbedPDF.SelectionTextRange! range, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+EmbedPDF.SelectionCapability.ReadTextAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+EmbedPDF.SelectionCapability.ResetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.SelectionCapability.SelectAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.SelectionCapability.SelectAsync(EmbedPDF.SearchHit! hit, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.SelectionCapability.SelectAsync(EmbedPDF.SelectionInput! input, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.SelectionCapability.SelectLineAtAsync(EmbedPDF.PageRef page, EmbedPDF.PdfPoint point, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.SelectionCapability.SelectPageAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.SelectionCapability.SelectWordAtAsync(EmbedPDF.PageRef page, EmbedPDF.PdfPoint point, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.SelectionCapability.SetHighlightVisibleAsync(bool visible, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.SelectionCapability.UpdateSettingsAsync(EmbedPDF.SelectionSettingsPatch! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.SelectionDirection
+EmbedPDF.SelectionDirection.Backward = 1 -> EmbedPDF.SelectionDirection
+EmbedPDF.SelectionDirection.Forward = 0 -> EmbedPDF.SelectionDirection
+EmbedPDF.SelectionEndpoint
+EmbedPDF.SelectionEndpoint.<Clone>$() -> EmbedPDF.SelectionEndpoint!
+EmbedPDF.SelectionEndpoint.Advance.get -> int
+EmbedPDF.SelectionEndpoint.Advance.init -> void
+EmbedPDF.SelectionEndpoint.Deconstruct(out EmbedPDF.PageRef Page, out EmbedPDF.PdfQuad GlyphQuad, out int Advance, out EmbedPDF.PdfRect Rect) -> void
+EmbedPDF.SelectionEndpoint.Equals(EmbedPDF.SelectionEndpoint? other) -> bool
+EmbedPDF.SelectionEndpoint.GlyphQuad.get -> EmbedPDF.PdfQuad
+EmbedPDF.SelectionEndpoint.GlyphQuad.init -> void
+EmbedPDF.SelectionEndpoint.Page.get -> EmbedPDF.PageRef
+EmbedPDF.SelectionEndpoint.Page.init -> void
+EmbedPDF.SelectionEndpoint.Rect.get -> EmbedPDF.PdfRect
+EmbedPDF.SelectionEndpoint.Rect.init -> void
+EmbedPDF.SelectionEndpoint.SelectionEndpoint(EmbedPDF.PageRef Page, EmbedPDF.PdfQuad GlyphQuad, int Advance, EmbedPDF.PdfRect Rect) -> void
+EmbedPDF.SelectionEvent
+EmbedPDF.SelectionEvent.Changed
+EmbedPDF.SelectionEvent.Changed.Changed(EmbedPDF.SelectionTextRange? Range, System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>! Pages) -> void
+EmbedPDF.SelectionEvent.Changed.Deconstruct(out EmbedPDF.SelectionTextRange? Range, out System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>! Pages) -> void
+EmbedPDF.SelectionEvent.Changed.Equals(EmbedPDF.SelectionEvent.Changed? other) -> bool
+EmbedPDF.SelectionEvent.Changed.Pages.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>!
+EmbedPDF.SelectionEvent.Changed.Pages.init -> void
+EmbedPDF.SelectionEvent.Changed.Range.get -> EmbedPDF.SelectionTextRange?
+EmbedPDF.SelectionEvent.Changed.Range.init -> void
+EmbedPDF.SelectionEvent.Cleared
+EmbedPDF.SelectionEvent.Cleared.Cleared() -> void
+EmbedPDF.SelectionEvent.Cleared.Equals(EmbedPDF.SelectionEvent.Cleared? other) -> bool
+EmbedPDF.SelectionEvent.Committed
+EmbedPDF.SelectionEvent.Committed.Committed(EmbedPDF.SelectionTextRange! Range) -> void
+EmbedPDF.SelectionEvent.Committed.Deconstruct(out EmbedPDF.SelectionTextRange! Range) -> void
+EmbedPDF.SelectionEvent.Committed.Equals(EmbedPDF.SelectionEvent.Committed? other) -> bool
+EmbedPDF.SelectionEvent.Committed.Range.get -> EmbedPDF.SelectionTextRange!
+EmbedPDF.SelectionEvent.Committed.Range.init -> void
+EmbedPDF.SelectionEvent.SelectionEvent(EmbedPDF.SelectionEvent! original) -> void
+EmbedPDF.SelectionHandleSettings
+EmbedPDF.SelectionHandleSettings.<Clone>$() -> EmbedPDF.SelectionHandleSettings!
+EmbedPDF.SelectionHandleSettings.Color.get -> string?
+EmbedPDF.SelectionHandleSettings.Color.init -> void
+EmbedPDF.SelectionHandleSettings.Deconstruct(out string? Color, out string! Shadow) -> void
+EmbedPDF.SelectionHandleSettings.Equals(EmbedPDF.SelectionHandleSettings? other) -> bool
+EmbedPDF.SelectionHandleSettings.SelectionHandleSettings(string? Color, string! Shadow) -> void
+EmbedPDF.SelectionHandleSettings.Shadow.get -> string!
+EmbedPDF.SelectionHandleSettings.Shadow.init -> void
+EmbedPDF.SelectionHandleSettingsPatch
+EmbedPDF.SelectionHandleSettingsPatch.<Clone>$() -> EmbedPDF.SelectionHandleSettingsPatch!
+EmbedPDF.SelectionHandleSettingsPatch.ClearColor.get -> bool
+EmbedPDF.SelectionHandleSettingsPatch.ClearColor.init -> void
+EmbedPDF.SelectionHandleSettingsPatch.Color.get -> string?
+EmbedPDF.SelectionHandleSettingsPatch.Color.init -> void
+EmbedPDF.SelectionHandleSettingsPatch.Equals(EmbedPDF.SelectionHandleSettingsPatch? other) -> bool
+EmbedPDF.SelectionHandleSettingsPatch.SelectionHandleSettingsPatch() -> void
+EmbedPDF.SelectionHandleSettingsPatch.Shadow.get -> string?
+EmbedPDF.SelectionHandleSettingsPatch.Shadow.init -> void
+EmbedPDF.SelectionInput
+EmbedPDF.SelectionInput.Range
+EmbedPDF.SelectionInput.Range.Deconstruct(out EmbedPDF.SelectionTextRange! Value) -> void
+EmbedPDF.SelectionInput.Range.Equals(EmbedPDF.SelectionInput.Range? other) -> bool
+EmbedPDF.SelectionInput.Range.Range(EmbedPDF.SelectionTextRange! Value) -> void
+EmbedPDF.SelectionInput.Range.Value.get -> EmbedPDF.SelectionTextRange!
+EmbedPDF.SelectionInput.Range.Value.init -> void
+EmbedPDF.SelectionInput.SelectionInput(EmbedPDF.SelectionInput! original) -> void
+EmbedPDF.SelectionInput.Span
+EmbedPDF.SelectionInput.Span.Count.get -> long
+EmbedPDF.SelectionInput.Span.Count.init -> void
+EmbedPDF.SelectionInput.Span.Deconstruct(out EmbedPDF.PageRef Page, out long Start, out long Count) -> void
+EmbedPDF.SelectionInput.Span.Equals(EmbedPDF.SelectionInput.Span? other) -> bool
+EmbedPDF.SelectionInput.Span.Page.get -> EmbedPDF.PageRef
+EmbedPDF.SelectionInput.Span.Page.init -> void
+EmbedPDF.SelectionInput.Span.Span(EmbedPDF.PageRef Page, long Start, long Count) -> void
+EmbedPDF.SelectionInput.Span.Start.get -> long
+EmbedPDF.SelectionInput.Span.Start.init -> void
+EmbedPDF.SelectionSegment
+EmbedPDF.SelectionSegment.<Clone>$() -> EmbedPDF.SelectionSegment!
+EmbedPDF.SelectionSegment.Advance.get -> int
+EmbedPDF.SelectionSegment.Advance.init -> void
+EmbedPDF.SelectionSegment.Deconstruct(out EmbedPDF.PdfQuad Quad, out EmbedPDF.PdfRect Rect, out int Advance) -> void
+EmbedPDF.SelectionSegment.Equals(EmbedPDF.SelectionSegment? other) -> bool
+EmbedPDF.SelectionSegment.Quad.get -> EmbedPDF.PdfQuad
+EmbedPDF.SelectionSegment.Quad.init -> void
+EmbedPDF.SelectionSegment.Rect.get -> EmbedPDF.PdfRect
+EmbedPDF.SelectionSegment.Rect.init -> void
+EmbedPDF.SelectionSegment.SelectionSegment(EmbedPDF.PdfQuad Quad, EmbedPDF.PdfRect Rect, int Advance) -> void
+EmbedPDF.SelectionSettings
+EmbedPDF.SelectionSettings.<Clone>$() -> EmbedPDF.SelectionSettings!
+EmbedPDF.SelectionSettings.Color.get -> string?
+EmbedPDF.SelectionSettings.Color.init -> void
+EmbedPDF.SelectionSettings.Deconstruct(out double DragThresholdPx, out string? Color, out EmbedPDF.SelectionHandleSettings! Handles) -> void
+EmbedPDF.SelectionSettings.DragThresholdPx.get -> double
+EmbedPDF.SelectionSettings.DragThresholdPx.init -> void
+EmbedPDF.SelectionSettings.Equals(EmbedPDF.SelectionSettings? other) -> bool
+EmbedPDF.SelectionSettings.Handles.get -> EmbedPDF.SelectionHandleSettings!
+EmbedPDF.SelectionSettings.Handles.init -> void
+EmbedPDF.SelectionSettings.SelectionSettings(double DragThresholdPx, string? Color, EmbedPDF.SelectionHandleSettings! Handles) -> void
+EmbedPDF.SelectionSettingsPatch
+EmbedPDF.SelectionSettingsPatch.<Clone>$() -> EmbedPDF.SelectionSettingsPatch!
+EmbedPDF.SelectionSettingsPatch.ClearColor.get -> bool
+EmbedPDF.SelectionSettingsPatch.ClearColor.init -> void
+EmbedPDF.SelectionSettingsPatch.Color.get -> string?
+EmbedPDF.SelectionSettingsPatch.Color.init -> void
+EmbedPDF.SelectionSettingsPatch.DragThresholdPx.get -> double?
+EmbedPDF.SelectionSettingsPatch.DragThresholdPx.init -> void
+EmbedPDF.SelectionSettingsPatch.Equals(EmbedPDF.SelectionSettingsPatch? other) -> bool
+EmbedPDF.SelectionSettingsPatch.Handles.get -> EmbedPDF.SelectionHandleSettingsPatch?
+EmbedPDF.SelectionSettingsPatch.Handles.init -> void
+EmbedPDF.SelectionSettingsPatch.SelectionSettingsPatch() -> void
+EmbedPDF.SelectionSnapshot
+EmbedPDF.SelectionSnapshot.<Clone>$() -> EmbedPDF.SelectionSnapshot!
+EmbedPDF.SelectionSnapshot.Deconstruct(out System.Collections.Generic.IReadOnlyList<EmbedPDF.SelectionSnapshotPage!>! Pages, out EmbedPDF.SelectionEndpoint? Start, out EmbedPDF.SelectionEndpoint? End, out EmbedPDF.SelectionDirection Direction, out EmbedPDF.SelectionTextRange? Range) -> void
+EmbedPDF.SelectionSnapshot.Direction.get -> EmbedPDF.SelectionDirection
+EmbedPDF.SelectionSnapshot.Direction.init -> void
+EmbedPDF.SelectionSnapshot.End.get -> EmbedPDF.SelectionEndpoint?
+EmbedPDF.SelectionSnapshot.End.init -> void
+EmbedPDF.SelectionSnapshot.Equals(EmbedPDF.SelectionSnapshot? other) -> bool
+EmbedPDF.SelectionSnapshot.Pages.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.SelectionSnapshotPage!>!
+EmbedPDF.SelectionSnapshot.Pages.init -> void
+EmbedPDF.SelectionSnapshot.Range.get -> EmbedPDF.SelectionTextRange?
+EmbedPDF.SelectionSnapshot.Range.init -> void
+EmbedPDF.SelectionSnapshot.SelectionSnapshot(System.Collections.Generic.IReadOnlyList<EmbedPDF.SelectionSnapshotPage!>! Pages, EmbedPDF.SelectionEndpoint? Start, EmbedPDF.SelectionEndpoint? End, EmbedPDF.SelectionDirection Direction, EmbedPDF.SelectionTextRange? Range) -> void
+EmbedPDF.SelectionSnapshot.Start.get -> EmbedPDF.SelectionEndpoint?
+EmbedPDF.SelectionSnapshot.Start.init -> void
+EmbedPDF.SelectionSnapshotPage
+EmbedPDF.SelectionSnapshotPage.<Clone>$() -> EmbedPDF.SelectionSnapshotPage!
+EmbedPDF.SelectionSnapshotPage.Deconstruct(out EmbedPDF.PageRef Page, out System.Collections.Generic.IReadOnlyList<EmbedPDF.SelectionSegment!>! Segments) -> void
+EmbedPDF.SelectionSnapshotPage.Equals(EmbedPDF.SelectionSnapshotPage? other) -> bool
+EmbedPDF.SelectionSnapshotPage.Page.get -> EmbedPDF.PageRef
+EmbedPDF.SelectionSnapshotPage.Page.init -> void
+EmbedPDF.SelectionSnapshotPage.Segments.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.SelectionSegment!>!
+EmbedPDF.SelectionSnapshotPage.Segments.init -> void
+EmbedPDF.SelectionSnapshotPage.SelectionSnapshotPage(EmbedPDF.PageRef Page, System.Collections.Generic.IReadOnlyList<EmbedPDF.SelectionSegment!>! Segments) -> void
+EmbedPDF.SelectionTextPosition
+EmbedPDF.SelectionTextPosition.Deconstruct(out EmbedPDF.PageRef Page, out long Index) -> void
+EmbedPDF.SelectionTextPosition.Equals(EmbedPDF.SelectionTextPosition other) -> bool
+EmbedPDF.SelectionTextPosition.Index.get -> long
+EmbedPDF.SelectionTextPosition.Index.init -> void
+EmbedPDF.SelectionTextPosition.Page.get -> EmbedPDF.PageRef
+EmbedPDF.SelectionTextPosition.Page.init -> void
+EmbedPDF.SelectionTextPosition.SelectionTextPosition() -> void
+EmbedPDF.SelectionTextPosition.SelectionTextPosition(EmbedPDF.PageRef Page, long Index) -> void
+EmbedPDF.SelectionTextRange
+EmbedPDF.SelectionTextRange.<Clone>$() -> EmbedPDF.SelectionTextRange!
+EmbedPDF.SelectionTextRange.Deconstruct(out EmbedPDF.SelectionTextPosition Start, out EmbedPDF.SelectionTextPosition End) -> void
+EmbedPDF.SelectionTextRange.End.get -> EmbedPDF.SelectionTextPosition
+EmbedPDF.SelectionTextRange.End.init -> void
+EmbedPDF.SelectionTextRange.Equals(EmbedPDF.SelectionTextRange? other) -> bool
+EmbedPDF.SelectionTextRange.SelectionTextRange(EmbedPDF.SelectionTextPosition Start, EmbedPDF.SelectionTextPosition End) -> void
+EmbedPDF.SelectionTextRange.Start.get -> EmbedPDF.SelectionTextPosition
+EmbedPDF.SelectionTextRange.Start.init -> void
 EmbedPDF.ShellCapability
 EmbedPDF.ShellCapability.ApplySnapshotAsync(EmbedPDF.ShellSnapshot! snapshot, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.ShellCapability.CloseAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -3807,6 +3999,8 @@ abstract EmbedPDF.RenderViewport.<Clone>$() -> EmbedPDF.RenderViewport!
 abstract EmbedPDF.ScriptEvaluation.<Clone>$() -> EmbedPDF.ScriptEvaluation!
 abstract EmbedPDF.SearchEvent.<Clone>$() -> EmbedPDF.SearchEvent!
 abstract EmbedPDF.SearchRevealAxis.<Clone>$() -> EmbedPDF.SearchRevealAxis!
+abstract EmbedPDF.SelectionEvent.<Clone>$() -> EmbedPDF.SelectionEvent!
+abstract EmbedPDF.SelectionInput.<Clone>$() -> EmbedPDF.SelectionInput!
 abstract EmbedPDF.ShellEvent.<Clone>$() -> EmbedPDF.ShellEvent!
 abstract EmbedPDF.StageAlignValue.<Clone>$() -> EmbedPDF.StageAlignValue!
 abstract EmbedPDF.StageArrivalAlignValue.<Clone>$() -> EmbedPDF.StageArrivalAlignValue!
@@ -4764,6 +4958,63 @@ override EmbedPDF.SearchSettingsPatch.ToString() -> string!
 override EmbedPDF.SearchSnippet.Equals(object? obj) -> bool
 override EmbedPDF.SearchSnippet.GetHashCode() -> int
 override EmbedPDF.SearchSnippet.ToString() -> string!
+override EmbedPDF.SelectionAnchor.Equals(object? obj) -> bool
+override EmbedPDF.SelectionAnchor.GetHashCode() -> int
+override EmbedPDF.SelectionAnchor.ToString() -> string!
+override EmbedPDF.SelectionEndpoint.Equals(object? obj) -> bool
+override EmbedPDF.SelectionEndpoint.GetHashCode() -> int
+override EmbedPDF.SelectionEndpoint.ToString() -> string!
+override EmbedPDF.SelectionEvent.Changed.<Clone>$() -> EmbedPDF.SelectionEvent.Changed!
+override EmbedPDF.SelectionEvent.Changed.Equals(object? obj) -> bool
+override EmbedPDF.SelectionEvent.Changed.GetHashCode() -> int
+override EmbedPDF.SelectionEvent.Changed.ToString() -> string!
+override EmbedPDF.SelectionEvent.Cleared.<Clone>$() -> EmbedPDF.SelectionEvent.Cleared!
+override EmbedPDF.SelectionEvent.Cleared.Equals(object? obj) -> bool
+override EmbedPDF.SelectionEvent.Cleared.GetHashCode() -> int
+override EmbedPDF.SelectionEvent.Cleared.ToString() -> string!
+override EmbedPDF.SelectionEvent.Committed.<Clone>$() -> EmbedPDF.SelectionEvent.Committed!
+override EmbedPDF.SelectionEvent.Committed.Equals(object? obj) -> bool
+override EmbedPDF.SelectionEvent.Committed.GetHashCode() -> int
+override EmbedPDF.SelectionEvent.Committed.ToString() -> string!
+override EmbedPDF.SelectionEvent.Equals(object? obj) -> bool
+override EmbedPDF.SelectionEvent.GetHashCode() -> int
+override EmbedPDF.SelectionEvent.ToString() -> string!
+override EmbedPDF.SelectionHandleSettings.Equals(object? obj) -> bool
+override EmbedPDF.SelectionHandleSettings.GetHashCode() -> int
+override EmbedPDF.SelectionHandleSettings.ToString() -> string!
+override EmbedPDF.SelectionHandleSettingsPatch.Equals(object? obj) -> bool
+override EmbedPDF.SelectionHandleSettingsPatch.GetHashCode() -> int
+override EmbedPDF.SelectionHandleSettingsPatch.ToString() -> string!
+override EmbedPDF.SelectionInput.Equals(object? obj) -> bool
+override EmbedPDF.SelectionInput.GetHashCode() -> int
+override EmbedPDF.SelectionInput.Range.<Clone>$() -> EmbedPDF.SelectionInput.Range!
+override EmbedPDF.SelectionInput.Range.Equals(object? obj) -> bool
+override EmbedPDF.SelectionInput.Range.GetHashCode() -> int
+override EmbedPDF.SelectionInput.Range.ToString() -> string!
+override EmbedPDF.SelectionInput.Span.<Clone>$() -> EmbedPDF.SelectionInput.Span!
+override EmbedPDF.SelectionInput.Span.Equals(object? obj) -> bool
+override EmbedPDF.SelectionInput.Span.GetHashCode() -> int
+override EmbedPDF.SelectionInput.Span.ToString() -> string!
+override EmbedPDF.SelectionInput.ToString() -> string!
+override EmbedPDF.SelectionSegment.Equals(object? obj) -> bool
+override EmbedPDF.SelectionSegment.GetHashCode() -> int
+override EmbedPDF.SelectionSegment.ToString() -> string!
+override EmbedPDF.SelectionSettings.Equals(object? obj) -> bool
+override EmbedPDF.SelectionSettings.GetHashCode() -> int
+override EmbedPDF.SelectionSettings.ToString() -> string!
+override EmbedPDF.SelectionSettingsPatch.Equals(object? obj) -> bool
+override EmbedPDF.SelectionSettingsPatch.GetHashCode() -> int
+override EmbedPDF.SelectionSettingsPatch.ToString() -> string!
+override EmbedPDF.SelectionSnapshot.Equals(object? obj) -> bool
+override EmbedPDF.SelectionSnapshot.GetHashCode() -> int
+override EmbedPDF.SelectionSnapshot.ToString() -> string!
+override EmbedPDF.SelectionSnapshotPage.Equals(object? obj) -> bool
+override EmbedPDF.SelectionSnapshotPage.GetHashCode() -> int
+override EmbedPDF.SelectionSnapshotPage.ToString() -> string!
+override EmbedPDF.SelectionTextPosition.GetHashCode() -> int
+override EmbedPDF.SelectionTextRange.Equals(object? obj) -> bool
+override EmbedPDF.SelectionTextRange.GetHashCode() -> int
+override EmbedPDF.SelectionTextRange.ToString() -> string!
 override EmbedPDF.ShellEvent.Equals(object? obj) -> bool
 override EmbedPDF.ShellEvent.GetHashCode() -> int
 override EmbedPDF.ShellEvent.MenuClosed.<Clone>$() -> EmbedPDF.ShellEvent.MenuClosed!
@@ -5162,6 +5413,11 @@ override sealed EmbedPDF.SearchRevealAxis.End.Equals(EmbedPDF.SearchRevealAxis? 
 override sealed EmbedPDF.SearchRevealAxis.Fraction.Equals(EmbedPDF.SearchRevealAxis? other) -> bool
 override sealed EmbedPDF.SearchRevealAxis.Keep.Equals(EmbedPDF.SearchRevealAxis? other) -> bool
 override sealed EmbedPDF.SearchRevealAxis.Start.Equals(EmbedPDF.SearchRevealAxis? other) -> bool
+override sealed EmbedPDF.SelectionEvent.Changed.Equals(EmbedPDF.SelectionEvent? other) -> bool
+override sealed EmbedPDF.SelectionEvent.Cleared.Equals(EmbedPDF.SelectionEvent? other) -> bool
+override sealed EmbedPDF.SelectionEvent.Committed.Equals(EmbedPDF.SelectionEvent? other) -> bool
+override sealed EmbedPDF.SelectionInput.Range.Equals(EmbedPDF.SelectionInput? other) -> bool
+override sealed EmbedPDF.SelectionInput.Span.Equals(EmbedPDF.SelectionInput? other) -> bool
 override sealed EmbedPDF.ShellEvent.MenuClosed.Equals(EmbedPDF.ShellEvent? other) -> bool
 override sealed EmbedPDF.ShellEvent.MenuOpened.Equals(EmbedPDF.ShellEvent? other) -> bool
 override sealed EmbedPDF.ShellEvent.SurfaceClosed.Equals(EmbedPDF.ShellEvent? other) -> bool
@@ -5812,6 +6068,42 @@ static EmbedPDF.SearchSettingsPatch.operator !=(EmbedPDF.SearchSettingsPatch? le
 static EmbedPDF.SearchSettingsPatch.operator ==(EmbedPDF.SearchSettingsPatch? left, EmbedPDF.SearchSettingsPatch? right) -> bool
 static EmbedPDF.SearchSnippet.operator !=(EmbedPDF.SearchSnippet? left, EmbedPDF.SearchSnippet? right) -> bool
 static EmbedPDF.SearchSnippet.operator ==(EmbedPDF.SearchSnippet? left, EmbedPDF.SearchSnippet? right) -> bool
+static EmbedPDF.SelectionAnchor.operator !=(EmbedPDF.SelectionAnchor? left, EmbedPDF.SelectionAnchor? right) -> bool
+static EmbedPDF.SelectionAnchor.operator ==(EmbedPDF.SelectionAnchor? left, EmbedPDF.SelectionAnchor? right) -> bool
+static EmbedPDF.SelectionEndpoint.operator !=(EmbedPDF.SelectionEndpoint? left, EmbedPDF.SelectionEndpoint? right) -> bool
+static EmbedPDF.SelectionEndpoint.operator ==(EmbedPDF.SelectionEndpoint? left, EmbedPDF.SelectionEndpoint? right) -> bool
+static EmbedPDF.SelectionEvent.Changed.operator !=(EmbedPDF.SelectionEvent.Changed? left, EmbedPDF.SelectionEvent.Changed? right) -> bool
+static EmbedPDF.SelectionEvent.Changed.operator ==(EmbedPDF.SelectionEvent.Changed? left, EmbedPDF.SelectionEvent.Changed? right) -> bool
+static EmbedPDF.SelectionEvent.Cleared.operator !=(EmbedPDF.SelectionEvent.Cleared? left, EmbedPDF.SelectionEvent.Cleared? right) -> bool
+static EmbedPDF.SelectionEvent.Cleared.operator ==(EmbedPDF.SelectionEvent.Cleared? left, EmbedPDF.SelectionEvent.Cleared? right) -> bool
+static EmbedPDF.SelectionEvent.Committed.operator !=(EmbedPDF.SelectionEvent.Committed? left, EmbedPDF.SelectionEvent.Committed? right) -> bool
+static EmbedPDF.SelectionEvent.Committed.operator ==(EmbedPDF.SelectionEvent.Committed? left, EmbedPDF.SelectionEvent.Committed? right) -> bool
+static EmbedPDF.SelectionEvent.operator !=(EmbedPDF.SelectionEvent? left, EmbedPDF.SelectionEvent? right) -> bool
+static EmbedPDF.SelectionEvent.operator ==(EmbedPDF.SelectionEvent? left, EmbedPDF.SelectionEvent? right) -> bool
+static EmbedPDF.SelectionHandleSettings.operator !=(EmbedPDF.SelectionHandleSettings? left, EmbedPDF.SelectionHandleSettings? right) -> bool
+static EmbedPDF.SelectionHandleSettings.operator ==(EmbedPDF.SelectionHandleSettings? left, EmbedPDF.SelectionHandleSettings? right) -> bool
+static EmbedPDF.SelectionHandleSettingsPatch.operator !=(EmbedPDF.SelectionHandleSettingsPatch? left, EmbedPDF.SelectionHandleSettingsPatch? right) -> bool
+static EmbedPDF.SelectionHandleSettingsPatch.operator ==(EmbedPDF.SelectionHandleSettingsPatch? left, EmbedPDF.SelectionHandleSettingsPatch? right) -> bool
+static EmbedPDF.SelectionInput.Range.operator !=(EmbedPDF.SelectionInput.Range? left, EmbedPDF.SelectionInput.Range? right) -> bool
+static EmbedPDF.SelectionInput.Range.operator ==(EmbedPDF.SelectionInput.Range? left, EmbedPDF.SelectionInput.Range? right) -> bool
+static EmbedPDF.SelectionInput.Span.operator !=(EmbedPDF.SelectionInput.Span? left, EmbedPDF.SelectionInput.Span? right) -> bool
+static EmbedPDF.SelectionInput.Span.operator ==(EmbedPDF.SelectionInput.Span? left, EmbedPDF.SelectionInput.Span? right) -> bool
+static EmbedPDF.SelectionInput.operator !=(EmbedPDF.SelectionInput? left, EmbedPDF.SelectionInput? right) -> bool
+static EmbedPDF.SelectionInput.operator ==(EmbedPDF.SelectionInput? left, EmbedPDF.SelectionInput? right) -> bool
+static EmbedPDF.SelectionSegment.operator !=(EmbedPDF.SelectionSegment? left, EmbedPDF.SelectionSegment? right) -> bool
+static EmbedPDF.SelectionSegment.operator ==(EmbedPDF.SelectionSegment? left, EmbedPDF.SelectionSegment? right) -> bool
+static EmbedPDF.SelectionSettings.operator !=(EmbedPDF.SelectionSettings? left, EmbedPDF.SelectionSettings? right) -> bool
+static EmbedPDF.SelectionSettings.operator ==(EmbedPDF.SelectionSettings? left, EmbedPDF.SelectionSettings? right) -> bool
+static EmbedPDF.SelectionSettingsPatch.operator !=(EmbedPDF.SelectionSettingsPatch? left, EmbedPDF.SelectionSettingsPatch? right) -> bool
+static EmbedPDF.SelectionSettingsPatch.operator ==(EmbedPDF.SelectionSettingsPatch? left, EmbedPDF.SelectionSettingsPatch? right) -> bool
+static EmbedPDF.SelectionSnapshot.operator !=(EmbedPDF.SelectionSnapshot? left, EmbedPDF.SelectionSnapshot? right) -> bool
+static EmbedPDF.SelectionSnapshot.operator ==(EmbedPDF.SelectionSnapshot? left, EmbedPDF.SelectionSnapshot? right) -> bool
+static EmbedPDF.SelectionSnapshotPage.operator !=(EmbedPDF.SelectionSnapshotPage? left, EmbedPDF.SelectionSnapshotPage? right) -> bool
+static EmbedPDF.SelectionSnapshotPage.operator ==(EmbedPDF.SelectionSnapshotPage? left, EmbedPDF.SelectionSnapshotPage? right) -> bool
+static EmbedPDF.SelectionTextPosition.operator !=(EmbedPDF.SelectionTextPosition left, EmbedPDF.SelectionTextPosition right) -> bool
+static EmbedPDF.SelectionTextPosition.operator ==(EmbedPDF.SelectionTextPosition left, EmbedPDF.SelectionTextPosition right) -> bool
+static EmbedPDF.SelectionTextRange.operator !=(EmbedPDF.SelectionTextRange? left, EmbedPDF.SelectionTextRange? right) -> bool
+static EmbedPDF.SelectionTextRange.operator ==(EmbedPDF.SelectionTextRange? left, EmbedPDF.SelectionTextRange? right) -> bool
 static EmbedPDF.ShellEvent.MenuClosed.operator !=(EmbedPDF.ShellEvent.MenuClosed? left, EmbedPDF.ShellEvent.MenuClosed? right) -> bool
 static EmbedPDF.ShellEvent.MenuClosed.operator ==(EmbedPDF.ShellEvent.MenuClosed? left, EmbedPDF.ShellEvent.MenuClosed? right) -> bool
 static EmbedPDF.ShellEvent.MenuOpened.operator !=(EmbedPDF.ShellEvent.MenuOpened? left, EmbedPDF.ShellEvent.MenuOpened? right) -> bool
@@ -6115,6 +6407,12 @@ virtual EmbedPDF.SearchEvent.PrintMembers(System.Text.StringBuilder! builder) ->
 virtual EmbedPDF.SearchRevealAxis.EqualityContract.get -> System.Type!
 virtual EmbedPDF.SearchRevealAxis.Equals(EmbedPDF.SearchRevealAxis? other) -> bool
 virtual EmbedPDF.SearchRevealAxis.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.SelectionEvent.EqualityContract.get -> System.Type!
+virtual EmbedPDF.SelectionEvent.Equals(EmbedPDF.SelectionEvent? other) -> bool
+virtual EmbedPDF.SelectionEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.SelectionInput.EqualityContract.get -> System.Type!
+virtual EmbedPDF.SelectionInput.Equals(EmbedPDF.SelectionInput? other) -> bool
+virtual EmbedPDF.SelectionInput.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual EmbedPDF.ShellEvent.EqualityContract.get -> System.Type!
 virtual EmbedPDF.ShellEvent.Equals(EmbedPDF.ShellEvent? other) -> bool
 virtual EmbedPDF.ShellEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
@@ -6177,6 +6475,8 @@ virtual EmbedPDF.ZoomSpec.PrintMembers(System.Text.StringBuilder! builder) -> bo
 ~override EmbedPDF.PdfSize.ToString() -> string
 ~override EmbedPDF.PointerModifiers.Equals(object obj) -> bool
 ~override EmbedPDF.PointerModifiers.ToString() -> string
+~override EmbedPDF.SelectionTextPosition.Equals(object obj) -> bool
+~override EmbedPDF.SelectionTextPosition.ToString() -> string
 ~override EmbedPDF.StageScrollMetrics.Equals(object obj) -> bool
 ~override EmbedPDF.StageScrollMetrics.ToString() -> string
 ~override EmbedPDF.ToolId.Equals(object obj) -> bool

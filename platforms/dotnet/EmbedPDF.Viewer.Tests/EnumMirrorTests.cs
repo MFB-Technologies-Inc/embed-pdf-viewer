@@ -50,6 +50,7 @@ public sealed class EnumMirrorTests
         { typeof(StageRevealWord), typeof(uniffi.epdf_plugin_stage.StageRevealWord) },
         { typeof(StageScrollBehavior), typeof(uniffi.epdf_plugin_stage.StageScrollBehavior) },
         { typeof(StageSettingKey), typeof(uniffi.epdf_plugin_stage.StageSettingKey) },
+        { typeof(SelectionDirection), typeof(uniffi.epdf_plugin_selection.SelectionDirection) },
     };
 
     [Theory]
