@@ -764,6 +764,84 @@ Deviations, each with its reason:
 - `IsNavigationEngagedAsync` answers `true` on a fresh document with the default pointer tool; the
   port asserts that rather than Swift's silence on it.
 
+### Phase 3 wave D notes (2026-11-20)
+
+Task plan: `docs/superpowers/plans/2026-11-20-dotnet-parity/03d-wave-d.md`. Branch
+`research/dotnet-parity-p3d` from `research/dotnet-parity-p3c` at `b3a1346c3`, not pushed.
+
+What exists. `AnnotationCapability` with four sub-capabilities (`GetSelection()`, `GetTools()`,
+`GetDrafts()`, `GetThreads()`, each its own `IDisposable` handle) and `FormCapability`, under
+`platforms/dotnet/EmbedPDF.Viewer/Plugins/`. Every typed draft and patch from `AnnotationDraft*.swift`
+is a `sealed record` (15 drafts, 17 patches) in `AnnotationDraft.cs`, `.Markup.cs`, `.Shapes.cs` and
+`.Boxes.cs`; reads are `AnnotationInfo` with `AnnotationDetails` records per kind
+(`AnnotationInfo.cs`, `AnnotationInfo.Kinds.cs`). `FormConfig` gained `Validation`. Link has
+`AnnotationLinkTarget` overloads of `ResolveAsync`, `ActivateAsync` and `GetLabelAsync`. The
+coverage check reads 880 members: 589 ported, 142 pending (all wave E), 149 exclusions. Of the 143
+wave D rows, 133 are ported (84 annotation, 49 form) and 10 excluded. `EmbedPDF.Viewer.Tests` runs 947
+cases, 946 passing twice in a row and one skipped (the latency test); `packaging` passes its 30
+and `scripts/test_check_api_coverage.py` its 11. Release builds of the facade, the DI package,
+the Jint package, the tests and `EmbedPDF.ApiDump` report 0 warnings.
+
+JSON. A draft or patch writes the engine's field bag through an internal `FieldBag` over
+`System.Text.Json.Nodes`, keys sorted ordinally at every level with
+`JavaScriptEncoder.UnsafeRelaxedJsonEscaping`, so the output matches Swift's exact strings in the
+ported tests. The leaf wire records (point, rect, quad, line points, measure, caption offset,
+leader, attached file) go through the source-generated `AnnotationJsonContext`, with required
+constructor parameters, so a read missing one fails as Swift's `Decodable` does. Nothing uses
+reflection. Each patch implements `IAnnotationPatch<TSelf>` with a static `FromJson`, which is
+how `GetDefaultsAsync<TPatch>(ToolId)` decodes without reflection. A NaN, an infinity or an
+undefined enum value is `invalid-input` (`EncodingError`) before anything reaches the engine; a
+declared key of the wrong shape is `invalid-input` (`DecodingError`).
+
+Calling threads. `IAnnotationFilePicker.PickAsync` runs on the thread pool (the kernel awaits the
+task), so disposing the viewer there is safe; a throw declines the file and is logged.
+`IFormFocusTarget.Focus` runs on the kernel thread, marked: a throw is logged and dropped, and
+`Dispose()` there throws `InvalidOperationException` (`FormTests.DisposingFromAFocusTargetThrowsIntoIt`).
+`LifetimeTests.LiveWaveDStreamsAndCallbacksDoNotKeepAnAbandonedViewerAlive` covers a picker and a
+focus target that capture nothing.
+
+Exclusions that need a decision. Ten Rust members have no `ffi.rs` export and no Swift
+counterpart, because they were added after the Swift port: annotation `get_shared`, `is_movable`,
+`can_duplicate`, `duplicate`, `when_remeasurable`, `stage_remeasure`, `selection_duplicate`,
+`selection_can_duplicate`, and form `duplicate`, `duplicate_widgets` (most from `f74c06c6d`).
+Exporting them is a Rust change this phase may not make, so they are exclusions with the new
+classification `no-export`. They are also why the Swift check reports Rust inventory drift. A
+later pass that exports them for Swift and C# together would turn them into rows.
+
+Deviations, each with its reason:
+
+- Swift's `Nullable<Value>` is `JsonNullable<T>`: `System.Nullable<T>` owns the name. A member is
+  `JsonNullable<T>?`, so left out, `Null` and a value stay three states. A list value goes in
+  through `JsonNullable.Of<IReadOnlyList<double>>(...)`, since C# has no implicit conversion from
+  an interface type.
+- `AnnotationColor` has `Parse` and `TryParse` and no implicit conversion from `string`; Swift's
+  string literal traps on a bad colour, and a C# conversion that throws would hide the same trap.
+- Records hold lists as `IReadOnlyList<T>` and compare them by reference, as every C# record does.
+  The ported round-trip tests compare the JSON a patch writes, or compare structurally
+  (`AnnotationEngineDraftTests.Same`), where Swift compared values.
+- `AnnotationInfo.BorderStyle` is top-level `AnnotationBorderStyleName`, and each kind's members are
+  a top-level `Annotation*Details` record: a nested type and a property can't share a name in C#.
+  `Details` is `null` where Swift has `.untyped`; `Underline` and `Squiggly` share
+  `AnnotationTextMarkupDetails` and `Square` and `Circle` share `AnnotationShapeDetails`, picked by
+  `Subtype`. Swift's deprecated overloads returning the generated record have no counterpart.
+- The sub-capabilities are methods (`GetSelection()`), not properties: each call makes a new
+  native handle the caller disposes, which a property would hide.
+- `CreateAsync` takes `AnnotationCreateOptions { Tool, Select }` rather than two optional
+  parameters, because RS0026 refuses two overloads with optional parameters (Phase 2's rule).
+- `AnnotationSelectionCapability.UpdateLinkAsync` takes a new public `PdfLinkTarget` and
+  `PdfDestination` (file coordinates), the twins of the generated records Swift re-exports. The
+  page-space `PageLinkTarget` from wave A is a different record.
+- `PdfMeasurement`, `PdfNumberFormat`, `MeasureOrigin`, `MeasureFraction` and `MeasureLabelPosition`
+  are defined here because line, polygon and polyline carry a measure; wave E reuses them.
+- Form: `FormValueInput` cases are `Value(string? Text)`, `Checked(bool IsChecked)` and
+  `SelectedValues(IReadOnlyList<string> Values)`, since a case's property can't share its name.
+  `FormActivationResult.Form` is `Committed`. `uint` fields are `int`. Swift's `widgets(on:)` is
+  `GetFillItemsAsync`, and `removeWidget(_:from:)` takes the widget first as Swift does.
+- `IntegerSurfaceTests.swift` has no annotation-only or form-only case (its annotation use is the
+  redaction case, wave E); `IntegerSurfaceViewerTests.AnnotationNumbersBelowZeroThrowInvalidInput`
+  checks the page numbers, object numbers and indexes the drafts write instead. The measurement
+  cases of `TypedOverloadTests.swift` wait for wave E.
+
 ## Phase 4: Models
 
 About 1.5 weeks. Exit: every model in `Sources/EmbedPDFModels/` has a C# counterpart with its
