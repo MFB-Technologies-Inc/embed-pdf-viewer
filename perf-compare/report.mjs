@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { loadConfig } from './lib/config.mjs';
 import { hasDone } from './lib/done.mjs';
 import { distSizes, frameInterval, frameIntervalText } from './lib/env.mjs';
+import { isDifference, MEMORY, rows } from './lib/rows.mjs';
 import { bootstrapDifference, bootstrapRatio, calibrate, comparePair, summarize, threshold } from './lib/stats.mjs';
 import { workDir } from './scripts/materialize.mjs';
 
@@ -43,30 +44,6 @@ function loadRun(dir) {
   if (!existsSync(path.join(dir, 'meta.json'))) throw new Error(`${dir} has no meta.json: the run didn't finish`);
   const samples = readFileSync(path.join(dir, 'samples.jsonl'), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
   return { dir, meta: read('meta.json'), gate: read('gate.json'), samples };
-}
-
-// Fixed per metric, never chosen from the data, so a metric's A/A
-// calibration and its other pairs always use the same kind.
-const isDifference = (metric) =>
-  ['jankFrames', 'longTasks', 'longTaskMs', 'heapSoakSlopeBytes'].includes(metric) || /[sS]ettleMs$/.test(metric);
-
-// Memory metrics get their own section; sizes aren't sampled.
-const MEMORY = ['heapAfterOpenBytes', 'workerHeapAfterOpenBytes', 'heapSoakSlopeBytes', 'heapCycle5Bytes', 'heapCycle30Bytes'];
-
-const rowLabel = (flow, fixture, metric) => `${flow === 'open' ? `open(${fixture})` : flow} / ${metric}`;
-
-// { rowKey: { label, metric, byArm: { arm: number[] } } } in first-seen order.
-function rows(samples) {
-  const out = new Map();
-  for (const s of samples) {
-    if (s.error) continue;
-    for (const [metric, value] of Object.entries(s.metrics)) {
-      const key = `${s.flow}|${s.fixture}|${metric}`;
-      if (!out.has(key)) out.set(key, { label: rowLabel(s.flow, s.fixture, metric), flow: s.flow, metric, byArm: {} });
-      (out.get(key).byArm[s.arm] ??= []).push(value);
-    }
-  }
-  return out;
 }
 
 const fmt = (metric, v) => {

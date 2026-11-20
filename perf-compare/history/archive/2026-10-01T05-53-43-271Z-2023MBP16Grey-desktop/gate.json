@@ -1,0 +1,66 @@
+{
+  "main": {
+    "pass": true,
+    "answers": {
+      "largePageCount": 400,
+      "ebookPageCount": 4,
+      "searchHits": 16,
+      "selection": "Pay through the nose for a commercial\r\nPDF SDK that locks you into their\r\necosystem, restricts how you can use\r\nit, and comes with a pricing model tha",
+      "annotationsBefore": 0,
+      "annotationsAfter": 1
+    },
+    "screenshotSha256": "9637755da8e7849c84aa53e37bc6dd2f82f6f8b21a1d46255e27aa9311f0d465",
+    "pixelShareVsReference": 0
+  },
+  "main-aa": {
+    "pass": true,
+    "answers": {
+      "largePageCount": 400,
+      "ebookPageCount": 4,
+      "searchHits": 16,
+      "selection": "Pay through the nose for a commercial\r\nPDF SDK that locks you into their\r\necosystem, restricts how you can use\r\nit, and comes with a pricing model tha",
+      "annotationsBefore": 0,
+      "annotationsAfter": 1
+    },
+    "screenshotSha256": "9637755da8e7849c84aa53e37bc6dd2f82f6f8b21a1d46255e27aa9311f0d465",
+    "pixelShareVsReference": 0
+  },
+  "impl-fixed": {
+    "pass": true,
+    "answers": {
+      "largePageCount": 400,
+      "ebookPageCount": 4,
+      "searchHits": 16,
+      "selection": "Pay through the nose for a commercial\r\nPDF SDK that locks you into their\r\necosystem, restricts how you can use\r\nit, and comes with a pricing model tha",
+      "annotationsBefore": 0,
+      "annotationsAfter": 1
+    },
+    "screenshotSha256": "9637755da8e7849c84aa53e37bc6dd2f82f6f8b21a1d46255e27aa9311f0d465",
+    "pixelShareVsReference": 0
+  },
+  "plugins-fixed": {
+    "pass": true,
+    "answers": {
+      "largePageCount": 400,
+      "ebookPageCount": 4,
+      "searchHits": 16,
+      "selection": "Pay through the nose for a commercial\r\nPDF SDK that locks you into their\r\necosystem, restricts how you can use\r\nit, and comes with a pricing model tha",
+      "annotationsBefore": 0,
+      "annotationsAfter": 1
+    },
+    "screenshotSha256": "9637755da8e7849c84aa53e37bc6dd2f82f6f8b21a1d46255e27aa9311f0d465",
+    "pixelShareVsReference": 0
+  },
+  "main-compat": {
+    "pass": false,
+    "reason": "the page reports {\"id\":\"main-compat\",\"kernel\":\"typescript\",\"rustReads\":false,\"dedupeCompat\":true}, arms.json says {\"id\":\"main-compat\",\"kernel\":\"typescript\",\"rustReads\":false}"
+  },
+  "impl-compat": {
+    "pass": false,
+    "reason": "the page reports {\"id\":\"impl-compat\",\"kernel\":\"typescript\",\"rustReads\":false,\"dedupeCompat\":true}, arms.json says {\"id\":\"impl-compat\",\"kernel\":\"typescript\",\"rustReads\":false}"
+  },
+  "plugins-compat": {
+    "pass": false,
+    "reason": "the page reports {\"id\":\"plugins-compat\",\"kernel\":\"rust\",\"rustReads\":false,\"dedupeCompat\":true}, arms.json says {\"id\":\"plugins-compat\",\"kernel\":\"rust\",\"rustReads\":false}"
+  }
+}

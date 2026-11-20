@@ -1,0 +1,88 @@
+{
+  "runId": "2026-10-01T19-19-45-156Z-mac-desktop",
+  "harnessCommit": "a6da98a24ee61705ffeccb64682eb0195288f33c",
+  "harnessDirty": false,
+  "host": "mac",
+  "arms": {
+    "impl-ts": {
+      "worktree": "impl",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "research/multi-platform-rust-core-impl",
+      "sha": "c8085bd3ca876a3d3cf7705fdae8df1fc9a733bb",
+      "payload": "built",
+      "fork": {
+        "sha": "d045f389de885dd616e03077301df5ef5aa8c84e",
+        "target": "wasm32-eh",
+        "libSha256": "5bf368ce10d378dbff69969628e542fa5a16e1fd3c4bf4218bdee60388c53b7a"
+      },
+      "engineWasmSha256": "0f7407599d9390b413cd12efe862fe9745e0b455627ddd07e66ebd686a8e2ea5",
+      "kernelWasmSha256": null
+    },
+    "plugins-lto": {
+      "worktree": "plugins-lto",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "bef223d9d1702703dbffae9ce8180ee9f4690615",
+      "payload": "built",
+      "fork": {
+        "sha": "d045f389de885dd616e03077301df5ef5aa8c84e",
+        "target": "wasm32-eh",
+        "libSha256": "5bf368ce10d378dbff69969628e542fa5a16e1fd3c4bf4218bdee60388c53b7a"
+      },
+      "engineWasmSha256": "0f7407599d9390b413cd12efe862fe9745e0b455627ddd07e66ebd686a8e2ea5",
+      "kernelWasmSha256": "ce0b35ed118c51bef75dbd773b2e62676a7054652895dcc79612ca3a2fdea6d9"
+    }
+  },
+  "fixtures": {
+    "ebook": "2e539f62b5fa605fc33b038ff31f019c94123342115a0c1e52d741ca2f737997",
+    "large": "10c8668fe55cd301138afdd52e20138b2311c173bf99fdb090cd1a07845264f9"
+  },
+  "browserVersion": "140.0.7339.16",
+  "playwrightVersion": "1.55.0",
+  "nodeVersion": "v24.20.0",
+  "os": "Darwin 27.0.0 arm64",
+  "cpuModel": "Apple M4 Max",
+  "cpuCores": 16,
+  "totalMemoryBytes": 68719476736,
+  "powerSource": "AC Power",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "deviceScaleFactor": 2,
+  "profile": "desktop",
+  "throttleRate": 1,
+  "flows": [
+    "search"
+  ],
+  "rounds": 1,
+  "quick": false,
+  "armsRun": [
+    "impl-ts",
+    "plugins-lto"
+  ],
+  "sizes": {
+    "impl-ts": {
+      "engineWasmBytes": 11084440,
+      "engineWasmBrotliBytes": 2972439,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3513502,
+      "jsBrotliBytes": 1005367
+    },
+    "plugins-lto": {
+      "engineWasmBytes": 11084440,
+      "engineWasmBrotliBytes": 2972439,
+      "kernelWasmBytes": 12243867,
+      "kernelWasmBrotliBytes": 1970979,
+      "jsBytes": 2745727,
+      "jsBrotliBytes": 837829
+    }
+  },
+  "memorySource": null,
+  "workerThrottled": null,
+  "startedAt": "2026-10-01T19:19:45.156Z",
+  "completedAt": "2026-10-01T19:21:16.246Z"
+}

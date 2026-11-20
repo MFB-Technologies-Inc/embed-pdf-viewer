@@ -1,0 +1,6 @@
+{"arm":"plugins","flow":"zoom","fixture":"ebook","round":0,"metrics":{"settleMs":553.8099999725819,"zoom2SettleMs":255.77499997615814,"zoom4SettleMs":298.0349999964237,"backTo1SettleMs":108.93999999761581,"mainTaskMs":911.4390000000001,"mainJsMs":813.965}}
+{"arm":"plugins","flow":"selectLarge","fixture":"large","round":0,"error":"the drag selected no text"}
+{"arm":"plugins","flow":"search","fixture":"ebook","round":0,"metrics":{"searchMs":77.37000000476837,"mainTaskMs":36.143000000000086,"mainJsMs":25.213}}
+{"arm":"plugins","flow":"zoom","fixture":"ebook","round":1,"metrics":{"settleMs":547.5400000214577,"zoom2SettleMs":250.2950000166893,"zoom4SettleMs":297.2450000047684,"backTo1SettleMs":109.38999998569489,"mainTaskMs":950.846,"mainJsMs":853.138}}
+{"arm":"plugins","flow":"selectLarge","fixture":"large","round":1,"error":"the drag selected no text"}
+{"arm":"plugins","flow":"search","fixture":"ebook","round":1,"metrics":{"searchMs":76.33000001311302,"mainTaskMs":36.50999999999999,"mainJsMs":25.515}}

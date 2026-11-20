@@ -1,0 +1,4 @@
+{"arm":"plugins-tip2","flow":"coldScroll","fixture":"large","round":0,"metrics":{"settleMs":0,"wallMs":2011.5700000077486,"frameP50Ms":8.335000000000036,"frameP95Ms":9.110000000000127,"jankFrames":0,"longTasks":0,"longTaskMs":0,"mainTaskMs":620.3120000000001,"mainJsMs":496.563}}
+{"arm":"plugins-lazy","flow":"coldScroll","fixture":"large","round":0,"metrics":{"settleMs":0,"wallMs":2027.0700000077486,"frameP50Ms":8.330000000000382,"frameP95Ms":9.189999999999939,"jankFrames":0,"longTasks":0,"longTaskMs":0,"mainTaskMs":624.5380000000001,"mainJsMs":501.671}}
+{"arm":"plugins-tip2","flow":"searchLarge","fixture":"large","round":0,"metrics":{"searchMs":32916.46999999881,"mainTaskMs":32877.103,"mainJsMs":32844.615}}
+{"arm":"plugins-lazy","flow":"searchLarge","fixture":"large","round":0,"metrics":{"searchMs":2953.3649999946356,"mainTaskMs":1963.3540000000003,"mainJsMs":1918.475}}

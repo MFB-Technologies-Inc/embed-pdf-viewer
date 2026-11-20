@@ -7,6 +7,8 @@ test('undo needs a history plugin', () => {
   assert.deepEqual(FLOWS.undo.needs, ['history']);
   assert.equal(armRuns('undo', []), false);
   assert.equal(armRuns('undo', ['history']), true);
+  assert.equal(armRuns('undo', ['history'], ['undo']), false);
+  assert.equal(armRuns('typeField', [], ['undo']), true);
 });
 
 test('a flow that needs nothing runs on every arm', () => {
@@ -289,4 +291,11 @@ test('a sample line carries warmupFailed only when the warm-up failed', () => {
     metrics,
     warmupFailed: 'the drag selected no text',
   });
+});
+
+test('withDeadline passes a result through and rejects work that outlasts it', async () => {
+  const { withDeadline } = await import('../lib/flows.mjs');
+  assert.equal(await withDeadline(Promise.resolve(7), 1000, 'open/ebook'), 7);
+  await assert.rejects(withDeadline(new Promise(() => {}), 20, 'open/ebook'), /open\/ebook did not finish in 0 s/);
+  await assert.rejects(withDeadline(Promise.reject(new Error('boom')), 1000, 'x'), /boom/);
 });

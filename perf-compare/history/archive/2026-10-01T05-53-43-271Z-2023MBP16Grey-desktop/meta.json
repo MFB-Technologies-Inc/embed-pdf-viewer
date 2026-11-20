@@ -1,0 +1,206 @@
+{
+  "runId": "2026-10-01T05-53-43-271Z-2023MBP16Grey-desktop",
+  "harnessCommit": "a575675b462b0084337b17e244c8183ab2cb252e",
+  "harnessDirty": false,
+  "host": "2023MBP16Grey",
+  "arms": {
+    "main": {
+      "worktree": "main",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "2516e2786ee894383220ecd436fbd248182ef444",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "98c2368a774de4f8c507c0f57d189cb80474fcc21cb85f8d4688cec9eae64545",
+      "kernelWasmSha256": null
+    },
+    "main-aa": {
+      "worktree": "main",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "2516e2786ee894383220ecd436fbd248182ef444",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "98c2368a774de4f8c507c0f57d189cb80474fcc21cb85f8d4688cec9eae64545",
+      "kernelWasmSha256": null
+    },
+    "impl-fixed": {
+      "worktree": "impl-fixed",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "research/multi-platform-rust-core-impl",
+      "sha": "29f02d38176277e617a906485e520e3ea2ddfec8",
+      "payload": "built",
+      "fork": {
+        "sha": "7c7b600b1dfcef78bbedb25e79e5c46bf9f3e150",
+        "target": "wasm32-eh",
+        "libSha256": "2bc254d7f1a4ea947e831ffe307200cfa1025242ddbeed6502a7dfbe8efb2c0f"
+      },
+      "engineWasmSha256": "ee06b8271360d0a7cea4a3af353447242729f7efb8a41270ebd44cccd8599e45",
+      "kernelWasmSha256": null
+    },
+    "plugins-fixed": {
+      "worktree": "plugins-fixed",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "c9201919264bf5fdc309b11b3f2cdbd70936634f",
+      "payload": "built",
+      "fork": {
+        "sha": "7c7b600b1dfcef78bbedb25e79e5c46bf9f3e150",
+        "target": "wasm32-eh",
+        "libSha256": "2bc254d7f1a4ea947e831ffe307200cfa1025242ddbeed6502a7dfbe8efb2c0f"
+      },
+      "engineWasmSha256": "ee06b8271360d0a7cea4a3af353447242729f7efb8a41270ebd44cccd8599e45",
+      "kernelWasmSha256": "d6276d5fb70d35d02e6879b70670b180f9f9ab0fb0ab5f7d859a17fd4ae197f9"
+    },
+    "main-compat": {
+      "worktree": "main",
+      "kernel": "typescript",
+      "rustReads": false,
+      "dedupeCompat": true,
+      "ref": "main",
+      "sha": "2516e2786ee894383220ecd436fbd248182ef444",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "98c2368a774de4f8c507c0f57d189cb80474fcc21cb85f8d4688cec9eae64545",
+      "kernelWasmSha256": null
+    },
+    "impl-compat": {
+      "worktree": "impl-fixed",
+      "kernel": "typescript",
+      "rustReads": false,
+      "dedupeCompat": true,
+      "ref": "research/multi-platform-rust-core-impl",
+      "sha": "29f02d38176277e617a906485e520e3ea2ddfec8",
+      "payload": "built",
+      "fork": {
+        "sha": "7c7b600b1dfcef78bbedb25e79e5c46bf9f3e150",
+        "target": "wasm32-eh",
+        "libSha256": "2bc254d7f1a4ea947e831ffe307200cfa1025242ddbeed6502a7dfbe8efb2c0f"
+      },
+      "engineWasmSha256": "ee06b8271360d0a7cea4a3af353447242729f7efb8a41270ebd44cccd8599e45",
+      "kernelWasmSha256": null
+    },
+    "plugins-compat": {
+      "worktree": "plugins-fixed",
+      "kernel": "rust",
+      "rustReads": false,
+      "dedupeCompat": true,
+      "ref": "research/multi-platform-rust-core-impl-plugins",
+      "sha": "c9201919264bf5fdc309b11b3f2cdbd70936634f",
+      "payload": "built",
+      "fork": {
+        "sha": "7c7b600b1dfcef78bbedb25e79e5c46bf9f3e150",
+        "target": "wasm32-eh",
+        "libSha256": "2bc254d7f1a4ea947e831ffe307200cfa1025242ddbeed6502a7dfbe8efb2c0f"
+      },
+      "engineWasmSha256": "ee06b8271360d0a7cea4a3af353447242729f7efb8a41270ebd44cccd8599e45",
+      "kernelWasmSha256": "d6276d5fb70d35d02e6879b70670b180f9f9ab0fb0ab5f7d859a17fd4ae197f9"
+    }
+  },
+  "fixtures": {
+    "ebook": "2e539f62b5fa605fc33b038ff31f019c94123342115a0c1e52d741ca2f737997",
+    "large": "10c8668fe55cd301138afdd52e20138b2311c173bf99fdb090cd1a07845264f9"
+  },
+  "browserVersion": "140.0.7339.16",
+  "playwrightVersion": "1.55.0",
+  "nodeVersion": "v24.20.0",
+  "os": "Darwin 27.0.0 arm64",
+  "cpuModel": "Apple M2 Max",
+  "cpuCores": 12,
+  "totalMemoryBytes": 68719476736,
+  "powerSource": "AC Power",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "deviceScaleFactor": 2,
+  "profile": "desktop",
+  "throttleRate": 1,
+  "flows": [
+    "open",
+    "scroll",
+    "jump",
+    "zoom",
+    "select",
+    "search",
+    "annotate",
+    "soak"
+  ],
+  "rounds": 3,
+  "quick": false,
+  "armsRun": [
+    "main",
+    "main-aa",
+    "impl-fixed",
+    "plugins-fixed",
+    "main-compat",
+    "impl-compat",
+    "plugins-compat"
+  ],
+  "sizes": {
+    "main": {
+      "engineWasmBytes": 7544455,
+      "engineWasmBrotliBytes": 2257280,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3536532,
+      "jsBrotliBytes": 1007392
+    },
+    "main-aa": {
+      "engineWasmBytes": 7544455,
+      "engineWasmBrotliBytes": 2257280,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3536535,
+      "jsBrotliBytes": 1007447
+    },
+    "impl-fixed": {
+      "engineWasmBytes": 11120042,
+      "engineWasmBrotliBytes": 2991254,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3525136,
+      "jsBrotliBytes": 1006094
+    },
+    "plugins-fixed": {
+      "engineWasmBytes": 11120042,
+      "engineWasmBrotliBytes": 2991254,
+      "kernelWasmBytes": 8311869,
+      "kernelWasmBrotliBytes": 1784994,
+      "jsBytes": 2759249,
+      "jsBrotliBytes": 838927
+    },
+    "main-compat": {
+      "engineWasmBytes": 7544455,
+      "engineWasmBrotliBytes": 2257280,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3531152,
+      "jsBrotliBytes": 1007108
+    },
+    "impl-compat": {
+      "engineWasmBytes": 11120042,
+      "engineWasmBrotliBytes": 2991254,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3519750,
+      "jsBrotliBytes": 1005747
+    },
+    "plugins-compat": {
+      "engineWasmBytes": 11120042,
+      "engineWasmBrotliBytes": 2991254,
+      "kernelWasmBytes": 8311869,
+      "kernelWasmBrotliBytes": 1784994,
+      "jsBytes": 2753877,
+      "jsBrotliBytes": 838521
+    }
+  },
+  "memorySource": "uasm",
+  "workerThrottled": null,
+  "startedAt": "2026-10-01T05:53:43.271Z",
+  "completedAt": "2026-10-01T06:09:21.906Z"
+}

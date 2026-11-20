@@ -1,0 +1,135 @@
+{
+  "runId": "2026-10-01T01-22-09-931Z-2023MBP16Grey-desktop",
+  "harnessCommit": "2be8c88cb57f0f666fabd32157b913ab39dbb338",
+  "harnessDirty": false,
+  "host": "2023MBP16Grey",
+  "arms": {
+    "main": {
+      "worktree": "main",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "2516e2786ee894383220ecd436fbd248182ef444",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "98c2368a774de4f8c507c0f57d189cb80474fcc21cb85f8d4688cec9eae64545",
+      "kernelWasmSha256": null
+    },
+    "main-aa": {
+      "worktree": "main",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "2516e2786ee894383220ecd436fbd248182ef444",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "98c2368a774de4f8c507c0f57d189cb80474fcc21cb85f8d4688cec9eae64545",
+      "kernelWasmSha256": null
+    },
+    "impl-ts": {
+      "worktree": "impl",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "research/multi-platform-rust-core-impl",
+      "sha": "c8085bd3ca876a3d3cf7705fdae8df1fc9a733bb",
+      "payload": "built",
+      "fork": {
+        "sha": "d045f389de885dd616e03077301df5ef5aa8c84e",
+        "target": "wasm32-eh",
+        "libSha256": "5bf368ce10d378dbff69969628e542fa5a16e1fd3c4bf4218bdee60388c53b7a"
+      },
+      "engineWasmSha256": "0f7407599d9390b413cd12efe862fe9745e0b455627ddd07e66ebd686a8e2ea5",
+      "kernelWasmSha256": null
+    },
+    "impl-gate": {
+      "worktree": "impl-gate",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "research/rust-core-toolbar-gate",
+      "sha": "30f4295d7d3a0e457abe557a3607cd8f417204d7",
+      "payload": "built",
+      "fork": {
+        "sha": "d045f389de885dd616e03077301df5ef5aa8c84e",
+        "target": "wasm32-eh",
+        "libSha256": "5bf368ce10d378dbff69969628e542fa5a16e1fd3c4bf4218bdee60388c53b7a"
+      },
+      "engineWasmSha256": "0f7407599d9390b413cd12efe862fe9745e0b455627ddd07e66ebd686a8e2ea5",
+      "kernelWasmSha256": null
+    }
+  },
+  "fixtures": {
+    "ebook": "2e539f62b5fa605fc33b038ff31f019c94123342115a0c1e52d741ca2f737997",
+    "large": "10c8668fe55cd301138afdd52e20138b2311c173bf99fdb090cd1a07845264f9"
+  },
+  "browserVersion": "140.0.7339.16",
+  "playwrightVersion": "1.55.0",
+  "nodeVersion": "v24.20.0",
+  "os": "Darwin 27.0.0 arm64",
+  "cpuModel": "Apple M2 Max",
+  "cpuCores": 12,
+  "totalMemoryBytes": 68719476736,
+  "powerSource": "AC Power",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "deviceScaleFactor": 2,
+  "profile": "desktop",
+  "throttleRate": 1,
+  "flows": [
+    "open",
+    "scroll",
+    "jump",
+    "zoom",
+    "select",
+    "search",
+    "annotate",
+    "soak"
+  ],
+  "rounds": 3,
+  "quick": false,
+  "armsRun": [
+    "main",
+    "main-aa",
+    "impl-ts",
+    "impl-gate"
+  ],
+  "sizes": {
+    "main": {
+      "engineWasmBytes": 7544455,
+      "engineWasmBrotliBytes": 2257280,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3536532,
+      "jsBrotliBytes": 1007392
+    },
+    "main-aa": {
+      "engineWasmBytes": 7544455,
+      "engineWasmBrotliBytes": 2257280,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3536535,
+      "jsBrotliBytes": 1007447
+    },
+    "impl-ts": {
+      "engineWasmBytes": 11084440,
+      "engineWasmBrotliBytes": 2972439,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3513486,
+      "jsBrotliBytes": 1005288
+    },
+    "impl-gate": {
+      "engineWasmBytes": 11084440,
+      "engineWasmBrotliBytes": 2972439,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3513874,
+      "jsBrotliBytes": 1005496
+    }
+  },
+  "memorySource": "uasm",
+  "workerThrottled": null,
+  "startedAt": "2026-10-01T01:22:09.931Z",
+  "completedAt": "2026-10-01T01:35:51.581Z"
+}

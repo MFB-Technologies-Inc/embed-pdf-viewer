@@ -55,26 +55,39 @@ async function connect(wsUrl) {
 // rejects measureUserAgentSpecificMemory() with "is not available" even on a
 // cross-origin isolated page.
 export async function launchBrowser({ port = 9333 + portOffset() } = {}) {
-  let browser;
-  try {
-    browser = await chromium.launch({ headless: true, channel: 'chromium', args: [...CHROMIUM_ARGS, `--remote-debugging-port=${port}`] });
-  } catch (error) {
-    if (/Executable doesn't exist/.test(String(error))) {
-      throw new Error('Chromium is missing: run `pnpm exec playwright-core install chromium` in perf-compare/');
+  const start = async () => {
+    let browser;
+    try {
+      browser = await chromium.launch({ headless: true, channel: 'chromium', args: [...CHROMIUM_ARGS, `--remote-debugging-port=${port}`] });
+    } catch (error) {
+      if (/Executable doesn't exist/.test(String(error))) {
+        throw new Error('Chromium is missing: run `pnpm exec playwright-core install chromium` in perf-compare/');
+      }
+      throw error;
     }
-    throw error;
-  }
-  const version = await (await fetch(`http://127.0.0.1:${port}/json/version`)).json();
-  const cdp = await connect(version.webSocketDebuggerUrl);
-  return {
-    browser,
-    cdp,
-    browserVersion: browser.version(),
+    const version = await (await fetch(`http://127.0.0.1:${port}/json/version`)).json();
+    return { browser, cdp: await connect(version.webSocketDebuggerUrl) };
+  };
+  // Bounded: a renderer stuck in a loop can hold the close.
+  const stop = async ({ browser, cdp }) => {
+    cdp.close();
+    await Promise.race([browser.close().catch(() => {}), new Promise((resolve) => setTimeout(resolve, 30_000))]);
+  };
+  const run = {
+    ...(await start()),
     async close() {
-      cdp.close();
-      await browser.close();
+      await stop(run);
+    },
+    // A fresh browser on the same port. A page that never settles keeps its
+    // renderer busy after its context closes, and a browser-wide trace then
+    // never completes, so every later flow would fail to start one.
+    async restart() {
+      await stop(run);
+      Object.assign(run, await start());
     },
   };
+  run.browserVersion = run.browser.version();
+  return run;
 }
 
 const METRIC = (metrics, name) => metrics.find((m) => m.name === name)?.value ?? 0;

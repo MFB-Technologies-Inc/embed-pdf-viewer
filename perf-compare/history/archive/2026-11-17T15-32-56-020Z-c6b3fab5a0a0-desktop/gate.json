@@ -1,0 +1,65 @@
+{
+  "main": {
+    "pass": true,
+    "answers": {
+      "largePageCount": 400,
+      "ebookPageCount": 4,
+      "searchHits": 16,
+      "selection": "Pay through the nose for a commercial\r\nPDF SDK that locks you into their\r\necosystem, restricts how you can use\r\nit, and comes with a pricing model tha",
+      "annotationsBefore": 0,
+      "annotationsAfter": 1,
+      "annotsAnnotations": 1200,
+      "formsFields": 1000,
+      "hover": {
+        "highlights": 20
+      },
+      "dragAnnot": {
+        "stampBefore": [
+          420,
+          222,
+          140,
+          50
+        ],
+        "stampAfter": [
+          270,
+          222,
+          140,
+          50
+        ]
+      },
+      "drawInk": {
+        "countBefore": 2,
+        "countAfter": 3
+      },
+      "typeField": {
+        "value": "The quick brown fox jumps over a lazy do"
+      }
+    },
+    "capabilities": [],
+    "skipped": [
+      "undo"
+    ],
+    "references": {
+      "largePageCount": "unchecked",
+      "ebookPageCount": "unchecked",
+      "searchHits": "unchecked",
+      "selection": "unchecked",
+      "annotationsBefore": "unchecked",
+      "annotationsAfter": "unchecked",
+      "annotsAnnotations": "unchecked",
+      "formsFields": "unchecked",
+      "hover": "unchecked",
+      "dragAnnot": "unchecked",
+      "drawInk": "unchecked",
+      "typeField": "unchecked"
+    },
+    "unchecked": [
+      "hover",
+      "dragAnnot",
+      "drawInk",
+      "typeField"
+    ],
+    "screenshotSha256": "9637755da8e7849c84aa53e37bc6dd2f82f6f8b21a1d46255e27aa9311f0d465",
+    "pixelShareVsReference": 0
+  }
+}

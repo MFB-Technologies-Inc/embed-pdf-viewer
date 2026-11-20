@@ -1,0 +1,86 @@
+{
+  "runId": "2026-10-01T19-29-22-725Z-mac-desktop",
+  "harnessCommit": "a6da98a24ee61705ffeccb64682eb0195288f33c",
+  "harnessDirty": true,
+  "host": "mac",
+  "arms": {
+    "main": {
+      "worktree": "main",
+      "kernel": "typescript",
+      "rustReads": false,
+      "ref": "main",
+      "sha": "2516e2786ee894383220ecd436fbd248182ef444",
+      "payload": "fetched",
+      "fork": null,
+      "engineWasmSha256": "98c2368a774de4f8c507c0f57d189cb80474fcc21cb85f8d4688cec9eae64545",
+      "kernelWasmSha256": null
+    },
+    "plugins-sharedhits": {
+      "worktree": "plugins-sharedhits",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/rust-kernel-shared-hits",
+      "sha": "b450a9909e8c429216f95a529823384775f4da5f",
+      "payload": "built",
+      "fork": {
+        "sha": "7c7b600b1dfcef78bbedb25e79e5c46bf9f3e150",
+        "target": "wasm32-eh",
+        "libSha256": "2bc254d7f1a4ea947e831ffe307200cfa1025242ddbeed6502a7dfbe8efb2c0f"
+      },
+      "engineWasmSha256": "c888920f5d275eccf907ca74ee376a19b00e24c5075a97111238bf2c3d748500",
+      "kernelWasmSha256": "5f383fbcd10bab401c3b76b158656e3472cbd1c3b97de7ebf05b5bb20f9b7060"
+    }
+  },
+  "fixtures": {
+    "ebook": "2e539f62b5fa605fc33b038ff31f019c94123342115a0c1e52d741ca2f737997",
+    "large": "10c8668fe55cd301138afdd52e20138b2311c173bf99fdb090cd1a07845264f9"
+  },
+  "browserVersion": "140.0.7339.16",
+  "playwrightVersion": "1.55.0",
+  "nodeVersion": "v24.20.0",
+  "os": "Darwin 27.0.0 arm64",
+  "cpuModel": "Apple M4 Max",
+  "cpuCores": 16,
+  "totalMemoryBytes": 68719476736,
+  "powerSource": "AC Power",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "deviceScaleFactor": 2,
+  "profile": "desktop",
+  "throttleRate": 1,
+  "flows": [
+    "zoomLarge",
+    "selectLarge",
+    "annotateLarge"
+  ],
+  "rounds": 1,
+  "quick": false,
+  "armsRun": [
+    "main",
+    "plugins-sharedhits"
+  ],
+  "sizes": {
+    "main": {
+      "engineWasmBytes": 7544455,
+      "engineWasmBrotliBytes": 2257280,
+      "kernelWasmBytes": 0,
+      "kernelWasmBrotliBytes": 0,
+      "jsBytes": 3536548,
+      "jsBrotliBytes": 1007250
+    },
+    "plugins-sharedhits": {
+      "engineWasmBytes": 10164511,
+      "engineWasmBrotliBytes": 2984616,
+      "kernelWasmBytes": 8328074,
+      "kernelWasmBrotliBytes": 1787832,
+      "jsBytes": 2758492,
+      "jsBrotliBytes": 838832
+    }
+  },
+  "memorySource": null,
+  "workerThrottled": null,
+  "startedAt": "2026-10-01T19:29:22.725Z",
+  "completedAt": "2026-10-01T19:30:53.157Z"
+}

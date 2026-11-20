@@ -1,0 +1,76 @@
+{
+  "runId": "2026-11-17T15-46-20-045Z-c6b3fab5a0a0-desktop",
+  "harnessCommit": "e9c7df9e136d3140b6cfcdeeb4055be296971249",
+  "harnessDirty": false,
+  "probeSha256": "d3edaa2559472460e08dadfc42a92aab02e93bf3328d4e3715074c5d45bde48d",
+  "host": "c6b3fab5a0a0",
+  "arms": {
+    "phase-d-end": {
+      "worktree": "phase-d-end",
+      "kernel": "rust",
+      "rustReads": false,
+      "ref": "research/perf-fixes",
+      "sha": "0d18fb1776331c12dcf332632f6e4c6d74a876fa",
+      "payload": "built",
+      "fork": {
+        "sha": "17d8073d49bab5c29d956568345652bf893b459c",
+        "target": "wasm32-eh",
+        "libSha256": "315bb221a6f1baea8485881e1fd7d22fb49926c9054afeefd8e1f504ba1aef36"
+      },
+      "engineWasmSha256": "2ecd0bd985745ce43282fbf381d4bb0a0c1f61c06cf17d20c870249d744eee41",
+      "kernelWasmSha256": "d5eefdeebf9531df4a0335d0ad53f91ac419f478cc65d4cba118e4babcbd9926"
+    }
+  },
+  "fixtures": {
+    "ebook": "2e539f62b5fa605fc33b038ff31f019c94123342115a0c1e52d741ca2f737997",
+    "large": "10c8668fe55cd301138afdd52e20138b2311c173bf99fdb090cd1a07845264f9",
+    "annots": "f27197ce9ac982859cb460c3126b2d04cf78fa1c5834f5cbfdf7dbec74d52a19",
+    "forms": "b973ccec7bf664b565b636d71af9eebfe121d9fa9e9002ec063be00617ddebef"
+  },
+  "browserVersion": "140.0.7339.16",
+  "playwrightVersion": "1.55.0",
+  "nodeVersion": "v24.20.0",
+  "os": "Linux 7.0.14-linuxkit arm64",
+  "cpuModel": "unknown",
+  "cpuCores": 16,
+  "totalMemoryBytes": 33597603840,
+  "powerSource": "unknown",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "deviceScaleFactor": 2,
+  "profile": "desktop",
+  "throttleRate": 1,
+  "flows": [
+    "annotate",
+    "annotateLarge",
+    "hover",
+    "dragAnnot",
+    "drawInk",
+    "typeField",
+    "undo"
+  ],
+  "rounds": 3,
+  "quick": true,
+  "armsRun": [
+    "phase-d-end"
+  ],
+  "skipped": {
+    "phase-d-end": []
+  },
+  "sizes": {
+    "phase-d-end": {
+      "engineWasmBytes": 14955128,
+      "engineWasmBrotliBytes": 3972349,
+      "kernelWasmBytes": 11249261,
+      "kernelWasmBrotliBytes": 2626282,
+      "jsBytes": 8910126,
+      "jsBrotliBytes": 3041495
+    }
+  },
+  "memorySource": null,
+  "workerThrottled": null,
+  "startedAt": "2026-11-17T15:46:20.045Z",
+  "completedAt": "2026-11-17T15:49:33.178Z"
+}

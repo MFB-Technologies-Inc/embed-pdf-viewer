@@ -1,0 +1,6 @@
+{"arm":"main","flow":"zoomLarge","fixture":"large","round":0,"metrics":{"settleMs":169.1799999922514,"zoom2SettleMs":80.45499999821186,"zoom4SettleMs":88.72499999403954,"backTo1SettleMs":52.53999999165535,"mainTaskMs":116.80099999999993,"mainJsMs":82.238}}
+{"arm":"plugins-sharedhits","flow":"zoomLarge","fixture":"large","round":0,"metrics":{"settleMs":162.83500000834465,"zoom2SettleMs":65.93500000238419,"zoom4SettleMs":96.90000000596046,"backTo1SettleMs":57.894999995827675,"mainTaskMs":159.94900000000007,"mainJsMs":130.392}}
+{"arm":"main","flow":"selectLarge","fixture":"large","round":0,"metrics":{"settleMs":138.1899999976158,"mainTaskMs":46.58800000000002,"mainJsMs":29.407}}
+{"arm":"plugins-sharedhits","flow":"selectLarge","fixture":"large","round":0,"metrics":{"settleMs":144.54500000178814,"mainTaskMs":64.96299999999997,"mainJsMs":46.352}}
+{"arm":"main","flow":"annotateLarge","fixture":"large","round":0,"metrics":{"settleMs":153.8500000089407,"mainTaskMs":48.46500000000003,"mainJsMs":26.684}}
+{"arm":"plugins-sharedhits","flow":"annotateLarge","fixture":"large","round":0,"metrics":{"settleMs":158.9350000023842,"mainTaskMs":81.88599999999985,"mainJsMs":52.507}}
