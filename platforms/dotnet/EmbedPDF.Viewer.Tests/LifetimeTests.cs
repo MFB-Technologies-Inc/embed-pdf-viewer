@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using uniffi.epdf_plugin_render;
 using Xunit;
 
 namespace EmbedPDF.Viewer.Tests;
@@ -14,14 +13,11 @@ public sealed class LifetimeTests
         var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Render = new RenderConfig() });
         var document = await viewer.OpenAsync(Fixture.Data("report"));
         var pages = await viewer.GetPagesAsync(document);
-        // Through the generated render handle until Wave A adds the
-        // capability; CallCancellableAsync maps its errors and counts it in flight.
-        using var render = await viewer.CallAsync(h => h.Render(document.Id), default);
+        using var render = await viewer.RenderAsync(document);
         var work = new List<Task>();
         foreach (var page in pages.Take(8))
         {
-            var reference = Ffi.ToFfi(page.Page);
-            work.Add(viewer.CallCancellableAsync((_, token) => render.RenderPage(reference, new RenderPageOptions(Width: 1600), token), default));
+            work.Add(render.RenderPageAsync(page.Page, new RenderPageOptions { Width = 1600 }));
         }
         work.Add(viewer.SaveAsync(document, SaveMode.Rewrite));
         work.Add(viewer.GetPagesAsync(document));

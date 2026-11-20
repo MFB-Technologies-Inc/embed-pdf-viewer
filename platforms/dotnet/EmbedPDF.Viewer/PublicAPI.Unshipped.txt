@@ -730,6 +730,7 @@ EmbedPDF.PdfViewer.OpenLayerAsync(System.ReadOnlyMemory<byte> basePdf, System.Re
 EmbedPDF.PdfViewer.PageEditAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageEditCapability!>!
 EmbedPDF.PdfViewer.PdfViewer(EmbedPDF.PdfViewerOptions? options = null) -> void
 EmbedPDF.PdfViewer.RenameAsync(EmbedPDF.DocumentInfo! document, string! name, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PdfViewer.RenderAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RenderCapability!>!
 EmbedPDF.PdfViewer.ResetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.PdfViewer.RetryAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.DocumentInfo!>!
 EmbedPDF.PdfViewer.SaveAsync(EmbedPDF.DocumentInfo! document, EmbedPDF.SaveMode mode = EmbedPDF.SaveMode.Incremental, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<byte[]!>!
@@ -866,16 +867,395 @@ EmbedPDF.RedactionConfig.RedactionConfig() -> void
 EmbedPDF.Registration
 EmbedPDF.Registration.Dispose() -> void
 EmbedPDF.Registration.Unregister() -> void
+EmbedPDF.RenderBatchFailure
+EmbedPDF.RenderBatchFailure.<Clone>$() -> EmbedPDF.RenderBatchFailure!
+EmbedPDF.RenderBatchFailure.Deconstruct(out EmbedPDF.PageRef Page, out EmbedPDF.PluginErrorInfo! Error) -> void
+EmbedPDF.RenderBatchFailure.Equals(EmbedPDF.RenderBatchFailure? other) -> bool
+EmbedPDF.RenderBatchFailure.Error.get -> EmbedPDF.PluginErrorInfo!
+EmbedPDF.RenderBatchFailure.Error.init -> void
+EmbedPDF.RenderBatchFailure.Page.get -> EmbedPDF.PageRef
+EmbedPDF.RenderBatchFailure.Page.init -> void
+EmbedPDF.RenderBatchFailure.RenderBatchFailure(EmbedPDF.PageRef Page, EmbedPDF.PluginErrorInfo! Error) -> void
+EmbedPDF.RenderBatchResult
+EmbedPDF.RenderBatchResult.<Clone>$() -> EmbedPDF.RenderBatchResult!
+EmbedPDF.RenderBatchResult.Applied.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.RenderedPageResult!>!
+EmbedPDF.RenderBatchResult.Applied.init -> void
+EmbedPDF.RenderBatchResult.Deconstruct(out System.Collections.Generic.IReadOnlyList<EmbedPDF.RenderedPageResult!>! Applied, out System.Collections.Generic.IReadOnlyList<EmbedPDF.RenderBatchFailure!>! Failed) -> void
+EmbedPDF.RenderBatchResult.Equals(EmbedPDF.RenderBatchResult? other) -> bool
+EmbedPDF.RenderBatchResult.Failed.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.RenderBatchFailure!>!
+EmbedPDF.RenderBatchResult.Failed.init -> void
+EmbedPDF.RenderBatchResult.RenderBatchResult(System.Collections.Generic.IReadOnlyList<EmbedPDF.RenderedPageResult!>! Applied, System.Collections.Generic.IReadOnlyList<EmbedPDF.RenderBatchFailure!>! Failed) -> void
+EmbedPDF.RenderCapability
+EmbedPDF.RenderCapability.CanRenderAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.RenderCapability.CanRenderThumbnailAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.RenderCapability.CanSnapshotAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.RenderCapability.ClearSnapshotAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.RenderCapability.ConformViewportAsync(EmbedPDF.PageRef page, double scale, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RenderViewport!>!
+EmbedPDF.RenderCapability.CreateViewDemandAsync(string! viewId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RenderViewDemand!>!
+EmbedPDF.RenderCapability.Dispose() -> void
+EmbedPDF.RenderCapability.GetPaintSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RenderPaintSettings!>!
+EmbedPDF.RenderCapability.GetRenderEpochAsync(EmbedPDF.PageRef page, EmbedPDF.ContentInclusion includeAnnotations = EmbedPDF.ContentInclusion.WhenPermitted, EmbedPDF.ContentInclusion includeFormFields = EmbedPDF.ContentInclusion.WhenPermitted, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+EmbedPDF.RenderCapability.GetRenderPolicyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RenderPolicy!>!
+EmbedPDF.RenderCapability.GetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RenderSettings!>!
+EmbedPDF.RenderCapability.GetSnapshotAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RenderSnapshot?>!
+EmbedPDF.RenderCapability.GetSnapshotBoxAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PdfRect?>!
+EmbedPDF.RenderCapability.GetSourceKeyAsync(EmbedPDF.PageRef page, double scale, EmbedPDF.ContentInclusion includeAnnotations = EmbedPDF.ContentInclusion.WhenPermitted, EmbedPDF.ContentInclusion includeFormFields = EmbedPDF.ContentInclusion.WhenPermitted, bool thumbnail = false, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+EmbedPDF.RenderCapability.InvalidateAsync(System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>? pages = null, EmbedPDF.RenderInvalidateScope? scope = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.RenderCapability.ObserveEvents(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.RenderEvent!>!
+EmbedPDF.RenderCapability.ObserveSnapshotChanges(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.RenderSnapshot?>!
+EmbedPDF.RenderCapability.RenderPageAsync(EmbedPDF.PageRef page, EmbedPDF.RenderPageOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RenderedPage!>!
+EmbedPDF.RenderCapability.RenderPagesAsync(System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>! pages, EmbedPDF.RenderPageOptions? options = null, int concurrency = 4, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RenderBatchResult!>!
+EmbedPDF.RenderCapability.RenderSourceAsync(EmbedPDF.PageRef page, double scale, EmbedPDF.ContentInclusion includeAnnotations = EmbedPDF.ContentInclusion.WhenPermitted, EmbedPDF.ContentInclusion includeFormFields = EmbedPDF.ContentInclusion.WhenPermitted, bool thumbnail = false, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RenderedPage!>!
+EmbedPDF.RenderCapability.RenderThumbnailAsync(EmbedPDF.PageRef page, EmbedPDF.ContentInclusion includeAnnotations = EmbedPDF.ContentInclusion.WhenPermitted, EmbedPDF.ContentInclusion includeFormFields = EmbedPDF.ContentInclusion.WhenPermitted, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RenderedPage!>!
+EmbedPDF.RenderCapability.ResetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.RenderCapability.UpdateSettingsAsync(EmbedPDF.RenderSettingsPatch! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.RenderConfig
 EmbedPDF.RenderConfig.<Clone>$() -> EmbedPDF.RenderConfig!
+EmbedPDF.RenderConfig.Debug.get -> bool?
+EmbedPDF.RenderConfig.Debug.init -> void
 EmbedPDF.RenderConfig.Equals(EmbedPDF.RenderConfig? other) -> bool
+EmbedPDF.RenderConfig.FullPage.get -> EmbedPDF.RenderFullPageOptions?
+EmbedPDF.RenderConfig.FullPage.init -> void
 EmbedPDF.RenderConfig.RenderConfig() -> void
+EmbedPDF.RenderEncodingFormat
+EmbedPDF.RenderEncodingFormat.Bmp = 2 -> EmbedPDF.RenderEncodingFormat
+EmbedPDF.RenderEncodingFormat.Png = 0 -> EmbedPDF.RenderEncodingFormat
+EmbedPDF.RenderEncodingFormat.Webp = 1 -> EmbedPDF.RenderEncodingFormat
+EmbedPDF.RenderEvent
+EmbedPDF.RenderEvent.Completed
+EmbedPDF.RenderEvent.Completed.Completed(EmbedPDF.PageRef Page, string! Key) -> void
+EmbedPDF.RenderEvent.Completed.Deconstruct(out EmbedPDF.PageRef Page, out string! Key) -> void
+EmbedPDF.RenderEvent.Completed.Equals(EmbedPDF.RenderEvent.Completed? other) -> bool
+EmbedPDF.RenderEvent.Completed.Key.get -> string!
+EmbedPDF.RenderEvent.Completed.Key.init -> void
+EmbedPDF.RenderEvent.Completed.Page.get -> EmbedPDF.PageRef
+EmbedPDF.RenderEvent.Completed.Page.init -> void
+EmbedPDF.RenderEvent.Failed
+EmbedPDF.RenderEvent.Failed.Deconstruct(out EmbedPDF.PageRef Page, out string! Key, out EmbedPDF.PluginErrorInfo! Error) -> void
+EmbedPDF.RenderEvent.Failed.Equals(EmbedPDF.RenderEvent.Failed? other) -> bool
+EmbedPDF.RenderEvent.Failed.Error.get -> EmbedPDF.PluginErrorInfo!
+EmbedPDF.RenderEvent.Failed.Error.init -> void
+EmbedPDF.RenderEvent.Failed.Failed(EmbedPDF.PageRef Page, string! Key, EmbedPDF.PluginErrorInfo! Error) -> void
+EmbedPDF.RenderEvent.Failed.Key.get -> string!
+EmbedPDF.RenderEvent.Failed.Key.init -> void
+EmbedPDF.RenderEvent.Failed.Page.get -> EmbedPDF.PageRef
+EmbedPDF.RenderEvent.Failed.Page.init -> void
+EmbedPDF.RenderEvent.Invalidated
+EmbedPDF.RenderEvent.Invalidated.Deconstruct(out System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>! Pages, out EmbedPDF.RenderInvalidateScope Scope) -> void
+EmbedPDF.RenderEvent.Invalidated.Equals(EmbedPDF.RenderEvent.Invalidated? other) -> bool
+EmbedPDF.RenderEvent.Invalidated.Invalidated(System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>! Pages, EmbedPDF.RenderInvalidateScope Scope) -> void
+EmbedPDF.RenderEvent.Invalidated.Pages.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>!
+EmbedPDF.RenderEvent.Invalidated.Pages.init -> void
+EmbedPDF.RenderEvent.Invalidated.Scope.get -> EmbedPDF.RenderInvalidateScope
+EmbedPDF.RenderEvent.Invalidated.Scope.init -> void
+EmbedPDF.RenderEvent.RenderEvent(EmbedPDF.RenderEvent! original) -> void
+EmbedPDF.RenderFullPageOptions
+EmbedPDF.RenderFullPageOptions.<Clone>$() -> EmbedPDF.RenderFullPageOptions!
+EmbedPDF.RenderFullPageOptions.Equals(EmbedPDF.RenderFullPageOptions? other) -> bool
+EmbedPDF.RenderFullPageOptions.MaxWidth.get -> double?
+EmbedPDF.RenderFullPageOptions.MaxWidth.init -> void
+EmbedPDF.RenderFullPageOptions.Quantize.get -> EmbedPDF.RenderQuantize?
+EmbedPDF.RenderFullPageOptions.Quantize.init -> void
+EmbedPDF.RenderFullPageOptions.RenderFullPageOptions() -> void
+EmbedPDF.RenderInvalidateScope
+EmbedPDF.RenderInvalidateScope.Annotations = 1 -> EmbedPDF.RenderInvalidateScope
+EmbedPDF.RenderInvalidateScope.Content = 0 -> EmbedPDF.RenderInvalidateScope
+EmbedPDF.RenderInvalidateScope.Fields = 2 -> EmbedPDF.RenderInvalidateScope
+EmbedPDF.RenderLatticePolicy
+EmbedPDF.RenderLatticePolicy.<Clone>$() -> EmbedPDF.RenderLatticePolicy!
+EmbedPDF.RenderLatticePolicy.AppearanceScales.get -> System.Collections.Generic.IReadOnlyList<double>!
+EmbedPDF.RenderLatticePolicy.AppearanceScales.init -> void
+EmbedPDF.RenderLatticePolicy.Background.get -> string?
+EmbedPDF.RenderLatticePolicy.Background.init -> void
+EmbedPDF.RenderLatticePolicy.Deconstruct(out System.Collections.Generic.IReadOnlyList<double>! FullPageWidths, out System.Collections.Generic.IReadOnlyList<double>! TileSizes, out System.Collections.Generic.IReadOnlyList<double>! TileScales, out System.Collections.Generic.IReadOnlyList<double>! AppearanceScales, out double? MaxRenderPixels, out string? Background, out bool? Enforced) -> void
+EmbedPDF.RenderLatticePolicy.Enforced.get -> bool?
+EmbedPDF.RenderLatticePolicy.Enforced.init -> void
+EmbedPDF.RenderLatticePolicy.Equals(EmbedPDF.RenderLatticePolicy? other) -> bool
+EmbedPDF.RenderLatticePolicy.FullPageWidths.get -> System.Collections.Generic.IReadOnlyList<double>!
+EmbedPDF.RenderLatticePolicy.FullPageWidths.init -> void
+EmbedPDF.RenderLatticePolicy.MaxRenderPixels.get -> double?
+EmbedPDF.RenderLatticePolicy.MaxRenderPixels.init -> void
+EmbedPDF.RenderLatticePolicy.RenderLatticePolicy(System.Collections.Generic.IReadOnlyList<double>! FullPageWidths, System.Collections.Generic.IReadOnlyList<double>! TileSizes, System.Collections.Generic.IReadOnlyList<double>! TileScales, System.Collections.Generic.IReadOnlyList<double>! AppearanceScales, double? MaxRenderPixels, string? Background, bool? Enforced) -> void
+EmbedPDF.RenderLatticePolicy.TileScales.get -> System.Collections.Generic.IReadOnlyList<double>!
+EmbedPDF.RenderLatticePolicy.TileScales.init -> void
+EmbedPDF.RenderLatticePolicy.TileSizes.get -> System.Collections.Generic.IReadOnlyList<double>!
+EmbedPDF.RenderLatticePolicy.TileSizes.init -> void
+EmbedPDF.RenderPageOptions
+EmbedPDF.RenderPageOptions.<Clone>$() -> EmbedPDF.RenderPageOptions!
+EmbedPDF.RenderPageOptions.Equals(EmbedPDF.RenderPageOptions? other) -> bool
+EmbedPDF.RenderPageOptions.IncludeAnnotations.get -> EmbedPDF.ContentInclusion
+EmbedPDF.RenderPageOptions.IncludeAnnotations.init -> void
+EmbedPDF.RenderPageOptions.IncludeFormFields.get -> EmbedPDF.ContentInclusion
+EmbedPDF.RenderPageOptions.IncludeFormFields.init -> void
+EmbedPDF.RenderPageOptions.Rect.get -> EmbedPDF.PdfRect?
+EmbedPDF.RenderPageOptions.Rect.init -> void
+EmbedPDF.RenderPageOptions.RenderPageOptions() -> void
+EmbedPDF.RenderPageOptions.Rotation.get -> EmbedPDF.RenderRotation?
+EmbedPDF.RenderPageOptions.Rotation.init -> void
+EmbedPDF.RenderPageOptions.Scale.get -> double?
+EmbedPDF.RenderPageOptions.Scale.init -> void
+EmbedPDF.RenderPageOptions.Width.get -> double?
+EmbedPDF.RenderPageOptions.Width.init -> void
+EmbedPDF.RenderPageViewDemand
+EmbedPDF.RenderPageViewDemand.<Clone>$() -> EmbedPDF.RenderPageViewDemand!
+EmbedPDF.RenderPageViewDemand.Deconstruct(out double DesiredDeviceWidth) -> void
+EmbedPDF.RenderPageViewDemand.DesiredDeviceWidth.get -> double
+EmbedPDF.RenderPageViewDemand.DesiredDeviceWidth.init -> void
+EmbedPDF.RenderPageViewDemand.Equals(EmbedPDF.RenderPageViewDemand? other) -> bool
+EmbedPDF.RenderPageViewDemand.RenderPageViewDemand(double DesiredDeviceWidth) -> void
+EmbedPDF.RenderPageViewDemand.VelocityX.get -> double?
+EmbedPDF.RenderPageViewDemand.VelocityX.init -> void
+EmbedPDF.RenderPageViewDemand.VelocityY.get -> double?
+EmbedPDF.RenderPageViewDemand.VelocityY.init -> void
+EmbedPDF.RenderPageViewDemand.VisibleRect.get -> EmbedPDF.PdfRect?
+EmbedPDF.RenderPageViewDemand.VisibleRect.init -> void
+EmbedPDF.RenderPaintSettings
+EmbedPDF.RenderPaintSettings.<Clone>$() -> EmbedPDF.RenderPaintSettings!
+EmbedPDF.RenderPaintSettings.Deconstruct(out bool Tiles) -> void
+EmbedPDF.RenderPaintSettings.Equals(EmbedPDF.RenderPaintSettings? other) -> bool
+EmbedPDF.RenderPaintSettings.RenderPaintSettings(bool Tiles) -> void
+EmbedPDF.RenderPaintSettings.Tiles.get -> bool
+EmbedPDF.RenderPaintSettings.Tiles.init -> void
+EmbedPDF.RenderPolicy
+EmbedPDF.RenderPolicy.Continuous
+EmbedPDF.RenderPolicy.Continuous.Continuous() -> void
+EmbedPDF.RenderPolicy.Continuous.Equals(EmbedPDF.RenderPolicy.Continuous? other) -> bool
+EmbedPDF.RenderPolicy.Lattice
+EmbedPDF.RenderPolicy.Lattice.Deconstruct(out EmbedPDF.RenderLatticePolicy! Policy) -> void
+EmbedPDF.RenderPolicy.Lattice.Equals(EmbedPDF.RenderPolicy.Lattice? other) -> bool
+EmbedPDF.RenderPolicy.Lattice.Lattice(EmbedPDF.RenderLatticePolicy! Policy) -> void
+EmbedPDF.RenderPolicy.Lattice.Policy.get -> EmbedPDF.RenderLatticePolicy!
+EmbedPDF.RenderPolicy.Lattice.Policy.init -> void
+EmbedPDF.RenderPolicy.RenderPolicy(EmbedPDF.RenderPolicy! original) -> void
+EmbedPDF.RenderPrefetchOptions
+EmbedPDF.RenderPrefetchOptions.<Clone>$() -> EmbedPDF.RenderPrefetchOptions!
+EmbedPDF.RenderPrefetchOptions.Equals(EmbedPDF.RenderPrefetchOptions? other) -> bool
+EmbedPDF.RenderPrefetchOptions.Margin.get -> double?
+EmbedPDF.RenderPrefetchOptions.Margin.init -> void
+EmbedPDF.RenderPrefetchOptions.RenderPrefetchOptions() -> void
+EmbedPDF.RenderPrefetchOptions.VelocityBias.get -> bool?
+EmbedPDF.RenderPrefetchOptions.VelocityBias.init -> void
+EmbedPDF.RenderQuantize
+EmbedPDF.RenderQuantize.Exact
+EmbedPDF.RenderQuantize.Exact.Equals(EmbedPDF.RenderQuantize.Exact? other) -> bool
+EmbedPDF.RenderQuantize.Exact.Exact() -> void
+EmbedPDF.RenderQuantize.Ladder
+EmbedPDF.RenderQuantize.Ladder.Deconstruct(out System.Collections.Generic.IReadOnlyList<double>! Widths) -> void
+EmbedPDF.RenderQuantize.Ladder.Equals(EmbedPDF.RenderQuantize.Ladder? other) -> bool
+EmbedPDF.RenderQuantize.Ladder.Ladder(System.Collections.Generic.IReadOnlyList<double>! Widths) -> void
+EmbedPDF.RenderQuantize.Ladder.Widths.get -> System.Collections.Generic.IReadOnlyList<double>!
+EmbedPDF.RenderQuantize.Ladder.Widths.init -> void
+EmbedPDF.RenderQuantize.RenderQuantize(EmbedPDF.RenderQuantize! original) -> void
 EmbedPDF.RenderRotation
 EmbedPDF.RenderRotation.Clockwise180 = 2 -> EmbedPDF.RenderRotation
 EmbedPDF.RenderRotation.Clockwise270 = 3 -> EmbedPDF.RenderRotation
 EmbedPDF.RenderRotation.Clockwise90 = 1 -> EmbedPDF.RenderRotation
 EmbedPDF.RenderRotation.None = 0 -> EmbedPDF.RenderRotation
 EmbedPDF.RenderRotationExtensions
+EmbedPDF.RenderSettings
+EmbedPDF.RenderSettings.<Clone>$() -> EmbedPDF.RenderSettings!
+EmbedPDF.RenderSettings.Debug.get -> bool
+EmbedPDF.RenderSettings.Debug.init -> void
+EmbedPDF.RenderSettings.Deconstruct(out EmbedPDF.RenderFullPageOptions! FullPage, out EmbedPDF.RenderTilesSetting! Tiles, out EmbedPDF.RenderEncodingFormat? Format, out double? Quality, out double SlowAfterMs, out bool Debug, out EmbedPDF.RenderSnapshotSettings! Snapshot) -> void
+EmbedPDF.RenderSettings.Equals(EmbedPDF.RenderSettings? other) -> bool
+EmbedPDF.RenderSettings.Format.get -> EmbedPDF.RenderEncodingFormat?
+EmbedPDF.RenderSettings.Format.init -> void
+EmbedPDF.RenderSettings.FullPage.get -> EmbedPDF.RenderFullPageOptions!
+EmbedPDF.RenderSettings.FullPage.init -> void
+EmbedPDF.RenderSettings.Quality.get -> double?
+EmbedPDF.RenderSettings.Quality.init -> void
+EmbedPDF.RenderSettings.RenderSettings(EmbedPDF.RenderFullPageOptions! FullPage, EmbedPDF.RenderTilesSetting! Tiles, EmbedPDF.RenderEncodingFormat? Format, double? Quality, double SlowAfterMs, bool Debug, EmbedPDF.RenderSnapshotSettings! Snapshot) -> void
+EmbedPDF.RenderSettings.SlowAfterMs.get -> double
+EmbedPDF.RenderSettings.SlowAfterMs.init -> void
+EmbedPDF.RenderSettings.Snapshot.get -> EmbedPDF.RenderSnapshotSettings!
+EmbedPDF.RenderSettings.Snapshot.init -> void
+EmbedPDF.RenderSettings.Tiles.get -> EmbedPDF.RenderTilesSetting!
+EmbedPDF.RenderSettings.Tiles.init -> void
+EmbedPDF.RenderSettingsPatch
+EmbedPDF.RenderSettingsPatch.<Clone>$() -> EmbedPDF.RenderSettingsPatch!
+EmbedPDF.RenderSettingsPatch.ClearFormat.get -> bool
+EmbedPDF.RenderSettingsPatch.ClearFormat.init -> void
+EmbedPDF.RenderSettingsPatch.ClearQuality.get -> bool
+EmbedPDF.RenderSettingsPatch.ClearQuality.init -> void
+EmbedPDF.RenderSettingsPatch.Debug.get -> bool?
+EmbedPDF.RenderSettingsPatch.Debug.init -> void
+EmbedPDF.RenderSettingsPatch.Equals(EmbedPDF.RenderSettingsPatch? other) -> bool
+EmbedPDF.RenderSettingsPatch.Format.get -> EmbedPDF.RenderEncodingFormat?
+EmbedPDF.RenderSettingsPatch.Format.init -> void
+EmbedPDF.RenderSettingsPatch.FullPage.get -> EmbedPDF.RenderFullPageOptions?
+EmbedPDF.RenderSettingsPatch.FullPage.init -> void
+EmbedPDF.RenderSettingsPatch.Quality.get -> double?
+EmbedPDF.RenderSettingsPatch.Quality.init -> void
+EmbedPDF.RenderSettingsPatch.RenderSettingsPatch() -> void
+EmbedPDF.RenderSettingsPatch.SlowAfterMs.get -> double?
+EmbedPDF.RenderSettingsPatch.SlowAfterMs.init -> void
+EmbedPDF.RenderSettingsPatch.Snapshot.get -> EmbedPDF.RenderSnapshotPatch?
+EmbedPDF.RenderSettingsPatch.Snapshot.init -> void
+EmbedPDF.RenderSettingsPatch.Tiles.get -> EmbedPDF.RenderTilesPatch?
+EmbedPDF.RenderSettingsPatch.Tiles.init -> void
+EmbedPDF.RenderSnapshot
+EmbedPDF.RenderSnapshot.Dispose() -> void
+EmbedPDF.RenderSnapshot.GetImageAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RenderedPage!>!
+EmbedPDF.RenderSnapshot.Page.get -> EmbedPDF.PageRef
+EmbedPDF.RenderSnapshot.Rect.get -> EmbedPDF.PdfRect
+EmbedPDF.RenderSnapshotBox
+EmbedPDF.RenderSnapshotBox.<Clone>$() -> EmbedPDF.RenderSnapshotBox!
+EmbedPDF.RenderSnapshotBox.Equals(EmbedPDF.RenderSnapshotBox? other) -> bool
+EmbedPDF.RenderSnapshotBox.Fill.get -> string?
+EmbedPDF.RenderSnapshotBox.Fill.init -> void
+EmbedPDF.RenderSnapshotBox.RenderSnapshotBox() -> void
+EmbedPDF.RenderSnapshotBox.Stroke.get -> string?
+EmbedPDF.RenderSnapshotBox.Stroke.init -> void
+EmbedPDF.RenderSnapshotPatch
+EmbedPDF.RenderSnapshotPatch.<Clone>$() -> EmbedPDF.RenderSnapshotPatch!
+EmbedPDF.RenderSnapshotPatch.BoxLook.get -> EmbedPDF.RenderSnapshotBox?
+EmbedPDF.RenderSnapshotPatch.BoxLook.init -> void
+EmbedPDF.RenderSnapshotPatch.Equals(EmbedPDF.RenderSnapshotPatch? other) -> bool
+EmbedPDF.RenderSnapshotPatch.RenderSnapshotPatch() -> void
+EmbedPDF.RenderSnapshotPatch.Scale.get -> double?
+EmbedPDF.RenderSnapshotPatch.Scale.init -> void
+EmbedPDF.RenderSnapshotSettings
+EmbedPDF.RenderSnapshotSettings.<Clone>$() -> EmbedPDF.RenderSnapshotSettings!
+EmbedPDF.RenderSnapshotSettings.BoxLook.get -> EmbedPDF.RenderSnapshotBox!
+EmbedPDF.RenderSnapshotSettings.BoxLook.init -> void
+EmbedPDF.RenderSnapshotSettings.Deconstruct(out double Scale, out EmbedPDF.RenderSnapshotBox! BoxLook) -> void
+EmbedPDF.RenderSnapshotSettings.Equals(EmbedPDF.RenderSnapshotSettings? other) -> bool
+EmbedPDF.RenderSnapshotSettings.RenderSnapshotSettings(double Scale, EmbedPDF.RenderSnapshotBox! BoxLook) -> void
+EmbedPDF.RenderSnapshotSettings.Scale.get -> double
+EmbedPDF.RenderSnapshotSettings.Scale.init -> void
+EmbedPDF.RenderTilePlan
+EmbedPDF.RenderTilePlan.<Clone>$() -> EmbedPDF.RenderTilePlan!
+EmbedPDF.RenderTilePlan.Deconstruct(out bool Engaged, out System.Collections.Generic.IReadOnlyList<EmbedPDF.RenderTileSource!>! Paint, out System.Collections.Generic.IReadOnlyList<string!>! Fetching, out string! Stamp) -> void
+EmbedPDF.RenderTilePlan.Engaged.get -> bool
+EmbedPDF.RenderTilePlan.Engaged.init -> void
+EmbedPDF.RenderTilePlan.Equals(EmbedPDF.RenderTilePlan? other) -> bool
+EmbedPDF.RenderTilePlan.Fetching.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.RenderTilePlan.Fetching.init -> void
+EmbedPDF.RenderTilePlan.Paint.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.RenderTileSource!>!
+EmbedPDF.RenderTilePlan.Paint.init -> void
+EmbedPDF.RenderTilePlan.RenderTilePlan(bool Engaged, System.Collections.Generic.IReadOnlyList<EmbedPDF.RenderTileSource!>! Paint, System.Collections.Generic.IReadOnlyList<string!>! Fetching, string! Stamp) -> void
+EmbedPDF.RenderTilePlan.Stamp.get -> string!
+EmbedPDF.RenderTilePlan.Stamp.init -> void
+EmbedPDF.RenderTileSource
+EmbedPDF.RenderTileSource.<Clone>$() -> EmbedPDF.RenderTileSource!
+EmbedPDF.RenderTileSource.Deconstruct(out string! Key, out double Scale, out EmbedPDF.PdfRect Rect, out double Z) -> void
+EmbedPDF.RenderTileSource.Equals(EmbedPDF.RenderTileSource? other) -> bool
+EmbedPDF.RenderTileSource.Key.get -> string!
+EmbedPDF.RenderTileSource.Key.init -> void
+EmbedPDF.RenderTileSource.Rect.get -> EmbedPDF.PdfRect
+EmbedPDF.RenderTileSource.Rect.init -> void
+EmbedPDF.RenderTileSource.RenderTileSource(string! Key, double Scale, EmbedPDF.PdfRect Rect, double Z) -> void
+EmbedPDF.RenderTileSource.Scale.get -> double
+EmbedPDF.RenderTileSource.Scale.init -> void
+EmbedPDF.RenderTileSource.Z.get -> double
+EmbedPDF.RenderTileSource.Z.init -> void
+EmbedPDF.RenderTilesOptions
+EmbedPDF.RenderTilesOptions.<Clone>$() -> EmbedPDF.RenderTilesOptions!
+EmbedPDF.RenderTilesOptions.BleedPx.get -> double?
+EmbedPDF.RenderTilesOptions.BleedPx.init -> void
+EmbedPDF.RenderTilesOptions.ClearEngageRatio.get -> bool
+EmbedPDF.RenderTilesOptions.ClearEngageRatio.init -> void
+EmbedPDF.RenderTilesOptions.EngageRatio.get -> double?
+EmbedPDF.RenderTilesOptions.EngageRatio.init -> void
+EmbedPDF.RenderTilesOptions.Equals(EmbedPDF.RenderTilesOptions? other) -> bool
+EmbedPDF.RenderTilesOptions.MaxScale.get -> double?
+EmbedPDF.RenderTilesOptions.MaxScale.init -> void
+EmbedPDF.RenderTilesOptions.Prefetch.get -> EmbedPDF.RenderPrefetchOptions?
+EmbedPDF.RenderTilesOptions.Prefetch.init -> void
+EmbedPDF.RenderTilesOptions.Quantize.get -> EmbedPDF.RenderQuantize?
+EmbedPDF.RenderTilesOptions.Quantize.init -> void
+EmbedPDF.RenderTilesOptions.RenderTilesOptions() -> void
+EmbedPDF.RenderTilesOptions.SettleMs.get -> double?
+EmbedPDF.RenderTilesOptions.SettleMs.init -> void
+EmbedPDF.RenderTilesOptions.Size.get -> double?
+EmbedPDF.RenderTilesOptions.Size.init -> void
+EmbedPDF.RenderTilesPatch
+EmbedPDF.RenderTilesPatch.Off
+EmbedPDF.RenderTilesPatch.Off.Equals(EmbedPDF.RenderTilesPatch.Off? other) -> bool
+EmbedPDF.RenderTilesPatch.Off.Off() -> void
+EmbedPDF.RenderTilesPatch.On
+EmbedPDF.RenderTilesPatch.On.Deconstruct(out EmbedPDF.RenderTilesOptions! Options) -> void
+EmbedPDF.RenderTilesPatch.On.Equals(EmbedPDF.RenderTilesPatch.On? other) -> bool
+EmbedPDF.RenderTilesPatch.On.On(EmbedPDF.RenderTilesOptions! Options) -> void
+EmbedPDF.RenderTilesPatch.On.Options.get -> EmbedPDF.RenderTilesOptions!
+EmbedPDF.RenderTilesPatch.On.Options.init -> void
+EmbedPDF.RenderTilesPatch.RenderTilesPatch(EmbedPDF.RenderTilesPatch! original) -> void
+EmbedPDF.RenderTilesSetting
+EmbedPDF.RenderTilesSetting.Off
+EmbedPDF.RenderTilesSetting.Off.Equals(EmbedPDF.RenderTilesSetting.Off? other) -> bool
+EmbedPDF.RenderTilesSetting.Off.Off() -> void
+EmbedPDF.RenderTilesSetting.On
+EmbedPDF.RenderTilesSetting.On.Deconstruct(out EmbedPDF.RenderTilesSettings! Options) -> void
+EmbedPDF.RenderTilesSetting.On.Equals(EmbedPDF.RenderTilesSetting.On? other) -> bool
+EmbedPDF.RenderTilesSetting.On.On(EmbedPDF.RenderTilesSettings! Options) -> void
+EmbedPDF.RenderTilesSetting.On.Options.get -> EmbedPDF.RenderTilesSettings!
+EmbedPDF.RenderTilesSetting.On.Options.init -> void
+EmbedPDF.RenderTilesSetting.RenderTilesSetting(EmbedPDF.RenderTilesSetting! original) -> void
+EmbedPDF.RenderTilesSettings
+EmbedPDF.RenderTilesSettings.<Clone>$() -> EmbedPDF.RenderTilesSettings!
+EmbedPDF.RenderTilesSettings.BleedPx.get -> double?
+EmbedPDF.RenderTilesSettings.BleedPx.init -> void
+EmbedPDF.RenderTilesSettings.EngageRatio.get -> double?
+EmbedPDF.RenderTilesSettings.EngageRatio.init -> void
+EmbedPDF.RenderTilesSettings.Equals(EmbedPDF.RenderTilesSettings? other) -> bool
+EmbedPDF.RenderTilesSettings.MaxScale.get -> double?
+EmbedPDF.RenderTilesSettings.MaxScale.init -> void
+EmbedPDF.RenderTilesSettings.Prefetch.get -> EmbedPDF.RenderPrefetchOptions?
+EmbedPDF.RenderTilesSettings.Prefetch.init -> void
+EmbedPDF.RenderTilesSettings.Quantize.get -> EmbedPDF.RenderQuantize?
+EmbedPDF.RenderTilesSettings.Quantize.init -> void
+EmbedPDF.RenderTilesSettings.RenderTilesSettings() -> void
+EmbedPDF.RenderTilesSettings.SettleMs.get -> double?
+EmbedPDF.RenderTilesSettings.SettleMs.init -> void
+EmbedPDF.RenderTilesSettings.Size.get -> double?
+EmbedPDF.RenderTilesSettings.Size.init -> void
+EmbedPDF.RenderViewDemand
+EmbedPDF.RenderViewDemand.DisposeAsync() -> System.Threading.Tasks.ValueTask
+EmbedPDF.RenderViewDemand.GetPlanAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RenderTilePlan!>!
+EmbedPDF.RenderViewDemand.GetTileImageAsync(EmbedPDF.PageRef page, string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.RenderedPage?>!
+EmbedPDF.RenderViewDemand.MarkPaintedAsync(EmbedPDF.PageRef page, string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.RenderViewDemand.MarkUnpaintedAsync(EmbedPDF.PageRef page, string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.RenderViewDemand.ReleaseAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.RenderViewDemand.SetDemandAsync(EmbedPDF.PageRef page, EmbedPDF.RenderPageViewDemand! demand, EmbedPDF.ContentInclusion includeAnnotations = EmbedPDF.ContentInclusion.WhenPermitted, EmbedPDF.ContentInclusion includeFormFields = EmbedPDF.ContentInclusion.WhenPermitted, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.RenderViewport
+EmbedPDF.RenderViewport.RenderViewport(EmbedPDF.RenderViewport! original) -> void
+EmbedPDF.RenderViewport.Scale
+EmbedPDF.RenderViewport.Scale.Deconstruct(out double? Value) -> void
+EmbedPDF.RenderViewport.Scale.Equals(EmbedPDF.RenderViewport.Scale? other) -> bool
+EmbedPDF.RenderViewport.Scale.Scale(double? Value) -> void
+EmbedPDF.RenderViewport.Scale.Value.get -> double?
+EmbedPDF.RenderViewport.Scale.Value.init -> void
+EmbedPDF.RenderViewport.Thumbnail
+EmbedPDF.RenderViewport.Thumbnail.Equals(EmbedPDF.RenderViewport.Thumbnail? other) -> bool
+EmbedPDF.RenderViewport.Thumbnail.Thumbnail() -> void
+EmbedPDF.RenderViewport.Width
+EmbedPDF.RenderViewport.Width.Deconstruct(out double Value) -> void
+EmbedPDF.RenderViewport.Width.Equals(EmbedPDF.RenderViewport.Width? other) -> bool
+EmbedPDF.RenderViewport.Width.Value.get -> double
+EmbedPDF.RenderViewport.Width.Value.init -> void
+EmbedPDF.RenderViewport.Width.Width(double Value) -> void
+EmbedPDF.RenderedPage
+EmbedPDF.RenderedPage.<Clone>$() -> EmbedPDF.RenderedPage!
+EmbedPDF.RenderedPage.Deconstruct(out int Width, out int Height, out double Scale, out EmbedPDF.PixelBuffer! Image) -> void
+EmbedPDF.RenderedPage.Equals(EmbedPDF.RenderedPage? other) -> bool
+EmbedPDF.RenderedPage.Height.get -> int
+EmbedPDF.RenderedPage.Height.init -> void
+EmbedPDF.RenderedPage.Image.get -> EmbedPDF.PixelBuffer!
+EmbedPDF.RenderedPage.Image.init -> void
+EmbedPDF.RenderedPage.RenderedPage(int Width, int Height, double Scale, EmbedPDF.PixelBuffer! Image) -> void
+EmbedPDF.RenderedPage.Scale.get -> double
+EmbedPDF.RenderedPage.Scale.init -> void
+EmbedPDF.RenderedPage.Width.get -> int
+EmbedPDF.RenderedPage.Width.init -> void
+EmbedPDF.RenderedPageResult
+EmbedPDF.RenderedPageResult.<Clone>$() -> EmbedPDF.RenderedPageResult!
+EmbedPDF.RenderedPageResult.Deconstruct(out EmbedPDF.PageRef Page, out EmbedPDF.RenderedPage! Rendered) -> void
+EmbedPDF.RenderedPageResult.Equals(EmbedPDF.RenderedPageResult? other) -> bool
+EmbedPDF.RenderedPageResult.Page.get -> EmbedPDF.PageRef
+EmbedPDF.RenderedPageResult.Page.init -> void
+EmbedPDF.RenderedPageResult.Rendered.get -> EmbedPDF.RenderedPage!
+EmbedPDF.RenderedPageResult.Rendered.init -> void
+EmbedPDF.RenderedPageResult.RenderedPageResult(EmbedPDF.PageRef Page, EmbedPDF.RenderedPage! Rendered) -> void
 EmbedPDF.ResourceStatus
 EmbedPDF.ResourceStatus.Error = 4 -> EmbedPDF.ResourceStatus
 EmbedPDF.ResourceStatus.Forbidden = 3 -> EmbedPDF.ResourceStatus
@@ -1221,6 +1601,12 @@ abstract EmbedPDF.PageDestination.Page.get -> EmbedPDF.PageRef
 abstract EmbedPDF.PageDestination.Page.init -> void
 abstract EmbedPDF.PageEditPlacement.<Clone>$() -> EmbedPDF.PageEditPlacement!
 abstract EmbedPDF.PageLinkTarget.<Clone>$() -> EmbedPDF.PageLinkTarget!
+abstract EmbedPDF.RenderEvent.<Clone>$() -> EmbedPDF.RenderEvent!
+abstract EmbedPDF.RenderPolicy.<Clone>$() -> EmbedPDF.RenderPolicy!
+abstract EmbedPDF.RenderQuantize.<Clone>$() -> EmbedPDF.RenderQuantize!
+abstract EmbedPDF.RenderTilesPatch.<Clone>$() -> EmbedPDF.RenderTilesPatch!
+abstract EmbedPDF.RenderTilesSetting.<Clone>$() -> EmbedPDF.RenderTilesSetting!
+abstract EmbedPDF.RenderViewport.<Clone>$() -> EmbedPDF.RenderViewport!
 abstract EmbedPDF.SearchEvent.<Clone>$() -> EmbedPDF.SearchEvent!
 abstract EmbedPDF.SearchRevealAxis.<Clone>$() -> EmbedPDF.SearchRevealAxis!
 const EmbedPDF.PageRenderResolution.DeviceWidthStep = 128 -> double
@@ -1518,9 +1904,140 @@ override EmbedPDF.PluginErrorInfo.ToString() -> string!
 override EmbedPDF.RedactionConfig.Equals(object? obj) -> bool
 override EmbedPDF.RedactionConfig.GetHashCode() -> int
 override EmbedPDF.RedactionConfig.ToString() -> string!
+override EmbedPDF.RenderBatchFailure.Equals(object? obj) -> bool
+override EmbedPDF.RenderBatchFailure.GetHashCode() -> int
+override EmbedPDF.RenderBatchFailure.ToString() -> string!
+override EmbedPDF.RenderBatchResult.Equals(object? obj) -> bool
+override EmbedPDF.RenderBatchResult.GetHashCode() -> int
+override EmbedPDF.RenderBatchResult.ToString() -> string!
 override EmbedPDF.RenderConfig.Equals(object? obj) -> bool
 override EmbedPDF.RenderConfig.GetHashCode() -> int
 override EmbedPDF.RenderConfig.ToString() -> string!
+override EmbedPDF.RenderEvent.Completed.<Clone>$() -> EmbedPDF.RenderEvent.Completed!
+override EmbedPDF.RenderEvent.Completed.Equals(object? obj) -> bool
+override EmbedPDF.RenderEvent.Completed.GetHashCode() -> int
+override EmbedPDF.RenderEvent.Completed.ToString() -> string!
+override EmbedPDF.RenderEvent.Equals(object? obj) -> bool
+override EmbedPDF.RenderEvent.Failed.<Clone>$() -> EmbedPDF.RenderEvent.Failed!
+override EmbedPDF.RenderEvent.Failed.Equals(object? obj) -> bool
+override EmbedPDF.RenderEvent.Failed.GetHashCode() -> int
+override EmbedPDF.RenderEvent.Failed.ToString() -> string!
+override EmbedPDF.RenderEvent.GetHashCode() -> int
+override EmbedPDF.RenderEvent.Invalidated.<Clone>$() -> EmbedPDF.RenderEvent.Invalidated!
+override EmbedPDF.RenderEvent.Invalidated.Equals(object? obj) -> bool
+override EmbedPDF.RenderEvent.Invalidated.GetHashCode() -> int
+override EmbedPDF.RenderEvent.Invalidated.ToString() -> string!
+override EmbedPDF.RenderEvent.ToString() -> string!
+override EmbedPDF.RenderFullPageOptions.Equals(object? obj) -> bool
+override EmbedPDF.RenderFullPageOptions.GetHashCode() -> int
+override EmbedPDF.RenderFullPageOptions.ToString() -> string!
+override EmbedPDF.RenderLatticePolicy.Equals(object? obj) -> bool
+override EmbedPDF.RenderLatticePolicy.GetHashCode() -> int
+override EmbedPDF.RenderLatticePolicy.ToString() -> string!
+override EmbedPDF.RenderPageOptions.Equals(object? obj) -> bool
+override EmbedPDF.RenderPageOptions.GetHashCode() -> int
+override EmbedPDF.RenderPageOptions.ToString() -> string!
+override EmbedPDF.RenderPageViewDemand.Equals(object? obj) -> bool
+override EmbedPDF.RenderPageViewDemand.GetHashCode() -> int
+override EmbedPDF.RenderPageViewDemand.ToString() -> string!
+override EmbedPDF.RenderPaintSettings.Equals(object? obj) -> bool
+override EmbedPDF.RenderPaintSettings.GetHashCode() -> int
+override EmbedPDF.RenderPaintSettings.ToString() -> string!
+override EmbedPDF.RenderPolicy.Continuous.<Clone>$() -> EmbedPDF.RenderPolicy.Continuous!
+override EmbedPDF.RenderPolicy.Continuous.Equals(object? obj) -> bool
+override EmbedPDF.RenderPolicy.Continuous.GetHashCode() -> int
+override EmbedPDF.RenderPolicy.Continuous.ToString() -> string!
+override EmbedPDF.RenderPolicy.Equals(object? obj) -> bool
+override EmbedPDF.RenderPolicy.GetHashCode() -> int
+override EmbedPDF.RenderPolicy.Lattice.<Clone>$() -> EmbedPDF.RenderPolicy.Lattice!
+override EmbedPDF.RenderPolicy.Lattice.Equals(object? obj) -> bool
+override EmbedPDF.RenderPolicy.Lattice.GetHashCode() -> int
+override EmbedPDF.RenderPolicy.Lattice.ToString() -> string!
+override EmbedPDF.RenderPolicy.ToString() -> string!
+override EmbedPDF.RenderPrefetchOptions.Equals(object? obj) -> bool
+override EmbedPDF.RenderPrefetchOptions.GetHashCode() -> int
+override EmbedPDF.RenderPrefetchOptions.ToString() -> string!
+override EmbedPDF.RenderQuantize.Equals(object? obj) -> bool
+override EmbedPDF.RenderQuantize.Exact.<Clone>$() -> EmbedPDF.RenderQuantize.Exact!
+override EmbedPDF.RenderQuantize.Exact.Equals(object? obj) -> bool
+override EmbedPDF.RenderQuantize.Exact.GetHashCode() -> int
+override EmbedPDF.RenderQuantize.Exact.ToString() -> string!
+override EmbedPDF.RenderQuantize.GetHashCode() -> int
+override EmbedPDF.RenderQuantize.Ladder.<Clone>$() -> EmbedPDF.RenderQuantize.Ladder!
+override EmbedPDF.RenderQuantize.Ladder.Equals(object? obj) -> bool
+override EmbedPDF.RenderQuantize.Ladder.GetHashCode() -> int
+override EmbedPDF.RenderQuantize.Ladder.ToString() -> string!
+override EmbedPDF.RenderQuantize.ToString() -> string!
+override EmbedPDF.RenderSettings.Equals(object? obj) -> bool
+override EmbedPDF.RenderSettings.GetHashCode() -> int
+override EmbedPDF.RenderSettings.ToString() -> string!
+override EmbedPDF.RenderSettingsPatch.Equals(object? obj) -> bool
+override EmbedPDF.RenderSettingsPatch.GetHashCode() -> int
+override EmbedPDF.RenderSettingsPatch.ToString() -> string!
+override EmbedPDF.RenderSnapshotBox.Equals(object? obj) -> bool
+override EmbedPDF.RenderSnapshotBox.GetHashCode() -> int
+override EmbedPDF.RenderSnapshotBox.ToString() -> string!
+override EmbedPDF.RenderSnapshotPatch.Equals(object? obj) -> bool
+override EmbedPDF.RenderSnapshotPatch.GetHashCode() -> int
+override EmbedPDF.RenderSnapshotPatch.ToString() -> string!
+override EmbedPDF.RenderSnapshotSettings.Equals(object? obj) -> bool
+override EmbedPDF.RenderSnapshotSettings.GetHashCode() -> int
+override EmbedPDF.RenderSnapshotSettings.ToString() -> string!
+override EmbedPDF.RenderTilePlan.Equals(object? obj) -> bool
+override EmbedPDF.RenderTilePlan.GetHashCode() -> int
+override EmbedPDF.RenderTilePlan.ToString() -> string!
+override EmbedPDF.RenderTileSource.Equals(object? obj) -> bool
+override EmbedPDF.RenderTileSource.GetHashCode() -> int
+override EmbedPDF.RenderTileSource.ToString() -> string!
+override EmbedPDF.RenderTilesOptions.Equals(object? obj) -> bool
+override EmbedPDF.RenderTilesOptions.GetHashCode() -> int
+override EmbedPDF.RenderTilesOptions.ToString() -> string!
+override EmbedPDF.RenderTilesPatch.Equals(object? obj) -> bool
+override EmbedPDF.RenderTilesPatch.GetHashCode() -> int
+override EmbedPDF.RenderTilesPatch.Off.<Clone>$() -> EmbedPDF.RenderTilesPatch.Off!
+override EmbedPDF.RenderTilesPatch.Off.Equals(object? obj) -> bool
+override EmbedPDF.RenderTilesPatch.Off.GetHashCode() -> int
+override EmbedPDF.RenderTilesPatch.Off.ToString() -> string!
+override EmbedPDF.RenderTilesPatch.On.<Clone>$() -> EmbedPDF.RenderTilesPatch.On!
+override EmbedPDF.RenderTilesPatch.On.Equals(object? obj) -> bool
+override EmbedPDF.RenderTilesPatch.On.GetHashCode() -> int
+override EmbedPDF.RenderTilesPatch.On.ToString() -> string!
+override EmbedPDF.RenderTilesPatch.ToString() -> string!
+override EmbedPDF.RenderTilesSetting.Equals(object? obj) -> bool
+override EmbedPDF.RenderTilesSetting.GetHashCode() -> int
+override EmbedPDF.RenderTilesSetting.Off.<Clone>$() -> EmbedPDF.RenderTilesSetting.Off!
+override EmbedPDF.RenderTilesSetting.Off.Equals(object? obj) -> bool
+override EmbedPDF.RenderTilesSetting.Off.GetHashCode() -> int
+override EmbedPDF.RenderTilesSetting.Off.ToString() -> string!
+override EmbedPDF.RenderTilesSetting.On.<Clone>$() -> EmbedPDF.RenderTilesSetting.On!
+override EmbedPDF.RenderTilesSetting.On.Equals(object? obj) -> bool
+override EmbedPDF.RenderTilesSetting.On.GetHashCode() -> int
+override EmbedPDF.RenderTilesSetting.On.ToString() -> string!
+override EmbedPDF.RenderTilesSetting.ToString() -> string!
+override EmbedPDF.RenderTilesSettings.Equals(object? obj) -> bool
+override EmbedPDF.RenderTilesSettings.GetHashCode() -> int
+override EmbedPDF.RenderTilesSettings.ToString() -> string!
+override EmbedPDF.RenderViewport.Equals(object? obj) -> bool
+override EmbedPDF.RenderViewport.GetHashCode() -> int
+override EmbedPDF.RenderViewport.Scale.<Clone>$() -> EmbedPDF.RenderViewport.Scale!
+override EmbedPDF.RenderViewport.Scale.Equals(object? obj) -> bool
+override EmbedPDF.RenderViewport.Scale.GetHashCode() -> int
+override EmbedPDF.RenderViewport.Scale.ToString() -> string!
+override EmbedPDF.RenderViewport.Thumbnail.<Clone>$() -> EmbedPDF.RenderViewport.Thumbnail!
+override EmbedPDF.RenderViewport.Thumbnail.Equals(object? obj) -> bool
+override EmbedPDF.RenderViewport.Thumbnail.GetHashCode() -> int
+override EmbedPDF.RenderViewport.Thumbnail.ToString() -> string!
+override EmbedPDF.RenderViewport.ToString() -> string!
+override EmbedPDF.RenderViewport.Width.<Clone>$() -> EmbedPDF.RenderViewport.Width!
+override EmbedPDF.RenderViewport.Width.Equals(object? obj) -> bool
+override EmbedPDF.RenderViewport.Width.GetHashCode() -> int
+override EmbedPDF.RenderViewport.Width.ToString() -> string!
+override EmbedPDF.RenderedPage.Equals(object? obj) -> bool
+override EmbedPDF.RenderedPage.GetHashCode() -> int
+override EmbedPDF.RenderedPage.ToString() -> string!
+override EmbedPDF.RenderedPageResult.Equals(object? obj) -> bool
+override EmbedPDF.RenderedPageResult.GetHashCode() -> int
+override EmbedPDF.RenderedPageResult.ToString() -> string!
 override EmbedPDF.SearchConfig.Equals(object? obj) -> bool
 override EmbedPDF.SearchConfig.GetHashCode() -> int
 override EmbedPDF.SearchConfig.ToString() -> string!
@@ -1672,6 +2189,20 @@ override sealed EmbedPDF.PageLinkTarget.GoToRemote.Equals(EmbedPDF.PageLinkTarge
 override sealed EmbedPDF.PageLinkTarget.Launch.Equals(EmbedPDF.PageLinkTarget? other) -> bool
 override sealed EmbedPDF.PageLinkTarget.Named.Equals(EmbedPDF.PageLinkTarget? other) -> bool
 override sealed EmbedPDF.PageLinkTarget.Uri.Equals(EmbedPDF.PageLinkTarget? other) -> bool
+override sealed EmbedPDF.RenderEvent.Completed.Equals(EmbedPDF.RenderEvent? other) -> bool
+override sealed EmbedPDF.RenderEvent.Failed.Equals(EmbedPDF.RenderEvent? other) -> bool
+override sealed EmbedPDF.RenderEvent.Invalidated.Equals(EmbedPDF.RenderEvent? other) -> bool
+override sealed EmbedPDF.RenderPolicy.Continuous.Equals(EmbedPDF.RenderPolicy? other) -> bool
+override sealed EmbedPDF.RenderPolicy.Lattice.Equals(EmbedPDF.RenderPolicy? other) -> bool
+override sealed EmbedPDF.RenderQuantize.Exact.Equals(EmbedPDF.RenderQuantize? other) -> bool
+override sealed EmbedPDF.RenderQuantize.Ladder.Equals(EmbedPDF.RenderQuantize? other) -> bool
+override sealed EmbedPDF.RenderTilesPatch.Off.Equals(EmbedPDF.RenderTilesPatch? other) -> bool
+override sealed EmbedPDF.RenderTilesPatch.On.Equals(EmbedPDF.RenderTilesPatch? other) -> bool
+override sealed EmbedPDF.RenderTilesSetting.Off.Equals(EmbedPDF.RenderTilesSetting? other) -> bool
+override sealed EmbedPDF.RenderTilesSetting.On.Equals(EmbedPDF.RenderTilesSetting? other) -> bool
+override sealed EmbedPDF.RenderViewport.Scale.Equals(EmbedPDF.RenderViewport? other) -> bool
+override sealed EmbedPDF.RenderViewport.Thumbnail.Equals(EmbedPDF.RenderViewport? other) -> bool
+override sealed EmbedPDF.RenderViewport.Width.Equals(EmbedPDF.RenderViewport? other) -> bool
 override sealed EmbedPDF.SearchEvent.ActiveHitChanged.Equals(EmbedPDF.SearchEvent? other) -> bool
 override sealed EmbedPDF.SearchEvent.Cancelled.Equals(EmbedPDF.SearchEvent? other) -> bool
 override sealed EmbedPDF.SearchEvent.Completed.Equals(EmbedPDF.SearchEvent? other) -> bool
@@ -1899,12 +2430,90 @@ static EmbedPDF.PluginErrorInfo.operator !=(EmbedPDF.PluginErrorInfo? left, Embe
 static EmbedPDF.PluginErrorInfo.operator ==(EmbedPDF.PluginErrorInfo? left, EmbedPDF.PluginErrorInfo? right) -> bool
 static EmbedPDF.RedactionConfig.operator !=(EmbedPDF.RedactionConfig? left, EmbedPDF.RedactionConfig? right) -> bool
 static EmbedPDF.RedactionConfig.operator ==(EmbedPDF.RedactionConfig? left, EmbedPDF.RedactionConfig? right) -> bool
+static EmbedPDF.RenderBatchFailure.operator !=(EmbedPDF.RenderBatchFailure? left, EmbedPDF.RenderBatchFailure? right) -> bool
+static EmbedPDF.RenderBatchFailure.operator ==(EmbedPDF.RenderBatchFailure? left, EmbedPDF.RenderBatchFailure? right) -> bool
+static EmbedPDF.RenderBatchResult.operator !=(EmbedPDF.RenderBatchResult? left, EmbedPDF.RenderBatchResult? right) -> bool
+static EmbedPDF.RenderBatchResult.operator ==(EmbedPDF.RenderBatchResult? left, EmbedPDF.RenderBatchResult? right) -> bool
 static EmbedPDF.RenderConfig.operator !=(EmbedPDF.RenderConfig? left, EmbedPDF.RenderConfig? right) -> bool
 static EmbedPDF.RenderConfig.operator ==(EmbedPDF.RenderConfig? left, EmbedPDF.RenderConfig? right) -> bool
+static EmbedPDF.RenderEvent.Completed.operator !=(EmbedPDF.RenderEvent.Completed? left, EmbedPDF.RenderEvent.Completed? right) -> bool
+static EmbedPDF.RenderEvent.Completed.operator ==(EmbedPDF.RenderEvent.Completed? left, EmbedPDF.RenderEvent.Completed? right) -> bool
+static EmbedPDF.RenderEvent.Failed.operator !=(EmbedPDF.RenderEvent.Failed? left, EmbedPDF.RenderEvent.Failed? right) -> bool
+static EmbedPDF.RenderEvent.Failed.operator ==(EmbedPDF.RenderEvent.Failed? left, EmbedPDF.RenderEvent.Failed? right) -> bool
+static EmbedPDF.RenderEvent.Invalidated.operator !=(EmbedPDF.RenderEvent.Invalidated? left, EmbedPDF.RenderEvent.Invalidated? right) -> bool
+static EmbedPDF.RenderEvent.Invalidated.operator ==(EmbedPDF.RenderEvent.Invalidated? left, EmbedPDF.RenderEvent.Invalidated? right) -> bool
+static EmbedPDF.RenderEvent.operator !=(EmbedPDF.RenderEvent? left, EmbedPDF.RenderEvent? right) -> bool
+static EmbedPDF.RenderEvent.operator ==(EmbedPDF.RenderEvent? left, EmbedPDF.RenderEvent? right) -> bool
+static EmbedPDF.RenderFullPageOptions.operator !=(EmbedPDF.RenderFullPageOptions? left, EmbedPDF.RenderFullPageOptions? right) -> bool
+static EmbedPDF.RenderFullPageOptions.operator ==(EmbedPDF.RenderFullPageOptions? left, EmbedPDF.RenderFullPageOptions? right) -> bool
+static EmbedPDF.RenderLatticePolicy.operator !=(EmbedPDF.RenderLatticePolicy? left, EmbedPDF.RenderLatticePolicy? right) -> bool
+static EmbedPDF.RenderLatticePolicy.operator ==(EmbedPDF.RenderLatticePolicy? left, EmbedPDF.RenderLatticePolicy? right) -> bool
+static EmbedPDF.RenderPageOptions.operator !=(EmbedPDF.RenderPageOptions? left, EmbedPDF.RenderPageOptions? right) -> bool
+static EmbedPDF.RenderPageOptions.operator ==(EmbedPDF.RenderPageOptions? left, EmbedPDF.RenderPageOptions? right) -> bool
+static EmbedPDF.RenderPageViewDemand.operator !=(EmbedPDF.RenderPageViewDemand? left, EmbedPDF.RenderPageViewDemand? right) -> bool
+static EmbedPDF.RenderPageViewDemand.operator ==(EmbedPDF.RenderPageViewDemand? left, EmbedPDF.RenderPageViewDemand? right) -> bool
+static EmbedPDF.RenderPaintSettings.operator !=(EmbedPDF.RenderPaintSettings? left, EmbedPDF.RenderPaintSettings? right) -> bool
+static EmbedPDF.RenderPaintSettings.operator ==(EmbedPDF.RenderPaintSettings? left, EmbedPDF.RenderPaintSettings? right) -> bool
+static EmbedPDF.RenderPolicy.Continuous.operator !=(EmbedPDF.RenderPolicy.Continuous? left, EmbedPDF.RenderPolicy.Continuous? right) -> bool
+static EmbedPDF.RenderPolicy.Continuous.operator ==(EmbedPDF.RenderPolicy.Continuous? left, EmbedPDF.RenderPolicy.Continuous? right) -> bool
+static EmbedPDF.RenderPolicy.Lattice.operator !=(EmbedPDF.RenderPolicy.Lattice? left, EmbedPDF.RenderPolicy.Lattice? right) -> bool
+static EmbedPDF.RenderPolicy.Lattice.operator ==(EmbedPDF.RenderPolicy.Lattice? left, EmbedPDF.RenderPolicy.Lattice? right) -> bool
+static EmbedPDF.RenderPolicy.operator !=(EmbedPDF.RenderPolicy? left, EmbedPDF.RenderPolicy? right) -> bool
+static EmbedPDF.RenderPolicy.operator ==(EmbedPDF.RenderPolicy? left, EmbedPDF.RenderPolicy? right) -> bool
+static EmbedPDF.RenderPrefetchOptions.operator !=(EmbedPDF.RenderPrefetchOptions? left, EmbedPDF.RenderPrefetchOptions? right) -> bool
+static EmbedPDF.RenderPrefetchOptions.operator ==(EmbedPDF.RenderPrefetchOptions? left, EmbedPDF.RenderPrefetchOptions? right) -> bool
+static EmbedPDF.RenderQuantize.Exact.operator !=(EmbedPDF.RenderQuantize.Exact? left, EmbedPDF.RenderQuantize.Exact? right) -> bool
+static EmbedPDF.RenderQuantize.Exact.operator ==(EmbedPDF.RenderQuantize.Exact? left, EmbedPDF.RenderQuantize.Exact? right) -> bool
+static EmbedPDF.RenderQuantize.Ladder.operator !=(EmbedPDF.RenderQuantize.Ladder? left, EmbedPDF.RenderQuantize.Ladder? right) -> bool
+static EmbedPDF.RenderQuantize.Ladder.operator ==(EmbedPDF.RenderQuantize.Ladder? left, EmbedPDF.RenderQuantize.Ladder? right) -> bool
+static EmbedPDF.RenderQuantize.operator !=(EmbedPDF.RenderQuantize? left, EmbedPDF.RenderQuantize? right) -> bool
+static EmbedPDF.RenderQuantize.operator ==(EmbedPDF.RenderQuantize? left, EmbedPDF.RenderQuantize? right) -> bool
 static EmbedPDF.RenderRotationExtensions.Degrees(this EmbedPDF.RenderRotation rotation) -> int
 static EmbedPDF.RenderRotationExtensions.FromDegrees(double degrees) -> EmbedPDF.RenderRotation
 static EmbedPDF.RenderRotationExtensions.FromDegrees(int degrees) -> EmbedPDF.RenderRotation
 static EmbedPDF.RenderRotationExtensions.IsQuarterTurn(this EmbedPDF.RenderRotation rotation) -> bool
+static EmbedPDF.RenderSettings.operator !=(EmbedPDF.RenderSettings? left, EmbedPDF.RenderSettings? right) -> bool
+static EmbedPDF.RenderSettings.operator ==(EmbedPDF.RenderSettings? left, EmbedPDF.RenderSettings? right) -> bool
+static EmbedPDF.RenderSettingsPatch.operator !=(EmbedPDF.RenderSettingsPatch? left, EmbedPDF.RenderSettingsPatch? right) -> bool
+static EmbedPDF.RenderSettingsPatch.operator ==(EmbedPDF.RenderSettingsPatch? left, EmbedPDF.RenderSettingsPatch? right) -> bool
+static EmbedPDF.RenderSnapshotBox.operator !=(EmbedPDF.RenderSnapshotBox? left, EmbedPDF.RenderSnapshotBox? right) -> bool
+static EmbedPDF.RenderSnapshotBox.operator ==(EmbedPDF.RenderSnapshotBox? left, EmbedPDF.RenderSnapshotBox? right) -> bool
+static EmbedPDF.RenderSnapshotPatch.operator !=(EmbedPDF.RenderSnapshotPatch? left, EmbedPDF.RenderSnapshotPatch? right) -> bool
+static EmbedPDF.RenderSnapshotPatch.operator ==(EmbedPDF.RenderSnapshotPatch? left, EmbedPDF.RenderSnapshotPatch? right) -> bool
+static EmbedPDF.RenderSnapshotSettings.operator !=(EmbedPDF.RenderSnapshotSettings? left, EmbedPDF.RenderSnapshotSettings? right) -> bool
+static EmbedPDF.RenderSnapshotSettings.operator ==(EmbedPDF.RenderSnapshotSettings? left, EmbedPDF.RenderSnapshotSettings? right) -> bool
+static EmbedPDF.RenderTilePlan.operator !=(EmbedPDF.RenderTilePlan? left, EmbedPDF.RenderTilePlan? right) -> bool
+static EmbedPDF.RenderTilePlan.operator ==(EmbedPDF.RenderTilePlan? left, EmbedPDF.RenderTilePlan? right) -> bool
+static EmbedPDF.RenderTileSource.operator !=(EmbedPDF.RenderTileSource? left, EmbedPDF.RenderTileSource? right) -> bool
+static EmbedPDF.RenderTileSource.operator ==(EmbedPDF.RenderTileSource? left, EmbedPDF.RenderTileSource? right) -> bool
+static EmbedPDF.RenderTilesOptions.operator !=(EmbedPDF.RenderTilesOptions? left, EmbedPDF.RenderTilesOptions? right) -> bool
+static EmbedPDF.RenderTilesOptions.operator ==(EmbedPDF.RenderTilesOptions? left, EmbedPDF.RenderTilesOptions? right) -> bool
+static EmbedPDF.RenderTilesPatch.Off.operator !=(EmbedPDF.RenderTilesPatch.Off? left, EmbedPDF.RenderTilesPatch.Off? right) -> bool
+static EmbedPDF.RenderTilesPatch.Off.operator ==(EmbedPDF.RenderTilesPatch.Off? left, EmbedPDF.RenderTilesPatch.Off? right) -> bool
+static EmbedPDF.RenderTilesPatch.On.operator !=(EmbedPDF.RenderTilesPatch.On? left, EmbedPDF.RenderTilesPatch.On? right) -> bool
+static EmbedPDF.RenderTilesPatch.On.operator ==(EmbedPDF.RenderTilesPatch.On? left, EmbedPDF.RenderTilesPatch.On? right) -> bool
+static EmbedPDF.RenderTilesPatch.operator !=(EmbedPDF.RenderTilesPatch? left, EmbedPDF.RenderTilesPatch? right) -> bool
+static EmbedPDF.RenderTilesPatch.operator ==(EmbedPDF.RenderTilesPatch? left, EmbedPDF.RenderTilesPatch? right) -> bool
+static EmbedPDF.RenderTilesSetting.Off.operator !=(EmbedPDF.RenderTilesSetting.Off? left, EmbedPDF.RenderTilesSetting.Off? right) -> bool
+static EmbedPDF.RenderTilesSetting.Off.operator ==(EmbedPDF.RenderTilesSetting.Off? left, EmbedPDF.RenderTilesSetting.Off? right) -> bool
+static EmbedPDF.RenderTilesSetting.On.operator !=(EmbedPDF.RenderTilesSetting.On? left, EmbedPDF.RenderTilesSetting.On? right) -> bool
+static EmbedPDF.RenderTilesSetting.On.operator ==(EmbedPDF.RenderTilesSetting.On? left, EmbedPDF.RenderTilesSetting.On? right) -> bool
+static EmbedPDF.RenderTilesSetting.operator !=(EmbedPDF.RenderTilesSetting? left, EmbedPDF.RenderTilesSetting? right) -> bool
+static EmbedPDF.RenderTilesSetting.operator ==(EmbedPDF.RenderTilesSetting? left, EmbedPDF.RenderTilesSetting? right) -> bool
+static EmbedPDF.RenderTilesSettings.operator !=(EmbedPDF.RenderTilesSettings? left, EmbedPDF.RenderTilesSettings? right) -> bool
+static EmbedPDF.RenderTilesSettings.operator ==(EmbedPDF.RenderTilesSettings? left, EmbedPDF.RenderTilesSettings? right) -> bool
+static EmbedPDF.RenderViewport.Scale.operator !=(EmbedPDF.RenderViewport.Scale? left, EmbedPDF.RenderViewport.Scale? right) -> bool
+static EmbedPDF.RenderViewport.Scale.operator ==(EmbedPDF.RenderViewport.Scale? left, EmbedPDF.RenderViewport.Scale? right) -> bool
+static EmbedPDF.RenderViewport.Thumbnail.operator !=(EmbedPDF.RenderViewport.Thumbnail? left, EmbedPDF.RenderViewport.Thumbnail? right) -> bool
+static EmbedPDF.RenderViewport.Thumbnail.operator ==(EmbedPDF.RenderViewport.Thumbnail? left, EmbedPDF.RenderViewport.Thumbnail? right) -> bool
+static EmbedPDF.RenderViewport.Width.operator !=(EmbedPDF.RenderViewport.Width? left, EmbedPDF.RenderViewport.Width? right) -> bool
+static EmbedPDF.RenderViewport.Width.operator ==(EmbedPDF.RenderViewport.Width? left, EmbedPDF.RenderViewport.Width? right) -> bool
+static EmbedPDF.RenderViewport.operator !=(EmbedPDF.RenderViewport? left, EmbedPDF.RenderViewport? right) -> bool
+static EmbedPDF.RenderViewport.operator ==(EmbedPDF.RenderViewport? left, EmbedPDF.RenderViewport? right) -> bool
+static EmbedPDF.RenderedPage.operator !=(EmbedPDF.RenderedPage? left, EmbedPDF.RenderedPage? right) -> bool
+static EmbedPDF.RenderedPage.operator ==(EmbedPDF.RenderedPage? left, EmbedPDF.RenderedPage? right) -> bool
+static EmbedPDF.RenderedPageResult.operator !=(EmbedPDF.RenderedPageResult? left, EmbedPDF.RenderedPageResult? right) -> bool
+static EmbedPDF.RenderedPageResult.operator ==(EmbedPDF.RenderedPageResult? left, EmbedPDF.RenderedPageResult? right) -> bool
 static EmbedPDF.SearchConfig.operator !=(EmbedPDF.SearchConfig? left, EmbedPDF.SearchConfig? right) -> bool
 static EmbedPDF.SearchConfig.operator ==(EmbedPDF.SearchConfig? left, EmbedPDF.SearchConfig? right) -> bool
 static EmbedPDF.SearchEvent.ActiveHitChanged.operator !=(EmbedPDF.SearchEvent.ActiveHitChanged? left, EmbedPDF.SearchEvent.ActiveHitChanged? right) -> bool
@@ -1998,6 +2607,24 @@ virtual EmbedPDF.PageEditPlacement.PrintMembers(System.Text.StringBuilder! build
 virtual EmbedPDF.PageLinkTarget.EqualityContract.get -> System.Type!
 virtual EmbedPDF.PageLinkTarget.Equals(EmbedPDF.PageLinkTarget? other) -> bool
 virtual EmbedPDF.PageLinkTarget.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.RenderEvent.EqualityContract.get -> System.Type!
+virtual EmbedPDF.RenderEvent.Equals(EmbedPDF.RenderEvent? other) -> bool
+virtual EmbedPDF.RenderEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.RenderPolicy.EqualityContract.get -> System.Type!
+virtual EmbedPDF.RenderPolicy.Equals(EmbedPDF.RenderPolicy? other) -> bool
+virtual EmbedPDF.RenderPolicy.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.RenderQuantize.EqualityContract.get -> System.Type!
+virtual EmbedPDF.RenderQuantize.Equals(EmbedPDF.RenderQuantize? other) -> bool
+virtual EmbedPDF.RenderQuantize.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.RenderTilesPatch.EqualityContract.get -> System.Type!
+virtual EmbedPDF.RenderTilesPatch.Equals(EmbedPDF.RenderTilesPatch? other) -> bool
+virtual EmbedPDF.RenderTilesPatch.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.RenderTilesSetting.EqualityContract.get -> System.Type!
+virtual EmbedPDF.RenderTilesSetting.Equals(EmbedPDF.RenderTilesSetting? other) -> bool
+virtual EmbedPDF.RenderTilesSetting.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.RenderViewport.EqualityContract.get -> System.Type!
+virtual EmbedPDF.RenderViewport.Equals(EmbedPDF.RenderViewport? other) -> bool
+virtual EmbedPDF.RenderViewport.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual EmbedPDF.SearchEvent.EqualityContract.get -> System.Type!
 virtual EmbedPDF.SearchEvent.Equals(EmbedPDF.SearchEvent? other) -> bool
 virtual EmbedPDF.SearchEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool

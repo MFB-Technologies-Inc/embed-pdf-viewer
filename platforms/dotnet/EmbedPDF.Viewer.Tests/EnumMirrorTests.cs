@@ -15,6 +15,9 @@ public sealed class EnumMirrorTests
         { typeof(SearchStatus), typeof(uniffi.epdf_plugin_search.SearchStatus) },
         { typeof(SearchResultStatus), typeof(uniffi.epdf_plugin_search.SearchResultStatus) },
         { typeof(SearchCancelReason), typeof(uniffi.epdf_plugin_search.SearchCancelReason) },
+        { typeof(RenderRotation), typeof(uniffi.epdf_plugin_render.RenderRotation) },
+        { typeof(RenderInvalidateScope), typeof(uniffi.epdf_plugin_render.RenderInvalidateScope) },
+        { typeof(RenderEncodingFormat), typeof(uniffi.epdf_plugin_render.RenderEncodingFormat) },
     };
 
     [Theory]

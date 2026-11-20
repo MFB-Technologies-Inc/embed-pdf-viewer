@@ -21,10 +21,9 @@ public sealed partial record SearchConfig
     internal GS.SearchConfig ToFfi() => new(Reveal is null ? null : Ffi.ToFfi(Reveal));
 }
 
-/// <summary>Installs the render plugin: page rasters as owned pixels.</summary>
-public sealed record RenderConfig
+public sealed partial record RenderConfig
 {
-    internal GR.RenderConfig ToFfi() => new();
+    internal GR.RenderConfig ToFfi() => new(FullPage is null ? null : Ffi.ToFfi(FullPage), Debug);
 }
 
 /// <summary>Installs the feedback plugin: haptics for the plugins that use them. The default provider does nothing.</summary>

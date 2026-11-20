@@ -5493,10 +5493,16 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "get_settings",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi/settings.rs",
         "symbol": "settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "GetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5504,10 +5510,17 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "update_settings",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi/settings.rs",
         "symbol": "update_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "UpdateSettingsAsync",
+        "parameters": [
+          "EmbedPDF.RenderSettingsPatch",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5515,10 +5528,16 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "reset_settings",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi/settings.rs",
         "symbol": "reset_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "ResetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5526,10 +5545,16 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "on_settings_changed",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/epdf-viewer-host/src/lib.rs",
         "symbol": "state_revision"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PdfViewer",
+        "member": "ObserveStateRevisions",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5537,10 +5562,16 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "can_render",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi.rs",
         "symbol": "can_render"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "CanRenderAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5588,10 +5619,18 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "render_page",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi.rs",
         "symbol": "render_page"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "RenderPageAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "EmbedPDF.RenderPageOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5599,10 +5638,16 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "can_render_thumbnail",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi.rs",
         "symbol": "can_render_thumbnail"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "CanRenderThumbnailAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5610,10 +5655,19 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "render_thumbnail",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi.rs",
         "symbol": "render_thumbnail"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "RenderThumbnailAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "EmbedPDF.ContentInclusion",
+          "EmbedPDF.ContentInclusion",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5621,10 +5675,19 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "render_pages",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi.rs",
         "symbol": "render_pages"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "RenderPagesAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>",
+          "EmbedPDF.RenderPageOptions",
+          "System.Int32",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5632,10 +5695,16 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "get_render_policy",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi.rs",
         "symbol": "render_policy"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "GetRenderPolicyAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5643,10 +5712,19 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "get_render_epoch",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi.rs",
         "symbol": "render_epoch"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "GetRenderEpochAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "EmbedPDF.ContentInclusion",
+          "EmbedPDF.ContentInclusion",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5654,10 +5732,18 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "invalidate",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi.rs",
         "symbol": "invalidate"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "InvalidateAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>",
+          "System.Nullable<EmbedPDF.RenderInvalidateScope>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5665,10 +5751,16 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "on_invalidated",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5676,10 +5768,21 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "render_source",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi.rs",
         "symbol": "render_source"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "RenderSourceAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "System.Double",
+          "EmbedPDF.ContentInclusion",
+          "EmbedPDF.ContentInclusion",
+          "System.Boolean",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5687,10 +5790,21 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "get_source_key",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi.rs",
         "symbol": "source_key"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "GetSourceKeyAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "System.Double",
+          "EmbedPDF.ContentInclusion",
+          "EmbedPDF.ContentInclusion",
+          "System.Boolean",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5698,10 +5812,18 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "conform_viewport",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi.rs",
         "symbol": "conform_viewport"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "ConformViewportAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "System.Double",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5709,10 +5831,16 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "get_paint_settings",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi.rs",
         "symbol": "paint_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "GetPaintSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5728,10 +5856,17 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "create_view_demand",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi.rs",
         "symbol": "create_view_demand"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "CreateViewDemandAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5763,10 +5898,16 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "on_render_completed",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5774,10 +5915,16 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "on_render_failed",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5785,10 +5932,16 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "can_snapshot",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi/snapshot.rs",
         "symbol": "can_snapshot"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "CanSnapshotAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5796,10 +5949,16 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "get_snapshot",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi/snapshot.rs",
         "symbol": "snapshot"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "GetSnapshotAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5807,10 +5966,16 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "clear_snapshot",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi/snapshot.rs",
         "symbol": "clear_snapshot"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "ClearSnapshotAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5818,10 +5983,16 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "on_snapshot_changed",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi/snapshot.rs",
         "symbol": "subscribe_snapshots"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "ObserveSnapshotChanges",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5829,10 +6000,17 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "RenderCapability",
       "symbol": "get_snapshot_box",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi/snapshot.rs",
         "symbol": "snapshot_box"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderCapability",
+        "member": "GetSnapshotBoxAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5856,10 +6034,20 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "ViewDemand",
       "symbol": "set_demand",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi.rs",
         "symbol": "set_demand"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderViewDemand",
+        "member": "SetDemandAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "EmbedPDF.RenderPageViewDemand",
+          "EmbedPDF.ContentInclusion",
+          "EmbedPDF.ContentInclusion",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5867,10 +6055,17 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "ViewDemand",
       "symbol": "get_plan",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi.rs",
         "symbol": "plan"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderViewDemand",
+        "member": "GetPlanAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5878,10 +6073,18 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "ViewDemand",
       "symbol": "mark_painted",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi.rs",
         "symbol": "mark_painted"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderViewDemand",
+        "member": "MarkPaintedAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5889,10 +6092,18 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "ViewDemand",
       "symbol": "mark_unpainted",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi.rs",
         "symbol": "mark_unpainted"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderViewDemand",
+        "member": "MarkUnpaintedAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5900,10 +6111,17 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "ViewDemand",
       "symbol": "release",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi.rs",
         "symbol": "release"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderViewDemand",
+        "member": "ReleaseAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -5911,10 +6129,14 @@
       "path": "crates/plugins/render/src/controller.rs",
       "owner": "ViewDemand",
       "symbol": "destroy",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/render/src/ffi.rs",
         "symbol": "dispose"
+      },
+      "csharp": {
+        "type": "EmbedPDF.RenderViewDemand",
+        "member": "DisposeAsync",
+        "parameters": []
       }
     },
     {
