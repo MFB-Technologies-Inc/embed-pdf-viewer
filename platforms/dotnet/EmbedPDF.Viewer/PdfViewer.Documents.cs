@@ -178,7 +178,7 @@ public sealed partial class PdfViewer
     public Task SetDocumentOrderAsync(IEnumerable<string> ids, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(ids);
-        var order = ids.ToArray();
+        var order = Arguments.NoNullElements(ids, nameof(ids));
         return CallAsync(h => h.SetDocumentOrder(order), cancellationToken);
     }
 

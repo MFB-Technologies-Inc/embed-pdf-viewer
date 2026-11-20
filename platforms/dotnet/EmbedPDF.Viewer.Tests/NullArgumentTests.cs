@@ -109,12 +109,12 @@ public sealed class NullArgumentTests
         select (method, index, element);
 
     [Fact]
-    public async Task EveryWaveACapabilityRefusesANullElement()
+    public async Task TheViewerAndEveryWaveACapabilityRefuseANullElement()
     {
         await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Attachment = true, ViewManager = true, Shell = true });
         var document = await viewer.OpenAsync(Fixture.Data("report"));
         var shell = await viewer.GetShellAsync(document);
-        object[] targets = [await viewer.GetAttachmentsAsync(document), await viewer.GetViewManagerAsync(), shell];
+        object[] targets = [viewer, await viewer.GetAttachmentsAsync(document), await viewer.GetViewManagerAsync(), shell];
         var missing = new List<string>();
         var checkedCount = 0;
         foreach (var target in targets)
@@ -139,7 +139,7 @@ public sealed class NullArgumentTests
             }
         }
         Assert.Empty(missing);
-        Assert.Equal(3, checkedCount);
+        Assert.Equal(4, checkedCount);
         Assert.Throws<ArgumentException>(() => { _ = shell.ApplySnapshotAsync(new ShellSnapshot([null!], [])); });
         Assert.Throws<ArgumentException>(() => { _ = shell.ApplySnapshotAsync(new ShellSnapshot([], [null!])); });
     }
