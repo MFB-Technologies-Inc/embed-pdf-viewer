@@ -48,6 +48,7 @@ button:focus-visible, summary:focus-visible { outline: 2px solid var(--series-1)
 .card h4 { margin: 0; font: 600 13px var(--mono); overflow-wrap: anywhere; }
 .latest { display: flex; gap: 10px; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink); }
 .latest span { display: inline-flex; align-items: center; gap: 4px; }
+.latest .sub { color: var(--ink-2); }
 .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
 .note { color: var(--muted); font-size: 11.5px; margin: 1px 0 0; min-height: 1.4em; }
 .card svg.chart { display: block; width: 100%; height: auto; touch-action: pan-y; }
@@ -136,6 +137,8 @@ const VERDICT = {
 function build() {
   const points = DATA.points.map((p) => ({ ...p, t: Date.parse(p.date) }));
   const seriesIds = Object.keys(DATA.series);
+  // What the page calls the reference arm: the commit it is pinned to.
+  const REF = DATA.baseline ? `baseline ${DATA.baseline.sha.slice(0, 9)}` : DATA.reference;
   // Color follows the series, by its fixed place in points.json, not by what a chart happens to hold.
   const color = (id) => `var(--series-${seriesIds.indexOf(id) + 1})`;
   let [t0, t1] = [Math.min(...points.map((p) => p.t)), Math.max(...points.map((p) => p.t))];
@@ -143,11 +146,13 @@ function build() {
   [t0, t1] = [t0 - pad, t1 + pad];
 
   document.getElementById('lede').append(
-    'Each point is one commit, timed for 10 rounds on one machine and compared with ',
-    el('code', { text: DATA.reference }),
-    ' in the same run. Every row is a time, a count or a size, so lower is better: a ratio under 1x, or a difference under 0, is ahead of ',
-    el('code', { text: DATA.reference }),
-    '.',
+    'Each point is one commit, timed for 10 rounds on one machine. ',
+    ...(DATA.baseline
+      ? ['The baseline is upstream main as it was at ', el('code', { text: DATA.baseline.sha.slice(0, 9) }), ` (${DATA.baseline.date.slice(0, 10)}). `]
+      : ['The baseline is ', el('code', { text: DATA.reference }), '. ']),
+    'It is built and timed again in every run, and each point is compared with it in that same run, so a point at 1.5x took 1.5 times what the baseline took. ',
+    'Each line is a branch\u2019s later commits against that one fixed baseline. ',
+    'Every row is a time, a count or a size, so lower is better: a ratio under 1x, or a difference under 0, is ahead of the baseline.',
   );
   const runs = [...new Set(points.map((p) => p.runId))].sort();
   document.getElementById('facts').textContent =
@@ -168,7 +173,7 @@ function build() {
     }
     controls.append(group);
   };
-  toggle('Show', [['rel', `Relative to ${DATA.reference}`], ['abs', 'Absolute']], 'view');
+  toggle('Show', [['rel', 'Relative to the baseline'], ['abs', 'Absolute']], 'view');
   toggle('Flow', [['all', 'All'], ...flows.map((f) => [f, f])], 'flow');
 
   const legend = document.getElementById('legend');
@@ -183,7 +188,7 @@ function build() {
     el('span', {}, swatch([el('circle', { cx: 11, cy: 6, r: 4, fill: 'var(--ink-2)' })]), 'differs beyond the run’s noise'),
     el('span', {}, swatch([el('circle', { cx: 11, cy: 6, r: 3.25, fill: 'var(--surface)', stroke: 'var(--ink-2)', 'stroke-width': 1.5 })]), 'no detectable difference'),
     el('span', {}, swatch([el('line', { x1: 11, y1: 0, x2: 11, y2: 12, stroke: 'var(--ink-2)', 'stroke-width': 1.5 })]), '95% interval'),
-    el('span', {}, swatch([el('line', { x1: 0, y1: 6, x2: 22, y2: 6, stroke: 'var(--ref)', 'stroke-width': 1.5, 'stroke-dasharray': '3 3' })]), `${DATA.reference} in the same run`),
+    el('span', {}, swatch([el('line', { x1: 0, y1: 6, x2: 22, y2: 6, stroke: 'var(--ref)', 'stroke-width': 1.5, 'stroke-dasharray': '3 3' })]), `${REF} in the same run (1x)`),
   );
 
   const W = 320, H = 150, M = { l: 44, r: 10, t: 8, b: 20 };
@@ -203,7 +208,7 @@ function build() {
     [lo, hi] = [lo - margin, hi + margin];
     const y = (v) => M.t + (1 - (v - lo) / (hi - lo)) * (H - M.t - M.b);
 
-    const svg = el('svg', { class: 'chart', viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': `${row.label}, ${mode === 'rel' ? `relative to ${DATA.reference}` : 'absolute'}, by commit date` });
+    const svg = el('svg', { class: 'chart', viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': `${row.label}, ${mode === 'rel' ? `relative to ${REF}` : 'absolute'}, by commit date` });
     for (const tick of niceTicks(lo, hi)) {
       svg.append(
         el('line', { x1: M.l, x2: W - M.r, y1: y(tick), y2: y(tick), stroke: 'var(--grid)', 'stroke-width': 1 }),
@@ -262,8 +267,8 @@ function build() {
       tip.replaceChildren(
         el('div', {}, el('span', { class: 'dot', style: `background:${color(v.p.series)}` }), ' ', el('b', { text: DATA.series[v.p.series].label }), ' ', el('span', { class: 'mono sub', text: `${v.p.sha.slice(0, 9)} · ${day(v.p.t)}` })),
         v.p.note ? el('div', { class: 'sub', text: v.p.note }) : null,
-        v.rel != null ? el('div', {}, el('b', { text: fmtRel(row, v.rel) }), v.lo != null ? ` [${fmtRel(row, v.lo)}, ${fmtRel(row, v.hi)}]` : '', ` against ${DATA.reference}`) : null,
-        el('div', { text: `${fmtAbs(row.unit, v.median)}${v.ref != null ? `, ${DATA.reference} ${fmtAbs(row.unit, v.ref)}` : `, no ${DATA.reference} for this row`}` }),
+        v.rel != null ? el('div', {}, el('b', { text: fmtRel(row, v.rel) }), v.lo != null ? ` [${fmtRel(row, v.lo)}, ${fmtRel(row, v.hi)}]` : '', ` against ${REF}`) : null,
+        el('div', { text: `${fmtAbs(row.unit, v.median)}${v.ref != null ? `, ${REF} ${fmtAbs(row.unit, v.ref)}` : `, no ${REF} for this row`}` }),
         v.verdict ? el('div', { class: 'sub', text: VERDICT[v.verdict] }) : null,
         el('div', { class: 'dim', text: `${v.n} sample${v.n === 1 ? '' : 's'} · run ${v.p.runId}` }),
       );
@@ -285,22 +290,23 @@ function build() {
     svg.addEventListener('pointerdown', show);
     svg.addEventListener('pointerleave', hide);
 
-    const latest = el('div', { class: 'latest' });
+    // The newest point of each series, as a number: where each line ends.
+    const latest = el('div', { class: 'latest' }, el('span', { class: 'sub', text: 'latest' }));
     for (const id of seriesIds) {
       const last = drawn.filter((v) => v.p.series === id).pop();
       if (!last) continue;
-      latest.append(el('span', { title: `${DATA.series[id].label}, latest point` }, el('span', { class: 'dot', style: `background:${color(id)}` }), mode === 'rel' ? fmtRel(row, last.y) : fmtAbs(row.unit, last.y)));
+      latest.append(el('span', { title: `${DATA.series[id].label}, newest point` }, el('span', { class: 'dot', style: `background:${color(id)}` }), mode === 'rel' ? fmtRel(row, last.y) : fmtAbs(row.unit, last.y)));
     }
     const fixture = row.key.split('|')[1];
     const title = row.flow === 'open' ? `${fixture} · ${row.metric}` : row.metric;
-    const note = state.view === 'rel' && !hasRel ? `${DATA.reference} can’t run this flow, so the row is absolute.`
-      : mode === 'rel' ? (row.kind === 'ratio' ? `ratio to ${DATA.reference}` : `difference from ${DATA.reference}`)
+    const note = state.view === 'rel' && !hasRel ? `${REF} can’t run this flow, so the row is absolute.`
+      : mode === 'rel' ? (row.kind === 'ratio' ? `ratio to ${REF}` : `difference from ${REF}`)
       : 'median';
 
     const details = el('details', {}, el('summary', { text: 'Table' }));
     details.addEventListener('toggle', () => {
       if (!details.open || details.querySelector('table')) return;
-      const head = ['Commit', 'Date', row.kind === 'ratio' ? 'Ratio' : 'Difference', 'Low', 'High', 'Median', DATA.reference];
+      const head = ['Commit', 'Date', row.kind === 'ratio' ? 'Ratio' : 'Difference', 'Low', 'High', 'Median', REF];
       const table = el('table', {}, el('tr', {}, ...head.map((h) => el('th', { text: h }))));
       for (const v of [...row.values].sort((a, b) => points[a.point].t - points[b.point].t)) {
         const p = points[v.point];

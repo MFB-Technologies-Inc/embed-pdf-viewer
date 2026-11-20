@@ -36,6 +36,10 @@ const data = seriesData({
   series: Object.fromEntries(Object.entries(history.series).map(([id, s]) => [id, { label: s.label }])),
 });
 data.planned = history.points.filter((p) => !p.skip).length;
+// The reference arm is one fixed commit; the page names it by that commit,
+// so it can't be read as the upstream series, which is also `main`.
+const pin = history.points.find((p) => p.arm === history.reference);
+if (pin) data.baseline = { sha: pin.sha, date: pin.date };
 writeFileSync(path.join(dir, 'data.json'), JSON.stringify(data, null, 1) + '\n');
 
 const MARKER = '/*DATA*/null';
