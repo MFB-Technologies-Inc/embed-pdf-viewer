@@ -62,6 +62,19 @@ public readonly record struct PageGeometry(RenderRotation Turn, PdfSize PageSize
     /// <summary>Converts a rect on the page as shown to unrotated page space: the bounding box of its converted corners.</summary>
     public PdfRect ToPage(PdfRect rect) => Bounds(ToPage(new PdfPoint(rect.X, rect.Y)), ToPage(new PdfPoint(rect.X + rect.Width, rect.Y + rect.Height)));
 
+    /// <summary>
+    /// Turns an unrotated page render clockwise by <see cref="Turn"/> so it
+    /// matches the page as shown. Returns <paramref name="image"/> itself for
+    /// <see cref="RenderRotation.None"/>; otherwise a packed copy in the same
+    /// format and alpha. Each call for a turned page copies every pixel, so a
+    /// caller that shows the same render on every frame keeps the turned copy.
+    /// </summary>
+    public PixelBuffer ToDisplay(PixelBuffer image)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        return image.Turned(Turn);
+    }
+
     // A quarter turn maps opposite corners to opposite corners, so two of
     // them bound the rect.
     static PdfRect Bounds(PdfPoint a, PdfPoint b)

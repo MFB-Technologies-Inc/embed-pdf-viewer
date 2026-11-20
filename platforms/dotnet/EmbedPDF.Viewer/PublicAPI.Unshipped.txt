@@ -559,6 +559,7 @@ EmbedPDF.PageGeometry.PageSize.init -> void
 EmbedPDF.PageGeometry.Rotation.get -> int
 EmbedPDF.PageGeometry.ToDisplay(EmbedPDF.PdfPoint point) -> EmbedPDF.PdfPoint
 EmbedPDF.PageGeometry.ToDisplay(EmbedPDF.PdfRect rect) -> EmbedPDF.PdfRect
+EmbedPDF.PageGeometry.ToDisplay(EmbedPDF.PixelBuffer! image) -> EmbedPDF.PixelBuffer!
 EmbedPDF.PageGeometry.ToPage(EmbedPDF.PdfPoint point) -> EmbedPDF.PdfPoint
 EmbedPDF.PageGeometry.ToPage(EmbedPDF.PdfRect rect) -> EmbedPDF.PdfRect
 EmbedPDF.PageGeometry.Turn.get -> EmbedPDF.RenderRotation
@@ -829,6 +830,22 @@ EmbedPDF.PdfViewerOptionsBuilder.Stage(EmbedPDF.StageConfig! config) -> EmbedPDF
 EmbedPDF.PdfViewerOptionsBuilder.Stamp(EmbedPDF.StampConfig! config) -> EmbedPDF.PdfViewerOptionsBuilder!
 EmbedPDF.PdfViewerOptionsBuilder.StandardCommands(System.Collections.Generic.IEnumerable<EmbedPDF.StandardCommandList>! lists) -> EmbedPDF.PdfViewerOptionsBuilder!
 EmbedPDF.PdfViewerOptionsBuilder.ViewManager(bool enabled = true) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PixelBuffer
+EmbedPDF.PixelBuffer.CopyPixelsTo(System.Span<byte> destination, int destinationStride) -> void
+EmbedPDF.PixelBuffer.Format.get -> EmbedPDF.PixelFormat
+EmbedPDF.PixelBuffer.GetRow(int y) -> System.ReadOnlySpan<byte>
+EmbedPDF.PixelBuffer.Height.get -> int
+EmbedPDF.PixelBuffer.IsPremultiplied.get -> bool
+EmbedPDF.PixelBuffer.PixelBuffer(byte[]! pixels, int width, int height, int stride, EmbedPDF.PixelFormat format = EmbedPDF.PixelFormat.Rgba8, bool isPremultiplied = false) -> void
+EmbedPDF.PixelBuffer.Pixels.get -> System.ReadOnlyMemory<byte>
+EmbedPDF.PixelBuffer.Stride.get -> int
+EmbedPDF.PixelBuffer.ToFormat(EmbedPDF.PixelFormat format) -> EmbedPDF.PixelBuffer!
+EmbedPDF.PixelBuffer.ToPacked() -> EmbedPDF.PixelBuffer!
+EmbedPDF.PixelBuffer.ToPremultiplied() -> EmbedPDF.PixelBuffer!
+EmbedPDF.PixelBuffer.Width.get -> int
+EmbedPDF.PixelFormat
+EmbedPDF.PixelFormat.Bgra8 = 1 -> EmbedPDF.PixelFormat
+EmbedPDF.PixelFormat.Rgba8 = 0 -> EmbedPDF.PixelFormat
 EmbedPDF.PluginErrorInfo
 EmbedPDF.PluginErrorInfo.<Clone>$() -> EmbedPDF.PluginErrorInfo!
 EmbedPDF.PluginErrorInfo.Capability.get -> string!
