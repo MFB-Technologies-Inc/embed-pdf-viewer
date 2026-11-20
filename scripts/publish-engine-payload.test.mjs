@@ -13,6 +13,7 @@ import {
   pinEngine,
   releaseRepo,
   stagedRelease,
+  xcframeworkCommand,
 } from './publish-engine-payload.mjs';
 
 const repo = fileURLToPath(new URL('..', import.meta.url));
@@ -106,6 +107,21 @@ test('lays stagings at any path out as one LIB_ROOT', (t) => {
   t.after(() => rmSync(root, { recursive: true, force: true }));
   for (const { target } of stamps) {
     assert.equal(readFileSync(path.join(root, target, 'lib/libembedpdf.a'), 'utf8'), target);
+  }
+});
+
+test('assembles prebuilt Rust slices only when EMBEDPDF_APPLE_SLICES_PREBUILT is 1', () => {
+  const script = 'bash platforms/apple/build-xcframework.sh';
+  assert.equal(xcframeworkCommand('/tmp/root', {}), `LIB_ROOT="/tmp/root" ${script}`);
+  assert.equal(
+    xcframeworkCommand('/tmp/root', { EMBEDPDF_APPLE_SLICES_PREBUILT: '1' }),
+    `LIB_ROOT="/tmp/root" ${script} --assemble`,
+  );
+  for (const value of ['', '0', 'true']) {
+    assert.equal(
+      xcframeworkCommand('/tmp/root', { EMBEDPDF_APPLE_SLICES_PREBUILT: value }),
+      `LIB_ROOT="/tmp/root" ${script}`,
+    );
   }
 });
 

@@ -11,8 +11,13 @@ name: release-apple
 #                    current (exit 0, the manifests pin this tree's engine:
 #                    nothing else runs), build (exit 1, not released yet) or
 #                    pin (exit 2, released but not pinned).
+#   rust-slice       on build only, one runner per Apple target: that target's
+#                    Rust archive and generated Swift, from
+#                    build-xcframework.sh --slice, uploaded as
+#                    apple-rust-<target>.
 #   build            --stage build. On build it makes the zip and its facts
-#                    and uploads them as apple-xcframework. On pin the script
+#                    and uploads them as apple-xcframework, from the four
+#                    apple-rust-* (EMBEDPDF_APPLE_SLICES_PREBUILT=1). On pin the script
 #                    pins both manifests from the existing release, makes no
 #                    zip, and this job uploads the manifests as apple-manifests;
 #                    nothing after it runs.
@@ -98,9 +103,93 @@ jobs:
           echo "apple-engine-$hash: $state"
           echo "state=$state" >> "$GITHUB_OUTPUT"
 
-  build:
+  # Each slice is a full LTO build of epdf-viewer-host; one after another on
+  # one runner they took over 30 minutes. build puts all four back in
+  # platforms/apple/.build and assembles them.
+  rust-slice:
     needs: check
-    if: needs.check.outputs.state != 'current'
+    if: needs.check.outputs.state == 'build'
+    runs-on: xcode-27
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        fork: [ios-arm64, ios-sim-arm64, darwin-static-arm64, darwin-static-x64]
+    env:
+      FORK: ${{ matrix.fork }}
+    steps:
+      # No submodules: cargo reads PDFium from the fork slice, and the stamp
+      # reads the runtime-src gitlink from the index.
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      # build-xcframework.sh passes it to cargo as -j; the job env can't run
+      # sysctl.
+      - name: Set the work directory and build parallelism
+        run: |
+          {
+            echo "PERF_WORK_DIR=$RUNNER_TEMP/work"
+            echo "CARGO_BUILD_JOBS=$(sysctl -n hw.ncpu)"
+          } >> "$GITHUB_ENV"
+
+      # stamp-fork-slice.mjs uses Node's built-ins only.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - uses: ./.github/actions/setup-xcode-27
+
+      # Also exports EMBEDPDF_NM. One cache per slice, so the four don't
+      # overwrite each other's.
+      - uses: ./.github/actions/setup-rust
+        with:
+          targets: aarch64-apple-ios aarch64-apple-ios-sim aarch64-apple-darwin x86_64-apple-darwin
+          cache-key: apple-${{ matrix.fork }}
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: fork-slice-${{ matrix.fork }}
+          path: ${{ runner.temp }}/fork-slice-${{ matrix.fork }}
+
+      # Exit 65 when the slice isn't its target at the runtime-src gitlink.
+      # LIB_ROOT is the layout libRootFor gives build-xcframework.sh:
+      # <root>/<target> is the slice's staging.
+      - name: Stamp the fork slice
+        run: |
+          staging=$RUNNER_TEMP/fork-slice-$FORK/staging
+          node scripts/release/stamp-fork-slice.mjs "$FORK" "$staging"
+          root=$RUNNER_TEMP/lib-root
+          mkdir -p "$root"
+          ln -s "$staging" "$root/$FORK"
+          echo "LIB_ROOT=$root" >> "$GITHUB_ENV"
+
+      - name: Build the Rust slice
+        run: bash platforms/apple/build-xcframework.sh --slice "$FORK"
+
+      # Copied out of .build so the artifact's root is fixed: build downloads
+      # every apple-rust-* into platforms/apple/.build as they were.
+      - name: Collect the slice
+        run: |
+          out=$RUNNER_TEMP/apple-rust
+          mkdir -p "$out"
+          cp -R "platforms/apple/.build/$FORK" "platforms/apple/.build/generated-$FORK" "$out/"
+          find "$out" -maxdepth 2 -print
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: apple-rust-${{ matrix.fork }}
+          path: ${{ runner.temp }}/apple-rust/
+          if-no-files-found: error
+
+  build:
+    needs: [check, rust-slice]
+    # rust-slice runs on build only, so pin must not wait for its success.
+    if: >-
+      !cancelled() && (needs.check.outputs.state == 'pin'
+      || (needs.check.outputs.state == 'build' && needs.rust-slice.result == 'success'))
     runs-on: xcode-27
     timeout-minutes: 240
     outputs:
@@ -165,6 +254,15 @@ jobs:
           name: fork-slice-darwin-static-x64
           path: ${{ runner.temp }}/fork-slice-darwin-static-x64
 
+      # The Rust archives and their generated Swift, where
+      # build-xcframework.sh --slice left them on each rust-slice runner.
+      - uses: actions/download-artifact@v7
+        if: env.STATE == 'build'
+        with:
+          pattern: apple-rust-*
+          merge-multiple: true
+          path: platforms/apple/.build
+
       # Exit 65 when a slice isn't its target at the runtime-src gitlink.
       - name: Stamp the fork slices
         if: env.STATE == 'build'
@@ -176,9 +274,12 @@ jobs:
       # On build: the zip and its facts in platforms/apple/.build/publish, the
       # zip unpacked to platforms/apple/EmbedPDF/EmbedPDFBindings.xcframework.
       # On pin: both manifests rewritten from the release's .sha256, no zip.
+      # EMBEDPDF_APPLE_SLICES_PREBUILT=1 has build-xcframework.sh --assemble
+      # the downloaded slices rather than build them; pin builds nothing.
       - name: Build the engine
         env:
           GH_TOKEN: ${{ github.token }}
+          EMBEDPDF_APPLE_SLICES_PREBUILT: '1'
         run: node scripts/publish-engine-payload.mjs --only apple --stage build
 
       # The zip and its facts only. upload-artifact stores symlinks as copies,

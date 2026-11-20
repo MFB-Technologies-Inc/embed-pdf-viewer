@@ -988,6 +988,15 @@ export function libRootFor(stamps) {
   return root;
 }
 
+// The build-xcframework.sh run --stage build makes. With
+// EMBEDPDF_APPLE_SLICES_PREBUILT=1 the four Rust slices and their generated
+// Swift are already in platforms/apple/.build (release-apple.yml builds each
+// on its own runner), so the script only assembles them.
+export function xcframeworkCommand(libRoot, env = process.env) {
+  const assemble = env.EMBEDPDF_APPLE_SLICES_PREBUILT === '1' ? ' --assemble' : '';
+  return `LIB_ROOT=${JSON.stringify(libRoot)} bash platforms/apple/build-xcframework.sh${assemble}`;
+}
+
 function publishApple() {
   const ZIP = 'EmbedPDFBindings.xcframework.zip';
   // A manifest that pinEngine can't rewrite would only be found after the
@@ -1098,7 +1107,7 @@ function publishApple() {
     }
     const libRoot = libRootFor([device, simulator, macArm64, macX64]);
     try {
-      sh(`LIB_ROOT=${JSON.stringify(libRoot)} bash platforms/apple/build-xcframework.sh`);
+      sh(xcframeworkCommand(libRoot));
     } finally {
       rmSync(libRoot, { recursive: true, force: true });
     }
