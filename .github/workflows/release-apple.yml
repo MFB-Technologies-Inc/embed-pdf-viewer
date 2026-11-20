@@ -5,7 +5,9 @@ name: release-apple
 # scripts/publish-engine-payload.mjs --only apple split into its two stages.
 # Its PDFium is the four Apple slices release-fork-slices.yml uploaded
 # (fork-slice-<target>), stamped into buildFork's cache so the fork is not
-# built again.
+# built again. The caller runs it twice, once per stage, with its approval
+# between them: stage build runs check through the test jobs, stage publish
+# runs publish only, given the build stage's state, apple_tag and checksum.
 #
 #   check            runs check-apple-engine.sh. Its verdict is the state:
 #                    current (exit 0, the manifests pin this tree's engine:
@@ -24,12 +26,12 @@ name: release-apple
 #   test-ios,        the published bytes, unzipped beside the manifest, under
 #   test-mac-arm64,  EMBEDPDF_PREBUILT_ENGINE=local: the tests publishApple
 #   test-mac-x86_64  runs between its build and its release, one runner each.
-#   publish          --stage publish under the release environment: creates the
-#                    release with the job's token, pins both manifests and
-#                    uploads them as apple-manifests.
+#   publish          --stage publish: creates the release with the job's
+#                    token, pins both manifests and uploads them as
+#                    apple-manifests.
 #
-# dry_run runs every job; publish runs without the environment, prints the gh
-# command, and pins the manifests to the tag and checksum the
+# dry_run runs every job; publish prints the gh command, and pins the
+# manifests to the tag and checksum the
 # release would have, so apple-manifests looks as it would after a real run.
 #
 # The pinned manifests are uploaded, not committed: the release names the
@@ -43,15 +45,35 @@ on:
         required: false
         type: boolean
         default: false
+      stage:
+        description: build (check through the tests) or publish (publish only).
+        required: false
+        type: string
+        default: build
+      state:
+        description: "Stage publish only: the build stage's state output. 'build' publishes."
+        required: false
+        type: string
+        default: ''
+      apple_tag:
+        description: Stage publish only, the build stage's apple_tag output.
+        required: false
+        type: string
+        default: ''
+      checksum:
+        description: Stage publish only, the build stage's checksum output.
+        required: false
+        type: string
+        default: ''
     outputs:
       apple_tag:
-        description: This tree's engine release tag, apple-engine-<hash>.
+        description: This tree's engine release tag, apple-engine-<hash>. Stage build only.
         value: ${{ jobs.check.outputs.tag }}
       checksum:
-        description: The SwiftPM checksum the manifests pin for apple_tag. Empty when state is current.
+        description: "The SwiftPM checksum the manifests pin for apple_tag: the build's, or on stage publish the release's. Empty when state is current."
         value: ${{ jobs.publish.outputs.checksum || jobs.build.outputs.checksum }}
       state:
-        description: "current (nothing to do), build (built, tested and published) or pin (already released, only pinned). apple-manifests exists for build and pin."
+        description: "Stage build only: current (nothing to do), build (built and tested; stage publish releases it) or pin (already released, only pinned). apple-manifests exists for pin after stage build, and for build after stage publish."
         value: ${{ jobs.check.outputs.state }}
 
 permissions:
@@ -69,6 +91,7 @@ env:
 
 jobs:
   check:
+    if: inputs.stage == 'build'
     # Preview image label; actionlint 1.7.12 does not list it yet.
     runs-on: xcode-27
     timeout-minutes: 10
@@ -87,7 +110,6 @@ jobs:
         id: check
         env:
           GH_TOKEN: ${{ github.token }}
-          DRY_RUN: ${{ inputs.dry_run }}
         run: |
           gh --version | sed -n 1p
           hash=$(bash platforms/apple/apple-engine-hash.sh)
@@ -103,12 +125,6 @@ jobs:
           esac
           echo "apple-engine-$hash: $state"
           echo "state=$state" >> "$GITHUB_OUTPUT"
-          # For the reviewers of the train's pin job, which has nothing to
-          # commit. On build and pin the job that pins the manifests says
-          # what it commits.
-          if [[ "$state" == current ]]; then
-            bash scripts/release/release-summary.sh pin "apple-engine-$hash" >> "$GITHUB_STEP_SUMMARY"
-          fi
 
   # Each slice is a full LTO build of epdf-viewer-host; one after another on
   # one runner they took over 30 minutes. build puts all four back in
@@ -319,25 +335,6 @@ jobs:
           echo "$TAG checksum $checksum"
           echo "checksum=$checksum" >> "$GITHUB_OUTPUT"
 
-      # For the reviewers of the next gate: publish's on build, the train's
-      # pin job's on pin.
-      - name: Summarize the release
-        env:
-          DRY_RUN: ${{ inputs.dry_run }}
-          CHECKSUM: ${{ steps.result.outputs.checksum }}
-        run: |
-          if [[ "$STATE" == pin ]]; then
-            bash scripts/release/release-summary.sh pin "$TAG" >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          zip=$RUNNER_TEMP/apple-xcframework/EmbedPDFBindings.xcframework.zip
-          # The .sha256 asset --stage publish writes beside the zip.
-          sums=$RUNNER_TEMP/apple-summary/EmbedPDFBindings.xcframework.zip.sha256
-          mkdir -p "${sums%/*}"
-          printf '%s  %s\n' "$CHECKSUM" EmbedPDFBindings.xcframework.zip > "$sums"
-          bash scripts/release/release-summary.sh release "$TAG" "$TAG" "$(jq -r .head "$zip.json")" \
-            "$zip" "$sums" >> "$GITHUB_STEP_SUMMARY"
-
       - uses: actions/upload-artifact@v6
         if: env.STATE == 'build'
         with:
@@ -542,23 +539,19 @@ jobs:
             -destination "platform=macOS,arch=$ARCH" -jobs 2 \
             -derivedDataPath "$RUNNER_TEMP/derived-$ARCH"
 
+  # The caller's approval gates it; apple-xcframework comes from the build
+  # stage's call in the same run.
   publish:
-    name: publish ${{ needs.check.outputs.tag }}
-    needs: [check, build, test-ios, test-mac-arm64, test-mac-x86_64]
-    if: needs.check.outputs.state == 'build'
+    if: inputs.stage == 'publish' && inputs.state == 'build'
     runs-on: xcode-27
     timeout-minutes: 45
-    # No environment on a dry run: nothing to approve.
-    environment:
-      name: ${{ !inputs.dry_run && 'release' || '' }}
-      url: https://github.com/${{ github.repository }}/releases/tag/${{ needs.check.outputs.tag }}
     permissions:
       contents: write
     outputs:
       checksum: ${{ steps.pinned.outputs.checksum }}
     env:
-      TAG: ${{ needs.check.outputs.tag }}
-      CHECKSUM: ${{ needs.build.outputs.checksum }}
+      TAG: ${{ inputs.apple_tag }}
+      CHECKSUM: ${{ inputs.checksum }}
       DRY_RUN: ${{ inputs.dry_run }}
     steps:
       # Its token can write to this repo, so nothing here runs build code:
@@ -625,10 +618,6 @@ jobs:
           fi
           git diff --stat
           echo "checksum=$checksum" >> "$GITHUB_OUTPUT"
-
-      # For the reviewers of the train's pin job.
-      - name: Summarize the pin
-        run: bash scripts/release/release-summary.sh pin "$TAG" >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v6
         with:

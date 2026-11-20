@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# Prints, as markdown for $GITHUB_STEP_SUMMARY, what one of the release train's
-# gated jobs is about to publish. GitHub's approval dialog names only the
-# environment, and a gated job's steps don't run until it is approved, so the
-# job before each gate writes this for the reviewers.
+# Prints, as markdown for $GITHUB_STEP_SUMMARY, one release the release train
+# is about to publish, for its summarize job. GitHub's approval dialog names
+# only the environment, and a gated job's steps don't run until it is
+# approved, so the job before the gate writes this for the reviewers.
 #
-#   release-summary.sh release <tag> <title> <target-sha> [asset-path ...]
+#   release-summary.sh release <tag> <title> <target> [asset-path ...]
 #   release-summary.sh pin <tag>
 #
 # release: the release's tag, title and target commit, and each asset with its
-# size and SHA-256. Every release the train makes is a prerelease.
+# size and SHA-256. Every release the train makes is a prerelease. A target
+# that isn't a full sha (a commit not made yet) is printed as given.
 # pin: the diff of each Apple manifest in the working tree against HEAD, which
 # the train's pin job commits as "build(apple): pin <tag>".
 #
@@ -34,7 +35,7 @@ sha256() {
 
 case "${1:-}" in
   release)
-    [[ $# -ge 4 ]] || fail "usage: release-summary.sh release <tag> <title> <target-sha> [asset-path ...]"
+    [[ $# -ge 4 ]] || fail "usage: release-summary.sh release <tag> <title> <target> [asset-path ...]"
     tag=$2 title=$3 target=$4
     shift 4
     for asset in "$@"; do
@@ -46,7 +47,11 @@ case "${1:-}" in
     echo "| --- | --- |"
     echo "| Tag | [\`$tag\`]($url/releases/tag/$tag) |"
     echo "| Title | $title |"
-    echo "| Target commit | [\`$target\`]($url/commit/$target) |"
+    if [[ "$target" =~ ^[0-9a-f]{40}$ ]]; then
+      echo "| Target commit | [\`$target\`]($url/commit/$target) |"
+    else
+      echo "| Target commit | $target |"
+    fi
     echo "| Prerelease | yes |"
     echo
     if [[ $# -eq 0 ]]; then

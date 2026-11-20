@@ -5,16 +5,19 @@ name: release-runtime
 # release-fork-slices.yml uploaded (fork-slice-<target>), plus the manifest
 # write-manifest.sh writes from them. Nothing is built here.
 #
+# The caller runs it twice, once per stage, with its approval between them.
+#
+#   stage build:
 #   check    is runtime-<sha> already out? Then nothing else runs.
 #   prepare  downloads the slices, runs the fork's upstream freshness report
 #            and manifest scripts at <sha>, uploads the release files.
-#   publish  creates the release with the job's token, under the release
-#            environment, so its reviewers approve after the work is done.
+#
+#   stage publish, given the build stage's published output:
+#   publish  creates the release from prepare's files with the job's token.
 #            The tag targets github.sha, the viewer commit whose gitlink
 #            names <sha>: the fork's commits aren't in this repo.
 #
-# dry_run runs every job without the environment, and prints the gh command
-# instead of running it.
+# dry_run prints the gh command instead of running it.
 
 on:
   workflow_call:
@@ -28,12 +31,22 @@ on:
         required: false
         type: boolean
         default: false
+      stage:
+        description: build (check and prepare) or publish (publish only).
+        required: false
+        type: string
+        default: build
+      published:
+        description: "Stage publish only: the build stage's published output. 'false' publishes."
+        required: false
+        type: string
+        default: ''
     outputs:
       tag:
-        description: The runtime release tag, runtime-<sha>.
+        description: The runtime release tag, runtime-<sha>. Stage build only.
         value: ${{ jobs.check.outputs.tag }}
       published:
-        description: "'true' when the release already existed and this run skipped it."
+        description: "'true' when the release already existed and this run skipped it. Stage build only."
         value: ${{ jobs.check.outputs.published }}
 
 permissions:
@@ -49,6 +62,7 @@ env:
 
 jobs:
   check:
+    if: inputs.stage == 'build'
     runs-on: ubuntu-24.04
     outputs:
       tag: ${{ steps.view.outputs.tag }}
@@ -90,7 +104,7 @@ jobs:
 
   prepare:
     needs: check
-    if: needs.check.outputs.published == 'false'
+    if: inputs.stage == 'build' && needs.check.outputs.published == 'false'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -193,44 +207,22 @@ jobs:
           jq -e '.sha == env.RUNTIME_SHA and (.artifacts | keys | sort) == ["android-arm64","android-x64","linux-arm64","wasm32","wasm32-eh"]' "$manifest" >/dev/null \
             || { echo "::error::the manifest doesn't list exactly the five targets at $RUNTIME_SHA"; exit 1; }
 
-      # For release-summary.sh only.
-      - uses: actions/checkout@v6
-        with:
-          path: viewer
-          fetch-depth: 1
-          sparse-checkout: scripts/release
-          persist-credentials: false
-
-      # For publish's reviewers: what it releases, as it releases it.
-      - name: Summarize the release
-        env:
-          TAG: ${{ needs.check.outputs.tag }}
-          DRY_RUN: ${{ inputs.dry_run }}
-        run: |
-          OUT=$RUNNER_TEMP/runtime-release
-          bash viewer/scripts/release/release-summary.sh release "$TAG" "EmbedPDF PDF Runtime $RUNTIME_SHA" "$GITHUB_SHA" \
-            "$OUT"/assets/*.tar.gz "$OUT/assets/pdf-runtime-build.generated.json" >> "$GITHUB_STEP_SUMMARY"
-
       - uses: actions/upload-artifact@v6
         with:
           name: runtime-release
           path: ${{ runner.temp }}/runtime-release/
           if-no-files-found: error
 
+  # The caller's approval gates it; prepare's files come from the build
+  # stage's call in the same run.
   publish:
-    name: publish ${{ needs.check.outputs.tag }}
-    needs: [check, prepare]
-    if: needs.check.outputs.published == 'false'
+    if: inputs.stage == 'publish' && inputs.published == 'false'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    # No environment on a dry run: nothing to approve.
-    environment:
-      name: ${{ !inputs.dry_run && 'release' || '' }}
-      url: https://github.com/${{ github.repository }}/releases/tag/${{ needs.check.outputs.tag }}
     permissions:
       contents: write
     env:
-      TAG: ${{ needs.check.outputs.tag }}
+      TAG: runtime-${{ inputs.runtime_sha }}
       DRY_RUN: ${{ inputs.dry_run }}
       GH_TOKEN: ${{ github.token }}
     steps:

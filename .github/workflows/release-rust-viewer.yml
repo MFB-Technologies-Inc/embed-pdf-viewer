@@ -4,11 +4,11 @@ name: release-rust-viewer
 # from packages/rust-viewer-bundle (@mfb/embedpdf-rust-viewer), and uploads it as the
 # rust-viewer-tarball artifact for the release train.
 #
-# The PDFium payload (runtime-payloads-<hash>) comes from the payload release
-# repo; release-payload.yml publishes it earlier in the train, so the caller's
-# `needs` guarantees it exists and the fetch does not poll. On a dry run that
-# payload is not released, so the caller passes payload_artifact instead: the
-# payload-wasm32 artifact release-payload.yml's verify job built.
+# The PDFium payload (runtime-payloads-<hash>) is fetched from the payload
+# release repo when it is already released. When the train builds a new one,
+# it is not released until after the train's approval, which waits for this
+# build, so the caller passes payload_artifact instead: the payload-wasm32
+# artifact release-payload.yml's verify job built.
 #
 # The bundle's vite.config.ts records `git rev-parse HEAD`, the branch and a
 # dirty flag in `buildInfo`, so the build runs on a clean checkout of
@@ -190,13 +190,6 @@ jobs:
             echo "- commit: \`$sha\`"
             echo "- sha256: \`$(sha256sum "$TARBALL" | cut -d' ' -f1)\`, $(stat -c %s "$TARBALL") bytes"
           } >> "$GITHUB_STEP_SUMMARY"
-
-      # For the reviewers of the release train's viewer-release, which tags
-      # this commit with the tarball as its one asset.
-      - name: Summarize the release
-        run: |
-          bash scripts/release/release-summary.sh release "rust-viewer-$VERSION" "Rust viewer bundle $VERSION" \
-            "$(git rev-parse HEAD)" "packages/rust-viewer-bundle/$TARBALL" >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v6
         with:
