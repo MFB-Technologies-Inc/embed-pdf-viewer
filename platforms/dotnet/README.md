@@ -139,6 +139,8 @@ the pin and the tree disagree.
 The facade's resolver loads PDFium from the host's directory, then the host. It looks beside the
 application first, then in `runtimes/<rid>/native` under it. A runtime with no library fails with
 `NativeRuntimeNotFoundException`, a `PdfException` that names the RID and every path it tried.
+When a library is there but won't load, the message says so and the loader's error is the inner
+exception.
 The packaged Linux host also carries a `$ORIGIN` runpath. `LD_LIBRARY_PATH` is never needed.
 
 Build and check one RID in the dev container, from the repository root:
@@ -161,7 +163,7 @@ EPDF_IMAGE_ID=sha256:<image> python3 platforms/dotnet/packaging/package.py valid
 record, so a slice edited after staging can't be packed. The generator needs an unstripped host,
 because the uniffi metadata lives in the symbol table that `build-viewer-host.sh` strips.
 
-Sizes measured at `2fefea8ab` (engine `0.0.0-engine.18469524870238e6`), in bytes:
+Sizes measured at `0d97ddc53` (engine `0.0.0-engine.96f2f8af10194b63`), in bytes:
 
 | RID | `libepdf_viewer_host` | PDFium (`libembedpdf`) | glibc floor (host, PDFium) | Validation |
 |---|---|---|---|---|
@@ -169,8 +171,8 @@ Sizes measured at `2fefea8ab` (engine `0.0.0-engine.18469524870238e6`), in bytes
 | `linux-x64` | 33,652,040 | 11,616,560 | 2.35, 2.25 | container-emulated, `validation/2026-11-20-phase-1-runtime-linux-x64` |
 | `osx-arm64`, `osx-x64`, `win-x64` | not built here | | | `UNVALIDATED` |
 
-The `EmbedPDF.Runtime` nupkg with those two RIDs is 38,057,860 bytes, and the `EmbedPDF` nupkg is
-1,221,728. The linux-x64 host was cross-built on arm64 and run under emulation. That is not
+The `EmbedPDF.Runtime` nupkg with those two RIDs is 38,057,855 bytes, and the `EmbedPDF` nupkg is
+1,221,724. The linux-x64 host was cross-built on arm64 and run under emulation. That is not
 native-host evidence. `.github/workflows/release-dotnet.yml` builds and validates the macOS and
 Windows RIDs, but it has not run yet.
 

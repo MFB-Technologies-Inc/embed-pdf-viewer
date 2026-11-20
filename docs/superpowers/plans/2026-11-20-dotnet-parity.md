@@ -291,6 +291,23 @@ and fail when PDFium is hidden. `osx-arm64`, `osx-x64` and `win-x64` stay `UNVAL
 workflow builds, packs and validates them but has not run. Sizes are in `platforms/dotnet/README.md`,
 "Viewer packages".
 
+Layout. The runtime package keeps `epdf-assets.json` (the slice record), `epdf-runtime.json`
+(the PDFium pin) and the license files under `runtimes/<rid>/native/` beside the libraries. That
+matches `EmbedPDF.Engine`, whose `package.py pack` puts the same identity files, notices and fonts
+in `native/`, so both packages read the same way.
+
+Review fixes (2026-11-20). The engine hash now covers `LICENSE` and
+`packages/engine/runtime/engine-runtime-build.json`, which staging copies into every slice, and a
+test edits each packaged input and checks the hash moves. The resolver keeps the loader's error
+when a host is present but won't load ("found but failed to load", inner exception or
+`AggregateException`). `pack-runtime` checks each slice's archive hash against the pin, refuses
+slices staged from a dirty tree without `--allow-dirty`, compares packed bytes rather than names,
+removes its staging directory, and lists package paths in the manifest. `EmbedPDF` tracks its
+public surface with `Microsoft.CodeAnalysis.PublicApiAnalyzers` 5.6.0 (D8). The workflow validates
+`linux-x64` natively on an x64 runner and merges every row's status into one manifest
+(`runtime-record`). Each fix that touched `package.py` moved the engine version: the pin is now
+`0.0.0-engine.96f2f8af10194b63` and both records were rerun at `0d97ddc53`.
+
 ## Phase 2: Facade core
 
 About 1 week. Exit: `PdfViewer` opens, retries, renames and closes documents from bytes, a stream,
@@ -313,6 +330,10 @@ Port, from `platforms/apple/EmbedPDF/Sources/EmbedPDF/`: `PDFViewer.swift`, `PDF
   passes from day one and shrinks to zero.
 - [ ] PublicApiAnalyzers (D8) on `EmbedPDF`.
 - [ ] `EmbedPDF.Extensions.DependencyInjection` with `AddEmbedPdf` (D4).
+- [ ] Every public entry point calls `NativeRuntime.EnsureLoaded()` before it touches generated
+  code, so a missing runtime reaches the caller as `NativeRuntimeNotFoundException`, not wrapped
+  in a `TypeInitializationException` from a generated static constructor. A test pins it (deferred
+  from the Phase 1 review).
 - [ ] Tests: port `ViewerTests`, `DocumentAPITests`, `PDFErrorTests`, `RevisionHubTests`,
   `StreamRuleTests`, `IntegerSurfaceTests`, `FetcherExportTests`, `ViewerConfigBuilderTests` and
   `DisabledPluginTests`, plus the two Review Focus tests owned here.
