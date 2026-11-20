@@ -140,6 +140,7 @@ public final class com/embedpdf/AnnotationCapability {
 	public final fun getSelection ()Lcom/embedpdf/AnnotationSelectionCapability;
 	public final fun getThreads ()Lcom/embedpdf/AnnotationThreadsCapability;
 	public final fun getTools ()Lcom/embedpdf/AnnotationToolsCapability;
+	public final fun getViewer ()Lcom/embedpdf/PdfViewer;
 	public final fun hitTest (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun import (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun import$default (Lcom/embedpdf/AnnotationCapability;Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
@@ -2223,6 +2224,7 @@ public final class com/embedpdf/InteractionCapability {
 	public final fun cursor (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun defaultToolId-UI0PC0A (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun dispatchPointer (Luniffi/epdf_ffi/PointerSample;)V
+	public final fun getViewer ()Lcom/embedpdf/PdfViewer;
 	public final fun hasCursorClaim (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun hasTool-N6U4bZY (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
@@ -3278,6 +3280,7 @@ public final class com/embedpdf/SearchCapability {
 	public final fun error (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun findAll (Luniffi/epdf_plugin_search/SearchQuery;Lcom/embedpdf/ContentInclusion;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun findAll$default (Lcom/embedpdf/SearchCapability;Luniffi/epdf_plugin_search/SearchQuery;Lcom/embedpdf/ContentInclusion;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun getViewer ()Lcom/embedpdf/PdfViewer;
 	public final fun goToHit (ILuniffi/epdf_plugin_search/SearchRevealOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun goToHit$default (Lcom/embedpdf/SearchCapability;ILuniffi/epdf_plugin_search/SearchRevealOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun hitCount (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;

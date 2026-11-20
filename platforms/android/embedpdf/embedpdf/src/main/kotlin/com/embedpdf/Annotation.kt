@@ -88,7 +88,11 @@ public typealias AnnotationFilePicker = uniffi.epdf_plugin_annotation.Annotation
  */
 public class AnnotationCapability internal constructor(
     private val handle: AnnotationHandle,
-    internal val viewer: PdfViewer,
+    /**
+     * The viewer this capability belongs to. A model that follows the
+     * capability reads the viewer's state revisions through it.
+     */
+    public val viewer: PdfViewer,
 ) {
     /** Current annotation settings, including the open per-tool engine field bags. */
     public suspend fun settings(): String = viewer.call { handle.settings() }

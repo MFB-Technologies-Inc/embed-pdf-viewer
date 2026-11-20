@@ -55,7 +55,11 @@ public typealias SearchActiveHitChangedEvent = uniffi.epdf_plugin_search.SearchA
  */
 public class SearchCapability internal constructor(
     private val handle: SearchHandle,
-    internal val viewer: PdfViewer,
+    /**
+     * The viewer this capability belongs to. A model that follows the
+     * capability reads the viewer's state revisions through it.
+     */
+    public val viewer: PdfViewer,
 ) {
     /** Current settings shared by every document using this plugin registration. */
     public suspend fun settings(): SearchSettings = viewer.call { handle.settings() }

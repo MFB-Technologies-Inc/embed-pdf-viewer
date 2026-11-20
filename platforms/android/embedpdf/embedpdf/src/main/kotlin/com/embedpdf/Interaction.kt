@@ -70,7 +70,11 @@ public interface InteractionHandler : uniffi.epdf_plugin_interaction.Interaction
  */
 public class InteractionCapability internal constructor(
     private val handle: InteractionHandle,
-    internal val viewer: PdfViewer,
+    /**
+     * The viewer this capability belongs to. A model that follows the
+     * capability reads the viewer's state revisions through it.
+     */
+    public val viewer: PdfViewer,
 ) {
     /** Current settings shared by every document using this plugin registration. */
     public suspend fun settings(): InteractionSettings = viewer.call { handle.settings() }
