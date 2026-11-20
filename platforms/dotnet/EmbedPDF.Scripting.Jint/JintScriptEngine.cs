@@ -176,6 +176,13 @@ internal sealed class JintRealm : IScriptEngine
                 item.Answer = new ScriptEvaluation.Threw($"out of memory: {error.Message}");
                 item.Poisons = true;
             }
+            catch (Exception) when (Environment.TickCount64 > Volatile.Read(ref deadline.Until))
+            {
+                // Anything that stops the script after its limit, such as a
+                // regex match timing out, is the time limit.
+                item.Answer = new ScriptEvaluation.TimedOut();
+                item.Poisons = true;
+            }
             catch (Exception error)
             {
                 item.Answer = new ScriptEvaluation.Threw(error.Message);
