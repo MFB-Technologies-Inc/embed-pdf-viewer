@@ -21,6 +21,16 @@
     <InternalsVisibleTo Include="EmbedPDF.Viewer.Tests" />
     <PackageReference Include="EmbedPDF.Runtime" Version="$(EmbedPdfRuntimeVersion)" Condition="'$(EmbedPdfPackRuntime)' == 'true'" />
   </ItemGroup>
+  <!--
+    D8: a public surface change fails the build until PublicAPI.Unshipped.txt
+    changes in the same commit. Move entries to PublicAPI.Shipped.txt at a
+    tagged release.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0" PrivateAssets="all" />
+    <AdditionalFiles Include="PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
+  </ItemGroup>
   <Target Name="RequireGeneratedBindings" BeforeTargets="CoreCompile">
     <Error Condition="!Exists('$(MSBuildThisFileDirectory)Generated/epdf_viewer_host.cs')" Text="Generated bindings are missing. Run platforms/dotnet/generate-bindings.sh first." />
   </Target>

@@ -1,0 +1,14 @@
+#nullable enable
+EmbedPDF.NativeRuntime
+EmbedPDF.NativeRuntimeNotFoundException
+EmbedPDF.NativeRuntimeNotFoundException.NativeRuntimeNotFoundException(string! runtimeIdentifier, System.Collections.Generic.IReadOnlyList<string!>! searchedPaths, string! message) -> void
+EmbedPDF.NativeRuntimeNotFoundException.NativeRuntimeNotFoundException(string! runtimeIdentifier, System.Collections.Generic.IReadOnlyList<string!>! searchedPaths, string! message, System.Exception! innerException) -> void
+EmbedPDF.NativeRuntimeNotFoundException.RuntimeIdentifier.get -> string!
+EmbedPDF.NativeRuntimeNotFoundException.SearchedPaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.PdfException
+EmbedPDF.PdfException.PdfException() -> void
+EmbedPDF.PdfException.PdfException(string! message) -> void
+EmbedPDF.PdfException.PdfException(string! message, System.Exception! innerException) -> void
+static EmbedPDF.NativeRuntime.EnsureLoaded() -> void
+static EmbedPDF.NativeRuntime.ReadPageCountAsync(System.ReadOnlyMemory<byte> pdf, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static EmbedPDF.NativeRuntime.RuntimeIdentifier.get -> string!
