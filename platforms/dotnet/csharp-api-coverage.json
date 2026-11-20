@@ -4834,10 +4834,16 @@
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "get_selected",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/page-edit/src/ffi.rs",
         "symbol": "get_selected"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PageEditCapability",
+        "member": "GetSelectedAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4845,10 +4851,17 @@
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "select",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/page-edit/src/ffi.rs",
         "symbol": "select"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PageEditCapability",
+        "member": "SelectAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4856,10 +4869,16 @@
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "can_edit",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/page-edit/src/ffi.rs",
         "symbol": "can_edit"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PageEditCapability",
+        "member": "CanEditAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4867,10 +4886,16 @@
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "can_extract",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/page-edit/src/ffi.rs",
         "symbol": "can_extract"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PageEditCapability",
+        "member": "CanExtractAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4878,10 +4903,18 @@
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "rotate_by",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/page-edit/src/ffi.rs",
         "symbol": "rotate_by"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PageEditCapability",
+        "member": "RotateAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>",
+          "EmbedPDF.PageEditTurn",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4889,10 +4922,18 @@
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "set_rotation",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/page-edit/src/ffi.rs",
         "symbol": "set_rotation"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PageEditCapability",
+        "member": "SetRotationAsync",
+        "parameters": [
+          "EmbedPDF.PageEditRotation",
+          "System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4900,10 +4941,18 @@
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "reorder",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/page-edit/src/ffi.rs",
         "symbol": "move_pages"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PageEditCapability",
+        "member": "MovePagesAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>",
+          "EmbedPDF.PageEditPlacement",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4911,10 +4960,17 @@
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "delete",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/page-edit/src/ffi.rs",
         "symbol": "delete_pages"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PageEditCapability",
+        "member": "DeletePagesAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4922,10 +4978,17 @@
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "insert_blank",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/page-edit/src/ffi.rs",
         "symbol": "insert_blank"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PageEditCapability",
+        "member": "InsertBlankAsync",
+        "parameters": [
+          "EmbedPDF.PageEditBlankOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4933,10 +4996,18 @@
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "insert_from_bytes",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/page-edit/src/ffi.rs",
         "symbol": "insert_from_bytes"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PageEditCapability",
+        "member": "InsertAsync",
+        "parameters": [
+          "System.ReadOnlyMemory<System.Byte>",
+          "EmbedPDF.PageEditBytesOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4944,10 +5015,19 @@
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "insert_from_document",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/page-edit/src/ffi.rs",
         "symbol": "insert_from_document"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PageEditCapability",
+        "member": "InsertAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>",
+          "EmbedPDF.DocumentInfo",
+          "EmbedPDF.PageEditPlacement",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4955,10 +5035,18 @@
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "duplicate",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/page-edit/src/ffi.rs",
         "symbol": "duplicate"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PageEditCapability",
+        "member": "DuplicateAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>",
+          "EmbedPDF.PageEditPlacement",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4966,10 +5054,17 @@
       "path": "crates/plugins/page-edit/src/controller.rs",
       "owner": "PageEditCapability",
       "symbol": "extract",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/page-edit/src/ffi.rs",
         "symbol": "extract"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PageEditCapability",
+        "member": "ExtractAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {

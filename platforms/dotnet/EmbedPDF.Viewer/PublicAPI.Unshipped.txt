@@ -385,6 +385,84 @@ EmbedPDF.PageDestination.Xyz.Y.get -> double?
 EmbedPDF.PageDestination.Xyz.Y.init -> void
 EmbedPDF.PageDestination.Xyz.Zoom.get -> double?
 EmbedPDF.PageDestination.Xyz.Zoom.init -> void
+EmbedPDF.PageEditBlankOptions
+EmbedPDF.PageEditBlankOptions.<Clone>$() -> EmbedPDF.PageEditBlankOptions!
+EmbedPDF.PageEditBlankOptions.Count.get -> int?
+EmbedPDF.PageEditBlankOptions.Count.init -> void
+EmbedPDF.PageEditBlankOptions.Equals(EmbedPDF.PageEditBlankOptions? other) -> bool
+EmbedPDF.PageEditBlankOptions.PageEditBlankOptions() -> void
+EmbedPDF.PageEditBlankOptions.Placement.get -> EmbedPDF.PageEditPlacement?
+EmbedPDF.PageEditBlankOptions.Placement.init -> void
+EmbedPDF.PageEditBlankOptions.Size.get -> EmbedPDF.PdfSize?
+EmbedPDF.PageEditBlankOptions.Size.init -> void
+EmbedPDF.PageEditBytesOptions
+EmbedPDF.PageEditBytesOptions.<Clone>$() -> EmbedPDF.PageEditBytesOptions!
+EmbedPDF.PageEditBytesOptions.Equals(EmbedPDF.PageEditBytesOptions? other) -> bool
+EmbedPDF.PageEditBytesOptions.PageEditBytesOptions() -> void
+EmbedPDF.PageEditBytesOptions.PageIndexes.get -> System.Collections.Generic.IReadOnlyList<int>?
+EmbedPDF.PageEditBytesOptions.PageIndexes.init -> void
+EmbedPDF.PageEditBytesOptions.Placement.get -> EmbedPDF.PageEditPlacement?
+EmbedPDF.PageEditBytesOptions.Placement.init -> void
+EmbedPDF.PageEditCapability
+EmbedPDF.PageEditCapability.CanEditAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.PageEditCapability.CanExtractAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.PageEditCapability.DeletePagesAsync(System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>! pages, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageEditLayout!>!
+EmbedPDF.PageEditCapability.Dispose() -> void
+EmbedPDF.PageEditCapability.DuplicateAsync(System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>! pages, EmbedPDF.PageEditPlacement? placement = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageEditInsertion!>!
+EmbedPDF.PageEditCapability.ExtractAsync(System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>! pages, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<byte[]!>!
+EmbedPDF.PageEditCapability.GetSelectedAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>!>!
+EmbedPDF.PageEditCapability.InsertAsync(System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>! pages, EmbedPDF.DocumentInfo! from, EmbedPDF.PageEditPlacement? placement = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageEditInsertion!>!
+EmbedPDF.PageEditCapability.InsertAsync(System.ReadOnlyMemory<byte> pdf, EmbedPDF.PageEditBytesOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageEditInsertion!>!
+EmbedPDF.PageEditCapability.InsertBlankAsync(EmbedPDF.PageEditBlankOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageEditInsertion!>!
+EmbedPDF.PageEditCapability.MovePagesAsync(System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>! pages, EmbedPDF.PageEditPlacement! placement, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageEditLayout!>!
+EmbedPDF.PageEditCapability.RotateAsync(System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>! pages, EmbedPDF.PageEditTurn turn, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageEditLayout!>!
+EmbedPDF.PageEditCapability.SelectAsync(System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>! pages, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PageEditCapability.SetRotationAsync(EmbedPDF.PageEditRotation rotation, System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>! pages, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageEditLayout!>!
+EmbedPDF.PageEditInsertion
+EmbedPDF.PageEditInsertion.<Clone>$() -> EmbedPDF.PageEditInsertion!
+EmbedPDF.PageEditInsertion.Deconstruct(out System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>! Inserted, out System.Collections.Generic.IReadOnlyList<EmbedPDF.PageInfo!>! Pages) -> void
+EmbedPDF.PageEditInsertion.Equals(EmbedPDF.PageEditInsertion? other) -> bool
+EmbedPDF.PageEditInsertion.Inserted.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>!
+EmbedPDF.PageEditInsertion.Inserted.init -> void
+EmbedPDF.PageEditInsertion.PageEditInsertion(System.Collections.Generic.IReadOnlyList<EmbedPDF.PageRef>! Inserted, System.Collections.Generic.IReadOnlyList<EmbedPDF.PageInfo!>! Pages) -> void
+EmbedPDF.PageEditInsertion.Pages.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.PageInfo!>!
+EmbedPDF.PageEditInsertion.Pages.init -> void
+EmbedPDF.PageEditLayout
+EmbedPDF.PageEditLayout.<Clone>$() -> EmbedPDF.PageEditLayout!
+EmbedPDF.PageEditLayout.Deconstruct(out System.Collections.Generic.IReadOnlyList<EmbedPDF.PageInfo!>! Pages) -> void
+EmbedPDF.PageEditLayout.Equals(EmbedPDF.PageEditLayout? other) -> bool
+EmbedPDF.PageEditLayout.PageEditLayout(System.Collections.Generic.IReadOnlyList<EmbedPDF.PageInfo!>! Pages) -> void
+EmbedPDF.PageEditLayout.Pages.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.PageInfo!>!
+EmbedPDF.PageEditLayout.Pages.init -> void
+EmbedPDF.PageEditPlacement
+EmbedPDF.PageEditPlacement.After
+EmbedPDF.PageEditPlacement.After.After(EmbedPDF.PageRef Page) -> void
+EmbedPDF.PageEditPlacement.After.Deconstruct(out EmbedPDF.PageRef Page) -> void
+EmbedPDF.PageEditPlacement.After.Equals(EmbedPDF.PageEditPlacement.After? other) -> bool
+EmbedPDF.PageEditPlacement.After.Page.get -> EmbedPDF.PageRef
+EmbedPDF.PageEditPlacement.After.Page.init -> void
+EmbedPDF.PageEditPlacement.Before
+EmbedPDF.PageEditPlacement.Before.Before(EmbedPDF.PageRef Page) -> void
+EmbedPDF.PageEditPlacement.Before.Deconstruct(out EmbedPDF.PageRef Page) -> void
+EmbedPDF.PageEditPlacement.Before.Equals(EmbedPDF.PageEditPlacement.Before? other) -> bool
+EmbedPDF.PageEditPlacement.Before.Page.get -> EmbedPDF.PageRef
+EmbedPDF.PageEditPlacement.Before.Page.init -> void
+EmbedPDF.PageEditPlacement.End
+EmbedPDF.PageEditPlacement.End.End() -> void
+EmbedPDF.PageEditPlacement.End.Equals(EmbedPDF.PageEditPlacement.End? other) -> bool
+EmbedPDF.PageEditPlacement.PageEditPlacement(EmbedPDF.PageEditPlacement! original) -> void
+EmbedPDF.PageEditPlacement.Start
+EmbedPDF.PageEditPlacement.Start.Equals(EmbedPDF.PageEditPlacement.Start? other) -> bool
+EmbedPDF.PageEditPlacement.Start.Start() -> void
+EmbedPDF.PageEditRotation
+EmbedPDF.PageEditRotation.Clockwise180 = 2 -> EmbedPDF.PageEditRotation
+EmbedPDF.PageEditRotation.Clockwise270 = 3 -> EmbedPDF.PageEditRotation
+EmbedPDF.PageEditRotation.Clockwise90 = 1 -> EmbedPDF.PageEditRotation
+EmbedPDF.PageEditRotation.None = 0 -> EmbedPDF.PageEditRotation
+EmbedPDF.PageEditTurn
+EmbedPDF.PageEditTurn.Clockwise = 0 -> EmbedPDF.PageEditTurn
+EmbedPDF.PageEditTurn.CounterClockwise = 1 -> EmbedPDF.PageEditTurn
+EmbedPDF.PageEditTurn.Half = 2 -> EmbedPDF.PageEditTurn
 EmbedPDF.PageGeometry
 EmbedPDF.PageGeometry.Deconstruct(out EmbedPDF.RenderRotation Turn, out EmbedPDF.PdfSize PageSize) -> void
 EmbedPDF.PageGeometry.DisplaySize.get -> EmbedPDF.PdfSize
@@ -563,6 +641,7 @@ EmbedPDF.PdfViewer.OpenAsync(System.ReadOnlyMemory<byte> pdf, EmbedPDF.OpenDocum
 EmbedPDF.PdfViewer.OpenAsync(System.Uri! url, EmbedPDF.OpenDocumentOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.DocumentInfo!>!
 EmbedPDF.PdfViewer.OpenFileAsync(string! path, EmbedPDF.OpenDocumentOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.DocumentInfo!>!
 EmbedPDF.PdfViewer.OpenLayerAsync(System.ReadOnlyMemory<byte> basePdf, System.ReadOnlyMemory<byte> layer, EmbedPDF.OpenDocumentOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.DocumentInfo!>!
+EmbedPDF.PdfViewer.PageEditAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageEditCapability!>!
 EmbedPDF.PdfViewer.PdfViewer(EmbedPDF.PdfViewerOptions? options = null) -> void
 EmbedPDF.PdfViewer.RenameAsync(EmbedPDF.DocumentInfo! document, string! name, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.PdfViewer.ResetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -761,6 +840,7 @@ abstract EmbedPDF.MetadataEvent.<Clone>$() -> EmbedPDF.MetadataEvent!
 abstract EmbedPDF.PageDestination.<Clone>$() -> EmbedPDF.PageDestination!
 abstract EmbedPDF.PageDestination.Page.get -> EmbedPDF.PageRef
 abstract EmbedPDF.PageDestination.Page.init -> void
+abstract EmbedPDF.PageEditPlacement.<Clone>$() -> EmbedPDF.PageEditPlacement!
 abstract EmbedPDF.PageLinkTarget.<Clone>$() -> EmbedPDF.PageLinkTarget!
 const EmbedPDF.PageRenderResolution.DeviceWidthStep = 128 -> double
 const EmbedPDF.PageRenderResolution.OffScreenDeviceWidth = 256 -> double
@@ -947,6 +1027,37 @@ override EmbedPDF.PageDestination.Xyz.GetHashCode() -> int
 override EmbedPDF.PageDestination.Xyz.Page.get -> EmbedPDF.PageRef
 override EmbedPDF.PageDestination.Xyz.Page.init -> void
 override EmbedPDF.PageDestination.Xyz.ToString() -> string!
+override EmbedPDF.PageEditBlankOptions.Equals(object? obj) -> bool
+override EmbedPDF.PageEditBlankOptions.GetHashCode() -> int
+override EmbedPDF.PageEditBlankOptions.ToString() -> string!
+override EmbedPDF.PageEditBytesOptions.Equals(object? obj) -> bool
+override EmbedPDF.PageEditBytesOptions.GetHashCode() -> int
+override EmbedPDF.PageEditBytesOptions.ToString() -> string!
+override EmbedPDF.PageEditInsertion.Equals(object? obj) -> bool
+override EmbedPDF.PageEditInsertion.GetHashCode() -> int
+override EmbedPDF.PageEditInsertion.ToString() -> string!
+override EmbedPDF.PageEditLayout.Equals(object? obj) -> bool
+override EmbedPDF.PageEditLayout.GetHashCode() -> int
+override EmbedPDF.PageEditLayout.ToString() -> string!
+override EmbedPDF.PageEditPlacement.After.<Clone>$() -> EmbedPDF.PageEditPlacement.After!
+override EmbedPDF.PageEditPlacement.After.Equals(object? obj) -> bool
+override EmbedPDF.PageEditPlacement.After.GetHashCode() -> int
+override EmbedPDF.PageEditPlacement.After.ToString() -> string!
+override EmbedPDF.PageEditPlacement.Before.<Clone>$() -> EmbedPDF.PageEditPlacement.Before!
+override EmbedPDF.PageEditPlacement.Before.Equals(object? obj) -> bool
+override EmbedPDF.PageEditPlacement.Before.GetHashCode() -> int
+override EmbedPDF.PageEditPlacement.Before.ToString() -> string!
+override EmbedPDF.PageEditPlacement.End.<Clone>$() -> EmbedPDF.PageEditPlacement.End!
+override EmbedPDF.PageEditPlacement.End.Equals(object? obj) -> bool
+override EmbedPDF.PageEditPlacement.End.GetHashCode() -> int
+override EmbedPDF.PageEditPlacement.End.ToString() -> string!
+override EmbedPDF.PageEditPlacement.Equals(object? obj) -> bool
+override EmbedPDF.PageEditPlacement.GetHashCode() -> int
+override EmbedPDF.PageEditPlacement.Start.<Clone>$() -> EmbedPDF.PageEditPlacement.Start!
+override EmbedPDF.PageEditPlacement.Start.Equals(object? obj) -> bool
+override EmbedPDF.PageEditPlacement.Start.GetHashCode() -> int
+override EmbedPDF.PageEditPlacement.Start.ToString() -> string!
+override EmbedPDF.PageEditPlacement.ToString() -> string!
 override EmbedPDF.PageGeometry.GetHashCode() -> int
 override EmbedPDF.PageInfo.Equals(object? obj) -> bool
 override EmbedPDF.PageInfo.GetHashCode() -> int
@@ -1039,6 +1150,10 @@ override sealed EmbedPDF.PageDestination.FitH.Equals(EmbedPDF.PageDestination? o
 override sealed EmbedPDF.PageDestination.FitR.Equals(EmbedPDF.PageDestination? other) -> bool
 override sealed EmbedPDF.PageDestination.FitV.Equals(EmbedPDF.PageDestination? other) -> bool
 override sealed EmbedPDF.PageDestination.Xyz.Equals(EmbedPDF.PageDestination? other) -> bool
+override sealed EmbedPDF.PageEditPlacement.After.Equals(EmbedPDF.PageEditPlacement? other) -> bool
+override sealed EmbedPDF.PageEditPlacement.Before.Equals(EmbedPDF.PageEditPlacement? other) -> bool
+override sealed EmbedPDF.PageEditPlacement.End.Equals(EmbedPDF.PageEditPlacement? other) -> bool
+override sealed EmbedPDF.PageEditPlacement.Start.Equals(EmbedPDF.PageEditPlacement? other) -> bool
 override sealed EmbedPDF.PageLinkTarget.GoTo.Equals(EmbedPDF.PageLinkTarget? other) -> bool
 override sealed EmbedPDF.PageLinkTarget.GoToRemote.Equals(EmbedPDF.PageLinkTarget? other) -> bool
 override sealed EmbedPDF.PageLinkTarget.Launch.Equals(EmbedPDF.PageLinkTarget? other) -> bool
@@ -1172,6 +1287,24 @@ static EmbedPDF.PageDestination.Xyz.operator !=(EmbedPDF.PageDestination.Xyz? le
 static EmbedPDF.PageDestination.Xyz.operator ==(EmbedPDF.PageDestination.Xyz? left, EmbedPDF.PageDestination.Xyz? right) -> bool
 static EmbedPDF.PageDestination.operator !=(EmbedPDF.PageDestination? left, EmbedPDF.PageDestination? right) -> bool
 static EmbedPDF.PageDestination.operator ==(EmbedPDF.PageDestination? left, EmbedPDF.PageDestination? right) -> bool
+static EmbedPDF.PageEditBlankOptions.operator !=(EmbedPDF.PageEditBlankOptions? left, EmbedPDF.PageEditBlankOptions? right) -> bool
+static EmbedPDF.PageEditBlankOptions.operator ==(EmbedPDF.PageEditBlankOptions? left, EmbedPDF.PageEditBlankOptions? right) -> bool
+static EmbedPDF.PageEditBytesOptions.operator !=(EmbedPDF.PageEditBytesOptions? left, EmbedPDF.PageEditBytesOptions? right) -> bool
+static EmbedPDF.PageEditBytesOptions.operator ==(EmbedPDF.PageEditBytesOptions? left, EmbedPDF.PageEditBytesOptions? right) -> bool
+static EmbedPDF.PageEditInsertion.operator !=(EmbedPDF.PageEditInsertion? left, EmbedPDF.PageEditInsertion? right) -> bool
+static EmbedPDF.PageEditInsertion.operator ==(EmbedPDF.PageEditInsertion? left, EmbedPDF.PageEditInsertion? right) -> bool
+static EmbedPDF.PageEditLayout.operator !=(EmbedPDF.PageEditLayout? left, EmbedPDF.PageEditLayout? right) -> bool
+static EmbedPDF.PageEditLayout.operator ==(EmbedPDF.PageEditLayout? left, EmbedPDF.PageEditLayout? right) -> bool
+static EmbedPDF.PageEditPlacement.After.operator !=(EmbedPDF.PageEditPlacement.After? left, EmbedPDF.PageEditPlacement.After? right) -> bool
+static EmbedPDF.PageEditPlacement.After.operator ==(EmbedPDF.PageEditPlacement.After? left, EmbedPDF.PageEditPlacement.After? right) -> bool
+static EmbedPDF.PageEditPlacement.Before.operator !=(EmbedPDF.PageEditPlacement.Before? left, EmbedPDF.PageEditPlacement.Before? right) -> bool
+static EmbedPDF.PageEditPlacement.Before.operator ==(EmbedPDF.PageEditPlacement.Before? left, EmbedPDF.PageEditPlacement.Before? right) -> bool
+static EmbedPDF.PageEditPlacement.End.operator !=(EmbedPDF.PageEditPlacement.End? left, EmbedPDF.PageEditPlacement.End? right) -> bool
+static EmbedPDF.PageEditPlacement.End.operator ==(EmbedPDF.PageEditPlacement.End? left, EmbedPDF.PageEditPlacement.End? right) -> bool
+static EmbedPDF.PageEditPlacement.Start.operator !=(EmbedPDF.PageEditPlacement.Start? left, EmbedPDF.PageEditPlacement.Start? right) -> bool
+static EmbedPDF.PageEditPlacement.Start.operator ==(EmbedPDF.PageEditPlacement.Start? left, EmbedPDF.PageEditPlacement.Start? right) -> bool
+static EmbedPDF.PageEditPlacement.operator !=(EmbedPDF.PageEditPlacement? left, EmbedPDF.PageEditPlacement? right) -> bool
+static EmbedPDF.PageEditPlacement.operator ==(EmbedPDF.PageEditPlacement? left, EmbedPDF.PageEditPlacement? right) -> bool
 static EmbedPDF.PageGeometry.operator !=(EmbedPDF.PageGeometry left, EmbedPDF.PageGeometry right) -> bool
 static EmbedPDF.PageGeometry.operator ==(EmbedPDF.PageGeometry left, EmbedPDF.PageGeometry right) -> bool
 static EmbedPDF.PageInfo.operator !=(EmbedPDF.PageInfo? left, EmbedPDF.PageInfo? right) -> bool
@@ -1255,6 +1388,9 @@ virtual EmbedPDF.MetadataEvent.PrintMembers(System.Text.StringBuilder! builder) 
 virtual EmbedPDF.PageDestination.EqualityContract.get -> System.Type!
 virtual EmbedPDF.PageDestination.Equals(EmbedPDF.PageDestination? other) -> bool
 virtual EmbedPDF.PageDestination.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.PageEditPlacement.EqualityContract.get -> System.Type!
+virtual EmbedPDF.PageEditPlacement.Equals(EmbedPDF.PageEditPlacement? other) -> bool
+virtual EmbedPDF.PageEditPlacement.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual EmbedPDF.PageLinkTarget.EqualityContract.get -> System.Type!
 virtual EmbedPDF.PageLinkTarget.Equals(EmbedPDF.PageLinkTarget? other) -> bool
 virtual EmbedPDF.PageLinkTarget.PrintMembers(System.Text.StringBuilder! builder) -> bool
