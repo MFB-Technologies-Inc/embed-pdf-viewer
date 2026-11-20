@@ -1,6 +1,32 @@
 version: 2
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  # Workflows and the composite actions they call. Third-party actions in the
+  # release jobs are pinned to commit SHAs; Dependabot bumps the SHA and its
+  # version comment together.
+  - package-ecosystem: "github-actions"
+    directories:
+      - "/"
+      - "/.github/actions/*"
     schedule:
       interval: "weekly"
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # The Rust workspace. Cargo.lock feeds the payload and Apple engine hashes,
+  # so every merged bump means a new engine release: monthly, grouped, minor
+  # and patch only. Security fixes still arrive as their own PRs.
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    groups:
+      crates:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # npm is left out on this fork: the TypeScript packages follow upstream,
+  # and fork-side bumps would conflict with upstream syncs of pnpm-lock.yaml.
