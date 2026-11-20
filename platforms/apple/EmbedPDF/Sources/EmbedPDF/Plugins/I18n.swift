@@ -98,7 +98,7 @@ public struct I18nCapability: Sendable {
     try await bridged { try await handle.addTranslations(code: code, translations: translations) }
   }
 
-  /// Finishes when the viewer is destroyed.
+  /// Finishes when the viewer is destroyed. Each read is a new subscription.
   public var events: AsyncStream<I18nEvent> {
     viewer.registry.stream { handle.subscribe(listener: $0) }
   }

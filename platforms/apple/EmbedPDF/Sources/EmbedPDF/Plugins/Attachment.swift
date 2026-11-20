@@ -72,6 +72,7 @@ public struct AttachmentCapability: Sendable {
     try await bridgedCancellable { token in try await handle.download(file: file, cancel: token) }
   }
 
+  /// Each read is a new subscription.
   public var events: AsyncStream<AttachmentEvent> { viewer.registry.stream { handle.subscribe(listener: $0) } }
 }
 

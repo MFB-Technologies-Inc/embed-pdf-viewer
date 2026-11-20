@@ -1,5 +1,6 @@
 import CustomDump
 import EmbedPDF
+@testable import EmbedPDFModels
 @testable import EmbedPDFUI
 import Foundation
 import Observation
@@ -15,7 +16,7 @@ struct StageReaderModelTests {
     let document = try await viewer.open(pluginFixture())
     let pages = try await viewer.pages(of: document)
     let stage = try await viewer.stage(for: document)
-    let render = try await viewer.render(in: document)
+    let render = try await viewer.render(for: document)
     try await stage.setViewportSize(Size(width: 800, height: 600))
     let model = StageReaderModel(stage: stage, render: render)
     let observing = Task { await model.task() }
@@ -40,7 +41,7 @@ struct StageReaderModelTests {
     let url = try #require(Bundle.module.url(forResource: "report", withExtension: "pdf", subdirectory: "Fixtures"))
     let document = try await viewer.open(try Data(contentsOf: url))
     let model = StageReaderModel(
-      stage: try await viewer.stage(for: document), render: try await viewer.render(in: document))
+      stage: try await viewer.stage(for: document), render: try await viewer.render(for: document))
     let task = Task { await model.task() }
     return (model, task)
   }
@@ -308,6 +309,73 @@ struct StageReaderModelTests {
     #expect(try await !model.stage.isMoving())
   }
 
+  /// A double tap while a pinch is open starts a zoom animation. When that
+  /// animation settles the pinch is still open, so the reader keeps zooming
+  /// until the pinch ends too.
+  @Test func aDoubleTapDuringAPinchKeepsZoomingUntilThePinchEnds() async throws {
+    let (model, task) = try await model()
+    defer { task.cancel() }
+    let size = CGSize(width: 390, height: 844)
+    await model.sizeChanged(size, displayScale: 3)
+    model.magnifyChanged(1.2, at: CGPoint(x: 195, y: 422))
+    #expect(model.isZooming)
+    await model.doubleTapped(at: CGPoint(x: 195, y: 422))
+    #expect(model.isZooming)
+    let fired = armObservation { model.isZooming }
+    let deadline = ContinuousClock.now + .seconds(20)
+    while try await model.stage.isMoving(), ContinuousClock.now < deadline {
+      try await Task.sleep(for: .milliseconds(50))
+    }
+    #expect(try await !model.stage.isMoving())
+    // Ends in a refresh, which reads the still stage with no start in flight.
+    await model.sizeChanged(size, displayScale: 3)
+    #expect(!fired.value, "the double tap's settling ended the zoom under an open pinch")
+    #expect(model.isZooming)
+    try await expectObserved({ model.isZooming }, equals: false) {
+      await model.magnifyEnded()
+    }
+  }
+
+  /// A pinch's end reads the still stage. If a new pinch starts before that
+  /// read lands, the read must not end the new pinch's zoom.
+  @Test func aPinchStartedWhileASettleReadIsOutKeepsZooming() async throws {
+    let (model, task) = try await model()
+    defer { task.cancel() }
+    let size = CGSize(width: 390, height: 844)
+    await model.sizeChanged(size, displayScale: 3)
+    let (reached, reach) = AsyncStream<Void>.makeStream()
+    // Every settle read is held, not only the first: a refresh the first
+    // pinch's `zoomChanged` event started can reach the hook ahead of the
+    // pinch end's own, and its read is the one the epoch check drops.
+    var isOpen = false
+    var held: [CheckedContinuation<Void, Never>] = []
+    model.zoomReadReturned = {
+      reach.yield(())
+      if !isOpen { await withCheckedContinuation { held.append($0) } }
+    }
+    // A pinch starts no motion, so the refresh at its end reads the still
+    // stage and is held there.
+    model.magnifyChanged(1.2, at: CGPoint(x: 195, y: 422))
+    let pinch = Task { await model.magnifyEnded() }
+    for await _ in reached { break }
+    // The pinch end's refresh makes three stage calls before the hook. Three
+    // more from here return after them, so its read is held by now too.
+    for _ in 1...3 { #expect(try await !model.stage.isMoving()) }
+    model.magnifyChanged(1.1, at: CGPoint(x: 195, y: 422))
+    #expect(model.isZooming)
+    let ended = await observationFires({ model.isZooming }) {
+      isOpen = true
+      for continuation in held { continuation.resume() }
+      held = []
+      await pinch.value
+    }
+    #expect(!ended, "a settle read taken before the pinch ended its zoom")
+    #expect(model.isZooming)
+    try await expectObserved({ model.isZooming }, equals: false) {
+      await model.magnifyEnded()
+    }
+  }
+
   @Test func disablingPanLeavesTheCameraAlone() async throws {
     let (model, task) = try await model()
     defer { task.cancel() }
@@ -333,6 +401,211 @@ struct StageReaderModelTests {
     #expect(!model.gestureOpen)
   }
 
+  /// The gesture system can take a pan away without ending it. The dropped
+  /// pan closes the stage gesture, and the next drag begins a gesture of its
+  /// own and pans by its own translation, not from where the dropped one
+  /// stopped.
+  @Test func aDroppedPanClosesTheGestureAndTheNextDragDoesNotJump() async throws {
+    let (model, task) = try await model()
+    defer { task.cancel() }
+    await model.sizeChanged(CGSize(width: 390, height: 844), displayScale: 3)
+    // Scrolled down first, so the drags stay inside the document.
+    await model.dragChanged(translation: CGSize(width: 0, height: -400))
+    await model.dragEnded(velocity: .zero)
+    try await untilStill(model)
+    await model.dragChanged(translation: CGSize(width: 0, height: -50))
+    #expect(model.gestureOpen)
+    await model.dragCancelled()
+    #expect(!model.gestureOpen)
+    try await untilStill(model)
+    let dropped = try await model.stage.camera()
+    await model.dragChanged(translation: .zero)
+    #expect(model.gestureOpen)
+    let began = try await model.stage.camera()
+    expectNoDifference(began, dropped)
+    await model.dragChanged(translation: CGSize(width: 0, height: -30))
+    let panned = try await model.stage.camera()
+    #expect(panned.y > dropped.y, "the new drag did not pan: y \(dropped.y) to \(panned.y)")
+    await model.dragEnded(velocity: .zero)
+  }
+
+  /// By default a touch opens the stage gesture before it moves, which is
+  /// what stops a fling under the finger.
+  @Test func aZeroTranslationChangeBeginsAPanByDefault() async throws {
+    let (model, task) = try await model()
+    defer { task.cancel() }
+    await model.sizeChanged(CGSize(width: 390, height: 844), displayScale: 3)
+    #expect(!model.panBeginsOnMovement)
+    await model.dragChanged(translation: .zero)
+    #expect(model.gestureOpen)
+    await model.dragEnded(velocity: .zero)
+    #expect(!model.gestureOpen)
+  }
+
+  @Test func withPanBeginsOnMovementAPanBeginsPastTenPoints() async throws {
+    let (model, task) = try await model()
+    defer { task.cancel() }
+    await model.sizeChanged(CGSize(width: 390, height: 844), displayScale: 3)
+    model.panBeginsOnMovement = true
+    let before = try await model.stage.camera()
+    await model.dragChanged(translation: .zero)
+    #expect(!model.gestureOpen)
+    await model.dragChanged(translation: CGSize(width: 0, height: -50))
+    #expect(model.gestureOpen)
+    await model.dragEnded(velocity: .zero)
+    #expect(!model.gestureOpen)
+    let after = try await model.stage.camera()
+    #expect(after.y > before.y, "the pan did not follow the finger")
+  }
+
+  /// Under a long-press overlay a tap's drag reports only at the lift, so
+  /// its zero-translation change and end reach the stage after the double
+  /// tap has started its zoom. They must leave the zoom running.
+  @Test func aTapsLateDragLeavesADoubleTapZooming() async throws {
+    let (model, task) = try await model()
+    defer { task.cancel() }
+    await model.sizeChanged(CGSize(width: 390, height: 844), displayScale: 3)
+    model.panBeginsOnMovement = true
+    let before = try await model.stage.camera().zoom
+    await model.doubleTapped(at: CGPoint(x: 195, y: 422))
+    await model.dragChanged(translation: .zero)
+    await model.dragEnded(velocity: .zero)
+    try await untilStill(model)
+    let after = try await model.stage.camera().zoom
+    #expect(after > before, "the tap's drag cancelled the zoom: \(before) to \(after)")
+  }
+
+  /// A finger's tap moves a fraction of a point or a few points, and under
+  /// a long-press overlay its drag's first change arrives at the lift with
+  /// that translation. Within 10 points it opens no stage gesture and its
+  /// end flings nothing, so the double tap's zoom keeps running.
+  @Test func aTapThatMovesWithinTenPointsLeavesADoubleTapZooming() async throws {
+    let (model, task) = try await model()
+    defer { task.cancel() }
+    await model.sizeChanged(CGSize(width: 390, height: 844), displayScale: 3)
+    model.panBeginsOnMovement = true
+    let before = try await model.stage.camera().zoom
+    await model.doubleTapped(at: CGPoint(x: 195, y: 422))
+    await model.dragChanged(translation: CGSize(width: 3, height: 4))
+    #expect(!model.gestureOpen)
+    // Exactly 10 points is still within the slop.
+    await model.dragChanged(translation: CGSize(width: 6, height: 8))
+    #expect(!model.gestureOpen)
+    await model.dragEnded(velocity: CGSize(width: 30, height: 40))
+    #expect(!model.gestureOpen)
+    try await untilStill(model)
+    let after = try await model.stage.camera().zoom
+    #expect(after > before, "the tap's drag cancelled the zoom: \(before) to \(after)")
+  }
+
+  /// With the switch on, the pan begins where the drag crosses 10 points,
+  /// not where the touch landed: a drag to (3, 4) and then (30, 40) crosses
+  /// at (6, 8) and pans by (24, 32), which is where a default reader's drag
+  /// of (24, 32) leaves the camera. Later changes follow the finger.
+  @Test func withPanBeginsOnMovementThePanStartsAtTheCrossingWithNoJump() async throws {
+    let crossing = try await cameraDuringDrag(
+      [CGSize(width: 3, height: 4), CGSize(width: 30, height: 40), CGSize(width: 40, height: 60)],
+      panBeginsOnMovement: true)
+    let plain = try await cameraDuringDrag(
+      [.zero, CGSize(width: 24, height: 32), CGSize(width: 34, height: 52)], panBeginsOnMovement: false)
+    expectNoDifference(crossing.start, plain.start)
+    #expect(crossing.afterFirst == crossing.start, "a change within 10 points moved the page")
+    #expect(crossing.end != crossing.start, "the drag did not pan")
+    #expect(
+      abs(crossing.end.x - plain.end.x) < 1e-6 && abs(crossing.end.y - plain.end.y) < 1e-6,
+      "the pan jumped: \(crossing.end) against \(plain.end)")
+    expectNoDifference(crossing.end.zoom, plain.end.zoom)
+  }
+
+  /// The stage's camera before a drag through `steps`, after its first
+  /// step, and after its last with the gesture still open. Each call uses
+  /// its own reader, first scrolled 400 points down so the drag stays
+  /// inside the document vertically.
+  func cameraDuringDrag(
+    _ steps: [CGSize], panBeginsOnMovement: Bool
+  ) async throws -> (start: Camera, afterFirst: Camera, end: Camera) {
+    let (model, task) = try await model()
+    defer { task.cancel() }
+    await model.sizeChanged(CGSize(width: 390, height: 844), displayScale: 3)
+    await model.dragChanged(translation: CGSize(width: 0, height: -400))
+    await model.dragEnded(velocity: .zero)
+    try await untilStill(model)
+    model.panBeginsOnMovement = panBeginsOnMovement
+    let start = try await model.stage.camera()
+    var afterFirst = start
+    for (index, step) in steps.enumerated() {
+      await model.dragChanged(translation: step)
+      if index == 0 { afterFirst = try await model.stage.camera() }
+    }
+    let end = try await model.stage.camera()
+    await model.dragEnded(velocity: .zero)
+    return (start, afterFirst, end)
+  }
+
+  /// The same late drag after a tap on a link that goes to another page
+  /// must leave the stage moving to the destination.
+  @Test func aTapsLateDragLeavesALinksRevealMoving() async throws {
+    let reader = PDFReaderModel()
+    await reader.open(try pluginFixture("features"), name: "features.pdf")
+    guard case let .ready(session) = reader.phase else {
+      Issue.record("expected .ready, got \(reader.phase)")
+      return
+    }
+    let model = session.reader
+    let task = Task { await model.task() }
+    defer { task.cancel() }
+    await model.sizeChanged(CGSize(width: 402, height: 470), displayScale: 3)
+    model.panBeginsOnMovement = true
+    // The link on page 1 that goes to page 3.
+    let links = try await session.viewer.link(for: session.document)
+    let page = try #require(session.pages.first?.page)
+    // With the annotation plugin the links come from its model, which reads
+    // the document after the open returns.
+    var listed: LinkItem?
+    let deadline = ContinuousClock.now + .seconds(10)
+    while listed == nil, ContinuousClock.now < deadline {
+      listed = try await links.links(on: page).first { $0.targetJson.contains("goto") }
+      if listed == nil { try await Task.sleep(for: .milliseconds(20)) }
+    }
+    let link = try #require(listed, "the page listed no goto link in 10 seconds")
+    let center = Point(x: link.bounds.x + link.bounds.width / 2, y: link.bounds.y + link.bounds.height / 2)
+    let spot = try #require(try await model.stage.pageToViewport(page, center))
+    let activations = model.linkActivations
+    // The link tap handler registers in `task()`.
+    try await expectObserved({ model.activeToolID != nil }, equals: true) {}
+    let before = try await model.stage.camera()
+    let (lifted, lift) = AsyncStream<Void>.makeStream()
+    model.pointerSampleDispatched = { sample in
+      if sample.phase == .up { lift.yield(()) }
+    }
+    model.tapped(at: CGPoint(x: spot.x, y: spot.y))
+    // The drag reports once the tap's up has gone to the hub.
+    for await _ in lifted { break }
+    await model.dragChanged(translation: .zero)
+    await model.dragEnded(velocity: .zero)
+    let activation = await firstValue(of: activations, within: .seconds(10))
+    expectNoDifference(activation, .revealed)
+    try await untilStill(model)
+    let after = try await model.stage.camera()
+    #expect(after.y > before.y + 100, "the tap's drag cancelled the reveal: y \(before.y) to \(after.y)")
+    await reader.close()
+  }
+
+  /// Waits for the stage's motion to end, and fails when it has not ended
+  /// in 10 seconds.
+  func untilStill(_ model: StageReaderModel) async throws {
+    let deadline = ContinuousClock.now + .seconds(10)
+    // A zoom or a reveal starts within a few hops of the call that asked.
+    try await Task.sleep(for: .milliseconds(100))
+    while try await model.stage.isMoving() {
+      guard ContinuousClock.now < deadline else {
+        Issue.record("the stage was still moving after 10 seconds")
+        throw CancellationError()
+      }
+      try await Task.sleep(for: .milliseconds(50))
+    }
+  }
+
   @Test func overlayOriginIsThePageOrigin() async throws {
     let (model, task) = try await model()
     defer { task.cancel() }
@@ -349,6 +622,9 @@ struct StageReaderModelTests {
     if let model {
       _ = StageReaderView(model: model)
       _ = StageReaderView(model: model) { page in Text("\(page.pageIndex)") }
+      _ = StageReaderView(model: model, onLinkActivation: { _ in })
+      _ = StageReaderView(
+        model: model, pageOverlay: { page in Text("\(page.pageIndex)") }, onLinkActivation: { _ in })
     }
   }
 }

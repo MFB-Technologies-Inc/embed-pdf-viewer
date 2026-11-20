@@ -9,7 +9,7 @@ extension BaseSuite {
       try await viewer.start()
       let document = try await viewer.open(Fixture.data("colors"))
       let page = try await viewer.pages(of: document)[0].page
-      return (viewer, document, try await viewer.render(in: document), page)
+      return (viewer, document, try await viewer.render(for: document), page)
     }
 
     @Test func renderSourceMatchesItsSourceKey() async throws {
@@ -67,7 +67,7 @@ extension BaseSuite {
       try await viewer.start()
       let document = try await viewer.open(Fixture.data("colors"))
       let page = try await viewer.pages(of: document)[0].page
-      let render = try await viewer.render(in: document)
+      let render = try await viewer.render(for: document)
       let omitted = try await render.sourceKey(page, scale: 2)
       let never = try await render.sourceKey(page, scale: 2, includeAnnotations: .never, includeFormFields: .never)
       expectNoDifference(omitted, never)

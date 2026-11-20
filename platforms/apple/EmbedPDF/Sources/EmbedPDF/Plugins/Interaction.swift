@@ -55,7 +55,7 @@ public struct InteractionCapability: Sendable {
   }
 
   let handle: InteractionHandle
-  let viewer: PDFViewer
+  package let viewer: PDFViewer
 
   public func activeTool() async throws(PDFError) -> InteractionTool {
     try await bridged { try await handle.activeTool() }
@@ -208,7 +208,7 @@ public struct InteractionCapability: Sendable {
   }
 
   /// Finishes when the document closes (at once if it already has) or the
-  /// viewer is destroyed.
+  /// viewer is destroyed. Each read is a new subscription.
   public var events: AsyncStream<InteractionEvent> {
     viewer.registry.stream { handle.subscribe(listener: $0) }
   }

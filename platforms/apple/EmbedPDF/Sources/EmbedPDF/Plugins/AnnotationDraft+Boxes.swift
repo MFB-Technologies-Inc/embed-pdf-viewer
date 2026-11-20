@@ -18,9 +18,8 @@ public struct FreeTextAnnotationDraft: AnnotationDraft, Hashable {
   /// The text box, page space, before rotation.
   public var box: Rect
   /// `/Contents`: the text, plain. The engine lays it out in the body
-  /// style below. Styled runs are `richText`, which only the JSON-string
-  /// overloads write; a draft that sets both needs `contents` to be
-  /// `richText`'s plain text.
+  /// style below. Styled runs are `richText`; a draft that sets both needs
+  /// `contents` to be `richText`'s plain text.
   public var contents: Nullable<String>?
   /// The body font: a standard font's name (`helvetica`) or a registered
   /// font's key.
@@ -52,6 +51,13 @@ public struct FreeTextAnnotationDraft: AnnotationDraft, Hashable {
   /// The ending at the called-out end of `calloutLine`. `.null` is none.
   public var lineEnding: Nullable<AnnotationLineEnding>?
   public var blendMode: AnnotationBlendMode?
+  /// The text as styled runs. It sets `contents` to its plain text, and a
+  /// draft that gives both needs them to agree. Left out, the engine makes
+  /// one unstyled run per line of `contents`. There is no `.null`: a free
+  /// text always has rich text.
+  public var richText: AnnotationRichText?
+  /// The fields every annotation shares.
+  public var common: AnnotationCommonFields
 
   public init(
     box: Rect, contents: Nullable<String>? = nil, fontFamily: String? = nil,
@@ -62,7 +68,9 @@ public struct FreeTextAnnotationDraft: AnnotationDraft, Hashable {
     dashArray: Nullable<[Double]>? = nil, cloudyIntensity: Nullable<Double>? = nil,
     rotation: Nullable<Double>? = nil, intent: Nullable<AnnotationFreeTextIntent>? = nil,
     calloutLine: Nullable<AnnotationCalloutLine>? = nil,
-    lineEnding: Nullable<AnnotationLineEnding>? = nil, blendMode: AnnotationBlendMode? = nil
+    lineEnding: Nullable<AnnotationLineEnding>? = nil, blendMode: AnnotationBlendMode? = nil,
+    richText: AnnotationRichText? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.box = box
     self.contents = contents
@@ -83,6 +91,8 @@ public struct FreeTextAnnotationDraft: AnnotationDraft, Hashable {
     self.calloutLine = calloutLine
     self.lineEnding = lineEnding
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -94,6 +104,8 @@ public struct FreeTextAnnotationDraft: AnnotationDraft, Hashable {
       rotation: rotation, intent: intent, calloutLine: calloutLine, lineEnding: lineEnding,
       blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encode(to: encoder)
   }
 }
 
@@ -128,6 +140,12 @@ public struct FreeTextAnnotationPatch: AnnotationPatch, Hashable {
   /// `.null` removes the ending.
   public var lineEnding: Nullable<AnnotationLineEnding>?
   public var blendMode: AnnotationBlendMode?
+  /// Replaces the text with styled runs. It sets `contents` to its plain
+  /// text, and a patch that gives both needs them to agree. A `body` it
+  /// gives replaces the body style whole. There is no `.null`.
+  public var richText: AnnotationRichText?
+  /// The fields every annotation shares. A patch leaves `nm` out.
+  public var common: AnnotationCommonFields
 
   public init(
     box: Rect? = nil, contents: Nullable<String>? = nil, fontFamily: String? = nil,
@@ -138,7 +156,9 @@ public struct FreeTextAnnotationPatch: AnnotationPatch, Hashable {
     dashArray: Nullable<[Double]>? = nil, cloudyIntensity: Nullable<Double>? = nil,
     rotation: Nullable<Double>? = nil, intent: Nullable<AnnotationFreeTextIntent>? = nil,
     calloutLine: Nullable<AnnotationCalloutLine>? = nil,
-    lineEnding: Nullable<AnnotationLineEnding>? = nil, blendMode: AnnotationBlendMode? = nil
+    lineEnding: Nullable<AnnotationLineEnding>? = nil, blendMode: AnnotationBlendMode? = nil,
+    richText: AnnotationRichText? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.box = box
     self.contents = contents
@@ -159,6 +179,8 @@ public struct FreeTextAnnotationPatch: AnnotationPatch, Hashable {
     self.calloutLine = calloutLine
     self.lineEnding = lineEnding
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -170,6 +192,23 @@ public struct FreeTextAnnotationPatch: AnnotationPatch, Hashable {
       rotation: rotation, intent: intent, calloutLine: calloutLine, lineEnding: lineEnding,
       blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encodeAsPatch(to: encoder)
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let fields = try FreeTextFields(from: decoder)
+    self.init(
+      box: fields.box, contents: fields.contents, fontFamily: fields.fontFamily,
+      fontSize: fields.fontSize, fontColor: fields.fontColor, textAlign: fields.textAlign,
+      verticalAlign: fields.verticalAlign, color: fields.color,
+      interiorColor: fields.interiorColor, opacity: fields.opacity,
+      strokeWidth: fields.strokeWidth, borderStyle: fields.borderStyle,
+      dashArray: fields.dashArray, cloudyIntensity: fields.cloudyIntensity,
+      rotation: fields.rotation, intent: fields.intent, calloutLine: fields.calloutLine,
+      lineEnding: fields.lineEnding, blendMode: fields.blendMode,
+      richText: try AnnotationSharedMembers.decodeFreeTextRichText(from: decoder),
+      common: try AnnotationCommonFields(from: decoder))
   }
 }
 
@@ -226,6 +265,44 @@ private struct FreeTextFields: Encodable {
   }
 }
 
+extension FreeTextFields {
+  /// A patch's members.
+  init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    box = try container.decodeRectIfPresent(forKey: .box)
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
+    fontFamily = try container.decodeIfPresent(String.self, forKey: .fontFamily)
+    fontSize = try container.decodeIfPresent(Double.self, forKey: .fontSize)
+    fontColor = try container.decodeIfPresent(AnnotationColor.self, forKey: .fontColor)
+    textAlign = try container.decodeIfPresent(AnnotationTextAlignment.self, forKey: .textAlign)
+    verticalAlign = try container.decodeIfPresent(AnnotationVerticalAlignment.self, forKey: .verticalAlign)
+    color = try container.decodeIfPresent(AnnotationColor.self, forKey: .color)
+    interiorColor = try container.decodeNullableIfPresent(AnnotationColor.self, forKey: .interiorColor)
+    opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+    strokeWidth = try container.decodeIfPresent(Double.self, forKey: .strokeWidth)
+    borderStyle = try container.decodeIfPresent(AnnotationBorderStyle.self, forKey: .borderStyle)
+    dashArray = try container.decodeNullableIfPresent([Double].self, forKey: .dashArray)
+    cloudyIntensity = try container.decodeNullableIfPresent(Double.self, forKey: .cloudyIntensity)
+    rotation = try container.decodeNullableIfPresent(Double.self, forKey: .rotation)
+    intent = try container.decodeNullableIfPresent(AnnotationFreeTextIntent.self, forKey: .intent)
+    if container.contains(.calloutLine) {
+      if try container.decodeNil(forKey: .calloutLine) {
+        calloutLine = .null
+      } else {
+        let points = try container.decode([ReadPoint].self, forKey: .calloutLine).map(\.point)
+        guard let line = AnnotationCalloutLine(points: points) else {
+          throw DecodingError.dataCorruptedError(
+            forKey: .calloutLine, in: container,
+            debugDescription: "a callout line has two or three points")
+        }
+        calloutLine = .value(line)
+      }
+    }
+    lineEnding = try container.decodeNullableIfPresent(AnnotationLineEnding.self, forKey: .lineEnding)
+    blendMode = try container.decodeIfPresent(AnnotationBlendMode.self, forKey: .blendMode)
+  }
+}
+
 // ── caret ───────────────────────────────────────────────────────────────────
 
 /// A new caret: an insertion mark.
@@ -243,11 +320,19 @@ public struct CaretAnnotationDraft: AnnotationDraft, Hashable {
   /// `/Contents`: the text to insert. `.null` is none.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a draft that gives both needs them to agree. `.null` is a
+  /// plain comment.
+  public var richText: Nullable<AnnotationRichText>?
+  /// The fields every annotation shares.
+  public var common: AnnotationCommonFields
 
   public init(
     box: Rect, color: AnnotationColor? = nil, opacity: Double? = nil,
     rotation: Nullable<Double>? = nil, intent: Nullable<AnnotationCaretIntent>? = nil,
-    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil
+    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.box = box
     self.color = color
@@ -256,6 +341,8 @@ public struct CaretAnnotationDraft: AnnotationDraft, Hashable {
     self.intent = intent
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -263,6 +350,8 @@ public struct CaretAnnotationDraft: AnnotationDraft, Hashable {
       subtype: .caret, box: box, color: color, opacity: opacity, rotation: rotation, intent: intent,
       contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encode(to: encoder)
   }
 }
 
@@ -280,11 +369,19 @@ public struct CaretAnnotationPatch: AnnotationPatch, Hashable {
   /// `.null` removes `/Contents`.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a patch that gives both needs them to agree. `.null` makes
+  /// the comment plain and keeps `contents`.
+  public var richText: Nullable<AnnotationRichText>?
+  /// The fields every annotation shares. A patch leaves `nm` out.
+  public var common: AnnotationCommonFields
 
   public init(
     box: Rect? = nil, color: AnnotationColor? = nil, opacity: Double? = nil,
     rotation: Nullable<Double>? = nil, intent: Nullable<AnnotationCaretIntent>? = nil,
-    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil
+    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.box = box
     self.color = color
@@ -293,6 +390,8 @@ public struct CaretAnnotationPatch: AnnotationPatch, Hashable {
     self.intent = intent
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -300,6 +399,17 @@ public struct CaretAnnotationPatch: AnnotationPatch, Hashable {
       subtype: nil, box: box, color: color, opacity: opacity, rotation: rotation, intent: intent,
       contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encodeAsPatch(to: encoder)
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let fields = try CaretFields(from: decoder)
+    self.init(
+      box: fields.box, color: fields.color, opacity: fields.opacity, rotation: fields.rotation,
+      intent: fields.intent, contents: fields.contents, blendMode: fields.blendMode,
+      richText: try AnnotationSharedMembers.decodeRichText(from: decoder),
+      common: try AnnotationCommonFields(from: decoder))
   }
 }
 
@@ -330,6 +440,20 @@ private struct CaretFields: Encodable {
   }
 }
 
+extension CaretFields {
+  /// A patch's members.
+  init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    box = try container.decodeRectIfPresent(forKey: .box)
+    color = try container.decodeIfPresent(AnnotationColor.self, forKey: .color)
+    opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+    rotation = try container.decodeNullableIfPresent(Double.self, forKey: .rotation)
+    intent = try container.decodeNullableIfPresent(AnnotationCaretIntent.self, forKey: .intent)
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
+    blendMode = try container.decodeIfPresent(AnnotationBlendMode.self, forKey: .blendMode)
+  }
+}
+
 // ── link ────────────────────────────────────────────────────────────────────
 
 /// A new link: an area that goes somewhere when activated. A link draws
@@ -340,16 +464,23 @@ public struct LinkAnnotationDraft: AnnotationDraft, Hashable {
   public var target: AnnotationLinkTarget
   /// `/Contents`. `.null` is none.
   public var contents: Nullable<String>?
+  /// The fields every annotation shares.
+  public var common: AnnotationCommonFields
 
-  public init(rect: Rect, target: AnnotationLinkTarget, contents: Nullable<String>? = nil) {
+  public init(
+    rect: Rect, target: AnnotationLinkTarget, contents: Nullable<String>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
+  ) {
     self.rect = rect
     self.target = target
     self.contents = contents
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
     try LinkFields(subtype: .link, rect: rect, target: .value(target), contents: contents)
       .encode(to: encoder)
+    try common.encode(to: encoder)
   }
 }
 
@@ -361,18 +492,31 @@ public struct LinkAnnotationPatch: AnnotationPatch, Hashable {
   public var target: Nullable<AnnotationLinkTarget>?
   /// `.null` removes `/Contents`.
   public var contents: Nullable<String>?
+  /// The fields every annotation shares. A patch leaves `nm` out.
+  public var common: AnnotationCommonFields
 
   public init(
     rect: Rect? = nil, target: Nullable<AnnotationLinkTarget>? = nil,
-    contents: Nullable<String>? = nil
+    contents: Nullable<String>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.rect = rect
     self.target = target
     self.contents = contents
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
     try LinkFields(subtype: nil, rect: rect, target: target, contents: contents).encode(to: encoder)
+    try common.encodeAsPatch(to: encoder)
+  }
+
+  /// Throws for a `target` outside the three `AnnotationLinkTarget` holds.
+  public init(from decoder: any Decoder) throws {
+    let fields = try LinkFields(from: decoder)
+    self.init(
+      rect: fields.rect, target: fields.target, contents: fields.contents,
+      common: try AnnotationCommonFields(from: decoder))
   }
 }
 
@@ -392,6 +536,16 @@ private struct LinkFields: Encodable {
     try container.encodeIfPresent(rect.map(WireRect.init), forKey: .rect)
     try container.encodeIfPresent(target, forKey: .target)
     try container.encodeIfPresent(contents, forKey: .contents)
+  }
+}
+
+extension LinkFields {
+  /// A patch's members.
+  init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    rect = try container.decodeRectIfPresent(forKey: .rect)
+    target = try container.decodeNullableIfPresent(AnnotationLinkTarget.self, forKey: .target)
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
   }
 }
 
@@ -417,11 +571,19 @@ public struct StampAnnotationPatch: AnnotationPatch, Hashable {
   public var fit: Nullable<AnnotationStampFit>?
   /// `.null` removes `/Contents`.
   public var contents: Nullable<String>?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a patch that gives both needs them to agree. `.null` makes
+  /// the comment plain and keeps `contents`.
+  public var richText: Nullable<AnnotationRichText>?
+  /// The fields every annotation shares. A patch leaves `nm` out.
+  public var common: AnnotationCommonFields
 
   public init(
     box: Rect? = nil, opacity: Double? = nil, rotation: Nullable<Double>? = nil,
     name: Nullable<String>? = nil, fit: Nullable<AnnotationStampFit>? = nil,
-    contents: Nullable<String>? = nil
+    contents: Nullable<String>? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.box = box
     self.opacity = opacity
@@ -429,6 +591,8 @@ public struct StampAnnotationPatch: AnnotationPatch, Hashable {
     self.name = name
     self.fit = fit
     self.contents = contents
+    self.richText = richText
+    self.common = common
   }
 
   private enum CodingKeys: String, CodingKey {
@@ -443,6 +607,20 @@ public struct StampAnnotationPatch: AnnotationPatch, Hashable {
     try container.encodeIfPresent(name, forKey: .name)
     try container.encodeIfPresent(fit, forKey: .fit)
     try container.encodeIfPresent(contents, forKey: .contents)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encodeAsPatch(to: encoder)
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    box = try container.decodeRectIfPresent(forKey: .box)
+    opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+    rotation = try container.decodeNullableIfPresent(Double.self, forKey: .rotation)
+    name = try container.decodeNullableIfPresent(String.self, forKey: .name)
+    fit = try container.decodeNullableIfPresent(AnnotationStampFit.self, forKey: .fit)
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
+    richText = try AnnotationSharedMembers.decodeRichText(from: decoder)
+    common = try AnnotationCommonFields(from: decoder)
   }
 }
 
@@ -461,10 +639,18 @@ public struct FileAttachmentAnnotationPatch: AnnotationPatch, Hashable {
   /// `.null` removes `/Contents`.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a patch that gives both needs them to agree. `.null` makes
+  /// the comment plain and keeps `contents`.
+  public var richText: Nullable<AnnotationRichText>?
+  /// The fields every annotation shares. A patch leaves `nm` out.
+  public var common: AnnotationCommonFields
 
   public init(
     rect: Rect? = nil, icon: AnnotationFileAttachmentIcon? = nil, color: AnnotationColor? = nil,
-    opacity: Double? = nil, contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil
+    opacity: Double? = nil, contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.rect = rect
     self.icon = icon
@@ -472,6 +658,8 @@ public struct FileAttachmentAnnotationPatch: AnnotationPatch, Hashable {
     self.opacity = opacity
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   private enum CodingKeys: String, CodingKey {
@@ -486,5 +674,19 @@ public struct FileAttachmentAnnotationPatch: AnnotationPatch, Hashable {
     try container.encodeIfPresent(opacity, forKey: .opacity)
     try container.encodeIfPresent(contents, forKey: .contents)
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encodeAsPatch(to: encoder)
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    rect = try container.decodeRectIfPresent(forKey: .rect)
+    icon = try container.decodeIfPresent(AnnotationFileAttachmentIcon.self, forKey: .icon)
+    color = try container.decodeIfPresent(AnnotationColor.self, forKey: .color)
+    opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
+    blendMode = try container.decodeIfPresent(AnnotationBlendMode.self, forKey: .blendMode)
+    richText = try AnnotationSharedMembers.decodeRichText(from: decoder)
+    common = try AnnotationCommonFields(from: decoder)
   }
 }

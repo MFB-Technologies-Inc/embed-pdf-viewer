@@ -1,6 +1,6 @@
 import CustomDump
 import EmbedPDF
-@testable import EmbedPDFUI
+@testable import EmbedPDFModels
 import Foundation
 import Testing
 
@@ -13,7 +13,7 @@ struct SearchModelTests {
     let viewer = try PDFViewer(ViewerConfig(search: SearchConfig()))
     try await viewer.start()
     let document = try await viewer.open(Data(contentsOf: url))
-    let search = try await viewer.search(in: document)
+    let search = try await viewer.search(for: document)
     return (SearchModel(search: search), search)
   }
 
@@ -21,8 +21,60 @@ struct SearchModelTests {
     let viewer = try PDFViewer(ViewerConfig(search: SearchConfig(), pageEdit: true))
     try await viewer.start()
     let document = try await viewer.open(pluginFixture())
-    let search = try await viewer.search(in: document)
+    let search = try await viewer.search(for: document)
     return (viewer, document, search, SearchModel(search: search))
+  }
+
+  @Test func revealingTheActiveHitLeavesItActive() async throws {
+    let viewer = try PDFViewer(ViewerConfig(search: SearchConfig(), render: RenderConfig(), stage: StageConfig()))
+    try await viewer.start()
+    let document = try await viewer.open(pluginFixture())
+    let stage = try await viewer.stage(for: document)
+    try await stage.setViewportSize(Size(width: 400, height: 600))
+    let model = SearchModel(search: try await viewer.search(for: document))
+    model.text = "the"
+    await model.searchSubmitted()
+    await model.nextButtonTapped()
+    expectNoDifference(model.activeHitIndex, 1)
+    let active = try #require(model.activeHit)
+    // The step already revealed the hit, so scroll away from it first.
+    let last = try #require(try await viewer.pages(of: document).last)
+    #expect(last.page != active.page)
+    try await stage.goToPage(last.page, options: StageGoToOptions(behavior: .instant))
+    #expect(!(try await stage.isPageVisible(active.page)))
+    await model.revealActiveHit()
+    // The search settings reveal with a smooth scroll.
+    let deadline = ContinuousClock.now + .seconds(5)
+    while !(try await stage.isPageVisible(active.page)), ContinuousClock.now < deadline {
+      try await Task.sleep(for: .milliseconds(20))
+    }
+    #expect(try await stage.isPageVisible(active.page))
+    // Safe to repeat.
+    await model.revealActiveHit()
+    expectNoDifference(model.error, nil)
+    expectNoDifference(model.activeHitIndex, 1)
+    let kernel: Int? = try await viewer.search(for: document).activeHitIndex()
+    expectNoDifference(kernel, 1)
+    try await viewer.destroy()
+  }
+
+  @Test func revealingWithNoActiveHitOrNoStageIsNotAnError() async throws {
+    let (model, _) = try await self.model()
+    await model.revealActiveHit()
+    expectNoDifference(model.error, nil)
+    model.text = "the"
+    await model.searchSubmitted()
+    await model.revealActiveHit()
+    expectNoDifference(model.error, nil)
+    expectNoDifference(model.activeHitIndex, 0)
+  }
+
+  @Test func revealingOnAClosedDocumentSetsTheError() async throws {
+    let (viewer, document, _, model) = try await opened()
+    try await viewer.close(document)
+    await model.revealActiveHit()
+    #expect(model.error != nil)
+    try await viewer.destroy()
   }
 
   @Test func resubmittingAfterAnEditRereadsHitsWhoseCountDidNotChange() async throws {
@@ -103,7 +155,7 @@ struct SearchModelTests {
     // session reads still answer.
     let viewer = try PDFViewer(ViewerConfig(scope: ["doc.open", "doc.render"], search: SearchConfig()))
     try await viewer.start()
-    let model = SearchModel(search: try await viewer.search(in: try await viewer.open(pluginFixture())))
+    let model = SearchModel(search: try await viewer.search(for: try await viewer.open(pluginFixture())))
     model.text = "the"
     await model.searchSubmitted()
     let refused = try #require(model.error)
@@ -116,12 +168,26 @@ struct SearchModelTests {
   @Test func clearingAfterARefusedSearchLeavesTheErrorStatus() async throws {
     let viewer = try PDFViewer(ViewerConfig(scope: ["doc.open", "doc.render"], search: SearchConfig()))
     try await viewer.start()
-    let model = SearchModel(search: try await viewer.search(in: try await viewer.open(pluginFixture())))
+    let model = SearchModel(search: try await viewer.search(for: try await viewer.open(pluginFixture())))
     model.text = "the"
     await model.searchSubmitted()
     expectNoDifference(model.status, .error)
     await model.clearButtonTapped()
     expectNoDifference(model.status, .idle)
+    try await viewer.destroy()
+  }
+
+  /// The bar draws ``SearchModel/error``; a clear that succeeds leaves
+  /// nothing under the empty field.
+  @Test func aSuccessfulClearClearsARefusedSearchsError() async throws {
+    let viewer = try PDFViewer(ViewerConfig(scope: ["doc.open", "doc.render"], search: SearchConfig()))
+    try await viewer.start()
+    let model = SearchModel(search: try await viewer.search(for: try await viewer.open(pluginFixture())))
+    model.text = "the"
+    await model.searchSubmitted()
+    #expect(model.error != nil)
+    await model.clearButtonTapped()
+    expectNoDifference(model.error, nil)
     try await viewer.destroy()
   }
 
@@ -189,6 +255,77 @@ struct SearchModelTests {
     await model.nextButtonTapped()
     expectNoDifference(model.activeHitIndex, 1)
     expectNoDifference(model.activeIndex, 1)
+  }
+
+  /// The summary's text with both numbers in the host locale's digits and
+  /// grouping, as `String(localized:)` formats them.
+  func summary(_ position: Int, of count: Int) -> String {
+    "\(position.formatted()) of \(count.formatted())"
+  }
+
+  @Test func theSummaryGroupsALargeCountAsTheLocaleDoes() {
+    expectNoDifference(
+      SearchModel.summary(activeHitIndex: 1233, hitCount: 12345, status: .complete), summary(1234, of: 12345))
+  }
+
+  @Test func clearIsAvailableForTextHitsOrASessionThatIsNotIdle() async throws {
+    let (model, _) = try await model()
+    #expect(!model.canClear)
+    model.text = "trace"
+    #expect(model.canClear)
+    await model.searchSubmitted()
+    // The field emptied by hand leaves the hits to clear.
+    model.text = ""
+    #expect(model.hitCount > 0)
+    #expect(model.canClear)
+    await model.clearButtonTapped()
+    #expect(!model.canClear)
+  }
+
+  @Test func clearIsAvailableAfterARefusedSearchWithAnEmptyField() async throws {
+    let viewer = try PDFViewer(ViewerConfig(scope: ["doc.open", "doc.render"], search: SearchConfig()))
+    try await viewer.start()
+    let model = SearchModel(search: try await viewer.search(for: try await viewer.open(pluginFixture())))
+    model.text = "the"
+    await model.searchSubmitted()
+    model.text = ""
+    expectNoDifference(model.status, .error)
+    expectNoDifference(model.hitCount, 0)
+    #expect(model.canClear)
+    await model.clearButtonTapped()
+    #expect(!model.canClear)
+    try await viewer.destroy()
+  }
+
+  @Test func theActiveHitAndSummaryFollowNavigation() async throws {
+    let (model, _) = try await model()
+    expectNoDifference(model.activeHit, nil)
+    expectNoDifference(model.summary, nil)
+    model.text = "trace"
+    await model.searchSubmitted()
+    expectNoDifference(model.status, .complete)
+    #expect(model.hitCount > 1)
+    expectNoDifference(model.activeHit, model.hits[0])
+    expectNoDifference(model.summary, summary(1, of: model.hitCount))
+    await model.nextButtonTapped()
+    expectNoDifference(model.activeHit, model.hits[1])
+    expectNoDifference(model.summary, summary(2, of: model.hitCount))
+    await model.clearButtonTapped()
+    expectNoDifference(model.activeHit, nil)
+    expectNoDifference(model.summary, nil)
+  }
+
+  @Test func theSummaryMarksACountThatIsStillGrowing() {
+    // A running scan has found 12 hits so far, not 12 in all.
+    expectNoDifference(SearchModel.summary(activeHitIndex: 2, hitCount: 12, status: .searching), summary(3, of: 12) + "+")
+    expectNoDifference(SearchModel.summary(activeHitIndex: 2, hitCount: 12, status: .complete), summary(3, of: 12))
+    // A cancelled scan keeps its hits and finds no more.
+    expectNoDifference(SearchModel.summary(activeHitIndex: 2, hitCount: 12, status: .cancelled), summary(3, of: 12))
+    expectNoDifference(SearchModel.summary(activeHitIndex: nil, hitCount: 12, status: .complete), nil)
+    expectNoDifference(SearchModel.summary(activeHitIndex: nil, hitCount: 0, status: .searching), nil)
+    // The index and the count come from separate reads and can disagree
+    // for one refresh.
+    expectNoDifference(SearchModel.summary(activeHitIndex: 12, hitCount: 12, status: .complete), nil)
   }
 
   @Test func clearingEmptiesTheModel() async throws {

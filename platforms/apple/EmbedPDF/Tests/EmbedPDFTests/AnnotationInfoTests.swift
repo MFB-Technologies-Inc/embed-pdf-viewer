@@ -110,6 +110,100 @@ extension BaseSuite {
       expectNoDifference(info.fieldsJSON, json)
     }
 
+    @Test func theFixturesIntentsAndBorderStylesReadAsConstants() async throws {
+      let viewer = try PDFViewer(ViewerConfig(interaction: true, annotation: ""))
+      try await viewer.start()
+      let document = try await viewer.open(Fixture.data("annotation_kinds"))
+      let annotations = try await viewer.annotations(for: document)
+      try await annotations.refresh()
+      let infos = try await annotations.list()
+
+      // The fixture's line names no `/IT`, so its intent is absent.
+      let line = try #require(infos.lazy.compactMap(\.line).first)
+      #expect(line.intent == nil)
+      #expect(line.borderStyle == "solid")
+      expectNoDifference(line.borderStyle, .solid)
+
+      expectNoDifference(infos.compactMap { $0.ink?.intent }, [.inkHighlight])
+      expectNoDifference(infos.compactMap { $0.strikeout?.intent }, [.strikeoutTextEdit])
+      expectNoDifference(infos.compactMap { $0.caret?.intent }, [.replace])
+      #expect(infos.contains { $0.freeText?.intent == .freeTextCallout })
+      let styles = Set(
+        infos.compactMap {
+          $0.square?.borderStyle ?? $0.circle?.borderStyle ?? $0.ink?.borderStyle
+            ?? $0.freeText?.borderStyle
+        })
+      #expect(styles.isSubset(of: [.solid, .dashed, .beveled, .inset]))
+      #expect(styles.contains(.dashed))
+
+      // A created line reads its intent back as the constant.
+      let page = try await viewer.pages(of: document)[0].page
+      let arrow = try await annotations.create(
+        LineAnnotationDraft(
+          start: Point(x: 100, y: 100), end: Point(x: 200, y: 150), intent: .value(.lineArrow)),
+        on: page)
+      let created = try #require(try await annotations.get(arrow)?.line)
+      #expect(created.intent == .lineArrow)
+      #expect(created.intent == "line-arrow")
+    }
+
+    @Test func anIntentOrBorderStyleWithoutAConstantKeepsItsText() throws {
+      let json = ##"{"subtype":"ink","color":null,"opacity":1,"strokeWidth":1,"borderStyle":"engraved","dashArray":null,"inkList":[[{"x":1,"y":2}]],"intent":"ink-signature","rotation":null}"##
+      let ink = try #require(AnnotationInfo(Self.record(fieldsJSON: json)).ink)
+      expectNoDifference(ink.intent, AnnotationIntent("ink-signature"))
+      expectNoDifference(ink.intent?.rawValue, "ink-signature")
+      expectNoDifference(ink.borderStyle, AnnotationInfo.BorderStyle("engraved"))
+      expectNoDifference(ink.borderStyle.rawValue, "engraved")
+    }
+
+    @Test func theConstantsAreTheWriteSideSpellings() {
+      let intents: [AnnotationIntent] = [
+        .inkHighlight, .strikeoutTextEdit, .lineArrow, .lineDimension, .polygonCloud,
+        .polygonDimension, .polylineDimension, .freeText, .freeTextCallout, .replace,
+      ]
+      let written =
+        AnnotationInkIntent.allCases.map(\.rawValue)
+        + AnnotationStrikeoutIntent.allCases.map(\.rawValue)
+        + AnnotationLineIntent.allCases.map(\.rawValue)
+        + AnnotationPolygonIntent.allCases.map(\.rawValue)
+        + AnnotationPolylineIntent.allCases.map(\.rawValue)
+        + AnnotationFreeTextIntent.allCases.map(\.rawValue)
+        + AnnotationCaretIntent.allCases.map(\.rawValue)
+      expectNoDifference(intents.map(\.rawValue), written)
+      // A read also names what no draft writes.
+      expectNoDifference(AnnotationIntent.freeTextTypewriter.rawValue, "free-text-typewriter")
+      let styles: [AnnotationInfo.BorderStyle] = [.solid, .dashed, .beveled, .inset]
+      expectNoDifference(styles.map(\.rawValue), ["solid", "dashed", "beveled", "inset"])
+      expectNoDifference(
+        Array(styles.prefix(2)).map(\.rawValue), AnnotationBorderStyle.allCases.map(\.rawValue))
+    }
+
+    /// What a caller wrote against the `String` members: a comparison to a
+    /// literal, a `switch` over literals, and interpolation.
+    @Test func theTextSpellingsStillCompile() throws {
+      let ink = try #require(AnnotationInfo(Self.record()).ink)
+      #expect(ink.borderStyle == "dashed")
+      #expect(ink.intent == "ink-highlight")
+      #expect(ink.intent != nil)
+      let style: Int
+      switch ink.borderStyle {
+      case "solid": style = 0
+      case "dashed": style = 1
+      default: style = 2
+      }
+      expectNoDifference(style, 1)
+      let intent: Int
+      switch ink.intent {
+      case "ink-highlight": intent = 1
+      case nil: intent = 0
+      default: intent = 2
+      }
+      expectNoDifference(intent, 1)
+      expectNoDifference("\(ink.borderStyle)", "dashed")
+      expectNoDifference("\(ink.intent ?? "pen")", "ink-highlight")
+      expectNoDifference(String(describing: ink.borderStyle), "dashed")
+    }
+
     @Test func anUnknownSubtypeKeepsItsName() {
       let json = ##"{"subtype":"sparkle","glow":3}"##
       let info = AnnotationInfo(Self.record(subtype: "sparkle", fieldsJSON: json))

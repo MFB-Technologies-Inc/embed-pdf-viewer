@@ -1,0 +1,451 @@
+import CustomDump
+import EmbedPDF
+@testable import EmbedPDFModels
+import Foundation
+import Testing
+
+@MainActor
+@Suite(.serialized, .timeLimit(.minutes(1)))
+struct ToolModelTests {
+  struct Tools {
+    let viewer: PDFViewer
+    let document: DocumentInfo
+    let interaction: InteractionCapability
+    let model: ToolModel
+    let fallback: ToolID
+    let observing: Task<Void, Never>
+  }
+
+  /// A model over a viewer with the annotation tools, its `task()` running
+  /// and its first snapshot read.
+  func tools() async throws -> Tools {
+    let viewer = try PDFViewer(ViewerConfig(interaction: true, annotation: ""))
+    try await viewer.start()
+    let document = try await viewer.open(pluginFixture("annotation_kinds"))
+    let interaction = try await viewer.interaction(for: document)
+    let model = ToolModel(interaction: interaction)
+    let observing = Task { await model.task() }
+    let fallback = try await interaction.defaultToolID()
+    try await expectObserved({ model.activeToolID }, equals: fallback) {}
+    return Tools(
+      viewer: viewer, document: document, interaction: interaction, model: model, fallback: fallback,
+      observing: observing)
+  }
+
+  /// A `canUse` a test flips.
+  final class Gate: ToolPermission, @unchecked Sendable {
+    private let lock = NSLock()
+    private var open = false
+    func set(_ open: Bool) { lock.withLock { self.open = open } }
+    func canUse() -> Bool { lock.withLock { open } }
+  }
+
+  @Test func theFirstSnapshotListsTheRegisteredToolsAsUsable() async throws {
+    let tools = try await tools()
+    let kernel = try await tools.interaction.tools()
+    expectNoDifference(tools.model.tools, kernel)
+    #expect(kernel.contains { $0.id == ToolID.ink.rawValue })
+    expectNoDifference(tools.model.usable, Set(kernel.map { ToolID($0.id) }))
+    expectNoDifference(tools.model.error, nil)
+    try await tools.viewer.destroy()
+    await tools.observing.value
+  }
+
+  @Test func activateSetsTheActiveTool() async throws {
+    let tools = try await tools()
+    let model = tools.model
+    try await expectObserved({ model.activeToolID }, equals: .ink) { await model.activate(.ink) }
+    expectNoDifference(model.error, nil)
+    let kernel = try await tools.interaction.activeToolID()
+    expectNoDifference(kernel, .ink)
+    try await tools.viewer.destroy()
+    await tools.observing.value
+  }
+
+  @Test func aToolActivatedOnTheCapabilityReachesTheModelThroughItsEvent() async throws {
+    let tools = try await tools()
+    let model = tools.model
+    try await expectObserved({ model.activeToolID }, equals: .ink) {
+      try await tools.interaction.activateTool(.ink)
+    }
+    try await tools.viewer.destroy()
+    await tools.observing.value
+  }
+
+  @Test func activateDefaultReturnsToTheDefaultTool() async throws {
+    let tools = try await tools()
+    let model = tools.model
+    try await expectObserved({ model.activeToolID }, equals: .ink) { await model.activate(.ink) }
+    try await expectObserved({ model.activeToolID }, equals: tools.fallback) { await model.activateDefault() }
+    expectNoDifference(model.error, nil)
+    try await tools.viewer.destroy()
+    await tools.observing.value
+  }
+
+  @Test func anUnregisteredToolSetsNotFoundAndLeavesTheActiveTool() async throws {
+    let tools = try await tools()
+    let model = tools.model
+    try await expectObserved({ model.activeToolID }, equals: .ink) { await model.activate(.ink) }
+    await model.activate("nobody-registered-this")
+    expectNoDifference(model.error?.code, .notFound)
+    expectNoDifference(model.activeToolID, .ink)
+    // The hub agrees, so no later read moves it.
+    let kernel = try await tools.interaction.activeToolID()
+    expectNoDifference(kernel, .ink)
+    try await tools.viewer.destroy()
+    await tools.observing.value
+  }
+
+  @Test func aLaterSuccessfulActivationClearsTheError() async throws {
+    let tools = try await tools()
+    let model = tools.model
+    await model.activate("nobody-registered-this")
+    expectNoDifference(model.error?.code, .notFound)
+    await model.activate(.ink)
+    expectNoDifference(model.error, nil)
+    await model.activate("nobody-registered-this")
+    expectNoDifference(model.error?.code, .notFound)
+    await model.activateDefault()
+    expectNoDifference(model.error, nil)
+    try await tools.viewer.destroy()
+    await tools.observing.value
+  }
+
+  @Test func aBackgroundRefreshKeepsAnActionsError() async throws {
+    let tools = try await tools()
+    let model = tools.model
+    await model.activate("nobody-registered-this")
+    await model.refresh()
+    expectNoDifference(model.error?.code, .notFound)
+    try await tools.viewer.destroy()
+    await tools.observing.value
+  }
+
+  @Test func closingTheDocumentEndsTheTaskAndEmptiesTheModel() async throws {
+    let tools = try await tools()
+    let model = tools.model
+    try await expectObserved({ model.activeToolID }, equals: .ink) { await model.activate(.ink) }
+    try await tools.viewer.close(tools.document)
+    await tools.observing.value
+    expectNoDifference(model.tools, [])
+    expectNoDifference(model.activeToolID, nil)
+    expectNoDifference(model.usable, [])
+    expectNoDifference(model.error?.code, .instanceClosed)
+    try await tools.viewer.destroy()
+  }
+
+  @Test func aToolRegisteredLaterReachesTheModelWithItsPermission() async throws {
+    let tools = try await tools()
+    let model = tools.model
+    let gate = Gate()
+    let gated: ToolID = "gated"
+    let registration = try await expectRegistered(gated, in: tools, permission: gate)
+    #expect(!model.usable.contains(gated))
+    #expect(model.isDisabled(gated))
+    // The host's permission changes with no word from the viewer: the app
+    // refreshes.
+    gate.set(true)
+    try await expectObserved({ model.usable.contains(gated) }, equals: true) { await model.refresh() }
+    #expect(!model.isDisabled(gated))
+    try await expectObserved({ model.tools.contains { $0.id == gated.rawValue } }, equals: false) {
+      registration.unregister()
+    }
+    #expect(!model.usable.contains(gated))
+    try await tools.viewer.destroy()
+    await tools.observing.value
+  }
+
+  func expectRegistered(_ id: ToolID, in tools: Tools, permission: Gate) async throws -> Registration {
+    var registration: Registration?
+    let model = tools.model
+    try await expectObserved({ model.tools.contains { $0.id == id.rawValue } }, equals: true) {
+      registration = try await tools.interaction.registerTool(
+        InteractionTool(id: id.rawValue, cursor: "crosshair", enables: []), permission: permission)
+    }
+    return try #require(registration)
+  }
+
+  @Test func aButtonIsSelectedForTheActiveToolAndDisabledForAnUnusableOne() async throws {
+    let tools = try await tools()
+    let model = tools.model
+    #expect(!model.isSelected(.ink))
+    #expect(!model.isDisabled(.ink))
+    #expect(model.isDisabled("nobody-registered-this"))
+    await model.activate(.ink)
+    #expect(model.isSelected(.ink))
+    #expect(!model.isSelected(.pan))
+    #expect(!model.isDisabled(.pan))
+    try await tools.viewer.destroy()
+    await tools.observing.value
+  }
+
+  @Test func theActiveToolsButtonStaysEnabledWhenItsToolIsNoLongerUsable() async throws {
+    let tools = try await tools()
+    let model = tools.model
+    let gate = Gate()
+    gate.set(true)
+    let gated: ToolID = "gated"
+    _ = try await expectRegistered(gated, in: tools, permission: gate)
+    await model.activate(gated)
+    #expect(model.isSelected(gated))
+    gate.set(false)
+    try await expectObserved({ model.usable.contains(gated) }, equals: false) { await model.refresh() }
+    // Still the way back to the default tool.
+    #expect(model.isSelected(gated))
+    #expect(!model.isDisabled(gated))
+    await model.buttonTapped(gated)
+    expectNoDifference(model.activeToolID, tools.fallback)
+    #expect(model.isDisabled(gated))
+    try await tools.viewer.destroy()
+    await tools.observing.value
+  }
+
+  /// Every `toolChanged` the hub sends from now until the viewer is
+  /// destroyed.
+  func toolChanges(_ interaction: InteractionCapability) -> Task<[InteractionToolChangedEvent], Never> {
+    let events = interaction.events
+    return Task {
+      var changes: [InteractionToolChangedEvent] = []
+      for await event in events {
+        if case let .toolChanged(change) = event { changes.append(change) }
+      }
+      return changes
+    }
+  }
+
+  @Test func aSecondTapWhileAnActivationIsInFlightIsIgnored() async throws {
+    let tools = try await tools()
+    let model = tools.model
+    let changes = toolChanges(tools.interaction)
+    let first = Task { await model.buttonTapped(.ink) }
+    let second = Task { await model.buttonTapped(.ink) }
+    await first.value
+    await second.value
+    // Neither toggled off nor activated twice.
+    expectNoDifference(model.activeToolID, .ink)
+    expectNoDifference(model.submitting, false)
+    try await tools.viewer.destroy()
+    await tools.observing.value
+    let seen = await changes.value
+    expectNoDifference(
+      seen,
+      [InteractionToolChangedEvent(toolId: ToolID.ink.rawValue, previousToolId: tools.fallback.rawValue)])
+  }
+
+  @Test func aRequestForAnotherToolWhileAnActivationIsInFlightIsIgnored() async throws {
+    let tools = try await tools()
+    let model = tools.model
+    let changes = toolChanges(tools.interaction)
+    let first = Task { await model.activate(.ink) }
+    let second = Task { await model.activate(.pan) }
+    await first.value
+    await second.value
+    expectNoDifference(model.activeToolID, .ink)
+    expectNoDifference(model.submitting, false)
+    try await tools.viewer.destroy()
+    await tools.observing.value
+    let seen = await changes.value
+    expectNoDifference(
+      seen,
+      [InteractionToolChangedEvent(toolId: ToolID.ink.rawValue, previousToolId: tools.fallback.rawValue)])
+  }
+
+  /// A model with no `task()` running: its only reads are the ones a test
+  /// causes.
+  func unobserved() async throws -> (PDFViewer, InteractionCapability, ToolModel) {
+    let viewer = try PDFViewer(ViewerConfig(interaction: true, annotation: ""))
+    try await viewer.start()
+    let document = try await viewer.open(pluginFixture("annotation_kinds"))
+    let interaction = try await viewer.interaction(for: document)
+    return (viewer, interaction, ToolModel(interaction: interaction))
+  }
+
+  @Test func everyButtonIsDisabledWhileTheHubCallIsOut() async throws {
+    let tools = try await tools()
+    let model = tools.model
+    #expect(!model.submitting)
+    let activation = Task { await model.activate(.ink) }
+    // The hub call leaves the main actor, so the flag is set and the call
+    // still out when this loop sees it.
+    for _ in 0..<1000 where !model.submitting { await Task.yield() }
+    expectNoDifference([model.submitting, model.isDisabled(.ink), model.isDisabled(.pan)], [true, true, true])
+    await activation.value
+    expectNoDifference([model.submitting, model.isDisabled(.ink), model.isDisabled(.pan)], [false, false, false])
+    expectNoDifference(model.activeToolID, .ink)
+    try await tools.viewer.destroy()
+    await tools.observing.value
+  }
+
+  /// The guard covers the hub call alone: by the time the action's read
+  /// has finished, the active tool is written and the buttons are back.
+  @Test func theButtonsAreEnabledAgainBeforeTheActivationsRead() async throws {
+    let (viewer, _, model) = try await unobserved()
+    await model.refresh()
+    var duringRead: [Bool] = []
+    var activeDuringRead: ToolID?
+    model.snapshots.readFinished = {
+      duringRead = [model.submitting, model.isDisabled(.ink), model.isDisabled(.pan), model.isSelected(.ink)]
+      activeDuringRead = model.activeToolID
+    }
+    await model.activate(.ink)
+    model.snapshots.readFinished = nil
+    expectNoDifference(duringRead, [false, false, false, true])
+    expectNoDifference(activeDuringRead, .ink)
+    try await viewer.destroy()
+  }
+
+  /// The action writes the active tool itself. Here its read is dropped,
+  /// so nothing else could have, and `tools` trails by that one read.
+  @Test func theActiveToolIsTheRequestedOneWhenActivateReturnsWithNoTaskRunning() async throws {
+    let (viewer, interaction, model) = try await unobserved()
+    model.snapshots.readFinished = { model.snapshots.invalidate() }
+    await model.activate(.ink)
+    model.snapshots.readFinished = nil
+    expectNoDifference(model.activeToolID, .ink)
+    expectNoDifference(model.submitting, false)
+    expectNoDifference(model.error, nil)
+    expectNoDifference(model.tools, [])
+    let kernel = try await interaction.activeToolID()
+    expectNoDifference(kernel, .ink)
+    await model.refresh()
+    let snapshot = try await kernelSnapshot(interaction)
+    expectNoDifference(model.tools, snapshot.0)
+    expectNoDifference(model.usable, snapshot.2)
+    expectNoDifference(model.activeToolID, .ink)
+    try await viewer.destroy()
+  }
+
+  @Test func theActiveToolIsTheDefaultWhenActivateDefaultReturnsWithNoTaskRunning() async throws {
+    let (viewer, interaction, model) = try await unobserved()
+    let fallback = try await interaction.defaultToolID()
+    await model.activate(.ink)
+    model.snapshots.readFinished = { model.snapshots.invalidate() }
+    await model.activateDefault()
+    model.snapshots.readFinished = nil
+    expectNoDifference(model.activeToolID, fallback)
+    expectNoDifference(model.submitting, false)
+    try await viewer.destroy()
+  }
+
+  /// A read that started before the hub answered holds the tool from
+  /// before. Landing after the action, it must not put that tool back.
+  @Test func aReadFromBeforeTheActivationDoesNotPutTheOldToolBack() async throws {
+    let (viewer, _, model) = try await unobserved()
+    await model.refresh()
+    let (reached, release) = holdingFirstRead(of: model.snapshots)
+    let stale = Task { await model.refresh() }
+    for await _ in reached { break }
+    await model.activate(.ink)
+    expectNoDifference(model.activeToolID, .ink)
+    release()
+    await stale.value
+    expectNoDifference(model.activeToolID, .ink)
+    try await viewer.destroy()
+  }
+
+  @Test func aFailedActivationEndsTheFlight() async throws {
+    let tools = try await tools()
+    let model = tools.model
+    await model.activate("nobody-registered-this")
+    expectNoDifference(model.error?.code, .notFound)
+    expectNoDifference(model.submitting, false)
+    #expect(!model.isDisabled(.ink))
+    try await tools.viewer.destroy()
+    await tools.observing.value
+  }
+
+  @Test func tappingAnotherToolActivatesItAndTappingTheActiveToolReturnsToTheDefault() async throws {
+    let tools = try await tools()
+    let model = tools.model
+    try await expectObserved({ model.activeToolID }, equals: .ink) { await model.buttonTapped(.ink) }
+    try await expectObserved({ model.activeToolID }, equals: tools.fallback) { await model.buttonTapped(.ink) }
+    try await tools.viewer.destroy()
+    await tools.observing.value
+  }
+
+  /// What a fresh read of the capability gives for the model's three
+  /// snapshots.
+  func kernelSnapshot(_ interaction: InteractionCapability) async throws -> ([InteractionTool], ToolID, Set<ToolID>) {
+    let tools = try await interaction.tools()
+    var usable: Set<ToolID> = []
+    for tool in tools where try await interaction.canUseTool(ToolID(tool.id)) { usable.insert(ToolID(tool.id)) }
+    return (tools, try await interaction.activeToolID(), usable)
+  }
+
+  @Test func anActivationCompletesWhileStateRevisionsKeepArriving() async throws {
+    let tools = try await tools()
+    let model = tools.model
+    let interaction = tools.interaction
+    // Each registration and each removal is a state revision.
+    var churning = true
+    let churn = Task {
+      let tool = InteractionTool(id: "churn", cursor: "crosshair", enables: [])
+      for _ in 0..<3000 where churning {
+        guard let registration = try? await interaction.registerTool(tool, replace: true) else { break }
+        registration.unregister()
+      }
+      churning = false
+    }
+    // Revisions are arriving before the activation starts.
+    try await expectObserved({ model.tools.contains { $0.id == "churn" } }, equals: true) {}
+    await model.activate(.ink)
+    let finishedDuringTheRevisions = churning
+    churning = false
+    await churn.value
+    #expect(finishedDuringTheRevisions)
+    expectNoDifference(model.submitting, false)
+    expectNoDifference(model.error, nil)
+    // At rest the snapshots are the hub's.
+    let kernel = try await kernelSnapshot(interaction)
+    try await expectObserved({ model.tools }, equals: kernel.0) {}
+    try await expectObserved({ model.usable }, equals: kernel.2) {}
+    expectNoDifference(model.activeToolID, kernel.1)
+    expectNoDifference(kernel.1, .ink)
+    #expect(!kernel.0.contains { $0.id == "churn" })
+    try await tools.viewer.destroy()
+    await tools.observing.value
+  }
+
+  /// Cancels an activation's task at `point` and expects the model, once at
+  /// rest with `task()` running, to hold what the hub holds.
+  func expectAtRestAfterCancelling(_ point: (Task<Void, Never>, ToolModel) async -> Void) async throws {
+    let tools = try await tools()
+    let model = tools.model
+    let activation = Task { await model.activate(.ink) }
+    await point(activation, model)
+    await activation.value
+    model.snapshots.readFinished = nil
+    #expect(activation.isCancelled)
+    expectNoDifference(model.submitting, false)
+    // The hub call has returned, so the hub's tool no longer moves.
+    let kernel = try await kernelSnapshot(tools.interaction)
+    try await expectObserved({ model.activeToolID }, equals: kernel.1) {}
+    try await expectObserved({ model.tools }, equals: kernel.0) {}
+    try await expectObserved({ model.usable }, equals: kernel.2) {}
+    expectNoDifference(model.submitting, false)
+    try await tools.viewer.destroy()
+    await tools.observing.value
+  }
+
+  @Test func anActivationCancelledBeforeTheHubCallLeavesTheModelCurrent() async throws {
+    try await expectAtRestAfterCancelling { activation, _ in activation.cancel() }
+  }
+
+  @Test func anActivationCancelledDuringTheHubCallLeavesTheModelCurrent() async throws {
+    try await expectAtRestAfterCancelling { activation, model in
+      for _ in 0..<1000 where !model.submitting { await Task.yield() }
+      activation.cancel()
+    }
+  }
+
+  /// The cancelled task drops the action's read. The active tool is
+  /// already written, and the read `task()` makes for the action's event
+  /// brings the rest.
+  @Test func anActivationCancelledDuringItsReadLeavesTheModelCurrent() async throws {
+    try await expectAtRestAfterCancelling { activation, model in
+      model.snapshots.readFinished = {
+        if model.activeToolID == .ink { activation.cancel() }
+      }
+    }
+  }
+}

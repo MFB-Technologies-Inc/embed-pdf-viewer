@@ -10,8 +10,7 @@ public import Foundation
 // which types the timestamps, the subtype and the common subtypes' members
 // (AnnotationInfo.swift). Create fields, patches, tool defaults and
 // selection values are the engine's field bags, passed as JSON objects;
-// ink, highlight and note drafts and patches also come typed
-// (AnnotationDraft.swift).
+// drafts and patches also come typed (AnnotationDraft.swift).
 public typealias CreationDraftAnchor = EmbedPDFBindings.CreationDraftAnchor
 public typealias AnnotationRecord = EmbedPDFBindings.AnnotationRecord
 public typealias AnnotationCreationDraft = EmbedPDFBindings.AnnotationCreationDraft
@@ -191,11 +190,17 @@ public struct AnnotationCapability: Sendable {
   }
 
   /// Resolves with the created annotation's ref once the engine confirmed
-  /// it. `draft` is an ink, highlight or note annotation
-  /// (`InkAnnotationDraft`, `HighlightAnnotationDraft`,
-  /// `NoteAnnotationDraft`). `tool` picks the tool whose defaults it starts
-  /// from; `select` selects it afterwards. Throws `invalid-input` for a
-  /// value the engine refuses, naming the field.
+  /// it. `draft` is one of the typed drafts: `InkAnnotationDraft`,
+  /// `HighlightAnnotationDraft`, `UnderlineAnnotationDraft`,
+  /// `StrikeoutAnnotationDraft`, `SquigglyAnnotationDraft`,
+  /// `NoteAnnotationDraft`, `FreeTextAnnotationDraft`,
+  /// `SquareAnnotationDraft`, `CircleAnnotationDraft`,
+  /// `LineAnnotationDraft`, `PolylineAnnotationDraft`,
+  /// `PolygonAnnotationDraft`, `CaretAnnotationDraft`,
+  /// `LinkAnnotationDraft` or `RedactionAnnotationDraft`. `tool` picks the
+  /// tool whose defaults it starts from; `select` selects it afterwards.
+  /// Throws `invalid-input` for a value the engine refuses, naming the
+  /// field.
   public func create(
     _ draft: some AnnotationDraft, on page: PageRef, tool: ToolID? = nil, select: Bool = false
   ) async throws(PDFError) -> AnnotationRef {
@@ -249,10 +254,18 @@ public struct AnnotationCapability: Sendable {
     }
   }
 
-  /// Change an ink, highlight or note annotation (`InkAnnotationPatch`,
-  /// `HighlightAnnotationPatch`, `NoteAnnotationPatch`). Members the patch
-  /// leaves `nil` keep their values. Throws `invalid-input` for a value the
-  /// engine refuses, including a patch of another subtype's fields.
+  /// Change an annotation with the typed patch for its subtype:
+  /// `InkAnnotationPatch`, `HighlightAnnotationPatch`,
+  /// `UnderlineAnnotationPatch`, `StrikeoutAnnotationPatch`,
+  /// `SquigglyAnnotationPatch`, `NoteAnnotationPatch`,
+  /// `FreeTextAnnotationPatch`, `SquareAnnotationPatch`,
+  /// `CircleAnnotationPatch`, `LineAnnotationPatch`,
+  /// `PolylineAnnotationPatch`, `PolygonAnnotationPatch`,
+  /// `CaretAnnotationPatch`, `LinkAnnotationPatch`,
+  /// `RedactionAnnotationPatch`, `StampAnnotationPatch` or
+  /// `FileAttachmentAnnotationPatch`. Members the patch leaves `nil` keep
+  /// their values. Throws `invalid-input` for a value the engine refuses,
+  /// including a patch of another subtype's fields.
   public func update(_ ref: AnnotationRef, _ patch: some AnnotationPatch) async throws(PDFError) {
     try await update(ref, try patch.json())
   }
@@ -320,7 +333,7 @@ public struct AnnotationCapability: Sendable {
   /// and comment-thread changes. Finishes when the document closes (at
   /// once if it already has) or the viewer is destroyed. A `.created` or
   /// `.updated` event's `annotationInfo` is its annotation as an
-  /// `AnnotationInfo`.
+  /// `AnnotationInfo`. Each read is a new subscription.
   public var events: AsyncStream<AnnotationEvent> {
     viewer.registry.stream { handle.subscribe(listener: $0) }
   }
@@ -359,6 +372,12 @@ public struct AnnotationSelectionCapability: Sendable {
   /// its kind has.
   public func update(_ patchJSON: String) async throws(PDFError) -> AnnotationBatchResult {
     try await bridgedCancellable { token in try await handle.update(patchJson: patchJSON, cancel: token) }
+  }
+
+  /// Change every selected annotation with a typed patch. Each member
+  /// takes the fields its kind has, as with the JSON form.
+  public func update(_ patch: some AnnotationPatch) async throws(PDFError) -> AnnotationBatchResult {
+    try await update(try patch.json())
   }
 
   public func delete() async throws(PDFError) -> AnnotationBatchResult {
@@ -432,10 +451,47 @@ public struct AnnotationToolsCapability: Sendable {
     try await defaults(for: ToolID(rawValue: toolID))
   }
 
+  /// The tool's defaults as the patch of its subtype (`InkAnnotationPatch`
+  /// for `.ink`): what `updateDefaults(_:for:)` wrote, read back typed.
+  ///
+  /// A default the tool doesn't set is `nil`, and one set to nothing is
+  /// `.null`: the engine leaves the first out of its JSON and writes `null`
+  /// for the second. A default the patch has no member for is left unread;
+  /// `defaults(for:)` has every one. `common.nm` is the name the defaults
+  /// hold, which only the JSON overload can put there.
+  ///
+  /// Throws `invalid-input` when the defaults don't read as `type`: a
+  /// member of the patch holds a value of another shape, as it can after
+  /// the JSON overload stored one. Asking for another subtype's patch reads
+  /// only the members the two subtypes share, and throws only when a shared
+  /// key holds a value of another shape.
+  public func defaults<P: AnnotationPatch>(for toolID: ToolID, as type: P.Type)
+    async throws(PDFError) -> P
+  {
+    let json = try await defaults(for: toolID)
+    // Performance: the engine writes the defaults as a JSON string and this
+    // parses it again, with a new `JSONDecoder`, on every call; nothing is
+    // kept between calls. It bites when a view reads a tool's defaults on
+    // each body evaluation, as a style panel can. Such a caller keeps the
+    // typed value and reads it again when the defaults change.
+    do {
+      return try JSONDecoder().decode(type, from: Data(json.utf8))
+    } catch {
+      throw PDFError(
+        name: "DecodingError", code: .invalidInput,
+        detail: "the defaults of \(toolID.rawValue) don't read as \(type): \(error)")
+    }
+  }
+
   /// Merge `changes` over the tool's defaults, which every annotation the
   /// tool creates starts from. Pass the patch of the tool's subtype
   /// (`InkAnnotationPatch` for `.ink`); a create keeps only the defaults
   /// its subtype declares, and drops the rest without a word.
+  ///
+  /// The patch's `common` is stored too. A `reply` or `groupID` set there
+  /// is the default for an annotation created with this tool: it becomes a
+  /// reply to that annotation or a member of that group unless its draft
+  /// sets its own value. A create without `tool:` takes no defaults.
   public func updateDefaults(_ changes: some AnnotationPatch, for toolID: ToolID)
     async throws(PDFError)
   {
@@ -851,11 +907,23 @@ public struct AnnotationThreadsCapability: Sendable {
     try await bridged { try await handle.link(annotationRef: ref) }
   }
 
+  /// The link attached to an annotation, or `nil` when it has none. Throws
+  /// `operation-failed` for a target `AnnotationLinkTarget` can't hold
+  /// (another file, a launch, a script); read those with `link(_:)`.
+  public func linkTarget(_ ref: AnnotationRef) async throws(PDFError) -> AnnotationLinkTarget? {
+    guard let json = try await link(ref) else { return nil }
+    return try AnnotationLinkTarget(json: json)
+  }
+
   /// `targetJSON` is the engine's `LinkTarget`.
   public func setLink(_ targetJSON: String, on ref: AnnotationRef) async throws(PDFError) {
     try await bridgedCancellable { token in
       try await handle.setLink(annotationRef: ref, targetJson: targetJSON, cancel: token)
     }
+  }
+
+  public func setLink(_ target: AnnotationLinkTarget, on ref: AnnotationRef) async throws(PDFError) {
+    try await setLink(try target.json(), on: ref)
   }
 
   public func clearLink(_ ref: AnnotationRef) async throws(PDFError) {

@@ -6,9 +6,7 @@ import Foundation
 // rule is the engine's (`read_field` in
 // `crates/epdf-engine/src/features/annotation/write/prepare.rs`).
 //
-// A stroked shape's `color` takes `.null`, which draws no stroke. A
-// dimension intent's scale (`measure`) is left to the JSON-string
-// overloads.
+// A stroked shape's `color` takes `.null`, which draws no stroke.
 
 // ── square and circle ───────────────────────────────────────────────────────
 
@@ -35,13 +33,21 @@ public struct SquareAnnotationDraft: AnnotationDraft, Hashable {
   /// `/Contents`. `.null` is none.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a draft that gives both needs them to agree. `.null` is a
+  /// plain comment.
+  public var richText: Nullable<AnnotationRichText>?
+  /// The fields every annotation shares.
+  public var common: AnnotationCommonFields
 
   public init(
     box: Rect, color: Nullable<AnnotationColor>? = nil, opacity: Double? = nil,
     strokeWidth: Double? = nil, borderStyle: AnnotationBorderStyle? = nil,
     dashArray: Nullable<[Double]>? = nil, interiorColor: Nullable<AnnotationColor>? = nil,
     rotation: Nullable<Double>? = nil, cloudyIntensity: Nullable<Double>? = nil,
-    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil
+    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.box = box
     self.color = color
@@ -54,6 +60,8 @@ public struct SquareAnnotationDraft: AnnotationDraft, Hashable {
     self.cloudyIntensity = cloudyIntensity
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -62,6 +70,8 @@ public struct SquareAnnotationDraft: AnnotationDraft, Hashable {
       borderStyle: borderStyle, dashArray: dashArray, interiorColor: interiorColor,
       rotation: rotation, cloudyIntensity: cloudyIntensity, contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encode(to: encoder)
   }
 }
 
@@ -86,13 +96,21 @@ public struct SquareAnnotationPatch: AnnotationPatch, Hashable {
   /// `.null` removes `/Contents`.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a patch that gives both needs them to agree. `.null` makes
+  /// the comment plain and keeps `contents`.
+  public var richText: Nullable<AnnotationRichText>?
+  /// The fields every annotation shares. A patch leaves `nm` out.
+  public var common: AnnotationCommonFields
 
   public init(
     box: Rect? = nil, color: Nullable<AnnotationColor>? = nil, opacity: Double? = nil,
     strokeWidth: Double? = nil, borderStyle: AnnotationBorderStyle? = nil,
     dashArray: Nullable<[Double]>? = nil, interiorColor: Nullable<AnnotationColor>? = nil,
     rotation: Nullable<Double>? = nil, cloudyIntensity: Nullable<Double>? = nil,
-    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil
+    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.box = box
     self.color = color
@@ -105,6 +123,8 @@ public struct SquareAnnotationPatch: AnnotationPatch, Hashable {
     self.cloudyIntensity = cloudyIntensity
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -113,6 +133,20 @@ public struct SquareAnnotationPatch: AnnotationPatch, Hashable {
       borderStyle: borderStyle, dashArray: dashArray, interiorColor: interiorColor,
       rotation: rotation, cloudyIntensity: cloudyIntensity, contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encodeAsPatch(to: encoder)
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let fields = try ShapeFields(from: decoder)
+    self.init(
+      box: fields.box, color: fields.color, opacity: fields.opacity,
+      strokeWidth: fields.strokeWidth, borderStyle: fields.borderStyle,
+      dashArray: fields.dashArray, interiorColor: fields.interiorColor, rotation: fields.rotation,
+      cloudyIntensity: fields.cloudyIntensity, contents: fields.contents,
+      blendMode: fields.blendMode,
+      richText: try AnnotationSharedMembers.decodeRichText(from: decoder),
+      common: try AnnotationCommonFields(from: decoder))
   }
 }
 
@@ -138,13 +172,21 @@ public struct CircleAnnotationDraft: AnnotationDraft, Hashable {
   /// `/Contents`. `.null` is none.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a draft that gives both needs them to agree. `.null` is a
+  /// plain comment.
+  public var richText: Nullable<AnnotationRichText>?
+  /// The fields every annotation shares.
+  public var common: AnnotationCommonFields
 
   public init(
     box: Rect, color: Nullable<AnnotationColor>? = nil, opacity: Double? = nil,
     strokeWidth: Double? = nil, borderStyle: AnnotationBorderStyle? = nil,
     dashArray: Nullable<[Double]>? = nil, interiorColor: Nullable<AnnotationColor>? = nil,
     rotation: Nullable<Double>? = nil, cloudyIntensity: Nullable<Double>? = nil,
-    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil
+    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.box = box
     self.color = color
@@ -157,6 +199,8 @@ public struct CircleAnnotationDraft: AnnotationDraft, Hashable {
     self.cloudyIntensity = cloudyIntensity
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -165,6 +209,8 @@ public struct CircleAnnotationDraft: AnnotationDraft, Hashable {
       borderStyle: borderStyle, dashArray: dashArray, interiorColor: interiorColor,
       rotation: rotation, cloudyIntensity: cloudyIntensity, contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encode(to: encoder)
   }
 }
 
@@ -189,13 +235,21 @@ public struct CircleAnnotationPatch: AnnotationPatch, Hashable {
   /// `.null` removes `/Contents`.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a patch that gives both needs them to agree. `.null` makes
+  /// the comment plain and keeps `contents`.
+  public var richText: Nullable<AnnotationRichText>?
+  /// The fields every annotation shares. A patch leaves `nm` out.
+  public var common: AnnotationCommonFields
 
   public init(
     box: Rect? = nil, color: Nullable<AnnotationColor>? = nil, opacity: Double? = nil,
     strokeWidth: Double? = nil, borderStyle: AnnotationBorderStyle? = nil,
     dashArray: Nullable<[Double]>? = nil, interiorColor: Nullable<AnnotationColor>? = nil,
     rotation: Nullable<Double>? = nil, cloudyIntensity: Nullable<Double>? = nil,
-    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil
+    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.box = box
     self.color = color
@@ -208,6 +262,8 @@ public struct CircleAnnotationPatch: AnnotationPatch, Hashable {
     self.cloudyIntensity = cloudyIntensity
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -216,6 +272,20 @@ public struct CircleAnnotationPatch: AnnotationPatch, Hashable {
       borderStyle: borderStyle, dashArray: dashArray, interiorColor: interiorColor,
       rotation: rotation, cloudyIntensity: cloudyIntensity, contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encodeAsPatch(to: encoder)
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let fields = try ShapeFields(from: decoder)
+    self.init(
+      box: fields.box, color: fields.color, opacity: fields.opacity,
+      strokeWidth: fields.strokeWidth, borderStyle: fields.borderStyle,
+      dashArray: fields.dashArray, interiorColor: fields.interiorColor, rotation: fields.rotation,
+      cloudyIntensity: fields.cloudyIntensity, contents: fields.contents,
+      blendMode: fields.blendMode,
+      richText: try AnnotationSharedMembers.decodeRichText(from: decoder),
+      common: try AnnotationCommonFields(from: decoder))
   }
 }
 
@@ -252,6 +322,17 @@ public struct LineAnnotationDraft: AnnotationDraft, Hashable {
   /// `/Contents`, and the caption when `captionEnabled`. `.null` is none.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a draft that gives both needs them to agree. `.null` is a
+  /// plain comment.
+  public var richText: Nullable<AnnotationRichText>?
+  /// `/Measure`: the scale a dimension intent measures in. With one, the
+  /// engine sets `contents` to the measured value's label. Only a
+  /// `rectilinear` scale that has its `x`, `distance` and `area` formats is
+  /// written; any other throws `invalid-input`. `.null` is none.
+  public var measure: Nullable<PdfMeasurement>?
+  /// The fields every annotation shares.
+  public var common: AnnotationCommonFields
 
   public init(
     start: Point, end: Point, color: Nullable<AnnotationColor>? = nil, opacity: Double? = nil,
@@ -262,7 +343,9 @@ public struct LineAnnotationDraft: AnnotationDraft, Hashable {
     captionPosition: AnnotationCaptionPosition? = nil,
     captionOffset: Nullable<AnnotationCaptionOffset>? = nil,
     leader: Nullable<AnnotationLineLeader>? = nil, contents: Nullable<String>? = nil,
-    blendMode: AnnotationBlendMode? = nil
+    blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil, measure: Nullable<PdfMeasurement>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.start = start
     self.end = end
@@ -281,6 +364,9 @@ public struct LineAnnotationDraft: AnnotationDraft, Hashable {
     self.leader = leader
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.measure = measure
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -291,6 +377,9 @@ public struct LineAnnotationDraft: AnnotationDraft, Hashable {
       captionEnabled: captionEnabled, captionPosition: captionPosition,
       captionOffset: captionOffset, leader: leader, contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try AnnotationSharedMembers.encode(measure: measure, to: encoder)
+    try common.encode(to: encoder)
   }
 }
 
@@ -323,6 +412,16 @@ public struct LineAnnotationPatch: AnnotationPatch, Hashable {
   /// `.null` removes `/Contents`.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a patch that gives both needs them to agree. `.null` makes
+  /// the comment plain and keeps `contents`.
+  public var richText: Nullable<AnnotationRichText>?
+  /// Replaces the scale, on the draft's rules. `.null` removes it. A scale
+  /// read with another subtype (`geospatial`, `unknown`) may be sent back as
+  /// it was read, which keeps it.
+  public var measure: Nullable<PdfMeasurement>?
+  /// The fields every annotation shares. A patch leaves `nm` out.
+  public var common: AnnotationCommonFields
 
   public init(
     start: Point? = nil, end: Point? = nil, color: Nullable<AnnotationColor>? = nil,
@@ -333,7 +432,9 @@ public struct LineAnnotationPatch: AnnotationPatch, Hashable {
     captionPosition: AnnotationCaptionPosition? = nil,
     captionOffset: Nullable<AnnotationCaptionOffset>? = nil,
     leader: Nullable<AnnotationLineLeader>? = nil, contents: Nullable<String>? = nil,
-    blendMode: AnnotationBlendMode? = nil
+    blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil, measure: Nullable<PdfMeasurement>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.start = start
     self.end = end
@@ -352,6 +453,9 @@ public struct LineAnnotationPatch: AnnotationPatch, Hashable {
     self.leader = leader
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.measure = measure
+    self.common = common
   }
 
   /// Throws `invalid-input` when only one of `start` and `end` is set.
@@ -371,6 +475,25 @@ public struct LineAnnotationPatch: AnnotationPatch, Hashable {
       captionEnabled: captionEnabled, captionPosition: captionPosition,
       captionOffset: captionOffset, leader: leader, contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try AnnotationSharedMembers.encode(measure: measure, to: encoder)
+    try common.encodeAsPatch(to: encoder)
+  }
+
+  /// `linePoints` reads into `start` and `end`.
+  public init(from decoder: any Decoder) throws {
+    let fields = try LineFields(from: decoder)
+    self.init(
+      start: fields.linePoints?.start.point, end: fields.linePoints?.end.point,
+      color: fields.color, opacity: fields.opacity, strokeWidth: fields.strokeWidth,
+      borderStyle: fields.borderStyle, dashArray: fields.dashArray,
+      interiorColor: fields.interiorColor, lineEndings: fields.lineEndings,
+      rotation: fields.rotation, intent: fields.intent, captionEnabled: fields.captionEnabled,
+      captionPosition: fields.captionPosition, captionOffset: fields.captionOffset,
+      leader: fields.leader, contents: fields.contents, blendMode: fields.blendMode,
+      richText: try AnnotationSharedMembers.decodeRichText(from: decoder),
+      measure: try AnnotationSharedMembers.decodeMeasure(from: decoder),
+      common: try AnnotationCommonFields(from: decoder))
   }
 }
 
@@ -421,6 +544,31 @@ private struct LineFields: Encodable {
   }
 }
 
+extension LineFields {
+  /// A patch's members.
+  init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    linePoints = try container.decodeIfPresent(ReadLinePoints.self, forKey: .linePoints).map {
+      WireLinePoints(start: $0.start.point, end: $0.end.point)
+    }
+    color = try container.decodeNullableIfPresent(AnnotationColor.self, forKey: .color)
+    opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+    strokeWidth = try container.decodeIfPresent(Double.self, forKey: .strokeWidth)
+    borderStyle = try container.decodeIfPresent(AnnotationBorderStyle.self, forKey: .borderStyle)
+    dashArray = try container.decodeNullableIfPresent([Double].self, forKey: .dashArray)
+    interiorColor = try container.decodeNullableIfPresent(AnnotationColor.self, forKey: .interiorColor)
+    lineEndings = try container.decodeIfPresent(AnnotationLineEndings.self, forKey: .lineEndings)
+    rotation = try container.decodeNullableIfPresent(Double.self, forKey: .rotation)
+    intent = try container.decodeNullableIfPresent(AnnotationLineIntent.self, forKey: .intent)
+    captionEnabled = try container.decodeIfPresent(Bool.self, forKey: .captionEnabled)
+    captionPosition = try container.decodeIfPresent(AnnotationCaptionPosition.self, forKey: .captionPosition)
+    captionOffset = try container.decodeNullableIfPresent(AnnotationCaptionOffset.self, forKey: .captionOffset)
+    leader = try container.decodeNullableIfPresent(AnnotationLineLeader.self, forKey: .leader)
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
+    blendMode = try container.decodeIfPresent(AnnotationBlendMode.self, forKey: .blendMode)
+  }
+}
+
 // ── polygon and polyline ────────────────────────────────────────────────────
 
 /// A new polygon: a closed path through its vertices.
@@ -450,6 +598,17 @@ public struct PolygonAnnotationDraft: AnnotationDraft, Hashable {
   /// `/Contents`, and the caption when `captionEnabled`. `.null` is none.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a draft that gives both needs them to agree. `.null` is a
+  /// plain comment.
+  public var richText: Nullable<AnnotationRichText>?
+  /// `/Measure`: the scale a dimension intent measures in. With one, the
+  /// engine sets `contents` to the measured value's label. Only a
+  /// `rectilinear` scale that has its `x`, `distance` and `area` formats is
+  /// written; any other throws `invalid-input`. `.null` is none.
+  public var measure: Nullable<PdfMeasurement>?
+  /// The fields every annotation shares.
+  public var common: AnnotationCommonFields
 
   public init(
     vertices: [Point], color: Nullable<AnnotationColor>? = nil, opacity: Double? = nil,
@@ -458,7 +617,9 @@ public struct PolygonAnnotationDraft: AnnotationDraft, Hashable {
     rotation: Nullable<Double>? = nil, intent: Nullable<AnnotationPolygonIntent>? = nil,
     cloudyIntensity: Nullable<Double>? = nil, captionEnabled: Nullable<Bool>? = nil,
     captionCenter: AnnotationCaptionCenter? = nil, contents: Nullable<String>? = nil,
-    blendMode: AnnotationBlendMode? = nil
+    blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil, measure: Nullable<PdfMeasurement>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.vertices = vertices
     self.color = color
@@ -474,6 +635,9 @@ public struct PolygonAnnotationDraft: AnnotationDraft, Hashable {
     self.captionCenter = captionCenter
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.measure = measure
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -484,6 +648,9 @@ public struct PolygonAnnotationDraft: AnnotationDraft, Hashable {
       cloudyIntensity: cloudyIntensity, lineEndings: nil, captionEnabled: captionEnabled,
       captionCenter: captionCenter, contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try AnnotationSharedMembers.encode(measure: measure, to: encoder)
+    try common.encode(to: encoder)
   }
 }
 
@@ -512,6 +679,16 @@ public struct PolygonAnnotationPatch: AnnotationPatch, Hashable {
   /// `.null` removes `/Contents`.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a patch that gives both needs them to agree. `.null` makes
+  /// the comment plain and keeps `contents`.
+  public var richText: Nullable<AnnotationRichText>?
+  /// Replaces the scale, on the draft's rules. `.null` removes it. A scale
+  /// read with another subtype (`geospatial`, `unknown`) may be sent back as
+  /// it was read, which keeps it.
+  public var measure: Nullable<PdfMeasurement>?
+  /// The fields every annotation shares. A patch leaves `nm` out.
+  public var common: AnnotationCommonFields
 
   public init(
     vertices: [Point]? = nil, color: Nullable<AnnotationColor>? = nil, opacity: Double? = nil,
@@ -520,7 +697,9 @@ public struct PolygonAnnotationPatch: AnnotationPatch, Hashable {
     rotation: Nullable<Double>? = nil, intent: Nullable<AnnotationPolygonIntent>? = nil,
     cloudyIntensity: Nullable<Double>? = nil, captionEnabled: Nullable<Bool>? = nil,
     captionCenter: AnnotationCaptionCenter? = nil, contents: Nullable<String>? = nil,
-    blendMode: AnnotationBlendMode? = nil
+    blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil, measure: Nullable<PdfMeasurement>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.vertices = vertices
     self.color = color
@@ -536,6 +715,9 @@ public struct PolygonAnnotationPatch: AnnotationPatch, Hashable {
     self.captionCenter = captionCenter
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.measure = measure
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -546,6 +728,23 @@ public struct PolygonAnnotationPatch: AnnotationPatch, Hashable {
       cloudyIntensity: cloudyIntensity, lineEndings: nil, captionEnabled: captionEnabled,
       captionCenter: captionCenter, contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try AnnotationSharedMembers.encode(measure: measure, to: encoder)
+    try common.encodeAsPatch(to: encoder)
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let fields = try PathFields(from: decoder, polygon: true)
+    self.init(
+      vertices: fields.vertices, color: fields.color, opacity: fields.opacity,
+      strokeWidth: fields.strokeWidth, borderStyle: fields.borderStyle,
+      dashArray: fields.dashArray, interiorColor: fields.interiorColor, rotation: fields.rotation,
+      intent: try fields.intent(as: AnnotationPolygonIntent.self, in: decoder),
+      cloudyIntensity: fields.cloudyIntensity, captionEnabled: fields.captionEnabled,
+      captionCenter: fields.captionCenter, contents: fields.contents, blendMode: fields.blendMode,
+      richText: try AnnotationSharedMembers.decodeRichText(from: decoder),
+      measure: try AnnotationSharedMembers.decodeMeasure(from: decoder),
+      common: try AnnotationCommonFields(from: decoder))
   }
 }
 
@@ -575,6 +774,17 @@ public struct PolylineAnnotationDraft: AnnotationDraft, Hashable {
   /// `/Contents`, and the caption when `captionEnabled`. `.null` is none.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a draft that gives both needs them to agree. `.null` is a
+  /// plain comment.
+  public var richText: Nullable<AnnotationRichText>?
+  /// `/Measure`: the scale a dimension intent measures in. With one, the
+  /// engine sets `contents` to the measured value's label. Only a
+  /// `rectilinear` scale that has its `x`, `distance` and `area` formats is
+  /// written; any other throws `invalid-input`. `.null` is none.
+  public var measure: Nullable<PdfMeasurement>?
+  /// The fields every annotation shares.
+  public var common: AnnotationCommonFields
 
   public init(
     vertices: [Point], color: Nullable<AnnotationColor>? = nil, opacity: Double? = nil,
@@ -583,7 +793,9 @@ public struct PolylineAnnotationDraft: AnnotationDraft, Hashable {
     lineEndings: AnnotationLineEndings? = nil, rotation: Nullable<Double>? = nil,
     intent: Nullable<AnnotationPolylineIntent>? = nil, captionEnabled: Nullable<Bool>? = nil,
     captionCenter: AnnotationCaptionCenter? = nil, contents: Nullable<String>? = nil,
-    blendMode: AnnotationBlendMode? = nil
+    blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil, measure: Nullable<PdfMeasurement>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.vertices = vertices
     self.color = color
@@ -599,6 +811,9 @@ public struct PolylineAnnotationDraft: AnnotationDraft, Hashable {
     self.captionCenter = captionCenter
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.measure = measure
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -609,6 +824,9 @@ public struct PolylineAnnotationDraft: AnnotationDraft, Hashable {
       cloudyIntensity: nil, lineEndings: lineEndings, captionEnabled: captionEnabled,
       captionCenter: captionCenter, contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try AnnotationSharedMembers.encode(measure: measure, to: encoder)
+    try common.encode(to: encoder)
   }
 }
 
@@ -636,6 +854,16 @@ public struct PolylineAnnotationPatch: AnnotationPatch, Hashable {
   /// `.null` removes `/Contents`.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a patch that gives both needs them to agree. `.null` makes
+  /// the comment plain and keeps `contents`.
+  public var richText: Nullable<AnnotationRichText>?
+  /// Replaces the scale, on the draft's rules. `.null` removes it. A scale
+  /// read with another subtype (`geospatial`, `unknown`) may be sent back as
+  /// it was read, which keeps it.
+  public var measure: Nullable<PdfMeasurement>?
+  /// The fields every annotation shares. A patch leaves `nm` out.
+  public var common: AnnotationCommonFields
 
   public init(
     vertices: [Point]? = nil, color: Nullable<AnnotationColor>? = nil, opacity: Double? = nil,
@@ -644,7 +872,9 @@ public struct PolylineAnnotationPatch: AnnotationPatch, Hashable {
     lineEndings: AnnotationLineEndings? = nil, rotation: Nullable<Double>? = nil,
     intent: Nullable<AnnotationPolylineIntent>? = nil, captionEnabled: Nullable<Bool>? = nil,
     captionCenter: AnnotationCaptionCenter? = nil, contents: Nullable<String>? = nil,
-    blendMode: AnnotationBlendMode? = nil
+    blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil, measure: Nullable<PdfMeasurement>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.vertices = vertices
     self.color = color
@@ -660,6 +890,9 @@ public struct PolylineAnnotationPatch: AnnotationPatch, Hashable {
     self.captionCenter = captionCenter
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.measure = measure
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -670,6 +903,24 @@ public struct PolylineAnnotationPatch: AnnotationPatch, Hashable {
       cloudyIntensity: nil, lineEndings: lineEndings, captionEnabled: captionEnabled,
       captionCenter: captionCenter, contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try AnnotationSharedMembers.encode(measure: measure, to: encoder)
+    try common.encodeAsPatch(to: encoder)
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let fields = try PathFields(from: decoder, polygon: false)
+    self.init(
+      vertices: fields.vertices, color: fields.color, opacity: fields.opacity,
+      strokeWidth: fields.strokeWidth, borderStyle: fields.borderStyle,
+      dashArray: fields.dashArray, interiorColor: fields.interiorColor,
+      lineEndings: fields.lineEndings, rotation: fields.rotation,
+      intent: try fields.intent(as: AnnotationPolylineIntent.self, in: decoder),
+      captionEnabled: fields.captionEnabled, captionCenter: fields.captionCenter,
+      contents: fields.contents, blendMode: fields.blendMode,
+      richText: try AnnotationSharedMembers.decodeRichText(from: decoder),
+      measure: try AnnotationSharedMembers.decodeMeasure(from: decoder),
+      common: try AnnotationCommonFields(from: decoder))
   }
 }
 
@@ -708,6 +959,24 @@ private struct ShapeFields: Encodable {
     try container.encodeIfPresent(cloudyIntensity, forKey: .cloudyIntensity)
     try container.encodeIfPresent(contents, forKey: .contents)
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
+  }
+}
+
+extension ShapeFields {
+  /// A patch's members.
+  init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    box = try container.decodeRectIfPresent(forKey: .box)
+    color = try container.decodeNullableIfPresent(AnnotationColor.self, forKey: .color)
+    opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+    strokeWidth = try container.decodeIfPresent(Double.self, forKey: .strokeWidth)
+    borderStyle = try container.decodeIfPresent(AnnotationBorderStyle.self, forKey: .borderStyle)
+    dashArray = try container.decodeNullableIfPresent([Double].self, forKey: .dashArray)
+    interiorColor = try container.decodeNullableIfPresent(AnnotationColor.self, forKey: .interiorColor)
+    rotation = try container.decodeNullableIfPresent(Double.self, forKey: .rotation)
+    cloudyIntensity = try container.decodeNullableIfPresent(Double.self, forKey: .cloudyIntensity)
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
+    blendMode = try container.decodeIfPresent(AnnotationBlendMode.self, forKey: .blendMode)
   }
 }
 
@@ -754,6 +1023,56 @@ private struct PathFields: Encodable {
     try container.encodeIfPresent(captionCenter, forKey: .captionCenter)
     try container.encodeIfPresent(contents, forKey: .contents)
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
+  }
+}
+
+extension PathFields {
+  /// A patch's members. Only a polygon declares `cloudyIntensity` and only
+  /// a polyline `lineEndings`, so each leaves the other's key unread.
+  init(from decoder: any Decoder, polygon: Bool) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    vertices = try container.decodePointsIfPresent(forKey: .vertices)
+    color = try container.decodeNullableIfPresent(AnnotationColor.self, forKey: .color)
+    opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+    strokeWidth = try container.decodeIfPresent(Double.self, forKey: .strokeWidth)
+    borderStyle = try container.decodeIfPresent(AnnotationBorderStyle.self, forKey: .borderStyle)
+    dashArray = try container.decodeNullableIfPresent([Double].self, forKey: .dashArray)
+    interiorColor = try container.decodeNullableIfPresent(AnnotationColor.self, forKey: .interiorColor)
+    rotation = try container.decodeNullableIfPresent(Double.self, forKey: .rotation)
+    intent = try container.decodeNullableIfPresent(String.self, forKey: .intent)
+    if polygon {
+      cloudyIntensity = try container.decodeNullableIfPresent(Double.self, forKey: .cloudyIntensity)
+    } else {
+      lineEndings = try container.decodeIfPresent(AnnotationLineEndings.self, forKey: .lineEndings)
+    }
+    captionEnabled = try container.decodeNullableIfPresent(Bool.self, forKey: .captionEnabled)
+    // A caption centre's `null` is a value: the engine places the caption.
+    if container.contains(.captionCenter) {
+      captionCenter =
+        try container.decodeNil(forKey: .captionCenter)
+        ? .automatic : .at(try container.decode(ReadPoint.self, forKey: .captionCenter).point)
+    }
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
+    blendMode = try container.decodeIfPresent(AnnotationBlendMode.self, forKey: .blendMode)
+  }
+
+  /// `intent` as the kind's own intent. Throws for a text the kind doesn't
+  /// have.
+  func intent<Intent: RawRepresentable<String> & Sendable & Hashable>(
+    as type: Intent.Type, in decoder: any Decoder
+  ) throws -> Nullable<Intent>? {
+    switch intent {
+    case nil: return nil
+    case .null: return .null
+    case let .value(text):
+      guard let intent = Intent(rawValue: text) else {
+        throw DecodingError.dataCorrupted(
+          .init(
+            codingPath: decoder.codingPath + [CodingKeys.intent],
+            debugDescription: "not an intent of this kind: \(text)"))
+      }
+      return .value(intent)
+    }
   }
 }
 

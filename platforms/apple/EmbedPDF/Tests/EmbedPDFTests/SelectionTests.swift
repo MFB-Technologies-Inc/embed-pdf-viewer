@@ -25,7 +25,7 @@ extension BaseSuite {
 
     @Test func aSearchHitSelectsItsCharacters() async throws {
       let (viewer, document, selection, _) = try await opened(search: true)
-      let search = try await viewer.search(in: document)
+      let search = try await viewer.search(for: document)
       let hit = try #require(try await search.findAll(SearchQuery(text: "Report")).first)
       try await selection.select(hit)
       // Search matches case-insensitively by default, so compare that way.

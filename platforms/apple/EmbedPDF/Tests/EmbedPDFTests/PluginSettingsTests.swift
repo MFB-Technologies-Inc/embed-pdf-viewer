@@ -38,7 +38,7 @@ extension BaseSuite {
       let viewer = try PDFViewer(ViewerConfig(search: SearchConfig()))
       try await viewer.start()
       let document = try await viewer.open(Fixture.data("report"))
-      let search = try await viewer.search(in: document)
+      let search = try await viewer.search(for: document)
       let registered = try await search.settings()
       try await search.updateSettings(SearchSettingsPatch(
         reveal: SearchRevealPatch(clearAnchor: true),
@@ -59,7 +59,7 @@ extension BaseSuite {
       let viewer = try PDFViewer(ViewerConfig(render: RenderConfig(fullPage: RenderFullPageOptions(maxWidth: 480))))
       try await viewer.start()
       let document = try await viewer.open(Fixture.data("report"))
-      let render = try await viewer.render(in: document)
+      let render = try await viewer.render(for: document)
       let registered = try await render.settings()
       try await render.updateSettings(RenderSettingsPatch(
         tiles: .off, slowAfterMs: 800,

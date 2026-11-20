@@ -13,7 +13,7 @@ extension BaseSuite {
       try await viewer.start()
       let document = try await viewer.open(Fixture.data("report"))
       try await viewer.annotations(for: document).refresh()
-      return (viewer, document, try await viewer.redaction(for: document), try await viewer.search(in: document))
+      return (viewer, document, try await viewer.redaction(for: document), try await viewer.search(for: document))
     }
 
     @Test func markingAnAreaIsPendingAndObserved() async throws {

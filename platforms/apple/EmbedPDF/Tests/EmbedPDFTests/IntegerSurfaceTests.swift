@@ -73,7 +73,7 @@ extension BaseSuite {
     @Test func searchHitIndexesAreInt() async throws {
       let viewer = try PDFViewer(ViewerConfig(search: SearchConfig()))
       try await viewer.start()
-      let search = try await viewer.search(in: try await viewer.open(Fixture.data("report")))
+      let search = try await viewer.search(for: try await viewer.open(Fixture.data("report")))
       _ = try await search.search(SearchQuery(text: "the"))
       let count: Int = try await search.hitCount()
       #expect(try await search.hits().count == count)
@@ -159,7 +159,7 @@ extension BaseSuite {
       let viewer = try PDFViewer(ViewerConfig(render: RenderConfig()))
       try await viewer.start()
       let document = try await viewer.open(Fixture.data("colors"))
-      let render = try await viewer.render(in: document)
+      let render = try await viewer.render(for: document)
       let pages = try await viewer.pages(of: document).map(\.page)
       let options = RenderPageOptions(width: 30)
       for value in outsideUInt32 {
@@ -201,7 +201,7 @@ extension BaseSuite {
       try await viewer.move(first, to: 1 as Int64)
       #expect(try await viewer.documentOrder() == [second.id, first.id])
 
-      let search = try await viewer.search(in: first)
+      let search = try await viewer.search(for: first)
       _ = try await search.search(SearchQuery(text: "the"))
       _ = try await search.goToHit(1 as UInt32)
       let active: UInt32? = try await search.activeHitIndex()
@@ -227,7 +227,7 @@ extension BaseSuite {
       try await manager.moveDocument(second, within: pane, to: 0 as UInt32)
       #expect(try await manager.pane(pane)?.documentIds == [second.id, first.id])
 
-      let render = try await viewer.render(in: second)
+      let render = try await viewer.render(for: second)
       let colorPages = try await viewer.pages(of: second).map(\.page)
       let batch = try await render.renderPages(colorPages, options: RenderPageOptions(width: 30), concurrency: 2 as UInt32?)
       expectNoDifference(batch.applied.map(\.page), colorPages)

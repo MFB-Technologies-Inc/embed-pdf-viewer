@@ -1,4 +1,4 @@
-@testable import EmbedPDFUI
+@testable import EmbedPDFModels
 import Testing
 
 @MainActor

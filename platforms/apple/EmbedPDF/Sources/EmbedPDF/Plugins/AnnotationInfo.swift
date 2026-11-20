@@ -240,15 +240,18 @@ extension AnnotationInfo {
     public let opacity: Double
     public let strokeWidth: Double
     /// `solid`, `dashed`, `beveled` or `inset`.
-    public let borderStyle: String
+    public let borderStyle: BorderStyle
     /// The dash pattern, or `nil` when the border isn't dashed or names none.
     public let dashArray: [Double]?
     /// `/InkList`: one array of page-space points per stroke.
     public let inkList: [[Point]]
     /// `/IT`. `nil` for ordinary pen ink; `ink-highlight` for a freehand
     /// highlighter.
-    public let intent: String?
+    public let intent: AnnotationIntent?
     public let rotation: Double?
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
   }
 
   /// A highlight annotation's members.
@@ -259,6 +262,9 @@ extension AnnotationInfo {
     public let opacity: Double
     /// `/QuadPoints`, page space: one quad per run of marked text.
     public let quadPoints: [Quad]
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
   }
 
   /// A note's members: a `text` annotation.
@@ -277,6 +283,9 @@ extension AnnotationInfo {
     public let state: String?
     /// `/StateModel`, on the same terms.
     public let stateModel: String?
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
   }
 }
 
@@ -320,7 +329,7 @@ struct ReadRect: Decodable {
 
 extension AnnotationInfo.Ink: Decodable {
   private enum CodingKeys: String, CodingKey {
-    case color, opacity, strokeWidth, borderStyle, dashArray, inkList, intent, rotation
+    case color, opacity, strokeWidth, borderStyle, dashArray, inkList, intent, rotation, richText
   }
 
   public init(from decoder: any Decoder) throws {
@@ -328,17 +337,18 @@ extension AnnotationInfo.Ink: Decodable {
     color = try container.decodeIfPresent(AnnotationColor.self, forKey: .color)
     opacity = try container.decode(Double.self, forKey: .opacity)
     strokeWidth = try container.decode(Double.self, forKey: .strokeWidth)
-    borderStyle = try container.decode(String.self, forKey: .borderStyle)
+    borderStyle = try container.decode(AnnotationInfo.BorderStyle.self, forKey: .borderStyle)
     dashArray = try container.decodeIfPresent([Double].self, forKey: .dashArray)
     inkList = try container.decode([[ReadPoint]].self, forKey: .inkList).map { $0.map(\.point) }
-    intent = try container.decodeIfPresent(String.self, forKey: .intent)
+    intent = try container.decodeIfPresent(AnnotationIntent.self, forKey: .intent)
     rotation = try container.decodeIfPresent(Double.self, forKey: .rotation)
+    richText = try container.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
   }
 }
 
 extension AnnotationInfo.Highlight: Decodable {
   private enum CodingKeys: String, CodingKey {
-    case color, opacity, quadPoints
+    case color, opacity, quadPoints, richText
   }
 
   public init(from decoder: any Decoder) throws {
@@ -346,12 +356,13 @@ extension AnnotationInfo.Highlight: Decodable {
     color = try container.decode(AnnotationColor.self, forKey: .color)
     opacity = try container.decode(Double.self, forKey: .opacity)
     quadPoints = try container.decode([ReadQuad].self, forKey: .quadPoints).map(\.quad)
+    richText = try container.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
   }
 }
 
 extension AnnotationInfo.Note: Decodable {
   private enum CodingKeys: String, CodingKey {
-    case color, opacity, icon, open, state, stateModel
+    case color, opacity, icon, open, state, stateModel, richText
   }
 
   public init(from decoder: any Decoder) throws {
@@ -362,6 +373,7 @@ extension AnnotationInfo.Note: Decodable {
     open = try container.decode(Bool.self, forKey: .open)
     state = try container.decodeIfPresent(String.self, forKey: .state)
     stateModel = try container.decodeIfPresent(String.self, forKey: .stateModel)
+    richText = try container.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
   }
 }
 

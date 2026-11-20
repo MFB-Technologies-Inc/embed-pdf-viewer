@@ -32,7 +32,7 @@ public typealias SearchActiveHitChangedEvent = EmbedPDFBindings.SearchActiveHitC
 
 /// A document's text search: one session (`search`, navigated with
 /// `nextHit`, `previousHit` and `goToHit`) and a session-free `findAll`. Get
-/// one with `PDFViewer.search(in:)`; the viewer needs
+/// one with `PDFViewer.search(for:)`; the viewer needs
 /// `ViewerConfig(search: SearchConfig())`. It keeps the viewer alive. After
 /// its document closes, every call throws `instance-closed`.
 public struct SearchCapability: Sendable {
@@ -208,7 +208,7 @@ public struct SearchCapability: Sendable {
   }
 
   /// Session events. Finishes when the document closes (at once if it
-  /// already has) or the viewer is destroyed.
+  /// already has) or the viewer is destroyed. Each read is a new subscription.
   public var events: AsyncStream<SearchEvent> {
     viewer.registry.stream { handle.subscribe(listener: $0) }
   }
@@ -225,8 +225,13 @@ extension EventRelay: SearchEventListener where Event == SearchEvent {
 }
 
 extension PDFViewer {
-  public func search(in document: DocumentInfo) async throws(PDFError) -> SearchCapability {
+  public func search(for document: DocumentInfo) async throws(PDFError) -> SearchCapability {
     let handle = try await bridged { try await host.search(documentId: document.id) }
     return SearchCapability(handle: handle, viewer: self)
+  }
+
+  @available(*, deprecated, renamed: "search(for:)")
+  public func search(in document: DocumentInfo) async throws(PDFError) -> SearchCapability {
+    try await search(for: document)
   }
 }

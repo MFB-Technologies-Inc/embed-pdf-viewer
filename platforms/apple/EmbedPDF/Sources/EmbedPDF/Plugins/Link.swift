@@ -66,12 +66,21 @@ public struct LinkCapability: Sendable {
     try await bridged { try await handle.resolve(targetJson: targetJSON) }
   }
 
+  /// What activating a typed target would do, with no side effect.
+  public func resolve(_ target: AnnotationLinkTarget) async throws(PDFError) -> LinkResolution {
+    try await resolve(targetJSON: try target.json())
+  }
+
   public func activate(_ link: LinkItem) async throws(PDFError) -> LinkActivation {
     try await bridged { try await handle.activate(input: .link(page: link.page, id: link.id)) }
   }
 
   public func activate(targetJSON: String) async throws(PDFError) -> LinkActivation {
     try await bridged { try await handle.activate(input: .target(targetJson: targetJSON)) }
+  }
+
+  public func activate(_ target: AnnotationLinkTarget) async throws(PDFError) -> LinkActivation {
+    try await activate(targetJSON: try target.json())
   }
 
   /// `nil` when no link is under the point.
@@ -89,6 +98,10 @@ public struct LinkCapability: Sendable {
     try await bridged { try await handle.label(input: .target(targetJson: targetJSON)) }
   }
 
+  public func label(for target: AnnotationLinkTarget) async throws(PDFError) -> String {
+    try await label(forTargetJSON: try target.json())
+  }
+
   public func isNavigationEngaged() async throws(PDFError) -> Bool {
     try await bridged { try await handle.isNavigationEngaged() }
   }
@@ -104,7 +117,7 @@ public struct LinkCapability: Sendable {
   }
 
   /// Finishes when the document closes (at once if it already has) or the
-  /// viewer is destroyed.
+  /// viewer is destroyed. Each read is a new subscription.
   public var events: AsyncStream<LinkEvent> {
     viewer.registry.stream { handle.subscribe(listener: $0) }
   }

@@ -250,7 +250,7 @@ public struct StampCapability: Sendable {
   }
 
   /// Library, asset and arming changes. Finishes when the viewer is
-  /// destroyed.
+  /// destroyed. Each read is a new subscription.
   public var events: AsyncStream<StampEvent> {
     viewer.registry.stream { handle.subscribe(listener: $0) }
   }

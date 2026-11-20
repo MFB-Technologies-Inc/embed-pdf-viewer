@@ -1,5 +1,5 @@
 import CustomDump
-@testable import EmbedPDFUI
+@testable import EmbedPDFModels
 import Testing
 
 @Suite(.timeLimit(.minutes(1)))

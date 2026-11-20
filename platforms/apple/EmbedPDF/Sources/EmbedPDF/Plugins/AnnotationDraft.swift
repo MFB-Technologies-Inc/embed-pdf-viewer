@@ -24,13 +24,15 @@ import Foundation
 // engine can set to nothing is a `Nullable`, whose `.null`
 // writes `null`.
 //
-// Every type carries its subtype's data fields (`kind_fields`) and two base
-// fields, `contents` and `blendMode`. A link and a stamp take no
-// `blendMode`: the engine writes `/BM` while it draws an appearance, and it
-// draws neither. The JSON-string overloads stay for
-// what they leave out: the other base fields (`nm`, `subject`, the `/F`
-// flags, `reply`, `groupId`), a markup comment's `richText`, a measurement's
-// `measure`, and the widget and popup subtypes.
+// Every type carries its subtype's data fields (`kind_fields`) and the base
+// fields: `contents` and `blendMode` as its own members, and the rest
+// (`nm`, `subject`, the `/F` flags, `reply`, `groupId`) in `common`, an
+// `AnnotationCommonFields` that encodes flat beside them. A link and a
+// stamp take no `blendMode`: the engine writes `/BM` while it draws an
+// appearance, and it draws neither. `richText` and a dimension's `measure`
+// encode flat too, through `AnnotationSharedMembers`
+// (`AnnotationSharedMembers.swift`). The JSON-string overloads stay for the two
+// subtypes the typed layer leaves out: popup and widget.
 
 /// A typed create draft: the engine's field bag for one subtype, with its
 /// `subtype`. `AnnotationCapability.create(_:on:tool:select:)` takes one.
@@ -38,8 +40,21 @@ public protocol AnnotationDraft: Encodable, Sendable {}
 
 /// A typed patch: the members of one subtype to change.
 /// `AnnotationCapability.update(_:_:)` and
-/// `AnnotationToolsCapability.updateDefaults(_:for:)` take one.
-public protocol AnnotationPatch: Encodable, Sendable {}
+/// `AnnotationToolsCapability.updateDefaults(_:for:)` take one, and
+/// `AnnotationToolsCapability.defaults(for:as:)` reads a tool's defaults as
+/// one.
+///
+/// A patch decodes from the field bag it encodes to, one key list for both
+/// ways. A key the patch doesn't declare is ignored. A missing key leaves
+/// its member `nil`. `null` reads as `.null` on a `Nullable` member and as
+/// left out on any other. A declared key whose value the member can't hold
+/// throws.
+///
+/// One member doesn't come back as it went: no patch writes `common.nm`,
+/// so it is `nil` after an encode and a decode. A field bag from elsewhere
+/// can hold an `nm`, as a tool's defaults can, and a decoded patch's
+/// `common.nm` is then that name.
+public protocol AnnotationPatch: Codable, Sendable {}
 
 extension AnnotationDraft {
   /// The field bag as the engine reads it: keys sorted, so the same draft is
@@ -66,17 +81,31 @@ extension AnnotationPatch {
 ///
 /// A literal of `Value`'s own kind is `.value`: `color: "#ff0000"`,
 /// `rotation: 90`, `dashArray: [3, 2]`, `captionEnabled: true`.
-public enum Nullable<Value: Encodable & Sendable & Hashable>: Encodable, Sendable, Hashable {
+public enum Nullable<Value: Sendable & Hashable>: Sendable, Hashable {
   case value(Value)
   /// Nothing: no stroke colour, no dash pattern, no rotation.
   case null
+}
 
+extension Nullable: Encodable where Value: Encodable {
   public func encode(to encoder: any Encoder) throws {
     var container = encoder.singleValueContainer()
     switch self {
     case let .value(value): try container.encode(value)
     case .null: try container.encodeNil()
     }
+  }
+}
+
+/// `null` decodes to `.null`, anything else to `.value`.
+///
+/// As an optional member, `Nullable<Value>?`, read it with a check for the
+/// key first, as the patches do: `decodeIfPresent`, and so a synthesized
+/// `init(from:)`, reads `null` as `nil`, the same as a missing key.
+extension Nullable: Decodable where Value: Decodable {
+  public init(from decoder: any Decoder) throws {
+    let container = try decoder.singleValueContainer()
+    self = container.decodeNil() ? .null : .value(try container.decode(Value.self))
   }
 }
 
@@ -115,21 +144,21 @@ extension Nullable: ExpressibleByArrayLiteral where Value == [Double] {
 /// `beveled` and `inset` too, but refuses to write them on anything but a
 /// widget (`read_field`, `"borderStyle"`, in
 /// `crates/epdf-engine/src/features/annotation/write/prepare.rs`).
-public enum AnnotationBorderStyle: String, Encodable, Sendable, Hashable, CaseIterable {
+public enum AnnotationBorderStyle: String, Codable, Sendable, Hashable, CaseIterable {
   case solid
   case dashed
 }
 
 /// An ink annotation's `/IT`: the one intent the engine writes for ink
 /// (`intents_of` in `prepare.rs`). An ink without one is pen ink.
-public enum AnnotationInkIntent: String, Encodable, Sendable, Hashable, CaseIterable {
+public enum AnnotationInkIntent: String, Codable, Sendable, Hashable, CaseIterable {
   /// `ink-highlight`: a freehand highlighter.
   case inkHighlight = "ink-highlight"
 }
 
 /// A note's `/Name` icon, as the engine spells it (`NoteIcon` in
 /// `crates/epdf-engine/src/features/annotation/vocabulary.rs`).
-public enum AnnotationNoteIcon: String, Encodable, Sendable, Hashable, CaseIterable {
+public enum AnnotationNoteIcon: String, Codable, Sendable, Hashable, CaseIterable {
   case comment
   case key
   case note
@@ -207,36 +236,33 @@ public enum AnnotationVerticalAlignment: String, Codable, Sendable, Hashable, Ca
 
 /// A strikeout's `/IT` (`intents_of` in `prepare.rs`). A strikeout without
 /// one is a plain strikeout.
-public enum AnnotationStrikeoutIntent: String, Encodable, Sendable, Hashable, CaseIterable {
+public enum AnnotationStrikeoutIntent: String, Codable, Sendable, Hashable, CaseIterable {
   /// `strikeout-text-edit`: text marked for deletion.
   case strikeoutTextEdit = "strikeout-text-edit"
 }
 
 /// A line's `/IT`. A line without one is a plain line.
-public enum AnnotationLineIntent: String, Encodable, Sendable, Hashable, CaseIterable {
+public enum AnnotationLineIntent: String, Codable, Sendable, Hashable, CaseIterable {
   case lineArrow = "line-arrow"
-  /// `line-dimension`: a distance measurement. Its scale is `measure`, which
-  /// only the JSON-string overloads write.
+  /// `line-dimension`: a distance measurement. Its scale is `measure`.
   case lineDimension = "line-dimension"
 }
 
 /// A polygon's `/IT`. A polygon without one is a plain polygon.
-public enum AnnotationPolygonIntent: String, Encodable, Sendable, Hashable, CaseIterable {
+public enum AnnotationPolygonIntent: String, Codable, Sendable, Hashable, CaseIterable {
   case polygonCloud = "polygon-cloud"
-  /// `polygon-dimension`: an area measurement. Its scale is `measure`, which
-  /// only the JSON-string overloads write.
+  /// `polygon-dimension`: an area measurement. Its scale is `measure`.
   case polygonDimension = "polygon-dimension"
 }
 
 /// A polyline's `/IT`. A polyline without one is a plain polyline.
-public enum AnnotationPolylineIntent: String, Encodable, Sendable, Hashable, CaseIterable {
-  /// `polyline-dimension`: a perimeter measurement. Its scale is `measure`,
-  /// which only the JSON-string overloads write.
+public enum AnnotationPolylineIntent: String, Codable, Sendable, Hashable, CaseIterable {
+  /// `polyline-dimension`: a perimeter measurement. Its scale is `measure`.
   case polylineDimension = "polyline-dimension"
 }
 
 /// A free text's `/IT`.
-public enum AnnotationFreeTextIntent: String, Encodable, Sendable, Hashable, CaseIterable {
+public enum AnnotationFreeTextIntent: String, Codable, Sendable, Hashable, CaseIterable {
   /// A text box.
   case freeText = "free-text"
   /// A text box with a leader line, `calloutLine`, to what it calls out.
@@ -244,7 +270,7 @@ public enum AnnotationFreeTextIntent: String, Encodable, Sendable, Hashable, Cas
 }
 
 /// A caret's `/IT`. A caret without one marks an insertion.
-public enum AnnotationCaretIntent: String, Encodable, Sendable, Hashable, CaseIterable {
+public enum AnnotationCaretIntent: String, Codable, Sendable, Hashable, CaseIterable {
   /// `replace`: the caret of a replacement, paired with a strikeout.
   case replace
 }
@@ -309,6 +335,15 @@ public enum AnnotationCalloutLine: Sendable, Hashable, Encodable {
   case straight(from: Point, to: Point)
   case kneed(from: Point, knee: Point, to: Point)
 
+  /// The line through two or three points, or `nil` for any other count.
+  init?(points: [Point]) {
+    switch points.count {
+    case 2: self = .straight(from: points[0], to: points[1])
+    case 3: self = .kneed(from: points[0], knee: points[1], to: points[2])
+    default: return nil
+    }
+  }
+
   /// The two or three points, in order.
   public var points: [Point] {
     switch self {
@@ -351,14 +386,32 @@ public enum AnnotationLinkVerb: String, Codable, Sendable, Hashable, CaseIterabl
 /// engine writes (`LinkTargetWrite` in `prepare.rs`). A link read from a
 /// file can point elsewhere too (another file, a launch, a script); read
 /// those from `AnnotationInfo.fieldsJSON`.
-public enum AnnotationLinkTarget: Sendable, Hashable, Encodable {
-  /// A place in this document.
-  case goto(PdfDestination)
+///
+/// It encodes and decodes as the plugins' `LinkTarget` record. Decoding
+/// throws for a target outside these three, and for a `named` verb outside
+/// `AnnotationLinkVerb`.
+public enum AnnotationLinkTarget: Sendable, Hashable, Codable {
+  /// A place in this document, in page space: measured from the top-left of
+  /// the visible box of the page it goes to, y down.
+  case goto(PageDestination)
   case uri(String)
   case named(AnnotationLinkVerb)
 
   private enum CodingKeys: String, CodingKey {
     case kind, destination, uri, name
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    switch try container.decode(String.self, forKey: .kind) {
+    case "goto":
+      self = .goto(try container.decode(WireDestination.self, forKey: .destination).destination)
+    case "uri": self = .uri(try container.decode(String.self, forKey: .uri))
+    case "named": self = .named(try container.decode(AnnotationLinkVerb.self, forKey: .name))
+    case let kind:
+      throw DecodingError.dataCorruptedError(
+        forKey: .kind, in: container, debugDescription: "not a link target a draft writes: \(kind)")
+    }
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -373,6 +426,24 @@ public enum AnnotationLinkTarget: Sendable, Hashable, Encodable {
     case let .named(verb):
       try container.encode("named", forKey: .kind)
       try container.encode(verb, forKey: .name)
+    }
+  }
+
+  /// The `LinkTarget` record the JSON entry points take.
+  func json() throws(PDFError) -> String {
+    try AnnotationFieldBag.json(of: self)
+  }
+
+  /// The target in a `LinkTarget` record the engine returned. Throws
+  /// `operation-failed` for a record this type can't hold, so a target is
+  /// never read as a different one.
+  init(json: String) throws(PDFError) {
+    do {
+      self = try JSONDecoder().decode(Self.self, from: Data(json.utf8))
+    } catch {
+      throw PDFError(
+        name: "DecodingError", code: .operationFailed,
+        detail: "the link target doesn't read as an AnnotationLinkTarget: \(error)")
     }
   }
 }
@@ -405,6 +476,12 @@ public struct InkAnnotationDraft: AnnotationDraft, Hashable {
   public var contents: Nullable<String>?
   /// How the appearance blends with the page under it (`/BM` on `/AP /N`).
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a draft that gives both needs them to agree. `.null` is a
+  /// plain comment.
+  public var richText: Nullable<AnnotationRichText>?
+  /// The fields every annotation shares.
+  public var common: AnnotationCommonFields
 
   public init(
     inkList: [[Point]], color: Nullable<AnnotationColor>? = nil, opacity: Double? = nil,
@@ -412,7 +489,9 @@ public struct InkAnnotationDraft: AnnotationDraft, Hashable {
     dashArray: Nullable<[Double]>? = nil,
     intent: Nullable<AnnotationInkIntent>? = nil,
     rotation: Nullable<Double>? = nil, contents: Nullable<String>? = nil,
-    blendMode: AnnotationBlendMode? = nil
+    blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.inkList = inkList
     self.color = color
@@ -424,6 +503,8 @@ public struct InkAnnotationDraft: AnnotationDraft, Hashable {
     self.rotation = rotation
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   private enum CodingKeys: String, CodingKey {
@@ -444,6 +525,8 @@ public struct InkAnnotationDraft: AnnotationDraft, Hashable {
     try container.encodeIfPresent(rotation, forKey: .rotation)
     try container.encodeIfPresent(contents, forKey: .contents)
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encode(to: encoder)
   }
 }
 
@@ -468,6 +551,12 @@ public struct InkAnnotationPatch: AnnotationPatch, Hashable {
   public var contents: Nullable<String>?
   /// How the appearance blends with the page under it (`/BM` on `/AP /N`).
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a patch that gives both needs them to agree. `.null` makes
+  /// the comment plain and keeps `contents`.
+  public var richText: Nullable<AnnotationRichText>?
+  /// The fields every annotation shares. A patch leaves `nm` out.
+  public var common: AnnotationCommonFields
 
   public init(
     inkList: [[Point]]? = nil, color: Nullable<AnnotationColor>? = nil, opacity: Double? = nil,
@@ -475,7 +564,9 @@ public struct InkAnnotationPatch: AnnotationPatch, Hashable {
     dashArray: Nullable<[Double]>? = nil,
     intent: Nullable<AnnotationInkIntent>? = nil,
     rotation: Nullable<Double>? = nil, contents: Nullable<String>? = nil,
-    blendMode: AnnotationBlendMode? = nil
+    blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.inkList = inkList
     self.color = color
@@ -487,6 +578,8 @@ public struct InkAnnotationPatch: AnnotationPatch, Hashable {
     self.rotation = rotation
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   private enum CodingKeys: String, CodingKey {
@@ -506,6 +599,24 @@ public struct InkAnnotationPatch: AnnotationPatch, Hashable {
     try container.encodeIfPresent(rotation, forKey: .rotation)
     try container.encodeIfPresent(contents, forKey: .contents)
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encodeAsPatch(to: encoder)
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    inkList = try container.decodeIfPresent([[ReadPoint]].self, forKey: .inkList)?.map { $0.map(\.point) }
+    color = try container.decodeNullableIfPresent(AnnotationColor.self, forKey: .color)
+    opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+    strokeWidth = try container.decodeIfPresent(Double.self, forKey: .strokeWidth)
+    borderStyle = try container.decodeIfPresent(AnnotationBorderStyle.self, forKey: .borderStyle)
+    dashArray = try container.decodeNullableIfPresent([Double].self, forKey: .dashArray)
+    intent = try container.decodeNullableIfPresent(AnnotationInkIntent.self, forKey: .intent)
+    rotation = try container.decodeNullableIfPresent(Double.self, forKey: .rotation)
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
+    blendMode = try container.decodeIfPresent(AnnotationBlendMode.self, forKey: .blendMode)
+    richText = try AnnotationSharedMembers.decodeRichText(from: decoder)
+    common = try AnnotationCommonFields(from: decoder)
   }
 }
 
@@ -524,16 +635,26 @@ public struct HighlightAnnotationDraft: AnnotationDraft, Hashable {
   public var contents: Nullable<String>?
   /// How the appearance blends with the page under it (`/BM` on `/AP /N`).
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a draft that gives both needs them to agree. `.null` is a
+  /// plain comment.
+  public var richText: Nullable<AnnotationRichText>?
+  /// The fields every annotation shares.
+  public var common: AnnotationCommonFields
 
   public init(
     quadPoints: [Quad], color: AnnotationColor? = nil, opacity: Double? = nil,
-    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil
+    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.quadPoints = quadPoints
     self.color = color
     self.opacity = opacity
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   private enum CodingKeys: String, CodingKey {
@@ -548,6 +669,8 @@ public struct HighlightAnnotationDraft: AnnotationDraft, Hashable {
     try container.encodeIfPresent(opacity, forKey: .opacity)
     try container.encodeIfPresent(contents, forKey: .contents)
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encode(to: encoder)
   }
 }
 
@@ -562,16 +685,26 @@ public struct HighlightAnnotationPatch: AnnotationPatch, Hashable {
   public var contents: Nullable<String>?
   /// How the appearance blends with the page under it (`/BM` on `/AP /N`).
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a patch that gives both needs them to agree. `.null` makes
+  /// the comment plain and keeps `contents`.
+  public var richText: Nullable<AnnotationRichText>?
+  /// The fields every annotation shares. A patch leaves `nm` out.
+  public var common: AnnotationCommonFields
 
   public init(
     quadPoints: [Quad]? = nil, color: AnnotationColor? = nil, opacity: Double? = nil,
-    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil
+    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.quadPoints = quadPoints
     self.color = color
     self.opacity = opacity
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   private enum CodingKeys: String, CodingKey {
@@ -585,6 +718,19 @@ public struct HighlightAnnotationPatch: AnnotationPatch, Hashable {
     try container.encodeIfPresent(opacity, forKey: .opacity)
     try container.encodeIfPresent(contents, forKey: .contents)
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encodeAsPatch(to: encoder)
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    quadPoints = try container.decodeQuadsIfPresent(forKey: .quadPoints)
+    color = try container.decodeIfPresent(AnnotationColor.self, forKey: .color)
+    opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
+    blendMode = try container.decodeIfPresent(AnnotationBlendMode.self, forKey: .blendMode)
+    richText = try AnnotationSharedMembers.decodeRichText(from: decoder)
+    common = try AnnotationCommonFields(from: decoder)
   }
 }
 
@@ -610,12 +756,20 @@ public struct NoteAnnotationDraft: AnnotationDraft, Hashable {
   public var contents: Nullable<String>?
   /// How the appearance blends with the page under it (`/BM` on `/AP /N`).
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a draft that gives both needs them to agree. `.null` is a
+  /// plain comment.
+  public var richText: Nullable<AnnotationRichText>?
+  /// The fields every annotation shares.
+  public var common: AnnotationCommonFields
 
   public init(
     rect: Rect, color: AnnotationColor? = nil, opacity: Double? = nil, icon: AnnotationNoteIcon? = nil,
     open: Bool? = nil, state: Nullable<String>? = nil,
     stateModel: Nullable<String>? = nil, contents: Nullable<String>? = nil,
-    blendMode: AnnotationBlendMode? = nil
+    blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.rect = rect
     self.color = color
@@ -626,6 +780,8 @@ public struct NoteAnnotationDraft: AnnotationDraft, Hashable {
     self.stateModel = stateModel
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   private enum CodingKeys: String, CodingKey {
@@ -644,6 +800,8 @@ public struct NoteAnnotationDraft: AnnotationDraft, Hashable {
     try container.encodeIfPresent(stateModel, forKey: .stateModel)
     try container.encodeIfPresent(contents, forKey: .contents)
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encode(to: encoder)
   }
 }
 
@@ -665,12 +823,20 @@ public struct NoteAnnotationPatch: AnnotationPatch, Hashable {
   public var contents: Nullable<String>?
   /// How the appearance blends with the page under it (`/BM` on `/AP /N`).
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a patch that gives both needs them to agree. `.null` makes
+  /// the comment plain and keeps `contents`.
+  public var richText: Nullable<AnnotationRichText>?
+  /// The fields every annotation shares. A patch leaves `nm` out.
+  public var common: AnnotationCommonFields
 
   public init(
     rect: Rect? = nil, color: AnnotationColor? = nil, opacity: Double? = nil,
     icon: AnnotationNoteIcon? = nil, open: Bool? = nil, state: Nullable<String>? = nil,
     stateModel: Nullable<String>? = nil, contents: Nullable<String>? = nil,
-    blendMode: AnnotationBlendMode? = nil
+    blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.rect = rect
     self.color = color
@@ -681,6 +847,8 @@ public struct NoteAnnotationPatch: AnnotationPatch, Hashable {
     self.stateModel = stateModel
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   private enum CodingKeys: String, CodingKey {
@@ -698,10 +866,27 @@ public struct NoteAnnotationPatch: AnnotationPatch, Hashable {
     try container.encodeIfPresent(stateModel, forKey: .stateModel)
     try container.encodeIfPresent(contents, forKey: .contents)
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encodeAsPatch(to: encoder)
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    rect = try container.decodeRectIfPresent(forKey: .rect)
+    color = try container.decodeIfPresent(AnnotationColor.self, forKey: .color)
+    opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+    icon = try container.decodeIfPresent(AnnotationNoteIcon.self, forKey: .icon)
+    open = try container.decodeIfPresent(Bool.self, forKey: .open)
+    state = try container.decodeNullableIfPresent(String.self, forKey: .state)
+    stateModel = try container.decodeNullableIfPresent(String.self, forKey: .stateModel)
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
+    blendMode = try container.decodeIfPresent(AnnotationBlendMode.self, forKey: .blendMode)
+    richText = try AnnotationSharedMembers.decodeRichText(from: decoder)
+    common = try AnnotationCommonFields(from: decoder)
   }
 }
 
-// ── encoding ────────────────────────────────────────────────────────────────
+// ── encoding and decoding ───────────────────────────────────────────────────
 
 enum AnnotationFieldBag {
   /// Sorted keys make the bytes stable, and unescaped slashes keep a
@@ -719,6 +904,22 @@ enum AnnotationFieldBag {
   }
 }
 
+/// A patch's geometry members, read from the shapes the `Wire` types below
+/// write. A key that is missing or `null` reads as `nil`.
+extension KeyedDecodingContainer {
+  func decodeRectIfPresent(forKey key: Key) throws -> Rect? {
+    try decodeIfPresent(ReadRect.self, forKey: key)?.rect
+  }
+
+  func decodeQuadsIfPresent(forKey key: Key) throws -> [Quad]? {
+    try decodeIfPresent([ReadQuad].self, forKey: key)?.map(\.quad)
+  }
+
+  func decodePointsIfPresent(forKey key: Key) throws -> [Point]? {
+    try decodeIfPresent([ReadPoint].self, forKey: key)?.map(\.point)
+  }
+}
+
 /// Page-space geometry as the plugin reads it: `{x, y}` points,
 /// `upperLeft`…`lowerRight` quads (`NamedPdfQuad` in
 /// `crates/epdf-engine/src/geom.rs`) and `{x, y, width, height}` boxes.
@@ -729,6 +930,8 @@ struct WirePoint: Encodable {
   init(_ point: Point) {
     (x, y) = (point.x, point.y)
   }
+
+  var point: Point { Point(x: x, y: y) }
 }
 
 struct WireQuad: Encodable {
@@ -781,62 +984,60 @@ struct WirePage: Codable {
   var page: PageRef { PageRef(pageObjectNumber: objectNumber) }
 }
 
-/// A destination as the engine's JSON spells it (`PdfDestination` in
-/// `crates/epdf-engine/src/features/actions/destination.rs`): tagged by
-/// `kind`, its optional coordinates written as `null` when absent, which is
-/// the PDF's "keep the current value".
+/// A page-space destination as the plugins' JSON spells it
+/// (`PageDestination` in
+/// `crates/epdf-engine/src/page_space/destinations.rs`): tagged by `kind`.
+/// An optional coordinate that is absent is written as `null`, and reads
+/// back from `null` or a missing member: the PDF's "keep the current
+/// value".
 struct WireDestination: Codable {
-  let destination: PdfDestination
+  let destination: PageDestination
 
-  init(_ destination: PdfDestination) {
+  init(_ destination: PageDestination) {
     self.destination = destination
   }
 
   private enum CodingKeys: String, CodingKey {
-    case kind, page, left, top, zoom, bottom, right
+    case kind, page, x, y, zoom, width, height
   }
 
   func encode(to encoder: any Encoder) throws {
     var container = encoder.container(keyedBy: CodingKeys.self)
+    func place(_ kind: String, _ page: PageRef) throws {
+      try container.encode(kind, forKey: .kind)
+      try container.encode(WirePage(page), forKey: .page)
+    }
     func coordinate(_ value: Double?, _ key: CodingKeys) throws {
       if let value { try container.encode(value, forKey: key) } else { try container.encodeNil(forKey: key) }
     }
     switch destination {
-    case let .xyz(page, left, top, zoom):
-      try container.encode("xyz", forKey: .kind)
-      try container.encode(WirePage(page), forKey: .page)
-      try coordinate(left, .left)
-      try coordinate(top, .top)
+    case let .xyz(page, x, y, zoom):
+      try place("xyz", page)
+      try coordinate(x, .x)
+      try coordinate(y, .y)
       try coordinate(zoom, .zoom)
     case let .fit(page):
-      try container.encode("fit", forKey: .kind)
-      try container.encode(WirePage(page), forKey: .page)
-    case let .fitH(page, top):
-      try container.encode("fitH", forKey: .kind)
-      try container.encode(WirePage(page), forKey: .page)
-      try coordinate(top, .top)
-    case let .fitV(page, left):
-      try container.encode("fitV", forKey: .kind)
-      try container.encode(WirePage(page), forKey: .page)
-      try coordinate(left, .left)
-    case let .fitR(page, left, bottom, right, top):
-      try container.encode("fitR", forKey: .kind)
-      try container.encode(WirePage(page), forKey: .page)
-      try container.encode(left, forKey: .left)
-      try container.encode(bottom, forKey: .bottom)
-      try container.encode(right, forKey: .right)
-      try container.encode(top, forKey: .top)
+      try place("fit", page)
+    case let .fitH(page, y):
+      try place("fitH", page)
+      try coordinate(y, .y)
+    case let .fitV(page, x):
+      try place("fitV", page)
+      try coordinate(x, .x)
+    case let .fitR(page, x, y, width, height):
+      try place("fitR", page)
+      try container.encode(x, forKey: .x)
+      try container.encode(y, forKey: .y)
+      try container.encode(width, forKey: .width)
+      try container.encode(height, forKey: .height)
     case let .fitB(page):
-      try container.encode("fitB", forKey: .kind)
-      try container.encode(WirePage(page), forKey: .page)
-    case let .fitBh(page, top):
-      try container.encode("fitBH", forKey: .kind)
-      try container.encode(WirePage(page), forKey: .page)
-      try coordinate(top, .top)
-    case let .fitBv(page, left):
-      try container.encode("fitBV", forKey: .kind)
-      try container.encode(WirePage(page), forKey: .page)
-      try coordinate(left, .left)
+      try place("fitB", page)
+    case let .fitBh(page, y):
+      try place("fitBH", page)
+      try coordinate(y, .y)
+    case let .fitBv(page, x):
+      try place("fitBV", page)
+      try coordinate(x, .x)
     }
   }
 
@@ -848,19 +1049,19 @@ struct WireDestination: Codable {
     }
     switch try container.decode(String.self, forKey: .kind) {
     case "xyz":
-      destination = .xyz(page: page, left: try coordinate(.left), top: try coordinate(.top), zoom: try coordinate(.zoom))
+      destination = .xyz(page: page, x: try coordinate(.x), y: try coordinate(.y), zoom: try coordinate(.zoom))
     case "fit": destination = .fit(page: page)
-    case "fitH": destination = .fitH(page: page, top: try coordinate(.top))
-    case "fitV": destination = .fitV(page: page, left: try coordinate(.left))
+    case "fitH": destination = .fitH(page: page, y: try coordinate(.y))
+    case "fitV": destination = .fitV(page: page, x: try coordinate(.x))
     case "fitR":
       destination = .fitR(
-        page: page, left: try container.decode(Double.self, forKey: .left),
-        bottom: try container.decode(Double.self, forKey: .bottom),
-        right: try container.decode(Double.self, forKey: .right),
-        top: try container.decode(Double.self, forKey: .top))
+        page: page, x: try container.decode(Double.self, forKey: .x),
+        y: try container.decode(Double.self, forKey: .y),
+        width: try container.decode(Double.self, forKey: .width),
+        height: try container.decode(Double.self, forKey: .height))
     case "fitB": destination = .fitB(page: page)
-    case "fitBH": destination = .fitBh(page: page, top: try coordinate(.top))
-    case "fitBV": destination = .fitBv(page: page, left: try coordinate(.left))
+    case "fitBH": destination = .fitBh(page: page, y: try coordinate(.y))
+    case "fitBV": destination = .fitBv(page: page, x: try coordinate(.x))
     case let kind:
       throw DecodingError.dataCorruptedError(
         forKey: .kind, in: container, debugDescription: "not a destination kind: \(kind)")

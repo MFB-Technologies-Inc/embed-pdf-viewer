@@ -2,12 +2,12 @@ import Foundation
 import Testing
 
 extension BaseSuite {
-  /// `platforms/apple/README.md` says the package exports `EmbedPDF` and
-  /// `EmbedPDFUI` and nothing else, so the generated `EmbedPDFBindings` layer
-  /// stays internal. This fails if a `.library` product is added to either
-  /// manifest, so the README and the manifests change together.
+  /// The package exports `EmbedPDF`, `EmbedPDFModels` and `EmbedPDFUI` and
+  /// nothing else, so the generated `EmbedPDFBindings` layer stays internal.
+  /// This fails if a `.library` product is added to either manifest, so the
+  /// README and the manifests change together.
   @Suite struct ProductsTests {
-    static let expected = ["EmbedPDF", "EmbedPDFUI"]
+    static let expected = ["EmbedPDF", "EmbedPDFModels", "EmbedPDFUI"]
 
     /// This package's directory: Tests/EmbedPDFTests/<file> is three levels down.
     static func manifestURL(up extra: Int) -> URL {

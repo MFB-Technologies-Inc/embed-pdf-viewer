@@ -1,7 +1,8 @@
 import EmbedPDF
 import Observation
 
-/// What the session may do with a document's annotations, for SwiftUI.
+/// An observable model of what the session may do with a document's
+/// annotations, which a view reads.
 ///
 /// ``canRead`` and ``canCreate`` are snapshots of the kernel, read again
 /// after each state revision and annotation event while ``task()`` runs. A

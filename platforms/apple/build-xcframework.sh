@@ -233,7 +233,7 @@ cp "$BUILD/generated"/*.swift "$OUT/Sources/EmbedPDFBindings/"
 # The tests read the same fixtures the Rust tests read. SwiftPM will only
 # bundle resources that live inside the package, so they are copied rather than
 # referenced, and `.gitignore`d rather than committed twice.
-TEST_TARGETS=(EmbedPDFBindingsSmokeTests EmbedPDFTests EmbedPDFUITests)
+TEST_TARGETS=(EmbedPDFBindingsSmokeTests EmbedPDFTests EmbedPDFModelsTests EmbedPDFUITests)
 if [[ $EXPERIMENTAL == 1 ]]; then
   TEST_TARGETS+=(EmbedPDFBridgeBenchmarks)
 fi

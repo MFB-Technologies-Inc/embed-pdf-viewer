@@ -314,7 +314,7 @@ public struct FormCapability: Sendable {
   }
 
   /// Confirmed changes. Finishes when the document closes (at once if it
-  /// already has) or the viewer is destroyed.
+  /// already has) or the viewer is destroyed. Each read is a new subscription.
   public var events: AsyncStream<FormEvent> {
     viewer.registry.stream { handle.subscribe(listener: $0) }
   }

@@ -6,24 +6,13 @@ import Observation
 @MainActor
 @Observable
 final class DocumentModel {
-  struct Opened {
+  /// The inspectors over the open document, built from its session.
+  struct Panels {
     let document: DocumentInfo
-    let pages: [PageInfo]
-    let render: RenderCapability
-    let search: SearchModel
     let metadata: MetadataCapability
-    let annotations: AnnotationCapability
     let history: HistoryModel
     let outline: OutlineModel
     let attachments: AttachmentModel
-    let reader: StageReaderModel
-  }
-
-  struct PasswordPrompt: Identifiable {
-    let id = UUID()
-    let data: Data
-    let name: String
-    var password = ""
   }
 
   struct MetadataSheet: Identifiable {
@@ -32,28 +21,33 @@ final class DocumentModel {
     let custom: CustomMetadata
   }
 
-  private(set) var opened: Opened?
+  /// Opens, unlocks and shows the document. `PDFReaderView` draws its phase.
+  /// The four plugins the reader's features leave out are for the panels.
+  let reader = PDFReaderModel(configure: { $0.metadata().history().outline().attachment() })
+  private(set) var panels: Panels?
   var error: PDFError?
-  private(set) var isOpening = false
   private(set) var canAddNote = false
   var isImporting = false
-  var passwordPrompt: PasswordPrompt?
   var metadataSheet: MetadataSheet?
-  @ObservationIgnored private var viewer: PDFViewer?
+  /// The last link activation the reader reported.
+  private(set) var linkActivation: LinkActivation?
+  @ObservationIgnored private var started = false
+
+  /// The open document's session, or `nil` in every phase but ready.
+  var session: PDFReaderModel.Session? {
+    if case let .ready(session) = reader.phase { session } else { nil }
+  }
 
   func task() async {
-    guard viewer == nil else { return }
-    do {
-      if ProcessInfo.processInfo.arguments.contains("--attachment-fixture") {
+    guard !started else { return }
+    started = true
+    if ProcessInfo.processInfo.arguments.contains("--attachment-fixture") {
+      do {
         let folder = try FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
         try Data("Attachment file picker round trip".utf8).write(to: folder.appendingPathComponent("attachment-fixture.txt"), options: .atomic)
+      } catch {
+        self.error = PDFError(.operationFailed, detail: error.localizedDescription, name: "FileError")
       }
-      let viewer = try PDFViewer(ViewerConfig(metadata: true, search: SearchConfig(), render: RenderConfig(), interaction: true, stage: StageConfig(), annotation: "", history: true, outline: true, attachment: true))
-      try await viewer.start()
-      self.viewer = viewer
-    } catch {
-      self.error = error as? PDFError ?? PDFError(name: "FileError", code: .operationFailed, detail: error.localizedDescription)
-      return
     }
     await open(bundled: "report")
   }
@@ -71,22 +65,43 @@ final class DocumentModel {
     let accessing = url.startAccessingSecurityScopedResource()
     defer { if accessing { url.stopAccessingSecurityScopedResource() } }
     guard let data = try? Data(contentsOf: url) else { return }
-    await open(data, name: url.lastPathComponent)
+    await reader.open(data, name: url.lastPathComponent)
   }
 
-  func passwordSubmitted() async {
-    guard let prompt = passwordPrompt else { return }
-    passwordPrompt = nil
-    await open(prompt.data, name: prompt.name, password: prompt.password)
+  /// Builds the inspectors for the session the reader now shows, or drops
+  /// them when it shows none. The view runs it each time the ready document
+  /// changes, which covers an unlock made in the reader's own prompt.
+  func sessionChanged() async {
+    panels = nil
+    canAddNote = false
+    linkActivation = nil
+    guard let session else { return }
+    let viewer = session.viewer
+    let document = session.document
+    do {
+      let built = Panels(
+        document: document,
+        metadata: try await viewer.metadata(for: document),
+        history: HistoryModel(viewer: viewer, history: try await viewer.history(for: document)),
+        outline: OutlineModel(viewer: viewer, outline: try await viewer.outline(for: document)),
+        attachments: AttachmentModel(viewer: viewer, attachments: try await viewer.attachments(for: document)))
+      // A document opened while these were read has its own run.
+      guard self.session?.document.id == document.id else { return }
+      panels = built
+    } catch {
+      guard self.session?.document.id == document.id else { return }
+      self.error = error
+    }
+    await refreshCanAddNote()
   }
 
   func metadataButtonTapped() async {
-    guard let opened else { return }
+    guard let panels else { return }
     do {
-      try await opened.metadata.refresh()
-      try await opened.metadata.refreshCustom()
-      if let metadata = try await opened.metadata.snapshot() {
-        metadataSheet = MetadataSheet(metadata: metadata, custom: try await opened.metadata.customSnapshot() ?? [:])
+      try await panels.metadata.refresh()
+      try await panels.metadata.refreshCustom()
+      if let metadata = try await panels.metadata.snapshot() {
+        metadataSheet = MetadataSheet(metadata: metadata, custom: try await panels.metadata.customSnapshot() ?? [:])
       }
     } catch {
       self.error = error
@@ -94,17 +109,27 @@ final class DocumentModel {
   }
 
   func addNoteButtonTapped() async {
-    guard let opened, let page = opened.pages.first?.page else { return }
+    guard let session, let page = session.pages.first?.page else { return }
     do {
-      _ = try await opened.annotations.create(
+      _ = try await session.viewer.annotations(for: session.document).create(
         NoteAnnotationDraft(rect: Rect(x: 72, y: 72, width: 24, height: 24), contents: "A note"), on: page)
       error = nil
     } catch { self.error = error }
-    canAddNote = (try? await opened.annotations.canCreate()) ?? false
+    await refreshCanAddNote()
+  }
+
+  func linkActivated(_ activation: LinkActivation) {
+    linkActivation = activation
   }
 
   func errorDismissed() {
     error = nil
+  }
+
+  private func refreshCanAddNote() async {
+    guard let session else { return }
+    let allowed = (try? await session.viewer.annotations(for: session.document).canCreate()) ?? false
+    if self.session?.document.id == session.document.id { canAddNote = allowed }
   }
 
   private func open(bundled name: String) async {
@@ -112,38 +137,6 @@ final class DocumentModel {
       let url = Bundle.main.url(forResource: name, withExtension: "pdf"),
       let data = try? Data(contentsOf: url)
     else { return }
-    await open(data, name: "\(name).pdf")
-  }
-
-  private func open(_ data: Data, name: String, password: String? = nil) async {
-    guard let viewer else { return }
-    isOpening = true
-    canAddNote = false
-    defer { isOpening = false }
-    do {
-      if let previous = opened?.document {
-        opened = nil
-        try? await viewer.close(previous)
-      }
-      let document = try await viewer.open(data, name: name, password: password)
-      opened = Opened(
-        document: document,
-        pages: try await viewer.pages(of: document),
-        render: try await viewer.render(in: document),
-        search: SearchModel(search: try await viewer.search(in: document)),
-        metadata: try await viewer.metadata(for: document),
-        annotations: try await viewer.annotations(for: document),
-        history: HistoryModel(viewer: viewer, history: try await viewer.history(for: document)),
-        outline: OutlineModel(viewer: viewer, outline: try await viewer.outline(for: document)),
-        attachments: AttachmentModel(viewer: viewer, attachments: try await viewer.attachments(for: document)),
-        reader: StageReaderModel(stage: try await viewer.stage(for: document), render: try await viewer.render(in: document))
-      )
-      canAddNote = try await opened?.annotations.canCreate() ?? false
-      error = nil
-    } catch where error.detail.contains("DocPassword") {
-      passwordPrompt = PasswordPrompt(data: data, name: name)
-    } catch {
-      self.error = error
-    }
+    await reader.open(data, name: "\(name).pdf")
   }
 }

@@ -318,6 +318,7 @@ public struct SignatureCapability: Sendable {
   /// Signed, filled, cleared, validated, protection changed, invalidating,
   /// target changed, sign requested and inspection requested. Finishes when
   /// the document closes or the viewer is destroyed.
+  /// Each read is a new subscription.
   public var events: AsyncStream<SignatureEvent> {
     viewer.registry.stream { handle.subscribe(listener: $0) }
   }

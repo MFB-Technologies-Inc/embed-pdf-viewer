@@ -3,13 +3,20 @@
 The Apple package exposes the Rust viewer through typed Swift capabilities and
 SwiftUI controls on iOS 17 and macOS 14 or later.
 
-**This branch requires the local source engine or locally packaged engine.**
-The published engine pins predate the app-facing document, settings, editing and
-snapshot APIs validated on this branch.
-Use the nested package at `platforms/apple/EmbedPDF` with one of the local modes
-below. The repository-root package remains pinned to the previous release; a
-matching engine must be published and both manifests updated before default
-downloaded-package consumption is supported.
+Both manifests pin the engine release `apple-engine-8a472a28bcfb9c14`:
+`platforms/apple/EmbedPDF/Package.swift:9` and the repository-root
+`Package.swift:16`. SwiftPM downloads that binary by default, so nothing builds
+Rust, and the package's tests and the demo run on it.
+`bash platforms/apple/check-apple-engine.sh` still reports the pin as not
+current on this branch, because `platforms/apple/build-xcframework.sh` is an
+input to the engine hash (`platforms/apple/apple-engine-hash.sh:40`) and this
+branch changed it. A release with the new hash has to be published and pinned
+in both manifests before that check passes.
+
+Two local modes remain for engine work: `EMBEDPDF_LOCAL_ENGINE=1` builds
+against the source engine and `EMBEDPDF_PREBUILT_ENGINE=local` against a
+locally packaged framework. [Where the engine comes from](#where-the-engine-comes-from)
+has both. The local source recipe:
 
 ```bash
 bash platforms/apple/build-xcframework.sh
@@ -21,9 +28,13 @@ When two simulators share a name, `name=` is ambiguous. Pass the device's id
 instead, from `xcrun simctl list devices`:
 `-destination 'platform=iOS Simulator,id=<UDID>'`.
 
-The package has two products over a third, internal target. `EmbedPDF` is the
-Swift facade and `EmbedPDFUI` is its SwiftUI layer. Capabilities retain their
-viewer and marshal all kernel work to Rust; controls project that state onto
+The package has three products over a fourth, internal target. `EmbedPDF` is
+the Swift facade. `EmbedPDFModels` holds the observable models
+(`StageReaderModel`, `SearchModel`, `PDFReaderModel` and the others) and
+imports no SwiftUI, so a UIKit or AppKit host can drive them. `EmbedPDFUI` is
+the SwiftUI layer. It re-exports the models but not the facade, so a SwiftUI
+app imports `EmbedPDF` and `EmbedPDFUI`. Capabilities retain their viewer and
+marshal all kernel work to Rust; models and controls project that state onto
 the main actor.
 `EmbedPDFBindings` is the internal target under them, holding the uniffi
 Swift for every crate in the archive: `epdf_uniffi`, `epdf_ffi` and
@@ -40,8 +51,8 @@ handwritten sources.
 
 ## Products, and why the generated layer isn't one
 
-The package exports two products, `EmbedPDF` and `EmbedPDFUI`
-(`platforms/apple/EmbedPDF/Package.swift:17-20`, and the repository-root `Package.swift:8-11`).
+The package exports three products, `EmbedPDF`, `EmbedPDFModels` and `EmbedPDFUI`
+(`platforms/apple/EmbedPDF/Package.swift:18-20`, and the repository-root `Package.swift:9-11`).
 `EmbedPDFBindings`, the UniFFI-generated Swift, is a target only. Use `PDFViewer` and its typed
 capabilities. For a field the typed layer doesn't cover, use the JSON-string entry points, which
 take the engine's own payload: `ViewerConfigBuilder.annotation(settingsJSON:)`, the annotation
@@ -49,38 +60,39 @@ take the engine's own payload: `ViewerConfigBuilder.annotation(settingsJSON:)`, 
 and `addWidget(to:placementJSON:)` overloads. Needing the raw generated API means asking us for a
 typed member, not importing the bindings.
 
-We decided against an `EmbedPDFBindings` library product, on 2026-11-10. It would make all 685
+We decided against an `EmbedPDFBindings` library product, on 2026-11-10. It would make all 710
 public generated types API. Every Rust change to a record, method or callback interface would then
-be a break consumers see, where today only the 515 types that `EmbedPDF` re-exports are. It would
+be a break consumers see, where today only the 539 types that `EmbedPDF` re-exports are. It would
 also leave the module half-usable: the linker settings (`c++`, `CoreFoundation`, `CoreGraphics`,
 `Foundation`, and `AppKit` on macOS) live on the `EmbedPDFBindings` target in the source layout
-(`Package.swift:34-40`), but in the binary layouts that target is a `.binaryTarget` with no
-settings, and the loop that adds them (`Package.swift:116-124`) only touches `EmbedPDF`. The
-root `Package.swift` declares the same settings inline on its `EmbedPDF` target (lines 22-28). A
+(`platforms/apple/EmbedPDF/Package.swift:35-41`), but in the binary layouts that target is a
+`.binaryTarget` with no settings, and the loop that adds them
+(`platforms/apple/EmbedPDF/Package.swift:134-142`) only touches `EmbedPDF`. The root manifest
+declares the same settings inline on its `EmbedPDF` target (`Package.swift:23-29`). A
 direct importer of the binary would have to repeat them. We'll revisit this
 if a typed member can't cover a real use.
 
 This isn't a hard wall. `EmbedPDF` writes `public import EmbedPDFBindings` in the files that
 re-export, so a client that imports only `EmbedPDF` sees the generated types below, and
 `ProductsTests` fails if either manifest gains a `.library`. We checked by compiling a file that
-imports only `EmbedPDF` and names each of the 685 generated public types unqualified:
+imports only `EmbedPDF` and names each of the 710 generated public types unqualified:
 
-- 515 resolve, through the same-name `public typealias X = EmbedPDFBindings.X` lines in
+- 539 resolve, through the same-name `public typealias X = EmbedPDFBindings.X` lines in
   `Sources/EmbedPDF/Exports.swift` and `Sources/EmbedPDF/Plugins/*.swift`. (The deprecated
   `PDFDocument` and `Annotation` aren't among them: they alias `DocumentInfo` and
   `AnnotationRecord`.) `RenderSnapshot` also resolves, but to the handwritten
   `EmbedPDF.RenderSnapshot` (`Plugins/Render.swift:58`), not the generated type.
-- 169 don't: `ViewerHost`, `CancelToken`, `Subscription` and `PdfError`, 60 `*Handle` and
-  `*HandleProtocol` types, 23 `*EventListener` types, 42 `*Impl` types, 15 other `*Protocol`
-  types, and 25 more records and callback types such as `PdfEngine`, `RenderBatch` and
+- 170 don't: `ViewerHost`, `CancelToken`, `Subscription` and `PdfError`, 60 `*Handle` and
+  `*HandleProtocol` types, 22 `*EventListener` types, 45 `*Impl` types, 17 other `*Protocol`
+  types, and 22 more records and callback types such as `PdfEngine`, `RenderBatch` and
   `ViewerDelegate`.
 
-Three of those 169 do appear in a public signature: `DocumentFetcher`, `DocumentFetchCompletion`
-and `DocumentFetchCancellation`, in `PDFViewer.init(_:documentFetcher:)` and
-`URLSessionDocumentFetcher.fetch(url:completion:)`. A caller can pass the default fetcher, but
-can't write their own without importing the bindings module, which isn't a product. We haven't
-changed that here. It needs either three more typealiases or a handwritten protocol, and either
-is new API.
+Three of the names that resolve are there so you can write your own fetcher: `DocumentFetcher`,
+`DocumentFetchCompletion` and `DocumentFetchCancellation`, aliased in
+`Sources/EmbedPDF/Exports.swift`. They are the types in `PDFViewer.init(_:documentFetcher:)` and
+`URLSessionDocumentFetcher.fetch(url:completion:)`, so a conformer imports only `EmbedPDF`.
+`FetcherExportTests` compiles one and opens a URL document through it. The cost is that all three
+are generated types, so their shape follows the engine's interface, not a protocol we wrote.
 
 Could UniFFI hide the generated layer instead, so we'd get this by construction? Not with 0.32.0,
 the version pinned as `=0.32.0` in `crates/uniffi-bindgen/Cargo.toml:14`, each plugin crate
@@ -110,7 +122,12 @@ manifest is evaluated:
 The downloaded engine needs Xcode 27.1 or later: its `.swiftinterface` was written by Swift 6.4
 with `-language-mode 5`, and only the Xcode 27.1 toolchain has been checked against it.
 
-The pin goes stale whenever a crate the engine links changes. `bash
+The pin goes stale whenever an input to the engine hash changes. There are two
+kinds. One is source: the tracked files of each crate the engine links and of
+`crates/uniffi-bindgen`, and the commit of `packages/engine/runtime/runtime-src`.
+The other is the build inputs `platforms/apple/apple-engine-hash.sh:36-46`
+lists: `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, four scripts under
+`platforms/apple` and `perf-compare/scripts/build-arm.mjs`. `bash
 platforms/apple/check-apple-engine.sh` hashes the tree with `apple-engine-hash.sh` and compares
 the result with `engineRelease`. Exit 0 means the pin is current. Exit 1 means it's stale and
 nothing is published for this tree yet. Exit 2 means the release exists and only the
@@ -170,7 +187,7 @@ It has to. The release names a commit, and that commit can't contain its own che
 | actions | `ActionsCapability`, `JavaScriptCoreEngineFactory` | `actions: .forCurrentTimeZone(javascript: ActionsJavaScriptConfig(enabled: true, engine: JavaScriptCoreEngineFactory()))` | `2026-10-06-swift-plugins/15-actions.md` |
 | signature | `SignatureCapability`, `KeychainSigner`, `TrustAnchors` | `interaction: true, form: FormConfig(), signature: SignatureConfig()` | `2026-10-06-swift-plugins/16-signature.md` |
 
-A plugin left out of `ViewerConfig` is refused at its accessor. `search(in:)`, `stamps()` and the
+A plugin left out of `ViewerConfig` is refused at its accessor. `search(for:)`, `stamps()` and the
 other accessors throw `PDFError` with code `.unsupported`, even for a document that is closed or
 still loading, so a capability you hold has its own plugin. `DisabledPluginTests` checks every
 accessor and fails when `ViewerConfig` gains a plugin without a row.
@@ -300,11 +317,24 @@ another panel.
 `RenderRevisions` counts render invalidations per page. `revision(for:)` is
 `0` for a page never invalidated and rises by one each time the engine
 invalidates it, so a view can key a page image on it and redraw only the pages
-an edit touched. The model subscribes in `init`, so an invalidation before the
-first `task()` still counts. Run `task()` from the view's `.task`: it returns
-when the document closes, and a restart after cancellation subscribes again.
-Only one `task()` may run at a time. `StageReaderModel` owns one as
-`revisions`.
+an edit touched. The model observes by itself, from `init` until the document
+closes or the model is released. It has no `task()` to run. `StageReaderModel`
+owns one as `revisions`, and `ThumbnailModel` keeps its own.
+
+A model's `error` is a state, not a log. It holds the model's latest failure,
+whether an action the app called failed or a read the model made by itself
+did, and it is cleared when the call that failed next succeeds. A success of
+another kind leaves it, so a scroll's read does not wipe a refused action.
+`StageReaderModel` records which kind of call failed and clears on the next
+good call of that kind; the comment on `error` in
+`platforms/apple/EmbedPDF/Sources/EmbedPDFModels/StageReaderModel.swift` lists
+the eight kinds. `ToolModel` clears an action's error on the next good
+`activate(_:)` or `activateDefault()`, and a read's error on the next good
+read. The two models with a session clear when the session starts over:
+`SearchModel` on a good `searchSubmitted()` or `clearButtonTapped()`, and
+`TextSelectionModel` on the next `dragBegan(at:on:start:)` or `clear()`. The
+cost: code that polls `error` can miss a failure that a later success cleared.
+Observe it, as a SwiftUI view does, to see each one.
 
 ## Page overlays
 
@@ -346,122 +376,314 @@ as shown, turned clockwise. Both spaces put the origin at the top left with y
 pointing down.
 
 Renders follow the same split. `renderPage` draws unrotated unless you pass
-`geometry.renderRotation`. `renderThumbnail` has no rotation option, so turn
-its image with `geometry.toDisplay(_:)`, which costs one extra bitmap copy per
-thumbnail.
+`geometry.turn`, the page's clockwise turn as a `RenderRotation`.
+`renderThumbnail` has no rotation option, so turn its image with
+`geometry.toDisplay(_:)`. That call costs one extra bitmap copy per thumbnail,
+and it throws `.operationFailed` when no drawing context can be made for the
+turned size. `ThumbnailModel` makes the same call and caches the result, so a
+thumbnail strip doesn't need it.
 
 ```swift
 let geometry = page.geometry
 let rendered = try await render.renderPage(
-  page.page, options: RenderPageOptions(rotation: geometry.renderRotation, width: 400))
-let thumbnail = geometry.toDisplay(try await render.renderThumbnail(page.page).image)
+  page.page, options: RenderPageOptions(rotation: geometry.turn, width: 400))
+let thumbnail = try geometry.toDisplay(try await render.renderThumbnail(page.page).image)
 // A point on the page as shown, in PDF points.
-let shownPoint = Point(x: 72, y: 36)
-let unrotatedPoint = geometry.toPage(shownPoint)
+let unrotatedPoint = geometry.toPage(CGPoint(x: 72, y: 36))
 ```
+
+The conversions take CoreGraphics values too. `toPage(_:)` and `toDisplay(_:)`
+have `CGPoint` and `CGRect` overloads beside the `Point` and `Rect` ones,
+`displayCGSize` is the shown size as a `CGSize`, and `Point`, `Size` and `Rect`
+convert to and from `CGPoint`, `CGSize` and `CGRect` through an unlabeled
+initializer (`Sources/EmbedPDF/CoreGraphicsBridges.swift`).
+
+`PageInfo.geometry` has only the page's own rotation. A stage can turn the
+whole view as well (`setViewRotation`, `rotateViewBy`), so for a page a
+`StageReaderView` shows, use `StageVisiblePage.geometry(for:)`, which includes
+it.
 
 ## Text selection
 
-`TextSelectionModel` turns a drag into a text selection. Hand its three
-callbacks to a `DragGesture` and each call runs after the ones before it, even
-though SwiftUI delivers them on separate tasks. Points that arrive while the
-engine is still extending collapse into the newest one, so a fast drag costs one
-engine call per extension, not one per frame.
+`TextSelectionOverlay` selects text on one page by dragging and draws the
+selected rects. Return it from a reader's page overlay, with a
+`TextSelectionModel` made once per document:
 
 ```swift
-let model = TextSelectionModel(selection: try await viewer.selection(for: document))
-```
-
-The likely host is a `StageReaderView` page overlay, as in
-[Page overlays](#page-overlays). Its drag points are view points with the
-origin at the page's top left, while the model wants unrotated PDF points, and
-the two differ unless the page is drawn at one view point per PDF point. Build
-the `PageGeometry` from the stage page's rotation, `page.transform.rotation`,
-which includes the stage's view rotation (`setViewRotation`, `rotateViewBy`).
-`PageInfo.geometry` has only the page's own rotation, so it fits views that show
-the page that way, not a rotated stage. Scale first: multiply by the width of
-the page as shown, `geometry.displaySize.width`, over the width it is drawn at,
-`page.transform.viewWidth`. Then pass the scaled point to `geometry.toPage(_:)`.
-Drawing `rects` is the reverse: `geometry.toDisplay(_:)`, then divide by the
-same scale.
-
-```swift
-struct SelectionOverlay: View {
-  let page: StageVisiblePage
-  let info: PageInfo
-  let model: TextSelectionModel
-  @State private var dragging = false
-  @GestureState private var touching = false
-
-  /// The page as the stage shows it, view rotation included.
-  private var geometry: PageGeometry {
-    PageGeometry(
-      rotation: Int(page.transform.rotation.rounded()),
-      pageSize: Size(width: info.width, height: info.height))
-  }
-
-  /// PDF points of the page as shown per view point.
-  private var scale: Double { geometry.displaySize.width / page.transform.viewWidth }
-
-  private func pagePoint(_ local: CGPoint) -> Point {
-    geometry.toPage(Point(x: Double(local.x) * scale, y: Double(local.y) * scale))
-  }
-
-  private func finish() {
-    guard dragging else { return }
-    dragging = false
-    Task { await model.dragEnded() }
-  }
-
-  var body: some View {
-    ZStack(alignment: .topLeading) {
-      Color.clear.contentShape(Rectangle())
-      ForEach(Array((model.rects[page.page] ?? []).enumerated()), id: \.offset) { _, rect in
-        let shown = geometry.toDisplay(rect)
-        Rectangle()
-          .fill(.blue.opacity(0.3))
-          .frame(width: shown.width / scale, height: shown.height / scale)
-          .offset(x: shown.x / scale, y: shown.y / scale)
-      }
-    }
-    .gesture(
-      DragGesture(minimumDistance: 0)
-        .updating($touching) { _, touching, _ in touching = true }
-        .onChanged { value in
-          let point = pagePoint(value.location)
-          if dragging {
-            model.dragChanged(to: point, on: page.page)
-          } else {
-            dragging = true
-            Task { await model.dragBegan(at: point, on: page.page) }
-          }
-        }
-        .onEnded { _ in finish() }
-    )
-    .onChange(of: touching) { _, touching in
-      if !touching { finish() }
-    }
-  }
-}
+let selection = TextSelectionModel(selection: try await viewer.selection(for: document))
 
 // `pages` holds the document's `PageInfo` values, from `viewer.pages(of:)`.
 StageReaderView(model: reader) { page in
-  SelectionOverlay(page: page, info: pages[Int(page.pageIndex)], model: model)
+  TextSelectionOverlay(model: selection, visiblePage: page, info: pages[Int(page.pageIndex)])
 }
 ```
 
-The `dragging` flag marks the first point of a drag, which `dragBegan` takes.
-SwiftUI can cancel a `DragGesture` without calling `onEnded`, but it still
-resets `@GestureState`, so the `onChange` above runs `dragEnded()` either way.
+The model observes by itself, so `rects` also follows a selection made
+elsewhere, such as `selectAll()`, and there is no `task()` to run. Pass
+`start: .word` to begin from the word under the finger. Read `isSelecting` for
+whether the drag found text and `error` for a failure.
 
-`dragBegan` returns false off text, and the drag then selects nothing. Pass
-`start: .word` to start from the word under the finger. Run `task()` from the
-view's `.task` so `rects` also follows selections made elsewhere, such as
-`selectAll()`; it returns when the document closes. `rects` holds unrotated
-page points per page. To draw them over a stage page, turn them with the
-geometry built from `page.transform.rotation`, since it includes the view
-rotation, then divide by the overlay's scale. A view that shows the page at its
-own rotation uses `PageInfo.geometry`, as in [Page rotation](#page-rotation).
+With the default `activation: .drag`, the overlay takes every touch in its
+frame, so the reader under it stops panning with one finger. That fits a
+selection mode the app switches on. `activation: .longPress` leaves a plain
+drag to the reader: a long press arms the selection, and it begins where the
+finger is when it next moves. The cost is on the reader's side. Its drag now
+waits for the long press to fail, so it reports at the first move or at the
+lift, not on touch-down. A tap's drag then reaches the stage after the tap's
+own effect has started and cancels it: a double tap's zoom, or the scroll to a
+link's destination. Set `StageReaderModel.panBeginsOnMovement` to `true` on a
+reader under a `.longPress` overlay, so a drag opens no stage gesture until
+it has moved more than 10 points. With it on, a still touch or a tap no longer stops a fling; the
+finger has to move. `PDFReaderView` uses this form and sets the switch itself;
+see [A reader in one view](#a-reader-in-one-view).
+
+To drive the model from your own gesture, call `dragBegan(at:on:start:)` with
+the drag's first point, `dragChanged(to:on:)` with each later one and
+`dragEnded()` when the finger lifts. The first two return at once and run in
+the order they were made, and points that arrive while the engine is still
+extending collapse into the newest one, so a fast drag costs one engine call
+per extension, not one per frame. `dragEnded()` is `async` and returns whether
+the drag began on text. SwiftUI can cancel a `DragGesture` without calling
+`onEnded`, but it still resets `@GestureState`, so end the drag from an
+`onChange` of such a flag too. The model takes unrotated page points and
+`rects` holds them: `StageVisiblePage.pagePoint(_:info:)` converts a point in
+a page overlay, and `localRect(_:info:)` converts a rect back for drawing.
+
+## A reader in one view
+
+`PDFReaderModel` starts a viewer, opens one document at a time and builds the
+models a reader shows. `PDFReaderView` draws it: a progress view while it
+loads, a password prompt for a protected document, the error's detail after a
+failure, and for a ready document a `StageReaderView` with a `SearchBar` above
+it.
+
+```swift
+import EmbedPDF
+import EmbedPDFUI
+import SwiftUI
+
+struct ReaderScreen: View {
+  let data: Data
+  @State private var model = PDFReaderModel()
+  @Environment(\.openURL) private var openURL
+
+  var body: some View {
+    PDFReaderView(
+      model: model,
+      onLinkActivation: { activation in
+        if case let .uri(uri) = activation, let url = URL(string: uri) { openURL(url) }
+      }
+    )
+    .task { await model.open(data, name: "report.pdf") }
+  }
+}
+```
+
+`open(_:name:password:)`, `open(_:name:)` for a URL, `unlock(password:)` and
+`close()` never throw. The outcome is `phase`: `.idle`, `.loading`,
+`.locked`, `.ready` with a `Session`, or `.failed` with the `PDFError`. A wrong
+password leaves the document `.locked` and puts the reason in `unlockError`,
+which the prompt shows under its field. A call made while an earlier `open` is
+still loading supersedes it.
+
+`PDFReaderModel(features:)` picks what the reader offers beyond showing and
+scrolling pages: `.search`, `.selection`, `.tools` and `.links`, all four by
+default. Each installs only the plugins it needs. The `Session` in `.ready`
+holds the models for the open document: `reader`, and `search`, `selection`
+and `tools` when their feature is on, plus the `viewer`, the `document` and
+its `pages`. A session belongs to one document, so read it from `phase` each
+time instead of keeping one.
+
+Touch on a ready document divides like this. A drag pans, a pinch zooms and a
+double tap zooms. With `.selection`, a long press followed by a drag selects
+text, and a tap clears the selection. With `.links`, a tap on a link activates
+it and the outcome reaches the view's `onLinkActivation`; opening a `.uri` is
+the app's job. `.links` needs no other feature: the reader loads each page's
+links when the page first comes into view. While a tool other than the default
+is active, a drag goes to that tool instead of the pan, and text selection is
+off until the default tool is back.
+
+Long-press selection has two costs for the pan. With `.selection`, a pan
+begins only once the finger has moved more than 10 points, so the first 10
+points of a drag don't scroll. The pan starts from the point where the drag
+crosses 10 points, so the page doesn't jump. A still touch or a tap also
+doesn't stop a fling: the page keeps moving until the finger drags past the
+10 points. A reader without `.selection` pans from touch-down and stops a
+fling where the touch lands. `Tests/EmbedPDFUITests/StageReaderModelTests.swift`
+pins both halves: `aTapThatMovesWithinTenPointsLeavesADoubleTapZooming` and
+`withPanBeginsOnMovementThePanStartsAtTheCrossingWithNoJump` with
+`StageReaderModel.panBeginsOnMovement` on, which is how `.selection` gets this
+behavior, and `aZeroTranslationChangeBeginsAPanByDefault` with it off.
+
+The view scrolls to each search hit the bar reports active. It draws no
+highlight on hits. An app that wants one composes it from `SearchModel.hits`
+in the `pageOverlay`. The view places no tool picker either: give
+`Session.tools` to a `ToolPicker` where your layout wants one. It runs the
+reader's and the search bar's `task()` itself, so don't run them again. The
+reason differs by model. A second `SearchModel.task()` supersedes the first,
+so the bar's own run stops updating the model. A second
+`StageReaderModel.task()` supersedes nothing: both run, so the model handles
+every stage event twice and registers the link tap handler twice.
+
+The features cover search, selection, tools and links. For any other plugin,
+pass `configure:`. It gets the `ViewerConfigBuilder` the model prepared for
+its features and returns the one to start the viewer with, and the model calls
+it for each viewer it starts. The demo adds the four plugins its panels need:
+
+```swift
+let model = PDFReaderModel(configure: { $0.metadata().history().outline().attachment() })
+```
+
+The added capabilities come from the session's viewer:
+
+```swift
+if case let .ready(session) = model.phase {
+  let history = HistoryModel(
+    viewer: session.viewer, history: try await session.viewer.history(for: session.document))
+}
+```
+
+`configure` can also break the reader. Turning off a plugin a feature needs,
+as `{ $0.selection(false) }` does with `.selection` on, makes every open end
+in `.failed` with that capability's `unsupported` error. Leave the feature out
+of `features` instead. One more cost of the model: it reads every page's
+`PageInfo` at each open, which grows with the page count.
+
+## Thumbnails and a search bar on their own
+
+`ThumbnailStrip` and `SearchBar` also work beside a reader you compose
+yourself. `ThumbnailModel` renders each page with the engine's thumbnail call,
+512 pixels on the long side, and turns it to the page as shown. Make one per
+page list and give the strip the same `pages`:
+
+```swift
+struct ReaderWithThumbnails: View {
+  let viewer: PDFViewer
+  let document: DocumentInfo
+  let reader: StageReaderModel
+  @State private var thumbnails: ThumbnailModel?
+  @State private var pages: [PageInfo] = []
+
+  var body: some View {
+    VStack {
+      StageReaderView(model: reader)
+      if let thumbnails {
+        ThumbnailStrip(
+          model: thumbnails, pages: pages,
+          current: pages.indices.contains(reader.pageIndex) ? pages[reader.pageIndex].page : nil
+        ) { page in
+          Task { try await reader.stage.goToPage(page.page) }
+        }
+        .frame(height: 160)
+      }
+    }
+    .task {
+      do {
+        pages = try await viewer.pages(of: document)
+        thumbnails = ThumbnailModel(render: try await viewer.render(for: document), pages: pages)
+      } catch {}
+    }
+  }
+}
+```
+
+A cell loads its thumbnail when it appears and again when the engine
+invalidates its page. The strip does not scroll to `current` and does not show
+`ThumbnailModel.error`; both are the app's to do. `pages` is a snapshot, so
+after a page edit make a new model from the new list.
+
+`SearchBar` needs only a `SearchModel`. It runs the model's `task()`, so don't
+run it again. The bar reports each hit that becomes active, and
+`SearchModel.revealActiveHit()` scrolls the document's stage to it:
+
+```swift
+struct ReaderWithSearch: View {
+  let search: SearchModel
+  let reader: StageReaderModel
+
+  var body: some View {
+    VStack {
+      SearchBar(model: search) { _ in
+        Task { await search.revealActiveHit() }
+      }
+      StageReaderView(model: reader)
+    }
+  }
+}
+```
+
+The cost is in when the bar reports. It also reports once when it appears over
+a search that already exists, and it can report a hit that is already in view,
+so whatever the callback does has to be safe to repeat. The reveal is. A bar
+of your own can reuse the model's rules: `SearchModel.canClear` is when
+`SearchBar` enables its clear button, and `ToolModel.isSelected(_:)` and
+`isDisabled(_:)` do the same job for a tool picker.
+
+## Tools and links
+
+A `StageReaderModel` made with an `InteractionCapability` sends the reader's
+touches to the document's pointer hub, so the active tool draws. Made with a
+`LinkCapability` too, it activates the link under a tap. It loads a page's
+links when the page first comes into view, so there's no
+`LinkCapability.ensureLoaded` for you to call. That costs one engine call per
+page the first time it shows, and a tap that lands before its page's load has
+finished finds no link. `ToolModel` mirrors the hub's tools for SwiftUI and
+`ToolPicker` shows one toggle per tool.
+
+```swift
+let interaction = try await viewer.interaction(for: document)
+let reader = StageReaderModel(
+  stage: try await viewer.stage(for: document), render: try await viewer.render(for: document),
+  interaction: interaction, link: try await viewer.link(for: document))
+let tools = ToolModel(interaction: interaction)
+```
+
+```swift
+VStack {
+  StageReaderView(
+    model: reader,
+    onLinkActivation: { activation in
+      if case let .uri(uri) = activation, let url = URL(string: uri) { openURL(url) }
+    }
+  )
+  ToolPicker(model: tools, tools: [.ink, .highlight]) { id in
+    Label(id.rawValue.capitalized, systemImage: "pencil")
+  }
+}
+```
+
+A tool's annotation appears when its gesture commits. An ink stroke shows when
+the finger lifts, not while it moves: the reader draws no live preview.
+`aForwardedDragUnderTheInkToolCreatesInk` in
+`Tests/EmbedPDFModelsTests/StagePointerForwarderTests.swift` pins the commit:
+one ink annotation after the lift.
+
+Under the default tool a drag pans. Under any other tool the drag goes to that
+tool, and the route is chosen when the drag starts. A tap reaches the hub once
+either way. A pinch still zooms under a tool, and it cancels the drag its
+first finger opened, so a pinch draws nothing. The built-in pan tool scrolls
+only after `StageCapability.registerScrollHandler()`, which `PDFReaderModel`
+calls for a reader with `.tools`.
+
+Tapping a tool in the picker activates it, and tapping the active tool returns
+to the default one. The picker runs the model's `task()`, so don't run it
+again. The cost is in `ToolModel`: it asks `canUseTool` once per registered
+tool after each state revision, 20 calls with the annotation plugin's tools,
+and a scroll is a revision.
+
+Each link activation arrives on `StageReaderModel.linkActivations` and on the
+view's `onLinkActivation`. A link to a place in the document moves the stage
+there and reports `.revealed`. A web link reports `.uri`, and the package
+never opens it.
+
+Link targets are typed as `AnnotationLinkTarget`: `.goto` with a
+`PageDestination`, `.uri` or `.named`. On `AnnotationCapability.threads`,
+`linkTarget(_:)` reads the link attached to an annotation and `setLink(_:on:)`
+writes one.
+`LinkCapability.resolve(_:)`, `activate(_:)` and `label(for:)` take the same
+type, beside the JSON entry points they sit next to. A `.goto` destination is
+in page space, measured from the top left of the destination page's visible
+box with y pointing down.
 
 ## What the generated Swift gives the facade
 
@@ -562,13 +784,52 @@ Writes take the same types. Every subtype the engine creates from a field
 bag has a typed draft (`UnderlineAnnotationDraft`, `LineAnnotationDraft`,
 `FreeTextAnnotationDraft`, …) and a patch, and stamps and file attachments
 have a patch only, since their create needs image or file bytes. The typed
-layer leaves out `richText`, `measure`, the `/F` flags, `nm`, `subject`,
-`reply` and `groupId`; the JSON-string overloads still take those. A link
+layer leaves out two subtypes, popup and widget; the JSON-string overloads
+still take those. A link
 and a stamp have no `blendMode`, because the engine writes `/BM` while it
 draws an appearance and draws neither (`write/update.rs` in
 `crates/epdf-engine/src/features/annotation`). The cost is that each typed
 member has to track the engine's schema. `AnnotationKindDraftTests` writes
 every member through the engine and fails if one doesn't come back.
+
+Three members repeat across the drafts and patches. `common` is an
+`AnnotationCommonFields`: the name, subject, flags, reply and group that every
+kind shares. `richText` is an `AnnotationRichText` of styled runs, on every
+kind but link and widget. `measure` is the `PdfMeasurement` scale of a
+dimension, on lines, polygons and polylines.
+
+```swift
+var common = AnnotationCommonFields()
+common.subject = "Site plan"
+common.print = true
+let scale = PdfMeasurement(
+  subtype: "rectilinear", ratio: "1 in = 1 ft",
+  x: [PdfNumberFormat(unit: "ft", conversion: 0.125, fraction: .decimal, precision: 100)],
+  distance: [PdfNumberFormat(unit: "ft", conversion: 1, fraction: .decimal, precision: 100)],
+  area: [PdfNumberFormat(unit: "sq ft", conversion: 1, fraction: .decimal, precision: 100)])
+let line = try await annotations.create(
+  LineAnnotationDraft(
+    start: Point(x: 72, y: 72), end: Point(x: 216, y: 72), intent: .value(.lineDimension),
+    measure: .value(scale), common: common),
+  on: page)
+
+let note = try await annotations.create(
+  FreeTextAnnotationDraft(
+    box: Rect(x: 72, y: 120, width: 200, height: 40), richText: AnnotationRichText(plain: "Checked")),
+  on: page)
+let styled = AnnotationRichText(paragraphs: [
+  .init(runs: [.init(text: "Checked "), .init(text: "twice", style: ["weight": .number(700)])])
+])
+try await annotations.update(note, FreeTextAnnotationPatch(richText: styled))
+```
+
+The line reads back with `line?.measure` equal to `scale` and the label the
+engine works out from it, `"18.00 ft"`, in `contents`. The note reads back
+`"Checked twice"` in `contents`, because rich text sets `contents` to its
+plain text. Two costs. A scale needs its `x`, `distance` and `area` formats:
+the engine refuses one without them as `invalid-input` ("Missing x formats").
+And `contents` passed beside `richText` has to equal that plain text, or the
+write is refused the same way.
 
 ## Moving from 0.0.0-swift.4
 
@@ -591,6 +852,32 @@ need an edit:
   viewer.documentCount()` is now an `Int`, so arithmetic that mixed it with
   `UInt64` or `UInt32` needs a conversion. A value out of the engine's range
   throws `.invalidInput` instead of trapping.
+- The read-side `intent` and `borderStyle` members of `AnnotationInfo`'s
+  details (`AnnotationInfo.Ink.intent`, `AnnotationInfo.Ink.borderStyle` and
+  the same members on the other kinds) are open types, `AnnotationIntent?`
+  and `AnnotationInfo.BorderStyle`, not `String?` and `String`. Comparing with
+  a string literal still compiles. Code that needs a `String` uses
+  `.rawValue`. Interpolating the optional `intent`, or passing it to
+  `String(describing:)`, now prints the intent without quotes:
+  `Optional(ink-highlight)`, where it printed `Optional("ink-highlight")`.
+- `AnnotationPatch` requires `Decodable` as well as `Encodable`, so
+  `defaults(for:as:)` can read a tool's defaults typed. Every patch in the
+  package conforms. Only a type outside the package that conforms to
+  `AnnotationPatch` needs an `init(from:)`.
+- An `AnnotationLinkTarget.goto` carries a page-space `PageDestination`, and
+  `AnnotationInfo.Link.target` reads one. Before, a goto target dropped its
+  coordinates.
+
+The API that first appeared after `0.0.0-swift.7` was never tagged, and it
+changed without shims too:
+
+- `PageGeometry.renderRotation` is `turn`, and
+  `PageGeometry.toDisplay(_:)` for a `CGImage` throws.
+- `RenderRevisions.task()` and `TextSelectionModel.task()` are gone. Both
+  models observe by themselves, so delete the call.
+- `TextSelectionModel.dragBegan(at:on:start:)` is synchronous and returns
+  nothing: call it without `await` or a `Task`. `dragEnded()` now returns
+  whether the drag began on text.
 
 The deprecated spellings, with their replacements:
 
@@ -609,6 +896,7 @@ The deprecated spellings, with their replacements:
 | `StageReaderModel.currentPageIndex` | `pageIndex` |
 | `AnnotationInfo.fieldsJson`, `groupId` | `fieldsJSON`, `groupID` |
 | `get(_:)`, `list(_:)`, `selected()` and `hitTest(at:on:)` returning `AnnotationRecord` | the overloads returning `AnnotationInfo`; `AnnotationInfo.record` gives the record |
+| `PDFViewer.render(in:)`, `search(in:)` | `render(for:)`, `search(for:)` |
 
 The two renamed types go in a future release, not yet chosen, and their deprecation messages say so:
 
@@ -620,7 +908,9 @@ The two renamed types go in a future release, not yet chosen, and their deprecat
 Every other shim above is removed no earlier than 0.0.0-swift.6. The rule is
 that a deprecated shim survives at least one tagged release: 0.0.0-swift.5
 ships with all of them in place, so a project can build against it, read the
-warnings and move over before anything is deleted. We haven't picked a release
+warnings and move over before anything is deleted. `render(in:)` and
+`search(in:)` are the exception: they are deprecated as of the next tag after
+0.0.0-swift.7 and survive at least that release. We haven't picked a release
 for the overloads beyond that floor. `AliasRemovalTests` fails if `PDFDocument`
 or `Annotation` is deleted early or its message stops saying it will be removed.
 
@@ -651,16 +941,25 @@ the module name: `EmbedPDF.Rect`.
 
 ## The demo app
 
-`EmbedPDFDemo/` is a small SwiftUI app over the package. It opens `report.pdf` on launch,
-uses `StageReaderView` for Rust-driven scrolling and navigation, searches with
-`SearchModel`, and shows standard/custom document metadata. It includes annotation
-creation with undo/redo, bookmark navigation/editing, and attachment import/export
-inspectors. Native Files sharing exposes its Documents folder. The
-open menu takes a PDF from Files or one of two bundled samples; `encrypted-hello.pdf`
-prompts for its password, which is `hôtel`.
+`EmbedPDFDemo/` is a small SwiftUI app over the one-call reader. A
+`PDFReaderModel` opens `report.pdf` on launch and a `PDFReaderView` shows it,
+with the package's search bar, long-press text selection and link taps. The
+demo adds a `ToolPicker` with the default tool and ink, and a label with the
+last link activation. Its model is made with
+`configure: { $0.metadata().history().outline().attachment() }`, and those four
+plugins back the rest: standard and custom document metadata, undo and redo
+for the "Add note" button and the ink tool, bookmark navigation and editing,
+and attachment import and export. Native Files sharing exposes its Documents
+folder. The open menu takes a PDF from Files or one of two bundled samples.
+`encrypted-hello.pdf` shows the reader's password prompt; its password is
+`hôtel`.
 
 The Xcode project is generated by Tuist from `Project.swift` and isn't checked in.
-`mise.toml` pins the Tuist version. Build the XCFramework first, then:
+`mise.toml` pins the Tuist version. The demo builds against the engine the
+package resolves. By default that's the pinned download, `engineRelease` at
+`platforms/apple/EmbedPDF/Package.swift:9`, so nothing builds Rust first.
+`EMBEDPDF_LOCAL_ENGINE=1` and `EMBEDPDF_PREBUILT_ENGINE=local` select a local
+engine instead.
 
 ```sh
 cd platforms/apple/EmbedPDFDemo
@@ -756,7 +1055,7 @@ try await viewer.start()
 let document = try await viewer.open(pdfData)
 let screen = PluginReader(
   reader: StageReaderModel(stage: try await viewer.stage(for: document),
-    render: try await viewer.render(in: document)),
+    render: try await viewer.render(for: document)),
   history: HistoryModel(viewer: viewer, history: try await viewer.history(for: document)),
   outline: OutlineModel(viewer: viewer, outline: try await viewer.outline(for: document)),
   attachments: AttachmentModel(viewer: viewer, attachments: try await viewer.attachments(for: document)))

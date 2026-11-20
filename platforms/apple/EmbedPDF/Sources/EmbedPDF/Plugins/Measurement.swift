@@ -6,6 +6,8 @@ public typealias MeasurementConfig = EmbedPDFBindings.MeasurementConfig
 public typealias MeasurementDefaultScale = EmbedPDFBindings.MeasurementDefaultScale
 public typealias PdfMeasurement = EmbedPDFBindings.PdfMeasurement
 public typealias PdfNumberFormat = EmbedPDFBindings.PdfNumberFormat
+/// `PdfMeasurement.origin`: where the scale's coordinates start.
+public typealias MeasureOrigin = EmbedPDFBindings.MeasureOrigin
 public typealias MeasureFraction = EmbedPDFBindings.MeasureFraction
 public typealias MeasureLabelPosition = EmbedPDFBindings.MeasureLabelPosition
 public typealias ScalePreset = EmbedPDFBindings.ScalePreset
@@ -88,6 +90,21 @@ public struct MeasurementCapability: Sendable {
   /// is the engine's `AnnotationRef` record.
   public func readout(annotationJSON: String) async throws(PDFError) -> MeasurementReading {
     try await bridged { try await handle.readout(annotationJson: annotationJSON) }
+  }
+
+  /// A measurement annotation's value in its own scale, from the
+  /// annotation's ref: the one `AnnotationCapability.create` returns, or an
+  /// `AnnotationInfo.annotationRef`. The engine reads nothing else of the
+  /// annotation from the caller.
+  public func readout(_ ref: AnnotationRef) async throws(PDFError) -> MeasurementReading {
+    try await readout(annotationJSON: AnnotationPosition.json(ref))
+  }
+
+  /// A measurement annotation's value in its own scale, from the
+  /// annotation as `AnnotationCapability` reads it. It forwards the
+  /// annotation's ref to the overload that takes an `AnnotationRef`.
+  public func readout(_ annotation: AnnotationInfo) async throws(PDFError) -> MeasurementReading {
+    try await readout(annotation.annotationRef)
   }
 
   public func measureDistance(on page: PageRef, from: Point, to: Point) async throws(PDFError)
@@ -195,7 +212,7 @@ public struct MeasurementCapability: Sendable {
   }
 
   /// Finishes when the document closes (at once if it already has) or the
-  /// viewer is destroyed.
+  /// viewer is destroyed. Each read is a new subscription.
   public var events: AsyncStream<MeasurementEvent> {
     viewer.registry.stream { handle.subscribe(listener: $0) }
   }

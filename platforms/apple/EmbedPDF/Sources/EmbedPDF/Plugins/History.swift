@@ -22,6 +22,7 @@ public struct HistoryCapability: Sendable {
   public func settings() async throws(PDFError) -> HistorySettings { try await bridged { try await handle.settings() } }
   public func updateSettings(_ patch: HistorySettingsPatch) async throws(PDFError) { try await bridged { try await handle.updateSettings(patch: patch) } }
   public func resetSettings() async throws(PDFError) { try await bridged { try await handle.resetSettings() } }
+  /// Each read is a new subscription.
   public var events: AsyncStream<HistoryEvent> { viewer.registry.stream { handle.subscribe(listener: $0) } }
 }
 

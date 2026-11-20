@@ -20,16 +20,26 @@ public struct UnderlineAnnotationDraft: AnnotationDraft, Hashable {
   /// `/Contents`. `.null` is none.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a draft that gives both needs them to agree. `.null` is a
+  /// plain comment.
+  public var richText: Nullable<AnnotationRichText>?
+  /// The fields every annotation shares.
+  public var common: AnnotationCommonFields
 
   public init(
     quadPoints: [Quad], color: AnnotationColor? = nil, opacity: Double? = nil,
-    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil
+    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.quadPoints = quadPoints
     self.color = color
     self.opacity = opacity
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -37,6 +47,8 @@ public struct UnderlineAnnotationDraft: AnnotationDraft, Hashable {
       subtype: .underline, quadPoints: quadPoints, color: color, opacity: opacity, contents: contents,
       blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encode(to: encoder)
   }
 }
 
@@ -50,16 +62,26 @@ public struct UnderlineAnnotationPatch: AnnotationPatch, Hashable {
   /// `.null` removes `/Contents`.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a patch that gives both needs them to agree. `.null` makes
+  /// the comment plain and keeps `contents`.
+  public var richText: Nullable<AnnotationRichText>?
+  /// The fields every annotation shares. A patch leaves `nm` out.
+  public var common: AnnotationCommonFields
 
   public init(
     quadPoints: [Quad]? = nil, color: AnnotationColor? = nil, opacity: Double? = nil,
-    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil
+    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.quadPoints = quadPoints
     self.color = color
     self.opacity = opacity
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -67,6 +89,17 @@ public struct UnderlineAnnotationPatch: AnnotationPatch, Hashable {
       subtype: nil, quadPoints: quadPoints, color: color, opacity: opacity, contents: contents,
       blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encodeAsPatch(to: encoder)
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let fields = try TextMarkupFields(from: decoder, strikeout: false)
+    self.init(
+      quadPoints: fields.quadPoints, color: fields.color, opacity: fields.opacity,
+      contents: fields.contents, blendMode: fields.blendMode,
+      richText: try AnnotationSharedMembers.decodeRichText(from: decoder),
+      common: try AnnotationCommonFields(from: decoder))
   }
 }
 
@@ -84,16 +117,26 @@ public struct SquigglyAnnotationDraft: AnnotationDraft, Hashable {
   /// `/Contents`. `.null` is none.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a draft that gives both needs them to agree. `.null` is a
+  /// plain comment.
+  public var richText: Nullable<AnnotationRichText>?
+  /// The fields every annotation shares.
+  public var common: AnnotationCommonFields
 
   public init(
     quadPoints: [Quad], color: AnnotationColor? = nil, opacity: Double? = nil,
-    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil
+    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.quadPoints = quadPoints
     self.color = color
     self.opacity = opacity
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -101,6 +144,8 @@ public struct SquigglyAnnotationDraft: AnnotationDraft, Hashable {
       subtype: .squiggly, quadPoints: quadPoints, color: color, opacity: opacity, contents: contents,
       blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encode(to: encoder)
   }
 }
 
@@ -114,16 +159,26 @@ public struct SquigglyAnnotationPatch: AnnotationPatch, Hashable {
   /// `.null` removes `/Contents`.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a patch that gives both needs them to agree. `.null` makes
+  /// the comment plain and keeps `contents`.
+  public var richText: Nullable<AnnotationRichText>?
+  /// The fields every annotation shares. A patch leaves `nm` out.
+  public var common: AnnotationCommonFields
 
   public init(
     quadPoints: [Quad]? = nil, color: AnnotationColor? = nil, opacity: Double? = nil,
-    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil
+    contents: Nullable<String>? = nil, blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.quadPoints = quadPoints
     self.color = color
     self.opacity = opacity
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -131,6 +186,17 @@ public struct SquigglyAnnotationPatch: AnnotationPatch, Hashable {
       subtype: nil, quadPoints: quadPoints, color: color, opacity: opacity, contents: contents,
       blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encodeAsPatch(to: encoder)
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let fields = try TextMarkupFields(from: decoder, strikeout: false)
+    self.init(
+      quadPoints: fields.quadPoints, color: fields.color, opacity: fields.opacity,
+      contents: fields.contents, blendMode: fields.blendMode,
+      richText: try AnnotationSharedMembers.decodeRichText(from: decoder),
+      common: try AnnotationCommonFields(from: decoder))
   }
 }
 
@@ -150,11 +216,19 @@ public struct StrikeoutAnnotationDraft: AnnotationDraft, Hashable {
   /// `/Contents`. `.null` is none.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a draft that gives both needs them to agree. `.null` is a
+  /// plain comment.
+  public var richText: Nullable<AnnotationRichText>?
+  /// The fields every annotation shares.
+  public var common: AnnotationCommonFields
 
   public init(
     quadPoints: [Quad], color: AnnotationColor? = nil, opacity: Double? = nil,
     intent: Nullable<AnnotationStrikeoutIntent>? = nil, contents: Nullable<String>? = nil,
-    blendMode: AnnotationBlendMode? = nil
+    blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.quadPoints = quadPoints
     self.color = color
@@ -162,6 +236,8 @@ public struct StrikeoutAnnotationDraft: AnnotationDraft, Hashable {
     self.intent = intent
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -169,6 +245,8 @@ public struct StrikeoutAnnotationDraft: AnnotationDraft, Hashable {
       subtype: .strikeout, quadPoints: quadPoints, color: color, opacity: opacity, contents: contents,
       blendMode: blendMode, intent: intent
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encode(to: encoder)
   }
 }
 
@@ -184,11 +262,19 @@ public struct StrikeoutAnnotationPatch: AnnotationPatch, Hashable {
   /// `.null` removes `/Contents`.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a patch that gives both needs them to agree. `.null` makes
+  /// the comment plain and keeps `contents`.
+  public var richText: Nullable<AnnotationRichText>?
+  /// The fields every annotation shares. A patch leaves `nm` out.
+  public var common: AnnotationCommonFields
 
   public init(
     quadPoints: [Quad]? = nil, color: AnnotationColor? = nil, opacity: Double? = nil,
     intent: Nullable<AnnotationStrikeoutIntent>? = nil, contents: Nullable<String>? = nil,
-    blendMode: AnnotationBlendMode? = nil
+    blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.quadPoints = quadPoints
     self.color = color
@@ -196,6 +282,8 @@ public struct StrikeoutAnnotationPatch: AnnotationPatch, Hashable {
     self.intent = intent
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -203,6 +291,17 @@ public struct StrikeoutAnnotationPatch: AnnotationPatch, Hashable {
       subtype: nil, quadPoints: quadPoints, color: color, opacity: opacity, contents: contents,
       blendMode: blendMode, intent: intent
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encodeAsPatch(to: encoder)
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let fields = try TextMarkupFields(from: decoder, strikeout: true)
+    self.init(
+      quadPoints: fields.quadPoints, color: fields.color, opacity: fields.opacity,
+      intent: fields.intent, contents: fields.contents, blendMode: fields.blendMode,
+      richText: try AnnotationSharedMembers.decodeRichText(from: decoder),
+      common: try AnnotationCommonFields(from: decoder))
   }
 }
 
@@ -230,6 +329,22 @@ private struct TextMarkupFields: Encodable {
     try container.encodeIfPresent(contents, forKey: .contents)
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
     try container.encodeIfPresent(intent, forKey: .intent)
+  }
+}
+
+extension TextMarkupFields {
+  /// A patch's members. Only a strikeout declares `intent`, so the other
+  /// two leave the key unread.
+  init(from decoder: any Decoder, strikeout: Bool) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    quadPoints = try container.decodeQuadsIfPresent(forKey: .quadPoints)
+    color = try container.decodeIfPresent(AnnotationColor.self, forKey: .color)
+    opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
+    blendMode = try container.decodeIfPresent(AnnotationBlendMode.self, forKey: .blendMode)
+    if strikeout {
+      intent = try container.decodeNullableIfPresent(AnnotationStrikeoutIntent.self, forKey: .intent)
+    }
   }
 }
 
@@ -265,6 +380,12 @@ public struct RedactionAnnotationDraft: AnnotationDraft, Hashable {
   /// `/Contents`. `.null` is none.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a draft that gives both needs them to agree. `.null` is a
+  /// plain comment.
+  public var richText: Nullable<AnnotationRichText>?
+  /// The fields every annotation shares.
+  public var common: AnnotationCommonFields
 
   public init(
     quadPoints: [Quad]? = nil, rect: Rect? = nil, color: AnnotationColor? = nil,
@@ -272,7 +393,9 @@ public struct RedactionAnnotationDraft: AnnotationDraft, Hashable {
     overlayText: Nullable<String>? = nil, repeat: Bool? = nil, fontFamily: String? = nil,
     fontSize: Double? = nil, fontColor: AnnotationColor? = nil,
     textAlign: AnnotationTextAlignment? = nil, contents: Nullable<String>? = nil,
-    blendMode: AnnotationBlendMode? = nil
+    blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.quadPoints = quadPoints
     self.rect = rect
@@ -287,6 +410,8 @@ public struct RedactionAnnotationDraft: AnnotationDraft, Hashable {
     self.textAlign = textAlign
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -296,6 +421,8 @@ public struct RedactionAnnotationDraft: AnnotationDraft, Hashable {
       fontFamily: fontFamily, fontSize: fontSize, fontColor: fontColor, textAlign: textAlign,
       contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encode(to: encoder)
   }
 }
 
@@ -319,6 +446,12 @@ public struct RedactionAnnotationPatch: AnnotationPatch, Hashable {
   /// `.null` removes `/Contents`.
   public var contents: Nullable<String>?
   public var blendMode: AnnotationBlendMode?
+  /// The comment as styled text (`/RC`). It sets `contents` to its plain
+  /// text, and a patch that gives both needs them to agree. `.null` makes
+  /// the comment plain and keeps `contents`.
+  public var richText: Nullable<AnnotationRichText>?
+  /// The fields every annotation shares. A patch leaves `nm` out.
+  public var common: AnnotationCommonFields
 
   public init(
     quadPoints: [Quad]? = nil, rect: Rect? = nil, color: AnnotationColor? = nil,
@@ -326,7 +459,9 @@ public struct RedactionAnnotationPatch: AnnotationPatch, Hashable {
     overlayText: Nullable<String>? = nil, repeat: Bool? = nil, fontFamily: String? = nil,
     fontSize: Double? = nil, fontColor: AnnotationColor? = nil,
     textAlign: AnnotationTextAlignment? = nil, contents: Nullable<String>? = nil,
-    blendMode: AnnotationBlendMode? = nil
+    blendMode: AnnotationBlendMode? = nil,
+    richText: Nullable<AnnotationRichText>? = nil,
+    common: AnnotationCommonFields = AnnotationCommonFields()
   ) {
     self.quadPoints = quadPoints
     self.rect = rect
@@ -341,6 +476,8 @@ public struct RedactionAnnotationPatch: AnnotationPatch, Hashable {
     self.textAlign = textAlign
     self.contents = contents
     self.blendMode = blendMode
+    self.richText = richText
+    self.common = common
   }
 
   public func encode(to encoder: any Encoder) throws {
@@ -350,6 +487,20 @@ public struct RedactionAnnotationPatch: AnnotationPatch, Hashable {
       fontFamily: fontFamily, fontSize: fontSize, fontColor: fontColor, textAlign: textAlign,
       contents: contents, blendMode: blendMode
     ).encode(to: encoder)
+    try AnnotationSharedMembers.encode(richText: richText, to: encoder)
+    try common.encodeAsPatch(to: encoder)
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let fields = try RedactionFields(from: decoder)
+    self.init(
+      quadPoints: fields.quadPoints, rect: fields.rect, color: fields.color,
+      opacity: fields.opacity, interiorColor: fields.interiorColor,
+      overlayText: fields.overlayText, repeat: fields.repeat, fontFamily: fields.fontFamily,
+      fontSize: fields.fontSize, fontColor: fields.fontColor, textAlign: fields.textAlign,
+      contents: fields.contents, blendMode: fields.blendMode,
+      richText: try AnnotationSharedMembers.decodeRichText(from: decoder),
+      common: try AnnotationCommonFields(from: decoder))
   }
 }
 
@@ -390,5 +541,25 @@ private struct RedactionFields: Encodable {
     try container.encodeIfPresent(textAlign, forKey: .textAlign)
     try container.encodeIfPresent(contents, forKey: .contents)
     try container.encodeIfPresent(blendMode, forKey: .blendMode)
+  }
+}
+
+extension RedactionFields {
+  /// A patch's members.
+  init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    quadPoints = try container.decodeQuadsIfPresent(forKey: .quadPoints)
+    rect = try container.decodeRectIfPresent(forKey: .rect)
+    color = try container.decodeIfPresent(AnnotationColor.self, forKey: .color)
+    opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+    interiorColor = try container.decodeNullableIfPresent(AnnotationColor.self, forKey: .interiorColor)
+    overlayText = try container.decodeNullableIfPresent(String.self, forKey: .overlayText)
+    `repeat` = try container.decodeIfPresent(Bool.self, forKey: .repeat)
+    fontFamily = try container.decodeIfPresent(String.self, forKey: .fontFamily)
+    fontSize = try container.decodeIfPresent(Double.self, forKey: .fontSize)
+    fontColor = try container.decodeIfPresent(AnnotationColor.self, forKey: .fontColor)
+    textAlign = try container.decodeIfPresent(AnnotationTextAlignment.self, forKey: .textAlign)
+    contents = try container.decodeNullableIfPresent(String.self, forKey: .contents)
+    blendMode = try container.decodeIfPresent(AnnotationBlendMode.self, forKey: .blendMode)
   }
 }

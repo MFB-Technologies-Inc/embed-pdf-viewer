@@ -4,13 +4,12 @@ public import Foundation
 // The typed members of every subtype `AnnotationInfo.Details` reads besides
 // ink, highlight and note (`AnnotationInfo.swift`). Each struct is the
 // engine's read record for its kind (`crates/epdf-engine/src/features/
-// annotation/read/kinds.rs`), minus the members the typed layer leaves in
-// `fieldsJSON`: a comment's or free text's `richText`, and a measurement's
-// `measure`.
+// annotation/read/kinds.rs`).
 //
 // A member whose read vocabulary is the write vocabulary takes the drafts'
 // enum (`AnnotationLineEndings`, `AnnotationTextAlignment`, …).
-// `borderStyle` and `intent` stay text, as on `Ink`: a read can name a
+// `borderStyle` and `intent` take the open read types instead
+// (`AnnotationInfo.BorderStyle`, `AnnotationIntent`): a read can name a
 // border style a write refuses (`beveled`, `inset`).
 
 extension AnnotationInfo {
@@ -22,6 +21,9 @@ extension AnnotationInfo {
     public let opacity: Double
     /// `/QuadPoints`, page space: one quad per run of marked text.
     public let quadPoints: [Quad]
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
   }
 
   /// A strikeout's members.
@@ -34,7 +36,10 @@ extension AnnotationInfo {
     public let quadPoints: [Quad]
     /// `/IT`: `strikeout-text-edit` for text marked for deletion, `nil` for
     /// a plain strikeout.
-    public let intent: String?
+    public let intent: AnnotationIntent?
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
   }
 
   /// A square's or circle's members.
@@ -45,7 +50,7 @@ extension AnnotationInfo {
     public let opacity: Double
     public let strokeWidth: Double
     /// `solid`, `dashed`, `beveled` or `inset`.
-    public let borderStyle: String
+    public let borderStyle: BorderStyle
     /// The dash pattern, or `nil` when the border isn't dashed or names none.
     public let dashArray: [Double]?
     /// `/IC`, the fill, or `nil` for none.
@@ -55,6 +60,9 @@ extension AnnotationInfo {
     public let rotation: Double?
     /// `/BE`: the cloudy border's intensity, or `nil` for a plain border.
     public let cloudyIntensity: Double?
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
   }
 
   /// A line's members.
@@ -65,7 +73,7 @@ extension AnnotationInfo {
     public let opacity: Double
     public let strokeWidth: Double
     /// `solid`, `dashed`, `beveled` or `inset`.
-    public let borderStyle: String
+    public let borderStyle: BorderStyle
     public let dashArray: [Double]?
     /// `/IC`: what fills a closed line ending.
     public let interiorColor: AnnotationColor?
@@ -75,7 +83,7 @@ extension AnnotationInfo {
     public let lineEndings: AnnotationLineEndings
     public let rotation: Double?
     /// `/IT`: `line-arrow`, `line-dimension`, or `nil` for a plain line.
-    public let intent: String?
+    public let intent: AnnotationIntent?
     /// `/Cap`, `false` when the file has none.
     public let captionEnabled: Bool
     public let captionPosition: AnnotationCaptionPosition
@@ -83,6 +91,13 @@ extension AnnotationInfo {
     /// `/LL`, `/LLE` and `/LLO`; the engine reads a missing `/LLE` or `/LLO`
     /// as 0.
     public let leader: AnnotationLineLeader?
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
+    /// `/Measure`: the scale a dimension measures in, or `nil` for none. A
+    /// scale the engine can't model has only its `subtype` (`geospatial`,
+    /// `unknown`).
+    public let measure: PdfMeasurement?
   }
 
   /// A polygon's members.
@@ -93,7 +108,7 @@ extension AnnotationInfo {
     public let opacity: Double
     public let strokeWidth: Double
     /// `solid`, `dashed`, `beveled` or `inset`.
-    public let borderStyle: String
+    public let borderStyle: BorderStyle
     public let dashArray: [Double]?
     /// `/IC`, the fill, or `nil` for none.
     public let interiorColor: AnnotationColor?
@@ -102,12 +117,19 @@ extension AnnotationInfo {
     public let rotation: Double?
     /// `/IT`: `polygon-cloud`, `polygon-dimension`, or `nil` for a plain
     /// polygon.
-    public let intent: String?
+    public let intent: AnnotationIntent?
     /// `/BE`: the cloudy border's intensity, or `nil` for a plain border.
     public let cloudyIntensity: Double?
     public let captionEnabled: Bool?
     /// The caption's centre, page space, or `nil` when the engine places it.
     public let captionCenter: Point?
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
+    /// `/Measure`: the scale a dimension measures in, or `nil` for none. A
+    /// scale the engine can't model has only its `subtype` (`geospatial`,
+    /// `unknown`).
+    public let measure: PdfMeasurement?
   }
 
   /// A polyline's members.
@@ -118,7 +140,7 @@ extension AnnotationInfo {
     public let opacity: Double
     public let strokeWidth: Double
     /// `solid`, `dashed`, `beveled` or `inset`.
-    public let borderStyle: String
+    public let borderStyle: BorderStyle
     public let dashArray: [Double]?
     /// `/IC`: what fills a closed line ending.
     public let interiorColor: AnnotationColor?
@@ -127,19 +149,26 @@ extension AnnotationInfo {
     public let lineEndings: AnnotationLineEndings
     public let rotation: Double?
     /// `/IT`: `polyline-dimension`, or `nil` for a plain polyline.
-    public let intent: String?
+    public let intent: AnnotationIntent?
     public let captionEnabled: Bool?
     /// The caption's centre, page space, or `nil` when the engine places it.
     public let captionCenter: Point?
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
+    /// `/Measure`: the scale a dimension measures in, or `nil` for none. A
+    /// scale the engine can't model has only its `subtype` (`geospatial`,
+    /// `unknown`).
+    public let measure: PdfMeasurement?
   }
 
   /// A free text's members. Its text is `AnnotationInfo.contents`, plain;
-  /// the styled runs are `richText` in `fieldsJSON`.
+  /// the styled runs are `richText`.
   public struct FreeText: Sendable, Hashable {
     /// The text box, page space, before rotation.
     public let box: Rect
-    /// `free-text` or `free-text-callout`.
-    public let intent: String
+    /// `free-text`, `free-text-callout` or `free-text-typewriter`.
+    public let intent: AnnotationIntent
     public let fontFamily: String
     public let fontSize: Double
     public let fontColor: AnnotationColor
@@ -153,12 +182,16 @@ extension AnnotationInfo {
     public let opacity: Double
     public let strokeWidth: Double
     /// `solid`, `dashed`, `beveled` or `inset`.
-    public let borderStyle: String
+    public let borderStyle: BorderStyle
     public let dashArray: [Double]?
     public let cloudyIntensity: Double?
     public let rotation: Double?
     public let calloutLine: AnnotationCalloutLine?
     public let lineEnding: AnnotationLineEnding?
+    /// The text as styled runs; its plain text is `AnnotationInfo.contents`.
+    /// The engine reports one for every free text it reads, one unstyled run
+    /// per line when the text was written plain.
+    public let richText: AnnotationRichText?
   }
 
   /// A caret's members.
@@ -171,7 +204,10 @@ extension AnnotationInfo {
     public let box: Rect
     public let rotation: Double?
     /// `/IT`: `replace`, or `nil` for an insertion.
-    public let intent: String?
+    public let intent: AnnotationIntent?
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
   }
 
   /// A stamp's members. Its image is the appearance, which the record
@@ -185,6 +221,9 @@ extension AnnotationInfo {
     /// The stamp's box, page space, before rotation.
     public let box: Rect
     public let rotation: Double?
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
   }
 
   /// A link's members.
@@ -205,6 +244,9 @@ extension AnnotationInfo {
     /// The attached file's description, or `nil` when there is no readable
     /// `/FS`.
     public let file: AttachedFile?
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
   }
 
   /// The file a file attachment carries, without its bytes.
@@ -245,6 +287,9 @@ extension AnnotationInfo {
     public let fontSize: Double
     public let fontColor: AnnotationColor
     public let textAlign: AnnotationTextAlignment
+    /// The comment as styled text, or `nil` when it is plain. Its plain
+    /// text is `AnnotationInfo.contents`.
+    public let richText: AnnotationRichText?
   }
 }
 
@@ -254,7 +299,8 @@ private enum MemberKey: String, CodingKey {
   case color, opacity, quadPoints, intent, strokeWidth, borderStyle, dashArray, interiorColor,
     box, rotation, cloudyIntensity, linePoints, lineEndings, captionEnabled, captionPosition,
     captionOffset, leader, vertices, captionCenter, fontFamily, fontSize, fontColor, textAlign,
-    verticalAlign, calloutLine, lineEnding, name, fit, target, icon, file, overlayText, `repeat`
+    verticalAlign, calloutLine, lineEnding, name, fit, target, icon, file, overlayText, `repeat`,
+    richText, measure
 }
 
 extension KeyedDecodingContainer where Key == MemberKey {
@@ -277,6 +323,7 @@ extension AnnotationInfo.TextMarkup: Decodable {
     color = try members.decode(AnnotationColor.self, forKey: .color)
     opacity = try members.decode(Double.self, forKey: .opacity)
     quadPoints = try members.quads()
+    richText = try members.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
   }
 }
 
@@ -286,7 +333,8 @@ extension AnnotationInfo.Strikeout: Decodable {
     color = try members.decode(AnnotationColor.self, forKey: .color)
     opacity = try members.decode(Double.self, forKey: .opacity)
     quadPoints = try members.quads()
-    intent = try members.decodeIfPresent(String.self, forKey: .intent)
+    intent = try members.decodeIfPresent(AnnotationIntent.self, forKey: .intent)
+    richText = try members.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
   }
 }
 
@@ -296,16 +344,17 @@ extension AnnotationInfo.Shape: Decodable {
     color = try members.decodeIfPresent(AnnotationColor.self, forKey: .color)
     opacity = try members.decode(Double.self, forKey: .opacity)
     strokeWidth = try members.decode(Double.self, forKey: .strokeWidth)
-    borderStyle = try members.decode(String.self, forKey: .borderStyle)
+    borderStyle = try members.decode(AnnotationInfo.BorderStyle.self, forKey: .borderStyle)
     dashArray = try members.decodeIfPresent([Double].self, forKey: .dashArray)
     interiorColor = try members.decodeIfPresent(AnnotationColor.self, forKey: .interiorColor)
     box = try members.box()
     rotation = try members.decodeIfPresent(Double.self, forKey: .rotation)
     cloudyIntensity = try members.decodeIfPresent(Double.self, forKey: .cloudyIntensity)
+    richText = try members.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
   }
 }
 
-private struct ReadLinePoints: Decodable {
+struct ReadLinePoints: Decodable {
   let start: ReadPoint
   let end: ReadPoint
 }
@@ -316,7 +365,7 @@ extension AnnotationInfo.Line: Decodable {
     color = try members.decodeIfPresent(AnnotationColor.self, forKey: .color)
     opacity = try members.decode(Double.self, forKey: .opacity)
     strokeWidth = try members.decode(Double.self, forKey: .strokeWidth)
-    borderStyle = try members.decode(String.self, forKey: .borderStyle)
+    borderStyle = try members.decode(AnnotationInfo.BorderStyle.self, forKey: .borderStyle)
     dashArray = try members.decodeIfPresent([Double].self, forKey: .dashArray)
     interiorColor = try members.decodeIfPresent(AnnotationColor.self, forKey: .interiorColor)
     let linePoints = try members.decode(ReadLinePoints.self, forKey: .linePoints)
@@ -324,11 +373,13 @@ extension AnnotationInfo.Line: Decodable {
     end = linePoints.end.point
     lineEndings = try members.decode(AnnotationLineEndings.self, forKey: .lineEndings)
     rotation = try members.decodeIfPresent(Double.self, forKey: .rotation)
-    intent = try members.decodeIfPresent(String.self, forKey: .intent)
+    intent = try members.decodeIfPresent(AnnotationIntent.self, forKey: .intent)
     captionEnabled = try members.decode(Bool.self, forKey: .captionEnabled)
     captionPosition = try members.decode(AnnotationCaptionPosition.self, forKey: .captionPosition)
     captionOffset = try members.decodeIfPresent(AnnotationCaptionOffset.self, forKey: .captionOffset)
     leader = try members.decodeIfPresent(AnnotationLineLeader.self, forKey: .leader)
+    richText = try members.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
+    measure = try members.decodeMeasureIfPresent(forKey: .measure)
   }
 }
 
@@ -338,15 +389,17 @@ extension AnnotationInfo.Polygon: Decodable {
     color = try members.decodeIfPresent(AnnotationColor.self, forKey: .color)
     opacity = try members.decode(Double.self, forKey: .opacity)
     strokeWidth = try members.decode(Double.self, forKey: .strokeWidth)
-    borderStyle = try members.decode(String.self, forKey: .borderStyle)
+    borderStyle = try members.decode(AnnotationInfo.BorderStyle.self, forKey: .borderStyle)
     dashArray = try members.decodeIfPresent([Double].self, forKey: .dashArray)
     interiorColor = try members.decodeIfPresent(AnnotationColor.self, forKey: .interiorColor)
     vertices = try members.points(.vertices)
     rotation = try members.decodeIfPresent(Double.self, forKey: .rotation)
-    intent = try members.decodeIfPresent(String.self, forKey: .intent)
+    intent = try members.decodeIfPresent(AnnotationIntent.self, forKey: .intent)
     cloudyIntensity = try members.decodeIfPresent(Double.self, forKey: .cloudyIntensity)
     captionEnabled = try members.decodeIfPresent(Bool.self, forKey: .captionEnabled)
     captionCenter = try members.decodeIfPresent(ReadPoint.self, forKey: .captionCenter)?.point
+    richText = try members.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
+    measure = try members.decodeMeasureIfPresent(forKey: .measure)
   }
 }
 
@@ -356,15 +409,17 @@ extension AnnotationInfo.Polyline: Decodable {
     color = try members.decodeIfPresent(AnnotationColor.self, forKey: .color)
     opacity = try members.decode(Double.self, forKey: .opacity)
     strokeWidth = try members.decode(Double.self, forKey: .strokeWidth)
-    borderStyle = try members.decode(String.self, forKey: .borderStyle)
+    borderStyle = try members.decode(AnnotationInfo.BorderStyle.self, forKey: .borderStyle)
     dashArray = try members.decodeIfPresent([Double].self, forKey: .dashArray)
     interiorColor = try members.decodeIfPresent(AnnotationColor.self, forKey: .interiorColor)
     vertices = try members.points(.vertices)
     lineEndings = try members.decode(AnnotationLineEndings.self, forKey: .lineEndings)
     rotation = try members.decodeIfPresent(Double.self, forKey: .rotation)
-    intent = try members.decodeIfPresent(String.self, forKey: .intent)
+    intent = try members.decodeIfPresent(AnnotationIntent.self, forKey: .intent)
     captionEnabled = try members.decodeIfPresent(Bool.self, forKey: .captionEnabled)
     captionCenter = try members.decodeIfPresent(ReadPoint.self, forKey: .captionCenter)?.point
+    richText = try members.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
+    measure = try members.decodeMeasureIfPresent(forKey: .measure)
   }
 }
 
@@ -372,7 +427,7 @@ extension AnnotationInfo.FreeText: Decodable {
   public init(from decoder: any Decoder) throws {
     let members = try decoder.container(keyedBy: MemberKey.self)
     box = try members.box()
-    intent = try members.decode(String.self, forKey: .intent)
+    intent = try members.decode(AnnotationIntent.self, forKey: .intent)
     fontFamily = try members.decode(String.self, forKey: .fontFamily)
     fontSize = try members.decode(Double.self, forKey: .fontSize)
     fontColor = try members.decode(AnnotationColor.self, forKey: .fontColor)
@@ -382,7 +437,7 @@ extension AnnotationInfo.FreeText: Decodable {
     interiorColor = try members.decodeIfPresent(AnnotationColor.self, forKey: .interiorColor)
     opacity = try members.decode(Double.self, forKey: .opacity)
     strokeWidth = try members.decode(Double.self, forKey: .strokeWidth)
-    borderStyle = try members.decode(String.self, forKey: .borderStyle)
+    borderStyle = try members.decode(AnnotationInfo.BorderStyle.self, forKey: .borderStyle)
     dashArray = try members.decodeIfPresent([Double].self, forKey: .dashArray)
     cloudyIntensity = try members.decodeIfPresent(Double.self, forKey: .cloudyIntensity)
     rotation = try members.decodeIfPresent(Double.self, forKey: .rotation)
@@ -397,6 +452,7 @@ extension AnnotationInfo.FreeText: Decodable {
       }
     }
     lineEnding = try members.decodeIfPresent(AnnotationLineEnding.self, forKey: .lineEnding)
+    richText = try members.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
   }
 }
 
@@ -407,7 +463,8 @@ extension AnnotationInfo.Caret: Decodable {
     opacity = try members.decode(Double.self, forKey: .opacity)
     box = try members.box()
     rotation = try members.decodeIfPresent(Double.self, forKey: .rotation)
-    intent = try members.decodeIfPresent(String.self, forKey: .intent)
+    intent = try members.decodeIfPresent(AnnotationIntent.self, forKey: .intent)
+    richText = try members.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
   }
 }
 
@@ -419,32 +476,15 @@ extension AnnotationInfo.Stamp: Decodable {
     opacity = try members.decode(Double.self, forKey: .opacity)
     box = try members.box()
     rotation = try members.decodeIfPresent(Double.self, forKey: .rotation)
-  }
-}
-
-/// A link target as the engine reads it, or `nil` for one a draft can't
-/// write.
-private struct ReadLinkTarget: Decodable {
-  let target: AnnotationLinkTarget?
-
-  private enum Key: String, CodingKey { case kind, destination, uri, name }
-
-  init(from decoder: any Decoder) throws {
-    let container = try decoder.container(keyedBy: Key.self)
-    target =
-      switch try container.decode(String.self, forKey: .kind) {
-      case "goto": .goto(try container.decode(WireDestination.self, forKey: .destination).destination)
-      case "uri": .uri(try container.decode(String.self, forKey: .uri))
-      case "named": (try? container.decode(AnnotationLinkVerb.self, forKey: .name)).map(AnnotationLinkTarget.named)
-      default: nil
-      }
+    richText = try members.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
   }
 }
 
 extension AnnotationInfo.Link: Decodable {
   public init(from decoder: any Decoder) throws {
     let members = try decoder.container(keyedBy: MemberKey.self)
-    target = (try? members.decodeIfPresent(ReadLinkTarget.self, forKey: .target))??.target
+    // A target a draft can't write doesn't decode, and reads as `nil`.
+    target = (try? members.decodeIfPresent(AnnotationLinkTarget.self, forKey: .target)) ?? nil
   }
 }
 
@@ -472,6 +512,7 @@ extension AnnotationInfo.FileAttachment: Decodable {
     color = try members.decode(AnnotationColor.self, forKey: .color)
     opacity = try members.decode(Double.self, forKey: .opacity)
     file = try members.decodeIfPresent(AnnotationInfo.AttachedFile.self, forKey: .file)
+    richText = try members.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
   }
 }
 
@@ -488,5 +529,6 @@ extension AnnotationInfo.Redaction: Decodable {
     fontSize = try members.decode(Double.self, forKey: .fontSize)
     fontColor = try members.decode(AnnotationColor.self, forKey: .fontColor)
     textAlign = try members.decode(AnnotationTextAlignment.self, forKey: .textAlign)
+    richText = try members.decodeIfPresent(AnnotationRichText.self, forKey: .richText)
   }
 }
