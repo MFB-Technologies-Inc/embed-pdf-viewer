@@ -514,50 +514,60 @@ def pack_runtime(args):
         raise ValueError("slices come from different source commits")
     if len({record["runtimeFork"] for _, record in slices}) > 1:
         raise ValueError("slices link different runtime forks")
+    for _, record in slices:
+        if record["source"]["dirty"] and not args.allow_dirty:
+            raise ValueError(f"{record['rid']}: slice was staged from a dirty tree; pass --allow-dirty for a local package")
+    pin_path = Path(args.runtime_manifest).resolve()
+    pin = read(pin_path)
+    if pin["sha"] != slices[0][1]["runtimeFork"]:
+        raise ValueError("slices link a runtime fork other than the pinned manifest's")
+    for _, record in slices:
+        if record["runtimeArchiveSha256"] != pin["artifacts"][record["runtimeTarget"]]["sha256"]:
+            raise ValueError(f"{record['rid']}: runtime archive differs from the pinned manifest")
     version = args.version or f"0.0.0-engine.{engine_hash()}"
     if not ENGINE_VERSION.match(version):
         raise ValueError(f"runtime package version must be 0.0.0-engine.<16 hex>: {version}")
     check_toolchain()
-    pin_path = Path(args.runtime_manifest).resolve()
-    if read(pin_path)["sha"] != slices[0][1]["runtimeFork"]:
-        raise ValueError("slices link a runtime fork other than the pinned manifest's")
     output = Path(args.out).resolve()
     output.mkdir(parents=True, exist_ok=True)
     if list(output.glob("package-manifest.runtime.json")):
         raise ValueError("output contains a prior runtime manifest; use a fresh output directory")
-    stage = Path(tempfile.mkdtemp(prefix="epdf-runtime-", dir=output))
-    for directory, record in slices:
-        for entry in record["files"]:
-            destination = stage / entry["path"]
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(directory / entry["path"], destination)
-        write(stage / "runtimes" / record["rid"] / "native" / "epdf-assets.json", record)
-    run(["dotnet", "pack", str(DOTNET / "EmbedPDF.Runtime/EmbedPDF.Runtime.csproj"), "-c", "Release",
-         "-o", str(output), f"-p:PackageVersion={version}", f"-p:EpdfNativeAssets={stage / 'runtimes'}"], cwd=DOTNET)
-    package = output / f"EmbedPDF.Runtime.{version}.nupkg"
-    if not package.is_file():
-        raise ValueError(f"dotnet pack wrote no {package.name}")
+    with tempfile.TemporaryDirectory(prefix="epdf-runtime-") as temporary:
+        stage = Path(temporary)
+        for directory, record in slices:
+            for entry in record["files"]:
+                destination = stage / entry["path"]
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(directory / entry["path"], destination)
+            write(stage / "runtimes" / record["rid"] / "native" / "epdf-assets.json", record)
+        run(["dotnet", "pack", str(DOTNET / "EmbedPDF.Runtime/EmbedPDF.Runtime.csproj"), "-c", "Release",
+             "-o", str(output), f"-p:PackageVersion={version}", f"-p:EpdfNativeAssets={stage / 'runtimes'}"], cwd=DOTNET)
+        package = output / f"EmbedPDF.Runtime.{version}.nupkg"
+        if not package.is_file():
+            raise ValueError(f"dotnet pack wrote no {package.name}")
+        # Stage-relative paths are the package paths, so the manifest names
+        # what a consumer finds in the nupkg.
+        staged = [file_record(path, stage) for path in sorted(stage.rglob("*")) if path.is_file()]
     with zipfile.ZipFile(package) as bundle:
         names = set(bundle.namelist())
-        for path in stage.rglob("*"):
-            if path.is_file() and path.relative_to(stage).as_posix() not in names:
-                raise ValueError(f"native asset missing from package: {path.relative_to(stage).as_posix()}")
+        for entry in staged:
+            if entry["path"] not in names:
+                raise ValueError(f"native asset missing from package: {entry['path']}")
+            payload = bundle.read(entry["path"])
+            if hashlib.sha256(payload).hexdigest() != entry["sha256"] or len(payload) != entry["bytes"]:
+                raise ValueError(f"packaged native asset differs from its slice: {entry['path']}")
         if any(name.startswith("lib/") for name in names):
             raise ValueError("the runtime package must carry no managed assembly")
     manifest = {"schemaVersion":1,"packageId":"EmbedPDF.Runtime","version":version,
-        "source":viewer_source_identity(),"runtimeFork":slices[0][1]["runtimeFork"],
+        "source":viewer_source_identity(),"runtimeFork":pin["sha"],
         "runtimeManifest":file_record(pin_path),"abi":1,
         "rids":{rid:{"status":"PACKED_UNVALIDATED","reason":"Packed from a staged slice; no consumer run yet"}
                     if rid in rids else {"status":"UNVALIDATED","reason":"No slice staged for this RID"} for rid in VIEWER_RIDS},
-        "files":[file_record(path, output) for path in sorted(stage.rglob("*")) if path.is_file()] + [file_record(package, output)],
+        "files":staged + [file_record(package, output)],
         "limitations":["A packed RID is not a validated RID: validate-runtime runs the consumer on that RID's host."]}
     validate(manifest, read(DOTNET / "package-manifest.schema.json"))
     write(output / "package-manifest.runtime.json", manifest)
     print(f"Runtime package: {package}")
-
-FIXTURE = ROOT / "pdfium-multiplatform-prototype/fixtures/report.pdf"
-FIXTURE_PAGES = 14
-SCRUBBED_ENV = ["EPDF_NATIVE_DIR","PDF_RUNTIME_LIB_DIR","LD_LIBRARY_PATH","DYLD_LIBRARY_PATH","DYLD_FALLBACK_LIBRARY_PATH"]
 
 def pinned_runtime_version():
     props = (DOTNET / "EmbedPDF.Runtime/EmbedPDF.Runtime.props").read_text()
@@ -748,6 +758,7 @@ def main():
     merge.add_argument("--out",required=True)
     merge.add_argument("--version")
     merge.add_argument("--runtime-manifest",default=pin_default)
+    merge.add_argument("--allow-dirty",action="store_true",help="pack slices staged from a dirty tree (local use only)")
     facade = sub.add_parser("pack-facade", help="pack the EmbedPDF facade against a runtime package")
     facade.add_argument("--runtime-package",required=True)
     facade.add_argument("--out",required=True)

@@ -181,21 +181,23 @@ class RuntimeTests(unittest.TestCase):
             check_viewer_exports("epdf_abi_version")
         check_viewer_exports("0000 T _ffi_epdf_viewer_host_uniffi_contract_version", "_")
 
-    def slice(self, directory, rid="linux-arm64", commit="a"*40):
+    def slice(self, directory, rid="linux-arm64", commit="a"*40, dirty=False):
         native = directory / "runtimes" / rid / "native"
         native.mkdir(parents=True)
         (native / "libepdf_viewer_host.so").write_bytes(b"host")
         files = [{"path":f"runtimes/{rid}/native/libepdf_viewer_host.so",
                   "sha256":hashlib.sha256(b"host").hexdigest(),"bytes":4}]
+        pin = json.loads((self.root.parents[1] / "packages/engine/runtime/engine-runtime-build.json").read_text())
+        source = {"commit":commit,"dirty":dirty} | ({"diffSha256":"e"*64} if dirty else {})
         (directory / "runtime-slice.json").write_text(json.dumps({"schemaVersion":1,"rid":rid,
-            "source":{"commit":commit,"dirty":False},"runtimeFork":"b"*40,"runtimeArchiveSha256":"c"*64,
+            "source":source,"runtimeFork":pin["sha"],"runtimeArchiveSha256":"c"*64,
             "runtimeTarget":rid,"files":files}))
         return native
 
-    def pack_runtime(self, *slices):
+    def pack_runtime(self, *slices, extra=()):
         with tempfile.TemporaryDirectory() as out:
             command = [sys.executable, str(self.root / "packaging/package.py"), "pack-runtime",
-                       "--version", "0.0.0-engine."+"0"*16, "--out", out]
+                       "--version", "0.0.0-engine."+"0"*16, "--out", out, *extra]
             for directory in slices:
                 command += ["--slice", str(directory)]
             return subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -215,6 +217,23 @@ class RuntimeTests(unittest.TestCase):
             result = self.pack_runtime(Path(temporary))
             self.assertNotEqual(0, result.returncode)
             self.assertIn("unrecorded file", result.stdout)
+
+    def test_pack_runtime_rejects_dirty_slice_unless_allowed(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            self.slice(Path(temporary), dirty=True)
+            result = self.pack_runtime(Path(temporary))
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("staged from a dirty tree", result.stdout)
+            result = self.pack_runtime(Path(temporary), extra=["--allow-dirty"])
+            self.assertNotEqual(0, result.returncode)
+            self.assertNotIn("dirty", result.stdout)
+
+    def test_pack_runtime_checks_archive_against_pin(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            self.slice(Path(temporary))
+            result = self.pack_runtime(Path(temporary))
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("linux-arm64: runtime archive differs from the pinned manifest", result.stdout)
 
     def test_pack_runtime_rejects_duplicate_rid_and_mixed_sources(self):
         with tempfile.TemporaryDirectory() as first, tempfile.TemporaryDirectory() as second:
