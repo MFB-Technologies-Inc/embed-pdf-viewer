@@ -78,6 +78,17 @@ Tests: `AnnotationTests`, `AnnotationDraftTests`, `AnnotationKindDraftTests`, `A
 Split into two dispatches: D1 the capability and records, D2 typed drafts, patches and `AnnotationInfo` kinds.
 Android services: `AnnotationColor` ↔ `androidx.compose.ui.graphics.Color` lives in compose; here `@ColorInt Int` conversions.
 
+- [x] D1: annotation records, the annotation capability, the form capability; one commit each, tests green at each.
+- [ ] D2: typed drafts and patches, `AnnotationInfo` kinds.
+- D1 also brought the items earlier waves moved here: the page-attachment case of `AttachmentTests`, the `AnnotationLinkTarget` overloads of `LinkCapability.resolve`, `activate` and `label`, and `AnnotationTool.toolId`.
+- `AnnotationPosition` is a sealed interface of `Start`, `End`, `Before(annotation)` and `After(annotation)`: the engine's whole vocabulary (`ListPosition` in `crates/epdf-engine/src/mutation/list_position.rs`), as in Swift. A front/back/forward/backward set would need positions the engine doesn't read.
+- `Nullable<T>` is `Unchanged`, `Value(v)`, `Clear`, as the global constraints say; `AnnotationCommonFields` uses it now. `AnnotationRichText` holds the engine's open style maps as `JsonElement`, where Swift has its own `JSONValue`.
+- `AnnotationInfo` is a class over the generated record, equal by record, with the common members, the blend mode and the timestamps. The timestamps are epoch milliseconds (`Long?`), since `java.time.Instant` needs API 26 and minSdk is 24; a fraction finer than a millisecond is dropped. D2 adds `details` and the kind accessors without changing what is there.
+- The JSON entry points take Kotlin parameter names (`fieldsJson`, `patchJson`, `draftJson`, `placementJson`), so D2's typed overloads sit beside them by type: `create(draft, page)` next to `create(fieldsJson, page)`, `update(ref, patch)` next to `update(ref, patchJson)`. Swift's argument labels became overloads by type, as in wave C: `field(widget)` beside `field(ref)`, `widgets(field)` beside `widgets(page)`, `widget(point, page)` beside `widget(ref)`. `setTextSelection` takes an `IntRange` (`2 until 5`).
+- `AnnotationFieldBag` writes sorted keys and spells integral doubles without a fraction, as Swift's `JSONEncoder` does, for D2's byte-for-byte draft tests. Other doubles differ in exponent spelling only (`1.0E-7` against `1e-07`); D2 decides whether a draft can reach one. `AnnotationSharedMembers` (the measure wire mirror) has no use before the drafts and waits for D2.
+- Android services: `AnnotationAttachmentFile(resolver, uri)`, `AnnotationStampSource(resolver, uri)` and `AnnotationPickedFile(resolver, uri)` read a picked document through a `ContentResolver` on `Dispatchers.IO`, with the provider's display name and MIME type. Bytes plus name and MIME type are the generated constructors. `@ColorInt` comes from `androidx.annotation`, now an `implementation` dependency.
+- Not ported: Swift's deprecated `AnnotationRecord` read overloads and `String` tool and subtype overloads, `aSubCapabilityHeldAloneKeepsTheViewerAndReleasesIt` (a Kotlin viewer is released by `destroy()`, not by the last reference; the port checks that a held sub-capability answers), and FormTests' `aDocumentScriptRunsInJavaScriptCore` (Robolectric has no sandbox). The hit-test case pins the typing, as Swift's does, not what is hit.
+
 ### Task E: Wave E (redaction, measurement, stamp, signature)
 
 Swift files: `Plugins/{Redaction,Measurement,Stamp,Signature,KeychainSigner}.swift`, `SignatureTransport.swift`.
