@@ -4,13 +4,15 @@ using uniffi.epdf_plugin_commands;
 using uniffi.epdf_viewer_host;
 using Xunit;
 
-namespace EmbedPDF.Spike;
+namespace EmbedPDF.Viewer.Tests;
 
-// The generated types are internal (the generator's default access modifier),
-// so these tests live in the same assembly as the generated C#.
-public sealed class ViewerHostSpikeTests
+// The generated types are internal (the generator default access modifier),
+// so these tests see them through InternalsVisibleTo.
+public sealed class ViewerHostTests
 {
     const string ReportFixture = "pdfium-multiplatform-prototype/fixtures/report.pdf";
+
+    internal static byte[] FixtureBytes(string relative) => Fixture(relative);
 
     static byte[] Fixture(string relative)
     {

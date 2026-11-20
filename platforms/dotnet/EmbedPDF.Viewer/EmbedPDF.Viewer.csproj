@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The EmbedPDF facade (docs/superpowers/plans/2026-11-20-dotnet-parity.md, D3).
+    Compiles the generated bindings under Generated/ as internal types; run
+    platforms/dotnet/generate-bindings.sh first. The native library comes
+    from the EmbedPDF.Runtime package, which this package depends on when
+    packed with -p:EmbedPdfPackRuntime=true. In-repo builds leave the
+    reference out so they need no package feed.
+  -->
+  <Import Project="../EmbedPDF.Runtime/EmbedPDF.Runtime.props" />
+  <PropertyGroup>
+    <AssemblyName>EmbedPDF</AssemblyName>
+    <RootNamespace>EmbedPDF</RootNamespace>
+    <PackageId>EmbedPDF</PackageId>
+    <Version>0.0.0-local</Version>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <Description>PDF viewer core over the EmbedPDF Rust engine. Early skeleton: loads the native viewer host from EmbedPDF.Runtime.</Description>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="EmbedPDF.Viewer.Tests" />
+    <PackageReference Include="EmbedPDF.Runtime" Version="$(EmbedPdfRuntimeVersion)" Condition="'$(EmbedPdfPackRuntime)' == 'true'" />
+  </ItemGroup>
+  <Target Name="RequireGeneratedBindings" BeforeTargets="CoreCompile">
+    <Error Condition="!Exists('$(MSBuildThisFileDirectory)Generated/epdf_viewer_host.cs')" Text="Generated bindings are missing. Run platforms/dotnet/generate-bindings.sh first." />
+  </Target>
+</Project>

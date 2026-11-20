@@ -26,8 +26,10 @@ case "$1" in
   *) usage ;;
 esac
 
+# strip=symbols applies to this crate's link only, so it relinks without
+# rebuilding the dependencies. The exported uniffi symbols stay.
 cargo rustc --manifest-path "$ROOT/Cargo.toml" -p epdf-viewer-host --release --locked \
-  --target "$triple" --crate-type cdylib >&2
+  --target "$triple" --crate-type cdylib -- -C strip=symbols >&2
 library="${CARGO_TARGET_DIR:-$ROOT/target}/$triple/release/$file"
 [[ -f "$library" ]] || { echo "cargo finished but $library is missing" >&2; exit 1; }
 echo "$library"
