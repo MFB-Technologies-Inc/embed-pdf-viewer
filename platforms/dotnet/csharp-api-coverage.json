@@ -7381,10 +7381,17 @@
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "is_open",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/shell/src/ffi.rs",
         "symbol": "is_open"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ShellCapability",
+        "member": "IsOpenAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7392,10 +7399,17 @@
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "get_surface",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/shell/src/ffi.rs",
         "symbol": "surface"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ShellCapability",
+        "member": "GetSurfaceAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7403,10 +7417,16 @@
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "list_open_surfaces",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/shell/src/ffi.rs",
         "symbol": "open_surfaces"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ShellCapability",
+        "member": "ListOpenSurfacesAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7414,10 +7434,19 @@
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "open",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/shell/src/ffi.rs",
         "symbol": "open_surface"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ShellCapability",
+        "member": "OpenAsync",
+        "parameters": [
+          "System.String",
+          "System.String",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7425,10 +7454,17 @@
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "close",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/shell/src/ffi.rs",
         "symbol": "close_surface"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ShellCapability",
+        "member": "CloseAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7436,10 +7472,19 @@
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "toggle",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/shell/src/ffi.rs",
         "symbol": "toggle_surface"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ShellCapability",
+        "member": "ToggleAsync",
+        "parameters": [
+          "System.String",
+          "System.String",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7447,10 +7492,18 @@
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "update_surface_props",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/shell/src/ffi.rs",
         "symbol": "update_surface_props"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ShellCapability",
+        "member": "UpdatePropsAsync",
+        "parameters": [
+          "System.String",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7458,10 +7511,16 @@
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "close_all",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/shell/src/ffi.rs",
         "symbol": "close_all_surfaces"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ShellCapability",
+        "member": "CloseAllAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7469,10 +7528,17 @@
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "is_menu_open",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/shell/src/ffi.rs",
         "symbol": "is_menu_open"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ShellCapability",
+        "member": "IsMenuOpenAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7480,10 +7546,16 @@
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "list_open_menus",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/shell/src/ffi.rs",
         "symbol": "open_menus"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ShellCapability",
+        "member": "ListOpenMenusAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7491,10 +7563,17 @@
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "open_menu",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/shell/src/ffi.rs",
         "symbol": "open_menu"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ShellCapability",
+        "member": "OpenMenuAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7502,10 +7581,17 @@
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "close_menu",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/shell/src/ffi.rs",
         "symbol": "close_menu"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ShellCapability",
+        "member": "CloseMenuAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7513,10 +7599,17 @@
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "toggle_menu",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/shell/src/ffi.rs",
         "symbol": "toggle_menu"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ShellCapability",
+        "member": "ToggleMenuAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7524,10 +7617,16 @@
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "close_all_menus",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/shell/src/ffi.rs",
         "symbol": "close_all_menus"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ShellCapability",
+        "member": "CloseAllMenusAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7535,10 +7634,16 @@
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "get_snapshot",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/shell/src/ffi.rs",
         "symbol": "snapshot"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ShellCapability",
+        "member": "GetSnapshotAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7546,10 +7651,17 @@
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "apply_snapshot",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/shell/src/ffi.rs",
         "symbol": "apply_snapshot"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ShellCapability",
+        "member": "ApplySnapshotAsync",
+        "parameters": [
+          "EmbedPDF.ShellSnapshot",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7557,10 +7669,16 @@
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "on_surface_opened",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/shell/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ShellCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7568,10 +7686,16 @@
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "on_surface_closed",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/shell/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ShellCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7579,10 +7703,16 @@
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "on_menu_opened",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/shell/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ShellCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -7590,10 +7720,16 @@
       "path": "crates/plugins/shell/src/controller.rs",
       "owner": "ShellCapability",
       "symbol": "on_menu_closed",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/shell/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.ShellCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {

@@ -1020,6 +1020,7 @@ EmbedPDF.PdfViewer.SaveLayerAsync(EmbedPDF.DocumentInfo! document, System.Thread
 EmbedPDF.PdfViewer.SearchAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.SearchCapability!>!
 EmbedPDF.PdfViewer.SetActiveAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.PdfViewer.SetDocumentOrderAsync(System.Collections.Generic.IEnumerable<string!>! ids, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.PdfViewer.ShellAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ShellCapability!>!
 EmbedPDF.PdfViewer.StartAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.PdfViewer.SwapAsync(EmbedPDF.DocumentInfo! first, EmbedPDF.DocumentInfo! second, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.PdfViewer.UnlockAsync(EmbedPDF.DocumentInfo! document, string! password, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -1815,6 +1816,95 @@ EmbedPDF.SearchStatus.Complete = 2 -> EmbedPDF.SearchStatus
 EmbedPDF.SearchStatus.Error = 4 -> EmbedPDF.SearchStatus
 EmbedPDF.SearchStatus.Idle = 0 -> EmbedPDF.SearchStatus
 EmbedPDF.SearchStatus.Searching = 1 -> EmbedPDF.SearchStatus
+EmbedPDF.ShellCapability
+EmbedPDF.ShellCapability.ApplySnapshotAsync(EmbedPDF.ShellSnapshot! snapshot, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ShellCapability.CloseAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ShellCapability.CloseAllMenusAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ShellCapability.CloseAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ShellCapability.CloseMenuAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ShellCapability.Dispose() -> void
+EmbedPDF.ShellCapability.GetSnapshotAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ShellSnapshot!>!
+EmbedPDF.ShellCapability.GetSurfaceAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ShellSurface?>!
+EmbedPDF.ShellCapability.IsMenuOpenAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.ShellCapability.IsOpenAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.ShellCapability.ListOpenMenusAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
+EmbedPDF.ShellCapability.ListOpenSurfacesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.ShellSurface!>!>!
+EmbedPDF.ShellCapability.ObserveEvents(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.ShellEvent!>!
+EmbedPDF.ShellCapability.OpenAsync(string! id, string? exclusive = null, string? propsJson = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ShellCapability.OpenAsync<TProps>(string! id, TProps props, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TProps>! typeInfo, string? exclusive = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ShellCapability.OpenMenuAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ShellCapability.ToggleAsync(string! id, string? exclusive = null, string? propsJson = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ShellCapability.ToggleAsync<TProps>(string! id, TProps props, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TProps>! typeInfo, string? exclusive = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ShellCapability.ToggleMenuAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ShellCapability.UpdatePropsAsync(string! id, string! propsJson, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ShellCapability.UpdatePropsAsync<TProps>(string! id, TProps props, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TProps>! typeInfo, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.ShellEvent
+EmbedPDF.ShellEvent.MenuClosed
+EmbedPDF.ShellEvent.MenuClosed.Deconstruct(out string! Id) -> void
+EmbedPDF.ShellEvent.MenuClosed.Equals(EmbedPDF.ShellEvent.MenuClosed? other) -> bool
+EmbedPDF.ShellEvent.MenuClosed.Id.get -> string!
+EmbedPDF.ShellEvent.MenuClosed.Id.init -> void
+EmbedPDF.ShellEvent.MenuClosed.MenuClosed(string! Id) -> void
+EmbedPDF.ShellEvent.MenuOpened
+EmbedPDF.ShellEvent.MenuOpened.Deconstruct(out string! Id) -> void
+EmbedPDF.ShellEvent.MenuOpened.Equals(EmbedPDF.ShellEvent.MenuOpened? other) -> bool
+EmbedPDF.ShellEvent.MenuOpened.Id.get -> string!
+EmbedPDF.ShellEvent.MenuOpened.Id.init -> void
+EmbedPDF.ShellEvent.MenuOpened.MenuOpened(string! Id) -> void
+EmbedPDF.ShellEvent.ShellEvent(EmbedPDF.ShellEvent! original) -> void
+EmbedPDF.ShellEvent.SurfaceClosed
+EmbedPDF.ShellEvent.SurfaceClosed.Deconstruct(out string! Id) -> void
+EmbedPDF.ShellEvent.SurfaceClosed.Equals(EmbedPDF.ShellEvent.SurfaceClosed? other) -> bool
+EmbedPDF.ShellEvent.SurfaceClosed.Id.get -> string!
+EmbedPDF.ShellEvent.SurfaceClosed.Id.init -> void
+EmbedPDF.ShellEvent.SurfaceClosed.SurfaceClosed(string! Id) -> void
+EmbedPDF.ShellEvent.SurfaceOpened
+EmbedPDF.ShellEvent.SurfaceOpened.Deconstruct(out string! Id, out string? PropsJson) -> void
+EmbedPDF.ShellEvent.SurfaceOpened.Equals(EmbedPDF.ShellEvent.SurfaceOpened? other) -> bool
+EmbedPDF.ShellEvent.SurfaceOpened.GetProps<TProps>(System.Text.Json.Serialization.Metadata.JsonTypeInfo<TProps>! typeInfo) -> TProps?
+EmbedPDF.ShellEvent.SurfaceOpened.Id.get -> string!
+EmbedPDF.ShellEvent.SurfaceOpened.Id.init -> void
+EmbedPDF.ShellEvent.SurfaceOpened.PropsJson.get -> string?
+EmbedPDF.ShellEvent.SurfaceOpened.PropsJson.init -> void
+EmbedPDF.ShellEvent.SurfaceOpened.SurfaceOpened(string! Id, string? PropsJson) -> void
+EmbedPDF.ShellSnapshot
+EmbedPDF.ShellSnapshot.<Clone>$() -> EmbedPDF.ShellSnapshot!
+EmbedPDF.ShellSnapshot.Deconstruct(out System.Collections.Generic.IReadOnlyList<EmbedPDF.ShellSnapshotSurface!>! Surfaces, out System.Collections.Generic.IReadOnlyList<string!>! OpenMenus) -> void
+EmbedPDF.ShellSnapshot.Equals(EmbedPDF.ShellSnapshot? other) -> bool
+EmbedPDF.ShellSnapshot.OpenMenus.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.ShellSnapshot.OpenMenus.init -> void
+EmbedPDF.ShellSnapshot.ShellSnapshot(System.Collections.Generic.IReadOnlyList<EmbedPDF.ShellSnapshotSurface!>! Surfaces, System.Collections.Generic.IReadOnlyList<string!>! OpenMenus) -> void
+EmbedPDF.ShellSnapshot.Surfaces.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.ShellSnapshotSurface!>!
+EmbedPDF.ShellSnapshot.Surfaces.init -> void
+EmbedPDF.ShellSnapshotSurface
+EmbedPDF.ShellSnapshotSurface.<Clone>$() -> EmbedPDF.ShellSnapshotSurface!
+EmbedPDF.ShellSnapshotSurface.Deconstruct(out string! Id, out bool Open, out string? Exclusive, out string? PropsJson) -> void
+EmbedPDF.ShellSnapshotSurface.Equals(EmbedPDF.ShellSnapshotSurface? other) -> bool
+EmbedPDF.ShellSnapshotSurface.Exclusive.get -> string?
+EmbedPDF.ShellSnapshotSurface.Exclusive.init -> void
+EmbedPDF.ShellSnapshotSurface.Id.get -> string!
+EmbedPDF.ShellSnapshotSurface.Id.init -> void
+EmbedPDF.ShellSnapshotSurface.Open.get -> bool
+EmbedPDF.ShellSnapshotSurface.Open.init -> void
+EmbedPDF.ShellSnapshotSurface.PropsJson.get -> string?
+EmbedPDF.ShellSnapshotSurface.PropsJson.init -> void
+EmbedPDF.ShellSnapshotSurface.ShellSnapshotSurface(string! Id, bool Open, string? Exclusive, string? PropsJson) -> void
+EmbedPDF.ShellSurface
+EmbedPDF.ShellSurface.<Clone>$() -> EmbedPDF.ShellSurface!
+EmbedPDF.ShellSurface.Deconstruct(out string! Id, out bool Open, out string? Exclusive, out string? PropsJson, out double FocusRequest) -> void
+EmbedPDF.ShellSurface.Equals(EmbedPDF.ShellSurface? other) -> bool
+EmbedPDF.ShellSurface.Exclusive.get -> string?
+EmbedPDF.ShellSurface.Exclusive.init -> void
+EmbedPDF.ShellSurface.FocusRequest.get -> double
+EmbedPDF.ShellSurface.FocusRequest.init -> void
+EmbedPDF.ShellSurface.GetProps<TProps>(System.Text.Json.Serialization.Metadata.JsonTypeInfo<TProps>! typeInfo) -> TProps?
+EmbedPDF.ShellSurface.Id.get -> string!
+EmbedPDF.ShellSurface.Id.init -> void
+EmbedPDF.ShellSurface.Open.get -> bool
+EmbedPDF.ShellSurface.Open.init -> void
+EmbedPDF.ShellSurface.PropsJson.get -> string?
+EmbedPDF.ShellSurface.PropsJson.init -> void
+EmbedPDF.ShellSurface.ShellSurface(string! Id, bool Open, string? Exclusive, string? PropsJson, double FocusRequest) -> void
 EmbedPDF.SignatureConfig
 EmbedPDF.SignatureConfig.<Clone>$() -> EmbedPDF.SignatureConfig!
 EmbedPDF.SignatureConfig.Equals(EmbedPDF.SignatureConfig? other) -> bool
@@ -1944,6 +2034,7 @@ abstract EmbedPDF.RenderTilesSetting.<Clone>$() -> EmbedPDF.RenderTilesSetting!
 abstract EmbedPDF.RenderViewport.<Clone>$() -> EmbedPDF.RenderViewport!
 abstract EmbedPDF.SearchEvent.<Clone>$() -> EmbedPDF.SearchEvent!
 abstract EmbedPDF.SearchRevealAxis.<Clone>$() -> EmbedPDF.SearchRevealAxis!
+abstract EmbedPDF.ShellEvent.<Clone>$() -> EmbedPDF.ShellEvent!
 abstract EmbedPDF.ViewManagerEvent.<Clone>$() -> EmbedPDF.ViewManagerEvent!
 const EmbedPDF.PageRenderResolution.DeviceWidthStep = 128 -> double
 const EmbedPDF.PageRenderResolution.OffScreenDeviceWidth = 256 -> double
@@ -2550,6 +2641,34 @@ override EmbedPDF.SearchSettingsPatch.ToString() -> string!
 override EmbedPDF.SearchSnippet.Equals(object? obj) -> bool
 override EmbedPDF.SearchSnippet.GetHashCode() -> int
 override EmbedPDF.SearchSnippet.ToString() -> string!
+override EmbedPDF.ShellEvent.Equals(object? obj) -> bool
+override EmbedPDF.ShellEvent.GetHashCode() -> int
+override EmbedPDF.ShellEvent.MenuClosed.<Clone>$() -> EmbedPDF.ShellEvent.MenuClosed!
+override EmbedPDF.ShellEvent.MenuClosed.Equals(object? obj) -> bool
+override EmbedPDF.ShellEvent.MenuClosed.GetHashCode() -> int
+override EmbedPDF.ShellEvent.MenuClosed.ToString() -> string!
+override EmbedPDF.ShellEvent.MenuOpened.<Clone>$() -> EmbedPDF.ShellEvent.MenuOpened!
+override EmbedPDF.ShellEvent.MenuOpened.Equals(object? obj) -> bool
+override EmbedPDF.ShellEvent.MenuOpened.GetHashCode() -> int
+override EmbedPDF.ShellEvent.MenuOpened.ToString() -> string!
+override EmbedPDF.ShellEvent.SurfaceClosed.<Clone>$() -> EmbedPDF.ShellEvent.SurfaceClosed!
+override EmbedPDF.ShellEvent.SurfaceClosed.Equals(object? obj) -> bool
+override EmbedPDF.ShellEvent.SurfaceClosed.GetHashCode() -> int
+override EmbedPDF.ShellEvent.SurfaceClosed.ToString() -> string!
+override EmbedPDF.ShellEvent.SurfaceOpened.<Clone>$() -> EmbedPDF.ShellEvent.SurfaceOpened!
+override EmbedPDF.ShellEvent.SurfaceOpened.Equals(object? obj) -> bool
+override EmbedPDF.ShellEvent.SurfaceOpened.GetHashCode() -> int
+override EmbedPDF.ShellEvent.SurfaceOpened.ToString() -> string!
+override EmbedPDF.ShellEvent.ToString() -> string!
+override EmbedPDF.ShellSnapshot.Equals(object? obj) -> bool
+override EmbedPDF.ShellSnapshot.GetHashCode() -> int
+override EmbedPDF.ShellSnapshot.ToString() -> string!
+override EmbedPDF.ShellSnapshotSurface.Equals(object? obj) -> bool
+override EmbedPDF.ShellSnapshotSurface.GetHashCode() -> int
+override EmbedPDF.ShellSnapshotSurface.ToString() -> string!
+override EmbedPDF.ShellSurface.Equals(object? obj) -> bool
+override EmbedPDF.ShellSurface.GetHashCode() -> int
+override EmbedPDF.ShellSurface.ToString() -> string!
 override EmbedPDF.SignatureConfig.Equals(object? obj) -> bool
 override EmbedPDF.SignatureConfig.GetHashCode() -> int
 override EmbedPDF.SignatureConfig.ToString() -> string!
@@ -2663,6 +2782,10 @@ override sealed EmbedPDF.SearchRevealAxis.End.Equals(EmbedPDF.SearchRevealAxis? 
 override sealed EmbedPDF.SearchRevealAxis.Fraction.Equals(EmbedPDF.SearchRevealAxis? other) -> bool
 override sealed EmbedPDF.SearchRevealAxis.Keep.Equals(EmbedPDF.SearchRevealAxis? other) -> bool
 override sealed EmbedPDF.SearchRevealAxis.Start.Equals(EmbedPDF.SearchRevealAxis? other) -> bool
+override sealed EmbedPDF.ShellEvent.MenuClosed.Equals(EmbedPDF.ShellEvent? other) -> bool
+override sealed EmbedPDF.ShellEvent.MenuOpened.Equals(EmbedPDF.ShellEvent? other) -> bool
+override sealed EmbedPDF.ShellEvent.SurfaceClosed.Equals(EmbedPDF.ShellEvent? other) -> bool
+override sealed EmbedPDF.ShellEvent.SurfaceOpened.Equals(EmbedPDF.ShellEvent? other) -> bool
 override sealed EmbedPDF.ViewManagerEvent.DocumentMoved.Equals(EmbedPDF.ViewManagerEvent? other) -> bool
 override sealed EmbedPDF.ViewManagerEvent.FocusChanged.Equals(EmbedPDF.ViewManagerEvent? other) -> bool
 override sealed EmbedPDF.ViewManagerEvent.PaneCreated.Equals(EmbedPDF.ViewManagerEvent? other) -> bool
@@ -3073,6 +3196,22 @@ static EmbedPDF.SearchSettingsPatch.operator !=(EmbedPDF.SearchSettingsPatch? le
 static EmbedPDF.SearchSettingsPatch.operator ==(EmbedPDF.SearchSettingsPatch? left, EmbedPDF.SearchSettingsPatch? right) -> bool
 static EmbedPDF.SearchSnippet.operator !=(EmbedPDF.SearchSnippet? left, EmbedPDF.SearchSnippet? right) -> bool
 static EmbedPDF.SearchSnippet.operator ==(EmbedPDF.SearchSnippet? left, EmbedPDF.SearchSnippet? right) -> bool
+static EmbedPDF.ShellEvent.MenuClosed.operator !=(EmbedPDF.ShellEvent.MenuClosed? left, EmbedPDF.ShellEvent.MenuClosed? right) -> bool
+static EmbedPDF.ShellEvent.MenuClosed.operator ==(EmbedPDF.ShellEvent.MenuClosed? left, EmbedPDF.ShellEvent.MenuClosed? right) -> bool
+static EmbedPDF.ShellEvent.MenuOpened.operator !=(EmbedPDF.ShellEvent.MenuOpened? left, EmbedPDF.ShellEvent.MenuOpened? right) -> bool
+static EmbedPDF.ShellEvent.MenuOpened.operator ==(EmbedPDF.ShellEvent.MenuOpened? left, EmbedPDF.ShellEvent.MenuOpened? right) -> bool
+static EmbedPDF.ShellEvent.SurfaceClosed.operator !=(EmbedPDF.ShellEvent.SurfaceClosed? left, EmbedPDF.ShellEvent.SurfaceClosed? right) -> bool
+static EmbedPDF.ShellEvent.SurfaceClosed.operator ==(EmbedPDF.ShellEvent.SurfaceClosed? left, EmbedPDF.ShellEvent.SurfaceClosed? right) -> bool
+static EmbedPDF.ShellEvent.SurfaceOpened.operator !=(EmbedPDF.ShellEvent.SurfaceOpened? left, EmbedPDF.ShellEvent.SurfaceOpened? right) -> bool
+static EmbedPDF.ShellEvent.SurfaceOpened.operator ==(EmbedPDF.ShellEvent.SurfaceOpened? left, EmbedPDF.ShellEvent.SurfaceOpened? right) -> bool
+static EmbedPDF.ShellEvent.operator !=(EmbedPDF.ShellEvent? left, EmbedPDF.ShellEvent? right) -> bool
+static EmbedPDF.ShellEvent.operator ==(EmbedPDF.ShellEvent? left, EmbedPDF.ShellEvent? right) -> bool
+static EmbedPDF.ShellSnapshot.operator !=(EmbedPDF.ShellSnapshot? left, EmbedPDF.ShellSnapshot? right) -> bool
+static EmbedPDF.ShellSnapshot.operator ==(EmbedPDF.ShellSnapshot? left, EmbedPDF.ShellSnapshot? right) -> bool
+static EmbedPDF.ShellSnapshotSurface.operator !=(EmbedPDF.ShellSnapshotSurface? left, EmbedPDF.ShellSnapshotSurface? right) -> bool
+static EmbedPDF.ShellSnapshotSurface.operator ==(EmbedPDF.ShellSnapshotSurface? left, EmbedPDF.ShellSnapshotSurface? right) -> bool
+static EmbedPDF.ShellSurface.operator !=(EmbedPDF.ShellSurface? left, EmbedPDF.ShellSurface? right) -> bool
+static EmbedPDF.ShellSurface.operator ==(EmbedPDF.ShellSurface? left, EmbedPDF.ShellSurface? right) -> bool
 static EmbedPDF.SignatureConfig.operator !=(EmbedPDF.SignatureConfig? left, EmbedPDF.SignatureConfig? right) -> bool
 static EmbedPDF.SignatureConfig.operator ==(EmbedPDF.SignatureConfig? left, EmbedPDF.SignatureConfig? right) -> bool
 static EmbedPDF.StageConfig.operator !=(EmbedPDF.StageConfig? left, EmbedPDF.StageConfig? right) -> bool
@@ -3158,6 +3297,9 @@ virtual EmbedPDF.SearchEvent.PrintMembers(System.Text.StringBuilder! builder) ->
 virtual EmbedPDF.SearchRevealAxis.EqualityContract.get -> System.Type!
 virtual EmbedPDF.SearchRevealAxis.Equals(EmbedPDF.SearchRevealAxis? other) -> bool
 virtual EmbedPDF.SearchRevealAxis.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.ShellEvent.EqualityContract.get -> System.Type!
+virtual EmbedPDF.ShellEvent.Equals(EmbedPDF.ShellEvent? other) -> bool
+virtual EmbedPDF.ShellEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual EmbedPDF.ViewManagerEvent.EqualityContract.get -> System.Type!
 virtual EmbedPDF.ViewManagerEvent.Equals(EmbedPDF.ViewManagerEvent? other) -> bool
 virtual EmbedPDF.ViewManagerEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
