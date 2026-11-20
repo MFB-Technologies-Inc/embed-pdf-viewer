@@ -1,5 +1,6 @@
 package com.embedpdf
 
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.net.HttpURLConnection
@@ -21,6 +22,9 @@ import java.util.concurrent.atomic.AtomicReference
  * connection, and the open fails `operation-cancelled`. A `file:` URL reads
  * the file.
  *
+ * Connecting and reading each time out after 60 seconds by default, as the
+ * Apple fetcher's session does; [configure] can change both.
+ *
  * @param configure runs on each connection before it connects: headers,
  *   cookies, authentication, timeouts.
  */
@@ -40,7 +44,10 @@ public class HttpDocumentFetcher(
                 val connection = target.openConnection()
                 request.connection.set(connection)
                 if (request.cancelled.get()) throw IOException("cancelled before connecting")
+                connection.connectTimeout = DEFAULT_TIMEOUT_MS
+                connection.readTimeout = DEFAULT_TIMEOUT_MS
                 configure(connection)
+                if (request.cancelled.get()) throw IOException("cancelled before connecting")
                 val status = (connection as? HttpURLConnection)?.responseCode ?: 200
                 if (status !in 0..UShort.MAX_VALUE.toInt()) {
                     completion.failWith(
@@ -48,9 +55,11 @@ public class HttpDocumentFetcher(
                     )
                     return@execute
                 }
-                val body = body(connection, status)
+                val body = body(connection, status, request)
                 completion.finish(status.toUShort(), body)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
+                // An `Error` too (a body too large for memory fails the open
+                // rather than the thread); the first answer wins.
                 completion.failWith(
                     if (request.cancelled.get()) {
                         HostFailure(name = "AbortError", code = "operation-cancelled", detail = "operation cancelled")
@@ -65,7 +74,7 @@ public class HttpDocumentFetcher(
         return request
     }
 
-    private fun body(connection: URLConnection, status: Int): ByteArray {
+    private fun body(connection: URLConnection, status: Int, request: Request): ByteArray {
         // A status outside 2xx reads its body from the error stream, which is
         // null when there is none.
         val stream: InputStream? = if (connection is HttpURLConnection && status >= 400) {
@@ -73,7 +82,7 @@ public class HttpDocumentFetcher(
         } else {
             connection.getInputStream()
         }
-        return stream?.use { it.readBytes() } ?: ByteArray(0)
+        return stream?.use { readChecking(it, request.cancelled) } ?: ByteArray(0)
     }
 
     private class Request : DocumentFetchCancellation {
@@ -84,6 +93,23 @@ public class HttpDocumentFetcher(
             cancelled.set(true)
             (connection.get() as? HttpURLConnection)?.disconnect()
         }
+    }
+}
+
+private const val DEFAULT_TIMEOUT_MS = 60_000
+
+/**
+ * Reads [stream] to its end in chunks, stopping with an `IOException` as soon
+ * as [cancelled] is set, so a cancel between chunks ends a slow body.
+ */
+internal fun readChecking(stream: InputStream, cancelled: AtomicBoolean): ByteArray {
+    val out = ByteArrayOutputStream()
+    val chunk = ByteArray(64 * 1024)
+    while (true) {
+        if (cancelled.get()) throw IOException("cancelled while reading")
+        val count = stream.read(chunk)
+        if (count < 0) return out.toByteArray()
+        out.write(chunk, 0, count)
     }
 }
 

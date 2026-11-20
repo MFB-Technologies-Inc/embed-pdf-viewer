@@ -115,14 +115,22 @@ val generateLinuxBindings = tasks.register<Exec>("generateLinuxBindings") {
         val newest = kotlinSources.walk().filter { it.isFile }.maxOfOrNull { it.lastModified() }
         newest == null || newest < maxOf(hostLibrary.lastModified(), bindgen.lastModified())
     }
-    doFirst { kotlinSources.deleteRecursively() }
+    doFirst {
+        // Fail before deleting anything the generator could not replace.
+        for (input in listOf(hostLibrary, bindgen)) {
+            if (!input.isFile) throw GradleException("generateLinuxBindings: $input is missing; the Kotlin is left as it was")
+        }
+        kotlinSources.deleteRecursively()
+    }
     commandLine(
         bindgen.path, "generate", "--library", hostLibrary.path,
         "--language", "kotlin", "--no-format", "--out-dir", kotlinSources.path,
     )
 }
 
-tasks.matching { it.name == "compileDebugKotlin" }.configureEach {
+// Every Kotlin compile, the release one too, since `:embedpdf:apiCheck` dumps
+// the release classes.
+tasks.matching { it.name.startsWith("compile") && it.name.endsWith("Kotlin") }.configureEach {
     dependsOn(generateLinuxBindings)
 }
 

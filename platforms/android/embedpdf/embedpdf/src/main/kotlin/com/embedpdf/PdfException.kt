@@ -102,7 +102,8 @@ public class PdfException(
         /**
          * The exception a call surfaces for [error]: a generated `ViewerException`
          * keeps the kernel's name, code and message, a `PdfException` is itself,
-         * a cancellation is `operation-cancelled`, and anything else is
+         * a cancellation is `operation-cancelled`, a generated object used
+         * after its handle was released is `instance-closed`, and anything else is
          * `operation-failed` under its class name.
          */
         fun from(error: Throwable): PdfException = when (error) {
@@ -113,6 +114,10 @@ public class PdfException(
                 PdfException(Code.INSTANCE_CLOSED, "The viewer has shut down.", "Closed", error)
             is CancellationException ->
                 PdfException(Code.OPERATION_CANCELLED, "operation cancelled", "AbortError", error)
+            // A generated object whose handle was released: a capability or
+            // viewer used after `close()`.
+            is IllegalStateException if error.message?.endsWith(" object has already been destroyed") == true ->
+                PdfException(Code.INSTANCE_CLOSED, readable(error), "Closed", error)
             else -> PdfException(Code.OPERATION_FAILED, readable(error), error.javaClass.simpleName, error)
         }
     }

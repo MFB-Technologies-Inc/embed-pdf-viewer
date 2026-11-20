@@ -93,7 +93,18 @@ public class PdfViewer(
      * call throws `instance-closed`, as does every call after it.
      */
     public suspend fun destroy() {
-        call { host.destroyViewer() }
+        try {
+            call { host.destroyViewer() }
+        } catch (e: PdfException) {
+            // Already destroyed or closed: the teardown below already ran.
+            if (e.code == PdfException.Code.INSTANCE_CLOSED) throw e
+            tearDown()
+            throw e
+        }
+        tearDown()
+    }
+
+    private fun tearDown() {
         host.shutdown()
         finishStreams()
     }

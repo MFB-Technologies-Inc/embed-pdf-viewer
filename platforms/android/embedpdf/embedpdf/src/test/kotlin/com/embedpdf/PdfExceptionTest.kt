@@ -12,6 +12,7 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
+import kotlinx.coroutines.launch
 import uniffi.epdf_ffi.ViewerException
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -190,5 +191,36 @@ class PdfExceptionTest {
         }
         assertEquals(42, value)
         assertFalse(cancelledDuringTheCall)
+    }
+
+    @Test
+    fun aReleasedGeneratedObjectIsInstanceClosed() {
+        val error = PdfException.from(IllegalStateException("MetadataHandle object has already been destroyed"))
+        assertEquals(PdfException.Code.INSTANCE_CLOSED, error.code)
+        assertEquals("Closed", error.name)
+        assertEquals(
+            PdfException.Code.OPERATION_FAILED,
+            PdfException.from(IllegalStateException("something else")).code,
+        )
+    }
+
+    @Test
+    fun bridgedCancellableReturnsAValueTheKernelAnswersAsTheCallerCancels() = runBlocking {
+        val started = CompletableDeferred<Unit>()
+        val answer = CompletableDeferred<Int>()
+        var returned: Int? = null
+        val call = launch(start = CoroutineStart.UNDISPATCHED) {
+            // The kernel's work landed before it saw the cancel: it answers
+            // with the value, and the caller keeps it.
+            returned = bridgedCancellable { _ ->
+                started.complete(Unit)
+                answer.await()
+            }
+        }
+        started.await()
+        call.cancel()
+        answer.complete(7)
+        call.join()
+        assertEquals(7, returned)
     }
 }

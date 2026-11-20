@@ -49,7 +49,11 @@ internal class StreamRegistry {
         if (!live) return@flow
         var subscription: Subscription? = null
         try {
-            subscription = subscribe(channel)
+            subscription = try {
+                subscribe(channel)
+            } catch (e: Exception) {
+                throw PdfException.from(e)
+            }
             for (event in channel) emit(event)
         } finally {
             synchronized(lock) { channels.remove(channel) }

@@ -30,9 +30,11 @@ public class ContentResolverDocumentFetcher(
                     ?: throw FileNotFoundException("The content provider has no stream for $url.")
                 read.stream.set(stream)
                 if (read.cancelled.get()) stream.close()
-                val bytes = stream.use { it.readBytes() }
+                val bytes = stream.use { readChecking(it, read.cancelled) }
                 completion.finish(200u, bytes)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
+                // An `Error` too (a source too large for memory fails the open
+                // rather than the thread); the first answer wins.
                 completion.failWith(
                     when {
                         read.cancelled.get() ->

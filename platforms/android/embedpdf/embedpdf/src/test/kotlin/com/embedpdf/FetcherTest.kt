@@ -154,4 +154,26 @@ class FetcherTest {
         assertEquals(14u, document.pageCount)
         viewer.destroy()
     }
+
+    @Test
+    fun anErrorThrownWhileFetchingFailsTheOpen() = viewerTest {
+        LoopbackServer { _, reply -> reply.whole(200, Fixture.bytes("report")) }.use { server ->
+            // An `Error`, as an out-of-memory read would be: the open fails
+            // instead of the fetch thread dying with the completion unanswered.
+            val fetcher = HttpDocumentFetcher(configure = { throw OutOfMemoryError("too large") })
+            val viewer = PdfViewer(ViewerConfig(), fetcher)
+            viewer.start()
+            val error = withTimeout(5_000) {
+                try {
+                    viewer.open(URI(server.url("/report.pdf")).toURL())
+                    fail("expected the open to fail")
+                    throw AssertionError()
+                } catch (e: PdfException) {
+                    e
+                }
+            }
+            assertTrue(error.detail, error.detail.contains("too large"))
+            viewer.destroy()
+        }
+    }
 }
