@@ -180,7 +180,8 @@ public sealed record AnnotationInfo
     /// <summary>
     /// The instant of an engine timestamp: <c>YYYY-MM-DDTHH:MM[:SS[.fff]]</c>
     /// with <c>Z</c>, an offset (<c>+05:30</c> or <c>+0530</c>) or none (UTC).
-    /// Anything else, including an impossible date, is <see langword="null"/>.
+    /// Anything else, an impossible date, or one outside what
+    /// <see cref="DateTimeOffset"/> holds, is <see langword="null"/>.
     /// </summary>
     internal static DateTimeOffset? Instant(string text)
     {
@@ -238,7 +239,12 @@ public sealed record AnnotationInfo
         if (index != text.Length || month is < 1 or > 12 || day < 1 || day > DaysIn(month, year) || hour > 23 || minute > 59 || second > 59) return null;
         var days = DaysFromCivil(year, month, day);
         var seconds = ((days * 24 + hour) * 60 + minute - offsetMinutes) * 60 + second;
-        return DateTimeOffset.UnixEpoch.AddTicks(seconds * TimeSpan.TicksPerSecond + fractionTicks);
+        // The engine writes years DateTimeOffset can't hold (0000, or 0001 and
+        // 9999 shifted past the edge by an offset); those keep only their text.
+        var ticks = seconds * TimeSpan.TicksPerSecond + fractionTicks;
+        var earliest = (DateTimeOffset.MinValue - DateTimeOffset.UnixEpoch).Ticks;
+        var latest = (DateTimeOffset.MaxValue - DateTimeOffset.UnixEpoch).Ticks;
+        return ticks < earliest || ticks > latest ? null : DateTimeOffset.UnixEpoch.AddTicks(ticks);
     }
 
     static int DaysIn(int month, int year) => month switch
