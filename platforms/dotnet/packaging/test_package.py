@@ -1,5 +1,5 @@
 import json
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import tempfile
 import unittest
 import copy
@@ -302,7 +302,9 @@ class NativeInspectionTests(unittest.TestCase):
         package.host_rid = lambda: "linux-arm64"
         package.run = lambda command, cwd=None, env=None: calls.append((command, env)) or ""
         try:
-            package.list_dependencies(Path("/x/libepdf_viewer_host.so"), "linux-x64")
+            # A Windows-style path: a foreign RID is always Linux, so the loader
+            # gets forward slashes whatever OS runs the inspection.
+            package.list_dependencies(PureWindowsPath(r"\x\libepdf_viewer_host.so"), "linux-x64")
             package.list_dependencies(Path("/x/libepdf_viewer_host.so"), "linux-arm64")
         finally:
             package.host_rid, package.run = original

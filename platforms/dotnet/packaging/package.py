@@ -98,7 +98,7 @@ def list_dependencies(path, rid):
     if host_rid() == rid:
         return run(["ldd", "-r", str(path)])
     env = dict(os.environ, LD_TRACE_LOADED_OBJECTS="1", LD_WARN="yes", LD_BIND_NOW="yes")
-    return run([FOREIGN_LOADERS[rid], str(path)], env=env)
+    return run([FOREIGN_LOADERS[rid], path.as_posix()], env=env)
 
 def inspect(native, rid):
     details = {}
