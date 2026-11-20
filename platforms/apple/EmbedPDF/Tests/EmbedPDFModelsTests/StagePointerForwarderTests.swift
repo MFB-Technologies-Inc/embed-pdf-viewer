@@ -224,6 +224,31 @@ struct StagePointerForwarderTests {
     await reader.observing.value
   }
 
+  /// The view never taps with a drag open, but the public
+  /// ``StageReaderModel/tapped(at:)`` allows it. The open gesture is
+  /// cancelled first, so the hub never gets a second down inside it.
+  @Test func aTapWhileAGestureIsOpenCancelsItFirst() async throws {
+    let (reader, sent) = try await recording()
+    let model = reader.model
+    let at = try (1...4).map { try point(in: model, 0.1 * Double($0)) }
+    model.pointerDown(at: at[0])
+    model.pointerMoved(to: at[1])
+    await model.pointerCallsFinished()
+    model.tapped(at: at[2])
+    // The cancelled touch's later samples are a new gesture's concern: a
+    // tap closes with its own up, so nothing is left open.
+    model.tapped(at: at[3])
+    await model.pointerCallsFinished()
+    expectNoDifference(
+      sent(),
+      [
+        Sent(.down, at[0]), Sent(.move, at[1]), Sent(.cancel, at[1]),
+        Sent(.down, at[2]), Sent(.up, at[2]), Sent(.down, at[3]), Sent(.up, at[3]),
+      ])
+    try await reader.viewer.destroy()
+    await reader.observing.value
+  }
+
   /// A down right after an up leaves the earlier gesture's waiting move in
   /// place, and a tap does too.
   @Test func aNewGestureDoesNotDropTheLastOnesWaitingMove() async throws {

@@ -313,7 +313,9 @@ public final class StageReaderModel {
   public func pointerCancelled() { pointer?.cancel() }
 
   /// Sends a down and an up at `location`, each with a click count of 1:
-  /// a tap for the active tool, and for a link under the default tool.
+  /// a tap for the active tool, and for a link under the default tool. A
+  /// pointer gesture ``pointerDown(at:)`` opened and nothing closed is
+  /// cancelled first, as ``pointerCancelled()`` does.
   public func tapped(at location: CGPoint) { pointer?.tap(at: location) }
 
   /// Returns once every pointer call made so far has been handed to the hub.

@@ -102,8 +102,11 @@ final class StagePointerForwarder {
     interrupted = true
   }
 
-  /// A down and an up at one point, both with a click count of 1.
+  /// A down and an up at one point, both with a click count of 1. A
+  /// gesture still open is cancelled first, as ``cancel()`` does, so the
+  /// hub gets no second down inside it.
   func tap(at location: CGPoint) {
+    if gestureOpen { cancel() }
     waitingMove = nil
     interrupted = false
     gestureOpen = false
