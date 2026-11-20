@@ -75,11 +75,9 @@ class SignatureTest {
     @Test
     fun theTestCertificateAsAnAnchorIsTrusted() = viewerTest {
         val (viewer, _, signatures) = opened("unsigned_sigfield")
-        viewer.setTrust(
-            object : SignatureTrust {
-                override fun anchors(): List<ByteArray> = listOf(TestKeys.certificate)
-            },
-        )
+        val certificate = java.security.cert.CertificateFactory.getInstance("X.509")
+            .generateCertificate(TestKeys.certificate.inputStream()) as java.security.cert.X509Certificate
+        viewer.setTrust(TrustAnchors(listOf(certificate)))
         val field = unsignedField(signatures)
         signatures.sign(signInput(field))
         val verdict = signatures.validate(field)

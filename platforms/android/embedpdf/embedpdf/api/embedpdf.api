@@ -31,6 +31,22 @@ public final class com/embedpdf/ActionsKt {
 	public static synthetic fun forCurrentTimeZone$default (Luniffi/epdf_plugin_actions/ActionsConfig$Companion;Luniffi/epdf_plugin_actions/ActionPolicyPatch;Luniffi/epdf_plugin_actions/TriggerGates;Luniffi/epdf_plugin_actions/OpenSequence;Luniffi/epdf_plugin_actions/ActionsJavaScriptConfig;ILjava/lang/Object;)Luniffi/epdf_plugin_actions/ActionsConfig;
 }
 
+public final class com/embedpdf/AndroidKeyStoreSigner : uniffi/epdf_plugin_signature/SignatureSigner {
+	public static final field Companion Lcom/embedpdf/AndroidKeyStoreSigner$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/security/KeyStore;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/security/KeyStore;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/security/PrivateKey;Ljava/util/List;)V
+	public fun algorithm ()Luniffi/epdf_plugin_signature/SignatureKeyAlgorithm;
+	public fun certificateChain ()Ljava/util/List;
+	public fun digest ()Luniffi/epdf_plugin_signature/SignatureDigest;
+	public final fun sign ([B)[B
+	public fun sign ([BLuniffi/epdf_plugin_signature/SignatureSignCompletion;)V
+}
+
+public final class com/embedpdf/AndroidKeyStoreSigner$Companion {
+	public final fun androidKeyStore ()Ljava/security/KeyStore;
+}
+
 public final class com/embedpdf/AnnotationBlendMode : java/lang/Enum {
 	public static final field COLOR Lcom/embedpdf/AnnotationBlendMode;
 	public static final field COLOR_BURN Lcom/embedpdf/AnnotationBlendMode;
@@ -3889,6 +3905,17 @@ public final class com/embedpdf/ToolSwitcher {
 	public final fun popTool (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun pushTool-N6U4bZY (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun tools (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/TrustAnchors : uniffi/epdf_plugin_signature/SignatureTrust {
+	public static final field Companion Lcom/embedpdf/TrustAnchors$Companion;
+	public fun <init> (Ljava/util/List;)V
+	public fun anchors ()Ljava/util/List;
+	public final fun getCertificates ()Ljava/util/List;
+}
+
+public final class com/embedpdf/TrustAnchors$Companion {
+	public final fun fromAssets (Landroid/content/res/AssetManager;Ljava/util/List;)Lcom/embedpdf/TrustAnchors;
 }
 
 public final class com/embedpdf/UnderlineAnnotationDraft : com/embedpdf/AnnotationDraft {
