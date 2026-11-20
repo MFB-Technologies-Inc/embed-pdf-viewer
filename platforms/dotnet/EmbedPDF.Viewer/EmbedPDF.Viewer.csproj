@@ -19,6 +19,7 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="EmbedPDF.Viewer.Tests" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
     <PackageReference Include="EmbedPDF.Runtime" Version="$(EmbedPdfRuntimeVersion)" Condition="'$(EmbedPdfPackRuntime)' == 'true'" />
   </ItemGroup>
   <!--

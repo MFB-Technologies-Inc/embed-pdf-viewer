@@ -1,4 +1,8 @@
 #nullable enable
+EmbedPDF.ActionsConfig
+EmbedPDF.ActionsConfig.<Clone>$() -> EmbedPDF.ActionsConfig!
+EmbedPDF.ActionsConfig.ActionsConfig() -> void
+EmbedPDF.ActionsConfig.Equals(EmbedPDF.ActionsConfig? other) -> bool
 EmbedPDF.ContentInclusion
 EmbedPDF.ContentInclusion.Always = 1 -> EmbedPDF.ContentInclusion
 EmbedPDF.ContentInclusion.Never = 2 -> EmbedPDF.ContentInclusion
@@ -72,6 +76,22 @@ EmbedPDF.DocumentStatus.Failed = 3 -> EmbedPDF.DocumentStatus
 EmbedPDF.DocumentStatus.Loading = 0 -> EmbedPDF.DocumentStatus
 EmbedPDF.DocumentStatus.Locked = 1 -> EmbedPDF.DocumentStatus
 EmbedPDF.DocumentStatus.Ready = 2 -> EmbedPDF.DocumentStatus
+EmbedPDF.FeedbackConfig
+EmbedPDF.FeedbackConfig.<Clone>$() -> EmbedPDF.FeedbackConfig!
+EmbedPDF.FeedbackConfig.Equals(EmbedPDF.FeedbackConfig? other) -> bool
+EmbedPDF.FeedbackConfig.FeedbackConfig() -> void
+EmbedPDF.FormConfig
+EmbedPDF.FormConfig.<Clone>$() -> EmbedPDF.FormConfig!
+EmbedPDF.FormConfig.Equals(EmbedPDF.FormConfig? other) -> bool
+EmbedPDF.FormConfig.FormConfig() -> void
+EmbedPDF.I18nConfig
+EmbedPDF.I18nConfig.<Clone>$() -> EmbedPDF.I18nConfig!
+EmbedPDF.I18nConfig.Equals(EmbedPDF.I18nConfig? other) -> bool
+EmbedPDF.I18nConfig.I18nConfig() -> void
+EmbedPDF.MeasurementConfig
+EmbedPDF.MeasurementConfig.<Clone>$() -> EmbedPDF.MeasurementConfig!
+EmbedPDF.MeasurementConfig.Equals(EmbedPDF.MeasurementConfig? other) -> bool
+EmbedPDF.MeasurementConfig.MeasurementConfig() -> void
 EmbedPDF.NativeRuntime
 EmbedPDF.NativeRuntimeNotFoundException
 EmbedPDF.NativeRuntimeNotFoundException.NativeRuntimeNotFoundException(string! runtimeIdentifier, System.Collections.Generic.IReadOnlyList<string!>! searchedPaths, string! message) -> void
@@ -176,6 +196,92 @@ EmbedPDF.PdfSize.PdfSize() -> void
 EmbedPDF.PdfSize.PdfSize(double Width, double Height) -> void
 EmbedPDF.PdfSize.Width.get -> double
 EmbedPDF.PdfSize.Width.init -> void
+EmbedPDF.PdfViewerOptions
+EmbedPDF.PdfViewerOptions.<Clone>$() -> EmbedPDF.PdfViewerOptions!
+EmbedPDF.PdfViewerOptions.Actions.get -> EmbedPDF.ActionsConfig?
+EmbedPDF.PdfViewerOptions.Actions.init -> void
+EmbedPDF.PdfViewerOptions.Annotation.get -> string?
+EmbedPDF.PdfViewerOptions.Annotation.init -> void
+EmbedPDF.PdfViewerOptions.Attachment.get -> bool
+EmbedPDF.PdfViewerOptions.Attachment.init -> void
+EmbedPDF.PdfViewerOptions.Commands.get -> bool
+EmbedPDF.PdfViewerOptions.Commands.init -> void
+EmbedPDF.PdfViewerOptions.Equals(EmbedPDF.PdfViewerOptions? other) -> bool
+EmbedPDF.PdfViewerOptions.Feedback.get -> EmbedPDF.FeedbackConfig?
+EmbedPDF.PdfViewerOptions.Feedback.init -> void
+EmbedPDF.PdfViewerOptions.Form.get -> EmbedPDF.FormConfig?
+EmbedPDF.PdfViewerOptions.Form.init -> void
+EmbedPDF.PdfViewerOptions.History.get -> bool
+EmbedPDF.PdfViewerOptions.History.init -> void
+EmbedPDF.PdfViewerOptions.I18n.get -> EmbedPDF.I18nConfig?
+EmbedPDF.PdfViewerOptions.I18n.init -> void
+EmbedPDF.PdfViewerOptions.Interaction.get -> bool
+EmbedPDF.PdfViewerOptions.Interaction.init -> void
+EmbedPDF.PdfViewerOptions.Link.get -> bool
+EmbedPDF.PdfViewerOptions.Link.init -> void
+EmbedPDF.PdfViewerOptions.Logger.get -> Microsoft.Extensions.Logging.ILogger!
+EmbedPDF.PdfViewerOptions.Logger.init -> void
+EmbedPDF.PdfViewerOptions.Measurement.get -> EmbedPDF.MeasurementConfig?
+EmbedPDF.PdfViewerOptions.Measurement.init -> void
+EmbedPDF.PdfViewerOptions.Metadata.get -> bool
+EmbedPDF.PdfViewerOptions.Metadata.init -> void
+EmbedPDF.PdfViewerOptions.Outline.get -> bool
+EmbedPDF.PdfViewerOptions.Outline.init -> void
+EmbedPDF.PdfViewerOptions.PageEdit.get -> bool
+EmbedPDF.PdfViewerOptions.PageEdit.init -> void
+EmbedPDF.PdfViewerOptions.PdfViewerOptions() -> void
+EmbedPDF.PdfViewerOptions.Redaction.get -> EmbedPDF.RedactionConfig?
+EmbedPDF.PdfViewerOptions.Redaction.init -> void
+EmbedPDF.PdfViewerOptions.Render.get -> EmbedPDF.RenderConfig?
+EmbedPDF.PdfViewerOptions.Render.init -> void
+EmbedPDF.PdfViewerOptions.Scope.get -> System.Collections.Generic.IReadOnlyList<string!>?
+EmbedPDF.PdfViewerOptions.Scope.init -> void
+EmbedPDF.PdfViewerOptions.Search.get -> EmbedPDF.SearchConfig?
+EmbedPDF.PdfViewerOptions.Search.init -> void
+EmbedPDF.PdfViewerOptions.Selection.get -> bool
+EmbedPDF.PdfViewerOptions.Selection.init -> void
+EmbedPDF.PdfViewerOptions.Shell.get -> bool
+EmbedPDF.PdfViewerOptions.Shell.init -> void
+EmbedPDF.PdfViewerOptions.Signature.get -> EmbedPDF.SignatureConfig?
+EmbedPDF.PdfViewerOptions.Signature.init -> void
+EmbedPDF.PdfViewerOptions.Stage.get -> EmbedPDF.StageConfig?
+EmbedPDF.PdfViewerOptions.Stage.init -> void
+EmbedPDF.PdfViewerOptions.Stamp.get -> EmbedPDF.StampConfig?
+EmbedPDF.PdfViewerOptions.Stamp.init -> void
+EmbedPDF.PdfViewerOptions.StandardCommands.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.StandardCommandList>?
+EmbedPDF.PdfViewerOptions.StandardCommands.init -> void
+EmbedPDF.PdfViewerOptions.ViewManager.get -> bool
+EmbedPDF.PdfViewerOptions.ViewManager.init -> void
+EmbedPDF.PdfViewerOptionsBuilder
+EmbedPDF.PdfViewerOptionsBuilder.Actions(EmbedPDF.ActionsConfig! config) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.Annotation(string! settingsJson = "") -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.Attachment(bool enabled = true) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.Build() -> EmbedPDF.PdfViewerOptions!
+EmbedPDF.PdfViewerOptionsBuilder.Commands(bool enabled = true) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.Feedback(EmbedPDF.FeedbackConfig! config) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.Form(EmbedPDF.FormConfig! config) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.History(bool enabled = true) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.I18n(EmbedPDF.I18nConfig! config) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.Interaction(bool enabled = true) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.Link(bool enabled = true) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.Logger(Microsoft.Extensions.Logging.ILogger! logger) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.Measurement(EmbedPDF.MeasurementConfig! config) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.Metadata(bool enabled = true) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.Outline(bool enabled = true) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.PageEdit(bool enabled = true) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.PdfViewerOptionsBuilder() -> void
+EmbedPDF.PdfViewerOptionsBuilder.PdfViewerOptionsBuilder(EmbedPDF.PdfViewerOptions! options) -> void
+EmbedPDF.PdfViewerOptionsBuilder.Redaction(EmbedPDF.RedactionConfig! config) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.Render(EmbedPDF.RenderConfig! config) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.Scope(System.Collections.Generic.IEnumerable<string!>? scope) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.Search(EmbedPDF.SearchConfig! config) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.Selection(bool enabled = true) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.Shell(bool enabled = true) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.Signature(EmbedPDF.SignatureConfig! config) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.Stage(EmbedPDF.StageConfig! config) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.Stamp(EmbedPDF.StampConfig! config) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.StandardCommands(System.Collections.Generic.IEnumerable<EmbedPDF.StandardCommandList>! lists) -> EmbedPDF.PdfViewerOptionsBuilder!
+EmbedPDF.PdfViewerOptionsBuilder.ViewManager(bool enabled = true) -> EmbedPDF.PdfViewerOptionsBuilder!
 EmbedPDF.PluginErrorInfo
 EmbedPDF.PluginErrorInfo.<Clone>$() -> EmbedPDF.PluginErrorInfo!
 EmbedPDF.PluginErrorInfo.Capability.get -> string!
@@ -189,9 +295,17 @@ EmbedPDF.PluginErrorInfo.Message.init -> void
 EmbedPDF.PluginErrorInfo.Permission.get -> string?
 EmbedPDF.PluginErrorInfo.Permission.init -> void
 EmbedPDF.PluginErrorInfo.PluginErrorInfo(EmbedPDF.PdfErrorCode Code, string! Message, string! Capability, string? Permission) -> void
+EmbedPDF.RedactionConfig
+EmbedPDF.RedactionConfig.<Clone>$() -> EmbedPDF.RedactionConfig!
+EmbedPDF.RedactionConfig.Equals(EmbedPDF.RedactionConfig? other) -> bool
+EmbedPDF.RedactionConfig.RedactionConfig() -> void
 EmbedPDF.Registration
 EmbedPDF.Registration.Dispose() -> void
 EmbedPDF.Registration.Unregister() -> void
+EmbedPDF.RenderConfig
+EmbedPDF.RenderConfig.<Clone>$() -> EmbedPDF.RenderConfig!
+EmbedPDF.RenderConfig.Equals(EmbedPDF.RenderConfig? other) -> bool
+EmbedPDF.RenderConfig.RenderConfig() -> void
 EmbedPDF.RenderRotation
 EmbedPDF.RenderRotation.Clockwise180 = 2 -> EmbedPDF.RenderRotation
 EmbedPDF.RenderRotation.Clockwise270 = 3 -> EmbedPDF.RenderRotation
@@ -201,6 +315,30 @@ EmbedPDF.RenderRotationExtensions
 EmbedPDF.SaveMode
 EmbedPDF.SaveMode.Incremental = 0 -> EmbedPDF.SaveMode
 EmbedPDF.SaveMode.Rewrite = 1 -> EmbedPDF.SaveMode
+EmbedPDF.SearchConfig
+EmbedPDF.SearchConfig.<Clone>$() -> EmbedPDF.SearchConfig!
+EmbedPDF.SearchConfig.Equals(EmbedPDF.SearchConfig? other) -> bool
+EmbedPDF.SearchConfig.SearchConfig() -> void
+EmbedPDF.SignatureConfig
+EmbedPDF.SignatureConfig.<Clone>$() -> EmbedPDF.SignatureConfig!
+EmbedPDF.SignatureConfig.Equals(EmbedPDF.SignatureConfig? other) -> bool
+EmbedPDF.SignatureConfig.SignatureConfig() -> void
+EmbedPDF.StageConfig
+EmbedPDF.StageConfig.<Clone>$() -> EmbedPDF.StageConfig!
+EmbedPDF.StageConfig.Equals(EmbedPDF.StageConfig? other) -> bool
+EmbedPDF.StageConfig.StageConfig() -> void
+EmbedPDF.StampConfig
+EmbedPDF.StampConfig.<Clone>$() -> EmbedPDF.StampConfig!
+EmbedPDF.StampConfig.Equals(EmbedPDF.StampConfig? other) -> bool
+EmbedPDF.StampConfig.StampConfig() -> void
+EmbedPDF.StandardCommandList
+EmbedPDF.StandardCommandList.Annotation = 3 -> EmbedPDF.StandardCommandList
+EmbedPDF.StandardCommandList.Document = 6 -> EmbedPDF.StandardCommandList
+EmbedPDF.StandardCommandList.History = 4 -> EmbedPDF.StandardCommandList
+EmbedPDF.StandardCommandList.Interaction = 1 -> EmbedPDF.StandardCommandList
+EmbedPDF.StandardCommandList.Render = 5 -> EmbedPDF.StandardCommandList
+EmbedPDF.StandardCommandList.Selection = 2 -> EmbedPDF.StandardCommandList
+EmbedPDF.StandardCommandList.Stage = 0 -> EmbedPDF.StandardCommandList
 EmbedPDF.ViewerSettings
 EmbedPDF.ViewerSettings.<Clone>$() -> EmbedPDF.ViewerSettings!
 EmbedPDF.ViewerSettings.Accent.get -> string?
@@ -231,6 +369,9 @@ EmbedPDF.ViewerSettingsPatch.ViewerSettingsPatch() -> void
 abstract EmbedPDF.DocumentEvent.<Clone>$() -> EmbedPDF.DocumentEvent!
 const EmbedPDF.PageRenderResolution.DeviceWidthStep = 128 -> double
 const EmbedPDF.PageRenderResolution.OffScreenDeviceWidth = 256 -> double
+override EmbedPDF.ActionsConfig.Equals(object? obj) -> bool
+override EmbedPDF.ActionsConfig.GetHashCode() -> int
+override EmbedPDF.ActionsConfig.ToString() -> string!
 override EmbedPDF.DocumentEvent.ActiveChanged.<Clone>$() -> EmbedPDF.DocumentEvent.ActiveChanged!
 override EmbedPDF.DocumentEvent.ActiveChanged.Equals(object? obj) -> bool
 override EmbedPDF.DocumentEvent.ActiveChanged.GetHashCode() -> int
@@ -263,6 +404,18 @@ override EmbedPDF.DocumentInfo.GetHashCode() -> int
 override EmbedPDF.DocumentInfo.ToString() -> string!
 override EmbedPDF.DocumentPermission.GetHashCode() -> int
 override EmbedPDF.DocumentPermission.ToString() -> string!
+override EmbedPDF.FeedbackConfig.Equals(object? obj) -> bool
+override EmbedPDF.FeedbackConfig.GetHashCode() -> int
+override EmbedPDF.FeedbackConfig.ToString() -> string!
+override EmbedPDF.FormConfig.Equals(object? obj) -> bool
+override EmbedPDF.FormConfig.GetHashCode() -> int
+override EmbedPDF.FormConfig.ToString() -> string!
+override EmbedPDF.I18nConfig.Equals(object? obj) -> bool
+override EmbedPDF.I18nConfig.GetHashCode() -> int
+override EmbedPDF.I18nConfig.ToString() -> string!
+override EmbedPDF.MeasurementConfig.Equals(object? obj) -> bool
+override EmbedPDF.MeasurementConfig.GetHashCode() -> int
+override EmbedPDF.MeasurementConfig.ToString() -> string!
 override EmbedPDF.PageGeometry.GetHashCode() -> int
 override EmbedPDF.PageInfo.Equals(object? obj) -> bool
 override EmbedPDF.PageInfo.GetHashCode() -> int
@@ -274,9 +427,30 @@ override EmbedPDF.PdfErrorCode.ToString() -> string!
 override EmbedPDF.PdfPoint.GetHashCode() -> int
 override EmbedPDF.PdfRect.GetHashCode() -> int
 override EmbedPDF.PdfSize.GetHashCode() -> int
+override EmbedPDF.PdfViewerOptions.Equals(object? obj) -> bool
+override EmbedPDF.PdfViewerOptions.GetHashCode() -> int
+override EmbedPDF.PdfViewerOptions.ToString() -> string!
 override EmbedPDF.PluginErrorInfo.Equals(object? obj) -> bool
 override EmbedPDF.PluginErrorInfo.GetHashCode() -> int
 override EmbedPDF.PluginErrorInfo.ToString() -> string!
+override EmbedPDF.RedactionConfig.Equals(object? obj) -> bool
+override EmbedPDF.RedactionConfig.GetHashCode() -> int
+override EmbedPDF.RedactionConfig.ToString() -> string!
+override EmbedPDF.RenderConfig.Equals(object? obj) -> bool
+override EmbedPDF.RenderConfig.GetHashCode() -> int
+override EmbedPDF.RenderConfig.ToString() -> string!
+override EmbedPDF.SearchConfig.Equals(object? obj) -> bool
+override EmbedPDF.SearchConfig.GetHashCode() -> int
+override EmbedPDF.SearchConfig.ToString() -> string!
+override EmbedPDF.SignatureConfig.Equals(object? obj) -> bool
+override EmbedPDF.SignatureConfig.GetHashCode() -> int
+override EmbedPDF.SignatureConfig.ToString() -> string!
+override EmbedPDF.StageConfig.Equals(object? obj) -> bool
+override EmbedPDF.StageConfig.GetHashCode() -> int
+override EmbedPDF.StageConfig.ToString() -> string!
+override EmbedPDF.StampConfig.Equals(object? obj) -> bool
+override EmbedPDF.StampConfig.GetHashCode() -> int
+override EmbedPDF.StampConfig.ToString() -> string!
 override EmbedPDF.ViewerSettings.Equals(object? obj) -> bool
 override EmbedPDF.ViewerSettings.GetHashCode() -> int
 override EmbedPDF.ViewerSettings.ToString() -> string!
@@ -289,6 +463,8 @@ override sealed EmbedPDF.DocumentEvent.Locked.Equals(EmbedPDF.DocumentEvent? oth
 override sealed EmbedPDF.DocumentEvent.OpenFailed.Equals(EmbedPDF.DocumentEvent? other) -> bool
 override sealed EmbedPDF.DocumentEvent.Opened.Equals(EmbedPDF.DocumentEvent? other) -> bool
 override sealed EmbedPDF.DocumentEvent.PagesChanged.Equals(EmbedPDF.DocumentEvent? other) -> bool
+static EmbedPDF.ActionsConfig.operator !=(EmbedPDF.ActionsConfig? left, EmbedPDF.ActionsConfig? right) -> bool
+static EmbedPDF.ActionsConfig.operator ==(EmbedPDF.ActionsConfig? left, EmbedPDF.ActionsConfig? right) -> bool
 static EmbedPDF.DocumentEvent.ActiveChanged.operator !=(EmbedPDF.DocumentEvent.ActiveChanged? left, EmbedPDF.DocumentEvent.ActiveChanged? right) -> bool
 static EmbedPDF.DocumentEvent.ActiveChanged.operator ==(EmbedPDF.DocumentEvent.ActiveChanged? left, EmbedPDF.DocumentEvent.ActiveChanged? right) -> bool
 static EmbedPDF.DocumentEvent.Closed.operator !=(EmbedPDF.DocumentEvent.Closed? left, EmbedPDF.DocumentEvent.Closed? right) -> bool
@@ -338,6 +514,14 @@ static EmbedPDF.DocumentPermission.TextSelect.get -> EmbedPDF.DocumentPermission
 static EmbedPDF.DocumentPermission.implicit operator EmbedPDF.DocumentPermission(string! value) -> EmbedPDF.DocumentPermission
 static EmbedPDF.DocumentPermission.operator !=(EmbedPDF.DocumentPermission left, EmbedPDF.DocumentPermission right) -> bool
 static EmbedPDF.DocumentPermission.operator ==(EmbedPDF.DocumentPermission left, EmbedPDF.DocumentPermission right) -> bool
+static EmbedPDF.FeedbackConfig.operator !=(EmbedPDF.FeedbackConfig? left, EmbedPDF.FeedbackConfig? right) -> bool
+static EmbedPDF.FeedbackConfig.operator ==(EmbedPDF.FeedbackConfig? left, EmbedPDF.FeedbackConfig? right) -> bool
+static EmbedPDF.FormConfig.operator !=(EmbedPDF.FormConfig? left, EmbedPDF.FormConfig? right) -> bool
+static EmbedPDF.FormConfig.operator ==(EmbedPDF.FormConfig? left, EmbedPDF.FormConfig? right) -> bool
+static EmbedPDF.I18nConfig.operator !=(EmbedPDF.I18nConfig? left, EmbedPDF.I18nConfig? right) -> bool
+static EmbedPDF.I18nConfig.operator ==(EmbedPDF.I18nConfig? left, EmbedPDF.I18nConfig? right) -> bool
+static EmbedPDF.MeasurementConfig.operator !=(EmbedPDF.MeasurementConfig? left, EmbedPDF.MeasurementConfig? right) -> bool
+static EmbedPDF.MeasurementConfig.operator ==(EmbedPDF.MeasurementConfig? left, EmbedPDF.MeasurementConfig? right) -> bool
 static EmbedPDF.NativeRuntime.EnsureLoaded() -> void
 static EmbedPDF.NativeRuntime.ReadPageCountAsync(System.ReadOnlyMemory<byte> pdf, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
 static EmbedPDF.NativeRuntime.RuntimeIdentifier.get -> string!
@@ -370,12 +554,26 @@ static EmbedPDF.PdfRect.operator !=(EmbedPDF.PdfRect left, EmbedPDF.PdfRect righ
 static EmbedPDF.PdfRect.operator ==(EmbedPDF.PdfRect left, EmbedPDF.PdfRect right) -> bool
 static EmbedPDF.PdfSize.operator !=(EmbedPDF.PdfSize left, EmbedPDF.PdfSize right) -> bool
 static EmbedPDF.PdfSize.operator ==(EmbedPDF.PdfSize left, EmbedPDF.PdfSize right) -> bool
+static EmbedPDF.PdfViewerOptions.operator !=(EmbedPDF.PdfViewerOptions? left, EmbedPDF.PdfViewerOptions? right) -> bool
+static EmbedPDF.PdfViewerOptions.operator ==(EmbedPDF.PdfViewerOptions? left, EmbedPDF.PdfViewerOptions? right) -> bool
 static EmbedPDF.PluginErrorInfo.operator !=(EmbedPDF.PluginErrorInfo? left, EmbedPDF.PluginErrorInfo? right) -> bool
 static EmbedPDF.PluginErrorInfo.operator ==(EmbedPDF.PluginErrorInfo? left, EmbedPDF.PluginErrorInfo? right) -> bool
+static EmbedPDF.RedactionConfig.operator !=(EmbedPDF.RedactionConfig? left, EmbedPDF.RedactionConfig? right) -> bool
+static EmbedPDF.RedactionConfig.operator ==(EmbedPDF.RedactionConfig? left, EmbedPDF.RedactionConfig? right) -> bool
+static EmbedPDF.RenderConfig.operator !=(EmbedPDF.RenderConfig? left, EmbedPDF.RenderConfig? right) -> bool
+static EmbedPDF.RenderConfig.operator ==(EmbedPDF.RenderConfig? left, EmbedPDF.RenderConfig? right) -> bool
 static EmbedPDF.RenderRotationExtensions.Degrees(this EmbedPDF.RenderRotation rotation) -> int
 static EmbedPDF.RenderRotationExtensions.FromDegrees(double degrees) -> EmbedPDF.RenderRotation
 static EmbedPDF.RenderRotationExtensions.FromDegrees(int degrees) -> EmbedPDF.RenderRotation
 static EmbedPDF.RenderRotationExtensions.IsQuarterTurn(this EmbedPDF.RenderRotation rotation) -> bool
+static EmbedPDF.SearchConfig.operator !=(EmbedPDF.SearchConfig? left, EmbedPDF.SearchConfig? right) -> bool
+static EmbedPDF.SearchConfig.operator ==(EmbedPDF.SearchConfig? left, EmbedPDF.SearchConfig? right) -> bool
+static EmbedPDF.SignatureConfig.operator !=(EmbedPDF.SignatureConfig? left, EmbedPDF.SignatureConfig? right) -> bool
+static EmbedPDF.SignatureConfig.operator ==(EmbedPDF.SignatureConfig? left, EmbedPDF.SignatureConfig? right) -> bool
+static EmbedPDF.StageConfig.operator !=(EmbedPDF.StageConfig? left, EmbedPDF.StageConfig? right) -> bool
+static EmbedPDF.StageConfig.operator ==(EmbedPDF.StageConfig? left, EmbedPDF.StageConfig? right) -> bool
+static EmbedPDF.StampConfig.operator !=(EmbedPDF.StampConfig? left, EmbedPDF.StampConfig? right) -> bool
+static EmbedPDF.StampConfig.operator ==(EmbedPDF.StampConfig? left, EmbedPDF.StampConfig? right) -> bool
 static EmbedPDF.ViewerSettings.operator !=(EmbedPDF.ViewerSettings? left, EmbedPDF.ViewerSettings? right) -> bool
 static EmbedPDF.ViewerSettings.operator ==(EmbedPDF.ViewerSettings? left, EmbedPDF.ViewerSettings? right) -> bool
 static EmbedPDF.ViewerSettingsPatch.operator !=(EmbedPDF.ViewerSettingsPatch? left, EmbedPDF.ViewerSettingsPatch? right) -> bool
