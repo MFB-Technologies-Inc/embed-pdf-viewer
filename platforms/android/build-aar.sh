@@ -21,9 +21,14 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PROJECT="$ROOT/platforms/android/embedpdf"
 # `release` is what ships. `PROFILE=dev` builds far faster for iterating;
-# cargo writes the dev profile to target/<triple>/debug.
+# cargo writes the dev profile to <target>/<triple>/debug.
 PROFILE="${PROFILE:-release}"
 PROFILE_DIR="$([[ $PROFILE == dev ]] && echo debug || echo "$PROFILE")"
+# Where cargo writes, as cargo reads it: CARGO_TARGET_DIR, relative to the
+# workspace when it is relative, or the workspace's `target`. The Gradle
+# tasks resolve it the same way.
+TARGET_DIR="${CARGO_TARGET_DIR:-target}"
+[[ "$TARGET_DIR" == /* ]] || TARGET_DIR="$ROOT/$TARGET_DIR"
 
 # The dev container installs NDK r29 at /opt/android-ndk-r29; a macOS SDK
 # install keeps it under the SDK's ndk/ directory.
@@ -80,7 +85,7 @@ for slice in "${SLICES[@]}"; do
   jni="$PROJECT/bindings/src/main/jniLibs/$abi"
   rm -rf "$jni"
   mkdir -p "$jni"
-  cp "$ROOT/target/$rust/$PROFILE_DIR/libepdf_viewer_host.so" "$jni/"
+  cp "$TARGET_DIR/$rust/$PROFILE_DIR/libepdf_viewer_host.so" "$jni/"
   # The NDK's libc++, which the .so has a NEEDED entry for. Android does not
   # ship one; an AAR that leaves it out loads on a device that happens to have
   # another copy and fails on one that does not.
@@ -114,8 +119,8 @@ done
 echo "generating bindings"
 cargo build -p uniffi-bindgen --manifest-path "$ROOT/Cargo.toml"
 rm -rf "$PROJECT/bindings/src/main/kotlin"
-"$ROOT/target/debug/uniffi-bindgen" generate \
-  --library "$ROOT/target/aarch64-linux-android/$PROFILE_DIR/libepdf_viewer_host.so" \
+"$TARGET_DIR/debug/uniffi-bindgen" generate \
+  --library "$TARGET_DIR/aarch64-linux-android/$PROFILE_DIR/libepdf_viewer_host.so" \
   --language kotlin --no-format --out-dir "$PROJECT/bindings/src/main/kotlin"
 
 cd "$PROJECT"
