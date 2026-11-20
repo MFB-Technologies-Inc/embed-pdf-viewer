@@ -22,8 +22,9 @@ public interface IActionExecutor
 /// <summary>The UI a document's actions reach: links, prints, script alerts and page changes.</summary>
 /// <remarks>
 /// The kernel calls every member on its own thread, synchronously, inside the
-/// dispatch: return at once and do the work elsewhere.
-/// <see cref="PdfViewer.Dispose"/> throws here. An exception fails the whole
+/// dispatch: return at once and do the work elsewhere. Never block waiting
+/// for the viewer here: a viewer call queues behind this callback, so waiting
+/// for it deadlocks. <see cref="PdfViewer.Dispose"/> throws here. An exception fails the whole
 /// dispatch, not one node: the <see cref="ActionsCapability.ExecuteAsync"/> or
 /// <see cref="ActionsCapability.DispatchAsync"/> that reached the handler
 /// throws <see cref="PdfException"/> named <c>HostError</c> with the
@@ -46,8 +47,10 @@ public interface IActionUiHandler
 
 /// <summary>Receives form submissions. Return to accept (the network call is yours, and its outcome is yours to report); throw to fail the submit node.</summary>
 /// <remarks>
-/// Called on the kernel thread, synchronously: return at once.
-/// <see cref="PdfViewer.Dispose"/> throws here. An exception fails the submit
+/// Called on the kernel thread, synchronously: return at once. Never block
+/// waiting for the viewer here: a viewer call queues behind this callback, so
+/// waiting for it deadlocks. <see cref="PdfViewer.Dispose"/> throws here. An
+/// exception fails the submit
 /// node with the exception's message as its detail; the rest of the dispatch
 /// goes on. The viewer only calls it when the form plugin is installed, which
 /// resolves the submitted fields.

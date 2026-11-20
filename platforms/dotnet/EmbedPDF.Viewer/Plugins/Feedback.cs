@@ -31,8 +31,10 @@ public enum FeedbackNotifyKind
 /// </summary>
 /// <remarks>
 /// The kernel calls every member on its own thread, synchronously: return at
-/// once, and hop to a UI thread yourself if the platform needs one.
-/// <see cref="PdfViewer.Dispose"/> throws here. An exception is logged and
+/// once, and hop to a UI thread yourself if the platform needs one. Never
+/// block waiting for the viewer here: a viewer call queues behind this
+/// callback, so waiting for it deadlocks. <see cref="PdfViewer.Dispose"/>
+/// throws here. An exception is logged and
 /// dropped.
 /// </remarks>
 public interface IPlatformFeedback
