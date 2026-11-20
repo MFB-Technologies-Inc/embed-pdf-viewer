@@ -26,18 +26,8 @@ public sealed partial record RenderConfig
     internal GR.RenderConfig ToFfi() => new(FullPage is null ? null : Ffi.ToFfi(FullPage), Debug);
 }
 
-/// <summary>Installs the feedback plugin: haptics for the plugins that use them. The default provider does nothing.</summary>
-public sealed record FeedbackConfig
-{
-    internal GI.FeedbackConfig ToFfi() => new(new SilentFeedback());
-
-    sealed class SilentFeedback : GI.PlatformFeedback
-    {
-        public void Selection() { }
-        public void Impact(GI.FeedbackImpactWeight? weight) { }
-        public void Notify(GI.FeedbackNotifyKind kind) { }
-    }
-}
+/// <summary>What a callback adapter needs from its viewer: the kernel thread mark and the logger.</summary>
+internal sealed record PluginContext(KernelMark Mark, Microsoft.Extensions.Logging.ILogger Logger);
 
 /// <summary>Installs the stage plugin: the viewport lens, one per document.</summary>
 public sealed record StageConfig
@@ -72,13 +62,13 @@ public sealed record StampConfig
 /// <summary>Installs the i18n plugin.</summary>
 public sealed record I18nConfig
 {
-    internal GL.I18nConfig ToFfi() => new(Locales: [], LazyLocales: []);
+    internal GL.I18nConfig ToFfi(PluginContext context) => new(Locales: [], LazyLocales: []);
 }
 
 /// <summary>Installs the actions plugin.</summary>
 public sealed record ActionsConfig
 {
-    internal GA.ActionsConfig ToFfi() => new();
+    internal GA.ActionsConfig ToFfi(PluginContext context) => new();
 }
 
 /// <summary>Installs the signature plugin. Needs <see cref="PdfViewerOptions.Form"/>.</summary>

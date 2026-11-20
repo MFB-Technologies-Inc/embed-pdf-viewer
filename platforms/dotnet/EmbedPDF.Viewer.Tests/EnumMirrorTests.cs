@@ -22,6 +22,8 @@ public sealed class EnumMirrorTests
         { typeof(PointerKind), typeof(uniffi.epdf_ffi.PointerKind) },
         { typeof(PointerGesture), typeof(uniffi.epdf_ffi.PointerGesture) },
         { typeof(InteractionToolTouch), typeof(uniffi.epdf_plugin_interaction.InteractionToolTouch) },
+        { typeof(FeedbackImpactWeight), typeof(uniffi.epdf_plugin_interaction.FeedbackImpactWeight) },
+        { typeof(FeedbackNotifyKind), typeof(uniffi.epdf_plugin_interaction.FeedbackNotifyKind) },
     };
 
     [Theory]

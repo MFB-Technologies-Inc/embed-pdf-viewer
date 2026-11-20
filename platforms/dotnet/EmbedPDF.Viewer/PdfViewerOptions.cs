@@ -98,13 +98,16 @@ public sealed record PdfViewerOptions
     /// <summary>Where diagnostics go. Defaults to <see cref="NullLogger.Instance"/>.</summary>
     public ILogger Logger { get; init; } = NullLogger.Instance;
 
-    internal G.ViewerConfig ToFfi() => new(
+    /// <summary>The engine's config. Callback adapters carry <paramref name="mark"/>, the viewer's identity on its kernel thread.</summary>
+    internal G.ViewerConfig ToFfi(KernelMark? mark = null) => ToFfi(new PluginContext(mark ?? new KernelMark(), Logger));
+
+    G.ViewerConfig ToFfi(PluginContext context) => new(
         Scope: Scope?.ToArray(),
         Metadata: Metadata,
         Search: Search?.ToFfi(),
         Render: Render?.ToFfi(),
         Interaction: Interaction,
-        Feedback: Feedback?.ToFfi(),
+        Feedback: Feedback?.ToFfi(context),
         Stage: Stage?.ToFfi(),
         Selection: Selection,
         Link: Link,
@@ -119,9 +122,9 @@ public sealed record PdfViewerOptions
         PageEdit: PageEdit,
         ViewManager: ViewManager,
         Shell: Shell,
-        I18n: I18n?.ToFfi(),
+        I18n: I18n?.ToFfi(context),
         Commands: Commands,
         StandardCommands: StandardCommands?.Select(list => list.ToFfi()).ToArray(),
-        Actions: Actions?.ToFfi(),
+        Actions: Actions?.ToFfi(context),
         Signature: Signature?.ToFfi());
 }

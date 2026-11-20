@@ -53,7 +53,7 @@ public sealed class DisabledPluginTests
         new("Search", None, o => o with { Search = new() }, Public((v, d) => v.GetSearchAsync(d))),
         new("Render", None, o => o with { Render = new() }, Public((v, d) => v.GetRenderAsync(d))),
         new("Interaction", None, o => o with { Interaction = true }, Public((v, d) => v.GetInteractionAsync(d))),
-        new("Feedback", None, o => o with { Feedback = new() }, Global(h => h.Feedback())),
+        new("Feedback", None, o => o with { Feedback = new() }, Public((v, _) => v.GetFeedbackAsync())),
         new("Stage", None, o => o with { Stage = new() }, Of((h, id) => h.Stage(id))),
         new("Selection", Interaction, o => o with { Selection = true }, Of((h, id) => h.Selection(id))),
         new("Link", Interaction, o => o with { Link = true }, Of((h, id) => h.Link(id))),

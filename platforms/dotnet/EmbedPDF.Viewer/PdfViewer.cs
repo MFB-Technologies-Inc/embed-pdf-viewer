@@ -59,7 +59,7 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
         NativeRuntime.EnsureLoaded();
         options ??= new PdfViewerOptions();
         logger = options.Logger;
-        using var config = options.ToFfi();
+        using var config = options.ToFfi(Mark);
         try
         {
             host = GH.ViewerHost.NewWithFetcher(config, new StateRelay(revisions, reportedErrors, logger),

@@ -278,10 +278,25 @@ EmbedPDF.DocumentStatus.Failed = 3 -> EmbedPDF.DocumentStatus
 EmbedPDF.DocumentStatus.Loading = 0 -> EmbedPDF.DocumentStatus
 EmbedPDF.DocumentStatus.Locked = 1 -> EmbedPDF.DocumentStatus
 EmbedPDF.DocumentStatus.Ready = 2 -> EmbedPDF.DocumentStatus
+EmbedPDF.FeedbackCapability
+EmbedPDF.FeedbackCapability.Dispose() -> void
+EmbedPDF.FeedbackCapability.ImpactAsync(EmbedPDF.FeedbackImpactWeight? weight = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.FeedbackCapability.NotifyAsync(EmbedPDF.FeedbackNotifyKind kind, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.FeedbackCapability.SelectionAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.FeedbackConfig
 EmbedPDF.FeedbackConfig.<Clone>$() -> EmbedPDF.FeedbackConfig!
 EmbedPDF.FeedbackConfig.Equals(EmbedPDF.FeedbackConfig? other) -> bool
 EmbedPDF.FeedbackConfig.FeedbackConfig() -> void
+EmbedPDF.FeedbackConfig.Provider.get -> EmbedPDF.IPlatformFeedback?
+EmbedPDF.FeedbackConfig.Provider.init -> void
+EmbedPDF.FeedbackImpactWeight
+EmbedPDF.FeedbackImpactWeight.Heavy = 2 -> EmbedPDF.FeedbackImpactWeight
+EmbedPDF.FeedbackImpactWeight.Light = 0 -> EmbedPDF.FeedbackImpactWeight
+EmbedPDF.FeedbackImpactWeight.Medium = 1 -> EmbedPDF.FeedbackImpactWeight
+EmbedPDF.FeedbackNotifyKind
+EmbedPDF.FeedbackNotifyKind.Error = 2 -> EmbedPDF.FeedbackNotifyKind
+EmbedPDF.FeedbackNotifyKind.Success = 0 -> EmbedPDF.FeedbackNotifyKind
+EmbedPDF.FeedbackNotifyKind.Warning = 1 -> EmbedPDF.FeedbackNotifyKind
 EmbedPDF.FormConfig
 EmbedPDF.FormConfig.<Clone>$() -> EmbedPDF.FormConfig!
 EmbedPDF.FormConfig.Equals(EmbedPDF.FormConfig? other) -> bool
@@ -387,6 +402,10 @@ EmbedPDF.IInteractionHandler.OnDown(EmbedPDF.PointerSample! sample) -> bool
 EmbedPDF.IInteractionHandler.OnHover(EmbedPDF.PointerSample! sample) -> void
 EmbedPDF.IInteractionHandler.OnMove(EmbedPDF.PointerSample! sample) -> void
 EmbedPDF.IInteractionHandler.OnUp(EmbedPDF.PointerSample! sample) -> void
+EmbedPDF.IPlatformFeedback
+EmbedPDF.IPlatformFeedback.Impact(EmbedPDF.FeedbackImpactWeight? weight) -> void
+EmbedPDF.IPlatformFeedback.Notify(EmbedPDF.FeedbackNotifyKind kind) -> void
+EmbedPDF.IPlatformFeedback.Selection() -> void
 EmbedPDF.InteractionCapability
 EmbedPDF.InteractionCapability.ActivateDefaultToolAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.InteractionCapability.ActivateToolAsync(EmbedPDF.ToolId id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -1101,6 +1120,7 @@ EmbedPDF.PdfViewer.GetDocumentAsync(string? id = null, System.Threading.Cancella
 EmbedPDF.PdfViewer.GetDocumentCountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
 EmbedPDF.PdfViewer.GetDocumentOrderAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
 EmbedPDF.PdfViewer.GetDocumentsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.DocumentInfo!>!>!
+EmbedPDF.PdfViewer.GetFeedbackAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FeedbackCapability!>!
 EmbedPDF.PdfViewer.GetHistoryAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.HistoryCapability!>!
 EmbedPDF.PdfViewer.GetInteractionAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.InteractionCapability!>!
 EmbedPDF.PdfViewer.GetMetadataAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.MetadataCapability!>!
