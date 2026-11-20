@@ -38,6 +38,13 @@ def main():
         ["node", "-p", "'linux-' + process.arch"], text=True
     ).strip()
     run("bash", "packages/engine/runtime/scripts/fetch-libpdfium.sh", runtime_target)
+    # The engine tests run on Node, which loads the native addon. No release publishes
+    # it, so build it from the archive fetched above.
+    run("pnpm", "--filter", "@embedpdf/engine-runtime", "build:target", runtime_target)
+    # The build regenerates this committed file, and on linux the two
+    # EPDFAttachment_ExtractFile* size parameters come out as i32 instead of i64.
+    # Restore it so a new container starts with a clean checkout.
+    run("git", "checkout", "--", "packages/engine/runtime/src/core/pdf-functions.generated.ts")
 
     # This artifact is still pending in the fork, matching build/test-all.sh.
     pending = run(

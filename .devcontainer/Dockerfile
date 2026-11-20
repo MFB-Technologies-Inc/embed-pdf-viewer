@@ -111,11 +111,13 @@ ENV EMBEDPDF_REPOSITORY=https://github.com/MFB-Technologies-Inc/embed-pdf-viewer
     DOTNET_CLI_TELEMETRY_OPTOUT=1 \
     DOTNET_NOLOGO=1 \
     NPM_CONFIG_PREFIX=/home/node/.npm-global
-# Binaryen comes before emsdk's own bin directory, which ships an older wasm-opt.
-ENV PATH="/opt/binaryen/bin:/home/node/.cargo/bin:/home/node/.npm-global/bin:/opt/emsdk/upstream/emscripten:/opt/emsdk/upstream/bin:${PATH}"
+# emsdk's upstream/bin stays off PATH: its clang has no glibc headers, and
+# build/generate-functions.mjs runs bare `clang` for every runtime target. emcc finds
+# its own clang and wasm-ld through EM_CONFIG, and Binaryen through BINARYEN_ROOT.
+ENV PATH="/opt/binaryen/bin:/home/node/.cargo/bin:/home/node/.npm-global/bin:/opt/emsdk/upstream/emscripten:${PATH}"
 # Login shells (`bash -l`, which VS Code may open) reset PATH in /etc/profile.
 RUN printf '%s\n' \
-      'export PATH="/opt/binaryen/bin:/home/node/.cargo/bin:/home/node/.npm-global/bin:/opt/emsdk/upstream/emscripten:/opt/emsdk/upstream/bin:$PATH"' \
+      'export PATH="/opt/binaryen/bin:/home/node/.cargo/bin:/home/node/.npm-global/bin:/opt/emsdk/upstream/emscripten:$PATH"' \
       > /etc/profile.d/embedpdf-toolchain.sh
 
 USER node
