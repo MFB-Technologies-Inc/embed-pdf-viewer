@@ -13,4 +13,6 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "embedpdf"
-include(":library")
+// bindings: the published AAR, the full viewer host's .so files and their
+// generated Kotlin.
+include(":bindings")

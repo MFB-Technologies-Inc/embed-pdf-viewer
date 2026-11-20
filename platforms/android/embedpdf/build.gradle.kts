@@ -5,4 +5,5 @@ plugins {
     // classpath, which is how the compiler version is raised past AGP's own.
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.kotlin.android) apply false
+    alias(libs.plugins.kotlin.jvm) apply false
 }

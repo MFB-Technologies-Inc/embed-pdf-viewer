@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
-# Builds the Android AAR and runs the smoke test on a 16 KB page-size emulator.
+# Builds the `bindings` AAR from `epdf-viewer-host`, the full viewer host with
+# every plugin, and runs the 16 KB alignment checks.
 #
-# `multiplatform-plan.md` Phase 1: an Android AAR with the ABIs, `libc++_shared`
-# and the shrinker rules, plus the 16 KB alignment checks. Local only, published
-# nowhere.
+# The AAR carries both ABIs, `libc++_shared`, the generated Kotlin for every
+# uniffi component and the shrinker rules. Local only, published nowhere.
 #
 #   bash platforms/android/build-aar.sh          # build and check
-#   bash platforms/android/build-aar.sh test     # also run on the emulator
+#   bash platforms/android/build-aar.sh test     # also run the JVM tests
+#
+# There is no emulator in the dev container, so `test` runs the JVM tests
+# against the host library for this machine instead of a device run.
 #
 # The `libembedpdf.a` slices come from the runtime release for the commit
 # runtime-src pins; fetch-android-runtime.sh downloads and verifies them when
@@ -33,7 +36,7 @@ HOST_TAG="$(ls "$NDK/toolchains/llvm/prebuilt" | head -1)"
 TC="$NDK/toolchains/llvm/prebuilt/$HOST_TAG"
 
 # The floor the AAR declares. It has to be one the NDK ships a linker stub for,
-# and it has to match `minSdk` in library/build.gradle.kts or the .so will
+# and it has to match `minSdk` in bindings/build.gradle.kts or the .so will
 # reference symbols the device does not have.
 API=24
 
@@ -68,11 +71,12 @@ for slice in "${SLICES[@]}"; do
   builtins="$(ls "$TC"/lib/clang/*/lib/linux/libclang_rt.builtins-"${triple%%-*}"-android.a | head -1)"
   rustflags="CARGO_TARGET_$(echo "$rust" | tr 'a-z-' 'A-Z_')_RUSTFLAGS"
   env "$linker=$TC/bin/$triple$API-clang" "$rustflags=-C link-arg=$builtins" \
-    cargo build -p epdf-uniffi --target "$rust" --profile "$PROFILE" --manifest-path "$ROOT/Cargo.toml"
+    cargo build -p epdf-viewer-host --target "$rust" --profile "$PROFILE" --manifest-path "$ROOT/Cargo.toml"
 
-  jni="$PROJECT/library/src/main/jniLibs/$abi"
+  jni="$PROJECT/bindings/src/main/jniLibs/$abi"
+  rm -rf "$jni"
   mkdir -p "$jni"
-  cp "$ROOT/target/$rust/$PROFILE_DIR/libepdf_uniffi.so" "$jni/"
+  cp "$ROOT/target/$rust/$PROFILE_DIR/libepdf_viewer_host.so" "$jni/"
   # The NDK's libc++, which the .so has a NEEDED entry for. Android does not
   # ship one; an AAR that leaves it out loads on a device that happens to have
   # another copy and fails on one that does not.
@@ -93,32 +97,28 @@ for slice in "${SLICES[@]}"; do
   done
   # Neither bionic nor libc++_shared exports a compiler-rt routine, so one
   # left undefined is a library that will not load.
-  missing="$("$TC/bin/llvm-nm" -D --undefined-only "$jni/libepdf_uniffi.so" | awk '/ U __arm_/ { print $2 }')"
+  missing="$("$TC/bin/llvm-nm" -D --undefined-only "$jni/libepdf_viewer_host.so" | awk '/ U __arm_/ { print $2 }')"
   if [[ -n "$missing" ]]; then
-    echo "libepdf_uniffi.so ($abi) leaves compiler-rt routines undefined: $missing" >&2
+    echo "libepdf_viewer_host.so ($abi) leaves compiler-rt routines undefined: $missing" >&2
     exit 1
   fi
 done
 
+# One Kotlin file per uniffi component (the host, epdf-ffi and each plugin),
+# all naming the one library they load. The repository's generator applies
+# the fixes the stock one lacks (see crates/uniffi-bindgen/src/kotlin.rs).
 echo "generating bindings"
 cargo build -p uniffi-bindgen --manifest-path "$ROOT/Cargo.toml"
-rm -rf "$PROJECT/library/src/main/kotlin"
+rm -rf "$PROJECT/bindings/src/main/kotlin"
 "$ROOT/target/debug/uniffi-bindgen" generate \
-  --library "$ROOT/target/aarch64-linux-android/$PROFILE_DIR/libepdf_uniffi.so" \
-  --language kotlin --no-format --out-dir "$PROJECT/library/src/main/kotlin"
-
-# The smoke test reads the same fixtures the Rust and iOS tests read.
-mkdir -p "$PROJECT/library/src/androidTest/assets"
-for fixture in report colors encrypted-hello; do
-  cp "$ROOT/pdfium-multiplatform-prototype/fixtures/$fixture.pdf" \
-    "$PROJECT/library/src/androidTest/assets/"
-done
+  --library "$ROOT/target/aarch64-linux-android/$PROFILE_DIR/libepdf_viewer_host.so" \
+  --language kotlin --no-format --out-dir "$PROJECT/bindings/src/main/kotlin"
 
 cd "$PROJECT"
+# The debug test APK is built only to give the zipalign check below an APK.
+./gradlew --console=plain :bindings:assembleRelease :bindings:assembleDebugAndroidTest
 if [[ "${1:-}" == "test" ]]; then
-  ./gradlew --console=plain :library:connectedDebugAndroidTest
-else
-  ./gradlew --console=plain :library:assembleRelease
+  ./gradlew --console=plain :bindings:testDebugUnitTest :smoke:test
 fi
 
 # The APK half of the alignment check. An ELF built with 16 KB LOAD segments
@@ -126,18 +126,23 @@ fi
 # the two checks answer different questions and both are in Phase 1's scope.
 # The test APK is the only one this project produces; an app packaging the AAR
 # has to run the same check on its own output.
-APK="$PROJECT/library/build/outputs/apk/androidTest/debug/library-debug-androidTest.apk"
+APK="$PROJECT/bindings/build/outputs/apk/androidTest/debug/bindings-debug-androidTest.apk"
 ZIPALIGN="$(ls -d "${ANDROID_HOME:-$HOME/Library/Android/sdk}"/build-tools/* | sort -V | tail -1)/zipalign"
-if [[ -f "$APK" && -x "$ZIPALIGN" ]]; then
+[[ -f "$APK" ]] || { echo "no test APK at $APK to check" >&2; exit 1; }
+[[ -x "$ZIPALIGN" ]] || { echo "no zipalign at $ZIPALIGN; set ANDROID_HOME" >&2; exit 1; }
+if unzip -l "$APK" | grep -q 'libepdf_viewer_host\.so$'; then
   if "$ZIPALIGN" -c -P 16 4 "$APK" > /dev/null; then
     echo "  $(basename "$APK") is 16 KB page aligned"
   else
     echo "$APK is not 16 KB page aligned" >&2
     exit 1
   fi
+else
+  echo "$APK does not package libepdf_viewer_host.so, so its alignment proves nothing" >&2
+  exit 1
 fi
 
-AAR="$PROJECT/library/build/outputs/aar/library-release.aar"
+AAR="$PROJECT/bindings/build/outputs/aar/bindings-release.aar"
 if [[ -f "$AAR" ]]; then
   echo
   echo "  $AAR"
