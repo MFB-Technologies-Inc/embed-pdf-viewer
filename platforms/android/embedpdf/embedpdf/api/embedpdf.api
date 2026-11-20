@@ -358,18 +358,556 @@ public final class com/embedpdf/AnnotationInfo {
 	public final fun getBlendMode ()Lcom/embedpdf/AnnotationBlendMode;
 	public final fun getCanDelete ()Z
 	public final fun getCanUpdate ()Z
+	public final fun getCaret ()Lcom/embedpdf/AnnotationInfo$Caret;
+	public final fun getCircle ()Lcom/embedpdf/AnnotationInfo$Circle;
 	public final fun getContents ()Ljava/lang/String;
 	public final fun getCreatedAt ()Ljava/lang/Long;
+	public final fun getDetails ()Lcom/embedpdf/AnnotationInfo$Details;
 	public final fun getFieldsJson ()Ljava/lang/String;
+	public final fun getFileAttachment ()Lcom/embedpdf/AnnotationInfo$FileAttachment;
+	public final fun getFreeText ()Lcom/embedpdf/AnnotationInfo$FreeText;
 	public final fun getGroupId ()Ljava/lang/String;
+	public final fun getHighlight ()Lcom/embedpdf/AnnotationInfo$Highlight;
 	public final fun getInReplyTo ()Luniffi/epdf_ffi/AnnotationRef;
+	public final fun getInk ()Lcom/embedpdf/AnnotationInfo$Ink;
+	public final fun getLine ()Lcom/embedpdf/AnnotationInfo$Line;
+	public final fun getLink ()Lcom/embedpdf/AnnotationInfo$Link;
 	public final fun getModifiedAt ()Ljava/lang/Long;
+	public final fun getNote ()Lcom/embedpdf/AnnotationInfo$Note;
 	public final fun getPage ()Luniffi/epdf_ffi/PageRef;
+	public final fun getPolygon ()Lcom/embedpdf/AnnotationInfo$Polygon;
+	public final fun getPolyline ()Lcom/embedpdf/AnnotationInfo$Polyline;
 	public final fun getRawCreatedAt ()Ljava/lang/String;
 	public final fun getRawModifiedAt ()Ljava/lang/String;
 	public final fun getRecord ()Luniffi/epdf_plugin_annotation/AnnotationRecord;
 	public final fun getRect ()Luniffi/epdf_ffi/Rect;
+	public final fun getRedaction ()Lcom/embedpdf/AnnotationInfo$Redaction;
+	public final fun getSquare ()Lcom/embedpdf/AnnotationInfo$Square;
+	public final fun getSquiggly ()Lcom/embedpdf/AnnotationInfo$Squiggly;
+	public final fun getStamp ()Lcom/embedpdf/AnnotationInfo$Stamp;
+	public final fun getStrikeout ()Lcom/embedpdf/AnnotationInfo$Strikeout;
 	public final fun getSubtype-76GEPIc ()Ljava/lang/String;
+	public final fun getUnderline ()Lcom/embedpdf/AnnotationInfo$Underline;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/AnnotationInfo$AttachedFile {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/Long;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/embedpdf/AnnotationInfo$AttachedFile;
+	public static synthetic fun copy$default (Lcom/embedpdf/AnnotationInfo$AttachedFile;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/embedpdf/AnnotationInfo$AttachedFile;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCreatedAt ()Ljava/lang/Long;
+	public final fun getDescription ()Ljava/lang/String;
+	public final fun getMd5 ()Ljava/lang/String;
+	public final fun getMimeType ()Ljava/lang/String;
+	public final fun getModifiedAt ()Ljava/lang/Long;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getRawCreatedAt ()Ljava/lang/String;
+	public final fun getRawModifiedAt ()Ljava/lang/String;
+	public final fun getSizeBytes ()Ljava/lang/Long;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/AnnotationInfo$BorderStyle {
+	public static final field Companion Lcom/embedpdf/AnnotationInfo$BorderStyle$Companion;
+	public static final synthetic fun box-impl (Ljava/lang/String;)Lcom/embedpdf/AnnotationInfo$BorderStyle;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/AnnotationInfo$BorderStyle$Companion {
+	public final fun getBEVELED-c-OkF1o ()Ljava/lang/String;
+	public final fun getDASHED-c-OkF1o ()Ljava/lang/String;
+	public final fun getINSET-c-OkF1o ()Ljava/lang/String;
+	public final fun getSOLID-c-OkF1o ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/AnnotationInfo$Caret : com/embedpdf/AnnotationInfo$Details {
+	public synthetic fun <init> (Lcom/embedpdf/AnnotationColor;DLuniffi/epdf_ffi/Rect;Ljava/lang/Double;Ljava/lang/String;Lcom/embedpdf/AnnotationRichText;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component2 ()D
+	public final fun component3 ()Luniffi/epdf_ffi/Rect;
+	public final fun component4 ()Ljava/lang/Double;
+	public final fun component5-UgOro80 ()Ljava/lang/String;
+	public final fun component6 ()Lcom/embedpdf/AnnotationRichText;
+	public final fun copy-XI8Wkrk (Lcom/embedpdf/AnnotationColor;DLuniffi/epdf_ffi/Rect;Ljava/lang/Double;Ljava/lang/String;Lcom/embedpdf/AnnotationRichText;)Lcom/embedpdf/AnnotationInfo$Caret;
+	public static synthetic fun copy-XI8Wkrk$default (Lcom/embedpdf/AnnotationInfo$Caret;Lcom/embedpdf/AnnotationColor;DLuniffi/epdf_ffi/Rect;Ljava/lang/Double;Ljava/lang/String;Lcom/embedpdf/AnnotationRichText;ILjava/lang/Object;)Lcom/embedpdf/AnnotationInfo$Caret;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBox ()Luniffi/epdf_ffi/Rect;
+	public final fun getColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getIntent-UgOro80 ()Ljava/lang/String;
+	public final fun getOpacity ()D
+	public final fun getRichText ()Lcom/embedpdf/AnnotationRichText;
+	public final fun getRotation ()Ljava/lang/Double;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/AnnotationInfo$Circle : com/embedpdf/AnnotationInfo$Shape {
+	public synthetic fun <init> (Lcom/embedpdf/AnnotationColor;DDLjava/lang/String;Ljava/util/List;Lcom/embedpdf/AnnotationColor;Luniffi/epdf_ffi/Rect;Ljava/lang/Double;Ljava/lang/Double;Lcom/embedpdf/AnnotationRichText;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component10 ()Lcom/embedpdf/AnnotationRichText;
+	public final fun component2 ()D
+	public final fun component3 ()D
+	public final fun component4-c-OkF1o ()Ljava/lang/String;
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component7 ()Luniffi/epdf_ffi/Rect;
+	public final fun component8 ()Ljava/lang/Double;
+	public final fun component9 ()Ljava/lang/Double;
+	public final fun copy-Mb2axYY (Lcom/embedpdf/AnnotationColor;DDLjava/lang/String;Ljava/util/List;Lcom/embedpdf/AnnotationColor;Luniffi/epdf_ffi/Rect;Ljava/lang/Double;Ljava/lang/Double;Lcom/embedpdf/AnnotationRichText;)Lcom/embedpdf/AnnotationInfo$Circle;
+	public static synthetic fun copy-Mb2axYY$default (Lcom/embedpdf/AnnotationInfo$Circle;Lcom/embedpdf/AnnotationColor;DDLjava/lang/String;Ljava/util/List;Lcom/embedpdf/AnnotationColor;Luniffi/epdf_ffi/Rect;Ljava/lang/Double;Ljava/lang/Double;Lcom/embedpdf/AnnotationRichText;ILjava/lang/Object;)Lcom/embedpdf/AnnotationInfo$Circle;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getBorderStyle-c-OkF1o ()Ljava/lang/String;
+	public fun getBox ()Luniffi/epdf_ffi/Rect;
+	public fun getCloudyIntensity ()Ljava/lang/Double;
+	public fun getColor ()Lcom/embedpdf/AnnotationColor;
+	public fun getDashArray ()Ljava/util/List;
+	public fun getInteriorColor ()Lcom/embedpdf/AnnotationColor;
+	public fun getOpacity ()D
+	public fun getRichText ()Lcom/embedpdf/AnnotationRichText;
+	public fun getRotation ()Ljava/lang/Double;
+	public fun getStrokeWidth ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/embedpdf/AnnotationInfo$Details {
+}
+
+public final class com/embedpdf/AnnotationInfo$Details$Untyped : com/embedpdf/AnnotationInfo$Details {
+	public static final field INSTANCE Lcom/embedpdf/AnnotationInfo$Details$Untyped;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/AnnotationInfo$FileAttachment : com/embedpdf/AnnotationInfo$Details {
+	public fun <init> (Lcom/embedpdf/AnnotationFileAttachmentIcon;Lcom/embedpdf/AnnotationColor;DLcom/embedpdf/AnnotationInfo$AttachedFile;Lcom/embedpdf/AnnotationRichText;)V
+	public final fun component1 ()Lcom/embedpdf/AnnotationFileAttachmentIcon;
+	public final fun component2 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component3 ()D
+	public final fun component4 ()Lcom/embedpdf/AnnotationInfo$AttachedFile;
+	public final fun component5 ()Lcom/embedpdf/AnnotationRichText;
+	public final fun copy (Lcom/embedpdf/AnnotationFileAttachmentIcon;Lcom/embedpdf/AnnotationColor;DLcom/embedpdf/AnnotationInfo$AttachedFile;Lcom/embedpdf/AnnotationRichText;)Lcom/embedpdf/AnnotationInfo$FileAttachment;
+	public static synthetic fun copy$default (Lcom/embedpdf/AnnotationInfo$FileAttachment;Lcom/embedpdf/AnnotationFileAttachmentIcon;Lcom/embedpdf/AnnotationColor;DLcom/embedpdf/AnnotationInfo$AttachedFile;Lcom/embedpdf/AnnotationRichText;ILjava/lang/Object;)Lcom/embedpdf/AnnotationInfo$FileAttachment;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getFile ()Lcom/embedpdf/AnnotationInfo$AttachedFile;
+	public final fun getIcon ()Lcom/embedpdf/AnnotationFileAttachmentIcon;
+	public final fun getOpacity ()D
+	public final fun getRichText ()Lcom/embedpdf/AnnotationRichText;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/AnnotationInfo$FreeText : com/embedpdf/AnnotationInfo$Details {
+	public synthetic fun <init> (Luniffi/epdf_ffi/Rect;Ljava/lang/String;Ljava/lang/String;DLcom/embedpdf/AnnotationColor;Lcom/embedpdf/AnnotationTextAlignment;Lcom/embedpdf/AnnotationVerticalAlignment;Lcom/embedpdf/AnnotationColor;Lcom/embedpdf/AnnotationColor;DDLjava/lang/String;Ljava/util/List;Ljava/lang/Double;Ljava/lang/Double;Lcom/embedpdf/AnnotationCalloutLine;Lcom/embedpdf/AnnotationLineEnding;Lcom/embedpdf/AnnotationRichText;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Luniffi/epdf_ffi/Rect;
+	public final fun component10 ()D
+	public final fun component11 ()D
+	public final fun component12-c-OkF1o ()Ljava/lang/String;
+	public final fun component13 ()Ljava/util/List;
+	public final fun component14 ()Ljava/lang/Double;
+	public final fun component15 ()Ljava/lang/Double;
+	public final fun component16 ()Lcom/embedpdf/AnnotationCalloutLine;
+	public final fun component17 ()Lcom/embedpdf/AnnotationLineEnding;
+	public final fun component18 ()Lcom/embedpdf/AnnotationRichText;
+	public final fun component2-DtC7LEc ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()D
+	public final fun component5 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component6 ()Lcom/embedpdf/AnnotationTextAlignment;
+	public final fun component7 ()Lcom/embedpdf/AnnotationVerticalAlignment;
+	public final fun component8 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component9 ()Lcom/embedpdf/AnnotationColor;
+	public final fun copy-g4O8KC4 (Luniffi/epdf_ffi/Rect;Ljava/lang/String;Ljava/lang/String;DLcom/embedpdf/AnnotationColor;Lcom/embedpdf/AnnotationTextAlignment;Lcom/embedpdf/AnnotationVerticalAlignment;Lcom/embedpdf/AnnotationColor;Lcom/embedpdf/AnnotationColor;DDLjava/lang/String;Ljava/util/List;Ljava/lang/Double;Ljava/lang/Double;Lcom/embedpdf/AnnotationCalloutLine;Lcom/embedpdf/AnnotationLineEnding;Lcom/embedpdf/AnnotationRichText;)Lcom/embedpdf/AnnotationInfo$FreeText;
+	public static synthetic fun copy-g4O8KC4$default (Lcom/embedpdf/AnnotationInfo$FreeText;Luniffi/epdf_ffi/Rect;Ljava/lang/String;Ljava/lang/String;DLcom/embedpdf/AnnotationColor;Lcom/embedpdf/AnnotationTextAlignment;Lcom/embedpdf/AnnotationVerticalAlignment;Lcom/embedpdf/AnnotationColor;Lcom/embedpdf/AnnotationColor;DDLjava/lang/String;Ljava/util/List;Ljava/lang/Double;Ljava/lang/Double;Lcom/embedpdf/AnnotationCalloutLine;Lcom/embedpdf/AnnotationLineEnding;Lcom/embedpdf/AnnotationRichText;ILjava/lang/Object;)Lcom/embedpdf/AnnotationInfo$FreeText;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBorderStyle-c-OkF1o ()Ljava/lang/String;
+	public final fun getBox ()Luniffi/epdf_ffi/Rect;
+	public final fun getCalloutLine ()Lcom/embedpdf/AnnotationCalloutLine;
+	public final fun getCloudyIntensity ()Ljava/lang/Double;
+	public final fun getColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getDashArray ()Ljava/util/List;
+	public final fun getFontColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getFontFamily ()Ljava/lang/String;
+	public final fun getFontSize ()D
+	public final fun getIntent-DtC7LEc ()Ljava/lang/String;
+	public final fun getInteriorColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getLineEnding ()Lcom/embedpdf/AnnotationLineEnding;
+	public final fun getOpacity ()D
+	public final fun getRichText ()Lcom/embedpdf/AnnotationRichText;
+	public final fun getRotation ()Ljava/lang/Double;
+	public final fun getStrokeWidth ()D
+	public final fun getTextAlign ()Lcom/embedpdf/AnnotationTextAlignment;
+	public final fun getVerticalAlign ()Lcom/embedpdf/AnnotationVerticalAlignment;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/AnnotationInfo$Highlight : com/embedpdf/AnnotationInfo$Details {
+	public fun <init> (Lcom/embedpdf/AnnotationColor;DLjava/util/List;Lcom/embedpdf/AnnotationRichText;)V
+	public final fun component1 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component2 ()D
+	public final fun component3 ()Ljava/util/List;
+	public final fun component4 ()Lcom/embedpdf/AnnotationRichText;
+	public final fun copy (Lcom/embedpdf/AnnotationColor;DLjava/util/List;Lcom/embedpdf/AnnotationRichText;)Lcom/embedpdf/AnnotationInfo$Highlight;
+	public static synthetic fun copy$default (Lcom/embedpdf/AnnotationInfo$Highlight;Lcom/embedpdf/AnnotationColor;DLjava/util/List;Lcom/embedpdf/AnnotationRichText;ILjava/lang/Object;)Lcom/embedpdf/AnnotationInfo$Highlight;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getOpacity ()D
+	public final fun getQuadPoints ()Ljava/util/List;
+	public final fun getRichText ()Lcom/embedpdf/AnnotationRichText;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/AnnotationInfo$Ink : com/embedpdf/AnnotationInfo$Details {
+	public synthetic fun <init> (Lcom/embedpdf/AnnotationColor;DDLjava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/lang/String;Ljava/lang/Double;Lcom/embedpdf/AnnotationRichText;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component2 ()D
+	public final fun component3 ()D
+	public final fun component4-c-OkF1o ()Ljava/lang/String;
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6 ()Ljava/util/List;
+	public final fun component7-UgOro80 ()Ljava/lang/String;
+	public final fun component8 ()Ljava/lang/Double;
+	public final fun component9 ()Lcom/embedpdf/AnnotationRichText;
+	public final fun copy-Iphx2D8 (Lcom/embedpdf/AnnotationColor;DDLjava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/lang/String;Ljava/lang/Double;Lcom/embedpdf/AnnotationRichText;)Lcom/embedpdf/AnnotationInfo$Ink;
+	public static synthetic fun copy-Iphx2D8$default (Lcom/embedpdf/AnnotationInfo$Ink;Lcom/embedpdf/AnnotationColor;DDLjava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/lang/String;Ljava/lang/Double;Lcom/embedpdf/AnnotationRichText;ILjava/lang/Object;)Lcom/embedpdf/AnnotationInfo$Ink;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBorderStyle-c-OkF1o ()Ljava/lang/String;
+	public final fun getColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getDashArray ()Ljava/util/List;
+	public final fun getInkList ()Ljava/util/List;
+	public final fun getIntent-UgOro80 ()Ljava/lang/String;
+	public final fun getOpacity ()D
+	public final fun getRichText ()Lcom/embedpdf/AnnotationRichText;
+	public final fun getRotation ()Ljava/lang/Double;
+	public final fun getStrokeWidth ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/AnnotationInfo$Line : com/embedpdf/AnnotationInfo$Details {
+	public synthetic fun <init> (Lcom/embedpdf/AnnotationColor;DDLjava/lang/String;Ljava/util/List;Lcom/embedpdf/AnnotationColor;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/Point;Lcom/embedpdf/AnnotationLineEndings;Ljava/lang/Double;Ljava/lang/String;ZLcom/embedpdf/AnnotationCaptionPosition;Lcom/embedpdf/AnnotationCaptionOffset;Lcom/embedpdf/AnnotationLineLeader;Lcom/embedpdf/AnnotationRichText;Luniffi/epdf_plugin_measurement/PdfMeasurement;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component10 ()Ljava/lang/Double;
+	public final fun component11-UgOro80 ()Ljava/lang/String;
+	public final fun component12 ()Z
+	public final fun component13 ()Lcom/embedpdf/AnnotationCaptionPosition;
+	public final fun component14 ()Lcom/embedpdf/AnnotationCaptionOffset;
+	public final fun component15 ()Lcom/embedpdf/AnnotationLineLeader;
+	public final fun component16 ()Lcom/embedpdf/AnnotationRichText;
+	public final fun component17 ()Luniffi/epdf_plugin_measurement/PdfMeasurement;
+	public final fun component2 ()D
+	public final fun component3 ()D
+	public final fun component4-c-OkF1o ()Ljava/lang/String;
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component7 ()Luniffi/epdf_ffi/Point;
+	public final fun component8 ()Luniffi/epdf_ffi/Point;
+	public final fun component9 ()Lcom/embedpdf/AnnotationLineEndings;
+	public final fun copy-ESLWhsc (Lcom/embedpdf/AnnotationColor;DDLjava/lang/String;Ljava/util/List;Lcom/embedpdf/AnnotationColor;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/Point;Lcom/embedpdf/AnnotationLineEndings;Ljava/lang/Double;Ljava/lang/String;ZLcom/embedpdf/AnnotationCaptionPosition;Lcom/embedpdf/AnnotationCaptionOffset;Lcom/embedpdf/AnnotationLineLeader;Lcom/embedpdf/AnnotationRichText;Luniffi/epdf_plugin_measurement/PdfMeasurement;)Lcom/embedpdf/AnnotationInfo$Line;
+	public static synthetic fun copy-ESLWhsc$default (Lcom/embedpdf/AnnotationInfo$Line;Lcom/embedpdf/AnnotationColor;DDLjava/lang/String;Ljava/util/List;Lcom/embedpdf/AnnotationColor;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/Point;Lcom/embedpdf/AnnotationLineEndings;Ljava/lang/Double;Ljava/lang/String;ZLcom/embedpdf/AnnotationCaptionPosition;Lcom/embedpdf/AnnotationCaptionOffset;Lcom/embedpdf/AnnotationLineLeader;Lcom/embedpdf/AnnotationRichText;Luniffi/epdf_plugin_measurement/PdfMeasurement;ILjava/lang/Object;)Lcom/embedpdf/AnnotationInfo$Line;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBorderStyle-c-OkF1o ()Ljava/lang/String;
+	public final fun getCaptionEnabled ()Z
+	public final fun getCaptionOffset ()Lcom/embedpdf/AnnotationCaptionOffset;
+	public final fun getCaptionPosition ()Lcom/embedpdf/AnnotationCaptionPosition;
+	public final fun getColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getDashArray ()Ljava/util/List;
+	public final fun getEnd ()Luniffi/epdf_ffi/Point;
+	public final fun getIntent-UgOro80 ()Ljava/lang/String;
+	public final fun getInteriorColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getLeader ()Lcom/embedpdf/AnnotationLineLeader;
+	public final fun getLineEndings ()Lcom/embedpdf/AnnotationLineEndings;
+	public final fun getMeasure ()Luniffi/epdf_plugin_measurement/PdfMeasurement;
+	public final fun getOpacity ()D
+	public final fun getRichText ()Lcom/embedpdf/AnnotationRichText;
+	public final fun getRotation ()Ljava/lang/Double;
+	public final fun getStart ()Luniffi/epdf_ffi/Point;
+	public final fun getStrokeWidth ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/AnnotationInfo$Link : com/embedpdf/AnnotationInfo$Details {
+	public fun <init> (Lcom/embedpdf/AnnotationLinkTarget;)V
+	public final fun component1 ()Lcom/embedpdf/AnnotationLinkTarget;
+	public final fun copy (Lcom/embedpdf/AnnotationLinkTarget;)Lcom/embedpdf/AnnotationInfo$Link;
+	public static synthetic fun copy$default (Lcom/embedpdf/AnnotationInfo$Link;Lcom/embedpdf/AnnotationLinkTarget;ILjava/lang/Object;)Lcom/embedpdf/AnnotationInfo$Link;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getTarget ()Lcom/embedpdf/AnnotationLinkTarget;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/AnnotationInfo$Note : com/embedpdf/AnnotationInfo$Details {
+	public fun <init> (Lcom/embedpdf/AnnotationColor;DLjava/lang/String;ZLjava/lang/String;Ljava/lang/String;Lcom/embedpdf/AnnotationRichText;)V
+	public final fun component1 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component2 ()D
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Z
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()Lcom/embedpdf/AnnotationRichText;
+	public final fun copy (Lcom/embedpdf/AnnotationColor;DLjava/lang/String;ZLjava/lang/String;Ljava/lang/String;Lcom/embedpdf/AnnotationRichText;)Lcom/embedpdf/AnnotationInfo$Note;
+	public static synthetic fun copy$default (Lcom/embedpdf/AnnotationInfo$Note;Lcom/embedpdf/AnnotationColor;DLjava/lang/String;ZLjava/lang/String;Ljava/lang/String;Lcom/embedpdf/AnnotationRichText;ILjava/lang/Object;)Lcom/embedpdf/AnnotationInfo$Note;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getIcon ()Ljava/lang/String;
+	public final fun getOpacity ()D
+	public final fun getOpen ()Z
+	public final fun getRichText ()Lcom/embedpdf/AnnotationRichText;
+	public final fun getState ()Ljava/lang/String;
+	public final fun getStateModel ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/AnnotationInfo$Polygon : com/embedpdf/AnnotationInfo$Details {
+	public synthetic fun <init> (Lcom/embedpdf/AnnotationColor;DDLjava/lang/String;Ljava/util/List;Lcom/embedpdf/AnnotationColor;Ljava/util/List;Ljava/lang/Double;Ljava/lang/String;Ljava/lang/Double;Ljava/lang/Boolean;Luniffi/epdf_ffi/Point;Lcom/embedpdf/AnnotationRichText;Luniffi/epdf_plugin_measurement/PdfMeasurement;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component10 ()Ljava/lang/Double;
+	public final fun component11 ()Ljava/lang/Boolean;
+	public final fun component12 ()Luniffi/epdf_ffi/Point;
+	public final fun component13 ()Lcom/embedpdf/AnnotationRichText;
+	public final fun component14 ()Luniffi/epdf_plugin_measurement/PdfMeasurement;
+	public final fun component2 ()D
+	public final fun component3 ()D
+	public final fun component4-c-OkF1o ()Ljava/lang/String;
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component7 ()Ljava/util/List;
+	public final fun component8 ()Ljava/lang/Double;
+	public final fun component9-UgOro80 ()Ljava/lang/String;
+	public final fun copy-pxwtpqY (Lcom/embedpdf/AnnotationColor;DDLjava/lang/String;Ljava/util/List;Lcom/embedpdf/AnnotationColor;Ljava/util/List;Ljava/lang/Double;Ljava/lang/String;Ljava/lang/Double;Ljava/lang/Boolean;Luniffi/epdf_ffi/Point;Lcom/embedpdf/AnnotationRichText;Luniffi/epdf_plugin_measurement/PdfMeasurement;)Lcom/embedpdf/AnnotationInfo$Polygon;
+	public static synthetic fun copy-pxwtpqY$default (Lcom/embedpdf/AnnotationInfo$Polygon;Lcom/embedpdf/AnnotationColor;DDLjava/lang/String;Ljava/util/List;Lcom/embedpdf/AnnotationColor;Ljava/util/List;Ljava/lang/Double;Ljava/lang/String;Ljava/lang/Double;Ljava/lang/Boolean;Luniffi/epdf_ffi/Point;Lcom/embedpdf/AnnotationRichText;Luniffi/epdf_plugin_measurement/PdfMeasurement;ILjava/lang/Object;)Lcom/embedpdf/AnnotationInfo$Polygon;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBorderStyle-c-OkF1o ()Ljava/lang/String;
+	public final fun getCaptionCenter ()Luniffi/epdf_ffi/Point;
+	public final fun getCaptionEnabled ()Ljava/lang/Boolean;
+	public final fun getCloudyIntensity ()Ljava/lang/Double;
+	public final fun getColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getDashArray ()Ljava/util/List;
+	public final fun getIntent-UgOro80 ()Ljava/lang/String;
+	public final fun getInteriorColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getMeasure ()Luniffi/epdf_plugin_measurement/PdfMeasurement;
+	public final fun getOpacity ()D
+	public final fun getRichText ()Lcom/embedpdf/AnnotationRichText;
+	public final fun getRotation ()Ljava/lang/Double;
+	public final fun getStrokeWidth ()D
+	public final fun getVertices ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/AnnotationInfo$Polyline : com/embedpdf/AnnotationInfo$Details {
+	public synthetic fun <init> (Lcom/embedpdf/AnnotationColor;DDLjava/lang/String;Ljava/util/List;Lcom/embedpdf/AnnotationColor;Ljava/util/List;Lcom/embedpdf/AnnotationLineEndings;Ljava/lang/Double;Ljava/lang/String;Ljava/lang/Boolean;Luniffi/epdf_ffi/Point;Lcom/embedpdf/AnnotationRichText;Luniffi/epdf_plugin_measurement/PdfMeasurement;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component10-UgOro80 ()Ljava/lang/String;
+	public final fun component11 ()Ljava/lang/Boolean;
+	public final fun component12 ()Luniffi/epdf_ffi/Point;
+	public final fun component13 ()Lcom/embedpdf/AnnotationRichText;
+	public final fun component14 ()Luniffi/epdf_plugin_measurement/PdfMeasurement;
+	public final fun component2 ()D
+	public final fun component3 ()D
+	public final fun component4-c-OkF1o ()Ljava/lang/String;
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component7 ()Ljava/util/List;
+	public final fun component8 ()Lcom/embedpdf/AnnotationLineEndings;
+	public final fun component9 ()Ljava/lang/Double;
+	public final fun copy-wG_2T5M (Lcom/embedpdf/AnnotationColor;DDLjava/lang/String;Ljava/util/List;Lcom/embedpdf/AnnotationColor;Ljava/util/List;Lcom/embedpdf/AnnotationLineEndings;Ljava/lang/Double;Ljava/lang/String;Ljava/lang/Boolean;Luniffi/epdf_ffi/Point;Lcom/embedpdf/AnnotationRichText;Luniffi/epdf_plugin_measurement/PdfMeasurement;)Lcom/embedpdf/AnnotationInfo$Polyline;
+	public static synthetic fun copy-wG_2T5M$default (Lcom/embedpdf/AnnotationInfo$Polyline;Lcom/embedpdf/AnnotationColor;DDLjava/lang/String;Ljava/util/List;Lcom/embedpdf/AnnotationColor;Ljava/util/List;Lcom/embedpdf/AnnotationLineEndings;Ljava/lang/Double;Ljava/lang/String;Ljava/lang/Boolean;Luniffi/epdf_ffi/Point;Lcom/embedpdf/AnnotationRichText;Luniffi/epdf_plugin_measurement/PdfMeasurement;ILjava/lang/Object;)Lcom/embedpdf/AnnotationInfo$Polyline;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBorderStyle-c-OkF1o ()Ljava/lang/String;
+	public final fun getCaptionCenter ()Luniffi/epdf_ffi/Point;
+	public final fun getCaptionEnabled ()Ljava/lang/Boolean;
+	public final fun getColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getDashArray ()Ljava/util/List;
+	public final fun getIntent-UgOro80 ()Ljava/lang/String;
+	public final fun getInteriorColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getLineEndings ()Lcom/embedpdf/AnnotationLineEndings;
+	public final fun getMeasure ()Luniffi/epdf_plugin_measurement/PdfMeasurement;
+	public final fun getOpacity ()D
+	public final fun getRichText ()Lcom/embedpdf/AnnotationRichText;
+	public final fun getRotation ()Ljava/lang/Double;
+	public final fun getStrokeWidth ()D
+	public final fun getVertices ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/AnnotationInfo$Redaction : com/embedpdf/AnnotationInfo$Details {
+	public fun <init> (Ljava/util/List;Lcom/embedpdf/AnnotationColor;DLcom/embedpdf/AnnotationColor;Ljava/lang/String;ZLjava/lang/String;DLcom/embedpdf/AnnotationColor;Lcom/embedpdf/AnnotationTextAlignment;Lcom/embedpdf/AnnotationRichText;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component10 ()Lcom/embedpdf/AnnotationTextAlignment;
+	public final fun component11 ()Lcom/embedpdf/AnnotationRichText;
+	public final fun component2 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component3 ()D
+	public final fun component4 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Z
+	public final fun component7 ()Ljava/lang/String;
+	public final fun component8 ()D
+	public final fun component9 ()Lcom/embedpdf/AnnotationColor;
+	public final fun copy (Ljava/util/List;Lcom/embedpdf/AnnotationColor;DLcom/embedpdf/AnnotationColor;Ljava/lang/String;ZLjava/lang/String;DLcom/embedpdf/AnnotationColor;Lcom/embedpdf/AnnotationTextAlignment;Lcom/embedpdf/AnnotationRichText;)Lcom/embedpdf/AnnotationInfo$Redaction;
+	public static synthetic fun copy$default (Lcom/embedpdf/AnnotationInfo$Redaction;Ljava/util/List;Lcom/embedpdf/AnnotationColor;DLcom/embedpdf/AnnotationColor;Ljava/lang/String;ZLjava/lang/String;DLcom/embedpdf/AnnotationColor;Lcom/embedpdf/AnnotationTextAlignment;Lcom/embedpdf/AnnotationRichText;ILjava/lang/Object;)Lcom/embedpdf/AnnotationInfo$Redaction;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getFontColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getFontFamily ()Ljava/lang/String;
+	public final fun getFontSize ()D
+	public final fun getInteriorColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getOpacity ()D
+	public final fun getOverlayText ()Ljava/lang/String;
+	public final fun getQuadPoints ()Ljava/util/List;
+	public final fun getRepeat ()Z
+	public final fun getRichText ()Lcom/embedpdf/AnnotationRichText;
+	public final fun getTextAlign ()Lcom/embedpdf/AnnotationTextAlignment;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/embedpdf/AnnotationInfo$Shape : com/embedpdf/AnnotationInfo$Details {
+	public abstract fun getBorderStyle-c-OkF1o ()Ljava/lang/String;
+	public abstract fun getBox ()Luniffi/epdf_ffi/Rect;
+	public abstract fun getCloudyIntensity ()Ljava/lang/Double;
+	public abstract fun getColor ()Lcom/embedpdf/AnnotationColor;
+	public abstract fun getDashArray ()Ljava/util/List;
+	public abstract fun getInteriorColor ()Lcom/embedpdf/AnnotationColor;
+	public abstract fun getOpacity ()D
+	public abstract fun getRichText ()Lcom/embedpdf/AnnotationRichText;
+	public abstract fun getRotation ()Ljava/lang/Double;
+	public abstract fun getStrokeWidth ()D
+}
+
+public final class com/embedpdf/AnnotationInfo$Square : com/embedpdf/AnnotationInfo$Shape {
+	public synthetic fun <init> (Lcom/embedpdf/AnnotationColor;DDLjava/lang/String;Ljava/util/List;Lcom/embedpdf/AnnotationColor;Luniffi/epdf_ffi/Rect;Ljava/lang/Double;Ljava/lang/Double;Lcom/embedpdf/AnnotationRichText;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component10 ()Lcom/embedpdf/AnnotationRichText;
+	public final fun component2 ()D
+	public final fun component3 ()D
+	public final fun component4-c-OkF1o ()Ljava/lang/String;
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component7 ()Luniffi/epdf_ffi/Rect;
+	public final fun component8 ()Ljava/lang/Double;
+	public final fun component9 ()Ljava/lang/Double;
+	public final fun copy-Mb2axYY (Lcom/embedpdf/AnnotationColor;DDLjava/lang/String;Ljava/util/List;Lcom/embedpdf/AnnotationColor;Luniffi/epdf_ffi/Rect;Ljava/lang/Double;Ljava/lang/Double;Lcom/embedpdf/AnnotationRichText;)Lcom/embedpdf/AnnotationInfo$Square;
+	public static synthetic fun copy-Mb2axYY$default (Lcom/embedpdf/AnnotationInfo$Square;Lcom/embedpdf/AnnotationColor;DDLjava/lang/String;Ljava/util/List;Lcom/embedpdf/AnnotationColor;Luniffi/epdf_ffi/Rect;Ljava/lang/Double;Ljava/lang/Double;Lcom/embedpdf/AnnotationRichText;ILjava/lang/Object;)Lcom/embedpdf/AnnotationInfo$Square;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getBorderStyle-c-OkF1o ()Ljava/lang/String;
+	public fun getBox ()Luniffi/epdf_ffi/Rect;
+	public fun getCloudyIntensity ()Ljava/lang/Double;
+	public fun getColor ()Lcom/embedpdf/AnnotationColor;
+	public fun getDashArray ()Ljava/util/List;
+	public fun getInteriorColor ()Lcom/embedpdf/AnnotationColor;
+	public fun getOpacity ()D
+	public fun getRichText ()Lcom/embedpdf/AnnotationRichText;
+	public fun getRotation ()Ljava/lang/Double;
+	public fun getStrokeWidth ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/AnnotationInfo$Squiggly : com/embedpdf/AnnotationInfo$TextMarkup {
+	public fun <init> (Lcom/embedpdf/AnnotationColor;DLjava/util/List;Lcom/embedpdf/AnnotationRichText;)V
+	public final fun component1 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component2 ()D
+	public final fun component3 ()Ljava/util/List;
+	public final fun component4 ()Lcom/embedpdf/AnnotationRichText;
+	public final fun copy (Lcom/embedpdf/AnnotationColor;DLjava/util/List;Lcom/embedpdf/AnnotationRichText;)Lcom/embedpdf/AnnotationInfo$Squiggly;
+	public static synthetic fun copy$default (Lcom/embedpdf/AnnotationInfo$Squiggly;Lcom/embedpdf/AnnotationColor;DLjava/util/List;Lcom/embedpdf/AnnotationRichText;ILjava/lang/Object;)Lcom/embedpdf/AnnotationInfo$Squiggly;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getColor ()Lcom/embedpdf/AnnotationColor;
+	public fun getOpacity ()D
+	public fun getQuadPoints ()Ljava/util/List;
+	public fun getRichText ()Lcom/embedpdf/AnnotationRichText;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/AnnotationInfo$Stamp : com/embedpdf/AnnotationInfo$Details {
+	public fun <init> (Ljava/lang/String;Lcom/embedpdf/AnnotationStampFit;DLuniffi/epdf_ffi/Rect;Ljava/lang/Double;Lcom/embedpdf/AnnotationRichText;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Lcom/embedpdf/AnnotationStampFit;
+	public final fun component3 ()D
+	public final fun component4 ()Luniffi/epdf_ffi/Rect;
+	public final fun component5 ()Ljava/lang/Double;
+	public final fun component6 ()Lcom/embedpdf/AnnotationRichText;
+	public final fun copy (Ljava/lang/String;Lcom/embedpdf/AnnotationStampFit;DLuniffi/epdf_ffi/Rect;Ljava/lang/Double;Lcom/embedpdf/AnnotationRichText;)Lcom/embedpdf/AnnotationInfo$Stamp;
+	public static synthetic fun copy$default (Lcom/embedpdf/AnnotationInfo$Stamp;Ljava/lang/String;Lcom/embedpdf/AnnotationStampFit;DLuniffi/epdf_ffi/Rect;Ljava/lang/Double;Lcom/embedpdf/AnnotationRichText;ILjava/lang/Object;)Lcom/embedpdf/AnnotationInfo$Stamp;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBox ()Luniffi/epdf_ffi/Rect;
+	public final fun getFit ()Lcom/embedpdf/AnnotationStampFit;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getOpacity ()D
+	public final fun getRichText ()Lcom/embedpdf/AnnotationRichText;
+	public final fun getRotation ()Ljava/lang/Double;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/AnnotationInfo$Strikeout : com/embedpdf/AnnotationInfo$Details {
+	public synthetic fun <init> (Lcom/embedpdf/AnnotationColor;DLjava/util/List;Ljava/lang/String;Lcom/embedpdf/AnnotationRichText;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component2 ()D
+	public final fun component3 ()Ljava/util/List;
+	public final fun component4-UgOro80 ()Ljava/lang/String;
+	public final fun component5 ()Lcom/embedpdf/AnnotationRichText;
+	public final fun copy-R2C0RWY (Lcom/embedpdf/AnnotationColor;DLjava/util/List;Ljava/lang/String;Lcom/embedpdf/AnnotationRichText;)Lcom/embedpdf/AnnotationInfo$Strikeout;
+	public static synthetic fun copy-R2C0RWY$default (Lcom/embedpdf/AnnotationInfo$Strikeout;Lcom/embedpdf/AnnotationColor;DLjava/util/List;Ljava/lang/String;Lcom/embedpdf/AnnotationRichText;ILjava/lang/Object;)Lcom/embedpdf/AnnotationInfo$Strikeout;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getColor ()Lcom/embedpdf/AnnotationColor;
+	public final fun getIntent-UgOro80 ()Ljava/lang/String;
+	public final fun getOpacity ()D
+	public final fun getQuadPoints ()Ljava/util/List;
+	public final fun getRichText ()Lcom/embedpdf/AnnotationRichText;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/embedpdf/AnnotationInfo$TextMarkup : com/embedpdf/AnnotationInfo$Details {
+	public abstract fun getColor ()Lcom/embedpdf/AnnotationColor;
+	public abstract fun getOpacity ()D
+	public abstract fun getQuadPoints ()Ljava/util/List;
+	public abstract fun getRichText ()Lcom/embedpdf/AnnotationRichText;
+}
+
+public final class com/embedpdf/AnnotationInfo$Underline : com/embedpdf/AnnotationInfo$TextMarkup {
+	public fun <init> (Lcom/embedpdf/AnnotationColor;DLjava/util/List;Lcom/embedpdf/AnnotationRichText;)V
+	public final fun component1 ()Lcom/embedpdf/AnnotationColor;
+	public final fun component2 ()D
+	public final fun component3 ()Ljava/util/List;
+	public final fun component4 ()Lcom/embedpdf/AnnotationRichText;
+	public final fun copy (Lcom/embedpdf/AnnotationColor;DLjava/util/List;Lcom/embedpdf/AnnotationRichText;)Lcom/embedpdf/AnnotationInfo$Underline;
+	public static synthetic fun copy$default (Lcom/embedpdf/AnnotationInfo$Underline;Lcom/embedpdf/AnnotationColor;DLjava/util/List;Lcom/embedpdf/AnnotationRichText;ILjava/lang/Object;)Lcom/embedpdf/AnnotationInfo$Underline;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getColor ()Lcom/embedpdf/AnnotationColor;
+	public fun getOpacity ()D
+	public fun getQuadPoints ()Ljava/util/List;
+	public fun getRichText ()Lcom/embedpdf/AnnotationRichText;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
