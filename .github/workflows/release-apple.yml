@@ -88,7 +88,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh --version | head -1
+          gh --version | sed -n 1p
           hash=$(bash platforms/apple/apple-engine-hash.sh)
           [[ "$hash" =~ ^[0-9a-f]{16}$ ]] || { echo "::error::apple-engine-hash.sh printed '$hash'"; exit 1; }
           echo "tag=apple-engine-$hash" >> "$GITHUB_OUTPUT"

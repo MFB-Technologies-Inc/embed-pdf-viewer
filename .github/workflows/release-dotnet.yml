@@ -257,7 +257,9 @@ jobs:
         run: |
           echo "checkout $(git rev-parse HEAD) dirty=[$(git status --porcelain --untracked-files=no | wc -l)]"
           echo "dotnet $(cd platforms/dotnet && dotnet --version) $(rustc --version) $("$PYTHON" --version)"
-          if [[ "$RUNNER_OS" == Linux ]]; then ldd --version | head -1; else uname -a; fi
+          # sed reads to the end: `head -1` exits early and pipefail turns
+          # ldd's SIGPIPE into exit 141.
+          if [[ "$RUNNER_OS" == Linux ]]; then ldd --version | sed -n 1p; else uname -a; fi
 
       - name: Build epdf-capi (debug)
         run: cargo build --locked -p epdf-capi
@@ -440,7 +442,7 @@ jobs:
             --arg sha "$(cut -d' ' -f1 "$R/$PACKAGE.$RID.nupkg.sha256")" \
             --argjson bytes "$(stat -c %s "$R/$PACKAGE.$RID.nupkg")" \
             --arg runtimeTag "$(jq -r --arg target "$FORK_TARGET" '.artifacts[$target].url | capture("/releases/download/(?<tag>[^/]+)/").tag' "$RUNTIME_MANIFEST")" \
-            --arg glibc "$(ldd --version | head -1 | awk '{print $NF}')" \
+            --arg glibc "$(ldd --version | awk 'NR == 1 {print $NF}')" \
             --arg renderSize "$(sed -n 's/^rendered \([0-9]*x[0-9]*\) .*/\1/p' "$OUT/guide/run.log")" \
             '{nupkgSha256: $sha, nupkgBytes: $bytes, runtimeTag: $runtimeTag, glibc: $glibc, renderSize: $renderSize}' \
             > "$R/guide-facts.json"
