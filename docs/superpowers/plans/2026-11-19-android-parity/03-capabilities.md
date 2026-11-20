@@ -41,7 +41,9 @@ Swift files: `Plugins/{Metadata,Search,Render,History,Outline,Attachment,PageEdi
 Tests: `MetadataTests`, `SearchTests`, `RenderTests`, `RenderViewportTests`, `RenderSnapshotTests` (compare against PNGs decoded on the JVM, not pixel-exact to Apple; assert dimensions and a checksum of the Linux render), `PageGeometryTests`, `PageRenderResolutionTests`, `HistoryTests`, `OutlineTests`, `AttachmentTests`, `PageEditTests`, `ViewManagerTests`, `ShellTests`, `DisabledPluginTests`, `PluginSettingsTests`, `TaskEntryPointTests`.
 Android services: `PageImage.toBitmap(): Bitmap`, `PageImage.toImageBitmap()` lives in compose (Phase 5); `RectF`/`PointF` conversions for `PageGeometry`.
 
-- [ ] One commit per plugin, tests green at each commit.
+- [x] One commit per plugin, tests green at each commit.
+- Moved to later waves, because they need capabilities those waves port: `TaskEntryPoints.swift` and `TaskEntryPointTests` (stage and interaction) go to Task C; the capture half of `RenderSnapshotTests` (the snapshot tool through interaction) to Task B; the page attachment case of `AttachmentTests` (annotation drafts) to Task D; each wave adds its own `PluginSettingsTests` cases and `DisabledPluginTest` rows, and shrinks that test's `pending` set.
+- Variants of generated sealed types have flat aliases named `<Parent><Variant>` (`SearchEventCompleted`, `PageEditPlacementEnd`), since a nested class isn't reachable through a typealias and names like `SearchCompletedEvent` already belong to the payload records.
 
 ### Task B: Wave B (interaction + feedback, i18n, actions)
 
