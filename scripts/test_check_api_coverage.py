@@ -69,6 +69,15 @@ class CSharpTests(unittest.TestCase):
     def test_a_crate_with_no_wave_cannot_be_pending(self):
         self.assertError(check(manifest(pending='phase-3-wave-A'), dump()), 'no Phase 3 wave')
 
+    def test_an_exclusion_with_a_known_classification_passes(self):
+        for classification in sorted(coverage.EXCLUSION_CLASSIFICATIONS):
+            row = manifest(exclusion='No export.', classification=classification)
+            self.assertEqual(check(row, dump()), [], classification)
+
+    def test_an_exclusion_with_an_unknown_or_missing_classification_fails(self):
+        self.assertError(check(manifest(exclusion='No export.', classification='later'), dump()), 'unknown exclusion classification')
+        self.assertError(check(manifest(exclusion='No export.'), dump()), 'unknown exclusion classification')
+
     def test_an_unaccounted_rust_member_fails(self):
         row = {'schemaVersion': 1, 'crates': {}, 'kernel': {'kind': 'core'}, 'members': []}
         self.assertError(check(row, dump()), 'unaccounted Rust member')

@@ -149,6 +149,13 @@ WAVES = {
     'E': ['redaction', 'measurement', 'stamp', 'signature'],
 }
 WAVE_OF = {crate: f'phase-3-wave-{wave}' for wave, crates in WAVES.items() for crate in crates}
+# Why a Rust member has no C# counterpart. An exclusion names one of these.
+# `no-export` is a capability member with no ffi.rs export and no Swift
+# counterpart, which a later export pass would turn into a row.
+EXCLUSION_CLASSIFICATIONS = {
+    'host-presentation', 'host-integration', 'internal-resource', 'equivalent-representation',
+    'registration-resource', 'no-export',
+}
 RUST_EXPORT = r'\bpub\s+(?:async\s+)?fn\s+{symbol}\s*[(<]'
 
 
@@ -175,6 +182,8 @@ def validate_csharp(root, manifest, discovered, dumped, check_crates=True):
             errors.append(f'needs exactly one of csharp, pending or exclusion: {identity}')
             continue
         if member.get('exclusion'):
+            if member.get('classification') not in EXCLUSION_CLASSIFICATIONS:
+                errors.append(f"unknown exclusion classification {member.get('classification')!r}: {identity}")
             continue
         if member.get('pending'):
             wave = WAVE_OF.get(member['crate'])
