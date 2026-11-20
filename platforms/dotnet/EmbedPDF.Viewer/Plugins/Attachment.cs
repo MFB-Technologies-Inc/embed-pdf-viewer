@@ -104,8 +104,11 @@ public sealed class AttachmentCapability : IDisposable
     public Task SelectAsync(IEnumerable<AttachedFile> files, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(files);
-        var ffi = files.Select(Ffi.ToFfi).ToArray();
-        return viewer.Run(() => handle.Select(ffi), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var ffi = files.Select(Ffi.ToFfi).ToArray();
+            return handle.Select(ffi);
+        }, cancellationToken);
     }
 
     /// <summary>Whether a change to the file is waiting for confirmation.</summary>
@@ -128,8 +131,11 @@ public sealed class AttachmentCapability : IDisposable
     public Task RevealAsync(AttachedFile file, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(file);
-        var ffi = Ffi.ToFfi(file);
-        return viewer.Run(() => handle.Reveal(ffi), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var ffi = Ffi.ToFfi(file);
+            return handle.Reveal(ffi);
+        }, cancellationToken);
     }
 
     /// <summary>Reads the files unless they are loaded or loading. Nothing reads them until this or <see cref="RefreshAsync"/> asks.</summary>
@@ -150,8 +156,11 @@ public sealed class AttachmentCapability : IDisposable
     public Task RemoveAsync(AttachedFile file, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(file);
-        var ffi = Ffi.ToFfi(file);
-        return viewer.RunCancellable(token => handle.Remove(ffi, token), cancellationToken);
+        return viewer.RunCancellable(token =>
+        {
+            var ffi = Ffi.ToFfi(file);
+            return handle.Remove(ffi, token);
+        }, cancellationToken);
     }
 
     /// <summary>A file's bytes.</summary>
@@ -181,8 +190,11 @@ public sealed class AttachmentCapability : IDisposable
     Task<bool> OnFile(AttachedFile file, Func<GT.AttachedFile, Task<bool>> call, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(file);
-        var ffi = Ffi.ToFfi(file);
-        return viewer.Run(() => call(ffi), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var ffi = Ffi.ToFfi(file);
+            return call(ffi);
+        }, cancellationToken);
     }
 
     sealed class Relay() : EventRelay<GT.AttachmentEvent, AttachmentEvent>(Ffi.ToPublic), GT.AttachmentEventListener

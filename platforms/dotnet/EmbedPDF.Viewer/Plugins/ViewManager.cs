@@ -88,8 +88,11 @@ public sealed class ViewManagerCapability : IDisposable
     /// <summary>A new pane, focused. Each document moves in from wherever it was. Returns its id.</summary>
     public Task<string> CreatePaneAsync(IEnumerable<DocumentInfo>? documents = null, CancellationToken cancellationToken = default)
     {
-        string[] ids = documents is null ? [] : [.. documents.Select(d => d.Id)];
-        return viewer.Run(() => handle.CreatePane(ids), cancellationToken);
+        return viewer.Run(() =>
+        {
+            string[] ids = documents is null ? [] : [.. documents.Select(d => d.Id)];
+            return handle.CreatePane(ids);
+        }, cancellationToken);
     }
 
     /// <summary>Removes a pane. Its documents go to <paramref name="movingDocumentsTo"/>, else the focused pane, else the last one.</summary>
@@ -103,8 +106,11 @@ public sealed class ViewManagerCapability : IDisposable
     public Task MovePaneAsync(string id, int index, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(id);
-        var wire = WireInteger.ToUInt32(index, "pane index");
-        return viewer.Run(() => handle.MovePane(id, wire), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var wire = WireInteger.ToUInt32(index, "pane index");
+            return handle.MovePane(id, wire);
+        }, cancellationToken);
     }
 
     /// <summary>Focuses a pane, or none.</summary>
@@ -129,8 +135,11 @@ public sealed class ViewManagerCapability : IDisposable
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(paneId);
-        var wire = WireInteger.ToUInt32(index, "tab index");
-        return viewer.Run(() => handle.AddDocument(paneId, document.Id, wire), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var wire = WireInteger.ToUInt32(index, "tab index");
+            return handle.AddDocument(paneId, document.Id, wire);
+        }, cancellationToken);
     }
 
     /// <summary>Takes a document out of a pane.</summary>
@@ -146,8 +155,11 @@ public sealed class ViewManagerCapability : IDisposable
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(paneId);
-        var wire = WireInteger.ToUInt32(index, "tab index");
-        return viewer.Run(() => handle.MoveDocumentWithin(paneId, document.Id, wire), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var wire = WireInteger.ToUInt32(index, "tab index");
+            return handle.MoveDocumentWithin(paneId, document.Id, wire);
+        }, cancellationToken);
     }
 
     /// <summary>Drags a tab into another pane, where it becomes active. <see langword="null"/> appends; a negative index throws <see cref="PdfErrorCode.InvalidInput"/>.</summary>
@@ -156,8 +168,11 @@ public sealed class ViewManagerCapability : IDisposable
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(from);
         ArgumentNullException.ThrowIfNull(to);
-        var wire = WireInteger.ToUInt32(index, "tab index");
-        return viewer.Run(() => handle.MoveDocumentBetween(from, to, document.Id, wire), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var wire = WireInteger.ToUInt32(index, "tab index");
+            return handle.MoveDocumentBetween(from, to, document.Id, wire);
+        }, cancellationToken);
     }
 
     /// <summary>

@@ -114,8 +114,11 @@ public sealed class HistoryCapability : IDisposable
     public Task UpdateSettingsAsync(HistorySettingsPatch patch, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(patch);
-        var ffi = new GH.HistorySettingsPatch(patch.Limit);
-        return viewer.Run(() => handle.UpdateSettings(ffi), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var ffi = new GH.HistorySettingsPatch(patch.Limit);
+            return handle.UpdateSettings(ffi);
+        }, cancellationToken);
     }
 
     /// <summary>Restores the values supplied at registration.</summary>

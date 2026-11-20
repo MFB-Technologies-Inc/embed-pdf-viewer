@@ -29,8 +29,11 @@ public sealed class SearchCapability : IDisposable
     public Task UpdateSettingsAsync(SearchSettingsPatch patch, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(patch);
-        var ffi = Ffi.ToFfi(patch);
-        return viewer.Run(() => handle.UpdateSettings(ffi), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var ffi = Ffi.ToFfi(patch);
+            return handle.UpdateSettings(ffi);
+        }, cancellationToken);
     }
 
     /// <summary>Restores the values supplied at registration.</summary>
@@ -94,8 +97,11 @@ public sealed class SearchCapability : IDisposable
     /// <summary>Scrolls the stage to the active hit.</summary>
     public Task RevealActiveHitAsync(SearchRevealOptions? reveal = null, CancellationToken cancellationToken = default)
     {
-        var ffi = Ffi.ToFfiOrNull(reveal);
-        return viewer.Run(() => handle.RevealActiveHit(ffi), cancellationToken);
+        return viewer.Run(() =>
+        {
+            var ffi = Ffi.ToFfiOrNull(reveal);
+            return handle.RevealActiveHit(ffi);
+        }, cancellationToken);
     }
 
     /// <summary>The session's query, if any.</summary>
