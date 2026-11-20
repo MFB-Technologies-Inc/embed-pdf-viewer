@@ -92,34 +92,79 @@ internal abstract class EventRelay<TFfi, TPublic>(Func<TFfi, TPublic> map)
     }
 }
 
+/// <summary>
+/// The viewer's live plugin streams. A stream's end callback captures this,
+/// never the viewer: the kernel's callback table holds each relay until the
+/// kernel ends it, and a path from there to the viewer would keep an
+/// abandoned viewer from ever being finalized.
+/// </summary>
+internal sealed class StreamRegistry
+{
+    readonly Lock gate = new();
+    readonly Dictionary<object, Action> ends = [];
+    bool closed;
+
+    /// <summary>Records a live stream; <see langword="false"/> once <see cref="Close"/> has run.</summary>
+    internal bool TryAdd(object key, Action end)
+    {
+        lock (gate)
+        {
+            if (closed) return false;
+            ends[key] = end;
+            return true;
+        }
+    }
+
+    internal void Remove(object key)
+    {
+        lock (gate) ends.Remove(key);
+    }
+
+    /// <summary>Ends every live stream; later <see cref="TryAdd"/> calls fail.</summary>
+    internal void Close()
+    {
+        Action[] pending;
+        lock (gate)
+        {
+            closed = true;
+            pending = [.. ends.Values];
+            ends.Clear();
+        }
+        foreach (var end in pending) end();
+    }
+
+    internal int Count
+    {
+        get { lock (gate) return ends.Count; }
+    }
+}
+
 public sealed partial class PdfViewer
 {
-    readonly Dictionary<object, Action> streams = [];
+    readonly StreamRegistry streams = new();
 
     /// <summary>
     /// A plugin event stream, subscribed before this returns. It ends when the
     /// kernel ends it (<c>OnEnd</c>), when <paramref name="cancellationToken"/>
     /// fires, when the enumerator is disposed, or when the viewer is disposed;
-    /// a stream opened after disposal ends at once.
+    /// a stream opened after disposal ends at once. Nothing it keeps refers to
+    /// the viewer, so a live stream never keeps an abandoned viewer alive.
     /// </summary>
     internal IAsyncEnumerable<TPublic> Stream<TFfi, TPublic>(
         EventRelay<TFfi, TPublic> relay, Func<EventRelay<TFfi, TPublic>, GF.ISubscription> subscribe, CancellationToken cancellationToken)
     {
         var key = new object();
+        var registry = streams;
         var hub = new BroadcastHub<TPublic>(null);
         var subscription = hub.Subscribe(cancellationToken, () =>
         {
-            lock (gate) streams.Remove(key);
+            registry.Remove(key);
             relay.Stop();
         });
         relay.Bind(subscription.Writer, subscription.End, logger);
         bool live;
-        lock (gate)
-        {
-            live = !closed && !subscription.HasEnded;
-            if (live) streams[key] = subscription.End;
-        }
-        if (!live)
+        lock (gate) live = !closed;
+        if (!live || subscription.HasEnded || !registry.TryAdd(key, subscription.End))
         {
             subscription.End();
             return subscription;
@@ -137,21 +182,9 @@ public sealed partial class PdfViewer
     }
 
     /// <summary>Ends every plugin stream; disposal calls it.</summary>
-    void EndStreams()
-    {
-        Action[] ends;
-        lock (gate)
-        {
-            ends = [.. streams.Values];
-            streams.Clear();
-        }
-        foreach (var end in ends) end();
-    }
+    void EndStreams() => streams.Close();
 
-    internal int StreamCountForTests
-    {
-        get { lock (gate) return streams.Count; }
-    }
+    internal int StreamCountForTests => streams.Count;
 
     /// <summary>Runs a capability call that takes no cancel token.</summary>
     internal Task<T> Run<T>(Func<Task<T>> call, CancellationToken cancellationToken) => CallAsync(_ => call(), cancellationToken);

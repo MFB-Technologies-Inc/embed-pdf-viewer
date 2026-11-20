@@ -127,4 +127,34 @@ public sealed class LifetimeTests
         }
         Assert.True(PdfViewer.AbandonedReleases > released);
     }
+
+    /// <summary>A started viewer with a metadata stream nobody enumerates, dropped with everything else.</summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    static async Task<(WeakReference Viewer, IAsyncEnumerable<MetadataEvent> Stream)> AbandonWithAPluginStream()
+    {
+        var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Metadata = true });
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        var metadata = await viewer.GetMetadataAsync(document);
+        var stream = metadata.ObserveEvents();
+        _ = metadata.ObserveEvents();
+        return (new WeakReference(viewer), stream);
+    }
+
+    [Fact]
+    public async Task ALivePluginStreamDoesNotKeepAnAbandonedViewerAlive()
+    {
+        var released = PdfViewer.AbandonedReleases;
+        var (reference, stream) = await AbandonWithAPluginStream();
+        for (var i = 0; i < 20 && reference.IsAlive; i++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            await Task.Delay(20);
+        }
+        Assert.False(reference.IsAlive);
+        for (var i = 0; i < 500 && PdfViewer.AbandonedReleases == released; i++) await Task.Delay(10);
+        Assert.True(PdfViewer.AbandonedReleases > released);
+        // Releasing the kernel ends its subscriptions, so a reader still holding the stream ends too.
+        Assert.True(await MetadataTests.Ends(stream));
+    }
 }

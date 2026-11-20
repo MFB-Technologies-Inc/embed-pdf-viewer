@@ -277,7 +277,7 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
     {
         // A constructor that threw leaves no host to release.
         if (Volatile.Read(ref disposal) is not null || host is null) return;
-        var (abandoned, release, log, r, e, d) = (host, ReleaseHost, logger, revisions, reportedErrors, documentEvents);
+        var (abandoned, release, log, r, e, d, p) = (host, ReleaseHost, logger, revisions, reportedErrors, documentEvents, streams);
         ThreadPool.UnsafeQueueUserWorkItem(_ =>
         {
             try
@@ -286,6 +286,7 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
                 r.Complete();
                 e.Complete();
                 d.Complete();
+                p.Close();
             }
             finally
             {
