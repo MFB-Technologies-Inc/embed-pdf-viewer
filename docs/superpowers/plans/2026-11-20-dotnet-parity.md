@@ -668,6 +668,78 @@ Deviations, each with its reason:
 - `ScriptEngineCheck.RunAsync` takes a `CancellationToken` that is checked before the run starts;
   the run itself cannot be cancelled, as in Swift.
 
+### Phase 3 wave C notes (2026-11-20)
+
+Task plan: `docs/superpowers/plans/2026-11-20-dotnet-parity/03c-wave-c.md`. Branch
+`research/dotnet-parity-p3c` from `research/dotnet-parity-p3b` at `2e7df6c39`, not pushed.
+
+What exists. Four capabilities under `platforms/dotnet/EmbedPDF.Viewer/Plugins/`:
+`StageCapability` (`Stage.cs`, `Stage.Types.cs`, `Stage.Ffi.cs`, with `IStageInitialViewProvider`),
+`SelectionCapability`, `LinkCapability` and `CommandsCapability` (`Commands.cs`,
+`Commands.Types.cs`, with `CommandHandler` and `IStandardCommandsPlatform`), plus
+`PageNavigator`, `PageZoom` and `ToolSwitcher` in `TaskEntryPoints.cs`, the port of
+`TaskEntryPoints.swift`. `StageConfig` gained `Settings` and `Responsive`;
+`PdfViewer.SetCommandsPlatform` is the port of `setCommandsPlatform`. The coverage check reads 880
+members: 456 ported, 285 pending (D 143, E 142), 139 exclusions. All 167 wave C rows are done: 163
+ported and 4 excluded. `EmbedPDF.Viewer.Tests` runs 752 cases, 751 passing twice in a row and one
+skipped (the latency test); `packaging` passes its 30 and `scripts/test_check_api_coverage.py` its
+11. Release builds of the facade, the DI package, the Jint package, the tests and
+`EmbedPDF.ApiDump` report 0 warnings.
+
+The stage surface is plain values: `double` coordinates in `PdfPoint`, `PdfSize` and `PdfRect`,
+`Camera`, `ViewAnchor` and `StageScrollMetrics` as record structs, nothing rounded
+(`StageTests.CoordinatesRoundTripWithoutRounding`). Phase 4 can drive it from a viewport size
+(`SetViewportSizeAsync`), a scroll offset (`ScrollToAsync`, `GetScrollMetricsAsync`, `WheelByAsync`)
+and `PointerSample`s through `InteractionCapability.DispatchPointer` once
+`RegisterScrollHandlerAsync` has run. `SetCamera`, `PanBy`, `ScrollBy` and `ZoomAround` return no
+task, as in Swift: they convert first, so an undefined enum throws `invalid-input` at once, and after
+the document or viewer has gone they do nothing, as `DispatchPointer` does.
+
+Calling threads. On the kernel thread, synchronous and marked: `IStageInitialViewProvider`, the
+`CommandHandler` derivations (`enabled`, `active`, `visible`, `iconAccent`, `locked`) and
+`IStandardCommandsPlatform.SaveFile`. A throw from the first two is the kernel's host error
+(`KernelCallback.RunOrFail<T>`, new here): the stage places the document as if no provider answered,
+and a resolve leaves the command disabled. `SaveFile` has no error type, so its throw is logged and
+dropped. On the thread pool, where disposing is safe: a `CommandHandler`'s `run` and the two copy
+members of `IStandardCommandsPlatform`. A run's failure maps through `FetcherAdapter.Failure`, so a
+`PdfException` keeps its name and code and an `OperationCanceledException` is `operation-cancelled`.
+A handler whose delegates capture a capability keeps the viewer alive until unregistered, as Swift's
+does; `LifetimeTests.LiveWaveCStreamsAndCallbacksDoNotKeepAnAbandonedViewerAlive` covers handlers
+that capture nothing.
+
+Exclusions. `scene_key_builds` and `page_state_reads` (stage) and `load_starts` (selection) are test
+counters with no export; `resolve_command_text` is a conformance-harness helper that prints
+`resolveCommand` as JSON. None has an `ffi.rs` export. `wheel_by` had an export Swift never wrapped,
+so C# ports it as `StageCapability.WheelByAsync`.
+
+Deviations, each with its reason:
+
+- Stage destinations take and return the wave A `PageDestination`. The generated
+  `StagePageDestination` has the same cases and the same page space
+  (`crates/plugins/stage/src/ffi.rs:912-916`, `crates/epdf-ffi/src/annotation.rs:279-285`), so a
+  twin would be a second name for one thing.
+- `SetAppStateAsync` and `ExecuteAsync` take JSON as `string`, as Shell's props do, where Swift takes
+  `Data`. Swift's reason was to refuse bytes that are not UTF-8; the C# twin refuses a string with an
+  unpaired surrogate (`Ffi.WellFormed`, `("EncodingError", invalid-input)`), which UTF-8 encoding
+  would otherwise turn into U+FFFD.
+- Link's `AnnotationLinkTarget` overloads of `resolve`, `activate` and `label`, and
+  `TypedOverloadTests.swift`'s link case, wait for wave D, which owns the annotation drafts. Wave C
+  takes target JSON.
+- A `CommandDefinition` takes its hooks from its `CommandHandler`. There is no public
+  `ICommandRunner`, so the Swift route of passing the generated runner with explicit hooks has no
+  counterpart. `IStandardCommandsPlatform`'s copies return `Task` instead of answering a completion,
+  per the wave B rule.
+- `CommandHandler` delegates are constructor parameters, as Swift's closures are; `Hooks` lists the
+  ones given.
+- Selection's point members take the page first (`SelectWordAtAsync(page, point)`), the engine's
+  order, where Swift reads `selectWord(at:on:)`. `beginGesture(at:on:)` is `BeginGestureAtAsync`.
+- The entry points are classes with internal constructors that dispose their capability. The source
+  audit in `TaskEntryPointTests` reads `Plugins/TaskEntryPoints.cs` as Swift's reads its source.
+- `ViewerHostTests` aliases twelve generated command types, since the facade now has public twins
+  with those names.
+- `IsNavigationEngagedAsync` answers `true` on a fresh document with the default pointer tool; the
+  port asserts that rather than Swift's silence on it.
+
 ## Phase 4: Models
 
 About 1.5 weeks. Exit: every model in `Sources/EmbedPDFModels/` has a C# counterpart with its
