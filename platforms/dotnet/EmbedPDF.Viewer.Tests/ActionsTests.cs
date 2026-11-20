@@ -55,6 +55,11 @@ public sealed class ActionsTests
     internal static PdfActionTree UriTree(string uri) => PdfActionTree.FromJson(
         $$"""{"root":{"type":"uri","subtype":"URI","uri":"{{uri}}","isMap":false,"next":[]},"incomplete":false,"warningFlags":0,"warnings":[]}""");
 
+    /// <summary>A one-node JavaScript tree.</summary>
+    internal static PdfActionTree ScriptTree(string script) => PdfActionTree.FromJson(
+        "{\"root\":{\"type\":\"javascript\",\"subtype\":\"JavaScript\",\"script\":" + System.Text.Json.JsonSerializer.Serialize(script)
+        + ",\"next\":[]},\"incomplete\":false,\"warningFlags\":0,\"warnings\":[]}");
+
     static PdfActionTree GotoTree() => PdfActionTree.FromJson(
         """{"root":{"type":"goto","subtype":"GoTo","destination":{"kind":"fit","page":{"kind":"objectNumber","pageObjectNumber":1}},"next":[]},"incomplete":false,"warningFlags":0,"warnings":[]}""");
 

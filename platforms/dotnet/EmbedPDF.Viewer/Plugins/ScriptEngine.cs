@@ -127,7 +127,9 @@ public sealed partial record ActionsJavaScriptConfig
     /// <summary>
     /// The engine document JavaScript runs in. The viewer ships none;
     /// <c>JintScriptEngineFactory</c> in the <c>EmbedPDF.Scripting.Jint</c>
-    /// package is one.
+    /// package is one. The viewer holds it until it is disposed, so one that captures the
+    /// viewer or a capability keeps an abandoned viewer from being collected;
+    /// dispose the viewer, or keep the viewer out of it.
     /// </summary>
     public IScriptEngineFactory? Engine { get; init; }
 

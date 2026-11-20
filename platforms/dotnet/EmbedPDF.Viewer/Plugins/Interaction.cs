@@ -282,7 +282,10 @@ public sealed class InteractionCapability : IDisposable
     /// the tool may always be used. The kernel asks it on its own thread
     /// whenever <see cref="CanUseToolAsync"/> is read, so answer from state you
     /// already hold; waiting on a viewer call inside it deadlocks. A throw
-    /// reads as <see langword="false"/>.
+    /// reads as <see langword="false"/>. The viewer keeps it until the
+    /// registration is unregistered or the document closes, and with it
+    /// anything it captures: a permission that captures the viewer or this
+    /// capability keeps the viewer alive until then.
     /// </param>
     /// <param name="cancellationToken">Checked before the call is posted.</param>
     public async Task<Registration> RegisterToolAsync(InteractionTool tool, bool replace = false, Func<bool>? permission = null, CancellationToken cancellationToken = default)
@@ -304,7 +307,9 @@ public sealed class InteractionCapability : IDisposable
     /// <summary>
     /// Adds a pointer handler. See <see cref="IInteractionHandler"/> for the
     /// thread it is called on. The viewer keeps it until the registration is
-    /// unregistered or the document closes.
+    /// unregistered or the document closes, and with it anything it captures:
+    /// a handler that captures the viewer or this capability keeps the viewer
+    /// alive until then, as a closure that captures its owner does.
     /// </summary>
     /// <param name="handler">The handler.</param>
     /// <param name="id">Its id.</param>

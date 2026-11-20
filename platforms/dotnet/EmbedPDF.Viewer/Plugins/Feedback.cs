@@ -52,7 +52,11 @@ public interface IPlatformFeedback
 /// <summary>Installs the feedback plugin: haptics for the plugins that use them.</summary>
 public sealed record FeedbackConfig
 {
-    /// <summary>Where feedback goes. <see langword="null"/> does nothing, which suits a desktop.</summary>
+    /// <summary>
+    /// Where feedback goes. <see langword="null"/> does nothing, which suits a desktop. The viewer holds it until it is disposed, so one that captures the
+    /// viewer or a capability keeps an abandoned viewer from being collected;
+    /// dispose the viewer, or keep the viewer out of it.
+    /// </summary>
     public IPlatformFeedback? Provider { get; init; }
 
     internal GI.FeedbackConfig ToFfi(PluginContext context) =>

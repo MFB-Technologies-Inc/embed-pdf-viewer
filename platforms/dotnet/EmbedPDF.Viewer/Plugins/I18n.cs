@@ -171,7 +171,11 @@ public sealed record I18nConfig
     /// <summary>Codes whose packs <see cref="Loader"/> serves on first use.</summary>
     public IReadOnlyList<string> LazyLocales { get; init; } = [];
 
-    /// <summary>Serves <see cref="LazyLocales"/>.</summary>
+    /// <summary>
+    /// Serves <see cref="LazyLocales"/>. The viewer holds it until it is disposed, so one that captures the
+    /// viewer or a capability keeps an abandoned viewer from being collected;
+    /// dispose the viewer, or keep the viewer out of it.
+    /// </summary>
     public ILocaleLoader? Loader { get; init; }
 
     internal GL.I18nConfig ToFfi(PluginContext context) => new(

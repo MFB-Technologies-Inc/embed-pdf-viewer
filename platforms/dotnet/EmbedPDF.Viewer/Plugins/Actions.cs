@@ -207,7 +207,7 @@ public sealed class ActionsCapability : IDisposable
     public async Task<ActionTriggerResult> PrepareCloseAsync(CancellationToken cancellationToken = default) =>
         Ffi.ToPublic(await viewer.Run(() => handle.PrepareClose(), cancellationToken).ConfigureAwait(false));
 
-    /// <summary>Runs nodes of <paramref name="actionType"/> with <paramref name="executor"/>. The last registration per type wins.</summary>
+    /// <summary>Runs nodes of <paramref name="actionType"/> with <paramref name="executor"/>. The last registration per type wins. The viewer keeps it until the registration is unregistered or the document closes, and with it anything it captures: one that captures the viewer or this capability keeps the viewer alive until then.</summary>
     public async Task<Registration> RegisterExecutorAsync(string actionType, IActionExecutor executor, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(actionType);
@@ -216,7 +216,7 @@ public sealed class ActionsCapability : IDisposable
         return new(await viewer.Run(() => handle.RegisterExecutor(actionType, adapter), cancellationToken).ConfigureAwait(false));
     }
 
-    /// <summary>Installs the UI handler; <see langword="null"/> uninstalls it. Installing one releases an <see cref="OpenSequence.Auto"/> open sequence.</summary>
+    /// <summary>Installs the UI handler; <see langword="null"/> uninstalls it. Installing one releases an <see cref="OpenSequence.Auto"/> open sequence. The viewer keeps it until the registration is unregistered or the document closes, and with it anything it captures: one that captures the viewer or this capability keeps the viewer alive until then.</summary>
     public async Task<Registration> SetUiHandlerAsync(IActionUiHandler? handler, ActionUiSupport? support = null, CancellationToken cancellationToken = default)
     {
         var adapter = handler is null ? null : new UiAdapter(handler, viewer.Mark);
@@ -224,7 +224,7 @@ public sealed class ActionsCapability : IDisposable
         return new(await viewer.Run(() => handle.SetUiAdapter(adapter, ffiSupport), cancellationToken).ConfigureAwait(false));
     }
 
-    /// <summary>Installs the submit handler; <see langword="null"/> uninstalls it.</summary>
+    /// <summary>Installs the submit handler; <see langword="null"/> uninstalls it. The viewer keeps it until the registration is unregistered or the document closes, and with it anything it captures: one that captures the viewer or this capability keeps the viewer alive until then.</summary>
     public async Task<Registration> SetSubmitHandlerAsync(IActionSubmitHandler? handler, CancellationToken cancellationToken = default)
     {
         var adapter = handler is null ? null : new SubmitAdapter(handler, viewer.Mark);
