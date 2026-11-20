@@ -5,7 +5,11 @@ name: release-apple
 # scripts/publish-engine-payload.mjs --only apple split into its two stages.
 # Its PDFium is the four Apple slices release-fork-slices.yml uploaded
 # (fork-slice-<target>), stamped into buildFork's cache so the fork is not
-# built again.
+# built again. The caller runs it twice, once per stage, with its approval
+# between them: stage build runs check through the test jobs, stage publish
+# runs publish-verdict and publish, given the build stage's state, apple_tag
+# and checksum. publish-verdict always runs in stage publish and checks
+# those inputs.
 #
 #   check            runs check-apple-engine.sh. Its verdict is the state:
 #                    current (exit 0, the manifests pin this tree's engine:
@@ -24,12 +28,12 @@ name: release-apple
 #   test-ios,        the published bytes, unzipped beside the manifest, under
 #   test-mac-arm64,  EMBEDPDF_PREBUILT_ENGINE=local: the tests publishApple
 #   test-mac-x86_64  runs between its build and its release, one runner each.
-#   publish          --stage publish under the release environment: creates the
-#                    release with the job's token, pins both manifests and
-#                    uploads them as apple-manifests.
+#   publish          --stage publish: creates the release with the job's
+#                    token, pins both manifests and uploads them as
+#                    apple-manifests.
 #
-# dry_run runs every job; publish runs without the environment, prints the gh
-# command, and pins the manifests to the tag and checksum the
+# dry_run runs every job; publish prints the gh command, and pins the
+# manifests to the tag and checksum the
 # release would have, so apple-manifests looks as it would after a real run.
 #
 # The pinned manifests are uploaded, not committed: the release names the
@@ -43,15 +47,35 @@ on:
         required: false
         type: boolean
         default: false
+      stage:
+        description: build (check through the tests) or publish (publish-verdict and publish).
+        required: false
+        type: string
+        default: build
+      state:
+        description: "Stage publish only: the build stage's state output. 'build' publishes."
+        required: false
+        type: string
+        default: ''
+      apple_tag:
+        description: Stage publish only, the build stage's apple_tag output.
+        required: false
+        type: string
+        default: ''
+      checksum:
+        description: Stage publish only, the build stage's checksum output.
+        required: false
+        type: string
+        default: ''
     outputs:
       apple_tag:
-        description: This tree's engine release tag, apple-engine-<hash>.
+        description: This tree's engine release tag, apple-engine-<hash>. Stage build only.
         value: ${{ jobs.check.outputs.tag }}
       checksum:
-        description: The SwiftPM checksum the manifests pin for apple_tag. Empty when state is current.
+        description: "The SwiftPM checksum the manifests pin for apple_tag: the build's, or on stage publish the release's. Empty when state is current."
         value: ${{ jobs.publish.outputs.checksum || jobs.build.outputs.checksum }}
       state:
-        description: "current (nothing to do), build (built, tested and published) or pin (already released, only pinned). apple-manifests exists for build and pin."
+        description: "Stage build only: current (nothing to do), build (built and tested; stage publish releases it) or pin (already released, only pinned). apple-manifests exists for pin after stage build, and for build after stage publish."
         value: ${{ jobs.check.outputs.state }}
 
 permissions:
@@ -69,6 +93,7 @@ env:
 
 jobs:
   check:
+    if: inputs.stage == 'build'
     # Preview image label; actionlint 1.7.12 does not list it yet.
     runs-on: xcode-27
     timeout-minutes: 10
@@ -516,20 +541,40 @@ jobs:
             -destination "platform=macOS,arch=$ARCH" -jobs 2 \
             -derivedDataPath "$RUNNER_TEMP/derived-$ARCH"
 
+  # Stage publish always runs this. A call whose jobs all skip may count as
+  # skipped rather than successful, and the train's pin, which needs the
+  # call, would then skip too; this keeps one job running. It also stops on
+  # a verdict the build stage can't have given.
+  publish-verdict:
+    if: inputs.stage == 'publish'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Report the build stage's verdict
+        env:
+          STATE: ${{ inputs.state }}
+          TAG: ${{ inputs.apple_tag }}
+        run: |
+          [[ "$TAG" =~ ^apple-engine-[0-9a-f]{16}$ ]] || { echo "::error::stage publish needs apple_tag, got '$TAG'"; exit 1; }
+          case "$STATE" in
+            build) echo "publish releases $TAG" ;;
+            current|pin) echo "$TAG is already out ($STATE); nothing to publish" ;;
+            *) echo "::error::stage publish needs state build, pin or current, got '$STATE'"; exit 1 ;;
+          esac
+
+  # The caller's approval gates it; apple-xcframework comes from the build
+  # stage's call in the same run.
   publish:
-    needs: [check, build, test-ios, test-mac-arm64, test-mac-x86_64]
-    if: needs.check.outputs.state == 'build'
+    if: inputs.stage == 'publish' && inputs.state == 'build'
     runs-on: xcode-27
     timeout-minutes: 45
-    # No environment on a dry run: nothing to approve.
-    environment: ${{ !inputs.dry_run && 'release' || '' }}
     permissions:
       contents: write
     outputs:
       checksum: ${{ steps.pinned.outputs.checksum }}
     env:
-      TAG: ${{ needs.check.outputs.tag }}
-      CHECKSUM: ${{ needs.build.outputs.checksum }}
+      TAG: ${{ inputs.apple_tag }}
+      CHECKSUM: ${{ inputs.checksum }}
       DRY_RUN: ${{ inputs.dry_run }}
     steps:
       # Its token can write to this repo, so nothing here runs build code:

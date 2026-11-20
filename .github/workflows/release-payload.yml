@@ -5,16 +5,21 @@ name: release-payload
 # wasm32-eh slice release-fork-slices.yml uploaded (fork-slice-wasm32-eh),
 # stamped into buildFork's cache so the fork is not built again.
 #
+# The caller runs it twice, once per stage, with its approval between them.
+#
+#   stage build:
 #   key      computes the payload hash (runtime-payload-hash.sh) and asks the
 #            repo's releases whether that payload is out. Then nothing else runs.
+#            A draft or partial release stops the run.
 #   verify   runs the script's build stage (--stage build): link, verify,
-#            pack. No environment, no gh. Uploads the archive, its .sha256
-#            and its facts as payload-release, and the built npm/wasm32/lib
-#            as payload-wasm32. On dry_run this is the last job.
-#   publish  under the release environment, after its reviewers approve:
-#            --stage publish with the job's token, on payload-release. It
-#            runs no build code (no pnpm install, cargo or emsdk), since its
-#            token can write to this repo.
+#            pack. No gh. Uploads the archive, its .sha256 and its facts as
+#            payload-release, and the built npm/wasm32/lib as payload-wasm32.
+#
+#   stage publish, given the build stage's payload_tag and published outputs:
+#   publish-verdict  always runs: checks the inputs and says what publish does.
+#   publish  --stage publish with the job's token, on payload-release (with
+#            --dry-run on a dry run). It runs no build code (no pnpm install,
+#            cargo or emsdk), since its token can write to this repo.
 
 on:
   workflow_call:
@@ -24,12 +29,27 @@ on:
         required: false
         type: boolean
         default: false
+      stage:
+        description: build (key and verify) or publish (publish-verdict and publish).
+        required: false
+        type: string
+        default: build
+      payload_tag:
+        description: Stage publish only, the build stage's payload_tag output.
+        required: false
+        type: string
+        default: ''
+      published:
+        description: "Stage publish only: the build stage's published output. 'false' publishes."
+        required: false
+        type: string
+        default: ''
     outputs:
       payload_tag:
-        description: The payload release tag, runtime-payloads-<hash>.
+        description: The payload release tag, runtime-payloads-<hash>. Stage build only.
         value: ${{ jobs.key.outputs.payload_tag }}
       published:
-        description: "'true' when the payload was already published and this run skipped it."
+        description: "'true' when the payload was already published and this run skipped it. Stage build only."
         value: ${{ jobs.key.outputs.published }}
 
 permissions:
@@ -44,6 +64,7 @@ env:
 
 jobs:
   key:
+    if: inputs.stage == 'build'
     runs-on: ubuntu-24.04
     outputs:
       payload_tag: ${{ steps.key.outputs.payload_tag }}
@@ -57,9 +78,8 @@ jobs:
           persist-credentials: false
 
       # Published means what the script's releaseVerdict means: not a draft,
-      # with the archive and its .sha256. A draft or partial release still
-      # goes to the publish job, where the script stops on it with its own
-      # message.
+      # with the archive and its .sha256. A draft or partial release stops
+      # the run here, before the train's approval, as runtime's check does.
       - name: Compute the payload tag
         id: key
         env:
@@ -75,8 +95,8 @@ jobs:
               echo "$tag is already published on $EMBEDPDF_RELEASE_REPO; nothing to do."
               echo "published=true" >> "$GITHUB_OUTPUT"
             else
-              echo "::warning::$tag exists on $EMBEDPDF_RELEASE_REPO but is a draft or lacks $ASSET; the publish job will stop on it."
-              echo "published=false" >> "$GITHUB_OUTPUT"
+              echo "::error::$tag exists on $EMBEDPDF_RELEASE_REPO but is a draft or lacks $ASSET or its .sha256; finish or delete it, then run again: $(jq -c '{isDraft, assets: [.assets[].name]}' <<<"$view")"
+              exit 1
             fi
           elif grep -qi 'release not found' <<<"$view"; then
             echo "$tag is not on $EMBEDPDF_RELEASE_REPO yet."
@@ -88,7 +108,7 @@ jobs:
 
   verify:
     needs: key
-    if: needs.key.outputs.published == 'false'
+    if: inputs.stage == 'build' && needs.key.outputs.published == 'false'
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
@@ -154,8 +174,9 @@ jobs:
           if-no-files-found: error
 
       # A successful --stage build leaves the payload it built in
-      # npm/wasm32/lib, marked dry-run-<hash> in .payload-source. The train's
-      # dry run builds the viewer from it, since no release holds it yet.
+      # npm/wasm32/lib, marked dry-run-<hash> in .payload-source. The train
+      # builds the viewer from it, since no release holds it until after the
+      # train's approval.
       - uses: actions/upload-artifact@v6
         with:
           name: payload-wasm32
@@ -167,16 +188,38 @@ jobs:
         if: always()
         run: df -h
 
+  # Stage publish always runs this. A call whose jobs all skip may count as
+  # skipped rather than successful, and the train's pin, which needs the
+  # call, would then skip too; this keeps one job running. It also stops on
+  # a verdict the build stage can't have given.
+  publish-verdict:
+    if: inputs.stage == 'publish'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Report the build stage's verdict
+        env:
+          PUBLISHED: ${{ inputs.published }}
+          PAYLOAD_TAG: ${{ inputs.payload_tag }}
+        run: |
+          [[ "$PAYLOAD_TAG" =~ ^runtime-payloads-[0-9a-f]{16}$ ]] || { echo "::error::stage publish needs payload_tag, got '$PAYLOAD_TAG'"; exit 1; }
+          case "$PUBLISHED" in
+            false) echo "publish releases $PAYLOAD_TAG" ;;
+            true) echo "$PAYLOAD_TAG is already out; nothing to publish" ;;
+            *) echo "::error::stage publish needs published true or false, got '$PUBLISHED'"; exit 1 ;;
+          esac
+
+  # The caller's approval gates it; payload-release comes from the build
+  # stage's call in the same run.
   publish:
-    needs: [key, verify]
-    if: ${{ !inputs.dry_run && needs.key.outputs.published == 'false' }}
+    if: inputs.stage == 'publish' && inputs.published == 'false'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    environment: release
     permissions:
       contents: write
     env:
-      PAYLOAD_TAG: ${{ needs.key.outputs.payload_tag }}
+      PAYLOAD_TAG: ${{ inputs.payload_tag }}
+      DRY_RUN: ${{ inputs.dry_run }}
     steps:
       # No submodules: the payload hash reads the runtime-src gitlink from the
       # index, and --stage publish needs no checkout of it.
@@ -204,7 +247,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           echo "publishing $PAYLOAD_TAG"
-          node scripts/publish-engine-payload.mjs --only wasm --stage publish
+          if [[ "$DRY_RUN" == true ]]; then
+            node scripts/publish-engine-payload.mjs --only wasm --stage publish --dry-run
+          else
+            node scripts/publish-engine-payload.mjs --only wasm --stage publish
+          fi
           hash=$(bash packages/engine/runtime/scripts/runtime-payload-hash.sh)
           if [[ "runtime-payloads-$hash" != "$PAYLOAD_TAG" ]]; then
             echo "::error::the payload hash moved during the run: $PAYLOAD_TAG, now runtime-payloads-$hash"
