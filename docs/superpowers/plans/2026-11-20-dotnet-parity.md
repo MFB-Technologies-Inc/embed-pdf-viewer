@@ -468,6 +468,73 @@ capability never lands before one it requires.
 Wave D is the largest single piece, as on Android: its own plan should split drafts from the
 capability. Each foreign-trait adapter documents which thread calls it.
 
+### Phase 3 wave A notes (2026-11-20)
+
+Task plan: `docs/superpowers/plans/2026-11-20-dotnet-parity/03a-wave-a.md`. Branch
+`research/dotnet-parity-p3a` from `research/dotnet-parity-p2` at `cf1e8f765`, not pushed.
+
+What exists. Nine capabilities under `platforms/dotnet/EmbedPDF.Viewer/Plugins/`, one file for
+the capability and its records (`Search.cs` with `Search.Types.cs`, `Render.cs` with
+`Render.Types.cs`) and one `*.Ffi.cs` for the internal mappings. `PixelBuffer`
+(`platforms/dotnet/EmbedPDF.Viewer/PixelBuffer.cs`) carries render output, and
+`PageGeometry.ToDisplay(PixelBuffer)` is the image overload Phase 2 deferred. `SearchConfig`
+gained `Reveal`, `RenderConfig` gained `FullPage` and `Debug`. The coverage check reads 880
+members: 225 ported, 520 pending (B 68, C 167, D 143, E 142), 135 exclusions. Every wave A row
+is ported; none needed a new exclusion. `EmbedPDF.Viewer.Tests` runs 443 cases, all passing
+twice in a row; `EmbedPDF.Tests` passes its 36, `packaging` its 30 and
+`scripts/test_check_api_coverage.py` its 11. Release builds of the facade, the DI package, the
+tests and `EmbedPDF.ApiDump` report 0 warnings.
+
+What later waves reuse:
+
+- `PdfViewer.Stream(relay, subscribe, token)` in `Plugins/PluginEvents.cs` turns a generated
+  listener into an `IAsyncEnumerable<T>`. A plugin subclasses `EventRelay<TFfi, TPublic>` once,
+  forwarding `OnEvent` to `Deliver` and `OnEnd` to `Finish`. The stream is unbounded, as
+  Swift's `AsyncStream` is, ends on the kernel's `OnEnd`, the caller's token or viewer disposal,
+  and cancels the kernel subscription exactly once. A mapping that throws drops that event and
+  logs it rather than ending the stream.
+- `PdfViewer.Run` and `RunCancellable` wrap a capability call the way `CallAsync` wraps a host
+  call, so disposal drains capability calls too.
+- `Plugins/Shared.cs` holds the cross-plugin types: `ResourceStatus`, `DocumentEventOrigin`,
+  `PdfQuad`, `AnnotationRef`, `PageDestination`, `PageLinkTarget`, `LinkActivation` and
+  `PdfActionTree`. Waves B to D extend these rather than adding twins. `PdfActionTree` owns the
+  generated tree's handle; wave B adds parsing and execution to it.
+- Public enums that mirror a generated enum convert by value (`(Public)(int)generated`).
+  `EnumMirrorTests` pins that each pair lists the same cases in the same order; add a row per
+  new pair.
+- `NullArgumentTests.EveryWaveACapabilityChecksEveryReferenceArgument` reflects over each
+  capability; later waves add theirs to its list and extend `Valid` for their types.
+- `DisabledPluginTests` rows for wave A call the public accessors through `Public(...)`.
+
+Deviations, each with its reason:
+
+- Accessors are `MetadataAsync(document)`, `SearchAsync(document)` and so on, Swift's name plus
+  the `Async` suffix D4 gives every task-returning member. D4's example reads
+  `viewer.Search(document)`; that would be the only awaited member without the suffix. Needs a
+  user decision before wave B copies it.
+- Capabilities are `IDisposable`, not `IAsyncDisposable`: releasing a capability handle never
+  waits on the kernel. `RenderViewDemand` is `IAsyncDisposable` because its `DisposeAsync` is the
+  engine's `dispose`, which is a kernel call.
+- Single-purpose event records are folded into their event case
+  (`SearchEvent.Completed(int HitCount)` instead of `Completed(SearchCompletedEvent)`), which
+  removes a type per case. Metadata keeps `MetadataUpdatedEvent` and
+  `CustomMetadataUpdatedEvent` because they carry three fields each.
+- `RenderPageOptions` takes `ContentInclusion` for its two layers, not `bool?`, matching every
+  other render member.
+- `PixelBuffer`'s constructor throws `ArgumentException`, not `PdfException`: it validates the
+  caller's own array, and the plan's `invalid-input` would have dressed a programming error as
+  an engine refusal. A malformed raster from the engine is `invalid-state`.
+- The turned copy from `PageGeometry.ToDisplay(PixelBuffer)` keeps the source's format and
+  alpha. Swift's draws into a premultiplied context, so its output is always premultiplied.
+- Shell props take a `JsonTypeInfo<T>` where Swift takes any `Encodable`, so the typed overloads
+  stay trim and AOT safe. Swift's `focus` open option is not exposed, as in Swift.
+- The page-attachment case of `AttachmentTests.swift` creates its file through annotation
+  drafts, so it ports with wave D. The deprecated `in:` accessors in `AccessorNameTests.swift`
+  have no C# counterpart; C# never shipped them.
+- The snapshot test drives the snapshot tool through the generated interaction handle, since
+  interaction is wave B. Wave B switches it to the public capability.
+- History's task ran after page edit's, because `HistoryTests.swift` edits pages.
+
 ## Phase 4: Models
 
 About 1.5 weeks. Exit: every model in `Sources/EmbedPDFModels/` has a C# counterpart with its

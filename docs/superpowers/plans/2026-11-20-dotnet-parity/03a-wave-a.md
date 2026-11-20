@@ -48,11 +48,11 @@
 - Internal `PdfViewer.Stream<TFfi, TPublic>(Func<EventRelay<TFfi, TPublic>, GF.Subscription> subscribe, Func<TFfi, TPublic> map, CancellationToken)` returns an `IAsyncEnumerable<TPublic>`; internal abstract `EventRelay<TFfi, TPublic>` with `Deliver(TFfi)` and `Finish()`; each plugin adds a one-line subclass implementing its generated listener. A mapping that throws drops that event and logs it.
 - Shared public types: `ResourceStatus {Idle, Loading, Ready, Forbidden, Error}`; `DocumentEventOrigin(DocumentEventOriginKind Kind, string SessionId, string? Subject, string At, long? ServerSequence, DocumentEventTransaction? Transaction, string? UndoOf)`, `DocumentEventTransaction(string Id, int Index, int Count)`, `enum DocumentEventOriginKind {Local, Remote}`; `readonly record struct PdfQuad(PdfPoint UpperLeft, PdfPoint UpperRight, PdfPoint LowerLeft, PdfPoint LowerRight)` with `PdfQuad(PdfRect)` (the `CoreGraphicsBridges.swift` `Quad(Rect)` port); `AnnotationRef` union (`ObjectNumber(PageRef Page, int AnnotObjectNumber)`, `Index(PageRef Page, int IndexValue)`); `PageDestination` and `PageLinkTarget` unions as `epdf_ffi`; `LinkActivation` union as `epdf_plugin_link`; `PdfActionTree : IDisposable` over the generated object with `IsIncomplete`, `Json`, `RootType` (wave B extends it).
 
-- [ ] **Step 1: Failing tests.** `PluginEventsTests`: a fake subscribe whose relay gets three events yields them in order; `Finish` ends enumeration; cancelling ends it with `OperationCanceledException` and cancels the generated subscription once; disposing the viewer ends a live stream and a stream opened after disposal ends at once; `Deliver` with no reader returns at once 10,000 times. `MappingTests` additions: `PdfQuad(new PdfRect(1, 2, 3, 4))` is `(1,2),(4,2),(1,6),(4,6)`; every `PageLinkTarget` and `LinkActivation` case maps.
-- [ ] **Step 2:** Run. Expected: build FAIL.
-- [ ] **Step 3:** Implement.
-- [ ] **Step 4:** PASS, 0 warnings.
-- [ ] **Step 5:** Commit `feat(dotnet): add plugin event streams and shared plugin types`.
+- [x] **Step 1: Failing tests.** `PluginEventsTests`: a fake subscribe whose relay gets three events yields them in order; `Finish` ends enumeration; cancelling ends it with `OperationCanceledException` and cancels the generated subscription once; disposing the viewer ends a live stream and a stream opened after disposal ends at once; `Deliver` with no reader returns at once 10,000 times. `MappingTests` additions: `PdfQuad(new PdfRect(1, 2, 3, 4))` is `(1,2),(4,2),(1,6),(4,6)`; every `PageLinkTarget` and `LinkActivation` case maps.
+- [x] **Step 2:** Run. Expected: build FAIL.
+- [x] **Step 3:** Implement.
+- [x] **Step 4:** PASS, 0 warnings.
+- [x] **Step 5:** Commit `feat(dotnet): add plugin event streams and shared plugin types`.
 
 ### Task 2: Metadata
 
@@ -60,11 +60,14 @@
 
 **Interfaces:** `MetadataAsync(DocumentInfo)`. `MetadataCapability`: `GetSnapshotAsync` (`DocumentMetadata?`), `GetStatusAsync`, `CanUpdateAsync`, `EnsureLoadedAsync`, `UpdateAsync(MetadataPatch)` (`DocumentMetadata`), `RefreshAsync`, `GetCustomSnapshotAsync` (`IReadOnlyDictionary<string, string>?`), `GetCustomStatusAsync`, `UpdateCustomAsync(IReadOnlyDictionary<string, string?>)`, `RefreshCustomAsync`, `ObserveEvents`. Records `DocumentMetadata`, `MetadataPatch`, `MetadataField`, `DocumentMetadataTrapped`, `MetadataEvent` (`Updated`, `Resynced`, `CustomUpdated`, `CustomResynced`), `MetadataUpdatedEvent`, `CustomMetadataUpdatedEvent`.
 
-- [ ] **Step 1:** Port `MetadataTests.swift`; add review focus 1 and 2 against the real plugin.
-- [ ] **Step 2-4:** FAIL, implement, PASS.
-- [ ] **Step 5:** Flip the 15 metadata rows; commit `feat(dotnet): add the metadata capability`.
+- [x] **Step 1:** Port `MetadataTests.swift`; add review focus 1 and 2 against the real plugin.
+- [x] **Step 2-4:** FAIL, implement, PASS.
+- [x] **Step 5:** Flip the 15 metadata rows; commit `feat(dotnet): add the metadata capability`.
 
 ### Task 3: History
+
+Ran after Task 9: `HistoryTests.swift` edits pages.
+
 
 `HistoryAsync`; `HistoryCapability`: `CanUndoAsync`, `CanRedoAsync`, `GetUndoLabelAsync`, `GetRedoLabelAsync` (`HistoryChangeLabel?`), `UndoAsync`, `RedoAsync`, `ClearAsync`, `GetSettingsAsync`, `UpdateSettingsAsync(HistorySettingsPatch)`, `ResetSettingsAsync`, `ObserveEvents`. `HistoryEvent` (`Undone(Label, Redo, long Skipped)`, `UndoFailed(Label, Redo, HistoryUndoFailure Reason, PluginErrorInfo Error)`, `SettingsChanged(HistorySettings, IReadOnlyList<string> Changed)`), `HistoryLabelValue` (`Text`, `Number`). Port `HistoryTests.swift` (needs metadata edits for undo). Flip 13 rows. Commit `feat(dotnet): add the history capability`.
 
@@ -76,9 +79,9 @@
 
 **Files:** `PixelBuffer.cs`, modify `PageGeometry.cs`; `PixelBufferTests.cs`, `PageGeometryTests.cs` (image cases).
 
-**Interfaces:** `public sealed class PixelBuffer(byte[] pixels, int width, int height, int stride, PixelFormat format, bool isPremultiplied)` exposing `ReadOnlyMemory<byte> Pixels`, `Width`, `Height`, `Stride`, `Format`, `IsPremultiplied`, `GetRow(int y)` (`ReadOnlySpan<byte>` of `Width * 4` bytes), `ToPacked()` (stride `Width * 4`), `ToPremultiplied()`; `enum PixelFormat {Rgba8, Bgra8}`; `ToBgra()` swaps channels. Constructor checks `stride >= width * 4` and `pixels.Length >= stride * height` (`invalid-input`). `PageGeometry.ToDisplay(PixelBuffer)` returns the buffer itself for `None`, otherwise a packed turned copy, as `PageGeometry.swift:109`.
+**Interfaces:** `public sealed class PixelBuffer(byte[] pixels, int width, int height, int stride, PixelFormat format, bool isPremultiplied)` exposing `ReadOnlyMemory<byte> Pixels`, `Width`, `Height`, `Stride`, `Format`, `IsPremultiplied`, `GetRow(int y)` (`ReadOnlySpan<byte>` of `Width * 4` bytes), `ToPacked()` (stride `Width * 4`), `ToPremultiplied()`; `enum PixelFormat {Rgba8, Bgra8}`; `ToBgra()` swaps channels. Constructor checks `stride >= width * 4` and `pixels.Length >= stride * height` and throws `ArgumentException` (changed in execution: it validates the caller's array, not an engine answer). `PageGeometry.ToDisplay(PixelBuffer)` returns the buffer itself for `None`, otherwise a packed turned copy, as `PageGeometry.swift:109`.
 
-- [ ] Tests: port the image cases of `PageGeometryTests.swift` (a 2x1 buffer turned 90 is 1x2 with pixels in the turned order, 180 reverses, 270) plus a padded-stride case (review focus 3); `ToPremultiplied` halves color at alpha 128; `ToBgra` swaps R and B; a short buffer throws. Commit `feat(dotnet): add PixelBuffer and the image overload of PageGeometry`.
+- [x] Tests: port the image cases of `PageGeometryTests.swift` (a 2x1 buffer turned 90 is 1x2 with pixels in the turned order, 180 reverses, 270) plus a padded-stride case (review focus 3); `ToPremultiplied` halves color at alpha 128; `ToBgra` swaps R and B; a short buffer throws. Commit (done). `feat(dotnet): add PixelBuffer and the image overload of PageGeometry`.
 
 ### Task 6: Render
 
@@ -106,6 +109,6 @@
 
 ### Task 12: Accessor tables, null checks, verify and record
 
-- [ ] Switch the wave A rows of `DisabledPluginTests` and `ViewerConfigBuilderTests` to the public accessors; extend `NullArgumentTests` to every wave A capability; port the plugin cases of `IntegerSurfaceTests.swift` that wave A owns.
-- [ ] Run `dotnet test EmbedPDF.Viewer.Tests` twice, `EmbedPDF.Tests`, `python3 -m unittest discover -s platforms/dotnet/packaging`, `python3 -m unittest scripts/test_check_api_coverage.py`, `python3 scripts/check-api-coverage.py --platform csharp`, `dotnet build -c Release` with 0 warnings.
-- [ ] Tick this plan, add "Phase 3 wave A notes" to the umbrella. Commit `chore(dotnet): record Phase 3 wave A`.
+- [x] Switch the wave A rows of `DisabledPluginTests` and `ViewerConfigBuilderTests` to the public accessors; extend `NullArgumentTests` to every wave A capability; port the plugin cases of `IntegerSurfaceTests.swift` that wave A owns.
+- [x] Run `dotnet test EmbedPDF.Viewer.Tests` twice, `EmbedPDF.Tests`, `python3 -m unittest discover -s platforms/dotnet/packaging`, `python3 -m unittest scripts/test_check_api_coverage.py`, `python3 scripts/check-api-coverage.py --platform csharp`, `dotnet build -c Release` with 0 warnings.
+- [x] Tick this plan, add "Phase 3 wave A notes" to the umbrella. Commit `chore(dotnet): record Phase 3 wave A`.
