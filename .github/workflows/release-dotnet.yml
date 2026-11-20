@@ -663,6 +663,11 @@ jobs:
       - name: Viewer tests
         run: dotnet test platforms/dotnet/EmbedPDF.Viewer.Tests/EmbedPDF.Viewer.Tests.csproj
 
+      - name: C# API coverage
+        run: |
+          python3 -m unittest scripts/test_check_api_coverage.py
+          python3 scripts/check-api-coverage.py --platform csharp
+
       - name: Pack EmbedPDF
         run: |
           python3 platforms/dotnet/packaging/package.py pack-facade \
