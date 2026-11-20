@@ -111,6 +111,42 @@ public final class com/embedpdf/MetadataKt {
 	public static final fun metadata (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class com/embedpdf/OutlineCapability {
+	public final fun activate (Luniffi/epdf_plugin_outline/OutlineItemRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canEdit (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun children (Luniffi/epdf_plugin_outline/OutlineItemRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun children$default (Lcom/embedpdf/OutlineCapability;Luniffi/epdf_plugin_outline/OutlineItemRef;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun collapse (Luniffi/epdf_plugin_outline/OutlineItemRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun collapseAll (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun create (Luniffi/epdf_plugin_outline/OutlineItemInput;Luniffi/epdf_plugin_outline/OutlineCreateOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun create$default (Lcom/embedpdf/OutlineCapability;Luniffi/epdf_plugin_outline/OutlineItemInput;Luniffi/epdf_plugin_outline/OutlineCreateOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun currentItem (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun currentViewTarget (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun delete (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun ensureLoaded (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun expand (Luniffi/epdf_plugin_outline/OutlineItemRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun expandAll (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun isExpanded (Luniffi/epdf_plugin_outline/OutlineItemRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun isIncomplete (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun item (Luniffi/epdf_plugin_outline/OutlineItemRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun list (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun move (Ljava/util/List;Luniffi/epdf_plugin_outline/OutlineItemRef;Luniffi/epdf_plugin_outline/OutlinePosition;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun move$default (Lcom/embedpdf/OutlineCapability;Ljava/util/List;Luniffi/epdf_plugin_outline/OutlineItemRef;Luniffi/epdf_plugin_outline/OutlinePosition;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
+	public final fun refresh (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun reveal (Luniffi/epdf_plugin_outline/OutlineItemRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun rows (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun select (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun selectedItems (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun status (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun toggle (Luniffi/epdf_plugin_outline/OutlineItemRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun update (Luniffi/epdf_plugin_outline/OutlineItemRef;Luniffi/epdf_plugin_outline/OutlineItemPatch;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/OutlineKt {
+	public static final fun outline (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class com/embedpdf/PageEditCapability {
 	public final fun canEdit (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun canExtract (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
