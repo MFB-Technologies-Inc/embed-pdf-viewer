@@ -91,6 +91,16 @@ public final class com/embedpdf/ExportsKt {
 	public static final fun HostFailure (Ljava/lang/Throwable;)Luniffi/epdf_ffi/HostFailure;
 }
 
+public final class com/embedpdf/GeometryBridgesKt {
+	public static final fun toPoint (Landroid/graphics/PointF;)Luniffi/epdf_ffi/Point;
+	public static final fun toPointF (Luniffi/epdf_ffi/Point;)Landroid/graphics/PointF;
+	public static final fun toQuad (Luniffi/epdf_ffi/Rect;)Luniffi/epdf_ffi/Quad;
+	public static final fun toRect (Landroid/graphics/RectF;)Luniffi/epdf_ffi/Rect;
+	public static final fun toRectF (Luniffi/epdf_ffi/Rect;)Landroid/graphics/RectF;
+	public static final fun toSize (Landroid/util/SizeF;)Luniffi/epdf_ffi/Size;
+	public static final fun toSizeF (Luniffi/epdf_ffi/Size;)Landroid/util/SizeF;
+}
+
 public final class com/embedpdf/HistoryCapability {
 	public final fun canRedo (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun canUndo (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -194,6 +204,41 @@ public final class com/embedpdf/PageEditKt {
 	public static final fun pageEdit (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class com/embedpdf/PageGeometry {
+	public fun <init> (ILuniffi/epdf_ffi/Size;)V
+	public fun <init> (Luniffi/epdf_plugin_render/RenderRotation;Luniffi/epdf_ffi/Size;)V
+	public final fun component1 ()Luniffi/epdf_plugin_render/RenderRotation;
+	public final fun component2 ()Luniffi/epdf_ffi/Size;
+	public final fun copy (Luniffi/epdf_plugin_render/RenderRotation;Luniffi/epdf_ffi/Size;)Lcom/embedpdf/PageGeometry;
+	public static synthetic fun copy$default (Lcom/embedpdf/PageGeometry;Luniffi/epdf_plugin_render/RenderRotation;Luniffi/epdf_ffi/Size;ILjava/lang/Object;)Lcom/embedpdf/PageGeometry;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDisplaySize ()Luniffi/epdf_ffi/Size;
+	public final fun getDisplaySizeF ()Landroid/util/SizeF;
+	public final fun getPageSize ()Luniffi/epdf_ffi/Size;
+	public final fun getRotation ()I
+	public final fun getTurn ()Luniffi/epdf_plugin_render/RenderRotation;
+	public fun hashCode ()I
+	public final fun toDisplay (Landroid/graphics/Bitmap;)Landroid/graphics/Bitmap;
+	public final fun toDisplay (Landroid/graphics/PointF;)Landroid/graphics/PointF;
+	public final fun toDisplay (Landroid/graphics/RectF;)Landroid/graphics/RectF;
+	public final fun toDisplay (Lcom/embedpdf/PageImage;)Lcom/embedpdf/PageImage;
+	public final fun toDisplay (Luniffi/epdf_ffi/Point;)Luniffi/epdf_ffi/Point;
+	public final fun toDisplay (Luniffi/epdf_ffi/Rect;)Luniffi/epdf_ffi/Rect;
+	public final fun toPage (Landroid/graphics/PointF;)Landroid/graphics/PointF;
+	public final fun toPage (Landroid/graphics/RectF;)Landroid/graphics/RectF;
+	public final fun toPage (Luniffi/epdf_ffi/Point;)Luniffi/epdf_ffi/Point;
+	public final fun toPage (Luniffi/epdf_ffi/Rect;)Luniffi/epdf_ffi/Rect;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/PageGeometryKt {
+	public static final fun fromDegrees (Luniffi/epdf_plugin_render/RenderRotation$Companion;D)Luniffi/epdf_plugin_render/RenderRotation;
+	public static final fun fromDegrees (Luniffi/epdf_plugin_render/RenderRotation$Companion;I)Luniffi/epdf_plugin_render/RenderRotation;
+	public static final fun getDegrees (Luniffi/epdf_plugin_render/RenderRotation;)I
+	public static final fun getGeometry (Luniffi/epdf_ffi/PageInfo;)Lcom/embedpdf/PageGeometry;
+	public static final fun isQuarterTurn (Luniffi/epdf_plugin_render/RenderRotation;)Z
+}
+
 public final class com/embedpdf/PageImage {
 	public final fun copyPixels ()[B
 	public final fun getHeight ()I
@@ -201,6 +246,29 @@ public final class com/embedpdf/PageImage {
 	public final fun getWidth ()I
 	public final fun pixel (II)I
 	public final fun toBitmap ()Landroid/graphics/Bitmap;
+}
+
+public final class com/embedpdf/PageRenderResolution {
+	public static final field Companion Lcom/embedpdf/PageRenderResolution$Companion;
+	public static final field DEVICE_WIDTH_STEP D
+	public static final field OFF_SCREEN_DEVICE_WIDTH D
+	public fun <init> (DZ)V
+	public final fun component1 ()D
+	public final fun component2 ()Z
+	public final fun copy (DZ)Lcom/embedpdf/PageRenderResolution;
+	public static synthetic fun copy$default (Lcom/embedpdf/PageRenderResolution;DZILjava/lang/Object;)Lcom/embedpdf/PageRenderResolution;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDeviceWidth ()D
+	public fun hashCode ()I
+	public final fun isFull ()Z
+	public fun toString ()Ljava/lang/String;
+	public final fun unrotatedDeviceWidth (DD)D
+}
+
+public final class com/embedpdf/PageRenderResolution$Companion {
+	public final fun bandedScale (DD)D
+	public final fun forPage (DDDZ)Lcom/embedpdf/PageRenderResolution;
+	public static synthetic fun forPage$default (Lcom/embedpdf/PageRenderResolution$Companion;DDDZILjava/lang/Object;)Lcom/embedpdf/PageRenderResolution;
 }
 
 public final class com/embedpdf/PdfException : java/lang/Exception {
