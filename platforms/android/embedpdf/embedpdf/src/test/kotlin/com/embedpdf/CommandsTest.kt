@@ -366,4 +366,37 @@ class CommandsTest {
         viewer.close()
         viewer.setCommandsPlatform(platform)
     }
+
+    /** `SignatureTransportTests.theStandardCommandsJoinInUpstreamsOrderAndReachThePlatform`. */
+    @Test
+    fun theStandardCommandsJoinInUpstreamsOrderAndReachThePlatform() = viewerTest {
+        // Named out of order: the join keeps upstream's.
+        val viewer = started(
+            ViewerConfig(
+                interaction = true, history = true, selection = true, annotation = "", commands = true,
+                standardCommands = listOf(StandardCommandList.DOCUMENT, StandardCommandList.HISTORY),
+            ),
+        )
+        val saved = java.util.Collections.synchronizedList(mutableListOf<Triple<ByteArray, String, String>>())
+        viewer.setCommandsPlatform(
+            object : StandardCommandsPlatform {
+                override fun saveFile(bytes: ByteArray, fileName: String, contentType: String) {
+                    saved.add(Triple(bytes, fileName, contentType))
+                }
+
+                override fun copyText(text: String, completion: StandardCommandCompletion) = completion.finish()
+
+                override fun copyImage(png: ByteArray, completion: StandardCommandCompletion) = completion.finish()
+            },
+        )
+        val document = viewer.open(Fixture.bytes("unsigned_sigfield"))
+        val commands = viewer.commands()
+        val ids = commands.commandIds()
+        assertTrue("$ids", ids.indexOf("history:undo") in 0 until ids.indexOf("document:download"))
+        assertEquals(CommandExecuteResultExecuted, commands.execute("document:download", document))
+        assertEquals(1, saved.size)
+        assertEquals("%PDF", String(saved[0].first, 0, 4, Charsets.US_ASCII))
+        assertEquals("application/pdf", saved[0].third)
+        viewer.destroy()
+    }
 }

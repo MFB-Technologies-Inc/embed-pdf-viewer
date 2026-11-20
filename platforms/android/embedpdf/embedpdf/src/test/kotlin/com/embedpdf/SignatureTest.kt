@@ -380,4 +380,24 @@ class SignatureTest {
         assertFalse(signatures.canFill(field))
         viewer.destroy()
     }
+
+    /** `SignatureTransportTests.theSignatureSettingsCarryTheNewFields`. */
+    @Test
+    fun theSignatureSettingsCarryTheNewFields() = viewerTest {
+        val viewer = started(
+            ViewerConfig(
+                interaction = true, annotation = "", form = FormConfig(),
+                signature = SignatureConfig(timestampAuthority = SignatureTimestampAuthority(url = "https://tsa.example/"), documentTimestamp = true),
+            ),
+        )
+        val signatures = viewer.signatures(viewer.open(Fixture.bytes("unsigned_sigfield")))
+        var settings = signatures.settings()
+        assertTrue("$settings", settings.hasTimestampAuthority && !settings.hasRevocation && settings.documentTimestamp)
+        signatures.updateSettings(SignatureSettingsPatch(clearTimestampAuthority = true, documentTimestamp = false))
+        settings = signatures.settings()
+        assertTrue("$settings", !settings.hasTimestampAuthority && !settings.documentTimestamp)
+        // No route and no anchors: nothing to fill with.
+        assertFalse(signatures.canAddValidationInfo())
+        viewer.destroy()
+    }
 }

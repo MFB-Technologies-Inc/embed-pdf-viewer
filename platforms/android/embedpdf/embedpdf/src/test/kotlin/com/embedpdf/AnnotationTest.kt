@@ -376,4 +376,13 @@ class AnnotationTest {
         assertNotNull(annotations.get(ref))
         annotations.viewer.destroy()
     }
+
+    /** `SignatureTransportTests.noCreationAwaitsAClickWithNoToolArmed`. */
+    @Test
+    fun noCreationAwaitsAClickWithNoToolArmed() = viewerTest {
+        val viewer = started(ViewerConfig(interaction = true, annotation = ""))
+        val annotations = viewer.annotations(viewer.open(Fixture.bytes("report")))
+        org.junit.Assert.assertFalse(annotations.drafts.hasCreationAwaitingClick())
+        viewer.destroy()
+    }
 }

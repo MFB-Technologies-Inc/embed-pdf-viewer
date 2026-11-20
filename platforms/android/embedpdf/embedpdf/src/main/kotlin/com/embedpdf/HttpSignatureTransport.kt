@@ -1,4 +1,4 @@
-package com.embedpdf.viewer
+package com.embedpdf
 
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -17,22 +17,20 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
-import uniffi.epdf_plugin_signature.SignatureTransport
-import uniffi.epdf_plugin_signature.SignatureTransportCompletion
 import uniffi.epdf_plugin_signature.SignatureTransportCompletionInterface
-import uniffi.epdf_plugin_signature.SignatureTransportRequest
 
 /**
- * The viewer's signature transport (D-1) on `HttpURLConnection`: the one POST
- * a timestamp authority or a revocation route sends. Set it with
- * `ViewerHost.setSignatureTransport(HttpSignatureTransport())`.
+ * The viewer's signature transport on `HttpURLConnection`: the one POST a
+ * timestamp authority or a revocation route sends. Set it with
+ * `viewer.setSignatureTransport(HttpSignatureTransport())`, beside the signer
+ * and the trust anchors.
  *
  * One `post` is one attempt. The Rust clients keep everything around it:
  * the RFC 3161 query, the route's JSON, retries and their delay, what a
  * status means and the error texts. So every status answers `replied`.
  *
- * The host enforces the request's limits, because the client has no timer of
- * its own:
+ * The transport enforces the request's limits, because the client has no
+ * timer of its own:
  * - `timeoutMs` covers the whole exchange, connecting, sending and reading
  *   the reply. Past it the answer is `timedOut` and the connection is cut.
  * - `maxReplyBytes`: a 2xx reply whose `content-length` or body runs past it
@@ -45,15 +43,16 @@ import uniffi.epdf_plugin_signature.SignatureTransportRequest
  * The completion is answered exactly once, whichever of the reply, the
  * deadline or a failure comes first, and released after.
  *
- * `post` is called on the kernel thread and returns at once: the exchange
- * runs on [executor]. On Android, a cleartext `http://` address also needs
- * the app's network security config to allow it.
+ * `post` is called on the viewer's kernel thread and returns at once: the
+ * exchange runs on a thread of its own. On Android, a cleartext `http://`
+ * address also needs the app's network security config to allow it.
  */
-class HttpSignatureTransport(
-    private val executor: Executor = sharedExecutor,
-    private val timer: ScheduledExecutorService = sharedTimer,
-    private val open: (URL) -> HttpURLConnection = { it.openConnection() as HttpURLConnection },
+public class HttpSignatureTransport internal constructor(
+    private val executor: Executor,
+    private val timer: ScheduledExecutorService,
+    private val open: (URL) -> HttpURLConnection,
 ) : SignatureTransport {
+    public constructor() : this(sharedExecutor, sharedTimer, { it.openConnection() as HttpURLConnection })
 
     override fun post(request: SignatureTransportRequest, completion: SignatureTransportCompletion) {
         send(request, completion) { completion.destroy() }
@@ -63,7 +62,7 @@ class HttpSignatureTransport(
      * [post] against any completion, so a test can count the answers.
      * [released] runs once, after the one answer.
      */
-    fun send(
+    internal fun send(
         request: SignatureTransportRequest,
         completion: SignatureTransportCompletionInterface,
         released: () -> Unit = {},
@@ -172,7 +171,7 @@ class HttpSignatureTransport(
         }
     }
 
-    companion object {
+    private companion object {
         private fun daemon(name: String) = ThreadFactory { task ->
             Thread(task, name).apply { isDaemon = true }
         }
@@ -187,7 +186,7 @@ class HttpSignatureTransport(
             }
 
         /** The body, or null once it passes [limit] bytes. */
-        internal fun readUpTo(input: InputStream, limit: Long): ByteArray? {
+        fun readUpTo(input: InputStream, limit: Long): ByteArray? {
             val out = ByteArrayOutputStream()
             val buffer = ByteArray(16 * 1024)
             var total = 0L

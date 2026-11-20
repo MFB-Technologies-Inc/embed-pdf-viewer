@@ -288,12 +288,14 @@ UniFFI's checksum constants, mismatch exceptions, and contract-version checks.
 
 ## The signature transport
 
-`viewer/HttpSignatureTransport.kt` is the viewer's HTTP door for signatures:
-the POST a timestamp authority or a revocation route sends, on
-`HttpURLConnection`. Set it on the full viewer host, beside the signer and the
-trust anchors:
+`HttpSignatureTransport` (`embedpdf/embedpdf/src/main/kotlin/com/embedpdf/HttpSignatureTransport.kt`)
+is the viewer's HTTP door for signatures: the POST a timestamp authority or a
+revocation route sends, on `HttpURLConnection`. Set it beside the signer and
+the trust anchors:
 
 ```kotlin
+viewer.setSigner(AndroidKeyStoreSigner("my-signing-key"))
+viewer.setTrust(TrustAnchors.fromAssets(context.assets, listOf("trust/our-ca.pem")))
 viewer.setSignatureTransport(HttpSignatureTransport())
 ```
 
@@ -303,31 +305,28 @@ and the error texts stay in the Rust clients, so every status answers
 client has no timer: `timeoutMs` covers connecting, sending and reading, and a
 2xx reply past `maxReplyBytes` is `tooLarge`. A reply outside 2xx that runs
 past the limit, breaks off or is still arriving at the deadline is `replied`
-with its status and no body. The completion is answered exactly once.
+with its status and no body. The completion is answered exactly once. On
+Android a cleartext `http://` route also needs the app's network security
+config to allow it.
 
-It isn't in the AAR yet. The AAR's bindings now carry the signature plugin, so
-the file compiles against them, and it moves into the `embedpdf` facade module
-with the signature capability. On Android
-a cleartext `http://` route also needs the app's network security config to
-allow it.
+It moved from `viewer/` into the facade with the signature capability, and its
+tests are Gradle tests now. `HttpSignatureTransportTest` sends requests to a
+loopback server for each outcome, the deadline and the size limit, and counts
+the answers. `SignatureRoutesTest` signs through the viewer against
+upstream's `timestampRoute` and `revocationRoute`, which
+`tests/signature-routes.mjs` serves from `packages/core/signature/dist`: a
+granted timestamp, a long-term validation fill and a call with no authority.
+The test starts the helper with `node` and is skipped when `node` or the
+`dist` is missing. `test-signature.sh` replaces the old `kotlinc` script and
+runs both classes with that skip turned into a failure:
 
 ```bash
-KOTLINC=/path/to/kotlinc \
-JNA_JAR=/path/to/jna-5.14.0.jar \
-COROUTINES_JAR=/path/to/kotlinx-coroutines-core-jvm-1.10.2.jar \
+pnpm --filter @embedpdf/core-signature build
 bash platforms/android/test-signature.sh
 ```
 
-`tests/SignatureTest.kt` sends requests to a loopback server for each outcome,
-the deadline and the size limit, and counts the answers. It then signs through
-the viewer against upstream's `timestampRoute` and `revocationRoute`, which
-`tests/signature-routes.mjs` serves from `packages/core/signature/dist` (build
-that package first). That covers a granted timestamp, a long-term validation
-fill and one call through each surface the catch-up added: the signature
-settings and per-call authority, `addValidationInfo`, the verdict's
-revocation, timestamp and long-term fields, `SignatureRequestedTime`, the
-standard command lists, `ToolPermission`, `hasCreationAwaitingClick` and
-`StampImportOptions.id`.
+The cost is that a plain `./gradlew :embedpdf:testDebugUnitTest` on a checkout
+without the `dist` passes with the route tests skipped.
 
 The test authority writes no nonce and the Rust client checks one, so the
 helper sets the query's nonce on the token while it signs. A real authority

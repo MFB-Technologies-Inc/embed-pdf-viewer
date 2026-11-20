@@ -70,6 +70,8 @@ tasks.withType<Test>().configureEach {
     // Robolectric classes share the JVM with plain ones: EmbedPdfTestRunner
     // keeps the generated bindings out of Robolectric's sandbox class loader.
     systemProperty("jna.library.path", linuxHost["linuxHostDir"].toString())
+    // SignatureRoutesTest starts platforms/android/tests/signature-routes.mjs from here.
+    systemProperty("embedpdf.repoRoot", repoRoot.path)
     systemProperty(
         "embedpdf.fixtureDirs",
         listOf(

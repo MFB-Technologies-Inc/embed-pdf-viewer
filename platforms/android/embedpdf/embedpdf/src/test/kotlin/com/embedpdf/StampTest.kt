@@ -373,4 +373,12 @@ class StampTest {
         expectCancelledBeforeItStarts { stamps.restore(store) }
         viewer.destroy()
     }
+
+    /** `SignatureTransportTests.stampImportOptionsIdNamesTheLibrary`. */
+    @Test
+    fun stampImportOptionsIdNamesTheLibrary() = viewerTest {
+        val (viewer, stamps) = started()
+        assertEquals("kotlin-library", stamps.importLibrary(Fixture.bytes("stamps"), StampImportOptions(id = "kotlin-library")))
+        viewer.destroy()
+    }
 }
