@@ -62,11 +62,11 @@
 - `AnnotationReply(AnnotationRef To) { AnnotationReplyType? Type }`; `AnnotationCommonFields` (init `Nm`, `Subject`, `Reply`, `GroupId` as `JsonNullable<...>?`; `Invisible`, `Hidden`, `Print`, `NoZoom`, `NoRotate`, `NoView`, `ReadOnly`, `Locked`, `ToggleNoView`, `LockedContents` as `bool?`).
 - `AnnotationRichText` family (above); `PdfMeasurement(string Subtype) { Ratio; X; Y; Distance; Area; Angle; Slope; Origin; Cyx }`, `PdfNumberFormat(string Unit) { Conversion; Fraction; Precision; Fixed; Thousands; Decimal; PrefixSpacing; SuffixSpacing; LabelPosition }`, `MeasureOrigin(double X, double Y)`.
 
-- [ ] **Step 1: Failing tests.** Port `AnnotationColorTests.swift` (hex reads either case and writes lowercase; the nine malformed strings fail `TryParse` and `Parse` throws `FormatException`; JSON writes `"#1f6feb"`; a `JsonNullable<AnnotationColor>` takes a colour). New `AnnotationVocabularyTests`: every enum's wire names equal Swift's raw values (`theVocabularyIsTheEnginesSpelling`, `noteIconsAreTheEnginesNames`); `AnnotationPosition.Json` for all four cases; `AnnotationLinkTarget` JSON for `goto` (xyz with nulls), `uri`, `named` and back; `AnnotationRichText.FromPlainText("a\r\nb\rc")` has three paragraphs and `PlainText` `"a\nb\nc"`; `richTextEncodesItsOpenMapsFlat`; `aMeasureEncodesEveryMember`.
-- [ ] **Step 2:** Run `dotnet test EmbedPDF.Viewer.Tests --filter "AnnotationColorTests|AnnotationVocabularyTests"`. Expected: build FAIL.
-- [ ] **Step 3:** Implement.
-- [ ] **Step 4:** PASS, 0 warnings.
-- [ ] **Step 5:** Commit `feat(dotnet): add the annotation vocabulary and field bag`.
+- [x] **Step 1: Failing tests.** Port `AnnotationColorTests.swift` (hex reads either case and writes lowercase; the nine malformed strings fail `TryParse` and `Parse` throws `FormatException`; JSON writes `"#1f6feb"`; a `JsonNullable<AnnotationColor>` takes a colour). New `AnnotationVocabularyTests`: every enum's wire names equal Swift's raw values (`theVocabularyIsTheEnginesSpelling`, `noteIconsAreTheEnginesNames`); `AnnotationPosition.Json` for all four cases; `AnnotationLinkTarget` JSON for `goto` (xyz with nulls), `uri`, `named` and back; `AnnotationRichText.FromPlainText("a\r\nb\rc")` has three paragraphs and `PlainText` `"a\nb\nc"`; `richTextEncodesItsOpenMapsFlat`; `aMeasureEncodesEveryMember`.
+- [x] **Step 2:** Run `dotnet test EmbedPDF.Viewer.Tests --filter "AnnotationColorTests|AnnotationVocabularyTests"`. Expected: build FAIL.
+- [x] **Step 3:** Implement.
+- [x] **Step 4:** PASS, 0 warnings.
+- [x] **Step 5:** Commit `feat(dotnet): add the annotation vocabulary and field bag`.
 
 ### Task 2: Typed drafts and patches
 

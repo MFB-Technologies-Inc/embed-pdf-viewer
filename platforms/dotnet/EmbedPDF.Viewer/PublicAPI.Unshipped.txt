@@ -572,6 +572,232 @@ EmbedPDF.ActionsSettingsPatch.Policy.get -> EmbedPDF.ActionPolicyPatch?
 EmbedPDF.ActionsSettingsPatch.Policy.init -> void
 EmbedPDF.ActionsSettingsPatch.Triggers.get -> EmbedPDF.TriggerGates?
 EmbedPDF.ActionsSettingsPatch.Triggers.init -> void
+EmbedPDF.AnnotationBlendMode
+EmbedPDF.AnnotationBlendMode.Color = 14 -> EmbedPDF.AnnotationBlendMode
+EmbedPDF.AnnotationBlendMode.ColorBurn = 7 -> EmbedPDF.AnnotationBlendMode
+EmbedPDF.AnnotationBlendMode.ColorDodge = 6 -> EmbedPDF.AnnotationBlendMode
+EmbedPDF.AnnotationBlendMode.Darken = 4 -> EmbedPDF.AnnotationBlendMode
+EmbedPDF.AnnotationBlendMode.Difference = 10 -> EmbedPDF.AnnotationBlendMode
+EmbedPDF.AnnotationBlendMode.Exclusion = 11 -> EmbedPDF.AnnotationBlendMode
+EmbedPDF.AnnotationBlendMode.HardLight = 8 -> EmbedPDF.AnnotationBlendMode
+EmbedPDF.AnnotationBlendMode.Hue = 12 -> EmbedPDF.AnnotationBlendMode
+EmbedPDF.AnnotationBlendMode.Lighten = 5 -> EmbedPDF.AnnotationBlendMode
+EmbedPDF.AnnotationBlendMode.Luminosity = 15 -> EmbedPDF.AnnotationBlendMode
+EmbedPDF.AnnotationBlendMode.Multiply = 1 -> EmbedPDF.AnnotationBlendMode
+EmbedPDF.AnnotationBlendMode.Normal = 0 -> EmbedPDF.AnnotationBlendMode
+EmbedPDF.AnnotationBlendMode.Overlay = 3 -> EmbedPDF.AnnotationBlendMode
+EmbedPDF.AnnotationBlendMode.Saturation = 13 -> EmbedPDF.AnnotationBlendMode
+EmbedPDF.AnnotationBlendMode.Screen = 2 -> EmbedPDF.AnnotationBlendMode
+EmbedPDF.AnnotationBlendMode.SoftLight = 9 -> EmbedPDF.AnnotationBlendMode
+EmbedPDF.AnnotationBorderStyle
+EmbedPDF.AnnotationBorderStyle.Dashed = 1 -> EmbedPDF.AnnotationBorderStyle
+EmbedPDF.AnnotationBorderStyle.Solid = 0 -> EmbedPDF.AnnotationBorderStyle
+EmbedPDF.AnnotationBorderStyleName
+EmbedPDF.AnnotationBorderStyleName.AnnotationBorderStyleName() -> void
+EmbedPDF.AnnotationBorderStyleName.AnnotationBorderStyleName(string! Value) -> void
+EmbedPDF.AnnotationBorderStyleName.Deconstruct(out string! Value) -> void
+EmbedPDF.AnnotationBorderStyleName.Equals(EmbedPDF.AnnotationBorderStyleName other) -> bool
+EmbedPDF.AnnotationBorderStyleName.Value.get -> string!
+EmbedPDF.AnnotationBorderStyleName.Value.init -> void
+EmbedPDF.AnnotationCalloutLine
+EmbedPDF.AnnotationCalloutLine.AnnotationCalloutLine(EmbedPDF.AnnotationCalloutLine! original) -> void
+EmbedPDF.AnnotationCalloutLine.Kneed
+EmbedPDF.AnnotationCalloutLine.Kneed.Deconstruct(out EmbedPDF.PdfPoint From, out EmbedPDF.PdfPoint Knee, out EmbedPDF.PdfPoint To) -> void
+EmbedPDF.AnnotationCalloutLine.Kneed.Equals(EmbedPDF.AnnotationCalloutLine.Kneed? other) -> bool
+EmbedPDF.AnnotationCalloutLine.Kneed.From.get -> EmbedPDF.PdfPoint
+EmbedPDF.AnnotationCalloutLine.Kneed.From.init -> void
+EmbedPDF.AnnotationCalloutLine.Kneed.Knee.get -> EmbedPDF.PdfPoint
+EmbedPDF.AnnotationCalloutLine.Kneed.Knee.init -> void
+EmbedPDF.AnnotationCalloutLine.Kneed.Kneed(EmbedPDF.PdfPoint From, EmbedPDF.PdfPoint Knee, EmbedPDF.PdfPoint To) -> void
+EmbedPDF.AnnotationCalloutLine.Kneed.To.get -> EmbedPDF.PdfPoint
+EmbedPDF.AnnotationCalloutLine.Kneed.To.init -> void
+EmbedPDF.AnnotationCalloutLine.Straight
+EmbedPDF.AnnotationCalloutLine.Straight.Deconstruct(out EmbedPDF.PdfPoint From, out EmbedPDF.PdfPoint To) -> void
+EmbedPDF.AnnotationCalloutLine.Straight.Equals(EmbedPDF.AnnotationCalloutLine.Straight? other) -> bool
+EmbedPDF.AnnotationCalloutLine.Straight.From.get -> EmbedPDF.PdfPoint
+EmbedPDF.AnnotationCalloutLine.Straight.From.init -> void
+EmbedPDF.AnnotationCalloutLine.Straight.Straight(EmbedPDF.PdfPoint From, EmbedPDF.PdfPoint To) -> void
+EmbedPDF.AnnotationCalloutLine.Straight.To.get -> EmbedPDF.PdfPoint
+EmbedPDF.AnnotationCalloutLine.Straight.To.init -> void
+EmbedPDF.AnnotationCaptionCenter
+EmbedPDF.AnnotationCaptionCenter.AnnotationCaptionCenter(EmbedPDF.AnnotationCaptionCenter! original) -> void
+EmbedPDF.AnnotationCaptionCenter.At
+EmbedPDF.AnnotationCaptionCenter.At.At(EmbedPDF.PdfPoint Point) -> void
+EmbedPDF.AnnotationCaptionCenter.At.Deconstruct(out EmbedPDF.PdfPoint Point) -> void
+EmbedPDF.AnnotationCaptionCenter.At.Equals(EmbedPDF.AnnotationCaptionCenter.At? other) -> bool
+EmbedPDF.AnnotationCaptionCenter.At.Point.get -> EmbedPDF.PdfPoint
+EmbedPDF.AnnotationCaptionCenter.At.Point.init -> void
+EmbedPDF.AnnotationCaptionCenter.Automatic
+EmbedPDF.AnnotationCaptionCenter.Automatic.Automatic() -> void
+EmbedPDF.AnnotationCaptionCenter.Automatic.Equals(EmbedPDF.AnnotationCaptionCenter.Automatic? other) -> bool
+EmbedPDF.AnnotationCaptionOffset
+EmbedPDF.AnnotationCaptionOffset.Along.get -> double
+EmbedPDF.AnnotationCaptionOffset.Along.init -> void
+EmbedPDF.AnnotationCaptionOffset.AnnotationCaptionOffset() -> void
+EmbedPDF.AnnotationCaptionOffset.AnnotationCaptionOffset(double Along, double Perpendicular) -> void
+EmbedPDF.AnnotationCaptionOffset.Deconstruct(out double Along, out double Perpendicular) -> void
+EmbedPDF.AnnotationCaptionOffset.Equals(EmbedPDF.AnnotationCaptionOffset other) -> bool
+EmbedPDF.AnnotationCaptionOffset.Perpendicular.get -> double
+EmbedPDF.AnnotationCaptionOffset.Perpendicular.init -> void
+EmbedPDF.AnnotationCaptionPosition
+EmbedPDF.AnnotationCaptionPosition.Inline = 0 -> EmbedPDF.AnnotationCaptionPosition
+EmbedPDF.AnnotationCaptionPosition.Top = 1 -> EmbedPDF.AnnotationCaptionPosition
+EmbedPDF.AnnotationCaretIntent
+EmbedPDF.AnnotationCaretIntent.Replace = 0 -> EmbedPDF.AnnotationCaretIntent
+EmbedPDF.AnnotationColor
+EmbedPDF.AnnotationColor.AnnotationColor() -> void
+EmbedPDF.AnnotationColor.AnnotationColor(byte Red, byte Green, byte Blue) -> void
+EmbedPDF.AnnotationColor.Blue.get -> byte
+EmbedPDF.AnnotationColor.Blue.init -> void
+EmbedPDF.AnnotationColor.Deconstruct(out byte Red, out byte Green, out byte Blue) -> void
+EmbedPDF.AnnotationColor.Equals(EmbedPDF.AnnotationColor other) -> bool
+EmbedPDF.AnnotationColor.Green.get -> byte
+EmbedPDF.AnnotationColor.Green.init -> void
+EmbedPDF.AnnotationColor.Hex.get -> string!
+EmbedPDF.AnnotationColor.Red.get -> byte
+EmbedPDF.AnnotationColor.Red.init -> void
+EmbedPDF.AnnotationCommonFields
+EmbedPDF.AnnotationCommonFields.<Clone>$() -> EmbedPDF.AnnotationCommonFields!
+EmbedPDF.AnnotationCommonFields.AnnotationCommonFields() -> void
+EmbedPDF.AnnotationCommonFields.Equals(EmbedPDF.AnnotationCommonFields? other) -> bool
+EmbedPDF.AnnotationCommonFields.GroupId.get -> EmbedPDF.JsonNullable<string!>?
+EmbedPDF.AnnotationCommonFields.GroupId.init -> void
+EmbedPDF.AnnotationCommonFields.Hidden.get -> bool?
+EmbedPDF.AnnotationCommonFields.Hidden.init -> void
+EmbedPDF.AnnotationCommonFields.Invisible.get -> bool?
+EmbedPDF.AnnotationCommonFields.Invisible.init -> void
+EmbedPDF.AnnotationCommonFields.Locked.get -> bool?
+EmbedPDF.AnnotationCommonFields.Locked.init -> void
+EmbedPDF.AnnotationCommonFields.LockedContents.get -> bool?
+EmbedPDF.AnnotationCommonFields.LockedContents.init -> void
+EmbedPDF.AnnotationCommonFields.Nm.get -> EmbedPDF.JsonNullable<string!>?
+EmbedPDF.AnnotationCommonFields.Nm.init -> void
+EmbedPDF.AnnotationCommonFields.NoRotate.get -> bool?
+EmbedPDF.AnnotationCommonFields.NoRotate.init -> void
+EmbedPDF.AnnotationCommonFields.NoView.get -> bool?
+EmbedPDF.AnnotationCommonFields.NoView.init -> void
+EmbedPDF.AnnotationCommonFields.NoZoom.get -> bool?
+EmbedPDF.AnnotationCommonFields.NoZoom.init -> void
+EmbedPDF.AnnotationCommonFields.Print.get -> bool?
+EmbedPDF.AnnotationCommonFields.Print.init -> void
+EmbedPDF.AnnotationCommonFields.ReadOnly.get -> bool?
+EmbedPDF.AnnotationCommonFields.ReadOnly.init -> void
+EmbedPDF.AnnotationCommonFields.Reply.get -> EmbedPDF.JsonNullable<EmbedPDF.AnnotationReply!>?
+EmbedPDF.AnnotationCommonFields.Reply.init -> void
+EmbedPDF.AnnotationCommonFields.Subject.get -> EmbedPDF.JsonNullable<string!>?
+EmbedPDF.AnnotationCommonFields.Subject.init -> void
+EmbedPDF.AnnotationCommonFields.ToggleNoView.get -> bool?
+EmbedPDF.AnnotationCommonFields.ToggleNoView.init -> void
+EmbedPDF.AnnotationFileAttachmentIcon
+EmbedPDF.AnnotationFileAttachmentIcon.Graph = 0 -> EmbedPDF.AnnotationFileAttachmentIcon
+EmbedPDF.AnnotationFileAttachmentIcon.Paperclip = 2 -> EmbedPDF.AnnotationFileAttachmentIcon
+EmbedPDF.AnnotationFileAttachmentIcon.PushPin = 1 -> EmbedPDF.AnnotationFileAttachmentIcon
+EmbedPDF.AnnotationFileAttachmentIcon.Tag = 3 -> EmbedPDF.AnnotationFileAttachmentIcon
+EmbedPDF.AnnotationFreeTextIntent
+EmbedPDF.AnnotationFreeTextIntent.FreeText = 0 -> EmbedPDF.AnnotationFreeTextIntent
+EmbedPDF.AnnotationFreeTextIntent.FreeTextCallout = 1 -> EmbedPDF.AnnotationFreeTextIntent
+EmbedPDF.AnnotationInkIntent
+EmbedPDF.AnnotationInkIntent.InkHighlight = 0 -> EmbedPDF.AnnotationInkIntent
+EmbedPDF.AnnotationIntent
+EmbedPDF.AnnotationIntent.AnnotationIntent() -> void
+EmbedPDF.AnnotationIntent.AnnotationIntent(string! Value) -> void
+EmbedPDF.AnnotationIntent.Deconstruct(out string! Value) -> void
+EmbedPDF.AnnotationIntent.Equals(EmbedPDF.AnnotationIntent other) -> bool
+EmbedPDF.AnnotationIntent.Value.get -> string!
+EmbedPDF.AnnotationIntent.Value.init -> void
+EmbedPDF.AnnotationLineEnding
+EmbedPDF.AnnotationLineEnding.Butt = 6 -> EmbedPDF.AnnotationLineEnding
+EmbedPDF.AnnotationLineEnding.Circle = 2 -> EmbedPDF.AnnotationLineEnding
+EmbedPDF.AnnotationLineEnding.ClosedArrow = 5 -> EmbedPDF.AnnotationLineEnding
+EmbedPDF.AnnotationLineEnding.Diamond = 3 -> EmbedPDF.AnnotationLineEnding
+EmbedPDF.AnnotationLineEnding.None = 0 -> EmbedPDF.AnnotationLineEnding
+EmbedPDF.AnnotationLineEnding.OpenArrow = 4 -> EmbedPDF.AnnotationLineEnding
+EmbedPDF.AnnotationLineEnding.ReversedClosedArrow = 8 -> EmbedPDF.AnnotationLineEnding
+EmbedPDF.AnnotationLineEnding.ReversedOpenArrow = 7 -> EmbedPDF.AnnotationLineEnding
+EmbedPDF.AnnotationLineEnding.Slash = 9 -> EmbedPDF.AnnotationLineEnding
+EmbedPDF.AnnotationLineEnding.Square = 1 -> EmbedPDF.AnnotationLineEnding
+EmbedPDF.AnnotationLineEndings
+EmbedPDF.AnnotationLineEndings.AnnotationLineEndings() -> void
+EmbedPDF.AnnotationLineEndings.AnnotationLineEndings(EmbedPDF.AnnotationLineEnding Start, EmbedPDF.AnnotationLineEnding End) -> void
+EmbedPDF.AnnotationLineEndings.Deconstruct(out EmbedPDF.AnnotationLineEnding Start, out EmbedPDF.AnnotationLineEnding End) -> void
+EmbedPDF.AnnotationLineEndings.End.get -> EmbedPDF.AnnotationLineEnding
+EmbedPDF.AnnotationLineEndings.End.init -> void
+EmbedPDF.AnnotationLineEndings.Equals(EmbedPDF.AnnotationLineEndings other) -> bool
+EmbedPDF.AnnotationLineEndings.Start.get -> EmbedPDF.AnnotationLineEnding
+EmbedPDF.AnnotationLineEndings.Start.init -> void
+EmbedPDF.AnnotationLineIntent
+EmbedPDF.AnnotationLineIntent.LineArrow = 0 -> EmbedPDF.AnnotationLineIntent
+EmbedPDF.AnnotationLineIntent.LineDimension = 1 -> EmbedPDF.AnnotationLineIntent
+EmbedPDF.AnnotationLineLeader
+EmbedPDF.AnnotationLineLeader.AnnotationLineLeader() -> void
+EmbedPDF.AnnotationLineLeader.AnnotationLineLeader(double Length) -> void
+EmbedPDF.AnnotationLineLeader.Deconstruct(out double Length) -> void
+EmbedPDF.AnnotationLineLeader.Equals(EmbedPDF.AnnotationLineLeader other) -> bool
+EmbedPDF.AnnotationLineLeader.Extension.get -> double?
+EmbedPDF.AnnotationLineLeader.Extension.init -> void
+EmbedPDF.AnnotationLineLeader.Length.get -> double
+EmbedPDF.AnnotationLineLeader.Length.init -> void
+EmbedPDF.AnnotationLineLeader.Offset.get -> double?
+EmbedPDF.AnnotationLineLeader.Offset.init -> void
+EmbedPDF.AnnotationLinkTarget
+EmbedPDF.AnnotationLinkTarget.AnnotationLinkTarget(EmbedPDF.AnnotationLinkTarget! original) -> void
+EmbedPDF.AnnotationLinkTarget.GoTo
+EmbedPDF.AnnotationLinkTarget.GoTo.Deconstruct(out EmbedPDF.PageDestination! Destination) -> void
+EmbedPDF.AnnotationLinkTarget.GoTo.Destination.get -> EmbedPDF.PageDestination!
+EmbedPDF.AnnotationLinkTarget.GoTo.Destination.init -> void
+EmbedPDF.AnnotationLinkTarget.GoTo.Equals(EmbedPDF.AnnotationLinkTarget.GoTo? other) -> bool
+EmbedPDF.AnnotationLinkTarget.GoTo.GoTo(EmbedPDF.PageDestination! Destination) -> void
+EmbedPDF.AnnotationLinkTarget.Named
+EmbedPDF.AnnotationLinkTarget.Named.Deconstruct(out EmbedPDF.AnnotationLinkVerb Verb) -> void
+EmbedPDF.AnnotationLinkTarget.Named.Equals(EmbedPDF.AnnotationLinkTarget.Named? other) -> bool
+EmbedPDF.AnnotationLinkTarget.Named.Named(EmbedPDF.AnnotationLinkVerb Verb) -> void
+EmbedPDF.AnnotationLinkTarget.Named.Verb.get -> EmbedPDF.AnnotationLinkVerb
+EmbedPDF.AnnotationLinkTarget.Named.Verb.init -> void
+EmbedPDF.AnnotationLinkTarget.ToJson() -> string!
+EmbedPDF.AnnotationLinkTarget.Uri
+EmbedPDF.AnnotationLinkTarget.Uri.Deconstruct(out string! Value) -> void
+EmbedPDF.AnnotationLinkTarget.Uri.Equals(EmbedPDF.AnnotationLinkTarget.Uri? other) -> bool
+EmbedPDF.AnnotationLinkTarget.Uri.Uri(string! Value) -> void
+EmbedPDF.AnnotationLinkTarget.Uri.Value.get -> string!
+EmbedPDF.AnnotationLinkTarget.Uri.Value.init -> void
+EmbedPDF.AnnotationLinkVerb
+EmbedPDF.AnnotationLinkVerb.FirstPage = 2 -> EmbedPDF.AnnotationLinkVerb
+EmbedPDF.AnnotationLinkVerb.LastPage = 3 -> EmbedPDF.AnnotationLinkVerb
+EmbedPDF.AnnotationLinkVerb.NextPage = 0 -> EmbedPDF.AnnotationLinkVerb
+EmbedPDF.AnnotationLinkVerb.PreviousPage = 1 -> EmbedPDF.AnnotationLinkVerb
+EmbedPDF.AnnotationNoteIcon
+EmbedPDF.AnnotationNoteIcon.Comment = 0 -> EmbedPDF.AnnotationNoteIcon
+EmbedPDF.AnnotationNoteIcon.Help = 3 -> EmbedPDF.AnnotationNoteIcon
+EmbedPDF.AnnotationNoteIcon.Insert = 6 -> EmbedPDF.AnnotationNoteIcon
+EmbedPDF.AnnotationNoteIcon.Key = 1 -> EmbedPDF.AnnotationNoteIcon
+EmbedPDF.AnnotationNoteIcon.NewParagraph = 4 -> EmbedPDF.AnnotationNoteIcon
+EmbedPDF.AnnotationNoteIcon.Note = 2 -> EmbedPDF.AnnotationNoteIcon
+EmbedPDF.AnnotationNoteIcon.Paragraph = 5 -> EmbedPDF.AnnotationNoteIcon
+EmbedPDF.AnnotationPolygonIntent
+EmbedPDF.AnnotationPolygonIntent.PolygonCloud = 0 -> EmbedPDF.AnnotationPolygonIntent
+EmbedPDF.AnnotationPolygonIntent.PolygonDimension = 1 -> EmbedPDF.AnnotationPolygonIntent
+EmbedPDF.AnnotationPolylineIntent
+EmbedPDF.AnnotationPolylineIntent.PolylineDimension = 0 -> EmbedPDF.AnnotationPolylineIntent
+EmbedPDF.AnnotationPosition
+EmbedPDF.AnnotationPosition.After
+EmbedPDF.AnnotationPosition.After.After(EmbedPDF.AnnotationRef! Annotation) -> void
+EmbedPDF.AnnotationPosition.After.Annotation.get -> EmbedPDF.AnnotationRef!
+EmbedPDF.AnnotationPosition.After.Annotation.init -> void
+EmbedPDF.AnnotationPosition.After.Deconstruct(out EmbedPDF.AnnotationRef! Annotation) -> void
+EmbedPDF.AnnotationPosition.After.Equals(EmbedPDF.AnnotationPosition.After? other) -> bool
+EmbedPDF.AnnotationPosition.AnnotationPosition(EmbedPDF.AnnotationPosition! original) -> void
+EmbedPDF.AnnotationPosition.Before
+EmbedPDF.AnnotationPosition.Before.Annotation.get -> EmbedPDF.AnnotationRef!
+EmbedPDF.AnnotationPosition.Before.Annotation.init -> void
+EmbedPDF.AnnotationPosition.Before.Before(EmbedPDF.AnnotationRef! Annotation) -> void
+EmbedPDF.AnnotationPosition.Before.Deconstruct(out EmbedPDF.AnnotationRef! Annotation) -> void
+EmbedPDF.AnnotationPosition.Before.Equals(EmbedPDF.AnnotationPosition.Before? other) -> bool
+EmbedPDF.AnnotationPosition.End
+EmbedPDF.AnnotationPosition.End.End() -> void
+EmbedPDF.AnnotationPosition.End.Equals(EmbedPDF.AnnotationPosition.End? other) -> bool
+EmbedPDF.AnnotationPosition.Start
+EmbedPDF.AnnotationPosition.Start.Equals(EmbedPDF.AnnotationPosition.Start? other) -> bool
+EmbedPDF.AnnotationPosition.Start.Start() -> void
 EmbedPDF.AnnotationRef
 EmbedPDF.AnnotationRef.AnnotationRef(EmbedPDF.AnnotationRef! original) -> void
 EmbedPDF.AnnotationRef.Index
@@ -590,6 +816,68 @@ EmbedPDF.AnnotationRef.ObjectNumber.Equals(EmbedPDF.AnnotationRef.ObjectNumber? 
 EmbedPDF.AnnotationRef.ObjectNumber.ObjectNumber(EmbedPDF.PageRef Page, int AnnotObjectNumber) -> void
 EmbedPDF.AnnotationRef.ObjectNumber.Page.get -> EmbedPDF.PageRef
 EmbedPDF.AnnotationRef.ObjectNumber.Page.init -> void
+EmbedPDF.AnnotationReply
+EmbedPDF.AnnotationReply.<Clone>$() -> EmbedPDF.AnnotationReply!
+EmbedPDF.AnnotationReply.AnnotationReply(EmbedPDF.AnnotationRef! To) -> void
+EmbedPDF.AnnotationReply.Deconstruct(out EmbedPDF.AnnotationRef! To) -> void
+EmbedPDF.AnnotationReply.Equals(EmbedPDF.AnnotationReply? other) -> bool
+EmbedPDF.AnnotationReply.To.get -> EmbedPDF.AnnotationRef!
+EmbedPDF.AnnotationReply.To.init -> void
+EmbedPDF.AnnotationReply.Type.get -> EmbedPDF.AnnotationReplyType?
+EmbedPDF.AnnotationReply.Type.init -> void
+EmbedPDF.AnnotationReplyType
+EmbedPDF.AnnotationReplyType.Group = 1 -> EmbedPDF.AnnotationReplyType
+EmbedPDF.AnnotationReplyType.Reply = 0 -> EmbedPDF.AnnotationReplyType
+EmbedPDF.AnnotationRichText
+EmbedPDF.AnnotationRichText.<Clone>$() -> EmbedPDF.AnnotationRichText!
+EmbedPDF.AnnotationRichText.AnnotationRichText(System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRichTextParagraph!>! Paragraphs) -> void
+EmbedPDF.AnnotationRichText.Body.get -> System.Text.Json.Nodes.JsonObject?
+EmbedPDF.AnnotationRichText.Body.init -> void
+EmbedPDF.AnnotationRichText.Deconstruct(out System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRichTextParagraph!>! Paragraphs) -> void
+EmbedPDF.AnnotationRichText.Equals(EmbedPDF.AnnotationRichText? other) -> bool
+EmbedPDF.AnnotationRichText.Paragraphs.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRichTextParagraph!>!
+EmbedPDF.AnnotationRichText.Paragraphs.init -> void
+EmbedPDF.AnnotationRichText.PlainText.get -> string!
+EmbedPDF.AnnotationRichTextParagraph
+EmbedPDF.AnnotationRichTextParagraph.<Clone>$() -> EmbedPDF.AnnotationRichTextParagraph!
+EmbedPDF.AnnotationRichTextParagraph.AnnotationRichTextParagraph(System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRichTextRun!>! Runs) -> void
+EmbedPDF.AnnotationRichTextParagraph.Deconstruct(out System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRichTextRun!>! Runs) -> void
+EmbedPDF.AnnotationRichTextParagraph.Equals(EmbedPDF.AnnotationRichTextParagraph? other) -> bool
+EmbedPDF.AnnotationRichTextParagraph.Properties.get -> System.Text.Json.Nodes.JsonObject?
+EmbedPDF.AnnotationRichTextParagraph.Properties.init -> void
+EmbedPDF.AnnotationRichTextParagraph.Runs.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRichTextRun!>!
+EmbedPDF.AnnotationRichTextParagraph.Runs.init -> void
+EmbedPDF.AnnotationRichTextRun
+EmbedPDF.AnnotationRichTextRun.<Clone>$() -> EmbedPDF.AnnotationRichTextRun!
+EmbedPDF.AnnotationRichTextRun.AnnotationRichTextRun(string! Text) -> void
+EmbedPDF.AnnotationRichTextRun.Deconstruct(out string! Text) -> void
+EmbedPDF.AnnotationRichTextRun.Equals(EmbedPDF.AnnotationRichTextRun? other) -> bool
+EmbedPDF.AnnotationRichTextRun.Style.get -> System.Text.Json.Nodes.JsonObject?
+EmbedPDF.AnnotationRichTextRun.Style.init -> void
+EmbedPDF.AnnotationRichTextRun.Text.get -> string!
+EmbedPDF.AnnotationRichTextRun.Text.init -> void
+EmbedPDF.AnnotationStampFit
+EmbedPDF.AnnotationStampFit.Contain = 0 -> EmbedPDF.AnnotationStampFit
+EmbedPDF.AnnotationStampFit.Cover = 1 -> EmbedPDF.AnnotationStampFit
+EmbedPDF.AnnotationStampFit.Fill = 2 -> EmbedPDF.AnnotationStampFit
+EmbedPDF.AnnotationStrikeoutIntent
+EmbedPDF.AnnotationStrikeoutIntent.StrikeoutTextEdit = 0 -> EmbedPDF.AnnotationStrikeoutIntent
+EmbedPDF.AnnotationSubtype
+EmbedPDF.AnnotationSubtype.AnnotationSubtype() -> void
+EmbedPDF.AnnotationSubtype.AnnotationSubtype(string! Value) -> void
+EmbedPDF.AnnotationSubtype.Deconstruct(out string! Value) -> void
+EmbedPDF.AnnotationSubtype.Equals(EmbedPDF.AnnotationSubtype other) -> bool
+EmbedPDF.AnnotationSubtype.Value.get -> string!
+EmbedPDF.AnnotationSubtype.Value.init -> void
+EmbedPDF.AnnotationTextAlignment
+EmbedPDF.AnnotationTextAlignment.Center = 1 -> EmbedPDF.AnnotationTextAlignment
+EmbedPDF.AnnotationTextAlignment.Justify = 3 -> EmbedPDF.AnnotationTextAlignment
+EmbedPDF.AnnotationTextAlignment.Left = 0 -> EmbedPDF.AnnotationTextAlignment
+EmbedPDF.AnnotationTextAlignment.Right = 2 -> EmbedPDF.AnnotationTextAlignment
+EmbedPDF.AnnotationVerticalAlignment
+EmbedPDF.AnnotationVerticalAlignment.Bottom = 2 -> EmbedPDF.AnnotationVerticalAlignment
+EmbedPDF.AnnotationVerticalAlignment.Middle = 1 -> EmbedPDF.AnnotationVerticalAlignment
+EmbedPDF.AnnotationVerticalAlignment.Top = 0 -> EmbedPDF.AnnotationVerticalAlignment
 EmbedPDF.AttachedFile
 EmbedPDF.AttachedFile.<Clone>$() -> EmbedPDF.AttachedFile!
 EmbedPDF.AttachedFile.AttachedFile(string! Id, EmbedPDF.AttachmentHome! Home, string! Name, string? MimeType, string? Description, long? SizeBytes, string? Md5, string? CreatedAt, string? ModifiedAt) -> void
@@ -1477,6 +1765,12 @@ EmbedPDF.InteractionTool.Touch.init -> void
 EmbedPDF.InteractionToolTouch
 EmbedPDF.InteractionToolTouch.Draw = 0 -> EmbedPDF.InteractionToolTouch
 EmbedPDF.InteractionToolTouch.Tap = 1 -> EmbedPDF.InteractionToolTouch
+EmbedPDF.JsonNullable
+EmbedPDF.JsonNullable<T>
+EmbedPDF.JsonNullable<T>.Equals(EmbedPDF.JsonNullable<T> other) -> bool
+EmbedPDF.JsonNullable<T>.IsNull.get -> bool
+EmbedPDF.JsonNullable<T>.JsonNullable() -> void
+EmbedPDF.JsonNullable<T>.Value.get -> T
 EmbedPDF.LinkActivation
 EmbedPDF.LinkActivation.Destination
 EmbedPDF.LinkActivation.Destination.Deconstruct(out string! DestinationJson) -> void
@@ -1628,6 +1922,23 @@ EmbedPDF.LocalePack.Name.get -> string!
 EmbedPDF.LocalePack.Name.init -> void
 EmbedPDF.LocalePack.Translations.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
 EmbedPDF.LocalePack.Translations.init -> void
+EmbedPDF.MeasureFraction
+EmbedPDF.MeasureFraction.Decimal = 0 -> EmbedPDF.MeasureFraction
+EmbedPDF.MeasureFraction.Fraction = 1 -> EmbedPDF.MeasureFraction
+EmbedPDF.MeasureFraction.Round = 2 -> EmbedPDF.MeasureFraction
+EmbedPDF.MeasureFraction.Truncate = 3 -> EmbedPDF.MeasureFraction
+EmbedPDF.MeasureLabelPosition
+EmbedPDF.MeasureLabelPosition.Prefix = 1 -> EmbedPDF.MeasureLabelPosition
+EmbedPDF.MeasureLabelPosition.Suffix = 0 -> EmbedPDF.MeasureLabelPosition
+EmbedPDF.MeasureOrigin
+EmbedPDF.MeasureOrigin.Deconstruct(out double X, out double Y) -> void
+EmbedPDF.MeasureOrigin.Equals(EmbedPDF.MeasureOrigin other) -> bool
+EmbedPDF.MeasureOrigin.MeasureOrigin() -> void
+EmbedPDF.MeasureOrigin.MeasureOrigin(double X, double Y) -> void
+EmbedPDF.MeasureOrigin.X.get -> double
+EmbedPDF.MeasureOrigin.X.init -> void
+EmbedPDF.MeasureOrigin.Y.get -> double
+EmbedPDF.MeasureOrigin.Y.init -> void
 EmbedPDF.MeasurementConfig
 EmbedPDF.MeasurementConfig.<Clone>$() -> EmbedPDF.MeasurementConfig!
 EmbedPDF.MeasurementConfig.Equals(EmbedPDF.MeasurementConfig? other) -> bool
@@ -2237,6 +2548,56 @@ EmbedPDF.PdfFieldEventKind.Calculate = 3 -> EmbedPDF.PdfFieldEventKind
 EmbedPDF.PdfFieldEventKind.Format = 1 -> EmbedPDF.PdfFieldEventKind
 EmbedPDF.PdfFieldEventKind.Keystroke = 0 -> EmbedPDF.PdfFieldEventKind
 EmbedPDF.PdfFieldEventKind.Validate = 2 -> EmbedPDF.PdfFieldEventKind
+EmbedPDF.PdfMeasurement
+EmbedPDF.PdfMeasurement.<Clone>$() -> EmbedPDF.PdfMeasurement!
+EmbedPDF.PdfMeasurement.Angle.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.PdfNumberFormat!>?
+EmbedPDF.PdfMeasurement.Angle.init -> void
+EmbedPDF.PdfMeasurement.Area.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.PdfNumberFormat!>?
+EmbedPDF.PdfMeasurement.Area.init -> void
+EmbedPDF.PdfMeasurement.Cyx.get -> double?
+EmbedPDF.PdfMeasurement.Cyx.init -> void
+EmbedPDF.PdfMeasurement.Deconstruct(out string! Subtype) -> void
+EmbedPDF.PdfMeasurement.Distance.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.PdfNumberFormat!>?
+EmbedPDF.PdfMeasurement.Distance.init -> void
+EmbedPDF.PdfMeasurement.Equals(EmbedPDF.PdfMeasurement? other) -> bool
+EmbedPDF.PdfMeasurement.Origin.get -> EmbedPDF.MeasureOrigin?
+EmbedPDF.PdfMeasurement.Origin.init -> void
+EmbedPDF.PdfMeasurement.PdfMeasurement(string! Subtype) -> void
+EmbedPDF.PdfMeasurement.Ratio.get -> string?
+EmbedPDF.PdfMeasurement.Ratio.init -> void
+EmbedPDF.PdfMeasurement.Slope.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.PdfNumberFormat!>?
+EmbedPDF.PdfMeasurement.Slope.init -> void
+EmbedPDF.PdfMeasurement.Subtype.get -> string!
+EmbedPDF.PdfMeasurement.Subtype.init -> void
+EmbedPDF.PdfMeasurement.X.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.PdfNumberFormat!>?
+EmbedPDF.PdfMeasurement.X.init -> void
+EmbedPDF.PdfMeasurement.Y.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.PdfNumberFormat!>?
+EmbedPDF.PdfMeasurement.Y.init -> void
+EmbedPDF.PdfNumberFormat
+EmbedPDF.PdfNumberFormat.<Clone>$() -> EmbedPDF.PdfNumberFormat!
+EmbedPDF.PdfNumberFormat.Conversion.get -> double?
+EmbedPDF.PdfNumberFormat.Conversion.init -> void
+EmbedPDF.PdfNumberFormat.Decimal.get -> string?
+EmbedPDF.PdfNumberFormat.Decimal.init -> void
+EmbedPDF.PdfNumberFormat.Deconstruct(out string! Unit) -> void
+EmbedPDF.PdfNumberFormat.Equals(EmbedPDF.PdfNumberFormat? other) -> bool
+EmbedPDF.PdfNumberFormat.Fixed.get -> bool?
+EmbedPDF.PdfNumberFormat.Fixed.init -> void
+EmbedPDF.PdfNumberFormat.Fraction.get -> EmbedPDF.MeasureFraction?
+EmbedPDF.PdfNumberFormat.Fraction.init -> void
+EmbedPDF.PdfNumberFormat.LabelPosition.get -> EmbedPDF.MeasureLabelPosition?
+EmbedPDF.PdfNumberFormat.LabelPosition.init -> void
+EmbedPDF.PdfNumberFormat.PdfNumberFormat(string! Unit) -> void
+EmbedPDF.PdfNumberFormat.Precision.get -> double?
+EmbedPDF.PdfNumberFormat.Precision.init -> void
+EmbedPDF.PdfNumberFormat.PrefixSpacing.get -> string?
+EmbedPDF.PdfNumberFormat.PrefixSpacing.init -> void
+EmbedPDF.PdfNumberFormat.SuffixSpacing.get -> string?
+EmbedPDF.PdfNumberFormat.SuffixSpacing.init -> void
+EmbedPDF.PdfNumberFormat.Thousands.get -> string?
+EmbedPDF.PdfNumberFormat.Thousands.init -> void
+EmbedPDF.PdfNumberFormat.Unit.get -> string!
+EmbedPDF.PdfNumberFormat.Unit.init -> void
 EmbedPDF.PdfObjectRef
 EmbedPDF.PdfObjectRef.<Clone>$() -> EmbedPDF.PdfObjectRef!
 EmbedPDF.PdfObjectRef.Deconstruct(out string! Json) -> void
@@ -4388,6 +4749,12 @@ abstract EmbedPDF.ActionTrigger.<Clone>$() -> EmbedPDF.ActionTrigger!
 abstract EmbedPDF.ActionTriggerEvent.<Clone>$() -> EmbedPDF.ActionTriggerEvent!
 abstract EmbedPDF.ActionsEvent.<Clone>$() -> EmbedPDF.ActionsEvent!
 abstract EmbedPDF.ActionsScriptIdentitySetting.<Clone>$() -> EmbedPDF.ActionsScriptIdentitySetting!
+abstract EmbedPDF.AnnotationCalloutLine.<Clone>$() -> EmbedPDF.AnnotationCalloutLine!
+abstract EmbedPDF.AnnotationCalloutLine.Points.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.PdfPoint>!
+abstract EmbedPDF.AnnotationCaptionCenter.<Clone>$() -> EmbedPDF.AnnotationCaptionCenter!
+abstract EmbedPDF.AnnotationLinkTarget.<Clone>$() -> EmbedPDF.AnnotationLinkTarget!
+abstract EmbedPDF.AnnotationPosition.<Clone>$() -> EmbedPDF.AnnotationPosition!
+abstract EmbedPDF.AnnotationPosition.Json.get -> string!
 abstract EmbedPDF.AnnotationRef.<Clone>$() -> EmbedPDF.AnnotationRef!
 abstract EmbedPDF.AttachmentEvent.<Clone>$() -> EmbedPDF.AttachmentEvent!
 abstract EmbedPDF.AttachmentHome.<Clone>$() -> EmbedPDF.AttachmentHome!
@@ -4653,6 +5020,80 @@ override EmbedPDF.ActionsSettings.ToString() -> string!
 override EmbedPDF.ActionsSettingsPatch.Equals(object? obj) -> bool
 override EmbedPDF.ActionsSettingsPatch.GetHashCode() -> int
 override EmbedPDF.ActionsSettingsPatch.ToString() -> string!
+override EmbedPDF.AnnotationBorderStyleName.GetHashCode() -> int
+override EmbedPDF.AnnotationBorderStyleName.ToString() -> string!
+override EmbedPDF.AnnotationCalloutLine.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationCalloutLine.GetHashCode() -> int
+override EmbedPDF.AnnotationCalloutLine.Kneed.<Clone>$() -> EmbedPDF.AnnotationCalloutLine.Kneed!
+override EmbedPDF.AnnotationCalloutLine.Kneed.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationCalloutLine.Kneed.GetHashCode() -> int
+override EmbedPDF.AnnotationCalloutLine.Kneed.Points.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.PdfPoint>!
+override EmbedPDF.AnnotationCalloutLine.Kneed.ToString() -> string!
+override EmbedPDF.AnnotationCalloutLine.Straight.<Clone>$() -> EmbedPDF.AnnotationCalloutLine.Straight!
+override EmbedPDF.AnnotationCalloutLine.Straight.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationCalloutLine.Straight.GetHashCode() -> int
+override EmbedPDF.AnnotationCalloutLine.Straight.Points.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.PdfPoint>!
+override EmbedPDF.AnnotationCalloutLine.Straight.ToString() -> string!
+override EmbedPDF.AnnotationCalloutLine.ToString() -> string!
+override EmbedPDF.AnnotationCaptionCenter.At.<Clone>$() -> EmbedPDF.AnnotationCaptionCenter.At!
+override EmbedPDF.AnnotationCaptionCenter.At.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationCaptionCenter.At.GetHashCode() -> int
+override EmbedPDF.AnnotationCaptionCenter.At.ToString() -> string!
+override EmbedPDF.AnnotationCaptionCenter.Automatic.<Clone>$() -> EmbedPDF.AnnotationCaptionCenter.Automatic!
+override EmbedPDF.AnnotationCaptionCenter.Automatic.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationCaptionCenter.Automatic.GetHashCode() -> int
+override EmbedPDF.AnnotationCaptionCenter.Automatic.ToString() -> string!
+override EmbedPDF.AnnotationCaptionCenter.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationCaptionCenter.GetHashCode() -> int
+override EmbedPDF.AnnotationCaptionCenter.ToString() -> string!
+override EmbedPDF.AnnotationCaptionOffset.GetHashCode() -> int
+override EmbedPDF.AnnotationColor.GetHashCode() -> int
+override EmbedPDF.AnnotationColor.ToString() -> string!
+override EmbedPDF.AnnotationCommonFields.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationCommonFields.GetHashCode() -> int
+override EmbedPDF.AnnotationCommonFields.ToString() -> string!
+override EmbedPDF.AnnotationIntent.GetHashCode() -> int
+override EmbedPDF.AnnotationIntent.ToString() -> string!
+override EmbedPDF.AnnotationLineEndings.GetHashCode() -> int
+override EmbedPDF.AnnotationLineLeader.GetHashCode() -> int
+override EmbedPDF.AnnotationLinkTarget.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationLinkTarget.GetHashCode() -> int
+override EmbedPDF.AnnotationLinkTarget.GoTo.<Clone>$() -> EmbedPDF.AnnotationLinkTarget.GoTo!
+override EmbedPDF.AnnotationLinkTarget.GoTo.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationLinkTarget.GoTo.GetHashCode() -> int
+override EmbedPDF.AnnotationLinkTarget.GoTo.ToString() -> string!
+override EmbedPDF.AnnotationLinkTarget.Named.<Clone>$() -> EmbedPDF.AnnotationLinkTarget.Named!
+override EmbedPDF.AnnotationLinkTarget.Named.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationLinkTarget.Named.GetHashCode() -> int
+override EmbedPDF.AnnotationLinkTarget.Named.ToString() -> string!
+override EmbedPDF.AnnotationLinkTarget.ToString() -> string!
+override EmbedPDF.AnnotationLinkTarget.Uri.<Clone>$() -> EmbedPDF.AnnotationLinkTarget.Uri!
+override EmbedPDF.AnnotationLinkTarget.Uri.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationLinkTarget.Uri.GetHashCode() -> int
+override EmbedPDF.AnnotationLinkTarget.Uri.ToString() -> string!
+override EmbedPDF.AnnotationPosition.After.<Clone>$() -> EmbedPDF.AnnotationPosition.After!
+override EmbedPDF.AnnotationPosition.After.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationPosition.After.GetHashCode() -> int
+override EmbedPDF.AnnotationPosition.After.Json.get -> string!
+override EmbedPDF.AnnotationPosition.After.ToString() -> string!
+override EmbedPDF.AnnotationPosition.Before.<Clone>$() -> EmbedPDF.AnnotationPosition.Before!
+override EmbedPDF.AnnotationPosition.Before.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationPosition.Before.GetHashCode() -> int
+override EmbedPDF.AnnotationPosition.Before.Json.get -> string!
+override EmbedPDF.AnnotationPosition.Before.ToString() -> string!
+override EmbedPDF.AnnotationPosition.End.<Clone>$() -> EmbedPDF.AnnotationPosition.End!
+override EmbedPDF.AnnotationPosition.End.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationPosition.End.GetHashCode() -> int
+override EmbedPDF.AnnotationPosition.End.Json.get -> string!
+override EmbedPDF.AnnotationPosition.End.ToString() -> string!
+override EmbedPDF.AnnotationPosition.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationPosition.GetHashCode() -> int
+override EmbedPDF.AnnotationPosition.Start.<Clone>$() -> EmbedPDF.AnnotationPosition.Start!
+override EmbedPDF.AnnotationPosition.Start.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationPosition.Start.GetHashCode() -> int
+override EmbedPDF.AnnotationPosition.Start.Json.get -> string!
+override EmbedPDF.AnnotationPosition.Start.ToString() -> string!
+override EmbedPDF.AnnotationPosition.ToString() -> string!
 override EmbedPDF.AnnotationRef.Equals(object? obj) -> bool
 override EmbedPDF.AnnotationRef.GetHashCode() -> int
 override EmbedPDF.AnnotationRef.Index.<Clone>$() -> EmbedPDF.AnnotationRef.Index!
@@ -4664,6 +5105,20 @@ override EmbedPDF.AnnotationRef.ObjectNumber.Equals(object? obj) -> bool
 override EmbedPDF.AnnotationRef.ObjectNumber.GetHashCode() -> int
 override EmbedPDF.AnnotationRef.ObjectNumber.ToString() -> string!
 override EmbedPDF.AnnotationRef.ToString() -> string!
+override EmbedPDF.AnnotationReply.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationReply.GetHashCode() -> int
+override EmbedPDF.AnnotationReply.ToString() -> string!
+override EmbedPDF.AnnotationRichText.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationRichText.GetHashCode() -> int
+override EmbedPDF.AnnotationRichText.ToString() -> string!
+override EmbedPDF.AnnotationRichTextParagraph.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationRichTextParagraph.GetHashCode() -> int
+override EmbedPDF.AnnotationRichTextParagraph.ToString() -> string!
+override EmbedPDF.AnnotationRichTextRun.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationRichTextRun.GetHashCode() -> int
+override EmbedPDF.AnnotationRichTextRun.ToString() -> string!
+override EmbedPDF.AnnotationSubtype.GetHashCode() -> int
+override EmbedPDF.AnnotationSubtype.ToString() -> string!
 override EmbedPDF.AttachedFile.Equals(object? obj) -> bool
 override EmbedPDF.AttachedFile.GetHashCode() -> int
 override EmbedPDF.AttachedFile.ToString() -> string!
@@ -4927,6 +5382,9 @@ override EmbedPDF.InteractionSettingsPatch.ToString() -> string!
 override EmbedPDF.InteractionTool.Equals(object? obj) -> bool
 override EmbedPDF.InteractionTool.GetHashCode() -> int
 override EmbedPDF.InteractionTool.ToString() -> string!
+override EmbedPDF.JsonNullable<T>.Equals(object? obj) -> bool
+override EmbedPDF.JsonNullable<T>.GetHashCode() -> int
+override EmbedPDF.JsonNullable<T>.ToString() -> string!
 override EmbedPDF.LinkActivation.Destination.<Clone>$() -> EmbedPDF.LinkActivation.Destination!
 override EmbedPDF.LinkActivation.Destination.Equals(object? obj) -> bool
 override EmbedPDF.LinkActivation.Destination.GetHashCode() -> int
@@ -5000,6 +5458,7 @@ override EmbedPDF.LocaleInfo.ToString() -> string!
 override EmbedPDF.LocalePack.Equals(object? obj) -> bool
 override EmbedPDF.LocalePack.GetHashCode() -> int
 override EmbedPDF.LocalePack.ToString() -> string!
+override EmbedPDF.MeasureOrigin.GetHashCode() -> int
 override EmbedPDF.MeasurementConfig.Equals(object? obj) -> bool
 override EmbedPDF.MeasurementConfig.GetHashCode() -> int
 override EmbedPDF.MeasurementConfig.ToString() -> string!
@@ -5206,6 +5665,12 @@ override EmbedPDF.PdfActionNode.GetHashCode() -> int
 override EmbedPDF.PdfActionNode.ToString() -> string!
 override EmbedPDF.PdfErrorCode.GetHashCode() -> int
 override EmbedPDF.PdfErrorCode.ToString() -> string!
+override EmbedPDF.PdfMeasurement.Equals(object? obj) -> bool
+override EmbedPDF.PdfMeasurement.GetHashCode() -> int
+override EmbedPDF.PdfMeasurement.ToString() -> string!
+override EmbedPDF.PdfNumberFormat.Equals(object? obj) -> bool
+override EmbedPDF.PdfNumberFormat.GetHashCode() -> int
+override EmbedPDF.PdfNumberFormat.ToString() -> string!
 override EmbedPDF.PdfObjectRef.Equals(object? obj) -> bool
 override EmbedPDF.PdfObjectRef.GetHashCode() -> int
 override EmbedPDF.PdfObjectRef.ToString() -> string!
@@ -5843,6 +6308,17 @@ override sealed EmbedPDF.ActionsEvent.ScriptDiagnosticReported.Equals(EmbedPDF.A
 override sealed EmbedPDF.ActionsEvent.ScriptFailed.Equals(EmbedPDF.ActionsEvent? other) -> bool
 override sealed EmbedPDF.ActionsScriptIdentitySetting.RegisteredProvider.Equals(EmbedPDF.ActionsScriptIdentitySetting? other) -> bool
 override sealed EmbedPDF.ActionsScriptIdentitySetting.Value.Equals(EmbedPDF.ActionsScriptIdentitySetting? other) -> bool
+override sealed EmbedPDF.AnnotationCalloutLine.Kneed.Equals(EmbedPDF.AnnotationCalloutLine? other) -> bool
+override sealed EmbedPDF.AnnotationCalloutLine.Straight.Equals(EmbedPDF.AnnotationCalloutLine? other) -> bool
+override sealed EmbedPDF.AnnotationCaptionCenter.At.Equals(EmbedPDF.AnnotationCaptionCenter? other) -> bool
+override sealed EmbedPDF.AnnotationCaptionCenter.Automatic.Equals(EmbedPDF.AnnotationCaptionCenter? other) -> bool
+override sealed EmbedPDF.AnnotationLinkTarget.GoTo.Equals(EmbedPDF.AnnotationLinkTarget? other) -> bool
+override sealed EmbedPDF.AnnotationLinkTarget.Named.Equals(EmbedPDF.AnnotationLinkTarget? other) -> bool
+override sealed EmbedPDF.AnnotationLinkTarget.Uri.Equals(EmbedPDF.AnnotationLinkTarget? other) -> bool
+override sealed EmbedPDF.AnnotationPosition.After.Equals(EmbedPDF.AnnotationPosition? other) -> bool
+override sealed EmbedPDF.AnnotationPosition.Before.Equals(EmbedPDF.AnnotationPosition? other) -> bool
+override sealed EmbedPDF.AnnotationPosition.End.Equals(EmbedPDF.AnnotationPosition? other) -> bool
+override sealed EmbedPDF.AnnotationPosition.Start.Equals(EmbedPDF.AnnotationPosition? other) -> bool
 override sealed EmbedPDF.AnnotationRef.Index.Equals(EmbedPDF.AnnotationRef? other) -> bool
 override sealed EmbedPDF.AnnotationRef.ObjectNumber.Equals(EmbedPDF.AnnotationRef? other) -> bool
 override sealed EmbedPDF.AttachmentEvent.Changed.Equals(EmbedPDF.AttachmentEvent? other) -> bool
@@ -6112,12 +6588,108 @@ static EmbedPDF.ActionsSettings.operator !=(EmbedPDF.ActionsSettings? left, Embe
 static EmbedPDF.ActionsSettings.operator ==(EmbedPDF.ActionsSettings? left, EmbedPDF.ActionsSettings? right) -> bool
 static EmbedPDF.ActionsSettingsPatch.operator !=(EmbedPDF.ActionsSettingsPatch? left, EmbedPDF.ActionsSettingsPatch? right) -> bool
 static EmbedPDF.ActionsSettingsPatch.operator ==(EmbedPDF.ActionsSettingsPatch? left, EmbedPDF.ActionsSettingsPatch? right) -> bool
+static EmbedPDF.AnnotationBorderStyleName.Beveled.get -> EmbedPDF.AnnotationBorderStyleName
+static EmbedPDF.AnnotationBorderStyleName.Dashed.get -> EmbedPDF.AnnotationBorderStyleName
+static EmbedPDF.AnnotationBorderStyleName.Inset.get -> EmbedPDF.AnnotationBorderStyleName
+static EmbedPDF.AnnotationBorderStyleName.Solid.get -> EmbedPDF.AnnotationBorderStyleName
+static EmbedPDF.AnnotationBorderStyleName.implicit operator EmbedPDF.AnnotationBorderStyleName(string! value) -> EmbedPDF.AnnotationBorderStyleName
+static EmbedPDF.AnnotationBorderStyleName.operator !=(EmbedPDF.AnnotationBorderStyleName left, EmbedPDF.AnnotationBorderStyleName right) -> bool
+static EmbedPDF.AnnotationBorderStyleName.operator ==(EmbedPDF.AnnotationBorderStyleName left, EmbedPDF.AnnotationBorderStyleName right) -> bool
+static EmbedPDF.AnnotationCalloutLine.Kneed.operator !=(EmbedPDF.AnnotationCalloutLine.Kneed? left, EmbedPDF.AnnotationCalloutLine.Kneed? right) -> bool
+static EmbedPDF.AnnotationCalloutLine.Kneed.operator ==(EmbedPDF.AnnotationCalloutLine.Kneed? left, EmbedPDF.AnnotationCalloutLine.Kneed? right) -> bool
+static EmbedPDF.AnnotationCalloutLine.Straight.operator !=(EmbedPDF.AnnotationCalloutLine.Straight? left, EmbedPDF.AnnotationCalloutLine.Straight? right) -> bool
+static EmbedPDF.AnnotationCalloutLine.Straight.operator ==(EmbedPDF.AnnotationCalloutLine.Straight? left, EmbedPDF.AnnotationCalloutLine.Straight? right) -> bool
+static EmbedPDF.AnnotationCalloutLine.operator !=(EmbedPDF.AnnotationCalloutLine? left, EmbedPDF.AnnotationCalloutLine? right) -> bool
+static EmbedPDF.AnnotationCalloutLine.operator ==(EmbedPDF.AnnotationCalloutLine? left, EmbedPDF.AnnotationCalloutLine? right) -> bool
+static EmbedPDF.AnnotationCaptionCenter.At.operator !=(EmbedPDF.AnnotationCaptionCenter.At? left, EmbedPDF.AnnotationCaptionCenter.At? right) -> bool
+static EmbedPDF.AnnotationCaptionCenter.At.operator ==(EmbedPDF.AnnotationCaptionCenter.At? left, EmbedPDF.AnnotationCaptionCenter.At? right) -> bool
+static EmbedPDF.AnnotationCaptionCenter.Automatic.operator !=(EmbedPDF.AnnotationCaptionCenter.Automatic? left, EmbedPDF.AnnotationCaptionCenter.Automatic? right) -> bool
+static EmbedPDF.AnnotationCaptionCenter.Automatic.operator ==(EmbedPDF.AnnotationCaptionCenter.Automatic? left, EmbedPDF.AnnotationCaptionCenter.Automatic? right) -> bool
+static EmbedPDF.AnnotationCaptionCenter.operator !=(EmbedPDF.AnnotationCaptionCenter? left, EmbedPDF.AnnotationCaptionCenter? right) -> bool
+static EmbedPDF.AnnotationCaptionCenter.operator ==(EmbedPDF.AnnotationCaptionCenter? left, EmbedPDF.AnnotationCaptionCenter? right) -> bool
+static EmbedPDF.AnnotationCaptionOffset.operator !=(EmbedPDF.AnnotationCaptionOffset left, EmbedPDF.AnnotationCaptionOffset right) -> bool
+static EmbedPDF.AnnotationCaptionOffset.operator ==(EmbedPDF.AnnotationCaptionOffset left, EmbedPDF.AnnotationCaptionOffset right) -> bool
+static EmbedPDF.AnnotationColor.Parse(string! hex) -> EmbedPDF.AnnotationColor
+static EmbedPDF.AnnotationColor.TryParse(string? hex, out EmbedPDF.AnnotationColor color) -> bool
+static EmbedPDF.AnnotationColor.operator !=(EmbedPDF.AnnotationColor left, EmbedPDF.AnnotationColor right) -> bool
+static EmbedPDF.AnnotationColor.operator ==(EmbedPDF.AnnotationColor left, EmbedPDF.AnnotationColor right) -> bool
+static EmbedPDF.AnnotationCommonFields.operator !=(EmbedPDF.AnnotationCommonFields? left, EmbedPDF.AnnotationCommonFields? right) -> bool
+static EmbedPDF.AnnotationCommonFields.operator ==(EmbedPDF.AnnotationCommonFields? left, EmbedPDF.AnnotationCommonFields? right) -> bool
+static EmbedPDF.AnnotationIntent.FreeText.get -> EmbedPDF.AnnotationIntent
+static EmbedPDF.AnnotationIntent.FreeTextCallout.get -> EmbedPDF.AnnotationIntent
+static EmbedPDF.AnnotationIntent.FreeTextTypewriter.get -> EmbedPDF.AnnotationIntent
+static EmbedPDF.AnnotationIntent.InkHighlight.get -> EmbedPDF.AnnotationIntent
+static EmbedPDF.AnnotationIntent.LineArrow.get -> EmbedPDF.AnnotationIntent
+static EmbedPDF.AnnotationIntent.LineDimension.get -> EmbedPDF.AnnotationIntent
+static EmbedPDF.AnnotationIntent.PolygonCloud.get -> EmbedPDF.AnnotationIntent
+static EmbedPDF.AnnotationIntent.PolygonDimension.get -> EmbedPDF.AnnotationIntent
+static EmbedPDF.AnnotationIntent.PolylineDimension.get -> EmbedPDF.AnnotationIntent
+static EmbedPDF.AnnotationIntent.Replace.get -> EmbedPDF.AnnotationIntent
+static EmbedPDF.AnnotationIntent.StrikeoutTextEdit.get -> EmbedPDF.AnnotationIntent
+static EmbedPDF.AnnotationIntent.implicit operator EmbedPDF.AnnotationIntent(string! value) -> EmbedPDF.AnnotationIntent
+static EmbedPDF.AnnotationIntent.operator !=(EmbedPDF.AnnotationIntent left, EmbedPDF.AnnotationIntent right) -> bool
+static EmbedPDF.AnnotationIntent.operator ==(EmbedPDF.AnnotationIntent left, EmbedPDF.AnnotationIntent right) -> bool
+static EmbedPDF.AnnotationLineEndings.operator !=(EmbedPDF.AnnotationLineEndings left, EmbedPDF.AnnotationLineEndings right) -> bool
+static EmbedPDF.AnnotationLineEndings.operator ==(EmbedPDF.AnnotationLineEndings left, EmbedPDF.AnnotationLineEndings right) -> bool
+static EmbedPDF.AnnotationLineLeader.operator !=(EmbedPDF.AnnotationLineLeader left, EmbedPDF.AnnotationLineLeader right) -> bool
+static EmbedPDF.AnnotationLineLeader.operator ==(EmbedPDF.AnnotationLineLeader left, EmbedPDF.AnnotationLineLeader right) -> bool
+static EmbedPDF.AnnotationLinkTarget.GoTo.operator !=(EmbedPDF.AnnotationLinkTarget.GoTo? left, EmbedPDF.AnnotationLinkTarget.GoTo? right) -> bool
+static EmbedPDF.AnnotationLinkTarget.GoTo.operator ==(EmbedPDF.AnnotationLinkTarget.GoTo? left, EmbedPDF.AnnotationLinkTarget.GoTo? right) -> bool
+static EmbedPDF.AnnotationLinkTarget.Named.operator !=(EmbedPDF.AnnotationLinkTarget.Named? left, EmbedPDF.AnnotationLinkTarget.Named? right) -> bool
+static EmbedPDF.AnnotationLinkTarget.Named.operator ==(EmbedPDF.AnnotationLinkTarget.Named? left, EmbedPDF.AnnotationLinkTarget.Named? right) -> bool
+static EmbedPDF.AnnotationLinkTarget.Uri.operator !=(EmbedPDF.AnnotationLinkTarget.Uri? left, EmbedPDF.AnnotationLinkTarget.Uri? right) -> bool
+static EmbedPDF.AnnotationLinkTarget.Uri.operator ==(EmbedPDF.AnnotationLinkTarget.Uri? left, EmbedPDF.AnnotationLinkTarget.Uri? right) -> bool
+static EmbedPDF.AnnotationLinkTarget.operator !=(EmbedPDF.AnnotationLinkTarget? left, EmbedPDF.AnnotationLinkTarget? right) -> bool
+static EmbedPDF.AnnotationLinkTarget.operator ==(EmbedPDF.AnnotationLinkTarget? left, EmbedPDF.AnnotationLinkTarget? right) -> bool
+static EmbedPDF.AnnotationPosition.After.operator !=(EmbedPDF.AnnotationPosition.After? left, EmbedPDF.AnnotationPosition.After? right) -> bool
+static EmbedPDF.AnnotationPosition.After.operator ==(EmbedPDF.AnnotationPosition.After? left, EmbedPDF.AnnotationPosition.After? right) -> bool
+static EmbedPDF.AnnotationPosition.Before.operator !=(EmbedPDF.AnnotationPosition.Before? left, EmbedPDF.AnnotationPosition.Before? right) -> bool
+static EmbedPDF.AnnotationPosition.Before.operator ==(EmbedPDF.AnnotationPosition.Before? left, EmbedPDF.AnnotationPosition.Before? right) -> bool
+static EmbedPDF.AnnotationPosition.End.operator !=(EmbedPDF.AnnotationPosition.End? left, EmbedPDF.AnnotationPosition.End? right) -> bool
+static EmbedPDF.AnnotationPosition.End.operator ==(EmbedPDF.AnnotationPosition.End? left, EmbedPDF.AnnotationPosition.End? right) -> bool
+static EmbedPDF.AnnotationPosition.Start.operator !=(EmbedPDF.AnnotationPosition.Start? left, EmbedPDF.AnnotationPosition.Start? right) -> bool
+static EmbedPDF.AnnotationPosition.Start.operator ==(EmbedPDF.AnnotationPosition.Start? left, EmbedPDF.AnnotationPosition.Start? right) -> bool
+static EmbedPDF.AnnotationPosition.operator !=(EmbedPDF.AnnotationPosition? left, EmbedPDF.AnnotationPosition? right) -> bool
+static EmbedPDF.AnnotationPosition.operator ==(EmbedPDF.AnnotationPosition? left, EmbedPDF.AnnotationPosition? right) -> bool
 static EmbedPDF.AnnotationRef.Index.operator !=(EmbedPDF.AnnotationRef.Index? left, EmbedPDF.AnnotationRef.Index? right) -> bool
 static EmbedPDF.AnnotationRef.Index.operator ==(EmbedPDF.AnnotationRef.Index? left, EmbedPDF.AnnotationRef.Index? right) -> bool
 static EmbedPDF.AnnotationRef.ObjectNumber.operator !=(EmbedPDF.AnnotationRef.ObjectNumber? left, EmbedPDF.AnnotationRef.ObjectNumber? right) -> bool
 static EmbedPDF.AnnotationRef.ObjectNumber.operator ==(EmbedPDF.AnnotationRef.ObjectNumber? left, EmbedPDF.AnnotationRef.ObjectNumber? right) -> bool
 static EmbedPDF.AnnotationRef.operator !=(EmbedPDF.AnnotationRef? left, EmbedPDF.AnnotationRef? right) -> bool
 static EmbedPDF.AnnotationRef.operator ==(EmbedPDF.AnnotationRef? left, EmbedPDF.AnnotationRef? right) -> bool
+static EmbedPDF.AnnotationReply.operator !=(EmbedPDF.AnnotationReply? left, EmbedPDF.AnnotationReply? right) -> bool
+static EmbedPDF.AnnotationReply.operator ==(EmbedPDF.AnnotationReply? left, EmbedPDF.AnnotationReply? right) -> bool
+static EmbedPDF.AnnotationRichText.FromPlainText(string! text) -> EmbedPDF.AnnotationRichText!
+static EmbedPDF.AnnotationRichText.operator !=(EmbedPDF.AnnotationRichText? left, EmbedPDF.AnnotationRichText? right) -> bool
+static EmbedPDF.AnnotationRichText.operator ==(EmbedPDF.AnnotationRichText? left, EmbedPDF.AnnotationRichText? right) -> bool
+static EmbedPDF.AnnotationRichTextParagraph.operator !=(EmbedPDF.AnnotationRichTextParagraph? left, EmbedPDF.AnnotationRichTextParagraph? right) -> bool
+static EmbedPDF.AnnotationRichTextParagraph.operator ==(EmbedPDF.AnnotationRichTextParagraph? left, EmbedPDF.AnnotationRichTextParagraph? right) -> bool
+static EmbedPDF.AnnotationRichTextRun.operator !=(EmbedPDF.AnnotationRichTextRun? left, EmbedPDF.AnnotationRichTextRun? right) -> bool
+static EmbedPDF.AnnotationRichTextRun.operator ==(EmbedPDF.AnnotationRichTextRun? left, EmbedPDF.AnnotationRichTextRun? right) -> bool
+static EmbedPDF.AnnotationSubtype.Caret.get -> EmbedPDF.AnnotationSubtype
+static EmbedPDF.AnnotationSubtype.Circle.get -> EmbedPDF.AnnotationSubtype
+static EmbedPDF.AnnotationSubtype.FileAttachment.get -> EmbedPDF.AnnotationSubtype
+static EmbedPDF.AnnotationSubtype.FreeText.get -> EmbedPDF.AnnotationSubtype
+static EmbedPDF.AnnotationSubtype.Highlight.get -> EmbedPDF.AnnotationSubtype
+static EmbedPDF.AnnotationSubtype.Ink.get -> EmbedPDF.AnnotationSubtype
+static EmbedPDF.AnnotationSubtype.Line.get -> EmbedPDF.AnnotationSubtype
+static EmbedPDF.AnnotationSubtype.Link.get -> EmbedPDF.AnnotationSubtype
+static EmbedPDF.AnnotationSubtype.Named.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationSubtype>!
+static EmbedPDF.AnnotationSubtype.Polygon.get -> EmbedPDF.AnnotationSubtype
+static EmbedPDF.AnnotationSubtype.Polyline.get -> EmbedPDF.AnnotationSubtype
+static EmbedPDF.AnnotationSubtype.Popup.get -> EmbedPDF.AnnotationSubtype
+static EmbedPDF.AnnotationSubtype.Redact.get -> EmbedPDF.AnnotationSubtype
+static EmbedPDF.AnnotationSubtype.Square.get -> EmbedPDF.AnnotationSubtype
+static EmbedPDF.AnnotationSubtype.Squiggly.get -> EmbedPDF.AnnotationSubtype
+static EmbedPDF.AnnotationSubtype.Stamp.get -> EmbedPDF.AnnotationSubtype
+static EmbedPDF.AnnotationSubtype.Strikeout.get -> EmbedPDF.AnnotationSubtype
+static EmbedPDF.AnnotationSubtype.Text.get -> EmbedPDF.AnnotationSubtype
+static EmbedPDF.AnnotationSubtype.Underline.get -> EmbedPDF.AnnotationSubtype
+static EmbedPDF.AnnotationSubtype.Unsupported.get -> EmbedPDF.AnnotationSubtype
+static EmbedPDF.AnnotationSubtype.Widget.get -> EmbedPDF.AnnotationSubtype
+static EmbedPDF.AnnotationSubtype.implicit operator EmbedPDF.AnnotationSubtype(string! value) -> EmbedPDF.AnnotationSubtype
+static EmbedPDF.AnnotationSubtype.operator !=(EmbedPDF.AnnotationSubtype left, EmbedPDF.AnnotationSubtype right) -> bool
+static EmbedPDF.AnnotationSubtype.operator ==(EmbedPDF.AnnotationSubtype left, EmbedPDF.AnnotationSubtype right) -> bool
 static EmbedPDF.AttachedFile.operator !=(EmbedPDF.AttachedFile? left, EmbedPDF.AttachedFile? right) -> bool
 static EmbedPDF.AttachedFile.operator ==(EmbedPDF.AttachedFile? left, EmbedPDF.AttachedFile? right) -> bool
 static EmbedPDF.AttachmentContent.operator !=(EmbedPDF.AttachmentContent? left, EmbedPDF.AttachmentContent? right) -> bool
@@ -6309,6 +6881,11 @@ static EmbedPDF.InteractionSettingsPatch.operator !=(EmbedPDF.InteractionSetting
 static EmbedPDF.InteractionSettingsPatch.operator ==(EmbedPDF.InteractionSettingsPatch? left, EmbedPDF.InteractionSettingsPatch? right) -> bool
 static EmbedPDF.InteractionTool.operator !=(EmbedPDF.InteractionTool? left, EmbedPDF.InteractionTool? right) -> bool
 static EmbedPDF.InteractionTool.operator ==(EmbedPDF.InteractionTool? left, EmbedPDF.InteractionTool? right) -> bool
+static EmbedPDF.JsonNullable.Of<T>(T value) -> EmbedPDF.JsonNullable<T>
+static EmbedPDF.JsonNullable<T>.Null.get -> EmbedPDF.JsonNullable<T>
+static EmbedPDF.JsonNullable<T>.implicit operator EmbedPDF.JsonNullable<T>(T value) -> EmbedPDF.JsonNullable<T>
+static EmbedPDF.JsonNullable<T>.operator !=(EmbedPDF.JsonNullable<T> left, EmbedPDF.JsonNullable<T> right) -> bool
+static EmbedPDF.JsonNullable<T>.operator ==(EmbedPDF.JsonNullable<T> left, EmbedPDF.JsonNullable<T> right) -> bool
 static EmbedPDF.LinkActivation.Destination.operator !=(EmbedPDF.LinkActivation.Destination? left, EmbedPDF.LinkActivation.Destination? right) -> bool
 static EmbedPDF.LinkActivation.Destination.operator ==(EmbedPDF.LinkActivation.Destination? left, EmbedPDF.LinkActivation.Destination? right) -> bool
 static EmbedPDF.LinkActivation.Dispatched.operator !=(EmbedPDF.LinkActivation.Dispatched? left, EmbedPDF.LinkActivation.Dispatched? right) -> bool
@@ -6350,6 +6927,8 @@ static EmbedPDF.LocaleInfo.operator ==(EmbedPDF.LocaleInfo? left, EmbedPDF.Local
 static EmbedPDF.LocalePack.FromJson(string! json) -> EmbedPDF.LocalePack!
 static EmbedPDF.LocalePack.operator !=(EmbedPDF.LocalePack? left, EmbedPDF.LocalePack? right) -> bool
 static EmbedPDF.LocalePack.operator ==(EmbedPDF.LocalePack? left, EmbedPDF.LocalePack? right) -> bool
+static EmbedPDF.MeasureOrigin.operator !=(EmbedPDF.MeasureOrigin left, EmbedPDF.MeasureOrigin right) -> bool
+static EmbedPDF.MeasureOrigin.operator ==(EmbedPDF.MeasureOrigin left, EmbedPDF.MeasureOrigin right) -> bool
 static EmbedPDF.MeasurementConfig.operator !=(EmbedPDF.MeasurementConfig? left, EmbedPDF.MeasurementConfig? right) -> bool
 static EmbedPDF.MeasurementConfig.operator ==(EmbedPDF.MeasurementConfig? left, EmbedPDF.MeasurementConfig? right) -> bool
 static EmbedPDF.MetadataEvent.CustomResynced.operator !=(EmbedPDF.MetadataEvent.CustomResynced? left, EmbedPDF.MetadataEvent.CustomResynced? right) -> bool
@@ -6483,6 +7062,10 @@ static EmbedPDF.PdfErrorCode.Unsupported.get -> EmbedPDF.PdfErrorCode
 static EmbedPDF.PdfErrorCode.implicit operator EmbedPDF.PdfErrorCode(string! value) -> EmbedPDF.PdfErrorCode
 static EmbedPDF.PdfErrorCode.operator !=(EmbedPDF.PdfErrorCode left, EmbedPDF.PdfErrorCode right) -> bool
 static EmbedPDF.PdfErrorCode.operator ==(EmbedPDF.PdfErrorCode left, EmbedPDF.PdfErrorCode right) -> bool
+static EmbedPDF.PdfMeasurement.operator !=(EmbedPDF.PdfMeasurement? left, EmbedPDF.PdfMeasurement? right) -> bool
+static EmbedPDF.PdfMeasurement.operator ==(EmbedPDF.PdfMeasurement? left, EmbedPDF.PdfMeasurement? right) -> bool
+static EmbedPDF.PdfNumberFormat.operator !=(EmbedPDF.PdfNumberFormat? left, EmbedPDF.PdfNumberFormat? right) -> bool
+static EmbedPDF.PdfNumberFormat.operator ==(EmbedPDF.PdfNumberFormat? left, EmbedPDF.PdfNumberFormat? right) -> bool
 static EmbedPDF.PdfObjectRef.operator !=(EmbedPDF.PdfObjectRef? left, EmbedPDF.PdfObjectRef? right) -> bool
 static EmbedPDF.PdfObjectRef.operator ==(EmbedPDF.PdfObjectRef? left, EmbedPDF.PdfObjectRef? right) -> bool
 static EmbedPDF.PdfPoint.operator !=(EmbedPDF.PdfPoint left, EmbedPDF.PdfPoint right) -> bool
@@ -6920,6 +7503,18 @@ virtual EmbedPDF.ActionsEvent.PrintMembers(System.Text.StringBuilder! builder) -
 virtual EmbedPDF.ActionsScriptIdentitySetting.EqualityContract.get -> System.Type!
 virtual EmbedPDF.ActionsScriptIdentitySetting.Equals(EmbedPDF.ActionsScriptIdentitySetting? other) -> bool
 virtual EmbedPDF.ActionsScriptIdentitySetting.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.AnnotationCalloutLine.EqualityContract.get -> System.Type!
+virtual EmbedPDF.AnnotationCalloutLine.Equals(EmbedPDF.AnnotationCalloutLine? other) -> bool
+virtual EmbedPDF.AnnotationCalloutLine.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.AnnotationCaptionCenter.EqualityContract.get -> System.Type!
+virtual EmbedPDF.AnnotationCaptionCenter.Equals(EmbedPDF.AnnotationCaptionCenter? other) -> bool
+virtual EmbedPDF.AnnotationCaptionCenter.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.AnnotationLinkTarget.EqualityContract.get -> System.Type!
+virtual EmbedPDF.AnnotationLinkTarget.Equals(EmbedPDF.AnnotationLinkTarget? other) -> bool
+virtual EmbedPDF.AnnotationLinkTarget.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.AnnotationPosition.EqualityContract.get -> System.Type!
+virtual EmbedPDF.AnnotationPosition.Equals(EmbedPDF.AnnotationPosition? other) -> bool
+virtual EmbedPDF.AnnotationPosition.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual EmbedPDF.AnnotationRef.EqualityContract.get -> System.Type!
 virtual EmbedPDF.AnnotationRef.Equals(EmbedPDF.AnnotationRef? other) -> bool
 virtual EmbedPDF.AnnotationRef.PrintMembers(System.Text.StringBuilder! builder) -> bool
@@ -7052,11 +7647,23 @@ virtual EmbedPDF.ViewManagerEvent.PrintMembers(System.Text.StringBuilder! builde
 virtual EmbedPDF.ZoomSpec.EqualityContract.get -> System.Type!
 virtual EmbedPDF.ZoomSpec.Equals(EmbedPDF.ZoomSpec? other) -> bool
 virtual EmbedPDF.ZoomSpec.PrintMembers(System.Text.StringBuilder! builder) -> bool
+~override EmbedPDF.AnnotationBorderStyleName.Equals(object obj) -> bool
+~override EmbedPDF.AnnotationCaptionOffset.Equals(object obj) -> bool
+~override EmbedPDF.AnnotationCaptionOffset.ToString() -> string
+~override EmbedPDF.AnnotationColor.Equals(object obj) -> bool
+~override EmbedPDF.AnnotationIntent.Equals(object obj) -> bool
+~override EmbedPDF.AnnotationLineEndings.Equals(object obj) -> bool
+~override EmbedPDF.AnnotationLineEndings.ToString() -> string
+~override EmbedPDF.AnnotationLineLeader.Equals(object obj) -> bool
+~override EmbedPDF.AnnotationLineLeader.ToString() -> string
+~override EmbedPDF.AnnotationSubtype.Equals(object obj) -> bool
 ~override EmbedPDF.AttachmentRef.Equals(object obj) -> bool
 ~override EmbedPDF.AttachmentRef.ToString() -> string
 ~override EmbedPDF.Camera.Equals(object obj) -> bool
 ~override EmbedPDF.Camera.ToString() -> string
 ~override EmbedPDF.DocumentPermission.Equals(object obj) -> bool
+~override EmbedPDF.MeasureOrigin.Equals(object obj) -> bool
+~override EmbedPDF.MeasureOrigin.ToString() -> string
 ~override EmbedPDF.OutlineItemRef.Equals(object obj) -> bool
 ~override EmbedPDF.OutlineItemRef.ToString() -> string
 ~override EmbedPDF.PageFrameInsets.Equals(object obj) -> bool
