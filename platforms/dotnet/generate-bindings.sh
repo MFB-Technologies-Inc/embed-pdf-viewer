@@ -44,6 +44,10 @@ fi
 
 cargo build --locked --quiet -p epdf-uniffi-bindgen-cs --manifest-path "$ROOT/Cargo.toml"
 GENERATOR="${CARGO_TARGET_DIR:-$ROOT/target}/debug/uniffi-bindgen-cs"
+# Cargo names the binary uniffi-bindgen-cs.exe on Windows.
+if [[ ! -x "$GENERATOR" && -f "$GENERATOR.exe" ]]; then
+  GENERATOR="$GENERATOR.exe"
+fi
 
 rm -rf "$OUT"
 mkdir -p "$OUT"

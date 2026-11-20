@@ -36,8 +36,17 @@ if [[ -f "$library" ]]; then
   mkdir -p "$out"
   touch "$out/stale.cs"
   expect_exit "generate: runs" 0 bash "$HERE/generate-bindings.sh" --library "$library" --out-dir "$out"
-  count=$(find "$out" -name '*.cs' | wc -l)
-  [[ $count == 25 ]] && pass "generate: 25 files" || fail "generate: 25 files (got $count)"
+  # One file per uniffi component in the library. Each component with an
+  # exported function exports checksum symbols uniffi_<component>_checksum_*.
+  expected="$(nm -D --defined-only "$library" | sed -n 's/.* uniffi_\(.*\)_checksum_.*/\1/p' | LC_ALL=C sort -u)"
+  got="$(find "$out" -name '*.cs' -exec basename {} .cs \; | LC_ALL=C sort -u)"
+  count=$(echo "$expected" | grep -c .)
+  if ((count >= 25)) && [[ "$got" == "$expected" ]]; then
+    pass "generate: one file per component ($count)"
+  else
+    fail "generate: one file per component"
+    diff <(echo "$expected") <(echo "$got")
+  fi
   [[ ! -e "$out/stale.cs" ]] && pass "generate: stale output removed" || fail "generate: stale output removed"
   if grep -q "public class ViewerHost\b\|public partial class ViewerHost\b" "$out/epdf_viewer_host.cs"; then
     fail "generate: ViewerHost is internal"
