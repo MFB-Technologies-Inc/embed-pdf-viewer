@@ -362,4 +362,9 @@ class AnnotationPatchDecodingTest {
         assertNull(tools.defaults(ToolId.INK, HighlightAnnotationPatch).quadPoints)
         viewer.destroy()
     }
+
+    @Test
+    fun aNumberPastADoublesRangeIsInvalidInput() = viewerTest {
+        expectCode(PdfException.Code.INVALID_INPUT) { InkAnnotationPatch.fromJson("""{"opacity":1e400}""") }
+    }
 }

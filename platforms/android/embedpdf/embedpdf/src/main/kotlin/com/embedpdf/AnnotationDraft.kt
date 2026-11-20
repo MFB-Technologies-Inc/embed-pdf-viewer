@@ -594,10 +594,15 @@ internal object FieldValues {
 
     // ── reading ──
 
+    /** A finite number; one past a double's range (`1e400`) throws `invalid-input`. */
     fun double(element: JsonElement): Double {
         val value = element as? JsonPrimitive
         if (value == null || value.isString) throw SerializationException("$element is not a number")
-        return value.doubleOrNull ?: throw SerializationException("$element is not a number")
+        val number = value.doubleOrNull ?: throw SerializationException("$element is not a number")
+        if (!number.isFinite()) {
+            throw PdfException(PdfException.Code.INVALID_INPUT, "$element is not a finite number", "DecodingError")
+        }
+        return number
     }
 
     fun string(element: JsonElement): String {

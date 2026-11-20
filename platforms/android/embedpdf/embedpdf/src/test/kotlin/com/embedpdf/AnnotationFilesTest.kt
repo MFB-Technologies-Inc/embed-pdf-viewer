@@ -77,4 +77,16 @@ class AnnotationFilesTest {
         })
         expectCode(PdfException.Code.OPERATION_FAILED) { AnnotationPickedFile(resolver, broken) }
     }
+
+    @Test
+    fun aUriTheProviderRejectsIsInvalidInput() = viewerTest {
+        val unknown = Uri.parse("content://com.embedpdf.test/files/unknown.png")
+        shadowOf(resolver).registerInputStreamSupplier(unknown) { throw IllegalArgumentException("Unknown URI") }
+        expectCode(PdfException.Code.INVALID_INPUT) { AnnotationPickedFile(resolver, unknown) }
+    }
+
+    @Test
+    fun aCapPastTheLargestArrayStillReads() = viewerTest {
+        assertArrayEquals(png, AnnotationPickedFile(resolver, registered("huge-cap.png"), maxBytes = Long.MAX_VALUE).bytes)
+    }
 }

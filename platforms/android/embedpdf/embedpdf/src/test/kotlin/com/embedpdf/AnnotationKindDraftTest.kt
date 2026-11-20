@@ -716,6 +716,20 @@ class AnnotationKindDraftTest {
     }
 
     @Test
+    fun richTextReadsWholeNumbersAsIntegers() {
+        val read = AnnotationRichTextSerializer.read(
+            jsonObject(
+                """{"body":{"size":14.0,"spacing":[1.5,2.0],"big":1e300},"paragraphs":[{"indent":3.0,"runs":[{"style":{"weight":700.0},"text":"Hi"}]}]}""",
+            ),
+        )
+        assertEquals(JsonPrimitive(14), read.body?.get("size"))
+        assertEquals(kotlinx.serialization.json.JsonArray(listOf(JsonPrimitive(1.5), JsonPrimitive(2))), read.body?.get("spacing"))
+        assertEquals(JsonPrimitive(1e300), read.body?.get("big"))
+        assertEquals(mapOf("indent" to JsonPrimitive(3)), read.paragraphs[0].properties)
+        assertEquals(AnnotationRichText.Run("Hi", mapOf("weight" to JsonPrimitive(700))), read.paragraphs[0].runs[0])
+    }
+
+    @Test
     fun aFreeTextReadsItsRichTextBack() = viewerTest {
         val (viewer, page, annotations) = openedPage()
         val ref = annotations.create(
@@ -727,8 +741,10 @@ class AnnotationKindDraftTest {
         val richText = checkNotNull(read.freeText?.richText)
         assertEquals(styledText.paragraphs.map { it.runs }, richText.paragraphs.map { it.runs })
         // The body is the draft's text style, stated whole. The engine spells
-        // the size `14.0`, and a JsonElement compares by its text.
-        assertEquals(14.0, richText.body?.get("size")?.jsonPrimitive?.content?.toDouble())
+        // the size `14.0`; the read spells it `14`, so it equals a style
+        // built with `JsonPrimitive(14)`.
+        assertEquals(JsonPrimitive(14), richText.body?.get("size"))
+        assertEquals(mapOf("size" to JsonPrimitive(14)), richText.body?.filterKeys { it == "size" })
 
         // What a read hands out, a patch takes back with one run changed, and
         // the body and the other runs are not lost.

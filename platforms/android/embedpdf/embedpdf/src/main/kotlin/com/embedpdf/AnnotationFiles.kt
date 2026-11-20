@@ -73,13 +73,20 @@ private suspend fun ContentResolver.readFile(uri: Uri, maxBytes: Long): Resolved
         throw PdfException(PdfException.Code.NOT_FOUND, readable(e), "FileNotFoundException", e)
     } catch (e: SecurityException) {
         throw PdfException(PdfException.Code.PERMISSION_DENIED, readable(e), "SecurityException", e)
+    } catch (e: IllegalArgumentException) {
+        // A provider answers a URI it doesn't know this way.
+        throw PdfException(PdfException.Code.INVALID_INPUT, readable(e), "IllegalArgumentException", e)
     } catch (e: IOException) {
         throw PdfException(PdfException.Code.OPERATION_FAILED, readable(e), e.javaClass.simpleName, e)
     }
 }
 
-/** The whole stream, or `invalid-input` once it passes [maxBytes]. */
-private fun InputStream.readAtMost(maxBytes: Long, uri: Uri): ByteArray {
+/**
+ * The whole stream, or `invalid-input` once it passes [maxBytes], which is
+ * clamped to [MAX_ARRAY_BYTES]: no byte array holds more.
+ */
+private fun InputStream.readAtMost(requestedMaxBytes: Long, uri: Uri): ByteArray {
+    val maxBytes = minOf(requestedMaxBytes, MAX_ARRAY_BYTES)
     val out = ByteArrayOutputStream()
     val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
     var total = 0L
@@ -103,3 +110,6 @@ private fun ContentResolver.displayName(uri: Uri): String? = try {
     // to the URI's own name.
     null
 }
+
+/** The largest array the JVM and ART reliably allocate. */
+private const val MAX_ARRAY_BYTES: Long = Int.MAX_VALUE - 8L

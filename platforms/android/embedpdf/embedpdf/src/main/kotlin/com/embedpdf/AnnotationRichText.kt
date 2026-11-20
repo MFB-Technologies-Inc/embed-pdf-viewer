@@ -11,6 +11,8 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.longOrNull
 
 /**
  * Styled text: a free text's text, or another annotation's comment (`/RC`).
@@ -22,6 +24,14 @@ import kotlinx.serialization.json.JsonPrimitive
  * The engine fixes only the outline: paragraphs of runs of text. The body
  * style, each run's style and each paragraph's properties are open maps it
  * passes through, held here as [JsonElement] with every key kept.
+ *
+ * A [JsonElement] compares by its text, so `14.0` and `14` differ. A read
+ * spells every number in the maps the way Kotlin builds it: a whole number as
+ * an integer (the engine's `14.0` reads as `14`), any other as
+ * `JsonPrimitive(Double)` spells it. So a style built with `JsonPrimitive(14)`
+ * or `JsonPrimitive(1.5)` equals the one read back. Build whole numbers as
+ * integers; `JsonPrimitive(14.0)` is a different element, though it writes
+ * the same value.
  *
  * `contents` is always the rich text's plain text: [plainText], with a `\r\n`
  * or `\r` inside a run's text spelled `\n`.
@@ -122,9 +132,31 @@ internal object AnnotationRichTextSerializer : KSerializer<AnnotationRichText> {
         },
     )
 
+    /**
+     * [element] with each number spelled as Kotlin builds it, at any depth:
+     * a whole number in a `Long`'s range as an integer (`14.0` and `1.4e1`
+     * become `14`), any other as `JsonPrimitive(Double)` does (`1e300` becomes
+     * `1.0E300`), so equal numbers compare equal.
+     */
+    fun normalized(element: JsonElement): JsonElement = when (element) {
+        is JsonObject -> JsonObject(normalizedMap(element))
+        is JsonArray -> JsonArray(element.map { normalized(it) })
+        is JsonNull -> element
+        is JsonPrimitive -> {
+            val number = if (element.isString || element.longOrNull != null) null else element.doubleOrNull
+            when {
+                number == null || !number.isFinite() -> element
+                number == Math.rint(number) && Math.abs(number) < 9.0e18 -> JsonPrimitive(number.toLong())
+                else -> JsonPrimitive(number)
+            }
+        }
+    }
+
+    private fun normalizedMap(map: Map<String, JsonElement>): Map<String, JsonElement> = map.mapValues { normalized(it.value) }
+
     fun read(element: JsonElement): AnnotationRichText {
         val document = element.asObject("rich text")
-        val body = document["body"]?.takeIf { it !is JsonNull }?.asObject("body")
+        val body = document["body"]?.takeIf { it !is JsonNull }?.asObject("body")?.let(::normalizedMap)
         val paragraphs = document.field("paragraphs") as? JsonArray ?: throw SerializationException("paragraphs is not an array")
         return AnnotationRichText(
             body = body,
@@ -136,10 +168,10 @@ internal object AnnotationRichTextSerializer : KSerializer<AnnotationRichText> {
                         val run = runItem.asObject("run")
                         AnnotationRichText.Run(
                             text = run.string("text"),
-                            style = run["style"]?.takeIf { it !is JsonNull }?.asObject("style"),
+                            style = run["style"]?.takeIf { it !is JsonNull }?.asObject("style")?.let(::normalizedMap),
                         )
                     },
-                    properties = paragraph.filterKeys { it != "runs" },
+                    properties = normalizedMap(paragraph.filterKeys { it != "runs" }),
                 )
             },
         )

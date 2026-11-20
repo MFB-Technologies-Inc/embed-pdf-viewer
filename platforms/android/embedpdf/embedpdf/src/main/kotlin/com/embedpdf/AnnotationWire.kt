@@ -275,12 +275,14 @@ internal object AnnotationWire {
 }
 
 /**
- * Field bags as the engine reads them: keys sorted as Foundation's
- * `.sortedKeys` sorts them ([KEY_ORDER]), so the same value is always the
- * same bytes, and numbers spelled as Swift's `JSONEncoder` spells
- * them (`72`, not `72.0`), so a Kotlin bag and a Swift bag compare byte for
- * byte. Throws `invalid-input` for a number JSON can't hold (NaN or an
- * infinity).
+ * Field bags as the engine reads them: keys in a fixed order ([KEY_ORDER]),
+ * so the same value is always the same bytes, and numbers spelled the way
+ * Swift's `JSONEncoder` spells them (`72`, not `72.0`). A Kotlin bag and a
+ * Swift bag for the same draft always hold equal values. Their bytes are
+ * identical for the values the Swift tests pin; beyond those, see [number]
+ * and [KEY_ORDER] for where the two can differ. Swift doesn't run in the
+ * container, so no wider set of Swift vectors backs the claim. Throws
+ * `invalid-input` for a number JSON can't hold (NaN or an infinity).
  */
 internal object AnnotationFieldBag {
     fun json(element: JsonElement): String = StringBuilder().also { write(element, it) }.toString()
@@ -318,10 +320,12 @@ internal object AnnotationFieldBag {
     }
 
     /**
-     * Foundation's `.sortedKeys` order: case-insensitive, runs of digits
-     * compared by value, and ties broken by the keys' own characters
-     * (`String.CompareOptions` `.caseInsensitive`, `.numeric` and
-     * `.forcedOrdering`).
+     * The key order, modelled on Foundation's `.sortedKeys`: case-insensitive,
+     * runs of digits compared by value, and ties broken by the keys' own
+     * characters (`String.CompareOptions` `.caseInsensitive`, `.numeric` and
+     * `.forcedOrdering`). Only ASCII camelCase keys, the ones drafts write,
+     * are checked against Swift's output; keys with digits, non-ASCII letters
+     * or a case-only difference follow the modelled rules unverified.
      */
     val KEY_ORDER: Comparator<String> = Comparator { left, right ->
         var i = 0
@@ -356,17 +360,24 @@ internal object AnnotationFieldBag {
     }
 
     /**
-     * A finite double as Swift's `JSONEncoder` writes it: `Double.description`
-     * with a trailing `.0` dropped. That is the shortest digits that read
-     * back as the same double, in plain notation for a decimal exponent from
-     * -4 up to 15 (`0.0005`, `12345678.5`, `72`) and otherwise as `1e-07` or
-     * `1e+16`: lowercase `e`, a sign and at least two exponent digits.
-     * Negative zero is `-0`.
+     * A finite double in the notation Swift's `JSONEncoder` writes:
+     * `Double.description` with a trailing `.0` dropped, in plain notation for
+     * a decimal exponent from -4 up to 15 (`0.0005`, `12345678.5`, `72`) and
+     * otherwise as `1e-07` or `1e+16`: lowercase `e`, a sign and at least two
+     * exponent digits. Negative zero is `-0`.
+     *
+     * The digits are `Double.toString`'s, which read back as the same double
+     * but aren't always the shortest such digits (the JDK before 19 and ART
+     * can keep an extra one), so the value always matches Swift's and the
+     * text matches for the values the Swift tests pin. Known differences:
+     * `Double.MIN_VALUE` spells `4.9e-324` here and `5e-324` in Swift, and
+     * the plain-to-exponent cutoff near `1e16` follows Swift's documented
+     * rule without a Swift run to confirm it.
      */
     fun number(number: Double): String {
         if (number == 0.0) return if (1.0 / number < 0) "-0" else "0"
-        // `Double.toString` gives the shortest round-trip digits; only its
-        // notation differs from Swift's.
+        // `Double.toString` gives round-trip digits, usually the shortest;
+        // its notation differs from Swift's.
         val text = Math.abs(number).toString()
         val mantissa = text.substringBefore('E')
         val exponent = text.substringAfter('E', "0").toInt()
