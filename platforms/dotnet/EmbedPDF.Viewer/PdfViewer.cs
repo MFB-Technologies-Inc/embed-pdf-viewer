@@ -44,6 +44,9 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
     bool closed;
     Task? disposal;
 
+    /// <summary>This viewer's identity on its kernel thread; see <see cref="KernelCallback"/>.</summary>
+    internal KernelMark Mark { get; } = new();
+
     /// <summary>Creates a viewer that is not started yet. Call <see cref="StartAsync"/> before anything else.</summary>
     /// <param name="options">What to install; <see langword="null"/> installs no plugin.</param>
     /// <exception cref="NativeRuntimeNotFoundException">The native runtime for this platform could not be loaded.</exception>
@@ -147,13 +150,26 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
     /// Ends calls in flight, destroys the kernel, finishes every stream and
     /// releases the native viewer. Every call returns the same task.
     /// </summary>
+    /// <remarks>
+    /// Destroying the kernel runs on the kernel thread. Called from a callback
+    /// the kernel makes on that thread (an interaction handler, a feedback
+    /// provider, a script engine), it starts disposal and returns a task that
+    /// can be awaited but not blocked on: <c>GetAwaiter().GetResult()</c> before
+    /// it finishes throws <see cref="InvalidOperationException"/>, since the
+    /// blocked thread is the one disposal needs. Never block on
+    /// <c>AsTask()</c> there either; that wait cannot be detected.
+    /// </remarks>
     public ValueTask DisposeAsync()
     {
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var existing = Interlocked.CompareExchange(ref disposal, completion.Task, null);
-        if (existing is not null) return new ValueTask(existing);
-        _ = DisposeCore(completion);
-        return new ValueTask(completion.Task);
+        if (existing is null) _ = DisposeCore(completion);
+        var task = existing ?? completion.Task;
+        if (!task.IsCompleted && KernelCallback.IsInside(Mark))
+        {
+            return new ValueTask(new KernelCallback.GuardedDisposal(task), 0);
+        }
+        return new ValueTask(task);
     }
 
     /// <summary>
@@ -162,7 +178,16 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
     /// ends; the disposal runs on the thread pool, so blocking a thread that
     /// owns a synchronization context does not deadlock it.
     /// </summary>
-    public void Dispose() => Task.Run(() => DisposeAsync().AsTask()).GetAwaiter().GetResult();
+    /// <exception cref="InvalidOperationException">
+    /// Called from a callback the kernel makes on its own thread, where
+    /// waiting for disposal would hold the thread it needs. Call
+    /// <see cref="DisposeAsync"/> there without waiting.
+    /// </exception>
+    public void Dispose()
+    {
+        if (KernelCallback.IsInside(Mark)) throw KernelCallback.DisposalWait();
+        Task.Run(() => DisposeAsync().AsTask()).GetAwaiter().GetResult();
+    }
 
     async Task DisposeCore(TaskCompletionSource completion)
     {
