@@ -10,7 +10,7 @@
 #      GH_TOKEN  a token that can read it, and for publish write tags and
 #                releases on it
 #      DRY_RUN   true: publish prints the git and gh commands instead of
-#                running them
+#                running them, and only warns when <notes-file> is missing
 #
 # A release is complete when it is not a draft and carries every named asset.
 # check prints `absent` or `complete`; publish skips a complete release. Both
@@ -81,7 +81,15 @@ case "${1:-}" in
     shift 5
     assets=("$@")
     [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || fail "<sha> must be a full commit sha, got '$sha'"
-    [[ -f "$notes" ]] || fail "no release notes at $notes"
+    # A dry run goes on without the notes, as preflight does: the release
+    # command it prints names the file a real run needs.
+    if [[ ! -f "$notes" ]]; then
+      if [[ "${DRY_RUN:-}" == true ]]; then
+        echo "::warning::no release notes at $notes; a real run stops here"
+      else
+        fail "no release notes at $notes"
+      fi
+    fi
     names=()
     for asset in "${assets[@]}"; do
       [[ -f "$asset" ]] || fail "no asset at $asset"
