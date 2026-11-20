@@ -39,8 +39,8 @@ public class OutlineCapability internal constructor(
 
     public suspend fun item(ref: OutlineItemRef): OutlineItem? = viewer.call { handle.item(ref) }
 
-    /** The top-level items when [of] is `null`. */
-    public suspend fun children(of: OutlineItemRef? = null): List<OutlineItem> = viewer.call { handle.children(of) }
+    /** The top-level items when [parent] is `null`. */
+    public suspend fun children(parent: OutlineItemRef? = null): List<OutlineItem> = viewer.call { handle.children(parent) }
 
     public suspend fun rows(): List<OutlineRow> = viewer.call { handle.rows() }
 
@@ -78,9 +78,9 @@ public class OutlineCapability internal constructor(
     public suspend fun update(ref: OutlineItemRef, patch: OutlineItemPatch): OutlineItem =
         viewer.callCancellable { token -> handle.update(ref, patch, token) }
 
-    /** Moves [refs] under [to], the top level when `null`, at [position]. */
-    public suspend fun move(refs: List<OutlineItemRef>, to: OutlineItemRef?, position: OutlinePosition = OutlinePositionEnd) {
-        viewer.callCancellable { token -> handle.moveItems(refs, to, position, token) }
+    /** Moves [refs] under [parent], the top level when `null`, at [position]. */
+    public suspend fun move(refs: List<OutlineItemRef>, parent: OutlineItemRef?, position: OutlinePosition = OutlinePositionEnd) {
+        viewer.callCancellable { token -> handle.moveItems(refs, parent, position, token) }
     }
 
     public suspend fun delete(refs: List<OutlineItemRef>) {

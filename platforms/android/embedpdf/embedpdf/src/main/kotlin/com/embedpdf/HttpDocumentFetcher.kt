@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicReference
  * the file.
  *
  * Connecting and reading each time out after 60 seconds by default, as the
- * Apple fetcher's session does; [configure] can change both.
+ * Swift fetcher's session does; [configure] can change both.
  *
  * @param configure runs on each connection before it connects: headers,
  *   cookies, authentication, timeouts.

@@ -44,14 +44,14 @@ public data class PageRenderResolution(public val deviceWidth: Double, public va
          * [OFF_SCREEN_DEVICE_WIDTH] and ignore the dimensions.
          *
          * @param displayScale device pixels per layout unit (the display's density).
-         * @param zoomScale additional magnification; values below one are treated as one.
          * @param isOnScreen whether any portion of the page is visible.
+         * @param zoomScale additional magnification; values below one are treated as one.
          */
         public fun forPage(
             viewWidth: Double,
             displayScale: Double,
-            zoomScale: Double = 1.0,
             isOnScreen: Boolean,
+            zoomScale: Double = 1.0,
         ): PageRenderResolution {
             if (!isOnScreen) return PageRenderResolution(OFF_SCREEN_DEVICE_WIDTH, isFull = false)
             val pixels = viewWidth * displayScale * maxOf(zoomScale, 1.0)

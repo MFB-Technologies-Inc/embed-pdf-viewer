@@ -19,8 +19,8 @@ class PageEditTest {
     fun rotatingTwiceMakesAHalfTurn() = viewerTest {
         val (viewer, document, edit) = opened()
         val first = viewer.pages(document)[0].page
-        edit.rotate(listOf(first), by = PageEditTurn.CLOCKWISE)
-        val layout = edit.rotate(listOf(first), by = PageEditTurn.CLOCKWISE)
+        edit.rotate(listOf(first), turn = PageEditTurn.CLOCKWISE)
+        val layout = edit.rotate(listOf(first), turn = PageEditTurn.CLOCKWISE)
         assertEquals(180u, layout.pages[0].rotation)
         assertEquals(180u, viewer.pages(document)[0].rotation)
         viewer.destroy()
@@ -32,7 +32,7 @@ class PageEditTest {
         val pages = viewer.pages(document).map { it.page }
         val first = pages[0]
         // Placement names a neighbour page, not an index.
-        val layout = edit.movePages(listOf(first), to = PageEditPlacementAfter(pages.last()))
+        val layout = edit.movePages(listOf(first), placement = PageEditPlacementAfter(pages.last()))
         assertEquals(first, layout.pages.last().page)
         assertEquals((0u until 14u).toList(), layout.pages.map { it.index })
         viewer.destroy()
@@ -42,7 +42,7 @@ class PageEditTest {
     fun endMovesTheBlockLast() = viewerTest {
         val (viewer, document, edit) = opened()
         val pages = viewer.pages(document).map { it.page }
-        val layout = edit.movePages(listOf(pages[0], pages[1]), to = PageEditPlacementEnd)
+        val layout = edit.movePages(listOf(pages[0], pages[1]), placement = PageEditPlacementEnd)
         assertEquals(listOf(pages[0], pages[1]), layout.pages.map { it.page }.takeLast(2))
         assertEquals(14, layout.pages.size)
         viewer.destroy()
@@ -88,10 +88,10 @@ class PageEditTest {
     fun pagesFromAnotherOpenDocumentInsert() = viewerTest {
         val (viewer, _, edit) = opened()
         val other = viewer.open(Fixture.bytes("colors"))
-        val source = viewer.pages(other).map { it.page }
-        val insertion = edit.insert(source, from = other, at = PageEditPlacementStart)
-        assertEquals(source.size, insertion.inserted.size)
-        assertEquals(14 + source.size, insertion.pages.size)
+        val copied = viewer.pages(other).map { it.page }
+        val insertion = edit.insert(copied, source = other, placement = PageEditPlacementStart)
+        assertEquals(copied.size, insertion.inserted.size)
+        assertEquals(14 + copied.size, insertion.pages.size)
         viewer.destroy()
     }
 
@@ -115,7 +115,7 @@ class PageEditTest {
         val (viewer, document, edit) = opened()
         val events = subscribed(viewer.observeDocumentEvents())
         val first = viewer.pages(document)[0].page
-        edit.setRotation(PageEditRotation.CLOCKWISE90, of = listOf(first))
+        edit.setRotation(listOf(first), PageEditRotation.CLOCKWISE90)
         val changed = events.nextMapped { it as? DocumentEventPagesChanged }
         assertEquals(document.id, changed.documentId)
         viewer.destroy()
@@ -125,7 +125,7 @@ class PageEditTest {
     fun rotateCancelsWhenItsCoroutineIsCancelled() = viewerTest {
         val (viewer, document, edit) = opened()
         val first = viewer.pages(document)[0].page
-        val rotating = async(start = CoroutineStart.UNDISPATCHED) { edit.rotate(listOf(first), by = PageEditTurn.HALF) }
+        val rotating = async(start = CoroutineStart.UNDISPATCHED) { edit.rotate(listOf(first), turn = PageEditTurn.HALF) }
         rotating.cancel()
         try {
             rotating.await()
@@ -148,14 +148,14 @@ class PageEditTest {
     @Test
     fun setRotationCancelsWhenItsCoroutineIsCancelled() = viewerTest {
         val (viewer, edit, page) = firstPage()
-        expectCancelledBeforeItStarts { edit.setRotation(PageEditRotation.CLOCKWISE90, of = listOf(page)) }
+        expectCancelledBeforeItStarts { edit.setRotation(listOf(page), PageEditRotation.CLOCKWISE90) }
         viewer.destroy()
     }
 
     @Test
     fun movePagesCancelsWhenItsCoroutineIsCancelled() = viewerTest {
         val (viewer, edit, page) = firstPage()
-        expectCancelledBeforeItStarts { edit.movePages(listOf(page), to = PageEditPlacementEnd) }
+        expectCancelledBeforeItStarts { edit.movePages(listOf(page), placement = PageEditPlacementEnd) }
         viewer.destroy()
     }
 
@@ -186,8 +186,8 @@ class PageEditTest {
     fun insertFromDocumentCancelsWhenItsCoroutineIsCancelled() = viewerTest {
         val (viewer, edit, _) = firstPage()
         val other = viewer.open(Fixture.bytes("colors"))
-        val source = viewer.pages(other).map { it.page }
-        expectCancelledBeforeItStarts { edit.insert(source, from = other) }
+        val copied = viewer.pages(other).map { it.page }
+        expectCancelledBeforeItStarts { edit.insert(copied, source = other) }
         viewer.destroy()
     }
 

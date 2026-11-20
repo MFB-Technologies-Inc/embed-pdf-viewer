@@ -17,7 +17,7 @@ class HistoryTest {
         val edit = viewer.pageEdit(document)
         val first = viewer.pages(document)[0].page
         val events = subscribed(history.observeEvents())
-        edit.rotate(listOf(first), by = PageEditTurn.CLOCKWISE)
+        edit.rotate(listOf(first), turn = PageEditTurn.CLOCKWISE)
         assertTrue(history.canUndo())
         assertFalse(otherHistory.canUndo())
         val label = history.undoLabel()!!

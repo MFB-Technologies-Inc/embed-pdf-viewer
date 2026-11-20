@@ -60,13 +60,8 @@ val linuxHost = project(":bindings").extensions.extraProperties
 
 tasks.withType<Test>().configureEach {
     dependsOn(":bindings:buildLinuxHost")
-    // One JVM per test class. A Robolectric class loads the generated
-    // bindings again in its sandbox class loader, and that copy registers its
-    // own callback tables with the one native library. A plain test that runs
-    // after it in the same JVM then has its callbacks (a fetch cancellation,
-    // say) answered from the sandbox's empty handle maps, and the process
-    // crashes in native code.
-    forkEvery = 1
+    // Robolectric classes share the JVM with plain ones: EmbedPdfTestRunner
+    // keeps the generated bindings out of Robolectric's sandbox class loader.
     systemProperty("jna.library.path", linuxHost["linuxHostDir"].toString())
     systemProperty(
         "embedpdf.fixtureDirs",

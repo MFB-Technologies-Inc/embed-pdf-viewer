@@ -25,7 +25,7 @@ class OutlineTest {
         )
         assertEquals("Renamed", cleared.title)
         assertNull(cleared.color)
-        outline.move(listOf(child.itemRef), to = null, position = OutlinePositionStart)
+        outline.move(listOf(child.itemRef), parent = null, position = OutlinePositionStart)
         assertNull(outline.item(child.itemRef)!!.parent)
         expectCancelledBeforeItStarts { outline.refresh() }
         val bytes = viewer.save(document)

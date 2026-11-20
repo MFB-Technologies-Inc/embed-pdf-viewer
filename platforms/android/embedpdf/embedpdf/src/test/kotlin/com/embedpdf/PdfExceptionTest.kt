@@ -205,22 +205,30 @@ class PdfExceptionTest {
     }
 
     @Test
-    fun bridgedCancellableReturnsAValueTheKernelAnswersAsTheCallerCancels() = runBlocking {
+    fun bridgedCancellableDiscardsAValueTheKernelAnswersAsTheCallerCancels() = runBlocking {
         val started = CompletableDeferred<Unit>()
         val answer = CompletableDeferred<Int>()
         var returned: Int? = null
+        var discarded: Int? = null
+        var thrown: Throwable? = null
         val call = launch(start = CoroutineStart.UNDISPATCHED) {
             // The kernel's work landed before it saw the cancel: it answers
-            // with the value, and the caller keeps it.
-            returned = bridgedCancellable { _ ->
-                started.complete(Unit)
-                answer.await()
+            // with the value, which the caller can't keep, so it is discarded.
+            try {
+                returned = bridgedCancellable(onDiscard = { value: Int -> discarded = value }) { _ ->
+                    started.complete(Unit)
+                    answer.await()
+                }
+            } catch (e: Throwable) {
+                thrown = e
             }
         }
         started.await()
         call.cancel()
         answer.complete(7)
         call.join()
-        assertEquals(7, returned)
+        assertEquals(null, returned)
+        assertEquals(7, discarded)
+        assertTrue("$thrown", thrown is CancellationException && thrown !is PdfException)
     }
 }

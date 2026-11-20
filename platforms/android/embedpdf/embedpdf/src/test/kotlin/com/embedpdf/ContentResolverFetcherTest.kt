@@ -5,7 +5,6 @@ import android.net.Uri
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
@@ -22,7 +21,7 @@ private class RecordingFetcher : DocumentFetcher {
     }
 }
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(EmbedPdfTestRunner::class)
 @Config(sdk = [35])
 class ContentResolverFetcherTest {
     private val resolver: ContentResolver

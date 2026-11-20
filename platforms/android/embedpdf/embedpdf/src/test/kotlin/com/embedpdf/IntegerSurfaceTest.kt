@@ -52,12 +52,12 @@ class IntegerSurfaceTest {
         assertEquals(2, viewer.documentCount())
         // The engine's page index is a `Long`, so every `Int` reaches it: one
         // below zero or past the last page has no page.
-        assertNull(viewer.page(at = -1, document = first))
-        assertNull(viewer.page(at = Int.MAX_VALUE, document = first))
-        assertNull(viewer.page(at = Int.MIN_VALUE, document = first))
-        val page = viewer.page(at = 0, document = first)!!
-        assertEquals(0, viewer.index(of = page.page, document = first))
-        assertEquals(-1, viewer.index(of = page.page, document = second))
+        assertNull(viewer.page(index = -1, document = first))
+        assertNull(viewer.page(index = Int.MAX_VALUE, document = first))
+        assertNull(viewer.page(index = Int.MIN_VALUE, document = first))
+        val page = viewer.page(index = 0, document = first)!!
+        assertEquals(0, viewer.index(page = page.page, document = first))
+        assertEquals(-1, viewer.index(page = page.page, document = second))
         // A tab position is clamped into the order at both ends.
         viewer.move(first, toIndex = Int.MAX_VALUE)
         assertEquals(listOf(second.id, first.id), viewer.documentOrder())

@@ -17,9 +17,9 @@ class DocumentApiTest {
         viewer.rename(first, "")
         assertEquals("", viewer.document(first.id)?.name)
         viewer.setActive(second)
-        val page = viewer.page(at = 0)!!
+        val page = viewer.page(index = 0)!!
         assertEquals(page, viewer.page(page.page))
-        assertEquals(0, viewer.index(of = page.page))
+        assertEquals(0, viewer.index(page = page.page))
         assertEquals(0L, viewer.pageRevision())
         viewer.move(second, toIndex = 0)
         assertEquals(listOf(second.id, first.id), viewer.documentOrder())

@@ -70,13 +70,13 @@ public class ShellCapability internal constructor(
     }
 
     /** Changes a surface's props without reopening it. */
-    public suspend fun updateProps(of: String, propsJson: String) {
-        viewer.call { handle.updateSurfaceProps(of, propsJson) }
+    public suspend fun updateProps(surfaceId: String, propsJson: String) {
+        viewer.call { handle.updateSurfaceProps(surfaceId, propsJson) }
     }
 
     /** [updateProps] with props encoded by [serializer]. */
-    public suspend fun <P> updateProps(of: String, props: P, serializer: SerializationStrategy<P>) {
-        updateProps(of, encodeProps(serializer, props))
+    public suspend fun <P> updateProps(surfaceId: String, props: P, serializer: SerializationStrategy<P>) {
+        updateProps(surfaceId, encodeProps(serializer, props))
     }
 
     public suspend fun closeAll() {
@@ -142,23 +142,30 @@ public suspend inline fun <reified P> ShellCapability.toggle(id: String, exclusi
 }
 
 /** [ShellCapability.updateProps] with props encoded by their `@Serializable` serializer. */
-public suspend inline fun <reified P> ShellCapability.updateProps(of: String, props: P) {
-    updateProps(of, props, serializer<P>())
+public suspend inline fun <reified P> ShellCapability.updateProps(surfaceId: String, props: P) {
+    updateProps(surfaceId, props, serializer<P>())
 }
 
 /** The props decoded by [deserializer], or `null` when the surface has none. */
-public fun <P> ShellSurface.props(deserializer: DeserializationStrategy<P>): P? =
-    propsJson?.let { Json.decodeFromString(deserializer, it) }
+public fun <P> ShellSurface.props(deserializer: DeserializationStrategy<P>): P? = propsJson?.let { decodeProps(deserializer, it) }
 
 /** The props decoded by their `@Serializable` serializer, or `null` when the surface has none. */
 public inline fun <reified P> ShellSurface.props(): P? = props(serializer<P>())
 
 /** The props decoded by [deserializer], or `null` when the surface opened without any. */
 public fun <P> ShellSurfaceOpenedEvent.props(deserializer: DeserializationStrategy<P>): P? =
-    propsJson?.let { Json.decodeFromString(deserializer, it) }
+    propsJson?.let { decodeProps(deserializer, it) }
 
 /** The props decoded by their `@Serializable` serializer, or `null` when the surface opened without any. */
 public inline fun <reified P> ShellSurfaceOpenedEvent.props(): P? = props(serializer<P>())
+
+/** Props that don't decode with [deserializer] throw `invalid-input`. */
+private fun <P> decodeProps(deserializer: DeserializationStrategy<P>, json: String): P =
+    try {
+        Json.decodeFromString(deserializer, json)
+    } catch (e: SerializationException) {
+        throw PdfException(PdfException.Code.INVALID_INPUT, readable(e), name = "DecodingError", cause = e)
+    }
 
 private fun <P> encodeProps(serializer: SerializationStrategy<P>, props: P): String =
     try {

@@ -40,8 +40,8 @@ public class ViewManagerCapability internal constructor(
 
     public suspend fun focusedPaneId(): String? = viewer.call { handle.focusedPaneId() }
 
-    /** The id of the pane that holds [holding], if any. */
-    public suspend fun pane(holding: DocumentInfo): String? = viewer.call { handle.paneOfDocument(holding.id) }
+    /** The id of the pane that holds [document], if any. */
+    public suspend fun pane(document: DocumentInfo): String? = viewer.call { handle.paneOfDocument(document.id) }
 
     /** A new pane, focused. Each document moves in from wherever it was. */
     public suspend fun createPane(documents: List<DocumentInfo> = emptyList()): String =
@@ -53,8 +53,8 @@ public class ViewManagerCapability internal constructor(
     }
 
     /** Clamped into the order. An index below zero throws `invalid-input`. */
-    public suspend fun movePane(id: String, to: Int) {
-        val index = to.toWireUInt("pane index")
+    public suspend fun movePane(id: String, toIndex: Int) {
+        val index = toIndex.toWireUInt("pane index")
         viewer.call { handle.movePane(id, index) }
     }
 
@@ -63,42 +63,43 @@ public class ViewManagerCapability internal constructor(
     }
 
     /**
-     * A new pane showing [showing], beside [from] (or the focused pane),
-     * focused. Returns the new pane's id.
+     * A new pane showing [document], beside pane [paneId] (or the focused
+     * pane), focused. Returns the new pane's id.
      */
-    public suspend fun splitPane(showing: DocumentInfo, from: String? = null): String =
-        viewer.call { handle.splitPane(showing.id, from) }
+    public suspend fun splitPane(document: DocumentInfo, paneId: String? = null): String =
+        viewer.call { handle.splitPane(document.id, paneId) }
 
     public suspend fun setActiveDocument(document: DocumentInfo?, paneId: String) {
         viewer.call { handle.setActiveDocument(paneId, document?.id) }
     }
 
     /**
-     * Adds [document] to pane [to]; a document another pane holds moves.
-     * `null` [at] appends. An index below zero throws `invalid-input`.
+     * Adds [document] to pane [paneId]; a document another pane holds moves.
+     * `null` [index] appends. An index below zero throws `invalid-input`.
      */
-    public suspend fun addDocument(document: DocumentInfo, to: String, at: Int? = null) {
-        val index = at?.toWireUInt("tab index")
-        viewer.call { handle.addDocument(to, document.id, index) }
+    public suspend fun addDocument(document: DocumentInfo, paneId: String, index: Int? = null) {
+        val wire = index?.toWireUInt("tab index")
+        viewer.call { handle.addDocument(paneId, document.id, wire) }
     }
 
-    public suspend fun removeDocument(document: DocumentInfo, from: String) {
-        viewer.call { handle.removeDocument(from, document.id) }
+    public suspend fun removeDocument(document: DocumentInfo, paneId: String) {
+        viewer.call { handle.removeDocument(paneId, document.id) }
     }
 
-    /** Reorders a tab inside pane [within]. An index below zero throws `invalid-input`. */
-    public suspend fun moveDocument(document: DocumentInfo, within: String, to: Int) {
-        val index = to.toWireUInt("tab index")
-        viewer.call { handle.moveDocumentWithin(within, document.id, index) }
+    /** Reorders a tab inside pane [paneId]. An index below zero throws `invalid-input`. */
+    public suspend fun moveDocument(document: DocumentInfo, paneId: String, toIndex: Int) {
+        val wire = toIndex.toWireUInt("tab index")
+        viewer.call { handle.moveDocumentWithin(paneId, document.id, wire) }
     }
 
     /**
-     * Drags a tab from pane [from] into pane [to], where it becomes active.
-     * `null` [at] appends. An index below zero throws `invalid-input`.
+     * Drags a tab from pane [fromPaneId] into pane [toPaneId], where it
+     * becomes active. `null` [index] appends. An index below zero throws
+     * `invalid-input`.
      */
-    public suspend fun moveDocument(document: DocumentInfo, from: String, to: String, at: Int? = null) {
-        val index = at?.toWireUInt("tab index")
-        viewer.call { handle.moveDocumentBetween(from, to, document.id, index) }
+    public suspend fun moveDocument(document: DocumentInfo, fromPaneId: String, toPaneId: String, index: Int? = null) {
+        val wire = index?.toWireUInt("tab index")
+        viewer.call { handle.moveDocumentBetween(fromPaneId, toPaneId, document.id, wire) }
     }
 
     /**

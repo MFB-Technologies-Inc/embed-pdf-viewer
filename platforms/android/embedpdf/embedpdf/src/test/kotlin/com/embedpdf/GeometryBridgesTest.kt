@@ -8,10 +8,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(EmbedPdfTestRunner::class)
 @Config(sdk = [35])
 class GeometryBridgesTest {
     @Test

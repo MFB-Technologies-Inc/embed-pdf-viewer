@@ -9,14 +9,14 @@ import kotlin.math.round
 class PageRenderResolutionTest {
     @Test
     fun invisiblePagesIgnoreZoomAndKeepSmallPlaceholders() {
-        val result = PageRenderResolution.forPage(viewWidth = 800.0, displayScale = 3.0, zoomScale = 8.0, isOnScreen = false)
+        val result = PageRenderResolution.forPage(viewWidth = 800.0, displayScale = 3.0, isOnScreen = false, zoomScale = 8.0)
         assertEquals(256.0, result.deviceWidth, 0.0)
         assertFalse(result.isFull)
     }
 
     @Test
     fun visiblePagesRoundUpToPixelBands() {
-        val result = PageRenderResolution.forPage(viewWidth = 390.0, displayScale = 2.0, zoomScale = 2.0, isOnScreen = true)
+        val result = PageRenderResolution.forPage(viewWidth = 390.0, displayScale = 2.0, isOnScreen = true, zoomScale = 2.0)
         assertEquals(1664.0, result.deviceWidth, 0.0)
         assertTrue(result.isFull)
     }
@@ -25,7 +25,7 @@ class PageRenderResolutionTest {
     fun zoomingOutDoesNotLowerTheNativeDisplayDemand() {
         assertEquals(
             896.0,
-            PageRenderResolution.forPage(viewWidth = 390.0, displayScale = 2.0, zoomScale = 0.25, isOnScreen = true).deviceWidth,
+            PageRenderResolution.forPage(viewWidth = 390.0, displayScale = 2.0, isOnScreen = true, zoomScale = 0.25).deviceWidth,
             0.0,
         )
     }

@@ -39,19 +39,19 @@ public class PageEditCapability internal constructor(
     public suspend fun canEdit(): Boolean = viewer.call { handle.canEdit() }
 
     /** Turns each page from its own rotation. */
-    public suspend fun rotate(pages: List<PageRef>, by: PageEditTurn): PageEditLayout =
-        viewer.callCancellable { token -> handle.rotateBy(pages, by, token) }
+    public suspend fun rotate(pages: List<PageRef>, turn: PageEditTurn): PageEditLayout =
+        viewer.callCancellable { token -> handle.rotateBy(pages, turn, token) }
 
-    public suspend fun setRotation(rotation: PageEditRotation, of: List<PageRef>): PageEditLayout =
-        viewer.callCancellable { token -> handle.setRotation(of, rotation, token) }
+    public suspend fun setRotation(pages: List<PageRef>, rotation: PageEditRotation): PageEditLayout =
+        viewer.callCancellable { token -> handle.setRotation(pages, rotation, token) }
 
     /**
-     * Reorders pages as a contiguous block at [to]. `End` puts the block
+     * Reorders pages as a contiguous block at [placement]. `End` puts the block
      * last. A placement names a neighbour page, which must not be one of the
      * pages moved.
      */
-    public suspend fun movePages(pages: List<PageRef>, to: PageEditPlacement): PageEditLayout =
-        viewer.callCancellable { token -> handle.movePages(pages, to, token) }
+    public suspend fun movePages(pages: List<PageRef>, placement: PageEditPlacement): PageEditLayout =
+        viewer.callCancellable { token -> handle.movePages(pages, placement, token) }
 
     /** The engine refuses deleting every page. */
     public suspend fun deletePages(pages: List<PageRef>): PageEditLayout =
@@ -64,13 +64,16 @@ public class PageEditCapability internal constructor(
     public suspend fun insert(bytes: ByteArray, options: PageEditBytesOptions = PageEditBytesOptions()): PageEditInsertion =
         viewer.callCancellable { token -> handle.insertFromBytes(bytes, options, token) }
 
-    /** Pages of another open document. */
-    public suspend fun insert(pages: List<PageRef>, from: DocumentInfo, at: PageEditPlacement? = null): PageEditInsertion =
-        viewer.callCancellable { token -> handle.insertFromDocument(from.id, pages, at, token) }
+    /** [pages] of another open document, [source]. */
+    public suspend fun insert(
+        pages: List<PageRef>,
+        source: DocumentInfo,
+        placement: PageEditPlacement? = null,
+    ): PageEditInsertion = viewer.callCancellable { token -> handle.insertFromDocument(source.id, pages, placement, token) }
 
     /** Copies of pages; by default right after the last of them. */
-    public suspend fun duplicate(pages: List<PageRef>, at: PageEditPlacement? = null): PageEditInsertion =
-        viewer.callCancellable { token -> handle.duplicate(pages, at, token) }
+    public suspend fun duplicate(pages: List<PageRef>, placement: PageEditPlacement? = null): PageEditInsertion =
+        viewer.callCancellable { token -> handle.duplicate(pages, placement, token) }
 
     /** A new PDF from a page subset. */
     public suspend fun extract(pages: List<PageRef>): ByteArray =

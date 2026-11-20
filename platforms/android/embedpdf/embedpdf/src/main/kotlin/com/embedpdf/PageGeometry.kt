@@ -96,14 +96,24 @@ public data class PageGeometry(public val turn: RenderRotation, public val pageS
         val width = if (turn.isQuarterTurn) image.height else image.width
         val height = if (turn.isQuarterTurn) image.width else image.height
         val turned = ByteArray(width * height * 4)
+        val rowStride = width * 4
+        // Where source pixel (0, 0) lands, and how far a step right or down
+        // in the source moves in the turned image, in bytes.
+        val (origin, alongX, alongY) = when (turn) {
+            RenderRotation.CLOCKWISE90 -> Triple((image.height - 1) * 4, rowStride, -4)
+            RenderRotation.CLOCKWISE180 -> Triple((height - 1) * rowStride + (width - 1) * 4, -4, -rowStride)
+            else -> Triple((height - 1) * rowStride, -rowStride, 4)
+        }
         for (y in 0 until image.height) {
+            var from = y * image.stride
+            var to = origin + y * alongY
             for (x in 0 until image.width) {
-                val (tx, ty) = when (turn) {
-                    RenderRotation.CLOCKWISE90 -> (image.height - 1 - y) to x
-                    RenderRotation.CLOCKWISE180 -> (image.width - 1 - x) to (image.height - 1 - y)
-                    else -> y to (image.width - 1 - x)
-                }
-                System.arraycopy(source, y * image.stride + x * 4, turned, (ty * width + tx) * 4, 4)
+                turned[to] = source[from]
+                turned[to + 1] = source[from + 1]
+                turned[to + 2] = source[from + 2]
+                turned[to + 3] = source[from + 3]
+                from += 4
+                to += alongX
             }
         }
         return PageImage(width, height, width * 4, turned)

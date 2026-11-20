@@ -111,7 +111,7 @@ class PageGeometryTest {
         val document = viewer.open(Fixture.bytes("report"))
         val edit = viewer.pageEdit(document)
         val before = viewer.pages(document)[0]
-        edit.setRotation(PageEditRotation.CLOCKWISE90, of = listOf(before.page))
+        edit.setRotation(listOf(before.page), PageEditRotation.CLOCKWISE90)
         val page = viewer.pages(document)[0]
         val geometry = page.geometry
         assertEquals(90, geometry.rotation)

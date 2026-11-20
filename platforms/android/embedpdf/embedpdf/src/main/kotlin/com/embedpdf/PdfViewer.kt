@@ -93,18 +93,22 @@ public class PdfViewer(
 
     /**
      * Destroys the kernel and its plugins and completes every flow. A second
-     * call throws `instance-closed`, as does every call after it.
+     * call throws `instance-closed`, as does every call after it. Cancelling
+     * the caller still tears the viewer down.
      */
     public suspend fun destroy() {
+        var alreadyClosed = false
         try {
             call { host.destroyViewer() }
         } catch (e: PdfException) {
-            // Already destroyed or closed: the teardown below already ran.
-            if (e.code == PdfException.Code.INSTANCE_CLOSED) throw e
-            tearDown()
+            // Already destroyed or closed: the teardown already ran.
+            alreadyClosed = e.code == PdfException.Code.INSTANCE_CLOSED
             throw e
+        } finally {
+            // Also when the caller is cancelled: the viewer is torn down
+            // either way, and its flows complete.
+            if (!alreadyClosed) tearDown()
         }
-        tearDown()
     }
 
     private fun tearDown() {
@@ -144,7 +148,8 @@ public class PdfViewer(
     /**
      * Opens a URL through the kernel's loading tab using the viewer's
      * [DocumentFetcher]. Cancelling the calling coroutine closes the tab and
-     * cancels its transport before the cancellation propagates. HTTP failures
+     * cancels its transport before the cancellation propagates, also when the
+     * document finished opening as the cancel arrived. HTTP failures
      * and non-PDF responses leave a failed tab that [retry] can reopen.
      */
     public suspend fun open(
@@ -168,7 +173,9 @@ public class PdfViewer(
 
     private suspend fun openUrl(url: String, name: String?, password: String?, activate: Boolean): DocumentInfo =
         measured("open") {
-            callCancellable { token -> host.openUrl(url, OpenDocumentOptions(name, password, activate), token) }
+            callCancellable(closeDiscarded) { token ->
+                host.openUrl(url, OpenDocumentOptions(name, password, activate), token)
+            }
         }
 
     /**
@@ -183,7 +190,7 @@ public class PdfViewer(
         password: String? = null,
         activate: Boolean = true,
     ): DocumentInfo = measured("open") {
-        callCancellable { token ->
+        callCancellable(closeDiscarded) { token ->
             host.openLayerDocument(base, layer, OpenDocumentOptions(name, password, activate), token)
         }
     }
@@ -269,12 +276,12 @@ public class PdfViewer(
         call { host.page(ref, document?.id) }
 
     /** `null` for an index past the last page, or below zero. */
-    public suspend fun page(at: Int, document: DocumentInfo? = null): PageInfo? =
-        call { host.pageAt(at.toLong(), document?.id) }
+    public suspend fun page(index: Int, document: DocumentInfo? = null): PageInfo? =
+        call { host.pageAt(index.toLong(), document?.id) }
 
     /** -1 for a missing page or document. */
-    public suspend fun index(of: PageRef, document: DocumentInfo? = null): Int =
-        call { host.pageIndex(of, document?.id) }.toIntResult("page index")
+    public suspend fun index(page: PageRef, document: DocumentInfo? = null): Int =
+        call { host.pageIndex(page, document?.id) }.toIntResult("page index")
 
     /** The page-list revision, or -1 when the document is absent. */
     public suspend fun pageRevision(document: DocumentInfo? = null): Long = call { host.pageRevision(document?.id) }
@@ -336,10 +343,16 @@ public class PdfViewer(
     }
 
     /** [bridgedCancellable], refusing with `instance-closed` once [close] released the handle. */
-    internal suspend fun <T> callCancellable(block: suspend (uniffi.epdf_ffi.CancelToken) -> T): T {
+    internal suspend fun <T> callCancellable(
+        onDiscard: (suspend (T) -> Unit)? = null,
+        block: suspend (uniffi.epdf_ffi.CancelToken) -> T,
+    ): T {
         if (released.get()) throw closedException()
-        return bridgedCancellable(block)
+        return bridgedCancellable(onDiscard, block)
     }
+
+    /** Closes a document an open made after its caller was cancelled. */
+    private val closeDiscarded: suspend (DocumentInfo) -> Unit = { document -> host.closeDocument(document.id) }
 
     private fun closedException() =
         PdfException(PdfException.Code.INSTANCE_CLOSED, "The viewer has shut down.", "Closed")

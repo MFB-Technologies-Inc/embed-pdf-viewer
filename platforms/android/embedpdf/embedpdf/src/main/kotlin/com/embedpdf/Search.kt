@@ -83,11 +83,11 @@ public class SearchCapability internal constructor(
      * Starts a new search, superseding a running one. Returns when the scan
      * completes, is superseded or is cancelled (cancelling the calling
      * coroutine cancels the scan and keeps the hits found so far). An empty
-     * `query.text` clears the session. [from] is where the scan starts; `null`
+     * `query.text` clears the session. [start] is the page the scan starts on; `null`
      * is the stage's current page when a stage is installed.
      */
-    public suspend fun search(query: SearchQuery, from: PageRef? = null): SearchResult = measured("search") {
-        viewer.callCancellable { token -> handle.search(query, from, token) }
+    public suspend fun search(query: SearchQuery, start: PageRef? = null): SearchResult = measured("search") {
+        viewer.callCancellable { token -> handle.search(query, start, token) }
     }
 
     /** Re-runs the current query from scratch. */
@@ -127,11 +127,11 @@ public class SearchCapability internal constructor(
     public suspend fun status(): SearchStatus = viewer.call { handle.status() }
 
     /** Hits found so far, or those on one page. */
-    public suspend fun hits(on: PageRef? = null): List<SearchHit> = measured("hits") {
-        viewer.call { handle.hits(on) }
+    public suspend fun hits(page: PageRef? = null): List<SearchHit> = measured("hits") {
+        viewer.call { handle.hits(page) }
     }
 
-    public suspend fun hitCount(on: PageRef? = null): Int = viewer.call { handle.hitCount(on) }.toIntResult("hit count")
+    public suspend fun hitCount(page: PageRef? = null): Int = viewer.call { handle.hitCount(page) }.toIntResult("hit count")
 
     public suspend fun pagesWithHits(): List<PageRef> = viewer.call { handle.pagesWithHits() }
 

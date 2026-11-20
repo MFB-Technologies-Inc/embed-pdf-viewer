@@ -42,12 +42,29 @@ public class PageImage internal constructor(
      * `Bitmap.createBitmap(IntArray, ...)`, which premultiplies them, so a
      * translucent pixel keeps its color. Each call allocates a new bitmap of
      * `width * height * 4` bytes; a caller that draws the same render on
-     * every frame keeps the bitmap.
+     * every frame keeps the bitmap. An empty raster (no rows or no columns)
+     * has no bitmap and throws `invalid-input`.
      */
     public fun toBitmap(): Bitmap {
+        if (width == 0 || height == 0) {
+            throw PdfException(
+                PdfException.Code.INVALID_INPUT,
+                "a ${width}x$height raster has no bitmap",
+                name = "InvalidInput",
+            )
+        }
         val colors = IntArray(width * height)
+        var index = 0
         for (y in 0 until height) {
-            for (x in 0 until width) colors[y * width + x] = pixel(x, y)
+            var offset = y * stride
+            repeat(width) {
+                val r = pixels[offset].toInt() and 0xff
+                val g = pixels[offset + 1].toInt() and 0xff
+                val b = pixels[offset + 2].toInt() and 0xff
+                val a = pixels[offset + 3].toInt() and 0xff
+                colors[index++] = (a shl 24) or (r shl 16) or (g shl 8) or b
+                offset += 4
+            }
         }
         return Bitmap.createBitmap(colors, width, height, Bitmap.Config.ARGB_8888)
     }

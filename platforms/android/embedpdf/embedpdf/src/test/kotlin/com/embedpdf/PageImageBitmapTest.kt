@@ -5,13 +5,15 @@ import android.graphics.Color
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import uniffi.epdf_plugin_render.RenderPixelFormat
 import uniffi.epdf_plugin_render.RenderedImage
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(EmbedPdfTestRunner::class)
 @Config(sdk = [35])
+// Native graphics, so the bitmap really premultiplies and the round trip is tested.
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class PageImageBitmapTest {
     private fun image(width: Int, height: Int, stride: Int, pixels: ByteArray) =
         PageImage.from(RenderedImage(width.toUInt(), height.toUInt(), stride.toUInt(), 1.0, RenderPixelFormat.RGBA8, pixels))
@@ -47,6 +49,18 @@ class PageImageBitmapTest {
             throw AssertionError("a short buffer was accepted")
         } catch (e: PdfException) {
             assertEquals(PdfException.Code.INVALID_STATE, e.code)
+        }
+    }
+
+    @Test
+    fun anEmptyRasterHasNoBitmap() {
+        for ((width, height) in listOf(0 to 0, 0 to 3, 3 to 0)) {
+            try {
+                image(width, height, width * 4, ByteArray(0)).toBitmap()
+                throw AssertionError("a ${width}x$height raster made a bitmap")
+            } catch (e: PdfException) {
+                assertEquals(PdfException.Code.INVALID_INPUT, e.code)
+            }
         }
     }
 }

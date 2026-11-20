@@ -258,7 +258,7 @@ public final class com/embedpdf/PageEditCapability {
 	public final fun rotate (Ljava/util/List;Luniffi/epdf_plugin_page_edit/PageEditTurn;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun select (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun selectedPages (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public final fun setRotation (Luniffi/epdf_plugin_page_edit/PageEditRotation;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setRotation (Ljava/util/List;Luniffi/epdf_plugin_page_edit/PageEditRotation;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class com/embedpdf/PageEditKt {
@@ -328,8 +328,8 @@ public final class com/embedpdf/PageRenderResolution {
 
 public final class com/embedpdf/PageRenderResolution$Companion {
 	public final fun bandedScale (DD)D
-	public final fun forPage (DDDZ)Lcom/embedpdf/PageRenderResolution;
-	public static synthetic fun forPage$default (Lcom/embedpdf/PageRenderResolution$Companion;DDDZILjava/lang/Object;)Lcom/embedpdf/PageRenderResolution;
+	public final fun forPage (DDZD)Lcom/embedpdf/PageRenderResolution;
+	public static synthetic fun forPage$default (Lcom/embedpdf/PageRenderResolution$Companion;DDZDILjava/lang/Object;)Lcom/embedpdf/PageRenderResolution;
 }
 
 public final class com/embedpdf/PdfException : java/lang/Exception {

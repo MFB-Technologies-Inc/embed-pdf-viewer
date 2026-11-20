@@ -27,10 +27,10 @@ class ViewManagerTest {
         val (viewer, _, manager) = opened()
         val colors = viewer.open(Fixture.bytes("colors"))
         val events = subscribed(manager.observeEvents())
-        val pane = manager.splitPane(showing = colors)
+        val pane = manager.splitPane(document = colors)
         val moved = events.nextMapped { it as? ViewManagerEventDocumentMoved }
         assertEquals(DocumentMovedEvent(colors.id, "pane-1", pane), moved.event)
-        assertEquals(pane, manager.pane(holding = colors))
+        assertEquals(pane, manager.pane(document = colors))
         viewer.destroy()
     }
 
@@ -51,17 +51,17 @@ class ViewManagerTest {
         val (viewer, document, manager) = opened()
         val colors = viewer.open(Fixture.bytes("colors"))
         val pane = manager.createPane(listOf(colors))
-        manager.addDocument(document, to = pane, at = 0)
+        manager.addDocument(document, paneId = pane, index = 0)
         assertEquals(listOf(document.id, colors.id), manager.pane(pane)?.documentIds)
-        manager.moveDocument(colors, within = pane, to = 0)
+        manager.moveDocument(colors, paneId = pane, toIndex = 0)
         manager.setActiveDocument(colors, paneId = pane)
         val info = manager.pane(pane)
         assertEquals(listOf(colors.id, document.id), info?.documentIds)
         assertEquals(colors.id, info?.activeDocumentId)
-        manager.moveDocument(document, from = pane, to = "pane-1")
-        assertEquals("pane-1", manager.pane(holding = document))
-        manager.removeDocument(colors, from = pane)
-        assertNull(manager.pane(holding = colors))
+        manager.moveDocument(document, fromPaneId = pane, toPaneId = "pane-1")
+        assertEquals("pane-1", manager.pane(document = document))
+        manager.removeDocument(colors, paneId = pane)
+        assertNull(manager.pane(document = colors))
         viewer.destroy()
     }
 
@@ -69,9 +69,9 @@ class ViewManagerTest {
     fun anIndexPastTheEndAppends() = viewerTest {
         val (viewer, _, manager) = opened()
         val second = manager.createPane()
-        manager.movePane("pane-1", to = Int.MAX_VALUE)
+        manager.movePane("pane-1", toIndex = Int.MAX_VALUE)
         assertEquals(listOf(second, "pane-1"), manager.paneOrder())
-        expectCode(PdfException.Code.INVALID_INPUT) { manager.movePane("pane-1", to = -1) }
+        expectCode(PdfException.Code.INVALID_INPUT) { manager.movePane("pane-1", toIndex = -1) }
         viewer.destroy()
     }
 
@@ -82,7 +82,7 @@ class ViewManagerTest {
         manager.setFocusedPane("pane-1")
         assertEquals("pane-1", manager.focusedPaneId())
         manager.removePane("pane-1", movingDocumentsTo = second)
-        assertEquals(second, manager.pane(holding = document))
+        assertEquals(second, manager.pane(document = document))
         viewer.destroy()
     }
 

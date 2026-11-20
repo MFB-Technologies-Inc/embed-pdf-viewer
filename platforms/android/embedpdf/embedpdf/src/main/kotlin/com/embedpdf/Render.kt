@@ -149,7 +149,7 @@ public class RenderCapability internal constructor(
     }
 
     /** The capture tool's dragged or held box in page points. */
-    public suspend fun snapshotBox(on: PageRef): Rect? = viewer.call { handle.snapshotBox(on) }
+    public suspend fun snapshotBox(page: PageRef): Rect? = viewer.call { handle.snapshotBox(page) }
 
     /**
      * Captures, and clears as `null`. Completes when the document closes. Each
