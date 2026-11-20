@@ -43,6 +43,8 @@ INPUTS=(
   # archive (and its licenses) by checksum, so it stands for those bytes.
   "LICENSE"
   "packages/engine/runtime/engine-runtime-build.json"
+  # Keeps those two byte for byte on every checkout.
+  ".gitattributes"
 )
 for crate in "${DOTNET_CRATES[@]}"; do
   count=0

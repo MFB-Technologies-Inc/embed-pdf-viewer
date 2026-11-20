@@ -128,7 +128,9 @@ that held-layer-page case. No test is skipped and no alternate runtime is used.
 
 The viewer is two new packages beside `EmbedPDF.Engine`, with no dependency between them.
 `EmbedPDF.Runtime` holds the `epdf-viewer-host` library and the PDFium it links, under
-`runtimes/<rid>/native/`, and no managed code. `EmbedPDF` is the facade. It compiles the generated
+`runtimes/<rid>/native/`, and no managed code. `EmbedPDF` is the facade, in the assembly
+`EmbedPDF.Viewer.dll`: `EmbedPDF.dll` would collide with win-x64 PDFium's `embedpdf.dll` on a
+case-insensitive file system. It compiles the generated
 bindings as internal types and depends on `EmbedPDF.Runtime` at the version pinned in
 `EmbedPDF.Runtime/EmbedPDF.Runtime.props`. Today the facade is a skeleton: `NativeRuntime` loads the
 host and reads a page count, and the document API arrives in Phase 2 of
@@ -165,17 +167,19 @@ EPDF_IMAGE_ID=sha256:<image> python3 platforms/dotnet/packaging/package.py valid
 record, so a slice edited after staging can't be packed. The generator needs an unstripped host,
 because the uniffi metadata lives in the symbol table that `build-viewer-host.sh` strips.
 
-Sizes measured at `0d97ddc53` (engine `0.0.0-engine.96f2f8af10194b63`), in bytes:
+Sizes from CI run 44799578194 at `8709bf4fb` (engine `0.0.0-engine.822686307291c580`), in bytes.
+Every RID was built and validated on its own native runner; the records are under
+`validation/2026-11-20-phase-1-runtime-<rid>/`.
 
-| RID | `libepdf_viewer_host` | PDFium (`libembedpdf`) | glibc floor (host, PDFium) | Validation |
-|---|---|---|---|---|
-| `linux-arm64` | 29,367,528 | 11,376,920 | 2.35, 2.25 | native, `validation/2026-11-20-phase-1-runtime-linux-arm64` |
-| `linux-x64` | 33,652,040 | 11,616,560 | 2.35, 2.25 | container-emulated, `validation/2026-11-20-phase-1-runtime-linux-x64` |
-| `osx-arm64`, `osx-x64`, `win-x64` | not built here | | | `UNVALIDATED` |
+| RID | Viewer host | PDFium | Validation |
+|---|---|---|---|
+| `linux-arm64` | 29,367,528 | 11,376,920 | native, Debian trixie container |
+| `linux-x64` | 33,636,560 | 11,616,560 | native, Debian trixie container |
+| `osx-arm64` | 28,331,040 | 9,879,008 | native, `macos15 20261118.0550.1` |
+| `osx-x64` | 31,151,008 | 10,659,320 | native, `macos15 20260824.0482.1` |
+| `win-x64` | 44,866,560 | 10,510,848 | native, `win22 20261116.370.1` |
 
-The `EmbedPDF.Runtime` nupkg with those two RIDs is 38,057,855 bytes, and the `EmbedPDF` nupkg is
-1,221,724. The linux-x64 host was cross-built on arm64 and run under emulation. That is not
-native-host evidence. `.github/workflows/release-dotnet.yml` builds and validates the macOS and
-Windows RIDs, but it has not run yet.
+The five-RID `EmbedPDF.Runtime` nupkg is 96,125,498 bytes, and the `EmbedPDF` nupkg is 1,221,777.
+Built in the dev container, both Linux hosts need GLIBC 2.35 and their PDFium 2.25.
 
 An app that loads both `EmbedPDF.Engine` and `EmbedPDF` loads two PDFium copies. Pick one.

@@ -125,8 +125,10 @@ release: if nobody needs the narrow package, deprecate it then.
 | Package | Apple counterpart | Contents | Depends on |
 |---|---|---|---|
 | `EmbedPDF.Runtime` | `EmbedPDFBindings` binary target | `runtimes/<rid>/native/` viewer-host library for each RID | nothing |
-| `EmbedPDF` | `EmbedPDF` | facade, with the generated C# compiled in as `internal` | `EmbedPDF.Runtime`, `Microsoft.Extensions.Logging.Abstractions` |
+| `EmbedPDF` | `EmbedPDF` | facade (assembly `EmbedPDF.Viewer.dll`), with the generated C# compiled in as `internal` | `EmbedPDF.Runtime`, `Microsoft.Extensions.Logging.Abstractions` |
 | `EmbedPDF.Models` | `EmbedPDFModels` | UI-neutral models | `EmbedPDF` |
+
+*Changed 2026-11-20:* the facade's assembly is `EmbedPDF.Viewer`, not `EmbedPDF`, because `EmbedPDF.dll` and win-x64 PDFium's `embedpdf.dll` collide on a case-insensitive file system once a RID-specific build copies both into one directory. The package id and root namespace stay `EmbedPDF`.
 
 `EmbedPDFUI` has no counterpart (D6). `EmbedPDF.Runtime` is versioned `0.0.0-engine.<hash>`, the
 hash computed like `apple-engine-<hash>`, so facade and model work never rebuilds Rust.
@@ -264,7 +266,7 @@ Task plan: `docs/superpowers/plans/2026-11-20-dotnet-parity/01-runtime-package.m
 `research/dotnet-parity-p1`, not pushed.
 
 Naming. `platforms/dotnet/EmbedPDF` is the `EmbedPDF.Engine` package and stays untouched, so the
-facade lives at `platforms/dotnet/EmbedPDF.Viewer/` (assembly and package id `EmbedPDF`, namespace
+facade lives at `platforms/dotnet/EmbedPDF.Viewer/` (package id `EmbedPDF`, assembly `EmbedPDF.Viewer`, namespace
 `EmbedPDF`) and the runtime package project at `platforms/dotnet/EmbedPDF.Runtime/`. Generated C#
 goes to `platforms/dotnet/EmbedPDF.Viewer/Generated/`. The four spike tests moved to
 `platforms/dotnet/EmbedPDF.Viewer.Tests/`, and `platforms/dotnet/spike/` is gone.
@@ -307,6 +309,14 @@ public surface with `Microsoft.CodeAnalysis.PublicApiAnalyzers` 5.6.0 (D8). The 
 `linux-x64` natively on an x64 runner and merges every row's status into one manifest
 (`runtime-record`). Each fix that touched `package.py` moved the engine version: the pin is now
 `0.0.0-engine.96f2f8af10194b63` and both records were rerun at `0d97ddc53`.
+
+CI (2026-11-20). Run 44799578194 of `release-dotnet.yml` at `8709bf4fb` passed every job: all
+five runtime slices, the merged pack, and the local-feed consumer on each RID's native runner.
+All five RIDs are `VALIDATED` at engine `0.0.0-engine.822686307291c580`, and those records
+replaced the container ones under `platforms/dotnet/validation/2026-11-20-phase-1-runtime-<rid>/`.
+Two Windows bugs surfaced on the way and are fixed: backslash paths in slice records, and
+`EmbedPDF.dll` colliding with win-x64 PDFium's `embedpdf.dll` (now `EmbedPDF.Viewer.dll`, see D3).
+This supersedes the `osx-arm64` caveat in the Phase 1 exit above.
 
 ## Phase 2: Facade core
 

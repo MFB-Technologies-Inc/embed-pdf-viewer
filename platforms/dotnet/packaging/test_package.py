@@ -1,5 +1,5 @@
 import json
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import tempfile
 import unittest
 import copy
@@ -235,6 +235,38 @@ class RuntimeTests(unittest.TestCase):
             self.assertNotEqual(0, result.returncode)
             self.assertIn("linux-arm64: runtime archive differs from the pinned manifest", result.stdout)
 
+    def test_slice_paths_are_package_paths_on_any_os(self):
+        from package import package_path
+        self.assertEqual("runtimes/win-x64/native/EmbedPDF-LICENSE",
+            package_path(PureWindowsPath(r"C:\s\runtimes\win-x64\native\EmbedPDF-LICENSE"), PureWindowsPath(r"C:\s")))
+
+    def test_pack_runtime_rejects_backslash_slice_paths(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            self.slice(Path(temporary))
+            record_path = Path(temporary) / "runtime-slice.json"
+            record = json.loads(record_path.read_text())
+            record["files"][0]["path"] = record["files"][0]["path"].replace("/", "\\")
+            record_path.write_text(json.dumps(record))
+            result = self.pack_runtime(Path(temporary))
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("slice paths must use forward slashes", result.stdout)
+
+    def test_name_collisions_are_case_insensitive(self):
+        from package import check_name_collisions
+        with self.assertRaisesRegex(ValueError, "EmbedPDF.dll.*embedpdf.dll"):
+            check_name_collisions(["lib/net10.0/EmbedPDF.dll"], ["runtimes/win-x64/native/embedpdf.dll"])
+        check_name_collisions(["lib/net10.0/EmbedPDF.Viewer.dll"], ["runtimes/win-x64/native/embedpdf.dll"])
+
+    def test_facade_assembly_does_not_collide_with_native_files(self):
+        # A RID-specific build copies managed and native files into one
+        # directory; Windows compares names without case.
+        import re
+        from package import VIEWER_RIDS, check_name_collisions
+        csproj = (self.root / "EmbedPDF.Viewer/EmbedPDF.Viewer.csproj").read_text()
+        assembly = re.search(r"<AssemblyName>(.*?)</AssemblyName>", csproj).group(1)
+        native = [name for _, _, host, pdfium in VIEWER_RIDS.values() for name in (host, Path(pdfium).name)]
+        check_name_collisions([f"lib/net10.0/{assembly}.dll"], native)
+
     def test_pack_runtime_rejects_duplicate_rid_and_mixed_sources(self):
         with tempfile.TemporaryDirectory() as first, tempfile.TemporaryDirectory() as second:
             self.slice(Path(first))
@@ -302,8 +334,10 @@ class NativeInspectionTests(unittest.TestCase):
         package.host_rid = lambda: "linux-arm64"
         package.run = lambda command, cwd=None, env=None: calls.append((command, env)) or ""
         try:
-            package.list_dependencies(Path("/x/libepdf_viewer_host.so"), "linux-x64")
-            package.list_dependencies(Path("/x/libepdf_viewer_host.so"), "linux-arm64")
+            # A Windows-style path: a foreign RID is always Linux, so the loader
+            # gets forward slashes whatever OS runs the inspection.
+            package.list_dependencies(PureWindowsPath(r"\x\libepdf_viewer_host.so"), "linux-x64")
+            package.list_dependencies(PureWindowsPath(r"\x\libepdf_viewer_host.so"), "linux-arm64")
         finally:
             package.host_rid, package.run = original
         self.assertEqual(["/lib64/ld-linux-x86-64.so.2", "/x/libepdf_viewer_host.so"], calls[0][0])

@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "packageId": "EmbedPDF.Runtime",
-  "version": "0.0.0-engine.96f2f8af10194b63",
+  "version": "0.0.0-engine.822686307291c580",
   "source": {
-    "commit": "0d97ddc53ead779bca0fe41ccfafc593e55b6d88",
+    "commit": "8709bf4fba43d94de86e5f968014449ad18aedba",
     "dirty": false
   },
   "runtimeFork": "f2ea7597287f26bdcb450602de6616ff6939d506",
@@ -15,24 +15,24 @@
   "abi": 1,
   "rids": {
     "linux-x64": {
-      "status": "container-emulated",
-      "reason": "Consumer passed under emulation on an arm64 host; no native x64 run."
+      "status": "VALIDATED",
+      "reason": "Local-feed consumer passed on the matching native architecture."
     },
     "linux-arm64": {
       "status": "VALIDATED",
       "reason": "Local-feed consumer passed on the matching native architecture."
     },
     "osx-arm64": {
-      "status": "UNVALIDATED",
-      "reason": "No slice staged for this RID"
+      "status": "VALIDATED",
+      "reason": "Local-feed consumer passed on the matching native architecture."
     },
     "osx-x64": {
-      "status": "UNVALIDATED",
-      "reason": "No slice staged for this RID"
+      "status": "VALIDATED",
+      "reason": "Local-feed consumer passed on the matching native architecture."
     },
     "win-x64": {
-      "status": "UNVALIDATED",
-      "reason": "No slice staged for this RID"
+      "status": "VALIDATED",
+      "reason": "Local-feed consumer passed on the matching native architecture."
     }
   },
   "files": [
@@ -48,7 +48,7 @@
     },
     {
       "path": "runtimes/linux-arm64/native/epdf-assets.json",
-      "sha256": "243340ad9b3d0a0832215b969eaa4d1e01f6c27e3d63a14f14bcb763c624eac9",
+      "sha256": "e3259e362fdb4e8047123b28b93127e9e8b67606404fec163f036fac5b55aa59",
       "bytes": 1259
     },
     {
@@ -63,7 +63,7 @@
     },
     {
       "path": "runtimes/linux-arm64/native/libepdf_viewer_host.so",
-      "sha256": "31c26652e8c3de67c0e3ec4ac53bb190042b1ddc70cac11a02a03f6fcb57aa71",
+      "sha256": "a3a7258060dac11f23a44d554479153faaf438401d60b2479a2fd5b608db81aa",
       "bytes": 29367528
     },
     {
@@ -78,7 +78,7 @@
     },
     {
       "path": "runtimes/linux-x64/native/epdf-assets.json",
-      "sha256": "e4d34e39ed440d9a49e3476e0359e4997a1bad7e7f27e76c6a9e74f730ccaf0f",
+      "sha256": "0a1564ff7d23764b9b9dc1d5bf416ab55d8198142d8c733272ff93d9ccaa6060",
       "bytes": 1245
     },
     {
@@ -93,13 +93,103 @@
     },
     {
       "path": "runtimes/linux-x64/native/libepdf_viewer_host.so",
-      "sha256": "9d02de9284c857d0fb8176b574cf4eba7aa3e9f9158266d3d716db8bbbec60c3",
-      "bytes": 33652040
+      "sha256": "037bf3aa4f624f0a20a91a249c8cedca9da97be7f7b92ffa9c3583651589774f",
+      "bytes": 33636560
     },
     {
-      "path": "EmbedPDF.Runtime.0.0.0-engine.96f2f8af10194b63.nupkg",
-      "sha256": "8be1c212a630c688068a3cf4e7b7977e494d01bce0b543982ebab04219011651",
-      "bytes": 38057855
+      "path": "runtimes/osx-arm64/native/EmbedPDF-LICENSE",
+      "sha256": "4d3d171a5443d9a42f9ea24301ddc247c3168cc4d87a3d1ecf5bc15a8e291f9e",
+      "bytes": 11896
+    },
+    {
+      "path": "runtimes/osx-arm64/native/PDFIUM_LICENSE",
+      "sha256": "1fe9dea718fbd75cf149adaf4d8a22a4335604d964ddb76d1b45383dec8668c9",
+      "bytes": 12896
+    },
+    {
+      "path": "runtimes/osx-arm64/native/epdf-assets.json",
+      "sha256": "e789609e9cbee337422039b5f6acfbbeb5d894bab195be3c52cc9e537b607d89",
+      "bytes": 1253
+    },
+    {
+      "path": "runtimes/osx-arm64/native/epdf-runtime.json",
+      "sha256": "c61784373df84d53802d370ff58a791e80dd940b4fbc81df204692fb6438b98f",
+      "bytes": 2728
+    },
+    {
+      "path": "runtimes/osx-arm64/native/libembedpdf.dylib",
+      "sha256": "f4323fbd165386275b801dfd86ceb108757f7ea622d57ba4e59909fa9a0cf1a3",
+      "bytes": 9879008
+    },
+    {
+      "path": "runtimes/osx-arm64/native/libepdf_viewer_host.dylib",
+      "sha256": "4185f39752aa7379142e18e15124cac5e275e756993aecf13a912f8a4a336b93",
+      "bytes": 28331040
+    },
+    {
+      "path": "runtimes/osx-x64/native/EmbedPDF-LICENSE",
+      "sha256": "4d3d171a5443d9a42f9ea24301ddc247c3168cc4d87a3d1ecf5bc15a8e291f9e",
+      "bytes": 11896
+    },
+    {
+      "path": "runtimes/osx-x64/native/PDFIUM_LICENSE",
+      "sha256": "1fe9dea718fbd75cf149adaf4d8a22a4335604d964ddb76d1b45383dec8668c9",
+      "bytes": 12896
+    },
+    {
+      "path": "runtimes/osx-x64/native/epdf-assets.json",
+      "sha256": "dbda1dc95b1a50f36f3936782df37af26dbed8e6f90138a9a0614867d1c3c737",
+      "bytes": 1240
+    },
+    {
+      "path": "runtimes/osx-x64/native/epdf-runtime.json",
+      "sha256": "c61784373df84d53802d370ff58a791e80dd940b4fbc81df204692fb6438b98f",
+      "bytes": 2728
+    },
+    {
+      "path": "runtimes/osx-x64/native/libembedpdf.dylib",
+      "sha256": "9b0cb563682337f2c9b3a20810ae1dab947eedd9b95dc52e47d2df064e9ed622",
+      "bytes": 10659320
+    },
+    {
+      "path": "runtimes/osx-x64/native/libepdf_viewer_host.dylib",
+      "sha256": "220e99bb013993155f38b8b127755e173ba1d0d8ec1403f18dfe887b072cc737",
+      "bytes": 31151008
+    },
+    {
+      "path": "runtimes/win-x64/native/EmbedPDF-LICENSE",
+      "sha256": "4d3d171a5443d9a42f9ea24301ddc247c3168cc4d87a3d1ecf5bc15a8e291f9e",
+      "bytes": 11896
+    },
+    {
+      "path": "runtimes/win-x64/native/PDFIUM_LICENSE",
+      "sha256": "1fe9dea718fbd75cf149adaf4d8a22a4335604d964ddb76d1b45383dec8668c9",
+      "bytes": 12896
+    },
+    {
+      "path": "runtimes/win-x64/native/embedpdf.dll",
+      "sha256": "cda55d880c48bcaf7a73656affdf85ebc72f78f69b20670074f571b6c26b44e0",
+      "bytes": 10510848
+    },
+    {
+      "path": "runtimes/win-x64/native/epdf-assets.json",
+      "sha256": "e72a76f06ae0fa432c6f9277582cf2a3f23788bd2023d13a0d2807cc4d1fd8fd",
+      "bytes": 1229
+    },
+    {
+      "path": "runtimes/win-x64/native/epdf-runtime.json",
+      "sha256": "c61784373df84d53802d370ff58a791e80dd940b4fbc81df204692fb6438b98f",
+      "bytes": 2728
+    },
+    {
+      "path": "runtimes/win-x64/native/epdf_viewer_host.dll",
+      "sha256": "f015bcc95b7574e1dc24981548996003606ae7711b764c6a3982b66fda5f940e",
+      "bytes": 44866560
+    },
+    {
+      "path": "EmbedPDF.Runtime.0.0.0-engine.822686307291c580.nupkg",
+      "sha256": "ec3b0e203a263caf9cb1aa0ae5aa93b8f935f55040b6cf14aa03541a55981098",
+      "bytes": 96125498
     }
   ],
   "limitations": [

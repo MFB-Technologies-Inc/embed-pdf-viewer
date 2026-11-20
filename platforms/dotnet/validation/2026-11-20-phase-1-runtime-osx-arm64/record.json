@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "package": "EmbedPDF.Runtime",
+  "phase": 1,
+  "rid": "osx-arm64",
+  "source": {
+    "commit": "8709bf4fba43d94de86e5f968014449ad18aedba",
+    "dirty": false,
+    "runtimeFork": "f2ea7597287f26bdcb450602de6616ff6939d506"
+  },
+  "environment": {
+    "kind": "host",
+    "os": "macOS-15.8.2-arm64-arm-64bit-Mach-O",
+    "arch": "arm64",
+    "emulated": false,
+    "tools": {
+      "dotnet": "10.0.403",
+      "rustc": "info: syncing channel updates for 1.98.0-aarch64-apple-darwin",
+      "libc": "unavailable",
+      "runnerImage": "macos15 20261118.0550.1"
+    }
+  },
+  "inputs": [
+    {
+      "path": "packages/engine/runtime/engine-runtime-build.json",
+      "sha256": "c61784373df84d53802d370ff58a791e80dd940b4fbc81df204692fb6438b98f",
+      "bytes": 2728
+    },
+    {
+      "path": "pdfium-multiplatform-prototype/fixtures/report.pdf",
+      "sha256": "3662ff519e485810520552bf301d8c3b2b917fd2f83303f4965d7abed367e113",
+      "bytes": 1016315
+    }
+  ],
+  "commands": [
+    {
+      "command": "/opt/homebrew/opt/python@3.15/bin/python3.15 /Users/runner/work/embed-pdf-viewer/embed-pdf-viewer/platforms/dotnet/packaging/package.py smoke-runtime --rid osx-arm64 --package /Users/runner/work/embed-pdf-viewer/embed-pdf-viewer/dotnet-runtime/EmbedPDF.Runtime.0.0.0-engine.822686307291c580.nupkg --facade /Users/runner/work/embed-pdf-viewer/embed-pdf-viewer/dotnet-runtime/EmbedPDF.0.0.0-local.nupkg --manifest /Users/runner/work/embed-pdf-viewer/embed-pdf-viewer/dotnet-runtime/package-manifest.runtime.json",
+      "cwd": "/Users/runner/work/embed-pdf-viewer/embed-pdf-viewer",
+      "exitCode": 0,
+      "results": "  Determining projects to restore...\n  Restored /private/var/folders/9d/l02zfgrs7c16twd3wbpdmhkc0000gn/T/epdf-runtime-consumer-xd48343a/Consumer.csproj (in 1.77 sec).\n  Consumer -> /var/folders/9d/l02zfgrs7c16twd3wbpdmhkc0000gn/T/epdf-runtime-consumer-xd48343a/app-rid/Consumer.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:02.38\nPASS: rid=osx-arm64 pages=14\nNativeRuntimeNotFoundException: rid=osx-arm64: No EmbedPDF native library could be loaded for runtime 'osx-arm64'. Reference EmbedPDF.Runtime, which ships libepdf_viewer_host.dylib and libembedpdf.dylib for this runtime, or put both beside the application. Searched: /private/var/folders/9d/l02zfgrs7c16twd3wbpdmhkc0000gn/T/epdf-runtime-consumer-xd48343a/app-rid/libepdf_viewer_host.dylib, /private/var/folders/9d/l02zfgrs7c16twd3wbpdmhkc0000gn/T/epdf-runtime-consumer-xd48343a/app-rid/runtimes/osx-arm64/native/libepdf_viewer_host.dylib.\nNativeRuntimeNotFoundException: rid=osx-arm64: The EmbedPDF native library for runtime 'osx-arm64' was found but failed to load: /private/var/folders/9d/l02zfgrs7c16twd3wbpdmhkc0000gn/T/epdf-runtime-consumer-xd48343a/app-rid/libepdf_viewer_host.dylib. The inner exception has the loader's error.\n  Determining projects to restore...\n  Restored /private/var/folders/9d/l02zfgrs7c16twd3wbpdmhkc0000gn/T/epdf-runtime-consumer-xd48343a/Consumer.csproj (in 687 ms).\n  Consumer -> /var/folders/9d/l02zfgrs7c16twd3wbpdmhkc0000gn/T/epdf-runtime-consumer-xd48343a/app-portable/Consumer.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:01.75\nPASS: rid=osx-arm64 pages=14\nNativeRuntimeNotFoundException: rid=osx-arm64: No EmbedPDF native library could be loaded for runtime 'osx-arm64'. Reference EmbedPDF.Runtime, which ships libepdf_viewer_host.dylib and libembedpdf.dylib for this runtime, or put both beside the application. Searched: /private/var/folders/9d/l02zfgrs7c16twd3wbpdmhkc0000gn/T/epdf-runtime-consumer-xd48343a/app-portable/libepdf_viewer_host.dylib, /private/var/folders/9d/l02zfgrs7c16twd3wbpdmhkc0000gn/T/epdf-runtime-consumer-xd48343a/app-portable/runtimes/osx-arm64/native/libepdf_viewer_host.dylib.\nPASS: RID-specific and portable consumers, missing-host and missing-PDFium checks\n"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "dotnet-runtime/EmbedPDF.Runtime.0.0.0-engine.822686307291c580.nupkg",
+      "sha256": "ec3b0e203a263caf9cb1aa0ae5aa93b8f935f55040b6cf14aa03541a55981098",
+      "bytes": 96125498
+    },
+    {
+      "path": "dotnet-runtime/EmbedPDF.0.0.0-local.nupkg",
+      "sha256": "9bd5087d8c8fb0f45a750fc0ebf245dd508f944f4f0ceab2875ac6e63220b24d",
+      "bytes": 1221777
+    },
+    {
+      "path": "dotnet-runtime/package-manifest.runtime.json",
+      "sha256": "f5ea9c0dd8813b9ca3e2a2b667e6e817da757acc9be9fa07c2de171c0e94d64c",
+      "bytes": 6846
+    }
+  ],
+  "limitations": [
+    "Phase 1 checks loading and one document open; the facade API is Phase 2."
+  ]
+}

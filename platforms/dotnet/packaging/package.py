@@ -3,7 +3,7 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePath
 import platform
 import re
 import shutil
@@ -96,9 +96,9 @@ def list_dependencies(path, rid):
     """`ldd -r`, or the RID's own loader in trace mode when the host is another
     architecture (an emulated or cross-built slice), since ldd only knows its own."""
     if host_rid() == rid:
-        return run(["ldd", "-r", str(path)])
+        return run(["ldd", "-r", path.as_posix()])
     env = dict(os.environ, LD_TRACE_LOADED_OBJECTS="1", LD_WARN="yes", LD_BIND_NOW="yes")
-    return run([FOREIGN_LOADERS[rid], str(path)], env=env)
+    return run([FOREIGN_LOADERS[rid], path.as_posix()], env=env)
 
 def inspect(native, rid):
     details = {}
@@ -402,6 +402,14 @@ VIEWER_SOURCES = ("Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "crates", "
 SLICE_RECORD = "runtime-slice.json"
 ENGINE_VERSION = re.compile(r"^0\.0\.0-engine\.[0-9a-f]{16}$")
 
+def package_path(path, base):
+    """A file's path inside the package: relative, forward slashes, on any OS."""
+    path = path if isinstance(path, PurePath) else PurePath(path)
+    return path.relative_to(base).as_posix()
+
+def package_file_record(path, base):
+    return {"path": package_path(path, base), "sha256": sha(path), "bytes": Path(path).stat().st_size}
+
 def check_viewer_exports(exported, prefix=""):
     # Every uniffi library exports its contract version; the generated C#
     # calls it first and refuses a library from another uniffi.
@@ -480,7 +488,7 @@ def stage_runtime(args):
     write(output / "native-inspection.json", details)
     record = {"schemaVersion":1,"rid":args.rid,"source":viewer_source_identity(),
               "runtimeFork":pin["sha"],"runtimeArchiveSha256":sha(archive),"runtimeTarget":fork_target,
-              "files":[file_record(path, output) for path in sorted(native.iterdir()) if path.is_file()]}
+              "files":[package_file_record(path, output) for path in sorted(native.iterdir()) if path.is_file()]}
     write(output / SLICE_RECORD, record)
     for entry in record["files"]:
         print(f"{entry['bytes']:>12}  {entry['path']}")
@@ -491,6 +499,10 @@ def read_slice(directory):
     record = read(directory / SLICE_RECORD)
     if record.get("schemaVersion") != 1 or record.get("rid") not in VIEWER_RIDS:
         raise ValueError(f"{directory}: not a runtime slice record")
+    # Records are read on Linux whatever OS staged them, and the paths are
+    # package paths, so a backslash means a record from an older stager.
+    if any("\\" in entry["path"] for entry in record["files"]):
+        raise ValueError(f"{directory}: slice paths must use forward slashes")
     recorded = {entry["path"] for entry in record["files"]}
     for entry in record["files"]:
         path = directory / entry["path"]
@@ -547,7 +559,7 @@ def pack_runtime(args):
             raise ValueError(f"dotnet pack wrote no {package.name}")
         # Stage-relative paths are the package paths, so the manifest names
         # what a consumer finds in the nupkg.
-        staged = [file_record(path, stage) for path in sorted(stage.rglob("*")) if path.is_file()]
+        staged = [package_file_record(path, stage) for path in sorted(stage.rglob("*")) if path.is_file()]
     with zipfile.ZipFile(package) as bundle:
         names = set(bundle.namelist())
         for entry in staged:
@@ -580,6 +592,16 @@ def pinned_runtime_version():
         raise ValueError("EmbedPDF.Runtime.props has no EmbedPdfRuntimeVersion")
     return match.group(1)
 
+def check_name_collisions(managed, native):
+    """A RID-specific build copies the facade's assemblies and the runtime's
+    native files into one directory, and Windows (and default macOS volumes)
+    compare file names without case, so no two may share a name."""
+    natives = {PurePath(name).name.lower(): name for name in native}
+    for name in managed:
+        clash = natives.get(PurePath(name).name.lower())
+        if clash:
+            raise ValueError(f"managed {name} collides with native {clash} on a case-insensitive file system")
+
 def pack_facade(args):
     """Packs the EmbedPDF facade against the runtime package it depends on."""
     check_toolchain()
@@ -600,8 +622,12 @@ def pack_facade(args):
              f"-p:RestoreAdditionalProjectSources={runtime.parent}"], cwd=DOTNET, env=env)
     package = output / f"EmbedPDF.{args.version}.nupkg"
     with zipfile.ZipFile(package) as bundle:
-        if "lib/net10.0/EmbedPDF.dll" not in bundle.namelist():
+        if "lib/net10.0/EmbedPDF.Viewer.dll" not in bundle.namelist():
             raise ValueError("facade assembly missing from package")
+        managed = [name for name in bundle.namelist() if name.startswith("lib/")]
+    with zipfile.ZipFile(runtime) as bundle:
+        check_name_collisions(managed, [name for name in bundle.namelist() if name.startswith("runtimes/")])
+    with zipfile.ZipFile(package) as bundle:
         nuspec = bundle.read("EmbedPDF.nuspec").decode()
         if f'id="EmbedPDF.Runtime" version="{match.group(1)}"' not in nuspec:
             raise ValueError("facade package does not depend on the runtime package it was packed against")
