@@ -30,10 +30,12 @@ import kotlin.coroutines.cancellation.CancellationException
  * off and sets [error]; [run] ends with one more refresh, so a closed
  * document leaves them off.
  *
- * [undoTitle] and [redoTitle] are "Undo" and "Redo", followed by the change's
- * description when the model has a [translator]: "Undo Rotate pages". The
- * verbs are English; an app that words them another way builds its own title
- * from [undoLabel] and [redoLabel].
+ * [undoTitle] and [redoTitle] are [HistoryStrings.undo] and
+ * [HistoryStrings.redo], or, when the model has a [translator] and there is a
+ * change to name, [HistoryStrings.undoTitle] and [HistoryStrings.redoTitle]
+ * of the change's description: "Undo Rotate pages". [notice] is a value and
+ * [noticeText] its words from [HistoryStrings.notice]. The strings default to
+ * English; a Compose layer passes resource-backed ones.
  *
  * The state lives on the main thread: every call switches to
  * `Dispatchers.Main.immediate` itself.
@@ -42,15 +44,18 @@ public class HistoryModel(
     private val viewer: PdfViewer,
     private val history: HistoryCapability,
     private val translator: I18nCapability? = null,
+    /** The words of [undoTitle], [redoTitle] and [noticeText]; English by default. */
+    private val strings: HistoryStrings = HistoryStrings.English,
 ) {
     private val _canUndo = MutableStateFlow(false)
     private val _canRedo = MutableStateFlow(false)
     private val _undoLabel = MutableStateFlow<HistoryChangeLabel?>(null)
     private val _redoLabel = MutableStateFlow<HistoryChangeLabel?>(null)
-    private val _undoTitle = MutableStateFlow(UNDO)
-    private val _redoTitle = MutableStateFlow(REDO)
+    private val _undoTitle = MutableStateFlow(strings.undo)
+    private val _redoTitle = MutableStateFlow(strings.redo)
     private val _submitting = MutableStateFlow(false)
-    private val _notice = MutableStateFlow<String?>(null)
+    private val _notice = MutableStateFlow<HistoryNotice?>(null)
+    private val _noticeText = MutableStateFlow<String?>(null)
     private val _error = MutableStateFlow<PdfException?>(null)
 
     public val canUndo: StateFlow<Boolean> = _canUndo.asStateFlow()
@@ -64,7 +69,10 @@ public class HistoryModel(
     public val submitting: StateFlow<Boolean> = _submitting.asStateFlow()
 
     /** Why the last undo or redo skipped some of its parts, `null` when it skipped none. */
-    public val notice: StateFlow<String?> = _notice.asStateFlow()
+    public val notice: StateFlow<HistoryNotice?> = _notice.asStateFlow()
+
+    /** [notice] in words, from [HistoryStrings.notice]; `null` with it. */
+    public val noticeText: StateFlow<String?> = _noticeText.asStateFlow()
     public val error: StateFlow<PdfException?> = _error.asStateFlow()
 
     internal val snapshots = SnapshotRefresh()
@@ -122,15 +130,18 @@ public class HistoryModel(
         when (event) {
             is HistoryEventUndoFailed -> {
                 _error.value = PdfException(PdfException.Code(event.error.code), event.error.message)
-                _notice.value = null
+                setNotice(null)
             }
             is HistoryEventUndone -> {
                 _error.value = null
-                _notice.value = when {
-                    event.skipped == 0uL -> null
-                    event.redo -> "Some changes could not be redone."
-                    else -> "Some changes could not be undone."
-                }
+                val skipped = minOf(event.skipped, Long.MAX_VALUE.toULong()).toLong()
+                setNotice(
+                    when {
+                        skipped == 0L -> null
+                        event.redo -> HistoryNotice.SkippedRedo(skipped)
+                        else -> HistoryNotice.SkippedUndo(skipped)
+                    },
+                )
             }
             is HistoryEventSettingsChanged -> Unit
         }
@@ -141,7 +152,7 @@ public class HistoryModel(
         if (_submitting.value) return@onMain
         _submitting.value = true
         _error.value = null
-        _notice.value = null
+        setNotice(null)
         try {
             try {
                 action()
@@ -156,8 +167,13 @@ public class HistoryModel(
         }
     }
 
+    private fun setNotice(notice: HistoryNotice?) {
+        _notice.value = notice
+        _noticeText.value = notice?.let(strings::notice)
+    }
+
     private suspend fun title(label: HistoryChangeLabel?, redo: Boolean): String {
-        val verb = if (redo) REDO else UNDO
+        val verb = if (redo) strings.redo else strings.undo
         val translator = translator ?: return verb
         if (label == null) return verb
         val params: Map<String, I18nParam> = label.values.mapValues { (_, value) ->
@@ -166,7 +182,8 @@ public class HistoryModel(
                 is HistoryLabelValueNumber -> I18nParamNumber(value.value)
             }
         }
-        return "$verb ${translator.t(label.key, params, fallback = "change")}"
+        val description = translator.t(label.key, params, fallback = strings.change)
+        return if (redo) strings.redoTitle(description) else strings.undoTitle(description)
     }
 
     private data class Snapshot(
@@ -177,9 +194,4 @@ public class HistoryModel(
         val undoTitle: String,
         val redoTitle: String,
     )
-
-    private companion object {
-        const val UNDO = "Undo"
-        const val REDO = "Redo"
-    }
 }

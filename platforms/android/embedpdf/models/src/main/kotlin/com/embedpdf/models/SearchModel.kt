@@ -14,7 +14,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.text.NumberFormat
 
 /**
  * An observable model of a document's search session, which a view reads.
@@ -43,7 +42,11 @@ import java.text.NumberFormat
  * The state lives on the main thread: every call switches to
  * `Dispatchers.Main.immediate` itself. Set [text] on the main thread.
  */
-public class SearchModel(internal val search: SearchCapability) {
+public class SearchModel(
+    internal val search: SearchCapability,
+    /** The words of [summary]; English by default. */
+    private val strings: SearchStrings = SearchStrings.English,
+) {
     private val _text = MutableStateFlow("")
     private val _hits = MutableStateFlow<List<SearchHit>>(emptyList())
     private val _activeHitIndex = MutableStateFlow<Int?>(null)
@@ -89,13 +92,12 @@ public class SearchModel(internal val search: SearchCapability) {
     public val activeHit: StateFlow<SearchHit?> = _activeHit.asStateFlow()
 
     /**
-     * The active hit's place among the hits, counted from 1, as `"3 of 12"`;
-     * `null` when no hit is active, which includes a session with no hits.
-     * While [status] is `SEARCHING` the count still grows, so the text ends
-     * in a plus sign: `"3 of 12+"`. The numbers are grouped as the default
-     * locale groups them, and the words are English; an app that words it
-     * another way builds its own from [activeHitIndex], [hitCount] and
-     * [status].
+     * The active hit's place among the hits, counted from 1, in the words of
+     * [SearchStrings.searchSummary]; `null` when no hit is active, which
+     * includes a session with no hits. The English default reads `"3 of 12"`,
+     * and `"3 of 12+"` while [status] is `SEARCHING` and the count still
+     * grows, with the numbers grouped as the default locale groups them. A
+     * Compose layer passes resource-backed [SearchStrings] to the constructor.
      */
     public val summary: StateFlow<String?> = _summary.asStateFlow()
 
@@ -257,7 +259,7 @@ public class SearchModel(internal val search: SearchCapability) {
         val index = _activeHitIndex.value
         val hits = _hits.value
         _activeHit.value = index?.let { hits.getOrNull(it) }
-        _summary.value = summary(index, _hitCount.value, _status.value)
+        _summary.value = summary(index, _hitCount.value, _status.value, strings)
         _canClear.value = _text.value.isNotEmpty() || _hitCount.value > 0 || _status.value != SearchStatus.IDLE
     }
 
@@ -273,11 +275,9 @@ public class SearchModel(internal val search: SearchCapability) {
     internal companion object {
         val EMPTY_PROGRESS = SearchProgress(pagesSearched = 0.0, pageCount = 0.0)
 
-        fun summary(activeHitIndex: Int?, hitCount: Int, status: SearchStatus): String? {
+        fun summary(activeHitIndex: Int?, hitCount: Int, status: SearchStatus, strings: SearchStrings = SearchStrings.English): String? {
             if (activeHitIndex == null || activeHitIndex >= hitCount) return null
-            val numbers = NumberFormat.getIntegerInstance()
-            val text = "${numbers.format(activeHitIndex + 1)} of ${numbers.format(hitCount)}"
-            return if (status == SearchStatus.SEARCHING) "$text+" else text
+            return strings.searchSummary(activeHitIndex + 1, hitCount, status == SearchStatus.SEARCHING)
         }
     }
 }

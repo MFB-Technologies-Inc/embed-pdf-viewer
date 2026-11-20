@@ -7,12 +7,14 @@ import com.embedpdf.HistoryChangeLabel
 import com.embedpdf.HistoryEventUndoFailed
 import com.embedpdf.HistoryEventUndone
 import com.embedpdf.HistoryUndoFailure
+import com.embedpdf.I18nConfig
 import com.embedpdf.PageEditTurn
 import com.embedpdf.PdfException
 import com.embedpdf.PdfViewer
 import com.embedpdf.PluginErrorInfo
 import com.embedpdf.ViewerConfig
 import com.embedpdf.history
+import com.embedpdf.i18n
 import com.embedpdf.pageEdit
 import com.embedpdf.started
 import kotlinx.coroutines.launch
@@ -112,8 +114,49 @@ class HistoryModelTest {
         )
         assertEquals(PdfException.Code.PERMISSION_DENIED, model.error.value?.code)
         model.receive(HistoryEventUndone(label, false, 2uL))
-        assertNotNull(model.notice.value)
+        assertEquals(HistoryNotice.SkippedUndo(2), model.notice.value)
+        assertEquals("Some changes could not be undone.", model.noticeText.value)
         assertNull(model.error.value)
+        model.receive(HistoryEventUndone(label, true, 1uL))
+        assertEquals(HistoryNotice.SkippedRedo(1), model.notice.value)
+        assertEquals("Some changes could not be redone.", model.noticeText.value)
         viewer.destroy()
+    }
+
+    /** Words another language, or resources, supply go into the titles and the notice. */
+    private object French : HistoryStrings {
+        override val undo: String = "Annuler"
+        override val redo: String = "Refaire"
+        override val change: String = "modification"
+
+        override fun undoTitle(label: String): String = "Annuler : $label"
+
+        override fun notice(notice: HistoryNotice): String = when (notice) {
+            is HistoryNotice.SkippedUndo -> "${notice.count} annulations impossibles"
+            is HistoryNotice.SkippedRedo -> "${notice.count} rétablissements impossibles"
+        }
+    }
+
+    @Test
+    fun givenStringsWordTheTitlesAndTheNotice() = mainTest {
+        val viewer = started(ViewerConfig(history = true, pageEdit = true, i18n = I18nConfig()))
+        val document = viewer.open(Fixture.bytes("report"))
+        val history = viewer.history(document)
+        val model = HistoryModel(viewer, history, viewer.i18n(), French)
+        assertEquals("Annuler", model.undoTitle.value)
+        assertEquals("Refaire", model.redoTitle.value)
+        viewer.pageEdit(document).rotate(listOf(viewer.pages(document)[0].page), PageEditTurn.CLOCKWISE)
+        model.refresh()
+        // The translator has no text for the change, so the strings' own word stands in.
+        assertEquals("Annuler : modification", model.undoTitle.value)
+        model.receive(HistoryEventUndone(HistoryChangeLabel(key = "test.edit", values = emptyMap()), false, 3uL))
+        assertEquals("3 annulations impossibles", model.noticeText.value)
+        viewer.destroy()
+    }
+
+    @Test
+    fun theEnglishStringsPutTheVerbBeforeTheChange() {
+        assertEquals("Undo Rotate pages", HistoryStrings.English.undoTitle("Rotate pages"))
+        assertEquals("Redo Rotate pages", HistoryStrings.English.redoTitle("Rotate pages"))
     }
 }

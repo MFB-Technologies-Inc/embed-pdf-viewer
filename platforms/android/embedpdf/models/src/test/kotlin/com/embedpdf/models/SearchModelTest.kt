@@ -241,6 +241,17 @@ class SearchModelTest {
     }
 
     @Test
+    fun givenStringsWordTheSummary() {
+        val strings = object : SearchStrings {
+            override fun searchSummary(index: Int, count: Int, searching: Boolean): String =
+                "$index / $count" + if (searching) " …" else ""
+        }
+        assertEquals("3 / 12 …", SearchModel.summary(2, 12, SearchStatus.SEARCHING, strings))
+        assertEquals("3 / 12", SearchModel.summary(2, 12, SearchStatus.COMPLETE, strings))
+        assertNull(SearchModel.summary(null, 12, SearchStatus.COMPLETE, strings))
+    }
+
+    @Test
     fun theSummaryMarksACountThatIsStillGrowing() {
         assertEquals(summary(3, 12) + "+", SearchModel.summary(2, 12, SearchStatus.SEARCHING))
         assertEquals(summary(3, 12), SearchModel.summary(2, 12, SearchStatus.COMPLETE))

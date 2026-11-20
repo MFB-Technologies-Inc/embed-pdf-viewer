@@ -45,14 +45,13 @@ public final class com/embedpdf/models/BitmapPoolKt {
 }
 
 public final class com/embedpdf/models/HistoryModel {
-	public static final field REDO Ljava/lang/String;
-	public static final field UNDO Ljava/lang/String;
-	public fun <init> (Lcom/embedpdf/PdfViewer;Lcom/embedpdf/HistoryCapability;Lcom/embedpdf/I18nCapability;)V
-	public synthetic fun <init> (Lcom/embedpdf/PdfViewer;Lcom/embedpdf/HistoryCapability;Lcom/embedpdf/I18nCapability;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Lcom/embedpdf/PdfViewer;Lcom/embedpdf/HistoryCapability;Lcom/embedpdf/I18nCapability;Lcom/embedpdf/models/HistoryStrings;)V
+	public synthetic fun <init> (Lcom/embedpdf/PdfViewer;Lcom/embedpdf/HistoryCapability;Lcom/embedpdf/I18nCapability;Lcom/embedpdf/models/HistoryStrings;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun getCanRedo ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun getCanUndo ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun getError ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun getNotice ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getNoticeText ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun getRedoLabel ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun getRedoTitle ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun getSubmitting ()Lkotlinx/coroutines/flow/StateFlow;
@@ -62,6 +61,54 @@ public final class com/embedpdf/models/HistoryModel {
 	public final fun refresh (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun run (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun undo (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public abstract interface class com/embedpdf/models/HistoryNotice {
+}
+
+public final class com/embedpdf/models/HistoryNotice$SkippedRedo : com/embedpdf/models/HistoryNotice {
+	public fun <init> (J)V
+	public final fun component1 ()J
+	public final fun copy (J)Lcom/embedpdf/models/HistoryNotice$SkippedRedo;
+	public static synthetic fun copy$default (Lcom/embedpdf/models/HistoryNotice$SkippedRedo;JILjava/lang/Object;)Lcom/embedpdf/models/HistoryNotice$SkippedRedo;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCount ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/models/HistoryNotice$SkippedUndo : com/embedpdf/models/HistoryNotice {
+	public fun <init> (J)V
+	public final fun component1 ()J
+	public final fun copy (J)Lcom/embedpdf/models/HistoryNotice$SkippedUndo;
+	public static synthetic fun copy$default (Lcom/embedpdf/models/HistoryNotice$SkippedUndo;JILjava/lang/Object;)Lcom/embedpdf/models/HistoryNotice$SkippedUndo;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCount ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/embedpdf/models/HistoryStrings {
+	public static final field Companion Lcom/embedpdf/models/HistoryStrings$Companion;
+	public fun getChange ()Ljava/lang/String;
+	public fun getRedo ()Ljava/lang/String;
+	public fun getUndo ()Ljava/lang/String;
+	public fun notice (Lcom/embedpdf/models/HistoryNotice;)Ljava/lang/String;
+	public fun redoTitle (Ljava/lang/String;)Ljava/lang/String;
+	public fun undoTitle (Ljava/lang/String;)Ljava/lang/String;
+}
+
+public final class com/embedpdf/models/HistoryStrings$Companion {
+	public final fun getEnglish ()Lcom/embedpdf/models/HistoryStrings;
+}
+
+public final class com/embedpdf/models/HistoryStrings$DefaultImpls {
+	public static fun getChange (Lcom/embedpdf/models/HistoryStrings;)Ljava/lang/String;
+	public static fun getRedo (Lcom/embedpdf/models/HistoryStrings;)Ljava/lang/String;
+	public static fun getUndo (Lcom/embedpdf/models/HistoryStrings;)Ljava/lang/String;
+	public static fun notice (Lcom/embedpdf/models/HistoryStrings;Lcom/embedpdf/models/HistoryNotice;)Ljava/lang/String;
+	public static fun redoTitle (Lcom/embedpdf/models/HistoryStrings;Ljava/lang/String;)Ljava/lang/String;
+	public static fun undoTitle (Lcom/embedpdf/models/HistoryStrings;Ljava/lang/String;)Ljava/lang/String;
 }
 
 public final class com/embedpdf/models/OutlineModel {
@@ -94,8 +141,8 @@ public final class com/embedpdf/models/OutlineModel {
 
 public final class com/embedpdf/models/PdfReaderModel {
 	public fun <init> ()V
-	public fun <init> (Ljava/util/Set;Lkotlin/jvm/functions/Function1;Lkotlinx/coroutines/CoroutineScope;)V
-	public synthetic fun <init> (Ljava/util/Set;Lkotlin/jvm/functions/Function1;Lkotlinx/coroutines/CoroutineScope;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/util/Set;Lkotlin/jvm/functions/Function1;Lkotlinx/coroutines/CoroutineScope;Lcom/embedpdf/models/SearchStrings;)V
+	public synthetic fun <init> (Ljava/util/Set;Lkotlin/jvm/functions/Function1;Lkotlinx/coroutines/CoroutineScope;Lcom/embedpdf/models/SearchStrings;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun close (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun getFeatures ()Ljava/util/Set;
 	public final fun getPhase ()Lkotlinx/coroutines/flow/StateFlow;
@@ -199,7 +246,8 @@ public final class com/embedpdf/models/RenderRevisions {
 }
 
 public final class com/embedpdf/models/SearchModel {
-	public fun <init> (Lcom/embedpdf/SearchCapability;)V
+	public fun <init> (Lcom/embedpdf/SearchCapability;Lcom/embedpdf/models/SearchStrings;)V
+	public synthetic fun <init> (Lcom/embedpdf/SearchCapability;Lcom/embedpdf/models/SearchStrings;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun clearButtonTapped (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun getActiveHit ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun getActiveHitIndex ()Lkotlinx/coroutines/flow/StateFlow;
@@ -220,6 +268,19 @@ public final class com/embedpdf/models/SearchModel {
 	public final fun run (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun searchSubmitted (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun setText (Ljava/lang/String;)V
+}
+
+public abstract interface class com/embedpdf/models/SearchStrings {
+	public static final field Companion Lcom/embedpdf/models/SearchStrings$Companion;
+	public fun searchSummary (IIZ)Ljava/lang/String;
+}
+
+public final class com/embedpdf/models/SearchStrings$Companion {
+	public final fun getEnglish ()Lcom/embedpdf/models/SearchStrings;
+}
+
+public final class com/embedpdf/models/SearchStrings$DefaultImpls {
+	public static fun searchSummary (Lcom/embedpdf/models/SearchStrings;IIZ)Ljava/lang/String;
 }
 
 public final class com/embedpdf/models/StageReaderModel {

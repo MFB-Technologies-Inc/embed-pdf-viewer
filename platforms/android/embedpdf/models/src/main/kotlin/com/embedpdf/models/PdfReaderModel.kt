@@ -73,6 +73,8 @@ public class PdfReaderModel(
      * not running, starts the drain that sends it.
      */
     private val actionScope: CoroutineScope? = null,
+    /** The words of each session's [SearchModel]; English by default. */
+    private val searchStrings: SearchStrings = SearchStrings.English,
 ) {
     /** What the reader offers beyond showing and scrolling pages. Each installs the plugins it needs. */
     public enum class Feature {
@@ -356,7 +358,7 @@ public class PdfReaderModel(
             // Lets the built-in pan tool drag this reader, for as long as the document.
             stage.registerScrollHandler()
         }
-        val search = if (Feature.SEARCH in features) SearchModel(viewer.search(document)) else null
+        val search = if (Feature.SEARCH in features) SearchModel(viewer.search(document), searchStrings) else null
         val selection = if (Feature.SELECTION in features) TextSelectionModel(viewer.selection(document), actionScope) else null
         // Performance: every page's `PageInfo` crosses the bridge here, at
         // each open and after each unlock: a payload that grows with the page
