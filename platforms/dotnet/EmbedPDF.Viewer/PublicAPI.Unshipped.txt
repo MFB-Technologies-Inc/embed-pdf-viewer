@@ -413,6 +413,171 @@ EmbedPDF.OpenDocumentOptions.Name.init -> void
 EmbedPDF.OpenDocumentOptions.OpenDocumentOptions() -> void
 EmbedPDF.OpenDocumentOptions.Password.get -> string?
 EmbedPDF.OpenDocumentOptions.Password.init -> void
+EmbedPDF.OutlineCapability
+EmbedPDF.OutlineCapability.ActivateAsync(EmbedPDF.OutlineItemRef item, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.LinkActivation!>!
+EmbedPDF.OutlineCapability.CanEditAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.OutlineCapability.CollapseAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.OutlineCapability.CollapseAsync(EmbedPDF.OutlineItemRef item, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.OutlineCapability.CreateAsync(EmbedPDF.OutlineItemInput! input, EmbedPDF.OutlineCreateOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.OutlineItem!>!
+EmbedPDF.OutlineCapability.DeleteAsync(System.Collections.Generic.IEnumerable<EmbedPDF.OutlineItemRef>! items, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.OutlineCapability.Dispose() -> void
+EmbedPDF.OutlineCapability.EnsureLoadedAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.OutlineCapability.ExpandAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.OutlineCapability.ExpandAsync(EmbedPDF.OutlineItemRef item, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.OutlineCapability.GetChildrenAsync(EmbedPDF.OutlineItemRef? parent = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.OutlineItem!>!>!
+EmbedPDF.OutlineCapability.GetCurrentItemAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.OutlineItemRef?>!
+EmbedPDF.OutlineCapability.GetCurrentViewTargetAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageLinkTarget?>!
+EmbedPDF.OutlineCapability.GetItemAsync(EmbedPDF.OutlineItemRef item, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.OutlineItem?>!
+EmbedPDF.OutlineCapability.GetSelectedAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.OutlineItemRef>!>!
+EmbedPDF.OutlineCapability.GetStatusAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ResourceStatus>!
+EmbedPDF.OutlineCapability.IsExpandedAsync(EmbedPDF.OutlineItemRef item, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.OutlineCapability.IsIncompleteAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.OutlineCapability.ListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.OutlineItem!>!>!
+EmbedPDF.OutlineCapability.ListRowsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.OutlineRow!>!>!
+EmbedPDF.OutlineCapability.MoveAsync(System.Collections.Generic.IEnumerable<EmbedPDF.OutlineItemRef>! items, EmbedPDF.OutlineItemRef? parent, EmbedPDF.OutlinePosition? position = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.OutlineCapability.ObserveEvents(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.OutlineEvent!>!
+EmbedPDF.OutlineCapability.RefreshAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.OutlineCapability.RevealAsync(EmbedPDF.OutlineItemRef item, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.OutlineCapability.SelectAsync(System.Collections.Generic.IEnumerable<EmbedPDF.OutlineItemRef>! items, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.OutlineCapability.ToggleAsync(EmbedPDF.OutlineItemRef item, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.OutlineCapability.UpdateAsync(EmbedPDF.OutlineItemRef item, EmbedPDF.OutlineItemPatch! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.OutlineItem!>!
+EmbedPDF.OutlineCreateOptions
+EmbedPDF.OutlineCreateOptions.<Clone>$() -> EmbedPDF.OutlineCreateOptions!
+EmbedPDF.OutlineCreateOptions.Equals(EmbedPDF.OutlineCreateOptions? other) -> bool
+EmbedPDF.OutlineCreateOptions.OutlineCreateOptions() -> void
+EmbedPDF.OutlineCreateOptions.Select.get -> bool
+EmbedPDF.OutlineCreateOptions.Select.init -> void
+EmbedPDF.OutlineEvent
+EmbedPDF.OutlineEvent.Changed
+EmbedPDF.OutlineEvent.Changed.Changed(string! Kind, System.Collections.Generic.IReadOnlyList<EmbedPDF.OutlineItemRef>! Items, EmbedPDF.DocumentEventOrigin! Origin) -> void
+EmbedPDF.OutlineEvent.Changed.Deconstruct(out string! Kind, out System.Collections.Generic.IReadOnlyList<EmbedPDF.OutlineItemRef>! Items, out EmbedPDF.DocumentEventOrigin! Origin) -> void
+EmbedPDF.OutlineEvent.Changed.Equals(EmbedPDF.OutlineEvent.Changed? other) -> bool
+EmbedPDF.OutlineEvent.Changed.Items.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.OutlineItemRef>!
+EmbedPDF.OutlineEvent.Changed.Items.init -> void
+EmbedPDF.OutlineEvent.Changed.Kind.get -> string!
+EmbedPDF.OutlineEvent.Changed.Kind.init -> void
+EmbedPDF.OutlineEvent.Changed.Origin.get -> EmbedPDF.DocumentEventOrigin!
+EmbedPDF.OutlineEvent.Changed.Origin.init -> void
+EmbedPDF.OutlineEvent.OutlineEvent(EmbedPDF.OutlineEvent! original) -> void
+EmbedPDF.OutlineEvent.Resynced
+EmbedPDF.OutlineEvent.Resynced.Deconstruct(out EmbedPDF.OutlineSnapshot! Outline) -> void
+EmbedPDF.OutlineEvent.Resynced.Equals(EmbedPDF.OutlineEvent.Resynced? other) -> bool
+EmbedPDF.OutlineEvent.Resynced.Outline.get -> EmbedPDF.OutlineSnapshot!
+EmbedPDF.OutlineEvent.Resynced.Outline.init -> void
+EmbedPDF.OutlineEvent.Resynced.Resynced(EmbedPDF.OutlineSnapshot! Outline) -> void
+EmbedPDF.OutlineItem
+EmbedPDF.OutlineItem.<Clone>$() -> EmbedPDF.OutlineItem!
+EmbedPDF.OutlineItem.Action.get -> EmbedPDF.PdfActionTree?
+EmbedPDF.OutlineItem.Action.init -> void
+EmbedPDF.OutlineItem.Bold.get -> bool
+EmbedPDF.OutlineItem.Bold.init -> void
+EmbedPDF.OutlineItem.Color.get -> string?
+EmbedPDF.OutlineItem.Color.init -> void
+EmbedPDF.OutlineItem.Deconstruct(out EmbedPDF.OutlineItemRef ItemRef, out EmbedPDF.OutlineItemRef? Parent, out string! Title, out EmbedPDF.PageLinkTarget? Target, out EmbedPDF.PdfActionTree? Action, out bool Open, out string? Color, out bool Bold, out bool Italic) -> void
+EmbedPDF.OutlineItem.Equals(EmbedPDF.OutlineItem? other) -> bool
+EmbedPDF.OutlineItem.Italic.get -> bool
+EmbedPDF.OutlineItem.Italic.init -> void
+EmbedPDF.OutlineItem.ItemRef.get -> EmbedPDF.OutlineItemRef
+EmbedPDF.OutlineItem.ItemRef.init -> void
+EmbedPDF.OutlineItem.Open.get -> bool
+EmbedPDF.OutlineItem.Open.init -> void
+EmbedPDF.OutlineItem.OutlineItem(EmbedPDF.OutlineItemRef ItemRef, EmbedPDF.OutlineItemRef? Parent, string! Title, EmbedPDF.PageLinkTarget? Target, EmbedPDF.PdfActionTree? Action, bool Open, string? Color, bool Bold, bool Italic) -> void
+EmbedPDF.OutlineItem.Parent.get -> EmbedPDF.OutlineItemRef?
+EmbedPDF.OutlineItem.Parent.init -> void
+EmbedPDF.OutlineItem.Target.get -> EmbedPDF.PageLinkTarget?
+EmbedPDF.OutlineItem.Target.init -> void
+EmbedPDF.OutlineItem.Title.get -> string!
+EmbedPDF.OutlineItem.Title.init -> void
+EmbedPDF.OutlineItemInput
+EmbedPDF.OutlineItemInput.<Clone>$() -> EmbedPDF.OutlineItemInput!
+EmbedPDF.OutlineItemInput.Bold.get -> bool?
+EmbedPDF.OutlineItemInput.Bold.init -> void
+EmbedPDF.OutlineItemInput.ClearTarget.get -> bool
+EmbedPDF.OutlineItemInput.ClearTarget.init -> void
+EmbedPDF.OutlineItemInput.Color.get -> string?
+EmbedPDF.OutlineItemInput.Color.init -> void
+EmbedPDF.OutlineItemInput.Equals(EmbedPDF.OutlineItemInput? other) -> bool
+EmbedPDF.OutlineItemInput.Italic.get -> bool?
+EmbedPDF.OutlineItemInput.Italic.init -> void
+EmbedPDF.OutlineItemInput.OutlineItemInput() -> void
+EmbedPDF.OutlineItemInput.Parent.get -> EmbedPDF.OutlineItemRef?
+EmbedPDF.OutlineItemInput.Parent.init -> void
+EmbedPDF.OutlineItemInput.Position.get -> EmbedPDF.OutlinePosition?
+EmbedPDF.OutlineItemInput.Position.init -> void
+EmbedPDF.OutlineItemInput.Target.get -> EmbedPDF.PageLinkTarget?
+EmbedPDF.OutlineItemInput.Target.init -> void
+EmbedPDF.OutlineItemInput.Title.get -> string?
+EmbedPDF.OutlineItemInput.Title.init -> void
+EmbedPDF.OutlineItemPatch
+EmbedPDF.OutlineItemPatch.<Clone>$() -> EmbedPDF.OutlineItemPatch!
+EmbedPDF.OutlineItemPatch.Bold.get -> bool?
+EmbedPDF.OutlineItemPatch.Bold.init -> void
+EmbedPDF.OutlineItemPatch.Clear.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.OutlinePatchKey>!
+EmbedPDF.OutlineItemPatch.Clear.init -> void
+EmbedPDF.OutlineItemPatch.Color.get -> string?
+EmbedPDF.OutlineItemPatch.Color.init -> void
+EmbedPDF.OutlineItemPatch.Equals(EmbedPDF.OutlineItemPatch? other) -> bool
+EmbedPDF.OutlineItemPatch.Italic.get -> bool?
+EmbedPDF.OutlineItemPatch.Italic.init -> void
+EmbedPDF.OutlineItemPatch.Open.get -> bool?
+EmbedPDF.OutlineItemPatch.Open.init -> void
+EmbedPDF.OutlineItemPatch.OutlineItemPatch() -> void
+EmbedPDF.OutlineItemPatch.Target.get -> EmbedPDF.PageLinkTarget?
+EmbedPDF.OutlineItemPatch.Target.init -> void
+EmbedPDF.OutlineItemPatch.Title.get -> string?
+EmbedPDF.OutlineItemPatch.Title.init -> void
+EmbedPDF.OutlineItemRef
+EmbedPDF.OutlineItemRef.Deconstruct(out int ObjectNumber) -> void
+EmbedPDF.OutlineItemRef.Equals(EmbedPDF.OutlineItemRef other) -> bool
+EmbedPDF.OutlineItemRef.ObjectNumber.get -> int
+EmbedPDF.OutlineItemRef.ObjectNumber.init -> void
+EmbedPDF.OutlineItemRef.OutlineItemRef() -> void
+EmbedPDF.OutlineItemRef.OutlineItemRef(int ObjectNumber) -> void
+EmbedPDF.OutlinePatchKey
+EmbedPDF.OutlinePatchKey.Color = 1 -> EmbedPDF.OutlinePatchKey
+EmbedPDF.OutlinePatchKey.Target = 0 -> EmbedPDF.OutlinePatchKey
+EmbedPDF.OutlinePosition
+EmbedPDF.OutlinePosition.After
+EmbedPDF.OutlinePosition.After.After(EmbedPDF.OutlineItemRef Item) -> void
+EmbedPDF.OutlinePosition.After.Deconstruct(out EmbedPDF.OutlineItemRef Item) -> void
+EmbedPDF.OutlinePosition.After.Equals(EmbedPDF.OutlinePosition.After? other) -> bool
+EmbedPDF.OutlinePosition.After.Item.get -> EmbedPDF.OutlineItemRef
+EmbedPDF.OutlinePosition.After.Item.init -> void
+EmbedPDF.OutlinePosition.Before
+EmbedPDF.OutlinePosition.Before.Before(EmbedPDF.OutlineItemRef Item) -> void
+EmbedPDF.OutlinePosition.Before.Deconstruct(out EmbedPDF.OutlineItemRef Item) -> void
+EmbedPDF.OutlinePosition.Before.Equals(EmbedPDF.OutlinePosition.Before? other) -> bool
+EmbedPDF.OutlinePosition.Before.Item.get -> EmbedPDF.OutlineItemRef
+EmbedPDF.OutlinePosition.Before.Item.init -> void
+EmbedPDF.OutlinePosition.End
+EmbedPDF.OutlinePosition.End.End() -> void
+EmbedPDF.OutlinePosition.End.Equals(EmbedPDF.OutlinePosition.End? other) -> bool
+EmbedPDF.OutlinePosition.OutlinePosition(EmbedPDF.OutlinePosition! original) -> void
+EmbedPDF.OutlinePosition.Start
+EmbedPDF.OutlinePosition.Start.Equals(EmbedPDF.OutlinePosition.Start? other) -> bool
+EmbedPDF.OutlinePosition.Start.Start() -> void
+EmbedPDF.OutlineRow
+EmbedPDF.OutlineRow.<Clone>$() -> EmbedPDF.OutlineRow!
+EmbedPDF.OutlineRow.Deconstruct(out EmbedPDF.OutlineItem! Item, out int Depth, out bool HasChildren, out bool Expanded) -> void
+EmbedPDF.OutlineRow.Depth.get -> int
+EmbedPDF.OutlineRow.Depth.init -> void
+EmbedPDF.OutlineRow.Equals(EmbedPDF.OutlineRow? other) -> bool
+EmbedPDF.OutlineRow.Expanded.get -> bool
+EmbedPDF.OutlineRow.Expanded.init -> void
+EmbedPDF.OutlineRow.HasChildren.get -> bool
+EmbedPDF.OutlineRow.HasChildren.init -> void
+EmbedPDF.OutlineRow.Item.get -> EmbedPDF.OutlineItem!
+EmbedPDF.OutlineRow.Item.init -> void
+EmbedPDF.OutlineRow.OutlineRow(EmbedPDF.OutlineItem! Item, int Depth, bool HasChildren, bool Expanded) -> void
+EmbedPDF.OutlineSnapshot
+EmbedPDF.OutlineSnapshot.<Clone>$() -> EmbedPDF.OutlineSnapshot!
+EmbedPDF.OutlineSnapshot.Deconstruct(out System.Collections.Generic.IReadOnlyList<EmbedPDF.OutlineItem!>! Items, out bool Incomplete) -> void
+EmbedPDF.OutlineSnapshot.Equals(EmbedPDF.OutlineSnapshot? other) -> bool
+EmbedPDF.OutlineSnapshot.Incomplete.get -> bool
+EmbedPDF.OutlineSnapshot.Incomplete.init -> void
+EmbedPDF.OutlineSnapshot.Items.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.OutlineItem!>!
+EmbedPDF.OutlineSnapshot.Items.init -> void
+EmbedPDF.OutlineSnapshot.OutlineSnapshot(System.Collections.Generic.IReadOnlyList<EmbedPDF.OutlineItem!>! Items, bool Incomplete) -> void
 EmbedPDF.PageDestination
 EmbedPDF.PageDestination.Fit
 EmbedPDF.PageDestination.Fit.Deconstruct(out EmbedPDF.PageRef Page) -> void
@@ -727,6 +892,7 @@ EmbedPDF.PdfViewer.OpenAsync(System.ReadOnlyMemory<byte> pdf, EmbedPDF.OpenDocum
 EmbedPDF.PdfViewer.OpenAsync(System.Uri! url, EmbedPDF.OpenDocumentOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.DocumentInfo!>!
 EmbedPDF.PdfViewer.OpenFileAsync(string! path, EmbedPDF.OpenDocumentOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.DocumentInfo!>!
 EmbedPDF.PdfViewer.OpenLayerAsync(System.ReadOnlyMemory<byte> basePdf, System.ReadOnlyMemory<byte> layer, EmbedPDF.OpenDocumentOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.DocumentInfo!>!
+EmbedPDF.PdfViewer.OutlineAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.OutlineCapability!>!
 EmbedPDF.PdfViewer.PageEditAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PageEditCapability!>!
 EmbedPDF.PdfViewer.PdfViewer(EmbedPDF.PdfViewerOptions? options = null) -> void
 EmbedPDF.PdfViewer.RenameAsync(EmbedPDF.DocumentInfo! document, string! name, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -1596,6 +1762,8 @@ abstract EmbedPDF.HistoryEvent.<Clone>$() -> EmbedPDF.HistoryEvent!
 abstract EmbedPDF.HistoryLabelValue.<Clone>$() -> EmbedPDF.HistoryLabelValue!
 abstract EmbedPDF.LinkActivation.<Clone>$() -> EmbedPDF.LinkActivation!
 abstract EmbedPDF.MetadataEvent.<Clone>$() -> EmbedPDF.MetadataEvent!
+abstract EmbedPDF.OutlineEvent.<Clone>$() -> EmbedPDF.OutlineEvent!
+abstract EmbedPDF.OutlinePosition.<Clone>$() -> EmbedPDF.OutlinePosition!
 abstract EmbedPDF.PageDestination.<Clone>$() -> EmbedPDF.PageDestination!
 abstract EmbedPDF.PageDestination.Page.get -> EmbedPDF.PageRef
 abstract EmbedPDF.PageDestination.Page.init -> void
@@ -1778,6 +1946,55 @@ override EmbedPDF.MetadataUpdatedEvent.ToString() -> string!
 override EmbedPDF.OpenDocumentOptions.Equals(object? obj) -> bool
 override EmbedPDF.OpenDocumentOptions.GetHashCode() -> int
 override EmbedPDF.OpenDocumentOptions.ToString() -> string!
+override EmbedPDF.OutlineCreateOptions.Equals(object? obj) -> bool
+override EmbedPDF.OutlineCreateOptions.GetHashCode() -> int
+override EmbedPDF.OutlineCreateOptions.ToString() -> string!
+override EmbedPDF.OutlineEvent.Changed.<Clone>$() -> EmbedPDF.OutlineEvent.Changed!
+override EmbedPDF.OutlineEvent.Changed.Equals(object? obj) -> bool
+override EmbedPDF.OutlineEvent.Changed.GetHashCode() -> int
+override EmbedPDF.OutlineEvent.Changed.ToString() -> string!
+override EmbedPDF.OutlineEvent.Equals(object? obj) -> bool
+override EmbedPDF.OutlineEvent.GetHashCode() -> int
+override EmbedPDF.OutlineEvent.Resynced.<Clone>$() -> EmbedPDF.OutlineEvent.Resynced!
+override EmbedPDF.OutlineEvent.Resynced.Equals(object? obj) -> bool
+override EmbedPDF.OutlineEvent.Resynced.GetHashCode() -> int
+override EmbedPDF.OutlineEvent.Resynced.ToString() -> string!
+override EmbedPDF.OutlineEvent.ToString() -> string!
+override EmbedPDF.OutlineItem.Equals(object? obj) -> bool
+override EmbedPDF.OutlineItem.GetHashCode() -> int
+override EmbedPDF.OutlineItem.ToString() -> string!
+override EmbedPDF.OutlineItemInput.Equals(object? obj) -> bool
+override EmbedPDF.OutlineItemInput.GetHashCode() -> int
+override EmbedPDF.OutlineItemInput.ToString() -> string!
+override EmbedPDF.OutlineItemPatch.Equals(object? obj) -> bool
+override EmbedPDF.OutlineItemPatch.GetHashCode() -> int
+override EmbedPDF.OutlineItemPatch.ToString() -> string!
+override EmbedPDF.OutlineItemRef.GetHashCode() -> int
+override EmbedPDF.OutlinePosition.After.<Clone>$() -> EmbedPDF.OutlinePosition.After!
+override EmbedPDF.OutlinePosition.After.Equals(object? obj) -> bool
+override EmbedPDF.OutlinePosition.After.GetHashCode() -> int
+override EmbedPDF.OutlinePosition.After.ToString() -> string!
+override EmbedPDF.OutlinePosition.Before.<Clone>$() -> EmbedPDF.OutlinePosition.Before!
+override EmbedPDF.OutlinePosition.Before.Equals(object? obj) -> bool
+override EmbedPDF.OutlinePosition.Before.GetHashCode() -> int
+override EmbedPDF.OutlinePosition.Before.ToString() -> string!
+override EmbedPDF.OutlinePosition.End.<Clone>$() -> EmbedPDF.OutlinePosition.End!
+override EmbedPDF.OutlinePosition.End.Equals(object? obj) -> bool
+override EmbedPDF.OutlinePosition.End.GetHashCode() -> int
+override EmbedPDF.OutlinePosition.End.ToString() -> string!
+override EmbedPDF.OutlinePosition.Equals(object? obj) -> bool
+override EmbedPDF.OutlinePosition.GetHashCode() -> int
+override EmbedPDF.OutlinePosition.Start.<Clone>$() -> EmbedPDF.OutlinePosition.Start!
+override EmbedPDF.OutlinePosition.Start.Equals(object? obj) -> bool
+override EmbedPDF.OutlinePosition.Start.GetHashCode() -> int
+override EmbedPDF.OutlinePosition.Start.ToString() -> string!
+override EmbedPDF.OutlinePosition.ToString() -> string!
+override EmbedPDF.OutlineRow.Equals(object? obj) -> bool
+override EmbedPDF.OutlineRow.GetHashCode() -> int
+override EmbedPDF.OutlineRow.ToString() -> string!
+override EmbedPDF.OutlineSnapshot.Equals(object? obj) -> bool
+override EmbedPDF.OutlineSnapshot.GetHashCode() -> int
+override EmbedPDF.OutlineSnapshot.ToString() -> string!
 override EmbedPDF.PageDestination.Equals(object? obj) -> bool
 override EmbedPDF.PageDestination.Fit.<Clone>$() -> EmbedPDF.PageDestination.Fit!
 override EmbedPDF.PageDestination.Fit.Equals(object? obj) -> bool
@@ -2172,6 +2389,12 @@ override sealed EmbedPDF.MetadataEvent.CustomResynced.Equals(EmbedPDF.MetadataEv
 override sealed EmbedPDF.MetadataEvent.CustomUpdated.Equals(EmbedPDF.MetadataEvent? other) -> bool
 override sealed EmbedPDF.MetadataEvent.Resynced.Equals(EmbedPDF.MetadataEvent? other) -> bool
 override sealed EmbedPDF.MetadataEvent.Updated.Equals(EmbedPDF.MetadataEvent? other) -> bool
+override sealed EmbedPDF.OutlineEvent.Changed.Equals(EmbedPDF.OutlineEvent? other) -> bool
+override sealed EmbedPDF.OutlineEvent.Resynced.Equals(EmbedPDF.OutlineEvent? other) -> bool
+override sealed EmbedPDF.OutlinePosition.After.Equals(EmbedPDF.OutlinePosition? other) -> bool
+override sealed EmbedPDF.OutlinePosition.Before.Equals(EmbedPDF.OutlinePosition? other) -> bool
+override sealed EmbedPDF.OutlinePosition.End.Equals(EmbedPDF.OutlinePosition? other) -> bool
+override sealed EmbedPDF.OutlinePosition.Start.Equals(EmbedPDF.OutlinePosition? other) -> bool
 override sealed EmbedPDF.PageDestination.Fit.Equals(EmbedPDF.PageDestination? other) -> bool
 override sealed EmbedPDF.PageDestination.FitB.Equals(EmbedPDF.PageDestination? other) -> bool
 override sealed EmbedPDF.PageDestination.FitBH.Equals(EmbedPDF.PageDestination? other) -> bool
@@ -2344,6 +2567,36 @@ static EmbedPDF.NativeRuntime.ReadPageCountAsync(System.ReadOnlyMemory<byte> pdf
 static EmbedPDF.NativeRuntime.RuntimeIdentifier.get -> string!
 static EmbedPDF.OpenDocumentOptions.operator !=(EmbedPDF.OpenDocumentOptions? left, EmbedPDF.OpenDocumentOptions? right) -> bool
 static EmbedPDF.OpenDocumentOptions.operator ==(EmbedPDF.OpenDocumentOptions? left, EmbedPDF.OpenDocumentOptions? right) -> bool
+static EmbedPDF.OutlineCreateOptions.operator !=(EmbedPDF.OutlineCreateOptions? left, EmbedPDF.OutlineCreateOptions? right) -> bool
+static EmbedPDF.OutlineCreateOptions.operator ==(EmbedPDF.OutlineCreateOptions? left, EmbedPDF.OutlineCreateOptions? right) -> bool
+static EmbedPDF.OutlineEvent.Changed.operator !=(EmbedPDF.OutlineEvent.Changed? left, EmbedPDF.OutlineEvent.Changed? right) -> bool
+static EmbedPDF.OutlineEvent.Changed.operator ==(EmbedPDF.OutlineEvent.Changed? left, EmbedPDF.OutlineEvent.Changed? right) -> bool
+static EmbedPDF.OutlineEvent.Resynced.operator !=(EmbedPDF.OutlineEvent.Resynced? left, EmbedPDF.OutlineEvent.Resynced? right) -> bool
+static EmbedPDF.OutlineEvent.Resynced.operator ==(EmbedPDF.OutlineEvent.Resynced? left, EmbedPDF.OutlineEvent.Resynced? right) -> bool
+static EmbedPDF.OutlineEvent.operator !=(EmbedPDF.OutlineEvent? left, EmbedPDF.OutlineEvent? right) -> bool
+static EmbedPDF.OutlineEvent.operator ==(EmbedPDF.OutlineEvent? left, EmbedPDF.OutlineEvent? right) -> bool
+static EmbedPDF.OutlineItem.operator !=(EmbedPDF.OutlineItem? left, EmbedPDF.OutlineItem? right) -> bool
+static EmbedPDF.OutlineItem.operator ==(EmbedPDF.OutlineItem? left, EmbedPDF.OutlineItem? right) -> bool
+static EmbedPDF.OutlineItemInput.operator !=(EmbedPDF.OutlineItemInput? left, EmbedPDF.OutlineItemInput? right) -> bool
+static EmbedPDF.OutlineItemInput.operator ==(EmbedPDF.OutlineItemInput? left, EmbedPDF.OutlineItemInput? right) -> bool
+static EmbedPDF.OutlineItemPatch.operator !=(EmbedPDF.OutlineItemPatch? left, EmbedPDF.OutlineItemPatch? right) -> bool
+static EmbedPDF.OutlineItemPatch.operator ==(EmbedPDF.OutlineItemPatch? left, EmbedPDF.OutlineItemPatch? right) -> bool
+static EmbedPDF.OutlineItemRef.operator !=(EmbedPDF.OutlineItemRef left, EmbedPDF.OutlineItemRef right) -> bool
+static EmbedPDF.OutlineItemRef.operator ==(EmbedPDF.OutlineItemRef left, EmbedPDF.OutlineItemRef right) -> bool
+static EmbedPDF.OutlinePosition.After.operator !=(EmbedPDF.OutlinePosition.After? left, EmbedPDF.OutlinePosition.After? right) -> bool
+static EmbedPDF.OutlinePosition.After.operator ==(EmbedPDF.OutlinePosition.After? left, EmbedPDF.OutlinePosition.After? right) -> bool
+static EmbedPDF.OutlinePosition.Before.operator !=(EmbedPDF.OutlinePosition.Before? left, EmbedPDF.OutlinePosition.Before? right) -> bool
+static EmbedPDF.OutlinePosition.Before.operator ==(EmbedPDF.OutlinePosition.Before? left, EmbedPDF.OutlinePosition.Before? right) -> bool
+static EmbedPDF.OutlinePosition.End.operator !=(EmbedPDF.OutlinePosition.End? left, EmbedPDF.OutlinePosition.End? right) -> bool
+static EmbedPDF.OutlinePosition.End.operator ==(EmbedPDF.OutlinePosition.End? left, EmbedPDF.OutlinePosition.End? right) -> bool
+static EmbedPDF.OutlinePosition.Start.operator !=(EmbedPDF.OutlinePosition.Start? left, EmbedPDF.OutlinePosition.Start? right) -> bool
+static EmbedPDF.OutlinePosition.Start.operator ==(EmbedPDF.OutlinePosition.Start? left, EmbedPDF.OutlinePosition.Start? right) -> bool
+static EmbedPDF.OutlinePosition.operator !=(EmbedPDF.OutlinePosition? left, EmbedPDF.OutlinePosition? right) -> bool
+static EmbedPDF.OutlinePosition.operator ==(EmbedPDF.OutlinePosition? left, EmbedPDF.OutlinePosition? right) -> bool
+static EmbedPDF.OutlineRow.operator !=(EmbedPDF.OutlineRow? left, EmbedPDF.OutlineRow? right) -> bool
+static EmbedPDF.OutlineRow.operator ==(EmbedPDF.OutlineRow? left, EmbedPDF.OutlineRow? right) -> bool
+static EmbedPDF.OutlineSnapshot.operator !=(EmbedPDF.OutlineSnapshot? left, EmbedPDF.OutlineSnapshot? right) -> bool
+static EmbedPDF.OutlineSnapshot.operator ==(EmbedPDF.OutlineSnapshot? left, EmbedPDF.OutlineSnapshot? right) -> bool
 static EmbedPDF.PageDestination.Fit.operator !=(EmbedPDF.PageDestination.Fit? left, EmbedPDF.PageDestination.Fit? right) -> bool
 static EmbedPDF.PageDestination.Fit.operator ==(EmbedPDF.PageDestination.Fit? left, EmbedPDF.PageDestination.Fit? right) -> bool
 static EmbedPDF.PageDestination.FitB.operator !=(EmbedPDF.PageDestination.FitB? left, EmbedPDF.PageDestination.FitB? right) -> bool
@@ -2598,6 +2851,12 @@ virtual EmbedPDF.LinkActivation.PrintMembers(System.Text.StringBuilder! builder)
 virtual EmbedPDF.MetadataEvent.EqualityContract.get -> System.Type!
 virtual EmbedPDF.MetadataEvent.Equals(EmbedPDF.MetadataEvent? other) -> bool
 virtual EmbedPDF.MetadataEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.OutlineEvent.EqualityContract.get -> System.Type!
+virtual EmbedPDF.OutlineEvent.Equals(EmbedPDF.OutlineEvent? other) -> bool
+virtual EmbedPDF.OutlineEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.OutlinePosition.EqualityContract.get -> System.Type!
+virtual EmbedPDF.OutlinePosition.Equals(EmbedPDF.OutlinePosition? other) -> bool
+virtual EmbedPDF.OutlinePosition.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual EmbedPDF.PageDestination.EqualityContract.get -> System.Type!
 virtual EmbedPDF.PageDestination.Equals(EmbedPDF.PageDestination? other) -> bool
 virtual EmbedPDF.PageDestination.PrintMembers(System.Text.StringBuilder! builder) -> bool
@@ -2632,6 +2891,8 @@ virtual EmbedPDF.SearchRevealAxis.EqualityContract.get -> System.Type!
 virtual EmbedPDF.SearchRevealAxis.Equals(EmbedPDF.SearchRevealAxis? other) -> bool
 virtual EmbedPDF.SearchRevealAxis.PrintMembers(System.Text.StringBuilder! builder) -> bool
 ~override EmbedPDF.DocumentPermission.Equals(object obj) -> bool
+~override EmbedPDF.OutlineItemRef.Equals(object obj) -> bool
+~override EmbedPDF.OutlineItemRef.ToString() -> string
 ~override EmbedPDF.PageGeometry.Equals(object obj) -> bool
 ~override EmbedPDF.PageGeometry.ToString() -> string
 ~override EmbedPDF.PageRef.Equals(object obj) -> bool

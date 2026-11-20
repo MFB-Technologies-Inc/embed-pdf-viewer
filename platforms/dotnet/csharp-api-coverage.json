@@ -4616,10 +4616,16 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "list",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "list"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "ListAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4627,10 +4633,17 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "get",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "item"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "GetItemAsync",
+        "parameters": [
+          "EmbedPDF.OutlineItemRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4638,10 +4651,17 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "get_children",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "children"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "GetChildrenAsync",
+        "parameters": [
+          "System.Nullable<EmbedPDF.OutlineItemRef>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4649,10 +4669,16 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "list_rows",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "rows"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "ListRowsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4660,10 +4686,16 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "get_current_item",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "current_item"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "GetCurrentItemAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4671,10 +4703,16 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "is_incomplete",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "is_incomplete"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "IsIncompleteAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4682,10 +4720,16 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "get_status",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "status"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "GetStatusAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4693,10 +4737,16 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "ensure_loaded",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "ensure_loaded"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "EnsureLoadedAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4704,10 +4754,16 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "refresh",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "refresh"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "RefreshAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4715,10 +4771,17 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "is_expanded",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "is_expanded"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "IsExpandedAsync",
+        "parameters": [
+          "EmbedPDF.OutlineItemRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4726,10 +4789,17 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "expand",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "expand"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "ExpandAsync",
+        "parameters": [
+          "EmbedPDF.OutlineItemRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4737,10 +4807,17 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "collapse",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "collapse"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "CollapseAsync",
+        "parameters": [
+          "EmbedPDF.OutlineItemRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4748,10 +4825,17 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "toggle",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "toggle"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "ToggleAsync",
+        "parameters": [
+          "EmbedPDF.OutlineItemRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4759,10 +4843,16 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "expand_all",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "expand_all"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "ExpandAllAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4770,10 +4860,16 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "collapse_all",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "collapse_all"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "CollapseAllAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4781,10 +4877,17 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "reveal",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "reveal"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "RevealAsync",
+        "parameters": [
+          "EmbedPDF.OutlineItemRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4792,10 +4895,16 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "get_selected",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "selected_items"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "GetSelectedAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4803,10 +4912,17 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "select",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "select"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "SelectAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.OutlineItemRef>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4814,10 +4930,17 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "activate",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "activate"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "ActivateAsync",
+        "parameters": [
+          "EmbedPDF.OutlineItemRef",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4825,10 +4948,16 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "can_edit",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "can_edit"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "CanEditAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4836,10 +4965,16 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "get_current_view_target",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "current_view_target"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "GetCurrentViewTargetAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4847,10 +4982,18 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "create",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "create"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "CreateAsync",
+        "parameters": [
+          "EmbedPDF.OutlineItemInput",
+          "EmbedPDF.OutlineCreateOptions",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4858,10 +5001,18 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "update",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "update"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "UpdateAsync",
+        "parameters": [
+          "EmbedPDF.OutlineItemRef",
+          "EmbedPDF.OutlineItemPatch",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4869,10 +5020,19 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "move_items",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "move_items"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "MoveAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.OutlineItemRef>",
+          "System.Nullable<EmbedPDF.OutlineItemRef>",
+          "EmbedPDF.OutlinePosition",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4880,10 +5040,17 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "delete",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "delete_items"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "DeleteAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.OutlineItemRef>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4891,10 +5058,16 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "on_changed",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -4902,10 +5075,16 @@
       "path": "crates/plugins/outline/src/controller.rs",
       "owner": "OutlineCapability",
       "symbol": "on_resynced",
-      "pending": "phase-3-wave-A",
       "export": {
         "path": "crates/plugins/outline/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.OutlineCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
