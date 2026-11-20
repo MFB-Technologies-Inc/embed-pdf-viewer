@@ -725,10 +725,19 @@ extension BaseSuite {
       // The body is the draft's text style, stated whole.
       expectNoDifference(richText.body?["size"], .number(14))
 
-      // What a read hands out, a patch takes back, and nothing is lost.
-      try await annotations.update(ref, FreeTextAnnotationPatch(richText: richText))
+      // What a read hands out, a patch takes back with one run changed, and
+      // the body and the other runs are not lost. An unchanged value would
+      // prove nothing: the engine treats it as no change.
+      var edited = richText
+      edited.paragraphs[1].runs[0].text = "Another line"
+      try await annotations.update(ref, FreeTextAnnotationPatch(richText: edited))
       let again = try #require(try await annotations.get(ref))
-      expectNoDifference(again.freeText?.richText, richText)
+      let patched = try #require(again.freeText?.richText)
+      expectNoDifference(patched.paragraphs[1].runs.map(\.text), ["Another line"])
+      expectNoDifference(patched.body, richText.body)
+      expectNoDifference(patched.paragraphs[0], richText.paragraphs[0])
+      expectNoDifference(patched, edited)
+      expectNoDifference(again.contents, "Plain and bold\nAnother line")
 
       // `contents` that isn't the rich text's plain text is refused, on a
       // patch and on a draft.
