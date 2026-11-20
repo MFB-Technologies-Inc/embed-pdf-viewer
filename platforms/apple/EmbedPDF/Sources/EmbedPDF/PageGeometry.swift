@@ -148,7 +148,8 @@ public struct PageGeometry: Hashable, Sendable {
   }
 
   private static func bounds(of rect: Rect, converting convert: (Point) -> Point) -> Rect {
-    // Performance: three small arrays per rect. It adds up when a view
+    // Performance: four small arrays per rect: the corners, their converted
+    // copy, and the x and y lists. It adds up when a view
     // converts every selected rect or search hit on each body evaluation. A
     // switch on the turn that builds the rect from the two opposite corners
     // allocates nothing.
