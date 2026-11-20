@@ -504,6 +504,26 @@ What later waves reuse:
   Swift's `AsyncStream` is, ends on the kernel's `OnEnd`, the caller's token or viewer disposal,
   and cancels the kernel subscription exactly once. A mapping that throws drops that event and
   logs it rather than ending the stream.
+- Live streams are tracked by a `StreamRegistry` the viewer owns, and a stream's end callback
+  captures only that registry, never the viewer. The kernel's callback table holds each relay
+  until the kernel ends it, so a path from a relay to the viewer kept an abandoned viewer alive
+  for good (review fix, pinned by
+  `LifetimeTests.ALivePluginStreamDoesNotKeepAnAbandonedViewerAlive`). Kernel shutdown does not
+  call a listener's `OnEnd`: with the registry close removed from the finalizer path, that test's
+  reader never ended. Disposal and the finalizer path both close the registry, and that is what
+  ends a reader still holding a stream. Callback adapters in later waves should not count on
+  `OnEnd` at shutdown either.
+- Argument rules (review fixes): a null argument, or a null element in a collection argument
+  (`Arguments.NoNullElements`), throws `ArgumentException` while the call is made in every
+  method that is not itself `async`. A present but invalid argument (a negative index or page
+  number, an undefined enum value) faults the returned task, because conversions run inside the
+  `Run` lambda (`ValidationShapeTests`). Methods declared `async`, here and in Phase 2's
+  `PdfViewer`, report a null argument through the task too; making those eager means splitting
+  each into a checking wrapper and an async body, which no wave has done yet.
+- Public enums reach the engine only through `Ffi.Defined` or an explicit switch arm, so an
+  undefined value is `invalid-input` (`EnumRangeTests`). Phase 2's `SaveMode`,
+  `ViewerSettingsField` and `StandardCommandList` mappings still fold an undefined value into a
+  real case.
 - `PdfViewer.Run` and `RunCancellable` wrap a capability call the way `CallAsync` wraps a host
   call, so disposal drains capability calls too.
 - `Plugins/Shared.cs` holds the cross-plugin types: `ResourceStatus`, `DocumentEventOrigin`,
