@@ -90,6 +90,25 @@ public sealed class LinkTests
     }
 
     [Fact]
+    public async Task ATargetWithAnUnpairedSurrogateIsInvalidInput()
+    {
+        var (viewer, _, link, _) = await Opened();
+        await using var _v = viewer;
+        const string target = "{\"kind\": \"uri\", \"uri\": \"https://example.invalid/\uD800\"}";
+        Func<Task>[] calls = [() => link.ResolveAsync(target), () => link.ActivateAsync(target), () => link.GetLabelAsync(target)];
+        var events = link.ObserveEvents();
+        foreach (var call in calls)
+        {
+            var task = call();
+            var error = await Assert.ThrowsAsync<PdfException>(() => task);
+            Assert.Equal((PdfErrorCode.InvalidInput, "EncodingError"), (error.Code, error.Name));
+        }
+        // Nothing was activated.
+        using var quiet = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => { await foreach (var _ in events.WithCancellation(quiet.Token)) Assert.Fail("an event arrived"); });
+    }
+
+    [Fact]
     public async Task ATapOnALinkActivatesItOnceTheTapHandlerIsRegistered()
     {
         var (viewer, document, link, page) = await Opened();

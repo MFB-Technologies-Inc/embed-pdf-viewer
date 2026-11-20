@@ -60,7 +60,9 @@ public abstract record LinkEvent
 /// or on <see cref="ObserveEvents"/>, is the app's to open. Targets cross as
 /// the engine's JSON: <see cref="LinkItem.TargetJson"/> is the page-space
 /// <c>PageLinkTarget</c> record, and a destination carries the
-/// <c>PageDestination</c> record.
+/// <c>PageDestination</c> record. A target string with an unpaired
+/// surrogate is <see cref="PdfErrorCode.InvalidInput"/>, as the commands'
+/// JSON is, since it would reach the engine as U+FFFD.
 /// </remarks>
 [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Activate and label take a listed link or a target, as in Swift.")]
 public sealed class LinkCapability : IDisposable
@@ -109,7 +111,8 @@ public sealed class LinkCapability : IDisposable
     public async Task<LinkResolution> ResolveAsync(string targetJson, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(targetJson);
-        return Ffi.ToPublic(await viewer.Run(() => handle.Resolve(targetJson), cancellationToken).ConfigureAwait(false));
+        var json = Ffi.WellFormed(targetJson, "target");
+        return Ffi.ToPublic(await viewer.Run(() => handle.Resolve(json), cancellationToken).ConfigureAwait(false));
     }
 
     /// <summary>Activates a listed link.</summary>
@@ -123,7 +126,8 @@ public sealed class LinkCapability : IDisposable
     public async Task<LinkActivation> ActivateAsync(string targetJson, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(targetJson);
-        return Ffi.ToPublic(await viewer.Run(() => handle.Activate(new GL.LinkInput.Target(targetJson)), cancellationToken).ConfigureAwait(false));
+        var json = Ffi.WellFormed(targetJson, "target");
+        return Ffi.ToPublic(await viewer.Run(() => handle.Activate(new GL.LinkInput.Target(json)), cancellationToken).ConfigureAwait(false));
     }
 
     /// <summary>Activates the link under a page point; <see langword="null"/> when there is none.</summary>
@@ -141,7 +145,8 @@ public sealed class LinkCapability : IDisposable
     public async Task<string> GetLabelAsync(string targetJson, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(targetJson);
-        return await viewer.Run(() => handle.Label(new GL.LinkInput.Target(targetJson)), cancellationToken).ConfigureAwait(false);
+        var json = Ffi.WellFormed(targetJson, "target");
+        return await viewer.Run(() => handle.Label(new GL.LinkInput.Target(json)), cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>What activating a typed target would do, with no side effect.</summary>

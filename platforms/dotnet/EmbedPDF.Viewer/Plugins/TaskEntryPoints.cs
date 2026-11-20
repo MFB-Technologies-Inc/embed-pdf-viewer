@@ -33,7 +33,12 @@ public sealed class PageNavigator : IDisposable
     public Task PreviousPageAsync(StageGoToOptions? options = null, CancellationToken cancellationToken = default) => Stage.PreviousPageAsync(options, cancellationToken);
 #pragma warning restore CS1591
 
-    /// <summary>Disposes <see cref="Stage"/>.</summary>
+    /// <summary>
+    /// Releases the capability this forwards to: the exposed <see cref="Stage"/>
+    /// is disposed too, and calls on it afterwards throw
+    /// <see cref="PdfErrorCode.InstanceClosed"/>. Get a fresh capability from the
+    /// viewer to keep using it.
+    /// </summary>
     public void Dispose() => Stage.Dispose();
 }
 
@@ -63,7 +68,12 @@ public sealed class PageZoom : IDisposable
     public Task FitPageAsync(CancellationToken cancellationToken = default) => Stage.FitPageAsync(cancellationToken);
 #pragma warning restore CS1591
 
-    /// <summary>Disposes <see cref="Stage"/>.</summary>
+    /// <summary>
+    /// Releases the capability this forwards to: the exposed <see cref="Stage"/>
+    /// is disposed too, and calls on it afterwards throw
+    /// <see cref="PdfErrorCode.InstanceClosed"/>. Get a fresh capability from the
+    /// viewer to keep using it.
+    /// </summary>
     public void Dispose() => Stage.Dispose();
 }
 
@@ -91,7 +101,12 @@ public sealed class ToolSwitcher : IDisposable
     public Task PopToolAsync(CancellationToken cancellationToken = default) => Interaction.PopToolAsync(cancellationToken);
 #pragma warning restore CS1591
 
-    /// <summary>Disposes <see cref="Interaction"/>.</summary>
+    /// <summary>
+    /// Releases the capability this forwards to: the exposed <see cref="Interaction"/>
+    /// is disposed too, and calls on it afterwards throw
+    /// <see cref="PdfErrorCode.InstanceClosed"/>. Get a fresh capability from the
+    /// viewer to keep using it.
+    /// </summary>
     public void Dispose() => Interaction.Dispose();
 }
 

@@ -297,6 +297,48 @@ public sealed class StageTests
         stage.ScrollBy(new StageScrollToOptions { Top = 10 });
     }
 
+    /// <summary>A PDF whose page tree is empty, with a valid cross-reference table.</summary>
+    static byte[] NoPages()
+    {
+        string[] objects = ["<< /Type /Catalog /Pages 2 0 R >>", "<< /Type /Pages /Kids [] /Count 0 >>"];
+        var text = new System.Text.StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>();
+        for (var i = 0; i < objects.Length; i++)
+        {
+            offsets.Add(text.Length);
+            text.Append($"{i + 1} 0 obj\n{objects[i]}\nendobj\n");
+        }
+        var xref = text.Length;
+        text.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (var offset in offsets) text.Append($"{offset:D10} 00000 n \n");
+        text.Append($"trailer\n<< /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        return System.Text.Encoding.ASCII.GetBytes(text.ToString());
+    }
+
+    /// <summary>
+    /// The engine refuses camera writes in paged flow over no pages
+    /// (<c>crates/plugins/stage/tests/api.rs</c>,
+    /// <c>paged_flow_over_no_pages_refuses_camera_writes_as_the_typescript_does</c>).
+    /// A fire-and-forget call has no task to fail, so the refusal arrives on
+    /// <see cref="PdfViewer.ObserveReportedErrors"/>.
+    /// </summary>
+    [Fact]
+    public async Task AFailingFireAndForgetCallArrivesOnReportedErrors()
+    {
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Stage = new() });
+        var document = await viewer.OpenAsync(NoPages());
+        using var stage = await viewer.GetStageAsync(document);
+        await stage.SetViewportSizeAsync(new PdfSize(390, 844));
+        await stage.PlaceInitialAsync();
+        await stage.UpdateSettingsAsync(new StageSettingsPatch { Flow = StageFlow.Paged });
+        var errors = viewer.ObserveReportedErrors();
+        stage.SetCamera(new Camera(1, 2, 1));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        await using var reader = errors.GetAsyncEnumerator(timeout.Token);
+        Assert.True(await reader.MoveNextAsync());
+        Assert.Equal(("TypeError", "Cannot read properties of undefined (reading 'x')"), (reader.Current.Name, reader.Current.Detail));
+    }
+
     [Fact]
     public async Task AnInvalidFireAndForgetArgumentThrowsAtOnce()
     {
