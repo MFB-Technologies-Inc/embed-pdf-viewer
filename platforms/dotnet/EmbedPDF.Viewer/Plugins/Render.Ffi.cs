@@ -10,10 +10,16 @@ internal static partial class Ffi
         var width = WireInteger.ToInt(image.Width, "width");
         var height = WireInteger.ToInt(image.Height, "height");
         var stride = WireInteger.ToInt(image.Stride, "stride");
+        var (format, premultiplied) = image.Format switch
+        {
+            // Memory order R, G, B, A with straight alpha.
+            GR.RenderPixelFormat.Rgba8 => (PixelFormat.Rgba8, false),
+            _ => throw new PdfException("InvalidState", PdfErrorCode.InvalidState, $"the engine answered an unknown pixel format {(int)image.Format}"),
+        };
         PixelBuffer pixels;
         try
         {
-            pixels = new PixelBuffer(image.Pixels, width, height, stride, PixelFormat.Rgba8, isPremultiplied: false);
+            pixels = new PixelBuffer(image.Pixels, width, height, stride, format, premultiplied);
         }
         catch (ArgumentException error)
         {

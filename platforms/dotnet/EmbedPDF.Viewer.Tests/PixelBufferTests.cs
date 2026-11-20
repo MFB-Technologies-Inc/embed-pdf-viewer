@@ -116,4 +116,15 @@ public sealed class PixelBufferTests
         Assert.Throws<ArgumentException>(() => image.CopyPixelsTo(new byte[15], 8));
         Assert.Throws<ArgumentOutOfRangeException>(() => image.GetRow(2));
     }
+
+    [Fact]
+    public void AnEngineRasterMapsItsFormatAndRefusesAnUnknownOne()
+    {
+        var rgba = Ffi.ToPublic(new uniffi.epdf_plugin_render.RenderedImage(1, 1, 4, 2, uniffi.epdf_plugin_render.RenderPixelFormat.Rgba8, [1, 2, 3, 4]));
+        Assert.Equal((PixelFormat.Rgba8, false, 2.0), (rgba.Image.Format, rgba.Image.IsPremultiplied, rgba.Scale));
+        var unknown = new uniffi.epdf_plugin_render.RenderedImage(1, 1, 4, 1, (uniffi.epdf_plugin_render.RenderPixelFormat)7, [1, 2, 3, 4]);
+        Assert.Equal(PdfErrorCode.InvalidState, Assert.Throws<PdfException>(() => Ffi.ToPublic(unknown)).Code);
+        var short_ = new uniffi.epdf_plugin_render.RenderedImage(2, 1, 4, 1, uniffi.epdf_plugin_render.RenderPixelFormat.Rgba8, [1, 2, 3, 4]);
+        Assert.Equal(PdfErrorCode.InvalidState, Assert.Throws<PdfException>(() => Ffi.ToPublic(short_)).Code);
+    }
 }
