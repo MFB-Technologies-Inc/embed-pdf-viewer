@@ -364,14 +364,20 @@ impl<'page> Measure<'page> {
 
     pub fn format_count(&self, axis: MeasureAxis) -> u32 {
         // SAFETY: the handle is live for the page borrow.
-        let count = unsafe { pdfium_sys::EPDFMeasure_CountFormats(self.handle, axis as u32) };
+        let count = unsafe {
+            pdfium_sys::EPDFMeasure_CountFormats(self.handle, axis as pdfium_sys::EPDF_MEASURE_AXIS)
+        };
         u32::try_from(count).unwrap_or(u32::MAX)
     }
 
     pub fn format(&self, axis: MeasureAxis, index: u32) -> Option<NumberFormat<'page>> {
         // SAFETY: the handle is live for the page borrow.
         let handle = unsafe {
-            pdfium_sys::EPDFMeasure_GetFormat(self.handle, axis as u32, c_ulong::from(index))
+            pdfium_sys::EPDFMeasure_GetFormat(
+                self.handle,
+                axis as pdfium_sys::EPDF_MEASURE_AXIS,
+                c_ulong::from(index),
+            )
         };
         NumberFormat::wrap(handle)
     }
@@ -386,7 +392,12 @@ impl<'page> Measure<'page> {
         let unit = wide(unit);
         // SAFETY: `unit` is NUL-terminated and outlives the call.
         let handle = unsafe {
-            pdfium_sys::EPDFMeasure_AddFormat(self.handle, axis as u32, unit.as_ptr(), conversion)
+            pdfium_sys::EPDFMeasure_AddFormat(
+                self.handle,
+                axis as pdfium_sys::EPDF_MEASURE_AXIS,
+                unit.as_ptr(),
+                conversion,
+            )
         };
         NumberFormat::wrap(handle)
     }
@@ -420,12 +431,17 @@ impl NumberFormat<'_> {
         let mut value: pdfium_sys::EPDF_MEASURE_FRACTION = 0;
         // SAFETY: as above.
         let ok = unsafe { pdfium_sys::EPDFNumberFormat_GetFraction(self.handle, &mut value) };
-        (ok != 0).then_some(value)
+        (ok != 0).then_some(value as u32)
     }
 
     pub fn set_fraction(&self, code: u32) -> bool {
         // SAFETY: the handle is live for the page borrow.
-        unsafe { pdfium_sys::EPDFNumberFormat_SetFraction(self.handle, code) != 0 }
+        unsafe {
+            pdfium_sys::EPDFNumberFormat_SetFraction(
+                self.handle,
+                code as pdfium_sys::EPDF_MEASURE_FRACTION,
+            ) != 0
+        }
     }
 
     /// `/D`, or `None` when absent.
@@ -464,12 +480,17 @@ impl NumberFormat<'_> {
         let mut value: pdfium_sys::EPDF_MEASURE_LABEL_POSITION = 0;
         // SAFETY: as above.
         let ok = unsafe { pdfium_sys::EPDFNumberFormat_GetLabelPosition(self.handle, &mut value) };
-        (ok != 0).then_some(value)
+        (ok != 0).then_some(value as u32)
     }
 
     pub fn set_label_position(&self, code: u32) -> bool {
         // SAFETY: the handle is live for the page borrow.
-        unsafe { pdfium_sys::EPDFNumberFormat_SetLabelPosition(self.handle, code) != 0 }
+        unsafe {
+            pdfium_sys::EPDFNumberFormat_SetLabelPosition(
+                self.handle,
+                code as pdfium_sys::EPDF_MEASURE_LABEL_POSITION,
+            ) != 0
+        }
     }
 
     /// One of `/RT /RD /PS /SS`: `None` when absent, `Some("")` when
@@ -477,7 +498,12 @@ impl NumberFormat<'_> {
     pub fn text(&self, kind: MeasureText) -> Result<Option<String>, PdfiumError> {
         // SAFETY: the buffer and its length come from `read_text`.
         read_text(|buf, len| unsafe {
-            pdfium_sys::EPDFNumberFormat_GetText(self.handle, kind as u32, buf, len)
+            pdfium_sys::EPDFNumberFormat_GetText(
+                self.handle,
+                kind as pdfium_sys::EPDF_MEASURE_TEXT,
+                buf,
+                len,
+            )
         })
     }
 
@@ -485,7 +511,11 @@ impl NumberFormat<'_> {
         let text = wide(text);
         // SAFETY: `text` is NUL-terminated and outlives the call.
         unsafe {
-            pdfium_sys::EPDFNumberFormat_SetText(self.handle, kind as u32, text.as_ptr()) != 0
+            pdfium_sys::EPDFNumberFormat_SetText(
+                self.handle,
+                kind as pdfium_sys::EPDF_MEASURE_TEXT,
+                text.as_ptr(),
+            ) != 0
         }
     }
 }

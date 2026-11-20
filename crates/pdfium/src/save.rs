@@ -171,7 +171,7 @@ impl Document {
     /// delta is empty.
     pub fn save_layer_delta_ex(&self) -> Result<(Option<Vec<u8>>, bool), LayerSaveError> {
         let mut size: std::os::raw::c_ulong = 0;
-        let mut status = u32::MAX;
+        let mut status = u32::MAX as pdfium_sys::EPDFLayerSaveStatus;
         let mut changed: pdfium_sys::FPDF_BOOL = 0;
         // SAFETY: the handle is live and every out-parameter is valid.
         let ptr = unsafe {
@@ -204,7 +204,7 @@ impl Document {
     /// false)` when nothing did (`DocumentSaver.saveLayerArtifactEx`).
     pub fn save_layer_artifact_ex(&self) -> Result<(Option<Vec<u8>>, bool), LayerSaveError> {
         let mut size: std::os::raw::c_ulong = 0;
-        let mut status = u32::MAX;
+        let mut status = u32::MAX as pdfium_sys::EPDFLayerSaveStatus;
         let mut changed: pdfium_sys::FPDF_BOOL = 1;
         // SAFETY: the handle is live and every out-parameter is valid.
         let ptr = unsafe {
@@ -217,7 +217,7 @@ impl Document {
         };
         if status != 0 {
             drop(owned_buffer(ptr, size));
-            return Err(LayerSaveError::from_status(status));
+            return Err(LayerSaveError::from_status(status as u32));
         }
         if changed == 0 {
             drop(owned_buffer(ptr, size));
@@ -235,7 +235,7 @@ impl Document {
         let mut size: std::os::raw::c_ulong = 0;
         // `u32::MAX` is a status the enum never issues, so an out-parameter
         // PDFium did not touch is distinguishable from every real status.
-        let mut status = u32::MAX;
+        let mut status = u32::MAX as pdfium_sys::EPDFLayerSaveStatus;
         // SAFETY: the handle is live and both out-parameters are valid.
         let ptr = unsafe {
             match output {
@@ -262,7 +262,7 @@ impl Document {
         // corrupt a document silently.
         if status != 0 {
             drop(owned_buffer(ptr, size));
-            return Err(LayerSaveError::from_status(status));
+            return Err(LayerSaveError::from_status(status as u32));
         }
         match (owned_buffer(ptr, size), output) {
             (Some(bytes), _) => Ok(bytes),

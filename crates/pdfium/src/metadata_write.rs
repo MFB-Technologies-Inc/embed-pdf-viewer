@@ -50,6 +50,11 @@ impl Document {
     /// is absence, so a patch that wants the entry left alone omits it.
     pub fn set_meta_trapped(&self, status: Trapped) -> bool {
         // SAFETY: the handle is live.
-        unsafe { pdfium_sys::EPDF_SetMetaTrapped(self.as_raw(), status.code() as u32) != 0 }
+        unsafe {
+            pdfium_sys::EPDF_SetMetaTrapped(
+                self.as_raw(),
+                status.code() as pdfium_sys::FPDF_TRAPPED_STATUS,
+            ) != 0
+        }
     }
 }

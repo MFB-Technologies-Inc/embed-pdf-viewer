@@ -224,8 +224,9 @@ impl BaseDocument {
     ) -> Result<LayerDocument, LayerOpenError> {
         // Initialized to a value the enum does not define, so a PDFium build
         // that forgets to write the out-parameter is reported as a failure
-        // rather than read as kSuccess.
-        let mut status: pdfium_sys::EPDFLayerOpenStatus = u32::MAX;
+        // rather than read as kSuccess. The enum is signed under MSVC's ABI,
+        // where this is -1, still undefined.
+        let mut status = u32::MAX as pdfium_sys::EPDFLayerOpenStatus;
         let access_ptr = access.map_or(std::ptr::null_mut(), FileAccess::as_ptr);
         // SAFETY: the base handle is live for the duration of the call and,
         // through the `Rc` below, for the life of the returned layer. The
@@ -252,7 +253,7 @@ impl BaseDocument {
             if !handle.is_null() {
                 unsafe { pdfium_sys::FPDF_CloseDocument(handle) };
             }
-            return Err(LayerOpenError::from_status(status));
+            return Err(LayerOpenError::from_status(status as u32));
         }
         // SAFETY: a non-null handle from EPDFLayer_OpenLayer is an ordinary
         // FPDF_DOCUMENT that must be closed with FPDF_CloseDocument, which is

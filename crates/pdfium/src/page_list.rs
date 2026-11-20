@@ -80,7 +80,12 @@ impl Document {
         let mut rect = pdfium_sys::FS_RECTF { left: 0.0, top: 0.0, right: 0.0, bottom: 0.0 };
         // SAFETY: the handle is live and `rect` is an initialized local.
         let ok = unsafe {
-            pdfium_sys::EPDF_GetPageBoxByIndex(self.handle, index as i32, which as u32, &mut rect)
+            pdfium_sys::EPDF_GetPageBoxByIndex(
+                self.handle,
+                index as i32,
+                which as pdfium_sys::EPDF_PAGE_BOX_TYPE,
+                &mut rect,
+            )
         };
         (ok != 0).then_some(RectF {
             left: rect.left,
