@@ -15,6 +15,11 @@ androidx-annotation = "1.8.1"
 # Declares minSdk 26; the javascript module's manifest overrides it and gates use at runtime.
 javascriptengine = "1.1.1"
 robolectric = "4.16"
+# The models module's `PdfViewerViewModel`; no Compose.
+lifecycle = "2.9.4"
+# Test only: the activity PdfViewerViewModelTest recreates.
+androidx-activity = "1.10.1"
+androidx-test-core = "1.6.1"
 bcv = "0.18.1"
 # What the binary-compatibility validator's dump task runs on.
 asm = "9.6"
@@ -22,11 +27,15 @@ asm = "9.6"
 [libraries]
 jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 androidx-annotation = { module = "androidx.annotation:annotation", version.ref = "androidx-annotation" }
 androidx-tracing = { module = "androidx.tracing:tracing", version.ref = "tracing" }
 androidx-javascriptengine = { module = "androidx.javascriptengine:javascriptengine", version.ref = "javascriptengine" }
+androidx-lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel", version.ref = "lifecycle" }
+androidx-activity = { module = "androidx.activity:activity", version.ref = "androidx-activity" }
+androidx-test-core = { module = "androidx.test:core", version.ref = "androidx-test-core" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
 asm-tree = { module = "org.ow2.asm:asm-tree", version.ref = "asm" }

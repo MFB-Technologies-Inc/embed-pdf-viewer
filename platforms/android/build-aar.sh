@@ -125,14 +125,15 @@ rm -rf "$PROJECT/bindings/src/main/kotlin"
 
 cd "$PROJECT"
 # The debug test APK is built only to give the zipalign check below an APK.
-./gradlew --console=plain :bindings:assembleRelease :bindings:assembleDebugAndroidTest :embedpdf:assembleRelease :javascript:assembleRelease
+./gradlew --console=plain :bindings:assembleRelease :bindings:assembleDebugAndroidTest :embedpdf:assembleRelease :javascript:assembleRelease :models:assembleRelease
 # The facade's public surface has to match embedpdf/api/embedpdf.api (and
-# the javascript module's javascript/api/javascript.api), and every Swift
+# the javascript module's javascript/api/javascript.api, and the models
+# module's models/api/models.api, which also takes no Compose), and every Swift
 # capability member has to be ported or named pending by phase.
-./gradlew --console=plain :embedpdf:apiCheck :javascript:apiCheck
+./gradlew --console=plain :embedpdf:apiCheck :javascript:apiCheck :models:apiCheck :models:checkNoCompose
 python3 "$ROOT/scripts/check-api-coverage.py" --platform kotlin
 if [[ "${1:-}" == "test" ]]; then
-  ./gradlew --console=plain :bindings:testDebugUnitTest :embedpdf:testDebugUnitTest :javascript:testDebugUnitTest :smoke:test
+  ./gradlew --console=plain :bindings:testDebugUnitTest :embedpdf:testDebugUnitTest :javascript:testDebugUnitTest :models:testDebugUnitTest :smoke:test
 fi
 
 # The APK half of the alignment check. An ELF built with 16 KB LOAD segments
