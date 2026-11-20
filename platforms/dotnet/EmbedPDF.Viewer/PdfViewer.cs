@@ -166,33 +166,44 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
 
     async Task DisposeCore(TaskCompletionSource completion)
     {
-        GF.CancelToken[] tokens;
-        lock (gate)
-        {
-            closed = true;
-            tokens = [.. cancellable];
-            if (inFlight == 0) drained.TrySetResult();
-        }
-        foreach (var token in tokens)
-        {
-            Cancel(token);
-        }
         try
         {
-            await host.DestroyViewer().ConfigureAwait(false);
+            GF.CancelToken[] tokens;
+            lock (gate)
+            {
+                closed = true;
+                tokens = [.. cancellable];
+                if (inFlight == 0) drained.TrySetResult();
+            }
+            foreach (var token in tokens)
+            {
+                Cancel(token);
+            }
+            try
+            {
+                await host.DestroyViewer().ConfigureAwait(false);
+            }
+            catch (Exception error)
+            {
+                logger.LogDebug(error, "Destroying the viewer failed; shutting it down anyway.");
+            }
+            await Settle(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+            // Shutdown joins the kernel thread: it can wait for a PDFium call in
+            // progress, so it runs on the thread pool, never on the caller's.
+            var release = ReleaseHost;
+            await Task.Run(() => ReleaseLogged(host, release, logger)).ConfigureAwait(false);
+            await Settle(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
         }
         catch (Exception error)
         {
-            logger.LogDebug(error, "Destroying the viewer failed; shutting it down anyway.");
+            logger.LogError(error, "Disposing the viewer failed.");
         }
-        await Settle(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
-        // Shutdown joins the kernel thread: it can wait for a PDFium call in
-        // progress, so it runs on the thread pool, never on the caller's.
-        await Task.Run(() => Release(host)).ConfigureAwait(false);
-        await Settle(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
-        Finish();
-        GC.SuppressFinalize(this);
-        completion.SetResult();
+        finally
+        {
+            Finish();
+            GC.SuppressFinalize(this);
+            completion.TrySetResult();
+        }
     }
 
     async Task Settle(TimeSpan limit)
@@ -214,7 +225,23 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
         documentEvents.Complete();
     }
 
-    static void Release(GH.ViewerHost host)
+    /// <summary>How the host is released; a seam for tests.</summary>
+    internal Action<GH.ViewerHost> ReleaseHost { get; set; } = Release;
+
+    /// <summary>Runs <paramref name="release"/>, logging rather than throwing: disposal and the finalizer path must always finish.</summary>
+    static void ReleaseLogged(GH.ViewerHost host, Action<GH.ViewerHost> release, ILogger logger)
+    {
+        try
+        {
+            release(host);
+        }
+        catch (Exception error)
+        {
+            logger.LogError(error, "Releasing the native viewer failed.");
+        }
+    }
+
+    internal static void Release(GH.ViewerHost host)
     {
         try
         {
@@ -237,14 +264,20 @@ public sealed partial class PdfViewer : IAsyncDisposable, IDisposable
     {
         // A constructor that threw leaves no host to release.
         if (Volatile.Read(ref disposal) is not null || host is null) return;
-        var (abandoned, r, e, d) = (host, revisions, reportedErrors, documentEvents);
+        var (abandoned, release, log, r, e, d) = (host, ReleaseHost, logger, revisions, reportedErrors, documentEvents);
         ThreadPool.UnsafeQueueUserWorkItem(_ =>
         {
-            Release(abandoned);
-            Interlocked.Increment(ref abandonedReleases);
-            r.Complete();
-            e.Complete();
-            d.Complete();
+            try
+            {
+                ReleaseLogged(abandoned, release, log);
+                r.Complete();
+                e.Complete();
+                d.Complete();
+            }
+            finally
+            {
+                Interlocked.Increment(ref abandonedReleases);
+            }
         }, null);
     }
 

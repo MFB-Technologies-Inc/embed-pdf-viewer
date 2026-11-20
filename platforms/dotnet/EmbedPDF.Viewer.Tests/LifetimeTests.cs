@@ -86,4 +86,40 @@ public sealed class LifetimeTests
         for (var i = 0; i < 500 && PdfViewer.AbandonedReleases == released; i++) await Task.Delay(10);
         Assert.True(PdfViewer.AbandonedReleases > released);
     }
+
+    static void Explode(uniffi.epdf_viewer_host.ViewerHost host)
+    {
+        PdfViewer.Release(host);
+        throw new InvalidOperationException("release failed");
+    }
+
+    [Fact]
+    public async Task DisposeEndsWhenReleasingTheHostThrows()
+    {
+        var viewer = await PdfViewer.CreateAsync();
+        viewer.ReleaseHost = Explode;
+        await viewer.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(15));
+        Assert.Equal(PdfErrorCode.InstanceClosed, (await Assert.ThrowsAsync<PdfException>(() => viewer.GetDocumentsAsync())).Code);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    static async Task AbandonWithAFailingRelease()
+    {
+        var viewer = await PdfViewer.CreateAsync();
+        viewer.ReleaseHost = Explode;
+    }
+
+    [Fact]
+    public async Task AFailingReleaseOnTheFinalizerPathDoesNotCrashTheProcess()
+    {
+        var released = PdfViewer.AbandonedReleases;
+        await AbandonWithAFailingRelease();
+        for (var i = 0; i < 500 && PdfViewer.AbandonedReleases == released; i++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            await Task.Delay(10);
+        }
+        Assert.True(PdfViewer.AbandonedReleases > released);
+    }
 }
