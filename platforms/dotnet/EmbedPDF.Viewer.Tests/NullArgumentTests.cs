@@ -11,6 +11,8 @@ public sealed class NullArgumentTests
 {
     static readonly NullabilityInfoContext Nullability = new();
 
+    static StageViewState? viewState;
+
     static object? Valid(Type type) => type switch
     {
         _ when type == typeof(string) => "x",
@@ -44,6 +46,17 @@ public sealed class NullArgumentTests
         _ when type == typeof(ActionTrigger) => new ActionTrigger.Document(DocumentTriggerEvent.Open),
         _ when type == typeof(IActionExecutor) => new RecordingExecutor(),
         _ when type == typeof(Func<Task>) => (Func<Task>)(() => Task.CompletedTask),
+        _ when type == typeof(PageDestination) => new PageDestination.Fit(new PageRef(1)),
+        _ when type == typeof(StageZoomTarget) => new StageZoomTarget.Level(1),
+        _ when type == typeof(StageViewState) => viewState ?? throw new InvalidOperationException("no view state yet"),
+        _ when type == typeof(IStageInitialViewProvider) => new SavedView(null),
+        _ when type == typeof(SelectionInput) => new SelectionInput.Span(new PageRef(1), 0, 1),
+        _ when type == typeof(SelectionTextRange) => new SelectionTextRange(new SelectionTextPosition(new PageRef(1), 0), new SelectionTextPosition(new PageRef(1), 1)),
+        _ when type == typeof(SearchHit) => new SearchHit(new PageRef(1), 0, 0, 1, [], null, null),
+        _ when type == typeof(LinkItem) => new LinkItem("x", new PageRef(1), default, "{}", false, null, false, null),
+        _ when type == typeof(CommandDefinition) => new CommandDefinition("x:y", "x"),
+        _ when type == typeof(CommandKeyStroke) => new CommandKeyStroke("x"),
+        _ when type == typeof(ToolId) => ToolId.Pointer,
         _ when type.IsValueType => Activator.CreateInstance(type),
         _ when type.GetConstructor(Type.EmptyTypes) is { } constructor => constructor.Invoke(null),
         _ when type == typeof(IDocumentFetcher) => new HttpClientDocumentFetcher(),
@@ -173,6 +186,43 @@ public sealed class NullArgumentTests
         Assert.Throws<ArgumentNullException>(() => new EmbeddedResourceLocaleLoader(null!));
         Assert.Throws<ArgumentNullException>(() => LocalePack.FromJson(null!));
         Assert.Throws<ArgumentNullException>(() => PdfActionTree.FromJson(null!));
+    }
+
+    [Fact]
+    public async Task EveryWaveCCapabilityChecksEveryReferenceArgument()
+    {
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true, Stage = new(), Selection = true, Link = true, Commands = true });
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        var stage = await viewer.GetStageAsync(document);
+        viewState = await stage.GetViewStateAsync();
+        object[] targets =
+        [
+            stage, await viewer.GetSelectionAsync(document), await viewer.GetLinkAsync(document), await viewer.GetCommandsAsync(),
+            await viewer.GetPageNavigatorAsync(document), await viewer.GetPageZoomAsync(document), await viewer.GetToolSwitcherAsync(document),
+        ];
+        foreach (var target in targets) Assert.Empty(await Unchecked(target));
+    }
+
+    [Fact]
+    public async Task EveryWaveCCapabilityRefusesANullElementUpFront()
+    {
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Stage = new(), Commands = true });
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        using var stage = await viewer.GetStageAsync(document);
+        using var commands = await viewer.GetCommandsAsync();
+        Action[] calls =
+        [
+            () => _ = stage.SetResponsiveRulesAsync([null!]),
+            () => _ = commands.RegisterAsync(new CommandDefinition[] { null! }),
+            () => _ = commands.SetDisabledCategoriesAsync([null!]),
+            () => _ = commands.SetDisabledCommandsAsync([null!]),
+            () => _ = new PdfViewer(new PdfViewerOptions { Stage = new() { Responsive = [null!] } }),
+            () => _ = commands.UpdateSettingsAsync(new CommandsSettingsPatch { DisabledCommands = [null!] }),
+            () => _ = commands.UpdateSettingsAsync(new CommandsSettingsPatch { DisabledCategories = [null!] }),
+        ];
+        foreach (var call in calls) Assert.Throws<ArgumentException>(call);
+        // Declared async, so a null element faults the task (the null-argument rule).
+        await Assert.ThrowsAsync<ArgumentException>(() => commands.RegisterAsync(new CommandDefinition("x:y", "x") { Shortcuts = [null!] }));
     }
 
     [Fact]

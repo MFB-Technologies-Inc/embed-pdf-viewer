@@ -43,6 +43,8 @@ public sealed class EnumRangeTests
         { "document event", () => Ffi.ToFfi(new ActionTrigger.Document((DocumentTriggerEvent)9)) },
         { "document event", () => Ffi.ToFfi(new ActionTreeSource.Document((DocumentTriggerEvent)9)) },
         { "document verb", () => Ffi.ToFfi((DocumentVerb)9) },
+        { "not-allowed mode", () => Ffi.ToFfi(new CommandsSettingsPatch { NotAllowed = (NotAllowedMode)9 }) },
+        { "command hook", () => Ffi.ToFfi((CommandHook)9) },
         { "scroll behavior", () => Ffi.ToFfi(new StageScrollToOptions { Behavior = (StageScrollBehavior)9 }) },
         { "flow", () => Ffi.ToFfi(new StageSettingsPatch { Flow = (StageFlow)9 }) },
         { "layout", () => Ffi.ToFfi(new StageSettingsPatch { Layout = (StageLayout)9 }) },

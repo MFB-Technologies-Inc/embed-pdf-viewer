@@ -156,4 +156,42 @@ public sealed class ValidationShapeTests
         // DispatchPointer returns no task, so it refuses at once.
         Assert.Equal(PdfErrorCode.InvalidInput, Assert.Throws<PdfException>(() => interaction.DispatchPointer(sample)).Code);
     }
+
+    [Fact]
+    public async Task InvalidWaveCArgumentsFaultTheReturnedTask()
+    {
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true, Stage = new(), Selection = true, Link = true, Commands = true });
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        using var stage = await viewer.GetStageAsync(document);
+        using var selection = await viewer.GetSelectionAsync(document);
+        using var link = await viewer.GetLinkAsync(document);
+        using var commands = await viewer.GetCommandsAsync();
+        using var navigator = await viewer.GetPageNavigatorAsync(document);
+        var badOptions = new StageGoToOptions { Behavior = (StageScrollBehavior)9 };
+        var calls = new (string, Func<Task>)[]
+        {
+            ("Stage.GoToPageIndexAsync", () => stage.GoToPageIndexAsync(-1)),
+            ("Stage.RevealIndexAsync", () => stage.RevealIndexAsync(-1)),
+            ("Stage.GoToPageAsync", () => stage.GoToPageAsync(Bad)),
+            ("Stage.NextPageAsync", () => stage.NextPageAsync(badOptions)),
+            ("Stage.GoToDestinationAsync", () => stage.GoToDestinationAsync(new PageDestination.Fit(Bad))),
+            ("Stage.GoToDestinationAsync(behavior)", () => stage.GoToDestinationAsync(new PageDestination.Fit(new PageRef(1)), (StageScrollBehavior)9)),
+            ("Stage.ScrollToAsync", () => stage.ScrollToAsync(new StageScrollToOptions { Behavior = (StageScrollBehavior)9 })),
+            ("Stage.UpdateSettingsAsync", () => stage.UpdateSettingsAsync(new StageSettingsPatch { Columns = new StageGridColumns.Count(-1) })),
+            ("Stage.SetResponsiveRulesAsync", () => stage.SetResponsiveRulesAsync([new StageResponsiveRule(new StageBoxQuery { Orientation = (StageOrientation)9 })])),
+            ("Stage.ZoomToAsync", () => stage.ZoomToAsync(new StageZoomTarget.Spec(new ZoomSpec.Mode((ZoomMode)9)))),
+            ("Stage.RevealAsync", () => stage.RevealAsync(new PageRef(1), new StageRevealOptions { Behavior = (StageScrollBehavior)9 })),
+            ("Stage.IsPageVisibleAsync", () => stage.IsPageVisibleAsync(Bad)),
+            ("Navigator.GoToPageIndexAsync", () => navigator.GoToPageIndexAsync(-1)),
+            ("Selection.SelectPageAsync", () => selection.SelectPageAsync(Bad)),
+            ("Selection.SelectAsync", () => selection.SelectAsync(new SelectionInput.Span(Bad, 0, 1))),
+            ("Selection.ReadTextAsync(range)", () => selection.ReadTextAsync(new SelectionTextRange(new SelectionTextPosition(Bad, 0), new SelectionTextPosition(Bad, 1)))),
+            ("Link.GetLinksAsync", () => link.GetLinksAsync(Bad)),
+            ("Link.ActivateAtAsync", () => link.ActivateAtAsync(Bad, default)),
+            ("Commands.SetAppStateAsync", () => commands.SetAppStateAsync("\"\uD800\"")),
+            ("Commands.ExecuteAsync", () => commands.ExecuteAsync("x:y", argsJson: "\"\uDC00\"")),
+            ("Commands.UpdateSettingsAsync", () => commands.UpdateSettingsAsync(new CommandsSettingsPatch { NotAllowed = (NotAllowedMode)9 })),
+        };
+        foreach (var (name, call) in calls) await ExpectFaulted(name, call);
+    }
 }

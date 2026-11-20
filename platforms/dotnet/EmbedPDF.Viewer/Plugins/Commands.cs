@@ -36,6 +36,8 @@ public sealed class CommandsCapability : IDisposable
     public Task UpdateSettingsAsync(CommandsSettingsPatch patch, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(patch);
+        if (patch.DisabledCategories is not null) Arguments.NoNullElements(patch.DisabledCategories, nameof(patch.DisabledCategories));
+        if (patch.DisabledCommands is not null) Arguments.NoNullElements(patch.DisabledCommands, nameof(patch.DisabledCommands));
         return viewer.Run(() => handle.UpdateSettings(Ffi.ToFfi(patch)), cancellationToken);
     }
 

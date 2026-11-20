@@ -195,4 +195,56 @@ public sealed class LifetimeTests
         Assert.True(await MetadataTests.Ends(i18n));
         Assert.True(await MetadataTests.Ends(actions));
     }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    static async Task<(WeakReference Viewer, IAsyncEnumerable<StageEvent> Stage, IAsyncEnumerable<SelectionEvent> Selection, IAsyncEnumerable<LinkEvent> Link, IAsyncEnumerable<CommandsEvent> Commands)> AbandonWithWaveCStreamsAndCallbacks()
+    {
+        var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions
+        {
+            Interaction = true, Stage = new(), Selection = true, Link = true, Commands = true,
+            StandardCommands = [StandardCommandList.Document],
+        });
+        viewer.SetCommandsPlatform(new RecordingPlatform());
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        var stage = await viewer.GetStageAsync(document);
+        await stage.ProvideInitialViewAsync(new SavedView(null));
+        await stage.RegisterScrollHandlerAsync();
+        await stage.SetViewportSizeAsync(new PdfSize(390, 844));
+        var selection = await viewer.GetSelectionAsync(document);
+        var link = await viewer.GetLinkAsync(document);
+        await link.RegisterTapHandlerAsync();
+        var commands = await viewer.GetCommandsAsync();
+        await commands.RegisterAsync(new CommandDefinition("app:kept", "Kept")
+        {
+            Handler = new CommandHandler(run: _ => Task.CompletedTask, enabled: _ => true, iconAccent: _ => null),
+        });
+        _ = await commands.ResolveAsync("app:kept");
+        return (new WeakReference(viewer), stage.ObserveEvents(), selection.ObserveEvents(), link.ObserveEvents(), commands.ObserveEvents());
+    }
+
+    /// <summary>
+    /// Handlers and providers that hold neither the viewer nor a capability
+    /// leave an abandoned viewer collectable. One whose delegates capture a
+    /// capability keeps the viewer alive until it is unregistered, as Swift's
+    /// does (<see cref="CommandHandler"/>'s remarks).
+    /// </summary>
+    [Fact]
+    public async Task LiveWaveCStreamsAndCallbacksDoNotKeepAnAbandonedViewerAlive()
+    {
+        var released = PdfViewer.AbandonedReleases;
+        var (reference, stage, selection, link, commands) = await AbandonWithWaveCStreamsAndCallbacks();
+        for (var i = 0; i < 20 && reference.IsAlive; i++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            await Task.Delay(20);
+        }
+        Assert.False(reference.IsAlive);
+        for (var i = 0; i < 500 && PdfViewer.AbandonedReleases == released; i++) await Task.Delay(10);
+        Assert.True(PdfViewer.AbandonedReleases > released);
+        Assert.True(await MetadataTests.Ends(stage));
+        Assert.True(await MetadataTests.Ends(selection));
+        Assert.True(await MetadataTests.Ends(link));
+        Assert.True(await MetadataTests.Ends(commands));
+    }
 }
