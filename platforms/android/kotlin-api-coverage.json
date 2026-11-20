@@ -1366,14 +1366,20 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "get_settings",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "settings"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "update_settings",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "updateSettings"
+      }
     },
     {
       "crate": "commands",
@@ -1387,7 +1393,10 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "reset_settings",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "resetSettings"
+      }
     },
     {
       "crate": "commands",
@@ -1404,182 +1413,260 @@
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "register_command",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "register"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "register_commands",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "register"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "has_command",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "hasCommand"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "get_command",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "command"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "list_command_ids",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "commandIds"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "resolve_command",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "resolve"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "list_commands",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "commands"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "search_commands",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "search"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "list_shortcuts",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "shortcuts"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "execute",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "execute"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "can_execute",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "canExecute"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "get_refusal",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "refusal"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "on_executed",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "on_execution_failed",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "observeEvents"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "match_stroke",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "matchStroke"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/controller.rs",
       "owner": "CommandsCapability",
       "symbol": "get_menu_target",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "menuTarget"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/turning_off.rs",
       "owner": "CommandsCapability",
       "symbol": "get_disabled_categories",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "disabledCategories"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/turning_off.rs",
       "owner": "CommandsCapability",
       "symbol": "is_category_disabled",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "isCategoryDisabled"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/turning_off.rs",
       "owner": "CommandsCapability",
       "symbol": "disable_category",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "disableCategory"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/turning_off.rs",
       "owner": "CommandsCapability",
       "symbol": "enable_category",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "enableCategory"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/turning_off.rs",
       "owner": "CommandsCapability",
       "symbol": "set_disabled_categories",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "setDisabledCategories"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/turning_off.rs",
       "owner": "CommandsCapability",
       "symbol": "get_disabled_commands",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "disabledCommands"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/turning_off.rs",
       "owner": "CommandsCapability",
       "symbol": "is_command_disabled",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "isCommandDisabled"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/turning_off.rs",
       "owner": "CommandsCapability",
       "symbol": "disable_command",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "disableCommand"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/turning_off.rs",
       "owner": "CommandsCapability",
       "symbol": "enable_command",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "enableCommand"
+      }
     },
     {
       "crate": "commands",
       "path": "crates/plugins/commands/src/turning_off.rs",
       "owner": "CommandsCapability",
       "symbol": "set_disabled_commands",
-      "pending": "phase-3-c"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Commands.kt",
+        "symbol": "setDisabledCommands"
+      }
     },
     {
       "crate": "form",

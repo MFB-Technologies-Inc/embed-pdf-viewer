@@ -127,4 +127,31 @@ class PluginSettingsTest {
         assertEquals(registered, other.settings())
         viewer.destroy()
     }
+
+    @Test
+    fun commandSettingsValidateOpenAppDataAndReset() = viewerTest {
+        val viewer = started(ViewerConfig(commands = true))
+        val commands = viewer.commands()
+        val registered = commands.settings()
+        commands.updateSettings(
+            CommandsSettingsPatch(
+                disabledCategories = listOf("edit"),
+                disabledCommands = listOf("print"),
+                notAllowed = NotAllowedMode.DISABLE,
+                appStateJson = "null",
+            ),
+        )
+        val changed = commands.settings()
+        assertEquals("null", changed.appStateJson)
+        try {
+            commands.updateSettings(CommandsSettingsPatch(appStateJson = "{"))
+            org.junit.Assert.fail("an invalid appStateJson was accepted")
+        } catch (e: PdfException) {
+            // Refused, and the settings stay as they were.
+        }
+        assertEquals(changed, commands.settings())
+        commands.resetSettings()
+        assertEquals(registered, commands.settings())
+        viewer.destroy()
+    }
 }

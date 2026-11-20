@@ -60,6 +60,69 @@ public final class com/embedpdf/AttachmentKt {
 	public static final fun attachments (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class com/embedpdf/CommandHandler : uniffi/epdf_plugin_commands/CommandRunner {
+	public fun <init> ()V
+	public fun <init> (Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;)V
+	public synthetic fun <init> (Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun derive (Luniffi/epdf_plugin_commands/CommandContext;Luniffi/epdf_plugin_commands/CommandHook;)Z
+	public final fun getHooks ()Ljava/util/List;
+	public fun iconAccent (Luniffi/epdf_plugin_commands/CommandContext;)Luniffi/epdf_plugin_commands/IconAccent;
+	public fun locked (Luniffi/epdf_plugin_commands/CommandContext;)Luniffi/epdf_plugin_commands/CommandSettingLock;
+	public fun run (Luniffi/epdf_plugin_commands/CommandContext;Luniffi/epdf_plugin_commands/CommandCompletion;)V
+}
+
+public final class com/embedpdf/CommandsCapability {
+	public final fun canExecute (Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun canExecute$default (Lcom/embedpdf/CommandsCapability;Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun command (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun commandIds (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun commands (Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun commands$default (Lcom/embedpdf/CommandsCapability;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun disableCategory (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun disableCommand (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun disabledCategories (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun disabledCommands (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun enableCategory (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun enableCommand (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun execute (Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentInfo;[BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun execute$default (Lcom/embedpdf/CommandsCapability;Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentInfo;[BLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun hasCommand (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun isCategoryDisabled (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun isCommandDisabled (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun matchStroke (Luniffi/epdf_plugin_commands/CommandKeyStroke;ZZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun matchStroke$default (Lcom/embedpdf/CommandsCapability;Luniffi/epdf_plugin_commands/CommandKeyStroke;ZZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun menuTarget (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
+	public final fun refusal (Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun refusal$default (Lcom/embedpdf/CommandsCapability;Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun register (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;ZLkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun register (Ljava/util/List;ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun register (Luniffi/epdf_plugin_commands/CommandDefinition;ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun register$default (Lcom/embedpdf/CommandsCapability;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;ZLkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun register$default (Lcom/embedpdf/CommandsCapability;Ljava/util/List;ZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun register$default (Lcom/embedpdf/CommandsCapability;Luniffi/epdf_plugin_commands/CommandDefinition;ZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun resetSettings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun resolve (Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun resolve$default (Lcom/embedpdf/CommandsCapability;Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun search (Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun search$default (Lcom/embedpdf/CommandsCapability;Ljava/lang/String;Luniffi/epdf_viewer_host/DocumentInfo;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun setAppState ([BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setDisabledCategories (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setDisabledCommands (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun settings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun shortcuts (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun updateSettings (Luniffi/epdf_plugin_commands/CommandsSettingsPatch;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/CommandsKt {
+	public static final fun CommandDefinition (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/lang/String;Luniffi/epdf_plugin_commands/CommandPanel;Ljava/lang/String;Lcom/embedpdf/CommandHandler;)Luniffi/epdf_plugin_commands/CommandDefinition;
+	public static synthetic fun CommandDefinition$default (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/lang/String;Luniffi/epdf_plugin_commands/CommandPanel;Ljava/lang/String;Lcom/embedpdf/CommandHandler;ILjava/lang/Object;)Luniffi/epdf_plugin_commands/CommandDefinition;
+	public static final fun commands (Lcom/embedpdf/PdfViewer;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun fail (Luniffi/epdf_plugin_commands/CommandCompletion;Ljava/lang/Throwable;)V
+	public static final fun fail (Luniffi/epdf_viewer_host/StandardCommandCompletion;Ljava/lang/Throwable;)V
+	public static final fun setCommandsPlatform (Lcom/embedpdf/PdfViewer;Luniffi/epdf_viewer_host/StandardCommandsPlatform;)V
+}
+
 public final class com/embedpdf/ContentInclusion : java/lang/Enum {
 	public static final field ALWAYS Lcom/embedpdf/ContentInclusion;
 	public static final field NEVER Lcom/embedpdf/ContentInclusion;
