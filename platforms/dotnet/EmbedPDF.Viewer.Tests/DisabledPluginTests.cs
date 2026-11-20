@@ -68,7 +68,7 @@ public sealed class DisabledPluginTests
         new("PageEdit", None, o => o with { PageEdit = true }, Public((v, d) => v.GetPageEditAsync(d))),
         new("ViewManager", None, o => o with { ViewManager = true }, Public((v, _) => v.GetViewManagerAsync())),
         new("Shell", None, o => o with { Shell = true }, Public((v, d) => v.GetShellAsync(d))),
-        new("I18n", None, o => o with { I18n = new() }, Global(h => h.I18n())),
+        new("I18n", None, o => o with { I18n = new() }, Public((v, _) => v.GetI18nAsync())),
         new("Commands", None, o => o with { Commands = true }, Global(h => h.Commands())),
         new("Actions", None, o => o with { Actions = new() }, Of((h, id) => h.Actions(id))),
         new("Signature", o => o with { Interaction = true, Form = new() }, o => o with { Signature = new() }, Of((h, id) => h.Signature(id))),

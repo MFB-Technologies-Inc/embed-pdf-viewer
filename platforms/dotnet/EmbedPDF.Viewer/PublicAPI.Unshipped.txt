@@ -278,6 +278,9 @@ EmbedPDF.DocumentStatus.Failed = 3 -> EmbedPDF.DocumentStatus
 EmbedPDF.DocumentStatus.Loading = 0 -> EmbedPDF.DocumentStatus
 EmbedPDF.DocumentStatus.Locked = 1 -> EmbedPDF.DocumentStatus
 EmbedPDF.DocumentStatus.Ready = 2 -> EmbedPDF.DocumentStatus
+EmbedPDF.EmbeddedResourceLocaleLoader
+EmbedPDF.EmbeddedResourceLocaleLoader.EmbeddedResourceLocaleLoader(System.Reflection.Assembly! assembly, string! resourcePrefix = "") -> void
+EmbedPDF.EmbeddedResourceLocaleLoader.LoadAsync(string! code) -> System.Threading.Tasks.Task<EmbedPDF.LocalePack!>!
 EmbedPDF.FeedbackCapability
 EmbedPDF.FeedbackCapability.Dispose() -> void
 EmbedPDF.FeedbackCapability.ImpactAsync(EmbedPDF.FeedbackImpactWeight? weight = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -388,10 +391,90 @@ EmbedPDF.HistoryUndoFailure.Unavailable = 0 -> EmbedPDF.HistoryUndoFailure
 EmbedPDF.HttpClientDocumentFetcher
 EmbedPDF.HttpClientDocumentFetcher.FetchAsync(string! url, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<EmbedPDF.DocumentFetchResponse!>!
 EmbedPDF.HttpClientDocumentFetcher.HttpClientDocumentFetcher(System.Net.Http.HttpClient? client = null) -> void
+EmbedPDF.I18nCapability
+EmbedPDF.I18nCapability.AddTranslationsAsync(string! code, System.Collections.Generic.IReadOnlyDictionary<string!, string!>! translations, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.I18nCapability.Dispose() -> void
+EmbedPDF.I18nCapability.GetDirectionAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.TextDirection>!
+EmbedPDF.I18nCapability.GetLoadingLocaleAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string?>!
+EmbedPDF.I18nCapability.GetLocaleAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+EmbedPDF.I18nCapability.GetLocalesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.LocaleInfo!>!>!
+EmbedPDF.I18nCapability.GetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.I18nSettings!>!
+EmbedPDF.I18nCapability.HasKeyAsync(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.I18nCapability.ObserveEvents(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.I18nEvent!>!
+EmbedPDF.I18nCapability.RegisterLocaleAsync(EmbedPDF.LocalePack! pack, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.Registration!>!
+EmbedPDF.I18nCapability.ResetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.I18nCapability.SetLocaleAsync(string! code, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.I18nCapability.TranslateAsync(string! key, System.Collections.Generic.IReadOnlyDictionary<string!, EmbedPDF.I18nParam!>? parameters = null, string? fallback = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+EmbedPDF.I18nCapability.UpdateSettingsAsync(EmbedPDF.I18nSettingsPatch! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.I18nConfig
 EmbedPDF.I18nConfig.<Clone>$() -> EmbedPDF.I18nConfig!
 EmbedPDF.I18nConfig.Equals(EmbedPDF.I18nConfig? other) -> bool
+EmbedPDF.I18nConfig.FallbackLocale.get -> string?
+EmbedPDF.I18nConfig.FallbackLocale.init -> void
 EmbedPDF.I18nConfig.I18nConfig() -> void
+EmbedPDF.I18nConfig.LazyLocales.get -> System.Collections.Generic.IReadOnlyList<string!>!
+EmbedPDF.I18nConfig.LazyLocales.init -> void
+EmbedPDF.I18nConfig.Loader.get -> EmbedPDF.ILocaleLoader?
+EmbedPDF.I18nConfig.Loader.init -> void
+EmbedPDF.I18nConfig.Locale.get -> string?
+EmbedPDF.I18nConfig.Locale.init -> void
+EmbedPDF.I18nConfig.Locales.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.LocalePack!>!
+EmbedPDF.I18nConfig.Locales.init -> void
+EmbedPDF.I18nEvent
+EmbedPDF.I18nEvent.I18nEvent(EmbedPDF.I18nEvent! original) -> void
+EmbedPDF.I18nEvent.LocaleChanged
+EmbedPDF.I18nEvent.LocaleChanged.Deconstruct(out string! Locale, out string! PreviousLocale) -> void
+EmbedPDF.I18nEvent.LocaleChanged.Equals(EmbedPDF.I18nEvent.LocaleChanged? other) -> bool
+EmbedPDF.I18nEvent.LocaleChanged.Locale.get -> string!
+EmbedPDF.I18nEvent.LocaleChanged.Locale.init -> void
+EmbedPDF.I18nEvent.LocaleChanged.LocaleChanged(string! Locale, string! PreviousLocale) -> void
+EmbedPDF.I18nEvent.LocaleChanged.PreviousLocale.get -> string!
+EmbedPDF.I18nEvent.LocaleChanged.PreviousLocale.init -> void
+EmbedPDF.I18nEvent.LocaleLoadFailed
+EmbedPDF.I18nEvent.LocaleLoadFailed.Deconstruct(out string! Locale, out EmbedPDF.PluginErrorInfo! Error) -> void
+EmbedPDF.I18nEvent.LocaleLoadFailed.Equals(EmbedPDF.I18nEvent.LocaleLoadFailed? other) -> bool
+EmbedPDF.I18nEvent.LocaleLoadFailed.Error.get -> EmbedPDF.PluginErrorInfo!
+EmbedPDF.I18nEvent.LocaleLoadFailed.Error.init -> void
+EmbedPDF.I18nEvent.LocaleLoadFailed.Locale.get -> string!
+EmbedPDF.I18nEvent.LocaleLoadFailed.Locale.init -> void
+EmbedPDF.I18nEvent.LocaleLoadFailed.LocaleLoadFailed(string! Locale, EmbedPDF.PluginErrorInfo! Error) -> void
+EmbedPDF.I18nParam
+EmbedPDF.I18nParam.I18nParam(EmbedPDF.I18nParam! original) -> void
+EmbedPDF.I18nParam.Number
+EmbedPDF.I18nParam.Number.Deconstruct(out double Value) -> void
+EmbedPDF.I18nParam.Number.Equals(EmbedPDF.I18nParam.Number? other) -> bool
+EmbedPDF.I18nParam.Number.Number(double Value) -> void
+EmbedPDF.I18nParam.Number.Value.get -> double
+EmbedPDF.I18nParam.Number.Value.init -> void
+EmbedPDF.I18nParam.Text
+EmbedPDF.I18nParam.Text.Deconstruct(out string! Value) -> void
+EmbedPDF.I18nParam.Text.Equals(EmbedPDF.I18nParam.Text? other) -> bool
+EmbedPDF.I18nParam.Text.Text(string! Value) -> void
+EmbedPDF.I18nParam.Text.Value.get -> string!
+EmbedPDF.I18nParam.Text.Value.init -> void
+EmbedPDF.I18nSettings
+EmbedPDF.I18nSettings.<Clone>$() -> EmbedPDF.I18nSettings!
+EmbedPDF.I18nSettings.Deconstruct(out string? Locale, out string! FallbackLocale, out System.Collections.Generic.IReadOnlyList<EmbedPDF.LocalePack!>! Locales) -> void
+EmbedPDF.I18nSettings.Equals(EmbedPDF.I18nSettings? other) -> bool
+EmbedPDF.I18nSettings.FallbackLocale.get -> string!
+EmbedPDF.I18nSettings.FallbackLocale.init -> void
+EmbedPDF.I18nSettings.I18nSettings(string? Locale, string! FallbackLocale, System.Collections.Generic.IReadOnlyList<EmbedPDF.LocalePack!>! Locales) -> void
+EmbedPDF.I18nSettings.Locale.get -> string?
+EmbedPDF.I18nSettings.Locale.init -> void
+EmbedPDF.I18nSettings.Locales.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.LocalePack!>!
+EmbedPDF.I18nSettings.Locales.init -> void
+EmbedPDF.I18nSettingsPatch
+EmbedPDF.I18nSettingsPatch.<Clone>$() -> EmbedPDF.I18nSettingsPatch!
+EmbedPDF.I18nSettingsPatch.ClearLocale.get -> bool
+EmbedPDF.I18nSettingsPatch.ClearLocale.init -> void
+EmbedPDF.I18nSettingsPatch.Equals(EmbedPDF.I18nSettingsPatch? other) -> bool
+EmbedPDF.I18nSettingsPatch.FallbackLocale.get -> string?
+EmbedPDF.I18nSettingsPatch.FallbackLocale.init -> void
+EmbedPDF.I18nSettingsPatch.I18nSettingsPatch() -> void
+EmbedPDF.I18nSettingsPatch.Locale.get -> string?
+EmbedPDF.I18nSettingsPatch.Locale.init -> void
+EmbedPDF.I18nSettingsPatch.Locales.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.LocalePack!>?
+EmbedPDF.I18nSettingsPatch.Locales.init -> void
 EmbedPDF.IDocumentFetcher
 EmbedPDF.IDocumentFetcher.FetchAsync(string! url, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<EmbedPDF.DocumentFetchResponse!>!
 EmbedPDF.IInteractionHandler
@@ -402,6 +485,8 @@ EmbedPDF.IInteractionHandler.OnDown(EmbedPDF.PointerSample! sample) -> bool
 EmbedPDF.IInteractionHandler.OnHover(EmbedPDF.PointerSample! sample) -> void
 EmbedPDF.IInteractionHandler.OnMove(EmbedPDF.PointerSample! sample) -> void
 EmbedPDF.IInteractionHandler.OnUp(EmbedPDF.PointerSample! sample) -> void
+EmbedPDF.ILocaleLoader
+EmbedPDF.ILocaleLoader.LoadAsync(string! code) -> System.Threading.Tasks.Task<EmbedPDF.LocalePack!>!
 EmbedPDF.IPlatformFeedback
 EmbedPDF.IPlatformFeedback.Impact(EmbedPDF.FeedbackImpactWeight? weight) -> void
 EmbedPDF.IPlatformFeedback.Notify(EmbedPDF.FeedbackNotifyKind kind) -> void
@@ -544,6 +629,32 @@ EmbedPDF.LinkActivation.Uri.Equals(EmbedPDF.LinkActivation.Uri? other) -> bool
 EmbedPDF.LinkActivation.Uri.Uri(string! Value) -> void
 EmbedPDF.LinkActivation.Uri.Value.get -> string!
 EmbedPDF.LinkActivation.Uri.Value.init -> void
+EmbedPDF.LocaleInfo
+EmbedPDF.LocaleInfo.<Clone>$() -> EmbedPDF.LocaleInfo!
+EmbedPDF.LocaleInfo.Code.get -> string!
+EmbedPDF.LocaleInfo.Code.init -> void
+EmbedPDF.LocaleInfo.Deconstruct(out string! Code, out string! Name, out EmbedPDF.TextDirection Direction, out bool Loaded) -> void
+EmbedPDF.LocaleInfo.Direction.get -> EmbedPDF.TextDirection
+EmbedPDF.LocaleInfo.Direction.init -> void
+EmbedPDF.LocaleInfo.Equals(EmbedPDF.LocaleInfo? other) -> bool
+EmbedPDF.LocaleInfo.Loaded.get -> bool
+EmbedPDF.LocaleInfo.Loaded.init -> void
+EmbedPDF.LocaleInfo.LocaleInfo(string! Code, string! Name, EmbedPDF.TextDirection Direction, bool Loaded) -> void
+EmbedPDF.LocaleInfo.Name.get -> string!
+EmbedPDF.LocaleInfo.Name.init -> void
+EmbedPDF.LocalePack
+EmbedPDF.LocalePack.<Clone>$() -> EmbedPDF.LocalePack!
+EmbedPDF.LocalePack.Code.get -> string!
+EmbedPDF.LocalePack.Code.init -> void
+EmbedPDF.LocalePack.Deconstruct(out string! Code, out string! Name, out System.Collections.Generic.IReadOnlyDictionary<string!, string!>! Translations) -> void
+EmbedPDF.LocalePack.Direction.get -> EmbedPDF.TextDirection?
+EmbedPDF.LocalePack.Direction.init -> void
+EmbedPDF.LocalePack.Equals(EmbedPDF.LocalePack? other) -> bool
+EmbedPDF.LocalePack.LocalePack(string! Code, string! Name, System.Collections.Generic.IReadOnlyDictionary<string!, string!>! Translations) -> void
+EmbedPDF.LocalePack.Name.get -> string!
+EmbedPDF.LocalePack.Name.init -> void
+EmbedPDF.LocalePack.Translations.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+EmbedPDF.LocalePack.Translations.init -> void
 EmbedPDF.MeasurementConfig
 EmbedPDF.MeasurementConfig.<Clone>$() -> EmbedPDF.MeasurementConfig!
 EmbedPDF.MeasurementConfig.Equals(EmbedPDF.MeasurementConfig? other) -> bool
@@ -1122,6 +1233,7 @@ EmbedPDF.PdfViewer.GetDocumentOrderAsync(System.Threading.CancellationToken canc
 EmbedPDF.PdfViewer.GetDocumentsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.DocumentInfo!>!>!
 EmbedPDF.PdfViewer.GetFeedbackAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FeedbackCapability!>!
 EmbedPDF.PdfViewer.GetHistoryAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.HistoryCapability!>!
+EmbedPDF.PdfViewer.GetI18nAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.I18nCapability!>!
 EmbedPDF.PdfViewer.GetInteractionAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.InteractionCapability!>!
 EmbedPDF.PdfViewer.GetMetadataAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.MetadataCapability!>!
 EmbedPDF.PdfViewer.GetOutlineAsync(EmbedPDF.DocumentInfo! document, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.OutlineCapability!>!
@@ -2117,6 +2229,9 @@ EmbedPDF.StandardCommandList.Interaction = 1 -> EmbedPDF.StandardCommandList
 EmbedPDF.StandardCommandList.Render = 5 -> EmbedPDF.StandardCommandList
 EmbedPDF.StandardCommandList.Selection = 2 -> EmbedPDF.StandardCommandList
 EmbedPDF.StandardCommandList.Stage = 0 -> EmbedPDF.StandardCommandList
+EmbedPDF.TextDirection
+EmbedPDF.TextDirection.Ltr = 0 -> EmbedPDF.TextDirection
+EmbedPDF.TextDirection.Rtl = 1 -> EmbedPDF.TextDirection
 EmbedPDF.TextSegment
 EmbedPDF.TextSegment.<Clone>$() -> EmbedPDF.TextSegment!
 EmbedPDF.TextSegment.Advance.get -> double
@@ -2216,6 +2331,8 @@ abstract EmbedPDF.AttachmentHome.<Clone>$() -> EmbedPDF.AttachmentHome!
 abstract EmbedPDF.DocumentEvent.<Clone>$() -> EmbedPDF.DocumentEvent!
 abstract EmbedPDF.HistoryEvent.<Clone>$() -> EmbedPDF.HistoryEvent!
 abstract EmbedPDF.HistoryLabelValue.<Clone>$() -> EmbedPDF.HistoryLabelValue!
+abstract EmbedPDF.I18nEvent.<Clone>$() -> EmbedPDF.I18nEvent!
+abstract EmbedPDF.I18nParam.<Clone>$() -> EmbedPDF.I18nParam!
 abstract EmbedPDF.InteractionEvent.<Clone>$() -> EmbedPDF.InteractionEvent!
 abstract EmbedPDF.LinkActivation.<Clone>$() -> EmbedPDF.LinkActivation!
 abstract EmbedPDF.MetadataEvent.<Clone>$() -> EmbedPDF.MetadataEvent!
@@ -2375,6 +2492,34 @@ override EmbedPDF.HistorySettingsPatch.ToString() -> string!
 override EmbedPDF.I18nConfig.Equals(object? obj) -> bool
 override EmbedPDF.I18nConfig.GetHashCode() -> int
 override EmbedPDF.I18nConfig.ToString() -> string!
+override EmbedPDF.I18nEvent.Equals(object? obj) -> bool
+override EmbedPDF.I18nEvent.GetHashCode() -> int
+override EmbedPDF.I18nEvent.LocaleChanged.<Clone>$() -> EmbedPDF.I18nEvent.LocaleChanged!
+override EmbedPDF.I18nEvent.LocaleChanged.Equals(object? obj) -> bool
+override EmbedPDF.I18nEvent.LocaleChanged.GetHashCode() -> int
+override EmbedPDF.I18nEvent.LocaleChanged.ToString() -> string!
+override EmbedPDF.I18nEvent.LocaleLoadFailed.<Clone>$() -> EmbedPDF.I18nEvent.LocaleLoadFailed!
+override EmbedPDF.I18nEvent.LocaleLoadFailed.Equals(object? obj) -> bool
+override EmbedPDF.I18nEvent.LocaleLoadFailed.GetHashCode() -> int
+override EmbedPDF.I18nEvent.LocaleLoadFailed.ToString() -> string!
+override EmbedPDF.I18nEvent.ToString() -> string!
+override EmbedPDF.I18nParam.Equals(object? obj) -> bool
+override EmbedPDF.I18nParam.GetHashCode() -> int
+override EmbedPDF.I18nParam.Number.<Clone>$() -> EmbedPDF.I18nParam.Number!
+override EmbedPDF.I18nParam.Number.Equals(object? obj) -> bool
+override EmbedPDF.I18nParam.Number.GetHashCode() -> int
+override EmbedPDF.I18nParam.Number.ToString() -> string!
+override EmbedPDF.I18nParam.Text.<Clone>$() -> EmbedPDF.I18nParam.Text!
+override EmbedPDF.I18nParam.Text.Equals(object? obj) -> bool
+override EmbedPDF.I18nParam.Text.GetHashCode() -> int
+override EmbedPDF.I18nParam.Text.ToString() -> string!
+override EmbedPDF.I18nParam.ToString() -> string!
+override EmbedPDF.I18nSettings.Equals(object? obj) -> bool
+override EmbedPDF.I18nSettings.GetHashCode() -> int
+override EmbedPDF.I18nSettings.ToString() -> string!
+override EmbedPDF.I18nSettingsPatch.Equals(object? obj) -> bool
+override EmbedPDF.I18nSettingsPatch.GetHashCode() -> int
+override EmbedPDF.I18nSettingsPatch.ToString() -> string!
 override EmbedPDF.InteractionEvent.CursorChanged.<Clone>$() -> EmbedPDF.InteractionEvent.CursorChanged!
 override EmbedPDF.InteractionEvent.CursorChanged.Equals(object? obj) -> bool
 override EmbedPDF.InteractionEvent.CursorChanged.GetHashCode() -> int
@@ -2438,6 +2583,12 @@ override EmbedPDF.LinkActivation.Uri.<Clone>$() -> EmbedPDF.LinkActivation.Uri!
 override EmbedPDF.LinkActivation.Uri.Equals(object? obj) -> bool
 override EmbedPDF.LinkActivation.Uri.GetHashCode() -> int
 override EmbedPDF.LinkActivation.Uri.ToString() -> string!
+override EmbedPDF.LocaleInfo.Equals(object? obj) -> bool
+override EmbedPDF.LocaleInfo.GetHashCode() -> int
+override EmbedPDF.LocaleInfo.ToString() -> string!
+override EmbedPDF.LocalePack.Equals(object? obj) -> bool
+override EmbedPDF.LocalePack.GetHashCode() -> int
+override EmbedPDF.LocalePack.ToString() -> string!
 override EmbedPDF.MeasurementConfig.Equals(object? obj) -> bool
 override EmbedPDF.MeasurementConfig.GetHashCode() -> int
 override EmbedPDF.MeasurementConfig.ToString() -> string!
@@ -2964,6 +3115,10 @@ override sealed EmbedPDF.HistoryEvent.UndoFailed.Equals(EmbedPDF.HistoryEvent? o
 override sealed EmbedPDF.HistoryEvent.Undone.Equals(EmbedPDF.HistoryEvent? other) -> bool
 override sealed EmbedPDF.HistoryLabelValue.Number.Equals(EmbedPDF.HistoryLabelValue? other) -> bool
 override sealed EmbedPDF.HistoryLabelValue.Text.Equals(EmbedPDF.HistoryLabelValue? other) -> bool
+override sealed EmbedPDF.I18nEvent.LocaleChanged.Equals(EmbedPDF.I18nEvent? other) -> bool
+override sealed EmbedPDF.I18nEvent.LocaleLoadFailed.Equals(EmbedPDF.I18nEvent? other) -> bool
+override sealed EmbedPDF.I18nParam.Number.Equals(EmbedPDF.I18nParam? other) -> bool
+override sealed EmbedPDF.I18nParam.Text.Equals(EmbedPDF.I18nParam? other) -> bool
 override sealed EmbedPDF.InteractionEvent.CursorChanged.Equals(EmbedPDF.InteractionEvent? other) -> bool
 override sealed EmbedPDF.InteractionEvent.GestureCancelled.Equals(EmbedPDF.InteractionEvent? other) -> bool
 override sealed EmbedPDF.InteractionEvent.GestureEnded.Equals(EmbedPDF.InteractionEvent? other) -> bool
@@ -3149,6 +3304,24 @@ static EmbedPDF.HistorySettingsPatch.operator !=(EmbedPDF.HistorySettingsPatch? 
 static EmbedPDF.HistorySettingsPatch.operator ==(EmbedPDF.HistorySettingsPatch? left, EmbedPDF.HistorySettingsPatch? right) -> bool
 static EmbedPDF.I18nConfig.operator !=(EmbedPDF.I18nConfig? left, EmbedPDF.I18nConfig? right) -> bool
 static EmbedPDF.I18nConfig.operator ==(EmbedPDF.I18nConfig? left, EmbedPDF.I18nConfig? right) -> bool
+static EmbedPDF.I18nEvent.LocaleChanged.operator !=(EmbedPDF.I18nEvent.LocaleChanged? left, EmbedPDF.I18nEvent.LocaleChanged? right) -> bool
+static EmbedPDF.I18nEvent.LocaleChanged.operator ==(EmbedPDF.I18nEvent.LocaleChanged? left, EmbedPDF.I18nEvent.LocaleChanged? right) -> bool
+static EmbedPDF.I18nEvent.LocaleLoadFailed.operator !=(EmbedPDF.I18nEvent.LocaleLoadFailed? left, EmbedPDF.I18nEvent.LocaleLoadFailed? right) -> bool
+static EmbedPDF.I18nEvent.LocaleLoadFailed.operator ==(EmbedPDF.I18nEvent.LocaleLoadFailed? left, EmbedPDF.I18nEvent.LocaleLoadFailed? right) -> bool
+static EmbedPDF.I18nEvent.operator !=(EmbedPDF.I18nEvent? left, EmbedPDF.I18nEvent? right) -> bool
+static EmbedPDF.I18nEvent.operator ==(EmbedPDF.I18nEvent? left, EmbedPDF.I18nEvent? right) -> bool
+static EmbedPDF.I18nParam.Number.operator !=(EmbedPDF.I18nParam.Number? left, EmbedPDF.I18nParam.Number? right) -> bool
+static EmbedPDF.I18nParam.Number.operator ==(EmbedPDF.I18nParam.Number? left, EmbedPDF.I18nParam.Number? right) -> bool
+static EmbedPDF.I18nParam.Text.operator !=(EmbedPDF.I18nParam.Text? left, EmbedPDF.I18nParam.Text? right) -> bool
+static EmbedPDF.I18nParam.Text.operator ==(EmbedPDF.I18nParam.Text? left, EmbedPDF.I18nParam.Text? right) -> bool
+static EmbedPDF.I18nParam.implicit operator EmbedPDF.I18nParam!(double value) -> EmbedPDF.I18nParam!
+static EmbedPDF.I18nParam.implicit operator EmbedPDF.I18nParam!(string! value) -> EmbedPDF.I18nParam!
+static EmbedPDF.I18nParam.operator !=(EmbedPDF.I18nParam? left, EmbedPDF.I18nParam? right) -> bool
+static EmbedPDF.I18nParam.operator ==(EmbedPDF.I18nParam? left, EmbedPDF.I18nParam? right) -> bool
+static EmbedPDF.I18nSettings.operator !=(EmbedPDF.I18nSettings? left, EmbedPDF.I18nSettings? right) -> bool
+static EmbedPDF.I18nSettings.operator ==(EmbedPDF.I18nSettings? left, EmbedPDF.I18nSettings? right) -> bool
+static EmbedPDF.I18nSettingsPatch.operator !=(EmbedPDF.I18nSettingsPatch? left, EmbedPDF.I18nSettingsPatch? right) -> bool
+static EmbedPDF.I18nSettingsPatch.operator ==(EmbedPDF.I18nSettingsPatch? left, EmbedPDF.I18nSettingsPatch? right) -> bool
 static EmbedPDF.InteractionEvent.CursorChanged.operator !=(EmbedPDF.InteractionEvent.CursorChanged? left, EmbedPDF.InteractionEvent.CursorChanged? right) -> bool
 static EmbedPDF.InteractionEvent.CursorChanged.operator ==(EmbedPDF.InteractionEvent.CursorChanged? left, EmbedPDF.InteractionEvent.CursorChanged? right) -> bool
 static EmbedPDF.InteractionEvent.GestureCancelled.operator !=(EmbedPDF.InteractionEvent.GestureCancelled? left, EmbedPDF.InteractionEvent.GestureCancelled? right) -> bool
@@ -3183,6 +3356,11 @@ static EmbedPDF.LinkActivation.Uri.operator !=(EmbedPDF.LinkActivation.Uri? left
 static EmbedPDF.LinkActivation.Uri.operator ==(EmbedPDF.LinkActivation.Uri? left, EmbedPDF.LinkActivation.Uri? right) -> bool
 static EmbedPDF.LinkActivation.operator !=(EmbedPDF.LinkActivation? left, EmbedPDF.LinkActivation? right) -> bool
 static EmbedPDF.LinkActivation.operator ==(EmbedPDF.LinkActivation? left, EmbedPDF.LinkActivation? right) -> bool
+static EmbedPDF.LocaleInfo.operator !=(EmbedPDF.LocaleInfo? left, EmbedPDF.LocaleInfo? right) -> bool
+static EmbedPDF.LocaleInfo.operator ==(EmbedPDF.LocaleInfo? left, EmbedPDF.LocaleInfo? right) -> bool
+static EmbedPDF.LocalePack.FromJson(string! json) -> EmbedPDF.LocalePack!
+static EmbedPDF.LocalePack.operator !=(EmbedPDF.LocalePack? left, EmbedPDF.LocalePack? right) -> bool
+static EmbedPDF.LocalePack.operator ==(EmbedPDF.LocalePack? left, EmbedPDF.LocalePack? right) -> bool
 static EmbedPDF.MeasurementConfig.operator !=(EmbedPDF.MeasurementConfig? left, EmbedPDF.MeasurementConfig? right) -> bool
 static EmbedPDF.MeasurementConfig.operator ==(EmbedPDF.MeasurementConfig? left, EmbedPDF.MeasurementConfig? right) -> bool
 static EmbedPDF.MetadataEvent.CustomResynced.operator !=(EmbedPDF.MetadataEvent.CustomResynced? left, EmbedPDF.MetadataEvent.CustomResynced? right) -> bool
@@ -3563,6 +3741,12 @@ virtual EmbedPDF.HistoryEvent.PrintMembers(System.Text.StringBuilder! builder) -
 virtual EmbedPDF.HistoryLabelValue.EqualityContract.get -> System.Type!
 virtual EmbedPDF.HistoryLabelValue.Equals(EmbedPDF.HistoryLabelValue? other) -> bool
 virtual EmbedPDF.HistoryLabelValue.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.I18nEvent.EqualityContract.get -> System.Type!
+virtual EmbedPDF.I18nEvent.Equals(EmbedPDF.I18nEvent? other) -> bool
+virtual EmbedPDF.I18nEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.I18nParam.EqualityContract.get -> System.Type!
+virtual EmbedPDF.I18nParam.Equals(EmbedPDF.I18nParam? other) -> bool
+virtual EmbedPDF.I18nParam.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual EmbedPDF.InteractionEvent.EqualityContract.get -> System.Type!
 virtual EmbedPDF.InteractionEvent.Equals(EmbedPDF.InteractionEvent? other) -> bool
 virtual EmbedPDF.InteractionEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool

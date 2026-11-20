@@ -59,12 +59,6 @@ public sealed record StampConfig
     internal GSp.StampConfig ToFfi() => new();
 }
 
-/// <summary>Installs the i18n plugin.</summary>
-public sealed record I18nConfig
-{
-    internal GL.I18nConfig ToFfi(PluginContext context) => new(Locales: [], LazyLocales: []);
-}
-
 /// <summary>Installs the actions plugin.</summary>
 public sealed record ActionsConfig
 {

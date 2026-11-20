@@ -34,6 +34,10 @@ public sealed class NullArgumentTests
         _ when type == typeof(InteractionTool) => new InteractionTool("x", "default", []),
         _ when type == typeof(IInteractionHandler) => new RecordingHandler(),
         _ when type == typeof(Func<bool>) => (Func<bool>)(() => true),
+        _ when type == typeof(LocalePack) => new LocalePack("x", "x", new Dictionary<string, string>()),
+        _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>) =>
+            Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(type.GetGenericArguments())),
+        _ when type == typeof(System.Reflection.Assembly) => typeof(NullArgumentTests).Assembly,
         _ when type.IsValueType => Activator.CreateInstance(type),
         _ when type.GetConstructor(Type.EmptyTypes) is { } constructor => constructor.Invoke(null),
         _ when type == typeof(IDocumentFetcher) => new HttpClientDocumentFetcher(),
@@ -103,13 +107,16 @@ public sealed class NullArgumentTests
     [Fact]
     public async Task EveryWaveBCapabilityChecksEveryReferenceArgument()
     {
-        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true });
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true, Feedback = new(), I18n = new() });
         var document = await viewer.OpenAsync(Fixture.Data("report"));
         object[] targets =
         [
-            await viewer.GetInteractionAsync(document),
+            await viewer.GetInteractionAsync(document), await viewer.GetFeedbackAsync(), await viewer.GetI18nAsync(),
+            new EmbeddedResourceLocaleLoader(typeof(NullArgumentTests).Assembly),
         ];
         foreach (var target in targets) Assert.Empty(await Unchecked(target));
+        Assert.Throws<ArgumentNullException>(() => new EmbeddedResourceLocaleLoader(null!));
+        Assert.Throws<ArgumentNullException>(() => LocalePack.FromJson(null!));
     }
 
     [Fact]

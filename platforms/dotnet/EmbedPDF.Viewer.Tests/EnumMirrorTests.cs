@@ -24,6 +24,7 @@ public sealed class EnumMirrorTests
         { typeof(InteractionToolTouch), typeof(uniffi.epdf_plugin_interaction.InteractionToolTouch) },
         { typeof(FeedbackImpactWeight), typeof(uniffi.epdf_plugin_interaction.FeedbackImpactWeight) },
         { typeof(FeedbackNotifyKind), typeof(uniffi.epdf_plugin_interaction.FeedbackNotifyKind) },
+        { typeof(TextDirection), typeof(uniffi.epdf_plugin_i18n.TextDirection) },
     };
 
     [Theory]

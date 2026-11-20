@@ -21,6 +21,8 @@
   <ItemGroup>
     <ProjectReference Include="../EmbedPDF.Viewer/EmbedPDF.Viewer.csproj"/>
     <ProjectReference Include="../EmbedPDF.Extensions.DependencyInjection/EmbedPDF.Extensions.DependencyInjection.csproj"/>
+    <!-- A locale pack for the embedded-resource loader, as the Swift suite bundles it. -->
+    <EmbeddedResource Include="Locales/*.json" LogicalName="Locales.%(Filename)%(Extension)"/>
     <None Include="$(EpdfViewerNativeDir)libepdf_viewer_host.so" Link="libepdf_viewer_host.so" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(EpdfViewerNativeDir)libepdf_viewer_host.so')"/>
     <None Include="$(EpdfViewerNativeDir)libepdf_viewer_host.dylib" Link="libepdf_viewer_host.dylib" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(EpdfViewerNativeDir)libepdf_viewer_host.dylib')"/>
     <None Include="$(EpdfViewerNativeDir)epdf_viewer_host.dll" Link="epdf_viewer_host.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(EpdfViewerNativeDir)epdf_viewer_host.dll')"/>

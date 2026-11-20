@@ -3387,10 +3387,16 @@
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "get_settings",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/i18n/src/ffi/settings.rs",
         "symbol": "settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.I18nCapability",
+        "member": "GetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3398,10 +3404,17 @@
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "update_settings",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/i18n/src/ffi/settings.rs",
         "symbol": "update_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.I18nCapability",
+        "member": "UpdateSettingsAsync",
+        "parameters": [
+          "EmbedPDF.I18nSettingsPatch",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3417,10 +3430,16 @@
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "reset_settings",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/i18n/src/ffi/settings.rs",
         "symbol": "reset_settings"
+      },
+      "csharp": {
+        "type": "EmbedPDF.I18nCapability",
+        "member": "ResetSettingsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3428,10 +3447,16 @@
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "on_settings_changed",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/epdf-viewer-host/src/lib.rs",
         "symbol": "state_revision"
+      },
+      "csharp": {
+        "type": "EmbedPDF.PdfViewer",
+        "member": "ObserveStateRevisions",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3439,10 +3464,19 @@
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "t",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/i18n/src/ffi.rs",
         "symbol": "t"
+      },
+      "csharp": {
+        "type": "EmbedPDF.I18nCapability",
+        "member": "TranslateAsync",
+        "parameters": [
+          "System.String",
+          "System.Collections.Generic.IReadOnlyDictionary<System.String, EmbedPDF.I18nParam>",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3458,10 +3492,17 @@
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "has_key",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/i18n/src/ffi.rs",
         "symbol": "has_key"
+      },
+      "csharp": {
+        "type": "EmbedPDF.I18nCapability",
+        "member": "HasKeyAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3469,10 +3510,16 @@
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "get_locale",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/i18n/src/ffi.rs",
         "symbol": "locale"
+      },
+      "csharp": {
+        "type": "EmbedPDF.I18nCapability",
+        "member": "GetLocaleAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3480,10 +3527,16 @@
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "get_direction",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/i18n/src/ffi.rs",
         "symbol": "direction"
+      },
+      "csharp": {
+        "type": "EmbedPDF.I18nCapability",
+        "member": "GetDirectionAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3491,10 +3544,16 @@
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "list_locales",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/i18n/src/ffi.rs",
         "symbol": "locales"
+      },
+      "csharp": {
+        "type": "EmbedPDF.I18nCapability",
+        "member": "GetLocalesAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3502,10 +3561,16 @@
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "get_loading_locale",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/i18n/src/ffi.rs",
         "symbol": "loading_locale"
+      },
+      "csharp": {
+        "type": "EmbedPDF.I18nCapability",
+        "member": "GetLoadingLocaleAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3513,10 +3578,17 @@
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "set_locale",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/i18n/src/ffi.rs",
         "symbol": "set_locale"
+      },
+      "csharp": {
+        "type": "EmbedPDF.I18nCapability",
+        "member": "SetLocaleAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3524,10 +3596,17 @@
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "register_locale",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/i18n/src/ffi.rs",
         "symbol": "register_locale"
+      },
+      "csharp": {
+        "type": "EmbedPDF.I18nCapability",
+        "member": "RegisterLocaleAsync",
+        "parameters": [
+          "EmbedPDF.LocalePack",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3535,10 +3614,18 @@
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "add_translations",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/i18n/src/ffi.rs",
         "symbol": "add_translations"
+      },
+      "csharp": {
+        "type": "EmbedPDF.I18nCapability",
+        "member": "AddTranslationsAsync",
+        "parameters": [
+          "System.String",
+          "System.Collections.Generic.IReadOnlyDictionary<System.String, System.String>",
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3546,10 +3633,16 @@
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "on_locale_changed",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/i18n/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.I18nCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
@@ -3557,10 +3650,16 @@
       "path": "crates/plugins/i18n/src/controller.rs",
       "owner": "I18nCapability",
       "symbol": "on_locale_load_failed",
-      "pending": "phase-3-wave-B",
       "export": {
         "path": "crates/plugins/i18n/src/ffi.rs",
         "symbol": "subscribe"
+      },
+      "csharp": {
+        "type": "EmbedPDF.I18nCapability",
+        "member": "ObserveEvents",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
       }
     },
     {
