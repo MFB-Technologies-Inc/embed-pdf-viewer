@@ -101,8 +101,9 @@ public final class SearchModel {
   /// Whether a clear button has anything to clear: text in the field, hits,
   /// or a session that is not idle. A running scan with no hits yet and a
   /// refused search's `SearchStatus.error` both count, with an empty field
-  /// too.
-  package var canClear: Bool { !text.isEmpty || hitCount > 0 || status != .idle }
+  /// too. `SearchBar` enables its clear button on it, and a bar an app
+  /// builds itself can too.
+  public var canClear: Bool { !text.isEmpty || hitCount > 0 || status != .idle }
 
   public func task() async {
     observation &+= 1

@@ -174,13 +174,17 @@ public final class ToolModel {
     await refresh()
   }
 
-  /// Whether a picker shows `id`'s button as on.
-  package func isSelected(_ id: ToolID) -> Bool { activeToolID == id }
+  /// Whether a picker shows `id`'s button as on: `id` is ``activeToolID``.
+  /// `ToolPicker` uses it, and a picker an app builds itself can too.
+  public func isSelected(_ id: ToolID) -> Bool { activeToolID == id }
 
-  /// Whether a picker disables `id`'s button: an action is in flight, or the
-  /// tool is not usable and not active. The active tool's button stays
-  /// enabled, so it can always return to the default tool.
-  package func isDisabled(_ id: ToolID) -> Bool {
+  /// Whether a picker disables `id`'s button: ``submitting`` is `true`, or
+  /// the tool is not in ``usable`` and not active. The active tool's button
+  /// stays enabled when its tool stops being usable, so a tap on it can
+  /// always return to the default tool. An id nobody registered is
+  /// disabled. `ToolPicker` uses it, and a picker an app builds itself can
+  /// too.
+  public func isDisabled(_ id: ToolID) -> Bool {
     submitting || (!usable.contains(id) && !isSelected(id))
   }
 
