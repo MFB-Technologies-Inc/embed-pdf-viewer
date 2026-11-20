@@ -84,9 +84,9 @@
 
 **Interfaces (produces):** `AnnotationInfo` (`AnnotationRef`, `Page`, `Subtype`, `Rect`, `Contents`, `Author`, `CreatedAt`, `RawCreatedAt`, `ModifiedAt`, `RawModifiedAt`, `GroupId`, `InReplyTo`, `CanUpdate`, `CanDelete`, `BlendMode`, `FieldsJson`, `Details` and the accessors above), internal `AnnotationInfo(GA.AnnotationRecord)` and `internal static AnnotationInfo FromRecordParts(...)` for tests, the detail records above with Swift's members and required/optional rules (a missing required member makes `Details` null).
 
-- [ ] **Step 1: Failing tests.** Port the offline tests of `AnnotationInfoTests.swift`: every member maps from the record; ink without a colour is still ink; a highlight's quads are typed; a `text` annotation is a note; members of another shape stay in `FieldsJson`; an intent or border style without a constant keeps its text; the constants are the write-side spellings; an unknown subtype keeps its name; the engine's timestamp forms read (`2026-01-02T03:04:05Z`, fractional seconds, `+05:30`, `-0800`), a malformed one keeps its text with a null instant, an absent one is null.
-- [ ] **Step 2-4:** FAIL, implement, PASS.
-- [ ] **Step 5:** Commit `feat(dotnet): add typed annotation reads`.
+- [x] **Step 1: Failing tests.** Port the offline tests of `AnnotationInfoTests.swift`: every member maps from the record; ink without a colour is still ink; a highlight's quads are typed; a `text` annotation is a note; members of another shape stay in `FieldsJson`; an intent or border style without a constant keeps its text; the constants are the write-side spellings; an unknown subtype keeps its name; the engine's timestamp forms read (`2026-01-02T03:04:05Z`, fractional seconds, `+05:30`, `-0800`), a malformed one keeps its text with a null instant, an absent one is null.
+- [x] **Step 2-4:** FAIL, implement, PASS.
+- [x] **Step 5:** Commit `feat(dotnet): add typed annotation reads`.
 
 ### Task 4: The annotation capability
 
