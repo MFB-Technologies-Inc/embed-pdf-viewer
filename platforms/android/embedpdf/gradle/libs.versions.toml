@@ -11,6 +11,7 @@ serialization = "1.9.0"
 junit = "4.13.2"
 json = "20250517"
 tracing = "1.2.0"
+androidx-annotation = "1.8.1"
 # Declares minSdk 26; the javascript module's manifest overrides it and gates use at runtime.
 javascriptengine = "1.1.1"
 robolectric = "4.16"
@@ -23,6 +24,7 @@ jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+androidx-annotation = { module = "androidx.annotation:annotation", version.ref = "androidx-annotation" }
 androidx-tracing = { module = "androidx.tracing:tracing", version.ref = "tracing" }
 androidx-javascriptengine = { module = "androidx.javascriptengine:javascriptengine", version.ref = "javascriptengine" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }

@@ -52,6 +52,8 @@ dependencies {
     api(libs.kotlinx.coroutines.core)
     // Typed shell props encode through it, so a caller's serializers do too.
     api(libs.kotlinx.serialization.json)
+    // `@ColorInt` on the annotation colour conversions.
+    implementation(libs.androidx.annotation)
     implementation(libs.androidx.tracing)
 
     testImplementation(libs.jna)
