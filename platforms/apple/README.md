@@ -549,6 +549,76 @@ in `.failed` with that capability's `unsupported` error. Leave the feature out
 of `features` instead. One more cost of the model: it reads every page's
 `PageInfo` at each open, which grows with the page count.
 
+## Thumbnails and a search bar on their own
+
+`ThumbnailStrip` and `SearchBar` also work beside a reader you compose
+yourself. `ThumbnailModel` renders each page with the engine's thumbnail call,
+512 pixels on the long side, and turns it to the page as shown. Make one per
+page list and give the strip the same `pages`:
+
+```swift
+struct ReaderWithThumbnails: View {
+  let viewer: PDFViewer
+  let document: DocumentInfo
+  let reader: StageReaderModel
+  @State private var thumbnails: ThumbnailModel?
+  @State private var pages: [PageInfo] = []
+
+  var body: some View {
+    VStack {
+      StageReaderView(model: reader)
+      if let thumbnails {
+        ThumbnailStrip(
+          model: thumbnails, pages: pages,
+          current: pages.indices.contains(reader.pageIndex) ? pages[reader.pageIndex].page : nil
+        ) { page in
+          Task { try await reader.stage.goToPage(page.page) }
+        }
+        .frame(height: 160)
+      }
+    }
+    .task {
+      do {
+        pages = try await viewer.pages(of: document)
+        thumbnails = ThumbnailModel(render: try await viewer.render(for: document), pages: pages)
+      } catch {}
+    }
+  }
+}
+```
+
+A cell loads its thumbnail when it appears and again when the engine
+invalidates its page. The strip does not scroll to `current` and does not show
+`ThumbnailModel.error`; both are the app's to do. `pages` is a snapshot, so
+after a page edit make a new model from the new list.
+
+`SearchBar` needs only a `SearchModel`. It runs the model's `task()`, so don't
+run it again. The bar reports each hit that becomes active, and
+`SearchModel.revealActiveHit()` scrolls the document's stage to it:
+
+```swift
+struct ReaderWithSearch: View {
+  let search: SearchModel
+  let reader: StageReaderModel
+
+  var body: some View {
+    VStack {
+      SearchBar(model: search) { _ in
+        Task { await search.revealActiveHit() }
+      }
+      StageReaderView(model: reader)
+    }
+  }
+}
+```
+
+The cost is in when the bar reports. It also reports once when it appears over
+a search that already exists, and it can report a hit that is already in view,
+so whatever the callback does has to be safe to repeat. The reveal is. A bar
+of your own can reuse the model's rules: `SearchModel.canClear` is when
+`SearchBar` enables its clear button, and `ToolModel.isSelected(_:)` and
+`isDisabled(_:)` do the same job for a tool picker.
+
 ## Tools and links
 
 A `StageReaderModel` made with an `InteractionCapability` sends the reader's
@@ -721,6 +791,45 @@ draws an appearance and draws neither (`write/update.rs` in
 `crates/epdf-engine/src/features/annotation`). The cost is that each typed
 member has to track the engine's schema. `AnnotationKindDraftTests` writes
 every member through the engine and fails if one doesn't come back.
+
+Three members repeat across the drafts and patches. `common` is an
+`AnnotationCommonFields`: the name, subject, flags, reply and group that every
+kind shares. `richText` is an `AnnotationRichText` of styled runs, on every
+kind but link and widget. `measure` is the `PdfMeasurement` scale of a
+dimension, on lines, polygons and polylines.
+
+```swift
+var common = AnnotationCommonFields()
+common.subject = "Site plan"
+common.print = true
+let scale = PdfMeasurement(
+  subtype: "rectilinear", ratio: "1 in = 1 ft",
+  x: [PdfNumberFormat(unit: "ft", conversion: 0.125, fraction: .decimal, precision: 100)],
+  distance: [PdfNumberFormat(unit: "ft", conversion: 1, fraction: .decimal, precision: 100)],
+  area: [PdfNumberFormat(unit: "sq ft", conversion: 1, fraction: .decimal, precision: 100)])
+let line = try await annotations.create(
+  LineAnnotationDraft(
+    start: Point(x: 72, y: 72), end: Point(x: 216, y: 72), intent: .value(.lineDimension),
+    measure: .value(scale), common: common),
+  on: page)
+
+let note = try await annotations.create(
+  FreeTextAnnotationDraft(
+    box: Rect(x: 72, y: 120, width: 200, height: 40), richText: AnnotationRichText(plain: "Checked")),
+  on: page)
+let styled = AnnotationRichText(paragraphs: [
+  .init(runs: [.init(text: "Checked "), .init(text: "twice", style: ["weight": .number(700)])])
+])
+try await annotations.update(note, FreeTextAnnotationPatch(richText: styled))
+```
+
+The line reads back with `line?.measure` equal to `scale` and the label the
+engine works out from it, `"18.00 ft"`, in `contents`. The note reads back
+`"Checked twice"` in `contents`, because rich text sets `contents` to its
+plain text. Two costs. A scale needs its `x`, `distance` and `area` formats:
+the engine refuses one without them as `invalid-input` ("Missing x formats").
+And `contents` passed beside `richText` has to equal that plain text, or the
+write is refused the same way.
 
 ## Moving from 0.0.0-swift.4
 
