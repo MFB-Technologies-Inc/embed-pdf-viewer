@@ -9,7 +9,9 @@
   -->
   <Import Project="../EmbedPDF.Runtime/EmbedPDF.Runtime.props" />
   <PropertyGroup>
-    <AssemblyName>EmbedPDF</AssemblyName>
+    <!-- Not EmbedPDF.dll: on win-x64 that is PDFium's embedpdf.dll once a
+         RID-specific build puts both in one directory. -->
+    <AssemblyName>EmbedPDF.Viewer</AssemblyName>
     <RootNamespace>EmbedPDF</RootNamespace>
     <PackageId>EmbedPDF</PackageId>
     <Version>0.0.0-local</Version>

@@ -126,7 +126,9 @@ that held-layer-page case. No test is skipped and no alternate runtime is used.
 
 The viewer is two new packages beside `EmbedPDF.Engine`, with no dependency between them.
 `EmbedPDF.Runtime` holds the `epdf-viewer-host` library and the PDFium it links, under
-`runtimes/<rid>/native/`, and no managed code. `EmbedPDF` is the facade. It compiles the generated
+`runtimes/<rid>/native/`, and no managed code. `EmbedPDF` is the facade, in the assembly
+`EmbedPDF.Viewer.dll`: `EmbedPDF.dll` would collide with win-x64 PDFium's `embedpdf.dll` on a
+case-insensitive file system. It compiles the generated
 bindings as internal types and depends on `EmbedPDF.Runtime` at the version pinned in
 `EmbedPDF.Runtime/EmbedPDF.Runtime.props`. Today the facade is a skeleton: `NativeRuntime` loads the
 host and reads a page count, and the document API arrives in Phase 2 of

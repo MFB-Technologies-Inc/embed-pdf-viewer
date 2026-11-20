@@ -251,6 +251,22 @@ class RuntimeTests(unittest.TestCase):
             self.assertNotEqual(0, result.returncode)
             self.assertIn("slice paths must use forward slashes", result.stdout)
 
+    def test_name_collisions_are_case_insensitive(self):
+        from package import check_name_collisions
+        with self.assertRaisesRegex(ValueError, "EmbedPDF.dll.*embedpdf.dll"):
+            check_name_collisions(["lib/net10.0/EmbedPDF.dll"], ["runtimes/win-x64/native/embedpdf.dll"])
+        check_name_collisions(["lib/net10.0/EmbedPDF.Viewer.dll"], ["runtimes/win-x64/native/embedpdf.dll"])
+
+    def test_facade_assembly_does_not_collide_with_native_files(self):
+        # A RID-specific build copies managed and native files into one
+        # directory; Windows compares names without case.
+        import re
+        from package import VIEWER_RIDS, check_name_collisions
+        csproj = (self.root / "EmbedPDF.Viewer/EmbedPDF.Viewer.csproj").read_text()
+        assembly = re.search(r"<AssemblyName>(.*?)</AssemblyName>", csproj).group(1)
+        native = [name for _, _, host, pdfium in VIEWER_RIDS.values() for name in (host, Path(pdfium).name)]
+        check_name_collisions([f"lib/net10.0/{assembly}.dll"], native)
+
     def test_pack_runtime_rejects_duplicate_rid_and_mixed_sources(self):
         with tempfile.TemporaryDirectory() as first, tempfile.TemporaryDirectory() as second:
             self.slice(Path(first))

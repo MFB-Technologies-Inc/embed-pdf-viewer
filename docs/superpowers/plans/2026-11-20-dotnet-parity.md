@@ -125,8 +125,10 @@ release: if nobody needs the narrow package, deprecate it then.
 | Package | Apple counterpart | Contents | Depends on |
 |---|---|---|---|
 | `EmbedPDF.Runtime` | `EmbedPDFBindings` binary target | `runtimes/<rid>/native/` viewer-host library for each RID | nothing |
-| `EmbedPDF` | `EmbedPDF` | facade, with the generated C# compiled in as `internal` | `EmbedPDF.Runtime`, `Microsoft.Extensions.Logging.Abstractions` |
+| `EmbedPDF` | `EmbedPDF` | facade (assembly `EmbedPDF.Viewer.dll`), with the generated C# compiled in as `internal` | `EmbedPDF.Runtime`, `Microsoft.Extensions.Logging.Abstractions` |
 | `EmbedPDF.Models` | `EmbedPDFModels` | UI-neutral models | `EmbedPDF` |
+
+*Changed 2026-11-20:* the facade's assembly is `EmbedPDF.Viewer`, not `EmbedPDF`, because `EmbedPDF.dll` and win-x64 PDFium's `embedpdf.dll` collide on a case-insensitive file system once a RID-specific build copies both into one directory. The package id and root namespace stay `EmbedPDF`.
 
 `EmbedPDFUI` has no counterpart (D6). `EmbedPDF.Runtime` is versioned `0.0.0-engine.<hash>`, the
 hash computed like `apple-engine-<hash>`, so facade and model work never rebuilds Rust.
@@ -264,7 +266,7 @@ Task plan: `docs/superpowers/plans/2026-11-20-dotnet-parity/01-runtime-package.m
 `research/dotnet-parity-p1`, not pushed.
 
 Naming. `platforms/dotnet/EmbedPDF` is the `EmbedPDF.Engine` package and stays untouched, so the
-facade lives at `platforms/dotnet/EmbedPDF.Viewer/` (assembly and package id `EmbedPDF`, namespace
+facade lives at `platforms/dotnet/EmbedPDF.Viewer/` (package id `EmbedPDF`, assembly `EmbedPDF.Viewer`, namespace
 `EmbedPDF`) and the runtime package project at `platforms/dotnet/EmbedPDF.Runtime/`. Generated C#
 goes to `platforms/dotnet/EmbedPDF.Viewer/Generated/`. The four spike tests moved to
 `platforms/dotnet/EmbedPDF.Viewer.Tests/`, and `platforms/dotnet/spike/` is gone.

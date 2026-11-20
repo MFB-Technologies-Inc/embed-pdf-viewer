@@ -592,6 +592,16 @@ def pinned_runtime_version():
         raise ValueError("EmbedPDF.Runtime.props has no EmbedPdfRuntimeVersion")
     return match.group(1)
 
+def check_name_collisions(managed, native):
+    """A RID-specific build copies the facade's assemblies and the runtime's
+    native files into one directory, and Windows (and default macOS volumes)
+    compare file names without case, so no two may share a name."""
+    natives = {PurePath(name).name.lower(): name for name in native}
+    for name in managed:
+        clash = natives.get(PurePath(name).name.lower())
+        if clash:
+            raise ValueError(f"managed {name} collides with native {clash} on a case-insensitive file system")
+
 def pack_facade(args):
     """Packs the EmbedPDF facade against the runtime package it depends on."""
     check_toolchain()
@@ -612,8 +622,12 @@ def pack_facade(args):
              f"-p:RestoreAdditionalProjectSources={runtime.parent}"], cwd=DOTNET, env=env)
     package = output / f"EmbedPDF.{args.version}.nupkg"
     with zipfile.ZipFile(package) as bundle:
-        if "lib/net10.0/EmbedPDF.dll" not in bundle.namelist():
+        if "lib/net10.0/EmbedPDF.Viewer.dll" not in bundle.namelist():
             raise ValueError("facade assembly missing from package")
+        managed = [name for name in bundle.namelist() if name.startswith("lib/")]
+    with zipfile.ZipFile(runtime) as bundle:
+        check_name_collisions(managed, [name for name in bundle.namelist() if name.startswith("runtimes/")])
+    with zipfile.ZipFile(package) as bundle:
         nuspec = bundle.read("EmbedPDF.nuspec").decode()
         if f'id="EmbedPDF.Runtime" version="{match.group(1)}"' not in nuspec:
             raise ValueError("facade package does not depend on the runtime package it was packed against")
