@@ -91,7 +91,7 @@ third-party generators support least. It does use foreign traits: 45 `with_forei
 
 The user confirms or overrides each before Phase 1 starts.
 
-**D1. Binding generator.** Recommendation: generate C# with UniFFI's community C# generator
+**D1. Binding generator.** *Changed 2026-11-20 by Phase 0: works only from a fork of the generator, see "Phase 0 results".* Recommendation: generate C# with UniFFI's community C# generator
 (`uniffi-bindgen-cs`), run through a thin wrapper binary in `crates/uniffi-bindgen-cs` pinned to
 the same `uniffi =0.32.0` as everything else, the way `crates/uniffi-bindgen` exists for Swift and
 Kotlin (`crates/uniffi-bindgen/Cargo.toml:12-14`). Phase 0 proves it on the full host: generation,
@@ -108,14 +108,14 @@ Rejected: extending `epdf-capi` to the viewer. It would mean a hand-maintained C
 layout and managed marshaller for every one of several hundred plugin members, kept in step with
 Rust by review alone.
 
-**D2. Relationship with `EmbedPDF.Engine`.** Recommendation: keep it as a separate, narrow package
+**D2. Relationship with `EmbedPDF.Engine`.** *Confirmed 2026-11-20 (execute instruction).* Recommendation: keep it as a separate, narrow package
 for headless reading, and build the viewer as new packages beside it with no dependency between
 them. Its admission control and validation records are worth keeping for server use, where a
 viewer kernel is dead weight. Cost: two native libraries each carry their own PDFium. An app that
 loads both pays the memory twice, so the README says to pick one. Revisit after the first viewer
 release: if nobody needs the narrow package, deprecate it then.
 
-**D3. Packages.** Three NuGet packages, plus the small DI extension package from D4, all
+**D3. Packages.** *Confirmed 2026-11-20 (execute instruction).* Three NuGet packages, plus the small DI extension package from D4, all
 `net10.0`:
 
 | Package | Apple counterpart | Contents | Depends on |
@@ -135,7 +135,7 @@ deliberate wrapper. Cost: every generated record the API exposes needs a hand-wr
 mapping, which is more code than a typealias. Phase 0 confirms the setting; if it doesn't exist,
 fall back to Apple's arrangement and document the generated namespace as unsupported.
 
-**D4. C# shape.** Swift idioms map one to one, so the port doesn't relitigate them:
+**D4. C# shape.** *Confirmed 2026-11-20 (execute instruction).* Swift idioms map one to one, so the port doesn't relitigate them:
 
 | Swift | C# |
 |---|---|
@@ -160,7 +160,7 @@ coverage manifest can share them across Swift, Kotlin and C#. Configuration take
 `services.AddEmbedPdf(options => …)` extension in a separate
 `EmbedPDF.Extensions.DependencyInjection` assembly so the core package carries no DI dependency.
 
-**D5. Platform services.**
+**D5. Platform services.** *Confirmed 2026-11-20 (execute instruction).*
 
 | Plugin service | Apple | .NET recommendation | Cost |
 |---|---|---|---|
@@ -173,7 +173,7 @@ coverage manifest can share them across Swift, Kotlin and C#. Configuration take
 | Document fetch | `URLSessionDocumentFetcher` | `HttpClientDocumentFetcher`, taking an `HttpClient` so callers can use `IHttpClientFactory` | none |
 | Signature transport | `SignatureTransport.swift` | `HttpClient`-based transport | none |
 
-**D6. No UI layer (decided 2026-11-20).** Apple has SwiftUI and Android has Compose: one
+**D6. No UI layer (decided 2026-11-20).** *Confirmed 2026-11-20 (execute instruction).* Apple has SwiftUI and Android has Compose: one
 first-party framework each, so a UI package there is the obvious next layer. .NET has no such
 framework. WPF and WinUI 3 are Windows only, .NET MAUI has no Linux, and Avalonia is third
 party. Picking one would serve only that framework's users, and there is no Windows host to
@@ -183,14 +183,14 @@ view, tiling, gesture handling and panels that `EmbedPDFUI` gives Swift apps for
 models must document their inputs well enough to make that practical (Phase 4). A UI package can
 be added later as a separate plan without changing the models.
 
-**D7. Publishing.** `.github/workflows/release-dotnet.yml` already exists for `EmbedPDF.Engine`.
+**D7. Publishing.** *Confirmed 2026-11-20 (execute instruction).* `.github/workflows/release-dotnet.yml` already exists for `EmbedPDF.Engine`.
 Recommendation: extend it to the four new packages and publish to GitHub Packages on
 the runtime repository, where release assets already go. Cost: GitHub Packages
 NuGet feeds need a token even to read, which every consumer's `nuget.config` must carry. nuget.org
 avoids that but needs a reserved prefix and signing we don't have. Publishing itself needs the
 user's separate approval.
 
-**D8. API stability.** `Microsoft.CodeAnalysis.PublicApiAnalyzers` with `PublicAPI.Shipped.txt`
+**D8. API stability.** *Confirmed 2026-11-20 (execute instruction).* `Microsoft.CodeAnalysis.PublicApiAnalyzers` with `PublicAPI.Shipped.txt`
 and `PublicAPI.Unshipped.txt` per assembly. A public surface change fails the build until the file
 changes in the same commit. After the first release, add `EnablePackageValidation` with that
 release as the baseline.
@@ -225,14 +225,14 @@ About 4 days. Exit: a throwaway branch where generated C# for every component of
 `epdf-viewer-host` compiles under `net10.0`, and a test opens a fixture, reads its page count and
 receives one foreign-trait callback, on `linux-arm64` in the dev container.
 
-- [ ] Try the C# generator against `epdf-viewer-host` at `uniffi =0.32.0`. Record the generator
+- [x] Try the C# generator against `epdf-viewer-host` at `uniffi =0.32.0`. Record the generator
   version, whether it needed a fork (D1), and any Rust names that collide with C# keywords or
   members, as Kotlin's `message` and `close` did.
-- [ ] Confirm the generator's `access_modifier = "internal"` setting (D3) and that callbacks work
+- [x] Confirm the generator's `access_modifier = "internal"` setting (D3) and that callbacks work
   when the generated types are internal.
-- [ ] Check the generated P/Invoke style against the trim and AOT analyzers; record warnings.
-- [ ] Pin the Jint version and record its license in this file.
-- [ ] Record D1 to D8 as confirmed or changed at the top of this file.
+- [x] Check the generated P/Invoke style against the trim and AOT analyzers; record warnings.
+- [x] Pin the Jint version and record its license in this file.
+- [x] Record D1 to D8 as confirmed or changed at the top of this file.
 
 ## Phase 1: Runtime package
 
@@ -353,3 +353,152 @@ Total: about 8 weeks of focused work with waves run one at a time, nearer 6 if P
 and B and Phase 4 behind them overlap in separate worktrees. The estimate assumes Phase 0 finds a
 working generator. A fork (D1) adds about 3 days up front plus a bump per UniFFI upgrade; each C#
 name collision costs about half a day in the generator config or the owning `ffi.rs`.
+
+## Phase 0 results (2026-11-20)
+
+Outcome: works, with a fork. Generated C# for all 25 components of `epdf-viewer-host` compiles
+under `net10.0` with `TreatWarningsAsErrors` and `IsAotCompatible`, and four xUnit tests pass on
+`linux-arm64` in the dev container: open `report.pdf` and read 14 pages, receive
+`ViewerDelegate.StateChanged` callbacks from Rust in revision order, receive a
+`DocumentEvent.Opened` through `DocumentEventListener`, and drive a `CommandRunner` both ways (C#
+answers `Derive`/`IconAccent`, and a C# `HostException.Failed` thrown from the callback reaches
+Rust and disables the command). Branch `spike/dotnet-generator`, not pushed.
+
+### Generator
+
+The newest upstream release is `v0.12.0+v0.32.0` (tag at `fc32e9b`, 2026-11-09), which targets
+this repository's uniffi. As released it does not work here, for two reasons, both with open
+upstream pull requests:
+
+1. It does not compile in this workspace. The generator declares `toml = ">=0.8, <0.10"`;
+   `uniffi_bindgen` 0.32.0 declares `>=0.9, <2` and resolves to `toml` 1.1.6 here. `toml` values
+   cross between the two crates (`BindingGenerator::new_config`, `interface::rename`), so the
+   build fails with E0053 and E0308. Upstream pull request 196 (`370010a`) widens the generator's
+   range to `>=0.9, <2`. Pinning `toml` 0.9 in our `Cargo.lock` would also work until the next
+   `cargo update`, so we did not take that route.
+2. Its output does not compile. An object type from another crate used inside an optional,
+   sequence or record goes through a `using` alias to the other file's converter, and each file
+   has its own `BigEndianStream`, so 10 sites fail with CS1503 (`epdf_plugin_outline.cs` reading
+   `PdfActionTree`, `epdf_viewer_host.cs` reading interaction and signature objects). Upstream
+   pull request 186 (`d24df88`) replaces the alias with a forwarding converter. It conflicts with
+   upstream main only in `CHANGELOG.md`.
+
+The fork is branch `epdf/v0.12.0-v0.32.0` at `91345690ef91dd2dbc9fa0738967c8f49478f056`: the
+tag, plus `370010a` (PR 196), plus `d24df88` cherry-picked as `9134569` (PR 186, our side of
+the `CHANGELOG.md` conflict kept). It lives only in the dev container at
+`/workspaces/uniffi-bindgen-cs`. `crates/uniffi-bindgen-cs` (package `epdf-uniffi-bindgen-cs`,
+binary `uniffi-bindgen-cs`, the package name differs because Cargo otherwise finds two
+`uniffi-bindgen-cs` packages and `-p` is ambiguous) takes it as
+`git = "file:///workspaces/uniffi-bindgen-cs"` at that revision. Cost: until the fork is hosted
+at a URL every machine can fetch, any workspace build outside that container fails to resolve,
+because Cargo loads every member's git dependencies. Phase 1 must host the fork (user decision)
+or wait for an upstream release with both pull requests. The wrapper adds 48 packages to
+`Cargo.lock` (askama 0.13, clap 3 and their trees) and changes no existing version.
+
+Other open upstream pull requests worth tracking: 190 (variant fields that collide with sibling
+variant records, which we hit, see below), 191 and 192 (doc comment warnings and escaping),
+193 (callback marking for Mono and IL2CPP AOT), 182 (object trait implementations), 194 (uniffi
+0.32.2).
+
+### Generation
+
+```sh
+cargo rustc -p epdf-viewer-host --release --locked --crate-type cdylib     # 3m24s warm
+cargo build -p epdf-uniffi-bindgen-cs
+target/debug/uniffi-bindgen-cs --no-format --library target/release/libepdf_viewer_host.so \
+  --config platforms/dotnet/spike/uniffi-cs.toml --out-dir target/csharp-spike/generated
+```
+
+PDFium came from `packages/engine/runtime/build/libpdfium/linux-arm64`, already fetched. No
+features or flags beyond the cdylib crate type. Output: 25 files, 154,833 lines, about 1.5 s.
+`--no-format` skips CSharpier, which is not installed; without it the generator warns once per
+file and writes the same output.
+
+The release cdylib `libepdf_viewer_host.so` is 37,937,696 bytes, 29,367,528 after `strip`. On
+Linux it links PDFium dynamically: `NEEDED libembedpdf.so` (11,376,920 bytes) with an absolute
+`RUNPATH` into the build tree. Phase 1's runtime package has to ship both files per RID and set
+the runpath to `$ORIGIN` or resolve `libembedpdf.so` itself; the spike worked only because the
+build-tree path exists in the container. This also bears on D2: if `epdf-capi` links the same
+way, the two packages carry the same PDFium file rather than two copies inside two libraries.
+
+### Access modifier (D3)
+
+`access_modifier` exists and defaults to `internal`. With the default, or with
+`access_modifier = "internal"` set, every generated type is `internal` (295 classes, 92
+interfaces, 425 records, 98 enums). With `"public"` the exported types become public and the
+FFI plumbing (`RustBuffer`, converters, `_UniFFILib`) stays internal. The spike's tests implement
+the internal callback interfaces from the same assembly, so callbacks work with internal
+bindings. Because generated types are internal, tests that touch them have to live in the facade
+assembly or use `InternalsVisibleTo`.
+
+### Name collisions
+
+Each is fixed in `platforms/dotnet/spike/uniffi-cs.toml` with the generator's `rename` table,
+keyed by crate then Rust path. No Rust change was needed.
+
+| Rust | Collision | C# name |
+|---|---|---|
+| `ViewerHost.destroy` | the generated `Destroy()` that frees the handle (CS0111) | `DestroyViewer` (Kotlin renames the same member in `crates/epdf-viewer-host/uniffi.toml`) |
+| `RenderViewDemandHandle.dispose` | `IDisposable.Dispose()` (CS0111) | `DisposeDemand` |
+| `ScriptEngine.dispose` (foreign trait) | `IDisposable.Dispose()` on `ScriptEngineImpl` (CS0111) | `DisposeEngine` |
+| `ActionSource::{Widget, Link}.{annotation, page}`, `ActionSource::Annotation.page`, `ActionTreeSource::Annotation.page`, `ActionTrigger::Activate.{annotation, page}`, `ActionTrigger::Annotation.page` | a variant field named like a sibling variant's nested record (CS8866, 9 sites) | `AnnotationRef`, `PageRef` |
+
+Renaming a foreign trait's method is safe: the vtable is positional. Kotlin's `message`
+collision does not occur, since no error variant has a `message` field. Things that compile but
+the facade should not expose as they are: method and property names equal to their type
+(`CommandRunner.IconAccent` returning `IconAccent?`), error variant fields as lowercase public
+fields (`ViewerException.Kernel.@detail`), exception messages that read `@name=...` because the
+template quotes the escaped identifier, and records holding objects are `IDisposable`
+(`CommandDefinition`).
+
+### Warnings and AOT
+
+No `<NoWarn>` was needed. Every generated file starts with an `<auto-generated>` header, so
+analyzers skip it, and the generator wraps its own CS8625 sites in `#pragma warning disable 8625`.
+The build reports 0 warnings and 0 errors with `TreatWarningsAsErrors` and `IsAotCompatible`
+(trim, AOT and single-file analyzers).
+
+To see what the header hides, the files were rebuilt with it stripped: no IL2xxx or IL3xxx
+warning, and 75 CA2022 warnings (3 per file, inexact `Stream.Read` in `BigEndianStream`). A probe
+calling `Type.GetType(string)` raised IL2057 in the same build, so the analyzers were live.
+P/Invokes are `[LibraryImport]` with `CallConvCdecl` on `net8.0` and later; callbacks register
+vtables through `Marshal.GetFunctionPointerForDelegate` on static delegate fields. Nothing was
+published with `PublishAot`; Phase 5 still owns that.
+
+### Async
+
+"Where .NET is today" says the host exports no UniFFI `async` functions. That is wrong: the
+grep looked for `export(async`, but `#[uniffi::export]` on an `impl` exports each `pub async fn`
+as async, and there are 697 of them under `crates/epdf-viewer-host/src`, `crates/plugins/*/src`
+and `crates/epdf-ffi/src` (`ViewerHost.start`, `open_document`, every capability accessor). The
+generator supports them: each becomes a `Task`-returning method over `_UniFFIAsync`, with no
+`CancellationToken`, and every spike test goes through them. Cancellation stays on the explicit
+`CancelToken` arguments, which is what D4's `token.Register(() => cancelToken.Cancel())` row
+already assumes.
+
+### Test
+
+```sh
+cd platforms/dotnet/spike/EmbedPDF.Spike
+dotnet build          # 0 warnings, 0 errors
+dotnet test --no-build
+# Passed!  - Failed: 0, Passed: 4, Skipped: 0, Total: 4, Duration: 389 ms
+```
+
+The project compiles `target/csharp-spike/generated/*.cs` into the test assembly and copies
+`target/release/libepdf_viewer_host.so` beside it.
+
+### Jint (D5)
+
+Jint 4.18.0, the newest stable on NuGet (published 2026-11-13), BSD-2-Clause, with a `net10.0`
+dependency group whose only dependency is Acornima 1.9.1 (BSD-3-Clause). The previous release,
+4.17.0, was published 2026-10-07. Pin 4.18.0 in Wave B, or 4.17.0 if packages less than two
+weeks old are out of bounds then.
+
+### Decisions after Phase 0
+
+D1 changed: C# generation works, but only from a fork (tag plus pull requests 196 and 186)
+until upstream releases both, and the fork has to be hosted before Phase 1 merges anything. The
+cost named in D1 applies now rather than as a fallback. D3 is confirmed as written: internal
+works, callbacks included. D2, D4, D5 (with Jint 4.18.0 and Acornima 1.9.1 recorded above), D6,
+D7 and D8 are confirmed 2026-11-20 (execute instruction).
