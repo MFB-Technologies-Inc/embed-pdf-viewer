@@ -3396,6 +3396,9 @@ EmbedPDF.HistoryUndoFailure.Unavailable = 0 -> EmbedPDF.HistoryUndoFailure
 EmbedPDF.HttpClientDocumentFetcher
 EmbedPDF.HttpClientDocumentFetcher.FetchAsync(string! url, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<EmbedPDF.DocumentFetchResponse!>!
 EmbedPDF.HttpClientDocumentFetcher.HttpClientDocumentFetcher(System.Net.Http.HttpClient? client = null) -> void
+EmbedPDF.HttpClientSignatureTransport
+EmbedPDF.HttpClientSignatureTransport.HttpClientSignatureTransport(System.Net.Http.HttpClient? client = null) -> void
+EmbedPDF.HttpClientSignatureTransport.PostAsync(EmbedPDF.SignatureTransportRequest! request) -> System.Threading.Tasks.Task<EmbedPDF.SignatureTransportOutcome!>!
 EmbedPDF.I18nCapability
 EmbedPDF.I18nCapability.AddTranslationsAsync(string! code, System.Collections.Generic.IReadOnlyDictionary<string!, string!>! translations, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.I18nCapability.Dispose() -> void
