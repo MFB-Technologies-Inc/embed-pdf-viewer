@@ -4,13 +4,13 @@
   "phase": 1,
   "rid": "linux-x64",
   "source": {
-    "commit": "42734fceba7285d7704ce97c65777c6556ea2b36",
+    "commit": "c582ac24f3d9922f4680e75a32e5a41d6bd570c1",
     "dirty": false,
     "runtimeFork": "f2ea7597287f26bdcb450602de6616ff6939d506"
   },
   "environment": {
     "kind": "container",
-    "os": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.41",
+    "os": "Linux-7.0.0-1020-azure-x86_64-with-glibc2.41",
     "arch": "x64",
     "emulated": false,
     "tools": {
@@ -35,26 +35,26 @@
   ],
   "commands": [
     {
-      "command": "/usr/bin/python3 /__w/embed-pdf-viewer/embed-pdf-viewer/platforms/dotnet/packaging/package.py smoke-runtime --rid linux-x64 --package /__w/embed-pdf-viewer/embed-pdf-viewer/dotnet-runtime/EmbedPDF.Runtime.0.0.0-engine.2e7fdf92c64b1092.nupkg --facade /__w/embed-pdf-viewer/embed-pdf-viewer/dotnet-runtime/EmbedPDF.0.0.0-dotnet.0.nupkg --manifest /__w/embed-pdf-viewer/embed-pdf-viewer/dotnet-runtime/package-manifest.runtime.json",
+      "command": "/usr/bin/python3 /__w/embed-pdf-viewer/embed-pdf-viewer/platforms/dotnet/packaging/package.py smoke-runtime --rid linux-x64 --package /__w/embed-pdf-viewer/embed-pdf-viewer/dotnet-runtime/EmbedPDF.Runtime.0.0.0-engine.5b0a47900f002e9a.nupkg --facade /__w/embed-pdf-viewer/embed-pdf-viewer/dotnet-runtime/EmbedPDF.0.0.0-dotnet.0.nupkg --manifest /__w/embed-pdf-viewer/embed-pdf-viewer/dotnet-runtime/package-manifest.runtime.json",
       "cwd": "/__w/embed-pdf-viewer/embed-pdf-viewer",
       "exitCode": 0,
-      "results": "  Determining projects to restore...\n  Restored /tmp/epdf-runtime-consumer-0fk4h03y/Consumer.csproj (in 2.18 sec).\n  Consumer -> /tmp/epdf-runtime-consumer-0fk4h03y/app-rid/Consumer.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:02.72\nPASS: rid=linux-x64 pages=14\nNativeRuntimeNotFoundException: rid=linux-x64: No EmbedPDF native library could be loaded for runtime 'linux-x64'. Reference EmbedPDF.Runtime, which ships libepdf_viewer_host.so and libembedpdf.so for this runtime, or put both beside the application. Searched: /tmp/epdf-runtime-consumer-0fk4h03y/app-rid/libepdf_viewer_host.so, /tmp/epdf-runtime-consumer-0fk4h03y/app-rid/runtimes/linux-x64/native/libepdf_viewer_host.so.\nNativeRuntimeNotFoundException: rid=linux-x64: The EmbedPDF native library for runtime 'linux-x64' was found but failed to load: /tmp/epdf-runtime-consumer-0fk4h03y/app-rid/libepdf_viewer_host.so. The inner exception has the loader's error.\n  Determining projects to restore...\n  Restored /tmp/epdf-runtime-consumer-0fk4h03y/Consumer.csproj (in 213 ms).\n  Consumer -> /tmp/epdf-runtime-consumer-0fk4h03y/app-portable/Consumer.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:03.46\nPASS: rid=linux-x64 pages=14\nNativeRuntimeNotFoundException: rid=linux-x64: No EmbedPDF native library could be loaded for runtime 'linux-x64'. Reference EmbedPDF.Runtime, which ships libepdf_viewer_host.so and libembedpdf.so for this runtime, or put both beside the application. Searched: /tmp/epdf-runtime-consumer-0fk4h03y/app-portable/libepdf_viewer_host.so, /tmp/epdf-runtime-consumer-0fk4h03y/app-portable/runtimes/linux-x64/native/libepdf_viewer_host.so.\nPASS: RID-specific and portable consumers, missing-host and missing-PDFium checks\n"
+      "results": "  Determining projects to restore...\n  Restored /tmp/epdf-runtime-consumer-bqy99kz4/Consumer.csproj (in 2.02 sec).\n  Consumer -> /tmp/epdf-runtime-consumer-bqy99kz4/app-rid/Consumer.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:02.46\nPASS: rid=linux-x64 pages=14\nNativeRuntimeNotFoundException: rid=linux-x64: No EmbedPDF native library could be loaded for runtime 'linux-x64'. Reference EmbedPDF.Runtime, which ships libepdf_viewer_host.so and libembedpdf.so for this runtime, or put both beside the application. Searched: /tmp/epdf-runtime-consumer-bqy99kz4/app-rid/libepdf_viewer_host.so, /tmp/epdf-runtime-consumer-bqy99kz4/app-rid/runtimes/linux-x64/native/libepdf_viewer_host.so.\nNativeRuntimeNotFoundException: rid=linux-x64: The EmbedPDF native library for runtime 'linux-x64' was found but failed to load: /tmp/epdf-runtime-consumer-bqy99kz4/app-rid/libepdf_viewer_host.so. The inner exception has the loader's error.\n  Determining projects to restore...\n  Restored /tmp/epdf-runtime-consumer-bqy99kz4/Consumer.csproj (in 219 ms).\n  Consumer -> /tmp/epdf-runtime-consumer-bqy99kz4/app-portable/Consumer.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:03.18\nPASS: rid=linux-x64 pages=14\nNativeRuntimeNotFoundException: rid=linux-x64: No EmbedPDF native library could be loaded for runtime 'linux-x64'. Reference EmbedPDF.Runtime, which ships libepdf_viewer_host.so and libembedpdf.so for this runtime, or put both beside the application. Searched: /tmp/epdf-runtime-consumer-bqy99kz4/app-portable/libepdf_viewer_host.so, /tmp/epdf-runtime-consumer-bqy99kz4/app-portable/runtimes/linux-x64/native/libepdf_viewer_host.so.\nPASS: RID-specific and portable consumers, missing-host and missing-PDFium checks\n"
     }
   ],
   "artifacts": [
     {
-      "path": "dotnet-runtime/EmbedPDF.Runtime.0.0.0-engine.2e7fdf92c64b1092.nupkg",
-      "sha256": "4c60932b9acb89209d7dcafcaaafd6252df1a04904bd48d82ac468a6941c7b2b",
-      "bytes": 96408526
+      "path": "dotnet-runtime/EmbedPDF.Runtime.0.0.0-engine.5b0a47900f002e9a.nupkg",
+      "sha256": "09cffa1e3d8931d67d79b301a9d881bb65de222cb41331ff6410d706e75d1565",
+      "bytes": 96450842
     },
     {
       "path": "dotnet-runtime/EmbedPDF.0.0.0-dotnet.0.nupkg",
-      "sha256": "4e093cd7da398aa87bdeb39b2b4fd6f4237482e6f731eee59aaa959b7d042cb7",
-      "bytes": 1900654
+      "sha256": "02654778c1c4ff1bf8e8f7aab1728650b1e0fc1a6dc0ecd3ac5146ca625dfa04",
+      "bytes": 1900659
     },
     {
       "path": "dotnet-runtime/package-manifest.runtime.json",
-      "sha256": "a699167852fab7ac5d83475780adeee4528d1f2bf7488ddb387b4239be818a8f",
+      "sha256": "bf43fab4d79b50b3d44e3ad1a5acf4bf1f6ea0ea93aad5f13adca2b96cf76918",
       "bytes": 6846
     }
   ],

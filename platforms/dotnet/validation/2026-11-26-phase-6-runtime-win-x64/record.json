@@ -4,7 +4,7 @@
   "phase": 1,
   "rid": "win-x64",
   "source": {
-    "commit": "42734fceba7285d7704ce97c65777c6556ea2b36",
+    "commit": "c582ac24f3d9922f4680e75a32e5a41d6bd570c1",
     "dirty": false,
     "runtimeFork": "f2ea7597287f26bdcb450602de6616ff6939d506"
   },
@@ -17,7 +17,7 @@
       "dotnet": "10.0.404",
       "rustc": "info: syncing channel updates for 1.100.0-x86_64-pc-windows-msvc",
       "libc": "ldd (cygwin) 3.6.10",
-      "runnerImage": "win22 20261116.370.1"
+      "runnerImage": "win22 20261123.376.1"
     }
   },
   "inputs": [
@@ -34,26 +34,26 @@
   ],
   "commands": [
     {
-      "command": "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe D:\\a\\embed-pdf-viewer\\embed-pdf-viewer\\platforms\\dotnet\\packaging\\package.py smoke-runtime --rid win-x64 --package D:\\a\\embed-pdf-viewer\\embed-pdf-viewer\\dotnet-runtime\\EmbedPDF.Runtime.0.0.0-engine.2e7fdf92c64b1092.nupkg --facade D:\\a\\embed-pdf-viewer\\embed-pdf-viewer\\dotnet-runtime\\EmbedPDF.0.0.0-dotnet.0.nupkg --manifest D:\\a\\embed-pdf-viewer\\embed-pdf-viewer\\dotnet-runtime\\package-manifest.runtime.json",
+      "command": "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe D:\\a\\embed-pdf-viewer\\embed-pdf-viewer\\platforms\\dotnet\\packaging\\package.py smoke-runtime --rid win-x64 --package D:\\a\\embed-pdf-viewer\\embed-pdf-viewer\\dotnet-runtime\\EmbedPDF.Runtime.0.0.0-engine.5b0a47900f002e9a.nupkg --facade D:\\a\\embed-pdf-viewer\\embed-pdf-viewer\\dotnet-runtime\\EmbedPDF.0.0.0-dotnet.0.nupkg --manifest D:\\a\\embed-pdf-viewer\\embed-pdf-viewer\\dotnet-runtime\\package-manifest.runtime.json",
       "cwd": "D:\\a\\embed-pdf-viewer\\embed-pdf-viewer",
       "exitCode": 0,
-      "results": "  Determining projects to restore...\n  Restored C:\\Users\\runneradmin\\AppData\\Local\\Temp\\epdf-runtime-consumer-9gorltn9\\Consumer.csproj (in 2.48 sec).\n  Consumer -> C:\\Users\\runneradmin\\AppData\\Local\\Temp\\epdf-runtime-consumer-9gorltn9\\app-rid\\Consumer.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:03.39\nPASS: rid=win-x64 pages=14\nNativeRuntimeNotFoundException: rid=win-x64: No EmbedPDF native library could be loaded for runtime 'win-x64'. Reference EmbedPDF.Runtime, which ships epdf_viewer_host.dll and embedpdf.dll for this runtime, or put both beside the application. Searched: C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\epdf-runtime-consumer-9gorltn9\\app-rid\\epdf_viewer_host.dll, C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\epdf-runtime-consumer-9gorltn9\\app-rid\\runtimes\\win-x64\\native\\epdf_viewer_host.dll.\nNativeRuntimeNotFoundException: rid=win-x64: The EmbedPDF native library for runtime 'win-x64' was found but failed to load: C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\epdf-runtime-consumer-9gorltn9\\app-rid\\epdf_viewer_host.dll. The inner exception has the loader's error.\n  Determining projects to restore...\n  Restored C:\\Users\\runneradmin\\AppData\\Local\\Temp\\epdf-runtime-consumer-9gorltn9\\Consumer.csproj (in 278 ms).\n  Consumer -> C:\\Users\\runneradmin\\AppData\\Local\\Temp\\epdf-runtime-consumer-9gorltn9\\app-portable\\Consumer.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:03.61\nPASS: rid=win-x64 pages=14\nNativeRuntimeNotFoundException: rid=win-x64: No EmbedPDF native library could be loaded for runtime 'win-x64'. Reference EmbedPDF.Runtime, which ships epdf_viewer_host.dll and embedpdf.dll for this runtime, or put both beside the application. Searched: C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\epdf-runtime-consumer-9gorltn9\\app-portable\\epdf_viewer_host.dll, C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\epdf-runtime-consumer-9gorltn9\\app-portable\\runtimes\\win-x64\\native\\epdf_viewer_host.dll.\nPASS: RID-specific and portable consumers, missing-host and missing-PDFium checks\n"
+      "results": "  Determining projects to restore...\n  Restored C:\\Users\\runneradmin\\AppData\\Local\\Temp\\epdf-runtime-consumer-nucrecix\\Consumer.csproj (in 1.6 sec).\n  Consumer -> C:\\Users\\runneradmin\\AppData\\Local\\Temp\\epdf-runtime-consumer-nucrecix\\app-rid\\Consumer.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:02.14\nPASS: rid=win-x64 pages=14\nNativeRuntimeNotFoundException: rid=win-x64: No EmbedPDF native library could be loaded for runtime 'win-x64'. Reference EmbedPDF.Runtime, which ships epdf_viewer_host.dll and embedpdf.dll for this runtime, or put both beside the application. Searched: C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\epdf-runtime-consumer-nucrecix\\app-rid\\epdf_viewer_host.dll, C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\epdf-runtime-consumer-nucrecix\\app-rid\\runtimes\\win-x64\\native\\epdf_viewer_host.dll.\nNativeRuntimeNotFoundException: rid=win-x64: The EmbedPDF native library for runtime 'win-x64' was found but failed to load: C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\epdf-runtime-consumer-nucrecix\\app-rid\\epdf_viewer_host.dll. The inner exception has the loader's error.\n  Determining projects to restore...\n  Restored C:\\Users\\runneradmin\\AppData\\Local\\Temp\\epdf-runtime-consumer-nucrecix\\Consumer.csproj (in 144 ms).\n  Consumer -> C:\\Users\\runneradmin\\AppData\\Local\\Temp\\epdf-runtime-consumer-nucrecix\\app-portable\\Consumer.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:02.28\nPASS: rid=win-x64 pages=14\nNativeRuntimeNotFoundException: rid=win-x64: No EmbedPDF native library could be loaded for runtime 'win-x64'. Reference EmbedPDF.Runtime, which ships epdf_viewer_host.dll and embedpdf.dll for this runtime, or put both beside the application. Searched: C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\epdf-runtime-consumer-nucrecix\\app-portable\\epdf_viewer_host.dll, C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\epdf-runtime-consumer-nucrecix\\app-portable\\runtimes\\win-x64\\native\\epdf_viewer_host.dll.\nPASS: RID-specific and portable consumers, missing-host and missing-PDFium checks\n"
     }
   ],
   "artifacts": [
     {
-      "path": "dotnet-runtime\\EmbedPDF.Runtime.0.0.0-engine.2e7fdf92c64b1092.nupkg",
-      "sha256": "4c60932b9acb89209d7dcafcaaafd6252df1a04904bd48d82ac468a6941c7b2b",
-      "bytes": 96408526
+      "path": "dotnet-runtime\\EmbedPDF.Runtime.0.0.0-engine.5b0a47900f002e9a.nupkg",
+      "sha256": "09cffa1e3d8931d67d79b301a9d881bb65de222cb41331ff6410d706e75d1565",
+      "bytes": 96450842
     },
     {
       "path": "dotnet-runtime\\EmbedPDF.0.0.0-dotnet.0.nupkg",
-      "sha256": "4e093cd7da398aa87bdeb39b2b4fd6f4237482e6f731eee59aaa959b7d042cb7",
-      "bytes": 1900654
+      "sha256": "02654778c1c4ff1bf8e8f7aab1728650b1e0fc1a6dc0ecd3ac5146ca625dfa04",
+      "bytes": 1900659
     },
     {
       "path": "dotnet-runtime\\package-manifest.runtime.json",
-      "sha256": "bff961af0bc9052df306eba2012c1526b7ee1f59bb32c1b88ad1ec80335694af",
+      "sha256": "9fcb416416377d33063923766e4a300212ce4aaf4e395827a5832e017b09b440",
       "bytes": 7044
     }
   ],
