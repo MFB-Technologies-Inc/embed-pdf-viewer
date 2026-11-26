@@ -138,7 +138,7 @@ consequence.
 
 **D4. Publishing.** Recommendation: a Maven repository in GitHub Packages on
 the runtime fork, `embedpdf-bindings` versioned `0.0.0-engine.<hash>` and
-the other three by package release. Cost: GitHub Packages requires a token even for reads, which
+the other four by package release. Cost: GitHub Packages requires a token even for reads, which
 every consumer's Gradle setup must carry. Maven Central avoids that but needs a namespace and
 signing setup we don't have.
 
@@ -219,9 +219,11 @@ Port, from `platforms/apple/EmbedPDF/Sources/EmbedPDF/`: `PDFViewer.swift`, `PDF
   `platforms/android/kotlin-api-coverage.json`. Members not yet ported are listed as `pending`
   with the phase that owns them, so the check passes from day one and shrinks to zero.
 - [x] Wire D5's `apiCheck` into `build-aar.sh`.
-- [ ] Tests: port `ViewerTests`, `DocumentAPITests`, `PDFErrorTests`, `RevisionHubTests`,
+- [x] Tests: port `ViewerTests`, `DocumentAPITests`, `PDFErrorTests`, `RevisionHubTests`,
   `StreamRuleTests`, `IntegerSurfaceTests`, `FetcherExportTests`, `ViewerConfigBuilderTests`,
   `DisabledPluginTests` and `ProductsTests` (as a check that only the five artifacts publish).
+  `ProductsTests` landed on 2026-11-26 as a check in `android-consumer.sh`: the artifacts
+  `publishToMavenLocal` writes must be exactly its `PRODUCTS`, each at one version.
 
 ## Phase 3: Plugin capabilities
 
@@ -265,17 +267,21 @@ tests ported, runnable on the JVM with `kotlinx-coroutines-test`.
 About 3 weeks. Exit: `PdfReader` composable renders, scrolls, zooms, searches, selects text and
 annotates the fixture corpus in Robolectric Compose UI tests.
 
-- [ ] Port the 19 files in `Sources/EmbedPDFUI/`: `StageReader` (with the page overlay slot from
+- [x] Port the 19 files in `Sources/EmbedPDFUI/`: `StageReader` (with the page overlay slot from
   `2026-11-18-swift-api-gaps.md` gap 5 from the start), `TiledPageImage` with a bitmap pool,
   `ThumbnailStrip` on `LazyRow`, `SearchBar`, `OutlinePanel`, `AttachmentPanel` (export through
   `ActivityResultContracts.CreateDocument`), `HistoryControls`, `ToolPicker`,
-  `TextSelectionOverlay` with the platform text toolbar, and `PdfReader`.
-- [ ] Material 3 theming through `MaterialTheme`, no hard-coded colours; TalkBack labels and
-  semantics on every control; RTL layout checked once.
-- [ ] Gestures through `pointerInput` with `detectTransformGestures`, keeping Apple's rule that a
-  drawing tool on top of the stage doesn't pan it.
-- [ ] Tests: port `EmbedPDFUITests` as Robolectric `createComposeRule` tests, plus the two
-  Review Focus tests owned here.
+  `TextSelectionOverlay` with the platform text toolbar, and `PdfReader`. `Exports.swift` needs
+  no file: `compose` exposes `models` as `api` (`05-compose-demo-release.md`).
+- [x] Material 3 theming through `MaterialTheme`, no hard-coded colours; TalkBack labels and
+  semantics on every control; RTL layout checked once (`PdfReaderTest`, `ChromeControlsTest`).
+- [x] Gestures through `pointerInput`, keeping Apple's rule that a drawing tool on top of the
+  stage doesn't pan it. Re-scoped: `StageReader` routes each touch at touch-down in its own
+  `pointerInput` handler rather than `detectTransformGestures`, which can't hand a drag to a tool
+  or an overlay; `05-compose-demo-release.md` records the routing.
+- [x] Tests: port `EmbedPDFUITests` as Robolectric `createComposeRule` tests, plus the two
+  Review Focus tests owned here (the 500-page pool budget in `TiledPageImageTest`,
+  `recreate()` in `ReaderRecreationTest`).
 
 ## Phase 6: Demo app and consumer check
 
@@ -312,6 +318,22 @@ Status, 2026-11-26: met, except one item not checked here. The coverage check re
 of 864 members; `apiCheck` passes; the minified demo assembles and passes `zipalign -c -P 16`
 (`android-consumer.sh`); `android-release.yml` is written and linted, and not run. Whether every
 Swift test file has a Kotlin counterpart or a recorded reason was not audited in Phases 6 and 7.
+
+Swift test files deliberately not ported, recorded 2026-11-26 from the final review:
+
+- `AccessorNameTests` and `AliasRemovalTests` pin deprecated Swift spellings (`render(in:)`,
+  `search(in:)`, the `PDFDocument` and `Annotation` aliases) kept for one tagged release. Kotlin
+  shipped no release before those names settled, so it has no shim to pin (Global Constraints:
+  rename freely before the first Android release).
+- `RevisionTests`, second case (`subscribingBeforeTheInitialReadDoesNotLoseAMutation`). A Swift
+  `AsyncStream` subscribes when it is made, so a stream made before the initial read sees a
+  mutation that lands before iteration starts. `observeStateRevisions()` returns a cold `Flow`
+  (D2): nothing subscribes until collection, and its KDoc tells the caller to read the initial
+  snapshot after collection starts. The Swift ordering has no Kotlin counterpart to test. The
+  first case is covered by `RevisionHubTest`.
+- `BaseSuite` and `PluginControlTestSupport` are harness files, not tests: a serialized suite
+  with a time limit and the fixture loader, and shared setup for the model and UI suites. Their
+  Kotlin counterparts are `TestSupport.kt`, `ModelTestSupport.kt` and `ComposeTestSupport.kt`.
 
 Total: about 11 weeks of focused work if waves run one at a time; Phase 3 waves A and B, and
 Phase 4 behind them, can overlap in separate worktrees, which brings it nearer 8. The estimate

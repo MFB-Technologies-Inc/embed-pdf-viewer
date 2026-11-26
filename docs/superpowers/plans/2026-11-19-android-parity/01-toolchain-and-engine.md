@@ -15,7 +15,7 @@
 - Every command runs in the container (`docker exec embed-pdf-android ...`). Nothing builds or runs on the Mac host.
 - No Android emulator exists in the container (Docker on this Mac has no nested virtualization). Device-only checks become JVM tests plus static ELF and zip checks; the README records that limitation with the date.
 - Generated Kotlin is never committed.
-- Commits: `feat(android): ...` / `build(android): ...`, author `Andrew Roan <roanutil@users.noreply.github.com>`, no co-author or session trailer.
+- Commits: `feat(android): ...` / `build(android): ...`, author the container git identity, no co-author or session trailer.
 - Package prose names no outside product, company or person.
 - If a version above doesn't resolve, use the nearest released one and record it in the commit message.
 
