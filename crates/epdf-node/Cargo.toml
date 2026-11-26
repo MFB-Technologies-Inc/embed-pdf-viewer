@@ -15,8 +15,8 @@ epdf-engine = { path = "../epdf-engine" }
 # thread that owns the engine, so a Tokio runtime would be a second scheduler
 # with nothing to schedule. `napi8` is the Node-API level the server's Node
 # 20 floor provides.
-napi = { version = "=3.12.2", default-features = false, features = ["napi8"] }
-napi-derive = "=3.6.3"
+napi = { version = "=3.16.3", default-features = false, features = ["napi8"] }
+napi-derive = "=3.7.2"
 # Pinned to work around an upstream mismatch, not because this crate uses it.
 # `napi-derive` 3.6.3 depends on `convert_case` "0.11" and re-exports symbols
 # from `napi-derive-backend`, whose 6.1.4 moved to "0.12". Cargo resolves both,
@@ -28,4 +28,4 @@ napi-derive-backend = "=6.1.2"
 
 [build-dependencies]
 build-support = { path = "../build-support" }
-napi-build = "=2.4.1"
+napi-build = "=2.7.0"
