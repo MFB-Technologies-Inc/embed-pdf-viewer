@@ -4,6 +4,16 @@ public final class com/embedpdf/compose/BridgesKt {
 	public static final fun toImageBitmap (Lcom/embedpdf/PageImage;)Landroidx/compose/ui/graphics/ImageBitmap;
 }
 
+public final class com/embedpdf/compose/ComposableSingletons$SearchBarKt {
+	public static final field INSTANCE Lcom/embedpdf/compose/ComposableSingletons$SearchBarKt;
+	public fun <init> ()V
+	public final fun getLambda$-1223714680$compose ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-471191455$compose ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$1408335168$compose ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$1927938176$compose ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$702272383$compose ()Lkotlin/jvm/functions/Function2;
+}
+
 public final class com/embedpdf/compose/ComposableSingletons$StageReaderKt {
 	public static final field INSTANCE Lcom/embedpdf/compose/ComposableSingletons$StageReaderKt;
 	public fun <init> ()V
@@ -12,6 +22,10 @@ public final class com/embedpdf/compose/ComposableSingletons$StageReaderKt {
 
 public final class com/embedpdf/compose/HapticsKt {
 	public static final fun rememberHapticFeedback (Landroidx/compose/runtime/Composer;I)Lcom/embedpdf/HapticFeedback;
+}
+
+public final class com/embedpdf/compose/HistoryControlsKt {
+	public static final fun HistoryControls (Lcom/embedpdf/models/HistoryModel;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/embedpdf/compose/ModelStringsKt {
@@ -42,6 +56,10 @@ public final class com/embedpdf/compose/ResourceSearchStrings : com/embedpdf/mod
 
 public final class com/embedpdf/compose/ScrollVisibilityKt {
 	public static final fun trackingScrollVisibility (Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function1;)Landroidx/compose/ui/Modifier;
+}
+
+public final class com/embedpdf/compose/SearchBarKt {
+	public static final fun SearchBar (Lcom/embedpdf/models/SearchModel;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/embedpdf/compose/StageReaderKt {
@@ -76,5 +94,10 @@ public final class com/embedpdf/compose/TiledPagePhase : java/lang/Enum {
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lcom/embedpdf/compose/TiledPagePhase;
 	public static fun values ()[Lcom/embedpdf/compose/TiledPagePhase;
+}
+
+public final class com/embedpdf/compose/ToolPickerKt {
+	public static final fun ToolPicker (Lcom/embedpdf/models/ToolModel;Ljava/util/List;Lkotlin/jvm/functions/Function3;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
+	public static final fun toolLabel-eRCDJDM (Ljava/lang/String;Landroidx/compose/runtime/Composer;I)Ljava/lang/String;
 }
 
