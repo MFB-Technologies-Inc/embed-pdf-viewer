@@ -6,11 +6,15 @@
 #   bash platforms/android/build-aar.sh          # first: the .so files and generated Kotlin
 #   bash platforms/android/android-consumer.sh
 #
-# Checks, in order: each artifact's POM names a version for every
-# dependency (the Compose ones come from the BOM through versionMapping);
-# `embedpdf-bindings` carries its native-debug-symbols zip; the release APK packages the engine for both ABIs; `zipalign -c -P 16`
-# passes on it; and R8 kept every `uniffi.` and `com.sun.jna.` class under
-# its own name, since JNA reaches them by reflection.
+# Checks, in order: the build publishes exactly the five artifacts in
+# PRODUCTS below, each at one version, so a sixth publication or a missing one
+# fails here and the README's product list changes with the build; each
+# artifact's POM names a version for every dependency (the Compose ones come
+# from the BOM through versionMapping); `embedpdf-bindings` carries its
+# native-debug-symbols zip; the release APK packages the engine for both
+# ABIs; `zipalign -c -P 16` passes on it; and R8 kept every `uniffi.` and
+# `com.sun.jna.` class under its own name, since JNA reaches them by
+# reflection.
 #
 # The repository is a directory of its own (CONSUMER_MAVEN_REPO, under the
 # library build's `build/` by default), passed to Gradle as
@@ -23,6 +27,10 @@ LIBS="$ROOT/platforms/android/embedpdf"
 DEMO="$ROOT/platforms/android/EmbedPDFDemo"
 REPO="${CONSUMER_MAVEN_REPO:-$LIBS/build/consumer-maven}"
 VERSION="${EMBEDPDF_VERSION:-0.0.0-consumer}"
+# The artifacts the README documents, as ProductsTests pins the Swift package's
+# products. `embedpdf-bindings` is versioned by the engine pin, the rest by
+# EMBEDPDF_VERSION.
+PRODUCTS=(embedpdf embedpdf-bindings embedpdf-compose embedpdf-javascript embedpdf-models)
 GRADLE=("$LIBS/gradlew" --console=plain "-Dmaven.repo.local=$REPO" "-Pembedpdf.version=$VERSION")
 
 for abi in arm64-v8a x86_64; do
@@ -37,10 +45,21 @@ echo "publishing to $REPO"
 "${GRADLE[@]}" -p "$LIBS" publishToMavenLocal
 
 engine="$(sed -n 's/^embedpdf\.engineRelease=android-engine-\(.*\)$/\1/p' "$LIBS/gradle.properties")"
-for artifact in embedpdf-bindings:0.0.0-engine.$engine embedpdf:$VERSION embedpdf-javascript:$VERSION \
-  embedpdf-models:$VERSION embedpdf-compose:$VERSION; do
-  name="${artifact%%:*}"
-  version="${artifact#*:}"
+# What the build published, read from the repository rather than listed:
+# one `<artifact>/<version>` directory per publication.
+published="$(cd "$REPO/com/embedpdf" && find . -mindepth 2 -maxdepth 2 -type d | sed 's#^\./##' | LC_ALL=C sort)"
+names="$(cut -d/ -f1 <<<"$published" | LC_ALL=C sort)"
+if [[ "$names" != "$(printf '%s\n' "${PRODUCTS[@]}" | LC_ALL=C sort)" ]]; then
+  echo "the build published $(tr '\n' ' ' <<<"$names")but the products are ${PRODUCTS[*]}" >&2
+  echo "a publication was added or removed; change PRODUCTS, the README's product list and the release workflow together" >&2
+  exit 1
+fi
+for artifact in $published; do
+  name="${artifact%%/*}"
+  version="${artifact#*/}"
+  expected="$VERSION"
+  [[ $name == embedpdf-bindings ]] && expected="0.0.0-engine.$engine"
+  [[ "$version" == "$expected" ]] || { echo "$name published as $version, not $expected" >&2; exit 1; }
   dir="$REPO/com/embedpdf/$name/$version"
   pom="$dir/$name-$version.pom"
   [[ -f "$pom" && -f "$dir/$name-$version.aar" && -f "$dir/$name-$version.module" ]] || {
