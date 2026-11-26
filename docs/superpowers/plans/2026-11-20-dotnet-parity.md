@@ -1385,9 +1385,22 @@ Final review fixes and the second merge (2026-11-26):
 |---|---|---|---|
 | 45853424872 | `release-dotnet.yml` | `42734fceb` | all 21 jobs passed after one re-run of `consumer (osx-arm64)`, whose first attempt failed the sample's `script` step with "The script sandbox has been disposed": the Jint boot ran past its time budget on a cold runner and poisoned the realm. The re-run passed; nothing changed |
 | 45860837730 | `release-train.yml`, `dry_run=true`, `swift_version=0.0.0-swift.10`, `viewer_version=0.0.0-preview.5`, `dotnet_version=0.0.0-dotnet.0` | `979fd3998` | The train started and ran every build and test job, `summarize` and `approve`. `release dotnet viewer` passed: it checked the five packages, found release `0.0.0-dotnet.0` absent, and printed the five pushes in order, the tag, the release and the missing-notes warning. `release dotnet` (the `EmbedPDF.Engine` release) failed: the win-x64 `.sha256` asset began with a backslash, because `sha256sum` escapes a line whose file name has one and `GITHUB_WORKSPACE` on Windows does. Fixed in `8cf87c121` by hashing from stdin |
-| @RUN5@ | `release-dotnet.yml` | `@HEAD5@` | @RESULT5@ |
+| 45870444350 | `release-dotnet.yml` | `8cf87c121` | every engine `.sha256` asset passed `sha256sum -c`, win-x64 included; `runtime slice (win-x64)` failed fetching the PDFium archive (HTTP 504), and the run was cancelled once the pin moved again |
+| 45875026242 | `release-dotnet.yml` | `136f5d8bd` | `runtime-pack` failed in `RedactionTests.ALabelAndTheSettingsRoundTrip`: the pending count read 1 just after `ApplyAsync`. Fixed in `c582ac24f` |
+| 45878960809 | `release-dotnet.yml` | `c582ac24f` | all 21 jobs passed; its records are the current ones |
+| 45884429305 | `release-train.yml`, `dry_run=true`, `dotnet_version=0.0.0-dotnet.0` | `b0c22eb24` | every `release-dotnet.yml` job passed inside the train, but `release-android.yml (build) / build` failed its Kotlin unit tests twice with different tests (`PdfViewerViewModelTest.clearingWhileTheStartIsInFlightDestroysTheViewer`, then `OutlinePanelTest.addingABookmarkThroughTheFormShowsItsRow`), so `summarize`, `approve` and the release jobs were skipped. The dry-run `release dotnet viewer` path last ran in 45860837730 |
 
-Those runs' records replace the earlier ones under `platforms/dotnet/validation/2026-11-26-phase-6-runtime-<rid>/`
+Android release merge (2026-11-26). The plugins branch gained the Android release work (`17bd82627`).
+A pre-resolved merge, `research/dotnet-parity-p6-sync` at `8fa938fdf` (p6 at `979fd3998` merged with
+`9790877d2`, the same tree as `17bd82627`), was reviewed and merged in at `6efbe0477`, then `17bd82627`
+itself at `793584b89` with no change. Its resolutions keep both sides: the train's .NET and Android
+inputs, jobs and summaries; `publish-staged.sh` beside `dotnet nuget push` and `release-viewer.sh` in
+the gate; both release-notes paragraphs; `Cargo.lock` with `smallvec` 1.16.2 for the generator. One
+slip is fixed in `b1d76569b`: two gate tests shared the name `test_packages_write_counts_as_writing`, so
+the called-job case was silently replaced. The engine moved to `0.0.0-engine.5b0a47900f002e9a`
+(`136f5d8bd`).
+
+The records from the last green `release-dotnet.yml` run replace the earlier ones under `platforms/dotnet/validation/2026-11-26-phase-6-runtime-<rid>/`
 (`91397ade5`).
 
 Swift test files and their C# counterparts (Definition of done):
