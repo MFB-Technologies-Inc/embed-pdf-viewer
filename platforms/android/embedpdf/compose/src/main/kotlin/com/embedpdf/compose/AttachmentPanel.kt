@@ -1,6 +1,11 @@
 package com.embedpdf.compose
 
+import android.content.ContentResolver
+import android.content.Context
+import android.net.Uri
+import android.provider.DocumentsContract
 import android.text.format.Formatter
+import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -27,11 +32,16 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,8 +60,17 @@ import com.embedpdf.AttachmentHomePage
 import com.embedpdf.ResourceStatus
 import com.embedpdf.models.AttachmentModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileNotFoundException
+import java.io.IOException
 
 /**
  * A document's attached files over an [AttachmentModel]: a header with
@@ -67,11 +86,12 @@ import kotlinx.coroutines.launch
  * attaches them through [AttachmentModel.importFiles]. "Save copy…"
  * downloads the selected file, then opens the system's create-document
  * picker named after it and writes the bytes there
- * ([AttachmentExportDocument]). A failure to write lands in the model's
- * error. The downloaded bytes are held in memory, not saved state, so a copy
- * whose picker outlives the activity (a configuration change while it is
- * open) is dropped and leaves the created document empty. "Remove…" asks
- * before it removes.
+ * ([AttachmentExportDocument]). The downloaded bytes wait in a file in the
+ * app's cache directory until the picker answers, so a copy whose picker
+ * outlives the activity, as across a rotation, is still written; the file is
+ * deleted once the picker answers. A failure to write lands in the model's
+ * error, and a created document whose copy is gone is deleted again.
+ * "Remove…" asks before it removes.
  *
  * The panel runs the model while it is composed, so the app does not run it
  * as well. A new model starts fresh: an import, a download or a dialog of
@@ -79,13 +99,18 @@ import kotlinx.coroutines.launch
  */
 @Composable
 public fun AttachmentPanel(model: AttachmentModel, modifier: Modifier = Modifier) {
-    ModelScope(model) { AttachmentPanelContent(it, modifier) }
+    ModelScope(model) { AttachmentPanelContent(it, modifier, rememberAttachmentPickers(it)) }
+}
+
+/** The panel with pickers made above it, as [PdfReader] makes them so they outlast a change of layout. */
+@Composable
+internal fun AttachmentPanel(model: AttachmentModel, pickers: AttachmentPickers, modifier: Modifier = Modifier) {
+    ModelScope(model) { AttachmentPanelContent(it, modifier, pickers) }
 }
 
 @Composable
-private fun AttachmentPanelContent(model: AttachmentModel, modifier: Modifier) {
+private fun AttachmentPanelContent(model: AttachmentModel, modifier: Modifier, pickers: AttachmentPickers) {
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
     val files by model.files.collectAsState()
     val selected by model.selectedFiles.collectAsState()
     val status by model.status.collectAsState()
@@ -95,31 +120,9 @@ private fun AttachmentPanelContent(model: AttachmentModel, modifier: Modifier) {
     val pending by model.pendingIds.collectAsState()
     val performing by model.performing.collectAsState()
     val error by model.error.collectAsState()
-    var content by remember { mutableStateOf<AttachmentContent?>(null) }
     var deleting by remember { mutableStateOf<AttachedFile?>(null) }
     var download by remember { mutableStateOf<Job?>(null) }
-    var import by remember { mutableStateOf<Job?>(null) }
     LaunchedEffect(model) { model.run() }
-
-    val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
-        if (uris.isEmpty()) return@rememberLauncherForActivityResult
-        import?.cancel()
-        import = scope.launch { model.importFiles(uris, context.contentResolver) }
-    }
-    val exporter = rememberLauncherForActivityResult(AttachmentExportDocument.contract()) { uri ->
-        val saved = content
-        content = null
-        if (uri == null || saved == null) return@rememberLauncherForActivityResult
-        scope.launch {
-            try {
-                AttachmentExportDocument.write(saved.data, uri, context.contentResolver)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                model.fileOperationFailed(e)
-            }
-        }
-    }
     val defaultName = stringResource(R.string.embedpdf_attachments_default_name)
 
     Column(modifier) {
@@ -128,7 +131,7 @@ private fun AttachmentPanelContent(model: AttachmentModel, modifier: Modifier) {
                 Icon(painterResource(R.drawable.embedpdf_ic_refresh), stringResource(R.string.embedpdf_reload))
             }
             IconButton(
-                onClick = { importer.launch(arrayOf("*/*")) },
+                onClick = { pickers.importer.launch(arrayOf("*/*")) },
                 enabled = canAdd && !performing,
                 modifier = Modifier.testTag("attachmentImport"),
             ) {
@@ -164,11 +167,7 @@ private fun AttachmentPanelContent(model: AttachmentModel, modifier: Modifier) {
                 onClick = {
                     val file = selected.firstOrNull() ?: return@TextButton
                     download?.cancel()
-                    download = scope.launch {
-                        val result = model.download(file) ?: return@launch
-                        content = result
-                        exporter.launch(result.name.ifEmpty { defaultName })
-                    }
+                    download = scope.launch { pickers.saveCopy(model, file, defaultName) }
                 },
                 enabled = canDownload && selected.size == 1 && !performing,
                 modifier = Modifier.testTag("attachmentExport"),
@@ -248,4 +247,113 @@ private fun AttachmentRow(
             }
         }
     }
+}
+
+/** Where [AttachmentPickers] keeps a downloaded copy until the save picker answers. */
+internal fun attachmentCopyDirectory(context: Context): File = File(context.cacheDir, "embedpdf-attachment-copies")
+
+/**
+ * The attachment panel's two document pickers and the copy waiting for the
+ * save picker. A result goes to [model], and waits for one while it is
+ * `null`, as it is while a recreated reader still builds its models.
+ *
+ * The launchers' saved-state keys come from where this is remembered, so a
+ * reader remembers it above its layout: a result that arrives after a
+ * recreation into another layout still finds its launcher.
+ */
+@Stable
+internal class AttachmentPickers(
+    private val scope: CoroutineScope,
+    private val resolver: ContentResolver,
+    private val directory: File,
+    /** The path of the copy the save picker is open for. Saved state, so it outlives the activity. */
+    private val pendingCopy: MutableState<String?>,
+) {
+    var model: AttachmentModel? by mutableStateOf(null)
+    lateinit var importer: ManagedActivityResultLauncher<Array<String>, List<Uri>>
+    lateinit var exporter: ManagedActivityResultLauncher<String, Uri?>
+    private var import: Job? = null
+
+    private suspend fun awaitModel(): AttachmentModel = snapshotFlow { model }.filterNotNull().first()
+
+    /** Attaches the files the import picker returned. */
+    fun imported(uris: List<Uri>) {
+        if (uris.isEmpty()) return
+        import?.cancel()
+        import = scope.launch { awaitModel().importFiles(uris, resolver) }
+    }
+
+    /** Downloads [file] into the cache directory and opens the save picker for it. */
+    suspend fun saveCopy(model: AttachmentModel, file: AttachedFile, defaultName: String) {
+        val content: AttachmentContent = model.download(file) ?: return
+        val copy = try {
+            withContext(Dispatchers.IO) { stash(content.data) }
+        } catch (e: IOException) {
+            model.fileOperationFailed(e)
+            return
+        }
+        pendingCopy.value?.let { earlier -> withContext(Dispatchers.IO) { File(earlier).delete() } }
+        pendingCopy.value = copy.path
+        exporter.launch(content.name.ifEmpty { defaultName })
+    }
+
+    /** Writes the waiting copy where the save picker says, or drops it when the picker was cancelled. */
+    fun exported(uri: Uri?) {
+        val copy = pendingCopy.value?.let(::File)
+        pendingCopy.value = null
+        scope.launch {
+            try {
+                if (uri == null) return@launch
+                val bytes = withContext(Dispatchers.IO) { copy?.takeIf { it.isFile }?.readBytes() }
+                if (bytes == null) {
+                    // The picker created an empty document for a copy that is gone.
+                    withContext(Dispatchers.IO) { deleteQuietly(uri) }
+                    awaitModel().fileOperationFailed(FileNotFoundException("The attachment's copy is no longer available."))
+                    return@launch
+                }
+                AttachmentExportDocument.write(bytes, uri, resolver)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                awaitModel().fileOperationFailed(e)
+            } finally {
+                if (copy != null) withContext(NonCancellable + Dispatchers.IO) { copy.delete() }
+            }
+        }
+    }
+
+    private fun stash(data: ByteArray): File {
+        directory.mkdirs()
+        // A copy whose picker never answered, as when the process died and its reader never came back.
+        val stale = System.currentTimeMillis() - STALE_COPY_MILLIS
+        directory.listFiles()?.filter { it.lastModified() < stale }?.forEach { it.delete() }
+        return File.createTempFile("copy-", ".bin", directory).apply { writeBytes(data) }
+    }
+
+    private fun deleteQuietly(uri: Uri) {
+        try {
+            DocumentsContract.deleteDocument(resolver, uri)
+        } catch (e: Exception) {
+            // A provider that cannot delete leaves the empty document; the error says why it is empty.
+        }
+    }
+
+    private companion object {
+        const val STALE_COPY_MILLIS = 24L * 60 * 60 * 1000
+    }
+}
+
+/** Remembers the attachment pickers whose results go to [model]. */
+@Composable
+internal fun rememberAttachmentPickers(model: AttachmentModel?): AttachmentPickers {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val pendingCopy = rememberSaveable { mutableStateOf<String?>(null) }
+    val pickers = remember(scope, pendingCopy) {
+        AttachmentPickers(scope, context.applicationContext.contentResolver, attachmentCopyDirectory(context), pendingCopy)
+    }
+    SideEffect { pickers.model = model }
+    pickers.importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { pickers.imported(it) }
+    pickers.exporter = rememberLauncherForActivityResult(AttachmentExportDocument.contract()) { pickers.exported(it) }
+    return pickers
 }

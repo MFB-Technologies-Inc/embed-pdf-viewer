@@ -23,6 +23,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityOptionsCompat
+import androidx.test.core.app.ApplicationProvider
 import com.embedpdf.AttachmentFileSource
 import com.embedpdf.EmbedPdfTestRunner
 import com.embedpdf.ResourceStatus
@@ -122,6 +123,48 @@ class AttachmentPanelTest {
             assertArrayEquals(bytes, out.readBytes())
             assertEquals(listOf<Any?>("note.txt"), pickers.inputs)
             assertEquals(null, model.error.value)
+        } finally {
+            o.destroy()
+        }
+    }
+
+    /** A cancelled save picker leaves no copy behind in the cache. */
+    @Test
+    fun aCancelledSaveLeavesNoCopyBehind() {
+        val pickers = Pickers { _, _ -> null }
+        val o = opened()
+        try {
+            val model = show(o, pickers, seeded = true)
+            compose.onNode(hasText("note.txt", substring = true) and hasClickAction()).performClick()
+            compose.pumpUntil { model.selectedFiles.value.size == 1 && !model.performing.value }
+            compose.pumpFrame()
+            compose.onNodeWithTag("attachmentExport").performClick()
+            compose.pumpUntil { pickers.inputs.isNotEmpty() }
+            val copies = attachmentCopyDirectory(ApplicationProvider.getApplicationContext())
+            compose.pumpUntil { copies.listFiles().isNullOrEmpty() }
+            assertEquals(null, model.error.value)
+        } finally {
+            o.destroy()
+        }
+    }
+
+    /** A document the picker created for a copy that is gone is an error, not a silently empty file. */
+    @Test
+    fun aCopyThatIsGoneWhenThePickerAnswersIsAnError() {
+        val out = folder.newFile("copy.bin")
+        val pickers = Pickers { _, _ ->
+            attachmentCopyDirectory(ApplicationProvider.getApplicationContext()).listFiles()?.forEach { it.delete() }
+            Uri.fromFile(out)
+        }
+        val o = opened()
+        try {
+            val model = show(o, pickers, seeded = true)
+            compose.onNode(hasText("note.txt", substring = true) and hasClickAction()).performClick()
+            compose.pumpUntil { model.selectedFiles.value.size == 1 && !model.performing.value }
+            compose.pumpFrame()
+            compose.onNodeWithTag("attachmentExport").performClick()
+            compose.pumpUntil { model.error.value != null }
+            assertEquals(0L, out.length())
         } finally {
             o.destroy()
         }

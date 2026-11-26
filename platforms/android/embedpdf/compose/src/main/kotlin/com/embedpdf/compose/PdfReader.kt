@@ -219,6 +219,9 @@ private fun ReadyReader(
         }
     }
     val picker = session.tools?.takeIf { tools.isNotEmpty() }
+    // Above the layout branch, so a picker result finds its launcher after a
+    // rotation moves the panel between the side sheet and the bottom sheet.
+    val attachmentPickers = rememberAttachmentPickers(attachments)
 
     val panelContent: @Composable (Modifier) -> Unit = { panelModifier ->
         when (shown) {
@@ -229,7 +232,7 @@ private fun ReadyReader(
                     onLinkActivation(activation)
                 }
             }
-            ReaderPanel.ATTACHMENTS -> attachments?.let { AttachmentPanel(it, panelModifier) }
+            ReaderPanel.ATTACHMENTS -> attachments?.let { AttachmentPanel(it, attachmentPickers, panelModifier) }
             null -> Unit
         }
     }
