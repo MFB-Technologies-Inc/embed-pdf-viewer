@@ -6,7 +6,7 @@
 
 use ecdsa::signature::hazmat::PrehashVerifier as _;
 use rsa::traits::PublicKeyParts as _;
-use rsa::{BigUint, Pkcs1v15Sign, Pss, RsaPublicKey};
+use rsa::{BoxedUint, Pkcs1v15Sign, Pss, PublicKey};
 
 use crate::cert::{AlgId, Spki};
 use crate::der;
@@ -115,7 +115,7 @@ pub fn pss_params(algorithm: &AlgId) -> Result<PssParams, String> {
 enum Key {
     /// `None`: a modulus past [`WEBCRYPTO_MAX_RSA_BITS`], which imports but
     /// never verifies.
-    Rsa(Option<RsaPublicKey>),
+    Rsa(Option<PublicKey>),
     P256(p256::ecdsa::VerifyingKey),
     P384(p384::ecdsa::VerifyingKey),
     P521(p521::ecdsa::VerifyingKey),
@@ -130,17 +130,26 @@ const IMPORT_FAILED: &str = "DataError: the key data could not be imported";
 /// valid 8192-bit signature as tampered.
 const WEBCRYPTO_MAX_RSA_BITS: usize = 16384;
 
-fn rsa_key(spki: &Spki) -> Result<Option<RsaPublicKey>, String> {
+fn rsa_key(spki: &Spki) -> Result<Option<PublicKey>, String> {
     let node = der::from_ber(&spki.key).filter(|n| n.is_sequence()).ok_or(IMPORT_FAILED)?;
     let n = node.children.first().filter(|n| n.is_universal(der::INTEGER)).ok_or(IMPORT_FAILED)?;
     let e = node.children.get(1).filter(|n| n.is_universal(der::INTEGER)).ok_or(IMPORT_FAILED)?;
-    let (n, e) = (BigUint::from_bytes_be(&n.content), BigUint::from_bytes_be(&e.content));
-    if n.bits() > WEBCRYPTO_MAX_RSA_BITS {
+    let (n, e) = (uint(&n.content), uint(&e.content));
+    if n.bit_width_vartime() as usize > WEBCRYPTO_MAX_RSA_BITS {
         return Ok(None);
     }
-    RsaPublicKey::new_with_max_size(n, e, WEBCRYPTO_MAX_RSA_BITS)
+    // `rsa` refuses a modulus under 1024 bits by default; WebCrypto imports
+    // one, so the floor stays at zero as it was before `rsa` 0.10.
+    PublicKey::new_with_size_limits(n, e, 0..=WEBCRYPTO_MAX_RSA_BITS)
         .map(Some)
         .map_err(|_| IMPORT_FAILED.to_string())
+}
+
+/// A DER INTEGER's content as an unsigned integer sized to its value, as
+/// `rsa`'s own SPKI decoding sizes one.
+fn uint(content: &[u8]) -> BoxedUint {
+    let start = content.iter().position(|&b| b != 0).unwrap_or(content.len().saturating_sub(1));
+    BoxedUint::from_be_slice_vartime(content.get(start..).filter(|b| !b.is_empty()).unwrap_or(&[0]))
 }
 
 fn import(name: &str, curve: Option<&str>, spki: &Spki) -> Result<Key, String> {
@@ -243,13 +252,14 @@ fn pkcs1(hash: Digest) -> Pkcs1v15Sign {
     }
 }
 
-fn pss(hash: Digest, salt: usize) -> Pss {
+fn verify_pss(key: &PublicKey, hash: Digest, salt: usize, hashed: &[u8], sig: &[u8]) -> bool {
     match hash {
-        Digest::Sha1 => Pss::new_with_salt::<sha1::Sha1>(salt),
-        Digest::Sha256 => Pss::new_with_salt::<sha2::Sha256>(salt),
-        Digest::Sha384 => Pss::new_with_salt::<sha2::Sha384>(salt),
-        Digest::Sha512 => Pss::new_with_salt::<sha2::Sha512>(salt),
+        Digest::Sha1 => key.verify(Pss::<sha1::Sha1>::new_with_salt(salt), hashed, sig),
+        Digest::Sha256 => key.verify(Pss::<sha2::Sha256>::new_with_salt(salt), hashed, sig),
+        Digest::Sha384 => key.verify(Pss::<sha2::Sha384>::new_with_salt(salt), hashed, sig),
+        Digest::Sha512 => key.verify(Pss::<sha2::Sha512>::new_with_salt(salt), hashed, sig),
     }
+    .is_ok()
 }
 
 /// `verifyWithPublicKey(data, signature, publicKeyInfo, signatureAlgorithm,
@@ -291,15 +301,16 @@ pub fn verify_with_public_key(
             if let Some(oid) = &params.hash {
                 algorithm_name(oid).ok_or_else(|| unsupported_identifier(oid))?;
             }
-            // A salt that cannot fit the encoded message never verifies;
-            // `rsa` adds it unchecked and panics on one near usize::MAX.
+            // A salt that cannot fit the encoded message never verifies.
+            // Checking here also keeps `salt as usize` from truncating on
+            // 32-bit targets.
             let Some(rsa) = rsa else { return Ok(false) };
             let salt = params.salt.unwrap_or(20);
             let room = rsa.size().saturating_sub(sha.size() + 2);
             if salt > room as u64 {
                 return Ok(false);
             }
-            Ok(rsa.verify(pss(sha, salt as usize), &sha.hash(data), signature).is_ok())
+            Ok(verify_pss(rsa, sha, salt as usize, &sha.hash(data), signature))
         }
         Key::Rsa(None) => Ok(false),
         Key::Rsa(Some(ref rsa)) => Ok(rsa.verify(pkcs1(sha), &sha.hash(data), signature).is_ok()),
