@@ -13,6 +13,9 @@ namespace EmbedPDF;
 public sealed class SearchCapability : IDisposable
 {
     readonly PdfViewer viewer;
+
+    /// <summary>The viewer this capability belongs to, for the models in <c>EmbedPDF.Models</c>.</summary>
+    internal PdfViewer Viewer => viewer;
     readonly GS.SearchHandle handle;
 
     internal SearchCapability(PdfViewer viewer, GS.SearchHandle handle)

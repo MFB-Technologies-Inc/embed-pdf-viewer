@@ -1,0 +1,4 @@
+#nullable enable
+EmbedPDF.Models.ObservableModel
+EmbedPDF.Models.ObservableModel.Context.get -> System.Threading.SynchronizationContext!
+EmbedPDF.Models.ObservableModel.PropertyChanged -> System.ComponentModel.PropertyChangedEventHandler?

@@ -191,6 +191,9 @@ public interface IInteractionHandler
 public sealed class InteractionCapability : IDisposable
 {
     readonly PdfViewer viewer;
+
+    /// <summary>The viewer this capability belongs to, for the models in <c>EmbedPDF.Models</c>.</summary>
+    internal PdfViewer Viewer => viewer;
     readonly GI.InteractionHandle handle;
 
     internal InteractionCapability(PdfViewer viewer, GI.InteractionHandle handle)

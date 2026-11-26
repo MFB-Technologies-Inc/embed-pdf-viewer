@@ -27,6 +27,9 @@ namespace EmbedPDF;
 public sealed class AnnotationCapability : IDisposable
 {
     readonly PdfViewer viewer;
+
+    /// <summary>The viewer this capability belongs to, for the models in <c>EmbedPDF.Models</c>.</summary>
+    internal PdfViewer Viewer => viewer;
     readonly GA.AnnotationHandle handle;
 
     internal AnnotationCapability(PdfViewer viewer, GA.AnnotationHandle handle)

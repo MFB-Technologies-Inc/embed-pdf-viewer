@@ -21,6 +21,9 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="EmbedPDF.Viewer.Tests" />
+    <!-- The models read a capability's viewer (the internal Viewer
+         properties), as Swift's models use the package-level viewer. -->
+    <InternalsVisibleTo Include="EmbedPDF.Models" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
     <PackageReference Include="EmbedPDF.Runtime" Version="$(EmbedPdfRuntimeVersion)" Condition="'$(EmbedPdfPackRuntime)' == 'true'" />
   </ItemGroup>
