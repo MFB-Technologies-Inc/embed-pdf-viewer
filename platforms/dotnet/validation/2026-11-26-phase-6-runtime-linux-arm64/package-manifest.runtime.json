@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "packageId": "EmbedPDF.Runtime",
-  "version": "0.0.0-engine.822686307291c580",
+  "version": "0.0.0-engine.dc140b58fa617042",
   "source": {
-    "commit": "8709bf4fba43d94de86e5f968014449ad18aedba",
+    "commit": "eb2718c6c1dffbd62f8f7cb3ad3e9634ce42aaf6",
     "dirty": false
   },
   "runtimeFork": "f2ea7597287f26bdcb450602de6616ff6939d506",
@@ -48,7 +48,7 @@
     },
     {
       "path": "runtimes/linux-arm64/native/epdf-assets.json",
-      "sha256": "e3259e362fdb4e8047123b28b93127e9e8b67606404fec163f036fac5b55aa59",
+      "sha256": "6a30d2e82cdc65195dd39bad61277493ea8bafbd00a247f83b35be2f20eb5280",
       "bytes": 1259
     },
     {
@@ -63,8 +63,8 @@
     },
     {
       "path": "runtimes/linux-arm64/native/libepdf_viewer_host.so",
-      "sha256": "a3a7258060dac11f23a44d554479153faaf438401d60b2479a2fd5b608db81aa",
-      "bytes": 29367528
+      "sha256": "d6885dd773b037f6f299bf1c3371c9f51d936fcc1ea191776cf3c511083a5cbe",
+      "bytes": 29433192
     },
     {
       "path": "runtimes/linux-x64/native/EmbedPDF-LICENSE",
@@ -78,7 +78,7 @@
     },
     {
       "path": "runtimes/linux-x64/native/epdf-assets.json",
-      "sha256": "0a1564ff7d23764b9b9dc1d5bf416ab55d8198142d8c733272ff93d9ccaa6060",
+      "sha256": "2c1cbef80db8bc0517fd88354d4a69c037e4c304b166099422694dfd9625f079",
       "bytes": 1245
     },
     {
@@ -93,8 +93,8 @@
     },
     {
       "path": "runtimes/linux-x64/native/libepdf_viewer_host.so",
-      "sha256": "037bf3aa4f624f0a20a91a249c8cedca9da97be7f7b92ffa9c3583651589774f",
-      "bytes": 33636560
+      "sha256": "49ac1e0a0ffc443287ad5e050212dc166dd9d7cd162aea6a409d0b26276a2534",
+      "bytes": 33654048
     },
     {
       "path": "runtimes/osx-arm64/native/EmbedPDF-LICENSE",
@@ -108,7 +108,7 @@
     },
     {
       "path": "runtimes/osx-arm64/native/epdf-assets.json",
-      "sha256": "e789609e9cbee337422039b5f6acfbbeb5d894bab195be3c52cc9e537b607d89",
+      "sha256": "162ee7962c6a44ff7847c7dab50794ce9d3d8330a9d3db6e535c9db960382dbf",
       "bytes": 1253
     },
     {
@@ -123,8 +123,8 @@
     },
     {
       "path": "runtimes/osx-arm64/native/libepdf_viewer_host.dylib",
-      "sha256": "4185f39752aa7379142e18e15124cac5e275e756993aecf13a912f8a4a336b93",
-      "bytes": 28331040
+      "sha256": "64706d1772830ebd761cb14ff14a50d6b9529e7824cfea4338d8b134481a0803",
+      "bytes": 28364480
     },
     {
       "path": "runtimes/osx-x64/native/EmbedPDF-LICENSE",
@@ -138,7 +138,7 @@
     },
     {
       "path": "runtimes/osx-x64/native/epdf-assets.json",
-      "sha256": "dbda1dc95b1a50f36f3936782df37af26dbed8e6f90138a9a0614867d1c3c737",
+      "sha256": "cbf58011f0fecb2543e853eda0116bf140f7af8c09ffe38da6e2fac16ccedb9a",
       "bytes": 1240
     },
     {
@@ -153,8 +153,8 @@
     },
     {
       "path": "runtimes/osx-x64/native/libepdf_viewer_host.dylib",
-      "sha256": "220e99bb013993155f38b8b127755e173ba1d0d8ec1403f18dfe887b072cc737",
-      "bytes": 31151008
+      "sha256": "5ff0223d0072d5e5c96cbf4d7d3b656bccd072f418b5a493c1c67772b2825013",
+      "bytes": 31159312
     },
     {
       "path": "runtimes/win-x64/native/EmbedPDF-LICENSE",
@@ -173,7 +173,7 @@
     },
     {
       "path": "runtimes/win-x64/native/epdf-assets.json",
-      "sha256": "e72a76f06ae0fa432c6f9277582cf2a3f23788bd2023d13a0d2807cc4d1fd8fd",
+      "sha256": "9723d2b4a73f6c3f218695a99f0f067fb04af033b74ef8f42a0ad08f4ca2d4bc",
       "bytes": 1229
     },
     {
@@ -183,13 +183,13 @@
     },
     {
       "path": "runtimes/win-x64/native/epdf_viewer_host.dll",
-      "sha256": "f015bcc95b7574e1dc24981548996003606ae7711b764c6a3982b66fda5f940e",
-      "bytes": 44866560
+      "sha256": "1163c81c1dd91a563bc543012fe5684f2289009ca0f3c880b1a823ab5e02b828",
+      "bytes": 45346816
     },
     {
-      "path": "EmbedPDF.Runtime.0.0.0-engine.822686307291c580.nupkg",
-      "sha256": "ec3b0e203a263caf9cb1aa0ae5aa93b8f935f55040b6cf14aa03541a55981098",
-      "bytes": 96125498
+      "path": "EmbedPDF.Runtime.0.0.0-engine.dc140b58fa617042.nupkg",
+      "sha256": "83bc37e03377fe51ce493e27ecc8c43ac8be104f86760abe0d156ef1bdb891de",
+      "bytes": 96444762
     }
   ],
   "limitations": [
