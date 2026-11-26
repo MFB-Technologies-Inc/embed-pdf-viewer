@@ -314,13 +314,15 @@ jobs:
       # The asset as an app gets it: unzipped into a directory of its own and
       # named as a Maven repository, with no Maven Local in the build.
       - name: Build the demo from the unzipped repository
+        env:
+          VERSION: ${{ steps.pin.outputs.version }}
         run: |
-          $DEV_RUN 'set -e
+          $DEV_RUN "set -e
             rm -rf build/android-zip-repo && mkdir -p build/android-zip-repo
-            (cd build/android-release && sha256sum -c ./*.zip.sha256)
-            unzip -q build/android-release/*.zip -d build/android-zip-repo
+            (cd build/android-release && sha256sum -c embedpdf-android-maven-$VERSION.zip.sha256)
+            unzip -q build/android-release/embedpdf-android-maven-$VERSION.zip -d build/android-zip-repo
             platforms/android/embedpdf/gradlew --console=plain -p platforms/android/EmbedPDFDemo \
-              -Pembedpdf.mavenRepository=/workspaces/repo/build/android-zip-repo :app:assembleRelease'
+              -Pembedpdf.mavenRepository=/workspaces/repo/build/android-zip-repo -Pembedpdf.version=$VERSION :app:assembleRelease"
 
       - name: Summarize the build
         env:
