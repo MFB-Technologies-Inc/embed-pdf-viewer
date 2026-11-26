@@ -1243,19 +1243,129 @@ snapshot lag, not a failure.
 ## Phase 6: Release and documentation
 
 About 3 days. Exit: one tagged release a consumer can add with one `PackageReference` and a feed
-entry.
+entry. *The release path is built and dry-run 2026-11-26, see "Phase 6 notes"; the release itself waits for the user.*
 
-- [ ] Extend `.github/workflows/release-dotnet.yml` for D7, consuming the `runtime-<sha>` slices
+- [x] Extend `.github/workflows/release-dotnet.yml` for D7, consuming the `runtime-<sha>` slices
   that `2026-11-19-release-workflows.md` already builds.
-- [ ] `platforms/dotnet/README.md` rewritten in the shape of `platforms/apple/README.md`:
+- [x] `platforms/dotnet/README.md` rewritten in the shape of `platforms/apple/README.md`:
   packages, where the native library comes from, the plugin table, local engine mode, and when to
   choose `EmbedPDF.Engine` instead (D2).
-- [ ] `DisabledPluginTests` fails when the options gain a plugin without a table row, as on Apple.
+- [x] `DisabledPluginTests` fails when the options gain a plugin without a table row, as on Apple.
 - [x] Pack `EmbedPDF.Models` with an exact-version dependency on `EmbedPDF` (`[x.y.z]`, the version
   it was built with). The models read capabilities' `internal Viewer` through
   `InternalsVisibleTo("EmbedPDF.Models")` (Phase 4 notes, kept 2026-11-26), so any other `EmbedPDF`
   version may lack the members they call. A pack check fails when the range is not exact.
   *Done in Phase 5:* `packaging/libraries.py pack-libraries`, see "Phase 5 notes".
+
+### Phase 6 notes (2026-11-26)
+
+Task plan: `docs/superpowers/plans/2026-11-20-dotnet-parity/06-release.md`. Branch
+`research/dotnet-parity-p6` from `research/dotnet-parity-p5` at `647e0e846`, pushed to `origin` for
+CI; nothing published.
+
+Merge. `origin/research/multi-platform-rust-core-impl-plugins` (74 commits past `e7aa7f4f5`) is merged
+in at `92fa839c9` with no conflicts. It moved `rust-toolchain.toml` to Rust 1.100.0,
+`platforms/dotnet/global.json` to SDK 10.0.404 (`rollForward: disable`), `Cargo.lock`, and the
+engine package's workflow jobs to SDK 10.0.404, `actions/checkout@v7`, `setup-node@v7` with Node 26
+and `upload-artifact@v7`. Two things the merge left broken are fixed here: `package.py` still demanded
+`Rust 1.98.0` in `check_toolchain` and `stage-runtime`, and the viewer jobs still installed SDK
+10.0.403, which `global.json` now refuses. `package.py` reads both versions from `global.json` and
+`rust-toolchain.toml` now (`ToolchainTests`), and the viewer jobs use SDK 10.0.404 (osx-x64's
+SHA-512 from Microsoft's release metadata) and the same action versions as the engine jobs. After
+the merge the host was rebuilt with Rust 1.100.0 and the bindings regenerated; `EmbedPDF.Viewer.Tests`
+ran 1,124 (1,120 passing, 4 skipped) and `EmbedPDF.Models.Tests` 164 (163 passing, 1 skipped).
+
+Re-pin. The merge and the `package.py` fix moved the engine to `0.0.0-engine.dc140b58fa617042`
+(`eb2718c6c`, from `822686307291c580`). `check-dotnet-engine.sh` reads `current` at the branch tip.
+
+What exists:
+
+- `package.py smoke-runtime` writes a `nuget.config` beside its consumer: `EmbedPDF` and `EmbedPDF.*`
+  from the local feed only, everything else from nuget.org (`consumer_nuget_config`,
+  `ConsumerConfigTests`). The `RestoreAdditionalProjectSources` workaround is gone from both validate
+  steps, and a local `validate-runtime` passes without it (`6e22ddf29`).
+- `packaging/release-viewer.sh <dir> <version> <sha> [--dry-run]` checks the five packages (one
+  `EmbedPDF.Runtime.0.0.0-engine.<16 hex>`, the four managed ones at `0.0.0-dotnet.<n>`, `EmbedPDF.Models`
+  on exactly `[<version>]`, `EmbedPDF` on the runtime it ships with, every nuspec naming
+  `https://github.com/$GH_REPO`), writes `.sha256` files, pushes Runtime, EmbedPDF, Models, DI and Jint
+  in that order to `https://nuget.pkg.github.com/<owner>/index.json` with `--skip-duplicate`, and makes
+  the prerelease `<version>` through `scripts/release/github-release.sh`. A dry run prints every
+  command with the key as `***`. `release-viewer.test.sh` runs 24 checks against stand-in `dotnet`,
+  `gh` and `git`.
+- `release-dotnet.yml` takes `dotnet_version` (empty packs `0.0.0-local` as before), sets
+  `RepositoryUrl` for every pack so the feed links the packages to the repository, and on a manual
+  run with a version runs `viewer-release-preview`, which calls the release script with `--dry-run`
+  and a read-only token.
+- `release-train.yml` takes an optional `dotnet_version`. Preflight checks its shape, its notes
+  (`docs/releases/<dotnet_version>.md`, a warning on a dry run) and whether the release is out;
+  summarize lists the five packages; `dotnet-viewer-release` (needs `approve`, `contents: write` and
+  `packages: write`) runs the release script, which reads `DRY_RUN`. `check-release-gate.py` counts a
+  `dotnet nuget push`, a `release-viewer.sh` line without `--dry-run`, and `packages: write` as
+  publishing; four new gate tests pin it, and the gate passes with `dotnet-viewer-release` among the
+  publishers.
+- `platforms/dotnet/README.md` in the shape of `platforms/apple/README.md`: packages, where the native
+  library comes from and local engine mode, the plugin table, threading, disposal and arguments,
+  `EmbedPDF.Engine` or the viewer (D2), binding the models and the console sample (kept), releases and
+  the feed, known gaps. `DisabledPluginTests.TheReadmePluginTableHasARowPerPlugin` parses the table and
+  fails when the options gain a plugin without a row or a row names an accessor `PdfViewer` lacks.
+- `docs/releases/README.md` says how the viewer packages release and that reading the feed needs a
+  `read:packages` token.
+
+Deviations, each with its reason:
+
+- `package.py` changed, so the runtime version moved. The Phase 5 notes deferred the restore fix to the
+  next engine change; the merge was one, so both landed before one re-pin.
+- `dotnet_version` is optional on the train, where `swift_version` and `viewer_version` are required:
+  existing dispatches keep working, and a train without it releases no viewer packages. Making it
+  required is a one-line change once the first viewer release is wanted.
+- The release tags `<dotnet_version>` with the packages as assets, beside the feed push, so a release
+  is also a downloadable record. `check-dotnet-engine.sh` still asks about a `dotnet-engine-<hash>`
+  release that no workflow makes; with the runtime on the feed that exit-2 branch can't fire.
+- `RepositoryUrl` comes from the job environment, which MSBuild reads as a property, so no project
+  file (and no engine hash input) changed. A local pack has no repository URL, and the release script
+  refuses it.
+
+CI. Two runs of `release-dotnet.yml`, both green on the first try, on `research/dotnet-parity-p6`, dispatched with
+`dotnet_version=0.0.0-dotnet.0`:
+
+| Run | Head | Result |
+|---|---|---|
+| 45825062921 | `eb2718c6c` | every job passed: 4 engine `package` rows, 5 runtime slices, `runtime-pack`, 4 `runtime validate`, 4 `consumer`, `runtime-record`, `viewer-release-preview` |
+| 45831861397 | `b194bbb47` | every job passed again, now with the README and its plugin-table test, and the records and pin committed |
+
+All five RIDs are `VALIDATED` at `0.0.0-engine.dc140b58fa617042`; those records replace the Phase 1
+ones under `platforms/dotnet/validation/2026-11-26-phase-6-runtime-<rid>/` (`b194bbb47`). The NativeAOT
+sample ran on `linux-arm64` (executable 18,705,768 bytes, publish directory 106,866,467) and `linux-x64`
+(18,230,472 and 101,204,461) with the same six Jint warnings; `osx-arm64` and `win-x64` ran
+framework-dependent. The preview printed the five pushes to `https://nuget.pkg.github.com/MFB-Technologies-Inc/index.json`
+in dependency order, `git tag 0.0.0-dotnet.0 <sha>`, `git push origin refs/tags/0.0.0-dotnet.0` and
+`gh release create 0.0.0-dotnet.0` with eleven assets, and warned that `docs/releases/0.0.0-dotnet.0.md`
+is missing, which a real run would stop on.
+
+Swift test files and their C# counterparts (Definition of done):
+
+| Swift test file | C# counterpart, or the reason there is none |
+|---|---|
+| `ActionsTests`, `AnnotationInfoTests`, `AnnotationPatchDecodingTests`, `AnnotationTests`, `AttachmentTests`, `CommandsTests`, `DisabledPluginTests`, `DocumentAPITests`, `FeedbackTests`, `FetcherExportTests`, `FormTests`, `HistoryTests`, `I18nTests`, `IntegerSurfaceTests`, `InteractionTests`, `LinkTests`, `MeasurementTests`, `MetadataTests`, `OutlineTests`, `PageEditTests`, `PageGeometryTests`, `PageRenderResolutionTests`, `PointerLatencyTests`, `RedactionTests`, `RenderTests`, `RevisionHubTests`, `SearchTests`, `SelectionTests`, `ShellTests`, `SignatureTests`, `SignatureTransportTests`, `StageTests`, `StampTests`, `StreamRuleTests`, `TaskEntryPointTests`, `TypedOverloadTests`, `ViewManagerTests`, `ViewerConfigBuilderTests`, `ViewerTests` | The file of the same name in `EmbedPDF.Viewer.Tests` (`PDFErrorTests` is `PdfErrorTests`) |
+| `AnnotationColorTests` | `AnnotationVocabularyTests` |
+| `AnnotationDraftTests`, `AnnotationKindDraftTests` | `AnnotationDraftJsonTests`, `AnnotationEngineDraftTests` |
+| `PluginSettingsTests` | Split by plugin into `SearchTests`, `RenderTests`, `SelectionTests`, `CommandsTests`, `StampTests`, `SignatureTests` |
+| `RenderSnapshotTests`, `RenderViewportTests` | `RenderTests` |
+| `CoreGraphicsBridgesTests` | `PixelBufferTests`; the point, size and rect bridges are CoreGraphics types with no .NET counterpart (D6) |
+| `JavaScriptCoreEngineTests` | `JintScriptEngineTests` (D5) |
+| `KeychainSignerTests` | `X509CertificateSignerTests` (D5) |
+| `RevisionTests` | `RevisionHubTests` (`RepeatedCancellationLeavesTheSurvivingObserverLive`) and `StreamRuleTests`: a C# stream subscribes when the method returns, so no mutation lands before the first read |
+| `WireValueTests` | `EnumMirrorTests` and `AnnotationVocabularyTests.TheVocabularyIsTheEnginesSpelling`; Swift's `Codable` round trips have no counterpart because the C# wire strings are internal |
+| `AccessorNameTests` | Not ported: it pins Swift's deprecated `in:` accessors, which C# never shipped (wave A notes) |
+| `AliasRemovalTests` | Not ported: it pins Swift's deprecated `PDFDocument` and `Annotation` aliases, which C# never had |
+| `ProductsTests` | No counterpart: SwiftPM products have none. `ImportTests` and PublicApiAnalyzers keep the generated layer `internal` instead (D3) |
+| `BaseSuite`, `LoopbackServer` | Test support: `[assembly: CollectionBehavior]` and `Loopback.cs` |
+| `APICoverageTests` | Gap: its five cases (custom metadata omissions, page selection across a reorder, form validation and permission reads, stage destination and zoom reads, a denied scope) have no C# test of the same cases. `MetadataTests.CustomEntriesUpdateAndClear`, `DocumentAPITests.SettingsPreserveOmissionsAndClearWithoutGrantingDownload` and `StageTests.ADestinationIsReachable` cover parts |
+| `EditingWorkflowsTests` | Gap: its seven cross-plugin workflows (command categories, named-action probe, annotation bundles, widget edits and calculation order, direct form payloads twice, optional editing plugins) are not ported as workflows; `CommandsTests.ASettingLockDisablesAndReportsItsRefusalUntilReleased` and `ActionsTests.NamedActionsAndTriggers` cover parts |
+| `SecurityTests` | Partly: `ViewerTests` covers a locked document (`ALockedDocumentOpensAsALockedTab`, `AWrongPasswordParksTheTabAndAWrongUnlockIsPermissionDenied`); the three narrow-scope refusals (sign, save, edit metadata) have no C# test |
+| `AnnotationModelTests`, `PDFReaderModelTests`, `PluginIntegrationTests`, `RenderRevisionsTests`, `SearchModelTests`, `StagePointerForwarderTests`, `StageReaderDragLagTests`, `StageReaderErrorTests`, `StageVisiblePageGeometryTests`, `TextSelectionModelTests`, `ThumbnailModelTests`, `TiledPageModelTests`, `ToolModelTests`, `ViewerModelTests` | The file of the same name in `EmbedPDF.Models.Tests` |
+| `ImportTests`, `PageRenderTaskTests`, `SerialCallsTests`, `SnapshotRefreshTests` | `InfrastructureTests` |
+| `PluginControlTestSupport` | Test support: `SingleThreadContext.cs`, `Observed.cs` |
 
 ## Definition of done
 
@@ -1269,6 +1379,17 @@ host);
 host. One release is published once the user approves it.
 
 There is no UI to compare, so Swift's `EmbedPDFUITests` has no counterpart by design.
+
+### Definition of done, checked 2026-11-26
+
+| Item | State | Evidence |
+|---|---|---|
+| `csharp-api-coverage.json` has no `pending` rows and the check passes | Met | `scripts/check-api-coverage.py --platform csharp`: 880 members, 730 ported, 0 pending, 150 exclusions; CI's `runtime-pack` runs it |
+| Every Swift test file has a C# counterpart or a recorded reason | Met with three recorded gaps | The table in "Phase 6 notes". `APICoverageTests`, `EditingWorkflowsTests` and three cases of `SecurityTests` are recorded as gaps, not ported |
+| PublicApiAnalyzers passes | Met | `PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt` in `EmbedPDF.Viewer`, `EmbedPDF.Models`, `EmbedPDF.Extensions.DependencyInjection` and `EmbedPDF.Scripting.Jint`; the Release build of `EmbedPDF.sln` at `b194bbb47` reports 0 warnings and 0 errors |
+| The console sample runs from packed packages and as a NativeAOT binary | Met | `dotnet-consumer.sh` in the dev container at `2c449137a` (all eight steps, FDD and AOT, `linux-arm64`); CI run 45825062921 `consumer` rows: AOT on `linux-arm64` and `linux-x64`, FDD on `osx-arm64` and `win-x64` |
+| Validation records for `linux-x64`, `linux-arm64` and `osx-arm64` | Met, and `osx-x64` and `win-x64` too | `platforms/dotnet/validation/2026-11-26-phase-6-runtime-<rid>/`, all five `VALIDATED` on native runners in run 45825062921 |
+| One release published once the user approves it | Not done, by design | The path is built and dry-run: run 45825062921's `viewer-release-preview`. Publishing waits for the user: write `docs/releases/0.0.0-dotnet.<n>.md`, then dispatch `release-train.yml` with `dotnet_version` and approve |
 
 Total: about 8 weeks of focused work with waves run one at a time, nearer 6 if Phase 3 waves A
 and B and Phase 4 behind them overlap in separate worktrees. The estimate assumes Phase 0 finds a

@@ -1,6 +1,6 @@
 # Phase 6: Release and Documentation Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** A release path that packs the five viewer packages at a release version and, after the train's one approval, pushes them to the GitHub Packages NuGet feed of the release repository and tags a prerelease; a README a consumer can start from; and the plan's Definition of done checked with evidence.
 
@@ -46,11 +46,11 @@
 - `consumer_nuget_config(feed: Path) -> str`: the XML described under Decisions; `smoke_runtime` writes it to `<work>/nuget.config` and restores with `--configfile` instead of `--source`.
 - `required_sdk() -> str` from `global.json`'s `sdk.version`; `required_rust() -> str` from `rust-toolchain.toml`'s `channel`. `check_toolchain` and `stage_runtime` use them.
 
-- [ ] **Step 1: Failing tests** `ConsumerConfigTests`: the config clears sources, has `local` = feed path and `nuget.org`; `EmbedPDF` and `EmbedPDF.*` appear only under `local`; `*` only under `nuget.org`. `ToolchainTests`: `required_sdk()` equals the json's version and `required_rust()` the toml's channel.
-- [ ] **Step 2:** `cd platforms/dotnet/packaging && python3 -m unittest -v`. Expected: the new tests fail (no attribute).
-- [ ] **Step 3:** Implement, and remove the workflow env workaround.
-- [ ] **Step 4:** Unit tests pass. `validate-runtime` on `linux-arm64` without `RestoreAdditionalProjectSources` passes (it failed with NU1101 before).
-- [ ] **Step 5:** Commit `fix(dotnet): restore the runtime consumer's other dependencies from nuget.org`.
+- [x] **Step 1: Failing tests** `ConsumerConfigTests`: the config clears sources, has `local` = feed path and `nuget.org`; `EmbedPDF` and `EmbedPDF.*` appear only under `local`; `*` only under `nuget.org`. `ToolchainTests`: `required_sdk()` equals the json's version and `required_rust()` the toml's channel.
+- [x] **Step 2:** `cd platforms/dotnet/packaging && python3 -m unittest -v`. Expected: the new tests fail (no attribute).
+- [x] **Step 3:** Implement, and remove the workflow env workaround.
+- [x] **Step 4:** Unit tests pass. `validate-runtime` on `linux-arm64` without `RestoreAdditionalProjectSources` passes (it failed with NU1101 before).
+- [x] **Step 5:** Commit `fix(dotnet): restore the runtime consumer's other dependencies from nuget.org`.
 
 ### Task 2: Release script
 
@@ -59,11 +59,11 @@
 **Interfaces:**
 - `release-viewer.sh <packages-dir> <version> <sha> [--dry-run]`, env `GH_REPO`, `GH_TOKEN`, `DRY_RUN` (`--dry-run` sets it), `EPDF_DOTNET` (default `dotnet`). Requires `<version>` to match `^0\.0\.0-dotnet\.[0-9]+$`, exactly one `EmbedPDF.Runtime.0.0.0-engine.<16 hex>.nupkg` and the four managed packages at `<version>`, `EmbedPDF.Models` depending on `[<version>]`, every nuspec's repository URL `https://github.com/$GH_REPO`, and `package-manifest.runtime.json`. Writes `<nupkg>.sha256`, pushes Runtime, EmbedPDF, Models, DI, Jint in that order, then `github-release.sh publish <version> <sha> "C# viewer <version>" docs/releases/<version>.md <assets>`. Dry run prints `dry run: would run dotnet nuget push ... --api-key *** --skip-duplicate` per package.
 
-- [ ] **Step 1: Failing tests** in `release-viewer.test.sh`, with stand-in `dotnet` and `gh` on `PATH` and nupkgs built with `python3 -c zipfile`: dry run prints five pushes in order and never the token; a bad version exits 64; a missing package exits 66; a `>=` Models range fails; a missing repository URL fails; a real run calls the stand-in `dotnet nuget push` five times.
-- [ ] **Step 2:** Run `bash platforms/dotnet/packaging/release-viewer.test.sh`. Expected: fail (no script).
-- [ ] **Step 3:** Implement.
-- [ ] **Step 4:** Tests pass.
-- [ ] **Step 5:** Commit `feat(dotnet): add the viewer package release script`.
+- [x] **Step 1: Failing tests** in `release-viewer.test.sh`, with stand-in `dotnet` and `gh` on `PATH` and nupkgs built with `python3 -c zipfile`: dry run prints five pushes in order and never the token; a bad version exits 64; a missing package exits 66; a `>=` Models range fails; a missing repository URL fails; a real run calls the stand-in `dotnet nuget push` five times.
+- [x] **Step 2:** Run `bash platforms/dotnet/packaging/release-viewer.test.sh`. Expected: fail (no script).
+- [x] **Step 3:** Implement.
+- [x] **Step 4:** Tests pass.
+- [x] **Step 5:** Commit `feat(dotnet): add the viewer package release script`.
 
 ### Task 3: Workflows and the release gate
 
@@ -73,11 +73,11 @@
 - `release-train.yml`: input `dotnet_version`; preflight checks its shape, its notes (soft on a dry run) and its release state; summarize lists the release; job `dotnet-viewer-release` needs `[approve, preflight, dotnet]`, `if: inputs.dotnet_version != ''`, `permissions: {contents: write, packages: write}`.
 - Gate: `PUBLISHES` gains `dotnet nuget push` and `release-viewer\.sh` on a line without `--dry-run`; `packages: write` counts as writing.
 
-- [ ] **Step 1: Failing gate tests:** the train passes with `dotnet-viewer-release` among the publishers; removing its `approve` fails; a preview line with `--dry-run` in `release-dotnet.yml` does not count; a job with `packages: write` and no approve fails.
-- [ ] **Step 2:** `python3 scripts/release/check-release-gate.test.py`. Expected: the new tests fail.
-- [ ] **Step 3:** Implement the gate and workflow changes.
-- [ ] **Step 4:** Gate tests pass; `check-release-gate.py .github/workflows/release-train.yml` exits 0; `actionlint` if present.
-- [ ] **Step 5:** Commit `ci(dotnet): pack the viewer packages at a release version and push them after approval`.
+- [x] **Step 1: Failing gate tests:** the train passes with `dotnet-viewer-release` among the publishers; removing its `approve` fails; a preview line with `--dry-run` in `release-dotnet.yml` does not count; a job with `packages: write` and no approve fails.
+- [x] **Step 2:** `python3 scripts/release/check-release-gate.test.py`. Expected: the new tests fail.
+- [x] **Step 3:** Implement the gate and workflow changes.
+- [x] **Step 4:** Gate tests pass; `check-release-gate.py .github/workflows/release-train.yml` exits 0; `actionlint` if present.
+- [x] **Step 5:** Commit `ci(dotnet): pack the viewer packages at a release version and push them after approval`.
 
 ### Task 4: README and the plugin-table test
 
@@ -86,15 +86,15 @@
 - README, in the shape of `platforms/apple/README.md`, after the untouched `EmbedPDF.Engine` sections: packages and what each is for; where the native library comes from (engine hash, local engine mode); the plugin table (options member, accessor, platform services); `EmbedPDF.Engine` or the viewer (D2); threading and disposal; binding the models (kept); console sample (kept); releases and feed; known gaps.
 - `TheReadmePluginTableHasARowPerPlugin`: parses the table under `## Plugins` (first column the options member in backticks, second the accessor) and asserts the members equal `Accessors`' fields and every accessor is a public `PdfViewer` method.
 
-- [ ] **Step 1:** Write the test; run it. Expected: FAIL (no section).
-- [ ] **Step 2:** Write the README.
-- [ ] **Step 3:** Test passes, and `ReadmeExampleTests` still passes.
-- [ ] **Step 4:** Commit `docs(dotnet): document the viewer packages, plugins and release`.
+- [x] **Step 1:** Write the test; run it. Expected: FAIL (no section).
+- [x] **Step 2:** Write the README.
+- [x] **Step 3:** Test passes, and `ReadmeExampleTests` still passes.
+- [x] **Step 4:** Commit `docs(dotnet): document the viewer packages, plugins and release`.
 
 ### Task 5: Re-pin, local verification, CI and records
 
-- [ ] Re-pin `EmbedPDF.Runtime.props` to `dotnet-engine-hash.sh`; `check-dotnet-engine.sh` exits 1 (unpublished) with the pin equal to `current`.
-- [ ] Rebuild with Rust 1.100.0; regenerate bindings; Release build of `EmbedPDF.sln` (0 warnings); `EmbedPDF.Viewer.Tests`, `EmbedPDF.Models.Tests`, packaging tests, shell tests, coverage check; `dotnet-consumer.sh` on `linux-arm64`.
-- [ ] Push; dispatch `release-dotnet.yml` with `dotnet_version=0.0.0-dotnet.0` (preview on); fix until green.
-- [ ] Replace the Phase 1 runtime records with the run's records under `platforms/dotnet/validation/2026-11-26-phase-6-runtime-<rid>/`.
-- [ ] Umbrella: Phase 6 boxes, Phase 6 notes (merge, re-pin, runs, Swift-to-C# test mapping), Definition of done with evidence.
+- [x] Re-pin `EmbedPDF.Runtime.props` to `dotnet-engine-hash.sh`; `check-dotnet-engine.sh` exits 1 (unpublished) with the pin equal to `current`.
+- [x] Rebuild with Rust 1.100.0; regenerate bindings; Release build of `EmbedPDF.sln` (0 warnings); `EmbedPDF.Viewer.Tests`, `EmbedPDF.Models.Tests`, packaging tests, shell tests, coverage check; `dotnet-consumer.sh` on `linux-arm64`.
+- [x] Push; dispatch `release-dotnet.yml` with `dotnet_version=0.0.0-dotnet.0` (preview on); fix until green.
+- [x] Replace the Phase 1 runtime records with the run's records under `platforms/dotnet/validation/2026-11-26-phase-6-runtime-<rid>/`.
+- [x] Umbrella: Phase 6 boxes, Phase 6 notes (merge, re-pin, runs, Swift-to-C# test mapping), Definition of done with evidence.
