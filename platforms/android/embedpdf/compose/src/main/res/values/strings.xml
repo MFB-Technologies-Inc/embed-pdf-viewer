@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- A page whose render failed. -->
+    <string name="embedpdf_page_unavailable">Page unavailable</string>
+    <!-- Under it: why, in words for the reader rather than the engine's message. -->
+    <string name="embedpdf_page_render_failed">The page could not be drawn.</string>
+    <!-- A page thumbnail's label; %1$d is the one-based page number. -->
+    <string name="embedpdf_page_number">Page %1$d</string>
+    <!-- A page the stage reader shows; %1$d is its one-based number, %2$d the page count. -->
+    <string name="embedpdf_page_of">Page %1$d of %2$d</string>
+    <!-- The text selection overlay's label. -->
+    <string name="embedpdf_text_selection">Text selection</string>
+    <!-- The action that copies the selected text. -->
+    <string name="embedpdf_copy">Copy</string>
+    <!-- The stage reader's label. -->
+    <string name="embedpdf_document_pages">Document pages</string>
+
+    <!-- HistoryStrings: the undo and redo controls. -->
+    <string name="embedpdf_history_undo">Undo</string>
+    <string name="embedpdf_history_redo">Redo</string>
+    <!-- The change an undo or redo names when the translator has none. -->
+    <string name="embedpdf_history_change">change</string>
+    <!-- %1$s is the change, such as "Rotate pages". -->
+    <string name="embedpdf_history_undo_title">Undo %1$s</string>
+    <string name="embedpdf_history_redo_title">Redo %1$s</string>
+    <string name="embedpdf_history_skipped_undo">Some changes could not be undone.</string>
+    <string name="embedpdf_history_skipped_redo">Some changes could not be redone.</string>
+
+    <!-- SearchStrings: %1$s is the active hit's one-based place, %2$s the hits found so far. -->
+    <string name="embedpdf_search_summary">%1$s of %2$s</string>
+    <!-- The same while the search still runs. -->
+    <string name="embedpdf_search_summary_searching">%1$s of %2$s+</string>
+
+    <!-- Shared control labels. -->
+    <string name="embedpdf_reload">Reload</string>
+    <string name="embedpdf_selected">Selected</string>
+    <string name="embedpdf_cancel">Cancel</string>
+
+    <!-- SearchBar. -->
+    <string name="embedpdf_search">Search</string>
+    <string name="embedpdf_search_previous">Previous match</string>
+    <string name="embedpdf_search_next">Next match</string>
+    <string name="embedpdf_search_clear">Clear search</string>
+
+    <!-- ToolPicker: the default labels PdfReader gives the tools it offers. -->
+    <string name="embedpdf_tool_pointer">Select</string>
+    <string name="embedpdf_tool_pan">Pan</string>
+    <string name="embedpdf_tool_ink">Ink</string>
+    <string name="embedpdf_tool_highlight">Highlight</string>
+    <string name="embedpdf_tool_note">Note</string>
+
+    <!-- OutlinePanel. -->
+    <string name="embedpdf_outline_title">Bookmarks</string>
+    <string name="embedpdf_outline_add">Add bookmark</string>
+    <string name="embedpdf_outline_incomplete">Some bookmarks could not be loaded.</string>
+    <string name="embedpdf_outline_loading">Loading bookmarks…</string>
+    <string name="embedpdf_outline_empty">No bookmarks</string>
+    <string name="embedpdf_outline_expand">Expand</string>
+    <string name="embedpdf_outline_collapse">Collapse</string>
+    <string name="embedpdf_outline_expanded">Expanded</string>
+    <string name="embedpdf_outline_collapsed">Collapsed</string>
+    <string name="embedpdf_outline_current">Current location</string>
+    <!-- A bookmark row's state; %1$d is its one-based depth. -->
+    <string name="embedpdf_outline_level">Level %1$d</string>
+    <string name="embedpdf_outline_activate">Activate bookmark</string>
+    <string name="embedpdf_outline_actions">Bookmark actions</string>
+    <string name="embedpdf_outline_select">Select</string>
+    <string name="embedpdf_outline_edit">Edit…</string>
+    <string name="embedpdf_outline_add_child">Add child…</string>
+    <string name="embedpdf_outline_add_sibling">Add sibling…</string>
+    <string name="embedpdf_outline_move">Move…</string>
+    <string name="embedpdf_outline_delete">Delete…</string>
+    <string name="embedpdf_outline_new_title">New bookmark</string>
+    <string name="embedpdf_outline_edit_title">Edit bookmark</string>
+    <string name="embedpdf_outline_field_title">Title</string>
+    <string name="embedpdf_outline_destination">Destination</string>
+    <string name="embedpdf_outline_current_view">Current view</string>
+    <string name="embedpdf_outline_keep_destination">Keep destination</string>
+    <string name="embedpdf_outline_web_address">Web address</string>
+    <string name="embedpdf_outline_no_destination">None</string>
+    <string name="embedpdf_outline_address">Address</string>
+    <string name="embedpdf_outline_default_color">Default color</string>
+    <string name="embedpdf_outline_color">Color (#RRGGBB)</string>
+    <string name="embedpdf_outline_bold">Bold</string>
+    <string name="embedpdf_outline_italic">Italic</string>
+    <string name="embedpdf_outline_open">Open by default</string>
+    <string name="embedpdf_outline_save">Save</string>
+    <string name="embedpdf_outline_move_title">Move bookmark</string>
+    <string name="embedpdf_outline_parent">Parent</string>
+    <string name="embedpdf_outline_root">Document root</string>
+    <string name="embedpdf_outline_place_first">Place first</string>
+    <string name="embedpdf_outline_move_confirm">Move</string>
+    <string name="embedpdf_outline_delete_title">Delete bookmark and its children?</string>
+    <string name="embedpdf_outline_delete_confirm">Delete</string>
+
+    <!-- AttachmentPanel. -->
+    <string name="embedpdf_attachments_title">Attachments</string>
+    <string name="embedpdf_attachments_import">Import files…</string>
+    <string name="embedpdf_attachments_loading">Loading attachments…</string>
+    <string name="embedpdf_attachments_empty">No attachments</string>
+    <string name="embedpdf_attachments_working">Working</string>
+    <string name="embedpdf_attachments_reveal">Show on page</string>
+    <string name="embedpdf_attachments_export">Save copy…</string>
+    <string name="embedpdf_attachments_remove">Remove…</string>
+    <string name="embedpdf_attachments_remove_title">Remove attachment?</string>
+    <string name="embedpdf_attachments_remove_confirm">Remove</string>
+    <!-- The file name a saved copy suggests when the attachment has none. -->
+    <string name="embedpdf_attachments_default_name">Attachment</string>
+
+    <!-- PdfReader. -->
+    <string name="embedpdf_reader_loading">Opening document</string>
+    <string name="embedpdf_reader_failed">The document could not be opened</string>
+    <string name="embedpdf_reader_panels_failed">The bookmarks, attachments and history could not be loaded.</string>
+    <!-- %1$s is the document's name. -->
+    <string name="embedpdf_reader_locked_named">%1$s is password protected</string>
+    <string name="embedpdf_reader_locked">This document is password protected</string>
+    <string name="embedpdf_reader_password">Password</string>
+    <string name="embedpdf_reader_password_label">Document password</string>
+    <string name="embedpdf_reader_unlock">Unlock</string>
+    <string name="embedpdf_reader_thumbnails">Thumbnails</string>
+    <string name="embedpdf_reader_close_panel">Close panel</string>
+</resources>

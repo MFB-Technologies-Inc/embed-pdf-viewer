@@ -1,0 +1,420 @@
+public final class com/embedpdf/models/AnnotationModel {
+	public fun <init> (Lcom/embedpdf/AnnotationCapability;)V
+	public final fun getCanCreate ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getCanRead ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getError ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun refresh (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun run (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/models/AttachmentModel {
+	public fun <init> (Lcom/embedpdf/PdfViewer;Lcom/embedpdf/AttachmentCapability;)V
+	public final fun add (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun download (Luniffi/epdf_plugin_attachment/AttachedFile;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun fileOperationFailed (Ljava/lang/Throwable;)V
+	public final fun getCanAdd ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getCanDownload ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getCanRemoveSelection ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getError ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getFiles ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getPendingIds ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getPerforming ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getSelectedFiles ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getStatus ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun importFiles (Ljava/util/List;Landroid/content/ContentResolver;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun importFiles (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun refresh (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun reload (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun remove (Luniffi/epdf_plugin_attachment/AttachedFile;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun reveal (Luniffi/epdf_plugin_attachment/AttachedFile;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun run (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun select (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/models/BitmapPool {
+	public fun <init> (J)V
+	public final fun acquire (II)Landroid/graphics/Bitmap;
+	public final fun clear ()V
+	public final fun getMaxBytes ()J
+	public final fun getPooledBytes ()J
+	public final fun release (Landroid/graphics/Bitmap;)V
+}
+
+public final class com/embedpdf/models/BitmapPoolKt {
+	public static final fun toBitmap (Lcom/embedpdf/PageImage;Lcom/embedpdf/models/BitmapPool;)Landroid/graphics/Bitmap;
+}
+
+public final class com/embedpdf/models/HistoryModel {
+	public fun <init> (Lcom/embedpdf/PdfViewer;Lcom/embedpdf/HistoryCapability;Lcom/embedpdf/I18nCapability;Lcom/embedpdf/models/HistoryStrings;)V
+	public synthetic fun <init> (Lcom/embedpdf/PdfViewer;Lcom/embedpdf/HistoryCapability;Lcom/embedpdf/I18nCapability;Lcom/embedpdf/models/HistoryStrings;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getCanRedo ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getCanUndo ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getError ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getNotice ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getNoticeText ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getRedoLabel ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getRedoTitle ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getSubmitting ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getUndoLabel ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getUndoTitle ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun redo (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun refresh (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun run (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun undo (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public abstract interface class com/embedpdf/models/HistoryNotice {
+}
+
+public final class com/embedpdf/models/HistoryNotice$SkippedRedo : com/embedpdf/models/HistoryNotice {
+	public fun <init> (J)V
+	public final fun component1 ()J
+	public final fun copy (J)Lcom/embedpdf/models/HistoryNotice$SkippedRedo;
+	public static synthetic fun copy$default (Lcom/embedpdf/models/HistoryNotice$SkippedRedo;JILjava/lang/Object;)Lcom/embedpdf/models/HistoryNotice$SkippedRedo;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCount ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/models/HistoryNotice$SkippedUndo : com/embedpdf/models/HistoryNotice {
+	public fun <init> (J)V
+	public final fun component1 ()J
+	public final fun copy (J)Lcom/embedpdf/models/HistoryNotice$SkippedUndo;
+	public static synthetic fun copy$default (Lcom/embedpdf/models/HistoryNotice$SkippedUndo;JILjava/lang/Object;)Lcom/embedpdf/models/HistoryNotice$SkippedUndo;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCount ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/embedpdf/models/HistoryStrings {
+	public static final field Companion Lcom/embedpdf/models/HistoryStrings$Companion;
+	public fun getChange ()Ljava/lang/String;
+	public fun getRedo ()Ljava/lang/String;
+	public fun getUndo ()Ljava/lang/String;
+	public fun notice (Lcom/embedpdf/models/HistoryNotice;)Ljava/lang/String;
+	public fun redoTitle (Ljava/lang/String;)Ljava/lang/String;
+	public fun undoTitle (Ljava/lang/String;)Ljava/lang/String;
+}
+
+public final class com/embedpdf/models/HistoryStrings$Companion {
+	public final fun getEnglish ()Lcom/embedpdf/models/HistoryStrings;
+}
+
+public final class com/embedpdf/models/HistoryStrings$DefaultImpls {
+	public static fun getChange (Lcom/embedpdf/models/HistoryStrings;)Ljava/lang/String;
+	public static fun getRedo (Lcom/embedpdf/models/HistoryStrings;)Ljava/lang/String;
+	public static fun getUndo (Lcom/embedpdf/models/HistoryStrings;)Ljava/lang/String;
+	public static fun notice (Lcom/embedpdf/models/HistoryStrings;Lcom/embedpdf/models/HistoryNotice;)Ljava/lang/String;
+	public static fun redoTitle (Lcom/embedpdf/models/HistoryStrings;Ljava/lang/String;)Ljava/lang/String;
+	public static fun undoTitle (Lcom/embedpdf/models/HistoryStrings;Ljava/lang/String;)Ljava/lang/String;
+}
+
+public final class com/embedpdf/models/OutlineModel {
+	public fun <init> (Lcom/embedpdf/PdfViewer;Lcom/embedpdf/OutlineCapability;)V
+	public final fun activate (Luniffi/epdf_plugin_outline/OutlineItemRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun collapse (Luniffi/epdf_plugin_outline/OutlineItemRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun create (Luniffi/epdf_plugin_outline/OutlineItemInput;Luniffi/epdf_plugin_outline/OutlineCreateOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun create$default (Lcom/embedpdf/models/OutlineModel;Luniffi/epdf_plugin_outline/OutlineItemInput;Luniffi/epdf_plugin_outline/OutlineCreateOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun delete (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun expand (Luniffi/epdf_plugin_outline/OutlineItemRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun getCanEdit ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getCurrentItem ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getError ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getIncomplete ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getItems ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getLastActivation ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getPerforming ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getRows ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getSelectedItems ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getStatus ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun move (Ljava/util/List;Luniffi/epdf_plugin_outline/OutlineItemRef;Luniffi/epdf_plugin_outline/OutlinePosition;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun move$default (Lcom/embedpdf/models/OutlineModel;Ljava/util/List;Luniffi/epdf_plugin_outline/OutlineItemRef;Luniffi/epdf_plugin_outline/OutlinePosition;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun refresh (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun reload (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun run (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun select (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun toggle (Luniffi/epdf_plugin_outline/OutlineItemRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun update (Luniffi/epdf_plugin_outline/OutlineItemRef;Luniffi/epdf_plugin_outline/OutlineItemPatch;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/models/PdfReaderModel {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Set;Lkotlin/jvm/functions/Function1;Lkotlinx/coroutines/CoroutineScope;Lcom/embedpdf/models/SearchStrings;)V
+	public synthetic fun <init> (Ljava/util/Set;Lkotlin/jvm/functions/Function1;Lkotlinx/coroutines/CoroutineScope;Lcom/embedpdf/models/SearchStrings;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun close (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun getFeatures ()Ljava/util/Set;
+	public final fun getPhase ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getUnlockError ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun open (Ljava/net/URL;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun open ([BLjava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun open$default (Lcom/embedpdf/models/PdfReaderModel;Ljava/net/URL;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun open$default (Lcom/embedpdf/models/PdfReaderModel;[BLjava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun unlock (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/models/PdfReaderModel$Feature : java/lang/Enum {
+	public static final field LINKS Lcom/embedpdf/models/PdfReaderModel$Feature;
+	public static final field SEARCH Lcom/embedpdf/models/PdfReaderModel$Feature;
+	public static final field SELECTION Lcom/embedpdf/models/PdfReaderModel$Feature;
+	public static final field TOOLS Lcom/embedpdf/models/PdfReaderModel$Feature;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/embedpdf/models/PdfReaderModel$Feature;
+	public static fun values ()[Lcom/embedpdf/models/PdfReaderModel$Feature;
+}
+
+public abstract interface class com/embedpdf/models/PdfReaderModel$Phase {
+}
+
+public final class com/embedpdf/models/PdfReaderModel$Phase$Failed : com/embedpdf/models/PdfReaderModel$Phase {
+	public fun <init> (Lcom/embedpdf/PdfException;)V
+	public final fun component1 ()Lcom/embedpdf/PdfException;
+	public final fun copy (Lcom/embedpdf/PdfException;)Lcom/embedpdf/models/PdfReaderModel$Phase$Failed;
+	public static synthetic fun copy$default (Lcom/embedpdf/models/PdfReaderModel$Phase$Failed;Lcom/embedpdf/PdfException;ILjava/lang/Object;)Lcom/embedpdf/models/PdfReaderModel$Phase$Failed;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getError ()Lcom/embedpdf/PdfException;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/models/PdfReaderModel$Phase$Idle : com/embedpdf/models/PdfReaderModel$Phase {
+	public static final field INSTANCE Lcom/embedpdf/models/PdfReaderModel$Phase$Idle;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/models/PdfReaderModel$Phase$Loading : com/embedpdf/models/PdfReaderModel$Phase {
+	public static final field INSTANCE Lcom/embedpdf/models/PdfReaderModel$Phase$Loading;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/models/PdfReaderModel$Phase$Locked : com/embedpdf/models/PdfReaderModel$Phase {
+	public fun <init> (Luniffi/epdf_viewer_host/DocumentInfo;)V
+	public final fun component1 ()Luniffi/epdf_viewer_host/DocumentInfo;
+	public final fun copy (Luniffi/epdf_viewer_host/DocumentInfo;)Lcom/embedpdf/models/PdfReaderModel$Phase$Locked;
+	public static synthetic fun copy$default (Lcom/embedpdf/models/PdfReaderModel$Phase$Locked;Luniffi/epdf_viewer_host/DocumentInfo;ILjava/lang/Object;)Lcom/embedpdf/models/PdfReaderModel$Phase$Locked;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDocument ()Luniffi/epdf_viewer_host/DocumentInfo;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/models/PdfReaderModel$Phase$Ready : com/embedpdf/models/PdfReaderModel$Phase {
+	public fun <init> (Lcom/embedpdf/models/PdfReaderModel$Session;)V
+	public final fun component1 ()Lcom/embedpdf/models/PdfReaderModel$Session;
+	public final fun copy (Lcom/embedpdf/models/PdfReaderModel$Session;)Lcom/embedpdf/models/PdfReaderModel$Phase$Ready;
+	public static synthetic fun copy$default (Lcom/embedpdf/models/PdfReaderModel$Phase$Ready;Lcom/embedpdf/models/PdfReaderModel$Session;ILjava/lang/Object;)Lcom/embedpdf/models/PdfReaderModel$Phase$Ready;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getSession ()Lcom/embedpdf/models/PdfReaderModel$Session;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/embedpdf/models/PdfReaderModel$Session {
+	public final fun getDocument ()Luniffi/epdf_viewer_host/DocumentInfo;
+	public final fun getPages ()Ljava/util/List;
+	public final fun getReader ()Lcom/embedpdf/models/StageReaderModel;
+	public final fun getSearch ()Lcom/embedpdf/models/SearchModel;
+	public final fun getSelection ()Lcom/embedpdf/models/TextSelectionModel;
+	public final fun getTools ()Lcom/embedpdf/models/ToolModel;
+	public final fun getViewer ()Lcom/embedpdf/PdfViewer;
+	public final fun pageInfo (Luniffi/epdf_plugin_stage/StageVisiblePage;)Luniffi/epdf_ffi/PageInfo;
+}
+
+public final class com/embedpdf/models/PdfViewerViewModel : androidx/lifecycle/AndroidViewModel {
+	public static final field Companion Lcom/embedpdf/models/PdfViewerViewModel$Companion;
+	public fun <init> (Landroid/app/Application;Luniffi/epdf_viewer_host/ViewerConfig;Luniffi/epdf_viewer_host/DocumentFetcher;)V
+	public synthetic fun <init> (Landroid/app/Application;Luniffi/epdf_viewer_host/ViewerConfig;Luniffi/epdf_viewer_host/DocumentFetcher;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getViewer ()Lcom/embedpdf/PdfViewer;
+	public final fun startedViewer (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/models/PdfViewerViewModel$Companion {
+	public final fun factory (Luniffi/epdf_viewer_host/ViewerConfig;Luniffi/epdf_viewer_host/DocumentFetcher;)Landroidx/lifecycle/ViewModelProvider$Factory;
+	public static synthetic fun factory$default (Lcom/embedpdf/models/PdfViewerViewModel$Companion;Luniffi/epdf_viewer_host/ViewerConfig;Luniffi/epdf_viewer_host/DocumentFetcher;ILjava/lang/Object;)Landroidx/lifecycle/ViewModelProvider$Factory;
+}
+
+public final class com/embedpdf/models/RenderRevisions {
+	public fun <init> (Lcom/embedpdf/RenderCapability;)V
+	public final fun getRevisions ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun revision (Luniffi/epdf_ffi/PageRef;)J
+	public final fun run (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/models/SearchModel {
+	public fun <init> (Lcom/embedpdf/SearchCapability;Lcom/embedpdf/models/SearchStrings;)V
+	public synthetic fun <init> (Lcom/embedpdf/SearchCapability;Lcom/embedpdf/models/SearchStrings;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun clearButtonTapped (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun getActiveHit ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getActiveHitIndex ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getCanClear ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getError ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getHitCount ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getHits ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getProgress ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getStatus ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getSummary ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getText ()Ljava/lang/String;
+	public final fun getTextFlow ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun hitCount (Luniffi/epdf_ffi/PageRef;)I
+	public final fun nextButtonTapped (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun previousButtonTapped (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun refresh (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun revealActiveHit (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun run (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun searchSubmitted (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setText (Ljava/lang/String;)V
+}
+
+public abstract interface class com/embedpdf/models/SearchStrings {
+	public static final field Companion Lcom/embedpdf/models/SearchStrings$Companion;
+	public fun searchSummary (IIZ)Ljava/lang/String;
+}
+
+public final class com/embedpdf/models/SearchStrings$Companion {
+	public final fun getEnglish ()Lcom/embedpdf/models/SearchStrings;
+}
+
+public final class com/embedpdf/models/SearchStrings$DefaultImpls {
+	public static fun searchSummary (Lcom/embedpdf/models/SearchStrings;IIZ)Ljava/lang/String;
+}
+
+public final class com/embedpdf/models/StageReaderModel {
+	public static final field Companion Lcom/embedpdf/models/StageReaderModel$Companion;
+	public static final field MAX_PAGE_PIXELS D
+	public static final field PAN_MOVEMENT_THRESHOLD D
+	public fun <init> (Lcom/embedpdf/StageCapability;Lcom/embedpdf/RenderCapability;Lcom/embedpdf/InteractionCapability;Lcom/embedpdf/LinkCapability;Lkotlinx/coroutines/CoroutineScope;)V
+	public synthetic fun <init> (Lcom/embedpdf/StageCapability;Lcom/embedpdf/RenderCapability;Lcom/embedpdf/InteractionCapability;Lcom/embedpdf/LinkCapability;Lkotlinx/coroutines/CoroutineScope;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun doubleTapped (FFLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun dragCancelled (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun dragChanged (FFLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun dragEnded (FFLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun getActiveToolId ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getCamera ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getError ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getForwardsDrags ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getLinkActivations ()Lkotlinx/coroutines/flow/SharedFlow;
+	public final fun getPageIndex ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getPanBeginsOnMovement ()Z
+	public final fun getRender ()Lcom/embedpdf/RenderCapability;
+	public final fun getRevisions ()Lcom/embedpdf/models/RenderRevisions;
+	public final fun getStage ()Lcom/embedpdf/StageCapability;
+	public final fun getVisiblePages ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun isPanEnabled ()Z
+	public final fun isPanEnabledFlow ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun isZooming ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun magnifyChanged (FFF)V
+	public final fun magnifyEnded (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun pointerCancelled ()V
+	public final fun pointerDown (FF)V
+	public final fun pointerMoved (FF)V
+	public final fun pointerUp (FF)V
+	public final fun renderRevision (Luniffi/epdf_ffi/PageRef;)J
+	public final fun run (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setPanBeginsOnMovement (Z)V
+	public final fun setPanEnabled (Z)V
+	public final fun sizeChanged (FFFLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun tapped (FF)V
+}
+
+public final class com/embedpdf/models/StageReaderModel$Companion {
+	public final fun renderScale (DDDZ)D
+	public static synthetic fun renderScale$default (Lcom/embedpdf/models/StageReaderModel$Companion;DDDZILjava/lang/Object;)D
+}
+
+public final class com/embedpdf/models/StageVisiblePageViewportKt {
+	public static final fun geometry (Luniffi/epdf_plugin_stage/StageVisiblePage;Luniffi/epdf_ffi/PageInfo;)Lcom/embedpdf/PageGeometry;
+	public static final fun localRect (Luniffi/epdf_plugin_stage/StageVisiblePage;Luniffi/epdf_ffi/Rect;Luniffi/epdf_ffi/PageInfo;)Landroid/graphics/RectF;
+	public static final fun pagePoint (Luniffi/epdf_plugin_stage/StageVisiblePage;Landroid/graphics/PointF;Luniffi/epdf_ffi/PageInfo;)Luniffi/epdf_ffi/Point;
+	public static final fun viewportPoint (Luniffi/epdf_plugin_stage/StageVisiblePage;Landroid/graphics/PointF;)Luniffi/epdf_ffi/Point;
+}
+
+public final class com/embedpdf/models/TextSelectionModel {
+	public fun <init> (Lcom/embedpdf/SelectionCapability;Lkotlinx/coroutines/CoroutineScope;)V
+	public synthetic fun <init> (Lcom/embedpdf/SelectionCapability;Lkotlinx/coroutines/CoroutineScope;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun clear (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun dragBegan (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Lcom/embedpdf/models/TextSelectionModel$Start;)V
+	public static synthetic fun dragBegan$default (Lcom/embedpdf/models/TextSelectionModel;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Lcom/embedpdf/models/TextSelectionModel$Start;ILjava/lang/Object;)V
+	public final fun dragChanged (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;)V
+	public final fun dragEnded (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun getError ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getRects ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun isSelecting ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun run (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun selectedText (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/models/TextSelectionModel$Start : java/lang/Enum {
+	public static final field CARET Lcom/embedpdf/models/TextSelectionModel$Start;
+	public static final field WORD Lcom/embedpdf/models/TextSelectionModel$Start;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/embedpdf/models/TextSelectionModel$Start;
+	public static fun values ()[Lcom/embedpdf/models/TextSelectionModel$Start;
+}
+
+public final class com/embedpdf/models/ThumbnailModel {
+	public fun <init> (Lcom/embedpdf/RenderCapability;Ljava/util/List;)V
+	public final fun getError ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getImages ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getPageRevisions ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun image (Luniffi/epdf_ffi/PageRef;)Landroid/graphics/Bitmap;
+	public final fun load (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun revision (Luniffi/epdf_ffi/PageRef;)J
+	public final fun run (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/models/TiledPageModel {
+	public fun <init> (Lcom/embedpdf/RenderCapability;Lcom/embedpdf/RenderViewDemand;Luniffi/epdf_ffi/PageRef;ZLcom/embedpdf/models/BitmapPool;)V
+	public synthetic fun <init> (Lcom/embedpdf/RenderCapability;Lcom/embedpdf/RenderViewDemand;Luniffi/epdf_ffi/PageRef;ZLcom/embedpdf/models/BitmapPool;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun frameDrawn ()V
+	public final fun getBase ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getIncludeAnnotations ()Z
+	public final fun getPage ()Luniffi/epdf_ffi/PageRef;
+	public final fun getTiles ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun painterAttached ()V
+	public final fun painterDetached ()V
+	public final fun release (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun tileDisplayed (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun update (DDLuniffi/epdf_ffi/Rect;Lkotlin/jvm/functions/Function0;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun update$default (Lcom/embedpdf/models/TiledPageModel;DDLuniffi/epdf_ffi/Rect;Lkotlin/jvm/functions/Function0;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/models/TiledPageModel$Tile {
+	public fun <init> (Ljava/lang/String;Luniffi/epdf_ffi/Rect;DLandroid/graphics/Bitmap;)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public final fun getImage ()Landroid/graphics/Bitmap;
+	public final fun getRect ()Luniffi/epdf_ffi/Rect;
+	public final fun getZ ()D
+	public fun hashCode ()I
+}
+
+public final class com/embedpdf/models/ToolModel {
+	public fun <init> (Lcom/embedpdf/InteractionCapability;)V
+	public final fun activate-N6U4bZY (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun activateDefault (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun buttonTapped-N6U4bZY (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun getActiveToolId ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getError ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getSubmitting ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getTools ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getUsable ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun isDisabled-HBAwPPM (Ljava/lang/String;)Z
+	public final fun isSelected-HBAwPPM (Ljava/lang/String;)Z
+	public final fun refresh (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun run (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/models/ViewerModel {
+	public fun <init> (Lcom/embedpdf/PdfViewer;)V
+	public final fun getActiveDocument ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getDocumentCount ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getError ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun refresh (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun run (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
