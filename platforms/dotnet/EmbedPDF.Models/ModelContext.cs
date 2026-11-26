@@ -9,13 +9,50 @@ namespace EmbedPDF.Models;
 /// </summary>
 internal sealed class ModelContext
 {
-    public ModelContext(SynchronizationContext? context) =>
-        Context = context ?? SynchronizationContext.Current ?? new SerialSynchronizationContext();
+    public ModelContext(SynchronizationContext? context)
+    {
+        var current = SynchronizationContext.Current;
+        Context = context ?? current ?? new SerialSynchronizationContext();
+        // A context captured as the current one belongs to this thread. Some
+        // UI dispatchers install a fresh instance of it for each callback, so
+        // on that thread a later Current is another object of the same type;
+        // the thread recognises those. A context made here, or given while a
+        // different one is current, has no known thread and keeps the
+        // identity check.
+        if (current is not null && ReferenceEquals(Context, current))
+        {
+            homeThread = Environment.CurrentManagedThreadId;
+            Threads.AddOrUpdate(Context, new StrongBox<int>(Environment.CurrentManagedThreadId));
+        }
+        else if (Threads.TryGetValue(Context, out var known))
+        {
+            // Handed on by another model, which captured it on its thread.
+            homeThread = known.Value;
+        }
+    }
+
+    /// <summary>The thread each captured context was captured on, so a model handed that context by another model knows it too.</summary>
+    static readonly ConditionalWeakTable<SynchronizationContext, StrongBox<int>> Threads = new();
+
+    readonly int? homeThread;
 
     public SynchronizationContext Context { get; }
 
-    /// <summary>Whether the calling code already runs on the home context.</summary>
-    public bool IsCurrent => ReferenceEquals(SynchronizationContext.Current, Context);
+    /// <summary>
+    /// Whether the calling code already runs on the home context: it is the
+    /// same object, or, for a context captured on its own thread, this is that
+    /// thread and the current context is of the same type.
+    /// </summary>
+    public bool IsCurrent
+    {
+        get
+        {
+            var current = SynchronizationContext.Current;
+            if (ReferenceEquals(current, Context)) return true;
+            return homeThread is { } thread && current is not null
+                && Environment.CurrentManagedThreadId == thread && current.GetType() == Context.GetType();
+        }
+    }
 
     /// <summary>
     /// Continues on the home context: at once when the caller is already on
