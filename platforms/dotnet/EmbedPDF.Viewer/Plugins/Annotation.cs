@@ -262,9 +262,16 @@ public sealed class AnnotationCapability : IDisposable
     /// Updates every measurement on <paramref name="page"/> to <paramref name="scale"/>
     /// at once. Before the annotations load it updates nothing and sets the
     /// report's <see cref="AnnotationRemeasureReport.Error"/>, so await
-    /// <see cref="WhenRemeasurableAsync"/> first. A scale value JSON can't
-    /// hold is <see cref="PdfErrorCode.InvalidInput"/>.
+    /// <see cref="WhenRemeasurableAsync"/> first.
     /// </summary>
+    /// <remarks>
+    /// A NaN or an infinity anywhere in <paramref name="scale"/>, or an
+    /// undefined enum value, is <see cref="PdfErrorCode.InvalidInput"/> before
+    /// the engine sees it. Other values pass through unchecked: a scale the
+    /// readout can't use leaves each measurement in
+    /// <see cref="AnnotationRemeasureReport.Skipped"/> as
+    /// <see cref="AnnotationRemeasureSkipReason.Unavailable"/>.
+    /// </remarks>
     public async Task<AnnotationRemeasureReport> StageRemeasureAsync(PageRef page, PdfMeasurement scale, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(scale);

@@ -459,7 +459,9 @@ impl AnnotationHandle {
     /// `stageRemeasure(page, scale)`: update every measurement on `page` to
     /// `scale_json` (the engine's `PdfMeasure`), at once. Before the
     /// annotations load it stages nothing and sets `error`; wait on
-    /// `when_remeasurable` first. A scale that isn't an object is `invalid-input`.
+    /// `when_remeasurable` first. Text that isn't a JSON object is
+    /// `invalid-input`. The scale's members aren't checked here: one the
+    /// readout can't use skips each measurement as `unavailable`.
     pub async fn stage_remeasure(
         &self,
         page: PageRef,
