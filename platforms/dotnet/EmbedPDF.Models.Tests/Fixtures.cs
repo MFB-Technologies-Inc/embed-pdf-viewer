@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace EmbedPDF.Models.Tests;
 
 /// <summary>The fixtures the Swift suite bundles, read where they live in the repository.</summary>
@@ -41,5 +43,11 @@ static class Fixture
             if (match(item) is { } found) return found;
         }
         throw new InvalidOperationException("the stream ended first");
+    }
+
+    /// <summary>A typed stream as objects, for <see cref="First{T}"/>.</summary>
+    public static async IAsyncEnumerable<object> Cast<T>(IAsyncEnumerable<T> source, [EnumeratorCancellation] CancellationToken token = default)
+    {
+        await foreach (var item in source.WithCancellation(token)) yield return item!;
     }
 }

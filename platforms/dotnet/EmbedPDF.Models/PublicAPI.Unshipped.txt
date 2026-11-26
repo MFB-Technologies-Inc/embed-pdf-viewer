@@ -2,3 +2,8 @@
 EmbedPDF.Models.ObservableModel
 EmbedPDF.Models.ObservableModel.Context.get -> System.Threading.SynchronizationContext!
 EmbedPDF.Models.ObservableModel.PropertyChanged -> System.ComponentModel.PropertyChangedEventHandler?
+EmbedPDF.Models.RenderRevisions
+EmbedPDF.Models.RenderRevisions.Dispose() -> void
+EmbedPDF.Models.RenderRevisions.GetRevision(EmbedPDF.PageRef page) -> long
+EmbedPDF.Models.RenderRevisions.RenderRevisions(EmbedPDF.RenderCapability! render, System.Threading.SynchronizationContext? context = null) -> void
+EmbedPDF.Models.RenderRevisions.Revisions.get -> System.Collections.Generic.IReadOnlyDictionary<EmbedPDF.PageRef, long>!
