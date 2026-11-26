@@ -7,7 +7,10 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertAll
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -193,6 +196,30 @@ class StageReaderTest {
             assertEquals(before, r.camera())
         } finally {
             o.destroy()
+        }
+    }
+
+    /** Review fix 4: TalkBack names each visible page and scrolls the reader through its scroll actions. */
+    @Test
+    fun theReaderExposesItsPagesAndScrollToAccessibility() {
+        val r = reader("report")
+        try {
+            val count = r.o.pages.size
+            compose.pumpUntil { runCatching { compose.onNodeWithContentDescription("Page 1 of $count").assertExists() }.isSuccess }
+            compose.pumpUntil {
+                compose.onNodeWithTag("reader").fetchSemanticsNode().config.contains(SemanticsProperties.VerticalScrollAxisRange)
+            }
+            val range = compose.onNodeWithTag("reader").fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange]
+            assertEquals(0f, range.value(), 1f)
+            assertTrue(range.maxValue() > 0f)
+            val before = r.camera()
+            compose.onNodeWithTag("reader").performSemanticsAction(SemanticsActions.ScrollBy) { it(0f, 400f) }
+            compose.pumpUntil { r.camera() != before }
+            compose.pumpUntil {
+                compose.onNodeWithTag("reader").fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value() > 0f
+            }
+        } finally {
+            r.o.destroy()
         }
     }
 

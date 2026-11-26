@@ -29,7 +29,16 @@ import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.semantics.ScrollAxisRange
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.horizontalScrollAxisRange
+import androidx.compose.ui.semantics.scrollBy
+import androidx.compose.ui.semantics.verticalScrollAxisRange
+import com.embedpdf.PdfException
+import com.embedpdf.StageScrollMetrics
+import com.embedpdf.StageScrollToOptions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -79,6 +88,10 @@ import kotlinx.coroutines.launch
  * a `Uri` is the app's job. The reader runs the model while it is composed,
  * so the app does not run it as well, and a new model starts fresh. Pages lay
  * out left to right whatever the layout direction, as the stage places them.
+ *
+ * TalkBack reads the reader as "Document pages" and each visible page as
+ * "Page N of M", and scrolls the reader with its scroll actions, which the
+ * reader reports through its scroll ranges in pixels.
  */
 @Composable
 public fun StageReader(
@@ -101,6 +114,26 @@ public fun StageReader(
         val scope = rememberCoroutineScope()
         var size by remember { mutableStateOf(IntSize.Zero) }
         val label = stringResource(R.string.embedpdf_document_pages)
+        val resources = LocalResources.current
+        val pageLabel = { number: Int, count: Int ->
+            if (count > 0) {
+                resources.getString(R.string.embedpdf_page_of, number, count)
+            } else {
+                resources.getString(R.string.embedpdf_page_number, number)
+            }
+        }
+        val camera by reader.camera.collectAsState()
+        // Accessibility reads the scroll position and the page count from
+        // the stage. Performance: one engine round trip per camera event,
+        // so a pan or a pinch reads the metrics at each step; a model flow
+        // that carries them with the camera removes the reads.
+        val metrics by produceState<StageScrollMetrics?>(null, reader, camera, size) {
+            value = readOrNull { reader.stage.scrollMetrics() }
+        }
+        val visibleSet = pages.map { it.page }
+        val pageCount by produceState(0, reader, visibleSet) {
+            value = readOrNull { reader.stage.pageCount() } ?: value
+        }
 
         LaunchedEffect(reader) { reader.run() }
         LaunchedEffect(reader) { reader.linkActivations.collect { activations(it) } }
@@ -112,7 +145,28 @@ public fun StageReader(
             modifier
                 .clipToBounds()
                 .onSizeChanged { size = it }
-                .semantics { contentDescription = label }
+                .semantics {
+                    contentDescription = label
+                    metrics?.let { scroll ->
+                        // In pixels, as the platform's scroll actions measure.
+                        if (scroll.scrollableX) {
+                            horizontalScrollAxisRange = ScrollAxisRange(
+                                value = { (scroll.scrollLeft * density).toFloat() },
+                                maxValue = { ((scroll.scrollWidth - scroll.clientWidth) * density).toFloat().coerceAtLeast(0f) },
+                            )
+                        }
+                        if (scroll.scrollableY) {
+                            verticalScrollAxisRange = ScrollAxisRange(
+                                value = { (scroll.scrollTop * density).toFloat() },
+                                maxValue = { ((scroll.scrollHeight - scroll.clientHeight) * density).toFloat().coerceAtLeast(0f) },
+                            )
+                        }
+                        scrollBy { x, y ->
+                            reader.stage.scrollBy(StageScrollToOptions(left = (x / density).toDouble(), top = (y / density).toDouble()))
+                            true
+                        }
+                    }
+                }
                 .pointerInput(reader) { readerGestures(reader, scope) },
             contentAlignment = AbsoluteAlignment.TopLeft,
         ) {
@@ -121,7 +175,8 @@ public fun StageReader(
                     Box(
                         Modifier
                             .absoluteOffset(page.screenX.dp, page.screenY.dp)
-                            .size(page.transform.viewWidth.dp, page.transform.viewHeight.dp),
+                            .size(page.transform.viewWidth.dp, page.transform.viewHeight.dp)
+                            .semantics { contentDescription = pageLabel(page.pageIndex.toInt() + 1, pageCount) },
                         contentAlignment = AbsoluteAlignment.TopLeft,
                     ) {
                         val transform = page.transform
@@ -138,6 +193,13 @@ public fun StageReader(
             }
         }
     }
+}
+
+/** [read]'s value, or `null` when the stage refuses, as after its document closes. */
+private suspend fun <T> readOrNull(read: suspend () -> T): T? = try {
+    read()
+} catch (e: PdfException) {
+    null
 }
 
 /** Where a touch's drag goes, chosen when it lands. */

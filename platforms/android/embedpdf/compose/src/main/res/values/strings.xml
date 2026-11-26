@@ -4,6 +4,8 @@
     <string name="embedpdf_page_unavailable">Page unavailable</string>
     <!-- A page thumbnail's label; %1$d is the one-based page number. -->
     <string name="embedpdf_page_number">Page %1$d</string>
+    <!-- A page the stage reader shows; %1$d is its one-based number, %2$d the page count. -->
+    <string name="embedpdf_page_of">Page %1$d of %2$d</string>
     <!-- The text selection overlay's label. -->
     <string name="embedpdf_text_selection">Text selection</string>
     <!-- The action that copies the selected text. -->
