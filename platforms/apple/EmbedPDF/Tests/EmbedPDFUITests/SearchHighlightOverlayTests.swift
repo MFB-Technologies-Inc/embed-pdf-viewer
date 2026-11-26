@@ -284,6 +284,48 @@ struct SearchHighlightOverlayTests {
     }
   }
 
+  /// A `PDFReaderView` page draws the search's hits under its text
+  /// selection: the same pixels as the two overlays stacked in that order.
+  @Test
+  func aReaderPageShowsHitsUnderTheSelection() async throws {
+    let reader = PDFReaderModel()
+    await reader.open(try pluginFixture(), name: "report.pdf")
+    guard case let .ready(session) = reader.phase else {
+      Issue.record("expected .ready, got \(reader.phase)")
+      return
+    }
+    let search = try #require(session.search)
+    let selection = try #require(session.selection)
+    search.text = "the"
+    await search.searchSubmitted()
+    let active = try #require(search.activeHit)
+    let hit = try #require(search.hits.first { $0 != active && $0.page == active.page && !$0.segments.isEmpty })
+    let info = try #require(session.pages.first { $0.page == active.page })
+    try await session.viewer.selection(for: session.document).selectAll()
+    try await expectObserved({ selection.rects[info.page]?.isEmpty == false }, equals: true) {}
+    let page = visiblePage(info)
+
+    func drawn(_ content: some View) throws -> RGB {
+      let renderer = ImageRenderer(
+        content: ZStack(alignment: .topLeading) {
+          Color.white
+          content
+        }
+        .frame(width: page.transform.viewWidth, height: page.transform.viewHeight))
+      renderer.scale = 1
+      return try middle(of: hit, in: try #require(renderer.cgImage), page: page, info: info)
+    }
+    let highlights = SearchHighlightOverlay(model: search, visiblePage: page, info: info)
+    let selected = TextSelectionOverlay(model: selection, visiblePage: page, info: info, activation: .longPress)
+    let underSelection = try drawn(ZStack(alignment: .topLeading) { highlights; selected })
+    // The expected pixel differs from a page with no highlight and from a
+    // highlight over the selection, so the comparison below sees both.
+    #expect(!underSelection.isClose(to: try drawn(selected)))
+    #expect(!underSelection.isClose(to: try drawn(ZStack(alignment: .topLeading) { selected; highlights })))
+    expectColor(try drawn(ReaderPageOverlay(session: session, page: page, overlay: EmptyView())), underSelection)
+    await reader.close()
+  }
+
   #if canImport(UIKit)
   /// A label a caller puts on the overlay still makes no element, as the
   /// label would without the overlay's own hiding. macOS builds the

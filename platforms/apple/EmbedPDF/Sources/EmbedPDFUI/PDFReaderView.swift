@@ -14,7 +14,9 @@ import SwiftUI
 /// a wrong password. A failure shows the error's detail. A ready document
 /// shows a `StageReaderView`, with a `SearchBar` above it when the model has
 /// `.search`; the reader scrolls to each hit the bar reports active, and
-/// not again when the view comes back with the same hit.
+/// not again when the view comes back with the same hit. Each page shows the
+/// search's hits with a `SearchHighlightOverlay`, under the text selection
+/// and the app's page overlay.
 ///
 /// Touch on a ready document divides this way. A drag pans, a pinch zooms
 /// and a double tap zooms. With `.selection`, a long press and then a drag
@@ -92,16 +94,7 @@ public struct PDFReaderView<Overlay: View>: View {
       StageReaderView(
         model: session.reader,
         pageOverlay: { page in
-          ZStack(alignment: .topLeading) {
-            // Absent under a tool other than the default, whose drags the
-            // reader forwards: the long press would take them from it.
-            if let selection = session.selection, !session.reader.forwardsDrags,
-              let info = session.pageInfo(for: page)
-            {
-              TextSelectionOverlay(model: selection, visiblePage: page, info: info, activation: .longPress)
-            }
-            pageOverlay(page, session)
-          }
+          ReaderPageOverlay(session: session, page: page, overlay: pageOverlay(page, session))
         },
         onLinkActivation: onLinkActivation)
         // The long press above delays the reader's drag to the first move
@@ -120,6 +113,30 @@ extension PDFReaderView where Overlay == EmptyView {
   /// activation while a document shows.
   public init(model: PDFReaderModel, onLinkActivation: @escaping @MainActor (LinkActivation) -> Void = { _ in }) {
     self.init(model: model, pageOverlay: { _, _ in EmptyView() }, onLinkActivation: onLinkActivation)
+  }
+}
+
+/// What a ready `PDFReaderView` lays over one page, bottom to top: the
+/// search's hits, the text selection and the app's `overlay`.
+@MainActor
+struct ReaderPageOverlay<Overlay: View>: View {
+  let session: PDFReaderModel.Session
+  let page: StageVisiblePage
+  let overlay: Overlay
+
+  var body: some View {
+    let info = session.pageInfo(for: page)
+    ZStack(alignment: .topLeading) {
+      if let search = session.search, let info {
+        SearchHighlightOverlay(model: search, visiblePage: page, info: info)
+      }
+      // Absent under a tool other than the default, whose drags the
+      // reader forwards: the long press would take them from it.
+      if let selection = session.selection, !session.reader.forwardsDrags, let info {
+        TextSelectionOverlay(model: selection, visiblePage: page, info: info, activation: .longPress)
+      }
+      overlay
+    }
   }
 }
 
