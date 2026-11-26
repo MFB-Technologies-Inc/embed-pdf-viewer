@@ -212,19 +212,19 @@ its own NuGet cache and a `nuget.config` that serves `EmbedPDF` and `EmbedPDF.*`
 only and everything else from nuget.org, runs it RID-specific and portable, and checks it fails
 with the host or PDFium hidden.
 
-Sizes from CI run 45878960809 at `c582ac24f` (engine `0.0.0-engine.5b0a47900f002e9a`, Rust
+Sizes from CI run 45895350480 at `8114b0224` (engine `0.0.0-engine.06ced45f4c89b5ad`, Rust
 1.100.0, SDK 10.0.404), in bytes. Every RID was built and validated on its own native runner; the
 records are under `validation/2026-11-26-phase-6-runtime-<rid>/`.
 
 | RID | Viewer host | PDFium | Validation |
 |---|---|---|---|
-| `linux-arm64` | 29,433,176 | 11,376,920 | native, Debian trixie container |
-| `linux-x64` | 33,630,128 | 11,616,560 | native, Debian trixie container |
-| `osx-arm64` | 28,380,912 | 9,879,008 | native, `macos15 20261123.0558.1` |
-| `osx-x64` | 31,134,496 | 10,659,320 | native, `macos15 20260824.0482.1` |
-| `win-x64` | 45,327,872 | 10,510,848 | native, `win22 20261123.376.1` |
+| `linux-arm64` | 29,629,784 | 11,376,920 | native, Debian trixie container |
+| `linux-x64` | 33,861,616 | 11,616,560 | native, Debian trixie container |
+| `osx-arm64` | 28,566,816 | 9,879,008 | native, `macos15 20261118.0550.1` |
+| `osx-x64` | 31,357,536 | 10,659,320 | native, `macos15 20260824.0482.1` |
+| `win-x64` | 45,687,808 | 10,510,848 | native, `win22 20261116.370.1` |
 
-The five-RID `EmbedPDF.Runtime` nupkg is 96,450,842 bytes.
+The five-RID `EmbedPDF.Runtime` nupkg is 96,977,460 bytes.
 
 ## Plugins
 
