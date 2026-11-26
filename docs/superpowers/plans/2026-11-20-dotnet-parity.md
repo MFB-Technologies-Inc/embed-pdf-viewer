@@ -990,7 +990,8 @@ Decisions, each with its reason:
   grants `InternalsVisibleTo("EmbedPDF.Models")` and gains `internal PdfViewer Viewer` on
   `SearchCapability`, `AnnotationCapability` and `InteractionCapability`, so `SearchModel(search)`
   keeps Swift's shape. The cost: `EmbedPDF.Models` must ship with the exact `EmbedPDF` version it
-  was built against, which Phase 6 packs as an exact dependency range.
+  was built against, which Phase 6 packs as an exact dependency range. Kept 2026-11-26 (coordinator
+  decision); the Phase 6 checklist carries the `[x.y.z]` dependency.
 - Models that observe from construction (`RenderRevisions`, `ThumbnailModel`,
   `TextSelectionModel`, and `StageReaderModel` through its `Revisions`) are `IDisposable`; their
   loop holds the model through a `WeakReference`, and a finalizer queues the cancel Swift's `deinit`
@@ -1055,6 +1056,17 @@ Deviations from Swift, each with its reason:
   because the rerun's empty start reads as complete with different hits; Swift's predicate has the
   same gap.
 
+Wave E merge (2026-11-26). `research/dotnet-parity-p3e` at `b82ee27a0` (the wave E review fixes) is
+merged in with no conflicts. After it, 26 Models tests that close a document or dispose a viewer under
+live models, or release a model, run under `SingleThreadContext.RunWatched`, which fails on a task
+exception nobody observed. It uses `CancellationTests.UnobservedWatch`'s approach in a
+test-local `UnobservedWatch`; `TheUnobservedWatchSeesAnUnobservedFault` checks that the watch catches
+one, and runs in a collection with parallelization off, because the event is process-wide and its
+deliberate fault otherwise failed three watched tests running beside it. None fired otherwise.
+`EmbedPDF.Models.Tests` then runs 155 cases, 154 passing four times in a row and one skipped;
+`EmbedPDF.Viewer.Tests` runs 1,123, 1,119 passing and 4 skipped; the Release build of `EmbedPDF.sln`
+reports 0 warnings.
+
 ## Phase 5: Sample and consumer check
 
 About 3 days. Exit: the sample restores from a local feed, opens a document, and publishes with
@@ -1076,6 +1088,10 @@ entry.
   packages, where the native library comes from, the plugin table, local engine mode, and when to
   choose `EmbedPDF.Engine` instead (D2).
 - [ ] `DisabledPluginTests` fails when the options gain a plugin without a table row, as on Apple.
+- [ ] Pack `EmbedPDF.Models` with an exact-version dependency on `EmbedPDF` (`[x.y.z]`, the version
+  it was built with). The models read capabilities' `internal Viewer` through
+  `InternalsVisibleTo("EmbedPDF.Models")` (Phase 4 notes, kept 2026-11-26), so any other `EmbedPDF`
+  version may lack the members they call. A pack check fails when the range is not exact.
 
 ## Definition of done
 
