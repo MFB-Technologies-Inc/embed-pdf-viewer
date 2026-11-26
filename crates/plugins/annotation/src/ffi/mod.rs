@@ -19,8 +19,9 @@
 //! rich-text editing members (`draftRichText`, `setTextSelection` ranges
 //! beyond a caret), and the hooks other plugins call
 //! (`registerBehavior`, `pruneEngagedSelection`, `getBehaviorFor`,
-//! `commitScriptEffects`, `lend`, `setPageViewports`, `whenRemeasurable`, `stageRemeasure`,
-//! `distanceCreationPage`, `tools.register`).
+//! `commitScriptEffects`, `lend`, `setPageViewports`, `distanceCreationPage`,
+//! `tools.register`). `whenRemeasurable` and `stageRemeasure` are exported
+//! for a host that re-measures a page itself.
 
 mod drafts;
 mod handle;
@@ -41,7 +42,10 @@ pub use drafts::{
     AnnotationAttachmentFile, AnnotationDraftsHandle, AnnotationPageQuads,
     AnnotationStampPlacement, AnnotationStampSource, AnnotationTextEndAnchor,
 };
-pub use handle::AnnotationHandle;
+pub use handle::{
+    AnnotationDuplicateOptions, AnnotationDuplicateResult, AnnotationHandle,
+    AnnotationRemeasureReport, AnnotationRemeasureSkip, AnnotationRemeasureSkipReason,
+};
 pub use interchange::{AnnotationImportResult, AnnotationRefMapping};
 pub use picker::{AnnotationFilePicker, AnnotationFilePromptRequest, AnnotationPickedFile};
 pub use selection::{AnnotationSelectionHandle, AnnotationSelectionProps, AnnotationTextFormat};

@@ -1,20 +1,152 @@
 use std::sync::Arc;
 
 use epdf_ffi::{
-    AnnotationRef, CancelToken, KernelBound, KernelPost, PageRef, Point, ResourceStatus,
-    Subscription, ViewerError,
+    AnnotationRef, CancelToken, KernelBound, KernelPost, PageRef, PluginErrorInfo, Point,
+    ResourceStatus, Subscription, ViewerError,
 };
 use epdf_kernel::Unsubscribe;
-use serde_json::Value;
+use serde_json::{Value, json};
 
+use super::interchange::cancellable_operation;
 use super::{
-    AnnotationChangedEvent, AnnotationDeletedEvent, AnnotationEvent, AnnotationEventListener,
-    AnnotationFilter, AnnotationRecord, AnnotationResyncedPages, AnnotationThreadChange, draft_out,
-    geometry_point, object_of, open, page_json, page_out, plugin_error_info_of, record_out,
-    records_out, ref_json, ref_out, refs_json, refs_out,
+    AnnotationBatchFailure, AnnotationChangedEvent, AnnotationDeletedEvent, AnnotationEvent,
+    AnnotationEventListener, AnnotationFilter, AnnotationRecord, AnnotationResyncedPages,
+    AnnotationThreadChange, draft_out, geometry_point, invalid, object_of, open, page_json,
+    page_out, plugin_error_info_of, point_json, record_out, records_out, ref_json, ref_out,
+    refs_json, refs_out,
 };
 use crate::AnnotationCapability;
-use crate::write::crud::CreateOptions;
+use crate::write::crud::{CreateOptions, DuplicateOptions};
+
+/// How `duplicate` copies (`AnnotationDuplicateOptions`).
+#[derive(Clone, Debug, Default, PartialEq, uniffi::Record)]
+pub struct AnnotationDuplicateOptions {
+    /// The page the copies go on; `None`: each on its original's page.
+    #[uniffi(default = None)]
+    pub page: Option<PageRef>,
+    /// How far each copy moves, in page points: `x` to the right, `y` down.
+    #[uniffi(default = None)]
+    pub offset: Option<Point>,
+    /// Select the copies as they show.
+    #[uniffi(default = false)]
+    pub select: bool,
+}
+
+/// What a duplicate made (`AnnotationDuplicateResult`).
+#[derive(Clone, Debug, PartialEq, uniffi::Record)]
+pub struct AnnotationDuplicateResult {
+    /// The copies, in the order their originals were named.
+    pub annotations: Vec<AnnotationRecord>,
+    /// What was left out, and why, as the engine's JSON.
+    pub dropped_json: String,
+}
+
+/// Why `stage_remeasure` left a measurement as it was.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, uniffi::Enum)]
+pub enum AnnotationRemeasureSkipReason {
+    /// The session may not change it.
+    NoAuthority,
+    /// It is locked.
+    Locked,
+    /// Its scale is not a rectilinear one.
+    ForeignMeasure,
+    /// It has no readout at the new scale.
+    Unavailable,
+}
+
+#[derive(Clone, Debug, PartialEq, uniffi::Record)]
+pub struct AnnotationRemeasureSkip {
+    pub annotation_ref: AnnotationRef,
+    pub reason: AnnotationRemeasureSkipReason,
+}
+
+/// What `stage_remeasure` staged (`RecalibrationReport`).
+#[derive(Clone, Debug, PartialEq, uniffi::Record)]
+pub struct AnnotationRemeasureReport {
+    pub page: PageRef,
+    /// The measurements whose update it staged.
+    pub updated: Vec<AnnotationRef>,
+    pub skipped: Vec<AnnotationRemeasureSkip>,
+    pub failed: Vec<AnnotationBatchFailure>,
+    /// Set, with nothing staged, when the annotations aren't loaded: the
+    /// engine's serialized error.
+    pub error: Option<PluginErrorInfo>,
+}
+
+fn duplicate_out(
+    cap: &AnnotationCapability,
+    result: &Value,
+) -> Result<AnnotationDuplicateResult, epdf_kernel::Error> {
+    let annotations = result
+        .get("annotations")
+        .and_then(Value::as_array)
+        .ok_or_else(|| invalid("a duplicate result has no annotations"))?;
+    Ok(AnnotationDuplicateResult {
+        annotations: records_out(cap, annotations)?,
+        dropped_json: result.get("dropped").cloned().unwrap_or_else(|| json!([])).to_string(),
+    })
+}
+
+/// Duplicate options as the plugin reads them, with the call's signal.
+fn duplicate_options(
+    options: &AnnotationDuplicateOptions,
+    signal: epdf_kernel::signal::AbortSignal,
+) -> DuplicateOptions {
+    DuplicateOptions {
+        page: options.page.map(page_json),
+        offset: options.offset.map(point_json),
+        select: options.select,
+        signal: Some(signal),
+    }
+}
+
+pub(super) fn duplicate_answer(
+    cap: AnnotationCapability,
+    start: impl FnOnce(
+        &AnnotationCapability,
+        epdf_kernel::signal::AbortSignal,
+    ) -> epdf_kernel::Promise<Value>,
+) -> Result<epdf_kernel::Promise<AnnotationDuplicateResult>, epdf_kernel::Error> {
+    cancellable_operation(|signal| {
+        Ok(start(&cap, signal).convert(move |result| duplicate_out(&cap, result)))
+    })
+}
+
+fn remeasure_out(report: &Value) -> Result<AnnotationRemeasureReport, epdf_kernel::Error> {
+    let list = |key: &str| report.get(key).and_then(Value::as_array).cloned().unwrap_or_default();
+    let skipped = list("skipped")
+        .iter()
+        .map(|skip| {
+            let reason = match skip.get("reason").and_then(Value::as_str) {
+                Some("no-authority") => AnnotationRemeasureSkipReason::NoAuthority,
+                Some("locked") => AnnotationRemeasureSkipReason::Locked,
+                Some("foreign-measure") => AnnotationRemeasureSkipReason::ForeignMeasure,
+                Some("unavailable") => AnnotationRemeasureSkipReason::Unavailable,
+                other => return Err(invalid(format!("an unknown remeasure skip: {other:?}"))),
+            };
+            Ok(AnnotationRemeasureSkip {
+                annotation_ref: ref_out(skip.get("ref").unwrap_or(&Value::Null))?,
+                reason,
+            })
+        })
+        .collect::<Result<_, epdf_kernel::Error>>()?;
+    let failed = list("failed")
+        .iter()
+        .map(|failure| {
+            Ok(AnnotationBatchFailure {
+                annotation_ref: ref_out(failure.get("ref").unwrap_or(&Value::Null))?,
+                error: plugin_error_info_of(failure.get("error").unwrap_or(&Value::Null)),
+            })
+        })
+        .collect::<Result<_, epdf_kernel::Error>>()?;
+    Ok(AnnotationRemeasureReport {
+        page: page_out(report.get("page").unwrap_or(&Value::Null))?,
+        updated: refs_out(report.get("updated").unwrap_or(&Value::Null))?,
+        skipped,
+        failed,
+        error: report.get("error").filter(|e| !e.is_null()).map(plugin_error_info_of),
+    })
+}
 
 #[derive(uniffi::Object)]
 pub struct AnnotationHandle {
@@ -266,6 +398,72 @@ impl AnnotationHandle {
 
     pub async fn can_delete(&self, annotation_ref: AnnotationRef) -> Result<bool, ViewerError> {
         self.cap.call(move |c| Ok(open(c)?.can_delete(&ref_json(&annotation_ref)?))).await
+    }
+
+    /// `duplicate(refs, options)`: copy annotations as one change, one step
+    /// to undo. A copy carries its original's fields, drawing, file and link,
+    /// under its own ref and name. Rejects `permission-denied` without
+    /// `annotations:create`, `not-found` for an annotation or page the
+    /// document doesn't have, `invalid-input` for another plugin's record.
+    pub async fn duplicate(
+        &self,
+        refs: Vec<AnnotationRef>,
+        options: AnnotationDuplicateOptions,
+        cancel: Arc<CancelToken>,
+    ) -> Result<AnnotationDuplicateResult, ViewerError> {
+        self.cap
+            .call_promise_cancellable(
+                cancel,
+                move |c| {
+                    let refs = refs_json(&refs)?;
+                    duplicate_answer(open(c)?.clone(), move |c, signal| {
+                        c.duplicate(refs, duplicate_options(&options, signal), Vec::new())
+                    })
+                },
+                |result| result,
+            )
+            .await
+    }
+
+    /// `canDuplicate(refs)`: the session may create annotations, and each is
+    /// here, unlocked and copyable. `false` for an empty list.
+    pub async fn can_duplicate(&self, refs: Vec<AnnotationRef>) -> Result<bool, ViewerError> {
+        self.cap.call(move |c| Ok(open(c)?.can_duplicate(&refs_json(&refs)?))).await
+    }
+
+    /// `isMovable(ref)`: whether people move it; `false` for one that sits on
+    /// text, and for one the document doesn't have.
+    pub async fn is_movable(&self, annotation_ref: AnnotationRef) -> Result<bool, ViewerError> {
+        self.cap.call(move |c| Ok(open(c)?.is_movable(&ref_json(&annotation_ref)?))).await
+    }
+
+    /// `whenRemeasurable()`: resolves once the annotations loaded (a failed
+    /// load retried) and every pending load settled.
+    pub async fn when_remeasurable(&self, cancel: Arc<CancelToken>) -> Result<(), ViewerError> {
+        self.cap
+            .call_promise_cancellable(
+                cancel,
+                |c| cancellable_operation(|_| Ok(open(c)?.when_remeasurable())),
+                |_| (),
+            )
+            .await
+    }
+
+    /// `stageRemeasure(page, scale)`: update every measurement on `page` to
+    /// `scale_json` (the engine's `PdfMeasure`), at once. Before the
+    /// annotations load it stages nothing and sets `error`; wait on
+    /// `when_remeasurable` first. A scale that isn't an object is `invalid-input`.
+    pub async fn stage_remeasure(
+        &self,
+        page: PageRef,
+        scale_json: String,
+    ) -> Result<AnnotationRemeasureReport, ViewerError> {
+        self.cap
+            .call(move |c| {
+                let scale = Value::Object(object_of(&scale_json)?);
+                remeasure_out(&open(c)?.stage_remeasure(&page_json(page), scale)?)
+            })
+            .await
     }
 
     /// Every hook in one registration. An event that does not decode is
