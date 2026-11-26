@@ -32,8 +32,9 @@ import kotlin.coroutines.cancellation.CancellationException
  *
  * A call made to return at once ([post]) needs a drainer it does not wait
  * for. When no `run()` drains the queue, [post] starts one drain in
- * [actionScope], the caller's scope; without one it calls [unattended] so the
- * model can report that the call waits.
+ * [actionScope], the caller's scope; without one, or once that scope is no
+ * longer active, it calls [unattended] so the model can report that the call
+ * waits.
  */
 internal class SerialCalls(
     private val actionScope: CoroutineScope? = null,
@@ -140,12 +141,12 @@ internal class SerialCalls(
         val call = enqueue(work)
         if (continuousDrainers > 0 || actionDrainActive) return call
         val scope = actionScope
-        if (scope == null) {
+        if (scope == null || !scope.isActive) {
             unattended?.invoke()
             return call
         }
         actionDrainActive = true
-        // Atomic, so the flag clears even when the scope is already cancelled.
+        // Atomic, so the flag clears even when the scope is cancelled before it starts.
         scope.launch(Dispatchers.Main.immediate, start = CoroutineStart.ATOMIC) {
             try {
                 drain()

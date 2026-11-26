@@ -155,6 +155,22 @@ class HelperTest {
     }
 
     @Test
+    fun aPostWhoseActionScopeIsNoLongerActiveIsUnattended() = runTest(main) {
+        val scope = CoroutineScope(main + Job())
+        scope.cancel()
+        var unattended = 0
+        val calls = SerialCalls(scope) { unattended += 1 }
+        var ran = false
+        calls.post { ran = true }
+        testScheduler.runCurrent()
+        assertEquals(1, unattended)
+        assertFalse(ran)
+        // The call still waits in the queue for the next drain.
+        calls.drain()
+        assertTrue(ran)
+    }
+
+    @Test
     fun aCancelledCallLetsTheNextOneRun() = runTest(main) {
         val calls = SerialCalls()
         val gate = CompletableDeferred<Unit>()
