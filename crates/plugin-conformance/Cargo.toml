@@ -16,7 +16,7 @@ serde = { version = "1", features = ["derive"] }
 # arrives sorted, and a function whose result depends on `Object.entries`
 # order (a list of problems, the first error thrown) cannot be replayed.
 serde_json = { version = "1", features = ["float_roundtrip", "preserve_order"] }
-base64 = "0.22"
+base64 = "0.23"
 # A receipt names the vector text it replayed by its SHA-256.
 sha2 = "0.10"
 

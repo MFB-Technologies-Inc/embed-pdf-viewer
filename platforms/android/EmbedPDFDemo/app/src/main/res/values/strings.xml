@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">EmbedPDF Demo</string>
+    <string name="open">Open</string>
+    <string name="open_files">Open from Files…</string>
+    <string name="sample_report">Sample: report.pdf</string>
+    <string name="sample_encrypted">Sample: encrypted-hello.pdf (hôtel)</string>
+    <string name="add_note">Add note</string>
+    <string name="info">Info</string>
+    <string name="error_title">Something went wrong</string>
+    <string name="ok">OK</string>
+    <string name="done">Done</string>
+    <string name="link_activation">Link: %1$s</string>
+    <string name="tool_select">Select</string>
+    <string name="tool_ink">Ink</string>
+    <string name="metadata_document">Document</string>
+    <string name="metadata_producer">Producer</string>
+    <string name="metadata_custom">Custom</string>
+    <string name="metadata_title">Title</string>
+    <string name="metadata_author">Author</string>
+    <string name="metadata_subject">Subject</string>
+    <string name="metadata_keywords">Keywords</string>
+    <string name="metadata_creator">Creator</string>
+    <string name="metadata_producer_field">Producer</string>
+    <string name="metadata_created">Created</string>
+    <string name="metadata_modified">Modified</string>
+    <string name="metadata_none">–</string>
+    <string name="note_contents">A note</string>
+</resources>

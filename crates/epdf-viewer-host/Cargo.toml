@@ -44,9 +44,9 @@ epdf-plugin-stage = { path = "../plugins/stage", default-features = false, featu
 epdf-plugin-stamp = { path = "../plugins/stamp", default-features = false, features = ["uniffi"] }
 epdf-plugin-view-manager = { path = "../plugins/view-manager", default-features = false, features = ["uniffi"] }
 epdf-uniffi = { path = "../epdf-uniffi" }
-base64 = "0.22"
+base64 = "0.23"
 futures = { version = "0.3", default-features = false, features = ["std", "executor"] }
-png = "0.17"
+png = "0.18"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
