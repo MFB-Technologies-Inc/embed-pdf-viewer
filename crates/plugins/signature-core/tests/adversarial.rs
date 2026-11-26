@@ -115,6 +115,15 @@ fn rsa_keys_up_to_webcrypto_s_limit_import() {
 }
 
 #[test]
+fn rsa_keys_under_1024_bits_import() {
+    // `rsa` refuses these by default; WebCrypto has no floor, so a short key
+    // imports and a junk signature is false, not a DataError.
+    for bits in [512, 768] {
+        assert_eq!(verify_sha256_with_rsa(&rsa_spki(bits, 65537)), Ok(false), "{bits} bits");
+    }
+}
+
+#[test]
 fn rsa_keys_past_webcrypto_s_limit_never_verify() {
     // Node's WebCrypto imports a 16400-bit key and answers false to every
     // verify with it (OpenSSL's modulus limit), whatever its exponent.
