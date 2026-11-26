@@ -70,7 +70,7 @@ public struct SearchHighlightOverlay: View {
       for hit in hits {
         let shading = GraphicsContext.Shading.color(hit == active ? activeFill : fill)
         for segment in hit.segments {
-          context.fill(path(segment.quad), with: shading)
+          context.fill(Self.path(segment.quad, on: visiblePage, info: info), with: shading)
         }
       }
     }
@@ -84,7 +84,7 @@ public struct SearchHighlightOverlay: View {
   /// The outline of one line of a hit in the overlay. A quad that is an
   /// axis-aligned box in page space, as the web layers test it, is a rect
   /// from its upper left corner to its lower right one.
-  private func path(_ quad: Quad) -> Path {
+  static func path(_ quad: Quad, on visiblePage: StageVisiblePage, info: PageInfo) -> Path {
     let upright = quad.upperLeft.y == quad.upperRight.y && quad.lowerLeft.y == quad.lowerRight.y
       && quad.upperLeft.x == quad.lowerLeft.x
     if upright {
@@ -133,16 +133,18 @@ public struct SearchHighlightOverlay: View {
   /// with commas or spaces and an optional `/ alpha`, channels as numbers
   /// or percentages, or one of the named colors. `nil` for anything else.
   static func cssColor(_ text: String) -> CSSColor? {
-    let css = text.trimmingCharacters(in: .whitespaces).lowercased()
+    let css = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     if css.hasPrefix("#") { return hexColor(css.dropFirst()) }
     if let named = namedColors[css] { return named }
     guard let open = css.firstIndex(of: "("), css.hasSuffix(")") else { return nil }
-    let name = css[..<open].trimmingCharacters(in: .whitespaces)
+    let name = css[..<open].trimmingCharacters(in: .whitespacesAndNewlines)
     guard name == "rgb" || name == "rgba" else { return nil }
     let body = css[css.index(after: open)..<css.index(before: css.endIndex)]
     let halves = body.split(separator: "/", omittingEmptySubsequences: false)
     guard halves.count <= 2 else { return nil }
     let parts = halves[0].split(whereSeparator: { $0 == "," || $0 == " " })
+      .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+      .filter { !$0.isEmpty }
     guard parts.count >= 3 else { return nil }
     var channels: [Double] = []
     for part in parts.prefix(3) {
@@ -151,7 +153,7 @@ public struct SearchHighlightOverlay: View {
     }
     let alpha: Double?
     switch (halves.count, parts.count) {
-    case (2, 3): alpha = channel(halves[1].trimmingCharacters(in: .whitespaces), max: 1)
+    case (2, 3): alpha = channel(halves[1].trimmingCharacters(in: .whitespacesAndNewlines), max: 1)
     case (1, 4): alpha = channel(parts[3], max: 1)
     case (1, 3): alpha = 1
     default: alpha = nil

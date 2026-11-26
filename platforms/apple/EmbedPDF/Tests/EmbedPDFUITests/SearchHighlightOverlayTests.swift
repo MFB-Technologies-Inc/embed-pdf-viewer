@@ -233,6 +233,8 @@ struct SearchHighlightOverlayTests {
     ("rgb(0 0 255)", CSSColor(red: 0, green: 0, blue: 1, opacity: 1)),
     ("rgb(300, -5, 0)", CSSColor(red: 1, green: 0, blue: 0, opacity: 1)),
     ("rgba(255,0,0)", CSSColor(red: 1, green: 0, blue: 0, opacity: 1)),
+    ("#ffd500\n", CSSColor(red: 1, green: 0xd5 / 255, blue: 0, opacity: 1)),
+    ("rgb(255,\t0,0)", CSSColor(red: 1, green: 0, blue: 0, opacity: 1)),
   ] as [(String, CSSColor)])
   func cssColoursParse(text: String, color: CSSColor) {
     expectNoDifference(SearchHighlightOverlay.cssColor(text), color)
@@ -241,6 +243,31 @@ struct SearchHighlightOverlayTests {
   @Test(arguments: ["var(--accent)", "#ggg", "#12345", "rgb(1, 2)", "rgb(1, 2, 3, 4, 5)", "hsl(0 0% 0%)", "rgb(1 2 3"])
   func unreadableCSSIsNil(text: String) {
     expectNoDifference(SearchHighlightOverlay.cssColor(text), nil)
+  }
+
+  /// A turned line fills its four corners, not the box around them.
+  @Test
+  func aSkewedQuadIsItsFourCorners() {
+    let info = PageInfo(page: PageRef(pageObjectNumber: 1), index: 0, width: 612, height: 792, rotation: 0)
+    let quad = Quad(
+      upperLeft: Point(x: 100, y: 100), upperRight: Point(x: 200, y: 150),
+      lowerLeft: Point(x: 90, y: 120), lowerRight: Point(x: 190, y: 170))
+    let path = SearchHighlightOverlay.path(quad, on: visiblePage(info), info: info)
+    #expect(path.contains(CGPoint(x: 145, y: 135)))
+    // Corners of the bounding box, 90...200 by 100...170, lie outside the quad.
+    #expect(!path.contains(CGPoint(x: 195, y: 102)))
+    #expect(!path.contains(CGPoint(x: 92, y: 168)))
+  }
+
+  @Test
+  func anUprightQuadIsARoundedRect() {
+    let info = PageInfo(page: PageRef(pageObjectNumber: 1), index: 0, width: 612, height: 792, rotation: 0)
+    let quad = Quad(
+      upperLeft: Point(x: 100, y: 100), upperRight: Point(x: 200, y: 100),
+      lowerLeft: Point(x: 100, y: 120), lowerRight: Point(x: 200, y: 120))
+    let path = SearchHighlightOverlay.path(quad, on: visiblePage(info), info: info)
+    expectNoDifference(
+      path, Path(roundedRect: CGRect(x: 100, y: 100, width: 100, height: 20), cornerRadius: 2))
   }
 
   @Test
