@@ -39,7 +39,7 @@ public final class com/embedpdf/compose/PageImageViewKt {
 }
 
 public final class com/embedpdf/compose/PdfReaderKt {
-	public static final fun PdfReader (Lcom/embedpdf/models/PdfReaderModel;Landroidx/compose/ui/Modifier;Ljava/util/List;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;Landroidx/compose/runtime/Composer;II)V
+	public static final fun PdfReader (Lcom/embedpdf/models/PdfReaderModel;Landroidx/compose/ui/Modifier;Ljava/util/List;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/embedpdf/compose/ResourceHistoryStrings : com/embedpdf/models/HistoryStrings {

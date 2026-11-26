@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -229,8 +230,8 @@ private fun AttachmentRow(
             Modifier
                 .weight(1f)
                 .heightIn(min = 56.dp)
-                .clickable(enabled = enabled, role = Role.Button, onClick = onSelect)
-                .semantics(mergeDescendants = true) { this.selected = isSelected }
+                .selectable(selected = isSelected, enabled = enabled, role = Role.Button, onClick = onSelect)
+                .semantics(mergeDescendants = true) {}
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

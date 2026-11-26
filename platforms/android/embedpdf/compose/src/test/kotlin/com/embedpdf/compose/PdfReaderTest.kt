@@ -21,7 +21,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import com.embedpdf.PdfException
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -95,13 +97,20 @@ class PdfReaderTest {
         compose.onNodeWithTag("readerUnlock").assertIsNotEnabled()
     }
 
+    /** A failure shows a localized message and hands the engine's exception to the app. */
     @Test
-    fun aFailureShowsTheErrorsDetail() {
-        val model = reader(PdfReaderModel())
+    fun aFailureShowsALocalizedMessageAndReportsTheError() {
+        val model = PdfReaderModel()
+        this.model = model
+        val reported = mutableListOf<PdfException>()
+        compose.setContent { PdfReader(model, onError = { reported += it }) }
         launchMain { model.open("not a pdf".toByteArray()) }
         compose.pumpUntil { model.phase.value is PdfReaderModel.Phase.Failed }
-        compose.pumpFrame()
+        compose.pumpUntil { reported.isNotEmpty() }
         compose.onNodeWithText("The document could not be opened", substring = true).assertExists()
+        val failure = (model.phase.value as PdfReaderModel.Phase.Failed).error
+        assertEquals(listOf(failure), reported)
+        compose.onNodeWithText(failure.detail).assertDoesNotExist()
     }
 
     /** Review focus: TalkBack reads a label on every control a full reader shows. */
@@ -163,6 +172,10 @@ class PdfReaderTest {
         compose.onNodeWithTag("readerBottomSheet").assertExists()
         compose.onNodeWithTag("readerSideSheet").assertDoesNotExist()
         compose.onNodeWithContentDescription("Page 1").assertExists()
+        // Closing slides the sheet away before the panel goes.
+        compose.onNodeWithTag("readerPanel-thumbnails").performClick()
+        compose.pumpUntil { runCatching { compose.onNodeWithTag("readerBottomSheet").assertDoesNotExist() }.isSuccess }
+        compose.onNodeWithTag("readerPanel-thumbnails").assertIsOff()
     }
 
     /** A window 600 dp wide or more shows a panel beside the pages. */

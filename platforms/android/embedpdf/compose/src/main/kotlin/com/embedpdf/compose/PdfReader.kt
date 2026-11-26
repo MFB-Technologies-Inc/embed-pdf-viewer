@@ -30,6 +30,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -87,7 +88,9 @@ import kotlinx.coroutines.launch
  * Nothing shows while the model is idle and a progress indicator while it
  * loads. A locked document shows a password prompt that calls
  * [PdfReaderModel.unlock], with the reason below the field after a wrong
- * password. A failure shows the error's detail.
+ * password. A failure shows a localized message, and [onError] receives
+ * the exception with the engine's own detail, as it does when the panels'
+ * models cannot be made.
  *
  * A ready document shows a [StageReader] under a bar that holds a
  * [SearchBar] when the session has search, and a toggle for each panel the
@@ -121,10 +124,12 @@ public fun PdfReader(
     tools: List<ToolId> = emptyList(),
     toolLabel: @Composable (ToolId) -> String = DefaultToolLabel,
     onLinkActivation: (LinkActivation) -> Unit = {},
+    onError: (PdfException) -> Unit = {},
     pageOverlay: @Composable (StageVisiblePage, PdfReaderModel.Session) -> Unit = NoPageOverlay,
 ) {
     val phase by model.phase.collectAsState()
     val activations by rememberUpdatedState(onLinkActivation)
+    val errors by rememberUpdatedState(onError)
     when (val current = phase) {
         PdfReaderModel.Phase.Idle -> Box(modifier)
         PdfReaderModel.Phase.Loading -> {
@@ -136,21 +141,17 @@ public fun PdfReader(
         // Keyed to the document, so a second locked document starts with an empty field.
         is PdfReaderModel.Phase.Locked -> key(current.document.id) { PasswordPrompt(model, current.document, modifier) }
         is PdfReaderModel.Phase.Ready -> ModelScope(current.session) { session ->
-            ReadyReader(session, modifier, tools, toolLabel, { activations(it) }, pageOverlay)
+            ReadyReader(session, modifier, tools, toolLabel, { activations(it) }, { errors(it) }, pageOverlay)
         }
-        is PdfReaderModel.Phase.Failed -> Column(
-            modifier.fillMaxSize().padding(16.dp).semantics(mergeDescendants = true) {}.testTag("readerFailure"),
-            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(stringResource(R.string.embedpdf_reader_failed), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
-            Text(
-                current.error.detail,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.testTag("readerFailureDetail"),
-            )
+        is PdfReaderModel.Phase.Failed -> {
+            LaunchedEffect(current) { errors(current.error) }
+            Column(
+                modifier.fillMaxSize().padding(16.dp).semantics(mergeDescendants = true) {}.testTag("readerFailure"),
+                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(stringResource(R.string.embedpdf_reader_failed), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+            }
         }
     }
 }
@@ -204,9 +205,12 @@ private fun ReadyReader(
     tools: List<ToolId>,
     toolLabel: @Composable (ToolId) -> String,
     onLinkActivation: (LinkActivation) -> Unit,
+    onError: (PdfException) -> Unit,
     pageOverlay: @Composable (StageVisiblePage, PdfReaderModel.Session) -> Unit,
 ) {
     val historyStrings = rememberHistoryStrings()
+    val scope = rememberCoroutineScope()
+    val sheet = rememberModalBottomSheetState()
     // Why the panels' models could not be made, when the reason is not a plugin left out.
     var extrasError by remember(session) { mutableStateOf<PdfException?>(null) }
     val extras by produceState<ReaderExtras?>(null, session) {
@@ -214,6 +218,7 @@ private fun ReadyReader(
             readerExtras(session, historyStrings)
         } catch (e: PdfException) {
             extrasError = e
+            onError(e)
             null
         }
     }
@@ -236,12 +241,20 @@ private fun ReadyReader(
     // rotation moves the panel between the side sheet and the bottom sheet.
     val attachmentPickers = rememberAttachmentPickers(attachments)
 
+    // Shuts the panel; in the bottom sheet, once the sheet has slid away.
+    val closePanel: () -> Unit = {
+        if (wide || !sheet.isVisible) {
+            panel = null
+        } else {
+            scope.launch { sheet.hide() }.invokeOnCompletion { if (!sheet.isVisible) panel = null }
+        }
+    }
     val panelContent: @Composable (Modifier) -> Unit = { panelModifier ->
         when (shown) {
-            ReaderPanel.THUMBNAILS -> ThumbnailPanel(session, thumbnails, wide, panelModifier) { if (!wide) panel = null }
+            ReaderPanel.THUMBNAILS -> ThumbnailPanel(session, thumbnails, wide, panelModifier) { if (!wide) closePanel() }
             ReaderPanel.OUTLINE -> outline?.let {
                 OutlinePanel(it, panelModifier) { activation ->
-                    if (!wide) panel = null
+                    if (!wide) closePanel()
                     onLinkActivation(activation)
                 }
             }
@@ -258,12 +271,13 @@ private fun ReadyReader(
             } else {
                 Spacer(Modifier.weight(1f))
             }
-            PanelToggle(ReaderPanel.THUMBNAILS, shown, R.drawable.embedpdf_ic_grid, R.string.embedpdf_reader_thumbnails) { panel = it }
+            val toggle: (ReaderPanel?) -> Unit = { next -> if (next == null) closePanel() else panel = next }
+            PanelToggle(ReaderPanel.THUMBNAILS, shown, R.drawable.embedpdf_ic_grid, R.string.embedpdf_reader_thumbnails, toggle)
             if (outline != null) {
-                PanelToggle(ReaderPanel.OUTLINE, shown, R.drawable.embedpdf_ic_bookmark, R.string.embedpdf_outline_title) { panel = it }
+                PanelToggle(ReaderPanel.OUTLINE, shown, R.drawable.embedpdf_ic_bookmark, R.string.embedpdf_outline_title, toggle)
             }
             if (attachments != null) {
-                PanelToggle(ReaderPanel.ATTACHMENTS, shown, R.drawable.embedpdf_ic_attach, R.string.embedpdf_attachments_title) { panel = it }
+                PanelToggle(ReaderPanel.ATTACHMENTS, shown, R.drawable.embedpdf_ic_attach, R.string.embedpdf_attachments_title, toggle)
             }
         }
         if (extrasError != null) PanelError(stringResource(R.string.embedpdf_reader_panels_failed), "readerPanelsError")
@@ -301,7 +315,7 @@ private fun ReadyReader(
     }
 
     if (!wide && shown != null) {
-        ModalBottomSheet(onDismissRequest = { panel = null }, modifier = Modifier.testTag("readerBottomSheet")) {
+        ModalBottomSheet(onDismissRequest = { panel = null }, sheetState = sheet, modifier = Modifier.testTag("readerBottomSheet")) {
             panelContent(Modifier.fillMaxWidth().height(BOTTOM_SHEET_HEIGHT))
         }
     }
