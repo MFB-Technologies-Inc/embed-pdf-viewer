@@ -34,7 +34,7 @@ jobs:
   # The slice matrix, cut down to inputs.targets. A matrix include can't
   # filter: an entry that matches no other row adds a leg of its own.
   plan:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
     steps:
@@ -99,7 +99,7 @@ jobs:
 
       # No submodule yet: the key needs only the gitlink, and a cache hit
       # needs nothing else.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
 
@@ -130,7 +130,7 @@ jobs:
 
       - name: Restore the slice
         id: cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ${{ env.SLICE_DIR }}
           key: ${{ steps.key.outputs.slice }}
@@ -148,7 +148,7 @@ jobs:
           fi
           git -C "$src" log -1 --format='runtime-src at %H'
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         if: steps.cache.outputs.cache-hit != 'true'
         with:
           node-version: 26
@@ -168,7 +168,7 @@ jobs:
       # $PERF_WORK_DIR/depot_tools and skip it when already bootstrapped.
       - name: Restore depot_tools
         if: steps.cache.outputs.cache-hit != 'true'
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ steps.key.outputs.work }}/depot_tools
           key: depot-tools-${{ runner.os }}-${{ runner.arch }}-${{ steps.key.outputs.week }}
@@ -185,12 +185,12 @@ jobs:
 
       - name: Save the slice
         if: steps.cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: ${{ env.SLICE_DIR }}
           key: ${{ steps.key.outputs.slice }}
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: fork-slice-${{ matrix.target }}
           path: ${{ env.SLICE_DIR }}/

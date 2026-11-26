@@ -29,7 +29,7 @@ jobs:
     env:
       CARGO_BUILD_JOBS: 2
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Xcode 27.2, the one the release workflows build the engine with, and
       # SIM_ID: an iPhone simulator on the runtime matching its SDK, picked by

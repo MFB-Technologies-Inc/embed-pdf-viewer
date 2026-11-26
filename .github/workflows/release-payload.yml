@@ -65,14 +65,14 @@ env:
 jobs:
   key:
     if: inputs.stage == 'build'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       payload_tag: ${{ steps.key.outputs.payload_tag }}
       published: ${{ steps.key.outputs.published }}
     steps:
       # The hash reads the runtime-src gitlink from the index, not the
       # submodule's files.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
           persist-credentials: false
@@ -109,14 +109,14 @@ jobs:
   verify:
     needs: key
     if: inputs.stage == 'build' && needs.key.outputs.published == 'false'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 120
     env:
       PAYLOAD_TAG: ${{ needs.key.outputs.payload_tag }}
     steps:
       # Full runtime-src history at the gitlink: buildFork clones the fork from
       # this checkout, and the script runs git merge-base --is-ancestor in it.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
           fetch-depth: 0
@@ -145,7 +145,7 @@ jobs:
           version: 4.0.0
           dir: ${{ env.PERF_WORK_DIR }}/emsdk
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: fork-slice-wasm32-eh
           path: ${{ runner.temp }}/fork-slice-wasm32-eh
@@ -167,7 +167,7 @@ jobs:
 
       # What --stage publish releases, from the gitignored dir --stage build
       # staged it in.
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: payload-release
           path: packages/engine/runtime/.build/publish/
@@ -177,7 +177,7 @@ jobs:
       # npm/wasm32/lib, marked dry-run-<hash> in .payload-source. The train
       # builds the viewer from it, since no release holds it until after the
       # train's approval.
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: payload-wasm32
           path: packages/engine/runtime/npm/wasm32/lib/
@@ -194,7 +194,7 @@ jobs:
   # a verdict the build stage can't have given.
   publish-verdict:
     if: inputs.stage == 'publish'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
       - name: Report the build stage's verdict
@@ -213,7 +213,7 @@ jobs:
   # stage's call in the same run.
   publish:
     if: inputs.stage == 'publish' && inputs.published == 'false'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:
       contents: write
@@ -223,18 +223,18 @@ jobs:
     steps:
       # No submodules: the payload hash reads the runtime-src gitlink from the
       # index, and --stage publish needs no checkout of it.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
           persist-credentials: false
 
       # The script imports only Node's built-ins and this repo's modules, so
       # no pnpm install.
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 26
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: payload-release
           path: packages/engine/runtime/.build/publish
