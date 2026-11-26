@@ -251,6 +251,15 @@ public sealed class RedactionTests
         Assert.NotEqual("#ff0000", (await redaction.GetSettingsAsync()).Fill);
         var applied = await redaction.ApplyAsync([mark]);
         Assert.Equal(applied.OpId, (await redaction.GetLastResultAsync())?.OpId);
-        Assert.Equal(0, await redaction.GetPendingCountAsync(page));
+        // The pending count reads the annotation store's page lists, which can
+        // lag the apply: it read 1 just after ApplyAsync returned in
+        // release-dotnet run 45875026242. It reaches 0 without another call.
+        var count = await redaction.GetPendingCountAsync(page);
+        for (var i = 0; i < 100 && count != 0; i++)
+        {
+            await Task.Delay(50);
+            count = await redaction.GetPendingCountAsync(page);
+        }
+        Assert.Equal(0, count);
     }
 }
