@@ -172,7 +172,10 @@ APK="$PROJECT/bindings/build/outputs/apk/androidTest/debug/bindings-debug-androi
 ZIPALIGN="$(ls -d "${ANDROID_HOME:-$HOME/Library/Android/sdk}"/build-tools/* | sort -V | tail -1)/zipalign"
 [[ -f "$APK" ]] || { echo "no test APK at $APK to check" >&2; exit 1; }
 [[ -x "$ZIPALIGN" ]] || { echo "no zipalign at $ZIPALIGN; set ANDROID_HOME" >&2; exit 1; }
-if unzip -l "$APK" | grep -q 'libepdf_viewer_host\.so$'; then
+# The listing is read whole before grep: `grep -q` exits at its first match,
+# and under pipefail the SIGPIPE that leaves `unzip` with failed the check.
+listing="$(unzip -l "$APK")"
+if grep -q 'libepdf_viewer_host\.so$' <<<"$listing"; then
   if "$ZIPALIGN" -c -P 16 4 "$APK" > /dev/null; then
     echo "  $(basename "$APK") is 16 KB page aligned"
   else
