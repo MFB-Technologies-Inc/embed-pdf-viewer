@@ -69,6 +69,19 @@ EmbedPDF.Models.OutlineModel.SelectedItems.get -> System.Collections.Generic.IRe
 EmbedPDF.Models.OutlineModel.Status.get -> EmbedPDF.ResourceStatus
 EmbedPDF.Models.OutlineModel.ToggleAsync(EmbedPDF.OutlineItemRef item) -> System.Threading.Tasks.Task!
 EmbedPDF.Models.OutlineModel.UpdateAsync(EmbedPDF.OutlineItemRef item, EmbedPDF.OutlineItemPatch! patch) -> System.Threading.Tasks.Task<EmbedPDF.OutlineItem?>!
+EmbedPDF.Models.PointerInput
+EmbedPDF.Models.PointerInput.Deconstruct(out double X, out double Y) -> void
+EmbedPDF.Models.PointerInput.Equals(EmbedPDF.Models.PointerInput other) -> bool
+EmbedPDF.Models.PointerInput.Kind.get -> EmbedPDF.PointerKind
+EmbedPDF.Models.PointerInput.Kind.init -> void
+EmbedPDF.Models.PointerInput.Modifiers.get -> EmbedPDF.PointerModifiers
+EmbedPDF.Models.PointerInput.Modifiers.init -> void
+EmbedPDF.Models.PointerInput.PointerInput() -> void
+EmbedPDF.Models.PointerInput.PointerInput(double X, double Y) -> void
+EmbedPDF.Models.PointerInput.X.get -> double
+EmbedPDF.Models.PointerInput.X.init -> void
+EmbedPDF.Models.PointerInput.Y.get -> double
+EmbedPDF.Models.PointerInput.Y.init -> void
 EmbedPDF.Models.RenderRevisions
 EmbedPDF.Models.RenderRevisions.Dispose() -> void
 EmbedPDF.Models.RenderRevisions.GetRevision(EmbedPDF.PageRef page) -> long
@@ -98,6 +111,7 @@ EmbedPDF.Models.SearchModel.Text.set -> void
 EmbedPDF.Models.SelectionStart
 EmbedPDF.Models.SelectionStart.Caret = 0 -> EmbedPDF.Models.SelectionStart
 EmbedPDF.Models.SelectionStart.Word = 1 -> EmbedPDF.Models.SelectionStart
+EmbedPDF.Models.StageVisiblePageExtensions
 EmbedPDF.Models.TextSelectionModel
 EmbedPDF.Models.TextSelectionModel.ClearAsync() -> System.Threading.Tasks.Task!
 EmbedPDF.Models.TextSelectionModel.Dispose() -> void
@@ -138,3 +152,12 @@ EmbedPDF.Models.ViewerModel.Error.get -> EmbedPDF.PdfException?
 EmbedPDF.Models.ViewerModel.RefreshAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.Models.ViewerModel.RunAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.Models.ViewerModel.ViewerModel(EmbedPDF.PdfViewer! viewer, System.Threading.SynchronizationContext? context = null) -> void
+~override EmbedPDF.Models.PointerInput.Equals(object obj) -> bool
+override EmbedPDF.Models.PointerInput.GetHashCode() -> int
+~override EmbedPDF.Models.PointerInput.ToString() -> string
+static EmbedPDF.Models.PointerInput.operator !=(EmbedPDF.Models.PointerInput left, EmbedPDF.Models.PointerInput right) -> bool
+static EmbedPDF.Models.PointerInput.operator ==(EmbedPDF.Models.PointerInput left, EmbedPDF.Models.PointerInput right) -> bool
+static EmbedPDF.Models.StageVisiblePageExtensions.GetGeometry(this EmbedPDF.StageVisiblePage! page, EmbedPDF.PageInfo! info) -> EmbedPDF.PageGeometry
+static EmbedPDF.Models.StageVisiblePageExtensions.LocalRect(this EmbedPDF.StageVisiblePage! page, EmbedPDF.PdfRect pageRect, EmbedPDF.PageInfo! info) -> EmbedPDF.PdfRect
+static EmbedPDF.Models.StageVisiblePageExtensions.PagePoint(this EmbedPDF.StageVisiblePage! page, double localX, double localY, EmbedPDF.PageInfo! info) -> EmbedPDF.PdfPoint
+static EmbedPDF.Models.StageVisiblePageExtensions.ViewportPoint(this EmbedPDF.StageVisiblePage! page, double localX, double localY) -> EmbedPDF.PdfPoint
