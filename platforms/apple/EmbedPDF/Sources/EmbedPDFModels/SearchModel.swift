@@ -56,7 +56,7 @@ public final class SearchModel {
   @ObservationIgnored private var observation: UInt64 = 0
 
   /// The plugin's `SEARCH_DEFAULTS.highlight`, until the first refresh reads the setting.
-  static let defaultHighlight = SearchHighlightSettings(
+  package static let defaultHighlight = SearchHighlightSettings(
     color: "#ffd500", activeColor: "#ff9632", blendMode: .multiply)
 
   public init(search: SearchCapability) {

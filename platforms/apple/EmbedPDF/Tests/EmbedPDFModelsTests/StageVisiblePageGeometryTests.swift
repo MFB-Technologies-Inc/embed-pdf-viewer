@@ -71,4 +71,27 @@ import Testing
     #expect(abs(local.width - 0.5) < 0.001)
     #expect(abs(local.height - 0.5) < 0.001)
   }
+
+  @Test(arguments: [0.0, 90, 180, 270])
+  func localPointInvertsPagePoint(rotation: Double) {
+    let page = visiblePage(rotation: rotation)
+    let start = CGPoint(x: 100, y: 50)
+    let local = page.localPoint(page.pagePoint(start, info: info), info: info)
+    #expect(abs(local.x - start.x) < 0.001)
+    #expect(abs(local.y - start.y) < 0.001)
+  }
+
+  @Test func localPointIsWhereLocalRectPutsThePoint() {
+    let page = visiblePage(rotation: 90)
+    let point = Point(x: 100, y: 200)
+    expectNoDifference(
+      page.localPoint(point, info: info),
+      page.localRect(Rect(x: point.x, y: point.y, width: 0, height: 0), info: info).origin)
+  }
+
+  @Test func localPointOnAnUnsizedPageIsZero() {
+    var unsized = visiblePage(rotation: 0)
+    unsized.transform.viewWidth = 0
+    expectNoDifference(unsized.localPoint(Point(x: 100, y: 200), info: info), .zero)
+  }
 }
