@@ -24,4 +24,14 @@
     <AdditionalFiles Include="PublicAPI.Shipped.txt" />
     <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
   </ItemGroup>
+  <!--
+    The models call the facade's internals, so the package depends on the
+    exact EmbedPDF version it was built against: [x.y.z], not NuGet's
+    default minimum. packaging/libraries.py fails the pack otherwise.
+  -->
+  <Target Name="PinExactEmbedPdfVersion" AfterTargets="_GetProjectReferenceVersions">
+    <ItemGroup>
+      <_ProjectReferencesWithVersions Update="@(_ProjectReferencesWithVersions)" Condition="'%(Filename)' == 'EmbedPDF.Viewer'" ProjectVersion="[%(ProjectVersion)]" />
+    </ItemGroup>
+  </Target>
 </Project>

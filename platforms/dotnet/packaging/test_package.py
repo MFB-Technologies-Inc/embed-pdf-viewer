@@ -364,5 +364,103 @@ class NativeInspectionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "absolute"):
             check_elf("libepdf_capi.so", "(NEEDED) Shared library: [/build/libembedpdf.so]\n(RUNPATH) Library runpath: [$ORIGIN]", "")
 
+class LibraryPackTests(unittest.TestCase):
+    """EmbedPDF.Models, EmbedPDF.Extensions.DependencyInjection and EmbedPDF.Scripting.Jint."""
+    def nupkg(self, directory, package_id, dependency_version, files=None):
+        path = Path(directory) / f"{package_id}.0.0.0-local.nupkg"
+        files = [f"lib/net10.0/{package_id}.dll"] if files is None else files
+        nuspec = ('<?xml version="1.0" encoding="utf-8"?><package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">'
+                  f'<metadata><id>{package_id}</id><version>0.0.0-local</version><dependencies><group targetFramework="net10.0">'
+                  f'<dependency id="EmbedPDF" version="{dependency_version}" exclude="Build,Analyzers" /></group></dependencies></metadata></package>')
+        with zipfile.ZipFile(path, "w") as bundle:
+            bundle.writestr(f"{package_id}.nuspec", nuspec)
+            for name in files:
+                bundle.writestr(name, b"MZ")
+        return path
+
+    def test_dependency_range_reads_nuspec(self):
+        from libraries import dependency_range
+        nuspec = '<package><metadata><dependencies><dependency id="EmbedPDF" version="[1.2.3]" /></dependencies></metadata></package>'
+        self.assertEqual("[1.2.3]", dependency_range(nuspec, "EmbedPDF"))
+        self.assertIsNone(dependency_range(nuspec, "EmbedPDF.Runtime"))
+
+    def test_models_dependency_must_be_exact(self):
+        from libraries import check_library
+        with tempfile.TemporaryDirectory() as temporary:
+            loose = self.nupkg(temporary, "EmbedPDF.Models", "0.0.0-local")
+            with self.assertRaisesRegex(ValueError, "exact"):
+                check_library(loose, "EmbedPDF.Models", "0.0.0-local", exact=True)
+            check_library(self.nupkg(temporary, "EmbedPDF.Models", "[0.0.0-local]"), "EmbedPDF.Models", "0.0.0-local", exact=True)
+            with self.assertRaisesRegex(ValueError, "exact"):
+                check_library(self.nupkg(temporary, "EmbedPDF.Models", "[0.0.0-local, )"), "EmbedPDF.Models", "0.0.0-local", exact=True)
+
+    def test_minimum_dependency_for_extensions(self):
+        from libraries import check_library
+        with tempfile.TemporaryDirectory() as temporary:
+            for version in ["0.0.0-local", "[0.0.0-local]"]:
+                check_library(self.nupkg(temporary, "EmbedPDF.Extensions.DependencyInjection", version),
+                              "EmbedPDF.Extensions.DependencyInjection", "0.0.0-local", exact=False)
+            with self.assertRaisesRegex(ValueError, "EmbedPDF"):
+                check_library(self.nupkg(temporary, "EmbedPDF.Scripting.Jint", "0.0.1"),
+                              "EmbedPDF.Scripting.Jint", "0.0.0-local", exact=False)
+
+    def test_library_must_carry_its_assembly(self):
+        from libraries import check_library
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.assertRaisesRegex(ValueError, "lib/net10.0"):
+                check_library(self.nupkg(temporary, "EmbedPDF.Models", "[0.0.0-local]", files=[]),
+                              "EmbedPDF.Models", "0.0.0-local", exact=True)
+
+    def test_library_must_not_carry_the_facade(self):
+        from libraries import check_library
+        with tempfile.TemporaryDirectory() as temporary:
+            files = ["lib/net10.0/EmbedPDF.Models.dll", "lib/net10.0/EmbedPDF.Viewer.dll"]
+            with self.assertRaisesRegex(ValueError, "EmbedPDF.Viewer.dll"):
+                check_library(self.nupkg(temporary, "EmbedPDF.Models", "[0.0.0-local]", files=files),
+                              "EmbedPDF.Models", "0.0.0-local", exact=True)
+
+    def test_facade_version_comes_from_the_file_name(self):
+        from libraries import facade_version
+        self.assertEqual("0.0.0-local", facade_version(Path("/x/EmbedPDF.0.0.0-local.nupkg")))
+        with self.assertRaisesRegex(ValueError, "EmbedPDF"):
+            facade_version(Path("/x/EmbedPDF.Models.0.0.0-local.nupkg"))
+
+class PngCheckTests(unittest.TestCase):
+    """The console sample's PNG output, checked without an image library."""
+    @staticmethod
+    def png(width, height, ihdr_height=None, rows=None):
+        import struct, zlib
+        def chunk(kind, body):
+            return struct.pack(">I", len(body)) + kind + body + struct.pack(">I", zlib.crc32(kind + body) & 0xffffffff)
+        raw = rows if rows is not None else b"".join(b"\0" + b"\x10\x20\x30\xff" * width for _ in range(height))
+        header = struct.pack(">IIBBBBB", width, ihdr_height or height, 8, 6, 0, 0, 0)
+        return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b"")
+
+    def test_valid_png_passes(self):
+        from png_check import check_png
+        check_png(self.png(2, 1), 2, 1)
+
+    def test_bad_crc_fails(self):
+        from png_check import check_png
+        data = bytearray(self.png(2, 1))
+        data[29] ^= 0xff  # last byte of the IHDR CRC
+        with self.assertRaisesRegex(ValueError, "CRC"):
+            check_png(bytes(data), 2, 1)
+
+    def test_wrong_dimensions_fail(self):
+        from png_check import check_png
+        with self.assertRaisesRegex(ValueError, "IHDR"):
+            check_png(self.png(2, 1), 2, 2)
+
+    def test_short_image_data_fails(self):
+        from png_check import check_png
+        with self.assertRaisesRegex(ValueError, "size"):
+            check_png(self.png(2, 2, rows=b"\0" + b"\0" * 8), 2, 2)
+
+    def test_bad_filter_byte_fails(self):
+        from png_check import check_png
+        with self.assertRaisesRegex(ValueError, "filter"):
+            check_png(self.png(1, 1, rows=b"\x07" + b"\0" * 4), 1, 1)
+
 if __name__ == "__main__":
     unittest.main()
