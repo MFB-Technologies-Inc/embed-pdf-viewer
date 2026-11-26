@@ -19,6 +19,7 @@
     ".github/workflows/engine-rust.yml",
     ".github/workflows/perf-history-pages.yml",
     ".github/workflows/plugin-rust.yml",
+    ".github/workflows/release-android.yml",
     ".github/workflows/release-apple.yml",
     ".github/workflows/release-dotnet.yml",
     ".github/workflows/release-fork-slices.yml",
