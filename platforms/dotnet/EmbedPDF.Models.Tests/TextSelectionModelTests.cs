@@ -13,12 +13,17 @@ public class TextSelectionModelTests
         return (viewer, await viewer.OpenAsync(Fixture.Data()));
     }
 
-    static async Task<(PdfViewer Viewer, PageInfo Page, SelectionCapability Selection, TextSelectionModel Model)> OpenedAsync(SingleThreadContext context)
+    /// <summary>
+    /// The viewer, its first page and selection. A test finds its points
+    /// first and then makes the model: in .NET a selection event can reach the
+    /// model after the call that caused it returns, so the probes' own select
+    /// and clear would otherwise land on the model late.
+    /// </summary>
+    static async Task<(PdfViewer Viewer, PageInfo Page, SelectionCapability Selection)> OpenedAsync()
     {
         var (viewer, document) = await OpenedDocumentAsync();
         var page = (await viewer.GetPagesAsync(document))[0];
-        var selection = await viewer.GetSelectionAsync(document);
-        return (viewer, page, selection, context.Watch(new TextSelectionModel(selection)));
+        return (viewer, page, await viewer.GetSelectionAsync(document));
     }
 
     static async Task<PdfPoint> PointOverTextAsync(PageInfo page, SelectionCapability selection)
@@ -76,8 +81,9 @@ public class TextSelectionModelTests
     [Fact]
     public Task DraggingAcrossTextSelectsIt() => SingleThreadContext.Run(async context =>
     {
-        var (viewer, page, selection, model) = await OpenedAsync(context);
+        var (viewer, page, selection) = await OpenedAsync();
         var start = await PointOverTextAsync(page, selection);
+        var model = context.Watch(new TextSelectionModel(selection));
         await Observed.ExpectAsync(model, () => model.IsSelecting, true, () =>
         {
             model.DragBegan(start, page.Page);
@@ -95,8 +101,9 @@ public class TextSelectionModelTests
     [Fact]
     public Task PointsQueuedBehindOneExtensionCollapseIntoIt() => SingleThreadContext.Run(async context =>
     {
-        var (viewer, page, selection, model) = await OpenedAsync(context);
+        var (viewer, page, selection) = await OpenedAsync();
         var start = await PointOverTextAsync(page, selection);
+        var model = context.Watch(new TextSelectionModel(selection));
         await Observed.ExpectAsync(model, () => model.IsSelecting, true, () =>
         {
             model.DragBegan(start, page.Page);
@@ -116,8 +123,9 @@ public class TextSelectionModelTests
     [Fact]
     public Task ChangesAndEndsMadeBeforeTheBeginLandsRunAfterIt() => SingleThreadContext.Run(async context =>
     {
-        var (viewer, page, selection, model) = await OpenedAsync(context);
+        var (viewer, page, selection) = await OpenedAsync();
         var start = await PointOverTextAsync(page, selection);
+        var model = context.Watch(new TextSelectionModel(selection));
         // No suspension between the three calls, so the begin has not reached
         // the engine when the change and the end are made.
         model.DragBegan(start, page.Page);
@@ -132,8 +140,9 @@ public class TextSelectionModelTests
     [Fact]
     public Task ADragThatStartsOffTextSelectsNothing() => SingleThreadContext.Run(async context =>
     {
-        var (viewer, page, selection, model) = await OpenedAsync(context);
+        var (viewer, page, selection) = await OpenedAsync();
         var margin = await PointOffTextAsync(page, selection);
+        var model = context.Watch(new TextSelectionModel(selection));
         model.DragBegan(margin, page.Page);
         model.DragChanged(new PdfPoint(300, 300), page.Page);
         await model.DragEndedAsync();
@@ -146,9 +155,10 @@ public class TextSelectionModelTests
     [Fact]
     public Task DragEndedReportsWhetherTextWasUnderTheStart() => SingleThreadContext.Run(async context =>
     {
-        var (viewer, page, selection, model) = await OpenedAsync(context);
+        var (viewer, page, selection) = await OpenedAsync();
         var margin = await PointOffTextAsync(page, selection);
         var text = await PointOverTextAsync(page, selection);
+        var model = context.Watch(new TextSelectionModel(selection));
         model.DragBegan(margin, page.Page);
         Assert.False(await model.DragEndedAsync());
         model.DragBegan(text, page.Page);
@@ -161,13 +171,35 @@ public class TextSelectionModelTests
     [Fact]
     public Task RectsAreFinalAfterTheEndEvenWhenAnEventRefreshInterleaves() => SingleThreadContext.Run(async context =>
     {
-        var (viewer, page, selection, model) = await OpenedAsync(context);
+        var (viewer, page, selection) = await OpenedAsync();
         var start = await PointOverTextAsync(page, selection);
+        var model = context.Watch(new TextSelectionModel(selection));
         var (reached, release) = HoldFirstRectsRead(model);
         model.DragBegan(start, page.Page);
         // The begin's refresh has read the caret's rects and not applied them.
         await reached;
+        // Every event the select-all sends is queued behind the begin before
+        // the end is: in .NET an event can reach the model after the call
+        // that sent it returns, so the test waits for the model to take them.
+        var followed = model.EventsFollowed;
+        var sent = 0;
+        using var counting = new CancellationTokenSource();
+        var counter = Task.Run(async () =>
+        {
+            try { await foreach (var _ in selection.ObserveEvents(counting.Token)) Interlocked.Increment(ref sent); }
+            catch (OperationCanceledException) { }
+        });
         await selection.SelectAllAsync();
+        var quiet = DateTime.UtcNow;
+        var seen = (Volatile.Read(ref sent), model.EventsFollowed);
+        while (DateTime.UtcNow - quiet < TimeSpan.FromMilliseconds(200) || model.EventsFollowed - followed < Volatile.Read(ref sent))
+        {
+            await Task.Delay(5);
+            var now = (Volatile.Read(ref sent), model.EventsFollowed);
+            if (now != seen) (seen, quiet) = (now, DateTime.UtcNow);
+        }
+        counting.Cancel();
+        await counter;
         release();
         await model.DragEndedAsync();
         var pages = await selection.GetSelectedPagesAsync();
@@ -183,8 +215,9 @@ public class TextSelectionModelTests
     [Fact]
     public Task ANewDragClearsTheLastError() => SingleThreadContext.Run(async context =>
     {
-        var (viewer, page, selection, model) = await OpenedAsync(context);
+        var (viewer, page, selection) = await OpenedAsync();
         var start = await PointOverTextAsync(page, selection);
+        var model = context.Watch(new TextSelectionModel(selection));
         // No page of the document has this object number, so selecting the
         // word throws.
         model.DragBegan(start, MissingPage, SelectionStart.Word);
@@ -199,8 +232,9 @@ public class TextSelectionModelTests
     [Fact]
     public Task ClearingClearsTheLastError() => SingleThreadContext.Run(async context =>
     {
-        var (viewer, page, selection, model) = await OpenedAsync(context);
+        var (viewer, page, selection) = await OpenedAsync();
         var start = await PointOverTextAsync(page, selection);
+        var model = context.Watch(new TextSelectionModel(selection));
         model.DragBegan(start, MissingPage, SelectionStart.Word);
         await model.DragEndedAsync();
         Assert.NotNull(model.Error);
@@ -212,7 +246,8 @@ public class TextSelectionModelTests
     [Fact]
     public Task SelectionsMadeElsewhereReachTheModelUntilClose() => SingleThreadContext.Run(async context =>
     {
-        var (viewer, page, selection, model) = await OpenedAsync(context);
+        var (viewer, page, selection) = await OpenedAsync();
+        var model = context.Watch(new TextSelectionModel(selection));
         await Observed.ExpectAsync(model, () => HasRects(model, page.Page), true, async () =>
         {
             await selection.EnsureLoadedAsync(page.Page);
@@ -228,7 +263,8 @@ public class TextSelectionModelTests
     [Fact]
     public Task ASelectionMadeRightAfterInitReachesTheModel() => SingleThreadContext.Run(async context =>
     {
-        var (viewer, page, selection, model) = await OpenedAsync(context);
+        var (viewer, page, selection) = await OpenedAsync();
+        var model = context.Watch(new TextSelectionModel(selection));
         // Sent before the model's own loop has had a turn to run.
         await selection.EnsureLoadedAsync(page.Page);
         await selection.SelectPageAsync(page.Page);
@@ -239,7 +275,8 @@ public class TextSelectionModelTests
     [Fact]
     public Task ASelectionClearedElsewhereEmptiesTheRects() => SingleThreadContext.Run(async context =>
     {
-        var (viewer, page, selection, model) = await OpenedAsync(context);
+        var (viewer, page, selection) = await OpenedAsync();
+        var model = context.Watch(new TextSelectionModel(selection));
         await Observed.ExpectAsync(model, () => HasRects(model, page.Page), true, async () =>
         {
             await selection.EnsureLoadedAsync(page.Page);

@@ -61,14 +61,21 @@ public sealed class SearchModel : ObservableModel
         this.search = search;
     }
 
-    /// <summary>The search field's text, which <see cref="SubmitSearchAsync"/> searches for. Set it on the home context.</summary>
+    /// <summary>
+    /// The search field's text, which <see cref="SubmitSearchAsync"/> searches
+    /// for. Set from another thread, the write is posted to the home context
+    /// and lands after this returns.
+    /// </summary>
     public string Text
     {
         get => text;
         set
         {
             ArgumentNullException.ThrowIfNull(value);
-            if (Set(ref text, value)) Raise(nameof(CanClear));
+            Home.Run(() =>
+            {
+                if (Set(ref text, value, nameof(Text))) Raise(nameof(CanClear));
+            });
         }
     }
 

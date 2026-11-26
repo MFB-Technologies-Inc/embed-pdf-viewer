@@ -94,8 +94,17 @@ public class SearchModelTests
         Assert.True(await RerunFinished(search, before)(), "the plugin's rerun after the move did not finish");
     }
 
+    /// <summary>
+    /// Whether the rerun has finished: complete, with as many hits as before
+    /// at other places. The rerun's empty start also reads as complete with
+    /// different hits, so the count is part of the check.
+    /// </summary>
     static Func<Task<bool>> RerunFinished(SearchCapability search, IReadOnlyList<SearchHit> before) => () => Observed.PollAsync(async () =>
-        await search.GetStatusAsync() == SearchStatus.Complete && !Structural.SameHits(await search.GetHitsAsync(), before));
+    {
+        if (await search.GetStatusAsync() != SearchStatus.Complete) return false;
+        var hits = await search.GetHitsAsync();
+        return hits.Count == before.Count && !Structural.SameHits(hits, before);
+    });
 
     [Fact]
     public Task ResubmittingAfterAnEditRereadsHitsWhoseCountDidNotChange() => SingleThreadContext.Run(async context =>

@@ -226,6 +226,12 @@ public sealed class ToolModel : ObservableModel
         await Home.SwitchTo();
         if (submitting) return;
         Submitting = true;
+        // The hub call can complete before it returns when the engine answers
+        // at once. Yielding first keeps the action in flight until the home
+        // context's next turn, as Swift's hop off the main actor does, so a
+        // second tap made in the same turn is ignored rather than undoing
+        // this one.
+        await Task.Yield();
         if (HubCallStarting is { } starting) await starting();
         ToolId active;
         try

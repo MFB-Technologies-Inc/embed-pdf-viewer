@@ -69,6 +69,9 @@ public sealed class TextSelectionModel : ObservableModel, IDisposable
     /// <summary>The last error the engine threw, kept until the next <see cref="DragBegan"/> or <see cref="ClearAsync"/> runs.</summary>
     public PdfException? Error { get => error; private set => Set(ref error, value); }
 
+    /// <summary>Selection events taken from the stream so far. Tests wait on it.</summary>
+    internal int EventsFollowed { get; private set; }
+
     /// <summary>Extensions made so far. Tests read it.</summary>
     internal int ExtensionCount { get; private set; }
 
@@ -144,6 +147,7 @@ public sealed class TextSelectionModel : ObservableModel, IDisposable
     /// <summary>Queues the event's effect on <see cref="Rects"/> behind the calls made so far.</summary>
     void Follow(SelectionEvent item)
     {
+        EventsFollowed++;
         switch (item)
         {
             case SelectionEvent.Changed or SelectionEvent.Committed:

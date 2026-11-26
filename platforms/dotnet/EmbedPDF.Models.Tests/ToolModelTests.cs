@@ -388,6 +388,7 @@ public class ToolModelTests
         var interaction = tools.Interaction;
         // Each registration and each removal is a state revision.
         var churning = true;
+        var rounds = 0;
         var churn = Task.Run(async () =>
         {
             var tool = new InteractionTool(new ToolId("churn"), "crosshair", []);
@@ -397,11 +398,14 @@ public class ToolModelTests
                 try { registration = await interaction.RegisterToolAsync(tool, replace: true); }
                 catch (PdfException) { break; }
                 registration.Unregister();
+                Interlocked.Increment(ref rounds);
             }
             Volatile.Write(ref churning, false);
         });
-        // Revisions are arriving before the activation starts.
-        await Observed.ExpectAsync(model, () => model.Tools.Any(tool => tool.Id.Value == "churn"), true);
+        // Revisions are arriving before the activation starts. Swift waits to
+        // see the churned tool in Tools; here the churn runs on the thread
+        // pool and can outpace every read, so the test counts its rounds.
+        while (Volatile.Read(ref rounds) < 50) await Task.Delay(5);
         await model.ActivateAsync(ToolId.Ink);
         var finishedDuringTheRevisions = Volatile.Read(ref churning);
         Volatile.Write(ref churning, false);

@@ -172,6 +172,9 @@ public sealed class HistoryModel : ObservableModel
         Submitting = true;
         Error = null;
         Notice = null;
+        // Keeps the action in flight until the home context's next turn even
+        // when the engine answers at once (see ToolModel.SubmitAsync).
+        await Task.Yield();
         try
         {
             try { await action(); }

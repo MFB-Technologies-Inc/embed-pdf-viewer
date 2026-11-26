@@ -89,6 +89,17 @@ public sealed class StageReaderModel : ObservableModel, IDisposable
     int zoomEpoch;
     /// <summary>Zoom starts whose stage call has not returned.</summary>
     int zoomStartsInFlight;
+    /// <summary>
+    /// Numbers each read of the pages as it starts. A read applies its pages
+    /// and camera unless a read that started after it has already landed, so
+    /// a read from before a resize cannot land after the resize's own read and
+    /// put the old pages back, while the newest read to land is always shown.
+    /// Swift's model has no such guard; the .NET event path reorders more,
+    /// which makes the race real.
+    /// </summary>
+    long readVersion;
+    /// <summary>The number of the newest read that has landed.</summary>
+    long landedVersion;
 
     /// <summary>Creates a reader model.</summary>
     /// <param name="stage">The stage that lays the pages out. The model does not dispose it.</param>
@@ -173,19 +184,20 @@ public sealed class StageReaderModel : ObservableModel, IDisposable
     /// <summary>
     /// Whether a drag pans the stage. Turn it off while a page overlay needs
     /// every touch. Turning it off mid-drag ends the open stage gesture without
-    /// a fling. It gates the pan only. Set it on the home context.
+    /// a fling. It gates the pan only. Set from another thread, the write is
+    /// posted to the home context and lands after this returns.
     /// </summary>
     public bool IsPanEnabled
     {
         get => isPanEnabled;
-        set
+        set => Home.Run(() =>
         {
             var was = isPanEnabled;
-            if (!Set(ref isPanEnabled, value)) return;
+            if (!Set(ref isPanEnabled, value, nameof(IsPanEnabled))) return;
             // Joins the drag chain before returning, so a drag call made after
             // this setter runs after the end.
             if (was && !value) _ = dragCalls.Enqueue(() => ApplyDragEndAsync(0, 0));
-        }
+        });
     }
 
     /// <summary>
@@ -533,7 +545,9 @@ public sealed class StageReaderModel : ObservableModel, IDisposable
                 // slower than the steps queues them and the pages trail the camera.
                 try
                 {
-                    Show(await Stage.GetVisiblePagesAsync());
+                    var request = ++readVersion;
+                    var pages = await Stage.GetVisiblePagesAsync();
+                    if (Lands(request)) Show(pages);
                     Succeeded(Call.Read);
                 }
                 catch (Exception failure)
@@ -631,8 +645,14 @@ public sealed class StageReaderModel : ObservableModel, IDisposable
             // Performance: two round trips in sequence, three while a zoom
             // settles. One stage read that returns the pages, the camera and
             // whether the stage moves makes it one.
-            Show(await Stage.GetVisiblePagesAsync());
-            Camera = await Stage.GetCameraAsync();
+            var request = ++readVersion;
+            var pages = await Stage.GetVisiblePagesAsync();
+            var current = await Stage.GetCameraAsync();
+            if (Lands(request))
+            {
+                Show(pages);
+                Camera = current;
+            }
             if (zoomPhase == ZoomPhase.Settling && mayJudge)
             {
                 var moving = await Stage.IsMovingAsync();
@@ -648,6 +668,14 @@ public sealed class StageReaderModel : ObservableModel, IDisposable
             Failed(Call.Read, failure);
         }
         IsZooming = zoomPhase != ZoomPhase.Idle;
+    }
+
+    /// <summary>Whether read <paramref name="request"/> may apply: no read that started after it has landed.</summary>
+    bool Lands(long request)
+    {
+        if (request < landedVersion) return false;
+        landedVersion = request;
+        return true;
     }
 
     /// <summary>Takes the stage's visible pages and, with a <see cref="LinkCapability"/>, starts loading the links of those that were not in view before.</summary>

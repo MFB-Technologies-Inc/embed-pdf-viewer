@@ -279,6 +279,9 @@ public sealed class AttachmentModel : ObservableModel
         Performing = true;
         errorIsReadFailure = false;
         Error = null;
+        // Keeps the action in flight until the home context's next turn even
+        // when the engine answers at once (see ToolModel.SubmitAsync).
+        await Task.Yield();
         try
         {
             cancellationToken.ThrowIfCancellationRequested();

@@ -167,13 +167,11 @@ public class ImportTests
     {
         var references = typeof(ObservableModel).Assembly.GetReferencedAssemblies().Select(name => name.Name!).ToList();
         Assert.Contains("EmbedPDF.Viewer", references);
+        // The base runtime directory holds the shared framework and no UI framework.
+        var runtime = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory();
         Assert.All(references, name => Assert.True(
-            name == "EmbedPDF.Viewer" || name.StartsWith("System", StringComparison.Ordinal)
-                || name.StartsWith("Microsoft.Extensions.Logging", StringComparison.Ordinal),
+            name == "EmbedPDF.Viewer" || File.Exists(Path.Combine(runtime, name + ".dll")),
             $"unexpected reference {name}"));
-        Assert.DoesNotContain(references, name =>
-            name.StartsWith("System.Windows", StringComparison.Ordinal) || name.StartsWith("System.Xaml", StringComparison.Ordinal)
-            || name.StartsWith("PresentationFramework", StringComparison.Ordinal) || name.StartsWith("WindowsBase", StringComparison.Ordinal));
         Assert.Equal("EmbedPDF.Models.TextSelectionModel", typeof(TextSelectionModel).FullName);
     }
 }
