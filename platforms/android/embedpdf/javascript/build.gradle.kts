@@ -18,6 +18,7 @@ android {
 
     defaultConfig {
         minSdk = 24
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     compileOptions {
@@ -28,6 +29,7 @@ android {
     sourceSets {
         // The facade's fixtures and EmbedPdfTestRunner.
         getByName("test").kotlin.srcDir("../embedpdf/src/testShared/kotlin")
+        getByName("androidTest").kotlin.srcDir("../embedpdf/src/androidTestShared/kotlin")
     }
 
     testOptions {
@@ -54,7 +56,22 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
+
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
 }
+
+// The instrumented tests (src/androidTest, `./gradlew connectedDebugAndroidTest`)
+// read their fixtures from the test APK's assets, under `fixtures/`.
+val deviceFixtures = tasks.register<Sync>("deviceFixtures") {
+    from(repoRoot.resolve("packages/engine/main/test/fixtures")) { include("action_buttons_form.pdf") }
+    from(repoRoot.resolve("tooling/engine-conformance/fixtures")) { include("document_actions.pdf") }
+    into(layout.buildDirectory.dir("generated/deviceFixtures/fixtures"))
+}
+android.sourceSets.getByName("androidTest").assets.srcDir(layout.buildDirectory.dir("generated/deviceFixtures").get().asFile)
+tasks.matching { it.name.endsWith("AndroidTestAssets") }.configureEach { dependsOn(deviceFixtures) }
 
 // The JVM tests load the Linux host library `:bindings` builds for them.
 val linuxHost = project(":bindings").extensions.extraProperties
