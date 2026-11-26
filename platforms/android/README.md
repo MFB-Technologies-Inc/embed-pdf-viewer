@@ -655,9 +655,34 @@ not, so it never lands in the saved-state bundle.
 
 The pieces are public too: `StageReader`, `TiledPageImage`, `PageImageView`,
 `ThumbnailStrip`, `SearchBar`, `OutlinePanel`, `AttachmentPanel`,
-`HistoryControls`, `ToolPicker` and `TextSelectionOverlay`. Each takes a model
-from `embedpdf-models` and runs it while composed. `compose/api/compose.api`
-is the checked surface.
+`HistoryControls`, `ToolPicker`, `TextSelectionOverlay` and
+`SearchHighlightOverlay`. Each takes a model from `embedpdf-models` and runs it
+while composed, except the two overlays, which draw a model run elsewhere.
+`compose/api/compose.api` is the checked surface.
+
+The engine paints no search hits into the tiles, so `SearchHighlightOverlay`
+draws them, as each web framework's search layer does
+(`packages/framework/web/src/search-highlights.ts`). It fills each line of each
+hit on one page with the search plugin's `highlight.color`, the active hit's
+lines with `highlight.activeColor`, and blends them with the page in
+`highlight.blendMode`, through the same page-to-frame mapping as
+`TextSelectionOverlay`, so zoom and rotation place it. `SearchModel.highlight`
+carries the setting and follows `updateSettings`. `PdfReader` stacks it under
+the text selection on every page. A hand-built `StageReader` returns it from
+`pageOverlay`:
+
+```kotlin
+StageReader(reader) { visiblePage ->
+    val info = pages.firstOrNull { it.page == visiblePage.page } ?: return@StageReader
+    SearchHighlightOverlay(search, visiblePage, info, Modifier.fillMaxSize())
+}
+```
+
+Colors are read as CSS hex, `rgb()`, `rgba()` or a basic color name; one it
+can't read draws the plugin's default for that slot. Below API 29 a blend mode
+other than the Porter-Duff ones falls back to multiply. The overlay has no
+semantics and takes no touches. The cost: the model reads the settings on
+every state revision, one more engine round trip per scroll step.
 
 ## The demo app
 
@@ -766,7 +791,8 @@ clear --old 1234` after.
 Results, 2026-11-26, on the `Pixel_4` AVD running
 `system-images/android-37.1/google_apis_playstore_ps16k/arm64-v8a` (build
 `CP31.260623.012`, `getconf PAGE_SIZE` 16384) with WebView 157.0.8103.50:
-15 tests, 0 failures.
+15 tests, 0 failures. A second compose run the same day, with
+`DeviceSearchHighlightTest` added: 4 tests, 0 failures.
 
 `DeviceViewerTest` (3 tests): the engine starts on the 16 KB page device and
 runs mapped straight out of the APK at a 16 KB aligned offset; a viewer with
@@ -808,6 +834,12 @@ its pages "Page 1 of 14" and on; a drag pans the camera and a pinch zooms it
 (0.471 to 0.660); with the ink tool active, the first stroke creates an ink
 annotation, where Robolectric needed two.
 
+`DeviceSearchHighlightTest` (1 test): searching "Trace" in `report.pdf` makes
+416 hits, and the first one, 27.3 by 10.1 dp on screen, changes color in 1,351
+of the 1,704 pixels sampled inside it. Its 515 dark text pixels stay dark,
+so the fill multiplies rather than covers. Before the overlay existed the
+demo found the same 416 hits and drew none of them.
+
 The run found two crashes no JVM test could. Both are JNA running a nested
 callback on a native thread and detaching that thread when the inner callback
 returns, which ART aborts ("attempting to detach while still running code")
@@ -825,7 +857,9 @@ resuming inline.
 The demo app, debug and minified release, installs, opens `report.pdf` and
 draws its first page (screenshots identical across the two); the release
 build's search finds 416 hits for "Trace". Neither logcat shows a crash or an
-`UnsatisfiedLinkError`.
+`UnsatisfiedLinkError`. With `SearchHighlightOverlay`, the debug demo built
+from source draws the hits: the title's "Trace" in orange as "1 of 416", and
+the page's other "trace" hits in yellow with the text readable through them.
 
 The `x86_64` engine is built and checked but not executed, since the only
 image installed is arm64. A run on physical hardware is still to do.
