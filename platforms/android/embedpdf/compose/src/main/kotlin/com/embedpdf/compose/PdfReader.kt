@@ -173,10 +173,10 @@ private class ReaderExtras(
 private suspend fun readerExtras(session: PdfReaderModel.Session, strings: HistoryStrings): ReaderExtras {
     val viewer = session.viewer
     val document = session.document
-    val outline = optional { viewer.outline(document) }
-    val attachments = optional { viewer.attachments(document) }
-    val history = optional { viewer.history(document) }
-    val translator = if (history != null) optional { viewer.i18n() } else null
+    val outline = optionalCapability { viewer.outline(document) }
+    val attachments = optionalCapability { viewer.attachments(document) }
+    val history = optionalCapability { viewer.history(document) }
+    val translator = if (history != null) optionalCapability { viewer.i18n() } else null
     return ReaderExtras(
         outline = outline?.let { OutlineModel(viewer, it) },
         attachments = attachments?.let { AttachmentModel(viewer, it) },
@@ -184,12 +184,15 @@ private suspend fun readerExtras(session: PdfReaderModel.Session, strings: Histo
     )
 }
 
-/** [block]'s capability, or `null` when the viewer refuses it, as it refuses a plugin it was not configured with. */
-private suspend fun <T> optional(block: suspend () -> T): T? = try {
+/**
+ * [block]'s capability, or `null` when the viewer refuses it as `unsupported`,
+ * as it refuses a plugin it was not configured with. Any other failure, such
+ * as the document closing, is thrown.
+ */
+internal suspend fun <T> optionalCapability(block: suspend () -> T): T? = try {
     block()
-} catch (e: CancellationException) {
-    throw e
 } catch (e: PdfException) {
+    if (e.code != PdfException.Code.UNSUPPORTED) throw e
     null
 }
 
@@ -204,7 +207,16 @@ private fun ReadyReader(
     pageOverlay: @Composable (StageVisiblePage, PdfReaderModel.Session) -> Unit,
 ) {
     val historyStrings = rememberHistoryStrings()
-    val extras by produceState<ReaderExtras?>(null, session) { value = readerExtras(session, historyStrings) }
+    // Why the panels' models could not be made, when the reason is not a plugin left out.
+    var extrasError by remember(session) { mutableStateOf<PdfException?>(null) }
+    val extras by produceState<ReaderExtras?>(null, session) {
+        value = try {
+            readerExtras(session, historyStrings)
+        } catch (e: PdfException) {
+            extrasError = e
+            null
+        }
+    }
     val thumbnails = remember(session) { ThumbnailModel(session.reader.render, session.pages) }
     var panel by rememberSaveable { mutableStateOf<ReaderPanel?>(null) }
     val wide = currentWindowAdaptiveInfo().windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
@@ -254,6 +266,7 @@ private fun ReadyReader(
                 PanelToggle(ReaderPanel.ATTACHMENTS, shown, R.drawable.embedpdf_ic_attach, R.string.embedpdf_attachments_title) { panel = it }
             }
         }
+        if (extrasError != null) PanelError(stringResource(R.string.embedpdf_reader_panels_failed), "readerPanelsError")
         if (search != null && !wide) {
             RevealingSearchBar(search, Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, bottom = 4.dp))
         }

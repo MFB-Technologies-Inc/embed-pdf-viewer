@@ -110,6 +110,7 @@
     <!-- PdfReader. -->
     <string name="embedpdf_reader_loading">Opening document</string>
     <string name="embedpdf_reader_failed">The document could not be opened</string>
+    <string name="embedpdf_reader_panels_failed">The bookmarks, attachments and history could not be loaded.</string>
     <!-- %1$s is the document's name. -->
     <string name="embedpdf_reader_locked_named">%1$s is password protected</string>
     <string name="embedpdf_reader_locked">This document is password protected</string>
