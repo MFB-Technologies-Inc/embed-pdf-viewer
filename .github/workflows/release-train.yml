@@ -348,7 +348,7 @@ jobs:
       - uses: actions/setup-node@v6
         if: needs.apple.outputs.state != 'current'
         with:
-          node-version: 24
+          node-version: 26
 
       - uses: actions/download-artifact@v7
         if: needs.runtime.outputs.published == 'false'
@@ -729,7 +729,7 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 26
 
       - uses: actions/download-artifact@v7
         with:
