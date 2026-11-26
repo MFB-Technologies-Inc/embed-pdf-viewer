@@ -40,7 +40,7 @@ runs:
 
     - name: Restore emsdk
       id: cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ${{ steps.resolve.outputs.dir }}
         key: emsdk-${{ inputs.version }}-${{ runner.os }}-${{ runner.arch }}
