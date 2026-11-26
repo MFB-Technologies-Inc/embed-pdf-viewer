@@ -114,8 +114,14 @@ The pin goes stale whenever an input to the hash changes. [Engine
 identity](#engine-identity) lists the inputs; the Gradle build files and the
 version catalog are among them, so a dependency bump moves the engine version
 too. `bash platforms/android/check-android-engine.sh` exits 0 when the pin is
-current and 1 or 2 when it isn't, as `platforms/apple/check-apple-engine.sh`
-does. The release workflow runs it first and stops on anything but 0.
+current. When it isn't, the script asks GitHub Packages for the POM of
+`com.embedpdf:embedpdf-bindings:0.0.0-engine.<hash>` and exits 1 when that
+engine isn't published or 2 when it is, so only the pin needs committing. The
+same codes mean the same as in `platforms/apple/check-apple-engine.sh`, which
+asks for a GitHub release instead. The registry wants a token even to read:
+`GH_TOKEN`, `GITHUB_TOKEN` or a `gh` login, with `read:packages`. With none,
+the script exits 69. The release workflow runs it first and stops on anything
+but 0.
 
 ## Plugins
 
@@ -507,9 +513,12 @@ AAR's contents: the Rust crates `epdf-viewer-host` links (the same list as
 `Cargo.lock`, `rust-toolchain.toml`, `build-aar.sh`, `fetch-android-runtime.sh`,
 the `bindings` build files and the `runtime-src` commit. `gradle.properties`
 pins `embedpdf.engineRelease=android-engine-<hash>`, and
-`check-android-engine.sh` exits 0 when the pin matches the tree, 1 or 2 when it
-doesn't (with the same meanings as `platforms/apple/check-apple-engine.sh`),
-and 64, 69 or 70 on a hard error. Nothing is published under that name yet.
+`check-android-engine.sh` exits 0 when the pin matches the tree, and 1 or 2
+when it doesn't: 1 when GitHub Packages has no
+`com.embedpdf:embedpdf-bindings:0.0.0-engine.<hash>` POM, 2 when it has one.
+It exits 64, 69 or 70 on a hard error; 69 covers a missing token and any
+registry answer other than 200 or 404. Nothing is published under that
+version yet.
 
 ## The fork slices are prebuilt, and have to be
 
