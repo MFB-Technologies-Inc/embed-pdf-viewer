@@ -196,7 +196,8 @@ current when you construct it. Make models on the UI thread and every `PropertyC
 there, including the ones a kernel callback or a plugin event causes. You may call a model from
 any thread; it moves to its home context before it touches state. Without a context, as in a
 console app, the model makes a private one that runs its work one item at a time on the thread
-pool.
+pool. A `PropertyChanged` handler that throws there rethrows on a pool thread and ends the process,
+as an unhandled exception on a UI dispatcher would, so catch inside the handler what it can raise.
 
 Models that follow the document have a `RunAsync(CancellationToken)`. Start it when the view
 appears and cancel the token when it goes; it returns without throwing. Lists are read-only
@@ -219,13 +220,16 @@ overlay map to page space with `StageVisiblePageExtensions.PagePoint`. `PointerI
 record rather than wave B's `PointerSample`, because the sample carries the page hit the model
 looks up and a phase the method name already gives.
 
+The example opens the PDF at `path`. `ReadmeExampleTests` runs this block, extracted from this
+file, on a UI-like thread and with no context at all.
+
 ```csharp
 using EmbedPDF;
 using EmbedPDF.Models;
 
 // On the UI thread, so the models' notifications arrive there.
 await using var reader = new PdfReaderModel(ReaderFeatures.Search | ReaderFeatures.Links);
-await reader.OpenAsync(File.ReadAllBytes("report.pdf"));
+await reader.OpenAsync(File.ReadAllBytes(path));
 if (reader.Phase is not ReaderPhase.Ready ready) return;
 
 var pages = ready.Session.Reader;

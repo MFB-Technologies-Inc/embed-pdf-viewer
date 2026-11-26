@@ -54,9 +54,9 @@ public abstract record ReaderPhase
 /// <summary>
 /// One open document and the models over it. A session belongs to that
 /// document: the next open, and a close, replace it with a new value and
-/// never change this one. Its models stop working when the document closes,
-/// so read the session from <see cref="PdfReaderModel.Phase"/> each time
-/// instead of keeping one.
+/// never change this one. When the phase leaves it, the reader model
+/// disposes its models and the capabilities under them, so read the session
+/// from <see cref="PdfReaderModel.Phase"/> each time instead of keeping one.
 /// </summary>
 /// <param name="Viewer">The model's viewer.</param>
 /// <param name="Document">The open document.</param>

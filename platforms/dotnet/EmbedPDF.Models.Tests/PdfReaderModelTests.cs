@@ -277,4 +277,41 @@ public class PdfReaderModelTests
         Assert.Equal(page, session.GetPageInfo(shown with { PageIndex = 0 }));
         Assert.Null(session.GetPageInfo(shown with { Page = new PageRef(int.MaxValue) }));
     });
+
+    /// <summary>Whether <paramref name="stream"/> ends within 10 seconds.</summary>
+    static async Task<bool> EndsAsync(IAsyncEnumerable<LinkActivation> stream)
+    {
+        var reading = Task.Run(async () =>
+        {
+            await foreach (var _ in stream) { }
+        });
+        return await Task.WhenAny(reading, Task.Delay(TimeSpan.FromSeconds(10))) == reading;
+    }
+
+    [Fact]
+    public Task OpeningAnotherDocumentDisposesTheOldSession() => SingleThreadContext.RunWatched(async context =>
+    {
+        await using var model = context.Watch(new PdfReaderModel(ReaderFeatures.Links));
+        await model.OpenAsync(Fixture.Data());
+        var first = Session(model);
+        // Ends only when the session's reader is disposed, not when its document closes.
+        var activations = first.Reader.ObserveLinkActivations();
+        await model.OpenAsync(Fixture.Data("features"));
+        Assert.True(await EndsAsync(activations), "the old session's reader was not disposed");
+        var second = Session(model);
+        var kept = second.Reader.ObserveLinkActivations();
+        await model.CloseAsync();
+        Assert.True(await EndsAsync(kept), "the closed session's reader was not disposed");
+    });
+
+    [Fact]
+    public Task AFailedOpenDisposesTheSessionBeforeIt() => SingleThreadContext.RunWatched(async context =>
+    {
+        await using var model = context.Watch(new PdfReaderModel(ReaderFeatures.Links));
+        await model.OpenAsync(Fixture.Data());
+        var activations = Session(model).Reader.ObserveLinkActivations();
+        await model.OpenAsync("no"u8.ToArray());
+        Assert.IsType<ReaderPhase.Failed>(model.Phase);
+        Assert.True(await EndsAsync(activations), "the old session's reader was not disposed");
+    });
 }

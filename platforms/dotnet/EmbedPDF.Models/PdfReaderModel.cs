@@ -36,8 +36,8 @@ public sealed class PdfReaderModel : ObservableModel, IAsyncDisposable
     int generation;
     /// <summary>Cancels the newest open's or close's work when the next supersedes it, so a URL still downloading stops.</summary>
     CancellationTokenSource? newest;
-    /// <summary>Lets the pan tool drag the current session's reader; replaced with each session.</summary>
-    Registration? scrollHandler;
+    /// <summary>What the ready session owns: its models, its capabilities and its scroll handler, disposed when the phase leaves it.</summary>
+    List<IDisposable> sessionResources = [];
 
     /// <summary>Creates a reader with <paramref name="features"/>.</summary>
     /// <param name="features">What the reader offers.</param>
@@ -66,7 +66,23 @@ public sealed class PdfReaderModel : ObservableModel, IAsyncDisposable
     public ReaderFeatures Features { get; }
 
     /// <summary>Where the reader stands.</summary>
-    public ReaderPhase Phase { get => phase; private set => Set(ref phase, value); }
+    /// <remarks>
+    /// When the phase leaves <see cref="ReaderPhase.Ready"/>, for another open,
+    /// an unlock, a failure or a close, the session's models and the
+    /// capabilities under them are disposed.
+    /// </remarks>
+    public ReaderPhase Phase
+    {
+        get => phase;
+        private set
+        {
+            var left = phase is ReaderPhase.Ready;
+            if (!Set(ref phase, value) || !left) return;
+            var owned = sessionResources;
+            sessionResources = [];
+            Release(owned);
+        }
+    }
 
     /// <summary>
     /// Why the last <see cref="UnlockAsync"/> left the document locked: a wrong
@@ -228,7 +244,6 @@ public sealed class PdfReaderModel : ObservableModel, IAsyncDisposable
     {
         if (generation != mine || Viewer is not { } viewer) return;
         Viewer = null;
-        scrollHandler = null;
         // Closing has no way to report a failure, so one is dropped.
         try { await viewer.DisposeAsync(); }
         catch (PdfException) { }
@@ -268,8 +283,22 @@ public sealed class PdfReaderModel : ObservableModel, IAsyncDisposable
                 Phase = new ReaderPhase.Locked(document);
                 break;
             case DocumentStatus.Ready:
-                var session = await SessionAsync(document, viewer);
-                if (generation == mine) Phase = new ReaderPhase.Ready(session);
+                var owned = new List<IDisposable>();
+                try
+                {
+                    var session = await SessionAsync(document, viewer, owned);
+                    if (generation == mine)
+                    {
+                        Phase = new ReaderPhase.Ready(session);
+                        sessionResources = owned;
+                        owned = [];
+                    }
+                }
+                finally
+                {
+                    // A superseded or failed build owns what it made.
+                    Release(owned);
+                }
                 break;
             default:
                 throw new PdfException(
@@ -278,31 +307,48 @@ public sealed class PdfReaderModel : ObservableModel, IAsyncDisposable
         }
     }
 
-    async Task<ReaderSession> SessionAsync(DocumentInfo document, PdfViewer viewer)
+    async Task<ReaderSession> SessionAsync(DocumentInfo document, PdfViewer viewer, List<IDisposable> owned)
     {
+        T Own<T>(T resource) where T : IDisposable
+        {
+            owned.Add(resource);
+            return resource;
+        }
+
         // Performance: each accessor below is its own trip to the engine, made
         // one after another: up to eight per open with every feature on. They
         // do not depend on each other, so they could run together.
-        var stage = await viewer.GetStageAsync(document);
-        var render = await viewer.GetRenderAsync(document);
-        var interaction = NeedsInteraction ? await viewer.GetInteractionAsync(document) : null;
-        var link = Features.HasFlag(ReaderFeatures.Links) ? await viewer.GetLinkAsync(document) : null;
+        var stage = Own(await viewer.GetStageAsync(document));
+        var render = Own(await viewer.GetRenderAsync(document));
+        var interaction = NeedsInteraction ? Own(await viewer.GetInteractionAsync(document)) : null;
+        var link = Features.HasFlag(ReaderFeatures.Links) ? Own(await viewer.GetLinkAsync(document)) : null;
         if (Features.HasFlag(ReaderFeatures.Tools))
         {
             // Lets the built-in pan tool drag this reader. The registration
             // lasts as long as the document, which is as long as the session.
-            scrollHandler = await stage.RegisterScrollHandlerAsync();
+            Own(await stage.RegisterScrollHandlerAsync());
         }
-        var search = Features.HasFlag(ReaderFeatures.Search) ? new SearchModel(await viewer.GetSearchAsync(document), Context) : null;
+        var search = Features.HasFlag(ReaderFeatures.Search) ? new SearchModel(Own(await viewer.GetSearchAsync(document)), Context) : null;
         var selection = Features.HasFlag(ReaderFeatures.Selection)
-            ? new TextSelectionModel(await viewer.GetSelectionAsync(document), Context) : null;
+            ? Own(new TextSelectionModel(Own(await viewer.GetSelectionAsync(document)), Context)) : null;
         // Performance: every page's PageInfo crosses the bridge here, at each
         // open and after each unlock, a payload that grows with the page count.
         var pages = await viewer.GetPagesAsync(document);
         return new ReaderSession(
-            viewer, document, pages, new StageReaderModel(stage, render, interaction, link, Context),
+            viewer, document, pages, Own(new StageReaderModel(stage, render, interaction, link, Context)),
             search, selection,
             Features.HasFlag(ReaderFeatures.Tools) && interaction is not null ? new ToolModel(interaction, Context) : null);
+    }
+
+    /// <summary>Disposes models before the capabilities under them, the reverse of the order they were made.</summary>
+    static void Release(List<IDisposable> owned)
+    {
+        for (var i = owned.Count - 1; i >= 0; i--)
+        {
+            try { owned[i].Dispose(); }
+            catch (PdfException) { }
+        }
+        owned.Clear();
     }
 
     /// <summary>Ends in <see cref="ReaderPhase.Failed"/> with nothing left open, unless a later call has taken over.</summary>

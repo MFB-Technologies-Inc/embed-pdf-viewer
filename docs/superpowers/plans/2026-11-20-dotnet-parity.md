@@ -1067,6 +1067,28 @@ deliberate fault otherwise failed three watched tests running beside it. None fi
 `EmbedPDF.Viewer.Tests` runs 1,123, 1,119 passing and 4 skipped; the Release build of `EmbedPDF.sln`
 reports 0 warnings.
 
+Review fixes (2026-11-26), each with a test that failed first:
+
+- A model recognised its home context by identity alone, and some UI dispatchers install a fresh
+  context instance for each callback, so on the model's own thread a setter posted and read back
+  the old value (`search.Text = "abc"` then `Text` was `""`). A context captured as the current one
+  now records its thread, and a later context of the same type on that thread counts as home; a
+  model handed that context by another model inherits the thread through a weak table. The private
+  serial context and a context given from elsewhere keep the identity check.
+  `FreshInstanceContextTests` runs models under a context that installs a fresh instance per
+  callback (`a6fb77b56`).
+- `PdfReaderModel` disposes a session's models, capabilities and scroll handler when the phase
+  leaves it, for another open, a failure or a close, and disposes a session built for a superseded
+  open at once (`6ea6e1a7d`).
+- `CapabilityObservation.ObserveAsync` cancels its loops in a `finally`, so a throwing first read
+  no longer leaves them running (`147a615ea`).
+- `ReadmeExampleTests` checks that the README block is the test's `Example` method line for line,
+  and runs it on a UI-like thread and with no context (`5e8506e19`). The README says a throwing
+  `PropertyChanged` handler on the private serial context ends the process.
+
+`EmbedPDF.Models.Tests` then runs 164 cases, 163 passing three times in a row and one skipped;
+`EmbedPDF.Viewer.Tests` runs 1,123, 1,119 passing and 4 skipped; the Release build reports 0 warnings.
+
 ## Phase 5: Sample and consumer check
 
 About 3 days. Exit: the sample restores from a local feed, opens a document, and publishes with
