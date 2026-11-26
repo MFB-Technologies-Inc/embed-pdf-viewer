@@ -282,20 +282,23 @@ annotates the fixture corpus in Robolectric Compose UI tests.
 About 4 days. Exit: a minified release build of the demo assembles, passes `zipalign -c -P 16`, and
 its R8 mapping keeps every class the native side loads.
 
-- [ ] `platforms/android/EmbedPDFDemo`: a Compose app at parity with
+- [x] `platforms/android/EmbedPDFDemo`: a Compose app at parity with
   `platforms/apple/EmbedPDFDemo` (document view, metadata sheet, side panels).
-- [ ] `platforms/android/android-consumer.sh`, like `platforms/apple/macos-consumer.mjs`: builds the
+- [x] `platforms/android/android-consumer.sh`, like `platforms/apple/macos-consumer.mjs`: builds the
   demo against the published artifacts rather than project dependencies.
 
 ## Phase 7: Release and documentation
 
 About 4 days. Exit: one tagged Android release a consumer can depend on with four lines of Gradle.
 
-- [ ] Publish workflow for D4, triggered the way `2026-11-19-release-workflows.md` triggers the
+- [x] Publish workflow for D4, triggered the way `2026-11-19-release-workflows.md` triggers the
   Apple engine release, consuming the `runtime-<sha>` Android slices that plan already builds.
-- [ ] `platforms/android/README.md` rewritten in the shape of `platforms/apple/README.md`:
+  Done as a standalone `workflow_dispatch` workflow, `android-release.yml`, not a job of
+  `release-train.yml`; it fetches the published `runtime-<sha>` slices through
+  `fetch-android-runtime.sh`. The "one tagged release" exit waits for the first run.
+- [x] `platforms/android/README.md` rewritten in the shape of `platforms/apple/README.md`:
   products, where the engine comes from, the plugin table, local engine mode.
-- [ ] A plugin table row per capability, and `DisabledPluginTests` failing when `ViewerConfig`
+- [x] A plugin table row per capability, and `DisabledPluginTests` failing when `ViewerConfig`
   gains a plugin without one, as on Apple.
 
 ## Definition of done
@@ -304,6 +307,11 @@ About 4 days. Exit: one tagged Android release a consumer can depend on with fou
 file has a Kotlin counterpart or a recorded reason it doesn't apply. `apiCheck` passes. The minified demo
 assembles and passes the alignment checks. The publish workflow is ready; publishing the first
 release waits for the user.
+
+Status, 2026-11-26: met, except one item not checked here. The coverage check reports 0 pending
+of 864 members; `apiCheck` passes; the minified demo assembles and passes `zipalign -c -P 16`
+(`android-consumer.sh`); `android-release.yml` is written and linted, and not run. Whether every
+Swift test file has a Kotlin counterpart or a recorded reason was not audited in Phases 6 and 7.
 
 Total: about 11 weeks of focused work if waves run one at a time; Phase 3 waves A and B, and
 Phase 4 behind them, can overlap in separate worktrees, which brings it nearer 8. The estimate
