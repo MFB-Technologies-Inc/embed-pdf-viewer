@@ -124,7 +124,10 @@ else
 fi
 echo "Feed: $(cd "$feed" && ls *.nupkg | tr '\n' ' ')"
 
-# The sample, outside the repository: only the feed can satisfy it.
+# The sample, outside the repository: only the feed can satisfy it. NuGet
+# reads the feed path from the file, so on Windows it needs the Windows form.
+feed_path="$feed"
+command -v cygpath >/dev/null 2>&1 && feed_path="$(cygpath -w "$feed")"
 src="$work/src"
 mkdir -p "$src"
 cp "$HERE/global.json" "$HERE/samples/Directory.Build.props" "$src/"
@@ -134,7 +137,7 @@ cat >"$src/nuget.config" <<NUGET
 <configuration>
   <packageSources>
     <clear />
-    <add key="local" value="$feed" />
+    <add key="local" value="$feed_path" />
     <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
   </packageSources>
   <!-- EmbedPDF packages come from the local feed and nowhere else. -->

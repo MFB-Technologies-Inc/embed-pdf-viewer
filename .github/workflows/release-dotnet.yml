@@ -41,7 +41,10 @@ name: release-dotnet
 #
 # The runtime, runtime-pack, runtime-validate and runtime-record jobs build
 # and validate the viewer packages, EmbedPDF.Runtime and EmbedPDF, for all
-# five RIDs; their comments below say what they produce.
+# five RIDs; runtime-pack also packs EmbedPDF.Models,
+# EmbedPDF.Extensions.DependencyInjection and EmbedPDF.Scripting.Jint. The
+# consumer job builds the console sample from those packages and runs it, as
+# a NativeAOT binary too on Linux. Their comments below say what they produce.
 #
 # This workflow never publishes; the orchestrator does. dry_run exists so every
 # release workflow takes the same inputs, and changes nothing here.
@@ -673,6 +676,15 @@ jobs:
           python3 platforms/dotnet/packaging/package.py pack-facade \
             --runtime-package dotnet-runtime/EmbedPDF.Runtime.*.nupkg --out dotnet-runtime
 
+      # EmbedPDF.Models, EmbedPDF.Extensions.DependencyInjection and
+      # EmbedPDF.Scripting.Jint at the facade's version. libraries.py fails
+      # unless EmbedPDF.Models depends on exactly that EmbedPDF version.
+      - name: Pack the library packages
+        run: |
+          python3 platforms/dotnet/packaging/libraries.py pack-libraries \
+            --facade dotnet-runtime/EmbedPDF.0.0.0-local.nupkg \
+            --runtime-package dotnet-runtime/EmbedPDF.Runtime.*.nupkg --out dotnet-runtime
+
       - name: Validate linux-arm64
         run: |
           python3 platforms/dotnet/packaging/package.py validate-runtime --rid linux-arm64 \
@@ -792,6 +804,115 @@ jobs:
         with:
           name: dotnet-runtime-validation-${{ matrix.rid }}
           path: validation
+          if-no-files-found: error
+
+  # The console sample (platforms/dotnet/samples/EmbedPDF.Sample.Console)
+  # built from runtime-pack's five packages in a local feed, with no project
+  # reference, on each RID's native host. The Linux rows also publish it with
+  # PublishAot=true and run the native binary (Review Focus 4 of
+  # docs/superpowers/plans/2026-11-20-dotnet-parity.md); macOS and Windows run
+  # it framework-dependent only. Nothing is published.
+  consumer:
+    needs: [image, runtime-pack]
+    name: consumer (${{ matrix.rid }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: linux-arm64
+            runner: ubuntu-24.04-arm
+            image_arch: arm64
+            aot: true
+            sdk_url: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-linux-arm64.tar.gz
+            sdk_sha512: 0966aa2b70f4677b8319be9df447a78a0dcd6164836425b55a68fd714f4023feb87b4cac21b9a996b79472ad54487cd0adcd2a9dfd570e2b2a1d26423a2baa9b
+          - rid: linux-x64
+            runner: ubuntu-24.04
+            image_arch: amd64
+            aot: true
+            sdk_url: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-linux-x64.tar.gz
+            sdk_sha512: b7b3d8461cf98b07d2552ce9199702fa3ad010ac2671a5f8cd5136f7534e50f6855ba7bbb02b11494563f1d04156276a31cda1103b900e5eecd0d9473dc7b9c5
+          - rid: osx-arm64
+            runner: macos-15
+            aot: false
+            sdk_url: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-osx-arm64.tar.gz
+            sdk_sha512: 5893c66b48ea3674c7da18501059d606e96f3672fabe4d5e41762e692c7c83df3ee0b2b9dc5a0786191da2dc413d7335158101c14c935ab217f31ac2529770f3
+          - rid: win-x64
+            runner: windows-2022
+            aot: false
+            sdk_url: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-win-x64.zip
+            sdk_sha512: 7a114c318fa7f1d9822991b534b2814d0e78386ceda816b371f5141acefe741d87ccb606ede06cadac8f9ac5070e32b708a67bbd1619ff5e5a7858a27874ef48
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    container: ${{ matrix.image_arch && format('debian:trixie@{0}', needs.image.outputs[matrix.image_arch]) || '' }}
+    env:
+      RID: ${{ matrix.rid }}
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+    steps:
+      # NativeAOT links with clang.
+      - name: Install system packages
+        if: runner.os == 'Linux'
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates curl git python3 libicu-dev tzdata zlib1g zlib1g-dev clang lld
+          rm -rf /var/lib/apt/lists/*
+
+      - name: Check out LF on Windows
+        if: runner.os == 'Windows'
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install .NET SDK 10.0.403
+        env:
+          SDK_URL: ${{ matrix.sdk_url }}
+          SDK_SHA512: ${{ matrix.sdk_sha512 }}
+        run: |
+          sdk=$RUNNER_TEMP/${SDK_URL##*/}
+          curl -fsSL --retry 3 -o "$sdk" "$SDK_URL"
+          if command -v sha512sum >/dev/null 2>&1; then
+            echo "$SDK_SHA512  $sdk" | sha512sum -c -
+          else
+            echo "$SDK_SHA512  $sdk" | shasum -a 512 -c -
+          fi
+          case $RUNNER_OS in
+            Linux) root=/usr/share/dotnet ;;
+            *) root=$RUNNER_TEMP/dotnet ;;
+          esac
+          mkdir -p "$root"
+          if [[ "$sdk" == *.zip ]]; then
+            "$(cygpath -u "$SYSTEMROOT")/System32/tar.exe" -xf "$sdk" -C "$root"
+          else
+            tar -xzf "$sdk" -C "$root"
+          fi
+          rm "$sdk"
+          echo "DOTNET_ROOT=$root" >> "$GITHUB_ENV"
+          echo "$root" >> "$GITHUB_PATH"
+          if [[ "$RUNNER_OS" == Windows ]]; then echo "PYTHON=python" >> "$GITHUB_ENV"; else echo "PYTHON=python3" >> "$GITHUB_ENV"; fi
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: dotnet-runtime
+          path: dotnet-runtime
+
+      - name: Consumer check
+        env:
+          AOT: ${{ matrix.aot }}
+        run: |
+          mkdir -p consumer
+          args=(--rid "$RID" --packages dotnet-runtime --work "$RUNNER_TEMP/consumer")
+          if [[ "$AOT" != true ]]; then args+=(--no-aot); fi
+          bash platforms/dotnet/dotnet-consumer.sh "${args[@]}" 2>&1 | tee consumer/consumer.$RID.log
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: dotnet-consumer-${{ matrix.rid }}
+          path: consumer
           if-no-files-found: error
 
   # One manifest for all five RIDs: runtime-pack's (linux-arm64 validated
