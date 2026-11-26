@@ -171,7 +171,7 @@ impl AnnotationSelectionHandle {
             .call_promise_cancellable(
                 cancel,
                 move |c| {
-                    super::interchange::cancellable_operation(|signal| {
+                    epdf_ffi::signalled_cancellable("annotation", |signal| {
                         Ok(open(c)?.selection_update_link(
                             target.as_ref().map(PdfLinkTarget::to_json).unwrap_or(Value::Null),
                             Some(signal),

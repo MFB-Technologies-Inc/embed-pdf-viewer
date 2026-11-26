@@ -19,7 +19,6 @@ use epdf_ffi::{
     to_u32,
 };
 use epdf_kernel::error::{code, plugin_error};
-use epdf_kernel::signal::AbortSignal;
 use epdf_kernel::{Error, Unsubscribe};
 use epdf_plugin_search::SearchQuery;
 use serde_json::{Value, json};
@@ -47,13 +46,6 @@ fn open(cap: &RedactionCapability) -> Result<&RedactionCapability, Error> {
 /// The cancel token carries the cancel; the plugin call takes none.
 fn none() -> OperationOptions {
     OperationOptions::default()
-}
-
-/// Options with a signal, and the signal for the promise's abort to fire:
-/// a cancel token then reaches a call that checks it between its steps.
-fn signalled() -> (OperationOptions, AbortSignal) {
-    let signal = AbortSignal::new();
-    (OperationOptions { signal: Some(signal.clone()) }, signal)
 }
 
 fn whole(value: Option<&Value>, what: &str) -> Result<u32, Error> {
@@ -555,10 +547,10 @@ impl RedactionHandle {
                 move |c| {
                     let pages =
                         pages.map(|p| p.into_iter().map(|p| PageTarget::Ref(page_in(p))).collect());
-                    let (options, signal) = signalled();
-                    Ok(open(c)?
-                        .mark_matches(query, pages, options)
-                        .with_abort(move |reason| signal.abort(Error::abort(reason))))
+                    let c = open(c)?;
+                    epdf_ffi::signalled(|signal| {
+                        Ok(c.mark_matches(query, pages, OperationOptions { signal: Some(signal) }))
+                    })
                 },
                 |r| marks_out(&r.marks).map_err(ViewerError::from),
             )

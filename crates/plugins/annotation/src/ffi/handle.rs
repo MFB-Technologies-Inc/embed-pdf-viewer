@@ -7,7 +7,6 @@ use epdf_ffi::{
 use epdf_kernel::Unsubscribe;
 use serde_json::{Value, json};
 
-use super::interchange::cancellable_operation;
 use super::{
     AnnotationBatchFailure, AnnotationChangedEvent, AnnotationDeletedEvent, AnnotationEvent,
     AnnotationEventListener, AnnotationFilter, AnnotationRecord, AnnotationResyncedPages,
@@ -107,7 +106,7 @@ pub(super) fn duplicate_answer(
         epdf_kernel::signal::AbortSignal,
     ) -> epdf_kernel::Promise<Value>,
 ) -> Result<epdf_kernel::Promise<AnnotationDuplicateResult>, epdf_kernel::Error> {
-    cancellable_operation(|signal| {
+    epdf_ffi::signalled_cancellable("annotation", |signal| {
         Ok(start(&cap, signal).convert(move |result| duplicate_out(&cap, result)))
     })
 }
@@ -443,7 +442,11 @@ impl AnnotationHandle {
         self.cap
             .call_promise_cancellable(
                 cancel,
-                |c| cancellable_operation(|_| Ok(open(c)?.when_remeasurable())),
+                |c| {
+                    epdf_ffi::signalled_cancellable("annotation", |_| {
+                        Ok(open(c)?.when_remeasurable())
+                    })
+                },
                 |_| (),
             )
             .await

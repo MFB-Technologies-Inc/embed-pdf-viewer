@@ -23,7 +23,6 @@ use epdf_ffi::{
     PluginErrorInfo, Point, Rect, RegistrationHandle, ResourceStatus, Subscription, ViewerError,
 };
 use epdf_kernel::error::{code, plugin_error};
-use epdf_kernel::signal::AbortSignal;
 use epdf_kernel::{Error, Unsubscribe};
 use serde::Deserialize;
 use serde::de::{DeserializeOwned, IgnoredAny};
@@ -1524,11 +1523,10 @@ impl FormHandle {
                 cancel,
                 move |c| {
                     let fields = fields.iter().map(field_ref_json).collect();
-                    let signal = AbortSignal::new();
-                    let abort = signal.clone();
-                    Ok(open(c)?
-                        .duplicate(fields, options.to_json(), Some(signal))
-                        .with_abort(move |reason| abort.abort(Error::abort(reason))))
+                    let c = open(c)?;
+                    epdf_ffi::signalled(|signal| {
+                        Ok(c.duplicate(fields, options.to_json(), Some(signal)))
+                    })
                 },
                 |result| duplicate_result(&result),
             )
@@ -1550,11 +1548,10 @@ impl FormHandle {
                 cancel,
                 move |c| {
                     let widgets = widgets.iter().map(annotation_ref_json).collect();
-                    let signal = AbortSignal::new();
-                    let abort = signal.clone();
-                    Ok(open(c)?
-                        .duplicate_widgets(widgets, options.to_json(), Some(signal))
-                        .with_abort(move |reason| abort.abort(Error::abort(reason))))
+                    let c = open(c)?;
+                    epdf_ffi::signalled(|signal| {
+                        Ok(c.duplicate_widgets(widgets, options.to_json(), Some(signal)))
+                    })
                 },
                 |result| duplicate_result(&result),
             )

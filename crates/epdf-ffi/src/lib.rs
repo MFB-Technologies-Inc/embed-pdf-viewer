@@ -24,7 +24,7 @@ pub use annotation::{
     PdfLinkTarget,
 };
 pub use bound::{KernelBound, PromiseSlot, at_teardown};
-pub use cancel::CancelToken;
+pub use cancel::{CancelToken, signalled, signalled_cancellable};
 pub use error::{PluginErrorInfo, ViewerError};
 pub use foreign::{ForeignSettle, HostError, HostFailure};
 pub use form::{FormFieldFamily, FormFieldRef};
