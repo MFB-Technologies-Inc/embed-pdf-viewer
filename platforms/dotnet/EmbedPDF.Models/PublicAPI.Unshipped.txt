@@ -82,6 +82,16 @@ EmbedPDF.Models.PageTile.Rect.get -> EmbedPDF.PdfRect
 EmbedPDF.Models.PageTile.Rect.init -> void
 EmbedPDF.Models.PageTile.Z.get -> double
 EmbedPDF.Models.PageTile.Z.init -> void
+EmbedPDF.Models.PdfReaderModel
+EmbedPDF.Models.PdfReaderModel.CloseAsync() -> System.Threading.Tasks.Task!
+EmbedPDF.Models.PdfReaderModel.DisposeAsync() -> System.Threading.Tasks.ValueTask
+EmbedPDF.Models.PdfReaderModel.Features.get -> EmbedPDF.Models.ReaderFeatures
+EmbedPDF.Models.PdfReaderModel.OpenAsync(System.ReadOnlyMemory<byte> pdf, EmbedPDF.OpenDocumentOptions? options = null) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.PdfReaderModel.OpenAsync(System.Uri! url, string? name = null) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.PdfReaderModel.PdfReaderModel(EmbedPDF.Models.ReaderFeatures features = EmbedPDF.Models.ReaderFeatures.All, System.Func<EmbedPDF.PdfViewerOptionsBuilder!, EmbedPDF.PdfViewerOptionsBuilder!>? configure = null, System.Threading.SynchronizationContext? context = null) -> void
+EmbedPDF.Models.PdfReaderModel.Phase.get -> EmbedPDF.Models.ReaderPhase!
+EmbedPDF.Models.PdfReaderModel.UnlockAsync(string! password) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.PdfReaderModel.UnlockError.get -> EmbedPDF.PdfException?
 EmbedPDF.Models.PointerInput
 EmbedPDF.Models.PointerInput.Deconstruct(out double X, out double Y) -> void
 EmbedPDF.Models.PointerInput.Equals(EmbedPDF.Models.PointerInput other) -> bool
@@ -95,6 +105,59 @@ EmbedPDF.Models.PointerInput.X.get -> double
 EmbedPDF.Models.PointerInput.X.init -> void
 EmbedPDF.Models.PointerInput.Y.get -> double
 EmbedPDF.Models.PointerInput.Y.init -> void
+EmbedPDF.Models.ReaderFeatures
+EmbedPDF.Models.ReaderFeatures.All = EmbedPDF.Models.ReaderFeatures.Search | EmbedPDF.Models.ReaderFeatures.Selection | EmbedPDF.Models.ReaderFeatures.Tools | EmbedPDF.Models.ReaderFeatures.Links -> EmbedPDF.Models.ReaderFeatures
+EmbedPDF.Models.ReaderFeatures.Links = 8 -> EmbedPDF.Models.ReaderFeatures
+EmbedPDF.Models.ReaderFeatures.None = 0 -> EmbedPDF.Models.ReaderFeatures
+EmbedPDF.Models.ReaderFeatures.Search = 1 -> EmbedPDF.Models.ReaderFeatures
+EmbedPDF.Models.ReaderFeatures.Selection = 2 -> EmbedPDF.Models.ReaderFeatures
+EmbedPDF.Models.ReaderFeatures.Tools = 4 -> EmbedPDF.Models.ReaderFeatures
+EmbedPDF.Models.ReaderPhase
+EmbedPDF.Models.ReaderPhase.Failed
+EmbedPDF.Models.ReaderPhase.Failed.Deconstruct(out EmbedPDF.PdfException! Error) -> void
+EmbedPDF.Models.ReaderPhase.Failed.Equals(EmbedPDF.Models.ReaderPhase.Failed? other) -> bool
+EmbedPDF.Models.ReaderPhase.Failed.Error.get -> EmbedPDF.PdfException!
+EmbedPDF.Models.ReaderPhase.Failed.Error.init -> void
+EmbedPDF.Models.ReaderPhase.Failed.Failed(EmbedPDF.PdfException! Error) -> void
+EmbedPDF.Models.ReaderPhase.Idle
+EmbedPDF.Models.ReaderPhase.Idle.Equals(EmbedPDF.Models.ReaderPhase.Idle? other) -> bool
+EmbedPDF.Models.ReaderPhase.Idle.Idle() -> void
+EmbedPDF.Models.ReaderPhase.Loading
+EmbedPDF.Models.ReaderPhase.Loading.Equals(EmbedPDF.Models.ReaderPhase.Loading? other) -> bool
+EmbedPDF.Models.ReaderPhase.Loading.Loading() -> void
+EmbedPDF.Models.ReaderPhase.Locked
+EmbedPDF.Models.ReaderPhase.Locked.Deconstruct(out EmbedPDF.DocumentInfo! Document) -> void
+EmbedPDF.Models.ReaderPhase.Locked.Document.get -> EmbedPDF.DocumentInfo!
+EmbedPDF.Models.ReaderPhase.Locked.Document.init -> void
+EmbedPDF.Models.ReaderPhase.Locked.Equals(EmbedPDF.Models.ReaderPhase.Locked? other) -> bool
+EmbedPDF.Models.ReaderPhase.Locked.Locked(EmbedPDF.DocumentInfo! Document) -> void
+EmbedPDF.Models.ReaderPhase.ReaderPhase(EmbedPDF.Models.ReaderPhase! original) -> void
+EmbedPDF.Models.ReaderPhase.Ready
+EmbedPDF.Models.ReaderPhase.Ready.Deconstruct(out EmbedPDF.Models.ReaderSession! Session) -> void
+EmbedPDF.Models.ReaderPhase.Ready.Equals(EmbedPDF.Models.ReaderPhase.Ready? other) -> bool
+EmbedPDF.Models.ReaderPhase.Ready.Ready(EmbedPDF.Models.ReaderSession! Session) -> void
+EmbedPDF.Models.ReaderPhase.Ready.Session.get -> EmbedPDF.Models.ReaderSession!
+EmbedPDF.Models.ReaderPhase.Ready.Session.init -> void
+EmbedPDF.Models.ReaderSession
+EmbedPDF.Models.ReaderSession.<Clone>$() -> EmbedPDF.Models.ReaderSession!
+EmbedPDF.Models.ReaderSession.Deconstruct(out EmbedPDF.PdfViewer! Viewer, out EmbedPDF.DocumentInfo! Document, out System.Collections.Generic.IReadOnlyList<EmbedPDF.PageInfo!>! Pages, out EmbedPDF.Models.StageReaderModel! Reader, out EmbedPDF.Models.SearchModel? Search, out EmbedPDF.Models.TextSelectionModel? Selection, out EmbedPDF.Models.ToolModel? Tools) -> void
+EmbedPDF.Models.ReaderSession.Document.get -> EmbedPDF.DocumentInfo!
+EmbedPDF.Models.ReaderSession.Document.init -> void
+EmbedPDF.Models.ReaderSession.Equals(EmbedPDF.Models.ReaderSession? other) -> bool
+EmbedPDF.Models.ReaderSession.GetPageInfo(EmbedPDF.StageVisiblePage! visiblePage) -> EmbedPDF.PageInfo?
+EmbedPDF.Models.ReaderSession.Pages.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.PageInfo!>!
+EmbedPDF.Models.ReaderSession.Pages.init -> void
+EmbedPDF.Models.ReaderSession.Reader.get -> EmbedPDF.Models.StageReaderModel!
+EmbedPDF.Models.ReaderSession.Reader.init -> void
+EmbedPDF.Models.ReaderSession.ReaderSession(EmbedPDF.PdfViewer! Viewer, EmbedPDF.DocumentInfo! Document, System.Collections.Generic.IReadOnlyList<EmbedPDF.PageInfo!>! Pages, EmbedPDF.Models.StageReaderModel! Reader, EmbedPDF.Models.SearchModel? Search, EmbedPDF.Models.TextSelectionModel? Selection, EmbedPDF.Models.ToolModel? Tools) -> void
+EmbedPDF.Models.ReaderSession.Search.get -> EmbedPDF.Models.SearchModel?
+EmbedPDF.Models.ReaderSession.Search.init -> void
+EmbedPDF.Models.ReaderSession.Selection.get -> EmbedPDF.Models.TextSelectionModel?
+EmbedPDF.Models.ReaderSession.Selection.init -> void
+EmbedPDF.Models.ReaderSession.Tools.get -> EmbedPDF.Models.ToolModel?
+EmbedPDF.Models.ReaderSession.Tools.init -> void
+EmbedPDF.Models.ReaderSession.Viewer.get -> EmbedPDF.PdfViewer!
+EmbedPDF.Models.ReaderSession.Viewer.init -> void
 EmbedPDF.Models.RenderRevisions
 EmbedPDF.Models.RenderRevisions.Dispose() -> void
 EmbedPDF.Models.RenderRevisions.GetRevision(EmbedPDF.PageRef page) -> long
@@ -206,6 +269,7 @@ EmbedPDF.Models.ViewerModel.Error.get -> EmbedPDF.PdfException?
 EmbedPDF.Models.ViewerModel.RefreshAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.Models.ViewerModel.RunAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.Models.ViewerModel.ViewerModel(EmbedPDF.PdfViewer! viewer, System.Threading.SynchronizationContext? context = null) -> void
+abstract EmbedPDF.Models.ReaderPhase.<Clone>$() -> EmbedPDF.Models.ReaderPhase!
 const EmbedPDF.Models.StageReaderModel.MaxPagePixels = 16777216 -> double
 override EmbedPDF.Models.PageTile.Equals(object? obj) -> bool
 override EmbedPDF.Models.PageTile.GetHashCode() -> int
@@ -213,12 +277,60 @@ override EmbedPDF.Models.PageTile.ToString() -> string!
 ~override EmbedPDF.Models.PointerInput.Equals(object obj) -> bool
 override EmbedPDF.Models.PointerInput.GetHashCode() -> int
 ~override EmbedPDF.Models.PointerInput.ToString() -> string
+override EmbedPDF.Models.ReaderPhase.Equals(object? obj) -> bool
+override EmbedPDF.Models.ReaderPhase.Failed.<Clone>$() -> EmbedPDF.Models.ReaderPhase.Failed!
+override EmbedPDF.Models.ReaderPhase.Failed.Equals(object? obj) -> bool
+override EmbedPDF.Models.ReaderPhase.Failed.GetHashCode() -> int
+override EmbedPDF.Models.ReaderPhase.Failed.ToString() -> string!
+override EmbedPDF.Models.ReaderPhase.GetHashCode() -> int
+override EmbedPDF.Models.ReaderPhase.Idle.<Clone>$() -> EmbedPDF.Models.ReaderPhase.Idle!
+override EmbedPDF.Models.ReaderPhase.Idle.Equals(object? obj) -> bool
+override EmbedPDF.Models.ReaderPhase.Idle.GetHashCode() -> int
+override EmbedPDF.Models.ReaderPhase.Idle.ToString() -> string!
+override EmbedPDF.Models.ReaderPhase.Loading.<Clone>$() -> EmbedPDF.Models.ReaderPhase.Loading!
+override EmbedPDF.Models.ReaderPhase.Loading.Equals(object? obj) -> bool
+override EmbedPDF.Models.ReaderPhase.Loading.GetHashCode() -> int
+override EmbedPDF.Models.ReaderPhase.Loading.ToString() -> string!
+override EmbedPDF.Models.ReaderPhase.Locked.<Clone>$() -> EmbedPDF.Models.ReaderPhase.Locked!
+override EmbedPDF.Models.ReaderPhase.Locked.Equals(object? obj) -> bool
+override EmbedPDF.Models.ReaderPhase.Locked.GetHashCode() -> int
+override EmbedPDF.Models.ReaderPhase.Locked.ToString() -> string!
+override EmbedPDF.Models.ReaderPhase.Ready.<Clone>$() -> EmbedPDF.Models.ReaderPhase.Ready!
+override EmbedPDF.Models.ReaderPhase.Ready.Equals(object? obj) -> bool
+override EmbedPDF.Models.ReaderPhase.Ready.GetHashCode() -> int
+override EmbedPDF.Models.ReaderPhase.Ready.ToString() -> string!
+override EmbedPDF.Models.ReaderPhase.ToString() -> string!
+override EmbedPDF.Models.ReaderSession.Equals(object? obj) -> bool
+override EmbedPDF.Models.ReaderSession.GetHashCode() -> int
+override EmbedPDF.Models.ReaderSession.ToString() -> string!
+override sealed EmbedPDF.Models.ReaderPhase.Failed.Equals(EmbedPDF.Models.ReaderPhase? other) -> bool
+override sealed EmbedPDF.Models.ReaderPhase.Idle.Equals(EmbedPDF.Models.ReaderPhase? other) -> bool
+override sealed EmbedPDF.Models.ReaderPhase.Loading.Equals(EmbedPDF.Models.ReaderPhase? other) -> bool
+override sealed EmbedPDF.Models.ReaderPhase.Locked.Equals(EmbedPDF.Models.ReaderPhase? other) -> bool
+override sealed EmbedPDF.Models.ReaderPhase.Ready.Equals(EmbedPDF.Models.ReaderPhase? other) -> bool
 static EmbedPDF.Models.PageTile.operator !=(EmbedPDF.Models.PageTile? left, EmbedPDF.Models.PageTile? right) -> bool
 static EmbedPDF.Models.PageTile.operator ==(EmbedPDF.Models.PageTile? left, EmbedPDF.Models.PageTile? right) -> bool
 static EmbedPDF.Models.PointerInput.operator !=(EmbedPDF.Models.PointerInput left, EmbedPDF.Models.PointerInput right) -> bool
 static EmbedPDF.Models.PointerInput.operator ==(EmbedPDF.Models.PointerInput left, EmbedPDF.Models.PointerInput right) -> bool
+static EmbedPDF.Models.ReaderPhase.Failed.operator !=(EmbedPDF.Models.ReaderPhase.Failed? left, EmbedPDF.Models.ReaderPhase.Failed? right) -> bool
+static EmbedPDF.Models.ReaderPhase.Failed.operator ==(EmbedPDF.Models.ReaderPhase.Failed? left, EmbedPDF.Models.ReaderPhase.Failed? right) -> bool
+static EmbedPDF.Models.ReaderPhase.Idle.operator !=(EmbedPDF.Models.ReaderPhase.Idle? left, EmbedPDF.Models.ReaderPhase.Idle? right) -> bool
+static EmbedPDF.Models.ReaderPhase.Idle.operator ==(EmbedPDF.Models.ReaderPhase.Idle? left, EmbedPDF.Models.ReaderPhase.Idle? right) -> bool
+static EmbedPDF.Models.ReaderPhase.Loading.operator !=(EmbedPDF.Models.ReaderPhase.Loading? left, EmbedPDF.Models.ReaderPhase.Loading? right) -> bool
+static EmbedPDF.Models.ReaderPhase.Loading.operator ==(EmbedPDF.Models.ReaderPhase.Loading? left, EmbedPDF.Models.ReaderPhase.Loading? right) -> bool
+static EmbedPDF.Models.ReaderPhase.Locked.operator !=(EmbedPDF.Models.ReaderPhase.Locked? left, EmbedPDF.Models.ReaderPhase.Locked? right) -> bool
+static EmbedPDF.Models.ReaderPhase.Locked.operator ==(EmbedPDF.Models.ReaderPhase.Locked? left, EmbedPDF.Models.ReaderPhase.Locked? right) -> bool
+static EmbedPDF.Models.ReaderPhase.Ready.operator !=(EmbedPDF.Models.ReaderPhase.Ready? left, EmbedPDF.Models.ReaderPhase.Ready? right) -> bool
+static EmbedPDF.Models.ReaderPhase.Ready.operator ==(EmbedPDF.Models.ReaderPhase.Ready? left, EmbedPDF.Models.ReaderPhase.Ready? right) -> bool
+static EmbedPDF.Models.ReaderPhase.operator !=(EmbedPDF.Models.ReaderPhase? left, EmbedPDF.Models.ReaderPhase? right) -> bool
+static EmbedPDF.Models.ReaderPhase.operator ==(EmbedPDF.Models.ReaderPhase? left, EmbedPDF.Models.ReaderPhase? right) -> bool
+static EmbedPDF.Models.ReaderSession.operator !=(EmbedPDF.Models.ReaderSession? left, EmbedPDF.Models.ReaderSession? right) -> bool
+static EmbedPDF.Models.ReaderSession.operator ==(EmbedPDF.Models.ReaderSession? left, EmbedPDF.Models.ReaderSession? right) -> bool
 static EmbedPDF.Models.StageReaderModel.RenderScale(double scale, double contentWidth, double contentHeight, bool zooming = false) -> double
 static EmbedPDF.Models.StageVisiblePageExtensions.GetGeometry(this EmbedPDF.StageVisiblePage! page, EmbedPDF.PageInfo! info) -> EmbedPDF.PageGeometry
 static EmbedPDF.Models.StageVisiblePageExtensions.LocalRect(this EmbedPDF.StageVisiblePage! page, EmbedPDF.PdfRect pageRect, EmbedPDF.PageInfo! info) -> EmbedPDF.PdfRect
 static EmbedPDF.Models.StageVisiblePageExtensions.PagePoint(this EmbedPDF.StageVisiblePage! page, double localX, double localY, EmbedPDF.PageInfo! info) -> EmbedPDF.PdfPoint
 static EmbedPDF.Models.StageVisiblePageExtensions.ViewportPoint(this EmbedPDF.StageVisiblePage! page, double localX, double localY) -> EmbedPDF.PdfPoint
+virtual EmbedPDF.Models.ReaderPhase.EqualityContract.get -> System.Type!
+virtual EmbedPDF.Models.ReaderPhase.Equals(EmbedPDF.Models.ReaderPhase? other) -> bool
+virtual EmbedPDF.Models.ReaderPhase.PrintMembers(System.Text.StringBuilder! builder) -> bool
