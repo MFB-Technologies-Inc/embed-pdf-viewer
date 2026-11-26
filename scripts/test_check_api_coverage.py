@@ -88,6 +88,13 @@ class SwiftTests(unittest.TestCase):
         environment = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
         return subprocess.run([sys.executable, *arguments], cwd=ROOT, capture_output=True, text=True, env=environment)
 
+    def test_the_signature_lookup_cites_its_own_export(self):
+        # The row once cited unsigned_fields, copied from the Swift manifest.
+        import json
+        rows = json.loads((ROOT / 'platforms/dotnet/csharp-api-coverage.json').read_text())['members']
+        row = next(r for r in rows if r['crate'] == 'signature' and r['symbol'] == 'get_signature')
+        self.assertEqual({'path': 'crates/plugins/signature/src/ffi/mod.rs', 'symbol': 'signature'}, row['export'])
+
     def test_swift_mode_matches_the_apple_script(self):
         for flags in ([], ['--allow-pending']):
             apple = self.run_script('platforms/apple/check-swift-api-coverage.py', *flags)
