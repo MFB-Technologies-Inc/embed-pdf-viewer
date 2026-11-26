@@ -147,6 +147,12 @@ internal static partial class Ffi
         p.Name, p.ReadOnly, p.Required, p.NoExport, p.AlternateName, p.MappingName, p.DefaultValue, WireInteger.ToUInt32(p.MaxLength, "max length"),
         ToFfi(p.Options), [.. (p.Clear ?? []).Select(k => (GO.FormFieldPatchKey)(int)Defined(k, "patch key"))]);
 
+    internal static GO.FormDuplicateOptions ToFfi(FormDuplicateOptions? o) =>
+        new(o?.Page is { } page ? ToFfi(page) : null, o?.Offset is { } offset ? ToFfi(offset) : null, o?.Values ?? false);
+
+    internal static FormDuplicateResult ToPublic(GO.FormDuplicateResult r) =>
+        new(Fields(r.Fields), [.. r.Widgets.Select(ToPublic)], r.WidgetsJson, r.DroppedJson);
+
     internal static FormImportResult ToPublic(GO.FormImportResult r) => new(Fields(r.Fields), r.RefMapJson, r.DroppedJson);
 
     internal static FormActivationResult ToPublic(GO.FormActivationResult r) => r switch

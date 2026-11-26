@@ -88,6 +88,19 @@ public sealed class AnnotationSelectionCapability : IDisposable
     /// <summary>Whether the selection can be ungrouped.</summary>
     public Task<bool> CanUngroupAsync(CancellationToken cancellationToken = default) => viewer.Run(() => handle.CanUngroup(), cancellationToken);
 
+    /// <summary>
+    /// Copies the selection beside it and selects the copies, as one step to
+    /// undo. They land <paramref name="offset"/> away, or 10 points right and
+    /// down (left or up where that keeps them on the page) when it is left
+    /// out. A selected group is copied as a group of its own. Nothing selected
+    /// copies nothing.
+    /// </summary>
+    public async Task<AnnotationDuplicateResult> DuplicateAsync(PdfPoint? offset = null, CancellationToken cancellationToken = default) =>
+        Ffi.ToPublic(await viewer.RunCancellable(token => handle.Duplicate(offset is { } o ? Ffi.ToFfi(o) : null, token), cancellationToken).ConfigureAwait(false));
+
+    /// <summary>Whether the selection can be copied: something is selected, the session may create annotations, and nothing selected is locked.</summary>
+    public Task<bool> CanDuplicateAsync(CancellationToken cancellationToken = default) => viewer.Run(() => handle.CanDuplicate(), cancellationToken);
+
     /// <summary>Releases the native handle.</summary>
     public void Dispose() => handle.Dispose();
 }

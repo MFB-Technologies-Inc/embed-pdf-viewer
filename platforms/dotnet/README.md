@@ -496,16 +496,9 @@ or `EmbedPDF.Scripting.Jint` at the same version when you use them.
 
 ## Known gaps
 
-- Ten Rust members have no `ffi.rs` export and no Swift counterpart, so neither port has them: in
-  annotation `get_shared`, `is_movable`, `can_duplicate`, `duplicate`, `when_remeasurable`,
-  `stage_remeasure`, `selection_duplicate` and `selection_can_duplicate`, and in form `duplicate`
-  and `duplicate_widgets`. They are `no-export` exclusions in `csharp-api-coverage.json`; exporting
-  them is a Rust change for Swift and C# together.
-- `RedactionCapability.MarkMatchesAsync` can't be cancelled once it runs. The search runs on the
-  kernel thread, so the abort posted by `call_promise_cancellable`
-  (`crates/epdf-ffi/src/bound.rs:118-135`) waits behind it: a whole-document mark of `"e"` on
-  `report.pdf`, cancelled after 300 ms, ran past 90 s. A token cancelled before the call still
-  stops it.
+- Swift has no counterpart yet for the duplicate, movability and remeasure members C# added in
+  `AnnotationCapability`, `AnnotationSelectionCapability` and `FormCapability`; the handoff is
+  `docs/superpowers/plans/2026-11-26-swift-ffi-duplicate-and-cancel.md`.
 - NativeAOT is validated on `linux-x64` and `linux-arm64` only. CI runs the console sample
   framework-dependent on `osx-arm64` and `win-x64`; their NativeAOT rows are a later change.
 - The three signature route tests (`SignatureTransportTests`) are skipped unless

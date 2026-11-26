@@ -83,7 +83,11 @@ public sealed class RedactionCapability : IDisposable
         viewer.RunCancellable(async token => Ffi.ToPublic(await handle.MarkPage(Ffi.ToFfi(page), token).ConfigureAwait(false)), cancellationToken);
 
     /// <summary>Marks every match of <paramref name="query"/> on <paramref name="pages"/>, or on every page.</summary>
-    /// <remarks><paramref name="cancellationToken"/> is checked only before the call starts: a running search holds the kernel thread until it finishes.</remarks>
+    /// <remarks>
+    /// Cancelling aborts the search, or stops between two marks, and throws
+    /// <see cref="OperationCanceledException"/>; the marks made so far stay.
+    /// Cancelled before the search found anything, it answers no marks.
+    /// </remarks>
     public Task<IReadOnlyList<RedactionMark>> MarkMatchesAsync(SearchQuery query, IEnumerable<PageRef>? pages = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);

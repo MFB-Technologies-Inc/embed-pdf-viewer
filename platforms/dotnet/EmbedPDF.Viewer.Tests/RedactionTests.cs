@@ -140,10 +140,21 @@ public sealed class RedactionTests
     {
         var (viewer, _, redaction, _) = await Opened();
         await using var _v = viewer;
-        // Cancelled before it is posted, as Swift's task cancelled at once is:
-        // once a search for "e" over every page is running, it holds the
-        // kernel thread past the abort for more than 90 seconds.
+        // Cancelled before it is posted, as Swift's task cancelled at once is.
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => redaction.MarkMatchesAsync(new SearchQuery("e"), null, Cancelled));
+        await redaction.GetPendingAsync();
+    }
+
+    [Fact]
+    public async Task MarkMatchesStopsWhenCancelledMidCall()
+    {
+        var (viewer, _, redaction, _) = await Opened();
+        await using var _v = viewer;
+        // A whole-document mark of "e" on report.pdf runs far longer than 300 ms.
+        using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(300));
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => redaction.MarkMatchesAsync(new SearchQuery("e"), null, cancel.Token));
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(10), $"the cancel took {clock.Elapsed}");
         await redaction.GetPendingAsync();
     }
 

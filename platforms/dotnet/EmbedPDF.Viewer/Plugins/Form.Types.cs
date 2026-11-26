@@ -456,6 +456,26 @@ public sealed record FormFieldPatch
     public IReadOnlyList<FormFieldPatchKey>? Clear { get; init; }
 }
 
+/// <summary>How <see cref="FormCapability.DuplicateAsync"/> and <see cref="FormCapability.DuplicateWidgetsAsync"/> copy.</summary>
+public sealed record FormDuplicateOptions
+{
+    /// <summary>The page the copied widgets go on. Left out, each goes on its original's page.</summary>
+    public PageRef? Page { get; init; }
+
+    /// <summary>How far each copied widget moves, in page points: <c>X</c> to the right, <c>Y</c> down.</summary>
+    public PdfPoint? Offset { get; init; }
+
+    /// <summary>Whether a new field gets its original's value. Left <see langword="false"/>, it starts empty.</summary>
+    public bool Values { get; init; }
+}
+
+/// <summary>What a duplicate made.</summary>
+/// <param name="Fields">The fields made, and each field that got a new button, as they are now.</param>
+/// <param name="Widgets">The new widgets; for <see cref="FormCapability.DuplicateWidgetsAsync"/>, in the order of the widgets given.</param>
+/// <param name="WidgetsJson">The new widgets as the engine wrote them, a JSON array in the same order.</param>
+/// <param name="DroppedJson">What was left out and why, as JSON.</param>
+public sealed record FormDuplicateResult(IReadOnlyList<FormField> Fields, IReadOnlyList<AnnotationRef> Widgets, string WidgetsJson, string DroppedJson);
+
 /// <summary>What an import created.</summary>
 /// <param name="Fields">The new fields.</param>
 /// <param name="RefMapJson">Bundle refs to new refs, as JSON.</param>

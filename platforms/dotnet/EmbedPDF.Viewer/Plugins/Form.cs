@@ -307,6 +307,35 @@ public sealed class FormCapability : IDisposable
         return viewer.RunCancellable(token => handle.Export(list is null ? null : [.. list.Select(Ffi.ToFfi)], token), cancellationToken);
     }
 
+    /// <summary>
+    /// Copies whole fields, each a new field with its original's settings,
+    /// scripts, default value and widgets, named after it with the next free
+    /// number (<c>email</c> becomes <c>email_2</c>). A copy has no value unless
+    /// <see cref="FormDuplicateOptions.Values"/> is set, and a signature never
+    /// comes along. One step to undo. Throws <see cref="PdfErrorCode.PermissionDenied"/>
+    /// without <c>doc.forms.modify</c> and <see cref="PdfErrorCode.NotFound"/>
+    /// for a field the form doesn't have.
+    /// </summary>
+    public async Task<FormDuplicateResult> DuplicateAsync(IEnumerable<FormFieldRef> fields, FormDuplicateOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        var list = Arguments.NoNullElements(fields, nameof(fields));
+        return Ffi.ToPublic(await viewer.RunCancellable(token => handle.Duplicate([.. list.Select(Ffi.ToFfi)], Ffi.ToFfi(options), token), cancellationToken).ConfigureAwait(false));
+    }
+
+    /// <summary>
+    /// Copies widgets as Duplicate does in a form designer. A radio button's
+    /// copy is another button of its group; any other widget's copy is a new
+    /// field, and widgets of one field copied together become one new field.
+    /// One step to undo. Throws <see cref="PdfErrorCode.PermissionDenied"/>
+    /// without <c>doc.forms.modify</c> and <see cref="PdfErrorCode.NotFound"/>
+    /// for a widget the form doesn't show.
+    /// </summary>
+    public async Task<FormDuplicateResult> DuplicateWidgetsAsync(IEnumerable<AnnotationRef> widgets, FormDuplicateOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        var list = Arguments.NoNullElements(widgets, nameof(widgets));
+        return Ffi.ToPublic(await viewer.RunCancellable(token => handle.DuplicateWidgets([.. list.Select(Ffi.ToFfi)], Ffi.ToFfi(options), token), cancellationToken).ConfigureAwait(false));
+    }
+
     /// <summary>Copies a bundle in, with the engine's import options JSON.</summary>
     public async Task<FormImportResult> ImportAsync(string bundleJson, string optionsJson = "{}", CancellationToken cancellationToken = default)
     {

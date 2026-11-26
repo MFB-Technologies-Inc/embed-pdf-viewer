@@ -904,8 +904,8 @@
       "path": "crates/plugins/annotation/src/read/annotations.rs",
       "owner": "Core",
       "symbol": "get_shared",
-      "exclusion": "No ffi.rs export and no Swift counterpart (Rust-internal fast path: get as the record holds it, the same Rc). GetAsync answers the same record. Exporting it is a Rust change wave D may not make.",
-      "classification": "no-export"
+      "exclusion": "Rust-internal fast path: get as the record holds it, the same Rc, for other plugins on the kernel thread. A foreign caller can only receive a copy, which GetAsync already answers, so it is not exported.",
+      "classification": "internal-resource"
     },
     {
       "crate": "annotation",
@@ -990,8 +990,18 @@
       "path": "crates/plugins/annotation/src/read/annotations.rs",
       "owner": "Core",
       "symbol": "is_movable",
-      "exclusion": "No ffi.rs export and no Swift counterpart (added to the Rust controller after the Swift port). Exporting it is a Rust change wave D may not make; awaiting a decision on a later Swift and C# pass.",
-      "classification": "no-export"
+      "export": {
+        "path": "crates/plugins/annotation/src/ffi/handle.rs",
+        "symbol": "is_movable"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "IsMovableAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
+      }
     },
     {
       "crate": "annotation",
@@ -1183,8 +1193,18 @@
       "path": "crates/plugins/annotation/src/services/authority.rs",
       "owner": "Core",
       "symbol": "can_duplicate",
-      "exclusion": "No ffi.rs export and no Swift counterpart (added with duplicate in f74c06c6d, after the Swift port). Awaiting a decision on a later Swift and C# pass.",
-      "classification": "no-export"
+      "export": {
+        "path": "crates/plugins/annotation/src/ffi/handle.rs",
+        "symbol": "can_duplicate"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "CanDuplicateAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.AnnotationRef>",
+          "System.Threading.CancellationToken"
+        ]
+      }
     },
     {
       "crate": "annotation",
@@ -1613,8 +1633,19 @@
       "path": "crates/plugins/annotation/src/write/crud.rs",
       "owner": "Core",
       "symbol": "duplicate",
-      "exclusion": "No ffi.rs export and no Swift counterpart (added in f74c06c6d, after the Swift port). Awaiting a decision on a later Swift and C# pass.",
-      "classification": "no-export"
+      "export": {
+        "path": "crates/plugins/annotation/src/ffi/handle.rs",
+        "symbol": "duplicate"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "DuplicateAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.AnnotationRef>",
+          "EmbedPDF.AnnotationDuplicateOptions",
+          "System.Threading.CancellationToken"
+        ]
+      }
     },
     {
       "crate": "annotation",
@@ -1941,16 +1972,36 @@
       "path": "crates/plugins/annotation/src/write/measurement.rs",
       "owner": "Core",
       "symbol": "when_remeasurable",
-      "exclusion": "No ffi.rs export and no Swift counterpart: a measurement plugin hook (write/measurement.rs). Awaiting a decision on a later Swift and C# pass.",
-      "classification": "no-export"
+      "export": {
+        "path": "crates/plugins/annotation/src/ffi/handle.rs",
+        "symbol": "when_remeasurable"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "WhenRemeasurableAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/measurement.rs",
       "owner": "Core",
       "symbol": "stage_remeasure",
-      "exclusion": "No ffi.rs export and no Swift counterpart: a measurement plugin hook that stages a rescale inside another change (write/measurement.rs). Awaiting a decision on a later Swift and C# pass.",
-      "classification": "no-export"
+      "export": {
+        "path": "crates/plugins/annotation/src/ffi/handle.rs",
+        "symbol": "stage_remeasure"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationCapability",
+        "member": "StageRemeasureAsync",
+        "parameters": [
+          "EmbedPDF.PageRef",
+          "EmbedPDF.PdfMeasurement",
+          "System.Threading.CancellationToken"
+        ]
+      }
     },
     {
       "crate": "annotation",
@@ -2254,16 +2305,35 @@
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_duplicate",
-      "exclusion": "No ffi.rs export and no Swift counterpart (added with duplicate in f74c06c6d). Awaiting a decision on a later Swift and C# pass.",
-      "classification": "no-export"
+      "export": {
+        "path": "crates/plugins/annotation/src/ffi/selection.rs",
+        "symbol": "duplicate"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationSelectionCapability",
+        "member": "DuplicateAsync",
+        "parameters": [
+          "System.Nullable<EmbedPDF.PdfPoint>",
+          "System.Threading.CancellationToken"
+        ]
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_can_duplicate",
-      "exclusion": "No ffi.rs export and no Swift counterpart (added with duplicate in f74c06c6d). Awaiting a decision on a later Swift and C# pass.",
-      "classification": "no-export"
+      "export": {
+        "path": "crates/plugins/annotation/src/ffi/selection.rs",
+        "symbol": "can_duplicate"
+      },
+      "csharp": {
+        "type": "EmbedPDF.AnnotationSelectionCapability",
+        "member": "CanDuplicateAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
+      }
     },
     {
       "crate": "annotation",
@@ -4056,16 +4126,38 @@
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "duplicate",
-      "exclusion": "No ffi.rs export and no Swift counterpart (added to the Rust controller after the Swift port, with annotation duplicate in f74c06c6d). Awaiting a decision on a later Swift and C# pass.",
-      "classification": "no-export"
+      "export": {
+        "path": "crates/plugins/form/src/ffi.rs",
+        "symbol": "duplicate"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "DuplicateAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.FormFieldRef>",
+          "EmbedPDF.FormDuplicateOptions",
+          "System.Threading.CancellationToken"
+        ]
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "duplicate_widgets",
-      "exclusion": "No ffi.rs export and no Swift counterpart: the lender hook annotation selection duplicate calls for widgets (write/fields.rs). Awaiting a decision on a later Swift and C# pass.",
-      "classification": "no-export"
+      "export": {
+        "path": "crates/plugins/form/src/ffi.rs",
+        "symbol": "duplicate_widgets"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "DuplicateWidgetsAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.AnnotationRef>",
+          "EmbedPDF.FormDuplicateOptions",
+          "System.Threading.CancellationToken"
+        ]
+      }
     },
     {
       "crate": "form",

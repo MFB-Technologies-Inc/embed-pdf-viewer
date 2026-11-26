@@ -674,12 +674,14 @@ EmbedPDF.AnnotationCalloutLine.Straight.To.init -> void
 EmbedPDF.AnnotationCapability
 EmbedPDF.AnnotationCapability.CanCreateAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 EmbedPDF.AnnotationCapability.CanDeleteAsync(EmbedPDF.AnnotationRef! annotationRef, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.AnnotationCapability.CanDuplicateAsync(System.Collections.Generic.IEnumerable<EmbedPDF.AnnotationRef!>! refs, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 EmbedPDF.AnnotationCapability.CanReadAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 EmbedPDF.AnnotationCapability.CanUpdateAsync(EmbedPDF.AnnotationRef! annotationRef, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 EmbedPDF.AnnotationCapability.CreateAsync(EmbedPDF.AnnotationDraft! draft, EmbedPDF.PageRef page, EmbedPDF.AnnotationCreateOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.AnnotationRef!>!
 EmbedPDF.AnnotationCapability.CreateAsync(string! fieldsJson, EmbedPDF.PageRef page, EmbedPDF.AnnotationCreateOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.AnnotationRef!>!
 EmbedPDF.AnnotationCapability.DeleteAsync(EmbedPDF.AnnotationRef! annotationRef, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.AnnotationCapability.Dispose() -> void
+EmbedPDF.AnnotationCapability.DuplicateAsync(System.Collections.Generic.IEnumerable<EmbedPDF.AnnotationRef!>! refs, EmbedPDF.AnnotationDuplicateOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.AnnotationDuplicateResult!>!
 EmbedPDF.AnnotationCapability.ExportAsync(System.Collections.Generic.IEnumerable<EmbedPDF.AnnotationRef!>? refs = null, System.Collections.Generic.IEnumerable<EmbedPDF.PageRef>? pages = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
 EmbedPDF.AnnotationCapability.GetAsync(EmbedPDF.AnnotationRef! annotationRef, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.AnnotationInfo?>!
 EmbedPDF.AnnotationCapability.GetDrafts() -> EmbedPDF.AnnotationDraftsCapability!
@@ -691,6 +693,7 @@ EmbedPDF.AnnotationCapability.GetThreads() -> EmbedPDF.AnnotationThreadsCapabili
 EmbedPDF.AnnotationCapability.GetTools() -> EmbedPDF.AnnotationToolsCapability!
 EmbedPDF.AnnotationCapability.HitTestAsync(EmbedPDF.PageRef page, EmbedPDF.PdfPoint point, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.AnnotationInfo?>!
 EmbedPDF.AnnotationCapability.ImportAsync(string! bundleJson, string! optionsJson = "{}", System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.AnnotationImportResult!>!
+EmbedPDF.AnnotationCapability.IsMovableAsync(EmbedPDF.AnnotationRef! annotationRef, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 EmbedPDF.AnnotationCapability.IsPendingAsync(EmbedPDF.AnnotationRef! annotationRef, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 EmbedPDF.AnnotationCapability.ListAsync(EmbedPDF.AnnotationFilter? filter = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationInfo!>!>!
 EmbedPDF.AnnotationCapability.ObserveEvents(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.AnnotationEvent!>!
@@ -698,9 +701,11 @@ EmbedPDF.AnnotationCapability.RefreshAsync(System.Threading.CancellationToken ca
 EmbedPDF.AnnotationCapability.ReorderAsync(System.Collections.Generic.IEnumerable<EmbedPDF.AnnotationRef!>! refs, EmbedPDF.AnnotationPosition! position, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.AnnotationCapability.ResetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.AnnotationCapability.SetFilePickerAsync(EmbedPDF.IAnnotationFilePicker? picker, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.AnnotationCapability.StageRemeasureAsync(EmbedPDF.PageRef page, EmbedPDF.PdfMeasurement! scale, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.AnnotationRemeasureReport!>!
 EmbedPDF.AnnotationCapability.UpdateAsync(EmbedPDF.AnnotationRef! annotationRef, EmbedPDF.AnnotationPatch! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.AnnotationCapability.UpdateAsync(EmbedPDF.AnnotationRef! annotationRef, string! patchJson, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.AnnotationCapability.UpdateSettingsAsync(string! changesJson, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.AnnotationCapability.WhenRemeasurableAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.AnnotationCapability.WhenSyncedAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.AnnotationCaptionCenter
 EmbedPDF.AnnotationCaptionCenter.AnnotationCaptionCenter(EmbedPDF.AnnotationCaptionCenter! original) -> void
@@ -886,6 +891,25 @@ EmbedPDF.AnnotationDraftsCapability.PreviewPlacementAsync(EmbedPDF.ToolId toolId
 EmbedPDF.AnnotationDraftsCapability.ReadAttachmentAsync(EmbedPDF.AnnotationRef! annotationRef, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.ReadOnlyMemory<byte>>!
 EmbedPDF.AnnotationDraftsCapability.RequestStampAtAsync(EmbedPDF.PageRef page, EmbedPDF.PdfPoint point, double? displayRotation = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 EmbedPDF.AnnotationDraftsCapability.SetTextSelectionAsync(EmbedPDF.AnnotationRef! annotationRef, int? start, int? end, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.AnnotationDuplicateOptions
+EmbedPDF.AnnotationDuplicateOptions.<Clone>$() -> EmbedPDF.AnnotationDuplicateOptions!
+EmbedPDF.AnnotationDuplicateOptions.AnnotationDuplicateOptions() -> void
+EmbedPDF.AnnotationDuplicateOptions.Equals(EmbedPDF.AnnotationDuplicateOptions? other) -> bool
+EmbedPDF.AnnotationDuplicateOptions.Offset.get -> EmbedPDF.PdfPoint?
+EmbedPDF.AnnotationDuplicateOptions.Offset.init -> void
+EmbedPDF.AnnotationDuplicateOptions.Page.get -> EmbedPDF.PageRef?
+EmbedPDF.AnnotationDuplicateOptions.Page.init -> void
+EmbedPDF.AnnotationDuplicateOptions.Select.get -> bool
+EmbedPDF.AnnotationDuplicateOptions.Select.init -> void
+EmbedPDF.AnnotationDuplicateResult
+EmbedPDF.AnnotationDuplicateResult.<Clone>$() -> EmbedPDF.AnnotationDuplicateResult!
+EmbedPDF.AnnotationDuplicateResult.AnnotationDuplicateResult(System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationInfo!>! Annotations, string! DroppedJson) -> void
+EmbedPDF.AnnotationDuplicateResult.Annotations.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationInfo!>!
+EmbedPDF.AnnotationDuplicateResult.Annotations.init -> void
+EmbedPDF.AnnotationDuplicateResult.Deconstruct(out System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationInfo!>! Annotations, out string! DroppedJson) -> void
+EmbedPDF.AnnotationDuplicateResult.DroppedJson.get -> string!
+EmbedPDF.AnnotationDuplicateResult.DroppedJson.init -> void
+EmbedPDF.AnnotationDuplicateResult.Equals(EmbedPDF.AnnotationDuplicateResult? other) -> bool
 EmbedPDF.AnnotationEvent
 EmbedPDF.AnnotationEvent.AnnotationEvent(EmbedPDF.AnnotationEvent! original) -> void
 EmbedPDF.AnnotationEvent.Created
@@ -1454,6 +1478,35 @@ EmbedPDF.AnnotationRefMapping.From.get -> EmbedPDF.AnnotationRef!
 EmbedPDF.AnnotationRefMapping.From.init -> void
 EmbedPDF.AnnotationRefMapping.To.get -> EmbedPDF.AnnotationRef!
 EmbedPDF.AnnotationRefMapping.To.init -> void
+EmbedPDF.AnnotationRemeasureReport
+EmbedPDF.AnnotationRemeasureReport.<Clone>$() -> EmbedPDF.AnnotationRemeasureReport!
+EmbedPDF.AnnotationRemeasureReport.AnnotationRemeasureReport(EmbedPDF.PageRef Page, System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRef!>! Updated, System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRemeasureSkip!>! Skipped, System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationBatchFailure!>! Failed, EmbedPDF.PluginErrorInfo? Error) -> void
+EmbedPDF.AnnotationRemeasureReport.Deconstruct(out EmbedPDF.PageRef Page, out System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRef!>! Updated, out System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRemeasureSkip!>! Skipped, out System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationBatchFailure!>! Failed, out EmbedPDF.PluginErrorInfo? Error) -> void
+EmbedPDF.AnnotationRemeasureReport.Equals(EmbedPDF.AnnotationRemeasureReport? other) -> bool
+EmbedPDF.AnnotationRemeasureReport.Error.get -> EmbedPDF.PluginErrorInfo?
+EmbedPDF.AnnotationRemeasureReport.Error.init -> void
+EmbedPDF.AnnotationRemeasureReport.Failed.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationBatchFailure!>!
+EmbedPDF.AnnotationRemeasureReport.Failed.init -> void
+EmbedPDF.AnnotationRemeasureReport.Page.get -> EmbedPDF.PageRef
+EmbedPDF.AnnotationRemeasureReport.Page.init -> void
+EmbedPDF.AnnotationRemeasureReport.Skipped.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRemeasureSkip!>!
+EmbedPDF.AnnotationRemeasureReport.Skipped.init -> void
+EmbedPDF.AnnotationRemeasureReport.Updated.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRef!>!
+EmbedPDF.AnnotationRemeasureReport.Updated.init -> void
+EmbedPDF.AnnotationRemeasureSkip
+EmbedPDF.AnnotationRemeasureSkip.<Clone>$() -> EmbedPDF.AnnotationRemeasureSkip!
+EmbedPDF.AnnotationRemeasureSkip.AnnotationRef.get -> EmbedPDF.AnnotationRef!
+EmbedPDF.AnnotationRemeasureSkip.AnnotationRef.init -> void
+EmbedPDF.AnnotationRemeasureSkip.AnnotationRemeasureSkip(EmbedPDF.AnnotationRef! AnnotationRef, EmbedPDF.AnnotationRemeasureSkipReason Reason) -> void
+EmbedPDF.AnnotationRemeasureSkip.Deconstruct(out EmbedPDF.AnnotationRef! AnnotationRef, out EmbedPDF.AnnotationRemeasureSkipReason Reason) -> void
+EmbedPDF.AnnotationRemeasureSkip.Equals(EmbedPDF.AnnotationRemeasureSkip? other) -> bool
+EmbedPDF.AnnotationRemeasureSkip.Reason.get -> EmbedPDF.AnnotationRemeasureSkipReason
+EmbedPDF.AnnotationRemeasureSkip.Reason.init -> void
+EmbedPDF.AnnotationRemeasureSkipReason
+EmbedPDF.AnnotationRemeasureSkipReason.ForeignMeasure = 2 -> EmbedPDF.AnnotationRemeasureSkipReason
+EmbedPDF.AnnotationRemeasureSkipReason.Locked = 1 -> EmbedPDF.AnnotationRemeasureSkipReason
+EmbedPDF.AnnotationRemeasureSkipReason.NoAuthority = 0 -> EmbedPDF.AnnotationRemeasureSkipReason
+EmbedPDF.AnnotationRemeasureSkipReason.Unavailable = 3 -> EmbedPDF.AnnotationRemeasureSkipReason
 EmbedPDF.AnnotationReply
 EmbedPDF.AnnotationReply.<Clone>$() -> EmbedPDF.AnnotationReply!
 EmbedPDF.AnnotationReply.AnnotationReply(EmbedPDF.AnnotationRef! To) -> void
@@ -1495,11 +1548,13 @@ EmbedPDF.AnnotationRichTextRun.Style.init -> void
 EmbedPDF.AnnotationRichTextRun.Text.get -> string!
 EmbedPDF.AnnotationRichTextRun.Text.init -> void
 EmbedPDF.AnnotationSelectionCapability
+EmbedPDF.AnnotationSelectionCapability.CanDuplicateAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 EmbedPDF.AnnotationSelectionCapability.CanGroupAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 EmbedPDF.AnnotationSelectionCapability.CanUngroupAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 EmbedPDF.AnnotationSelectionCapability.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.AnnotationSelectionCapability.DeleteAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.AnnotationBatchResult!>!
 EmbedPDF.AnnotationSelectionCapability.Dispose() -> void
+EmbedPDF.AnnotationSelectionCapability.DuplicateAsync(EmbedPDF.PdfPoint? offset = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.AnnotationDuplicateResult!>!
 EmbedPDF.AnnotationSelectionCapability.GetPropsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.AnnotationSelectionProps!>!
 EmbedPDF.AnnotationSelectionCapability.GetRefsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRef!>!>!
 EmbedPDF.AnnotationSelectionCapability.GroupAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -2495,6 +2550,8 @@ EmbedPDF.FormCapability.CreateAsync(string! draftJson, System.Threading.Cancella
 EmbedPDF.FormCapability.DeleteAsync(EmbedPDF.FormFieldRef! field, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.FormCapability.DeleteWidgetAsync(EmbedPDF.AnnotationRef! widget, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FormField?>!
 EmbedPDF.FormCapability.Dispose() -> void
+EmbedPDF.FormCapability.DuplicateAsync(System.Collections.Generic.IEnumerable<EmbedPDF.FormFieldRef!>! fields, EmbedPDF.FormDuplicateOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FormDuplicateResult!>!
+EmbedPDF.FormCapability.DuplicateWidgetsAsync(System.Collections.Generic.IEnumerable<EmbedPDF.AnnotationRef!>! widgets, EmbedPDF.FormDuplicateOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FormDuplicateResult!>!
 EmbedPDF.FormCapability.EnsureLoadedAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.FormCapability.ExportAsync(System.Collections.Generic.IEnumerable<EmbedPDF.FormFieldRef!>? fields = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
 EmbedPDF.FormCapability.ExportValuesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
@@ -2594,6 +2651,29 @@ EmbedPDF.FormCreateFieldInput.Options.get -> System.Collections.Generic.IReadOnl
 EmbedPDF.FormCreateFieldInput.Options.init -> void
 EmbedPDF.FormCreateFieldInput.Page.get -> EmbedPDF.PageRef
 EmbedPDF.FormCreateFieldInput.Page.init -> void
+EmbedPDF.FormDuplicateOptions
+EmbedPDF.FormDuplicateOptions.<Clone>$() -> EmbedPDF.FormDuplicateOptions!
+EmbedPDF.FormDuplicateOptions.Equals(EmbedPDF.FormDuplicateOptions? other) -> bool
+EmbedPDF.FormDuplicateOptions.FormDuplicateOptions() -> void
+EmbedPDF.FormDuplicateOptions.Offset.get -> EmbedPDF.PdfPoint?
+EmbedPDF.FormDuplicateOptions.Offset.init -> void
+EmbedPDF.FormDuplicateOptions.Page.get -> EmbedPDF.PageRef?
+EmbedPDF.FormDuplicateOptions.Page.init -> void
+EmbedPDF.FormDuplicateOptions.Values.get -> bool
+EmbedPDF.FormDuplicateOptions.Values.init -> void
+EmbedPDF.FormDuplicateResult
+EmbedPDF.FormDuplicateResult.<Clone>$() -> EmbedPDF.FormDuplicateResult!
+EmbedPDF.FormDuplicateResult.Deconstruct(out System.Collections.Generic.IReadOnlyList<EmbedPDF.FormField!>! Fields, out System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRef!>! Widgets, out string! WidgetsJson, out string! DroppedJson) -> void
+EmbedPDF.FormDuplicateResult.DroppedJson.get -> string!
+EmbedPDF.FormDuplicateResult.DroppedJson.init -> void
+EmbedPDF.FormDuplicateResult.Equals(EmbedPDF.FormDuplicateResult? other) -> bool
+EmbedPDF.FormDuplicateResult.Fields.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.FormField!>!
+EmbedPDF.FormDuplicateResult.Fields.init -> void
+EmbedPDF.FormDuplicateResult.FormDuplicateResult(System.Collections.Generic.IReadOnlyList<EmbedPDF.FormField!>! Fields, System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRef!>! Widgets, string! WidgetsJson, string! DroppedJson) -> void
+EmbedPDF.FormDuplicateResult.Widgets.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.AnnotationRef!>!
+EmbedPDF.FormDuplicateResult.Widgets.init -> void
+EmbedPDF.FormDuplicateResult.WidgetsJson.get -> string!
+EmbedPDF.FormDuplicateResult.WidgetsJson.init -> void
 EmbedPDF.FormEvent
 EmbedPDF.FormEvent.FieldCreated
 EmbedPDF.FormEvent.FieldCreated.Deconstruct(out EmbedPDF.FormField! Field, out string! OriginJson) -> void
@@ -9268,6 +9348,12 @@ override EmbedPDF.AnnotationDetails.ToString() -> string!
 override EmbedPDF.AnnotationDraft.Equals(object? obj) -> bool
 override EmbedPDF.AnnotationDraft.GetHashCode() -> int
 override EmbedPDF.AnnotationDraft.ToString() -> string!
+override EmbedPDF.AnnotationDuplicateOptions.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationDuplicateOptions.GetHashCode() -> int
+override EmbedPDF.AnnotationDuplicateOptions.ToString() -> string!
+override EmbedPDF.AnnotationDuplicateResult.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationDuplicateResult.GetHashCode() -> int
+override EmbedPDF.AnnotationDuplicateResult.ToString() -> string!
 override EmbedPDF.AnnotationEvent.Created.<Clone>$() -> EmbedPDF.AnnotationEvent.Created!
 override EmbedPDF.AnnotationEvent.Created.Equals(object? obj) -> bool
 override EmbedPDF.AnnotationEvent.Created.GetHashCode() -> int
@@ -9435,6 +9521,12 @@ override EmbedPDF.AnnotationRef.ToString() -> string!
 override EmbedPDF.AnnotationRefMapping.Equals(object? obj) -> bool
 override EmbedPDF.AnnotationRefMapping.GetHashCode() -> int
 override EmbedPDF.AnnotationRefMapping.ToString() -> string!
+override EmbedPDF.AnnotationRemeasureReport.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationRemeasureReport.GetHashCode() -> int
+override EmbedPDF.AnnotationRemeasureReport.ToString() -> string!
+override EmbedPDF.AnnotationRemeasureSkip.Equals(object? obj) -> bool
+override EmbedPDF.AnnotationRemeasureSkip.GetHashCode() -> int
+override EmbedPDF.AnnotationRemeasureSkip.ToString() -> string!
 override EmbedPDF.AnnotationReply.Equals(object? obj) -> bool
 override EmbedPDF.AnnotationReply.GetHashCode() -> int
 override EmbedPDF.AnnotationReply.ToString() -> string!
@@ -9713,6 +9805,12 @@ override EmbedPDF.FormConfig.ToString() -> string!
 override EmbedPDF.FormCreateFieldInput.Equals(object? obj) -> bool
 override EmbedPDF.FormCreateFieldInput.GetHashCode() -> int
 override EmbedPDF.FormCreateFieldInput.ToString() -> string!
+override EmbedPDF.FormDuplicateOptions.Equals(object? obj) -> bool
+override EmbedPDF.FormDuplicateOptions.GetHashCode() -> int
+override EmbedPDF.FormDuplicateOptions.ToString() -> string!
+override EmbedPDF.FormDuplicateResult.Equals(object? obj) -> bool
+override EmbedPDF.FormDuplicateResult.GetHashCode() -> int
+override EmbedPDF.FormDuplicateResult.ToString() -> string!
 override EmbedPDF.FormEvent.Equals(object? obj) -> bool
 override EmbedPDF.FormEvent.FieldCreated.<Clone>$() -> EmbedPDF.FormEvent.FieldCreated!
 override EmbedPDF.FormEvent.FieldCreated.Equals(object? obj) -> bool
@@ -12143,6 +12241,10 @@ static EmbedPDF.AnnotationDetails.operator !=(EmbedPDF.AnnotationDetails? left, 
 static EmbedPDF.AnnotationDetails.operator ==(EmbedPDF.AnnotationDetails? left, EmbedPDF.AnnotationDetails? right) -> bool
 static EmbedPDF.AnnotationDraft.operator !=(EmbedPDF.AnnotationDraft? left, EmbedPDF.AnnotationDraft? right) -> bool
 static EmbedPDF.AnnotationDraft.operator ==(EmbedPDF.AnnotationDraft? left, EmbedPDF.AnnotationDraft? right) -> bool
+static EmbedPDF.AnnotationDuplicateOptions.operator !=(EmbedPDF.AnnotationDuplicateOptions? left, EmbedPDF.AnnotationDuplicateOptions? right) -> bool
+static EmbedPDF.AnnotationDuplicateOptions.operator ==(EmbedPDF.AnnotationDuplicateOptions? left, EmbedPDF.AnnotationDuplicateOptions? right) -> bool
+static EmbedPDF.AnnotationDuplicateResult.operator !=(EmbedPDF.AnnotationDuplicateResult? left, EmbedPDF.AnnotationDuplicateResult? right) -> bool
+static EmbedPDF.AnnotationDuplicateResult.operator ==(EmbedPDF.AnnotationDuplicateResult? left, EmbedPDF.AnnotationDuplicateResult? right) -> bool
 static EmbedPDF.AnnotationEvent.Created.operator !=(EmbedPDF.AnnotationEvent.Created? left, EmbedPDF.AnnotationEvent.Created? right) -> bool
 static EmbedPDF.AnnotationEvent.Created.operator ==(EmbedPDF.AnnotationEvent.Created? left, EmbedPDF.AnnotationEvent.Created? right) -> bool
 static EmbedPDF.AnnotationEvent.Deleted.operator !=(EmbedPDF.AnnotationEvent.Deleted? left, EmbedPDF.AnnotationEvent.Deleted? right) -> bool
@@ -12247,6 +12349,10 @@ static EmbedPDF.AnnotationRef.operator !=(EmbedPDF.AnnotationRef? left, EmbedPDF
 static EmbedPDF.AnnotationRef.operator ==(EmbedPDF.AnnotationRef? left, EmbedPDF.AnnotationRef? right) -> bool
 static EmbedPDF.AnnotationRefMapping.operator !=(EmbedPDF.AnnotationRefMapping? left, EmbedPDF.AnnotationRefMapping? right) -> bool
 static EmbedPDF.AnnotationRefMapping.operator ==(EmbedPDF.AnnotationRefMapping? left, EmbedPDF.AnnotationRefMapping? right) -> bool
+static EmbedPDF.AnnotationRemeasureReport.operator !=(EmbedPDF.AnnotationRemeasureReport? left, EmbedPDF.AnnotationRemeasureReport? right) -> bool
+static EmbedPDF.AnnotationRemeasureReport.operator ==(EmbedPDF.AnnotationRemeasureReport? left, EmbedPDF.AnnotationRemeasureReport? right) -> bool
+static EmbedPDF.AnnotationRemeasureSkip.operator !=(EmbedPDF.AnnotationRemeasureSkip? left, EmbedPDF.AnnotationRemeasureSkip? right) -> bool
+static EmbedPDF.AnnotationRemeasureSkip.operator ==(EmbedPDF.AnnotationRemeasureSkip? left, EmbedPDF.AnnotationRemeasureSkip? right) -> bool
 static EmbedPDF.AnnotationReply.operator !=(EmbedPDF.AnnotationReply? left, EmbedPDF.AnnotationReply? right) -> bool
 static EmbedPDF.AnnotationReply.operator ==(EmbedPDF.AnnotationReply? left, EmbedPDF.AnnotationReply? right) -> bool
 static EmbedPDF.AnnotationRichText.FromPlainText(string! text) -> EmbedPDF.AnnotationRichText!
@@ -12476,6 +12582,10 @@ static EmbedPDF.FormConfig.operator !=(EmbedPDF.FormConfig? left, EmbedPDF.FormC
 static EmbedPDF.FormConfig.operator ==(EmbedPDF.FormConfig? left, EmbedPDF.FormConfig? right) -> bool
 static EmbedPDF.FormCreateFieldInput.operator !=(EmbedPDF.FormCreateFieldInput? left, EmbedPDF.FormCreateFieldInput? right) -> bool
 static EmbedPDF.FormCreateFieldInput.operator ==(EmbedPDF.FormCreateFieldInput? left, EmbedPDF.FormCreateFieldInput? right) -> bool
+static EmbedPDF.FormDuplicateOptions.operator !=(EmbedPDF.FormDuplicateOptions? left, EmbedPDF.FormDuplicateOptions? right) -> bool
+static EmbedPDF.FormDuplicateOptions.operator ==(EmbedPDF.FormDuplicateOptions? left, EmbedPDF.FormDuplicateOptions? right) -> bool
+static EmbedPDF.FormDuplicateResult.operator !=(EmbedPDF.FormDuplicateResult? left, EmbedPDF.FormDuplicateResult? right) -> bool
+static EmbedPDF.FormDuplicateResult.operator ==(EmbedPDF.FormDuplicateResult? left, EmbedPDF.FormDuplicateResult? right) -> bool
 static EmbedPDF.FormEvent.FieldCreated.operator !=(EmbedPDF.FormEvent.FieldCreated? left, EmbedPDF.FormEvent.FieldCreated? right) -> bool
 static EmbedPDF.FormEvent.FieldCreated.operator ==(EmbedPDF.FormEvent.FieldCreated? left, EmbedPDF.FormEvent.FieldCreated? right) -> bool
 static EmbedPDF.FormEvent.FieldDeleted.operator !=(EmbedPDF.FormEvent.FieldDeleted? left, EmbedPDF.FormEvent.FieldDeleted? right) -> bool

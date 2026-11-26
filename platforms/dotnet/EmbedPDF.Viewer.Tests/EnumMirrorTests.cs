@@ -65,6 +65,7 @@ public sealed class EnumMirrorTests
         { typeof(FormWidgetEvent), typeof(uniffi.epdf_plugin_form.FormWidgetEvent) },
         { typeof(FormFieldPatchKey), typeof(uniffi.epdf_plugin_form.FormFieldPatchKey) },
         { typeof(AnnotationThreadChange), typeof(uniffi.epdf_plugin_annotation.AnnotationThreadChange) },
+        { typeof(AnnotationRemeasureSkipReason), typeof(uniffi.epdf_plugin_annotation.AnnotationRemeasureSkipReason) },
         { typeof(AnnotationThreadStatus), typeof(uniffi.epdf_plugin_annotation.AnnotationThreadStatus) },
         { typeof(MeasureFraction), typeof(uniffi.epdf_plugin_measurement.MeasureFraction) },
         { typeof(MeasureLabelPosition), typeof(uniffi.epdf_plugin_measurement.MeasureLabelPosition) },

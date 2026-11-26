@@ -43,6 +43,50 @@ public sealed record AnnotationRefMapping(AnnotationRef From, AnnotationRef To);
 /// <param name="DroppedJson">What the import left out and why, as the engine's JSON.</param>
 public sealed record AnnotationImportResult(IReadOnlyList<AnnotationInfo> Annotations, IReadOnlyList<AnnotationRefMapping> RefMap, string DroppedJson);
 
+/// <summary>How <see cref="AnnotationCapability.DuplicateAsync"/> copies.</summary>
+public sealed record AnnotationDuplicateOptions
+{
+    /// <summary>The page the copies go on. Left out, each goes on its original's page.</summary>
+    public PageRef? Page { get; init; }
+
+    /// <summary>How far each copy moves, in page points: <c>X</c> to the right, <c>Y</c> down. Left out, they don't move.</summary>
+    public PdfPoint? Offset { get; init; }
+
+    /// <summary>Whether to select the copies as they show.</summary>
+    public bool Select { get; init; }
+}
+
+/// <summary>What a duplicate made.</summary>
+/// <param name="Annotations">The copies, in the order their originals were named.</param>
+/// <param name="DroppedJson">What was left out and why, as the engine's JSON array.</param>
+public sealed record AnnotationDuplicateResult(IReadOnlyList<AnnotationInfo> Annotations, string DroppedJson);
+
+/// <summary>Why <see cref="AnnotationCapability.StageRemeasureAsync"/> left a measurement as it was.</summary>
+public enum AnnotationRemeasureSkipReason
+{
+    /// <summary>The session may not change it.</summary>
+    NoAuthority,
+    /// <summary>It is locked.</summary>
+    Locked,
+    /// <summary>Its scale is not a rectilinear one.</summary>
+    ForeignMeasure,
+    /// <summary>It has no readout at the new scale.</summary>
+    Unavailable,
+}
+
+/// <summary>A measurement a remeasure left as it was.</summary>
+/// <param name="AnnotationRef">The measurement.</param>
+/// <param name="Reason">Why.</param>
+public sealed record AnnotationRemeasureSkip(AnnotationRef AnnotationRef, AnnotationRemeasureSkipReason Reason);
+
+/// <summary>What <see cref="AnnotationCapability.StageRemeasureAsync"/> did to a page's measurements.</summary>
+/// <param name="Page">The page.</param>
+/// <param name="Updated">The measurements it updated to the new scale.</param>
+/// <param name="Skipped">The ones it left as they were.</param>
+/// <param name="Failed">The ones it could not update.</param>
+/// <param name="Error">Set, with nothing updated, when the annotations weren't loaded.</param>
+public sealed record AnnotationRemeasureReport(PageRef Page, IReadOnlyList<AnnotationRef> Updated, IReadOnlyList<AnnotationRemeasureSkip> Skipped, IReadOnlyList<AnnotationBatchFailure> Failed, PluginErrorInfo? Error);
+
 /// <summary>One comment of a thread.</summary>
 /// <param name="AnnotationRef">The annotation that holds it.</param>
 /// <param name="Author">Its author.</param>
@@ -296,6 +340,32 @@ internal static partial class Ffi
 
     internal static AnnotationImportResult ToPublic(GA.AnnotationImportResult r) => new(
         [.. r.Annotations.Select(a => new AnnotationInfo(a))], [.. r.RefMap.Select(m => new AnnotationRefMapping(ToPublic(m.From), ToPublic(m.To)))], r.DroppedJson);
+
+    internal static GA.AnnotationDuplicateOptions ToFfi(AnnotationDuplicateOptions? o) =>
+        new(o?.Page is { } page ? ToFfi(page) : null, o?.Offset is { } offset ? ToFfi(offset) : null, o?.Select ?? false);
+
+    internal static AnnotationDuplicateResult ToPublic(GA.AnnotationDuplicateResult r) =>
+        new([.. r.Annotations.Select(a => new AnnotationInfo(a))], r.DroppedJson);
+
+    internal static AnnotationRemeasureReport ToPublic(GA.AnnotationRemeasureReport r) => new(
+        ToPublic(r.Page),
+        Refs(r.Updated),
+        [.. r.Skipped.Select(s => new AnnotationRemeasureSkip(ToPublic(s.AnnotationRef), (AnnotationRemeasureSkipReason)(int)s.Reason))],
+        [.. r.Failed.Select(f => new AnnotationBatchFailure(ToPublic(f.AnnotationRef), ToPublic(f.Error)))],
+        r.Error is { } error ? ToPublic(error) : null);
+
+    /// <summary>A scale as the engine's <c>PdfMeasure</c> JSON; a value JSON can't hold is <see cref="PdfErrorCode.InvalidInput"/>.</summary>
+    internal static string MeasureJson(PdfMeasurement scale)
+    {
+        try
+        {
+            return FieldBag.Sorted(scale.ToNode("scale"));
+        }
+        catch (FieldBagException e)
+        {
+            throw new PdfException("EncodingError", PdfErrorCode.InvalidInput, $"the scale doesn't encode as JSON: {e.Message}");
+        }
+    }
 
     internal static AnnotationComment ToPublic(GA.AnnotationComment c) => new(ToPublic(c.AnnotationRef), c.Author, c.Contents, c.ModifiedAt);
 

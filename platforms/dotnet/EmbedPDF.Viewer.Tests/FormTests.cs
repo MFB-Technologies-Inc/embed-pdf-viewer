@@ -330,4 +330,45 @@ public sealed class FormTests
         var field = await WritableText(form);
         Assert.Equal(PdfErrorCode.InvalidInput, (await Assert.ThrowsAsync<PdfException>(() => form.UpdateAsync(field.FieldRef, new FormFieldPatch { MaxLength = -1 }))).Code);
     }
+
+    [Fact]
+    public async Task FormFieldDuplicationMakesANamedCopy()
+    {
+        var (viewer, _, form) = await Opened();
+        await using var _v = viewer;
+        var original = await WritableText(form);
+        var before = (await form.GetFieldsAsync()).Count;
+        var result = await form.DuplicateAsync([original.FieldRef], new FormDuplicateOptions { Offset = new PdfPoint(0, 30) });
+        var copy = Assert.Single(result.Fields);
+        Assert.NotEqual(original.FieldRef, copy.FieldRef);
+        Assert.StartsWith(original.Name, copy.Name);
+        Assert.NotEqual(original.Name, copy.Name);
+        Assert.Equal(original.Widgets.Count, result.Widgets.Count);
+        Assert.Equal(before + 1, (await form.GetFieldsAsync()).Count);
+        Assert.Equal("[]", result.DroppedJson);
+    }
+
+    [Fact]
+    public async Task FormWidgetDuplicationMakesANewField()
+    {
+        var (viewer, _, form) = await Opened();
+        await using var _v = viewer;
+        var original = await WritableText(form);
+        var widget = original.Widgets.First(w => w.AnnotationRef is not null).AnnotationRef!;
+        var result = await form.DuplicateWidgetsAsync([widget]);
+        var copy = Assert.Single(result.Widgets);
+        Assert.NotEqual(widget, copy);
+        var field = Assert.Single(result.Fields);
+        Assert.NotEqual(original.FieldRef, field.FieldRef);
+        Assert.Contains(field.Widgets, w => w.AnnotationRef == copy);
+    }
+
+    [Fact]
+    public async Task DuplicatingAFieldTheFormDoesNotHaveIsNotFound()
+    {
+        var (viewer, _, form) = await Opened();
+        await using var _v = viewer;
+        var error = await Assert.ThrowsAsync<PdfException>(() => form.DuplicateAsync([new FormFieldRef.Fqn("no such field")]));
+        Assert.Equal(PdfErrorCode.NotFound, error.Code);
+    }
 }

@@ -216,6 +216,62 @@ public sealed class AnnotationCapability : IDisposable
     }
 
     /// <summary>
+    /// Copies annotations as one change, one step to undo. A copy carries its
+    /// original's fields, drawing, file and link under its own ref and name;
+    /// copies keep the links between them, and a reply comes only when it is
+    /// named. Throws <see cref="PdfErrorCode.PermissionDenied"/> without
+    /// <c>annotations:create</c>, <see cref="PdfErrorCode.NotFound"/> for an
+    /// annotation or page the document doesn't have, and
+    /// <see cref="PdfErrorCode.InvalidInput"/> for another plugin's record (a
+    /// form field's box). An empty list copies nothing.
+    /// </summary>
+    public async Task<AnnotationDuplicateResult> DuplicateAsync(IEnumerable<AnnotationRef> refs, AnnotationDuplicateOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        var list = Arguments.NoNullElements(refs, nameof(refs));
+        return Ffi.ToPublic(await viewer.RunCancellable(token => handle.Duplicate([.. list.Select(Ffi.ToFfi)], Ffi.ToFfi(options), token), cancellationToken).ConfigureAwait(false));
+    }
+
+    /// <summary>
+    /// Whether this session may copy these annotations: it may create them,
+    /// and each is in the document, unlocked and copyable. <see langword="false"/>
+    /// for an empty list. <see cref="DuplicateAsync"/> copies a locked one all the same.
+    /// </summary>
+    public Task<bool> CanDuplicateAsync(IEnumerable<AnnotationRef> refs, CancellationToken cancellationToken = default)
+    {
+        var list = Arguments.NoNullElements(refs, nameof(refs));
+        return viewer.Run(() => handle.CanDuplicate([.. list.Select(Ffi.ToFfi)]), cancellationToken);
+    }
+
+    /// <summary>
+    /// Whether people move this annotation: <see langword="false"/> for one
+    /// that sits on text (a highlight, a caret, a redaction of words) and for
+    /// one the document doesn't have. Whether a move would succeed now is
+    /// <see cref="CanUpdateAsync"/>.
+    /// </summary>
+    public Task<bool> IsMovableAsync(AnnotationRef annotationRef, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(annotationRef);
+        return viewer.Run(() => handle.IsMovable(Ffi.ToFfi(annotationRef)), cancellationToken);
+    }
+
+    /// <summary>Waits until the measurements can be re-measured: the annotations loaded (a failed load retried) and every pending load settled.</summary>
+    public Task WhenRemeasurableAsync(CancellationToken cancellationToken = default) =>
+        viewer.RunCancellable(token => handle.WhenRemeasurable(token), cancellationToken);
+
+    /// <summary>
+    /// Updates every measurement on <paramref name="page"/> to <paramref name="scale"/>
+    /// at once. Before the annotations load it updates nothing and sets the
+    /// report's <see cref="AnnotationRemeasureReport.Error"/>, so await
+    /// <see cref="WhenRemeasurableAsync"/> first. A scale value JSON can't
+    /// hold is <see cref="PdfErrorCode.InvalidInput"/>.
+    /// </summary>
+    public async Task<AnnotationRemeasureReport> StageRemeasureAsync(PageRef page, PdfMeasurement scale, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(scale);
+        return Ffi.ToPublic(await viewer.Run(() => handle.StageRemeasure(Ffi.ToFfi(page), Ffi.MeasureJson(scale)), cancellationToken).ConfigureAwait(false));
+    }
+
+    /// <summary>
     /// Installs the picker a placing tool (a stamp, an attachment) asks for
     /// its file; <see langword="null"/> removes it. Without one, such a tool
     /// declines the click. A file picked after the user switched tools is
