@@ -71,7 +71,7 @@ if gh_err="$(gh release view "$current" --repo "$RUNTIME_REPO" 2>&1 >/dev/null)"
   echo "commit the bump: set embedpdf.engineRelease=$current in $PROPERTIES"
   exit 2
 elif [[ "$gh_err" == *"release not found"* ]]; then
-  echo "publish it: no Android publish workflow exists yet"
+  echo "set embedpdf.engineRelease=$current in $PROPERTIES, commit it, then run .github/workflows/android-release.yml"
   exit 1
 fi
 echo "gh release view failed: $gh_err" >&2
