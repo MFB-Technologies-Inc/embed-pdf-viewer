@@ -2,6 +2,10 @@ package com.embedpdf.compose
 
 import android.content.ClipboardManager
 import android.content.Context
+import android.os.Looper
+import android.os.SystemClock
+import android.view.MotionEvent
+import android.view.View
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -13,9 +17,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalTextToolbar
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.TextToolbarStatus
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performSemanticsAction
@@ -34,6 +40,9 @@ import com.embedpdf.ViewerConfig
 import com.embedpdf.geometry
 import com.embedpdf.models.TextSelectionModel
 import com.embedpdf.selection
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -41,6 +50,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import kotlin.math.abs
 import androidx.compose.ui.geometry.Rect as LocalRect
@@ -253,6 +263,71 @@ class TextSelectionOverlayTest {
                 up()
             }
             compose.pumpUntil { p.model.rects.value.isNotEmpty() && !p.model.isSelecting.value }
+        } finally {
+            p.o.destroy()
+        }
+    }
+
+    /**
+     * The document closes while a drag ends: run() stops and cancels the end
+     * it had started, so the end's call fails with operation-cancelled. The
+     * overlay takes that as no menu. Uncaught, it would fail this test and
+     * crash an app.
+     *
+     * Closing ends run() on a later main-looper turn, after the engine has
+     * usually answered the end, so the test cancels run() itself at the
+     * moment closing would, with the end's answer not yet applied.
+     */
+    @Test
+    fun closingTheDocumentWhileADragEndsIsNotAnError() {
+        val p = page()
+        try {
+            val toolbar = RecordingToolbar()
+            val info = p.o.pages[0]
+            lateinit var view: View
+            compose.setContent {
+                view = LocalView.current
+                CompositionLocalProvider(LocalTextToolbar provides toolbar) {
+                    Box(Modifier.size((info.width / 2).dp, (info.height / 2).dp)) {
+                        TextSelectionOverlay(p.model, info.page, info.geometry, Modifier.fillMaxSize())
+                    }
+                }
+            }
+            val running = CoroutineScope(Dispatchers.Main).launch { p.model.run() }
+            compose.waitForIdle()
+            val origin = compose.onNodeWithContentDescription("Text selection").fetchSemanticsNode().positionInRoot
+            val from = origin + p.local(p.text)
+            val to = origin + p.local(Point(p.text.x + 120, p.text.y))
+            // One gesture, sent straight to the view, so nothing idles the
+            // looper between its events.
+            val down = SystemClock.uptimeMillis()
+            fun send(action: Int, at: Offset, after: Long) {
+                val event = MotionEvent.obtain(down, down + after, action, at.x, at.y, 0)
+                view.dispatchTouchEvent(event)
+                event.recycle()
+            }
+            send(MotionEvent.ACTION_DOWN, from, 0)
+            send(MotionEvent.ACTION_MOVE, from + Offset(30f, 0f), 16)
+            compose.pumpUntil { p.model.isSelecting.value }
+            compose.pumpFor(100)
+            val before = p.model.rects.value
+            // The move starts its extension in run(), which then holds the
+            // queue; the up queues the end behind it, for run() to start.
+            send(MotionEvent.ACTION_MOVE, to, 32)
+            send(MotionEvent.ACTION_UP, to, 48)
+            // The extension's rects land last in its call; run() then starts
+            // the end and waits for the engine.
+            val looper = shadowOf(Looper.getMainLooper())
+            val deadline = System.nanoTime() + 20_000_000_000
+            while (p.model.rects.value == before) {
+                check(System.nanoTime() < deadline) { "the extension never landed" }
+                Thread.sleep(1)
+                if (!looper.isIdle) looper.runOneTask()
+            }
+            running.cancel()
+            compose.pumpFor(200)
+            assertFalse(running.isActive)
+            assertEquals(null, toolbar.shownAt)
         } finally {
             p.o.destroy()
         }

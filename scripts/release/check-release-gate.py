@@ -3,6 +3,9 @@
 
     check-release-gate.py <release-train.yml>
 
+It also checks any workflow built the same way, with one approve job:
+android-release.yml runs it on itself.
+
 The train's approve job is the only one with an environment; its reviewers
 approve once, after everything is built. This checks that
 
@@ -13,14 +16,14 @@ approve once, after everything is built. This checks that
     git tag), makes or changes a release (gh release create, upload, edit or
     delete; github-release.sh publish; publish-engine-payload.mjs --stage
     publish; a release action such as softprops/action-gh-release) or deploys
-    a site (wrangler deploy, wrangler pages deploy, cloudflare/wrangler-action),
-    when its
-    token can write contents, or when it calls a local workflow with
+    a site (wrangler deploy, wrangler pages deploy, cloudflare/wrangler-action)
+    or uploads Maven artifacts (publish-staged.sh), when its token can write
+    contents or packages, or when it calls a local workflow with
     `stage: publish` or one with a publishing job that doesn't wait for that
     stage;
   - in each called workflow, a job that publishes by the same test runs only
     when its `if:` asks for inputs.stage == 'publish'. A called job's token
-    can write contents when its own permissions say so or, with no
+    can write contents or packages when its own permissions say so or, with no
     permissions of its own or at its workflow's top, when the caller job
     grants it;
   - neither a publishing job nor any job between it and approve has an `if:`
@@ -42,7 +45,7 @@ from pathlib import Path
 
 PUBLISHES = re.compile(
     r"\bgit push\b|\bgit tag\b|\bgh release (create|upload|edit|delete)\b|\brelease create\b"
-    r"|github-release\.sh publish|--stage publish\b"
+    r"|github-release\.sh publish|--stage publish\b|\bpublish-staged\.sh\b"
     r"|\bwrangler\S*\s+(pages\s+)?deploy\b"
     r"|uses:\s*(softprops/action-gh-release|ncipollo/release-action|actions/create-release"
     r"|actions/upload-release-asset|svenstaro/upload-release-action|cloudflare/wrangler-action)\b"
@@ -79,7 +82,9 @@ def inline_permissions(value, where):
 
 
 def writes_contents(perms):
-    return perms == "write-all" or (isinstance(perms, dict) and perms.get("contents") == "write")
+    """Whether a token can write contents or packages: either can publish."""
+    return perms == "write-all" or (
+        isinstance(perms, dict) and "write" in (perms.get("contents"), perms.get("packages")))
 
 
 def parse_workflow(path):
@@ -210,7 +215,7 @@ def check(train):
             if publishes and STAGED not in inner_job["if"]:
                 ungated_calls.add(name)
                 errors.append(
-                    f"{name} calls {uses}, whose job {inner} publishes or can write contents"
+                    f"{name} calls {uses}, whose job {inner} publishes or can write contents or packages"
                     f" but whose if doesn't ask for {STAGED}"
                 )
         seen.add(uses)
