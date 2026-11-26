@@ -8,8 +8,8 @@ use serde_json::Value;
 use super::handle::duplicate_answer;
 use super::tools::{AnnotationProperty, properties_out};
 use super::{
-    AnnotationBatchResult, AnnotationDuplicateResult, batch_out, object_of, open, page_json,
-    point_json, refs_json, refs_out,
+    AnnotationBatchResult, AnnotationDuplicateResult, batch_out, object_of, offset_json, open,
+    page_json, refs_json, refs_out,
 };
 use crate::AnnotationCapability;
 use crate::write::selection::SelectionPatch;
@@ -256,8 +256,9 @@ impl AnnotationSelectionHandle {
             .call_promise_cancellable(
                 cancel,
                 move |c| {
+                    let offset = offset.map(offset_json).transpose()?;
                     duplicate_answer(open(c)?.clone(), move |c, signal| {
-                        c.selection_duplicate(offset.map(point_json), Some(signal))
+                        c.selection_duplicate(offset, Some(signal))
                     })
                 },
                 |result| result,

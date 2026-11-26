@@ -590,3 +590,22 @@ fn cancelling_a_duplicate_while_the_engine_copies_ends_it() {
         }
     }
 }
+
+#[test]
+fn a_duplicate_offset_that_is_not_finite_is_invalid_input() {
+    let (thread, form) = handle();
+    block_on(form.refresh(CancelToken::new())).unwrap();
+    let options =
+        FormDuplicateOptions { offset: Some(Point { x: f64::NAN, y: 0.0 }), ..Default::default() };
+    let error = block_on(form.duplicate(vec![text_ref()], options.clone(), CancelToken::new()))
+        .unwrap_err();
+    assert_eq!(code(&error), Some("invalid-input"), "{error:?}");
+    let widget = AnnotationRef::ObjectNumber {
+        page: PageRef { page_object_number: 1 },
+        annot_object_number: 101,
+    };
+    let error =
+        block_on(form.duplicate_widgets(vec![widget], options, CancelToken::new())).unwrap_err();
+    assert_eq!(code(&error), Some("invalid-input"), "{error:?}");
+    assert!(sent(&thread).is_empty());
+}

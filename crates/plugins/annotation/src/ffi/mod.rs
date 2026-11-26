@@ -145,6 +145,15 @@ pub(crate) fn point_json(point: Point) -> Value {
     json!({ "x": point.x, "y": point.y })
 }
 
+/// A copy's offset as the plugin reads it; a NaN or an infinity is
+/// `invalid-input`, since JSON would carry it as `null` and drop the offset.
+pub(crate) fn offset_json(offset: Point) -> Result<Value, Error> {
+    if !offset.x.is_finite() || !offset.y.is_finite() {
+        return Err(invalid(format!("an offset is not finite: ({}, {})", offset.x, offset.y)));
+    }
+    Ok(point_json(offset))
+}
+
 pub(crate) fn rect_out(rect: &Value) -> Rect {
     let n = |k: &str| rect.get(k).and_then(Value::as_f64).unwrap_or(0.0);
     Rect { x: n("x"), y: n("y"), width: n("width"), height: n("height") }

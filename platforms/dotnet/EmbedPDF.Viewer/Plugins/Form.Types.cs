@@ -462,7 +462,7 @@ public sealed record FormDuplicateOptions
     /// <summary>The page the copied widgets go on. Left out, each goes on its original's page.</summary>
     public PageRef? Page { get; init; }
 
-    /// <summary>How far each copied widget moves, in page points: <c>X</c> to the right, <c>Y</c> down.</summary>
+    /// <summary>How far each copied widget moves, in page points: <c>X</c> to the right, <c>Y</c> down. A NaN or an infinity is <see cref="PdfErrorCode.InvalidInput"/>.</summary>
     public PdfPoint? Offset { get; init; }
 
     /// <summary>Whether a new field gets its original's value. Left <see langword="false"/>, it starts empty.</summary>

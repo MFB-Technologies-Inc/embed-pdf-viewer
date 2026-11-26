@@ -371,4 +371,20 @@ public sealed class FormTests
         var error = await Assert.ThrowsAsync<PdfException>(() => form.DuplicateAsync([new FormFieldRef.Fqn("no such field")]));
         Assert.Equal(PdfErrorCode.NotFound, error.Code);
     }
+
+    [Fact]
+    public async Task ADuplicateOffsetThatIsNotFiniteIsInvalidInput()
+    {
+        var (viewer, _, form) = await Opened();
+        await using var _v = viewer;
+        var original = await WritableText(form);
+        var before = (await form.GetFieldsAsync()).Count;
+        var options = new FormDuplicateOptions { Offset = new PdfPoint(double.NegativeInfinity, 0) };
+        var error = await Assert.ThrowsAsync<PdfException>(() => form.DuplicateAsync([original.FieldRef], options));
+        Assert.Equal(PdfErrorCode.InvalidInput, error.Code);
+        var widget = original.Widgets.First(w => w.AnnotationRef is not null).AnnotationRef!;
+        error = await Assert.ThrowsAsync<PdfException>(() => form.DuplicateWidgetsAsync([widget], options));
+        Assert.Equal(PdfErrorCode.InvalidInput, error.Code);
+        Assert.Equal(before, (await form.GetFieldsAsync()).Count);
+    }
 }

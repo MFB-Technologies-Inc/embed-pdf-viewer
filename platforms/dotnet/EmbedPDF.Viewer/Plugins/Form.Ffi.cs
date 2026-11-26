@@ -148,7 +148,7 @@ internal static partial class Ffi
         ToFfi(p.Options), [.. (p.Clear ?? []).Select(k => (GO.FormFieldPatchKey)(int)Defined(k, "patch key"))]);
 
     internal static GO.FormDuplicateOptions ToFfi(FormDuplicateOptions? o) =>
-        new(o?.Page is { } page ? ToFfi(page) : null, o?.Offset is { } offset ? ToFfi(offset) : null, o?.Values ?? false);
+        new(o?.Page is { } page ? ToFfi(page) : null, o?.Offset is { } offset ? ToFfiOffset(offset) : null, o?.Values ?? false);
 
     internal static FormDuplicateResult ToPublic(GO.FormDuplicateResult r) =>
         new(Fields(r.Fields), [.. r.Widgets.Select(ToPublic)], r.WidgetsJson, r.DroppedJson);

@@ -16,6 +16,12 @@ internal static partial class Ffi
 
     internal static GF.Point ToFfi(PdfPoint point) => new(point.X, point.Y);
 
+    /// <summary>A copy's offset; a NaN or an infinity is <see cref="PdfErrorCode.InvalidInput"/>, since JSON would carry it as <c>null</c>.</summary>
+    internal static GF.Point ToFfiOffset(PdfPoint offset) =>
+        double.IsFinite(offset.X) && double.IsFinite(offset.Y)
+            ? ToFfi(offset)
+            : throw new PdfException("EncodingError", PdfErrorCode.InvalidInput, $"the offset ({offset.X}, {offset.Y}) is not finite");
+
     internal static PdfSize ToPublic(GF.Size size) => new(size.Width, size.Height);
 
     internal static GF.Size ToFfi(PdfSize size) => new(size.Width, size.Height);

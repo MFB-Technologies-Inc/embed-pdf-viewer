@@ -96,7 +96,7 @@ public sealed class AnnotationSelectionCapability : IDisposable
     /// copies nothing.
     /// </summary>
     public async Task<AnnotationDuplicateResult> DuplicateAsync(PdfPoint? offset = null, CancellationToken cancellationToken = default) =>
-        Ffi.ToPublic(await viewer.RunCancellable(token => handle.Duplicate(offset is { } o ? Ffi.ToFfi(o) : null, token), cancellationToken).ConfigureAwait(false));
+        Ffi.ToPublic(await viewer.RunCancellable(token => handle.Duplicate(offset is { } o ? Ffi.ToFfiOffset(o) : null, token), cancellationToken).ConfigureAwait(false));
 
     /// <summary>Whether the selection can be copied: something is selected, the session may create annotations, and nothing selected is locked.</summary>
     public Task<bool> CanDuplicateAsync(CancellationToken cancellationToken = default) => viewer.Run(() => handle.CanDuplicate(), cancellationToken);

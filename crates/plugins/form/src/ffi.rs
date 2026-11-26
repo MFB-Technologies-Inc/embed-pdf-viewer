@@ -885,16 +885,27 @@ pub struct FormDuplicateOptions {
 }
 
 impl FormDuplicateOptions {
-    fn to_json(&self) -> Value {
+    /// The options as the plugin reads them. A NaN or an infinity in the
+    /// offset is `invalid-input`: JSON would carry it as `null` and drop it.
+    fn to_json(&self) -> Result<Value, Error> {
         let mut options = Map::new();
         if let Some(page) = self.page {
             options.insert("page".into(), page_json(page));
         }
         if let Some(offset) = self.offset {
+            if !offset.x.is_finite() || !offset.y.is_finite() {
+                return Err(plugin_error(
+                    code::INVALID_INPUT,
+                    "form",
+                    format!("an offset is not finite: ({}, {})", offset.x, offset.y),
+                    None,
+                    None,
+                ));
+            }
             options.insert("offset".into(), json!({ "x": offset.x, "y": offset.y }));
         }
         options.insert("values".into(), json!(self.values));
-        Value::Object(options)
+        Ok(Value::Object(options))
     }
 }
 
@@ -1524,9 +1535,8 @@ impl FormHandle {
                 move |c| {
                     let fields = fields.iter().map(field_ref_json).collect();
                     let c = open(c)?;
-                    epdf_ffi::signalled(|signal| {
-                        Ok(c.duplicate(fields, options.to_json(), Some(signal)))
-                    })
+                    let options = options.to_json()?;
+                    epdf_ffi::signalled(|signal| Ok(c.duplicate(fields, options, Some(signal))))
                 },
                 |result| duplicate_result(&result),
             )
@@ -1549,8 +1559,9 @@ impl FormHandle {
                 move |c| {
                     let widgets = widgets.iter().map(annotation_ref_json).collect();
                     let c = open(c)?;
+                    let options = options.to_json()?;
                     epdf_ffi::signalled(|signal| {
-                        Ok(c.duplicate_widgets(widgets, options.to_json(), Some(signal)))
+                        Ok(c.duplicate_widgets(widgets, options, Some(signal)))
                     })
                 },
                 |result| duplicate_result(&result),

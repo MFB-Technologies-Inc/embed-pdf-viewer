@@ -10,8 +10,8 @@ use serde_json::{Value, json};
 use super::{
     AnnotationBatchFailure, AnnotationChangedEvent, AnnotationDeletedEvent, AnnotationEvent,
     AnnotationEventListener, AnnotationFilter, AnnotationRecord, AnnotationResyncedPages,
-    AnnotationThreadChange, draft_out, geometry_point, invalid, object_of, open, page_json,
-    page_out, plugin_error_info_of, point_json, record_out, records_out, ref_json, ref_out,
+    AnnotationThreadChange, draft_out, geometry_point, invalid, object_of, offset_json, open,
+    page_json, page_out, plugin_error_info_of, record_out, records_out, ref_json, ref_out,
     refs_json, refs_out,
 };
 use crate::AnnotationCapability;
@@ -86,17 +86,16 @@ fn duplicate_out(
     })
 }
 
-/// Duplicate options as the plugin reads them, with the call's signal.
+/// Duplicate options as the plugin reads them, the call's signal aside.
 fn duplicate_options(
     options: &AnnotationDuplicateOptions,
-    signal: epdf_kernel::signal::AbortSignal,
-) -> DuplicateOptions {
-    DuplicateOptions {
+) -> Result<DuplicateOptions, epdf_kernel::Error> {
+    Ok(DuplicateOptions {
         page: options.page.map(page_json),
-        offset: options.offset.map(point_json),
+        offset: options.offset.map(offset_json).transpose()?,
         select: options.select,
-        signal: Some(signal),
-    }
+        signal: None,
+    })
 }
 
 pub(super) fn duplicate_answer(
@@ -415,8 +414,13 @@ impl AnnotationHandle {
                 cancel,
                 move |c| {
                     let refs = refs_json(&refs)?;
+                    let options = duplicate_options(&options)?;
                     duplicate_answer(open(c)?.clone(), move |c, signal| {
-                        c.duplicate(refs, duplicate_options(&options, signal), Vec::new())
+                        c.duplicate(
+                            refs,
+                            DuplicateOptions { signal: Some(signal), ..options },
+                            Vec::new(),
+                        )
                     })
                 },
                 |result| result,

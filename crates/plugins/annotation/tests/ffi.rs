@@ -966,3 +966,21 @@ fn remeasuring_reports_each_measurement_it_skips_and_why() {
     assert!(report.updated.is_empty() && report.failed.is_empty() && report.error.is_none());
     assert!(sent_ops(&thread).is_empty());
 }
+
+#[test]
+fn a_duplicate_offset_that_is_not_finite_is_invalid_input() {
+    let (thread, annotations) = handle_over(vec![square(5, json!({}))]);
+    block_on(annotations.refresh(token())).unwrap();
+    let options = AnnotationDuplicateOptions {
+        offset: Some(Point { x: f64::NAN, y: 0.0 }),
+        ..Default::default()
+    };
+    let error = block_on(annotations.duplicate(vec![obj(5)], options, token())).unwrap_err();
+    assert_eq!(code(&error), Some("invalid-input"), "{error:?}");
+    let selection = annotations.selection();
+    block_on(selection.select(vec![obj(5)], None)).unwrap();
+    let error = block_on(selection.duplicate(Some(Point { x: 0.0, y: f64::INFINITY }), token()))
+        .unwrap_err();
+    assert_eq!(code(&error), Some("invalid-input"), "{error:?}");
+    assert!(sent_ops(&thread).is_empty());
+}

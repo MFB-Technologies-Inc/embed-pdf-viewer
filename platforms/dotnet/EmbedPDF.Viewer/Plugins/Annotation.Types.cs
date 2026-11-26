@@ -49,7 +49,7 @@ public sealed record AnnotationDuplicateOptions
     /// <summary>The page the copies go on. Left out, each goes on its original's page.</summary>
     public PageRef? Page { get; init; }
 
-    /// <summary>How far each copy moves, in page points: <c>X</c> to the right, <c>Y</c> down. Left out, they don't move.</summary>
+    /// <summary>How far each copy moves, in page points: <c>X</c> to the right, <c>Y</c> down. Left out, they don't move. A NaN or an infinity is <see cref="PdfErrorCode.InvalidInput"/>.</summary>
     public PdfPoint? Offset { get; init; }
 
     /// <summary>Whether to select the copies as they show.</summary>
@@ -342,7 +342,7 @@ internal static partial class Ffi
         [.. r.Annotations.Select(a => new AnnotationInfo(a))], [.. r.RefMap.Select(m => new AnnotationRefMapping(ToPublic(m.From), ToPublic(m.To)))], r.DroppedJson);
 
     internal static GA.AnnotationDuplicateOptions ToFfi(AnnotationDuplicateOptions? o) =>
-        new(o?.Page is { } page ? ToFfi(page) : null, o?.Offset is { } offset ? ToFfi(offset) : null, o?.Select ?? false);
+        new(o?.Page is { } page ? ToFfi(page) : null, o?.Offset is { } offset ? ToFfiOffset(offset) : null, o?.Select ?? false);
 
     internal static AnnotationDuplicateResult ToPublic(GA.AnnotationDuplicateResult r) =>
         new([.. r.Annotations.Select(a => new AnnotationInfo(a))], r.DroppedJson);

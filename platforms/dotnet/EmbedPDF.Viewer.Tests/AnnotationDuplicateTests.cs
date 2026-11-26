@@ -190,4 +190,21 @@ public sealed class AnnotationDuplicateTests
         var error = await Assert.ThrowsAsync<PdfException>(() => annotations.StageRemeasureAsync(page, new PdfMeasurement("rectilinear") { Cyx = double.NaN }));
         Assert.Equal(PdfErrorCode.InvalidInput, error.Code);
     }
+
+    [Fact]
+    public async Task AnOffsetThatIsNotFiniteIsInvalidInput()
+    {
+        var (viewer, _, annotations, page) = await Opened();
+        await using var _v = viewer;
+        var square = await annotations.CreateAsync(Square, page);
+        var before = (await annotations.ListAsync()).Count;
+        var error = await Assert.ThrowsAsync<PdfException>(
+            () => annotations.DuplicateAsync([square], new AnnotationDuplicateOptions { Offset = new PdfPoint(double.NaN, 0) }));
+        Assert.Equal(PdfErrorCode.InvalidInput, error.Code);
+        using var selection = annotations.GetSelection();
+        await selection.SelectAsync([square]);
+        error = await Assert.ThrowsAsync<PdfException>(() => selection.DuplicateAsync(new PdfPoint(0, double.PositiveInfinity)));
+        Assert.Equal(PdfErrorCode.InvalidInput, error.Code);
+        Assert.Equal(before, (await annotations.ListAsync()).Count);
+    }
 }
