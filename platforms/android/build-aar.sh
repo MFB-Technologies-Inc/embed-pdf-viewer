@@ -2,8 +2,9 @@
 # Builds the `bindings` AAR from `epdf-viewer-host`, the full viewer host with
 # every plugin, and runs the 16 KB alignment checks.
 #
-# The AAR carries both ABIs, `libc++_shared`, the generated Kotlin for every
-# uniffi component and the shrinker rules. Local only, published nowhere.
+# The AAR carries both ABIs, stripped, `libc++_shared`, the generated Kotlin
+# for every uniffi component and the shrinker rules. The unstripped libraries
+# go to bindings/build/native-debug-symbols.zip. Local only, published nowhere.
 #
 #   bash platforms/android/build-aar.sh          # build and check
 #   bash platforms/android/build-aar.sh test     # also run the JVM tests
@@ -55,6 +56,12 @@ SLICES=(
   "x86_64-linux-android:x86_64:x86_64-linux-android"
 )
 
+# The libraries as built, before stripping, one directory per ABI, and the
+# zip of them the `bindings` publication carries as its
+# `native-debug-symbols` artifact.
+SYMBOLS="$PROJECT/bindings/build/native-debug-symbols"
+SYMBOLS_ZIP="$PROJECT/bindings/build/outputs/native-debug-symbols.zip"
+
 export ANDROID_NDK_HOME="$NDK"
 for slice in "${SLICES[@]}"; do
   rust="${slice%%:*}"
@@ -91,6 +98,19 @@ for slice in "${SLICES[@]}"; do
   # another copy and fails on one that does not.
   cp "$TC/sysroot/usr/lib/$triple/libc++_shared.so" "$jni/"
 
+  # Stripped here, so the AAR ships without symbol tables or debug info. An
+  # app build only strips packaged libraries when it can find an NDK, and
+  # most cannot, so leaving it to the app shipped them unstripped. The copies
+  # as built go to $SYMBOLS/<abi>, which is zipped below for symbolicating
+  # native crashes. The checks after this run on the stripped files, which
+  # are the ones that ship.
+  rm -rf "$SYMBOLS/$abi"
+  mkdir -p "$SYMBOLS/$abi"
+  for so in "$jni"/*.so; do
+    cp "$so" "$SYMBOLS/$abi/"
+    "$TC/bin/llvm-strip" --strip-unneeded "$so"
+  done
+
   # 16 KB page size. Android 15 devices can use a 16 KB page, and a .so whose
   # LOAD segments are 4 KB aligned will not map there. NDK r28 and later align
   # to 16 KB by default, which is exactly the kind of default that changes back
@@ -112,6 +132,12 @@ for slice in "${SLICES[@]}"; do
     exit 1
   fi
 done
+
+# ABI directories at the top level, the layout a store console takes as
+# native debug symbols.
+rm -f "$SYMBOLS_ZIP"
+mkdir -p "$(dirname "$SYMBOLS_ZIP")"
+(cd "$SYMBOLS" && zip -q -r "$SYMBOLS_ZIP" arm64-v8a x86_64)
 
 # One Kotlin file per uniffi component (the host, epdf-ffi and each plugin),
 # all naming the one library they load. The repository's generator applies
@@ -166,4 +192,6 @@ if [[ -f "$AAR" ]]; then
   # mmap a .so straight out of the APK when it is stored, not deflated, and at
   # a 16 KB boundary; the AAR is where that has to already be true.
   unzip -l "$AAR" | grep '\.so$' | sed 's/^/  /'
+  echo "  $SYMBOLS_ZIP"
+  unzip -l "$SYMBOLS_ZIP" | grep '\.so$' | sed 's/^/  /'
 fi

@@ -396,11 +396,12 @@ coordinates, checks that both ABIs' engine is stored uncompressed, runs
 `zipalign -c -P 16 4`, and checks R8's `usage.txt` and `mapping.txt`: no
 `uniffi.` or `com.sun.jna.` class or member removed, none renamed, and every
 such class in the bindings AAR and the JNA AAR present. Results, 2026-11-26:
-`app-release.apk` is 132,142,645 bytes with both ABIs, `zipalign -c -P 16 4`
+`app-release.apk` is 92,509,749 bytes with both ABIs, `zipalign -c -P 16 4`
 passes, and R8 kept all 5,566 `uniffi.*` classes of `embedpdf-bindings` and
 all 125 `com.sun.jna.*` classes of `jna-5.14.0.aar` under their own names.
-AGP reported it could not strip the native libraries, so the engine ships
-with its symbol tables and the APK is larger than a stripped one would be.
+It was 132,142,645 bytes before `build-aar.sh` stripped the engine. AGP still
+reports it could not strip the native libraries, since the demo build has no
+NDK, but the engine's are already stripped in the AAR.
 The first run found that a minified app did not build at all: JNA's
 `Native$AWT` names `java.awt` classes Android lacks, so
 `bindings/consumer-rules.pro` now adds `-dontwarn java.awt.**`.
@@ -459,18 +460,44 @@ the AAR.
 
 ### Library sizes
 
-Release profile, 2026-11-20, as packaged in `bindings-release.aar`:
+Release profile, 2026-11-26, as packaged in `bindings-release.aar`, stripped:
 
 | ABI | `libepdf_viewer_host.so` | `libc++_shared.so` |
 |---|---|---|
-| `arm64-v8a` | 53,312,672 bytes (51 MB) | 9,290,184 bytes (8.9 MB) |
-| `x86_64` | 55,724,344 bytes (54 MB) | 9,015,544 bytes (8.7 MB) |
+| `arm64-v8a` | 39,817,544 bytes (38 MB) | 1,374,336 bytes (1.3 MB) |
+| `x86_64` | 45,188,968 bytes (43 MB) | 1,337,488 bytes (1.3 MB) |
 
-The `epdf-uniffi` library this replaced was 16 MB per ABI. The host libraries
-keep their symbol tables (`file` reports "not stripped"); an app build with the
-NDK available normally strips packaged libraries, so what ships in an APK
-should be smaller. That hasn't been measured. A release build of both ABIs took
+Unstripped they were 53,312,672 and 55,724,344 bytes for the host library and
+9,290,184 and 9,015,544 bytes for `libc++_shared.so`. The `epdf-uniffi`
+library the host replaced was 16 MB per ABI. A release build of both ABIs took
 4m37s and 3m52s of Cargo time in the container.
+
+### Native crash symbols
+
+`build-aar.sh` runs the NDK's `llvm-strip --strip-unneeded` on every `.so` it
+copies into `jniLibs`, so the AAR, and every app that packages it, ships
+without symbol tables. Leaving it to the app did not work: AGP strips packaged
+libraries only when it finds an NDK, and the consumer check's release APK
+carried the full engine. The alignment and `__arm_` checks run on the
+stripped files, since those are what ship.
+
+The libraries as built are kept in `bindings/build/native-debug-symbols/<abi>/`
+and zipped to `bindings/build/outputs/native-debug-symbols.zip`, with one
+directory per ABI at the top. The `embedpdf-bindings` publication carries that
+zip under the `native-debug-symbols` classifier, so an app symbolicates a
+native crash from the published engine it uses:
+
+```kotlin
+// build.gradle.kts of an app: fetch the zip matching the engine version.
+val engineSymbols by configurations.creating
+dependencies {
+    engineSymbols("com.embedpdf:embedpdf-bindings:0.0.0-engine.<hash>:native-debug-symbols@zip")
+}
+```
+
+Upload it as the release's native debug symbols in the store console, or
+unzip it and point `ndk-stack -sym <dir>/<abi>` at a tombstone. The cost is
+one more artifact per engine release, 43,587,493 bytes for this one.
 
 ## Engine identity
 

@@ -93,6 +93,14 @@ subprojects {
             publications.register<MavenPublication>("release") {
                 from(component)
                 artifactId = published.artifactId
+                // The engine's libraries before build-aar.sh stripped them,
+                // for symbolicating native crashes: `<abi>/<library>.so`,
+                // published as embedpdf-bindings-<version>-native-debug-symbols.zip.
+                if (published.artifactId == "embedpdf-bindings") {
+                    artifact(project.layout.buildDirectory.file("outputs/native-debug-symbols.zip")) {
+                        classifier = "native-debug-symbols"
+                    }
+                }
                 // The Compose artifacts carry no version of their own in
                 // the catalog; the published metadata names the versions the
                 // BOM resolved, so a consumer without the BOM gets the same.

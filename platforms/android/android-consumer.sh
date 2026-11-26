@@ -8,7 +8,7 @@
 #
 # Checks, in order: each artifact's POM names a version for every
 # dependency (the Compose ones come from the BOM through versionMapping);
-# the release APK packages the engine for both ABIs; `zipalign -c -P 16`
+# `embedpdf-bindings` carries its native-debug-symbols zip; the release APK packages the engine for both ABIs; `zipalign -c -P 16`
 # passes on it; and R8 kept every `uniffi.` and `com.sun.jna.` class under
 # its own name, since JNA reaches them by reflection.
 #
@@ -47,6 +47,10 @@ for artifact in embedpdf-bindings:0.0.0-engine.$engine embedpdf:$VERSION embedpd
     echo "missing $name $version (POM, AAR or module metadata) in $dir" >&2
     exit 1
   }
+  if [[ $name == embedpdf-bindings && ! -f "$dir/$name-$version-native-debug-symbols.zip" ]]; then
+    echo "missing $name $version native-debug-symbols.zip in $dir" >&2
+    exit 1
+  fi
   # A dependency with no version is one a Maven consumer cannot resolve.
   missing="$(python3 - "$pom" <<'PYTHON'
 import sys
