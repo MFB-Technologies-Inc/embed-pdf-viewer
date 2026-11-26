@@ -1,4 +1,6 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace EmbedPDF.Viewer.Tests;
@@ -84,6 +86,38 @@ public sealed class DisabledPluginTests
             .Except(["Scope", "StandardCommands", "DocumentFetcher", "Logger"]);
         Assert.Equal(fields.Order(), Accessors.Select(a => a.Field).Order());
         Assert.Equal(Accessors.Count, Accessors.Select(a => a.Field).Distinct().Count());
+    }
+
+    /// <summary>
+    /// The plugin table in <c>platforms/dotnet/README.md</c> has one row per
+    /// plugin in the options, and each row's accessor is a public
+    /// <see cref="PdfViewer"/> method, so the table can't drift from the API.
+    /// </summary>
+    [Fact]
+    public void TheReadmePluginTableHasARowPerPlugin()
+    {
+        var rows = ReadmePluginRows();
+        Assert.Equal(Accessors.Select(a => a.Field).Order(), rows.Select(r => r.Member).Order());
+        var methods = typeof(PdfViewer).GetMethods(BindingFlags.Public | BindingFlags.Instance).Select(m => m.Name).ToHashSet();
+        foreach (var (member, accessor) in rows)
+            Assert.True(methods.Contains(accessor), $"README row {member} names {accessor}, which PdfViewer does not have");
+    }
+
+    /// <summary>Rows of the table under <c>## Plugins</c>: the options member and the accessor, each in backticks.</summary>
+    static List<(string Member, string Accessor)> ReadmePluginRows([CallerFilePath] string source = "")
+    {
+        var readme = File.ReadAllText(Path.Combine(Path.GetDirectoryName(source)!, "..", "README.md")).ReplaceLineEndings("\n");
+        var start = readme.IndexOf("\n## Plugins\n", StringComparison.Ordinal);
+        Assert.True(start >= 0, "platforms/dotnet/README.md has no ## Plugins section");
+        var end = readme.IndexOf("\n## ", start + 1, StringComparison.Ordinal);
+        var rows = new List<(string, string)>();
+        foreach (var line in (end < 0 ? readme[start..] : readme[start..end]).Split('\n'))
+        {
+            var cells = line.Split('|', StringSplitOptions.TrimEntries);
+            if (cells.Length < 4 || !cells[1].StartsWith('`')) continue;
+            rows.Add((cells[1].Trim('`'), Regex.Match(cells[2], @"`(\w+)").Groups[1].Value));
+        }
+        return rows;
     }
 
     [Theory]

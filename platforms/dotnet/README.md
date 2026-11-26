@@ -1,5 +1,10 @@
 # EmbedPDF for .NET 10
 
+Two package families live here. The sections up to [Manual validation](#manual-validation) describe
+`EmbedPDF.Engine`, a narrow headless reader. The viewer packages, `EmbedPDF` and four companions,
+start at [Viewer packages](#viewer-packages); [`EmbedPDF.Engine` or the viewer](#embedpdfengine-or-the-viewer)
+says which to pick.
+
 The `EmbedPDF.Engine` namespace exposes an in-process, typed read facade over
 `epdf-capi`. The package name is provisional; this slice does not package,
 relocate or publish native assets. Target framework: **net10.0 only**, 64-bit.
@@ -126,34 +131,65 @@ that held-layer-page case. No test is skipped and no alternate runtime is used.
 
 ## Viewer packages
 
-The viewer is two new packages beside `EmbedPDF.Engine`, with no dependency between them.
-`EmbedPDF.Runtime` holds the `epdf-viewer-host` library and the PDFium it links, under
-`runtimes/<rid>/native/`, and no managed code. `EmbedPDF` is the facade, in the assembly
-`EmbedPDF.Viewer.dll`: `EmbedPDF.dll` would collide with win-x64 PDFium's `embedpdf.dll` on a
-case-insensitive file system. It compiles the generated
-bindings as internal types and depends on `EmbedPDF.Runtime` at the version pinned in
-`EmbedPDF.Runtime/EmbedPDF.Runtime.props`. Today the facade is a skeleton: `NativeRuntime` loads the
-host and reads a page count, and the document API arrives in Phase 2 of
-`docs/superpowers/plans/2026-11-20-dotnet-parity.md`.
+The viewer is five packages beside `EmbedPDF.Engine`, with no dependency between the two families.
+They reach every viewer plugin the Swift package reaches, below the UI: there is no UI package, so
+an app binds `EmbedPDF.Models` to its own views (see [Binding the models to a UI](#binding-the-models-to-a-ui)).
+All five target `net10.0` and set `IsAotCompatible`.
 
-The runtime is versioned `0.0.0-engine.<hash>`, where the hash comes from `dotnet-engine-hash.sh`.
-Facade work that leaves the Rust alone keeps the same runtime. `check-dotnet-engine.sh` fails when
-the pin and the tree disagree.
+| Package | What it is for | Depends on |
+|---|---|---|
+| `EmbedPDF.Runtime` | The `epdf-viewer-host` library and the PDFium it links, under `runtimes/<rid>/native/` for `linux-x64`, `linux-arm64`, `osx-arm64`, `osx-x64` and `win-x64`. No managed code; reference `EmbedPDF` instead. | nothing |
+| `EmbedPDF` | The facade: `PdfViewer`, the 23 plugin capabilities, `PixelBuffer`, the platform services. Assembly `EmbedPDF.Viewer.dll`, namespace `EmbedPDF`. | `EmbedPDF.Runtime` at the pinned engine version, `Microsoft.Extensions.Logging.Abstractions` 10.0.0 |
+| `EmbedPDF.Models` | `INotifyPropertyChanged` models a view binds to: `PdfReaderModel`, `StageReaderModel`, `SearchModel`, `ThumbnailModel` and nine more. | exactly the `EmbedPDF` it was built with, `[x.y.z]` |
+| `EmbedPDF.Extensions.DependencyInjection` | `services.AddEmbedPdf(options => ...)`, which registers one `PdfViewer`. | `EmbedPDF`, `Microsoft.Extensions.DependencyInjection.Abstractions` |
+| `EmbedPDF.Scripting.Jint` | `JintScriptEngineFactory`, the engine for document JavaScript (Actions). | `EmbedPDF`, Jint 4.18.0 |
 
-The facade's resolver loads PDFium from the host's directory, then the host. It looks beside the
-application first, then in `runtimes/<rid>/native` under it. A runtime with no library fails with
-`NativeRuntimeNotFoundException`, a `PdfException` that names the RID and every path it tried.
-When a library is there but won't load, the message says so and the loader's error is the inner
-exception.
-The packaged Linux host also carries a `$ORIGIN` runpath. `LD_LIBRARY_PATH` is never needed.
+The facade's assembly is `EmbedPDF.Viewer.dll` because `EmbedPDF.dll` would collide with win-x64
+PDFium's `embedpdf.dll` on a case-insensitive file system. It compiles the UniFFI-generated C# as
+`internal` types, so every public type is a hand-written record or wrapper, and
+`Microsoft.CodeAnalysis.PublicApiAnalyzers` fails the build when the public surface changes without
+its `PublicAPI.Unshipped.txt`. `EmbedPDF.Models` calls the facade's internals through
+`InternalsVisibleTo`, which is why its range is exact: any other `EmbedPDF` may lack them.
+`packaging/libraries.py pack-libraries` fails the pack when that range isn't `[x.y.z]`.
 
-Build and check one RID in the dev container, from the repository root:
+```csharp
+using EmbedPDF;
+
+await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Search = new(), Render = new() });
+var document = await viewer.OpenFileAsync("report.pdf");
+using var search = await viewer.GetSearchAsync(document);
+using var render = await viewer.GetRenderAsync(document);
+```
+
+## Where the native library comes from
+
+`EmbedPDF` depends on `EmbedPDF.Runtime` at the version in
+`EmbedPDF.Runtime/EmbedPDF.Runtime.props`, `0.0.0-engine.<hash>`. `dotnet-engine-hash.sh` computes
+the hash over every input of the native library: the tracked files of each crate
+`epdf-viewer-host` links, `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, the PDFium pin and
+commit, `build-viewer-host.sh`, `packaging/package.py` and `EmbedPDF.Runtime.csproj`. Facade, model
+and documentation work leaves it alone, so it never needs a new runtime package.
+`check-dotnet-engine.sh` exits 0 when the pin matches the tree, 1 when it doesn't and no release
+exists for the tree, and 2 when only the pin is stale. CI's `runtime-pack` job runs it before it
+packs anything.
+
+At run time the facade's resolver looks for the host beside the application, then in
+`runtimes/<rid>/native` under it, and loads PDFium from the host's directory first. A RID with no
+library fails with `NativeRuntimeNotFoundException`, a `PdfException` that names the RID and every
+path it tried. When a library is there but won't load, the message says so and the loader's error
+is the inner exception. The packaged Linux host carries a `$ORIGIN` runpath and the macOS host an
+`@loader_path` one, so `LD_LIBRARY_PATH` and `DYLD_LIBRARY_PATH` are never needed.
+
+For engine work there is a local mode: build the host from this tree, stage and pack it, generate
+the bindings, and pack the facade against that runtime. In the dev container, from the repository
+root:
 
 ```sh
+bash packages/engine/runtime/scripts/fetch-libpdfium.sh linux-arm64
 bash platforms/dotnet/build-viewer-host.sh linux-arm64          # prints the library path
 python3 platforms/dotnet/packaging/package.py stage-runtime --rid linux-arm64 \
   --native-lib target/aarch64-unknown-linux-gnu/release/libepdf_viewer_host.so --out /tmp/rt/slice-linux-arm64
-python3 platforms/dotnet/packaging/package.py pack-runtime --slice /tmp/rt/slice-linux-arm64 --out /tmp/rt/pack
+python3 platforms/dotnet/packaging/package.py pack-runtime --slice /tmp/rt/slice-linux-arm64 --out /tmp/rt/pack --allow-dirty
 cargo rustc -p epdf-viewer-host --release --locked --crate-type cdylib   # unstripped, for the generator
 bash platforms/dotnet/generate-bindings.sh
 python3 platforms/dotnet/packaging/package.py pack-facade \
@@ -163,9 +199,17 @@ EPDF_IMAGE_ID=sha256:<image> python3 platforms/dotnet/packaging/package.py valid
   --manifest /tmp/rt/pack/package-manifest.runtime.json --record /tmp/rt/record.json
 ```
 
-`pack-runtime` takes one `--slice` per RID. It re-checks every staged file against the slice's
-record, so a slice edited after staging can't be packed. The generator needs an unstripped host,
-because the uniffi metadata lives in the symbol table that `build-viewer-host.sh` strips.
+The tests skip the packing: `EmbedPDF.Viewer.Tests` and `EmbedPDF.Models.Tests` copy the host from
+`EpdfViewerNativeDir` (default `target/release/`), so after the unstripped build and
+`generate-bindings.sh`, `dotnet test` runs against the tree. The generator needs that unstripped
+build because the uniffi metadata lives in the symbol table that `build-viewer-host.sh` strips.
+
+`pack-runtime` takes one `--slice` per RID and re-checks every staged file against the slice's
+record, so a slice edited after staging can't be packed. Without `--allow-dirty` it refuses a slice
+staged from a dirty tree. `validate-runtime` restores the two packages into a fresh consumer with
+its own NuGet cache and a `nuget.config` that serves `EmbedPDF` and `EmbedPDF.*` from the local feed
+only and everything else from nuget.org, runs it RID-specific and portable, and checks it fails
+with the host or PDFium hidden.
 
 Sizes from CI run 44799578194 at `8709bf4fb` (engine `0.0.0-engine.822686307291c580`), in bytes.
 Every RID was built and validated on its own native runner; the records are under
@@ -182,7 +226,107 @@ Every RID was built and validated on its own native runner; the records are unde
 The five-RID `EmbedPDF.Runtime` nupkg is 96,125,498 bytes, and the `EmbedPDF` nupkg is 1,221,777.
 Built in the dev container, both Linux hosts need GLIBC 2.35 and their PDFium 2.25.
 
-An app that loads both `EmbedPDF.Engine` and `EmbedPDF` loads two PDFium copies. Pick one.
+## Plugins
+
+A plugin is installed by setting its member of `PdfViewerOptions` (or the matching
+`PdfViewerOptionsBuilder` method) and reached through its accessor. Every accessor is
+`Get{Plugin}Async`, takes the document where the plugin is per document, and returns an
+`IDisposable` capability. The platform services column lists the interfaces your app implements,
+or the implementations the packages ship, for that plugin.
+
+| Options member | Accessor | Also install | Platform services |
+|---|---|---|---|
+| `Metadata` | `GetMetadataAsync(document)` | | |
+| `Search` | `GetSearchAsync(document)` | | |
+| `Render` | `GetRenderAsync(document)` | | `PixelBuffer` output |
+| `Interaction` | `GetInteractionAsync(document)` | | `IInteractionHandler`, tool permission `Func<bool>` |
+| `Feedback` | `GetFeedbackAsync()` | | `IPlatformFeedback` (`FeedbackConfig.Provider`; none means no feedback) |
+| `Stage` | `GetStageAsync(document)` | | `IStageInitialViewProvider` |
+| `Selection` | `GetSelectionAsync(document)` | `Interaction` | |
+| `Link` | `GetLinkAsync(document)` | `Interaction` | |
+| `Annotation` | `GetAnnotationAsync(document)` | `Interaction` | `IAnnotationFilePicker` |
+| `History` | `GetHistoryAsync(document)` | | |
+| `Outline` | `GetOutlineAsync(document)` | | |
+| `Attachment` | `GetAttachmentsAsync(document)` | | |
+| `Form` | `GetFormAsync(document)` | `Interaction` | `IFormFocusTarget` |
+| `Redaction` | `GetRedactionAsync(document)` | `Interaction`, `Annotation` | |
+| `Measurement` | `GetMeasurementAsync(document)` | `Interaction`, `Annotation` | |
+| `Stamp` | `GetStampsAsync()` | `Interaction`, `Annotation` to place | `IStampLibraryStore`, `FileStampLibraryStore` |
+| `PageEdit` | `GetPageEditAsync(document)` | | |
+| `ViewManager` | `GetViewManagerAsync()` | | |
+| `Shell` | `GetShellAsync(document)` | | |
+| `I18n` | `GetI18nAsync()` | | `ILocaleLoader`, `EmbeddedResourceLocaleLoader` |
+| `Commands` | `GetCommandsAsync()` | | `CommandHandler`, `IStandardCommandsPlatform` (`PdfViewer.SetCommandsPlatform`) |
+| `Actions` | `GetActionsAsync(document)` | | `IActionExecutor`, `IActionUiHandler`, `IActionSubmitHandler`, `IScriptEngineFactory` (`JintScriptEngineFactory` in `EmbedPDF.Scripting.Jint`) |
+| `Signature` | `GetSignaturesAsync(document)` | `Interaction`, `Form` | `ISignatureSigner` (`X509CertificateSigner`), `ISignatureTrust` (`TrustAnchors`), `ISignatureTransport` (`HttpClientSignatureTransport`) |
+
+Documents opened from a `Uri` go through `PdfViewerOptions.DocumentFetcher`, an `IDocumentFetcher`;
+the default is `HttpClientDocumentFetcher`, which also reads `file:` URLs.
+
+A plugin left out of the options is refused at its accessor with `PdfException` and
+`PdfErrorCode.Unsupported`, even for a document that is closed or still loading, so a capability
+you hold has its plugin. `DisabledPluginTests` checks every accessor, fails when
+`PdfViewerOptions` gains a plugin without a row there, and fails when this table lacks one. A few
+calls also need a companion plugin and refuse on the call: `RedactionCapability` marking a
+selection needs `Selection` and marking matches needs `Search`, and
+`StageCapability.RegisterScrollHandlerAsync` needs `Interaction`.
+
+`scripts/check-api-coverage.py --platform csharp` checks the facade against the Rust plugins'
+`ffi.rs` members (`platforms/dotnet/csharp-api-coverage.json`): 880 members, 730 ported, 0
+pending, 150 exclusions, each with its reason.
+
+## Threading, disposal and arguments
+
+Every call is a `Task`-returning `...Async` method that throws `PdfException` (with `Name`, `Code`
+and `Detail`) and takes a `CancellationToken` last. The token is checked before the call is posted
+to the kernel. Only `OpenAsync(Uri)`, `OpenLayerAsync`, `SaveAsync` and `SaveLayerAsync` cancel
+while running; the rest run to completion once posted, as the Swift calls do. A cancelled call
+throws `OperationCanceledException`, with the kernel's `operation-cancelled` as the inner exception
+when the kernel saw it. Event streams (`ObserveDocumentEvents`, `ObserveStateRevisions`, `ObserveReportedErrors` and each capability's `ObserveEvents`)
+are `IAsyncEnumerable<T>` that subscribe when the method returns, one channel per enumerator.
+Document and plugin events are unbounded, so a reader that stops reading holds every later event;
+state revisions keep the newest one and reported errors the newest 16.
+
+Your callbacks run on one of two threads, and each interface's remarks say which.
+
+- On the kernel thread, synchronously: `IInteractionHandler`, the tool permission,
+  `IPlatformFeedback`, `IActionUiHandler`, `IActionSubmitHandler`, `IScriptEngineFactory` and
+  `IScriptEngine`, `IStageInitialViewProvider`, a `CommandHandler`'s state hooks,
+  `IStandardCommandsPlatform.SaveFile`, `IFormFocusTarget`, `IStampLibraryStore`,
+  `ISignatureSigner.GetCertificateChain`, `Algorithm` and `Digest`, and `ISignatureTrust`.
+  Return quickly, and never block waiting for the viewer: the viewer's next call needs this thread.
+- On the thread pool: `IDocumentFetcher`, `ILocaleLoader`, `IActionExecutor`, a `CommandHandler`'s
+  run, the copy members of `IStandardCommandsPlatform`, `IAnnotationFilePicker`,
+  `ISignatureSigner.SignAsync` and `ISignatureTransport.PostAsync`.
+
+Destroying the kernel needs the kernel thread, so `PdfViewer.Dispose()` from a kernel-thread
+callback throws `InvalidOperationException` instead of deadlocking. `DisposeAsync()` there starts
+disposal and returns a task you may await later; blocking on it with `GetAwaiter().GetResult()`
+throws too, but blocking through `AsTask().Wait()` can't be detected and hangs. A callback that
+throws never reaches Rust as a crash: a member with an error type answers the kernel's host error
+with your message, a `bool` member answers `false`, and the rest log through the viewer's `ILogger`
+and drop the exception.
+
+`DisposeAsync` drains calls in flight, a second `DisposeAsync` shares the first's completion, and a
+call after it throws `PdfException` with `instance-closed`. Capabilities are `IDisposable` and
+release only their native handle. A viewer abandoned to the garbage collector releases its handles
+from its finalizer; a live event stream or registered callback that captures nothing of the viewer
+doesn't keep it alive.
+
+Arguments follow one rule. A method that is not itself `async` throws `ArgumentNullException` (or
+`ArgumentException` for a null element of a collection) while the call is made. A method declared
+`async` reports a null argument through its faulted task. A present but invalid argument, such as a
+negative page index or an undefined enum value, faults the returned task with `invalid-input`.
+
+## `EmbedPDF.Engine` or the viewer
+
+Pick one. `EmbedPDF.Engine` is the narrow reader described at the top of this file: open, page
+metadata, text, geometry, one bounded search slice and rendering, with admission control and
+per-RID validation records, and no viewer kernel. It suits a server that reads PDFs. The viewer
+packages carry the kernel and every plugin, including writes, and suit an app that shows and edits
+documents. Each family bundles its own PDFium, so an app that loads both loads two PDFium copies
+and pays the memory twice. The decision to keep them separate is D2 in
+`docs/superpowers/plans/2026-11-20-dotnet-parity.md`; it is revisited after the first viewer release.
 
 ## Binding the models to a UI
 
@@ -307,3 +451,66 @@ and 100,835,330.
 it calls the facade's internals. `packaging/libraries.py pack-libraries` packs the three library
 packages and fails when that range is not exact. It is a separate file because `package.py` is an
 input of `dotnet-engine-hash.sh`, and managed packaging must not move the runtime's version.
+
+## Releases and the package feed
+
+The release train (`.github/workflows/release-train.yml`) releases the viewer packages when it is
+dispatched with `dotnet_version`, `0.0.0-dotnet.<n>`. After its one approval,
+`dotnet-viewer-release` runs `packaging/release-viewer.sh`, which pushes the five packages to the
+GitHub Packages NuGet feed of the repository's owner, `EmbedPDF.Runtime` first, and tags the
+prerelease `<dotnet_version>` with the packages, their `.sha256` files and the merged runtime
+manifest. A manual run of `release-dotnet.yml` with a `dotnet_version` prints those pushes, the
+tag and the release instead (`viewer-release-preview`). `docs/releases/README.md` has the rest.
+
+A consumer adds one feed entry and one package reference. GitHub Packages needs a token even to
+read, so the entry carries credentials: a personal access token with `read:packages`, kept out of
+source control. That is the cost of this feed over nuget.org, which would need a reserved prefix and
+package signing we don't have.
+
+```xml
+<!-- nuget.config -->
+<configuration>
+  <packageSources>
+    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+    <add key="embedpdf" value="https://nuget.pkg.github.com/<owner>/index.json" />
+  </packageSources>
+  <packageSourceMapping>
+    <packageSource key="embedpdf"><package pattern="EmbedPDF" /><package pattern="EmbedPDF.*" /></packageSource>
+    <packageSource key="nuget.org"><package pattern="*" /></packageSource>
+  </packageSourceMapping>
+  <packageSourceCredentials>
+    <embedpdf>
+      <add key="Username" value="<user>" />
+      <add key="ClearTextPassword" value="%EMBEDPDF_FEED_TOKEN%" />
+    </embedpdf>
+  </packageSourceCredentials>
+</configuration>
+```
+
+```xml
+<PackageReference Include="EmbedPDF" Version="0.0.0-dotnet.<n>" />
+```
+
+`EmbedPDF` brings `EmbedPDF.Runtime`; add `EmbedPDF.Models`, `EmbedPDF.Extensions.DependencyInjection`
+or `EmbedPDF.Scripting.Jint` at the same version when you use them.
+
+## Known gaps
+
+- Ten Rust members have no `ffi.rs` export and no Swift counterpart, so neither port has them: in
+  annotation `get_shared`, `is_movable`, `can_duplicate`, `duplicate`, `when_remeasurable`,
+  `stage_remeasure`, `selection_duplicate` and `selection_can_duplicate`, and in form `duplicate`
+  and `duplicate_widgets`. They are `no-export` exclusions in `csharp-api-coverage.json`; exporting
+  them is a Rust change for Swift and C# together.
+- `RedactionCapability.MarkMatchesAsync` can't be cancelled once it runs. The search runs on the
+  kernel thread, so the abort posted by `call_promise_cancellable`
+  (`crates/epdf-ffi/src/bound.rs:118-135`) waits behind it: a whole-document mark of `"e"` on
+  `report.pdf`, cancelled after 300 ms, ran past 90 s. A token cancelled before the call still
+  stops it.
+- NativeAOT is validated on `linux-x64` and `linux-arm64` only. CI runs the console sample
+  framework-dependent on `osx-arm64` and `win-x64`; their NativeAOT rows are a later change.
+- The three signature route tests (`SignatureTransportTests`) are skipped unless
+  `EMBEDPDF_SIGNATURE_ROUTES` is set, as Swift's are, because their helper needs
+  `packages/core/signature/dist` built.
+- The Jint engine's NativeAOT publish reports six trim and AOT warnings from Jint's own CLR interop
+  and JSON paths (see the sample section). An app that needs no document JavaScript leaves out
+  `EmbedPDF.Scripting.Jint` and publishes with none.
