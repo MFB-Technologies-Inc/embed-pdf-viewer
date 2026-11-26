@@ -84,7 +84,8 @@ jobs:
       SLICE_DIR: fork-slice-out
     steps:
       # The packages a debian:trixie fork build has needed, minus nodejs:
-      # setup-node supplies Node 24 below. git must exist before checkout, or
+      # setup-node supplies Node 26 below, whose binary links libatomic and
+      # libstdc++, which debian:trixie leaves out. git must exist before checkout, or
       # checkout falls back to a tarball with no repository to read the
       # gitlink from or fetch the submodule into.
       - name: Install build tools
@@ -93,7 +94,7 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends \
             git python3 curl ca-certificates xz-utils bzip2 lsb-release file \
-            pkg-config tar patch unzip sudo
+            pkg-config tar patch unzip sudo libatomic1 libstdc++6
           # The workspace and the submodule belong to the host's runner user.
           git config --global --add safe.directory '*'
 
