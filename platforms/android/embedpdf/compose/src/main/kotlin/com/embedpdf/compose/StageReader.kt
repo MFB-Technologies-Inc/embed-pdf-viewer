@@ -248,6 +248,9 @@ private suspend fun PointerInputScope.readerGestures(reader: StageReaderModel, s
             DragRoute.NONE -> {}
         }
         var moved = false
+        // Where the pan's translation is measured from: the point where the
+        // finger crossed the slop, so the stage does not jump by the slop.
+        var panOrigin = start
         var pinchStart: Pair<Float, Offset>? = null
         var pinchEnded = false
         var lifted = false
@@ -332,7 +335,12 @@ private suspend fun PointerInputScope.readerGestures(reader: StageReaderModel, s
                     if (doubled && route != DragRoute.PAN) send { reader.doubleTapped(end.x, end.y) }
                     break
                 }
-                if ((change.position - down.position).getDistance() > viewConfiguration.touchSlop) moved = true
+                val travel = change.position - down.position
+                val distance = travel.getDistance()
+                if (!moved && distance > viewConfiguration.touchSlop) {
+                    moved = true
+                    panOrigin = dp(down.position + travel * (viewConfiguration.touchSlop / distance))
+                }
                 // An overlay took the move, or the pan was switched off under it.
                 if (change.isConsumed || (route == DragRoute.PAN && !reader.isPanEnabled)) {
                     drop()
@@ -347,7 +355,7 @@ private suspend fun PointerInputScope.readerGestures(reader: StageReaderModel, s
                 val at = dp(change.position)
                 when (route) {
                     DragRoute.PAN -> {
-                        send { reader.dragChanged(at.x - start.x, at.y - start.y) }
+                        send { reader.dragChanged(at.x - panOrigin.x, at.y - panOrigin.y) }
                         change.consume()
                     }
                     DragRoute.TOOL -> {

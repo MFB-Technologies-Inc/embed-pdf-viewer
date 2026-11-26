@@ -118,6 +118,43 @@ class StageReaderTest {
         }
     }
 
+    /**
+     * The pan follows the finger from where it crossed the touch slop: a
+     * short move just past the slop pans by its overshoot, not by the slop
+     * as well. Compared with a long move, whose pan the slop barely changes.
+     */
+    @Test
+    fun aPanStartsWhereTheFingerCrossedTheSlop() {
+        val r = reader("report")
+        try {
+            val from = r.center()
+            var slop = 0f
+            fun panBy(extra: Float): Double {
+                val before = checkNotNull(r.camera()).y
+                compose.onNodeWithTag("reader").performTouchInput {
+                    slop = viewConfiguration.touchSlop
+                    down(from)
+                    moveBy(Offset(0f, -(slop + 1f)))
+                    moveBy(Offset(0f, -extra))
+                }
+                compose.pumpFor(400)
+                val moved = checkNotNull(r.camera()).y - before
+                // Lifted only once measured: the lift may fling.
+                compose.onNodeWithTag("reader").performTouchInput { cancel() }
+                compose.pumpFor(400)
+                return moved
+            }
+            val short = panBy(4f)
+            val long = panBy(200f)
+            assertTrue("short $short, long $long", long > 0.0)
+            // With the slop counted the ratio would be (slop + 5) / (slop + 201).
+            val ratio = short / long
+            assertTrue("short $short, long $long, slop $slop", abs(ratio - 5.0 / 201.0) < abs(ratio - (slop + 5.0) / (slop + 201.0)))
+        } finally {
+            r.o.destroy()
+        }
+    }
+
     /** An active drawing tool takes the drag, so the stage does not pan and the stroke reaches the tool. */
     @Test
     fun aDrawingToolConsumesTheDragAndTheStageDoesNotPan() {
