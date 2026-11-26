@@ -101,7 +101,8 @@ public fun TiledPageImage(
                 withContext(NonCancellable) { page.release() }
             }
         }
-        LaunchedEffect(page, deviceScale, visibleRect, revision) {
+        // The size sets the plan's page width, so a new one plans again.
+        LaunchedEffect(page, unrotatedSize, deviceScale, visibleRect, revision) {
             phase?.invoke(TiledPagePhase.BEGAN)
             page.update(deviceScale, unrotatedSize.width, visibleRect) { phase?.invoke(TiledPagePhase.PAINTED) }
             ensureActive()
@@ -143,6 +144,14 @@ public fun TiledPageImage(
                         dstSize = IntSize(right - left, bottom - top),
                     )
                 }
+                // Counts one frame per run of this draw block, which is not
+                // always one presented frame: a software draw of the view
+                // (a screenshot, `View.draw` onto a bitmap) runs it once more
+                // and acknowledges a frame nobody saw, and a frame replayed
+                // from a recorded `GraphicsLayer` (`GraphicsLayer.record`)
+                // shows the tiles without running it. Either way the tiles go
+                // back to the pool a frame early or late; the model's time
+                // backstop bounds the late case.
                 page.frameDrawn()
             },
         )

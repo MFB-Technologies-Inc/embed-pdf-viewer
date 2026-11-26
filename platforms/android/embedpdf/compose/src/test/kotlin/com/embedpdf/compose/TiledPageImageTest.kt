@@ -108,6 +108,30 @@ class TiledPageImageTest {
         }
     }
 
+    /** Review fix 6: a new page size starts the update again, as a new scale does. */
+    @Test
+    fun aNewPageSizeUpdatesAgain() {
+        val o = opened(ViewerConfig(render = RenderConfig()))
+        try {
+            val render = engine { o.viewer.render(o.document) }
+            val demand = engine { render.viewDemand("pixels") }
+            val model = TiledPageModel(render, demand, o.pages[0].page)
+            val phases = mutableListOf<TiledPagePhase>()
+            var size by mutableStateOf(o.pages[0].size())
+            compose.setContent {
+                Box(Modifier.size(306.dp, 396.dp)) {
+                    TiledPageImage(model, size, 2.0, null, Modifier.fillMaxSize(), onPhase = { phases += it })
+                }
+            }
+            compose.pumpUntil { TiledPagePhase.SETTLED in phases }
+            val began = phases.count { it == TiledPagePhase.BEGAN }
+            size = Size(size.width * 2, size.height * 2)
+            compose.pumpUntil { phases.count { it == TiledPagePhase.BEGAN } > began }
+        } finally {
+            o.destroy()
+        }
+    }
+
     /**
      * Tiles that leave go back to the pool once the drawn frames or the time
      * backstop allow, and leaving the composition releases the page and hands
