@@ -45,7 +45,7 @@ futures = { version = "0.3", default-features = false, features = ["std", "execu
 plugin-conformance = { path = "../../plugin-conformance" }
 rsa = { version = "0.9", default-features = false, features = ["std", "u64_digit"] }
 sha2 = { version = "0.10", features = ["oid"] }
-base64 = "0.22"
+base64 = "0.23"
 
 [[test]]
 name = "conformance"
