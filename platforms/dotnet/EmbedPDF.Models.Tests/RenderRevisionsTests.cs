@@ -41,7 +41,7 @@ public class RenderRevisionsTests
         var (released, observation) = await ObserveOnce(context, render, pages[0].Page);
         var events = render.ObserveEvents();
         await render.InvalidateAsync([pages[1].Page], RenderInvalidateScope.Annotations);
-        Observed.Collected(released);
+        await Observed.CollectedAsync(released);
         var invalidated = await Fixture.First(Fixture.Cast(events), e => e as RenderEvent.Invalidated);
         Assert.Equal([pages[1].Page], invalidated.Pages);
         // The document is still open, so the loop ends only if the release

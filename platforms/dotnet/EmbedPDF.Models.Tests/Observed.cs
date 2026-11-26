@@ -75,9 +75,14 @@ static class Observed
         for (var i = 0; i < turns; i++) await Task.Yield();
     }
 
-    /// <summary>Collects until a weak reference dies, or fails.</summary>
-    public static void Collected(WeakReference reference)
+    /// <summary>
+    /// Collects until a weak reference dies, or fails. Yields first, so the
+    /// frames of the helper that made the object have left the stack: an
+    /// await can resume inline inside the awaited method's completion.
+    /// </summary>
+    public static async Task CollectedAsync(WeakReference reference)
     {
+        await Task.Yield();
         for (var i = 0; i < 20 && reference.IsAlive; i++)
         {
             GC.Collect();
