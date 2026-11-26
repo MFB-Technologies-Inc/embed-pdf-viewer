@@ -1319,19 +1319,24 @@ Deviations, each with its reason:
   existing dispatches keep working, and a train without it releases no viewer packages. Making it
   required is a one-line change once the first viewer release is wanted.
 - The release tags `<dotnet_version>` with the packages as assets, beside the feed push, so a release
-  is also a downloadable record. `check-dotnet-engine.sh` still asks about a `dotnet-engine-<hash>`
-  release that no workflow makes; with the runtime on the feed that exit-2 branch can't fire.
+  is also a downloadable record.
+- `check-dotnet-engine.sh` asked for a `dotnet-engine-<hash>` GitHub release that no workflow makes,
+  so its exit 2 could never fire. It now lists `EmbedPDF.Runtime` versions on the release repository
+  owner's NuGet feed with `gh api` (`orgs/<owner>` or `users/<owner>` `packages/nuget/EmbedPDF.Runtime/versions`):
+  listed is 2, absent or "Package not found" is 1, any other failure 69 (`712c17ec7`).
+  `dotnet-engine-hash.test.sh` drives the four verdicts through a stand-in `gh`.
 - `RepositoryUrl` comes from the job environment, which MSBuild reads as a property, so no project
   file (and no engine hash input) changed. A local pack has no repository URL, and the release script
   refuses it.
 
-CI. Two runs of `release-dotnet.yml`, both green on the first try, on `research/dotnet-parity-p6`, dispatched with
+CI. Three runs of `release-dotnet.yml`, each green on the first try, on `research/dotnet-parity-p6`, dispatched with
 `dotnet_version=0.0.0-dotnet.0`:
 
 | Run | Head | Result |
 |---|---|---|
 | 45825062921 | `eb2718c6c` | every job passed: 4 engine `package` rows, 5 runtime slices, `runtime-pack`, 4 `runtime validate`, 4 `consumer`, `runtime-record`, `viewer-release-preview` |
 | 45831861397 | `b194bbb47` | every job passed again, now with the README and its plugin-table test, and the records and pin committed |
+| 45840321520 | `712c17ec7` | all 21 jobs passed again, with the three test ports and the feed check in `check-dotnet-engine.sh` |
 
 All five RIDs are `VALIDATED` at `0.0.0-engine.dc140b58fa617042`; those records replace the Phase 1
 ones under `platforms/dotnet/validation/2026-11-26-phase-6-runtime-<rid>/` (`b194bbb47`). The NativeAOT
@@ -1341,6 +1346,12 @@ framework-dependent. The preview printed the five pushes to `https://nuget.pkg.g
 in dependency order, `git tag 0.0.0-dotnet.0 <sha>`, `git push origin refs/tags/0.0.0-dotnet.0` and
 `gh release create 0.0.0-dotnet.0` with eleven assets, and warned that `docs/releases/0.0.0-dotnet.0.md`
 is missing, which a real run would stop on.
+
+Gap ports (2026-11-26, after the first review). `APICoverageTests.swift`, `EditingWorkflowsTests.swift`
+and `SecurityTests.swift` are ported as `ApiCoverageTests` (5), `EditingWorkflowsTests` (7) and
+`SecurityTests` (4) in `EmbedPDF.Viewer.Tests` (`c1d00ede2`, `aa92b7b05`, `a3757d1a1`). All 16 passed on
+their first run against the facade as it stood, so no bug turned up. `EmbedPDF.Viewer.Tests` then runs
+1,141, 1,137 passing and 4 skipped; `EmbedPDF.Models.Tests` 164, 163 passing and 1 skipped.
 
 Swift test files and their C# counterparts (Definition of done):
 
@@ -1360,9 +1371,9 @@ Swift test files and their C# counterparts (Definition of done):
 | `AliasRemovalTests` | Not ported: it pins Swift's deprecated `PDFDocument` and `Annotation` aliases, which C# never had |
 | `ProductsTests` | No counterpart: SwiftPM products have none. `ImportTests` and PublicApiAnalyzers keep the generated layer `internal` instead (D3) |
 | `BaseSuite`, `LoopbackServer` | Test support: `[assembly: CollectionBehavior]` and `Loopback.cs` |
-| `APICoverageTests` | Gap: its five cases (custom metadata omissions, page selection across a reorder, form validation and permission reads, stage destination and zoom reads, a denied scope) have no C# test of the same cases. `MetadataTests.CustomEntriesUpdateAndClear`, `DocumentAPITests.SettingsPreserveOmissionsAndClearWithoutGrantingDownload` and `StageTests.ADestinationIsReachable` cover parts |
-| `EditingWorkflowsTests` | Gap: its seven cross-plugin workflows (command categories, named-action probe, annotation bundles, widget edits and calculation order, direct form payloads twice, optional editing plugins) are not ported as workflows; `CommandsTests.ASettingLockDisablesAndReportsItsRefusalUntilReleased` and `ActionsTests.NamedActionsAndTriggers` cover parts |
-| `SecurityTests` | Partly: `ViewerTests` covers a locked document (`ALockedDocumentOpensAsALockedTab`, `AWrongPasswordParksTheTabAndAWrongUnlockIsPermissionDenied`); the three narrow-scope refusals (sign, save, edit metadata) have no C# test |
+| `APICoverageTests` | `ApiCoverageTests`, its five cases ported behaviourally; `scripts/check-api-coverage.py --platform csharp` is the static half, finding each member in the built assembly |
+| `EditingWorkflowsTests` | `EditingWorkflowsTests`, all seven workflows |
+| `SecurityTests` | `SecurityTests`, all four cases |
 | `AnnotationModelTests`, `PDFReaderModelTests`, `PluginIntegrationTests`, `RenderRevisionsTests`, `SearchModelTests`, `StagePointerForwarderTests`, `StageReaderDragLagTests`, `StageReaderErrorTests`, `StageVisiblePageGeometryTests`, `TextSelectionModelTests`, `ThumbnailModelTests`, `TiledPageModelTests`, `ToolModelTests`, `ViewerModelTests` | The file of the same name in `EmbedPDF.Models.Tests` |
 | `ImportTests`, `PageRenderTaskTests`, `SerialCallsTests`, `SnapshotRefreshTests` | `InfrastructureTests` |
 | `PluginControlTestSupport` | Test support: `SingleThreadContext.cs`, `Observed.cs` |
@@ -1385,7 +1396,7 @@ There is no UI to compare, so Swift's `EmbedPDFUITests` has no counterpart by de
 | Item | State | Evidence |
 |---|---|---|
 | `csharp-api-coverage.json` has no `pending` rows and the check passes | Met | `scripts/check-api-coverage.py --platform csharp`: 880 members, 730 ported, 0 pending, 150 exclusions; CI's `runtime-pack` runs it |
-| Every Swift test file has a C# counterpart or a recorded reason | Met with three recorded gaps | The table in "Phase 6 notes". `APICoverageTests`, `EditingWorkflowsTests` and three cases of `SecurityTests` are recorded as gaps, not ported |
+| Every Swift test file has a C# counterpart or a recorded reason | Met, 0 gaps | The table in "Phase 6 notes". `ApiCoverageTests`, `EditingWorkflowsTests` and `SecurityTests` were ported after the first review (16 cases, all passing on first run; no bug found) |
 | PublicApiAnalyzers passes | Met | `PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt` in `EmbedPDF.Viewer`, `EmbedPDF.Models`, `EmbedPDF.Extensions.DependencyInjection` and `EmbedPDF.Scripting.Jint`; the Release build of `EmbedPDF.sln` at `b194bbb47` reports 0 warnings and 0 errors |
 | The console sample runs from packed packages and as a NativeAOT binary | Met | `dotnet-consumer.sh` in the dev container at `2c449137a` (all eight steps, FDD and AOT, `linux-arm64`); CI run 45825062921 `consumer` rows: AOT on `linux-arm64` and `linux-x64`, FDD on `osx-arm64` and `win-x64` |
 | Validation records for `linux-x64`, `linux-arm64` and `osx-arm64` | Met, and `osx-x64` and `win-x64` too | `platforms/dotnet/validation/2026-11-26-phase-6-runtime-<rid>/`, all five `VALIDATED` on native runners in run 45825062921 |
