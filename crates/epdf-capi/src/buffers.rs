@@ -27,7 +27,7 @@ impl ByteBudget {
 
     pub(crate) fn reserve(self: &Arc<Self>, bytes: u64) -> Result<Reservation, Status> {
         self.used
-            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |used| {
+            .try_update(Ordering::AcqRel, Ordering::Acquire, |used| {
                 used.checked_add(bytes).filter(|next| *next <= self.limit)
             })
             .map_err(|_| Status::LimitExceeded)?;

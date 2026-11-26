@@ -14,7 +14,7 @@ serde = { version = "1", features = ["derive"] }
 # record and an undo's `skipped` list it in that order, as upstream's
 # `Object.keys` does).
 serde_json = { version = "1", features = ["preserve_order"] }
-getrandom = "0.3"
+getrandom = "0.4"
 # TypeScript generation for the wire DTOs. Rust is canonical; the emitted .ts
 # is checked in and CI fails on a dirty diff (multiplatform-plan.md, G1).
 ts-rs = "=12.0.1"

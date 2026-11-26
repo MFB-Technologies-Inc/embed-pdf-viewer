@@ -2,15 +2,20 @@ name: release-train
 
 # One dispatch releases everything a commit of this branch ships, all as
 # prereleases on this repo: the PDFium runtime, the wasm payload and the Apple
-# engine, then the Swift package, the Rust viewer bundle and the C# engine.
-# It also redeploys the hosted demo, examples/rust-kernel-eval.
+# engine, then the Swift package, the Rust viewer bundle, the C# engine and,
+# with an android_version, the Android package. It also redeploys the hosted
+# demo, examples/rust-kernel-eval.
 #
 #   t0          preflight, the three slice groups and the .NET package start
 #               together.
 #   runtime     needs the five runtime slices (slices-runtime, slices-eh).
 #   payload     needs the wasm32-eh slice.
 #   apple       needs the four Apple slices.
-#   (these three run their workflow's build stage: nothing is published)
+#   android     needs the two Android slices (slices-runtime). It builds and
+#               checks the AAR from them and zips the five Maven artifacts
+#               as a file-based repository, on every run; without an
+#               android_version they are 0.0.0-local and nothing publishes.
+#   (these four run their workflow's build stage: nothing is published)
 #   viewer      needs payload. It builds from the payload-wasm32 artifact when
 #               payload built a new payload, and fetches the released one
 #               when payload found it already out.
@@ -23,9 +28,14 @@ name: release-train
 #               environment. GitHub's approval dialog names only the
 #               environment, and a gated job's steps don't run until it is
 #               approved, so summarize, not approve, writes the summary.
-#   runtime-publish, payload-publish, apple-publish
+#   runtime-publish, payload-publish, apple-publish, android-publish
 #               need approve: their workflow's publish stage, on the build
-#               stage's artifacts and outputs.
+#               stage's artifacts and outputs. android-publish tags
+#               github.sha, the commit the zip was built from, as
+#               <android_version> with embedpdf-android-maven-<android_version>.zip
+#               and its .sha256, and with an android_packages_repository
+#               also uploads the five artifacts to that repository's GitHub
+#               Packages Maven registry. It doesn't wait for pin.
 #   viewer-release, dotnet-release
 #               need approve. They tag the dispatched commit (github.sha),
 #               the one their files were built from and name: the bundle's
@@ -57,8 +67,8 @@ name: release-train
 # run from the branch tip instead.
 #
 # dry_run builds and tests everything, writes summarize's summary, runs
-# approve with no environment, and prints each push, tag and release command
-# instead of running it. The pin commit is made and shown but not
+# approve with no environment, and prints each push, tag, release and upload
+# command instead of running it. The pin commit is made and shown but not
 # pushed, so the Swift release would name the dispatched commit too. Preflight
 # only warns about missing notes and existing tags on a dry run.
 
@@ -75,6 +85,16 @@ on:
         type: string
       dotnet_version:
         description: C# viewer packages version, 0.0.0-dotnet.<n>. docs/releases/<dotnet_version>.md holds its notes. Empty builds them at 0.0.0-local and releases nothing.
+        required: false
+        type: string
+        default: ''
+      android_version:
+        description: Android package version and tag, 0.0.0-android.<n>. docs/releases/<android_version>.md holds its notes. Empty builds and checks it at 0.0.0-local and releases nothing.
+        required: false
+        type: string
+        default: ''
+      android_packages_repository:
+        description: owner/repo whose GitHub Packages Maven registry also receives the Android artifacts, such as this repository. Empty releases the zip only.
         required: false
         type: string
         default: ''
@@ -113,10 +133,13 @@ jobs:
       dotnet_state: ${{ steps.releases.outputs.dotnet }}
       dotnet_tag: ${{ steps.releases.outputs.dotnet_tag }}
       dotnet_viewer_state: ${{ steps.releases.outputs.dotnet_viewer }}
+      android_state: ${{ steps.releases.outputs.android }}
     env:
       SWIFT_VERSION: ${{ inputs.swift_version }}
       DOTNET_VERSION: ${{ inputs.dotnet_version }}
       VIEWER_VERSION: ${{ inputs.viewer_version }}
+      ANDROID_VERSION: ${{ inputs.android_version }}
+      ANDROID_PACKAGES_REPOSITORY: ${{ inputs.android_packages_repository }}
       REF_TYPE: ${{ github.ref_type }}
       REF_NAME: ${{ github.ref_name }}
       GH_REPO: ${{ github.repository }}
@@ -178,13 +201,27 @@ jobs:
           fi
           have=$(jq -r .version packages/rust-viewer-bundle/package.json)
           [[ "$have" == "$VIEWER_VERSION" ]] || err "packages/rust-viewer-bundle/package.json is $have, viewer_version is $VIEWER_VERSION"
+          if [[ -n "$ANDROID_VERSION" ]]; then
+            [[ "$ANDROID_VERSION" =~ ^0\.0\.0-android\.[0-9]+$ ]] || err "android_version must look like 0.0.0-android.1, got '$ANDROID_VERSION'"
+            [[ -s "docs/releases/$ANDROID_VERSION.md" ]] || soft "no release notes at docs/releases/$ANDROID_VERSION.md; write them and commit before dispatching"
+            # The engine version names the tree's hash; android stops a real
+            # run on a stale pin, after the slices. This says so now.
+            engine=$(bash platforms/android/android-engine-hash.sh)
+            grep -qxF "embedpdf.engineRelease=android-engine-$engine" platforms/android/embedpdf/gradle.properties \
+              || soft "platforms/android/embedpdf/gradle.properties doesn't pin android-engine-$engine, the engine this tree builds; commit the pin before dispatching"
+          elif [[ -n "$ANDROID_PACKAGES_REPOSITORY" ]]; then
+            echo "::warning::android_packages_repository is set but android_version is empty; nothing goes to GitHub Packages"
+          fi
+          if [[ -n "$ANDROID_PACKAGES_REPOSITORY" && ! "$ANDROID_PACKAGES_REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+            err "android_packages_repository must be owner/repo, got '$ANDROID_PACKAGES_REPOSITORY'"
+          fi
           exit "$status"
 
       # A tag with no release, a draft or a partial release stops a real run
       # here and is a warning on a dry run; a complete release is skipped by
       # its release job. The .NET tag names the dispatched commit, which its
       # release tags.
-      - name: Check the Swift, viewer and .NET releases
+      - name: Check the Swift, viewer, .NET and Android releases
         id: releases
         run: |
           status=0
@@ -228,6 +265,12 @@ jobs:
           else
             echo "dotnet_viewer=skipped" >> "$GITHUB_OUTPUT"
           fi
+          if [[ -n "$ANDROID_VERSION" ]]; then
+            zip=embedpdf-android-maven-$ANDROID_VERSION.zip
+            check android "$ANDROID_VERSION" "$zip" "$zip.sha256"
+          else
+            echo "android=skipped" >> "$GITHUB_OUTPUT"
+          fi
           exit "$status"
 
       # For the summary only: the reusable workflows compute these again.
@@ -237,6 +280,7 @@ jobs:
           VIEWER_STATE: ${{ steps.releases.outputs.viewer }}
           DOTNET_STATE: ${{ steps.releases.outputs.dotnet }}
           DOTNET_VIEWER_STATE: ${{ steps.releases.outputs.dotnet_viewer }}
+          ANDROID_STATE: ${{ steps.releases.outputs.android }}
         run: |
           runtime_sha=$(git ls-tree HEAD packages/engine/runtime/runtime-src | awk '{print $3}')
           payload_tag="runtime-payloads-$(bash packages/engine/runtime/scripts/runtime-payload-hash.sh)"
@@ -263,6 +307,7 @@ jobs:
             echo "| Rust viewer bundle | \`rust-viewer-$VIEWER_VERSION\` | $VIEWER_STATE |"
             echo "| C# engine | \`dotnet-engine-0.0.0-local-${GITHUB_SHA:0:12}\` | $DOTNET_STATE |"
             echo "| C# viewer packages | \`${DOTNET_VERSION:-none}\` | $DOTNET_VIEWER_STATE |"
+            echo "| Android package | \`${ANDROID_VERSION:-none}\` | $ANDROID_STATE |"
             if [[ "$DRY_RUN" == true ]]; then
               echo
               echo "Dry run: the \`release\` environment and its required reviewers were not checked."
@@ -334,6 +379,24 @@ jobs:
     with:
       dry_run: ${{ inputs.dry_run }}
 
+  # The Android AAR links the android-arm64 and android-x64 slices of
+  # slices-runtime. The call grants contents: write and packages: write for
+  # the workflow's release and packages jobs, as above; this stage's build
+  # job asks for contents: read and packages: read.
+  android:
+    name: release-android.yml (build)
+    needs: [preflight, slices-runtime]
+    uses: ./.github/workflows/release-android.yml
+    permissions:
+      contents: write
+      packages: write
+    with:
+      version: ${{ inputs.android_version }}
+      packages_repository: ${{ inputs.android_packages_repository }}
+      dry_run: ${{ inputs.dry_run }}
+    secrets:
+      ANDROID_PACKAGES_TOKEN: ${{ secrets.ANDROID_PACKAGES_TOKEN }}
+
   # A new payload is not released until after approve, which waits for this
   # build, so the build uses payload-wasm32. A payload already out is
   # fetched.
@@ -350,7 +413,7 @@ jobs:
   # commit, which it pins in its own checkout with the publish script's
   # pinEngine. Written on dry runs too.
   summarize:
-    needs: [preflight, slices-apple, slices-eh, slices-runtime, dotnet, runtime, payload, apple, viewer]
+    needs: [preflight, slices-apple, slices-eh, slices-runtime, dotnet, runtime, payload, apple, viewer, android]
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:
@@ -366,6 +429,10 @@ jobs:
       DOTNET_TAG: ${{ needs.preflight.outputs.dotnet_tag }}
       DOTNET_VERSION: ${{ inputs.dotnet_version }}
       DOTNET_VIEWER_STATE: ${{ needs.preflight.outputs.dotnet_viewer_state }}
+      ANDROID_VERSION: ${{ inputs.android_version }}
+      ANDROID_PACKAGES_REPOSITORY: ${{ inputs.android_packages_repository }}
+      ANDROID_STATE: ${{ needs.preflight.outputs.android_state }}
+      ANDROID_ENGINE_VERSION: ${{ needs.android.outputs.engine_version }}
       RUNTIME_SHA: ${{ needs.slices-runtime.outputs.runtime_sha }}
       RUNTIME_TAG: ${{ needs.runtime.outputs.tag }}
       RUNTIME_PUBLISHED: ${{ needs.runtime.outputs.published }}
@@ -421,6 +488,12 @@ jobs:
         with:
           name: dotnet-runtime
           path: ${{ runner.temp }}/dotnet-viewer
+
+      - uses: actions/download-artifact@v8
+        if: inputs.android_version != ''
+        with:
+          name: android-release
+          path: ${{ runner.temp }}/android-release
 
       # The titles, targets and asset lists are the ones each publish job
       # passes to gh. A release its job will skip as already out is named
@@ -522,6 +595,21 @@ jobs:
               echo
             fi
 
+            if [[ -z "$ANDROID_VERSION" ]]; then
+              printf '## Android package\n\nNo android_version: built and checked at 0.0.0-local, nothing is released.\n\n'
+            elif [[ "$ANDROID_STATE" == complete ]]; then
+              out "Android package $ANDROID_VERSION" "$ANDROID_VERSION"
+            else
+              zip=$T/android-release/embedpdf-android-maven-$ANDROID_VERSION.zip
+              bash "$S" release "$ANDROID_VERSION" "Android package $ANDROID_VERSION" "$GITHUB_SHA" "$zip" "$zip.sha256"
+              echo "The zip is a Maven repository: \`com.embedpdf:embedpdf-bindings:$ANDROID_ENGINE_VERSION\` and \`embedpdf\`, \`embedpdf-javascript\`, \`embedpdf-models\`, \`embedpdf-compose\` at \`$ANDROID_VERSION\`."
+              echo
+            fi
+            if [[ -n "$ANDROID_VERSION" && -n "$ANDROID_PACKAGES_REPOSITORY" ]]; then
+              echo "android-publish also uploads the five artifacts to GitHub Packages on \`$ANDROID_PACKAGES_REPOSITORY\`, skipping an engine version already there."
+              echo
+            fi
+
             echo "## Demo site"
             echo
             echo "deploy-demo replaces what the \`embed-pdf-rust-kernel-eval\` Worker serves with this run's build of \`examples/rust-kernel-eval\` at \`${GITHUB_SHA:0:9}\`."
@@ -577,6 +665,24 @@ jobs:
       apple_tag: ${{ needs.apple.outputs.apple_tag }}
       checksum: ${{ needs.apple.outputs.checksum }}
       dry_run: ${{ inputs.dry_run }}
+
+  # Tags github.sha, the commit the zip was built from. The zip carries its
+  # engine, so it doesn't wait for runtime-publish or pin. Its packages job
+  # and dotnet-viewer-release are the train's only jobs with packages: write.
+  android-publish:
+    name: release-android.yml (publish)
+    needs: [approve, android]
+    uses: ./.github/workflows/release-android.yml
+    permissions:
+      contents: write
+      packages: write
+    with:
+      stage: publish
+      version: ${{ inputs.android_version }}
+      packages_repository: ${{ inputs.android_packages_repository }}
+      dry_run: ${{ inputs.dry_run }}
+    secrets:
+      ANDROID_PACKAGES_TOKEN: ${{ secrets.ANDROID_PACKAGES_TOKEN }}
 
   # The Apple manifests name an engine built from the runtime-src gitlink, so
   # they are committed only once the runtime and payload of that gitlink are

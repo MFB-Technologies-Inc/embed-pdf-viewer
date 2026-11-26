@@ -66,12 +66,16 @@ internal suspend fun <T> bridgedCancellable(
         if (!context.isActive) token.cancel()
         // The generated call drops its Rust future when its coroutine is
         // cancelled, which would skip the kernel's answer, so it runs in a
-        // coroutine of its own that nothing cancels. Unconfined runs it on
-        // the caller's thread up to its first suspension and then on
-        // whichever thread the kernel's answer arrives on, never waiting for
-        // the caller's dispatcher (a blocked main thread, say).
+        // coroutine of its own that nothing cancels. It runs on
+        // Dispatchers.Default, never waiting for the caller's dispatcher (a
+        // blocked main thread, say). Not Unconfined: that resumed the
+        // generated call on the native thread delivering the kernel's answer,
+        // inside JNA's callback, and the poll it made there answered through
+        // a nested callback on the same thread. On Android, JNA detaching the
+        // thread when that inner callback returned aborted the process
+        // ("attempting to detach while still running code").
         val answer = CompletableDeferred<Result<T>>()
-        CoroutineScope(Dispatchers.Unconfined).launch {
+        CoroutineScope(Dispatchers.Default).launch {
             answer.complete(
                 try {
                     Result.success(bridged { block(token) })

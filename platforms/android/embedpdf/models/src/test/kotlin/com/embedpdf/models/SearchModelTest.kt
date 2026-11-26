@@ -9,8 +9,12 @@ import com.embedpdf.PdfViewer
 import com.embedpdf.RenderConfig
 import com.embedpdf.SearchCapability
 import com.embedpdf.SearchConfig
+import com.embedpdf.SearchBlendMode
+import com.embedpdf.SearchHighlightPatch
+import com.embedpdf.SearchHighlightSettings
 import com.embedpdf.SearchHit
 import com.embedpdf.SearchQuery
+import com.embedpdf.SearchSettingsPatch
 import com.embedpdf.SearchStatus
 import com.embedpdf.Size
 import com.embedpdf.StageConfig
@@ -177,6 +181,21 @@ class SearchModelTest {
         assertEquals(SearchStatus.IDLE, model.status.value)
         assertEquals(SearchModel.EMPTY_PROGRESS, model.progress.value)
         assertEquals(PdfException.Code.INSTANCE_CLOSED, model.error.value?.code)
+        viewer.destroy()
+    }
+
+    @Test
+    fun theHighlightFollowsTheSearchSettings() = mainTest {
+        val (viewer, _, search, model) = opened()
+        assertEquals(SearchModel.DEFAULT_HIGHLIGHT, model.highlight.value)
+        val observing = launch { model.run() }
+        expectObserved(model.highlight, SearchHighlightSettings("#ffd500", "#ff9632", SearchBlendMode.MULTIPLY))
+        val patch = SearchHighlightPatch(color = "#00ff00", activeColor = "blue", blendMode = SearchBlendMode.DARKEN)
+        expectObserved(model.highlight, SearchHighlightSettings("#00ff00", "blue", SearchBlendMode.DARKEN)) {
+            search.updateSettings(SearchSettingsPatch(highlight = patch))
+        }
+        expectObserved(model.highlight, SearchModel.DEFAULT_HIGHLIGHT) { search.resetSettings() }
+        observing.cancel()
         viewer.destroy()
     }
 

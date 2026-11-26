@@ -72,8 +72,7 @@ impl CancelToken {
     /// these, in the same place.
     pub fn check(&self) -> Result<(), EngineError> {
         if let Some(left) = &self.countdown
-            && left.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| n.checked_sub(1))
-                == Ok(1)
+            && left.try_update(Ordering::Relaxed, Ordering::Relaxed, |n| n.checked_sub(1)) == Ok(1)
         {
             self.cancel();
         }

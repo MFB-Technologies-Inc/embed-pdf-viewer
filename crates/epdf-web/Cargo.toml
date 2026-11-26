@@ -40,7 +40,7 @@ wasm-bindgen-futures = "=0.4.80"
 js-sys = "=0.3.107"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "0.2", features = ["js"] }
+getrandom = { version = "0.4", features = ["wasm_js"] }
 
 [dev-dependencies]
 wasm-bindgen-test = "=0.3.80"

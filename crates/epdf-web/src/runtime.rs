@@ -148,7 +148,7 @@ pub fn start_clock() {
         let mut source = source.borrow_mut();
         if source.is_none() {
             *source = Some(epdf_kernel::identity::with_uuid_source(
-                Rc::new(|bytes| getrandom::getrandom(bytes).expect("browser UUID entropy")),
+                Rc::new(|bytes| getrandom::fill(bytes).expect("browser UUID entropy")),
                 Rc::new(js_sys::Date::now),
             ));
         }

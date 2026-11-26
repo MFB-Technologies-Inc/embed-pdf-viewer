@@ -5,7 +5,11 @@
 // coordinates with those projects, so a library change shows up in the next
 // demo build. With `-Pembedpdf.fromMavenLocal` it resolves them from Maven
 // Local instead, as an app resolves a published release;
-// platforms/android/android-consumer.sh builds it that way.
+// platforms/android/android-consumer.sh builds it that way. With
+// `-Pembedpdf.mavenRepository=<dir>` it resolves them from that directory, a
+// Maven repository such as the unzipped release asset
+// embedpdf-android-maven-<version>.zip; a relative path is taken from this
+// directory. release-android.yml builds it that way from the zip it releases.
 pluginManagement {
     repositories {
         google()
@@ -15,11 +19,18 @@ pluginManagement {
 }
 
 val fromMavenLocal = providers.gradleProperty("embedpdf.fromMavenLocal").isPresent
+val mavenRepository = providers.gradleProperty("embedpdf.mavenRepository").orNull
 
 dependencyResolutionManagement {
     repositories {
         if (fromMavenLocal) {
             mavenLocal {
+                content { includeGroup("com.embedpdf") }
+            }
+        }
+        if (mavenRepository != null) {
+            maven {
+                url = uri(settingsDir.resolve(mavenRepository))
                 content { includeGroup("com.embedpdf") }
             }
         }
@@ -35,7 +46,7 @@ dependencyResolutionManagement {
 rootProject.name = "EmbedPDFDemo"
 include(":app")
 
-if (!fromMavenLocal) {
+if (!fromMavenLocal && mavenRepository == null) {
     includeBuild("../embedpdf") {
         dependencySubstitution {
             substitute(module("com.embedpdf:embedpdf-bindings")).using(project(":bindings"))

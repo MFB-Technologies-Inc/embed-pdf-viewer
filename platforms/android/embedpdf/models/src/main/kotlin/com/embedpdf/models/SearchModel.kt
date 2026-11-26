@@ -2,10 +2,12 @@ package com.embedpdf.models
 
 import com.embedpdf.PageRef
 import com.embedpdf.PdfException
+import com.embedpdf.SearchBlendMode
 import com.embedpdf.SearchCapability
 import com.embedpdf.SearchEvent
 import com.embedpdf.SearchEventActiveHitChanged
 import com.embedpdf.SearchEventProgressChanged
+import com.embedpdf.SearchHighlightSettings
 import com.embedpdf.SearchHit
 import com.embedpdf.SearchProgress
 import com.embedpdf.SearchQuery
@@ -18,8 +20,8 @@ import kotlinx.coroutines.flow.asStateFlow
 /**
  * An observable model of a document's search session, which a view reads.
  *
- * [status], [activeHitIndex], [hitCount], [progress] and [hits] are
- * snapshots of the kernel, read again after each state revision and search
+ * [status], [activeHitIndex], [hitCount], [progress], [hits] and
+ * [highlight] are snapshots of the kernel, read again after each state revision and search
  * event while [run] runs, and after each action. A snapshot is one revision
  * behind the kernel until its refresh lands: read right after a change, it
  * still holds the value from before. The [SearchCapability] reads answer
@@ -57,6 +59,7 @@ public class SearchModel(
     private val _activeHit = MutableStateFlow<SearchHit?>(null)
     private val _summary = MutableStateFlow<String?>(null)
     private val _canClear = MutableStateFlow(false)
+    private val _highlight = MutableStateFlow(DEFAULT_HIGHLIGHT)
 
     /** The search field's text, which [searchSubmitted] searches for; [textFlow] follows it. */
     public var text: String
@@ -107,6 +110,16 @@ public class SearchModel(
      * refused search's `ERROR` both count, with an empty field too.
      */
     public val canClear: StateFlow<Boolean> = _canClear.asStateFlow()
+
+    /**
+     * The search plugin's `highlight` setting: the fill of every hit, of the
+     * active one, and how they blend with the page. It starts at the plugin's
+     * defaults (`#ffd500`, `#ff9632`, `MULTIPLY`) and follows
+     * `SearchCapability.updateSettings` and `resetSettings` through the state
+     * revision each of them makes. A failed read leaves it as it was, since
+     * the settings outlive the document.
+     */
+    public val highlight: StateFlow<SearchHighlightSettings> = _highlight.asStateFlow()
 
     private var pageHitCounts: Map<PageRef, Int> = emptyMap()
     private var query: SearchQuery? = null
@@ -165,7 +178,11 @@ public class SearchModel(
                 val unchanged = !hitsOutdated && query == this@SearchModel.query && hitCount == _hits.value.size &&
                     status == _status.value
                 val hits = if (unchanged) null else search.hits()
-                Snapshot(status, activeHitIndex, hitCount, progress, query, hits)
+                // Performance: one more bridge round trip on every revision,
+                // a scroll or a zoom included, though the settings rarely
+                // change. A settings revision the host reported would skip it.
+                val highlight = search.settings().highlight
+                Snapshot(status, activeHitIndex, hitCount, progress, query, hits, highlight)
             },
             apply = {
                 _status.value = if (submissionRefused) SearchStatus.ERROR else it.status
@@ -173,6 +190,7 @@ public class SearchModel(
                 _hitCount.value = it.hitCount
                 _progress.value = it.progress
                 query = it.query
+                _highlight.value = it.highlight
                 if (it.hits != null) {
                     hitsOutdated = false
                     if (_hits.value != it.hits) {
@@ -270,10 +288,14 @@ public class SearchModel(
         val progress: SearchProgress,
         val query: SearchQuery?,
         val hits: List<SearchHit>?,
+        val highlight: SearchHighlightSettings,
     )
 
     internal companion object {
         val EMPTY_PROGRESS = SearchProgress(pagesSearched = 0.0, pageCount = 0.0)
+
+        /** The plugin's `SEARCH_DEFAULTS.highlight`, until the first refresh reads the setting. */
+        val DEFAULT_HIGHLIGHT = SearchHighlightSettings(color = "#ffd500", activeColor = "#ff9632", blendMode = SearchBlendMode.MULTIPLY)
 
         fun summary(activeHitIndex: Int?, hitCount: Int, status: SearchStatus, strings: SearchStrings = SearchStrings.English): String? {
             if (activeHitIndex == null || activeHitIndex >= hitCount) return null

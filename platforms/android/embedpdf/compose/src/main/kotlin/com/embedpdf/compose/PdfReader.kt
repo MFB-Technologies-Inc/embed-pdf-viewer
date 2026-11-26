@@ -98,7 +98,8 @@ import kotlinx.coroutines.launch
  * own under the toggles, so the field keeps room to type in. The panels are thumbnails always, bookmarks when the viewer has the
  * outline plugin, attachments when it has the attachment plugin (add them
  * with the model's `configure`). The reader scrolls to each hit the search
- * bar reports active. On a window at least 600 dp wide an open panel sits
+ * bar reports active, and a [SearchHighlightOverlay] on each page draws the
+ * hits in the search settings' colors. On a window at least 600 dp wide an open panel sits
  * beside the pages; on a narrower one it is a modal bottom sheet. Under the
  * pages sits a [ToolPicker] for [tools] when the session has tools and
  * [tools] is not empty, and [HistoryControls] when the viewer has the
@@ -111,8 +112,8 @@ import kotlinx.coroutines.launch
  * selection is off. With selection the reader sets the stage reader's
  * `panBeginsOnMovement`, so a pan begins once the finger has moved 10 dp.
  *
- * [pageOverlay] is laid over each visible page, above the text selection,
- * in the page's frame. [onLinkActivation] receives each link activation
+ * [pageOverlay] is laid over each visible page, above the search
+ * highlights and the text selection, in the page's frame. [onLinkActivation] receives each link activation
  * while a document shows, from the pages and from the bookmarks; opening a
  * `Uri` is the app's job. The reader runs the session's models; an app does
  * not run them again.
@@ -367,7 +368,7 @@ private fun ThumbnailPanel(
     }
 }
 
-/** The pages, with text selection under the app's overlay. */
+/** The pages, with search highlights under text selection, both under the app's overlay. */
 @Composable
 private fun ReaderStage(
     session: PdfReaderModel.Session,
@@ -376,6 +377,7 @@ private fun ReaderStage(
     pageOverlay: @Composable (StageVisiblePage, PdfReaderModel.Session) -> Unit,
 ) {
     val selection = session.selection
+    val search = session.search
     val forwardsDrags by session.reader.forwardsDrags.collectAsState()
     // A long press delays the stage's drag to the first move or the lift, so
     // a tap that moves a few dp must not start a pan: it would cancel the
@@ -384,12 +386,15 @@ private fun ReaderStage(
     if (selection != null) LaunchedEffect(selection) { selection.run() }
     StageReader(session.reader, modifier, onLinkActivation) { page ->
         Box(Modifier.fillMaxSize()) {
+            val info = session.pageInfo(page)
+            // The search bar runs the model; the overlay only draws it.
+            if (search != null && info != null) {
+                SearchHighlightOverlay(search, page, info, Modifier.fillMaxSize())
+            }
             // Absent under a tool other than the default, whose drags the
             // reader forwards: the long press would take them from it.
-            if (selection != null && !forwardsDrags) {
-                session.pageInfo(page)?.let { info ->
-                    TextSelectionOverlay(selection, page, info, Modifier.fillMaxSize(), activation = TextSelectionActivation.LONG_PRESS)
-                }
+            if (selection != null && !forwardsDrags && info != null) {
+                TextSelectionOverlay(selection, page, info, Modifier.fillMaxSize(), activation = TextSelectionActivation.LONG_PRESS)
             }
             pageOverlay(page, session)
         }
