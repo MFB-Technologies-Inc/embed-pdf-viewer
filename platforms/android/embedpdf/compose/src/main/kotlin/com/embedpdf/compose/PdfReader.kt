@@ -396,7 +396,8 @@ private fun RevealingSearchBar(model: SearchModel, modifier: Modifier) {
 @Composable
 private fun PasswordPrompt(model: PdfReaderModel, document: DocumentInfo, modifier: Modifier) {
     val scope = rememberCoroutineScope()
-    var password by rememberSaveable { mutableStateOf("") }
+    // Not saved state: the saved-state bundle is written to disk, and a password must not be.
+    var password by remember { mutableStateOf("") }
     // Whether an unlock is on its way to the engine.
     var submitting by remember { mutableStateOf(false) }
     val unlockError by model.unlockError.collectAsState()

@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -75,6 +76,23 @@ class PdfReaderTest {
         launchMain { model.unlock("hôtel") }
         ready(model)
         compose.onNodeWithContentDescription("Document pages").assertExists()
+    }
+
+    /** A typed password is not kept in saved state: a restored prompt starts empty. */
+    @Test
+    fun aRestoredPasswordPromptStartsEmpty() {
+        val model = PdfReaderModel()
+        this.model = model
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent { PdfReader(model) }
+        launchMain { model.open(Fixture.bytes("encrypted-hello"), name = "secret.pdf") }
+        compose.pumpUntil { model.phase.value is PdfReaderModel.Phase.Locked }
+        compose.pumpFrame()
+        compose.onNodeWithTag("readerPassword").performTextInput("typed")
+        compose.onNodeWithTag("readerUnlock").assertIsEnabled()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.pumpFrame()
+        compose.onNodeWithTag("readerUnlock").assertIsNotEnabled()
     }
 
     @Test
