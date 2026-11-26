@@ -17,14 +17,6 @@ epdf-engine = { path = "../epdf-engine" }
 # 20 floor provides.
 napi = { version = "=3.16.3", default-features = false, features = ["napi8"] }
 napi-derive = "=3.7.2"
-# Pinned to work around an upstream mismatch, not because this crate uses it.
-# `napi-derive` 3.6.3 depends on `convert_case` "0.11" and re-exports symbols
-# from `napi-derive-backend`, whose 6.1.4 moved to "0.12". Cargo resolves both,
-# the two `Case` types are different types, and the macro crate stops
-# compiling. 6.1.2 is the newest backend on "0.11", and `napi-derive` asks for
-# ">=6.1.2", so this narrows rather than contradicts it. Remove when
-# `napi-derive` ships a release whose backend agrees with it.
-napi-derive-backend = "=6.1.2"
 
 [build-dependencies]
 build-support = { path = "../build-support" }
