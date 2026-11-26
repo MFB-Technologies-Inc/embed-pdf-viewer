@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Docker selects the host architecture; supported hosts are amd64 and arm64.
 # Must equal `node` in mise.toml; .devcontainer/check-pins.py enforces it.
-FROM node:24.20.0-trixie-slim
+FROM node:26.13.1-trixie-slim
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ARG TARGETARCH

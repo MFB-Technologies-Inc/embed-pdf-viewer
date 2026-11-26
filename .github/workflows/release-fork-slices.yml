@@ -151,7 +151,7 @@ jobs:
       - uses: actions/setup-node@v7
         if: steps.cache.outputs.cache-hit != 'true'
         with:
-          node-version: 24
+          node-version: 26
 
       - uses: ./.github/actions/setup-xcode-27
         if: steps.cache.outputs.cache-hit != 'true' && matrix.container == ''
