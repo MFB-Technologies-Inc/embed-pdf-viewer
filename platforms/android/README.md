@@ -4,21 +4,333 @@ The Android package exposes the Rust viewer through typed Kotlin capabilities,
 observable models and Compose views, on Android 7.0 (API 24) or later, for
 `arm64-v8a` and `x86_64`.
 
-It publishes as five Maven artifacts under the group `com.embedpdf`, built by
-`.github/workflows/android-release.yml` and published to a GitHub Packages
-Maven registry. Nothing is published yet: the workflow is written and checked,
-and the first run waits for a maintainer. Until then an app builds against
-the libraries from this checkout, as the demo app does by default.
+It ships as five Maven artifacts under the group `com.embedpdf`. Each release
+is the prerelease `0.0.0-android.<n>` of this repository, with the five
+artifacts in one zip that is itself a Maven repository, so a build reads them
+with no token. Nothing is released yet: `0.0.0-android.1` will be the first,
+and until then an app builds against the libraries from this checkout, as the
+demo app does by default.
+
+## Using the package
+
+### Requirements
+
+| | |
+|---|---|
+| `minSdk` | 24 or later |
+| `compileSdk` | 36 or later |
+| ABIs | `arm64-v8a`, `x86_64` |
+| Built and checked with | AGP 9.5.2, Gradle 9.8.2, Kotlin 2.2.21, JDK 17 bytecode |
+| Compose BOM in the app | 2026.06.01 or earlier (Compose UI 1.11.4, Material 3 1.4.0) |
+
+The demo app builds with exactly the versions above. Older AGP and Kotlin
+versions were not tried. Kotlin 2.2.21's standard library comes in through
+the POMs, and a Kotlin compiler older than 2.1 can't read the libraries'
+metadata. A Compose BOM from 2026.08.00 on resolves Compose 1.12, which needs
+`compileSdk` 37, and `embedpdf-compose` hasn't been tested against it.
+
+### Which artifacts
+
+| App | Depend on | Brings |
+|---|---|---|
+| Compose | `embedpdf-compose` | `embedpdf-models`, `embedpdf`, `embedpdf-bindings` |
+| Views, or Compose drawn your own way | `embedpdf-models` | `embedpdf`, `embedpdf-bindings`, no Compose |
+| Engine and capabilities only | `embedpdf` | `embedpdf-bindings` |
+| PDF JavaScript, any of the above | add `embedpdf-javascript` | `androidx.javascriptengine` 1.1.1 |
+
+`embedpdf-bindings` is versioned by engine, `0.0.0-engine.<hash>`, and the
+others by release, so depend on the release version and let the POMs pick the
+engine. `androidx.javascriptengine` declares `minSdk` 26. The
+`embedpdf-javascript` manifest carries
+`tools:overrideLibrary="androidx.javascriptengine"`, so an app at `minSdk` 24
+merges it without a line of its own, and JavaScript reports itself
+unavailable below API 26.
+
+### From the release zip (recommended)
+
+Each release carries `embedpdf-android-maven-<version>.zip` and its
+`.sha256`. The zip's root is a Maven repository: all five artifacts, a
+`maven-metadata.xml` per artifact and the checksums a remote repository
+serves. Download it, check it and unzip it into the app's tree:
+
+```bash
+V=0.0.0-android.1
+base=https://github.com/MFB-Technologies-Inc/embed-pdf-viewer/releases/download/$V
+curl -fLO "$base/embedpdf-android-maven-$V.zip" -fLO "$base/embedpdf-android-maven-$V.zip.sha256"
+sha256sum -c "embedpdf-android-maven-$V.zip.sha256"   # shasum -a 256 -c on macOS
+unzip -q "embedpdf-android-maven-$V.zip" -d third_party/embedpdf-maven
+```
+
+Then name that directory as a repository in `settings.gradle.kts`:
+
+```kotlin
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url = uri(settingsDir.resolve("third_party/embedpdf-maven"))
+            content { includeGroup("com.embedpdf") }
+        }
+    }
+}
+```
+
+and depend on it in the module:
 
 ```kotlin
 dependencies {
     implementation("com.embedpdf:embedpdf-compose:0.0.0-android.1")
+    // Only for PDF JavaScript:
+    implementation("com.embedpdf:embedpdf-javascript:0.0.0-android.1")
 }
 ```
 
-That one line brings `embedpdf-models`, `embedpdf` and `embedpdf-bindings`
-with it. [Consuming from GitHub Packages](#consuming-from-github-packages) has
-the repository block and the token it needs.
+The cost is size in the app's repository: the zip holds both ABIs' engine and
+its native debug symbols. Commit the unzipped directory, keep it in Git LFS,
+or download it in CI before the build. `release-android.yml` builds the demo
+from the unzipped zip, with these settings, before every release.
+
+### From GitHub Packages
+
+A release may also go to a GitHub Packages Maven registry (the train's
+`android_packages_repository` input; the release notes say whether it did).
+GitHub Packages asks for a token even to read a public package. Every machine
+and CI job that resolves the artifacts needs a classic personal access token
+with `read:packages`, or the job's `GITHUB_TOKEN` when the build runs in a
+workflow of the repository that holds the packages. With `OWNER/REPO` that
+repository:
+
+```kotlin
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url = uri("https://maven.pkg.github.com/OWNER/REPO")
+            content { includeGroup("com.embedpdf") }
+            credentials {
+                username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
+                password = providers.gradleProperty("gpr.key").orNull ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+}
+```
+
+Put `gpr.user` and `gpr.key` in `~/.gradle/gradle.properties`, not in the
+project. The dependencies are the same as for the zip.
+
+### From source
+
+Build the engine, then publish to Maven Local at a version of your choosing:
+
+```bash
+bash platforms/android/build-aar.sh
+cd platforms/android/embedpdf
+./gradlew publishToMavenLocal -Pembedpdf.version=0.0.0-mine.1
+```
+
+and add `mavenLocal { content { includeGroup("com.embedpdf") } }` to the
+app's repositories. Or include the library build and substitute the
+coordinates, as `platforms/android/EmbedPDFDemo/settings.gradle.kts` does, so
+a library change shows up in the app's next build:
+
+```kotlin
+includeBuild("../embed-pdf-viewer/platforms/android/embedpdf") {
+    dependencySubstitution {
+        substitute(module("com.embedpdf:embedpdf-bindings")).using(project(":bindings"))
+        substitute(module("com.embedpdf:embedpdf")).using(project(":embedpdf"))
+        substitute(module("com.embedpdf:embedpdf-javascript")).using(project(":javascript"))
+        substitute(module("com.embedpdf:embedpdf-models")).using(project(":models"))
+        substitute(module("com.embedpdf:embedpdf-compose")).using(project(":compose"))
+    }
+}
+```
+
+`build-aar.sh` needs NDK r29, JDK 21 and the Rust toolchain
+`rust-toolchain.toml` pins; [Local engine mode](#local-engine-mode) has the rest.
+
+### Compose quick start
+
+`PdfReaderModel` starts a viewer with the plugins its features need, plus
+whatever `configure` adds, and `PdfReader` draws it. Hold the model in a
+`ViewModel` so a rotation keeps the document:
+
+```kotlin
+import android.app.Application
+import android.net.Uri
+import android.util.Log
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.embedpdf.ToolId
+import com.embedpdf.compose.PdfReader
+import com.embedpdf.models.PdfReaderModel
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.URL
+
+class ReaderViewModel(application: Application) : AndroidViewModel(application) {
+    val reader = PdfReaderModel(
+        configure = { it.outline().attachment().history() },
+        actionScope = viewModelScope,
+    )
+
+    fun openBytes(bytes: ByteArray) = viewModelScope.launch { reader.open(bytes, name = "report.pdf") }
+
+    fun openUrl(url: String) = viewModelScope.launch { reader.open(URL(url)) }
+
+    // PdfReaderModel opens bytes or a URL; read a content Uri yourself.
+    fun openUri(uri: Uri) = viewModelScope.launch {
+        val bytes = withContext(Dispatchers.IO) {
+            getApplication<Application>().contentResolver.openInputStream(uri)?.use { it.readBytes() }
+        } ?: return@launch
+        reader.open(bytes)
+    }
+
+    // The scope is already cancelled here; close destroys the viewer.
+    @OptIn(DelicateCoroutinesApi::class)
+    override fun onCleared() {
+        GlobalScope.launch(Dispatchers.Main) { reader.close() }
+    }
+}
+
+@Composable
+fun ReaderScreen(model: ReaderViewModel = viewModel()) {
+    PdfReader(
+        model.reader,
+        Modifier.fillMaxSize(),
+        tools = listOf(ToolId.POINTER, ToolId.INK),
+        onError = { error -> Log.w("Reader", error.detail) },
+    )
+}
+```
+
+`viewModel()` comes from `androidx.lifecycle:lifecycle-viewmodel-compose`
+2.9.4, which the app adds itself.
+`open` never throws a `PdfException`: a failure is `PdfReaderModel.Phase.Failed`,
+which `PdfReader` shows and passes to `onError`. A locked document shows a
+password prompt. The demo's
+`platforms/android/EmbedPDFDemo/app/src/main/kotlin/com/embedpdf/demo/DocumentViewModel.kt`
+is the same shape with a document picker, a metadata sheet and a note button.
+
+### View-based quick start
+
+`embedpdf-models` has no Compose. `PdfViewerViewModel` holds one `PdfViewer`
+across configuration changes, started when it is created and destroyed in
+`onCleared()`. The viewer's `DocumentFetcher` carries URL and `Uri` opens;
+`ContentResolverDocumentFetcher` reads `content:` Uris and hands anything else
+to `HttpDocumentFetcher`:
+
+```kotlin
+import android.os.Bundle
+import android.util.Log
+import android.widget.ImageView
+import androidx.activity.ComponentActivity
+import androidx.activity.viewModels
+import androidx.lifecycle.lifecycleScope
+import com.embedpdf.ContentResolverDocumentFetcher
+import com.embedpdf.PdfException
+import com.embedpdf.RenderConfig
+import com.embedpdf.RenderPageOptions
+import com.embedpdf.SearchConfig
+import com.embedpdf.ViewerConfig
+import com.embedpdf.models.PdfViewerViewModel
+import com.embedpdf.render
+import kotlinx.coroutines.launch
+import java.net.URL
+
+class ReaderActivity : ComponentActivity() {
+    private val holder: PdfViewerViewModel by viewModels {
+        PdfViewerViewModel.factory(
+            ViewerConfig(render = RenderConfig(), search = SearchConfig(), metadata = true),
+            ContentResolverDocumentFetcher(applicationContext.contentResolver),
+        )
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val page = ImageView(this).also(::setContentView)
+        lifecycleScope.launch {
+            try {
+                val viewer = holder.startedViewer()
+                val uri = intent.data
+                // A Uri, a URL, or bytes: viewer.open(bytes, name = "report.pdf").
+                val document = if (uri != null) viewer.open(uri) else viewer.open(URL("https://example.com/report.pdf"))
+                val first = viewer.pages(document).first()
+                val rendered = viewer.render(document).renderPage(first.page, RenderPageOptions(scale = 1.0))
+                page.setImageBitmap(rendered.image.toBitmap())
+            } catch (e: PdfException) {
+                Log.w("Reader", e.detail)
+            }
+        }
+    }
+}
+```
+
+`viewModels` and `lifecycleScope` come from `androidx.activity:activity`
+1.10.1, which the app adds itself. Unlike the model, `PdfViewer` throws
+`PdfException`. A locked document opens
+with its state `LOCKED`, not as an error. For more than one page image, build
+the models over the viewer's capabilities (`StageReaderModel`,
+`TiledPageModel`, `SearchModel` and the rest under [Models](#models)) and
+draw their state with your own Views.
+
+### Manifest, R8, symbols and size
+
+The libraries' manifests ask for no permissions. Opening a URL needs
+`<uses-permission android:name="android.permission.INTERNET" />` in the app,
+and an `http://` URL also needs the app's network security config to allow
+cleartext traffic to that host; since API 28 it is off by default. Bytes and
+`content:` Uris need neither.
+
+R8 needs nothing from the app. `embedpdf-bindings` ships consumer rules that
+keep JNA and every generated `uniffi.*` class, which JNA reaches by
+reflection. `android-consumer.sh` checks that on a minified build of the
+demo before each release ([The demo app](#the-demo-app)).
+
+The engine ships stripped. Its unstripped libraries are the
+`native-debug-symbols` artifact of `embedpdf-bindings`, in the zip and in
+GitHub Packages, for the store console or `ndk-stack`; [Native crash
+symbols](#native-crash-symbols) has the Gradle line.
+
+The engine is large, and stored uncompressed so it maps straight out of the
+APK on a 16 KB page device:
+
+| ABI | `libepdf_viewer_host.so` | `libc++_shared.so` | per-ABI total |
+|---|---|---|---|
+| `arm64-v8a` | 39,838,344 bytes | 1,374,336 bytes | 41,212,680 bytes |
+| `x86_64` | 45,100,200 bytes | 1,337,488 bytes | 46,437,688 bytes |
+
+A universal APK carries both: the demo's minified release APK is
+92,403,389 bytes. Ship an App Bundle and the store delivers one ABI per
+device. For APKs, split by ABI:
+
+```kotlin
+android {
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "x86_64")
+            isUniversalApk = false
+        }
+    }
+}
+```
+
+or keep only `arm64-v8a` with `defaultConfig { ndk { abiFilters += "arm64-v8a" } }`,
+at the cost of x86_64 emulators and devices. Keep
+`packaging { jniLibs { useLegacyPackaging = false } }` (the default at
+`minSdk` 23 and above), and run `zipalign -c -P 16 4` on the APK you ship:
+[What the script checks](#what-the-script-checks) explains why.
 
 ## Products
 
@@ -107,7 +419,7 @@ engine didn't change reuses the engine already published. The publish task of
 `:bindings` runs `android-engine-hash.sh` and refuses to publish when the tree
 builds another hash than the pin names, so a version always names the sources
 it was built from. The other four artifacts take `embedpdf.version`
-(`0.0.0-local` in `gradle.properties`; the release workflow passes its
+(`0.0.0-local` in `gradle.properties`; `release-android.yml` passes its
 `version` input).
 
 The pin goes stale whenever an input to the hash changes. [Engine
@@ -120,8 +432,9 @@ engine isn't published or 2 when it is, so only the pin needs committing. The
 same codes mean the same as in `platforms/apple/check-apple-engine.sh`, which
 asks for a GitHub release instead. The registry wants a token even to read:
 `GH_TOKEN`, `GITHUB_TOKEN` or a `gh` login, with `read:packages`. With none,
-the script exits 69. The release workflow runs it first and stops on anything
-but 0.
+the script exits 69. `release-android.yml` compares the pin with
+`android-engine-hash.sh` itself, without the registry, and stops a real
+release on a stale one.
 
 ## Plugins
 
@@ -183,93 +496,53 @@ publishToMavenLocal` writes all five artifacts to Maven Local, and
 `bash platforms/android/android-consumer.sh` does that into a directory of its
 own and builds the demo from it (see [The demo app](#the-demo-app)).
 
-## Consuming from GitHub Packages
-
-GitHub Packages asks for a token even to read a public package. Every machine
-and CI job that resolves the artifacts needs a personal access token (classic)
-with `read:packages`, or the job's `GITHUB_TOKEN` when the build runs in a
-workflow of the repository that holds the packages. Maven Central would avoid
-that, at the cost of a namespace and signing setup we don't have.
-
-In the app's `settings.gradle.kts`, with `OWNER/REPO` the repository the
-release workflow published to (its `packages_repository` input):
-
-```kotlin
-dependencyResolutionManagement {
-    repositories {
-        google()
-        mavenCentral()
-        maven {
-            url = uri("https://maven.pkg.github.com/OWNER/REPO")
-            content { includeGroup("com.embedpdf") }
-            credentials {
-                username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
-                password = providers.gradleProperty("gpr.key").orNull ?: System.getenv("GITHUB_TOKEN")
-            }
-        }
-    }
-}
-```
-
-and in the module:
-
-```kotlin
-dependencies {
-    implementation("com.embedpdf:embedpdf-compose:0.0.0-android.1")
-    // Only for PDF JavaScript:
-    implementation("com.embedpdf:embedpdf-javascript:0.0.0-android.1")
-}
-```
-
-The app needs `compileSdk` 36 or later and `minSdk` 24 or later. The
-published module metadata and POMs name every dependency's version, the
-Compose ones included (resolved from Compose BOM 2026.06.01), so the app
-doesn't have to import the BOM.
-
-An app's release build runs R8 over the libraries. `embedpdf-bindings`
-ships `consumer-rules.pro`, which keeps JNA and every generated `uniffi.*`
-class and interface; the app adds nothing. The app should still run
-`zipalign -c -P 16 4` on its APK, as [What the script checks](#what-the-script-checks)
-explains.
-
 ## Releasing
 
-`.github/workflows/android-release.yml` runs only from `workflow_dispatch`,
-with a `version` for the four non-engine artifacts (for example
-`0.0.0-android.1`), the `packages_repository` to publish to, and `dry_run`,
-which defaults to true. It runs three jobs on `ubuntu-24.04`.
+`.github/workflows/release-android.yml` builds and releases the package, in
+two stages with one approval between them, as `release-apple.yml` does for the
+Apple engine. The release train runs it on every dispatch, and with an
+`android_version` (`0.0.0-android.<n>`, notes in
+`docs/releases/<android_version>.md`) it releases. `android-release.yml` runs
+the same workflow on its own, for an Android-only release, with its own
+preflight, the two Android slices and an `approve` job.
 
-`preflight` checks the inputs. On a real run it also refuses a dispatch from
-anything but a branch, and fails unless the repository's `release`
-environment exists with a required-reviewers rule, as `release-train.yml`
-does: a job that names a missing environment creates it with no rules.
+The build stage runs in the dev image on `ubuntu-24.04`. It links the engine
+against the `android-arm64` and `android-x64` fork slices that
+`release-fork-slices.yml` built earlier in the same run, not a downloaded
+release, and checks that both are their target at the `runtime-src` gitlink.
+Then it runs `build-aar.sh test`, the Kotlin API coverage check, `apiCheck`
+and `android-consumer.sh`, packs the staged repository with
+`package-maven-zip.py`, and builds the minified demo once more from the
+unzipped zip with `-Pembedpdf.mavenRepository`. It uploads `android-maven`
+(the staged files) and `android-release` (the zip and its `.sha256`). Its
+token reads contents and packages and writes neither.
 
-`build` builds the dev image from `.devcontainer/Dockerfile` and runs every
-step in it: the pin check, `build-aar.sh test`, the Kotlin API coverage
-check, `apiCheck`, and `android-consumer.sh`, which stages the five artifacts
-at `version` in a local Maven repository and builds the demo from them.
-Before building it asks the registry which versions exist. An engine version
-already there is reused, and a library version already there stops the run,
-since a registry version can't be replaced. The staged repository is uploaded
-as the `android-maven` workflow artifact on every run. This job's token reads
-packages and can't write them.
+A stale engine pin stops a real run with a version, both in the train's
+preflight and in the build stage, because the engine version must name the
+sources it was built from. A dry run or a run without a version only warns,
+and pins the tree's engine in its own checkout.
 
-`publish` runs only when `dry_run` is off. It takes the `release`
-environment, so its reviewers approve before it starts, and it is the only
-job with `packages: write`. It uploads `android-maven` with
-`platforms/android/publish-staged.sh`, which asks the registry once more,
-then sends each file with HTTP PUT followed by its checksums. The registry
-gets the files the consumer check built the demo from, not a second build.
-The cost is that the upload is a script of ours rather than Gradle's
-`maven-publish`, and it has only been run against a local stand-in
-(`platforms/android/tests/test_publish_staged.py`), not GitHub Packages.
-Publishing to a registry in another repository needs the
-`ANDROID_PACKAGES_TOKEN` secret, a classic token with `write:packages` there;
-the job's own token can only publish to the repository the workflow runs in.
+After approval, the publish stage's `release` job tags the dispatched commit
+as `<version>` and makes the prerelease with the zip and its `.sha256`
+(`scripts/release/github-release.sh`, which skips a release already out with
+both assets). With a packages repository (`android_packages_repository` in
+the train, `packages_repository` in the wrapper), the `packages` job also
+uploads `android-maven` with `platforms/android/publish-staged.sh`, the only
+job with `packages: write`. A registry in another repository needs the
+`ANDROID_PACKAGES_TOKEN` secret, a classic token with `write:packages` there.
+`scripts/release/check-release-gate.py` fails both workflows when a job that
+can write contents or packages, or that runs `publish-staged.sh`, doesn't wait
+for `approve`.
 
-The first publish, then: commit an engine pin that `check-android-engine.sh`
-reports current, add the secret, run the workflow once with `dry_run` on and
-look at `android-maven`, then run it with `dry_run` off.
+The cost of the zip as the main channel is that an app keeps the repository
+itself, about 90 MB for `0.0.0-android.1`'s dry run, where GitHub Packages
+would be one line once the token is set up. Maven Central would avoid both,
+at the cost of a namespace and signing setup we don't have.
+
+The first release, then: commit release notes at
+`docs/releases/0.0.0-android.1.md`, dispatch the train (or
+`android-release.yml`) with `dry_run` on and look at the build stage's summary
+and `android-release`, then dispatch it with `dry_run` off and approve.
 
 ## Cancellation
 
@@ -382,9 +655,34 @@ not, so it never lands in the saved-state bundle.
 
 The pieces are public too: `StageReader`, `TiledPageImage`, `PageImageView`,
 `ThumbnailStrip`, `SearchBar`, `OutlinePanel`, `AttachmentPanel`,
-`HistoryControls`, `ToolPicker` and `TextSelectionOverlay`. Each takes a model
-from `embedpdf-models` and runs it while composed. `compose/api/compose.api`
-is the checked surface.
+`HistoryControls`, `ToolPicker`, `TextSelectionOverlay` and
+`SearchHighlightOverlay`. Each takes a model from `embedpdf-models` and runs it
+while composed, except the two overlays, which draw a model run elsewhere.
+`compose/api/compose.api` is the checked surface.
+
+The engine paints no search hits into the tiles, so `SearchHighlightOverlay`
+draws them, as each web framework's search layer does
+(`packages/framework/web/src/search-highlights.ts`). It fills each line of each
+hit on one page with the search plugin's `highlight.color`, the active hit's
+lines with `highlight.activeColor`, and blends them with the page in
+`highlight.blendMode`, through the same page-to-frame mapping as
+`TextSelectionOverlay`, so zoom and rotation place it. `SearchModel.highlight`
+carries the setting and follows `updateSettings`. `PdfReader` stacks it under
+the text selection on every page. A hand-built `StageReader` returns it from
+`pageOverlay`:
+
+```kotlin
+StageReader(reader) { visiblePage ->
+    val info = pages.firstOrNull { it.page == visiblePage.page } ?: return@StageReader
+    SearchHighlightOverlay(search, visiblePage, info, Modifier.fillMaxSize())
+}
+```
+
+Colors are read as CSS hex, `rgb()`, `rgba()` or a basic color name; one it
+can't read draws the plugin's default for that slot. Below API 29 a blend mode
+other than the Porter-Duff ones falls back to multiply. The overlay has no
+semantics and takes no touches. The cost: the model reads the settings on
+every state revision, one more engine round trip per scroll step.
 
 ## The demo app
 
@@ -429,9 +727,10 @@ The first run found that a minified app did not build at all: JNA's
 `Native$AWT` names `java.awt` classes Android lacks, so
 `bindings/consumer-rules.pro` now adds `-dontwarn java.awt.**`.
 
-There are no demo UI tests: the Apple ones drive a simulator, and the dev
-container has no emulator (see [No emulator](#no-emulator)). What the demo
-calls is covered by the compose module's Robolectric tests.
+There are no demo UI tests. The Apple ones drive a simulator; on Android the
+demo was installed and checked by hand on an emulator, debug and minified
+release both (see [Device runs](#device-runs)), and what it calls is covered
+by the compose module's Robolectric and instrumented tests.
 
 ## Building in the dev container
 
@@ -469,17 +768,101 @@ runtime slice and the fixture directory itself, so no shell setup is needed.
 reads its 14 pages; `CommandContextTest` is described under "Full viewer
 command callbacks on Linux".
 
-### No emulator
+### Device runs
 
 There is no Android emulator in the dev container: Docker on a Mac host has no
-nested virtualization, so none can run (checked 2026-11-20). Nothing in this
-directory runs on a device any more. What a device run proved is covered two
-other ways. The Kotlin and the native contract are tested on the JVM against
-the same sources built for Linux, and the property only a device can show,
-that the `.so` maps under Android's linker on a 16 KB page, is covered by the
-static ELF and `zipalign` checks below. The cost is that a loader or linker
-problem specific to bionic would go unseen until a device or CI emulator runs
-the AAR.
+nested virtualization, so none can run there (checked 2026-11-20). The
+instrumented tests run from a macOS host instead, against an emulator or a
+device, after `build-aar.sh` has built the engine on that host:
+
+```bash
+bash platforms/android/build-aar.sh
+cd platforms/android/embedpdf
+./gradlew :embedpdf:connectedDebugAndroidTest :javascript:connectedDebugAndroidTest :compose:connectedDebugAndroidTest
+```
+
+They live in each module's `src/androidTest`, with fixture access shared
+from `embedpdf/src/androidTestShared`. Each module's `deviceFixtures` task
+copies the PDFs they open into the test APK's assets. The user-authentication
+case in `DeviceKeyStoreTest` needs a secure lock screen to generate its keys:
+`adb shell locksettings set-pin 1234` before the run, `adb shell locksettings
+clear --old 1234` after.
+
+Results, 2026-11-26, on the `Pixel_4` AVD running
+`system-images/android-37.1/google_apis_playstore_ps16k/arm64-v8a` (build
+`CP31.260623.012`, `getconf PAGE_SIZE` 16384) with WebView 157.0.8103.50:
+15 tests, 0 failures. A second compose run the same day, with
+`DeviceSearchHighlightTest` added: 4 tests, 0 failures.
+
+`DeviceViewerTest` (3 tests): the engine starts on the 16 KB page device and
+runs mapped straight out of the APK at a 16 KB aligned offset; a viewer with
+every plugin opens `report.pdf` with 14 pages, renders page 1 to a 612 by 792
+`Bitmap` with 6,365 dark samples, finds "Report", and saves in both modes to
+bytes that reopen; `encrypted-hello.pdf` opens `LOCKED`, refuses a wrong
+password and unlocks with `hôtel`.
+
+`DeviceKeyStoreTest` (4 tests): an EC P-256 key generated in the Keystore
+signs a message that verifies with the public key of the certificate the
+Keystore made for it. Keys generated with `setUserAuthenticationRequired(true)`,
+one per use and one with a 30 second window, both fail with `permission-denied`
+named `UserNotAuthenticated`, directly and through the viewer, with nothing
+left pending. `setUserAuthenticationRequired(true)` alone, which means a
+biometric per use, can't be generated here: the emulator has no biometric
+enrolled. A document signed through `SignatureCapability` with the generated
+key is `VALID_UNTRUSTED`: integrity and cryptography are valid, but with the
+Keystore's self-signed certificate as the anchor the engine answers "One of
+intermediate certificates is not a CA certificate". That certificate is no CA,
+so an app needs a CA-issued chain on the key. With the test signer's RSA key
+imported into the Keystore and its certificate as the anchor, the verdict is
+`TRUSTED` and `VALID`. No test answers a biometric or credential prompt; a
+test can't.
+
+`DeviceSandboxTest` (5 tests): the sandbox is supported and evaluates; it has
+`JS_FEATURE_ISOLATE_TERMINATION`, and `while (true) {}` times out at about 200
+ms with a 200 ms budget, after which the factory makes working realms again;
+two factories share one connection, which survives closing one of them;
+`document_actions.pdf`'s will-close script runs through `ActionsCapability`.
+Pressing `btn-chain` in `action_buttons_form.pdf` runs its JavaScript,
+ResetForm and JavaScript nodes, all `EXECUTED`, and resets `alpha`, but leaves
+the log field at "B". The TypeScript plugin's e2e
+(`packages/plugin/form/test/action-buttons.integration.test.ts`) expects "AB"
+for the same press: the second script doesn't see the first one's write. That
+is the Rust actions plugin rather than the sandbox, and it is not fixed here.
+
+`DeviceStageReaderTest` (3 tests): `StageReader` draws the document and names
+its pages "Page 1 of 14" and on; a drag pans the camera and a pinch zooms it
+(0.471 to 0.660); with the ink tool active, the first stroke creates an ink
+annotation, where Robolectric needed two.
+
+`DeviceSearchHighlightTest` (1 test): searching "Trace" in `report.pdf` makes
+416 hits, and the first one, 27.3 by 10.1 dp on screen, changes color in 1,351
+of the 1,704 pixels sampled inside it. Its 515 dark text pixels stay dark,
+so the fill multiplies rather than covers. Before the overlay existed the
+demo found the same 416 hits and drew none of them.
+
+The run found two crashes no JVM test could. Both are JNA running a nested
+callback on a native thread and detaching that thread when the inner callback
+returns, which ART aborts ("attempting to detach while still running code")
+and HotSpot refuses quietly. It happens when a generated async call resumes on
+the thread that delivered the kernel's answer, so its next poll answers
+inside the first callback. The facade's cancellable calls did that on
+`Dispatchers.Unconfined`, so every one of them crashed the process on a
+device; they run on `Dispatchers.Default` now. A caller whose own dispatcher
+resumes inline still crashes: Compose's test rule runs effects on an
+`UnconfinedTestDispatcher` by default, so `DeviceStageReaderTest` passes a
+`StandardTestDispatcher` as the effect context. An app's own instrumented
+tests over these views need the same until the generated continuation stops
+resuming inline.
+
+The demo app, debug and minified release, installs, opens `report.pdf` and
+draws its first page (screenshots identical across the two); the release
+build's search finds 416 hits for "Trace". Neither logcat shows a crash or an
+`UnsatisfiedLinkError`. With `SearchHighlightOverlay`, the debug demo built
+from source draws the hits: the title's "Trace" in orange as "1 of 416", and
+the page's other "trace" hits in yellow with the text readable through them.
+
+The `x86_64` engine is built and checked but not executed, since the only
+image installed is arm64. A run on physical hardware is still to do.
 
 ### Library sizes
 
@@ -607,7 +990,7 @@ same order. Identical assertions across the three mean a divergence is a
 packaging problem rather than a logic one.
 
 Since 2026-11-20 it's a JVM test against `libepdf_uniffi.so` built for the dev
-container, because the container has no emulator (see "No emulator"). 8 tests,
+container, because the container has no emulator (see "Device runs"). 8 tests,
 0 failures. The two device runs below were with the instrumented version, when
 the AAR still packaged `epdf-uniffi`.
 
@@ -729,11 +1112,16 @@ answers it on its own.
 
 ## Limitations
 
-No emulator or device runs since 2026-11-20 ([No emulator](#no-emulator)):
-everything is tested on the JVM, and the 16 KB property is checked statically.
-The `x86_64` engine is built and checked but has never been executed. The
-release workflow has been linted and its build steps run in the dev container,
-but it has not run on a hosted runner, and nothing is published. PDF
+The instrumented tests ran on one arm64 16 KB page emulator on 2026-11-26
+([Device runs](#device-runs)), not on physical hardware, and they need a
+macOS host since the dev container has no emulator. The `x86_64` engine is
+built and checked but has never been executed. PDF JavaScript's
+JS→ResetForm→JS chain diverges from the TypeScript plugin, and an inline
+dispatcher calling into the viewer crashes the process on Android; the same
+section has both. The
+release workflows (`release-android.yml`, the train, `android-release.yml`)
+have been linted, and their build, staging and zip steps run on a macOS host,
+but they have not run on a hosted runner, and nothing is published. PDF
 JavaScript needs API 26 and a WebView whose `JavaScriptSandbox.isSupported()`
 is true; elsewhere it reports itself unavailable. The demo app has no UI
 tests.

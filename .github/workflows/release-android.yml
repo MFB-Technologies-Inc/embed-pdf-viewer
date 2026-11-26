@@ -1,0 +1,449 @@
+name: release-android
+
+# Builds, checks and releases the Android package: the five com.embedpdf
+# Maven artifacts (embedpdf-bindings at 0.0.0-engine.<hash>, the engine pin
+# in platforms/android/embedpdf/gradle.properties; embedpdf,
+# embedpdf-javascript, embedpdf-models and embedpdf-compose at version). The
+# release asset is a zip of a file-based Maven repository holding all five,
+# embedpdf-android-maven-<version>.zip, and its .sha256, on the prerelease
+# <version> of this repository: an app reads it with no token. GitHub
+# Packages, which wants a token even to read, is an optional second channel.
+#
+# The caller runs it twice, once per stage, with its approval between them,
+# as release-apple.yml. It has to have run release-fork-slices.yml for
+# android-arm64 and android-x64 earlier in the same run: the engine links
+# those slices (fork-slice-android-*), not a downloaded release.
+#
+#   build            stage build, in the development image
+#                    (.devcontainer/Dockerfile) on amd64, since the NDK and the
+#                    Android SDK have Linux host tools for x86-64 only:
+#                    the engine pin against android-engine-hash.sh; with a
+#                    packages_repository, which versions its registry has;
+#                    build-aar.sh test (both ABIs from the slices, the 16 KB
+#                    checks, apiCheck and the JVM tests); the Kotlin API
+#                    coverage check and apiCheck again; android-consumer.sh,
+#                    which stages the five artifacts at version in a local
+#                    Maven repository and builds the minified demo from them;
+#                    package-maven-zip.py, which zips that repository; and the
+#                    demo built once more from the unzipped zip. Uploads
+#                    android-maven (the staged com/embedpdf directory) and
+#                    android-release (the zip and its .sha256).
+#   publish-verdict  stage publish, always: checks the inputs and says what
+#                    publish will do, so the call never counts as skipped.
+#   release          stage publish, with a version: tags github.sha, the
+#                    commit the zip was built from, as <version> and makes the
+#                    prerelease with the zip, its .sha256 and the notes in
+#                    docs/releases/<version>.md. A release already out with
+#                    both assets is skipped (github-release.sh).
+#   packages         stage publish, with a version and a packages_repository:
+#                    uploads android-maven to that repository's GitHub
+#                    Packages Maven registry with publish-staged.sh, the files
+#                    the consumer check used, not a second build. The only job
+#                    with packages: write.
+#
+# An empty version builds and checks everything at 0.0.0-local and publishes
+# nothing. A stale engine pin stops a real run with a version; otherwise it
+# is a warning, and the build pins the tree's engine in its own checkout.
+#
+# dry_run runs every job; release and packages print what they would run.
+#
+# GitHub Packages takes a classic personal access token with write:packages
+# for a repository other than this one: the ANDROID_PACKAGES_TOKEN secret,
+# which the caller passes. Publishing to this repository works with the job's
+# own token.
+
+on:
+  workflow_call:
+    inputs:
+      stage:
+        description: build (the build job) or publish (publish-verdict, release and packages).
+        required: false
+        type: string
+        default: build
+      version:
+        description: Version of embedpdf, embedpdf-javascript, embedpdf-models and embedpdf-compose, and the release tag, 0.0.0-android.<n>. Empty builds at 0.0.0-local and publishes nothing.
+        required: false
+        type: string
+        default: ''
+      packages_repository:
+        description: owner/repo whose GitHub Packages Maven registry also receives the artifacts. Empty publishes the release zip only.
+        required: false
+        type: string
+        default: ''
+      dry_run:
+        description: Build and check everything, print the release and upload commands instead of running them.
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      ANDROID_PACKAGES_TOKEN:
+        description: Classic token with write:packages on packages_repository, when that isn't this repository.
+        required: false
+    outputs:
+      version:
+        description: The version the four libraries were staged at; 0.0.0-local when version is empty.
+        value: ${{ jobs.build.outputs.version }}
+      engine_version:
+        description: embedpdf-bindings' version, 0.0.0-engine.<hash>.
+        value: ${{ jobs.build.outputs.engine_version }}
+      zip:
+        description: The release asset's file name, embedpdf-android-maven-<version>.zip, in the android-release artifact.
+        value: ${{ jobs.build.outputs.zip }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    if: inputs.stage == 'build'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    permissions:
+      contents: read
+      # The registry's version check, only with a packages_repository.
+      packages: read
+    outputs:
+      version: ${{ steps.pin.outputs.version }}
+      engine_version: ${{ steps.pin.outputs.engine_version }}
+      zip: ${{ steps.zip.outputs.zip }}
+    env:
+      INPUT_VERSION: ${{ inputs.version }}
+      PACKAGES_REPOSITORY: ${{ inputs.packages_repository }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      IMAGE: embedpdf-dev:android-release
+    steps:
+      - name: Check the inputs
+        run: |
+          if [[ -n "$INPUT_VERSION" && ! "$INPUT_VERSION" =~ ^0\.0\.0-android\.[0-9]+$ ]]; then
+            echo "::error::version must look like 0.0.0-android.1, got '$INPUT_VERSION'"
+            exit 1
+          fi
+          if [[ -n "$PACKAGES_REPOSITORY" && ! "$PACKAGES_REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+            echo "::error::packages_repository '$PACKAGES_REPOSITORY' is not owner/repo"
+            exit 1
+          fi
+          if [[ -n "$PACKAGES_REPOSITORY" && -z "$INPUT_VERSION" ]]; then
+            echo "::warning::packages_repository is set but version is empty; nothing is published"
+          fi
+
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      # The engine version names the hash of the tree that built it, and the
+      # publish task of :bindings refuses another. A release must not ship
+      # an engine under a stale name, so a real run with a version stops;
+      # anything else pins the tree's engine in this checkout and goes on.
+      - name: Check the engine pin
+        id: pin
+        run: |
+          properties=platforms/android/embedpdf/gradle.properties
+          hash=$(bash platforms/android/android-engine-hash.sh)
+          [[ "$hash" =~ ^[0-9a-f]{16}$ ]] || { echo "::error::android-engine-hash.sh printed '$hash'"; exit 1; }
+          pinned=$(sed -n 's/^embedpdf\.engineRelease=\(.*\)$/\1/p' "$properties")
+          if [[ "$pinned" != "android-engine-$hash" ]]; then
+            message="$properties pins $pinned, but this tree builds android-engine-$hash; commit embedpdf.engineRelease=android-engine-$hash"
+            if [[ "$DRY_RUN" != true && -n "$INPUT_VERSION" ]]; then
+              echo "::error::$message"
+              exit 1
+            fi
+            echo "::warning::$message. Pinned in this checkout only."
+            sed -i "s/^embedpdf\.engineRelease=.*$/embedpdf.engineRelease=android-engine-$hash/" "$properties"
+          fi
+          {
+            echo "version=${INPUT_VERSION:-0.0.0-local}"
+            echo "engine_version=0.0.0-engine.$hash"
+          } >> "$GITHUB_OUTPUT"
+          echo "engine android-engine-$hash"
+
+      # 200: published. 404: not yet. Anything else (a token that can't read
+      # the registry) stops a real run rather than guessing, and is a warning
+      # on a dry run. An engine already there is reused; a library version
+      # already there stops a real run, since a registry version can't be
+      # replaced.
+      - name: Ask the registry which versions exist
+        if: inputs.packages_repository != '' && inputs.version != ''
+        env:
+          TOKEN: ${{ secrets.ANDROID_PACKAGES_TOKEN || github.token }}
+          ENGINE_VERSION: ${{ steps.pin.outputs.engine_version }}
+        run: |
+          base="https://maven.pkg.github.com/$PACKAGES_REPOSITORY/com/embedpdf"
+          published() {
+            local status
+            status="$(curl -sS -o /dev/null -w '%{http_code}' -u "x-access-token:$TOKEN" "$base/$1/$2/$1-$2.pom")"
+            case "$status" in
+              200) echo true ;;
+              404) echo false ;;
+              *)
+                if [[ "$DRY_RUN" == true ]]; then
+                  echo "::warning::asking $PACKAGES_REPOSITORY for $1 $2 returned HTTP $status" >&2
+                  echo unknown
+                else
+                  echo "::error::asking $PACKAGES_REPOSITORY for $1 $2 returned HTTP $status" >&2
+                  return 1
+                fi
+                ;;
+            esac
+          }
+          engine_published="$(published embedpdf-bindings "$ENGINE_VERSION")"
+          for artifact in embedpdf embedpdf-javascript embedpdf-models embedpdf-compose; do
+            if [[ "$(published "$artifact" "$INPUT_VERSION")" == true ]]; then
+              message="com.embedpdf:$artifact:$INPUT_VERSION is already published to $PACKAGES_REPOSITORY"
+              if [[ "$DRY_RUN" == true ]]; then echo "::warning::$message"; else echo "::error::$message"; exit 1; fi
+            fi
+          done
+          echo "GitHub Packages on $PACKAGES_REPOSITORY: engine $ENGINE_VERSION published: $engine_published"
+
+      # Both slices must be their own target at the runtime-src gitlink. Each
+      # archive is the one the runtime release would carry, unpacked where
+      # fetch-android-runtime.sh would unpack it, so build-aar.sh fetches
+      # nothing.
+      - uses: actions/download-artifact@v8
+        with:
+          name: fork-slice-android-arm64
+          path: ${{ runner.temp }}/slices/android-arm64
+      - uses: actions/download-artifact@v8
+        with:
+          name: fork-slice-android-x64
+          path: ${{ runner.temp }}/slices/android-x64
+
+      - name: Unpack the Android runtime slices
+        run: |
+          sha=$(git ls-tree HEAD packages/engine/runtime/runtime-src | awk '{print $3}')
+          [[ -n "$sha" ]] || { echo "::error::no runtime-src gitlink at HEAD"; exit 1; }
+          for target in android-arm64 android-x64; do
+            dir=$RUNNER_TEMP/slices/$target
+            read -r slice_sha slice_target < <(jq -r '"\(.sha) \(.target)"' "$dir/staging/BUILD-METADATA.json")
+            if [[ "$slice_sha" != "$sha" || "$slice_target" != "$target" ]]; then
+              echo "::error::fork-slice-$target is $slice_target at $slice_sha, not $target at $sha"
+              exit 1
+            fi
+            archives=("$dir"/libembedpdf-runtime-"$target"-*.tar.gz)
+            [[ ${#archives[@]} -eq 1 && -f "${archives[0]}" ]] \
+              || { echo "::error::fork-slice-$target: expected one libembedpdf-runtime-$target-<sha>.tar.gz"; ls -la "$dir"; exit 1; }
+            dest=packages/engine/runtime/build/libpdfium/$target
+            mkdir -p "$dest"
+            tar -xzf "${archives[0]}" -C "$dest"
+            test -f "$dest/lib/libembedpdf.a" || { echo "::error::${archives[0]##*/} has no lib/libembedpdf.a"; exit 1; }
+            echo "$target: ${archives[0]##*/} ($(sha256sum "${archives[0]}" | cut -d' ' -f1))"
+          done
+
+      # The image, the Rust release build of two ABIs and Gradle's caches
+      # outgrow the runner's free space without this.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL
+          rm -rf "$RUNNER_TEMP/slices"
+          df -h /
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build the development image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .devcontainer/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: ${{ env.IMAGE }}
+          cache-from: type=gha,scope=android-release-image
+          cache-to: type=gha,mode=max,scope=android-release-image
+
+      - name: Restore the Cargo and Gradle caches
+        uses: actions/cache@v6
+        with:
+          path: |
+            .ci/cargo-registry
+            .ci/gradle/caches
+            .ci/gradle/wrapper
+          key: android-release-${{ hashFiles('Cargo.lock', 'platforms/android/embedpdf/gradle/libs.versions.toml', 'platforms/android/embedpdf/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: android-release-
+
+      # The image runs as `node` (uid 1000); the checkout and the cache
+      # directories become its, and go back to the runner's user at the end.
+      # The zip's timestamps are the commit's, read before git would refuse
+      # a checkout another user owns.
+      - name: Prepare the workspace for the image
+        env:
+          VERSION: ${{ steps.pin.outputs.version }}
+        run: |
+          echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
+          mkdir -p .ci/cargo-registry .ci/gradle
+          sudo chown -R 1000:1000 "$GITHUB_WORKSPACE"
+          {
+            echo "DEV_RUN<<EOF"
+            echo "docker run --rm -u node -w /workspaces/repo"
+            echo "  -v $GITHUB_WORKSPACE:/workspaces/repo"
+            echo "  -v $GITHUB_WORKSPACE/.ci/cargo-registry:/home/node/.cargo/registry"
+            echo "  -v $GITHUB_WORKSPACE/.ci/gradle:/home/node/.gradle"
+            echo "  -e VERSION=$VERSION -e EMBEDPDF_VERSION=$VERSION -e SOURCE_DATE_EPOCH"
+            echo "  $IMAGE bash -lc"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
+      # The JVM tests load epdf-viewer-host built for the image, which links
+      # the linux-x64 runtime engine-runtime-build.json pins.
+      - name: Fetch the Linux runtime for the JVM tests
+        run: $DEV_RUN 'bash packages/engine/runtime/scripts/fetch-libpdfium.sh linux-x64'
+
+      - name: Build the engine and run the JVM tests
+        run: $DEV_RUN 'bash platforms/android/build-aar.sh test'
+
+      - name: Check the Kotlin API coverage and the API dumps
+        run: $DEV_RUN 'python3 scripts/check-api-coverage.py --platform kotlin && cd platforms/android/embedpdf && ./gradlew --console=plain apiCheck'
+
+      # Stages the five artifacts at VERSION in build/android-maven and
+      # builds the minified demo from them; packages uploads these same files.
+      - name: Stage the artifacts and build the demo from them
+        run: $DEV_RUN 'CONSUMER_MAVEN_REPO=/workspaces/repo/build/android-maven bash platforms/android/android-consumer.sh'
+
+      # The packing and upload scripts' own tests run first.
+      - name: Zip the Maven repository
+        id: zip
+        env:
+          VERSION: ${{ steps.pin.outputs.version }}
+        run: |
+          $DEV_RUN "python3 -m unittest platforms/android/tests/test_package_maven_zip.py platforms/android/tests/test_publish_staged.py && python3 platforms/android/package-maven-zip.py build/android-maven $VERSION build/android-release"
+          echo "zip=embedpdf-android-maven-$VERSION.zip" >> "$GITHUB_OUTPUT"
+
+      # The asset as an app gets it: unzipped into a directory of its own and
+      # named as a Maven repository, with no Maven Local in the build.
+      - name: Build the demo from the unzipped repository
+        env:
+          VERSION: ${{ steps.pin.outputs.version }}
+        run: |
+          $DEV_RUN "set -e
+            rm -rf build/android-zip-repo && mkdir -p build/android-zip-repo
+            (cd build/android-release && sha256sum -c embedpdf-android-maven-$VERSION.zip.sha256)
+            unzip -q build/android-release/embedpdf-android-maven-$VERSION.zip -d build/android-zip-repo
+            platforms/android/embedpdf/gradlew --console=plain -p platforms/android/EmbedPDFDemo \
+              -Pembedpdf.mavenRepository=/workspaces/repo/build/android-zip-repo -Pembedpdf.version=$VERSION :app:assembleRelease"
+
+      - name: Summarize the build
+        env:
+          VERSION: ${{ steps.pin.outputs.version }}
+          ENGINE_VERSION: ${{ steps.pin.outputs.engine_version }}
+          ZIP: ${{ steps.zip.outputs.zip }}
+        run: |
+          {
+            echo "### Android package $VERSION"
+            echo
+            echo "- \`$ZIP\`: $(stat -c %s "build/android-release/$ZIP") bytes, sha256 \`$(cut -d' ' -f1 "build/android-release/$ZIP.sha256")\`"
+            echo "- engine: \`com.embedpdf:embedpdf-bindings:$ENGINE_VERSION\`"
+            echo "- libraries: \`embedpdf\`, \`embedpdf-javascript\`, \`embedpdf-models\`, \`embedpdf-compose\` at \`$VERSION\`"
+            echo "- GitHub Packages: ${PACKAGES_REPOSITORY:-not published there}"
+            echo "- dry run: $DRY_RUN"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: android-maven
+          path: build/android-maven/com/embedpdf/
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: android-release
+          path: build/android-release/
+          if-no-files-found: error
+
+      - name: Return the workspace to the runner
+        if: always()
+        run: sudo chown -R "$(id -u):$(id -g)" "$GITHUB_WORKSPACE"
+
+  # Stage publish always runs this. A call whose jobs all skip may count as
+  # skipped rather than successful, which would skip a caller job that needs
+  # it; this keeps one job running.
+  publish-verdict:
+    if: inputs.stage == 'publish'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    steps:
+      - name: Report what publish does
+        env:
+          VERSION: ${{ inputs.version }}
+          PACKAGES_REPOSITORY: ${{ inputs.packages_repository }}
+        run: |
+          if [[ -z "$VERSION" ]]; then
+            echo "no version: nothing to publish"
+            exit 0
+          fi
+          [[ "$VERSION" =~ ^0\.0\.0-android\.[0-9]+$ ]] || { echo "::error::version must look like 0.0.0-android.1, got '$VERSION'"; exit 1; }
+          echo "release publishes embedpdf-android-maven-$VERSION.zip as the prerelease $VERSION"
+          if [[ -n "$PACKAGES_REPOSITORY" ]]; then
+            echo "packages uploads the five artifacts to GitHub Packages on $PACKAGES_REPOSITORY"
+          fi
+
+  # The caller's approval gates it; android-release comes from the build
+  # stage's call in the same run.
+  release:
+    if: inputs.stage == 'publish' && inputs.version != ''
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      VERSION: ${{ inputs.version }}
+    steps:
+      # Credentials stay: github-release.sh pushes the tag.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: android-release
+          path: ${{ runner.temp }}/android-release
+
+      - name: Release the Android package
+        run: |
+          R=$RUNNER_TEMP/android-release
+          zip=embedpdf-android-maven-$VERSION.zip
+          (cd "$R" && sha256sum -c "$zip.sha256")
+          bash scripts/release/github-release.sh publish "$VERSION" "$GITHUB_SHA" \
+            "Android package $VERSION" "docs/releases/$VERSION.md" \
+            "$R/$zip" "$R/$zip.sha256"
+
+  # GitHub Packages, the optional second channel: the only job with
+  # packages: write. publish-staged.sh asks the registry again before
+  # uploading: an engine published since build is skipped, a library version
+  # stops the run.
+  packages:
+    if: inputs.stage == 'publish' && inputs.version != '' && inputs.packages_repository != ''
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    env:
+      DRY_RUN: ${{ inputs.dry_run }}
+      PACKAGES_REPOSITORY: ${{ inputs.packages_repository }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: android-maven
+          path: ${{ runner.temp }}/android-maven
+
+      - name: Publish to GitHub Packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.ANDROID_PACKAGES_TOKEN || github.token }}
+        run: |
+          if [[ "$DRY_RUN" == true ]]; then
+            echo "dry run: would run bash platforms/android/publish-staged.sh <android-maven> $PACKAGES_REPOSITORY for:"
+            (cd "$RUNNER_TEMP/android-maven" && find . -type f ! -name 'maven-metadata*' | sed 's#^\./#  #' | LC_ALL=C sort)
+            exit 0
+          fi
+          bash platforms/android/publish-staged.sh "$RUNNER_TEMP/android-maven" "$PACKAGES_REPOSITORY"

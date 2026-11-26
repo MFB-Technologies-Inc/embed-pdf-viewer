@@ -24,6 +24,7 @@ class ReleaseGate(unittest.TestCase):
         workflows.mkdir(parents=True)
         for path in (REPO / ".github" / "workflows").glob("release-*.yml"):
             shutil.copy(path, workflows)
+        shutil.copy(REPO / ".github" / "workflows" / "android-release.yml", workflows)
         self.train = workflows / "release-train.yml"
 
     def edit(self, name, old, new):
@@ -32,13 +33,13 @@ class ReleaseGate(unittest.TestCase):
         self.assertEqual(text.count(old), 1, f"{old!r} in {name}")
         path.write_text(text.replace(old, new))
 
-    def run_gate(self):
+    def run_gate(self, train=None):
         return subprocess.run(
-            [sys.executable, str(GATE), str(self.train)], capture_output=True, text=True
+            [sys.executable, str(GATE), str(train or self.train)], capture_output=True, text=True
         )
 
-    def assert_fails(self, message):
-        result = self.run_gate()
+    def assert_fails(self, message, train=None):
+        result = self.run_gate(train)
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         self.assertIn(message, result.stdout)
 
@@ -47,7 +48,7 @@ class ReleaseGate(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         for job in ("runtime-publish", "payload-publish", "apple-publish", "pin",
                     "swift-release", "viewer-release", "dotnet-release", "dotnet-viewer-release",
-                    "deploy-demo"):
+                    "deploy-demo", "android-publish"):
             self.assertIn(job, result.stdout)
 
     def test_a_release_job_without_approve_fails(self):
@@ -104,8 +105,58 @@ class ReleaseGate(unittest.TestCase):
                   "if: inputs.published == 'false'")
         self.assert_fails(
             "runtime calls ./.github/workflows/release-runtime.yml, whose job publish publishes"
-            " or can write contents but whose if doesn't ask for inputs.stage == 'publish'"
+            " or can write contents or packages but whose if doesn't ask for inputs.stage == 'publish'"
         )
+
+    def test_an_android_publish_without_approve_fails(self):
+        self.edit("release-train.yml", "needs: [approve, android]\n    uses: ./.github/workflows/release-android.yml",
+                  "needs: [android]\n    uses: ./.github/workflows/release-android.yml")
+        self.assert_fails("android-publish publishes but doesn't need approve")
+
+    def test_an_ungated_packages_job_fails(self):
+        # packages writes packages and runs publish-staged.sh.
+        self.edit("release-android.yml",
+                  "if: inputs.stage == 'publish' && inputs.version != '' && inputs.packages_repository != ''",
+                  "if: inputs.version != '' && inputs.packages_repository != ''")
+        self.assert_fails(
+            "android calls ./.github/workflows/release-android.yml, whose job packages publishes"
+            " or can write contents or packages"
+        )
+
+    def test_packages_write_counts_as_writing(self):
+        self.add_job(
+            "  registry:\n"
+            "    needs: preflight\n"
+            "    runs-on: ubuntu-24.04\n"
+            "    permissions:\n"
+            "      contents: read\n"
+            "      packages: write\n"
+            "    steps:\n"
+            "      - run: echo nothing that looks like a release\n"
+        )
+        self.assert_fails("registry publishes but doesn't need approve")
+
+    def test_publish_staged_counts_as_publishing(self):
+        self.add_job(
+            "  registry:\n"
+            "    needs: preflight\n"
+            "    runs-on: ubuntu-24.04\n"
+            "    permissions: {contents: read}\n"
+            "    steps:\n"
+            "      - run: bash platforms/android/publish-staged.sh staged owner/repo\n"
+        )
+        self.assert_fails("registry publishes but doesn't need approve")
+
+    def test_the_android_wrapper_passes(self):
+        wrapper = self.dir / ".github" / "workflows" / "android-release.yml"
+        result = self.run_gate(wrapper)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("android-publish", result.stdout)
+
+    def test_the_android_wrapper_without_approve_fails(self):
+        self.edit("android-release.yml", "needs: [approve, android]", "needs: [android]")
+        self.assert_fails("android-publish publishes but doesn't need approve",
+                          self.dir / ".github" / "workflows" / "android-release.yml")
 
     def add_job(self, text):
         path = self.train

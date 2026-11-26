@@ -18,6 +18,7 @@ android {
 
     defaultConfig {
         minSdk = 24
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     compileOptions {
@@ -28,6 +29,8 @@ android {
     sourceSets {
         // Fixtures and runners the javascript module's tests share.
         getByName("test").kotlin.srcDir("src/testShared/kotlin")
+        // Fixture access the javascript and compose modules' device tests share.
+        getByName("androidTest").kotlin.srcDir("src/androidTestShared/kotlin")
     }
 
     testOptions {
@@ -60,7 +63,23 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
+
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
 }
+
+// The instrumented tests (src/androidTest, `./gradlew connectedDebugAndroidTest`)
+// read their fixtures from the test APK's assets, under `fixtures/`.
+val deviceFixtures = tasks.register<Sync>("deviceFixtures") {
+    from(repoRoot.resolve("pdfium-multiplatform-prototype/fixtures")) { include("report.pdf", "encrypted-hello.pdf") }
+    from(repoRoot.resolve("packages/engine/main/test/fixtures")) { include("unsigned_sigfield.pdf", "signature_artwork.pdf") }
+    from(repoRoot.resolve("packages/engine/main/test/fixtures/signature-compat/keys")) { include("TEST-ONLY-signer.pem", "TEST-ONLY-private-key.pem") }
+    into(layout.buildDirectory.dir("generated/deviceFixtures/fixtures"))
+}
+android.sourceSets.getByName("androidTest").assets.srcDir(layout.buildDirectory.dir("generated/deviceFixtures").get().asFile)
+tasks.matching { it.name.endsWith("AndroidTestAssets") }.configureEach { dependsOn(deviceFixtures) }
 
 // The JVM tests load the Linux host library `:bindings` builds for them.
 val linuxHost = project(":bindings").extensions.extraProperties

@@ -19,6 +19,7 @@
     ".github/workflows/engine-rust.yml",
     ".github/workflows/perf-history-pages.yml",
     ".github/workflows/plugin-rust.yml",
+    ".github/workflows/release-android.yml",
     ".github/workflows/release-apple.yml",
     ".github/workflows/release-dotnet.yml",
     ".github/workflows/release-fork-slices.yml",
@@ -65,6 +66,12 @@
       "matchUpdateTypes": ["minor"],
       "matchCurrentValue": "/^[=^~]?[1-9]/",
       "groupName": "Rust crates (compatible)"
+    },
+    {
+      "description": "The RustCrypto crates share trait crates (digest, signature, elliptic-curve, crypto-bigint), so a new release of one only builds beside the matching releases of the others. p256, p384 and p521 reach getrandom through elliptic-curve and crypto-bigint, and epdf-web must turn on wasm_js for that same getrandom on wasm32. They update in one pull request.",
+      "matchManagers": ["cargo"],
+      "matchPackageNames": ["rsa", "sha1", "sha2", "ecdsa", "p256", "p384", "p521", "getrandom"],
+      "groupName": "RustCrypto"
     },
     {
       "description": "Action updates other than majors travel together.",

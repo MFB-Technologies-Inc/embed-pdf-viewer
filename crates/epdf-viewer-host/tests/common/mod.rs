@@ -26,7 +26,7 @@ pub fn options() -> OpenDocumentOptions {
 /// A `SignatureSigner` over the TEST-ONLY key and certificate (16
 /// signature). `fail` makes `sign` throw the way a cancelled prompt does.
 pub struct TestSigner {
-    key: rsa::RsaPrivateKey,
+    key: rsa::PrivateKey,
     chain: Vec<Vec<u8>>,
     fail: bool,
 }
@@ -44,8 +44,7 @@ pub fn pem_der(relative: &str) -> Vec<u8> {
 impl TestSigner {
     pub fn load(fail: bool) -> Self {
         use rsa::pkcs8::DecodePrivateKey as _;
-        let key =
-            rsa::RsaPrivateKey::from_pkcs8_der(&pem_der("TEST-ONLY-private-key.pem")).unwrap();
+        let key = rsa::PrivateKey::from_pkcs8_der(&pem_der("TEST-ONLY-private-key.pem")).unwrap();
         TestSigner { key, chain: vec![pem_der("TEST-ONLY-signer.pem")], fail }
     }
 }
