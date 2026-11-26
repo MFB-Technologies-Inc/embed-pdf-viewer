@@ -1,5 +1,7 @@
 package com.embedpdf.compose
 
+import android.content.Context
+import android.view.accessibility.AccessibilityManager
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
@@ -7,6 +9,7 @@ import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -27,6 +30,7 @@ import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.produceState
@@ -123,12 +127,14 @@ public fun StageReader(
             }
         }
         val camera by reader.camera.collectAsState()
-        // Accessibility reads the scroll position and the page count from
-        // the stage. Performance: one engine round trip per camera event,
-        // so a pan or a pinch reads the metrics at each step; a model flow
-        // that carries them with the camera removes the reads.
-        val metrics by produceState<StageScrollMetrics?>(null, reader, camera, size) {
-            value = readOrNull { reader.stage.scrollMetrics() }
+        // Accessibility reads the scroll position from the stage, so the
+        // metrics are read only while an accessibility service is on.
+        // Performance: then one engine round trip per camera event, so a pan
+        // or a pinch reads the metrics at each step; a model flow that
+        // carries them with the camera removes the reads.
+        val accessibility = rememberAccessibilityEnabled()
+        val metrics by produceState<StageScrollMetrics?>(null, reader, camera, size, accessibility) {
+            value = if (accessibility) readOrNull { reader.stage.scrollMetrics() } else null
         }
         val visibleSet = pages.map { it.page }
         val pageCount by produceState(0, reader, visibleSet) {
@@ -161,8 +167,12 @@ public fun StageReader(
                                 maxValue = { ((scroll.scrollHeight - scroll.clientHeight) * density).toFloat().coerceAtLeast(0f) },
                             )
                         }
+                        // False at an edge the scroll would push against, from the metrics last read.
                         scrollBy { x, y ->
-                            reader.stage.scrollBy(StageScrollToOptions(left = (x / density).toDouble(), top = (y / density).toDouble()))
+                            val left = (x / density).toDouble()
+                            val top = (y / density).toDouble()
+                            if (!scroll.canScroll(left, top)) return@scrollBy false
+                            reader.stage.scrollBy(StageScrollToOptions(left = left, top = top))
                             true
                         }
                     }
@@ -193,6 +203,30 @@ public fun StageReader(
             }
         }
     }
+}
+
+/** Whether a scroll by [left] and [top] viewport dp moves the stage on either axis. */
+internal fun StageScrollMetrics.canScroll(left: Double, top: Double): Boolean {
+    val maxLeft = (scrollWidth - clientWidth).coerceAtLeast(0.0)
+    val maxTop = (scrollHeight - clientHeight).coerceAtLeast(0.0)
+    val alongX = scrollableX && ((left > 0 && scrollLeft < maxLeft) || (left < 0 && scrollLeft > 0))
+    val alongY = scrollableY && ((top > 0 && scrollTop < maxTop) || (top < 0 && scrollTop > 0))
+    return alongX || alongY
+}
+
+/** Whether an accessibility service is on, following it as it changes. */
+@Composable
+private fun rememberAccessibilityEnabled(): Boolean {
+    val context = LocalContext.current
+    val manager = remember(context) { context.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager }
+    var enabled by remember(manager) { mutableStateOf(manager.isEnabled) }
+    DisposableEffect(manager) {
+        val listener = AccessibilityManager.AccessibilityStateChangeListener { enabled = it }
+        manager.addAccessibilityStateChangeListener(listener)
+        enabled = manager.isEnabled
+        onDispose { manager.removeAccessibilityStateChangeListener(listener) }
+    }
+    return enabled
 }
 
 /** [read]'s value, or `null` when the stage refuses, as after its document closes. */

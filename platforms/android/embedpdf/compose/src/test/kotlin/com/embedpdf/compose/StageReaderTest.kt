@@ -1,6 +1,10 @@
 package com.embedpdf.compose
 
+import android.content.Context
+import android.view.accessibility.AccessibilityManager
 import androidx.compose.foundation.layout.Box
+import androidx.test.core.app.ApplicationProvider
+import org.robolectric.Shadows.shadowOf
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
@@ -236,9 +240,15 @@ class StageReaderTest {
         }
     }
 
-    /** Review fix 4: TalkBack names each visible page and scrolls the reader through its scroll actions. */
+    private fun accessibility(enabled: Boolean) {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        shadowOf(context.getSystemService(AccessibilityManager::class.java)).setEnabled(enabled)
+    }
+
+    /** TalkBack names each visible page and scrolls the reader through its scroll actions. */
     @Test
     fun theReaderExposesItsPagesAndScrollToAccessibility() {
+        accessibility(true)
         val r = reader("report")
         try {
             val count = r.o.pages.size
@@ -250,11 +260,29 @@ class StageReaderTest {
             assertEquals(0f, range.value(), 1f)
             assertTrue(range.maxValue() > 0f)
             val before = r.camera()
+            // At the top edge a scroll up goes nowhere.
+            val up = compose.runOnIdle {
+                compose.onNodeWithTag("reader").fetchSemanticsNode().config[SemanticsActions.ScrollBy].action!!(0f, -400f)
+            }
+            assertEquals(false, up)
             compose.onNodeWithTag("reader").performSemanticsAction(SemanticsActions.ScrollBy) { it(0f, 400f) }
             compose.pumpUntil { r.camera() != before }
             compose.pumpUntil {
                 compose.onNodeWithTag("reader").fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value() > 0f
             }
+        } finally {
+            r.o.destroy()
+        }
+    }
+
+    /** Without an accessibility service the reader reads no scroll metrics. */
+    @Test
+    fun theReaderReadsNoScrollMetricsWithoutAccessibility() {
+        accessibility(false)
+        val r = reader("report")
+        try {
+            compose.pumpFor(300)
+            assertEquals(false, compose.onNodeWithTag("reader").fetchSemanticsNode().config.contains(SemanticsProperties.VerticalScrollAxisRange))
         } finally {
             r.o.destroy()
         }
