@@ -13,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import com.embedpdf.EmbedPdfTestRunner
 import com.embedpdf.PageRef
+import com.embedpdf.PdfException
 import com.embedpdf.RenderConfig
 import com.embedpdf.ViewerConfig
 import com.embedpdf.render
@@ -55,9 +56,16 @@ class PageImageViewTest {
         val o = opened(ViewerConfig(render = RenderConfig()))
         try {
             val render = engine { o.viewer.render(o.document) }
-            compose.setContent { PageImageView(render, PageRef(pageObjectNumber = UInt.MAX_VALUE), 0.5, Modifier.size(100.dp)) }
+            val failures = mutableListOf<PdfException>()
+            compose.setContent {
+                PageImageView(render, PageRef(pageObjectNumber = UInt.MAX_VALUE), 0.5, Modifier.size(100.dp), onError = { failures += it })
+            }
             compose.pumpUntil { !loading() }
             compose.onNodeWithText("Page unavailable").assertExists()
+            // Review fix 8: the reader sees localized words; the engine's message goes to the host.
+            compose.onNodeWithText("The page could not be drawn.").assertExists()
+            val failure = failures.single()
+            compose.onNodeWithText(failure.detail).assertDoesNotExist()
         } finally {
             o.destroy()
         }

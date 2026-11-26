@@ -35,7 +35,7 @@ public final class com/embedpdf/compose/OutlinePanelKt {
 }
 
 public final class com/embedpdf/compose/PageImageViewKt {
-	public static final fun PageImageView (Lcom/embedpdf/RenderCapability;Luniffi/epdf_ffi/PageRef;DLandroidx/compose/ui/Modifier;ZJLandroidx/compose/runtime/Composer;II)V
+	public static final fun PageImageView (Lcom/embedpdf/RenderCapability;Luniffi/epdf_ffi/PageRef;DLandroidx/compose/ui/Modifier;ZJLkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/embedpdf/compose/PdfReaderKt {

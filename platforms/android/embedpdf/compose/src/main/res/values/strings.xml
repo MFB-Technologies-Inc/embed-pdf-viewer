@@ -2,6 +2,8 @@
 <resources>
     <!-- A page whose render failed. -->
     <string name="embedpdf_page_unavailable">Page unavailable</string>
+    <!-- Under it: why, in words for the reader rather than the engine's message. -->
+    <string name="embedpdf_page_render_failed">The page could not be drawn.</string>
     <!-- A page thumbnail's label; %1$d is the one-based page number. -->
     <string name="embedpdf_page_number">Page %1$d</string>
     <!-- A page the stage reader shows; %1$d is its one-based number, %2$d the page count. -->

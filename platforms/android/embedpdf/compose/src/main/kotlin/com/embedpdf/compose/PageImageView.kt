@@ -14,6 +14,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,8 +38,9 @@ import kotlinx.coroutines.withContext
  *
  * The render restarts when [page], [scale], [isOnScreen] or [revision]
  * changes, and a cancelled render's result is dropped. The previous image
- * stays while a new scale or revision renders. A failure shows an error only
- * when no image is held yet. The image is decorative: the host gives the page
+ * stays while a new scale or revision renders. A failure shows a localized
+ * error only when no image is held yet, and reaches [onError] with the
+ * engine's own message either way. The image is decorative: the host gives the page
  * its accessible label and any text the interface needs.
  *
  * Named for Swift's `PageImageView`, since `PageImage` is the facade's raster.
@@ -52,6 +54,8 @@ import kotlinx.coroutines.withContext
  * @param revision a presentation revision from render invalidations; change
  *   it when the engine invalidates the page's pixels. Give the view a new
  *   `key` when switching render capabilities between documents.
+ * @param onError receives each failed render's exception, on the main
+ *   thread, for an app that logs or reports it.
  */
 @Composable
 public fun PageImageView(
@@ -61,7 +65,9 @@ public fun PageImageView(
     modifier: Modifier = Modifier,
     isOnScreen: Boolean = true,
     revision: Long = 0,
+    onError: (PdfException) -> Unit = {},
 ) {
+    val failed by rememberUpdatedState(onError)
     var rendered by remember { mutableStateOf<ImageBitmap?>(null) }
     var renderedPage by remember { mutableStateOf<PageRef?>(null) }
     var error by remember { mutableStateOf<PdfException?>(null) }
@@ -88,6 +94,7 @@ public fun PageImageView(
             throw e
         } catch (e: PdfException) {
             error = e
+            failed(e)
         }
     }
 
@@ -112,7 +119,7 @@ public fun PageImageView(
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    failure.message.orEmpty(),
+                    stringResource(R.string.embedpdf_page_render_failed),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
