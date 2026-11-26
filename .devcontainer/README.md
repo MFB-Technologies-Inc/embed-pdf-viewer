@@ -151,7 +151,7 @@ for these editor and lifecycle settings.
 | pnpm                                                      | `package.json` `packageManager`                      |
 | Rust, Cargo, rustfmt, Clippy, rust-src, llvm-tools, cross-target std | `rust-toolchain.toml`; rustup-init 1.29.3, SHA-256 verified |
 | cargo-llvm-cov                                            | 0.9.1                                                |
-| .NET SDK                                                  | 10.0.403; Microsoft archives verified with SHA512      |
+| .NET SDK                                                  | 10.0.404; Microsoft archives verified with SHA512      |
 | Clang/libclang, LLD, CMake, Ninja, C/C++ compiler, Python | Debian Trixie packages                               |
 | Emscripten / Binaryen                                     | 3.1.72 / 133 (SHA-256 verified), on `PATH`; its `.emscripten` selects Binaryen |
 | Emscripten for `wasm32-eh`                                | 4.0.0 with its own Binaryen, sysroot built; `/opt/emsdk-eh` (`$EMSDK_EH`) |
@@ -167,7 +167,7 @@ Binaryen and the native PDFium artifact are selected to match it.
 
 ## .NET
 
-The image installs SDK 10.0.403 into `/opt/dotnet` for both supported Linux
+The image installs SDK 10.0.404 into `/opt/dotnet` for both supported Linux
 architectures. `DOTNET_ROOT` and `/usr/local/bin/dotnet` expose it to the
 `node` user in login and non-login shells. Debian dependencies and libclang for
 Rust bindgen are already installed by the image. The SDK supports Linux managed

@@ -3,7 +3,7 @@
 The `EmbedPDF.Engine` namespace exposes an in-process, typed read facade over
 `epdf-capi`. The package name is provisional; this slice does not package,
 relocate or publish native assets. Target framework: **net10.0 only**, 64-bit.
-The scoped SDK pin is `10.0.403`.
+The scoped SDK pin is `10.0.404`.
 
 ```csharp
 using EmbedPDF.Engine;
