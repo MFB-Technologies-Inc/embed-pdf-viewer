@@ -95,8 +95,8 @@ public class StageReaderModel(
      * and camera, [sizeChanged], a drag call, [doubleTapped], the tool read,
      * the link tap registration in [run], a page's link load, a pointer
      * sample's page lookup, and a call queued while neither [run] nor an
-     * action scope can send it (reported once, and never cleared by a
-     * success). A failure of any kind replaces the error. Only a
+     * action scope can send it (reported once, and cleared when [run]
+     * starts). A failure of any kind replaces the error. Only a
      * later success of the kind that set it clears it, so a good read of the
      * pages does not hide a failed link load, and the next good link load
      * does. The cost: a caller that polls this can miss a failure a later
@@ -279,6 +279,10 @@ public class StageReaderModel(
                         }
                     },
                 )
+                // The queues drain now, so a call that waited for run() is no
+                // longer waiting, and a later one made without it says so again.
+                reportedNotRunning = false
+                succeeded(Call.NOT_RUNNING)
                 val loops = listOfNotNull(
                     launch { for (event in stageEvents) receiveStage(event) },
                     toolEvents?.let { events ->

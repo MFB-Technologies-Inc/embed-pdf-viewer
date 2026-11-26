@@ -417,6 +417,23 @@ class StageReaderModelTest {
         viewer.destroy()
     }
 
+    /** The error that says `run()` is not running clears once it runs. */
+    @Test
+    fun theNotRunningErrorClearsWhenRunStarts() = mainTest {
+        val viewer = started(ViewerConfig(render = RenderConfig(), interaction = true, stage = StageConfig(), link = true))
+        val document = viewer.open(Fixture.bytes("report"))
+        val model = StageReaderModel(viewer.stage(document), viewer.render(document), viewer.interaction(document), viewer.link(document))
+        // The pages it shows queue their link loads, which nothing sends yet.
+        model.sizeChanged(390f, 844f, 2f)
+        assertEquals(PdfException.Code.INVALID_STATE, model.error.value?.code)
+        val observing = launch { model.run() }
+        expectObserved(model.error, null)
+        model.linkLoadsFinished()
+        assertNull(model.error.value)
+        observing.cancel()
+        viewer.destroy()
+    }
+
     @Test
     fun aPinchCancelsTheOpenToolGesture() = mainTest {
         val reader = reader()
