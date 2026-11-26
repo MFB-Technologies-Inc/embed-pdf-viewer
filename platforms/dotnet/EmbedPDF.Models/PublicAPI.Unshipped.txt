@@ -14,6 +14,27 @@ EmbedPDF.Models.RenderRevisions.Dispose() -> void
 EmbedPDF.Models.RenderRevisions.GetRevision(EmbedPDF.PageRef page) -> long
 EmbedPDF.Models.RenderRevisions.RenderRevisions(EmbedPDF.RenderCapability! render, System.Threading.SynchronizationContext? context = null) -> void
 EmbedPDF.Models.RenderRevisions.Revisions.get -> System.Collections.Generic.IReadOnlyDictionary<EmbedPDF.PageRef, long>!
+EmbedPDF.Models.SearchModel
+EmbedPDF.Models.SearchModel.ActiveHit.get -> EmbedPDF.SearchHit?
+EmbedPDF.Models.SearchModel.ActiveHitIndex.get -> int?
+EmbedPDF.Models.SearchModel.CanClear.get -> bool
+EmbedPDF.Models.SearchModel.ClearAsync() -> System.Threading.Tasks.Task!
+EmbedPDF.Models.SearchModel.Error.get -> EmbedPDF.PdfException?
+EmbedPDF.Models.SearchModel.GetHitCount(EmbedPDF.PageRef page) -> int
+EmbedPDF.Models.SearchModel.HitCount.get -> int
+EmbedPDF.Models.SearchModel.Hits.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.SearchHit!>!
+EmbedPDF.Models.SearchModel.NextHitAsync() -> System.Threading.Tasks.Task!
+EmbedPDF.Models.SearchModel.PreviousHitAsync() -> System.Threading.Tasks.Task!
+EmbedPDF.Models.SearchModel.Progress.get -> EmbedPDF.SearchProgress!
+EmbedPDF.Models.SearchModel.RefreshAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.SearchModel.RevealActiveHitAsync() -> System.Threading.Tasks.Task!
+EmbedPDF.Models.SearchModel.RunAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.SearchModel.SearchModel(EmbedPDF.SearchCapability! search, System.Threading.SynchronizationContext? context = null) -> void
+EmbedPDF.Models.SearchModel.Status.get -> EmbedPDF.SearchStatus
+EmbedPDF.Models.SearchModel.SubmitSearchAsync() -> System.Threading.Tasks.Task!
+EmbedPDF.Models.SearchModel.Summary.get -> string?
+EmbedPDF.Models.SearchModel.Text.get -> string!
+EmbedPDF.Models.SearchModel.Text.set -> void
 EmbedPDF.Models.ViewerModel
 EmbedPDF.Models.ViewerModel.ActiveDocument.get -> EmbedPDF.DocumentInfo?
 EmbedPDF.Models.ViewerModel.DocumentCount.get -> int

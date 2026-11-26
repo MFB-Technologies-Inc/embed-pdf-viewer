@@ -49,6 +49,29 @@ static class Observed
         return fired;
     }
 
+    /// <summary>The properties notified before <paramref name="action"/> returns.</summary>
+    public static async Task<HashSet<string>> NotifiedAsync(INotifyPropertyChanged model, Func<Task> action)
+    {
+        var names = new HashSet<string>();
+        void OnChanged(object? sender, PropertyChangedEventArgs e) => names.Add(e.PropertyName!);
+        model.PropertyChanged += OnChanged;
+        try { await action(); }
+        finally { model.PropertyChanged -= OnChanged; }
+        return names;
+    }
+
+    /// <summary>Polls <paramref name="condition"/> every 20 ms until it holds or 10 seconds pass.</summary>
+    public static async Task<bool> PollAsync(Func<Task<bool>> condition, int seconds = 10)
+    {
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(seconds);
+        while (DateTime.UtcNow < deadline)
+        {
+            if (await condition()) return true;
+            await Task.Delay(20);
+        }
+        return await condition();
+    }
+
     /// <summary>
     /// Holds the first read that finishes on <paramref name="snapshots"/> until
     /// <c>release</c> runs, so a refresh started after it can land first.
