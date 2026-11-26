@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- A page whose render failed. -->
+    <string name="embedpdf_page_unavailable">Page unavailable</string>
+    <!-- A page thumbnail's label; %1$d is the one-based page number. -->
+    <string name="embedpdf_page_number">Page %1$d</string>
+    <!-- The text selection overlay's label. -->
+    <string name="embedpdf_text_selection">Text selection</string>
+    <!-- The action that copies the selected text. -->
+    <string name="embedpdf_copy">Copy</string>
+    <!-- The stage reader's label. -->
+    <string name="embedpdf_document_pages">Document pages</string>
+
+    <!-- HistoryStrings: the undo and redo controls. -->
+    <string name="embedpdf_history_undo">Undo</string>
+    <string name="embedpdf_history_redo">Redo</string>
+    <!-- The change an undo or redo names when the translator has none. -->
+    <string name="embedpdf_history_change">change</string>
+    <!-- %1$s is the change, such as "Rotate pages". -->
+    <string name="embedpdf_history_undo_title">Undo %1$s</string>
+    <string name="embedpdf_history_redo_title">Redo %1$s</string>
+    <string name="embedpdf_history_skipped_undo">Some changes could not be undone.</string>
+    <string name="embedpdf_history_skipped_redo">Some changes could not be redone.</string>
+
+    <!-- SearchStrings: %1$s is the active hit's one-based place, %2$s the hits found so far. -->
+    <string name="embedpdf_search_summary">%1$s of %2$s</string>
+    <!-- The same while the search still runs. -->
+    <string name="embedpdf_search_summary_searching">%1$s of %2$s+</string>
+</resources>

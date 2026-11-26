@@ -15,6 +15,7 @@ and a version catalog, `gradle/libs.versions.toml`.
 | `bindings` | `libepdf_viewer_host.so` per ABI and the generated `uniffi.*` Kotlin | yes, as the AAR |
 | `embedpdf` | the hand-written `com.embedpdf` facade: `PdfViewer`, `PdfException`, the document fetchers | not yet |
 | `models` | `com.embedpdf.models`: observable models over the facade, with no Compose dependency, as `embedpdf-models` | not yet |
+| `compose` | `com.embedpdf.compose`: Compose views over the models, with Material 3, as `embedpdf-compose` | not yet |
 | `javascript` | `com.embedpdf.javascript.JavaScriptSandboxEngineFactory`, PDF JavaScript in `androidx.javascriptengine`, as `embedpdf-javascript` | not yet |
 | `smoke` | JVM tests of the engine-only `epdf-uniffi` crate | no |
 
@@ -29,8 +30,9 @@ dependency. The facade sees the factory only through
 `ScriptEngineAvailability`, an opt-in hook (`@EmbedPdfEngineIntegration`) that
 lets the viewer disable JavaScript and report why.
 
-The models and Compose modules come in later phases of
-`docs/superpowers/plans/2026-11-19-android-parity.md`.
+`compose` builds against Compose BOM 2026.06.01 (Compose UI 1.11.4, Material 3
+1.4.0), the newest that compiles against `compileSdk` 36. From 2026.08.00 on,
+Compose 1.12 requires `compileSdk` 37 of every app that uses it.
 
 The facade is written for Kotlin callers. Calling it from Java isn't a goal,
 so it carries no `@JvmName` or `@JvmOverloads` adjustments.
@@ -122,8 +124,10 @@ The module has no `Context`, so it can't read string resources. `HistoryModel`
 and `SearchModel` take optional `HistoryStrings` and `SearchStrings`
 providers, whose members all default to English (`undo`, `redo`, `change`,
 `undoTitle(label)`, `redoTitle(label)`, `notice(notice)`,
-`searchSummary(index, count, searching)`). The Compose layer passes
-resource-backed ones. `HistoryModel.notice` is a `HistoryNotice` value
+`searchSummary(index, count, searching)`). The compose module's
+`ResourceHistoryStrings` and `ResourceSearchStrings` read them from string
+resources; in composition, `rememberHistoryStrings()` and
+`rememberSearchStrings()` make them for the current configuration. `HistoryModel.notice` is a `HistoryNotice` value
 (`SkippedUndo(count)`, `SkippedRedo(count)`) for a caller that words it
 itself, and `noticeText` is the provider's wording.
 

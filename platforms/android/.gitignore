@@ -8,5 +8,6 @@ embedpdf/bindings/build/
 embedpdf/embedpdf/build/
 embedpdf/javascript/build/
 embedpdf/models/build/
+embedpdf/compose/build/
 embedpdf/smoke/build/
 embedpdf/local.properties

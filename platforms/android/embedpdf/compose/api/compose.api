@@ -1,0 +1,57 @@
+public final class com/embedpdf/compose/BridgesKt {
+	public static final fun toAnnotationColor-8_81llA (J)Lcom/embedpdf/AnnotationColor;
+	public static final fun toColor (Lcom/embedpdf/AnnotationColor;)J
+	public static final fun toImageBitmap (Lcom/embedpdf/PageImage;)Landroidx/compose/ui/graphics/ImageBitmap;
+}
+
+public final class com/embedpdf/compose/HapticsKt {
+	public static final fun rememberHapticFeedback (Landroidx/compose/runtime/Composer;I)Lcom/embedpdf/HapticFeedback;
+}
+
+public final class com/embedpdf/compose/ModelStringsKt {
+	public static final fun rememberHistoryStrings (Landroidx/compose/runtime/Composer;I)Lcom/embedpdf/models/HistoryStrings;
+	public static final fun rememberSearchStrings (Landroidx/compose/runtime/Composer;I)Lcom/embedpdf/models/SearchStrings;
+}
+
+public final class com/embedpdf/compose/PageImageViewKt {
+	public static final fun PageImageView (Lcom/embedpdf/RenderCapability;Luniffi/epdf_ffi/PageRef;DLandroidx/compose/ui/Modifier;ZJLandroidx/compose/runtime/Composer;II)V
+}
+
+public final class com/embedpdf/compose/ResourceHistoryStrings : com/embedpdf/models/HistoryStrings {
+	public static final field $stable I
+	public fun <init> (Landroid/content/res/Resources;)V
+	public fun getChange ()Ljava/lang/String;
+	public fun getRedo ()Ljava/lang/String;
+	public fun getUndo ()Ljava/lang/String;
+	public fun notice (Lcom/embedpdf/models/HistoryNotice;)Ljava/lang/String;
+	public fun redoTitle (Ljava/lang/String;)Ljava/lang/String;
+	public fun undoTitle (Ljava/lang/String;)Ljava/lang/String;
+}
+
+public final class com/embedpdf/compose/ResourceSearchStrings : com/embedpdf/models/SearchStrings {
+	public static final field $stable I
+	public fun <init> (Landroid/content/res/Resources;)V
+	public fun searchSummary (IIZ)Ljava/lang/String;
+}
+
+public final class com/embedpdf/compose/ScrollVisibilityKt {
+	public static final fun trackingScrollVisibility (Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function1;)Landroidx/compose/ui/Modifier;
+}
+
+public final class com/embedpdf/compose/ThumbnailStripKt {
+	public static final fun ThumbnailStrip (Lcom/embedpdf/models/ThumbnailModel;Ljava/util/List;Luniffi/epdf_ffi/PageRef;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/gestures/Orientation;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class com/embedpdf/compose/TiledPageImageKt {
+	public static final fun TiledPageImage (Lcom/embedpdf/models/TiledPageModel;Luniffi/epdf_ffi/Size;DLuniffi/epdf_ffi/Rect;Landroidx/compose/ui/Modifier;ILkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class com/embedpdf/compose/TiledPagePhase : java/lang/Enum {
+	public static final field BEGAN Lcom/embedpdf/compose/TiledPagePhase;
+	public static final field PAINTED Lcom/embedpdf/compose/TiledPagePhase;
+	public static final field SETTLED Lcom/embedpdf/compose/TiledPagePhase;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/embedpdf/compose/TiledPagePhase;
+	public static fun values ()[Lcom/embedpdf/compose/TiledPagePhase;
+}
+

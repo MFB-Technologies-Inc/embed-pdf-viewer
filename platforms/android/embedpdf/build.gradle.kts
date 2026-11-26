@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.kotlin.serialization) apply false
+    alias(libs.plugins.kotlin.compose) apply false
     // Puts the API dump tasks `embedpdf/build.gradle.kts` registers on the
     // classpath; its `apiValidation` extension holds their settings.
     alias(libs.plugins.binary.compatibility.validator)
