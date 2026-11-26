@@ -278,11 +278,17 @@ pending, 150 exclusions, each with its reason.
 ## Threading, disposal and arguments
 
 Every call is a `Task`-returning `...Async` method that throws `PdfException` (with `Name`, `Code`
-and `Detail`) and takes a `CancellationToken` last. The token is checked before the call is posted
-to the kernel. Only `OpenAsync(Uri)`, `OpenLayerAsync`, `SaveAsync` and `SaveLayerAsync` cancel
-while running; the rest run to completion once posted, as the Swift calls do. A cancelled call
-throws `OperationCanceledException`, with the kernel's `operation-cancelled` as the inner exception
-when the kernel saw it. Event streams (`ObserveDocumentEvents`, `ObserveStateRevisions`, `ObserveReportedErrors` and each capability's `ObserveEvents`)
+and `Detail`) and takes a `CancellationToken` last. Every call checks the token before it is posted
+to the kernel. A call whose Rust export takes a cancel token also passes yours on: cancelling it
+while the call runs cancels the kernel's token, and the call stops at the engine's next check. That
+covers about 140 call sites (the facade's `CallCancellableAsync` and `RunCancellable`): opening from
+a `Uri`, opening and saving layers, saving, and the long reads and writes of search, render, outline,
+attachment, page edit, metadata, selection, annotation, form, redaction, measurement, stamp and
+signature. The rest run to completion once posted, as the Swift calls do. A cancelled call throws
+`OperationCanceledException`, with the kernel's `operation-cancelled` as the inner exception when the
+kernel saw it. Work that runs on the kernel thread only sees the cancel when it next yields, so
+`RedactionCapability.MarkMatchesAsync` over a whole document can't be cancelled once it runs (see
+[Known gaps](#known-gaps)). Event streams (`ObserveDocumentEvents`, `ObserveStateRevisions`, `ObserveReportedErrors` and each capability's `ObserveEvents`)
 are `IAsyncEnumerable<T>` that subscribe when the method returns, one channel per enumerator.
 Document and plugin events are unbounded, so a reader that stops reading holds every later event;
 state revisions keep the newest one and reported errors the newest 16.
@@ -302,7 +308,10 @@ Your callbacks run on one of two threads, and each interface's remarks say which
 Destroying the kernel needs the kernel thread, so `PdfViewer.Dispose()` from a kernel-thread
 callback throws `InvalidOperationException` instead of deadlocking. `DisposeAsync()` there starts
 disposal and returns a task you may await later; blocking on it with `GetAwaiter().GetResult()`
-throws too, but blocking through `AsTask().Wait()` can't be detected and hangs. A callback that
+throws too, but blocking through `AsTask().Wait()` can't be detected and hangs. The same goes for an
+event stream: blocking on an enumerator's `DisposeAsync()` from a kernel callback (with
+`GetAwaiter().GetResult()` or `.AsTask().Wait()`) can hang, because ending the subscription needs the
+kernel thread; await it instead, or dispose it elsewhere. A callback that
 throws never reaches Rust as a crash: a member with an error type answers the kernel's host error
 with your message, a `bool` member answers `false`, and the rest log through the viewer's `ILogger`
 and drop the exception.

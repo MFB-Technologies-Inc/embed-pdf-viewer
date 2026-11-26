@@ -1342,7 +1342,7 @@ All five RIDs are `VALIDATED` at `0.0.0-engine.dc140b58fa617042`; those records 
 ones under `platforms/dotnet/validation/2026-11-26-phase-6-runtime-<rid>/` (`b194bbb47`). The NativeAOT
 sample ran on `linux-arm64` (executable 18,705,768 bytes, publish directory 106,866,467) and `linux-x64`
 (18,230,472 and 101,204,461) with the same six Jint warnings; `osx-arm64` and `win-x64` ran
-framework-dependent. The preview printed the five pushes to `https://nuget.pkg.github.com/MFB-Technologies-Inc/index.json`
+framework-dependent. The preview printed the five pushes to `https://nuget.pkg.github.com/<owner>/index.json`
 in dependency order, `git tag 0.0.0-dotnet.0 <sha>`, `git push origin refs/tags/0.0.0-dotnet.0` and
 `gh release create 0.0.0-dotnet.0` with eleven assets, and warned that `docs/releases/0.0.0-dotnet.0.md`
 is missing, which a real run would stop on.
