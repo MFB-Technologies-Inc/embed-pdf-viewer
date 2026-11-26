@@ -237,17 +237,33 @@ explains.
 `.github/workflows/android-release.yml` runs only from `workflow_dispatch`,
 with a `version` for the four non-engine artifacts (for example
 `0.0.0-android.1`), the `packages_repository` to publish to, and `dry_run`,
-which defaults to true. One job on `ubuntu-24.04` builds the dev image from
-`.devcontainer/Dockerfile` and runs every step in it: the pin check, then
-`build-aar.sh test`, the Kotlin API coverage check, `apiCheck`,
-`android-consumer.sh`, and last the publish. Before building it asks the
-registry which versions exist. An engine version already there is reused, and
-a library version already there stops the run, since a registry version can't
-be replaced. A dry run publishes nothing and uploads the five artifacts,
-staged in a local Maven repository, as the `android-maven` workflow artifact.
+which defaults to true. It runs three jobs on `ubuntu-24.04`.
 
-A real run takes the `release` environment, so its reviewers approve before
-the job starts. Publishing to a registry in another repository needs the
+`preflight` checks the inputs. On a real run it also refuses a dispatch from
+anything but a branch, and fails unless the repository's `release`
+environment exists with a required-reviewers rule, as `release-train.yml`
+does: a job that names a missing environment creates it with no rules.
+
+`build` builds the dev image from `.devcontainer/Dockerfile` and runs every
+step in it: the pin check, `build-aar.sh test`, the Kotlin API coverage
+check, `apiCheck`, and `android-consumer.sh`, which stages the five artifacts
+at `version` in a local Maven repository and builds the demo from them.
+Before building it asks the registry which versions exist. An engine version
+already there is reused, and a library version already there stops the run,
+since a registry version can't be replaced. The staged repository is uploaded
+as the `android-maven` workflow artifact on every run. This job's token reads
+packages and can't write them.
+
+`publish` runs only when `dry_run` is off. It takes the `release`
+environment, so its reviewers approve before it starts, and it is the only
+job with `packages: write`. It uploads `android-maven` with
+`platforms/android/publish-staged.sh`, which asks the registry once more,
+then sends each file with HTTP PUT followed by its checksums. The registry
+gets the files the consumer check built the demo from, not a second build.
+The cost is that the upload is a script of ours rather than Gradle's
+`maven-publish`, and it has only been run against a local stand-in
+(`platforms/android/tests/test_publish_staged.py`), not GitHub Packages.
+Publishing to a registry in another repository needs the
 `ANDROID_PACKAGES_TOKEN` secret, a classic token with `write:packages` there;
 the job's own token can only publish to the repository the workflow runs in.
 
