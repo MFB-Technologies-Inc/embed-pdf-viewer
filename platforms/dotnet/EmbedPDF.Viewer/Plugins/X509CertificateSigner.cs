@@ -18,8 +18,10 @@ namespace EmbedPDF;
 /// <para>
 /// The chain is built once, at construction, with <see cref="X509Chain"/> in
 /// <see cref="X509ChainTrustMode.CustomRootTrust"/> over the certificates
-/// given, so no system store is consulted. When it does not build, the chain
-/// is the leaf followed by the given certificates.
+/// given, so no system store is consulted. The given certificates are only
+/// candidates: the signer embeds the chain's elements, leaf first, and a
+/// given certificate that does not chain to the leaf is never embedded.
+/// When nothing builds, the chain is the leaf alone.
 /// </para>
 /// <para>
 /// The signer owns <see cref="Certificate"/>'s key handle; dispose it when
@@ -50,7 +52,12 @@ public sealed class X509CertificateSigner : ISignatureSigner, IDisposable
         chain = BuildChain(certificate, issuers);
     }
 
-    /// <summary>A signer over the first certificate with a private key in a PKCS#12 bundle; the bundle's other certificates complete its chain.</summary>
+    /// <summary>
+    /// A signer over the first certificate with a private key in a PKCS#12
+    /// bundle. The bundle's other certificates are the chain's candidates, so
+    /// the signer embeds from the bundle the caller chose only those that
+    /// chain to the leaf.
+    /// </summary>
     /// <exception cref="CryptographicException">The bundle can't be read with <paramref name="password"/>.</exception>
     /// <exception cref="ArgumentException">No certificate in the bundle has a private key.</exception>
     public static X509CertificateSigner FromPkcs12(ReadOnlyMemory<byte> data, string? password = null)
@@ -66,17 +73,34 @@ public sealed class X509CertificateSigner : ISignatureSigner, IDisposable
         return FromCollection(X509CertificateLoader.LoadPkcs12CollectionFromFile(path, password, KeyStorage));
     }
 
-    /// <summary>A signer over the certificate with <paramref name="thumbprint"/> in a certificate store.</summary>
+    /// <summary>
+    /// A signer over the certificate with <paramref name="thumbprint"/> in a
+    /// certificate store. The store's other certificates are only candidates
+    /// for the chain: the signer embeds those that chain to the leaf, and none
+    /// of the user's unrelated certificates.
+    /// </summary>
     /// <exception cref="ArgumentException">The store has no such certificate with a private key.</exception>
     public static X509CertificateSigner FromStore(string thumbprint, StoreName storeName = StoreName.My, StoreLocation location = StoreLocation.CurrentUser)
     {
         ArgumentNullException.ThrowIfNull(thumbprint);
         using var store = new X509Store(storeName, location);
         store.Open(OpenFlags.ReadOnly | OpenFlags.OpenExistingOnly);
-        var found = store.Certificates.Find(X509FindType.FindByThumbprint, thumbprint, validOnly: false);
-        var certificate = found.FirstOrDefault(c => c.HasPrivateKey)
-            ?? throw new ArgumentException($"The store has no certificate {thumbprint} with a private key.", nameof(thumbprint));
-        return new X509CertificateSigner(certificate, store.Certificates.Where(c => !ReferenceEquals(c, certificate)));
+        var all = store.Certificates;
+        var certificate = all.Find(X509FindType.FindByThumbprint, thumbprint, validOnly: false).FirstOrDefault(c => c.HasPrivateKey);
+        if (certificate is null)
+        {
+            foreach (var unused in all) unused.Dispose();
+            throw new ArgumentException($"The store has no certificate {thumbprint} with a private key.", nameof(thumbprint));
+        }
+        var candidates = all.Where(c => c.Thumbprint != certificate.Thumbprint).ToArray();
+        try
+        {
+            return new X509CertificateSigner(certificate, candidates);
+        }
+        finally
+        {
+            foreach (var unused in all) if (unused.Thumbprint != certificate.Thumbprint) unused.Dispose();
+        }
     }
 
     /// <summary>The signing certificate.</summary>
@@ -141,7 +165,7 @@ public sealed class X509CertificateSigner : ISignatureSigner, IDisposable
         builder.Build(leaf);
         var built = builder.ChainElements.Select(e => (ReadOnlyMemory<byte>)e.Certificate.RawData).ToArray();
         foreach (var element in builder.ChainElements) element.Certificate.Dispose();
-        if (built.Length > 1 && built[0].Span.SequenceEqual(leaf.RawData)) return built;
-        return [leaf.RawData, .. issuers.Where(i => !i.RawData.AsSpan().SequenceEqual(leaf.RawData)).Select(i => (ReadOnlyMemory<byte>)i.RawData)];
+        // Only what chains to the leaf is embedded; never the candidates as given.
+        return built.Length > 0 && built[0].Span.SequenceEqual(leaf.RawData) ? built : [leaf.RawData];
     }
 }
