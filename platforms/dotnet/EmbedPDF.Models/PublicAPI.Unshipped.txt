@@ -69,6 +69,19 @@ EmbedPDF.Models.OutlineModel.SelectedItems.get -> System.Collections.Generic.IRe
 EmbedPDF.Models.OutlineModel.Status.get -> EmbedPDF.ResourceStatus
 EmbedPDF.Models.OutlineModel.ToggleAsync(EmbedPDF.OutlineItemRef item) -> System.Threading.Tasks.Task!
 EmbedPDF.Models.OutlineModel.UpdateAsync(EmbedPDF.OutlineItemRef item, EmbedPDF.OutlineItemPatch! patch) -> System.Threading.Tasks.Task<EmbedPDF.OutlineItem?>!
+EmbedPDF.Models.PageTile
+EmbedPDF.Models.PageTile.<Clone>$() -> EmbedPDF.Models.PageTile!
+EmbedPDF.Models.PageTile.Deconstruct(out string! Id, out EmbedPDF.PdfRect Rect, out double Z, out EmbedPDF.PixelBuffer! Image) -> void
+EmbedPDF.Models.PageTile.Equals(EmbedPDF.Models.PageTile? other) -> bool
+EmbedPDF.Models.PageTile.Id.get -> string!
+EmbedPDF.Models.PageTile.Id.init -> void
+EmbedPDF.Models.PageTile.Image.get -> EmbedPDF.PixelBuffer!
+EmbedPDF.Models.PageTile.Image.init -> void
+EmbedPDF.Models.PageTile.PageTile(string! Id, EmbedPDF.PdfRect Rect, double Z, EmbedPDF.PixelBuffer! Image) -> void
+EmbedPDF.Models.PageTile.Rect.get -> EmbedPDF.PdfRect
+EmbedPDF.Models.PageTile.Rect.init -> void
+EmbedPDF.Models.PageTile.Z.get -> double
+EmbedPDF.Models.PageTile.Z.init -> void
 EmbedPDF.Models.PointerInput
 EmbedPDF.Models.PointerInput.Deconstruct(out double X, out double Y) -> void
 EmbedPDF.Models.PointerInput.Equals(EmbedPDF.Models.PointerInput other) -> bool
@@ -163,6 +176,15 @@ EmbedPDF.Models.ThumbnailModel.Images.get -> System.Collections.Generic.IReadOnl
 EmbedPDF.Models.ThumbnailModel.LoadAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.Models.ThumbnailModel.Revisions.get -> System.Collections.Generic.IReadOnlyDictionary<EmbedPDF.PageRef, long>!
 EmbedPDF.Models.ThumbnailModel.ThumbnailModel(EmbedPDF.RenderCapability! render, System.Collections.Generic.IEnumerable<EmbedPDF.PageInfo!>! pages, System.Threading.SynchronizationContext? context = null) -> void
+EmbedPDF.Models.TiledPageModel
+EmbedPDF.Models.TiledPageModel.Base.get -> EmbedPDF.PixelBuffer?
+EmbedPDF.Models.TiledPageModel.IncludeAnnotations.get -> bool
+EmbedPDF.Models.TiledPageModel.Page.get -> EmbedPDF.PageRef
+EmbedPDF.Models.TiledPageModel.ReleaseAsync() -> System.Threading.Tasks.Task!
+EmbedPDF.Models.TiledPageModel.TileDisplayedAsync(string! key) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.TiledPageModel.TiledPageModel(EmbedPDF.RenderCapability! render, EmbedPDF.RenderViewDemand! demand, EmbedPDF.PageRef page, bool includeAnnotations = true, System.Threading.SynchronizationContext? context = null) -> void
+EmbedPDF.Models.TiledPageModel.Tiles.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.Models.PageTile!>!
+EmbedPDF.Models.TiledPageModel.UpdateAsync(double deviceScale, double unrotatedWidth, EmbedPDF.PdfRect? visibleRect, System.Action? onPainted = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.Models.ToolModel
 EmbedPDF.Models.ToolModel.ActivateAsync(EmbedPDF.ToolId id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.Models.ToolModel.ActivateDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -185,9 +207,14 @@ EmbedPDF.Models.ViewerModel.RefreshAsync(System.Threading.CancellationToken canc
 EmbedPDF.Models.ViewerModel.RunAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.Models.ViewerModel.ViewerModel(EmbedPDF.PdfViewer! viewer, System.Threading.SynchronizationContext? context = null) -> void
 const EmbedPDF.Models.StageReaderModel.MaxPagePixels = 16777216 -> double
+override EmbedPDF.Models.PageTile.Equals(object? obj) -> bool
+override EmbedPDF.Models.PageTile.GetHashCode() -> int
+override EmbedPDF.Models.PageTile.ToString() -> string!
 ~override EmbedPDF.Models.PointerInput.Equals(object obj) -> bool
 override EmbedPDF.Models.PointerInput.GetHashCode() -> int
 ~override EmbedPDF.Models.PointerInput.ToString() -> string
+static EmbedPDF.Models.PageTile.operator !=(EmbedPDF.Models.PageTile? left, EmbedPDF.Models.PageTile? right) -> bool
+static EmbedPDF.Models.PageTile.operator ==(EmbedPDF.Models.PageTile? left, EmbedPDF.Models.PageTile? right) -> bool
 static EmbedPDF.Models.PointerInput.operator !=(EmbedPDF.Models.PointerInput left, EmbedPDF.Models.PointerInput right) -> bool
 static EmbedPDF.Models.PointerInput.operator ==(EmbedPDF.Models.PointerInput left, EmbedPDF.Models.PointerInput right) -> bool
 static EmbedPDF.Models.StageReaderModel.RenderScale(double scale, double contentWidth, double contentHeight, bool zooming = false) -> double
