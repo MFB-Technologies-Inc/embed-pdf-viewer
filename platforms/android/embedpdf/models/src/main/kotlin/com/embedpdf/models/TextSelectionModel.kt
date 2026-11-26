@@ -172,6 +172,14 @@ public class TextSelectionModel(
         calls.enqueue { applyEnd(ending) }.await()
     }
 
+    /**
+     * The selected text, for a copy: read after every call made before this
+     * one, so it includes a drag that has just ended. Empty when nothing is
+     * selected. A failed read sets [error] and returns `null`. Swift's model
+     * has no counterpart; its views copy nothing.
+     */
+    public suspend fun selectedText(): String? = onMain { calls.enqueue { readSelectedText() }.await() }
+
     /** Clears the selection, [rects] and [error]. */
     public suspend fun clear(): Unit = onMain { calls.enqueue { applyClear() }.await() }
 
@@ -242,6 +250,15 @@ public class TextSelectionModel(
         }
         _isSelecting.value = false
         return true
+    }
+
+    private suspend fun readSelectedText(): String? = try {
+        if (selection.hasSelection()) selection.readText() else ""
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: PdfException) {
+        _error.value = e
+        null
     }
 
     private suspend fun applyClear() {

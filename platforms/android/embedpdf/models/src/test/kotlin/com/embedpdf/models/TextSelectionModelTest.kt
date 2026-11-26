@@ -77,6 +77,23 @@ class TextSelectionModelTest {
     }
 
     @Test
+    fun theSelectedTextIsTheEnginesAfterADragAndEmptyAfterAClear() = mainTest {
+        val o = opened()
+        running(o.model)
+        val start = pointOverText(o.page, o.selection)
+        assertEquals("", o.model.selectedText())
+        o.model.dragBegan(start, o.page.page)
+        o.model.dragChanged(Point(start.x + 120, start.y), o.page.page)
+        assertTrue(o.model.dragEnded())
+        val text = o.model.selectedText()
+        assertTrue("$text", !text.isNullOrBlank())
+        assertEquals(o.selection.readText(), text)
+        o.model.clear()
+        assertEquals("", o.model.selectedText())
+        o.viewer.destroy()
+    }
+
+    @Test
     fun draggingAcrossTextSelectsIt() = mainTest {
         val o = opened()
         running(o.model)

@@ -345,6 +345,7 @@ public final class com/embedpdf/models/TextSelectionModel {
 	public final fun getRects ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun isSelecting ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun run (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun selectedText (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class com/embedpdf/models/TextSelectionModel$Start : java/lang/Enum {
@@ -359,6 +360,7 @@ public final class com/embedpdf/models/ThumbnailModel {
 	public fun <init> (Lcom/embedpdf/RenderCapability;Ljava/util/List;)V
 	public final fun getError ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun getImages ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getPageRevisions ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun image (Luniffi/epdf_ffi/PageRef;)Landroid/graphics/Bitmap;
 	public final fun load (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun revision (Luniffi/epdf_ffi/PageRef;)J
