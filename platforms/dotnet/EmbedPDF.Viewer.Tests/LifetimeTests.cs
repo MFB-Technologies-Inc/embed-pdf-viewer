@@ -303,4 +303,55 @@ public sealed class LifetimeTests
         Assert.True(await MetadataTests.Ends(link));
         Assert.True(await MetadataTests.Ends(commands));
     }
+
+    sealed class NoStore : IStampLibraryStore
+    {
+        public IReadOnlyList<StoredStampLibrary> List() => [];
+        public void Put(string id, ReadOnlyMemory<byte> bytes) { }
+        public void Delete(string id) { }
+    }
+
+    sealed class NoTransport : ISignatureTransport
+    {
+        public Task<SignatureTransportOutcome> PostAsync(SignatureTransportRequest request) =>
+            Task.FromResult<SignatureTransportOutcome>(new SignatureTransportOutcome.Failed("offline"));
+    }
+
+    static async Task<(WeakReference Viewer, IAsyncEnumerable<RedactionEvent> Redaction, IAsyncEnumerable<MeasurementEvent> Measurement,
+        IAsyncEnumerable<StampEvent> Stamp, IAsyncEnumerable<SignatureEvent> Signature)> AbandonWithWaveEStreamsAndCallbacks()
+    {
+        var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions
+        {
+            Interaction = true, Annotation = "", Form = new(), Redaction = new(), Measurement = new(), Stamp = new(), Signature = new(),
+        });
+        var document = await viewer.OpenAsync(Fixture.Data("unsigned_sigfield"));
+        var stamps = await viewer.GetStampsAsync();
+        _ = await stamps.PersistAsync(new NoStore());
+        viewer.SetSigner(TestKeys.Signer());
+        viewer.SetTrust(TrustAnchors.FromPem([TestKeys.CertificatePem]));
+        viewer.SetSignatureTransport(new NoTransport());
+        return (new WeakReference(viewer), (await viewer.GetRedactionAsync(document)).ObserveEvents(), (await viewer.GetMeasurementAsync(document)).ObserveEvents(),
+            stamps.ObserveEvents(), (await viewer.GetSignaturesAsync(document)).ObserveEvents());
+    }
+
+    /// <summary>Wave E streams, a persisting store, a signer, trust and a transport that capture nothing leave an abandoned viewer collectable.</summary>
+    [Fact]
+    public async Task LiveWaveEStreamsAndCallbacksDoNotKeepAnAbandonedViewerAlive()
+    {
+        var released = PdfViewer.AbandonedReleases;
+        var (reference, redaction, measurement, stamp, signature) = await AbandonWithWaveEStreamsAndCallbacks();
+        for (var i = 0; i < 20 && reference.IsAlive; i++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            await Task.Delay(20);
+        }
+        Assert.False(reference.IsAlive);
+        for (var i = 0; i < 500 && PdfViewer.AbandonedReleases == released; i++) await Task.Delay(10);
+        Assert.True(PdfViewer.AbandonedReleases > released);
+        Assert.True(await MetadataTests.Ends(redaction));
+        Assert.True(await MetadataTests.Ends(measurement));
+        Assert.True(await MetadataTests.Ends(stamp));
+        Assert.True(await MetadataTests.Ends(signature));
+    }
 }

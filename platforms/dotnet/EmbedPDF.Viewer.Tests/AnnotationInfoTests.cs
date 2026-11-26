@@ -12,7 +12,7 @@ public sealed partial class AnnotationInfoTests
 
     const string InkJson = """{"subtype":"ink","ref":{"kind":"objectNumber","page":{"kind":"objectNumber","objectNumber":1},"objectNumber":12},"rect":{"x":-1,"y":-1,"width":22,"height":7.000000000000001},"color":"#e5484d","opacity":0.5,"strokeWidth":2,"borderStyle":"dashed","dashArray":[3,1],"inkList":[[{"x":0,"y":0},{"x":10,"y":5}],[{"x":20,"y":0}]],"intent":"ink-highlight","rotation":30,"customMember":{"kept":true}}""";
 
-    static GA.AnnotationRecord Record(
+    internal static GA.AnnotationRecord Record(
         string subtype = "ink", string? createdAt = "2025-03-04T05:06:07Z", string? modifiedAt = "2025-03-04T10:36:07+05:30", string fieldsJson = InkJson) =>
         new(Ffi.ToFfi(Ref), Ffi.ToFfi(Page), subtype, new GF.Rect(-1, -1, 22, 7.000000000000001), "Ink", "Reviewer", createdAt, modifiedAt, "group-1",
             Ffi.ToFfi(Parent), true, false, fieldsJson);

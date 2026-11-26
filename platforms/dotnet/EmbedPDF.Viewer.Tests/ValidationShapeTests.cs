@@ -284,4 +284,38 @@ public sealed class ValidationShapeTests
         };
         foreach (var (name, call) in calls) await ExpectFaulted(name, call);
     }
+
+    [Fact]
+    public async Task InvalidWaveEArgumentsFaultTheReturnedTask()
+    {
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions
+        {
+            Interaction = true, Annotation = "", Form = new(), Redaction = new(), Measurement = new(), Stamp = new(), Signature = new(),
+        });
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        using var redaction = await viewer.GetRedactionAsync(document);
+        using var measurement = await viewer.GetMeasurementAsync(document);
+        using var stamps = await viewer.GetStampsAsync();
+        using var signatures = await viewer.GetSignaturesAsync(document);
+        var page = new MeasurementPageTarget.Page(new PageRef(1));
+        var calls = new (string, Func<Task>)[]
+        {
+            ("Redaction.MarkAreaAsync", () => redaction.MarkAreaAsync(default, Bad)),
+            ("Redaction.GetPendingAsync", () => redaction.GetPendingAsync(Bad)),
+            ("Redaction.ApplyPagesAsync", () => redaction.ApplyPagesAsync([Bad])),
+            ("Measurement.GetPageScaleAsync", () => measurement.GetPageScaleAsync(Bad)),
+            ("Measurement.SetScaleAsync(NaN)", () => measurement.SetScaleAsync(page, new PdfMeasurement("RL") { Cyx = double.NaN })),
+            ("Measurement.SetPrecisionAsync(NaN)", () => measurement.SetPrecisionAsync(page, double.NaN)),
+            ("Measurement.CreateMeasurementAsync", () => measurement.CreateMeasurementAsync(new CreateMeasurementInput((MeasurementKind)9, new PageRef(1), []))),
+            ("Stamps.GetAssetsAsync", () => stamps.GetAssetsAsync(new StampAssetFilter { Kind = (StampAssetKind)9 })),
+            ("Stamps.RenderAssetPreviewAsync", () => stamps.RenderAssetPreviewAsync("x", double.NaN)),
+            ("Stamps.UpdateSettingsAsync", () => stamps.UpdateSettingsAsync(new StampConfig { PreviewWidth = double.PositiveInfinity })),
+            ("Signatures.AnalyzeChangesAsync(-1)", () => signatures.AnalyzeChangesAsync(-1)),
+            ("Signatures.AnalyzeChangesAsync(enum)", () => signatures.AnalyzeChangesAsync(0, (SignatureModificationsBasis)9)),
+            ("Signatures.ValidateAsync", () => signatures.ValidateAsync(new SignatureValidateRequest { Until = (SignatureModificationsBasis)9 })),
+            ("Signatures.SignAsync", () => signatures.SignAsync(new SignatureSignInput(new FormFieldRef.Fqn("x")) { Certify = 256 })),
+            ("Signatures.CanSignAsync", () => signatures.CanSignAsync(new FormFieldRef.ObjectNumber(-1))),
+        };
+        foreach (var (name, call) in calls) await ExpectFaulted(name, call);
+    }
 }

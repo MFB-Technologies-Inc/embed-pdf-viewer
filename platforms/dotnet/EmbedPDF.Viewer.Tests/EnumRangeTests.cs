@@ -56,6 +56,18 @@ public sealed class EnumRangeTests
         { "orientation", () => Ffi.ToFfi(new StageBoxQuery { Orientation = (StageOrientation)9 }) },
         { "reveal word", () => Ffi.ToFfiOrNull(new StageRevealOptions { Anchor = new StageRevealAnchor { X = new StageRevealAnchorValue.Word((StageRevealWord)9) } }) },
         { "text format", () => Ffi.ToFfi((AnnotationTextFormat)9) },
+        { "kind", () => Ffi.ToFfi(new CreateMeasurementInput((MeasurementKind)9, new PageRef(1), [])) },
+        { "fraction", () => Ffi.ToFfi(new PdfMeasurement("RL") { X = [new PdfNumberFormat("in") { Fraction = (MeasureFraction)9 }] }) },
+        { "label position", () => Ffi.ToFfi(new PdfMeasurement("RL") { X = [new PdfNumberFormat("in") { LabelPosition = (MeasureLabelPosition)9 }] }) },
+        { "kind", () => Ffi.ToFfi(new StampAssetFilter { Kind = (StampAssetKind)9 }) },
+        { "kind", () => Ffi.ToFfi(new StampImportOptions { Kind = (StampAssetKind)9 }) },
+        { "kind", () => Ffi.ToFfi(new StampAddAssetInput { Kind = (StampAssetKind)9 }) },
+        { "mode", () => Ffi.ToFfi(new SignatureSettingsPatch { Mode = (SignatureMode)9 }) },
+        { "signature mode", () => new SignatureConfig { Mode = (SignatureMode)9 }.ToFfi() },
+        { "hash", () => Ffi.ToFfi(new SignatureTimestampAuthority("https://tsa.test/") { Hash = (SignatureDigest)9 }) },
+        { "digest", () => Ffi.ToFfi(new SignaturePrepareInput(new FormFieldRef.Fqn("x")) { Digest = (SignatureDigest)9 }) },
+        { "action", () => Ffi.ToFfi(new SignatureSignInput(new FormFieldRef.Fqn("x")) { Lock = new SignatureFieldLock((SignatureFieldLockAction)9, []) }) },
+        { "until", () => Ffi.ToFfi(new SignatureValidateRequest { Until = (SignatureModificationsBasis)9 }) },
         { "thread status", () => Ffi.ToFfi((AnnotationThreadStatus)9) },
     };
 

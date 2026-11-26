@@ -1,5 +1,4 @@
 using System.Reflection;
-using uniffi.epdf_viewer_host;
 using Xunit;
 
 namespace EmbedPDF.Viewer.Tests;
@@ -34,14 +33,8 @@ public sealed class DisabledPluginTests
         }
     }
 
-    static Func<PdfViewer, DocumentInfo, Task> Of<T>(Func<ViewerHost, string, Task<T>> accessor) where T : IDisposable =>
-        async (viewer, document) => (await viewer.CallAsync(h => accessor(h, document.Id), default)).Dispose();
-
     static Func<PdfViewer, DocumentInfo, Task> Public<T>(Func<PdfViewer, DocumentInfo, Task<T>> accessor) where T : IDisposable =>
         async (viewer, document) => (await accessor(viewer, document)).Dispose();
-
-    static Func<PdfViewer, DocumentInfo, Task> Global<T>(Func<ViewerHost, Task<T>> accessor) where T : IDisposable =>
-        async (viewer, _) => (await viewer.CallAsync(accessor, default)).Dispose();
 
     static readonly Func<PdfViewerOptions, PdfViewerOptions> None = o => o;
     static readonly Func<PdfViewerOptions, PdfViewerOptions> Interaction = o => o with { Interaction = true };
@@ -62,16 +55,16 @@ public sealed class DisabledPluginTests
         new("Outline", None, o => o with { Outline = true }, Public((v, d) => v.GetOutlineAsync(d))),
         new("Attachment", None, o => o with { Attachment = true }, Public((v, d) => v.GetAttachmentsAsync(d))),
         new("Form", Interaction, o => o with { Form = new() }, Public((v, d) => v.GetFormAsync(d))),
-        new("Redaction", Annotation, o => o with { Redaction = new() }, Of((h, id) => h.Redaction(id))),
-        new("Measurement", Annotation, o => o with { Measurement = new() }, Of((h, id) => h.Measurement(id))),
-        new("Stamp", None, o => o with { Stamp = new() }, Global(h => h.Stamp())),
+        new("Redaction", Annotation, o => o with { Redaction = new() }, Public((v, d) => v.GetRedactionAsync(d))),
+        new("Measurement", Annotation, o => o with { Measurement = new() }, Public((v, d) => v.GetMeasurementAsync(d))),
+        new("Stamp", None, o => o with { Stamp = new() }, Public((v, _) => v.GetStampsAsync())),
         new("PageEdit", None, o => o with { PageEdit = true }, Public((v, d) => v.GetPageEditAsync(d))),
         new("ViewManager", None, o => o with { ViewManager = true }, Public((v, _) => v.GetViewManagerAsync())),
         new("Shell", None, o => o with { Shell = true }, Public((v, d) => v.GetShellAsync(d))),
         new("I18n", None, o => o with { I18n = new() }, Public((v, _) => v.GetI18nAsync())),
         new("Commands", None, o => o with { Commands = true }, Public((v, _) => v.GetCommandsAsync())),
         new("Actions", None, o => o with { Actions = new() }, Public((v, d) => v.GetActionsAsync(d))),
-        new("Signature", o => o with { Interaction = true, Form = new() }, o => o with { Signature = new() }, Of((h, id) => h.Signature(id))),
+        new("Signature", o => o with { Interaction = true, Form = new() }, o => o with { Signature = new() }, Public((v, d) => v.GetSignaturesAsync(d))),
     ];
 
     public static TheoryData<string> Fields => [.. Accessors.Select(a => a.Field)];

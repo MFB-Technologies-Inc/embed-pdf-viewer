@@ -71,6 +71,18 @@ public sealed class NullArgumentTests
         _ when type == typeof(FormCalculationPosition) => new FormCalculationPosition.End(),
         _ when type == typeof(FormCreateFieldInput) => new FormCreateFieldInput(FormFieldFamily.Text, "x", new PageRef(1), default),
         _ when type == typeof(IFormFocusTarget) => new NoFocus(),
+        _ when type == typeof(MeasurementPageTarget) => new MeasurementPageTarget.All(),
+        _ when type == typeof(PdfMeasurement) => new PdfMeasurement("RL"),
+        _ when type == typeof(CreateMeasurementInput) => new CreateMeasurementInput(MeasurementKind.Distance, new PageRef(1), []),
+        _ when type == typeof(MeasurementCalibrateInput) => new MeasurementCalibrateInput(new PageRef(1), default, default, 1, "m"),
+        _ when type == typeof(AnnotationInfo) => new AnnotationInfo(AnnotationInfoTests.Record()),
+        _ when type == typeof(IStampLibraryStore) => new FileStampLibraryStore(Path.Combine(Path.GetTempPath(), "embedpdf-null-args")),
+        _ when type == typeof(SignatureSignInput) => new SignatureSignInput(new FormFieldRef.Fqn("x")),
+        _ when type == typeof(SignaturePrepareInput) => new SignaturePrepareInput(new FormFieldRef.Fqn("x")),
+        _ when type == typeof(SignatureMark) => new SignatureMark.Asset("x"),
+        _ when type == typeof(SignaturePlaceTarget) => new SignaturePlaceTarget.Field(new FormFieldRef.Fqn("x")),
+        _ when type == typeof(ISignatureSigner) => TestKeys.Signer(),
+        _ when type == typeof(SignatureTransportRequest) => new SignatureTransportRequest("not a url", "x", [], new byte[] { 1 }, 1, 1),
         _ when type.IsValueType => Activator.CreateInstance(type),
         _ when type.GetConstructor(Type.EmptyTypes) is { } constructor => constructor.Invoke(null),
         _ when type == typeof(IDocumentFetcher) => new HttpClientDocumentFetcher(),
@@ -279,6 +291,52 @@ public sealed class NullArgumentTests
         await Assert.ThrowsAsync<ArgumentException>(() => form.SetValuesAsync([null!]));
         await Assert.ThrowsAsync<ArgumentException>(() => form.ResetAsync([null!]));
         await Assert.ThrowsAsync<ArgumentException>(() => form.ReorderCalculationsAsync([null!], new FormCalculationPosition.End()));
+    }
+
+    [Fact]
+    public async Task EveryWaveECapabilityChecksEveryReferenceArgument()
+    {
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions
+        {
+            Interaction = true, Annotation = "", Form = new(), Redaction = new(), Measurement = new(), Stamp = new(), Signature = new(),
+        });
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        object[] targets =
+        [
+            await viewer.GetRedactionAsync(document), await viewer.GetMeasurementAsync(document), await viewer.GetStampsAsync(),
+            await viewer.GetSignaturesAsync(document), new FileStampLibraryStore(Path.Combine(Path.GetTempPath(), "embedpdf-null-args")),
+            new HttpClientSignatureTransport(), new X509CertificateSigner(TestKeys.Certificate()),
+        ];
+        foreach (var target in targets) Assert.Empty(await Unchecked(target));
+        Assert.Throws<ArgumentNullException>(() => TrustAnchors.FromPem(null!));
+        Assert.Throws<ArgumentNullException>(() => TrustAnchors.FromCertificates(null!));
+        Assert.Throws<ArgumentNullException>(() => TrustAnchors.FromEmbeddedResources(null!, "x"));
+        Assert.Throws<ArgumentNullException>(() => TrustAnchors.FromEmbeddedResources(typeof(NullArgumentTests).Assembly, null!));
+        Assert.Throws<ArgumentNullException>(() => new TrustAnchors(null!));
+        Assert.Throws<ArgumentNullException>(() => X509CertificateSigner.FromPkcs12File(null!));
+        Assert.Throws<ArgumentNullException>(() => X509CertificateSigner.FromStore(null!));
+    }
+
+    [Fact]
+    public async Task EveryWaveECapabilityRefusesANullElementUpFront()
+    {
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions { Interaction = true, Annotation = "", Redaction = new(), Stamp = new() });
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        using var redaction = await viewer.GetRedactionAsync(document);
+        using var stamps = await viewer.GetStampsAsync();
+        var store = new FileStampLibraryStore(Path.Combine(Path.GetTempPath(), "embedpdf-null-args"));
+        Action[] calls =
+        [
+            () => _ = redaction.UnmarkAsync([null!]),
+            () => _ = redaction.ApplyAsync([null!]),
+            () => _ = redaction.EstimateCollateralAsync([null!]),
+            () => _ = stamps.CreateAssetFromAnnotationsAsync([null!], document, new PageRef(1)),
+            () => _ = stamps.GetLibrariesAsync([null!]),
+            () => _ = stamps.PersistAsync(store, [null!]),
+            () => _ = TrustAnchors.FromPem([null!]),
+            () => _ = new X509CertificateSigner(TestKeys.Certificate(), [null!]),
+        ];
+        foreach (var call in calls) Assert.Throws<ArgumentException>(call);
     }
 
     [Fact]
