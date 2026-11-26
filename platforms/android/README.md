@@ -1,23 +1,47 @@
 # Android
 
-The `bindings` AAR packages `epdf-viewer-host`, the full viewer host with every
-plugin, for `arm64-v8a` and `x86_64`, with `libc++_shared`, the generated Kotlin
-for every uniffi component, the shrinker rules and the 16 KB checks. It's built
-locally and published nowhere yet.
+The Android package exposes the Rust viewer through typed Kotlin capabilities,
+observable models and Compose views, on Android 7.0 (API 24) or later, for
+`arm64-v8a` and `x86_64`.
 
-## Modules
+It publishes as five Maven artifacts under the group `com.embedpdf`, built by
+`.github/workflows/android-release.yml` and published to a GitHub Packages
+Maven registry. Nothing is published yet: the workflow is written and checked,
+and the first run waits for a maintainer. Until then an app builds against
+the libraries from this checkout, as the demo app does by default.
+
+```kotlin
+dependencies {
+    implementation("com.embedpdf:embedpdf-compose:0.0.0-android.1")
+}
+```
+
+That one line brings `embedpdf-models`, `embedpdf` and `embedpdf-bindings`
+with it. [Consuming from GitHub Packages](#consuming-from-github-packages) has
+the repository block and the token it needs.
+
+## Products
 
 `platforms/android/embedpdf` is one Gradle build with a wrapper (Gradle 9.8.2)
-and a version catalog, `gradle/libs.versions.toml`.
+and a version catalog, `gradle/libs.versions.toml`. Its five library modules
+are the five artifacts; `smoke` is a test module.
 
-| Module | What it is | Published |
-|---|---|---|
-| `bindings` | `libepdf_viewer_host.so` per ABI and the generated `uniffi.*` Kotlin | yes, as the AAR |
-| `embedpdf` | the hand-written `com.embedpdf` facade: `PdfViewer`, `PdfException`, the document fetchers | not yet |
-| `models` | `com.embedpdf.models`: observable models over the facade, with no Compose dependency, as `embedpdf-models` | not yet |
-| `compose` | `com.embedpdf.compose`: Compose views over the models, with Material 3, as `embedpdf-compose` | not yet |
-| `javascript` | `com.embedpdf.javascript.JavaScriptSandboxEngineFactory`, PDF JavaScript in `androidx.javascriptengine`, as `embedpdf-javascript` | not yet |
-| `smoke` | JVM tests of the engine-only `epdf-uniffi` crate | no |
+| Module | Artifact | What it is | Apple counterpart |
+|---|---|---|---|
+| `bindings` | `embedpdf-bindings` | `libepdf_viewer_host.so` and `libc++_shared.so` per ABI, the generated `uniffi.*` Kotlin and the shrinker rules | `EmbedPDFBindings` |
+| `embedpdf` | `embedpdf` | the hand-written `com.embedpdf` facade: `PdfViewer`, `PdfException`, a capability per plugin, the document fetchers | `EmbedPDF` |
+| `javascript` | `embedpdf-javascript` | `com.embedpdf.javascript.JavaScriptSandboxEngineFactory`, PDF JavaScript in `androidx.javascriptengine` | `JavaScriptCoreEngine` in `EmbedPDF` |
+| `models` | `embedpdf-models` | `com.embedpdf.models`: observable models over the facade, with no Compose dependency | `EmbedPDFModels` |
+| `compose` | `embedpdf-compose` | `com.embedpdf.compose`: Compose views over the models, with Material 3 | `EmbedPDFUI` |
+| `smoke` | none | JVM tests of the engine-only `epdf-uniffi` crate | none |
+
+`compose` depends on `models`, `models` and `javascript` on `embedpdf`, and
+`embedpdf` on `bindings`, each as `api`, so `embedpdf-compose` alone brings
+everything but `embedpdf-javascript`. The generated `uniffi.*`
+types are visible to an app through that chain, because the facade's
+typealiases name them. They are not supported API: the API dumps cover
+`com.embedpdf.*` only, and a Rust change can rename a generated type without
+notice. Apple made the same call on 2026-11-10 for the same reason.
 
 `javascript` is a module of its own so that only an app that wants PDF
 JavaScript takes `androidx.javascriptengine`. That library declares minSdk 26
@@ -62,6 +86,168 @@ it. `python3 scripts/check-api-coverage.py --platform kotlin` checks
 `kotlin-api-coverage.json`: every member the Swift manifest lists is either
 ported, with the Kotlin symbol it maps to, or `pending` with the phase that
 ports it. `build-aar.sh` runs both.
+
+## Where the engine comes from
+
+`bash platforms/android/build-aar.sh` builds `epdf-viewer-host`, the full
+viewer host with every plugin, for `aarch64-linux-android` and
+`x86_64-linux-android` against NDK r29 at API 24. It links the fork's
+`libembedpdf.a` for `android-arm64` and `android-x64`, which
+`fetch-android-runtime.sh` downloads from the `runtime-<sha>` release for the
+commit `packages/engine/runtime/runtime-src` pins (`af480d0ce` today). Then
+it generates the Kotlin for every uniffi component from the arm64 library
+with the repository's `crates/uniffi-bindgen`, and packages both into
+`bindings/src/main`. Neither the `.so` files nor the Kotlin are committed.
+
+`embedpdf-bindings` is versioned by engine, not by release:
+`0.0.0-engine.<hash>`, where `<hash>` is the pin
+`embedpdf.engineRelease=android-engine-<hash>` in
+`platforms/android/embedpdf/gradle.properties`. A facade or UI release whose
+engine didn't change reuses the engine already published. The publish task of
+`:bindings` runs `android-engine-hash.sh` and refuses to publish when the tree
+builds another hash than the pin names, so a version always names the sources
+it was built from. The other four artifacts take `embedpdf.version`
+(`0.0.0-local` in `gradle.properties`; the release workflow passes its
+`version` input).
+
+The pin goes stale whenever an input to the hash changes. [Engine
+identity](#engine-identity) lists the inputs; the Gradle build files and the
+version catalog are among them, so a dependency bump moves the engine version
+too. `bash platforms/android/check-android-engine.sh` exits 0 when the pin is
+current and 1 or 2 when it isn't, as `platforms/apple/check-apple-engine.sh`
+does. The release workflow runs it first and stops on anything but 0.
+
+## Plugins
+
+| Plugin | Kotlin | `ViewerConfig` |
+|---|---|---|
+| metadata | `MetadataCapability` | `metadata = true` |
+| search | `SearchCapability`, `SearchModel`, `SearchBar` | `search = SearchConfig()` |
+| render | `RenderCapability`, `PageImageView`, `TiledPageImage` | `render = RenderConfig()` |
+| interaction | `InteractionCapability`, `ToolModel`, `ToolPicker` | `interaction = true` |
+| feedback | `FeedbackCapability`, `HapticFeedback` | `feedback = FeedbackConfig(HapticFeedback(view))` |
+| stage | `StageCapability`, `StageReaderModel`, `StageReader` | `stage = StageConfig()` |
+| selection | `SelectionCapability`, `TextSelectionModel`, `TextSelectionOverlay` | `interaction = true, selection = true` |
+| link | `LinkCapability` | `interaction = true, link = true` |
+| annotation | `AnnotationCapability`, `AnnotationModel` | `interaction = true, annotation = ""` |
+| history | `HistoryCapability`, `HistoryModel`, `HistoryControls` | `history = true` |
+| outline | `OutlineCapability`, `OutlineModel`, `OutlinePanel` | `outline = true` |
+| attachment | `AttachmentCapability`, `AttachmentModel`, `AttachmentPanel` | `attachment = true` |
+| form | `FormCapability` | `interaction = true, form = FormConfig()` |
+| redaction | `RedactionCapability` | `interaction = true, annotation = "", redaction = RedactionConfig()` |
+| measurement | `MeasurementCapability` | `interaction = true, annotation = "", measurement = MeasurementConfig()` |
+| stamp | `StampCapability`, `FileStampLibraryStore` | `stamp = StampConfig()` (with `interaction = true, annotation = ""` to place) |
+| page-edit | `PageEditCapability` | `pageEdit = true` |
+| view-manager | `ViewManagerCapability` | `viewManager = true` |
+| shell | `ShellCapability` | `shell = true` |
+| i18n | `I18nCapability`, `AssetLocaleLoader` | `i18n = I18nConfig(...)` with `AssetLocaleLoader(context.assets)` as its loader |
+| commands | `CommandsCapability`, `CommandHandler` | `commands = true` |
+| actions | `ActionsCapability`, `JavaScriptSandboxEngineFactory` (`embedpdf-javascript`) | `actions = ActionsConfig.forCurrentTimeZone(javascript = ActionsJavaScriptConfig(enabled = true, engine = JavaScriptSandboxEngineFactory(context)))` |
+| signature | `SignatureCapability`, `AndroidKeyStoreSigner`, `TrustAnchors`, `HttpSignatureTransport` | `interaction = true, form = FormConfig(), signature = SignatureConfig()` |
+
+`ViewerConfigBuilder` spells the same settings as chained calls:
+`ViewerConfigBuilder().interaction().annotation().search(SearchConfig()).build()`.
+
+A plugin left out of `ViewerConfig` is refused at its accessor:
+`viewer.search(document)`, `viewer.stamps()` and the others throw
+`PdfException` with `PdfException.Code.UNSUPPORTED`, also for a document that
+is closed or still loading. `DisabledPluginTest`
+(`embedpdf/embedpdf/src/test/kotlin/com/embedpdf/DisabledPluginTest.kt`) has
+one row per accessor and fails when `ViewerConfig` gains a plugin without one.
+The companion-plugin refusals are the ones `platforms/apple/README.md` lists
+under Plugins; the Rust is the same.
+
+## Local engine mode
+
+Everything runs in the dev container on amd64, which has JDK 21, the Android
+SDK at `/opt/android-sdk` and NDK r29 at `/opt/android-ndk-r29`
+(`.devcontainer/README.md` lists the versions). An app or the demo in this
+checkout uses the libraries as projects, with the engine `build-aar.sh` left
+in `bindings/src/main`:
+
+```bash
+bash platforms/android/build-aar.sh          # the engine for both ABIs, then the checks
+bash platforms/android/build-aar.sh test     # also the JVM tests
+PROFILE=dev bash platforms/android/build-aar.sh test   # unoptimized, for iterating
+cd platforms/android/embedpdf && ./gradlew check       # unit tests, lint, apiCheck
+```
+
+To try a published layout without publishing anywhere, `./gradlew
+publishToMavenLocal` writes all five artifacts to Maven Local, and
+`bash platforms/android/android-consumer.sh` does that into a directory of its
+own and builds the demo from it (see [The demo app](#the-demo-app)).
+
+## Consuming from GitHub Packages
+
+GitHub Packages asks for a token even to read a public package. Every machine
+and CI job that resolves the artifacts needs a personal access token (classic)
+with `read:packages`, or the job's `GITHUB_TOKEN` when the build runs in a
+workflow of the repository that holds the packages. Maven Central would avoid
+that, at the cost of a namespace and signing setup we don't have.
+
+In the app's `settings.gradle.kts`, with `OWNER/REPO` the repository the
+release workflow published to (its `packages_repository` input):
+
+```kotlin
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url = uri("https://maven.pkg.github.com/OWNER/REPO")
+            content { includeGroup("com.embedpdf") }
+            credentials {
+                username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
+                password = providers.gradleProperty("gpr.key").orNull ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+}
+```
+
+and in the module:
+
+```kotlin
+dependencies {
+    implementation("com.embedpdf:embedpdf-compose:0.0.0-android.1")
+    // Only for PDF JavaScript:
+    implementation("com.embedpdf:embedpdf-javascript:0.0.0-android.1")
+}
+```
+
+The app needs `compileSdk` 36 or later and `minSdk` 24 or later. The
+published module metadata and POMs name every dependency's version, the
+Compose ones included (resolved from Compose BOM 2026.06.01), so the app
+doesn't have to import the BOM.
+
+An app's release build runs R8 over the libraries. `embedpdf-bindings`
+ships `consumer-rules.pro`, which keeps JNA and every generated `uniffi.*`
+class and interface; the app adds nothing. The app should still run
+`zipalign -c -P 16 4` on its APK, as [What the script checks](#what-the-script-checks)
+explains.
+
+## Releasing
+
+`.github/workflows/android-release.yml` runs only from `workflow_dispatch`,
+with a `version` for the four non-engine artifacts (for example
+`0.0.0-android.1`), the `packages_repository` to publish to, and `dry_run`,
+which defaults to true. One job on `ubuntu-24.04` builds the dev image from
+`.devcontainer/Dockerfile` and runs every step in it: the pin check, then
+`build-aar.sh test`, the Kotlin API coverage check, `apiCheck`,
+`android-consumer.sh`, and last the publish. Before building it asks the
+registry which versions exist. An engine version already there is reused, and
+a library version already there stops the run, since a registry version can't
+be replaced. A dry run publishes nothing and uploads the five artifacts,
+staged in a local Maven repository, as the `android-maven` workflow artifact.
+
+A real run takes the `release` environment, so its reviewers approve before
+the job starts. Publishing to a registry in another repository needs the
+`ANDROID_PACKAGES_TOKEN` secret, a classic token with `write:packages` there;
+the job's own token can only publish to the repository the workflow runs in.
+
+The first publish, then: commit an engine pin that `check-android-engine.sh`
+reports current, add the secret, run the workflow once with `dry_run` on and
+look at `android-maven`, then run it with `dry_run` off.
 
 ## Cancellation
 
@@ -144,6 +330,84 @@ resources; in composition, `rememberHistoryStrings()` and
 `rememberSearchStrings()` make them for the current configuration. `HistoryModel.notice` is a `HistoryNotice` value
 (`SkippedUndo(count)`, `SkippedRedo(count)`) for a caller that words it
 itself, and `noticeText` is the provider's wording.
+
+## Compose
+
+`embedpdf-compose` is the Kotlin counterpart of `EmbedPDFUI`. `PdfReader` is
+the whole reader in one composable, over a `PdfReaderModel`:
+
+```kotlin
+val model = remember { PdfReaderModel(configure = { it.outline().attachment().history() }) }
+LaunchedEffect(model) { model.open(bytes, name = "report.pdf") }
+PdfReader(
+    model,
+    tools = listOf(ToolId.POINTER, ToolId.INK),
+    onLinkActivation = { activation -> /* open a Uri */ },
+    onError = { error -> Log.w("Reader", error.detail) },
+)
+```
+
+It shows a password prompt for a locked document, a localized message for a
+failure (the exception goes to `onError`), and for a ready document the
+pages, a search bar, a toggle per panel the viewer's plugins allow
+(thumbnails, bookmarks, attachments), a tool picker and history controls. A
+panel sits beside the pages from 600 dp of width and in a bottom sheet below
+it; below 600 dp the search bar also takes a row of its own. Hold the model in
+a `ViewModel` so a rotation keeps the document, as the demo does. Open
+forms, confirmations and an attachment copy waiting for the save picker are
+saved state, so they outlive a configuration change; the typed password is
+not, so it never lands in the saved-state bundle.
+
+The pieces are public too: `StageReader`, `TiledPageImage`, `PageImageView`,
+`ThumbnailStrip`, `SearchBar`, `OutlinePanel`, `AttachmentPanel`,
+`HistoryControls`, `ToolPicker` and `TextSelectionOverlay`. Each takes a model
+from `embedpdf-models` and runs it while composed. `compose/api/compose.api`
+is the checked surface.
+
+## The demo app
+
+`platforms/android/EmbedPDFDemo` is a Compose app at parity with
+`platforms/apple/EmbedPDFDemo`: it opens the bundled `report.pdf`, offers
+`encrypted-hello.pdf` (password `hôtel`) and any PDF from the system picker
+(`ACTION_OPEN_DOCUMENT`), shows it in `PdfReader` with the ink tool, the
+bookmark, attachment and thumbnail panels and history, adds a note on the
+first page, and shows the document's metadata in a sheet. `DocumentViewModel`
+holds the `PdfReaderModel`, so a rotation keeps the document, and closes it
+when the activity finishes.
+
+It is a Gradle build of its own rather than a module of
+`platforms/android/embedpdf`, so `./gradlew check` over the libraries never
+configures an app. By default its `settings.gradle.kts` includes the library
+build and substitutes the five coordinates with its projects; with
+`-Pembedpdf.fromMavenLocal` it resolves them from Maven Local instead. It has
+no wrapper of its own and uses the library build's:
+
+```bash
+bash platforms/android/build-aar.sh
+platforms/android/embedpdf/gradlew -p platforms/android/EmbedPDFDemo :app:assembleDebug
+```
+
+The release build type is minified with R8 and signed with the debug key, so
+it installs, but it is not a store build. `bash platforms/android/android-consumer.sh`
+publishes the five artifacts into `embedpdf/build/consumer-maven` with
+`publishToMavenLocal -Dmaven.repo.local=...`, checks that every POM names a
+version for every dependency, assembles the release demo from those
+coordinates, checks that both ABIs' engine is stored uncompressed, runs
+`zipalign -c -P 16 4`, and checks R8's `usage.txt` and `mapping.txt`: no
+`uniffi.` or `com.sun.jna.` class or member removed, none renamed, and every
+such class in the bindings AAR and the JNA AAR present. Results, 2026-11-26:
+`app-release.apk` is 132,142,645 bytes with both ABIs, `zipalign -c -P 16 4`
+passes, and R8 kept all 5,566 `uniffi.*` classes of `embedpdf-bindings` and
+all 125 `com.sun.jna.*` classes of `jna-5.14.0.aar` under their own names.
+AGP reported it could not strip the native libraries, so the engine ships
+with its symbol tables and the APK is larger than a stripped one would be.
+The first run found that a minified app did not build at all: JNA's
+`Native$AWT` names `java.awt` classes Android lacks, so
+`bindings/consumer-rules.pro` now adds `-dontwarn java.awt.**`.
+
+There are no demo UI tests: the Apple ones drive a simulator, and the dev
+container has no emulator (see [No emulator](#no-emulator)). What the demo
+calls is covered by the compose module's Robolectric tests.
 
 ## Building in the dev container
 
@@ -407,3 +671,14 @@ without the `dist` passes with the route tests skipped.
 The test authority writes no nonce and the Rust client checks one, so the
 helper sets the query's nonce on the token while it signs. A real authority
 answers it on its own.
+
+## Limitations
+
+No emulator or device runs since 2026-11-20 ([No emulator](#no-emulator)):
+everything is tested on the JVM, and the 16 KB property is checked statically.
+The `x86_64` engine is built and checked but has never been executed. The
+release workflow has been linted and its build steps run in the dev container,
+but it has not run on a hosted runner, and nothing is published. PDF
+JavaScript needs API 26 and a WebView whose `JavaScriptSandbox.isSupported()`
+is true; elsewhere it reports itself unavailable. The demo app has no UI
+tests.
