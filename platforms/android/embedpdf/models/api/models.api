@@ -253,6 +253,7 @@ public final class com/embedpdf/models/SearchModel {
 	public final fun getActiveHitIndex ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun getCanClear ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun getError ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getHighlight ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun getHitCount ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun getHits ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun getProgress ()Lkotlinx/coroutines/flow/StateFlow;
