@@ -12,3 +12,8 @@
 -keep class uniffi.** { *; }
 -keep interface uniffi.** { *; }
 -keep class * implements uniffi.** { *; }
+
+# JNA's desktop helpers (Native$AWT) name java.awt classes Android does
+# not have. Kept with the rest of JNA, they make R8 stop on missing classes
+# in every app that minifies; nothing on Android reaches them.
+-dontwarn java.awt.**
