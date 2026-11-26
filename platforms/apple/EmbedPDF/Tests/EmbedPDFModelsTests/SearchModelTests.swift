@@ -370,6 +370,23 @@ struct SearchModelTests {
     expectNoDifference(model.activeHitIndex, 2)
   }
 
+  @Test func theHighlightFollowsTheSearchSettings() async throws {
+    let (model, search) = try await model()
+    expectNoDifference(
+      model.highlight,
+      SearchHighlightSettings(color: "#ffd500", activeColor: "#ff9632", blendMode: .multiply))
+    let task = Task { await model.task() }
+    defer { task.cancel() }
+    try await search.updateSettings(
+      SearchSettingsPatch(highlight: SearchHighlightPatch(color: "#00ff00")))
+    let deadline = ContinuousClock.now + .seconds(10)
+    while model.highlight.color != "#00ff00", ContinuousClock.now < deadline {
+      try await Task.sleep(for: .milliseconds(20))
+    }
+    expectNoDifference(model.highlight.color, "#00ff00")
+    expectNoDifference(model.highlight.activeColor, "#ff9632")
+  }
+
   @Test func aNewModelHasNoSearch() async throws {
     let (model, _) = try await model()
     expectNoDifference(model.status, .idle)
