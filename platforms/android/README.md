@@ -429,9 +429,10 @@ The first run found that a minified app did not build at all: JNA's
 `Native$AWT` names `java.awt` classes Android lacks, so
 `bindings/consumer-rules.pro` now adds `-dontwarn java.awt.**`.
 
-There are no demo UI tests: the Apple ones drive a simulator, and the dev
-container has no emulator (see [No emulator](#no-emulator)). What the demo
-calls is covered by the compose module's Robolectric tests.
+There are no demo UI tests. The Apple ones drive a simulator; on Android the
+demo was installed and checked by hand on an emulator, debug and minified
+release both (see [Device runs](#device-runs)), and what it calls is covered
+by the compose module's Robolectric and instrumented tests.
 
 ## Building in the dev container
 
@@ -469,17 +470,92 @@ runtime slice and the fixture directory itself, so no shell setup is needed.
 reads its 14 pages; `CommandContextTest` is described under "Full viewer
 command callbacks on Linux".
 
-### No emulator
+### Device runs
 
 There is no Android emulator in the dev container: Docker on a Mac host has no
-nested virtualization, so none can run (checked 2026-11-20). Nothing in this
-directory runs on a device any more. What a device run proved is covered two
-other ways. The Kotlin and the native contract are tested on the JVM against
-the same sources built for Linux, and the property only a device can show,
-that the `.so` maps under Android's linker on a 16 KB page, is covered by the
-static ELF and `zipalign` checks below. The cost is that a loader or linker
-problem specific to bionic would go unseen until a device or CI emulator runs
-the AAR.
+nested virtualization, so none can run there (checked 2026-11-20). The
+instrumented tests run from a macOS host instead, against an emulator or a
+device, after `build-aar.sh` has built the engine on that host:
+
+```bash
+bash platforms/android/build-aar.sh
+cd platforms/android/embedpdf
+./gradlew :embedpdf:connectedDebugAndroidTest :javascript:connectedDebugAndroidTest :compose:connectedDebugAndroidTest
+```
+
+They live in each module's `src/androidTest`, with fixture access shared
+from `embedpdf/src/androidTestShared`. Each module's `deviceFixtures` task
+copies the PDFs they open into the test APK's assets. The user-authentication
+case in `DeviceKeyStoreTest` needs a secure lock screen to generate its keys:
+`adb shell locksettings set-pin 1234` before the run, `adb shell locksettings
+clear --old 1234` after.
+
+Results, 2026-11-26, on the `Pixel_4` AVD running
+`system-images/android-37.1/google_apis_playstore_ps16k/arm64-v8a` (build
+`CP31.260623.012`, `getconf PAGE_SIZE` 16384) with WebView 157.0.8103.50:
+15 tests, 0 failures.
+
+`DeviceViewerTest` (3 tests): the engine starts on the 16 KB page device and
+runs mapped straight out of the APK at a 16 KB aligned offset; a viewer with
+every plugin opens `report.pdf` with 14 pages, renders page 1 to a 612 by 792
+`Bitmap` with 6,365 dark samples, finds "Report", and saves in both modes to
+bytes that reopen; `encrypted-hello.pdf` opens `LOCKED`, refuses a wrong
+password and unlocks with `hôtel`.
+
+`DeviceKeyStoreTest` (4 tests): an EC P-256 key generated in the Keystore
+signs a message that verifies with the public key of the certificate the
+Keystore made for it. Keys generated with `setUserAuthenticationRequired(true)`,
+one per use and one with a 30 second window, both fail with `permission-denied`
+named `UserNotAuthenticated`, directly and through the viewer, with nothing
+left pending. `setUserAuthenticationRequired(true)` alone, which means a
+biometric per use, can't be generated here: the emulator has no biometric
+enrolled. A document signed through `SignatureCapability` with the generated
+key is `VALID_UNTRUSTED`: integrity and cryptography are valid, but with the
+Keystore's self-signed certificate as the anchor the engine answers "One of
+intermediate certificates is not a CA certificate". That certificate is no CA,
+so an app needs a CA-issued chain on the key. With the test signer's RSA key
+imported into the Keystore and its certificate as the anchor, the verdict is
+`TRUSTED` and `VALID`. No test answers a biometric or credential prompt; a
+test can't.
+
+`DeviceSandboxTest` (5 tests): the sandbox is supported and evaluates; it has
+`JS_FEATURE_ISOLATE_TERMINATION`, and `while (true) {}` times out at about 200
+ms with a 200 ms budget, after which the factory makes working realms again;
+two factories share one connection, which survives closing one of them;
+`document_actions.pdf`'s will-close script runs through `ActionsCapability`.
+Pressing `btn-chain` in `action_buttons_form.pdf` runs its JavaScript,
+ResetForm and JavaScript nodes, all `EXECUTED`, and resets `alpha`, but leaves
+the log field at "B". The TypeScript plugin's e2e
+(`packages/plugin/form/test/action-buttons.integration.test.ts`) expects "AB"
+for the same press: the second script doesn't see the first one's write. That
+is the Rust actions plugin rather than the sandbox, and it is not fixed here.
+
+`DeviceStageReaderTest` (3 tests): `StageReader` draws the document and names
+its pages "Page 1 of 14" and on; a drag pans the camera and a pinch zooms it
+(0.471 to 0.660); with the ink tool active, the first stroke creates an ink
+annotation, where Robolectric needed two.
+
+The run found two crashes no JVM test could. Both are JNA running a nested
+callback on a native thread and detaching that thread when the inner callback
+returns, which ART aborts ("attempting to detach while still running code")
+and HotSpot refuses quietly. It happens when a generated async call resumes on
+the thread that delivered the kernel's answer, so its next poll answers
+inside the first callback. The facade's cancellable calls did that on
+`Dispatchers.Unconfined`, so every one of them crashed the process on a
+device; they run on `Dispatchers.Default` now. A caller whose own dispatcher
+resumes inline still crashes: Compose's test rule runs effects on an
+`UnconfinedTestDispatcher` by default, so `DeviceStageReaderTest` passes a
+`StandardTestDispatcher` as the effect context. An app's own instrumented
+tests over these views need the same until the generated continuation stops
+resuming inline.
+
+The demo app, debug and minified release, installs, opens `report.pdf` and
+draws its first page (screenshots identical across the two); the release
+build's search finds 416 hits for "Trace". Neither logcat shows a crash or an
+`UnsatisfiedLinkError`.
+
+The `x86_64` engine is built and checked but not executed, since the only
+image installed is arm64. A run on physical hardware is still to do.
 
 ### Library sizes
 
@@ -607,7 +683,7 @@ same order. Identical assertions across the three mean a divergence is a
 packaging problem rather than a logic one.
 
 Since 2026-11-20 it's a JVM test against `libepdf_uniffi.so` built for the dev
-container, because the container has no emulator (see "No emulator"). 8 tests,
+container, because the container has no emulator (see "Device runs"). 8 tests,
 0 failures. The two device runs below were with the instrumented version, when
 the AAR still packaged `epdf-uniffi`.
 
@@ -729,9 +805,13 @@ answers it on its own.
 
 ## Limitations
 
-No emulator or device runs since 2026-11-20 ([No emulator](#no-emulator)):
-everything is tested on the JVM, and the 16 KB property is checked statically.
-The `x86_64` engine is built and checked but has never been executed. The
+The instrumented tests ran on one arm64 16 KB page emulator on 2026-11-26
+([Device runs](#device-runs)), not on physical hardware, and they need a
+macOS host since the dev container has no emulator. The `x86_64` engine is
+built and checked but has never been executed. PDF JavaScript's
+JS→ResetForm→JS chain diverges from the TypeScript plugin, and an inline
+dispatcher calling into the viewer crashes the process on Android; the same
+section has both. The
 release workflow has been linted and its build steps run in the dev container,
 but it has not run on a hosted runner, and nothing is published. PDF
 JavaScript needs API 26 and a WebView whose `JavaScriptSandbox.isSupported()`

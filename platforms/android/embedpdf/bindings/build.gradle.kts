@@ -94,6 +94,10 @@ val bindgen = cargoTargetDir.resolve("debug/uniffi-bindgen")
 
 val buildLinuxHost = tasks.register<Exec>("buildLinuxHost") {
     description = "Builds epdf-viewer-host and uniffi-bindgen for the JVM tests."
+    // The JVM tests need a Linux library. On a macOS host, which builds the
+    // AAR and runs the instrumented tests, the host build would need the
+    // runtime's darwin slice and its result would go unused.
+    onlyIf("the build host is Linux") { System.getProperty("os.name") == "Linux" }
     workingDir = repoRoot
     val packages = if (prebuiltHostDir == null) listOf("-p", "epdf-viewer-host") else emptyList()
     commandLine(
