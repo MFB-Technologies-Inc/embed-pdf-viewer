@@ -10,6 +10,7 @@ static class Fixture
         ["report"] = "pdfium-multiplatform-prototype/fixtures/report.pdf",
         ["encrypted-hello"] = "pdfium-multiplatform-prototype/fixtures/encrypted-hello.pdf",
         ["features"] = "tooling/viewer-e2e/fixtures/features.pdf",
+        ["document_actions"] = "tooling/engine-conformance/fixtures/document_actions.pdf",
         ["annotation_kinds"] = "tooling/engine-conformance/fixtures/annotation_kinds.pdf",
     };
 

@@ -111,6 +111,38 @@ EmbedPDF.Models.SearchModel.Text.set -> void
 EmbedPDF.Models.SelectionStart
 EmbedPDF.Models.SelectionStart.Caret = 0 -> EmbedPDF.Models.SelectionStart
 EmbedPDF.Models.SelectionStart.Word = 1 -> EmbedPDF.Models.SelectionStart
+EmbedPDF.Models.StageReaderModel
+EmbedPDF.Models.StageReaderModel.ActiveToolId.get -> EmbedPDF.ToolId?
+EmbedPDF.Models.StageReaderModel.Camera.get -> EmbedPDF.Camera?
+EmbedPDF.Models.StageReaderModel.Dispose() -> void
+EmbedPDF.Models.StageReaderModel.DoubleTappedAsync(double x, double y) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.StageReaderModel.DragCancelledAsync() -> System.Threading.Tasks.Task!
+EmbedPDF.Models.StageReaderModel.DragChangedAsync(double translationX, double translationY) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.StageReaderModel.DragEndedAsync(double velocityX, double velocityY) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.StageReaderModel.Error.get -> EmbedPDF.PdfException?
+EmbedPDF.Models.StageReaderModel.ForwardsDrags.get -> bool
+EmbedPDF.Models.StageReaderModel.GetRenderRevision(EmbedPDF.PageRef page) -> long
+EmbedPDF.Models.StageReaderModel.IsPanEnabled.get -> bool
+EmbedPDF.Models.StageReaderModel.IsPanEnabled.set -> void
+EmbedPDF.Models.StageReaderModel.IsZooming.get -> bool
+EmbedPDF.Models.StageReaderModel.MagnifyChanged(double magnification, double x, double y) -> void
+EmbedPDF.Models.StageReaderModel.MagnifyEndedAsync() -> System.Threading.Tasks.Task!
+EmbedPDF.Models.StageReaderModel.ObserveLinkActivations(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.LinkActivation!>!
+EmbedPDF.Models.StageReaderModel.PageIndex.get -> int
+EmbedPDF.Models.StageReaderModel.PanBeginsOnMovement.get -> bool
+EmbedPDF.Models.StageReaderModel.PanBeginsOnMovement.set -> void
+EmbedPDF.Models.StageReaderModel.PointerCancelled() -> void
+EmbedPDF.Models.StageReaderModel.PointerDown(EmbedPDF.Models.PointerInput input) -> void
+EmbedPDF.Models.StageReaderModel.PointerMoved(EmbedPDF.Models.PointerInput input) -> void
+EmbedPDF.Models.StageReaderModel.PointerUp(EmbedPDF.Models.PointerInput input) -> void
+EmbedPDF.Models.StageReaderModel.Render.get -> EmbedPDF.RenderCapability!
+EmbedPDF.Models.StageReaderModel.Revisions.get -> EmbedPDF.Models.RenderRevisions!
+EmbedPDF.Models.StageReaderModel.RunAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.StageReaderModel.SizeChangedAsync(double width, double height, double displayScale) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.StageReaderModel.Stage.get -> EmbedPDF.StageCapability!
+EmbedPDF.Models.StageReaderModel.StageReaderModel(EmbedPDF.StageCapability! stage, EmbedPDF.RenderCapability! render, EmbedPDF.InteractionCapability? interaction = null, EmbedPDF.LinkCapability? link = null, System.Threading.SynchronizationContext? context = null) -> void
+EmbedPDF.Models.StageReaderModel.Tapped(EmbedPDF.Models.PointerInput input) -> void
+EmbedPDF.Models.StageReaderModel.VisiblePages.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.StageVisiblePage!>!
 EmbedPDF.Models.StageVisiblePageExtensions
 EmbedPDF.Models.TextSelectionModel
 EmbedPDF.Models.TextSelectionModel.ClearAsync() -> System.Threading.Tasks.Task!
@@ -152,11 +184,13 @@ EmbedPDF.Models.ViewerModel.Error.get -> EmbedPDF.PdfException?
 EmbedPDF.Models.ViewerModel.RefreshAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.Models.ViewerModel.RunAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.Models.ViewerModel.ViewerModel(EmbedPDF.PdfViewer! viewer, System.Threading.SynchronizationContext? context = null) -> void
+const EmbedPDF.Models.StageReaderModel.MaxPagePixels = 16777216 -> double
 ~override EmbedPDF.Models.PointerInput.Equals(object obj) -> bool
 override EmbedPDF.Models.PointerInput.GetHashCode() -> int
 ~override EmbedPDF.Models.PointerInput.ToString() -> string
 static EmbedPDF.Models.PointerInput.operator !=(EmbedPDF.Models.PointerInput left, EmbedPDF.Models.PointerInput right) -> bool
 static EmbedPDF.Models.PointerInput.operator ==(EmbedPDF.Models.PointerInput left, EmbedPDF.Models.PointerInput right) -> bool
+static EmbedPDF.Models.StageReaderModel.RenderScale(double scale, double contentWidth, double contentHeight, bool zooming = false) -> double
 static EmbedPDF.Models.StageVisiblePageExtensions.GetGeometry(this EmbedPDF.StageVisiblePage! page, EmbedPDF.PageInfo! info) -> EmbedPDF.PageGeometry
 static EmbedPDF.Models.StageVisiblePageExtensions.LocalRect(this EmbedPDF.StageVisiblePage! page, EmbedPDF.PdfRect pageRect, EmbedPDF.PageInfo! info) -> EmbedPDF.PdfRect
 static EmbedPDF.Models.StageVisiblePageExtensions.PagePoint(this EmbedPDF.StageVisiblePage! page, double localX, double localY, EmbedPDF.PageInfo! info) -> EmbedPDF.PdfPoint
