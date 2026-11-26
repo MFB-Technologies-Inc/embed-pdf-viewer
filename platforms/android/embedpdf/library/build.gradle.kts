@@ -67,5 +67,5 @@ dependencies {
     implementation("net.java.dev.jna:jna:5.14.0@aar")
 
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test:runner:1.7.0")
 }
