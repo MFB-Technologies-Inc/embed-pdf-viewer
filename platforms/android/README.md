@@ -419,9 +419,9 @@ coordinates, checks that both ABIs' engine is stored uncompressed, runs
 `zipalign -c -P 16 4`, and checks R8's `usage.txt` and `mapping.txt`: no
 `uniffi.` or `com.sun.jna.` class or member removed, none renamed, and every
 such class in the bindings AAR and the JNA AAR present. Results, 2026-11-26:
-`app-release.apk` is 92,509,749 bytes with both ABIs, `zipalign -c -P 16 4`
+`app-release.apk` is 92,419,773 bytes with both ABIs, `zipalign -c -P 16 4`
 passes, and R8 kept all 5,566 `uniffi.*` classes of `embedpdf-bindings` and
-all 125 `com.sun.jna.*` classes of `jna-5.14.0.aar` under their own names.
+all 125 `com.sun.jna.*` classes of `jna-5.19.1.aar` under their own names.
 It was 132,142,645 bytes before `build-aar.sh` stripped the engine. AGP still
 reports it could not strip the native libraries, since the demo build has no
 NDK, but the engine's are already stripped in the AAR.
@@ -655,7 +655,7 @@ library and adds the checksum check, which needs `kotlinc`:
 
 ```bash
 KOTLINC=/path/to/kotlinc \
-JNA_JAR=/path/to/jna-5.14.0.jar \
+JNA_JAR=/path/to/jna-5.19.1.jar \
 COROUTINES_JAR=/path/to/kotlinx-coroutines-core-jvm-1.10.2.jar \
 bash platforms/android/test-command-context.sh
 ```

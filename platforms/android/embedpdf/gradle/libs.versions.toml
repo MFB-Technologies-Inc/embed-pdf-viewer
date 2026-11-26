@@ -3,9 +3,9 @@
 [versions]
 # AGP 9 compiles Kotlin itself; the Kotlin plugin below only raises the
 # compiler it brings (2.2.10) to the version the rest of the repository uses.
-agp = "9.4.1"
+agp = "9.5.2"
 kotlin = "2.2.21"
-jna = "5.14.0"
+jna = "5.19.1"
 coroutines = "1.10.2"
 serialization = "1.9.0"
 junit = "4.13.2"
@@ -21,7 +21,7 @@ lifecycle = "2.9.4"
 androidx-activity = "1.10.1"
 androidx-test-core = "1.6.1"
 bcv = "0.18.1"
-# The compose module: the newest stable BOM that builds with AGP 9.4.1, Kotlin
+# The compose module: the newest stable BOM that builds with AGP 9.5.2, Kotlin
 # 2.2.21 and compileSdk 36 (Compose UI 1.11.4, Material 3 1.4.0). From
 # 2026.08.00 on, Compose 1.12 requires compileSdk 37 of every consumer. The
 # Compose compiler is the Kotlin plugin of the version above.

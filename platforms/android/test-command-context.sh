@@ -8,7 +8,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
-: "${JNA_JAR:?Set JNA_JAR to jna-5.14.0.jar}"
+: "${JNA_JAR:?Set JNA_JAR to jna-5.19.1.jar}"
 : "${COROUTINES_JAR:?Set COROUTINES_JAR to kotlinx-coroutines-core-jvm-1.10.2.jar}"
 KOTLINC="${KOTLINC:-kotlinc}"
 # The full viewer bindings exceed the compiler launcher default heap.
