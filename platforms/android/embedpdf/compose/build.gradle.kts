@@ -116,6 +116,15 @@ val apiBuild = tasks.register<kotlinx.validation.KotlinApiBuildTask>("apiBuild")
     inputClassesDirs.from(compile.flatMap { it.destinationDirectory })
     outputApiFile.set(layout.buildDirectory.file("api/compose.api"))
     runtimeClasspath.from(abiRuntime)
+    // The Compose compiler makes a public `ComposableSingletons$<File>Kt`
+    // holder for each file's lambdas, named by hash. It is no API anyone
+    // calls, and its members change with any edit to a lambda, so the dump
+    // leaves those classes out.
+    doLast {
+        val dump = outputApiFile.get().asFile
+        val blocks = dump.readText().split("\n\n")
+        dump.writeText(blocks.filterNot { it.trimStart().startsWith("public final class com/embedpdf/compose/ComposableSingletons$") }.joinToString("\n\n"))
+    }
 }
 
 tasks.register<Copy>("apiDump") {

@@ -17,64 +17,6 @@ public final class com/embedpdf/compose/BridgesKt {
 	public static final fun toImageBitmap (Lcom/embedpdf/PageImage;)Landroidx/compose/ui/graphics/ImageBitmap;
 }
 
-public final class com/embedpdf/compose/ComposableSingletons$AttachmentPanelKt {
-	public static final field INSTANCE Lcom/embedpdf/compose/ComposableSingletons$AttachmentPanelKt;
-	public fun <init> ()V
-	public final fun getLambda$-1871186943$compose ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-2018035502$compose ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$-552663269$compose ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$1243768513$compose ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$2097843516$compose ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$369847964$compose ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$940311226$compose ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$959475306$compose ()Lkotlin/jvm/functions/Function2;
-}
-
-public final class com/embedpdf/compose/ComposableSingletons$OutlinePanelKt {
-	public static final field INSTANCE Lcom/embedpdf/compose/ComposableSingletons$OutlinePanelKt;
-	public fun <init> ()V
-	public final fun getLambda$-1079842042$compose ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$-1171905993$compose ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-131790076$compose ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$-1379017188$compose ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-1814649835$compose ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-438867143$compose ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$-446866117$compose ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$-754178368$compose ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-948058599$compose ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$1149125390$compose ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$1512591888$compose ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$1648726638$compose ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$275164895$compose ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$52010070$compose ()Lkotlin/jvm/functions/Function2;
-}
-
-public final class com/embedpdf/compose/ComposableSingletons$PdfReaderKt {
-	public static final field INSTANCE Lcom/embedpdf/compose/ComposableSingletons$PdfReaderKt;
-	public fun <init> ()V
-	public final fun getLambda$-1495214732$compose ()Lkotlin/jvm/functions/Function4;
-	public final fun getLambda$-1520606220$compose ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-1672826498$compose ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$1014903131$compose ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$973156820$compose ()Lkotlin/jvm/functions/Function3;
-}
-
-public final class com/embedpdf/compose/ComposableSingletons$SearchBarKt {
-	public static final field INSTANCE Lcom/embedpdf/compose/ComposableSingletons$SearchBarKt;
-	public fun <init> ()V
-	public final fun getLambda$-1223714680$compose ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-471191455$compose ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$1408335168$compose ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$1927938176$compose ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$702272383$compose ()Lkotlin/jvm/functions/Function2;
-}
-
-public final class com/embedpdf/compose/ComposableSingletons$StageReaderKt {
-	public static final field INSTANCE Lcom/embedpdf/compose/ComposableSingletons$StageReaderKt;
-	public fun <init> ()V
-	public final fun getLambda$1641875434$compose ()Lkotlin/jvm/functions/Function3;
-}
-
 public final class com/embedpdf/compose/HapticsKt {
 	public static final fun rememberHapticFeedback (Landroidx/compose/runtime/Composer;I)Lcom/embedpdf/HapticFeedback;
 }
