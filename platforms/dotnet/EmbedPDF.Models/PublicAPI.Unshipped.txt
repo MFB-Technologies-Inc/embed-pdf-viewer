@@ -95,6 +95,19 @@ EmbedPDF.Models.SearchModel.SubmitSearchAsync() -> System.Threading.Tasks.Task!
 EmbedPDF.Models.SearchModel.Summary.get -> string?
 EmbedPDF.Models.SearchModel.Text.get -> string!
 EmbedPDF.Models.SearchModel.Text.set -> void
+EmbedPDF.Models.SelectionStart
+EmbedPDF.Models.SelectionStart.Caret = 0 -> EmbedPDF.Models.SelectionStart
+EmbedPDF.Models.SelectionStart.Word = 1 -> EmbedPDF.Models.SelectionStart
+EmbedPDF.Models.TextSelectionModel
+EmbedPDF.Models.TextSelectionModel.ClearAsync() -> System.Threading.Tasks.Task!
+EmbedPDF.Models.TextSelectionModel.Dispose() -> void
+EmbedPDF.Models.TextSelectionModel.DragBegan(EmbedPDF.PdfPoint point, EmbedPDF.PageRef page, EmbedPDF.Models.SelectionStart start = EmbedPDF.Models.SelectionStart.Caret) -> void
+EmbedPDF.Models.TextSelectionModel.DragChanged(EmbedPDF.PdfPoint point, EmbedPDF.PageRef page) -> void
+EmbedPDF.Models.TextSelectionModel.DragEndedAsync() -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.Models.TextSelectionModel.Error.get -> EmbedPDF.PdfException?
+EmbedPDF.Models.TextSelectionModel.IsSelecting.get -> bool
+EmbedPDF.Models.TextSelectionModel.Rects.get -> System.Collections.Generic.IReadOnlyDictionary<EmbedPDF.PageRef, System.Collections.Generic.IReadOnlyList<EmbedPDF.PdfRect>!>!
+EmbedPDF.Models.TextSelectionModel.TextSelectionModel(EmbedPDF.SelectionCapability! selection, System.Threading.SynchronizationContext? context = null) -> void
 EmbedPDF.Models.ThumbnailModel
 EmbedPDF.Models.ThumbnailModel.Dispose() -> void
 EmbedPDF.Models.ThumbnailModel.Error.get -> EmbedPDF.PdfException?

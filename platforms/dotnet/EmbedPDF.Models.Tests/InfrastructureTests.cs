@@ -174,6 +174,6 @@ public class ImportTests
         Assert.DoesNotContain(references, name =>
             name.StartsWith("System.Windows", StringComparison.Ordinal) || name.StartsWith("System.Xaml", StringComparison.Ordinal)
             || name.StartsWith("PresentationFramework", StringComparison.Ordinal) || name.StartsWith("WindowsBase", StringComparison.Ordinal));
-        Assert.Equal("EmbedPDF.Models.ObservableModel", typeof(ObservableModel).FullName);
+        Assert.Equal("EmbedPDF.Models.TextSelectionModel", typeof(TextSelectionModel).FullName);
     }
 }
