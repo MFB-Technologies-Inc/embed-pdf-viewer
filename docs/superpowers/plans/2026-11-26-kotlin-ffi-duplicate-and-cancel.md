@@ -196,5 +196,8 @@ public suspend fun duplicateWidgets(widgets: List<AnnotationRef>, options: FormD
   commit message.
 - [ ] **Step 2:** `python3 scripts/check-api-coverage.py --platform kotlin` passes. This is the
   unified script that checks `swift`, `kotlin` and `csharp`; run `--platform swift` and
-  `--platform csharp` as well, since the three manifests now move together.
+  `--platform csharp` as well, since the three manifests now move together. On
+  `research/dotnet-parity-p7` after the Phase 6 merge (`93e3210d8`), `--platform kotlin` reads
+  864 members of the Swift manifest (728 ported, 0 pending, 136 exclusions); the nine members
+  are not in it yet, because the Swift manifest doesn't list them.
 - [ ] **Step 3:** commit `docs(android): account for the duplicate and remeasure members`.

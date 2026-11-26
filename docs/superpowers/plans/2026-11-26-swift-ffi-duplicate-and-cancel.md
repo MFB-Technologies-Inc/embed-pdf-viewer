@@ -208,9 +208,10 @@ public func duplicateWidgets(_ widgets: [AnnotationRef], options: FormDuplicateO
   (`crates/plugins/annotation/src/read/annotations.rs`, owner `Core`) as an exclusion with
   classification `internal-resource` and the reason above, and drop the stale
   `remeasure_page` row: the member is gone from `write/measurement.rs`.
-- [ ] **Step 2:** `python3 platforms/apple/check-swift-api-coverage.py` (or the unified
-  `python3 scripts/check-api-coverage.py --platform swift`, whichever the start branch has).
-  On `research/dotnet-parity-p7` at `ebf3fa761` the Swift check reports 18 drift errors; these
+- [ ] **Step 2:** `python3 scripts/check-api-coverage.py --platform swift`, the unified script
+  (`--platform kotlin` and `--platform csharp` should still pass afterwards, since the Kotlin
+  manifest follows the Swift one). On `research/dotnet-parity-p7` after the Phase 6 merge
+  (`93e3210d8`) the Swift check reports 18 drift errors; these
   rows clear 11 of them. The 7 that remain are unrelated test counters and members added after
   the Swift port: `commands` `resolve_command_text`, `redaction` `page_list_calls`, `selection`
   `load_starts`, `stage` `wheel_by`, `scene_key_builds` and `page_state_reads`, and the kernel's

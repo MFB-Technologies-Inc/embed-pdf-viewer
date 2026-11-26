@@ -286,9 +286,10 @@ a `Uri`, opening and saving layers, saving, and the long reads and writes of sea
 attachment, page edit, metadata, selection, annotation, form, redaction, measurement, stamp and
 signature. The rest run to completion once posted, as the Swift calls do. A cancelled call throws
 `OperationCanceledException`, with the kernel's `operation-cancelled` as the inner exception when the
-kernel saw it. Work that runs on the kernel thread only sees the cancel when it next yields, so
-`RedactionCapability.MarkMatchesAsync` over a whole document can't be cancelled once it runs (see
-[Known gaps](#known-gaps)). Event streams (`ObserveDocumentEvents`, `ObserveStateRevisions`, `ObserveReportedErrors` and each capability's `ObserveEvents`)
+kernel saw it. Work that runs on the kernel thread only sees the cancel when it next yields:
+`RedactionCapability.MarkMatchesAsync` stops between search slices or between two marks and keeps
+the marks it made, and cancelled before the search finds a hit it returns no marks, as the plugin
+does. Event streams (`ObserveDocumentEvents`, `ObserveStateRevisions`, `ObserveReportedErrors` and each capability's `ObserveEvents`)
 are `IAsyncEnumerable<T>` that subscribe when the method returns, one channel per enumerator.
 Document and plugin events are unbounded, so a reader that stops reading holds every later event;
 state revisions keep the newest one and reported errors the newest 16.
