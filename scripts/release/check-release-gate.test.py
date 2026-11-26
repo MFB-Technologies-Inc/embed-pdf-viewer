@@ -72,7 +72,7 @@ class ReleaseGate(unittest.TestCase):
                   "release-viewer.sh dotnet-viewer \"$VERSION\" \"$GITHUB_SHA\"")
         self.assert_fails("whose job viewer-release-preview publishes")
 
-    def test_packages_write_counts_as_writing(self):
+    def test_packages_write_in_a_called_job_counts_as_writing(self):
         self.edit("release-dotnet.yml", "    permissions:\n      contents: read\n      packages: read\n",
                   "    permissions:\n      contents: read\n      packages: write\n")
         self.assert_fails("whose job viewer-release-preview publishes or can write")
