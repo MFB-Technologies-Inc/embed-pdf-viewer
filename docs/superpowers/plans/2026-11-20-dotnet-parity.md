@@ -1175,6 +1175,8 @@ Deviations, each with its reason:
 - `osx-arm64` and `win-x64` run framework-dependent only in the workflow. NativeAOT there needs the
   platform linker setup on the hosted image, which nothing in this phase could try. The script takes
   `--rid` with either and would publish if asked.
+  Follow-up (coordinator decision 2026-11-26): not now; add NativeAOT rows for `osx-arm64` and
+  `win-x64` in a later phase.
 - The `consumer` job is untested: no CI run was made, per this phase's rules. The Windows row relies
   on Git Bash converting paths for `dotnet` and `python`, and on `cygpath -w` for the feed path in
   `nuget.config`.
