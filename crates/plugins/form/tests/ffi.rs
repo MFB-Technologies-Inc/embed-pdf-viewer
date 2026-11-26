@@ -526,3 +526,67 @@ fn duplicating_a_widget_the_form_does_not_show_is_not_found() {
     assert_eq!(code(&error), Some("not-found"), "{error:?}");
     assert!(sent(&thread).is_empty());
 }
+
+/// A form whose engine holds every `apply` until it is settled or aborted.
+fn handle_deferring_apply() -> (KernelThread<TestKernel>, Arc<FormHandle>) {
+    let thread = KernelThread::spawn(|_| {
+        let mut engine = spec().engine;
+        engine["documents"]["a"]["responses"] = json!([{ "path": "apply", "defer": "copy" }]);
+        let spec = TestSpec::new(engine).respond("forms.list", |_| {
+            Ok(Reply::value(json!({
+                "formKind": "acroform", "needsAppearances": false, "calculationOrder": [],
+                "fields": [text("Ada")], "widgets": [row()],
+            })))
+        });
+        TestKernel::open(
+            vec![
+                interaction_plugin(InteractionConfig::default()),
+                form_plugin(FormConfig { validation: Some(FormValidation::None) }.into()),
+            ],
+            spec,
+        )
+    })
+    .unwrap();
+    let post = thread.post();
+    let form = block_on(thread.call(move |k| FormHandle::new(k.capability(&FORM).unwrap(), post)))
+        .unwrap();
+    (thread, form)
+}
+
+// Only the plugin's own signal ends these calls: the export adds no
+// rejection of its own, so a cancel that didn't reach the plugin would
+// leave the call waiting on the engine.
+#[test]
+fn cancelling_a_duplicate_while_the_engine_copies_ends_it() {
+    use std::future::Future;
+    use std::task::{Context, Poll};
+    for widgets in [false, true] {
+        let (thread, form) = handle_deferring_apply();
+        block_on(form.refresh(CancelToken::new())).unwrap();
+        let cancel = CancelToken::new();
+        let options = FormDuplicateOptions::default();
+        let mut call: std::pin::Pin<Box<dyn Future<Output = _>>> = if widgets {
+            let widget = AnnotationRef::ObjectNumber {
+                page: PageRef { page_object_number: 1 },
+                annot_object_number: 101,
+            };
+            Box::pin(form.duplicate_widgets(vec![widget], options, cancel.clone()))
+        } else {
+            Box::pin(form.duplicate(vec![text_ref()], options, cancel.clone()))
+        };
+        let mut cx = Context::from_waker(futures::task::noop_waker_ref());
+        assert!(call.as_mut().poll(&mut cx).is_pending());
+        let copying =
+            block_on(thread.call(|k| k.engine.log_since(0).iter().any(|e| e["path"] == "apply")))
+                .unwrap();
+        assert!(copying, "widgets {widgets}: the copy never reached the engine");
+        cancel.cancel();
+        block_on(thread.call(|_| ())).unwrap();
+        match call.as_mut().poll(&mut cx) {
+            Poll::Ready(Err(error)) => {
+                assert_eq!(code(&error), Some("operation-cancelled"), "widgets {widgets}")
+            }
+            other => panic!("widgets {widgets}: the cancel did not end the call: {other:?}"),
+        }
+    }
+}

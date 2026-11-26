@@ -595,3 +595,70 @@ impl AnnotationHandle {
         subscription
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn reference(n: u32) -> Value {
+        json!({ "kind": "objectNumber", "objectNumber": n,
+            "page": { "kind": "objectNumber", "objectNumber": 1 } })
+    }
+
+    fn annotation(n: u32) -> AnnotationRef {
+        AnnotationRef::ObjectNumber {
+            page: PageRef { page_object_number: 1 },
+            annot_object_number: n,
+        }
+    }
+
+    // The plugin never fills `failed` today; the mapping still has to hold
+    // for a report that does.
+    #[test]
+    fn a_report_maps_every_member() {
+        let report = remeasure_out(&json!({
+            "page": { "kind": "objectNumber", "objectNumber": 1 },
+            "scale": {},
+            "updated": [reference(4)],
+            "skipped": [
+                { "ref": reference(5), "reason": "no-authority" },
+                { "ref": reference(6), "reason": "locked" },
+                { "ref": reference(7), "reason": "foreign-measure" },
+                { "ref": reference(8), "reason": "unavailable" },
+            ],
+            "failed": [{ "ref": reference(9),
+                "error": { "code": "operation-failed", "message": "refused" } }],
+            "error": { "name": "Error", "code": "Unknown", "message": "not loaded" },
+        }))
+        .unwrap();
+        assert_eq!(report.page, PageRef { page_object_number: 1 });
+        assert_eq!(report.updated, vec![annotation(4)]);
+        let reasons: Vec<_> = report.skipped.iter().map(|s| s.reason).collect();
+        assert_eq!(
+            reasons,
+            vec![
+                AnnotationRemeasureSkipReason::NoAuthority,
+                AnnotationRemeasureSkipReason::Locked,
+                AnnotationRemeasureSkipReason::ForeignMeasure,
+                AnnotationRemeasureSkipReason::Unavailable,
+            ]
+        );
+        assert_eq!(report.failed.len(), 1);
+        assert_eq!(report.failed[0].annotation_ref, annotation(9));
+        assert_eq!(report.failed[0].error.code, "operation-failed");
+        assert_eq!(report.failed[0].error.message, "refused");
+        assert_eq!(report.failed[0].error.capability, "annotation");
+        let error = report.error.expect("the report's error");
+        assert_eq!((error.code.as_str(), error.message.as_str()), ("Unknown", "not loaded"));
+    }
+
+    #[test]
+    fn an_unknown_skip_reason_is_refused() {
+        let refused = remeasure_out(&json!({
+            "page": { "kind": "objectNumber", "objectNumber": 1 },
+            "updated": [], "failed": [],
+            "skipped": [{ "ref": reference(5), "reason": "sideways" }],
+        }));
+        assert!(refused.is_err());
+    }
+}

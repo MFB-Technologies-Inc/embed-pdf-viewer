@@ -10,8 +10,8 @@ use epdf_ffi::{
 };
 use epdf_plugin_annotation::ffi::{
     AnnotationDuplicateOptions, AnnotationEvent, AnnotationEventListener, AnnotationFilter,
-    AnnotationHandle, AnnotationStampPlacement, AnnotationStampSource, AnnotationTextFormat,
-    AnnotationThreadStatus,
+    AnnotationHandle, AnnotationRemeasureSkipReason, AnnotationStampPlacement,
+    AnnotationStampSource, AnnotationTextFormat, AnnotationThreadStatus,
 };
 use epdf_plugin_annotation::{ANNOTATION, annotation_plugin};
 use epdf_plugin_interaction::{InteractionConfig, interaction_plugin};
@@ -233,7 +233,8 @@ fn answer(op: &Value, op_id: &str) -> Result<(Value, Value), epdf_kernel::Error>
     }
 }
 
-fn spec(annotations: Vec<Value>) -> TestSpec {
+/// The document with `annotations` listed and no `apply` responder.
+fn listing(annotations: Vec<Value>) -> TestSpec {
     let page = json!({
         "index": 0, "ref": page_json(), "label": null, "size": { "width": 600, "height": 800 },
         "rotation": 0, "userUnit": 1, "tabOrder": null,
@@ -247,7 +248,10 @@ fn spec(annotations: Vec<Value>) -> TestSpec {
         "objectNumbers": [10, 11, 12, 13, 14, 15]
     } } }))
     .respond("annotations.list", move |_| Ok(Reply::value(listed.clone())))
-    .respond("apply", |args| {
+}
+
+fn spec(annotations: Vec<Value>) -> TestSpec {
+    listing(annotations).respond("apply", |args| {
         let ops = args[0]["ops"].as_array().cloned().unwrap_or_default();
         let op_id = "00000000-0000-7000-8000-000000000001";
         let mut items = Vec::new();
@@ -854,4 +858,111 @@ fn a_scale_that_is_not_an_object_is_invalid_input() {
         block_on(annotations.stage_remeasure(PageRef { page_object_number: 1 }, "[1]".into()))
             .unwrap_err();
     assert_eq!(code(&error), Some("invalid-input"), "{error:?}");
+}
+
+/// A handle whose engine holds every `apply` until it is settled or aborted.
+fn handle_deferring_apply(
+    annotations: Vec<Value>,
+) -> (KernelThread<TestKernel>, Arc<AnnotationHandle>) {
+    let thread = KernelThread::spawn(move |_| {
+        let mut spec = listing(annotations);
+        spec.engine["documents"]["a"]["responses"] = json!([{ "path": "apply", "defer": "apply" }]);
+        TestKernel::open(
+            vec![interaction_plugin(InteractionConfig::default()), annotation_plugin(None)],
+            spec,
+        )
+    })
+    .unwrap();
+    let post = thread.post();
+    let handle = block_on(
+        thread.call(move |k| AnnotationHandle::new(k.capability(&ANNOTATION).unwrap(), post)),
+    )
+    .unwrap();
+    (thread, handle)
+}
+
+/// Poll `call` until the engine holds its `apply`, cancel `token`, and
+/// expect `operation-cancelled`.
+fn cancel_mid_apply<T: std::fmt::Debug>(
+    thread: &KernelThread<TestKernel>,
+    call: impl std::future::Future<Output = Result<T, ViewerError>>,
+    token: Arc<CancelToken>,
+) {
+    use std::task::{Context, Poll};
+    let mut call = Box::pin(call);
+    let mut cx = Context::from_waker(futures::task::noop_waker_ref());
+    assert!(call.as_mut().poll(&mut cx).is_pending());
+    let applying =
+        block_on(thread.call(|k| k.engine.log_since(0).iter().any(|e| e["path"] == "apply")))
+            .unwrap();
+    assert!(applying, "the copy never reached the engine");
+    token.cancel();
+    block_on(thread.call(|_| ())).unwrap();
+    match call.as_mut().poll(&mut cx) {
+        Poll::Ready(Err(error)) => {
+            assert_eq!(code(&error), Some("operation-cancelled"), "{error:?}")
+        }
+        other => panic!("the cancel did not end the call: {other:?}"),
+    }
+}
+
+#[test]
+fn cancelling_a_duplicate_while_the_engine_copies_ends_it() {
+    let (thread, annotations) = handle_deferring_apply(vec![square(5, json!({}))]);
+    block_on(annotations.refresh(token())).unwrap();
+    let cancel = token();
+    let call =
+        annotations.duplicate(vec![obj(5)], AnnotationDuplicateOptions::default(), cancel.clone());
+    cancel_mid_apply(&thread, call, cancel);
+}
+
+#[test]
+fn cancelling_a_selection_duplicate_while_the_engine_copies_ends_it() {
+    let (thread, annotations) = handle_deferring_apply(vec![square(5, json!({}))]);
+    block_on(annotations.refresh(token())).unwrap();
+    let selection = annotations.selection();
+    block_on(selection.select(vec![obj(5)], None)).unwrap();
+    let cancel = token();
+    let call = selection.duplicate(None, cancel.clone());
+    cancel_mid_apply(&thread, call, cancel);
+}
+
+/// A line dimension with `extra` over it.
+fn dimension(annot: u32, extra: Value) -> Value {
+    let mut line = square(
+        annot,
+        json!({ "subtype": "line", "intent": "line-dimension",
+        "measure": serde_json::from_str::<Value>(&scale_json(1.0)).unwrap() }),
+    );
+    if let (Value::Object(line), Value::Object(extra)) = (&mut line, extra) {
+        line.extend(extra);
+    }
+    line
+}
+
+#[test]
+fn remeasuring_reports_each_measurement_it_skips_and_why() {
+    let (thread, annotations) = handle_over(vec![
+        dimension(5, json!({ "locked": true })),
+        dimension(6, json!({ "measure": { "subtype": "geospatial" } })),
+        // No line points: there is nothing to read at the new scale.
+        dimension(7, json!({})),
+    ]);
+    block_on(annotations.refresh(token())).unwrap();
+    let report =
+        block_on(annotations.stage_remeasure(PageRef { page_object_number: 1 }, scale_json(2.0)))
+            .unwrap();
+    let reasons: Vec<(AnnotationRef, AnnotationRemeasureSkipReason)> =
+        report.skipped.iter().map(|s| (s.annotation_ref.clone(), s.reason)).collect();
+    assert_eq!(
+        reasons,
+        vec![
+            (obj(5), AnnotationRemeasureSkipReason::Locked),
+            (obj(6), AnnotationRemeasureSkipReason::ForeignMeasure),
+            (obj(7), AnnotationRemeasureSkipReason::Unavailable),
+        ],
+        "{report:?}"
+    );
+    assert!(report.updated.is_empty() && report.failed.is_empty() && report.error.is_none());
+    assert!(sent_ops(&thread).is_empty());
 }
