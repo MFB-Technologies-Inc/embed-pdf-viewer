@@ -39,6 +39,10 @@ public final class SearchModel {
   public private(set) var hitCount = 0
   public private(set) var progress = SearchProgress(pagesSearched: 0, pageCount: 0)
   public private(set) var error: PDFError?
+  /// How the search plugin wants hits drawn, read from its settings with the
+  /// rest of the snapshot. It holds the plugin's defaults until the first
+  /// refresh lands.
+  public private(set) var highlight = SearchModel.defaultHighlight
   private var pageHitCounts: [PageRef: Int] = [:]
   @ObservationIgnored private var query: SearchQuery?
   /// Set by a submitted search and cleared only when a hit list is applied,
@@ -50,6 +54,10 @@ public final class SearchModel {
   @ObservationIgnored let search: SearchCapability
   @ObservationIgnored let snapshots = SnapshotRefresh()
   @ObservationIgnored private var observation: UInt64 = 0
+
+  /// The plugin's `SEARCH_DEFAULTS.highlight`, until the first refresh reads the setting.
+  package static let defaultHighlight = SearchHighlightSettings(
+    color: "#ffd500", activeColor: "#ff9632", blendMode: .multiply)
 
   public init(search: SearchCapability) {
     self.search = search
@@ -137,6 +145,10 @@ public final class SearchModel {
       let hitCount: Int = try await self.search.hitCount()
       let progress = try await self.search.progress()
       let query = try await self.search.query()
+      // Performance: one more engine read on every refresh, a scroll or a
+      // zoom included, for a setting that rarely changes. Reading it only
+      // after a settings event, if the plugin emitted one, would remove it.
+      let highlight = try await self.search.settings().highlight
       // Between searches the hit list changes only with the query, the count
       // or the status, and a revision is often a scroll or a zoom: keep the
       // list then. A submitted search always rereads it, since a rerun after
@@ -145,7 +157,7 @@ public final class SearchModel {
         && status == self.status
       // The second of the two reads noted at `activeHitIndex` above.
       let hits: [SearchHit]? = unchanged ? nil : try await self.search.hits()
-      return (status, activeHitIndex, hitCount, progress, query, hits)
+      return (status, activeHitIndex, hitCount, progress, query, hits, highlight)
     }, apply: { snapshot in
       // Write only what changed, so the views reading these fields stay
       // valid through a scroll or a zoom.
@@ -155,6 +167,7 @@ public final class SearchModel {
       if self.hitCount != snapshot.2 { self.hitCount = snapshot.2 }
       if self.progress != snapshot.3 { self.progress = snapshot.3 }
       self.query = snapshot.4
+      if self.highlight != snapshot.6 { self.highlight = snapshot.6 }
       if let hits = snapshot.5 {
         self.hitsOutdated = false
         if self.hits != hits {
@@ -168,6 +181,7 @@ public final class SearchModel {
       self.hitCount = 0
       self.progress = SearchProgress(pagesSearched: 0, pageCount: 0)
       self.query = nil
+      self.highlight = Self.defaultHighlight
       self.hits = []
       self.pageHitCounts = [:]
       self.error = controlError($0)

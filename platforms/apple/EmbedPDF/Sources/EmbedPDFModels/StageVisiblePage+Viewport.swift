@@ -48,6 +48,19 @@ extension StageVisiblePage {
       height: shown.height * scale)
   }
 
+  /// Where `point`, a point in unrotated page space, sits in this page's
+  /// overlay, with the origin at the page's top left. The inverse of
+  /// ``pagePoint(_:info:)``, scaled as ``localRect(_:info:)`` scales.
+  ///
+  /// When the page's width as shown is not greater than zero, the result
+  /// is `CGPoint.zero`, and it is too when `transform.viewWidth` is zero.
+  public func localPoint(_ point: Point, info: PageInfo) -> CGPoint {
+    let geometry = geometry(for: info)
+    let scale = Self.ratio(transform.viewWidth, over: geometry.displaySize.width)
+    let shown = geometry.toDisplay(point)
+    return CGPoint(x: shown.x * scale, y: shown.y * scale)
+  }
+
   /// `length / divisor`, or 0 when `divisor` is not greater than zero.
   private static func ratio(_ length: Double, over divisor: Double) -> Double {
     divisor > 0 ? length / divisor : 0

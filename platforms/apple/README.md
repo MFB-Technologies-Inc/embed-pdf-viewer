@@ -516,9 +516,9 @@ pins both halves: `aTapThatMovesWithinTenPointsLeavesADoubleTapZooming` and
 `StageReaderModel.panBeginsOnMovement` on, which is how `.selection` gets this
 behavior, and `aZeroTranslationChangeBeginsAPanByDefault` with it off.
 
-The view scrolls to each search hit the bar reports active. It draws no
-highlight on hits. An app that wants one composes it from `SearchModel.hits`
-in the `pageOverlay`. The view places no tool picker either: give
+The view scrolls to each search hit the bar reports active. Each page shows
+the hits with a `SearchHighlightOverlay`, under the text selection and the
+`pageOverlay`. The view places no tool picker either: give
 `Session.tools` to a `ToolPicker` where your layout wants one. It runs the
 reader's and the search bar's `task()` itself, so don't run them again. The
 reason differs by model. A second `SearchModel.task()` supersedes the first,
@@ -619,6 +619,24 @@ so whatever the callback does has to be safe to repeat. The reveal is. A bar
 of your own can reuse the model's rules: `SearchModel.canClear` is when
 `SearchBar` enables its clear button, and `ToolModel.isSelected(_:)` and
 `isDisabled(_:)` do the same job for a tool picker.
+
+`SearchHighlightOverlay` draws the hits on one page. Put it in the reader's
+page overlay, under anything that takes touches:
+
+```swift
+// `pages` holds the document's `PageInfo` values, from `viewer.pages(of:)`.
+StageReaderView(model: reader) { page in
+  if let info = pages.first(where: { $0.page == page.page }) {
+    SearchHighlightOverlay(model: search, visiblePage: page, info: info)
+  }
+}
+```
+
+The fills and blend mode come from the search settings' `highlight`: yellow
+`#ffd500` for a hit and orange `#ff9632` for the active one, multiplied with
+the page so the text stays readable. Pass `color:`, `activeColor:` or
+`blendMode:` to override them. The cost is one more engine read each time
+`SearchModel` refreshes, scrolls included.
 
 ## Tools and links
 
