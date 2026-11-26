@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.semantics
 import com.embedpdf.PageGeometry
 import com.embedpdf.PageInfo
 import com.embedpdf.PageRef
+import com.embedpdf.PdfException
 import com.embedpdf.Point
 import com.embedpdf.StageVisiblePage
 import com.embedpdf.models.TextSelectionModel
@@ -142,12 +143,20 @@ public fun TextSelectionOverlay(
     /**
      * Ends the open drag. It reaches the model even when the overlay's scope
      * is ending: an atomic start runs the body of a coroutine already
-     * cancelled, and the end itself does not cancel.
+     * cancelled, and the end itself does not cancel. When the model's run()
+     * ends while it runs the end, as when the document closes, the end
+     * fails with operation-cancelled to this coroutine, which nothing
+     * cancels: that is no menu, and an uncaught exception would crash the app.
      */
     @OptIn(DelicateCoroutinesApi::class)
     fun end() {
         scope.launch(start = CoroutineStart.ATOMIC) {
-            val found = withContext(NonCancellable) { model.dragEnded() }
+            val found = try {
+                withContext(NonCancellable) { model.dragEnded() }
+            } catch (e: PdfException) {
+                if (e.code != PdfException.Code.OPERATION_CANCELLED) throw e
+                false
+            }
             if (found && isActive) showMenu()
         }
     }
