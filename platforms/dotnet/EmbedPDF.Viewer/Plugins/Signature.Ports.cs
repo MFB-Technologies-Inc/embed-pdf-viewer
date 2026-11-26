@@ -13,7 +13,9 @@ namespace EmbedPDF;
 /// <see cref="GetCertificateChain"/>, <see cref="Algorithm"/> and
 /// <see cref="Digest"/> run on the viewer's kernel thread, synchronously.
 /// A <see cref="PdfException"/> thrown there fails the signing with its name
-/// and code; another exception fails it with <c>operation-failed</c>.
+/// and code; another exception fails it with <c>operation-failed</c>. A throw
+/// from <see cref="Algorithm"/> or <see cref="Digest"/> fails the signing
+/// too, and <see cref="SignAsync"/> is not called for it.
 /// Disposing the viewer there throws <see cref="InvalidOperationException"/>.
 /// </para>
 /// <para>
@@ -106,27 +108,44 @@ internal sealed class SignerAdapter(ISignatureSigner signer, KernelMark mark, IL
     public byte[][] CertificateChain() => Synchronous(() =>
         (signer.GetCertificateChain() ?? throw new InvalidOperationException("The signer gave no certificate chain.")).Select(Bytes.Array).ToArray());
 
-    // The two enum members have no error type: a throw there would panic the
-    // kernel thread, so it is logged and answered with the common default.
+    // The two enum members have no error type, and a throw there would panic
+    // the kernel thread. So a throw answers a placeholder and is remembered:
+    // the next Sign fails with it, and the signer never signs with a key it
+    // could not describe.
+    Exception? described;
+
     public GSg.SignatureKeyAlgorithm Algorithm() => KernelCallback.Run(mark, logger, "ISignatureSigner.Algorithm",
-        () => (GSg.SignatureKeyAlgorithm)(int)Ffi.Defined(signer.Algorithm, "key algorithm"), _ => GSg.SignatureKeyAlgorithm.RsaPkcs1);
+        () => (GSg.SignatureKeyAlgorithm)(int)Ffi.Defined(signer.Algorithm, "key algorithm"), Remember(GSg.SignatureKeyAlgorithm.RsaPkcs1));
 
     public GSg.SignatureDigest Digest() => KernelCallback.Run(mark, logger, "ISignatureSigner.Digest",
-        () => (GSg.SignatureDigest)(int)Ffi.Defined(signer.Digest, "digest"), _ => GSg.SignatureDigest.Sha256);
+        () => (GSg.SignatureDigest)(int)Ffi.Defined(signer.Digest, "digest"), Remember(GSg.SignatureDigest.Sha256));
+
+    Func<Exception, T> Remember<T>(T placeholder) => error =>
+    {
+        Volatile.Write(ref described, error);
+        return placeholder;
+    };
 
     public void Sign(byte[] message, GSg.SignatureSignCompletion completion) => _ = Task.Run(async () =>
     {
         GF.HostFailure? failure = null;
         byte[]? signature = null;
-        try
+        if (Interlocked.Exchange(ref described, null) is { } undescribed)
         {
-            var signing = signer.SignAsync(message) ?? throw new InvalidOperationException("The signer returned no task.");
-            signature = Bytes.Array(await signing.ConfigureAwait(false));
+            failure = FetcherAdapter.Failure(undescribed, cancelled: false);
         }
-        catch (Exception error)
+        else
         {
-            logger.LogDebug(error, "A signer failed.");
-            failure = FetcherAdapter.Failure(error, cancelled: error is OperationCanceledException);
+            try
+            {
+                var signing = signer.SignAsync(message) ?? throw new InvalidOperationException("The signer returned no task.");
+                signature = Bytes.Array(await signing.ConfigureAwait(false));
+            }
+            catch (Exception error)
+            {
+                logger.LogDebug(error, "A signer failed.");
+                failure = FetcherAdapter.Failure(error, cancelled: error is OperationCanceledException);
+            }
         }
         try
         {

@@ -24,15 +24,19 @@ namespace EmbedPDF;
 /// body that breaks off is <see cref="SignatureTransportOutcome.Failed"/>.
 /// </para>
 /// <para>
-/// Pass a client to control proxies, authentication or handlers, for example
-/// one from <c>IHttpClientFactory</c>. Its own <see cref="HttpClient.Timeout"/>
-/// still applies and reads as a timeout. Content-type is sent first and the
+/// The shared client follows no redirect: a 3xx is the reply. Pass a client
+/// to control proxies, authentication or handlers, for example one from
+/// <c>IHttpClientFactory</c>; its handler's redirect policy then applies, and
+/// its own <see cref="HttpClient.Timeout"/> still reads as a timeout. Content-type is sent first and the
 /// request's headers after it, so a later header of the same name wins.
 /// </para>
 /// </remarks>
 public sealed class HttpClientSignatureTransport : ISignatureTransport
 {
-    static readonly HttpClient Shared = new(HttpClientDocumentFetcher.SharedHandler, disposeHandler: false) { Timeout = Timeout.InfiniteTimeSpan };
+    // Its own handler: a timestamp or revocation POST never follows a
+    // redirect, so the reply to the address the app configured is the answer.
+    static readonly HttpClient Shared = new(
+        new SocketsHttpHandler { AllowAutoRedirect = false, PooledConnectionLifetime = TimeSpan.FromMinutes(2) }) { Timeout = Timeout.InfiniteTimeSpan };
 
     static readonly HashSet<string> ContentHeaders = new(StringComparer.OrdinalIgnoreCase)
     {

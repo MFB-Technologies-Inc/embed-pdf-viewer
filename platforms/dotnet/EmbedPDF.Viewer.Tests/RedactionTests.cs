@@ -73,6 +73,26 @@ public sealed class RedactionTests
         Assert.All(after, hit => Assert.NotEqual(page, hit.Page));
     }
 
+    /// <summary>The applied redaction is in the written file: reopened, the page no longer has the text.</summary>
+    [Theory]
+    [InlineData(SaveMode.Rewrite)]
+    [InlineData(SaveMode.Incremental)]
+    public async Task AnAppliedRedactionSurvivesSaveAndReopen(SaveMode mode)
+    {
+        var (viewer, document, redaction, search) = await Opened();
+        await using var _v = viewer;
+        var page = (await search.FindAllAsync(new SearchQuery("Report")))[0];
+        await redaction.MarkMatchesAsync(new SearchQuery("Report"), [page.Page]);
+        Assert.Equal(RedactionPageStatus.Applied, (await redaction.ApplyPagesAsync([page.Page])).Results[0].Status);
+        var saved = await viewer.SaveAsync(document, mode);
+
+        await using var reopened = await PdfViewer.CreateAsync(new PdfViewerOptions { Search = new SearchConfig() });
+        var copy = await reopened.OpenAsync(saved);
+        using var again = await reopened.GetSearchAsync(copy);
+        Assert.DoesNotContain(await again.FindAllAsync(new SearchQuery("Report")), hit => hit.PageIndex == page.PageIndex);
+        Assert.Equal((await viewer.GetPagesAsync(document)).Count, (await reopened.GetPagesAsync(copy)).Count);
+    }
+
     [Fact]
     public async Task AClosedDocumentsCapabilityThrows()
     {

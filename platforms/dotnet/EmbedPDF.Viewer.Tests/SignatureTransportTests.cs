@@ -186,6 +186,9 @@ public sealed class SignatureTransportTests
                     await Head(stream, 503, null);
                     await stream.WriteAsync(Bytes(2000));
                     break;
+                case "/redirect":
+                    await stream.WriteAsync(Encoding.ASCII.GetBytes("HTTP/1.1 307 Temporary Redirect\r\nConnection: close\r\nLocation: /echo\r\nContent-Length: 0\r\n\r\n"));
+                    break;
                 case "/error-body":
                     await Whole(stream, 404, "nope"u8.ToArray());
                     break;
@@ -249,6 +252,16 @@ public sealed class SignatureTransportTests
         Assert.Equal("replied 503 0", Text((await Send(Request(server.Base + "/error-long", maxReplyBytes: 1000))).Outcome));
         Assert.Equal("replied 503 0", Text((await Send(Request(server.Base + "/error-broken", maxReplyBytes: 1000))).Outcome));
         Assert.StartsWith("failed ", Text((await Send(Request(server.Base + "/broken", maxReplyBytes: 1000))).Outcome));
+    }
+
+    /// <summary>The default client follows no redirect: a 307 is the reply, and the POST is not resent.</summary>
+    [Fact]
+    public async Task ARedirectIsTheReplyNotFollowed()
+    {
+        await using var server = new Server();
+        var (outcome, _) = await Send(Request(server.Base + "/redirect"));
+        Assert.Equal("replied 307 0", Text(outcome));
+        Assert.DoesNotContain(server.Requests, r => r.Path == "/echo");
     }
 
     [Fact]

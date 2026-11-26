@@ -93,6 +93,36 @@ public sealed class X509CertificateSignerTests
         Assert.Equal(leaf.RawData, lone.GetCertificateChain()[0].ToArray());
     }
 
+    /// <summary>
+    /// A store signer embeds only the certificates that chain to its leaf:
+    /// the user's other personal certificates never reach the PDF.
+    /// </summary>
+    [Fact]
+    public void AStoreSignerEmbedsOnlyItsChain()
+    {
+        using var leafKey = RSA.Create(2048);
+        using var leaf = new CertificateRequest("CN=Store signer " + Guid.NewGuid(), leafKey, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1)
+            .CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+        using var otherKey = RSA.Create(2048);
+        using var other = new CertificateRequest("CN=Unrelated personal " + Guid.NewGuid(), otherKey, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1)
+            .CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+        using var store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
+        store.Open(OpenFlags.ReadWrite);
+        store.Add(leaf);
+        store.Add(other);
+        try
+        {
+            using var signer = X509CertificateSigner.FromStore(leaf.Thumbprint, StoreName.My, StoreLocation.CurrentUser);
+            Assert.Equal([leaf.RawData], signer.GetCertificateChain().Select(c => c.ToArray()));
+            Assert.Equal(256, signer.Sign(Hello).Length);
+        }
+        finally
+        {
+            store.Remove(leaf);
+            store.Remove(other);
+        }
+    }
+
     [Fact]
     public void AnUnknownThumbprintIsNotInTheStore()
     {

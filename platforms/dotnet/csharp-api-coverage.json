@@ -10406,7 +10406,7 @@
       "symbol": "get_signature",
       "export": {
         "path": "crates/plugins/signature/src/ffi/mod.rs",
-        "symbol": "unsigned_fields"
+        "symbol": "signature"
       },
       "csharp": {
         "type": "EmbedPDF.SignatureCapability",

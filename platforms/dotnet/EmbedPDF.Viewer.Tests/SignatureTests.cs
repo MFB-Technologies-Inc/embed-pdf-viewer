@@ -354,6 +354,35 @@ public sealed class SignatureTests
         Assert.Equal(SignatureCompletionStatus.Completed, (await signatures.SignAsync(SignInput(field), TestKeys.Signer())).Status);
     }
 
+    /// <summary>An ECDSA key whose algorithm member throws: the signing must not go ahead as RSA.</summary>
+    sealed class BrokenAlgorithmSigner : ISignatureSigner
+    {
+        public int Signs;
+        public IReadOnlyList<ReadOnlyMemory<byte>> GetCertificateChain() => TestKeys.Signer().GetCertificateChain();
+        public SignatureKeyAlgorithm Algorithm => throw new PdfException("KeyError", PdfErrorCode.PermissionDenied, "the key is locked");
+        public SignatureDigest Digest => SignatureDigest.Sha256;
+        public Task<ReadOnlyMemory<byte>> SignAsync(ReadOnlyMemory<byte> message)
+        {
+            Interlocked.Increment(ref Signs);
+            return Task.FromResult<ReadOnlyMemory<byte>>(new byte[64]);
+        }
+    }
+
+    [Fact]
+    public async Task AThrowingAlgorithmFailsTheSigningInsteadOfFallingBackToRsa()
+    {
+        var (viewer, _, signatures) = await Opened("unsigned_sigfield", signer: false);
+        await using var _v = viewer;
+        var field = await UnsignedField(signatures);
+        var signer = new BrokenAlgorithmSigner();
+        var error = await Assert.ThrowsAsync<PdfException>(() => signatures.SignAsync(SignInput(field), signer));
+        Assert.Equal(PdfErrorCode.PermissionDenied, error.Code);
+        Assert.Equal(0, signer.Signs);
+        Assert.Null(await signatures.GetPendingAsync());
+        Assert.Single(await signatures.GetUnsignedFieldsAsync());
+        Assert.Equal(SignatureCompletionStatus.Completed, (await signatures.SignAsync(SignInput(field), TestKeys.Signer())).Status);
+    }
+
     [Fact]
     public async Task DisposingFromASignerThrowsIntoIt()
     {
