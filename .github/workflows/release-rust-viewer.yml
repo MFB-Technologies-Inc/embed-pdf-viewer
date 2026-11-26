@@ -48,18 +48,18 @@ env:
   # The published .sha256 of the x86_64 Linux archive for BINARYEN_VERSION.
   BINARYEN_SHA256: 2dc9c7813f5375db93d96ead4b78222fcc3e2677bbb832297af4797782a37489
   # renovate: datasource=crate depName=wasm-bindgen-cli versioning=semver
-  WASM_BINDGEN_VERSION: 0.2.127
+  WASM_BINDGEN_VERSION: 0.2.130
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 60
     env:
       VERSION: ${{ inputs.version }}
       REF: ${{ inputs.ref }}
       TARBALL: mfb-embedpdf-rust-viewer-${{ inputs.version }}.tgz
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 1
@@ -90,7 +90,7 @@ jobs:
       # The tarball is cached, not the extracted tree, so the digest is checked
       # on every run, cache hit or not.
       - name: Restore binaryen
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.cache/binaryen
           key: binaryen-${{ env.BINARYEN_VERSION }}-${{ runner.os }}-${{ runner.arch }}
@@ -126,7 +126,7 @@ jobs:
           EPDF_PAYLOAD_REPO: ${{ github.repository }}
         run: pnpm --filter @embedpdf/engine-runtime run fetch:payload
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         if: inputs.payload_artifact != ''
         with:
           name: ${{ inputs.payload_artifact }}
@@ -212,13 +212,13 @@ jobs:
             echo "- sha256: \`$(sha256sum "$TARBALL" | cut -d' ' -f1)\`, $(stat -c %s "$TARBALL") bytes"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: rust-viewer-tarball
           path: packages/rust-viewer-bundle/${{ env.TARBALL }}
           if-no-files-found: error
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: rust-kernel-eval-site
           path: examples/rust-kernel-eval/dist

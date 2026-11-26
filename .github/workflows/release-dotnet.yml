@@ -63,7 +63,7 @@ env:
 
 jobs:
   image:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       arm64: ${{ steps.digest.outputs.arm64 }}
       amd64: ${{ steps.digest.outputs.amd64 }}
@@ -101,27 +101,27 @@ jobs:
             image_arch: arm64
             rust_target: aarch64-unknown-linux-gnu
             fork_target: linux-arm64
-            sdk_url: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-linux-arm64.tar.gz
-            sdk_sha512: 0966aa2b70f4677b8319be9df447a78a0dcd6164836425b55a68fd714f4023feb87b4cac21b9a996b79472ad54487cd0adcd2a9dfd570e2b2a1d26423a2baa9b
+            sdk_url: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.404/dotnet-sdk-10.0.404-linux-arm64.tar.gz
+            sdk_sha512: 3533a3869da219cac45c567aadac3d8e96cdf1c6a04fe1c1d5fdeefea5d45af8424488f0144730d11b4a751f7ad546fb11e4c2b2725cd8401efee726711f8f11
           - rid: linux-x64
             runner: ubuntu-24.04
             image_arch: amd64
             rust_target: x86_64-unknown-linux-gnu
             fork_target: linux-x64
-            sdk_url: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-linux-x64.tar.gz
-            sdk_sha512: b7b3d8461cf98b07d2552ce9199702fa3ad010ac2671a5f8cd5136f7534e50f6855ba7bbb02b11494563f1d04156276a31cda1103b900e5eecd0d9473dc7b9c5
+            sdk_url: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.404/dotnet-sdk-10.0.404-linux-x64.tar.gz
+            sdk_sha512: 577d0eb17fec33d029104c5c63a1ab0accc3e28776274abef2218dbac5af18d2109b5406d26b31d76f5c245215e3ba0926a94c20246c672c41847c9e1eb1dc50
           - rid: osx-arm64
             runner: macos-15
             rust_target: aarch64-apple-darwin
             fork_target: darwin-arm64
-            sdk_url: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-osx-arm64.tar.gz
-            sdk_sha512: 5893c66b48ea3674c7da18501059d606e96f3672fabe4d5e41762e692c7c83df3ee0b2b9dc5a0786191da2dc413d7335158101c14c935ab217f31ac2529770f3
+            sdk_url: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.404/dotnet-sdk-10.0.404-osx-arm64.tar.gz
+            sdk_sha512: 1c9a13f625d0c08f08ef5a53597bababe3d2473527e98db2199210940c69dd5fc599a39a4d7c30ebf297ca2334a81b2f64b9bf05ff99585de9af4a5d85215e96
           - rid: win-x64
             runner: windows-2022
             rust_target: x86_64-pc-windows-msvc
             fork_target: win32-x64
-            sdk_url: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-win-x64.zip
-            sdk_sha512: 7a114c318fa7f1d9822991b534b2814d0e78386ceda816b371f5141acefe741d87ccb606ede06cadac8f9ac5070e32b708a67bbd1619ff5e5a7858a27874ef48
+            sdk_url: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.404/dotnet-sdk-10.0.404-win-x64.zip
+            sdk_sha512: 330ddd2665b43cd2e428216a0d8ea1ac7bb19b5434fdc530e62010dc3b52823a620bf95489d628e1ed6f5122401793ee4887cca4a019122361a1231497f632ee
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
     # Only the Linux rows have an image_arch; an empty container runs the job
@@ -159,7 +159,7 @@ jobs:
         if: runner.os == 'Windows'
         run: git config --global core.autocrlf false
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
           persist-credentials: false
@@ -169,7 +169,7 @@ jobs:
       - name: Trust the workspace
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      - name: Install .NET SDK 10.0.403
+      - name: Install .NET SDK 10.0.404
         env:
           SDK_URL: ${{ matrix.sdk_url }}
           SDK_SHA512: ${{ matrix.sdk_sha512 }}
@@ -196,16 +196,16 @@ jobs:
           echo "DOTNET_ROOT=$root" >> "$GITHUB_ENV"
           echo "$root" >> "$GITHUB_PATH"
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
       - uses: ./.github/actions/setup-rust
         with:
           targets: ${{ matrix.rust_target }}
           cache-key: dotnet-${{ matrix.rid }}
 
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('platforms/dotnet/**/*.csproj', 'platforms/dotnet/global.json') }}
@@ -463,7 +463,7 @@ jobs:
 
       # A workspace-relative path: in a container job runner.temp is the
       # host's path, not the container's.
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: dotnet-release-${{ matrix.rid }}
           path: dotnet-release

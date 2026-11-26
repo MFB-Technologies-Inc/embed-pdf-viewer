@@ -90,7 +90,7 @@ env:
 
 jobs:
   preflight:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -113,7 +113,7 @@ jobs:
       # Whether deploy-demo's secrets are set; their values stay with it.
       HAS_CLOUDFLARE: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
           persist-credentials: false
@@ -316,7 +316,7 @@ jobs:
   # pinEngine. Written on dry runs too.
   summarize:
     needs: [preflight, slices-apple, slices-eh, slices-runtime, dotnet, runtime, payload, apple, viewer]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -339,41 +339,41 @@ jobs:
       APPLE_CHECKSUM: ${{ needs.apple.outputs.checksum }}
       PACKAGE: EmbedPDF.Engine.0.0.0-local
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
           persist-credentials: false
 
       # pinEngine uses Node's built-ins only.
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         if: needs.apple.outputs.state != 'current'
         with:
-          node-version: 24
+          node-version: 26
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         if: needs.runtime.outputs.published == 'false'
         with:
           name: runtime-release
           path: ${{ runner.temp }}/runtime-release
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         if: needs.payload.outputs.published == 'false'
         with:
           name: payload-release
           path: ${{ runner.temp }}/payload-release
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         if: needs.apple.outputs.state == 'build'
         with:
           name: apple-xcframework
           path: ${{ runner.temp }}/apple-xcframework
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: rust-viewer-tarball
           path: ${{ runner.temp }}/rust-viewer-tarball
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           pattern: dotnet-release-*
           merge-multiple: true
@@ -476,7 +476,7 @@ jobs:
   # nothing: its reviewers read summarize's summary before they approve.
   approve:
     needs: summarize
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     # No environment on a dry run: nothing to approve.
     environment: ${{ !inputs.dry_run && 'release' || '' }}
@@ -528,7 +528,7 @@ jobs:
   pin:
     name: pin
     needs: [approve, apple, apple-publish, runtime-publish, payload-publish]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: write
@@ -549,13 +549,13 @@ jobs:
             *) echo "::error::release-apple.yml reported state '$STATE'"; exit 1 ;;
           esac
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
           fetch-depth: 1
 
       # From apple-publish on build, from apple on pin.
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         if: needs.apple.outputs.state != 'current'
         with:
           name: apple-manifests
@@ -600,7 +600,7 @@ jobs:
   swift-release:
     name: release swift
     needs: [pin, viewer]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: write
@@ -611,7 +611,7 @@ jobs:
       PIN_SHA: ${{ needs.pin.outputs.pin_sha }}
       VERSION: ${{ inputs.swift_version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.pin.outputs.pin_sha }}
           fetch-depth: 1
@@ -628,7 +628,7 @@ jobs:
   viewer-release:
     name: release viewer
     needs: [approve, viewer]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: write
@@ -638,11 +638,11 @@ jobs:
       DRY_RUN: ${{ inputs.dry_run }}
       VERSION: ${{ inputs.viewer_version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: rust-viewer-tarball
           path: ${{ runner.temp }}/rust-viewer-tarball
@@ -658,7 +658,7 @@ jobs:
   dotnet-release:
     name: release dotnet
     needs: [approve, preflight, dotnet]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: write
@@ -668,13 +668,13 @@ jobs:
       DRY_RUN: ${{ inputs.dry_run }}
       PACKAGE: EmbedPDF.Engine.0.0.0-local
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
 
       # One artifact per RID (dotnet-release-<rid>), merged: their file names
       # don't overlap.
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           pattern: dotnet-release-*
           merge-multiple: true
@@ -713,7 +713,7 @@ jobs:
   deploy-demo:
     name: deploy demo
     needs: [approve, viewer]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -722,16 +722,16 @@ jobs:
       # renovate: datasource=npm depName=wrangler
       WRANGLER_VERSION: 4.168.0
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
           persist-credentials: false
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: rust-kernel-eval-site
           path: examples/rust-kernel-eval/dist

@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Docker selects the host architecture; supported hosts are amd64 and arm64.
 # Must equal `node` in mise.toml; .devcontainer/check-pins.py enforces it.
-FROM node:24.20.0-trixie-slim
+FROM node:26.13.1-trixie-slim
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ARG TARGETARCH
@@ -20,7 +20,7 @@ ARG BINARYEN_SHA256_ARM64=89c07ea56faf38d0fbecf36ca8ec0721756716185f265b568e133d
 ARG NDK_SHA256=4abbbcdc842f3d4879206e9695d52709603e52dd68d3c1fff04b3b5e7a308ecf
 # Must equal the version and SHA512 in .github/workflows/release-dotnet.yml.
 # renovate: datasource=dotnet-version depName=dotnet-sdk
-ARG DOTNET_SDK_VERSION=10.0.403
+ARG DOTNET_SDK_VERSION=10.0.404
 # renovate: datasource=github-tags depName=rust-lang/rustup
 ARG RUSTUP_VERSION=1.29.3
 ARG RUSTUP_SHA256_AMD64=b1c8cb14e30889e7e2999e6b69e62d9e9b9ffc0f4df8180564d306d9680e6c55
@@ -31,7 +31,7 @@ ARG CARGO_NDK_VERSION=4.1.2
 ARG CARGO_LLVM_COV_VERSION=0.9.2
 # Must equal the `wasm-bindgen` pin in crates/epdf-web/Cargo.toml.
 # renovate: datasource=crate depName=wasm-bindgen-cli versioning=semver
-ARG WASM_BINDGEN_VERSION=0.2.127
+ARG WASM_BINDGEN_VERSION=0.2.130
 # renovate: datasource=npm depName=oauth2-forwarder
 ARG OAUTH2_FORWARDER_VERSION=1.10.0
 # renovate: datasource=npm depName=git-credential-forwarder
@@ -87,8 +87,8 @@ RUN if [ "$TARGETARCH" = amd64 ]; then \
 
 # SHA512 values from Microsoft's .NET 10 release metadata, matched to this SDK.
 RUN case "$TARGETARCH" in \
-      amd64) dotnet_arch=x64; dotnet_sha512=b7b3d8461cf98b07d2552ce9199702fa3ad010ac2671a5f8cd5136f7534e50f6855ba7bbb02b11494563f1d04156276a31cda1103b900e5eecd0d9473dc7b9c5 ;; \
-      arm64) dotnet_arch=arm64; dotnet_sha512=0966aa2b70f4677b8319be9df447a78a0dcd6164836425b55a68fd714f4023feb87b4cac21b9a996b79472ad54487cd0adcd2a9dfd570e2b2a1d26423a2baa9b ;; \
+      amd64) dotnet_arch=x64; dotnet_sha512=577d0eb17fec33d029104c5c63a1ab0accc3e28776274abef2218dbac5af18d2109b5406d26b31d76f5c245215e3ba0926a94c20246c672c41847c9e1eb1dc50 ;; \
+      arm64) dotnet_arch=arm64; dotnet_sha512=3533a3869da219cac45c567aadac3d8e96cdf1c6a04fe1c1d5fdeefea5d45af8424488f0144730d11b4a751f7ad546fb11e4c2b2725cd8401efee726711f8f11 ;; \
     esac \
     && curl -fsSL --retry 3 \
       "https://builds.dotnet.microsoft.com/dotnet/Sdk/${DOTNET_SDK_VERSION}/dotnet-sdk-${DOTNET_SDK_VERSION}-linux-${dotnet_arch}.tar.gz" \
