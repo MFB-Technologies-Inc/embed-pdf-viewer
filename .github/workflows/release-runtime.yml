@@ -64,7 +64,7 @@ env:
 jobs:
   check:
     if: inputs.stage == 'build'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       tag: ${{ steps.view.outputs.tag }}
       published: ${{ steps.view.outputs.published }}
@@ -106,12 +106,12 @@ jobs:
   prepare:
     needs: check
     if: inputs.stage == 'build' && needs.check.outputs.published == 'false'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     steps:
       # Full history: the freshness report takes the merge base of <sha> and
       # upstream main, and write-manifest.sh reads HEAD for the sha it records.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           repository: MFB-Technologies-Inc/embed-pdf-runtime
           ref: ${{ inputs.runtime_sha }}
@@ -131,23 +131,23 @@ jobs:
           echo "::error::could not fetch upstream PDFium main"
           exit 1
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: fork-slice-linux-arm64
           path: ${{ runner.temp }}/slices/linux-arm64
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: fork-slice-android-arm64
           path: ${{ runner.temp }}/slices/android-arm64
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: fork-slice-android-x64
           path: ${{ runner.temp }}/slices/android-x64
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: fork-slice-wasm32
           path: ${{ runner.temp }}/slices/wasm32
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: fork-slice-wasm32-eh
           path: ${{ runner.temp }}/slices/wasm32-eh
@@ -208,7 +208,7 @@ jobs:
           jq -e '.sha == env.RUNTIME_SHA and (.artifacts | keys | sort) == ["android-arm64","android-x64","linux-arm64","wasm32","wasm32-eh"]' "$manifest" >/dev/null \
             || { echo "::error::the manifest doesn't list exactly the five targets at $RUNTIME_SHA"; exit 1; }
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: runtime-release
           path: ${{ runner.temp }}/runtime-release/
@@ -220,7 +220,7 @@ jobs:
   # a verdict the build stage can't have given.
   publish-verdict:
     if: inputs.stage == 'publish'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
       - name: Report the build stage's verdict
@@ -237,7 +237,7 @@ jobs:
   # stage's call in the same run.
   publish:
     if: inputs.stage == 'publish' && inputs.published == 'false'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     permissions:
       contents: write
@@ -246,7 +246,7 @@ jobs:
       DRY_RUN: ${{ inputs.dry_run }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: runtime-release
           path: ${{ runner.temp }}/runtime-release
