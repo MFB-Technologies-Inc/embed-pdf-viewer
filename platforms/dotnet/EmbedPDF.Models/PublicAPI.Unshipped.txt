@@ -6,9 +6,69 @@ EmbedPDF.Models.AnnotationModel.CanRead.get -> bool
 EmbedPDF.Models.AnnotationModel.Error.get -> EmbedPDF.PdfException?
 EmbedPDF.Models.AnnotationModel.RefreshAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.Models.AnnotationModel.RunAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.AttachmentModel
+EmbedPDF.Models.AttachmentModel.AddAsync(System.Collections.Generic.IEnumerable<EmbedPDF.AttachmentFileSource!>! sources, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.AttachmentModel.AttachmentModel(EmbedPDF.PdfViewer! viewer, EmbedPDF.AttachmentCapability! attachments, System.Threading.SynchronizationContext? context = null) -> void
+EmbedPDF.Models.AttachmentModel.CanAdd.get -> bool
+EmbedPDF.Models.AttachmentModel.CanDownload.get -> bool
+EmbedPDF.Models.AttachmentModel.CanRemoveSelection.get -> bool
+EmbedPDF.Models.AttachmentModel.DownloadAsync(EmbedPDF.AttachedFile! file, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.AttachmentContent?>!
+EmbedPDF.Models.AttachmentModel.Error.get -> EmbedPDF.PdfException?
+EmbedPDF.Models.AttachmentModel.FileOperationFailed(System.Exception! failure) -> void
+EmbedPDF.Models.AttachmentModel.Files.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.AttachedFile!>!
+EmbedPDF.Models.AttachmentModel.ImportFilesAsync(System.Collections.Generic.IEnumerable<string!>! paths, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.AttachmentModel.PendingIds.get -> System.Collections.Generic.IReadOnlySet<string!>!
+EmbedPDF.Models.AttachmentModel.Performing.get -> bool
+EmbedPDF.Models.AttachmentModel.RefreshAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.AttachmentModel.ReloadAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.AttachmentModel.RemoveAsync(EmbedPDF.AttachedFile! file, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.AttachmentModel.RevealAsync(EmbedPDF.AttachedFile! file, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.AttachmentModel.RunAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.AttachmentModel.SelectAsync(System.Collections.Generic.IEnumerable<EmbedPDF.AttachedFile!>! selection, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.AttachmentModel.SelectedFiles.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.AttachedFile!>!
+EmbedPDF.Models.AttachmentModel.Status.get -> EmbedPDF.ResourceStatus
+EmbedPDF.Models.HistoryModel
+EmbedPDF.Models.HistoryModel.CanRedo.get -> bool
+EmbedPDF.Models.HistoryModel.CanUndo.get -> bool
+EmbedPDF.Models.HistoryModel.Error.get -> EmbedPDF.PdfException?
+EmbedPDF.Models.HistoryModel.HistoryModel(EmbedPDF.PdfViewer! viewer, EmbedPDF.HistoryCapability! history, EmbedPDF.I18nCapability? translator = null, System.Threading.SynchronizationContext? context = null) -> void
+EmbedPDF.Models.HistoryModel.Notice.get -> string?
+EmbedPDF.Models.HistoryModel.RedoAsync() -> System.Threading.Tasks.Task!
+EmbedPDF.Models.HistoryModel.RedoLabel.get -> EmbedPDF.HistoryChangeLabel?
+EmbedPDF.Models.HistoryModel.RedoTitle.get -> string!
+EmbedPDF.Models.HistoryModel.RefreshAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.HistoryModel.RunAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.HistoryModel.Submitting.get -> bool
+EmbedPDF.Models.HistoryModel.UndoAsync() -> System.Threading.Tasks.Task!
+EmbedPDF.Models.HistoryModel.UndoLabel.get -> EmbedPDF.HistoryChangeLabel?
+EmbedPDF.Models.HistoryModel.UndoTitle.get -> string!
 EmbedPDF.Models.ObservableModel
 EmbedPDF.Models.ObservableModel.Context.get -> System.Threading.SynchronizationContext!
 EmbedPDF.Models.ObservableModel.PropertyChanged -> System.ComponentModel.PropertyChangedEventHandler?
+EmbedPDF.Models.OutlineModel
+EmbedPDF.Models.OutlineModel.ActivateAsync(EmbedPDF.OutlineItemRef item) -> System.Threading.Tasks.Task<EmbedPDF.LinkActivation?>!
+EmbedPDF.Models.OutlineModel.CanEdit.get -> bool
+EmbedPDF.Models.OutlineModel.CollapseAsync(EmbedPDF.OutlineItemRef item) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.OutlineModel.CreateAsync(EmbedPDF.OutlineItemInput! input, EmbedPDF.OutlineCreateOptions? options = null) -> System.Threading.Tasks.Task<EmbedPDF.OutlineItem?>!
+EmbedPDF.Models.OutlineModel.CurrentItem.get -> EmbedPDF.OutlineItemRef?
+EmbedPDF.Models.OutlineModel.DeleteAsync(System.Collections.Generic.IEnumerable<EmbedPDF.OutlineItemRef>! refs) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.OutlineModel.Error.get -> EmbedPDF.PdfException?
+EmbedPDF.Models.OutlineModel.ExpandAsync(EmbedPDF.OutlineItemRef item) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.OutlineModel.Incomplete.get -> bool
+EmbedPDF.Models.OutlineModel.Items.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.OutlineItem!>!
+EmbedPDF.Models.OutlineModel.LastActivation.get -> EmbedPDF.LinkActivation?
+EmbedPDF.Models.OutlineModel.MoveAsync(System.Collections.Generic.IEnumerable<EmbedPDF.OutlineItemRef>! refs, EmbedPDF.OutlineItemRef? parent, EmbedPDF.OutlinePosition? position = null) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.OutlineModel.OutlineModel(EmbedPDF.PdfViewer! viewer, EmbedPDF.OutlineCapability! outline, System.Threading.SynchronizationContext? context = null) -> void
+EmbedPDF.Models.OutlineModel.Performing.get -> bool
+EmbedPDF.Models.OutlineModel.RefreshAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.OutlineModel.ReloadAsync() -> System.Threading.Tasks.Task!
+EmbedPDF.Models.OutlineModel.Rows.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.OutlineRow!>!
+EmbedPDF.Models.OutlineModel.RunAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.OutlineModel.SelectAsync(System.Collections.Generic.IEnumerable<EmbedPDF.OutlineItemRef>! refs) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.OutlineModel.SelectedItems.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.OutlineItemRef>!
+EmbedPDF.Models.OutlineModel.Status.get -> EmbedPDF.ResourceStatus
+EmbedPDF.Models.OutlineModel.ToggleAsync(EmbedPDF.OutlineItemRef item) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.OutlineModel.UpdateAsync(EmbedPDF.OutlineItemRef item, EmbedPDF.OutlineItemPatch! patch) -> System.Threading.Tasks.Task<EmbedPDF.OutlineItem?>!
 EmbedPDF.Models.RenderRevisions
 EmbedPDF.Models.RenderRevisions.Dispose() -> void
 EmbedPDF.Models.RenderRevisions.GetRevision(EmbedPDF.PageRef page) -> long

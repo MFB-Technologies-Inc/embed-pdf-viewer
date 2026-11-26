@@ -28,4 +28,26 @@ internal static class Structural
         a with { Enables = b.Enables } == b && a.Enables.SequenceEqual(b.Enables);
 
     public static bool SameTools(IReadOnlyList<InteractionTool> a, IReadOnlyList<InteractionTool> b) => SameList(a, b, SameTool);
+
+    public static bool SameLabel(HistoryChangeLabel? a, HistoryChangeLabel? b)
+    {
+        if (a is null || b is null) return a is null && b is null;
+        return a.Key == b.Key && a.Values.Count == b.Values.Count
+            && a.Values.All(pair => b.Values.TryGetValue(pair.Key, out var other) && Equals(pair.Value, other));
+    }
+
+    public static bool SameItem(OutlineItem a, OutlineItem b)
+    {
+        if (a with { Action = b.Action } != b) return false;
+        // Each read lifts a new handle, so equal actions compare by their JSON.
+        return (a.Action, b.Action) switch
+        {
+            (null, null) => true,
+            ({ } x, { } y) => ReferenceEquals(x, y) || x.Json == y.Json,
+            _ => false,
+        };
+    }
+
+    public static bool SameRow(OutlineRow a, OutlineRow b) =>
+        a.Depth == b.Depth && a.HasChildren == b.HasChildren && a.Expanded == b.Expanded && SameItem(a.Item, b.Item);
 }
