@@ -32,9 +32,16 @@ As Phase 4. Additionally:
 
 Port `PageImageView`, `TiledPageImage`, `ThumbnailStrip` (`LazyRow`), `ScrollVisibility`, `ModelScope`, `ControlPresentation`, `HapticFeedback` wiring (the service is in `embedpdf`), plus `ImageBitmap` and `Color` bridges for `AnnotationColor`.
 
+- [x] Module `compose` (`embedpdf-compose`, `com.embedpdf.compose`) on Compose BOM 2026.06.01 (UI 1.11.4, Material 3 1.4.0): 2026.08.00 and later need `compileSdk` 37. `compose/api/compose.api` is checked by `apiCheck` in `check` and in `build-aar.sh`, which also builds and tests the module.
+- [x] `PageImageView` keeps Swift's name because `PageImage` is the facade's raster. `TiledPageImage` attaches as the model's painter (`DisposableEffect`), acknowledges frames from its draw phase, acknowledges each tile two frames after it appears, and releases the page in a non-cancellable `finally` when it leaves. `ThumbnailStrip` runs its model and keys loads on `ThumbnailModel.pageRevisions`. `trackingScrollVisibility` takes a callback. `ModelScope` is non-skippable so only identity decides. Strings: `ResourceHistoryStrings`, `ResourceSearchStrings`, `rememberHistoryStrings()`, `rememberSearchStrings()`; haptics: `rememberHapticFeedback()`.
+- [x] Tests under Robolectric with a paused looper that the tests advance a frame at a time (`ComposeTestSupport.kt`). Review focus: a 500-page fast scroll keeps a shared pool within budget, and `recreate()` mid-render leaves no demand behind.
+
 ### Task 2: Stage reader and selection
 
 Port `StageReaderView` (as `StageReader`, with the page overlay slot `pageOverlay: @Composable (StageVisiblePage) -> Unit`), `TextSelectionDrag`, `TextSelectionOverlay` (copy through the platform `TextToolbar`/clipboard), `SearchHitReveals`.
+
+- [x] `StageReader(model, modifier, onLinkActivation, pageOverlay)` in dp viewport units. The route is chosen at touch-down; a forwarded drag never pans; a second finger closes the drag and pinches; a double tap is sent after the pan's end so the end does not stop its zoom. An overlay that consumes the down keeps the touch from the pan, and one that consumes a move drops it. `TextSelectionOverlay` copies through `TextToolbar` and a `copyText` semantics action, reading `TextSelectionModel.selectedText()`.
+- [x] Open: under Robolectric the first ink stroke after the tool turns on does not commit (direct `StageReaderModel` pointer calls reproduce it; the plain JVM model test does not), so `StageReaderTest` draws until ink lands.
 
 ### Task 3: Panels and chrome
 
