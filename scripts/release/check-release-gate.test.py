@@ -76,6 +76,12 @@ class ReleaseGate(unittest.TestCase):
                   "    permissions:\n      contents: read\n      packages: write\n")
         self.assert_fails("whose job viewer-release-preview publishes or can write")
 
+    def test_a_called_job_asking_for_more_than_its_caller_grants_fails(self):
+        self.edit("release-train.yml", "    permissions:\n      contents: read\n      packages: read\n    with:\n      dry_run",
+                  "    with:\n      dry_run")
+        self.assert_fails("dotnet calls ./.github/workflows/release-dotnet.yml, whose job viewer-release-preview"
+                          " asks for packages: read, which dotnet doesn't grant")
+
     def test_a_publish_call_without_approve_fails(self):
         self.edit("release-train.yml", "needs: [approve, slices-runtime, runtime]", "needs: [slices-runtime, runtime]")
         self.assert_fails("runtime-publish publishes but doesn't need approve")

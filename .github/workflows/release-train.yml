@@ -288,9 +288,14 @@ jobs:
     with:
       targets: '["linux-arm64","android-arm64","android-x64","wasm32"]'
 
+  # viewer-release-preview asks for packages: read, and a called workflow's
+  # jobs can ask for no more than this job grants, whether or not they run.
   dotnet:
     name: release-dotnet.yml
     uses: ./.github/workflows/release-dotnet.yml
+    permissions:
+      contents: read
+      packages: read
     with:
       dry_run: ${{ inputs.dry_run }}
       dotnet_version: ${{ inputs.dotnet_version }}

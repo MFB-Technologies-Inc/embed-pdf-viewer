@@ -24,6 +24,9 @@ approve once, after everything is built. This checks that
     can write contents when its own permissions say so or, with no
     permissions of its own or at its workflow's top, when the caller job
     grants it;
+  - no job of a called workflow asks for a permission its caller job doesn't
+    grant: GitHub refuses to start the whole run when one does, whether or
+    not that job would run;
   - neither a publishing job nor any job between it and approve has an `if:`
     that runs it after approve failed or was rejected (always(), cancelled(),
     !cancelled(), failure()) unless that `if:` also requires
@@ -78,6 +81,32 @@ def inline_permissions(value, where):
             perms[key.strip()] = level.strip()
         return perms
     raise GateError(f"{where}: can't read permissions {value!r}")
+
+
+LEVELS = {"none": 0, "read": 1, "write": 2}
+
+
+def level(perms, scope):
+    """The access a permissions value gives one scope; UNSET is the repository default."""
+    if perms is UNSET or perms == "write-all":
+        return 2
+    if perms == "read-all":
+        return 1
+    return LEVELS.get(perms.get(scope, "none"), 0)
+
+
+def ungranted(requested, grant):
+    """The scopes `requested` asks for beyond `grant`, as "scope: level" strings."""
+    if requested is UNSET:
+        return []
+    if isinstance(requested, str):
+        need = 2 if requested == "write-all" else 1
+        scopes = sorted(grant) if isinstance(grant, dict) else []
+        if isinstance(grant, str) or grant is UNSET:
+            return [] if level(grant, "contents") >= need else [requested]
+        return [requested] if any(level(grant, s) < need for s in scopes) or not scopes else []
+    return [f"{scope}: {value}" for scope, value in sorted(requested.items())
+            if LEVELS.get(value, 0) > level(grant, scope)]
 
 
 def writes_contents(perms):
@@ -207,6 +236,11 @@ def check(train):
         grant = own(job, top)
         called_top, called = parse_workflow(root / uses[2:])
         for inner, inner_job in called.items():
+            asked = inner_job["permissions"] if inner_job["permissions"] is not UNSET else called_top
+            for scope in ungranted(asked, job["permissions"] if job["permissions"] is not UNSET else top):
+                errors.append(
+                    f"{name} calls {uses}, whose job {inner} asks for {scope}, which {name} doesn't grant;"
+                    " GitHub refuses to start the run")
             if inner_job["environment"] and uses not in seen:
                 errors.append(f"{uses} job {inner} names an environment; only the train's approve may")
             fallback = called_top if called_top is not UNSET else grant
