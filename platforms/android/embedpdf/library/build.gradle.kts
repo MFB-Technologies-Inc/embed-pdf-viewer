@@ -64,7 +64,7 @@ kotlin {
 dependencies {
     // uniffi's Kotlin backend calls the .so through JNA, so the AAR variant
     // has to be used: the plain jar cannot find a library inside an APK.
-    implementation("net.java.dev.jna:jna:5.14.0@aar")
+    implementation("net.java.dev.jna:jna:5.19.1@aar")
 
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
