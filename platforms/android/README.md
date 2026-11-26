@@ -412,8 +412,9 @@ platforms/android/embedpdf/gradlew -p platforms/android/EmbedPDFDemo :app:assemb
 The release build type is minified with R8 and signed with the debug key, so
 it installs, but it is not a store build. `bash platforms/android/android-consumer.sh`
 publishes the five artifacts into `embedpdf/build/consumer-maven` with
-`publishToMavenLocal -Dmaven.repo.local=...`, checks that every POM names a
-version for every dependency, assembles the release demo from those
+`publishToMavenLocal -Dmaven.repo.local=...`, checks that exactly those five
+publish, each at one version, and that every POM names a version for every
+dependency, assembles the release demo from those
 coordinates, checks that both ABIs' engine is stored uncompressed, runs
 `zipalign -c -P 16 4`, and checks R8's `usage.txt` and `mapping.txt`: no
 `uniffi.` or `com.sun.jna.` class or member removed, none renamed, and every
@@ -566,9 +567,11 @@ it is checked rather than trusted.
 
 The APK is checked separately, with `zipalign -c -P 16`, because an ELF with
 16 KB `LOAD` segments still fails to map if the zip entry holding it does not
-start on a 16 KB boundary. The two checks answer different questions. The only
-APK this project builds is the test one; an app that packages the AAR has to
-run the same check on its own output.
+start on a 16 KB boundary. The two checks answer different questions. This
+project builds two APKs, and both are checked: `build-aar.sh` builds the
+`bindings` debug test APK only to give this check an APK, and
+`android-consumer.sh` checks the minified release demo. An app that packages
+the AAR has to run the same check on its own output.
 
 `useLegacyPackaging = false` keeps the libraries stored rather than deflated
 inside the archive, which is what lets the linker map one straight out of the
