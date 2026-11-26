@@ -51,11 +51,18 @@ kotlin {
 dependencies {
     // Every composable takes a model and exposes facade types.
     api(project(":models"))
-    api(platform(libs.compose.bom))
+    // The BOM picks the versions without becoming part of a consumer's
+    // graph, where it would pin the app's own Compose artifacts. The
+    // artifacts the public signatures use (`Modifier`, `Color`,
+    // `Orientation`) stay `api`; a publication must carry the versions
+    // resolved from the BOM for them, since the catalog names none.
+    implementation(platform(libs.compose.bom))
     api(libs.compose.ui)
     api(libs.compose.ui.graphics)
     api(libs.compose.foundation)
-    api(libs.compose.material3)
+    // No public signature names a Material 3 type: the composables read
+    // `MaterialTheme` only inside.
+    implementation(libs.compose.material3)
     implementation(libs.compose.material3.adaptive)
     implementation(libs.androidx.activity.compose)
     implementation(libs.kotlinx.coroutines.android)
@@ -141,4 +148,18 @@ val apiCheck = tasks.register<kotlinx.validation.KotlinApiCompareTask>("apiCheck
     generatedApiFile.set(apiBuild.flatMap { it.outputApiFile })
 }
 
-tasks.named("check") { dependsOn(apiCheck) }
+// What a consumer's compile classpath gets from this module: the BOM and
+// Material 3 must not be among it (see the dependencies above).
+val checkApiDependencies = tasks.register("checkApiDependencies") {
+    description = "Fails when the Compose BOM or Material 3 is an api dependency."
+    group = "verification"
+    val declared = configurations.named("releaseApiElements").map { elements ->
+        elements.allDependencies.map { "${it.group}:${it.name}" }
+    }
+    doLast {
+        val leaked = declared.get().filter { it == "androidx.compose:compose-bom" || it.startsWith("androidx.compose.material3:") }
+        check(leaked.isEmpty()) { "api dependencies a consumer would inherit: $leaked" }
+    }
+}
+
+tasks.named("check") { dependsOn(apiCheck, checkApiDependencies) }

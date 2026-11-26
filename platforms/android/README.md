@@ -34,6 +34,16 @@ lets the viewer disable JavaScript and report why.
 1.4.0), the newest that compiles against `compileSdk` 36. From 2026.08.00 on,
 Compose 1.12 requires `compileSdk` 37 of every app that uses it.
 
+So an app that uses `compose` needs `compileSdk` 36 or later, and can move its
+own Compose BOM up to 2026.06.01 without touching that floor. A newer BOM in
+the app resolves Compose 1.12, which raises the app to `compileSdk` 37, and
+the module has not been tested against it. The module takes
+the BOM as an `implementation` platform, so the BOM never reaches the app's
+dependency graph; Compose UI, its graphics and Foundation are `api`, because
+the public signatures use `Modifier`, `Color` and `Orientation`, and Material 3
+is `implementation`. `./gradlew :compose:checkApiDependencies`, part of
+`check`, fails if the BOM or Material 3 becomes an `api` dependency.
+
 The facade is written for Kotlin callers. Calling it from Java isn't a goal,
 so it carries no `@JvmName` or `@JvmOverloads` adjustments.
 
