@@ -56,6 +56,8 @@ dependencies {
     api(libs.compose.ui.graphics)
     api(libs.compose.foundation)
     api(libs.compose.material3)
+    implementation(libs.compose.material3.adaptive)
+    implementation(libs.androidx.activity.compose)
     implementation(libs.kotlinx.coroutines.android)
 
     testImplementation(platform(libs.compose.bom))

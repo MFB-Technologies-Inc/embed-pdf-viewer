@@ -1,7 +1,33 @@
+public final class com/embedpdf/compose/AttachmentExportDocument {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/embedpdf/compose/AttachmentExportDocument;
+	public static final field MIME_TYPE Ljava/lang/String;
+	public final fun contract ()Landroidx/activity/result/contract/ActivityResultContracts$CreateDocument;
+	public final fun mimeType (Ljava/lang/String;)Ljava/lang/String;
+	public final fun write ([BLandroid/net/Uri;Landroid/content/ContentResolver;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/compose/AttachmentPanelKt {
+	public static final fun AttachmentPanel (Lcom/embedpdf/models/AttachmentModel;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+}
+
 public final class com/embedpdf/compose/BridgesKt {
 	public static final fun toAnnotationColor-8_81llA (J)Lcom/embedpdf/AnnotationColor;
 	public static final fun toColor (Lcom/embedpdf/AnnotationColor;)J
 	public static final fun toImageBitmap (Lcom/embedpdf/PageImage;)Landroidx/compose/ui/graphics/ImageBitmap;
+}
+
+public final class com/embedpdf/compose/ComposableSingletons$AttachmentPanelKt {
+	public static final field INSTANCE Lcom/embedpdf/compose/ComposableSingletons$AttachmentPanelKt;
+	public fun <init> ()V
+	public final fun getLambda$-1871186943$compose ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-2018035502$compose ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$-552663269$compose ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$1243768513$compose ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$2097843516$compose ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$369847964$compose ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$940311226$compose ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$959475306$compose ()Lkotlin/jvm/functions/Function2;
 }
 
 public final class com/embedpdf/compose/ComposableSingletons$OutlinePanelKt {
