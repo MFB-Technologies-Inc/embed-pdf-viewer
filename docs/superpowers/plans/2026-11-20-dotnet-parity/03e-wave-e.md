@@ -1,6 +1,6 @@
 # Phase 3 Wave E: Redaction, Measurement, Stamp and Signature Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Typed C# capabilities for redaction, measurement, stamp and signature, with their .NET platform services (`FileStampLibraryStore`, `X509CertificateSigner`, `TrustAnchors`, `HttpClientSignatureTransport`), so every wave E row of `platforms/dotnet/csharp-api-coverage.json` (142: measurement 34, redaction 30, stamp 39, signature 39) is ported or excluded and no `pending` row is left (the Phase 3 exit).
 
@@ -56,11 +56,11 @@
 
 **Interfaces (produces):** `RedactionCapability : IDisposable` with `GetSettingsAsync`, `UpdateSettingsAsync(RedactionConfig)`, `ResetSettingsAsync`, `CanUnmarkAsync(AnnotationRef)`, `CanUpdateLabelAsync(AnnotationRef)`, `GetPendingAsync(PageRef? page = null)`, `GetPendingItemAsync(AnnotationRef)`, `GetPendingCountAsync(PageRef? page = null)` (`int`), `EstimateCollateralAsync(IEnumerable<AnnotationRef>? refs = null)`, `MarkSelectionAsync`, `MarkAreaAsync(PdfRect, PageRef)`, `MarkPageAsync(PageRef)`, `MarkMatchesAsync(SearchQuery, IEnumerable<PageRef>? pages = null)`, `UnmarkAsync(IEnumerable<AnnotationRef>)`, `ClearPendingAsync`, `UpdateLabelAsync(AnnotationRef, RedactionLabelPatch)`, `ApplyAsync(IEnumerable<AnnotationRef>)`, `ApplyPagesAsync(IEnumerable<PageRef>)`, `ApplyAllAsync`, `CanMarkAsync`, `CanApplyAsync`, `IsApplyingAsync`, `GetLastResultAsync`, `ObserveEvents`; `PdfViewer.GetRedactionAsync(DocumentInfo)`.
 
-- [ ] **Step 1: Failing tests.** Port `RedactionTests.swift` case for case (17), plus `aPendingRedactionCountIsInt` into `IntegerSurfaceViewerTests`.
-- [ ] **Step 2:** `dotnet test --filter RedactionTests`: build FAIL.
-- [ ] **Step 3:** Implement. Calls whose export takes a `CancelToken` use `RunCancellable`.
-- [ ] **Step 4:** PASS, 0 warnings.
-- [ ] **Step 5:** Flip 29 rows, exclude `page_list_calls`; commit `feat(dotnet): add the redaction capability`.
+- [x] **Step 1: Failing tests.** Port `RedactionTests.swift` case for case (17), plus `aPendingRedactionCountIsInt` into `IntegerSurfaceViewerTests`.
+- [x] **Step 2:** `dotnet test --filter RedactionTests`: build FAIL.
+- [x] **Step 3:** Implement. Calls whose export takes a `CancelToken` use `RunCancellable`.
+- [x] **Step 4:** PASS, 0 warnings.
+- [x] **Step 5:** Flip 29 rows, exclude `page_list_calls`; commit `feat(dotnet): add the redaction capability`.
 
 ### Task 2: Measurement
 
@@ -68,9 +68,9 @@
 
 **Interfaces (produces):** `MeasurementCapability : IDisposable`, one member per `Measurement.swift` member: settings trio, `CanMeasureAsync(PageRef)`, `GetPageScaleAsync(PageRef)`, `IsBusyAsync`, `GetLastReportsAsync`, `GetPresetsAsync`, `GetUnitsAsync`, `GetAreaUnitsAsync`, the three `ReadoutAsync` overloads, `MeasureDistanceAsync(PageRef, PdfPoint from, PdfPoint to)`, `MeasureAreaAsync(PageRef, IEnumerable<PdfPoint>)`, `GetCalibrationRequestAsync`, `SetScaleAsync(MeasurementPageTarget, PdfMeasurement, MeasurementScaleChangeOptions? options = null)`, `CalibrateAsync(MeasurementCalibrateInput, MeasurementCalibrateOptions? options = null)`, `SetUnitAsync`, `SetAreaUnitAsync`, `SetPrecisionAsync`, `SetPresetAsync`, `ClearScaleAsync`, `StartCalibrationAsync`, `DismissCalibrationAsync`, `CreateMeasurementAsync(CreateMeasurementInput)` (`string`), `CanCalibrateAsync`, `EnsureLoadedAsync(PageRef)`, `ObserveEvents`; `PdfViewer.GetMeasurementAsync(DocumentInfo)`.
 
-- [ ] **Step 1: Failing tests.** Port `MeasurementTests.swift` (17) and the two measurement cases of `TypedOverloadTests.swift` (`AMeasurementReadsOutFromItsAnnotation`, `AMeasurementReadsOutFromItsRef`: 0.0254 within 1e-6, typed equals JSON). Add the fixture `measure-foreign-viewport` (`crates/test-support/fixtures/measure-foreign-viewport.pdf`). New: a `PdfMeasurement` with a NaN `Cyx` or an undefined `MeasureFraction` faults `SetScaleAsync` with `invalid-input`.
-- [ ] **Step 2-4:** FAIL, implement, PASS.
-- [ ] **Step 5:** Flip 34 rows; commit `feat(dotnet): add the measurement capability`.
+- [x] **Step 1: Failing tests.** Port `MeasurementTests.swift` (17) and the two measurement cases of `TypedOverloadTests.swift` (`AMeasurementReadsOutFromItsAnnotation`, `AMeasurementReadsOutFromItsRef`: 0.0254 within 1e-6, typed equals JSON). Add the fixture `measure-foreign-viewport` (`crates/test-support/fixtures/measure-foreign-viewport.pdf`). New: a `PdfMeasurement` with a NaN `Cyx` or an undefined `MeasureFraction` faults `SetScaleAsync` with `invalid-input`.
+- [x] **Step 2-4:** FAIL, implement, PASS.
+- [x] **Step 5:** Flip 34 rows; commit `feat(dotnet): add the measurement capability`.
 
 ### Task 3: Stamp and the file store
 
@@ -78,9 +78,9 @@
 
 **Interfaces (produces):** `StampCapability : IDisposable`, one member per `Stamp.swift` member (`GetLibrariesAsync(IEnumerable<string>? kinds = null)`, `GetLibraryAsync`, `GetAssetsAsync(StampAssetFilter? filter = null)`, `GetAssetAsync`, `GetAssetPreviewAsync`, `RenderAssetPreviewAsync(string, double width)`, `GetAssetBytesAsync`, `ExportLibraryAsync`, `CanPlaceAsync(DocumentInfo? document = null)`, `CanCreateFromAnnotationsAsync(DocumentInfo? document = null)`, `CanImportAsync`, `CreateLibraryAsync(string, StampCreateLibraryOptions? options = null)`, `UpdateLibraryAsync`, `ImportLibraryAsync(ReadOnlyMemory<byte>, StampImportOptions? options = null)`, `DeleteLibraryAsync`, `CreateAssetAsync(StampAddAssetInput)`, `CreateAssetFromAnnotationsAsync(IEnumerable<AnnotationRef>, DocumentInfo, PageRef, StampAddAssetInput? input = null)`, `UpdateAssetAsync`, `DeleteAssetAsync`, `MoveAssetAsync(string, string toLibraryId)`, `DuplicateAssetAsync(string, string? label = null)`, `ArmAsync(string, DocumentInfo, double? targetWidth = null)`, `PlaceAsync(string, DocumentInfo, PageRef, PdfPoint center, StampPlacementOptions? options = null)`, `PlaceOnPagesAsync(string, DocumentInfo, IEnumerable<PageRef>? pages, PdfPoint center, StampPlacementOptions? options = null)`, `DisarmAsync(DocumentInfo)`, `GetArmedAssetAsync(DocumentInfo)`, `RestoreAsync(IStampLibraryStore)`, `PersistAsync(IStampLibraryStore, IEnumerable<string>? except = null)` (`Registration`), settings trio, `ObserveEvents`); `PdfViewer.GetStampsAsync()`; `StampPlacementOptions { double? TargetWidth; double? Rotation }` (RS0026).
 
-- [ ] **Step 1: Failing tests.** Port `StampTests.swift` (31), `stampImportOptionsIdNamesTheLibrary` and `stampResetRestoresRegisteredPreviewWidth`. Fixture `stamps` (`packages/default-stamps/en/stamps.pdf`, read only). New `FileStampLibraryStoreTests`: put/list/delete round trip; `AHostileIdStaysInTheDirectory` (ids `../x`, `a/b`, `c:d`, `.`) each lists back as the same id and nothing appears outside the directory; a missing delete is no error; the default root is under `LocalApplicationData`; a store whose `List` throws fails `RestoreAsync` with `HostError`; a store that calls `viewer.Dispose()` records `InvalidOperationException`.
-- [ ] **Step 2-4:** FAIL, implement, PASS.
-- [ ] **Step 5:** Flip 39 rows; commit `feat(dotnet): add the stamp capability and the file stamp store`.
+- [x] **Step 1: Failing tests.** Port `StampTests.swift` (31), `stampImportOptionsIdNamesTheLibrary` and `stampResetRestoresRegisteredPreviewWidth`. Fixture `stamps` (`packages/default-stamps/en/stamps.pdf`, read only). New `FileStampLibraryStoreTests`: put/list/delete round trip; `AHostileIdStaysInTheDirectory` (ids `../x`, `a/b`, `c:d`, `.`) each lists back as the same id and nothing appears outside the directory; a missing delete is no error; the default root is under `LocalApplicationData`; a store whose `List` throws fails `RestoreAsync` with `HostError`; a store that calls `viewer.Dispose()` records `InvalidOperationException`.
+- [x] **Step 2-4:** FAIL, implement, PASS.
+- [x] **Step 5:** Flip 39 rows; commit `feat(dotnet): add the stamp capability and the file stamp store`.
 
 ### Task 4: Signature
 
@@ -88,37 +88,37 @@
 
 **Interfaces (produces):** `SignatureCapability : IDisposable`, one member per `Signature.swift` member (`GetSnapshotAsync`, `GetStatusAsync`, `GetSignaturesAsync`, `GetUnsignedFieldsAsync`, `GetSignatureAsync(FormFieldRef)`, `GetVerdictsAsync`, `GetVerdictAsync`, `GetProtectionAsync`, `GetPendingAsync`, `IsBusyAsync`, `GetModeAsync`, `GetTargetAsync`, `CanSignAsync`, `CanFillAsync`, `CanCertifyAsync`, `CanReadRevisionAsync`, `RefreshAsync`, `ValidateAsync(SignatureValidateRequest? request = null)`, `ValidateFieldAsync(FormFieldRef, SignatureValidateRequest? request = null)`, `AnalyzeChangesAsync(int since, SignatureModificationsBasis until = WorkingCopy)`, `ReadRevisionAsync`, `SetTargetAsync(FormFieldRef?)`, `RequestInspectionAsync`, `SignAsync(SignatureSignInput, ISignatureSigner? signer = null)`, `PrepareSignatureAsync`, `CompleteSignatureAsync(string, ReadOnlyMemory<byte> cms)`, `CancelPendingAsync`, `FillAsync(FormFieldRef, SignatureMark)`, `ClearFieldAsync`, `PlaceAsync(SignatureMark, SignaturePlaceTarget)`, `AddValidationInfoAsync(FormFieldRef? field = null)`, `CanAddValidationInfoAsync`, settings trio, `ObserveEvents`); `PdfViewer.GetSignaturesAsync`, `SetSigner`, `SetTrust`, `SetSignatureTransport`.
 
-- [ ] **Step 1: Failing tests.** Port `SignatureTests.swift` (35, with `CancellingSigner` throwing `PdfException` `operation-cancelled` and `HeldSigner` over a `TaskCompletionSource`), `signatureModeCanClearAndResetToRegisteredMode`, `theSignatureSettingsCarryTheNewFields`, `aSignatureIndexOutsideUInt32ThrowsInvalidInput`. Fixtures `signed_certified`, `unsigned_sigfield`, `signature_artwork` from `packages/engine/main/test/fixtures/`. New: a signer whose chain throws fails `SignAsync` with that `PdfException`'s code; a signer that calls `viewer.Dispose()` from `GetCertificateChain` records `InvalidOperationException`; `SignAsync` returning a null task fails the signing.
-- [ ] **Step 2-4:** FAIL, implement, PASS.
-- [ ] **Step 5:** Flip 39 rows; commit `feat(dotnet): add the signature capability`.
+- [x] **Step 1: Failing tests.** Port `SignatureTests.swift` (35, with `CancellingSigner` throwing `PdfException` `operation-cancelled` and `HeldSigner` over a `TaskCompletionSource`), `signatureModeCanClearAndResetToRegisteredMode`, `theSignatureSettingsCarryTheNewFields`, `aSignatureIndexOutsideUInt32ThrowsInvalidInput`. Fixtures `signed_certified`, `unsigned_sigfield`, `signature_artwork` from `packages/engine/main/test/fixtures/`. New: a signer whose chain throws fails `SignAsync` with that `PdfException`'s code; a signer that calls `viewer.Dispose()` from `GetCertificateChain` records `InvalidOperationException`; `SignAsync` returning a null task fails the signing.
+- [x] **Step 2-4:** FAIL, implement, PASS.
+- [x] **Step 5:** Flip 39 rows; commit `feat(dotnet): add the signature capability`.
 
 ### Task 5: X509 signer and trust anchors
 
 **Files:** create `Plugins/X509CertificateSigner.cs`, `Plugins/TrustAnchors.cs`; tests `X509CertificateSignerTests.cs` (port of `KeychainSignerTests.swift`); embed `TEST-ONLY-signer.pem` as a test resource; switch `TestSigner` to `X509CertificateSigner`; PublicAPI.
 
-- [ ] **Step 1: Failing tests.** An RSA key signs PKCS#1 (256 bytes, `RsaPkcs1`, `Sha256`, chain of 1); an EC P-256 key signs 64-byte `r || s` that `ECDsa.VerifyData` accepts in P1363; a certificate without a private key throws `ArgumentException`; a malformed PEM anchor throws `CryptographicException`; a PEM anchor's DER starts `0x30`; embedded-resource anchors load from the test assembly; a PKCS#12 round trip from bytes signs; a chain of leaf plus issuer builds leaf first; `TheTestCertificateAsAnAnchorIsTrusted` passes through `X509CertificateSigner` and `TrustAnchors`.
-- [ ] **Step 2-4:** FAIL, implement, PASS.
-- [ ] **Step 5:** Commit `feat(dotnet): add the X509 certificate signer and trust anchors`.
+- [x] **Step 1: Failing tests.** An RSA key signs PKCS#1 (256 bytes, `RsaPkcs1`, `Sha256`, chain of 1); an EC P-256 key signs 64-byte `r || s` that `ECDsa.VerifyData` accepts in P1363; a certificate without a private key throws `ArgumentException`; a malformed PEM anchor throws `CryptographicException`; a PEM anchor's DER starts `0x30`; embedded-resource anchors load from the test assembly; a PKCS#12 round trip from bytes signs; a chain of leaf plus issuer builds leaf first; `TheTestCertificateAsAnAnchorIsTrusted` passes through `X509CertificateSigner` and `TrustAnchors`.
+- [x] **Step 2-4:** FAIL, implement, PASS.
+- [x] **Step 5:** Commit `feat(dotnet): add the X509 certificate signer and trust anchors`.
 
 ### Task 6: HTTP signature transport
 
 **Files:** create `HttpClientSignatureTransport.cs`; tests `SignatureTransportTests.cs` over a loopback `TcpListener` server (the routes of the Swift server: `/echo`, `/hold`, `/stall-body`, `/error-stall`, `/broken`, `/error-broken`, `/long-length`, `/long-stream`, `/exact`, `/error-long`, `/error-body`); PublicAPI.
 
-- [ ] **Step 1: Failing tests.** Port `SignatureTransportTests.swift`: `AReplyOfAnyStatusIsReplied`, `TheDeadlineCoversTheWholeExchangeAndAnswersOnce` (250 ms to 1400 ms, one answer each after 1.7 s), `MaxReplyBytesIsEnforced`, `NothingListeningOrNoAddressIsFailed`, `PostAnswersThroughTheGeneratedCompletion` (one POST reaches `/error-body`, signing fails), the three route tests skipped without `EMBEDPDF_SIGNATURE_ROUTES`. The catch-up cases already ported in waves B to D are noted, not repeated. New: a transport that throws or returns a null task answers `Failed` once.
-- [ ] **Step 2-4:** FAIL, implement, PASS.
-- [ ] **Step 5:** Commit `feat(dotnet): add the HTTP signature transport`.
+- [x] **Step 1: Failing tests.** Port `SignatureTransportTests.swift`: `AReplyOfAnyStatusIsReplied`, `TheDeadlineCoversTheWholeExchangeAndAnswersOnce` (250 ms to 1400 ms, one answer each after 1.7 s), `MaxReplyBytesIsEnforced`, `NothingListeningOrNoAddressIsFailed`, `PostAnswersThroughTheGeneratedCompletion` (one POST reaches `/error-body`, signing fails), the three route tests skipped without `EMBEDPDF_SIGNATURE_ROUTES`. The catch-up cases already ported in waves B to D are noted, not repeated. New: a transport that throws or returns a null task answers `Failed` once.
+- [x] **Step 2-4:** FAIL, implement, PASS.
+- [x] **Step 5:** Commit `feat(dotnet): add the HTTP signature transport`.
 
 ### Task 7: Cross-cutting tests
 
-- [ ] `DisabledPluginTests`: the four rows call the public accessors.
-- [ ] `NullArgumentTests.EveryWaveECapabilityChecksEveryReferenceArgument`; null elements in `UnmarkAsync`, `ApplyAsync`, `MeasureAreaAsync`, `CreateAssetFromAnnotationsAsync` throw `ArgumentException` up front.
-- [ ] `ValidationShapeTests.InvalidWaveEArgumentsFaultTheReturnedTask`: a negative `AnalyzeChangesAsync` index, an undefined `SignatureModificationsBasis`, a NaN draft-free `MarkAreaAsync` rect, a bad `PageRef`.
-- [ ] `EnumMirrorTests` and `EnumRangeTests` rows for every new enum.
-- [ ] `LifetimeTests.LiveWaveEStreamsAndCallbacksDoNotKeepAnAbandonedViewerAlive` (review focus 5).
-- [ ] Run, PASS; commit `test(dotnet): extend the cross-cutting tests to wave E`.
+- [x] `DisabledPluginTests`: the four rows call the public accessors.
+- [x] `NullArgumentTests.EveryWaveECapabilityChecksEveryReferenceArgument`; null elements in `UnmarkAsync`, `ApplyAsync`, `MeasureAreaAsync`, `CreateAssetFromAnnotationsAsync` throw `ArgumentException` up front.
+- [x] `ValidationShapeTests.InvalidWaveEArgumentsFaultTheReturnedTask`: a negative `AnalyzeChangesAsync` index, an undefined `SignatureModificationsBasis`, a NaN draft-free `MarkAreaAsync` rect, a bad `PageRef`.
+- [x] `EnumMirrorTests` and `EnumRangeTests` rows for every new enum.
+- [x] `LifetimeTests.LiveWaveEStreamsAndCallbacksDoNotKeepAnAbandonedViewerAlive` (review focus 5).
+- [x] Run, PASS; commit `test(dotnet): extend the cross-cutting tests to wave E`.
 
 ### Task 8: Verify and record
 
-- [ ] `python3 scripts/check-api-coverage.py --platform csharp` exits 0 with no pending row.
-- [ ] `dotnet test EmbedPDF.Viewer.Tests` twice, `python3 -m unittest discover -s platforms/dotnet/packaging`, `python3 -m unittest scripts/test_check_api_coverage.py`, `dotnet build -c Release` of the facade, DI, Jint, tests and ApiDump with 0 warnings.
-- [ ] Tick this plan; add "Phase 3 wave E notes" to the umbrella and tick its Phase 3 exit. Commit `chore(dotnet): record Phase 3 wave E`.
+- [x] `python3 scripts/check-api-coverage.py --platform csharp` exits 0 with no pending row.
+- [x] `dotnet test EmbedPDF.Viewer.Tests` twice, `python3 -m unittest discover -s platforms/dotnet/packaging`, `python3 -m unittest scripts/test_check_api_coverage.py`, `dotnet build -c Release` of the facade, DI, Jint, tests and ApiDump with 0 warnings.
+- [x] Tick this plan; add "Phase 3 wave E notes" to the umbrella and tick its Phase 3 exit. Commit `chore(dotnet): record Phase 3 wave E`.

@@ -450,7 +450,7 @@ What Phase 3 inherits:
 
 ## Phase 3: Plugin capabilities
 
-About 4 weeks across waves. Exit: `csharp-api-coverage.json` has no `pending` rows.
+About 4 weeks across waves. Exit: `csharp-api-coverage.json` has no `pending` rows. *Met 2026-11-26, see "Phase 3 wave E notes".*
 
 Each plugin follows one recipe: public records mirroring the generated ones (D3), a `*Capability`
 class wrapping the handle, a `PdfViewer` accessor that throws `PdfException` with
@@ -841,6 +841,91 @@ Deviations, each with its reason:
   redaction case, wave E); `IntegerSurfaceViewerTests.AnnotationNumbersBelowZeroThrowInvalidInput`
   checks the page numbers, object numbers and indexes the drafts write instead. The measurement
   cases of `TypedOverloadTests.swift` wait for wave E.
+
+### Phase 3 wave E notes (2026-11-26)
+
+Task plan: `docs/superpowers/plans/2026-11-20-dotnet-parity/03e-wave-e.md`. Branch
+`research/dotnet-parity-p3e` from `research/dotnet-parity-p3d` at `a728cf2c3`, not pushed.
+
+Phase 3 exit is met. The coverage check reads 880 members: 730 ported, 0 pending, 150 exclusions.
+Of the 142 wave E rows, 141 are ported (measurement 34, redaction 29, stamp 39, signature 39) and
+one is excluded: redaction `page_list_calls` is a `#[cfg(feature = "harness")]` counter with no
+export (`crates/plugins/redaction/src/read/pending.rs:315`), classified `internal-resource` like
+wave C's `load_starts`. `EmbedPDF.Viewer.Tests` runs 1,101 cases, 1,097 passing twice in a row and
+4 skipped: the latency test and the three route tests below. `packaging` passes its 30 and
+`scripts/test_check_api_coverage.py` its 13. Release builds of the facade, the DI package, the Jint
+package, the tests and `EmbedPDF.ApiDump` report 0 warnings with the trim and AOT analyzers on.
+
+What exists. `RedactionCapability`, `MeasurementCapability`, `StampCapability` and
+`SignatureCapability` under `platforms/dotnet/EmbedPDF.Viewer/Plugins/`, each with a `.Types.cs` of
+public twins and a `.Ffi.cs` of mappings, and the accessors `GetRedactionAsync`,
+`GetMeasurementAsync`, `GetStampsAsync()` (one per viewer, as Swift's `stamps()`) and
+`GetSignaturesAsync`. `RedactionConfig`, `MeasurementConfig`, `StampConfig` and `SignatureConfig`
+carry their fields; the first three are also their plugin's settings patch, as in Swift. Wave D's
+`PdfMeasurement` and `PdfNumberFormat` now map to the generated measure records, refusing NaN, an
+infinity or an undefined enum as `invalid-input`. The measurement cases of `TypedOverloadTests.swift`
+are ported (`ReadoutAsync(AnnotationInfo)` and `ReadoutAsync(AnnotationRef)` against the JSON
+overload).
+
+Platform services (D5). `FileStampLibraryStore` keeps one PDF per library under
+`LocalApplicationData/EmbedPDF/stamps` or a given directory, percent-escapes every id byte outside
+`A-Z a-z 0-9 - _` so `../x`, `a/b` or `.` stay inside it and read back unchanged, and writes through
+a temporary file and one `File.Move`. `X509CertificateSigner` signs with an `X509Certificate2`'s RSA
+(PKCS#1 v1.5, SHA-256) or ECDSA key (IEEE P1363 `r || s`), loads from PKCS#12 bytes, a PKCS#12 file
+or an `X509Store`, and builds its chain once with `X509Chain` in `CustomRootTrust` over the given
+certificates. `TrustAnchors` reads DER, PEM, certificates or embedded resources (`.pem`, `.crt`,
+`.cer`, `.der` under a prefix); the Swift side bundles no anchors, and neither does this package.
+`HttpClientSignatureTransport` ports `SignatureTransport.swift` over `HttpClient`, with the same
+limits and outcomes. The tests use a generated self-signed EC certificate and the TEST-ONLY RSA pair
+from `packages/engine/main/test/fixtures/signature-compat/keys/`, never a system store.
+
+Calling threads. On the kernel thread, synchronous and marked: `IStampLibraryStore`,
+`ISignatureSigner.GetCertificateChain`, `Algorithm` and `Digest`, and `ISignatureTrust`. A store's
+throw is the kernel's host error, so `RestoreAsync` fails with `HostError`; a signer's or trust's
+`PdfException` keeps its name and code, anything else is `operation-failed`. `Algorithm` and `Digest`
+have no error type, so a throw there is logged and answered with RSA PKCS#1 and SHA-256. On the
+thread pool: `ISignatureSigner.SignAsync` and `ISignatureTransport.PostAsync`, whose adapters answer
+the completion exactly once (`SignatureTests.APendingSignatureDoesNotBlockTheViewer`,
+`SignatureTransportTests.ATransportThatThrowsOrAnswersNothingFailsTheRequestOnce`).
+`LifetimeTests.LiveWaveEStreamsAndCallbacksDoNotKeepAnAbandonedViewerAlive` covers the four streams,
+a persisting store, a signer, trust and a transport that capture nothing.
+
+Deviations, each with its reason:
+
+- Swift's completion objects (`SignatureSignCompletion`, `SignatureTransportCompletion`) are
+  `Task`-returning members, per the wave B rule: `ISignatureSigner.SignAsync` answers the signature,
+  and `ISignatureTransport.PostAsync` answers a `SignatureTransportOutcome` union (`Replied`,
+  `TimedOut`, `TooLarge`, `Failed`).
+- D5 names `System.Security.Cryptography.Pkcs` for the signer. It is not used: the engine assembles
+  the CMS and asks the signer only for a raw signature over the signed attributes
+  (`crates/plugins/signature/src/ffi/ports.rs:56-62`), which the shared framework's `RSA` and `ECDsa`
+  give. No new package reference, so nothing to isolate for AOT. `CompleteSignatureAsync` still takes
+  a caller's detached CMS for the two-phase path, as in Swift.
+- `StampPreview` is `Data` and `MimeType`; Swift's decoded `CGImage` has no counterpart (D6).
+- Swift's `place(_:in:on:center:targetWidth:rotation:)` and `place(_:in:onPages:...)` are
+  `PlaceAsync` and `PlaceOnPagesAsync` with a `StampPlacementOptions` record, and `createAsset(from:)`
+  is `CreateAssetFromAnnotationsAsync`; `validate(field)` is `ValidateFieldAsync`, `apply(pages:)` is
+  `ApplyPagesAsync`, `pendingItem` is `GetPendingItemAsync`. RS0026 refuses the overload sets; the
+  three `ReadoutAsync` overloads suppress it, as wave D's typed and JSON pairs do.
+- Union case members the generator renamed keep those names (`MeasurementPageTarget.Page.PageValue`,
+  `StampMark.Text.TextValue`, `SignaturePlaceTarget.Field.FieldValue`), since a nested record's
+  property can't share its name.
+- A signer that throws `PdfException` with `operation-cancelled` fails `SignAsync` with that
+  `PdfException`, not `OperationCanceledException`, which stays reserved for the caller's token.
+- `FileStampLibraryStore` escapes ids itself rather than with `Uri.EscapeDataString`, so `.` and `~`
+  are escaped too and no id can name `.` or `..`.
+- The three route tests of `SignatureTransportTests.swift` are ported but skipped without
+  `EMBEDPDF_SIGNATURE_ROUTES`, as Swift's are; the helper needs `packages/core/signature/dist`, which
+  this wave did not build.
+- The deprecated fixed-width overloads (`pendingCount` as `UInt32`, `analyzeChanges(since: UInt32)`)
+  have no counterpart; C# never shipped them.
+
+Finding. A `MarkMatchesAsync(new SearchQuery("e"))` over every page of `report.pdf`, cancelled
+300 ms in, did not return within 90 s and held a core at 100%: the search runs on the kernel thread,
+so the abort posted by `call_promise_cancellable` (`crates/epdf-ffi/src/bound.rs:118-135`) waits
+behind it. Swift's test cancels before the call starts, and so does the port
+(`RedactionTests.MarkMatchesCancelsWhenTheTaskIsCancelled`). The fix would be in Rust, so this wave
+records it rather than changing it.
 
 ## Phase 4: Models
 
