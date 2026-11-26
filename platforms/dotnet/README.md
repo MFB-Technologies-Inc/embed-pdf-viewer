@@ -183,3 +183,75 @@ The five-RID `EmbedPDF.Runtime` nupkg is 96,125,498 bytes, and the `EmbedPDF` nu
 Built in the dev container, both Linux hosts need GLIBC 2.35 and their PDFium 2.25.
 
 An app that loads both `EmbedPDF.Engine` and `EmbedPDF` loads two PDFium copies. Pick one.
+
+## Binding the models to a UI
+
+`EmbedPDF.Models` is the layer a view binds to. It has no UI framework reference, so any .NET UI
+framework, or a console, binds it with the same code. Each model is an
+`INotifyPropertyChanged` class, actions are `…Async` methods your framework's commands wrap, and
+images are `PixelBuffer`s you copy into your framework's bitmap.
+
+A model has one home `SynchronizationContext`: the one you pass its constructor, else the one
+current when you construct it. Make models on the UI thread and every `PropertyChanged` arrives
+there, including the ones a kernel callback or a plugin event causes. You may call a model from
+any thread; it moves to its home context before it touches state. Without a context, as in a
+console app, the model makes a private one that runs its work one item at a time on the thread
+pool.
+
+Models that follow the document have a `RunAsync(CancellationToken)`. Start it when the view
+appears and cancel the token when it goes; it returns without throwing. Lists are read-only
+snapshots replaced as a whole with one notification, so a view rebinds rather than diffing.
+
+`StageReaderModel` is the whole contract a page view implements. The view reports, in viewport
+units with the origin at the top left and y growing downward:
+
+| Event | Call |
+|---|---|
+| The viewport's size, and device pixels per unit | `SizeChangedAsync(width, height, displayScale)` |
+| A drag's total translation, then its end velocity per second | `DragChangedAsync(x, y)`, `DragEndedAsync(vx, vy)`, `DragCancelledAsync()` |
+| A pinch's total magnification around a point, then its end | `MagnifyChanged(scale, x, y)`, `MagnifyEndedAsync()` |
+| A double tap | `DoubleTappedAsync(x, y)` |
+| Pointer events while `ForwardsDrags` is true, and taps | `PointerDown`, `PointerMoved`, `PointerUp(PointerInput)`, `PointerCancelled()`, `Tapped(PointerInput)` |
+
+The stage owns the scroll position: the view never sets an offset, it draws `VisiblePages`, each
+at `ScreenX` and `ScreenY`, rendered at `StageReaderModel.RenderScale(...)`. Points on a page
+overlay map to page space with `StageVisiblePageExtensions.PagePoint`. `PointerInput` is a new
+record rather than wave B's `PointerSample`, because the sample carries the page hit the model
+looks up and a phase the method name already gives.
+
+```csharp
+using EmbedPDF;
+using EmbedPDF.Models;
+
+// On the UI thread, so the models' notifications arrive there.
+await using var reader = new PdfReaderModel(ReaderFeatures.Search | ReaderFeatures.Links);
+await reader.OpenAsync(File.ReadAllBytes("report.pdf"));
+if (reader.Phase is not ReaderPhase.Ready ready) return;
+
+var pages = ready.Session.Reader;
+using var shown = new CancellationTokenSource();
+var following = pages.RunAsync(shown.Token); // for as long as the view shows the document
+pages.PropertyChanged += (_, e) =>
+{
+    if (e.PropertyName == nameof(StageReaderModel.VisiblePages)) Console.WriteLine($"{pages.VisiblePages.Count} pages in view");
+};
+
+// What the view's own events turn into.
+await pages.SizeChangedAsync(800, 600, displayScale: 2);
+await pages.DragChangedAsync(0, -120);
+await pages.DragEndedAsync(0, -900);
+pages.Tapped(new PointerInput(400, 300) { Kind = PointerKind.Mouse });
+
+var search = ready.Session.Search!;
+search.Text = "the";
+await search.SubmitSearchAsync();
+Console.WriteLine(search.Summary); // "1 of 985"
+
+shown.Cancel();
+await following;
+```
+
+The cost of having no UI package (D6 in `docs/superpowers/plans/2026-11-20-dotnet-parity.md`) is
+that each app writes this view, its tiling (`TiledPageModel`) and its gesture plumbing itself.
+`platforms/apple/EmbedPDF/Sources/EmbedPDFUI/` shows one complete implementation of the same
+contract.

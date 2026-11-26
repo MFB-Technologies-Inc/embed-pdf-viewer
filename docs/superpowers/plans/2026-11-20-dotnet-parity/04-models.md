@@ -52,11 +52,11 @@
 
 **Interfaces (produces):** `ModelContext.Resolve(SynchronizationContext?)`, `ModelContext.SwitchTo()` awaitable, `ModelContext.Run(Action)`; `ObservableModel(SynchronizationContext?)` with `SetProperty`, `Raise(string)`, `Home`; `SerialCalls.Enqueue<T>(Func<Task<T>>) : Task<T>` and `Enqueue(Func<Task>) : Task`; `SnapshotRefresh.RunAsync<T>(Func<Task<T>> load, Action<T> apply, Action<Exception> failure, CancellationToken)`, `Invalidate()`, `Func<Task>? ReadFinished`; `PageRenderTask.RunAsync(Func<CancellationToken, Task>, CancellationToken)`, `StartIfIdle(Func<CancellationToken, Task>)`; `CapabilityObservation.ObserveAsync<TEvent>(PdfViewer, IAsyncEnumerable<TEvent>, Func<Task> initial, Func<Task> refresh, Func<TEvent, Task> receive, CancellationToken)`; tests: `SingleThreadContext.Run(Func<Task>)`, `PropertyChangedRecorder(INotifyPropertyChanged)` with `AssertAllOnThread()`, `Observed.UntilAsync(model, Func<bool>, TimeSpan?)`, `Observed.Fires(model, name, Func<Task>)`.
 
-- [ ] **Step 1: Failing tests.** Port `SerialCallsTests.swift` (2), `SnapshotRefreshTests.swift` (2), `PageRenderTaskTests.swift` (4) and `ImportTests.swift` (as `TheModelsReferenceNoUiAssembly`: the referenced assemblies of `EmbedPDF.Models` are exactly `EmbedPDF.Viewer` plus framework assemblies, and none starts with `System.Windows`, `Microsoft.UI`, `Microsoft.Maui` or `Avalonia`). New: `ModelContextTests.AModelWithoutAContextUsesASerialOne` and `AnEntryPointCalledOffTheContextRunsOnIt`.
-- [ ] **Step 2:** `dotnet test EmbedPDF.Models.Tests`: build FAIL.
-- [ ] **Step 3:** Implement. Project settings as the facade's: `IsAotCompatible`, PublicApiAnalyzers, `InternalsVisibleTo EmbedPDF.Models.Tests`.
-- [ ] **Step 4:** PASS, 0 warnings.
-- [ ] **Step 5:** Commit `feat(dotnet): add the EmbedPDF.Models project and its scheduling helpers`.
+- [x] **Step 1: Failing tests.** Port `SerialCallsTests.swift` (2), `SnapshotRefreshTests.swift` (2), `PageRenderTaskTests.swift` (4) and `ImportTests.swift` (as `TheModelsReferenceNoUiAssembly`: the referenced assemblies of `EmbedPDF.Models` are `EmbedPDF.Viewer` plus shared-framework assemblies, an allow-list no UI framework assembly passes). New: `ModelContextTests.AModelWithoutAContextUsesASerialOne` and `AnEntryPointCalledOffTheContextRunsOnIt`.
+- [x] **Step 2:** `dotnet test EmbedPDF.Models.Tests`: build FAIL.
+- [x] **Step 3:** Implement. Project settings as the facade's: `IsAotCompatible`, PublicApiAnalyzers, `InternalsVisibleTo EmbedPDF.Models.Tests`.
+- [x] **Step 4:** PASS, 0 warnings.
+- [x] **Step 5:** Commit `feat(dotnet): add the EmbedPDF.Models project and its scheduling helpers`.
 
 ### Task 2: RenderRevisions
 
@@ -64,7 +64,7 @@
 
 **Interfaces:** `RenderRevisions(RenderCapability render, SynchronizationContext? context = null) : ObservableModel, IDisposable`; `long GetRevision(PageRef)`; `IReadOnlyDictionary<PageRef, long> Revisions`; internal `Task ObservationTask`.
 
-- [ ] Port the 4 Swift cases; `AReleasedModelStopsObservingWhileTheDocumentStaysOpen` drops the model, forces a GC and expects `ObservationTask` to finish and the weak reference to be dead. FAIL, implement, PASS. Commit `feat(dotnet): add RenderRevisions`.
+- [x] Port the 4 Swift cases; `AReleasedModelStopsObservingWhileTheDocumentStaysOpen` drops the model, forces a GC and expects `ObservationTask` to finish and the weak reference to be dead. FAIL, implement, PASS. Commit `feat(dotnet): add RenderRevisions`.
 
 ### Task 3: ViewerModel and AnnotationModel
 
@@ -72,7 +72,7 @@
 
 **Interfaces:** `ViewerModel(PdfViewer)`: `ActiveDocument`, `DocumentCount`, `Error`, `RunAsync`, `RefreshAsync`. `AnnotationModel(AnnotationCapability)`: `CanRead`, `CanCreate`, `Error`, `RunAsync`, `RefreshAsync`. Internal `Snapshots`.
 
-- [ ] Port the 6 + 6 Swift cases. FAIL, implement, PASS. Commit `feat(dotnet): add ViewerModel and AnnotationModel`.
+- [x] Port the 6 + 6 Swift cases. FAIL, implement, PASS. Commit `feat(dotnet): add ViewerModel and AnnotationModel`.
 
 ### Task 4: SearchModel
 
@@ -80,7 +80,7 @@
 
 **Interfaces:** `SearchModel(SearchCapability)`: settable `Text`; `Hits`, `ActiveHitIndex` (`int?`), `Status`, `HitCount`, `Progress`, `Error`, `ActiveHit`, `Summary`, `CanClear`, `GetHitCount(PageRef)`; `RunAsync`, `RefreshAsync`, `SubmitSearchAsync`, `NextHitAsync`, `PreviousHitAsync`, `RevealActiveHitAsync`, `ClearAsync`. Swift's deprecated `activeIndex` has no counterpart (C# never shipped it), so `theUInt32ActiveIndexFollowsActiveHitIndex` is not ported.
 
-- [ ] Port the 23 remaining Swift cases. FAIL, implement, PASS. Commit `feat(dotnet): add SearchModel`.
+- [x] Port the 23 remaining Swift cases. FAIL, implement, PASS. Commit `feat(dotnet): add SearchModel`.
 
 ### Task 5: ToolModel
 
@@ -88,7 +88,7 @@
 
 **Interfaces:** `ToolModel(InteractionCapability)`: `Tools`, `ActiveToolId` (`ToolId?`), `Usable` (`IReadOnlySet<ToolId>`), `Error`, `Submitting`; `RunAsync`, `RefreshAsync`, `ActivateAsync(ToolId)`, `ActivateDefaultAsync()`, `IsSelected(ToolId)`, `IsDisabled(ToolId)`, `ButtonTappedAsync(ToolId)` (public: Swift's is `package` for its picker, and a C# app builds its own picker). Internal `HubCallStarting`.
 
-- [ ] Port the 24 Swift cases. FAIL, implement, PASS. Commit `feat(dotnet): add ToolModel`.
+- [x] Port the 24 Swift cases. FAIL, implement, PASS. Commit `feat(dotnet): add ToolModel`.
 
 ### Task 6: HistoryModel, OutlineModel and AttachmentModel
 
@@ -96,7 +96,7 @@
 
 **Interfaces:** `HistoryModel(PdfViewer, HistoryCapability, I18nCapability? translator = null)`: `CanUndo`, `CanRedo`, `UndoLabel`, `RedoLabel`, `UndoTitle`, `RedoTitle`, `Submitting`, `Notice`, `Error`, `UndoAsync`, `RedoAsync`. `OutlineModel(PdfViewer, OutlineCapability)`: `Items`, `Rows`, `SelectedItems`, `CurrentItem`, `Status`, `Incomplete`, `CanEdit`, `Performing`, `Error`, `LastActivation`, `ReloadAsync`, `SelectAsync`, `ExpandAsync`, `CollapseAsync`, `ToggleAsync`, `CreateAsync`, `UpdateAsync`, `MoveAsync`, `DeleteAsync`, `ActivateAsync`. `AttachmentModel(PdfViewer, AttachmentCapability)`: `Files`, `SelectedFiles`, `Status`, `CanAdd`, `CanDownload`, `CanRemoveSelection`, `PendingIds`, `Performing`, `Error`, `ReloadAsync`, `SelectAsync`, `AddAsync`, `RemoveAsync`, `RevealAsync`, `DownloadAsync`, `ImportFilesAsync`, `FileOperationFailed`. All with `RunAsync` and `RefreshAsync`.
 
-- [ ] Port `PluginIntegrationTests.swift` (3). Swift has no per-model test file for these three; new small cases: a history `UndoFailed` sets `Error`, an attachment action while `Performing` is ignored, `ImportFilesAsync` adds a file read from disk. FAIL, implement, PASS. Commit `feat(dotnet): add the history, outline and attachment models`.
+- [x] Port `PluginIntegrationTests.swift` (3). Swift has no per-model test file for these three; new small cases: a history `UndoFailed` sets `Error`, an attachment action while `Performing` is ignored, `ImportFilesAsync` adds a file read from disk. FAIL, implement, PASS. Commit `feat(dotnet): add the history, outline and attachment models`.
 
 ### Task 7: ThumbnailModel
 
@@ -104,7 +104,7 @@
 
 **Interfaces:** `ThumbnailModel(RenderCapability, IEnumerable<PageInfo> pages) : IDisposable`: `Error`, `Images` (`IReadOnlyDictionary<PageRef, PixelBuffer>`), `GetImage(PageRef)`, `GetRevision(PageRef)`, `LoadAsync(PageRef, CancellationToken)`. Internal `CacheLimit`, `RenderCount`, `RenderStarted`, `WaiterCount(PageRef)`.
 
-- [ ] Port the 9 Swift cases. FAIL, implement, PASS. Commit `feat(dotnet): add ThumbnailModel`.
+- [x] Port the 9 Swift cases. FAIL, implement, PASS. Commit `feat(dotnet): add ThumbnailModel`.
 
 ### Task 8: TextSelectionModel
 
@@ -112,7 +112,7 @@
 
 **Interfaces:** `TextSelectionModel(SelectionCapability) : IDisposable`: `Rects` (`IReadOnlyDictionary<PageRef, IReadOnlyList<PdfRect>>`), `IsSelecting`, `Error`; `DragBegan(PdfPoint, PageRef, SelectionStart start = SelectionStart.Caret)`, `DragChanged(PdfPoint, PageRef)`, `Task<bool> DragEndedAsync()`, `ClearAsync()`. `SelectionStart { Caret, Word }`. Internal `ExtensionCount`, `RectsReadReturned`, `ObservationTask`.
 
-- [ ] Port the 13 Swift cases. FAIL, implement, PASS. Commit `feat(dotnet): add TextSelectionModel`.
+- [x] Port the 13 Swift cases. FAIL, implement, PASS. Commit `feat(dotnet): add TextSelectionModel`.
 
 ### Task 9: Page geometry and the pointer forwarder
 
@@ -120,7 +120,7 @@
 
 **Interfaces:** static `ViewportPoint(this StageVisiblePage, double localX, double localY) : PdfPoint`, `GetGeometry(this StageVisiblePage, PageInfo) : PageGeometry`, `PagePoint(this StageVisiblePage, double localX, double localY, PageInfo) : PdfPoint`, `LocalRect(this StageVisiblePage, PdfRect, PageInfo) : PdfRect`; `PointerInput`; internal `StagePointerForwarder(StageCapability, InteractionCapability)` with `Down/Move/Up(PointerInput)`, `Cancel()`, `Interrupt()`, `Tap(PointerInput)`, `FinishedAsync()`, `LookedUp`, `Dispatched`.
 
-- [ ] Port the 4 geometry cases. FAIL, implement, PASS. Commit `feat(dotnet): add the stage page geometry helpers and PointerInput`.
+- [x] Port the 4 geometry cases. FAIL, implement, PASS. Commit `feat(dotnet): add the stage page geometry helpers and PointerInput`.
 
 ### Task 10: StageReaderModel
 
@@ -128,7 +128,7 @@
 
 **Interfaces:** `StageReaderModel(StageCapability, RenderCapability, InteractionCapability? interaction = null, LinkCapability? link = null) : IDisposable`: `VisiblePages`, `Camera` (`Camera?`), `PageIndex`, `Error`, `IsZooming`, `ActiveToolId`, `ForwardsDrags`, settable `IsPanEnabled`, `PanBeginsOnMovement`, `Revisions`, `Stage`, `Render`, `GetRenderRevision(PageRef)`, `ObserveLinkActivations(CancellationToken)` (`IAsyncEnumerable<LinkActivation>`); `RunAsync`, `SizeChangedAsync(double width, double height, double displayScale)`, `DragChangedAsync(double translationX, double translationY)`, `DragEndedAsync(double velocityX, double velocityY)`, `DragCancelledAsync()`, `MagnifyChanged(double magnification, double x, double y)`, `MagnifyEndedAsync()`, `DoubleTappedAsync(double x, double y)`, `PointerDown/PointerMoved/PointerUp(PointerInput)`, `PointerCancelled()`, `Tapped(PointerInput)`; static `MaxPagePixels`, `RenderScale(double scale, double contentWidth, double contentHeight, bool zooming = false)`.
 
-- [ ] Port `StagePointerForwarderTests.swift` (14), `StageReaderErrorTests.swift` (5) and `StageReaderDragLagTests.swift` (1). FAIL, implement, PASS. Commit `feat(dotnet): add StageReaderModel`.
+- [x] Port `StagePointerForwarderTests.swift` (14), `StageReaderErrorTests.swift` (5) and `StageReaderDragLagTests.swift` (1). FAIL, implement, PASS. Commit `feat(dotnet): add StageReaderModel`.
 
 ### Task 11: TiledPageModel
 
@@ -136,7 +136,7 @@
 
 **Interfaces:** `TiledPageModel(RenderCapability, RenderViewDemand, PageRef, bool includeAnnotations = true)`: `Base` (`PixelBuffer?`), `Tiles` (`IReadOnlyList<PageTile>`), `Page`, `IncludeAnnotations`; `UpdateAsync(double deviceScale, double unrotatedWidth, PdfRect? visibleRect, Action? onPainted = null, CancellationToken)`, `TileDisplayedAsync(string key)`, `ReleaseAsync()`. `PageTile(string Id, PdfRect Rect, double Z, PixelBuffer Image)` whose equality skips `Image`.
 
-- [ ] Port the 5 Swift cases. FAIL, implement, PASS. Commit `feat(dotnet): add TiledPageModel`.
+- [x] Port the 5 Swift cases. FAIL, implement, PASS. Commit `feat(dotnet): add TiledPageModel`.
 
 ### Task 12: PdfReaderModel
 
@@ -144,10 +144,10 @@
 
 **Interfaces:** as in Decisions; `ReaderSession(PdfViewer Viewer, DocumentInfo Document, IReadOnlyList<PageInfo> Pages, StageReaderModel Reader, SearchModel? Search, TextSelectionModel? Selection, ToolModel? Tools)` with `GetPageInfo(StageVisiblePage)`.
 
-- [ ] Port the 16 Swift cases (`opensAFileURL` opens a `file:` `Uri`). FAIL, implement, PASS. Commit `feat(dotnet): add PdfReaderModel`.
+- [x] Port the 16 Swift cases (`opensAFileURL` opens a `file:` `Uri`). FAIL, implement, PASS. Commit `feat(dotnet): add PdfReaderModel`.
 
 ### Task 13: README, notes and the final run
 
-- [ ] `platforms/dotnet/README.md`: new section "Binding the models to a UI": the home context rule, `RunAsync`, the inputs a view feeds `StageReaderModel` (size, drags, pinch, double tap, `PointerInput`), `PixelBuffer` images, and a short framework-neutral example.
-- [ ] Release build of every project, 0 warnings; `EmbedPDF.Models.Tests` twice; `EmbedPDF.Viewer.Tests` once.
-- [ ] Umbrella "Phase 4 notes"; tick Phase 4 and this plan's boxes. Commit `docs(dotnet): record phase 4`.
+- [x] `platforms/dotnet/README.md`: new section "Binding the models to a UI": the home context rule, `RunAsync`, the inputs a view feeds `StageReaderModel` (size, drags, pinch, double tap, `PointerInput`), `PixelBuffer` images, and a short framework-neutral example.
+- [x] Release build of every project, 0 warnings; `EmbedPDF.Models.Tests` twice; `EmbedPDF.Viewer.Tests` once.
+- [x] Umbrella "Phase 4 notes"; tick Phase 4 and this plan's boxes. Commit `docs(dotnet): record phase 4`.

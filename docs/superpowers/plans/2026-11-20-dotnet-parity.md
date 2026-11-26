@@ -930,19 +930,130 @@ records it rather than changing it.
 ## Phase 4: Models
 
 About 1.5 weeks. Exit: every model in `Sources/EmbedPDFModels/` has a C# counterpart with its
-tests ported, running in the container.
+tests ported, running in the container. *Met 2026-11-26, see "Phase 4 notes".*
 
-- [ ] Port the 20 models into `EmbedPDF.Models`. Each implements `INotifyPropertyChanged`, exposes
+- [x] Port the 20 models into `EmbedPDF.Models`. Each implements `INotifyPropertyChanged`, exposes
   commands as `…Async` methods (no `ICommand`; consumers wrap them in their framework's), owns no background
   loop it didn't receive, and has a `RunAsync(CancellationToken)` that is the C# form of Swift's
   `task()`.
-- [ ] Keep each Swift model's documented contract (snapshot lag, error clearing, close behaviour,
+- [x] Keep each Swift model's documented contract (snapshot lag, error clearing, close behaviour,
   as in the `SearchModel` header) in its XML doc comments.
-- [ ] Tests run each model under a single-threaded `SynchronizationContext` (Review Focus 3).
-- [ ] Models whose Swift counterpart takes geometry from a SwiftUI view (`StageReaderModel`,
+- [x] Tests run each model under a single-threaded `SynchronizationContext` (Review Focus 3).
+- [x] Models whose Swift counterpart takes geometry from a SwiftUI view (`StageReaderModel`,
   `TiledPageModel`, `StagePointerForwarder`, `TextSelectionModel`) take plain inputs instead:
   viewport size and scroll offset as `double`s, pointer events as a `PointerInput` record. That is
   the whole contract a consumer's view implements, and the README documents it.
+
+### Phase 4 notes (2026-11-26)
+
+Task plan: `docs/superpowers/plans/2026-11-20-dotnet-parity/04-models.md`. Branch
+`research/dotnet-parity-p4` from `research/dotnet-parity-p3e` at `b206fe923`, not pushed.
+
+What exists. `platforms/dotnet/EmbedPDF.Models/` (package `EmbedPDF.Models`, assembly and namespace
+`EmbedPDF.Models`) references `EmbedPDF.Viewer` and nothing else; `ImportTests` checks its
+referenced assemblies. Every file of `Sources/EmbedPDFModels/` has a counterpart. The public models
+are `ViewerModel`, `AnnotationModel`, `SearchModel`, `ToolModel`, `HistoryModel`, `OutlineModel`,
+`AttachmentModel`, `ThumbnailModel`, `TextSelectionModel`, `StageReaderModel`, `TiledPageModel`
+(with `PageTile`), `PdfReaderModel` (with `ReaderFeatures`, `ReaderPhase`, `ReaderSession`) and
+`RenderRevisions`; `StageVisiblePage+Viewport.swift` is `StageVisiblePageExtensions`, and
+`PointerInput` is new. Swift's internal helpers are internal here: `SerialCalls`,
+`SnapshotRefresh`, `PageRenderTask`, `CapabilityObservation` (`observeCapability` and
+`controlError`, the latter as `ModelErrors.Control`), `StagePointerForwarder`, and
+`WeakObservation` for `CancelOnRelease` and its weakly held loop. `EmbedPDF.Models.Tests` runs
+154 cases, 153 passing twice in a row and one skipped (the drag latency test, which runs with
+`EMBEDPDF_LATENCY=1`: p95 0.16 ms per 120 Hz drag change on `linux-arm64`); a 20-run soak of the
+suite passed. `EmbedPDF.Viewer.Tests` runs 1,113 cases, 1,109 passing and 4 skipped, as on `b206fe923`. A Release build of `EmbedPDF.sln` reports 0
+warnings with the trim and AOT analyzers on.
+
+Decisions, each with its reason:
+
+- Notification is hand-written: an `ObservableModel` base with a `private protected` constructor
+  and `Set`, `SetList` and `Raise`. A source generator package would have added a dependency for a
+  few dozen setters.
+- Each model has one home `SynchronizationContext`: the constructor's `context` argument, else
+  `SynchronizationContext.Current`, else a private `SerialSynchronizationContext` that runs posted
+  work one item at a time on the thread pool. Every async entry point starts with
+  `await Home.SwitchTo()`, and every synchronous one runs inline on the context or posts itself, so
+  a model plays Swift's `@MainActor` and every `PropertyChanged` is raised on its context. Tests run
+  each model inside `SingleThreadContext.Run`, whose `Watch` fails the test on a notification
+  raised off its thread (Review Focus 3), kernel-thread and plugin-stream causes included.
+- `RunAsync(CancellationToken)` is `task()`: it returns, without throwing, when the token is
+  cancelled or its streams end, and a later call supersedes an earlier one, as Swift's session
+  counter does.
+- Collections are `IReadOnlyList<T>`, `IReadOnlySet<T>` or `IReadOnlyDictionary` snapshots replaced
+  as a whole with one notification. No model uses `INotifyCollectionChanged`: every Swift model
+  replaces its arrays and dictionaries whole. A per-page lookup (`GetRevision`, `GetImage`,
+  `GetHitCount`) reads a dictionary property whose change is announced. Lists whose records hold
+  lists (`SearchHit`, `InteractionTool`, `OutlineItem`, `HistoryChangeLabel`) compare item by item
+  (`Structural`), since C# records compare a list member by reference.
+- The models reach a capability's viewer as Swift's do through `package let viewer`: the facade
+  grants `InternalsVisibleTo("EmbedPDF.Models")` and gains `internal PdfViewer Viewer` on
+  `SearchCapability`, `AnnotationCapability` and `InteractionCapability`, so `SearchModel(search)`
+  keeps Swift's shape. The cost: `EmbedPDF.Models` must ship with the exact `EmbedPDF` version it
+  was built against, which Phase 6 packs as an exact dependency range.
+- Models that observe from construction (`RenderRevisions`, `ThumbnailModel`,
+  `TextSelectionModel`, and `StageReaderModel` through its `Revisions`) are `IDisposable`; their
+  loop holds the model through a `WeakReference`, and a finalizer queues the cancel Swift's `deinit`
+  makes. `AReleasedModelStopsObservingWhileTheDocumentStaysOpen` and each
+  `ACancelledTaskReleasesTheModel` collect the model. Models never dispose a capability they were
+  given. `PdfReaderModel` owns its viewer and is `IAsyncDisposable`, a close.
+- Geometry inputs are plain values. `StageReaderModel` takes the viewport size and display scale,
+  drag translation and velocity, pinch magnification and centre, and double-tap points as `double`
+  pairs, and pointer events as `PointerInput(X, Y)` with `Kind` (default `Touch`) and `Modifiers`.
+  Wave B's `PointerSample` does not fit: it carries the page hit the model looks up and a phase the
+  method gives. Swift's models take no scroll offset, because the stage owns the camera and a drag
+  pans it, so these take none either; a view whose framework scrolls calls
+  `StageCapability.ScrollToAsync`. `platforms/dotnet/README.md`, "Binding the models to a UI", is
+  the contract, and `ReadmeExampleTests` runs its example.
+- Images are `PixelBuffer`: `ThumbnailModel.Images`, `TiledPageModel.Base` and `PageTile.Image`.
+- Swift's `String(localized:)` texts are English literals ("Undo", "Redo", "change", the two
+  history notices, `"{0} of {1}"` with `CultureInfo.CurrentCulture` grouping, plus `+` while
+  searching). An app that words them otherwise builds its own from the raw properties.
+- Test hooks (`ReadFinished`, `RenderStarted`, `HubCallStarting`, `ZoomStartReached`,
+  `ZoomReadReturned`, `RectsReadReturned`, `PointerSampleDispatched`) are internal, visible to
+  `EmbedPDF.Models.Tests`.
+
+Deviations from Swift, each with its reason:
+
+- Actions are verbs with `Async`: `searchSubmitted`, `nextButtonTapped`, `previousButtonTapped`,
+  `clearButtonTapped` and `revealActiveHit` are `SubmitSearchAsync`, `NextHitAsync`,
+  `PreviousHitAsync`, `ClearAsync` and `RevealActiveHitAsync`; `sizeChanged(_:displayScale:)` is
+  `SizeChangedAsync(width, height, displayScale)`. `ToolModel.ButtonTappedAsync` is public, where
+  Swift's is `package` for its picker, since a .NET app builds its own picker.
+- Swift's deprecated `SearchModel.activeIndex` and `StageReaderModel.currentPageIndex` have no
+  counterpart, so `theUInt32ActiveIndexFollowsActiveHitIndex` is not ported.
+- `linkActivations` is `ObserveLinkActivations(CancellationToken)`, an `IAsyncEnumerable` that
+  subscribes when called, as the facade's streams do; disposing the model ends every stream.
+- `PdfReaderModel.OpenAsync` takes `OpenDocumentOptions` (its `Name` and `Password`) for bytes and
+  `(Uri, name)` for a URL; RS0026 is suppressed on the pair. `Session.pageInfo(for:)` is
+  `ReaderSession.GetPageInfo`.
+- `AttachmentModel.importFiles(_:)` is `ImportFilesAsync(IEnumerable<string> paths)`; the media
+  type comes from a small extension table and is `null` otherwise, because .NET has no system type
+  registry. `fileOperationFailed` is `FileOperationFailed(Exception)` and ignores
+  `OperationCanceledException`, as Swift ignores the system's user-cancelled error.
+- Swift has no per-model tests for history, outline and attachments beyond
+  `PluginIntegrationTests.swift`; `PanelModelTests` adds five.
+- `ToolModel` yields once after setting `Submitting` and before the hub call, and the guarded
+  actions of `HistoryModel`, `OutlineModel` and `AttachmentModel` do the same. Finding: a facade
+  call can complete before it returns, when the Rust future is ready on its first poll, so without
+  the yield an action could finish inside the call that started it and a second tap made in the
+  same turn undid it (`ASecondTapWhileAnActivationIsInFlightIsIgnored` failed about one run in ten).
+  Swift's hub call always hops off the main actor, which is what the yield restores.
+- `StageReaderModel` numbers its page reads and applies one only if no read that started after it
+  has landed. Swift's has no such guard. Here `RunAsync`'s first read, taken before the viewport was
+  sized, could land after `SizeChangedAsync`'s own read and leave `VisiblePages` empty. A first cut
+  that dropped a read whenever a newer one had started was wrong: it discarded the resize's read
+  while a newer camera read was still out.
+- Finding: a plugin event reaches a model through the facade's channel and a thread-pool hop, so it
+  is not ordered with the completion of the call that caused it, as it is on Swift's main actor.
+  The models' contracts hold, since they say what a snapshot lags. Three ported tests assumed
+  Swift's order and now wait for the model to take the events: the text selection tests find their
+  probe points before making the model, `RectsAreFinalAfterTheEndEvenWhenAnEventRefreshInterleaves`
+  waits on the internal `TextSelectionModel.EventsFollowed`, and
+  `AnActivationCompletesWhileStateRevisionsKeepArriving` counts churn rounds rather than waiting to
+  see the churned tool in `Tools`. The search rerun tests also require the rerun's full hit count,
+  because the rerun's empty start reads as complete with different hits; Swift's predicate has the
+  same gap.
 
 ## Phase 5: Sample and consumer check
 
