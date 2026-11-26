@@ -301,8 +301,9 @@ pub fn verify_with_public_key(
             if let Some(oid) = &params.hash {
                 algorithm_name(oid).ok_or_else(|| unsupported_identifier(oid))?;
             }
-            // A salt that cannot fit the encoded message never verifies;
-            // `rsa` adds it unchecked and panics on one near usize::MAX.
+            // A salt that cannot fit the encoded message never verifies.
+            // Checking here also keeps `salt as usize` from truncating on
+            // 32-bit targets.
             let Some(rsa) = rsa else { return Ok(false) };
             let salt = params.salt.unwrap_or(20);
             let room = rsa.size().saturating_sub(sha.size() + 2);

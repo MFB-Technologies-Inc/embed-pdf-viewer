@@ -4,6 +4,7 @@
 use base64::Engine as _;
 use base64::engine::general_purpose::STANDARD;
 use epdf_signature_core::cert::{AlgId, Spki};
+use epdf_signature_core::oids::Digest;
 use epdf_signature_core::{Cryptography, crypto, der, oids, parse, verify_cms_signature};
 
 fn fixture(section: &str, name: &str) -> Vec<u8> {
@@ -65,9 +66,71 @@ fn verify_with_salt(salt: &[u8]) -> Result<bool, String> {
     )
 }
 
+/// A 2047-bit modulus (so `s + n` still fits in its 256 bytes) and an
+/// RSASSA-PSS SHA-256 signature over `data` with a 32-byte salt, both made
+/// by `openssl dgst -sigopt rsa_padding_mode:pss`.
+const PSS_2047_N: &[&str] = &[
+    "6ed7a203edf0ea76992fd2b82e6f5e14245db90ec7fb7bb9046bf6f38764d6aebd4a09e877c626b3cf40364b",
+    "0461dc5e50aeb0f6c2d3dc1ce409eb7613c1645a004706af8540353d5d096a95f064ce58fd4da341cab507b3",
+    "e0d2b590c5f5b0726982930a3e552f8f2d0be6b07fa3e770a20712afe91e7d8984e1431608bc7408e8c08109",
+    "d3abdcf39b3a8cac583284ac89bd012f83a68ee1071b0934b795b9c4d3037e8540102b3560b4926451f82d8e",
+    "9b7c55ba370f3185461dedfff166d889e13ca6552e154b99e388d7821e8095b064b2fee7105e8d5d0d67e42a",
+    "d76c87c99b90abea9284657c0bbfff7037e5e8e92216421c31fcf404473e527d77422a37",
+];
+const PSS_2047_SIG: &[&str] = &[
+    "302fff1fce8097c81b14bd04ab84c6581b9c20df12028d1cee2a4b9ab3b0914080c380a20d3262825561e89a",
+    "79dadf9a58566cb6a39c7ac27651b2ee2f489e32cf2a8a5ea5165d68b7ed19a8cd68fd863d6cb8ff6e1136dd",
+    "87f71075a83d0e18b571e7d65ca60eeed7b622e621d5c6f3773e8ff15b00a6d4848760f44803932bb2c7d66d",
+    "fc4fcf984ffb2bbcd870604b9ecdad0253c5eecd9543fabb08e14b36198630120b313b592647fed30817d052",
+    "c2b97b1cce0a6bcf2c2245fb279a77a8d1f811b3e49ae97199b6533581d638f9c84d550f1317d3213223d8b6",
+    "23c3df9314d5edb6bc9097f61508d5ed3249c2a49847bd37c0d5e87a2621abb09389e783",
+];
+
+fn hex(parts: &[&str]) -> Vec<u8> {
+    let text = parts.concat();
+    (0..text.len()).step_by(2).map(|i| u8::from_str_radix(&text[i..i + 2], 16).unwrap()).collect()
+}
+
+#[test]
+fn pss_signature_at_or_past_the_modulus_is_not_verified() {
+    // `s + n` is the same value mod n as a valid `s`. `rsa` 0.9 verified it
+    // when it fit in k bytes; 0.10 refuses `s >= n`, as OpenSSL does.
+    let (n, signature) = (hex(PSS_2047_N), hex(PSS_2047_SIG));
+    let mut n_der = vec![0];
+    n_der.extend(&n);
+    let spki = Spki {
+        raw: Vec::new(),
+        algorithm: AlgId {
+            oid: oids::RSA_ENCRYPTION.to_string(),
+            params: der::from_ber(&der::null()),
+        },
+        key: der::sequence(&[der::integer_bytes(&n_der), der::integer(65537)]),
+    };
+    let params = der::sequence(&[
+        der::context(0, &[der::sequence(&[der::oid(oids::SHA256), der::null()])]),
+        der::context(2, &[der::integer(32)]),
+    ]);
+    let algorithm = AlgId { oid: oids::RSA_PSS.to_string(), params: der::from_ber(&params) };
+    let verify = |signature: &[u8]| {
+        crypto::verify_with_public_key(b"data", signature, &spki, &algorithm, Some(Digest::Sha256))
+    };
+
+    let (mut past, mut carry) = (vec![0u8; n.len()], 0u16);
+    for i in (0..n.len()).rev() {
+        let total = u16::from(signature[i]) + u16::from(n[i]) + carry;
+        past[i] = total as u8;
+        carry = total >> 8;
+    }
+    assert_eq!(carry, 0);
+    assert_eq!(verify(&signature), Ok(true));
+    assert_eq!(verify(&n), Ok(false));
+    assert_eq!(verify(&past), Ok(false));
+}
+
 #[test]
 fn pss_salt_length_that_wraps_is_not_verified() {
-    // h_len + s_len + 2 wraps to 0 inside `rsa`, past its length check.
+    // h_len + s_len + 2 would wrap to 0; `rsa` 0.10 checks the add, and the
+    // salt guard in `crypto.rs` refuses it first.
     assert_eq!(verify_with_salt(&[0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xde]), Ok(false));
 }
 
