@@ -251,7 +251,16 @@ private suspend fun PointerInputScope.readerGestures(reader: StageReaderModel, s
 
     fun send(call: suspend () -> Unit) {
         // Undispatched, so calls reach the model's queues in the order made.
-        scope.launch(start = CoroutineStart.UNDISPATCHED) { call() }
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            try {
+                call()
+            } catch (e: PdfException) {
+                // The model's run() ended while it ran this call, as when the
+                // viewer closes during a drag: the call is dropped, and an
+                // uncaught exception here would crash the app.
+                if (e.code != PdfException.Code.OPERATION_CANCELLED) throw e
+            }
+        }
     }
 
     fun dp(position: Offset): Offset = position / density
