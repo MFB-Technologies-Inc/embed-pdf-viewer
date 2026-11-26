@@ -88,6 +88,7 @@ class RasterModelTest {
         model.load(page)
         assertEquals(1, model.renderCount)
         expectObserved({ model.revision(page) }, 1L) { o.render.invalidate(listOf(page), RenderInvalidateScope.ANNOTATIONS) }
+        assertEquals(mapOf(page to 1L), model.pageRevisions.value)
         model.load(page)
         assertEquals(2, model.renderCount)
         assertNotNull(model.image(page))

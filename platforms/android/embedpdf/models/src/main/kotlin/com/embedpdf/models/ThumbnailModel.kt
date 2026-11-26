@@ -109,6 +109,13 @@ public class ThumbnailModel(
     public fun revision(page: PageRef): Long = revisions.revision(page)
 
     /**
+     * Every invalidated page's render revision, as [revision] answers it; a
+     * page never invalidated is absent. A view keys a cell's load on its
+     * page's entry, so an invalidation loads that thumbnail again.
+     */
+    public val pageRevisions: StateFlow<Map<PageRef, Long>> get() = revisions.revisions
+
+    /**
      * Counts invalidations and carries shared renders until the document
      * closes or the calling coroutine is cancelled.
      */
