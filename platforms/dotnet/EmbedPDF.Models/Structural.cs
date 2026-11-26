@@ -23,4 +23,9 @@ internal static class Structural
         a with { Segments = b.Segments } == b && a.Segments.SequenceEqual(b.Segments);
 
     public static bool SameHits(IReadOnlyList<SearchHit> a, IReadOnlyList<SearchHit> b) => SameList(a, b, SameHit);
+
+    public static bool SameTool(InteractionTool a, InteractionTool b) =>
+        a with { Enables = b.Enables } == b && a.Enables.SequenceEqual(b.Enables);
+
+    public static bool SameTools(IReadOnlyList<InteractionTool> a, IReadOnlyList<InteractionTool> b) => SameList(a, b, SameTool);
 }

@@ -35,6 +35,20 @@ EmbedPDF.Models.SearchModel.SubmitSearchAsync() -> System.Threading.Tasks.Task!
 EmbedPDF.Models.SearchModel.Summary.get -> string?
 EmbedPDF.Models.SearchModel.Text.get -> string!
 EmbedPDF.Models.SearchModel.Text.set -> void
+EmbedPDF.Models.ToolModel
+EmbedPDF.Models.ToolModel.ActivateAsync(EmbedPDF.ToolId id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.ToolModel.ActivateDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.ToolModel.ActiveToolId.get -> EmbedPDF.ToolId?
+EmbedPDF.Models.ToolModel.ButtonTappedAsync(EmbedPDF.ToolId id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.ToolModel.Error.get -> EmbedPDF.PdfException?
+EmbedPDF.Models.ToolModel.IsDisabled(EmbedPDF.ToolId id) -> bool
+EmbedPDF.Models.ToolModel.IsSelected(EmbedPDF.ToolId id) -> bool
+EmbedPDF.Models.ToolModel.RefreshAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.ToolModel.RunAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.ToolModel.Submitting.get -> bool
+EmbedPDF.Models.ToolModel.ToolModel(EmbedPDF.InteractionCapability! interaction, System.Threading.SynchronizationContext? context = null) -> void
+EmbedPDF.Models.ToolModel.Tools.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.InteractionTool!>!
+EmbedPDF.Models.ToolModel.Usable.get -> System.Collections.Generic.IReadOnlySet<EmbedPDF.ToolId>!
 EmbedPDF.Models.ViewerModel
 EmbedPDF.Models.ViewerModel.ActiveDocument.get -> EmbedPDF.DocumentInfo?
 EmbedPDF.Models.ViewerModel.DocumentCount.get -> int
