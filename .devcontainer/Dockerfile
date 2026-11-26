@@ -87,8 +87,8 @@ RUN if [ "$TARGETARCH" = amd64 ]; then \
 
 # SHA512 values from Microsoft's .NET 10 release metadata, matched to this SDK.
 RUN case "$TARGETARCH" in \
-      amd64) dotnet_arch=x64; dotnet_sha512=b7b3d8461cf98b07d2552ce9199702fa3ad010ac2671a5f8cd5136f7534e50f6855ba7bbb02b11494563f1d04156276a31cda1103b900e5eecd0d9473dc7b9c5 ;; \
-      arm64) dotnet_arch=arm64; dotnet_sha512=0966aa2b70f4677b8319be9df447a78a0dcd6164836425b55a68fd714f4023feb87b4cac21b9a996b79472ad54487cd0adcd2a9dfd570e2b2a1d26423a2baa9b ;; \
+      amd64) dotnet_arch=x64; dotnet_sha512=1bec9cca2ec689b1e80245b84f2b53c9441d1aa6daccf2ceb27490768bffa95954fa585bd275def31069d874d543d9ba9e6591fe9ade2dbd9f34ec5c0fd0050c ;; \
+      arm64) dotnet_arch=arm64; dotnet_sha512=cfa248bb1377606e868602fb5b4d66fa16b7546156593937d1982f7f2142e6ded76d71c4a26efdab99f87c46ab40c3c672ab1b57ef7fa25449efe5b140a55af4 ;; \
     esac \
     && curl -fsSL --retry 3 \
       "https://builds.dotnet.microsoft.com/dotnet/Sdk/${DOTNET_SDK_VERSION}/dotnet-sdk-${DOTNET_SDK_VERSION}-linux-${dotnet_arch}.tar.gz" \
