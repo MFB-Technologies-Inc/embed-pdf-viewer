@@ -12,7 +12,9 @@ approve once, after everything is built. This checks that
     jobs. A job publishes when one of its lines pushes or tags (git push,
     git tag), makes or changes a release (gh release create, upload, edit or
     delete; github-release.sh publish; publish-engine-payload.mjs --stage
-    publish; a release action such as softprops/action-gh-release), when its
+    publish; a release action such as softprops/action-gh-release) or deploys
+    a site (wrangler deploy, wrangler pages deploy, cloudflare/wrangler-action),
+    when its
     token can write contents, or when it calls a local workflow with
     `stage: publish` or one with a publishing job that doesn't wait for that
     stage;
@@ -41,8 +43,9 @@ from pathlib import Path
 PUBLISHES = re.compile(
     r"\bgit push\b|\bgit tag\b|\bgh release (create|upload|edit|delete)\b|\brelease create\b"
     r"|github-release\.sh publish|--stage publish\b"
+    r"|\bwrangler\S*\s+(pages\s+)?deploy\b"
     r"|uses:\s*(softprops/action-gh-release|ncipollo/release-action|actions/create-release"
-    r"|actions/upload-release-asset|svenstaro/upload-release-action)\b"
+    r"|actions/upload-release-asset|svenstaro/upload-release-action|cloudflare/wrangler-action)\b"
 )
 STATUS = re.compile(r"\balways\(\)|\bcancelled\(\)|\bfailure\(\)")
 APPROVED = "needs.approve.result == 'success'"
