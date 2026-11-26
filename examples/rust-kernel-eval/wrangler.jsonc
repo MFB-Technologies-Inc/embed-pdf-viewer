@@ -1,0 +1,11 @@
+// The hosted demo: an assets-only Cloudflare Worker serving `vite build`'s
+// dist/ at https://embed-pdf-rust-kernel-eval.roan-util-cloudfare.workers.dev.
+// The release train's deploy-demo job deploys it with this file; see
+// docs/releases/README.md.
+{
+  "name": "embed-pdf-rust-kernel-eval",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+  },
+}

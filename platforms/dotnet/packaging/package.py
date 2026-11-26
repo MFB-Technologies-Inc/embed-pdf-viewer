@@ -154,8 +154,8 @@ def inspect(native, rid):
     return details
 
 def check_toolchain():
-    if run(["dotnet", "--version"], cwd=DOTNET).strip() != "10.0.403":
-        raise ValueError(".NET SDK 10.0.403 required")
+    if run(["dotnet", "--version"], cwd=DOTNET).strip() != "10.0.404":
+        raise ValueError(".NET SDK 10.0.404 required")
     if not run(["rustc", "--version"]).startswith("rustc 1.98.0 "):
         raise ValueError("Rust 1.98.0 required")
 

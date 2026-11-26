@@ -123,6 +123,17 @@ home directory and authentication sessions; push work and save any files outside
 `/workspaces` that you want to keep before removing it. Keep `embedpdf-workspace`
 to preserve the repository.
 
+Renovate tracks the pins marked with a `# renovate:` comment in `Dockerfile` and in
+`.github/workflows/release-rust-viewer.yml`, and the Node base image together with
+`mise.toml` and the workflows' `node-version`. No CI builds the image, so every update
+to it waits for approval on the Dependency Dashboard. Renovate cannot compute
+checksums: a binaryen, rustup-init or .NET SDK pull request needs its hashes filled in
+by hand, and `check-pins.py --verify-checksums` prints the published values. The emsdk
+pins have no annotation, because `build-engine-runtime.yml` belongs to upstream and
+they move only with an upstream sync. The Android NDK has none either: its GitHub
+releases exist, but Google publishes only a SHA-1 for the archive, so a bump needs its
+SHA-256 computed by hand.
+
 ## Editor integration
 
 The optional `devcontainer.json` lets a compatible editor run cloning and setup
@@ -140,7 +151,7 @@ for these editor and lifecycle settings.
 | pnpm                                                      | `package.json` `packageManager`                      |
 | Rust, Cargo, rustfmt, Clippy, rust-src, llvm-tools, cross-target std | `rust-toolchain.toml`; rustup-init 1.29.3, SHA-256 verified |
 | cargo-llvm-cov                                            | 0.9.1                                                |
-| .NET SDK                                                  | 10.0.403; Microsoft archives verified with SHA512      |
+| .NET SDK                                                  | 10.0.404; Microsoft archives verified with SHA512      |
 | Clang/libclang, LLD, CMake, Ninja, C/C++ compiler, Python | Debian Trixie packages                               |
 | Emscripten / Binaryen                                     | 3.1.72 / 133 (SHA-256 verified), on `PATH`; its `.emscripten` selects Binaryen |
 | Emscripten for `wasm32-eh`                                | 4.0.0 with its own Binaryen, sysroot built; `/opt/emsdk-eh` (`$EMSDK_EH`) |
@@ -156,7 +167,7 @@ Binaryen and the native PDFium artifact are selected to match it.
 
 ## .NET
 
-The image installs SDK 10.0.403 into `/opt/dotnet` for both supported Linux
+The image installs SDK 10.0.404 into `/opt/dotnet` for both supported Linux
 architectures. `DOTNET_ROOT` and `/usr/local/bin/dotnet` expose it to the
 `node` user in login and non-login shells. Debian dependencies and libclang for
 Rust bindgen are already installed by the image. The SDK supports Linux managed

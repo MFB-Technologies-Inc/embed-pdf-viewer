@@ -23,7 +23,7 @@ to its full immutable SHA256 image identifier, EPDF_HOST_OS to the real host
 OS and EPDF_EMULATED=true when the container architecture is emulated.
 macOS validation runs on the matching native host. Windows uses
 validate.ps1 -Rid win-x64 -Record ... -Package ... -Manifest ... with Python 3,
-.NET SDK 10.0.403, Rust 1.98.0 and the Visual Studio dumpbin tool available.
+.NET SDK 10.0.404, Rust 1.98.0 and the Visual Studio dumpbin tool available.
 linux-x64: built and tested under emulation on arm64; no native x64 run.
 The manifest uses container-emulated for a passing emulated consumer run.
 Absent native macOS x64 and Windows x64 hosts remain UNVALIDATED.
