@@ -18,7 +18,7 @@ serde_json = { version = "1", features = ["float_roundtrip", "preserve_order"] }
 # The document registry and the slice map keep insertion order, as the
 # TypeScript's objects do.
 indexmap = { version = "2", features = ["serde"] }
-base64 = "0.22"
+base64 = "0.23"
 
 # Native UUIDs and nonces draw from the OS, as `crypto.getRandomValues` does
 # upstream. The browser build has no OS source: epdf-web installs one over

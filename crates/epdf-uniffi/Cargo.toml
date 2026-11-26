@@ -21,6 +21,6 @@ thiserror = "2"
 build-support = { path = "../build-support" }
 
 [dev-dependencies]
-base64 = "0.22"
+base64 = "0.23"
 serde_json = "1"
 test-support = { path = "../test-support" }
