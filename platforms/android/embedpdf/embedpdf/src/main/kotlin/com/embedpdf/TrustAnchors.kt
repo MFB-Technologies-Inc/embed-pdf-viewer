@@ -40,7 +40,8 @@ public class TrustAnchors(public val certificates: List<X509Certificate>) : Sign
             return TrustAnchors(
                 blocks.flatMap { body ->
                     val der = try {
-                        java.util.Base64.getDecoder().decode(body)
+                        // The Kotlin decoder, since java.util.Base64 needs API 26.
+                        kotlin.io.encoding.Base64.Default.decode(body)
                     } catch (e: IllegalArgumentException) {
                         throw PdfException(PdfException.Code.INVALID_INPUT, "the PEM text is not base64: ${readable(e)}", "UnreadableCertificate", e)
                     }
