@@ -14,7 +14,7 @@ let project = Project(
   name: "NutrientDemo",
   packages: [
     // renovate: datasource=github-tags depName=PSPDFKit/PSPDFKit-SP
-    .remote(url: "https://github.com/PSPDFKit/PSPDFKit-SP", requirement: .exact("26.11.0")),
+    .remote(url: "https://github.com/PSPDFKit/PSPDFKit-SP", requirement: .exact("27.2.0")),
   ],
   targets: [
     .target(

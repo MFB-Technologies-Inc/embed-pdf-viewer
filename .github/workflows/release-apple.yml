@@ -103,7 +103,7 @@ jobs:
     steps:
       # The hash reads the runtime-src gitlink from the index, not the
       # submodule's files.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
           persist-credentials: false
@@ -146,7 +146,7 @@ jobs:
     steps:
       # No submodules: cargo reads PDFium from the fork slice, and the stamp
       # reads the runtime-src gitlink from the index.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
           persist-credentials: false
@@ -161,9 +161,9 @@ jobs:
           } >> "$GITHUB_ENV"
 
       # stamp-fork-slice.mjs uses Node's built-ins only.
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
       - uses: ./.github/actions/setup-xcode-27
 
@@ -174,7 +174,7 @@ jobs:
           targets: aarch64-apple-ios aarch64-apple-ios-sim aarch64-apple-darwin x86_64-apple-darwin
           cache-key: apple-${{ matrix.fork }}
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: fork-slice-${{ matrix.fork }}
           path: ${{ runner.temp }}/fork-slice-${{ matrix.fork }}
@@ -203,7 +203,7 @@ jobs:
           cp -R "platforms/apple/.build/$FORK" "platforms/apple/.build/generated-$FORK" "$out/"
           find "$out" -maxdepth 2 -print
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: apple-rust-${{ matrix.fork }}
           path: ${{ runner.temp }}/apple-rust/
@@ -225,7 +225,7 @@ jobs:
     steps:
       # Full runtime-src history at the gitlink: the script refuses a
       # submodule that isn't checked out there.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
           fetch-depth: 0
@@ -242,9 +242,9 @@ jobs:
 
       # The script and its imports use Node's built-ins only, so no pnpm
       # install.
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
       - uses: ./.github/actions/setup-xcode-27
 
@@ -255,25 +255,25 @@ jobs:
           targets: aarch64-apple-ios aarch64-apple-ios-sim aarch64-apple-darwin x86_64-apple-darwin
           cache-key: apple
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         if: env.STATE == 'build'
         with:
           name: fork-slice-ios-arm64
           path: ${{ runner.temp }}/fork-slice-ios-arm64
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         if: env.STATE == 'build'
         with:
           name: fork-slice-ios-sim-arm64
           path: ${{ runner.temp }}/fork-slice-ios-sim-arm64
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         if: env.STATE == 'build'
         with:
           name: fork-slice-darwin-static-arm64
           path: ${{ runner.temp }}/fork-slice-darwin-static-arm64
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         if: env.STATE == 'build'
         with:
           name: fork-slice-darwin-static-x64
@@ -281,7 +281,7 @@ jobs:
 
       # The Rust archives and their generated Swift, where
       # build-xcframework.sh --slice left them on each rust-slice runner.
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         if: env.STATE == 'build'
         with:
           pattern: apple-rust-*
@@ -337,14 +337,14 @@ jobs:
           echo "$TAG checksum $checksum"
           echo "checksum=$checksum" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         if: env.STATE == 'build'
         with:
           name: apple-xcframework
           path: ${{ runner.temp }}/apple-xcframework/
           if-no-files-found: error
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         if: env.STATE == 'pin'
         with:
           name: apple-manifests
@@ -365,14 +365,14 @@ jobs:
     env:
       CHECKSUM: ${{ needs.build.outputs.checksum }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
           persist-credentials: false
 
       - uses: ./.github/actions/setup-xcode-27
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: apple-xcframework
           path: ${{ runner.temp }}/apple-xcframework
@@ -419,7 +419,7 @@ jobs:
       CHECKSUM: ${{ needs.build.outputs.checksum }}
       ARCH: arm64
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
           persist-credentials: false
@@ -427,11 +427,11 @@ jobs:
       - uses: ./.github/actions/setup-xcode-27
 
       # macos-consumer.mjs uses Node's built-ins only.
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: apple-xcframework
           path: ${{ runner.temp }}/apple-xcframework
@@ -485,7 +485,7 @@ jobs:
       # Runs under Rosetta, which setup-xcode-27 makes sure of.
       ARCH: x86_64
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
           persist-credentials: false
@@ -493,11 +493,11 @@ jobs:
       - uses: ./.github/actions/setup-xcode-27
 
       # macos-consumer.mjs uses Node's built-ins only.
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: apple-xcframework
           path: ${{ runner.temp }}/apple-xcframework
@@ -547,7 +547,7 @@ jobs:
   # a verdict the build stage can't have given.
   publish-verdict:
     if: inputs.stage == 'publish'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
       - name: Report the build stage's verdict
@@ -581,17 +581,17 @@ jobs:
       # --stage publish checks only for a clean tracked tree and asks gh, and
       # takes the toolchain from the build's facts. No submodules: the engine
       # hash reads the runtime-src gitlink from the index.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
           persist-credentials: false
 
       # The script imports only Node's built-ins and this repo's modules.
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: apple-xcframework
           path: ${{ runner.temp }}/apple-xcframework
@@ -642,7 +642,7 @@ jobs:
           git diff --stat
           echo "checksum=$checksum" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: apple-manifests
           path: |

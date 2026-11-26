@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Docker selects the host architecture; supported hosts are amd64 and arm64.
 # Must equal `node` in mise.toml; .devcontainer/check-pins.py enforces it.
-FROM node:24.20.0-trixie-slim
+FROM node:26.13.1-trixie-slim
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ARG TARGETARCH
@@ -28,12 +28,12 @@ ARG RUSTUP_SHA256_ARM64=9f608c142e0e38a78957d0661ba1dfaf0b6fb37184cfaa4b9a0aa57a
 # renovate: datasource=crate depName=cargo-ndk versioning=semver
 ARG CARGO_NDK_VERSION=4.1.2
 # renovate: datasource=crate depName=cargo-llvm-cov versioning=semver
-ARG CARGO_LLVM_COV_VERSION=0.9.1
+ARG CARGO_LLVM_COV_VERSION=0.9.2
 # Must equal the `wasm-bindgen` pin in crates/epdf-web/Cargo.toml.
 # renovate: datasource=crate depName=wasm-bindgen-cli versioning=semver
 ARG WASM_BINDGEN_VERSION=0.2.127
 # renovate: datasource=npm depName=oauth2-forwarder
-ARG OAUTH2_FORWARDER_VERSION=1.9.4
+ARG OAUTH2_FORWARDER_VERSION=1.10.0
 # renovate: datasource=npm depName=git-credential-forwarder
 ARG GIT_CREDENTIAL_FORWARDER_VERSION=1.8.0
 

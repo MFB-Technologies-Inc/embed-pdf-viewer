@@ -52,14 +52,14 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 60
     env:
       VERSION: ${{ inputs.version }}
       REF: ${{ inputs.ref }}
       TARBALL: mfb-embedpdf-rust-viewer-${{ inputs.version }}.tgz
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 1
@@ -83,14 +83,14 @@ jobs:
 
       # Must equal the wasm-bindgen pin in crates/epdf-web/Cargo.toml and
       # WASM_BINDGEN_VERSION in .devcontainer/Dockerfile.
-      - uses: taiki-e/install-action@75a7c0f87bd666af3cdb75c5b9e9d03ab6044e6f # v2.90.6
+      - uses: taiki-e/install-action@893d6ee8d714b6c7dfe2bcd94e5759e9a7958a7e # v2.90.10
         with:
           tool: wasm-bindgen-cli@${{ env.WASM_BINDGEN_VERSION }}
 
       # The tarball is cached, not the extracted tree, so the digest is checked
       # on every run, cache hit or not.
       - name: Restore binaryen
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.cache/binaryen
           key: binaryen-${{ env.BINARYEN_VERSION }}-${{ runner.os }}-${{ runner.arch }}
@@ -126,7 +126,7 @@ jobs:
           EPDF_PAYLOAD_REPO: ${{ github.repository }}
         run: pnpm --filter @embedpdf/engine-runtime run fetch:payload
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         if: inputs.payload_artifact != ''
         with:
           name: ${{ inputs.payload_artifact }}
@@ -212,13 +212,13 @@ jobs:
             echo "- sha256: \`$(sha256sum "$TARBALL" | cut -d' ' -f1)\`, $(stat -c %s "$TARBALL") bytes"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: rust-viewer-tarball
           path: packages/rust-viewer-bundle/${{ env.TARBALL }}
           if-no-files-found: error
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: rust-kernel-eval-site
           path: examples/rust-kernel-eval/dist
