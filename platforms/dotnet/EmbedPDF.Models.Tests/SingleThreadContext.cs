@@ -34,6 +34,22 @@ sealed class SingleThreadContext : SynchronizationContext
 
     public static Task Run(Func<Task> body, int timeoutSeconds = 60) => Run(_ => body(), timeoutSeconds);
 
+    /// <summary>
+    /// <see cref="Run(Func{SingleThreadContext, Task}, int)"/> that also fails
+    /// on a task exception nobody observed, collected after the body ends. For
+    /// tests that close a document or dispose a viewer under live models, or
+    /// release a model.
+    /// </summary>
+    public static async Task RunWatched(Func<SingleThreadContext, Task> body, int timeoutSeconds = 60)
+    {
+        using var unobserved = new UnobservedWatch();
+        await Run(body, timeoutSeconds);
+        unobserved.Collect();
+        Assert.True(unobserved.Seen.IsEmpty, "unobserved task exceptions: " + string.Join("; ", unobserved.Seen.Select(e => e.InnerException?.Message ?? e.Message)));
+    }
+
+    public static Task RunWatched(Func<Task> body, int timeoutSeconds = 60) => RunWatched(_ => body(), timeoutSeconds);
+
     static async Task Finish(SingleThreadContext context, Task body, int timeoutSeconds)
     {
         var finished = await Task.WhenAny(body, Task.Delay(TimeSpan.FromSeconds(timeoutSeconds)));

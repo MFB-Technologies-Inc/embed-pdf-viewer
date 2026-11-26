@@ -22,7 +22,7 @@ public class PdfReaderModelTests
     static OpenDocumentOptions Named(string name) => new() { Name = name };
 
     [Fact]
-    public Task OpensToReady() => SingleThreadContext.Run(async context =>
+    public Task OpensToReady() => SingleThreadContext.RunWatched(async context =>
     {
         var model = context.Watch(new PdfReaderModel());
         Assert.True(IsIdle(model));
@@ -132,7 +132,7 @@ public class PdfReaderModelTests
     });
 
     [Fact]
-    public Task OpeningASecondDocumentClosesTheFirst() => SingleThreadContext.Run(async context =>
+    public Task OpeningASecondDocumentClosesTheFirst() => SingleThreadContext.RunWatched(async context =>
     {
         var model = context.Watch(new PdfReaderModel());
         await model.OpenAsync(Fixture.Data());
@@ -147,7 +147,7 @@ public class PdfReaderModelTests
     });
 
     [Fact]
-    public Task AnOpenSupersededByASecondOpenLeavesTheSecond() => SingleThreadContext.Run(async context =>
+    public Task AnOpenSupersededByASecondOpenLeavesTheSecond() => SingleThreadContext.RunWatched(async context =>
     {
         var model = context.Watch(new PdfReaderModel(ReaderFeatures.None));
         var first = model.OpenAsync(Fixture.Data(), Named("first"));
@@ -161,7 +161,7 @@ public class PdfReaderModelTests
     });
 
     [Fact]
-    public Task AnOpenSupersededByCloseEndsIdle() => SingleThreadContext.Run(async context =>
+    public Task AnOpenSupersededByCloseEndsIdle() => SingleThreadContext.RunWatched(async context =>
     {
         var model = context.Watch(new PdfReaderModel(ReaderFeatures.None));
         var opening = model.OpenAsync(Fixture.Data());

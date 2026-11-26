@@ -162,7 +162,7 @@ public class ThumbnailModelTests
     });
 
     [Fact]
-    public Task AFailedLoadKeepsTheEarlierImageAndSetsTheError() => SingleThreadContext.Run(async context =>
+    public Task AFailedLoadKeepsTheEarlierImageAndSetsTheError() => SingleThreadContext.RunWatched(async context =>
     {
         var (viewer, document, pages, render) = await OpenedAsync();
         using var model = context.Watch(new ThumbnailModel(render, pages));

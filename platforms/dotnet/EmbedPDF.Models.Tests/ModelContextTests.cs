@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace EmbedPDF.Models.Tests;
 
 /// <summary>A minimal model for the home-context rules.</summary>
@@ -56,5 +58,37 @@ public class ModelContextTests
         Assert.Same(given, probe.Context);
         await probe.SetAsync(1);
         Assert.Equal(1, probe.Value);
+    }
+}
+
+/// <summary>
+/// Runs alone: the unobserved-task event is process-wide, so the fault this
+/// test abandons on purpose would reach the watch of any watched test running
+/// beside it.
+/// </summary>
+[CollectionDefinition(nameof(UnobservedWatchTests), DisableParallelization = true)]
+public sealed class UnobservedWatchCollection;
+
+[Collection(nameof(UnobservedWatchTests))]
+public class UnobservedWatchTests
+{
+    /// <summary>The watch the disposal tests run under sees a fault nobody observed.</summary>
+    [Fact]
+    public async Task TheUnobservedWatchSeesAnUnobservedFault()
+    {
+        var failure = await Assert.ThrowsAnyAsync<Xunit.Sdk.XunitException>(() =>
+            SingleThreadContext.RunWatched(() =>
+            {
+                Abandon();
+                return Task.CompletedTask;
+            }));
+        Assert.Contains("abandoned on purpose", failure.Message);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    static void Abandon()
+    {
+        var faulted = new TaskCompletionSource();
+        faulted.SetException(new InvalidOperationException("abandoned on purpose"));
     }
 }

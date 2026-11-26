@@ -73,7 +73,7 @@ public class SearchModelTests
     });
 
     [Fact]
-    public Task RevealingOnAClosedDocumentSetsTheError() => SingleThreadContext.Run(async context =>
+    public Task RevealingOnAClosedDocumentSetsTheError() => SingleThreadContext.RunWatched(async context =>
     {
         var (viewer, document, _, model) = await OpenedAsync(context);
         await viewer.CloseAsync(document);
@@ -151,7 +151,7 @@ public class SearchModelTests
     });
 
     [Fact]
-    public Task ClosingTheDocumentEndsTheTaskAndEmptiesTheModel() => SingleThreadContext.Run(async context =>
+    public Task ClosingTheDocumentEndsTheTaskAndEmptiesTheModel() => SingleThreadContext.RunWatched(async context =>
     {
         var (viewer, document, _, model) = await OpenedAsync(context);
         var observing = model.RunAsync();
@@ -406,7 +406,7 @@ public class SearchModelTests
     });
 
     [Fact]
-    public Task ACancelledTaskReleasesTheModel() => SingleThreadContext.Run(async context =>
+    public Task ACancelledTaskReleasesTheModel() => SingleThreadContext.RunWatched(async context =>
     {
         var (viewer, _, search, model) = await OpenedAsync(context, pageEdit: false);
         var weak = await ObserveAndCancel(context, search);

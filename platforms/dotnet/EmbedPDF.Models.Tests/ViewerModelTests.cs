@@ -16,7 +16,7 @@ public class ViewerModelTests
     });
 
     [Fact]
-    public Task OpensAndClosesReachTheObservingModel() => SingleThreadContext.Run(async context =>
+    public Task OpensAndClosesReachTheObservingModel() => SingleThreadContext.RunWatched(async context =>
     {
         await using var viewer = await Fixture.StartedAsync();
         var model = context.Watch(new ViewerModel(viewer));
@@ -37,7 +37,7 @@ public class ViewerModelTests
     });
 
     [Fact]
-    public Task DisposingTheViewerEndsTheTaskAndEmptiesTheModel() => SingleThreadContext.Run(async context =>
+    public Task DisposingTheViewerEndsTheTaskAndEmptiesTheModel() => SingleThreadContext.RunWatched(async context =>
     {
         var viewer = await Fixture.StartedAsync();
         var model = context.Watch(new ViewerModel(viewer));
@@ -65,7 +65,7 @@ public class ViewerModelTests
     });
 
     [Fact]
-    public Task ACancelledTaskReleasesTheModel() => SingleThreadContext.Run(async context =>
+    public Task ACancelledTaskReleasesTheModel() => SingleThreadContext.RunWatched(async context =>
     {
         await using var viewer = await Fixture.StartedAsync();
         await Observed.CollectedAsync(await ObserveAndCancel(context, viewer));

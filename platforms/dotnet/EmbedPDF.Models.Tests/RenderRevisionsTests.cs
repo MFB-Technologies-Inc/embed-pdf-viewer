@@ -35,7 +35,7 @@ public class RenderRevisionsTests
     });
 
     [Fact]
-    public Task AReleasedModelStopsObservingWhileTheDocumentStaysOpen() => SingleThreadContext.Run(async context =>
+    public Task AReleasedModelStopsObservingWhileTheDocumentStaysOpen() => SingleThreadContext.RunWatched(async context =>
     {
         var (viewer, _, pages, render) = await OpenedAsync();
         var (released, observation) = await ObserveOnce(context, render, pages[0].Page);
@@ -61,7 +61,7 @@ public class RenderRevisionsTests
     }
 
     [Fact]
-    public Task ClosingTheDocumentKeepsTheCounts() => SingleThreadContext.Run(async context =>
+    public Task ClosingTheDocumentKeepsTheCounts() => SingleThreadContext.RunWatched(async context =>
     {
         var (viewer, document, pages, render) = await OpenedAsync();
         using var revisions = context.Watch(new RenderRevisions(render));

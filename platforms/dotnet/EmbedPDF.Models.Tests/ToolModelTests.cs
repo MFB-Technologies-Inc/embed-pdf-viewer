@@ -44,7 +44,7 @@ public class ToolModelTests
         Assert.True(Structural.SameTools(expected, actual), "the tool lists differ");
 
     [Fact]
-    public Task TheFirstSnapshotListsTheRegisteredToolsAsUsable() => SingleThreadContext.Run(async context =>
+    public Task TheFirstSnapshotListsTheRegisteredToolsAsUsable() => SingleThreadContext.RunWatched(async context =>
     {
         var tools = await ToolsAsync(context);
         var kernel = await tools.Interaction.GetToolsAsync();
@@ -126,7 +126,7 @@ public class ToolModelTests
     });
 
     [Fact]
-    public Task ClosingTheDocumentEndsTheTaskAndEmptiesTheModel() => SingleThreadContext.Run(async context =>
+    public Task ClosingTheDocumentEndsTheTaskAndEmptiesTheModel() => SingleThreadContext.RunWatched(async context =>
     {
         var tools = await ToolsAsync(context);
         var model = tools.Model;

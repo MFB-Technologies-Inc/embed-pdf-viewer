@@ -20,7 +20,7 @@ public class PluginIntegrationTests
         .Commands().Actions(new ActionsConfig { OpenSequence = OpenSequence.Off }).Signature(new SignatureConfig()));
 
     [Fact]
-    public Task AllPluginsAndThreeModelsEditObserveSaveAndCloseTogether() => SingleThreadContext.Run(async context =>
+    public Task AllPluginsAndThreeModelsEditObserveSaveAndCloseTogether() => SingleThreadContext.RunWatched(async context =>
     {
         await using var viewer = await StartedAsync();
         var document = await viewer.OpenAsync(Fixture.Data());

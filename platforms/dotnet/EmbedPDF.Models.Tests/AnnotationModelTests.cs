@@ -24,7 +24,7 @@ public class AnnotationModelTests
     });
 
     [Fact]
-    public Task TheObservingModelFollowsTheKernelUntilTheDocumentCloses() => SingleThreadContext.Run(async context =>
+    public Task TheObservingModelFollowsTheKernelUntilTheDocumentCloses() => SingleThreadContext.RunWatched(async context =>
     {
         var (viewer, document, annotations) = await OpenedAsync();
         var model = context.Watch(new AnnotationModel(annotations));
@@ -64,7 +64,7 @@ public class AnnotationModelTests
     });
 
     [Fact]
-    public Task ACancelledTaskReleasesTheModel() => SingleThreadContext.Run(async context =>
+    public Task ACancelledTaskReleasesTheModel() => SingleThreadContext.RunWatched(async context =>
     {
         var (viewer, _, annotations) = await OpenedAsync();
         await Observed.CollectedAsync(await ObserveAndCancel(context, annotations));
@@ -84,7 +84,7 @@ public class AnnotationModelTests
     }
 
     [Fact]
-    public Task AnOlderReadCannotOverwriteANewerOne() => SingleThreadContext.Run(async context =>
+    public Task AnOlderReadCannotOverwriteANewerOne() => SingleThreadContext.RunWatched(async context =>
     {
         var (viewer, document, annotations) = await OpenedAsync();
         var model = context.Watch(new AnnotationModel(annotations));

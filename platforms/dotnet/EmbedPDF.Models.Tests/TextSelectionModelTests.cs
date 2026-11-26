@@ -244,7 +244,7 @@ public class TextSelectionModelTests
     });
 
     [Fact]
-    public Task SelectionsMadeElsewhereReachTheModelUntilClose() => SingleThreadContext.Run(async context =>
+    public Task SelectionsMadeElsewhereReachTheModelUntilClose() => SingleThreadContext.RunWatched(async context =>
     {
         var (viewer, page, selection) = await OpenedAsync();
         var model = context.Watch(new TextSelectionModel(selection));
@@ -287,7 +287,7 @@ public class TextSelectionModelTests
     });
 
     [Fact]
-    public Task ClosingTheDocumentEndsTheObservation() => SingleThreadContext.Run(async context =>
+    public Task ClosingTheDocumentEndsTheObservation() => SingleThreadContext.RunWatched(async context =>
     {
         var (viewer, document) = await OpenedDocumentAsync();
         using var model = context.Watch(new TextSelectionModel(await viewer.GetSelectionAsync(document)));
@@ -297,7 +297,7 @@ public class TextSelectionModelTests
     });
 
     [Fact]
-    public Task AReleasedModelStopsObservingWhileTheDocumentStaysOpen() => SingleThreadContext.Run(async context =>
+    public Task AReleasedModelStopsObservingWhileTheDocumentStaysOpen() => SingleThreadContext.RunWatched(async context =>
     {
         var (viewer, document) = await OpenedDocumentAsync();
         var page = (await viewer.GetPagesAsync(document))[0];

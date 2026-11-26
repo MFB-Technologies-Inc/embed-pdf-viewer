@@ -30,7 +30,7 @@ public class StagePointerForwarderTests
         Enumerable.Range(1, count).Select(i => Reader.Point(model, 0.1 * i)).ToArray();
 
     [Fact]
-    public Task AForwardedDragUnderTheInkToolCreatesInk() => SingleThreadContext.Run(async context =>
+    public Task AForwardedDragUnderTheInkToolCreatesInk() => SingleThreadContext.RunWatched(async context =>
     {
         var reader = await Reader.OpenAsync(context);
         var model = reader.Model;
@@ -62,7 +62,7 @@ public class StagePointerForwarderTests
 
     /// <summary>Without an interaction hub the reader has no tool, no forwarding, and the pointer calls send nothing.</summary>
     [Fact]
-    public Task AReaderWithoutAHubForwardsNothing() => SingleThreadContext.Run(async context =>
+    public Task AReaderWithoutAHubForwardsNothing() => SingleThreadContext.RunWatched(async context =>
     {
         await using var viewer = await Fixture.StartedAsync(b => b.Render(new RenderConfig()).Stage(new StageConfig()));
         var document = await viewer.OpenAsync(Fixture.Data("annotation_kinds"));
@@ -266,7 +266,7 @@ public class StagePointerForwarderTests
 
     /// <summary><c>features.pdf</c> has a link.</summary>
     [Fact]
-    public Task ATapOnALinkYieldsItsActivation() => SingleThreadContext.Run(async context =>
+    public Task ATapOnALinkYieldsItsActivation() => SingleThreadContext.RunWatched(async context =>
     {
         var reader = await Reader.OpenAsync(context, "features");
         var model = reader.Model;

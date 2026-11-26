@@ -73,7 +73,7 @@ public class StageReaderErrorTests
     });
 
     [Fact]
-    public Task AGoodLinkTapRegistrationClearsAFailedOne() => SingleThreadContext.Run(async context =>
+    public Task AGoodLinkTapRegistrationClearsAFailedOne() => SingleThreadContext.RunWatched(async context =>
     {
         var (reader, _) = await OpenAsync(context, link: true);
         var model = reader.Model;
