@@ -21,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.junit.After
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -114,6 +115,22 @@ class PdfReaderTest {
         compose.onNodeWithTag("historyUndo").assertDoesNotExist()
         // No tools asked for: no picker, as Swift's reader shows none.
         compose.onNodeWithTag("toolPicker-pointer").assertDoesNotExist()
+    }
+
+    /** On a phone the search field has a row of its own, wide enough to type in. */
+    @Config(qualifiers = "w360dp-h740dp")
+    @Test
+    fun aPhoneWidthGivesTheSearchFieldARowOfItsOwn() {
+        val model = reader(PdfReaderModel(configure = { it.outline().attachment() }))
+        launchMain { model.open(Fixture.bytes("report")) }
+        ready(model)
+        compose.pumpUntil { runCatching { compose.onNodeWithContentDescription("Attachments").assertExists() }.isSuccess }
+        val field = compose.onNodeWithTag("searchField").fetchSemanticsNode()
+        val width = field.size.width / compose.density.density
+        assertTrue("search field is $width dp wide", width >= 160f)
+        // Under the panel toggles, not beside them.
+        val toggle = compose.onNodeWithTag("readerPanel-thumbnails").fetchSemanticsNode()
+        assertTrue(field.boundsInRoot.top >= toggle.boundsInRoot.bottom)
     }
 
     /** A compact window shows a panel as a bottom sheet. */

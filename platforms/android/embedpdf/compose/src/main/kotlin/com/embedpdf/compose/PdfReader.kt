@@ -91,7 +91,8 @@ import kotlinx.coroutines.launch
  *
  * A ready document shows a [StageReader] under a bar that holds a
  * [SearchBar] when the session has search, and a toggle for each panel the
- * session supports: thumbnails always, bookmarks when the viewer has the
+ * session supports. Below 600 dp of width the search bar takes a row of its
+ * own under the toggles, so the field keeps room to type in. The panels are thumbnails always, bookmarks when the viewer has the
  * outline plugin, attachments when it has the attachment plugin (add them
  * with the model's `configure`). The reader scrolls to each hit the search
  * bar reports active. On a window at least 600 dp wide an open panel sits
@@ -238,9 +239,9 @@ private fun ReadyReader(
     }
 
     Column(modifier) {
+        val search = session.search
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            val search = session.search
-            if (search != null) {
+            if (search != null && wide) {
                 RevealingSearchBar(search, Modifier.weight(1f))
             } else {
                 Spacer(Modifier.weight(1f))
@@ -252,6 +253,9 @@ private fun ReadyReader(
             if (attachments != null) {
                 PanelToggle(ReaderPanel.ATTACHMENTS, shown, R.drawable.embedpdf_ic_attach, R.string.embedpdf_attachments_title) { panel = it }
             }
+        }
+        if (search != null && !wide) {
+            RevealingSearchBar(search, Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, bottom = 4.dp))
         }
         HorizontalDivider()
         Row(Modifier.weight(1f).fillMaxWidth()) {
