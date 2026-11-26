@@ -76,6 +76,8 @@ public struct SearchHighlightOverlay: View {
     }
     // A blend mode set inside the canvas reaches only what the canvas drew,
     // so the whole canvas blends with the page under it.
+    // Hits inside the canvas composite source-over, so overlapping hits don't
+    // darken each other, unlike web and Android, where each fill blends alone.
     .blendMode(blendMode ?? Self.blendMode(highlight.blendMode))
     .allowsHitTesting(false)
     .accessibilityHidden(true)

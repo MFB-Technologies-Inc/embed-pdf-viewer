@@ -626,7 +626,9 @@ page overlay, under anything that takes touches:
 ```swift
 // `pages` holds the document's `PageInfo` values, from `viewer.pages(of:)`.
 StageReaderView(model: reader) { page in
-  SearchHighlightOverlay(model: search, visiblePage: page, info: pages[Int(page.pageIndex)])
+  if let info = pages.first(where: { $0.page == page.page }) {
+    SearchHighlightOverlay(model: search, visiblePage: page, info: info)
+  }
 }
 ```
 
