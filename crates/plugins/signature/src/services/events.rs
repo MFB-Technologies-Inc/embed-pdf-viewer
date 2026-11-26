@@ -92,41 +92,59 @@ macro_rules! hook {
 impl SignatureCapability {
     hook!(
         /// `onSigned(listener)`: a field was signed, whoever signed it.
-        on_signed, signed, SignatureSignedEvent
+        on_signed,
+        signed,
+        SignatureSignedEvent
     );
     hook!(
         /// `onFilled(listener)`: a mark was drawn into a field.
-        on_filled, filled, SignatureFilledEvent
+        on_filled,
+        filled,
+        SignatureFilledEvent
     );
     hook!(
         /// `onCleared(listener)`: a drawn mark was taken out of a field.
-        on_cleared, cleared, SignatureClearedEvent
+        on_cleared,
+        cleared,
+        SignatureClearedEvent
     );
     hook!(
         /// `onValidated(listener)`: the signatures were checked.
-        on_validated, validated, SignatureValidatedEvent
+        on_validated,
+        validated,
+        SignatureValidatedEvent
     );
     hook!(
         /// `onProtectionChanged(listener)`: what the signatures allow
         /// changed.
-        on_protection_changed, protection_changed, SignatureProtectionChangedEvent
+        on_protection_changed,
+        protection_changed,
+        SignatureProtectionChangedEvent
     );
     hook!(
         /// `onInvalidationPredicted(listener)`: a change would break a
         /// signature once saved.
-        on_invalidation_predicted, invalidation_predicted, SignatureInvalidationPredictedEvent
+        on_invalidation_predicted,
+        invalidation_predicted,
+        SignatureInvalidationPredictedEvent
     );
     hook!(
         /// `onTargetChanged(listener)`.
-        on_target_changed, target_changed, SignatureTargetChangedEvent
+        on_target_changed,
+        target_changed,
+        SignatureTargetChangedEvent
     );
     hook!(
         /// `onSignRequested(listener)`: in `ask` mode, a mark was dropped on
         /// a field.
-        on_sign_requested, sign_requested, SignatureSignRequestedEvent
+        on_sign_requested,
+        sign_requested,
+        SignatureSignRequestedEvent
     );
     hook!(
         /// `onInspectionRequested(listener)`: a signed field was clicked.
-        on_inspection_requested, inspection_requested, SignatureInspectionRequestedEvent
+        on_inspection_requested,
+        inspection_requested,
+        SignatureInspectionRequestedEvent
     );
 }

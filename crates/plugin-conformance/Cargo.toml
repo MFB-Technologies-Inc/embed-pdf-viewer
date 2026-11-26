@@ -18,7 +18,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["float_roundtrip", "preserve_order"] }
 base64 = "0.23"
 # A receipt names the vector text it replayed by its SHA-256.
-sha2 = "0.10"
+sha2 = "0.11"
 
 # Text-layout hydration runs the native engine's geometry. epdf-web builds this
 # crate for wasm32, where pdfium-sys has no target, so the engine stays native.
