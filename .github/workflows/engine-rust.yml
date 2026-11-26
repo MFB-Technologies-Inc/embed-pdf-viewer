@@ -123,7 +123,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Download engine-runtime artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: engine-runtime-*
           path: packages/engine/runtime/_artifacts
@@ -359,7 +359,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Download engine-runtime artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: engine-runtime-*
           path: packages/engine/runtime/_artifacts
