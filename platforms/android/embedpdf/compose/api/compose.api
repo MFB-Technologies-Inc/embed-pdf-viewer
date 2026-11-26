@@ -67,6 +67,11 @@ public final class com/embedpdf/compose/SearchBarKt {
 	public static final fun SearchBar (Lcom/embedpdf/models/SearchModel;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
 }
 
+public final class com/embedpdf/compose/SearchHighlightOverlayKt {
+	public static final fun SearchHighlightOverlay-Y6vrc1I (Lcom/embedpdf/models/SearchModel;Luniffi/epdf_ffi/PageRef;Lcom/embedpdf/PageGeometry;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/BlendMode;Landroidx/compose/runtime/Composer;II)V
+	public static final fun SearchHighlightOverlay-Y6vrc1I (Lcom/embedpdf/models/SearchModel;Luniffi/epdf_plugin_stage/StageVisiblePage;Luniffi/epdf_ffi/PageInfo;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/BlendMode;Landroidx/compose/runtime/Composer;II)V
+}
+
 public final class com/embedpdf/compose/StageReaderKt {
 	public static final fun StageReader (Lcom/embedpdf/models/StageReaderModel;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 }

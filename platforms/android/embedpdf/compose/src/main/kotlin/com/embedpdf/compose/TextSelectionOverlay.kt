@@ -303,5 +303,18 @@ internal fun localRect(rect: PageRect, size: LocalSize, geometry: PageGeometry):
     )
 }
 
+/**
+ * Where [point], a point in unrotated page space, sits in a frame of [size]
+ * that covers the page as shown: [localRect] for one point.
+ */
+internal fun localPoint(point: Point, size: LocalSize, geometry: PageGeometry): Offset {
+    val shown = geometry.displaySize
+    val turned = geometry.toDisplay(point)
+    return Offset(
+        (turned.x * ratio(size.width.toDouble(), shown.width)).toFloat(),
+        (turned.y * ratio(size.height.toDouble(), shown.height)).toFloat(),
+    )
+}
+
 /** `length / divisor`, or 0 when [divisor] is not greater than zero. */
 private fun ratio(length: Double, divisor: Double): Double = if (divisor > 0) length / divisor else 0.0
