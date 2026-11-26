@@ -235,9 +235,9 @@ class RasterModelTest {
         }
     }
 
-    /** Without frame acknowledgements a retired bitmap waits two reconciles and a quarter second. */
+    /** Without drawn frames a retired bitmap waits a quarter second, and the update polls until it has gone back. */
     @Test
-    fun withoutFrameAcknowledgementsARetiredBaseWaitsBeforeItIsPooled() = mainTest {
+    fun withoutDrawnFramesARetiredBaseWaitsBeforeItIsPooled() = mainTest {
         val pool = BitmapPool(64L * 1024 * 1024)
         withTiledModel(pool) { model, page ->
             model.update(128 / page.width, page.width, null)
@@ -249,28 +249,84 @@ class RasterModelTest {
             model.update(256 / page.width, page.width, null)
             assertNotSame(first, model.base.value)
             assertEquals(0L, pooledAtFirstReconcile)
-            // The update polls on until the held bitmap has gone back.
             assertEquals(first.allocationByteCount.toLong(), pool.pooledBytes)
         }
     }
 
-    /** With frame acknowledgements a retired bitmap waits for two frames after it left, however many reconciles pass. */
+    /** Starts an update that replaces the base, and returns the base it replaced once it has. */
+    private suspend fun kotlinx.coroutines.CoroutineScope.replacingBase(model: TiledPageModel, page: PageInfo): Pair<Bitmap, kotlinx.coroutines.Job> {
+        model.update(128 / page.width, page.width, null)
+        val first = checkNotNull(model.base.value)
+        val updating = launch { model.update(256 / page.width, page.width, null) }
+        expectObserved({ model.base.value !== first }, true)
+        return first to updating
+    }
+
+    /** With one painter attached, a retired bitmap goes back on the second frame it draws after the bitmap left. */
     @Test
-    fun withFrameAcknowledgementsARetiredBaseWaitsForTwoFrames() = mainTest {
+    fun withAPainterARetiredBaseWaitsForTwoDrawnFrames() = mainTest {
         val pool = BitmapPool(64L * 1024 * 1024)
         withTiledModel(pool) { model, page ->
-            model.frameDisplayed()
-            model.update(128 / page.width, page.width, null)
-            val first = checkNotNull(model.base.value)
-            model.update(256 / page.width, page.width, null)
-            model.update(256 / page.width, page.width, null)
-            assertNotSame(first, model.base.value)
+            model.painterAttached()
+            val (first, updating) = replacingBase(model, page)
             assertEquals(0L, pool.pooledBytes)
-            // The first frame may have drawn the old base; the second did not.
-            model.frameDisplayed()
+            // The first frame may have been composed before the base left; the second was not.
+            model.frameDrawn()
             assertEquals(0L, pool.pooledBytes)
-            model.frameDisplayed()
+            model.frameDrawn()
             assertEquals(first.allocationByteCount.toLong(), pool.pooledBytes)
+            updating.join()
+            model.painterDetached()
+        }
+    }
+
+    /** Frames drawn after the painter detached do not count for a bitmap that left before; time returns it. */
+    @Test
+    fun framesDoNotCountAcrossAttachmentsAndTimeIsTheBackstop() = mainTest {
+        val pool = BitmapPool(64L * 1024 * 1024)
+        withTiledModel(pool) { model, page ->
+            model.painterAttached()
+            val (first, updating) = replacingBase(model, page)
+            model.painterDetached()
+            model.painterAttached()
+            model.frameDrawn()
+            model.frameDrawn()
+            assertEquals(0L, pool.pooledBytes)
+            // The update polls on until the quarter second has passed.
+            updating.join()
+            assertEquals(first.allocationByteCount.toLong(), pool.pooledBytes)
+            model.painterDetached()
+        }
+    }
+
+    /** A painter that stops drawing strands nothing: the update returns the bitmap on time. */
+    @Test
+    fun aPainterThatStopsDrawingStrandsNothing() = mainTest {
+        val pool = BitmapPool(64L * 1024 * 1024)
+        withTiledModel(pool) { model, page ->
+            model.painterAttached()
+            model.frameDrawn()
+            val (first, updating) = replacingBase(model, page)
+            model.frameDrawn()
+            updating.join()
+            assertEquals(first.allocationByteCount.toLong(), pool.pooledBytes)
+            model.painterDetached()
+        }
+    }
+
+    /** Release returns once the tiles it retired are back in the pool. */
+    @Test
+    fun releaseReturnsTheRetiredTilesToThePool() = mainTest {
+        val pool = BitmapPool(64L * 1024 * 1024)
+        withTiledModel(pool) { model, page ->
+            model.painterAttached()
+            model.update(8.0, page.width, Rect(0.0, 0.0, page.width / 2, page.height / 4))
+            val tiles = model.tiles.value
+            assertTrue(tiles.isNotEmpty())
+            val before = pool.pooledBytes
+            model.painterDetached()
+            model.release()
+            assertEquals(before + tiles.sumOf { it.image.allocationByteCount.toLong() }, pool.pooledBytes)
         }
     }
 

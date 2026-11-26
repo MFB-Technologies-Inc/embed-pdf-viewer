@@ -368,11 +368,13 @@ public final class com/embedpdf/models/ThumbnailModel {
 public final class com/embedpdf/models/TiledPageModel {
 	public fun <init> (Lcom/embedpdf/RenderCapability;Lcom/embedpdf/RenderViewDemand;Luniffi/epdf_ffi/PageRef;ZLcom/embedpdf/models/BitmapPool;)V
 	public synthetic fun <init> (Lcom/embedpdf/RenderCapability;Lcom/embedpdf/RenderViewDemand;Luniffi/epdf_ffi/PageRef;ZLcom/embedpdf/models/BitmapPool;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun frameDisplayed ()V
+	public final fun frameDrawn ()V
 	public final fun getBase ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun getIncludeAnnotations ()Z
 	public final fun getPage ()Luniffi/epdf_ffi/PageRef;
 	public final fun getTiles ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun painterAttached ()V
+	public final fun painterDetached ()V
 	public final fun release (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun tileDisplayed (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun update (DDLuniffi/epdf_ffi/Rect;Lkotlin/jvm/functions/Function0;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
