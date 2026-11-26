@@ -1,0 +1,82 @@
+# Every version the Android build uses. Modules refer to these by alias, so a
+# bump is one line here.
+[versions]
+# AGP 9 compiles Kotlin itself; the Kotlin plugin below only raises the
+# compiler it brings (2.2.10) to the version the rest of the repository uses.
+agp = "9.5.2"
+kotlin = "2.2.21"
+jna = "5.19.1"
+coroutines = "1.10.2"
+serialization = "1.9.0"
+junit = "4.13.2"
+json = "20250517"
+tracing = "1.2.0"
+androidx-annotation = "1.8.1"
+# Declares minSdk 26; the javascript module's manifest overrides it and gates use at runtime.
+javascriptengine = "1.1.1"
+robolectric = "4.16"
+# The models module's `PdfViewerViewModel`; no Compose.
+lifecycle = "2.9.4"
+# Test only: the activity PdfViewerViewModelTest recreates.
+androidx-activity = "1.10.1"
+androidx-test-core = "1.6.1"
+# Instrumented tests (src/androidTest) only, run on a device or emulator.
+androidx-test-runner = "1.7.0"
+androidx-test-ext-junit = "1.3.0"
+# What Compose's test rule idles through. The 3.5.0 it brings calls
+# InputManager.getInstance(), which API 37 no longer has.
+espresso = "3.7.0"
+bcv = "0.18.1"
+# The compose module: the newest stable BOM that builds with AGP 9.5.2, Kotlin
+# 2.2.21 and compileSdk 36 (Compose UI 1.11.4, Material 3 1.4.0). From
+# 2026.08.00 on, Compose 1.12 requires compileSdk 37 of every consumer. The
+# Compose compiler is the Kotlin plugin of the version above.
+compose-bom = "2026.06.01"
+# What the binary-compatibility validator's dump task runs on.
+asm = "9.6"
+
+[libraries]
+jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+androidx-annotation = { module = "androidx.annotation:annotation", version.ref = "androidx-annotation" }
+androidx-tracing = { module = "androidx.tracing:tracing", version.ref = "tracing" }
+androidx-javascriptengine = { module = "androidx.javascriptengine:javascriptengine", version.ref = "javascriptengine" }
+androidx-lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel", version.ref = "lifecycle" }
+# The demo app (platforms/android/EmbedPDFDemo) only: `viewModel()` in composition.
+androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+androidx-activity = { module = "androidx.activity:activity", version.ref = "androidx-activity" }
+androidx-test-core = { module = "androidx.test:core", version.ref = "androidx-test-core" }
+androidx-test-runner = { module = "androidx.test:runner", version.ref = "androidx-test-runner" }
+androidx-test-ext-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-test-ext-junit" }
+androidx-test-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "espresso" }
+compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose-bom" }
+compose-ui = { module = "androidx.compose.ui:ui" }
+compose-ui-graphics = { module = "androidx.compose.ui:ui-graphics" }
+compose-foundation = { module = "androidx.compose.foundation:foundation" }
+compose-material3 = { module = "androidx.compose.material3:material3" }
+# The window size class PdfReader lays its panels out by; versioned by the BOM.
+compose-material3-adaptive = { module = "androidx.compose.material3.adaptive:adaptive" }
+# rememberLauncherForActivityResult, for the attachment panel's document pickers.
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
+compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
+compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
+asm-tree = { module = "org.ow2.asm:asm-tree", version.ref = "asm" }
+kotlin-metadata-jvm = { module = "org.jetbrains.kotlin:kotlin-metadata-jvm", version.ref = "kotlin" }
+junit = { module = "junit:junit", version.ref = "junit" }
+# org.json for JVM tests, where the Android platform copy is absent.
+json = { module = "org.json:json", version.ref = "json" }
+
+[plugins]
+android-library = { id = "com.android.library", version.ref = "agp" }
+# The demo app only.
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+binary-compatibility-validator = { id = "org.jetbrains.kotlinx.binary-compatibility-validator", version.ref = "bcv" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

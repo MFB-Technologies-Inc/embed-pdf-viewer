@@ -16,7 +16,7 @@ use epdf_kernel::types::PluginScope;
 use epdf_kernel::{AnyPlugin, Error};
 use plugin_conformance::{Answer, FunctionTable, Harness, HarnessPlugin, Outcome};
 use rsa::pkcs8::DecodePrivateKey as _;
-use rsa::{Pkcs1v15Sign, RsaPrivateKey};
+use rsa::{Pkcs1v15Sign, PrivateKey};
 use serde_json::{Map, Value, json};
 
 use crate::attach::attach_signature_timestamp;
@@ -186,7 +186,7 @@ impl WebCrypto for ScriptedWebCrypto {
                 .and_then(Value::as_str)
                 .unwrap_or("SHA-256");
             let digest = Digest::from_webcrypto(hash).unwrap_or(Digest::Sha256);
-            let private = RsaPrivateKey::from_pkcs8_der(&fixture_key(&fixture, "pkcs8"))
+            let private = PrivateKey::from_pkcs8_der(&fixture_key(&fixture, "pkcs8"))
                 .expect("an RSA fixture key");
             let scheme = match digest {
                 Digest::Sha1 => Pkcs1v15Sign::new::<sha1::Sha1>(),
@@ -994,7 +994,7 @@ pub fn test_cms_over_digest(
         let body: String = pem.lines().filter(|l| !l.starts_with("-----")).collect();
         STANDARD.decode(body).expect("PEM base64")
     };
-    let key = RsaPrivateKey::from_pkcs8_der(&pem_body(private_key_pem)).expect("a PKCS#8 RSA key");
+    let key = PrivateKey::from_pkcs8_der(&pem_body(private_key_pem)).expect("a PKCS#8 RSA key");
     let signer = crate::cms::RawSigner {
         certificate_chain: vec![pem_body(certificate_pem)],
         algorithm: crate::cms::RawAlgorithm::RsaPkcs1,

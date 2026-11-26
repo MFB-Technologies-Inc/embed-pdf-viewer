@@ -212,19 +212,19 @@ its own NuGet cache and a `nuget.config` that serves `EmbedPDF` and `EmbedPDF.*`
 only and everything else from nuget.org, runs it RID-specific and portable, and checks it fails
 with the host or PDFium hidden.
 
-Sizes from CI run 45825062921 at `eb2718c6c` (engine `0.0.0-engine.dc140b58fa617042`, Rust
+Sizes from CI run 45878960809 at `c582ac24f` (engine `0.0.0-engine.5b0a47900f002e9a`, Rust
 1.100.0, SDK 10.0.404), in bytes. Every RID was built and validated on its own native runner; the
 records are under `validation/2026-11-26-phase-6-runtime-<rid>/`.
 
 | RID | Viewer host | PDFium | Validation |
 |---|---|---|---|
-| `linux-arm64` | 29,433,192 | 11,376,920 | native, Debian trixie container |
-| `linux-x64` | 33,654,048 | 11,616,560 | native, Debian trixie container |
-| `osx-arm64` | 28,364,480 | 9,879,008 | native, `macos15 20261118.0550.1` |
-| `osx-x64` | 31,159,312 | 10,659,320 | native, `macos15 20260824.0482.1` |
-| `win-x64` | 45,346,816 | 10,510,848 | native, `win22 20261123.376.1` |
+| `linux-arm64` | 29,433,176 | 11,376,920 | native, Debian trixie container |
+| `linux-x64` | 33,630,128 | 11,616,560 | native, Debian trixie container |
+| `osx-arm64` | 28,380,912 | 9,879,008 | native, `macos15 20261123.0558.1` |
+| `osx-x64` | 31,134,496 | 10,659,320 | native, `macos15 20260824.0482.1` |
+| `win-x64` | 45,327,872 | 10,510,848 | native, `win22 20261123.376.1` |
 
-The five-RID `EmbedPDF.Runtime` nupkg is 96,444,762 bytes.
+The five-RID `EmbedPDF.Runtime` nupkg is 96,450,842 bytes.
 
 ## Plugins
 
@@ -278,11 +278,17 @@ pending, 150 exclusions, each with its reason.
 ## Threading, disposal and arguments
 
 Every call is a `Task`-returning `...Async` method that throws `PdfException` (with `Name`, `Code`
-and `Detail`) and takes a `CancellationToken` last. The token is checked before the call is posted
-to the kernel. Only `OpenAsync(Uri)`, `OpenLayerAsync`, `SaveAsync` and `SaveLayerAsync` cancel
-while running; the rest run to completion once posted, as the Swift calls do. A cancelled call
-throws `OperationCanceledException`, with the kernel's `operation-cancelled` as the inner exception
-when the kernel saw it. Event streams (`ObserveDocumentEvents`, `ObserveStateRevisions`, `ObserveReportedErrors` and each capability's `ObserveEvents`)
+and `Detail`) and takes a `CancellationToken` last. Every call checks the token before it is posted
+to the kernel. A call whose Rust export takes a cancel token also passes yours on: cancelling it
+while the call runs cancels the kernel's token, and the call stops at the engine's next check. That
+covers about 140 call sites (the facade's `CallCancellableAsync` and `RunCancellable`): opening from
+a `Uri`, opening and saving layers, saving, and the long reads and writes of search, render, outline,
+attachment, page edit, metadata, selection, annotation, form, redaction, measurement, stamp and
+signature. The rest run to completion once posted, as the Swift calls do. A cancelled call throws
+`OperationCanceledException`, with the kernel's `operation-cancelled` as the inner exception when the
+kernel saw it. Work that runs on the kernel thread only sees the cancel when it next yields, so
+`RedactionCapability.MarkMatchesAsync` over a whole document can't be cancelled once it runs (see
+[Known gaps](#known-gaps)). Event streams (`ObserveDocumentEvents`, `ObserveStateRevisions`, `ObserveReportedErrors` and each capability's `ObserveEvents`)
 are `IAsyncEnumerable<T>` that subscribe when the method returns, one channel per enumerator.
 Document and plugin events are unbounded, so a reader that stops reading holds every later event;
 state revisions keep the newest one and reported errors the newest 16.
@@ -302,7 +308,10 @@ Your callbacks run on one of two threads, and each interface's remarks say which
 Destroying the kernel needs the kernel thread, so `PdfViewer.Dispose()` from a kernel-thread
 callback throws `InvalidOperationException` instead of deadlocking. `DisposeAsync()` there starts
 disposal and returns a task you may await later; blocking on it with `GetAwaiter().GetResult()`
-throws too, but blocking through `AsTask().Wait()` can't be detected and hangs. A callback that
+throws too, but blocking through `AsTask().Wait()` can't be detected and hangs. The same goes for an
+event stream: blocking on an enumerator's `DisposeAsync()` from a kernel callback (with
+`GetAwaiter().GetResult()` or `.AsTask().Wait()`) can hang, because ending the subscription needs the
+kernel thread; await it instead, or dispose it elsewhere. A callback that
 throws never reaches Rust as a crash: a member with an error type answers the kernel's host error
 with your message, a `bool` member answers `false`, and the rest log through the viewer's `ILogger`
 and drop the exception.

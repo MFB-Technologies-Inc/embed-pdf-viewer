@@ -1,0 +1,113 @@
+public final class com/embedpdf/compose/AttachmentExportDocument {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/embedpdf/compose/AttachmentExportDocument;
+	public static final field MIME_TYPE Ljava/lang/String;
+	public final fun contract ()Landroidx/activity/result/contract/ActivityResultContracts$CreateDocument;
+	public final fun mimeType (Ljava/lang/String;)Ljava/lang/String;
+	public final fun write ([BLandroid/net/Uri;Landroid/content/ContentResolver;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/embedpdf/compose/AttachmentPanelKt {
+	public static final fun AttachmentPanel (Lcom/embedpdf/models/AttachmentModel;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class com/embedpdf/compose/BridgesKt {
+	public static final fun toAnnotationColor-8_81llA (J)Lcom/embedpdf/AnnotationColor;
+	public static final fun toColor (Lcom/embedpdf/AnnotationColor;)J
+	public static final fun toImageBitmap (Lcom/embedpdf/PageImage;)Landroidx/compose/ui/graphics/ImageBitmap;
+}
+
+public final class com/embedpdf/compose/HapticsKt {
+	public static final fun rememberHapticFeedback (Landroidx/compose/runtime/Composer;I)Lcom/embedpdf/HapticFeedback;
+}
+
+public final class com/embedpdf/compose/HistoryControlsKt {
+	public static final fun HistoryControls (Lcom/embedpdf/models/HistoryModel;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class com/embedpdf/compose/ModelStringsKt {
+	public static final fun rememberHistoryStrings (Landroidx/compose/runtime/Composer;I)Lcom/embedpdf/models/HistoryStrings;
+	public static final fun rememberSearchStrings (Landroidx/compose/runtime/Composer;I)Lcom/embedpdf/models/SearchStrings;
+}
+
+public final class com/embedpdf/compose/OutlinePanelKt {
+	public static final fun OutlinePanel (Lcom/embedpdf/models/OutlineModel;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class com/embedpdf/compose/PageImageViewKt {
+	public static final fun PageImageView (Lcom/embedpdf/RenderCapability;Luniffi/epdf_ffi/PageRef;DLandroidx/compose/ui/Modifier;ZJLkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class com/embedpdf/compose/PdfReaderKt {
+	public static final fun PdfReader (Lcom/embedpdf/models/PdfReaderModel;Landroidx/compose/ui/Modifier;Ljava/util/List;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class com/embedpdf/compose/ResourceHistoryStrings : com/embedpdf/models/HistoryStrings {
+	public static final field $stable I
+	public fun <init> (Landroid/content/res/Resources;)V
+	public fun getChange ()Ljava/lang/String;
+	public fun getRedo ()Ljava/lang/String;
+	public fun getUndo ()Ljava/lang/String;
+	public fun notice (Lcom/embedpdf/models/HistoryNotice;)Ljava/lang/String;
+	public fun redoTitle (Ljava/lang/String;)Ljava/lang/String;
+	public fun undoTitle (Ljava/lang/String;)Ljava/lang/String;
+}
+
+public final class com/embedpdf/compose/ResourceSearchStrings : com/embedpdf/models/SearchStrings {
+	public static final field $stable I
+	public fun <init> (Landroid/content/res/Resources;)V
+	public fun searchSummary (IIZ)Ljava/lang/String;
+}
+
+public final class com/embedpdf/compose/ScrollVisibilityKt {
+	public static final fun trackingScrollVisibility (Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function1;)Landroidx/compose/ui/Modifier;
+}
+
+public final class com/embedpdf/compose/SearchBarKt {
+	public static final fun SearchBar (Lcom/embedpdf/models/SearchModel;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class com/embedpdf/compose/SearchHighlightOverlayKt {
+	public static final fun SearchHighlightOverlay-Y6vrc1I (Lcom/embedpdf/models/SearchModel;Luniffi/epdf_ffi/PageRef;Lcom/embedpdf/PageGeometry;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/BlendMode;Landroidx/compose/runtime/Composer;II)V
+	public static final fun SearchHighlightOverlay-Y6vrc1I (Lcom/embedpdf/models/SearchModel;Luniffi/epdf_plugin_stage/StageVisiblePage;Luniffi/epdf_ffi/PageInfo;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/BlendMode;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class com/embedpdf/compose/StageReaderKt {
+	public static final fun StageReader (Lcom/embedpdf/models/StageReaderModel;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class com/embedpdf/compose/TextSelectionActivation : java/lang/Enum {
+	public static final field DRAG Lcom/embedpdf/compose/TextSelectionActivation;
+	public static final field LONG_PRESS Lcom/embedpdf/compose/TextSelectionActivation;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/embedpdf/compose/TextSelectionActivation;
+	public static fun values ()[Lcom/embedpdf/compose/TextSelectionActivation;
+}
+
+public final class com/embedpdf/compose/TextSelectionOverlayKt {
+	public static final fun TextSelectionOverlay-cd68TDI (Lcom/embedpdf/models/TextSelectionModel;Luniffi/epdf_ffi/PageRef;Lcom/embedpdf/PageGeometry;Landroidx/compose/ui/Modifier;Lcom/embedpdf/models/TextSelectionModel$Start;JLcom/embedpdf/compose/TextSelectionActivation;Landroidx/compose/runtime/Composer;II)V
+	public static final fun TextSelectionOverlay-cd68TDI (Lcom/embedpdf/models/TextSelectionModel;Luniffi/epdf_plugin_stage/StageVisiblePage;Luniffi/epdf_ffi/PageInfo;Landroidx/compose/ui/Modifier;Lcom/embedpdf/models/TextSelectionModel$Start;JLcom/embedpdf/compose/TextSelectionActivation;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class com/embedpdf/compose/ThumbnailStripKt {
+	public static final fun ThumbnailStrip (Lcom/embedpdf/models/ThumbnailModel;Ljava/util/List;Luniffi/epdf_ffi/PageRef;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/gestures/Orientation;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class com/embedpdf/compose/TiledPageImageKt {
+	public static final fun TiledPageImage (Lcom/embedpdf/models/TiledPageModel;Luniffi/epdf_ffi/Size;DLuniffi/epdf_ffi/Rect;Landroidx/compose/ui/Modifier;ILkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class com/embedpdf/compose/TiledPagePhase : java/lang/Enum {
+	public static final field BEGAN Lcom/embedpdf/compose/TiledPagePhase;
+	public static final field PAINTED Lcom/embedpdf/compose/TiledPagePhase;
+	public static final field SETTLED Lcom/embedpdf/compose/TiledPagePhase;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/embedpdf/compose/TiledPagePhase;
+	public static fun values ()[Lcom/embedpdf/compose/TiledPagePhase;
+}
+
+public final class com/embedpdf/compose/ToolPickerKt {
+	public static final fun ToolPicker (Lcom/embedpdf/models/ToolModel;Ljava/util/List;Lkotlin/jvm/functions/Function3;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
+	public static final fun toolLabel-eRCDJDM (Ljava/lang/String;Landroidx/compose/runtime/Composer;I)Ljava/lang/String;
+}
+

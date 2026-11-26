@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Every main source in this module is uniffi output. Its JavaLangRefCleaner
+     uses java.lang.ref.Cleaner (API 33) only after Class.forName finds the
+     class, and falls back to JNA's cleaner below that; lint cannot see the
+     guard. -->
+<lint>
+    <issue id="NewApi">
+        <ignore regexp="java\.lang\.ref\.Cleaner" />
+    </issue>
+</lint>

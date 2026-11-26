@@ -4,7 +4,7 @@
   "phase": 1,
   "rid": "linux-arm64",
   "source": {
-    "commit": "eb2718c6c1dffbd62f8f7cb3ad3e9634ce42aaf6",
+    "commit": "c582ac24f3d9922f4680e75a32e5a41d6bd570c1",
     "dirty": false,
     "runtimeFork": "f2ea7597287f26bdcb450602de6616ff6939d506"
   },
@@ -35,26 +35,26 @@
   ],
   "commands": [
     {
-      "command": "/usr/bin/python3 /__w/embed-pdf-viewer/embed-pdf-viewer/platforms/dotnet/packaging/package.py smoke-runtime --rid linux-arm64 --package /__w/embed-pdf-viewer/embed-pdf-viewer/dotnet-runtime/EmbedPDF.Runtime.0.0.0-engine.dc140b58fa617042.nupkg --facade /__w/embed-pdf-viewer/embed-pdf-viewer/dotnet-runtime/EmbedPDF.0.0.0-dotnet.0.nupkg --manifest /__w/embed-pdf-viewer/embed-pdf-viewer/dotnet-runtime/package-manifest.runtime.json",
+      "command": "/usr/bin/python3 /__w/embed-pdf-viewer/embed-pdf-viewer/platforms/dotnet/packaging/package.py smoke-runtime --rid linux-arm64 --package /__w/embed-pdf-viewer/embed-pdf-viewer/dotnet-runtime/EmbedPDF.Runtime.0.0.0-engine.5b0a47900f002e9a.nupkg --facade /__w/embed-pdf-viewer/embed-pdf-viewer/dotnet-runtime/EmbedPDF.0.0.0-dotnet.0.nupkg --manifest /__w/embed-pdf-viewer/embed-pdf-viewer/dotnet-runtime/package-manifest.runtime.json",
       "cwd": "/__w/embed-pdf-viewer/embed-pdf-viewer",
       "exitCode": 0,
-      "results": "  Determining projects to restore...\n  Restored /tmp/epdf-runtime-consumer-pkw_mt6u/Consumer.csproj (in 1.4 sec).\n  Consumer -> /tmp/epdf-runtime-consumer-pkw_mt6u/app-rid/Consumer.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:00.74\nPASS: rid=linux-arm64 pages=14\nNativeRuntimeNotFoundException: rid=linux-arm64: No EmbedPDF native library could be loaded for runtime 'linux-arm64'. Reference EmbedPDF.Runtime, which ships libepdf_viewer_host.so and libembedpdf.so for this runtime, or put both beside the application. Searched: /tmp/epdf-runtime-consumer-pkw_mt6u/app-rid/libepdf_viewer_host.so, /tmp/epdf-runtime-consumer-pkw_mt6u/app-rid/runtimes/linux-arm64/native/libepdf_viewer_host.so.\nNativeRuntimeNotFoundException: rid=linux-arm64: The EmbedPDF native library for runtime 'linux-arm64' was found but failed to load: /tmp/epdf-runtime-consumer-pkw_mt6u/app-rid/libepdf_viewer_host.so. The inner exception has the loader's error.\n  Determining projects to restore...\n  Restored /tmp/epdf-runtime-consumer-pkw_mt6u/Consumer.csproj (in 245 ms).\n  Consumer -> /tmp/epdf-runtime-consumer-pkw_mt6u/app-portable/Consumer.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:01.58\nPASS: rid=linux-arm64 pages=14\nNativeRuntimeNotFoundException: rid=linux-arm64: No EmbedPDF native library could be loaded for runtime 'linux-arm64'. Reference EmbedPDF.Runtime, which ships libepdf_viewer_host.so and libembedpdf.so for this runtime, or put both beside the application. Searched: /tmp/epdf-runtime-consumer-pkw_mt6u/app-portable/libepdf_viewer_host.so, /tmp/epdf-runtime-consumer-pkw_mt6u/app-portable/runtimes/linux-arm64/native/libepdf_viewer_host.so.\nPASS: RID-specific and portable consumers, missing-host and missing-PDFium checks\n"
+      "results": "  Determining projects to restore...\n  Restored /tmp/epdf-runtime-consumer-s0fnqzbl/Consumer.csproj (in 1.52 sec).\n  Consumer -> /tmp/epdf-runtime-consumer-s0fnqzbl/app-rid/Consumer.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:00.95\nPASS: rid=linux-arm64 pages=14\nNativeRuntimeNotFoundException: rid=linux-arm64: No EmbedPDF native library could be loaded for runtime 'linux-arm64'. Reference EmbedPDF.Runtime, which ships libepdf_viewer_host.so and libembedpdf.so for this runtime, or put both beside the application. Searched: /tmp/epdf-runtime-consumer-s0fnqzbl/app-rid/libepdf_viewer_host.so, /tmp/epdf-runtime-consumer-s0fnqzbl/app-rid/runtimes/linux-arm64/native/libepdf_viewer_host.so.\nNativeRuntimeNotFoundException: rid=linux-arm64: The EmbedPDF native library for runtime 'linux-arm64' was found but failed to load: /tmp/epdf-runtime-consumer-s0fnqzbl/app-rid/libepdf_viewer_host.so. The inner exception has the loader's error.\n  Determining projects to restore...\n  Restored /tmp/epdf-runtime-consumer-s0fnqzbl/Consumer.csproj (in 280 ms).\n  Consumer -> /tmp/epdf-runtime-consumer-s0fnqzbl/app-portable/Consumer.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:02.35\nPASS: rid=linux-arm64 pages=14\nNativeRuntimeNotFoundException: rid=linux-arm64: No EmbedPDF native library could be loaded for runtime 'linux-arm64'. Reference EmbedPDF.Runtime, which ships libepdf_viewer_host.so and libembedpdf.so for this runtime, or put both beside the application. Searched: /tmp/epdf-runtime-consumer-s0fnqzbl/app-portable/libepdf_viewer_host.so, /tmp/epdf-runtime-consumer-s0fnqzbl/app-portable/runtimes/linux-arm64/native/libepdf_viewer_host.so.\nPASS: RID-specific and portable consumers, missing-host and missing-PDFium checks\n"
     }
   ],
   "artifacts": [
     {
-      "path": "dotnet-runtime/EmbedPDF.Runtime.0.0.0-engine.dc140b58fa617042.nupkg",
-      "sha256": "83bc37e03377fe51ce493e27ecc8c43ac8be104f86760abe0d156ef1bdb891de",
-      "bytes": 96444762
+      "path": "dotnet-runtime/EmbedPDF.Runtime.0.0.0-engine.5b0a47900f002e9a.nupkg",
+      "sha256": "09cffa1e3d8931d67d79b301a9d881bb65de222cb41331ff6410d706e75d1565",
+      "bytes": 96450842
     },
     {
       "path": "dotnet-runtime/EmbedPDF.0.0.0-dotnet.0.nupkg",
-      "sha256": "b9b0ee766be110513748314e4fd682f166f23db4495dfda3590a6c5366be097e",
-      "bytes": 1900295
+      "sha256": "02654778c1c4ff1bf8e8f7aab1728650b1e0fc1a6dc0ecd3ac5146ca625dfa04",
+      "bytes": 1900659
     },
     {
       "path": "dotnet-runtime/package-manifest.runtime.json",
-      "sha256": "2d1dbf3eaa41c4792f5c417b9422fb494d17b8bd99c2f0a8e22b0bca4a28fe87",
+      "sha256": "e6f41ddf0365933357c0462ebc21db47cb3d732263b44353c50f9142fd371fd8",
       "bytes": 6839
     }
   ],

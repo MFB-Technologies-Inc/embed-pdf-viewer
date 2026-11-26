@@ -55,7 +55,7 @@ cat >"$fake/gh" <<FAKE
 echo "gh \$*" >>"$TMP/calls"
 case "\$1 \$2" in
   "release view") echo "release not found" >&2; exit 1 ;;
-  "api "*) echo "[]" ;;
+  "api "*) if [[ -n "\${FAKE_TAG:-}" ]]; then echo "[{\\"ref\\":\\"refs/tags/$V\\",\\"object\\":{\\"type\\":\\"commit\\",\\"sha\\":\\"\$FAKE_TAG\\"}}]"; else echo "[]"; fi ;;
   *) exit 0 ;;
 esac
 FAKE
@@ -97,6 +97,12 @@ expect_output "the release is printed" "would run gh release create $V"
 expect_output "the tag is printed" "would run git tag $V $SHA"
 grep -q "nuget push" "$TMP/calls" 2>/dev/null && fail "a dry run calls dotnet nuget push" || pass "a dry run calls no push"
 [[ -s "$TMP/good/EmbedPDF.$V.nupkg.sha256" ]] && pass "checksums are written" || fail "checksums are written"
+
+# A tag left with no release stops the run before any package is pushed.
+rm -f "$TMP/calls"
+FAKE_TAG=$(printf 'b%.0s' {1..40}) expect_exit "a stray tag stops the run" 1 bash "$S" "$TMP/good" "$V" "$SHA"
+expect_output "the stray tag is named" "tag $V already exists"
+grep -q "nuget push" "$TMP/calls" 2>/dev/null && fail "a stray tag still pushed packages" || pass "a stray tag pushes nothing"
 
 mkdir -p "$TMP/notes"
 rm -f "$TMP/calls"

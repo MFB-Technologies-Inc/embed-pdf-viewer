@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
-"""Check a reviewed platform API inventory against Rust and platform source changes.
+"""Check a platform's reviewed API inventory against Rust and platform source changes.
 
---platform swift checks platforms/apple/swift-api-coverage.json exactly as
-platforms/apple/check-swift-api-coverage.py does. --platform csharp checks
-platforms/dotnet/csharp-api-coverage.json against the public members of the
-built EmbedPDF assemblies, which platforms/dotnet/tools/EmbedPDF.ApiDump lists.
+`--platform swift` checks platforms/apple/swift-api-coverage.json against the
+Rust capability inventory and the Swift sources. `--platform kotlin` checks
+platforms/android/kotlin-api-coverage.json, which lists the Swift manifest's
+members, against the Kotlin sources; a member a later phase ports is `pending`
+with that phase's name and passes until then. `--platform csharp` checks
+platforms/dotnet/csharp-api-coverage.json against the Rust inventory and the
+public members of the built EmbedPDF assemblies, which
+platforms/dotnet/tools/EmbedPDF.ApiDump lists.
 """
 import argparse
 import json
@@ -93,7 +97,7 @@ def swift_matches(source, target):
     return False
 
 
-def validate_swift(root, manifest, discovered, allow_pending=False):
+def validate(root, manifest, discovered, allow_pending=False):
     errors = []
     entries = {key(member): member for member in manifest['members']}
     if len(entries) != len(manifest['members']):
@@ -136,6 +140,55 @@ def validate_swift(root, manifest, discovered, allow_pending=False):
     if (root / 'crates/epdf-kernel/src').exists() and kernel.get('kind') != 'core':
         errors.append('kernel coverage must explicitly classify core and internal resources')
     return errors
+
+
+KOTLIN_SOURCES = 'platforms/android/embedpdf/'
+PENDING = re.compile(r'phase-\d+(?:-[a-z0-9]+)?')
+
+
+def kotlin_matches(source, symbol):
+    """A public `fun`, `val` or `var` named `symbol`, extension receivers and modifiers allowed."""
+    return re.search(
+        r'\bpublic\s+(?:(?:suspend|override|operator|inline|infix)\s+)*(?:fun|val|var)\s+'
+        r'(?:<[^>]*>\s*)?(?:[\w.<>?, ]+\.)?`?' + re.escape(symbol) + r'`?\s*[(:=<]', source) is not None
+
+
+def validate_kotlin(root, manifest, reference):
+    """Errors in `manifest`, the Kotlin manifest, measured against `reference`, the Swift one."""
+    errors = []
+    entries = {key(member): member for member in manifest['members']}
+    if len(entries) != len(manifest['members']):
+        errors.append('duplicate manifest member')
+    expected = {key(member): member for member in reference['members']}
+    for identity in expected.keys() - entries.keys():
+        errors.append(f'member missing from the Kotlin manifest: {identity}')
+    for identity in entries.keys() - expected.keys():
+        errors.append(f'member not in the Swift manifest: {identity}')
+    for identity, member in entries.items():
+        swift = expected.get(identity)
+        if swift is not None and bool(member.get('exclusion')) != bool(swift.get('exclusion')):
+            errors.append(f'exclusion differs from the Swift manifest: {identity}')
+        if member.get('exclusion'):
+            continue
+        if member.get('pending'):
+            if not PENDING.fullmatch(member['pending']):
+                errors.append(f"pending is not a phase name: {identity}: {member['pending']}")
+            continue
+        for mapping in [member] + member.get('overloads', []):
+            target = mapping.get('kotlin')
+            if not target:
+                errors.append(f'incomplete mapping: {identity}')
+                continue
+            path = root / target['path']
+            if not target['path'].startswith(KOTLIN_SOURCES) or '/src/main/kotlin/' not in target['path']:
+                errors.append(f'Kotlin path outside a module\'s main sources: {target}')
+            elif not (path.exists() and kotlin_matches(path.read_text(), target['symbol'])):
+                errors.append(f'missing Kotlin: {target}')
+    return errors
+
+
+# The Swift check's name before the Kotlin check joined this script.
+validate_swift = validate
 
 
 # The Phase 3 wave that ports each plugin crate's capability
@@ -226,16 +279,35 @@ def dump_csharp_members(root):
         raise SystemExit(f'EmbedPDF.ApiDump failed:\n{result.stdout}{result.stderr}')
     return json.loads(result.stdout)
 
-
-def main_swift(args):
-    manifest = json.loads((ROOT / 'platforms/apple/swift-api-coverage.json').read_text())
-    errors = validate_swift(ROOT, manifest, inventory(ROOT), args.allow_pending)
+def main(platform=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    if platform is None:
+        parser.add_argument('--platform', choices=['swift', 'kotlin', 'csharp'], required=True)
+    parser.add_argument('--allow-pending', action='store_true', help='swift: during implementation only')
+    if platform in (None, 'csharp'):
+        parser.add_argument('--members', help='csharp: a JSON file from EmbedPDF.ApiDump, instead of building it')
+    args = parser.parse_args()
+    platform = platform or args.platform
+    if platform == 'csharp':
+        return main_csharp(args)
+    swift_manifest = json.loads((ROOT / 'platforms/apple/swift-api-coverage.json').read_text())
+    if platform == 'kotlin':
+        manifest = json.loads((ROOT / 'platforms/android/kotlin-api-coverage.json').read_text())
+        errors = validate_kotlin(ROOT, manifest, swift_manifest)
+    else:
+        manifest = swift_manifest
+        errors = validate(ROOT, manifest, inventory(ROOT), args.allow_pending)
     for error in errors:
         print(error, file=sys.stderr)
     if errors:
         return 1
     mapped = sum(not member.get('exclusion') for member in manifest['members'])
     excluded = len(manifest['members']) - mapped
+    if platform == 'kotlin':
+        pending = sum(bool(member.get('pending')) for member in manifest['members'])
+        print(f"Kotlin API accounting: {len(manifest['members'])} members of the Swift manifest "
+              f"({mapped - pending} ported, {pending} pending, {excluded} exclusions).")
+        return 0
     print(f"Swift API accounting: {len(manifest['crates'])} plugin-directory crates + kernel, "
           f"{len(manifest['members'])} members ({mapped} mapped, {excluded} exclusions). "
           "Counts describe accounting, not implementation parity.")
@@ -257,16 +329,6 @@ def main_csharp(args):
     excluded = sum(bool(member.get('exclusion')) for member in members)
     print(f'C# API accounting: {len(members)} members ({ported} ported, {pending} pending, {excluded} exclusions).')
     return 0
-
-
-def main():
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument('--platform', choices=['swift', 'csharp'], required=True)
-    parser.add_argument('--allow-pending', action='store_true', help='swift: during implementation only')
-    parser.add_argument('--members', help='csharp: a JSON file from EmbedPDF.ApiDump, instead of building it')
-    args = parser.parse_args()
-    return main_swift(args) if args.platform == 'swift' else main_csharp(args)
-
 
 if __name__ == '__main__':
     sys.exit(main())

@@ -25,7 +25,7 @@ use epdf_signature_core::timestamp::{
 use epdf_signature_core::{CmsSigner, Digest, Profile, SignerPort, der, profile_for, sign};
 use rsa::pkcs8::DecodePrivateKey as _;
 use rsa::traits::PublicKeyParts as _;
-use rsa::{Pkcs1v15Sign, RsaPrivateKey};
+use rsa::{Pkcs1v15Sign, PrivateKey};
 use serde_json::{Map, Value, json};
 
 fn fixture(section: &str, name: &str, part: Option<&str>) -> Vec<u8> {
@@ -41,8 +41,8 @@ fn fixture(section: &str, name: &str, part: Option<&str>) -> Vec<u8> {
     STANDARD.decode(value.as_str().unwrap()).unwrap()
 }
 
-fn leaf_key() -> RsaPrivateKey {
-    RsaPrivateKey::from_pkcs8_der(&fixture("keys", "leaf", Some("pkcs8"))).unwrap()
+fn leaf_key() -> PrivateKey {
+    PrivateKey::from_pkcs8_der(&fixture("keys", "leaf", Some("pkcs8"))).unwrap()
 }
 
 fn pkcs1_sha256(data: &[u8]) -> Vec<u8> {
@@ -88,9 +88,9 @@ impl WebCrypto for LeafCrypto {
 
     fn export_jwk(&self, _: &CryptoKey) -> Promise<Value> {
         let key = leaf_key();
-        let b64 = |b: Vec<u8>| URL_SAFE_NO_PAD.encode(b);
+        let b64 = |b: Box<[u8]>| URL_SAFE_NO_PAD.encode(b);
         Promise::resolved(
-            json!({ "kty": "RSA", "n": b64(key.n().to_bytes_be()), "e": b64(key.e().to_bytes_be()) }),
+            json!({ "kty": "RSA", "n": b64(key.n().to_be_bytes_trimmed_vartime()), "e": b64(key.e().to_be_bytes_trimmed_vartime()) }),
         )
     }
 

@@ -451,7 +451,9 @@ jobs:
           grep -q '^rendered ' "$G/run.log"
 
       # The .sha256 line is written here rather than by sha256sum, whose
-      # Windows build marks the name binary (`*name`).
+      # Windows build marks the name binary (`*name`). The hash reads stdin:
+      # given a name with a backslash, as GITHUB_WORKSPACE has on Windows,
+      # sha256sum escapes the line and starts the hash with `\`.
       - name: Collect the release assets
         run: |
           R=$GITHUB_WORKSPACE/dotnet-release
@@ -459,10 +461,11 @@ jobs:
           mkdir -p "$R"
           cp "$OUT/pack/$PACKAGE.nupkg" "$R/$nupkg"
           if command -v sha256sum >/dev/null 2>&1; then
-            sha=$(sha256sum "$R/$nupkg" | cut -d' ' -f1)
+            sha=$(sha256sum < "$R/$nupkg" | cut -d' ' -f1)
           else
-            sha=$(shasum -a 256 "$R/$nupkg" | cut -d' ' -f1)
+            sha=$(shasum -a 256 < "$R/$nupkg" | cut -d' ' -f1)
           fi
+          [[ "$sha" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::not a SHA-256: '$sha'"; exit 1; }
           bytes=$(wc -c < "$R/$nupkg" | tr -d ' ')
           printf '%s  %s\n' "$sha" "$nupkg" > "$R/$nupkg.sha256"
           cp "$OUT/pack/package-manifest.$RID.json" "$R/$PACKAGE.$RID.provenance.json"
@@ -1015,7 +1018,7 @@ jobs:
   viewer-release-preview:
     needs: [runtime-pack, runtime-record]
     if: inputs.preview && inputs.dotnet_version != ''
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: read

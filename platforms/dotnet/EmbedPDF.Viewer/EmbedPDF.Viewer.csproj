@@ -16,7 +16,7 @@
     <PackageId>EmbedPDF</PackageId>
     <Version>0.0.0-local</Version>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <Description>PDF viewer core over the EmbedPDF Rust engine. Early skeleton: loads the native viewer host from EmbedPDF.Runtime.</Description>
+    <Description>PDF viewer for .NET over the EmbedPDF Rust engine: open, render, search, annotate, fill forms, redact, measure, stamp and sign, with every viewer plugin as a typed capability. The native library comes from EmbedPDF.Runtime.</Description>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
   <ItemGroup>

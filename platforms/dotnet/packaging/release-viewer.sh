@@ -25,7 +25,8 @@
 # packages already pushed, as github-release.sh skips a complete release.
 #
 # Exit 64: bad arguments. 66: a package or the manifest is missing. 1: a package
-# fails its checks, or a push or the release fails.
+# fails its checks, the tag or release is in a state github-release.sh check
+# refuses, or a push or the release fails.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -86,6 +87,13 @@ for path in map(Path, packages):
     Path(f"{path}.sha256").write_text(f"{digest}  {path.name}\n")
     print(f"{path.name}: {digest}")
 PY
+
+# The tag and release first, as preflight checks them: a draft, a partial
+# release or a tag with no release stops here, before anything reaches the feed.
+names=()
+for package in "${packages[@]}"; do names+=("${package##*/}" "${package##*/}.sha256"); done
+state=$(bash "$ROOT/scripts/release/github-release.sh" check "$version" "${names[@]}" "${manifest##*/}")
+echo "release $version on $GH_REPO: $state"
 
 feed="https://nuget.pkg.github.com/${GH_REPO%%/*}/index.json"
 for package in "${packages[@]}"; do

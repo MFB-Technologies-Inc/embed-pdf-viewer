@@ -14,7 +14,7 @@
     <PackageId>EmbedPDF.Scripting.Jint</PackageId>
     <Version>0.0.0-local</Version>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <Description>Runs EmbedPDF document JavaScript in Jint, with time, memory and call depth limits and no access to .NET types.</Description>
+    <Description>Runs EmbedPDF document JavaScript in Jint, with time, memory and stack limits and no access to .NET types.</Description>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
   <ItemGroup>

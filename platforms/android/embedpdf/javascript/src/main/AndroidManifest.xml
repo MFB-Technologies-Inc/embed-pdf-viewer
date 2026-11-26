@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The JavaScript sandbox library declares minSdk 26 and this library 24.
+  JavaScriptSandboxEngineFactory reports JavaScript unavailable below 26
+  rather than touching the library there.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-sdk tools:overrideLibrary="androidx.javascriptengine" />
+</manifest>

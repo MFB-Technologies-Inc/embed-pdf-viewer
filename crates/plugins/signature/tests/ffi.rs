@@ -306,7 +306,7 @@ use epdf_plugin_signature::ffi::{
     SignatureSignInput, SignatureSigner, SignatureSignerInput,
 };
 use rsa::pkcs8::DecodePrivateKey;
-use rsa::{Pkcs1v15Sign, RsaPrivateKey};
+use rsa::{Pkcs1v15Sign, PrivateKey};
 use sha2::Digest as _;
 
 const KEYS: &str = "packages/engine/main/test/fixtures/signature-compat/keys";
@@ -324,14 +324,14 @@ fn pem_body(pem: &[u8]) -> Vec<u8> {
 }
 
 struct TestSigner {
-    key: RsaPrivateKey,
+    key: PrivateKey,
     chain: Vec<Vec<u8>>,
     fail: bool,
 }
 
 impl TestSigner {
     fn load(fail: bool) -> Self {
-        let key = RsaPrivateKey::from_pkcs8_der(&pem_body(&repo_file(&format!(
+        let key = PrivateKey::from_pkcs8_der(&pem_body(&repo_file(&format!(
             "{KEYS}/TEST-ONLY-private-key.pem"
         ))))
         .unwrap();

@@ -1342,7 +1342,7 @@ All five RIDs are `VALIDATED` at `0.0.0-engine.dc140b58fa617042`; those records 
 ones under `platforms/dotnet/validation/2026-11-26-phase-6-runtime-<rid>/` (`b194bbb47`). The NativeAOT
 sample ran on `linux-arm64` (executable 18,705,768 bytes, publish directory 106,866,467) and `linux-x64`
 (18,230,472 and 101,204,461) with the same six Jint warnings; `osx-arm64` and `win-x64` ran
-framework-dependent. The preview printed the five pushes to `https://nuget.pkg.github.com/MFB-Technologies-Inc/index.json`
+framework-dependent. The preview printed the five pushes to `https://nuget.pkg.github.com/<owner>/index.json`
 in dependency order, `git tag 0.0.0-dotnet.0 <sha>`, `git push origin refs/tags/0.0.0-dotnet.0` and
 `gh release create 0.0.0-dotnet.0` with eleven assets, and warned that `docs/releases/0.0.0-dotnet.0.md`
 is missing, which a real run would stop on.
@@ -1352,6 +1352,56 @@ and `SecurityTests.swift` are ported as `ApiCoverageTests` (5), `EditingWorkflow
 `SecurityTests` (4) in `EmbedPDF.Viewer.Tests` (`c1d00ede2`, `aa92b7b05`, `a3757d1a1`). All 16 passed on
 their first run against the facade as it stood, so no bug turned up. `EmbedPDF.Viewer.Tests` then runs
 1,141, 1,137 passing and 4 skipped; `EmbedPDF.Models.Tests` 164, 163 passing and 1 skipped.
+
+Final review fixes and the second merge (2026-11-26):
+
+- The train's `dotnet:` call granted no permissions, and `viewer-release-preview` asks for
+  `packages: read`. A called job may ask for no more than its caller job grants, whether or not it
+  runs, so every `release-train.yml` dispatch would have failed at startup. The call now grants
+  `contents: read` and `packages: read`, and `check-release-gate.py` flags a called job asking for a
+  permission its caller doesn't grant (`d07e127b3`, with a gate test).
+- `origin/research/multi-platform-rust-core-impl-plugins` at `d8de5874d` (137 commits, Android
+  parity among them) is merged in at `3b80a57a5`. `Cargo.lock` takes that branch and adds back the C#
+  generator wrapper's packages with no existing version changed. `scripts/check-api-coverage.py` is
+  one script for `--platform swift`, `kotlin` and `csharp`; Swift and Kotlin output is byte-identical
+  to that branch's script, and `platforms/apple/check-swift-api-coverage.py` is its wrapper. The
+  Swift check still reports the branch's own inventory drift (`settings_revision`, `remeasure_page`);
+  the C# manifest already matched the new inventory. The host was rebuilt, the bindings regenerated,
+  and the engine re-pinned to `0.0.0-engine.2e7fdf92c64b1092` (`42734fceb`). A stale link in the
+  shared target pointed the host's RUNPATH into another checkout; `cargo clean -p epdf-viewer-host`
+  fixed it, and is the thing to try when every test fails to load `libembedpdf.so`.
+- `release-viewer.sh` runs `github-release.sh check` before it pushes, so a draft, partial release or
+  stray tag stops the run before anything reaches the feed (`6b3c947c8`; its test checks a stray tag pushes
+  nothing). `viewer-release-preview` runs on `ubuntu-26.04`, the train's image. The README says which
+  calls cancel mid-call (every call whose Rust export takes a cancel token, about 140 sites) and that
+  blocking on a stream enumerator's `DisposeAsync` from a kernel callback can hang. The facade's
+  package description no longer says "early skeleton", and the Jint package's no longer names a call
+  depth limit.
+- `release-fork-slices.yml` installs `libatomic1` and `libstdc++6`: the plugins branch's Node 26 bump
+  left `setup-node` failing with exit 127 in `debian:trixie`, so the train failed at its fork slices
+  (run 45860472875, cancelled) before reaching the .NET path (`979fd3998`).
+
+| Run | Workflow | Head | Result |
+|---|---|---|---|
+| 45853424872 | `release-dotnet.yml` | `42734fceb` | all 21 jobs passed after one re-run of `consumer (osx-arm64)`, whose first attempt failed the sample's `script` step with "The script sandbox has been disposed": the Jint boot ran past its time budget on a cold runner and poisoned the realm. The re-run passed; nothing changed |
+| 45860837730 | `release-train.yml`, `dry_run=true`, `swift_version=0.0.0-swift.10`, `viewer_version=0.0.0-preview.5`, `dotnet_version=0.0.0-dotnet.0` | `979fd3998` | The train started and ran every build and test job, `summarize` and `approve`. `release dotnet viewer` passed: it checked the five packages, found release `0.0.0-dotnet.0` absent, and printed the five pushes in order, the tag, the release and the missing-notes warning. `release dotnet` (the `EmbedPDF.Engine` release) failed: the win-x64 `.sha256` asset began with a backslash, because `sha256sum` escapes a line whose file name has one and `GITHUB_WORKSPACE` on Windows does. Fixed in `8cf87c121` by hashing from stdin |
+| 45870444350 | `release-dotnet.yml` | `8cf87c121` | every engine `.sha256` asset passed `sha256sum -c`, win-x64 included; `runtime slice (win-x64)` failed fetching the PDFium archive (HTTP 504), and the run was cancelled once the pin moved again |
+| 45875026242 | `release-dotnet.yml` | `136f5d8bd` | `runtime-pack` failed in `RedactionTests.ALabelAndTheSettingsRoundTrip`: the pending count read 1 just after `ApplyAsync`. Fixed in `c582ac24f` |
+| 45878960809 | `release-dotnet.yml` | `c582ac24f` | all 21 jobs passed; its records are the current ones |
+| 45884429305 | `release-train.yml`, `dry_run=true`, `dotnet_version=0.0.0-dotnet.0` | `b0c22eb24` | every `release-dotnet.yml` job passed inside the train, but `release-android.yml (build) / build` failed its Kotlin unit tests twice with different tests (`PdfViewerViewModelTest.clearingWhileTheStartIsInFlightDestroysTheViewer`, then `OutlinePanelTest.addingABookmarkThroughTheFormShowsItsRow`), so `summarize`, `approve` and the release jobs were skipped. The dry-run `release dotnet viewer` path last ran in 45860837730 |
+
+Android release merge (2026-11-26). The plugins branch gained the Android release work (`17bd82627`).
+A pre-resolved merge, `research/dotnet-parity-p6-sync` at `8fa938fdf` (p6 at `979fd3998` merged with
+`9790877d2`, the same tree as `17bd82627`), was reviewed and merged in at `6efbe0477`, then `17bd82627`
+itself at `793584b89` with no change. Its resolutions keep both sides: the train's .NET and Android
+inputs, jobs and summaries; `publish-staged.sh` beside `dotnet nuget push` and `release-viewer.sh` in
+the gate; both release-notes paragraphs; `Cargo.lock` with `smallvec` 1.16.2 for the generator. One
+slip is fixed in `b1d76569b`: two gate tests shared the name `test_packages_write_counts_as_writing`, so
+the called-job case was silently replaced. The engine moved to `0.0.0-engine.5b0a47900f002e9a`
+(`136f5d8bd`).
+
+The records from the last green `release-dotnet.yml` run replace the earlier ones under `platforms/dotnet/validation/2026-11-26-phase-6-runtime-<rid>/`
+(`91397ade5`).
 
 Swift test files and their C# counterparts (Definition of done):
 

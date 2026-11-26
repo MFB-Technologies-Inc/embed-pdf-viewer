@@ -18,6 +18,13 @@ ARG BINARYEN_SHA256_ARM64=89c07ea56faf38d0fbecf36ca8ec0721756716185f265b568e133d
 # Google publishes SHA-1 (87e2bb7e9be5d6a1c6cdf5ec40dd4e0c6d07c30b); this SHA-256 was taken
 # from an archive that matched it.
 ARG NDK_SHA256=4abbbcdc842f3d4879206e9695d52709603e52dd68d3c1fff04b3b5e7a308ecf
+# Android SDK command-line tools 23.0. The vendor publishes SHA-1
+# (e025545c62a8e64c7559119566a569fb1dec5f60); this SHA-256 was taken from an archive
+# that matched it.
+ARG ANDROID_CMDLINE_TOOLS_BUILD=16111833
+ARG ANDROID_CMDLINE_TOOLS_SHA256=0877a1d048fe4a24efe2eff536ca4223f7adeb58648bb81909d33c446918cfa8
+ARG ANDROID_PLATFORM=android-36
+ARG ANDROID_BUILD_TOOLS=36.0.0
 # Must equal the version and SHA512 in .github/workflows/release-dotnet.yml.
 # renovate: datasource=dotnet-version depName=dotnet-sdk
 ARG DOTNET_SDK_VERSION=10.0.404
@@ -85,6 +92,33 @@ RUN if [ "$TARGETARCH" = amd64 ]; then \
       echo 'Android NDK omitted: Google does not provide a Linux ARM64 host toolchain.'; \
     fi
 
+# JDK 21 runs Gradle and the JVM tests of platforms/android; the Android SDK, like the
+# NDK, has Linux host binaries only for x86-64. sdkmanager fetches the platform and
+# build-tools packages, which sdkmanager verifies against the vendor's repository manifest.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openjdk-21-jdk-headless \
+    && rm -rf /var/lib/apt/lists/* \
+    && if [ "$TARGETARCH" = amd64 ]; then \
+      curl -fsSL --retry 3 \
+        "https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_CMDLINE_TOOLS_BUILD}_latest.zip" \
+        -o /tmp/cmdline-tools.zip \
+    && echo "$ANDROID_CMDLINE_TOOLS_SHA256  /tmp/cmdline-tools.zip" | sha256sum -c - \
+    && mkdir -p /opt/android-sdk/cmdline-tools \
+    && unzip -q /tmp/cmdline-tools.zip -d /tmp/cmdline-tools \
+    && mv /tmp/cmdline-tools/cmdline-tools /opt/android-sdk/cmdline-tools/latest \
+    && rm -rf /tmp/cmdline-tools /tmp/cmdline-tools.zip \
+    && (yes | /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/opt/android-sdk --licenses > /dev/null || true) \
+    && /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/opt/android-sdk \
+      "platforms;${ANDROID_PLATFORM}" "build-tools;${ANDROID_BUILD_TOOLS}" platform-tools \
+    && test -x "/opt/android-sdk/build-tools/${ANDROID_BUILD_TOOLS}/zipalign" \
+    && chown -R node:node /opt/android-sdk \
+    && printf '%s\n' \
+      'export PATH="/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:$PATH"' \
+      > /etc/profile.d/android.sh; \
+    else \
+      echo 'Android SDK omitted: upstream does not provide Linux ARM64 host build tools.'; \
+    fi
+
 # SHA512 values from Microsoft's .NET 10 release metadata, matched to this SDK.
 RUN case "$TARGETARCH" in \
       amd64) dotnet_arch=x64; dotnet_sha512=577d0eb17fec33d029104c5c63a1ab0accc3e28776274abef2218dbac5af18d2109b5406d26b31d76f5c245215e3ba0926a94c20246c672c41847c9e1eb1dc50 ;; \
@@ -115,6 +149,8 @@ ENV EMBEDPDF_REPOSITORY=https://github.com/MFB-Technologies-Inc/embed-pdf-viewer
     EM_CONFIG=/opt/emsdk/.emscripten \
     EMSDK_EH=/opt/emsdk-eh \
     ANDROID_NDK_HOME=/opt/android-ndk-r29 \
+    ANDROID_HOME=/opt/android-sdk \
+    JAVA_HOME=/usr/lib/jvm/java-21-openjdk-${TARGETARCH} \
     DOTNET_ROOT=/opt/dotnet \
     DOTNET_CLI_TELEMETRY_OPTOUT=1 \
     DOTNET_NOLOGO=1 \

@@ -1,0 +1,181 @@
+name: android-release
+
+# Releases the Android package alone, without the rest of the release train:
+# the same release-android.yml the train calls, between the same two slices
+# and the same one approval. Use it for an Android-only release; the train
+# (release-train.yml with an android_version) releases it beside everything
+# else.
+#
+#   preflight        runs scripts/release/check-release-gate.py on this file,
+#                    checks the inputs, and on a real run that the dispatch
+#                    came from a branch, that the release environment has a
+#                    required-reviewers rule, that the notes exist and that
+#                    the release isn't out already (a complete one is skipped
+#                    by the release job).
+#   slices           release-fork-slices.yml for android-arm64 and android-x64.
+#   android          release-android.yml stage build: the AAR, its checks,
+#                    the staged repository and the zip.
+#   approve          the one approval, under the release environment; none on
+#                    a dry run.
+#   android-publish  release-android.yml stage publish: the prerelease
+#                    <version> of this repository with
+#                    embedpdf-android-maven-<version>.zip and its .sha256, and
+#                    with a packages_repository the GitHub Packages upload.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version of embedpdf, embedpdf-javascript, embedpdf-models and embedpdf-compose, and the release tag, 0.0.0-android.<n>. docs/releases/<version>.md holds its notes.
+        required: true
+        type: string
+      packages_repository:
+        description: owner/repo whose GitHub Packages Maven registry also receives the artifacts. Empty releases the zip only.
+        required: false
+        type: string
+        default: ''
+      dry_run:
+        description: Build and check everything, print the release and upload commands instead of running them.
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  preflight:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      # GET repos/{repo}/environments/{name} needs actions: read.
+      actions: read
+    env:
+      VERSION: ${{ inputs.version }}
+      PACKAGES_REPOSITORY: ${{ inputs.packages_repository }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      REF_TYPE: ${{ github.ref_type }}
+      REF_NAME: ${{ github.ref_name }}
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Check the release gate
+        run: python3 scripts/release/check-release-gate.py .github/workflows/android-release.yml
+
+      - name: Check the inputs
+        run: |
+          status=0
+          err() { echo "::error::$*"; status=1; }
+          if [[ "$DRY_RUN" == true ]]; then soft() { echo "::warning::$*"; }; else soft() { err "$@"; }; fi
+          [[ "$VERSION" =~ ^0\.0\.0-android\.[0-9]+$ ]] || err "version must look like 0.0.0-android.1, got '$VERSION'"
+          if [[ -n "$PACKAGES_REPOSITORY" && ! "$PACKAGES_REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+            err "packages_repository must be owner/repo, got '$PACKAGES_REPOSITORY'"
+          fi
+          # A release names the branch it was built from; a tag or a pull
+          # request ref is not one.
+          [[ "$DRY_RUN" == true || "$REF_TYPE" == branch ]] || err "dispatch a real run from a branch, not the $REF_TYPE $REF_NAME"
+          [[ -s "docs/releases/$VERSION.md" ]] || soft "no release notes at docs/releases/$VERSION.md; write them and commit before dispatching"
+          engine=$(bash platforms/android/android-engine-hash.sh)
+          grep -qxF "embedpdf.engineRelease=android-engine-$engine" platforms/android/embedpdf/gradle.properties \
+            || soft "platforms/android/embedpdf/gradle.properties doesn't pin android-engine-$engine, the engine this tree builds; commit the pin before dispatching"
+          exit "$status"
+
+      # The release environment's reviewers are the only gate before publish.
+      # A job that names a missing environment makes it with no rules, so
+      # android-publish would run unapproved. A dry run names no environment.
+      - name: Check the release environment
+        run: |
+          if [[ "$DRY_RUN" == true ]]; then
+            echo "dry run: not checking the release environment's reviewers"
+            exit 0
+          fi
+          if ! env_json=$(gh api "repos/$GH_REPO/environments/release" 2>&1); then
+            echo "::error::couldn't read the release environment on $GH_REPO; create it with a required-reviewers rule before a real run: $(tr '\n' ' ' <<<"$env_json")"
+            exit 1
+          fi
+          reviewers=$(jq '[.protection_rules[]? | select(.type == "required_reviewers")] | length' <<<"$env_json")
+          if [[ "$reviewers" -eq 0 ]]; then
+            echo "::error::the release environment on $GH_REPO has no required-reviewers rule; add one before a real run"
+            exit 1
+          fi
+          echo "release environment: $reviewers required-reviewers rule(s)"
+
+      # A tag with no release, a draft or a partial release stops a real run
+      # here and is a warning on a dry run.
+      - name: Check the release
+        run: |
+          zip=embedpdf-android-maven-$VERSION.zip
+          if state=$(bash scripts/release/github-release.sh check "$VERSION" "$zip" "$zip.sha256" 2>&1); then
+            echo "$VERSION: $state"
+          elif [[ "$DRY_RUN" == true ]]; then
+            echo "::warning::${state//::error::/}"
+          else
+            echo "$state"
+            exit 1
+          fi
+
+  slices:
+    name: release-fork-slices.yml (android)
+    uses: ./.github/workflows/release-fork-slices.yml
+    with:
+      targets: '["android-arm64","android-x64"]'
+
+  # The call grants what the workflow's release and packages jobs ask for in
+  # stage publish; GitHub holds a called workflow's job permissions to its
+  # caller's whether or not the job runs. This stage's build job asks for
+  # contents: read and packages: read.
+  android:
+    name: release-android.yml (build)
+    needs: [preflight, slices]
+    uses: ./.github/workflows/release-android.yml
+    permissions:
+      contents: write
+      packages: write
+    with:
+      version: ${{ inputs.version }}
+      packages_repository: ${{ inputs.packages_repository }}
+      dry_run: ${{ inputs.dry_run }}
+    secrets:
+      ANDROID_PACKAGES_TOKEN: ${{ secrets.ANDROID_PACKAGES_TOKEN }}
+
+  # The run's one approval, and the only job with an environment. The
+  # android job's step summary is what its reviewers read.
+  approve:
+    needs: android
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    # No environment on a dry run: nothing to approve.
+    environment: ${{ !inputs.dry_run && 'release' || '' }}
+    permissions: {}
+    steps:
+      - name: Approved
+        run: echo "approved; android-publish starts now"
+
+  android-publish:
+    name: release-android.yml (publish)
+    needs: [approve, android]
+    uses: ./.github/workflows/release-android.yml
+    permissions:
+      contents: write
+      packages: write
+    with:
+      stage: publish
+      version: ${{ inputs.version }}
+      packages_repository: ${{ inputs.packages_repository }}
+      dry_run: ${{ inputs.dry_run }}
+    secrets:
+      ANDROID_PACKAGES_TOKEN: ${{ secrets.ANDROID_PACKAGES_TOKEN }}
