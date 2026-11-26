@@ -4,6 +4,12 @@ public final class com/embedpdf/compose/BridgesKt {
 	public static final fun toImageBitmap (Lcom/embedpdf/PageImage;)Landroidx/compose/ui/graphics/ImageBitmap;
 }
 
+public final class com/embedpdf/compose/ComposableSingletons$StageReaderKt {
+	public static final field INSTANCE Lcom/embedpdf/compose/ComposableSingletons$StageReaderKt;
+	public fun <init> ()V
+	public final fun getLambda$1641875434$compose ()Lkotlin/jvm/functions/Function3;
+}
+
 public final class com/embedpdf/compose/HapticsKt {
 	public static final fun rememberHapticFeedback (Landroidx/compose/runtime/Composer;I)Lcom/embedpdf/HapticFeedback;
 }
@@ -36,6 +42,23 @@ public final class com/embedpdf/compose/ResourceSearchStrings : com/embedpdf/mod
 
 public final class com/embedpdf/compose/ScrollVisibilityKt {
 	public static final fun trackingScrollVisibility (Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function1;)Landroidx/compose/ui/Modifier;
+}
+
+public final class com/embedpdf/compose/StageReaderKt {
+	public static final fun StageReader (Lcom/embedpdf/models/StageReaderModel;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class com/embedpdf/compose/TextSelectionActivation : java/lang/Enum {
+	public static final field DRAG Lcom/embedpdf/compose/TextSelectionActivation;
+	public static final field LONG_PRESS Lcom/embedpdf/compose/TextSelectionActivation;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/embedpdf/compose/TextSelectionActivation;
+	public static fun values ()[Lcom/embedpdf/compose/TextSelectionActivation;
+}
+
+public final class com/embedpdf/compose/TextSelectionOverlayKt {
+	public static final fun TextSelectionOverlay-cd68TDI (Lcom/embedpdf/models/TextSelectionModel;Luniffi/epdf_ffi/PageRef;Lcom/embedpdf/PageGeometry;Landroidx/compose/ui/Modifier;Lcom/embedpdf/models/TextSelectionModel$Start;JLcom/embedpdf/compose/TextSelectionActivation;Landroidx/compose/runtime/Composer;II)V
+	public static final fun TextSelectionOverlay-cd68TDI (Lcom/embedpdf/models/TextSelectionModel;Luniffi/epdf_plugin_stage/StageVisiblePage;Luniffi/epdf_ffi/PageInfo;Landroidx/compose/ui/Modifier;Lcom/embedpdf/models/TextSelectionModel$Start;JLcom/embedpdf/compose/TextSelectionActivation;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/embedpdf/compose/ThumbnailStripKt {
