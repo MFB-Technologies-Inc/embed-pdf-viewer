@@ -95,6 +95,15 @@ EmbedPDF.Models.SearchModel.SubmitSearchAsync() -> System.Threading.Tasks.Task!
 EmbedPDF.Models.SearchModel.Summary.get -> string?
 EmbedPDF.Models.SearchModel.Text.get -> string!
 EmbedPDF.Models.SearchModel.Text.set -> void
+EmbedPDF.Models.ThumbnailModel
+EmbedPDF.Models.ThumbnailModel.Dispose() -> void
+EmbedPDF.Models.ThumbnailModel.Error.get -> EmbedPDF.PdfException?
+EmbedPDF.Models.ThumbnailModel.GetImage(EmbedPDF.PageRef page) -> EmbedPDF.PixelBuffer?
+EmbedPDF.Models.ThumbnailModel.GetRevision(EmbedPDF.PageRef page) -> long
+EmbedPDF.Models.ThumbnailModel.Images.get -> System.Collections.Generic.IReadOnlyDictionary<EmbedPDF.PageRef, EmbedPDF.PixelBuffer!>!
+EmbedPDF.Models.ThumbnailModel.LoadAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.Models.ThumbnailModel.Revisions.get -> System.Collections.Generic.IReadOnlyDictionary<EmbedPDF.PageRef, long>!
+EmbedPDF.Models.ThumbnailModel.ThumbnailModel(EmbedPDF.RenderCapability! render, System.Collections.Generic.IEnumerable<EmbedPDF.PageInfo!>! pages, System.Threading.SynchronizationContext? context = null) -> void
 EmbedPDF.Models.ToolModel
 EmbedPDF.Models.ToolModel.ActivateAsync(EmbedPDF.ToolId id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.Models.ToolModel.ActivateDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
