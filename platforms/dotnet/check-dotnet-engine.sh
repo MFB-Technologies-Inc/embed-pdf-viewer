@@ -6,18 +6,20 @@
 #   --props  the file holding EmbedPdfRuntimeVersion
 #            (default: platforms/dotnet/EmbedPDF.Runtime/EmbedPDF.Runtime.props)
 #
-# EMBEDPDF_RUNTIME_REPO names the owner/repo whose releases it asks about
-# (default: MFB-Technologies-Inc/embed-pdf-viewer). A runtime is published as
-# the release dotnet-engine-<hash>.
+# EMBEDPDF_RUNTIME_REPO names the owner/repo whose release workflow pushes the
+# runtime. A runtime is published when EmbedPDF.Runtime 0.0.0-engine.<hash> is
+# on that owner's GitHub Packages NuGet feed, which the release train's
+# dotnet-viewer-release job pushes to; the check reads the owner's package
+# versions with `gh api`, so its token needs read:packages.
 #
 # Exit 0: the pin is current. Prints `current 0.0.0-engine.<hash>`.
-# Exit 1: the pin is stale and the tree's release isn't published yet.
-# Exit 2: the pin is stale but the tree's release exists; only the pin needs
+# Exit 1: the pin is stale and the tree's runtime isn't on the feed yet.
+# Exit 2: the pin is stale but the tree's runtime is on the feed; only the pin needs
 #         committing.
 #
 # Any other code is a hard error, not a verdict:
 #   64  bad arguments, or the props file is missing or has no pin
-#   69  gh failed for a reason other than "release not found"
+#   69  gh failed for a reason other than "package not found"
 #   70  the tree's engine hash couldn't be computed
 set -euo pipefail
 
@@ -61,15 +63,28 @@ fi
 
 echo "pinned:  $pinned"
 echo "current: $current"
-release="dotnet-engine-$hash"
-# Only gh's "release not found" means unpublished; any other failure must not
-# look like it.
-if gh_err="$(gh release view "$release" --repo "$RUNTIME_REPO" 2>&1 >/dev/null)"; then
-  echo "commit the bump: set EmbedPdfRuntimeVersion to $current in $PROPS"
-  exit 2
-elif [[ "$gh_err" == *"release not found"* ]]; then
-  echo "publish it: build and pack EmbedPDF.Runtime $current, release $release"
-  exit 1
+# The owner's package versions; an organization and a user answer on
+# different paths. Only the API's "Package not found" means unpublished; any
+# other failure must not look like it.
+owner="${RUNTIME_REPO%%/*}"
+if ! owner_type="$(gh api "users/$owner" --jq .type 2>&1)"; then
+  echo "gh api users/$owner failed: $owner_type" >&2
+  exit 69
 fi
-echo "gh release view failed: $gh_err" >&2
-exit 69
+case "$owner_type" in
+  Organization) base="orgs/$owner" ;;
+  *) base="users/$owner" ;;
+esac
+err="$(mktemp)"
+trap 'rm -f "$err"' EXIT
+if versions="$(gh api --paginate "$base/packages/nuget/EmbedPDF.Runtime/versions" --jq '.[].name' 2>"$err")"; then
+  if grep -qxF "$current" <<<"$versions"; then
+    echo "commit the bump: set EmbedPdfRuntimeVersion to $current in $PROPS"
+    exit 2
+  fi
+elif ! grep -qi "package not found" "$err" <<<"$versions"; then
+  echo "gh api $base/packages/nuget/EmbedPDF.Runtime/versions failed: $(cat "$err")" >&2
+  exit 69
+fi
+echo "publish it: build and pack EmbedPDF.Runtime $current and push it to $owner's NuGet feed (the release train's dotnet-viewer-release job)"
+exit 1

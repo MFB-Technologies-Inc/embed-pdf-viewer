@@ -169,9 +169,10 @@ the hash over every input of the native library: the tracked files of each crate
 `epdf-viewer-host` links, `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, the PDFium pin and
 commit, `build-viewer-host.sh`, `packaging/package.py` and `EmbedPDF.Runtime.csproj`. Facade, model
 and documentation work leaves it alone, so it never needs a new runtime package.
-`check-dotnet-engine.sh` exits 0 when the pin matches the tree, 1 when it doesn't and no release
-exists for the tree, and 2 when only the pin is stale. CI's `runtime-pack` job runs it before it
-packs anything.
+`check-dotnet-engine.sh` exits 0 when the pin matches the tree, 1 when it doesn't and the tree's
+runtime isn't on the package feed, and 2 when the runtime is on the feed and only the pin is stale.
+It asks the feed with `gh api` (the owner's `packages/nuget/EmbedPDF.Runtime/versions`), so off CI
+its token needs `read:packages`. CI's `runtime-pack` job runs it before it packs anything.
 
 At run time the facade's resolver looks for the host beside the application, then in
 `runtimes/<rid>/native` under it, and loads PDFium from the host's directory first. A RID with no

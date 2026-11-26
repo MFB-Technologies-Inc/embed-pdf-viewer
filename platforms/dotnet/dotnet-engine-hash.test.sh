@@ -58,6 +58,38 @@ printf '<Project><PropertyGroup><EmbedPdfRuntimeVersion>0.0.0-engine.%s</EmbedPd
 out="$(bash "$HERE/check-dotnet-engine.sh" --props "$props" 2>&1)"
 code=$?
 [[ $code == 0 && "$out" == "current 0.0.0-engine.$short" ]] && pass "current pin exits 0" || fail "current pin exits 0 ($code: $out)"
+# A stale pin asks the package feed whether the tree's runtime is out, through
+# a stand-in gh: FAKE_GH=listed lists it, unlisted lists another version,
+# missing answers the API's 404 for a package never pushed, broken fails.
+fake="$TMP/fake"
+mkdir -p "$fake"
+cat >"$fake/gh" <<FAKE
+#!/usr/bin/env bash
+echo "gh \$*" >>"$TMP/gh-calls"
+case "\$*" in
+  "api users/"*) echo Organization; exit 0 ;;
+esac
+case "\$FAKE_GH" in
+  listed) printf '0.0.0-engine.0000000000000000\n0.0.0-engine.$short\n' ;;
+  unlisted) echo 0.0.0-engine.0000000000000000 ;;
+  missing) echo '{"message":"Package not found.","status":"404"}'; echo "gh: Package not found. (HTTP 404)" >&2; exit 1 ;;
+  *) echo "gh: Bad credentials (HTTP 401)" >&2; exit 1 ;;
+esac
+FAKE
+chmod +x "$fake/gh"
+stale() {
+  printf '<Project><PropertyGroup><EmbedPdfRuntimeVersion>0.0.0-engine.ffffffffffffffff</EmbedPdfRuntimeVersion></PropertyGroup></Project>\n' > "$props"
+  out="$(FAKE_GH=$1 EMBEDPDF_RUNTIME_REPO=owner/repo PATH="$fake:$PATH" bash "$HERE/check-dotnet-engine.sh" --props "$props" 2>&1)"
+}
+stale listed; code=$?
+[[ $code == 2 && "$out" == *"commit the bump"* ]] && pass "stale pin with the runtime on the feed exits 2" || fail "stale pin with the runtime on the feed exits 2 ($code: $out)"
+grep -q "api --paginate orgs/owner/packages/nuget/EmbedPDF.Runtime/versions" "$TMP/gh-calls" && pass "asks the owner's NuGet feed" || { fail "asks the owner's NuGet feed"; cat "$TMP/gh-calls"; }
+stale unlisted; code=$?
+[[ $code == 1 && "$out" == *"publish it"* ]] && pass "stale pin with another version on the feed exits 1" || fail "stale pin with another version on the feed exits 1 ($code: $out)"
+stale missing; code=$?
+[[ $code == 1 ]] && pass "stale pin with no package on the feed exits 1" || fail "stale pin with no package on the feed exits 1 ($code: $out)"
+stale broken; code=$?
+[[ $code == 69 ]] && pass "a gh failure exits 69" || fail "a gh failure exits 69 ($code: $out)"
 echo "<Project/>" > "$props"
 bash "$HERE/check-dotnet-engine.sh" --props "$props" >/dev/null 2>&1
 [[ $? == 64 ]] && pass "props without a pin exits 64" || fail "props without a pin exits 64"
