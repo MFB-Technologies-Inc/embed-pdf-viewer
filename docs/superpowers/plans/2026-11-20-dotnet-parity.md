@@ -1454,10 +1454,34 @@ them as `AnnotationCapability.DuplicateAsync`, `CanDuplicateAsync`, `IsMovableAs
 `get_shared` stays unexported: it hands other plugins the record the store holds, and a foreign
 caller can only get the copy `GetAsync` answers. Its exclusion is now `internal-resource`.
 
-Tests. Rust: redaction `ffi` 13, annotation `ffi` 28, form `ffi` 16, each crate's full suite
-passing. C#: `AnnotationDuplicateTests` (11), three `FormTests` cases and the redaction mid-call
-case are new; `EmbedPDF.Viewer.Tests` runs 1,157, 1,153 passing and 4 skipped. The coverage check
-reads 880 members: 739 ported, 0 pending, 141 exclusions.
+Review fixes (`6eee050fe`, `6b4df850d`, `c0c2cfb0a`, `26e9fe056`, `c2945607f`). The signal
+plumbing is two shared helpers in `crates/epdf-ffi/src/cancel.rs`: `signalled` (redaction
+`mark_matches`, form `duplicate` and `duplicate_widgets`) and `signalled_cancellable` (every
+annotation export that had its own `cancellable_operation`). Each duplicate export is cancelled in a
+Rust test while the engine holds its copy; the form case fails if the export stops passing its
+signal. A NaN or infinite duplicate offset is `invalid-input` in Rust and, before the call, in C#,
+since JSON would carry it as `null` and drop it. `MarkMatchesStopsWhenCancelledMidCall` counts the
+hits first and accepts either outcome of the cancel within 5 s: `OperationCanceledException`, or
+fewer marks than hits. A cancel before the first hit returns an empty list on every platform, and
+the Swift and Kotlin handoffs say so.
+
+Merge and release path. The final Phase 6 (`2ad6655ff`) is merged in at `93e3210d8` with no
+conflicts; the README's `MarkMatchesAsync` caveat went with it (`6fc93d452`). The console sample
+warms Jint in a throwaway realm with a 30 s budget before its script check (`8114b0224`), because a
+cold osx-arm64 runner once spent longer than the 50 ms script budget booting the first realm. The
+engine is pinned at `0.0.0-engine.06ced45f4c89b5ad` (`2b298c636`). CI run 45895350480 of
+`release-dotnet.yml` at `8114b0224` passed all 21 jobs, dry run with `dotnet_version=0.0.0-dotnet.0`;
+its records replace the Phase 6 ones under `platforms/dotnet/validation/2026-11-26-phase-6-runtime-<rid>/`
+(`704f99a71`), all five RIDs `VALIDATED`.
+
+Tests. Rust `ffi` suites: redaction 13, annotation 32, form 15; full suites with `--features uniffi`:
+`epdf-ffi` 70, redaction 33, annotation 73, form 83, all passing. C#: `AnnotationDuplicateTests`
+(12), four `FormTests` cases and the redaction mid-call case are new; `EmbedPDF.Viewer.Tests` runs
+1,159, 1,155 passing and 4 skipped, twice in a row; `EmbedPDF.Models.Tests` 164, 163 passing and 1
+skipped. `packaging` passes its 45, `scripts/test_check_api_coverage.py` its 14, the release gate
+tests their 25, and `dotnet-consumer.sh` passes FDD and NativeAOT on `linux-arm64`. The unified
+coverage script reads C# 880 members (739 ported, 0 pending, 141 exclusions) and Kotlin 864 (728
+ported, 0 pending, 136 exclusions); Swift still reports the 18 drift errors its handoff clears 11 of.
 
 Handoffs for the other packages: `docs/superpowers/plans/2026-11-26-swift-ffi-duplicate-and-cancel.md`
 and `docs/superpowers/plans/2026-11-26-kotlin-ffi-duplicate-and-cancel.md`.
