@@ -1070,12 +1070,114 @@ reports 0 warnings.
 ## Phase 5: Sample and consumer check
 
 About 3 days. Exit: the sample restores from a local feed, opens a document, and publishes with
-`PublishAot=true` to a binary that still opens it (Review Focus 4).
+`PublishAot=true` to a binary that still opens it (Review Focus 4). *Met 2026-11-26, see "Phase 5 notes".*
 
-- [ ] `platforms/dotnet/samples/EmbedPDF.Sample.Console`: open, search, render a page to PNG,
+- [x] `platforms/dotnet/samples/EmbedPDF.Sample.Console`: open, search, render a page to PNG,
   add an annotation, save, and drive one model (`SearchModel`) to show the binding contract.
-- [ ] `platforms/dotnet/dotnet-consumer.sh`, like `platforms/apple/macos-consumer.mjs`: builds
+- [x] `platforms/dotnet/dotnet-consumer.sh`, like `platforms/apple/macos-consumer.mjs`: builds
   the sample against packed packages rather than project references.
+
+### Phase 5 notes (2026-11-26)
+
+Task plan: `docs/superpowers/plans/2026-11-20-dotnet-parity/05-sample.md`. Branch
+`research/dotnet-parity-p5` from `research/dotnet-parity-p4` at `d16ef2e6d`, not pushed.
+
+The exit is met on both Linux RIDs. The NativeAOT build of the console sample, restored from a local
+feed, opens `report.pdf` and passes every step on `linux-arm64` (native, dev container) and on
+`linux-x64` (the container's x86_64 emulation with the x64 SDK 10.0.403, so `container-emulated`, not
+native). The release workflow's new `consumer` job runs the same check natively on both Linux runners
+and framework-dependent on `osx-arm64` and `win-x64`. It has not run yet.
+
+What exists. `platforms/dotnet/samples/EmbedPDF.Sample.Console` (with `samples/Directory.Build.props`,
+which keeps the repository's build settings out, as an outside app has none) references the four
+managed packages and `Microsoft.Extensions.DependencyInjection` 10.0.0, and is not in `EmbedPDF.sln`.
+Its steps are `di` (`AddEmbedPdf` resolves the `PdfViewer`), `open`, `search`, `render` (page 1 to
+`page-1.png`, encoded by `Png.cs` with `ZLibStream` and CRC-32), `annotate` (a `SquareAnnotationDraft`),
+`save` (save, reopen, count the squares), `model` (`SearchModel` over the search capability with no
+`SynchronizationContext`) and `script` (`ScriptEngineCheck` over `JintScriptEngineFactory`, which goes
+through the kernel's foreign-trait engine). `platforms/dotnet/dotnet-consumer.sh` packs or takes the
+five packages, restores the sample in a scratch copy with `packageSourceMapping` that serves
+`EmbedPDF*` from the local feed only, scrubs `EPDF_NATIVE_DIR`, `PDF_RUNTIME_LIB_DIR`,
+`LD_LIBRARY_PATH` and the `DYLD_*` paths, runs the framework-dependent build and the NativeAOT binary,
+checks both PNGs with `packaging/png_check.py`, prints sizes and deletes the AOT output.
+`packaging/libraries.py pack-libraries` packs `EmbedPDF.Models`, `EmbedPDF.Extensions.DependencyInjection`
+and `EmbedPDF.Scripting.Jint` at the facade's version; `EmbedPDF.Models.csproj` rewrites its
+`EmbedPDF` dependency to `[x.y.z]` after NuGet's `_GetProjectReferenceVersions`, and the pack fails
+unless the nuspec says exactly that. The other two keep NuGet's minimum range.
+
+Commands, from the repository root in the dev container:
+
+```sh
+bash platforms/dotnet/dotnet-consumer.sh            # linux-arm64: builds and packs everything, then FDD and AOT
+EPDF_DOTNET=/workspaces/dotnet-x64/dotnet \
+EPDF_AOT_ARGS="-p:CppCompilerAndLinker=x86_64-linux-gnu-gcc -p:ObjCopyName=x86_64-linux-gnu-objcopy" \
+  bash platforms/dotnet/dotnet-consumer.sh --rid linux-x64 --packages <feed with linux-arm64 and linux-x64 slices>
+```
+
+The emulated `linux-x64` publish runs the x64 ILCompiler under emulation and links with the
+`crossbuild-essential-amd64` gcc, which is what `EPDF_AOT_ARGS` names. The x64 slice was cross-built
+with `build-viewer-host.sh linux-x64` and packed with the `linux-arm64` slice into one runtime package.
+
+Sample output, identical in the four runs apart from the property change count (17 or 26):
+
+```text
+PASS di: PdfViewer from AddEmbedPdf, runtime linux-arm64
+PASS open: report.pdf, 14 pages
+PASS search: "the" 985 hits (Complete)
+PASS render: page 1 612x792 -> <work>/out-aot/page-1.png
+PASS annotate: square on page 1 (ObjectNumber)
+PASS save: 1017209 bytes -> <work>/out-aot/annotated.pdf, reopened with 1 square(s)
+PASS model: SearchModel "2 of 985", 17 property changes
+PASS script: Jint alert "sample 42"
+```
+
+Sizes, in bytes:
+
+| | `linux-arm64` (native) | `linux-x64` (emulated) |
+|---|---|---|
+| NativeAOT executable | 18,572,016 | 18,096,808 |
+| `.dbg` symbols beside it | 47,024,824 | 37,441,072 |
+| AOT publish directory | 106,370,152 | 100,835,330 |
+| framework-dependent output | 51,148,005 | 96,447,216 |
+
+The framework-dependent output is a portable build, so it holds every RID's native files the
+runtime package carries: one RID in the `linux-arm64` run, two in the `linux-x64` one. A consumer
+work directory measured 912M before the AOT output was deleted and 548M after (`du -sh`); the rest is
+the private NuGet cache, and the script removes the whole directory unless `--keep` or `--work`.
+
+Warnings. The framework-dependent build reports 0. The NativeAOT publish reports six, all from Jint,
+the same on both RIDs: IL2104 and IL3053 for the assembly, and IL2026 from `Jint.Options.Apply`, its
+`<>c__DisplayClass77_0.<Apply>b__0`, `DefaultTypeConverter.BuildDelegate` and
+`DefaultObjectConverter.ConvertSystemTextJsonValue`. The last is new against the wave B notes: Jint
+4.18.0's `JsonNode` conversion calls `JsonSerializer.Deserialize<double>` without a type info. The
+script step still passes in the native binary. The sample lists IL2026, IL2104 and IL3053 in
+`WarningsNotAsErrors`, and `dotnet-consumer.sh` fails on any other code, on one of those three that
+names an `EmbedPDF` assembly, and on one that does not come from Jint. No `EmbedPDF` assembly produced
+a trim or AOT warning.
+
+Tests. `packaging` runs 41 (11 new: `LibraryPackTests` 6, `PngCheckTests` 5), `dotnet-consumer.test.sh`
+runs 21 checks, 11 of them through a stand-in `dotnet` that drives the script's verdicts (a failed or
+missing step, an unlisted warning code, an allowed code naming `EmbedPDF`). `generate-bindings.test.sh`,
+`dotnet-engine-hash.test.sh` and `render-guide.test.sh` pass; `check-dotnet-engine.sh` still reads
+`current 0.0.0-engine.822686307291c580`; `EmbedPDF.Models.Tests` runs 155, 154 passing and one skipped;
+the Release build of `EmbedPDF.sln` reports 0 warnings.
+
+Deviations, each with its reason:
+
+- The library packing is `packaging/libraries.py`, not a new action in `package.py`. `package.py` is
+  an input of `dotnet-engine-hash.sh` (Phase 1 notes), so any edit moves the engine version and
+  forces a new `EmbedPDF.Runtime` for a change that never touches the native library.
+  `libraries.py` imports `package.py`'s helpers and leaves it byte for byte unchanged.
+- Jint stays in the AOT sample rather than behind a flag or a second project. It runs in the native
+  binary, and its six warnings are held to an allow list the script enforces. The cost: the sample's
+  AOT publish is not warning-free, and a Jint upgrade that adds an unlisted warning fails the check
+  until someone reviews it.
+- `osx-arm64` and `win-x64` run framework-dependent only in the workflow. NativeAOT there needs the
+  platform linker setup on the hosted image, which nothing in this phase could try. The script takes
+  `--rid` with either and would publish if asked.
+- The `consumer` job is untested: no CI run was made, per this phase's rules. The Windows row relies
+  on Git Bash converting paths for `dotnet` and `python`, and on `cygpath -w` for the feed path in
+  `nuget.config`.
 
 ## Phase 6: Release and documentation
 
@@ -1088,10 +1190,11 @@ entry.
   packages, where the native library comes from, the plugin table, local engine mode, and when to
   choose `EmbedPDF.Engine` instead (D2).
 - [ ] `DisabledPluginTests` fails when the options gain a plugin without a table row, as on Apple.
-- [ ] Pack `EmbedPDF.Models` with an exact-version dependency on `EmbedPDF` (`[x.y.z]`, the version
+- [x] Pack `EmbedPDF.Models` with an exact-version dependency on `EmbedPDF` (`[x.y.z]`, the version
   it was built with). The models read capabilities' `internal Viewer` through
   `InternalsVisibleTo("EmbedPDF.Models")` (Phase 4 notes, kept 2026-11-26), so any other `EmbedPDF`
   version may lack the members they call. A pack check fails when the range is not exact.
+  *Done in Phase 5:* `packaging/libraries.py pack-libraries`, see "Phase 5 notes".
 
 ## Definition of done
 

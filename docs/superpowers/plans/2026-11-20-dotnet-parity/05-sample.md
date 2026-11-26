@@ -49,11 +49,11 @@
 - `libraries.py pack-libraries --facade <EmbedPDF.V.nupkg> --runtime-package <EmbedPDF.Runtime.R.nupkg> --out DIR`: for each of `LIBRARIES = {"EmbedPDF.Models": exact, "EmbedPDF.Extensions.DependencyInjection": minimum, "EmbedPDF.Scripting.Jint": minimum}` runs `dotnet pack <project> -c Release -o DIR -p:PackageVersion=V -p:EmbedPdfPackRuntime=true -p:RestoreAdditionalProjectSources=<runtime dir>` with a private `NUGET_PACKAGES`, then `check_library(nupkg, package_id, facade_version, exact)`. Exit 1 with `ERROR: ...` on failure, as `package.py`.
 - `dependency_range(nuspec_text, package_id) -> str | None`; `check_library(...)` raises `ValueError` when the nupkg lacks `lib/net10.0/<id>.dll`, carries `EmbedPDF.Viewer.dll`, or the `EmbedPDF` range is not `[V]` (exact) or `V` (minimum).
 
-- [ ] **Step 1: Failing tests** in `LibraryPackTests`, over nupkgs built in a temp dir with `zipfile`: `test_models_dependency_must_be_exact` (`version="0.0.0-local"` raises "exact", `version="[0.0.0-local]"` passes); `test_minimum_dependency_for_extensions` (`[V]` and `V` both accepted for DI, a different version raises); `test_library_must_carry_its_assembly` (no dll raises "lib/net10.0"); `test_library_must_not_carry_the_facade` (raises "EmbedPDF.Viewer.dll"); `test_dependency_range_reads_nuspec` (returns `[1.2.3]`, `None` for an absent id).
-- [ ] **Step 2:** `cd platforms/dotnet/packaging && python3 -m unittest -v`. Expected: new tests FAIL (no module), the 30 old ones PASS.
-- [ ] **Step 3:** Implement `libraries.py` and the Models target.
-- [ ] **Step 4:** Unit tests PASS; a real `pack-libraries` against a facade from `pack-facade` writes three nupkgs and `unzip -p EmbedPDF.Models.*.nupkg EmbedPDF.Models.nuspec` shows `version="[0.0.0-local]"`.
-- [ ] **Step 5:** Commit `feat(dotnet): pack EmbedPDF.Models, the DI extension and the Jint engine`.
+- [x] **Step 1: Failing tests** in `LibraryPackTests`, over nupkgs built in a temp dir with `zipfile`: `test_models_dependency_must_be_exact` (`version="0.0.0-local"` raises "exact", `version="[0.0.0-local]"` passes); `test_minimum_dependency_for_extensions` (`[V]` and `V` both accepted for DI, a different version raises); `test_library_must_carry_its_assembly` (no dll raises "lib/net10.0"); `test_library_must_not_carry_the_facade` (raises "EmbedPDF.Viewer.dll"); `test_dependency_range_reads_nuspec` (returns `[1.2.3]`, `None` for an absent id).
+- [x] **Step 2:** `cd platforms/dotnet/packaging && python3 -m unittest -v`. Expected: new tests FAIL (no module), the 30 old ones PASS.
+- [x] **Step 3:** Implement `libraries.py` and the Models target.
+- [x] **Step 4:** Unit tests PASS; a real `pack-libraries` against a facade from `pack-facade` writes three nupkgs and `unzip -p EmbedPDF.Models.*.nupkg EmbedPDF.Models.nuspec` shows `version="[0.0.0-local]"`.
+- [x] **Step 5:** Commit `feat(dotnet): pack EmbedPDF.Models, the DI extension and the Jint engine`.
 
 ### Task 2: PNG check helper
 
@@ -64,11 +64,11 @@
 **Interfaces:**
 - `png_check.py <file> --width W --height H`: `check_png(data: bytes, width, height) -> None` raises `ValueError` unless the signature is right, every chunk's CRC-32 matches, IHDR is `W x H`, bit depth 8, colour type 6 (RGBA), and the concatenated IDAT inflates to `H * (1 + 4W)` bytes with filter bytes in 0..4. Prints `PNG ok: WxH` and exits 0, else `ERROR:` and exit 1.
 
-- [ ] **Step 1: Failing tests:** a 2x1 PNG built in the test with `zlib` and `zlib.crc32` passes; a flipped CRC byte raises "CRC"; a wrong height raises "IHDR"; a truncated IDAT raises "size".
-- [ ] **Step 2:** Run. Expected: FAIL (no module).
-- [ ] **Step 3:** Implement.
-- [ ] **Step 4:** Run. Expected: PASS.
-- [ ] **Step 5:** Commit `test(dotnet): add a PNG structure check for the console sample`.
+- [x] **Step 1: Failing tests:** a 2x1 PNG built in the test with `zlib` and `zlib.crc32` passes; a flipped CRC byte raises "CRC"; a wrong height raises "IHDR"; a truncated IDAT raises "size".
+- [x] **Step 2:** Run. Expected: FAIL (no module).
+- [x] **Step 3:** Implement.
+- [x] **Step 4:** Run. Expected: PASS.
+- [x] **Step 5:** Commit `test(dotnet): add a PNG structure check for the console sample`.
 
 ### Task 3: Console sample
 
@@ -80,8 +80,8 @@
 - `static class Png { static void Write(Stream output, PixelBuffer image) }`: straight-alpha packed RGBA, filter byte 0 per row, one IDAT through `ZLibStream`, CRC-32 table computed once.
 - `Program`: `EmbedPDF.Sample.Console <input.pdf> <output-dir> [--no-script]`. Steps: `di` (a `ServiceCollection` with `AddEmbedPdf(b => ...)` installing search, render, annotation, history and actions with `JintScriptEngineFactory`, resolves `PdfViewer`, then `StartAsync`), `open` (`OpenFileAsync`, page count > 0), `search` (`SearchAsync(new SearchQuery("the"))`, hits > 0), `render` (page 1 at scale 1, `page-1.png` written), `annotate` (`SquareAnnotationDraft` on page 1, then `ListAsync` contains it), `save` (`SaveAsync`, reopen the bytes, the square is listed), `model` (`new SearchModel(search)`, `Text = "the"`, `SubmitSearchAsync`, `NextHitAsync`, prints `Summary`, requires `ActiveHit`), `script` (`ScriptEngineCheck.RunAsync(new JintScriptEngineFactory(), "app.alert('sample')")` alerts `["sample"]`, no error). Usage error exits 64.
 
-- [ ] **Step 1:** Write the project; build it in a copy against Task 1's feed. Expected: 0 warnings, every step `PASS`, `png_check.py` accepts `page-1.png`.
-- [ ] **Step 2:** Commit `feat(dotnet): add the console sample`.
+- [x] **Step 1:** Write the project; build it in a copy against Task 1's feed. Expected: 0 warnings, every step `PASS`, `png_check.py` accepts `page-1.png`.
+- [x] **Step 2:** Commit `feat(dotnet): add the console sample`.
 
 ### Task 4: `dotnet-consumer.sh`
 
@@ -93,17 +93,17 @@
 - Steps: build or locate packages; copy the sample, `global.json` and `samples/Directory.Build.props` into `WORK/src`; write `nuget.config` (`clear`, `local` = feed, `nuget.org`, `packageSourceMapping`: `EmbedPDF*` on `local`, `*` on `nuget.org`); scrub `SCRUBBED_ENV`; private `NUGET_PACKAGES`; framework-dependent: `build -c Release -o WORK/fdd`, run it on `report.pdf`, require all eight `PASS` lines, `png_check.py`; AOT: `publish -c Release -r RID -p:PublishAot=true -o WORK/aot`, keep the log, collect IL warnings, fail on any code outside the allow list or any allowed code naming an `EmbedPDF` assembly, run the binary the same way, print `SIZE aot-binary=<bytes>` and `SIZE aot-dir=<bytes>`, then delete `WORK/aot`. Final line `PASS: consumer rid=RID fdd aot` (or `fdd` alone).
 - `dotnet-consumer.test.sh` (style of `generate-bindings.test.sh`): `--bogus` exits 64; `--rid bogus` exits 64; `--packages /nonexistent` exits 66; an empty `--packages` dir exits 66 naming `EmbedPDF.Runtime`.
 
-- [ ] **Step 1:** Write the test. **Step 2:** Run it: FAIL (no script).
-- [ ] **Step 3:** Implement. **Step 4:** Test PASS; then (guard first) `bash platforms/dotnet/dotnet-consumer.sh --rid linux-arm64`: every line PASS for FDD and AOT.
-- [ ] **Step 5:** `EPDF_DOTNET=/workspaces/dotnet-x64/dotnet bash platforms/dotnet/dotnet-consumer.sh --rid linux-x64 --packages <packages with a linux-x64 slice>` if the slice and the AOT cross link work under emulation; otherwise record why not.
-- [ ] **Step 6:** Commit `feat(dotnet): check the console sample from packed packages and as NativeAOT`.
+- [x] **Step 1:** Write the test. **Step 2:** Run it: FAIL (no script).
+- [x] **Step 3:** Implement. **Step 4:** Test PASS; then (guard first) `bash platforms/dotnet/dotnet-consumer.sh --rid linux-arm64`: every line PASS for FDD and AOT.
+- [x] **Step 5:** `EPDF_DOTNET=/workspaces/dotnet-x64/dotnet bash platforms/dotnet/dotnet-consumer.sh --rid linux-x64 --packages <packages with a linux-x64 slice>` if the slice and the AOT cross link work under emulation; otherwise record why not.
+- [x] **Step 6:** Commit `feat(dotnet): check the console sample from packed packages and as NativeAOT`.
 
 ### Task 5: Workflow, README, plan records
 
 **Files:**
 - Modify: `.github/workflows/release-dotnet.yml` (`runtime-pack` runs `libraries.py pack-libraries` and uploads the three nupkgs with the others; new `consumer` job, needs `[image, runtime-pack]`, rows `linux-arm64` and `linux-x64` in the Debian image with AOT, `osx-arm64` and `win-x64` with `--no-aot`, each running `dotnet-consumer.sh --packages dotnet-runtime`; nothing published), `platforms/dotnet/README.md` (section "Console sample and consumer check"), `docs/superpowers/plans/2026-11-20-dotnet-parity.md` (Phase 5 boxes, Phase 6 pack-check box, "Phase 5 notes").
 
-- [ ] **Step 1:** Workflow edit; `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/release-dotnet.yml'))"` passes.
-- [ ] **Step 2:** Run every suite: `python3 -m unittest discover -s platforms/dotnet/packaging`, `bash platforms/dotnet/dotnet-consumer.test.sh`, `bash platforms/dotnet/generate-bindings.test.sh`, `bash platforms/dotnet/dotnet-engine-hash.test.sh`, `bash platforms/dotnet/check-dotnet-engine.sh` (still current), Release build of `EmbedPDF.sln` with 0 warnings.
-- [ ] **Step 3:** README and plan notes (sample output, AOT sizes, warnings, deviations).
-- [ ] **Step 4:** Commits `ci(dotnet): run the consumer check in release-dotnet` and `docs(dotnet): record Phase 5`.
+- [x] **Step 1:** Workflow edit; `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/release-dotnet.yml'))"` passes.
+- [x] **Step 2:** Run every suite: `python3 -m unittest discover -s platforms/dotnet/packaging`, `bash platforms/dotnet/dotnet-consumer.test.sh`, `bash platforms/dotnet/generate-bindings.test.sh`, `bash platforms/dotnet/dotnet-engine-hash.test.sh`, `bash platforms/dotnet/check-dotnet-engine.sh` (still current), Release build of `EmbedPDF.sln` with 0 warnings.
+- [x] **Step 3:** README and plan notes (sample output, AOT sizes, warnings, deviations).
+- [x] **Step 4:** Commits `ci(dotnet): run the consumer check in release-dotnet` and `docs(dotnet): record Phase 5`.

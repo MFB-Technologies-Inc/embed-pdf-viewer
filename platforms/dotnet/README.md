@@ -255,3 +255,51 @@ The cost of having no UI package (D6 in `docs/superpowers/plans/2026-11-20-dotne
 that each app writes this view, its tiling (`TiledPageModel`) and its gesture plumbing itself.
 `platforms/apple/EmbedPDF/Sources/EmbedPDFUI/` shows one complete implementation of the same
 contract.
+
+## Console sample and consumer check
+
+`samples/EmbedPDF.Sample.Console` is a console app that uses the packages the way an app outside
+this repository does. It references `EmbedPDF`, `EmbedPDF.Models`,
+`EmbedPDF.Extensions.DependencyInjection` and `EmbedPDF.Scripting.Jint` as packages, never as
+projects, and is not in `EmbedPDF.sln`. It builds a `PdfViewer` through `AddEmbedPdf`, opens a PDF,
+searches it, renders page 1 to a PNG with its own encoder (`Png.cs`, `ZLibStream` and CRC-32), adds
+a square annotation, saves and reopens the document, drives `SearchModel`, and runs one script in
+Jint. Each step prints one line, and the first failure exits 1:
+
+```text
+PASS di: PdfViewer from AddEmbedPdf, runtime linux-arm64
+PASS open: report.pdf, 14 pages
+PASS search: "the" 985 hits (Complete)
+PASS render: page 1 612x792 -> /tmp/out/page-1.png
+PASS annotate: square on page 1 (ObjectNumber)
+PASS save: 1017209 bytes -> /tmp/out/annotated.pdf, reopened with 1 square(s)
+PASS model: SearchModel "2 of 985", 17 property changes
+PASS script: Jint alert "sample 42"
+```
+
+`dotnet-consumer.sh` is the check. It packs all five packages (or takes them from `--packages`),
+copies the sample out of the tree, restores it from a local feed that alone may serve `EmbedPDF*`
+ids, and runs it with no `EPDF_NATIVE_DIR` or `LD_LIBRARY_PATH`. Then it publishes the sample with
+`PublishAot=true` and runs the binary. `packaging/png_check.py` checks both PNGs.
+
+```sh
+bash platforms/dotnet/dotnet-consumer.sh                    # host RID, builds every package
+bash platforms/dotnet/dotnet-consumer.sh --rid linux-x64 --packages <dir> --no-aot
+```
+
+The NativeAOT publish reports six warnings, all from Jint: IL2104 and IL3053 for the assembly, and
+IL2026 from `Jint.Options.Apply`, its display class, `DefaultTypeConverter.BuildDelegate` and
+`DefaultObjectConverter.ConvertSystemTextJsonValue`. They are Jint's CLR interop and JSON paths,
+which `EmbedPDF.Scripting.Jint` never enables, and the script step passes in the native binary.
+The script fails on any other trim or AOT warning. An app that needs no document JavaScript drops
+`EmbedPDF.Scripting.Jint` and publishes with no warning.
+
+Sizes on `linux-arm64` in the dev container, in bytes: the NativeAOT executable is 18,572,016, and
+its publish directory is 106,370,152, of which 47,024,824 is the `.dbg` symbol file and 40,744,448
+the viewer host and PDFium. Under the container's x86_64 emulation, `linux-x64` gives 18,096,808
+and 100,835,330.
+
+`EmbedPDF.Models` depends on exactly the `EmbedPDF` version it was built with (`[x.y.z]`), because
+it calls the facade's internals. `packaging/libraries.py pack-libraries` packs the three library
+packages and fails when that range is not exact. It is a separate file because `package.py` is an
+input of `dotnet-engine-hash.sh`, and managed packaging must not move the runtime's version.
