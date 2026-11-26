@@ -31,7 +31,7 @@ ARG CARGO_NDK_VERSION=4.1.2
 ARG CARGO_LLVM_COV_VERSION=0.9.1
 # Must equal the `wasm-bindgen` pin in crates/epdf-web/Cargo.toml.
 # renovate: datasource=crate depName=wasm-bindgen-cli versioning=semver
-ARG WASM_BINDGEN_VERSION=0.2.127
+ARG WASM_BINDGEN_VERSION=0.2.130
 # renovate: datasource=npm depName=oauth2-forwarder
 ARG OAUTH2_FORWARDER_VERSION=1.9.4
 # renovate: datasource=npm depName=git-credential-forwarder
