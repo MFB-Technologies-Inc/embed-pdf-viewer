@@ -1378,6 +1378,40 @@ Swift test files and their C# counterparts (Definition of done):
 | `ImportTests`, `PageRenderTaskTests`, `SerialCallsTests`, `SnapshotRefreshTests` | `InfrastructureTests` |
 | `PluginControlTestSupport` | Test support: `SingleThreadContext.cs`, `Observed.cs` |
 
+### Follow-up 2026-11-26: the duplicate exports and the markMatches cancel
+
+Task plan: `docs/superpowers/plans/2026-11-26-ffi-duplicate-and-cancel.md`. Branch
+`research/dotnet-parity-p7` from `research/dotnet-parity-p6` at `b4bb2b710`. The user approved both
+halves as a Rust change after wave D's "Exclusions that need a decision" and wave E's "Finding", so
+the Global Constraints rule that `ffi.rs` grows only where Swift already calls a member does not
+apply to these ten.
+
+The cancel. `RedactionHandle.mark_matches` passed the plugin no signal, so the abort that
+`call_promise_cancellable` posts reached a promise that never checked it. It now hangs an
+`AbortSignal` on the plugin options and aborts it from the cancel token (`bf0d8af2a`), as the
+attachment and annotation bundle exports already did. The search was never holding the kernel
+thread: it yields between engine slices, and the signal stops it there. A cancel 300 ms into a
+whole-document mark of `"e"` on `report.pdf` now ends 300 ms later
+(`RedactionTests.MarkMatchesStopsWhenCancelledMidCall`). A cancel before the search found a hit
+resolves with no marks, which is the plugin's own behaviour in Rust and TypeScript.
+
+The exports. Annotation `duplicate`, `can_duplicate`, `is_movable`, `when_remeasurable`,
+`stage_remeasure`, `selection_duplicate` and `selection_can_duplicate` (`5480d0afa`), and form
+`duplicate` and `duplicate_widgets` (`ebf3fa761`), with typed records and cancel tokens. C# wraps
+them as `AnnotationCapability.DuplicateAsync`, `CanDuplicateAsync`, `IsMovableAsync`,
+`WhenRemeasurableAsync`, `StageRemeasureAsync`, `AnnotationSelectionCapability.DuplicateAsync` and
+`CanDuplicateAsync`, and `FormCapability.DuplicateAsync` and `DuplicateWidgetsAsync`.
+`get_shared` stays unexported: it hands other plugins the record the store holds, and a foreign
+caller can only get the copy `GetAsync` answers. Its exclusion is now `internal-resource`.
+
+Tests. Rust: redaction `ffi` 13, annotation `ffi` 28, form `ffi` 16, each crate's full suite
+passing. C#: `AnnotationDuplicateTests` (11), three `FormTests` cases and the redaction mid-call
+case are new; `EmbedPDF.Viewer.Tests` runs 1,157, 1,153 passing and 4 skipped. The coverage check
+reads 880 members: 739 ported, 0 pending, 141 exclusions.
+
+Handoffs for the other packages: `docs/superpowers/plans/2026-11-26-swift-ffi-duplicate-and-cancel.md`
+and `docs/superpowers/plans/2026-11-26-kotlin-ffi-duplicate-and-cancel.md`.
+
 ## Definition of done
 
 `csharp-api-coverage.json` has no `pending` rows and the coverage check passes. Every Swift test
