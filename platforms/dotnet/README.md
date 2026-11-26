@@ -435,6 +435,11 @@ PASS model: SearchModel "2 of 985", 17 property changes
 PASS script: Jint alert "sample 42"
 ```
 
+The script step warms Jint first, in a throwaway realm with a 30 s budget. On a cold runtime the
+first realm can spend longer than the viewer's 50 ms script budget compiling Jint, and the check
+then fails with a disposed sandbox; an app that runs document scripts can warm up the same way at
+startup.
+
 `dotnet-consumer.sh` is the check. It packs all five packages (or takes them from `--packages`),
 copies the sample out of the tree, restores it from a local feed that alone may serve `EmbedPDF*`
 ids, and runs it with no `EPDF_NATIVE_DIR` or `LD_LIBRARY_PATH`. Then it publishes the sample with

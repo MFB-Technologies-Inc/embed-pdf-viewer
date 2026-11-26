@@ -112,7 +112,20 @@ try
     step = "script";
     if (runScript)
     {
-        var check = await ScriptEngineCheck.RunAsync(new JintScriptEngineFactory(), "app.alert('sample ' + (6 * 7))");
+        var engines = new JintScriptEngineFactory();
+        // The viewer gives a script 50 ms. On a cold runtime the first realm's
+        // boot can spend longer than that compiling Jint itself, which reads as a
+        // timed-out, disposed realm. One throwaway realm with a generous budget
+        // warms the interpreter first; the check below still runs under the
+        // viewer's own budget. An app that runs document scripts can do the same
+        // at startup.
+        var warmUp = await Task.Run(() =>
+        {
+            using var realm = engines.Create();
+            return realm.Evaluate(WarmUpScript, 30_000);
+        });
+        if (warmUp is not ScriptEvaluation.Value) throw new InvalidOperationException($"the Jint warm-up failed: {warmUp}");
+        var check = await ScriptEngineCheck.RunAsync(engines, "app.alert('sample ' + (6 * 7))");
         if (check.Error is { } scriptError) throw new InvalidOperationException($"{scriptError.Kind}: {scriptError.Message}");
         if (check.Alerts is not ["sample 42"]) throw new InvalidOperationException($"unexpected alerts: {string.Join(", ", check.Alerts)}");
         Pass($"Jint alert \"{check.Alerts[0]}\"");
@@ -132,3 +145,15 @@ catch (Exception error)
 }
 
 void Pass(string detail) => Console.WriteLine($"PASS {step}: {detail}");
+
+partial class Program
+{
+    /// <summary>Touches what the viewer's prelude uses: functions, closures, objects, strings, a regex and JSON.</summary>
+    const string WarmUpScript = """
+        var made = [];
+        function Field(name) { this.name = name; this.value = ''; }
+        Field.prototype.set = function (v) { this.value = String(v).replace(/\s+/g, ' ').trim(); return this; };
+        for (var i = 0; i < 50; i++) made.push(new Field('f' + i).set('  v ' + i * 2 + '  '));
+        JSON.stringify(made.map(function (f) { return [f.name, f.value.length]; }).slice(0, 3));
+        """;
+}
