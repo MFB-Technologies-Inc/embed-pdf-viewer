@@ -1,22 +1,30 @@
+using System.Buffers.Binary;
+using System.Security.Cryptography;
+using System.Text;
+
 namespace EmbedPDF;
 
 /// <summary>
-/// An <see cref="IStampLibraryStore"/> over one PDF file per library in a
+/// An <see cref="IStampLibraryStore"/> over one file per library in a
 /// directory. Writes go to a temporary file in the same directory first and
 /// replace the library's file in one move, so a crash mid-write leaves the
 /// previous version.
 /// </summary>
 /// <remarks>
-/// A library id becomes a file name with every character outside
-/// <c>A-Z</c>, <c>a-z</c>, <c>0-9</c>, <c>-</c> and <c>_</c> percent-escaped,
-/// so no id names a path outside <see cref="Directory"/> and every id reads
-/// back as it was written. Members throw <see cref="IOException"/> and
-/// <see cref="UnauthorizedAccessException"/> as the file system does.
+/// A library's file is named by the lowercase hex SHA-256 of its id, with
+/// the <c>.library</c> extension, so ids that differ only in case, Windows
+/// device names such as <c>CON</c>, ids with path characters and long ids
+/// all get distinct, portable names inside <see cref="Directory"/>. The file
+/// holds the id and then the library's PDF bytes, which is how
+/// <see cref="List"/> reads ids back. Members throw <see cref="IOException"/>
+/// and <see cref="UnauthorizedAccessException"/> as the file system does; a
+/// file that is not a library this store wrote is skipped.
 /// </remarks>
 public sealed class FileStampLibraryStore : IStampLibraryStore
 {
-    const string Extension = ".pdf";
+    const string Extension = ".library";
     const string Partial = ".partial";
+    static readonly byte[] Magic = "EPDFSTAMPLIB1\n"u8.ToArray();
 
     /// <summary>The default directory: <c>EmbedPDF/stamps</c> under <see cref="Environment.SpecialFolder.LocalApplicationData"/>.</summary>
     public static string DefaultDirectory =>
@@ -33,21 +41,33 @@ public sealed class FileStampLibraryStore : IStampLibraryStore
     }
 
     /// <inheritdoc/>
-    public IReadOnlyList<StoredStampLibrary> List() =>
-        [.. new DirectoryInfo(Directory).EnumerateFiles("*" + Extension)
+    public IReadOnlyList<StoredStampLibrary> List()
+    {
+        var libraries = new List<StoredStampLibrary>();
+        foreach (var file in new DirectoryInfo(Directory).EnumerateFiles("*" + Extension)
             .Where(file => file.Name.EndsWith(Extension, StringComparison.Ordinal))
-            .OrderBy(file => file.Name, StringComparer.Ordinal)
-            .Select(file => new StoredStampLibrary(Unescape(file.Name[..^Extension.Length]), File.ReadAllBytes(file.FullName)))];
+            .OrderBy(file => file.Name, StringComparer.Ordinal))
+        {
+            if (Read(File.ReadAllBytes(file.FullName)) is { } library && file.Name == NameOf(library.Id)) libraries.Add(library);
+        }
+        return [.. libraries.OrderBy(l => l.Id, StringComparer.Ordinal)];
+    }
 
     /// <inheritdoc/>
     public void Put(string id, ReadOnlyMemory<byte> bytes)
     {
         var target = PathOf(id);
         var temporary = target + "." + Guid.NewGuid().ToString("N") + Partial;
+        var idBytes = Encoding.UTF8.GetBytes(id);
+        Span<byte> length = stackalloc byte[4];
+        BinaryPrimitives.WriteInt32LittleEndian(length, idBytes.Length);
         try
         {
             using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
             {
+                stream.Write(Magic);
+                stream.Write(length);
+                stream.Write(idBytes);
                 stream.Write(bytes.Span);
                 stream.Flush(flushToDisk: true);
             }
@@ -69,19 +89,17 @@ public sealed class FileStampLibraryStore : IStampLibraryStore
     string PathOf(string id)
     {
         ArgumentNullException.ThrowIfNull(id);
-        return Path.Combine(Directory, Escape(id) + Extension);
+        return Path.Combine(Directory, NameOf(id));
     }
 
-    static string Escape(string id)
+    static string NameOf(string id) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(id))) + Extension;
+
+    static StoredStampLibrary? Read(byte[] file)
     {
-        var text = new System.Text.StringBuilder(id.Length);
-        foreach (var b in System.Text.Encoding.UTF8.GetBytes(id))
-        {
-            if (b is >= (byte)'a' and <= (byte)'z' or >= (byte)'A' and <= (byte)'Z' or >= (byte)'0' and <= (byte)'9' or (byte)'-' or (byte)'_') text.Append((char)b);
-            else text.Append('%').Append(b.ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
-        }
-        return text.ToString();
+        var header = Magic.Length + 4;
+        if (file.Length < header || !file.AsSpan(0, Magic.Length).SequenceEqual(Magic)) return null;
+        var length = BinaryPrimitives.ReadInt32LittleEndian(file.AsSpan(Magic.Length, 4));
+        if (length < 0 || length > file.Length - header) return null;
+        return new StoredStampLibrary(Encoding.UTF8.GetString(file, header, length), file.AsMemory(header + length));
     }
-
-    static string Unescape(string name) => Uri.UnescapeDataString(name);
 }

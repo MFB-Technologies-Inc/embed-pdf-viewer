@@ -48,12 +48,45 @@ public sealed class FileStampLibraryStoreTests : IDisposable
         Assert.Empty(store.List());
     }
 
+    /// <summary>
+    /// File names stay portable: ids that differ only in case get files that
+    /// differ ignoring case, a Windows device name is never a file name, and
+    /// a long id still fits a file name.
+    /// </summary>
+    [Theory]
+    [InlineData("Abc", "abc")]
+    [InlineData("CON", "con.pdf")]
+    [InlineData("aux", "NUL")]
+    public void IdsGetPortableDistinctFileNames(string first, string second)
+    {
+        var store = new FileStampLibraryStore(Path.Combine(root, "store"));
+        store.Put(first, new byte[] { 1 });
+        store.Put(second, new byte[] { 2 });
+        Assert.Equal(new[] { first, second }.Order(StringComparer.Ordinal), store.List().Select(l => l.Id).Order(StringComparer.Ordinal));
+        var names = Directory.GetFiles(store.Directory).Select(Path.GetFileName).ToArray();
+        Assert.Equal(2, names.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.All(names, name => Assert.Matches("^[0-9a-f]{64}\\.[a-z]+$", name));
+    }
+
+    [Fact]
+    public void ALongIdFitsAFileName()
+    {
+        var store = new FileStampLibraryStore(Path.Combine(root, "store"));
+        var id = new string('x', 300) + "/名前";
+        store.Put(id, new byte[] { 9, 8 });
+        var listed = Assert.Single(store.List());
+        Assert.Equal(id, listed.Id);
+        Assert.Equal(new byte[] { 9, 8 }, listed.Bytes.ToArray());
+        Assert.All(Directory.GetFiles(store.Directory), file => Assert.True(Path.GetFileName(file).Length < 100));
+    }
+
     [Fact]
     public void OnlyLibraryFilesAreListed()
     {
         var store = new FileStampLibraryStore(Path.Combine(root, "store"));
         File.WriteAllBytes(Path.Combine(store.Directory, "notes.txt"), [1]);
-        File.WriteAllBytes(Path.Combine(store.Directory, "half.pdf.0123.partial"), [1]);
+        File.WriteAllBytes(Path.Combine(store.Directory, "half.library.0123.partial"), [1]);
+        File.WriteAllBytes(Path.Combine(store.Directory, new string('a', 64) + ".library"), [1, 2, 3]);
         store.Put("kept", new byte[] { 3 });
         Assert.Equal(["kept"], store.List().Select(l => l.Id));
     }
