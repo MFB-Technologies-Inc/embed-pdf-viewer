@@ -21,7 +21,7 @@ public sealed class CancellationTests
     }
 
     /// <summary>Collects unobserved task exceptions while it is alive.</summary>
-    sealed class UnobservedWatch : IDisposable
+    internal sealed class UnobservedWatch : IDisposable
     {
         public readonly ConcurrentQueue<Exception> Seen = new();
 

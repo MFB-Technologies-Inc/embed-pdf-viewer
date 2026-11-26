@@ -110,6 +110,14 @@ public sealed class I18nTests
     [Fact]
     public async Task DisposingTheViewerFromALoaderWorks()
     {
+        using var watch = new CancellationTests.UnobservedWatch();
+        await DisposeFromALoader();
+        watch.Collect();
+        Assert.Empty(watch.Seen);
+    }
+
+    static async Task DisposeFromALoader()
+    {
         PdfViewer? viewer = null;
         var disposed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var loader = new Broken(_ =>
@@ -119,10 +127,47 @@ public sealed class I18nTests
             return Task.FromResult(English);
         });
         (viewer, var i18n) = await Started(loader);
-        _ = i18n.SetLocaleAsync("es");
+        // The switch the loader's disposal cuts short is observed: left
+        // unawaited, its instance-closed fault reaches the finalizer thread.
+        var switching = i18n.SetLocaleAsync("es");
         await disposed.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        var cut = await Record.ExceptionAsync(() => switching);
+        Assert.True(cut is null || cut is PdfException { Code.Value: "instance-closed" }, cut?.ToString());
         var error = await Assert.ThrowsAsync<PdfException>(() => i18n.GetLocaleAsync());
         Assert.Equal(PdfErrorCode.InstanceClosed, error.Code);
+    }
+
+    /// <summary>
+    /// I18n across viewer disposal leaves no unobserved task exception: every
+    /// task the facade starts is observed, and the caller's own calls are
+    /// awaited. A watch catches what the finalizer thread would rethrow.
+    /// </summary>
+    [Fact]
+    public async Task I18nAcrossDisposalLeavesNoUnobservedTaskException()
+    {
+        using var watch = new CancellationTests.UnobservedWatch();
+        for (var round = 0; round < 3; round++)
+        {
+            PdfViewer? viewer = null;
+            var disposed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var loader = new Broken(_ =>
+            {
+                viewer!.Dispose();
+                disposed.TrySetResult();
+                return Task.FromResult(English);
+            });
+            (viewer, var i18n) = await Started(loader);
+            var events = i18n.ObserveEvents();
+            var reading = Task.Run(async () => { await foreach (var _ in events) { } });
+            var switching = i18n.SetLocaleAsync("es");
+            await disposed.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await Record.ExceptionAsync(() => switching);
+            await reading.WaitAsync(TimeSpan.FromSeconds(10));
+            await Assert.ThrowsAsync<PdfException>(() => i18n.TranslateAsync("annotation.ink"));
+            i18n.Dispose();
+        }
+        watch.Collect();
+        Assert.Empty(watch.Seen);
     }
 
     [Fact]
