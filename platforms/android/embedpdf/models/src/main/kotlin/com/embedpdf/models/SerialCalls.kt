@@ -1,5 +1,6 @@
 package com.embedpdf.models
 
+import com.embedpdf.PdfException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -9,6 +10,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.sync.Mutex
@@ -25,8 +27,8 @@ import kotlin.coroutines.cancellation.CancellationException
  * awaiting a result with [Call.await], which runs every call queued ahead of
  * its own and then its own. When a drainer is cancelled, a call it had not
  * started goes back to the front of the queue for the next drainer; a call
- * it had started ends cancelled for its awaiter and never runs again. Used on
- * the main thread only.
+ * it had started never runs again, and an awaiter that is still active gets
+ * `operation-cancelled` for it. Used on the main thread only.
  *
  * A call made to return at once ([post]) needs a drainer it does not wait
  * for. When no `run()` drains the queue, [post] starts one drain in
@@ -43,15 +45,24 @@ internal class SerialCalls(
         private var job: Job? = null
         private var cancelled = false
 
+        /** Whether the drainer that started this call was cancelled while it ran. */
+        private var drainerCancelled = false
+
         /**
          * Runs every call queued ahead of this one, then this one, and returns
          * its result. Throws `CancellationException` when the call was
-         * cancelled with [cancel], or when another drainer started it and was
-         * cancelled.
+         * cancelled with [cancel]. When another drainer started it and was
+         * cancelled, throws `operation-cancelled` to a caller that is still
+         * active, and the caller's own cancellation to one that is not.
          */
         suspend fun await(): R {
             drainThrough(this)
-            return result.await()
+            try {
+                return result.await()
+            } catch (e: PdfException) {
+                if (drainerCancelled) currentCoroutineContext().ensureActive()
+                throw e
+            }
         }
 
         /** Cancels this call: a queued call never runs, and a running one is cancelled. */
@@ -80,7 +91,17 @@ internal class SerialCalls(
                 // started for the next drainer. A started call ends cancelled:
                 // running it again would repeat what it already did.
                 if (!currentCoroutineContext().isActive) {
-                    if (started) result.cancel(e)
+                    if (started) {
+                        drainerCancelled = true
+                        result.completeExceptionally(
+                            PdfException(
+                                PdfException.Code.OPERATION_CANCELLED,
+                                "the coroutine running this call was cancelled",
+                                "AbortError",
+                                e,
+                            ),
+                        )
+                    }
                     throw e
                 }
                 result.cancel(e)

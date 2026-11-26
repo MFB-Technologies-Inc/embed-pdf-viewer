@@ -1,6 +1,10 @@
 package com.embedpdf.models
 
+import com.embedpdf.PdfException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -11,10 +15,10 @@ import kotlinx.coroutines.yield
 import kotlinx.coroutines.Dispatchers
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import kotlin.coroutines.cancellation.CancellationException
 
 /** `SnapshotRefreshTests` and `SerialCallsTests`, on a virtual-time main dispatcher. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -145,8 +149,9 @@ class HelperTest {
         later.await()
         assertTrue(laterRan)
         assertEquals(1, starts)
-        val outcome = runCatching { started.await() }
-        assertTrue(outcome.exceptionOrNull() is CancellationException)
+        // An awaiter that is still active learns the call was cut off, not that it was itself cancelled.
+        val outcome = runCatching { started.await() }.exceptionOrNull()
+        assertTrue("$outcome", outcome is PdfException && outcome.code == PdfException.Code.OPERATION_CANCELLED)
     }
 
     @Test
