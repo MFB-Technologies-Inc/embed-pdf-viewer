@@ -55,7 +55,7 @@ jobs:
       # The fork target whose prebuilt libembedpdf the host build links.
       FORK_TARGET: linux-x64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -110,7 +110,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v5
 
@@ -346,7 +346,7 @@ jobs:
     # both suites skip themselves on a runtime without it, so before the
     # payload included it they were green and never ran.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v5
 
