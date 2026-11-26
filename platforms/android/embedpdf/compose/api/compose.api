@@ -49,6 +49,16 @@ public final class com/embedpdf/compose/ComposableSingletons$OutlinePanelKt {
 	public final fun getLambda$52010070$compose ()Lkotlin/jvm/functions/Function2;
 }
 
+public final class com/embedpdf/compose/ComposableSingletons$PdfReaderKt {
+	public static final field INSTANCE Lcom/embedpdf/compose/ComposableSingletons$PdfReaderKt;
+	public fun <init> ()V
+	public final fun getLambda$-1495214732$compose ()Lkotlin/jvm/functions/Function4;
+	public final fun getLambda$-1520606220$compose ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-1672826498$compose ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$1014903131$compose ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$973156820$compose ()Lkotlin/jvm/functions/Function3;
+}
+
 public final class com/embedpdf/compose/ComposableSingletons$SearchBarKt {
 	public static final field INSTANCE Lcom/embedpdf/compose/ComposableSingletons$SearchBarKt;
 	public fun <init> ()V
@@ -84,6 +94,10 @@ public final class com/embedpdf/compose/OutlinePanelKt {
 
 public final class com/embedpdf/compose/PageImageViewKt {
 	public static final fun PageImageView (Lcom/embedpdf/RenderCapability;Luniffi/epdf_ffi/PageRef;DLandroidx/compose/ui/Modifier;ZJLandroidx/compose/runtime/Composer;II)V
+}
+
+public final class com/embedpdf/compose/PdfReaderKt {
+	public static final fun PdfReader (Lcom/embedpdf/models/PdfReaderModel;Landroidx/compose/ui/Modifier;Ljava/util/List;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/embedpdf/compose/ResourceHistoryStrings : com/embedpdf/models/HistoryStrings {
