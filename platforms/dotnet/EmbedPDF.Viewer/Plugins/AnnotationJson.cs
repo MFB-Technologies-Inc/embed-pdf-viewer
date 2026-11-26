@@ -460,21 +460,28 @@ internal static class AnnotationWire
 
     internal static JsonNode Serialize(WireLineLeader leader) => JsonSerializer.SerializeToNode(leader, Context.WireLineLeader)!;
 
+    /// <summary>An object number or index: a whole number from 0 to <see cref="int.MaxValue"/>, the public refs' range. Anything else is the wrong shape, never truncated.</summary>
+    internal static int ReadCount(JsonNode node, string key)
+    {
+        var value = ReadDouble(node, key);
+        return value >= 0 && value <= int.MaxValue && value == Math.Floor(value) ? (int)value : throw Shape(key, "a whole number from 0");
+    }
+
     internal static PageRef ReadPage(JsonNode node, string key)
     {
         if (node is not JsonObject o || o["objectNumber"] is not { } number) throw Shape(key, "a page");
-        return new(WireInteger.ToInt((uint)ReadDouble(number, key), "page object number"));
+        return new(ReadCount(number, key));
     }
 
     internal static AnnotationRef ReadAnnotation(JsonNode node, string key)
     {
         if (node is not JsonObject o || o["page"] is not { } pageNode || o["kind"] is not { } kindNode) throw Shape(key, "an annotation ref");
         var page = ReadPage(pageNode, key);
-        uint Number(string name) => o[name] is { } n ? checked((uint)ReadDouble(n, key)) : throw Shape(key, "an annotation ref");
+        int Number(string name) => o[name] is { } n ? ReadCount(n, key) : throw Shape(key, "an annotation ref");
         return ReadString(kindNode, key) switch
         {
-            "objectNumber" => new AnnotationRef.ObjectNumber(page, WireInteger.ToInt(Number("objectNumber"), "annotation object number")),
-            "baseIndex" => new AnnotationRef.Index(page, WireInteger.ToInt(Number("baseIndex"), "annotation index")),
+            "objectNumber" => new AnnotationRef.ObjectNumber(page, Number("objectNumber")),
+            "baseIndex" => new AnnotationRef.Index(page, Number("baseIndex")),
             var kind => throw new FieldBagException($"not an annotation ref kind: {kind}"),
         };
     }

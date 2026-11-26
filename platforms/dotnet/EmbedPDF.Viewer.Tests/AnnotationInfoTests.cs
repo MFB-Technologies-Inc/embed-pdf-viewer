@@ -203,6 +203,47 @@ public sealed partial class AnnotationInfoTests
         Assert.Equal(text, info.RawModifiedAt);
     }
 
+    /// <summary>
+    /// Dates the engine can write that fall outside what DateTimeOffset holds
+    /// (it writes year 0000) read as no instant and keep their text, rather
+    /// than throwing out of the read.
+    /// </summary>
+    [Theory]
+    [InlineData("0000-01-01T00:00+01:00")]
+    [InlineData("0001-01-01T00:00+00:01")]
+    [InlineData("9999-12-31T23:59-01:00")]
+    public void ATimestampOutsideTheRangeKeepsItsText(string text)
+    {
+        var info = new AnnotationInfo(Record(createdAt: text, modifiedAt: text));
+        Assert.Null(info.CreatedAt);
+        Assert.Equal(text, info.RawCreatedAt);
+        Assert.Null(info.ModifiedAt);
+        Assert.Equal(text, info.RawModifiedAt);
+        var file = new AnnotationAttachedFile("x", null, null, null, null, text, text);
+        Assert.Null(file.CreatedAt);
+        Assert.Null(file.ModifiedAt);
+    }
+
+    [Fact]
+    public async Task AListReadSurvivesAnAnnotationDatedOutsideTheRange()
+    {
+        var (viewer, document, annotations) = await AnnotationTests.Opened("report");
+        await using var _v = viewer;
+        var page = (await viewer.GetPagesAsync(document))[0].Page;
+        _ = await annotations.CreateAsync(new SquareAnnotationDraft(new PdfRect(10, 10, 20, 20)), page);
+        // A bundle carries the dates as the engine wrote them; give one year 0000.
+        var bundle = System.Text.RegularExpressions.Regex.Replace(
+            await annotations.ExportAsync(), "\"(modifiedAt|createdAt)\":\"[^\"]*\"", "\"$1\":\"0000-01-01T00:00:00+01:00\"");
+        Assert.Contains("0000-01-01", bundle, StringComparison.Ordinal);
+        var second = await viewer.OpenAsync(Fixture.Data("report"));
+        using var other = await viewer.GetAnnotationAsync(second);
+        await other.RefreshAsync();
+        _ = await other.ImportAsync(bundle);
+        var listed = Assert.Single(await other.ListAsync());
+        Assert.Equal("0000-01-01T00:00:00+01:00", listed.RawModifiedAt ?? listed.RawCreatedAt);
+        Assert.Null(listed.ModifiedAt);
+    }
+
     [Fact]
     public void AnAbsentTimestampIsNull()
     {

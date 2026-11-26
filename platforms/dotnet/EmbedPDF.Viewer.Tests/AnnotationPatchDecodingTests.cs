@@ -223,6 +223,29 @@ public sealed partial class AnnotationPatchDecodingTests
         Assert.Equal("DecodingError", error.Name);
     }
 
+    /// <summary>A ref's numbers are non-negative integers; anything else is a member of the wrong shape, not truncated or overflowed.</summary>
+    [Theory]
+    [InlineData("-1", "2")]
+    [InlineData("1.5", "2")]
+    [InlineData("4294967296", "2")]
+    [InlineData("9", "-1")]
+    [InlineData("9", "2.5")]
+    public void AReplyRefWithANumberThatIsNotACountIsInvalidInput(string objectNumber, string page)
+    {
+        var json = "{\"reply\":{\"to\":{\"kind\":\"objectNumber\",\"objectNumber\":" + objectNumber
+            + ",\"page\":{\"kind\":\"objectNumber\",\"objectNumber\":" + page + "}}}}";
+        var error = Assert.Throws<PdfException>(() => NoteAnnotationPatch.FromJson(json));
+        Assert.Equal(PdfErrorCode.InvalidInput, error.Code);
+        Assert.Equal("DecodingError", error.Name);
+    }
+
+    [Fact]
+    public void AReplyRefReadsItsNumbers()
+    {
+        var note = NoteAnnotationPatch.FromJson("""{"reply":{"to":{"kind":"baseIndex","baseIndex":3,"page":{"kind":"objectNumber","objectNumber":2}}}}""");
+        Assert.Equal(new AnnotationRef.Index(new PageRef(2), 3), note.Common.Reply?.Value.To);
+    }
+
     [Fact]
     public void ADecodedPatchKeepsTheNameItsJsonCarries()
     {
