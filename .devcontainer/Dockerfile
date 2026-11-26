@@ -33,7 +33,7 @@ ARG CARGO_LLVM_COV_VERSION=0.9.2
 # renovate: datasource=crate depName=wasm-bindgen-cli versioning=semver
 ARG WASM_BINDGEN_VERSION=0.2.127
 # renovate: datasource=npm depName=oauth2-forwarder
-ARG OAUTH2_FORWARDER_VERSION=1.9.4
+ARG OAUTH2_FORWARDER_VERSION=1.10.0
 # renovate: datasource=npm depName=git-credential-forwarder
 ARG GIT_CREDENTIAL_FORWARDER_VERSION=1.8.0
 
