@@ -21,10 +21,18 @@ internal static class CapabilityObservation
         using var group = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var eventLoop = Follow(events(group.Token), receive, group.Token);
         var revisionLoop = Follow(viewer.ObserveStateRevisions(group.Token), _ => refresh(), group.Token);
-        await initial();
-        await Task.WhenAny(eventLoop, revisionLoop);
-        group.Cancel();
-        await Task.WhenAll(eventLoop, revisionLoop);
+        try
+        {
+            await initial();
+            await Task.WhenAny(eventLoop, revisionLoop);
+        }
+        finally
+        {
+            // Also when initial throws, so neither loop outlives the call.
+            group.Cancel();
+            await Task.WhenAll(eventLoop, revisionLoop).ConfigureAwait(
+                ConfigureAwaitOptions.SuppressThrowing | ConfigureAwaitOptions.ContinueOnCapturedContext);
+        }
     }
 
     /// <summary>
