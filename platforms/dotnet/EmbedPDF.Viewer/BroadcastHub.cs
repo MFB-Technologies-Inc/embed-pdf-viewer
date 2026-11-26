@@ -105,6 +105,9 @@ internal sealed class Subscription<T> : IAsyncEnumerable<T>
     CancellationTokenRegistration registration;
     int enumerated;
     int ended;
+    // Completes once End's winner has run onEnd, so a later End caller that
+    // must not return early (the enumerator's disposal) can wait for it.
+    readonly TaskCompletionSource endDone = new(TaskCreationOptions.RunContinuationsAsynchronously);
     bool registered;
 
     internal bool HasEndedForTests => HasEnded;
@@ -154,17 +157,36 @@ internal sealed class Subscription<T> : IAsyncEnumerable<T>
     internal void End()
     {
         if (Interlocked.Exchange(ref ended, 1) != 0) return;
-        hub.Remove(this);
-        channel.Writer.TryComplete();
-        CancellationTokenRegistration watching;
-        lock (gate)
+        try
         {
-            watching = registration;
-            registration = default;
-            registered = false;
+            hub.Remove(this);
+            channel.Writer.TryComplete();
+            CancellationTokenRegistration watching;
+            lock (gate)
+            {
+                watching = registration;
+                registration = default;
+                registered = false;
+            }
+            watching.Dispose();
+            onEnd?.Invoke();
         }
-        watching.Dispose();
-        onEnd?.Invoke();
+        finally
+        {
+            endDone.TrySetResult();
+        }
+    }
+
+    /// <summary>
+    /// Ends the subscription and completes when its end has run, whichever
+    /// caller started it. The token callback and the kernel's end never wait
+    /// (either could be what the other is blocked on); only disposal does,
+    /// and asynchronously.
+    /// </summary>
+    internal Task EndAsync()
+    {
+        End();
+        return endDone.Task;
     }
 
     public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
@@ -203,9 +225,9 @@ internal sealed class Subscription<T> : IAsyncEnumerable<T>
 
         public ValueTask DisposeAsync()
         {
-            owner.End();
+            var ending = owner.EndAsync();
             linked.Dispose();
-            return ValueTask.CompletedTask;
+            return new ValueTask(ending);
         }
     }
 }

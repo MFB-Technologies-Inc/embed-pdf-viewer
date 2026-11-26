@@ -38,6 +38,35 @@ public sealed class RevisionHubTests
     }
 
     [Fact]
+    public async Task DisposingTheEnumeratorWaitsForAnEndAlreadyUnderWay()
+    {
+        // A token callback can win End and still be running onEnd (the plugin
+        // stream's unsubscribe) when the reader's own disposal calls End. The
+        // disposal must not finish first: run 45804857099 saw a stream still
+        // registered after its await foreach had returned.
+        var hub = new BroadcastHub<long>(1);
+        using var entered = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        var ended = 0;
+        var subscription = hub.Subscribe(CancellationToken.None, () =>
+        {
+            entered.Set();
+            release.Wait(TimeSpan.FromSeconds(10));
+            Volatile.Write(ref ended, 1);
+        });
+        var enumerator = subscription.GetAsyncEnumerator();
+        var racing = Task.Run(subscription.End);
+        Assert.True(entered.Wait(TimeSpan.FromSeconds(5)));
+        var disposing = enumerator.DisposeAsync().AsTask();
+        await Task.Delay(50);
+        Assert.False(disposing.IsCompleted, "disposal finished while the first End was still unsubscribing");
+        release.Set();
+        await disposing.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(1, Volatile.Read(ref ended));
+        await racing;
+    }
+
+    [Fact]
     public async Task RepeatedCancellationLeavesTheSurvivingObserverLive()
     {
         var hub = new BroadcastHub<long>(1);
