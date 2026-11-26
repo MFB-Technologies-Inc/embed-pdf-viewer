@@ -4,6 +4,25 @@ public final class com/embedpdf/compose/BridgesKt {
 	public static final fun toImageBitmap (Lcom/embedpdf/PageImage;)Landroidx/compose/ui/graphics/ImageBitmap;
 }
 
+public final class com/embedpdf/compose/ComposableSingletons$OutlinePanelKt {
+	public static final field INSTANCE Lcom/embedpdf/compose/ComposableSingletons$OutlinePanelKt;
+	public fun <init> ()V
+	public final fun getLambda$-1079842042$compose ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$-1171905993$compose ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-131790076$compose ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$-1379017188$compose ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-1814649835$compose ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-438867143$compose ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$-446866117$compose ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$-754178368$compose ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-948058599$compose ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$1149125390$compose ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$1512591888$compose ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$1648726638$compose ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$275164895$compose ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$52010070$compose ()Lkotlin/jvm/functions/Function2;
+}
+
 public final class com/embedpdf/compose/ComposableSingletons$SearchBarKt {
 	public static final field INSTANCE Lcom/embedpdf/compose/ComposableSingletons$SearchBarKt;
 	public fun <init> ()V
@@ -31,6 +50,10 @@ public final class com/embedpdf/compose/HistoryControlsKt {
 public final class com/embedpdf/compose/ModelStringsKt {
 	public static final fun rememberHistoryStrings (Landroidx/compose/runtime/Composer;I)Lcom/embedpdf/models/HistoryStrings;
 	public static final fun rememberSearchStrings (Landroidx/compose/runtime/Composer;I)Lcom/embedpdf/models/SearchStrings;
+}
+
+public final class com/embedpdf/compose/OutlinePanelKt {
+	public static final fun OutlinePanel (Lcom/embedpdf/models/OutlineModel;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/embedpdf/compose/PageImageViewKt {
