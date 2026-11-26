@@ -11,3 +11,7 @@ embedpdf/models/build/
 embedpdf/compose/build/
 embedpdf/smoke/build/
 embedpdf/local.properties
+EmbedPDFDemo/.gradle/
+EmbedPDFDemo/.kotlin/
+EmbedPDFDemo/build/
+EmbedPDFDemo/app/build/
