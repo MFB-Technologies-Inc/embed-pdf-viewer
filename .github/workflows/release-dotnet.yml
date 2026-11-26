@@ -686,6 +686,13 @@ jobs:
             --runtime-package dotnet-runtime/EmbedPDF.Runtime.*.nupkg --out dotnet-runtime
 
       - name: Validate linux-arm64
+        # Since Phase 2 the facade depends on Microsoft.Extensions.Logging.Abstractions,
+        # which the local feed validate-runtime restores from does not hold. MSBuild
+        # reads this variable as a property, so restore adds nuget.org beside the
+        # feed. The fix belongs in package.py, an engine hash input, so it waits
+        # for the next engine change.
+        env:
+          RestoreAdditionalProjectSources: https://api.nuget.org/v3/index.json
         run: |
           python3 platforms/dotnet/packaging/package.py validate-runtime --rid linux-arm64 \
             --package dotnet-runtime/EmbedPDF.Runtime.*.nupkg --facade dotnet-runtime/EmbedPDF.0.0.0-local.nupkg \
@@ -792,6 +799,13 @@ jobs:
       # ImageOS and ImageVersion reach validate-runtime from the hosted
       # runner's environment and name the image in the record.
       - name: Validate
+        # Since Phase 2 the facade depends on Microsoft.Extensions.Logging.Abstractions,
+        # which the local feed validate-runtime restores from does not hold. MSBuild
+        # reads this variable as a property, so restore adds nuget.org beside the
+        # feed. The fix belongs in package.py, an engine hash input, so it waits
+        # for the next engine change.
+        env:
+          RestoreAdditionalProjectSources: https://api.nuget.org/v3/index.json
         run: |
           runtime=$(ls dotnet-runtime/EmbedPDF.Runtime.*.nupkg)
           "$PYTHON" platforms/dotnet/packaging/package.py validate-runtime --rid "$RID" \
