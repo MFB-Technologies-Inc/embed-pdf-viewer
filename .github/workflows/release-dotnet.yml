@@ -63,7 +63,7 @@ env:
 
 jobs:
   image:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       arm64: ${{ steps.digest.outputs.arm64 }}
       amd64: ${{ steps.digest.outputs.amd64 }}
@@ -159,7 +159,7 @@ jobs:
         if: runner.os == 'Windows'
         run: git config --global core.autocrlf false
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
           persist-credentials: false
@@ -196,16 +196,16 @@ jobs:
           echo "DOTNET_ROOT=$root" >> "$GITHUB_ENV"
           echo "$root" >> "$GITHUB_PATH"
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
       - uses: ./.github/actions/setup-rust
         with:
           targets: ${{ matrix.rust_target }}
           cache-key: dotnet-${{ matrix.rid }}
 
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('platforms/dotnet/**/*.csproj', 'platforms/dotnet/global.json') }}
@@ -463,7 +463,7 @@ jobs:
 
       # A workspace-relative path: in a container job runner.temp is the
       # host's path, not the container's.
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: dotnet-release-${{ matrix.rid }}
           path: dotnet-release

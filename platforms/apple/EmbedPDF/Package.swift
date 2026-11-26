@@ -20,7 +20,7 @@ let package = Package(
     .library(name: "EmbedPDFUI", targets: ["EmbedPDFUI"]),
   ],
   dependencies: [
-    .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.0"),
+    .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.7.3"),
   ],
   targets: [
     .binaryTarget(name: "EmbedPDFFFI", path: "EmbedPDFFFI.xcframework"),
