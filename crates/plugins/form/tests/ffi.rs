@@ -8,10 +8,13 @@ use std::cell::RefCell;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
-use epdf_ffi::{CancelToken, FormFieldRef, KernelThread, PageRef, ResourceStatus, ViewerError};
+use epdf_ffi::{
+    AnnotationRef, CancelToken, FormFieldRef, KernelThread, PageRef, Point, ResourceStatus,
+    ViewerError,
+};
 use epdf_plugin_form::ffi::{
-    FormConfig, FormEvent, FormEventListener, FormFieldDetail, FormFillControl, FormHandle,
-    FormKind, FormSetValueStatus, FormValidation, FormValueInput,
+    FormConfig, FormDuplicateOptions, FormEvent, FormEventListener, FormFieldDetail,
+    FormFillControl, FormHandle, FormKind, FormSetValueStatus, FormValidation, FormValueInput,
 };
 use epdf_plugin_form::{FORM, form_plugin};
 use epdf_plugin_interaction::{InteractionConfig, interaction_plugin};
@@ -193,7 +196,8 @@ fn spec() -> TestSpec {
         "pages": [{ "index": 0, "ref": page(), "label": null, "size": { "width": 600, "height": 800 },
             "rotation": 0, "userUnit": 1, "tabOrder": null,
             "pdfCropBox": { "left": 0, "bottom": 0, "right": 600, "top": 800 },
-            "boxes": { "media": bx, "crop": bx, "bleed": bx, "trim": bx, "art": bx } }] } } }))
+            "boxes": { "media": bx, "crop": bx, "bleed": bx, "trim": bx, "art": bx } }],
+        "objectNumbers": [20, 21, 22, 23] } } }))
     .respond("forms.list", |_| {
         let name = NAME.with(|n| n.borrow().clone());
         Ok(Reply::value(json!({
@@ -203,6 +207,9 @@ fn spec() -> TestSpec {
     })
     .respond("apply", |args| {
         SENT.with(|s| s.borrow_mut().push(args[0]["ops"].clone()));
+        if args[0]["ops"][0]["type"] == "forms.copy" {
+            return Ok(copied(&args[0]["ops"][0], &args[1]["opId"]));
+        }
         let value = args[0]["ops"][0]["value"]["value"].as_str().unwrap_or_default().to_string();
         NAME.with(|n| *n.borrow_mut() = value.clone());
         let field = text(&value);
@@ -216,6 +223,29 @@ fn spec() -> TestSpec {
             events: vec![event],
         })
     })
+}
+
+/// A `forms.copy` answered as the engine answers it: the text field again
+/// as `name_2`, under the op's first object number, its widget under the next.
+fn copied(op: &Value, op_id: &Value) -> Reply {
+    let numbers: Vec<u64> =
+        op["objectNumbers"].as_array().into_iter().flatten().filter_map(Value::as_u64).collect();
+    let (field_number, widget_number) = (numbers[0], numbers[1]);
+    let widget_ref =
+        json!({ "kind": "objectNumber", "page": page(), "objectNumber": widget_number });
+    let mut field = text("");
+    field["ref"] = json!({ "kind": "objectNumber", "objectNumber": field_number });
+    field["name"] = json!("name_2");
+    field["widgets"] =
+        json!([{ "ref": widget_ref, "objectNumber": widget_number, "page": page() }]);
+    let mut widget = row();
+    widget["ref"] = widget_ref;
+    widget["field"] = field["ref"].clone();
+    let meta = json!({ "affectedPages": [page()], "cacheDelta": null, "opId": op_id, "undoable": true,
+        "changedFields": [field["ref"]], "changedWidgets": [widget["ref"]], "redrawnWidgets": [] });
+    let item = json!({ "type": "forms.copy", "fields": [field], "widgets": [widget], "dropped": [],
+        "meta": meta });
+    Reply { value: json!({ "items": [item], "meta": meta }), events: vec![] }
 }
 
 fn handle() -> (KernelThread<TestKernel>, Arc<FormHandle>) {
@@ -442,4 +472,57 @@ fn open_form_payloads_reject_invalid_objects_without_mutating_and_describe_field
         code(&block_on(form.field_settings(text_ref())).unwrap_err()),
         Some("instance-closed")
     );
+}
+
+#[test]
+fn duplicating_a_field_sends_one_forms_copy_op() {
+    let (thread, form) = handle();
+    block_on(form.refresh(CancelToken::new())).unwrap();
+    let options =
+        FormDuplicateOptions { offset: Some(Point { x: 0.0, y: 30.0 }), ..Default::default() };
+    let result = block_on(form.duplicate(vec![text_ref()], options, CancelToken::new())).unwrap();
+    let ops = sent(&thread);
+    assert_eq!(ops.len(), 1, "{ops:?}");
+    let op = &ops[0][0];
+    assert_eq!(op["type"], "forms.copy");
+    assert_eq!(op["fields"], json!([{ "kind": "objectNumber", "objectNumber": 1 }]));
+    assert_eq!(op["offset"], json!({ "x": 0.0, "y": 30.0 }));
+    assert_eq!(op["values"], false);
+    assert_eq!(result.fields.len(), 1, "{result:?}");
+    assert_eq!(result.fields[0].name, "name_2");
+    let widget = AnnotationRef::ObjectNumber {
+        page: PageRef { page_object_number: 1 },
+        annot_object_number: op["objectNumbers"][1].as_u64().unwrap() as u32,
+    };
+    assert_eq!(result.widgets, vec![widget]);
+    assert_eq!(result.dropped_json, "[]");
+}
+
+#[test]
+fn duplicating_no_fields_sends_nothing() {
+    let (thread, form) = handle();
+    block_on(form.refresh(CancelToken::new())).unwrap();
+    let result =
+        block_on(form.duplicate(vec![], FormDuplicateOptions::default(), CancelToken::new()))
+            .unwrap();
+    assert!(result.fields.is_empty() && result.widgets.is_empty());
+    assert!(sent(&thread).is_empty());
+}
+
+#[test]
+fn duplicating_a_widget_the_form_does_not_show_is_not_found() {
+    let (thread, form) = handle();
+    block_on(form.refresh(CancelToken::new())).unwrap();
+    let missing = AnnotationRef::ObjectNumber {
+        page: PageRef { page_object_number: 1 },
+        annot_object_number: 999,
+    };
+    let error = block_on(form.duplicate_widgets(
+        vec![missing],
+        FormDuplicateOptions::default(),
+        CancelToken::new(),
+    ))
+    .unwrap_err();
+    assert_eq!(code(&error), Some("not-found"), "{error:?}");
+    assert!(sent(&thread).is_empty());
 }
