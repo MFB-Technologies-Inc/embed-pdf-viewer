@@ -25,6 +25,8 @@
 # Python (default python3), EPDF_AOT_ARGS extra NativeAOT publish arguments.
 # Packing uses the dotnet on PATH.
 #
+# Runs under bash 3.2 (macOS), so empty arrays expand through ${a[@]+...}.
+#
 # Exit codes: 0 every step passed, 1 a step failed, 64 bad arguments,
 # 66 missing packages.
 set -euo pipefail
@@ -172,7 +174,7 @@ check_run() { # name, output file, exit code
 run_sample() { # name, command...
   local name=$1; shift
   local code=0
-  "$@" "$FIXTURE" "$work/out-$name" "${sample_args[@]}" >"$work/run-$name.log" 2>&1 || code=$?
+  "$@" "$FIXTURE" "$work/out-$name" ${sample_args[@]+"${sample_args[@]}"} >"$work/run-$name.log" 2>&1 || code=$?
   sed "s/^/  [$name] /" "$work/run-$name.log"
   check_run "$name" "$work/run-$name.log" "$code"
 }
@@ -188,7 +190,7 @@ if ((aot)); then
   # EPDF_AOT_ARGS adds publish arguments, such as a cross linker for an
   # emulated RID (-p:CppCompilerAndLinker=x86_64-linux-gnu-gcc).
   read -r -a aot_args <<<"${EPDF_AOT_ARGS:-}"
-  "$DOTNET" publish "$project" -c Release -r "$rid" -p:PublishAot=true -o "$work/aot" -p:EmbedPdfVersion="$version" "${aot_args[@]}" \
+  "$DOTNET" publish "$project" -c Release -r "$rid" -p:PublishAot=true -o "$work/aot" -p:EmbedPdfVersion="$version" ${aot_args[@]+"${aot_args[@]}"} \
     >"$work/publish-aot.log" 2>&1 || { cat "$work/publish-aot.log"; fail "NativeAOT publish"; }
   # Each warning once: MSBuild repeats them in its summary.
   { grep -E 'warning IL[0-9]+' "$work/publish-aot.log" || true; } | sed -E 's/ \[[^]]*\]$//' | sort -u >"$work/aot-warnings.txt"

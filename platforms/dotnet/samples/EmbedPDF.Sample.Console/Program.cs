@@ -86,12 +86,25 @@ try
     // No SynchronizationContext in a console app: the model makes its own
     // and raises PropertyChanged there. A UI app constructs it on the UI
     // thread instead.
+    // The model's snapshot lags the engine while a search runs, so the
+    // sample follows it with RunAsync, as a view does while it is shown, and
+    // waits for the search to complete before stepping to the next hit.
     var model = new SearchModel(search);
     var changes = 0;
-    model.PropertyChanged += (_, _) => Interlocked.Increment(ref changes);
+    var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    model.PropertyChanged += (_, e) =>
+    {
+        Interlocked.Increment(ref changes);
+        if (e.PropertyName == nameof(SearchModel.Status) && model.Status is SearchStatus.Complete) completed.TrySetResult();
+    };
+    using var following = new CancellationTokenSource();
+    var run = model.RunAsync(following.Token);
     model.Text = Query;
     await model.SubmitSearchAsync();
+    if (model.Status is not SearchStatus.Complete) await completed.Task.WaitAsync(TimeSpan.FromSeconds(60));
     await model.NextHitAsync();
+    following.Cancel();
+    await run;
     if (model.Error is { } modelError) throw modelError;
     if (model.ActiveHit is null || model.HitCount <= 0) throw new InvalidOperationException("the model has no active hit");
     Pass($"SearchModel \"{model.Summary}\", {Volatile.Read(ref changes)} property changes");
