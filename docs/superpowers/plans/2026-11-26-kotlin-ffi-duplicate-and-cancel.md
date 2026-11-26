@@ -29,9 +29,11 @@ merged, and rebase rather than run the two at once.
 
 | Commit | Change |
 |---|---|
-| `bf0d8af2a` | `RedactionHandle.mark_matches` aborts its plugin call from the cancel token. A cancel during the search used to be ignored until every mark was made; now the search aborts and the call rejects `operation-cancelled`, keeping marks already made. Cancelled before the search found a hit, it resolves with no marks, which Kotlin's `bridgedCancellable` turns into the caller's `CancellationException` anyway. |
+| `bf0d8af2a` | `RedactionHandle.mark_matches` aborts its plugin call from the cancel token. A cancel during the search used to be ignored until every mark was made; now the search aborts and the call rejects `operation-cancelled`, keeping marks already made. Cancelled before the search found a hit, it resolves with no marks (see "Early cancel returns the empty list"). |
 | `5480d0afa` | `AnnotationHandle` exports `duplicate`, `canDuplicate`, `isMovable`, `whenRemeasurable`, `stageRemeasure`; `AnnotationSelectionHandle` exports `duplicate`, `canDuplicate`. |
 | `ebf3fa761` | `FormHandle` exports `duplicate` and `duplicateWidgets`. |
+| `6eee050fe` | `epdf_ffi::signalled` and `signalled_cancellable` carry the cancel token's abort into the plugin call's signal for all of the above. No behaviour change. |
+| `c0c2cfb0a` | A duplicate `offset` with a NaN or an infinity is `invalid-input` from the annotation, selection and form exports, rather than a dropped offset. |
 
 Generated Kotlin (package `uniffi.epdf_plugin_annotation` or `uniffi.epdf_plugin_form`):
 
@@ -58,6 +60,23 @@ reason)`, enum `AnnotationRemeasureSkipReason { NO_AUTHORITY, LOCKED, FOREIGN_ME
 `FormDuplicateOptions(page: PageRef? = null, offset: Point? = null, values: Boolean = false)`,
 `FormDuplicateResult(fields: List<FormField>, widgets: List<AnnotationRef>, widgetsJson: String,
 droppedJson: String)`. `get_shared` stays unexported (an `internal-resource` exclusion).
+
+## Early cancel returns the empty list
+
+A `markMatches` cancelled before its search finds a hit resolves with an empty list. The
+TypeScript plugin and the Rust core do the same, and C# and Swift return it too, so Kotlin
+returns that empty list to the caller as well. Its bridged cancellation must not turn a resolved
+empty result into a cancellation error.
+
+That is an exception to the Android README's rule that "a cancelled caller never gets a value
+from the facade" (`bridgedCancellable` in `Bridging.kt` throws the caller's
+`CancellationException` whenever the coroutine was cancelled, even when the call resolved). So
+`markMatches` can't use plain `bridgedCancellable`. Give the bridge an option to hand back a
+resolved value, or a sibling function, and use it for `markMatches` only. A call that rejects
+`operation-cancelled` still surfaces as the caller's `CancellationException`. The cost: a caller
+that reads the result after its own scope was cancelled gets an empty list once, and its next
+suspension throws as usual. Add one sentence to the README's "Cancellation" section naming the
+exception.
 
 ## Global Constraints
 
@@ -116,12 +135,13 @@ public suspend fun duplicateWidgets(widgets: List<AnnotationRef>, options: FormD
 `stageRemeasure` writes `scale` with the encoder `AnnotationWire.kt` uses for a draft's `measure`.
 
 - [ ] **Step 1: Port the tests** from `platforms/dotnet/EmbedPDF.Viewer.Tests/AnnotationDuplicateTests.cs`
-  (eleven cases: the four-annotation duplicate undone in one step, duplicating nothing, a missing
+  (twelve cases, `AnOffsetThatIsNotFiniteIsInvalidInput` among them: the four-annotation duplicate undone in one step, duplicating nothing, a missing
   ref is `not-found`, a locked annotation, the truth table, a `doc.open`-only session, the
   selection duplicate and the empty selection, highlight versus square movability, remeasuring a
   distance line to `1 in = 2 ft`, a NaN scale) and the three form cases from `FormTests.cs`
   (`FormFieldDuplicationMakesANamedCopy`, `FormWidgetDuplicationMakesANewField`,
-  `DuplicatingAFieldTheFormDoesNotHaveIsNotFound`), with `viewerTest { }` and `expectCode`.
+  `DuplicatingAFieldTheFormDoesNotHaveIsNotFound`, `ADuplicateOffsetThatIsNotFiniteIsInvalidInput`),
+  with `viewerTest { }` and `expectCode`.
 - [ ] **Step 2:** `./gradlew :embedpdf:testDebugUnitTest --tests '*Duplicate*'` fails to compile.
 - [ ] **Step 3:** implement the members and typealiases; `./gradlew :embedpdf:apiDump`.
 - [ ] **Step 4:** the tests and `./gradlew :embedpdf:apiCheck` pass.
@@ -133,12 +153,20 @@ public suspend fun duplicateWidgets(widgets: List<AnnotationRef>, options: FormD
 - Modify: `platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Redaction.kt` (KDoc)
 - Test: `platforms/android/embedpdf/embedpdf/src/test/kotlin/com/embedpdf/RedactionTest.kt`
 
-- [ ] **Step 1:** add `markMatchesStopsWhenCancelledMidCall`: `withTimeoutOrNull(300)` around
-  `markMatches(SearchQuery(text = "e"))` on `report.pdf` returns `null`, the whole test runs
-  under `withTimeout(10_000)`, and `pending()` still answers afterwards. Port of
-  `RedactionTests.MarkMatchesStopsWhenCancelledMidCall` in the C# suite.
-- [ ] **Step 2:** with the engine the bindings build from (the tree), the test passes; the KDoc of
-  `markMatches` says a cancel aborts the search or stops between marks, keeping marks made.
+- [ ] **Step 1:** add `markMatchesStopsWhenCancelledMidCall`, the port of
+  `RedactionTests.MarkMatchesStopsWhenCancelledMidCall` in the C# suite: count the hits of `"e"`
+  on `report.pdf` with `findAll` (more than 100), then run `markMatches(SearchQuery(text = "e"))`
+  in a child job cancelled after 300 ms. Under `withTimeout(5_000)`, it either ends in
+  cancellation or returns fewer marks than hits, and afterwards `pendingCount()` is below the hit
+  count. Both outcomes are correct, so a loaded runner can't flake it. Add
+  `markMatchesCancelledBeforeAHitReturnsEmpty`: with the search held (cancel from a search
+  `started` event, before any slice lands), the call returns an empty list, not a
+  `CancellationException`. If the JVM suite has no way to cancel before the first slice lands,
+  test the bridge option directly with a stand-in call that resolves an empty list after its
+  token was cancelled, and say so in the commit.
+- [ ] **Step 2:** implement the early-cancel rule above; the KDoc of `markMatches` says a cancel
+  aborts the search or stops between marks, keeping marks made, and that a cancel before the
+  first hit returns an empty list.
 - [ ] **Step 3:** commit `test(android): cancel markMatches mid-call`.
 
 ### Task 3: Engine pin

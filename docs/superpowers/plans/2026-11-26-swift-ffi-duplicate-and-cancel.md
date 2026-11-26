@@ -30,6 +30,8 @@ package tests run on a Mac; editing and the coverage check run anywhere.
 | `bf0d8af2a` | `RedactionHandle.mark_matches` hangs an `AbortSignal` on the plugin call and aborts it from the cancel token. Before, a cancel during the search was ignored until every mark was made (more than 90 s for `"e"` over `report.pdf`). Now the search aborts and the call rejects `operation-cancelled`, keeping marks already made. Cancelled before the search found a hit, it resolves with no marks, as the plugin does. |
 | `5480d0afa` | `AnnotationHandle` exports `duplicate`, `can_duplicate`, `is_movable`, `when_remeasurable`, `stage_remeasure`; `AnnotationSelectionHandle` exports `duplicate`, `can_duplicate` (`crates/plugins/annotation/src/ffi/handle.rs`, `ffi/selection.rs`). |
 | `ebf3fa761` | `FormHandle` exports `duplicate` and `duplicate_widgets` (`crates/plugins/form/src/ffi.rs`). |
+| `6eee050fe` | `epdf_ffi::signalled` and `signalled_cancellable` carry the cancel token's abort into the plugin call's signal for all of the above. No behaviour change. |
+| `c0c2cfb0a` | A duplicate `offset` with a NaN or an infinity is `invalid-input` from the annotation, selection and form exports, rather than a dropped offset. |
 
 The generated Swift signatures (the generator lowers the snake case):
 
@@ -60,6 +62,15 @@ widgets: [AnnotationRef], widgetsJson: String, droppedJson: String)`.
 `get_shared` stays unexported: it hands other plugins the record as the store holds it, the same
 `Rc`, and a foreign caller can only receive the copy `get` already answers. It becomes an
 `internal-resource` exclusion.
+
+## Early cancel returns the empty list
+
+A `markMatches` cancelled before its search finds a hit resolves with an empty list. The
+TypeScript plugin and the Rust core do the same, and C# returns it too. Swift must return that
+empty array to the caller; it must not turn a resolved empty result into a cancellation error.
+`bridgedCancellable` already hands back what the call returned, so this needs no new code, only
+the doc comment and the test below. A cancel after a hit was found rejects `operation-cancelled`,
+which reaches the caller as the usual cancellation.
 
 ## Global Constraints
 
@@ -139,12 +150,19 @@ public func duplicateWidgets(_ widgets: [AnnotationRef], options: FormDuplicateO
 - [ ] **Step 1: Port** `FormFieldDuplicationMakesANamedCopy`, `FormWidgetDuplicationMakesANewField`
   and `DuplicatingAFieldTheFormDoesNotHaveIsNotFound` from
   `platforms/dotnet/EmbedPDF.Viewer.Tests/FormTests.cs`, and
-  `MarkMatchesStopsWhenCancelledMidCall` from `RedactionTests.cs`: a task marking `"e"` over every
-  page of `report.pdf`, cancelled after 300 ms, ends within 10 s with `operation-cancelled`.
+  `MarkMatchesStopsWhenCancelledMidCall` from `RedactionTests.cs`: count the hits of `"e"` over
+  `report.pdf` with `findAll` (more than 100), then mark them in a task cancelled after 300 ms.
+  The task ends within 5 s, and either throws the cancellation or returns fewer marks than hits;
+  afterwards fewer marks are pending than there are hits. Both outcomes are correct, so a loaded
+  machine can't flake it. Port `a duplicate offset that is not finite` from
+  `AnnotationDuplicateTests.AnOffsetThatIsNotFiniteIsInvalidInput` and
+  `FormTests.ADuplicateOffsetThatIsNotFiniteIsInvalidInput` too: the generated call answers
+  `invalid-input` for a NaN offset, so Swift needs no check of its own.
 - [ ] **Step 2:** the form tests fail to compile; the redaction test fails against the pinned
   engine (it runs past 10 s).
 - [ ] **Step 3:** implement the two form members; on `markMatches`, document that a cancel aborts
-  the search or stops between marks and keeps the marks made.
+  the search or stops between marks and keeps the marks made, and that a cancel before the first
+  hit returns an empty array.
 - [ ] **Step 4:** the form tests pass. The redaction test passes only after Task 3's engine.
 - [ ] **Step 5:** commit `feat(apple): wrap form field and widget duplication`.
 

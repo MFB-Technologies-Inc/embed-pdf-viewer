@@ -148,14 +148,27 @@ public sealed class RedactionTests
     [Fact]
     public async Task MarkMatchesStopsWhenCancelledMidCall()
     {
-        var (viewer, _, redaction, _) = await Opened();
+        var (viewer, _, redaction, search) = await Opened();
         await using var _v = viewer;
-        // A whole-document mark of "e" on report.pdf runs far longer than 300 ms.
+        // Every hit of "e" on report.pdf: an uncancelled mark makes one per hit,
+        // which takes far longer than the cancel below allows.
+        var hits = (await search.FindAllAsync(new SearchQuery("e"), ContentInclusion.Never)).Count;
+        Assert.True(hits > 100, $"only {hits} hits");
         using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(300));
         var clock = System.Diagnostics.Stopwatch.StartNew();
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => redaction.MarkMatchesAsync(new SearchQuery("e"), null, cancel.Token));
-        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(10), $"the cancel took {clock.Elapsed}");
-        await redaction.GetPendingAsync();
+        IReadOnlyList<RedactionMark>? marks = null;
+        try
+        {
+            marks = await redaction.MarkMatchesAsync(new SearchQuery("e"), null, cancel.Token);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(5), $"the cancel took {clock.Elapsed}");
+        // A cancel before the search finds a hit resolves with no marks rather
+        // than throwing, which a slow runner can hit; either way it never marks every hit.
+        if (marks is not null) Assert.True(marks.Count < hits, $"{marks.Count} of {hits} marked");
+        Assert.True(await redaction.GetPendingCountAsync() < hits);
     }
 
     [Fact]
