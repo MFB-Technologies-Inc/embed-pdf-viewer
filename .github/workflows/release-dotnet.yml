@@ -1015,7 +1015,7 @@ jobs:
   viewer-release-preview:
     needs: [runtime-pack, runtime-record]
     if: inputs.preview && inputs.dotnet_version != ''
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: read
