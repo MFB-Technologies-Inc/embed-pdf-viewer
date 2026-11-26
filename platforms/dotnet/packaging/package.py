@@ -153,11 +153,25 @@ def inspect(native, rid):
                 raise ValueError(f"{path}: wrong RID architecture")
     return details
 
+def required_sdk():
+    """The .NET SDK platforms/dotnet/global.json pins."""
+    return read(DOTNET / "global.json")["sdk"]["version"]
+
+def required_rust():
+    """The Rust toolchain rust-toolchain.toml pins."""
+    match = re.search(r'^channel = "([^"]+)"', (ROOT / "rust-toolchain.toml").read_text(), re.M)
+    if not match:
+        raise ValueError("rust-toolchain.toml has no channel")
+    return match.group(1)
+
+def check_rust():
+    if not run(["rustc", "--version"]).startswith(f"rustc {required_rust()} "):
+        raise ValueError(f"Rust {required_rust()} required")
+
 def check_toolchain():
-    if run(["dotnet", "--version"], cwd=DOTNET).strip() != "10.0.404":
-        raise ValueError(".NET SDK 10.0.404 required")
-    if not run(["rustc", "--version"]).startswith("rustc 1.98.0 "):
-        raise ValueError("Rust 1.98.0 required")
+    if run(["dotnet", "--version"], cwd=DOTNET).strip() != required_sdk():
+        raise ValueError(f".NET SDK {required_sdk()} required")
+    check_rust()
 
 def pack(args):
     check_toolchain()
@@ -450,8 +464,7 @@ def relocate(host, rid):
 
 def stage_runtime(args):
     # Staging builds nothing managed, so a slice row needs Rust but no .NET SDK.
-    if not run(["rustc", "--version"]).startswith("rustc 1.98.0 "):
-        raise ValueError("Rust 1.98.0 required")
+    check_rust()
     target, fork_target, host_name, runtime_relative = VIEWER_RIDS[args.rid]
     pin_path = Path(args.runtime_manifest).resolve()
     pin = read(pin_path)
@@ -582,6 +595,20 @@ def pack_runtime(args):
     print(f"Runtime package: {package}")
 
 FIXTURE = ROOT / "pdfium-multiplatform-prototype/fixtures/report.pdf"
+NUGET_ORG = "https://api.nuget.org/v3/index.json"
+
+def consumer_nuget_config(feed):
+    """The runtime consumer's nuget.config: EmbedPDF ids from the local feed
+    and nowhere else, the facade's other dependencies from nuget.org."""
+    from xml.sax.saxutils import quoteattr
+    return ('<?xml version="1.0" encoding="utf-8"?>\n<configuration>\n'
+        '  <packageSources>\n    <clear />\n'
+        f'    <add key="local" value={quoteattr(str(feed))} />\n'
+        f'    <add key="nuget.org" value="{NUGET_ORG}" />\n'
+        '  </packageSources>\n  <packageSourceMapping>\n'
+        '    <packageSource key="local"><package pattern="EmbedPDF" /><package pattern="EmbedPDF.*" /></packageSource>\n'
+        '    <packageSource key="nuget.org"><package pattern="*" /></packageSource>\n'
+        '  </packageSourceMapping>\n</configuration>\n')
 FIXTURE_PAGES = 14
 SCRUBBED_ENV = ["EPDF_NATIVE_DIR","PDF_RUNTIME_LIB_DIR","LD_LIBRARY_PATH","DYLD_LIBRARY_PATH","DYLD_FALLBACK_LIBRARY_PATH"]
 
@@ -708,7 +735,9 @@ def smoke_runtime(args):
         passed = [f"PASS: rid={args.rid} pages={FIXTURE_PAGES}"]
         missing = ["NativeRuntimeNotFoundException", f"rid={args.rid}"]
         # A RID-specific build: NuGet copies the native files beside the app.
-        run([dotnet,"restore","Consumer.csproj","--source",str(feed),"--runtime",args.rid],cwd=directory,env=env)
+        # A nuget.config beside the project: both restores below read it.
+        (directory/"nuget.config").write_text(consumer_nuget_config(feed))
+        run([dotnet,"restore","Consumer.csproj","--configfile",str(directory/"nuget.config"),"--runtime",args.rid],cwd=directory,env=env)
         run([dotnet,"build","Consumer.csproj","-c","Release","--no-restore","--runtime",args.rid,"--self-contained","false",
              "-o",str(directory/"app-rid")],cwd=directory,env=env)
         app = directory/"app-rid"

@@ -464,3 +464,40 @@ class PngCheckTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class ConsumerConfigTests(unittest.TestCase):
+    """smoke-runtime's consumer restores EmbedPDF ids from its local feed only
+    and the facade's other dependencies from nuget.org."""
+    def mapping(self, feed):
+        import xml.etree.ElementTree as ElementTree
+        import package
+        root = ElementTree.fromstring(package.consumer_nuget_config(feed))
+        sources = root.find("packageSources")
+        mapping = {source.get("key"): [p.get("pattern") for p in source.findall("package")]
+                   for source in root.find("packageSourceMapping").findall("packageSource")}
+        return sources, mapping
+
+    def test_sources_are_cleared_and_name_the_feed_and_nuget_org(self):
+        feed = Path(tempfile.gettempdir()) / "feed"
+        sources, _ = self.mapping(feed)
+        self.assertEqual(sources[0].tag, "clear")
+        added = {e.get("key"): e.get("value") for e in sources.findall("add")}
+        self.assertEqual(added, {"local": str(feed), "nuget.org": "https://api.nuget.org/v3/index.json"})
+
+    def test_embedpdf_ids_map_to_the_local_feed_only(self):
+        _, mapping = self.mapping(Path("/feed"))
+        self.assertEqual(sorted(mapping["local"]), ["EmbedPDF", "EmbedPDF.*"])
+        self.assertEqual(mapping["nuget.org"], ["*"])
+
+class ToolchainTests(unittest.TestCase):
+    """The required versions come from the files that pin them, so a toolchain
+    bump can't leave package.py demanding the old one."""
+    def test_sdk_comes_from_global_json(self):
+        import package
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual(package.required_sdk(), json.loads((root / "global.json").read_text())["sdk"]["version"])
+
+    def test_rust_comes_from_rust_toolchain_toml(self):
+        import package, re
+        toml = (Path(__file__).resolve().parents[3] / "rust-toolchain.toml").read_text()
+        self.assertEqual(package.required_rust(), re.search(r'^channel = "([^"]+)"', toml, re.M).group(1))
