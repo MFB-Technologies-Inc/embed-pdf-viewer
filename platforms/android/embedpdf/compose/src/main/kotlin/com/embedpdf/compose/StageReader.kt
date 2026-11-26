@@ -25,6 +25,7 @@ import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -49,9 +50,13 @@ import kotlinx.coroutines.launch
  * touches as pointer input. A drag pans under the default tool and goes to
  * the active tool under any other ([StageReaderModel.forwardsDrags]), so a
  * drawing tool consumes the drag and the stage does not pan. The route is
- * chosen when the touch lands and holds until it lifts. A tap goes to the
- * hub once either way: as [StageReaderModel.tapped] when its touch pans, and
- * as the forwarded drag's own down and up when it does not. A second finger
+ * chosen when the touch lands and holds until it lifts. A pan moves the
+ * stage only once the touch passes the platform's touch slop, and leaves the
+ * moves within it to the overlay, so a finger's jitter neither pans nor
+ * flings. A tap goes to the hub once either way: as
+ * [StageReaderModel.tapped] when its touch pans, and as the forwarded drag's
+ * own down and up when it does not. Only a tap that pans can be half of a
+ * double tap, and a touch whose lift the overlay takes is no tap. A second finger
  * turns the touch into a pinch: an open pan closes without a fling, a
  * forwarded drag is cancelled at the hub so the tool does not commit it, and
  * the rest of the touch zooms. A drag the system cancels is cancelled at the
@@ -228,18 +233,27 @@ private suspend fun PointerInputScope.readerGestures(reader: StageReaderModel, s
                     velocity.addPosition(change.uptimeMillis, change.position)
                     val end = dp(change.position)
                     var doubled = false
-                    if (!moved) {
-                        if (!forwarded) reader.tapped(end.x, end.y)
-                        val previous = lastTapUptime
-                        doubled = previous != null &&
-                            change.uptimeMillis - previous <= viewConfiguration.doubleTapTimeoutMillis &&
-                            (change.position - lastTapPosition).getDistance() <= viewConfiguration.touchSlop * 4
-                        lastTapUptime = if (doubled) null else change.uptimeMillis
-                        lastTapPosition = change.position
+                    when {
+                        // An overlay took the lift, as a text selection armed
+                        // by a long press does: no tap, and no half of a double tap.
+                        change.isConsumed -> lastTapUptime = null
+                        // The tool had this touch's down and up; it is not a tap
+                        // of the reader's, and a double tap would zoom under the tool.
+                        forwarded -> lastTapUptime = null
+                        !moved -> {
+                            reader.tapped(end.x, end.y)
+                            val previous = lastTapUptime
+                            doubled = previous != null &&
+                                change.uptimeMillis - previous <= viewConfiguration.doubleTapTimeoutMillis &&
+                                (change.position - lastTapPosition).getDistance() <= viewConfiguration.touchSlop * 4
+                            lastTapUptime = if (doubled) null else change.uptimeMillis
+                            lastTapPosition = change.position
+                        }
                     }
                     when (route) {
                         DragRoute.PAN -> {
-                            val fling = velocity.calculateVelocity()
+                            // A touch that never passed the slop is a tap: it ends with no fling.
+                            val fling = if (moved) velocity.calculateVelocity() else Velocity.Zero
                             send {
                                 reader.dragEnded(fling.x / density, fling.y / density)
                                 // After the pan's end, whose stage gesture would stop the zoom it starts.
@@ -264,6 +278,10 @@ private suspend fun PointerInputScope.readerGestures(reader: StageReaderModel, s
                 }
                 if (!change.positionChanged()) continue
                 velocity.addPosition(change.uptimeMillis, change.position)
+                // Within the slop a pan neither moves nor takes the move, so a
+                // finger's jitter does not pan and an overlay's long press,
+                // which a taken move would cancel, still arms.
+                if (route == DragRoute.PAN && !moved) continue
                 val at = dp(change.position)
                 when (route) {
                     DragRoute.PAN -> {
