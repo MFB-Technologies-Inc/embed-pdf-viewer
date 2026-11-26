@@ -20,7 +20,7 @@ ARG BINARYEN_SHA256_ARM64=89c07ea56faf38d0fbecf36ca8ec0721756716185f265b568e133d
 ARG NDK_SHA256=4abbbcdc842f3d4879206e9695d52709603e52dd68d3c1fff04b3b5e7a308ecf
 # Must equal the version and SHA512 in .github/workflows/release-dotnet.yml.
 # renovate: datasource=dotnet-version depName=dotnet-sdk
-ARG DOTNET_SDK_VERSION=10.0.403
+ARG DOTNET_SDK_VERSION=11.0.100
 # renovate: datasource=github-tags depName=rust-lang/rustup
 ARG RUSTUP_VERSION=1.29.3
 ARG RUSTUP_SHA256_AMD64=b1c8cb14e30889e7e2999e6b69e62d9e9b9ffc0f4df8180564d306d9680e6c55
