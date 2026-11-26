@@ -1108,7 +1108,7 @@ The exit is met on both Linux RIDs. The NativeAOT build of the console sample, r
 feed, opens `report.pdf` and passes every step on `linux-arm64` (native, dev container) and on
 `linux-x64` (the container's x86_64 emulation with the x64 SDK 10.0.403, so `container-emulated`, not
 native). The release workflow's new `consumer` job runs the same check natively on both Linux runners
-and framework-dependent on `osx-arm64` and `win-x64`. It has not run yet.
+and framework-dependent on `osx-arm64` and `win-x64`; run 45817553981 passed every row (see "CI" below).
 
 What exists. `platforms/dotnet/samples/EmbedPDF.Sample.Console` (with `samples/Directory.Build.props`,
 which keeps the repository's build settings out, as an outside app has none) references the four
@@ -1199,9 +1199,46 @@ Deviations, each with its reason:
   `--rid` with either and would publish if asked.
   Follow-up (coordinator decision 2026-11-26): not now; add NativeAOT rows for `osx-arm64` and
   `win-x64` in a later phase.
-- The `consumer` job is untested: no CI run was made, per this phase's rules. The Windows row relies
-  on Git Bash converting paths for `dotnet` and `python`, and on `cygpath -w` for the feed path in
-  `nuget.config`.
+- The Windows row relies on Git Bash converting paths for `dotnet` and `python`, and on `cygpath -w`
+  for the feed path in `nuget.config`. It passed on its first run.
+
+CI (2026-11-26). `research/dotnet-parity-p4` at `720091979` (the Phase 4 review fixes) is merged in at
+`3eed4b326` with no conflicts; after it the consumer passed again on `linux-arm64` and
+`EmbedPDF.Models.Tests` ran 164, 163 passing and one skipped. Four runs of `release-dotnet.yml` on
+`research/dotnet-parity-p5`:
+
+| Run | Head | Result | Fix that followed |
+|---|---|---|---|
+| 45798933504 | `3eed4b326` | `runtime-pack` failed in "Validate linux-arm64": NU1101 for `Microsoft.Extensions.Logging.Abstractions` | `6e7c75dec` |
+| 45804857099 | `6e7c75dec` | `runtime-pack` failed in "Viewer tests": `MetadataTests.DroppingTheStreamUnsubscribes` saw 1 live stream | `8e2c61a24` |
+| 45811979676 | `8e2c61a24` | `consumer` failed on `linux-arm64` and `linux-x64` (AOT `model` step: no active hit) and `osx-arm64` (`sample_args[@]: unbound variable`) | `9aa53103c` |
+| 45817553981 | `9aa53103c` | every job passed: 5 packages, 5 runtime slices, `runtime-pack`, 4 `runtime validate`, 4 `consumer`, `runtime-record` | |
+
+The fixes:
+
+- `6e7c75dec`: the facade has depended on `Microsoft.Extensions.Logging.Abstractions` since Phase 2,
+  and `package.py validate-runtime` restores from its local feed alone, so the Phase 1 validation had
+  been broken since then without a run to show it. The two validate steps set
+  `RestoreAdditionalProjectSources` to nuget.org in the environment, which MSBuild reads as a
+  property. The real fix belongs in `package.py`, an engine hash input, so it waits for the next
+  engine change; a local `validate-runtime` needs the same variable until then.
+- `8e2c61a24`: a facade race. When a cancelled token's callback won `Subscription.End`, the
+  enumerator's `DisposeAsync` returned while that `End` was still unsubscribing, so an `await foreach`
+  could finish with its plugin stream still registered. Disposal now awaits the end's completion;
+  the token callback and the kernel's end still never wait.
+  `RevisionHubTests.DisposingTheEnumeratorWaitsForAnEndAlreadyUnderWay` failed before the change.
+  `EmbedPDF.Viewer.Tests` then ran 1,124, 1,120 passing twice in a row and 4 skipped.
+- `9aa53103c`: on the runners the sample stepped `SearchModel` while its search still ran
+  (`"2 of 848+"`), so the AOT runs had no active hit. The sample now follows the model with `RunAsync`
+  and waits for `SearchStatus.Complete`, as a view would. And macOS's bash 3.2 treats an empty array
+  as unbound under `set -u`, so the script expands its optional arguments through `${a[@]+...}`.
+
+Sizes from run 45817553981, in bytes: the NativeAOT executable is 18,705,768 on `linux-arm64` and
+18,230,472 on `linux-x64` (native runners), the AOT publish directories 106,798,387 and 101,185,301.
+Framework-dependent outputs are about 232,000,000 on every row, since the runtime package there
+carries all five RIDs. Both Linux AOT publishes report the same six Jint warnings. One AOT
+`linux-arm64` run summarised `"1 of 985"` where the others read `"2 of 985"`: the model's documented
+snapshot lag, not a failure.
 
 ## Phase 6: Release and documentation
 
