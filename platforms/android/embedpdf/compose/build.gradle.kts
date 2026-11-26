@@ -51,8 +51,10 @@ kotlin {
 dependencies {
     // Every composable takes a model and exposes facade types.
     api(project(":models"))
-    // The BOM picks the versions without becoming part of a consumer's
-    // graph, where it would pin the app's own Compose artifacts. The
+    // The BOM picks the versions. As an `implementation` platform it stays
+    // off a consumer's compile classpath, but its constraints still reach
+    // the app's runtime classpath, where they can raise the app's own
+    // Compose artifacts to the BOM's versions (never lower them). The
     // artifacts the public signatures use (`Modifier`, `Color`,
     // `Orientation`) stay `api`; a publication must carry the versions
     // resolved from the BOM for them, since the catalog names none.
@@ -151,13 +153,16 @@ val apiCheck = tasks.register<kotlinx.validation.KotlinApiCompareTask>("apiCheck
 // What a consumer's compile classpath gets from this module: the BOM and
 // Material 3 must not be among it (see the dependencies above).
 val checkApiDependencies = tasks.register("checkApiDependencies") {
-    description = "Fails when the Compose BOM or Material 3 is an api dependency."
+    description = "Fails when the Compose BOM or an androidx.compose.material3 artifact is an api dependency."
     group = "verification"
     val declared = configurations.named("releaseApiElements").map { elements ->
-        elements.allDependencies.map { "${it.group}:${it.name}" }
+        elements.allDependencies.map { (it.group ?: "") to it.name }
     }
     doLast {
-        val leaked = declared.get().filter { it == "androidx.compose:compose-bom" || it.startsWith("androidx.compose.material3:") }
+        // Every group under androidx.compose.material3, the adaptive layouts included.
+        val leaked = declared.get()
+            .filter { (group, name) -> (group == "androidx.compose" && name == "compose-bom") || group.startsWith("androidx.compose.material3") }
+            .map { (group, name) -> "$group:$name" }
         check(leaked.isEmpty()) { "api dependencies a consumer would inherit: $leaked" }
     }
 }
