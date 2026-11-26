@@ -120,9 +120,15 @@ private fun AttachmentPanelContent(model: AttachmentModel, modifier: Modifier, p
     val pending by model.pendingIds.collectAsState()
     val performing by model.performing.collectAsState()
     val error by model.error.collectAsState()
-    var deleting by remember { mutableStateOf<AttachedFile?>(null) }
+    // Saved state by id, so a confirmation outlives a configuration change; shown while the model has the file.
+    var deletingId by rememberSaveable { mutableStateOf<String?>(null) }
+    val deleting = deletingId?.let { id -> files.firstOrNull { it.id == id } }
     var download by remember { mutableStateOf<Job?>(null) }
     LaunchedEffect(model) { model.run() }
+    // A restored confirmation whose file the document no longer has closes.
+    LaunchedEffect(files, status) {
+        if (status == ResourceStatus.READY && deletingId != null && files.none { it.id == deletingId }) deletingId = null
+    }
     val defaultName = stringResource(R.string.embedpdf_attachments_default_name)
 
     Column(modifier) {
@@ -177,7 +183,7 @@ private fun AttachmentPanelContent(model: AttachmentModel, modifier: Modifier, p
                 Text(stringResource(R.string.embedpdf_attachments_export))
             }
             TextButton(
-                onClick = { deleting = selected.firstOrNull() },
+                onClick = { deletingId = selected.firstOrNull()?.id },
                 enabled = canRemove && selected.size == 1 && !performing,
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 modifier = Modifier.testTag("attachmentRemove"),
@@ -191,18 +197,18 @@ private fun AttachmentPanelContent(model: AttachmentModel, modifier: Modifier, p
 
     deleting?.let { file ->
         AlertDialog(
-            onDismissRequest = { deleting = null },
+            onDismissRequest = { deletingId = null },
             title = { Text(stringResource(R.string.embedpdf_attachments_remove_title)) },
             text = { Text(file.name) },
             confirmButton = {
                 TextButton(onClick = {
-                    deleting = null
+                    deletingId = null
                     scope.launch { model.remove(file) }
                 }) {
                     Text(stringResource(R.string.embedpdf_attachments_remove_confirm), color = MaterialTheme.colorScheme.error)
                 }
             },
-            dismissButton = { TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.embedpdf_cancel)) } },
+            dismissButton = { TextButton(onClick = { deletingId = null }) { Text(stringResource(R.string.embedpdf_cancel)) } },
         )
     }
 }

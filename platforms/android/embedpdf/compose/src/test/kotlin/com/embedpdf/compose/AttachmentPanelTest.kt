@@ -17,6 +17,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -175,6 +176,33 @@ class AttachmentPanelTest {
     fun aCopyIsOfferedAsDataWhateverItsType() {
         assertEquals("application/octet-stream", AttachmentExportDocument.mimeType("text/plain"))
         assertEquals(AttachmentExportDocument.MIME_TYPE, AttachmentExportDocument.mimeType(null))
+    }
+
+    /** A remove confirmation comes back after a configuration change. */
+    @Test
+    fun aRemoveConfirmationOutlivesARestore() {
+        val o = opened()
+        try {
+            engine {
+                val attachments = o.viewer.attachments(o.document)
+                attachments.ensureLoaded()
+                attachments.add(listOf(AttachmentFileSource(data = bytes, name = "note.txt", mimeType = "text/plain")))
+            }
+            val model = AttachmentModel(o.viewer, engine { o.viewer.attachments(o.document) })
+            val restoration = StateRestorationTester(compose)
+            restoration.setContent { AttachmentPanel(model, Modifier.size(360.dp, 640.dp)) }
+            compose.pumpUntil { model.status.value == ResourceStatus.READY && model.files.value.isNotEmpty() }
+            compose.pumpFrame()
+            compose.onNode(hasText("note.txt", substring = true) and hasClickAction()).performClick()
+            compose.pumpUntil { model.canRemoveSelection.value && !model.performing.value }
+            compose.pumpFrame()
+            compose.onNodeWithTag("attachmentRemove").performClick()
+            restoration.emulateSavedInstanceStateRestore()
+            compose.pumpFor(100)
+            compose.onNodeWithText("Remove attachment?").assertExists()
+        } finally {
+            o.destroy()
+        }
     }
 
     @Test

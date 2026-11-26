@@ -42,6 +42,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -83,6 +85,10 @@ import kotlinx.coroutines.launch
  * `canEdit`, to edit it, add a child or a sibling, move it or delete it. The
  * current location and the selected bookmarks carry an icon with a label.
  *
+ * An open form or confirmation is saved state: it comes back after a
+ * configuration change with what was typed, and closes once the model shows
+ * its bookmark is gone.
+ *
  * The panel runs the model while it is composed, so the app does not run it
  * as well. A new model starts fresh: a form open over the old model closes,
  * and an action the old one had not started is dropped.
@@ -108,10 +114,19 @@ private fun OutlinePanelContent(model: OutlineModel, modifier: Modifier, onActiv
     val error by model.error.collectAsState()
     val current by model.currentItem.collectAsState()
     val selected by model.selectedItems.collectAsState()
-    val editor = remember { mutableStateOf<OutlineEditor?>(null) }
-    val moving = remember { mutableStateOf<OutlineMoveEditor?>(null) }
-    val deleting = remember { mutableStateOf<OutlineItem?>(null) }
+    val editor = rememberSaveable(stateSaver = OutlineEditor.Saver) { mutableStateOf<OutlineEditor?>(null) }
+    val moving = rememberSaveable(stateSaver = OutlineMoveEditor.Saver) { mutableStateOf<OutlineMoveEditor?>(null) }
+    val deleting = rememberSaveable(stateSaver = OutlineDeletion.Saver) { mutableStateOf<OutlineDeletion?>(null) }
+    val items by model.items.collectAsState()
     LaunchedEffect(model) { model.run() }
+    // A restored form whose bookmark the document no longer has closes.
+    LaunchedEffect(items, status) {
+        if (status != ResourceStatus.READY) return@LaunchedEffect
+        val refs = items.map { it.itemRef }.toSet()
+        if (editor.value?.itemRef?.let { it !in refs } == true) editor.value = null
+        if (moving.value?.itemRef?.let { it !in refs } == true) moving.value = null
+        if (deleting.value?.itemRef?.let { it !in refs } == true) deleting.value = null
+    }
 
     Column(modifier) {
         PanelHeader(stringResource(R.string.embedpdf_outline_title)) {
@@ -146,13 +161,13 @@ private fun OutlinePanelContent(model: OutlineModel, modifier: Modifier, onActiv
                             }
                         },
                         onSelect = { scope.launch { model.select(listOf(row.item.itemRef)) } },
-                        onEdit = { editor.value = OutlineEditor(item = row.item) },
+                        onEdit = { editor.value = OutlineEditor.editing(row.item) },
                         onAddChild = { editor.value = OutlineEditor(parent = row.item.itemRef) },
                         onAddSibling = {
-                            editor.value = OutlineEditor(parent = row.item.parent, position = OutlinePositionAfter(row.item.itemRef))
+                            editor.value = OutlineEditor(parent = row.item.parent, after = row.item.itemRef)
                         },
-                        onMove = { moving.value = OutlineMoveEditor(row.item) },
-                        onDelete = { deleting.value = row.item },
+                        onMove = { moving.value = OutlineMoveEditor(row.item.itemRef, row.item.parent) },
+                        onDelete = { deleting.value = OutlineDeletion(row.item.itemRef, row.item.title) },
                     )
                 }
             }
@@ -169,15 +184,15 @@ private fun OutlinePanelContent(model: OutlineModel, modifier: Modifier, onActiv
 
     editor.value?.let { OutlineEditForm(model, it, editor) }
     moving.value?.let { OutlineMoveForm(model, it, moving) }
-    deleting.value?.let { item ->
+    deleting.value?.let { deletion ->
         AlertDialog(
             onDismissRequest = { deleting.controlPresented = false },
             title = { Text(stringResource(R.string.embedpdf_outline_delete_title)) },
-            text = { Text(item.title) },
+            text = { Text(deletion.title) },
             confirmButton = {
                 TextButton(onClick = {
                     deleting.value = null
-                    scope.launch { model.delete(listOf(item.itemRef)) }
+                    scope.launch { model.delete(listOf(deletion.itemRef)) }
                 }) {
                     Text(stringResource(R.string.embedpdf_outline_delete_confirm), color = MaterialTheme.colorScheme.error)
                 }
@@ -277,21 +292,80 @@ private fun OutlineRowView(
 /** What a destination choice in the edit form means. */
 private enum class Destination { KEEP, URI, NONE }
 
-/** The edit form's fields: a new bookmark when [item] is `null`, else an edit of it. */
+/** An item reference as saved state: its object number, or -1 for none. */
+private fun OutlineItemRef?.saved(): Long = this?.objectNumber?.toLong() ?: -1L
+
+private fun outlineRef(saved: Any?): OutlineItemRef? = (saved as Long).takeIf { it >= 0 }?.let { OutlineItemRef(it.toUInt()) }
+
+/**
+ * The edit form's fields: a new bookmark when [itemRef] is `null`, else an
+ * edit of that bookmark, starting from its values ([editing]). The fields are
+ * saved state, so an open form outlives a configuration change.
+ */
 @Stable
 private class OutlineEditor(
-    val item: OutlineItem? = null,
+    val itemRef: OutlineItemRef? = null,
     val parent: OutlineItemRef? = null,
-    val position: OutlinePosition? = null,
+    /** After this sibling, or the engine's default place when `null`. */
+    val after: OutlineItemRef? = null,
+    title: String = "",
+    destination: Destination = Destination.KEEP,
+    uri: String = "",
+    defaultColor: Boolean = true,
+    color: String = "#000000",
+    bold: Boolean = false,
+    italic: Boolean = false,
+    open: Boolean = true,
 ) {
-    var title by mutableStateOf(item?.title ?: "")
-    var destination by mutableStateOf(Destination.KEEP)
-    var uri by mutableStateOf("")
-    var defaultColor by mutableStateOf(item?.color == null)
-    var color by mutableStateOf(item?.color ?: "#000000")
-    var bold by mutableStateOf(item?.bold ?: false)
-    var italic by mutableStateOf(item?.italic ?: false)
-    var open by mutableStateOf(item?.open ?: true)
+    var title by mutableStateOf(title)
+    var destination by mutableStateOf(destination)
+    var uri by mutableStateOf(uri)
+    var defaultColor by mutableStateOf(defaultColor)
+    var color by mutableStateOf(color)
+    var bold by mutableStateOf(bold)
+    var italic by mutableStateOf(italic)
+    var open by mutableStateOf(open)
+
+    val position: OutlinePosition? get() = after?.let { OutlinePositionAfter(it) }
+
+    companion object {
+        fun editing(item: OutlineItem) = OutlineEditor(
+            itemRef = item.itemRef,
+            title = item.title,
+            defaultColor = item.color == null,
+            color = item.color ?: "#000000",
+            bold = item.bold,
+            italic = item.italic,
+            open = item.open,
+        )
+
+        val Saver: Saver<OutlineEditor?, Any> = Saver(
+            save = { editor ->
+                editor?.run {
+                    arrayListOf<Any>(
+                        itemRef.saved(), parent.saved(), after.saved(), title, destination.name, uri,
+                        defaultColor, color, bold, italic, open,
+                    )
+                }
+            },
+            restore = { saved ->
+                val fields = saved as List<*>
+                OutlineEditor(
+                    itemRef = outlineRef(fields[0]),
+                    parent = outlineRef(fields[1]),
+                    after = outlineRef(fields[2]),
+                    title = fields[3] as String,
+                    destination = Destination.valueOf(fields[4] as String),
+                    uri = fields[5] as String,
+                    defaultColor = fields[6] as Boolean,
+                    color = fields[7] as String,
+                    bold = fields[8] as Boolean,
+                    italic = fields[9] as Boolean,
+                    open = fields[10] as Boolean,
+                )
+            },
+        )
+    }
 }
 
 @Composable
@@ -304,7 +378,7 @@ private fun OutlineEditForm(model: OutlineModel, editor: OutlineEditor, presente
     AlertDialog(
         onDismissRequest = { if (isCurrent()) presented.value = null },
         title = {
-            Text(stringResource(if (editor.item == null) R.string.embedpdf_outline_new_title else R.string.embedpdf_outline_edit_title))
+            Text(stringResource(if (editor.itemRef == null) R.string.embedpdf_outline_new_title else R.string.embedpdf_outline_edit_title))
         },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -317,7 +391,7 @@ private fun OutlineEditForm(model: OutlineModel, editor: OutlineEditor, presente
                 )
                 Text(stringResource(R.string.embedpdf_outline_destination), style = MaterialTheme.typography.labelLarge)
                 Column(Modifier.selectableGroup()) {
-                    val keep = if (editor.item == null) R.string.embedpdf_outline_current_view else R.string.embedpdf_outline_keep_destination
+                    val keep = if (editor.itemRef == null) R.string.embedpdf_outline_current_view else R.string.embedpdf_outline_keep_destination
                     Choice(stringResource(keep), editor.destination == Destination.KEEP) { editor.destination = Destination.KEEP }
                     Choice(stringResource(R.string.embedpdf_outline_web_address), editor.destination == Destination.URI) {
                         editor.destination = Destination.URI
@@ -347,7 +421,7 @@ private fun OutlineEditForm(model: OutlineModel, editor: OutlineEditor, presente
                 }
                 SwitchRow(stringResource(R.string.embedpdf_outline_bold), editor.bold) { editor.bold = it }
                 SwitchRow(stringResource(R.string.embedpdf_outline_italic), editor.italic) { editor.italic = it }
-                if (editor.item != null) {
+                if (editor.itemRef != null) {
                     SwitchRow(stringResource(R.string.embedpdf_outline_open), editor.open) { editor.open = it }
                 }
                 error?.let { Text(it.detail, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
@@ -375,14 +449,14 @@ private fun OutlineEditForm(model: OutlineModel, editor: OutlineEditor, presente
 private suspend fun save(model: OutlineModel, editor: OutlineEditor): Boolean {
     val target: PageLinkTarget? = if (editor.destination == Destination.URI) PageLinkTargetUri(editor.uri) else null
     val color = if (editor.defaultColor) null else editor.color
-    val item = editor.item
-    return if (item != null) {
+    val itemRef = editor.itemRef
+    return if (itemRef != null) {
         val clear = buildList {
             if (editor.destination == Destination.NONE) add(OutlinePatchKey.TARGET)
             if (editor.defaultColor) add(OutlinePatchKey.COLOR)
         }
         model.update(
-            item.itemRef,
+            itemRef,
             OutlineItemPatch(
                 title = editor.title,
                 target = target,
@@ -409,11 +483,34 @@ private suspend fun save(model: OutlineModel, editor: OutlineEditor): Boolean {
     }
 }
 
-/** The move form's fields. */
+/** The move form's fields, saved state like [OutlineEditor]'s. */
 @Stable
-private class OutlineMoveEditor(val item: OutlineItem) {
-    var parent by mutableStateOf(item.parent)
-    var first by mutableStateOf(false)
+private class OutlineMoveEditor(val itemRef: OutlineItemRef, parent: OutlineItemRef?, first: Boolean = false) {
+    var parent by mutableStateOf(parent)
+    var first by mutableStateOf(first)
+
+    companion object {
+        val Saver: Saver<OutlineMoveEditor?, Any> = Saver(
+            save = { editor -> editor?.run { arrayListOf<Any>(itemRef.saved(), parent.saved(), first) } },
+            restore = { saved ->
+                val fields = saved as List<*>
+                outlineRef(fields[0])?.let { OutlineMoveEditor(it, outlineRef(fields[1]), fields[2] as Boolean) }
+            },
+        )
+    }
+}
+
+/** The bookmark the delete confirmation asks about, saved state like [OutlineEditor]'s. */
+private class OutlineDeletion(val itemRef: OutlineItemRef, val title: String) {
+    companion object {
+        val Saver: Saver<OutlineDeletion?, Any> = Saver(
+            save = { deletion -> deletion?.run { arrayListOf<Any>(itemRef.saved(), title) } },
+            restore = { saved ->
+                val fields = saved as List<*>
+                outlineRef(fields[0])?.let { OutlineDeletion(it, fields[1] as String) }
+            },
+        )
+    }
 }
 
 @Composable
@@ -445,7 +542,7 @@ private fun OutlineMoveForm(model: OutlineModel, editor: OutlineMoveEditor, pres
                 onClick = {
                     scope.launch {
                         if (!isCurrent()) return@launch
-                        model.move(listOf(editor.item.itemRef), editor.parent, if (editor.first) OutlinePositionStart else OutlinePositionEnd)
+                        model.move(listOf(editor.itemRef), editor.parent, if (editor.first) OutlinePositionStart else OutlinePositionEnd)
                         if (model.error.value == null && isCurrent()) presented.value = null
                     }
                 },

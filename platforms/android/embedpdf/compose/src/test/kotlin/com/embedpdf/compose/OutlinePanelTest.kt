@@ -14,6 +14,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -21,6 +22,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.dp
 import com.embedpdf.EmbedPdfTestRunner
 import com.embedpdf.OutlineCapability
@@ -101,6 +103,58 @@ class OutlinePanelTest {
             compose.onNodeWithText("Child").assertDoesNotExist()
             compose.onNodeWithContentDescription("Expand")
                 .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Collapsed"))
+        } finally {
+            o.destroy()
+        }
+    }
+
+    /** An open edit form comes back after a configuration change with what was typed. */
+    @Test
+    fun anEditFormOutlivesARestore() {
+        val o = opened(ViewerConfig(outline = true))
+        val model = model(o)
+        try {
+            seed(o) { create(OutlineItemInput(title = "Kept", clearTarget = true), OutlineCreateOptions()) }
+            val restoration = StateRestorationTester(compose)
+            restoration.setContent { OutlinePanel(model, Modifier.size(360.dp, 640.dp)) }
+            compose.pumpUntil { model.status.value == ResourceStatus.READY && model.canEdit.value && model.items.value.isNotEmpty() }
+            compose.pumpFrame()
+            compose.onNodeWithContentDescription("Bookmark actions").performClick()
+            compose.onNodeWithText("Edit…").performClick()
+            compose.onNodeWithTag("outlineTitle").performTextReplacement("Kept renamed")
+            restoration.emulateSavedInstanceStateRestore()
+            compose.pumpFor(100)
+            compose.onNodeWithText("Edit bookmark").assertExists()
+            compose.onNodeWithTag("outlineTitle").assert(hasText("Kept renamed"))
+            compose.onNodeWithTag("outlineSave").performClick()
+            compose.pumpUntil { model.items.value.any { it.title == "Kept renamed" } }
+        } finally {
+            o.destroy()
+        }
+    }
+
+    /** A move form and a delete confirmation come back too. */
+    @Test
+    fun aMoveFormAndADeleteConfirmationOutliveARestore() {
+        val o = opened(ViewerConfig(outline = true))
+        val model = model(o)
+        try {
+            seed(o) { create(OutlineItemInput(title = "Kept", clearTarget = true), OutlineCreateOptions()) }
+            val restoration = StateRestorationTester(compose)
+            restoration.setContent { OutlinePanel(model, Modifier.size(360.dp, 640.dp)) }
+            compose.pumpUntil { model.status.value == ResourceStatus.READY && model.canEdit.value && model.items.value.isNotEmpty() }
+            compose.pumpFrame()
+            compose.onNodeWithContentDescription("Bookmark actions").performClick()
+            compose.onNodeWithText("Move…").performClick()
+            restoration.emulateSavedInstanceStateRestore()
+            compose.pumpFor(100)
+            compose.onNodeWithText("Move bookmark").assertExists()
+            compose.onNodeWithText("Cancel").performClick()
+            compose.onNodeWithContentDescription("Bookmark actions").performClick()
+            compose.onNodeWithText("Delete…").performClick()
+            restoration.emulateSavedInstanceStateRestore()
+            compose.pumpFor(100)
+            compose.onNodeWithText("Delete bookmark and its children?").assertExists()
         } finally {
             o.destroy()
         }
