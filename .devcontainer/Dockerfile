@@ -28,7 +28,7 @@ ARG RUSTUP_SHA256_ARM64=9f608c142e0e38a78957d0661ba1dfaf0b6fb37184cfaa4b9a0aa57a
 # renovate: datasource=crate depName=cargo-ndk versioning=semver
 ARG CARGO_NDK_VERSION=4.1.2
 # renovate: datasource=crate depName=cargo-llvm-cov versioning=semver
-ARG CARGO_LLVM_COV_VERSION=0.9.1
+ARG CARGO_LLVM_COV_VERSION=0.9.2
 # Must equal the `wasm-bindgen` pin in crates/epdf-web/Cargo.toml.
 # renovate: datasource=crate depName=wasm-bindgen-cli versioning=semver
 ARG WASM_BINDGEN_VERSION=0.2.127
