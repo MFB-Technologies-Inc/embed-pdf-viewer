@@ -31,6 +31,11 @@ name: release-train
 #               the one their files were built from and name: the bundle's
 #               buildInfo.commit and the .NET provenance record git rev-parse
 #               HEAD. They don't wait for pin.
+#   dotnet-viewer-release
+#               needs approve, and runs only with a dotnet_version: pushes
+#               the five C# viewer packages to the GitHub Packages NuGet feed
+#               of this repository's owner and tags github.sha as the
+#               prerelease <dotnet_version> with them.
 #   deploy-demo needs approve: deploys viewer's build of the demo site to its
 #               Cloudflare Worker, on every real run.
 #   pin         needs the three publishes: commits the Apple manifests
@@ -68,6 +73,11 @@ on:
         description: Rust viewer bundle version, 0.0.0-preview.<n>, as packages/rust-viewer-bundle/package.json has it. docs/releases/rust-viewer-<viewer_version>.md holds its notes.
         required: true
         type: string
+      dotnet_version:
+        description: C# viewer packages version, 0.0.0-dotnet.<n>. docs/releases/<dotnet_version>.md holds its notes. Empty builds them at 0.0.0-local and releases nothing.
+        required: false
+        type: string
+        default: ''
       dry_run:
         description: Build and test everything, print every push, tag and release command instead of running it.
         required: false
@@ -102,8 +112,10 @@ jobs:
       viewer_state: ${{ steps.releases.outputs.viewer }}
       dotnet_state: ${{ steps.releases.outputs.dotnet }}
       dotnet_tag: ${{ steps.releases.outputs.dotnet_tag }}
+      dotnet_viewer_state: ${{ steps.releases.outputs.dotnet_viewer }}
     env:
       SWIFT_VERSION: ${{ inputs.swift_version }}
+      DOTNET_VERSION: ${{ inputs.dotnet_version }}
       VIEWER_VERSION: ${{ inputs.viewer_version }}
       REF_TYPE: ${{ github.ref_type }}
       REF_NAME: ${{ github.ref_name }}
@@ -160,6 +172,10 @@ jobs:
             [[ -s "$notes" ]] || soft "no release notes at $notes; write them and commit before dispatching"
           done
           [[ "$HAS_CLOUDFLARE" == true ]] || soft "the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repository secrets must both be set for deploy-demo; see docs/releases/README.md"
+          if [[ -n "$DOTNET_VERSION" ]]; then
+            [[ "$DOTNET_VERSION" =~ ^0\.0\.0-dotnet\.[0-9]+$ ]] || err "dotnet_version must look like 0.0.0-dotnet.1, got '$DOTNET_VERSION'"
+            [[ -s "docs/releases/$DOTNET_VERSION.md" ]] || soft "no release notes at docs/releases/$DOTNET_VERSION.md; write them and commit before dispatching"
+          fi
           have=$(jq -r .version packages/rust-viewer-bundle/package.json)
           [[ "$have" == "$VIEWER_VERSION" ]] || err "packages/rust-viewer-bundle/package.json is $have, viewer_version is $VIEWER_VERSION"
           exit "$status"
@@ -201,6 +217,17 @@ jobs:
             dotnet_assets+=("$package.$rid.nupkg" "$package.$rid.nupkg.sha256" "$package.$rid.provenance.json" "$package.validation.$rid.json")
           done
           check dotnet "$dotnet_tag" "${dotnet_assets[@]}" EmbedPDF-CSharp-Existing-App.md
+          if [[ -n "$DOTNET_VERSION" ]]; then
+            runtime="EmbedPDF.Runtime.0.0.0-engine.$(bash platforms/dotnet/dotnet-engine-hash.sh).nupkg"
+            viewer_assets=()
+            for package in "$runtime" EmbedPDF.$DOTNET_VERSION.nupkg EmbedPDF.Models.$DOTNET_VERSION.nupkg \
+              EmbedPDF.Extensions.DependencyInjection.$DOTNET_VERSION.nupkg EmbedPDF.Scripting.Jint.$DOTNET_VERSION.nupkg; do
+              viewer_assets+=("$package" "$package.sha256")
+            done
+            check dotnet_viewer "$DOTNET_VERSION" "${viewer_assets[@]}" package-manifest.runtime.json
+          else
+            echo "dotnet_viewer=skipped" >> "$GITHUB_OUTPUT"
+          fi
           exit "$status"
 
       # For the summary only: the reusable workflows compute these again.
@@ -209,6 +236,7 @@ jobs:
           SWIFT_STATE: ${{ steps.releases.outputs.swift }}
           VIEWER_STATE: ${{ steps.releases.outputs.viewer }}
           DOTNET_STATE: ${{ steps.releases.outputs.dotnet }}
+          DOTNET_VIEWER_STATE: ${{ steps.releases.outputs.dotnet_viewer }}
         run: |
           runtime_sha=$(git ls-tree HEAD packages/engine/runtime/runtime-src | awk '{print $3}')
           payload_tag="runtime-payloads-$(bash packages/engine/runtime/scripts/runtime-payload-hash.sh)"
@@ -234,6 +262,7 @@ jobs:
             echo "| Swift package | \`$SWIFT_VERSION\` | $SWIFT_STATE |"
             echo "| Rust viewer bundle | \`rust-viewer-$VIEWER_VERSION\` | $VIEWER_STATE |"
             echo "| C# engine | \`dotnet-engine-0.0.0-local-${GITHUB_SHA:0:12}\` | $DOTNET_STATE |"
+            echo "| C# viewer packages | \`${DOTNET_VERSION:-none}\` | $DOTNET_VIEWER_STATE |"
             if [[ "$DRY_RUN" == true ]]; then
               echo
               echo "Dry run: the \`release\` environment and its required reviewers were not checked."
@@ -264,6 +293,7 @@ jobs:
     uses: ./.github/workflows/release-dotnet.yml
     with:
       dry_run: ${{ inputs.dry_run }}
+      dotnet_version: ${{ inputs.dotnet_version }}
 
   # Its five archives: four from slices-runtime, wasm32-eh from slices-eh.
   # runtime, payload and apple and their publish calls grant contents: write
@@ -329,6 +359,8 @@ jobs:
       VIEWER_STATE: ${{ needs.preflight.outputs.viewer_state }}
       DOTNET_STATE: ${{ needs.preflight.outputs.dotnet_state }}
       DOTNET_TAG: ${{ needs.preflight.outputs.dotnet_tag }}
+      DOTNET_VERSION: ${{ inputs.dotnet_version }}
+      DOTNET_VIEWER_STATE: ${{ needs.preflight.outputs.dotnet_viewer_state }}
       RUNTIME_SHA: ${{ needs.slices-runtime.outputs.runtime_sha }}
       RUNTIME_TAG: ${{ needs.runtime.outputs.tag }}
       RUNTIME_PUBLISHED: ${{ needs.runtime.outputs.published }}
@@ -378,6 +410,12 @@ jobs:
           pattern: dotnet-release-*
           merge-multiple: true
           path: ${{ runner.temp }}/dotnet-release
+
+      - uses: actions/download-artifact@v8
+        if: inputs.dotnet_version != ''
+        with:
+          name: dotnet-runtime
+          path: ${{ runner.temp }}/dotnet-viewer
 
       # The titles, targets and asset lists are the ones each publish job
       # passes to gh. A release its job will skip as already out is named
@@ -464,6 +502,19 @@ jobs:
                 assets+=("$R/$PACKAGE.$rid.nupkg" "$R/$PACKAGE.$rid.nupkg.sha256" "$R/$PACKAGE.$rid.provenance.json" "$R/$PACKAGE.validation.$rid.json")
               done
               bash "$S" release "$DOTNET_TAG" "C# engine 0.0.0-local (${GITHUB_SHA:0:9})" "$GITHUB_SHA" "${assets[@]}" "$guide"
+            fi
+
+            if [[ -z "$DOTNET_VERSION" ]]; then
+              printf '## C# viewer packages\n\nNo dotnet_version: nothing is pushed or released.\n\n'
+            elif [[ "$DOTNET_VIEWER_STATE" == complete ]]; then
+              out "C# viewer $DOTNET_VERSION" "$DOTNET_VERSION"
+            else
+              V=$T/dotnet-viewer
+              bash "$S" release "$DOTNET_VERSION" "C# viewer $DOTNET_VERSION" "$GITHUB_SHA" \
+                "$V"/EmbedPDF.Runtime.*.nupkg "$V/EmbedPDF.$DOTNET_VERSION.nupkg" "$V/EmbedPDF.Models.$DOTNET_VERSION.nupkg" \
+                "$V/EmbedPDF.Extensions.DependencyInjection.$DOTNET_VERSION.nupkg" "$V/EmbedPDF.Scripting.Jint.$DOTNET_VERSION.nupkg"
+              echo "dotnet-viewer-release pushes these five packages, Runtime first, to \`https://nuget.pkg.github.com/${GH_REPO%%/*}/index.json\` with \`--skip-duplicate\`, then makes the release."
+              echo
             fi
 
             echo "## Demo site"
@@ -703,6 +754,58 @@ jobs:
           bash scripts/release/github-release.sh publish "$TAG" "$GITHUB_SHA" \
             "C# engine 0.0.0-local (${GITHUB_SHA:0:9})" docs/releases/dotnet-engine.md \
             "${assets[@]}" "$R/EmbedPDF-CSharp-Existing-App.md"
+
+  # The C# viewer packages: pushes them to the GitHub Packages NuGet feed of
+  # this repository's owner, Runtime first, then tags github.sha, the commit
+  # they were built from, as the prerelease <dotnet_version>. The manifest is
+  # runtime-record's, with every RID's validation status. A dry run prints the
+  # pushes, tag and release (release-viewer.sh reads DRY_RUN).
+  dotnet-viewer-release:
+    name: release dotnet viewer
+    needs: [approve, dotnet, preflight]
+    if: inputs.dotnet_version != ''
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      packages: write
+    env:
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      VERSION: ${{ inputs.dotnet_version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      # For dotnet nuget push; checked as release-dotnet.yml checks its SDKs.
+      - name: Install .NET SDK 10.0.404
+        if: inputs.dry_run != true
+        run: |
+          sdk=$RUNNER_TEMP/dotnet-sdk.tar.gz
+          curl -fsSL --retry 3 -o "$sdk" https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.404/dotnet-sdk-10.0.404-linux-x64.tar.gz
+          echo "577d0eb17fec33d029104c5c63a1ab0accc3e28776274abef2218dbac5af18d2109b5406d26b31d76f5c245215e3ba0926a94c20246c672c41847c9e1eb1dc50  $sdk" | sha512sum -c -
+          mkdir -p "$RUNNER_TEMP/dotnet"
+          tar -xzf "$sdk" -C "$RUNNER_TEMP/dotnet"
+          rm "$sdk"
+          echo "EPDF_DOTNET=$RUNNER_TEMP/dotnet/dotnet" >> "$GITHUB_ENV"
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: dotnet-runtime
+          path: ${{ runner.temp }}/dotnet-viewer
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: dotnet-runtime-record
+          path: ${{ runner.temp }}/dotnet-record
+
+      - name: Release the C# viewer packages
+        run: |
+          V=$RUNNER_TEMP/dotnet-viewer
+          cp "$RUNNER_TEMP/dotnet-record/package-manifest.runtime.json" "$V/package-manifest.runtime.json"
+          bash platforms/dotnet/packaging/release-viewer.sh "$V" "$VERSION" "$GITHUB_SHA"
 
   # Replaces the hosted demo with viewer's build of examples/rust-kernel-eval
   # on every real run, whether or not the viewer bundle is new, so a re-run

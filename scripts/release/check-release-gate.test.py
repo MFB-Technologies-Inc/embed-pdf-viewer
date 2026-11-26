@@ -46,12 +46,35 @@ class ReleaseGate(unittest.TestCase):
         result = self.run_gate()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         for job in ("runtime-publish", "payload-publish", "apple-publish", "pin",
-                    "swift-release", "viewer-release", "dotnet-release", "deploy-demo"):
+                    "swift-release", "viewer-release", "dotnet-release", "dotnet-viewer-release",
+                    "deploy-demo"):
             self.assertIn(job, result.stdout)
 
     def test_a_release_job_without_approve_fails(self):
         self.edit("release-train.yml", "needs: [approve, preflight, dotnet]", "needs: [preflight, dotnet]")
         self.assert_fails("dotnet-release publishes but doesn't need approve")
+
+    def test_a_nuget_release_without_approve_fails(self):
+        self.edit("release-train.yml", "needs: [approve, dotnet, preflight]", "needs: [dotnet, preflight]")
+        self.assert_fails("dotnet-viewer-release publishes but doesn't need approve")
+
+    def test_a_nuget_push_publishes(self):
+        self.edit("release-train.yml", "needs: [approve, viewer]\n    runs-on: ubuntu-26.04\n    timeout-minutes: 10\n    permissions:\n      contents: write",
+                  "needs: [viewer]\n    runs-on: ubuntu-26.04\n    timeout-minutes: 10\n    permissions:\n      contents: read")
+        self.edit("release-train.yml", "bash scripts/release/github-release.sh publish \"rust-viewer-$VERSION\"",
+                  "dotnet nuget push x.nupkg; echo \"rust-viewer-$VERSION\"")
+        self.assert_fails("viewer-release publishes but doesn't need approve")
+
+    def test_a_dry_run_preview_does_not_publish_but_a_real_one_would(self):
+        self.assertEqual(self.run_gate().returncode, 0)
+        self.edit("release-dotnet.yml", "release-viewer.sh dotnet-viewer \"$VERSION\" \"$GITHUB_SHA\" --dry-run",
+                  "release-viewer.sh dotnet-viewer \"$VERSION\" \"$GITHUB_SHA\"")
+        self.assert_fails("whose job viewer-release-preview publishes")
+
+    def test_packages_write_counts_as_writing(self):
+        self.edit("release-dotnet.yml", "    permissions:\n      contents: read\n      packages: read\n",
+                  "    permissions:\n      contents: read\n      packages: write\n")
+        self.assert_fails("whose job viewer-release-preview publishes or can write")
 
     def test_a_publish_call_without_approve_fails(self):
         self.edit("release-train.yml", "needs: [approve, slices-runtime, runtime]", "needs: [slices-runtime, runtime]")

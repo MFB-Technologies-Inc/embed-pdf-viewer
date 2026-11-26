@@ -13,9 +13,10 @@ approve once, after everything is built. This checks that
     git tag), makes or changes a release (gh release create, upload, edit or
     delete; github-release.sh publish; publish-engine-payload.mjs --stage
     publish; a release action such as softprops/action-gh-release) or deploys
-    a site (wrangler deploy, wrangler pages deploy, cloudflare/wrangler-action),
-    when its
-    token can write contents, or when it calls a local workflow with
+    a site (wrangler deploy, wrangler pages deploy, cloudflare/wrangler-action)
+    or pushes a NuGet package (dotnet nuget push; release-viewer.sh without
+    --dry-run on the same line), when its token can write contents or
+    packages, or when it calls a local workflow with
     `stage: publish` or one with a publishing job that doesn't wait for that
     stage;
   - in each called workflow, a job that publishes by the same test runs only
@@ -43,6 +44,7 @@ from pathlib import Path
 PUBLISHES = re.compile(
     r"\bgit push\b|\bgit tag\b|\bgh release (create|upload|edit|delete)\b|\brelease create\b"
     r"|github-release\.sh publish|--stage publish\b"
+    r"|\bdotnet nuget push\b|\brelease-viewer\.sh\b(?!.*--dry-run)"
     r"|\bwrangler\S*\s+(pages\s+)?deploy\b"
     r"|uses:\s*(softprops/action-gh-release|ncipollo/release-action|actions/create-release"
     r"|actions/upload-release-asset|svenstaro/upload-release-action|cloudflare/wrangler-action)\b"
@@ -79,7 +81,9 @@ def inline_permissions(value, where):
 
 
 def writes_contents(perms):
-    return perms == "write-all" or (isinstance(perms, dict) and perms.get("contents") == "write")
+    """Whether a token can write contents or packages: either can publish."""
+    return perms == "write-all" or (
+        isinstance(perms, dict) and "write" in (perms.get("contents"), perms.get("packages")))
 
 
 def parse_workflow(path):
