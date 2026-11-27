@@ -127,6 +127,7 @@ public final class com/embedpdf/AnnotationCalloutLine$Straight : com/embedpdf/An
 public final class com/embedpdf/AnnotationCapability {
 	public final fun canCreate (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun canDelete (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canDuplicate (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun canRead (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun canUpdate (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun create-0zluWlU (Lcom/embedpdf/AnnotationDraft;Luniffi/epdf_ffi/PageRef;Ljava/lang/String;ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -134,6 +135,8 @@ public final class com/embedpdf/AnnotationCapability {
 	public static synthetic fun create-0zluWlU$default (Lcom/embedpdf/AnnotationCapability;Lcom/embedpdf/AnnotationDraft;Luniffi/epdf_ffi/PageRef;Ljava/lang/String;ZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public static synthetic fun create-0zluWlU$default (Lcom/embedpdf/AnnotationCapability;Ljava/lang/String;Luniffi/epdf_ffi/PageRef;Ljava/lang/String;ZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun delete (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun duplicate (Ljava/util/List;Luniffi/epdf_plugin_annotation/AnnotationDuplicateOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun duplicate$default (Lcom/embedpdf/AnnotationCapability;Ljava/util/List;Luniffi/epdf_plugin_annotation/AnnotationDuplicateOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun export (Ljava/util/List;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun export$default (Lcom/embedpdf/AnnotationCapability;Ljava/util/List;Ljava/util/List;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun get (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -145,6 +148,7 @@ public final class com/embedpdf/AnnotationCapability {
 	public final fun hitTest (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun import (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun import$default (Lcom/embedpdf/AnnotationCapability;Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun isMovable (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun isPending (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun list (Luniffi/epdf_plugin_annotation/AnnotationFilter;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun list$default (Lcom/embedpdf/AnnotationCapability;Luniffi/epdf_plugin_annotation/AnnotationFilter;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
@@ -155,10 +159,12 @@ public final class com/embedpdf/AnnotationCapability {
 	public final fun selected (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun setFilePicker (Luniffi/epdf_plugin_annotation/AnnotationFilePicker;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun settings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun stageRemeasure (Luniffi/epdf_ffi/PageRef;Luniffi/epdf_plugin_measurement/PdfMeasurement;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun status (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun update (Luniffi/epdf_ffi/AnnotationRef;Lcom/embedpdf/AnnotationPatch;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun update (Luniffi/epdf_ffi/AnnotationRef;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun updateSettings (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun whenRemeasurable (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun whenSynced (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
@@ -1304,10 +1310,13 @@ public final class com/embedpdf/AnnotationRichText$Run {
 }
 
 public final class com/embedpdf/AnnotationSelectionCapability {
+	public final fun canDuplicate (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun canGroup (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun canUngroup (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun clear (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun delete (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun duplicate (Luniffi/epdf_ffi/Point;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun duplicate$default (Lcom/embedpdf/AnnotationSelectionCapability;Luniffi/epdf_ffi/Point;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun group (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun props (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun refs (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -1844,6 +1853,10 @@ public final class com/embedpdf/FormCapability {
 	public final fun create (Luniffi/epdf_plugin_form/FormCreateFieldInput;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun delete (Luniffi/epdf_ffi/FormFieldRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun deleteWidget (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun duplicate (Ljava/util/List;Luniffi/epdf_plugin_form/FormDuplicateOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun duplicate$default (Lcom/embedpdf/FormCapability;Ljava/util/List;Luniffi/epdf_plugin_form/FormDuplicateOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun duplicateWidgets (Ljava/util/List;Luniffi/epdf_plugin_form/FormDuplicateOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun duplicateWidgets$default (Lcom/embedpdf/FormCapability;Ljava/util/List;Luniffi/epdf_plugin_form/FormDuplicateOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun ensureLoaded (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun export (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun export$default (Lcom/embedpdf/FormCapability;Ljava/util/List;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;

@@ -84,11 +84,18 @@ public class RedactionCapability internal constructor(
 
     /**
      * Marks every match of [query], on [pages] or on every page when `null`.
-     * Throws `unsupported` without the search plugin. Cancelling the calling
-     * coroutine cancels the scan.
+     * Throws `unsupported` without the search plugin.
+     *
+     * Cancelling the calling coroutine aborts the search or stops between two
+     * marks, and the marks made so far stay pending. A cancel that arrives
+     * after the call started but before the search finds a hit returns an
+     * empty list rather than throwing, as on every other platform, and a call
+     * whose marks all complete before the cancel lands returns those marks;
+     * either way the caller's cancellation comes at its next suspension. A
+     * caller already cancelled before the call gets its `CancellationException`.
      */
     public suspend fun markMatches(query: SearchQuery, pages: List<PageRef>? = null): List<RedactionMark> =
-        viewer.callCancellable { token -> handle.markMatches(query, pages, token) }
+        viewer.callCancellable(keepResolved = true) { token -> handle.markMatches(query, pages, token) }
 
     public suspend fun unmark(refs: List<AnnotationRef>): RedactionUnmarkResult =
         viewer.callCancellable { token -> handle.unmark(refs, token) }

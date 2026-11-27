@@ -230,6 +230,56 @@ class FormTest {
         form.viewer.destroy()
     }
 
+    @Test
+    fun formFieldDuplicationMakesANamedCopy() = viewerTest {
+        val (viewer, _, form) = opened()
+        val original = writableText(form)
+        val before = form.fields().size
+        val result = form.duplicate(listOf(original.fieldRef), FormDuplicateOptions(offset = Point(0.0, 30.0)))
+        val copy = result.fields.single()
+        assertNotEquals(original.fieldRef, copy.fieldRef)
+        assertTrue(copy.name.startsWith(original.name))
+        assertNotEquals(original.name, copy.name)
+        assertEquals(original.widgets.size, result.widgets.size)
+        assertEquals(before + 1, form.fields().size)
+        assertEquals("[]", result.droppedJson)
+        viewer.destroy()
+    }
+
+    @Test
+    fun formWidgetDuplicationMakesANewField() = viewerTest {
+        val (viewer, _, form) = opened()
+        val original = writableText(form)
+        val widget = original.widgets.first { it.annotationRef != null }.annotationRef!!
+        val result = form.duplicateWidgets(listOf(widget))
+        val copy = result.widgets.single()
+        assertNotEquals(widget, copy)
+        val field = result.fields.single()
+        assertNotEquals(original.fieldRef, field.fieldRef)
+        assertTrue(field.widgets.any { it.annotationRef == copy })
+        viewer.destroy()
+    }
+
+    @Test
+    fun duplicatingAFieldTheFormDoesNotHaveIsNotFound() = viewerTest {
+        val (viewer, _, form) = opened()
+        expectCode(PdfException.Code.NOT_FOUND) { form.duplicate(listOf(FormFieldRefFqn("no such field"))) }
+        viewer.destroy()
+    }
+
+    @Test
+    fun aDuplicateOffsetThatIsNotFiniteIsInvalidInput() = viewerTest {
+        val (viewer, _, form) = opened()
+        val original = writableText(form)
+        val before = form.fields().size
+        val options = FormDuplicateOptions(offset = Point(Double.NEGATIVE_INFINITY, 0.0))
+        expectCode(PdfException.Code.INVALID_INPUT) { form.duplicate(listOf(original.fieldRef), options) }
+        val widget = original.widgets.first { it.annotationRef != null }.annotationRef!!
+        expectCode(PdfException.Code.INVALID_INPUT) { form.duplicateWidgets(listOf(widget), options) }
+        assertEquals(before, form.fields().size)
+        viewer.destroy()
+    }
+
     // Cross-plugin: a SubmitForm node reaches the Kotlin submit handler
     // through the form plugin's resolver. Swift's JavaScriptCore case is the
     // javascript module's, where Robolectric has no sandbox.

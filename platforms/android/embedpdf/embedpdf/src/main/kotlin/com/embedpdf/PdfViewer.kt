@@ -382,10 +382,11 @@ public class PdfViewer(
     /** [bridgedCancellable], refusing with `instance-closed` once [close] released the handle. */
     internal suspend fun <T> callCancellable(
         onDiscard: (suspend (T) -> Unit)? = null,
+        keepResolved: Boolean = false,
         block: suspend (uniffi.epdf_ffi.CancelToken) -> T,
     ): T {
         if (released.get()) throw closedException()
-        return bridgedCancellable(onDiscard, block)
+        return bridgedCancellable(onDiscard, keepResolved, block)
     }
 
     /** Closes a document an open made after its caller was cancelled. */

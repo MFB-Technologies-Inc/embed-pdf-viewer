@@ -42,6 +42,47 @@ class CancelledCallerTest {
     }
 
     @Test
+    fun keepResolvedHandsACancelledCallerTheResolvedValue() = viewerTest {
+        val started = CompletableDeferred<Unit>()
+        var value: List<String>? = null
+        val calling = launch {
+            value = bridgedCancellable(keepResolved = true) { token ->
+                started.complete(Unit)
+                // The kernel resolves an empty list once the cancel reaches it,
+                // as `markMatches` does before its search finds a hit.
+                while (!token.isCancelled()) delay(5)
+                emptyList()
+            }
+        }
+        started.await()
+        calling.cancel()
+        calling.join()
+        assertEquals(emptyList<String>(), value)
+    }
+
+    @Test
+    fun keepResolvedStillThrowsTheCallersCancellationForAnError() = viewerTest {
+        val started = CompletableDeferred<Unit>()
+        var thrown: Throwable? = null
+        val calling = launch {
+            try {
+                bridgedCancellable<Unit>(keepResolved = true) { token ->
+                    started.complete(Unit)
+                    while (!token.isCancelled()) delay(5)
+                    throw PdfException(PdfException.Code.OPERATION_CANCELLED, "operation cancelled", "AbortError", null)
+                }
+            } catch (e: Throwable) {
+                thrown = e
+                throw e
+            }
+        }
+        started.await()
+        calling.cancel()
+        calling.join()
+        assertTrue("$thrown", thrown is CancellationException && thrown !is PdfException)
+    }
+
+    @Test
     fun anOpenThatFinishesAfterTheTimeoutLeavesNoTab() = viewerTest {
         val viewer = PdfViewer(ViewerConfig(), LateFetcher(Fixture.bytes("report")))
         viewer.start()
