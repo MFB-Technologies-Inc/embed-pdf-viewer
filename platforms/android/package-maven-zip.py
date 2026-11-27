@@ -132,6 +132,9 @@ def write_zip(target, items, stamp):
                 info.external_attr = 0o100644 << 16
                 info.compress_type = zipfile.ZIP_DEFLATED
                 archive.writestr(info, data)
+        # NamedTemporaryFile makes the file 0600; a zip built in the dev
+        # container must stay readable by the runner that uploads it.
+        partial.chmod(0o644)
         partial.replace(target)
     except BaseException:
         partial.unlink(missing_ok=True)
