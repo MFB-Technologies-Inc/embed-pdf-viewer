@@ -366,7 +366,10 @@ def smoke(args):
         for name in ["EPDF_NATIVE_DIR","PDF_RUNTIME_LIB_DIR","LD_LIBRARY_PATH","DYLD_LIBRARY_PATH","DYLD_FALLBACK_LIBRARY_PATH"]:
             env.pop(name,None)
         env["NUGET_PACKAGES"] = str(directory/"cache")
-        run(["dotnet","restore","Consumer.csproj","--source",str(packages),"--runtime",args.rid],cwd=directory,env=env)
+        # EmbedPDF ids from the local feed only; the SDK 11 targeting packs
+        # for net10.0 (Microsoft.NETCore.App.Ref and friends) from nuget.org.
+        (directory/"nuget.config").write_text(consumer_nuget_config(packages))
+        run(["dotnet","restore","Consumer.csproj","--configfile",str(directory/"nuget.config"),"--runtime",args.rid],cwd=directory,env=env)
         run(["dotnet","build","Consumer.csproj","-c","Release","--no-restore","--runtime",args.rid,"-o",str(directory/"app")],cwd=directory,env=env)
         app = directory/"app"
         native = app
