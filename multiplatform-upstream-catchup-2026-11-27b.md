@@ -67,7 +67,7 @@ after itself; all work stops, subagents included, when the 5-hour or 7-day usage
 
 Every subagent runs on Opus, the session's model.
 
-## Decisions (for the user)
+## Decisions (accepted by the user 2026-11-27, each as recommended)
 
 D-1. The deprecated attribution fields in the wrappers. We'd follow upstream: the Rust core keeps
 `filled_by`, `filled_by_name` and `filled_at` and always returns `None`, and Swift, Kotlin and .NET
