@@ -112,4 +112,4 @@ pub use signature_write::{
     write_signature_contents,
 };
 pub use stamp::{ImageObject, MkIcon, StampFit, sha256};
-pub use text::{CharGeometry, CharGeometryFlags, TextObjectKey, TextPage};
+pub use text::{CharGeometry, CharGeometryFlags, PageCharGeometry, TextObjectKey, TextPage};

@@ -69,6 +69,33 @@ pub struct CharGeometry {
     pub flags: CharGeometryFlags,
 }
 
+/// One character of `EPDFText_GetPageGeometry`: what
+/// `EPDFText_GetCharGeometry`, `FPDFText_GetTextObject` and
+/// `FPDFText_GetFontSize` say of it one character at a time.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct PageCharGeometry {
+    pub geometry: CharGeometry,
+    /// The run of consecutive characters with one text object that the
+    /// character is in, counted from the page's first character: 0 there,
+    /// one more each time the text object changes. A generated character
+    /// has no text object, so generated characters make runs of their own.
+    pub object_run: u32,
+    pub font_size: f32,
+}
+
+impl From<pdfium_sys::EPDF_CHAR_GEOMETRY> for CharGeometry {
+    fn from(raw: pdfium_sys::EPDF_CHAR_GEOMETRY) -> Self {
+        Self {
+            loose_box: raw.loose_box.into(),
+            tight_box: raw.tight_box.into(),
+            loose_quad: raw.loose_quad.into(),
+            tight_quad: raw.tight_quad.into(),
+            matrix: raw.matrix.into(),
+            flags: CharGeometryFlags(raw.flags),
+        }
+    }
+}
+
 impl<'a> TextPage<'a> {
     pub(crate) fn load(page: pdfium_sys::FPDF_PAGE) -> Result<Self, PdfiumError> {
         count_call!(TextLoadPage);
@@ -187,14 +214,44 @@ impl<'a> TextPage<'a> {
         if ok == 0 {
             return None;
         }
-        Some(CharGeometry {
-            loose_box: raw.loose_box.into(),
-            tight_box: raw.tight_box.into(),
-            loose_quad: raw.loose_quad.into(),
-            tight_quad: raw.tight_quad.into(),
-            matrix: raw.matrix.into(),
-            flags: CharGeometryFlags(raw.flags),
-        })
+        Some(raw.into())
+    }
+
+    /// The geometry of up to `count` characters from `start` on, in one
+    /// call and in character order (`EPDFText_GetPageGeometry`): fewer when
+    /// the page ends first, none when `start` is past it or `count` is 0.
+    /// `Err(TextRead)` for a text page the fork calls invalid.
+    pub fn page_geometry(
+        &self,
+        start: u32,
+        count: u32,
+    ) -> Result<Vec<PageCharGeometry>, PdfiumError> {
+        let available = self.char_count().saturating_sub(start).min(count);
+        if available == 0 {
+            return Ok(Vec::new());
+        }
+        let start = i32::try_from(start).map_err(|_| PdfiumError::InvalidArgument("start"))?;
+        let count = i32::try_from(available).map_err(|_| PdfiumError::InvalidArgument("count"))?;
+        let mut buffer = Vec::new();
+        buffer.try_reserve_exact(available as usize).map_err(|_| PdfiumError::OutOfMemory)?;
+        buffer.resize(available as usize, pdfium_sys::EPDF_PAGE_CHAR_GEOMETRY::default());
+        // SAFETY: the buffer holds `count` entries, as the count says, and it
+        // outlives the call; the handle is open.
+        let written = unsafe {
+            pdfium_sys::EPDFText_GetPageGeometry(self.handle, start, count, buffer.as_mut_ptr())
+        };
+        if written < 0 {
+            return Err(PdfiumError::TextRead);
+        }
+        buffer.truncate((written as usize).min(buffer.len()));
+        Ok(buffer
+            .into_iter()
+            .map(|raw| PageCharGeometry {
+                geometry: raw.geometry.into(),
+                object_run: raw.object_run,
+                font_size: raw.font_size,
+            })
+            .collect())
     }
 
     /// Identity of the text object a character belongs to, for run grouping.

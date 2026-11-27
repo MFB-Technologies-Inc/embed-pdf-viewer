@@ -215,7 +215,7 @@ pub struct PageGeometrySnapshot<C: Coordinates = PdfCoordinates> {
     pub runs: Vec<PageGeometryRun<C>>,
 }
 
-/// One glyph as read from `EPDFText_GetCharGeometry`, plus the grouping
+/// One glyph as read from `EPDFText_GetPageGeometry`, plus the grouping
 /// context sampled alongside it.
 ///
 /// Pure data with no native handles, so [`build_runs_from_raw_glyphs`] is a
@@ -223,7 +223,8 @@ pub struct PageGeometrySnapshot<C: Coordinates = PdfCoordinates> {
 /// grouping rules testable without a PDF.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RawGeometryGlyphRecord {
-    /// Grouping key: the glyph's text object, by identity.
+    /// Grouping key: consecutive glyphs of one text object share it, and it
+    /// changes where the text object does (the native object run).
     pub object_key: TextObjectKey,
     /// Sampled at each text object's first glyph. Run splits inherit it.
     pub font_size: Option<f64>,
@@ -234,7 +235,8 @@ pub struct RawGeometryGlyphRecord {
     /// The cell's AABB in the file's coordinates, zeroed when empty.
     pub loose_box: PdfRect,
     pub tight_box: Option<PdfRect>,
-    /// Oriented cells. Real glyphs with a usable (non-singular) matrix only.
+    /// Oriented cells. Real glyphs that aren't upright and have a usable
+    /// (non-singular) matrix only: an upright glyph's cells are its boxes.
     pub loose_quad: Option<PdfQuad>,
     pub tight_quad: Option<PdfQuad>,
     /// Native uprightness of the char matrix. Empty glyphs report `true`,
@@ -296,30 +298,63 @@ pub fn read_page_geometry(
     cancel.check()?;
 
     let glyph_count = text_page.char_count();
+    if glyph_count == 0 {
+        return Ok(PageGeometrySnapshot { runs: Vec::new() });
+    }
     let mut records = Vec::new();
     records
         .try_reserve(glyph_count as usize)
         .map_err(|_| EngineError::new(EngineErrorCode::RuntimeUnavailable))?;
 
-    let mut previous_object_key: Option<TextObjectKey> = None;
-    for index in 0..glyph_count {
+    let capacity = glyph_count.min(GLYPHS_PER_CALL);
+    let mut start = 0;
+    while start < glyph_count {
         cancel.check()?;
-        let object_key = text_page.text_object(index);
-        let mut record = match text_page.char_geometry(index) {
-            Some(geometry) => raw_record(object_key, geometry),
-            // PDFium refused the index and left the struct unmodified, so
-            // there is nothing to read. The legacy reader treats that exactly
-            // as a degenerate glyph.
-            None => RawGeometryGlyphRecord::empty(object_key),
-        };
-        if previous_object_key != Some(object_key) {
-            record.font_size = Some(text_page.font_size(index));
-            previous_object_key = Some(object_key);
+        let expected = capacity.min(glyph_count - start);
+        let read = text_page.page_geometry(start, capacity).unwrap_or_default();
+        if read.len() != expected as usize {
+            return Err(EngineError::with_message(
+                EngineErrorCode::RuntimeUnavailable,
+                format!(
+                    "EPDFText_GetPageGeometry read {} of {expected} glyphs from {start} for page object {}",
+                    read.len(),
+                    page.view().object_number()
+                ),
+            ));
         }
-        records.push(record);
+        append_glyph_records(&mut records, &read);
+        start += capacity;
     }
 
     Ok(PageGeometrySnapshot { runs: build_runs_from_raw_glyphs(&records) })
+}
+
+/// How many glyphs one `EPDFText_GetPageGeometry` call reads
+/// (`GLYPHS_PER_CALL`). Most pages take one call; a page with more glyphs is
+/// read in several, so the buffer stays small and a cancel stops the read
+/// between two of them.
+const GLYPHS_PER_CALL: u32 = 4096;
+
+/// Decode `EPDF_PAGE_CHAR_GEOMETRY` records, as `EPDFText_GetPageGeometry`
+/// writes them, onto the end of `records` (`appendGlyphRecords`). Pure, for
+/// the tests.
+///
+/// `read` continues the page where `records` stops: a glyph gets a font size
+/// where its text object differs from the glyph before it, across the two.
+pub fn append_glyph_records(
+    records: &mut Vec<RawGeometryGlyphRecord>,
+    read: &[pdfium::PageCharGeometry],
+) {
+    let mut previous = records.last().map(|record| record.object_key);
+    for glyph in read {
+        let object_key = TextObjectKey(glyph.object_run as usize);
+        let mut record = raw_record(object_key, glyph.geometry);
+        if previous != Some(object_key) {
+            record.font_size = Some(f64::from(glyph.font_size));
+            previous = Some(object_key);
+        }
+        records.push(record);
+    }
 }
 
 /// Decodes one `EPDF_CHAR_GEOMETRY` into the reader's record.
@@ -347,18 +382,17 @@ fn raw_record(object_key: TextObjectKey, geometry: pdfium::CharGeometry) -> RawG
         record.tight_box = Some(normalize_pdf_rect(rect(geometry.tight_box)));
     }
     // Quad validity is never inferred from uprightness or from non-zero data,
-    // only from the flag.
-    if geometry.flags.has_loose_quad() {
+    // only from the flag. An upright glyph's run carries its boxes, so its
+    // cells go unread (#1157).
+    if geometry.flags.has_loose_quad() && !upright {
         record.loose_quad = Some(quad(geometry.loose_quad));
         if geometry.flags.has_tight_quad() {
             record.tight_quad = Some(quad(geometry.tight_quad));
         }
-        if !upright {
-            let m = geometry.matrix;
-            record.baseline_angle = f64::from(m.b).atan2(f64::from(m.a));
-            record.ascent_flip =
-                f64::from(m.a) * f64::from(m.d) - f64::from(m.b) * f64::from(m.c) < 0.0;
-        }
+        let m = geometry.matrix;
+        record.baseline_angle = f64::from(m.b).atan2(f64::from(m.a));
+        record.ascent_flip =
+            f64::from(m.a) * f64::from(m.d) - f64::from(m.b) * f64::from(m.c) < 0.0;
     }
     record
 }
@@ -915,5 +949,142 @@ mod tests {
         assert!(!back.runs[0].is_rotated());
         assert!(back.runs[1].is_rotated());
         assert!(!back.runs[2].is_rotated());
+    }
+
+    // `appendGlyphRecords` (#1157): records as `EPDFText_GetPageGeometry`
+    // writes them, decoded onto the end of the page read so far.
+
+    /// Flag bits of `EPDF_CHAR_GEOMETRY`.
+    const HAS_TIGHT_BOX: u32 = 1 << 0;
+    const HAS_LOOSE_QUAD: u32 = 1 << 1;
+    const HAS_TIGHT_QUAD: u32 = 1 << 2;
+    const UPRIGHT: u32 = 1 << 3;
+    const SPACE: u32 = 1 << 4;
+    const EMPTY: u32 = 1 << 5;
+
+    /// `FS_RECTF` order: left, top, right, bottom.
+    fn rect_f([left, top, right, bottom]: [f32; 4]) -> pdfium::RectF {
+        pdfium::RectF { left, top, right, bottom }
+    }
+
+    /// `FS_QUADPOINTSF` order: upper start, upper end, lower start, lower end.
+    fn quad_f(q: [f32; 8]) -> pdfium::QuadF {
+        pdfium::QuadF {
+            x1: q[0],
+            y1: q[1],
+            x2: q[2],
+            y2: q[3],
+            x3: q[4],
+            y3: q[5],
+            x4: q[6],
+            y4: q[7],
+        }
+    }
+
+    /// `FS_MATRIX` order: a, b, c, d, e, f.
+    fn matrix_f([a, b, c, d, e, f]: [f32; 6]) -> pdfium::MatrixF {
+        pdfium::MatrixF { a, b, c, d, e, f }
+    }
+
+    fn native(
+        object_run: u32,
+        font_size: f32,
+        flags: u32,
+        loose: [f32; 4],
+    ) -> pdfium::PageCharGeometry {
+        pdfium::PageCharGeometry {
+            geometry: pdfium::CharGeometry {
+                loose_box: rect_f(loose),
+                flags: pdfium::CharGeometryFlags(flags),
+                ..Default::default()
+            },
+            object_run,
+            font_size,
+        }
+    }
+
+    #[test]
+    fn an_upright_glyph_reads_its_boxes_and_leaves_the_cells_the_native_layer_offers() {
+        let mut glyph = native(
+            0,
+            12.0,
+            UPRIGHT | HAS_TIGHT_BOX | HAS_LOOSE_QUAD | HAS_TIGHT_QUAD,
+            [10.0, 22.0, 20.0, 10.0],
+        );
+        glyph.geometry.tight_box = rect_f([11.0, 20.0, 19.0, 12.0]);
+        glyph.geometry.loose_quad = quad_f([10.0, 22.0, 20.0, 22.0, 10.0, 10.0, 20.0, 10.0]);
+        glyph.geometry.tight_quad = quad_f([11.0, 20.0, 19.0, 20.0, 11.0, 12.0, 19.0, 12.0]);
+        glyph.geometry.matrix = matrix_f([1.0, 0.0, 0.0, 1.0, 10.0, 10.0]);
+        let mut records = Vec::new();
+        append_glyph_records(&mut records, &[glyph]);
+        let mut expected = upright(0, box_rect(10.0, 10.0, 20.0, 22.0));
+        expected.font_size = Some(12.0);
+        expected.tight_box = Some(box_rect(11.0, 12.0, 19.0, 20.0));
+        assert_eq!(records, vec![expected]);
+    }
+
+    #[test]
+    fn a_box_written_with_its_edges_swapped_is_read_in_order() {
+        let mut records = Vec::new();
+        append_glyph_records(&mut records, &[native(0, 12.0, UPRIGHT, [20.0, 10.0, 10.0, 22.0])]);
+        assert_eq!(records[0].loose_box, box_rect(10.0, 10.0, 20.0, 22.0));
+    }
+
+    #[test]
+    fn a_turned_glyph_reads_its_cells_its_baseline_angle_and_its_ascent_side() {
+        let cell = [64.0, 100.0, 64.0, 110.0, 50.0, 100.0, 50.0, 110.0];
+        let mut turned = native(0, 10.0, HAS_LOOSE_QUAD, [50.0, 110.0, 64.0, 100.0]);
+        turned.geometry.loose_quad = quad_f(cell);
+        // A quarter turn counter-clockwise: the baseline runs up the page.
+        turned.geometry.matrix = matrix_f([0.0, 1.0, -1.0, 0.0, 64.0, 100.0]);
+        let mut mirrored = turned;
+        // The same turn, mirrored: the ascent points the other way.
+        mirrored.geometry.matrix = matrix_f([0.0, 1.0, 1.0, 0.0, 50.0, 100.0]);
+        let mut records = Vec::new();
+        append_glyph_records(&mut records, &[turned, mirrored]);
+        assert!(!records[0].upright);
+        assert_eq!(records[0].loose_quad, Some(rotated_quad(50.0, 100.0, 10.0, 14.0)));
+        assert_eq!(records[0].tight_quad, None);
+        assert!((records[0].baseline_angle - std::f64::consts::FRAC_PI_2).abs() < 1e-6);
+        assert!(!records[0].ascent_flip);
+        assert!(records[1].ascent_flip);
+    }
+
+    #[test]
+    fn a_glyph_with_no_box_is_the_zeroed_glyph_and_a_space_says_so() {
+        let mut records = Vec::new();
+        append_glyph_records(
+            &mut records,
+            &[
+                native(0, 1.0, EMPTY | SPACE, [5.0, 5.0, 5.0, 5.0]),
+                native(0, 1.0, UPRIGHT | SPACE, [0.0, 12.0, 4.0, 0.0]),
+            ],
+        );
+        let mut zeroed = empty(0);
+        zeroed.font_size = Some(1.0);
+        assert_eq!(records[0], zeroed);
+        assert_eq!(records[1].flags, GLYPH_FLAG_SPACE);
+    }
+
+    #[test]
+    fn a_glyph_gets_a_font_size_where_its_text_object_changes_across_two_reads_too() {
+        let glyph = |run: u32, size: f32| native(run, size, UPRIGHT, [0.0, 12.0, 10.0, 0.0]);
+        let mut records = Vec::new();
+        append_glyph_records(&mut records, &[glyph(0, 12.0), glyph(0, 12.0), glyph(1, 9.0)]);
+        // The page's next glyphs: the first continues the run the last read ended in.
+        append_glyph_records(&mut records, &[glyph(1, 9.0), glyph(2, 16.0)]);
+
+        let keys: Vec<usize> = records.iter().map(|r| r.object_key.0).collect();
+        assert_eq!(keys, [0, 0, 1, 1, 2]);
+        let sizes: Vec<Option<f64>> = records.iter().map(|r| r.font_size).collect();
+        assert_eq!(sizes, [Some(12.0), None, Some(9.0), None, Some(16.0)]);
+        let runs: Vec<(u32, Option<f64>)> = build_runs_from_raw_glyphs(&records)
+            .iter()
+            .map(|run| match run {
+                PageGeometryRun::Upright { start, font_size, .. }
+                | PageGeometryRun::Rotated { start, font_size, .. } => (*start, *font_size),
+            })
+            .collect();
+        assert_eq!(runs, [(0, Some(12.0)), (2, Some(9.0)), (4, Some(16.0))]);
     }
 }
