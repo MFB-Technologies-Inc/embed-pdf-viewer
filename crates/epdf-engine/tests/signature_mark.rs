@@ -140,9 +140,18 @@ impl Doc {
     /// The widget as the page shows it: the pixels of its normal appearance
     /// at scale 1 (`appearanceRaster(page, ref, 'forms')`).
     fn drawn(&mut self, row: &Value) -> Raster {
+        self.rendered(row, "widgets")
+    }
+
+    /// An annotation as the page shows it (`appearanceRaster(page, ref)`).
+    fn drawn_annotation(&mut self, row: &Value) -> Raster {
+        self.rendered(row, "annotations")
+    }
+
+    fn rendered(&mut self, row: &Value, family: &str) -> Raster {
         let (answer, payloads) = self.send(
             json!({ "kind": "annotations.renderAppearances", "effect": "read", "page": page(),
-                "family": "widgets", "options": { "viewport": { "kind": "scale", "scale": 1 } } }),
+                "family": family, "options": { "viewport": { "kind": "scale", "scale": 1 } } }),
             Vec::new(),
         );
         let appearances = answer["result"]["result"]["appearances"]
@@ -395,4 +404,49 @@ fn a_turn_turns_the_mark_a_new_frame_fits_it_again_and_undo_puts_it_back() {
     );
     assert_eq!(doc.row_of("marked")["rotation"], Value::Null);
     assert!(max_shifted_difference(&doc.drawn(&row), &upright) <= 3);
+}
+
+/// How many images a full rewrite of the document holds: its streams whose
+/// dictionary says `/Subtype /Image` (`images(rewrite(doc))`).
+fn images_in_a_rewrite(doc: &mut Doc) -> usize {
+    let (answer, payloads) =
+        doc.send(json!({ "kind": "document.saveBuffer", "mode": "rewrite" }), Vec::new());
+    assert!(answer.get("error").is_none(), "{answer}");
+    let text: String = payloads[0].iter().map(|b| *b as char).collect();
+    let mut count = 0;
+    let mut rest = text.as_str();
+    while let Some(at) = rest.find("/Subtype") {
+        rest = &rest[at + "/Subtype".len()..];
+        let name = rest.trim_start();
+        if name.starts_with("/Image") && !name[6..].starts_with(|c: char| c.is_alphanumeric()) {
+            count += 1;
+        }
+    }
+    count
+}
+
+#[test]
+fn a_stamp_of_the_picture_a_mark_shows_places_the_marks_drawing() {
+    // `runAnnotationResourceConformance.ts` (fcb69611f): the mark and a stamp
+    // of the same PNG are one image in a saved file, and taking the mark out
+    // leaves the stamp what they shared.
+    let marks = fixtures();
+    let mut doc = Doc::open(marks.page.clone());
+    doc.signature_field("marked", json!({ "x": 20, "y": 120, "width": 150, "height": 50 }), None);
+    doc.mark("marked", Mark::Bytes(&marks.png), "mark");
+    let created = doc.ok(
+        json!({ "kind": "annotations.create", "opId": "stamp", "page": page(),
+            "draft": { "subtype": "stamp", "box": { "x": 20, "y": 20, "width": 150, "height": 50 } },
+            "resources": { "appearance": { "payload": 0 } } }),
+        vec![marks.png.clone()],
+    );
+    let stamp = created["result"]["annotation"].clone();
+    assert_eq!(images_in_a_rewrite(&mut doc), 1);
+    let shown = doc.drawn_annotation(&stamp);
+    assert!(shown.rgba.chunks(4).any(|pixel| pixel[3] > 200));
+    doc.mark("marked", Mark::None, "clear");
+    let after = doc.drawn_annotation(&stamp);
+    assert_eq!((after.width, after.height), (shown.width, shown.height));
+    assert!(max_shifted_difference(&after, &shown) <= 3);
+    assert_eq!(images_in_a_rewrite(&mut doc), 1);
 }
