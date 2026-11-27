@@ -312,6 +312,12 @@ pub struct FormFieldBase<C: Coordinates = PdfCoordinates> {
     /// side's field reads without one (`withPurposeAndFormat`).
     #[serde(default)]
     pub purpose: Option<String>,
+    /// Every signer may fill the field in (`/EMBD_Metadata /ForAnyone`): a
+    /// user who may fill in some field fills in this one. Such a field is in
+    /// no group and is never a signature field. An older side's field reads
+    /// `false` (`withForAnyone`).
+    #[serde(default)]
+    pub for_anyone: bool,
     #[serde(flatten)]
     pub attribution: FieldAttribution,
 }
@@ -327,9 +333,12 @@ impl<C: Coordinates> FormFieldBase<C> {
     }
 }
 
-/// Who made a field and who last filled it in, from the field's own
-/// `/EMBD_Metadata` (`FieldAttribution`, `fieldAttribution.ts`). Each is
-/// `None` when nobody recorded it.
+/// Who made a field, from the field's own `/EMBD_Metadata`
+/// (`FieldAttribution`, `fieldAttribution.ts`). Each is `None` when nobody
+/// recorded it. `filled_by`, `filled_by_name` and `filled_at` are always
+/// `None` (445e34a69): a fill records nobody, so it never changes what an
+/// earlier signature sealed, and what an older version wrote is not read.
+/// Deprecated upstream, they go in 4.0.
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FieldAttribution {
@@ -404,6 +413,11 @@ pub enum FormFieldKind {
         widgets: Vec<FormWidgetRef>,
     },
     Pushbutton {
+        /// Whether it holds an image: one of its widgets has an icon
+        /// (`/MK /I`). An older side's push button reads `false`
+        /// (`withButtonImage`).
+        #[serde(default)]
+        has_image: bool,
         widgets: Vec<FormWidgetRef>,
     },
     Signature {
@@ -468,12 +482,13 @@ pub fn read_form_fields(
     // field could otherwise build an unbounded snapshot out of individually
     // reasonable ones.
     let mut budget = ActionReadBudgetTracker::default();
+    let mut pages = PageIndexLookup::default();
     let mut fields = Vec::with_capacity(model.field_count() as usize);
 
     for index in 0..model.field_count() {
         cancel.check()?;
         let field = model.field(index).expect("the index came from the count");
-        fields.push(read_field(model, &field, index, &mut budget)?);
+        fields.push(read_field_with(model, &field, index, &mut budget, &mut pages)?);
     }
 
     let mut calculation_order = Vec::new();
@@ -495,12 +510,75 @@ pub fn read_form_fields(
     })
 }
 
+/// Page indexes by page object number, for reading widgets raw from a field
+/// read (`PageIndexLookup`): the page list is read once, on the first
+/// lookup, and only then. One lookup serves a whole read of the form.
+#[derive(Default)]
+pub struct PageIndexLookup {
+    indexes: Option<std::collections::HashMap<u32, u32>>,
+}
+
+impl PageIndexLookup {
+    /// The index of the page whose object number this is.
+    pub fn index_of(
+        &mut self,
+        document: &pdfium::Document,
+        page_object_number: u32,
+    ) -> Option<u32> {
+        let indexes = self.indexes.get_or_insert_with(|| {
+            let mut indexes = std::collections::HashMap::new();
+            for index in 0..document.page_count() {
+                let object_number = document.page_object_number_by_index(index);
+                if object_number > 0 {
+                    indexes.entry(object_number).or_insert(index);
+                }
+            }
+            indexes
+        });
+        indexes.get(&page_object_number).copied()
+    }
+}
+
+/// Whether a push button holds an image (`readButtonHasImage`): one of its
+/// widgets has an icon (`/MK /I`, a form XObject of the document), whoever
+/// put it there. Each widget is opened from its page's `/Annots` without
+/// loading the page; a widget on no page shows nothing, so it holds none.
+pub fn read_button_has_image(
+    document: &pdfium::Document,
+    widgets: &[FormWidgetRef],
+    pages: &mut PageIndexLookup,
+) -> bool {
+    widgets.iter().any(|widget| {
+        if widget.page_object_number == 0 || widget.annot_object_number == 0 {
+            return false;
+        }
+        let Some(page_index) = pages.index_of(document, widget.page_object_number) else {
+            return false;
+        };
+        document
+            .raw_annotation_index_by_object_number(page_index, widget.annot_object_number)
+            .and_then(|index| document.raw_annotation(page_index, index))
+            .is_some_and(|annotation| annotation.mk_icon(pdfium::MkIcon::Normal).is_some())
+    })
+}
+
 /// Read one field into its family's shape.
 pub fn read_field(
     model: &FormModel<'_>,
     field: &FormField<'_>,
     index: u32,
     budget: &mut ActionReadBudgetTracker,
+) -> Result<FormFieldDto, EngineError> {
+    read_field_with(model, field, index, budget, &mut PageIndexLookup::default())
+}
+
+/// [`read_field`] with a page lookup shared across a read of the form.
+pub fn read_field_with(
+    model: &FormModel<'_>,
+    field: &FormField<'_>,
+    index: u32,
+    budget: &mut ActionReadBudgetTracker,
+    pages: &mut PageIndexLookup,
 ) -> Result<FormFieldDto, EngineError> {
     let object_number = field.object_number();
     let name = text(field.name())?.unwrap_or_default();
@@ -531,6 +609,7 @@ pub fn read_field(
         default_value_entry,
         actions: read_field_actions(model, index, budget)?,
         group_id: read_field_group(field)?,
+        for_anyone: read_field_for_anyone(field)?,
         purpose: read_field_purpose(field)?,
         attribution: read_field_attribution(field)?,
     };
@@ -598,7 +677,11 @@ pub fn read_field(
             }
         }
         FormFieldFamily::Pushbutton => {
-            FormFieldKind::Pushbutton { widgets: read_plain_widgets(field) }
+            let widgets = read_plain_widgets(field);
+            FormFieldKind::Pushbutton {
+                has_image: read_button_has_image(model.document(), &widgets, pages),
+                widgets,
+            }
         }
         FormFieldFamily::Signature => {
             FormFieldKind::Signature { widgets: read_plain_widgets(field) }
@@ -684,12 +767,10 @@ fn read_options(field: &FormField<'_>) -> Result<Vec<FormFieldOption>, EngineErr
 /// `/EMBD_Metadata` keys a field's attribution and group live under
 /// (`fieldAttribution.ts`).
 const KEY_GROUP_ID: &str = "GroupID";
+pub(crate) const KEY_FOR_ANYONE: &str = "ForAnyone";
 const KEY_PURPOSE: &str = "Purpose";
 const KEY_CREATED_BY: &str = "CreatedBy";
 const KEY_CREATED_AT: &str = "CreatedAt";
-const KEY_FILLED_BY: &str = "FilledBy";
-const KEY_FILLED_BY_NAME: &str = "FilledByName";
-const KEY_FILLED_AT: &str = "FilledAt";
 const KEY_IMPORTED_BY: &str = "ImportedBy";
 
 /// One `/EMBD_Metadata` string of a field: an empty entry names nobody, as a
@@ -706,6 +787,36 @@ fn read_field_group(field: &FormField<'_>) -> Result<Option<String>, EngineError
     field_metadata(field, KEY_GROUP_ID)
 }
 
+/// Whether anyone fills the field in (`readFieldForAnyone`). Never a field
+/// in a group, nor a signature field: an entry another tool left on one
+/// reads as `false`, so the field is that group's or its signer's.
+pub fn read_field_for_anyone(field: &FormField<'_>) -> Result<bool, EngineError> {
+    if !read_for_anyone_entry(field)? {
+        return Ok(false);
+    }
+    if FormFieldFamily::from_code(field.family_code()) == FormFieldFamily::Signature {
+        return Ok(false);
+    }
+    Ok(read_field_group(field)?.is_none())
+}
+
+/// The field's `ForAnyone` entry as it is stored, beside a group or on a
+/// signature field too (`readForAnyoneEntry`): what a write compares with
+/// what the field should hold, so an entry that reads as `false` never comes
+/// back.
+pub fn read_for_anyone_entry(field: &FormField<'_>) -> Result<bool, EngineError> {
+    if !field.has_embed_metadata() {
+        return Ok(false);
+    }
+    let entry = field.embed_metadata_boolean(KEY_FOR_ANYONE).map_err(|e| {
+        EngineError::with_message(
+            crate::error::EngineErrorCode::RuntimeUnavailable,
+            format!("reading a form field entry failed: {e}"),
+        )
+    })?;
+    Ok(entry == Some(true))
+}
+
 /// The purpose of a field (`readFieldPurpose`); `None` with none. An entry
 /// that is no purpose a write takes (another tool's, or one with space
 /// around it) reads as none, so every purpose read can be written back.
@@ -716,8 +827,8 @@ fn read_field_purpose(field: &FormField<'_>) -> Result<Option<String>, EngineErr
     Ok(field_metadata(field, KEY_PURPOSE)?.filter(|purpose| is_field_purpose(purpose)))
 }
 
-/// Who made the field and who last filled it in (`readFieldAttribution`),
-/// the dates as ISO 8601.
+/// Who made the field (`readFieldAttribution`), the dates as ISO 8601. The
+/// deprecated `filled_*` members are `None` whatever the file holds.
 fn read_field_attribution(field: &FormField<'_>) -> Result<FieldAttribution, EngineError> {
     if !field.has_embed_metadata() {
         return Ok(FieldAttribution::default());
@@ -728,9 +839,9 @@ fn read_field_attribution(field: &FormField<'_>) -> Result<FieldAttribution, Eng
     Ok(FieldAttribution {
         created_by: field_metadata(field, KEY_CREATED_BY)?,
         created_at: date(KEY_CREATED_AT)?,
-        filled_by: field_metadata(field, KEY_FILLED_BY)?,
-        filled_by_name: field_metadata(field, KEY_FILLED_BY_NAME)?,
-        filled_at: date(KEY_FILLED_AT)?,
+        filled_by: None,
+        filled_by_name: None,
+        filled_at: None,
         imported_by: field_metadata(field, KEY_IMPORTED_BY)?,
     })
 }
@@ -784,7 +895,7 @@ impl<C: Coordinates> FormFieldDto<C> {
             K::Text { widgets, .. }
             | K::Combobox { widgets, .. }
             | K::Listbox { widgets, .. }
-            | K::Pushbutton { widgets }
+            | K::Pushbutton { widgets, .. }
             | K::Signature { widgets }
             | K::Unknown { widgets, .. } => widgets,
             K::Checkbox { .. } | K::Radio { .. } => &[],

@@ -419,7 +419,7 @@ pub(crate) fn widget_refs(kind: &FormFieldKind) -> Vec<(u32, u32)> {
         FormFieldKind::Text { widgets, .. }
         | FormFieldKind::Combobox { widgets, .. }
         | FormFieldKind::Listbox { widgets, .. }
-        | FormFieldKind::Pushbutton { widgets }
+        | FormFieldKind::Pushbutton { widgets, .. }
         | FormFieldKind::Signature { widgets }
         | FormFieldKind::Unknown { widgets, .. } => {
             widgets.iter().map(|w| (w.annot_object_number, w.page_object_number)).collect()

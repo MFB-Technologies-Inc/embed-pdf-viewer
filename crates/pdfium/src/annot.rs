@@ -749,6 +749,22 @@ impl Annotation<'_> {
         unsafe { pdfium_sys::EPDFAnnot_GetMKRotation(self.handle) }
     }
 
+    /// A widget's `/MK /TP`, where a push button shows its caption and its
+    /// icon (`EPDFAnnot_GetMKTextPosition`): 0 when absent, -1 for another
+    /// subtype.
+    pub fn mk_text_position(&self) -> i32 {
+        // SAFETY: the handle is live.
+        unsafe { pdfium_sys::EPDFAnnot_GetMKTextPosition(self.handle) }
+    }
+
+    /// Write a widget's `/MK /TP` (`EPDFAnnot_SetMKTextPosition`). Only
+    /// the entry is written; the appearance is not drawn again. `false` for
+    /// another subtype or a number outside 0 to 6.
+    pub fn set_mk_text_position(&self, position: i32) -> bool {
+        // SAFETY: the handle is live.
+        unsafe { pdfium_sys::EPDFAnnot_SetMKTextPosition(self.handle, position) != 0 }
+    }
+
     /// One `/MK` text entry by `EPDF_MK_TEXT` (`/CA` is 0): `None` when
     /// absent, `Some("")` when present and empty.
     pub fn mk_text(&self, which: i32) -> Result<Option<String>, PdfiumError> {

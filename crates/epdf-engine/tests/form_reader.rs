@@ -501,17 +501,17 @@ fn a_fields_group_reads_from_its_embed_metadata_and_its_widget_has_none() {
 }
 
 #[test]
-fn a_field_names_who_made_and_filled_it_and_its_widget_row_reports_none() {
-    // Who made a field and who last filled it in are the field's; a field
-    // merged with its widget shares one `/EMBD_Metadata`, and the row never
-    // reads it as its own.
+fn a_field_names_who_made_it_never_who_filled_it_and_its_widget_row_reports_none() {
+    // Who made a field is the field's; a field merged with its widget shares
+    // one `/EMBD_Metadata`, and the row never reads it as its own. Who filled
+    // it in reads `null` whatever an older version wrote (445e34a69).
     let snapshot = list_bytes(field_groups_pdf());
     let buyer = field(&snapshot, "buyer_name");
     assert_eq!(buyer["createdBy"], "u-17");
     assert_eq!(buyer["createdAt"], "2026-10-08T10:42:00+01:00");
-    assert_eq!(buyer["filledBy"], "u-42");
-    assert_eq!(buyer["filledByName"], "Ann de Vries");
-    assert_eq!(buyer["filledAt"], "2026-10-08T10:43:00Z");
+    assert_eq!(buyer["filledBy"], Value::Null);
+    assert_eq!(buyer["filledByName"], Value::Null);
+    assert_eq!(buyer["filledAt"], Value::Null);
     assert_eq!(buyer["importedBy"], "u-9");
 
     let plain = field(&snapshot, "buyer_price");
@@ -670,8 +670,8 @@ fn the_form_finds_each_widget_on_the_page_whose_annots_hold_it() {
 fn base() -> Value {
     json!({
         "origin": "acroform", "readOnly": false, "required": false, "noExport": false,
-        "alternateName": null, "mappingName": null, "groupId": null, "purpose": null,
-        "createdBy": null,
+        "alternateName": null, "mappingName": null, "groupId": null, "forAnyone": false,
+        "purpose": null, "createdBy": null,
         "createdAt": null, "filledBy": null, "filledByName": null, "filledAt": null,
         "importedBy": null
     })

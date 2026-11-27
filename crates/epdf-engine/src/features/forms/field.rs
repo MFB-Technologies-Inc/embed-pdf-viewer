@@ -430,16 +430,27 @@ pub struct PlacedWidget {
 }
 
 /// `fitWidgetToFamily`: `/MK /CA` is a push button's caption and a
-/// checkbox's or radio button's symbol (`checkStyle`), so each goes on its
-/// own family's widgets only: on another widget a `null` (as its row reads)
-/// is dropped, and a value is refused.
+/// checkbox's or radio button's symbol (`checkStyle`), and `/MK /TP` a push
+/// button's layout, so each goes on its own family's widgets only: on
+/// another widget a `null` (as its row reads) is dropped, and a value is
+/// refused. A push button's widget always has a layout, so `null` there is
+/// refused.
 pub fn fit_widget_to_family(
     family: FormFieldFamily,
     mut value: Map<String, Value>,
 ) -> Result<Map<String, Value>, EngineError> {
     let toggle = matches!(family, FormFieldFamily::Checkbox | FormFieldFamily::Radio);
+    let button = family == FormFieldFamily::Pushbutton;
+    if button && value.get("layout").is_some_and(Value::is_null) {
+        return Err(EngineError::with_message(
+            EngineErrorCode::InvalidArg,
+            "a push button's widget always has a layout: 'caption' shows its caption alone",
+        )
+        .with_details(serde_json::json!({ "field": "layout" })));
+    }
     for (key, takes, whose) in [
-        ("caption", family == FormFieldFamily::Pushbutton, "a push button's"),
+        ("caption", button, "a push button's"),
+        ("layout", button, "a push button's"),
         ("checkStyle", toggle, "a checkbox's or radio button's"),
     ] {
         let Some(given) = value.get(key) else { continue };

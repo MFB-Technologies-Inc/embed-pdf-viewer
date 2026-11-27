@@ -278,6 +278,7 @@ pub fn kind_fields(subtype: AnnotationSubtype) -> &'static [(&'static str, Field
             ("textAlign", D),
             ("caption", D),
             ("checkStyle", D),
+            ("layout", D),
             ("field", E),
             ("fieldKind", E),
             ("hasMark", E),

@@ -22,7 +22,7 @@ use super::context::AnnotationWriteContext;
 use super::prepare::{Nullable, Rgb};
 use crate::error::{EngineError, EngineErrorCode};
 use crate::features::annotation::read::record::{
-    WidgetBorderStyle, WidgetCheckStyle, pdf_quarter_turn_box, read_widget_turn,
+    WidgetBorderStyle, WidgetCheckStyle, WidgetLayout, pdf_quarter_turn_box, read_widget_turn,
 };
 use crate::features::annotation::rich_text::{face_for_free_text_font, family_key};
 use crate::features::annotation::vocabulary::{AnnotationBorderStyle, StandardFont, TextAlignment};
@@ -54,10 +54,11 @@ pub struct WidgetStyle {
     pub text_align: Option<TextAlignment>,
     pub caption: Nullable<String>,
     pub check_style: Nullable<WidgetCheckStyle>,
+    pub layout: Nullable<WidgetLayout>,
 }
 
 /// The style fields, by name (`WIDGET_STYLE_NAMES`).
-pub const WIDGET_STYLE_NAMES: [&str; 11] = [
+pub const WIDGET_STYLE_NAMES: [&str; 12] = [
     "color",
     "interiorColor",
     "strokeWidth",
@@ -69,6 +70,7 @@ pub const WIDGET_STYLE_NAMES: [&str; 11] = [
     "textAlign",
     "caption",
     "checkStyle",
+    "layout",
 ];
 
 fn invalid(kind: &str, field: &str, message: impl std::fmt::Display) -> EngineError {
@@ -153,6 +155,7 @@ pub fn read_style_field(
             })?);
         }
         "checkStyle" => style.check_style = Some(nullable(value, |v| read_enum(kind, name, v))?),
+        "layout" => style.layout = Some(nullable(value, |v| read_enum(kind, name, v))?),
         _ => return Ok(false),
     }
     Ok(true)
@@ -208,6 +211,13 @@ pub fn apply_widget_style(
         && !annotation.set_mk_text(MK_CAPTION, text.as_deref())
     {
         return Err(unknown("EPDFAnnot_SetMKText refused the widget's caption"));
+    }
+    // `/MK /TP`: only a push button's widget gets here with a layout, never
+    // with `null` (`fit_widget_to_family`).
+    if let Some(Some(layout)) = style.layout
+        && !annotation.set_mk_text_position(layout.code())
+    {
+        return Err(unknown("the widget's layout (/MK /TP) could not be written"));
     }
     Ok(())
 }

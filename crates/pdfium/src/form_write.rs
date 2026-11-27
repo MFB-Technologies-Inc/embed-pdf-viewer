@@ -410,6 +410,26 @@ impl Document {
         })
     }
 
+    /// One boolean entry of the field's own `/EMBD_Metadata`
+    /// (`EPDFForm_SetFieldEmbedMetadataBoolean`).
+    pub fn set_field_embed_metadata_boolean(
+        &self,
+        field_object_number: u32,
+        key: &str,
+        value: bool,
+    ) -> Result<bool, PdfiumError> {
+        let key = CString::new(key).map_err(|_| PdfiumError::InvalidArgument("metadata key"))?;
+        // SAFETY: the handle is live and the key outlives the call.
+        Ok(unsafe {
+            pdfium_sys::EPDFForm_SetFieldEmbedMetadataBoolean(
+                self.as_raw(),
+                field_object_number,
+                key.as_ptr(),
+                i32::from(value),
+            ) != 0
+        })
+    }
+
     /// Remove one entry of the field's own `/EMBD_Metadata`; removing its
     /// last key removes the dictionary (`EPDFForm_ClearFieldEmbedMetadataKey`).
     pub fn clear_field_embed_metadata_key(

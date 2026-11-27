@@ -158,6 +158,44 @@ impl WidgetCheckStyle {
     }
 }
 
+/// Where a push button's widget shows its caption and its image, `/MK /TP`
+/// (`WidgetLayout`, ISO 32000-2 Table 192), in the order of its numbers.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum WidgetLayout {
+    #[default]
+    Caption,
+    Image,
+    CaptionBelow,
+    CaptionAbove,
+    CaptionRight,
+    CaptionLeft,
+    CaptionOver,
+}
+
+impl WidgetLayout {
+    const BY_CODE: [Self; 7] = [
+        Self::Caption,
+        Self::Image,
+        Self::CaptionBelow,
+        Self::CaptionAbove,
+        Self::CaptionRight,
+        Self::CaptionLeft,
+        Self::CaptionOver,
+    ];
+
+    /// The layout a `/MK /TP` number gives: one outside the table reads
+    /// `caption`, as the generator draws it (`widgetLayoutFromCode`).
+    pub fn from_code(code: i32) -> Self {
+        usize::try_from(code).ok().and_then(|i| Self::BY_CODE.get(i).copied()).unwrap_or_default()
+    }
+
+    /// The `/MK /TP` number a layout is written as (`widgetLayoutToCode`).
+    pub fn code(self) -> i32 {
+        Self::BY_CODE.iter().position(|l| *l == self).unwrap_or(0) as i32
+    }
+}
+
 /// A form widget's row (`WidgetAnnotation<C>`).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", bound = "")]
@@ -189,6 +227,9 @@ pub struct WidgetAnnotation<C: Coordinates = PdfCoordinates> {
     pub caption: Option<String>,
     /// A checkbox's or radio button's symbol; `None` for other widgets.
     pub check_style: Option<WidgetCheckStyle>,
+    /// A push button's `/MK /TP`; `None` for every other widget. An older
+    /// side's row without it is made whole by `withWidgetLayout`.
+    pub layout: Option<WidgetLayout>,
     /// The field the widget belongs to, or `None` when it's in none.
     pub field: Option<FormFieldRef>,
     /// The field's kind (`fieldKind`), `unknown` in none.
@@ -395,11 +436,16 @@ pub fn read_widget_annotation(
         text_align: TextAlignment::from_code(annotation.text_alignment()),
         caption: dictionary_read("MK", annotation.mk_text(MK_CAPTION))?,
         check_style: None,
+        // `/MK /TP` as stored; the field join keeps it for a push button's widget only.
+        layout: Some(WidgetLayout::from_code(annotation.mk_text_position())),
         field: None,
         field_kind: FormFieldFamily::Unknown,
-        // A mark drawn in records how it fits; the join adds a signature,
-        // and keeps it only for a signature field's widget.
-        has_mark: super::kinds::read_appearance_fit(annotation)?.is_some(),
+        // A mark is our wrapper placing a drawing, as the fork reads it from
+        // the appearance's own content, so it needs no record of ours in the
+        // widget (one would change what an earlier signature sealed). The
+        // join adds a signature, and keeps it only for a signature field's
+        // widget.
+        has_mark: annotation.drawing().is_some(),
     })
 }
 
@@ -408,12 +454,14 @@ const VALUE_KIND_NONE: i32 = 0;
 
 /// Stamp a widget row with its field and kind (`joinWidgetFieldNumbers`).
 /// `/MK /CA` is a push button's caption and a checkbox's or radio button's
-/// symbol; another widget's reads as neither. A signature field's widget
-/// has a mark in it when the field is signed (it has a value) or a mark was
-/// drawn into it (the read found its fit); no other widget has one.
+/// symbol; another widget's reads as neither. `/MK /TP` is a push button's
+/// layout, and no other widget's. A signature field's widget has a mark in
+/// it when the field is signed (it has a value) or a mark was drawn into it;
+/// no other widget has one.
 pub fn join_widget_field(model: &pdfium::FormModel<'_>, widget: &mut WidgetAnnotation) {
     let AnnotationRef::ObjectNumber { annot, .. } = widget.base.annotation_ref else {
         widget.caption = None;
+        widget.layout = None;
         widget.has_mark = false;
         return;
     };
@@ -423,6 +471,7 @@ pub fn join_widget_field(model: &pdfium::FormModel<'_>, widget: &mut WidgetAnnot
         widget.field = None;
         widget.field_kind = FormFieldFamily::Unknown;
         widget.caption = None;
+        widget.layout = None;
         widget.has_mark = false;
         return;
     };
@@ -433,6 +482,7 @@ pub fn join_widget_field(model: &pdfium::FormModel<'_>, widget: &mut WidgetAnnot
     }
     if widget.field_kind != FormFieldFamily::Pushbutton {
         widget.caption = None;
+        widget.layout = None;
     }
     widget.has_mark = widget.field_kind == FormFieldFamily::Signature
         && (widget.has_mark || field.value_kind() != VALUE_KIND_NONE);

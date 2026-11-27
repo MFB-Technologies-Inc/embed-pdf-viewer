@@ -123,6 +123,13 @@ impl Document {
     }
 }
 
+impl<'doc> FormModel<'doc> {
+    /// The document the model was loaded from.
+    pub fn document(&self) -> &'doc Document {
+        self.document
+    }
+}
+
 impl Drop for FormModel<'_> {
     fn drop(&mut self) {
         // SAFETY: the handle came from EPDFForm_LoadModel and is closed once.
@@ -499,6 +506,26 @@ impl FormField<'_> {
     pub fn has_embed_metadata(&self) -> bool {
         // SAFETY: as above.
         unsafe { pdfium_sys::EPDFForm_HasFieldEmbedMetadata(self.model.handle, self.index) != 0 }
+    }
+
+    /// One `/EMBD_Metadata` boolean entry of the field
+    /// (`EPDFForm_GetFieldEmbedMetadataBoolean`): `None` when it is absent or
+    /// holds another type.
+    pub fn embed_metadata_boolean(&self, key: &str) -> Result<Option<bool>, PdfiumError> {
+        let key = std::ffi::CString::new(key)
+            .map_err(|_| PdfiumError::InvalidArgument("metadata key contains NUL"))?;
+        let mut value = 0;
+        // SAFETY: the model handle and key are live and `value` is a valid
+        // out-parameter.
+        let ok = unsafe {
+            pdfium_sys::EPDFForm_GetFieldEmbedMetadataBoolean(
+                self.model.handle,
+                self.index,
+                key.as_ptr(),
+                &raw mut value,
+            )
+        };
+        Ok((ok != 0).then_some(value != 0))
     }
 
     /// One `/EMBD_Metadata` string entry of the field: `None` when absent,

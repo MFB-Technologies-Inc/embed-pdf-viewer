@@ -41,6 +41,7 @@ pub fn page_form_field_of(
             default_value_entry: base.default_value_entry,
             actions,
             group_id: base.group_id,
+            for_anyone: base.for_anyone,
             purpose: base.purpose,
             attribution: base.attribution,
         },
@@ -102,6 +103,7 @@ pub fn page_widget_of(
         text_align: widget.text_align,
         caption: widget.caption,
         check_style: widget.check_style,
+        layout: widget.layout,
         field: widget.field,
         field_kind: widget.field_kind,
         has_mark: widget.has_mark,
@@ -309,8 +311,9 @@ mod tests {
             "kind": "pushbutton", "origin": "acroform", "readOnly": false,
             "required": false, "noExport": false, "alternateName": null, "mappingName": null,
             "valueEntry": { "kind": "none" }, "defaultValueEntry": { "kind": "none" },
-            "groupId": null, "purpose": null, "createdBy": null, "createdAt": null, "filledBy": null,
-            "filledByName": null, "filledAt": null, "importedBy": null, "widgets": []
+            "groupId": null, "forAnyone": false, "purpose": null, "createdBy": null,
+            "createdAt": null, "filledBy": null, "filledByName": null, "filledAt": null,
+            "importedBy": null, "hasImage": false, "widgets": []
         });
         if let Some(actions) = actions {
             field["actions"] = actions;
