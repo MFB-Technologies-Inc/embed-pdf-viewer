@@ -340,13 +340,14 @@ pub(crate) fn bake_widget_appearance(
     mark: MarkBytes<'_>,
     record_fit: bool,
 ) -> Result<(), EngineError> {
+    // The mark's format first (`markFormat`), then the widget.
+    let artwork = mark_document(doc, mark)?;
     let Some(page) = widget.page else {
         return Err(EngineError::with_message(
             EngineErrorCode::NotFound,
             "the widget page could not be loaded",
         ));
     };
-    let artwork = mark_document(doc, mark)?;
     let pages = artwork.page_count();
     if pages != 1 {
         return Err(EngineError::with_message(
@@ -1091,4 +1092,29 @@ fn remove_timestamp_appearance(candidate: &Document, widget: u32) -> Result<(), 
         ));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// `bakeWidgetAppearance` reads the mark's format first (`markFormat`),
+    /// then loads the widget (`withWidgetAnnotation`): bytes that are no
+    /// mark are `InvalidArg` whatever the widget is.
+    #[test]
+    fn a_mark_that_is_no_picture_is_refused_before_the_widget_is_looked_for() {
+        let doc = Document::from_bytes(
+            Library::acquire(),
+            &test_support::fixture(test_support::REPORT),
+            None,
+        )
+        .expect("report.pdf");
+        // A widget on no page: loading it would be `NotFound`.
+        let widget = FormWidget::new(5, 0);
+        assert!(widget.page.is_none());
+        let mark =
+            MarkBytes { bytes: b"GIF89a: not a format a mark is read from", declared_pdf: false };
+        let refused = bake_widget_appearance(&doc, &widget, mark, true).unwrap_err();
+        assert_eq!(refused.code, EngineErrorCode::InvalidArg, "{refused}");
+    }
 }
