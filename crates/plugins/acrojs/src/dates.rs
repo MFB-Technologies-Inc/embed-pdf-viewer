@@ -93,6 +93,15 @@ fn make_day(year: f64, month: f64, date: f64) -> f64 {
     days_from_civil(ym, mn + 1.0) + dt - 1.0
 }
 
+/// ECMAScript `MakeTime(hour, min, sec, 0)`: each part made whole first,
+/// so `14.5` hours is 14. NaN for a non-finite part.
+fn make_time(hour: f64, minute: f64, second: f64) -> f64 {
+    if !(hour.is_finite() && minute.is_finite() && second.is_finite()) {
+        return f64::NAN;
+    }
+    integer(hour) * 3_600_000.0 + integer(minute) * 60_000.0 + integer(second) * 1000.0
+}
+
 /// ECMAScript `TimeClip` over a day and a time in it.
 fn make_date(day: f64, ms: f64) -> f64 {
     let t = day * MS_PER_DAY + ms;
@@ -205,9 +214,8 @@ pub fn format_date(date: &DatePartsInput, pattern: &str) -> String {
     // `new Date(0)`, then `setUTCFullYear(year, month - 1, day)` and
     // `setUTCHours(hour ?? 0, minute ?? 0, second ?? 0, 0)`.
     let day = make_day(date.year, date.month - 1.0, date.day);
-    let ms = date.hour.unwrap_or(0.0) * 3_600_000.0
-        + date.minute.unwrap_or(0.0) * 60_000.0
-        + date.second.unwrap_or(0.0) * 1000.0;
+    let ms =
+        make_time(date.hour.unwrap_or(0.0), date.minute.unwrap_or(0.0), date.second.unwrap_or(0.0));
     printd(pattern, make_date(day, ms))
 }
 

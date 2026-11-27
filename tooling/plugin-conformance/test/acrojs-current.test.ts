@@ -409,7 +409,7 @@ test('all pure occurrences preserve outcomes or explicitly migrate current field
   assert.equal(pure.kind, 'function');
   if (pure.kind !== 'function') return;
   const originals = read('original-pure-outcomes.json') as { name: string; outcome: unknown }[];
-  assert.equal(pure.cases.length, 115);
+  assert.equal(pure.cases.length, 116);
   const changed = new Set([
     'fields-from-snapshot',
     'fields-empty',

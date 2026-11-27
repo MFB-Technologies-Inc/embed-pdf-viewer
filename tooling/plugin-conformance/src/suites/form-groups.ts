@@ -34,6 +34,7 @@ import {
   FORM_ONLY,
 } from './form-live-fixtures';
 import { LOCAL } from './annotation-live-fixtures';
+import { square } from './annotation-current-fixtures';
 import { call as untypedCall } from './form-current-fixtures';
 
 /** attachFocusTarget with a callback literal for its target: the runner's host callables. */
@@ -132,6 +133,25 @@ const SPLIT_FORM = snapshot(
     row(102, B.ref, 1, at(100)),
   ],
 );
+
+/** Two widgets of one field, one of another, and a square that is no widget. */
+const PAIR = text(6, 'pair', '', {}, [placed(101), placed(104)]);
+const ONE = text(7, 'one', '', {}, [placed(102)]);
+const PAIR_FORM = snapshot(
+  [PAIR, ONE],
+  [
+    row(101, PAIR.ref, 1, at(20)),
+    row(102, ONE.ref, 1, at(60)),
+    row(104, PAIR.ref, 1, at(140)),
+  ],
+);
+/** The case with `annotations` as the annotation plugin's first read. */
+const withAnnotations = (base: ScenarioCase, annotations: readonly unknown[]): ScenarioCase => {
+  const documents = base.engine.documents as Record<string, { responses: { path: string; value?: unknown }[] }>;
+  const a = documents.a!;
+  a.responses = a.responses.map((r) => (r.path === 'annotations.list' ? { ...r, value: { annotations } } : r));
+  return base;
+};
 
 const STAGE = { factory: 'stage', config: { viewUnitsPerPoint: 1, scrollBehavior: 'instant' } };
 
@@ -272,6 +292,20 @@ const cases: ScenarioCase[] = [
     ],
     TAB_FORM,
   ),
+  scenario(
+    'a-target-whose-takes-cursor-says-nothing-takes-it',
+    'takesCursor answering nothing (undefined or null) counts as taking the cursor, as a target without takesCursor does: Tab and focus stop at it.',
+    [
+      lend([objRef(101), target('a', { takesCursor: { $fn: 'a.takesCursor' } })]),
+      lend([objRef(104), target('sign', { takesCursor: { $fn: 'sign.takesCursor', returns: null } })]),
+      lend([objRef(102), target('b')]),
+      call('focusNext'),
+      call('notifyWidgetEvent', [ref(1), objRef(101), 'focus']),
+      call('focusNext'),
+      call('focus', [ref(4)]),
+    ],
+    TAB_FORM,
+  ),
   {
     name: 'a-box-that-comes-in-holding-nothing-sends-the-cursor-on',
     covers:
@@ -307,6 +341,23 @@ const cases: ScenarioCase[] = [
       call('focusNext'),
     ],
     SPLIT_FORM,
+  ),
+  withAnnotations(
+    scenario(
+      'selected-widgets-name-their-fields-once',
+      "listSelectedFields gives each field with a selected widget once, in the annotation selection's order, and passes over a selected annotation that is no widget.",
+      [
+        tool('form-edit'),
+        anno('selection.select', [[objRef(102), objRef(200), objRef(101), objRef(104)]]),
+        anno('selection.getSelected'),
+        call('listSelectedFields'),
+      ],
+      PAIR_FORM,
+      [],
+      {},
+      true,
+    ),
+    [square(200)],
   ),
   scenario(
     'a-tool-places-upright-in-the-design-group',

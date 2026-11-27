@@ -447,6 +447,7 @@ const functionCases: FunctionCase[] = [
       ['format-a-two-digit-year', { year: 85, month: 1, day: 1 }, 'yyyy'],
       ['format-other-text-as-it-is', MOMENT, 'Day d of mmm, at HH:MM'],
       ['format-past-the-month', { year: 2026, month: 13, day: 32 }, 'yyyy-mm-dd'],
+      ['format-fractional-time', { ...DAY, hour: 14.5, minute: 7.9, second: 9.99 }, 'HH:MM:ss'],
     ];
     const parses: [string, string, string, unknown][] = [
       ['parse-day-first', '05/03/2026', 'dd/mm/yyyy', TODAY],

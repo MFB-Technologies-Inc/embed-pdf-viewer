@@ -233,10 +233,12 @@ fn call_form(
         "attachFocusTarget" => {
             let target = value(args, 1);
             let callback = h.callback(target.get("focus").unwrap_or(&Value::Null));
-            // `takesCursor?()`: absent, the target takes the cursor.
+            // `takesCursor?.() ?? true`: absent, or answering undefined or
+            // null, the target takes the cursor.
             let takes_cursor = target.get("takesCursor").filter(|t| !t.is_null()).map(|spec| {
                 let takes = h.callback(spec);
                 Rc::new(move || match takes.call(Vec::new()) {
+                    Answer::Returns(answer) if answer.is_null() || is_undefined(&answer) => true,
                     Answer::Returns(answer) => crate::value::truthy(Some(&answer)),
                     _ => false,
                 }) as Rc<dyn Fn() -> bool>
