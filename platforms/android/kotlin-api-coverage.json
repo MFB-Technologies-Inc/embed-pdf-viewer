@@ -519,6 +519,20 @@
     },
     {
       "crate": "annotation",
+      "path": "crates/plugins/annotation/src/read/annotations.rs",
+      "owner": "Core",
+      "symbol": "is_movable",
+      "pending": "phase-4-duplicate"
+    },
+    {
+      "crate": "annotation",
+      "path": "crates/plugins/annotation/src/read/annotations.rs",
+      "owner": "Core",
+      "symbol": "get_shared",
+      "exclusion": "Excluded in platforms/apple/swift-api-coverage.json, which gives the reason."
+    },
+    {
+      "crate": "annotation",
       "path": "crates/plugins/annotation/src/read/chrome.rs",
       "owner": "Core",
       "symbol": "list_chrome_nodes",
@@ -643,6 +657,13 @@
         "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
         "symbol": "canDelete"
       }
+    },
+    {
+      "crate": "annotation",
+      "path": "crates/plugins/annotation/src/services/authority.rs",
+      "owner": "Core",
+      "symbol": "can_duplicate",
+      "pending": "phase-4-duplicate"
     },
     {
       "crate": "annotation",
@@ -909,6 +930,13 @@
     },
     {
       "crate": "annotation",
+      "path": "crates/plugins/annotation/src/write/crud.rs",
+      "owner": "Core",
+      "symbol": "duplicate",
+      "pending": "phase-4-duplicate"
+    },
+    {
+      "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/drafts.rs",
       "owner": "Core",
       "symbol": "draft_get",
@@ -1082,8 +1110,15 @@
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/measurement.rs",
       "owner": "Core",
-      "symbol": "remeasure_page",
-      "exclusion": "Excluded in platforms/apple/swift-api-coverage.json, which gives the reason."
+      "symbol": "when_remeasurable",
+      "pending": "phase-4-duplicate"
+    },
+    {
+      "crate": "annotation",
+      "path": "crates/plugins/annotation/src/write/measurement.rs",
+      "owner": "Core",
+      "symbol": "stage_remeasure",
+      "pending": "phase-4-duplicate"
     },
     {
       "crate": "annotation",
@@ -1276,6 +1311,20 @@
         "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
         "symbol": "canUngroup"
       }
+    },
+    {
+      "crate": "annotation",
+      "path": "crates/plugins/annotation/src/write/selection.rs",
+      "owner": "Core",
+      "symbol": "selection_duplicate",
+      "pending": "phase-4-duplicate"
+    },
+    {
+      "crate": "annotation",
+      "path": "crates/plugins/annotation/src/write/selection.rs",
+      "owner": "Core",
+      "symbol": "selection_can_duplicate",
+      "pending": "phase-4-duplicate"
     },
     {
       "crate": "annotation",
@@ -2431,6 +2480,20 @@
         "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
         "symbol": "repair"
       }
+    },
+    {
+      "crate": "form",
+      "path": "crates/plugins/form/src/write/fields.rs",
+      "owner": "Core",
+      "symbol": "duplicate",
+      "pending": "phase-4-duplicate"
+    },
+    {
+      "crate": "form",
+      "path": "crates/plugins/form/src/write/fields.rs",
+      "owner": "Core",
+      "symbol": "duplicate_widgets",
+      "pending": "phase-4-duplicate"
     },
     {
       "crate": "form",
