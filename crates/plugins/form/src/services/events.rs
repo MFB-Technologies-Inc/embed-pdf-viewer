@@ -14,6 +14,10 @@ pub struct Events {
     pub validation_rejected: EventHookSource<Value>,
     pub resynced: EventHookSource<Value>,
     pub focus_changed: EventHookSource<Value>,
+    /// `{ groupId }`: the group fields placed with a tool go in changed.
+    pub design_group_changed: EventHookSource<Value>,
+    /// `{ groups }`: `setGroups()` changed who the document's groups are.
+    pub groups_changed: EventHookSource<Value>,
 }
 
 impl Events {
@@ -27,6 +31,8 @@ impl Events {
             validation_rejected: cx.event_source(),
             resynced: cx.event_source(),
             focus_changed: cx.event_source(),
+            design_group_changed: cx.event_source(),
+            groups_changed: cx.event_source(),
         }
     }
 }
@@ -62,4 +68,8 @@ hooks! {
     on_validation_rejected => validation_rejected;
     /// `onResynced`: the whole form was read.
     on_resynced => resynced;
+    /// `onDesignGroupChanged`: the group fields placed with a tool go in changed.
+    on_design_group_changed => design_group_changed;
+    /// `onGroupsChanged`: `setGroups()` changed who the document's groups are.
+    on_groups_changed => groups_changed;
 }

@@ -4,6 +4,7 @@ pub mod activation;
 pub mod duplicate;
 pub mod fields;
 pub mod fill;
+pub mod groups;
 pub mod interchange;
 pub mod lending;
 pub mod next_in_line;

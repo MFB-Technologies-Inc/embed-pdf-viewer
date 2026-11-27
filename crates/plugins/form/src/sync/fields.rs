@@ -1,7 +1,7 @@
 //! `sync/fields.ts`: the field tree, mirrored from the engine. It changes
 //! only by loads and by confirmed form events, whoever caused them: the
 //! plugin's own writes, the document's scripts, or another session. Its
-//! view shows this session's pending changes on top (the session's `predictor`).
+//! view shows this session's pending changes on top (`predictFormOp`).
 //! This is also the one place the value and field events fire.
 
 use std::cell::RefCell;
@@ -15,7 +15,6 @@ use serde_json::{Value, json};
 use crate::model::{Folded, Snapshot, fold_form_event, index_loaded_fields};
 use crate::services::events::Events;
 use crate::services::index_cache::IndexCache;
-use crate::sync::predict::FormPredictor;
 use crate::value::{get, str_of};
 
 /// `createFieldsMirror(ctx, events)`.
@@ -23,7 +22,6 @@ pub fn create_fields_mirror(
     cx: &Controller<Value, Value>,
     events: &Events,
     indexes: &Rc<IndexCache>,
-    predictor: &FormPredictor,
 ) -> Result<Mirror, Error> {
     // What `fields.get()` reads inside a load: the value every applied
     // change left (the mirror announces each one), so the closures need no
@@ -67,10 +65,10 @@ pub fn create_fields_mirror(
     spec.to_json = Some(Rc::new(move |value: &Value| shown_indexes.to_json(value)));
     let written_indexes = indexes.clone();
     spec.to_text = Some(Rc::new(move |value: &Value| written_indexes.to_text(value)));
-    let (predict_indexes, predictor) = (indexes.clone(), predictor.clone());
+    let predict_indexes = indexes.clone();
     spec.predict = Some(Rc::new(move |value: Rc<Value>, op: &Value| {
         let index = predict_indexes.index(&value);
-        let next = predictor.predict(&index, op);
+        let next = crate::sync::predict::predict_form_op(&index, op);
         Ok(if Rc::ptr_eq(&next, &index) { value } else { predict_indexes.value(&next) })
     }));
 

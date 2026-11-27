@@ -58,8 +58,56 @@ pub fn clamp_to_page(bx: Box, page: Box) -> Option<Box> {
     (clamped.width >= 1.0 && clamped.height >= 1.0).then_some(clamped)
 }
 
-/// `toolDraft(tool, name, widget)`: the field a palette tool places.
-pub fn tool_draft(tool: &FormToolDefinition, name: &str, widget: Value) -> Value {
+/// `placedOnPage(placement, page)`: a placed field's frame and turn, as its
+/// widget's placement states them (`placedBoxFields`), kept on the page: the
+/// rect the turned frame stands in is cut to the page (`clampToPage`), and
+/// the frame follows it. `None` when too little of it is on the page.
+/// `standingRect(box, deg)`: the upright rect a box stands in once turned
+/// `deg` about its middle: the box itself at 0 and 180, its sides swapped at
+/// 90 and 270, and the box around its turned corners at any other angle.
+/// Upstream's is `core/annotation`'s (`rect.ts`), which the Rust annotation
+/// core doesn't have yet (CU-C6 ports #1118's annotation half).
+fn standing_rect(bx: Rect, deg: f64) -> Rect {
+    use epdf_annotation_core::rect::{normalize_deg, rotated_aabb, transposed_about_center};
+    let turn = normalize_deg(deg);
+    if turn % 90.0 != 0.0 {
+        return rotated_aabb(bx, turn, None);
+    }
+    if turn % 180.0 == 0.0 { bx } else { transposed_about_center(bx) }
+}
+
+pub fn placed_on_page(rect: Box, rot: f64, page: Box) -> Option<(Box, Option<f64>)> {
+    // `placedBoxFields`: the box, and the turn, `null` upright.
+    let turn = if rot == 0.0 || rot.is_nan() { 0.0 } else { rot };
+    let standing = |b: Box, deg: f64| {
+        let r = standing_rect(Rect { x: b.x, y: b.y, width: b.width, height: b.height }, deg);
+        Box { x: r.x, y: r.y, width: r.width, height: r.height }
+    };
+    let stands = clamp_to_page(standing(rect, turn), page)?;
+    // The frame that stands there: the same step back, its sides swapped at
+    // a quarter turn.
+    Some((standing(stands, turn), (turn != 0.0).then_some(turn)))
+}
+
+/// `toolDraft(tool, name, widget, groupId)`: the field a palette tool
+/// places, in `groupId` when the palette places for a group (the form's
+/// design group); without one it is in no group.
+pub fn tool_draft(
+    tool: &FormToolDefinition,
+    name: &str,
+    widget: Value,
+    group_id: Option<&str>,
+) -> Value {
+    let mut draft = kind_draft(tool, name, widget);
+    if let (Some(group), Some(object)) = (group_id, draft.as_object_mut()) {
+        object.insert("groupId".into(), json!(group));
+    }
+    draft
+}
+
+/// `kindDraft(tool, name, widget)`: [`tool_draft`]'s field, as the tool's
+/// kind starts one.
+fn kind_draft(tool: &FormToolDefinition, name: &str, widget: Value) -> Value {
     let with = |key: &'static str, value: Value| crate::value::spread(&widget, [(key, value)]);
     match tool.field_kind {
         "radio" => json!({
@@ -83,6 +131,7 @@ struct Gesture {
     page: PageRef,
     start: Point,
     last: Point,
+    display_rotation: Option<f64>,
 }
 
 /// The `form-place` handler.
@@ -107,19 +156,20 @@ impl PlaceHandler {
     }
 }
 
-/// `place(tool, page, box)`.
+/// `place(tool, page, placement)`: the placed box (`rect`) and its turn
+/// (`rot`).
 fn place(
     form: Rc<Core>,
     interaction: InteractionCapability,
     annotation: Option<AnnotationCapability>,
     tool: &'static FormToolDefinition,
     page: PageRef,
-    bx: Box,
+    (bx, rot): (Box, f64),
 ) -> Promise<()> {
     Promise::spawn(async move {
         let page_json = page.to_json();
-        let Some(rect) =
-            form.get_page_box(&page_json).and_then(|page_box| clamp_to_page(bx, page_box))
+        let Some((frame, turn)) =
+            form.get_page_box(&page_json).and_then(|page_box| placed_on_page(bx, rot, page_box))
         else {
             return Ok(());
         };
@@ -135,11 +185,16 @@ fn place(
         let name = next_field_name(tool.field_kind, &taken);
         let mut widget = Map::new();
         widget.insert("page".into(), page_json.clone());
-        widget.insert("rect".into(), rect.to_json());
+        widget.insert("box".into(), frame.to_json());
+        if let Some(turn) = turn {
+            widget.insert("rotation".into(), crate::value::number(turn));
+        }
         widget.extend(look);
         // The new field shows at once when the document holds the numbers
         // it takes: then it is selected in the same frame.
-        let created = form.create(tool_draft(tool, &name, Value::Object(widget)), None);
+        let group = form.get_design_group();
+        let created =
+            form.create(tool_draft(tool, &name, Value::Object(widget), group.as_deref()), None);
         let field = match form.get(&json!({ "kind": "fqn", "name": name })) {
             Some(field) => field,
             None => Rc::new(get(&created.clone().await?, "field").cloned().unwrap_or(Value::Null)),
@@ -217,8 +272,12 @@ impl InteractionHandler for PlaceHandler {
         if !self.can_design() {
             return false;
         }
-        *self.origin.borrow_mut() =
-            Some(Gesture { page: hit.page, start: hit.point, last: hit.point });
+        *self.origin.borrow_mut() = Some(Gesture {
+            page: hit.page,
+            start: hit.point,
+            last: hit.point,
+            display_rotation: hit.rotation.map(|r| r.0),
+        });
         true
     }
 
@@ -259,7 +318,18 @@ impl InteractionHandler for PlaceHandler {
         click.insert("width".into(), json!(tool.click_create.0));
         click.insert("height".into(), json!(tool.click_create.1));
         let policy = ClickPolicy::On(ClickCreate(click));
-        let frame = PlacementFrame { page_box, ..PlacementFrame::default() };
+        // Whether the tool places upright: the annotation plugin's tool says,
+        // else the tool table.
+        let upright = self
+            .annotation
+            .as_ref()
+            .and_then(|a| a.get_resolved_tool(tool.id))
+            .map_or(tool.upright, |t| t.upright);
+        let frame = PlacementFrame {
+            page_box,
+            upright: Some(upright),
+            display_rotation: gesture.display_rotation,
+        };
         let placement =
             gesture_placement(GestureForm::Box, gesture.start, end, Some(&policy), &frame);
         let Some(Placement::Box(placed)) = placement else { return };
@@ -269,8 +339,14 @@ impl InteractionHandler for PlaceHandler {
             width: placed.rect.width,
             height: placed.rect.height,
         };
-        let placing =
-            place(form, self.interaction.clone(), self.annotation.clone(), tool, gesture.page, bx);
+        let placing = place(
+            form,
+            self.interaction.clone(),
+            self.annotation.clone(),
+            tool,
+            gesture.page,
+            (bx, placed.rot),
+        );
         epdf_kernel::rt::spawn(async move {
             if let Err(error) = placing.reaction().await {
                 crate::console::error("[form] placing the field failed:", error.to_canonical());

@@ -147,7 +147,7 @@ impl AnnotationLender for FormLender {
 
     fn undo_of(&self, ops: &[Value]) -> Vec<Value> {
         match self.core() {
-            Some(core) => core.predictor.undo_look(&core.view(), ops),
+            Some(core) => crate::sync::predict::undo_look_of(&core.view(), ops),
             None => Vec::new(),
         }
     }

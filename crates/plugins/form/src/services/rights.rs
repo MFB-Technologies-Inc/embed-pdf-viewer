@@ -19,7 +19,13 @@ impl crate::controller::Core {
             Some(Value::Array(families)) => families.contains(family),
             _ => false,
         };
-        fillable && if family == "signature" { self.may_sign(field) } else { self.may_fill(field) }
+        fillable && self.may_fill_or_sign(field)
+    }
+
+    /// `rights.mayFillOrSign(field)`: whether the session may fill this
+    /// field in, or sign it for a signature field: its permissions alone.
+    pub(crate) fn may_fill_or_sign(&self, field: &Value) -> bool {
+        if field["kind"] == "signature" { self.may_sign(field) } else { self.may_fill(field) }
     }
     pub(crate) fn takes_input(&self, field: &Value) -> bool {
         field.get("readOnly").and_then(Value::as_bool) != Some(true) && self.may_fill_by_hand(field)

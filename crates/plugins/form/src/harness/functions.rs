@@ -21,7 +21,8 @@ use crate::model::{
     upsert_widgets, widget_at, widget_row_of,
 };
 use crate::read::fill_items::{fill_items, project_widget};
-use crate::sync::predict::{PredictionContext, fields_named_by, predict_form_op, undo_look_of};
+use crate::services::groups::GroupLook;
+use crate::sync::predict::{fields_named_by, predict_form_op, undo_look_of};
 use crate::tools::definitions::{FORM_TOOLS, PLACE_TAGS, form_tool_by_id};
 use crate::value::{get, string_of, truthy};
 
@@ -103,7 +104,19 @@ fn widget_row_of_fn(args: &[Value]) -> Result<Value, Error> {
 
 fn project_widget_fn(args: &[Value]) -> Result<Value, Error> {
     let widget = PageWidget::read(&value(args, 2));
-    let item = project_widget(&value(args, 0), number(args, 1), &widget, truthy(arg(args, 3)));
+    let group = arg(args, 6).filter(|g| !g.is_null()).map(|g| GroupLook {
+        label: g.get("label").and_then(Value::as_str).map(str::to_string),
+        accent: g.get("accent").cloned().unwrap_or(Value::Null),
+    });
+    let item = project_widget(
+        &value(args, 0),
+        number(args, 1),
+        &widget,
+        truthy(arg(args, 3)),
+        truthy(arg(args, 4)),
+        arg(args, 5).cloned(),
+        group.as_ref(),
+    );
     Ok(item.unwrap_or(Value::Null))
 }
 
@@ -123,23 +136,12 @@ fn initial_form_state_fn(_: &[Value]) -> Result<Value, Error> {
     Ok(initial_form_state())
 }
 
-/// A prediction's optional `context` (`{ groupId }`); none is no session.
-fn prediction_context(args: &[Value], at: usize) -> PredictionContext {
-    PredictionContext {
-        group_id: args
-            .get(at)
-            .and_then(|c| c.get("groupId"))
-            .and_then(Value::as_str)
-            .map(str::to_string),
-    }
-}
-
 fn predict_form_op_fn(args: &[Value]) -> Result<Value, Error> {
-    Ok(predict_form_op(&index(args, 0), &value(args, 1), &prediction_context(args, 2)).to_json())
+    Ok(predict_form_op(&index(args, 0), &value(args, 1)).to_json())
 }
 
 fn undo_look_of_fn(args: &[Value]) -> Result<Value, Error> {
-    Ok(Value::Array(undo_look_of(&index(args, 0), &list(args, 1), &prediction_context(args, 2))))
+    Ok(Value::Array(undo_look_of(&index(args, 0), &list(args, 1))))
 }
 
 fn fields_named_by_fn(args: &[Value]) -> Result<Value, Error> {
@@ -156,7 +158,15 @@ fn encode_field_ref_key_fn(args: &[Value]) -> Result<Value, Error> {
 
 fn fill_items_allowed_fn(args: &[Value]) -> Result<Value, Error> {
     let widgets = arg(args, 2).map(page_widgets_of_json);
-    Ok(Value::Array(fill_items(&index(args, 0), number(args, 1), widgets.as_ref(), &|_| true)))
+    Ok(Value::Array(fill_items(
+        &index(args, 0),
+        number(args, 1),
+        widgets.as_ref(),
+        &|_| true,
+        &|_| true,
+        &|_| None,
+        &|_| None,
+    )))
 }
 
 fn form_tools_fn(_: &[Value]) -> Result<Value, Error> {

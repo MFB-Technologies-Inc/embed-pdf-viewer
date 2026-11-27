@@ -84,7 +84,7 @@ impl crate::controller::Core {
 
     /// `stage(verb, op)`: one design op as its own change.
     fn stage_design(&self, verb: &str, op: Value) -> Result<PendingChange, Error> {
-        let undo = self.predictor.undo_look(&self.view(), std::slice::from_ref(&op));
+        let undo = crate::sync::predict::undo_look_of(&self.view(), std::slice::from_ref(&op));
         let mut change = StagedChange::ops(json!({ "key": format!("form.{verb}") }), vec![op]);
         change.undo = undo;
         self.cx.changes()?.stage(change)
@@ -93,7 +93,7 @@ impl crate::controller::Core {
     /// `stageAll(verb, ops)`: the ops of one design verb as one change, one
     /// step of the history.
     fn stage_all(&self, verb: &str, ops: Vec<Value>) -> Result<PendingChange, Error> {
-        let undo = self.predictor.undo_look(&self.view(), &ops);
+        let undo = crate::sync::predict::undo_look_of(&self.view(), &ops);
         let mut change = StagedChange::ops(json!({ "key": format!("form.{verb}") }), ops);
         change.undo = undo;
         self.cx.changes()?.stage(change)

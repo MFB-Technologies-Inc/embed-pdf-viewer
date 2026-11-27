@@ -55,6 +55,7 @@ impl Core {
                         "cursor": tool.cursor,
                         "enables": PLACE_TAGS,
                         "clickCreate": tool.click_create_json(),
+                        "upright": tool.upright,
                         "defaults": tool.defaults,
                         // Click-first: the field a click places follows the pointer.
                         "ghost": true,

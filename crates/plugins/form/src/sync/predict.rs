@@ -64,32 +64,16 @@ fn reset_targets(index: &FieldIndex) -> Vec<Value> {
         .collect()
 }
 
-/// `PredictionContext`: what a prediction takes from the session the
-/// change is staged in. The default is no session: a new field whose draft
-/// names no group shows in none.
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PredictionContext {
-    /// The session's own group, where a new field goes when its draft names
-    /// none; `None` for none.
-    pub group_id: Option<String>,
+/// `predictFormOp(index, op)`: one op of a change this session staged,
+/// shown before the engine answers. An op the engine's rules refuse shows
+/// nothing. A prediction takes nothing but the form and the op, not even
+/// the session's own group: a new field is in the group its draft names, or
+/// in none (fce760aeb).
+pub fn predict_form_op(index: &Rc<FieldIndex>, op: &Value) -> Rc<FieldIndex> {
+    predict_once(index, op).unwrap_or_else(|_| index.clone())
 }
 
-/// `predictFormOp(index, op, context)`: one op of a change this session
-/// staged, shown before the engine answers. An op the engine's rules refuse
-/// shows nothing.
-pub fn predict_form_op(
-    index: &Rc<FieldIndex>,
-    op: &Value,
-    context: &PredictionContext,
-) -> Rc<FieldIndex> {
-    predict_once(index, op, context).unwrap_or_else(|_| index.clone())
-}
-
-fn predict_once(
-    index: &Rc<FieldIndex>,
-    op: &Value,
-    context: &PredictionContext,
-) -> Result<Rc<FieldIndex>, epdf_kernel::Error> {
+fn predict_once(index: &Rc<FieldIndex>, op: &Value) -> Result<Rc<FieldIndex>, epdf_kernel::Error> {
     let none = Value::Null;
     Ok(match str_of(op, "type").unwrap_or("") {
         "forms.setValue" => match field_by_ref(index, get(op, "field").unwrap_or(&none)) {
@@ -139,8 +123,8 @@ fn predict_once(
                 None => restored,
             }
         }
-        "forms.create" => created_field(index, op, context)?,
-        "forms.copy" => copied_fields(index, op, context)?,
+        "forms.create" => created_field(index, op)?,
+        "forms.copy" => copied_fields(index, op)?,
         "forms.addWidget" => added_widget(index, op)?,
         "forms.update" => match field_by_ref(index, get(op, "field").unwrap_or(&none)) {
             Some(field) => {
@@ -257,12 +241,8 @@ fn same_field(left: &Value, right: &Value) -> bool {
     !left.is_null() && field_key_of_ref(left) == field_key_of_ref(right)
 }
 
-/// `createdField(index, op, context)`: a create once it names its numbers.
-fn created_field(
-    index: &Rc<FieldIndex>,
-    op: &Value,
-    context: &PredictionContext,
-) -> Result<Rc<FieldIndex>, epdf_kernel::Error> {
+/// `createdField(index, op)`: a create once it names its numbers.
+fn created_field(index: &Rc<FieldIndex>, op: &Value) -> Result<Rc<FieldIndex>, epdf_kernel::Error> {
     let draft = get(op, "draft").cloned().unwrap_or(Value::Null);
     let placements = items(&draft, "widgets");
     let numbers = items(op, "widgetObjectNumbers");
@@ -289,12 +269,7 @@ fn created_field(
             })
         })
         .collect();
-    let created = form_field_of_draft(
-        &draft,
-        // A draft that names no group goes in the session's own, as the
-        // engine puts it.
-        &FieldDraftContext { object_number, widgets, group_id: context.group_id.clone() },
-    )?;
+    let created = form_field_of_draft(&draft, &FieldDraftContext { object_number, widgets })?;
     let formed = if snapshot.get("formKind").and_then(Value::as_str) == Some("none") {
         with_snapshot_member(index, "formKind", json!("acroform"))
     } else {
@@ -363,14 +338,10 @@ fn copies_of(index: &FieldIndex, op: &Value) -> Vec<FieldCopy> {
         .collect()
 }
 
-/// `copiedFields(index, op, context)`: each copy as a create of the same
+/// `copiedFields(index, op)`: each copy as a create of the same
 /// field shows, then its widgets' flags, which a create writes none of, and
 /// its value.
-fn copied_fields(
-    index: &Rc<FieldIndex>,
-    op: &Value,
-    context: &PredictionContext,
-) -> Result<Rc<FieldIndex>, epdf_kernel::Error> {
+fn copied_fields(index: &Rc<FieldIndex>, op: &Value) -> Result<Rc<FieldIndex>, epdf_kernel::Error> {
     let mut next = index.clone();
     for copy in copies_of(index, op) {
         let reference = json!({ "kind": "objectNumber", "objectNumber": copy.object_number });
@@ -385,7 +356,6 @@ fn copied_fields(
                 "objectNumber": copy.object_number,
                 "widgetObjectNumbers": copy.widget_object_numbers,
             }),
-            context,
         )?;
         let Some(made) = field_by_ref(&next, &reference).cloned() else { continue };
         let rows = rows_of_field(&next, &made)
@@ -450,7 +420,6 @@ fn added_widget(index: &Rc<FieldIndex>, op: &Value) -> Result<Rc<FieldIndex>, ep
                 "page": get(&placement, "page").cloned().unwrap_or(Value::Null),
                 "objectNumber": object_number,
             })],
-            group_id: None,
         },
     )?;
     let (Some(widget), Some(row)) =
@@ -612,52 +581,14 @@ fn undo_of_op(index: &FieldIndex, op: &Value) -> Vec<Value> {
     }
 }
 
-/// `undoLookOf(before, ops, context)`: the ops that bring the form back,
-/// the last op's first.
-pub fn undo_look_of(
-    before: &Rc<FieldIndex>,
-    ops: &[Value],
-    context: &PredictionContext,
-) -> Vec<Value> {
+/// `undoLookOf(before, ops)`: the ops that bring the form back, the last
+/// op's first.
+pub fn undo_look_of(before: &Rc<FieldIndex>, ops: &[Value]) -> Vec<Value> {
     let mut undo: Vec<Vec<Value>> = Vec::new();
     let mut current = before.clone();
     for op in ops {
         undo.push(undo_of_op(&current, op));
-        current = predict_form_op(&current, op, context);
+        current = predict_form_op(&current, op);
     }
     undo.into_iter().rev().flatten().collect()
-}
-
-/// `createFormPredictor(session)`: the predictions of one session, whose
-/// context `session` reads. Everything in the plugin that predicts goes
-/// through it.
-#[derive(Clone)]
-pub struct FormPredictor {
-    session: Rc<dyn Fn() -> PredictionContext>,
-}
-
-impl FormPredictor {
-    pub fn new(session: impl Fn() -> PredictionContext + 'static) -> FormPredictor {
-        FormPredictor { session: Rc::new(session) }
-    }
-
-    /// The session of a plugin's document: its identity's `groupId`.
-    pub fn of(cx: &epdf_kernel::Controller<Value, Value>) -> FormPredictor {
-        let cx = cx.clone();
-        FormPredictor::new(move || PredictionContext {
-            group_id: cx.doc().ok().and_then(|doc| {
-                doc.security().identity().get("groupId").and_then(Value::as_str).map(str::to_string)
-            }),
-        })
-    }
-
-    /// `predict`: [`predict_form_op`], as this session's change shows.
-    pub fn predict(&self, index: &Rc<FieldIndex>, op: &Value) -> Rc<FieldIndex> {
-        predict_form_op(index, op, &(self.session)())
-    }
-
-    /// `undoLook`: [`undo_look_of`], over this session's changes.
-    pub fn undo_look(&self, before: &Rc<FieldIndex>, ops: &[Value]) -> Vec<Value> {
-        undo_look_of(before, ops, &(self.session)())
-    }
 }

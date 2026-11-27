@@ -18,7 +18,7 @@ use epdf_plugin_annotation::annotation_plugin;
 use epdf_plugin_form::model::{
     FieldIndex, Folded, Snapshot, field_by_key, fold_form_event, index_fields, snapshot_copies,
 };
-use epdf_plugin_form::sync::predict::{PredictionContext, predict_form_op};
+use epdf_plugin_form::sync::predict::predict_form_op;
 use epdf_plugin_form::{FORM, form_plugin};
 use epdf_plugin_interaction::{InteractionConfig, interaction_plugin};
 use plugin_conformance::fake_engine::{AsEngine, FakeEngine};
@@ -131,11 +131,7 @@ fn a_large_form_folds_and_predicts_without_a_copy() {
         let before = snapshot_copies();
         for i in 0..50 {
             let n = i * 25 % FIELDS + 1;
-            current = predict_form_op(
-                &current,
-                &set_value(n, "predicted"),
-                &PredictionContext::default(),
-            );
+            current = predict_form_op(&current, &set_value(n, "predicted"));
             current = match fold_form_event(&current, &value_set(n, "confirmed")) {
                 Folded::Index(next) => next,
                 Folded::Reload => panic!("a value fold keeps the index"),

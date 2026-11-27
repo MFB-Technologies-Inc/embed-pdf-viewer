@@ -971,7 +971,27 @@ pub fn form_field_after(
     if let Some(group) = get(patch, "groupId") {
         field.insert("groupId".into(), group.clone());
     }
+    if let Some(purpose) = get(patch, "purpose") {
+        field.insert("purpose".into(), format::checked_purpose(Some(purpose))?);
+    }
     let family = field.get("kind").and_then(Value::as_str).map(str::to_string);
+    if let Some(kind @ ("text" | "combobox")) = family.as_deref() {
+        // The format the field already has is no change: its scripts stay as they are.
+        if let Some(format) = format::format_write_of(patch, kind)?
+            && !format::formats_equal(&format, field.get("format").unwrap_or(&Value::Null))
+        {
+            let actions = format::format_actions(field.get("actions"), &format);
+            field.insert("format".into(), format);
+            match actions {
+                Some(actions) => {
+                    field.insert("actions".into(), actions);
+                }
+                None => {
+                    field.shift_remove("actions");
+                }
+            }
+        }
+    }
     if family.as_deref() == Some("text") {
         if let Some(limit) = get(patch, "maxLength") {
             field.insert("maxLength".into(), limit.clone());
@@ -1125,13 +1145,11 @@ fn widget_row_of_placement(
     ))
 }
 
-/// `FieldDraftContext`.
+/// `FieldDraftContext`. Its `groupId` is not read upstream (a field whose
+/// draft names no group is in none, fce760aeb), so it has none here.
 pub struct FieldDraftContext {
     pub object_number: f64,
     pub widgets: Vec<Value>,
-    /// The group a draft without one goes in: the session's own
-    /// (`identity.groupId`).
-    pub group_id: Option<String>,
 }
 
 /// `formFieldOfDraft(draft, context)`: the field and its widgets as a read
@@ -1184,14 +1202,8 @@ pub fn form_field_of_draft(
     put("mappingName", or("mappingName", Value::Null));
     put("valueEntry", none());
     put("defaultValueEntry", none());
-    put(
-        "groupId",
-        get(draft, "groupId")
-            .filter(|g| !g.is_null())
-            .cloned()
-            .or_else(|| context.group_id.clone().map(Value::String))
-            .unwrap_or(Value::Null),
-    );
+    put("groupId", get(draft, "groupId").filter(|g| !g.is_null()).cloned().unwrap_or(Value::Null));
+    put("purpose", format::checked_purpose(get(draft, "purpose"))?);
     put("createdBy", Value::Null);
     put("createdAt", Value::Null);
     put("filledBy", Value::Null);
@@ -1204,8 +1216,17 @@ pub fn form_field_of_draft(
             [("onState", export.clone()), ("exportValue", export), ("checked", json!(false))],
         )
     };
+    // A format is its two scripts, which a read of the field gives back.
+    let format = format::format_write_of(draft, &family)?.unwrap_or(Value::Null);
+    let formatted = |put: &mut dyn FnMut(&str, Value)| {
+        put("format", format.clone());
+        if let Some(actions) = format::format_actions(None, &format).filter(|_| !format.is_null()) {
+            put("actions", actions);
+        }
+    };
     match family.as_str() {
         "text" => {
+            formatted(&mut put);
             put("kind", json!("text"));
             put("defaultValueEntry", default_entry_of_draft(draft)?);
             put("value", json!(""));
@@ -1248,6 +1269,7 @@ pub fn form_field_of_draft(
             put("widgets", Value::Array(toggles));
         }
         "combobox" => {
+            formatted(&mut put);
             put("kind", json!("combobox"));
             put("defaultValueEntry", default_entry_of_draft(draft)?);
             put("value", json!(""));
@@ -1339,6 +1361,7 @@ pub fn widget_after_patch(row: &Value, patch: &Value) -> Result<Value, Error> {
 }
 
 pub mod copy;
+pub mod format;
 mod tab_order;
 pub use tab_order::{compare_structure_positions, tab_order_of};
 

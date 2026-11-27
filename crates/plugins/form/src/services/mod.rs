@@ -8,6 +8,7 @@
 pub mod design;
 pub mod events;
 pub mod formatted;
+pub mod groups;
 pub mod index_cache;
 pub mod looks;
 pub mod object_numbers;
@@ -15,5 +16,6 @@ pub mod pictures;
 pub mod rights;
 pub mod scripting;
 pub mod siblings;
+pub mod tab_order;
 
 pub mod cursor;

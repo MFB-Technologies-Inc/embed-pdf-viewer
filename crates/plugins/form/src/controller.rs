@@ -44,10 +44,6 @@ pub struct Core {
     pub(crate) fields: Mirror,
     /// The mirror's values as indexes, decoded once each.
     pub(crate) indexes: Rc<IndexCache>,
-    /// How this session's changes show before the engine answers. A field
-    /// placed without a group shows in the session's own, where the engine
-    /// puts it.
-    pub(crate) predictor: crate::sync::predict::FormPredictor,
     pub(crate) formatted: Rc<FormattedTexts>,
     pub(crate) numbers: ObjectNumbers,
     /// Fills take turns on one serial queue until they are sent, and a
@@ -62,6 +58,8 @@ pub struct Core {
     pub(crate) rights_groups: RefCell<Option<(Rc<FieldIndex>, Rc<Vec<Value>>)>>,
     /// The field reads' identity memos.
     pub(crate) reads: crate::read::fields::ReadMemos,
+    /// `listGroups`' memo.
+    pub(crate) group_memo: RefCell<crate::services::groups::GroupMemo>,
     /// `listWidgets`' memo, by page: the items it made, and from what.
     pub(crate) widget_items: RefCell<HashMap<String, crate::read::widgets::WidgetItems>>,
     /// `listShownWidgets`' memo, by page: the list it made, and from what.
@@ -71,6 +69,8 @@ pub struct Core {
     pub(crate) picture_items: RefCell<HashMap<String, crate::services::pictures::ItemsOn>>,
     /// Mounted focus targets, pending focus, and the last widget visited.
     pub(crate) cursor: crate::services::cursor::Cursor,
+    /// `tabOrder`'s memo: Tab's rows and each radio button's place.
+    pub(crate) tab_order: RefCell<Option<crate::services::tab_order::TabOrderMemo>>,
     /// Keyboard order derived from the field view, pages, fill rights and settings.
     pub(crate) focus_order_cache: RefCell<Option<crate::write::focus::FocusOrderCache>>,
     /// The widget hover pump, made on first use.
@@ -213,8 +213,7 @@ pub fn create_form_controller(
     let settings = cx.settings()?;
     let events = Events::new(&cx);
     let indexes = Rc::new(IndexCache::default());
-    let predictor = crate::sync::predict::FormPredictor::of(&cx);
-    let fields = crate::sync::fields::create_fields_mirror(&cx, &events, &indexes, &predictor)?;
+    let fields = crate::sync::fields::create_fields_mirror(&cx, &events, &indexes)?;
     let formatted = Rc::new(FormattedTexts::default());
     let queue = cx.serial_queue("writes");
     let core = Rc::new_cyclic(|me| Core {
@@ -224,7 +223,6 @@ pub fn create_form_controller(
         events,
         fields,
         indexes,
-        predictor,
         formatted,
         numbers: ObjectNumbers::default(),
         enqueue: queue,
@@ -233,11 +231,13 @@ pub fn create_form_controller(
         drafts: RefCell::new(IndexMap::new()),
         rights_groups: RefCell::new(None),
         reads: Default::default(),
+        group_memo: Default::default(),
         widget_items: RefCell::new(HashMap::new()),
         shown_widgets: RefCell::new(HashMap::new()),
         picture_items: RefCell::new(HashMap::new()),
         widget_pump: RefCell::new(None),
         cursor: Default::default(),
+        tab_order: RefCell::new(None),
         focus_order_cache: RefCell::new(None),
         #[cfg(feature = "harness")]
         printed: crate::harness::Printed::default(),
@@ -246,6 +246,7 @@ pub fn create_form_controller(
     core.wire_fills()?;
     core.wire_typing()?;
     core.wire_cursor()?;
+    core.wire_groups()?;
     let capability = FormCapability(core.clone());
     let weak = Rc::downgrade(&core);
     let connect: ConnectFn = Rc::new(move || match weak.upgrade() {

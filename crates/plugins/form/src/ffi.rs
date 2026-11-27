@@ -1265,7 +1265,7 @@ impl FormHandle {
                         Ok(FormWidgetHit {
                             annot_object_number: hit.annot_object_number as u32,
                             field: FormField::from_json(&hit.field)?,
-                            bounds: rect_of(&hit.bx),
+                            bounds: rect_of(&hit.place.bx),
                         })
                     })
                     .transpose()

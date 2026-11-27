@@ -1,7 +1,8 @@
 //! `tools/definitions.ts`: the form-tool table, the one source of truth for
 //! the palette. The tools live in the annotation registry when that plugin
 //! is present, but the commit always goes through `form.create()`: they
-//! enable `form-place`, never `annotation-draw`.
+//! enable `form-place`, never `annotation-draw`. Every tool places upright:
+//! on a page shown turned, its field reads as the author sees the page.
 
 use std::sync::LazyLock;
 
@@ -17,6 +18,11 @@ pub struct FormToolDefinition {
     pub visual_kind: &'static str,
     /// What a bare click places.
     pub click_create: (f64, f64),
+    /// Place the field as the author sees the page: on a page shown turned,
+    /// its contents are turned to read upright there (a quarter turn,
+    /// `/MK /R`). With the annotation plugin, the tool registered there
+    /// decides; this is its value without it.
+    pub upright: bool,
     /// Seed drawing defaults: the widget's appearance fields.
     pub defaults: Value,
     pub cursor: &'static str,
@@ -30,6 +36,7 @@ impl FormToolDefinition {
             "fieldKind": self.field_kind,
             "visualKind": self.visual_kind,
             "clickCreate": self.click_create_json(),
+            "upright": self.upright,
             "defaults": self.defaults,
             "cursor": self.cursor,
         })
@@ -59,7 +66,15 @@ fn tool(
     click_create: (f64, f64),
     defaults: Value,
 ) -> FormToolDefinition {
-    FormToolDefinition { id, field_kind, visual_kind, click_create, defaults, cursor: "crosshair" }
+    FormToolDefinition {
+        id,
+        field_kind,
+        visual_kind,
+        click_create,
+        upright: true,
+        defaults,
+        cursor: "crosshair",
+    }
 }
 
 /// `FORM_TOOLS`.

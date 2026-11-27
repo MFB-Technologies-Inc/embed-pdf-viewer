@@ -32,6 +32,7 @@ use crate::scripting::controller::{FormScriptResult, FormScripts, ScriptStatus};
 use crate::scripting::results::script_error;
 use crate::services::scripting::Surfaced;
 use crate::sync::predict::{fields_named_by, with_fields_from};
+use crate::sync::predict::{predict_form_op, undo_look_of};
 use crate::value::{get, json_stringify};
 
 /// The scripts a fill runs before it is sent, when the document's scripts run.
@@ -133,12 +134,12 @@ impl crate::controller::Core {
     fn begin(&self, request: FillRequest) -> Result<Begun, Error> {
         let before = self.view();
         let shown =
-            request.ops.iter().fold(before.clone(), |index, op| self.predictor.predict(&index, op));
+            request.ops.iter().fold(before.clone(), |index, op| predict_form_op(&index, op));
         if request.ops.is_empty() {
             return Ok(Begun { request, before, shown, hold: None });
         }
         let hold = self.cx.changes()?.hold(self.label_of(&request, &before, &request.ops), None)?;
-        hold.set(request.ops.clone(), self.predictor.undo_look(&before, &request.ops));
+        hold.set(request.ops.clone(), undo_look_of(&before, &request.ops));
         Ok(Begun { request, before, shown, hold: Some(hold) })
     }
 
@@ -183,12 +184,12 @@ impl crate::controller::Core {
         }
         let Some(hold) = &begun.hold else {
             let label = self.label_of(&begun.request, &self.view(), &ops);
-            let undo = self.predictor.undo_look(&self.base_of(begun), &ops);
+            let undo = undo_look_of(&self.base_of(begun), &ops);
             let change = changes.stage(staged(label, ops, undo, true))?;
             return Ok(Sent { script, changes: vec![change], after: self.view() });
         };
         if hold.open() {
-            hold.set(ops.clone(), self.predictor.undo_look(&self.base_of(begun), &ops));
+            hold.set(ops.clone(), undo_look_of(&self.base_of(begun), &ops));
             let change = hold.send();
             return Ok(Sent { script, changes: change.into_iter().collect(), after: self.view() });
         }
@@ -202,7 +203,7 @@ impl crate::controller::Core {
         let mut out: Vec<PendingChange> = sent.into_iter().collect();
         if !rest.is_empty() {
             let label = self.label_of(&begun.request, &self.view(), &rest);
-            let undo = self.predictor.undo_look(&self.view(), &rest);
+            let undo = undo_look_of(&self.view(), &rest);
             out.push(changes.stage(staged(label, rest, undo, true))?);
         }
         Ok(Sent { script, changes: out, after: self.view() })

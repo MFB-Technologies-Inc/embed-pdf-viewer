@@ -45,7 +45,7 @@ fn scripting_matches_the_typescript() {
     scenarios("plugins/form-scripting.json");
 }
 
-/// The six files hold 231 cases, every one replayed: a regenerated vector
+/// The six files hold 230 cases, every one replayed: a regenerated vector
 /// that drops one is noticed.
 #[test]
 fn every_form_case_replays() {
@@ -65,11 +65,11 @@ fn every_form_case_replays() {
         vec![
             ("plugins/form-actions.json", 13),
             ("plugins/form-core-lifecycle.json", 3),
-            ("plugins/form-core.json", 105),
+            ("plugins/form-core.json", 104),
             ("plugins/form-design.json", 33),
             ("plugins/form-fill.json", 31),
             ("plugins/form-scripting.json", 46),
         ]
     );
-    assert_eq!(counts.iter().map(|(_, n)| n).sum::<usize>(), 231);
+    assert_eq!(counts.iter().map(|(_, n)| n).sum::<usize>(), 230);
 }

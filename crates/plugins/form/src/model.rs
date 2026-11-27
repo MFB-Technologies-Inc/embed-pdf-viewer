@@ -862,21 +862,65 @@ pub fn look_of_row(row: &Value) -> Value {
     })
 }
 
-/// `PageWidget`: `{ box, look }`.
+/// `WidgetPlace`: where a widget is on its page, as the engine reads it:
+/// the frame its contents are laid out in (`box`), its quarter turn
+/// (`rotation`, degrees clockwise about the middle of `box`), and the rect
+/// it stands in (`rect`). An unturned widget's frame is its rect.
+#[derive(Clone, Debug, PartialEq)]
+pub struct WidgetPlace {
+    pub bx: Value,
+    pub rotation: Value,
+    pub rect: Value,
+}
+
+impl WidgetPlace {
+    /// `placeOf(row)`: its frame (its rect, for a row without one), its
+    /// turn and its rect.
+    pub fn of(row: &Value) -> WidgetPlace {
+        let rect = get(row, "rect").cloned().unwrap_or(Value::Null);
+        let frame = get(row, "box").filter(|b| !b.is_null()).cloned();
+        let rotation = match &frame {
+            Some(_) => get(row, "rotation").filter(|r| !r.is_null()).cloned().unwrap_or(json!(0)),
+            None => json!(0),
+        };
+        WidgetPlace { bx: frame.unwrap_or_else(|| rect.clone()), rotation, rect }
+    }
+
+    /// A place as a value states it (`{ box, rotation, rect }`).
+    pub fn read(value: &Value) -> WidgetPlace {
+        let member = |key: &str| get(value, key).cloned().unwrap_or(Value::Null);
+        WidgetPlace { bx: member("box"), rotation: member("rotation"), rect: member("rect") }
+    }
+
+    /// Its three members, in the TypeScript's order, into `object`.
+    pub fn put(&self, object: &mut Map<String, Value>) {
+        object.insert("box".into(), self.bx.clone());
+        object.insert("rotation".into(), self.rotation.clone());
+        object.insert("rect".into(), self.rect.clone());
+    }
+}
+
+/// `PageWidget`: `{ ref, box, rotation, rect, look }`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PageWidget {
-    pub bx: Value,
+    pub reference: Value,
+    pub place: WidgetPlace,
     pub look: Value,
 }
 
 impl PageWidget {
     pub fn to_json(&self) -> Value {
-        json!({ "box": self.bx, "look": self.look })
+        let mut out = Map::new();
+        out.insert("ref".into(), self.reference.clone());
+        self.place.put(&mut out);
+        out.insert("look".into(), self.look.clone());
+        Value::Object(out)
     }
 
     pub fn read(value: &Value) -> PageWidget {
         PageWidget {
-            bx: get(value, "box").cloned().unwrap_or(Value::Null),
+            reference: get(value, "ref").cloned().unwrap_or(Value::Null),
+            place: WidgetPlace::read(value),
             look: get(value, "look").cloned().unwrap_or(Value::Null),
         }
     }
@@ -938,7 +982,8 @@ pub fn page_widgets_of(index: &FieldIndex, page: f64) -> PageWidgets {
         widgets.insert(
             number_key(n),
             PageWidget {
-                bx: get(row, "rect").cloned().unwrap_or(Value::Null),
+                reference: reference.clone(),
+                place: WidgetPlace::of(row),
                 look: look_of_row(row),
             },
         );
@@ -947,11 +992,13 @@ pub fn page_widgets_of(index: &FieldIndex, page: f64) -> PageWidgets {
     widgets
 }
 
-/// `ShownWidget`.
+/// `ShownWidget`: a widget a page shows, where it is, the appearance state
+/// it shows, and how new its look is. Its picture and the painter's drawing
+/// both fill `rect`, where it stands: each holds the widget's turn already.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ShownWidget {
     pub reference: Value,
-    pub rect: Value,
+    pub place: WidgetPlace,
     pub appearance_state: Value,
     pub pending: bool,
     pub picture_version: f64,
@@ -959,13 +1006,13 @@ pub struct ShownWidget {
 
 impl ShownWidget {
     pub fn to_json(&self) -> Value {
-        json!({
-            "ref": self.reference,
-            "rect": self.rect,
-            "appearanceState": self.appearance_state,
-            "pending": self.pending,
-            "pictureVersion": number(self.picture_version),
-        })
+        let mut out = Map::new();
+        out.insert("ref".into(), self.reference.clone());
+        self.place.put(&mut out);
+        out.insert("appearanceState".into(), self.appearance_state.clone());
+        out.insert("pending".into(), json!(self.pending));
+        out.insert("pictureVersion".into(), number(self.picture_version));
+        Value::Object(out)
     }
 }
 
@@ -990,7 +1037,7 @@ pub fn shown_widgets_of(
             let (pending, picture_version) = look_of(row);
             ShownWidget {
                 reference: get(row, "ref").cloned().unwrap_or(Value::Null),
-                rect: get(row, "rect").cloned().unwrap_or(Value::Null),
+                place: WidgetPlace::of(row),
                 appearance_state: get(row, "appearanceState").cloned().unwrap_or(Value::Null),
                 pending,
                 picture_version,
@@ -999,21 +1046,22 @@ pub fn shown_widgets_of(
         .collect()
 }
 
-/// `WidgetHit`.
+/// `WidgetHit`: the annotation under the point, the field it belongs to,
+/// and where it is.
 #[derive(Clone, Debug, PartialEq)]
 pub struct WidgetHit {
     pub annot_object_number: f64,
     pub field: Value,
-    pub bx: Value,
+    pub place: WidgetPlace,
 }
 
 impl WidgetHit {
     pub fn to_json(&self) -> Value {
-        json!({
-            "annotObjectNumber": number(self.annot_object_number),
-            "field": self.field,
-            "box": self.bx,
-        })
+        let mut out = Map::new();
+        out.insert("annotObjectNumber".into(), number(self.annot_object_number));
+        out.insert("field".into(), self.field.clone());
+        self.place.put(&mut out);
+        Value::Object(out)
     }
 }
 
@@ -1022,7 +1070,9 @@ pub fn box_contains(bx: &Box, x: f64, y: f64) -> bool {
     x >= bx.x && x <= bx.x + bx.width && y >= bx.y && y <= bx.y + bx.height
 }
 
-/// `widgetAt(index, widgets, point)`: the smallest box under the point.
+/// `widgetAt(index, widgets, point)`: the smallest widget under the point.
+/// Where it stands (`rect`) is what the point is on: a quarter turn keeps
+/// its area.
 pub fn widget_at(
     index: &FieldIndex,
     widgets: Option<&PageWidgets>,
@@ -1034,19 +1084,19 @@ pub fn widget_at(
     sort_js_keys(&mut ordered);
     let mut best: Option<(WidgetHit, f64)> = None;
     for (key, widget) in &ordered {
-        let bx = Box::read(&widget.bx);
-        if !box_contains(&bx, x, y) {
+        let rect = Box::read(&widget.place.rect);
+        if !box_contains(&rect, x, y) {
             continue;
         }
         let number = epdf_kernel::mirror::string_to_number(key);
         let Some(field) = field_for_widget(index, number) else { continue };
-        let area = bx.width * bx.height;
+        let area = rect.width * rect.height;
         if best.as_ref().is_none_or(|(_, best_area)| area < *best_area) {
             best = Some((
                 WidgetHit {
                     annot_object_number: number,
                     field: field.clone(),
-                    bx: widget.bx.clone(),
+                    place: widget.place.clone(),
                 },
                 area,
             ));
@@ -1055,9 +1105,33 @@ pub fn widget_at(
     best.map(|(hit, _)| hit)
 }
 
-/// `initialFormState()`: no widget has the cursor yet.
+/// `initialFormState()`: no widget has the cursor yet, no design group, and
+/// no groups the app named.
 pub fn initial_form_state() -> Value {
-    json!({ "focused": null })
+    json!({ "focused": null, "designGroup": null, "groups": [] })
+}
+
+/// `setGroups(state, groups)`: name this document's groups, the whole list.
+/// The same list again changes nothing.
+pub fn set_groups(state: Rc<Value>, groups: Vec<Value>) -> Rc<Value> {
+    if state.get("groups").and_then(Value::as_array) == Some(&groups) {
+        return state;
+    }
+    let mut next = (*state).clone();
+    next["groups"] = Value::Array(groups);
+    Rc::new(next)
+}
+
+/// `setDesignGroup(state, groupId)`: the group fields placed with a tool go
+/// in; the same group changes nothing.
+pub fn set_design_group(state: Rc<Value>, group_id: Option<&str>) -> Rc<Value> {
+    let group = group_id.map_or(Value::Null, |g| json!(g));
+    if state.get("designGroup") == Some(&group) {
+        return state;
+    }
+    let mut next = (*state).clone();
+    next["designGroup"] = group;
+    Rc::new(next)
 }
 
 /// A fold or load error as the mirror reports it.

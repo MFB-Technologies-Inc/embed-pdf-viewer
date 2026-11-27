@@ -412,7 +412,11 @@ fn the_fields_mirror_cell_dumps_the_whole_field_index() {
 
 #[test]
 fn the_form_starts_with_no_focused_widget() {
-    assert_eq!(epdf_plugin_form::model::initial_form_state(), json!({ "focused": null }));
+    // And with no design group and no groups the app named (d6d7c25e2).
+    assert_eq!(
+        epdf_plugin_form::model::initial_form_state(),
+        json!({ "focused": null, "designGroup": null, "groups": [] })
+    );
 }
 
 /// The painter reads a widget row and its field in place
