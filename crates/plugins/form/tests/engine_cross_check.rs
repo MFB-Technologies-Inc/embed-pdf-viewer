@@ -35,7 +35,7 @@ fn base(n: u32, name: &str, value_entry: Value, default_entry: Value) -> Value {
         "readOnly": false, "required": false, "noExport": false,
         "alternateName": null, "mappingName": null,
         "valueEntry": value_entry, "defaultValueEntry": default_entry,
-        "groupId": null, "createdBy": null, "createdAt": null, "filledBy": null,
+        "groupId": null, "purpose": null, "createdBy": null, "createdAt": null, "filledBy": null,
         "filledByName": null, "filledAt": null, "importedBy": null,
     })
 }
@@ -69,14 +69,14 @@ fn fields() -> Vec<Value> {
             base(1, "text", scalar("abc"), scalar("dflt")),
             json!({
                 "kind": "text", "value": "abc", "defaultValue": "dflt", "maxLength": 4,
-                "multiline": false, "password": false, "comb": false, "widgets": [plain_widget(101)],
+                "multiline": false, "password": false, "comb": false, "format": null, "widgets": [plain_widget(101)],
             }),
         ),
         with(
             base(2, "free", none.clone(), none.clone()),
             json!({
                 "kind": "text", "value": "", "defaultValue": "", "maxLength": null,
-                "multiline": true, "password": false, "comb": false, "widgets": [plain_widget(102)],
+                "multiline": true, "password": false, "comb": false, "format": null, "widgets": [plain_widget(102)],
             }),
         ),
         with(
@@ -103,7 +103,7 @@ fn fields() -> Vec<Value> {
         with(
             base(11, "colour", scalar("r"), scalar("")),
             json!({
-                "kind": "combobox", "value": "r", "defaultValue": "", "edit": true,
+                "kind": "combobox", "value": "r", "defaultValue": "", "edit": true, "format": null,
                 "options": options(&["r", "g", ""], &["r"]), "widgets": [plain_widget(111)],
             }),
         ),
