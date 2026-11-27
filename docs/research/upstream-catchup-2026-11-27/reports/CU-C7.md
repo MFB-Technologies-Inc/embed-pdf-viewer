@@ -1,10 +1,11 @@
 # CU-C7: Rust and Node integration, and the full table
 
 `research/catchup-2026-11-27-plugins` is fast-forwarded to CU-C6's reviewed tip `643d2b429`
-(CU-C7-D1) and carries two code commits and this record. Every Rust and Node row is measured on
+(CU-C7-D1) and carries two code commits, a regenerated coverage record and this record. Every Rust and Node row is measured on
 the head and on the start `d250a68e3`, and nothing is worse than the start. One row was worse on
 the first pass: workspace clippy found an unused import the port left in
-`crates/plugins/form/src/ffi.rs`, fixed in `2c49e0685` (CU-C7-D7). There is no NEW DIVERGENCE. The
+`crates/plugins/form/src/ffi.rs`, fixed in `2c49e0685` (CU-C7-D7). A review fix round added `rust-coverage:check`, stale at both
+commits, and regenerated the record in `57ad31610` (CU-C7-D8). There is no NEW DIVERGENCE. The
 decisions index for the whole catch-up is [`../decisions.md`](../decisions.md); this job's
 decisions are in [`../decisions/CU-C7.md`](../decisions/CU-C7.md).
 
@@ -14,7 +15,9 @@ decisions are in [`../decisions/CU-C7.md`](../decisions/CU-C7.md).
 |---|---|
 | `84a64f0d8` | Job E review Minors: `lent_record` borrows the shown row's object and clones it only on a miss (`crates/plugins/annotation/src/read/view.rs`); `read/property_values.rs` doc says four reads and names orientation, as upstream's `property-values.ts`; `annotation-core/src/shapes/boxes.rs` doc rewrapped to 100 columns; `decisions/CU-C6.md` D9 cites `../../upstream-catchup-2026-11-18/reports/CU-C7.md:47` and `:108` |
 | `2c49e0685` | `crates/plugins/form/src/ffi.rs` drops the unused `use std::rc::Rc;` |
-| the docs commit | this report, `decisions/CU-C7.md`, `decisions.md`, `scripts/cu-c7/` |
+| `cf65c1cc2` | this report, `decisions/CU-C7.md`, `decisions.md`, `scripts/cu-c7/` |
+| `57ad31610` | `tooling/plugin-conformance/vectors/rust-coverage.json` regenerated (CU-C7-D8) |
+| the fix-round docs commit | D8 rewritten, this row and the coverage row, `scripts/cu-c7/rustcov.sh` |
 
 The branch moved `0e83ecb84..643d2b429` by fast-forward, on the host and in the container clone,
 before these commits. Container worktree: `/workspaces/wt/CU-C7`.
@@ -22,8 +25,8 @@ before these commits. Container worktree: `/workspaces/wt/CU-C7`.
 ## Checks, start against now
 
 Start is `d250a68e3`. Now is `84a64f0d8` for cargo test, engine `:check`, the plugin checks,
-`replay:check`, evidence and the wasm rows, `2c49e0685` for clippy, and `2c49e0685`'s tree for the
-TS row. `2c49e0685` removes one import from a file only the `uniffi` feature compiles, so it cannot
+`replay:check`, evidence and the wasm rows, `2c49e0685` for clippy, `2c49e0685`'s tree for the
+TS row, and `57ad31610` for `rust-coverage:check`. `2c49e0685` removes one import from a file only the `uniffi` feature compiles, so it cannot
 move the other rows; workspace clippy compiled it with every target. Start numbers marked "CU-C2"
 or "CU-C3" are those jobs' runs of `d250a68e3` in this container today; every other start number
 was measured here (CU-C7-D3).
@@ -44,6 +47,7 @@ was measured here (CU-C7-D3).
 | `core-wasm` `typecheck` | pass | pass |
 | `epdf-web` wasm tests, 9 integration binaries | 63 passed, 0 failed | 63 passed, 0 failed |
 | `epdf-node` addon (`addon.mjs`, release build) | 6 checks passed | 6 checks passed |
+| `rust-coverage:check` | exit 1, stale; measured: replay reaches 66,015 of 115,197 lines (57.31%), 37,102 only other tests reach, 701 files | exit 1, stale, at `2c49e0685`; exit 0 after `57ad31610`: 67,204 of 116,903 (57.49%), 37,516, 706 files |
 
 The 49 more cargo tests are CU-C4's to CU-C6's. The 71 more replayed cases and the new file are
 `plugins/form-groups.json` and the cases CU-C5 and CU-C6 added. The 5 more bound functions are
@@ -86,7 +90,10 @@ No NEW DIVERGENCE: no vector observes a difference. `decisions.md` lists the Rus
 the port jobs recorded (CU-C4-D7, CU-C4-D9, CU-C6-D7) first, and every decision so far, 59
 headings (`scripts/cu-c7/index-check.sh`: `missing=0`).
 
-Not run: `rust-coverage:check` (CU-C7-D8).
+`rust-coverage` was stale before this catch-up: the record dates from `94b2e7be0`, and its 68,355
+of 118,531 lines were measured on 2026-11-18's toolchain. Both sides were measured here on the
+same container, each in its own target dir, so they compare; the second check after the write
+re-measured the same numbers (CU-C7-D8).
 
 ## Evidence
 
@@ -107,6 +114,9 @@ Logs in `/workspaces/logs/CU-C7/` in the container. Hashes are sha256, first 8 h
 | clippy, start | `d250a68e3` | `T=/workspaces/target-base table.sh /workspaces/wt/base base clippy replay` | 0, 1 warning | `base/clippy.log` | `252836f4` |
 | `replay:check`, start | `d250a68e3` | same | 0 | `base/plugconf.replay:check.log` | `97358d10` |
 | wasm rows, start | `d250a68e3` | `T=/workspaces/target-base wasm.sh /workspaces/wt/base base-wasm scripts/cu-c7/base-pin.json` | payload-wasm32 101 (stale headers), the rest 0 | `base-wasm/wasm.all`, `payload.log`, `core-wasm-vitest.log`, `core-wasm-gc.log`, `epdf-web.log`, `addon.log` | `5868a357`, `f46a8a21`, `5f3bc98e`, `23c4f167`, `e97dd906`, `17b0639b` |
+| `rust-coverage:check`, head | `2c49e0685` | `rustcov.sh /workspaces/wt/CU-C7 rustcov check` (`T=/workspaces/target-cov`) | 1 (stale) | first run of `rustcov/rust-coverage-check.log` (overwritten; output in the job report) | |
+| `rust-coverage` write, then check | `2c49e0685` tree, then `57ad31610` | `rustcov.sh … rustcov write`, `rustcov.sh … rustcov check` | 0, 0 | `rustcov/rust-coverage-write.log`, `rustcov/rust-coverage-check.log` | `ea63b806`, `9f485efd` |
+| `rust-coverage`, start | `d250a68e3` | `T=/workspaces/target-cov-base rustcov.sh /workspaces/wt/base rustcov-base check`, then `write` (file restored) | 1 (stale), 0 | `rustcov-base/rust-coverage-check.log`, `rustcov-base/rust-coverage-write.log` | `8398e9b0`, `52a870f4` |
 | plain `wasm32`, start rerun | `d250a68e3` | `build-target.sh wasm32` | 1 (link) | `base-wasm/payload-wasm32.log`, `payload-wasm32-rerun.log` | `2d3e1961`, `e12da2d2` |
 
 Environment: container `embed-pdf-catchup1127`, image `embedpdf-dev:20261127-d670a1cbfb10`,
@@ -117,5 +127,6 @@ with owner `CU-C7-*`; host free space read 628 GB at the start.
 ## Left for CU-C11
 
 `/workspaces/wt/CU-C7` (keep for CU-C8, which starts from this tip), `/workspaces/target-base`
-(the start's builds, deletable), `/workspaces/bundles/CU-C7a.bundle`, and the earlier jobs'
+(the start's builds, deletable), `/workspaces/target-cov` (6.8 GB, the coverage build;
+`/workspaces/target-cov-base` is already deleted), `/workspaces/bundles/CU-C7c.bundle`, `/workspaces/bundles/CU-C7a.bundle`, and the earlier jobs'
 leftovers CU-C6 listed. `/workspaces/target-c5` now holds this tip's builds.

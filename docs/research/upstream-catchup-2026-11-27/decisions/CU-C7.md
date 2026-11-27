@@ -79,7 +79,8 @@ Reverse: `git revert 84a64f0d8 2c49e0685`.
 
 Decision: `cargo clippy --workspace --all-targets` at head warned `unused import: std::rc::Rc` at
 `crates/plugins/form/src/ffi.rs:18`; `2c49e0685` removes it. The head's wasm rows ran with that
-one-line change already copied into the worktree (it reached the worktree before they finished).
+one-line change already copied into the worktree (it reached the worktree before they finished),
+so `head-wasm/head.txt` names `84a64f0d8` while the tree had that uncommitted edit.
 Reason: CU-C5's `46be230a5` moved the only `Rc::new` there to `FocusTarget::new`. The file
 compiles only with the `uniffi` feature, which CU-C5's and CU-C6's per-crate clippy runs did not
 enable. Neither the payload, `epdf-web` nor `epdf-node` builds that feature, so the wasm rows
@@ -87,11 +88,22 @@ are unaffected.
 Cost: none.
 Reverse: `git revert 2c49e0685`.
 
-## CU-C7-D8. `rust-coverage:check` is not run
+## CU-C7-D8. `vectors/rust-coverage.json` is regenerated
 
-Decision: as CU-C3-D12: not run. The brief's list does not include it.
-Reason: it needs an instrumented `cargo llvm-cov` build of the whole replay, and no job in this
-catch-up has measured it at `d250a68e3` to compare against.
-Cost: `vectors/rust-coverage.json` may be stale against the port; the next job that runs it will
-see it.
-Reverse: `pnpm -s run rust-coverage:check` in `tooling/plugin-conformance`.
+Decision: `rust-coverage:check` ran at the tip in its own target dir (`/workspaces/target-cov`,
+`scripts/cu-c7/rustcov.sh`, `cargo-llvm-cov` 0.9.2) and exited 1, stale. `57ad31610` rewrites the
+record with `rust-coverage` (write mode); a second `rust-coverage:check` then re-measures and exits
+0 with the same numbers: replay reaches 67,204 of 116,903 lines, 37,516 lines only other tests
+reach, 706 files, 76 excluded. The start was measured the same way in
+`/workspaces/target-cov-base` (deleted afterwards): its check also exits 1, and a write gives
+66,015 of 115,197, 37,102, 701 files, 76 excluded (file restored).
+Reason: CU-C3-D12 left the record for CU-C7 to regenerate, as 2026-11-18 CU-C7-D9 did
+(`../../upstream-catchup-2026-11-18/decisions/CU-C7.md:115-124`). The record was last written at
+`94b2e7be0`, before this catch-up, so it was already stale at `d250a68e3`. Measured on the same
+container both times, replay reaches 1,189 more lines at the tip (57.49% against 57.31%), so
+nothing is worse. The committed record's higher numbers (68,355 of 118,531, 701 files) were
+measured on 2026-11-18's toolchain and are not comparable.
+Cost: the record's diff (4,212 insertions, 3,322 deletions) covers this catch-up and whatever drift
+came before it, and is reviewed as a whole. The second check is the determinism evidence; no
+second write was compared byte for byte.
+Reverse: `git revert 57ad31610`.
