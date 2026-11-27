@@ -193,6 +193,7 @@ const SERVICE_MEMBERS = {
     create: true,
     update: true,
     setSignatureAppearance: true,
+    setButtonImage: true,
     delete: true,
     addWidget: true,
     removeWidget: true,

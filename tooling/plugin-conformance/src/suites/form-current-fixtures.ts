@@ -59,6 +59,7 @@ const base = (n: number, name: string, widgets: FormWidget[]) => ({
   valueEntry: { kind: 'none' as const },
   defaultValueEntry: { kind: 'none' as const },
   groupId: null,
+  forAnyone: false,
   purpose: null,
   createdBy: null,
   createdAt: null,
@@ -161,6 +162,7 @@ export const pushbutton = (
 ): PushButtonField => ({
   ...base(n, name, [placed(n + 100)]),
   kind: 'pushbutton',
+  hasImage: false,
   ...over,
 });
 export const signature = (
