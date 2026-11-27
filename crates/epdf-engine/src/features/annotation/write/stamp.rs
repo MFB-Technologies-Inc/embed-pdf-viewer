@@ -165,7 +165,7 @@ fn content_index<'i>(
 ) -> Result<&'i mut HashMap<String, u32>, EngineError> {
     if index.by_content.is_none() {
         let mut by_content = HashMap::new();
-        for drawing in document.stamp_drawings() {
+        for drawing in document.drawings() {
             let Some(exported) = document.export_drawing(drawing) else { continue };
             by_content.entry(saved_digest(&exported)?).or_insert(drawing);
         }
@@ -209,7 +209,7 @@ pub fn author_stamp_appearance(
     // A new wrapper places the drawing: the old appearance is replaced
     // whole, and a drawing other stamps place is never changed.
     let drawing = drawing_for(document, index, bytes)?;
-    if !annotation.set_stamp_drawing(drawing, fit.native()) {
+    if !annotation.set_drawing(drawing, fit.native()) {
         return Err(unknown("EPDFAnnot_SetDrawing returned false"));
     }
     if super::primitives::turn_of(rotation).is_none() {

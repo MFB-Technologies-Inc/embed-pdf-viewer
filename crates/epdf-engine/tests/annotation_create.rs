@@ -884,7 +884,7 @@ fn two_stamps_of_one_artwork_place_one_drawing() {
     create_in(&mut replay, stamp).outcome.expect("first");
     create_in(&mut replay, stamp).outcome.expect("second");
     let session = replay.host.sessions().session(&SessionKey::document(DOC)).expect("open");
-    let drawings = session.document().unwrap().document().stamp_drawings();
+    let drawings = session.document().unwrap().document().drawings();
     assert_eq!(drawings.len(), 1, "{drawings:?}");
 }
 

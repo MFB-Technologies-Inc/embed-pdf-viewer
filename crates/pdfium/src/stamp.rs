@@ -315,8 +315,8 @@ impl Document {
         (drawing != 0).then_some(drawing)
     }
 
-    /// The drawings this document's stamps place (`EPDFDoc_GetDrawings`).
-    pub fn stamp_drawings(&self) -> Vec<u32> {
+    /// The drawings this document's annotations place (`EPDFDoc_GetDrawings`).
+    pub fn drawings(&self) -> Vec<u32> {
         // SAFETY: a null buffer asks for the count.
         let count =
             unsafe { pdfium_sys::EPDFDoc_GetDrawings(self.as_raw(), std::ptr::null_mut(), 0) };
@@ -370,7 +370,7 @@ impl Annotation<'_> {
     /// The drawing this stamp places under our wrapper, by object number
     /// (`EPDFAnnot_GetDrawing`); `None` for a stamp without one, or an
     /// annotation that is not a stamp.
-    pub fn stamp_drawing(&self) -> Option<u32> {
+    pub fn drawing(&self) -> Option<u32> {
         // SAFETY: the handle is live.
         let drawing = unsafe { pdfium_sys::EPDFAnnot_GetDrawing(self.as_raw()) };
         (drawing != 0).then_some(drawing)
@@ -379,8 +379,67 @@ impl Annotation<'_> {
     /// Place a drawing of the document in this stamp, under a wrapper of its
     /// own that fits it into the box (`EPDFAnnot_SetDrawing`), honouring
     /// any `/EMBD_Metadata` turn. The old appearance is replaced whole.
-    pub fn set_stamp_drawing(&self, drawing: u32, fit: StampFit) -> bool {
+    pub fn set_drawing(&self, drawing: u32, fit: StampFit) -> bool {
         // SAFETY: the handle is live.
         unsafe { pdfium_sys::EPDFAnnot_SetDrawing(self.as_raw(), drawing, fit.code()) != 0 }
+    }
+
+    /// The drawing a widget's `/MK` names as its icon `which`, by object
+    /// number (`EPDFAnnot_GetMKIcon`): one [`Document::export_drawing`]
+    /// exports, whoever wrote it. `None` without one, for an entry that names
+    /// anything but a form XObject, and for another subtype.
+    pub fn mk_icon(&self, which: MkIcon) -> Option<u32> {
+        // SAFETY: the handle is live.
+        let drawing = unsafe { pdfium_sys::EPDFAnnot_GetMKIcon(self.as_raw(), which.code()) };
+        (drawing != 0).then_some(drawing)
+    }
+
+    /// Make a widget's `/MK` name `drawing`, a drawing of the widget's
+    /// document, as its icon `which` (`EPDFAnnot_SetMKIcon`). Only that
+    /// entry is written: the appearance is not drawn again, and an icon the
+    /// entry named before is not deleted. `false`, writing nothing, for
+    /// another subtype and for a `drawing` that is no form XObject of the
+    /// document.
+    pub fn set_mk_icon(&self, which: MkIcon, drawing: u32) -> bool {
+        // SAFETY: the handle is live.
+        unsafe { pdfium_sys::EPDFAnnot_SetMKIcon(self.as_raw(), which.code(), drawing) != 0 }
+    }
+
+    /// Whether a widget's `/MK` names an icon `which` that is a form XObject
+    /// (`EPDFAnnot_HasMKIcon`). `false` for another subtype.
+    pub fn has_mk_icon(&self, which: MkIcon) -> bool {
+        // SAFETY: the handle is live.
+        unsafe { pdfium_sys::EPDFAnnot_HasMKIcon(self.as_raw(), which.code()) != 0 }
+    }
+
+    /// Remove a widget's `/MK` entry for the icon `which`, whatever it names
+    /// (`EPDFAnnot_ClearMKIcon`). The appearance is not drawn again and the
+    /// icon is not deleted. `true` when there was no entry; `false` for
+    /// another subtype.
+    pub fn clear_mk_icon(&self, which: MkIcon) -> bool {
+        // SAFETY: the handle is live.
+        unsafe { pdfium_sys::EPDFAnnot_ClearMKIcon(self.as_raw(), which.code()) != 0 }
+    }
+}
+
+/// The icons of a widget's `/MK` dictionary, a push button's
+/// (`EPDF_MK_ICON_*`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MkIcon {
+    /// `/I`, the normal icon.
+    Normal,
+    /// `/RI`, the rollover icon.
+    Rollover,
+    /// `/IX`, the down icon.
+    Down,
+}
+
+impl MkIcon {
+    fn code(self) -> i32 {
+        (match self {
+            Self::Normal => pdfium_sys::EPDF_MK_ICON_I,
+            Self::Rollover => pdfium_sys::EPDF_MK_ICON_RI,
+            Self::Down => pdfium_sys::EPDF_MK_ICON_IX,
+        }) as i32
     }
 }

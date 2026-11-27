@@ -158,7 +158,7 @@ impl ResourceCollector {
         document: &pdfium::Document,
         annotation: &pdfium::Annotation<'_>,
     ) -> Result<Option<String>, EngineError> {
-        let drawing = annotation.stamp_drawing();
+        let drawing = annotation.drawing();
         if let Some(known) = drawing.and_then(|drawing| self.drawings.get(&drawing)) {
             return Ok(Some(known.clone()));
         }
@@ -553,7 +553,7 @@ impl CopyResources {
             .raw_annotation(page_index, index)
             .ok_or_else(|| unserializable("an annotation is not where it was read"))?;
         if subtype == "stamp" {
-            let drawing = raw.stamp_drawing();
+            let drawing = raw.drawing();
             if let Some(known) = drawing.and_then(|drawing| self.drawings.get(&drawing)) {
                 return Ok((Some(known.clone()), None));
             }
