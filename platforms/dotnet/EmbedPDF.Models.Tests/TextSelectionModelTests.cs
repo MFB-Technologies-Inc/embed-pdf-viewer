@@ -171,35 +171,54 @@ public class TextSelectionModelTests
     [Fact]
     public Task RectsAreFinalAfterTheEndEvenWhenAnEventRefreshInterleaves() => SingleThreadContext.Run(async context =>
     {
-        var (viewer, page, selection) = await OpenedAsync();
+        var (viewer, document) = await OpenedDocumentAsync();
+        var page = (await viewer.GetPagesAsync(document))[0];
+        var selection = await viewer.GetSelectionAsync(document);
         var start = await PointOverTextAsync(page, selection);
+        // A select-all spans only the pages whose text is loaded; each page
+        // still loading joins it later with one more changed event, hundreds
+        // of milliseconds after the call returns. With every page loaded the
+        // select-all sends its events before it returns.
+        foreach (var each in await viewer.GetPagesAsync(document)) await selection.EnsureLoadedAsync(each.Page);
         var model = context.Watch(new TextSelectionModel(selection));
+        // Subscribed after the model, so every event this stream gets also
+        // reaches the model.
+        using var counting = new CancellationTokenSource();
+        var events = selection.ObserveEvents(counting.Token).GetAsyncEnumerator();
+        var followed = model.EventsFollowed;
         var (reached, release) = HoldFirstRectsRead(model);
         model.DragBegan(start, page.Page);
         // The begin's refresh has read the caret's rects and not applied them.
         await reached;
-        // Every event the select-all sends is queued behind the begin before
-        // the end is: in .NET an event can reach the model after the call
-        // that sent it returns, so the test waits for the model to take them.
-        var followed = model.EventsFollowed;
-        var sent = 0;
-        using var counting = new CancellationTokenSource();
-        var counter = Task.Run(async () =>
-        {
-            try { await foreach (var _ in selection.ObserveEvents(counting.Token)) Interlocked.Increment(ref sent); }
-            catch (OperationCanceledException) { }
-        });
         await selection.SelectAllAsync();
-        var quiet = DateTime.UtcNow;
-        var seen = (Volatile.Read(ref sent), model.EventsFollowed);
-        while (DateTime.UtcNow - quiet < TimeSpan.FromMilliseconds(200) || model.EventsFollowed - followed < Volatile.Read(ref sent))
+        // Every event the begin and the select-all sent is buffered in the
+        // stream by now. Count them without waiting for more.
+        var sent = 0;
+        Task<bool> waiting;
+        while (true)
         {
-            await Task.Delay(5);
-            var now = (Volatile.Read(ref sent), model.EventsFollowed);
-            if (now != seen) (seen, quiet) = (now, DateTime.UtcNow);
+            var next = events.MoveNextAsync();
+            if (!next.IsCompleted)
+            {
+                waiting = next.AsTask();
+                break;
+            }
+            if (!next.Result)
+            {
+                waiting = Task.FromResult(false);
+                break;
+            }
+            sent++;
         }
+        Assert.True(sent > 0);
         counting.Cancel();
-        await counter;
+        try { await waiting; }
+        catch (OperationCanceledException) { }
+        await events.DisposeAsync();
+        // In .NET an event can reach the model after the call that sent it
+        // returns, so wait until the model has taken each one: every refresh
+        // they queue is then behind the begin and ahead of the end.
+        while (model.EventsFollowed - followed < sent) await Task.Delay(5);
         release();
         await model.DragEndedAsync();
         var pages = await selection.GetSelectedPagesAsync();

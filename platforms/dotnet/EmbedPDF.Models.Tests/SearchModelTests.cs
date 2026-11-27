@@ -157,7 +157,10 @@ public class SearchModelTests
         var observing = model.RunAsync();
         model.Text = "the";
         await model.SubmitSearchAsync();
-        Assert.True(model.HitCount > 1);
+        // With RunAsync running, an event's refresh can start after the
+        // submitted one and supersede it, so the hits can land just after
+        // SubmitSearchAsync returns.
+        await Observed.UntilAsync(model, () => model.HitCount > 1);
         await viewer.CloseAsync(document);
         await observing.WaitAsync(TimeSpan.FromSeconds(10));
         Assert.Empty(model.Hits);
