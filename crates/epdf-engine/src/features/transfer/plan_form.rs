@@ -627,11 +627,15 @@ fn field_draft_of(
     for key in ["readOnly", "required", "noExport"] {
         draft.insert(key.into(), field[key].clone());
     }
-    // The group the field was in; the import decides whether it keeps it.
+    // The group the field was in, or that anyone fills it in; its writer
+    // decides whether it keeps either.
     for key in ["alternateName", "mappingName", "groupId"] {
         if !field[key].is_null() {
             draft.insert(key.into(), field[key].clone());
         }
+    }
+    if field["forAnyone"] == json!(true) {
+        draft.insert("forAnyone".into(), json!(true));
     }
     if let Some(purpose) = field["purpose"].as_str().filter(|p| is_field_purpose(p)) {
         draft.insert("purpose".into(), json!(purpose));
@@ -747,6 +751,7 @@ const BASE_MEMBERS: &[&str] = &[
     "alternateName",
     "mappingName",
     "groupId",
+    "forAnyone",
     "purpose",
     "actions",
     "widgets",
@@ -779,6 +784,7 @@ fn check_field_draft(draft: &Map<String, Value>) -> Result<(), (String, String)>
         "noToggleToOff",
         "edit",
         "multiSelect",
+        "forAnyone",
     ] {
         if draft.get(key).is_some_and(|v| !v.is_boolean()) {
             return fail(key, "Invalid input: expected boolean");
@@ -1281,9 +1287,66 @@ mod tests {
 
     #[test]
     fn a_form_bundle_comes_back_through_the_file_as_the_same_bundle() {
-        let bundle = form_bundle();
+        let mut bundle = form_bundle();
+        // A whole bundle: what a read of today gives (`completeFormBundle`).
+        super::super::form_bundle::complete_form_bundle(&mut bundle.manifest);
         let text = codec::stringify(BundleKind::Form, &bundle, &DEFAULT_BUNDLE_LIMITS).unwrap();
         assert_eq!(codec::parse(BundleKind::Form, &text, &DEFAULT_BUNDLE_LIMITS).unwrap(), bundle);
+    }
+
+    #[test]
+    fn a_file_from_before_fields_anyone_fills_in_reads_for_anyone_false_and_one_is_kept() {
+        // `formTransfer.test.ts` (b45d916cb), and D-2 of the 2026-11-27b catch-up: an older
+        // file's rows read whole, as a read of today gives them.
+        let marked = text_field("ref", 10, &[20], json!({ "forAnyone": true, "purpose": null }));
+        let plain = text_field("plain", 11, &[21], json!({}));
+        let button = with(
+            text_field("go", 12, &[22], json!({})),
+            json!({ "kind": "pushbutton", "valueEntry": { "kind": "none" } }),
+        );
+        let manifest = json!({
+            "format": "embedpdf/form", "version": 1,
+            "pages": [{ "page": page(), "position": 0, "size": { "width": 300, "height": 300 } }],
+            "fields": [{ "data": marked }, { "data": plain }, { "data": button }],
+            "widgets": [
+                { "data": widget_row(20, marked["ref"].clone(), json!({ "fieldKind": "text" })),
+                  "resources": {} },
+                { "data": widget_row(22, button["ref"].clone(),
+                    json!({ "fieldKind": "pushbutton" })), "resources": {} },
+                { "data": widget_row(21, plain["ref"].clone(),
+                    json!({ "fieldKind": "text", "layout": null })), "resources": {} },
+            ],
+            "calculationOrder": [],
+        });
+        let bundle =
+            Bundle { manifest: manifest.as_object().unwrap().clone(), resources: Vec::new() };
+        let text = codec::stringify(BundleKind::Form, &bundle, &DEFAULT_BUNDLE_LIMITS).unwrap();
+        let read = codec::parse(BundleKind::Form, &text, &DEFAULT_BUNDLE_LIMITS).unwrap();
+        let fields = read.manifest["fields"].as_array().unwrap();
+        let facts: Vec<(&Value, &Value, &Value)> = fields
+            .iter()
+            .map(|row| (&row["data"]["name"], &row["data"]["forAnyone"], &row["data"]["purpose"]))
+            .collect();
+        assert_eq!(
+            facts,
+            [
+                (&json!("ref"), &json!(true), &Value::Null),
+                (&json!("plain"), &json!(false), &Value::Null),
+                (&json!("go"), &json!(false), &Value::Null),
+            ]
+        );
+        // A text field's format is the one its scripts give: none; a push button has none.
+        assert_eq!(fields[1]["data"]["format"], Value::Null);
+        assert!(fields[2]["data"].get("format").is_none());
+        assert_eq!(fields[2]["data"]["hasImage"], false);
+        assert!(fields[1]["data"].get("hasImage").is_none());
+        let layouts: Vec<&Value> = read.manifest["widgets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|row| &row["data"]["layout"])
+            .collect();
+        assert_eq!(layouts, [&Value::Null, &json!("caption"), &Value::Null]);
     }
 
     #[test]

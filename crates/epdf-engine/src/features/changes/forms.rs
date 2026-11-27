@@ -108,8 +108,10 @@ pub fn set_signature_appearance(
 ) -> Result<Done, EngineError> {
     ctx.cancel.check()?;
     let before = read_field(ctx, reference)?;
-    ctx.authority
-        .require_field_write(before.field.base.group_id.as_deref(), FieldWriteAction::Sign)?;
+    ctx.authority.require_field_write_for(
+        crate::auth::scope::FieldAssignment::of_field(&before.field.base),
+        FieldWriteAction::Sign,
+    )?;
     record_revert(ctx, &before, "forms.setSignatureAppearance", |mutator, cancel| {
         mutator.set_signature_appearance(reference, mark, cancel)
     })
@@ -159,8 +161,10 @@ pub fn reset(
     // A reset fills in every field it puts back: each must be the caller's
     // to fill.
     for target in &targets {
-        ctx.authority
-            .require_field_write(target.field.base.group_id.as_deref(), FieldWriteAction::Fill)?;
+        ctx.authority.require_field_write_for(
+            crate::auth::scope::FieldAssignment::of_field(&target.field.base),
+            FieldWriteAction::Fill,
+        )?;
     }
     let document = ctx.session.document()?.document();
     let wanted: Vec<(u32, &[&str])> = targets.iter().flat_map(objects_of).collect();
@@ -291,8 +295,10 @@ fn fills_own_field(ctx: &ChangeContext<'_>) -> bool {
     }
     let answer = ctx.own_fill.refs.iter().any(|reference| {
         try_read_field(ctx, reference).is_some_and(|target| {
-            ctx.authority
-                .allows_field_write(FieldWriteAction::Fill, target.field.base.group_id.as_deref())
+            ctx.authority.allows_field_write_for(
+                FieldWriteAction::Fill,
+                crate::auth::scope::FieldAssignment::of_field(&target.field.base),
+            )
         })
     });
     ctx.own_fill.answer.set(Some(answer));
@@ -303,28 +309,28 @@ fn fills_own_field(ctx: &ChangeContext<'_>) -> bool {
 /// calculates it and the change also fills in a field of their own, so the
 /// script's output travels with its input.
 fn authorize_fill(ctx: &ChangeContext<'_>, target: &ReadField) -> Result<(), EngineError> {
-    let group = target.field.base.group_id.as_deref();
-    if ctx.authority.allows_field_write(FieldWriteAction::Fill, group) {
+    let field = crate::auth::scope::FieldAssignment::of_field(&target.field.base);
+    if ctx.authority.allows_field_write_for(FieldWriteAction::Fill, field) {
         return Ok(());
     }
     if is_calculated(ctx, target)? && fills_own_field(ctx) {
         return ctx.authority.require_unprotected(DocCapability::DocFormsFill);
     }
-    ctx.authority.require_field_write(group, FieldWriteAction::Fill)
+    ctx.authority.require_field_write_for(field, FieldWriteAction::Fill)
 }
 
 /// `authorizeScriptOutput`: a script's visibility output, which the caller
 /// may write when they may fill the field in, or the change fills in a
 /// field of their own.
 fn authorize_script_output(ctx: &ChangeContext<'_>, target: &ReadField) -> Result<(), EngineError> {
-    let group = target.field.base.group_id.as_deref();
-    if ctx.authority.allows_field_write(FieldWriteAction::Fill, group) {
+    let field = crate::auth::scope::FieldAssignment::of_field(&target.field.base);
+    if ctx.authority.allows_field_write_for(FieldWriteAction::Fill, field) {
         return Ok(());
     }
     if fills_own_field(ctx) {
         return ctx.authority.require_unprotected(DocCapability::DocFormsFill);
     }
-    ctx.authority.require_field_write(group, FieldWriteAction::Fill)
+    ctx.authority.require_field_write_for(field, FieldWriteAction::Fill)
 }
 
 /// `authorizeSomeFill`: the caller may fill in some field, before the write
@@ -355,8 +361,8 @@ fn authorize_reverted_fills(
             continue;
         };
         if signs {
-            ctx.authority.require_field_write(
-                target.field.base.group_id.as_deref(),
+            ctx.authority.require_field_write_for(
+                crate::auth::scope::FieldAssignment::of_field(&target.field.base),
                 FieldWriteAction::Sign,
             )?;
         } else {
@@ -764,8 +770,8 @@ pub fn import_form_values(
             if locked(&target.base.name) {
                 return Ok(Some("locked"));
             }
-            let group = target.base.group_id.as_deref();
-            Ok((!ctx.authority.allows_field_write(FieldWriteAction::Fill, group))
+            let field = crate::auth::scope::FieldAssignment::of_field(&target.base);
+            Ok((!ctx.authority.allows_field_write_for(FieldWriteAction::Fill, field))
                 .then_some("fill-not-allowed"))
         };
     let plan = plan_form_values_import(&fields, &target_values, &mut refusal)?;

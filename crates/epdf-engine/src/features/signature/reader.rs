@@ -283,6 +283,8 @@ pub struct ResolvedSignatureField {
     pub field_object_number: u32,
     pub signed: bool,
     pub widget: Option<FormWidget>,
+    /// The field's own `/Lock`, which a signing of it applies as it is.
+    pub lock: Option<FieldLockSpec>,
 }
 
 fn not_found(field: &FormFieldRef) -> EngineError {
@@ -314,6 +316,7 @@ pub fn resolve_field(
             signed: model.is_signed(index),
             widget: (widget_obj_num > 0)
                 .then(|| FormWidget::new(widget_obj_num, model.widget_page_object_number(index))),
+            lock: read_lock(model, index, field_list::LOCK)?,
         })
     })
 }

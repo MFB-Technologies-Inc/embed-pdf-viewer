@@ -34,6 +34,70 @@ const WIDGET_ROW_FIELDS: &[&str] = &["data", "resources"];
 
 const KIND: BundleKind = BundleKind::Form;
 
+/// `completeFormBundle`: `bundle` with every row whole. A bundle written
+/// before a field had a `purpose` and a `format` (a file kept from an
+/// earlier version, an export from an older server) holds fields without
+/// them: each gets both, as a read gives them (`withPurposeAndFormat`), and
+/// `forAnyone: false` when it is older than that too (`withForAnyone`). One
+/// written before a push button had `hasImage` and a widget its `layout`
+/// gets those as such a read gives them too (`withButtonImage`,
+/// `withWidgetLayout`). A row that has them all is left as it is.
+pub fn complete_form_bundle(manifest: &mut Map<String, Value>) {
+    if let Some(Value::Array(fields)) = manifest.get_mut("fields") {
+        for row in fields {
+            if let Some(Value::Object(data)) = row.get_mut("data") {
+                with_purpose_and_format(data);
+                with_button_image(data);
+                crate::features::forms::anyone::with_for_anyone(data);
+            }
+        }
+    }
+    if let Some(Value::Array(widgets)) = manifest.get_mut("widgets") {
+        for row in widgets {
+            if let Some(Value::Object(data)) = row.get_mut("data") {
+                with_widget_layout(data);
+            }
+        }
+    }
+}
+
+/// `withPurposeAndFormat`: no purpose reads as none, and a text field's or a
+/// dropdown's missing format as the one its scripts give.
+fn with_purpose_and_format(field: &mut Map<String, Value>) {
+    use crate::features::forms::format::{format_of_actions, takes_format};
+    use crate::features::forms::snapshot::{FieldActions, FormFieldFamily};
+    field.entry("purpose").or_insert(Value::Null);
+    let family = field
+        .get("kind")
+        .and_then(|kind| serde_json::from_value::<FormFieldFamily>(kind.clone()).ok());
+    if field.contains_key("format") || !family.is_some_and(takes_format) {
+        return;
+    }
+    let actions = field
+        .get("actions")
+        .and_then(|actions| serde_json::from_value::<FieldActions<Value>>(actions.clone()).ok());
+    let format = format_of_actions(actions.as_ref());
+    field.insert("format".into(), serde_json::to_value(format).unwrap_or(Value::Null));
+}
+
+/// `withButtonImage`: a push button from before `hasImage` holds no image.
+fn with_button_image(field: &mut Map<String, Value>) {
+    if field.get("kind").and_then(Value::as_str) == Some("pushbutton") {
+        field.entry("hasImage").or_insert(Value::Bool(false));
+    }
+}
+
+/// `withWidgetLayout`: a widget row from before `layout`: a push button's
+/// widget shows its caption alone, the PDF's default, and every other widget
+/// has no layout.
+fn with_widget_layout(row: &mut Map<String, Value>) {
+    if row.contains_key("layout") {
+        return;
+    }
+    let button = row.get("fieldKind").and_then(Value::as_str) == Some("pushbutton");
+    row.insert("layout".into(), if button { json!("caption") } else { Value::Null });
+}
+
 /// Check a bundle before anything uses it (`assertFormBundle`): its
 /// manifest, then every resource against its id.
 pub fn assert_form_bundle(bundle: &Bundle, limits: &BundleLimits) -> Result<(), EngineError> {

@@ -88,7 +88,17 @@ impl ChangeAuthority {
         action: crate::auth::scope::FieldWriteAction,
         group_id: Option<&str>,
     ) -> bool {
-        self.grants.as_ref().is_none_or(|grants| grants.allows_field_write(action, group_id))
+        self.allows_field_write_for(action, crate::auth::scope::FieldAssignment::of_group(group_id))
+    }
+
+    /// `allowsFieldWrite` on the field itself (`FieldAssignment`): a field
+    /// anyone fills in takes any fill right, whatever group it names.
+    pub fn allows_field_write_for(
+        &self,
+        action: crate::auth::scope::FieldWriteAction,
+        field: crate::auth::scope::FieldAssignment<'_>,
+    ) -> bool {
+        self.grants.as_ref().is_none_or(|grants| grants.allows_field_write_for(action, field))
     }
 
     /// `allowsSomeFieldWrite`: whether the caller may `action` some field,
@@ -105,10 +115,25 @@ impl ChangeAuthority {
         group_id: Option<&str>,
         action: crate::auth::scope::FieldWriteAction,
     ) -> Result<(), EngineError> {
+        self.require_field_write_for(
+            crate::auth::scope::FieldAssignment::of_group(group_id),
+            action,
+        )
+    }
+
+    /// `authorizeFieldWrite` on the field itself: refused naming its group's
+    /// scope, or, for a field in no group and one anyone fills in, the broad
+    /// capability.
+    pub fn require_field_write_for(
+        &self,
+        field: crate::auth::scope::FieldAssignment<'_>,
+        action: crate::auth::scope::FieldWriteAction,
+    ) -> Result<(), EngineError> {
         self.require_unprotected(action.broad())?;
-        if self.allows_field_write(action, group_id) {
+        if self.allows_field_write_for(action, field) {
             return Ok(());
         }
+        let group_id = field.group_id;
         let verb = match action {
             crate::auth::scope::FieldWriteAction::Fill => "fill",
             crate::auth::scope::FieldWriteAction::Sign => "sign",
@@ -122,6 +147,20 @@ impl ChangeAuthority {
 }
 
 impl ChangeAuthority {
+    /// `authorizeForAnyone`: making a form field one anyone fills in takes
+    /// the right to put fields in every group, `fields:set-group:all`, since
+    /// every group's signers then fill it in. `false` takes no right of its
+    /// own: whoever may design the form may make a field one group's or the
+    /// sender's again.
+    pub fn require_for_anyone(&self, for_anyone: bool) -> Result<(), EngineError> {
+        match &self.grants {
+            Some(grants) if for_anyone && !grants.allows_for_anyone() => {
+                Err(EngineError::permission_denied("fields:set-group:all", Some("target"), None))
+            }
+            _ => Ok(()),
+        }
+    }
+
     /// `authorizeFieldGroup`: putting a field in `group_id` takes
     /// `fields:set-group` for it, unless it is the caller's own group.
     pub fn require_field_group(&self, group_id: &str) -> Result<(), EngineError> {

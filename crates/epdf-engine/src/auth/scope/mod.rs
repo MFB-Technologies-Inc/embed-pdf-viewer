@@ -34,10 +34,10 @@ pub use parser::{
 };
 pub use permission_flags::permission_flags_of;
 pub use resolver::{
-    Capabilities, check_any_capability, check_any_field_action, check_capability, check_collab,
-    check_field_action, check_plugin_permission, check_set_group, expand_raw_scope,
-    expanded_capabilities, field_rights_of, filter_matches, materialize_pdf_permissions, parse_all,
-    plugin_permissions_of,
+    Capabilities, FieldAssignment, check_any_capability, check_any_field_action, check_capability,
+    check_collab, check_field_action, check_field_action_for, check_plugin_permission,
+    check_set_every_group, check_set_group, expand_raw_scope, expanded_capabilities,
+    field_rights_of, filter_matches, materialize_pdf_permissions, parse_all, plugin_permissions_of,
 };
 pub use types::{
     CollabAction, CollabActionPattern, CollabEntity, CollabFilter, CollabTarget, DocCapability,

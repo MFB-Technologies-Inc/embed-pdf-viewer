@@ -39,12 +39,13 @@ use crate::features::forms::format::{
 };
 use pdfium::{CreatableFieldFamily, Document};
 
+use super::anyone::checked_for_anyone;
 use super::calculation::{
     OrderChange, read_calculation_order, same_order, write_calculation_order,
 };
 use super::snapshot::{
     FormFieldDto, FormFieldFamily, FormFieldKind, FormFieldOption, FormFieldRef, FormValueEntry,
-    FormWidgetRef,
+    FormWidgetRef, KEY_FOR_ANYONE, read_for_anyone_entry,
 };
 use super::write::{FormMutator, load_model, read_at, read_field_back, resolve};
 use crate::access::OwnedDocument;
@@ -243,6 +244,11 @@ pub struct FormFieldDraft<C: Coordinates = PdfCoordinates> {
     /// group (fce760aeb).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub group_id: Option<String>,
+    /// Whether anyone fills the field in, as sent: checked by
+    /// [`checked_for_anyone`] (`true` or `false`; `null` is refused). Left
+    /// out, the field is not.
+    #[serde(default, skip_serializing_if = "Patch::is_keep")]
+    pub for_anyone: Patch<Value>,
     /// What the field's value means, as sent: checked by
     /// [`checked_purpose`]. Left out or `null`, the field has none.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -297,6 +303,10 @@ pub struct FormFieldPatch {
     /// takes no `fields:set-group` right (fce760aeb).
     #[serde(skip_serializing_if = "Patch::is_keep")]
     pub group_id: Patch<String>,
+    /// Whether anyone fills the field in, as sent: checked by
+    /// [`checked_for_anyone`] on the field as the patch leaves it.
+    #[serde(skip_serializing_if = "Patch::is_keep")]
+    pub for_anyone: Patch<Value>,
     /// What the field's value means, as sent; `Clear` takes it away.
     #[serde(skip_serializing_if = "Patch::is_keep")]
     pub purpose: Patch<Value>,
@@ -335,7 +345,7 @@ impl FormFieldPatch {
 }
 
 /// The patch members every family has (`PATCH_BASE_MEMBERS`).
-const PATCH_BASE_MEMBERS: [&str; 10] = [
+const PATCH_BASE_MEMBERS: [&str; 11] = [
     "kind",
     "name",
     "readOnly",
@@ -344,6 +354,7 @@ const PATCH_BASE_MEMBERS: [&str; 10] = [
     "alternateName",
     "mappingName",
     "groupId",
+    "forAnyone",
     "purpose",
     "actions",
 ];
@@ -880,7 +891,9 @@ pub struct FieldWriter<'a> {
 pub struct PlannedCreate {
     placements: Vec<(PlacedWidget, u32, String)>,
     default_entry: FormValueEntry,
-    /// The draft's purpose and format, checked.
+    /// Whether anyone fills it in, and the draft's purpose and format,
+    /// checked.
+    for_anyone: bool,
     purpose: Option<String>,
     format: Option<FormFieldFormat>,
 }
@@ -910,8 +923,10 @@ pub fn plan_create(
         placements.push((placed, page, state));
     }
     // The default is checked against the draft before anything is written,
-    // and so are the purpose and the format.
+    // and so are who fills it in, the purpose and the format.
     let default_entry = default_entry_of_draft(draft)?;
+    let for_anyone =
+        checked_for_anyone(&draft.for_anyone, family, draft.group_id.as_deref(), false)?;
     let purpose = checked_purpose(draft.purpose.as_ref())?;
     let format = format_write_of(&draft.format, draft.actions.as_ref(), family)?.flatten();
     if let Some(limit) = draft.max_length
@@ -936,7 +951,7 @@ pub fn plan_create(
         )
         .with_details(serde_json::json!({ "field": "widgetObjectNumbers" })));
     }
-    Ok(PlannedCreate { placements, default_entry, purpose, format })
+    Ok(PlannedCreate { placements, default_entry, for_anyone, purpose, format })
 }
 
 /// What a create or an update did: the field read back, and the
@@ -977,6 +992,9 @@ pub fn create_field(
     // A draft that names no group leaves the field in none.
     if let Some(group) = &draft.group_id {
         write_field_group(document, created, Some(group))?;
+    }
+    if plan.for_anyone {
+        write_field_for_anyone(document, created, true)?;
     }
     if let Some(purpose) = &plan.purpose {
         write_field_purpose(document, created, Some(purpose))?;
@@ -1125,6 +1143,31 @@ pub fn restore_field_creation(
     )
 }
 
+/// `writeFieldForAnyone`: make a field one anyone fills in; `false` takes the
+/// entry away.
+pub fn write_field_for_anyone(
+    document: &Document,
+    object_number: u32,
+    for_anyone: bool,
+) -> Result<(), EngineError> {
+    write_attribution(document, object_number, &[])?;
+    let failed = || {
+        EngineError::with_message(
+            EngineErrorCode::Unknown,
+            format!("the metadata of field {object_number} could not be written"),
+        )
+    };
+    let wrote = if for_anyone {
+        document.set_field_embed_metadata_boolean(object_number, KEY_FOR_ANYONE, true)
+    } else {
+        document.clear_field_embed_metadata_key(object_number, KEY_FOR_ANYONE)
+    };
+    if !wrote.map_err(|_| failed())? {
+        return Err(failed());
+    }
+    Ok(())
+}
+
 /// `writeFieldGroup`: put a field in `group_id`; `None` takes it out of its
 /// group.
 pub fn write_field_group(
@@ -1242,6 +1285,30 @@ pub fn update_field(
     cancel.check()?;
     let document = mutator.document;
     let FoundField { object_number, field: before } = found_writable(mutator, reference)?;
+    // Checked on the field as the patch leaves it: one in a group is no one
+    // else's.
+    let group_after = match &patch.group_id {
+        Patch::Keep => before.base.group_id.as_deref(),
+        Patch::Clear => None,
+        Patch::Set(group) => Some(group.as_str()),
+    };
+    let for_anyone = checked_for_anyone(
+        &patch.for_anyone,
+        before.base.family,
+        group_after,
+        before.base.for_anyone,
+    )?;
+    // The entry as stored, read before any write: one another tool left
+    // beside a group reads as `false`, and goes once the field is taken out
+    // of it.
+    let stored_for_anyone = {
+        let model = load_model(document)?;
+        let resolved = resolve(&model, &FormFieldRef::ObjectNumber { field: object_number })?;
+        let field = model.field(resolved.index).ok_or_else(|| {
+            EngineError::with_message(EngineErrorCode::Unknown, "the field index did not resolve")
+        })?;
+        read_for_anyone_entry(&field)?
+    };
     let purpose = match &patch.purpose {
         Patch::Keep => None,
         Patch::Clear => Some(None),
@@ -1302,6 +1369,9 @@ pub fn update_field(
         && group != before.base.group_id.as_deref()
     {
         write_field_group(document, object_number, group)?;
+    }
+    if for_anyone != stored_for_anyone {
+        write_field_for_anyone(document, object_number, for_anyone)?;
     }
     if let Some(purpose) = purpose
         && purpose != before.base.purpose

@@ -22,10 +22,11 @@
 //! So after open, PDFium is not enforcing anything. This is what is.
 
 use crate::auth::scope::{
-    Capabilities, CollabAction, CollabEntity, CollabTarget, DocCapability, FieldGroupRight,
-    FieldRights, FieldWriteAction, IdentityClaims, InvalidScope, ParsedScope, PdfPermissionFlags,
-    check_any_field_action, check_capability, check_collab, check_field_action,
-    check_plugin_permission, check_set_group, expanded_capabilities, field_rights_of, parse_all,
+    Capabilities, CollabAction, CollabEntity, CollabTarget, DocCapability, FieldAssignment,
+    FieldGroupRight, FieldRights, FieldWriteAction, IdentityClaims, InvalidScope, ParsedScope,
+    PdfPermissionFlags, check_any_field_action, check_capability, check_collab,
+    check_field_action_for, check_plugin_permission, check_set_every_group, check_set_group,
+    expanded_capabilities, field_rights_of, parse_all,
 };
 use crate::error::EngineError;
 use crate::features::signature::protection::protected_capabilities;
@@ -208,8 +209,20 @@ impl SessionAuthority {
     /// (`None`: in no group). What the signatures forbid comes first
     /// (`checkFieldAction`'s `protection`).
     pub fn allows_field_write(&self, action: FieldWriteAction, group_id: Option<&str>) -> bool {
+        self.allows_field_write_for(action, FieldAssignment::of_group(group_id))
+    }
+
+    /// `allowsFieldWrite` on the field itself: its group, and whether anyone
+    /// fills it in.
+    pub fn allows_field_write_for(&self, action: FieldWriteAction, field: FieldAssignment) -> bool {
         !self.protected().contains(&action.broad())
-            && check_field_action(action, group_id, &self.scope, self.permission_flags)
+            && check_field_action_for(action, field, &self.scope, self.permission_flags)
+    }
+
+    /// `authorizeForAnyone`'s check: putting a field in every group's hands
+    /// takes `fields:set-group:all`.
+    pub fn allows_for_anyone(&self) -> bool {
+        check_set_every_group(CollabEntity::Fields, &self.scope)
     }
 
     /// `allowsSomeFieldWrite`: what a form verb checks before its fields

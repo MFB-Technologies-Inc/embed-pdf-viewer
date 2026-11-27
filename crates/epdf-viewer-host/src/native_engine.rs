@@ -1049,15 +1049,20 @@ impl DocumentSecurity for NativeSecurity {
     }
 
     /// `allowsField(action, target)`: `canSetFieldGroup` for `set-group`,
-    /// else `canFieldWrite(groupId, action)`.
+    /// else `canFieldWrite(field, action)`, the field its group and whether
+    /// anyone fills it in (b45d916cb).
     fn allows_field(&self, action: &str, target: &Value) -> bool {
         let group = target.get("groupId").and_then(Value::as_str);
+        let field = epdf_engine::auth::scope::FieldAssignment {
+            group_id: group,
+            for_anyone: target.get("forAnyone").and_then(Value::as_bool).unwrap_or(false),
+        };
         let authority = self.state.authority.borrow();
         self.open()
             && match action {
                 "set-group" => authority.allows_field_group(group.unwrap_or("")),
-                "fill" => authority.allows_field_write(FieldWriteAction::Fill, group),
-                "sign" => authority.allows_field_write(FieldWriteAction::Sign, group),
+                "fill" => authority.allows_field_write_for(FieldWriteAction::Fill, field),
+                "sign" => authority.allows_field_write_for(FieldWriteAction::Sign, field),
                 _ => false,
             }
     }

@@ -20,6 +20,7 @@
  * | `field-groups.json` | a new field in no group, `groupId: null`, undo and copies (fce760aeb, #1140) |
  * | `signature-mark.json` | a signature field's mark as a PNG, a JPEG or a PDF, and no mark (fcb69611f, #1145) |
  * | `widget-rotation.json` | a mark in a turned signature field is fitted into its frame (c76603e3f, #1118) |
+ * | `anyone-fields.json` | fields anyone fills in: reads, fill rights, marking, undo, `expect`, copies (b45d916cb, 4c911282d, #1163) |
  *
  * # What is recorded
  *
@@ -65,6 +66,7 @@ import {
 import { createInlineTransport } from '../../../packages/engine/main/src/transport/InlineTransport';
 import type { Change } from '../../../packages/engine/core/src/mutation/Change';
 import {
+  ANYONE_FIELDS_SINCE,
   API_VERSION,
   FIELD_PURPOSE_AND_FORMAT_SINCE,
   lacksWhatArrivedIn,
@@ -80,6 +82,10 @@ import {
 import { CHANGE_KINDS } from '../../../packages/engine/core/src/wire/changeSchemas';
 import { changeEvents } from '../../../packages/engine/core/src/events/changeEvents';
 import { pdfOf } from '../../../packages/engine/core/src/conformance/pdfOf';
+import {
+  ANYONE_FIELD_TOKENS,
+  ANYONE_FIELDS_PDF,
+} from '../../../packages/engine/core/src/conformance/runAnyoneFieldsConformance';
 import { FIELD_GROUPS_PDF } from '../../../packages/engine/core/src/conformance/runFieldGroupsConformance';
 import { FIELD_PURPOSE_FORMAT_PDF } from '../../../packages/engine/core/src/conformance/runFieldPurposeFormatConformance';
 import { TURNED_FIELDS_PDF } from '../../../packages/engine/core/src/conformance/runWidgetRotationConformance';
@@ -1392,6 +1398,119 @@ const WIDGET_ROTATION_CASES: readonly Case[] = [
   },
 ];
 
+// --- Cases of the 2026-11-27b catch-up ---------------------------------------
+
+/** `ANYONE_FIELD_TOKENS`, as a case opens with them. */
+const AF = Object.fromEntries(
+  Object.entries(ANYONE_FIELD_TOKENS).map(([token, { scope, identity }]) => [
+    token,
+    { scope, identity: identity as Record<string, string> },
+  ]),
+) as Record<keyof typeof ANYONE_FIELD_TOKENS, Open>;
+
+const afPlaced = (x: number) => [{ page: toPageRef(3), rect: { x, y: 200, width: 100, height: 20 } }];
+const setValue = (opId: string, name: string, value: unknown): Step =>
+  apply(opId, { ops: [{ type: 'forms.setValue', field: fqn(name), value }] });
+
+/** `runAnyoneFieldsConformance.ts`: the tests one session runs, on `ANYONE_FIELDS_PDF`. */
+const ANYONE_FIELD_CASES: readonly Case[] = [
+  {
+    name: 'the-fact-reads-from-a-fields-embd-metadata',
+    covers: "The fact reads from a field's /EMBD_Metadata, never with a group or on a signature field.",
+    steps: [FORMS_LIST],
+  },
+  ...(Object.keys(ANYONE_FIELD_TOKENS) as (keyof typeof ANYONE_FIELD_TOKENS)[]).map(
+    (token): Case => ({
+      name: `fill-rights-${token}`,
+      covers: `Every token that may fill in some field fills one in, and no other: ${token}.`,
+      open: AF[token],
+      steps: ['reference', 'dana_name', 'ada_name', 'sender_note'].map((name, at) =>
+        setValue(`af:fill-${token}-${at}`, name, { value: 'x' }),
+      ),
+    }),
+  ),
+  {
+    name: 'a-field-in-a-group-or-a-signature-field-is-never-for-anyone',
+    covers: 'A field in a group or a signature field is refused forAnyone; a group needs forAnyone: false with it; both move in one update; another tool\'s entry beside a group goes with the group.',
+    steps: [
+      create('af:n1', { kind: 'text', name: 'x', groupId: 'dana', forAnyone: true }),
+      create('af:n2', { kind: 'signature', name: 'x', forAnyone: true }),
+      update('af:n3', 'dana_name', { forAnyone: true }),
+      update('af:n4', 'witness_sig', { forAnyone: true }),
+      update('af:n5', 'reference', { groupId: 'dana' }),
+      applyUpdate('af:n6', 'reference', { forAnyone: 'yes' }),
+      applyUpdate('af:n7', 'reference', { forAnyone: null }),
+      update('af:n8', 'reference', { groupId: 'dana', forAnyone: false }),
+      update('af:n9', 'reference', { groupId: null, forAnyone: true }),
+      update('af:n10', 'witness_sig', { forAnyone: false }),
+      update('af:n11', 'both', { groupId: null }),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'marking-one-takes-fields-set-group-all',
+    covers: 'A designer who sets Dana\'s group alone is refused marking a field by a create and an update, and unmarks one with form design.',
+    open: AF.designer,
+    steps: [
+      create('af:m1', { kind: 'text', name: 'x', forAnyone: true, widgets: afPlaced(20) }),
+      update('af:m2', 'sender_note', { forAnyone: true }),
+      update('af:m3', 'reference', { forAnyone: false }),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'the-sender-marks-one-on-create',
+    covers: 'The sender, with fields:set-group:all, makes a field anyone fills in.',
+    open: AF.sender,
+    steps: [create('af:s1', { kind: 'text', name: 'x', forAnyone: true, widgets: afPlaced(20) })],
+  },
+  {
+    name: 'an-undo-puts-the-fact-back',
+    covers: 'An undo puts the fact back, also after a later change to the field.',
+    open: AF.sender,
+    steps: [
+      applyUpdate('af:u1', 'sender_note', { forAnyone: true }),
+      undo('af:u2', 'af:u1'),
+      applyUpdate('af:u3', 'dana_name', { groupId: null, forAnyone: true }),
+      update('af:u4', 'dana_name', { required: true }),
+      undo('af:u5', 'af:u3'),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'an-undo-leaves-a-newer-assignment',
+    covers: 'An undo leaves a newer assignment as it is and puts the rest back, skipping forAnyone and groupId together.',
+    open: AF.sender,
+    steps: [
+      applyUpdate('af:a1', 'reference', { forAnyone: false, alternateName: 'Order number' }),
+      update('af:a2', 'reference', { groupId: 'ada' }),
+      undo('af:a3', 'af:a1'),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'an-update-that-expects-the-fact',
+    covers: 'An update that expects forAnyone applies only where it holds.',
+    open: AF.sender,
+    steps: [
+      applyUpdate('af:e1', 'sender_note', { required: true }, { forAnyone: true }),
+      applyUpdate('af:e2', 'reference', { required: true }, { forAnyone: true }),
+    ],
+  },
+  {
+    name: 'a-copy-keeps-the-fact',
+    covers: 'A copy keeps the fact for the sender; a designer who may not mark one is refused.',
+    open: AF.sender,
+    steps: [{ call: 'forms.copy', fields: [fqn('reference'), fqn('sender_note')], opId: 'af:c1' }],
+  },
+  {
+    name: 'a-copy-of-one-takes-the-right-to-mark-it',
+    covers: 'A designer who may not mark a field anyone fills in may not copy one.',
+    open: AF.designer,
+    steps: [{ call: 'forms.copy', fields: [fqn('reference')], opId: 'af:c2' }],
+  },
+];
+
 const CATCHUP_GROUPS: readonly Group[] = [
   {
     file: 'field-purpose-format.json',
@@ -1419,6 +1538,12 @@ const CATCHUP_GROUPS: readonly Group[] = [
     fixtures: MARKS,
     cases: WIDGET_ROTATION_CASES,
   },
+  {
+    file: 'anyone-fields.json',
+    kind: 'forms.anyoneFields',
+    fixture: { name: 'ANYONE_FIELDS_PDF', bytes: ANYONE_FIELDS_PDF },
+    cases: ANYONE_FIELD_CASES,
+  },
 ];
 
 // --- Change kinds -----------------------------------------------------------
@@ -1438,6 +1563,8 @@ function kindsVector(): unknown {
     // A signature mark as an image, or none, and a field's purpose and format (fcb69611f, 833b40015).
     markImageOrNoneSince: MARK_IMAGE_OR_NONE_SINCE,
     fieldPurposeAndFormatSince: FIELD_PURPOSE_AND_FORMAT_SINCE,
+    // A field anyone fills in (b45d916cb).
+    anyoneFieldsSince: ANYONE_FIELDS_SINCE,
     since: Object.fromEntries(kinds.map((kind) => [kind, changeKindSince(kind as ChangeKind)])),
     rows: CHANGE_KIND_SINCE,
     asked,

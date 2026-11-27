@@ -125,6 +125,10 @@ pub fn parse(kind: BundleKind, text: &str, limits: &BundleLimits) -> Result<Bund
             manifest.insert((*key).to_owned(), value.clone());
         }
     }
+    // `spec.complete`: a form bundle's rows made whole (`completeFormBundle`).
+    if kind == BundleKind::Form {
+        super::form_bundle::complete_form_bundle(&mut manifest);
+    }
     Ok(Bundle { manifest, resources })
 }
 

@@ -730,6 +730,19 @@ fn the_field_dto_union_round_trips_per_family() {
 }
 
 #[test]
+fn a_field_from_a_server_older_than_for_anyone_reads_for_anyone_false() {
+    // `schema.test.ts` (b45d916cb), as `withForAnyone` reads it.
+    let mut older = radio();
+    older.as_object_mut().unwrap().remove("forAnyone");
+    let read: FormFieldDto = serde_json::from_value(older).expect("parses");
+    assert_eq!(serde_json::to_value(&read).expect("serializes"), radio());
+    let mut marked = radio();
+    marked["forAnyone"] = json!(true);
+    let read: FormFieldDto = serde_json::from_value(marked.clone()).expect("parses");
+    assert_eq!(serde_json::to_value(&read).expect("serializes"), marked);
+}
+
+#[test]
 fn the_family_discriminant_rejects_cross_family_members() {
     // A list box claiming to be text fails: it has no `value` string.
     let mut bad = listbox();

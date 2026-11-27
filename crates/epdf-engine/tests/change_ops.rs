@@ -386,14 +386,22 @@ fn a_mark_turns_with_its_widget() {
     replay_file("widget-rotation.json", "forms.widgetRotation.mark", 2);
 }
 
+/// `anyone-fields.json`: the tests of `runAnyoneFieldsConformance.ts` one
+/// session runs (b45d916cb, 4c911282d); the signings, hand-ons and imports
+/// are in `anyone_fields.rs`.
+#[test]
+fn a_field_anyone_fills_in() {
+    replay_file("anyone-fields.json", "forms.anyoneFields", 17);
+}
+
 /// `kinds.json`: the version each change kind arrived in, which kinds an
 /// older or newer side lacks, and `lacksWhatArrivedIn` itself (a4805a492).
 #[test]
 fn every_change_kind_has_the_version_it_arrived_in() {
     use epdf_engine::features::changes::kinds::{
-        API_VERSION, CHANGE_KIND_SINCE, CHANGE_KINDS, FIELD_PURPOSE_AND_FORMAT_SINCE,
-        MARK_IMAGE_OR_NONE_SINCE, VALIDATION_INFO_SINCE, change_kind_since,
-        change_kinds_unknown_to, lacks_what_arrived_in,
+        ANYONE_FIELDS_SINCE, API_VERSION, CHANGE_KIND_SINCE, CHANGE_KINDS,
+        FIELD_PURPOSE_AND_FORMAT_SINCE, MARK_IMAGE_OR_NONE_SINCE, VALIDATION_INFO_SINCE,
+        change_kind_since, change_kinds_unknown_to, lacks_what_arrived_in,
     };
     let path = test_support::corpus::vectors_dir("changes").join("kinds.json");
     let text = std::fs::read_to_string(&path).expect("kinds.json");
@@ -404,6 +412,7 @@ fn every_change_kind_has_the_version_it_arrived_in() {
     assert_eq!(vectors["validationInfoSince"], json!(VALIDATION_INFO_SINCE));
     assert_eq!(vectors["markImageOrNoneSince"], json!(MARK_IMAGE_OR_NONE_SINCE));
     assert_eq!(vectors["fieldPurposeAndFormatSince"], json!(FIELD_PURPOSE_AND_FORMAT_SINCE));
+    assert_eq!(vectors["anyoneFieldsSince"], json!(ANYONE_FIELDS_SINCE));
 
     let since = vectors["since"].as_object().expect("since");
     let kinds: Vec<&str> = since.keys().map(String::as_str).collect();

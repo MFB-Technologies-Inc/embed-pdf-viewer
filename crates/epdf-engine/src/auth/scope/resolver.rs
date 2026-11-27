@@ -260,6 +260,47 @@ pub fn check_set_group(
     false
 }
 
+/// Authority to put records of `entity` in every group (`checkSetEveryGroup`):
+/// `*`, `<entity>:set-group:all` or `<entity>:*:all`. Marking a form field one
+/// anyone fills in takes it, since such a field reaches every group's
+/// signers.
+pub fn check_set_every_group(entity: CollabEntity, parsed: &[ParsedScope]) -> bool {
+    parsed.iter().any(|scope| match (entity, scope) {
+        (_, ParsedScope::Wildcard) => true,
+        (CollabEntity::Annotations, ParsedScope::Collab { action, filter, .. }) => {
+            action.covers(CollabAction::SetGroup) && *filter == CollabFilter::All
+        }
+        (CollabEntity::Fields, ParsedScope::FieldCollab { action, filter }) => {
+            action.covers(FieldAction::SetGroup) && *filter == FieldFilter::All
+        }
+        _ => false,
+    })
+}
+
+/// Whose a form field is, as the field rights read it (`FieldAssignment`):
+/// its group, and whether anyone fills it in. A field read is one.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct FieldAssignment<'a> {
+    /// The field's group; `None` for a field in no group.
+    pub group_id: Option<&'a str>,
+    /// Every signer may fill the field in (`forAnyone`).
+    pub for_anyone: bool,
+}
+
+impl<'a> FieldAssignment<'a> {
+    /// A field of `group_id`, not for anyone: what a group id alone reads as.
+    pub fn of_group(group_id: Option<&'a str>) -> Self {
+        Self { group_id, for_anyone: false }
+    }
+
+    /// The assignment a field read carries.
+    pub fn of_field<C: crate::page_space::Coordinates>(
+        field: &'a crate::features::forms::snapshot::FormFieldBase<C>,
+    ) -> Self {
+        Self { group_id: field.group_id.as_deref(), for_anyone: field.for_anyone }
+    }
+}
+
 /// The field scopes that name `action`, explicitly or by the wildcard.
 fn field_filters(parsed: &[ParsedScope], action: FieldAction) -> Vec<&FieldFilter> {
     parsed
@@ -290,6 +331,22 @@ pub fn check_field_action(
     parsed: &[ParsedScope],
     permission_flags: PdfPermissionFlags,
 ) -> bool {
+    check_field_action_for(action, FieldAssignment::of_group(group_id), parsed, permission_flags)
+}
+
+/// [`check_field_action`] on the field itself: a field anyone fills in
+/// (`for_anyone`) is allowed when the scope lets the caller `action` some
+/// field ([`check_any_field_action`]), whatever group its scopes name.
+pub fn check_field_action_for(
+    action: FieldWriteAction,
+    field: FieldAssignment<'_>,
+    parsed: &[ParsedScope],
+    permission_flags: PdfPermissionFlags,
+) -> bool {
+    if field.for_anyone {
+        return check_any_field_action(action, parsed, permission_flags);
+    }
+    let group_id = field.group_id;
     if has_wildcard(parsed) {
         return true;
     }

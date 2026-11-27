@@ -424,4 +424,122 @@ mod fields {
         assert!(!buyer.allows_field_write(Fill, Some("seller")));
         assert!(buyer.allows_some_field_write(Sign));
     }
+
+    // A field anyone fills in (`fields.test.ts`, b45d916cb).
+
+    use epdf_engine::auth::scope::{
+        FieldAssignment, check_field_action_for, check_set_every_group,
+    };
+    use epdf_engine::features::changes::applier::ChangeAuthority;
+
+    const FOR_ANYONE: FieldAssignment<'static> =
+        FieldAssignment { group_id: None, for_anyone: true };
+
+    fn change_authority(raw: &[&str], identity: IdentityClaims) -> ChangeAuthority {
+        let raw: Vec<String> = raw.iter().map(|s| s.to_string()).collect();
+        ChangeAuthority {
+            user_id: identity.user_id.clone(),
+            identity: identity.clone(),
+            grants: Some(SessionAuthority::new(&raw, identity, none()).unwrap()),
+        }
+    }
+
+    #[test]
+    fn a_field_anyone_fills_in_is_filled_in_by_every_scope_that_fills_in_some_field() {
+        for raw in [
+            &["doc.forms.fill"][..],
+            &["fields:fill:all"],
+            &["fields:fill:group=dana"],
+            &["fields:*:group=ada"],
+            &["doc.forms.fill", "fields:fill:group=dana"],
+            &["*"],
+        ] {
+            assert!(check_field_action_for(Fill, FOR_ANYONE, &scope(raw), none()), "{raw:?}");
+        }
+        // One that fills in no field, or only signs, fills in none.
+        for raw in [&["doc.open"][..], &["doc.forms.read"], &["fields:sign:group=dana"], &[]] {
+            assert!(!check_field_action_for(Fill, FOR_ANYONE, &scope(raw), none()), "{raw:?}");
+        }
+    }
+
+    #[test]
+    fn a_field_anyone_fills_in_leaves_a_groups_field_and_the_senders_as_they_were() {
+        let dana = scope(&["fields:fill:group=dana"]);
+        let of = |group: Option<&'static str>| FieldAssignment::of_group(group);
+        assert!(check_field_action_for(Fill, of(Some("dana")), &dana, none()));
+        assert!(!check_field_action_for(Fill, of(Some("ada")), &dana, none()));
+        assert!(!check_field_action_for(Fill, of(None), &dana, none()));
+        // A group id alone reads as a field of that group.
+        assert!(check_field_action(Fill, Some("dana"), &dana, none()));
+        assert!(!check_field_action(Fill, None, &dana, none()));
+    }
+
+    #[test]
+    fn a_field_anyone_fills_in_follows_what_a_signature_took_away() {
+        let mut authority =
+            SessionAuthority::new(&["fields:fill:all".into()], IdentityClaims::default(), none())
+                .unwrap();
+        authority.set_protection(Some(
+            serde_json::from_value(serde_json::json!({
+                "enforced": "none", "judged": "none",
+                "certification": { "signatureIndex": 0, "permission": 1 },
+                "fieldLocks": [], "policyVersion": 6,
+            }))
+            .unwrap(),
+        ));
+        assert!(!authority.allows_field_write_for(Fill, FOR_ANYONE));
+    }
+
+    #[test]
+    fn a_field_anyone_fills_in_is_refused_naming_the_broad_capability() {
+        let reader = change_authority(&["doc.open"], IdentityClaims::default());
+        assert!(!reader.allows_field_write_for(Fill, FOR_ANYONE));
+        let refused = reader.require_field_write_for(FOR_ANYONE, Fill).unwrap_err();
+        assert_eq!(
+            refused.details.as_ref().map(|d| d["required"].clone()),
+            Some(serde_json::json!("doc.forms.fill")),
+            "{refused:?}"
+        );
+        let dana = change_authority(&["fields:fill:group=dana"], IdentityClaims::default());
+        assert!(dana.allows_field_write_for(Fill, FOR_ANYONE));
+        assert!(dana.require_field_write_for(FOR_ANYONE, Fill).is_ok());
+        // A field read is an assignment.
+        let ada = FieldAssignment { group_id: Some("ada"), for_anyone: false };
+        assert!(!dana.allows_field_write_for(Fill, ada));
+    }
+
+    #[test]
+    fn a_field_anyone_fills_in_is_marked_with_set_group_all_and_unmarked_with_no_right() {
+        let every = |raw: &[&str]| check_set_every_group(CollabEntity::Fields, &scope(raw));
+        assert!(every(&["fields:set-group:all"]));
+        assert!(every(&["fields:*:all"]));
+        assert!(every(&["*"]));
+        assert!(!every(&["fields:set-group:group=dana"]));
+        assert!(!every(&["fields:fill:all", "doc.forms.modify"]));
+        assert!(!every(&["annotations:set-group:all"]));
+
+        let identity = IdentityClaims { group_id: Some("dana".into()), ..Default::default() };
+        let designer = change_authority(
+            &["doc.forms.modify", "fields:set-group:group=dana"],
+            identity.clone(),
+        );
+        assert!(designer.require_for_anyone(false).is_ok());
+        let refused = designer.require_for_anyone(true).unwrap_err();
+        assert_eq!(
+            refused.details.as_ref().map(|d| d["required"].clone()),
+            Some(serde_json::json!("fields:set-group:all")),
+            "{refused:?}"
+        );
+        let sender =
+            change_authority(&["doc.forms.modify", "fields:set-group:all"], identity.clone());
+        assert!(sender.require_for_anyone(true).is_ok());
+        let unchecked = ChangeAuthority { grants: None, ..designer };
+        assert!(unchecked.require_for_anyone(true).is_ok());
+        // The lists say the same: a designer may mark one where `setGroup` is every group.
+        assert_eq!(
+            field_rights_of(&scope(&["doc.forms.modify", "fields:set-group:all"]), none(), None)
+                .set_group,
+            FieldGroupRight::All
+        );
+    }
 }

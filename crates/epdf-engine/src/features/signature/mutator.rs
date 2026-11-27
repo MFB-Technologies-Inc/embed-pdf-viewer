@@ -514,10 +514,80 @@ fn group_lock_fields(
     Ok(names)
 }
 
+/// `filledAnyoneFields`: the fields anyone fills in that hold a value now, by
+/// full name: what a signer's signing locks besides their group when it
+/// names no lock. Read at the signing, so a value the sender put in counts,
+/// and a field still empty stays open for the next signer.
+fn filled_anyone_fields(session: &DocumentSession) -> Result<Vec<String>, EngineError> {
+    let model = load_model(session.document()?.document())?;
+    let mut names = Vec::new();
+    for index in 0..model.field_count() {
+        let field = read_at(&model, index)?;
+        if !field.base.for_anyone || !field_holds_value(&field) {
+            continue;
+        }
+        if !field.base.name.is_empty() {
+            names.push(field.base.name);
+        }
+    }
+    Ok(names)
+}
+
+/// `fieldHoldsValue`: whether a field holds a value, as a read of it says:
+/// text that isn't empty (a text field, a dropdown), a checkbox or radio
+/// button that is on, an option that is selected (a list), a push button
+/// that holds a picture (`hasImage`). A signature field and a field of a
+/// kind the engine doesn't model hold none.
+pub(crate) fn field_holds_value(field: &crate::features::forms::snapshot::FormFieldDto) -> bool {
+    use crate::features::forms::snapshot::FormFieldKind as K;
+    match &field.kind {
+        K::Pushbutton { has_image, .. } => *has_image,
+        K::Text { value, .. } | K::Combobox { value, .. } => !value.is_empty(),
+        K::Checkbox { widgets, .. } | K::Radio { widgets, .. } => widgets.iter().any(|w| w.checked),
+        K::Listbox { options, .. } => options.iter().any(|o| o.selected),
+        K::Signature { .. } | K::Unknown { .. } => false,
+    }
+}
+
+/// `defaultLock`: what a signing that names no lock locks: nobody changes
+/// what its signer has seen. A field in a group locks the rest of its group
+/// (the buyer's fields once the buyer signed), and a signature locks every
+/// field anyone fills in that holds a value now, whoever filled it in; one
+/// still empty stays open for the next signer. A document timestamp is no
+/// signer's, so it adds none of those. `None` when there is nothing to lock.
+///
+/// A signature field that carries a lock of its own (`own_lock`, its
+/// `/Lock`) adds nothing: the PDF's author decided what its signature locks,
+/// the signature's lock is derived from it (ISO 32000-2, 12.7.5.5), and the
+/// runtime refuses a signing that asks for another.
+fn default_lock(
+    session: &DocumentSession,
+    group_id: Option<&str>,
+    signature: bool,
+    own_lock: Option<&FieldLockSpec>,
+) -> Result<Option<FieldLockSpec>, EngineError> {
+    if own_lock.is_some() {
+        return Ok(None);
+    }
+    let for_anyone = if signature { filled_anyone_fields(session)? } else { Vec::new() };
+    if group_id.is_none() && for_anyone.is_empty() {
+        return Ok(None);
+    }
+    let mut fields = match group_id {
+        Some(group_id) => group_lock_fields(session, group_id)?,
+        None => Vec::new(),
+    };
+    fields.extend(for_anyone);
+    Ok(Some(FieldLockSpec { action: FieldLockAction::Include, fields, permission: None }))
+}
+
 /// `SignatureMutator.prepare`. Answers the prepared record and its digest.
 ///
 /// `authority` must be allowed to sign the field (its group, `fields:sign`).
-/// A field in a group, signed without a `lock`, locks the rest of its group.
+/// A signature without a `lock` of its own locks what its signer has seen
+/// ([`default_lock`]): the rest of its group, and the fields anyone fills in
+/// that hold a value; a field that carries its own `/Lock` signs with that
+/// lock alone.
 pub fn prepare(
     session: &DocumentSession,
     input: &SignaturePrepareInput,
@@ -555,14 +625,14 @@ pub fn prepare(
         authority.require_unprotected(DocCapability::DocSign)?;
         authority.require(DocCapability::DocSign)?;
     }
-    let lock = match (&input.lock, &group_id) {
-        (Some(lock), _) => Some(lock.clone()),
-        (None, Some(group_id)) => Some(FieldLockSpec {
-            action: FieldLockAction::Include,
-            fields: group_lock_fields(session, group_id)?,
-            permission: None,
-        }),
-        (None, None) => None,
+    let lock = match &input.lock {
+        Some(lock) => Some(lock.clone()),
+        None => default_lock(
+            session,
+            group_id.as_deref(),
+            kind == SignatureKind::Signature,
+            field.as_ref().and_then(|f| f.lock.as_ref()),
+        )?,
     };
     if field.as_ref().is_some_and(|f| f.signed) {
         return Err(refused("the signature field is already signed"));

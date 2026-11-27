@@ -10,7 +10,7 @@
 /// the TypeScript packages it follows, which release together.
 /// `vectors/changes/kinds.json` records theirs, and the replay checks this
 /// against it.
-pub const API_VERSION: &str = "3.4";
+pub const API_VERSION: &str = "3.5";
 
 /// `VALIDATION_INFO_SINCE` (4cb85c91e): the version long-term validation
 /// arrived in on the wire, the routes that read and store a document's
@@ -30,6 +30,14 @@ pub const MARK_IMAGE_OR_NONE_SINCE: &str = "3.4";
 /// update's patch. A client sends neither to an older server, whose request
 /// schemas refuse a member they don't know. Reading needs no such check.
 pub const FIELD_PURPOSE_AND_FORMAT_SINCE: &str = "3.4";
+
+/// `ANYONE_FIELDS_SINCE` (b45d916cb): the version a form field anyone fills
+/// in (`forAnyone`) arrived in on the wire: in the draft of a create, the
+/// patch of an update and what it expects. A client never sends it to an
+/// older server, nor a bundle with such a field, which an older server would
+/// import as an ordinary one. Reading needs no such check: an older server's
+/// field reads `forAnyone: false`.
+pub const ANYONE_FIELDS_SINCE: &str = "3.5";
 
 /// Every kind of change op and result item, in the order the wire schema
 /// lists them (`CHANGE_KINDS`): an op's type, or a restore. An import is a

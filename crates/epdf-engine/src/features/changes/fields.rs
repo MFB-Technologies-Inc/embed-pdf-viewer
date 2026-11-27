@@ -30,6 +30,7 @@ use super::record::{
     StepRights, WidgetDeleteStep, WidgetRestoreStep,
 };
 use crate::auth::scope::DocCapability;
+use crate::dto::Patch;
 use crate::error::{EngineError, EngineErrorCode};
 use crate::features::actions::write::{FieldActionsPatch, WidgetActionsPatch, scripts_of};
 use crate::features::annotation::appearance::AnnotationFamily;
@@ -67,6 +68,7 @@ pub fn create_field(
         ctx.authority.require(DocCapability::DocFormsScript)?;
     }
     draft.group_id = new_field_group(ctx, draft.group_id.take())?;
+    ctx.authority.require_for_anyone(matches!(draft.for_anyone, Patch::Set(Value::Bool(true))))?;
     let object_number = object_number.map(super::annotations::object_number_of).transpose()?;
     let widget_numbers = widget_object_numbers
         .map(|numbers| {
@@ -186,11 +188,31 @@ pub fn update_field(
             ctx.authority.require_field_group(group)?;
         }
     }
+    // As for a group: making a field one anyone fills in takes a right,
+    // undoing it doesn't.
+    if patch.get("forAnyone") == Some(&Value::Bool(true)) && !before.field.base.for_anyone {
+        ctx.authority.require_for_anyone(true)?;
+    }
     if let Some(expect) = expect {
         assert_expected(at, &properties_of(&before.field), expect)?;
     }
     write_update(ctx, &before, patch)
 }
+
+/// `newFieldForAnyone`: whether a new field is one anyone fills in, as its
+/// source is: checked as a create marking it would be.
+fn new_field_for_anyone(ctx: &ChangeContext<'_>, for_anyone: bool) -> Result<bool, EngineError> {
+    ctx.authority.require_for_anyone(for_anyone)?;
+    Ok(for_anyone)
+}
+
+/// Who fills a field in, told in two members (`ASSIGNMENT`): the group it
+/// belongs to and whether it is for anyone. An update's undo puts them back
+/// together, and only while both still hold what the update left: a field
+/// another update gave to someone since stays theirs, where putting one
+/// member back alone would make a field that is both a group's and for
+/// anyone.
+const ASSIGNMENT: [&str; 2] = ["groupId", "forAnyone"];
 
 /// A patch's `actions`, read alone, before the field says its family.
 fn patch_actions(patch: &Map<String, Value>) -> Result<Option<FieldActionsPatch>, EngineError> {
@@ -236,10 +258,19 @@ fn write_update(
             named.push(key);
         }
     }
-    let keys: Vec<&String> = named
+    let mut keys: Vec<&String> = named
         .iter()
         .filter(|key| *key != "kind" && !values_equal(was.get(*key), is.get(*key)))
         .collect();
+    // Who fills the field in goes back whole (`ASSIGNMENT`).
+    let assignment: Vec<String> = ASSIGNMENT.iter().map(|key| (*key).to_owned()).collect();
+    if keys.iter().any(|key| ASSIGNMENT.contains(&key.as_str())) {
+        for key in &assignment {
+            if !keys.contains(&key) {
+                keys.push(key);
+            }
+        }
+    }
     let pick = |from: &Map<String, Value>| -> Map<String, Value> {
         keys.iter()
             .map(|key| ((*key).clone(), from.get(*key).cloned().unwrap_or(Value::Null)))
@@ -287,7 +318,8 @@ fn order_step(OrderChange { before, after }: OrderChange) -> ReverseStep {
 /// `revertProperties`: the second chance of a field update's undo: each
 /// property that still holds what the update set goes back, through an
 /// ordinary update. A rename goes back only while no sibling has taken the
-/// old name.
+/// old name, the scripts only when all of them can, and who fills the field
+/// in only as a whole (`ASSIGNMENT`).
 pub fn revert_properties(
     ctx: &mut ChangeContext<'_>,
     object_number: u32,
@@ -299,7 +331,7 @@ pub fn revert_properties(
     };
     let now = properties_of(&current.field);
     let keys: Vec<&String> = left.keys().collect();
-    let kept: Vec<&String> = keys
+    let holds: Vec<&String> = keys
         .iter()
         .copied()
         .filter(|key| {
@@ -313,6 +345,16 @@ pub fn revert_properties(
                 && (*key != "actions" || scripts_can_go_back(left.get(*key), restore.get(*key)))
         })
         .collect();
+    // An assignment someone changed since stays: neither of its members goes
+    // back.
+    let assignment_holds = ASSIGNMENT.iter().all(|member| {
+        !keys.iter().any(|key| key == member) || holds.iter().any(|key| key == member)
+    });
+    let kept: Vec<&String> = if assignment_holds {
+        holds
+    } else {
+        holds.into_iter().filter(|key| !ASSIGNMENT.contains(&key.as_str())).collect()
+    };
     if kept.is_empty() {
         return left_alone(ctx, "forms.update");
     }
@@ -981,6 +1023,7 @@ pub fn properties_of(field: &FormFieldDto) -> Map<String, Value> {
     // `null` for a field in no group: putting that back takes the field out
     // of its group.
     out.insert("groupId".into(), serde_json::json!(base.group_id));
+    out.insert("forAnyone".into(), Value::Bool(base.for_anyone));
     out.insert("purpose".into(), serde_json::json!(base.purpose));
     out.insert(
         "actions".into(),
@@ -1144,12 +1187,22 @@ pub fn import_form(
             crate::page_space::forms::pdf_form_field_draft_of(planned.draft.clone(), &mut box_of)?;
         drop(box_of);
         let bundle_group = draft.remove("groupId").and_then(|g| g.as_str().map(str::to_owned));
-        // A restoring import keeps each field's group, under the import's
-        // rights; a copy is the caller's own create.
+        let bundle_for_anyone = draft.remove("forAnyone") == Some(Value::Bool(true));
+        // A restoring import keeps each field's group, and whether anyone
+        // fills it in, under the import's rights; a copy is the caller's own
+        // create.
         let group =
             if rights.is_some() { bundle_group } else { new_field_group(ctx, bundle_group)? };
         if let Some(group) = group {
             draft.insert("groupId".into(), Value::String(group));
+        }
+        let for_anyone = if rights.is_some() {
+            bundle_for_anyone
+        } else {
+            new_field_for_anyone(ctx, bundle_for_anyone)?
+        };
+        if for_anyone {
+            draft.insert("forAnyone".into(), Value::Bool(true));
         }
         let draft: FormFieldDraft = serde_json::from_value(Value::Object(draft)).map_err(|e| {
             EngineError::with_message(
@@ -1330,10 +1383,15 @@ pub fn copy_fields(
             crate::page_space::forms::pdf_form_field_draft_of(planned.draft.clone(), &mut box_of)?;
         drop(box_of);
         let source_group = draft.remove("groupId").and_then(|g| g.as_str().map(str::to_owned));
+        let source_for_anyone = draft.remove("forAnyone") == Some(Value::Bool(true));
         // A copy is the caller's own create: it keeps its source's group
-        // when the caller may set it.
+        // when the caller may set it, and is in none when its source is; the
+        // same for a source anyone fills in.
         if let Some(group) = new_field_group(ctx, source_group)? {
             draft.insert("groupId".into(), Value::String(group));
+        }
+        if new_field_for_anyone(ctx, source_for_anyone)? {
+            draft.insert("forAnyone".into(), Value::Bool(true));
         }
         let draft: FormFieldDraft = serde_json::from_value(Value::Object(draft)).map_err(|e| {
             EngineError::with_message(
