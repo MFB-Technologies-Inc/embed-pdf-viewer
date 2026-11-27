@@ -211,3 +211,21 @@ The divergences accepted in earlier catch-ups stand as before
   container's build.
 - CU-C8-D14. The linux-x64 .NET rows use SDK 11.0.100 installed into the amd64 container. Cost:
   not the image's SDK, and emulated.
+
+## CU-C9: Swift on the Mac ([record](decisions/CU-C9.md))
+
+- CU-C9-D1. The Apple slices are built by a shell port of `buildFork` in a clone of the
+  `af480d0ce` fork tree, which resyncs gclient deps once for `9472117ed`'s `DEPS`. Cost: the shell
+  copy can drift from `buildFork`.
+- CU-C9-D2. `takesCursor()` defaults to `true` in Swift, as in C#; `focus(select:)` answers a
+  `Bool`. Cost: a declining target must remember to write `takesCursor()`.
+- CU-C9-D3. Swift names follow the facade: `groups()`, `setGroups(_:)`, `moveToGroup(_:groupID:)`,
+  `widgetAnchor(_:)` and the rest; `previewPlacement` gains `displayRotation`. Cost: none.
+- CU-C9-D4. No form controls UI, MK icon, stamp-drawing or text-geometry surface in Swift:
+  `EmbedPDFUI` has no form layer. Cost: apps draw their own form controls.
+- CU-C9-D5. The start column is `89dde2cf9`, `d250a68e3`'s tree with its published engine
+  `apple-engine-c55b85806b96c5b2`. Cost: a downloaded start against a local head.
+- CU-C9-D6. The test runner stages the macOS consumer with Python, and `APPLE_CRATES` is checked
+  by a Python port of `linked-crates.mjs`. Cost: two Python copies of `.mjs` logic.
+- CU-C9-D7. The three signature route tests stay skipped (their helper is Node). Cost: those paths
+  are not exercised on Swift this catch-up.
