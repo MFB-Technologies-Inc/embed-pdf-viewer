@@ -35,8 +35,9 @@ fn base(n: u32, name: &str, value_entry: Value, default_entry: Value) -> Value {
         "readOnly": false, "required": false, "noExport": false,
         "alternateName": null, "mappingName": null,
         "valueEntry": value_entry, "defaultValueEntry": default_entry,
-        "groupId": null, "purpose": null, "createdBy": null, "createdAt": null, "filledBy": null,
-        "filledByName": null, "filledAt": null, "importedBy": null,
+        "groupId": null, "forAnyone": false, "purpose": null, "createdBy": null,
+        "createdAt": null, "filledBy": null, "filledByName": null, "filledAt": null,
+        "importedBy": null,
     })
 }
 

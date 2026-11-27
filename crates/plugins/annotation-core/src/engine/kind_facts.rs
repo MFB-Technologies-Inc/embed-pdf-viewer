@@ -926,6 +926,7 @@ pub const KIND_FACTS: &[(&str, KindFacts)] = &[
                 ("textAlign", FieldOwner::Data),
                 ("caption", FieldOwner::Data),
                 ("checkStyle", FieldOwner::Data),
+                ("layout", FieldOwner::Data),
                 ("field", FieldOwner::Engine),
                 ("fieldKind", FieldOwner::Engine),
                 ("hasMark", FieldOwner::Engine),

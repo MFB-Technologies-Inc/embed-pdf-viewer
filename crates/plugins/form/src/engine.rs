@@ -971,6 +971,16 @@ pub fn form_field_after(
     if let Some(group) = get(patch, "groupId") {
         field.insert("groupId".into(), group.clone());
     }
+    // Checked on the field as the patch leaves it: in a group, it is for no
+    // one else.
+    let was = field.get("forAnyone").and_then(Value::as_bool).unwrap_or(false);
+    let for_anyone = checked_for_anyone(
+        get(patch, "forAnyone"),
+        field.get("kind").and_then(Value::as_str).unwrap_or(""),
+        field.get("groupId").filter(|g| !g.is_null()).is_some(),
+        was,
+    )?;
+    field.insert("forAnyone".into(), json!(for_anyone));
     if let Some(purpose) = get(patch, "purpose") {
         field.insert("purpose".into(), format::checked_purpose(Some(purpose))?);
     }
@@ -1141,8 +1151,54 @@ fn widget_row_of_placement(
                     Value::Null
                 },
             ),
+            (
+                "layout",
+                if family == "pushbutton" {
+                    get(placement, "layout")
+                        .filter(|l| !l.is_null())
+                        .cloned()
+                        .unwrap_or(json!("caption"))
+                } else {
+                    Value::Null
+                },
+            ),
         ],
     ))
+}
+
+/// `checkedForAnyone(named, field, was)` (b45d916cb): whether the field a
+/// write leaves is one anyone fills in: what the write names, else what the
+/// field was. Refused with `InvalidArg`: a value that isn't `true` or
+/// `false`, and `true` on a field in a group or on a signature field.
+fn checked_for_anyone(
+    named: Option<&Value>,
+    family: &str,
+    in_group: bool,
+    was: bool,
+) -> Result<bool, Error> {
+    let invalid = |message: &str| {
+        Error::engine("InvalidArg", message).with("details", json!({ "field": "forAnyone" }))
+    };
+    let named = match named {
+        None => None,
+        Some(Value::Bool(b)) => Some(*b),
+        Some(_) => return Err(invalid("a field's forAnyone is true or false")),
+    };
+    if !named.unwrap_or(was) {
+        return Ok(false);
+    }
+    if family == "signature" {
+        return Err(invalid(
+            "a signature field is signed by one signer, so it is never for anyone",
+        ));
+    }
+    if in_group {
+        return Err(invalid(
+            "a field in a group is not also for anyone: send groupId: null with forAnyone: true, \
+             or forAnyone: false with a groupId",
+        ));
+    }
+    Ok(true)
 }
 
 /// `FieldDraftContext`. Its `groupId` is not read upstream (a field whose
@@ -1203,6 +1259,15 @@ pub fn form_field_of_draft(
     put("valueEntry", none());
     put("defaultValueEntry", none());
     put("groupId", get(draft, "groupId").filter(|g| !g.is_null()).cloned().unwrap_or(Value::Null));
+    put(
+        "forAnyone",
+        json!(checked_for_anyone(
+            get(draft, "forAnyone"),
+            str_of(draft, "kind").unwrap_or(""),
+            get(draft, "groupId").filter(|g| !g.is_null()).is_some(),
+            false,
+        )?),
+    );
     put("purpose", format::checked_purpose(get(draft, "purpose"))?);
     put("createdBy", Value::Null);
     put("createdAt", Value::Null);
@@ -1290,6 +1355,12 @@ pub fn form_field_of_draft(
             put("topIndex", json!(0));
             put("widgets", Value::Array(widgets));
         }
+        // A created button holds no image: `setButtonImage()` puts one in.
+        "pushbutton" => {
+            put("kind", json!("pushbutton"));
+            put("hasImage", json!(false));
+            put("widgets", Value::Array(widgets));
+        }
         other => {
             put("kind", json!(other));
             put("widgets", Value::Array(widgets));
@@ -1328,12 +1399,21 @@ fn fit_to_family(
     Ok(Value::Object(out))
 }
 
-/// `fitWidgetToFamily(family, value)`.
+/// `fitWidgetToFamily(family, value)`. `/MK /TP` is a push button's layout,
+/// and a push button's widget always has one (7d5691a5a).
 pub fn fit_widget_to_family(family: &str, value: &Value) -> Result<Value, Error> {
     let toggle = family == "checkbox" || family == "radio";
-    let fitted =
-        fit_to_family(family, value.clone(), "caption", family == "pushbutton", "a push button's")?;
-    fit_to_family(family, fitted, "checkStyle", toggle, "a checkbox's or radio button's")
+    let button = family == "pushbutton";
+    let captioned = fit_to_family(family, value.clone(), "caption", button, "a push button's")?;
+    if button && get(value, "layout").is_some_and(Value::is_null) {
+        return Err(Error::engine(
+            "InvalidArg",
+            "a push button's widget always has a layout: 'caption' shows its caption alone",
+        )
+        .with("details", json!({ "field": "layout" })));
+    }
+    let laid_out = fit_to_family(family, captioned, "layout", button, "a push button's")?;
+    fit_to_family(family, laid_out, "checkStyle", toggle, "a checkbox's or radio button's")
 }
 
 /// `widgetAfterPatch(row, patch)`.
