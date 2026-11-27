@@ -364,7 +364,11 @@ jobs:
           cp "$OUT/pack/$PACKAGE.nupkg" "$G/app/local-packages/$PACKAGE.$RID.nupkg"
           cd "$G/app"
           export NUGET_PACKAGES=$G/nuget-cache
-          dotnet new console --framework net10.0 --name YourApp --output .
+          # SDK 11's console template only offers net11.0; the guide's app
+          # targets net10.0, the packages' one framework.
+          dotnet new console --name YourApp --output .
+          sed -i -E 's|<TargetFramework>[^<]+</TargetFramework>|<TargetFramework>net10.0</TargetFramework>|' YourApp.csproj
+          grep -q '<TargetFramework>net10.0</TargetFramework>' YourApp.csproj
           cat > NuGet.Config <<'XML'
           <?xml version="1.0" encoding="utf-8"?>
           <configuration>
