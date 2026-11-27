@@ -631,6 +631,75 @@ fn signature_reads_and_a_visual_fill_reach_the_host() {
 }
 
 #[test]
+fn a_mark_travels_in_the_spelling_its_caller_chose() {
+    // `LocalDocumentFormsService.setSignatureAppearance` (fcb69611f): a mark
+    // passed as its bytes is `appearance`, `{ pdf }` is `pdf`, and no mark is
+    // `appearance: null` with no payload.
+    let field = json!({ "kind": "fqn", "name": "sig" });
+    let png = test_support::fixture("tooling/engine-conformance/fixtures/tiny.png");
+    let bytes = epdf_kernel::bytes::Bytes(png.clone()).to_json();
+    let call = |appearance: Value| {
+        translate(
+            "d",
+            "forms.setSignatureAppearance",
+            None,
+            &[field.clone(), appearance],
+            2,
+            &client(),
+        )
+        .unwrap()
+    };
+    let image = call(bytes.clone());
+    assert_eq!(image.request["appearance"], json!({ "payload": 0 }));
+    assert!(image.request.get("pdf").is_none(), "{}", image.request);
+    assert_eq!(image.payloads, vec![png.clone()]);
+    let keyed = call(json!({ "pdf": bytes.clone() }));
+    assert_eq!(keyed.request["pdf"], json!({ "payload": 0 }));
+    assert!(keyed.request.get("appearance").is_none(), "{}", keyed.request);
+    assert_eq!(keyed.payloads, vec![png.clone()]);
+    let none = call(Value::Null);
+    assert_eq!(none.request["appearance"], Value::Null);
+    assert!(none.payloads.is_empty());
+
+    // `LocalDocumentSignaturesService.prepare` sends the mark as a payload in
+    // either spelling.
+    let prepare = |appearance: Value| {
+        let input = json!({ "field": field, "appearance": appearance });
+        translate("d", "signatures.prepare", None, &[input], 3, &client()).unwrap()
+    };
+    let image = prepare(bytes.clone());
+    assert_eq!(image.request["input"]["appearance"], json!({ "payload": 0 }));
+    assert_eq!(image.payloads, vec![png.clone()]);
+    let keyed = prepare(json!({ "pdf": bytes }));
+    assert_eq!(keyed.request["input"]["appearance"], json!({ "pdf": { "payload": 0 } }));
+    assert_eq!(keyed.payloads, vec![png]);
+}
+
+#[test]
+fn a_mark_is_drawn_in_and_taken_out_through_the_host() {
+    let mut host = host_with(&format!("{ENGINE_FIXTURES}/unsigned_sigfield.pdf"));
+    let field = json!({ "kind": "fqn", "name": "sig" });
+    let png = test_support::fixture("tooling/engine-conformance/fixtures/tiny.png");
+    let marked = run(
+        &mut host,
+        "forms.setSignatureAppearance",
+        None,
+        &[field.clone(), epdf_kernel::bytes::Bytes(png).to_json()],
+    )
+    .unwrap();
+    assert_eq!(marked.value["field"]["name"], "sig", "{}", marked.value);
+    let has_mark = |host: &mut Host| {
+        let form = run(host, "forms.list", None, &[]).unwrap().value;
+        form["widgets"].as_array().unwrap().iter().any(|row| row["hasMark"] == json!(true))
+    };
+    assert!(has_mark(&mut host));
+    let cleared =
+        run(&mut host, "forms.setSignatureAppearance", None, &[field, Value::Null]).unwrap();
+    assert_eq!(cleared.events[0]["type"], "forms.updated");
+    assert!(!has_mark(&mut host));
+}
+
+#[test]
 fn complete_moves_its_cms_into_payload_zero() {
     let input = json!({ "signingId": "s", "cms": { "$bytes": "MAA=" }, "expectedVersion": { "editsVersion": 0.0 } });
     let call = translate("d", "signatures.complete", None, &[input], 1, &client()).unwrap();

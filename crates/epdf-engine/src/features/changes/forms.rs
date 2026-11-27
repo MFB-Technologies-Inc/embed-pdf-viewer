@@ -104,14 +104,14 @@ pub fn set_appearance_text(
 pub fn set_signature_appearance(
     ctx: &mut ChangeContext<'_>,
     reference: &FormFieldRef,
-    pdf: &[u8],
+    mark: Option<crate::features::signature::mutator::MarkBytes<'_>>,
 ) -> Result<Done, EngineError> {
     ctx.cancel.check()?;
     let before = read_field(ctx, reference)?;
     ctx.authority
         .require_field_write(before.field.base.group_id.as_deref(), FieldWriteAction::Sign)?;
     record_revert(ctx, &before, "forms.setSignatureAppearance", |mutator, cancel| {
-        mutator.set_signature_appearance(reference, pdf, cancel)
+        mutator.set_signature_appearance(reference, mark, cancel)
     })
 }
 

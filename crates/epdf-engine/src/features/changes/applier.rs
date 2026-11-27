@@ -16,6 +16,7 @@ use crate::auth::scope::{DocCapability, IdentityClaims};
 use crate::cancel::CancelToken;
 use crate::clock::Clock;
 use crate::error::{EngineError, EngineErrorCode};
+use crate::features::changes::op::SignatureAppearance;
 use crate::ids::IdSource;
 use crate::mutation::MutationMeta;
 use crate::session::authority::SessionAuthority;
@@ -545,7 +546,8 @@ fn run_op(ctx: &mut ChangeContext<'_>, op: &ChangeOp, at: usize) -> Result<Done,
             super::fields::reorder_widgets(ctx, *page, widgets, position)
         }
         ChangeOp::FormsSetSignatureAppearance { field, appearance } => {
-            super::forms::set_signature_appearance(ctx, field, appearance.pdf.bytes()?)
+            let mark = appearance.as_ref().map(SignatureAppearance::mark).transpose()?;
+            super::forms::set_signature_appearance(ctx, field, mark)
         }
         ChangeOp::FormsUpdateWidget { widget, patch, expect } => {
             super::fields::update_widget(ctx, widget, patch, expect.as_ref(), at)

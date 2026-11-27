@@ -286,7 +286,7 @@ fn a_signature_field_is_authored_filled_visually_and_refuses_a_visual_fill_once_
     // The mark is drawn into the widget; the field stays unsigned.
     let filled = sig_call_with_payload(
         &mut host,
-        json!({ "kind": "forms.setSignatureAppearance", "docId": doc, "opId": "fill-1",
+        json!({ "kind": "forms.setSignatureAppearance", "pdf": { "payload": 0 }, "docId": doc, "opId": "fill-1",
             "ref": fqn("sig2") }),
         artwork.clone(),
     );
@@ -304,14 +304,14 @@ fn a_signature_field_is_authored_filled_visually_and_refuses_a_visual_fill_once_
 
     let not_a_signature = envelope(
         &mut host,
-        json!({ "kind": "forms.setSignatureAppearance", "docId": doc, "ref": fqn("group.total") }),
+        json!({ "kind": "forms.setSignatureAppearance", "pdf": { "payload": 0 }, "docId": doc, "ref": fqn("group.total") }),
         vec![artwork.clone()],
     );
     assert_eq!(not_a_signature["error"]["code"], json!("InvalidArg"), "{not_a_signature}");
     // A signature appearance takes a one-page PDF.
     let two_pages = envelope(
         &mut host,
-        json!({ "kind": "forms.setSignatureAppearance", "docId": doc, "ref": fqn("sig2") }),
+        json!({ "kind": "forms.setSignatureAppearance", "pdf": { "payload": 0 }, "docId": doc, "ref": fqn("sig2") }),
         vec![fixture("two_page_sigfield.pdf")],
     );
     assert_eq!(two_pages["error"]["code"], json!("InvalidArg"), "{two_pages}");
@@ -342,7 +342,7 @@ fn a_signature_field_is_authored_filled_visually_and_refuses_a_visual_fill_once_
     // A signed field's appearance is sealed with the signature.
     let sealed = envelope(
         &mut host,
-        json!({ "kind": "forms.setSignatureAppearance", "docId": doc, "ref": fqn("sig") }),
+        json!({ "kind": "forms.setSignatureAppearance", "pdf": { "payload": 0 }, "docId": doc, "ref": fqn("sig") }),
         vec![artwork.clone()],
     );
     assert_eq!(sealed["error"]["code"], json!("ProtectedDocument"), "{sealed}");
@@ -350,7 +350,7 @@ fn a_signature_field_is_authored_filled_visually_and_refuses_a_visual_fill_once_
     // versioned.
     let again = sig_call_with_payload(
         &mut host,
-        json!({ "kind": "forms.setSignatureAppearance", "docId": doc, "ref": fqn("sig2") }),
+        json!({ "kind": "forms.setSignatureAppearance", "pdf": { "payload": 0 }, "docId": doc, "ref": fqn("sig2") }),
         artwork,
     );
     assert_eq!(again["result"]["field"]["kind"], json!("signature"), "{again}");
@@ -911,7 +911,7 @@ fn a_visual_fill_takes_the_right_to_sign_not_the_right_to_fill() {
         let field = unsigned_field(host, &doc);
         envelope(
             host,
-            json!({ "kind": "forms.setSignatureAppearance", "docId": doc, "opId": "mark",
+            json!({ "kind": "forms.setSignatureAppearance", "pdf": { "payload": 0 }, "docId": doc, "opId": "mark",
                 "ref": field }),
             vec![artwork.clone()],
         )

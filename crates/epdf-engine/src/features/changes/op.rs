@@ -359,11 +359,12 @@ pub enum ChangeOp {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         expect: Option<serde_json::Map<String, serde_json::Value>>,
     },
-    /// A one-page PDF drawn into every widget of an unsigned signature
-    /// field (`SignatureAppearanceInput`); the PDF is a request payload,
-    /// `{ "pdf": { "payload": n } }`.
+    /// A mark drawn into every widget of an unsigned signature field
+    /// (`SignatureAppearance`): a PNG, a JPEG or a one-page PDF as a request
+    /// payload, `{ "payload": n }`, or a PDF only under `{ "pdf": ... }`;
+    /// `None` (`null`) takes the mark out (fcb69611f).
     #[serde(rename = "forms.setSignatureAppearance")]
-    FormsSetSignatureAppearance { field: FormFieldRef, appearance: SignatureAppearance },
+    FormsSetSignatureAppearance { field: FormFieldRef, appearance: Option<SignatureAppearance> },
     /// A new outline item under `parent` (`None`: the top level), at
     /// `position` among its children (the end when left out), at
     /// `objectNumber` when given. The draft (`OutlineItemDraft`) stays the
@@ -535,10 +536,85 @@ impl OpResources {
     }
 }
 
-/// `SignatureAppearanceInput`: the one-page PDF a visual fill draws.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct SignatureAppearance {
-    pub pdf: ResourceBytes,
+/// `SignatureAppearance`: a signature field's mark, in the spelling its
+/// caller chose. Its bytes say their own format (a PNG, a JPEG or a
+/// one-page PDF); bytes under `pdf` (`SignatureAppearanceInput`) are read as
+/// a PDF and nothing else.
+#[derive(Debug, Clone, PartialEq)]
+pub enum SignatureAppearance {
+    Bytes(ResourceBytes),
+    Pdf(ResourceBytes),
+}
+
+impl SignatureAppearance {
+    /// The resource that holds the mark's bytes.
+    pub fn resource(&self) -> &ResourceBytes {
+        match self {
+            Self::Bytes(resource) | Self::Pdf(resource) => resource,
+        }
+    }
+
+    fn resource_mut(&mut self) -> &mut ResourceBytes {
+        match self {
+            Self::Bytes(resource) | Self::Pdf(resource) => resource,
+        }
+    }
+
+    /// `signatureAppearanceBytes`: the mark where it is written, once the
+    /// host put its bytes in.
+    pub fn mark(&self) -> Result<crate::features::signature::mutator::MarkBytes<'_>, EngineError> {
+        Ok(crate::features::signature::mutator::MarkBytes {
+            bytes: self.resource().bytes()?,
+            declared_pdf: matches!(self, Self::Pdf(_)),
+        })
+    }
+
+    /// Put the bytes in from the request's payloads.
+    pub fn resolve(&mut self, payloads: &[Vec<u8>]) -> Result<(), EngineError> {
+        let resource = self.resource_mut();
+        if let ResourceBytes::Payload(index) = *resource {
+            let bytes = payloads.get(index).ok_or_else(|| {
+                malformed(format!(
+                    "appearance payload {index} is missing: the request carries {}",
+                    payloads.len()
+                ))
+            })?;
+            *resource = ResourceBytes::Bytes(bytes.clone());
+        }
+        Ok(())
+    }
+}
+
+impl Serialize for SignatureAppearance {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeMap;
+        match self {
+            Self::Bytes(resource) => resource.serialize(s),
+            Self::Pdf(resource) => {
+                let mut map = s.serialize_map(Some(1))?;
+                map.serialize_entry("pdf", resource)?;
+                map.end()
+            }
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for SignatureAppearance {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Keyed {
+            pdf: ResourceBytes,
+        }
+        let value = serde_json::Value::deserialize(d)?;
+        if value.get("pdf").is_some() {
+            Keyed::deserialize(value)
+                .map(|keyed| Self::Pdf(keyed.pdf))
+                .map_err(serde::de::Error::custom)
+        } else {
+            ResourceBytes::deserialize(value).map(Self::Bytes).map_err(serde::de::Error::custom)
+        }
+    }
 }
 
 /// One resource's bytes. On this wire a resource names the request payload
@@ -615,14 +691,8 @@ pub fn resolve_payloads(change: &mut Change, payloads: &[Vec<u8>]) -> Result<(),
             | ChangeOp::FormsImport { bundle, .. }
             | ChangeOp::FormsImportValues { bundle, .. } => bundle.resolve(payloads)?,
             ChangeOp::FormsSetSignatureAppearance { appearance, .. } => {
-                if let ResourceBytes::Payload(index) = appearance.pdf {
-                    let bytes = payloads.get(index).ok_or_else(|| {
-                        malformed(format!(
-                            "appearance payload {index} is missing: the request carries {}",
-                            payloads.len()
-                        ))
-                    })?;
-                    appearance.pdf = ResourceBytes::Bytes(bytes.clone());
+                if let Some(appearance) = appearance {
+                    appearance.resolve(payloads)?;
                 }
             }
             ChangeOp::MetadataUpdate { .. }
@@ -911,7 +981,25 @@ mod tests {
         let ChangeOp::FormsSetSignatureAppearance { appearance, .. } = &ops[0] else {
             panic!("{:?}", ops[0])
         };
-        assert_eq!(appearance.pdf.bytes().unwrap(), b"%PDF");
+        let mark = appearance.as_ref().expect("a mark").mark().unwrap();
+        assert_eq!((mark.bytes, mark.declared_pdf), (&b"%PDF"[..], true));
+        // A mark as its own bytes says its own format, and `null` is no mark
+        // (fcb69611f).
+        let mut change = parse_change(&serde_json::json!({ "ops": [
+            { "type": "forms.setSignatureAppearance",
+              "field": { "kind": "fqn", "name": "sig" }, "appearance": { "payload": 0 } },
+            { "type": "forms.setSignatureAppearance",
+              "field": { "kind": "fqn", "name": "sig" }, "appearance": null },
+        ] }))
+        .unwrap();
+        resolve_payloads(&mut change, &[b"\x89PNG".to_vec()]).unwrap();
+        let Change::Ops(ops) = &change else { panic!("ops") };
+        let ChangeOp::FormsSetSignatureAppearance { appearance: Some(bytes), .. } = &ops[0] else {
+            panic!("{:?}", ops[0])
+        };
+        let mark = bytes.mark().unwrap();
+        assert_eq!((mark.bytes, mark.declared_pdf), (&b"\x89PNG"[..], false));
+        assert!(matches!(ops[1], ChangeOp::FormsSetSignatureAppearance { appearance: None, .. }));
         let refused = resolve_payloads(
             &mut parse_change(&serde_json::json!({ "ops": [
                 { "type": "forms.setSignatureAppearance",

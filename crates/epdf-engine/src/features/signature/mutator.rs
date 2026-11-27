@@ -22,7 +22,6 @@ use serde::{Deserialize, Serialize};
 use crate::auth::scope::{DocCapability, FieldWriteAction};
 use crate::error::{EngineError, EngineErrorCode};
 use crate::features::changes::applier::ChangeAuthority;
-use crate::features::changes::op::ResourceBytes;
 use crate::features::forms::snapshot::{FormFieldFamily, FormFieldRef};
 use crate::features::forms::write::{load_model, read_at, resolve};
 use crate::identity::PageRef;
@@ -72,11 +71,17 @@ pub struct Certify {
     pub permission: u8,
 }
 
-/// `SignatureAppearanceInput` on the wire: the one-page PDF is a request
-/// payload, named `{ "pdf": { "payload": n } }` as a resource is.
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-pub struct AppearanceInput {
-    pub pdf: ResourceBytes,
+/// `SignatureAppearance` on the wire: the mark's bytes as a request payload,
+/// `{ "payload": n }`, or a PDF only under `{ "pdf": { "payload": n } }`.
+pub type AppearanceInput = crate::features::changes::op::SignatureAppearance;
+
+/// `SignatureAppearanceBytes`: a mark where it is written, its bytes and
+/// whether its caller passed them as `{ pdf }`, which reads them as a PDF
+/// and nothing else.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MarkBytes<'a> {
+    pub bytes: &'a [u8],
+    pub declared_pdf: bool,
 }
 
 /// `SignaturePrepareInput`.
@@ -318,8 +323,11 @@ fn open_bytes(session: &DocumentSession, bytes: &[u8]) -> Result<Document, Engin
     Ok(document)
 }
 
-/// `bakeWidgetAppearance`: draw a one-page PDF into the widget's normal
-/// appearance. A PDF of any other page count is `InvalidArg`.
+/// `bakeWidgetAppearance`: draw a mark into the widget's normal appearance.
+/// The mark is a PNG, a JPEG or a one-page PDF, a PDF only when its caller
+/// passed it as `{ pdf }`; an image becomes a page of its own size first, as
+/// a stamp's does (`withAppearanceDocument`), so every mark is drawn the same
+/// way. A PDF of any other page count is `InvalidArg`.
 ///
 /// `record_fit`, for a mark drawn in without signing, records the fit as a
 /// stamp records its own: the widget then reads as having a mark in it
@@ -329,7 +337,7 @@ fn open_bytes(session: &DocumentSession, bytes: &[u8]) -> Result<Document, Engin
 pub(crate) fn bake_widget_appearance(
     doc: &Document,
     widget: &FormWidget,
-    pdf: &[u8],
+    mark: MarkBytes<'_>,
     record_fit: bool,
 ) -> Result<(), EngineError> {
     let Some(page) = widget.page else {
@@ -338,12 +346,7 @@ pub(crate) fn bake_widget_appearance(
             "the widget page could not be loaded",
         ));
     };
-    let artwork = doc.open_sibling(pdf).map_err(|_| {
-        EngineError::with_message(
-            EngineErrorCode::MalformedPdf,
-            "the appearance PDF could not be opened",
-        )
-    })?;
+    let artwork = mark_document(doc, mark)?;
     let pages = artwork.page_count();
     if pages != 1 {
         return Err(EngineError::with_message(
@@ -373,22 +376,101 @@ pub(crate) fn bake_widget_appearance(
             ),
         })?;
     if record_fit {
-        let not_found = || {
-            EngineError::with_message(
-                EngineErrorCode::NotFound,
-                "the signature widget could not be loaded",
+        with_widget_annotation(doc, widget, |annotation| {
+            crate::features::annotation::write::stamp::write_stamp_fit(
+                annotation,
+                crate::features::annotation::write::prepare::StampFit::Contain,
             )
-        };
-        let page =
-            doc.page_by_object_number(page.object_number().get()).map_err(|_| not_found())?;
-        let annotation =
-            page.annotation_by_object_number(widget.annot_object_number).ok_or_else(not_found)?;
-        crate::features::annotation::write::stamp::write_stamp_fit(
-            &annotation,
-            crate::features::annotation::write::prepare::StampFit::Contain,
-        )?;
+        })?;
     }
     Ok(())
+}
+
+/// `withAppearanceDocument` over a mark (`markFormat`): bytes passed as
+/// `{ pdf }` are a PDF, which opens as one or is refused as one that
+/// doesn't; bytes passed as themselves are what their first bytes say, and
+/// none of the three is refused.
+fn mark_document(doc: &Document, mark: MarkBytes<'_>) -> Result<Document, EngineError> {
+    use crate::features::binary::{BinaryFormat, sniff};
+    let format = if mark.declared_pdf { Some(BinaryFormat::Pdf) } else { sniff(mark.bytes) };
+    match format {
+        Some(BinaryFormat::Pdf) => doc.open_sibling(mark.bytes).map_err(|_| {
+            EngineError::with_message(
+                EngineErrorCode::MalformedPdf,
+                "the appearance PDF could not be opened",
+            )
+        }),
+        Some(
+            format @ (BinaryFormat::Png { width, height } | BinaryFormat::Jpeg { width, height }),
+        ) => {
+            let png = matches!(format, BinaryFormat::Png { .. });
+            doc.image_document(mark.bytes, png, width, height)
+                .map_err(|_| {
+                    EngineError::with_message(
+                        EngineErrorCode::Unknown,
+                        "the appearance image could not be made a page",
+                    )
+                })?
+                .ok_or_else(|| {
+                    EngineError::with_message(
+                        EngineErrorCode::InvalidArg,
+                        if png {
+                            "EPDFImageObj_SetPng rejected the image data"
+                        } else {
+                            "EPDFImageObj_SetJpeg rejected the image data"
+                        },
+                    )
+                })
+        }
+        None => Err(EngineError::with_message(
+            EngineErrorCode::InvalidArg,
+            "the appearance resource must be PNG, JPEG or one-page PDF bytes",
+        )),
+    }
+}
+
+/// `clearWidgetMark`: take a mark that was drawn in without signing out of a
+/// widget. Its fit record goes, so the widget reads as having no mark
+/// (`hasMark`), and the widget draws its field's box again, in its style. A
+/// widget that records no mark is left as it is: what it shows isn't a mark
+/// of ours to take out.
+pub(crate) fn clear_widget_mark(doc: &Document, widget: &FormWidget) -> Result<(), EngineError> {
+    with_widget_annotation(doc, widget, |annotation| {
+        if crate::features::annotation::read::kinds::read_appearance_fit(annotation)?.is_none() {
+            return Ok(());
+        }
+        annotation
+            .clear_embed_metadata_key("AppearanceFit")
+            .map_err(|e| EngineError::with_message(EngineErrorCode::Unknown, e.to_string()))?;
+        if !annotation.generate_form_field_appearance() {
+            return Err(EngineError::with_message(
+                EngineErrorCode::Unknown,
+                "the signature field's box could not be drawn into the widget",
+            ));
+        }
+        Ok(())
+    })
+}
+
+/// Run `body` with a signature widget's annotation loaded from its page.
+fn with_widget_annotation<T>(
+    doc: &Document,
+    widget: &FormWidget,
+    body: impl FnOnce(&pdfium::Annotation<'_>) -> Result<T, EngineError>,
+) -> Result<T, EngineError> {
+    let not_found = || {
+        EngineError::with_message(
+            EngineErrorCode::NotFound,
+            "the signature widget could not be loaded",
+        )
+    };
+    let page = widget.page.ok_or_else(|| {
+        EngineError::with_message(EngineErrorCode::NotFound, "the widget page could not be loaded")
+    })?;
+    let page = doc.page_by_object_number(page.object_number().get()).map_err(|_| not_found())?;
+    let annotation =
+        page.annotation_by_object_number(widget.annot_object_number).ok_or_else(not_found)?;
+    body(&annotation)
 }
 
 /// `groupOfField`: the group of the field `field_object_number`; `None` in
@@ -435,7 +517,7 @@ fn group_lock_fields(
 pub fn prepare(
     session: &DocumentSession,
     input: &SignaturePrepareInput,
-    appearance_pdf: Option<&[u8]>,
+    mark: Option<MarkBytes<'_>>,
     signing_id: String,
     authority: &ChangeAuthority,
 ) -> Result<(SignaturePrepared, Vec<u8>), EngineError> {
@@ -559,13 +641,13 @@ pub fn prepare(
     if let (Some(_), Some(widget)) =
         (&input.appearance, field.as_ref().and_then(|f| f.widget.as_ref()))
     {
-        let pdf = appearance_pdf.ok_or_else(|| {
+        let mark = mark.ok_or_else(|| {
             EngineError::with_message(
                 EngineErrorCode::WireFormat,
-                "an appearance carries its PDF as a request payload",
+                "an appearance carries its bytes as a request payload",
             )
         })?;
-        bake_widget_appearance(&candidate, widget, pdf, false)?;
+        bake_widget_appearance(&candidate, widget, mark, false)?;
     }
 
     let mut saved = candidate.save_signature_candidate(value_obj_num).map_err(|_| {

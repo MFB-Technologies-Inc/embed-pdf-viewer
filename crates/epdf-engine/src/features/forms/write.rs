@@ -385,15 +385,17 @@ impl<'a> FormMutator<'a> {
             .map(|(result, _)| result)
     }
 
-    /// Draw a one-page PDF into every widget of an unsigned signature field
-    /// (`setSignatureAppearance`): the visual "sign" of a viewer without a
-    /// signer. The field's value stays empty and nothing is sealed; a signed
-    /// field is refused `ProtectedDocument` (its appearance is part of what
-    /// the signature covers).
+    /// Draw a mark (a PNG, a JPEG or a one-page PDF) into every widget of
+    /// an unsigned signature field (`setSignatureAppearance`): the visual
+    /// "sign" of a viewer without a signer. `None` takes the mark out again:
+    /// each widget that has one draws the field's box, in its style. The
+    /// field's value stays empty and nothing is sealed; a signed field is
+    /// refused `ProtectedDocument` (its appearance is part of what the
+    /// signature covers).
     pub fn set_signature_appearance(
         &self,
         reference: &FormFieldRef,
-        pdf: &[u8],
+        mark: Option<crate::features::signature::mutator::MarkBytes<'_>>,
         cancel: &CancelToken,
     ) -> Result<FieldWriteResult, EngineError> {
         use crate::features::signature::reader::{
@@ -435,12 +437,18 @@ impl<'a> FormMutator<'a> {
             ));
         }
         for (annot, page) in &widgets {
-            crate::features::signature::mutator::bake_widget_appearance(
-                self.document,
-                &crate::features::signature::types::FormWidget::new(*annot, *page),
-                pdf,
-                true,
-            )?;
+            let widget = crate::features::signature::types::FormWidget::new(*annot, *page);
+            match mark {
+                None => {
+                    crate::features::signature::mutator::clear_widget_mark(self.document, &widget)?
+                }
+                Some(mark) => crate::features::signature::mutator::bake_widget_appearance(
+                    self.document,
+                    &widget,
+                    mark,
+                    true,
+                )?,
+            }
         }
         let drawn: Vec<u32> = widgets.iter().map(|(annot, _)| *annot).collect();
         self.read_back(resolved.object_number, &drawn, Some(true), cancel).map(|(result, _)| result)

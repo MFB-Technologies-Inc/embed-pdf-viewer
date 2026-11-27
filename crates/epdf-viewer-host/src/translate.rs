@@ -343,9 +343,21 @@ pub fn translate(
         }
         "forms.setSignatureAppearance" => {
             put(&mut body, "ref", arg(0));
-            // The PDF is the request's payload 0 (`[pdf]`).
+            // The mark in the spelling its caller chose (fcb69611f): its
+            // bytes as `appearance`, `{ pdf }` as `pdf`, each payload 0; no
+            // mark as `appearance: null`, with no payload.
             let appearance = arg(1).unwrap_or(Value::Null);
-            payloads.push(bytes_member(&appearance, "pdf", path)?);
+            if appearance.is_null() {
+                body.insert("appearance".into(), Value::Null);
+            } else if appearance.get("pdf").is_some() {
+                payloads.push(bytes_member(&appearance, "pdf", path)?);
+                body.insert("pdf".into(), json!({ "payload": 0 }));
+            } else {
+                let bytes = epdf_kernel::bytes::Bytes::from_json(&appearance)
+                    .ok_or_else(|| invalid(format!("{path} needs a mark's bytes, or null")))?;
+                payloads.push(bytes.0);
+                body.insert("appearance".into(), json!({ "payload": 0 }));
+            }
             options_at(2)
         }
         "pages.extract" => {

@@ -1243,14 +1243,20 @@ impl Host {
                     session.require(DocCapability::DocSignCertify)?;
                 }
                 let authority = job.change_authority()?;
-                let appearance = match &input.appearance {
-                    Some(appearance) => Some(resource_payload(&appearance.pdf, &payloads)?),
+                // The mark in the spelling its caller chose (fcb69611f).
+                let mark = match &input.appearance {
+                    Some(appearance) => Some(f::signature::mutator::MarkBytes {
+                        bytes: resource_payload(appearance.resource(), &payloads)?,
+                        declared_pdf: matches!(
+                            appearance,
+                            f::changes::op::SignatureAppearance::Pdf(_)
+                        ),
+                    }),
                     None => None,
                 };
                 let signing_id = self.ids.next_uuid_v4();
-                let (prepared, digest) = f::signature::mutator::prepare(
-                    session, &input, appearance, signing_id, &authority,
-                )?;
+                let (prepared, digest) =
+                    f::signature::mutator::prepare(session, &input, mark, signing_id, &authority)?;
                 let mut prepared = value(&prepared)?;
                 prepared["digest"] = serde_json::json!({ "payload": 0 });
                 // `LocalDocumentSignaturesService.prepare` publishes the
@@ -1330,20 +1336,23 @@ impl Host {
                 self.answer_with_notice(&key, answer, notice, Vec::new())
             }
             // `WorkerHost.handleFormsSetSignatureAppearance`: a one-op
-            // change under the request's authority, the PDF payload 0. The
-            // mark is the field's signer's to place: the session must be
-            // able to sign some field (`beginFieldWrite('sign')`: `doc.sign`
-            // or a `fields:sign` scope), and the op checks the field's group
-            // (ceeb36bae), never `doc.forms.fill`.
+            // change under the request's authority. The mark is the field's
+            // signer's to place: the session must be able to sign some field
+            // (`beginFieldWrite('sign')`: `doc.sign` or a `fields:sign`
+            // scope), and the op checks the field's group (ceeb36bae), never
+            // `doc.forms.fill`. The request carries `appearance` (the mark's
+            // payload, or `null` to take the mark out) or `pdf` (a PDF only),
+            // `signatureAppearanceOfRequest` (fcb69611f).
             "forms.setSignatureAppearance" => {
                 require_some_signing(self.sessions.session(&key)?)?;
                 let reference: f::forms::snapshot::FormFieldRef = field(body, "ref")?;
-                let pdf = take_payload(&mut payloads, 0, "the appearance PDF")?;
+                let mut appearance = signature_appearance_of_request(body)?;
+                if let Some(appearance) = &mut appearance {
+                    appearance.resolve(&std::mem::take(&mut payloads))?;
+                }
                 let op = f::changes::op::ChangeOp::FormsSetSignatureAppearance {
                     field: reference,
-                    appearance: f::changes::op::SignatureAppearance {
-                        pdf: f::changes::op::ResourceBytes::Bytes(pdf),
-                    },
+                    appearance,
                 };
                 self.field_verb(&key, &header.kind, body, op, true, cancel)
             }
@@ -3314,6 +3323,33 @@ fn assert_rewrite_keeps_signatures(
 }
 
 /// The bytes a request's resource names, `{ "payload": n }`.
+/// `signatureAppearanceOfRequest`: the mark a `forms.setSignatureAppearance`
+/// request carries, in the spelling its caller chose: its `appearance` (the
+/// mark's payload, or `null` for no mark), or its `pdf` as `{ pdf }`.
+fn signature_appearance_of_request(
+    body: &serde_json::Value,
+) -> Result<Option<crate::features::changes::op::SignatureAppearance>, EngineError> {
+    use crate::features::changes::op::{ResourceBytes, SignatureAppearance};
+    let resource = |value: &serde_json::Value| {
+        serde_json::from_value::<ResourceBytes>(value.clone()).map_err(|e| {
+            EngineError::with_message(
+                EngineErrorCode::WireFormat,
+                format!("a signature appearance names its payload: {e}"),
+            )
+        })
+    };
+    match (body.get("appearance"), body.get("pdf")) {
+        (Some(serde_json::Value::Null), _) => Ok(None),
+        (Some(appearance), _) => Ok(Some(SignatureAppearance::Bytes(resource(appearance)?))),
+        (None, Some(pdf)) => Ok(Some(SignatureAppearance::Pdf(resource(pdf)?))),
+        (None, None) => Err(EngineError::with_message(
+            EngineErrorCode::InvalidArg,
+            "a signature appearance request carries 'appearance' (the mark's bytes, or null for \
+             no mark) or 'pdf'",
+        )),
+    }
+}
+
 fn resource_payload<'a>(
     resource: &crate::features::changes::op::ResourceBytes,
     payloads: &'a Payloads,

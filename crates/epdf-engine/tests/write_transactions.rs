@@ -343,7 +343,7 @@ fn a_write_that_fails_before_its_commit_leaves_nothing_behind_and_applies_afterw
         &first,
         p,
         "forms.setSignatureAppearance",
-        json!({ "kind": "forms.setSignatureAppearance", "ref": fqn("sig") }),
+        json!({ "kind": "forms.setSignatureAppearance", "pdf": { "payload": 0 }, "ref": fqn("sig") }),
         vec![artwork],
     );
     fails_then_applies(

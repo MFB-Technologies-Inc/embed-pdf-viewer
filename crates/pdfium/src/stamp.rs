@@ -247,6 +247,27 @@ impl Document {
         width: u32,
         height: u32,
     ) -> Result<Option<Document>, PdfiumError> {
+        let Some(scratch) = self.image_document(bytes, png, width, height)? else {
+            return Ok(None);
+        };
+        // SAFETY: the scratch handle is live for the call.
+        let handle = unsafe { pdfium_sys::EPDFDoc_CanonicalDrawing(scratch.as_raw(), 0) };
+        drop(scratch);
+        Ok(Some(self.own_scratch(handle).ok_or(PdfiumError::Load)?))
+    }
+
+    /// PNG or JPEG bytes as a one-page document of their own: the image at
+    /// its own size, a pixel a point, scaled down to fit
+    /// [`MAX_DRAWING_SIZE`] (`withImageDocument`), what a stamp's drawing and
+    /// a signature field's mark both start from. `Ok(None)` when PDFium
+    /// refuses the image data.
+    pub fn image_document(
+        &self,
+        bytes: &[u8],
+        png: bool,
+        width: u32,
+        height: u32,
+    ) -> Result<Option<Document>, PdfiumError> {
         let (width, height) = (f64::from(width), f64::from(height));
         let scale = (MAX_DRAWING_SIZE / width.max(height)).min(1.0);
         let (width, height) = (width * scale, height * scale);
@@ -300,10 +321,7 @@ impl Document {
                 return Err(PdfiumError::Load);
             }
         }
-        // SAFETY: the scratch handle is live for the call.
-        let handle = unsafe { pdfium_sys::EPDFDoc_CanonicalDrawing(scratch.as_raw(), 0) };
-        drop(scratch);
-        Ok(Some(self.own_scratch(handle).ok_or(PdfiumError::Load)?))
+        Ok(Some(scratch))
     }
 
     /// Add a canonical drawing to this document, answering its object
