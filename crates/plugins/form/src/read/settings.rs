@@ -89,9 +89,7 @@ fn group_setting(field: &Value, groups: &[Value], may_set: &dyn Fn(&str) -> bool
     let own = get(field, "groupId");
     let options: Vec<Value> = groups
         .iter()
-        .filter(|group| {
-            Some(&group["id"]) == own || group["id"].as_str().is_some_and(|id| may_set(id))
-        })
+        .filter(|group| Some(&group["id"]) == own || group["id"].as_str().is_some_and(may_set))
         .map(|group| group["id"].clone())
         .collect();
     vec![json!({
