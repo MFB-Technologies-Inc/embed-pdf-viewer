@@ -1548,6 +1548,10 @@ pub struct PlannedWidget {
     on_state: String,
     /// The page of the field's own widget half, when the field is merged.
     merged_page: Option<PageObjectNumber>,
+    /// A push button's image, the drawing its new place shows (`imageOf`):
+    /// read before a merged field splits, since the drawing is its own
+    /// object and keeps its number.
+    image: Option<u32>,
 }
 
 impl PlannedWidget {
@@ -1580,7 +1584,15 @@ pub fn plan_add_widget(
         .widgets()
         .find(|widget| widget.annot_object_number == object_number)
         .and_then(|widget| PageObjectNumber::new(widget.page_object_number).ok());
-    Ok(PlannedWidget { object_number, placed, page_index, on_state, merged_page })
+    let image = match &before.kind {
+        FormFieldKind::Pushbutton { has_image: true, widgets } => super::button_image::image_of(
+            owned.document(),
+            &mut super::snapshot::PageIndexLookup::default(),
+            widgets,
+        )?,
+        _ => None,
+    };
+    Ok(PlannedWidget { object_number, placed, page_index, on_state, merged_page, image })
 }
 
 /// `addWidget` from the apply boundary: the widget where the placement
@@ -1610,11 +1622,21 @@ pub fn add_widget(
     if !adopted {
         return Err(rejected("the widget could not join the field"));
     }
+    let widget =
+        FormWidgetRef { annot_object_number: widget, page_object_number: plan.placed.page.get() };
+    // A push button's new place gets the field's image, as a text field's
+    // shows its value; its layout is the placement's, so a caption box holds
+    // the image without showing it (7d5691a5a).
+    if let Some(image) = plan.image {
+        super::button_image::set_widget_icon(
+            document,
+            &mut super::snapshot::PageIndexLookup::default(),
+            &widget,
+            Some(image),
+        )?;
+    }
     let field = read_back_field(document, plan.object_number, cancel)?;
-    Ok((
-        field,
-        FormWidgetRef { annot_object_number: widget, page_object_number: plan.placed.page.get() },
-    ))
+    Ok((field, widget))
 }
 
 /// `detachWidget`: the widget leaves its field and stays on its page, an
@@ -1696,6 +1718,51 @@ mod tests {
         assert_eq!(fitted, map(serde_json::json!({ "checkStyle": "star" })));
         let refused = fit_widget_to_family(FormFieldFamily::Text, style).unwrap_err();
         assert_eq!(refused.details, Some(serde_json::json!({ "field": "checkStyle" })));
+    }
+
+    /// `pictureButton.test.ts` (7d5691a5a): a layout goes on a push button
+    /// only, and a push button always has one.
+    #[test]
+    fn a_push_buttons_placement_takes_any_of_the_seven_layouts() {
+        for layout in ["caption", "image", "caption-below", "caption-over"] {
+            let style = map(serde_json::json!({ "layout": layout }));
+            assert_eq!(
+                fit_widget_to_family(FormFieldFamily::Pushbutton, style.clone()).unwrap(),
+                style
+            );
+        }
+    }
+
+    #[test]
+    fn another_widget_refuses_a_layout_and_drops_the_null_its_row_reads() {
+        for family in [
+            FormFieldFamily::Text,
+            FormFieldFamily::Checkbox,
+            FormFieldFamily::Signature,
+            FormFieldFamily::Unknown,
+        ] {
+            let refused =
+                fit_widget_to_family(family, map(serde_json::json!({ "layout": "image" })))
+                    .unwrap_err();
+            assert_eq!(refused.code, EngineErrorCode::InvalidArg, "{family:?}");
+            let fitted = fit_widget_to_family(
+                family,
+                map(serde_json::json!({ "layout": null, "color": "#000000" })),
+            )
+            .unwrap();
+            assert_eq!(fitted, map(serde_json::json!({ "color": "#000000" })), "{family:?}");
+        }
+    }
+
+    #[test]
+    fn a_push_button_always_has_a_layout_null_is_refused() {
+        let refused = fit_widget_to_family(
+            FormFieldFamily::Pushbutton,
+            map(serde_json::json!({ "layout": null })),
+        )
+        .unwrap_err();
+        assert_eq!(refused.code, EngineErrorCode::InvalidArg);
+        assert_eq!(refused.details, Some(serde_json::json!({ "field": "layout" })));
     }
 
     #[test]

@@ -492,6 +492,28 @@ pub fn join_widget_field(model: &pdfium::FormModel<'_>, widget: &mut WidgetAnnot
 mod tests {
     use super::*;
 
+    /// `pictureButton.test.ts` (7d5691a5a): the seven layouts read by name,
+    /// in `/MK /TP`'s order, and one outside them is no layout.
+    #[test]
+    fn a_layout_outside_the_seven_is_no_layout() {
+        for (code, name) in [
+            (0, "caption"),
+            (1, "image"),
+            (2, "caption-below"),
+            (3, "caption-above"),
+            (4, "caption-right"),
+            (5, "caption-left"),
+            (6, "caption-over"),
+        ] {
+            let layout: WidgetLayout = serde_json::from_value(serde_json::json!(name)).unwrap();
+            assert_eq!(layout.code(), code, "{name}");
+            assert_eq!(WidgetLayout::from_code(code), layout, "{name}");
+        }
+        assert!(serde_json::from_value::<WidgetLayout>(serde_json::json!("beside")).is_err());
+        // A number past the table reads as the caption alone, as it is drawn.
+        assert_eq!(WidgetLayout::from_code(9), WidgetLayout::Caption);
+    }
+
     #[test]
     fn a_colour_is_two_lowercase_hex_digits_a_component() {
         assert_eq!(color_of((0, 0, 0)), "#000000");

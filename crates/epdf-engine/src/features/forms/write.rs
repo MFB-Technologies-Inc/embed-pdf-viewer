@@ -390,6 +390,7 @@ impl<'a> FormMutator<'a> {
         &self,
         reference: &FormFieldRef,
         mark: Option<crate::features::signature::mutator::MarkBytes<'_>>,
+        drawings: &mut crate::features::annotation::write::stamp::DrawingIndex,
         cancel: &CancelToken,
     ) -> Result<FieldWriteResult, EngineError> {
         use crate::features::signature::reader::{
@@ -438,12 +439,68 @@ impl<'a> FormMutator<'a> {
                 }
                 Some(mark) => crate::features::signature::mutator::bake_widget_appearance(
                     self.document,
+                    drawings,
                     &widget,
                     mark,
                 )?,
             }
         }
         let drawn: Vec<u32> = widgets.iter().map(|(annot, _)| *annot).collect();
+        self.read_back(resolved.object_number, &drawn, Some(true), cancel).map(|(result, _)| result)
+    }
+
+    /// Put an image (a PNG, a JPEG or a one-page PDF) in every widget of a
+    /// push button, or take it out (`None`): an image field, as Acrobat
+    /// writes one (`setButtonImage`, 7d5691a5a). The image is a drawing of
+    /// the document, found again when the document holds it already, and
+    /// each widget names it as its icon (`/MK /I`) and draws its look from
+    /// it, as its `layout` says; the layout is left as it is. `None` takes
+    /// the icon out of each widget that has one, which draws its box again.
+    /// A field of another kind is `InvalidArg`; one a signature locked is
+    /// refused (`assert_writable`).
+    pub fn set_button_image(
+        &self,
+        reference: &FormFieldRef,
+        image: Option<&[u8]>,
+        drawings: &mut crate::features::annotation::write::stamp::DrawingIndex,
+        cancel: &CancelToken,
+    ) -> Result<FieldWriteResult, EngineError> {
+        use super::button_image::{image_drawing, set_widget_icon};
+        cancel.check()?;
+        let model = load_model(self.document)?;
+        let resolved = resolve(&model, reference)?;
+        self.assert_writable(&model, &resolved)?;
+        let before = read_at(&model, resolved.index)?;
+        drop(model);
+        let name = &before.base.name;
+        if before.base.family != FormFieldFamily::Pushbutton {
+            let family = serde_json::to_value(before.base.family).unwrap_or_default();
+            return Err(EngineError::with_message(
+                EngineErrorCode::InvalidArg,
+                format!(
+                    "'{name}' is a {} field, not a push button",
+                    family.as_str().unwrap_or("unknown")
+                ),
+            ));
+        }
+        let widgets: Vec<FormWidgetRef> =
+            before.widgets().filter(|widget| widget.page_object_number != 0).copied().collect();
+        if image.is_some() && widgets.is_empty() {
+            return Err(EngineError::with_message(
+                EngineErrorCode::InvalidArg,
+                format!("'{name}' has no widget to show an image in"),
+            ));
+        }
+        let drawing = match image {
+            Some(bytes) => Some(image_drawing(self.document, drawings, bytes)?),
+            None => None,
+        };
+        cancel.check()?;
+        let mut pages = super::snapshot::PageIndexLookup::default();
+        for widget in &widgets {
+            set_widget_icon(self.document, &mut pages, widget, drawing)?;
+        }
+        let drawn: Vec<u32> = widgets.iter().map(|widget| widget.annot_object_number).collect();
         self.read_back(resolved.object_number, &drawn, Some(true), cancel).map(|(result, _)| result)
     }
 

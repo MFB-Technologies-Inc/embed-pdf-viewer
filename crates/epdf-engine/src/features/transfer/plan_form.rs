@@ -179,6 +179,9 @@ pub struct PlannedFieldCopy {
     pub flags: Vec<[Option<bool>; 10]>,
     /// The value it gets; `None` when the copy writes none.
     pub value: Option<FormFieldValue>,
+    /// The widgets it copies, in `draft.widgets` order: where a copy with
+    /// values finds a push button's image (7d5691a5a).
+    pub widgets: Vec<Value>,
 }
 
 /// `FormCopyPlan`.
@@ -349,6 +352,7 @@ pub fn plan_form_copy(input: FormCopyInput<'_>) -> Result<FormCopyPlan, EngineEr
             draft,
             flags: rows.iter().map(|row| flags_of(row)).collect(),
             value,
+            widgets: rows.iter().map(|row| row["ref"].clone()).collect(),
         });
     }
     for key in only.iter().flatten() {
@@ -583,6 +587,12 @@ fn placement_of(
     }
     // A new widget has none of these: only what the row has is written.
     let caption = if family == "pushbutton" { row["caption"].clone() } else { Value::Null };
+    // The PDF's own default, `caption`, needs no write; an older bundle's
+    // row has none (7d5691a5a).
+    let layout = match row.get("layout") {
+        Some(layout) if family == "pushbutton" && layout != "caption" => layout.clone(),
+        _ => Value::Null,
+    };
     for (key, value) in [
         ("color", row["color"].clone()),
         ("interiorColor", row["interiorColor"].clone()),
@@ -593,6 +603,7 @@ fn placement_of(
         ("fontSize", row["fontSize"].clone()),
         ("fontColor", row["fontColor"].clone()),
         ("caption", caption),
+        ("layout", layout),
     ] {
         if !value.is_null() {
             placement.insert(key.into(), value);

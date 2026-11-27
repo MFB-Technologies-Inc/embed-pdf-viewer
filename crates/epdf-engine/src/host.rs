@@ -3605,7 +3605,8 @@ fn strip_item(
         ChangeItem::FormsSetValue { field, widgets, meta }
         | ChangeItem::FormsSetDisplay { field, widgets, meta }
         | ChangeItem::FormsSetAppearanceText { field, widgets, meta }
-        | ChangeItem::FormsSetSignatureAppearance { field, widgets, meta } => {
+        | ChangeItem::FormsSetSignatureAppearance { field, widgets, meta }
+        | ChangeItem::FormsSetButtonImage { field, widgets, meta } => {
             Ok(serde_json::json!({ "field": field, "widgets": widgets, "meta": value(&meta)? }))
         }
         ChangeItem::FormsReset { fields, widgets, meta, .. } => {

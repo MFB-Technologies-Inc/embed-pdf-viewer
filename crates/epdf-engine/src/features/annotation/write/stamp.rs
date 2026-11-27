@@ -102,28 +102,85 @@ pub fn require_stamp_content(
     }
 }
 
+/// What a picture a field shows is, checked before anything is written
+/// (`pictureFormatOf`, 7d5691a5a): a PNG, a JPEG or a one-page PDF (a mark
+/// in a signature field, a push button's image). `declared_pdf` reads the
+/// bytes as a PDF and nothing else, as `{ pdf }` asks. Bytes that are none
+/// of the three are refused with `InvalidArg`, a PDF that doesn't open with
+/// `MalformedPdf`, and one of another page count with `InvalidArg`.
+/// `resource` names the bytes in each refusal as the caller passed them (a
+/// mark's `appearance`, a button's `image`), and `what` names the picture in
+/// the last.
+pub fn picture_format_of(
+    document: &Document,
+    bytes: &[u8],
+    what: &str,
+    declared_pdf: bool,
+    resource: &str,
+) -> Result<BinaryFormat, EngineError> {
+    let format = if declared_pdf { Some(BinaryFormat::Pdf) } else { sniff(bytes) };
+    let Some(format) = format else {
+        return Err(EngineError::with_message(
+            EngineErrorCode::InvalidArg,
+            format!("the {resource} resource must be PNG, JPEG or one-page PDF bytes"),
+        ));
+    };
+    if format != BinaryFormat::Pdf {
+        return Ok(format);
+    }
+    let pages = match document.open_sibling(bytes) {
+        Ok(source) => source.page_count(),
+        Err(_) => {
+            return Err(EngineError::with_message(
+                EngineErrorCode::MalformedPdf,
+                format!("the {resource} PDF could not be opened"),
+            ));
+        }
+    };
+    if pages != 1 {
+        return Err(EngineError::with_message(
+            EngineErrorCode::InvalidArg,
+            format!("the {resource} PDF has {pages} pages; {what} takes a one-page PDF"),
+        ));
+    }
+    Ok(format)
+}
+
 /// The drawing a stamp places for `bytes`, by object number: one the
 /// document already has, when the content is the same, or a new one
-/// (`drawingFor`).
+/// (`drawingFor`). The format is what the bytes' first bytes say.
 pub fn drawing_for(
     document: &Document,
     index: &mut DrawingIndex,
     bytes: &[u8],
 ) -> Result<u32, EngineError> {
+    let format = sniff(bytes).ok_or_else(|| unknown("stamp content preflight invariant broken"))?;
+    drawing_for_format(document, index, bytes, format)
+}
+
+/// [`drawing_for`] for bytes whose format the caller checked
+/// ([`picture_format_of`]): a mark passed as `{ pdf }` is a PDF whatever its
+/// first bytes say. A signature mark, a push button's image and a stamp's
+/// picture share the document's drawings, so each is stored once however
+/// many of them show it (7d5691a5a).
+pub fn drawing_for_format(
+    document: &Document,
+    index: &mut DrawingIndex,
+    bytes: &[u8],
+    format: BinaryFormat,
+) -> Result<u32, EngineError> {
     let source = sha256_hex(bytes)?;
     if let Some(placed) = index.by_source.get(&source) {
         return Ok(*placed);
     }
-    let canonical = match sniff(bytes) {
-        Some(BinaryFormat::Pdf) => document.canonical_drawing_of_pdf(bytes).map_err(|_| {
+    let canonical = match format {
+        BinaryFormat::Pdf => document.canonical_drawing_of_pdf(bytes).map_err(|_| {
             EngineError::with_message(
                 EngineErrorCode::MalformedPdf,
                 "the stamp's appearance PDF could not be opened",
             )
         })?,
-        Some(
-            format @ (BinaryFormat::Png { width, height } | BinaryFormat::Jpeg { width, height }),
-        ) => {
+        BinaryFormat::Png { width, height } | BinaryFormat::Jpeg { width, height } => {
             let png = matches!(format, BinaryFormat::Png { .. });
             document
                 .canonical_drawing_of_image(bytes, png, width, height)
@@ -139,7 +196,6 @@ pub fn drawing_for(
                     )
                 })?
         }
-        None => return Err(unknown("stamp content preflight invariant broken")),
     };
     let content = saved_digest(&canonical)?;
     let by_content = content_index(document, index)?;
@@ -157,8 +213,9 @@ pub fn drawing_for(
     Ok(drawing)
 }
 
-/// Content id to drawing for the drawings the document's stamps place,
-/// built on first use: each exported and hashed once (`contentIndex`).
+/// Content id to drawing for the drawings the document's annotations show (a
+/// stamp's, a mark's in a widget, a push button's icons), built on first
+/// use: each exported and hashed once (`contentIndex`).
 fn content_index<'i>(
     document: &Document,
     index: &'i mut DrawingIndex,

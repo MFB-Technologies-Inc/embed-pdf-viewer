@@ -21,6 +21,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::auth::scope::{DocCapability, FieldWriteAction};
 use crate::error::{EngineError, EngineErrorCode};
+use crate::features::annotation::write::stamp::{
+    DrawingIndex, drawing_for_format, picture_format_of,
+};
 use crate::features::changes::applier::ChangeAuthority;
 use crate::features::forms::snapshot::{FormFieldFamily, FormFieldRef};
 use crate::features::forms::write::{load_model, read_at, resolve};
@@ -325,9 +328,15 @@ fn open_bytes(session: &DocumentSession, bytes: &[u8]) -> Result<Document, Engin
 
 /// `bakeWidgetAppearance`: draw a mark into the widget's normal appearance.
 /// The mark is a PNG, a JPEG or a one-page PDF, a PDF only when its caller
-/// passed it as `{ pdf }`; an image becomes a page of its own size first, as
-/// a stamp's does (`withAppearanceDocument`), so every mark is drawn the same
-/// way. A PDF of any other page count is `InvalidArg`.
+/// passed it as `{ pdf }`; its format is checked before the widget is looked
+/// for (`pictureFormatOf`).
+///
+/// The mark is a drawing, as a stamp's picture is (`drawingFor`, 7d5691a5a):
+/// the document holds it once however many fields, stamps and push buttons
+/// show it, and `drawings` finds the one it already holds. The widget places
+/// it (`EPDFAnnot_SetDrawing`) in a wrapper of its own, fitted uniformly into
+/// its box and turned as the widget turns (`/Rect`, `/MK /R`); neither is
+/// written. `drawings` indexes `doc`.
 ///
 /// The drawing is all a mark writes (445e34a69): the widget reads as having
 /// one (`hasMark`) because its appearance is our wrapper
@@ -337,101 +346,27 @@ fn open_bytes(session: &DocumentSession, bytes: &[u8]) -> Result<Document, Engin
 /// count as a change at all.
 pub(crate) fn bake_widget_appearance(
     doc: &Document,
+    drawings: &mut DrawingIndex,
     widget: &FormWidget,
     mark: MarkBytes<'_>,
 ) -> Result<(), EngineError> {
-    // The mark's format first (`markFormat`), then the widget, then the
-    // mark opened as a page (`withAppearanceDocument`).
-    let format = mark_format(mark)?;
-    let Some(page) = widget.page else {
-        return Err(EngineError::with_message(
-            EngineErrorCode::NotFound,
-            "the widget page could not be loaded",
-        ));
-    };
-    let artwork = mark_document(doc, mark.bytes, format)?;
-    let pages = artwork.page_count();
-    if pages != 1 {
-        return Err(EngineError::with_message(
-            EngineErrorCode::InvalidArg,
-            format!(
-                "the appearance PDF has {pages} pages; a signature appearance takes a one-page PDF"
-            ),
-        ));
-    }
-    doc.bake_widget_appearance(page.object_number().get(), widget.annot_object_number, &artwork, 0)
-        .map_err(|step| match step {
-            "page" => EngineError::with_message(
-                EngineErrorCode::NotFound,
-                "the widget page could not be loaded",
-            ),
-            "widget" => EngineError::with_message(
-                EngineErrorCode::NotFound,
-                "the signature widget could not be loaded",
-            ),
-            "draw" => EngineError::with_message(
+    let format = picture_format_of(
+        doc,
+        mark.bytes,
+        "a signature appearance",
+        mark.declared_pdf,
+        "appearance",
+    )?;
+    with_widget_annotation(doc, widget, |annotation| {
+        let drawing = drawing_for_format(doc, drawings, mark.bytes, format)?;
+        if !annotation.set_drawing(drawing, pdfium::StampFit::Contain) {
+            return Err(EngineError::with_message(
                 EngineErrorCode::InvalidArg,
                 "the appearance page could not be drawn into the widget",
-            ),
-            _ => EngineError::with_message(
-                EngineErrorCode::Unknown,
-                "the appearance page could not be fitted into the widget",
-            ),
-        })?;
-    Ok(())
-}
-
-/// `markFormat`: what a mark's bytes are. Bytes passed as `{ pdf }` are a
-/// PDF; bytes passed as themselves are what their first bytes say, and bytes
-/// that are none of the three are refused.
-fn mark_format(mark: MarkBytes<'_>) -> Result<crate::features::binary::BinaryFormat, EngineError> {
-    use crate::features::binary::{BinaryFormat, sniff};
-    let format = if mark.declared_pdf { Some(BinaryFormat::Pdf) } else { sniff(mark.bytes) };
-    format.ok_or_else(|| {
-        EngineError::with_message(
-            EngineErrorCode::InvalidArg,
-            "the appearance resource must be PNG, JPEG or one-page PDF bytes",
-        )
-    })
-}
-
-/// `withAppearanceDocument` over a mark of a known format: a PDF opens as
-/// one or is refused as one that doesn't; an image becomes a page of its own
-/// size.
-fn mark_document(
-    doc: &Document,
-    bytes: &[u8],
-    format: crate::features::binary::BinaryFormat,
-) -> Result<Document, EngineError> {
-    use crate::features::binary::BinaryFormat;
-    match format {
-        BinaryFormat::Pdf => doc.open_sibling(bytes).map_err(|_| {
-            EngineError::with_message(
-                EngineErrorCode::MalformedPdf,
-                "the appearance PDF could not be opened",
-            )
-        }),
-        BinaryFormat::Png { width, height } | BinaryFormat::Jpeg { width, height } => {
-            let png = matches!(format, BinaryFormat::Png { .. });
-            doc.image_document(bytes, png, width, height)
-                .map_err(|_| {
-                    EngineError::with_message(
-                        EngineErrorCode::Unknown,
-                        "the appearance image could not be made a page",
-                    )
-                })?
-                .ok_or_else(|| {
-                    EngineError::with_message(
-                        EngineErrorCode::InvalidArg,
-                        if png {
-                            "EPDFImageObj_SetPng rejected the image data"
-                        } else {
-                            "EPDFImageObj_SetJpeg rejected the image data"
-                        },
-                    )
-                })
+            ));
         }
-    }
+        Ok(())
+    })
 }
 
 /// `clearWidgetMark`: take a mark that was drawn in without signing out of a
@@ -522,8 +457,17 @@ fn filled_anyone_fields(session: &DocumentSession) -> Result<Vec<String>, Engine
     let model = load_model(session.document()?.document())?;
     let mut names = Vec::new();
     for index in 0..model.field_count() {
+        // The fact first, from the field's own entry, as upstream reads it:
+        // a field nobody marked is never read whole, so it can't fail the
+        // signing.
+        let Some(raw) = model.field(index) else { continue };
+        if !crate::features::forms::snapshot::read_field_for_anyone(&raw)? {
+            continue;
+        }
+        // Perf: a whole read where upstream's `fieldHoldsValue` reads the
+        // value alone; it runs for fields anyone fills in only.
         let field = read_at(&model, index)?;
-        if !field.base.for_anyone || !field_holds_value(&field) {
+        if !field_holds_value(&field) {
             continue;
         }
         if !field.base.name.is_empty() {
@@ -721,7 +665,9 @@ pub fn prepare(
                 "an appearance carries its bytes as a request payload",
             )
         })?;
-        bake_widget_appearance(&candidate, widget, mark)?;
+        // The candidate is a document of its own, so its drawings are found
+        // in it: a mark the document already shows is placed again.
+        bake_widget_appearance(&candidate, &mut DrawingIndex::default(), widget, mark)?;
     }
 
     let mut saved = candidate.save_signature_candidate(value_obj_num).map_err(|_| {
@@ -1171,9 +1117,9 @@ fn remove_timestamp_appearance(candidate: &Document, widget: u32) -> Result<(), 
 mod tests {
     use super::*;
 
-    /// `bakeWidgetAppearance` reads the mark's format first (`markFormat`),
-    /// then loads the widget (`withWidgetAnnotation`): bytes that are no
-    /// mark are `InvalidArg` whatever the widget is.
+    /// `bakeWidgetAppearance` reads the mark's format first
+    /// (`pictureFormatOf`), then loads the widget (`withWidgetAnnotation`):
+    /// bytes that are no mark are `InvalidArg` whatever the widget is.
     #[test]
     fn a_mark_that_is_no_picture_is_refused_before_the_widget_is_looked_for() {
         let doc = Document::from_bytes(
@@ -1187,16 +1133,17 @@ mod tests {
         assert!(widget.page.is_none());
         let mark =
             MarkBytes { bytes: b"GIF89a: not a format a mark is read from", declared_pdf: false };
-        let refused = bake_widget_appearance(&doc, &widget, mark).unwrap_err();
+        let refused =
+            bake_widget_appearance(&doc, &mut DrawingIndex::default(), &widget, mark).unwrap_err();
         assert_eq!(refused.code, EngineErrorCode::InvalidArg, "{refused}");
     }
 
-    /// The mark is opened only once its widget is found
-    /// (`withAppearanceDocument` runs inside `withWidgetAnnotation`): a
-    /// malformed `{ pdf }` on a widget with no page is `NotFound`, not
-    /// `MalformedPdf`.
+    /// A `{ pdf }` mark is opened before its widget is looked for
+    /// (`pictureFormatOf` runs ahead of `withWidgetAnnotation` since
+    /// 7d5691a5a): a malformed one on a widget with no page is
+    /// `MalformedPdf`, not `NotFound`.
     #[test]
-    fn a_malformed_pdf_mark_on_a_widget_with_no_page_is_not_found() {
+    fn a_malformed_pdf_mark_is_refused_before_the_widget_is_looked_for() {
         let doc = Document::from_bytes(
             Library::acquire(),
             &test_support::fixture(test_support::REPORT),
@@ -1207,7 +1154,8 @@ mod tests {
         assert!(widget.page.is_none());
         let mark =
             MarkBytes { bytes: b"%PDF-1.7 and then nothing a PDF holds", declared_pdf: true };
-        let refused = bake_widget_appearance(&doc, &widget, mark).unwrap_err();
-        assert_eq!(refused.code, EngineErrorCode::NotFound, "{refused}");
+        let refused =
+            bake_widget_appearance(&doc, &mut DrawingIndex::default(), &widget, mark).unwrap_err();
+        assert_eq!(refused.code, EngineErrorCode::MalformedPdf, "{refused}");
     }
 }

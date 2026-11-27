@@ -589,6 +589,10 @@ fn run_op(ctx: &mut ChangeContext<'_>, op: &ChangeOp, at: usize) -> Result<Done,
             let mark = appearance.as_ref().map(SignatureAppearance::mark).transpose()?;
             super::forms::set_signature_appearance(ctx, field, mark)
         }
+        ChangeOp::FormsSetButtonImage { field, image } => {
+            let image = image.as_ref().map(super::op::ResourceBytes::bytes).transpose()?;
+            super::forms::set_button_image(ctx, field, image)
+        }
         ChangeOp::FormsUpdateWidget { widget, patch, expect } => {
             super::fields::update_widget(ctx, widget, patch, expect.as_ref(), at)
         }

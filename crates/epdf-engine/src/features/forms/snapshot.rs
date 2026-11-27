@@ -932,6 +932,28 @@ mod tests {
         assert!(FormValueEntry::Unsupported.values().is_empty());
     }
 
+    /// `pictureButton.test.ts` (7d5691a5a): a push button an older side
+    /// wrote, without `hasImage`, holds no image (`withButtonImage`); one
+    /// that says comes back as it is.
+    #[test]
+    fn a_push_button_without_has_image_holds_none() {
+        let button = serde_json::json!({
+            "ref": { "kind": "objectNumber", "objectNumber": 20 }, "name": "initials",
+            "kind": "pushbutton", "origin": "acroform", "readOnly": false, "required": false,
+            "noExport": false, "alternateName": null, "mappingName": null,
+            "valueEntry": { "kind": "none" }, "defaultValueEntry": { "kind": "none" },
+            "groupId": null, "forAnyone": false, "purpose": null, "createdBy": null,
+            "createdAt": null, "filledBy": null, "filledByName": null, "filledAt": null,
+            "importedBy": null, "widgets": [] });
+        let older: FormFieldDto = serde_json::from_value(button.clone()).unwrap();
+        assert!(matches!(older.kind, FormFieldKind::Pushbutton { has_image: false, .. }));
+        let mut current = button;
+        current["hasImage"] = serde_json::json!(true);
+        let current: FormFieldDto = serde_json::from_value(current).unwrap();
+        assert!(matches!(current.kind, FormFieldKind::Pushbutton { has_image: true, .. }));
+        assert_eq!(serde_json::to_value(&current).unwrap()["hasImage"], true);
+    }
+
     #[test]
     fn a_field_ref_is_an_object_number_or_a_full_name() {
         assert_eq!(

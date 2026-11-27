@@ -708,6 +708,7 @@ pub fn change_op_in_file_space(
         | ChangeOp::FormsSetDisplay { .. }
         | ChangeOp::FormsSetAppearanceText { .. }
         | ChangeOp::FormsSetSignatureAppearance { .. }
+        | ChangeOp::FormsSetButtonImage { .. }
         | ChangeOp::FormsReset { .. }
         | ChangeOp::FormsUpdate { .. }
         | ChangeOp::FormsDelete { .. }
@@ -870,6 +871,13 @@ pub fn change_item_in_page_space(
         }
         ChangeItem::FormsSetSignatureAppearance { field, widgets, meta } => {
             Ok(ChangeItem::FormsSetSignatureAppearance {
+                field: super::forms::page_form_field_value(field, box_of)?,
+                widgets: page_widgets(widgets, box_of)?,
+                meta,
+            })
+        }
+        ChangeItem::FormsSetButtonImage { field, widgets, meta } => {
+            Ok(ChangeItem::FormsSetButtonImage {
                 field: super::forms::page_form_field_value(field, box_of)?,
                 widgets: page_widgets(widgets, box_of)?,
                 meta,

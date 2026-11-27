@@ -187,6 +187,8 @@ fn exported_field(mut field: Value) -> Value {
                 option["selected"] = json!(false);
             }
         }
+        // A push button goes without its picture (bfbaac1f2).
+        "pushbutton" => field["hasImage"] = json!(false),
         _ => {}
     }
     field

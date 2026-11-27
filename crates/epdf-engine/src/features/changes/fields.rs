@@ -1220,6 +1220,9 @@ pub fn import_form(
         for (widget, flags) in written.field.widgets().zip(&planned.flags) {
             write_widget_flags(ctx, widget, flags)?;
         }
+        // A push button's image is its value: with values, each widget that
+        // names one in the bundle places it.
+        place_images(ctx, &written.field, &imported_images(&bundle, &widgets, planned, values))?;
         let reference = FormFieldRef::ObjectNumber { field: object_number };
         if let Some(value) = &planned.value {
             mutator(ctx)?.set_value(&reference, value, ctx.cancel)?;
@@ -1399,6 +1402,9 @@ pub fn copy_fields(
                 format!("copy: field {}: {e}", planned.source),
             )
         })?;
+        // A push button's image is its value: each copied widget places the
+        // drawing its source shows.
+        let images = copied_images(ctx, planned, values)?;
         let (object_number, widget_numbers) = match numbers {
             Some([own, rest @ ..]) => (Some(*own), Some(rest)),
             _ => (None, None),
@@ -1424,6 +1430,7 @@ pub fn copy_fields(
         for (widget, flags) in written.field.widgets().zip(&planned.flags) {
             write_widget_flags(ctx, widget, flags)?;
         }
+        place_images(ctx, &written.field, &images)?;
         if let Some(value) = &planned.value {
             let reference = FormFieldRef::ObjectNumber { field: made };
             mutator(ctx)?.set_value(&reference, value, ctx.cancel)?;
@@ -1553,6 +1560,101 @@ fn name_conflicts(names: &[String], name: &str) -> bool {
             || other.starts_with(&format!("{name}."))
             || name.starts_with(&format!("{other}."))
     })
+}
+
+/// A push button's image a planned create gives one of its widgets
+/// (`PlannedImage`): a drawing this document holds (a copy's), or a one-page
+/// PDF's bytes that become one (an import's).
+enum PlannedImage<'b> {
+    Drawing(u32),
+    Bytes(&'b [u8]),
+}
+
+/// The image each widget of a copied push button shows (7d5691a5a): the
+/// drawing its source widget names as its icon, `None` for none. A copy
+/// without values, and a field of another kind, shows none.
+fn copied_images(
+    ctx: &ChangeContext<'_>,
+    planned: &crate::features::transfer::plan_form::PlannedFieldCopy,
+    values: bool,
+) -> Result<Vec<Option<PlannedImage<'static>>>, EngineError> {
+    if !values || planned.draft.get("kind").and_then(Value::as_str) != Some("pushbutton") {
+        return Ok(Vec::new());
+    }
+    let document = ctx.session.document()?.document();
+    let mut pages = crate::features::forms::snapshot::PageIndexLookup::default();
+    planned
+        .widgets
+        .iter()
+        .map(|reference| {
+            let reference: AnnotationRef = serde_json::from_value(reference.clone())
+                .map_err(|e| unreadable_ref(e.to_string()))?;
+            let AnnotationRef::ObjectNumber { page, annot } = reference else { return Ok(None) };
+            let widget =
+                FormWidgetRef { annot_object_number: annot, page_object_number: page.get() };
+            Ok(crate::features::forms::button_image::read_widget_icon(
+                document, &mut pages, &widget,
+            )?
+            .map(PlannedImage::Drawing))
+        })
+        .collect()
+}
+
+fn unreadable_ref(message: String) -> EngineError {
+    EngineError::with_message(
+        EngineErrorCode::Unknown,
+        format!("a copied widget's ref did not read: {message}"),
+    )
+}
+
+/// The image each widget of an imported push button shows (7d5691a5a): the
+/// bundle resource its row names as its `image`, `None` for none. An import
+/// without values, and a field of another kind, shows none.
+fn imported_images<'b>(
+    bundle: &'b crate::features::transfer::bundle::Bundle,
+    widgets: &[Value],
+    planned: &crate::features::transfer::plan_form::PlannedFormField,
+    values: bool,
+) -> Vec<Option<PlannedImage<'b>>> {
+    if !values || planned.draft.get("kind").and_then(Value::as_str) != Some("pushbutton") {
+        return Vec::new();
+    }
+    planned
+        .widgets
+        .iter()
+        .map(|row| {
+            let id = widgets.get(*row)?["resources"]["image"].as_str()?;
+            let (_, bytes) = bundle.resources.iter().find(|(held, _)| held == id)?;
+            Some(PlannedImage::Bytes(bytes.as_slice()))
+        })
+        .collect()
+}
+
+/// Each new widget of `field` shows its planned image, in the field's
+/// widget order (`createPlannedFields`): its icon is the drawing, or the
+/// drawing its bytes make or find.
+fn place_images(
+    ctx: &ChangeContext<'_>,
+    field: &FormFieldDto,
+    images: &[Option<PlannedImage<'_>>],
+) -> Result<(), EngineError> {
+    use crate::features::forms::button_image::{image_drawing, set_widget_icon};
+    let document = ctx.session.document()?.document();
+    let mut pages = crate::features::forms::snapshot::PageIndexLookup::default();
+    for (widget, image) in field.widgets().zip(images) {
+        let Some(image) = image else { continue };
+        if widget.page_object_number == 0 {
+            continue;
+        }
+        let drawing = match image {
+            PlannedImage::Drawing(drawing) => *drawing,
+            PlannedImage::Bytes(bytes) => {
+                image_drawing(document, &mut ctx.session.drawing_index()?.borrow_mut(), bytes)?
+            }
+        };
+        set_widget_icon(document, &mut pages, widget, Some(drawing))?;
+    }
+    Ok(())
 }
 
 /// A new widget's flags, as its row in the bundle has them: a create writes

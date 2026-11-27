@@ -24,8 +24,9 @@ pub const FORM_BUNDLE_VERSION: u64 = 1;
 pub const FORM_BUNDLE_KEYS: &[&str] =
     &["format", "version", "pages", "fields", "widgets", "calculationOrder"];
 
-/// The resource roles a widget names: none yet (`WIDGET_RESOURCE_ROLES`).
-const WIDGET_RESOURCE_ROLES: &[&str] = &[];
+/// The resource roles a widget names: a push button's `image`, as a one-page
+/// PDF (`WIDGET_RESOURCE_ROLES`, 7d5691a5a).
+const WIDGET_RESOURCE_ROLES: &[&str] = &["image"];
 
 const BUNDLE_FIELDS: &[&str] =
     &["format", "version", "pages", "fields", "widgets", "calculationOrder", "resources"];

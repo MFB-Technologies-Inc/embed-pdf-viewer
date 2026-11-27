@@ -371,6 +371,17 @@ pub enum ChangeOp {
         #[serde(deserialize_with = "present_or_null")]
         appearance: Option<SignatureAppearance>,
     },
+    /// A push button's image (a PNG, a JPEG or a one-page PDF) in every
+    /// widget of the field, as a request payload, `{ "payload": n }`;
+    /// `None` (`null`) takes it out (7d5691a5a).
+    #[serde(rename = "forms.setButtonImage")]
+    FormsSetButtonImage {
+        field: FormFieldRef,
+        /// Required, `null` included, as `ButtonImageResourceKeysSchema`'s
+        /// `image` is.
+        #[serde(deserialize_with = "present_or_null_bytes")]
+        image: Option<ResourceBytes>,
+    },
     /// A new outline item under `parent` (`None`: the top level), at
     /// `position` among its children (the end when left out), at
     /// `objectNumber` when given. The draft (`OutlineItemDraft`) stays the
@@ -599,6 +610,13 @@ fn present_or_null<'de, D: serde::Deserializer<'de>>(
     Option::<SignatureAppearance>::deserialize(d)
 }
 
+/// [`present_or_null`] for bytes alone.
+fn present_or_null_bytes<'de, D: serde::Deserializer<'de>>(
+    d: D,
+) -> Result<Option<ResourceBytes>, D::Error> {
+    Option::<ResourceBytes>::deserialize(d)
+}
+
 impl Serialize for SignatureAppearance {
     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         use serde::ser::SerializeMap;
@@ -709,6 +727,18 @@ pub fn resolve_payloads(change: &mut Change, payloads: &[Vec<u8>]) -> Result<(),
                     appearance.resolve(payloads)?;
                 }
             }
+            ChangeOp::FormsSetButtonImage { image: Some(image), .. } => {
+                if let ResourceBytes::Payload(index) = *image {
+                    let bytes = payloads.get(index).ok_or_else(|| {
+                        malformed(format!(
+                            "image payload {index} is missing: the request carries {}",
+                            payloads.len()
+                        ))
+                    })?;
+                    *image = ResourceBytes::Bytes(bytes.clone());
+                }
+            }
+            ChangeOp::FormsSetButtonImage { image: None, .. } => {}
             ChangeOp::MetadataUpdate { .. }
             | ChangeOp::MetadataUpdateCustom { .. }
             | ChangeOp::AttachmentsDelete { .. }
@@ -805,6 +835,7 @@ impl ChangeOp {
             Self::FormsReorderWidgets { .. } => "forms.reorderWidgets",
             Self::FormsUpdateWidget { .. } => "forms.updateWidget",
             Self::FormsSetSignatureAppearance { .. } => "forms.setSignatureAppearance",
+            Self::FormsSetButtonImage { .. } => "forms.setButtonImage",
             Self::OutlineCreate { .. } => "outline.create",
             Self::OutlineUpdate { .. } => "outline.update",
             Self::OutlineMove { .. } => "outline.move",
@@ -929,6 +960,7 @@ pub fn parse_op(at: usize, op: &serde_json::Value) -> Result<ChangeOp, EngineErr
         | ChangeOp::FormsReorderWidgets { .. }
         | ChangeOp::FormsUpdateWidget { .. }
         | ChangeOp::FormsSetSignatureAppearance { .. }
+        | ChangeOp::FormsSetButtonImage { .. }
         | ChangeOp::OutlineCreate { .. }
         | ChangeOp::OutlineUpdate { .. }
         | ChangeOp::OutlineMove { .. }

@@ -29,6 +29,7 @@
 //! [`crate::features::changes::fields`].
 
 pub mod anyone;
+pub mod button_image;
 pub mod calculation;
 pub mod field;
 pub mod format;

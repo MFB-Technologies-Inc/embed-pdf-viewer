@@ -40,6 +40,7 @@ const FILLS: &[&str] = &[
     "forms.setAppearanceText",
     "forms.reset",
     "forms.setSignatureAppearance",
+    "forms.setButtonImage",
 ];
 
 /// A field as an op found it (`ReadField`).
@@ -112,15 +113,37 @@ pub fn set_signature_appearance(
         crate::auth::scope::FieldAssignment::of_field(&before.field.base),
         FieldWriteAction::Sign,
     )?;
+    let drawings = ctx.session.drawing_index()?;
     record_revert(ctx, &before, "forms.setSignatureAppearance", |mutator, cancel| {
-        mutator.set_signature_appearance(reference, mark, cancel)
+        mutator.set_signature_appearance(reference, mark, &mut drawings.borrow_mut(), cancel)
+    })
+}
+
+/// `forms.setButtonImage`: a push button's image put in, or taken out
+/// (`None`). It is filling the field in, so it takes the fill right for the
+/// field (its group, or any fill right for a field anyone fills in). Its
+/// reverse puts the widgets back as they were: their icons and their looks.
+pub fn set_button_image(
+    ctx: &mut ChangeContext<'_>,
+    reference: &FormFieldRef,
+    image: Option<&[u8]>,
+) -> Result<Done, EngineError> {
+    ctx.cancel.check()?;
+    let before = read_field(ctx, reference)?;
+    ctx.authority.require_field_write_for(
+        crate::auth::scope::FieldAssignment::of_field(&before.field.base),
+        FieldWriteAction::Fill,
+    )?;
+    let drawings = ctx.session.drawing_index()?;
+    record_revert(ctx, &before, "forms.setButtonImage", |mutator, cancel| {
+        mutator.set_button_image(reference, image, &mut drawings.borrow_mut(), cancel)
     })
 }
 
 /// A write to the field `before` reads, recording what it writes and
 /// reporting the field read back (`recordRevert`).
 fn record_revert(
-    ctx: &mut ChangeContext<'_>,
+    ctx: &ChangeContext<'_>,
     before: &ReadField,
     reports: &str,
     write: impl FnOnce(
@@ -589,6 +612,7 @@ fn field_item_in(
         "forms.setSignatureAppearance" => {
             ChangeItem::FormsSetSignatureAppearance { field, widgets, meta }
         }
+        "forms.setButtonImage" => ChangeItem::FormsSetButtonImage { field, widgets, meta },
         "forms.update" => ChangeItem::FormsUpdate {
             field,
             widgets,

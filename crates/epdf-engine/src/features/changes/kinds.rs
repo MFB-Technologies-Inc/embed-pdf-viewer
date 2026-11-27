@@ -39,6 +39,15 @@ pub const FIELD_PURPOSE_AND_FORMAT_SINCE: &str = "3.4";
 /// field reads `forAnyone: false`.
 pub const ANYONE_FIELDS_SINCE: &str = "3.5";
 
+/// `BUTTON_IMAGE_AND_LAYOUT_SINCE` (7d5691a5a): the version a push button's
+/// image and a widget's `layout` arrived in on the wire: the change op
+/// `forms.setButtonImage`, a `layout` in a widget's placement or patch, and
+/// a form bundle whose widget shows an image or names one. A client sends
+/// none of them to an older server, whose request schemas refuse a member
+/// they don't know. Reading needs no such check: an older server's rows read
+/// without them.
+pub const BUTTON_IMAGE_AND_LAYOUT_SINCE: &str = "3.5";
+
 /// Every kind of change op and result item, in the order the wire schema
 /// lists them (`CHANGE_KINDS`): an op's type, or a restore. An import is a
 /// route of its own, so it isn't one.
@@ -63,6 +72,7 @@ pub const CHANGE_KINDS: &[&str] = &[
     "forms.reorderWidgets",
     "forms.updateWidget",
     "forms.setSignatureAppearance",
+    "forms.setButtonImage",
     "metadata.update",
     "metadata.updateCustom",
     "outline.create",
@@ -88,8 +98,12 @@ pub const CHANGE_KINDS: &[&str] = &[
 
 /// The version each kind arrived in, when it isn't [`FIRST_VERSION`]
 /// (`CHANGE_KIND_SINCE`).
-pub const CHANGE_KIND_SINCE: &[(&str, &str)] =
-    &[("pages.setScale", "3.1"), ("annotations.copy", "3.2"), ("forms.copy", "3.2")];
+pub const CHANGE_KIND_SINCE: &[(&str, &str)] = &[
+    ("pages.setScale", "3.1"),
+    ("annotations.copy", "3.2"),
+    ("forms.copy", "3.2"),
+    ("forms.setButtonImage", BUTTON_IMAGE_AND_LAYOUT_SINCE),
+];
 
 /// The version every kind without a row arrived in.
 const FIRST_VERSION: &str = "3.0";
