@@ -8,7 +8,7 @@ says which to pick.
 The `EmbedPDF.Engine` namespace exposes an in-process, typed read facade over
 `epdf-capi`. The package name is provisional; this slice does not package,
 relocate or publish native assets. Target framework: **net10.0 only**, 64-bit.
-The scoped SDK pin is `10.0.404`.
+The scoped SDK pin is `11.0.100`; it builds net10.0, and the tests also run on .NET 11.
 
 ```csharp
 using EmbedPDF.Engine;
@@ -135,6 +135,13 @@ The viewer is five packages beside `EmbedPDF.Engine`, with no dependency between
 They reach every viewer plugin the Swift package reaches, below the UI: there is no UI package, so
 an app binds `EmbedPDF.Models` to its own views (see [Binding the models to a UI](#binding-the-models-to-a-ui)).
 All five target `net10.0` and set `IsAotCompatible`.
+
+We support the .NET versions Microsoft supports: .NET 10 (LTS, to November 2028) and .NET 11. A
+.NET 11 app uses the same `net10.0` assemblies, so there is one build. `EmbedPDF.Viewer.Tests`,
+`EmbedPDF.Models.Tests` and the consumer check in `packaging/package.py` run on both runtimes;
+`.github/actions/setup-dotnet` installs the SDK and the .NET 10 runtime beside it. The target moves
+up only when .NET 10 leaves support, and the `Microsoft.Extensions.*` references stay on the 10.x
+line until then (`renovate.json` caps them), so a .NET 10 app never pulls a newer major.
 
 | Package | What it is for | Depends on |
 |---|---|---|

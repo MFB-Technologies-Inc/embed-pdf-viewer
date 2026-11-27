@@ -25,9 +25,12 @@ ARG ANDROID_CMDLINE_TOOLS_BUILD=16111833
 ARG ANDROID_CMDLINE_TOOLS_SHA256=0877a1d048fe4a24efe2eff536ca4223f7adeb58648bb81909d33c446918cfa8
 ARG ANDROID_PLATFORM=android-36
 ARG ANDROID_BUILD_TOOLS=36.0.0
-# Must equal the version and SHA512 in .github/workflows/release-dotnet.yml.
+# Must equal the versions and Linux SHA512s in .github/actions/setup-dotnet/action.yml.
 # renovate: datasource=dotnet-version depName=dotnet-sdk
-ARG DOTNET_SDK_VERSION=10.0.404
+ARG DOTNET_SDK_VERSION=11.0.100
+# The packages target net10.0, so their tests also run on the .NET 10 runtime.
+# renovate: datasource=dotnet-version depName=dotnet-runtime
+ARG DOTNET_RUNTIME_VERSION=10.0.15
 # renovate: datasource=github-tags depName=rust-lang/rustup
 ARG RUSTUP_VERSION=1.29.3
 ARG RUSTUP_SHA256_AMD64=b1c8cb14e30889e7e2999e6b69e62d9e9b9ffc0f4df8180564d306d9680e6c55
@@ -119,18 +122,25 @@ RUN apt-get update \
       echo 'Android SDK omitted: upstream does not provide Linux ARM64 host build tools.'; \
     fi
 
-# SHA512 values from Microsoft's .NET 10 release metadata, matched to this SDK.
+# SHA512 values from Microsoft's .NET release metadata, matched to the SDK and runtime.
 RUN case "$TARGETARCH" in \
-      amd64) dotnet_arch=x64; dotnet_sha512=577d0eb17fec33d029104c5c63a1ab0accc3e28776274abef2218dbac5af18d2109b5406d26b31d76f5c245215e3ba0926a94c20246c672c41847c9e1eb1dc50 ;; \
-      arm64) dotnet_arch=arm64; dotnet_sha512=3533a3869da219cac45c567aadac3d8e96cdf1c6a04fe1c1d5fdeefea5d45af8424488f0144730d11b4a751f7ad546fb11e4c2b2725cd8401efee726711f8f11 ;; \
+      amd64) dotnet_arch=x64; dotnet_sha512=1bec9cca2ec689b1e80245b84f2b53c9441d1aa6daccf2ceb27490768bffa95954fa585bd275def31069d874d543d9ba9e6591fe9ade2dbd9f34ec5c0fd0050c; \
+        dotnet_runtime_sha512=a90177d75bc891f71aa814dde3bcf76a356f5a506824669f1891754457954a3d13b72f3ca04c98fa0fe588514a5a781f8a87b17930ee802105c14f9edb28318a ;; \
+      arm64) dotnet_arch=arm64; dotnet_sha512=cfa248bb1377606e868602fb5b4d66fa16b7546156593937d1982f7f2142e6ded76d71c4a26efdab99f87c46ab40c3c672ab1b57ef7fa25449efe5b140a55af4; \
+        dotnet_runtime_sha512=e2e8b907d9eb6c239cccf5c1fe67fd9a72c56fddccedca9ba41c8a53ff034293b335fdd9f7ab504f09bf7b3f165e0d14e34fc9ea1f06cc0e86d0dfb06d274b6a ;; \
     esac \
     && curl -fsSL --retry 3 \
       "https://builds.dotnet.microsoft.com/dotnet/Sdk/${DOTNET_SDK_VERSION}/dotnet-sdk-${DOTNET_SDK_VERSION}-linux-${dotnet_arch}.tar.gz" \
       -o /tmp/dotnet-sdk.tar.gz \
     && echo "$dotnet_sha512  /tmp/dotnet-sdk.tar.gz" | sha512sum -c - \
+    && curl -fsSL --retry 3 \
+      "https://builds.dotnet.microsoft.com/dotnet/Runtime/${DOTNET_RUNTIME_VERSION}/dotnet-runtime-${DOTNET_RUNTIME_VERSION}-linux-${dotnet_arch}.tar.gz" \
+      -o /tmp/dotnet-runtime.tar.gz \
+    && echo "$dotnet_runtime_sha512  /tmp/dotnet-runtime.tar.gz" | sha512sum -c - \
     && mkdir /opt/dotnet \
     && tar -xzf /tmp/dotnet-sdk.tar.gz -C /opt/dotnet \
-    && rm /tmp/dotnet-sdk.tar.gz \
+    && tar -xzf /tmp/dotnet-runtime.tar.gz -C /opt/dotnet \
+    && rm /tmp/dotnet-sdk.tar.gz /tmp/dotnet-runtime.tar.gz \
     && ln -s /opt/dotnet/dotnet /usr/local/bin/dotnet
 
 # Seed a Docker-managed volume with writable directories, never a host checkout.
@@ -212,6 +222,7 @@ USER node
 RUN o2f-client --version && gcf-client --version \
     && rustc --version && cargo llvm-cov --version && pnpm --version && emcc --version && dotnet --version \
     && test "$(dotnet --version)" = "$DOTNET_SDK_VERSION" \
+    && dotnet --list-runtimes | grep -F "Microsoft.NETCore.App ${DOTNET_RUNTIME_VERSION} " \
     && wasm-opt --version | grep -F "version ${BINARYEN_VERSION}" \
     && wasm-bindgen --version | grep -F "$WASM_BINDGEN_VERSION" \
     && bash -lc 'command -v emcc && command -v cargo && command -v pnpm && command -v o2f-browser && test "$(command -v dotnet)" = /usr/local/bin/dotnet && wasm-opt --version | grep -F "version ${BINARYEN_VERSION}"'

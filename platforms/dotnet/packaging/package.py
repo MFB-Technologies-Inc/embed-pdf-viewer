@@ -611,6 +611,10 @@ def consumer_nuget_config(feed):
         '  </packageSourceMapping>\n</configuration>\n')
 FIXTURE_PAGES = 14
 SCRUBBED_ENV = ["EPDF_NATIVE_DIR","PDF_RUNTIME_LIB_DIR","LD_LIBRARY_PATH","DYLD_LIBRARY_PATH","DYLD_FALLBACK_LIBRARY_PATH"]
+# The consumer check builds and runs an app for each: the one framework the
+# packages target, and the newest .NET, whose apps load those net10.0
+# assemblies. The SDK in global.json builds both; CI installs both runtimes.
+CONSUMER_FRAMEWORKS = ("net10.0", "net11.0")
 
 def pinned_runtime_version():
     props = (DOTNET / "EmbedPDF.Runtime/EmbedPDF.Runtime.props").read_text()
@@ -706,7 +710,7 @@ def smoke_runtime(args):
         shutil.copy2(DOTNET/"packaging/ViewerSmoke.cs", directory/"Program.cs")
         shutil.copy2(FIXTURE, directory/"input.pdf")
         (directory/"Consumer.csproj").write_text(
-            '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>'
+            '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFrameworks>'+";".join(CONSUMER_FRAMEWORKS)+'</TargetFrameworks>'
             '<ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><UseAppHost>false</UseAppHost>'
             '<SelfContained>false</SelfContained><EnableRuntimePackDownload>false</EnableRuntimePackDownload></PropertyGroup>'
             '<ItemGroup><PackageReference Include="EmbedPDF" Version="'+facade_version+'"/></ItemGroup></Project>')
@@ -734,25 +738,27 @@ def smoke_runtime(args):
                 moved.rename(path)
         passed = [f"PASS: rid={args.rid} pages={FIXTURE_PAGES}"]
         missing = ["NativeRuntimeNotFoundException", f"rid={args.rid}"]
-        # A RID-specific build: NuGet copies the native files beside the app.
-        # A nuget.config beside the project: both restores below read it.
+        # A nuget.config beside the project: every restore below reads it.
         (directory/"nuget.config").write_text(consumer_nuget_config(feed))
-        run([dotnet,"restore","Consumer.csproj","--configfile",str(directory/"nuget.config"),"--runtime",args.rid],cwd=directory,env=env)
-        run([dotnet,"build","Consumer.csproj","-c","Release","--no-restore","--runtime",args.rid,"--self-contained","false",
-             "-o",str(directory/"app-rid")],cwd=directory,env=env)
-        app = directory/"app-rid"
-        consume(app, 0, passed)
-        hidden(app/host_name, lambda: consume(app, 3, missing))
-        hidden(app/pdfium_name, lambda: consume(app, None, []))
-        # A portable build: the files stay under runtimes/<rid>/native.
-        run([dotnet,"build","Consumer.csproj","-c","Release","-o",str(directory/"app-portable")],cwd=directory,env=env)
-        app = directory/"app-portable"
-        native = app/"runtimes"/args.rid/"native"
-        if not (native/host_name).is_file():
-            raise ValueError(f"portable build has no {native/host_name}")
-        consume(app, 0, passed)
-        hidden(native/host_name, lambda: consume(app, 3, missing))
-        print("PASS: RID-specific and portable consumers, missing-host and missing-PDFium checks")
+        for framework in CONSUMER_FRAMEWORKS:
+            # A RID-specific build: NuGet copies the native files beside the app.
+            # Restored each time: the portable build below restores without the RID.
+            run([dotnet,"restore","Consumer.csproj","--configfile",str(directory/"nuget.config"),"--runtime",args.rid],cwd=directory,env=env)
+            app = directory/f"app-rid-{framework}"
+            run([dotnet,"build","Consumer.csproj","-c","Release","--no-restore","--framework",framework,"--runtime",args.rid,
+                 "--self-contained","false","-o",str(app)],cwd=directory,env=env)
+            consume(app, 0, passed)
+            hidden(app/host_name, lambda: consume(app, 3, missing))
+            hidden(app/pdfium_name, lambda: consume(app, None, []))
+            # A portable build: the files stay under runtimes/<rid>/native.
+            app = directory/f"app-portable-{framework}"
+            run([dotnet,"build","Consumer.csproj","-c","Release","--framework",framework,"-o",str(app)],cwd=directory,env=env)
+            native = app/"runtimes"/args.rid/"native"
+            if not (native/host_name).is_file():
+                raise ValueError(f"portable build has no {native/host_name}")
+            consume(app, 0, passed)
+            hidden(native/host_name, lambda: consume(app, 3, missing))
+            print(f"PASS: {framework} RID-specific and portable consumers, missing-host and missing-PDFium checks")
 
 def runner_image(env):
     """The hosted CI runner image (`ImageOS ImageVersion`), or None off CI.

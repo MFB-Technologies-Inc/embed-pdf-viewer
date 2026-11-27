@@ -7,6 +7,13 @@
     build tree's runpath.
   -->
   <PropertyGroup>
+    <!--
+      The packages target net10.0, and .NET 11 apps load them too, so the
+      tests run on both. Directory.Build.props sets TargetFramework, which
+      would otherwise win over TargetFrameworks.
+    -->
+    <TargetFramework></TargetFramework>
+    <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
     <IsTestProject>true</IsTestProject>
     <IsPackable>false</IsPackable>
     <RepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../../'))</RepoRoot>

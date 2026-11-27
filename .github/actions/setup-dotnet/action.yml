@@ -1,0 +1,120 @@
+name: Set up .NET
+description: >
+  Install the .NET SDK that platforms/dotnet/global.json pins and, beside it,
+  the .NET 10 runtime. The packages target net10.0, so their tests and the
+  consumer checks run on .NET 10, and the multi-targeted tests run again on
+  the SDK's own .NET 11 runtime. Each archive is checked against its SHA-512
+  before it is unpacked.
+
+inputs:
+  rid:
+    description: The runner's .NET RID (linux-arm64, linux-x64, osx-arm64, osx-x64 or win-x64).
+    required: true
+  runtime:
+    description: "'false' skips the .NET 10 runtime, for a job that runs no net10.0 code."
+    required: false
+    default: "true"
+  root:
+    description: >
+      Install directory. Empty means /usr/share/dotnet on Linux (the release
+      jobs run as root in a container) and $RUNNER_TEMP/dotnet elsewhere.
+    required: false
+    default: ""
+
+outputs:
+  dotnet:
+    description: Path to the installed dotnet executable.
+    value: ${{ steps.install.outputs.dotnet }}
+
+runs:
+  using: composite
+  steps:
+    - id: install
+      shell: bash
+      env:
+        RID: ${{ inputs.rid }}
+        WITH_RUNTIME: ${{ inputs.runtime }}
+        DOTNET_INSTALL_ROOT: ${{ inputs.root }}
+        # Must equal platforms/dotnet/global.json and .devcontainer/Dockerfile.
+        # renovate: datasource=dotnet-version depName=dotnet-sdk
+        DOTNET_SDK_VERSION: 11.0.100
+        # The lowest runtime the packages support. Must equal .devcontainer/Dockerfile.
+        # renovate: datasource=dotnet-version depName=dotnet-runtime
+        DOTNET_RUNTIME_VERSION: 10.0.15
+      run: |
+        set -euo pipefail
+        # The `files` entries in Microsoft's .NET release metadata
+        # (https://builds.dotnet.microsoft.com/dotnet/release-metadata/).
+        # `.devcontainer/check-pins.py --verify-checksums` compares them with
+        # the published ones and the Linux rows with the Dockerfile.
+        case $RID in
+          linux-arm64)
+            sdk_sha512=cfa248bb1377606e868602fb5b4d66fa16b7546156593937d1982f7f2142e6ded76d71c4a26efdab99f87c46ab40c3c672ab1b57ef7fa25449efe5b140a55af4
+            runtime_sha512=e2e8b907d9eb6c239cccf5c1fe67fd9a72c56fddccedca9ba41c8a53ff034293b335fdd9f7ab504f09bf7b3f165e0d14e34fc9ea1f06cc0e86d0dfb06d274b6a
+            ;;
+          linux-x64)
+            sdk_sha512=1bec9cca2ec689b1e80245b84f2b53c9441d1aa6daccf2ceb27490768bffa95954fa585bd275def31069d874d543d9ba9e6591fe9ade2dbd9f34ec5c0fd0050c
+            runtime_sha512=a90177d75bc891f71aa814dde3bcf76a356f5a506824669f1891754457954a3d13b72f3ca04c98fa0fe588514a5a781f8a87b17930ee802105c14f9edb28318a
+            ;;
+          osx-arm64)
+            sdk_sha512=6c8978e0a8f24a04b69a539fe29edf0c68e3247e46e24afb4920ee479e2ce1256b17fdf0626f8835b9c743784c08b40ecb25abdd8dd49fc99d040daf1ddb4de2
+            runtime_sha512=185c264d9e45f14da8c0b2b49a24d3a7aea471999a83aeed7a2bf164430292aabc15d9c22d2eb44b26576a4e331ca0f6b564805eb2f6588d5a290f026b86cce0
+            ;;
+          osx-x64)
+            sdk_sha512=8e9c8835c4d1ed8e3045f1a00e5831b028fb090161d1acbeb6e8b26882cb783ff18ab04f478134bf51b538f2becbbf999737c18f17c568ef37fb94a91a03d6a5
+            runtime_sha512=12b021dfda6728ab222bbe759b9b9b6ec55ff366ee7309a21ee62d385c9ad516118a6b1180582b072cfd60835e6a588d6d59c6da45ac9fdaaaffef8b658c292a
+            ;;
+          win-x64)
+            sdk_sha512=5cdd9122c84873f090038548ebe8a4786e5c50a6b1b9792ca2c6dab82fd74a0d7f1d6cdf59e7dcd25e4903dd44f37af5d7ed73ecd3bca4d0cce948b5572452c3
+            runtime_sha512=06f0bedd59ae4ac722ada805a6d6bbf605bcdc790c71f59b7003878072902b5cde5dec8c40c0baa81192660d4748e9d79afdbdcb0c0ea9d6b821d0a044c4c6dd
+            ;;
+          *)
+            echo "::error::no .NET pins for RID '$RID'"
+            exit 1
+            ;;
+        esac
+        case $RID in
+          win-*) extension=zip ;;
+          *) extension=tar.gz ;;
+        esac
+        root=$DOTNET_INSTALL_ROOT
+        if [[ -z "$root" ]]; then
+          case $RUNNER_OS in
+            Linux) root=/usr/share/dotnet ;;
+            *) root=$RUNNER_TEMP/dotnet ;;
+          esac
+        fi
+        mkdir -p "$root"
+
+        install() {
+          local url=$1 sha512=$2
+          local archive=$RUNNER_TEMP/${url##*/}
+          curl -fsSL --retry 3 -o "$archive" "$url"
+          if command -v sha512sum >/dev/null 2>&1; then
+            echo "$sha512  $archive" | sha512sum -c -
+          else
+            echo "$sha512  $archive" | shasum -a 512 -c -
+          fi
+          if [[ "$archive" == *.zip ]]; then
+            # Windows' own bsdtar reads zip; Git Bash's GNU tar does not.
+            "$(cygpath -u "$SYSTEMROOT")/System32/tar.exe" -xf "$archive" -C "$root"
+          else
+            tar -xzf "$archive" -C "$root"
+          fi
+          rm "$archive"
+        }
+
+        base=https://builds.dotnet.microsoft.com/dotnet
+        install "$base/Sdk/$DOTNET_SDK_VERSION/dotnet-sdk-$DOTNET_SDK_VERSION-$RID.$extension" "$sdk_sha512"
+        if [[ "$WITH_RUNTIME" == true ]]; then
+          install "$base/Runtime/$DOTNET_RUNTIME_VERSION/dotnet-runtime-$DOTNET_RUNTIME_VERSION-$RID.$extension" "$runtime_sha512"
+        fi
+
+        case $RUNNER_OS in
+          Windows) dotnet=$root/dotnet.exe ;;
+          *) dotnet=$root/dotnet ;;
+        esac
+        "$dotnet" --list-runtimes
+        echo "DOTNET_ROOT=$root" >> "$GITHUB_ENV"
+        echo "$root" >> "$GITHUB_PATH"
+        echo "dotnet=$dotnet" >> "$GITHUB_OUTPUT"

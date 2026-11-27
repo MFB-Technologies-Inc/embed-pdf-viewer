@@ -151,7 +151,7 @@ for these editor and lifecycle settings.
 | pnpm                                                      | `package.json` `packageManager`                      |
 | Rust, Cargo, rustfmt, Clippy, rust-src, llvm-tools, cross-target std | `rust-toolchain.toml`; rustup-init 1.29.3, SHA-256 verified |
 | cargo-llvm-cov                                            | 0.9.1                                                |
-| .NET SDK                                                  | 10.0.404; Microsoft archives verified with SHA512      |
+| .NET SDK                                                  | 11.0.100, plus the .NET 10.0.15 runtime; Microsoft archives verified with SHA512 |
 | Clang/libclang, LLD, CMake, Ninja, C/C++ compiler, Python | Debian Trixie packages                               |
 | Emscripten / Binaryen                                     | 3.1.72 / 133 (SHA-256 verified), on `PATH`; its `.emscripten` selects Binaryen |
 | Emscripten for `wasm32-eh`                                | 4.0.0 with its own Binaryen, sysroot built; `/opt/emsdk-eh` (`$EMSDK_EH`) |
@@ -169,16 +169,20 @@ Binaryen and the native PDFium artifact are selected to match it.
 
 ## .NET
 
-The image installs SDK 10.0.404 into `/opt/dotnet` for both supported Linux
-architectures. `DOTNET_ROOT` and `/usr/local/bin/dotnet` expose it to the
+The image installs SDK 11.0.100 and the .NET 10.0.15 runtime into `/opt/dotnet`
+for both supported Linux architectures. The packages target net10.0, so their
+tests run on .NET 10 as well as the SDK's .NET 11. `DOTNET_ROOT` and `/usr/local/bin/dotnet` expose it to the
 `node` user in login and non-login shells. Debian dependencies and libclang for
 Rust bindgen are already installed by the image. The SDK supports Linux managed
 builds and native interop; macOS and Windows native builds still require their
 respective hosts or CI.
 
-To update the SDK, change `DOTNET_SDK_VERSION` and both architecture-specific
-SHA512 values in `Dockerfile`, using Microsoft's
-[.NET 10 release metadata](https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json).
+To update the SDK or the runtime, change `DOTNET_SDK_VERSION` or
+`DOTNET_RUNTIME_VERSION` and its SHA512 values in `Dockerfile` and
+`.github/actions/setup-dotnet/action.yml`.
+`python3 .devcontainer/check-pins.py --verify-checksums` prints the published
+values from Microsoft's
+[release metadata](https://builds.dotnet.microsoft.com/dotnet/release-metadata/).
 The build verifies the archive before extraction and checks the selected SDK
 version. Rebuild the image; do not install SDK updates into running containers.
 
