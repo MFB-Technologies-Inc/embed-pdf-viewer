@@ -1000,8 +1000,10 @@
             Number(env.utcOffsetMinutes ?? 0) * 60000);
     };
     /** Lenient scand-style parse: numbers mapped by the format's token order,
-     *  month names accepted, missing parts defaulted like Acrobat's scand. */
-    const parseDateLoose = (raw, format) => {
+     *  month names accepted, missing parts defaulted like Acrobat's scand:
+     *  the year and the month from `today`, the day to the first. It reads
+     *  nothing but its arguments. */
+    const parseDateFrom = (raw, format, today) => {
         const text = String(raw ?? '').trim();
         if (text === '')
             return null;
@@ -1059,7 +1061,6 @@
         }
         if (year === null && month === null && day === null && !timeMatch)
             return null;
-        const today = nowWall();
         if (year === null)
             year = today.y;
         else if (year < 100)
@@ -1078,6 +1079,34 @@
         }
         return { y: year, m: month, d: day, H: hours, M: minutes, S: seconds };
     };
+    const parseDateLoose = (raw, format) => parseDateFrom(raw, format, nowWall());
+    // The same parse for the host, outside any run: what the date keystroke
+    // functions accept, with today passed in. It reads no run state and no
+    // environment. Installed as the run entries are, so a script cannot
+    // replace it.
+    Object.defineProperty(host, '__acrojsParseDate', {
+        configurable: false,
+        writable: false,
+        value: (text, pattern, today) => {
+            const given = (today ?? {});
+            const parts = parseDateFrom(text, pattern, {
+                y: Number(given.year),
+                m: Number(given.month),
+                d: Number(given.day),
+                H: 0,
+                M: 0,
+                S: 0,
+            });
+            return (parts && {
+                year: parts.y,
+                month: parts.m,
+                day: parts.d,
+                hour: parts.H,
+                minute: parts.M,
+                second: parts.S,
+            });
+        },
+    });
     const afDateFormatEx = (format) => {
         if (!state)
             return;
