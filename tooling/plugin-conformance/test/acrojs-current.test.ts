@@ -409,7 +409,7 @@ test('all pure occurrences preserve outcomes or explicitly migrate current field
   assert.equal(pure.kind, 'function');
   if (pure.kind !== 'function') return;
   const originals = read('original-pure-outcomes.json') as { name: string; outcome: unknown }[];
-  assert.equal(pure.cases.length, 75);
+  assert.equal(pure.cases.length, 115);
   const changed = new Set([
     'fields-from-snapshot',
     'fields-empty',
@@ -418,6 +418,8 @@ test('all pure occurrences preserve outcomes or explicitly migrate current field
     // effect type, goToPage({ pageIndex }) (2ce3f7bc5, fbbb417a6).
     'prelude-source',
     ...pure.cases.filter((c) => c.fn === 'resolveScriptIdentity').map((c) => c.name),
+    // dates.ts arrived upstream (833b40015): 40 cases with no earlier outcome.
+    ...pure.cases.filter((c) => c.name.startsWith('dates/')).map((c) => c.name),
   ]);
   const negatives: string[] = [];
   for (const input of pure.cases) {
