@@ -433,7 +433,9 @@ fn a_stamp_of_the_picture_a_mark_shows_places_the_marks_drawing() {
     let marks = fixtures();
     let mut doc = Doc::open(marks.page.clone());
     doc.signature_field("marked", json!({ "x": 20, "y": 120, "width": 150, "height": 50 }), None);
-    doc.mark("marked", Mark::Bytes(&marks.png), "mark");
+    let marked = doc.mark("marked", Mark::Bytes(&marks.png), "mark");
+    assert!(marked.get("error").is_none(), "{marked}");
+    assert_eq!(doc.row_of("marked")["hasMark"], true);
     let created = doc.ok(
         json!({ "kind": "annotations.create", "opId": "stamp", "page": page(),
             "draft": { "subtype": "stamp", "box": { "x": 20, "y": 20, "width": 150, "height": 50 } },
@@ -444,7 +446,9 @@ fn a_stamp_of_the_picture_a_mark_shows_places_the_marks_drawing() {
     assert_eq!(images_in_a_rewrite(&mut doc), 1);
     let shown = doc.drawn_annotation(&stamp);
     assert!(shown.rgba.chunks(4).any(|pixel| pixel[3] > 200));
-    doc.mark("marked", Mark::None, "clear");
+    let cleared = doc.mark("marked", Mark::None, "clear");
+    assert!(cleared.get("error").is_none(), "{cleared}");
+    assert_eq!(doc.row_of("marked")["hasMark"], false);
     let after = doc.drawn_annotation(&stamp);
     assert_eq!((after.width, after.height), (shown.width, shown.height));
     assert!(max_shifted_difference(&after, &shown) <= 3);
