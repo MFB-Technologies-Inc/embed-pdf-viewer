@@ -303,40 +303,55 @@ fn comment_threads_fn(args: &[Value]) -> Result<Value, Error> {
     Ok(Value::Array(build_comment_threads(&list, user)))
 }
 
-/// A zod-style issue list as `ZodError` prints it.
+/// A zod 4 issue list as `ZodError` prints it: its message is the issues as
+/// pretty JSON (zod 4.6.7, `v4/core/errors.js`).
 fn zod_error(issues: Vec<Value>) -> Error {
     let message = serde_json::to_string_pretty(&issues).unwrap_or_default();
-    let mut error = Error::named("ZodError", message);
-    error = error.with("issues", Value::Array(issues));
-    error = error.with("addIssue", json!({ "$function": true }));
-    error.with("addIssues", json!({ "$function": true }))
+    Error::named("ZodError", message)
 }
 
-fn invalid_number(path: &[Value]) -> Value {
-    json!({ "code": "invalid_type", "expected": "number", "received": "nan", "path": path, "message": "Expected number, received nan" })
-}
-
-fn too_small(minimum: usize, ty: &str, path: &[Value]) -> Value {
-    let message = if ty == "number" {
-        format!("Number must be greater than or equal to {minimum}")
+/// zod 4's `invalid_type` issue for a number that is NaN or infinite
+/// (`$ZodNumber`, `received` as `String(input)`), in its English text.
+fn invalid_number(received: f64, path: &[Value]) -> Value {
+    let received = if received.is_nan() {
+        "NaN".to_string()
+    } else if received > 0.0 {
+        "Infinity".to_string()
     } else {
-        format!("Array must contain at least {minimum} element(s)")
+        "-Infinity".to_string()
     };
     json!({
-        "code": "too_small",
-        "minimum": minimum,
-        "type": ty,
-        "inclusive": true,
-        "exact": false,
-        "message": message,
+        "expected": "number",
+        "code": "invalid_type",
+        "received": received,
         "path": path,
+        "message": format!("Invalid input: expected number, received {received}"),
     })
 }
 
+/// zod 4's `too_small` issue for a number under `minimum` or an array with
+/// fewer items, in its English text.
+fn too_small(minimum: usize, origin: &str, path: &[Value]) -> Value {
+    let message = if origin == "number" {
+        format!("Too small: expected number to be >={minimum}")
+    } else {
+        format!("Too small: expected array to have >={minimum} items")
+    };
+    json!({
+        "origin": origin,
+        "code": "too_small",
+        "minimum": minimum,
+        "inclusive": true,
+        "path": path,
+        "message": message,
+    })
+}
+
+/// A number zod 4 takes: finite. NaN and the infinities are an issue.
 fn check_number(value: Option<&Value>, path: Vec<Value>, issues: &mut Vec<Value>) -> Option<f64> {
     let n = value.and_then(epdf_annotation_core::json::number);
-    if n.is_some_and(f64::is_nan) {
-        issues.push(invalid_number(&path));
+    if let Some(bad) = n.filter(|n| !n.is_finite()) {
+        issues.push(invalid_number(bad, &path));
         return None;
     }
     n
@@ -366,7 +381,7 @@ fn check_box(value: Option<&Value>, key: &str, issues: &mut Vec<Value>) {
 
 /// `AnnotationDraftSchema.parse(draft)`: the engine's draft schema, for the
 /// shape fields the suite's cases carry (boxes, points, vertices, ink and
-/// quads): a number may not be `NaN`, a size not negative, a polygon needs
+/// quads): a number must be finite (zod 4), a size not negative, a polygon needs
 /// three vertices, a polyline two, text markup one quad.
 fn parse_annotation_draft_fn(args: &[Value]) -> Result<Value, Error> {
     let draft = arg(args, 0).cloned().unwrap_or(Value::Null);
