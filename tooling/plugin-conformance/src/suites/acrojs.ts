@@ -39,6 +39,7 @@ import {
   seedFrom,
   type ScriptWorldInput,
 } from '../../../../packages/core/acrojs/src/host';
+import { formatDate, parseDate } from '../../../../packages/core/acrojs/src/dates';
 import { scriptFieldsFromSnapshot } from '../../../../packages/core/acrojs/src/input';
 import {
   ANNOT_WRITABLE_KEYS,
@@ -428,6 +429,64 @@ const functionCases: FunctionCase[] = [
   { name: 'script-event-matrix', fn: 'scriptEventMatrix', args: [] },
   // prelude.ts, as data
   { name: 'prelude-source', covers: 'The text crates/plugins/acrojs/prelude.js carries.', fn: 'preludeSource', args: [] },
+  // dates.ts (833b40015, #1147): what a date field shows and takes, by the prelude's own code.
+  ...((): FunctionCase[] => {
+    const MOMENT = { year: 2026, month: 3, day: 5, hour: 14, minute: 7, second: 9 };
+    const TODAY = { year: 2026, month: 7, day: 1 };
+    const DAY = { year: 2026, month: 11, day: 24 };
+    const formats: [string, unknown, string][] = [
+      ['format-every-group', MOMENT, 'yyyy yy mmmm mmm mm m dd d HH H hh h MM M ss tt'],
+      ['format-day-month-year', MOMENT, 'dd/mm/yyyy'],
+      ['format-month-name', MOMENT, 'mmmm d, yyyy'],
+      ['format-twelve-hours', MOMENT, 'm/d/yy h:MM tt'],
+      ['format-midnight', DAY, 'dd/mm/yyyy HH:MM:ss'],
+      ['format-midnight-twelve', DAY, 'h:MM tt'],
+      ['format-noon', { ...DAY, hour: 12 }, 'h:MM tt'],
+      ['format-last-moment', { ...MOMENT, hour: 23, minute: 59, second: 59 }, 'yyyy-mm-dd HH:MM:ss'],
+      ['format-last-century', { year: 1999, month: 12, day: 31 }, 'd/m/yyyy'],
+      ['format-a-two-digit-year', { year: 85, month: 1, day: 1 }, 'yyyy'],
+      ['format-other-text-as-it-is', MOMENT, 'Day d of mmm, at HH:MM'],
+      ['format-past-the-month', { year: 2026, month: 13, day: 32 }, 'yyyy-mm-dd'],
+    ];
+    const parses: [string, string, string, unknown][] = [
+      ['parse-day-first', '05/03/2026', 'dd/mm/yyyy', TODAY],
+      ['parse-month-first', '05/03/2026', 'mm/dd/yyyy', TODAY],
+      ['parse-two-digit-year', '5.3.26', 'dd/mm/yyyy', TODAY],
+      ['parse-last-century', '5/3/75', 'dd/mm/yyyy', TODAY],
+      ['parse-iso-order', '2026-03-05', 'yyyy-mm-dd', TODAY],
+      ['parse-short-month', 'Mar 5, 2026', 'mmm d, yyyy', TODAY],
+      ['parse-long-month', '5 march 2026', 'd mmmm yyyy', TODAY],
+      ['parse-trimmed', '  05/03/2026 ', 'dd/mm/yyyy', TODAY],
+      ['parse-no-year', '5/3', 'd/m', TODAY],
+      ['parse-no-year-another-today', '5/3', 'd/m', { year: 2031, month: 1, day: 1 }],
+      ['parse-no-day', '03/27', 'mm/yy', TODAY],
+      ['parse-day-alone', '9', 'dd', TODAY],
+      ['parse-time', '14:07', 'HH:MM', TODAY],
+      ['parse-pm', '2:07 pm', 'h:MM tt', TODAY],
+      ['parse-midnight-am', '12:00 am', 'h:MM tt', TODAY],
+      ['parse-seconds', '14:07:09', 'HH:MM:ss', TODAY],
+      ['parse-date-and-time', '3/5/26 14:07', 'm/d/yy HH:MM', TODAY],
+      ['parse-empty', '   ', 'dd/mm/yyyy', TODAY],
+      ['parse-no-number', 'soon', 'dd/mm/yyyy', TODAY],
+      ['parse-no-such-day', '31/02/2026', 'dd/mm/yyyy', TODAY],
+      ['parse-day-past-31', '32/01/2026', 'dd/mm/yyyy', TODAY],
+      ['parse-month-past-12', '5/13/2026', 'dd/mm/yyyy', TODAY],
+      ['parse-hour-past-23', '25:00', 'dd/mm/yyyy', TODAY],
+      ['parse-leap-day', '29/02/2024', 'dd/mm/yyyy', TODAY],
+      ['parse-no-leap-day', '29/02/2026', 'dd/mm/yyyy', TODAY],
+      ['parse-iso-under-another-order', '2026-03-05', 'dd/mm/yyyy', TODAY],
+      ['parse-iso-instant', '2026-03-05T09:30:00Z', 'dd/mm/yyyy', TODAY],
+      ['parse-a-group-twice', '2026/11/11/24', 'yyyy/mm/mm/dd', DAY],
+    ];
+    return [
+      ...formats.map(([name, date, pattern]): FunctionCase => ({ name: `dates/${name}`, fn: 'formatDate', args: [date, pattern] })),
+      ...parses.map(([name, text, pattern, today]): FunctionCase => ({
+        name: `dates/${name}`,
+        fn: 'parseDate',
+        args: [text, pattern, today],
+      })),
+    ];
+  })(),
 ];
 
 // ── the host scenarios ────────────────────────────────────────────────────────
@@ -661,6 +720,8 @@ export const suites: Suite[] = [
       defaultScriptSecurityPolicy: () => DEFAULT_SCRIPT_SECURITY_POLICY,
       scriptEventMatrix: () => SCRIPT_EVENT_MATRIX,
       preludeSource: () => PRELUDE_SOURCE,
+      formatDate,
+      parseDate,
     },
     cases: functionCases,
   },

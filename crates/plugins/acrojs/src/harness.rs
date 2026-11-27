@@ -427,6 +427,22 @@ fn script_event_matrix_fn(_: &[Value]) -> Result<Value, Error> {
     Ok(script_event_matrix())
 }
 
+fn format_date_fn(args: &[Value]) -> Result<Value, Error> {
+    let date: crate::dates::DatePartsInput =
+        epdf_kernel::engine::decode(args.first().cloned().unwrap_or(Value::Null))?;
+    let pattern = args.get(1).and_then(Value::as_str).unwrap_or_default();
+    Ok(Value::String(crate::dates::format_date(&date, pattern)))
+}
+
+fn parse_date_fn(args: &[Value]) -> Result<Value, Error> {
+    let text = args.first().and_then(Value::as_str).unwrap_or_default();
+    let pattern = args.get(1).and_then(Value::as_str).unwrap_or_default();
+    let today: crate::dates::Today =
+        epdf_kernel::engine::decode(args.get(2).cloned().unwrap_or(Value::Null))?;
+    Ok(crate::dates::parse_date(text, pattern, &today)
+        .map_or(Value::Null, |parts| epdf_kernel::js::to_value(&parts)))
+}
+
 fn prelude_source(_: &[Value]) -> Result<Value, Error> {
     Ok(Value::String(crate::PRELUDE_SOURCE.to_string()))
 }
@@ -448,5 +464,7 @@ pub fn functions() -> FunctionTable {
         ("defaultScriptSecurityPolicy", default_script_security_policy),
         ("scriptEventMatrix", script_event_matrix_fn),
         ("preludeSource", prelude_source),
+        ("formatDate", format_date_fn),
+        ("parseDate", parse_date_fn),
     ]
 }
