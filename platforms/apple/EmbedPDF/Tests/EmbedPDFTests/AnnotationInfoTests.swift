@@ -19,7 +19,7 @@ extension BaseSuite {
         annotationRef: ref, page: page, subtype: subtype,
         rect: Rect(x: -1, y: -1, width: 22, height: 7.000000000000001), contents: "Ink",
         author: "Reviewer", createdAt: createdAt, modifiedAt: modifiedAt, groupId: "group-1",
-        inReplyTo: parent, canUpdate: true, canDelete: false, fieldsJson: fieldsJSON)
+        inReplyTo: parent, canUpdate: true, canDelete: false, accent: nil, fieldsJson: fieldsJSON)
     }
 
     /// The instant `text` reads as through `AnnotationInfo`.
@@ -222,7 +222,12 @@ extension BaseSuite {
         AnnotationRecord(
           annotationRef: Self.ref, page: Self.page, subtype: "", rect: Rect(x: 0, y: 0, width: 0, height: 0),
           contents: nil, author: nil, createdAt: nil, modifiedAt: nil, groupId: nil, inReplyTo: nil,
-          canUpdate: false, canDelete: true, fieldsJson: ""),
+          canUpdate: false, canDelete: true, accent: nil, fieldsJson: ""),
+        // A lent widget's group accent goes back as it came.
+        AnnotationRecord(
+          annotationRef: Self.ref, page: Self.page, subtype: "widget", rect: Rect(x: 0, y: 0, width: 0, height: 0),
+          contents: nil, author: nil, createdAt: nil, modifiedAt: nil, groupId: nil, inReplyTo: nil,
+          canUpdate: true, canDelete: true, accent: RecordAccent(color: "#0055aa", strength: 0.16), fieldsJson: "{}"),
       ]
       for record in records {
         let info = AnnotationInfo(record)

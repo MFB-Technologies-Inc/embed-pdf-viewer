@@ -25,7 +25,10 @@ extension BaseSuite {
 
     final class CursorTarget: FormFocusTarget, Sendable {
       let selections = LockIsolated<[Bool]>([])
-      func focus(select: Bool) { selections.withValue { $0.append(select) } }
+      func focus(select: Bool) -> Bool {
+        selections.withValue { $0.append(select) }
+        return true
+      }
     }
 
     @Test func aMountedControlReceivesFocusAndUnregisters() async throws {
