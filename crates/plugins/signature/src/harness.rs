@@ -49,10 +49,7 @@ use crate::contract::*;
 use crate::controller::SignatureCapability;
 use crate::model::{SignatureState, set_busy, set_target, set_verdicts};
 use crate::services::settings::PortTable;
-use crate::{
-    blank_page_pdf, initial_signature_state, same_field_ref, signature_plugin,
-    signature_plugin_with,
-};
+use crate::{initial_signature_state, same_field_ref, signature_plugin, signature_plugin_with};
 
 /// The adapter.
 pub struct Signature;
@@ -665,10 +662,6 @@ fn set_target_fn(a: &[Value]) -> Result<Value, Error> {
     Ok(json!({ "changed": !Rc::ptr_eq(&state, &before), "state": to_value(&*state) }))
 }
 
-fn blank_page_pdf_fn(_: &[Value]) -> Result<Value, Error> {
-    Ok(Bytes(blank_page_pdf()).to_json())
-}
-
 fn mark_role_of_fn(a: &[Value]) -> Result<Value, Error> {
     Ok(to_value(&mark_role_of(a[0].get("name").and_then(Value::as_str).unwrap_or_default())))
 }
@@ -684,7 +677,6 @@ pub fn functions() -> FunctionTable {
         ("setVerdicts", set_verdicts_fn),
         ("setBusy", set_busy_fn),
         ("setTarget", set_target_fn),
-        ("blankPagePdf", blank_page_pdf_fn),
         ("markRoleOf", mark_role_of_fn),
         ("sameRef", same_ref_fn),
     ]

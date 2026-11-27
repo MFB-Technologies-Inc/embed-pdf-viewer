@@ -130,9 +130,10 @@ impl DocumentHandle for SealUnlessCancelled {
 /// The room a signature needs when it will carry a timestamp token.
 const TIMESTAMPED_CONTENTS_SIZE: f64 = 16384.0;
 
-/// `{ pdf }`, the appearance the engine draws into the widget.
-fn appearance_json(pdf: Option<Vec<u8>>) -> Value {
-    json!({ "pdf": pdf.map_or(Value::Null, |pdf| Bytes(pdf).to_json()) })
+/// The appearance the engine draws into the widget: the mark's bytes as
+/// they are, a PNG, a JPEG or a one-page PDF (fcb69611f).
+fn appearance_json(bytes: Option<Vec<u8>>) -> Value {
+    bytes.map_or(Value::Null, |bytes| Bytes(bytes).to_json())
 }
 
 impl SignatureCapability {
@@ -222,7 +223,7 @@ impl SignatureCapability {
                             signer.insert(k.clone(), v.clone());
                         }
                     }
-                    // The appearance is the mark: its page is drawn into the
+                    // The appearance is the mark: the engine draws it into the
                     // widget by the engine.
                     let appearance =
                         busy.appearance_of(input.mark.as_ref(), input.appearance.as_ref()).await?;

@@ -10,14 +10,13 @@
 //! page.
 //!
 //! The files follow the TypeScript package: [`contract`], [`model`],
-//! [`blank_page`], [`connect`], [`controller`] (the composition root), and
+//! [`connect`], [`controller`] (the composition root), and
 //! the areas under [`services`], [`read`], [`sync`], [`write`] and
 //! [`tools`], each an `impl` block on the one [`SignatureCapability`].
 
 // Callback-shaped types are the port of JavaScript closures, as in the kernel.
 #![allow(clippy::type_complexity)]
 
-pub mod blank_page;
 pub mod connect;
 pub mod console;
 pub mod contract;
@@ -51,7 +50,6 @@ use epdf_plugin_interaction::INTERACTION;
 use epdf_plugin_stamp::STAMP;
 use serde_json::Value;
 
-pub use blank_page::blank_page_pdf;
 pub use contract::*;
 pub use controller::{
     SignatureCapability, SignatureContext, SignatureHostCapability, create_signature_controller,

@@ -1,12 +1,11 @@
 //! `write/fill.ts`: visual fills. The mark becomes the widget's appearance;
-//! nothing is sealed.
+//! nothing is sealed; a clear takes it out.
 
 use epdf_kernel::bytes::Bytes;
 use epdf_kernel::error::{code, plugin_error};
 use epdf_kernel::rt::Promise;
-use serde_json::{Value, json};
+use serde_json::Value;
 
-use crate::blank_page::blank_page_pdf;
 use crate::contract::{Mark, OperationOptions, SignatureClearedEvent, SignatureFilledEvent};
 use crate::controller::SignatureCapability;
 use crate::js::truthy;
@@ -14,9 +13,15 @@ use crate::promise::adopt;
 use crate::services::errors::verb;
 
 impl SignatureCapability {
-    /// `setAppearance(field, pdf, options)`: `unsupported` without the
-    /// engine door, `conflict` on a signed field.
-    fn set_appearance(&self, field: Value, pdf: Vec<u8>, options: OperationOptions) -> Promise<()> {
+    /// `setAppearance(field, mark, options)`: draw `mark` into the field, or
+    /// take the field's mark out (`None`). `unsupported` without the engine
+    /// door, `conflict` on a signed field.
+    fn set_appearance(
+        &self,
+        field: Value,
+        mark: Option<Vec<u8>>,
+        options: OperationOptions,
+    ) -> Promise<()> {
         let this = self.clone();
         Promise::spawn(async move {
             let doc = this.cx().doc()?;
@@ -43,7 +48,7 @@ impl SignatureCapability {
             let call = doc.call(
                 "forms.setSignatureAppearance",
                 None,
-                vec![field, json!({ "pdf": Bytes(pdf).to_json() })],
+                vec![field, mark.map_or(Value::Null, |bytes| Bytes(bytes).to_json())],
             );
             this.cancellable(options.signal, call).await?;
             Ok(())
@@ -65,7 +70,7 @@ impl SignatureCapability {
             adopt(this.with_busy(move || {
                 Promise::spawn(async move {
                     let bytes = busy.mark_bytes(&mark).await?;
-                    busy.set_appearance(field.clone(), bytes, options).await?;
+                    busy.set_appearance(field.clone(), Some(bytes), options).await?;
                     busy.clear_if_target(&field);
                     busy.0.events.filled.emit(&SignatureFilledEvent { field });
                     Ok(())
@@ -91,7 +96,7 @@ impl SignatureCapability {
             let busy = this.clone();
             adopt(this.with_busy(move || {
                 Promise::spawn(async move {
-                    busy.set_appearance(field.clone(), blank_page_pdf(), options).await?;
+                    busy.set_appearance(field.clone(), None, options).await?;
                     busy.0.events.cleared.emit(&SignatureClearedEvent { field });
                     Ok(())
                 })
