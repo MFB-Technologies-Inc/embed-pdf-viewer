@@ -10,7 +10,7 @@
 /// the TypeScript packages it follows, which release together.
 /// `vectors/changes/kinds.json` records theirs, and the replay checks this
 /// against it.
-pub const API_VERSION: &str = "3.5";
+pub const API_VERSION: &str = "3.4";
 
 /// `VALIDATION_INFO_SINCE` (4cb85c91e): the version long-term validation
 /// arrived in on the wire, the routes that read and store a document's
