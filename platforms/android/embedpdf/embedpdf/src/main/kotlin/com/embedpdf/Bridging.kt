@@ -56,9 +56,11 @@ internal suspend fun <T> bridged(block: suspend () -> T): T =
  * With [keepResolved], a value the kernel resolves after the caller was
  * cancelled goes to the caller instead of [onDiscard], and the caller's
  * cancellation comes at its next suspension. Only `markMatches` sets it: a
- * cancel before its search finds a hit resolves with an empty list, which the
- * caller gets as on every other platform. An error is still the caller's
- * `CancellationException`.
+ * cancel after the call started but before its search finds a hit resolves
+ * with an empty list, and marks that all complete before the cancel lands
+ * resolve with that list; the caller gets either, as on every other platform.
+ * An error, including the rejection of a caller cancelled before the call, is
+ * still the caller's `CancellationException`.
  *
  * Pass the token this hands you; a `CancelToken()` made inline is never
  * cancelled.

@@ -553,9 +553,11 @@ finished first. Kotlin would drop that value at the caller's next suspension
 anyway (`withTimeout` and `async` do), so handing it back would only look
 like a promise we can't keep. The rule lives in `bridgedCancellable` in
 `embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Bridging.kt`.
-`RedactionCapability.markMatches` is the one exception: cancelled before its
-search finds a hit, it returns the empty list the kernel resolved, and the
-caller's cancellation comes at its next suspension.
+`RedactionCapability.markMatches` is the one exception: a call cancelled after
+it started returns what the kernel resolved (an empty list when the search had
+found no hit, or every mark when the marking finished first), and the caller's
+cancellation comes at its next suspension; a caller cancelled before the call
+still gets its `CancellationException`.
 
 Swift differs here. A cancelled task in `EmbedPDF` still receives what the
 call returned (`bridgedCancellable` in
