@@ -25,6 +25,11 @@ public typealias AnnotationBatchResult = EmbedPDFBindings.AnnotationBatchResult
 public typealias AnnotationBatchFailure = EmbedPDFBindings.AnnotationBatchFailure
 public typealias AnnotationImportResult = EmbedPDFBindings.AnnotationImportResult
 public typealias AnnotationRefMapping = EmbedPDFBindings.AnnotationRefMapping
+public typealias AnnotationDuplicateOptions = EmbedPDFBindings.AnnotationDuplicateOptions
+public typealias AnnotationDuplicateResult = EmbedPDFBindings.AnnotationDuplicateResult
+public typealias AnnotationRemeasureReport = EmbedPDFBindings.AnnotationRemeasureReport
+public typealias AnnotationRemeasureSkip = EmbedPDFBindings.AnnotationRemeasureSkip
+public typealias AnnotationRemeasureSkipReason = EmbedPDFBindings.AnnotationRemeasureSkipReason
 public typealias AnnotationEvent = EmbedPDFBindings.AnnotationEvent
 public typealias AnnotationChangedEvent = EmbedPDFBindings.AnnotationChangedEvent
 public typealias AnnotationDeletedEvent = EmbedPDFBindings.AnnotationDeletedEvent
@@ -151,6 +156,63 @@ public struct AnnotationCapability: Sendable {
   /// Copy a bundle using the engine's AnnotationImportOptions JSON vocabulary.
   public func `import`(_ bundleJSON: String, optionsJSON: String = "{}") async throws(PDFError) -> AnnotationImportResult {
     try await bridgedCancellable { token in try await handle.import(bundleJson: bundleJSON, optionsJson: optionsJSON, cancel: token) }
+  }
+
+  /// Copy `refs` as one change, one step to undo. A copy carries its
+  /// original's fields, drawing, file and link under its own ref and name;
+  /// the result lists the copies in the order their originals were named.
+  /// `options` puts the copies on another page, moves them by an offset in
+  /// page points (`x` right, `y` down), or selects them.
+  ///
+  /// An empty list copies nothing and doesn't throw. Throws
+  /// `permission-denied` when the session may not create annotations and
+  /// `not-found` for an annotation or page the document doesn't have.
+  /// Cancelling the task before the engine takes the change throws
+  /// `operation-cancelled`; once the engine has taken it, the copies are
+  /// made and this returns them.
+  public func duplicate(
+    _ refs: [AnnotationRef], options: AnnotationDuplicateOptions = AnnotationDuplicateOptions()
+  ) async throws(PDFError) -> AnnotationDuplicateResult {
+    try await bridgedCancellable { token in
+      try await handle.duplicate(refs: refs, options: options, cancel: token)
+    }
+  }
+
+  /// Whether `duplicate(_:options:)` would copy `refs`: the session may
+  /// create annotations, and each one is here, unlocked and copyable.
+  /// `false` for an empty list.
+  public func canDuplicate(_ refs: [AnnotationRef]) async throws(PDFError) -> Bool {
+    try await bridged { try await handle.canDuplicate(refs: refs) }
+  }
+
+  /// Whether people move this annotation. `false` for one that sits on
+  /// text, as a highlight does, and for one the document doesn't have.
+  public func isMovable(_ ref: AnnotationRef) async throws(PDFError) -> Bool {
+    try await bridged { try await handle.isMovable(annotationRef: ref) }
+  }
+
+  /// Returns once the annotations have loaded (a failed load retried) and
+  /// every pending load has settled: the point from which
+  /// `stageRemeasure(on:to:)` can update a page.
+  public func whenRemeasurable() async throws(PDFError) {
+    try await bridgedCancellable { token in try await handle.whenRemeasurable(cancel: token) }
+  }
+
+  /// Update every measurement on `page` to `scale`, at once. The report
+  /// names the measurements it updated, the ones it skipped and why, and
+  /// the ones that failed.
+  ///
+  /// Before the annotations load it updates nothing and answers a report
+  /// with `error` set, so `await whenRemeasurable()` first. `scale` is
+  /// encoded as a draft's `measure` is, and one holding a number JSON can't
+  /// (NaN or an infinity) throws `invalid-input` before the engine sees it.
+  /// The engine doesn't check the scale's members: one its readout can't
+  /// use skips each measurement as `unavailable`.
+  public func stageRemeasure(on page: PageRef, to scale: PdfMeasurement)
+    async throws(PDFError) -> AnnotationRemeasureReport
+  {
+    let scaleJSON = try AnnotationFieldBag.json(of: WireMeasurement(scale))
+    return try await bridged { try await handle.stageRemeasure(page: page, scaleJson: scaleJSON) }
   }
 
   /// The topmost annotation under a page-space point (`getAt`).
@@ -417,6 +479,23 @@ public struct AnnotationSelectionCapability: Sendable {
 
   public func canUngroup() async throws(PDFError) -> Bool {
     try await bridged { try await handle.canUngroup() }
+  }
+
+  /// Copy the selection beside it and select the copies, as one step to
+  /// undo. `offset` is in page points (`x` right, `y` down); `nil` is 10
+  /// points right and down, or left or up where that keeps a copy on the
+  /// page. Nothing selected returns no copies. Cancelling the task before
+  /// the engine takes the change throws `operation-cancelled`; once the
+  /// engine has taken it, the copies are made and this returns them.
+  public func duplicate(offset: Point? = nil) async throws(PDFError) -> AnnotationDuplicateResult {
+    try await bridgedCancellable { token in try await handle.duplicate(offset: offset, cancel: token) }
+  }
+
+  /// Whether `duplicate(offset:)` would copy anything: something is
+  /// selected, the session may create annotations, and nothing selected is
+  /// locked.
+  public func canDuplicate() async throws(PDFError) -> Bool {
+    try await bridged { try await handle.canDuplicate() }
   }
 }
 
