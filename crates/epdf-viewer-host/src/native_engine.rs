@@ -1287,6 +1287,61 @@ mod tests {
         assert_eq!(prompts[1], json!({ "state": "none" }));
     }
 
+    /// `runAnyoneFieldsConformance.ts`'s "every token that may fill in some
+    /// field fills one in": `allowsField('fill', field)` reads the field's
+    /// `forAnyone` beside its group (b45d916cb), so any fill right fills in a
+    /// field anyone fills in and a group's token fills in its own group's
+    /// fields alone, as the engine's write does.
+    #[test]
+    fn a_group_token_fills_in_a_field_anyone_fills_in() {
+        use epdf_kernel::engine::DocumentSecurity;
+        let base = ["doc.open", "doc.render", "doc.download"];
+        let tokens: [(&str, Vec<&str>, [bool; 4]); 6] = [
+            (
+                "dana",
+                [&base[..], &["fields:fill:group=dana", "fields:sign:group=dana"]].concat(),
+                [true, true, false, false],
+            ),
+            (
+                "ada",
+                [&base[..], &["fields:fill:group=ada", "fields:sign:group=ada"]].concat(),
+                [true, false, true, false],
+            ),
+            ("filler", vec!["doc.open", "doc.render", "doc.forms.fill", "doc.sign"], [true; 4]),
+            ("fillAll", vec!["doc.open", "doc.render", "fields:fill:all"], [true; 4]),
+            ("reader", vec!["doc.open", "doc.render", "doc.forms.read"], [false; 4]),
+            ("everything", vec!["*"], [true; 4]),
+        ];
+        // `reference` (anyone), `dana_name`, `ada_name`, `sender_note` (in
+        // no group, not for anyone).
+        let targets = [
+            json!({ "groupId": null, "forAnyone": true }),
+            json!({ "groupId": "dana", "forAnyone": false }),
+            json!({ "groupId": "ada", "forAnyone": false }),
+            json!({ "groupId": null, "forAnyone": false }),
+        ];
+        for (token, scope, fills) in tokens {
+            let scope: Vec<String> = scope.into_iter().map(str::to_owned).collect();
+            let worker = EngineWorker::spawn();
+            let thread =
+                KernelThread::spawn(move |post| Ok(NativeEngine::new(worker, post, Some(scope))))
+                    .unwrap();
+            let targets = targets.clone();
+            let answers =
+                futures::executor::block_on(thread.call(move |engine: &mut NativeEngine| {
+                    let state = Rc::new(super::NativeDocumentState::new(
+                        "anyone-fields".into(),
+                        engine.inner.clone(),
+                        json!({ "encryptionRequiresPassword": false }),
+                    ));
+                    let security = super::NativeSecurity { state };
+                    targets.map(|target| security.allows_field("fill", &target))
+                }))
+                .unwrap();
+            assert_eq!(answers, fills, "{token}");
+        }
+    }
+
     struct Versioned {
         held_before: usize,
         held_numbers: Vec<u32>,

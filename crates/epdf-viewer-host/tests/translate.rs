@@ -524,6 +524,44 @@ fn an_apply_runs_a_page_change_and_answers_its_items_and_events() {
     assert_eq!(list["pages"][0]["rotation"], 90);
 }
 
+/// `forms.setButtonImage` reaches the engine as a change op (`formVerbs`):
+/// its image goes as a payload of `document.apply`, as `Change.ts` puts it
+/// in the transfer list, and a field read back holds the picture
+/// (7d5691a5a).
+#[test]
+fn a_push_buttons_picture_travels_as_a_payload_of_its_change() {
+    let mut host = host_with(FORM_FIELDS);
+    let page = first_page(&mut host);
+    let create = json!({ "ops": [{ "type": "forms.create", "draft": { "kind": "pushbutton",
+        "name": "initials", "widgets": [{
+            "page": { "kind": "objectNumber", "objectNumber": page as f64 },
+            "box": { "x": 300.0, "y": 40.0, "width": 90.0, "height": 30.0 },
+            "layout": "image" }] } }] });
+    let created = run(&mut host, "apply", None, &[create]).unwrap();
+    let field = &created.value["items"][0]["field"];
+    assert_eq!(field["hasImage"], false, "{}", created.value);
+    let png = {
+        let path = test_support::corpus::vectors_dir("changes").join("signature-mark.json");
+        let vectors: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        let text = vectors["fixtures"]["png"].as_str().unwrap().to_owned();
+        (0..text.len())
+            .step_by(2)
+            .map(|i| u8::from_str_radix(&text[i..i + 2], 16).unwrap())
+            .collect::<Vec<u8>>()
+    };
+    let change = json!({ "ops": [{ "type": "forms.setButtonImage",
+        "field": { "kind": "fqn", "name": "initials" },
+        "image": epdf_kernel::bytes::Bytes(png.clone()).to_json() }] });
+    let call = translate("d", "apply", None, std::slice::from_ref(&change), 9, &client()).unwrap();
+    assert_eq!(call.request["change"]["ops"][0]["image"], json!({ "payload": 0 }));
+    assert_eq!(call.payloads, [png]);
+    let decoded = run(&mut host, "apply", None, &[change]).unwrap();
+    let item = &decoded.value["items"][0];
+    assert_eq!(item["type"], "forms.setButtonImage");
+    assert_eq!(item["field"]["hasImage"], true, "{item}");
+    assert_eq!(decoded.events[0]["type"], "forms.updated");
+}
+
 #[test]
 fn an_annotation_create_carries_its_draft_and_answers_its_annotation() {
     let mut host = host_with(test_support::REPORT);
