@@ -1766,3 +1766,226 @@ fn a_certification_that_allows_form_filling_still_binds_a_later_timestamp() {
     let own = restricted(&certified_then(2, timestamp_31()), Some(&timestamp_31()));
     assert_eq!(own.level, crate::features::signature::types::ModificationLevel::Fill);
 }
+
+// ── evaluateStep: a push button's image is filling in (7d5691a5a) ─────────
+
+/// A push button 70 with its widget 71 apart, and one whose field and widget
+/// are one object, 80. The signature field 30 is signed.
+fn buttons(extra: Value) -> Value {
+    structure(json!({
+        "fields": [
+            { "objectNumber": 20, "name": "name", "kind": "text", "widgets": [21] },
+            { "objectNumber": 30, "name": "sig0", "kind": "signature", "widgets": [30] },
+            { "objectNumber": 70, "name": "initials", "kind": "pushbutton", "widgets": [71] },
+            { "objectNumber": 80, "name": "image_field", "kind": "pushbutton", "widgets": [80] },
+            { "objectNumber": 85, "name": "agree", "kind": "checkbox", "widgets": [85] },
+        ],
+        "signatures": [signature(0, 30, extra)],
+    }))
+}
+
+fn buttons_approval() -> Value {
+    buttons(json!({}))
+}
+
+fn buttons_fill_only() -> Value {
+    buttons(json!({ "docMdp": 2, "catalogCertification": true }))
+}
+
+/// The drawing a new image is, its appearance drawing it, and the image it
+/// holds.
+fn drawn(owner: u32, appearance: u32, drawing: u32) -> Vec<Value> {
+    vec![
+        change(
+            appearance,
+            None,
+            Some(&format!(
+                "stream(20,cc)<</Resources <</XObject <</FRM {drawing} 0 R>>>>/Subtype /Form>>"
+            )),
+            new_only(&[edge(owner, "AP/N")]),
+        ),
+        change(
+            drawing,
+            None,
+            Some(&format!(
+                "stream(30,dd)<</Resources <</XObject <</Im1 {} 0 R>>>>/Subtype /Form>>",
+                drawing + 1
+            )),
+            new_only(&[edge(owner, "MK/I"), edge(appearance, "Resources/XObject/FRM")]),
+        ),
+        change(
+            drawing + 1,
+            None,
+            Some("stream(100,ee)<</Subtype /Image>>"),
+            new_only(&[edge(drawing, "Resources/XObject/Im1")]),
+        ),
+    ]
+}
+
+fn button_trailer() -> Value {
+    change(
+        0,
+        Some("<</Root 1 0 R/Size 72>>"),
+        Some("<</Prev 1234/Root 1 0 R/Size 95>>"),
+        Usage::default(),
+    )
+}
+
+/// Widget 71's `/MK` and `/AP /N` before and after, its old appearance 72
+/// replaced by 90.
+fn button_widget(mk_before: &str, mk_after: &str) -> Vec<Value> {
+    vec![
+        change(
+            71,
+            Some(&format!("<</AP <</N 72 0 R>>/MK {mk_before}/Parent 70 0 R/Subtype /Widget>>")),
+            Some(&format!("<</AP <</N 90 0 R>>/MK {mk_after}/Parent 70 0 R/Subtype /Widget>>")),
+            both(&[edge(3, "Annots/[3]"), edge(70, "Kids/[0]")]),
+        ),
+        change(72, Some("stream(10,aa)<</Subtype /Form>>"), None, old_only(&[edge(71, "AP/N")])),
+    ]
+}
+
+fn image_in_widget() -> Vec<Value> {
+    let mut changes = button_widget("<</CA (Initials)/TP 1>>", "<</CA (Initials)/I 91 0 R/TP 1>>");
+    changes.extend(drawn(71, 90, 91));
+    changes.push(button_trailer());
+    changes
+}
+
+fn judge_buttons(changes: &[Value], before: &Value) -> Value {
+    step(1, 2, changes, before, before)
+}
+
+/// The findings that are not `permitted`, as `rule object edge`.
+fn not_permitted_keys(step: &Value) -> Vec<String> {
+    findings(step)
+        .iter()
+        .filter(|f| f["verdict"] != "permitted")
+        .map(|f| match f["edge"].as_str() {
+            Some(edge) => format!("{} {} {edge}", f["rule"].as_str().unwrap(), f["objectNumber"]),
+            None => format!("{} {}", f["rule"].as_str().unwrap(), f["objectNumber"]),
+        })
+        .collect()
+}
+
+fn finding_of(step: &Value, object_number: u32) -> Option<&Value> {
+    findings(step).iter().find(|f| f["objectNumber"] == object_number)
+}
+
+#[test]
+fn an_image_put_in_a_widget_is_permitted_after_an_approval_signature_and_a_certification_for_form_filling()
+ {
+    for before in [buttons_approval(), buttons_fill_only()] {
+        let s = judge_buttons(&image_in_widget(), &before);
+        assert_eq!(not_permitted_keys(&s), Vec::<String>::new(), "{s}");
+        // Nothing unexplained: the drawing (91) and the image it holds (92)
+        // are claimed through /MK /I and the appearance that draws them.
+        assert_eq!(verdict(&s), "permitted");
+    }
+    let s = judge_buttons(&image_in_widget(), &buttons_fill_only());
+    assert_eq!(finding_of(&s, 71).unwrap()["detail"], "widget of \"initials\" image");
+}
+
+#[test]
+fn an_image_taken_out_is_permitted_as_well() {
+    let mut out = button_widget("<</CA (Initials)/I 91 0 R/TP 1>>", "<</CA (Initials)/TP 1>>");
+    out.push(change(
+        90,
+        None,
+        Some("stream(20,cc)<</Subtype /Form>>"),
+        new_only(&[edge(71, "AP/N")]),
+    ));
+    out.push(change(
+        91,
+        Some("stream(30,dd)<</Subtype /Form>>"),
+        None,
+        old_only(&[edge(71, "MK/I")]),
+    ));
+    out.push(button_trailer());
+    let s = judge_buttons(&out, &buttons_fill_only());
+    assert_eq!(verdict(&s), "permitted", "{s}");
+}
+
+#[test]
+fn a_field_and_widget_in_one_object_its_mk_gains_the_image_and_stays_permitted_at_p2() {
+    let mut merged = vec![
+        change(
+            80,
+            Some(
+                "<</AP <</N 81 0 R>>/FT /Btn/Ff 65536/MK <</TP 1>>/Subtype /Widget/T (image_field)>>",
+            ),
+            Some(
+                "<</AP <</N 90 0 R>>/FT /Btn/Ff 65536/MK <</I 91 0 R/TP 1>>/Subtype /Widget/T (image_field)>>",
+            ),
+            both(&[edge(10, "Fields/[3]"), edge(3, "Annots/[4]")]),
+        ),
+        change(81, Some("stream(10,aa)<</Subtype /Form>>"), None, old_only(&[edge(80, "AP/N")])),
+    ];
+    merged.extend(drawn(80, 90, 91));
+    merged.push(button_trailer());
+    let s = judge_buttons(&merged, &buttons_fill_only());
+    assert_eq!(not_permitted_keys(&s), Vec::<String>::new(), "{s}");
+    assert_eq!(finding_of(&s, 80).unwrap()["detail"], "push button \"image_field\" image changed");
+}
+
+#[test]
+fn a_caption_a_layout_or_both_with_the_image_changed_under_p2_stay_design_forbidden() {
+    for (before, after) in [
+        ("<</CA (Initials)/TP 1>>", "<</CA (Sign here)/TP 1>>"),
+        ("<</CA (Initials)/TP 1>>", "<</CA (Initials)/TP 2>>"),
+        ("<</CA (Initials)/TP 1>>", "<</CA (Sign here)/I 91 0 R/TP 1>>"),
+    ] {
+        let mut changes = button_widget(before, after);
+        changes.extend(drawn(71, 90, 91));
+        changes.push(button_trailer());
+        let s = judge_buttons(&changes, &buttons_fill_only());
+        assert_eq!(verdict(&s), "forbidden", "{after}");
+        let widget = finding_of(&s, 71).unwrap();
+        assert_eq!(
+            (&widget["verdict"], &widget["rule"], &widget["detail"]),
+            (
+                &json!("forbidden"),
+                &json!("form-fill"),
+                &json!("widget of \"initials\" keys changed: MK")
+            ),
+            "{after}"
+        );
+        // After an approval signature the key table allows /MK as a whole.
+        assert_eq!(verdict(&judge_buttons(&changes, &buttons_approval())), "permitted", "{after}");
+    }
+}
+
+#[test]
+fn a_push_button_a_signature_locked_stays_frozen_an_image_put_in_is_forbidden_at_every_level() {
+    for lock in [
+        json!({ "fieldMdp": { "action": "include", "fields": ["initials"] } }),
+        json!({ "fieldMdp": { "action": "include", "fields": ["initials"] }, "docMdp": 2,
+            "catalogCertification": true }),
+    ] {
+        let s = judge_buttons(&image_in_widget(), &buttons(lock));
+        assert_eq!(verdict(&s), "forbidden");
+        let widget = finding_of(&s, 71).unwrap();
+        assert_eq!(
+            (&widget["verdict"], &widget["rule"]),
+            (&json!("forbidden"), &json!("field-lock"))
+        );
+    }
+}
+
+#[test]
+fn another_kinds_mk_i_is_not_a_push_buttons_image_it_stays_unexplained() {
+    let mut checkbox = vec![
+        change(
+            85,
+            Some("<</AP <</N 86 0 R>>/FT /Btn/MK <</CA (4)>>/Subtype /Widget/T (agree)>>"),
+            Some("<</AP <</N 90 0 R>>/FT /Btn/MK <</CA (4)/I 91 0 R>>/Subtype /Widget/T (agree)>>"),
+            both(&[edge(10, "Fields/[4]"), edge(3, "Annots/[5]")]),
+        ),
+        change(86, Some("stream(10,aa)<</Subtype /Form>>"), None, old_only(&[edge(85, "AP/N")])),
+    ];
+    checkbox.extend(drawn(85, 90, 91));
+    checkbox.push(button_trailer());
+    let s = judge_buttons(&checkbox, &buttons_approval());
+    assert_eq!(verdict(&s), "forbidden");
+    assert!(not_permitted_keys(&s).contains(&"unexplained 91 85:MK/I".to_owned()), "{s}");
+}

@@ -501,6 +501,19 @@ impl State {
         accept: impl Fn(&str) -> bool,
         rule: &str,
     ) {
+        self.claim_subtree_admitting(ctx, side, roots, |label, _| accept(label), rule, |_| true);
+    }
+
+    /// `claimSubtree` whose `accept` reads the edge's parent too (7d5691a5a):
+    /// a push button's image is under its own field or widget only.
+    fn claim_subtree_by_parent(
+        &mut self,
+        ctx: &StepContext<'_>,
+        side: Side,
+        roots: &HashSet<u32>,
+        accept: impl Fn(&str, u32) -> bool,
+        rule: &str,
+    ) {
         self.claim_subtree_admitting(ctx, side, roots, accept, rule, |_| true);
     }
 
@@ -510,7 +523,7 @@ impl State {
         ctx: &StepContext<'_>,
         side: Side,
         roots: &HashSet<u32>,
-        accept: impl Fn(&str) -> bool,
+        accept: impl Fn(&str, u32) -> bool,
         rule: &str,
         admit: impl Fn(&ObjectChange) -> bool,
     ) {
@@ -534,7 +547,7 @@ impl State {
                     .iter()
                     .enumerate()
                     .filter(|(_, e)| {
-                        (roots.contains(&e.parent) && accept(&e.label))
+                        (roots.contains(&e.parent) && accept(&e.label, e.parent))
                             || joined.contains(&e.parent)
                     })
                     .map(|(i, _)| i)
@@ -1357,12 +1370,22 @@ fn rule_unsigned_signature_appearance(ctx: &StepContext<'_>, st: &mut State) {
         return;
     }
     // Under the new /AP only new objects; under the old one only objects removed.
-    st.claim_subtree_admitting(ctx, Side::New, &owners, is_ap, rule, |c| {
-        c.change == ObjectChangeType::Added
-    });
-    st.claim_subtree_admitting(ctx, Side::Old, &owners, is_ap, rule, |c| {
-        c.change == ObjectChangeType::Freed
-    });
+    st.claim_subtree_admitting(
+        ctx,
+        Side::New,
+        &owners,
+        |label, _| is_ap(label),
+        rule,
+        |c| c.change == ObjectChangeType::Added,
+    );
+    st.claim_subtree_admitting(
+        ctx,
+        Side::Old,
+        &owners,
+        |label, _| is_ap(label),
+        rule,
+        |c| c.change == ObjectChangeType::Freed,
+    );
 }
 
 /// JavaScript's ToInt32, for `|` on a PDF number.
@@ -1389,11 +1412,38 @@ fn is_ap(label: &str) -> bool {
     label == "AP" || label.starts_with("AP/")
 }
 
+/// `imageOnlyMkChange`: did a push button's `/MK` change in its image (`/I`)
+/// and nothing else? An image is filling the button in, as Acrobat counts
+/// it: "not modified" after an approval signature, "permitted by the
+/// certifying party" after a P=2 certification (7d5691a5a). Its caption,
+/// colors and layout (`/CA`, `/BC`, `/BG`, `/TP`) are design. An `/MK` held
+/// by reference is not read through, so a change of it stays design.
+fn image_only_mk_change(c: &ObjectChange) -> bool {
+    let before = entry(c.value.old.as_ref(), "MK");
+    let after = entry(c.value.new.as_ref(), "MK");
+    let dict_or_none =
+        |value: Option<&PdfValue>| value.is_none_or(|v| matches!(v, PdfValue::Dict(_)));
+    if !dict_or_none(before) || !dict_or_none(after) {
+        return false;
+    }
+    let changed = changed_keys(before, after);
+    !changed.is_empty() && changed.iter().all(|key| key == "I")
+}
+
+/// `isButtonImage`: a push button's image under its field or widget, the
+/// `/MK /I` drawing and what it holds.
+fn is_button_image(label: &str) -> bool {
+    label == "MK/I" || label.starts_with("MK/I/")
+}
+
 fn rule_form_fill(ctx: &StepContext<'_>, st: &mut State) {
     let rule = "form-fill";
     let field_keys = field_keys_for(ctx.level);
     let widget_keys = widget_keys_for(ctx.level);
     let mut parents: HashSet<u32> = HashSet::new();
+    // The push buttons among `parents`: their image is claimed with their
+    // appearance.
+    let mut buttons: HashSet<u32> = HashSet::new();
     let mut fields = FieldMap::default();
     for (n, f) in ctx.before.field_by_obj.iter() {
         fields.set(n, f.clone());
@@ -1405,6 +1455,9 @@ fn rule_form_fill(ctx: &StepContext<'_>, st: &mut State) {
         if field.family == FormFieldFamily::Signature {
             continue;
         }
+        let is_button = field.family == FormFieldFamily::Pushbutton;
+        // `/MK` as filling in: a push button's image, and no other part of it.
+        let image_only = |c: &ObjectChange| is_button && image_only_mk_change(c);
         let fc = ctx.change(num);
         let widget_changes: Vec<&ObjectChange> =
             field.widgets.iter().filter(|w| **w != num).filter_map(|w| ctx.change(*w)).collect();
@@ -1466,8 +1519,12 @@ fn rule_form_fill(ctx: &StepContext<'_>, st: &mut State) {
         if let Some(fc) = fc.filter(|fc| !ctx.is_identical(fc)) {
             let changed = changed_keys(fc.value.old.as_ref(), fc.value.new.as_ref());
             let has = |k: &str| changed.iter().any(|c| c == k);
-            let bad: Vec<&str> =
-                changed.iter().map(String::as_str).filter(|k| !field_keys.contains(k)).collect();
+            let image = has("MK") && image_only(fc);
+            let bad: Vec<&str> = changed
+                .iter()
+                .map(String::as_str)
+                .filter(|k| !field_keys.contains(k) && !(*k == "MK" && image))
+                .collect();
             if !bad.is_empty() {
                 st.forbidden(
                     fc,
@@ -1497,8 +1554,11 @@ fn rule_form_fill(ctx: &StepContext<'_>, st: &mut State) {
                     .iter()
                     .map(String::as_str)
                     .filter(|k| !matches!(*k, "V" | "AP" | "AS" | "I" | "RV"))
+                    .filter(|k| !(*k == "MK" && image))
                     .collect();
-                let detail = if properties.is_empty() {
+                let detail = if properties.is_empty() && image {
+                    format!("push button \"{}\" image changed", field.name)
+                } else if properties.is_empty() {
                     format!("field \"{}\" filled", field.name)
                 } else {
                     format!(
@@ -1515,9 +1575,11 @@ fn rule_form_fill(ctx: &StepContext<'_>, st: &mut State) {
             if ctx.is_identical(wc) {
                 continue;
             }
-            let bad: Vec<String> = changed_keys(wc.value.old.as_ref(), wc.value.new.as_ref())
+            let changed = changed_keys(wc.value.old.as_ref(), wc.value.new.as_ref());
+            let image = changed.iter().any(|k| k == "MK") && image_only(wc);
+            let bad: Vec<String> = changed
                 .into_iter()
-                .filter(|k| !widget_keys.contains(&k.as_str()))
+                .filter(|k| !widget_keys.contains(&k.as_str()) && !(k == "MK" && image))
                 .collect();
             if !bad.is_empty() {
                 st.forbidden(
@@ -1531,15 +1593,28 @@ fn rule_form_fill(ctx: &StepContext<'_>, st: &mut State) {
                 continue;
             }
             st.claim_stable(wc, rule, true);
-            st.permitted(wc, rule, Some(format!("widget of \"{}\" appearance", field.name)));
+            let what = if image { "image" } else { "appearance" };
+            st.permitted(wc, rule, Some(format!("widget of \"{}\" {what}", field.name)));
         }
         if ok {
             parents.insert(num);
             parents.extend(field.widgets.iter().copied());
+            if is_button {
+                buttons.insert(num);
+                buttons.extend(field.widgets.iter().copied());
+            }
         }
     }
+    // The appearances, and a push button's image (`/MK /I`), which its
+    // appearance draws: the drawing, and what it holds.
     for side in SIDES {
-        st.claim_subtree(ctx, side, &parents, is_ap, rule);
+        st.claim_subtree_by_parent(
+            ctx,
+            side,
+            &parents,
+            |label, parent| is_ap(label) || (buttons.contains(&parent) && is_button_image(label)),
+            rule,
+        );
     }
 }
 
