@@ -34,6 +34,9 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
+use crate::features::forms::format::{
+    FormFieldFormat, checked_purpose, format_write_of, formats_equal, scripts_of_format,
+};
 use pdfium::{CreatableFieldFamily, Document};
 
 use super::calculation::{
@@ -236,9 +239,18 @@ pub struct FormFieldDraft<C: Coordinates = PdfCoordinates> {
     pub alternate_name: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mapping_name: Option<String>,
-    /// The group the field goes in; the session's own when left out.
+    /// The group the field goes in. Left out or `null`, the field is in no
+    /// group (fce760aeb).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub group_id: Option<String>,
+    /// What the field's value means, as sent: checked by
+    /// [`checked_purpose`]. Left out or `null`, the field has none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub purpose: Option<Value>,
+    /// A text field's or a dropdown's format, as sent: checked by
+    /// [`format_write_of`]. Left out or `null`, the field has none.
+    #[serde(default, skip_serializing_if = "Patch::is_keep")]
+    pub format: Patch<Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub actions: Option<FieldActionsPatch>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -281,9 +293,17 @@ pub struct FormFieldPatch {
     pub alternate_name: Patch<String>,
     #[serde(skip_serializing_if = "Patch::is_keep")]
     pub mapping_name: Patch<String>,
-    /// A group is changed, never removed.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub group_id: Option<String>,
+    /// Another group, or `Clear` to take the field out of its group, which
+    /// takes no `fields:set-group` right (fce760aeb).
+    #[serde(skip_serializing_if = "Patch::is_keep")]
+    pub group_id: Patch<String>,
+    /// What the field's value means, as sent; `Clear` takes it away.
+    #[serde(skip_serializing_if = "Patch::is_keep")]
+    pub purpose: Patch<Value>,
+    /// A text field's or a dropdown's format, as sent; `Clear` removes its
+    /// format and keystroke scripts.
+    #[serde(skip_serializing_if = "Patch::is_keep")]
+    pub format: Patch<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub actions: Option<FieldActionsPatch>,
     #[serde(skip_serializing_if = "Patch::is_keep")]
@@ -315,7 +335,7 @@ impl FormFieldPatch {
 }
 
 /// The patch members every family has (`PATCH_BASE_MEMBERS`).
-const PATCH_BASE_MEMBERS: [&str; 9] = [
+const PATCH_BASE_MEMBERS: [&str; 10] = [
     "kind",
     "name",
     "readOnly",
@@ -324,15 +344,18 @@ const PATCH_BASE_MEMBERS: [&str; 9] = [
     "alternateName",
     "mappingName",
     "groupId",
+    "purpose",
     "actions",
 ];
 
 /// The members each family's patch adds (`PATCH_FAMILY_MEMBERS`).
 fn patch_family_members(family: FormFieldFamily) -> &'static [&'static str] {
     match family {
-        FormFieldFamily::Text => &["defaultValue", "maxLength", "multiline", "password", "comb"],
+        FormFieldFamily::Text => {
+            &["defaultValue", "maxLength", "multiline", "password", "comb", "format"]
+        }
         FormFieldFamily::Radio => &["radiosInUnison", "noToggleToOff"],
-        FormFieldFamily::Combobox => &["edit", "defaultValue", "options"],
+        FormFieldFamily::Combobox => &["edit", "defaultValue", "options", "format"],
         FormFieldFamily::Listbox => &["multiSelect", "options", "defaultValue"],
         _ => &[],
     }
@@ -846,6 +869,9 @@ pub struct FieldWriter<'a> {
 pub struct PlannedCreate {
     placements: Vec<(PlacedWidget, u32, String)>,
     default_entry: FormValueEntry,
+    /// The draft's purpose and format, checked.
+    purpose: Option<String>,
+    format: Option<FormFieldFormat>,
 }
 
 /// `createField` up to the apply boundary: everything a draft can be wrong
@@ -872,8 +898,11 @@ pub fn plan_create(
     for ((placed, page), state) in placed_all.into_iter().zip(pages).zip(states) {
         placements.push((placed, page, state));
     }
-    // The default is checked against the draft before anything is written.
+    // The default is checked against the draft before anything is written,
+    // and so are the purpose and the format.
     let default_entry = default_entry_of_draft(draft)?;
+    let purpose = checked_purpose(draft.purpose.as_ref())?;
+    let format = format_write_of(&draft.format, draft.actions.as_ref(), family)?.flatten();
     if let Some(limit) = draft.max_length
         && (limit.fract() != 0.0 || limit <= 0.0 || !limit.is_finite())
     {
@@ -896,7 +925,7 @@ pub fn plan_create(
         )
         .with_details(serde_json::json!({ "field": "widgetObjectNumbers" })));
     }
-    Ok(PlannedCreate { placements, default_entry })
+    Ok(PlannedCreate { placements, default_entry, purpose, format })
 }
 
 /// What a create or an update did: the field read back, and the
@@ -928,9 +957,18 @@ pub fn create_field(
             rejected(&format!("cannot create field \"{}\" (name conflict or invalid)", draft.name))
         })?;
     configure_new_field(document, draft, &plan.default_entry, created)?;
+    // A format is the field's format and keystroke scripts, composed from
+    // its pattern.
+    if let Some(format) = &plan.format {
+        write_field_scripts(document, created, None, &scripts_of_format(Some(format)))?;
+    }
     stamp_field_creation(document, created, actor, writer.now.as_deref())?;
+    // A draft that names no group leaves the field in none.
     if let Some(group) = &draft.group_id {
-        write_field_group(document, created, group)?;
+        write_field_group(document, created, Some(group))?;
+    }
+    if let Some(purpose) = &plan.purpose {
+        write_field_purpose(document, created, Some(purpose))?;
     }
     for (at, (placed, page_index, on_state)) in plan.placements.iter().enumerate() {
         let number = widget_object_numbers.and_then(|numbers| numbers.get(at).copied());
@@ -997,6 +1035,7 @@ fn configure_new_field(
 /// (`fieldAttribution.ts`).
 const KEY_SCHEMA_VERSION: &str = "SchemaVersion";
 const KEY_GROUP_ID: &str = "GroupID";
+const KEY_PURPOSE: &str = "Purpose";
 const KEY_CREATED_BY: &str = "CreatedBy";
 const KEY_CREATED_AT: &str = "CreatedAt";
 const KEY_IMPORTED_BY: &str = "ImportedBy";
@@ -1099,14 +1138,24 @@ pub fn restore_field_fill(
     )
 }
 
-/// `writeFieldGroup`: put a field in `group_id`. A group is changed, never
-/// removed, so there is no clearing.
+/// `writeFieldGroup`: put a field in `group_id`; `None` takes it out of its
+/// group.
 pub fn write_field_group(
     document: &Document,
     object_number: u32,
-    group_id: &str,
+    group_id: Option<&str>,
 ) -> Result<(), EngineError> {
-    write_attribution(document, object_number, &[(KEY_GROUP_ID, Some(group_id))])
+    write_attribution(document, object_number, &[(KEY_GROUP_ID, group_id)])
+}
+
+/// `writeFieldPurpose`: give a field `purpose`; `None` takes its purpose
+/// away.
+pub fn write_field_purpose(
+    document: &Document,
+    object_number: u32,
+    purpose: Option<&str>,
+) -> Result<(), EngineError> {
+    write_attribution(document, object_number, &[(KEY_PURPOSE, purpose)])
 }
 
 /// `createUnattachedWidget`: a widget born through the annotation plane at
@@ -1206,6 +1255,12 @@ pub fn update_field(
     cancel.check()?;
     let document = mutator.document;
     let FoundField { object_number, field: before } = found_writable(mutator, reference)?;
+    let purpose = match &patch.purpose {
+        Patch::Keep => None,
+        Patch::Clear => Some(None),
+        Patch::Set(purpose) => Some(checked_purpose(Some(purpose))?),
+    };
+    let format = format_write_of(&patch.format, patch.actions.as_ref(), before.base.family)?;
     // Checked against the field as the patch leaves it, before anything is
     // written.
     let after = form_field_after(&before, patch)?;
@@ -1251,10 +1306,33 @@ pub fn update_field(
             }));
         }
     }
-    if let Some(group) = &patch.group_id
-        && Some(group) != before.base.group_id.as_ref()
+    let group = match &patch.group_id {
+        Patch::Keep => None,
+        Patch::Clear => Some(None),
+        Patch::Set(group) => Some(Some(group.as_str())),
+    };
+    if let Some(group) = group
+        && group != before.base.group_id.as_deref()
     {
         write_field_group(document, object_number, group)?;
+    }
+    if let Some(purpose) = purpose
+        && purpose != before.base.purpose
+    {
+        write_field_purpose(document, object_number, purpose.as_deref())?;
+    }
+    // A format replaces the field's format and keystroke scripts, and `null`
+    // removes both. The format the field already has is no change, so its
+    // scripts stay as they are, an older wording of the same format too.
+    if let Some(format) = format
+        && !formats_equal(format.as_ref(), field_format(&before))
+    {
+        write_field_scripts(
+            document,
+            object_number,
+            before.base.actions.as_ref(),
+            &scripts_of_format(format.as_ref()),
+        )?;
     }
     // New options and a new default, and the selection that goes with
     // them, as the field's rules work them out.
@@ -1284,6 +1362,16 @@ pub fn update_field(
     )?;
     let field = read_back_field(document, object_number, cancel)?;
     Ok(WrittenField { field, calculation_order })
+}
+
+/// A text field's or a dropdown's format as read; `None` for any other.
+pub fn field_format(field: &FormFieldDto) -> Option<&FormFieldFormat> {
+    match &field.kind {
+        FormFieldKind::Text { format, .. } | FormFieldKind::Combobox { format, .. } => {
+            format.as_ref()
+        }
+        _ => None,
+    }
 }
 
 /// `followCalculateScript`: keep the calculation order in step with a

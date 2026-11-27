@@ -30,6 +30,7 @@
 
 pub mod calculation;
 pub mod field;
+pub mod format;
 pub mod snapshot;
 pub mod transfer;
 pub mod value;

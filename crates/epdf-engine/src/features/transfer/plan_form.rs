@@ -18,6 +18,10 @@ use crate::features::actions::reader::ActionTree;
 use crate::features::actions::write::{
     WIDGET_ACTION_EVENTS, action_write_of, field_script_of, needs_script_right,
 };
+use crate::features::forms::format::{
+    FormFieldFormat, checked_format, format_of_actions, is_field_purpose, is_keystroke_of_format,
+};
+use crate::features::forms::snapshot::FieldActions;
 use crate::features::forms::value::FormFieldValue;
 use crate::identity::PageRef;
 use crate::page_space::destinations::PageDestination;
@@ -469,13 +473,29 @@ pub fn field_value_of(field: &Value) -> Option<FormFieldValue> {
     }
 }
 
+/// `writableFormatOf`: the date or time format a field's scripts give it,
+/// which a create writes again from its pattern; `None` for a field without
+/// one. Read from the scripts themselves, so a row an older version exported
+/// has it too.
+fn writable_format_of(field: &Value) -> Option<FormFieldFormat> {
+    if !matches!(field["kind"].as_str(), Some("text" | "combobox")) {
+        return None;
+    }
+    let actions = serde_json::from_value::<FieldActions<Value>>(field["actions"].clone()).ok()?;
+    format_of_actions(Some(&actions)).filter(FormFieldFormat::is_writable)
+}
+
 /// A field's scripts as a create writes them; each left out is reported
-/// (`fieldActionsOf`).
+/// (`fieldActionsOf`). Without the right to write scripts, a date or a time
+/// format still comes along, as the create's `format`: its format script,
+/// and a keystroke script that is the format's own, are then no loss to
+/// report.
 fn field_actions_of(
     field: &Value,
     may_script: bool,
     dropped: &mut Vec<Value>,
 ) -> Map<String, Value> {
+    let format = if may_script { None } else { writable_format_of(field) };
     let mut actions = Map::new();
     for (event, tree) in field["actions"].as_object().into_iter().flatten() {
         if tree.is_null() {
@@ -485,14 +505,22 @@ fn field_actions_of(
         let script = serde_json::from_value::<ActionTree<PageDestination>>(tree.clone())
             .ok()
             .and_then(|tree| field_script_of(&tree));
+        let own_keystroke = || {
+            format.as_ref().is_some_and(|format| {
+                let tree = serde_json::from_value::<ActionTree<Value>>(tree.clone()).ok();
+                is_keystroke_of_format(format, tree.as_ref())
+            })
+        };
         match script {
             None => dropped.push(json!({ "ref": field["ref"], "field": member,
                 "reason": "unsupported-action" })),
-            Some(_) if !may_script => dropped.push(json!({ "ref": field["ref"], "field": member,
-                "reason": "script-not-allowed" })),
-            Some(script) => {
+            Some(script) if may_script => {
                 actions.insert(event.clone(), serde_json::to_value(script).unwrap_or(Value::Null));
             }
+            Some(_) if format.is_some() && event == "format" => {}
+            Some(_) if event == "keystroke" && own_keystroke() => {}
+            Some(_) => dropped.push(json!({ "ref": field["ref"], "field": member,
+                "reason": "script-not-allowed" })),
         }
     }
     actions
@@ -605,6 +633,12 @@ fn field_draft_of(
             draft.insert(key.into(), field[key].clone());
         }
     }
+    if let Some(purpose) = field["purpose"].as_str().filter(|p| is_field_purpose(p)) {
+        draft.insert("purpose".into(), json!(purpose));
+    }
+    // A format script is carried or left out with the keystroke script, so a
+    // create never gets `format` beside a script for one of its two events.
+    let format = if actions.contains_key("format") { None } else { writable_format_of(field) };
     if !actions.is_empty() {
         draft.insert("actions".into(), Value::Object(actions));
     }
@@ -624,6 +658,9 @@ fn field_draft_of(
     match family {
         "text" => {
             draft.insert("kind".into(), json!("text"));
+            if let Some(format) = &format {
+                draft.insert("format".into(), json!(format));
+            }
             if has_default {
                 draft.insert("defaultValue".into(), field["defaultValue"].clone());
             }
@@ -642,6 +679,9 @@ fn field_draft_of(
         }
         "combobox" => {
             draft.insert("kind".into(), json!("combobox"));
+            if let Some(format) = &format {
+                draft.insert("format".into(), json!(format));
+            }
             draft.insert("edit".into(), field["edit"].clone());
             draft.insert("options".into(), options());
             if has_default {
@@ -690,9 +730,9 @@ fn checked_field_draft(
 /// (`FormFieldDraftSchema`, strict).
 fn family_members(family: &str) -> &'static [&'static str] {
     match family {
-        "text" => &["defaultValue", "maxLength", "multiline", "password", "comb"],
+        "text" => &["defaultValue", "maxLength", "multiline", "password", "comb", "format"],
         "radio" => &["radiosInUnison", "noToggleToOff"],
-        "combobox" => &["edit", "options", "defaultValue"],
+        "combobox" => &["edit", "options", "defaultValue", "format"],
         "listbox" => &["multiSelect", "options", "defaultValue"],
         _ => &[],
     }
@@ -707,6 +747,7 @@ const BASE_MEMBERS: &[&str] = &[
     "alternateName",
     "mappingName",
     "groupId",
+    "purpose",
     "actions",
     "widgets",
 ];
@@ -748,10 +789,23 @@ fn check_field_draft(draft: &Map<String, Value>) -> Result<(), (String, String)>
             return fail(key, "Invalid input: expected string");
         }
     }
-    if let Some(group) = draft.get("groupId")
-        && group.as_str().is_none_or(|g| g.is_empty() || g.chars().count() > 256)
+    if let Some(group) = draft.get("groupId").filter(|g| !g.is_null())
+        && group.as_str().is_none_or(|g| g.is_empty() || g.encode_utf16().count() > 256)
     {
         return fail("groupId", "expected a string of 1 to 256 characters");
+    }
+    if let Some(purpose) = draft.get("purpose").filter(|p| !p.is_null())
+        && purpose.as_str().is_none_or(|p| !is_field_purpose(p))
+    {
+        return fail(
+            "purpose",
+            "a purpose has no space at its start or its end, and no NUL character",
+        );
+    }
+    if let Some(format) = draft.get("format").filter(|f| !f.is_null())
+        && checked_format(format).is_err()
+    {
+        return fail("format", "Invalid input");
     }
     if let Some(limit) = draft.get("maxLength")
         && limit.as_f64().is_none_or(|n| n.fract() != 0.0 || n <= 0.0)

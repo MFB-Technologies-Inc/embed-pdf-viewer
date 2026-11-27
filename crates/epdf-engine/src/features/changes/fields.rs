@@ -114,17 +114,35 @@ pub fn create_field(
 }
 
 /// `newFieldGroup`: the group a new field goes in: the one the write names,
-/// else the caller's own; a group other than their own takes
-/// `fields:set-group` for it.
+/// and none when it names none, whatever the caller's own group is
+/// (fce760aeb). A group other than their own takes `fields:set-group` for
+/// it.
 fn new_field_group(
     ctx: &ChangeContext<'_>,
     named: Option<String>,
 ) -> Result<Option<String>, EngineError> {
-    let group = named.or_else(|| ctx.authority.identity.group_id.clone());
+    let group = named_group(named.map(Value::String).as_ref())?;
     if let Some(group) = &group {
         ctx.authority.require_field_group(group)?;
     }
     Ok(group)
+}
+
+/// `namedGroup`: the group a write names for a field, `None` for none (left
+/// out or `null`). A group's id is 1 to 256 characters, so an empty one is
+/// refused, not read as no group.
+fn named_group(named: Option<&Value>) -> Result<Option<String>, EngineError> {
+    match named {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::String(group)) if (1..=256).contains(&group.encode_utf16().count()) => {
+            Ok(Some(group.clone()))
+        }
+        Some(_) => Err(EngineError::with_message(
+            EngineErrorCode::InvalidArg,
+            "a field's groupId is 1 to 256 characters, or null for no group",
+        )
+        .with_details(serde_json::json!({ "field": "groupId" }))),
+    }
 }
 
 /// The structural writer, over the session's document.
@@ -158,10 +176,15 @@ pub fn update_field(
         ctx.authority.require(DocCapability::DocFormsScript)?;
     }
     let before = read_field(ctx, reference)?;
-    if let Some(group) = patch.get("groupId").and_then(Value::as_str)
-        && Some(group) != before.field.base.group_id.as_deref()
-    {
-        ctx.authority.require_field_group(group)?;
+    if let Some(named) = patch.get("groupId") {
+        // Taking the field out of its group (`null`) is form design, checked
+        // above.
+        let group = named_group(Some(named))?;
+        if group != before.field.base.group_id
+            && let Some(group) = &group
+        {
+            ctx.authority.require_field_group(group)?;
+        }
     }
     if let Some(expect) = expect {
         assert_expected(at, &properties_of(&before.field), expect)?;
@@ -202,8 +225,19 @@ fn write_update(
     let objects = capture_after(document, pending)?;
     let was = properties_of(&before.field);
     let is = properties_of(&written.field);
-    let keys: Vec<&String> = patch
-        .keys()
+    // A format is the field's format and keystroke scripts, so what a format
+    // write changed is its `actions`. Its undo puts those back by the rule of
+    // any script write: a script someone wrote since is never removed, and a
+    // format no write can name (`other`) comes back as the scripts it was.
+    let mut named: Vec<String> = Vec::new();
+    for key in patch.keys() {
+        let key = if key == "format" { "actions".to_owned() } else { key.clone() };
+        if !named.contains(&key) {
+            named.push(key);
+        }
+    }
+    let keys: Vec<&String> = named
+        .iter()
         .filter(|key| *key != "kind" && !values_equal(was.get(*key), is.get(*key)))
         .collect();
     let pick = |from: &Map<String, Value>| -> Map<String, Value> {
@@ -276,6 +310,7 @@ pub fn revert_properties(
                         &current.field.base.name,
                         restore.get("name").and_then(Value::as_str).unwrap_or_default(),
                     ))
+                && (*key != "actions" || scripts_can_go_back(left.get(*key), restore.get(*key)))
         })
         .collect();
     if kept.is_empty() {
@@ -292,6 +327,18 @@ pub fn revert_properties(
         *item_skipped = skipped;
     }
     Ok(done)
+}
+
+/// `scriptsCanGoBack`: whether the scripts an update replaced can all go
+/// back by value: `restore` names every event `left` does. An event it
+/// leaves out held actions no script write can make (a script that goes on
+/// to a GoTo, say); putting only the others back would undo half of the
+/// update and call it done, so the scripts stay as the update left them.
+fn scripts_can_go_back(left: Option<&Value>, restore: Option<&Value>) -> bool {
+    let events =
+        |value: Option<&Value>| value.and_then(Value::as_object).cloned().unwrap_or_default();
+    let (left, restore) = (events(left), events(restore));
+    left.keys().all(|event| restore.contains_key(event))
 }
 
 /// `nameIsFree`: whether the field `full_name` could be renamed to
@@ -931,11 +978,10 @@ pub fn properties_of(field: &FormFieldDto) -> Map<String, Value> {
     out.insert("noExport".into(), Value::Bool(base.no_export));
     out.insert("alternateName".into(), serde_json::json!(base.alternate_name));
     out.insert("mappingName".into(), serde_json::json!(base.mapping_name));
-    // A group is changed, never removed: a field in none has nothing to put
-    // back.
-    if let Some(group) = &base.group_id {
-        out.insert("groupId".into(), Value::String(group.clone()));
-    }
+    // `null` for a field in no group: putting that back takes the field out
+    // of its group.
+    out.insert("groupId".into(), serde_json::json!(base.group_id));
+    out.insert("purpose".into(), serde_json::json!(base.purpose));
     out.insert(
         "actions".into(),
         serde_json::to_value(scripts_of(base.actions.as_ref())).unwrap_or(Value::Null),
@@ -950,7 +996,15 @@ pub fn properties_of(field: &FormFieldDto) -> Map<String, Value> {
         )
     };
     match &field.kind {
-        FormFieldKind::Text { default_value, max_length, multiline, password, comb, .. } => {
+        FormFieldKind::Text {
+            default_value,
+            max_length,
+            multiline,
+            password,
+            comb,
+            format,
+            ..
+        } => {
             out.insert(
                 "defaultValue".into(),
                 if has_default { Value::String(default_value.clone()) } else { Value::Null },
@@ -959,18 +1013,20 @@ pub fn properties_of(field: &FormFieldDto) -> Map<String, Value> {
             out.insert("multiline".into(), Value::Bool(*multiline));
             out.insert("password".into(), Value::Bool(*password));
             out.insert("comb".into(), Value::Bool(*comb));
+            insert_format(&mut out, format.as_ref());
         }
         FormFieldKind::Radio { radios_in_unison, no_toggle_to_off, .. } => {
             out.insert("radiosInUnison".into(), Value::Bool(*radios_in_unison));
             out.insert("noToggleToOff".into(), Value::Bool(*no_toggle_to_off));
         }
-        FormFieldKind::Combobox { edit, default_value, options: list, .. } => {
+        FormFieldKind::Combobox { edit, default_value, options: list, format, .. } => {
             out.insert("edit".into(), Value::Bool(*edit));
             out.insert(
                 "defaultValue".into(),
                 if has_default { Value::String(default_value.clone()) } else { Value::Null },
             );
             out.insert("options".into(), options(list));
+            insert_format(&mut out, format.as_ref());
         }
         FormFieldKind::Listbox { multi_select, default_value, options: list, .. } => {
             out.insert("multiSelect".into(), Value::Bool(*multi_select));
@@ -983,6 +1039,19 @@ pub fn properties_of(field: &FormFieldDto) -> Map<String, Value> {
         _ => {}
     }
     out
+}
+
+/// A field's format among its properties: `null` without one, a date or a
+/// time as itself. A format a write can't make (`other`) is left out, as a
+/// script a write can't make is: putting the properties back never removes
+/// it.
+fn insert_format(
+    out: &mut Map<String, Value>,
+    format: Option<&crate::features::forms::format::FormFieldFormat>,
+) {
+    if format.is_none_or(|format| format.is_writable()) {
+        out.insert("format".into(), serde_json::to_value(format).unwrap_or(Value::Null));
+    }
 }
 
 fn to_value<T: serde::Serialize>(value: &T) -> Result<Value, EngineError> {

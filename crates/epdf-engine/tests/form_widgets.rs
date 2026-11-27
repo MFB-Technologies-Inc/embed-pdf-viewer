@@ -766,15 +766,23 @@ fn designer() -> Value {
 
 #[test]
 fn a_designer_puts_fields_in_her_own_group_or_one_she_may_set() {
-    // `runFieldGroupsConformance`: a create goes in the caller's own group,
-    // or one she may set; another is refused, naming the scope it takes.
+    // `runFieldGroupsConformance` (fce760aeb): a new field is in no group
+    // unless its draft names one; naming her own takes no right, another
+    // takes `fields:set-group` for it, and a refusal names that scope.
     let mut doc = Doc::toggle_fields();
     let placed = |x: u32| {
         json!({ "page": page_ref(PAGE),
         "rect": { "x": x, "y": 200, "width": 100, "height": 20 } })
     };
+    let unnamed = doc.write(json!({ "kind": "forms.createField", "authority": designer(),
+        "draft": { "kind": "text", "name": "unnamed", "widgets": [placed(380)] } }));
+    assert_eq!(unnamed["field"]["groupId"], json!(null));
+    let none = doc.write(json!({ "kind": "forms.createField", "authority": designer(),
+        "draft": { "kind": "text", "name": "none", "groupId": null, "widgets": [placed(500)] } }));
+    assert_eq!(none["field"]["groupId"], json!(null));
     let own = doc.write(json!({ "kind": "forms.createField", "authority": designer(),
-        "draft": { "kind": "text", "name": "clause", "widgets": [placed(20)] } }));
+        "draft": { "kind": "text", "name": "clause", "groupId": "legal",
+            "widgets": [placed(20)] } }));
     assert_eq!(own["field"]["groupId"], "legal");
     let buyers = doc.write(json!({ "kind": "forms.createField", "authority": designer(),
         "draft": { "kind": "text", "name": "buyer_address", "groupId": "buyer",

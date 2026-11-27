@@ -670,7 +670,8 @@ fn the_form_finds_each_widget_on_the_page_whose_annots_hold_it() {
 fn base() -> Value {
     json!({
         "origin": "acroform", "readOnly": false, "required": false, "noExport": false,
-        "alternateName": null, "mappingName": null, "groupId": null, "createdBy": null,
+        "alternateName": null, "mappingName": null, "groupId": null, "purpose": null,
+        "createdBy": null,
         "createdAt": null, "filledBy": null, "filledByName": null, "filledAt": null,
         "importedBy": null
     })

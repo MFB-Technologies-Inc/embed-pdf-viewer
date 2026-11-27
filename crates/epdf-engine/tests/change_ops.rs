@@ -326,8 +326,8 @@ fn a_widget_update_renames() {
 fn every_change_kind_has_the_version_it_arrived_in() {
     use epdf_engine::features::changes::kinds::{
         API_VERSION, CHANGE_KIND_SINCE, CHANGE_KINDS, FIELD_PURPOSE_AND_FORMAT_SINCE,
-        MARK_IMAGE_OR_NONE_SINCE, VALIDATION_INFO_SINCE, change_kind_since, change_kinds_unknown_to,
-        lacks_what_arrived_in,
+        MARK_IMAGE_OR_NONE_SINCE, VALIDATION_INFO_SINCE, change_kind_since,
+        change_kinds_unknown_to, lacks_what_arrived_in,
     };
     let path = test_support::corpus::vectors_dir("changes").join("kinds.json");
     let text = std::fs::read_to_string(&path).expect("kinds.json");

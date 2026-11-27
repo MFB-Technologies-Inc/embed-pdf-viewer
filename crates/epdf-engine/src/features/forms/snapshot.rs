@@ -23,6 +23,7 @@
 //! information: a scalar reading of an array `/V` is its first element. A
 //! write path has to see what was there, so the lossless form travels too.
 
+use crate::features::forms::format::{FormFieldFormat, format_of_actions, is_field_purpose};
 use pdfium::{FieldActionEvent, FormField, FormModel};
 use serde::{Deserialize, Serialize};
 
@@ -306,6 +307,11 @@ pub struct FormFieldBase<C: Coordinates = PdfCoordinates> {
     /// The group whose members fill the field in (`fields:` scopes grant
     /// filling and signing by group); `None` in no group.
     pub group_id: Option<String>,
+    /// What the field's value means (`email`, `date-signed`, a name an app
+    /// made up), from `/EMBD_Metadata /Purpose`; `None` for none. An older
+    /// side's field reads without one (`withPurposeAndFormat`).
+    #[serde(default)]
+    pub purpose: Option<String>,
     #[serde(flatten)]
     pub attribution: FieldAttribution,
 }
@@ -352,6 +358,10 @@ pub enum FormFieldKind {
         password: bool,
         /// Fixed character cells. Meaningful only with a `max_length`.
         comb: bool,
+        /// The shape the value has, read from the format script as Acrobat
+        /// decides it; `None` without one.
+        #[serde(default)]
+        format: Option<FormFieldFormat>,
         widgets: Vec<FormWidgetRef>,
     },
     Checkbox {
@@ -376,6 +386,9 @@ pub enum FormFieldKind {
         default_value: String,
         edit: bool,
         options: Vec<FormFieldOption>,
+        /// The shape the value has, as a text field's.
+        #[serde(default)]
+        format: Option<FormFieldFormat>,
         widgets: Vec<FormWidgetRef>,
     },
     Listbox {
@@ -518,6 +531,7 @@ pub fn read_field(
         default_value_entry,
         actions: read_field_actions(model, index, budget)?,
         group_id: read_field_group(field)?,
+        purpose: read_field_purpose(field)?,
         attribution: read_field_attribution(field)?,
     };
 
@@ -530,6 +544,9 @@ pub fn read_field(
             multiline: raw_flags & ff::MULTILINE != 0,
             password: raw_flags & ff::PASSWORD != 0,
             comb: raw_flags & ff::COMB != 0,
+            // The format script decides, as in Acrobat; the field's name and
+            // a keystroke script on its own say nothing.
+            format: format_of_actions(base.actions.as_ref()),
             widgets: read_plain_widgets(field),
         },
         FormFieldFamily::Checkbox => {
@@ -562,6 +579,7 @@ pub fn read_field(
             default_value: base.default_value_entry.scalar(),
             edit: raw_flags & ff::EDIT != 0,
             options: read_options(field)?,
+            format: format_of_actions(base.actions.as_ref()),
             widgets: read_plain_widgets(field),
         },
         FormFieldFamily::Listbox => {
@@ -666,6 +684,7 @@ fn read_options(field: &FormField<'_>) -> Result<Vec<FormFieldOption>, EngineErr
 /// `/EMBD_Metadata` keys a field's attribution and group live under
 /// (`fieldAttribution.ts`).
 const KEY_GROUP_ID: &str = "GroupID";
+const KEY_PURPOSE: &str = "Purpose";
 const KEY_CREATED_BY: &str = "CreatedBy";
 const KEY_CREATED_AT: &str = "CreatedAt";
 const KEY_FILLED_BY: &str = "FilledBy";
@@ -685,6 +704,16 @@ fn read_field_group(field: &FormField<'_>) -> Result<Option<String>, EngineError
         return Ok(None);
     }
     field_metadata(field, KEY_GROUP_ID)
+}
+
+/// The purpose of a field (`readFieldPurpose`); `None` with none. An entry
+/// that is no purpose a write takes (another tool's, or one with space
+/// around it) reads as none, so every purpose read can be written back.
+fn read_field_purpose(field: &FormField<'_>) -> Result<Option<String>, EngineError> {
+    if !field.has_embed_metadata() {
+        return Ok(None);
+    }
+    Ok(field_metadata(field, KEY_PURPOSE)?.filter(|purpose| is_field_purpose(purpose)))
 }
 
 /// Who made the field and who last filled it in (`readFieldAttribution`),

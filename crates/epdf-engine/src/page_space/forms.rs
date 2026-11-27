@@ -41,6 +41,7 @@ pub fn page_form_field_of(
             default_value_entry: base.default_value_entry,
             actions,
             group_id: base.group_id,
+            purpose: base.purpose,
             attribution: base.attribution,
         },
         kind,
@@ -308,7 +309,7 @@ mod tests {
             "kind": "pushbutton", "origin": "acroform", "readOnly": false,
             "required": false, "noExport": false, "alternateName": null, "mappingName": null,
             "valueEntry": { "kind": "none" }, "defaultValueEntry": { "kind": "none" },
-            "groupId": null, "createdBy": null, "createdAt": null, "filledBy": null,
+            "groupId": null, "purpose": null, "createdBy": null, "createdAt": null, "filledBy": null,
             "filledByName": null, "filledAt": null, "importedBy": null, "widgets": []
         });
         if let Some(actions) = actions {
