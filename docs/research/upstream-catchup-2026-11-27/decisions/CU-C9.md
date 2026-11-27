@@ -21,8 +21,12 @@ which can reach the build graph, so skipping the sync as last time would have bu
 FreeType. `auto` resyncs exactly when the `DEPS` hash differs, which is what a fresh `buildFork`
 tree gets.
 Cost: the shell copy can drift from `buildFork`; it does not check `hostClangWorks` (the resync
-replaces `llvm-build` anyway), and its stamps say `"seeded": false`. The seed clone printed one
-`packfile … index unavailable` line from `git fetch`, which did not stop the checkout.
+replaces `llvm-build` anyway), and its stamps say `"seeded": false`. The seed clone printed 491
+`error: packfile … index unavailable` lines, all before the first build
+(`tmp/cu1127/logs/CU-C9/slices.log:2-492`): 149 for `pack-80e7d99…` and 342 for `pack-ef140c3…`.
+Both packs exist in the `af480d0ce` seed tree but not in the new tree, whose store was repacked to
+4 packs. They were harmless: `git count-objects -v` reports garbage 0, `git status` is clean, and
+`git cat-file` resolves the pin.
 Reverse: delete `perf-compare/.work/fork/9472117ed…/` and let `buildFork` build it.
 
 ## CU-C9-D2. `takesCursor()` has a Swift default of `true`; `focus(select:)` must answer a `Bool`

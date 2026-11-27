@@ -6,7 +6,12 @@ engine framework locally, and gives the Swift package the surface Kotlin and .NE
 three Swift runs pass at head: 623 of 623 `EmbedPDFTests` on the iOS simulator, macOS arm64 and
 macOS x86_64, where the start ran 618; the five new tests are the whole difference. The coverage
 check reports the same 7 errors as `d250a68e3`, so the nine rows CU-C8 left pending are mapped and
-nothing is new. Nothing was published and neither `Package.swift` pin moved. Decisions are in
+nothing is new. Nothing was published and neither `Package.swift` pin moved. After the merge of
+`89dde2cf9`, both manifests pin `apple-engine-c55b85806b96c5b2`, which was built from `d250a68e3`'s
+tree and lacks this catch-up's bindings (`groups()`, `takesCursor`, `focus` returning `Bool`, the
+new record members), so the root SwiftPM package does not compile against the pinned engine until
+CU-C10's release train publishes `apple-engine-ddad56cdb86961ce` and re-pins;
+`EMBEDPDF_PREBUILT_ENGINE=local` builds pass (CU-C9's runs). Decisions are in
 [`../decisions/CU-C9.md`](../decisions/CU-C9.md).
 
 ## Commits
