@@ -522,7 +522,10 @@
       "path": "crates/plugins/annotation/src/read/annotations.rs",
       "owner": "Core",
       "symbol": "is_movable",
-      "pending": "phase-4-duplicate"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "isMovable"
+      }
     },
     {
       "crate": "annotation",
@@ -663,7 +666,10 @@
       "path": "crates/plugins/annotation/src/services/authority.rs",
       "owner": "Core",
       "symbol": "can_duplicate",
-      "pending": "phase-4-duplicate"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "canDuplicate"
+      }
     },
     {
       "crate": "annotation",
@@ -933,7 +939,10 @@
       "path": "crates/plugins/annotation/src/write/crud.rs",
       "owner": "Core",
       "symbol": "duplicate",
-      "pending": "phase-4-duplicate"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "duplicate"
+      }
     },
     {
       "crate": "annotation",
@@ -1111,14 +1120,20 @@
       "path": "crates/plugins/annotation/src/write/measurement.rs",
       "owner": "Core",
       "symbol": "when_remeasurable",
-      "pending": "phase-4-duplicate"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "whenRemeasurable"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/measurement.rs",
       "owner": "Core",
       "symbol": "stage_remeasure",
-      "pending": "phase-4-duplicate"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "stageRemeasure"
+      }
     },
     {
       "crate": "annotation",
@@ -1317,14 +1332,20 @@
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_duplicate",
-      "pending": "phase-4-duplicate"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "duplicate"
+      }
     },
     {
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/selection.rs",
       "owner": "Core",
       "symbol": "selection_can_duplicate",
-      "pending": "phase-4-duplicate"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt",
+        "symbol": "canDuplicate"
+      }
     },
     {
       "crate": "annotation",
@@ -2486,14 +2507,20 @@
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "duplicate",
-      "pending": "phase-4-duplicate"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "duplicate"
+      }
     },
     {
       "crate": "form",
       "path": "crates/plugins/form/src/write/fields.rs",
       "owner": "Core",
       "symbol": "duplicate_widgets",
-      "pending": "phase-4-duplicate"
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "duplicateWidgets"
+      }
     },
     {
       "crate": "form",
