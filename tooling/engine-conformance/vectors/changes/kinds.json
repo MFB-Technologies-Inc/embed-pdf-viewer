@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "wire.changeKinds",
-  "apiVersion": "3.3",
+  "apiVersion": "3.4",
   "validationInfoSince": "3.3",
   "since": {
     "annotations.create": "3.0",
