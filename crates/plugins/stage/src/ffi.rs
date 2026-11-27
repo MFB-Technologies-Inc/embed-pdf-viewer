@@ -407,6 +407,7 @@ pub struct StageSettingsPatch {
     pub pan_fallback: Option<bool>,
     #[uniffi(default = None)]
     pub zoom_gestures: Option<bool>,
+    #[uniffi(default = None)]
     pub turn_gestures: Option<bool>,
     #[uniffi(default = None)]
     pub scroll_chaining: Option<bool>,
