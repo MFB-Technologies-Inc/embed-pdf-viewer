@@ -299,9 +299,10 @@ public struct FormCapability: Sendable {
   ///
   /// Throws `permission-denied` when the session may not change the form,
   /// `not-found` for a field the form doesn't have, and `invalid-input` for
-  /// an offset that is not finite. Cancelling the task before the engine
-  /// takes the change throws `operation-cancelled`; once the engine has
-  /// taken it, the copies are made and this returns them.
+  /// an offset that is not finite. Cancelling the task throws
+  /// `operation-cancelled`. A cancel that comes after the engine took the
+  /// change still throws, but the copies stay in the form: read the fields
+  /// again, or undo.
   public func duplicate(
     _ fields: [FormFieldRef], options: FormDuplicateOptions = FormDuplicateOptions()
   ) async throws(PDFError) -> FormDuplicateResult {
@@ -317,9 +318,10 @@ public struct FormCapability: Sendable {
   ///
   /// Throws `permission-denied` when the session may not change the form,
   /// `not-found` for a widget the form doesn't show, and `invalid-input` for
-  /// an offset that is not finite. Cancelling the task before the engine
-  /// takes the change throws `operation-cancelled`; once the engine has
-  /// taken it, the copies are made and this returns them.
+  /// an offset that is not finite. Cancelling the task throws
+  /// `operation-cancelled`. A cancel that comes after the engine took the
+  /// change still throws, but the copies stay in the form: read the fields
+  /// again, or undo.
   public func duplicateWidgets(
     _ widgets: [AnnotationRef], options: FormDuplicateOptions = FormDuplicateOptions()
   ) async throws(PDFError) -> FormDuplicateResult {

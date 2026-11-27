@@ -164,12 +164,14 @@ public struct AnnotationCapability: Sendable {
   /// `options` puts the copies on another page, moves them by an offset in
   /// page points (`x` right, `y` down), or selects them.
   ///
-  /// An empty list copies nothing and doesn't throw. Throws
-  /// `permission-denied` when the session may not create annotations and
-  /// `not-found` for an annotation or page the document doesn't have.
-  /// Cancelling the task before the engine takes the change throws
-  /// `operation-cancelled`; once the engine has taken it, the copies are
-  /// made and this returns them.
+  /// An empty list copies nothing. Throws `permission-denied` when the
+  /// session may not create annotations, even for an empty list, `not-found`
+  /// for an annotation or page the document doesn't have, and
+  /// `invalid-input` for an offset that is not finite or another plugin's
+  /// record (a form field's box). Cancelling the task throws
+  /// `operation-cancelled`. A cancel that comes after the engine took the
+  /// change still throws, but the copies stay in the document: read the
+  /// annotations again, or undo.
   public func duplicate(
     _ refs: [AnnotationRef], options: AnnotationDuplicateOptions = AnnotationDuplicateOptions()
   ) async throws(PDFError) -> AnnotationDuplicateResult {
@@ -178,9 +180,9 @@ public struct AnnotationCapability: Sendable {
     }
   }
 
-  /// Whether `duplicate(_:options:)` would copy `refs`: the session may
-  /// create annotations, and each one is here, unlocked and copyable.
-  /// `false` for an empty list.
+  /// Whether a person may copy `refs`: the session may create annotations,
+  /// and each one is here, unlocked and copyable. `false` for an empty list.
+  /// `duplicate(_:options:)` copies a locked annotation all the same.
   public func canDuplicate(_ refs: [AnnotationRef]) async throws(PDFError) -> Bool {
     try await bridged { try await handle.canDuplicate(refs: refs) }
   }
@@ -484,16 +486,18 @@ public struct AnnotationSelectionCapability: Sendable {
   /// Copy the selection beside it and select the copies, as one step to
   /// undo. `offset` is in page points (`x` right, `y` down); `nil` is 10
   /// points right and down, or left or up where that keeps a copy on the
-  /// page. Nothing selected returns no copies. Cancelling the task before
-  /// the engine takes the change throws `operation-cancelled`; once the
-  /// engine has taken it, the copies are made and this returns them.
+  /// page. Nothing selected returns no copies, but a session that may not
+  /// create annotations gets `permission-denied` even then. Cancelling the
+  /// task throws `operation-cancelled`. A cancel that comes after the engine
+  /// took the change still throws, but the copies stay in the document:
+  /// read the annotations again, or undo.
   public func duplicate(offset: Point? = nil) async throws(PDFError) -> AnnotationDuplicateResult {
     try await bridgedCancellable { token in try await handle.duplicate(offset: offset, cancel: token) }
   }
 
-  /// Whether `duplicate(offset:)` would copy anything: something is
-  /// selected, the session may create annotations, and nothing selected is
-  /// locked.
+  /// Whether a person may copy the selection: something is selected, the
+  /// session may create annotations, and nothing selected is locked.
+  /// `duplicate(offset:)` copies a locked annotation all the same.
   public func canDuplicate() async throws(PDFError) -> Bool {
     try await bridged { try await handle.canDuplicate() }
   }
