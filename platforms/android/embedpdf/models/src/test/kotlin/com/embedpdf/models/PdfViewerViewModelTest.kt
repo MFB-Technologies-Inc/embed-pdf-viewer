@@ -96,6 +96,23 @@ class PdfViewerViewModelTest {
         assertFalse(teardown.isCancelled)
     }
 
+    /** A start that finished before the clear does not hand out the destroyed viewer. */
+    @Test
+    fun clearingAfterTheStartFinishedAnswersInstanceClosed() {
+        val application = ApplicationProvider.getApplicationContext<Application>()
+        val store = ViewModelStore()
+        val extras = MutableCreationExtras().apply { set(ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY, application) }
+        val model = ViewModelProvider(store, PdfViewerViewModel.factory(ViewerConfig()), extras)[PdfViewerViewModel::class.java]
+        runBlocking { withTimeout(30_000) { model.startedViewer() } }
+        store.clear()
+        runBlocking {
+            withTimeout(30_000) {
+                checkNotNull(model.teardown).join()
+                expectCode(PdfException.Code.INSTANCE_CLOSED) { model.startedViewer() }
+            }
+        }
+    }
+
     @Test
     fun startedViewerAnswersOnceTheViewerHasStarted() {
         val application = ApplicationProvider.getApplicationContext<Application>()

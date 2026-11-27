@@ -54,20 +54,22 @@ public class PdfViewerViewModel(
 
     /**
      * The viewer once it has started. Throws the start's [PdfException] when
-     * it failed, and `instance-closed` once the view model is cleared before
-     * the start finished.
+     * it failed, and `instance-closed` once the view model is cleared, whether
+     * or not the start had finished.
      */
     public suspend fun startedViewer(): PdfViewer {
         try {
             start.await()
         } catch (e: kotlinx.coroutines.CancellationException) {
-            if (start.isCancelled && cleared.get()) {
-                throw PdfException(PdfException.Code.INSTANCE_CLOSED, "The view model was cleared.", "Closed", e)
-            }
+            if (start.isCancelled && cleared.get()) throw clearedException(e)
             throw e
         }
+        if (cleared.get()) throw clearedException(null)
         return viewer
     }
+
+    private fun clearedException(cause: Throwable?) =
+        PdfException(PdfException.Code.INSTANCE_CLOSED, "The view model was cleared.", "Closed", cause)
 
     /**
      * Destroys the viewer. The view model's scope has already been cancelled

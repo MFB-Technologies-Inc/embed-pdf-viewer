@@ -1,6 +1,7 @@
 package com.embedpdf.compose
 
 import android.os.Looper
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import com.embedpdf.DocumentInfo
 import com.embedpdf.Fixture
@@ -51,6 +52,12 @@ fun ComposeContentTestRule.pumpFrame() {
     shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(16))
     waitForIdle()
 }
+
+/** Pumps until no node matches [matcher], such as a form that closes once its save returns. */
+fun ComposeContentTestRule.pumpUntilGone(matcher: SemanticsMatcher, timeoutMs: Long = 20_000) =
+    pumpUntil(timeoutMs, { "a node still matches ${matcher.description}" }) {
+        onAllNodes(matcher).fetchSemanticsNodes().isEmpty()
+    }
 
 /** Pumps for about [millis] of looper time. */
 fun ComposeContentTestRule.pumpFor(millis: Long) {

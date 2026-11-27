@@ -72,8 +72,7 @@ class OutlinePanelTest {
             compose.onNodeWithText("None").performClick()
             compose.onNodeWithTag("outlineSave").performClick()
             compose.pumpUntil { model.items.value.any { it.title == "First" } }
-            compose.pumpFrame()
-            compose.onNodeWithText("New bookmark").assertDoesNotExist()
+            compose.pumpUntilGone(hasText("New bookmark"))
             compose.onNodeWithText("First").assertExists()
             // TalkBack: every control has a label and a role.
             compose.onAllNodes(hasClickAction()).assertAll(hasLabel())
