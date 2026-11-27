@@ -2,8 +2,9 @@
 //!
 //! What ports is the bridge a host runs scripts through: the script realm and
 //! its transaction mutex ([`host`]), the field view ([`input`]), color
-//! conversion ([`color`]), JavaScript out of an action tree ([`actions`]), and
-//! the JSON contract and constants ([`types`]). The actions plugin uses all of
+//! conversion ([`color`]), JavaScript out of an action tree ([`actions`]),
+//! dates by a pattern ([`dates`]), and the JSON contract and constants
+//! ([`types`]). The actions plugin uses all of
 //! it, and the form plugin will.
 //!
 //! What does not port is `prelude.ts`, the JavaScript that runs inside the
@@ -15,6 +16,7 @@
 
 pub mod actions;
 pub mod color;
+pub mod dates;
 pub mod host;
 pub mod input;
 pub mod js;
@@ -27,6 +29,7 @@ pub use actions::{java_script_program_from_action_tree, java_script_sources_from
 pub use color::{
     Rgb, css_to_script_color, is_script_color_array, script_color_to_css, script_color_to_rgb,
 };
+pub use dates::{DateParts, DatePartsInput, Today, format_date, parse_date};
 pub use host::{
     IdentityOverrides, ScriptHost, ScriptHostOptions, ScriptSandbox, ScriptSandboxFactory,
     ScriptTransaction, ScriptWorldInput, create_script_host, resolve_script_identity, seed_from,
