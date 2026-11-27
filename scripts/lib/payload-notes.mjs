@@ -3,10 +3,21 @@
 
 /**
  * The bound functions in the committed `pdf-functions.generated.ts`, in the
- * shape `build/verify-wasm-abi.mjs` reads (`functions.json`): each entry of
- * `pdfFunctionSignatures`, one per line, `  Name: { params: [...], result: ... },`.
+ * shape `build/verify-wasm-abi.mjs` reads (`functions.json`): `{ name, params,
+ * result }`, `result` null for void, in the file's order.
+ *
+ * The generator writes the compact table (`build/render-function-table.mjs`):
+ * a `SLOTS` array of distinct `{ ts, wasm, native }` slots, one JSON object
+ * per line, and a `TABLE` of rows `Name <result|-> <param>...` that index into
+ * it, which `pdfFunctionSignatures = decode(TABLE)` expands at load. This
+ * decodes the rows the same way. Bindings from before the compact table, an
+ * object literal with one `  Name: { params: [...], result: ... },` line per
+ * function, are still read, so older commits can be checked too.
  */
 export function committedSignatures(text) {
+  if (text.includes('export const pdfFunctionSignatures = decode(TABLE);')) {
+    return compactSignatures(text);
+  }
   const start = text.indexOf('export const pdfFunctionSignatures = {');
   if (start === -1) throw new Error('no pdfFunctionSignatures in the committed bindings');
   const functions = [];
@@ -21,6 +32,50 @@ export function committedSignatures(text) {
     }
   }
   if (functions.length === 0) throw new Error('pdfFunctionSignatures has no entries');
+  return functions;
+}
+
+/** `committedSignatures` for the compact table: `SLOTS` and `TABLE`, decoded as `decode` does. */
+function compactSignatures(text) {
+  const slotsMatch = text.match(/^const SLOTS\b[^=]*= \[\n([\s\S]*?)^\];$/m);
+  if (!slotsMatch)
+    throw new Error('pdfFunctionSignatures is decode(TABLE), but there is no SLOTS array');
+  const slots = slotsMatch[1].split('\n').flatMap((line, at) => {
+    const entry = line.trim().replace(/,$/, '');
+    if (!entry) return [];
+    try {
+      return [JSON.parse(entry)];
+    } catch {
+      throw new Error(`SLOTS line ${at + 1} isn't a JSON slot: ${line.trim()}`);
+    }
+  });
+  if (slots.length === 0) throw new Error('SLOTS has no entries');
+  const tableMatch = text.match(/^const TABLE = `\n([\s\S]*?)^`;$/m);
+  if (!tableMatch) throw new Error('pdfFunctionSignatures is decode(TABLE), but there is no TABLE');
+  const slotAt = (index, row) => {
+    if (!/^\d+$/.test(index) || Number(index) >= slots.length) {
+      throw new Error(`TABLE row "${row}" refers to slot ${index}, and SLOTS has ${slots.length}`);
+    }
+    return slots[Number(index)];
+  };
+  const functions = [];
+  const seen = new Set();
+  for (const row of tableMatch[1].split('\n')) {
+    if (!row) continue;
+    const [name, result, ...params] = row.split(' ');
+    if (!/^\w+$/.test(name) || result === undefined) {
+      throw new Error(`TABLE row "${row}" isn't \`Name <result|-> <param>...\``);
+    }
+    // `decode` keeps the last row of a repeated name; the generator never writes one.
+    if (seen.has(name)) throw new Error(`TABLE has ${name} twice`);
+    seen.add(name);
+    functions.push({
+      name,
+      params: params.map((index) => slotAt(index, row)),
+      result: result === '-' ? null : slotAt(result, row),
+    });
+  }
+  if (functions.length === 0) throw new Error('TABLE has no rows');
   return functions;
 }
 

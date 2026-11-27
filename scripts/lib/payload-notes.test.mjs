@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   ALL_BOUND_SINCE,
@@ -68,6 +69,87 @@ test('committedSignatures reads every entry of pdfFunctionSignatures', () => {
   assert.equal(functions[0].params[0].wasm.kind, 'i64');
   assert.equal(functions[1].result, null);
   assert.throws(() => committedSignatures('export const x = {};'), /no pdfFunctionSignatures/);
+});
+
+/** The compact table the generator writes since upstream #1143: SLOTS, then TABLE rows. */
+const compactBindings = [
+  '/* Auto-generated - do not edit by hand. */',
+  'export interface PdfFunctions {',
+  '  A: (arg0: bigint) => number;',
+  '  B: () => void;',
+  '}',
+  '',
+  'const SLOTS: readonly PdfFunctionAbiSlot[] = [',
+  `  ${JSON.stringify(slot('i32'))},`,
+  `  ${JSON.stringify(slot('i64'))},`,
+  '];',
+  '',
+  'const TABLE = `',
+  'A 0 1 1',
+  'B -',
+  '`;',
+  '',
+  'function decode(table: string) {}',
+  '',
+  'export const pdfFunctionSignatures = decode(TABLE);',
+  '',
+].join('\n');
+
+test('committedSignatures decodes the compact SLOTS and TABLE', () => {
+  const functions = committedSignatures(compactBindings);
+  assert.deepEqual(functions, [
+    { name: 'A', params: [slot('i64'), slot('i64')], result: slot('i32') },
+    { name: 'B', params: [], result: null },
+  ]);
+});
+
+test('committedSignatures refuses a compact table it cannot decode', () => {
+  const withoutSlots = compactBindings.replace(/const SLOTS[\s\S]*?\n\];\n/, '');
+  assert.throws(() => committedSignatures(withoutSlots), /no SLOTS array/);
+  const withoutTable = compactBindings.replace(/const TABLE = `[\s\S]*?\n`;\n/, '');
+  assert.throws(() => committedSignatures(withoutTable), /no TABLE/);
+  assert.throws(
+    () => committedSignatures(compactBindings.replace('A 0 1 1', 'A 0 1 2')),
+    /TABLE row "A 0 1 2" refers to slot 2, and SLOTS has 2/,
+  );
+  assert.throws(
+    () => committedSignatures(compactBindings.replace('A 0 1 1', 'A 0 x')),
+    /refers to slot x/,
+  );
+  assert.throws(
+    () => committedSignatures(compactBindings.replace('B -', 'A -')),
+    /TABLE has A twice/,
+  );
+});
+
+test('committedSignatures decodes every row of the committed bindings', () => {
+  const file = new URL(
+    '../../packages/engine/runtime/src/core/pdf-functions.generated.ts',
+    import.meta.url,
+  );
+  const text = readFileSync(file, 'utf8');
+  const rows = text
+    .slice(text.indexOf('const TABLE = `\n') + 'const TABLE = `\n'.length)
+    .split('\n`;')[0]
+    .split('\n')
+    .filter(Boolean);
+  const functions = committedSignatures(text);
+  assert.equal(functions.length, rows.length);
+  assert.deepEqual(
+    functions.map((fn) => fn.name),
+    rows.map((row) => row.split(' ')[0]),
+  );
+  // Every function the TS interface declares has a decoded signature, and no other.
+  const declared = [...text.matchAll(/^ {2}(\w+): \(/gm)].map((match) => match[1]);
+  assert.deepEqual(
+    functions.map((fn) => fn.name),
+    declared,
+  );
+  for (const fn of functions) {
+    for (const value of [...fn.params, ...(fn.result ? [fn.result] : [])]) {
+      assert.equal(typeof value.wasm.kind, 'string', fn.name);
+    }
+  }
 });
 
 test('abiCheckFunctions checks what the runtime declares and names the rest', () => {
