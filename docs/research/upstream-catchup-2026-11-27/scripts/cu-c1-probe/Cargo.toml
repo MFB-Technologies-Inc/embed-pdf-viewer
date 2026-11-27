@@ -1,0 +1,11 @@
+[package]
+name = "pdfium-sys-probe"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+# A plugins checkout in the dev container (CU-C1 2026-11-27 uses the worktree /workspaces/wt/CU-C2).
+pdfium-sys = { path = "/workspaces/wt/CU-C2/crates/pdfium-sys" }
+
+[workspace]

@@ -1,0 +1,10 @@
+{
+  "fork": "MFB-Technologies-Inc/embed-pdf-runtime",
+  "sha": "9472117edbc7d9d980888c2418573081a76f532f",
+  "artifacts": {
+    "wasm32-eh": {
+      "url": "file:///workspaces/pdfium/archives/libembedpdf-runtime-wasm32-eh-9472117ed.tar.gz",
+      "sha256": "a59c31a29f1c9b2cfa4107693df6e4d53e5f48fda027546b996a699921e5f81f"
+    }
+  }
+}
