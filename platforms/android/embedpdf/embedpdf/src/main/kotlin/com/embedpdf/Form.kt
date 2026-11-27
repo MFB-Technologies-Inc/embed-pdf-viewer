@@ -74,6 +74,8 @@ public typealias FormCreateFieldInput = uniffi.epdf_plugin_form.FormCreateFieldI
 public typealias FormFieldPatch = uniffi.epdf_plugin_form.FormFieldPatch
 public typealias FormFieldPatchKey = uniffi.epdf_plugin_form.FormFieldPatchKey
 public typealias FormImportResult = uniffi.epdf_plugin_form.FormImportResult
+public typealias FormDuplicateOptions = uniffi.epdf_plugin_form.FormDuplicateOptions
+public typealias FormDuplicateResult = uniffi.epdf_plugin_form.FormDuplicateResult
 public typealias FormActivationResult = uniffi.epdf_plugin_form.FormActivationResult
 public typealias FormActivationResultForm = uniffi.epdf_plugin_form.FormActivationResult.Form
 public typealias FormActivationResultDispatched = uniffi.epdf_plugin_form.FormActivationResult.Dispatched
@@ -281,6 +283,38 @@ public class FormCapability internal constructor(
     /** A bundle's fields copied into this document. [optionsJson] is `FormImportOptions`. */
     public suspend fun import(bundleJson: String, optionsJson: String = "{}"): FormImportResult =
         viewer.callCancellable { token -> handle.import(bundleJson, optionsJson, token) }
+
+    /**
+     * Copies whole fields, each a new field with its original's settings,
+     * scripts, default value and widgets, named after it with the next free
+     * number (`email` becomes `email_2`). A copy has no value unless
+     * [FormDuplicateOptions.values] is set, and a signature never comes
+     * along. [FormDuplicateOptions.offset] moves each copied widget, in page
+     * points (`x` to the right, `y` down). One step to undo.
+     *
+     * Throws `permission-denied` without `doc.forms.modify`, `not-found` for
+     * a field the form doesn't have, and `invalid-input` for an offset that
+     * is NaN or an infinity. A copy that started lands even when the caller
+     * is cancelled, as every change here does.
+     */
+    public suspend fun duplicate(fields: List<FormFieldRef>, options: FormDuplicateOptions = FormDuplicateOptions()): FormDuplicateResult =
+        viewer.callCancellable { token -> handle.duplicate(fields, options, token) }
+
+    /**
+     * Copies widgets as Duplicate does in a form designer. A radio button's
+     * copy is another button of its group; any other widget's copy is a new
+     * field, and widgets of one field copied together become one new field.
+     * The result's widgets are in the order of [widgets]. One step to undo.
+     *
+     * Throws `permission-denied` without `doc.forms.modify`, `not-found` for
+     * a widget the form doesn't show, and `invalid-input` for an offset that
+     * is NaN or an infinity. A copy that started lands even when the caller
+     * is cancelled, as every change here does.
+     */
+    public suspend fun duplicateWidgets(
+        widgets: List<AnnotationRef>,
+        options: FormDuplicateOptions = FormDuplicateOptions(),
+    ): FormDuplicateResult = viewer.callCancellable { token -> handle.duplicateWidgets(widgets, options, token) }
 
     /**
      * Fixes a form other apps read differently. Resolves the repair's result

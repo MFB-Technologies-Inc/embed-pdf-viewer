@@ -28,6 +28,11 @@ public typealias AnnotationBatchResult = uniffi.epdf_plugin_annotation.Annotatio
 public typealias AnnotationBatchFailure = uniffi.epdf_plugin_annotation.AnnotationBatchFailure
 public typealias AnnotationImportResult = uniffi.epdf_plugin_annotation.AnnotationImportResult
 public typealias AnnotationRefMapping = uniffi.epdf_plugin_annotation.AnnotationRefMapping
+public typealias AnnotationDuplicateOptions = uniffi.epdf_plugin_annotation.AnnotationDuplicateOptions
+public typealias AnnotationDuplicateResult = uniffi.epdf_plugin_annotation.AnnotationDuplicateResult
+public typealias AnnotationRemeasureReport = uniffi.epdf_plugin_annotation.AnnotationRemeasureReport
+public typealias AnnotationRemeasureSkip = uniffi.epdf_plugin_annotation.AnnotationRemeasureSkip
+public typealias AnnotationRemeasureSkipReason = uniffi.epdf_plugin_annotation.AnnotationRemeasureSkipReason
 public typealias AnnotationEvent = uniffi.epdf_plugin_annotation.AnnotationEvent
 public typealias AnnotationEventResynced = uniffi.epdf_plugin_annotation.AnnotationEvent.Resynced
 public typealias AnnotationEventCreated = uniffi.epdf_plugin_annotation.AnnotationEvent.Created
@@ -153,6 +158,76 @@ public class AnnotationCapability internal constructor(
      */
     public suspend fun import(bundleJson: String, optionsJson: String = "{}"): AnnotationImportResult =
         viewer.callCancellable { token -> handle.import(bundleJson, optionsJson, token) }
+
+    /**
+     * Copies [refs] as one change, one step to undo. A copy carries its
+     * original's fields, drawing, file and link under its own ref and name;
+     * copies keep the links between them, and a reply comes only when it is
+     * named. [AnnotationDuplicateOptions.offset] moves each copy, in page
+     * points (`x` to the right, `y` down), and
+     * [AnnotationDuplicateOptions.page] puts the copies on another page.
+     * The result lists the copies in the order their originals were named.
+     *
+     * Throws `permission-denied` without `annotations:create`, `not-found`
+     * for an annotation or page the document doesn't have, and
+     * `invalid-input` for another plugin's record (a form field's box) or an
+     * offset that is NaN or an infinity. An empty list copies nothing.
+     *
+     * A copy that started lands even when the caller is cancelled, and the
+     * caller then sees its cancellation rather than the result (see the
+     * README's Cancellation section).
+     */
+    public suspend fun duplicate(
+        refs: List<AnnotationRef>,
+        options: AnnotationDuplicateOptions = AnnotationDuplicateOptions(),
+    ): AnnotationDuplicateResult = viewer.callCancellable { token -> handle.duplicate(refs, options, token) }
+
+    /**
+     * Whether this session may copy [refs]: it may create annotations, and
+     * each is in the document, unlocked and copyable. `false` for an empty
+     * list. [duplicate] copies a locked one all the same.
+     */
+    public suspend fun canDuplicate(refs: List<AnnotationRef>): Boolean = viewer.call { handle.canDuplicate(refs) }
+
+    /**
+     * Whether people move this annotation: `false` for one that sits on text
+     * (a highlight, a caret, a redaction of words) and for one the document
+     * doesn't have. Whether a move would succeed now is [canUpdate].
+     */
+    public suspend fun isMovable(ref: AnnotationRef): Boolean = viewer.call { handle.isMovable(ref) }
+
+    /**
+     * Waits until the measurements can be remeasured: the annotations loaded
+     * (a failed load retried) and every pending load settled. Call it before
+     * [stageRemeasure].
+     */
+    public suspend fun whenRemeasurable() {
+        viewer.callCancellable { token -> handle.whenRemeasurable(token) }
+    }
+
+    /**
+     * Updates every measurement on [page] to [scale] at once. Before the
+     * annotations load it updates nothing and sets the report's
+     * [AnnotationRemeasureReport.error], so call [whenRemeasurable] first.
+     *
+     * Throws `invalid-input` for a NaN or an infinity anywhere in [scale],
+     * before the engine sees it. Other values pass through unchecked: a scale
+     * the readout can't use leaves each measurement in
+     * [AnnotationRemeasureReport.skipped] as
+     * [AnnotationRemeasureSkipReason.UNAVAILABLE].
+     *
+     * An update that started lands even when the caller is cancelled, and
+     * the caller then sees its cancellation rather than the report (see the
+     * README's Cancellation section).
+     */
+    public suspend fun stageRemeasure(page: PageRef, scale: PdfMeasurement): AnnotationRemeasureReport {
+        val scaleJson = try {
+            AnnotationFieldBag.json(AnnotationMeasure.json(scale))
+        } catch (e: PdfException) {
+            throw PdfException(PdfException.Code.INVALID_INPUT, "the scale doesn't encode as JSON: ${e.detail}", "EncodingError", e)
+        }
+        return viewer.call { handle.stageRemeasure(page, scaleJson) }
+    }
 
     /** The topmost annotation under a page-space point (`getAt`). */
     public suspend fun hitTest(point: Point, page: PageRef): AnnotationInfo? =
@@ -395,6 +470,26 @@ public class AnnotationSelectionCapability internal constructor(
     public suspend fun canGroup(): Boolean = viewer.call { handle.canGroup() }
 
     public suspend fun canUngroup(): Boolean = viewer.call { handle.canUngroup() }
+
+    /**
+     * Copies the selection beside it and selects the copies, as one step to
+     * undo. They land [offset] away, in page points (`x` to the right, `y`
+     * down), or 10 points right and down (left or up where that keeps them on
+     * the page) when it is left out. A selected group is copied as a group of
+     * its own. Nothing selected copies nothing. Throws `invalid-input` for an
+     * offset that is NaN or an infinity.
+     *
+     * A copy that started lands even when the caller is cancelled (see the
+     * README's Cancellation section).
+     */
+    public suspend fun duplicate(offset: Point? = null): AnnotationDuplicateResult =
+        viewer.callCancellable { token -> handle.duplicate(offset, token) }
+
+    /**
+     * Whether the selection can be copied: something is selected, the session
+     * may create annotations, and nothing selected is locked.
+     */
+    public suspend fun canDuplicate(): Boolean = viewer.call { handle.canDuplicate() }
 }
 
 /** The authoring tools of one document: from [AnnotationCapability.tools]. */
