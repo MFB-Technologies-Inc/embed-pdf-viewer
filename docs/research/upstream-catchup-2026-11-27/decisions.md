@@ -27,9 +27,9 @@ observed by a vector:
   it, where upstream's type is `Record<number, Rect>`. Once the message is JSON the keys are
   strings on both sides, so a caller sees the same keys; the difference is in the type only.
 
-Pending platform work, not divergences of the Rust core: CU-C5-D4 (FFI Tab skip for an unsignable
+Platform work, not divergences of the Rust core: CU-C5-D4 (FFI Tab skip for an unsignable
 signature field, frame and turn) and CU-C6-D5 (FFI `preview_placement` display rotation, the
-record accent) go to CU-C8.
+record accent) are done in CU-C8 (`e3c57618e`).
 
 Failures at both `d250a68e3` and the head, upstream-owned, so not divergences: the 2
 `current-suites.test.ts` evidence failures (the kept M27 NaN divergence, 2026-11-18 CU-C7), and the
@@ -180,3 +180,34 @@ The divergences accepted in earlier catch-ups stand as before
 - CU-C7-D8. `vectors/rust-coverage.json` is regenerated (`57ad31610`); stale at `d250a68e3` too, and
   replay reaches more lines at the tip. Cost: one diff of 4,212 insertions and 3,322 deletions,
   reviewed whole.
+
+## CU-C8: browser, Kotlin and .NET ([record](decisions/CU-C8.md))
+
+- CU-C8-D1. A worktree and target dir of its own; edits come in from a host worktree by `tar`.
+  Cost: 41 GB for `target-c8` until CU-C11.
+- CU-C8-D2. The CU-C7 record fix labels both coverage rows and the two prose places that cite
+  them. Cost: two more lines than the Minor listed.
+- CU-C8-D3. Kotlin runs in an amd64 container from the existing amd64 dev image, because the
+  arm64 image has no Android SDK or NDK. Cost: that image's inputs are `94822b7a9`'s; every
+  Kotlin build is emulated.
+- CU-C8-D4. The Android slices are built locally at runtime `9472117ed` and the local pin takes
+  their sha256. Cost: a local build, not a release's, until CU-C10.
+- CU-C8-D5. FFI names: `frame` for upstream's `box`, `groups`, `design_group`,
+  `selected_fields`, `widget_anchor`; `RecordAccent` in `epdf-ffi`; one `FormFieldFormat` for
+  reads and writes; a non-finite tint refused. Cost: `frame` is not upstream's word.
+- CU-C8-D6. `FormFocusTarget` gains `takes_cursor` and a `bool` from `focus`; C# defaults
+  `TakesCursor` to true. Cost: a source break for every Kotlin, C# and Swift target.
+- CU-C8-D7. The nine new form members get coverage rows in the C#, Kotlin and Swift manifests;
+  the Swift rows are pending CU-C9. Cost: the Swift check's failure changes wording until CU-C9.
+- CU-C8-D8. A lent record's accent is read from the model record. Cost: one lookup per record.
+- CU-C8-D9. `epdf-capi`, `epdf-web` and `packages/core-wasm` need no code. Cost: none.
+- CU-C8-D10. No form controls UI (#1138): no Kotlin or .NET layer renders forms. Cost: apps
+  build the controls themselves.
+- CU-C8-D11. The osx rows build `epdf-capi` with cargo on the Mac. Cost: an exception to "no
+  cargo on the host" for two builds.
+- CU-C8-D12. `check-dotnet-engine.sh`'s verdict comes from the Mac: stale, unpublished. Cost: the
+  check fails on this branch until CU-C10.
+- CU-C8-D13. The emulator runs the container's AAR libraries. Cost: the device tests the
+  container's build.
+- CU-C8-D14. The linux-x64 .NET rows use SDK 11.0.100 installed into the amd64 container. Cost:
+  not the image's SDK, and emulated.
