@@ -36,7 +36,7 @@ fn attach(
     let target_form = form.clone();
     form.attach_focus_target(
         &widget(n),
-        Rc::new(move |select| {
+        epdf_plugin_form::services::cursor::FocusTarget::new(move |select| {
             heard.borrow_mut().push((n, select));
             target_form
                 .notify_widget_event(

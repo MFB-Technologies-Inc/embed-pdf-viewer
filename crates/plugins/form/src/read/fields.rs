@@ -368,6 +368,43 @@ impl crate::controller::Core {
         *self.reads.selected.borrow_mut() = Some((index, selected, answer.clone()));
         answer
     }
+
+    /// `listSelectedFields()`: every field with a selected widget (in design
+    /// mode), in the selection's order, each once. The same list while the
+    /// form and the annotation plugin's selection list stay the same.
+    pub fn list_selected_fields(&self) -> Rc<Vec<Rc<Value>>> {
+        let index = self.view();
+        let selected = self.annotation().map(|annotation| annotation.list_selected());
+        let same_selection = |kept: &Option<Rc<Vec<Value>>>| match (kept, &selected) {
+            (Some(a), Some(b)) => Rc::ptr_eq(a, b),
+            (None, None) => true,
+            _ => false,
+        };
+        if let Some((kept, kept_selection, answer)) = &*self.reads.selected_fields.borrow()
+            && Rc::ptr_eq(kept, &index)
+            && same_selection(kept_selection)
+        {
+            return answer.clone();
+        }
+        let mut found: Vec<Rc<Value>> = Vec::new();
+        for annotation in selected.as_deref().into_iter().flatten() {
+            let widget_kind = get(annotation, "subtype")
+                .and_then(Value::as_str)
+                .is_some_and(|subtype| subtype.starts_with("widget"));
+            if !widget_kind {
+                continue;
+            }
+            let widget = widget_object_of(get(annotation, "ref").unwrap_or(&Value::Null));
+            if let Some(field) = shared_field_for_widget(&index, widget)
+                && !found.iter().any(|f| field_key_of(f) == field_key_of(field))
+            {
+                found.push(field.clone());
+            }
+        }
+        let answer = Rc::new(found);
+        *self.reads.selected_fields.borrow_mut() = Some((index, selected, answer.clone()));
+        answer
+    }
 }
 
 /// `FormValidation`: whether every required field you may fill in holds
@@ -401,11 +438,13 @@ pub(crate) struct ReadMemos {
     exported: RefCell<Option<(Rc<FieldIndex>, Rc<Value>)>>,
     validation: RefCell<Option<ValidationMemo>>,
     selected: RefCell<Option<SelectedMemo>>,
+    selected_fields: RefCell<Option<SelectedFieldsMemo>>,
 }
 
 type WidgetsMemo = (Vec<Option<Rc<Value>>>, Rc<Vec<Rc<Value>>>);
 type ValidationMemo = (Rc<FieldIndex>, Option<Rc<DocumentMeta>>, String, Rc<FormValidation>);
 type SelectedMemo = (Rc<FieldIndex>, Option<Rc<Vec<Value>>>, Option<Rc<Value>>);
+type SelectedFieldsMemo = (Rc<FieldIndex>, Option<Rc<Vec<Value>>>, Rc<Vec<Rc<Value>>>);
 
 /// `memoByKey`'s `{ maxEntries: 1024 }`.
 const MAX_ENTRIES: usize = 1024;

@@ -1116,7 +1116,7 @@ impl FormHandle {
             .call(move |c| {
                 let off = open(c)?.attach_focus_target(
                     &annotation_ref_json(&widget),
-                    Rc::new(move |select| target.focus(select)),
+                    crate::services::cursor::FocusTarget::new(move |select| target.focus(select)),
                 );
                 Ok(RegistrationHandle::new(post, move || off.call()))
             })

@@ -249,6 +249,10 @@ impl crate::controller::Core {
         let me = self.rc();
         Promise::spawn(async move {
             me.allow("form.create", draft_writes_scripts(&draft))?;
+            // No group (`null`, or none named) takes form design alone, checked above.
+            if let Some(group) = get(&draft, "groupId").and_then(Value::as_str) {
+                me.assert_may_set_group(group, "form.create")?;
+            }
             // The field, then each widget, in the draft's order.
             let count = 1 + items(&draft, "widgets").len();
             let numbers = match me.take_numbers_now(count)? {
@@ -318,9 +322,11 @@ impl crate::controller::Core {
                 Some(rect) => Some(rect),
                 None => match &size {
                     Some(size) if !on_page.is_empty() => {
+                        // Where each stands: the next one takes its place
+                        // in line, and the last one's turn.
                         let boxes: Vec<Box> = on_page
                             .iter()
-                            .map(|row| Box::read(get(row, "box").unwrap_or(&Value::Null)))
+                            .map(|row| Box::read(get(row, "rect").unwrap_or(&Value::Null)))
                             .collect();
                         let n = |k: &str| get(size, k).and_then(Value::as_f64).unwrap_or(f64::NAN);
                         Some(next_in_line(&boxes, n("width"), n("height")).to_json())
@@ -411,16 +417,98 @@ impl crate::controller::Core {
         patch: Value,
         signal: Option<AbortSignal>,
     ) -> Promise<Value> {
-        let scripts = writes_scripts(get(&patch, "actions"));
-        let op = json!({ "type": "forms.update", "field": reference, "patch": patch });
-        self.design(
-            "form.update",
-            "update",
-            scripts,
-            op,
-            signal,
-            |item| json!({ "field": get(item, "field").cloned().unwrap_or(Value::Null) }),
-        )
+        let me = self.rc();
+        Promise::spawn(async move {
+            me.allow("form.update", writes_scripts(get(&patch, "actions")))?;
+            // A field's own group, given back unchanged, is no change, and
+            // taking it out of its group (`null`) takes form design alone,
+            // checked above.
+            if let Some(group) = get(&patch, "groupId").and_then(Value::as_str) {
+                let index = me.view();
+                let own = field_by_ref(&index, &reference).and_then(|f| get(f, "groupId"));
+                if own.and_then(Value::as_str) != Some(group) {
+                    me.assert_may_set_group(group, "form.update")?;
+                }
+            }
+            let op = json!({ "type": "forms.update", "field": reference, "patch": patch });
+            let change = me.stage_design("update", op)?;
+            let item = me.answer(change, signal).await?;
+            Ok(json!({ "field": get(&item, "field").cloned().unwrap_or(Value::Null) }))
+        })
+    }
+
+    /// `moveToGroup(refs, groupId, options)`: put fields in a group, or with
+    /// `None` take them out of theirs, in one step to undo: each field not
+    /// already there gets it as its `groupId`. Resolves `{ fields }`, the
+    /// fields as they are now, in the order given. Rejects
+    /// `permission-denied` without `doc.forms.modify` or for a group the
+    /// session may not put a field in, `not-found` for a field the form
+    /// doesn't have.
+    pub fn move_to_group(
+        &self,
+        refs: Vec<Value>,
+        group_id: Option<String>,
+        signal: Option<AbortSignal>,
+    ) -> Promise<Value> {
+        let me = self.rc();
+        Promise::spawn(async move {
+            me.allow("form.moveToGroup", false)?;
+            // Out of every group (`null`) takes form design alone, checked above.
+            if let Some(group) = &group_id {
+                me.assert_may_set_group(group, "form.moveToGroup")?;
+            }
+            let group = group_id.map_or(Value::Null, Value::String);
+            let index = me.view();
+            let mut moved: Vec<Value> = Vec::new();
+            for reference in &refs {
+                let Some(field) = field_by_ref(&index, reference) else {
+                    return Err(me.error(code::NOT_FOUND, "no form field has this ref"));
+                };
+                moved.push(field.clone());
+            }
+            // A field already in the group has nothing to change; a field
+            // named twice moves once.
+            let mut moving: Vec<(String, Value)> = Vec::new();
+            for field in &moved {
+                let key = crate::model::field_key_of(field);
+                if get(field, "groupId").unwrap_or(&Value::Null) != &group
+                    && !moving.iter().any(|(k, _)| *k == key)
+                {
+                    moving.push((key, field.clone()));
+                }
+            }
+            if moving.is_empty() {
+                return Ok(json!({ "fields": moved }));
+            }
+            // One change, so one step to undo.
+            let ops: Vec<Value> = moving
+                .iter()
+                .map(|(_, field)| {
+                    json!({ "type": "forms.update", "field": field["ref"],
+                        "patch": { "groupId": group } })
+                })
+                .collect();
+            let change = me.stage_all("update", ops)?;
+            let result = match me.cancellable(signal, change.result()).await {
+                Ok(result) => result,
+                Err(error) => return Err(to_plugin_error(CAPABILITY, &error)),
+            };
+            let mut answered: Vec<(String, Value)> = Vec::new();
+            for item in items(&result, "items") {
+                if get(item, "type").and_then(Value::as_str) == Some("forms.update") {
+                    let field = get(item, "field").cloned().unwrap_or(Value::Null);
+                    answered.push((crate::model::field_key_of(&field), field));
+                }
+            }
+            let fields: Vec<Value> = moved
+                .into_iter()
+                .map(|field| {
+                    let key = crate::model::field_key_of(&field);
+                    answered.iter().rev().find(|(k, _)| *k == key).map_or(field, |(_, f)| f.clone())
+                })
+                .collect();
+            Ok(json!({ "fields": fields }))
+        })
     }
 
     /// `reorderCalculations(fields, position, options)`.

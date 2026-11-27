@@ -13,7 +13,7 @@ pub fn form_defaults() -> Value {
     json!({
         "validation": "scripts",
         "focus": { "color": null },
-        "fields": { "border": null, "background": "rgb(255 255 255 / 0.92)", "color": "#1f2a44" },
+        "fields": { "border": null, "background": "rgb(255 255 255 / 0.92)", "color": "#1f2a44", "tint": 0.16 },
         "fillable": true,
     })
 }

@@ -87,6 +87,7 @@ const MEMBERS: &[&str] = &[
     "list",
     "getValue",
     "getSelectedField",
+    "listSelectedFields",
     "validate",
     "exportValues",
     "listWidgets",
@@ -98,6 +99,8 @@ const MEMBERS: &[&str] = &[
     "ensureLoaded",
     "getWidgetAt",
     "getPageBox",
+    "getWidgetAnchor",
+    "isWidgetFocused",
     "getFieldSettings",
     "setValue",
     "setValues",
@@ -111,6 +114,7 @@ const MEMBERS: &[&str] = &[
     "addWidget",
     "duplicate",
     "duplicateWidgets",
+    "moveToGroup",
     "update",
     "reorderCalculations",
     "delete",
@@ -118,6 +122,11 @@ const MEMBERS: &[&str] = &[
     "updateWidget",
     "deleteWidget",
     "repair",
+    "listGroups",
+    "setGroups",
+    "getDesignGroup",
+    "setDesignGroup",
+    "canSetGroup",
     "export",
     "import",
     "activateWidget",
@@ -141,6 +150,8 @@ const MEMBERS: &[&str] = &[
     "onFieldDeleted",
     "onValidationRejected",
     "onResynced",
+    "onDesignGroupChanged",
+    "onGroupsChanged",
 ];
 
 fn arg(args: &[Value], i: usize) -> Option<&Value> {
@@ -222,11 +233,27 @@ fn call_form(
         "attachFocusTarget" => {
             let target = value(args, 1);
             let callback = h.callback(target.get("focus").unwrap_or(&Value::Null));
+            // `takesCursor?()`: absent, the target takes the cursor.
+            let takes_cursor = target.get("takesCursor").filter(|t| !t.is_null()).map(|spec| {
+                let takes = h.callback(spec);
+                Rc::new(move || match takes.call(Vec::new()) {
+                    Answer::Returns(answer) => crate::value::truthy(Some(&answer)),
+                    _ => false,
+                }) as Rc<dyn Fn() -> bool>
+            });
+            // `focus()` answers `false` when nothing took the cursor; any
+            // other answer, or none, took it.
             let off = cap.attach_focus_target(
                 &value(args, 0),
-                Rc::new(move |select| {
-                    callback.call(vec![json!({"select":select})]);
-                }),
+                crate::services::cursor::FocusTarget {
+                    takes_cursor,
+                    focus: Rc::new(move |select| {
+                        !matches!(
+                            callback.call(vec![json!({"select":select})]),
+                            Answer::Returns(Value::Bool(false))
+                        )
+                    }),
+                },
             );
             unsubscribe_ref(h, off)
         }
@@ -260,6 +287,37 @@ fn call_form(
         }
         "getValue" => Outcome::Returned(or_null(cap.get_value(&value(args, 0)).map(owned))),
         "getSelectedField" => Outcome::Returned(or_null(cap.get_selected_field().map(owned))),
+        "listSelectedFields" => Outcome::Returned(Value::Array(
+            cap.list_selected_fields().iter().map(|f| (**f).clone()).collect(),
+        )),
+        "listGroups" => Outcome::Returned(Value::Array((*cap.list_groups()).clone())),
+        "setGroups" => {
+            cap.set_groups(arg(args, 0).and_then(Value::as_array).map_or(&[], Vec::as_slice));
+            Outcome::undefined()
+        }
+        "getDesignGroup" => Outcome::Returned(json!(cap.get_design_group())),
+        "setDesignGroup" => match cap.set_design_group(arg(args, 0).and_then(Value::as_str)) {
+            Ok(()) => Outcome::undefined(),
+            Err(error) => Outcome::Threw(error),
+        },
+        "canSetGroup" => {
+            Outcome::Returned(json!(cap.can_set_group(&crate::value::string_of(arg(args, 0)))))
+        }
+        "moveToGroup" => {
+            let refs = arg(args, 0).and_then(Value::as_array).cloned().unwrap_or_default();
+            let group = arg(args, 1).and_then(Value::as_str).map(str::to_string);
+            Outcome::Promise(cap.move_to_group(refs, group, None))
+        }
+        "onDesignGroupChanged" => {
+            let cap = cap.clone();
+            hook(h, arg(args, 0), move |f| cap.on_design_group_changed(f))
+        }
+        "onGroupsChanged" => {
+            let cap = cap.clone();
+            hook(h, arg(args, 0), move |f| cap.on_groups_changed(f))
+        }
+        "getWidgetAnchor" => Outcome::Returned(or_null(cap.get_widget_anchor(&value(args, 0)))),
+        "isWidgetFocused" => Outcome::Returned(json!(cap.is_widget_focused(&value(args, 0)))),
         "validate" => Outcome::Returned(cap.validate().to_json()),
         "exportValues" => Outcome::Returned(owned(cap.export_values())),
         "listWidgets" => {

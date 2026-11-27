@@ -1,7 +1,9 @@
 //! `read/settings.ts`: a field's settings, described for a settings panel
 //! the way an annotation kind describes its look: which settings the
 //! field's family has, how each is edited, and its value. `update()`
-//! writes them.
+//! writes them. While the document has groups, a field's group is one of
+//! them: the choices are the groups the user may put a field in, and the
+//! one the field is in.
 
 use serde_json::{Map, Value, json};
 
@@ -77,6 +79,27 @@ fn family_settings(field: &Value) -> Vec<Value> {
     }
 }
 
+/// `groupSetting(field, groups, maySet)`: who fills the field in, among the
+/// document's groups: the ones the user may put a field in, and the field's
+/// own. Nothing while the document has no groups.
+fn group_setting(field: &Value, groups: &[Value], may_set: &dyn Fn(&str) -> bool) -> Vec<Value> {
+    if groups.is_empty() {
+        return Vec::new();
+    }
+    let own = get(field, "groupId");
+    let options: Vec<Value> = groups
+        .iter()
+        .filter(|group| {
+            Some(&group["id"]) == own || group["id"].as_str().is_some_and(|id| may_set(id))
+        })
+        .map(|group| group["id"].clone())
+        .collect();
+    vec![json!({
+        "key": "groupId", "control": "choice", "label": "Filled in by",
+        "labelKey": "form.settings.group", "options": options, "free": false,
+    })]
+}
+
 /// `valuesOf(field, settings)`: each setting's value, as the field holds it.
 fn values_of(field: &Value, settings: &[Value]) -> Value {
     let mut values = Map::new();
@@ -108,6 +131,7 @@ impl crate::controller::Core {
         let index = self.view();
         let field = field_by_key(&index, &canonical_key(&index, reference))?;
         let mut properties = common();
+        properties.extend(group_setting(field, &self.list_groups(), &|id| self.can_set_group(id)));
         properties.extend(family_settings(field));
         let values = values_of(field, &properties);
         Some(json!({ "properties": properties, "values": values }))
