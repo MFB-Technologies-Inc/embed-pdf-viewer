@@ -220,8 +220,10 @@ impl Engine {
         Ok((result["bundle"].clone(), payloads))
     }
 
+    /// `guard.can('doc.forms.script')`: the script right, which the
+    /// everything token `["*"]` grants as well.
     fn may_script(&self, doc: &str) -> bool {
-        self.scopes[doc].contains(&"doc.forms.script")
+        self.scopes[doc].iter().any(|scope| *scope == "doc.forms.script" || *scope == "*")
     }
 
     /// `doc.forms.import(bundle, options)`: the whole answer.
@@ -968,4 +970,12 @@ fn an_import_keeps_a_purpose_and_a_format_with_form_design_alone() {
     assert_eq!([&full["purpose"], &full["groupId"]], [&json!("name"), &json!("attendee")]);
     // With the script right, the scripts come along as they are written.
     assert_eq!(formatted(&named("time_pattern")), time);
+    // `plain_two` is written with a format script alone: copied as written it
+    // has no keystroke script, where an import without the script right
+    // (above) writes the format's own.
+    assert_eq!(
+        formatted(&named("plain_two")),
+        json!({ "format": { "kind": "date", "pattern": "m/d/yy" },
+            "formatScript": DATE_FORMAT, "keystrokeScript": null })
+    );
 }

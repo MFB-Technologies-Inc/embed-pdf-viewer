@@ -340,14 +340,16 @@ pub(crate) fn bake_widget_appearance(
     mark: MarkBytes<'_>,
     record_fit: bool,
 ) -> Result<(), EngineError> {
-    // The mark's format first (`markFormat`), then the widget.
-    let artwork = mark_document(doc, mark)?;
+    // The mark's format first (`markFormat`), then the widget, then the
+    // mark opened as a page (`withAppearanceDocument`).
+    let format = mark_format(mark)?;
     let Some(page) = widget.page else {
         return Err(EngineError::with_message(
             EngineErrorCode::NotFound,
             "the widget page could not be loaded",
         ));
     };
+    let artwork = mark_document(doc, mark.bytes, format)?;
     let pages = artwork.page_count();
     if pages != 1 {
         return Err(EngineError::with_message(
@@ -387,25 +389,39 @@ pub(crate) fn bake_widget_appearance(
     Ok(())
 }
 
-/// `withAppearanceDocument` over a mark (`markFormat`): bytes passed as
-/// `{ pdf }` are a PDF, which opens as one or is refused as one that
-/// doesn't; bytes passed as themselves are what their first bytes say, and
-/// none of the three is refused.
-fn mark_document(doc: &Document, mark: MarkBytes<'_>) -> Result<Document, EngineError> {
+/// `markFormat`: what a mark's bytes are. Bytes passed as `{ pdf }` are a
+/// PDF; bytes passed as themselves are what their first bytes say, and bytes
+/// that are none of the three are refused.
+fn mark_format(mark: MarkBytes<'_>) -> Result<crate::features::binary::BinaryFormat, EngineError> {
     use crate::features::binary::{BinaryFormat, sniff};
     let format = if mark.declared_pdf { Some(BinaryFormat::Pdf) } else { sniff(mark.bytes) };
+    format.ok_or_else(|| {
+        EngineError::with_message(
+            EngineErrorCode::InvalidArg,
+            "the appearance resource must be PNG, JPEG or one-page PDF bytes",
+        )
+    })
+}
+
+/// `withAppearanceDocument` over a mark of a known format: a PDF opens as
+/// one or is refused as one that doesn't; an image becomes a page of its own
+/// size.
+fn mark_document(
+    doc: &Document,
+    bytes: &[u8],
+    format: crate::features::binary::BinaryFormat,
+) -> Result<Document, EngineError> {
+    use crate::features::binary::BinaryFormat;
     match format {
-        Some(BinaryFormat::Pdf) => doc.open_sibling(mark.bytes).map_err(|_| {
+        BinaryFormat::Pdf => doc.open_sibling(bytes).map_err(|_| {
             EngineError::with_message(
                 EngineErrorCode::MalformedPdf,
                 "the appearance PDF could not be opened",
             )
         }),
-        Some(
-            format @ (BinaryFormat::Png { width, height } | BinaryFormat::Jpeg { width, height }),
-        ) => {
+        BinaryFormat::Png { width, height } | BinaryFormat::Jpeg { width, height } => {
             let png = matches!(format, BinaryFormat::Png { .. });
-            doc.image_document(mark.bytes, png, width, height)
+            doc.image_document(bytes, png, width, height)
                 .map_err(|_| {
                     EngineError::with_message(
                         EngineErrorCode::Unknown,
@@ -423,10 +439,6 @@ fn mark_document(doc: &Document, mark: MarkBytes<'_>) -> Result<Document, Engine
                     )
                 })
         }
-        None => Err(EngineError::with_message(
-            EngineErrorCode::InvalidArg,
-            "the appearance resource must be PNG, JPEG or one-page PDF bytes",
-        )),
     }
 }
 
@@ -1116,5 +1128,25 @@ mod tests {
             MarkBytes { bytes: b"GIF89a: not a format a mark is read from", declared_pdf: false };
         let refused = bake_widget_appearance(&doc, &widget, mark, true).unwrap_err();
         assert_eq!(refused.code, EngineErrorCode::InvalidArg, "{refused}");
+    }
+
+    /// The mark is opened only once its widget is found
+    /// (`withAppearanceDocument` runs inside `withWidgetAnnotation`): a
+    /// malformed `{ pdf }` on a widget with no page is `NotFound`, not
+    /// `MalformedPdf`.
+    #[test]
+    fn a_malformed_pdf_mark_on_a_widget_with_no_page_is_not_found() {
+        let doc = Document::from_bytes(
+            Library::acquire(),
+            &test_support::fixture(test_support::REPORT),
+            None,
+        )
+        .expect("report.pdf");
+        let widget = FormWidget::new(5, 0);
+        assert!(widget.page.is_none());
+        let mark =
+            MarkBytes { bytes: b"%PDF-1.7 and then nothing a PDF holds", declared_pdf: true };
+        let refused = bake_widget_appearance(&doc, &widget, mark, true).unwrap_err();
+        assert_eq!(refused.code, EngineErrorCode::NotFound, "{refused}");
     }
 }

@@ -80,11 +80,16 @@ impl Doc {
         answer["result"].clone()
     }
 
-    /// A new signature field with one box at `box`, turned `rotation`.
-    fn signature_field(&mut self, name: &str, frame: Value, rotation: Option<u32>) {
+    /// A new signature field with one box at `box`, turned `rotation`; the
+    /// box has a look when `styled`.
+    fn signature_field(&mut self, name: &str, frame: Value, rotation: Option<u32>, styled: bool) {
         let mut placement = json!({ "page": page(), "box": frame });
         if let Some(rotation) = rotation {
             placement["rotation"] = json!(rotation);
+        }
+        if styled {
+            placement["color"] = json!("#1a1a1a");
+            placement["interiorColor"] = json!("#eeeeee");
         }
         self.ok(
             json!({ "kind": "forms.createField", "opId": format!("create-{name}"),
@@ -322,7 +327,7 @@ fn a_png_and_a_jpeg_fill_a_signature_field_and_the_field_shows_the_picture() {
     let marks = fixtures();
     for (name, bytes) in [("png", &marks.png), ("jpeg", &marks.jpeg)] {
         let mut doc = Doc::open(marks.page.clone());
-        doc.signature_field("sig", bands_box(30), None);
+        doc.signature_field("sig", bands_box(30), None, false);
         let filled = doc.mark("sig", Mark::Bytes(bytes), "fill");
         // Nothing is signed: the field has no value, only a mark.
         assert_eq!(
@@ -341,7 +346,12 @@ fn an_image_is_fitted_whole_into_a_box_of_another_shape() {
     let marks = fixtures();
     let mut doc = Doc::open(marks.page.clone());
     // A square box: the bands, three to one, take the middle third of its height.
-    doc.signature_field("square", json!({ "x": 30, "y": 30, "width": 150, "height": 150 }), None);
+    doc.signature_field(
+        "square",
+        json!({ "x": 30, "y": 30, "width": 150, "height": 150 }),
+        None,
+        false,
+    );
     doc.mark("square", Mark::Bytes(&marks.png), "fill");
     let raster = doc.drawn_of("square");
     assert!(raster.shows_bands());
@@ -353,9 +363,9 @@ fn an_image_is_fitted_whole_into_a_box_of_another_shape() {
 fn a_pdf_under_its_key_draws_what_the_pdf_draws() {
     let marks = fixtures();
     let mut doc = Doc::open(marks.page.clone());
-    doc.signature_field("keyed", bands_box(100), None);
+    doc.signature_field("keyed", bands_box(100), None, false);
     doc.mark("keyed", Mark::Pdf(&marks.pdf), "keyed");
-    doc.signature_field("bare", bands_box(170), None);
+    doc.signature_field("bare", bands_box(170), None, false);
     doc.mark("bare", Mark::Bytes(&marks.pdf), "bare");
     let (keyed, bare) = (doc.row_of("keyed"), doc.row_of("bare"));
     assert_eq!([&keyed["hasMark"], &bare["hasMark"]], [&json!(true), &json!(true)]);
@@ -370,10 +380,10 @@ fn a_pdf_under_its_key_draws_what_the_pdf_draws() {
 fn an_image_reads_upright_in_a_turned_field() {
     let marks = fixtures();
     let mut doc = Doc::open(marks.page.clone());
-    doc.signature_field("plain", bands_box(30), None);
+    doc.signature_field("plain", bands_box(30), None, false);
     doc.mark("plain", Mark::Bytes(&marks.png), "plain");
     let upright = doc.drawn_of("plain");
-    doc.signature_field("turned", bands_box(160), Some(90));
+    doc.signature_field("turned", bands_box(160), Some(90), false);
     doc.mark("turned", Mark::Bytes(&marks.png), "turned");
     let row = doc.row_of("turned");
     assert_eq!(row["hasMark"], true);
@@ -386,7 +396,7 @@ fn an_image_reads_upright_in_a_turned_field() {
 fn no_mark_takes_the_mark_out_and_the_field_shows_its_box_again() {
     let marks = fixtures();
     let mut doc = Doc::open(marks.page.clone());
-    doc.signature_field("sig", bands_box(30), None);
+    doc.signature_field("sig", bands_box(30), None, false);
     let empty = doc.drawn_of("sig");
     doc.mark("sig", Mark::Bytes(&marks.png), "fill");
     assert!(doc.drawn_of("sig").shows_bands());
@@ -405,7 +415,7 @@ fn a_turn_turns_the_mark_a_new_frame_fits_it_again_and_undo_puts_it_back() {
     let marks = fixtures();
     let mut doc = Doc::open(marks.page.clone());
     let frame = json!({ "x": 150, "y": 20, "width": 120, "height": 40 });
-    doc.signature_field("marked", frame, None);
+    doc.signature_field("marked", frame, None, false);
     doc.mark("marked", Mark::Pdf(&marks.mark_pdf), "mark");
     let row = doc.row_of("marked");
     let upright = doc.drawn(&row);
@@ -430,7 +440,7 @@ fn a_turn_turns_the_mark_a_new_frame_fits_it_again_and_undo_puts_it_back() {
     );
     let mut fresh_frame = rect;
     fresh_frame["x"] = json!(40);
-    doc.signature_field("fresh", fresh_frame, None);
+    doc.signature_field("fresh", fresh_frame, None, false);
     doc.mark("fresh", Mark::Pdf(&marks.mark_pdf), "fresh");
     let fresh = doc.drawn_of("fresh");
     assert!(max_shifted_difference(&doc.drawn(&row), &fresh) <= 3);
@@ -470,7 +480,12 @@ fn a_stamp_of_the_picture_a_mark_shows_places_the_marks_drawing() {
     // leaves the stamp what they shared.
     let marks = fixtures();
     let mut doc = Doc::open(marks.page.clone());
-    doc.signature_field("marked", json!({ "x": 20, "y": 120, "width": 150, "height": 50 }), None);
+    doc.signature_field(
+        "marked",
+        json!({ "x": 20, "y": 120, "width": 150, "height": 50 }),
+        None,
+        false,
+    );
     let marked = doc.mark("marked", Mark::Bytes(&marks.png), "mark");
     assert!(marked.get("error").is_none(), "{marked}");
     assert_eq!(doc.row_of("marked")["hasMark"], true);
@@ -499,12 +514,23 @@ fn bytes_that_are_no_png_jpeg_or_pdf_are_refused_and_nothing_is_written() {
     // this check is the only gate there is.
     let marks = fixtures();
     let mut doc = Doc::open(marks.page.clone());
-    doc.signature_field("sig", bands_box(30), None);
+    doc.signature_field("sig", bands_box(30), None, true);
     let before = doc.drawn_of("sig");
+    // The styled box draws something, so "nothing is written" compares
+    // against a drawn box, not an empty one.
+    assert!(before.rgba.chunks(4).any(|pixel| pixel[3] > 200), "a drawn box");
     let refused = doc.mark("sig", Mark::Bytes(NOT_A_MARK), "unknown");
     assert_eq!(refused["error"]["code"], "InvalidArg", "{refused}");
     let message = refused["error"]["message"].as_str().unwrap();
     assert!(message.contains("PNG, JPEG or one-page PDF bytes"), "{message}");
+    // The same bytes as an op of `document.apply` (runSignatureMarkConformance.ts).
+    let (as_op, _) = doc.send(
+        json!({ "kind": "document.apply", "opId": "unknown-op",
+            "change": { "ops": [{ "type": "forms.setSignatureAppearance",
+                "field": { "kind": "fqn", "name": "sig" }, "appearance": { "payload": 0 } }] } }),
+        vec![NOT_A_MARK.to_vec()],
+    );
+    assert_eq!(as_op["error"]["code"], "InvalidArg", "{as_op}");
     let row = doc.row_of("sig");
     assert_eq!(row["hasMark"], false);
     assert_eq!(doc.drawn(&row).rgba, before.rgba);
@@ -514,7 +540,7 @@ fn bytes_that_are_no_png_jpeg_or_pdf_are_refused_and_nothing_is_written() {
 fn a_signing_takes_an_image_as_its_mark_and_a_signed_field_keeps_it() {
     let marks = fixtures();
     let mut doc = Doc::open(marks.page.clone());
-    doc.signature_field("signed", bands_box(30), None);
+    doc.signature_field("signed", bands_box(30), None, false);
     doc.sign("signed", Mark::Bytes(&marks.png));
     let row = doc.row_of("signed");
     assert_eq!(row["hasMark"], true);
@@ -532,7 +558,7 @@ fn a_signing_takes_an_image_as_its_mark_and_a_signed_field_keeps_it() {
 fn a_signing_refuses_bytes_that_are_no_png_jpeg_or_pdf() {
     let marks = fixtures();
     let mut doc = Doc::open(marks.page.clone());
-    doc.signature_field("sig", bands_box(30), None);
+    doc.signature_field("sig", bands_box(30), None, false);
     let refused = doc.prepare("sig", Mark::Bytes(NOT_A_MARK));
     assert_eq!(refused["error"]["code"], "InvalidArg", "{refused}");
     let message = refused["error"]["message"].as_str().unwrap();
@@ -545,7 +571,12 @@ fn a_signed_fields_mark_turns_with_it_as_well() {
     // again, turned, when its widget turns.
     let marks = fixtures();
     let mut doc = Doc::open(marks.page.clone());
-    doc.signature_field("signed", json!({ "x": 150, "y": 20, "width": 120, "height": 40 }), None);
+    doc.signature_field(
+        "signed",
+        json!({ "x": 150, "y": 20, "width": 120, "height": 40 }),
+        None,
+        false,
+    );
     doc.sign("signed", Mark::Pdf(&marks.mark_pdf));
     let row = doc.row_of("signed");
     assert_eq!(row["hasMark"], true);
