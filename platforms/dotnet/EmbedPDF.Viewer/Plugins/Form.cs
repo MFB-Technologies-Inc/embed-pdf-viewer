@@ -355,6 +355,74 @@ public sealed class FormCapability : IDisposable
         return Ffi.ToPublic(await viewer.RunCancellable(token => handle.ActivateWidget(Ffi.ToFfi(widget), token), cancellationToken).ConfigureAwait(false));
     }
 
+    /// <summary>
+    /// The document's groups: the ones <see cref="SetGroupsAsync"/> named, in
+    /// that order, then the other groups the form's fields are in.
+    /// </summary>
+    public async Task<IReadOnlyList<FormGroup>> GetGroupsAsync(CancellationToken cancellationToken = default) =>
+        Ffi.Groups(await viewer.Run(() => handle.Groups(), cancellationToken).ConfigureAwait(false));
+
+    /// <summary>
+    /// Says who this document's groups are, the whole list; an empty list
+    /// clears it. Raises <see cref="FormEvent.GroupsChanged"/>; the same list
+    /// again changes nothing. Session state: nothing is written into the PDF.
+    /// </summary>
+    public Task SetGroupsAsync(IEnumerable<FormGroupInput> groups, CancellationToken cancellationToken = default)
+    {
+        var list = Arguments.NoNullElements(groups, nameof(groups));
+        return viewer.Run(() => handle.SetGroups([.. list.Select(Ffi.ToFfi)]), cancellationToken);
+    }
+
+    /// <summary>The group fields placed with a tool go in, or <see langword="null"/> for none, where it starts.</summary>
+    public Task<string?> GetDesignGroupAsync(CancellationToken cancellationToken = default) => viewer.Run(() => handle.DesignGroup(), cancellationToken);
+
+    /// <summary>
+    /// Fields placed with a tool go into <paramref name="groupId"/>;
+    /// <see langword="null"/> names none. Raises <see cref="FormEvent.DesignGroupChanged"/>.
+    /// Throws <see cref="PdfErrorCode.PermissionDenied"/> for a group the
+    /// session may not put a field in.
+    /// </summary>
+    public Task SetDesignGroupAsync(string? groupId, CancellationToken cancellationToken = default) =>
+        viewer.Run(() => handle.SetDesignGroup(groupId), cancellationToken);
+
+    /// <summary>Whether the session may design the form and put a field in <paramref name="groupId"/>.</summary>
+    public Task<bool> CanSetGroupAsync(string groupId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(groupId);
+        return viewer.Run(() => handle.CanSetGroup(groupId), cancellationToken);
+    }
+
+    /// <summary>
+    /// Puts fields in a group, or with <see langword="null"/> takes them out of
+    /// theirs, as one step to undo; answers the fields as they are now, in the
+    /// order given. Throws <see cref="PdfErrorCode.PermissionDenied"/> without
+    /// <c>doc.forms.modify</c> or for a group the session may not put a field
+    /// in, and <see cref="PdfErrorCode.NotFound"/> for a field the form doesn't have.
+    /// </summary>
+    public async Task<IReadOnlyList<FormField>> MoveToGroupAsync(IEnumerable<FormFieldRef> fields, string? groupId, CancellationToken cancellationToken = default)
+    {
+        var list = Arguments.NoNullElements(fields, nameof(fields));
+        return Ffi.Fields(await viewer.RunCancellable(token => handle.MoveToGroup([.. list.Select(Ffi.ToFfi)], groupId, token), cancellationToken).ConfigureAwait(false));
+    }
+
+    /// <summary>Every field with a selected widget in design mode, in the selection's order, each once.</summary>
+    public async Task<IReadOnlyList<FormField>> GetSelectedFieldsAsync(CancellationToken cancellationToken = default) =>
+        Ffi.Fields(await viewer.Run(() => handle.SelectedFields(), cancellationToken).ConfigureAwait(false));
+
+    /// <summary>Where UI attaches to one box of a field; <see langword="null"/> for a box that isn't there or shows nowhere.</summary>
+    public async Task<FormWidgetAnchor?> GetWidgetAnchorAsync(AnnotationRef widget, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(widget);
+        return await viewer.Run(() => handle.WidgetAnchor(Ffi.ToFfi(widget)), cancellationToken).ConfigureAwait(false) is { } a ? Ffi.ToPublic(a) : null;
+    }
+
+    /// <summary>Whether the cursor is in this box.</summary>
+    public Task<bool> IsWidgetFocusedAsync(AnnotationRef widget, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(widget);
+        return viewer.Run(() => handle.IsWidgetFocused(Ffi.ToFfi(widget)), cancellationToken);
+    }
+
     /// <summary>Whether this session may read the form.</summary>
     public Task<bool> CanReadAsync(CancellationToken cancellationToken = default) => viewer.Run(() => handle.CanRead(), cancellationToken);
 
@@ -391,7 +459,9 @@ public sealed class FormCapability : IDisposable
 
     sealed class FocusTargetAdapter(IFormFocusTarget target, KernelMark mark, ILogger logger) : GO.FormFocusTarget
     {
-        public void Focus(bool select) => KernelCallback.Run(mark, logger, "IFormFocusTarget.Focus", () => target.Focus(select));
+        public bool TakesCursor() => KernelCallback.Run(mark, logger, "IFormFocusTarget.TakesCursor", target.TakesCursor, _ => true);
+
+        public bool Focus(bool select) => KernelCallback.Run(mark, logger, "IFormFocusTarget.Focus", () => target.Focus(select), _ => true);
     }
 }
 

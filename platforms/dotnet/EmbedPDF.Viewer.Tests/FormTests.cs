@@ -24,13 +24,13 @@ public sealed class FormTests
     {
         readonly List<bool> selections = [];
         public bool[] Selections { get { lock (selections) return [.. selections]; } }
-        public void Focus(bool select) { lock (selections) selections.Add(select); }
+        public bool Focus(bool select) { lock (selections) selections.Add(select); return true; }
     }
 
     sealed class ThrowingTarget : IFormFocusTarget
     {
         public int Calls;
-        public void Focus(bool select)
+        public bool Focus(bool select)
         {
             Interlocked.Increment(ref Calls);
             throw new InvalidOperationException("no cursor");
@@ -40,10 +40,11 @@ public sealed class FormTests
     sealed class DisposingTarget(PdfViewer viewer) : IFormFocusTarget
     {
         public Exception? Thrown;
-        public void Focus(bool select)
+        public bool Focus(bool select)
         {
             try { viewer.Dispose(); }
             catch (Exception error) { Thrown = error; }
+            return true;
         }
     }
 

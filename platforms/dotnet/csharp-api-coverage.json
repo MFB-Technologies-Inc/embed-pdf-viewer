@@ -1371,6 +1371,7 @@
           "EmbedPDF.PageRef",
           "EmbedPDF.PdfPoint",
           "EmbedPDF.PdfPoint",
+          "System.Nullable<System.Double>",
           "System.Threading.CancellationToken"
         ]
       }
@@ -3887,6 +3888,23 @@
     },
     {
       "crate": "form",
+      "path": "crates/plugins/form/src/read/fields.rs",
+      "owner": "Core",
+      "symbol": "list_selected_fields",
+      "export": {
+        "path": "crates/plugins/form/src/ffi.rs",
+        "symbol": "selected_fields"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "GetSelectedFieldsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
+      }
+    },
+    {
+      "crate": "form",
       "path": "crates/plugins/form/src/read/settings.rs",
       "owner": "Core",
       "symbol": "get_field_settings",
@@ -3986,6 +4004,42 @@
     },
     {
       "crate": "form",
+      "path": "crates/plugins/form/src/read/widgets.rs",
+      "owner": "Core",
+      "symbol": "get_widget_anchor",
+      "export": {
+        "path": "crates/plugins/form/src/ffi.rs",
+        "symbol": "widget_anchor"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "GetWidgetAnchorAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
+      }
+    },
+    {
+      "crate": "form",
+      "path": "crates/plugins/form/src/read/widgets.rs",
+      "owner": "Core",
+      "symbol": "is_widget_focused",
+      "export": {
+        "path": "crates/plugins/form/src/ffi.rs",
+        "symbol": "is_widget_focused"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "IsWidgetFocusedAsync",
+        "parameters": [
+          "EmbedPDF.AnnotationRef",
+          "System.Threading.CancellationToken"
+        ]
+      }
+    },
+    {
+      "crate": "form",
       "path": "crates/plugins/form/src/services/cursor.rs",
       "owner": "Core",
       "symbol": "attach_focus_target",
@@ -4010,6 +4064,41 @@
       "symbol": "lending",
       "exclusion": "Form host presentation, scripting or draft-editor integration; native facade supports typed fields, values, focus and widget activation, not the web widget painter.",
       "classification": "host-presentation"
+    },
+    {
+      "crate": "form",
+      "path": "crates/plugins/form/src/services/groups.rs",
+      "owner": "Core",
+      "symbol": "list_groups",
+      "export": {
+        "path": "crates/plugins/form/src/ffi.rs",
+        "symbol": "groups"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "GetGroupsAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
+      }
+    },
+    {
+      "crate": "form",
+      "path": "crates/plugins/form/src/services/groups.rs",
+      "owner": "Core",
+      "symbol": "can_set_group",
+      "export": {
+        "path": "crates/plugins/form/src/ffi.rs",
+        "symbol": "can_set_group"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "CanSetGroupAsync",
+        "parameters": [
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
+      }
     },
     {
       "crate": "form",
@@ -4328,6 +4417,25 @@
     },
     {
       "crate": "form",
+      "path": "crates/plugins/form/src/write/fields.rs",
+      "owner": "Core",
+      "symbol": "move_to_group",
+      "export": {
+        "path": "crates/plugins/form/src/ffi.rs",
+        "symbol": "move_to_group"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "MoveToGroupAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.FormFieldRef>",
+          "System.String",
+          "System.Threading.CancellationToken"
+        ]
+      }
+    },
+    {
+      "crate": "form",
       "path": "crates/plugins/form/src/write/focus.rs",
       "owner": "Core",
       "symbol": "focus",
@@ -4395,6 +4503,59 @@
         "parameters": [
           "EmbedPDF.AnnotationRef",
           "System.Boolean",
+          "System.Threading.CancellationToken"
+        ]
+      }
+    },
+    {
+      "crate": "form",
+      "path": "crates/plugins/form/src/write/groups.rs",
+      "owner": "Core",
+      "symbol": "set_groups",
+      "export": {
+        "path": "crates/plugins/form/src/ffi.rs",
+        "symbol": "set_groups"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "SetGroupsAsync",
+        "parameters": [
+          "System.Collections.Generic.IEnumerable<EmbedPDF.FormGroupInput>",
+          "System.Threading.CancellationToken"
+        ]
+      }
+    },
+    {
+      "crate": "form",
+      "path": "crates/plugins/form/src/write/groups.rs",
+      "owner": "Core",
+      "symbol": "get_design_group",
+      "export": {
+        "path": "crates/plugins/form/src/ffi.rs",
+        "symbol": "design_group"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "GetDesignGroupAsync",
+        "parameters": [
+          "System.Threading.CancellationToken"
+        ]
+      }
+    },
+    {
+      "crate": "form",
+      "path": "crates/plugins/form/src/write/groups.rs",
+      "owner": "Core",
+      "symbol": "set_design_group",
+      "export": {
+        "path": "crates/plugins/form/src/ffi.rs",
+        "symbol": "set_design_group"
+      },
+      "csharp": {
+        "type": "EmbedPDF.FormCapability",
+        "member": "SetDesignGroupAsync",
+        "parameters": [
+          "System.String",
           "System.Threading.CancellationToken"
         ]
       }

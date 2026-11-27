@@ -243,7 +243,7 @@ public sealed class LifetimeTests
 
     sealed class NoFocus : IFormFocusTarget
     {
-        public void Focus(bool select) { }
+        public bool Focus(bool select) => true;
     }
 
     static async Task<(WeakReference Viewer, IAsyncEnumerable<AnnotationEvent> Annotation, IAsyncEnumerable<FormEvent> Form)> AbandonWithWaveDStreamsAndCallbacks()

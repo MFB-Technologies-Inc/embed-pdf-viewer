@@ -887,7 +887,7 @@ EmbedPDF.AnnotationDraftsCapability.PlaceArmedStampAsync(EmbedPDF.PageRef page, 
 EmbedPDF.AnnotationDraftsCapability.PlaceAtAsync(EmbedPDF.PageRef page, EmbedPDF.PdfPoint point, double? displayRotation = null, double? zoom = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 EmbedPDF.AnnotationDraftsCapability.PlaceStampAsync(EmbedPDF.AnnotationStampSource! source, EmbedPDF.AnnotationStampPlacement! placement, double? targetWidth = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.AnnotationRef!>!
 EmbedPDF.AnnotationDraftsCapability.PreviewMarkupAsync(EmbedPDF.AnnotationSubtype subtype, System.Collections.Generic.IEnumerable<EmbedPDF.AnnotationPageQuads!>! pages, EmbedPDF.ToolId? preset = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-EmbedPDF.AnnotationDraftsCapability.PreviewPlacementAsync(EmbedPDF.ToolId toolId, EmbedPDF.PageRef page, EmbedPDF.PdfPoint from, EmbedPDF.PdfPoint to, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.AnnotationDraftsCapability.PreviewPlacementAsync(EmbedPDF.ToolId toolId, EmbedPDF.PageRef page, EmbedPDF.PdfPoint from, EmbedPDF.PdfPoint to, double? displayRotation = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.AnnotationDraftsCapability.ReadAttachmentAsync(EmbedPDF.AnnotationRef! annotationRef, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.ReadOnlyMemory<byte>>!
 EmbedPDF.AnnotationDraftsCapability.RequestStampAtAsync(EmbedPDF.PageRef page, EmbedPDF.PdfPoint point, double? displayRotation = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 EmbedPDF.AnnotationDraftsCapability.SetTextSelectionAsync(EmbedPDF.AnnotationRef! annotationRef, int? start, int? end, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -1098,6 +1098,7 @@ EmbedPDF.AnnotationImportResult.RefMap.get -> System.Collections.Generic.IReadOn
 EmbedPDF.AnnotationImportResult.RefMap.init -> void
 EmbedPDF.AnnotationInfo
 EmbedPDF.AnnotationInfo.<Clone>$() -> EmbedPDF.AnnotationInfo!
+EmbedPDF.AnnotationInfo.Accent.get -> EmbedPDF.RecordAccent?
 EmbedPDF.AnnotationInfo.AnnotationRef.get -> EmbedPDF.AnnotationRef!
 EmbedPDF.AnnotationInfo.Author.get -> string?
 EmbedPDF.AnnotationInfo.BlendMode.get -> EmbedPDF.AnnotationBlendMode?
@@ -2544,6 +2545,7 @@ EmbedPDF.FormCapability.CanDesignAsync(System.Threading.CancellationToken cancel
 EmbedPDF.FormCapability.CanFillAsync(EmbedPDF.FormFieldRef! field, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 EmbedPDF.FormCapability.CanReadAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 EmbedPDF.FormCapability.CanRestoreAttributionAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.FormCapability.CanSetGroupAsync(string! groupId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 EmbedPDF.FormCapability.CanWriteScriptsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 EmbedPDF.FormCapability.CreateAsync(EmbedPDF.FormCreateFieldInput! input, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FormField!>!
 EmbedPDF.FormCapability.CreateAsync(string! draftJson, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FormField!>!
@@ -2557,24 +2559,30 @@ EmbedPDF.FormCapability.ExportAsync(System.Collections.Generic.IEnumerable<Embed
 EmbedPDF.FormCapability.ExportValuesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
 EmbedPDF.FormCapability.FocusAsync(EmbedPDF.FormFieldRef! field, EmbedPDF.FormFocusOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 EmbedPDF.FormCapability.FocusNextAsync(EmbedPDF.FormFocusNextOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.FormCapability.GetDesignGroupAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string?>!
 EmbedPDF.FormCapability.GetFieldAsync(EmbedPDF.FormFieldRef! field, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FormField?>!
 EmbedPDF.FormCapability.GetFieldForWidgetAsync(EmbedPDF.AnnotationRef! widget, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FormField?>!
 EmbedPDF.FormCapability.GetFieldSettingsAsync(EmbedPDF.FormFieldRef! field, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FormFieldPanelSettings?>!
 EmbedPDF.FormCapability.GetFieldsAsync(EmbedPDF.FormFilter? filter = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.FormField!>!>!
 EmbedPDF.FormCapability.GetFillItemsAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.FormFillItem!>!>!
 EmbedPDF.FormCapability.GetFocusedFieldAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FormField?>!
+EmbedPDF.FormCapability.GetGroupsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.FormGroup!>!>!
 EmbedPDF.FormCapability.GetPageBoxAsync(EmbedPDF.PageRef page, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.PdfRect?>!
 EmbedPDF.FormCapability.GetSelectedFieldAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FormField?>!
+EmbedPDF.FormCapability.GetSelectedFieldsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.FormField!>!>!
 EmbedPDF.FormCapability.GetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FormSettings!>!
 EmbedPDF.FormCapability.GetSnapshotAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FormSnapshot?>!
 EmbedPDF.FormCapability.GetStatusAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.ResourceStatus>!
 EmbedPDF.FormCapability.GetValueAsync(EmbedPDF.FormFieldRef! field, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FormValueInput?>!
+EmbedPDF.FormCapability.GetWidgetAnchorAsync(EmbedPDF.AnnotationRef! widget, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FormWidgetAnchor?>!
 EmbedPDF.FormCapability.GetWidgetAsync(EmbedPDF.AnnotationRef! widget, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FormWidgetRecord?>!
 EmbedPDF.FormCapability.GetWidgetAtAsync(EmbedPDF.PageRef page, EmbedPDF.PdfPoint point, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FormWidgetHit?>!
 EmbedPDF.FormCapability.GetWidgetsAsync(EmbedPDF.FormFieldRef! field, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.FormWidgetRecord!>!>!
 EmbedPDF.FormCapability.ImportAsync(string! bundleJson, string! optionsJson = "{}", System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FormImportResult!>!
 EmbedPDF.FormCapability.ImportValuesAsync(string! valuesJson, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FormBatchResult!>!
+EmbedPDF.FormCapability.IsWidgetFocusedAsync(EmbedPDF.AnnotationRef! widget, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 EmbedPDF.FormCapability.MoveInGroupAsync(EmbedPDF.AnnotationRef! widget, bool backward = false, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+EmbedPDF.FormCapability.MoveToGroupAsync(System.Collections.Generic.IEnumerable<EmbedPDF.FormFieldRef!>! fields, string? groupId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.FormField!>!>!
 EmbedPDF.FormCapability.NotifyWidgetEventAsync(EmbedPDF.FormFieldRef! field, EmbedPDF.AnnotationRef! widget, EmbedPDF.FormWidgetEvent widgetEvent, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.FormCapability.ObserveEvents(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EmbedPDF.FormEvent!>!
 EmbedPDF.FormCapability.RefreshAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -2583,6 +2591,8 @@ EmbedPDF.FormCapability.ReorderCalculationsAsync(System.Collections.Generic.IEnu
 EmbedPDF.FormCapability.RepairAsync(bool bakeAppearances = false, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
 EmbedPDF.FormCapability.ResetAsync(System.Collections.Generic.IEnumerable<EmbedPDF.FormFieldRef!>? fields = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<EmbedPDF.FormField!>!>!
 EmbedPDF.FormCapability.ResetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.FormCapability.SetDesignGroupAsync(string? groupId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+EmbedPDF.FormCapability.SetGroupsAsync(System.Collections.Generic.IEnumerable<EmbedPDF.FormGroupInput!>! groups, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 EmbedPDF.FormCapability.SetValueAsync(EmbedPDF.FormFieldRef! field, EmbedPDF.FormValueInput! value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FormSetValueResult!>!
 EmbedPDF.FormCapability.SetValuesAsync(System.Collections.Generic.IEnumerable<EmbedPDF.FormValueEntry!>! entries, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FormBatchResult!>!
 EmbedPDF.FormCapability.UpdateAsync(EmbedPDF.FormFieldRef! field, EmbedPDF.FormFieldPatch! patch, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EmbedPDF.FormField!>!
@@ -2645,12 +2655,18 @@ EmbedPDF.FormCreateFieldInput.ExportValue.init -> void
 EmbedPDF.FormCreateFieldInput.Family.get -> EmbedPDF.FormFieldFamily
 EmbedPDF.FormCreateFieldInput.Family.init -> void
 EmbedPDF.FormCreateFieldInput.FormCreateFieldInput(EmbedPDF.FormFieldFamily Family, string! Name, EmbedPDF.PageRef Page, EmbedPDF.PdfRect Bounds) -> void
+EmbedPDF.FormCreateFieldInput.Format.get -> EmbedPDF.FormFieldFormat?
+EmbedPDF.FormCreateFieldInput.Format.init -> void
+EmbedPDF.FormCreateFieldInput.GroupId.get -> string?
+EmbedPDF.FormCreateFieldInput.GroupId.init -> void
 EmbedPDF.FormCreateFieldInput.Name.get -> string!
 EmbedPDF.FormCreateFieldInput.Name.init -> void
 EmbedPDF.FormCreateFieldInput.Options.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.FormChoiceOptionInput!>?
 EmbedPDF.FormCreateFieldInput.Options.init -> void
 EmbedPDF.FormCreateFieldInput.Page.get -> EmbedPDF.PageRef
 EmbedPDF.FormCreateFieldInput.Page.init -> void
+EmbedPDF.FormCreateFieldInput.Purpose.get -> string?
+EmbedPDF.FormCreateFieldInput.Purpose.init -> void
 EmbedPDF.FormDuplicateOptions
 EmbedPDF.FormDuplicateOptions.<Clone>$() -> EmbedPDF.FormDuplicateOptions!
 EmbedPDF.FormDuplicateOptions.Equals(EmbedPDF.FormDuplicateOptions? other) -> bool
@@ -2675,6 +2691,12 @@ EmbedPDF.FormDuplicateResult.Widgets.init -> void
 EmbedPDF.FormDuplicateResult.WidgetsJson.get -> string!
 EmbedPDF.FormDuplicateResult.WidgetsJson.init -> void
 EmbedPDF.FormEvent
+EmbedPDF.FormEvent.DesignGroupChanged
+EmbedPDF.FormEvent.DesignGroupChanged.Deconstruct(out string? GroupId) -> void
+EmbedPDF.FormEvent.DesignGroupChanged.DesignGroupChanged(string? GroupId) -> void
+EmbedPDF.FormEvent.DesignGroupChanged.Equals(EmbedPDF.FormEvent.DesignGroupChanged? other) -> bool
+EmbedPDF.FormEvent.DesignGroupChanged.GroupId.get -> string?
+EmbedPDF.FormEvent.DesignGroupChanged.GroupId.init -> void
 EmbedPDF.FormEvent.FieldCreated
 EmbedPDF.FormEvent.FieldCreated.Deconstruct(out EmbedPDF.FormField! Field, out string! OriginJson) -> void
 EmbedPDF.FormEvent.FieldCreated.Equals(EmbedPDF.FormEvent.FieldCreated? other) -> bool
@@ -2708,6 +2730,12 @@ EmbedPDF.FormEvent.FocusChanged.FocusChanged(EmbedPDF.FormField? Field, EmbedPDF
 EmbedPDF.FormEvent.FocusChanged.Widget.get -> EmbedPDF.AnnotationRef?
 EmbedPDF.FormEvent.FocusChanged.Widget.init -> void
 EmbedPDF.FormEvent.FormEvent(EmbedPDF.FormEvent! original) -> void
+EmbedPDF.FormEvent.GroupsChanged
+EmbedPDF.FormEvent.GroupsChanged.Deconstruct(out System.Collections.Generic.IReadOnlyList<EmbedPDF.FormGroup!>! Groups) -> void
+EmbedPDF.FormEvent.GroupsChanged.Equals(EmbedPDF.FormEvent.GroupsChanged? other) -> bool
+EmbedPDF.FormEvent.GroupsChanged.Groups.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.FormGroup!>!
+EmbedPDF.FormEvent.GroupsChanged.Groups.init -> void
+EmbedPDF.FormEvent.GroupsChanged.GroupsChanged(System.Collections.Generic.IReadOnlyList<EmbedPDF.FormGroup!>! Groups) -> void
 EmbedPDF.FormEvent.Resynced
 EmbedPDF.FormEvent.Resynced.Equals(EmbedPDF.FormEvent.Resynced? other) -> bool
 EmbedPDF.FormEvent.Resynced.Resynced() -> void
@@ -2731,7 +2759,7 @@ EmbedPDF.FormField
 EmbedPDF.FormField.<Clone>$() -> EmbedPDF.FormField!
 EmbedPDF.FormField.AlternateName.get -> string?
 EmbedPDF.FormField.AlternateName.init -> void
-EmbedPDF.FormField.Deconstruct(out EmbedPDF.FormFieldRef! FieldRef, out string! Name, out EmbedPDF.FormFieldFamily Family, out bool Recovered, out bool ReadOnly, out bool Required, out bool NoExport, out string? AlternateName, out string? MappingName, out string? GroupId, out EmbedPDF.FormFieldDetail! Detail, out System.Collections.Generic.IReadOnlyList<EmbedPDF.FormWidget!>! Widgets, out string! FieldsJson) -> void
+EmbedPDF.FormField.Deconstruct(out EmbedPDF.FormFieldRef! FieldRef, out string! Name, out EmbedPDF.FormFieldFamily Family, out bool Recovered, out bool ReadOnly, out bool Required, out bool NoExport, out string? AlternateName, out string? MappingName, out string? GroupId, out string? Purpose, out EmbedPDF.FormFieldFormat? Format, out EmbedPDF.FormFieldDetail! Detail, out System.Collections.Generic.IReadOnlyList<EmbedPDF.FormWidget!>! Widgets, out string! FieldsJson) -> void
 EmbedPDF.FormField.Detail.get -> EmbedPDF.FormFieldDetail!
 EmbedPDF.FormField.Detail.init -> void
 EmbedPDF.FormField.Equals(EmbedPDF.FormField? other) -> bool
@@ -2741,7 +2769,9 @@ EmbedPDF.FormField.FieldRef.get -> EmbedPDF.FormFieldRef!
 EmbedPDF.FormField.FieldRef.init -> void
 EmbedPDF.FormField.FieldsJson.get -> string!
 EmbedPDF.FormField.FieldsJson.init -> void
-EmbedPDF.FormField.FormField(EmbedPDF.FormFieldRef! FieldRef, string! Name, EmbedPDF.FormFieldFamily Family, bool Recovered, bool ReadOnly, bool Required, bool NoExport, string? AlternateName, string? MappingName, string? GroupId, EmbedPDF.FormFieldDetail! Detail, System.Collections.Generic.IReadOnlyList<EmbedPDF.FormWidget!>! Widgets, string! FieldsJson) -> void
+EmbedPDF.FormField.FormField(EmbedPDF.FormFieldRef! FieldRef, string! Name, EmbedPDF.FormFieldFamily Family, bool Recovered, bool ReadOnly, bool Required, bool NoExport, string? AlternateName, string? MappingName, string? GroupId, string? Purpose, EmbedPDF.FormFieldFormat? Format, EmbedPDF.FormFieldDetail! Detail, System.Collections.Generic.IReadOnlyList<EmbedPDF.FormWidget!>! Widgets, string! FieldsJson) -> void
+EmbedPDF.FormField.Format.get -> EmbedPDF.FormFieldFormat?
+EmbedPDF.FormField.Format.init -> void
 EmbedPDF.FormField.GroupId.get -> string?
 EmbedPDF.FormField.GroupId.init -> void
 EmbedPDF.FormField.MappingName.get -> string?
@@ -2750,6 +2780,8 @@ EmbedPDF.FormField.Name.get -> string!
 EmbedPDF.FormField.Name.init -> void
 EmbedPDF.FormField.NoExport.get -> bool
 EmbedPDF.FormField.NoExport.init -> void
+EmbedPDF.FormField.Purpose.get -> string?
+EmbedPDF.FormField.Purpose.init -> void
 EmbedPDF.FormField.ReadOnly.get -> bool
 EmbedPDF.FormField.ReadOnly.init -> void
 EmbedPDF.FormField.Recovered.get -> bool
@@ -2840,6 +2872,23 @@ EmbedPDF.FormFieldFamily.Radio = 2 -> EmbedPDF.FormFieldFamily
 EmbedPDF.FormFieldFamily.Signature = 6 -> EmbedPDF.FormFieldFamily
 EmbedPDF.FormFieldFamily.Text = 0 -> EmbedPDF.FormFieldFamily
 EmbedPDF.FormFieldFamily.Unknown = 7 -> EmbedPDF.FormFieldFamily
+EmbedPDF.FormFieldFormat
+EmbedPDF.FormFieldFormat.Date
+EmbedPDF.FormFieldFormat.Date.Date(string! Pattern) -> void
+EmbedPDF.FormFieldFormat.Date.Deconstruct(out string! Pattern) -> void
+EmbedPDF.FormFieldFormat.Date.Equals(EmbedPDF.FormFieldFormat.Date? other) -> bool
+EmbedPDF.FormFieldFormat.Date.Pattern.get -> string!
+EmbedPDF.FormFieldFormat.Date.Pattern.init -> void
+EmbedPDF.FormFieldFormat.FormFieldFormat(EmbedPDF.FormFieldFormat! original) -> void
+EmbedPDF.FormFieldFormat.Other
+EmbedPDF.FormFieldFormat.Other.Equals(EmbedPDF.FormFieldFormat.Other? other) -> bool
+EmbedPDF.FormFieldFormat.Other.Other() -> void
+EmbedPDF.FormFieldFormat.Time
+EmbedPDF.FormFieldFormat.Time.Deconstruct(out string! Pattern) -> void
+EmbedPDF.FormFieldFormat.Time.Equals(EmbedPDF.FormFieldFormat.Time? other) -> bool
+EmbedPDF.FormFieldFormat.Time.Pattern.get -> string!
+EmbedPDF.FormFieldFormat.Time.Pattern.init -> void
+EmbedPDF.FormFieldFormat.Time.Time(string! Pattern) -> void
 EmbedPDF.FormFieldPanelSettings
 EmbedPDF.FormFieldPanelSettings.<Clone>$() -> EmbedPDF.FormFieldPanelSettings!
 EmbedPDF.FormFieldPanelSettings.Deconstruct(out System.Collections.Generic.IReadOnlyList<EmbedPDF.FormSettingProperty!>! Properties, out string! ValuesJson) -> void
@@ -2859,6 +2908,10 @@ EmbedPDF.FormFieldPatch.DefaultValue.get -> string?
 EmbedPDF.FormFieldPatch.DefaultValue.init -> void
 EmbedPDF.FormFieldPatch.Equals(EmbedPDF.FormFieldPatch? other) -> bool
 EmbedPDF.FormFieldPatch.FormFieldPatch() -> void
+EmbedPDF.FormFieldPatch.Format.get -> EmbedPDF.FormFieldFormat?
+EmbedPDF.FormFieldPatch.Format.init -> void
+EmbedPDF.FormFieldPatch.GroupId.get -> string?
+EmbedPDF.FormFieldPatch.GroupId.init -> void
 EmbedPDF.FormFieldPatch.MappingName.get -> string?
 EmbedPDF.FormFieldPatch.MappingName.init -> void
 EmbedPDF.FormFieldPatch.MaxLength.get -> int?
@@ -2869,6 +2922,8 @@ EmbedPDF.FormFieldPatch.NoExport.get -> bool?
 EmbedPDF.FormFieldPatch.NoExport.init -> void
 EmbedPDF.FormFieldPatch.Options.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.FormChoiceOptionInput!>?
 EmbedPDF.FormFieldPatch.Options.init -> void
+EmbedPDF.FormFieldPatch.Purpose.get -> string?
+EmbedPDF.FormFieldPatch.Purpose.init -> void
 EmbedPDF.FormFieldPatch.ReadOnly.get -> bool?
 EmbedPDF.FormFieldPatch.ReadOnly.init -> void
 EmbedPDF.FormFieldPatch.Required.get -> bool?
@@ -2876,8 +2931,11 @@ EmbedPDF.FormFieldPatch.Required.init -> void
 EmbedPDF.FormFieldPatchKey
 EmbedPDF.FormFieldPatchKey.AlternateName = 0 -> EmbedPDF.FormFieldPatchKey
 EmbedPDF.FormFieldPatchKey.DefaultValue = 2 -> EmbedPDF.FormFieldPatchKey
+EmbedPDF.FormFieldPatchKey.Format = 5 -> EmbedPDF.FormFieldPatchKey
+EmbedPDF.FormFieldPatchKey.GroupId = 6 -> EmbedPDF.FormFieldPatchKey
 EmbedPDF.FormFieldPatchKey.MappingName = 1 -> EmbedPDF.FormFieldPatchKey
 EmbedPDF.FormFieldPatchKey.MaxLength = 3 -> EmbedPDF.FormFieldPatchKey
+EmbedPDF.FormFieldPatchKey.Purpose = 4 -> EmbedPDF.FormFieldPatchKey
 EmbedPDF.FormFieldRef
 EmbedPDF.FormFieldRef.FormFieldRef(EmbedPDF.FormFieldRef! original) -> void
 EmbedPDF.FormFieldRef.Fqn
@@ -2900,9 +2958,11 @@ EmbedPDF.FormFieldSettings.Border.get -> string?
 EmbedPDF.FormFieldSettings.Border.init -> void
 EmbedPDF.FormFieldSettings.Color.get -> string!
 EmbedPDF.FormFieldSettings.Color.init -> void
-EmbedPDF.FormFieldSettings.Deconstruct(out string? Border, out string! Background, out string! Color) -> void
+EmbedPDF.FormFieldSettings.Deconstruct(out string? Border, out string! Background, out string! Color, out double Tint) -> void
 EmbedPDF.FormFieldSettings.Equals(EmbedPDF.FormFieldSettings? other) -> bool
-EmbedPDF.FormFieldSettings.FormFieldSettings(string? Border, string! Background, string! Color) -> void
+EmbedPDF.FormFieldSettings.FormFieldSettings(string? Border, string! Background, string! Color, double Tint) -> void
+EmbedPDF.FormFieldSettings.Tint.get -> double
+EmbedPDF.FormFieldSettings.Tint.init -> void
 EmbedPDF.FormFieldSettingsPatch
 EmbedPDF.FormFieldSettingsPatch.<Clone>$() -> EmbedPDF.FormFieldSettingsPatch!
 EmbedPDF.FormFieldSettingsPatch.Background.get -> string?
@@ -2915,6 +2975,8 @@ EmbedPDF.FormFieldSettingsPatch.Color.get -> string?
 EmbedPDF.FormFieldSettingsPatch.Color.init -> void
 EmbedPDF.FormFieldSettingsPatch.Equals(EmbedPDF.FormFieldSettingsPatch? other) -> bool
 EmbedPDF.FormFieldSettingsPatch.FormFieldSettingsPatch() -> void
+EmbedPDF.FormFieldSettingsPatch.Tint.get -> double?
+EmbedPDF.FormFieldSettingsPatch.Tint.init -> void
 EmbedPDF.FormFillControl
 EmbedPDF.FormFillControl.Button
 EmbedPDF.FormFillControl.Button.Button() -> void
@@ -2957,34 +3019,50 @@ EmbedPDF.FormFillControl.Text.Value.init -> void
 EmbedPDF.FormFillControl.Toggle
 EmbedPDF.FormFillControl.Toggle.Checked.get -> bool
 EmbedPDF.FormFillControl.Toggle.Checked.init -> void
-EmbedPDF.FormFillControl.Toggle.Deconstruct(out bool Radio, out bool Checked, out string! ExportValue) -> void
+EmbedPDF.FormFillControl.Toggle.Deconstruct(out bool Radio, out bool Checked, out string! ExportValue, out EmbedPDF.FormGroupPosition? InGroup) -> void
 EmbedPDF.FormFillControl.Toggle.Equals(EmbedPDF.FormFillControl.Toggle? other) -> bool
 EmbedPDF.FormFillControl.Toggle.ExportValue.get -> string!
 EmbedPDF.FormFillControl.Toggle.ExportValue.init -> void
+EmbedPDF.FormFillControl.Toggle.InGroup.get -> EmbedPDF.FormGroupPosition?
+EmbedPDF.FormFillControl.Toggle.InGroup.init -> void
 EmbedPDF.FormFillControl.Toggle.Radio.get -> bool
 EmbedPDF.FormFillControl.Toggle.Radio.init -> void
-EmbedPDF.FormFillControl.Toggle.Toggle(bool Radio, bool Checked, string! ExportValue) -> void
+EmbedPDF.FormFillControl.Toggle.Toggle(bool Radio, bool Checked, string! ExportValue, EmbedPDF.FormGroupPosition? InGroup) -> void
 EmbedPDF.FormFillItem
 EmbedPDF.FormFillItem.<Clone>$() -> EmbedPDF.FormFillItem!
+EmbedPDF.FormFillItem.Accent.get -> EmbedPDF.RecordAccent?
+EmbedPDF.FormFillItem.Accent.init -> void
 EmbedPDF.FormFillItem.AnnotObjectNumber.get -> int
 EmbedPDF.FormFillItem.AnnotObjectNumber.init -> void
 EmbedPDF.FormFillItem.AnnotationRef.get -> EmbedPDF.AnnotationRef?
 EmbedPDF.FormFillItem.AnnotationRef.init -> void
 EmbedPDF.FormFillItem.Bounds.get -> EmbedPDF.PdfRect
 EmbedPDF.FormFillItem.Bounds.init -> void
+EmbedPDF.FormFillItem.CanFill.get -> bool
+EmbedPDF.FormFillItem.CanFill.init -> void
 EmbedPDF.FormFillItem.Control.get -> EmbedPDF.FormFillControl!
 EmbedPDF.FormFillItem.Control.init -> void
-EmbedPDF.FormFillItem.Deconstruct(out EmbedPDF.FormFieldRef! FieldRef, out int AnnotObjectNumber, out EmbedPDF.AnnotationRef? AnnotationRef, out EmbedPDF.PdfRect Bounds, out string! LookJson, out bool Disabled, out string! Label, out EmbedPDF.FormFillControl! Control) -> void
+EmbedPDF.FormFillItem.Deconstruct(out EmbedPDF.FormFieldRef! FieldRef, out int AnnotObjectNumber, out EmbedPDF.AnnotationRef? AnnotationRef, out EmbedPDF.PdfRect Bounds, out EmbedPDF.PdfRect Frame, out double Rotation, out string? GroupId, out bool CanFill, out bool Required, out bool Empty, out EmbedPDF.RecordAccent? Accent, out string! LookJson, out bool Disabled, out string! Label, out EmbedPDF.FormFillControl! Control) -> void
 EmbedPDF.FormFillItem.Disabled.get -> bool
 EmbedPDF.FormFillItem.Disabled.init -> void
+EmbedPDF.FormFillItem.Empty.get -> bool
+EmbedPDF.FormFillItem.Empty.init -> void
 EmbedPDF.FormFillItem.Equals(EmbedPDF.FormFillItem? other) -> bool
 EmbedPDF.FormFillItem.FieldRef.get -> EmbedPDF.FormFieldRef!
 EmbedPDF.FormFillItem.FieldRef.init -> void
-EmbedPDF.FormFillItem.FormFillItem(EmbedPDF.FormFieldRef! FieldRef, int AnnotObjectNumber, EmbedPDF.AnnotationRef? AnnotationRef, EmbedPDF.PdfRect Bounds, string! LookJson, bool Disabled, string! Label, EmbedPDF.FormFillControl! Control) -> void
+EmbedPDF.FormFillItem.FormFillItem(EmbedPDF.FormFieldRef! FieldRef, int AnnotObjectNumber, EmbedPDF.AnnotationRef? AnnotationRef, EmbedPDF.PdfRect Bounds, EmbedPDF.PdfRect Frame, double Rotation, string? GroupId, bool CanFill, bool Required, bool Empty, EmbedPDF.RecordAccent? Accent, string! LookJson, bool Disabled, string! Label, EmbedPDF.FormFillControl! Control) -> void
+EmbedPDF.FormFillItem.Frame.get -> EmbedPDF.PdfRect
+EmbedPDF.FormFillItem.Frame.init -> void
+EmbedPDF.FormFillItem.GroupId.get -> string?
+EmbedPDF.FormFillItem.GroupId.init -> void
 EmbedPDF.FormFillItem.Label.get -> string!
 EmbedPDF.FormFillItem.Label.init -> void
 EmbedPDF.FormFillItem.LookJson.get -> string!
 EmbedPDF.FormFillItem.LookJson.init -> void
+EmbedPDF.FormFillItem.Required.get -> bool
+EmbedPDF.FormFillItem.Required.init -> void
+EmbedPDF.FormFillItem.Rotation.get -> double
+EmbedPDF.FormFillItem.Rotation.init -> void
 EmbedPDF.FormFillable
 EmbedPDF.FormFillable.All
 EmbedPDF.FormFillable.All.All() -> void
@@ -3044,6 +3122,37 @@ EmbedPDF.FormFocusSettingsPatch.Color.get -> string?
 EmbedPDF.FormFocusSettingsPatch.Color.init -> void
 EmbedPDF.FormFocusSettingsPatch.Equals(EmbedPDF.FormFocusSettingsPatch? other) -> bool
 EmbedPDF.FormFocusSettingsPatch.FormFocusSettingsPatch() -> void
+EmbedPDF.FormGroup
+EmbedPDF.FormGroup.<Clone>$() -> EmbedPDF.FormGroup!
+EmbedPDF.FormGroup.Color.get -> string!
+EmbedPDF.FormGroup.Color.init -> void
+EmbedPDF.FormGroup.Deconstruct(out string! Id, out string? Label, out string! Color) -> void
+EmbedPDF.FormGroup.Equals(EmbedPDF.FormGroup? other) -> bool
+EmbedPDF.FormGroup.FormGroup(string! Id, string? Label, string! Color) -> void
+EmbedPDF.FormGroup.Id.get -> string!
+EmbedPDF.FormGroup.Id.init -> void
+EmbedPDF.FormGroup.Label.get -> string?
+EmbedPDF.FormGroup.Label.init -> void
+EmbedPDF.FormGroupInput
+EmbedPDF.FormGroupInput.<Clone>$() -> EmbedPDF.FormGroupInput!
+EmbedPDF.FormGroupInput.Color.get -> string?
+EmbedPDF.FormGroupInput.Color.init -> void
+EmbedPDF.FormGroupInput.Deconstruct(out string! Id) -> void
+EmbedPDF.FormGroupInput.Equals(EmbedPDF.FormGroupInput? other) -> bool
+EmbedPDF.FormGroupInput.FormGroupInput(string! Id) -> void
+EmbedPDF.FormGroupInput.Id.get -> string!
+EmbedPDF.FormGroupInput.Id.init -> void
+EmbedPDF.FormGroupInput.Label.get -> string?
+EmbedPDF.FormGroupInput.Label.init -> void
+EmbedPDF.FormGroupPosition
+EmbedPDF.FormGroupPosition.<Clone>$() -> EmbedPDF.FormGroupPosition!
+EmbedPDF.FormGroupPosition.Deconstruct(out int Position, out int Size) -> void
+EmbedPDF.FormGroupPosition.Equals(EmbedPDF.FormGroupPosition? other) -> bool
+EmbedPDF.FormGroupPosition.FormGroupPosition(int Position, int Size) -> void
+EmbedPDF.FormGroupPosition.Position.get -> int
+EmbedPDF.FormGroupPosition.Position.init -> void
+EmbedPDF.FormGroupPosition.Size.get -> int
+EmbedPDF.FormGroupPosition.Size.init -> void
 EmbedPDF.FormImportResult
 EmbedPDF.FormImportResult.<Clone>$() -> EmbedPDF.FormImportResult!
 EmbedPDF.FormImportResult.Deconstruct(out System.Collections.Generic.IReadOnlyList<EmbedPDF.FormField!>! Fields, out string! RefMapJson, out string! DroppedJson) -> void
@@ -3238,6 +3347,15 @@ EmbedPDF.FormWidgetAdded.Field.init -> void
 EmbedPDF.FormWidgetAdded.FormWidgetAdded(EmbedPDF.FormField! Field, string! WidgetJson) -> void
 EmbedPDF.FormWidgetAdded.WidgetJson.get -> string!
 EmbedPDF.FormWidgetAdded.WidgetJson.init -> void
+EmbedPDF.FormWidgetAnchor
+EmbedPDF.FormWidgetAnchor.<Clone>$() -> EmbedPDF.FormWidgetAnchor!
+EmbedPDF.FormWidgetAnchor.Bounds.get -> EmbedPDF.PdfRect
+EmbedPDF.FormWidgetAnchor.Bounds.init -> void
+EmbedPDF.FormWidgetAnchor.Deconstruct(out EmbedPDF.PageRef Page, out EmbedPDF.PdfRect Bounds) -> void
+EmbedPDF.FormWidgetAnchor.Equals(EmbedPDF.FormWidgetAnchor? other) -> bool
+EmbedPDF.FormWidgetAnchor.FormWidgetAnchor(EmbedPDF.PageRef Page, EmbedPDF.PdfRect Bounds) -> void
+EmbedPDF.FormWidgetAnchor.Page.get -> EmbedPDF.PageRef
+EmbedPDF.FormWidgetAnchor.Page.init -> void
 EmbedPDF.FormWidgetEvent
 EmbedPDF.FormWidgetEvent.Blur = 5 -> EmbedPDF.FormWidgetEvent
 EmbedPDF.FormWidgetEvent.CursorEnter = 0 -> EmbedPDF.FormWidgetEvent
@@ -3251,11 +3369,15 @@ EmbedPDF.FormWidgetHit.AnnotObjectNumber.get -> int
 EmbedPDF.FormWidgetHit.AnnotObjectNumber.init -> void
 EmbedPDF.FormWidgetHit.Bounds.get -> EmbedPDF.PdfRect
 EmbedPDF.FormWidgetHit.Bounds.init -> void
-EmbedPDF.FormWidgetHit.Deconstruct(out int AnnotObjectNumber, out EmbedPDF.FormField! Field, out EmbedPDF.PdfRect Bounds) -> void
+EmbedPDF.FormWidgetHit.Deconstruct(out int AnnotObjectNumber, out EmbedPDF.FormField! Field, out EmbedPDF.PdfRect Bounds, out EmbedPDF.PdfRect Frame, out double Rotation) -> void
 EmbedPDF.FormWidgetHit.Equals(EmbedPDF.FormWidgetHit? other) -> bool
 EmbedPDF.FormWidgetHit.Field.get -> EmbedPDF.FormField!
 EmbedPDF.FormWidgetHit.Field.init -> void
-EmbedPDF.FormWidgetHit.FormWidgetHit(int AnnotObjectNumber, EmbedPDF.FormField! Field, EmbedPDF.PdfRect Bounds) -> void
+EmbedPDF.FormWidgetHit.FormWidgetHit(int AnnotObjectNumber, EmbedPDF.FormField! Field, EmbedPDF.PdfRect Bounds, EmbedPDF.PdfRect Frame, double Rotation) -> void
+EmbedPDF.FormWidgetHit.Frame.get -> EmbedPDF.PdfRect
+EmbedPDF.FormWidgetHit.Frame.init -> void
+EmbedPDF.FormWidgetHit.Rotation.get -> double
+EmbedPDF.FormWidgetHit.Rotation.init -> void
 EmbedPDF.FormWidgetPlacement
 EmbedPDF.FormWidgetPlacement.<Clone>$() -> EmbedPDF.FormWidgetPlacement!
 EmbedPDF.FormWidgetPlacement.Bounds.get -> EmbedPDF.PdfRect?
@@ -3579,7 +3701,8 @@ EmbedPDF.IAnnotationPatch<TSelf>.FromJson(string! json) -> TSelf!
 EmbedPDF.IDocumentFetcher
 EmbedPDF.IDocumentFetcher.FetchAsync(string! url, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<EmbedPDF.DocumentFetchResponse!>!
 EmbedPDF.IFormFocusTarget
-EmbedPDF.IFormFocusTarget.Focus(bool select) -> void
+EmbedPDF.IFormFocusTarget.Focus(bool select) -> bool
+EmbedPDF.IFormFocusTarget.TakesCursor() -> bool
 EmbedPDF.IInteractionHandler
 EmbedPDF.IInteractionHandler.ClaimsTouch(EmbedPDF.PointerSample! sample) -> bool
 EmbedPDF.IInteractionHandler.EnabledFor(EmbedPDF.InteractionTool! tool) -> bool
@@ -5492,6 +5615,15 @@ EmbedPDF.PolylineAnnotationPatch.StrokeWidth.get -> double?
 EmbedPDF.PolylineAnnotationPatch.StrokeWidth.init -> void
 EmbedPDF.PolylineAnnotationPatch.Vertices.get -> System.Collections.Generic.IReadOnlyList<EmbedPDF.PdfPoint>?
 EmbedPDF.PolylineAnnotationPatch.Vertices.init -> void
+EmbedPDF.RecordAccent
+EmbedPDF.RecordAccent.<Clone>$() -> EmbedPDF.RecordAccent!
+EmbedPDF.RecordAccent.Color.get -> string!
+EmbedPDF.RecordAccent.Color.init -> void
+EmbedPDF.RecordAccent.Deconstruct(out string! Color, out double Strength) -> void
+EmbedPDF.RecordAccent.Equals(EmbedPDF.RecordAccent? other) -> bool
+EmbedPDF.RecordAccent.RecordAccent(string! Color, double Strength) -> void
+EmbedPDF.RecordAccent.Strength.get -> double
+EmbedPDF.RecordAccent.Strength.init -> void
 EmbedPDF.RedactionAnnotationDraft
 EmbedPDF.RedactionAnnotationDraft.BlendMode.get -> EmbedPDF.AnnotationBlendMode?
 EmbedPDF.RedactionAnnotationDraft.BlendMode.init -> void
@@ -8995,6 +9127,7 @@ abstract EmbedPDF.FormActivationResult.<Clone>$() -> EmbedPDF.FormActivationResu
 abstract EmbedPDF.FormCalculationPosition.<Clone>$() -> EmbedPDF.FormCalculationPosition!
 abstract EmbedPDF.FormEvent.<Clone>$() -> EmbedPDF.FormEvent!
 abstract EmbedPDF.FormFieldDetail.<Clone>$() -> EmbedPDF.FormFieldDetail!
+abstract EmbedPDF.FormFieldFormat.<Clone>$() -> EmbedPDF.FormFieldFormat!
 abstract EmbedPDF.FormFieldRef.<Clone>$() -> EmbedPDF.FormFieldRef!
 abstract EmbedPDF.FormFillControl.<Clone>$() -> EmbedPDF.FormFillControl!
 abstract EmbedPDF.FormFillable.<Clone>$() -> EmbedPDF.FormFillable!
@@ -9811,6 +9944,10 @@ override EmbedPDF.FormDuplicateOptions.ToString() -> string!
 override EmbedPDF.FormDuplicateResult.Equals(object? obj) -> bool
 override EmbedPDF.FormDuplicateResult.GetHashCode() -> int
 override EmbedPDF.FormDuplicateResult.ToString() -> string!
+override EmbedPDF.FormEvent.DesignGroupChanged.<Clone>$() -> EmbedPDF.FormEvent.DesignGroupChanged!
+override EmbedPDF.FormEvent.DesignGroupChanged.Equals(object? obj) -> bool
+override EmbedPDF.FormEvent.DesignGroupChanged.GetHashCode() -> int
+override EmbedPDF.FormEvent.DesignGroupChanged.ToString() -> string!
 override EmbedPDF.FormEvent.Equals(object? obj) -> bool
 override EmbedPDF.FormEvent.FieldCreated.<Clone>$() -> EmbedPDF.FormEvent.FieldCreated!
 override EmbedPDF.FormEvent.FieldCreated.Equals(object? obj) -> bool
@@ -9829,6 +9966,10 @@ override EmbedPDF.FormEvent.FocusChanged.Equals(object? obj) -> bool
 override EmbedPDF.FormEvent.FocusChanged.GetHashCode() -> int
 override EmbedPDF.FormEvent.FocusChanged.ToString() -> string!
 override EmbedPDF.FormEvent.GetHashCode() -> int
+override EmbedPDF.FormEvent.GroupsChanged.<Clone>$() -> EmbedPDF.FormEvent.GroupsChanged!
+override EmbedPDF.FormEvent.GroupsChanged.Equals(object? obj) -> bool
+override EmbedPDF.FormEvent.GroupsChanged.GetHashCode() -> int
+override EmbedPDF.FormEvent.GroupsChanged.ToString() -> string!
 override EmbedPDF.FormEvent.Resynced.<Clone>$() -> EmbedPDF.FormEvent.Resynced!
 override EmbedPDF.FormEvent.Resynced.Equals(object? obj) -> bool
 override EmbedPDF.FormEvent.Resynced.GetHashCode() -> int
@@ -9880,6 +10021,21 @@ override EmbedPDF.FormFieldDetail.Unknown.<Clone>$() -> EmbedPDF.FormFieldDetail
 override EmbedPDF.FormFieldDetail.Unknown.Equals(object? obj) -> bool
 override EmbedPDF.FormFieldDetail.Unknown.GetHashCode() -> int
 override EmbedPDF.FormFieldDetail.Unknown.ToString() -> string!
+override EmbedPDF.FormFieldFormat.Date.<Clone>$() -> EmbedPDF.FormFieldFormat.Date!
+override EmbedPDF.FormFieldFormat.Date.Equals(object? obj) -> bool
+override EmbedPDF.FormFieldFormat.Date.GetHashCode() -> int
+override EmbedPDF.FormFieldFormat.Date.ToString() -> string!
+override EmbedPDF.FormFieldFormat.Equals(object? obj) -> bool
+override EmbedPDF.FormFieldFormat.GetHashCode() -> int
+override EmbedPDF.FormFieldFormat.Other.<Clone>$() -> EmbedPDF.FormFieldFormat.Other!
+override EmbedPDF.FormFieldFormat.Other.Equals(object? obj) -> bool
+override EmbedPDF.FormFieldFormat.Other.GetHashCode() -> int
+override EmbedPDF.FormFieldFormat.Other.ToString() -> string!
+override EmbedPDF.FormFieldFormat.Time.<Clone>$() -> EmbedPDF.FormFieldFormat.Time!
+override EmbedPDF.FormFieldFormat.Time.Equals(object? obj) -> bool
+override EmbedPDF.FormFieldFormat.Time.GetHashCode() -> int
+override EmbedPDF.FormFieldFormat.Time.ToString() -> string!
+override EmbedPDF.FormFieldFormat.ToString() -> string!
 override EmbedPDF.FormFieldPanelSettings.Equals(object? obj) -> bool
 override EmbedPDF.FormFieldPanelSettings.GetHashCode() -> int
 override EmbedPDF.FormFieldPanelSettings.ToString() -> string!
@@ -9959,6 +10115,15 @@ override EmbedPDF.FormFocusSettings.ToString() -> string!
 override EmbedPDF.FormFocusSettingsPatch.Equals(object? obj) -> bool
 override EmbedPDF.FormFocusSettingsPatch.GetHashCode() -> int
 override EmbedPDF.FormFocusSettingsPatch.ToString() -> string!
+override EmbedPDF.FormGroup.Equals(object? obj) -> bool
+override EmbedPDF.FormGroup.GetHashCode() -> int
+override EmbedPDF.FormGroup.ToString() -> string!
+override EmbedPDF.FormGroupInput.Equals(object? obj) -> bool
+override EmbedPDF.FormGroupInput.GetHashCode() -> int
+override EmbedPDF.FormGroupInput.ToString() -> string!
+override EmbedPDF.FormGroupPosition.Equals(object? obj) -> bool
+override EmbedPDF.FormGroupPosition.GetHashCode() -> int
+override EmbedPDF.FormGroupPosition.ToString() -> string!
 override EmbedPDF.FormImportResult.Equals(object? obj) -> bool
 override EmbedPDF.FormImportResult.GetHashCode() -> int
 override EmbedPDF.FormImportResult.ToString() -> string!
@@ -10025,6 +10190,9 @@ override EmbedPDF.FormWidget.ToString() -> string!
 override EmbedPDF.FormWidgetAdded.Equals(object? obj) -> bool
 override EmbedPDF.FormWidgetAdded.GetHashCode() -> int
 override EmbedPDF.FormWidgetAdded.ToString() -> string!
+override EmbedPDF.FormWidgetAnchor.Equals(object? obj) -> bool
+override EmbedPDF.FormWidgetAnchor.GetHashCode() -> int
+override EmbedPDF.FormWidgetAnchor.ToString() -> string!
 override EmbedPDF.FormWidgetHit.Equals(object? obj) -> bool
 override EmbedPDF.FormWidgetHit.GetHashCode() -> int
 override EmbedPDF.FormWidgetHit.ToString() -> string!
@@ -10674,6 +10842,9 @@ override EmbedPDF.PolylineAnnotationPatch.<Clone>$() -> EmbedPDF.PolylineAnnotat
 override EmbedPDF.PolylineAnnotationPatch.Equals(object? obj) -> bool
 override EmbedPDF.PolylineAnnotationPatch.GetHashCode() -> int
 override EmbedPDF.PolylineAnnotationPatch.ToString() -> string!
+override EmbedPDF.RecordAccent.Equals(object? obj) -> bool
+override EmbedPDF.RecordAccent.GetHashCode() -> int
+override EmbedPDF.RecordAccent.ToString() -> string!
 override EmbedPDF.RedactionAnnotationDraft.<Clone>$() -> EmbedPDF.RedactionAnnotationDraft!
 override EmbedPDF.RedactionAnnotationDraft.Equals(object? obj) -> bool
 override EmbedPDF.RedactionAnnotationDraft.GetHashCode() -> int
@@ -11808,10 +11979,12 @@ override sealed EmbedPDF.FormCalculationPosition.After.Equals(EmbedPDF.FormCalcu
 override sealed EmbedPDF.FormCalculationPosition.Before.Equals(EmbedPDF.FormCalculationPosition? other) -> bool
 override sealed EmbedPDF.FormCalculationPosition.End.Equals(EmbedPDF.FormCalculationPosition? other) -> bool
 override sealed EmbedPDF.FormCalculationPosition.Start.Equals(EmbedPDF.FormCalculationPosition? other) -> bool
+override sealed EmbedPDF.FormEvent.DesignGroupChanged.Equals(EmbedPDF.FormEvent? other) -> bool
 override sealed EmbedPDF.FormEvent.FieldCreated.Equals(EmbedPDF.FormEvent? other) -> bool
 override sealed EmbedPDF.FormEvent.FieldDeleted.Equals(EmbedPDF.FormEvent? other) -> bool
 override sealed EmbedPDF.FormEvent.FieldUpdated.Equals(EmbedPDF.FormEvent? other) -> bool
 override sealed EmbedPDF.FormEvent.FocusChanged.Equals(EmbedPDF.FormEvent? other) -> bool
+override sealed EmbedPDF.FormEvent.GroupsChanged.Equals(EmbedPDF.FormEvent? other) -> bool
 override sealed EmbedPDF.FormEvent.Resynced.Equals(EmbedPDF.FormEvent? other) -> bool
 override sealed EmbedPDF.FormEvent.ValidationRejected.Equals(EmbedPDF.FormEvent? other) -> bool
 override sealed EmbedPDF.FormEvent.ValueChanged.Equals(EmbedPDF.FormEvent? other) -> bool
@@ -11823,6 +11996,9 @@ override sealed EmbedPDF.FormFieldDetail.Radio.Equals(EmbedPDF.FormFieldDetail? 
 override sealed EmbedPDF.FormFieldDetail.Signature.Equals(EmbedPDF.FormFieldDetail? other) -> bool
 override sealed EmbedPDF.FormFieldDetail.Text.Equals(EmbedPDF.FormFieldDetail? other) -> bool
 override sealed EmbedPDF.FormFieldDetail.Unknown.Equals(EmbedPDF.FormFieldDetail? other) -> bool
+override sealed EmbedPDF.FormFieldFormat.Date.Equals(EmbedPDF.FormFieldFormat? other) -> bool
+override sealed EmbedPDF.FormFieldFormat.Other.Equals(EmbedPDF.FormFieldFormat? other) -> bool
+override sealed EmbedPDF.FormFieldFormat.Time.Equals(EmbedPDF.FormFieldFormat? other) -> bool
 override sealed EmbedPDF.FormFieldRef.Fqn.Equals(EmbedPDF.FormFieldRef? other) -> bool
 override sealed EmbedPDF.FormFieldRef.ObjectNumber.Equals(EmbedPDF.FormFieldRef? other) -> bool
 override sealed EmbedPDF.FormFillControl.Button.Equals(EmbedPDF.FormFillControl? other) -> bool
@@ -12586,6 +12762,8 @@ static EmbedPDF.FormDuplicateOptions.operator !=(EmbedPDF.FormDuplicateOptions? 
 static EmbedPDF.FormDuplicateOptions.operator ==(EmbedPDF.FormDuplicateOptions? left, EmbedPDF.FormDuplicateOptions? right) -> bool
 static EmbedPDF.FormDuplicateResult.operator !=(EmbedPDF.FormDuplicateResult? left, EmbedPDF.FormDuplicateResult? right) -> bool
 static EmbedPDF.FormDuplicateResult.operator ==(EmbedPDF.FormDuplicateResult? left, EmbedPDF.FormDuplicateResult? right) -> bool
+static EmbedPDF.FormEvent.DesignGroupChanged.operator !=(EmbedPDF.FormEvent.DesignGroupChanged? left, EmbedPDF.FormEvent.DesignGroupChanged? right) -> bool
+static EmbedPDF.FormEvent.DesignGroupChanged.operator ==(EmbedPDF.FormEvent.DesignGroupChanged? left, EmbedPDF.FormEvent.DesignGroupChanged? right) -> bool
 static EmbedPDF.FormEvent.FieldCreated.operator !=(EmbedPDF.FormEvent.FieldCreated? left, EmbedPDF.FormEvent.FieldCreated? right) -> bool
 static EmbedPDF.FormEvent.FieldCreated.operator ==(EmbedPDF.FormEvent.FieldCreated? left, EmbedPDF.FormEvent.FieldCreated? right) -> bool
 static EmbedPDF.FormEvent.FieldDeleted.operator !=(EmbedPDF.FormEvent.FieldDeleted? left, EmbedPDF.FormEvent.FieldDeleted? right) -> bool
@@ -12594,6 +12772,8 @@ static EmbedPDF.FormEvent.FieldUpdated.operator !=(EmbedPDF.FormEvent.FieldUpdat
 static EmbedPDF.FormEvent.FieldUpdated.operator ==(EmbedPDF.FormEvent.FieldUpdated? left, EmbedPDF.FormEvent.FieldUpdated? right) -> bool
 static EmbedPDF.FormEvent.FocusChanged.operator !=(EmbedPDF.FormEvent.FocusChanged? left, EmbedPDF.FormEvent.FocusChanged? right) -> bool
 static EmbedPDF.FormEvent.FocusChanged.operator ==(EmbedPDF.FormEvent.FocusChanged? left, EmbedPDF.FormEvent.FocusChanged? right) -> bool
+static EmbedPDF.FormEvent.GroupsChanged.operator !=(EmbedPDF.FormEvent.GroupsChanged? left, EmbedPDF.FormEvent.GroupsChanged? right) -> bool
+static EmbedPDF.FormEvent.GroupsChanged.operator ==(EmbedPDF.FormEvent.GroupsChanged? left, EmbedPDF.FormEvent.GroupsChanged? right) -> bool
 static EmbedPDF.FormEvent.Resynced.operator !=(EmbedPDF.FormEvent.Resynced? left, EmbedPDF.FormEvent.Resynced? right) -> bool
 static EmbedPDF.FormEvent.Resynced.operator ==(EmbedPDF.FormEvent.Resynced? left, EmbedPDF.FormEvent.Resynced? right) -> bool
 static EmbedPDF.FormEvent.ValidationRejected.operator !=(EmbedPDF.FormEvent.ValidationRejected? left, EmbedPDF.FormEvent.ValidationRejected? right) -> bool
@@ -12622,6 +12802,14 @@ static EmbedPDF.FormFieldDetail.Unknown.operator !=(EmbedPDF.FormFieldDetail.Unk
 static EmbedPDF.FormFieldDetail.Unknown.operator ==(EmbedPDF.FormFieldDetail.Unknown? left, EmbedPDF.FormFieldDetail.Unknown? right) -> bool
 static EmbedPDF.FormFieldDetail.operator !=(EmbedPDF.FormFieldDetail? left, EmbedPDF.FormFieldDetail? right) -> bool
 static EmbedPDF.FormFieldDetail.operator ==(EmbedPDF.FormFieldDetail? left, EmbedPDF.FormFieldDetail? right) -> bool
+static EmbedPDF.FormFieldFormat.Date.operator !=(EmbedPDF.FormFieldFormat.Date? left, EmbedPDF.FormFieldFormat.Date? right) -> bool
+static EmbedPDF.FormFieldFormat.Date.operator ==(EmbedPDF.FormFieldFormat.Date? left, EmbedPDF.FormFieldFormat.Date? right) -> bool
+static EmbedPDF.FormFieldFormat.Other.operator !=(EmbedPDF.FormFieldFormat.Other? left, EmbedPDF.FormFieldFormat.Other? right) -> bool
+static EmbedPDF.FormFieldFormat.Other.operator ==(EmbedPDF.FormFieldFormat.Other? left, EmbedPDF.FormFieldFormat.Other? right) -> bool
+static EmbedPDF.FormFieldFormat.Time.operator !=(EmbedPDF.FormFieldFormat.Time? left, EmbedPDF.FormFieldFormat.Time? right) -> bool
+static EmbedPDF.FormFieldFormat.Time.operator ==(EmbedPDF.FormFieldFormat.Time? left, EmbedPDF.FormFieldFormat.Time? right) -> bool
+static EmbedPDF.FormFieldFormat.operator !=(EmbedPDF.FormFieldFormat? left, EmbedPDF.FormFieldFormat? right) -> bool
+static EmbedPDF.FormFieldFormat.operator ==(EmbedPDF.FormFieldFormat? left, EmbedPDF.FormFieldFormat? right) -> bool
 static EmbedPDF.FormFieldPanelSettings.operator !=(EmbedPDF.FormFieldPanelSettings? left, EmbedPDF.FormFieldPanelSettings? right) -> bool
 static EmbedPDF.FormFieldPanelSettings.operator ==(EmbedPDF.FormFieldPanelSettings? left, EmbedPDF.FormFieldPanelSettings? right) -> bool
 static EmbedPDF.FormFieldPatch.operator !=(EmbedPDF.FormFieldPatch? left, EmbedPDF.FormFieldPatch? right) -> bool
@@ -12668,6 +12856,12 @@ static EmbedPDF.FormFocusSettings.operator !=(EmbedPDF.FormFocusSettings? left, 
 static EmbedPDF.FormFocusSettings.operator ==(EmbedPDF.FormFocusSettings? left, EmbedPDF.FormFocusSettings? right) -> bool
 static EmbedPDF.FormFocusSettingsPatch.operator !=(EmbedPDF.FormFocusSettingsPatch? left, EmbedPDF.FormFocusSettingsPatch? right) -> bool
 static EmbedPDF.FormFocusSettingsPatch.operator ==(EmbedPDF.FormFocusSettingsPatch? left, EmbedPDF.FormFocusSettingsPatch? right) -> bool
+static EmbedPDF.FormGroup.operator !=(EmbedPDF.FormGroup? left, EmbedPDF.FormGroup? right) -> bool
+static EmbedPDF.FormGroup.operator ==(EmbedPDF.FormGroup? left, EmbedPDF.FormGroup? right) -> bool
+static EmbedPDF.FormGroupInput.operator !=(EmbedPDF.FormGroupInput? left, EmbedPDF.FormGroupInput? right) -> bool
+static EmbedPDF.FormGroupInput.operator ==(EmbedPDF.FormGroupInput? left, EmbedPDF.FormGroupInput? right) -> bool
+static EmbedPDF.FormGroupPosition.operator !=(EmbedPDF.FormGroupPosition? left, EmbedPDF.FormGroupPosition? right) -> bool
+static EmbedPDF.FormGroupPosition.operator ==(EmbedPDF.FormGroupPosition? left, EmbedPDF.FormGroupPosition? right) -> bool
 static EmbedPDF.FormImportResult.operator !=(EmbedPDF.FormImportResult? left, EmbedPDF.FormImportResult? right) -> bool
 static EmbedPDF.FormImportResult.operator ==(EmbedPDF.FormImportResult? left, EmbedPDF.FormImportResult? right) -> bool
 static EmbedPDF.FormSetValueResult.operator !=(EmbedPDF.FormSetValueResult? left, EmbedPDF.FormSetValueResult? right) -> bool
@@ -12708,6 +12902,8 @@ static EmbedPDF.FormWidget.operator !=(EmbedPDF.FormWidget? left, EmbedPDF.FormW
 static EmbedPDF.FormWidget.operator ==(EmbedPDF.FormWidget? left, EmbedPDF.FormWidget? right) -> bool
 static EmbedPDF.FormWidgetAdded.operator !=(EmbedPDF.FormWidgetAdded? left, EmbedPDF.FormWidgetAdded? right) -> bool
 static EmbedPDF.FormWidgetAdded.operator ==(EmbedPDF.FormWidgetAdded? left, EmbedPDF.FormWidgetAdded? right) -> bool
+static EmbedPDF.FormWidgetAnchor.operator !=(EmbedPDF.FormWidgetAnchor? left, EmbedPDF.FormWidgetAnchor? right) -> bool
+static EmbedPDF.FormWidgetAnchor.operator ==(EmbedPDF.FormWidgetAnchor? left, EmbedPDF.FormWidgetAnchor? right) -> bool
 static EmbedPDF.FormWidgetHit.operator !=(EmbedPDF.FormWidgetHit? left, EmbedPDF.FormWidgetHit? right) -> bool
 static EmbedPDF.FormWidgetHit.operator ==(EmbedPDF.FormWidgetHit? left, EmbedPDF.FormWidgetHit? right) -> bool
 static EmbedPDF.FormWidgetPlacement.operator !=(EmbedPDF.FormWidgetPlacement? left, EmbedPDF.FormWidgetPlacement? right) -> bool
@@ -13102,6 +13298,8 @@ static EmbedPDF.PolylineAnnotationDraft.operator ==(EmbedPDF.PolylineAnnotationD
 static EmbedPDF.PolylineAnnotationPatch.FromJson(string! json) -> EmbedPDF.PolylineAnnotationPatch!
 static EmbedPDF.PolylineAnnotationPatch.operator !=(EmbedPDF.PolylineAnnotationPatch? left, EmbedPDF.PolylineAnnotationPatch? right) -> bool
 static EmbedPDF.PolylineAnnotationPatch.operator ==(EmbedPDF.PolylineAnnotationPatch? left, EmbedPDF.PolylineAnnotationPatch? right) -> bool
+static EmbedPDF.RecordAccent.operator !=(EmbedPDF.RecordAccent? left, EmbedPDF.RecordAccent? right) -> bool
+static EmbedPDF.RecordAccent.operator ==(EmbedPDF.RecordAccent? left, EmbedPDF.RecordAccent? right) -> bool
 static EmbedPDF.RedactionAnnotationDraft.operator !=(EmbedPDF.RedactionAnnotationDraft? left, EmbedPDF.RedactionAnnotationDraft? right) -> bool
 static EmbedPDF.RedactionAnnotationDraft.operator ==(EmbedPDF.RedactionAnnotationDraft? left, EmbedPDF.RedactionAnnotationDraft? right) -> bool
 static EmbedPDF.RedactionAnnotationPatch.FromJson(string! json) -> EmbedPDF.RedactionAnnotationPatch!
@@ -13848,6 +14046,9 @@ virtual EmbedPDF.FormEvent.PrintMembers(System.Text.StringBuilder! builder) -> b
 virtual EmbedPDF.FormFieldDetail.EqualityContract.get -> System.Type!
 virtual EmbedPDF.FormFieldDetail.Equals(EmbedPDF.FormFieldDetail? other) -> bool
 virtual EmbedPDF.FormFieldDetail.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual EmbedPDF.FormFieldFormat.EqualityContract.get -> System.Type!
+virtual EmbedPDF.FormFieldFormat.Equals(EmbedPDF.FormFieldFormat? other) -> bool
+virtual EmbedPDF.FormFieldFormat.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual EmbedPDF.FormFieldRef.EqualityContract.get -> System.Type!
 virtual EmbedPDF.FormFieldRef.Equals(EmbedPDF.FormFieldRef? other) -> bool
 virtual EmbedPDF.FormFieldRef.PrintMembers(System.Text.StringBuilder! builder) -> bool

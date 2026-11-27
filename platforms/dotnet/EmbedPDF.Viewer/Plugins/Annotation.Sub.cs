@@ -338,11 +338,16 @@ public sealed class AnnotationDraftsCapability : IDisposable
     /// <summary>Removes the hover ghost.</summary>
     public Task ClearGhostAsync(CancellationToken cancellationToken = default) => viewer.Run(() => handle.ClearGhost(), cancellationToken);
 
-    /// <summary>A drag-to-place preview with one of this plugin's tools.</summary>
-    public Task PreviewPlacementAsync(ToolId toolId, PageRef page, PdfPoint from, PdfPoint to, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// A drag-to-place preview with one of this plugin's tools.
+    /// <paramref name="displayRotation"/> is the page's total display rotation
+    /// in degrees, so an upright tool previews on a turned page the box its
+    /// commit will place; <see langword="null"/> previews as on an unturned page.
+    /// </summary>
+    public Task PreviewPlacementAsync(ToolId toolId, PageRef page, PdfPoint from, PdfPoint to, double? displayRotation = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(toolId.Value, nameof(toolId));
-        return viewer.Run(() => handle.PreviewPlacement(toolId.Value, Ffi.ToFfi(page), Ffi.ToFfi(from), Ffi.ToFfi(to)), cancellationToken);
+        return viewer.Run(() => handle.PreviewPlacement(toolId.Value, Ffi.ToFfi(page), Ffi.ToFfi(from), Ffi.ToFfi(to), displayRotation), cancellationToken);
     }
 
     /// <summary>Removes the placement preview.</summary>

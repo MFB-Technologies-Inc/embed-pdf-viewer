@@ -21,6 +21,7 @@ public sealed record AnnotationInfo
             record.Contents, record.Author, record.CreatedAt, record.ModifiedAt, record.GroupId,
             record.InReplyTo is { } parent ? Ffi.ToPublic(parent) : null, record.CanUpdate, record.CanDelete, record.FieldsJson)
     {
+        Accent = Ffi.ToPublic(record.Accent);
     }
 
     internal AnnotationInfo(
@@ -89,6 +90,13 @@ public sealed record AnnotationInfo
     /// <summary>Whether this session may delete it.</summary>
     public bool CanDelete { get; }
 
+    /// <summary>
+    /// A lent record's accent from its lender: a form widget's group colour
+    /// while the annotation plugin edits it, not part of the record itself.
+    /// <see langword="null"/> for every other record.
+    /// </summary>
+    public RecordAccent? Accent { get; }
+
     /// <summary>How its appearance blends with the page, when the record names a mode a draft can write.</summary>
     public AnnotationBlendMode? BlendMode { get; }
 
@@ -151,7 +159,8 @@ public sealed record AnnotationInfo
 
     internal GA.AnnotationRecord ToRecord() => new(
         Ffi.ToFfi(AnnotationRef), Ffi.ToFfi(Page), Subtype.Value, Ffi.ToFfi(Rect), Contents, Author, RawCreatedAt, RawModifiedAt, GroupId,
-        InReplyTo is { } parent ? Ffi.ToFfi(parent) : null, CanUpdate, CanDelete, FieldsJson);
+        InReplyTo is { } parent ? Ffi.ToFfi(parent) : null, CanUpdate, CanDelete,
+        Accent is { } accent ? new uniffi.epdf_ffi.RecordAccent(accent.Color, accent.Strength) : null, FieldsJson);
 
     static FieldReader? Parse(string json)
     {

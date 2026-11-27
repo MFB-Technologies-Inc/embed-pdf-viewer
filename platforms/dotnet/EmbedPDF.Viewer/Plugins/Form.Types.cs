@@ -124,6 +124,12 @@ public enum FormFieldPatchKey
     DefaultValue,
     /// <summary>The maximum length.</summary>
     MaxLength,
+    /// <summary>The purpose: the field has none.</summary>
+    Purpose,
+    /// <summary>The format: the field has none, and loses the two scripts it was made of.</summary>
+    Format,
+    /// <summary>The group: the field is in none.</summary>
+    GroupId,
 }
 
 /// <summary>Which fields a user may fill.</summary>
@@ -150,7 +156,8 @@ public sealed record FormFocusSettings(string? Color);
 /// <param name="Border">The border colour, or <see langword="null"/> for none.</param>
 /// <param name="Background">The background colour.</param>
 /// <param name="Color">The highlight colour.</param>
-public sealed record FormFieldSettings(string? Border, string Background, string Color);
+/// <param name="Tint">How strongly a field shows its group's colour, from 0 (not at all) to 1.</param>
+public sealed record FormFieldSettings(string? Border, string Background, string Color, double Tint);
 
 /// <summary>The form plugin's settings.</summary>
 /// <param name="Validation">Whether scripts run.</param>
@@ -183,6 +190,9 @@ public sealed record FormFieldSettingsPatch
 
     /// <summary>The highlight colour.</summary>
     public string? Color { get; init; }
+
+    /// <summary>How strongly a field shows its group's colour, from 0 to 1. A NaN or an infinity is <see cref="PdfErrorCode.InvalidInput"/>.</summary>
+    public double? Tint { get; init; }
 }
 
 /// <summary>A change to the form settings. Null members keep their value.</summary>
@@ -270,10 +280,36 @@ public sealed record FormToggleWidget(string OnState, string ExportValue, bool C
 /// <param name="Toggle">Its toggle states, for a checkbox or radio button.</param>
 public sealed record FormWidget(AnnotationRef? AnnotationRef, int ObjectNumber, PageRef? Page, FormToggleWidget? Toggle);
 
+/// <summary>
+/// A text field's or a dropdown's format: a date or a time with its pattern,
+/// or <see cref="Other"/> for any other format script. A write takes a date
+/// or a time; <see cref="Other"/> is read, never written, and a write of it
+/// is <see cref="PdfErrorCode.InvalidInput"/>.
+/// </summary>
+public abstract record FormFieldFormat
+{
+    private protected FormFieldFormat() { }
+
+    /// <summary>A date.</summary>
+    /// <param name="Pattern">Its pattern, such as <c>yyyy-mm-dd</c>.</param>
+    public sealed record Date(string Pattern) : FormFieldFormat;
+
+    /// <summary>A time.</summary>
+    /// <param name="Pattern">Its pattern, such as <c>HH:MM</c>.</param>
+    public sealed record Time(string Pattern) : FormFieldFormat;
+
+    /// <summary>A format script that is neither.</summary>
+    public sealed record Other : FormFieldFormat;
+}
+
 /// <summary>A form field.</summary>
+/// <param name="GroupId">Who fills it in: its group, or <see langword="null"/> for every user.</param>
+/// <param name="Purpose">What its value means (<c>email</c>, <c>date-signed</c>, a name the app chose), or <see langword="null"/>.</param>
+/// <param name="Format">A text field's or a dropdown's format, or <see langword="null"/>.</param>
 public sealed record FormField(
     FormFieldRef FieldRef, string Name, FormFieldFamily Family, bool Recovered, bool ReadOnly, bool Required, bool NoExport,
-    string? AlternateName, string? MappingName, string? GroupId, FormFieldDetail Detail, IReadOnlyList<FormWidget> Widgets, string FieldsJson);
+    string? AlternateName, string? MappingName, string? GroupId, string? Purpose, FormFieldFormat? Format, FormFieldDetail Detail,
+    IReadOnlyList<FormWidget> Widgets, string FieldsJson);
 
 /// <summary>A document's form.</summary>
 /// <param name="FormKind">What kind it is.</param>
@@ -345,7 +381,8 @@ public abstract record FormFillControl
     public sealed record Text(string Value, bool Multiline, bool Password, int? MaxLength, bool Comb) : FormFillControl;
 
     /// <summary>A checkbox or radio button.</summary>
-    public sealed record Toggle(bool Radio, bool Checked, string ExportValue) : FormFillControl;
+    /// <param name="InGroup">A radio button's place among its group's buttons in Tab's order, or <see langword="null"/>.</param>
+    public sealed record Toggle(bool Radio, bool Checked, string ExportValue, FormGroupPosition? InGroup) : FormFillControl;
 
     /// <summary>A combo or list box.</summary>
     public sealed record Choice(bool List, bool Edit, bool Multi, IReadOnlyList<FormChoiceOption> Options, IReadOnlyList<string> Selected) : FormFillControl;
@@ -357,15 +394,59 @@ public abstract record FormFillControl
     public sealed record Signature(bool Signed) : FormFillControl;
 }
 
+/// <summary>Where a radio button comes among its group's buttons: <paramref name="Position"/> of <paramref name="Size"/>, from 1.</summary>
+/// <param name="Position">Its place.</param>
+/// <param name="Size">How many buttons the group has.</param>
+public sealed record FormGroupPosition(int Position, int Size);
+
+/// <summary>The colour a record shows in beside its own look, and how strongly: a form field's group colour. Never written into the PDF.</summary>
+/// <param name="Color">A CSS colour.</param>
+/// <param name="Strength">From 0 to 1, the form's <see cref="FormFieldSettings.Tint"/>.</param>
+public sealed record RecordAccent(string Color, double Strength);
+
 /// <summary>A widget to fill, as a page's fill layer lists it.</summary>
+/// <param name="Bounds">The rect the widget stands in, page space; for a turned widget it holds the turned frame.</param>
+/// <param name="Frame">The frame its contents are laid out in before its turn, page space; <paramref name="Bounds"/> for an unturned widget.</param>
+/// <param name="Rotation">Its quarter turn: 0, 90, 180 or 270 degrees clockwise about the middle of <paramref name="Frame"/>.</param>
+/// <param name="GroupId">Its field's group, or <see langword="null"/>.</param>
+/// <param name="CanFill">The session may fill the field in, whatever <see cref="FormSettings.Fillable"/> says.</param>
+/// <param name="Required">The field is required.</param>
+/// <param name="Empty">The field holds no value.</param>
+/// <param name="Accent">The field's group colour while this session fills it in, or <see langword="null"/>.</param>
 public sealed record FormFillItem(
-    FormFieldRef FieldRef, int AnnotObjectNumber, AnnotationRef? AnnotationRef, PdfRect Bounds, string LookJson, bool Disabled, string Label, FormFillControl Control);
+    FormFieldRef FieldRef, int AnnotObjectNumber, AnnotationRef? AnnotationRef, PdfRect Bounds, PdfRect Frame, double Rotation,
+    string? GroupId, bool CanFill, bool Required, bool Empty, RecordAccent? Accent, string LookJson, bool Disabled, string Label,
+    FormFillControl Control);
 
 /// <summary>The widget under a point.</summary>
 /// <param name="AnnotObjectNumber">Its object number.</param>
 /// <param name="Field">Its field.</param>
-/// <param name="Bounds">Its box, page space.</param>
-public sealed record FormWidgetHit(int AnnotObjectNumber, FormField Field, PdfRect Bounds);
+/// <param name="Bounds">The rect it stands in, page space.</param>
+/// <param name="Frame">Its frame before its turn, page space.</param>
+/// <param name="Rotation">Its quarter turn, degrees clockwise.</param>
+public sealed record FormWidgetHit(int AnnotObjectNumber, FormField Field, PdfRect Bounds, PdfRect Frame, double Rotation);
+
+/// <summary>One of the document's groups as people see them.</summary>
+/// <param name="Id">The id its fields carry as <see cref="FormField.GroupId"/>.</param>
+/// <param name="Label">Who the group is, or <see langword="null"/> when the app gave it no label.</param>
+/// <param name="Color">The CSS colour its fields show in: the app's, else one of eight by the group's place in the list.</param>
+public sealed record FormGroup(string Id, string? Label, string Color);
+
+/// <summary>One of the document's groups as the app names it with <see cref="FormCapability.SetGroupsAsync"/>.</summary>
+/// <param name="Id">The id its fields carry, and the one the permissions name.</param>
+public sealed record FormGroupInput(string Id)
+{
+    /// <summary>Who the group is, for people.</summary>
+    public string? Label { get; init; }
+
+    /// <summary>A CSS colour; left out, the group gets one of eight by its place.</summary>
+    public string? Color { get; init; }
+}
+
+/// <summary>Where UI attaches to one box of a field: its page and where the box stands, following the box as it is moved in design mode.</summary>
+/// <param name="Page">Its page.</param>
+/// <param name="Bounds">Where it stands, page space.</param>
+public sealed record FormWidgetAnchor(PageRef Page, PdfRect Bounds);
 
 /// <summary>Where a new widget goes.</summary>
 public sealed record FormWidgetPlacement
@@ -429,6 +510,15 @@ public sealed record FormCreateFieldInput(FormFieldFamily Family, string Name, P
 
     /// <summary>A checkbox's or radio button's export value.</summary>
     public string? ExportValue { get; init; }
+
+    /// <summary>What its value means.</summary>
+    public string? Purpose { get; init; }
+
+    /// <summary>A text field's or a dropdown's date or time format.</summary>
+    public FormFieldFormat? Format { get; init; }
+
+    /// <summary>The group that fills it in; <see cref="PdfErrorCode.PermissionDenied"/> for a group the session may not put a field in.</summary>
+    public string? GroupId { get; init; }
 }
 
 /// <summary>A change to a field. Null members keep their value.</summary>
@@ -452,6 +542,12 @@ public sealed record FormFieldPatch
     public int? MaxLength { get; init; }
     /// <summary>A choice field's options.</summary>
     public IReadOnlyList<FormChoiceOptionInput>? Options { get; init; }
+    /// <summary>What its value means.</summary>
+    public string? Purpose { get; init; }
+    /// <summary>A text field's or a dropdown's date or time format, with the two scripts it is made of.</summary>
+    public FormFieldFormat? Format { get; init; }
+    /// <summary>The group that fills it in; <see cref="PdfErrorCode.PermissionDenied"/> for a group the session may not put a field in.</summary>
+    public string? GroupId { get; init; }
     /// <summary>The optional members to clear.</summary>
     public IReadOnlyList<FormFieldPatchKey>? Clear { get; init; }
 }
@@ -546,6 +642,14 @@ public abstract record FormEvent
 
     /// <summary>The form was re-read from the engine.</summary>
     public sealed record Resynced : FormEvent;
+
+    /// <summary>The group fields placed with a tool go in changed.</summary>
+    /// <param name="GroupId">The group now, or <see langword="null"/> for none.</param>
+    public sealed record DesignGroupChanged(string? GroupId) : FormEvent;
+
+    /// <summary>Who the document's groups are changed.</summary>
+    /// <param name="Groups">The groups as <see cref="FormCapability.GetGroupsAsync"/> gives them now.</param>
+    public sealed record GroupsChanged(IReadOnlyList<FormGroup> Groups) : FormEvent;
 }
 
 /// <summary>
@@ -555,6 +659,18 @@ public abstract record FormEvent
 /// </summary>
 public interface IFormFocusTarget
 {
-    /// <summary>Take keyboard focus; <paramref name="select"/> selects its text.</summary>
-    void Focus(bool select);
+    /// <summary>
+    /// Whether the control takes the cursor now, asked each time the cursor is
+    /// about to move: <see langword="false"/> for a box that holds nothing to
+    /// focus (a signature field nobody here can sign), so focus and Tab pass
+    /// over its field. A throw counts as <see langword="true"/>.
+    /// </summary>
+    bool TakesCursor() => true;
+
+    /// <summary>
+    /// Take keyboard focus; <paramref name="select"/> selects its text.
+    /// <see langword="false"/> when nothing took it after all, and the cursor
+    /// passes over the box. A throw counts as <see langword="true"/>.
+    /// </summary>
+    bool Focus(bool select);
 }

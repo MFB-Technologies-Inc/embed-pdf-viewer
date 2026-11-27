@@ -43,13 +43,13 @@ internal static partial class Ffi
     };
 
     internal static FormSettings ToPublic(GO.FormSettings s) => new(
-        (FormValidation)(int)s.Validation, new FormFocusSettings(s.Focus.Color), new FormFieldSettings(s.Fields.Border, s.Fields.Background, s.Fields.Color),
-        ToPublic(s.Fillable));
+        (FormValidation)(int)s.Validation, new FormFocusSettings(s.Focus.Color),
+        new FormFieldSettings(s.Fields.Border, s.Fields.Background, s.Fields.Color, s.Fields.Tint), ToPublic(s.Fillable));
 
     internal static GO.FormSettingsPatch ToFfi(FormSettingsPatch p) => new(
         p.Validation is { } v ? ToFfi(v) : null,
         p.Focus is { } f ? new GO.FormFocusSettingsPatch(f.Color, f.ClearColor) : null,
-        p.Fields is { } x ? new GO.FormFieldSettingsPatch(x.Border, x.ClearBorder, x.Background, x.Color) : null,
+        p.Fields is { } x ? new GO.FormFieldSettingsPatch(x.Border, x.ClearBorder, x.Background, x.Color, x.Tint) : null,
         p.Fillable is { } fill ? ToFfi(fill) : null);
 
     internal static FormFieldPanelSettings ToPublic(GO.FormFieldPanelSettings s) => new(
@@ -70,9 +70,37 @@ internal static partial class Ffi
         _ => throw Unknown(d),
     };
 
+    internal static FormFieldFormat? ToPublic(GO.FormFieldFormat? f) => f switch
+    {
+        null => null,
+        GO.FormFieldFormat.Date d => new FormFieldFormat.Date(d.Pattern),
+        GO.FormFieldFormat.Time t => new FormFieldFormat.Time(t.Pattern),
+        GO.FormFieldFormat.Other => new FormFieldFormat.Other(),
+        _ => throw Unknown(f),
+    };
+
+    internal static GO.FormFieldFormat? ToFfi(FormFieldFormat? f) => f switch
+    {
+        null => null,
+        FormFieldFormat.Date d => new GO.FormFieldFormat.Date(d.Pattern ?? throw new ArgumentException("A date format needs its pattern.")),
+        FormFieldFormat.Time t => new GO.FormFieldFormat.Time(t.Pattern ?? throw new ArgumentException("A time format needs its pattern.")),
+        FormFieldFormat.Other => new GO.FormFieldFormat.Other(),
+        _ => throw Unknown(f),
+    };
+
+    internal static RecordAccent? ToPublic(GF.RecordAccent? a) => a is null ? null : new(a.Color, a.Strength);
+
+    internal static FormGroup ToPublic(GO.FormGroup g) => new(g.Id, g.Label, g.Color);
+
+    internal static IReadOnlyList<FormGroup> Groups(GO.FormGroup[] groups) => [.. groups.Select(ToPublic)];
+
+    internal static GO.FormGroupInput ToFfi(FormGroupInput g) => new(g.Id ?? throw new ArgumentException("A group needs its id."), g.Label, g.Color);
+
+    internal static FormWidgetAnchor ToPublic(GO.FormWidgetAnchor a) => new(ToPublic(a.Page), ToPublic(a.Bounds));
+
     internal static FormField ToPublic(GO.FormField f) => new(
         ToPublic(f.FieldRef), f.Name, (FormFieldFamily)(int)f.Family, f.Recovered, f.ReadOnly, f.Required, f.NoExport, f.AlternateName, f.MappingName,
-        f.GroupId, ToPublic(f.Detail),
+        f.GroupId, f.Purpose, ToPublic(f.Format), ToPublic(f.Detail),
         [.. f.Widgets.Select(w => new FormWidget(
             w.AnnotationRef is { } a ? ToPublic(a) : null, WireInteger.ToInt(w.ObjectNumber, "widget object number"), w.Page is { } p ? ToPublic(p) : null,
             w.Toggle is { } t ? new FormToggleWidget(t.OnState, t.ExportValue, t.Checked) : null))],
@@ -115,17 +143,20 @@ internal static partial class Ffi
 
     internal static FormFillItem ToPublic(GO.FormFillItem i) => new(
         ToPublic(i.FieldRef), WireInteger.ToInt(i.AnnotObjectNumber, "annotation object number"), i.AnnotationRef is { } a ? ToPublic(a) : null,
-        ToPublic(i.Bounds), i.LookJson, i.Disabled, i.Label, i.Control switch
+        ToPublic(i.Bounds), ToPublic(i.Frame), i.Rotation, i.GroupId, i.CanFill, i.Required, i.Empty, ToPublic(i.Accent),
+        i.LookJson, i.Disabled, i.Label, i.Control switch
         {
             GO.FormFillControl.Text t => new FormFillControl.Text(t.Value, t.Multiline, t.Password, t.MaxLength is { } m ? WireInteger.ToInt(m, "max length") : null, t.Comb),
-            GO.FormFillControl.Toggle t => new FormFillControl.Toggle(t.Radio, t.Checked, t.ExportValue),
+            GO.FormFillControl.Toggle t => new FormFillControl.Toggle(t.Radio, t.Checked, t.ExportValue,
+                t.InGroup is { } g ? new FormGroupPosition(WireInteger.ToInt(g.Position, "group position"), WireInteger.ToInt(g.Size, "group size")) : null),
             GO.FormFillControl.Choice c => new FormFillControl.Choice(c.List, c.Edit, c.Multi, Options(c.Options), c.Selected),
             GO.FormFillControl.Button => new FormFillControl.Button(),
             GO.FormFillControl.Signature s => new FormFillControl.Signature(s.Signed),
             _ => throw Unknown(i.Control),
         });
 
-    internal static FormWidgetHit ToPublic(GO.FormWidgetHit h) => new(WireInteger.ToInt(h.AnnotObjectNumber, "annotation object number"), ToPublic(h.Field), ToPublic(h.Bounds));
+    internal static FormWidgetHit ToPublic(GO.FormWidgetHit h) => new(
+        WireInteger.ToInt(h.AnnotObjectNumber, "annotation object number"), ToPublic(h.Field), ToPublic(h.Bounds), ToPublic(h.Frame), h.Rotation);
 
     internal static GO.FormWidgetPlacement ToFfi(FormWidgetPlacement p) => new(p.Page is { } page ? ToFfi(page) : null, p.Bounds is { } b ? ToFfi(b) : null, p.ExportValue);
 
@@ -141,11 +172,12 @@ internal static partial class Ffi
         [.. Arguments.NoNullElements(options, "options").Select(o => new GO.FormChoiceOptionInput(o.Label ?? throw new ArgumentException("An option needs its label."), o.Value ?? throw new ArgumentException("An option needs its value.")))];
 
     internal static GO.FormCreateFieldInput ToFfi(FormCreateFieldInput i) => new(
-        ToFfi(i.Family), i.Name ?? throw new ArgumentException("A field needs its name."), ToFfi(i.Page), ToFfi(i.Bounds), ToFfi(i.Options), i.ExportValue);
+        ToFfi(i.Family), i.Name ?? throw new ArgumentException("A field needs its name."), ToFfi(i.Page), ToFfi(i.Bounds), ToFfi(i.Options), i.ExportValue,
+        i.Purpose, ToFfi(i.Format), i.GroupId);
 
     internal static GO.FormFieldPatch ToFfi(FormFieldPatch p) => new(
         p.Name, p.ReadOnly, p.Required, p.NoExport, p.AlternateName, p.MappingName, p.DefaultValue, WireInteger.ToUInt32(p.MaxLength, "max length"),
-        ToFfi(p.Options), [.. (p.Clear ?? []).Select(k => (GO.FormFieldPatchKey)(int)Defined(k, "patch key"))]);
+        ToFfi(p.Options), p.Purpose, ToFfi(p.Format), p.GroupId, [.. (p.Clear ?? []).Select(k => (GO.FormFieldPatchKey)(int)Defined(k, "patch key"))]);
 
     internal static GO.FormDuplicateOptions ToFfi(FormDuplicateOptions? o) =>
         new(o?.Page is { } page ? ToFfi(page) : null, o?.Offset is { } offset ? ToFfiOffset(offset) : null, o?.Values ?? false);
@@ -175,6 +207,8 @@ internal static partial class Ffi
         GO.FormEvent.FieldDeleted d => new FormEvent.FieldDeleted(ToPublic(d.FieldRef), d.OriginJson),
         GO.FormEvent.ValidationRejected r => new FormEvent.ValidationRejected(ToPublic(r.Field), r.Messages),
         GO.FormEvent.Resynced => new FormEvent.Resynced(),
+        GO.FormEvent.DesignGroupChanged d => new FormEvent.DesignGroupChanged(d.GroupId),
+        GO.FormEvent.GroupsChanged g => new FormEvent.GroupsChanged(Groups(g.Groups)),
         _ => throw Unknown(e),
     };
 }

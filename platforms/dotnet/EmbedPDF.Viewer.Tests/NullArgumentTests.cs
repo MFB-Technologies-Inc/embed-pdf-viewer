@@ -253,7 +253,7 @@ public sealed class NullArgumentTests
 
     sealed class NoFocus : IFormFocusTarget
     {
-        public void Focus(bool select) { }
+        public bool Focus(bool select) => true;
     }
 
     [Fact]

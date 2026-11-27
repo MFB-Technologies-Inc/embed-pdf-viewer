@@ -15,7 +15,7 @@ public sealed partial class AnnotationInfoTests
     internal static GA.AnnotationRecord Record(
         string subtype = "ink", string? createdAt = "2025-03-04T05:06:07Z", string? modifiedAt = "2025-03-04T10:36:07+05:30", string fieldsJson = InkJson) =>
         new(Ffi.ToFfi(Ref), Ffi.ToFfi(Page), subtype, new GF.Rect(-1, -1, 22, 7.000000000000001), "Ink", "Reviewer", createdAt, modifiedAt, "group-1",
-            Ffi.ToFfi(Parent), true, false, fieldsJson);
+            Ffi.ToFfi(Parent), true, false, null, fieldsJson);
 
     static DateTimeOffset? Instant(string? text) => new AnnotationInfo(Record(createdAt: text)).CreatedAt;
 
@@ -158,7 +158,10 @@ public sealed partial class AnnotationInfoTests
             Record(createdAt: null, modifiedAt: null),
             Record(createdAt: "not a date", modifiedAt: "2025-02-29T00:00:00Z"),
             Record(subtype: "sparkle", fieldsJson: "{}"),
-            new(Ffi.ToFfi(Ref), Ffi.ToFfi(Page), "", new GF.Rect(0, 0, 0, 0), null, null, null, null, null, null, false, true, ""),
+            new(Ffi.ToFfi(Ref), Ffi.ToFfi(Page), "", new GF.Rect(0, 0, 0, 0), null, null, null, null, null, null, false, true, null, ""),
+            // A lent widget's group accent goes back as it came.
+            new(Ffi.ToFfi(Ref), Ffi.ToFfi(Page), "widget", new GF.Rect(0, 0, 0, 0), null, null, null, null, null, null, true, true,
+                new GF.RecordAccent("#0055aa", 0.16), "{}"),
         ];
         foreach (var record in records)
         {
