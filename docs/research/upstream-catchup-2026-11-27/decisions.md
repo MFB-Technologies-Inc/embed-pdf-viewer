@@ -229,3 +229,15 @@ The divergences accepted in earlier catch-ups stand as before
   by a Python port of `linked-crates.mjs`. Cost: two Python copies of `.mjs` logic.
 - CU-C9-D7. The three signature route tests stay skipped (their helper is Node). Cost: those paths
   are not exercised on Swift this catch-up.
+
+## CU-C10: release prep ([record](decisions/CU-C10.md))
+
+- CU-C10-D1. The Android engine pin is committed with the .NET one (`85352588a`). Cost: one commit
+  the brief didn't list.
+- CU-C10-D2. Both pins name packages the train hasn't published yet, as on 2026-11-26. Cost: until
+  the train's publish jobs finish, the plugins tip names an `EmbedPDF.Runtime` and an
+  `embedpdf-bindings` that don't exist.
+- CU-C10-D3. `docs/releases/dotnet-engine.md` stays as it is. Cost: the C# engine release doesn't
+  say it moved to runtime `9472117ed`.
+- CU-C10-D4. The versions are the next integers: `0.0.0-swift.11`, `rust-viewer-0.0.0-preview.7`,
+  `0.0.0-dotnet.1`, `0.0.0-android.2`. Cost: none.
