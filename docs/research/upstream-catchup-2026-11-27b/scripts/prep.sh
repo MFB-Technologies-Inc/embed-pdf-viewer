@@ -3,8 +3,11 @@
 # usage: prep.sh <checkout-dir>
 # pnpm install, the linux-arm64 and wasm32 PDFium of the checkout's pin, the wasm32-eh archive
 # from /workspaces/wasm32-eh-pin.json, a wasm32 payload (published, else built without the Rust
-# core), then every workspace package build so the TS suites and generators resolve.
+# core), every workspace package build so the TS suites and generators resolve, then the FreeType
+# source (freetype-src.sh, CU-C2-D6) so packages/core/fonts' test finds pstables.h.
+# CU-C3 added the freetype-src.sh step (CU-C2 review finding).
 set -uo pipefail
+S=$(cd "$(dirname "$0")" && pwd)
 cd "$1" || exit 2
 export NPM_TOKEN="" CI=true
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/workspaces/target}" CARGO_BUILD_JOBS=4 CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0
@@ -22,4 +25,5 @@ fi
 step pnpm exec turbo run build --filter='./packages/**' --filter='./tooling/**' --filter='!@mfb/embedpdf-rust-viewer' --concurrency=6
 pnpm --filter @embedpdf/example-rust-kernel-eval bootstrap || echo "kernel-eval bootstrap failed (non-fatal)"
 step cargo fetch --locked
+step bash "$S/freetype-src.sh" "$PWD"
 echo "PREP DONE"
