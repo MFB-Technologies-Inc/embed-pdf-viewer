@@ -43,3 +43,17 @@ The divergences accepted in earlier catch-ups stand as before
 - CU-C2-D5. The `0afd87825` baseline is measured fresh. Cost: one suite run of container time.
 - CU-C2-D6. FreeType's source is fetched into each `runtime-src` for the `core-fonts` test. Cost:
   one more container-only setup step.
+
+## CU-C3: vectors and the work order ([record](decisions/CU-C3.md))
+
+- CU-C3-D1. The plugin generator's 9 type errors stay and the plugin vectors come from it as it is;
+  the three-line fixture fix needs a ruling. Cost: `typecheck` stays red, and fixture-fed plugin
+  vectors regenerate once more when the fix lands.
+- CU-C3-D2. CU-C4 reads all three new row members, `layout` and `hasImage` included. Cost: about
+  an hour moves from CU-C5 to CU-C4.
+- CU-C3-D3. The signature mark's move to the shared drawing (`7d5691a5a`) is CU-C5's. Cost: two
+  mark cases differ on object numbers until CU-C5.
+- CU-C3-D4. The evidence archives are re-pinned in CU-C6, not here. Cost: 17 extra evidence
+  failures through CU-C4 and CU-C5.
+- CU-C3-D5. D-1 leaves nothing to deprecate in Swift, Kotlin or .NET: no wrapper types `filledBy`.
+  Cost: a caller reading it out of `fields_json` gets `null` with no compiler warning.
