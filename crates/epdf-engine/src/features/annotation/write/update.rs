@@ -339,20 +339,24 @@ pub fn update_annotation(
         }
         AppearanceImpact::Regenerate => {
             let blend = resolved.fields.blend_mode.unwrap_or(previous_blend);
-            // A widget is drawn as its field's kind draws it: a signature
-            // field's and one in no field, their box. A mark in the widget
-            // stays: the file places it in the moved or resized box.
-            let drawn = if resolved.subtype == AnnotationSubtype::Widget {
-                current.get("hasMark") != Some(&Value::Bool(true))
-                    && annotation.generate_form_field_appearance()
-            } else {
+            let drawn = if resolved.subtype != AnnotationSubtype::Widget {
                 annotation.generate_appearance(Some(blend.code()))
+            } else if current.get("hasMark") == Some(&Value::Bool(true)) {
+                // A mark in the widget stays, and is fitted into the box as
+                // it now stands and turns, as a stamp's drawing is re-fitted
+                // (`refitWidgetMark`, c76603e3f).
+                refit_widget_mark(&annotation)?;
+                false
+            } else {
+                // Drawn as its field's family draws it: a signature field's
+                // and one in no field, their box.
+                annotation.generate_form_field_appearance()
             };
             if drawn {
                 AppearanceOutcome { action: AppearanceAction::Regenerated, changed: true }
             } else {
-                // No generator for this kind (a stamp keeps the appearance
-                // its writer placed). The dictionary still changed.
+                // Not drawn (a mark kept and fitted again, a kind with no
+                // generator). The dictionary still changed.
                 AppearanceOutcome { action: AppearanceAction::GenerationUnavailable, changed: true }
             }
         }
@@ -1272,6 +1276,23 @@ fn apply_embed_metadata_on_update(
     }
     if let Some(group) = group {
         p::set_embed_string(annotation, "GroupID", group)?;
+    }
+    Ok(())
+}
+
+/// `refitWidgetMark`: fit the mark in a widget into its box again, once the
+/// box or its turn has changed: by the fit the mark records, else
+/// `contain`, the fit a signing draws its mark with.
+fn refit_widget_mark(annotation: &pdfium::Annotation<'_>) -> Result<(), EngineError> {
+    use crate::features::annotation::read::kinds::{StampFit, read_appearance_fit};
+    // `APPEARANCE_FIT_CODE`.
+    let fit = match read_appearance_fit(annotation)?.unwrap_or(StampFit::Contain) {
+        StampFit::Contain => pdfium::StampFit::Contain,
+        StampFit::Cover => pdfium::StampFit::Cover,
+        StampFit::Fill => pdfium::StampFit::Stretch,
+    };
+    if !annotation.update_appearance_to_rect(fit) {
+        return Err(unknown("EPDFAnnot_UpdateAppearanceToRect returned false"));
     }
     Ok(())
 }
