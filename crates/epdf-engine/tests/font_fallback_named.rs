@@ -124,7 +124,7 @@ fn a_page_draws_a_script_in_a_font_it_only_names_in_the_fallback_that_has_it() {
             let pages =
                 send(&mut host, &mut job, json!({ "kind": "pages.list", "docId": doc }), vec![]);
             let page = pages["result"]["pages"][0]["ref"].clone();
-            *(&mut job) += 1;
+            job += 1;
             let response = host.call_filled(
                 &json!({ "kind": "pages.render", "jobId": job, "docId": doc, "page": page,
                     "options": { "viewport": { "kind": "scale", "scale": 1 } } })
