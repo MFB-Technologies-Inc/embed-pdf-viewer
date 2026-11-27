@@ -885,3 +885,87 @@ fn a_form_bundle_carries_the_turn() {
         }
     }
 }
+
+// ── `runFieldPurposeFormatConformance`: an import keeps a purpose and a format ──
+
+/// `FIELD_PURPOSE_FORMAT_PDF`, as the change generator records it.
+fn field_purpose_format_pdf() -> Vec<u8> {
+    let path = test_support::corpus::vectors_dir("changes").join("field-purpose-format.json");
+    let vectors: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let hex = vectors["fixtureHex"].as_str().unwrap();
+    (0..hex.len()).step_by(2).map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap()).collect()
+}
+
+/// A field's format with its two scripts (`formatted`).
+fn formatted(field: &Value) -> Value {
+    let script = |event: &str| match &field["actions"][event]["root"] {
+        root if root["type"] == "javascript" => root["script"].clone(),
+        _ => Value::Null,
+    };
+    json!({ "format": field["format"], "formatScript": script("format"),
+        "keystrokeScript": script("keystroke") })
+}
+
+#[test]
+fn an_import_keeps_a_purpose_and_a_format_with_form_design_alone() {
+    const DATE_FORMAT: &str = "AFDate_FormatEx(\"m/d/yy\");";
+    const DATE_KEYSTROKE: &str = "AFDate_KeystrokeEx(\"m/d/yy\");";
+    let mut engine = Engine::new();
+    engine.open("source", json!({}), vec!["*"], field_purpose_format_pdf());
+    engine.ok(json!({ "kind": "forms.updateField", "effect": "write", "docId": "source",
+        "ref": fqn("plain_two"), "patch": { "purpose": "date-signed" } }));
+    let dated = json!([fqn("plain_two"), fqn("time_pattern")]);
+    let formats = engine.export("source", json!({ "fields": dated })).unwrap().0;
+    // With a field in a group the designer may not assign, for the restore below.
+    let mut with_group = dated.as_array().unwrap().clone();
+    with_group.push(fqn("full_name"));
+    let all = engine.export("source", json!({ "fields": with_group })).unwrap().0;
+    let refs: Vec<Value> = engine.list("source")["fields"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|f| f["ref"].clone())
+        .collect();
+    for reference in refs {
+        engine
+            .apply("source", json!({ "ops": [{ "type": "forms.delete", "field": reference }] }))
+            .unwrap();
+    }
+    let (_, saved) = engine
+        .send(
+            json!({ "kind": "document.saveBuffer", "docId": "source", "mode": "rewrite" }),
+            Vec::new(),
+        )
+        .unwrap();
+    let blank = saved.into_iter().next().expect("the saved bytes");
+
+    // `FIELD_PURPOSE_FORMAT_TOKENS.designer`: form design, and no script right.
+    let designer = vec!["doc.open", "doc.render", "doc.download", "doc.forms.modify"];
+    engine.open("designed", json!({}), designer, blank.clone());
+    let imported = engine.import("designed", &formats, json!({ "attribution": "stamp" })).unwrap()
+        ["result"]
+        .clone();
+    let fields = imported["fields"].as_array().unwrap();
+    let named = |name: &str| fields.iter().find(|f| f["name"] == name).unwrap().clone();
+    assert_eq!(named("plain_two")["purpose"], "date-signed");
+    assert_eq!(
+        formatted(&named("plain_two")),
+        json!({ "format": { "kind": "date", "pattern": "m/d/yy" },
+            "formatScript": DATE_FORMAT, "keystrokeScript": DATE_KEYSTROKE })
+    );
+    let time = json!({ "format": { "kind": "time", "pattern": "HH:MM" },
+        "formatScript": "AFTime_FormatEx(\"HH:MM\");", "keystrokeScript": "AFTime_Keystroke(0);" });
+    assert_eq!(formatted(&named("time_pattern")), time);
+    assert_eq!(imported["dropped"], json!([]));
+
+    engine.open("restored", json!({}), vec!["*"], blank);
+    let restored =
+        engine.import("restored", &all, json!({ "attribution": "restore" })).unwrap()["result"]
+            .clone();
+    let fields = restored["fields"].as_array().unwrap();
+    let named = |name: &str| fields.iter().find(|f| f["name"] == name).unwrap().clone();
+    let full = named("full_name");
+    assert_eq!([&full["purpose"], &full["groupId"]], [&json!("name"), &json!("attendee")]);
+    // With the script right, the scripts come along as they are written.
+    assert_eq!(formatted(&named("time_pattern")), time);
+}
