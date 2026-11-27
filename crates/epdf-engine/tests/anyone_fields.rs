@@ -2,7 +2,7 @@
 //! sign, hand a document on to the next person, or export and import. The
 //! tests one session runs are change vectors (`vectors/changes/anyone-fields.json`,
 //! replayed by `change_ops.rs`). "An image field is every signer's to fill
-//! in" waits for `forms.setButtonImage` (CU-C5).
+//! in" (bfbaac1f2) puts its picture in with `forms.setButtonImage`.
 //!
 //! Each person opens the file the last one left, as `handOn` does with
 //! `download()`: an incremental save, so earlier signatures stay whole.
@@ -329,6 +329,65 @@ fn dana_fills_one_in_corrects_it_and_signs_it_locks_at_her_value_an_empty_one_st
     assert_eq!(everything.value_of("reference"), "R-2");
     assert_eq!(everything.value_of("notes"), "Leave at the door");
     assert_eq!(everything.fill_text("notes", "y"), "ProtectedDocument");
+}
+
+/// `BANDS_PNG`, as the signature-mark vectors record it.
+fn bands_png() -> Vec<u8> {
+    let path = test_support::corpus::vectors_dir("changes").join("signature-mark.json");
+    let vectors: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let text = vectors["fixtures"]["png"].as_str().unwrap();
+    (0..text.len()).step_by(2).map(|i| u8::from_str_radix(&text[i..i + 2], 16).unwrap()).collect()
+}
+
+impl Doc {
+    /// What putting a picture in `name` (or taking it out) gives:
+    /// `"resolved"` or the refusal's code, as one change op.
+    fn picture(&mut self, name: &str, image: Option<&[u8]>) -> String {
+        let (op, payloads) = match image {
+            Some(bytes) => (json!({ "payload": 0 }), vec![bytes.to_vec()]),
+            None => (Value::Null, Vec::new()),
+        };
+        let (answer, _) = self.send(
+            json!({ "kind": "document.apply", "change": { "ops": [
+                { "type": "forms.setButtonImage", "field": fqn(name), "image": op }] } }),
+            payloads,
+        );
+        match answer.get("error") {
+            Some(error) => error["code"].as_str().unwrap_or("?").to_owned(),
+            None => "resolved".into(),
+        }
+    }
+}
+
+#[test]
+fn an_image_field_is_every_signers_to_fill_in_and_locks_once_it_holds_a_picture() {
+    let png = bands_png();
+    let mut sender = Doc::open_as("sender", anyone_fields_pdf());
+    for (name, x) in [("initials", 20), ("photo", 200)] {
+        sender.ok(json!({ "kind": "forms.createField", "draft": { "kind": "pushbutton",
+            "name": name, "forAnyone": true, "widgets": [{ "page": { "kind": "objectNumber",
+            "objectNumber": 3 }, "rect": { "x": x, "y": 200, "width": 100, "height": 20 },
+            "layout": "image" }] } }));
+    }
+    let prepared = sender.download();
+
+    // Dana puts her initials in; her signing locks them and leaves the empty
+    // photo open.
+    let mut dana = Doc::open_as("dana", prepared);
+    assert_eq!(dana.picture("initials", Some(&png)), "resolved");
+    dana.sign("dana_sig", None);
+    let locked = dana.locked_by("dana_sig");
+    assert!(locked.contains(&"initials".to_owned()), "{locked:?}");
+    assert!(!locked.contains(&"photo".to_owned()), "{locked:?}");
+    assert_eq!(dana.picture("initials", None), "ProtectedDocument");
+    let after_dana = dana.download();
+
+    let mut ada = Doc::open_as("ada", after_dana);
+    assert_eq!(ada.picture("initials", Some(&png)), "ProtectedDocument");
+    assert_eq!(ada.picture("photo", Some(&png)), "resolved");
+    ada.sign("ada_sig", None);
+    assert!(ada.locked_by("ada_sig").contains(&"photo".to_owned()));
+    assert_eq!(ada.picture("photo", None), "ProtectedDocument");
 }
 
 #[test]

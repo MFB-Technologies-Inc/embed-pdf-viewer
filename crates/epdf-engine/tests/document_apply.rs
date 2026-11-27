@@ -651,3 +651,83 @@ fn a_server_request_that_fails_after_a_commit_ends_every_search_cursor() {
     }
     panic!("no check fell between the two changes");
 }
+
+/// `BANDS_PNG`, as the signature-mark change vectors record it.
+fn bands_png() -> Vec<u8> {
+    let path = test_support::corpus::vectors_dir("changes").join("signature-mark.json");
+    let vectors: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let text = vectors["fixtures"]["png"].as_str().unwrap();
+    (0..text.len()).step_by(2).map(|i| u8::from_str_radix(&text[i..i + 2], 16).unwrap()).collect()
+}
+
+/// `doc.apply(change)` with its bytes as the request's payloads, which must
+/// apply: answers the `ChangeResult`.
+fn applied_with(host: &mut Host, change: Value, payloads: Vec<Vec<u8>>) -> Value {
+    let request = json!({ "kind": "document.apply", "effect": "write", "jobId": 7, "docId": DOC,
+        "change": change });
+    let response = host.call_filled(&request.to_string(), payloads);
+    let mut envelope: Value = serde_json::from_str(&response.json).expect("JSON");
+    assert!(envelope.get("error").is_none(), "{envelope}");
+    envelope["result"]["result"].take()
+}
+
+/// What a push button's picture can change, as the document reads it: the
+/// form (`factsOf`'s `fields`, `widgets`, `calculationOrder`).
+fn form_facts(host: &mut Host) -> Value {
+    let form = send(host, json!({ "kind": "forms.list" })).expect("forms.list");
+    json!({ "fields": form["fields"], "widgets": form["widgets"],
+        "calculationOrder": form["calculationOrder"] })
+}
+
+/// `runChangeConformance.ts`'s `forms.setButtonImage` rows (7d5691a5a): a
+/// picture put in a push button and one taken out, each undone to the state
+/// before and redone to the state after.
+#[test]
+fn a_push_buttons_picture_undoes_to_the_state_before_and_redoes_to_the_state_after() {
+    let png = bands_png();
+    let set = |image: Value| {
+        json!({ "type": "forms.setButtonImage", "field": { "kind": "fqn", "name": "initials" },
+            "image": image })
+    };
+    // `forms.setButtonImage`, and its "no picture, which takes the picture out".
+    for (setup, op, payloads) in [
+        (Vec::new(), set(json!({ "payload": 0 })), vec![png.clone()]),
+        (vec![set(json!({ "payload": 0 }))], set(Value::Null), Vec::new()),
+    ] {
+        let mut host = open();
+        let page =
+            send(&mut host, json!({ "kind": "pages.list" })).expect("pages")["pages"][0]["ref"]
+                .clone();
+        // `PICTURE_BUTTON`: a push button whose one widget shows an image.
+        applied(
+            &mut host,
+            json!({ "ops": [{ "type": "forms.create", "draft": { "kind": "pushbutton",
+                "name": "initials", "widgets": [{ "page": page,
+                    "rect": { "x": 160, "y": 100, "width": 60, "height": 40 },
+                    "layout": "image" }] } }] }),
+        );
+        if !setup.is_empty() {
+            applied_with(&mut host, json!({ "ops": setup }), vec![png.clone()]);
+        }
+        let before = form_facts(&mut host);
+        let done = applied_with(&mut host, json!({ "ops": [op.clone()] }), payloads);
+        assert_eq!(done["meta"]["undoable"], true, "{op}");
+        assert_eq!(item_types(&done), ["forms.setButtonImage"], "{op}");
+        let after = form_facts(&mut host);
+        assert_ne!(after, before, "{op}");
+
+        let undo = applied(&mut host, json!({ "undoOf": done["meta"]["opId"] }));
+        assert_eq!(undo["meta"]["undoable"], true, "{op}");
+        assert!(
+            undo["items"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|item| item.get("skipped").is_none() && item["type"] != "skipped"),
+            "{undo}"
+        );
+        assert_eq!(form_facts(&mut host), before, "{op}");
+        applied(&mut host, json!({ "undoOf": undo["meta"]["opId"] }));
+        assert_eq!(form_facts(&mut host), after, "{op}");
+    }
+}

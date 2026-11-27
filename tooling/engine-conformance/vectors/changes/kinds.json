@@ -6,6 +6,7 @@
   "markImageOrNoneSince": "3.4",
   "fieldPurposeAndFormatSince": "3.4",
   "anyoneFieldsSince": "3.5",
+  "buttonImageAndLayoutSince": "3.5",
   "since": {
     "annotations.create": "3.0",
     "annotations.update": "3.0",

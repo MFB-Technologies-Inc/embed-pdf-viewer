@@ -394,14 +394,23 @@ fn a_field_anyone_fills_in() {
     replay_file("anyone-fields.json", "forms.anyoneFields", 17);
 }
 
+/// `picture-buttons.json`: the tests of `runPictureButtonConformance.ts`
+/// one session runs whose outcome crosses the worker boundary (7d5691a5a,
+/// bfbaac1f2); what a widget draws, what a save holds, a signing's lock and
+/// an export carried elsewhere are in `picture_buttons.rs`.
+#[test]
+fn a_push_button_holds_a_picture() {
+    replay_file("picture-buttons.json", "forms.pictureButtons", 19);
+}
+
 /// `kinds.json`: the version each change kind arrived in, which kinds an
 /// older or newer side lacks, and `lacksWhatArrivedIn` itself (a4805a492).
 #[test]
 fn every_change_kind_has_the_version_it_arrived_in() {
     use epdf_engine::features::changes::kinds::{
-        ANYONE_FIELDS_SINCE, API_VERSION, CHANGE_KIND_SINCE, CHANGE_KINDS,
-        FIELD_PURPOSE_AND_FORMAT_SINCE, MARK_IMAGE_OR_NONE_SINCE, VALIDATION_INFO_SINCE,
-        change_kind_since, change_kinds_unknown_to, lacks_what_arrived_in,
+        ANYONE_FIELDS_SINCE, API_VERSION, BUTTON_IMAGE_AND_LAYOUT_SINCE, CHANGE_KIND_SINCE,
+        CHANGE_KINDS, FIELD_PURPOSE_AND_FORMAT_SINCE, MARK_IMAGE_OR_NONE_SINCE,
+        VALIDATION_INFO_SINCE, change_kind_since, change_kinds_unknown_to, lacks_what_arrived_in,
     };
     let path = test_support::corpus::vectors_dir("changes").join("kinds.json");
     let text = std::fs::read_to_string(&path).expect("kinds.json");
@@ -413,6 +422,7 @@ fn every_change_kind_has_the_version_it_arrived_in() {
     assert_eq!(vectors["markImageOrNoneSince"], json!(MARK_IMAGE_OR_NONE_SINCE));
     assert_eq!(vectors["fieldPurposeAndFormatSince"], json!(FIELD_PURPOSE_AND_FORMAT_SINCE));
     assert_eq!(vectors["anyoneFieldsSince"], json!(ANYONE_FIELDS_SINCE));
+    assert_eq!(vectors["buttonImageAndLayoutSince"], json!(BUTTON_IMAGE_AND_LAYOUT_SINCE));
 
     let since = vectors["since"].as_object().expect("since");
     let kinds: Vec<&str> = since.keys().map(String::as_str).collect();

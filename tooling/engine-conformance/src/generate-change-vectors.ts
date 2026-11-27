@@ -21,6 +21,7 @@
  * | `signature-mark.json` | a signature field's mark as a PNG, a JPEG or a PDF, and no mark (fcb69611f, #1145) |
  * | `widget-rotation.json` | a mark in a turned signature field is fitted into its frame (c76603e3f, #1118) |
  * | `anyone-fields.json` | fields anyone fills in: reads, fill rights, marking, undo, `expect`, copies (b45d916cb, 4c911282d, #1163) |
+ * | `picture-buttons.json` | a push button's picture and a widget's layout: reads, writes, refusals, undo, rights, new places, copies (7d5691a5a, bfbaac1f2, #1165) |
  *
  * # What is recorded
  *
@@ -41,7 +42,8 @@
  * records how many distinct names it masked (`uuids`).
  *
  * A step may also be one verb of the forms service (`doc.forms.create`,
- * `update`, `updateWidget`, `setSignatureAppearance`, `copy`), each with the
+ * `update`, `updateWidget`, `setSignatureAppearance`, `setButtonImage`,
+ * `addWidget`, `copy`), each with the
  * op id it names so an undo can name it. A group whose fixture a
  * conformance suite builds in memory carries it as hex (`fixtureHex`), and
  * a case may open it with a scope and an identity of its own (`open`).
@@ -68,6 +70,7 @@ import type { Change } from '../../../packages/engine/core/src/mutation/Change';
 import {
   ANYONE_FIELDS_SINCE,
   API_VERSION,
+  BUTTON_IMAGE_AND_LAYOUT_SINCE,
   FIELD_PURPOSE_AND_FORMAT_SINCE,
   lacksWhatArrivedIn,
   MARK_IMAGE_OR_NONE_SINCE,
@@ -87,6 +90,10 @@ import {
   ANYONE_FIELDS_PDF,
 } from '../../../packages/engine/core/src/conformance/runAnyoneFieldsConformance';
 import { FIELD_GROUPS_PDF } from '../../../packages/engine/core/src/conformance/runFieldGroupsConformance';
+import {
+  PICTURE_BUTTON_PDF,
+  PICTURE_BUTTON_TOKENS,
+} from '../../../packages/engine/core/src/conformance/runPictureButtonConformance';
 import { FIELD_PURPOSE_FORMAT_PDF } from '../../../packages/engine/core/src/conformance/runFieldPurposeFormatConformance';
 import { TURNED_FIELDS_PDF } from '../../../packages/engine/core/src/conformance/runWidgetRotationConformance';
 import {
@@ -142,7 +149,20 @@ type Step =
       readonly mark: Mark;
       readonly opId: string;
     }
-  | { readonly call: 'forms.copy'; readonly fields: readonly unknown[]; readonly opId: string };
+  | {
+      readonly call: 'forms.setButtonImage';
+      readonly field: unknown;
+      readonly image: Mark;
+      readonly opId: string;
+    }
+  | { readonly call: 'forms.addWidget'; readonly field: unknown; readonly placement: unknown; readonly opId: string }
+  | {
+      readonly call: 'forms.copy';
+      readonly fields: readonly unknown[];
+      readonly opId: string;
+      readonly offset?: { readonly x: number; readonly y: number };
+      readonly values?: boolean;
+    };
 
 /** The scope and identity a case opens its fixture with; every scope when left out. */
 interface Open {
@@ -734,8 +754,16 @@ async function callStep(doc: Awaited<ReturnType<LocalEngine['open']>>, group: Gr
     }
     case 'forms.setSignatureAppearance':
       return forms.setSignatureAppearance!(step.field, markOf(group, step.mark), options);
+    case 'forms.setButtonImage':
+      return forms.setButtonImage!(step.field, markOf(group, step.image), options);
+    case 'forms.addWidget':
+      return forms.addWidget!(step.field, step.placement, options);
     case 'forms.copy':
-      return forms.copy!(step.fields, options);
+      return forms.copy!(step.fields, {
+        ...options,
+        ...(step.offset ? { offset: step.offset } : {}),
+        ...(step.values === undefined ? {} : { values: step.values }),
+      });
   }
 }
 
@@ -1511,6 +1539,231 @@ const ANYONE_FIELD_CASES: readonly Case[] = [
   },
 ];
 
+
+/** `PICTURE_BUTTON_TOKENS`, as a case opens with them. */
+const PB = Object.fromEntries(
+  Object.entries(PICTURE_BUTTON_TOKENS).map(([token, { scope, identity }]) => [
+    token,
+    { scope, identity: identity as Record<string, string> },
+  ]),
+) as Record<keyof typeof PICTURE_BUTTON_TOKENS, Open>;
+
+/** A free box in the right column of `PICTURE_BUTTON_PDF`, as the runner places one. */
+const pbBox = (row: number) => ({ x: 300, y: 40 + row * 40, width: 90, height: 30 });
+/** A new push button with a widget per layout given, each in its own free box. */
+const pictureButton = (opId: string, name: string, layouts: readonly string[], first = 0): Step =>
+  create(opId, {
+    kind: 'pushbutton',
+    name,
+    widgets: layouts.map((layout, at) => ({ page: toPageRef(3), box: pbBox(first + at), layout })),
+  });
+const picture = (opId: string, name: string, image: Mark): Step => ({
+  call: 'forms.setButtonImage',
+  field: fqn(name),
+  image,
+  opId,
+});
+const ALL_LAYOUTS = [
+  'caption',
+  'image',
+  'caption-below',
+  'caption-above',
+  'caption-right',
+  'caption-left',
+  'caption-over',
+] as const;
+
+/**
+ * `runPictureButtonConformance.ts`: the tests one session runs whose
+ * outcome crosses the worker boundary, on `PICTURE_BUTTON_PDF`. What a
+ * widget draws, what a saved file holds, a signing's lock, and an export
+ * carried into another document are `crates/epdf-engine/tests/picture_buttons.rs`'s.
+ */
+const PICTURE_BUTTON_CASES: readonly Case[] = [
+  {
+    name: 'a-widget-reads-its-layout-and-a-push-button-whether-it-holds-a-picture',
+    covers: "All seven layouts, the default and one past them read; a push button reads hasImage, another kind has no such fact.",
+    open: PB.reader,
+    steps: [FORMS_LIST],
+  },
+  {
+    name: 'a-create-and-a-widget-update-write-any-layout',
+    covers: 'A create writes each of the seven layouts, a button left without one reads caption, and a widget update writes another.',
+    steps: [
+      pictureButton('pb:l1', 'made', ALL_LAYOUTS),
+      create('pb:l2', { kind: 'pushbutton', name: 'plain', widgets: [{ page: toPageRef(3), box: pbBox(8) }] }),
+      { call: 'forms.updateWidget', widgetOf: 'made', patch: { layout: 'caption-left' }, opId: 'pb:l3' },
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'a-layout-goes-on-a-push-button-only',
+    covers: "A layout on another kind's widget is refused, its row's null is no change, and a push button's null is refused.",
+    steps: [
+      create('pb:k1', {
+        kind: 'text',
+        name: 'laid_out_text',
+        widgets: [{ page: toPageRef(3), box: pbBox(0), layout: 'image' }],
+      }),
+      { call: 'forms.updateWidget', widgetOf: 'text_field', patch: { layout: 'image' }, opId: 'pb:k2' },
+      { call: 'forms.updateWidget', widgetOf: 'text_field', patch: { layout: null }, opId: 'pb:k3' },
+      { call: 'forms.updateWidget', widgetOf: 'layout_none', patch: { layout: null }, opId: 'pb:k4' },
+      FORMS_LIST,
+    ],
+  },
+  ...(['png', 'jpeg', 'pdf'] as const).map(
+    (format): Case => ({
+      name: `a-${format}-becomes-the-picture-of-every-widget`,
+      covers: `A ${format} becomes the picture of every widget of a new push button, whose layouts stay.`,
+      steps: [pictureButton('pb:f1', 'initials', ['image', 'image']), picture('pb:f2', 'initials', format), FORMS_LIST],
+    }),
+  ),
+  {
+    name: 'null-takes-the-picture-out',
+    covers: "null takes the picture out; again it leaves a field with none as it is; another app's icon comes out the same way.",
+    steps: [
+      pictureButton('pb:n1', 'initials', ['image']),
+      picture('pb:n2', 'initials', 'png'),
+      picture('pb:n3', 'initials', null),
+      picture('pb:n4', 'initials', null),
+      picture('pb:n5', 'acrobat_image', null),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'each-widget-keeps-its-layout',
+    covers: 'A button with an image widget and a caption widget takes the picture in both; each keeps its layout.',
+    steps: [pictureButton('pb:m1', 'mixed', ['image', 'caption']), picture('pb:m2', 'mixed', 'png'), FORMS_LIST],
+  },
+  {
+    name: 'the-picture-is-one-drawing-for-buttons-marks-and-stamps',
+    covers: 'Three buttons, two signature marks and a stamp of one PNG: the later ones place the drawing the first made.',
+    steps: [
+      pictureButton('pb:s1', 'one', ['image'], 0),
+      picture('pb:s2', 'one', 'png'),
+      pictureButton('pb:s3', 'two', ['image'], 1),
+      picture('pb:s4', 'two', 'png'),
+      pictureButton('pb:s5', 'three', ['image'], 2),
+      picture('pb:s6', 'three', 'png'),
+      create('pb:s7', { kind: 'signature', name: 'mark_one', widgets: [{ page: toPageRef(3), box: pbBox(4) }] }),
+      mark('pb:s8', 'mark_one', 'png'),
+      create('pb:s9', { kind: 'signature', name: 'mark_two', widgets: [{ page: toPageRef(3), box: pbBox(5) }] }),
+      mark('pb:s10', 'mark_two', 'png'),
+      apply('pb:s11', {
+        ops: [
+          {
+            type: 'annotations.create',
+            page: toPageRef(3),
+            data: { subtype: 'stamp', box: { x: 420, y: 40, width: 90, height: 30 } },
+            resources: { appearance: BANDS_PNG.slice() },
+          },
+        ],
+      }),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'it-takes-a-push-button-and-a-picture',
+    covers: 'Another kind is refused both ways, a field the form lacks is not found, and a two-page PDF or other bytes are no picture.',
+    steps: [
+      picture('pb:r1', 'text_field', 'png'),
+      picture('pb:r2', 'text_field', null),
+      picture('pb:r3', 'sig_field', 'png'),
+      picture('pb:r4', 'sig_field', null),
+      picture('pb:r5', 'nowhere', 'png'),
+      picture('pb:r6', 'layout_1', 'twoPage'),
+      picture('pb:r7', 'layout_1', 'notAPicture'),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'it-is-one-change-with-one-undo',
+    covers: 'The picture as an op of a change, one forms.updated; its undo takes it out, and that undo puts it back.',
+    steps: [
+      apply('picture-1', {
+        ops: [{ type: 'forms.setButtonImage', field: fqn('layout_1'), image: BANDS_PNG.slice() }],
+      }),
+      undo('pb:u1', 'picture-1'),
+      FORMS_LIST,
+      undo('pb:u2', 'pb:u1'),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'it-is-filling-in-the-buyer',
+    covers: "The buyer fills in the buyer's image field and no one else's.",
+    open: PB.buyer,
+    steps: [
+      picture('pb:b1', 'buyer_initials', 'png'),
+      picture('pb:b2', 'seller_initials', 'png'),
+      picture('pb:b3', 'layout_1', 'png'),
+    ],
+  },
+  {
+    name: 'it-is-filling-in-the-filler',
+    covers: 'doc.forms.fill fills in any image field.',
+    open: PB.filler,
+    steps: [picture('pb:b4', 'seller_initials', 'png')],
+  },
+  {
+    name: 'it-is-filling-in-the-reader',
+    covers: 'A reader fills in nothing.',
+    open: PB.reader,
+    steps: [picture('pb:b5', 'layout_1', 'png')],
+  },
+  {
+    name: 'a-place-added-later-shows-the-picture',
+    covers: "addWidget gives a push button's new place its picture, in the layout it names.",
+    steps: [
+      pictureButton('pb:a1', 'initials', ['image']),
+      picture('pb:a2', 'initials', 'png'),
+      { call: 'forms.addWidget', field: fqn('initials'), placement: { page: toPageRef(3), box: pbBox(1), layout: 'image' }, opId: 'pb:a3' },
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'a-place-added-without-a-layout-keeps-the-picture',
+    covers: 'A place added without a layout shows its caption and holds the picture.',
+    steps: [
+      pictureButton('pb:w1', 'initials', ['image']),
+      picture('pb:w2', 'initials', 'png'),
+      { call: 'forms.addWidget', field: fqn('initials'), placement: { page: toPageRef(3), box: pbBox(1) }, opId: 'pb:w3' },
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'undoing-the-added-place',
+    covers: 'Undoing the added place takes it away; the picture stays in the others.',
+    steps: [
+      pictureButton('pb:p1', 'initials', ['image']),
+      picture('pb:p2', 'initials', 'png'),
+      { call: 'forms.addWidget', field: fqn('initials'), placement: { page: toPageRef(3), box: pbBox(1), layout: 'image' }, opId: 'place-2' },
+      undo('pb:p3', 'place-2'),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'a-merged-field-splits-for-a-new-place',
+    covers: 'A field and widget in one object split for a new place, and both show the picture.',
+    steps: [
+      picture('pb:x1', 'layout_1', 'png'),
+      { call: 'forms.addWidget', field: fqn('layout_1'), placement: { page: toPageRef(3), box: pbBox(1), layout: 'image' }, opId: 'pb:x2' },
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'a-copy-keeps-the-picture-with-its-value',
+    covers: 'A copy keeps the picture with its value and its layout always; one without values keeps the layout alone.',
+    steps: [
+      pictureButton('pb:c1', 'initials', ['image']),
+      picture('pb:c2', 'initials', 'png'),
+      { call: 'forms.copy', fields: [fqn('initials')], offset: { x: 0, y: 40 }, opId: 'pb:c3' },
+      { call: 'forms.copy', fields: [fqn('initials')], offset: { x: 0, y: 80 }, values: false, opId: 'pb:c4' },
+      FORMS_LIST,
+    ],
+  },
+];
+
 const CATCHUP_GROUPS: readonly Group[] = [
   {
     file: 'field-purpose-format.json',
@@ -1544,6 +1797,13 @@ const CATCHUP_GROUPS: readonly Group[] = [
     fixture: { name: 'ANYONE_FIELDS_PDF', bytes: ANYONE_FIELDS_PDF },
     cases: ANYONE_FIELD_CASES,
   },
+  {
+    file: 'picture-buttons.json',
+    kind: 'forms.pictureButtons',
+    fixture: { name: 'PICTURE_BUTTON_PDF', bytes: PICTURE_BUTTON_PDF },
+    fixtures: MARKS,
+    cases: PICTURE_BUTTON_CASES,
+  },
 ];
 
 // --- Change kinds -----------------------------------------------------------
@@ -1565,6 +1825,8 @@ function kindsVector(): unknown {
     fieldPurposeAndFormatSince: FIELD_PURPOSE_AND_FORMAT_SINCE,
     // A field anyone fills in (b45d916cb).
     anyoneFieldsSince: ANYONE_FIELDS_SINCE,
+    // A push button's image and a widget's layout (7d5691a5a).
+    buttonImageAndLayoutSince: BUTTON_IMAGE_AND_LAYOUT_SINCE,
     since: Object.fromEntries(kinds.map((kind) => [kind, changeKindSince(kind as ChangeKind)])),
     rows: CHANGE_KIND_SINCE,
     asked,
