@@ -15,7 +15,6 @@
 //! `detachWidget` (now `remove_widget`), `exportData` and `importData` (now
 //! `export` and `import`, with bundles), `getFillItem`, and `flags.raw`.
 
-use std::rc::Rc;
 use std::sync::Arc;
 
 use epdf_ffi::{
