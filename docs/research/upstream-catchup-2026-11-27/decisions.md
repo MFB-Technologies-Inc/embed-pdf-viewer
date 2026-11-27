@@ -10,11 +10,13 @@ Starting points: plugins `d250a68e3`, runtime pin `af480d0ce`; runtime fork merg
 
 ## NEW DIVERGENCE (none observed by a vector); recorded Rust-only differences
 
-No NEW DIVERGENCE. CU-C7 ran every Rust and Node row at `84a64f0d8`, `2c49e0685` and
-`57ad31610` (see the report) against `d250a68e3`, and nothing is worse: `replay:check` replays all
-16,076 cases in 124 files, `rust-coverage:check` passes after the record is regenerated, and the
-evidence tests fail the same 2 as at the start ([`reports/CU-C7.md`](reports/CU-C7.md)). The port
-jobs recorded these Rust-only differences, none observed by a vector:
+No NEW DIVERGENCE. CU-C7 ran every Rust and Node row at `84a64f0d8` and `2c49e0685`, and
+`rust-coverage:check` at `cf65c1cc2` (code = `2c49e0685`) and at `cf65c1cc2` plus the uncommitted
+record later committed as `57ad31610` (see the report), against `d250a68e3`, and nothing is worse:
+`replay:check` replays all 16,076 cases in 124 files, `rust-coverage:check` passes after the record
+is regenerated, and the evidence tests fail the same 2 as at the start
+([`reports/CU-C7.md`](reports/CU-C7.md)). The port jobs recorded these Rust-only differences, none
+observed by a vector:
 
 - CU-C4-D7. An infinite number: on the TypeScript worker an in-process `Infinity` is an
   `InvalidArg` from zod; on the Rust wire the nearest thing, `1e999`, is a `WireFormat` for the
