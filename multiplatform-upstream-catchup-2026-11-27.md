@@ -96,11 +96,11 @@ New for this one:
   after the merge, and again if a later job changes any of its inputs.
 - Cleanup is part of done, for every job (CU-C11).
 
-## Decisions to make before execution
+## Decisions (accepted by the user 2026-11-27)
 
 D-1. The stamp drawing rename. We'd follow upstream: rename the three bindings in `pdfium-sys` and
 `pdfium`, keep the Rust API names the engine exposes unless upstream's TS renamed them too
-(`packages/engine/core` decides), and add the push-button icon exports in the same pass. Cost: any
+(`packages/engine/core` decides), and add the push-button icon exports in the same pass. Accepted: the Rust port and its platforms have no users yet. Cost: any
 wrapper that surfaced "stamp drawing" names follows the TS rename, a source break for Swift,
 Kotlin and .NET users of those calls.
 
@@ -109,7 +109,7 @@ upstream's new reader still peeks the glyph struct field by field, then measure 
 harness as before. If upstream already reads it in one call, drop `061a544c4`'s reader change and
 keep its runtime half (`pdf-runtime-module.ts`, `wasm-runtime.ts`) only if something still calls
 it. Cost: a measured `readGlyphRaw` regression is possible if we drop it, and keeping it extends a
-TS divergence the user has to approve again.
+TS divergence the user has to approve again. Accepted as written.
 
 D-3. Releases and pushes. As last time, CU-C0 to CU-C9 stay local. The runtime fork push, the
 plugins fast-forward, the push to `fork` and a `release-train.yml` dispatch (dry run first) happen
@@ -214,7 +214,7 @@ plugins and the runtime fork. Keep the shared reference containers and anything 
 mounts (`docker inspect` first). The older leftovers (`research/catchup-2026-11-18-plan`,
 `research/catchup-2026-11-c6`, `research/catchup-2026-11-plan`, runtime
 `catchup/2026-11-12-runtime` and `catchup/2026-11-18-runtime`, and the untagged dev images) are
-listed for the user to approve, not deleted unasked. Done when `git worktree list` shows only the
+deleted too (user, 2026-11-27). Done when `git worktree list` shows only the
 main checkout and `docker ps -a` shows no catch-up container.
 
 ## Estimate
