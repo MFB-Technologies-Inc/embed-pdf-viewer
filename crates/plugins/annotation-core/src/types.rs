@@ -353,8 +353,24 @@ js_object! {
         "apRot" => pub ap_rot: Option<f64>,
         "pictureVersion" => pub picture_version: Option<f64>,
         "painter" => pub painter: Painter,
+        /// A lent record's accent, from its lender ([`RecordAccent`]); `None`
+        /// for a record without one.
+        "accent" => pub accent: Option<RecordAccent>,
         "authority" => pub authority: Option<Authority>,
         "annotation" => pub annotation: Annotation,
+    }
+}
+
+js_object! {
+    /// `RecordAccent`: a color a lent record shows in beside its own look,
+    /// from its lender (a form field's group): a renderer draws it over the
+    /// record's box as a light fill, `strength` strong, and an edge. It is
+    /// never part of the record itself.
+    pub struct RecordAccent {
+        /// A CSS color.
+        "color" => pub color: String,
+        /// How strong the fill shows: from `0`, not at all, to `1`.
+        "strength" => pub strength: f64,
     }
 }
 
@@ -874,6 +890,25 @@ impl Model {
     pub fn with_draft(&self, draft: Option<Draft>) -> Model {
         Model { draft: draft.map(Rc::new), ..self.clone() }
     }
+}
+
+/// `PageBoxes`: the box of each page a command acts on (`{0, 0, width,
+/// height}`), by the page's object number as JavaScript prints it.
+/// Per-command context, never stored on the model.
+pub type PageBoxes = IndexMap<String, Rect>;
+
+/// A message's `pageBoxes`, absent when it has none.
+fn page_boxes(object: &Object) -> Result<Option<PageBoxes>, JsonError> {
+    let Some(boxes) = object.get("pageBoxes").filter(|v| !v.is_null()) else { return Ok(None) };
+    let boxes =
+        boxes.as_object().ok_or_else(|| JsonError::new("not page boxes").at("pageBoxes"))?;
+    boxes
+        .iter()
+        .map(|(page, b)| {
+            Ok((page.clone(), Rect::from_json(Some(b)).map_err(|e| e.at("pageBoxes"))?))
+        })
+        .collect::<Result<PageBoxes, JsonError>>()
+        .map(Some)
 }
 
 fn read_member<T: Json>(object: &Object, key: &str) -> Result<T, JsonError> {
@@ -1541,6 +1576,9 @@ js_object! {
         "source" => pub source: ItemSource,
         "pictureVersion" => pub picture_version: Option<f64>,
         "lentScene" => pub lent_scene: LentScene,
+        /// A lent record's accent (`ModelAnnotation.accent`), drawn over its
+        /// frame; `None` for a record without one.
+        "accent" => pub accent: Option<RecordAccent>,
         "ghostOpacity" => pub ghost_opacity: Option<f64>,
         "selected" => pub selected: bool,
         "hovered" => pub hovered: Option<bool>,
@@ -1809,10 +1847,16 @@ pub enum Message {
     SetSnap {
         patch: Object,
     },
+    /// Turn the selection a quarter turn, clockwise (90) or back (-90). With
+    /// `page_boxes`, what turned stays on its page.
     RotateSelection {
         degrees: f64,
+        page_boxes: Option<PageBoxes>,
     },
-    ResetRotation,
+    /// Turn the selection upright; `page_boxes` keeps what turned on its page.
+    ResetRotation {
+        page_boxes: Option<PageBoxes>,
+    },
     Delete,
     Cancel,
     Forget {
@@ -1942,10 +1986,11 @@ impl Message {
                 defaults: read_member(object, "defaults")?,
             },
             "setSnap" => Message::SetSnap { patch: read_member(object, "patch")? },
-            "rotateSelection" => {
-                Message::RotateSelection { degrees: read_member(object, "degrees")? }
-            }
-            "resetRotation" => Message::ResetRotation,
+            "rotateSelection" => Message::RotateSelection {
+                degrees: read_member(object, "degrees")?,
+                page_boxes: page_boxes(object)?,
+            },
+            "resetRotation" => Message::ResetRotation { page_boxes: page_boxes(object)? },
             "delete" => Message::Delete,
             "cancel" => Message::Cancel,
             "forget" => Message::Forget { ids: read_member(object, "ids")? },

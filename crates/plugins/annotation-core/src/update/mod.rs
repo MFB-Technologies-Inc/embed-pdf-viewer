@@ -215,10 +215,12 @@ fn transition(model: &Model, message: &Message) -> CoreResult<(Model, Vec<Effect
             snap.order = model.snap.order.clone();
             none(Model { snap: Rc::new(snap), ..model.clone() })
         }
-        Message::RotateSelection { degrees } => {
-            none(selection_edits::rotate_selection(model, *degrees)?)
+        Message::RotateSelection { degrees, page_boxes } => {
+            none(selection_edits::rotate_selection(model, *degrees, page_boxes.as_ref())?)
         }
-        Message::ResetRotation => none(selection_edits::reset_rotation(model)?),
+        Message::ResetRotation { page_boxes } => {
+            none(selection_edits::reset_rotation(model, page_boxes.as_ref())?)
+        }
         Message::Delete => Ok(selection_edits::delete_selection(model)),
         Message::Cancel => none(Model { draft: None, ..model.clone() }),
         Message::Forget { ids } => none(session::forget(model, ids)),

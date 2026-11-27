@@ -9,7 +9,7 @@ use serde_json::Value;
 
 use crate::editable::{is_deletable_by_hand, is_editable_by_hand, is_transformable_by_hand};
 use crate::error::CoreResult;
-use crate::geometry::{geom_reset_rotation, geom_rotate_about, geom_rotation};
+use crate::geometry::{geom_reset_rotation, geom_rotate_about, geom_rotation, geom_translate};
 use crate::hit::group_union_bounds;
 use crate::json::{self, Object, num};
 use crate::links::link_children_of;
@@ -19,8 +19,9 @@ use crate::richtext::{
     RichTextParagraph, RichTextStyleDelta, RichTextStyleKey, restyle_runs, without_style,
 };
 use crate::selection::annotation_turn_pivot;
-use crate::types::{Effect, FieldValues, Id, Model, ModelAnnotation, Point};
+use crate::types::{Effect, FieldValues, Id, Model, ModelAnnotation, PageBoxes, Point};
 use crate::update::changes::without_records;
+use crate::update::page_bound::{clamp_delta_to, union_bounds_of};
 
 /// The model with `change` applied to each id people may change by hand.
 fn change_records(
@@ -243,15 +244,70 @@ pub fn set_flags(model: &Model, patch: &Object, ids: Option<&[Id]>) -> CoreResul
     change_records(model, &ids, |record| with_values(record, patch))
 }
 
-/// `rotateSelection(model, deltaDeg)`.
-pub fn rotate_selection(model: &Model, delta_deg: f64) -> CoreResult<Model> {
+/// `takesTurn(record, deltaDeg)`: does the kind of `record` take a turn of
+/// `delta_deg`: any turn for a kind that rotates, a quarter turn for one
+/// that turns only so (a form widget).
+fn takes_turn(record: &ModelAnnotation, delta_deg: f64) -> bool {
+    let caps = &kind_of(&record.annotation).caps;
+    caps.rotatable || (caps.quarter_turns && delta_deg % 90.0 == 0.0)
+}
+
+/// `keptOnPages(model, ids, pageBoxes)`: `model` with the records of `ids`
+/// back on their pages. A turn about the middle can carry a record past its
+/// page's edge, where a move would never leave it, so the records a turn
+/// changed on a page move together, by the least that puts the frame around
+/// them inside the page's box: the clamp a move has (`clampMoveDelta`), so a
+/// frame larger than the page pins to its top left. A page with no box in
+/// `page_boxes` keeps its records where the turn left them.
+fn kept_on_pages(model: Model, ids: &[Id], page_boxes: Option<&PageBoxes>) -> CoreResult<Model> {
+    let Some(page_boxes) = page_boxes else { return Ok(model) };
+    let mut ids_by_page: IndexMap<String, Vec<Id>> = IndexMap::new();
+    for id in ids {
+        let page = model.record(id).expect("a record").page().object_number;
+        ids_by_page.entry(crate::js::number_to_string(page)).or_default().push(id.clone());
+    }
+    let mut by_id: Option<crate::types::ById> = None;
+    for (page, on_page) in &ids_by_page {
+        let page_box = page_boxes.get(page).copied();
+        let delta = clamp_delta_to(
+            Point { x: 0.0, y: 0.0 },
+            page_box,
+            page_box.and_then(|_| union_bounds_of(&model, on_page, None)),
+        );
+        if delta.x == 0.0 && delta.y == 0.0 {
+            continue;
+        }
+        let by_id = by_id.get_or_insert_with(|| (*model.by_id).clone());
+        for id in on_page {
+            let record = by_id.get(id).cloned().expect("a record");
+            let moved = geom_translate(&shape_of(&record.annotation), delta);
+            if let Some(next) = with_shape(&record, &moved)? {
+                by_id.insert(id.clone(), Rc::new(next));
+            }
+        }
+    }
+    Ok(match by_id {
+        Some(by_id) => Model { by_id: Rc::new(by_id), ..model },
+        None => model,
+    })
+}
+
+/// `rotateSelection(model, deltaDeg, pageBoxes)`: turn the selection by
+/// `delta_deg` (clockwise). A single shape turns about its own centre; a
+/// multi-target group about the union-box centre. Each member turns when its
+/// kind takes the turn (`takesTurn`). With `page_boxes`, what turned stays on
+/// its page (`keptOnPages`).
+pub fn rotate_selection(
+    model: &Model,
+    delta_deg: f64,
+    page_boxes: Option<&PageBoxes>,
+) -> CoreResult<Model> {
     let ids: Vec<Id> = model
         .selected
         .iter()
         .filter(|id| {
             model.record(id).is_some_and(|r| {
-                is_transformable_by_hand(&model.editable, r)
-                    && kind_of(&r.annotation).caps.rotatable
+                is_transformable_by_hand(&model.editable, r) && takes_turn(r, delta_deg)
             })
         })
         .cloned()
@@ -277,18 +333,19 @@ pub fn rotate_selection(model: &Model, delta_deg: f64) -> CoreResult<Model> {
             by_id.insert(id.clone(), Rc::new(next));
         }
     }
-    Ok(Model { by_id: Rc::new(by_id), ..model.clone() })
+    kept_on_pages(Model { by_id: Rc::new(by_id), ..model.clone() }, &ids, page_boxes)
 }
 
-/// `resetRotation(model)`.
-pub fn reset_rotation(model: &Model) -> CoreResult<Model> {
+/// `resetRotation(model, pageBoxes)`: the selection upright again. A kind
+/// that doesn't turn keeps its turn; upright is a quarter turn away for a
+/// kind that turns only so. With `page_boxes`, what turned stays on its page
+/// (`keptOnPages`).
+pub fn reset_rotation(model: &Model, page_boxes: Option<&PageBoxes>) -> CoreResult<Model> {
     let mut by_id = (*model.by_id).clone();
-    let mut turned = false;
+    let mut turned: Vec<Id> = Vec::new();
     for id in model.selected.iter() {
         let Some(record) = by_id.get(id).cloned() else { continue };
-        if !is_transformable_by_hand(&model.editable, &record)
-            || !kind_of(&record.annotation).caps.rotatable
-        {
+        if !is_transformable_by_hand(&model.editable, &record) || !takes_turn(&record, 0.0) {
             continue;
         }
         let geometry = shape_of(&record.annotation);
@@ -299,9 +356,12 @@ pub fn reset_rotation(model: &Model) -> CoreResult<Model> {
         if let Some(next) = with_shape(&record, &geom_reset_rotation(&geometry, Some(pivot)))? {
             by_id.insert(id.clone(), Rc::new(next));
         }
-        turned = true;
+        turned.push(id.clone());
     }
-    Ok(if turned { Model { by_id: Rc::new(by_id), ..model.clone() } } else { model.clone() })
+    if turned.is_empty() {
+        return Ok(model.clone());
+    }
+    kept_on_pages(Model { by_id: Rc::new(by_id), ..model.clone() }, &turned, page_boxes)
 }
 
 /// `deleteSelection(model)`.

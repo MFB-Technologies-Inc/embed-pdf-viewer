@@ -314,6 +314,18 @@ pub fn transposed_about_center(rect: Rect) -> Rect {
     }
 }
 
+/// `standingRect(box, deg)`: the upright rect a box stands in once turned
+/// `deg` about its middle: the box itself at 0 and 180, its sides swapped at
+/// 90 and 270 (exact, no rounding), and the box around its turned corners at
+/// any other angle.
+pub fn standing_rect(bx: Rect, deg: f64) -> Rect {
+    let turn = normalize_deg(deg);
+    if turn % 90.0 != 0.0 {
+        return rotated_aabb(bx, turn, None);
+    }
+    if turn % 180.0 == 0.0 { bx } else { transposed_about_center(bx) }
+}
+
 /// `rotatePoint(point, pivot, deg)`: clockwise in page space.
 pub fn rotate_point(point: Point, pivot: Point, deg: f64) -> Point {
     apply_point(rotate_about(pivot, deg * DEG2RAD), point)

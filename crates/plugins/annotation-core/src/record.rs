@@ -191,6 +191,25 @@ pub fn with_shape(record: &ModelAnnotation, shape: &Shape) -> CoreResult<Option<
     with_values(record, &shapes::write(shape, record.subtype()))
 }
 
+/// `orientationPatch(annotation, rotation)`: the engine fields that turn a
+/// form widget's contents to `rotation` (a quarter turn, clockwise) where it
+/// stands, as Acrobat's Orientation does: its `rect` stays, and its `box`,
+/// the frame its contents are laid out in, is that rect with its sides
+/// swapped at 90 and 270. Empty for an annotation that doesn't turn by
+/// quarter turns, so a mixed selection takes it.
+pub fn orientation_patch(annotation: &Object, rotation: f64) -> Object {
+    if !kind_of(annotation).caps.quarter_turns {
+        return Object::new();
+    }
+    let Shape::Box(shape) = shape_of(annotation) else { return Object::new() };
+    let stands = crate::rect::standing_rect(shape.box_, shape.rotation);
+    // The frame that stands in the same rect at the new turn: the inverse of standing.
+    json::object([
+        ("box", json::rect_value(crate::rect::standing_rect(stands, rotation))),
+        ("rotation", crate::shapes::boxes::rotation_field(rotation)),
+    ])
+}
+
 // ── links ───────────────────────────────────────────────────────────────────
 
 /// `linkChildRects(shape, style)`: the rects a parent's attached links take.
@@ -364,6 +383,7 @@ pub fn from_dto(dto: Annotation) -> Option<ModelAnnotation> {
         ap_rot,
         picture_version: None,
         painter: Default::default(),
+        accent: None,
         authority: None,
         annotation: dto,
         order: Default::default(),

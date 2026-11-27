@@ -22,6 +22,11 @@ js_object! {
         "resizable" => pub resizable: bool,
         "vertexEditable" => pub vertex_editable: bool,
         "rotatable" => pub rotatable: bool,
+        /// Turns by quarter turns only (a form widget: its contents turn
+        /// by `/MK /R`). The quarter-turn command and reset rotation act on
+        /// it, alone or in a selection; it shows no rotation handle and
+        /// joins no free turn.
+        "quarterTurns" => pub quarter_turns: bool,
         "groupMovable" => pub group_movable: bool,
         "groupResizable" => pub group_resizable: bool,
         "groupRotatable" => pub group_rotatable: bool,
@@ -48,6 +53,7 @@ pub const NO_CAPS: KindCaps = KindCaps {
     resizable: false,
     vertex_editable: false,
     rotatable: false,
+    quarter_turns: false,
     group_movable: false,
     group_resizable: false,
     group_rotatable: false,
@@ -758,6 +764,7 @@ fn widget_caps() -> KindCaps {
         c.selectable = true;
         c.movable = true;
         c.resizable = true;
+        c.quarter_turns = true;
         c.group_movable = true;
         c.has_fill = true;
         c.opaque_body = true;
@@ -1058,6 +1065,19 @@ const KIND_OPTIONS: [(&str, &str); 6] = [
     ("square", "Square"),
     ("circle", "Circle"),
 ];
+
+/// `ORIENTATION`: a form widget's Orientation, the direction its contents
+/// read in, a quarter turn clockwise, the widget staying where it stands
+/// (Acrobat's Orientation). Its value is the widget's `rotation` as a
+/// string; `orientationPatch` writes it. Offered over a selection of widgets
+/// (`selectionProperties`).
+pub fn orientation_property() -> Value {
+    let options = ["0", "90", "180", "270"]
+        .into_iter()
+        .map(|turn| option(turn, &format!("{turn}°"), &format!("annotation.orientations.{turn}")))
+        .collect();
+    choice("orientation", "Orientation", "annotation.style.orientation", options)
+}
 
 /// `kindChoice(kinds)`: the `subtype` choice over `kinds`.
 pub fn kind_choice(kinds: &[&str]) -> Value {

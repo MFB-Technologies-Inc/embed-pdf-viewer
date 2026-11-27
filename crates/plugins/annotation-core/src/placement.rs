@@ -138,3 +138,12 @@ pub fn resolve_click_placement(
 pub fn placed_shape(annotation: &Object, placement: &Placement) -> Option<Shape> {
     kind_of(annotation).family.placed(placement, annotation)
 }
+
+/// `placedBoxFields(placement)`: the engine fields a placed box states for a
+/// kind whose contents read one way and so keep the placement's turn (a form
+/// widget, a stamp): its `box`, the box before its turn, and its `rotation`,
+/// `None` upright. The form plugin's place handler sends these as its
+/// widget's placement.
+pub fn placed_box_fields(rect: Rect, rot: f64) -> (Rect, Option<f64>) {
+    (rect, (rot != 0.0 && !rot.is_nan()).then_some(rot))
+}

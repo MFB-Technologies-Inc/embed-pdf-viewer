@@ -1,6 +1,7 @@
-//! `shapes/box.ts`: the box family. Squares, circles and stamps, and the
-//! kinds whose shape is their `rect` (note and attachment icons, links,
-//! widgets, an area redaction). The moves, turns, scales and resizes of a
+//! `shapes/box.ts`: the box family. Squares, circles, stamps and form
+//! widgets, and the kinds whose shape is their `rect` (note and attachment
+//! icons, links, an area redaction). A widget's box is the frame its contents
+//! are laid out in, and its turn a quarter turn (`/MK /R`). The moves, turns, scales and resizes of a
 //! turned box serve the text box and caret families too.
 
 use serde_json::Value;
@@ -11,12 +12,16 @@ use crate::painted::PaintedPiece;
 use crate::rect::{
     RECT_HANDLES, expand_rect, inset_rect, normalize_deg, rect_center, rect_contains,
     rect_corner_points, rect_handle_point, resize_rotated_rect, rotate_point, rotated_aabb,
-    rotated_handle_cursor, transposed_about_center,
+    rotated_handle_cursor, standing_rect, transposed_about_center,
 };
 use crate::types::{BoxShape, Handle, Placement, Point, Rect, RenderNode, Stroke};
 
 /// The kinds that keep their box in `box` and turn it by `rotation`.
-pub const TURNING_KINDS: [&str; 3] = ["square", "circle", "stamp"];
+pub const TURNING_KINDS: [&str; 4] = ["square", "circle", "stamp", "widget"];
+
+/// The kinds whose drawing reads one way, so a box placed by an upright tool
+/// keeps its turn: a stamp's image, and a widget's contents.
+const READS_ONE_WAY: [&str; 2] = ["stamp", "widget"];
 
 /// A circle, and a radio button, draw the ellipse in their box.
 pub fn draws_ellipse(annotation: &Object) -> bool {
@@ -46,9 +51,11 @@ pub fn read_box(annotation: &Object) -> BoxShape {
             order: Default::default(),
         };
     }
+    // A widget not yet read by the engine has no `box`: its `rect` is one, unturned.
+    let has_box = annotation.get("box").is_some_and(|b| !b.is_null());
     BoxShape {
-        box_: rect_member(annotation, "box"),
-        rotation: json::get_num(annotation, "rotation").unwrap_or(0.0),
+        box_: rect_member(annotation, if has_box { "box" } else { "rect" }),
+        rotation: if has_box { json::get_num(annotation, "rotation").unwrap_or(0.0) } else { 0.0 },
         ellipse,
         order: Default::default(),
     }
@@ -57,7 +64,7 @@ pub fn read_box(annotation: &Object) -> BoxShape {
 /// A box kind's shape where a create gesture places a box.
 pub fn place_box(placement: &Placement, annotation: &Object) -> Option<BoxShape> {
     let Placement::Box(p) = placement else { return None };
-    let keeps_turn = json::get_str(annotation, "subtype") == Some("stamp");
+    let keeps_turn = READS_ONE_WAY.contains(&json::get_str(annotation, "subtype").unwrap_or(""));
     let quarter = p.rot % 180.0 != 0.0;
     Some(BoxShape {
         box_: if !keeps_turn && quarter { transposed_about_center(p.rect) } else { p.rect },
@@ -84,19 +91,31 @@ pub fn write_box(shape: &BoxShape, subtype: &str) -> Object {
     }
 }
 
-/// What the shape draws, before its turn.
-pub fn box_drawn_bounds(shape: &BoxShape, stroke: Stroke) -> Rect {
+/// What the shape draws, before its turn: the cloud's bounds when it has a
+/// cloudy border, else `None`, the box itself.
+fn cloud_drawn_bounds(shape: &BoxShape, stroke: Stroke) -> Option<Rect> {
     match stroke.cloud() {
         Some(intensity) if shape.box_.width > 0.0 && shape.box_.height > 0.0 => {
-            cloudy_bounds(shape.box_, shape.ellipse, intensity, stroke.stroke_width)
+            Some(cloudy_bounds(shape.box_, shape.ellipse, intensity, stroke.stroke_width))
         }
-        _ => shape.box_,
+        _ => None,
     }
 }
 
-/// The upright page box around what it paints.
+/// What the shape draws, before its turn.
+pub fn box_drawn_bounds(shape: &BoxShape, stroke: Stroke) -> Rect {
+    cloud_drawn_bounds(shape, stroke).unwrap_or(shape.box_)
+}
+
+/// The upright page box around what it paints: what it draws, turned about
+/// the box's middle. A box that draws inside itself stands exactly where the
+/// engine states it at a quarter turn (`standingRect`): its sides swapped,
+/// with no rounding.
 pub fn box_rect(shape: &BoxShape, stroke: Stroke) -> Rect {
-    rotated_aabb(box_drawn_bounds(shape, stroke), shape.rotation, Some(rect_center(shape.box_)))
+    match cloud_drawn_bounds(shape, stroke) {
+        None => standing_rect(shape.box_, shape.rotation),
+        Some(drawn) => rotated_aabb(drawn, shape.rotation, Some(rect_center(shape.box_))),
+    }
 }
 
 /// A turned box's corners as the page shows them: nw, ne, se, sw.

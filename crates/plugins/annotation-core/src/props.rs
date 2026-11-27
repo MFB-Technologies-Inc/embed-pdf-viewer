@@ -7,7 +7,7 @@ use serde_json::Value;
 use crate::editable::is_editable_by_hand;
 use crate::engine::siblings::{can_change_kind, sibling_kinds_of};
 use crate::json::{self, Object};
-use crate::kinds::{AnnotationKind, flag_properties, kind_choice};
+use crate::kinds::{AnnotationKind, flag_properties, kind_choice, orientation_property};
 use crate::record::kind_of;
 use crate::types::{EditableKinds, TextStyle};
 
@@ -92,11 +92,27 @@ fn kind_choice_of(editable: &EditableKinds, annotations: &[&Object]) -> Option<V
     (kinds.len() > 1).then(|| kind_choice(&kinds))
 }
 
+/// `withOrientation(properties, kinds)`: `properties` with a selection of
+/// widgets' Orientation after their look, before the flags: offered when
+/// every selected kind turns by quarter turns (`quarterTurns`).
+fn with_orientation(mut properties: Vec<Value>, kinds: &[Cow<'_, AnnotationKind>]) -> Vec<Value> {
+    if kinds.is_empty() || !kinds.iter().all(|kind| kind.caps.quarter_turns) {
+        return properties;
+    }
+    let at = properties
+        .iter()
+        .position(|p| p.get("control").and_then(Value::as_str) == Some("flag"))
+        .unwrap_or(properties.len());
+    properties.insert(at, orientation_property());
+    properties
+}
+
 /// `selectionProperties(model, annotations)`: the properties the selected
-/// annotations' kinds share, led by the kind they can become when they can.
+/// annotations' kinds share, led by the kind they can become when they can,
+/// with a selection of form widgets' Orientation (`withOrientation`).
 pub fn selection_properties(editable: &EditableKinds, annotations: &[&Object]) -> Vec<Value> {
     let kinds: Vec<Cow<'_, AnnotationKind>> = annotations.iter().map(|a| kind_of(a)).collect();
-    let shared = shared_properties(&kinds);
+    let shared = with_orientation(shared_properties(&kinds), &kinds);
     match kind_choice_of(editable, annotations) {
         Some(choice) => std::iter::once(choice).chain(shared).collect(),
         None => shared,

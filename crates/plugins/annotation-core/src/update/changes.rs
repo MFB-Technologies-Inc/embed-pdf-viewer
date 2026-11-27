@@ -135,6 +135,7 @@ pub fn new_record(
         ap_rot: None,
         picture_version: None,
         painter: Default::default(),
+        accent: None,
         authority: None,
         annotation: Rc::new(annotation),
         order: Default::default(),

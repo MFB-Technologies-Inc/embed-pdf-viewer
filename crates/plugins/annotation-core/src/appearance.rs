@@ -13,7 +13,7 @@ use crate::error::CoreResult;
 use crate::geometry::geom_rotation;
 use crate::json::{self, Object};
 use crate::record::{annotation_after, kind_of, shape_of};
-use crate::rect::normalize_deg;
+use crate::rect::{normalize_deg, standing_rect};
 use crate::types::{AnnotationPatch, Draft, Model, ModelAnnotation, Rect, Shape, Source, ViewEnv};
 
 /// `drawsLive(record)`: its kind's live drawing, or its lender's.
@@ -155,6 +155,13 @@ pub(crate) fn raster_placement_as(
     let Some(record) = model.record(id) else { return RasterPlacement::default() };
     let truthy = |x: f64| x != 0.0 && !x.is_nan();
     if kind_of(&record.annotation).caps.raster_only {
+        // A widget's raster holds its turn (the engine draws its contents
+        // turned, `/MK /R`), so it fills the rect its box stands in, unturned.
+        if let Shape::Box(s) = shape_now
+            && json::get_str(&record.annotation, "subtype") == Some("widget")
+        {
+            return RasterPlacement { rect: Some(standing_rect(s.box_, s.rotation)), rot: None };
+        }
         let rot = geom_rotation(shape_now);
         return RasterPlacement {
             rect: match shape_now {
