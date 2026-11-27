@@ -1,4 +1,11 @@
-import { gesturePlacement, widgetAppearanceOf } from '@embedpdf/core-annotation';
+import {
+  gesturePlacement,
+  placedBoxFields,
+  standingRect,
+  widgetAppearanceOf,
+  type Placement,
+} from '@embedpdf/core-annotation';
+import type { Rotation } from '@embedpdf/core-geometry';
 import type { FormFieldDraft, PageRef, WidgetPlacement } from '@embedpdf/engine-core/runtime';
 import type { AnnotationHostCapability } from '@embedpdf/plugin-annotation/contract/host';
 import {
@@ -34,12 +41,42 @@ export function clampToPage(box: Box, page: Box): Box | null {
 }
 
 /**
+ * A placed field's frame and turn, as its widget's placement states them
+ * (`placedBoxFields`), kept on the page: the rect the turned frame stands in
+ * is cut to the page (`clampToPage`), and the frame follows it. `null` when
+ * too little of it is on the page.
+ */
+export function placedOnPage(
+  placement: Extract<Placement, { kind: 'box' }>,
+  page: Box,
+): Pick<WidgetPlacement, 'box' | 'rotation'> | null {
+  const { box, rotation } = placedBoxFields(placement);
+  const turn = (rotation ?? 0) as Rotation;
+  const stands = clampToPage(standingRect(box, turn), page);
+  if (!stands) return null;
+  // The frame that stands there: the same step back, its sides swapped at a quarter turn.
+  return { box: standingRect(stands, turn), ...(turn ? { rotation: turn } : {}) };
+}
+
+/**
  * The field a palette tool places: one widget at `widget`, named like
- * `text_1`. A radio button stands for `'Choice1'` and a dropdown or a list
- * starts with two options, as in Acrobat; rename and change them in a
- * settings panel.
+ * `text_1`, in `groupId` when the palette places for a group (the form's
+ * design group); without one it is in no group. A
+ * radio button stands for `'Choice1'` and a dropdown or a list starts with
+ * two options, as in Acrobat; rename and change them in a settings panel.
  */
 export function toolDraft(
+  tool: FormToolDefinition,
+  name: string,
+  widget: WidgetPlacement,
+  groupId: string | null = null,
+): FormFieldDraft {
+  const draft = kindDraft(tool, name, widget);
+  return groupId === null ? draft : { ...draft, groupId };
+}
+
+/** {@link toolDraft}'s field, as the tool's kind starts one. */
+function kindDraft(
   tool: FormToolDefinition,
   name: string,
   widget: WidgetPlacement,
@@ -75,6 +112,12 @@ export function toolDraft(
  * every tool: select the new widget, and keep the tool or go back to the
  * default one.
  *
+ * An upright tool places the field as the author sees the page: the press's
+ * display rotation goes to `gesturePlacement`, and the widget takes the
+ * placed frame and its turn (`placedOnPage`), so on a page shown turned the
+ * field reads upright. The ghost and the drag's preview make the same call
+ * with the same turn.
+ *
  * With the annotation plugin, the tool's ghost shows the field a click
  * places: this handler's hover puts it where the click would reach it (no
  * widget or annotation under the pointer claims it) and the user may design
@@ -90,7 +133,10 @@ export function createPlaceHandler(
   interaction: InteractionHostCapability,
   annotation: AnnotationHostCapability | null,
 ): InteractionHandler {
-  let origin: { page: PageRef; start: Vec; last: Vec } | null = null;
+  let origin: { page: PageRef; start: Vec; last: Vec; displayRotation?: Rotation } | null = null;
+  /** Whether the tool places upright: the annotation plugin's tool says, else the tool table. */
+  const uprightOf = (tool: FormToolDefinition): boolean =>
+    annotation?.getResolvedTool(tool.id)?.upright ?? tool.upright;
   /** Drop the gesture and what it painted: its placement and the tool's ghost. */
   const endGesture = (): void => {
     origin = null;
@@ -98,10 +144,14 @@ export function createPlaceHandler(
     annotation?.clearGhost();
   };
 
-  const place = async (tool: FormToolDefinition, page: PageRef, box: Box): Promise<void> => {
+  const place = async (
+    tool: FormToolDefinition,
+    page: PageRef,
+    placement: Extract<Placement, { kind: 'box' }>,
+  ): Promise<void> => {
     const pageBox = form.getPageBox(page);
-    const rect = pageBox ? clampToPage(box, pageBox) : null;
-    if (!rect) return;
+    const placed = pageBox ? placedOnPage(placement, pageBox) : null;
+    if (!placed) return;
     // Style from the tool's live defaults when the annotation plugin holds
     // them (the user may have restyled the tool); without it, use the tool
     // table's defaults, so a field is never invisible.
@@ -111,7 +161,9 @@ export function createPlaceHandler(
     const name = nextFieldName(tool.fieldKind, new Set(form.list().map((field) => field.name)));
     // The new field shows at once, when the document holds the numbers it
     // takes: then it is selected in the same frame. Otherwise once it shows.
-    const created = form.create(toolDraft(tool, name, { page, rect, ...look }));
+    const created = form.create(
+      toolDraft(tool, name, { page, ...placed, ...look }, form.getDesignGroup()),
+    );
     const field = form.get({ kind: 'fqn', name }) ?? (await created).field;
     // Skip the follow-up when the tool changed meanwhile.
     if (!annotation || interaction.getActiveToolId() !== tool.id) return;
@@ -157,7 +209,12 @@ export function createPlaceHandler(
       // declining lets editing, panning or text selection take the gesture.
       if (!sample.page || !FORM_TOOL_BY_ID.has(interaction.getActiveToolId())) return false;
       if (!form.canDesign()) return false;
-      origin = { page: sample.page.ref, start: sample.page.point, last: sample.page.point };
+      origin = {
+        page: sample.page.ref,
+        start: sample.page.point,
+        last: sample.page.point,
+        displayRotation: sample.page.rotation,
+      };
       return true;
     },
     onPointerMove: (sample) => {
@@ -165,7 +222,13 @@ export function createPlaceHandler(
       const point = samplePointOn(sample, origin.page);
       if (!point) return;
       origin.last = point;
-      annotation?.previewPlacement(interaction.getActiveToolId(), origin.page, origin.start, point);
+      annotation?.previewPlacement(
+        interaction.getActiveToolId(),
+        origin.page,
+        origin.start,
+        point,
+        origin.displayRotation,
+      );
     },
     onPointerUp: (sample) => {
       if (!origin) return;
@@ -179,9 +242,11 @@ export function createPlaceHandler(
       const end = samplePointOn(sample, gesture.page) ?? gesture.last;
       const placement = gesturePlacement('box', gesture.start, end, tool.clickCreate, {
         pageBox: form.getPageBox(gesture.page) ?? undefined,
+        upright: uprightOf(tool),
+        displayRotation: gesture.displayRotation,
       });
       if (placement?.kind !== 'box') return;
-      place(tool, gesture.page, placement.rect).catch((error) => {
+      place(tool, gesture.page, placement).catch((error) => {
         globalThis.console?.error('[form] placing the field failed:', error);
       });
     },

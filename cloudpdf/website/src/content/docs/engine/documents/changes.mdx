@@ -92,6 +92,9 @@ its events arrive together.
 `pages.setScale` arrived in 3.1, and `annotations.copy` and `forms.copy` in 3.2. Every other op
 is as old as 3.0.
 
+`forms.setSignatureAppearance` takes its `appearance` as the call does: a PNG, a JPEG or a
+one-page PDF, or `null` to take the mark out. An image and `null` arrived in 3.4.
+
 ### What comes back
 
 `result.items` has one item per op, in op order. Each item is what the op's call returns, with
@@ -206,6 +209,9 @@ they left it:
   `skipped: ['color']`.
 - An op whose annotation or field is gone, or was changed all over, is left alone entirely. Its
   item is `{ type: 'skipped', op }`, with `op` the type of item it would have been.
+- A form field's scripts go back together or not at all. When one of them replaced actions a
+  script can't make again (a script that goes on to a GoTo, say), they stay as the change left
+  them, and the item says so.
 - A create isn't undone when someone changed what it made, or replied to it.
 - A reorder puts each annotation or widget back next to the neighbours it had, unless it was
   moved since or the one below it changed. Neighbours that are gone are skipped over.

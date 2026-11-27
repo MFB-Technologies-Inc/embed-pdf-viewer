@@ -185,6 +185,218 @@ describe('<FormLayer> over fields made from code', () => {
 });
 
 /**
+ * A dropdown is one select for as long as its field shows: a choice keeps the
+ * focus where it is, and the focus ring leaves with the focus.
+ */
+describe('<FormLayer> dropdown', () => {
+  it(
+    'keeps the focus through a choice, and drops its ring on blur',
+    { timeout: 45_000 },
+    async () => {
+      const bytes = new Uint8Array(await readFile(resolve(fixtures, 'hello_world.pdf')));
+      const engine = await realEngine();
+      const context = shallowRef<PageContextValue | null>(null);
+      const { kernel, wrapper } = await viewerWith(
+        [interactionPlugin(), formPlugin()],
+        () => [h(pageWith(context, () => h(FormLayer)))],
+        engine,
+      );
+
+      try {
+        await kernel.documents.open({ kind: 'bytes', id: 'blank', bytes });
+        await vi.waitFor(() => expect(kernel.tryCapability(FormToken, undefined)).toBeTruthy(), {
+          timeout: 20_000,
+        });
+        const form = kernel.capability(FormToken);
+        await form.refresh();
+        const page = kernel.documents.getPage(0, 'blank')!.ref;
+        await form.create({
+          kind: 'combobox',
+          name: 'framework',
+          options: [
+            { label: 'React', value: 'React' },
+            { label: 'Vue', value: 'Vue' },
+          ],
+          widgets: [{ page, rect: { x: 72, y: 100, width: 160, height: 20 } }],
+        });
+        context.value = letterPage('blank', page);
+        await settle();
+        const ring = () => document.querySelector('[data-embedpdf-form-focus-ring]');
+
+        const select = await vi.waitFor(() => {
+          const found = document.querySelector<HTMLSelectElement>('select[aria-label="framework"]');
+          if (!found) throw new Error('no dropdown yet');
+          return found;
+        });
+        select.focus();
+        await nextTick();
+        expect(ring()).not.toBeNull();
+
+        select.value = 'Vue';
+        select.dispatchEvent(new Event('change'));
+        await vi.waitFor(() =>
+          expect(form.getValue(toFieldRef('framework'))).toEqual({ value: 'Vue' }),
+        );
+        await settle();
+
+        // The same select, still focused, showing the choice.
+        expect(document.querySelector('select[aria-label="framework"]')).toBe(select);
+        expect(document.activeElement).toBe(select);
+        expect(select.value).toBe('Vue');
+        expect(ring()).not.toBeNull();
+
+        select.blur();
+        await nextTick();
+        expect(ring()).toBeNull();
+      } finally {
+        wrapper.unmount();
+        await kernel.destroy();
+        await engine.destroy();
+      }
+    },
+  );
+});
+
+/**
+ * A radio group's buttons are placed apart on the page, with no group element around them: each
+ * button is named by its group's tooltip and its own option, and says where it comes in its group.
+ */
+describe('<FormLayer> radio buttons', () => {
+  it(
+    'names each button by its option, and says where it comes in its group',
+    { timeout: 45_000 },
+    async () => {
+      const bytes = new Uint8Array(await readFile(resolve(fixtures, 'hello_world.pdf')));
+      const engine = await realEngine();
+      const context = shallowRef<PageContextValue | null>(null);
+      const { kernel, wrapper } = await viewerWith(
+        [interactionPlugin(), formPlugin()],
+        () => [h(pageWith(context, () => h(FormLayer)))],
+        engine,
+      );
+
+      try {
+        await kernel.documents.open({ kind: 'bytes', id: 'blank', bytes });
+        await vi.waitFor(() => expect(kernel.tryCapability(FormToken, undefined)).toBeTruthy(), {
+          timeout: 20_000,
+        });
+        const form = kernel.capability(FormToken);
+        await form.refresh();
+        const page = kernel.documents.getPage(0, 'blank')!.ref;
+        await form.create({
+          kind: 'radio',
+          name: 'plan',
+          alternateName: 'Plan',
+          widgets: [
+            { page, rect: { x: 72, y: 100, width: 16, height: 16 }, exportValue: 'Monthly' },
+            { page, rect: { x: 200, y: 100, width: 16, height: 16 }, exportValue: 'Yearly' },
+          ],
+        });
+        context.value = letterPage('blank', page);
+        await settle();
+
+        const radio = (name: string) =>
+          document.querySelector<HTMLElement>(`[role="radio"][aria-label="${name}"]`);
+        const monthly = await vi.waitFor(() => {
+          const found = radio('Plan: Monthly');
+          if (!found) throw new Error('no radio button yet');
+          return found;
+        });
+        const yearly = radio('Plan: Yearly')!;
+        expect(monthly.getAttribute('aria-posinset')).toBe('1');
+        expect(monthly.getAttribute('aria-setsize')).toBe('2');
+        expect(yearly.getAttribute('aria-posinset')).toBe('2');
+        expect(yearly.getAttribute('aria-setsize')).toBe('2');
+      } finally {
+        wrapper.unmount();
+        await kernel.destroy();
+        await engine.destroy();
+      }
+    },
+  );
+});
+
+/**
+ * A field turned a quarter (`/MK /R`): its control sits in the field's frame,
+ * turned with it about its middle, so what's typed reads the way the field
+ * does. An unturned field's control is placed as it always was.
+ */
+describe('<FormLayer> over a turned field', () => {
+  it(
+    'places the control in the field’s frame and turns it with the field',
+    { timeout: 45_000 },
+    async () => {
+      const bytes = new Uint8Array(await readFile(resolve(fixtures, 'hello_world.pdf')));
+      const engine = await realEngine();
+      const context = shallowRef<PageContextValue | null>(null);
+      const { kernel, wrapper } = await viewerWith(
+        [interactionPlugin(), formPlugin()],
+        () => [h(pageWith(context, () => h(FormLayer)))],
+        engine,
+      );
+
+      try {
+        await kernel.documents.open({ kind: 'bytes', id: 'blank', bytes });
+        await vi.waitFor(() => expect(kernel.tryCapability(FormToken, undefined)).toBeTruthy(), {
+          timeout: 20_000,
+        });
+        const form = kernel.capability(FormToken);
+        await form.refresh();
+        const page = kernel.documents.getPage(0, 'blank')!.ref;
+        // Its frame is 160 × 20; turned 270° it stands 20 wide and 160 tall.
+        await form.create({
+          kind: 'text',
+          name: 'side',
+          widgets: [{ page, box: { x: 72, y: 300, width: 160, height: 20 }, rotation: 270 }],
+        });
+        await form.create({
+          kind: 'text',
+          name: 'flat',
+          widgets: [{ page, rect: { x: 72, y: 100, width: 160, height: 20 } }],
+        });
+        context.value = letterPage('blank', page);
+        await settle();
+
+        const side = await vi.waitFor(() => {
+          const found = document.querySelector<HTMLInputElement>('input[aria-label="side"]');
+          if (!found) throw new Error('no text box yet');
+          return found;
+        });
+        const box = side.parentElement as HTMLElement;
+        expect(box.style.left).toBe('72px');
+        expect(box.style.top).toBe('300px');
+        expect(box.style.width).toBe('160px');
+        expect(box.style.height).toBe('20px');
+        expect(box.style.transform).toBe('rotate(270deg)');
+        // The item says where it stands: the frame turned about its middle.
+        const item = form.listWidgets(page).find((each) => each.label === 'side')!;
+        expect(item.rotation).toBe(270);
+        expect(item.rect).toEqual({ x: 142, y: 230, width: 20, height: 160 });
+
+        const flat = document.querySelector<HTMLInputElement>('input[aria-label="flat"]')!;
+        expect((flat.parentElement as HTMLElement).style.transform).toBe('');
+        expect((flat.parentElement as HTMLElement).style.left).toBe('72px');
+
+        // Typing into the turned field fills it in, and it keeps its turn.
+        await nextTick();
+        side.dispatchEvent(new FocusEvent('focus'));
+        side.value = 'Up the page';
+        side.dispatchEvent(new Event('input'));
+        side.dispatchEvent(new FocusEvent('blur'));
+        await vi.waitFor(() =>
+          expect(form.getValue(toFieldRef('side'))).toEqual({ value: 'Up the page' }),
+        );
+        expect(form.listWidgets(page).find((each) => each.label === 'side')!.rotation).toBe(270);
+      } finally {
+        wrapper.unmount();
+        await kernel.destroy();
+        await engine.destroy();
+      }
+    },
+  );
+});
+
+/**
  * With the render plugin, `<FormLayer>` paints each field as the engine draws
  * it: one picture per widget, the one of the state it shows. The engine
  * encodes pictures with a 2D canvas, which happy-dom doesn't have, so the

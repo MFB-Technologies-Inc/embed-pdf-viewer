@@ -43,6 +43,7 @@ const text = (over: Partial<Extract<FormField, { kind: 'text' }>> = {}): FormFie
   alternateName: null,
   mappingName: null,
   groupId: null,
+  purpose: null,
   createdBy: null,
   createdAt: null,
   filledBy: null,
@@ -58,6 +59,7 @@ const text = (over: Partial<Extract<FormField, { kind: 'text' }>> = {}): FormFie
   multiline: false,
   password: false,
   comb: false,
+  format: null,
   ...over,
 });
 
@@ -80,6 +82,8 @@ const origin = {
 const event = (value: object) => ({ origin, widgets: [], ...value }) as unknown as DocumentEvent;
 /** A user who may fill in every field. */
 const ALWAYS = () => true;
+/** A user who may fill in none, or a setting that leaves every field out. */
+const NEVER = () => false;
 const LOOK: FormWidgetLook = {
   border: '#6b7280',
   borderWidth: 1,
@@ -90,8 +94,12 @@ const LOOK: FormWidgetLook = {
   fontSize: 12,
   textAlign: 'left',
 };
+/** An unturned widget on its page: its frame is the rect it stands in. */
 const placed = (box: { x: number; y: number; width: number; height: number }) => ({
+  ref: { kind: 'objectNumber' as const, page: toPageRef(3), objectNumber: 4 },
   box,
+  rotation: 0 as const,
+  rect: box,
   look: LOOK,
 });
 const BOXES: PageWidgets = { 4: placed({ x: 10, y: 20, width: 200, height: 24 }) };
@@ -166,6 +174,50 @@ describe('field index', () => {
     ).toEqual([4, 7]);
     expect(Object.keys(pageWidgetsOf(index, 3))).toEqual(['4', '7']);
     expect(shownWidgetsOf(index, 99)).toEqual([]);
+  });
+
+  test("a widget's place is its frame, its quarter turn and the rect it stands in", () => {
+    const FRAME = { x: 20, y: 88, width: 160, height: 24 };
+    const STANDS = { x: 88, y: 20, width: 24, height: 160 };
+    const row = (objectNumber: number, place: object) =>
+      ({
+        subtype: 'widget',
+        ref: { kind: 'objectNumber', page: toPageRef(3), objectNumber },
+        page: toPageRef(3),
+        hidden: false,
+        noView: false,
+        appearanceState: null,
+        ...place,
+      }) as unknown as WidgetAnnotation;
+    const index = indexFields({
+      ...snapshot([text()]),
+      widgets: [
+        // Turned a quarter: its frame's sides are its rect's, swapped.
+        row(4, { box: FRAME, rotation: 270, rect: STANDS }),
+        // Upright, as the engine reads it: no turn, frame and rect the same.
+        row(7, { box: FRAME, rotation: null, rect: FRAME }),
+      ],
+    });
+    const widgets = pageWidgetsOf(index, 3);
+    expect(widgets[4]).toMatchObject({ box: FRAME, rotation: 270, rect: STANDS });
+    expect(widgets[7]).toMatchObject({ box: FRAME, rotation: 0, rect: FRAME });
+    expect(
+      shownWidgetsOf(index, 3).map(({ box, rotation, rect }) => ({ box, rotation, rect })),
+    ).toEqual([
+      { box: FRAME, rotation: 270, rect: STANDS },
+      { box: FRAME, rotation: 0, rect: FRAME },
+    ]);
+    // A fill item carries the same place: the control goes in the frame, turned.
+    const [item] = fillItems(index, 3, widgets, ALWAYS, ALWAYS);
+    expect(item).toMatchObject({ box: FRAME, rotation: 270, rect: STANDS });
+    // A point is on a widget where it stands, not where its frame lies before the turn.
+    expect(widgetAt(index, widgets, { x: 100, y: 30 })).toMatchObject({
+      annotObjectNumber: 4,
+      box: FRAME,
+      rotation: 270,
+      rect: STANDS,
+    });
+    expect(widgetAt(index, widgets, { x: 30, y: 100 })).toBeNull();
   });
 
   test('folds value, structural and batch events from their data', () => {
@@ -292,8 +344,8 @@ describe('field index', () => {
 describe('fill projection', () => {
   test('joins the field plane with widget geometry', () => {
     const index = indexFields(snapshot([text()]));
-    expect(fillItems(index, 3, undefined, ALWAYS)).toEqual([]);
-    const items = fillItems(index, 3, BOXES, ALWAYS);
+    expect(fillItems(index, 3, undefined, ALWAYS, ALWAYS)).toEqual([]);
+    const items = fillItems(index, 3, BOXES, ALWAYS, ALWAYS);
     expect(items.length).toBe(1);
     const item = items[0]!;
     expect(item.control).toBe('text');
@@ -303,16 +355,38 @@ describe('fill projection', () => {
       expect(item.value).toBe('abc');
       expect(item.maxLength).toBe(5);
     }
-    expect(fillItems(index, 99, BOXES, ALWAYS)).toEqual([]);
+    expect(fillItems(index, 99, BOXES, ALWAYS, ALWAYS)).toEqual([]);
   });
 
   test('read-only fields, and fields the user may not fill in, project as disabled', () => {
     const readOnly = text({ readOnly: true });
-    expect(fillItems(indexFields(snapshot([readOnly])), 3, BOXES, ALWAYS)[0]!.disabled).toBe(true);
-    expect(fillItems(indexFields(snapshot([text()])), 3, BOXES, () => false)[0]!.disabled).toBe(
+    expect(
+      fillItems(indexFields(snapshot([readOnly])), 3, BOXES, ALWAYS, ALWAYS)[0]!.disabled,
+    ).toBe(true);
+    expect(fillItems(indexFields(snapshot([text()])), 3, BOXES, NEVER, NEVER)[0]!.disabled).toBe(
       true,
     );
-    expect(fillItems(indexFields(snapshot([text()])), 3, BOXES, ALWAYS)[0]!.disabled).toBe(false);
+    expect(fillItems(indexFields(snapshot([text()])), 3, BOXES, ALWAYS, ALWAYS)[0]!.disabled).toBe(
+      false,
+    );
+  });
+
+  test('whether a field is filled in by hand and whether the user may fill it in are two answers', () => {
+    const index = indexFields(snapshot([text()]));
+    // Left out by the `fillable` setting, with the permission to fill it in.
+    expect(fillItems(index, 3, BOXES, NEVER, ALWAYS)[0]).toMatchObject({
+      disabled: true,
+      canFill: true,
+    });
+    // Without the permission, it is neither.
+    expect(fillItems(index, 3, BOXES, NEVER, NEVER)[0]).toMatchObject({
+      disabled: true,
+      canFill: false,
+    });
+    expect(projectWidget(text(), 4, BOXES[4]!, false, true)).toMatchObject({
+      disabled: true,
+      canFill: true,
+    });
   });
 });
 
@@ -327,6 +401,7 @@ const signature = (over: Partial<Extract<FormField, { kind: 'signature' }>> = {}
   alternateName: 'Sign here',
   mappingName: null,
   groupId: null,
+  purpose: null,
   createdBy: null,
   createdAt: null,
   filledBy: null,
@@ -341,13 +416,13 @@ const signature = (over: Partial<Extract<FormField, { kind: 'signature' }>> = {}
 
 describe('signature widgets', () => {
   test('an unsigned signature field projects a "signature" fill item', () => {
-    const item = projectWidget(signature(), 9, BOXES[4]!, true);
+    const item = projectWidget(signature(), 9, BOXES[4]!, true, true);
     expect(item).toMatchObject({ control: 'signature', signed: false, label: 'Sign here' });
   });
 
   test('a /V on the field marks the item signed', () => {
     const signed = signature({ valueEntry: { kind: 'unsupported' } });
-    expect(projectWidget(signed, 9, BOXES[4]!, true)).toMatchObject({
+    expect(projectWidget(signed, 9, BOXES[4]!, true, true)).toMatchObject({
       control: 'signature',
       signed: true,
     });
@@ -368,5 +443,76 @@ describe('signature widgets', () => {
     });
     expect(widgetAt(index, boxes, { x: 10, y: 10 })).toMatchObject({ annotObjectNumber: 4 });
     expect(widgetAt(index, boxes, { x: 500, y: 500 })).toBeNull();
+  });
+});
+
+const radio = (over: Partial<Extract<FormField, { kind: 'radio' }>> = {}): FormField => ({
+  ref: { kind: 'objectNumber', objectNumber: 20 },
+  name: 'plan',
+  kind: 'radio',
+  origin: 'acroform',
+  readOnly: false,
+  required: false,
+  noExport: false,
+  alternateName: 'Plan',
+  mappingName: null,
+  groupId: null,
+  purpose: null,
+  createdBy: null,
+  createdAt: null,
+  filledBy: null,
+  filledByName: null,
+  filledAt: null,
+  importedBy: null,
+  valueEntry: { kind: 'scalar', value: 'yearly' },
+  defaultValueEntry: { kind: 'none' },
+  value: 'yearly',
+  radiosInUnison: false,
+  noToggleToOff: false,
+  widgets: [
+    { ...formWidget(21, toPageRef(3)), onState: 'monthly', exportValue: 'monthly', checked: false },
+    { ...formWidget(22, toPageRef(3)), onState: '1', exportValue: 'Pay yearly', checked: true },
+  ],
+  ...over,
+});
+
+describe('radio buttons', () => {
+  const box = BOXES[4]!;
+
+  test("each button is named by its group's tooltip and its own option, and says where it comes", () => {
+    expect(projectWidget(radio(), 21, box, true, true, { position: 1, size: 2 })).toMatchObject({
+      control: 'toggle',
+      kind: 'radio',
+      label: 'Plan: monthly',
+      checked: false,
+      exportValue: 'monthly',
+      inGroup: { position: 1, size: 2 },
+    });
+    // The option is the button's export value: its /Opt entry over its on-state name.
+    expect(projectWidget(radio(), 22, box, true, true, { position: 2, size: 2 })).toMatchObject({
+      label: 'Plan: Pay yearly',
+      checked: true,
+      inGroup: { position: 2, size: 2 },
+    });
+  });
+
+  test("a group without a tooltip goes by the field's name; a checkbox keeps the field's label", () => {
+    expect(projectWidget(radio({ alternateName: null }), 21, box, true, true)).toMatchObject({
+      label: 'plan: monthly',
+      inGroup: null,
+    });
+    const checkbox = {
+      ...radio(),
+      kind: 'checkbox',
+      checked: true,
+      exportValue: 'Yes',
+      widgets: [
+        { ...formWidget(21, toPageRef(3)), onState: 'Yes', exportValue: 'Yes', checked: true },
+      ],
+    } as unknown as FormField;
+    expect(projectWidget(checkbox, 21, box, true, true)).toMatchObject({
+      kind: 'checkbox',
+      label: 'Plan',
+    });
   });
 });

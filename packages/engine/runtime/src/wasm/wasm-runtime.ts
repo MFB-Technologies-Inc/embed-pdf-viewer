@@ -338,14 +338,6 @@ function createWasmMemory(module: EmscriptenModule): PdfRuntimeMemory {
       // A pointer read from memory is a `Ptr`, as on the native runtime.
       return kind === 'ptr' ? toPtr(value) : value;
     },
-    peekWords(ptr, bytes) {
-      const { buffer } = module.HEAPU8;
-      const at = toNumber(ptr);
-      return {
-        f32: new Float32Array(buffer, at, bytes >> 2),
-        i32: new Int32Array(buffer, at, bytes >> 2),
-      };
-    },
     poke(ptr, kind, value, byteOffset = 0) {
       // A `Ptr` written as a pointer, as on the native runtime.
       const stored = kind === 'ptr' && typeof value === 'bigint' ? Number(value) : value;

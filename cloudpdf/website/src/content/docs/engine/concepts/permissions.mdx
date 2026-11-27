@@ -327,10 +327,15 @@ will fail. See [Permissions](/docs/headless/concepts/permissions) in the headles
 ### Groups
 
 An annotation or a form field can belong to a group (`groupId`): a team or a department for
-annotations, whoever fills them in for fields. What a user creates goes in their own group
-(`identity.groupId`). `annotations:set-group:group=<id>` and `fields:set-group:group=<id>` let a
-user put annotations or fields in that group; `annotations:update:group=<id>` lets them edit that
-group's annotations, and `fields:fill:group=<id>` fill in that group's fields.
+annotations, whoever fills them in for fields. An annotation a user creates goes in their own
+group (`identity.groupId`). A form field is in no group until its designer names one, because a
+field is usually made for someone else. `annotations:set-group:group=<id>` and
+`fields:set-group:group=<id>` let a user put annotations or fields in that group;
+`annotations:update:group=<id>` lets them edit that group's annotations, and
+`fields:fill:group=<id>` fill in that group's fields.
+
+A user's own group takes no `set-group` permission. An annotation's group can be changed, never
+removed. A field's can be removed (`groupId: null`), which takes `doc.forms.modify` alone.
 
 A `group=<id>` permission names the group it covers: the user doesn't need to be in it. To give
 someone several groups, give them one permission per group.
@@ -353,8 +358,9 @@ and buttons that submit the form or open a link. A script runs for everyone who 
 afterwards. In your viewer it can change what they type or hide fields; opened in another PDF app,
 a script or a submit button can send their answers anywhere. So a user who may design fields
 (`doc.forms.modify`) doesn't get it with that. Buttons that only go to a page, reset the form, or
-show and hide fields need `doc.forms.modify` alone. An import without it leaves the scripts, submits
-and links out and copies the rest.
+show and hide fields need `doc.forms.modify` alone, and so does a field's date or time `format`:
+the engine writes its two scripts itself, from a pattern it checked. An import without it leaves
+the scripts, submits and links out and copies the rest.
 
 It doesn't make a script's result trustworthy: a client can skip scripts and send any value. A
 server that must trust a calculated value calculates it itself.

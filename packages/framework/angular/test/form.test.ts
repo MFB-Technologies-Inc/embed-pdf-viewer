@@ -199,6 +199,102 @@ describe('<epdf-form-layer> over fields made from code', () => {
 });
 
 /**
+ * A field turned a quarter (`/MK /R`): its control sits in the field's frame, turned with it
+ * about its middle, so what's typed reads the way the field does. An unturned field's control
+ * is placed as it always was.
+ */
+describe('<epdf-form-layer> over a turned field', () => {
+  it(
+    'places the control in the field’s frame and turns it with the field',
+    { timeout: 45_000 },
+    async () => {
+      const { fixture, form } = await openForm('hello_world.pdf', 'blank');
+      const page = kernelOf(fixture).documents.getPage(0, 'blank')!.ref;
+      // Its frame is 160 × 20; turned 270° it stands 20 wide and 160 tall.
+      await form.create({
+        kind: 'text',
+        name: 'side',
+        widgets: [{ page, box: { x: 72, y: 300, width: 160, height: 20 }, rotation: 270 }],
+      });
+      await form.create({
+        kind: 'text',
+        name: 'flat',
+        widgets: [{ page, rect: { x: 72, y: 100, width: 160, height: 20 } }],
+      });
+      await showPage(fixture, 'blank', page);
+
+      const side = await vi.waitFor(() => {
+        const found = element(fixture).querySelector<HTMLInputElement>('input[aria-label="side"]');
+        expect(found).not.toBeNull();
+        return found!;
+      });
+      const box = side.parentElement!;
+      expect(box.style.left).toBe('72px');
+      expect(box.style.top).toBe('300px');
+      expect(box.style.width).toBe('160px');
+      expect(box.style.height).toBe('20px');
+      expect(box.style.transform).toBe('rotate(270deg)');
+      // The item says where it stands: the frame turned about its middle.
+      const item = form.listWidgets(page).find((each) => each.label === 'side')!;
+      expect(item.rotation).toBe(270);
+      expect(item.rect).toEqual({ x: 142, y: 230, width: 20, height: 160 });
+
+      const flat = element(fixture).querySelector<HTMLInputElement>('input[aria-label="flat"]')!;
+      expect(flat.parentElement!.style.transform).toBe('');
+      expect(flat.parentElement!.style.left).toBe('72px');
+
+      // Typing into the turned field fills it in, and it keeps its turn.
+      side.dispatchEvent(new FocusEvent('focus'));
+      side.value = 'Up the page';
+      side.dispatchEvent(new Event('input', { bubbles: true }));
+      side.dispatchEvent(new FocusEvent('blur'));
+      await vi.waitFor(() =>
+        expect(form.getValue(toFieldRef('side'))).toEqual({ value: 'Up the page' }),
+      );
+      expect(form.listWidgets(page).find((each) => each.label === 'side')!.rotation).toBe(270);
+    },
+  );
+});
+
+/**
+ * A radio group's buttons are placed apart on the page, with no group element around them: each
+ * button is named by its group's tooltip and its own option, and says where it comes in its group.
+ */
+describe('<epdf-form-layer> radio buttons', () => {
+  it(
+    'names each button by its option, and says where it comes in its group',
+    { timeout: 45_000 },
+    async () => {
+      const { fixture, form } = await openForm('hello_world.pdf', 'blank');
+      const page = kernelOf(fixture).documents.getPage(0, 'blank')!.ref;
+      await form.create({
+        kind: 'radio',
+        name: 'plan',
+        alternateName: 'Plan',
+        widgets: [
+          { page, rect: { x: 72, y: 100, width: 16, height: 16 }, exportValue: 'Monthly' },
+          { page, rect: { x: 200, y: 100, width: 16, height: 16 }, exportValue: 'Yearly' },
+        ],
+      });
+      await showPage(fixture, 'blank', page);
+
+      const radio = (name: string) =>
+        element(fixture).querySelector<HTMLElement>(`[role="radio"][aria-label="${name}"]`);
+      const monthly = await vi.waitFor(() => {
+        const found = radio('Plan: Monthly');
+        expect(found).not.toBeNull();
+        return found!;
+      });
+      const yearly = radio('Plan: Yearly')!;
+      expect(monthly.getAttribute('aria-posinset')).toBe('1');
+      expect(monthly.getAttribute('aria-setsize')).toBe('2');
+      expect(yearly.getAttribute('aria-posinset')).toBe('2');
+      expect(yearly.getAttribute('aria-setsize')).toBe('2');
+    },
+  );
+});
+
+/**
  * With the render plugin, the layer paints each field as the engine draws it: one picture per
  * widget, the one of the state it shows. The engine encodes pictures with a 2D canvas, which
  * happy-dom doesn't have, so the render plugin's pictures are stand-ins here: a URL naming widget

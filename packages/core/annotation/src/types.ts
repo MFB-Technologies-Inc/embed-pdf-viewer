@@ -236,6 +236,8 @@ export interface ModelAnnotation {
    * record draws live while a gesture reshapes it, as a square does.
    */
   painter?: (box: Rect) => readonly SceneNode[];
+  /** A lent record's accent, from its lender ({@link RecordAccent}); absent for a record without one. */
+  accent?: RecordAccent;
   /**
    * This session's authority over this record (see permissions.md), set by the
    * plugin from the security service; the core only reads it. Fused into
@@ -677,6 +679,13 @@ export type Placement =
   | { kind: 'box'; rect: Rect; rot: number }
   | { kind: 'segment'; a: Point; b: Point };
 
+/**
+ * The box of each page a command acts on (`{0, 0, width, height}`), by the
+ * page's object number. Per-command context, as `pageBox` is a pointer
+ * sample's: never stored on the model.
+ */
+export type PageBoxes = Readonly<Record<number, Rect>>;
+
 export type Message =
   | { type: 'editPointer'; phase: 'down' | 'move' | 'up'; in: PointerInput }
   | { type: 'marqueePointer'; phase: 'down' | 'move' | 'up'; in: PointerInput }
@@ -770,10 +779,13 @@ export type Message =
   // Turn the selection a quarter turn, clockwise (90) or back (-90): the
   // toolbar's rotate buttons. A single shape turns about its own pivot, a
   // multi-selection about the middle of the box around it; locked members stay.
-  | { type: 'rotateSelection'; degrees: 90 | -90 }
+  // With `pageBoxes`, what turned stays on its page: on each page it moves
+  // together, by the least that puts it back on the page, as a move keeps it.
+  | { type: 'rotateSelection'; degrees: 90 | -90; pageBoxes?: PageBoxes }
   // Reset rotation to the as-authored orientation: box `rot → 0`; vertex points
   // spun by `-rot` about their centroid, `rot → 0`. One patch effect per member.
-  | { type: 'resetRotation' }
+  // `pageBoxes` keeps what turned on its page, as for `rotateSelection`.
+  | { type: 'resetRotation'; pageBoxes?: PageBoxes }
   | { type: 'delete' }
   | { type: 'cancel' }
   /** These records left the view (deleted elsewhere, a refused create): drop every reference to them. */
@@ -811,6 +823,18 @@ export type Effect =
   | { type: 'syncLink'; id: Id; target: PdfLinkTarget | null }
   /** Delete one record from the document. */
   | { type: 'delete'; id: Id };
+
+/**
+ * A color a lent record shows in beside its own look, from its lender (a form
+ * field's group): a renderer draws it over the record's box as a light fill,
+ * `strength` strong, and an edge. It is never part of the record itself.
+ */
+export interface RecordAccent {
+  /** A CSS color. */
+  readonly color: string;
+  /** How strong the fill shows: from `0`, not at all, to `1`. */
+  readonly strength: number;
+}
 
 /** Per-annotation render data — its content geometry + style + live state. */
 export interface RenderItem {
@@ -868,6 +892,8 @@ export interface RenderItem {
    * of the kind's own. Made when it's first asked for, not before.
    */
   lentScene?: () => readonly SceneNode[];
+  /** A lent record's accent (`ModelAnnotation.accent`), drawn over its frame; absent for a record without one. */
+  accent?: RecordAccent;
   /** How opaque a ghost paints (0–1); a painter lets `--epdf-ghost-opacity` win over it. */
   ghostOpacity?: number;
   selected: boolean;

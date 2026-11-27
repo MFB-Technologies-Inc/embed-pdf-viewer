@@ -1,6 +1,6 @@
 {
   "name": "@embedpdf/engine-core",
-  "version": "3.3.0",
+  "version": "3.4.0",
   "private": false,
   "description": "The contract every EmbedPDF engine follows: its types, its errors and the shape of every call.",
   "type": "module",
@@ -71,7 +71,7 @@
   ],
   "license": "Apache-2.0",
   "dependencies": {
-    "zod": "^3.23.8"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "rimraf": "^5.0.0",

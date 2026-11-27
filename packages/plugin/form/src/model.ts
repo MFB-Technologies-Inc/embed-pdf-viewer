@@ -380,9 +380,30 @@ export interface FormWidgetLook {
   readonly textAlign: 'left' | 'center' | 'right';
 }
 
-/** One widget on its page: its page-space box and its look. */
-export interface PageWidget {
+/**
+ * Where a widget is on its page, as the engine reads it: the frame its
+ * contents are laid out in, its quarter turn, and the rect it stands in. An
+ * unturned widget's frame is its rect.
+ */
+export interface WidgetPlace {
+  /** The frame the widget's contents are laid out in, before its turn. */
   readonly box: Box;
+  /** Its turn, degrees clockwise about the middle of `box`: a quarter turn (`/MK /R`), `0` upright. */
+  readonly rotation: 0 | 90 | 180 | 270;
+  /** Where it stands on its page: `box` turned (its sides swapped at 90 and 270). */
+  readonly rect: Box;
+}
+
+/** A widget row's place: its frame (its rect, for a row without one), its turn and its rect. */
+export const placeOf = (row: WidgetAnnotation): WidgetPlace => ({
+  box: row.box ?? row.rect,
+  rotation: row.box ? (row.rotation ?? 0) : 0,
+  rect: row.rect,
+});
+
+/** One widget on its page: its address, where it is and its look. */
+export interface PageWidget extends WidgetPlace {
+  readonly ref: AnnotationRef;
   readonly look: FormWidgetLook;
 }
 
@@ -410,7 +431,8 @@ export function pageWidgetsOf(index: FieldIndex, pageObjectNumber: number): Page
     if (row.page.objectNumber !== pageObjectNumber || row.ref.kind !== 'objectNumber') continue;
     if (!shownOnScreen(row)) continue;
     widgets[row.ref.objectNumber] = {
-      box: row.rect,
+      ref: row.ref,
+      ...placeOf(row),
       look: {
         border: row.color ?? null,
         borderWidth: row.strokeWidth ?? 1,
@@ -426,11 +448,13 @@ export function pageWidgetsOf(index: FieldIndex, pageObjectNumber: number): Page
   return widgets;
 }
 
-/** A widget a page shows: its address, the appearance state it shows, and how new its look is. */
-export interface ShownWidget {
+/**
+ * A widget a page shows: its address, where it is, the appearance state it
+ * shows, and how new its look is. Its picture and the painter's drawing both
+ * fill `rect`, where it stands: each holds the widget's turn already.
+ */
+export interface ShownWidget extends WidgetPlace {
   readonly ref: AnnotationRef;
-  /** Where it stands on its page, in page space: its picture's box, and the painter's. */
-  readonly rect: Box;
   /** The state it shows (`/AS`), or `null` for a widget without states. */
   readonly appearanceState: string | null;
   /**
@@ -460,7 +484,7 @@ export function shownWidgetsOf(
     if (row.page.objectNumber !== pageObjectNumber || !shownOnScreen(row)) continue;
     shown.push({
       ref: row.ref,
-      rect: row.rect,
+      ...placeOf(row),
       appearanceState: row.appearanceState,
       ...lookOf(row),
     });
@@ -473,12 +497,10 @@ export function widgetRowOf(index: FieldIndex, annotObjectNumber: number): Widge
   return position === undefined ? null : (index.snapshot?.widgets[position] ?? null);
 }
 
-/** A widget hit: the annotation under the point and the field it belongs to. */
-export interface WidgetHit {
+/** A widget hit: the annotation under the point, the field it belongs to, and where it is. */
+export interface WidgetHit extends WidgetPlace {
   readonly annotObjectNumber: number;
   readonly field: FormField;
-  /** The widget's page-space box. */
-  readonly box: Box;
 }
 
 export const boxContains = (box: Box, point: { x: number; y: number }): boolean =>
@@ -487,7 +509,7 @@ export const boxContains = (box: Box, point: { x: number; y: number }): boolean 
   point.y >= box.y &&
   point.y <= box.y + box.height;
 
-/** The widget under a page-space point; nested widgets resolve to the smallest box. */
+/** The widget under a page-space point; nested widgets resolve to the smallest one. */
 export function widgetAt(
   index: FieldIndex,
   widgets: PageWidgets | undefined,
@@ -495,13 +517,14 @@ export function widgetAt(
 ): WidgetHit | null {
   if (!widgets) return null;
   let best: WidgetHit | null = null;
-  for (const [key, { box }] of Object.entries(widgets)) {
-    if (!boxContains(box, point)) continue;
+  for (const [key, { box, rotation, rect }] of Object.entries(widgets)) {
+    // Where it stands is what the point is on: a quarter turn keeps its area.
+    if (!boxContains(rect, point)) continue;
     const annotObjectNumber = Number(key);
     const field = fieldForWidget(index, annotObjectNumber);
     if (!field) continue;
-    if (!best || box.width * box.height < best.box.width * best.box.height) {
-      best = { annotObjectNumber, field, box };
+    if (!best || rect.width * rect.height < best.rect.width * best.rect.height) {
+      best = { annotObjectNumber, field, box, rotation, rect };
     }
   }
   return best;
@@ -515,9 +538,46 @@ export interface FocusedWidget {
   readonly widget: number;
 }
 
-/** The plugin's session state: the box the cursor is in; a write in flight shows in the mirror's view. */
-export interface FormModel {
-  readonly focused: FocusedWidget | null;
+/** A group as the app named it for this document (`setGroups()`): what it gave, nothing worked out. */
+export interface NamedGroup {
+  readonly id: string;
+  readonly label: string | null;
+  readonly color: string | null;
 }
 
-export const initialFormModel = (): FormModel => ({ focused: null });
+const NO_NAMED_GROUPS: readonly NamedGroup[] = Object.freeze([]);
+
+/**
+ * The plugin's session state: the box the cursor is in, the group that fields placed with a
+ * tool go in, and who the app says this document's groups are. A write in flight shows in the
+ * mirror's view.
+ */
+export interface FormModel {
+  readonly focused: FocusedWidget | null;
+  /** The group a field placed with a tool goes in; `null` when it names none. */
+  readonly designGroup: string | null;
+  /** The groups the app named, in its order, each id once. */
+  readonly groups: readonly NamedGroup[];
+}
+
+export const initialFormModel = (): FormModel => ({
+  focused: null,
+  designGroup: null,
+  groups: NO_NAMED_GROUPS,
+});
+
+/** Name this document's groups: the whole list. The same list again changes nothing. */
+export function setGroups(state: FormModel, groups: readonly NamedGroup[]): FormModel {
+  const same =
+    groups.length === state.groups.length &&
+    groups.every((group, at) => {
+      const held = state.groups[at]!;
+      return group.id === held.id && group.label === held.label && group.color === held.color;
+    });
+  return same ? state : { ...state, groups };
+}
+
+/** Name the group that fields placed with a tool go in; the same group changes nothing. */
+export function setDesignGroup(state: FormModel, groupId: string | null): FormModel {
+  return state.designGroup === groupId ? state : { ...state, designGroup: groupId };
+}

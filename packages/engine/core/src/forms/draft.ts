@@ -1,3 +1,4 @@
+import type { FormFieldFormatWritable } from './format';
 import type { WidgetStyleDraftFields } from '../annotation/kinds/widget.shared';
 import { writesScripts, type FieldActionsPatch, type WidgetActionsPatch } from '../dto/PdfAction';
 import type { PdfRotation } from '../geometry/primitives';
@@ -77,10 +78,17 @@ interface FormFieldDraftBase {
   /** /TM — the export mapping name. */
   mappingName?: string;
   /**
-   * The group the field goes in: who fills it in. Default: the session's own
-   * group (`identity.groupId`). Another group takes `fields:set-group` for it.
+   * The group the field goes in: who fills it in. Left out or `null`, the
+   * field is in no group. The session's own group (`identity.groupId`) takes
+   * no right of its own; another takes `fields:set-group` for it.
    */
-  groupId?: string;
+  groupId?: string | null;
+  /**
+   * What the field's value means: `email`, `date-signed`, or a name of
+   * your own, 1 to 256 characters with no space at its start or end. Left
+   * out or `null`, the field has none.
+   */
+  purpose?: string | null;
   /**
    * The field's scripts, by event (JavaScript only). A `calculate` script
    * puts the field at the end of the form's calculation order. Writing a
@@ -98,6 +106,14 @@ export interface TextFieldDraft<
   multiline?: boolean;
   password?: boolean;
   comb?: boolean;
+  /**
+   * The shape the value has: a date or a time with its pattern. The engine
+   * writes the field's format script and keystroke script from it, as
+   * Acrobat writes them, so it takes no `doc.forms.script` and can't go
+   * beside `actions.format` or `actions.keystroke`. Left out or `null`,
+   * the field has no format.
+   */
+  format?: FormFieldFormatWritable | null;
   widgets?: WidgetPlacement<C>[];
 }
 
@@ -127,6 +143,8 @@ export interface ComboBoxFieldDraft<
   edit?: boolean;
   options?: FormFieldOptionInput[];
   defaultValue?: string;
+  /** The shape the value has, as a text field's draft takes it. */
+  format?: FormFieldFormatWritable | null;
   widgets?: WidgetPlacement<C>[];
 }
 

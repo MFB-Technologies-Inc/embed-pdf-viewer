@@ -10,6 +10,7 @@ import type {
   Effect,
   Id,
   Model,
+  RecordAccent,
   Rect,
   RenderItem,
   SceneNode,
@@ -145,6 +146,11 @@ export interface AnnotationLender {
    * draws live while a gesture reshapes it, as a square does.
    */
   painter(record: Annotation): ((box: Rect) => readonly SceneNode[]) | null;
+  /**
+   * The color a record shows in beside its own look, and how strong (a form field's group's);
+   * `null` for a record without one. Read again whenever {@link records} hands out a new object.
+   */
+  accentOf?(record: Annotation): RecordAccent | null;
   /** Its records' pictures on a page, at rest, in every state, each with its record's picture version. */
   renderAppearances(
     page: PageRef,
@@ -403,11 +409,18 @@ export interface AnnotationHostCapability extends AnnotationCapability {
   clearGhost(): void;
   /**
    * A sibling plugin's placement gesture with one of this plugin's tools (the
-   * form palette's drag-to-place): its press and the pointer now. Once it is a
-   * drag, the page paints what releasing places; under that the tool's ghost
-   * still shows the click.
+   * form palette's drag-to-place): its press and the pointer now, and
+   * `displayRotation`, the page's view at the press, which an upright tool
+   * lays its drag out by. Once it is a drag, the page paints what releasing
+   * places; under that the tool's ghost still shows the click.
    */
-  previewPlacement(toolId: string, page: PageRef, from: Point, to: Point): void;
+  previewPlacement(
+    toolId: string,
+    page: PageRef,
+    from: Point,
+    to: Point,
+    displayRotation?: Rotation,
+  ): void;
   clearPlacementPreview(): void;
   /** The armed stamp's ghost on a page, for the render layer's `<img>`. */
   getImageGhost(page: PageRef): ImageGhost | null;

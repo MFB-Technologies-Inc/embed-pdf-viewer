@@ -25,7 +25,12 @@ import type { FormCommitSinkResult } from '@embedpdf/plugin-actions/contract/hos
 import type { FontCss } from '@embedpdf/plugin-fonts/contract';
 import type { AppearancePicture } from '@embedpdf/plugin-render/contract/host';
 
-import type { FormCapability, FormCommitResult, FormSetValueResult } from './contract';
+import type {
+  FormCapability,
+  FormCommitResult,
+  FormSetValueResult,
+  FormWidgetAnchor,
+} from './contract';
 import type { Box, ShownWidget } from './model';
 import type { WidgetPainting } from './services/looks';
 import { FormToken as PublicFormToken } from './token';
@@ -42,8 +47,20 @@ export type { TextEditorLayout } from '@embedpdf/core-form';
  * into view.
  */
 export interface FormFocusTarget {
-  /** Take the cursor; `select` selects a text box's text, so typing replaces it. */
-  focus(options: { readonly select: boolean }): void;
+  /**
+   * Whether the control takes the cursor, asked each time the cursor is about to move. A box
+   * that holds nothing to focus says no: a signature field with nothing to sign it, a control
+   * of an app's own with no element Tab stops at. `focus()`, `focusNext()` and Tab pass over
+   * its field. A target without it takes the cursor.
+   */
+  takesCursor?(): boolean;
+  /**
+   * Take the cursor; `select` selects a text box's text, so typing replaces it. `false` when
+   * nothing took it after all: the cursor then passes over the box, as over one that says it
+   * takes none. A target that answers anything else, or nothing, took it: the return is
+   * `unknown`, so one whose `focus` returns a timer or a promise fits too.
+   */
+  focus(options: { readonly select: boolean }): unknown;
 }
 
 /**
@@ -104,9 +121,19 @@ export interface FormHostCapability extends FormCapability {
   /** The page box in page space, for keeping a placement on the page; `null` for a page that isn't there. */
   getPageBox(page: PageRef): Box | null;
   /**
+   * Where UI attaches to one box of a field: its page and where the box stands, following the box
+   * as it is moved in design mode. The same object until the box moves; `null` for a box that
+   * isn't there, or that shows nowhere.
+   */
+  getWidgetAnchor(widget: AnnotationRef): FormWidgetAnchor | null;
+  /** Whether the cursor is in this box. */
+  isWidgetFocused(widget: AnnotationRef): boolean;
+  /**
    * Lend the plugin a box's control while it's on screen, so `focus()` and `focusNext()` can put
    * the cursor in it; a box `focus()` asked for before its page came in takes the cursor now.
-   * Returns the call that takes it back.
+   * Lend one for a box that holds nothing to focus too, saying so (`takesCursor`): the cursor
+   * passes over a box on screen that takes none, and nothing else tells the plugin that a box
+   * it hasn't seen can't take it. Returns the call that takes it back.
    */
   attachFocusTarget(widget: AnnotationRef, target: FormFocusTarget): () => void;
   /**

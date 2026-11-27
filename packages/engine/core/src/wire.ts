@@ -208,6 +208,8 @@ export {
   FormFieldOptionInputSchema,
   FormFieldDraftSchema,
   FormFieldPatchSchema,
+  FormFieldFormatSchema,
+  FormFieldFormatWritableSchema,
   FormValueEntrySchema,
 } from './forms/schema';
 export {
@@ -219,6 +221,7 @@ export { DEFAULT_LAYER_NAME, wirePaths, wireTemplates } from './wire/paths';
 export {
   AnnotationResourceKeysSchema,
   AppearanceResourceKeysSchema,
+  FieldAppearanceResourceKeysSchema,
   FileResourceKeysSchema,
   ImageResourceKeysSchema,
   ResourceKeySchema,
@@ -481,6 +484,8 @@ export {
 } from './wire/cachedReads';
 export {
   API_VERSION,
+  FIELD_PURPOSE_AND_FORMAT_SINCE,
+  MARK_IMAGE_OR_NONE_SINCE,
   VALIDATION_INFO_SINCE,
   apiVersionOf,
   lacksWhatArrivedIn,

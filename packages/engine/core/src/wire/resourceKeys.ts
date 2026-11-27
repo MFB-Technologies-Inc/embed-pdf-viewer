@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from '../zod';
 
 /**
  * A multipart message carries each file as a part `resource:<key>`, and its
@@ -16,6 +16,14 @@ export const AnnotationResourceKeysSchema = z
 
 /** A drawn appearance: a signature's mark, as a one-page PDF or an image. */
 export const AppearanceResourceKeysSchema = z.object({ appearance: ResourceKeySchema }).strict();
+
+/**
+ * The mark of a signature field that isn't signed: its part, or `null` for
+ * no mark, which takes out the one the field has.
+ */
+export const FieldAppearanceResourceKeysSchema = z
+  .object({ appearance: ResourceKeySchema.nullable() })
+  .strict();
 
 /** An attachment's file. */
 export const FileResourceKeysSchema = z.object({ file: ResourceKeySchema }).strict();

@@ -8,8 +8,21 @@
  * `form-field` ({@link textFieldStyleOf}, {@link listBoxStyleOf}); its colors
  * from the form settings ({@link formColorsOf}); its font from the form plugin.
  */
-import { listBoxStyleOf, scaleOf, textFieldFontPxOf, textFieldStyleOf } from './form-field';
-import type { CssFont, FieldLook, FormColors, ListBoxStyle, TextFieldStyle } from './form-field';
+import {
+  fieldTintOf,
+  listBoxStyleOf,
+  scaleOf,
+  textFieldFontPxOf,
+  textFieldStyleOf,
+} from './form-field';
+import type {
+  CssFont,
+  FieldAccent,
+  FieldLook,
+  FormColors,
+  ListBoxStyle,
+  TextFieldStyle,
+} from './form-field';
 import { legibleScaleOf, legibleShrinkOf } from './legible-text';
 import type { PixelRect } from './page-pixels';
 
@@ -39,33 +52,58 @@ export type WidgetBoxStyle = {
   top: string;
   width: string;
   height: string;
+  /**
+   * A turned widget's quarter turn, about the box's middle: the box is the
+   * widget's frame, and turned it covers where the widget stands. Left out
+   * for a widget that isn't turned.
+   */
+  transform?: string;
   /** Always the widget's event surface: the control inside gates the edits. */
   pointerEvents: 'auto';
-  /** The edge of a field without a border of its own, so people see where to fill in. */
+  /**
+   * The edge of a field without a border of its own, so people see where to fill in; for a
+   * field that shows its group's color, an edge of that color.
+   */
   boxShadow?: string;
+  /** A fill of the field's group's color, over the field's picture. */
+  background?: string;
 };
 
 /**
- * The style of a widget's box at `frame` (the widget's box in the page
- * layer's pixels). `edge: false` leaves the edge out, for a control that draws
- * its own (a list box) or never has one (a button).
+ * The style of a widget's box at `frame`: the widget's frame (`box`, what its
+ * contents are laid out in) in the page layer's pixels. A turned widget's box
+ * turns with it, about its middle (`rotation`, a quarter turn clockwise), so
+ * whatever control sits in it reads the way the field does, and the turned
+ * box covers the rect the widget stands in. A widget with an `accent` (its
+ * group's color, while its user fills it in) shows it: a fill, as strong as
+ * the accent says, and an edge. `edge: false` leaves the edge and the group's
+ * color out, for a control that draws its own (a list box, a control of the
+ * app's) or never has one (a button).
  */
 export function widgetBoxStyleOf(
-  widget: { look: Pick<FieldLook, 'border'> },
+  widget: {
+    look: Pick<FieldLook, 'border'>;
+    rotation?: number | null;
+    accent?: FieldAccent | null;
+  },
   frame: PixelRect,
   colors: FormColors,
   { edge = true }: { edge?: boolean } = {},
 ): WidgetBoxStyle {
+  const tint = edge && widget.accent ? fieldTintOf(widget.accent) : null;
   return {
     position: 'absolute',
     left: `${frame.left}px`,
     top: `${frame.top}px`,
     width: `${frame.width}px`,
     height: `${frame.height}px`,
+    ...(widget.rotation ? { transform: `rotate(${widget.rotation}deg)` } : {}),
     pointerEvents: 'auto',
-    ...(edge && widget.look.border === null
-      ? { boxShadow: `inset 0 0 0 1px ${colors.border}` }
-      : {}),
+    ...(tint
+      ? { boxShadow: `inset 0 0 0 1px ${tint.edge}`, background: tint.fill }
+      : edge && widget.look.border === null
+        ? { boxShadow: `inset 0 0 0 1px ${colors.border}` }
+        : {}),
   };
 }
 

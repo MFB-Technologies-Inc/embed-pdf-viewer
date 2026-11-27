@@ -1,4 +1,5 @@
 import type { FormFieldOptionInput } from './draft';
+import type { FormFieldFormatWritable } from './format';
 import type { FieldActionsPatch } from '../dto/PdfAction';
 
 /**
@@ -21,9 +22,12 @@ interface FormFieldPatchBase {
   mappingName?: string | null;
   /**
    * Move the field to another group: the session's own, or one it has
-   * `fields:set-group` for. A group can be changed, never removed.
+   * `fields:set-group` for. `null` takes the field out of its group, which
+   * takes no `fields:set-group` right: form design is enough.
    */
-  groupId?: string;
+  groupId?: string | null;
+  /** What the field's value means; `null` takes the purpose away. */
+  purpose?: string | null;
   /**
    * The field's scripts, by event (JavaScript only): a script sets one,
    * `null` removes it, an event left out keeps what it has. Adding a
@@ -42,6 +46,14 @@ export interface TextFieldPatch extends FormFieldPatchBase {
   multiline?: boolean;
   password?: boolean;
   comb?: boolean;
+  /**
+   * The shape the value has: a date or a time with its pattern, which
+   * replaces the field's format script and keystroke script; `null`
+   * removes both. The format the field already has changes nothing. It
+   * takes no `doc.forms.script`, and can't go beside `actions.format` or
+   * `actions.keystroke`.
+   */
+  format?: FormFieldFormatWritable | null;
 }
 
 export interface CheckboxFieldPatch extends FormFieldPatchBase {
@@ -63,6 +75,8 @@ export interface ComboBoxFieldPatch extends FormFieldPatchBase {
    * exports that vanish are dropped; an edit combo's free text survives.
    */
   options?: FormFieldOptionInput[];
+  /** The shape the value has, as a text field's patch takes it. */
+  format?: FormFieldFormatWritable | null;
 }
 
 export interface ListBoxFieldPatch extends FormFieldPatchBase {

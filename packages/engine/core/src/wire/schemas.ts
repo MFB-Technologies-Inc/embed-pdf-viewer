@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from '../zod';
 
 import {
   PAGE_PRINT_FAMILIES,
@@ -9,7 +9,11 @@ import {
   type PageRenderFamilySpec,
   type PageRenderPin,
 } from './renderFamilies';
-import { AppearanceResourceKeysSchema, ImageResourceKeysSchema } from './resourceKeys';
+import {
+  AppearanceResourceKeysSchema,
+  FieldAppearanceResourceKeysSchema,
+  ImageResourceKeysSchema,
+} from './resourceKeys';
 import type { AnnotationList } from '../annotation/AnnotationList';
 import type {
   Font,
@@ -61,6 +65,8 @@ import { EngineErrorCode } from '../errors/EngineErrorCode';
 import {
   FormFieldDraftSchema,
   FormFieldDTOSchema,
+  FormFieldFormatSchema,
+  FormFieldFormatWritableSchema,
   FormFieldPatchSchema,
   FormFieldWidgetSchema,
   FormValueEntrySchema,
@@ -646,7 +652,7 @@ export const PageTextSnapshotSchema: z.ZodType<PageTextSnapshot> = z
   .superRefine((snapshot, ctx) => {
     const violation = charMapViolation(snapshot.charCount, snapshot.text.length, snapshot.charMap);
     if (violation !== null) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['charMap'], message: violation });
+      ctx.addIssue({ code: 'custom', path: ['charMap'], message: violation });
     }
   });
 
@@ -831,7 +837,7 @@ const AppearanceModesSchema = z.string().transform((value, ctx) => {
     canonical.join('-') !== value
   ) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       message:
         'modes must name some but not all of normal, rollover, down, in that order, joined by -',
     });
@@ -865,13 +871,13 @@ const AppearanceModesSchema = z.string().transform((value, ctx) => {
  */
 function buildPageRenderQuerySchema(picture: PageRenderFamilySpec): z.ZodType<PageRenderQuery> {
   const { family, draws, pins, print, thumbnail } = picture;
-  const pinFields: Record<string, z.ZodTypeAny> = {};
+  const pinFields: Record<string, z.ZodType> = {};
   for (const pin of pins) pinFields[pin] = z.coerce.number().int().positive().optional();
-  const turnFields: Record<string, z.ZodTypeAny> = {
+  const turnFields: Record<string, z.ZodType> = {
     rotation: RenderRotationSchema.optional(),
     background: RenderBackgroundSchema.optional(),
   };
-  const screenFields: Record<string, z.ZodTypeAny> = print
+  const screenFields: Record<string, z.ZodType> = print
     ? {}
     : thumbnail
       ? turnFields
@@ -896,7 +902,7 @@ function buildPageRenderQuerySchema(picture: PageRenderFamilySpec): z.ZodType<Pa
         for (const pin of pins) {
           if (pinned[pin] === undefined) continue;
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             path: [pin],
             message: `${pin} requires contentVersion`,
           });
@@ -905,7 +911,7 @@ function buildPageRenderQuerySchema(picture: PageRenderFamilySpec): z.ZodType<Pa
       }
       if (v.format === undefined) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: ['format'],
           message: 'versioned render requires format',
         });
@@ -913,7 +919,7 @@ function buildPageRenderQuerySchema(picture: PageRenderFamilySpec): z.ZodType<Pa
       for (const field of ['engine', 'shape'] as const) {
         if (v[field] !== undefined) continue;
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: [field],
           message: `versioned render requires ${field}`,
         });
@@ -921,7 +927,7 @@ function buildPageRenderQuerySchema(picture: PageRenderFamilySpec): z.ZodType<Pa
       for (const pin of pins) {
         if (pinned[pin] !== undefined) continue;
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: [pin],
           message: `a versioned ${family} picture requires ${pin}`,
         });
@@ -1012,9 +1018,12 @@ export function pagePictureQuerySchema(picture: PageRenderFamilySpec): z.ZodType
  * asked for.
  */
 function buildAppearancesQuerySchema<Pin extends 'annotationVersion' | 'widgetVersion'>(pin: Pin) {
+  const pinField: Record<string, z.ZodType> = {
+    [pin]: z.coerce.number().int().positive().optional(),
+  };
   return z
     .object({
-      [pin]: z.coerce.number().int().positive().optional(),
+      ...pinField,
       engine: EngineValueSchema.optional(),
       shape: ShapeSchema.optional(),
       format: PageNetworkRenderFormatSchema.optional(),
@@ -1022,28 +1031,30 @@ function buildAppearancesQuerySchema<Pin extends 'annotationVersion' | 'widgetVe
       rotation: RenderRotationSchema.optional(),
       viewport: RenderViewportSchema.optional(),
       quality: RenderQualitySchema.optional(),
-    } as Record<string, z.ZodTypeAny>)
+    })
     .strict()
     .superRefine((v, ctx) => {
+      const pinned = (v as Partial<Record<Pin, number>>)[pin];
       // A versioned (cacheable) request pins its version and must declare
       // the encoded format so the cached URL is unambiguous.
-      if (v[pin] !== undefined && v.format === undefined) {
+      if (pinned !== undefined && v.format === undefined) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: ['format'],
           message: 'versioned appearance render requires format',
         });
       }
       for (const field of ['engine', 'shape'] as const) {
-        if (v[pin] === undefined || v[field] !== undefined) continue;
+        if (pinned === undefined || v[field] !== undefined) continue;
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: [field],
           message: `versioned appearance render requires ${field}`,
         });
       }
     })
     .transform((v) => {
+      const pinned = (v as Partial<Record<Pin, number>>)[pin];
       const options: AnnotationAppearanceImageOptions = {
         ...(v.rotation !== undefined ? { rotation: v.rotation } : {}),
         ...(v.viewport ? { viewport: v.viewport } : {}),
@@ -1053,9 +1064,9 @@ function buildAppearancesQuerySchema<Pin extends 'annotationVersion' | 'widgetVe
       };
       return {
         options,
-        ...(v[pin] !== undefined ? { [pin]: v[pin] } : {}),
+        ...(pinned !== undefined ? { [pin]: pinned } : {}),
         ...(v.engine !== undefined && v.shape !== undefined
-          ? { pin: { engine: v.engine as string, shape: v.shape as number } }
+          ? { pin: { engine: v.engine, shape: v.shape } }
           : {}),
       };
     });
@@ -1165,7 +1176,7 @@ export const DocumentWireComponents = {
   MetadataPatch: MetadataPatchSchema,
   Identity: IdentitySchema,
   PdfPermissionFlags: PdfPermissionFlagsSchema,
-} as const satisfies Record<string, z.ZodTypeAny>;
+} as const satisfies Record<string, z.ZodType>;
 
 /** Per-page side-effect envelope every annotation mutation returns. Mirrors `AnnotationListMutationMeta`. */
 export const AnnotationListMutationMetaSchema: z.ZodType<AnnotationListMutationMeta> = z.object({
@@ -1252,7 +1263,7 @@ export const AnnotationWireComponents = {
   AnnotationPosition: AnnotationPositionSchema,
   RichTextDocument: RichTextDocumentSchema,
   RichTextDocumentInput: RichTextDocumentInputSchema,
-} as const satisfies Record<string, z.ZodTypeAny>;
+} as const satisfies Record<string, z.ZodType>;
 
 /** What `page.annotations.reorder` takes on the wire. */
 export const AnnotationReorderBodySchema = z
@@ -1285,6 +1296,8 @@ export const FormMutationMetaSchema: z.ZodType<FormMutationMeta> = z.object({
 export const FormWireComponents = {
   FormFieldRef: FormFieldRefSchema,
   FormField: FormFieldDTOSchema,
+  FormFieldFormat: FormFieldFormatSchema,
+  FormFieldFormatWritable: FormFieldFormatWritableSchema,
   FormValueEntry: FormValueEntrySchema,
   FormFieldValue: FormFieldValueSchema,
   FormWidget: FormWidgetSchema,
@@ -1295,7 +1308,7 @@ export const FormWireComponents = {
   WidgetAnnotation: WidgetDTOSchema,
   WidgetPatch: WidgetPatchSchema,
   FormMutationMeta: FormMutationMetaSchema,
-} as const satisfies Record<string, z.ZodTypeAny>;
+} as const satisfies Record<string, z.ZodType>;
 
 export const FormSetValueResultSchema: z.ZodType<FormSetValueResult> = z.object({
   field: FormFieldDTOSchema,
@@ -1707,7 +1720,7 @@ export const PageListSnapshotSchema: z.ZodType<PageListSnapshot> = z.object({
 export const PageWireComponents = {
   PageListSnapshot: PageListSnapshotSchema,
   PageMeasurementViewport: PageMeasurementViewportSchema,
-} as const satisfies Record<string, z.ZodTypeAny>;
+} as const satisfies Record<string, z.ZodType>;
 
 /** `pages.setName` input — see `PageNameInput`. */
 export const PageNameInputSchema: z.ZodType<PageNameInput> = z.object({
@@ -1839,7 +1852,7 @@ export const AttachmentWireComponents = {
   AttachmentList: AttachmentListSchema,
   AttachmentFileBase: AttachmentFileBaseSchema,
   AttachmentMutationMeta: AttachmentMutationMetaSchema,
-} as const satisfies Record<string, z.ZodTypeAny>;
+} as const satisfies Record<string, z.ZodType>;
 
 /**
  * Metadata write result: the re-read `metadata`. On the cloud,
@@ -1911,7 +1924,7 @@ export const OutlineWireComponents = {
   OutlinePosition: OutlinePositionSchema,
   OutlineOrder: OutlineOrderSchema,
   OutlineMutationMeta: OutlineMutationMetaSchema,
-} as const satisfies Record<string, z.ZodTypeAny>;
+} as const satisfies Record<string, z.ZodType>;
 
 // ---------------------------------------------------------------------------
 // Fonts: a document's font list, a program's facts, and a resolve.
@@ -2029,7 +2042,7 @@ export const FontWireComponents = {
   FontResolveRequest: FontResolveRequestSchema,
   ResolvedFontRun: ResolvedFontRunSchema,
   FontResolution: FontResolutionSchema,
-} as const satisfies Record<string, z.ZodTypeAny>;
+} as const satisfies Record<string, z.ZodType>;
 
 // ---------------------------------------------------------------------------
 // Digital signatures: the JSON forms of the two-phase signing DTOs.
@@ -2200,7 +2213,7 @@ export const SignatureDTOSchema: z.ZodType<Signature> = z.object({
 export const SignatureWireComponents = {
   DocMdpPermission: DocMdpPermissionSchema,
   FieldLockSpec: FieldLockSpecSchema,
-} as const satisfies Record<string, z.ZodTypeAny>;
+} as const satisfies Record<string, z.ZodType>;
 
 export const DocumentProtectionSchema: z.ZodType<DocumentProtection> = z.object({
   enforced: ModificationLevelSchema.nullable(),
@@ -2309,9 +2322,12 @@ const SignatureSignerInputSchema = z.object({
   signedAt: IsoDateTimeSchema.optional(),
 });
 
-/** The `body` part of a visual signature fill: which part holds the one-page PDF. */
+/**
+ * The `body` part of a visual signature fill: which part holds the mark (a
+ * PNG, a JPEG or a one-page PDF), or `null` to take the field's mark out.
+ */
 export const SignatureAppearanceBodySchema = z.object({
-  resources: AppearanceResourceKeysSchema,
+  resources: FieldAppearanceResourceKeysSchema,
 });
 export type SignatureAppearanceBody = z.infer<typeof SignatureAppearanceBodySchema>;
 

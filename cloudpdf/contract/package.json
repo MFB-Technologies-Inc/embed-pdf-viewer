@@ -1,6 +1,6 @@
 {
   "name": "@cloudpdf/contract",
-  "version": "3.3.0",
+  "version": "3.4.0",
   "private": false,
   "description": "The CloudPDF engine contract: operation registry, Zod schemas, and OpenAPI emitter for every backend-callable surface — used by @cloudpdf/server and the generated @cloudpdf/sdk, and the source of the committed openapi.json.",
   "type": "module",
@@ -52,8 +52,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@embedpdf/engine-core": "workspace:*",
-    "zod": "^3.23.8",
-    "zod-to-json-schema": "^3.24.6"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@types/node": "latest",
