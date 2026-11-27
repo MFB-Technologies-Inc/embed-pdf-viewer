@@ -1487,6 +1487,9 @@ fn a_created_fields_widget_comes_with_the_form_not_the_annotations() {
             name: "added".into(),
             options: None,
             export_value: None,
+            purpose: None,
+            format: None,
+            group_id: None,
         },
         CancelToken::new(),
     ))

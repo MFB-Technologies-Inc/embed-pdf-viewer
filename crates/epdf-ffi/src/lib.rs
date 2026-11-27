@@ -21,7 +21,7 @@ pub mod view;
 
 pub use annotation::{
     AnnotationRef, CreationDraftAnchor, PageDestination, PageLinkTarget, PdfDestination,
-    PdfLinkTarget,
+    PdfLinkTarget, RecordAccent,
 };
 pub use bound::{KernelBound, PromiseSlot, at_teardown};
 pub use cancel::{CancelToken, signalled, signalled_cancellable};

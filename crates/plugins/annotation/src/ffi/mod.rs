@@ -31,7 +31,7 @@ mod selection;
 mod threads;
 mod tools;
 
-use epdf_ffi::{AnnotationRef, PageRef, PluginErrorInfo, Point, Rect};
+use epdf_ffi::{AnnotationRef, PageRef, PluginErrorInfo, Point, RecordAccent, Rect};
 use epdf_kernel::Error;
 use epdf_kernel::error::{code, plugin_error};
 use serde_json::{Map, Value, json};
@@ -188,8 +188,20 @@ pub struct AnnotationRecord {
     pub in_reply_to: Option<AnnotationRef>,
     pub can_update: bool,
     pub can_delete: bool,
+    /// A lent record's accent from its lender (`ModelAnnotation.accent`): a
+    /// form widget's group color while the annotation plugin edits it, not
+    /// part of the record itself. `None` for every other record.
+    pub accent: Option<RecordAccent>,
     /// The engine's record, every member.
     pub fields_json: String,
+}
+
+/// The accent the record shows in: its lender's, on the shown record, not
+/// on the object `get` answers (`ModelAnnotation.accent`).
+fn accent_of(cap: &AnnotationCapability, reference: &Value) -> Option<RecordAccent> {
+    let model = cap.model();
+    let accent = model.by_id.get(&crate::js::key_or_none(reference))?.accent.as_ref()?;
+    Some(RecordAccent { color: accent.color.clone(), strength: accent.strength })
 }
 
 pub(crate) fn record_out(
@@ -214,6 +226,7 @@ pub(crate) fn record_out(
         in_reply_to,
         can_update: cap.can_update(&reference),
         can_delete: cap.can_delete(&reference),
+        accent: accent_of(cap, &reference),
         fields_json: dto.to_string(),
     })
 }

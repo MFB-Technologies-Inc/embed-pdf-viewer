@@ -19,7 +19,8 @@ use std::sync::Arc;
 
 use epdf_ffi::{
     AnnotationRef, CancelToken, FormFieldFamily, FormFieldRef, KernelBound, KernelPost, PageRef,
-    PluginErrorInfo, Point, Rect, RegistrationHandle, ResourceStatus, Subscription, ViewerError,
+    PluginErrorInfo, Point, RecordAccent, Rect, RegistrationHandle, ResourceStatus, Subscription,
+    ViewerError,
 };
 use epdf_kernel::error::{code, plugin_error};
 use epdf_kernel::{Error, Unsubscribe};
@@ -227,6 +228,44 @@ pub enum FormFieldDetail {
     },
 }
 
+/// A text field's or a dropdown's format (`FormFieldFormat`): a date or a
+/// time with its pattern, or `Other` for any other format script. A write
+/// takes a date or a time; `Other` is read, never written, and a write of it
+/// is refused with `invalid-input`.
+#[derive(Clone, Debug, PartialEq, Eq, uniffi::Enum)]
+pub enum FormFieldFormat {
+    /// A date pattern such as `yyyy-mm-dd`.
+    Date { pattern: String },
+    /// A time pattern such as `HH:MM`.
+    Time { pattern: String },
+    /// A format script that is neither.
+    Other,
+}
+
+impl FormFieldFormat {
+    fn to_json(&self) -> Value {
+        match self {
+            FormFieldFormat::Date { pattern } => json!({ "kind": "date", "pattern": pattern }),
+            FormFieldFormat::Time { pattern } => json!({ "kind": "time", "pattern": pattern }),
+            FormFieldFormat::Other => json!({ "kind": "other" }),
+        }
+    }
+
+    /// A read's format; a kind this side doesn't know reads as `Other`, as
+    /// the engine reads it.
+    fn from_json(value: &Value) -> Option<Self> {
+        if value.is_null() {
+            return None;
+        }
+        let pattern = || value.get("pattern").and_then(Value::as_str).unwrap_or_default().into();
+        Some(match value.get("kind").and_then(Value::as_str) {
+            Some("date") => FormFieldFormat::Date { pattern: pattern() },
+            Some("time") => FormFieldFormat::Time { pattern: pattern() },
+            _ => FormFieldFormat::Other,
+        })
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, uniffi::Record)]
 pub struct FormField {
     pub field_ref: FormFieldRef,
@@ -244,6 +283,12 @@ pub struct FormField {
     pub mapping_name: Option<String>,
     /// Who fills it in: its group, or `None` for every user.
     pub group_id: Option<String>,
+    /// What the value means (`purpose`): `email`, `date-signed`, a name the
+    /// app chose; `None` for none.
+    pub purpose: Option<String>,
+    /// A text field's or a dropdown's format; `None` for none, and for every
+    /// other family.
+    pub format: Option<FormFieldFormat>,
     pub detail: FormFieldDetail,
     pub widgets: Vec<FormWidget>,
     /// The engine's field record, whole, as JSON: attribution, the value
@@ -285,6 +330,10 @@ struct FieldDto {
     mapping_name: Option<String>,
     #[serde(default)]
     group_id: Option<String>,
+    #[serde(default)]
+    purpose: Option<String>,
+    #[serde(default)]
+    format: Value,
     #[serde(default)]
     value_entry: Value,
     #[serde(default)]
@@ -391,6 +440,8 @@ impl FormField {
             alternate_name: dto.alternate_name,
             mapping_name: dto.mapping_name,
             group_id: dto.group_id,
+            purpose: dto.purpose,
+            format: FormFieldFormat::from_json(&dto.format),
             detail,
             widgets,
             fields_json: value.to_string(),
@@ -623,6 +674,10 @@ pub enum FormFillControl {
         radio: bool,
         checked: bool,
         export_value: String,
+        /// A radio button's place among its group's buttons in Tab's order,
+        /// for a screen reader's "2 of 3"; `None` for a checkbox, and while
+        /// that order isn't known.
+        in_group: Option<FormGroupPosition>,
     },
     Choice {
         list: bool,
@@ -637,14 +692,40 @@ pub enum FormFillControl {
     },
 }
 
+/// Where a radio button comes among its group's buttons (`GroupPosition`):
+/// `position` of `size`, from 1.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, uniffi::Record)]
+pub struct FormGroupPosition {
+    pub position: u32,
+    pub size: u32,
+}
+
 /// One widget as a fill control draws it (`FormWidgetItem`).
 #[derive(Clone, Debug, PartialEq, uniffi::Record)]
 pub struct FormFillItem {
     pub field_ref: FormFieldRef,
     pub annot_object_number: u32,
     pub annotation_ref: Option<AnnotationRef>,
-    /// Page space.
+    /// The rect the widget stands in on its page (`rect`), page space. For
+    /// a turned widget it holds the turned frame.
     pub bounds: Rect,
+    /// The frame the widget's contents are laid out in (`box`), page space,
+    /// before its turn; the same as `bounds` for an unturned widget.
+    pub frame: Rect,
+    /// The widget's quarter turn (`rotation`): 0, 90, 180 or 270 degrees
+    /// clockwise about the middle of `frame`.
+    pub rotation: f64,
+    /// The field's group (`groupId`); `None` for no group.
+    pub group_id: Option<String>,
+    /// The session may fill the field in, whatever the `fillable` setting
+    /// says (`canFill`).
+    pub can_fill: bool,
+    pub required: bool,
+    /// The field holds no value (`empty`).
+    pub empty: bool,
+    /// The field's group color while this session fills it in, `None`
+    /// otherwise and while `fields.tint` is 0.
+    pub accent: Option<RecordAccent>,
     /// The widget's own look (`FormWidgetLook`), as JSON.
     pub look_json: String,
     /// Read-only, no permission to fill, or filling turned off: draw it,
@@ -654,9 +735,23 @@ pub struct FormFillItem {
     pub control: FormFillControl,
 }
 
+/// A place's `rotation`: a number, else 0.
+fn rotation_of(value: Option<&Value>) -> f64 {
+    value.and_then(Value::as_f64).unwrap_or(0.0)
+}
+
+fn group_position_of(value: Option<&Value>) -> Option<FormGroupPosition> {
+    let value = value?;
+    Some(FormGroupPosition {
+        position: whole(value.get("position"))?,
+        size: whole(value.get("size"))?,
+    })
+}
+
 fn fill_item(item: &Value) -> Result<FormFillItem, Error> {
     let flag = |k: &str| item.get(k).and_then(Value::as_bool).unwrap_or(false);
     let text = |k: &str| item.get(k).and_then(Value::as_str).unwrap_or_default().to_string();
+    let rect = rect_of(item.get("rect").unwrap_or(&Value::Null));
     let control = match item.get("control").and_then(Value::as_str) {
         Some("text") => FormFillControl::Text {
             value: text("value"),
@@ -669,6 +764,7 @@ fn fill_item(item: &Value) -> Result<FormFillItem, Error> {
             radio: item.get("kind").and_then(Value::as_str) == Some("radio"),
             checked: flag("checked"),
             export_value: text("exportValue"),
+            in_group: group_position_of(item.get("inGroup")),
         },
         Some("choice") => FormFillControl::Choice {
             list: item.get("kind").and_then(Value::as_str) == Some("list"),
@@ -685,7 +781,14 @@ fn fill_item(item: &Value) -> Result<FormFillItem, Error> {
         field_ref: field_ref_of(item.get("fieldRef").unwrap_or(&Value::Null))?,
         annot_object_number: whole(item.get("annotObjectNumber")).unwrap_or(0),
         annotation_ref: annotation_ref_of(item.get("annotationRef").unwrap_or(&Value::Null))?,
-        bounds: rect_of(item.get("rect").unwrap_or(&Value::Null)),
+        bounds: rect,
+        frame: item.get("box").filter(|b| !b.is_null()).map_or(rect, rect_of),
+        rotation: rotation_of(item.get("rotation")),
+        group_id: item.get("groupId").and_then(Value::as_str).map(str::to_string),
+        can_fill: flag("canFill"),
+        required: flag("required"),
+        empty: flag("empty"),
+        accent: RecordAccent::from_json(item.get("accent")),
         look_json: item.get("look").cloned().unwrap_or(Value::Null).to_string(),
         disabled: flag("disabled"),
         label: text("label"),
@@ -697,6 +800,76 @@ fn fill_item(item: &Value) -> Result<FormFillItem, Error> {
 pub struct FormWidgetHit {
     pub annot_object_number: u32,
     pub field: FormField,
+    /// The rect the widget stands in (`rect`).
+    pub bounds: Rect,
+    /// Its frame before its turn (`box`), as in [`FormFillItem::frame`].
+    pub frame: Rect,
+    /// Its quarter turn, degrees clockwise.
+    pub rotation: f64,
+}
+
+// ── groups ───────────────────────────────────────────────────────────────────
+
+/// One of the document's groups as people see them (`FormGroup`).
+#[derive(Clone, Debug, PartialEq, uniffi::Record)]
+pub struct FormGroup {
+    /// The id its fields carry as `group_id`.
+    pub id: String,
+    /// Who the group is, for people; `None` when the app gave it no label.
+    pub label: Option<String>,
+    /// The CSS color its fields show in: the app's, else one of eight by
+    /// the group's place in the list.
+    pub color: String,
+}
+
+impl FormGroup {
+    fn from_json(value: &Value) -> FormGroup {
+        let text = |k: &str| value.get(k).and_then(Value::as_str).map(str::to_string);
+        FormGroup {
+            id: text("id").unwrap_or_default(),
+            label: text("label"),
+            color: text("color").unwrap_or_default(),
+        }
+    }
+}
+
+fn groups_out(list: &[Value]) -> Vec<FormGroup> {
+    list.iter().map(FormGroup::from_json).collect()
+}
+
+/// One of the document's groups as the app names it with `set_groups`
+/// (`FormGroupInput`).
+#[derive(Clone, Debug, PartialEq, uniffi::Record)]
+pub struct FormGroupInput {
+    /// The id its fields carry, and the one the permissions name.
+    pub id: String,
+    /// Who the group is, for people.
+    #[uniffi(default = None)]
+    pub label: Option<String>,
+    /// A CSS color; `None` gives the group one of eight by its place.
+    #[uniffi(default = None)]
+    pub color: Option<String>,
+}
+
+impl FormGroupInput {
+    fn to_json(&self) -> Value {
+        let mut group = Map::new();
+        group.insert("id".into(), json!(self.id));
+        if let Some(label) = &self.label {
+            group.insert("label".into(), json!(label));
+        }
+        if let Some(color) = &self.color {
+            group.insert("color".into(), json!(color));
+        }
+        Value::Object(group)
+    }
+}
+
+/// Where UI attaches to one box of a field (`getWidgetAnchor`): its page and
+/// where the box stands, following the box as it is moved in design mode.
+#[derive(Clone, Copy, Debug, PartialEq, uniffi::Record)]
+pub struct FormWidgetAnchor {
+    pub page: PageRef,
     pub bounds: Rect,
 }
 
@@ -729,6 +902,16 @@ pub struct FormCreateFieldInput {
     /// A radio button's or checkbox's export value.
     #[uniffi(default = None)]
     pub export_value: Option<String>,
+    /// What the value means; `None` for none.
+    #[uniffi(default = None)]
+    pub purpose: Option<String>,
+    /// A text field's or a dropdown's date or time format; `None` for none.
+    #[uniffi(default = None)]
+    pub format: Option<FormFieldFormat>,
+    /// The group that fills it in; `None` for no group. Refused with
+    /// `permission-denied` for a group the session may not put a field in.
+    #[uniffi(default = None)]
+    pub group_id: Option<String>,
 }
 
 impl FormCreateFieldInput {
@@ -747,6 +930,15 @@ impl FormCreateFieldInput {
             let options: Vec<Value> =
                 options.iter().map(|o| json!({ "label": o.label, "value": o.value })).collect();
             draft.insert("options".into(), Value::Array(options));
+        }
+        if let Some(purpose) = &self.purpose {
+            draft.insert("purpose".into(), json!(purpose));
+        }
+        if let Some(format) = &self.format {
+            draft.insert("format".into(), format.to_json());
+        }
+        if let Some(group_id) = &self.group_id {
+            draft.insert("groupId".into(), json!(group_id));
         }
         Value::Object(draft)
     }
@@ -810,6 +1002,17 @@ pub struct FormFieldPatch {
     pub max_length: Option<u32>,
     #[uniffi(default = None)]
     pub options: Option<Vec<FormChoiceOptionInput>>,
+    /// What the value means.
+    #[uniffi(default = None)]
+    pub purpose: Option<String>,
+    /// A text field's or a dropdown's date or time format, with the two
+    /// scripts it is made of.
+    #[uniffi(default = None)]
+    pub format: Option<FormFieldFormat>,
+    /// The group that fills it in. Refused with `permission-denied` for a
+    /// group the session may not put a field in.
+    #[uniffi(default = None)]
+    pub group_id: Option<String>,
     #[uniffi(default = [])]
     pub clear: Vec<FormFieldPatchKey>,
 }
@@ -820,12 +1023,18 @@ pub enum FormFieldPatchKey {
     MappingName,
     DefaultValue,
     MaxLength,
+    /// The field has no purpose.
+    Purpose,
+    /// The field has no format, and loses its format's two scripts.
+    Format,
+    /// The field is in no group.
+    GroupId,
 }
 
 impl FormFieldPatch {
     fn to_json(&self) -> Result<Value, Error> {
         let mut patch = Map::new();
-        let set: [(&str, Option<Value>); 9] = [
+        let set: [(&str, Option<Value>); 12] = [
             ("name", self.name.clone().map(Value::from)),
             ("readOnly", self.read_only.map(Value::from)),
             ("required", self.required.map(Value::from)),
@@ -842,6 +1051,9 @@ impl FormFieldPatch {
                     )
                 }),
             ),
+            ("purpose", self.purpose.clone().map(Value::from)),
+            ("format", self.format.as_ref().map(FormFieldFormat::to_json)),
+            ("groupId", self.group_id.clone().map(Value::from)),
         ];
         for (key, value) in set {
             if let Some(value) = value {
@@ -854,6 +1066,9 @@ impl FormFieldPatch {
                 FormFieldPatchKey::MappingName => "mappingName",
                 FormFieldPatchKey::DefaultValue => "defaultValue",
                 FormFieldPatchKey::MaxLength => "maxLength",
+                FormFieldPatchKey::Purpose => "purpose",
+                FormFieldPatchKey::Format => "format",
+                FormFieldPatchKey::GroupId => "groupId",
             };
             if patch.insert(name.into(), Value::Null).is_some_and(|v| !v.is_null()) {
                 return Err(plugin_error(
@@ -977,10 +1192,26 @@ pub struct FormFocusNextOptions {
     #[uniffi(default = None)]
     pub from: Option<FormFieldRef>,
 }
-/// A control lends a target while mounted. Called on the kernel thread; never wait on it.
+/// A control lends a target while mounted (`FormFocusTarget`). Called on the
+/// kernel thread; never wait on it.
 #[uniffi::export(with_foreign)]
 pub trait FormFocusTarget: Send + Sync {
-    fn focus(&self, select: bool);
+    /// Asked each time the cursor is about to move: `false` for a box that
+    /// holds nothing to focus (a signature field nobody here can sign), so
+    /// `focus`, `focus_next` and Tab pass over its field.
+    fn takes_cursor(&self) -> bool;
+    /// Take the cursor (`select` selects a text box's text). `false` when
+    /// nothing took it after all: the cursor then passes over the box.
+    fn focus(&self, select: bool) -> bool;
+}
+
+/// The plugin's target for a native one: both calls go to it.
+fn focus_target_of(target: Arc<dyn FormFocusTarget>) -> crate::services::cursor::FocusTarget {
+    let takes = target.clone();
+    crate::services::cursor::FocusTarget {
+        takes_cursor: Some(std::rc::Rc::new(move || takes.takes_cursor())),
+        focus: std::rc::Rc::new(move |select| target.focus(select)),
+    }
 }
 #[derive(Clone, Copy, Debug, uniffi::Enum)]
 pub enum FormWidgetEvent {
@@ -1034,6 +1265,15 @@ pub enum FormEvent {
     },
     /// The whole form was read.
     Resynced,
+    /// `set_design_group` changed the group fields placed with a tool go in.
+    DesignGroupChanged {
+        group_id: Option<String>,
+    },
+    /// `set_groups` changed who the document's groups are: the groups as
+    /// `groups` gives them now.
+    GroupsChanged {
+        groups: Vec<FormGroup>,
+    },
 }
 
 #[uniffi::export(with_foreign)]
@@ -1113,10 +1353,8 @@ impl FormHandle {
         let post = self.post.clone();
         self.cap
             .call(move |c| {
-                let off = open(c)?.attach_focus_target(
-                    &annotation_ref_json(&widget),
-                    crate::services::cursor::FocusTarget::new(move |select| target.focus(select)),
-                );
+                let off = open(c)?
+                    .attach_focus_target(&annotation_ref_json(&widget), focus_target_of(target));
                 Ok(RegistrationHandle::new(post, move || off.call()))
             })
             .await
@@ -1261,10 +1499,17 @@ impl FormHandle {
                 open(c)?
                     .get_widget_at(&page_json(page), x, y)
                     .map(|hit| {
+                        let bounds = rect_of(&hit.place.rect);
                         Ok(FormWidgetHit {
                             annot_object_number: hit.annot_object_number as u32,
                             field: FormField::from_json(&hit.field)?,
-                            bounds: rect_of(&hit.place.rect),
+                            bounds,
+                            frame: if hit.place.bx.is_null() {
+                                bounds
+                            } else {
+                                rect_of(&hit.place.bx)
+                            },
+                            rotation: rotation_of(Some(&hit.place.rotation)),
                         })
                     })
                     .transpose()
@@ -1608,6 +1853,108 @@ impl FormHandle {
             .await
     }
 
+    /// The document's groups (`listGroups`): the ones `set_groups` named, in
+    /// that order, then the other groups the form's fields are in.
+    pub async fn groups(&self) -> Result<Vec<FormGroup>, ViewerError> {
+        self.cap.call(|c| Ok(groups_out(&open(c)?.list_groups()))).await
+    }
+
+    /// Say who this document's groups are, the whole list (`setGroups`); an
+    /// empty list clears it. Fires `GroupsChanged`; the same list again
+    /// changes nothing. Session state: nothing is written into the PDF.
+    pub async fn set_groups(&self, groups: Vec<FormGroupInput>) -> Result<(), ViewerError> {
+        self.cap
+            .call(move |c| {
+                let groups: Vec<Value> = groups.iter().map(FormGroupInput::to_json).collect();
+                open(c)?.set_groups(&groups);
+                Ok(())
+            })
+            .await
+    }
+
+    /// The group fields placed with a tool go in (`getDesignGroup`); `None`,
+    /// where it starts, names none.
+    pub async fn design_group(&self) -> Result<Option<String>, ViewerError> {
+        self.cap.call(|c| Ok(open(c)?.get_design_group())).await
+    }
+
+    /// Fields placed with a tool go into this group; `None` names none
+    /// (`setDesignGroup`). Fires `DesignGroupChanged`. Refused with
+    /// `permission-denied` for a group the session may not put a field in.
+    pub async fn set_design_group(&self, group_id: Option<String>) -> Result<(), ViewerError> {
+        self.cap.call(move |c| open(c)?.set_design_group(group_id.as_deref())).await
+    }
+
+    /// Whether the session may design the form and put a field in this
+    /// group (`canSetGroup`).
+    pub async fn can_set_group(&self, group_id: String) -> Result<bool, ViewerError> {
+        self.cap.call(move |c| Ok(open(c)?.can_set_group(&group_id))).await
+    }
+
+    /// Put fields in a group, or with `None` take them out of theirs, as one
+    /// step to undo (`moveToGroup`). Resolves the fields as they are now, in
+    /// the order given. Rejects `permission-denied` without
+    /// `doc.forms.modify` or for a group the session may not put a field in,
+    /// `not-found` for a field the form doesn't have.
+    pub async fn move_to_group(
+        &self,
+        fields: Vec<FormFieldRef>,
+        group_id: Option<String>,
+        cancel: Arc<CancelToken>,
+    ) -> Result<Vec<FormField>, ViewerError> {
+        self.cap
+            .call_promise_cancellable(
+                cancel,
+                move |c| {
+                    let refs = fields.iter().map(field_ref_json).collect();
+                    let c = open(c)?;
+                    epdf_ffi::signalled(|signal| Ok(c.move_to_group(refs, group_id, Some(signal))))
+                },
+                |result| {
+                    Ok::<_, ViewerError>(fields_out(
+                        result.get("fields").and_then(Value::as_array).map_or(&[], Vec::as_slice),
+                    )?)
+                },
+            )
+            .await?
+    }
+
+    /// Every field with a selected widget in design mode, in the
+    /// selection's order, each once (`listSelectedFields`).
+    pub async fn selected_fields(&self) -> Result<Vec<FormField>, ViewerError> {
+        self.cap
+            .call(|c| {
+                open(c)?.list_selected_fields().iter().map(|f| FormField::from_json(f)).collect()
+            })
+            .await
+    }
+
+    /// Where UI attaches to one box of a field (`getWidgetAnchor`); `None`
+    /// for a box that isn't there, or shows nowhere.
+    pub async fn widget_anchor(
+        &self,
+        widget: AnnotationRef,
+    ) -> Result<Option<FormWidgetAnchor>, ViewerError> {
+        self.cap
+            .call(move |c| {
+                open(c)?
+                    .get_widget_anchor(&annotation_ref_json(&widget))
+                    .map(|anchor| {
+                        Ok(FormWidgetAnchor {
+                            page: page_of(anchor.get("page").unwrap_or(&Value::Null))?,
+                            bounds: rect_of(anchor.get("bounds").unwrap_or(&Value::Null)),
+                        })
+                    })
+                    .transpose()
+            })
+            .await
+    }
+
+    /// Whether the cursor is in this box (`isWidgetFocused`).
+    pub async fn is_widget_focused(&self, widget: AnnotationRef) -> Result<bool, ViewerError> {
+        self.cap.call(move |c| Ok(open(c)?.is_widget_focused(&annotation_ref_json(&widget)))).await
+    }
+
     pub async fn can_read(&self) -> Result<bool, ViewerError> {
         self.cap.call(|c| Ok(open(c)?.can_read())).await
     }
@@ -1702,7 +2049,31 @@ impl FormHandle {
                         l.on_event(FormEvent::FocusChanged { field, widget });
                         Ok(())
                     });
-                    let offs = [value, created, updated, deleted, rejected, resynced, focused];
+                    let l = listener.clone();
+                    let design_group = c.on_design_group_changed(move |event| {
+                        let group_id =
+                            event.get("groupId").and_then(Value::as_str).map(str::to_string);
+                        l.on_event(FormEvent::DesignGroupChanged { group_id });
+                        Ok(())
+                    });
+                    let l = listener.clone();
+                    let groups = c.on_groups_changed(move |event| {
+                        let list = event.get("groups").and_then(Value::as_array);
+                        let groups = groups_out(list.map_or(&[], Vec::as_slice));
+                        l.on_event(FormEvent::GroupsChanged { groups });
+                        Ok(())
+                    });
+                    let offs = [
+                        value,
+                        created,
+                        updated,
+                        deleted,
+                        rejected,
+                        resynced,
+                        focused,
+                        design_group,
+                        groups,
+                    ];
                     Unsubscribe::new(move || offs.iter().for_each(Unsubscribe::call))
                 },
                 move || ending.on_end(),
@@ -1878,6 +2249,61 @@ mod tests {
                 ),
             );
         }
+    }
+
+    /// A radio button's item says where it comes in its group; an item with
+    /// no frame (`box: null`) is laid out in the rect it stands in, unturned.
+    #[test]
+    fn a_radio_item_reads_its_place_in_the_group() {
+        let item = json!({
+            "fieldRef": { "kind": "objectNumber", "objectNumber": 4 }, "annotObjectNumber": 5,
+            "annotationRef": null, "groupId": null, "canFill": true, "required": true,
+            "empty": true, "accent": null, "box": null, "rotation": null,
+            "rect": { "x": 1, "y": 2, "width": 3, "height": 4 }, "look": {}, "disabled": false,
+            "label": "Plan: monthly", "control": "toggle", "kind": "radio", "checked": false,
+            "exportValue": "monthly", "inGroup": { "position": 2, "size": 3 },
+        });
+        let read = fill_item(&item).unwrap();
+        assert_eq!(read.frame, read.bounds);
+        assert_eq!(read.rotation, 0.0);
+        assert!(read.required && read.empty && read.accent.is_none());
+        assert!(matches!(
+            read.control,
+            FormFillControl::Toggle {
+                radio: true,
+                in_group: Some(FormGroupPosition { position: 2, size: 3 }),
+                ..
+            }
+        ));
+        let mut unknown = item.clone();
+        unknown["inGroup"] = Value::Null;
+        assert!(matches!(
+            fill_item(&unknown).unwrap().control,
+            FormFillControl::Toggle { in_group: None, .. }
+        ));
+    }
+
+    #[test]
+    fn a_format_reads_and_writes_in_the_engines_spelling() {
+        for (format, written) in [
+            (
+                FormFieldFormat::Date { pattern: "d/m/yy".into() },
+                json!({ "kind": "date", "pattern": "d/m/yy" }),
+            ),
+            (
+                FormFieldFormat::Time { pattern: "h:MM tt".into() },
+                json!({ "kind": "time", "pattern": "h:MM tt" }),
+            ),
+            (FormFieldFormat::Other, json!({ "kind": "other" })),
+        ] {
+            assert_eq!(format.to_json(), written);
+            assert_eq!(FormFieldFormat::from_json(&written), Some(format));
+        }
+        assert_eq!(FormFieldFormat::from_json(&Value::Null), None);
+        assert_eq!(
+            FormFieldFormat::from_json(&json!({ "kind": "number" })),
+            Some(FormFieldFormat::Other)
+        );
     }
 
     #[test]

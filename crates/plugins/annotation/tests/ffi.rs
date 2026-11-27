@@ -984,3 +984,45 @@ fn a_duplicate_offset_that_is_not_finite_is_invalid_input() {
     assert_eq!(code(&error), Some("invalid-input"), "{error:?}");
     assert!(sent_ops(&thread).is_empty());
 }
+
+/// CU-C8 (CU-C6-D5): a native drag preview takes the page's display
+/// rotation, so an upright tool previews on a turned page the box its commit
+/// will place, not the one it would place upright.
+#[test]
+fn a_native_drag_preview_lays_out_by_the_pages_display_rotation() {
+    let (thread, annotations) = handle_over(vec![]);
+    block_on(annotations.refresh(token())).unwrap();
+    let drafts = annotations.drafts();
+    let preview = |rotation: Option<f64>| {
+        block_on(drafts.preview_placement(
+            "free-text".into(),
+            PageRef { page_object_number: 1 },
+            Point { x: 100.0, y: 100.0 },
+            Point { x: 300.0, y: 160.0 },
+            rotation,
+        ))
+        .unwrap();
+        let items = block_on(thread.call(|k| {
+            k.capability(&ANNOTATION).unwrap().list_page_items(&page_json(), None).as_ref().clone()
+        }))
+        .unwrap();
+        let placing: Vec<Value> = items.as_array().unwrap().to_vec();
+        assert_eq!(placing.len(), 1, "{items}");
+        placing[0].clone()
+    };
+    let upright = preview(None);
+    let turned = preview(Some(90.0));
+    assert_eq!(preview(Some(0.0)), upright);
+    assert_ne!(turned, upright, "the display rotation did not reach the preview");
+    block_on(drafts.clear_placement_preview()).unwrap();
+}
+
+/// A record the annotation plugin owns carries no accent; only a lent form
+/// widget does (`a_lent_widget_shows_its_group_accent` in epdf-viewer-host).
+#[test]
+fn an_owned_record_has_no_accent() {
+    let (_thread, annotations) = handle_over(vec![square(5, json!({}))]);
+    block_on(annotations.refresh(token())).unwrap();
+    let all = block_on(annotations.list(None)).unwrap();
+    assert_eq!(all[0].accent, None);
+}

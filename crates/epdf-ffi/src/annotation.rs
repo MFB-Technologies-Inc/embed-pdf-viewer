@@ -460,3 +460,27 @@ impl TryFrom<core::CreationDraftAnchor> for CreationDraftAnchor {
         })
     }
 }
+
+/// The color a record shows in beside its own look, and how strongly
+/// (`RecordAccent`): a form field's group color, on its fill control and on
+/// its widget while the annotation plugin edits it. Never written into the
+/// PDF.
+#[derive(Clone, Debug, PartialEq, uniffi::Record)]
+pub struct RecordAccent {
+    /// A CSS color: the app's own for the group, or one of the form's eight.
+    pub color: String,
+    /// From 0 to 1, the form's `fields.tint` setting.
+    pub strength: f64,
+}
+
+impl RecordAccent {
+    /// The plugins' `{ color, strength }`; `None` for `null`, an absent
+    /// accent or one without a color.
+    pub fn from_json(value: Option<&Value>) -> Option<RecordAccent> {
+        let value = value?;
+        Some(RecordAccent {
+            color: value.get("color")?.as_str()?.to_string(),
+            strength: value.get("strength").and_then(Value::as_f64).unwrap_or(f64::NAN),
+        })
+    }
+}

@@ -259,6 +259,9 @@ fn form_widget_changes_and_calculation_order_survive_save_and_reopen() {
                 bounds: Rect { x: 20.0, y: 30.0, width: 140.0, height: 24.0 },
                 options: None,
                 export_value: None,
+                purpose: None,
+                format: None,
+                group_id: None,
             },
             CancelToken::new(),
         ))
@@ -480,4 +483,171 @@ fn direct_form_payloads_enforce_design_and_script_permissions() {
             );
         }
     }
+}
+
+/// CU-C8: the 2026-11-27 catch-up's form surface through the native engine:
+/// a field's purpose, format and group written by the typed records, a
+/// widget given a quarter turn, the groups the app names, and all of it
+/// read back after a save.
+#[test]
+fn typed_purpose_format_groups_and_a_turned_widget_survive_save_and_reopen() {
+    use epdf_plugin_form::ffi::{
+        FormFieldFormat, FormFieldPatch, FormFieldPatchKey, FormGroupInput,
+    };
+    let host = host(config());
+    let document =
+        block_on(host.open_document(test_support::fixture(test_support::REPORT), options()))
+            .unwrap();
+    let form = block_on(host.form(document.id.clone())).unwrap();
+    block_on(form.refresh(CancelToken::new())).unwrap();
+    let page = block_on(host.pages(document.id.clone())).unwrap()[0].page;
+    assert!(block_on(form.can_set_group("dana".into())).unwrap());
+    let field = block_on(form.create(
+        FormCreateFieldInput {
+            family: FormFieldFamily::Text,
+            name: "signed_on".into(),
+            page,
+            bounds: Rect { x: 40.0, y: 60.0, width: 120.0, height: 24.0 },
+            options: None,
+            export_value: None,
+            purpose: Some("date-signed".into()),
+            format: Some(FormFieldFormat::Date { pattern: "yyyy-mm-dd".into() }),
+            group_id: Some("dana".into()),
+        },
+        CancelToken::new(),
+    ))
+    .unwrap();
+    assert_eq!(field.purpose.as_deref(), Some("date-signed"));
+    assert_eq!(field.format, Some(FormFieldFormat::Date { pattern: "yyyy-mm-dd".into() }));
+    assert_eq!(field.group_id.as_deref(), Some("dana"));
+    // The format is made of the two scripts it names.
+    let actions = &value(&field.fields_json)["actions"];
+    assert!(actions["format"]["root"]["script"].as_str().is_some_and(|s| s.contains("yyyy-mm-dd")));
+    // A format of kind `other` is read, never written.
+    let error = block_on(form.update(
+        field.field_ref.clone(),
+        FormFieldPatch { format: Some(FormFieldFormat::Other), ..Default::default() },
+        CancelToken::new(),
+    ))
+    .unwrap_err();
+    assert!(
+        matches!(&error, ViewerError::Kernel { code: Some(code), .. } if code == "invalid-input"),
+        "{error:?}"
+    );
+    // The widget turns a quarter: its frame stays, the rect it stands in turns.
+    let widget = field.widgets[0].annotation_ref.clone().unwrap();
+    block_on(form.update_widget(
+        widget.clone(),
+        json!({ "rotation": 90 }).to_string(),
+        CancelToken::new(),
+    ))
+    .unwrap();
+    let items = block_on(form.widgets(page)).unwrap();
+    let item = items.iter().find(|i| i.field_ref == field.field_ref).unwrap();
+    assert_eq!(item.rotation, 90.0, "{item:?}");
+    assert_eq!((item.frame.width, item.frame.height), (120.0, 24.0));
+    assert_eq!((item.bounds.width, item.bounds.height), (24.0, 120.0));
+    assert_eq!(item.group_id.as_deref(), Some("dana"));
+    let anchor = block_on(form.widget_anchor(widget)).unwrap().unwrap();
+    assert_eq!(anchor.bounds, item.bounds);
+    block_on(form.set_groups(vec![FormGroupInput {
+        id: "dana".into(),
+        label: Some("Dana Smith".into()),
+        color: Some("#0055aa".into()),
+    }]))
+    .unwrap();
+    let groups = block_on(form.groups()).unwrap();
+    assert_eq!(groups.len(), 1);
+    assert_eq!(
+        (groups[0].label.as_deref(), groups[0].color.as_str()),
+        (Some("Dana Smith"), "#0055aa")
+    );
+    let items = block_on(form.widgets(page)).unwrap();
+    let item = items.iter().find(|i| i.field_ref == field.field_ref).unwrap();
+    assert_eq!(item.accent.as_ref().map(|a| a.color.as_str()), Some("#0055aa"));
+    // The purpose is cleared; the format and the group stay.
+    let updated = block_on(form.update(
+        field.field_ref.clone(),
+        FormFieldPatch { clear: vec![FormFieldPatchKey::Purpose], ..Default::default() },
+        CancelToken::new(),
+    ))
+    .unwrap();
+    assert_eq!(updated.purpose, None);
+    let saved =
+        block_on(host.save(document.id, SaveMode::Incremental, CancelToken::new())).unwrap();
+    let reopened = block_on(host.open_document(saved, options())).unwrap();
+    let reopened_form = block_on(host.form(reopened.id.clone())).unwrap();
+    block_on(reopened_form.refresh(CancelToken::new())).unwrap();
+    let found = block_on(reopened_form.field(field.field_ref.clone())).unwrap().unwrap();
+    assert_eq!(found.purpose, None);
+    assert_eq!(found.format, Some(FormFieldFormat::Date { pattern: "yyyy-mm-dd".into() }));
+    assert_eq!(found.group_id.as_deref(), Some("dana"));
+    let page = block_on(host.pages(reopened.id)).unwrap()[0].page;
+    let items = block_on(reopened_form.widgets(page)).unwrap();
+    let item = items.iter().find(|i| i.field_ref == field.field_ref).unwrap();
+    assert_eq!(item.rotation, 90.0);
+    // The groups are session state: the reopened document has none named.
+    assert_eq!(block_on(reopened_form.groups()).unwrap()[0].label, None);
+}
+
+/// CU-C8 (CU-C6-D5, #1118, #1141): in design mode the form lends its widgets
+/// to the annotation plugin. A lent widget shows its group's accent, selects
+/// as its field, offers Orientation, and turns by quarter turns and back.
+#[test]
+fn a_lent_widget_shows_its_group_accent_and_turns_from_the_selection() {
+    use epdf_plugin_form::ffi::FormGroupInput;
+    let host = host(config());
+    let document =
+        block_on(host.open_document(test_support::fixture(test_support::REPORT), options()))
+            .unwrap();
+    let form = block_on(host.form(document.id.clone())).unwrap();
+    block_on(form.refresh(CancelToken::new())).unwrap();
+    let page = block_on(host.pages(document.id.clone())).unwrap()[0].page;
+    let field = block_on(form.create(
+        FormCreateFieldInput {
+            family: FormFieldFamily::Text,
+            name: "dana_name".into(),
+            page,
+            bounds: Rect { x: 40.0, y: 60.0, width: 120.0, height: 24.0 },
+            options: None,
+            export_value: None,
+            purpose: None,
+            format: None,
+            group_id: Some("dana".into()),
+        },
+        CancelToken::new(),
+    ))
+    .unwrap();
+    let widget = field.widgets[0].annotation_ref.clone().unwrap();
+    block_on(form.set_groups(vec![FormGroupInput {
+        id: "dana".into(),
+        label: None,
+        color: Some("#0055aa".into()),
+    }]))
+    .unwrap();
+    // A drawing tool is design mode: the form lends its widgets.
+    let interaction = block_on(host.interaction(document.id.clone())).unwrap();
+    block_on(interaction.activate_tool("square".into())).unwrap();
+    let annotations = block_on(host.annotation(document.id.clone())).unwrap();
+    block_on(annotations.refresh(CancelToken::new())).unwrap();
+    let lent = block_on(annotations.get(widget.clone())).unwrap().expect("the lent widget");
+    assert_eq!(
+        lent.accent,
+        Some(epdf_ffi::RecordAccent { color: "#0055aa".into(), strength: 0.16 }),
+        "{lent:?}"
+    );
+    let selection = annotations.selection();
+    block_on(selection.select(vec![widget.clone()], None)).unwrap();
+    let selected = block_on(form.selected_fields()).unwrap();
+    assert_eq!(selected.iter().map(|f| f.name.as_str()).collect::<Vec<_>>(), ["dana_name"]);
+    let props = block_on(selection.props()).unwrap();
+    assert!(props.properties.iter().any(|p| p.key == "orientation"), "{props:?}");
+    block_on(selection.rotate_by(90.0, CancelToken::new())).unwrap();
+    let rotation = |form: &epdf_plugin_form::ffi::FormHandle| {
+        let items = block_on(form.widgets(page)).unwrap();
+        items.iter().find(|i| i.field_ref == field.field_ref).unwrap().rotation
+    };
+    assert_eq!(rotation(&form), 90.0);
+    block_on(selection.reset_rotation(CancelToken::new())).unwrap();
+    assert_eq!(rotation(&form), 0.0);
 }

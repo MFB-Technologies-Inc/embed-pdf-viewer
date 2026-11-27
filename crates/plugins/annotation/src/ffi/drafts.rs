@@ -450,14 +450,18 @@ impl AnnotationDraftsHandle {
             .await
     }
 
-    /// `previewPlacement(toolId, page, from, to)`: a sibling's drag-to-place
-    /// gesture with one of this plugin's tools.
+    /// `previewPlacement(toolId, page, from, to, displayRotation)`: a
+    /// sibling's drag-to-place gesture with one of this plugin's tools.
+    /// `display_rotation` is the page's total display rotation in degrees,
+    /// so an upright tool previews the box it will place on a turned page;
+    /// `None` previews as on an unturned page.
     pub async fn preview_placement(
         &self,
         tool_id: String,
         page: PageRef,
         from: Point,
         to: Point,
+        display_rotation: Option<f64>,
     ) -> Result<(), ViewerError> {
         self.cap
             .call(move |c| {
@@ -466,9 +470,7 @@ impl AnnotationDraftsHandle {
                     &page_json(page),
                     geometry_point(from),
                     geometry_point(to),
-                    // The FFI takes no display rotation yet (CU-C6-D5): a
-                    // native drag previews as on an unturned page.
-                    None,
+                    display_rotation,
                 );
                 Ok(())
             })

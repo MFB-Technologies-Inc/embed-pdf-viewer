@@ -44,6 +44,9 @@ pub struct FormFieldSettings {
     pub border: Option<String>,
     pub background: String,
     pub color: String,
+    /// How strongly a field shows its group's color, from 0 (not at all)
+    /// to 1 (`fields.tint`).
+    pub tint: f64,
 }
 #[derive(Clone, Debug, PartialEq, uniffi::Record)]
 pub struct FormSettings {
@@ -69,6 +72,10 @@ pub struct FormFieldSettingsPatch {
     pub background: Option<String>,
     #[uniffi(default = None)]
     pub color: Option<String>,
+    /// From 0 to 1. A NaN or an infinity is `invalid-input`: JSON would
+    /// carry it as `null`.
+    #[uniffi(default = None)]
+    pub tint: Option<f64>,
 }
 #[derive(Clone, Debug, Default, PartialEq, uniffi::Record)]
 pub struct FormSettingsPatch {
@@ -82,7 +89,7 @@ pub struct FormSettingsPatch {
     pub fillable: Option<FormFillable>,
 }
 impl FormSettingsPatch {
-    fn into_json(self) -> Value {
+    fn into_json(self) -> Result<Value, Error> {
         let mut out = Map::new();
         if let Some(validation) = self.validation {
             out.insert(
@@ -115,12 +122,24 @@ impl FormSettingsPatch {
             if let Some(color) = fields.color {
                 group.insert("color".into(), json!(color));
             }
+            if let Some(tint) = fields.tint {
+                if !tint.is_finite() {
+                    return Err(plugin_error(
+                        code::INVALID_INPUT,
+                        "form",
+                        format!("fields.tint is not finite: {tint}"),
+                        None,
+                        None,
+                    ));
+                }
+                group.insert("tint".into(), json!(tint));
+            }
             out.insert("fields".into(), Value::Object(group));
         }
         if let Some(fillable) = self.fillable {
             out.insert("fillable".into(), fillable.to_json());
         }
-        Value::Object(out)
+        Ok(Value::Object(out))
     }
 }
 #[uniffi::export]
@@ -154,7 +173,8 @@ impl FormHandle {
     pub async fn update_settings(&self, patch: FormSettingsPatch) -> Result<(), ViewerError> {
         self.cap
             .call(move |c| {
-                open(c)?.update_settings(&(patch.into_json()));
+                let patch = patch.into_json()?;
+                open(c)?.update_settings(&patch);
                 Ok(())
             })
             .await

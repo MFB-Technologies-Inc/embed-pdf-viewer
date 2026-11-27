@@ -13,8 +13,10 @@ use epdf_ffi::{
     ViewerError,
 };
 use epdf_plugin_form::ffi::{
-    FormConfig, FormDuplicateOptions, FormEvent, FormEventListener, FormFieldDetail,
-    FormFillControl, FormHandle, FormKind, FormSetValueStatus, FormValidation, FormValueInput,
+    FormConfig, FormCreateFieldInput, FormDuplicateOptions, FormEvent, FormEventListener,
+    FormFieldDetail, FormFieldFormat, FormFieldPatch, FormFieldPatchKey, FormFieldSettingsPatch,
+    FormFillControl, FormGroup, FormGroupInput, FormHandle, FormKind, FormSetValueStatus,
+    FormSettingsPatch, FormValidation, FormValueInput,
 };
 use epdf_plugin_form::{FORM, form_plugin};
 use epdf_plugin_interaction::{InteractionConfig, interaction_plugin};
@@ -402,10 +404,21 @@ fn cancelling_a_set_value_before_it_runs_leaves_the_field_alone() {
     assert_eq!(value, Some(FormValueInput::Value { value: Some("Ada".into()) }));
 }
 
-struct FocusTarget(Mutex<Vec<bool>>);
+/// A native control: the `select` of each `focus` it was asked, whether it
+/// takes the cursor, and whether its `focus` took it.
+struct FocusTarget(Mutex<Vec<bool>>, bool, bool);
+impl FocusTarget {
+    fn taking() -> Arc<Self> {
+        Arc::new(FocusTarget(Mutex::new(Vec::new()), true, true))
+    }
+}
 impl epdf_plugin_form::ffi::FormFocusTarget for FocusTarget {
-    fn focus(&self, select: bool) {
+    fn takes_cursor(&self) -> bool {
+        self.1
+    }
+    fn focus(&self, select: bool) -> bool {
         self.0.lock().unwrap().push(select);
+        self.2
     }
 }
 #[test]
@@ -413,7 +426,7 @@ fn a_native_focus_target_receives_selection_and_unregisters() {
     let (_thread, form) = handle();
     let events = Arc::new(Events::default());
     let _subscription = form.subscribe(events.clone());
-    let target = Arc::new(FocusTarget(Mutex::new(Vec::new())));
+    let target = FocusTarget::taking();
     let widget = epdf_ffi::AnnotationRef::ObjectNumber {
         page: PageRef { page_object_number: 1 },
         annot_object_number: 101,
@@ -608,4 +621,313 @@ fn a_duplicate_offset_that_is_not_finite_is_invalid_input() {
         block_on(form.duplicate_widgets(vec![widget], options, CancelToken::new())).unwrap_err();
     assert_eq!(code(&error), Some("invalid-input"), "{error:?}");
     assert!(sent(&thread).is_empty());
+}
+
+// ── CU-C8: the 2026-11-27 catch-up's surface ────────────────────────────────
+
+/// The text field again, for Dana's group, with a purpose, a date format
+/// and its widget turned a quarter: a 100 by 24 frame standing as 24 by 100.
+fn grouped() -> (Value, Value) {
+    let mut field = text("Ada");
+    field["groupId"] = json!("dana");
+    field["purpose"] = json!("date-signed");
+    field["format"] = json!({ "kind": "date", "pattern": "yyyy-mm-dd" });
+    let mut widget = row();
+    widget["rect"] = json!({ "x": 48, "y": -18, "width": 24, "height": 100 });
+    widget["box"] = json!({ "x": 10, "y": 20, "width": 100, "height": 24 });
+    widget["rotation"] = json!(90);
+    (field, widget)
+}
+
+/// A form of the one grouped field, whose engine records each `apply`'s ops
+/// and answers with no items. The session may put a field in any group.
+fn grouped_handle() -> (KernelThread<TestKernel>, Arc<FormHandle>) {
+    grouped_handle_with(true)
+}
+
+/// [`grouped_handle`], with the engine's answer to `allowsField("set-group")`.
+fn grouped_handle_with(may_set_group: bool) -> (KernelThread<TestKernel>, Arc<FormHandle>) {
+    let thread = KernelThread::spawn(move |_| {
+        let mut engine = spec().engine;
+        engine["documents"]["a"]["security"]["allowsField"] = json!({ "set-group": may_set_group });
+        let spec = TestSpec::new(engine)
+            .respond("forms.list", |_| {
+                let (field, widget) = grouped();
+                Ok(Reply::value(json!({
+                    "formKind": "acroform", "needsAppearances": false, "calculationOrder": [],
+                    "fields": [field], "widgets": [widget],
+                })))
+            })
+            .respond("apply", |args| {
+                SENT.with(|s| s.borrow_mut().push(args[0]["ops"].clone()));
+                let meta = json!({ "affectedPages": [], "cacheDelta": null,
+                    "opId": args[1]["opId"], "undoable": true });
+                Ok(Reply::value(json!({ "items": [], "meta": meta })))
+            });
+        TestKernel::open(
+            vec![
+                interaction_plugin(InteractionConfig::default()),
+                form_plugin(FormConfig { validation: Some(FormValidation::None) }.into()),
+            ],
+            spec,
+        )
+    })
+    .unwrap();
+    let post = thread.post();
+    let form = block_on(thread.call(move |k| FormHandle::new(k.capability(&FORM).unwrap(), post)))
+        .unwrap();
+    block_on(form.refresh(CancelToken::new())).unwrap();
+    (thread, form)
+}
+
+fn widget_101() -> AnnotationRef {
+    AnnotationRef::ObjectNumber {
+        page: PageRef { page_object_number: 1 },
+        annot_object_number: 101,
+    }
+}
+
+#[test]
+fn a_field_reads_its_purpose_and_format() {
+    let (_thread, form) = grouped_handle();
+    let field = block_on(form.field(text_ref())).unwrap().unwrap();
+    assert_eq!(field.purpose.as_deref(), Some("date-signed"));
+    assert_eq!(field.format, Some(FormFieldFormat::Date { pattern: "yyyy-mm-dd".into() }));
+    assert_eq!(field.group_id.as_deref(), Some("dana"));
+    // A field without them reads none.
+    let (_thread, plain) = handle();
+    let field = block_on(plain.field(text_ref())).unwrap().unwrap();
+    assert_eq!((field.purpose, field.format), (None, None));
+}
+
+#[test]
+fn a_created_field_sends_its_purpose_format_and_group() {
+    let (thread, form) = grouped_handle();
+    let input = FormCreateFieldInput {
+        family: epdf_ffi::FormFieldFamily::Text,
+        name: "signed_on".into(),
+        page: PageRef { page_object_number: 1 },
+        bounds: epdf_ffi::Rect { x: 10.0, y: 200.0, width: 120.0, height: 24.0 },
+        options: None,
+        export_value: None,
+        purpose: Some("date-signed".into()),
+        format: Some(FormFieldFormat::Time { pattern: "HH:MM".into() }),
+        group_id: Some("dana".into()),
+    };
+    let _ = block_on(form.create(input, CancelToken::new()));
+    let ops = sent(&thread);
+    let draft = &ops.last().expect("an apply")[0]["draft"];
+    assert_eq!(draft["purpose"], "date-signed", "{ops:?}");
+    assert_eq!(draft["format"], json!({ "kind": "time", "pattern": "HH:MM" }));
+    assert_eq!(draft["groupId"], "dana");
+}
+
+#[test]
+fn a_patch_sets_and_clears_purpose_format_and_group() {
+    let (thread, form) = grouped_handle();
+    let patch = FormFieldPatch {
+        purpose: Some("email".into()),
+        format: Some(FormFieldFormat::Date { pattern: "dd.mm.yyyy".into() }),
+        ..Default::default()
+    };
+    let _ = block_on(form.update(text_ref(), patch, CancelToken::new()));
+    let clear = FormFieldPatch {
+        clear: vec![
+            FormFieldPatchKey::Purpose,
+            FormFieldPatchKey::Format,
+            FormFieldPatchKey::GroupId,
+        ],
+        ..Default::default()
+    };
+    let _ = block_on(form.update(text_ref(), clear, CancelToken::new()));
+    let ops = sent(&thread);
+    let patches: Vec<&Value> = ops.iter().map(|o| &o[0]["patch"]).collect();
+    assert_eq!(
+        patches,
+        [
+            &json!({ "purpose": "email", "format": { "kind": "date", "pattern": "dd.mm.yyyy" } }),
+            &json!({ "purpose": null, "format": null, "groupId": null }),
+        ],
+        "{ops:?}"
+    );
+    // Setting and clearing one key is refused before anything is sent.
+    let both = FormFieldPatch {
+        group_id: Some("dana".into()),
+        clear: vec![FormFieldPatchKey::GroupId],
+        ..Default::default()
+    };
+    let error = block_on(form.update(text_ref(), both, CancelToken::new())).unwrap_err();
+    assert_eq!(code(&error), Some("invalid-input"));
+    assert_eq!(sent(&thread).len(), 2);
+}
+
+#[test]
+fn a_turned_grouped_widget_fills_with_its_frame_turn_and_accent() {
+    let (_thread, form) = grouped_handle();
+    let items = block_on(form.widgets(PageRef { page_object_number: 1 })).unwrap();
+    let item = &items[0];
+    assert_eq!(item.bounds, epdf_ffi::Rect { x: 48.0, y: -18.0, width: 24.0, height: 100.0 });
+    assert_eq!(item.frame, epdf_ffi::Rect { x: 10.0, y: 20.0, width: 100.0, height: 24.0 });
+    assert_eq!(item.rotation, 90.0);
+    assert_eq!(item.group_id.as_deref(), Some("dana"));
+    assert!(item.can_fill && !item.required && !item.empty, "{item:?}");
+    // The group the field is in shows in the first of the eight colors, at
+    // the default tint.
+    assert_eq!(
+        item.accent,
+        Some(epdf_ffi::RecordAccent { color: "#ea580c".into(), strength: 0.16 })
+    );
+    let hit = block_on(form.widget_at(PageRef { page_object_number: 1 }, 60.0, 30.0))
+        .unwrap()
+        .expect("a hit inside the standing rect");
+    assert_eq!((hit.bounds, hit.frame, hit.rotation), (item.bounds, item.frame, 90.0));
+    // At tint 0 no field shows its group.
+    block_on(form.update_settings(FormSettingsPatch {
+        fields: Some(FormFieldSettingsPatch { tint: Some(0.0), ..Default::default() }),
+        ..Default::default()
+    }))
+    .unwrap();
+    assert_eq!(block_on(form.settings()).unwrap().fields.tint, 0.0);
+    let items = block_on(form.widgets(PageRef { page_object_number: 1 })).unwrap();
+    assert_eq!(items[0].accent, None);
+    let error = block_on(form.update_settings(FormSettingsPatch {
+        fields: Some(FormFieldSettingsPatch { tint: Some(f64::NAN), ..Default::default() }),
+        ..Default::default()
+    }))
+    .unwrap_err();
+    assert_eq!(code(&error), Some("invalid-input"));
+}
+
+#[test]
+fn groups_are_named_listed_announced_and_moved_into() {
+    let (thread, form) = grouped_handle();
+    let events = Arc::new(Events::default());
+    let _subscription = form.subscribe(events.clone());
+    // Before the app names any, the group the field is in is listed.
+    assert_eq!(
+        block_on(form.groups()).unwrap(),
+        [FormGroup { id: "dana".into(), label: None, color: "#ea580c".into() }]
+    );
+    block_on(form.set_groups(vec![
+        FormGroupInput { id: "ari".into(), label: Some("Ari Cole".into()), color: None },
+        FormGroupInput {
+            id: "dana".into(),
+            label: Some("Dana Smith".into()),
+            color: Some("var(--signer-2)".into()),
+        },
+    ]))
+    .unwrap();
+    let groups = block_on(form.groups()).unwrap();
+    assert_eq!(
+        groups,
+        [
+            FormGroup { id: "ari".into(), label: Some("Ari Cole".into()), color: "#ea580c".into() },
+            FormGroup {
+                id: "dana".into(),
+                label: Some("Dana Smith".into()),
+                color: "var(--signer-2)".into()
+            },
+        ]
+    );
+    // The label says whose the field is; the accent takes the app's color.
+    let items = block_on(form.widgets(PageRef { page_object_number: 1 })).unwrap();
+    assert!(items[0].label.ends_with(", Dana Smith"), "{:?}", items[0].label);
+    assert_eq!(items[0].accent.as_ref().map(|a| a.color.as_str()), Some("var(--signer-2)"));
+    assert_eq!(block_on(form.design_group()).unwrap(), None);
+    assert!(block_on(form.can_set_group("ari".into())).unwrap());
+    block_on(form.set_design_group(Some("ari".into()))).unwrap();
+    assert_eq!(block_on(form.design_group()).unwrap().as_deref(), Some("ari"));
+    block_on(form.set_design_group(None)).unwrap();
+    {
+        let events = events.0.lock().unwrap();
+        assert!(
+            events
+                .iter()
+                .any(|e| matches!(e, FormEvent::GroupsChanged { groups: g } if *g == groups)),
+            "{events:?}"
+        );
+        let design: Vec<_> = events
+            .iter()
+            .filter_map(|e| match e {
+                FormEvent::DesignGroupChanged { group_id } => Some(group_id.clone()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(design, [Some("ari".to_string()), None]);
+    }
+    let moved =
+        block_on(form.move_to_group(vec![text_ref()], Some("ari".into()), CancelToken::new()))
+            .unwrap();
+    assert_eq!(moved.len(), 1);
+    let ops = sent(&thread);
+    assert_eq!(
+        ops.last().unwrap()[0],
+        json!({ "type": "forms.update", "field": { "kind": "objectNumber", "objectNumber": 1 },
+            "patch": { "groupId": "ari" } }),
+        "{ops:?}"
+    );
+    // Nothing is selected without the annotation plugin.
+    assert!(block_on(form.selected_fields()).unwrap().is_empty());
+}
+
+#[test]
+fn a_widget_anchors_where_it_stands_and_says_when_it_has_the_cursor() {
+    let (_thread, form) = grouped_handle();
+    let anchor = block_on(form.widget_anchor(widget_101())).unwrap().expect("an anchor");
+    assert_eq!(anchor.page, PageRef { page_object_number: 1 });
+    assert_eq!(anchor.bounds, epdf_ffi::Rect { x: 48.0, y: -18.0, width: 24.0, height: 100.0 });
+    let missing = AnnotationRef::ObjectNumber {
+        page: PageRef { page_object_number: 1 },
+        annot_object_number: 999,
+    };
+    assert_eq!(block_on(form.widget_anchor(missing)).unwrap(), None);
+    assert!(!block_on(form.is_widget_focused(widget_101())).unwrap());
+    let target = FocusTarget::taking();
+    let _registration = block_on(form.attach_focus_target(widget_101(), target)).unwrap();
+    assert!(block_on(form.focus(text_ref(), None)).unwrap());
+    // The control reports that it took the cursor.
+    block_on(form.notify_widget_event(
+        text_ref(),
+        widget_101(),
+        epdf_plugin_form::ffi::FormWidgetEvent::Focus,
+    ))
+    .unwrap();
+    assert!(block_on(form.is_widget_focused(widget_101())).unwrap());
+}
+
+#[test]
+fn a_group_the_session_may_not_set_is_refused() {
+    let (thread, form) = grouped_handle_with(false);
+    assert!(!block_on(form.can_set_group("ari".into())).unwrap());
+    let error = block_on(form.set_design_group(Some("ari".into()))).unwrap_err();
+    assert_eq!(code(&error), Some("permission-denied"), "{error:?}");
+    let error =
+        block_on(form.move_to_group(vec![text_ref()], Some("ari".into()), CancelToken::new()))
+            .unwrap_err();
+    assert_eq!(code(&error), Some("permission-denied"), "{error:?}");
+    // Out of every group takes form design alone.
+    block_on(form.set_design_group(None)).unwrap();
+    let _ = block_on(form.move_to_group(vec![text_ref()], None, CancelToken::new()));
+    let ops = sent(&thread);
+    assert_eq!(ops.len(), 1, "{ops:?}");
+    assert_eq!(ops[0][0]["patch"], json!({ "groupId": null }));
+}
+
+/// CU-C5-D4: a native control that holds nothing to focus (a signature
+/// field nobody here can sign) says so, and the cursor passes over it.
+#[test]
+fn a_native_target_that_takes_no_cursor_is_passed_over() {
+    let (_thread, form) = grouped_handle();
+    let declining = Arc::new(FocusTarget(Mutex::new(Vec::new()), false, true));
+    let registration = block_on(form.attach_focus_target(widget_101(), declining.clone())).unwrap();
+    assert!(!block_on(form.focus(text_ref(), None)).unwrap());
+    assert!(!block_on(form.focus_next(None)).unwrap());
+    assert!(declining.0.lock().unwrap().is_empty(), "focus was asked of a target that takes none");
+    assert_eq!(block_on(form.focused_field()).unwrap(), None);
+    registration.unregister();
+    // A target that takes it, but whose focus finds nothing to put it in.
+    let empty = Arc::new(FocusTarget(Mutex::new(Vec::new()), true, false));
+    let _registration = block_on(form.attach_focus_target(widget_101(), empty.clone())).unwrap();
+    assert!(!block_on(form.focus(text_ref(), None)).unwrap());
+    assert_eq!(*empty.0.lock().unwrap(), vec![false]);
 }
