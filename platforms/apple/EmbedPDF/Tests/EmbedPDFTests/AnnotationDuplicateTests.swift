@@ -102,6 +102,29 @@ extension BaseSuite {
       #expect(try await !annotations.selection.canDuplicate())
     }
 
+    /// The generated call answers `invalid-input` for an offset that is not
+    /// finite, so Swift doesn't check it first.
+    @Test
+    func anOffsetThatIsNotFiniteIsInvalidInput() async throws {
+      let (_, _, annotations, page) = try await opened()
+      let square = try await annotations.create(Self.square, on: page)
+      let before = try await annotations.list().count
+      await #expect {
+        _ = try await annotations.duplicate(
+          [square], options: AnnotationDuplicateOptions(offset: Point(x: .nan, y: 0)))
+      } throws: {
+        ($0 as? PDFError)?.code == .invalidInput
+      }
+      try await annotations.selection.select([square])
+      await #expect {
+        _ = try await annotations.selection.duplicate(offset: Point(x: 0, y: .infinity))
+      } throws: {
+        ($0 as? PDFError)?.code == .invalidInput
+      }
+      let after = try await annotations.list().count
+      expectNoDifference(after, before)
+    }
+
     @Test
     func canDuplicateTruthTable() async throws {
       let (_, _, annotations, page) = try await opened()

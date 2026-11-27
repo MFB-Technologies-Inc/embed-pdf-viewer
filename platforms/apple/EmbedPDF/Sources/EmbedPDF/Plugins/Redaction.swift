@@ -86,6 +86,12 @@ public struct RedactionCapability: Sendable {
     try await bridgedCancellable { token in try await handle.markPage(page: page, cancel: token) }
   }
 
+  /// Mark every match of `query`, on `pages` or the whole document.
+  ///
+  /// Cancelling the task aborts the search, or stops between marks and
+  /// keeps the marks already made. A cancel before the search finds a match
+  /// returns an empty array rather than throwing; a cancel after it found
+  /// one throws `operation-cancelled`.
   public func markMatches(_ query: SearchQuery, on pages: [PageRef]? = nil) async throws(PDFError) -> [RedactionMark] {
     try await bridgedCancellable { token in try await handle.markMatches(query: query, pages: pages, cancel: token) }
   }

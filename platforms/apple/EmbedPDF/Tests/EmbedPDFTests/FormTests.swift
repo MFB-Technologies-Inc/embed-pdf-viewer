@@ -324,5 +324,67 @@ extension BaseSuite {
       // annotations reachable, the same script runs.
       expectNoDifference(result.steps.first?.result.nodes.map(\.status), [.executed])
     }
+
+    @Test func formFieldDuplicationMakesANamedCopy() async throws {
+      let (_, _, form) = try await opened()
+      let original = try await writableText(form)
+      let before = try await form.fields().count
+      let result = try await form.duplicate(
+        [original.fieldRef], options: FormDuplicateOptions(offset: Point(x: 0, y: 30)))
+      try #require(result.fields.count == 1)
+      let copy = result.fields[0]
+      #expect(copy.fieldRef != original.fieldRef)
+      #expect(copy.name.hasPrefix(original.name))
+      #expect(copy.name != original.name)
+      expectNoDifference(result.widgets.count, original.widgets.count)
+      let after = try await form.fields().count
+      expectNoDifference(after, before + 1)
+      expectNoDifference(result.droppedJson, "[]")
+    }
+
+    @Test func formWidgetDuplicationMakesANewField() async throws {
+      let (_, _, form) = try await opened()
+      let original = try await writableText(form)
+      let widget = try #require(original.widgets.first { $0.annotationRef != nil }?.annotationRef)
+      let result = try await form.duplicateWidgets([widget])
+      try #require(result.widgets.count == 1)
+      let copy = result.widgets[0]
+      #expect(copy != widget)
+      try #require(result.fields.count == 1)
+      let field = result.fields[0]
+      #expect(field.fieldRef != original.fieldRef)
+      #expect(field.widgets.contains { $0.annotationRef == copy })
+    }
+
+    @Test func duplicatingAFieldTheFormDoesNotHaveIsNotFound() async throws {
+      let (_, _, form) = try await opened()
+      await #expect {
+        _ = try await form.duplicate([.fqn(name: "no such field")])
+      } throws: {
+        ($0 as? PDFError)?.code == .notFound
+      }
+    }
+
+    /// The generated call answers `invalid-input` for an offset that is not
+    /// finite, so Swift doesn't check it first.
+    @Test func aDuplicateOffsetThatIsNotFiniteIsInvalidInput() async throws {
+      let (_, _, form) = try await opened()
+      let original = try await writableText(form)
+      let before = try await form.fields().count
+      let options = FormDuplicateOptions(offset: Point(x: -.infinity, y: 0))
+      await #expect {
+        _ = try await form.duplicate([original.fieldRef], options: options)
+      } throws: {
+        ($0 as? PDFError)?.code == .invalidInput
+      }
+      let widget = try #require(original.widgets.first { $0.annotationRef != nil }?.annotationRef)
+      await #expect {
+        _ = try await form.duplicateWidgets([widget], options: options)
+      } throws: {
+        ($0 as? PDFError)?.code == .invalidInput
+      }
+      let after = try await form.fields().count
+      expectNoDifference(after, before)
+    }
   }
 }
