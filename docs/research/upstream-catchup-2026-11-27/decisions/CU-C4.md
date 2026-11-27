@@ -26,9 +26,9 @@ and the only Rust names that said "stamp drawing" were these three. Upstream's T
 fit `StampFit` (`APPEARANCE_FIT_CODE` is a table of it), so that name follows upstream as it is. No
 wrapper (`epdf-uniffi`, `epdf-capi`, `epdf-web`, `packages/core-wasm`, `platforms/**`) named any of
 the three, so the wrapper-facing rename stays empty.
-Cost: a source break for any Rust caller of the three old names; inside the repository the four
-callers (`annotation/transfer.rs`, `annotation/write/stamp.rs`, `tests/annotation_create.rs`) moved
-with them.
+Cost: a source break for any Rust caller of the three old names; inside the repository the five
+call sites in three files (`annotation/transfer.rs`, `annotation/write/stamp.rs`,
+`tests/annotation_create.rs`) moved with them.
 Reverse: rename the three back in `crates/pdfium/src/stamp.rs` and its callers.
 
 ## CU-C4-D3. The new engine cases are change-generator groups
@@ -46,8 +46,9 @@ The upstream suites build their fixtures in memory (`FIELD_PURPOSE_FORMAT_PDF`, 
 existing change files regenerate byte for byte, so `$hex` changed none of them.
 Cost: `field-purpose-format.json` is 1.0 MB, most of it whole form snapshots. A step that the
 TypeScript client refuses before sending anything (a filler's design write, raw bytes that are no
-picture) records no exchange, so Rust replays nothing for it: the client-side gate is the
-wrappers' (CU-C8, CU-C9), not the host's. Forms imports are not recorded (see D9).
+picture) records no exchange, so Rust replays nothing for it. Bytes that are no picture reach the
+native host unsniffed, so `signature_mark.rs` checks the engine's own refusal on both the verb and
+a prepare. Forms imports are not recorded; a hand-written test covers them (see D9).
 Reverse: delete the four groups from `CATCHUP_GROUPS` and the four tests in `change_ops.rs`.
 
 ## CU-C4-D4. A verb's `event` is the host's, and is left out of the comparison
@@ -106,25 +107,28 @@ Decision: `forms.setSignatureAppearance` on the Rust host reads `appearance` (a 
 for no mark) or `pdf` (a payload, a PDF only), and refuses a request with neither with
 `InvalidArg`, as `signatureAppearanceOfRequest` does. `epdf-viewer-host` sends the mark in the
 spelling its caller chose. The change op's `appearance` is the mark's resource, `{ "pdf": resource }`
-or `null`; `signatures.prepare`'s takes both spellings.
+or `null`, and the key is required (`FieldAppearanceResourceKeysSchema` is nullable, not optional),
+so an op without it is `WireFormat`, not a clear (`937eb6767`). `signatures.prepare`'s takes both
+spellings.
 Reason: before, the host took payload 0 as a PDF and read nothing from the body. Upstream's worker
 request now says which spelling the caller chose, and `{ pdf }` must refuse an image.
 Cost: a caller that sends only payload 0 is now refused. In the repository that was
 `epdf-viewer-host` and seven engine test calls, all updated.
 Reverse: treat a body with neither key as `pdf`.
 
-## CU-C4-D9. Imports and `completeFormBundle` are not recorded or ported
+## CU-C4-D9. Imports are a hand-written test; `completeFormBundle` is not ported
 
-Decision: no engine case runs `forms.import`, and `codec::parse` does not complete an older bundle's
-fields (`completeFormBundle`, `withPurposeAndFormat`).
+Decision: the upstream import test (`an import keeps a purpose and a format, with form design
+alone`) is ported by hand in `tests/form_transfer.rs` (`ecf7f339c`), not as a change-generator
+case. `codec::parse` does not complete an older bundle's fields (`completeFormBundle`,
+`withPurposeAndFormat`).
 Reason: an import route carries the bundle's resources as payloads the change generator's step kinds
-don't model, and the copy cases exercise the same `fieldDraftOf` (`field_draft_of`). The Rust import
-reads each field row as JSON: a row with no `purpose` gets none, and a format is read from the row's
-scripts, which is what completing the row would give it. No Rust caller reads the fields of a parsed
-bundle (`codec::parse` is called from tests only).
-Cost: the upstream import test (`an import keeps a purpose and a format, with form design alone`)
-has no Rust replay, and a wrapper that someday shows a parsed older bundle's rows would see no
-`purpose` member.
+don't model, while `form_transfer.rs` already drives `forms.export` and `forms.import`. The Rust
+import reads each field row as JSON: a row with no `purpose` gets none, and a format is read from
+the row's scripts, which is what completing the row would give it. No Rust caller reads the fields
+of a parsed bundle (`codec::parse` is called from tests only).
+Cost: the import case is the upstream test restated, not recorded from a TypeScript run, and a
+wrapper that someday shows a parsed older bundle's rows would see no `purpose` member.
 Reverse: add an import step kind to the generator, and a `complete` pass over form rows in
 `codec::parse`.
 

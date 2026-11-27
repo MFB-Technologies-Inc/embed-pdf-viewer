@@ -11,12 +11,14 @@ cd $W
 git checkout $TESTS -- \
   crates/epdf-engine/tests/change_ops.rs crates/epdf-engine/tests/signature_mark.rs \
   crates/epdf-engine/tests/font_fallback_named.rs crates/epdf-engine/tests/wire_numbers.rs \
-  crates/epdf-engine/tests/host_sessions.rs tooling/engine-conformance/vectors/changes
+  crates/epdf-engine/tests/host_sessions.rs crates/epdf-engine/tests/form_transfer.rs \
+  tooling/engine-conformance/vectors/changes
 export CARGO_TARGET_DIR=/workspaces/target CARGO_BUILD_JOBS=6 CARGO_INCREMENTAL=0 \
   CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 PDF_RUNTIME_LIB_DIR=/workspaces/pdfium/lib \
   LD_LIBRARY_PATH=/workspaces/pdfium/lib/linux-arm64/lib
 cargo test -p epdf-engine --no-fail-fast --test change_ops --test signature_mark \
-  --test font_fallback_named --test wire_numbers --test host_sessions > $L/cargo.log 2>&1
+  --test font_fallback_named --test wire_numbers --test host_sessions --test form_transfer \
+  > $L/cargo.log 2>&1
 echo "exit=$?" > $L/cargo.exit
 grep -E "^test .* (ok|FAILED)$|cases differ|test result" $L/cargo.log > $L/summary.txt
 cd / && git -C /workspaces/wt/CU-C2 worktree remove --force $W

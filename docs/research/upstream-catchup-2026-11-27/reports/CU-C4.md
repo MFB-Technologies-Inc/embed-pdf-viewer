@@ -25,7 +25,17 @@ On `research/catchup-2026-11-27-c4` from `0e83ecb84`.
 | `04def3c6f` | 9 | A `layerBytes` open with `baseSha256` |
 | `2f2ccf56c`, `be8505172` | 3 | A stamp of a mark's picture shares its image |
 | `82d3476a2` | 5 | `epdf-plugin-form`'s cross-check fixtures carry purpose and format (CU-C4-D11) |
-| the docs commit | | This report, the decisions, `scripts/cu-c4/` |
+| `5be56d92e` | | This report, the decisions, `scripts/cu-c4/` |
+
+Fix round 1 (the task review's Important 1 and Minors 1 to 4):
+
+| Commit | Item | Summary |
+|---|---|---|
+| `188440dc5` | 3, 7 | A signing's PNG mark, refused later marks, bytes that are no picture (verb and prepare), a signed field's mark turning |
+| `937eb6767` | 3 | The op's `appearance` key is required: missing is `WireFormat`, `null` is a clear |
+| `c77936a7b` | 3 | `bake_widget_appearance` reads the mark's format before looking for the widget |
+| `ecf7f339c` | 5 | An import keeps a purpose and a format, with form design alone |
+| the docs commit | | This report and the decisions updated |
 
 ## Items
 
@@ -44,18 +54,22 @@ On `research/catchup-2026-11-27-c4` from `0e83ecb84`.
    `{ pdf }`; `forms.setSignatureAppearance` takes it or `null` as op and verb, `signatures.prepare`
    takes either spelling. An image becomes a page of its own size (`Document::image_document`);
    other bytes are `InvalidArg`, an image under `{ pdf }` is `MalformedPdf`, two pages `InvalidArg`.
-   `null` clears the fit record and draws the box again; a widget with no mark is left alone. The 8
-   cases of `signature-mark.json` cover the structural tests of `runSignatureMarkConformance.ts`;
-   `signature_mark.rs` the pixel tests and the resource suite's shared-image case (CU-C4-D5).
-   Not covered: a signing that takes an image as its mark (no completed-signing step in either
-   harness), and a Blob, which has no Rust spelling.
+   `null` clears the fit record and draws the box again; a widget with no mark is left alone. The
+   op's `appearance` key is required, `null` included. A mark's format is read before its widget is
+   looked for, as `markFormat` runs before `withWidgetAnnotation`. The 8 cases of
+   `signature-mark.json` cover the structural tests of `runSignatureMarkConformance.ts`;
+   `signature_mark.rs` the pixel tests, the two signing tests (a PNG mark kept and sealed against a
+   JPEG and `null`; a prepare refusing bytes that are no picture), the verb's refusal of such bytes,
+   which is the only gate on the native path, and the resource suite's shared-image case
+   (CU-C4-D5). Not covered: a Blob, which has no Rust spelling.
 4. Done (`065b8c3f5`). `every_change_kind_has_the_version_it_arrived_in` passes and checks the two
    new versions.
 5. Done (`a88255b34`). `forms/format.rs` ports `purpose.ts`, `format.ts` and `datePattern.ts`, with
    13 unit tests from `datePattern.test.ts` and `format.test.ts`. JavaScript semantics are kept where
    they differ from Rust's: lengths in UTF-16 units, `trim` over `js_space`. `forms_copy`,
    `form_apply`, `form_field`, `form_reader` and `form_write` pass. `field-purpose-format.json` (25
-   cases) covers the 24 tests of `runFieldPurposeFormatConformance.ts` but the import (CU-C4-D9).
+   cases) covers 23 of the 24 tests of `runFieldPurposeFormatConformance.ts`; the import test is
+   hand-written in `form_transfer.rs` (CU-C4-D9).
 6. Done (`a88255b34`). `newFieldGroup` names no group by default, `namedGroup` refuses an empty or
    over-long id, `null` takes a field out with form design alone, and `propertiesOf` carries
    `groupId: null`, so undo and `expect` work on it. `field-groups.json` (9 cases) covers the new
@@ -64,8 +78,8 @@ On `research/catchup-2026-11-27-c4` from `0e83ecb84`.
    already had (`annotations.rs`, `authorize_create`).
 7. Done (`6770b00a8`). `refit_widget_mark` fits a marked widget's mark by its recorded fit, else
    `contain`, when an update changes its box or turn. `widget-rotation.json` (2 cases) and
-   `signature_mark.rs` cover the first two tests of the rotation suite; the signed-field test needs
-   a completed signing and isn't ported.
+   `signature_mark.rs` cover the rotation suite's three mark tests, the signed field's through a
+   placeholder-CMS completion as `signature_sign.rs` signs.
 8. Checked (`d208075d5`). The runtime fix arrived with `9472117ed`; `font_fallback_named.rs` passes
    for Hebrew and Arabic in a simple and a composite font, and a probe without the fallbacks draws
    nothing (CU-C4-D6). #1152: `epdf-fonts` builds its faces from `faces.generated.ts`, so no change.
@@ -87,7 +101,10 @@ all 44 cases of the four new change files differ, and 7 of 9 in `form-copy.json`
 tests fail; the
 one that passes is a PDF under `{ pdf }`, which the port drew before
 (`red-engine-cases-2/summary.txt`). Items 8, 9 and 10 are checks of behaviour already there, so
-they have no red run (CU-C4-D6, D7).
+they have no red run (CU-C4-D6, D7). In fix round 1 the two code fixes failed first
+(`fix1-red-minor1.log`: an op without `appearance` parsed as a clear; `fix1-red-minor3.log`:
+`NotFound` before `InvalidArg`), and `red.sh` against `065b8c3f5` fails the import test and 10 of
+the 11 mark tests (`red-fix1/summary.txt`).
 
 ## Tests
 
@@ -134,6 +151,12 @@ sha256, first 8 hex digits.
 | Plugin checks | `suite.sh … plugconf`, `replay:check` | 0, 1 | `after/plugconf.all`, `after/plugconf.replay:check.log` | `09dd3f6f`, `aa171f04` |
 | Replayed cases | `replay-cases.py` | 0 | `after/replay-cases.tsv` | `49b349a9` |
 | Evidence | `after.sh`, evidence part | 0 | `after/ev/summary.txt` | `6290cd61` |
+| Fix 1: signing and mark tests | `--test signature_mark` | 0 | `fix1-signing.log` | `18cb27b3` |
+| Fix 1: required key | `--lib changes::op` | 101, then 0 | `fix1-red-minor1.log`, `fix1-green-minor1.log` | `3a8f6ed5`, `692ca509` |
+| Fix 1: format before widget | `--lib a_mark_that_is_no_picture` | 101, then 0 | `fix1-red-minor3.log`, `fix1-green-minor3.log` | `b7dd93e4`, `ddbf981c` |
+| Fix 1: import | `--test form_transfer` | 0 | `fix1-import.log` | `ee0854de` |
+| Fix 1: red run | `red.sh 065b8c3f5 ecf7f339c red-fix1` | 0 (script) | `red-fix1/summary.txt` | `62f0c497` |
+| Fix 1: covering suites | `cargo test -p epdf-engine -p epdf-viewer-host`; `suite.sh … engconf` | 0, 0 | `fix1/cargo.log` (1,822 passed, 0 failed), `fix1/engconf.all` (36 of 36) | `2ef19695`, `27a10bbd` |
 
 ## For CU-C5 and the wrappers
 
@@ -146,8 +169,7 @@ paths are unchanged. MK icons and the drawing names have no engine or wrapper su
 
 ## Known gaps
 
-- No import case is recorded, and `codec::parse` does not complete an older bundle (CU-C4-D9).
-- A signing that takes an image as its mark, and the signed field whose mark turns, have no Rust
-  case: neither harness completes a signing in these suites.
+- No import case is recorded by the generator (it is hand-written), and `codec::parse` does not
+  complete an older bundle (CU-C4-D9).
 - `rust-coverage:check` was not run, as in CU-C3 (CU-C3-D12).
 - `runtime-src` names `9472117ed`, only in the local runtime fork until CU-C10 (D-3).
