@@ -12,6 +12,10 @@ use epdf_engine::host::Host;
 use serde_json::{Value, json};
 
 const DOC: &str = "marks";
+/// A DER `SEQUENCE`: what a completion takes as a CMS, without judging it.
+const PLACEHOLDER_CMS: [u8; 8] = [0x30, 0x06, 0x02, 0x01, 0x01, 0x02, 0x01, 0x02];
+/// Bytes that are no PNG, JPEG or PDF (`runSignatureMarkConformance.ts`).
+const NOT_A_MARK: &[u8] = b"GIF89a: not a format a mark is read from";
 
 fn unhex(text: &str) -> Vec<u8> {
     (0..text.len()).step_by(2).map(|i| u8::from_str_radix(&text[i..i + 2], 16).unwrap()).collect()
@@ -129,6 +133,40 @@ impl Doc {
             .find(|row| &row["ref"] == reference)
             .cloned()
             .expect("the widget's row")
+    }
+
+    /// `signatures.prepare` of field `name` with `mark` as its appearance,
+    /// as `LocalDocumentSignaturesService` sends it: the envelope.
+    fn prepare(&mut self, name: &str, mark: Mark<'_>) -> Value {
+        let mut input = json!({ "field": { "kind": "fqn", "name": name },
+            "signer": { "name": "Signer" } });
+        let payloads = match mark {
+            Mark::Bytes(bytes) => {
+                input["appearance"] = json!({ "payload": 0 });
+                vec![bytes.to_vec()]
+            }
+            Mark::Pdf(bytes) => {
+                input["appearance"] = json!({ "pdf": { "payload": 0 } });
+                vec![bytes.to_vec()]
+            }
+            Mark::None => Vec::new(),
+        };
+        self.send(json!({ "kind": "signatures.prepare", "input": input }), payloads).0
+    }
+
+    /// Prepare and complete a signing of field `name` with `mark`, the CMS a
+    /// placeholder DER `SEQUENCE` that a completion takes without judging.
+    fn sign(&mut self, name: &str, mark: Mark<'_>) {
+        let prepared = self.prepare(name, mark);
+        assert!(prepared.get("error").is_none(), "{prepared}");
+        let result = &prepared["result"]["result"];
+        let completed = self.ok(
+            json!({ "kind": "signatures.complete", "opId": format!("sign-{name}"),
+                "input": { "signingId": result["signingId"],
+                    "expectedVersion": result["expectedVersion"] } }),
+            vec![PLACEHOLDER_CMS.to_vec()],
+        );
+        assert_eq!(completed["result"]["status"], "completed", "{completed}");
     }
 
     /// The first widget of field `name`, as the page shows it.
@@ -453,4 +491,69 @@ fn a_stamp_of_the_picture_a_mark_shows_places_the_marks_drawing() {
     assert_eq!((after.width, after.height), (shown.width, shown.height));
     assert!(max_shifted_difference(&after, &shown) <= 3);
     assert_eq!(images_in_a_rewrite(&mut doc), 1);
+}
+
+#[test]
+fn bytes_that_are_no_png_jpeg_or_pdf_are_refused_and_nothing_is_written() {
+    // The native path sends a mark's bytes unsniffed (`epdf-viewer-host`), so
+    // this check is the only gate there is.
+    let marks = fixtures();
+    let mut doc = Doc::open(marks.page.clone());
+    doc.signature_field("sig", bands_box(30), None);
+    let before = doc.drawn_of("sig");
+    let refused = doc.mark("sig", Mark::Bytes(NOT_A_MARK), "unknown");
+    assert_eq!(refused["error"]["code"], "InvalidArg", "{refused}");
+    let message = refused["error"]["message"].as_str().unwrap();
+    assert!(message.contains("PNG, JPEG or one-page PDF bytes"), "{message}");
+    let row = doc.row_of("sig");
+    assert_eq!(row["hasMark"], false);
+    assert_eq!(doc.drawn(&row).rgba, before.rgba);
+}
+
+#[test]
+fn a_signing_takes_an_image_as_its_mark_and_a_signed_field_keeps_it() {
+    let marks = fixtures();
+    let mut doc = Doc::open(marks.page.clone());
+    doc.signature_field("signed", bands_box(30), None);
+    doc.sign("signed", Mark::Bytes(&marks.png));
+    let row = doc.row_of("signed");
+    assert_eq!(row["hasMark"], true);
+    assert!(doc.drawn(&row).shows_bands());
+    // Its mark is sealed with the signature: it takes no other, and gives
+    // none up.
+    for (mark, op) in [(Mark::Bytes(&marks.jpeg), "again"), (Mark::None, "clear")] {
+        let refused = doc.mark("signed", mark, op);
+        assert_eq!(refused["error"]["code"], "ProtectedDocument", "{op}: {refused}");
+    }
+    assert!(doc.drawn_of("signed").shows_bands());
+}
+
+#[test]
+fn a_signing_refuses_bytes_that_are_no_png_jpeg_or_pdf() {
+    let marks = fixtures();
+    let mut doc = Doc::open(marks.page.clone());
+    doc.signature_field("sig", bands_box(30), None);
+    let refused = doc.prepare("sig", Mark::Bytes(NOT_A_MARK));
+    assert_eq!(refused["error"]["code"], "InvalidArg", "{refused}");
+    let message = refused["error"]["message"].as_str().unwrap();
+    assert!(message.contains("PNG, JPEG or one-page PDF bytes"), "{message}");
+}
+
+#[test]
+fn a_signed_fields_mark_turns_with_it_as_well() {
+    // `runWidgetRotationConformance.ts`: the mark a signing drew is fitted
+    // again, turned, when its widget turns.
+    let marks = fixtures();
+    let mut doc = Doc::open(marks.page.clone());
+    doc.signature_field("signed", json!({ "x": 150, "y": 20, "width": 120, "height": 40 }), None);
+    doc.sign("signed", Mark::Pdf(&marks.mark_pdf));
+    let row = doc.row_of("signed");
+    assert_eq!(row["hasMark"], true);
+    let upright = doc.drawn(&row);
+    doc.ok(
+        json!({ "kind": "forms.updateWidget", "opId": "turn", "widget": row["ref"],
+            "patch": { "rotation": 90 } }),
+        Vec::new(),
+    );
+    assert!(max_shifted_difference(&doc.drawn(&row), &upright.quarter_turned()) <= 3);
 }
