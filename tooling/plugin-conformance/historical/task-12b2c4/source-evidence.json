@@ -14,7 +14,7 @@
     "packages/engine/core/src/identity/annotationKey.ts": "708684e13d2c6fb5b5aa1e0f4ae7c2e79251c69ce1aa1651cd6c2d43d2d4b45a",
     "packages/engine/core/src/forms/effects.ts": "6c3b5fde1d926bbb6c802f42ca54277e944e2c9faec34f92d48a37030fceb83c",
     "packages/engine/core/src/forms/value.ts": "506244726101f716e0d0e8f92b41d750426984efd395ea469f8822398967788a",
-    "packages/engine/core/src/auth/scope/types.ts": "9464052cbffb7290bbc034d55ec3c74e178d3eef41d3b60dfaec3fc2bc68c3c7",
+    "packages/engine/core/src/auth/scope/types.ts": "ef78c0bf59ca95858a27dc28c3991f67c4d89b0a30cfb6c80e4649e57dda4212",
     "tooling/plugin-conformance/src/suites/actions.ts": "a462345db90f416302c0c11644c602dfd627aa1c715abcbdd28701da523c0ccf",
     "tooling/plugin-conformance/src/suites/actions-current-fixtures.ts": "4138e5c4ebc1cd09831e3281b2000eb755af36f4068d6b77b501c00f56af3764",
     "tooling/plugin-conformance/src/suites/acrojs.ts": "0c9fa4c7c45daa5c5e87901299ac127702ec28a0c3da42aacded5993ae5bf4cc"
@@ -23,7 +23,7 @@
     "original-actions.ts.txt": "859be9c7a47199490194841575c1753384aa793c7a6b85527a9cf5ee3319d3b3",
     "original-inputs.json": "4ba34e8d969162da429dd1fd0fdb7cb18790ad7828fd1d8debc75f791f1f7f99",
     "original-runtime.json": "8250f07725770b74695f5465275ec8f44827505f5cdabc5c8597afa54cb58733",
-    "current-inputs-runtime.json": "59742d60bf743d23deed5f63298bcc7caf370e5d5ccbae73052f7f75b39eb024",
+    "current-inputs-runtime.json": "a6f69797dc6f39e32f0e40df6d0836f00bbedf6973625a5197276838c112d773",
     "accounting.json": "0a4357be842115808e706d83e8a177be90b4921bf9a78824ff0724b96fa1298d",
     "negative-channels.json": "31a135ebd5a1e307267b8606e1f2f0b071a30ef613472b28fd7f8695d70c9a74",
     "default-vm-pending-reproduction.json": "15d58f42b616aa32d90a7a06ddd178d16fc3f0be2e653ea32deb0129dd5f1343",
@@ -40,7 +40,7 @@
   },
   "immutableAuthorities": {
     "../task-12b2c2/deferred-runtime.json": "c877b94482b0093398e712a08fab37c831b41fbd59e1cd1f82490458f89c8145",
-    "../task-12b2c2/current-inputs-runtime.json": "a9040c53af721b1974d87d2425dec5ce795cbda3350d5fe65bc0b4d471861849",
+    "../task-12b2c2/current-inputs-runtime.json": "2ae32c541d3dbd204fe5b01d5f6f281974405a305afed14ad79d6bcb5ba1e84b",
     "../task-12b2c3/current-inputs-runtime.json": "b3f95a8813bf01251f7378f25c2df3fc96c13eb2ccbaef4df39f040fb60a9687",
     "../task-12b2c2/link-runtime.json": "4c0944fcbc1b405d03534dc88f9f9df1de3ba9518603676cffb0f5ede075eaa7"
   },

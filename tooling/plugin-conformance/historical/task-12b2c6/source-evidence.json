@@ -54,7 +54,7 @@
     {
       "owner": "changes",
       "path": "packages/engine/core/src/mutation/Change.ts",
-      "sha256": "c1013a43b0a647054f2ab80f19e6fcbc5336b5b9a9224a06e564ac57152f01d1"
+      "sha256": "8226ad8c79cdd065d772881e7e46462dac50e4d824c1e70ec5159635ec1a6f02"
     },
     {
       "owner": "actions",

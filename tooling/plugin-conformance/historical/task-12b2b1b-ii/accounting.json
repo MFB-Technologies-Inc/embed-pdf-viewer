@@ -317,7 +317,7 @@
           "after": "hover-feeds-the-actions-pump",
           "status": "retained",
           "oldCanonicalInputSha256": "7a745758165f3ccf6cebf1bd9329751c7da19d28cc34760e24f25036621c304e",
-          "currentCanonicalInputSha256": "e6a5f8c0541f08b5a3c34757a257c20227ae071a7ba7366ceddd81b337f580d5",
+          "currentCanonicalInputSha256": "37997d1a9e75418585dd8f4614e2f24577bc24d1926cb1a8962340cfd48ed6ab",
           "task11InputDrift": false,
           "beforeCovers": "With the actions plugin present, each hover change reports to the shared pump: an annotation with /E or /X trees is a target with per-event flags; drafts, widgets, links and tree-less annotations are not. The pump runs the trees as hover-origin dispatches.",
           "afterCovers": "With the actions plugin present, each hover change reports to the shared pump: an annotation with /E or /X trees is a target with per-event flags; drafts, widgets, links and tree-less annotations are not. The pump runs the trees as hover-origin dispatches.",

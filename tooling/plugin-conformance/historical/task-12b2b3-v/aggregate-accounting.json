@@ -5100,7 +5100,7 @@
     {
       "slice": "v",
       "path": "tooling/plugin-conformance/historical/task-12b2b3-v/accounting.json",
-      "sha256": "10de219391f1e0b3b2524973b310d2fa17429f10929aecb09c36b9779db24ae5",
+      "sha256": "c52b6cdfd1c2cb05de50a4d1f3e2eba2618a35b4f02a2d94ed4cd4002e3878de",
       "original": 19,
       "current": 22,
       "mappings": [
@@ -5245,7 +5245,7 @@
           "after": {
             "file": "plugins/stamp-placement.json",
             "name": "a-raster-asset-is-never-evaluated",
-            "inputSha256": "1278fabae2450f1ab2bc486e8c15c9879bcdf2793ad14196aea6189076d5b1c2"
+            "inputSha256": "b81b06c431790874c1144a3faadfe95f6ca709f4aa182c92246b57647e68c3e3"
           },
           "disposition": "mapped-with-partial-retirement",
           "target": "Current StampCapability / AnnotationHostCapability / ActionsHostCapability",
@@ -5266,7 +5266,7 @@
           "after": {
             "file": "plugins/stamp-placement.json",
             "name": "a-stamp-without-fields-on-its-page-arms-the-template",
-            "inputSha256": "3c5a8afb0bbf9f822ad7737b5539f480190ddc41544e3a1451fcfffb603f64d5"
+            "inputSha256": "6ee5a67e8e87bf745171804e023ab0a2515616e718d166435ef298ceac077ef8"
           },
           "disposition": "mapped",
           "target": "Current StampCapability / AnnotationHostCapability / ActionsHostCapability",
@@ -5289,7 +5289,7 @@
           "after": {
             "file": "plugins/stamp-placement.json",
             "name": "materializes-a-dynamic-stamp",
-            "inputSha256": "4c2a25a1f480913300cfd609856879c7c3e5d40849383702205a438ee713d0b2"
+            "inputSha256": "1e27be7479c1dc2e027edb14e507c976b6a1b3d7be753a1b8003029b8032db0e"
           },
           "disposition": "mapped",
           "target": "Current StampCapability / AnnotationHostCapability / ActionsHostCapability",
@@ -5312,7 +5312,7 @@
           "after": {
             "file": "plugins/stamp-placement.json",
             "name": "a-loose-dynamic-stamp",
-            "inputSha256": "a9baf7ae9b3b8ccdd69b22775b1ea17ec0aaf609bcaebda68710c7b0ad0cab19"
+            "inputSha256": "01a0ca6645fe433ff7c4c5b8837e2d78b46a0ef12e7a2a3c1599cb07bc88d28b"
           },
           "disposition": "mapped-with-partial-retirement",
           "target": "Current StampCapability / AnnotationHostCapability / ActionsHostCapability",
@@ -5333,7 +5333,7 @@
           "after": {
             "file": "plugins/stamp-placement.json",
             "name": "dynamic-stamp-refusals",
-            "inputSha256": "53a9fe97c0e52f43cb0b8cedc5a739daffe6fed3a90f7a5cc02611c8a4b3933f"
+            "inputSha256": "4b5828685c0e21b7b42ac5d7b5a7e2e650fecbad1181175aec1223dc13e9dc25"
           },
           "disposition": "mapped-with-partial-retirement",
           "target": "Current StampCapability / AnnotationHostCapability / ActionsHostCapability",
@@ -5355,7 +5355,7 @@
           "after": {
             "file": "plugins/stamp-placement.json",
             "name": "a-failed-boot-script-is-a-diagnostic",
-            "inputSha256": "33c7af4563a69e0a9b73529691987f495d462233304961f098787c10d66421fd"
+            "inputSha256": "543aae25c739a8f7703f8e4dfc0d71fd9f6d0dde6447911a039a14e5df41bf18"
           },
           "disposition": "mapped",
           "target": "Current StampCapability / AnnotationHostCapability / ActionsHostCapability",
@@ -5378,7 +5378,7 @@
           "after": {
             "file": "plugins/stamp-placement.json",
             "name": "a-failed-recalculation-fails-the-arm",
-            "inputSha256": "ac38339ceb3ea74611b49f07dcde03685a29252b46d86a969494caa6a3be53c2"
+            "inputSha256": "8b8cfd0fb419e07554b28e02737df9cd08e6ca7b4dfe05c9aa4bf8a6856102d4"
           },
           "disposition": "mapped",
           "target": "Current StampCapability / AnnotationHostCapability / ActionsHostCapability",
@@ -5401,7 +5401,7 @@
           "after": {
             "file": "plugins/stamp-placement.json",
             "name": "an-error-observer-that-throws",
-            "inputSha256": "e811a872d88e25be8f465b8f8e27f03e46c30b5df04e494211e527ac76fc7d92"
+            "inputSha256": "3011551cfb035bfcc73dce49800bec4fb5e00b6d8d9ec4b3a7ab30a3cd4c17f8"
           },
           "disposition": "mapped-with-partial-retirement",
           "target": "Current StampCapability / AnnotationHostCapability / ActionsHostCapability",
@@ -5422,7 +5422,7 @@
           "after": {
             "file": "plugins/stamp-placement.json",
             "name": "observers-see-a-successful-run",
-            "inputSha256": "cf8c18b72e0b1065e40a466117e4a51b6b6abbd1dd0fe0135423b842f1de9591"
+            "inputSha256": "48120e9b0cc0eb6c3d45d279a193385d7589c1c5fc17d26dc9dfc7cb92193bf9"
           },
           "disposition": "mapped-with-partial-retirement",
           "target": "Current StampCapability / AnnotationHostCapability / ActionsHostCapability",
@@ -5443,7 +5443,7 @@
           "after": {
             "file": "plugins/stamp-placement.json",
             "name": "a-flatten-that-fails-or-skips",
-            "inputSha256": "27bcf5280a57a53a314fe308e2235fbfd356a6dc295d41036b983f3789ae60ce"
+            "inputSha256": "bee6f04ee959ee0f4a9cc6aa9ad5c9a307680c66c01da11ce04f668e5b0adca2"
           },
           "disposition": "mapped-with-partial-retirement",
           "target": "Current StampCapability / AnnotationHostCapability / ActionsHostCapability",
@@ -5464,7 +5464,7 @@
           "after": {
             "file": "plugins/stamp-placement.json",
             "name": "a-failed-copy-close-fails-the-arm",
-            "inputSha256": "3258dec439e45755a0550826616e234d37dadd5899272699c025fed8075a4444"
+            "inputSha256": "f5c59371ab7b42b1429fc3c891658b943a23a787f93a15635128762b5e827f7f"
           },
           "disposition": "mapped",
           "target": "Current StampCapability / AnnotationHostCapability / ActionsHostCapability",
@@ -5487,7 +5487,7 @@
           "after": {
             "file": "plugins/stamp-placement.json",
             "name": "a-library-without-canonical-bytes",
-            "inputSha256": "092dcf2c06f4d7a171dd9e0b724c81b7646bc72da77eaf0a6b3c90fd8d3a00f6"
+            "inputSha256": "d29a8f76f8988fae1bceed55cf65ce7f1d5ababdc42d2678c22287f861414292"
           },
           "disposition": "mapped",
           "target": "Current StampCapability / AnnotationHostCapability / ActionsHostCapability",
@@ -5510,7 +5510,7 @@
           "after": {
             "file": "plugins/stamp-placement.json",
             "name": "teardown-destroys-a-factory-engine-once",
-            "inputSha256": "eabd04b9d1daa5c334ebe6760c9671504bcfdae930341cf908775500a3ab8fdd"
+            "inputSha256": "dc651064a4fe6bf6a73b6c6f46150308ad6af1691745623442d078ce016fa2b9"
           },
           "disposition": "mapped",
           "target": "Current StampCapability / AnnotationHostCapability / ActionsHostCapability",
@@ -5529,7 +5529,7 @@
         {
           "file": "plugins/stamp-placement.json",
           "name": "dynamic-placement-writes-materialized-bytes-and-batch-facts",
-          "inputSha256": "36154427b620d6f75400f804d51533e87353b7ad8222f85cfacb4847a3dc847c",
+          "inputSha256": "b62ff6748ffea5c9da60e241efb2aa3fdc0ea5b6be68a57f3a96dfa6ff064263",
           "target": "Current shipping placement, annotation apply or file-picker APIs",
           "reason": "Independent successful dynamic appearance bytes/resources, exact reservations/ops/opIds/facts/public reads plus per-page failure/recovery and all-page preflight.",
           "source": [
@@ -5553,7 +5553,7 @@
         {
           "file": "plugins/stamp-placement.json",
           "name": "permission-refusal-recovers-on-an-authorized-document",
-          "inputSha256": "8ae48a2ebb35b87de5a3104060f3a414208d4c1cc3554b1c2732fff27b01a774",
+          "inputSha256": "640a1a79b91e3b0579fd0d73b600e598936c6f9dc6013145cc4bf5cb3810d0e6",
           "target": "Current shipping placement, annotation apply or file-picker APIs",
           "reason": "Open permission denial before copy; later independent authorized document successfully arms and disarms.",
           "source": [
@@ -5678,8 +5678,8 @@
     },
     {
       "path": "packages/engine/core/src/auth/scope/types.ts",
-      "sha256": "9464052cbffb7290bbc034d55ec3c74e178d3eef41d3b60dfaec3fc2bc68c3c7",
-      "commit": "fce760aebed5230a154d9f62919db5eaa1fb92d9"
+      "sha256": "ef78c0bf59ca95858a27dc28c3991f67c4d89b0a30cfb6c80e4649e57dda4212",
+      "commit": "445e34a696bcdc20cc155724865769f1b8b89482"
     },
     {
       "path": "packages/engine/core/src/dto/Measure.ts",

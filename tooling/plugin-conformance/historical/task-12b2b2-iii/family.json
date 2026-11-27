@@ -24,7 +24,7 @@
     {
       "file": "plugins/form-core-lifecycle.json",
       "name": "current-form-confirmation-refusal-and-permission",
-      "canonicalInputSha256": "d51605579601f348bf8b380a8c4d5a9b1ea4decffe15967b50a6cb6687eddfcb",
+      "canonicalInputSha256": "6e4f2b401ff7efef693ec5d90cf8a443d012b48d566408756d909c203b48aebe",
       "replacementFor": null,
       "reason": "Without annotation, a fill is predicted, confirmed once before resolution, then a refused fill leaves the confirmed value. A second document denies fill locally."
     }
@@ -42,7 +42,7 @@
         "name": "fieldKeyOf/object-number",
         "kind": "function",
         "fn": "fieldKeyOf",
-        "canonicalInputSha256": "5c76fa17b8f580e31a8232aaad06378490f9005abbffb1018804655ea857f493"
+        "canonicalInputSha256": "8589d820e8b2ce1805857237f7384d19305e1a909207c3c5b1a9b5540d0d087f"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -60,7 +60,7 @@
         "name": "fieldKeyOf/fqn-when-direct",
         "kind": "function",
         "fn": "fieldKeyOf",
-        "canonicalInputSha256": "afdb97c50461611b06c4aa309e82c88e371317716477f98914f000d9436bfd3b"
+        "canonicalInputSha256": "725d011740f8f8f0d73fa47e9677738cbdaed9e806bcbbb5ebe5454d81fed660"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -78,7 +78,7 @@
         "name": "fieldKeyOf/negative-object-number",
         "kind": "function",
         "fn": "fieldKeyOf",
-        "canonicalInputSha256": "55e696eeff4de91e12ec3fcf31c173c56f6fbe1e05bc31cc2ed7ccec8a2789eb"
+        "canonicalInputSha256": "a9b59caf7d5b6e2308a1ff468df92494046b55c51a9824ef272c429b0815a10c"
       },
       "disposition": "current input migration",
       "reason": "Non-durable numbers are represented by current fqn refs",
@@ -114,7 +114,7 @@
         "name": "update/snapshot-indexes-keys-and-widgets",
         "kind": "function",
         "fn": "indexFields",
-        "canonicalInputSha256": "4fa61def0ca37a615f2e2bca2bb1705e341b005a77fa7eb57b949d8aafe9f5df"
+        "canonicalInputSha256": "773aeb8e95c18a108ca22da44f6ba15b223c7a52b7ca1645001392f40849913b"
       },
       "disposition": "current shipping replacement",
       "reason": "Indexes current field refs and complete widget rows",
@@ -132,7 +132,7 @@
         "name": "update/snapshot-clears-writing-keeps-geom",
         "kind": "function",
         "fn": "indexLoadedFields",
-        "canonicalInputSha256": "e25a542a8845a414e858dff575e5fbf3c4b78316209f84e0bc2848bd133611f7"
+        "canonicalInputSha256": "c39e84c33ea071cdd3921238f4fdb48af9c94c45202be21fe8f98b8d82119f7c"
       },
       "disposition": "current shipping replacement",
       "reason": "A load replaces pending values with confirmed fields and rows, advancing picture versions",
@@ -150,7 +150,7 @@
         "name": "update/snapshot-later-field-wins-a-shared-widget",
         "kind": "function",
         "fn": "indexFields",
-        "canonicalInputSha256": "643f6acabe205c8375f53e46c92ff01b5224fd11760e3ddae31996c93fdd23ac"
+        "canonicalInputSha256": "dec25627b0e88d53a289becbaeae8f2547cc0873e38f4bff62dcc4afd26f1c81"
       },
       "disposition": "current shipping replacement",
       "reason": "The later field owns the shared widget index",
@@ -168,7 +168,7 @@
         "name": "update/write-start",
         "kind": "function",
         "fn": "predictFormOp",
-        "canonicalInputSha256": "9bca03756d859d68bdfab37a65217dc9a9273c98caa0f22d70a508cf1c90f8a6"
+        "canonicalInputSha256": "f8bdb7336137bd9619c41ba0b784328bba2ce0ebdad3bbaeefd4c4037addab68"
       },
       "disposition": "current shipping replacement",
       "reason": "A held change predicts its value instead of setting a writing flag",
@@ -186,7 +186,7 @@
         "name": "update/write-start-twice",
         "kind": "function",
         "fn": "predictFormOp",
-        "canonicalInputSha256": "27d42a869fcaebe699c08ca7bc60f1b632ffcc6b3c82177d06515c71dda5eb94"
+        "canonicalInputSha256": "18e810cdc47d327a9ccb48c209dc27e4a3569c676c7c6df9b6b65dd51b4e7bc8"
       },
       "disposition": "current shipping replacement",
       "reason": "Later fills see earlier pending values",
@@ -204,7 +204,7 @@
         "name": "update/write-done-patches-and-reindexes",
         "kind": "function",
         "fn": "upsertFields",
-        "canonicalInputSha256": "6fbf70960587aeab5317146c39442ff078abd66f453bd81d2e53b9abe61632be"
+        "canonicalInputSha256": "de1bfcd6ad0e871c08b4543f2761f9cf3662245f44b5228cc93e22796d74c61d"
       },
       "disposition": "current shipping replacement",
       "reason": "Current confirmation reindexes changed widget refs",
@@ -222,7 +222,7 @@
         "name": "update/write-done-without-snapshot",
         "kind": "function",
         "fn": "upsertFields",
-        "canonicalInputSha256": "b3fdb80af9cb16b6ac540029cfd122b481318fb94672eb779bd0d5d38b540b15"
+        "canonicalInputSha256": "572e9466e4c3ee7194e23d68e7545ba8e371ae9d312331922d6d4fbcc3caea1e"
       },
       "disposition": "current shipping replacement",
       "reason": "No snapshot means no field can be confirmed",
@@ -240,7 +240,7 @@
         "name": "update/write-done-unknown-key",
         "kind": "function",
         "fn": "predictFormOp",
-        "canonicalInputSha256": "4a2bc15bdfdac402756735304be494c9fe7ca792d3d9114c390e4ac4539c227b"
+        "canonicalInputSha256": "797246803b06d9c1f4b97d1b02823dbc3984ffa08a085539faeb8487c882fbe2"
       },
       "disposition": "current shipping replacement",
       "reason": "A missing target leaves the current index unchanged; removed writeDone key messages are not rebuilt",
@@ -258,7 +258,7 @@
         "name": "update/write-done-past-the-end-pads-with-holes",
         "kind": "function",
         "fn": "fieldByKey",
-        "canonicalInputSha256": "b64e2a5aaf8caa2ce228e33d915a990a15e573966024eba7cd4da16650c2b549"
+        "canonicalInputSha256": "cef722bb7827eedc72a1c0901dc7fe4a1761b3b962a12611963621a3b8ded942"
       },
       "disposition": "current shipping replacement",
       "reason": "Explicit inconsistent-index negative: current lookup returns null instead of producing sparse fields",
@@ -276,7 +276,7 @@
         "name": "update/write-failed",
         "kind": "function",
         "fn": "undoLookOf",
-        "canonicalInputSha256": "92eb0a65af85f0dc1b44a5fe4193c21cb64b062ff850abaf8aeed703208cd5cf"
+        "canonicalInputSha256": "d50692d6994b7d7e5ccbc78eb0270111d77a4017e08ce914d1dedcb8cdde607f"
       },
       "disposition": "current shipping replacement",
       "reason": "Current undo prediction restores field and rows; live refusal rollback is independently tested",
@@ -294,7 +294,7 @@
         "name": "update/write-failed-not-writing",
         "kind": "function",
         "fn": "fieldsNamedBy",
-        "canonicalInputSha256": "dbf7a4957a793810d9c1531216e42318fd94649c01c36aaec33d3218bec4c6c4"
+        "canonicalInputSha256": "e6ef32e19df0846da69c7d9175a084368dedccad3843564f09d7b20c9a14f75d"
       },
       "disposition": "current shipping replacement",
       "reason": "A missing field names no fill target",
@@ -312,7 +312,7 @@
         "name": "update/page-geom",
         "kind": "function",
         "fn": "upsertWidgets",
-        "canonicalInputSha256": "2d350ebc63f3fba6fe148707f85a351c06ff62fcdc62789b12209fa78709ffc2"
+        "canonicalInputSha256": "e759320e68ab8313ae3bbaa7a167134ccf4f4d32c76736af21f8844bbf0e060c"
       },
       "disposition": "current shipping replacement",
       "reason": "Geometry is a complete widget row in the field mirror",
@@ -330,7 +330,7 @@
         "name": "update/page-geom-replaces-a-page",
         "kind": "function",
         "fn": "pageWidgetsOf",
-        "canonicalInputSha256": "e4908d7cc42effdca4a6c85c4ac5d9e44dbc47e7a122f35268a12186af02968e"
+        "canonicalInputSha256": "e626a3cb569a4e7158cc70897670a92bbd2768f3bea2877a82d51ae580baf526"
       },
       "disposition": "current shipping replacement",
       "reason": "A fresh snapshot without rows replaces prior geometry",
@@ -348,7 +348,7 @@
         "name": "update/clear-geom-all",
         "kind": "function",
         "fn": "pageWidgetsOf",
-        "canonicalInputSha256": "44b9b3be899e31f04ab5cd3423641ef6e53fc46fc163d9a2c03303f92455b598"
+        "canonicalInputSha256": "9d240919964282943573a853081af1c23c2ab83f1ecec05ead9d60687f4e3e8f"
       },
       "disposition": "current shipping replacement",
       "reason": "There is no independent geometry cache; rows own geometry",
@@ -366,7 +366,7 @@
         "name": "update/clear-geom-one-page",
         "kind": "function",
         "fn": "removeWidgets",
-        "canonicalInputSha256": "4354359937a87e1e1e6debb3ff5ffa2d46b57c3a2bd1ef594f990df8bb262320"
+        "canonicalInputSha256": "452f678e049596caa266ccf568d2eafcb674f4637dc47438003d67cc97028782"
       },
       "disposition": "current shipping replacement",
       "reason": "Remove only named widget rows; another page remains",
@@ -384,7 +384,7 @@
         "name": "update/clear-geom-absent-page",
         "kind": "function",
         "fn": "removeWidgets",
-        "canonicalInputSha256": "91ae271a6a976fcaec9ac1c523951f9c0777ecf96808880f82293322e1bd9cf5"
+        "canonicalInputSha256": "e25b18b9ad2509d20fdef2841e76e7acbbbdbdc7d353101373e6f43b41506ee1"
       },
       "disposition": "current shipping replacement",
       "reason": "Removing absent rows preserves identity",
@@ -402,7 +402,7 @@
         "name": "fieldByKey/found",
         "kind": "function",
         "fn": "fieldByKey",
-        "canonicalInputSha256": "3f5efc3a6c2fc7785a47f630b8eb4a6eb2a755613d0d27c5f4cd9f4d1eff2697"
+        "canonicalInputSha256": "6c50f0d84ade95f5d990acae824d030dbd926a838ba2c47b33269e8625d161f3"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -420,7 +420,7 @@
         "name": "fieldByKey/fqn",
         "kind": "function",
         "fn": "fieldByKey",
-        "canonicalInputSha256": "0ca4f677f0a2c460a904e5085a2a996aec99f9ba87191b7e7f07ef70f9d3c817"
+        "canonicalInputSha256": "10cd6587343b816d859807ecaa3fda1a202f483c1f9de17712b730cca88050ae"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -438,7 +438,7 @@
         "name": "fieldByKey/unknown",
         "kind": "function",
         "fn": "fieldByKey",
-        "canonicalInputSha256": "d52489ad6ad87a0ecdceb2fdb320312652e2589844640c1c58ef2b2cd048c147"
+        "canonicalInputSha256": "410e57aee90433bd0b6d1eb5b24697f9f993c77a7f2a74ef6d642fab52ae061d"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -474,7 +474,7 @@
         "name": "fieldByKey/index-past-the-end",
         "kind": "function",
         "fn": "fieldByKey",
-        "canonicalInputSha256": "b609523e61ac9827fa47907c6ad2cc84228de2c8b9d5c0e6efae853175845ab0"
+        "canonicalInputSha256": "30505d9ec54069d69992bda9a0b05ac413b69b488b667cc8ca7239f7e3295b3c"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -492,7 +492,7 @@
         "name": "fieldForWidget/found",
         "kind": "function",
         "fn": "fieldForWidget",
-        "canonicalInputSha256": "2c8399b61280079da83fb20366ac9790f43d67666470a2894249dbd59d581ae1"
+        "canonicalInputSha256": "f9abd3b353cf4f9d49f0df9a4891b11f5e94308c1c466d328ba02d6c3e8fc737"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -510,7 +510,7 @@
         "name": "fieldForWidget/direct-widget-is-not-indexed",
         "kind": "function",
         "fn": "fieldForWidget",
-        "canonicalInputSha256": "f70aba6d26f9509d9df9a6a0b9b2e2d47cb303e5daa303524db43c20c5b27eb0"
+        "canonicalInputSha256": "ea75f7da87bff782183a90ce5d52cee026771dd89010f2e2cf5a61a7e5b952fc"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -528,7 +528,7 @@
         "name": "fieldForWidget/unknown",
         "kind": "function",
         "fn": "fieldForWidget",
-        "canonicalInputSha256": "f5bdfa17614822d1817b0d054cfd445944510985baf01e87072d99111463c52b"
+        "canonicalInputSha256": "7db5edac09e6ad001616919db395a500dff962420902ee66b5da2e18e6f0407c"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -546,7 +546,7 @@
         "name": "fieldForWidget/index-past-the-end",
         "kind": "function",
         "fn": "fieldForWidget",
-        "canonicalInputSha256": "32fdbb73c29a79ebafd89428d5bceb5074dcde0d5831fad68299b9a217806957"
+        "canonicalInputSha256": "24c52fafa9a5452dcdf91a6507b34cd4c82819846b1bd969ade93c904e94b45b"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -564,7 +564,7 @@
         "name": "projectWidget/text",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "095a57d6619001cc72930b629eaf093d1cf5a2a2fa3f1348f6fe3f528041c4fb"
+        "canonicalInputSha256": "4655a61567bf680d590fefc7a6ea398bb9a1c2e93e8713b0a45b0bf445e096bd"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -582,7 +582,7 @@
         "name": "projectWidget/text-default-box",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "69e3af88d39f7e043974acd61270310867ec232bf8b3073245659fb00f6d3b40"
+        "canonicalInputSha256": "7bdbe9f018fb7da8fc8af5395f91bdaa1e480dabcb5b3b784357d016e34774e3"
       },
       "disposition": "current input migration",
       "reason": "PageWidget is now mandatory; explicit default page-space box is recorded",
@@ -600,7 +600,7 @@
         "name": "projectWidget/text-flags",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "04b49b3e141d4a2f3a256547c362ef76536cf3ea1772f6eb31b6e60ba10df84a"
+        "canonicalInputSha256": "c701b7bea1d6ac81a7e3d5389ce1b98ceb24c2af936dc7ca3dd68844f7ede28d"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -618,7 +618,7 @@
         "name": "projectWidget/read-only-is-disabled",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "f9b2263718b673c061b772c1e6e70e2599a522d413ab1cbc873b047dd3e83bad"
+        "canonicalInputSha256": "fc178276edf326fc100e1f85c0bad82588b26c1e1eb1710a9544fa225a614454"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -636,7 +636,7 @@
         "name": "projectWidget/writing-is-disabled",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "472257ccbd3020cb6db19bb63cfd1ac074ae63b11694650aacd7488b952d55fb"
+        "canonicalInputSha256": "1eb80a3a257861b60e448e66aa4d886bbf8c7745b786c5370c8531b7387ae0b2"
       },
       "disposition": "current input migration",
       "reason": "Current disable input is explicit fill permission; a pending write alone stays fillable, independently tested live",
@@ -654,7 +654,7 @@
         "name": "projectWidget/checkbox-on-state",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "659adbb3944f551a04fc52436dfb26e98aca2cab51ebd9232cc215778ea710fe"
+        "canonicalInputSha256": "8665f5089d6b46c8722411d596502b0686eb23f00c29e192383cea66c3f667a6"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -672,7 +672,7 @@
         "name": "projectWidget/checkbox-default-on-state",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "699a19855bf2227773fd854fe60a0a3d93aa8f93276366e18b1198419b590935"
+        "canonicalInputSha256": "8b604404df45bc87edd1d41ae3da3056d6c60b8e68187f7dba834d820d8ce27a"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -690,7 +690,7 @@
         "name": "projectWidget/checkbox-unknown-widget",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "b65ae0b70eb14731ea83b5162c4f2557847f0e40f6c73eed45e5930c25e115ac"
+        "canonicalInputSha256": "7092c31d796008c09973203d14a1b20b7f39558dea8a8b3c3bb05f27ccb965eb"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -708,7 +708,7 @@
         "name": "projectWidget/radio-checked",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "4ed94a8da5098f2c6bb9b2b7c5a5b22b67c7477f2da5d1fc55d32387ceef76c0"
+        "canonicalInputSha256": "29117c742c7c0352e1072b90e6df13c543c721f118eef2d2381e129f50f72f4d"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -726,7 +726,7 @@
         "name": "projectWidget/radio-unchecked",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "bdbf2dee420785b9aa0e958ada7b314bee5b740b8387c1b90e1449852d9c046f"
+        "canonicalInputSha256": "8c35467354552eb5f8e923a4e644aa8a582b7b6b6410b43e3c4cad7def8b89b7"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -744,7 +744,7 @@
         "name": "projectWidget/radio-bare-widget",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "2441b9ed04e9947b91c402cd2dff3e9ec8a761dcbb3bde080a1c29fa823a0360"
+        "canonicalInputSha256": "77260c2e081a584ebbb49f523319e8a960c39db2081fed6034687a0d05cc7629"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -762,7 +762,7 @@
         "name": "projectWidget/radio-unknown-widget",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "a52ee4ef956ac710d4d0386daa9c4df2e400852cf870033009105193bfcaae53"
+        "canonicalInputSha256": "6a281dbd62e8711c7b78462ace1386d0d836230b0d6161c4a38802c9a1bcab9a"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -780,7 +780,7 @@
         "name": "projectWidget/combobox",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "3f582e25a19037a191371de444ffc54a39d7a35aef8f5338d9c930fb7f32389c"
+        "canonicalInputSha256": "ea769de0a4d866e08b632d46a15ffbe81ee26f9291e2ed5afe745f522e0cb89d"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -798,7 +798,7 @@
         "name": "projectWidget/combobox-empty",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "4a037d5730710a0d844a94b6dd17250dfd777e275cc45d9ed15d202a8493adad"
+        "canonicalInputSha256": "d48e16714ee5fc49ebec7372856a49c5de626cfde2af747ab7326ac330175d08"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -816,7 +816,7 @@
         "name": "projectWidget/listbox",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "2995ece174c25060b6521fa35e5dbc1e12e19b4512148ec0b79554faf9a2ba3f"
+        "canonicalInputSha256": "497015a5852bcb86ed92b4cb82234df9d5d1fa051c154309b34433619c4993cf"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -834,7 +834,7 @@
         "name": "projectWidget/listbox-single",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "219ecaab12bfbe05d34c3cbb8a08bf5acc7b7f64284e8102772c1be6f12aecc3"
+        "canonicalInputSha256": "c1327fa05f875ba3a837a7f0086803bbc270389f73791398b54bbfd1af79c57b"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -852,7 +852,7 @@
         "name": "projectWidget/pushbutton",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "97777af7dfb4dbdb925486379a95ef88a09cfe5388310711d1511da07b879c55"
+        "canonicalInputSha256": "7c3daf9aea0c4c4f717b0d713a66065fcde6a93b624f57d7b1d030064bca3e4e"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -870,7 +870,7 @@
         "name": "projectWidget/signature-has-no-control",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "47312eac52c1646fc8368fdc3b918cc9d8dadae40a3fc30d21c5241cdcb8350a"
+        "canonicalInputSha256": "5fed6504ac9036b76374e14b3aa7577e8f9c29f17e648cf2f293eaa559e1ebd0"
       },
       "disposition": "current input migration",
       "reason": "Current signatures have an explicit signature control and signed state",
@@ -888,7 +888,7 @@
         "name": "projectWidget/unknown-has-no-control",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "b85e243ec704df65f25642d4dedabfb649ca419c50b196635df7de145a4acd25"
+        "canonicalInputSha256": "07e4ff32d0a6a28cf7d54f916f66f9cdc50b6c7a091a3fa5ba6bdda2c8f135f3"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -906,7 +906,7 @@
         "name": "projectWidget/fqn-key",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "286f15d1cdceb441ceb226c079d174557897696c552e3d9d4e7125dc41d4001f"
+        "canonicalInputSha256": "a6a913448f496426a6f93038c1e605a7d43c2084acb1066376a128141c68675a"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -924,7 +924,7 @@
         "name": "fillItems/page-with-geometry",
         "kind": "function",
         "fn": "fillItemsAllowed",
-        "canonicalInputSha256": "d7139c7e4c2dfc27dd6e33e00551b2f756ed7befab799391d0cc4a51c4913aa5"
+        "canonicalInputSha256": "3688b87816e50a9c61b53977e3611f86dcfdff341721acbdee58ec65365f921c"
       },
       "disposition": "current shipping replacement",
       "reason": "Fixed allowed predicate; pending values and complete page widgets are explicit current arguments",
@@ -942,7 +942,7 @@
         "name": "fillItems/writing",
         "kind": "function",
         "fn": "fillItemsAllowed",
-        "canonicalInputSha256": "b7231a41d9672cf7d0a539b7ab7497125f29cc6abfeca6b17453fcbad57efb3f"
+        "canonicalInputSha256": "e3cea84944d115b7ae2d8f6dbf63793cb23922b4487c317a113ce53bfe52f269"
       },
       "disposition": "current shipping replacement",
       "reason": "Fixed allowed predicate; pending values and complete page widgets are explicit current arguments",
@@ -960,7 +960,7 @@
         "name": "fillItems/page-without-geometry",
         "kind": "function",
         "fn": "fillItemsAllowed",
-        "canonicalInputSha256": "dbd464bd2507c9803df45ad29b886f7b2dee18dd695d3bb474e7e52df000df2e"
+        "canonicalInputSha256": "048c299561ef6b90a483356a0b31765894189bb3a8064e5d442165316db8449d"
       },
       "disposition": "current shipping replacement",
       "reason": "Fixed allowed predicate; pending values and complete page widgets are explicit current arguments",
@@ -996,7 +996,7 @@
         "name": "fillItems/partial-geometry",
         "kind": "function",
         "fn": "fillItemsAllowed",
-        "canonicalInputSha256": "6a37a391256d577e58c77115ac65dd17df421f3900d78593d87e89135055e972"
+        "canonicalInputSha256": "1ade4a6d4327cda8a807a133f88b2fe9b4b9dd583eeee047d2ad64b60a1ce902"
       },
       "disposition": "current shipping replacement",
       "reason": "Fixed allowed predicate; pending values and complete page widgets are explicit current arguments",
@@ -1014,7 +1014,7 @@
         "name": "fillItemForWidget/with-geometry",
         "kind": "function",
         "fn": "widgetRowOf",
-        "canonicalInputSha256": "736f7d599fecd7bc8f53906b666602cae426173dcebbfd6bbd887c7f9ae3e8ca"
+        "canonicalInputSha256": "a2011dd09463b750f3cb71126364f317cb08cd05ec12d53177536859007b6565"
       },
       "disposition": "current shipping replacement",
       "reason": "Current row lookup replaces removed fused fillItemForWidget; projection is covered independently",
@@ -1032,7 +1032,7 @@
         "name": "fillItemForWidget/without-geometry",
         "kind": "function",
         "fn": "widgetRowOf",
-        "canonicalInputSha256": "d859a5263906dd5e397e30558f8210c7cbdda8ffb7531bbe6e1a7d2c3988e8c3"
+        "canonicalInputSha256": "c8aa5a3b7e435e21c2419b618a56bb77bd903e19df77f61b70bee330a76163b0"
       },
       "disposition": "current shipping replacement",
       "reason": "Current row lookup replaces removed fused fillItemForWidget; projection is covered independently",
@@ -1050,7 +1050,7 @@
         "name": "fillItemForWidget/other-page-geometry",
         "kind": "function",
         "fn": "widgetRowOf",
-        "canonicalInputSha256": "139317c9572f379233f23081997801aa068932ddbd547b2ce84ef65a0c28ecc1"
+        "canonicalInputSha256": "1e45e38a5e9e0a40613a43412f506b2e88e55cfa0ded1db8dcfd2dec8bc4c0cb"
       },
       "disposition": "current shipping replacement",
       "reason": "Current row lookup replaces removed fused fillItemForWidget; projection is covered independently",
@@ -1068,7 +1068,7 @@
         "name": "fillItemForWidget/unknown",
         "kind": "function",
         "fn": "widgetRowOf",
-        "canonicalInputSha256": "65f736cf1b9aca373f7b1883d0a59a9c2132f8915cab58a922af59869da6c6d4"
+        "canonicalInputSha256": "be7b4f9dd684400706628e8c1687b777f31457d6555f52d3c8ef1f5226c5353b"
       },
       "disposition": "current shipping replacement",
       "reason": "Current row lookup replaces removed fused fillItemForWidget; projection is covered independently",
@@ -1086,7 +1086,7 @@
         "name": "fillItemForWidget/no-control",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "e62281a2c6740c4e13f5a29177b0b41179dfa13e6091ca8f0be59ee435797764"
+        "canonicalInputSha256": "eeb0fa827435579126a480b55023038e6f87c8c4bad51f3eb15e8c6612efa43e"
       },
       "disposition": "current shipping replacement",
       "reason": "Signatures now project an explicit signature control",
@@ -1104,7 +1104,7 @@
         "name": "fillItemForWidget/index-without-the-widget",
         "kind": "function",
         "fn": "widgetRowOf",
-        "canonicalInputSha256": "f61da87d45bcb0d8f52be84dacec709017777eaf1d3a51988b1c9773c2a4e05c"
+        "canonicalInputSha256": "a3947abe9fa556e22fccd5398af4678fcb71ea64c16aa53684485e4806452adf"
       },
       "disposition": "current shipping replacement",
       "reason": "Current row lookup replaces removed fused fillItemForWidget; projection is covered independently",
@@ -1122,7 +1122,7 @@
         "name": "fillItemForWidget/an-unplaced-widget-has-no-box",
         "kind": "function",
         "fn": "widgetRowOf",
-        "canonicalInputSha256": "1e8e3498de5b7e56ad56cc345b583a0d89256fd69484208ca5eeb1a0a3a0dd75"
+        "canonicalInputSha256": "d6dedef9b3f2dbd7b545a55691f97a143702b32e18b7bd39e3fe7a6f219cfce6"
       },
       "disposition": "current shipping replacement",
       "reason": "Current row lookup replaces removed fused fillItemForWidget; projection is covered independently",
@@ -1140,7 +1140,7 @@
         "name": "projectWidget/signature-unsigned",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "be42849f117a179325842981a866f34c9b00c89cf319911b743e547c8d92da7c"
+        "canonicalInputSha256": "9995f80a4efac3e3dcc5ccf3d1c089b6a8e29df8467e9851347cc2e78033d5c4"
       },
       "disposition": "current input migration",
       "reason": "Current signatures have an explicit signature control and signed state",
@@ -1158,7 +1158,7 @@
         "name": "projectWidget/signature-signed",
         "kind": "function",
         "fn": "projectWidget",
-        "canonicalInputSha256": "05fc35156ac3acf64e92c08cbe1f09fa651a982b0368b3d63295acdf30bbc4c8"
+        "canonicalInputSha256": "b6ec5a5150e3fe685f242842eede1a0414f4425a471494afd99bcd4339ded5f8"
       },
       "disposition": "current input migration",
       "reason": "Current signatures have an explicit signature control and signed state",
@@ -1176,7 +1176,7 @@
         "name": "widgetAt/no-geometry-for-the-page",
         "kind": "function",
         "fn": "widgetAt",
-        "canonicalInputSha256": "07620a26fc59a53abd9eee0fd163dab35ce4f3c7493a9dff1adf52d4ecf68fba"
+        "canonicalInputSha256": "6ee0d6e5cb62ab04f8760e888f14993a4149096eb1e4bb061185a8b2dd5f6672"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1194,7 +1194,7 @@
         "name": "widgetAt/nothing-under-the-point",
         "kind": "function",
         "fn": "widgetAt",
-        "canonicalInputSha256": "0ef64ec9f8f5d3d0ea078b55d3cac91d8df5908ad6b7917eb29dc9fe102532b5"
+        "canonicalInputSha256": "f31a7d1d367a8806413dfbdf7b3f7a9a125d4aa88f454658a1b690390743c882"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1212,7 +1212,7 @@
         "name": "widgetAt/the-smallest-containing-box-wins",
         "kind": "function",
         "fn": "widgetAt",
-        "canonicalInputSha256": "62407d4efd7927826792d6332944a2f2b0903e211ab7d4c9112080ea248aae5d"
+        "canonicalInputSha256": "2486b9c4ca9b7825b09932aadc2109ada43e1776ad51e668832a5d8ca4b085a9"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1230,7 +1230,7 @@
         "name": "widgetAt/edges-are-inside",
         "kind": "function",
         "fn": "widgetAt",
-        "canonicalInputSha256": "34e9b68d46de35b1480bd6f11eef7cb10eb54c39282c850530a4432861d00b20"
+        "canonicalInputSha256": "bf8585ac3cbc496f43bf4b4bd02de079f22c9a92ab28f91f3bad9ecbb326fd79"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1248,7 +1248,7 @@
         "name": "widgetAt/a-box-without-a-field-is-skipped",
         "kind": "function",
         "fn": "widgetAt",
-        "canonicalInputSha256": "16fd8cc068e27d42f368cff178c416b23508a4db33242190453cc562a973fb82"
+        "canonicalInputSha256": "5cf23b0f55b2f788bd55255ef50baa84ff7a18f060aa9d2da3b0e295508e836a"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1266,7 +1266,7 @@
         "name": "widgetAt/equal-areas-keep-the-lower-object-number",
         "kind": "function",
         "fn": "widgetAt",
-        "canonicalInputSha256": "2c64b7bb4e02cae9280cb377bb048b3daa409efb903a13e03072cb0f6c623b77"
+        "canonicalInputSha256": "12f530c8c7c78ab1352550a1b385f49d18dd8a7eaa59c07c32f0957c01543210"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1284,7 +1284,7 @@
         "name": "widgetAt/a-larger-box-later-loses",
         "kind": "function",
         "fn": "widgetAt",
-        "canonicalInputSha256": "e44516b0f48b3da6b9ad0926c0e5962a84535a4f2f876d06eafd915da03e3d96"
+        "canonicalInputSha256": "4b8f89fc3c7184696e30fa24c9fdf265af4821458f62917850a7ddacbbd71458"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1320,7 +1320,7 @@
         "name": "formReducer/set-model",
         "kind": "function",
         "fn": "indexFields",
-        "canonicalInputSha256": "408557042ccfbf39503289fc2f01e69f76b102a4b36e756c8e16684ccabd99ff"
+        "canonicalInputSha256": "014b71e3306b6710048f0593c3c22c7b30100cb2d1d554cc91c19452142c6f80"
       },
       "disposition": "current shipping replacement",
       "reason": "Mirror indexing replaces removed SET_MODEL dispatch",
@@ -1338,7 +1338,7 @@
         "name": "formReducer/other-action-is-no-change",
         "kind": "function",
         "fn": "foldFormEvent",
-        "canonicalInputSha256": "6f903b2ef11529e5a0417410a13265955753f7af43a76ac74f093a51f6063262"
+        "canonicalInputSha256": "4130063936d8383b5b6d0d44ea89f36230fb63ee12505dd93494438eed8218d7"
       },
       "disposition": "current shipping replacement",
       "reason": "An unrelated confirmed event leaves the index identity unchanged",
@@ -1356,7 +1356,7 @@
         "name": "formReducer/set-status",
         "kind": "scenario",
         "fn": null,
-        "canonicalInputSha256": "9daf34735e4db6f05b3e039c42c1840f36ec49ad7abfeb1b05d1c9fc70651b6b"
+        "canonicalInputSha256": "b8c49399b0be0cb51ae157e239e5eaec6a363f1253df1fac884c6cbb0845305e"
       },
       "disposition": "current shipping replacement",
       "reason": "The real fields mirror is loading before its deferred list answers, then ready; no session SET_STATUS exists.",
@@ -1374,7 +1374,7 @@
         "name": "formReducer/set-status-unchanged-is-no-change",
         "kind": "scenario",
         "fn": null,
-        "canonicalInputSha256": "48cbb60d8bb06e83169265aae75acd2d6bb7df78259488a51c8962644bbef4fd"
+        "canonicalInputSha256": "29422b413bebc403b60f85592312c5e0313097492267324d8ba436ab9c2fa4bc"
       },
       "disposition": "current shipping replacement",
       "reason": "A ready read stays ready across a refresh with identical fields; the empty session state emits no changes.",
@@ -1500,7 +1500,7 @@
         "name": "resolveFieldSelection/null-selects-all",
         "kind": "function",
         "fn": "resolveFieldSelection",
-        "canonicalInputSha256": "553cf37f342b8cc2702c2f748d11a6524959841ed2794b314e284a68c93fc48d"
+        "canonicalInputSha256": "26c38d7fdd07134d2cdb794433c01e5b185233eb0a87f4eb757136c0f60f0db0"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1518,7 +1518,7 @@
         "name": "resolveFieldSelection/null-ignores-exclude",
         "kind": "function",
         "fn": "resolveFieldSelection",
-        "canonicalInputSha256": "c1d19e337ba456d786b941dbac6d8924fd87ea0b9240716c6807c1d6735c91ce"
+        "canonicalInputSha256": "ed8a883cfb21c39b5347702d9750f46d95d70406836b2d56345153cab54b68f1"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1536,7 +1536,7 @@
         "name": "resolveFieldSelection/empty-include-selects-nothing",
         "kind": "function",
         "fn": "resolveFieldSelection",
-        "canonicalInputSha256": "363941bdd24cdb68fb8aec5bebd9a4713558aee624b970d2fc7b2ab51de409f6"
+        "canonicalInputSha256": "86f58355122f38303efe1d643e14b08d58af98f338531ce61e3129b772a8fd37"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1554,7 +1554,7 @@
         "name": "resolveFieldSelection/empty-exclude-selects-all",
         "kind": "function",
         "fn": "resolveFieldSelection",
-        "canonicalInputSha256": "fb1e7d4c8338365c252fdd19c7a789dd90fc7fb9edf78aed01fae701bdef2bb3"
+        "canonicalInputSha256": "a215b0a922ff3f0792cbb3417382b5c7f105ad032858ad778f2c93c8eef8abad"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1572,7 +1572,7 @@
         "name": "resolveFieldSelection/a-parent-name-selects-descendants",
         "kind": "function",
         "fn": "resolveFieldSelection",
-        "canonicalInputSha256": "c675c35ebc3c8793e9771396f820d36e5c115447b408adf52d3bf06f5f35c141"
+        "canonicalInputSha256": "b257ffa37a23e13ad69d4c42de511f00e191eac7ba1421525ecb2ce0134dc7d3"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1590,7 +1590,7 @@
         "name": "resolveFieldSelection/exact-name",
         "kind": "function",
         "fn": "resolveFieldSelection",
-        "canonicalInputSha256": "80a63a93cf1621d01e65971f5485c968d0fbac220c9920314d8691db05e89e38"
+        "canonicalInputSha256": "982616cd17d6980d4794930dbeffeb6113cfa4701f5789ab53868705825b38fb"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1608,7 +1608,7 @@
         "name": "resolveFieldSelection/exclude-a-subtree",
         "kind": "function",
         "fn": "resolveFieldSelection",
-        "canonicalInputSha256": "46a034fd2368e8a3bb31c709779040f467127343d29e62db72133f92841d57f5"
+        "canonicalInputSha256": "8b069cee128fd8ccc581adaf85f3d229ceb871146670410b1542979884f7de7a"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1626,7 +1626,7 @@
         "name": "resolveFieldSelection/object-number",
         "kind": "function",
         "fn": "resolveFieldSelection",
-        "canonicalInputSha256": "ea9137eaa4e1ef3abdf8db8b2d94c68f2fcff743e08750e2d13f366dad1a6f5b"
+        "canonicalInputSha256": "c0602266e69a16de1cfdd0365f4040a5d32e426dd20ca735eb5c1c4f46767c31"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1644,7 +1644,7 @@
         "name": "resolveFieldSelection/object-number-never-matches-an-fqn-ref",
         "kind": "function",
         "fn": "resolveFieldSelection",
-        "canonicalInputSha256": "5b242d71f651af8c7eaba04cf6cc7637866203fecd34cceb9c9b152ae5ffae17"
+        "canonicalInputSha256": "0fb3a4da78b320144f41f6e4b40a3db29bac0fe8c3cbbe087f18721bb5905284"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1662,7 +1662,7 @@
         "name": "resolveFieldSelection/a-numberless-target-finds-a-numberless-ref",
         "kind": "function",
         "fn": "resolveFieldSelection",
-        "canonicalInputSha256": "6c3e2086512f4cafdbdd051d3e2a6571369b7b5a8d40e6e14b3bf1f9f38a914b"
+        "canonicalInputSha256": "c5fb0463376c379b8eadeb8abe5f31cc3121bc07516c6690d8a759caaaa3cd09"
       },
       "disposition": "current input migration",
       "reason": "Deliberate missing objectNumber on both field ref and target: current predicate compares undefined; normal records remain valid",
@@ -1680,7 +1680,7 @@
         "name": "resolveFieldSelection/mixed-targets",
         "kind": "function",
         "fn": "resolveFieldSelection",
-        "canonicalInputSha256": "eeeeb6efd95b34b793cd859fc8add97db8faeef7f10152af160a92dd85ab228b"
+        "canonicalInputSha256": "ef1b262a9c470484229de27d63734551db5c402dfc8451ec4f9051071b08b636"
       },
       "disposition": "current input migration",
       "reason": "Deliberate unknown target discriminant is ignored; valid name and number still select",
@@ -1698,7 +1698,7 @@
         "name": "buildSubmitEntries/fields-absent-silently-drops-ineligible",
         "kind": "function",
         "fn": "buildSubmitEntries",
-        "canonicalInputSha256": "df644922b17e34974a18637de1554526a85d68e6a3e2799019cdc90a8b0734e5"
+        "canonicalInputSha256": "fb5e7f0a7a5166e3c1f5fec1b838607598c6ecce6830c7558003c3393bac6768"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1716,7 +1716,7 @@
         "name": "buildSubmitEntries/explicit-no-export-is-diagnosed",
         "kind": "function",
         "fn": "buildSubmitEntries",
-        "canonicalInputSha256": "f676778683568dc837ccee7141c55d03b5d90f7c338cbd2ef6e4481f3bf37fb6"
+        "canonicalInputSha256": "732c7bcefad3a608e94ff7a9921ecab480208f5b88564346a395cc60132fda9a"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1734,7 +1734,7 @@
         "name": "buildSubmitEntries/explicit-button-and-signature-are-diagnosed",
         "kind": "function",
         "fn": "buildSubmitEntries",
-        "canonicalInputSha256": "9604e08ffe84299a4ebea61a697c26283cb5f009025fe7186071a2659f0ed9e5"
+        "canonicalInputSha256": "44f2efc5f4da77d3e6cdbbcdcae2e1b174309c7098051f4f2e52e8fc9115fbc1"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1752,7 +1752,7 @@
         "name": "buildSubmitEntries/exclude-mode-is-never-explicit",
         "kind": "function",
         "fn": "buildSubmitEntries",
-        "canonicalInputSha256": "f9161fd256dd6352498036b7942b0ded9506e60ba77adc142213a4031836deec"
+        "canonicalInputSha256": "af0a1898b65c48018656c4bc6fa4241ea49dfe35eae33ca14412bbc328f95275"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1770,7 +1770,7 @@
         "name": "buildSubmitEntries/unsupported-value-shape-is-always-diagnosed",
         "kind": "function",
         "fn": "buildSubmitEntries",
-        "canonicalInputSha256": "0c26a9c96dc87460b307c6165645c0ce196fa01fd3143f22e06b1dc477720b65"
+        "canonicalInputSha256": "c050f3f4ca0e2679dd1b938f7de8bceae988f593c93c05703803de96f848ae7b"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1788,7 +1788,7 @@
         "name": "buildSubmitEntries/unknown-value-kind-is-diagnosed",
         "kind": "function",
         "fn": "buildSubmitEntries",
-        "canonicalInputSha256": "cdbb5eeab73fa8a1a665a71c1f92c8604d5bfa0179f39d42cee15545d7b18db3"
+        "canonicalInputSha256": "a1ec2f34b2c4686b3d9e2fb9af95300a86068d60e646096d3f34cacb52878879"
       },
       "disposition": "current input migration",
       "reason": "Deliberate unknown /V discriminant is diagnosed and skipped without throwing",
@@ -1806,7 +1806,7 @@
         "name": "buildSubmitEntries/valueless-skipped-by-default",
         "kind": "function",
         "fn": "buildSubmitEntries",
-        "canonicalInputSha256": "acdfe2592d2260a924a9cb8d1c7f38a09def3626ee30db67903bb841f40011e7"
+        "canonicalInputSha256": "9b85e5f8312b5575f76a626e19c3f867c2acbc5b5ce20ee716c0dd7d93ac99eb"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1824,7 +1824,7 @@
         "name": "buildSubmitEntries/valueless-name-only-when-included",
         "kind": "function",
         "fn": "buildSubmitEntries",
-        "canonicalInputSha256": "73d5dfc21299f5384eb084dde40baf00923a25df0fcedab9a5fde95be668cfb1"
+        "canonicalInputSha256": "0c99339fc3962193429ff5d2a7b1a9a2e28940f0ac90d128ccb16d78b98838fe"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1842,7 +1842,7 @@
         "name": "buildSubmitEntries/descendants-and-arrays",
         "kind": "function",
         "fn": "buildSubmitEntries",
-        "canonicalInputSha256": "54eef7e2e48e15f27dfe201f954ef09e9953385d3034bea36978f17b5e75d2c7"
+        "canonicalInputSha256": "001a5376ac4e4453279a71fae2757323bd42b2f1bba898af28c24870ee5c89f4"
       },
       "disposition": "current input migration",
       "reason": "Current typed input passed to the named shipping function",
@@ -1858,7 +1858,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "hydrates-on-open",
-        "canonicalInputSha256": "d5042e8c8840376c912302a5364fe84e8d8283e3709698d07e0e1cb1f22e7415",
+        "canonicalInputSha256": "9fedd2cbdcc37390e6cabb26c72f29e453e8c1be6060a3ab72b0b23adbdd0fcc",
         "intent": "One deferred complete snapshot; reads and widget joins are empty until it lands. Authority is per field."
       },
       "disposition": "current-shipping-replacement",
@@ -1881,7 +1881,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "no-read-grant-never-lists",
-        "canonicalInputSha256": "ff9d69f07d58dde0e612bd0b9a577bfd9ab3ae51d5c1b8932c9d2b32c24a0454",
+        "canonicalInputSha256": "6b42566b6cd9ab41cc0af79384784ec9b5469e41d8b0831dbf8dd393c3a63c21",
         "intent": "The readable mirror stays forbidden and never calls forms.list, including refresh."
       },
       "disposition": "current-shipping-replacement",
@@ -1903,7 +1903,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "refresh-coalesces-and-forces",
-        "canonicalInputSha256": "82b544346ef9ef5bbaa86d2190ef1bf9d0b3fd21d2e2ec12aff02116b8506c76",
+        "canonicalInputSha256": "c1c734a03297a47e54bff102b5a067d18eb23c9e7dd231da4776edfa702cc51e",
         "intent": "Current mirror coalesces concurrent refreshes; a subsequent explicit refresh starts a fresh load. No force flag."
       },
       "disposition": "current-shipping-replacement",
@@ -1923,7 +1923,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "a-failed-load-warns",
-        "canonicalInputSha256": "1e73db5c7744d8f86063219ed4b7397754a5e5e545a52da8df2cff96aff5d738",
+        "canonicalInputSha256": "cf06e89b546333121ef5a7c50558828239189a5247f41d9ea7e32b61499b5e34",
         "intent": "Current mirror exposes a failed read through error status, without console or kernel reports; refresh recovers."
       },
       "disposition": "current-shipping-replacement",
@@ -1943,7 +1943,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "widget-geometry-loads-once-per-page",
-        "canonicalInputSha256": "1e56eb7c0cb0db61502afe106c26acc825f051fd9e5162d16bab53daa143773a",
+        "canonicalInputSha256": "27b1ca47182e9186b404ab8dce38a4a91fd9bfda61c84f2270be3ecf1a5ee4f4",
         "intent": "Complete page-space widget rows arrive with the one form snapshot. ensureLoaded shares that load; no annotation geometry read exists."
       },
       "disposition": "current-shipping-replacement",
@@ -1963,7 +1963,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "a-failed-geometry-read-can-retry",
-        "canonicalInputSha256": "b0858e76301f5c8560d3851235cb93873f3a425158fe66310980586dda4824d1",
+        "canonicalInputSha256": "7c64f291eed65e3d0023a7ffd654437516b45791ef15f7bc3f0f8c4f36fa3496",
         "intent": "Geometry is part of the fields load now; a refused snapshot reports once and explicit refresh retries the full current snapshot."
       },
       "disposition": "current-shipping-replacement",
@@ -1983,7 +1983,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "fill-authority-fuses-into-disabled",
-        "canonicalInputSha256": "fcfd0abe9232900149a02f0269691f15acc4f8ceb63e254a2890b62dc7a8aaf5",
+        "canonicalInputSha256": "a7ea7870987b6c2fe96e5fd6f9bfb8bc6fa423a0310de25027542202e2f6b222",
         "intent": "Per-field fill authority and readOnly determine disabled; ordinary and readonly widgets are independently projected in two sessions."
       },
       "disposition": "current-shipping-replacement",
@@ -2003,7 +2003,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "typed-writes",
-        "canonicalInputSha256": "3634863ca96d2895bdcbb4ce1b9a4a799b51a6aefd4611faf3dfad9c38f1ec4b",
+        "canonicalInputSha256": "d14eda32184c4256b785ada9a5ca88f8ceb9e1265a04e165ac926c9d4c64c8f7",
         "intent": "Current family writes use value/checked/selectedValues and current refs; null clears a checkbox via its value vocabulary."
       },
       "disposition": "current-shipping-replacement",
@@ -2023,7 +2023,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "writes-serialize",
-        "canonicalInputSha256": "3213228fc7713fa326989a32fa87fa4788b9705d9b2a9f70a3ec39c14b1ff9b5",
+        "canonicalInputSha256": "ae748d5658b2d69fdbe615f518056ff55055f115db5160d2e7c8aa8cc9bc943d",
         "intent": "Current fills send in order without waiting for prior answers; pending reads see the later fill until both confirmations land."
       },
       "disposition": "current-shipping-replacement",
@@ -2043,7 +2043,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "a-failed-write-reverts",
-        "canonicalInputSha256": "0e2e6b116ad24dec32496c33a71cc62bd418d895f85181415cbaeabde3d16461",
+        "canonicalInputSha256": "396e9822453f8503450dfd93e9b7959bcdd76edb26d533b1f99a6b057ce33fb9",
         "intent": "An engine refusal rolls back the pending value and rejects; the next fill confirms normally."
       },
       "disposition": "current-shipping-replacement",
@@ -2063,7 +2063,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "the-write-gate",
-        "canonicalInputSha256": "d5c9c7969802d407bc14165015688ff5d70a051714f1e629a694f041762f07b0",
+        "canonicalInputSha256": "5fdc6b31039c8e1981d6a7a6b75bca0456e7a9088f8b69bda19ffeaaeb21e2a7",
         "intent": "Known fields denied fill reject value/checkbox/choice/reset locally before any apply."
       },
       "disposition": "current-shipping-replacement",
@@ -2084,7 +2084,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "commit-value-without-scripting",
-        "canonicalInputSha256": "ef84682535d7f43ac9e268a1c8a95ffedd0610fc529edfe802fb4435616dfb28",
+        "canonicalInputSha256": "049f203cfea6fb990edc88b703daf833e7e4046d218dec6a5cebc1bb05ef94d9",
         "intent": "The public validated setValue replaces commitValue: applied or unchanged comes from result.meta.undoable; a named engine refusal rejects."
       },
       "disposition": "current-shipping-replacement",
@@ -2104,7 +2104,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "reset-rides-the-batch",
-        "canonicalInputSha256": "e87e8659e68ba0368ac8003949aababc444aa1a215ee60b55520ba28f2dd87a7",
+        "canonicalInputSha256": "36df1791289ea31a1206b6ec2fbe7d448ffce7c0f8f70afec5f8b540c7e53e45",
         "intent": "Current reset is one forms.reset ChangeOp and confirmed value facts, with no re-read. Unknown refs select nothing."
       },
       "disposition": "current-shipping-replacement",
@@ -2124,7 +2124,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "a-failed-reset-batch-rejects",
-        "canonicalInputSha256": "7cf121d14c99192fce146f49198914b8642d6bd35efd50fff9d1e85500b8a812",
+        "canonicalInputSha256": "539ced18f8cf41388fcaa842a9448eb5576d31b04cd647f911776d8b36ba0d49",
         "intent": "Current resets are atomic apply changes; exact named engine refusals reject without stale per-entry batch statuses."
       },
       "disposition": "current-shipping-replacement",
@@ -2144,7 +2144,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "reset-without-the-batch",
-        "canonicalInputSha256": "6b42083c495af75d603018ba3fbe44d26385e982050c0a75a16db309420f9108",
+        "canonicalInputSha256": "b44220aaf224ec90fbab334cad71ba4f332844b8e7fd4e27cb70e8aa3b3444b9",
         "intent": "Removed applyEffects/reset fallback is replaced by the sole current change queue; successful and refused reset preserve defaults/rollback."
       },
       "disposition": "current-shipping-replacement",
@@ -2164,7 +2164,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "set-value-passthrough",
-        "canonicalInputSha256": "dfaeacaf5ad247014e06174859d07e0a35ba8940cdcb9fc13d0fd55c87742eeb",
+        "canonicalInputSha256": "c2f9f863f1b47f53878a2713d70c2e526a82f9272195649739106d0b1f9f6e71",
         "intent": "Current setValue returns the confirmed field and status; the next refused value leaves it intact."
       },
       "disposition": "current-shipping-replacement",
@@ -2184,7 +2184,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "interchange",
-        "canonicalInputSha256": "da365b8c43c7ba7c48b9563c00e38f9690b399e007e4b077997ce2e18c03bc35",
+        "canonicalInputSha256": "3c6533c78681cebe43f2bd6e52fb757b2ff33c9ce6770de032e7ca5f19e5e31d",
         "intent": "Current bundles replace FDF/XFDF data doors; export/import/repair use current direct engine services and exact refusals."
       },
       "disposition": "current-shipping-replacement",
@@ -2205,7 +2205,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "the-twins",
-        "canonicalInputSha256": "6bef309cac40c1cc6c3fb6167d8c9c32c5c60bbc06f8a8c8680fc200b8ebccc0",
+        "canonicalInputSha256": "dcc88078ca53c0425d36a722642509a20efab3482b75abb5b8cddf68e6b6b32b",
         "intent": "Read/design grants and per-field fill authority are independently exposed by the current twins."
       },
       "disposition": "current-shipping-replacement",
@@ -2225,7 +2225,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "the-effect-folds-foreign-events",
-        "canonicalInputSha256": "802db7e350abab90234c47c062b4b86a89599cfe62c3446ccb69de51a92d5fdd",
+        "canonicalInputSha256": "1ef47b89dfa37f8206d0364cee89bb88c06b74f5c5eb6300869246fd35bdd771",
         "intent": "Current remote and local facts fold directly without reads; deletion removes the field/rows. Desynchronization reloads the complete form."
       },
       "disposition": "current-shipping-replacement",
@@ -2246,7 +2246,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "the-effect-refresh-is-latched",
-        "canonicalInputSha256": "ce4d929c90e1f6f917320df68d3a7ef91b71f4e0c1b6e552f75c2efe9e788937",
+        "canonicalInputSha256": "5c0dda43401b3719c069e5bc56feae87f4a6a749cd11aa28d343319df9b70779",
         "intent": "While refresh is in flight current mirrors buffer facts, then replay them over the loaded snapshot. The last buffered fact wins, and later facts fold normally."
       },
       "disposition": "current-shipping-replacement",
@@ -2266,7 +2266,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "a-reset-action-without-a-batch-door",
-        "canonicalInputSha256": "b9c67ec5830233b29be3a2a6c9e9c5a99d94682db0c50e70a293ca6d96695b65",
+        "canonicalInputSha256": "022604772fd4761d9433cfc06456734b4b101973c7f422feac2988fc3255a81c",
         "intent": "The host reset action uses the same current forms.reset operation without an actions plugin or any removed batch API."
       },
       "disposition": "current-shipping-replacement",
@@ -2289,7 +2289,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "close-unsubscribes",
-        "canonicalInputSha256": "491faeb0cd19404fd4e1a938260f8ab3cbbc171b513787de3283241de4a4adcb",
+        "canonicalInputSha256": "72d5451635d715a63e9e65f8bda1d0ce6157a4fdb62cb1708adf701c8aac40fa",
         "intent": "Closing releases the form instance, its mirrors and hooks; reopening constructs a fresh model."
       },
       "disposition": "current-shipping-replacement",
@@ -2309,7 +2309,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "geometry-on-an-offset-crop",
-        "canonicalInputSha256": "3c0c05df6d452c87b90433aca05783cbbd7c3483a03ab7230c522c0cbb6af480",
+        "canonicalInputSha256": "ee6934c9d439e4bd4809f444fec43d203388308cc4efaaa21f384a28c9219dae",
         "intent": "Current widget rows already carry crop-relative page coordinates, including fractional dimensions; reads preserve them."
       },
       "disposition": "current-shipping-replacement",
@@ -2329,7 +2329,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "reads-over-the-snapshot",
-        "canonicalInputSha256": "601b950d1f4382ef8cd0756c8de7bee735a2df393868b81ce2a5f6c890579e0f",
+        "canonicalInputSha256": "de03d48ad1335d7844e0ed2c847844ebda9a5f40cba01c1ab6d0817cbceae37f",
         "intent": "Current list filters, values, widget addresses and exportValues read complete flat field records and page rows; unplaced widgets are absent."
       },
       "disposition": "current-shipping-replacement",
@@ -2353,7 +2353,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "status-without-read-and-after-a-failed-load",
-        "canonicalInputSha256": "45342c22c2265e1eafc214d7cec566deb3a8ac5cb645c775d7bba5a7ff70afa6",
+        "canonicalInputSha256": "fa7d41f5851a0bab542166f9a4c5d35447fef1d0184f51f19486ecd021da7b54",
         "intent": "The current mirror returns forbidden without read permission and error after a named load refusal."
       },
       "disposition": "current-shipping-replacement",
@@ -2372,7 +2372,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "batch-writes",
-        "canonicalInputSha256": "caa0ec60e0391e62571bc3694546eeee06c0d4315e96e8ddc8c3d0533f1d643b",
+        "canonicalInputSha256": "cae6ca13b1eab55166207f26225cb263f30d0fac3918d300e4b151503db405c0",
         "intent": "Current batch accepts well-typed fields and reports unknown refs independently; plain import skips missing, forbidden and incompatible values. Accepted fields share one apply."
       },
       "disposition": "current-shipping-replacement",
@@ -2392,7 +2392,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "values-keyed-by-integer-like-names",
-        "canonicalInputSha256": "3ac1e7f2cb84f981dc3b7e4d4d82fa420861a19b167d72d5639e48e3941e6ad4",
+        "canonicalInputSha256": "a429b17bda6d29cd0a8416823229490fc6d34b60a4f2f949b38db4cfdecc7131",
         "intent": "Plain import/export follow JavaScript integer-like property ordering; the actual apply operation order records that ordering."
       },
       "disposition": "current-shipping-replacement",
@@ -2412,7 +2412,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "reset-all",
-        "canonicalInputSha256": "f8cf1f550186a5e6dbbdf5e5cd96f1186f98d75674d87bb025631be486e84247",
+        "canonicalInputSha256": "0a126f8a9f8b11e95bdb2dd34f68f416059d69fa62e445ced09b2215e1bac6ef",
         "intent": "Current reset() selects every fillable resettable field, or explicit refs. Host action exclusion preserves ISO target selection; empty include selects none."
       },
       "disposition": "current-shipping-replacement",
@@ -2435,7 +2435,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "reset-all-failures",
-        "canonicalInputSha256": "2fdd8bc8c665a095e3391a444b4294f672c7bbbd700159615817c3d8f75b3c9f",
+        "canonicalInputSha256": "fc025d985b7ee7589077a9c52a2a34ba3870ef75b8ed2bd455205d9f8b38a303",
         "intent": "Explicit denied reset rejects locally; reset waits for the snapshot. Current atomic engine refusal rejects the entire change and the next reset succeeds."
       },
       "disposition": "current-shipping-replacement",
@@ -2458,7 +2458,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "confirmed-change-events",
-        "canonicalInputSha256": "ca26c3c3a0573bd540e45c371e316319d68d4d4b129474117585c004daf3dac0",
+        "canonicalInputSha256": "529cabede52ff304c14caf6a13dae31b4144849038203922fe7fd68c8f3975c3",
         "intent": "Current facts announce value/create/update/widget/remove/delete with exact origins; refresh alone announces resync. Unrelated version facts do not synthesize form writes."
       },
       "disposition": "current-shipping-replacement",
@@ -2478,7 +2478,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "an-unsubscribed-listener-hears-nothing",
-        "canonicalInputSha256": "a5288a7650ab7c223e8b5ae13ad683dddc3ac34bf870779a85e225d6b4ec3596",
+        "canonicalInputSha256": "7be56cf8ad800d010ed3a4a5456ae9f0447bd4b04b4d90bfd8ba270baf340eae",
         "intent": "An event hook returns a callable unsubscribe; detaching it prevents the subsequent refreshed snapshot callback."
       },
       "disposition": "current-shipping-replacement",
@@ -2516,7 +2516,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "init-with-annotation",
-        "canonicalInputSha256": "a9ee8e3d87dd3c5e1a625c35b9d3943b8678329088151085d2a0bff937657326",
+        "canonicalInputSha256": "aff3a8c1c4235efa2f18ce2b24ad3ac4e4b99aeddc270bdcf753046c179db68e",
         "intent": "Palette tools join annotation.tools; widgets lend in design mode and return to form fill mode."
       },
       "disposition": "current-shipping-replacement",
@@ -2538,7 +2538,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "place-a-text-field",
-        "canonicalInputSha256": "86a8ef11f3afffa8c616a36f0aee30d5ff0b27aa422f30e1cf6727feb23ba1f2",
+        "canonicalInputSha256": "8b2422b05f50cfb7f9536d1d552b7790c63dada79e1cf5e589ef973c0ff28558",
         "intent": "Current create accepts page-space drafts and explicit names. The handler owns auto-naming; engine answers fold without geometry reloads."
       },
       "disposition": "current-shipping-replacement",
@@ -2560,7 +2560,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "place-each-family",
-        "canonicalInputSha256": "78f2162df645990bb6547b7dafd08b3c6338b5587cab3d9d486d324bbbff80bf",
+        "canonicalInputSha256": "c4a9c92a0402193aff9fba28eadaa1009694532f1f3229e851c9a3f96813ee25",
         "intent": "Current direct drafts retain radio exportValue and complete choice options, and return complete family-specific fields/widgets."
       },
       "disposition": "current-shipping-replacement",
@@ -2580,7 +2580,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "placement-before-the-snapshot",
-        "canonicalInputSha256": "16b45dd411e1a17bb1b83f614a2821b28b126810cae6eb5d10780399bf68e0a5",
+        "canonicalInputSha256": "b2d1cff96d2ad5cfd6e47380d82b37dc549691d6c15c94dac4c0f8e1a02fdf60",
         "intent": "The actual handler names against the current view while the first list is pending; create shows after confirmation and remains after the snapshot loads."
       },
       "disposition": "current-shipping-replacement",
@@ -2603,7 +2603,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "placement-is-page-bound",
-        "canonicalInputSha256": "6b054ad605ae88a4de8c6554b74154d85071d17093f2e58297d194780fbee9e5",
+        "canonicalInputSha256": "7bc6620472694eeb7ce10553ec44c80c0f5cd0760688acf8b0f8591f2d19784e",
         "intent": "Actual gesture placement clamps overshoots, ignores degenerate drags and unknown pages, and permits one-point geometry."
       },
       "disposition": "current-shipping-replacement",
@@ -2626,7 +2626,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "placement-refused-by-the-engine",
-        "canonicalInputSha256": "26f55aa3288730ef33e0dea496a6ab03926b50e7f947566bfa2ee3f72fbf1366",
+        "canonicalInputSha256": "eca33c3d43d77d6c77457498dc19b1eceb3b4e27edee48f2529242c5876c81b5",
         "intent": "A current create refusal rejects without confirmation; the next create succeeds with its own allocated refs."
       },
       "disposition": "current-shipping-replacement",
@@ -2646,7 +2646,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "placement-reloads-the-annotation-page",
-        "canonicalInputSha256": "db555929cbbe70577d31eab28b0bffe072937f194f8e3fe0f6d3f59b8da79531",
+        "canonicalInputSha256": "dc5646451363fd32cf0bbc2776a222701d58546a6859f9d50cde57b23c57ba0b",
         "intent": "Current confirmed widget rows are lent directly to annotation in design mode; selection needs no extra annotation read."
       },
       "disposition": "current-shipping-replacement",
@@ -2688,7 +2688,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "update-field",
-        "canonicalInputSha256": "78a5be30b565f498d1d8ac2f933e8d0a1ef1e0525ea385dae20fa9b1e9b343d8",
+        "canonicalInputSha256": "0702aa179589a8a8e73d575f2dbf676923df44fc03aba1a25c6b0648d4e969b6",
         "intent": "Current update stages a patch against an actual field ref and folds the answer; a named engine family refusal rejects."
       },
       "disposition": "current-shipping-replacement",
@@ -2708,7 +2708,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "delete-field",
-        "canonicalInputSha256": "0c159b928d17cd26c8e477f4c92bf7d926d6819596af906426580f164fb58cfe",
+        "canonicalInputSha256": "0cd827861f9059517c8bc21963e28079a07d7c1290e722761024a26f288194c2",
         "intent": "Deleting a spread field removes its widgets on both pages from form and annotation lending. Unknown ref deletion is an explicit engine not-found refusal."
       },
       "disposition": "current-shipping-replacement",
@@ -2732,7 +2732,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "queued-verbs-interleave-with-page-reloads",
-        "canonicalInputSha256": "47894677f072b257916197c32523535bc2b2b6897672ab42826e36a3e00ff330",
+        "canonicalInputSha256": "1e910d3d0d0441c006dfd65aae40204cf2d28c1796865c477fb4799de1f47b59",
         "intent": "Current structural ops overlap without old page reloads; a confirmed update remains while a prior delete awaits its answer."
       },
       "disposition": "current-shipping-replacement",
@@ -2755,7 +2755,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "delete-field-without-annotation",
-        "canonicalInputSha256": "9bc103272ba520e4de741bd0b18eceee4715e5c3be3f377f28e1e7d703920a4d",
+        "canonicalInputSha256": "08665b3479550629b1f80afb0038203d829f2bfdbddc0484302bd26388a1137d",
         "intent": "Direct delete works with no annotation plugin; a later engine not-found refusal is preserved."
       },
       "disposition": "current-shipping-replacement",
@@ -2775,7 +2775,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "detach-widget",
-        "canonicalInputSha256": "7b6a13c166b6d4bee456de9f332f233497948acbde35b576131a01f7a26eca7d",
+        "canonicalInputSha256": "6555b77cb902b45ac6e2bfdf18da08803b07ef18406a077dbdd1e1ae03e9e7f6",
         "intent": "Current removeWidget takes field and annotation refs; detached rows remain on the page with field:null and are no longer projected as fields."
       },
       "disposition": "current-shipping-replacement",
@@ -2797,7 +2797,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "widget-hit-test",
-        "canonicalInputSha256": "fb46c3bbff065f61c13554b038a9b976d083aef45b26846431588ccf088ba520",
+        "canonicalInputSha256": "f1cc1d710907cda290c12d84a71a996854aea422ce70094eb9f5e4ff79a04578",
         "intent": "Current model hit test returns the smallest owned widget; unowned widgets and unknown pages return null before and after ensureLoaded."
       },
       "disposition": "current-shipping-replacement",
@@ -2817,7 +2817,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "widget-hit-test-live-boxes-compare-areas",
-        "canonicalInputSha256": "1de4bc6c356fb6309bb902f1a15bfed2be35b9ded701f4cf56e48d1df5c3192f",
+        "canonicalInputSha256": "ab3f462e2892ffd21b9148d44431dae34c79bed825a6d5c9e2c3c7cbe7d604f0",
         "intent": "Current snapshot hit test compares area and preserves first-listed ties; removed live fallback has the same surviving geometric owner."
       },
       "disposition": "current-shipping-replacement",
@@ -2836,7 +2836,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "widget-hit-test-without-annotation",
-        "canonicalInputSha256": "f995aad72149ebbf93d3490d7193815ae62c54cf91cc5ef6c7e7b6d2c4509e5e",
+        "canonicalInputSha256": "283049118e75a084ef46dd7ea6b8859ffcff886a61586b88ebb20668cb875afe",
         "intent": "Before the current form snapshot lands no widget can hit; after it lands the model hits without annotation."
       },
       "disposition": "current-shipping-replacement",
@@ -2855,7 +2855,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "attach-widget",
-        "canonicalInputSha256": "0eae72ec71c4c55c2cc8056009ffa90f02fcfe963ef9727ef68f3c22ad3df32e",
+        "canonicalInputSha256": "4a5e8270aafeab6bdebab48851afba0124e65ca09b661fb67b97f692b3f2dc2c",
         "intent": "Current addWidget creates another placement on the field, allocates its real ref and inherits look; a refused follow-up is explicit."
       },
       "disposition": "current-shipping-replacement",
@@ -2878,7 +2878,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "place-with-a-name-and-options",
-        "canonicalInputSha256": "63cc4b2bb4b41a3ed6baf9c0925fba548068eafa2875c4b9cb68ec39cdd1bcd9",
+        "canonicalInputSha256": "0c725ff707bbe04fdfa7bd67d234d16eb9ced27a64a56dae73b8d59b1ffae99e",
         "intent": "Current explicit create supports custom choice names/options and signature fields without a stale placeField door."
       },
       "disposition": "current-shipping-replacement",
@@ -2898,7 +2898,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "a-click-places-the-tool-default",
-        "canonicalInputSha256": "027bf52f3d61708ce412f67469746198f0dc04bec5c6f11967771465bb559cfe",
+        "canonicalInputSha256": "86aeaa1e8bf3c1d94a1db168fe4bb09d4b9ab25ea90c3e005cb3a7051f33d1a3",
         "intent": "A real pointer click creates the default text tool draft and selects the final allocated widget in design mode."
       },
       "disposition": "current-shipping-replacement",
@@ -2923,7 +2923,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "a-click-near-the-edge-is-clamped",
-        "canonicalInputSha256": "60425b5c2467e9c7c3620f05bd6073ce4f85be9a5bef3acc852c6e7130712ce9",
+        "canonicalInputSha256": "5e8e52f467bc7fc583d070ab7024c0b816a2ebcf5ebca1cace5c59b2425a02c2",
         "intent": "The real listbox tool click clamps its standard size to the page edge."
       },
       "disposition": "current-shipping-replacement",
@@ -2946,7 +2946,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "a-thin-drag-is-a-drag",
-        "canonicalInputSha256": "00e23c90fc61d3c39d267de29f557c1a7798210dc3330847e29f4aa0c7ef767d",
+        "canonicalInputSha256": "5973d4ef12ad0f3c5068ee672f5ad541a45d9a1adeca7f59add7fcc107bb4fca",
         "intent": "Without annotation a 100 by 2 drag commits its exact page-space rectangle and the tool static look."
       },
       "disposition": "current-shipping-replacement",
@@ -2969,7 +2969,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "the-home-page-tracks-through-the-projection",
-        "canonicalInputSha256": "a75b9e2cbcddc640350aeb0ec8eaea730e597cc658bdaef6d33a5105ea6369a3",
+        "canonicalInputSha256": "0fa41be35dd042f81759adf1185ec92a5314ba97fb06757a1e299a10a85c7d81",
         "intent": "Cross-page moves use the serialized projection callable, null projections are ignored, and gap releases use the last resolved home-page point."
       },
       "disposition": "current-shipping-replacement",
@@ -2992,7 +2992,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "the-live-preview",
-        "canonicalInputSha256": "b5214dc5f724675b74b321287cc086486b78e6625d46e7aae724dbbb639fcdb5",
+        "canonicalInputSha256": "1e32b61a6f828f08a18e53a39abc47f9b0b48424fecec00c2478699893c4b41b",
         "intent": "The real form placement handler updates annotation page items past the shared drag threshold and clears its preview on release."
       },
       "disposition": "current-shipping-replacement",
@@ -3039,7 +3039,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "the-handler-outranks-lower-priorities",
-        "canonicalInputSha256": "38c08fa60ce4128fba8a659efdcc1279c28c36258ad1ca4d9dcaf55e09380051",
+        "canonicalInputSha256": "620fafb7f0d7dae548336913562e92d50929e7b16414ebfd1f5d31d04339b502",
         "intent": "The actual priority95 form handler captures before a priority50 observer and reports form-place in gesture events."
       },
       "disposition": "current-shipping-replacement",
@@ -3083,7 +3083,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "auto-select-waits-for-a-stable-world",
-        "canonicalInputSha256": "a5330aa5581cc72e4d23acc91afd25906702c26ef61e6ce5184cab75143e1cd9",
+        "canonicalInputSha256": "cbec95e796047f74c7b55bb0ab821da32cf481819aea461ff72eb2d8084736da",
         "intent": "Reserved object numbers make pending selection immediate; switching tools clears it. The next two immediate engine answers publish another-page/no-widget facts synchronously during stage/apply before form.get, so those authored outcomes stay unselected."
       },
       "disposition": "current-shipping-replacement",
@@ -3130,7 +3130,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "standalone-configured-environment",
-        "canonicalInputSha256": "90fe15b579792ff0c9f7bc0bfc2eeab5965ffa0b2b082401d8d78a47a4171f3c",
+        "canonicalInputSha256": "7361968894105dca775ca869cdfdf39f580b3883134d4aea6a8c879d83ad74ab",
         "intent": "The standalone host reads the name-tree scripts once, boots once per realm with the configured file name, identity, clock, offset and seed, and returns the value effect; a second commit does not boot again."
       },
       "disposition": "current-shipping-replacement",
@@ -3153,7 +3153,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "standalone-default-environment",
-        "canonicalInputSha256": "9b3915961ab5f3034e85ae55dcfb1afdea148b2307da895164e709c9cc3236c1",
+        "canonicalInputSha256": "c0e9af44c3b2d49c45c7a60d693aa49d562114079ba679cd4e19ec5f4a76d2d9",
         "intent": "Without configuration the clock is the host's, the offset the host zone's, the seed seedFrom(document id, run), the file name the document's, the identity the engine's claims; a document without catalog actions boots nothing but still builds the realm."
       },
       "disposition": "current-shipping-replacement",
@@ -3176,7 +3176,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "standalone-identity-callback",
-        "canonicalInputSha256": "eed867c58d6bbe55a80d9c00c5bcf0872299b8803e137ed92f81fa7b108f8873",
+        "canonicalInputSha256": "9f4618b481c4f6ed2b2de8c959acd10a3da937a780c68075d91df139cdf906fd",
         "intent": "An identity callback is called per run and layered over the engine claims."
       },
       "disposition": "current-shipping-replacement",
@@ -3199,7 +3199,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "standalone-dispose",
-        "canonicalInputSha256": "2d12ff956e9df4a3b6ef6e12e669e366fede39dadc2342cd527c19d08d2733b4",
+        "canonicalInputSha256": "ecc08126cc870cca6e937bbb5f54652f9edbad3df535c5a007f70009c1f066d6",
         "intent": "dispose() releases the owned realm; a later transaction rejects."
       },
       "disposition": "current-shipping-replacement",
@@ -3222,7 +3222,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "form-values-cross-into-the-overlay",
-        "canonicalInputSha256": "7b71fa0cc8e313fa07269c87db36a0656b7a7e6d6edbba19714d0f92df67d419",
+        "canonicalInputSha256": "2ef52a7fbb716b30425429315173b5be3490467cf72a6fac1ce9e97bd3d36716",
         "intent": "A toggle proposes its state (null as 'Off'), a combobox its scalar choice (null for none), a listbox every choice; a value whose type does not match the family fails the transaction before any run."
       },
       "disposition": "current-shipping-replacement",
@@ -3245,7 +3245,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "a-cleared-toggle-proposes-off",
-        "canonicalInputSha256": "2fb04e8b0b2723c118120009bf74b0e419296e168c7dd0651aefe7ce74a6c033",
+        "canonicalInputSha256": "1e1c360bc7cf79885da6f77d610455313dbb12a5e820a41e0e222a6a5298ac86",
         "intent": "A toggle to null reaches the validator as 'Off'."
       },
       "disposition": "current-shipping-replacement",
@@ -3268,7 +3268,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "validated-values-cross-back",
-        "canonicalInputSha256": "1e8f2097e343ebe96a61d01ca9620c555371c720fd953e7363255e52ff4c72cf",
+        "canonicalInputSha256": "0b587111d5543716f27662d7b4cd4ff7e58ad68778434e29c6e84be4beeecda9",
         "intent": "A validator's event.value becomes the committed value in the family's form: text String()s it (null as ''), a toggle maps null and 'Off' to a cleared state and stringifies the rest, a combobox keeps the first of a list, a listbox wraps a scalar."
       },
       "disposition": "current-shipping-replacement",
@@ -3291,7 +3291,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "boot-effects-land-with-the-commit",
-        "canonicalInputSha256": "3d2efe95c0428acd08a2b3259c997805395507e91de9ef07225f3eb1f76b1e03",
+        "canonicalInputSha256": "61b37d4ddd25d840e28ed93496b1538512534491c936ae574e48fcfea7ad9223",
         "intent": "A boot's form effects and UI requests join the first transaction, tagged 'boot', ahead of the user's value; later transactions see no boot."
       },
       "disposition": "current-shipping-replacement",
@@ -3314,7 +3314,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "a-failed-boot-degrades",
-        "canonicalInputSha256": "1533361e3105e32b74a04e853ca2a508fbfb3d316f6b01517d10d5e1dc167373",
+        "canonicalInputSha256": "bba63d0d505f495e141788483381170b23f0f6930d9c78df1559856641f0b551",
         "intent": "A boot that throws, or answers with an error, is a script-error diagnostic and the transaction goes on without its effects; its UI requests still surface."
       },
       "disposition": "current-shipping-replacement",
@@ -3337,7 +3337,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "a-boot-error-output-degrades",
-        "canonicalInputSha256": "8f70b2e10a6d5c02c0795f73a791bb5a04240e14a52882c6d447a983c1483790",
+        "canonicalInputSha256": "371635e538f3a651b4ac9d7b66e6b2f4af6e8d948e907ac9c21e18f42de9acd0",
         "intent": "A boot output carrying an error keeps its UI requests and diagnostics, drops its form effects, and adds the degrade diagnostic."
       },
       "disposition": "current-shipping-replacement",
@@ -3360,7 +3360,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "a-failed-catalog-read-degrades",
-        "canonicalInputSha256": "3862f8d2c4d7654095fccf1d1779067b69a848ff97773ca294bc74b6022c4308",
+        "canonicalInputSha256": "22abc15c4167eb1894d5d893fdadb629e6f8744ce0a8945a65dea760d2cef471",
         "intent": "A name-tree read that rejects degrades to the host diagnostic; the value effect still returns."
       },
       "disposition": "current-shipping-replacement",
@@ -3383,7 +3383,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "rejection-keeps-boot-effects",
-        "canonicalInputSha256": "62816f1573e01f20c638457ec9252da18b7bd35060f0291eb3c5f59a6229ba97",
+        "canonicalInputSha256": "af308e0e6dbb8e60355acf1b4ad767cc1adbdd6cc4a0adb9ec8cedfac53d8604",
         "intent": "Every rejected controller transaction returns only its boot effects for the caller to write. Native atomic refusal is covered through the form capability."
       },
       "disposition": "current-shipping-replacement",
@@ -3406,7 +3406,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "activation-runs-in-the-transaction",
-        "canonicalInputSha256": "458c789fed7949632766111ae9763782f62ec34672cb4a9a4e56ce2e7d5962f7",
+        "canonicalInputSha256": "6d471b2873833c79768c3916f0d5bf8de84a711b55f4b08de22e41504c37b77f",
         "intent": "activate(ref, tree) runs the tree's JavaScript as widget-activate against the overlay and returns its effects with its UI requests; no calculation follows."
       },
       "disposition": "current-shipping-replacement",
@@ -3429,7 +3429,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "activation-edits-its-own-field",
-        "canonicalInputSha256": "d55c2763313e59f13c8f4389ec7cbfd0ee859db92c2848a94096906320e6988e",
+        "canonicalInputSha256": "c578a7728e6b518e49bfdadd127c0162e6f60a7f3060862cba9aa8befe27bbf2",
         "intent": "An activation that sets its own field's value returns that effect; the activated field is not formatted, since no value was proposed."
       },
       "disposition": "current-shipping-replacement",
@@ -3452,7 +3452,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "recalculate-keeps-a-boot-reset",
-        "canonicalInputSha256": "dc019c87d823887d65e4c4bbe1f4d0c998c326fb2d9ff163834519df97bf7019",
+        "canonicalInputSha256": "1cb2613bad0482aa611dd87ea3831069189e8388cef97282f9fa28dee00339a5",
         "intent": "recalculate() proposes nothing, so a boot script's reset of the anchor field survives as a reset effect."
       },
       "disposition": "current-shipping-replacement",
@@ -3475,7 +3475,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "activation-refusals",
-        "canonicalInputSha256": "a8f059d68f142fd577019e093c22518a8cc080e56b486c940dfce87d3b7bf8b8",
+        "canonicalInputSha256": "dba5693a02d9b39ebffb26a5d6ba323288f2634a37e797e21b1fbf3aec8f03e0",
         "intent": "An incomplete tree fails before any run; a tree with no JavaScript returns no effects; a run error fails the transaction."
       },
       "disposition": "current-shipping-replacement",
@@ -3498,7 +3498,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "keystroke-two-passes",
-        "canonicalInputSha256": "aa9dae087a53b6b902fac21902b7a410bafad2930ea013076e2055d33330f5d0",
+        "canonicalInputSha256": "057b9ee0ffcf6ddbc83a184bbc5a403870bca609a17c0aa9eaac0a7031e025dc",
         "intent": "A text commit runs the keystroke script twice: once paste-shaped (the whole value in change, the old value selected, willCommit false), whose selection splice becomes the proposal, then willCommit with the spliced value, whose event.value is committed."
       },
       "disposition": "current-shipping-replacement",
@@ -3521,7 +3521,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "keystroke-splices-in-utf-16",
-        "canonicalInputSha256": "5849c8c0aa40b4be12f81e8dd7ae2196a6a564813d7b3e94fee1ff07098aca6b",
+        "canonicalInputSha256": "3b90e9d52bcdb40d873b1120b7740fe5ea7e05e4f129538594c658af091364e1",
         "intent": "The splice counts UTF-16 code units (an astral character is two), clamps a selection end before its start, and reads negative and fractional offsets the way String#slice does."
       },
       "disposition": "current-shipping-replacement",
@@ -3544,7 +3544,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "keystroke-empty-values",
-        "canonicalInputSha256": "3cfef30ea61999f769794ab7ca2b32e87a7f576d3dcd93cf5aada6b9900eca22",
+        "canonicalInputSha256": "9185ba55e931d1ea17f7039e276fb467abaecd61eaf89ce187e36e10fe963022",
         "intent": "An empty field's old value and a null proposal both reach the keystroke script as ''; the field's page is its first placed widget's index in the document, 0 when it has none or the page is unknown; a direct widget before it is passed over."
       },
       "disposition": "current-shipping-replacement",
@@ -3567,7 +3567,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "keystroke-fault-ladder",
-        "canonicalInputSha256": "f7d14e12664613dd13e5dacee10b70c08cd12ae5907fc63059ae32a2d9884311",
+        "canonicalInputSha256": "b81aef5f37181894c4daccdad90e97456a242231fe08ef675b439e5e7862d669",
         "intent": "An exception in either keystroke pass keeps the typed value with a diagnostic; any other error fails the transaction; a false rc in either pass rejects the value, keeping the diagnostics so far."
       },
       "disposition": "current-shipping-replacement",
@@ -3590,7 +3590,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "keystroke-trees",
-        "canonicalInputSha256": "5edeffeef74b4ab2b449812ae7ea6af09728e68bdb1e3d2fad01e93198e0be08",
+        "canonicalInputSha256": "0a83d7e96af33a2e4e6dcf7cf6da4bea6f0110a9a270226b468c853f6d20491f",
         "intent": "An incomplete keystroke tree fails the transaction; one with no JavaScript is skipped; a keystroke on a non-text field never runs."
       },
       "disposition": "current-shipping-replacement",
@@ -3613,7 +3613,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "validate-fault-ladder",
-        "canonicalInputSha256": "3e1c0d0dc0c4cdfb52690212941ce07d824878f28421d93f84090a779c963264",
+        "canonicalInputSha256": "db0a2882ae1db8f348e3513f337a00d6912e8f3dcee5da4e9c1d9beb5c6129ba",
         "intent": "A validator's false rc rejects the value with its alert; an exception accepts it with a diagnostic; any other error fails; success returns the validator's value and effects."
       },
       "disposition": "current-shipping-replacement",
@@ -3636,7 +3636,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "validate-trees",
-        "canonicalInputSha256": "5c662c878bea02305672d4f2a12b0795a44dd6579b2002e6289cb5d515a7cc92",
+        "canonicalInputSha256": "399fc6a7a8770e90f0f92986bc7c7c246421d4b3e9f7fa339f4657515e427da7",
         "intent": "An incomplete validate tree fails; one with no JavaScript is skipped and the value effect returns."
       },
       "disposition": "current-shipping-replacement",
@@ -3659,7 +3659,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "calculation-order",
-        "canonicalInputSha256": "be8c2cfcc904bdc5538813f2417e7d3d46b26d826eaf2e3cf301712822c486a5",
+        "canonicalInputSha256": "197a9cfb90517c47f50a00c23d17ffbf3d8842724dde0a7d3fd7b8b52a87a32a",
         "intent": "The /CO chain runs in order after the user's value, skipping null and dead entries and fields without a calculate tree; an exception skips that field with a diagnostic; the target and each calculated field are formatted once, in that order."
       },
       "disposition": "current-shipping-replacement",
@@ -3682,7 +3682,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "calculation-refusals",
-        "canonicalInputSha256": "a7a76143fc921920ac8819dbf62602b47255ca6902236ea82a7cdbe4773d1f03",
+        "canonicalInputSha256": "49aa378c97fc3a6492dae42ac226da037717f67e825e135a0b8440f4a6934b35",
         "intent": "A calculate error that is not an exception fails the transaction, as does an incomplete calculate tree."
       },
       "disposition": "current-shipping-replacement",
@@ -3705,7 +3705,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "recalculate-anchors",
-        "canonicalInputSha256": "f3e43224ddc31089fdcb1e42d0dbe300dc872b620c19aa9545932d70ecddb075",
+        "canonicalInputSha256": "e4b52a9cadfa3a5862ec7a025a799d9227e424afa59f4fa384d0f9d7a8019dcb",
         "intent": "recalculate() anchors on the first live /CO field (here not the first field, and on page 2, which the world's pageNumber shows), else the first field, and runs with no source; a first-field anchor outside the /CO chain is neither calculated nor formatted; a document with no fields is an honest no-op."
       },
       "disposition": "current-shipping-replacement",
@@ -3728,7 +3728,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "format-fault-ladder",
-        "canonicalInputSha256": "a49a4c5e5e691e1934dd3ea03410c317791e40281c34795c3d39002ed06246f1",
+        "canonicalInputSha256": "76e716207f7519eefa0e7239b0f47623dd55742ee96d4fcc9e4d59d44f424759",
         "intent": "A format exception keeps the raw value with a diagnostic; any other format error fails; an incomplete format tree fails; one with no JavaScript is skipped."
       },
       "disposition": "current-shipping-replacement",
@@ -3751,7 +3751,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "effects-canonicalise",
-        "canonicalInputSha256": "4bcd90d0f9f9e2d1c2e07692542946fadb87eb73958aded2c225e08d9b291783",
+        "canonicalInputSha256": "fbbdebedb14dcb65b9f391b7dcecb5aff871ab941c89e5c8602ecc6ab1ac8d87",
         "intent": "Script effects fold into the overlay: a reset back to a default becomes one leading reset effect, a later setValue un-resets (even back to the default), display changes become setDisplay, appearance text keeps the last per field in first-set order, and effects on fields the snapshot lacks are dropped."
       },
       "disposition": "current-shipping-replacement",
@@ -3774,7 +3774,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "native-effect-statuses",
-        "canonicalInputSha256": "d952903083802bacd98fa7114f087583741fce6d17a61f6ac6aedc962599bdd7",
+        "canonicalInputSha256": "09daba1fbf1bfbf5b8dbfd3da820c4d251b82b9b5dc82e6a29860f9a3a798f7f",
         "intent": "Native form writes use atomic ChangeResult instead of per-effect batch statuses. A no-op confirms unchanged; a successful write folds before return; each engine refusal rolls back to the confirmed value."
       },
       "disposition": "current-shipping-replacement",
@@ -3796,7 +3796,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "no-change-is-unchanged",
-        "canonicalInputSha256": "c993352afd76d189fc74299d885b816e0841f598aaaef4548e9a0a04f94e6b1e",
+        "canonicalInputSha256": "9e0ba8a1b63e1d08c293a70bf53af003fcfd6bc718fd83ec8a7dfd433e201e6c",
         "intent": "A controller commit of the current value is accepted with no effects; no engine write belongs to the controller. A field the snapshot no longer has fails."
       },
       "disposition": "current-shipping-replacement",
@@ -3819,7 +3819,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "a-throwing-run-fails",
-        "canonicalInputSha256": "9a1eef9147d033d4f45776c7f193a9f4650f61f655e5c82f3b75f6be5dd79115",
+        "canonicalInputSha256": "3acf22f9292f96a4609d399c90cfd8bbf0e1b14d9c928dd834b589697e44fc42",
         "intent": "A sandbox run that throws fails the transaction with an invalid-output error carrying its message; a script setValue on a pushbutton rejects the transaction."
       },
       "disposition": "current-shipping-replacement",
@@ -3842,7 +3842,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "the-effects-budget",
-        "canonicalInputSha256": "b80a7499d72cc38bd86b70381d2f6f4dc8265476467a6cef96eafa836f34f407",
+        "canonicalInputSha256": "ab83229f566ccf83dc9097e26e18b19d3ca89f4fab50c56722409ced3cb3aab9",
         "intent": "More form effects plus UI requests than maxEffects fails the transaction before the engine; exactly maxEffects passes."
       },
       "disposition": "current-shipping-replacement",
@@ -3865,7 +3865,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "the-output-budget-at-the-boundary",
-        "canonicalInputSha256": "e6017a57801af6dea79948a7dd31c6dc75c32e3ae4c56f9d9f682a5eee6bab81",
+        "canonicalInputSha256": "8eab5d0ba7220e17c34d6117adbdaa2c116b8a7897ea0541484fcaaf4a11f5d9",
         "intent": "Output bytes are the UTF-8 length of each output's JSON (192 here, with 2-, 3- and 4-byte characters): exactly the budget passes."
       },
       "disposition": "current-shipping-replacement",
@@ -3888,7 +3888,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "the-output-budget-exceeded",
-        "canonicalInputSha256": "be5c6951e992c75179fe75c98ea94da5c6f0a1dd4ed79d0ceb62debb84edcd35",
+        "canonicalInputSha256": "4acbafb1040a9d3a4df976c4c93d9f6f6326c70489044d9db92484d1fbfc75c8",
         "intent": "One byte over, a boot output degrades with the budget message, and a run output that crosses the aggregate fails the transaction."
       },
       "disposition": "current-shipping-replacement",
@@ -3911,7 +3911,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "the-time-budget",
-        "canonicalInputSha256": "4c493ce5d37e715cfcdead9de3a37b9b66a4565bffe833e0777f8c5fda8ff38b",
+        "canonicalInputSha256": "46cb91e1626eb49fa2b46182c99ce5f5e360e671a7bed687f89e6384044b7f2b",
         "intent": "Each run receives what is left of the transaction's execution budget; once a run has taken all of it (a realm rebuilt behind a slow factory), the next run times out without reaching the sandbox, and the rebuilt realm's boot surfaces in the next transaction."
       },
       "disposition": "current-shipping-replacement",
@@ -3934,7 +3934,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "the-time-budget-shrinks",
-        "canonicalInputSha256": "fb04ac66a142dc7962654d0391a55523f6ff4f31456619cd4a14655d17127244",
+        "canonicalInputSha256": "1b86900e7c9e33ab569897d2b2df75ad27ad0b2f005f07cea68dbbc0e380e960",
         "intent": "A run that took 20 of the 50 budgeted milliseconds leaves the next run 30."
       },
       "disposition": "current-shipping-replacement",
@@ -3957,7 +3957,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "commit-through-the-shared-realm",
-        "canonicalInputSha256": "590333b6a3b91aac7b4e6dab0ec52d682a62506ccbbe5dd3ee47d17496193879",
+        "canonicalInputSha256": "6e090e50f095544f7b48ac8f70a06ec0af3636860c3da8fb4c2c65eeefa38240",
         "intent": "One held fill runs K/V/C/F in the actions realm and sends complete current ops. Confirmed fields and widget rows fold before setValue resolves."
       },
       "disposition": "current-shipping-replacement",
@@ -3982,7 +3982,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "scripted-writes-clear-the-spinner",
-        "canonicalInputSha256": "7c52a7e3358fc8ac51a126775f2e09bfdc1c8c9a7827e60a9530839faa5f5151",
+        "canonicalInputSha256": "5ce41b2231d08fad7127a319839f9f5f0ed3addb023e8b925087012b2b353781",
         "intent": "Unchanged, rejected, failed and accepted scripts release held writes; confirmed public values survive refusal."
       },
       "disposition": "current-shipping-replacement",
@@ -4006,7 +4006,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "batch-writes-count-rejections",
-        "canonicalInputSha256": "ec44b4515df135a74a2868e94da6049340a382b7a62a47d0613159e07fda2fd5",
+        "canonicalInputSha256": "6244bc6b1dba8425a20e3f57b5875fc7efc7698e77f4307acb21e798c78d9ab6",
         "intent": "Current batches validate plain values individually and recalculate once. A single-field validation refusal emits its exact event; batches report malformed family values separately."
       },
       "disposition": "current-shipping-replacement",
@@ -4032,7 +4032,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "reset-recalculates",
-        "canonicalInputSha256": "64916061f524582fcabf1a82298f2032811ae7d6dcd11555a7caceb682aa4991",
+        "canonicalInputSha256": "814bf2af53fa8d8175ac04a421952e79c4049a8ffd8e1db0c26845c0e50d3c98",
         "intent": "A reset and calculation share one atomic change, with the action origin carried to surfaced UI. Script failure cancels every requested reset."
       },
       "disposition": "current-shipping-replacement",
@@ -4058,7 +4058,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "scripted-activation",
-        "canonicalInputSha256": "d908a5eff6f48ba8eefc606cf53ccd60fb1216e4ae6b8436974d2ffa00b2c31a",
+        "canonicalInputSha256": "a240819733a03160ce5c5a442b89ad20de5122a22613ba1fa155424fd38b5428",
         "intent": "Widget actions resolve from the form snapshot and dispatch JavaScript through the registered form commit sink. Missing widgets reject; tree-less widgets fall back without a page reread."
       },
       "disposition": "current-shipping-replacement",
@@ -4082,7 +4082,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "scripted-activation-matches-refs",
-        "canonicalInputSha256": "9c0753492697b7dbf58c5385c377931bbc77401f528e7c13eec412a1eb60ffa5",
+        "canonicalInputSha256": "6c158397859767aa1d58e0666e5cb60df38faa1b166c98529a812cc1ec4989af",
         "intent": "Current baseIndex refs and unknown widget numbers are refused before dispatch. An object number with another page has no matching action row on that page and falls back to the form owner."
       },
       "disposition": "current-shipping-replacement",
@@ -4103,7 +4103,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "a-kindless-address-matches-no-candidate",
-        "canonicalInputSha256": "f185c0361a0b74f87de2613835d705eca6cf56e91a300f242cd59d235f43f94f",
+        "canonicalInputSha256": "e832958f52235fe5598c65a8292721a68899dfbdf0e442ce6d2195bbc69396bd",
         "intent": "The surviving no-candidate refusal uses a current baseIndex widget address; malformed removed nm/index addresses remain archived."
       },
       "disposition": "current-shipping-replacement",
@@ -4124,7 +4124,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "scripted-activation-reads-the-folded-annotation",
-        "canonicalInputSha256": "a25704fd0d576290976dbff665b79190d8b6263daff3149de54f148be9bac7c4",
+        "canonicalInputSha256": "f545e09e3f04d53e2d36737e69b75b7e98428e783d521bbd15f7f8214671a9b2",
         "intent": "Widget actions and hover flags are owned by the current form rows even while widgets are lent to annotation. Rootless actions and missing event trees remain inert."
       },
       "disposition": "current-shipping-replacement",
@@ -4147,7 +4147,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "script-nodes-commit-through-the-form",
-        "canonicalInputSha256": "bb9016d66882bfca05b34cbe3680ce237a5d104385640559da7c1bd5ec3ca46a",
+        "canonicalInputSha256": "c1479df4a952503165287279876ba35f34938627a894d023b4b42359a0dbb648",
         "intent": "A JavaScript action sends effects to the real form sink, confirms one change and exposes its public value without forced rereads."
       },
       "disposition": "current-shipping-replacement",
@@ -4170,7 +4170,7 @@
       "after": {
         "file": "plugins/form-scripting.json",
         "name": "no-sandbox-host",
-        "canonicalInputSha256": "66fe5ac7e5a33f66de8191414d0ce680843be33ff8f0facc47c25ee0baa55f86",
+        "canonicalInputSha256": "50e74c155ebf8176276f4ffe05bfc0b848d3d3954280df25302f9ab2c88ca3cf",
         "intent": "Enabled configuration with no injected factory creates the current lazy default realm. Explicit validation:none keeps this native fill outside scripts; this case observes the enabled realm without constructing its default VM."
       },
       "disposition": "current-shipping-replacement",
@@ -4201,7 +4201,7 @@
       "after": {
         "file": "plugins/form-actions.json",
         "name": "the-reset-form-executor",
-        "canonicalInputSha256": "345e5094bde843164ba99d870b2af6837bfa388ee5288df6c8c058d3f8850115",
+        "canonicalInputSha256": "ca8e116f437bd0de644d926a8448c4297013134e1badcc5ae62a3d933a5b9d3c",
         "intent": "The real reset executor selects a name subtree, an exclusion complement, all resettable fields and an object-number field. Each reset is one current atomic op."
       },
       "disposition": "current-shipping-replacement",
@@ -4225,7 +4225,7 @@
       "after": {
         "file": "plugins/form-actions.json",
         "name": "an-inert-reset",
-        "canonicalInputSha256": "3119f8c9a594e0a4f3fcf2fba11163b5c4a91313adc96509688f79186d0bdb3a",
+        "canonicalInputSha256": "14dc6b372ed19ddee991d99d291af0b98ef3479e6b17acdeb5b2b85f2037e1b7",
         "intent": "Empty or valueless selections are inert. A real atomic engine refusal fails a selected reset and leaves every public value unchanged."
       },
       "disposition": "current-shipping-replacement",
@@ -4248,7 +4248,7 @@
       "after": {
         "file": "plugins/form-actions.json",
         "name": "a-failed-reset-fails-the-node",
-        "canonicalInputSha256": "2d3ee2102a14ee22ae3763275a9913ced5356f55696b1b2c933649801eea8ec6",
+        "canonicalInputSha256": "1afeb8ef7ee783755e00bdfe6af0a099b92147bd40fc1725312b1cc71b617fac",
         "intent": "Atomic reset refusal fails the action node with the engine message; no selected field changes and a later refused reset remains observable."
       },
       "disposition": "current-shipping-replacement",
@@ -4271,7 +4271,7 @@
       "after": {
         "file": "plugins/form-actions.json",
         "name": "reset-form-action-door",
-        "canonicalInputSha256": "0fe293f3048745f7d18c98167a5d863dba9192f3c815e5a9200c56aa16b8cb7d",
+        "canonicalInputSha256": "cd543594d1a0ebb6a6eb701ab871fb6ba53df88eb32e93aacb76f07f911cb95e",
         "intent": "The host reset uses the current mirrored form, defaults origin to user and does not force engine reads. Failed atomic reset rejects and preserves confirmed fields."
       },
       "disposition": "current-shipping-replacement",
@@ -4294,7 +4294,7 @@
       "after": {
         "file": "plugins/form-actions.json",
         "name": "the-submit-resolver",
-        "canonicalInputSha256": "a880b3b7c567bb58385e23abc53913c00b08a8ee0d95b178b83a39cabea45df7",
+        "canonicalInputSha256": "65c832cfc18a553beaf93636c978112e0deeccb996d514e6afcd1d0db8019b01",
         "intent": "SubmitForm resolves its post-fill dataset through the registered form reader. Unsupported explicit buttons and NoExport fields are diagnosed; charSet is forwarded."
       },
       "disposition": "current-shipping-replacement",
@@ -4316,7 +4316,7 @@
       "after": {
         "file": "plugins/form-actions.json",
         "name": "resolve-submit-dataset-door",
-        "canonicalInputSha256": "062e22a4e4b208c248346a3c62d42d168930979b5ce713258d692acc16dc17cf",
+        "canonicalInputSha256": "683c182b1d46087d28f605b49e8e6f4f3cb366702ac81df210b923e7cb35454c",
         "intent": "The host dataset uses current values and provenance, forwards charSet and explicit diagnostics, and reads no new engine snapshot after hydration."
       },
       "disposition": "current-shipping-replacement",
@@ -4337,7 +4337,7 @@
       "after": {
         "file": "plugins/form-actions.json",
         "name": "commit-script-form-effects",
-        "canonicalInputSha256": "f8ad47d47e2afe9014045cf5b94ce486b204b71ad231a6175d052cd18809563b",
+        "canonicalInputSha256": "271a4d6cc0fe476b841ccf39268e31985bc801b0418cdc13934419a064f855e9",
         "intent": "The script sink stages current ops immediately. Native refusal is reported by the queue; per-field authority refuses staging synchronously with a failed sink result."
       },
       "disposition": "current-shipping-replacement",
@@ -4361,7 +4361,7 @@
       "after": {
         "file": "plugins/form-actions.json",
         "name": "commit-sink-without-annotation",
-        "canonicalInputSha256": "cfa7ee838de3fa1fa77f2f1d828fa1d8c82d629cf207f74fbfd849473dd6d450",
+        "canonicalInputSha256": "7d6451d497082cf56d090e965c90bd847ee1f8815c753117136fb6670c648bfa",
         "intent": "The same native sink confirms through form events without annotation and never reloads annotation pages."
       },
       "disposition": "current-shipping-replacement",
@@ -4384,7 +4384,7 @@
       "after": {
         "file": "plugins/form-actions.json",
         "name": "activation-without-actions",
-        "canonicalInputSha256": "536432c2a36ec4ca65616f65c8c682ec0189ec352c9a79aff5b50716a16a6cd4",
+        "canonicalInputSha256": "f2720d3e5e187f808894f86e1d70a0b69f6ff2b6cc043c8afaea700cfe974d49",
         "intent": "Without actions the current activateWidget door resolves its field from the object-number relationship and returns an unscripted unchanged form result; DOM events are inert."
       },
       "disposition": "current-shipping-replacement",
@@ -4406,7 +4406,7 @@
       "after": {
         "file": "plugins/form-actions.json",
         "name": "activation-is-delegated",
-        "canonicalInputSha256": "0b0becdb1943da0c3c5893f043105a158255bbc101336bd0c37e326c20f5ff97",
+        "canonicalInputSha256": "ff802966663d5fe7b62351102880599a5f575634946964a47dfec10b37923a5f",
         "intent": "Activation dispatches the current form row action; absent or rootless actions fall back to the form owner, without extra page reads."
       },
       "disposition": "current-shipping-replacement",
@@ -4430,7 +4430,7 @@
       "after": {
         "file": "plugins/form-actions.json",
         "name": "a-refused-activation-is-dispatched",
-        "canonicalInputSha256": "4511c3856a27b538082506c54aff4f4b9a96bbf52eaa030072844dfd78b9e1a3",
+        "canonicalInputSha256": "03ab17db3a27171b1cf8ec062f40f50e12945bc2f173a4a1efd6ffd059caeb7f",
         "intent": "An incomplete current widget action is refused by the dispatcher and still returns kind dispatched; the form fallback never runs."
       },
       "disposition": "current-shipping-replacement",
@@ -4451,7 +4451,7 @@
       "after": {
         "file": "plugins/form-actions.json",
         "name": "the-widget-event-feed",
-        "canonicalInputSha256": "60012b29070566849b746e9ae2f9c0c441b8cad195a0fc264baac6a0ccdd723c",
+        "canonicalInputSha256": "d4fc9ca8c750b6994b7fcf971c9d838e76651642b228e9ed29295bfd924aa7ec",
         "intent": "Current form rows supply hover flags and action trees. Enter, exit, down, up, focus and blur carry the real widget source through the actions queue."
       },
       "disposition": "current-shipping-replacement",
@@ -4475,7 +4475,7 @@
       "after": {
         "file": "plugins/form-actions.json",
         "name": "hover-pre-checks-the-folded-annotation",
-        "canonicalInputSha256": "ffeb4a66e2fe01b412ca811f92f56698b84f85417082ed4e6abe701e76688823",
+        "canonicalInputSha256": "44d2c2020255ff5adae480be1ac76fc61d9b77b22a38e8f51ccc61758e12f51b",
         "intent": "The current form-row mirror owns hover flags even with annotation lending. Rows without trees skip dispatch; an exit tree dispatches on hover exit; unknown rows read the page."
       },
       "disposition": "current-shipping-replacement",

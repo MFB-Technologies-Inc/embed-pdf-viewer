@@ -8881,6 +8881,7 @@
                         "kind": "none"
                       },
                       "groupId": null,
+                      "forAnyone": false,
                       "purpose": null,
                       "createdBy": null,
                       "createdAt": null,
@@ -8930,6 +8931,7 @@
                         "kind": "none"
                       },
                       "groupId": null,
+                      "forAnyone": false,
                       "purpose": null,
                       "createdBy": null,
                       "createdAt": null,
@@ -9525,7 +9527,7 @@
       "snapshot": "none",
       "reason": "Pins what the dispatcher answers: read trees, refusals, and which installed sink or resolver is current, through call outcomes, adapter callbacks and engine calls. Its dispatched actions are compared; the state they build is not."
     },
-    "inputSha256": "75674a880a3725b90d5d200cee8116e160d74dafde6c53ac775e40354d4fec62",
+    "inputSha256": "ffce00fb7e967feced14e9e59dadbfbd5f0e21bff4f92dc961444a385a642cd9",
     "result": {
       "trace": [
         {
@@ -12173,6 +12175,7 @@
                         "kind": "none"
                       },
                       "groupId": null,
+                      "forAnyone": false,
                       "purpose": null,
                       "createdBy": null,
                       "createdAt": null,
@@ -12241,6 +12244,7 @@
                         "kind": "none"
                       },
                       "groupId": null,
+                      "forAnyone": false,
                       "purpose": null,
                       "createdBy": null,
                       "createdAt": null,
@@ -12460,7 +12464,7 @@
         "actions::a"
       ]
     },
-    "inputSha256": "c035ffb8575bd943c6cdc4ef5cf57f88cc87547bd937e1a70e9807752c4ee4b9",
+    "inputSha256": "5501d04d4d7ad7f5fe6c04a6587ddfcb011298255aab9b66e27ca9557ed577db",
     "result": {
       "trace": [
         {
@@ -13912,6 +13916,7 @@
                         "kind": "none"
                       },
                       "groupId": null,
+                      "forAnyone": false,
                       "purpose": null,
                       "createdBy": null,
                       "createdAt": null,
@@ -14330,7 +14335,7 @@
         "actions::a"
       ]
     },
-    "inputSha256": "07a5ec8a8691ce40ab79f1f309c3fdea2478ebbdef4277d829e66492c118748f",
+    "inputSha256": "287c936f89855fec82a72c020eb73de429147f2086a3058f07c8c2863f21255d",
     "result": {
       "trace": [
         {
@@ -15127,6 +15132,7 @@
                         "kind": "none"
                       },
                       "groupId": null,
+                      "forAnyone": false,
                       "purpose": null,
                       "createdBy": null,
                       "createdAt": null,
@@ -15380,7 +15386,7 @@
         "actions::a"
       ]
     },
-    "inputSha256": "9bae017720e0d3d68b367b3578b20246d2d62787ef207ebe8536fc52fb506ad3",
+    "inputSha256": "eb5f132cfcda1ef15c7ed4e0818c3d8c6113d190ea4ae4b5a871dd82a328815c",
     "result": {
       "trace": [
         {
