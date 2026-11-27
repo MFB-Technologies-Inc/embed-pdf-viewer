@@ -364,7 +364,13 @@ pub enum ChangeOp {
     /// payload, `{ "payload": n }`, or a PDF only under `{ "pdf": ... }`;
     /// `None` (`null`) takes the mark out (fcb69611f).
     #[serde(rename = "forms.setSignatureAppearance")]
-    FormsSetSignatureAppearance { field: FormFieldRef, appearance: Option<SignatureAppearance> },
+    FormsSetSignatureAppearance {
+        field: FormFieldRef,
+        /// Required, `null` included: upstream's key is nullable, not
+        /// optional (`FieldAppearanceResourceKeysSchema`).
+        #[serde(deserialize_with = "present_or_null")]
+        appearance: Option<SignatureAppearance>,
+    },
     /// A new outline item under `parent` (`None`: the top level), at
     /// `position` among its children (the end when left out), at
     /// `objectNumber` when given. The draft (`OutlineItemDraft`) stays the
@@ -583,6 +589,14 @@ impl SignatureAppearance {
         }
         Ok(())
     }
+}
+
+/// A member that must be there, as a value or as `null`. A field with a
+/// `deserialize_with` and no `default` is required, unlike a plain `Option`.
+fn present_or_null<'de, D: serde::Deserializer<'de>>(
+    d: D,
+) -> Result<Option<SignatureAppearance>, D::Error> {
+    Option::<SignatureAppearance>::deserialize(d)
 }
 
 impl Serialize for SignatureAppearance {
@@ -1000,6 +1014,13 @@ mod tests {
         let mark = bytes.mark().unwrap();
         assert_eq!((mark.bytes, mark.declared_pdf), (&b"\x89PNG"[..], false));
         assert!(matches!(ops[1], ChangeOp::FormsSetSignatureAppearance { appearance: None, .. }));
+        // The key is required, as upstream's resource key is nullable, not
+        // optional: an op that leaves it out is no clear.
+        let refused = parse_ops(&serde_json::json!([
+            { "type": "forms.setSignatureAppearance", "field": { "kind": "fqn", "name": "sig" } },
+        ]))
+        .unwrap_err();
+        assert_eq!(refused.code, EngineErrorCode::WireFormat, "{refused}");
         let refused = resolve_payloads(
             &mut parse_change(&serde_json::json!({ "ops": [
                 { "type": "forms.setSignatureAppearance",
