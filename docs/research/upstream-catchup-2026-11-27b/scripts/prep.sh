@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# CU-C2 (2026-11-27b) checkout prep, unchanged from 2026-11-27 scripts/prep.sh.
+# CU-C2 (2026-11-27b) checkout prep, from 2026-11-27 scripts/prep.sh; CU-C3 added the last step.
 # usage: prep.sh <checkout-dir>
 # pnpm install, the linux-arm64 and wasm32 PDFium of the checkout's pin, the wasm32-eh archive
 # from /workspaces/wasm32-eh-pin.json, a wasm32 payload (published, else built without the Rust

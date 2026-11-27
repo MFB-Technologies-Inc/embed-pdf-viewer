@@ -48,7 +48,8 @@ The divergences accepted in earlier catch-ups stand as before
 
 - CU-C3-D1. The plugin generator's 9 type errors stay and the plugin vectors come from it as it is;
   the three-line fixture fix needs a ruling. Cost: `typecheck` stays red, and fixture-fed plugin
-  vectors regenerate once more when the fix lands.
+  vectors regenerate once more when the fix lands. Reversed by the user's ruling: CU-C4 made the
+  fix.
 - CU-C3-D2. CU-C4 reads all three new row members, `layout` and `hasImage` included. Cost: about
   an hour moves from CU-C5 to CU-C4.
 - CU-C3-D3. The signature mark's move to the shared drawing (`7d5691a5a`) is CU-C5's. Cost: two
@@ -57,3 +58,17 @@ The divergences accepted in earlier catch-ups stand as before
   failures through CU-C4 and CU-C5.
 - CU-C3-D5. D-1 leaves nothing to deprecate in Swift, Kotlin or .NET: no wrapper types `filledBy`.
   Cost: a caller reading it out of `fields_json` gets `null` with no compiler warning.
+
+## CU-C4: signatures and anyone fields ([record](decisions/CU-C4.md))
+
+- CU-C4-D1. A widget's `layout` is written through the widget style in CU-C4, since a row sent back
+  as a patch carries it. Cost: CU-C5 item 3 keeps only its tests and `addWidget`'s image.
+- CU-C4-D2. The anyone-fields runner is 17 change-vector cases plus a hand-ported Rust file for the
+  tests that sign, hand on or import. Cost: that half restates upstream's assertions.
+- CU-C4-D3. The group-only field checks stay beside new `FieldAssignment` ones. Cost: two names per
+  check where upstream overloads one.
+- CU-C4-D4. `completeFormBundle` runs in `codec::parse` only, as upstream's file codec runs it.
+  Cost: actions that don't parse read as no format, not `other`.
+- CU-C4-D5. The v4 corpus test checks verdict, policy version and file hash per signed signature,
+  not `relationship`. Cost: none.
+- CU-C4-D6. `kind_facts.rs` is regenerated in CU-C4, not CU-C5. Cost: none.
