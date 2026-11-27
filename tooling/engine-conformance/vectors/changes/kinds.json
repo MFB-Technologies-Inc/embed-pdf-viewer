@@ -26,6 +26,7 @@
     "forms.reorderWidgets": "3.0",
     "forms.updateWidget": "3.0",
     "forms.setSignatureAppearance": "3.0",
+    "forms.setButtonImage": "3.5",
     "metadata.update": "3.0",
     "metadata.updateCustom": "3.0",
     "outline.create": "3.0",
@@ -51,7 +52,8 @@
   "rows": {
     "pages.setScale": "3.1",
     "annotations.copy": "3.2",
-    "forms.copy": "3.2"
+    "forms.copy": "3.2",
+    "forms.setButtonImage": "3.5"
   },
   "asked": [
     "annotations.create",
@@ -74,6 +76,7 @@
     "forms.reorderWidgets",
     "forms.updateWidget",
     "forms.setSignatureAppearance",
+    "forms.setButtonImage",
     "metadata.update",
     "metadata.updateCustom",
     "outline.create",
@@ -127,6 +130,7 @@
         "forms.reorderWidgets",
         "forms.updateWidget",
         "forms.setSignatureAppearance",
+        "forms.setButtonImage",
         "metadata.update",
         "metadata.updateCustom",
         "outline.create",
@@ -156,6 +160,7 @@
       "unknown": [
         "annotations.copy",
         "forms.copy",
+        "forms.setButtonImage",
         "pages.setScale",
         "pages.someKindFromANewerServer"
       ]
@@ -165,18 +170,21 @@
       "unknown": [
         "annotations.copy",
         "forms.copy",
+        "forms.setButtonImage",
         "pages.someKindFromANewerServer"
       ]
     },
     {
       "version": "3.2",
       "unknown": [
+        "forms.setButtonImage",
         "pages.someKindFromANewerServer"
       ]
     },
     {
       "version": "3.3",
       "unknown": [
+        "forms.setButtonImage",
         "pages.someKindFromANewerServer"
       ]
     },
