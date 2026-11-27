@@ -66,6 +66,13 @@ public class AnnotationInfo(
     public val canDelete: Boolean get() = record.canDelete
 
     /**
+     * A lent record's accent from its lender: a form widget's group color
+     * while the annotation plugin edits it, not part of the record itself.
+     * `null` for every other record.
+     */
+    public val accent: RecordAccent? get() = record.accent
+
+    /**
      * `/BM` on the appearance, or `null` when the record names none this
      * reads.
      */

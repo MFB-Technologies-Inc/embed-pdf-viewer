@@ -2233,6 +2233,16 @@
     },
     {
       "crate": "form",
+      "path": "crates/plugins/form/src/read/fields.rs",
+      "owner": "Core",
+      "symbol": "list_selected_fields",
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "selectedFields"
+      }
+    },
+    {
+      "crate": "form",
       "path": "crates/plugins/form/src/read/settings.rs",
       "owner": "Core",
       "symbol": "get_field_settings",
@@ -2290,6 +2300,26 @@
     },
     {
       "crate": "form",
+      "path": "crates/plugins/form/src/read/widgets.rs",
+      "owner": "Core",
+      "symbol": "get_widget_anchor",
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "widgetAnchor"
+      }
+    },
+    {
+      "crate": "form",
+      "path": "crates/plugins/form/src/read/widgets.rs",
+      "owner": "Core",
+      "symbol": "is_widget_focused",
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "isWidgetFocused"
+      }
+    },
+    {
+      "crate": "form",
       "path": "crates/plugins/form/src/services/cursor.rs",
       "owner": "Core",
       "symbol": "attach_focus_target",
@@ -2304,6 +2334,26 @@
       "owner": "Core",
       "symbol": "lending",
       "exclusion": "Excluded in platforms/apple/swift-api-coverage.json, which gives the reason."
+    },
+    {
+      "crate": "form",
+      "path": "crates/plugins/form/src/services/groups.rs",
+      "owner": "Core",
+      "symbol": "list_groups",
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "groups"
+      }
+    },
+    {
+      "crate": "form",
+      "path": "crates/plugins/form/src/services/groups.rs",
+      "owner": "Core",
+      "symbol": "can_set_group",
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "canSetGroup"
+      }
     },
     {
       "crate": "form",
@@ -2524,6 +2574,16 @@
     },
     {
       "crate": "form",
+      "path": "crates/plugins/form/src/write/fields.rs",
+      "owner": "Core",
+      "symbol": "move_to_group",
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "moveToGroup"
+      }
+    },
+    {
+      "crate": "form",
       "path": "crates/plugins/form/src/write/focus.rs",
       "owner": "Core",
       "symbol": "focus",
@@ -2560,6 +2620,36 @@
       "kotlin": {
         "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
         "symbol": "moveInGroup"
+      }
+    },
+    {
+      "crate": "form",
+      "path": "crates/plugins/form/src/write/groups.rs",
+      "owner": "Core",
+      "symbol": "set_groups",
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "setGroups"
+      }
+    },
+    {
+      "crate": "form",
+      "path": "crates/plugins/form/src/write/groups.rs",
+      "owner": "Core",
+      "symbol": "get_design_group",
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "designGroup"
+      }
+    },
+    {
+      "crate": "form",
+      "path": "crates/plugins/form/src/write/groups.rs",
+      "owner": "Core",
+      "symbol": "set_design_group",
+      "kotlin": {
+        "path": "platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt",
+        "symbol": "setDesignGroup"
       }
     },
     {

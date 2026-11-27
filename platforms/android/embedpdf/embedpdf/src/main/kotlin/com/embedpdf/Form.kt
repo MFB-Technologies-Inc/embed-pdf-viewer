@@ -28,6 +28,27 @@ public typealias FormValidation = uniffi.epdf_plugin_form.FormValidation
 public typealias FormKind = uniffi.epdf_plugin_form.FormKind
 public typealias FormSnapshot = uniffi.epdf_plugin_form.FormSnapshot
 public typealias FormField = uniffi.epdf_plugin_form.FormField
+
+/** A text field's or a dropdown's format: a date or a time with its pattern, or [FormFieldFormatOther] (read, never written). */
+public typealias FormFieldFormat = uniffi.epdf_plugin_form.FormFieldFormat
+public typealias FormFieldFormatDate = uniffi.epdf_plugin_form.FormFieldFormat.Date
+public typealias FormFieldFormatTime = uniffi.epdf_plugin_form.FormFieldFormat.Time
+public typealias FormFieldFormatOther = uniffi.epdf_plugin_form.FormFieldFormat.Other
+
+/** One of the document's groups as people see them: its id, label and the CSS color its fields show in. */
+public typealias FormGroup = uniffi.epdf_plugin_form.FormGroup
+
+/** One of the document's groups as the app names it with [FormCapability.setGroups]. */
+public typealias FormGroupInput = uniffi.epdf_plugin_form.FormGroupInput
+
+/** Where a radio button comes among its group's buttons in Tab's order. */
+public typealias FormGroupPosition = uniffi.epdf_plugin_form.FormGroupPosition
+
+/** Where UI attaches to one box of a field: its page and where the box stands. */
+public typealias FormWidgetAnchor = uniffi.epdf_plugin_form.FormWidgetAnchor
+
+/** A record's group color and how strongly it shows; never written into the PDF. */
+public typealias RecordAccent = uniffi.epdf_ffi.RecordAccent
 public typealias FormFieldDetail = uniffi.epdf_plugin_form.FormFieldDetail
 public typealias FormFieldDetailText = uniffi.epdf_plugin_form.FormFieldDetail.Text
 public typealias FormFieldDetailCheckbox = uniffi.epdf_plugin_form.FormFieldDetail.Checkbox
@@ -87,13 +108,19 @@ public typealias FormEventFieldUpdated = uniffi.epdf_plugin_form.FormEvent.Field
 public typealias FormEventFieldDeleted = uniffi.epdf_plugin_form.FormEvent.FieldDeleted
 public typealias FormEventValidationRejected = uniffi.epdf_plugin_form.FormEvent.ValidationRejected
 public typealias FormEventResynced = uniffi.epdf_plugin_form.FormEvent.Resynced
+public typealias FormEventDesignGroupChanged = uniffi.epdf_plugin_form.FormEvent.DesignGroupChanged
+public typealias FormEventGroupsChanged = uniffi.epdf_plugin_form.FormEvent.GroupsChanged
 public typealias FormFocusOptions = uniffi.epdf_plugin_form.FormFocusOptions
 public typealias FormFocusNextOptions = uniffi.epdf_plugin_form.FormFocusNextOptions
 
 /**
  * A mounted control's cursor target, lent to [FormCapability.attachFocusTarget].
- * `focus(select)` is called on the viewer's kernel thread: post to the main
- * thread to move the cursor, and never wait there.
+ * Both calls come on the viewer's kernel thread: answer at once, and never
+ * wait there. `takesCursor()` is asked each time the cursor is about to
+ * move; `false`, for a box that holds nothing to focus (a signature field
+ * nobody here can sign), makes focus and Tab pass over its field.
+ * `focus(select)` posts to the main thread to move the cursor and answers
+ * `false` when nothing will take it, and the cursor passes over the box.
  */
 public typealias FormFocusTarget = uniffi.epdf_plugin_form.FormFocusTarget
 public typealias FormWidgetEvent = uniffi.epdf_plugin_form.FormWidgetEvent
@@ -326,6 +353,55 @@ public class FormCapability internal constructor(
     /** A tap on a widget: toggles a checkbox, runs a pushbutton's action. */
     public suspend fun activate(widget: AnnotationRef): FormActivationResult =
         viewer.callCancellable { token -> handle.activateWidget(widget, token) }
+
+    /**
+     * The document's groups: the ones [setGroups] named, in that order, then
+     * the other groups the form's fields are in.
+     */
+    public suspend fun groups(): List<FormGroup> = viewer.call { handle.groups() }
+
+    /**
+     * Says who this document's groups are, the whole list; an empty list
+     * clears it. Emits [FormEventGroupsChanged]; the same list again changes
+     * nothing. Session state: nothing is written into the PDF.
+     */
+    public suspend fun setGroups(groups: List<FormGroupInput>) {
+        viewer.call { handle.setGroups(groups) }
+    }
+
+    /** The group fields placed with a tool go in, or `null` for none, where it starts. */
+    public suspend fun designGroup(): String? = viewer.call { handle.designGroup() }
+
+    /**
+     * Fields placed with a tool go into [groupId]; `null` names none. Emits
+     * [FormEventDesignGroupChanged]. Throws `permission-denied` for a group
+     * the session may not put a field in.
+     */
+    public suspend fun setDesignGroup(groupId: String?) {
+        viewer.call { handle.setDesignGroup(groupId) }
+    }
+
+    /** Whether the session may design the form and put a field in [groupId]. */
+    public suspend fun canSetGroup(groupId: String): Boolean = viewer.call { handle.canSetGroup(groupId) }
+
+    /**
+     * Puts [fields] in a group, or with `null` takes them out of theirs, as
+     * one step to undo; answers the fields as they are now, in the order
+     * given. Throws `permission-denied` without `doc.forms.modify` or for a
+     * group the session may not put a field in, `not-found` for a field the
+     * form doesn't have.
+     */
+    public suspend fun moveToGroup(fields: List<FormFieldRef>, groupId: String?): List<FormField> =
+        viewer.callCancellable { token -> handle.moveToGroup(fields, groupId, token) }
+
+    /** Every field with a selected widget in design mode, in the selection's order, each once. */
+    public suspend fun selectedFields(): List<FormField> = viewer.call { handle.selectedFields() }
+
+    /** Where UI attaches to one box of a field; `null` for a box that isn't there or shows nowhere. */
+    public suspend fun widgetAnchor(widget: AnnotationRef): FormWidgetAnchor? = viewer.call { handle.widgetAnchor(widget) }
+
+    /** Whether the cursor is in this box. */
+    public suspend fun isWidgetFocused(widget: AnnotationRef): Boolean = viewer.call { handle.isWidgetFocused(widget) }
 
     public suspend fun canRead(): Boolean = viewer.call { handle.canRead() }
 

@@ -737,9 +737,14 @@ public class AnnotationDraftsCapability internal constructor(
         viewer.call { handle.clearGhost() }
     }
 
-    /** A sibling's drag-to-place gesture with one of this plugin's tools. */
-    public suspend fun previewPlacement(tool: ToolId, from: Point, to: Point, page: PageRef) {
-        viewer.call { handle.previewPlacement(tool.value, page, from, to) }
+    /**
+     * A sibling's drag-to-place gesture with one of this plugin's tools.
+     * [displayRotation] is the page's total display rotation in degrees, so
+     * an upright tool previews on a turned page the box its commit will
+     * place; `null` previews as on an unturned page.
+     */
+    public suspend fun previewPlacement(tool: ToolId, from: Point, to: Point, page: PageRef, displayRotation: Double? = null) {
+        viewer.call { handle.previewPlacement(tool.value, page, from, to, displayRotation) }
     }
 
     public suspend fun clearPlacementPreview() {

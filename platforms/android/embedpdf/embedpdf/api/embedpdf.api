@@ -330,7 +330,8 @@ public final class com/embedpdf/AnnotationDraftsCapability {
 	public static synthetic fun placeStamp$default (Lcom/embedpdf/AnnotationDraftsCapability;Luniffi/epdf_plugin_annotation/AnnotationStampSource;Luniffi/epdf_plugin_annotation/AnnotationStampPlacement;Ljava/lang/Double;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun previewMarkup-vo3SJxg (Ljava/lang/String;Ljava/util/List;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun previewMarkup-vo3SJxg$default (Lcom/embedpdf/AnnotationDraftsCapability;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public final fun previewPlacement-8sXqZo0 (Ljava/lang/String;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun previewPlacement-RbNXG9E (Ljava/lang/String;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Ljava/lang/Double;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun previewPlacement-RbNXG9E$default (Lcom/embedpdf/AnnotationDraftsCapability;Ljava/lang/String;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Ljava/lang/Double;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun readAttachment (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun requestStamp (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Ljava/lang/Double;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun requestStamp$default (Lcom/embedpdf/AnnotationDraftsCapability;Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Ljava/lang/Double;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
@@ -380,6 +381,7 @@ public final class com/embedpdf/AnnotationFreeTextIntent$Companion {
 public final class com/embedpdf/AnnotationInfo {
 	public fun <init> (Luniffi/epdf_plugin_annotation/AnnotationRecord;)V
 	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAccent ()Luniffi/epdf_ffi/RecordAccent;
 	public final fun getAnnotationRef ()Luniffi/epdf_ffi/AnnotationRef;
 	public final fun getAuthor ()Ljava/lang/String;
 	public final fun getBlendMode ()Lcom/embedpdf/AnnotationBlendMode;
@@ -1848,11 +1850,13 @@ public final class com/embedpdf/FormCapability {
 	public final fun canFill (Luniffi/epdf_ffi/FormFieldRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun canRead (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun canRestoreAttribution (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canSetGroup (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun canWriteScripts (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun create (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun create (Luniffi/epdf_plugin_form/FormCreateFieldInput;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun delete (Luniffi/epdf_ffi/FormFieldRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun deleteWidget (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun designGroup (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun duplicate (Ljava/util/List;Luniffi/epdf_plugin_form/FormDuplicateOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun duplicate$default (Lcom/embedpdf/FormCapability;Ljava/util/List;Luniffi/epdf_plugin_form/FormDuplicateOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun duplicateWidgets (Ljava/util/List;Luniffi/epdf_plugin_form/FormDuplicateOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -1871,11 +1875,14 @@ public final class com/embedpdf/FormCapability {
 	public final fun focusNext (Luniffi/epdf_plugin_form/FormFocusNextOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun focusNext$default (Lcom/embedpdf/FormCapability;Luniffi/epdf_plugin_form/FormFocusNextOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun focusedField (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun groups (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun import (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun import$default (Lcom/embedpdf/FormCapability;Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun importValues (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun isWidgetFocused (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun moveInGroup (Luniffi/epdf_ffi/AnnotationRef;ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun moveInGroup$default (Lcom/embedpdf/FormCapability;Luniffi/epdf_ffi/AnnotationRef;ZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun moveToGroup (Ljava/util/List;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun notifyWidgetEvent (Luniffi/epdf_ffi/FormFieldRef;Luniffi/epdf_ffi/AnnotationRef;Luniffi/epdf_plugin_form/FormWidgetEvent;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
 	public final fun pageBox (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -1888,6 +1895,9 @@ public final class com/embedpdf/FormCapability {
 	public static synthetic fun reset$default (Lcom/embedpdf/FormCapability;Ljava/util/List;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun resetSettings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun selectedField (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun selectedFields (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setDesignGroup (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setGroups (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun setValue (Luniffi/epdf_plugin_form/FormValueInput;Luniffi/epdf_ffi/FormFieldRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun setValues (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun settings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -1901,6 +1911,7 @@ public final class com/embedpdf/FormCapability {
 	public final fun value (Luniffi/epdf_ffi/FormFieldRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun widget (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun widget (Luniffi/epdf_ffi/Point;Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun widgetAnchor (Luniffi/epdf_ffi/AnnotationRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun widgets (Luniffi/epdf_ffi/FormFieldRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun widgets (Luniffi/epdf_ffi/PageRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }

@@ -3150,6 +3150,17 @@
     },
     {
       "crate": "form",
+      "path": "crates/plugins/form/src/read/fields.rs",
+      "owner": "Core",
+      "symbol": "list_selected_fields",
+      "export": {
+        "path": "crates/plugins/form/src/ffi.rs",
+        "symbol": "selected_fields"
+      },
+      "pending": "CU-C9"
+    },
+    {
+      "crate": "form",
       "path": "crates/plugins/form/src/read/settings.rs",
       "owner": "Core",
       "symbol": "get_field_settings",
@@ -3228,6 +3239,28 @@
     },
     {
       "crate": "form",
+      "path": "crates/plugins/form/src/read/widgets.rs",
+      "owner": "Core",
+      "symbol": "get_widget_anchor",
+      "export": {
+        "path": "crates/plugins/form/src/ffi.rs",
+        "symbol": "widget_anchor"
+      },
+      "pending": "CU-C9"
+    },
+    {
+      "crate": "form",
+      "path": "crates/plugins/form/src/read/widgets.rs",
+      "owner": "Core",
+      "symbol": "is_widget_focused",
+      "export": {
+        "path": "crates/plugins/form/src/ffi.rs",
+        "symbol": "is_widget_focused"
+      },
+      "pending": "CU-C9"
+    },
+    {
+      "crate": "form",
       "path": "crates/plugins/form/src/services/cursor.rs",
       "owner": "Core",
       "symbol": "attach_focus_target",
@@ -3247,6 +3280,28 @@
       "symbol": "lending",
       "exclusion": "Form host presentation, scripting or draft-editor integration; native facade supports typed fields, values, focus and widget activation, not the web widget painter.",
       "classification": "host-presentation"
+    },
+    {
+      "crate": "form",
+      "path": "crates/plugins/form/src/services/groups.rs",
+      "owner": "Core",
+      "symbol": "list_groups",
+      "export": {
+        "path": "crates/plugins/form/src/ffi.rs",
+        "symbol": "groups"
+      },
+      "pending": "CU-C9"
+    },
+    {
+      "crate": "form",
+      "path": "crates/plugins/form/src/services/groups.rs",
+      "owner": "Core",
+      "symbol": "can_set_group",
+      "export": {
+        "path": "crates/plugins/form/src/ffi.rs",
+        "symbol": "can_set_group"
+      },
+      "pending": "CU-C9"
     },
     {
       "crate": "form",
@@ -3562,6 +3617,17 @@
     },
     {
       "crate": "form",
+      "path": "crates/plugins/form/src/write/fields.rs",
+      "owner": "Core",
+      "symbol": "move_to_group",
+      "export": {
+        "path": "crates/plugins/form/src/ffi.rs",
+        "symbol": "move_to_group"
+      },
+      "pending": "CU-C9"
+    },
+    {
+      "crate": "form",
       "path": "crates/plugins/form/src/write/focus.rs",
       "owner": "Core",
       "symbol": "focus",
@@ -3615,6 +3681,39 @@
         "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Form.swift",
         "symbol": "moveInGroup"
       }
+    },
+    {
+      "crate": "form",
+      "path": "crates/plugins/form/src/write/groups.rs",
+      "owner": "Core",
+      "symbol": "set_groups",
+      "export": {
+        "path": "crates/plugins/form/src/ffi.rs",
+        "symbol": "set_groups"
+      },
+      "pending": "CU-C9"
+    },
+    {
+      "crate": "form",
+      "path": "crates/plugins/form/src/write/groups.rs",
+      "owner": "Core",
+      "symbol": "get_design_group",
+      "export": {
+        "path": "crates/plugins/form/src/ffi.rs",
+        "symbol": "design_group"
+      },
+      "pending": "CU-C9"
+    },
+    {
+      "crate": "form",
+      "path": "crates/plugins/form/src/write/groups.rs",
+      "owner": "Core",
+      "symbol": "set_design_group",
+      "export": {
+        "path": "crates/plugins/form/src/ffi.rs",
+        "symbol": "set_design_group"
+      },
+      "pending": "CU-C9"
     },
     {
       "crate": "form",

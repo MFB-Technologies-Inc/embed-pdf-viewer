@@ -31,8 +31,11 @@ class FormTest {
     class CursorTarget : FormFocusTarget {
         val selections = CopyOnWriteArrayList<Boolean>()
 
-        override fun focus(select: Boolean) {
+        override fun takesCursor(): Boolean = true
+
+        override fun focus(select: Boolean): Boolean {
             selections.add(select)
+            return true
         }
     }
 

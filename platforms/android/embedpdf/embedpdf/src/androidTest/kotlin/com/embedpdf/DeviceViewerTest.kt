@@ -136,6 +136,46 @@ class DeviceViewerTest {
         viewer.destroy()
     }
 
+    /**
+     * The 2026-11-27 form surface through the device's library: a field's
+     * purpose, format and group, the groups the app names and their accent
+     * on a fill item, a quarter-turned widget's frame, and a focus target
+     * that takes no cursor (CU-C8).
+     */
+    @Test
+    fun formGroupsPurposeAndATurnedWidgetWork() = onDevice {
+        val viewer = PdfViewer(ViewerConfig(interaction = true, annotation = "", form = FormConfig()))
+        viewer.start()
+        val document = viewer.open(DeviceFixture.bytes("report"), name = "report.pdf")
+        val page = viewer.pages(document)[0].page
+        val form = viewer.form(document)
+        form.refresh()
+        val field = form.create(
+            FormCreateFieldInput(
+                FormFieldFamily.TEXT, "signed_on", page, Rect(40.0, 60.0, 120.0, 24.0),
+                purpose = "date-signed", format = FormFieldFormatDate("yyyy-mm-dd"), groupId = "dana",
+            ),
+        )
+        assertEquals("date-signed", field.purpose)
+        assertEquals(FormFieldFormatDate("yyyy-mm-dd"), field.format)
+        form.setGroups(listOf(FormGroupInput("dana", label = "Dana Smith", color = "#0055aa")))
+        val widget = field.widgets[0].annotationRef!!
+        form.updateWidget(widget, """{"rotation":90}""")
+        val item = form.widgets(page).single { it.fieldRef == field.fieldRef }
+        Log.i(TAG, "turned item: frame ${item.frame}, bounds ${item.bounds}, accent ${item.accent}")
+        assertEquals(90.0, item.rotation, 0.0)
+        assertEquals(120.0, item.frame.width, 0.0)
+        assertEquals(120.0, item.bounds.height, 0.0)
+        assertEquals(RecordAccent("#0055aa", 0.16), item.accent)
+        val declining = object : FormFocusTarget {
+            override fun takesCursor(): Boolean = false
+            override fun focus(select: Boolean): Boolean = true
+        }
+        form.attachFocusTarget(widget, declining)
+        assertEquals(false, form.focus(field.fieldRef))
+        viewer.destroy()
+    }
+
     private companion object {
         const val TAG = "EmbedPdfDevice"
     }

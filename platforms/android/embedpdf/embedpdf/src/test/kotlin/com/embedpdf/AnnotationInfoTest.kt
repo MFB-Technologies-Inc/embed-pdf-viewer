@@ -23,7 +23,7 @@ class AnnotationInfoTest {
             annotationRef = ref, page = page, subtype = subtype,
             rect = Rect(-1.0, -1.0, 22.0, 7.000000000000001), contents = "Ink", author = "Reviewer",
             createdAt = createdAt, modifiedAt = modifiedAt, groupId = "group-1", inReplyTo = parent,
-            canUpdate = true, canDelete = false, fieldsJson = fieldsJson,
+            canUpdate = true, canDelete = false, accent = null, fieldsJson = fieldsJson,
         )
 
         /** The instant [text] reads as through [AnnotationInfo]. */
@@ -77,7 +77,13 @@ class AnnotationInfoTest {
             AnnotationRecord(
                 annotationRef = ref, page = page, subtype = "", rect = Rect(0.0, 0.0, 0.0, 0.0), contents = null,
                 author = null, createdAt = null, modifiedAt = null, groupId = null, inReplyTo = null,
-                canUpdate = false, canDelete = true, fieldsJson = "",
+                canUpdate = false, canDelete = true, accent = null, fieldsJson = "",
+            ),
+            // A lent widget's group accent goes back as it came.
+            AnnotationRecord(
+                annotationRef = ref, page = page, subtype = "widget", rect = Rect(0.0, 0.0, 0.0, 0.0), contents = null,
+                author = null, createdAt = null, modifiedAt = null, groupId = null, inReplyTo = null,
+                canUpdate = true, canDelete = true, accent = RecordAccent("#0055aa", 0.16), fieldsJson = "{}",
             ),
         )
         for (record in records) {
