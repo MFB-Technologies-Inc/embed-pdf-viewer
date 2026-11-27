@@ -5,6 +5,7 @@ use epdf_plugin_annotation::harness::Annotation;
 use epdf_plugin_form::harness::{self, Form};
 use epdf_plugin_interaction::harness::Interaction;
 use epdf_plugin_render::harness::Render;
+use epdf_plugin_stage::harness::Stage;
 use plugin_conformance::{Registry, assert_suite, load};
 
 fn registry() -> Registry {
@@ -45,7 +46,15 @@ fn scripting_matches_the_typescript() {
     scenarios("plugins/form-scripting.json");
 }
 
-/// The six files hold 230 cases, every one replayed: a regenerated vector
+/// Groups, the design group, radio names, control anchors and the cursor
+/// over controls that take none (`src/suites/form-groups.ts`); one case
+/// brings the Stage in.
+#[test]
+fn groups_and_controls_match_the_typescript() {
+    assert_suite("plugins/form-groups.json", &registry().with(Stage), &Vec::new());
+}
+
+/// The seven files hold 240 cases, every one replayed: a regenerated vector
 /// that drops one is noticed.
 #[test]
 fn every_form_case_replays() {
@@ -55,6 +64,7 @@ fn every_form_case_replays() {
         "plugins/form-core.json",
         "plugins/form-design.json",
         "plugins/form-fill.json",
+        "plugins/form-groups.json",
         "plugins/form-scripting.json",
     ]
     .into_iter()
@@ -68,8 +78,9 @@ fn every_form_case_replays() {
             ("plugins/form-core.json", 104),
             ("plugins/form-design.json", 33),
             ("plugins/form-fill.json", 31),
+            ("plugins/form-groups.json", 10),
             ("plugins/form-scripting.json", 46),
         ]
     );
-    assert_eq!(counts.iter().map(|(_, n)| n).sum::<usize>(), 230);
+    assert_eq!(counts.iter().map(|(_, n)| n).sum::<usize>(), 240);
 }
