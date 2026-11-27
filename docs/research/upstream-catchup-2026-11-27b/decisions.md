@@ -72,3 +72,15 @@ The divergences accepted in earlier catch-ups stand as before
 - CU-C4-D5. The v4 corpus test checks verdict, policy version and file hash per signed signature,
   not `relationship`. Cost: none.
 - CU-C4-D6. `kind_facts.rs` is regenerated in CU-C4, not CU-C5. Cost: none.
+
+## CU-C5: picture buttons ([record](decisions/CU-C5.md))
+
+- CU-C5-D1. `API_VERSION` goes back to 3.4, the packages' version; CU-C4 had moved it to 3.5.
+  Cost: a 3.5 server holds back 3.5's additions from this build, as from the TypeScript engine.
+- CU-C5-D2. The picture-button runner is 19 change-vector cases plus `tests/picture_buttons.rs` for
+  pixels, saves, signings and exports. Cost: that half restates upstream's assertions.
+- CU-C5-D3. The `allowsField` check is a unit test of `NativeSecurity`: the plugin context sends
+  `{ groupId }` alone, as upstream's does. Cost: through the form plugin a group's token can't fill
+  an anyone field, on upstream too.
+- CU-C5-D4. The op's wire resource keys and the placement schema tests are not ported. Cost: three
+  schema tests.
