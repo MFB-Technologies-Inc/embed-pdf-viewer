@@ -34,7 +34,6 @@ use super::snapshot::{
     ToggleFieldWidget, read_field,
 };
 use super::value::FormFieldValue;
-use crate::auth::scope::IdentityClaims;
 use crate::cancel::CancelToken;
 use crate::error::{EngineError, EngineErrorCode};
 use crate::features::actions::vocabulary::ActionReadBudgetTracker;
@@ -277,21 +276,19 @@ pub struct FormMutator<'a> {
 }
 
 impl<'a> FormMutator<'a> {
-    /// Set a field's value, as `actor` filled it in (`setValue`): what the
-    /// field's rules (`fieldAfterValue`) leave it holding. A write that
-    /// changes the field names who filled it in, at `now`; one that leaves
-    /// it as it was writes nothing.
+    /// Set a field's value (`setValue`): what the field's rules
+    /// (`fieldAfterValue`) leave it holding. The value and its drawing are
+    /// all it writes, as every PDF app does, so a signature made before it
+    /// keeps its verdict; one that leaves the field as it was writes nothing.
     pub fn set_value(
         &self,
         reference: &FormFieldRef,
         value: &FormFieldValue,
-        actor: &IdentityClaims,
-        now: Option<&str>,
         cancel: &CancelToken,
     ) -> Result<FieldWriteResult, EngineError> {
         cancel.check()?;
         let model = load_model(self.document)?;
-        Ok(self.set_value_in(model, reference, value, actor, now, cancel)?.0)
+        Ok(self.set_value_in(model, reference, value, cancel)?.0)
     }
 
     /// [`Self::set_value`] against `model`, which the caller loaded and has
@@ -302,8 +299,6 @@ impl<'a> FormMutator<'a> {
         model: FormModel<'a>,
         reference: &FormFieldRef,
         value: &FormFieldValue,
-        actor: &IdentityClaims,
-        now: Option<&str>,
         cancel: &CancelToken,
     ) -> Result<(FieldWriteResult, FormModel<'a>), EngineError> {
         cancel.check()?;
@@ -312,10 +307,9 @@ impl<'a> FormMutator<'a> {
         let before = read_at(&model, resolved.index)?;
         let after = super::value::field_after_value(&before, value)?;
         drop(model);
+        // The value and its drawing are all it writes, as every PDF app does,
+        // so a signature made before it keeps its verdict (445e34a69).
         let changed = self.write_field_after(resolved.object_number, &before, &after, false)?;
-        if changed.is_some() {
-            stamp_field_fill(self.document, resolved.object_number, actor, now)?;
-        }
         self.read_back(resolved.object_number, &changed.unwrap_or_default(), None, cancel)
     }
 
@@ -446,7 +440,6 @@ impl<'a> FormMutator<'a> {
                     self.document,
                     &widget,
                     mark,
-                    true,
                 )?,
             }
         }
@@ -498,8 +491,6 @@ impl<'a> FormMutator<'a> {
             else {
                 continue;
             };
-            // Back at its default, the value was filled in by nobody.
-            clear_field_fill(self.document, object_number)?;
             written.push((before, changed));
         }
 
@@ -806,71 +797,6 @@ fn write_entry(document: &Document, object_number: u32, entry: &FormValueEntry) 
         FormValueEntry::Unsupported => return false,
     };
     document.set_field_value(object_number, write)
-}
-
-/// `/EMBD_Metadata` keys of a field's attribution (`fieldAttribution.ts`).
-const KEY_SCHEMA_VERSION: &str = "SchemaVersion";
-const KEY_FILLED_BY: &str = "FilledBy";
-const KEY_FILLED_BY_NAME: &str = "FilledByName";
-const KEY_FILLED_AT: &str = "FilledAt";
-
-/// `stampFieldFill`: a field whose value a write changed names who filled
-/// it in, and when. An anonymous session clears the last filler instead.
-fn stamp_field_fill(
-    document: &Document,
-    object_number: u32,
-    actor: &IdentityClaims,
-    now: Option<&str>,
-) -> Result<(), EngineError> {
-    let Some(user_id) = actor.user_id.as_deref() else {
-        return clear_field_fill(document, object_number);
-    };
-    let failed = || attribution_failed(object_number);
-    let wrote = document
-        .set_field_embed_metadata_number(
-            object_number,
-            KEY_SCHEMA_VERSION,
-            crate::features::annotation::write::primitives::EMBD_METADATA_SCHEMA_VERSION,
-        )
-        .map_err(|_| failed())?;
-    if !wrote {
-        return Err(failed());
-    }
-    for (key, value) in [
-        (KEY_FILLED_BY, Some(user_id)),
-        (KEY_FILLED_BY_NAME, actor.display_name.as_deref()),
-        (KEY_FILLED_AT, now),
-    ] {
-        let wrote = match value {
-            Some(value) => document.set_field_embed_metadata_string(object_number, key, value),
-            None => document.clear_field_embed_metadata_key(object_number, key),
-        };
-        if !wrote.map_err(|_| failed())? {
-            return Err(failed());
-        }
-    }
-    Ok(())
-}
-
-/// `clearFieldFill`: who filled a field in is cleared; a reset put its value
-/// back to its default.
-fn clear_field_fill(document: &Document, object_number: u32) -> Result<(), EngineError> {
-    for key in [KEY_FILLED_BY, KEY_FILLED_BY_NAME, KEY_FILLED_AT] {
-        if !document
-            .clear_field_embed_metadata_key(object_number, key)
-            .map_err(|_| attribution_failed(object_number))?
-        {
-            return Err(attribution_failed(object_number));
-        }
-    }
-    Ok(())
-}
-
-fn attribution_failed(object_number: u32) -> EngineError {
-    EngineError::with_message(
-        EngineErrorCode::Unknown,
-        format!("the metadata of field {object_number} could not be written"),
-    )
 }
 
 /// What a repair pass found and fixed (`FormRepairResult`). Repair is

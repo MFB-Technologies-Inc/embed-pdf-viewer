@@ -329,16 +329,16 @@ fn open_bytes(session: &DocumentSession, bytes: &[u8]) -> Result<Document, Engin
 /// a stamp's does (`withAppearanceDocument`), so every mark is drawn the same
 /// way. A PDF of any other page count is `InvalidArg`.
 ///
-/// `record_fit`, for a mark drawn in without signing, records the fit as a
-/// stamp records its own: the widget then reads as having a mark in it
-/// (`hasMark`), which its style never draws over. A signature's mark needs
-/// no record (the field's value says it's signed), and a signing changes no
-/// other key of its widget.
+/// The drawing is all a mark writes (445e34a69): the widget reads as having
+/// one (`hasMark`) because its appearance is our wrapper
+/// (`EPDFAnnot_GetDrawing`), and nothing of ours goes into the widget's
+/// dictionary. A signature made before seals that dictionary, and Acrobat
+/// reads a change to it as the document altered; a new appearance it doesn't
+/// count as a change at all.
 pub(crate) fn bake_widget_appearance(
     doc: &Document,
     widget: &FormWidget,
     mark: MarkBytes<'_>,
-    record_fit: bool,
 ) -> Result<(), EngineError> {
     // The mark's format first (`markFormat`), then the widget, then the
     // mark opened as a page (`withAppearanceDocument`).
@@ -378,14 +378,6 @@ pub(crate) fn bake_widget_appearance(
                 "the appearance page could not be fitted into the widget",
             ),
         })?;
-    if record_fit {
-        with_widget_annotation(doc, widget, |annotation| {
-            crate::features::annotation::write::stamp::write_stamp_fit(
-                annotation,
-                crate::features::annotation::write::prepare::StampFit::Contain,
-            )
-        })?;
-    }
     Ok(())
 }
 
@@ -443,18 +435,17 @@ fn mark_document(
 }
 
 /// `clearWidgetMark`: take a mark that was drawn in without signing out of a
-/// widget. Its fit record goes, so the widget reads as having no mark
-/// (`hasMark`), and the widget draws its field's box again, in its style. A
-/// widget that records no mark is left as it is: what it shows isn't a mark
-/// of ours to take out.
+/// widget: the widget draws its field's box again, in its style, in place of
+/// the mark, and then reads as having no mark (`hasMark`). A widget whose
+/// appearance isn't our wrapper is left as it is: what it shows isn't a mark
+/// of ours to take out. The `/EMBD_Metadata/AppearanceFit` an older version
+/// wrote beside a mark is left too: nothing reads it, and taking it out would
+/// change the widget's dictionary.
 pub(crate) fn clear_widget_mark(doc: &Document, widget: &FormWidget) -> Result<(), EngineError> {
     with_widget_annotation(doc, widget, |annotation| {
-        if crate::features::annotation::read::kinds::read_appearance_fit(annotation)?.is_none() {
+        if annotation.drawing().is_none() {
             return Ok(());
         }
-        annotation
-            .clear_embed_metadata_key("AppearanceFit")
-            .map_err(|e| EngineError::with_message(EngineErrorCode::Unknown, e.to_string()))?;
         if !annotation.generate_form_field_appearance() {
             return Err(EngineError::with_message(
                 EngineErrorCode::Unknown,
@@ -660,7 +651,7 @@ pub fn prepare(
                 "an appearance carries its bytes as a request payload",
             )
         })?;
-        bake_widget_appearance(&candidate, widget, mark, false)?;
+        bake_widget_appearance(&candidate, widget, mark)?;
     }
 
     let mut saved = candidate.save_signature_candidate(value_obj_num).map_err(|_| {
@@ -1126,7 +1117,7 @@ mod tests {
         assert!(widget.page.is_none());
         let mark =
             MarkBytes { bytes: b"GIF89a: not a format a mark is read from", declared_pdf: false };
-        let refused = bake_widget_appearance(&doc, &widget, mark, true).unwrap_err();
+        let refused = bake_widget_appearance(&doc, &widget, mark).unwrap_err();
         assert_eq!(refused.code, EngineErrorCode::InvalidArg, "{refused}");
     }
 
@@ -1146,7 +1137,7 @@ mod tests {
         assert!(widget.page.is_none());
         let mark =
             MarkBytes { bytes: b"%PDF-1.7 and then nothing a PDF holds", declared_pdf: true };
-        let refused = bake_widget_appearance(&doc, &widget, mark, true).unwrap_err();
+        let refused = bake_widget_appearance(&doc, &widget, mark).unwrap_err();
         assert_eq!(refused.code, EngineErrorCode::NotFound, "{refused}");
     }
 }

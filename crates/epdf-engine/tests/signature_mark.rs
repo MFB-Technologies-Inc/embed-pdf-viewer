@@ -588,3 +588,173 @@ fn a_signed_fields_mark_turns_with_it_as_well() {
     );
     assert!(max_shifted_difference(&doc.drawn(&row), &upright.quarter_turned()) <= 3);
 }
+
+// ── a new drawing in a field that isn't signed (3f54d7016, 445e34a69) ──────
+
+/// `pdfOf`: a PDF of `objects`, numbered from 1.
+fn pdf_of(objects: &[String]) -> Vec<u8> {
+    let mut out = b"%PDF-1.7\n".to_vec();
+    let mut offsets = Vec::new();
+    for (i, object) in objects.iter().enumerate() {
+        offsets.push(out.len());
+        out.extend(format!("{} 0 obj\n{object}\nendobj\n", i + 1).as_bytes());
+    }
+    let xref = out.len();
+    out.extend(format!("xref\n0 {}\n0000000000 65535 f \n", objects.len() + 1).as_bytes());
+    for offset in offsets {
+        out.extend(format!("{offset:010} 00000 n \n").as_bytes());
+    }
+    out.extend(
+        format!(
+            "trailer\n<< /Size {} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n",
+            objects.len() + 1
+        )
+        .as_bytes(),
+    );
+    out
+}
+
+/// Hex digits a [`signature_slot`] holds: room for 64 bytes of signature.
+const SLOT_HEX_DIGITS: usize = 128;
+
+/// `SIGNATURE_SLOT`: a signature value's `/ByteRange` and `/Contents`, left
+/// blank for [`sealed_pdf_of`] to fill in.
+fn signature_slot() -> String {
+    let blank = " ".repeat(10);
+    format!("/ByteRange [0 {blank} {blank} {blank}] /Contents <{}>", "0".repeat(SLOT_HEX_DIGITS))
+}
+
+/// `sealedPdfOf`: [`pdf_of`] with its one signature slot filled in, the
+/// signature sealing the whole file with `cms` as its contents.
+fn sealed_pdf_of(objects: &[String], cms: &[u8]) -> Vec<u8> {
+    let text = String::from_utf8(pdf_of(objects)).unwrap();
+    let slot = signature_slot();
+    let at = text.find(&slot).expect("one signature slot");
+    assert!(text[at + 1..].find(&slot).is_none(), "exactly one signature slot");
+    let hex: String = cms.iter().map(|b| format!("{b:02x}")).collect();
+    let contents_start = at + slot.find('<').unwrap();
+    let contents_end = at + slot.len();
+    let range = [0, contents_start, contents_end, text.len() - contents_end];
+    let filled = format!(
+        "/ByteRange [{} {:<10} {:<10} {:<10}] /Contents <{hex:0<SLOT_HEX_DIGITS$}>",
+        range[0], range[1], range[2], range[3]
+    );
+    format!("{}{filled}{}", &text[..at], &text[contents_end..]).into_bytes()
+}
+
+/// `withRevision`: `bytes` with one more revision holding `objects`, by
+/// number, its own cross-reference section and a trailer back to the last.
+fn with_revision(bytes: &[u8], objects: &[(u32, String)]) -> Vec<u8> {
+    let text = String::from_utf8_lossy(bytes);
+    let previous = text.rsplit("startxref").next().unwrap().split_whitespace().next().unwrap();
+    let size: u32 =
+        text.rsplit("/Size ").next().unwrap().split_whitespace().next().unwrap().parse().unwrap();
+    let mut numbers: Vec<&(u32, String)> = objects.iter().collect();
+    numbers.sort_by_key(|(n, _)| *n);
+    let mut tail = String::new();
+    let mut offsets = Vec::new();
+    for (number, object) in &numbers {
+        offsets.push(bytes.len() + tail.len());
+        tail += &format!("{number} 0 obj\n{object}\nendobj\n");
+    }
+    let start = bytes.len() + tail.len();
+    tail += "xref\n";
+    for ((number, _), offset) in numbers.iter().zip(&offsets) {
+        tail += &format!("{number} 1\n{offset:010} 00000 n \n");
+    }
+    let new_size = size.max(numbers.last().unwrap().0 + 1);
+    tail += &format!(
+        "trailer\n<< /Size {new_size} /Root 1 0 R /Prev {previous} >>\nstartxref\n{start}\n%%EOF\n"
+    );
+    let mut out = bytes.to_vec();
+    out.extend(tail.as_bytes());
+    out
+}
+
+/// Two signature fields on one page: `signed` (4), whose signature (6) seals
+/// the file, and `open` (5), which nobody signed and has no appearance.
+/// `certify` makes the signature a certification that allows form filling.
+fn signed_and_open_objects(certify: bool) -> Vec<String> {
+    vec![
+        format!(
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [4 0 R 5 0 R] /SigFlags 3 >>{}",
+            if certify { " /Perms << /DocMDP 6 0 R >> >>" } else { " >>" }
+        ),
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 >>".into(),
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 8 0 R /Resources << >> \
+         /Annots [4 0 R 5 0 R] >>"
+            .into(),
+        "<< /Type /Annot /Subtype /Widget /FT /Sig /T (signed) /Rect [30 200 180 250] /F 4 /P 3 0 R \
+         /V 6 0 R /AP << /N 7 0 R >> >>"
+            .into(),
+        "<< /Type /Annot /Subtype /Widget /FT /Sig /T (open) /Rect [30 30 180 80] /F 4 /P 3 0 R >>"
+            .into(),
+        format!(
+            "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /ETSI.CAdES.detached {}{} >>",
+            if certify {
+                "/Reference [<< /Type /SigRef /TransformMethod /DocMDP \
+                 /TransformParams << /Type /TransformParams /P 2 /V /1.2 >> >>] "
+            } else {
+                ""
+            },
+            signature_slot()
+        ),
+        "<< /Type /XObject /Subtype /Form /BBox [0 0 150 50] /Length 0 >>\nstream\n\nendstream"
+            .into(),
+        "<< /Length 0 >>\nstream\n\nendstream".into(),
+    ]
+}
+
+/// The revision after the signature writes field `field` again with an /AP
+/// to a new drawing (object 9), and nothing else.
+fn redrawn(field: usize, certify: bool) -> Vec<u8> {
+    const STROKE: &str = "0 0 1 RG 2 w 10 10 m 140 40 l S";
+    let objects = signed_and_open_objects(certify);
+    let (from, to) = if field == 4 {
+        ("/AP << /N 7 0 R >> >>", "/AP << /N 9 0 R >> >>")
+    } else {
+        ("/P 3 0 R >>", "/P 3 0 R /AP << /N 9 0 R >> >>")
+    };
+    let stroke_form = format!(
+        "<< /Type /XObject /Subtype /Form /BBox [0 0 150 50] /Resources << >> /Length {} >>\n\
+         stream\n{STROKE}\nendstream",
+        STROKE.len()
+    );
+    with_revision(
+        &sealed_pdf_of(&objects, &PLACEHOLDER_CMS),
+        &[(field as u32, objects[field - 1].replace(from, to)), (9, stroke_form)],
+    )
+}
+
+fn analysis_of(bytes: Vec<u8>) -> Value {
+    let mut doc = Doc::open(bytes);
+    doc.ok(
+        json!({ "kind": "signatures.analyze",
+            "input": { "since": { "signatureIndex": 0 }, "until": "persisted" } }),
+        Vec::new(),
+    )["analysis"]
+        .clone()
+}
+
+#[test]
+fn a_drawing_saved_into_a_field_that_isnt_signed_keeps_an_earlier_signature_over_the_signed_not() {
+    // After an approval signature, and after a certification that allows form filling.
+    for (certify, level) in [(false, "annotate"), (true, "fill")] {
+        let open = analysis_of(redrawn(5, certify));
+        assert_eq!(open["verdict"], "permitted", "{open}");
+        let step = &open["steps"][0];
+        assert_eq!(step["levelInForce"], level, "{open}");
+        let findings = step["findings"].as_array().unwrap();
+        assert!(!findings.iter().any(|f| f["verdict"] == "forbidden"), "{open}");
+        assert!(
+            findings
+                .iter()
+                .any(|f| f["rule"] == "signature-appearance" && f["verdict"] == "permitted"),
+            "{open}"
+        );
+    }
+    let sealed = analysis_of(redrawn(4, false));
+    assert_eq!(sealed["verdict"], "forbidden", "{sealed}");
+    let findings = sealed["steps"][0]["findings"].as_array().unwrap();
+    assert!(!findings.iter().any(|f| f["rule"] == "signature-appearance"), "{sealed}");
+}

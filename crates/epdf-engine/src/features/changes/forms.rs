@@ -405,15 +405,7 @@ fn write_value_in<'a>(
     let reference = FormFieldRef::ObjectNumber { field: before.object_number };
     let document = ctx.session.document()?.document();
     let pending = capture_before(document, &objects_of(before));
-    let now = crate::clock::format_pdf_timestamp(ctx.clock.now());
-    let (result, model) = mutator(ctx)?.set_value_in(
-        model,
-        &reference,
-        value,
-        &ctx.authority.identity,
-        now.as_deref(),
-        ctx.cancel,
-    )?;
+    let (result, model) = mutator(ctx)?.set_value_in(model, &reference, value, ctx.cancel)?;
     let objects = capture_after(document, pending)?;
     let left = value_of(&result.field);
     let unchanged = result.meta.changed_widgets.is_empty() && value_of(&before.field) == left;
@@ -729,13 +721,12 @@ pub(super) fn unreadable(e: impl std::fmt::Display) -> EngineError {
 /// field the document doesn't have, one of another family, a value the
 /// field can't take, a field a signature locked, a field the caller may not
 /// fill in. A write that changes nothing is not made. Each field's reverse
-/// puts back its value and who filled it, as a `setValue`'s does; a
-/// restoring import's steps take `doc.forms.import` too.
+/// puts back its value, as a `setValue`'s does. A fill records nobody, so
+/// the import restores no one and takes no `doc.forms.import`, whatever
+/// `attribution` says (445e34a69).
 pub fn import_form_values(
     ctx: &mut ChangeContext<'_>,
     bundle: &super::op::WireBundle,
-    attribution: super::op::Attribution,
-    actor: Option<&crate::features::annotation::write::draft::AnnotationActor>,
     limits: &crate::features::transfer::BundleLimits,
 ) -> Result<Done, EngineError> {
     use crate::features::forms::value::{field_value_write_of, is_no_op_write};
@@ -743,13 +734,10 @@ pub fn import_form_values(
     use crate::features::transfer::plan_form::plan_form_values_import;
     ctx.cancel.check()?;
     authorize_some_fill(ctx)?;
-    let rights = super::fields::import_rights(ctx, attribution)?;
     let bundle = bundle.bundle()?;
     crate::features::transfer::resources::check_wire_bundle(BundleKind::Form, &bundle, limits)?;
     let fields =
         bundle.manifest.get("fields").and_then(Value::as_array).cloned().unwrap_or_default();
-    let identity = super::fields::actor_identity(actor);
-    let imported_by = identity.user_id.clone().filter(|id| !id.is_empty());
 
     // Every field of the form, as it is now, direct ones included.
     let targets: Vec<FormFieldDto> = {
@@ -801,20 +789,7 @@ pub fn import_form_values(
         let reference = FormFieldRef::ObjectNumber { field: before.object_number };
         let document = ctx.session.document()?.document();
         let pending = capture_before(document, &objects_of(&before));
-        let now = crate::clock::format_pdf_timestamp(ctx.clock.now());
-        mutator(ctx)?.set_value(&reference, &write.value, &identity, now.as_deref(), ctx.cancel)?;
-        if rights.is_some() {
-            let source = &fields[write.field]["data"];
-            let text = |key: &str| source[key].as_str();
-            crate::features::forms::field::restore_field_fill(
-                document,
-                before.object_number,
-                text("filledBy"),
-                text("filledByName"),
-                text("filledAt"),
-                imported_by.as_deref(),
-            )?;
-        }
+        mutator(ctx)?.set_value(&reference, &write.value, ctx.cancel)?;
         let objects = capture_after(document, pending)?;
         let field = read_field_by_number(ctx, before.object_number)?.field;
         reverse.push(ReverseStep::ObjectsRevert(ObjectsRevertStep {
@@ -829,7 +804,7 @@ pub fn import_form_values(
                     left: value_of(&field),
                 }],
             }),
-            rights,
+            rights: None,
         }));
         filled.push(field);
     }

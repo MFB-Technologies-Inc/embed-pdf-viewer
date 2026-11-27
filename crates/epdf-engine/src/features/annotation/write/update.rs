@@ -1281,17 +1281,11 @@ fn apply_embed_metadata_on_update(
 }
 
 /// `refitWidgetMark`: fit the mark in a widget into its box again, once the
-/// box or its turn has changed: by the fit the mark records, else
-/// `contain`, the fit a signing draws its mark with.
+/// box or its turn has changed: `contain`, the fit every mark is drawn with.
+/// It gives the widget a new wrapper around the same drawing, so it still
+/// reads as a mark.
 fn refit_widget_mark(annotation: &pdfium::Annotation<'_>) -> Result<(), EngineError> {
-    use crate::features::annotation::read::kinds::{StampFit, read_appearance_fit};
-    // `APPEARANCE_FIT_CODE`.
-    let fit = match read_appearance_fit(annotation)?.unwrap_or(StampFit::Contain) {
-        StampFit::Contain => pdfium::StampFit::Contain,
-        StampFit::Cover => pdfium::StampFit::Cover,
-        StampFit::Fill => pdfium::StampFit::Stretch,
-    };
-    if !annotation.update_appearance_to_rect(fit) {
+    if !annotation.update_appearance_to_rect(pdfium::StampFit::Contain) {
         return Err(unknown("EPDFAnnot_UpdateAppearanceToRect returned false"));
     }
     Ok(())

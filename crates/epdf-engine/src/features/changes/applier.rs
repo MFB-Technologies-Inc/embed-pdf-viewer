@@ -434,8 +434,9 @@ fn run_op(ctx: &mut ChangeContext<'_>, op: &ChangeOp, at: usize) -> Result<Done,
                 may_script.unwrap_or(false),
             )
         }
-        ChangeOp::FormsImportValues { bundle, attribution, actor, limits } => {
-            super::forms::import_form_values(ctx, bundle, *attribution, actor.as_ref(), limits)
+        // `attribution` and `actor` have no effect: a fill records nobody.
+        ChangeOp::FormsImportValues { bundle, limits, .. } => {
+            super::forms::import_form_values(ctx, bundle, limits)
         }
         ChangeOp::AnnotationsUpdate { reference, patch, resources, expect } => {
             super::annotations::update_annotation(

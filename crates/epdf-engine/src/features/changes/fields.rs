@@ -1169,9 +1169,10 @@ pub fn import_form(
         }
         let reference = FormFieldRef::ObjectNumber { field: object_number };
         if let Some(value) = &planned.value {
-            let now = crate::clock::format_pdf_timestamp(ctx.clock.now());
-            mutator(ctx)?.set_value(&reference, value, &identity, now.as_deref(), ctx.cancel)?;
+            mutator(ctx)?.set_value(&reference, value, ctx.cancel)?;
         }
+        // Who made each field, as the bundle has it. Who filled it in travels
+        // nowhere: a fill records nobody.
         if rights.is_some() {
             let document = ctx.session.document()?.document();
             let text = |key: &str| source[key].as_str();
@@ -1182,16 +1183,6 @@ pub fn import_form(
                 text("createdAt"),
                 imported_by.as_deref(),
             )?;
-            if planned.value.is_some() {
-                f::restore_field_fill(
-                    document,
-                    object_number,
-                    text("filledBy"),
-                    text("filledByName"),
-                    text("filledAt"),
-                    imported_by.as_deref(),
-                )?;
-            }
         }
         created.push(object_number);
     }
@@ -1377,8 +1368,7 @@ pub fn copy_fields(
         }
         if let Some(value) = &planned.value {
             let reference = FormFieldRef::ObjectNumber { field: made };
-            let now = crate::clock::format_pdf_timestamp(ctx.clock.now());
-            mutator(ctx)?.set_value(&reference, value, &identity, now.as_deref(), ctx.cancel)?;
+            mutator(ctx)?.set_value(&reference, value, ctx.cancel)?;
         }
         created.push(made);
     }

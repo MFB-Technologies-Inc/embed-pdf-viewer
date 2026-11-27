@@ -446,25 +446,31 @@ fn an_export_takes_whole_fields_by_name_or_every_field_with_a_widget_on_a_page()
 }
 
 #[test]
-fn restore_writes_the_sources_attribution_and_the_importer_stamp_makes_the_fields_the_sessions() {
+fn restore_writes_who_created_the_sources_fields_and_the_importer_stamp_makes_them_the_sessions() {
+    // 445e34a69: a fill records nobody, so a bundle names no filler either.
     let mut engine = Engine::new();
     let bundle = source_bundle(&mut engine);
-
-    engine.open("restored", bob(), everything(), two_pages());
-    engine.import("restored", &bundle, json!({})).unwrap();
-    let copied = engine.field("restored", "customer.name");
-    assert_eq!(copied["createdBy"], "alice");
-    assert_eq!(copied["filledBy"], "alice");
-    assert_eq!(copied["filledByName"], "Alice Author");
-    assert_eq!(copied["importedBy"], "bob");
     let source = bundle["fields"]
         .as_array()
         .unwrap()
         .iter()
         .find(|r| r["data"]["name"] == "customer.name")
-        .unwrap();
-    assert_eq!(copied["createdAt"], source["data"]["createdAt"]);
-    assert_eq!(copied["filledAt"], source["data"]["filledAt"]);
+        .unwrap()["data"]
+        .clone();
+    assert_eq!(
+        [&source["filledBy"], &source["filledByName"], &source["filledAt"]],
+        [&Value::Null, &Value::Null, &Value::Null]
+    );
+
+    engine.open("restored", bob(), everything(), two_pages());
+    engine.import("restored", &bundle, json!({})).unwrap();
+    let copied = engine.field("restored", "customer.name");
+    assert_eq!(copied["createdBy"], "alice");
+    assert_eq!(copied["filledBy"], Value::Null);
+    assert_eq!(copied["filledByName"], Value::Null);
+    assert_eq!(copied["filledAt"], Value::Null);
+    assert_eq!(copied["importedBy"], "bob");
+    assert_eq!(copied["createdAt"], source["createdAt"]);
     let go = engine.field("restored", "go");
     assert_eq!((go["createdBy"].clone(), go["filledBy"].clone()), (json!("alice"), Value::Null));
 
@@ -472,13 +478,12 @@ fn restore_writes_the_sources_attribution_and_the_importer_stamp_makes_the_field
     engine.import("stamped", &bundle, json!({ "attribution": "stamp" })).unwrap();
     let stamped = engine.field("stamped", "customer.name");
     assert_eq!(stamped["createdBy"], "bob");
-    assert_eq!(stamped["filledBy"], "bob");
-    assert_eq!(stamped["filledByName"], "Bob Builder");
+    assert_eq!(stamped["filledBy"], Value::Null);
     assert_eq!(stamped["importedBy"], Value::Null);
 }
 
 #[test]
-fn restoring_needs_doc_forms_import_and_stamping_only_what_a_create_needs() {
+fn restoring_a_design_needs_doc_forms_import_stamping_what_a_create_needs_and_values_a_fill() {
     let mut engine = Engine::new();
     let bundle = source_bundle(&mut engine);
     let mut scope = design();
@@ -486,9 +491,10 @@ fn restoring_needs_doc_forms_import_and_stamping_only_what_a_create_needs() {
     engine.open("target", bob(), scope, two_pages());
     let refused = engine.import("target", &bundle, json!({})).unwrap_err();
     assert!(is_permission_refusal(&refused), "{refused}");
-    let refused = engine.import_values("target", &bundle, json!({})).unwrap_err();
-    assert!(is_permission_refusal(&refused), "{refused}");
     assert!(engine.names("target").is_empty());
+    // A fill records nobody, so restoring values writes nothing in anyone's name.
+    let values = engine.import_values("target", &bundle, json!({})).unwrap();
+    assert_eq!(values["result"]["fields"], json!([]));
 
     let stamped = engine.import("target", &bundle, json!({ "attribution": "stamp" })).unwrap();
     assert_eq!(stamped["result"]["fields"].as_array().unwrap().len(), SOURCE_FIELDS.len());
@@ -665,7 +671,7 @@ fn a_values_import_fills_the_fields_of_the_same_name_and_reports_what_it_leaves_
     let name = engine.field("target", "customer.name");
     assert_eq!(
         (name["value"].clone(), name["filledBy"].clone(), name["importedBy"].clone()),
-        (json!("Ada"), json!("alice"), json!("bob"))
+        (json!("Ada"), Value::Null, Value::Null)
     );
     assert_eq!(engine.field("target", "tags")["selectedValues"], json!(["a", "c"]));
     assert_eq!(engine.field("target", "country")["value"], "");
@@ -699,7 +705,7 @@ fn a_design_import_is_undone_and_redone_with_fields_widgets_and_calculation_orde
 }
 
 #[test]
-fn a_values_import_is_undone_and_redone_with_values_and_who_filled_them_back() {
+fn a_values_import_is_undone_and_redone_the_values_back() {
     let mut engine = Engine::new();
     let bundle = source_bundle(&mut engine);
     engine.open("target", bob(), everything(), two_pages());
@@ -708,20 +714,15 @@ fn a_values_import_is_undone_and_redone_with_values_and_who_filled_them_back() {
 
     let filled = engine.import_values("target", &bundle, json!({})).unwrap()["result"].clone();
     assert_eq!(filled["meta"]["undoable"], true);
-    let name = engine.field("target", "customer.name");
-    assert_eq!((name["value"].clone(), name["filledBy"].clone()), (json!("Ada"), json!("alice")));
+    assert_eq!(engine.field("target", "customer.name")["value"], "Ada");
 
     let undo = engine.apply("target", json!({ "undoOf": filled["meta"]["opId"] })).unwrap();
-    let name = engine.field("target", "customer.name");
-    assert_eq!((name["value"].clone(), name["filledBy"].clone()), (json!("Bob"), json!("bob")));
+    assert_eq!(engine.field("target", "customer.name")["value"], "Bob");
     assert_eq!(engine.field("target", "agree")["valueEntry"], json!({ "kind": "none" }));
 
     engine.apply("target", json!({ "undoOf": undo["result"]["meta"]["opId"] })).unwrap();
     let name = engine.field("target", "customer.name");
-    assert_eq!(
-        (name["value"].clone(), name["filledBy"].clone(), name["importedBy"].clone()),
-        (json!("Ada"), json!("alice"), json!("bob"))
-    );
+    assert_eq!((name["value"].clone(), name["filledBy"].clone()), (json!("Ada"), Value::Null));
     assert_eq!(engine.field("target", "agree")["checked"], true);
 }
 
