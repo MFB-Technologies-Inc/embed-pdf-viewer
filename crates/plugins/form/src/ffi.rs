@@ -686,7 +686,7 @@ fn fill_item(item: &Value) -> Result<FormFillItem, Error> {
         field_ref: field_ref_of(item.get("fieldRef").unwrap_or(&Value::Null))?,
         annot_object_number: whole(item.get("annotObjectNumber")).unwrap_or(0),
         annotation_ref: annotation_ref_of(item.get("annotationRef").unwrap_or(&Value::Null))?,
-        bounds: rect_of(item.get("box").unwrap_or(&Value::Null)),
+        bounds: rect_of(item.get("rect").unwrap_or(&Value::Null)),
         look_json: item.get("look").cloned().unwrap_or(Value::Null).to_string(),
         disabled: flag("disabled"),
         label: text("label"),
@@ -1265,7 +1265,7 @@ impl FormHandle {
                         Ok(FormWidgetHit {
                             annot_object_number: hit.annot_object_number as u32,
                             field: FormField::from_json(&hit.field)?,
-                            bounds: rect_of(&hit.place.bx),
+                            bounds: rect_of(&hit.place.rect),
                         })
                     })
                     .transpose()
