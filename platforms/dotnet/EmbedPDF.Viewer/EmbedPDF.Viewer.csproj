@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The EmbedPDF facade (docs/superpowers/plans/2026-11-20-dotnet-parity.md, D3).
+    Compiles the generated bindings under Generated/ as internal types; run
+    platforms/dotnet/generate-bindings.sh first. The native library comes
+    from the EmbedPDF.Runtime package, which this package depends on when
+    packed with -p:EmbedPdfPackRuntime=true. In-repo builds leave the
+    reference out so they need no package feed.
+  -->
+  <Import Project="../EmbedPDF.Runtime/EmbedPDF.Runtime.props" />
+  <PropertyGroup>
+    <!-- Not EmbedPDF.dll: on win-x64 that is PDFium's embedpdf.dll once a
+         RID-specific build puts both in one directory. -->
+    <AssemblyName>EmbedPDF.Viewer</AssemblyName>
+    <RootNamespace>EmbedPDF</RootNamespace>
+    <PackageId>EmbedPDF</PackageId>
+    <Version>0.0.0-local</Version>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <Description>PDF viewer for .NET over the EmbedPDF Rust engine: open, render, search, annotate, fill forms, redact, measure, stamp and sign, with every viewer plugin as a typed capability. The native library comes from EmbedPDF.Runtime.</Description>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="EmbedPDF.Viewer.Tests" />
+    <!-- The models read a capability's viewer (the internal Viewer
+         properties), as Swift's models use the package-level viewer. -->
+    <InternalsVisibleTo Include="EmbedPDF.Models" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+    <PackageReference Include="EmbedPDF.Runtime" Version="$(EmbedPdfRuntimeVersion)" Condition="'$(EmbedPdfPackRuntime)' == 'true'" />
+  </ItemGroup>
+  <!--
+    D8: a public surface change fails the build until PublicAPI.Unshipped.txt
+    changes in the same commit. Move entries to PublicAPI.Shipped.txt at a
+    tagged release.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0" PrivateAssets="all" />
+    <AdditionalFiles Include="PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
+  </ItemGroup>
+  <Target Name="RequireGeneratedBindings" BeforeTargets="CoreCompile">
+    <Error Condition="!Exists('$(MSBuildThisFileDirectory)Generated/epdf_viewer_host.cs')" Text="Generated bindings are missing. Run platforms/dotnet/generate-bindings.sh first." />
+  </Target>
+</Project>

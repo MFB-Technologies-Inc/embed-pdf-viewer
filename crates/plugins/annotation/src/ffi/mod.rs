@@ -19,8 +19,9 @@
 //! rich-text editing members (`draftRichText`, `setTextSelection` ranges
 //! beyond a caret), and the hooks other plugins call
 //! (`registerBehavior`, `pruneEngagedSelection`, `getBehaviorFor`,
-//! `commitScriptEffects`, `lend`, `setPageViewports`, `whenRemeasurable`, `stageRemeasure`,
-//! `distanceCreationPage`, `tools.register`).
+//! `commitScriptEffects`, `lend`, `setPageViewports`, `distanceCreationPage`,
+//! `tools.register`). `whenRemeasurable` and `stageRemeasure` are exported
+//! for a host that re-measures a page itself.
 
 mod drafts;
 mod handle;
@@ -41,7 +42,10 @@ pub use drafts::{
     AnnotationAttachmentFile, AnnotationDraftsHandle, AnnotationPageQuads,
     AnnotationStampPlacement, AnnotationStampSource, AnnotationTextEndAnchor,
 };
-pub use handle::AnnotationHandle;
+pub use handle::{
+    AnnotationDuplicateOptions, AnnotationDuplicateResult, AnnotationHandle,
+    AnnotationRemeasureReport, AnnotationRemeasureSkip, AnnotationRemeasureSkipReason,
+};
 pub use interchange::{AnnotationImportResult, AnnotationRefMapping};
 pub use picker::{AnnotationFilePicker, AnnotationFilePromptRequest, AnnotationPickedFile};
 pub use selection::{AnnotationSelectionHandle, AnnotationSelectionProps, AnnotationTextFormat};
@@ -139,6 +143,15 @@ pub(crate) fn refs_out(refs: &Value) -> Result<Vec<AnnotationRef>, Error> {
 
 pub(crate) fn point_json(point: Point) -> Value {
     json!({ "x": point.x, "y": point.y })
+}
+
+/// A copy's offset as the plugin reads it; a NaN or an infinity is
+/// `invalid-input`, since JSON would carry it as `null` and drop the offset.
+pub(crate) fn offset_json(offset: Point) -> Result<Value, Error> {
+    if !offset.x.is_finite() || !offset.y.is_finite() {
+        return Err(invalid(format!("an offset is not finite: ({}, {})", offset.x, offset.y)));
+    }
+    Ok(point_json(offset))
 }
 
 pub(crate) fn rect_out(rect: &Value) -> Rect {

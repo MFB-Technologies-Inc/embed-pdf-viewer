@@ -1,12 +1,16 @@
 use std::sync::Arc;
 
 use epdf_ffi::{
-    AnnotationRef, CancelToken, KernelBound, PageRef, PdfLinkTarget, Rect, ViewerError,
+    AnnotationRef, CancelToken, KernelBound, PageRef, PdfLinkTarget, Point, Rect, ViewerError,
 };
 use serde_json::Value;
 
+use super::handle::duplicate_answer;
 use super::tools::{AnnotationProperty, properties_out};
-use super::{AnnotationBatchResult, batch_out, object_of, open, page_json, refs_json, refs_out};
+use super::{
+    AnnotationBatchResult, AnnotationDuplicateResult, batch_out, object_of, offset_json, open,
+    page_json, refs_json, refs_out,
+};
 use crate::AnnotationCapability;
 use crate::write::selection::SelectionPatch;
 
@@ -167,7 +171,7 @@ impl AnnotationSelectionHandle {
             .call_promise_cancellable(
                 cancel,
                 move |c| {
-                    super::interchange::cancellable_operation(|signal| {
+                    epdf_ffi::signalled_cancellable("annotation", |signal| {
                         Ok(open(c)?.selection_update_link(
                             target.as_ref().map(PdfLinkTarget::to_json).unwrap_or(Value::Null),
                             Some(signal),
@@ -237,5 +241,34 @@ impl AnnotationSelectionHandle {
 
     pub async fn can_ungroup(&self) -> Result<bool, ViewerError> {
         self.cap.call(|c| Ok(open(c)?.selection_can_ungroup())).await
+    }
+
+    /// `selection.duplicate({ offset })`: copy the selection beside it, `offset`
+    /// away or 10 points right and down (left or up where that keeps it on the
+    /// page), and select the copies, as one step to undo. Nothing selected
+    /// resolves with no copies.
+    pub async fn duplicate(
+        &self,
+        offset: Option<Point>,
+        cancel: Arc<CancelToken>,
+    ) -> Result<AnnotationDuplicateResult, ViewerError> {
+        self.cap
+            .call_promise_cancellable(
+                cancel,
+                move |c| {
+                    let offset = offset.map(offset_json).transpose()?;
+                    duplicate_answer(open(c)?.clone(), move |c, signal| {
+                        c.selection_duplicate(offset, Some(signal))
+                    })
+                },
+                |result| result,
+            )
+            .await
+    }
+
+    /// `selection.canDuplicate()`: something is selected, the session may
+    /// create annotations, and nothing selected is locked.
+    pub async fn can_duplicate(&self) -> Result<bool, ViewerError> {
+        self.cap.call(|c| Ok(open(c)?.selection_can_duplicate())).await
     }
 }

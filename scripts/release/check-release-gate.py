@@ -17,8 +17,10 @@ approve once, after everything is built. This checks that
     delete; github-release.sh publish; publish-engine-payload.mjs --stage
     publish; a release action such as softprops/action-gh-release) or deploys
     a site (wrangler deploy, wrangler pages deploy, cloudflare/wrangler-action)
-    or uploads Maven artifacts (publish-staged.sh), when its token can write
-    contents or packages, or when it calls a local workflow with
+    or pushes a NuGet package (dotnet nuget push; release-viewer.sh without
+    --dry-run on the same line) or uploads Maven artifacts
+    (publish-staged.sh), when its token can write contents or packages, or
+    when it calls a local workflow with
     `stage: publish` or one with a publishing job that doesn't wait for that
     stage;
   - in each called workflow, a job that publishes by the same test runs only
@@ -26,6 +28,9 @@ approve once, after everything is built. This checks that
     can write contents or packages when its own permissions say so or, with no
     permissions of its own or at its workflow's top, when the caller job
     grants it;
+  - no job of a called workflow asks for a permission its caller job doesn't
+    grant: GitHub refuses to start the whole run when one does, whether or
+    not that job would run;
   - neither a publishing job nor any job between it and approve has an `if:`
     that runs it after approve failed or was rejected (always(), cancelled(),
     !cancelled(), failure()) unless that `if:` also requires
@@ -46,6 +51,7 @@ from pathlib import Path
 PUBLISHES = re.compile(
     r"\bgit push\b|\bgit tag\b|\bgh release (create|upload|edit|delete)\b|\brelease create\b"
     r"|github-release\.sh publish|--stage publish\b|\bpublish-staged\.sh\b"
+    r"|\bdotnet nuget push\b|\brelease-viewer\.sh\b(?!.*--dry-run)"
     r"|\bwrangler\S*\s+(pages\s+)?deploy\b"
     r"|uses:\s*(softprops/action-gh-release|ncipollo/release-action|actions/create-release"
     r"|actions/upload-release-asset|svenstaro/upload-release-action|cloudflare/wrangler-action)\b"
@@ -79,6 +85,32 @@ def inline_permissions(value, where):
             perms[key.strip()] = level.strip()
         return perms
     raise GateError(f"{where}: can't read permissions {value!r}")
+
+
+LEVELS = {"none": 0, "read": 1, "write": 2}
+
+
+def level(perms, scope):
+    """The access a permissions value gives one scope; UNSET is the repository default."""
+    if perms is UNSET or perms == "write-all":
+        return 2
+    if perms == "read-all":
+        return 1
+    return LEVELS.get(perms.get(scope, "none"), 0)
+
+
+def ungranted(requested, grant):
+    """The scopes `requested` asks for beyond `grant`, as "scope: level" strings."""
+    if requested is UNSET:
+        return []
+    if isinstance(requested, str):
+        need = 2 if requested == "write-all" else 1
+        scopes = sorted(grant) if isinstance(grant, dict) else []
+        if isinstance(grant, str) or grant is UNSET:
+            return [] if level(grant, "contents") >= need else [requested]
+        return [requested] if any(level(grant, s) < need for s in scopes) or not scopes else []
+    return [f"{scope}: {value}" for scope, value in sorted(requested.items())
+            if LEVELS.get(value, 0) > level(grant, scope)]
 
 
 def writes_contents(perms):
@@ -208,6 +240,11 @@ def check(train):
         grant = own(job, top)
         called_top, called = parse_workflow(root / uses[2:])
         for inner, inner_job in called.items():
+            asked = inner_job["permissions"] if inner_job["permissions"] is not UNSET else called_top
+            for scope in ungranted(asked, job["permissions"] if job["permissions"] is not UNSET else top):
+                errors.append(
+                    f"{name} calls {uses}, whose job {inner} asks for {scope}, which {name} doesn't grant;"
+                    " GitHub refuses to start the run")
             if inner_job["environment"] and uses not in seen:
                 errors.append(f"{uses} job {inner} names an environment; only the train's approve may")
             fallback = called_top if called_top is not UNSET else grant

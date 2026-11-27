@@ -1,0 +1,30 @@
+# C# generator configuration for the EmbedPDF facade, passed to every component
+# by platforms/dotnet/generate-bindings.sh.
+# Renames are keyed by crate, then by the Rust path (`Type.method`,
+# `Enum.Variant.field`); the new name is converted to PascalCase.
+[bindings.csharp]
+access_modifier = "internal"
+
+# `ViewerHost.destroy` collides with the generated object's own `Destroy()`
+# (the handle release). Kotlin renames the same member (crates/epdf-viewer-host/uniffi.toml).
+[bindings.csharp.rename.epdf_viewer_host]
+"ViewerHost.destroy" = "destroy_viewer"
+
+# `RenderViewDemandHandle.dispose` collides with `IDisposable.Dispose()`.
+[bindings.csharp.rename.epdf_plugin_render]
+"RenderViewDemandHandle.dispose" = "dispose_demand"
+
+# `ScriptEngine.dispose` (a foreign trait) collides with `IDisposable.Dispose()`
+# on the generated `ScriptEngineImpl`. Variant fields named like a sibling
+# variant (`Annotation`, `Page`) collide with the nested record of that name.
+[bindings.csharp.rename.epdf_plugin_actions]
+"ScriptEngine.dispose" = "dispose_engine"
+"ActionSource.Widget.annotation" = "annotation_ref"
+"ActionSource.Widget.page" = "page_ref"
+"ActionSource.Link.annotation" = "annotation_ref"
+"ActionSource.Link.page" = "page_ref"
+"ActionSource.Annotation.page" = "page_ref"
+"ActionTreeSource.Annotation.page" = "page_ref"
+"ActionTrigger.Activate.annotation" = "annotation_ref"
+"ActionTrigger.Activate.page" = "page_ref"
+"ActionTrigger.Annotation.page" = "page_ref"

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Lists the public members of the EmbedPDF assemblies as JSON for
+    scripts/check-api-coverage.py in its csharp mode. A build tool; not packed.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../EmbedPDF.Viewer/EmbedPDF.Viewer.csproj" />
+    <ProjectReference Include="../../EmbedPDF.Extensions.DependencyInjection/EmbedPDF.Extensions.DependencyInjection.csproj" />
+  </ItemGroup>
+</Project>

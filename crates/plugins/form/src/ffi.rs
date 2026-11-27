@@ -20,7 +20,7 @@ use std::sync::Arc;
 
 use epdf_ffi::{
     AnnotationRef, CancelToken, FormFieldFamily, FormFieldRef, KernelBound, KernelPost, PageRef,
-    PluginErrorInfo, Rect, RegistrationHandle, ResourceStatus, Subscription, ViewerError,
+    PluginErrorInfo, Point, Rect, RegistrationHandle, ResourceStatus, Subscription, ViewerError,
 };
 use epdf_kernel::error::{code, plugin_error};
 use epdf_kernel::{Error, Unsubscribe};
@@ -870,6 +870,76 @@ impl FormFieldPatch {
     }
 }
 
+/// How `duplicate` and `duplicate_widgets` copy (`FormDuplicateOptions`).
+#[derive(Clone, Debug, Default, PartialEq, uniffi::Record)]
+pub struct FormDuplicateOptions {
+    /// The page the copied widgets go on; `None`: each on its original's page.
+    #[uniffi(default = None)]
+    pub page: Option<PageRef>,
+    /// How far each copied widget moves, in page points: `x` to the right, `y` down.
+    #[uniffi(default = None)]
+    pub offset: Option<Point>,
+    /// Whether a new field gets its original's value; `false`: it starts empty.
+    #[uniffi(default = false)]
+    pub values: bool,
+}
+
+impl FormDuplicateOptions {
+    /// The options as the plugin reads them. A NaN or an infinity in the
+    /// offset is `invalid-input`: JSON would carry it as `null` and drop it.
+    fn to_json(&self) -> Result<Value, Error> {
+        let mut options = Map::new();
+        if let Some(page) = self.page {
+            options.insert("page".into(), page_json(page));
+        }
+        if let Some(offset) = self.offset {
+            if !offset.x.is_finite() || !offset.y.is_finite() {
+                return Err(plugin_error(
+                    code::INVALID_INPUT,
+                    "form",
+                    format!("an offset is not finite: ({}, {})", offset.x, offset.y),
+                    None,
+                    None,
+                ));
+            }
+            options.insert("offset".into(), json!({ "x": offset.x, "y": offset.y }));
+        }
+        options.insert("values".into(), json!(self.values));
+        Ok(Value::Object(options))
+    }
+}
+
+/// What a duplicate made (`FormDuplicateResult`).
+#[derive(Clone, Debug, PartialEq, uniffi::Record)]
+pub struct FormDuplicateResult {
+    /// The fields made, and each field that got a new button, as they are now.
+    pub fields: Vec<FormField>,
+    /// The new widgets; for `duplicate_widgets`, in the order of the widgets given.
+    pub widgets: Vec<AnnotationRef>,
+    /// The new widgets as the engine wrote them, a JSON array in the same order.
+    pub widgets_json: String,
+    /// What was left out, and why, as JSON.
+    pub dropped_json: String,
+}
+
+fn duplicate_result(result: &Value) -> Result<FormDuplicateResult, ViewerError> {
+    let widgets = result.get("widgets").and_then(Value::as_array).map_or(&[][..], Vec::as_slice);
+    Ok(FormDuplicateResult {
+        fields: fields_out(
+            result.get("fields").and_then(Value::as_array).map_or(&[], Vec::as_slice),
+        )?,
+        widgets: widgets
+            .iter()
+            .map(|w| {
+                annotation_ref_of(w.get("ref").unwrap_or(&Value::Null))?
+                    .ok_or_else(|| invalid_state("a copied widget has no ref".into()))
+            })
+            .collect::<Result<_, Error>>()?,
+        widgets_json: Value::Array(widgets.to_vec()).to_string(),
+        dropped_json: result.get("dropped").cloned().unwrap_or_else(|| json!([])).to_string(),
+    })
+}
+
 /// What `import` did (`FormImportResult`).
 #[derive(Clone, Debug, PartialEq, uniffi::Record)]
 pub struct FormImportResult {
@@ -1445,6 +1515,56 @@ impl FormHandle {
                             .to_string(),
                     })
                 },
+            )
+            .await?
+    }
+
+    /// Copy whole fields (`duplicate`): each a new field named after its
+    /// original (`email` becomes `email_2`), with its settings, scripts and
+    /// widgets, as one step to undo. Rejects `permission-denied` without
+    /// `doc.forms.modify`, `not-found` for a field the form doesn't have.
+    pub async fn duplicate(
+        &self,
+        fields: Vec<FormFieldRef>,
+        options: FormDuplicateOptions,
+        cancel: Arc<CancelToken>,
+    ) -> Result<FormDuplicateResult, ViewerError> {
+        self.cap
+            .call_promise_cancellable(
+                cancel,
+                move |c| {
+                    let fields = fields.iter().map(field_ref_json).collect();
+                    let c = open(c)?;
+                    let options = options.to_json()?;
+                    epdf_ffi::signalled(|signal| Ok(c.duplicate(fields, options, Some(signal))))
+                },
+                |result| duplicate_result(&result),
+            )
+            .await?
+    }
+
+    /// Copy widgets as Duplicate does in a form designer (`duplicateWidgets`):
+    /// a radio button's copy joins its group, any other widget's copy is a new
+    /// field. Rejects `permission-denied` without `doc.forms.modify`,
+    /// `not-found` for a widget the form doesn't show.
+    pub async fn duplicate_widgets(
+        &self,
+        widgets: Vec<AnnotationRef>,
+        options: FormDuplicateOptions,
+        cancel: Arc<CancelToken>,
+    ) -> Result<FormDuplicateResult, ViewerError> {
+        self.cap
+            .call_promise_cancellable(
+                cancel,
+                move |c| {
+                    let widgets = widgets.iter().map(annotation_ref_json).collect();
+                    let c = open(c)?;
+                    let options = options.to_json()?;
+                    epdf_ffi::signalled(|signal| {
+                        Ok(c.duplicate_widgets(widgets, options, Some(signal)))
+                    })
+                },
+                |result| duplicate_result(&result),
             )
             .await?
     }

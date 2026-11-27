@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Local native package manifest",
+  "title": "Local native package manifest (EmbedPDF.Engine or EmbedPDF.Runtime)",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -10,7 +10,6 @@
     "source",
     "runtimeFork",
     "runtimeManifest",
-    "fontManifest",
     "abi",
     "rids",
     "files",
@@ -21,7 +20,10 @@
       "const": 1
     },
     "packageId": {
-      "const": "EmbedPDF.Engine"
+      "enum": [
+        "EmbedPDF.Engine",
+        "EmbedPDF.Runtime"
+      ]
     },
     "version": {
       "type": "string",
@@ -234,250 +236,7 @@
             }
           }
         }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "linux-x64": {
-                "properties": {
-                  "status": {
-                    "enum": [
-                      "PACKED_UNVALIDATED",
-                      "VALIDATED",
-                      "container-emulated"
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "linux-arm64": {
-                "properties": {
-                  "status": {
-                    "const": "UNVALIDATED"
-                  }
-                }
-              },
-              "osx-arm64": {
-                "properties": {
-                  "status": {
-                    "const": "UNVALIDATED"
-                  }
-                }
-              },
-              "osx-x64": {
-                "properties": {
-                  "status": {
-                    "const": "UNVALIDATED"
-                  }
-                }
-              },
-              "win-x64": {
-                "properties": {
-                  "status": {
-                    "const": "UNVALIDATED"
-                  }
-                }
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "linux-arm64": {
-                "properties": {
-                  "status": {
-                    "enum": [
-                      "PACKED_UNVALIDATED",
-                      "VALIDATED"
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "linux-x64": {
-                "properties": {
-                  "status": {
-                    "const": "UNVALIDATED"
-                  }
-                }
-              },
-              "osx-arm64": {
-                "properties": {
-                  "status": {
-                    "const": "UNVALIDATED"
-                  }
-                }
-              },
-              "osx-x64": {
-                "properties": {
-                  "status": {
-                    "const": "UNVALIDATED"
-                  }
-                }
-              },
-              "win-x64": {
-                "properties": {
-                  "status": {
-                    "const": "UNVALIDATED"
-                  }
-                }
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "osx-arm64": {
-                "properties": {
-                  "status": {
-                    "enum": [
-                      "PACKED_UNVALIDATED",
-                      "VALIDATED"
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "linux-x64": {
-                "properties": {
-                  "status": {
-                    "const": "UNVALIDATED"
-                  }
-                }
-              },
-              "linux-arm64": {
-                "properties": {
-                  "status": {
-                    "const": "UNVALIDATED"
-                  }
-                }
-              },
-              "osx-x64": {
-                "properties": {
-                  "status": {
-                    "const": "UNVALIDATED"
-                  }
-                }
-              },
-              "win-x64": {
-                "properties": {
-                  "status": {
-                    "const": "UNVALIDATED"
-                  }
-                }
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "osx-x64": {
-                "properties": {
-                  "status": {
-                    "enum": [
-                      "PACKED_UNVALIDATED",
-                      "VALIDATED"
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "linux-x64": {
-                "properties": {
-                  "status": {
-                    "const": "UNVALIDATED"
-                  }
-                }
-              },
-              "linux-arm64": {
-                "properties": {
-                  "status": {
-                    "const": "UNVALIDATED"
-                  }
-                }
-              },
-              "osx-arm64": {
-                "properties": {
-                  "status": {
-                    "const": "UNVALIDATED"
-                  }
-                }
-              },
-              "win-x64": {
-                "properties": {
-                  "status": {
-                    "const": "UNVALIDATED"
-                  }
-                }
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "win-x64": {
-                "properties": {
-                  "status": {
-                    "enum": [
-                      "PACKED_UNVALIDATED",
-                      "VALIDATED"
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "linux-x64": {
-                "properties": {
-                  "status": {
-                    "const": "UNVALIDATED"
-                  }
-                }
-              },
-              "linux-arm64": {
-                "properties": {
-                  "status": {
-                    "const": "UNVALIDATED"
-                  }
-                }
-              },
-              "osx-arm64": {
-                "properties": {
-                  "status": {
-                    "const": "UNVALIDATED"
-                  }
-                }
-              },
-              "osx-x64": {
-                "properties": {
-                  "status": {
-                    "const": "UNVALIDATED"
-                  }
-                }
-              }
-            }
-          }
-        }
-      ]
+      }
     },
     "files": {
       "type": "array",
@@ -513,5 +272,268 @@
         "minLength": 1
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "packageId": {
+            "const": "EmbedPDF.Engine"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "fontManifest"
+        ],
+        "properties": {
+          "rids": {
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "linux-x64": {
+                      "properties": {
+                        "status": {
+                          "enum": [
+                            "PACKED_UNVALIDATED",
+                            "VALIDATED",
+                            "container-emulated"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "linux-arm64": {
+                      "properties": {
+                        "status": {
+                          "const": "UNVALIDATED"
+                        }
+                      }
+                    },
+                    "osx-arm64": {
+                      "properties": {
+                        "status": {
+                          "const": "UNVALIDATED"
+                        }
+                      }
+                    },
+                    "osx-x64": {
+                      "properties": {
+                        "status": {
+                          "const": "UNVALIDATED"
+                        }
+                      }
+                    },
+                    "win-x64": {
+                      "properties": {
+                        "status": {
+                          "const": "UNVALIDATED"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "linux-arm64": {
+                      "properties": {
+                        "status": {
+                          "enum": [
+                            "PACKED_UNVALIDATED",
+                            "VALIDATED"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "linux-x64": {
+                      "properties": {
+                        "status": {
+                          "const": "UNVALIDATED"
+                        }
+                      }
+                    },
+                    "osx-arm64": {
+                      "properties": {
+                        "status": {
+                          "const": "UNVALIDATED"
+                        }
+                      }
+                    },
+                    "osx-x64": {
+                      "properties": {
+                        "status": {
+                          "const": "UNVALIDATED"
+                        }
+                      }
+                    },
+                    "win-x64": {
+                      "properties": {
+                        "status": {
+                          "const": "UNVALIDATED"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "osx-arm64": {
+                      "properties": {
+                        "status": {
+                          "enum": [
+                            "PACKED_UNVALIDATED",
+                            "VALIDATED"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "linux-x64": {
+                      "properties": {
+                        "status": {
+                          "const": "UNVALIDATED"
+                        }
+                      }
+                    },
+                    "linux-arm64": {
+                      "properties": {
+                        "status": {
+                          "const": "UNVALIDATED"
+                        }
+                      }
+                    },
+                    "osx-x64": {
+                      "properties": {
+                        "status": {
+                          "const": "UNVALIDATED"
+                        }
+                      }
+                    },
+                    "win-x64": {
+                      "properties": {
+                        "status": {
+                          "const": "UNVALIDATED"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "osx-x64": {
+                      "properties": {
+                        "status": {
+                          "enum": [
+                            "PACKED_UNVALIDATED",
+                            "VALIDATED"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "linux-x64": {
+                      "properties": {
+                        "status": {
+                          "const": "UNVALIDATED"
+                        }
+                      }
+                    },
+                    "linux-arm64": {
+                      "properties": {
+                        "status": {
+                          "const": "UNVALIDATED"
+                        }
+                      }
+                    },
+                    "osx-arm64": {
+                      "properties": {
+                        "status": {
+                          "const": "UNVALIDATED"
+                        }
+                      }
+                    },
+                    "win-x64": {
+                      "properties": {
+                        "status": {
+                          "const": "UNVALIDATED"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "win-x64": {
+                      "properties": {
+                        "status": {
+                          "enum": [
+                            "PACKED_UNVALIDATED",
+                            "VALIDATED"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "linux-x64": {
+                      "properties": {
+                        "status": {
+                          "const": "UNVALIDATED"
+                        }
+                      }
+                    },
+                    "linux-arm64": {
+                      "properties": {
+                        "status": {
+                          "const": "UNVALIDATED"
+                        }
+                      }
+                    },
+                    "osx-arm64": {
+                      "properties": {
+                        "status": {
+                          "const": "UNVALIDATED"
+                        }
+                      }
+                    },
+                    "osx-x64": {
+                      "properties": {
+                        "status": {
+                          "const": "UNVALIDATED"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
 }

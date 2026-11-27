@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "package": "EmbedPDF.Runtime",
+  "phase": 1,
+  "rid": "linux-x64",
+  "source": {
+    "commit": "8114b02245dbeb5d0a83e96000ee77d9460b5769",
+    "dirty": false,
+    "runtimeFork": "f2ea7597287f26bdcb450602de6616ff6939d506"
+  },
+  "environment": {
+    "kind": "container",
+    "os": "Linux-7.0.0-1020-azure-x86_64-with-glibc2.41",
+    "arch": "x64",
+    "emulated": false,
+    "tools": {
+      "dotnet": "10.0.404",
+      "rustc": "unavailable",
+      "libc": "ldd (Debian GLIBC 2.41-12+deb13u5) 2.41"
+    },
+    "imageId": "sha256:1c2fd3096624441883bc13fd646c376664b3ee8a990fde0f6246e567349512e9",
+    "hostOs": "linux"
+  },
+  "inputs": [
+    {
+      "path": "packages/engine/runtime/engine-runtime-build.json",
+      "sha256": "c61784373df84d53802d370ff58a791e80dd940b4fbc81df204692fb6438b98f",
+      "bytes": 2728
+    },
+    {
+      "path": "pdfium-multiplatform-prototype/fixtures/report.pdf",
+      "sha256": "3662ff519e485810520552bf301d8c3b2b917fd2f83303f4965d7abed367e113",
+      "bytes": 1016315
+    }
+  ],
+  "commands": [
+    {
+      "command": "/usr/bin/python3 /__w/embed-pdf-viewer/embed-pdf-viewer/platforms/dotnet/packaging/package.py smoke-runtime --rid linux-x64 --package /__w/embed-pdf-viewer/embed-pdf-viewer/dotnet-runtime/EmbedPDF.Runtime.0.0.0-engine.06ced45f4c89b5ad.nupkg --facade /__w/embed-pdf-viewer/embed-pdf-viewer/dotnet-runtime/EmbedPDF.0.0.0-dotnet.0.nupkg --manifest /__w/embed-pdf-viewer/embed-pdf-viewer/dotnet-runtime/package-manifest.runtime.json",
+      "cwd": "/__w/embed-pdf-viewer/embed-pdf-viewer",
+      "exitCode": 0,
+      "results": "  Determining projects to restore...\n  Restored /tmp/epdf-runtime-consumer-fjlqh2um/Consumer.csproj (in 2.11 sec).\n  Consumer -> /tmp/epdf-runtime-consumer-fjlqh2um/app-rid/Consumer.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:02.41\nPASS: rid=linux-x64 pages=14\nNativeRuntimeNotFoundException: rid=linux-x64: No EmbedPDF native library could be loaded for runtime 'linux-x64'. Reference EmbedPDF.Runtime, which ships libepdf_viewer_host.so and libembedpdf.so for this runtime, or put both beside the application. Searched: /tmp/epdf-runtime-consumer-fjlqh2um/app-rid/libepdf_viewer_host.so, /tmp/epdf-runtime-consumer-fjlqh2um/app-rid/runtimes/linux-x64/native/libepdf_viewer_host.so.\nNativeRuntimeNotFoundException: rid=linux-x64: The EmbedPDF native library for runtime 'linux-x64' was found but failed to load: /tmp/epdf-runtime-consumer-fjlqh2um/app-rid/libepdf_viewer_host.so. The inner exception has the loader's error.\n  Determining projects to restore...\n  Restored /tmp/epdf-runtime-consumer-fjlqh2um/Consumer.csproj (in 235 ms).\n  Consumer -> /tmp/epdf-runtime-consumer-fjlqh2um/app-portable/Consumer.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:01.60\nPASS: rid=linux-x64 pages=14\nNativeRuntimeNotFoundException: rid=linux-x64: No EmbedPDF native library could be loaded for runtime 'linux-x64'. Reference EmbedPDF.Runtime, which ships libepdf_viewer_host.so and libembedpdf.so for this runtime, or put both beside the application. Searched: /tmp/epdf-runtime-consumer-fjlqh2um/app-portable/libepdf_viewer_host.so, /tmp/epdf-runtime-consumer-fjlqh2um/app-portable/runtimes/linux-x64/native/libepdf_viewer_host.so.\nPASS: RID-specific and portable consumers, missing-host and missing-PDFium checks\n"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "dotnet-runtime/EmbedPDF.Runtime.0.0.0-engine.06ced45f4c89b5ad.nupkg",
+      "sha256": "75e22608f3420f4b130a3bade10dae187a1e0cc0d005cc250a784ffa3bc62e13",
+      "bytes": 96977460
+    },
+    {
+      "path": "dotnet-runtime/EmbedPDF.0.0.0-dotnet.0.nupkg",
+      "sha256": "522bbb7d136c66506b1b8cae20ea52502bb28bd0a3509b986ef886e7cc28c2df",
+      "bytes": 1917271
+    },
+    {
+      "path": "dotnet-runtime/package-manifest.runtime.json",
+      "sha256": "92352532b0661a47ba26502306425c3832f45680ad84231b1b495394dcf5f4fd",
+      "bytes": 6846
+    }
+  ],
+  "limitations": [
+    "Phase 1 checks loading and one document open; the facade API is Phase 2."
+  ]
+}

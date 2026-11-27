@@ -1,0 +1,19 @@
+#nullable enable
+EmbedPDF.Scripting.Jint.JintScriptEngineFactory
+EmbedPDF.Scripting.Jint.JintScriptEngineFactory.Create() -> EmbedPDF.IScriptEngine!
+EmbedPDF.Scripting.Jint.JintScriptEngineFactory.JintScriptEngineFactory(EmbedPDF.Scripting.Jint.JintScriptEngineOptions? options = null) -> void
+EmbedPDF.Scripting.Jint.JintScriptEngineOptions
+EmbedPDF.Scripting.Jint.JintScriptEngineOptions.<Clone>$() -> EmbedPDF.Scripting.Jint.JintScriptEngineOptions!
+EmbedPDF.Scripting.Jint.JintScriptEngineOptions.Equals(EmbedPDF.Scripting.Jint.JintScriptEngineOptions? other) -> bool
+EmbedPDF.Scripting.Jint.JintScriptEngineOptions.JintScriptEngineOptions() -> void
+EmbedPDF.Scripting.Jint.JintScriptEngineOptions.MaxMemoryBytes.get -> long
+EmbedPDF.Scripting.Jint.JintScriptEngineOptions.MaxMemoryBytes.init -> void
+EmbedPDF.Scripting.Jint.JintScriptEngineOptions.RegexTimeout.get -> System.TimeSpan
+EmbedPDF.Scripting.Jint.JintScriptEngineOptions.RegexTimeout.init -> void
+EmbedPDF.Scripting.Jint.JintScriptEngineOptions.ThreadStackBytes.get -> int
+EmbedPDF.Scripting.Jint.JintScriptEngineOptions.ThreadStackBytes.init -> void
+override EmbedPDF.Scripting.Jint.JintScriptEngineOptions.Equals(object? obj) -> bool
+override EmbedPDF.Scripting.Jint.JintScriptEngineOptions.GetHashCode() -> int
+override EmbedPDF.Scripting.Jint.JintScriptEngineOptions.ToString() -> string!
+static EmbedPDF.Scripting.Jint.JintScriptEngineOptions.operator !=(EmbedPDF.Scripting.Jint.JintScriptEngineOptions? left, EmbedPDF.Scripting.Jint.JintScriptEngineOptions? right) -> bool
+static EmbedPDF.Scripting.Jint.JintScriptEngineOptions.operator ==(EmbedPDF.Scripting.Jint.JintScriptEngineOptions? left, EmbedPDF.Scripting.Jint.JintScriptEngineOptions? right) -> bool

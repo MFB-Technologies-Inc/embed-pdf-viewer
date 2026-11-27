@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    UI-neutral models over the EmbedPDF facade
+    (docs/superpowers/plans/2026-11-20-dotnet-parity.md, Phase 4 and D6):
+    INotifyPropertyChanged classes a view of any .NET UI framework binds to.
+    No UI framework reference, no ICommand and no framework bitmap type.
+    The models read a capability's viewer through the facade's internals,
+    as Swift's models use the capabilities' package-level viewer, so this
+    package ships with the exact EmbedPDF version it was built against.
+  -->
+  <PropertyGroup>
+    <AssemblyName>EmbedPDF.Models</AssemblyName>
+    <RootNamespace>EmbedPDF.Models</RootNamespace>
+    <PackageId>EmbedPDF.Models</PackageId>
+    <Version>0.0.0-local</Version>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <Description>Observable, UI-neutral models of an EmbedPDF viewer: reader, search, tools, selection, thumbnails, tiles and panels.</Description>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="EmbedPDF.Models.Tests" />
+    <ProjectReference Include="../EmbedPDF.Viewer/EmbedPDF.Viewer.csproj" />
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0" PrivateAssets="all" />
+    <AdditionalFiles Include="PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
+  </ItemGroup>
+  <!--
+    The models call the facade's internals, so the package depends on the
+    exact EmbedPDF version it was built against: [x.y.z], not NuGet's
+    default minimum. packaging/libraries.py fails the pack otherwise.
+  -->
+  <Target Name="PinExactEmbedPdfVersion" AfterTargets="_GetProjectReferenceVersions">
+    <ItemGroup>
+      <_ProjectReferencesWithVersions Update="@(_ProjectReferencesWithVersions)" Condition="'%(Filename)' == 'EmbedPDF.Viewer'" ProjectVersion="[%(ProjectVersion)]" />
+    </ItemGroup>
+  </Target>
+</Project>

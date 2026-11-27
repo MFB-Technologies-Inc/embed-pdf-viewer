@@ -1,0 +1,160 @@
+using GF = uniffi.epdf_plugin_form;
+using GH = uniffi.epdf_viewer_host;
+using GM = uniffi.epdf_plugin_measurement;
+using GR = uniffi.epdf_plugin_render;
+using GRd = uniffi.epdf_plugin_redaction;
+using GS = uniffi.epdf_plugin_search;
+using GSg = uniffi.epdf_plugin_signature;
+using GSt = uniffi.epdf_plugin_stage;
+using GSp = uniffi.epdf_plugin_stamp;
+
+namespace EmbedPDF;
+
+// Each plugin's settings arrive with its capability in Phase 3; until then a
+// config installs its plugin with the engine's defaults.
+
+public sealed partial record SearchConfig
+{
+    internal GS.SearchConfig ToFfi() => new(Reveal is null ? null : Ffi.ToFfi(Reveal));
+}
+
+public sealed partial record RenderConfig
+{
+    internal GR.RenderConfig ToFfi() => new(FullPage is null ? null : Ffi.ToFfi(FullPage), Debug);
+}
+
+/// <summary>What a callback adapter needs from its viewer: the kernel thread mark and the logger.</summary>
+internal sealed record PluginContext(KernelMark Mark, Microsoft.Extensions.Logging.ILogger Logger);
+
+/// <summary>Installs the stage plugin: the viewport lens, one per document.</summary>
+public sealed record StageConfig
+{
+    /// <summary>Settings over the engine's defaults.</summary>
+    public StageSettingsPatch? Settings { get; init; }
+
+    /// <summary>Responsive rules installed with the plugin.</summary>
+    public IReadOnlyList<StageResponsiveRule>? Responsive { get; init; }
+
+    internal GSt.StageConfig ToFfi() => new(
+        Settings is null ? null : Ffi.ToFfi(Settings),
+        Responsive is null ? null : [.. Arguments.NoNullElements(Responsive, nameof(Responsive)).Select(Ffi.ToFfi)]);
+}
+
+/// <summary>Installs the form plugin. Needs <see cref="PdfViewerOptions.Interaction"/>.</summary>
+public sealed record FormConfig
+{
+    /// <summary>Whether the document's form scripts run; left out takes the engine's default.</summary>
+    public FormValidation? Validation { get; init; }
+
+    internal GF.FormConfig ToFfi() => new(Validation is { } v ? Ffi.ToFfi(v) : null);
+}
+
+/// <summary>
+/// Installs the redaction plugin. Needs <see cref="PdfViewerOptions.Annotation"/>.
+/// It is also the patch <see cref="RedactionCapability.UpdateSettingsAsync"/>
+/// takes: a member left <see langword="null"/> keeps its value.
+/// </summary>
+public sealed record RedactionConfig
+{
+    /// <summary>CSS hex colour applied redactions are filled with.</summary>
+    public string? Fill { get; init; }
+
+    /// <summary>The label drawn over applied redactions.</summary>
+    public RedactionOverlayText? OverlayText { get; init; }
+
+    internal GRd.RedactionConfig ToFfi() => new(Fill, OverlayText is null ? null : Ffi.ToFfi(OverlayText));
+}
+
+/// <summary>
+/// Installs the measurement plugin. Needs <see cref="PdfViewerOptions.Interaction"/>
+/// and <see cref="PdfViewerOptions.Annotation"/>. It is also the patch
+/// <see cref="MeasurementCapability.UpdateSettingsAsync"/> takes: a member
+/// left <see langword="null"/> keeps its value.
+/// </summary>
+public sealed record MeasurementConfig
+{
+    /// <summary>The scale a page without one of its own measures in.</summary>
+    public MeasurementDefaultScale? DefaultScale { get; init; }
+
+    /// <summary>The scale presets offered for a page.</summary>
+    public IReadOnlyList<ScalePreset>? Presets { get; init; }
+
+    internal GM.MeasurementConfig ToFfi() => new(
+        DefaultScale is null ? null : Ffi.ToFfi(DefaultScale),
+        Presets is null ? null : [.. Arguments.NoNullElements(Presets, nameof(Presets)).Select(Ffi.ToFfi)]);
+}
+
+/// <summary>
+/// Installs the stamp plugin; placing also needs <see cref="PdfViewerOptions.Interaction"/>
+/// and <see cref="PdfViewerOptions.Annotation"/>. It is also the patch
+/// <see cref="StampCapability.UpdateSettingsAsync"/> takes: a member left
+/// <see langword="null"/> keeps its value.
+/// </summary>
+public sealed record StampConfig
+{
+    /// <summary>Cached preview width in device pixels; the engine's default is 256.</summary>
+    public double? PreviewWidth { get; init; }
+
+    /// <summary>Whether form-backed assets are evaluated when armed; the engine's default is <see langword="true"/>. Scripting is the target document's actions plugin's switch.</summary>
+    public bool? Dynamic { get; init; }
+
+    internal GSp.StampConfig ToFfi() => new(PreviewWidth is { } w ? Ffi.Finite(w, "preview width") : null, Dynamic);
+}
+
+/// <summary>Installs the signature plugin. Needs <see cref="PdfViewerOptions.Interaction"/> and <see cref="PdfViewerOptions.Form"/>.</summary>
+public sealed record SignatureConfig
+{
+    /// <summary>What placing a mark on a field does; left out, it is <see cref="SignatureMode.Sign"/> while a signer is set and <see cref="SignatureMode.Visual"/> otherwise.</summary>
+    public SignatureMode? Mode { get; init; }
+
+    /// <summary>Whether certifying signatures are allowed.</summary>
+    public bool? AllowCertify { get; init; }
+
+    /// <summary>The timestamp authority signings ask, over <see cref="PdfViewer.SetSignatureTransport"/>.</summary>
+    public SignatureTimestampAuthority? TimestampAuthority { get; init; }
+
+    /// <summary>The revocation route <see cref="SignatureCapability.AddValidationInfoAsync"/> asks, over the same transport.</summary>
+    public SignatureRevocationRoute? Revocation { get; init; }
+
+    /// <summary>Whether a long-term fill ends with a document timestamp.</summary>
+    public bool? DocumentTimestamp { get; init; }
+
+    internal GSg.SignatureConfig ToFfi() => new(
+        Mode is { } mode ? (GSg.SignatureMode)(int)Ffi.Defined(mode, "signature mode") : null, AllowCertify,
+        TimestampAuthority is null ? null : Ffi.ToFfi(TimestampAuthority), Revocation is null ? null : Ffi.ToFfi(Revocation), DocumentTimestamp);
+}
+
+/// <summary>An owner's standard command list, for <see cref="PdfViewerOptions.StandardCommands"/>.</summary>
+public enum StandardCommandList
+{
+    /// <summary>Zoom, the page moves and view rotation.</summary>
+    Stage,
+    /// <summary><c>tool:pointer</c>, <c>tool:pan</c>, <c>tool:zoom</c>, and <c>tool:&lt;id&gt;</c> for every other tool.</summary>
+    Interaction,
+    /// <summary><c>selection:copy</c>.</summary>
+    Selection,
+    /// <summary><c>annotation:delete</c>.</summary>
+    Annotation,
+    /// <summary><c>history:undo</c> and <c>history:redo</c>.</summary>
+    History,
+    /// <summary>The snapshot tool, and copy, save and clear for the snapshot.</summary>
+    Render,
+    /// <summary><c>document:download</c> and <c>document:print</c>.</summary>
+    Document,
+}
+
+internal static class StandardCommandListMapping
+{
+    internal static GH.StandardCommandList ToFfi(this StandardCommandList list) =>
+        list switch
+        {
+            StandardCommandList.Stage => GH.StandardCommandList.Stage,
+            StandardCommandList.Interaction => GH.StandardCommandList.Interaction,
+            StandardCommandList.Selection => GH.StandardCommandList.Selection,
+            StandardCommandList.Annotation => GH.StandardCommandList.Annotation,
+            StandardCommandList.History => GH.StandardCommandList.History,
+            StandardCommandList.Render => GH.StandardCommandList.Render,
+            StandardCommandList.Document => GH.StandardCommandList.Document,
+            _ => throw Ffi.Undefined(list, "standard command list"),
+        };
+}

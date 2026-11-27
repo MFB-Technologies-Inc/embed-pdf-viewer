@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    A console app over the EmbedPDF packages: open, search, render to PNG,
+    annotate, save, and one model. It restores the EmbedPDF packages from a
+    feed, never from project references; platforms/dotnet/dotnet-consumer.sh
+    packs them into a local feed, builds this project against it, and runs
+    it framework-dependent and as a NativeAOT binary.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>EmbedPDF.Sample.Console</AssemblyName>
+    <RootNamespace>EmbedPDF.Sample</RootNamespace>
+    <EmbedPdfVersion Condition="'$(EmbedPdfVersion)' == ''">0.0.0-local</EmbedPdfVersion>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <!--
+      A NativeAOT publish reports IL2026 from Jint.Options.Apply and
+      DefaultTypeConverter.BuildDelegate, and IL2104 and IL3053 for the Jint
+      assembly: its CLR interop paths, which EmbedPDF.Scripting.Jint never
+      enables. They stay warnings here; dotnet-consumer.sh fails on any other
+      trim or AOT warning, and on these three naming an EmbedPDF assembly.
+    -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);IL2026;IL2104;IL3053</WarningsNotAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="EmbedPDF" Version="$(EmbedPdfVersion)" />
+    <PackageReference Include="EmbedPDF.Models" Version="$(EmbedPdfVersion)" />
+    <PackageReference Include="EmbedPDF.Extensions.DependencyInjection" Version="$(EmbedPdfVersion)" />
+    <PackageReference Include="EmbedPDF.Scripting.Jint" Version="$(EmbedPdfVersion)" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+  </ItemGroup>
+</Project>

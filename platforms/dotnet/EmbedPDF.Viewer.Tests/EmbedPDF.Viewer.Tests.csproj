@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Tests for the EmbedPDF facade. The generated bindings are internal, so the
+    facade grants this assembly InternalsVisibleTo. The viewer host is copied
+    from EpdfViewerNativeDir (default target/release/, the library
+    generate-bindings.sh reads); that build finds its PDFium through the
+    build tree's runpath.
+  -->
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+    <RepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../../'))</RepoRoot>
+    <EpdfViewerNativeDir Condition="'$(EpdfViewerNativeDir)' == ''">$(RepoRoot)target/release/</EpdfViewerNativeDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1"/>
+    <PackageReference Include="xunit" Version="2.9.3"/>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0"/>
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4"/>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../EmbedPDF.Viewer/EmbedPDF.Viewer.csproj"/>
+    <ProjectReference Include="../EmbedPDF.Extensions.DependencyInjection/EmbedPDF.Extensions.DependencyInjection.csproj"/>
+    <ProjectReference Include="../EmbedPDF.Scripting.Jint/EmbedPDF.Scripting.Jint.csproj"/>
+    <!-- A locale pack for the embedded-resource loader, as the Swift suite bundles it. -->
+    <EmbeddedResource Include="Locales/*.json" LogicalName="Locales.%(Filename)%(Extension)"/>
+    <!-- A trust anchor for the embedded-resource loader: the TEST-ONLY certificate. -->
+    <EmbeddedResource Include="$(RepoRoot)packages/engine/main/test/fixtures/signature-compat/keys/TEST-ONLY-signer.pem" LogicalName="Anchors.TEST-ONLY-signer.pem"/>
+    <None Include="$(EpdfViewerNativeDir)libepdf_viewer_host.so" Link="libepdf_viewer_host.so" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(EpdfViewerNativeDir)libepdf_viewer_host.so')"/>
+    <None Include="$(EpdfViewerNativeDir)libepdf_viewer_host.dylib" Link="libepdf_viewer_host.dylib" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(EpdfViewerNativeDir)libepdf_viewer_host.dylib')"/>
+    <None Include="$(EpdfViewerNativeDir)epdf_viewer_host.dll" Link="epdf_viewer_host.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(EpdfViewerNativeDir)epdf_viewer_host.dll')"/>
+  </ItemGroup>
+</Project>

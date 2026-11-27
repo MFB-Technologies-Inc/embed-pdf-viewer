@@ -25,6 +25,7 @@ members = [
   "crates/epdf-node",
   "crates/test-support",
   "crates/uniffi-bindgen",
+  "crates/uniffi-bindgen-cs",
   # The plugin layer (multiplatform-plugins-plan.md). None of these link
   # PDFium: the plugins' engine is the engine-core contract, and the
   # conformance harness answers it from a table.

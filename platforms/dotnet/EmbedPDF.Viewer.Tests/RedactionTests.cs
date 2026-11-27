@@ -1,0 +1,289 @@
+using Xunit;
+
+namespace EmbedPDF.Viewer.Tests;
+
+/// <summary>The port of RedactionTests.swift.</summary>
+public sealed class RedactionTests
+{
+    static readonly CancellationToken Cancelled = new(true);
+    static readonly PdfRect Area = new(72, 72, 200, 20);
+
+    static async Task<(PdfViewer Viewer, DocumentInfo Document, RedactionCapability Redaction, SearchCapability Search)> Opened()
+    {
+        var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions
+        {
+            Search = new SearchConfig(), Interaction = true, Annotation = "", Redaction = new RedactionConfig(),
+        });
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        using (var annotations = await viewer.GetAnnotationAsync(document)) await annotations.RefreshAsync();
+        return (viewer, document, await viewer.GetRedactionAsync(document), await viewer.GetSearchAsync(document));
+    }
+
+    /// <summary>A pending mark on the first page.</summary>
+    static async Task<(PdfViewer Viewer, RedactionCapability Redaction, AnnotationRef Mark, PageRef Page)> Marked()
+    {
+        var (viewer, document, redaction, _) = await Opened();
+        var page = (await viewer.GetPagesAsync(document))[0].Page;
+        var mark = await redaction.MarkAreaAsync(Area, page);
+        return (viewer, redaction, mark.AnnotationRef, page);
+    }
+
+    /// <summary>Runs <paramref name="call"/> with a token cancelled at once: it finishes or throws <see cref="OperationCanceledException"/>.</summary>
+    internal static async Task FinishesOrCancels(Func<CancellationToken, Task> call)
+    {
+        using var source = new CancellationTokenSource();
+        var running = call(source.Token);
+        await source.CancelAsync();
+        try
+        {
+            await running;
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    [Fact]
+    public async Task MarkingAnAreaIsPendingAndObserved()
+    {
+        var (viewer, document, redaction, _) = await Opened();
+        await using var _v = viewer;
+        var page = (await viewer.GetPagesAsync(document))[0].Page;
+        var events = redaction.ObserveEvents();
+        var mark = await redaction.MarkAreaAsync(Area, page);
+        Assert.Equal([mark], await redaction.GetPendingAsync(page));
+        await Fixture.First(events, e => e as RedactionEvent.PendingChanged);
+        await redaction.UnmarkAsync([mark.AnnotationRef]);
+        Assert.Equal(0, await redaction.GetPendingCountAsync(page));
+    }
+
+    [Fact]
+    public async Task ApplyingMatchesRemovesTheText()
+    {
+        var (viewer, _, redaction, search) = await Opened();
+        await using var _v = viewer;
+        Assert.True(await redaction.CanApplyAsync());
+        var before = await search.FindAllAsync(new SearchQuery("Report"));
+        var page = before[0].Page;
+        var marks = await redaction.MarkMatchesAsync(new SearchQuery("Report"), [page]);
+        Assert.NotEmpty(marks);
+        var result = await redaction.ApplyPagesAsync([page]);
+        Assert.Equal(RedactionPageStatus.Applied, result.Results[0].Status);
+        var after = await search.FindAllAsync(new SearchQuery("Report"));
+        Assert.All(after, hit => Assert.NotEqual(page, hit.Page));
+    }
+
+    /// <summary>The applied redaction is in the written file: reopened, the page no longer has the text.</summary>
+    [Theory]
+    [InlineData(SaveMode.Rewrite)]
+    [InlineData(SaveMode.Incremental)]
+    public async Task AnAppliedRedactionSurvivesSaveAndReopen(SaveMode mode)
+    {
+        var (viewer, document, redaction, search) = await Opened();
+        await using var _v = viewer;
+        var page = (await search.FindAllAsync(new SearchQuery("Report")))[0];
+        await redaction.MarkMatchesAsync(new SearchQuery("Report"), [page.Page]);
+        Assert.Equal(RedactionPageStatus.Applied, (await redaction.ApplyPagesAsync([page.Page])).Results[0].Status);
+        var saved = await viewer.SaveAsync(document, mode);
+
+        await using var reopened = await PdfViewer.CreateAsync(new PdfViewerOptions { Search = new SearchConfig() });
+        var copy = await reopened.OpenAsync(saved);
+        using var again = await reopened.GetSearchAsync(copy);
+        Assert.DoesNotContain(await again.FindAllAsync(new SearchQuery("Report")), hit => hit.PageIndex == page.PageIndex);
+        Assert.Equal((await viewer.GetPagesAsync(document)).Count, (await reopened.GetPagesAsync(copy)).Count);
+    }
+
+    [Fact]
+    public async Task AClosedDocumentsCapabilityThrows()
+    {
+        var (viewer, document, redaction, _) = await Opened();
+        await using var _v = viewer;
+        await viewer.CloseAsync(document);
+        var error = await Assert.ThrowsAsync<PdfException>(() => redaction.GetPendingAsync());
+        Assert.Equal(PdfErrorCode.InstanceClosed, error.Code);
+        Assert.Equal("PluginError", error.Name);
+    }
+
+    [Fact]
+    public async Task DroppingTheStreamUnsubscribes()
+    {
+        var (viewer, _, redaction, _) = await Opened();
+        await using var _v = viewer;
+        using var stop = new CancellationTokenSource();
+        var reading = Task.Run(async () =>
+        {
+            try
+            {
+                await foreach (var _ in redaction.ObserveEvents(stop.Token)) { }
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        });
+        await Task.Delay(20);
+        await stop.CancelAsync();
+        await reading.WaitAsync(TimeSpan.FromSeconds(5));
+        await redaction.GetPendingAsync();
+    }
+
+    [Fact]
+    public async Task ApplyAllCancelsWhenTheTaskIsCancelled()
+    {
+        var (viewer, _, redaction, _) = await Opened();
+        await using var _v = viewer;
+        await FinishesOrCancels(token => redaction.ApplyAllAsync(token));
+        await redaction.GetPendingAsync();
+    }
+
+    [Fact]
+    public async Task MarkMatchesCancelsWhenTheTaskIsCancelled()
+    {
+        var (viewer, _, redaction, _) = await Opened();
+        await using var _v = viewer;
+        // Cancelled before it is posted, as Swift's task cancelled at once is.
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => redaction.MarkMatchesAsync(new SearchQuery("e"), null, Cancelled));
+        await redaction.GetPendingAsync();
+    }
+
+    [Fact]
+    public async Task MarkMatchesStopsWhenCancelledMidCall()
+    {
+        var (viewer, _, redaction, search) = await Opened();
+        await using var _v = viewer;
+        // Every hit of "e" on report.pdf: an uncancelled mark makes one per hit,
+        // which takes far longer than the cancel below allows.
+        var hits = (await search.FindAllAsync(new SearchQuery("e"), ContentInclusion.Never)).Count;
+        Assert.True(hits > 100, $"only {hits} hits");
+        using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(300));
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        IReadOnlyList<RedactionMark>? marks = null;
+        try
+        {
+            marks = await redaction.MarkMatchesAsync(new SearchQuery("e"), null, cancel.Token);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(5), $"the cancel took {clock.Elapsed}");
+        // A cancel before the search finds a hit resolves with no marks rather
+        // than throwing, which a slow runner can hit; either way it never marks every hit.
+        if (marks is not null) Assert.True(marks.Count < hits, $"{marks.Count} of {hits} marked");
+        Assert.True(await redaction.GetPendingCountAsync() < hits);
+    }
+
+    [Fact]
+    public async Task MarkSelectionCancelsBeforeItStarts()
+    {
+        var (viewer, redaction, _, _) = await Marked();
+        await using var _v = viewer;
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => redaction.MarkSelectionAsync(Cancelled));
+    }
+
+    [Fact]
+    public async Task MarkAreaCancelsBeforeItStarts()
+    {
+        var (viewer, redaction, _, page) = await Marked();
+        await using var _v = viewer;
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => redaction.MarkAreaAsync(new PdfRect(72, 200, 50, 20), page, Cancelled));
+        Assert.Equal(1, await redaction.GetPendingCountAsync(page));
+    }
+
+    [Fact]
+    public async Task MarkPageCancelsBeforeItStarts()
+    {
+        var (viewer, redaction, _, page) = await Marked();
+        await using var _v = viewer;
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => redaction.MarkPageAsync(page, Cancelled));
+    }
+
+    [Fact]
+    public async Task UnmarkCancelsBeforeItStarts()
+    {
+        var (viewer, redaction, mark, page) = await Marked();
+        await using var _v = viewer;
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => redaction.UnmarkAsync([mark], Cancelled));
+        Assert.Equal(1, await redaction.GetPendingCountAsync(page));
+    }
+
+    [Fact]
+    public async Task ClearPendingCancelsBeforeItStarts()
+    {
+        var (viewer, redaction, _, _) = await Marked();
+        await using var _v = viewer;
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => redaction.ClearPendingAsync(Cancelled));
+    }
+
+    [Fact]
+    public async Task UpdateLabelCancelsBeforeItStarts()
+    {
+        var (viewer, redaction, mark, _) = await Marked();
+        await using var _v = viewer;
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => redaction.UpdateLabelAsync(mark, new RedactionLabelPatch { OverlayText = "X" }, Cancelled));
+    }
+
+    [Fact]
+    public async Task ApplyCancelsBeforeItStarts()
+    {
+        var (viewer, redaction, mark, page) = await Marked();
+        await using var _v = viewer;
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => redaction.ApplyAsync([mark], Cancelled));
+        Assert.Equal(1, await redaction.GetPendingCountAsync(page));
+    }
+
+    [Fact]
+    public async Task ApplyPagesCancelsBeforeItStarts()
+    {
+        var (viewer, redaction, _, page) = await Marked();
+        await using var _v = viewer;
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => redaction.ApplyPagesAsync([page], Cancelled));
+    }
+
+    [Fact]
+    public async Task MarkingTheSelectionCreatesOneMarkPerPage()
+    {
+        await using var viewer = await PdfViewer.CreateAsync(new PdfViewerOptions
+        {
+            Interaction = true, Selection = true, Annotation = "", Redaction = new RedactionConfig(),
+        });
+        var document = await viewer.OpenAsync(Fixture.Data("report"));
+        using (var annotations = await viewer.GetAnnotationAsync(document)) await annotations.RefreshAsync();
+        var page = (await viewer.GetPagesAsync(document))[0].Page;
+        using var selection = await viewer.GetSelectionAsync(document);
+        await selection.EnsureLoadedAsync(page);
+        await selection.SelectPageAsync(page);
+        using var redaction = await viewer.GetRedactionAsync(document);
+        Assert.Single(await redaction.MarkSelectionAsync());
+    }
+
+    [Fact]
+    public async Task ALabelAndTheSettingsRoundTrip()
+    {
+        var (viewer, redaction, mark, page) = await Marked();
+        await using var _v = viewer;
+        Assert.True(await redaction.CanUpdateLabelAsync(mark));
+        var labelled = await redaction.UpdateLabelAsync(mark, new RedactionLabelPatch { OverlayText = "Withheld", Repeat = true });
+        Assert.Equal("Withheld", labelled.OverlayText);
+        Assert.True(labelled.Repeat);
+        Assert.Equal(labelled, await redaction.GetPendingItemAsync(mark));
+        var collateral = await redaction.EstimateCollateralAsync([mark]);
+        Assert.Equal(collateral.Refs.Count, collateral.Count);
+        await redaction.UpdateSettingsAsync(new RedactionConfig { Fill = "#ff0000", OverlayText = new RedactionOverlayText { FontSize = 9 } });
+        var settings = await redaction.GetSettingsAsync();
+        Assert.Equal("#ff0000", settings.Fill);
+        Assert.Equal(9, settings.OverlayText.FontSize);
+        await redaction.ResetSettingsAsync();
+        Assert.NotEqual("#ff0000", (await redaction.GetSettingsAsync()).Fill);
+        var applied = await redaction.ApplyAsync([mark]);
+        Assert.Equal(applied.OpId, (await redaction.GetLastResultAsync())?.OpId);
+        // The pending count reads the annotation store's page lists, which can
+        // lag the apply: it read 1 just after ApplyAsync returned in
+        // release-dotnet run 45875026242. It reaches 0 without another call.
+        var count = await redaction.GetPendingCountAsync(page);
+        for (var i = 0; i < 100 && count != 0; i++)
+        {
+            await Task.Delay(50);
+            count = await redaction.GetPendingCountAsync(page);
+        }
+        Assert.Equal(0, count);
+    }
+}

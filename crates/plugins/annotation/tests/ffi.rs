@@ -5,10 +5,13 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
-use epdf_ffi::{AnnotationRef, CancelToken, KernelThread, PageRef, ResourceStatus, ViewerError};
+use epdf_ffi::{
+    AnnotationRef, CancelToken, KernelThread, PageRef, Point, ResourceStatus, ViewerError,
+};
 use epdf_plugin_annotation::ffi::{
-    AnnotationEvent, AnnotationEventListener, AnnotationFilter, AnnotationHandle,
-    AnnotationStampPlacement, AnnotationStampSource, AnnotationTextFormat, AnnotationThreadStatus,
+    AnnotationDuplicateOptions, AnnotationEvent, AnnotationEventListener, AnnotationFilter,
+    AnnotationHandle, AnnotationRemeasureSkipReason, AnnotationStampPlacement,
+    AnnotationStampSource, AnnotationTextFormat, AnnotationThreadStatus,
 };
 use epdf_plugin_annotation::{ANNOTATION, annotation_plugin};
 use epdf_plugin_interaction::{InteractionConfig, interaction_plugin};
@@ -210,11 +213,28 @@ fn answer(op: &Value, op_id: &str) -> Result<(Value, Value), epdf_kernel::Error>
                                 "meta": meta(json!([ref_json(n)])), "origin": local_origin(op_id) });
             Ok((item, event))
         }
+        Some("annotations.copy") => {
+            // A square per ref, under the object numbers the op took, moved by its offset.
+            let numbers = op["objectNumbers"].as_array().cloned().unwrap_or_default();
+            let dx = op["offset"]["x"].as_f64().unwrap_or(0.0);
+            let copies: Vec<Value> = numbers
+                .iter()
+                .filter_map(|n| n.as_u64())
+                .map(|n| {
+                    square(n as u32, json!({ "rect": { "x": 100.0 + dx, "y": 100, "width": 100, "height": 100 } }))
+                })
+                .collect();
+            let made: Vec<Value> = copies.iter().map(|c| c["ref"].clone()).collect();
+            let item = json!({ "type": "annotations.copy", "annotations": copies, "dropped": [],
+                               "meta": meta(json!(made)) });
+            Ok((item, Value::Null))
+        }
         _ => Ok((json!({ "type": op["type"], "meta": meta(json!([])) }), Value::Null)),
     }
 }
 
-fn spec(annotations: Vec<Value>) -> TestSpec {
+/// The document with `annotations` listed and no `apply` responder.
+fn listing(annotations: Vec<Value>) -> TestSpec {
     let page = json!({
         "index": 0, "ref": page_json(), "label": null, "size": { "width": 600, "height": 800 },
         "rotation": 0, "userUnit": 1, "tabOrder": null,
@@ -228,7 +248,10 @@ fn spec(annotations: Vec<Value>) -> TestSpec {
         "objectNumbers": [10, 11, 12, 13, 14, 15]
     } } }))
     .respond("annotations.list", move |_| Ok(Reply::value(listed.clone())))
-    .respond("apply", |args| {
+}
+
+fn spec(annotations: Vec<Value>) -> TestSpec {
+    listing(annotations).respond("apply", |args| {
         let ops = args[0]["ops"].as_array().cloned().unwrap_or_default();
         let op_id = "00000000-0000-7000-8000-000000000001";
         let mut items = Vec::new();
@@ -693,4 +716,271 @@ fn creating_from_the_selection_answers_the_created_refs() {
     for made in &refs {
         assert!(listed.iter().any(|a| &a.annotation_ref == made), "{made:?} is not listed");
     }
+}
+
+fn sent_of(thread: &KernelThread<TestKernel>, kind: &str) -> Vec<Value> {
+    sent_ops(thread).into_iter().filter(|op| op["type"] == kind).collect()
+}
+
+#[test]
+fn duplicating_answers_the_copies_and_sends_one_copy_op() {
+    let (thread, annotations) = handle_over(vec![square(5, json!({})), square(6, json!({}))]);
+    block_on(annotations.refresh(token())).unwrap();
+    let options = AnnotationDuplicateOptions {
+        offset: Some(Point { x: 10.0, y: 10.0 }),
+        ..Default::default()
+    };
+    let result = block_on(annotations.duplicate(vec![obj(5), obj(6)], options, token())).unwrap();
+    let copies: Vec<AnnotationRef> =
+        result.annotations.iter().map(|a| a.annotation_ref.clone()).collect();
+    assert_eq!(copies.len(), 2, "{result:?}");
+    assert!(!copies.contains(&obj(5)) && !copies.contains(&obj(6)), "{copies:?}");
+    assert_eq!(result.dropped_json, "[]");
+    let ops = sent_of(&thread, "annotations.copy");
+    assert_eq!(ops.len(), 1, "{ops:?}");
+    assert_eq!(ops[0]["refs"].as_array().map(Vec::len), Some(2));
+    assert_eq!(ops[0]["offset"], json!({ "x": 10.0, "y": 10.0 }));
+}
+
+#[test]
+fn duplicating_nothing_sends_nothing() {
+    let (thread, annotations) = handle_over(vec![square(5, json!({}))]);
+    block_on(annotations.refresh(token())).unwrap();
+    let result =
+        block_on(annotations.duplicate(vec![], AnnotationDuplicateOptions::default(), token()))
+            .unwrap();
+    assert!(result.annotations.is_empty());
+    assert!(sent_ops(&thread).is_empty());
+}
+
+#[test]
+fn duplicating_a_missing_annotation_is_not_found() {
+    let (thread, annotations) = handle_over(vec![square(5, json!({}))]);
+    block_on(annotations.refresh(token())).unwrap();
+    let error = block_on(annotations.duplicate(
+        vec![obj(77)],
+        AnnotationDuplicateOptions::default(),
+        token(),
+    ))
+    .unwrap_err();
+    assert_eq!(code(&error), Some("not-found"), "{error:?}");
+    assert!(sent_of(&thread, "annotations.copy").is_empty());
+}
+
+#[test]
+fn can_duplicate_is_false_for_a_locked_or_missing_annotation() {
+    let (_thread, annotations) =
+        handle_over(vec![square(5, json!({})), square(6, json!({ "locked": true }))]);
+    block_on(annotations.refresh(token())).unwrap();
+    assert!(block_on(annotations.can_duplicate(vec![obj(5)])).unwrap());
+    assert!(!block_on(annotations.can_duplicate(vec![obj(6)])).unwrap());
+    assert!(!block_on(annotations.can_duplicate(vec![obj(5), obj(6)])).unwrap());
+    assert!(!block_on(annotations.can_duplicate(vec![obj(77)])).unwrap());
+    assert!(!block_on(annotations.can_duplicate(vec![])).unwrap());
+}
+
+#[test]
+fn a_square_is_movable_and_a_missing_one_is_not() {
+    let (_thread, annotations) = handle_over(vec![square(5, json!({}))]);
+    block_on(annotations.refresh(token())).unwrap();
+    assert!(block_on(annotations.is_movable(obj(5))).unwrap());
+    assert!(!block_on(annotations.is_movable(obj(77))).unwrap());
+}
+
+#[test]
+fn the_selection_duplicates_and_reports_whether_it_can() {
+    let (thread, annotations) = handle_over(vec![square(5, json!({}))]);
+    block_on(annotations.refresh(token())).unwrap();
+    let selection = annotations.selection();
+    assert!(!block_on(selection.can_duplicate()).unwrap());
+    let nothing = block_on(selection.duplicate(None, token())).unwrap();
+    assert!(nothing.annotations.is_empty());
+    assert!(sent_ops(&thread).is_empty());
+    block_on(selection.select(vec![obj(5)], None)).unwrap();
+    assert!(block_on(selection.can_duplicate()).unwrap());
+    let result = block_on(selection.duplicate(Some(Point { x: 20.0, y: 0.0 }), token())).unwrap();
+    assert_eq!(result.annotations.len(), 1, "{result:?}");
+    assert_ne!(result.annotations[0].annotation_ref, obj(5));
+    assert_eq!(sent_of(&thread, "annotations.copy")[0]["offset"], json!({ "x": 20.0, "y": 0.0 }));
+}
+
+/// A rectilinear scale: 1 in on the page is `feet` ft.
+fn scale_json(feet: f64) -> String {
+    let format = |unit: &str, c: f64| json!({ "unit": unit, "conversion": c, "precision": 100 });
+    json!({ "subtype": "rectilinear", "ratio": format!("1 in = {feet} ft"),
+        "x": [format("ft", feet / 72.0)], "distance": [format("ft", 1.0)],
+        "area": [format("sq ft", 1.0)] })
+    .to_string()
+}
+
+#[test]
+fn remeasuring_a_page_without_measurements_updates_nothing() {
+    let (thread, annotations) = handle_over(vec![square(5, json!({}))]);
+    block_on(annotations.refresh(token())).unwrap();
+    block_on(annotations.when_remeasurable(token())).unwrap();
+    let page = PageRef { page_object_number: 1 };
+    let report = block_on(annotations.stage_remeasure(page, scale_json(2.0))).unwrap();
+    assert_eq!(report.page, page);
+    assert!(report.updated.is_empty() && report.skipped.is_empty() && report.failed.is_empty());
+    assert_eq!(report.error, None);
+    assert!(sent_ops(&thread).is_empty());
+}
+
+#[test]
+fn remeasuring_before_the_annotations_load_reports_an_error() {
+    let thread = KernelThread::spawn(|_| {
+        // `annotations.list` never answers, so the records never load.
+        let mut engine = spec(vec![]).engine;
+        engine["documents"]["a"]["responses"] =
+            json!([{ "path": "annotations.list", "defer": "list" }]);
+        TestKernel::open(
+            vec![interaction_plugin(InteractionConfig::default()), annotation_plugin(None)],
+            TestSpec::new(engine),
+        )
+    })
+    .unwrap();
+    let post = thread.post();
+    let annotations = block_on(
+        thread.call(move |k| AnnotationHandle::new(k.capability(&ANNOTATION).unwrap(), post)),
+    )
+    .unwrap();
+    let report =
+        block_on(annotations.stage_remeasure(PageRef { page_object_number: 1 }, scale_json(2.0)))
+            .unwrap();
+    assert!(report.error.is_some(), "{report:?}");
+    assert!(report.updated.is_empty());
+}
+
+#[test]
+fn a_scale_that_is_not_an_object_is_invalid_input() {
+    let (_thread, annotations) = handle_over(vec![]);
+    let error =
+        block_on(annotations.stage_remeasure(PageRef { page_object_number: 1 }, "[1]".into()))
+            .unwrap_err();
+    assert_eq!(code(&error), Some("invalid-input"), "{error:?}");
+}
+
+/// A handle whose engine holds every `apply` until it is settled or aborted.
+fn handle_deferring_apply(
+    annotations: Vec<Value>,
+) -> (KernelThread<TestKernel>, Arc<AnnotationHandle>) {
+    let thread = KernelThread::spawn(move |_| {
+        let mut spec = listing(annotations);
+        spec.engine["documents"]["a"]["responses"] = json!([{ "path": "apply", "defer": "apply" }]);
+        TestKernel::open(
+            vec![interaction_plugin(InteractionConfig::default()), annotation_plugin(None)],
+            spec,
+        )
+    })
+    .unwrap();
+    let post = thread.post();
+    let handle = block_on(
+        thread.call(move |k| AnnotationHandle::new(k.capability(&ANNOTATION).unwrap(), post)),
+    )
+    .unwrap();
+    (thread, handle)
+}
+
+/// Poll `call` until the engine holds its `apply`, cancel `token`, and
+/// expect `operation-cancelled`.
+fn cancel_mid_apply<T: std::fmt::Debug>(
+    thread: &KernelThread<TestKernel>,
+    call: impl std::future::Future<Output = Result<T, ViewerError>>,
+    token: Arc<CancelToken>,
+) {
+    use std::task::{Context, Poll};
+    let mut call = Box::pin(call);
+    let mut cx = Context::from_waker(futures::task::noop_waker_ref());
+    assert!(call.as_mut().poll(&mut cx).is_pending());
+    let applying =
+        block_on(thread.call(|k| k.engine.log_since(0).iter().any(|e| e["path"] == "apply")))
+            .unwrap();
+    assert!(applying, "the copy never reached the engine");
+    token.cancel();
+    block_on(thread.call(|_| ())).unwrap();
+    match call.as_mut().poll(&mut cx) {
+        Poll::Ready(Err(error)) => {
+            assert_eq!(code(&error), Some("operation-cancelled"), "{error:?}")
+        }
+        other => panic!("the cancel did not end the call: {other:?}"),
+    }
+}
+
+#[test]
+fn cancelling_a_duplicate_while_the_engine_copies_ends_it() {
+    let (thread, annotations) = handle_deferring_apply(vec![square(5, json!({}))]);
+    block_on(annotations.refresh(token())).unwrap();
+    let cancel = token();
+    let call =
+        annotations.duplicate(vec![obj(5)], AnnotationDuplicateOptions::default(), cancel.clone());
+    cancel_mid_apply(&thread, call, cancel);
+}
+
+#[test]
+fn cancelling_a_selection_duplicate_while_the_engine_copies_ends_it() {
+    let (thread, annotations) = handle_deferring_apply(vec![square(5, json!({}))]);
+    block_on(annotations.refresh(token())).unwrap();
+    let selection = annotations.selection();
+    block_on(selection.select(vec![obj(5)], None)).unwrap();
+    let cancel = token();
+    let call = selection.duplicate(None, cancel.clone());
+    cancel_mid_apply(&thread, call, cancel);
+}
+
+/// A line dimension with `extra` over it.
+fn dimension(annot: u32, extra: Value) -> Value {
+    let mut line = square(
+        annot,
+        json!({ "subtype": "line", "intent": "line-dimension",
+        "measure": serde_json::from_str::<Value>(&scale_json(1.0)).unwrap() }),
+    );
+    if let (Value::Object(line), Value::Object(extra)) = (&mut line, extra) {
+        line.extend(extra);
+    }
+    line
+}
+
+#[test]
+fn remeasuring_reports_each_measurement_it_skips_and_why() {
+    let (thread, annotations) = handle_over(vec![
+        dimension(5, json!({ "locked": true })),
+        dimension(6, json!({ "measure": { "subtype": "geospatial" } })),
+        // No line points: there is nothing to read at the new scale.
+        dimension(7, json!({})),
+    ]);
+    block_on(annotations.refresh(token())).unwrap();
+    let report =
+        block_on(annotations.stage_remeasure(PageRef { page_object_number: 1 }, scale_json(2.0)))
+            .unwrap();
+    let reasons: Vec<(AnnotationRef, AnnotationRemeasureSkipReason)> =
+        report.skipped.iter().map(|s| (s.annotation_ref.clone(), s.reason)).collect();
+    assert_eq!(
+        reasons,
+        vec![
+            (obj(5), AnnotationRemeasureSkipReason::Locked),
+            (obj(6), AnnotationRemeasureSkipReason::ForeignMeasure),
+            (obj(7), AnnotationRemeasureSkipReason::Unavailable),
+        ],
+        "{report:?}"
+    );
+    assert!(report.updated.is_empty() && report.failed.is_empty() && report.error.is_none());
+    assert!(sent_ops(&thread).is_empty());
+}
+
+#[test]
+fn a_duplicate_offset_that_is_not_finite_is_invalid_input() {
+    let (thread, annotations) = handle_over(vec![square(5, json!({}))]);
+    block_on(annotations.refresh(token())).unwrap();
+    let options = AnnotationDuplicateOptions {
+        offset: Some(Point { x: f64::NAN, y: 0.0 }),
+        ..Default::default()
+    };
+    let error = block_on(annotations.duplicate(vec![obj(5)], options, token())).unwrap_err();
+    assert_eq!(code(&error), Some("invalid-input"), "{error:?}");
+    let selection = annotations.selection();
+    block_on(selection.select(vec![obj(5)], None)).unwrap();
+    let error = block_on(selection.duplicate(Some(Point { x: 0.0, y: f64::INFINITY }), token()))
+        .unwrap_err();
+    assert_eq!(code(&error), Some("invalid-input"), "{error:?}");
+    assert!(sent_ops(&thread).is_empty());
 }

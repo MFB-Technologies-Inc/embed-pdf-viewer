@@ -3,7 +3,7 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePath
 import platform
 import re
 import shutil
@@ -74,7 +74,7 @@ def check_elf(name, dynamic, dependencies):
         if "/" in dependency:
             raise ValueError(f"{name}: absolute dependency {dependency}")
     paths = re.findall(r"\((?:RUNPATH|RPATH)\).*?\[([^]]*)\]", dynamic)
-    if name == "libepdf_capi.so" and not paths:
+    if name in ("libepdf_capi.so", "libepdf_viewer_host.so") and not paths:
         raise ValueError(f"{name}: relative $ORIGIN rpath required")
     for path in paths:
         if any(entry not in ("$ORIGIN", "$ORIGIN/") for entry in path.split(":")):
@@ -90,6 +90,16 @@ def check_exports(exported, prefix=""):
         if not re.search(r"\b"+prefix+name+r"(?:\s|$)", exported, re.M):
             raise ValueError(f"missing required C ABI export: {name}")
 
+FOREIGN_LOADERS = {"linux-x64": "/lib64/ld-linux-x86-64.so.2", "linux-arm64": "/lib/ld-linux-aarch64.so.1"}
+
+def list_dependencies(path, rid):
+    """`ldd -r`, or the RID's own loader in trace mode when the host is another
+    architecture (an emulated or cross-built slice), since ldd only knows its own."""
+    if host_rid() == rid:
+        return run(["ldd", "-r", path.as_posix()])
+    env = dict(os.environ, LD_TRACE_LOADED_OBJECTS="1", LD_WARN="yes", LD_BIND_NOW="yes")
+    return run([FOREIGN_LOADERS[rid], path.as_posix()], env=env)
+
 def inspect(native, rid):
     details = {}
     for path in sorted(native.iterdir()):
@@ -97,7 +107,7 @@ def inspect(native, rid):
             continue
         if rid.startswith("linux"):
             dynamic = run(["readelf", "-d", str(path)])
-            dependencies = run(["ldd", "-r", str(path)])
+            dependencies = list_dependencies(path, rid)
             check_elf(path.name, dynamic, dependencies)
             for name, resolved in re.findall(r"^\s*(\S+) => (\S+)", dependencies, re.M):
                 if name == "libembedpdf.so" and Path(resolved).resolve().parent != native.resolve():
@@ -107,6 +117,8 @@ def inspect(native, rid):
             if path.name == "libepdf_capi.so":
                 exported = run(["nm", "-D", "--defined-only", str(path)])
                 check_exports(exported)
+            if path.name == "libepdf_viewer_host.so":
+                check_viewer_exports(run(["nm", "-D", "--defined-only", str(path)]))
             details[path.name] = {"glibcRequired": max(versions, key=lambda v: tuple(map(int, v.split(".")))) if versions else None,
                                   "dependencies": dependencies, "dynamic": dynamic}
             architecture = run(["readelf", "-h", str(path)])
@@ -127,21 +139,39 @@ def inspect(native, rid):
                     raise ValueError(f"{path}: build-machine rpath {rpath}")
             if path.name == "libepdf_capi.dylib":
                 check_exports(run(["nm", "-gU", str(path)]), "_")
+            if path.name == "libepdf_viewer_host.dylib":
+                check_viewer_exports(run(["nm", "-gU", str(path)]), "_")
             details[path.name] = {"dependencies": deps, "loadCommands": load}
         else:
             details[path.name] = {"dependencies": run(["dumpbin", "/DEPENDENTS", str(path)]),
                                   "headers": run(["dumpbin", "/HEADERS", str(path)])}
             if path.name == "epdf_capi.dll":
                 check_exports(run(["dumpbin", "/EXPORTS", str(path)]))
+            if path.name == "epdf_viewer_host.dll":
+                check_viewer_exports(run(["dumpbin", "/EXPORTS", str(path)]))
             if "8664 machine (x64)" not in details[path.name]["headers"]:
                 raise ValueError(f"{path}: wrong RID architecture")
     return details
 
+def required_sdk():
+    """The .NET SDK platforms/dotnet/global.json pins."""
+    return read(DOTNET / "global.json")["sdk"]["version"]
+
+def required_rust():
+    """The Rust toolchain rust-toolchain.toml pins."""
+    match = re.search(r'^channel = "([^"]+)"', (ROOT / "rust-toolchain.toml").read_text(), re.M)
+    if not match:
+        raise ValueError("rust-toolchain.toml has no channel")
+    return match.group(1)
+
+def check_rust():
+    if not run(["rustc", "--version"]).startswith(f"rustc {required_rust()} "):
+        raise ValueError(f"Rust {required_rust()} required")
+
 def check_toolchain():
-    if run(["dotnet", "--version"], cwd=DOTNET).strip() != "10.0.404":
-        raise ValueError(".NET SDK 10.0.404 required")
-    if not run(["rustc", "--version"]).startswith("rustc 1.98.0 "):
-        raise ValueError("Rust 1.98.0 required")
+    if run(["dotnet", "--version"], cwd=DOTNET).strip() != required_sdk():
+        raise ValueError(f".NET SDK {required_sdk()} required")
+    check_rust()
 
 def pack(args):
     check_toolchain()
@@ -368,9 +398,448 @@ def smoke(args):
             raise ValueError("wrong-ABI native wrapper unexpectedly succeeded")
         print("PASS: relocated open/text/region/helper, ABI, missing-wrapper, missing-dependency and wrong-ABI checks")
 
+# --- EmbedPDF.Runtime: the viewer host (epdf-viewer-host) and its PDFium ---
+#
+# Each RID is built and staged on its own host (stage-runtime), which writes a
+# slice: runtimes/<rid>/native/ plus runtime-slice.json recording every file's
+# hash. pack-runtime re-checks every slice against its record and packs all of
+# them into one EmbedPDF.Runtime nupkg.
+
+VIEWER_RIDS = {
+    "linux-x64": ("x86_64-unknown-linux-gnu", "linux-x64", "libepdf_viewer_host.so", "lib/libembedpdf.so"),
+    "linux-arm64": ("aarch64-unknown-linux-gnu", "linux-arm64", "libepdf_viewer_host.so", "lib/libembedpdf.so"),
+    "osx-arm64": ("aarch64-apple-darwin", "darwin-arm64", "libepdf_viewer_host.dylib", "lib/libembedpdf.dylib"),
+    "osx-x64": ("x86_64-apple-darwin", "darwin-x64", "libepdf_viewer_host.dylib", "lib/libembedpdf.dylib"),
+    "win-x64": ("x86_64-pc-windows-msvc", "win32-x64", "epdf_viewer_host.dll", "bin/embedpdf.dll"),
+}
+VIEWER_SOURCES = ("Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "crates", "platforms/dotnet")
+SLICE_RECORD = "runtime-slice.json"
+ENGINE_VERSION = re.compile(r"^0\.0\.0-engine\.[0-9a-f]{16}$")
+
+def package_path(path, base):
+    """A file's path inside the package: relative, forward slashes, on any OS."""
+    path = path if isinstance(path, PurePath) else PurePath(path)
+    return path.relative_to(base).as_posix()
+
+def package_file_record(path, base):
+    return {"path": package_path(path, base), "sha256": sha(path), "bytes": Path(path).stat().st_size}
+
+def check_viewer_exports(exported, prefix=""):
+    # Every uniffi library exports its contract version; the generated C#
+    # calls it first and refuses a library from another uniffi.
+    name = "ffi_epdf_viewer_host_uniffi_contract_version"
+    if not re.search(r"\b"+prefix+name+r"(?:\s|$)", exported, re.M):
+        raise ValueError(f"missing viewer host export: {name}")
+
+def viewer_source_identity():
+    commit = run(["git","-c","core.preloadIndex=false","rev-parse","HEAD"]).strip()
+    diff = subprocess.check_output(["git","-c","core.preloadIndex=false","diff","HEAD","--binary","--",*VIEWER_SOURCES],cwd=ROOT)
+    untracked = subprocess.check_output(["git","-c","core.preloadIndex=false","ls-files","--others","--exclude-standard","--",*VIEWER_SOURCES],cwd=ROOT,text=True).splitlines()
+    for name in sorted(untracked):
+        path = ROOT/name
+        if path.is_file():
+            diff += name.encode()+b"\\0"+path.read_bytes()
+    result = {"commit":commit,"dirty":bool(diff)}
+    if diff:
+        result["diffSha256"] = hashlib.sha256(diff).hexdigest()
+    return result
+
+def relocate(host, rid):
+    """Points the host at the PDFium beside it instead of the build tree."""
+    if rid.startswith("linux"):
+        run(["patchelf", "--set-rpath", "$ORIGIN", str(host)])
+    elif rid.startswith("osx"):
+        run(["install_name_tool", "-id", f"@rpath/{host.name}", str(host)])
+        load = run(["otool", "-l", str(host)])
+        for rpath in re.findall(r"cmd LC_RPATH\s+cmdsize \d+\s+path (.*?) \(offset", load):
+            if rpath != "@loader_path":
+                run(["install_name_tool", "-delete_rpath", rpath, str(host)])
+        if "path @loader_path (offset" not in run(["otool", "-l", str(host)]):
+            run(["install_name_tool", "-add_rpath", "@loader_path", str(host)])
+        for dependency in [line.strip().split(" (")[0] for line in run(["otool", "-L", str(host)]).splitlines()[1:]]:
+            if dependency.startswith("/") and Path(dependency).name == "libembedpdf.dylib":
+                run(["install_name_tool", "-change", dependency, "@rpath/libembedpdf.dylib", str(host)])
+        # install_name_tool invalidates the signature; arm64 refuses unsigned code.
+        run(["codesign", "--force", "--sign", "-", str(host)])
+
+def stage_runtime(args):
+    # Staging builds nothing managed, so a slice row needs Rust but no .NET SDK.
+    check_rust()
+    target, fork_target, host_name, runtime_relative = VIEWER_RIDS[args.rid]
+    pin_path = Path(args.runtime_manifest).resolve()
+    pin = read(pin_path)
+    cache = Path(os.environ.get("EPDF_RUNTIME_CACHE", ROOT / "packages/engine/runtime/build/cache"))
+    archive = Path(args.runtime_archive or cache / f"libembedpdf-runtime-{fork_target}.tar.gz")
+    if not archive.is_file():
+        raise ValueError(f"missing offline checksum archive: {archive}; staging never downloads")
+    if sha(archive) != pin["artifacts"][fork_target]["sha256"]:
+        raise ValueError("runtime archive checksum differs from pinned manifest")
+    library = Path(args.native_lib).resolve()
+    if not library.is_file() or library.name != host_name:
+        raise ValueError(f"missing viewer host library {host_name}: {library}")
+    output = Path(args.out).resolve()
+    if output.exists() and any(output.iterdir()):
+        raise ValueError(f"slice output must be new or empty: {output}")
+    native = output / "runtimes" / args.rid / "native"
+    native.mkdir(parents=True)
+    shutil.copy2(library, native / host_name)
+    with tarfile.open(archive) as bundle:
+        members = {entry.name.removeprefix("./"): entry for entry in bundle.getmembers()}
+        metadata = json.load(bundle.extractfile(members["BUILD-METADATA.json"]))
+        if metadata["target"] != fork_target or metadata["sha"] != pin["sha"]:
+            raise ValueError("runtime archive target/source identity mismatch")
+        selected = [runtime_relative] + [name for name in members if name.startswith("LICENSES/") and members[name].isfile()]
+        for name in selected:
+            member = members[name]
+            if not member.isfile():
+                raise ValueError(f"runtime archive contains non-file asset: {name}")
+            (native / Path(name).name).write_bytes(bundle.extractfile(member).read())
+    shutil.copy2(ROOT / "LICENSE", native / "EmbedPDF-LICENSE")
+    shutil.copy2(pin_path, native / "epdf-runtime.json")
+    relocate(native / host_name, args.rid)
+    details = inspect(native, args.rid)
+    write(output / "native-inspection.json", details)
+    record = {"schemaVersion":1,"rid":args.rid,"source":viewer_source_identity(),
+              "runtimeFork":pin["sha"],"runtimeArchiveSha256":sha(archive),"runtimeTarget":fork_target,
+              "files":[package_file_record(path, output) for path in sorted(native.iterdir()) if path.is_file()]}
+    write(output / SLICE_RECORD, record)
+    for entry in record["files"]:
+        print(f"{entry['bytes']:>12}  {entry['path']}")
+    print(f"Staged slice: {output}")
+
+def read_slice(directory):
+    directory = Path(directory).resolve()
+    record = read(directory / SLICE_RECORD)
+    if record.get("schemaVersion") != 1 or record.get("rid") not in VIEWER_RIDS:
+        raise ValueError(f"{directory}: not a runtime slice record")
+    # Records are read on Linux whatever OS staged them, and the paths are
+    # package paths, so a backslash means a record from an older stager.
+    if any("\\" in entry["path"] for entry in record["files"]):
+        raise ValueError(f"{directory}: slice paths must use forward slashes")
+    recorded = {entry["path"] for entry in record["files"]}
+    for entry in record["files"]:
+        path = directory / entry["path"]
+        if not path.is_file() or sha(path) != entry["sha256"] or path.stat().st_size != entry["bytes"]:
+            raise ValueError(f"slice checksum mismatch: {entry['path']}")
+    for path in (directory / "runtimes").rglob("*"):
+        if path.is_file() and path.relative_to(directory).as_posix() not in recorded:
+            raise ValueError(f"slice holds an unrecorded file: {path.relative_to(directory).as_posix()}")
+    return directory, record
+
+def engine_hash():
+    return run(["bash", str(DOTNET / "dotnet-engine-hash.sh")]).strip().splitlines()[-1]
+
+def pack_runtime(args):
+    slices = [read_slice(directory) for directory in args.slice]
+    rids = [record["rid"] for _, record in slices]
+    for rid in rids:
+        if rids.count(rid) > 1:
+            raise ValueError(f"two slices for {rid}")
+    if len({record["source"]["commit"] for _, record in slices}) > 1:
+        raise ValueError("slices come from different source commits")
+    if len({record["runtimeFork"] for _, record in slices}) > 1:
+        raise ValueError("slices link different runtime forks")
+    for _, record in slices:
+        if record["source"]["dirty"] and not args.allow_dirty:
+            raise ValueError(f"{record['rid']}: slice was staged from a dirty tree; pass --allow-dirty for a local package")
+    pin_path = Path(args.runtime_manifest).resolve()
+    pin = read(pin_path)
+    if pin["sha"] != slices[0][1]["runtimeFork"]:
+        raise ValueError("slices link a runtime fork other than the pinned manifest's")
+    for _, record in slices:
+        if record["runtimeArchiveSha256"] != pin["artifacts"][record["runtimeTarget"]]["sha256"]:
+            raise ValueError(f"{record['rid']}: runtime archive differs from the pinned manifest")
+    version = args.version or f"0.0.0-engine.{engine_hash()}"
+    if not ENGINE_VERSION.match(version):
+        raise ValueError(f"runtime package version must be 0.0.0-engine.<16 hex>: {version}")
+    check_toolchain()
+    output = Path(args.out).resolve()
+    output.mkdir(parents=True, exist_ok=True)
+    if list(output.glob("package-manifest.runtime.json")):
+        raise ValueError("output contains a prior runtime manifest; use a fresh output directory")
+    with tempfile.TemporaryDirectory(prefix="epdf-runtime-") as temporary:
+        stage = Path(temporary)
+        for directory, record in slices:
+            for entry in record["files"]:
+                destination = stage / entry["path"]
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(directory / entry["path"], destination)
+            write(stage / "runtimes" / record["rid"] / "native" / "epdf-assets.json", record)
+        run(["dotnet", "pack", str(DOTNET / "EmbedPDF.Runtime/EmbedPDF.Runtime.csproj"), "-c", "Release",
+             "-o", str(output), f"-p:PackageVersion={version}", f"-p:EpdfNativeAssets={stage / 'runtimes'}"], cwd=DOTNET)
+        package = output / f"EmbedPDF.Runtime.{version}.nupkg"
+        if not package.is_file():
+            raise ValueError(f"dotnet pack wrote no {package.name}")
+        # Stage-relative paths are the package paths, so the manifest names
+        # what a consumer finds in the nupkg.
+        staged = [package_file_record(path, stage) for path in sorted(stage.rglob("*")) if path.is_file()]
+    with zipfile.ZipFile(package) as bundle:
+        names = set(bundle.namelist())
+        for entry in staged:
+            if entry["path"] not in names:
+                raise ValueError(f"native asset missing from package: {entry['path']}")
+            payload = bundle.read(entry["path"])
+            if hashlib.sha256(payload).hexdigest() != entry["sha256"] or len(payload) != entry["bytes"]:
+                raise ValueError(f"packaged native asset differs from its slice: {entry['path']}")
+        if any(name.startswith("lib/") for name in names):
+            raise ValueError("the runtime package must carry no managed assembly")
+    manifest = {"schemaVersion":1,"packageId":"EmbedPDF.Runtime","version":version,
+        "source":viewer_source_identity(),"runtimeFork":pin["sha"],
+        "runtimeManifest":file_record(pin_path),"abi":1,
+        "rids":{rid:{"status":"PACKED_UNVALIDATED","reason":"Packed from a staged slice; no consumer run yet"}
+                    if rid in rids else {"status":"UNVALIDATED","reason":"No slice staged for this RID"} for rid in VIEWER_RIDS},
+        "files":staged + [file_record(package, output)],
+        "limitations":["A packed RID is not a validated RID: validate-runtime runs the consumer on that RID's host."]}
+    validate(manifest, read(DOTNET / "package-manifest.schema.json"))
+    write(output / "package-manifest.runtime.json", manifest)
+    print(f"Runtime package: {package}")
+
+FIXTURE = ROOT / "pdfium-multiplatform-prototype/fixtures/report.pdf"
+NUGET_ORG = "https://api.nuget.org/v3/index.json"
+
+def consumer_nuget_config(feed):
+    """The runtime consumer's nuget.config: EmbedPDF ids from the local feed
+    and nowhere else, the facade's other dependencies from nuget.org."""
+    from xml.sax.saxutils import quoteattr
+    return ('<?xml version="1.0" encoding="utf-8"?>\n<configuration>\n'
+        '  <packageSources>\n    <clear />\n'
+        f'    <add key="local" value={quoteattr(str(feed))} />\n'
+        f'    <add key="nuget.org" value="{NUGET_ORG}" />\n'
+        '  </packageSources>\n  <packageSourceMapping>\n'
+        '    <packageSource key="local"><package pattern="EmbedPDF" /><package pattern="EmbedPDF.*" /></packageSource>\n'
+        '    <packageSource key="nuget.org"><package pattern="*" /></packageSource>\n'
+        '  </packageSourceMapping>\n</configuration>\n')
+FIXTURE_PAGES = 14
+SCRUBBED_ENV = ["EPDF_NATIVE_DIR","PDF_RUNTIME_LIB_DIR","LD_LIBRARY_PATH","DYLD_LIBRARY_PATH","DYLD_FALLBACK_LIBRARY_PATH"]
+
+def pinned_runtime_version():
+    props = (DOTNET / "EmbedPDF.Runtime/EmbedPDF.Runtime.props").read_text()
+    match = re.search(r"<EmbedPdfRuntimeVersion>(.*?)</EmbedPdfRuntimeVersion>", props)
+    if not match:
+        raise ValueError("EmbedPDF.Runtime.props has no EmbedPdfRuntimeVersion")
+    return match.group(1)
+
+def check_name_collisions(managed, native):
+    """A RID-specific build copies the facade's assemblies and the runtime's
+    native files into one directory, and Windows (and default macOS volumes)
+    compare file names without case, so no two may share a name."""
+    natives = {PurePath(name).name.lower(): name for name in native}
+    for name in managed:
+        clash = natives.get(PurePath(name).name.lower())
+        if clash:
+            raise ValueError(f"managed {name} collides with native {clash} on a case-insensitive file system")
+
+def pack_facade(args):
+    """Packs the EmbedPDF facade against the runtime package it depends on."""
+    check_toolchain()
+    runtime = Path(args.runtime_package).resolve()
+    match = re.fullmatch(r"EmbedPDF\.Runtime\.(.+)\.nupkg", runtime.name)
+    if not match:
+        raise ValueError(f"not an EmbedPDF.Runtime package: {runtime.name}")
+    if match.group(1) != pinned_runtime_version():
+        raise ValueError(f"runtime package {match.group(1)} is not the pinned {pinned_runtime_version()}; run check-dotnet-engine.sh")
+    if not (DOTNET / "EmbedPDF.Viewer/Generated/epdf_viewer_host.cs").is_file():
+        raise ValueError("generated bindings are missing; run platforms/dotnet/generate-bindings.sh")
+    output = Path(args.out).resolve()
+    output.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="epdf-facade-") as cache:
+        env = dict(os.environ, NUGET_PACKAGES=cache)
+        run(["dotnet", "pack", str(DOTNET / "EmbedPDF.Viewer/EmbedPDF.Viewer.csproj"), "-c", "Release", "-o", str(output),
+             f"-p:PackageVersion={args.version}", "-p:EmbedPdfPackRuntime=true",
+             f"-p:RestoreAdditionalProjectSources={runtime.parent}"], cwd=DOTNET, env=env)
+    package = output / f"EmbedPDF.{args.version}.nupkg"
+    with zipfile.ZipFile(package) as bundle:
+        if "lib/net10.0/EmbedPDF.Viewer.dll" not in bundle.namelist():
+            raise ValueError("facade assembly missing from package")
+        managed = [name for name in bundle.namelist() if name.startswith("lib/")]
+    with zipfile.ZipFile(runtime) as bundle:
+        check_name_collisions(managed, [name for name in bundle.namelist() if name.startswith("runtimes/")])
+    with zipfile.ZipFile(package) as bundle:
+        nuspec = bundle.read("EmbedPDF.nuspec").decode()
+        if f'id="EmbedPDF.Runtime" version="{match.group(1)}"' not in nuspec:
+            raise ValueError("facade package does not depend on the runtime package it was packed against")
+    print(f"Facade package: {package}")
+
+def smoke_runtime(args):
+    emulated = os.environ.get("EPDF_EMULATED","false").lower() == "true"
+    if platform.system() == "Linux" and not os.environ.get("EPDF_IMAGE_ID"):
+        raise ValueError("Linux validation requires the approved container EPDF_IMAGE_ID")
+    if emulated and args.rid != "linux-x64":
+        raise ValueError("emulation is recorded only for linux-x64")
+    if not emulated and host_rid() != args.rid:
+        raise ValueError(f"native host RID {host_rid()} differs from requested {args.rid}")
+    manifest_path = Path(args.manifest).resolve()
+    manifest = read(manifest_path)
+    validate(manifest, read(DOTNET / "package-manifest.schema.json"))
+    if manifest["packageId"] != "EmbedPDF.Runtime":
+        raise ValueError("manifest is not an EmbedPDF.Runtime manifest")
+    if manifest["rids"][args.rid]["status"] == "UNVALIDATED":
+        raise ValueError("manifest has no packed artifact for requested RID")
+    package = Path(args.package).resolve()
+    entry = next((entry for entry in manifest["files"] if (manifest_path.parent/entry["path"]).resolve()==package),None)
+    if entry is None or sha(package) != entry["sha256"]:
+        raise ValueError("package checksum/identity differs from manifest")
+    host_name = VIEWER_RIDS[args.rid][2]
+    pdfium_name = Path(VIEWER_RIDS[args.rid][3]).name
+    with zipfile.ZipFile(package) as bundle:
+        prefix = f"runtimes/{args.rid}/native/"
+        identity = json.loads(bundle.read(prefix+"epdf-assets.json"))
+        if identity.get("rid") != args.rid or identity.get("runtimeFork") != manifest["runtimeFork"]:
+            raise ValueError("packaged slice identity differs from manifest")
+        names = {Path(asset["path"]).name for asset in identity["files"]}
+        if not {host_name, pdfium_name} <= names:
+            raise ValueError("packaged native asset inventory must include the viewer host and PDFium")
+        for asset in identity["files"]:
+            payload = bundle.read(prefix+Path(asset["path"]).name)
+            if hashlib.sha256(payload).hexdigest() != asset["sha256"] or len(payload) != asset["bytes"]:
+                raise ValueError(f"packaged native asset checksum mismatch: {asset['path']}")
+    facade = Path(args.facade).resolve()
+    facade_version = re.fullmatch(r"EmbedPDF\.(.+)\.nupkg", facade.name).group(1)
+    dotnet = os.environ.get("EPDF_DOTNET", "dotnet")
+    with tempfile.TemporaryDirectory(prefix="epdf-runtime-consumer-") as temporary:
+        directory = Path(temporary)
+        feed = directory / "local"
+        feed.mkdir()
+        shutil.copy2(package, feed / package.name)
+        shutil.copy2(facade, feed / facade.name)
+        (directory/"global.json").write_text((DOTNET/"global.json").read_text())
+        shutil.copy2(DOTNET/"packaging/ViewerSmoke.cs", directory/"Program.cs")
+        shutil.copy2(FIXTURE, directory/"input.pdf")
+        (directory/"Consumer.csproj").write_text(
+            '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>'
+            '<ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><UseAppHost>false</UseAppHost>'
+            '<SelfContained>false</SelfContained><EnableRuntimePackDownload>false</EnableRuntimePackDownload></PropertyGroup>'
+            '<ItemGroup><PackageReference Include="EmbedPDF" Version="'+facade_version+'"/></ItemGroup></Project>')
+        env = os.environ.copy()
+        for name in SCRUBBED_ENV:
+            env.pop(name, None)
+        env["NUGET_PACKAGES"] = str(directory/"cache")
+        def consume(app, expect_code, expect_text):
+            result = subprocess.run([dotnet, str(app/"Consumer.dll"), str(directory/"input.pdf")], cwd=directory, env=env,
+                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            print(result.stdout, end="")
+            if expect_code is None and result.returncode == 0:
+                raise ValueError(f"{app.name}: expected a failure, got success")
+            if expect_code is not None and result.returncode != expect_code:
+                raise ValueError(f"{app.name}: exit {result.returncode}, expected {expect_code}")
+            for text in expect_text:
+                if text not in result.stdout:
+                    raise ValueError(f"{app.name}: output lacks {text!r}")
+        def hidden(path, body):
+            moved = path.with_suffix(path.suffix + ".hidden")
+            path.rename(moved)
+            try:
+                body()
+            finally:
+                moved.rename(path)
+        passed = [f"PASS: rid={args.rid} pages={FIXTURE_PAGES}"]
+        missing = ["NativeRuntimeNotFoundException", f"rid={args.rid}"]
+        # A RID-specific build: NuGet copies the native files beside the app.
+        # A nuget.config beside the project: both restores below read it.
+        (directory/"nuget.config").write_text(consumer_nuget_config(feed))
+        run([dotnet,"restore","Consumer.csproj","--configfile",str(directory/"nuget.config"),"--runtime",args.rid],cwd=directory,env=env)
+        run([dotnet,"build","Consumer.csproj","-c","Release","--no-restore","--runtime",args.rid,"--self-contained","false",
+             "-o",str(directory/"app-rid")],cwd=directory,env=env)
+        app = directory/"app-rid"
+        consume(app, 0, passed)
+        hidden(app/host_name, lambda: consume(app, 3, missing))
+        hidden(app/pdfium_name, lambda: consume(app, None, []))
+        # A portable build: the files stay under runtimes/<rid>/native.
+        run([dotnet,"build","Consumer.csproj","-c","Release","-o",str(directory/"app-portable")],cwd=directory,env=env)
+        app = directory/"app-portable"
+        native = app/"runtimes"/args.rid/"native"
+        if not (native/host_name).is_file():
+            raise ValueError(f"portable build has no {native/host_name}")
+        consume(app, 0, passed)
+        hidden(native/host_name, lambda: consume(app, 3, missing))
+        print("PASS: RID-specific and portable consumers, missing-host and missing-PDFium checks")
+
+def runner_image(env):
+    """The hosted CI runner image (`ImageOS ImageVersion`), or None off CI.
+    A passing CI row counts as a native run, so the record names its image."""
+    if env.get("ImageOS"):
+        return f"{env['ImageOS']} {env.get('ImageVersion', 'unknown')}"
+    return None
+
+def validate_runtime(args):
+    record_path = Path(args.record).resolve()
+    pin_path = Path(args.runtime_manifest).resolve()
+    pin = read(pin_path)
+    source = viewer_source_identity()
+    source["runtimeFork"] = pin["sha"]
+    emulated = os.environ.get("EPDF_EMULATED","false").lower() == "true"
+    environment = {"kind":"container" if os.environ.get("EPDF_IMAGE_ID") else "host",
+        "os":platform.platform(),"arch":args.rid.split("-")[-1] if emulated else host_rid().split("-")[-1],
+        "emulated":emulated,"tools":{}}
+    if environment["kind"] == "container":
+        environment["imageId"] = os.environ["EPDF_IMAGE_ID"]
+        environment["hostOs"] = os.environ.get("EPDF_HOST_OS","unspecified")
+    record = {"schemaVersion":1,"package":"EmbedPDF.Runtime","phase":1,"rid":args.rid,"source":source,
+        "environment":environment,"inputs":[file_record(pin_path),file_record(FIXTURE)],
+        "commands":[],"artifacts":[],"limitations":["Phase 1 checks loading and one document open; the facade API is Phase 2."]}
+    command = [sys.executable, str(Path(__file__).resolve()), "smoke-runtime", "--rid", args.rid,
+               "--package", str(Path(args.package).resolve()), "--facade", str(Path(args.facade).resolve()),
+               "--manifest", str(Path(args.manifest).resolve())]
+    result = subprocess.run(command,cwd=ROOT,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+    print(result.stdout, end="")
+    dotnet = os.environ.get("EPDF_DOTNET", "dotnet")
+    for tool, command_version in [("dotnet",[dotnet,"--version"]),("rustc",["rustc","--version"]),("libc",["ldd","--version"])]:
+        try:
+            environment["tools"][tool] = subprocess.check_output(command_version,cwd=DOTNET,text=True,stderr=subprocess.STDOUT).splitlines()[0]
+        except (OSError,subprocess.CalledProcessError):
+            environment["tools"][tool] = "unavailable"
+    if runner_image(os.environ):
+        environment["tools"]["runnerImage"] = runner_image(os.environ)
+    record["commands"].append({"command":subprocess.list2cmdline(command),"cwd":str(ROOT),"exitCode":result.returncode,
+                              "results":result.stdout[-16000:] or "No output"})
+    if result.returncode == 0:
+        manifest_path = Path(args.manifest).resolve()
+        manifest = read(manifest_path)
+        manifest["rids"][args.rid] = ({"status":"container-emulated",
+            "reason":"Consumer passed under emulation on an arm64 host; no native x64 run."} if emulated else
+            {"status":"VALIDATED","reason":"Local-feed consumer passed on the matching native architecture."})
+        validate(manifest, read(DOTNET / "package-manifest.schema.json"))
+        write(manifest_path, manifest)
+    for path in [args.package,args.facade,args.manifest]:
+        if Path(path).is_file():
+            record["artifacts"].append(file_record(Path(path)))
+    if result.returncode:
+        record["limitations"].append("Consumer validation failed; no RID success claim.")
+    if emulated:
+        record["limitations"].append("Status: container-emulated. The x64 consumer ran under emulation on an arm64 host. Emulation does not substitute for native-host evidence.")
+    validate(record, read(DOTNET / "validation/record.schema.json"))
+    write(record_path,record)
+    return result.returncode
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="action",required=True)
+    pin_default = str(ROOT/"packages/engine/runtime/engine-runtime-build.json")
+    stage = sub.add_parser("stage-runtime", help="stage one RID's viewer host and PDFium as a runtime slice")
+    stage.add_argument("--rid",choices=VIEWER_RIDS,required=True)
+    stage.add_argument("--native-lib",required=True)
+    stage.add_argument("--out",required=True)
+    stage.add_argument("--runtime-manifest",default=pin_default)
+    stage.add_argument("--runtime-archive")
+    merge = sub.add_parser("pack-runtime", help="pack staged slices into one EmbedPDF.Runtime nupkg")
+    merge.add_argument("--slice",action="append",required=True)
+    merge.add_argument("--out",required=True)
+    merge.add_argument("--version")
+    merge.add_argument("--runtime-manifest",default=pin_default)
+    merge.add_argument("--allow-dirty",action="store_true",help="pack slices staged from a dirty tree (local use only)")
+    facade = sub.add_parser("pack-facade", help="pack the EmbedPDF facade against a runtime package")
+    facade.add_argument("--runtime-package",required=True)
+    facade.add_argument("--out",required=True)
+    facade.add_argument("--version",default="0.0.0-local")
+    for action in ["smoke-runtime","validate-runtime"]:
+        command = sub.add_parser(action, help="consume the runtime and facade packages from a local feed")
+        command.add_argument("--rid",choices=VIEWER_RIDS,required=True)
+        command.add_argument("--package",required=True)
+        command.add_argument("--facade",required=True)
+        command.add_argument("--manifest",required=True)
+        command.add_argument("--runtime-manifest",default=pin_default)
+        if action == "validate-runtime":
+            command.add_argument("--record",required=True)
     for action in ["pack","validate","smoke"]:
         command = sub.add_parser(action)
         command.add_argument("--rid",choices=RIDS,required=True)
@@ -387,12 +856,14 @@ def main():
             if action == "validate":
                 command.add_argument("--record",required=True)
     args=parser.parse_args()
-    if args.action != "pack":
+    if args.action in ("validate","smoke"):
         directory = Path(os.environ.get("EPDF_PACKAGE_DIR", DOTNET/"artifacts"/args.rid))
         args.package = args.package or str(directory/"EmbedPDF.Engine.0.0.0-local.nupkg")
         args.manifest = args.manifest or str(directory/f"package-manifest.{args.rid}.json")
     try:
-        return {"pack":pack,"validate":validate_package,"smoke":smoke}[args.action](args) or 0
+        return {"pack":pack,"validate":validate_package,"smoke":smoke,
+                "stage-runtime":stage_runtime,"pack-runtime":pack_runtime,"pack-facade":pack_facade,
+                "smoke-runtime":smoke_runtime,"validate-runtime":validate_runtime}[args.action](args) or 0
     except (ValueError,RuntimeError,OSError,KeyError,tarfile.TarError,zipfile.BadZipFile) as error:
         print(f"ERROR: {error}",file=sys.stderr)
         return 1

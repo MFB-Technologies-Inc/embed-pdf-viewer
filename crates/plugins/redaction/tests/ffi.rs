@@ -133,7 +133,24 @@ fn apply_ops(args: &[Value]) -> Reply {
     Reply { value: json!({ "items": items, "meta": meta }), events }
 }
 
-fn spec(marks: Vec<Value>) -> TestSpec {
+/// With `deferred`, the engine answers a first slice of two hits and holds
+/// the next `search.query` until it is settled or aborted.
+fn spec_searching(marks: Vec<Value>, deferred: bool) -> TestSpec {
+    let mut responses =
+        vec![json!({ "path": "annotations.list", "value": { "annotations": marks } })];
+    if deferred {
+        responses.push(json!({ "path": "search.query", "times": 1, "value": {
+            "matches": [hit(0), hit(9)], "nextCursor": "more", "pagesSearched": 1, "pageCount": 2 } }));
+        responses.push(json!({ "path": "search.query", "defer": "search" }));
+        return spec(responses);
+    }
+    spec(responses).respond("search.query", |_| {
+        Ok(Reply::value(json!({
+            "matches": [hit(0), hit(9)], "nextCursor": null, "pagesSearched": 1, "pageCount": 1 })))
+    })
+}
+
+fn spec(responses: Vec<Value>) -> TestSpec {
     let bx = json!({ "x": 0, "y": 0, "width": 600, "height": 800 });
     TestSpec::new(json!({ "documents": { "a": { "id": "a", "security": { "allows": "*" },
         "services": ["redaction"],
@@ -142,7 +159,7 @@ fn spec(marks: Vec<Value>) -> TestSpec {
             "size": { "width": 600, "height": 800 }, "rotation": 0, "userUnit": 1,
             "tabOrder": null, "pdfCropBox": { "left": 0, "bottom": 0, "right": 600, "top": 800 },
             "boxes": { "media": bx, "crop": bx, "bleed": bx, "trim": bx, "art": bx } }],
-        "responses": [{ "path": "annotations.list", "value": { "annotations": marks } }] } } }))
+        "responses": responses } } }))
     .respond("apply", |args| Ok(apply_ops(args)))
     .respond("redaction.apply", |args| {
         SENT.with(|s| s.borrow_mut().push(("redaction.apply".into(), args[0].clone())));
@@ -158,13 +175,16 @@ fn spec(marks: Vec<Value>) -> TestSpec {
         event["origin"] = origin(&json!("apply-1"));
         Ok(Reply { value: result, events: vec![event] })
     })
-    .respond("search.query", |_| {
-        Ok(Reply::value(json!({
-            "matches": [hit(0), hit(9)], "nextCursor": null, "pagesSearched": 1, "pageCount": 1 })))
-    })
 }
 
 fn handle(marks: Vec<Value>) -> (KernelThread<TestKernel>, Arc<RedactionHandle>) {
+    handle_searching(marks, false)
+}
+
+fn handle_searching(
+    marks: Vec<Value>,
+    deferred: bool,
+) -> (KernelThread<TestKernel>, Arc<RedactionHandle>) {
     let thread = KernelThread::spawn(move |_| {
         TestKernel::open(
             vec![
@@ -173,7 +193,7 @@ fn handle(marks: Vec<Value>) -> (KernelThread<TestKernel>, Arc<RedactionHandle>)
                 search_plugin(SearchConfig::default()),
                 redaction_plugin(RedactionConfig::default()),
             ],
-            spec(marks),
+            spec_searching(marks, deferred),
         )
     })
     .unwrap();
@@ -266,6 +286,39 @@ fn marking_matches_creates_a_mark_per_hit() {
     // An empty page filter keeps no hit, so it marks nothing.
     let none = block_on(redaction.mark_matches(query(), Some(vec![]), token()));
     assert!(none.unwrap().is_empty());
+}
+
+#[test]
+fn cancelling_mark_matches_during_its_search_aborts_it() {
+    use std::future::Future;
+    use std::task::{Context, Poll};
+    let (thread, redaction) = handle_searching(vec![], true);
+    let cancel = token();
+    let query = SearchQuery { text: "secret".into(), ..Default::default() };
+    let mut marking = Box::pin(redaction.mark_matches(query, None, cancel.clone()));
+    let mut cx = Context::from_waker(futures::task::noop_waker_ref());
+    assert!(marking.as_mut().poll(&mut cx).is_pending());
+    let slices =
+        block_on(thread.call(|k| {
+            k.engine.log_since(0).iter().filter(|e| e["path"] == "search.query").count()
+        }))
+        .unwrap();
+    assert_eq!(slices, 2, "the search is not waiting on its second slice");
+    cancel.cancel();
+    block_on(thread.call(|_| ())).unwrap();
+    match marking.as_mut().poll(&mut cx) {
+        Poll::Ready(Err(error)) => {
+            assert_eq!(code(&error), Some("operation-cancelled"), "{error:?}")
+        }
+        other => panic!("the cancel did not end the call: {:?}", other.map(|r| r.map(|m| m.len()))),
+    }
+    let aborted = block_on(
+        thread.call(|k| k.engine.log_since(0).iter().filter(|e| e.get("abort").is_some()).count()),
+    )
+    .unwrap();
+    assert_eq!(aborted, 1, "the engine's search was not aborted");
+    // Cancelled before the first mark: the hits found so far are not marked.
+    assert!(sent(&thread, "apply").is_empty());
 }
 
 #[test]

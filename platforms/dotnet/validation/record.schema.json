@@ -5,7 +5,6 @@
   "additionalProperties": false,
   "required": [
     "schemaVersion",
-    "slice",
     "rid",
     "source",
     "environment",
@@ -17,6 +16,8 @@
   "properties": {
     "schemaVersion": { "const": 1 },
     "slice": { "type": "integer", "minimum": 1, "maximum": 7 },
+    "package": { "enum": ["EmbedPDF.Engine", "EmbedPDF.Runtime"] },
+    "phase": { "type": "integer", "minimum": 1, "maximum": 6 },
     "rid": { "enum": ["linux-x64", "linux-arm64", "osx-arm64", "osx-x64", "win-x64"] },
     "source": {
       "type": "object",
@@ -81,6 +82,13 @@
     "artifacts": { "type": "array", "items": { "$ref": "#/$defs/file" } },
     "limitations": { "type": "array", "items": { "type": "string", "minLength": 1 } }
   },
+  "allOf": [
+    {
+      "if": { "required": ["package"], "properties": { "package": { "const": "EmbedPDF.Runtime" } } },
+      "then": { "required": ["phase"] },
+      "else": { "required": ["slice"] }
+    }
+  ],
   "$defs": {
     "imageId": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
     "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },

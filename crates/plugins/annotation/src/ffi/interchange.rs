@@ -1,23 +1,11 @@
 use std::sync::Arc;
 
-use epdf_ffi::{AnnotationRef, CancelToken, PageRef, ViewerError};
+use epdf_ffi::{AnnotationRef, CancelToken, PageRef, ViewerError, signalled_cancellable};
 use serde_json::{Value, json};
 
 use super::{
     AnnotationHandle, AnnotationRecord, object_of, open, page_json, records_out, ref_out, refs_json,
 };
-
-/// Bridge native cancellation into the capability's signal, including chained promises.
-pub(super) fn cancellable_operation<T: Clone + 'static>(
-    run: impl FnOnce(
-        epdf_kernel::signal::AbortSignal,
-    ) -> Result<epdf_kernel::Promise<T>, epdf_kernel::Error>,
-) -> Result<epdf_kernel::Promise<T>, epdf_kernel::Error> {
-    let signal = epdf_kernel::signal::AbortSignal::new();
-    let task = run(signal.clone())?;
-    Ok(epdf_kernel::cancellable::cancellable("annotation", Some(signal.clone()), task)
-        .with_abort_member(move |reason| signal.abort(epdf_kernel::Error::abort(reason))))
-}
 
 #[derive(Clone, Debug, PartialEq, uniffi::Record)]
 pub struct AnnotationRefMapping {
@@ -55,7 +43,9 @@ impl AnnotationHandle {
                     if let Some(pages) = pages {
                         selection["pages"] = pages.into_iter().map(page_json).collect();
                     }
-                    cancellable_operation(|signal| Ok(open(c)?.export(&selection, Some(signal))))
+                    signalled_cancellable("annotation", |signal| {
+                        Ok(open(c)?.export(&selection, Some(signal)))
+                    })
                 },
                 |bundle| bundle.to_string(),
             )
@@ -76,7 +66,7 @@ impl AnnotationHandle {
                     let c = open(c)?.clone();
                     let bundle = Value::Object(object_of(&bundle_json)?);
                     let options = Value::Object(object_of(&options_json)?);
-                    cancellable_operation(|signal| {
+                    signalled_cancellable("annotation", |signal| {
                         Ok(c.import(bundle, options, Some(signal)).convert(move |result| {
                             let annotations =
                                 result["annotations"].as_array().ok_or_else(|| {

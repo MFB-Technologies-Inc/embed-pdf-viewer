@@ -531,7 +531,10 @@ impl RedactionHandle {
             .await?
     }
 
-    /// Mark every hit of `query`, or only those on `pages`.
+    /// Mark every hit of `query`, or only those on `pages`. A cancel aborts
+    /// the search or stops between two marks, rejecting `operation-cancelled`
+    /// with the marks made so far kept. Cancelled before the search found
+    /// anything, it resolves with no marks, as the plugin does.
     pub async fn mark_matches(
         &self,
         query: SearchQuery,
@@ -544,7 +547,10 @@ impl RedactionHandle {
                 move |c| {
                     let pages =
                         pages.map(|p| p.into_iter().map(|p| PageTarget::Ref(page_in(p))).collect());
-                    Ok(open(c)?.mark_matches(query, pages, none()))
+                    let c = open(c)?;
+                    epdf_ffi::signalled(|signal| {
+                        Ok(c.mark_matches(query, pages, OperationOptions { signal: Some(signal) }))
+                    })
                 },
                 |r| marks_out(&r.marks).map_err(ViewerError::from),
             )
