@@ -210,7 +210,7 @@ pub fn author_stamp_appearance(
     // whole, and a drawing other stamps place is never changed.
     let drawing = drawing_for(document, index, bytes)?;
     if !annotation.set_stamp_drawing(drawing, fit.native()) {
-        return Err(unknown("EPDFAnnot_SetStampDrawing returned false"));
+        return Err(unknown("EPDFAnnot_SetDrawing returned false"));
     }
     if super::primitives::turn_of(rotation).is_none() {
         return Ok(());

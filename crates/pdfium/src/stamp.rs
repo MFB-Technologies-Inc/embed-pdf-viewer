@@ -315,19 +315,18 @@ impl Document {
         (drawing != 0).then_some(drawing)
     }
 
-    /// The drawings this document's stamps place (`EPDFDoc_GetStampDrawings`).
+    /// The drawings this document's stamps place (`EPDFDoc_GetDrawings`).
     pub fn stamp_drawings(&self) -> Vec<u32> {
         // SAFETY: a null buffer asks for the count.
         let count =
-            unsafe { pdfium_sys::EPDFDoc_GetStampDrawings(self.as_raw(), std::ptr::null_mut(), 0) };
+            unsafe { pdfium_sys::EPDFDoc_GetDrawings(self.as_raw(), std::ptr::null_mut(), 0) };
         if count == 0 {
             return Vec::new();
         }
         let mut drawings = vec![0u32; count as usize];
         // SAFETY: the buffer holds `count` entries, as the length says.
-        let written = unsafe {
-            pdfium_sys::EPDFDoc_GetStampDrawings(self.as_raw(), drawings.as_mut_ptr(), count)
-        };
+        let written =
+            unsafe { pdfium_sys::EPDFDoc_GetDrawings(self.as_raw(), drawings.as_mut_ptr(), count) };
         drawings.truncate((written as usize).min(drawings.len()));
         drawings
     }
@@ -369,19 +368,19 @@ pub fn sha256(bytes: &[u8]) -> Option<[u8; 32]> {
 
 impl Annotation<'_> {
     /// The drawing this stamp places under our wrapper, by object number
-    /// (`EPDFAnnot_GetStampDrawing`); `None` for a stamp without one, or an
+    /// (`EPDFAnnot_GetDrawing`); `None` for a stamp without one, or an
     /// annotation that is not a stamp.
     pub fn stamp_drawing(&self) -> Option<u32> {
         // SAFETY: the handle is live.
-        let drawing = unsafe { pdfium_sys::EPDFAnnot_GetStampDrawing(self.as_raw()) };
+        let drawing = unsafe { pdfium_sys::EPDFAnnot_GetDrawing(self.as_raw()) };
         (drawing != 0).then_some(drawing)
     }
 
     /// Place a drawing of the document in this stamp, under a wrapper of its
-    /// own that fits it into the box (`EPDFAnnot_SetStampDrawing`), honouring
+    /// own that fits it into the box (`EPDFAnnot_SetDrawing`), honouring
     /// any `/EMBD_Metadata` turn. The old appearance is replaced whole.
     pub fn set_stamp_drawing(&self, drawing: u32, fit: StampFit) -> bool {
         // SAFETY: the handle is live.
-        unsafe { pdfium_sys::EPDFAnnot_SetStampDrawing(self.as_raw(), drawing, fit.code()) != 0 }
+        unsafe { pdfium_sys::EPDFAnnot_SetDrawing(self.as_raw(), drawing, fit.code()) != 0 }
     }
 }
