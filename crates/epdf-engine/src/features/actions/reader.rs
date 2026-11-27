@@ -352,6 +352,34 @@ impl Walk<'_, '_> {
         Ok(Some(value))
     }
 
+    /// The node's Hide `/T` or form `/Fields` entries, charged to the budget
+    /// before they are read. `None` when the list is unreadable: a count of
+    /// -1, or an entry that is neither a name nor an object number. A
+    /// partial list must never execute, so the caller degrades the node.
+    fn targets(&mut self, node: ActionNodeId) -> Result<Option<Vec<ActionTargetRef>>, EngineError> {
+        let count = self.model.node_target_count(node);
+        if count < 0 {
+            return Ok(None);
+        }
+        if !self.budget.take_targets(count as u32) {
+            return Err(budget_exceeded());
+        }
+        let mut targets = Vec::with_capacity(count as usize);
+        for index in 0..count {
+            if let Some(name) = self.payload_string(self.model.node_target_name(node, index))? {
+                targets.push(ActionTargetRef::Name { name });
+                continue;
+            }
+            match self.model.node_target_object_number(node, index) {
+                Some(object_number) if object_number != 0 => {
+                    targets.push(ActionTargetRef::ObjectNumber { object_number });
+                }
+                _ => return Ok(None),
+            }
+        }
+        Ok(Some(targets))
+    }
+
     fn read_kind(
         &mut self,
         node: ActionNodeId,
@@ -387,10 +415,10 @@ impl Walk<'_, '_> {
                 }
             }
             ActionType::Uri => match self.payload_string(self.model.node_uri(node))? {
-                // `isMap` is not read: the fork exposes no getter for it in
-                // this build, and defaulting to false matches a document that
-                // omits `/IsMap`, which is nearly all of them.
-                Some(uri) => ActionNodeKind::Uri { uri, is_map: false },
+                Some(uri) => ActionNodeKind::Uri {
+                    uri,
+                    is_map: self.model.node_uri_is_map(node).unwrap_or(false),
+                },
                 None => self.degraded(),
             },
             ActionType::Named => match self.payload_string(self.model.node_name(node))? {
@@ -411,14 +439,41 @@ impl Walk<'_, '_> {
                 Some(file_path) => ActionNodeKind::Launch { file_path },
                 None => self.degraded(),
             },
-            // The target-list and form payloads need accessors this build of
-            // the fork does not expose through the wrapper yet. They stay
-            // recognized and inert, which is the pre-payload behaviour and
-            // NOT a degraded unknown: the node type is known, only its
-            // details are missing.
-            ActionType::Hide => ActionNodeKind::Hide { targets: Vec::new(), hide: true },
-            ActionType::ResetForm => ActionNodeKind::ResetForm { fields: None, exclude: false },
-            ActionType::SubmitForm => ActionNodeKind::SubmitForm { payload: None },
+            ActionType::Hide => {
+                let Some(targets) = self.targets(node)? else { return Ok(self.degraded()) };
+                let hide = self.model.node_hide_flag(node).unwrap_or(true);
+                ActionNodeKind::Hide { targets, hide }
+            }
+            ActionType::ResetForm => {
+                // An unreadable state or target list degrades the node. Never
+                // `fields: None` in its place: that means `/Fields` absent,
+                // which resets every field in the form.
+                let Some((has_fields, exclude)) = self.model.node_reset_form(node) else {
+                    return Ok(self.degraded());
+                };
+                let Some(targets) = self.targets(node)? else { return Ok(self.degraded()) };
+                ActionNodeKind::ResetForm { fields: has_fields.then_some(targets), exclude }
+            }
+            ActionType::SubmitForm => {
+                // The getter refuses when the required /F did not resolve to
+                // a URL: the whole node degrades, never a half payload.
+                let Some((has_fields, flags)) = self.model.node_submit_form(node) else {
+                    return Ok(self.degraded());
+                };
+                let Some(url) = self.payload_string(self.model.node_submit_form_url(node))? else {
+                    return Ok(self.degraded());
+                };
+                let Some(targets) = self.targets(node)? else { return Ok(self.degraded()) };
+                let char_set = self.payload_string(self.model.node_submit_form_char_set(node))?;
+                ActionNodeKind::SubmitForm {
+                    payload: Some(SubmitFormPayload {
+                        url,
+                        fields: has_fields.then_some(targets),
+                        flags: decode_submit_form_flags(flags),
+                        char_set,
+                    }),
+                }
+            }
             ActionType::Thread => ActionNodeKind::Thread,
             ActionType::Sound => ActionNodeKind::Sound,
             ActionType::Movie => ActionNodeKind::Movie,
@@ -429,11 +484,4 @@ impl Walk<'_, '_> {
             ActionType::Unknown => ActionNodeKind::Unknown,
         })
     }
-}
-
-/// Keep `decode_submit_form_flags` reachable from this module, so a future
-/// payload read does not have to reach across.
-#[allow(dead_code)]
-fn decode_flags(raw: u32) -> SubmitFormFlags {
-    decode_submit_form_flags(raw)
 }

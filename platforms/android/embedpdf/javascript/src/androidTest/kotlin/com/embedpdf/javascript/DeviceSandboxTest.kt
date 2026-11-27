@@ -120,13 +120,9 @@ class DeviceSandboxTest {
      * `action_buttons_form.pdf`'s `btn-chain`, pressed through the form and
      * dispatched by the actions plugin: JavaScript appending "A" to the log
      * field, a ResetForm of `alpha`, then JavaScript appending "B". All three
-     * nodes run in the sandbox and the reset lands.
-     *
-     * The log field ends as "B". The TypeScript plugin's e2e
-     * (`packages/plugin/form/test/action-buttons.integration.test.ts`) expects
-     * "AB" for the same press: the second script doesn't see the first one's
-     * write. That is the Rust actions plugin, not the sandbox, and is recorded
-     * in `platforms/android/README.md` rather than asserted either way.
+     * nodes run in the sandbox, the reset puts back `alpha` alone, and the log
+     * field ends as "AB", as the TypeScript plugin's e2e
+     * (`packages/plugin/form/test/action-buttons.integration.test.ts`) expects.
      */
     @Test
     fun aFormButtonsJavaScriptRunsThroughTheActionsPlugin() = onDevice {
@@ -150,6 +146,7 @@ class DeviceSandboxTest {
         val fields = form.fields().associateBy { it.name }
         val log = fields.getValue("log").fieldRef
         val alpha = fields.getValue("alpha").fieldRef
+        val beta = fields.getValue("beta").fieldRef
         val button = fields.getValue("btn-chain").widgets.first().annotationRef!!
         assertEquals(FormValueInputValue("filled-a"), form.value(alpha))
 
@@ -164,9 +161,8 @@ class DeviceSandboxTest {
             result.nodes.map { it.nodeType to it.status },
         )
         assertEquals(FormValueInputValue("default-a"), form.value(alpha))
-        val written = form.value(log)
-        Log.i(TAG, "btn-chain left the log field at $written")
-        assertTrue("$written", (written as FormValueInputValue).value.orEmpty().endsWith("B"))
+        assertEquals(FormValueInputValue("filled-b"), form.value(beta))
+        assertEquals(FormValueInputValue("AB"), form.value(log))
         viewer.destroy()
     }
 
