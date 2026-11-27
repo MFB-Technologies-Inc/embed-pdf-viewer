@@ -213,6 +213,23 @@ fn a_layer_close_answers_the_tag_alone_whether_or_not_there_was_one() {
 }
 
 #[test]
+fn a_layer_bytes_open_takes_the_base_sha256_the_local_engine_forwards() {
+    // `LocalEngine.open` forwards `baseSha256` on a `layerBytes` open
+    // (faa04047c, #1150). It is an identity claim that saves the runtime a
+    // hash pass; this host does not take it, and the open goes ahead.
+    let mut host = Host::new();
+    let json = call(
+        &mut host,
+        serde_json::json!({ "kind": "open.layerMemBase", "docId": "d", "layerName": "a",
+            "baseKey": "base", "layer": { "kind": "fresh" },
+            "baseSha256": "00".repeat(32) }),
+        vec![bytes(PLAIN)],
+    );
+    assert!(json.get("error").is_none(), "{json}");
+    assert_eq!(host.sessions().len(), 1);
+}
+
+#[test]
 fn a_page_edit_reaches_the_page_reads() {
     // Every page read checks the object number against the open document's
     // index first. A page mutation rebuilds the session's registry; the read
