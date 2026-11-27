@@ -62,7 +62,7 @@ Container `embed-pdf-catchup1127`, image `embedpdf-dev:20261127-d670a1cbfb10`, v
 |---|---|
 | `/workspaces/embed-pdf-viewer` | Viewer clone from a bundle of the host repository (`--branches`, `fork/*`, `origin/main` as `upstream/main` = `9af4d9ee7`), detached at `d250a68e3`. Remotes `fork` and `upstream` point at GitHub; `hostbundle` is the bundle. Not shallow. |
 | `/workspaces/runtime` | Runtime fork, blobless clone of `MFB-Technologies-Inc/embed-pdf-runtime` (remote `fork`), remote `upstream` (embedpdf/runtime) with tags `runtime-7f399f83…` and `runtime-f2ea7597…`. Branch `catchup/2026-11-27-runtime` at `9472117ed` checked out. |
-| `/workspaces/wt/CU-C2` | Worktree on `research/catchup-2026-11-27-plugins` (`f8a124edc`), prepped: dependencies, PDFium, a wasm32 payload without the Rust core, the linux-arm64 addon, all package builds. Target `/workspaces/target`. |
+| `/workspaces/wt/CU-C2` | Worktree on `research/catchup-2026-11-27-plugins` (at `f8a124edc` when measured), prepped: dependencies, PDFium, a wasm32 payload without the Rust core, the linux-arm64 addon, all package builds. Target `/workspaces/target`. |
 | `/workspaces/wt/base` | Worktree detached at `d250a68e3`, prepped the same way, for baseline runs. Its target dir was deleted after the run. |
 | `/workspaces/wt/CU-C1-probe` | The probe crate |
 | `/workspaces/scripts/` | Every file of `scripts/` here |

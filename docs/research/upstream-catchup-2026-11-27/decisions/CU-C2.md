@@ -15,8 +15,8 @@ Reason: upstream's reader (#1157) no longer reads the glyph struct field by fiel
 runtime. It calls `EPDFText_GetPageGeometry` for up to 4,096 glyphs at a time
 (`GLYPHS_PER_CALL`), copies the buffer once with `mem.readBytes`, and decodes it with a `DataView`
 in `appendGlyphRecords`. That is the one-view read `061a544c4` added, done better. After taking it,
-`git grep peekWords -- packages crates platforms` finds only the two definitions, so D-2's
-condition for keeping the runtime half (a remaining caller) fails.
+`git grep peekWords -- packages crates platforms` found only the two definitions in the tree
+before their removal, so D-2's condition for keeping the runtime half (a remaining caller) fails.
 Cost: no perf-harness run in this job compares upstream's reader with the old `peekWords` one. Two
 TS divergences from upstream are gone (`PageGeometryReader.ts`, `PdfRuntimeMemory.peekWords`).
 Reverse: cherry-pick `061a544c4`'s runtime half; the reader half no longer applies.

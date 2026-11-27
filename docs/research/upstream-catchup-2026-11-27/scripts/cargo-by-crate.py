@@ -8,7 +8,8 @@ bins = {l.split()[0]: l.split()[1] for l in open(bins_path) if l.strip()}
 lines = open(log, errors='replace').read().splitlines()
 cur = None; fails = []; panics = {}
 for i, l in enumerate(lines):
-    m = re.match(r'^\s+Running (?:unittests )?(\S+) \((?:\S*/)?deps/(([A-Za-z0-9_]+)-[0-9a-f]+)\)', l)
+    # The binary sits in deps/ (old layout) or build/<pkg>/<hash>/out/ (cargo's build-dir layout).
+    m = re.match(r'^\s+Running (?:unittests )?(\S+) \((?:\S*/)?(([A-Za-z0-9_]+)-[0-9a-f]+)\)', l)
     if m:
         cur = (bins.get(m.group(2), '?'), m.group(3)); continue
     m = re.match(r'^test (.*) \.\.\. FAILED$', l)
