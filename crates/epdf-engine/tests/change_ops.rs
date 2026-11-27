@@ -325,8 +325,9 @@ fn a_widget_update_renames() {
 #[test]
 fn every_change_kind_has_the_version_it_arrived_in() {
     use epdf_engine::features::changes::kinds::{
-        API_VERSION, CHANGE_KIND_SINCE, CHANGE_KINDS, VALIDATION_INFO_SINCE, change_kind_since,
-        change_kinds_unknown_to, lacks_what_arrived_in,
+        API_VERSION, CHANGE_KIND_SINCE, CHANGE_KINDS, FIELD_PURPOSE_AND_FORMAT_SINCE,
+        MARK_IMAGE_OR_NONE_SINCE, VALIDATION_INFO_SINCE, change_kind_since, change_kinds_unknown_to,
+        lacks_what_arrived_in,
     };
     let path = test_support::corpus::vectors_dir("changes").join("kinds.json");
     let text = std::fs::read_to_string(&path).expect("kinds.json");
@@ -335,6 +336,8 @@ fn every_change_kind_has_the_version_it_arrived_in() {
     assert_eq!(vectors["kind"], json!("wire.changeKinds"));
     assert_eq!(vectors["apiVersion"], json!(API_VERSION), "the API version moved");
     assert_eq!(vectors["validationInfoSince"], json!(VALIDATION_INFO_SINCE));
+    assert_eq!(vectors["markImageOrNoneSince"], json!(MARK_IMAGE_OR_NONE_SINCE));
+    assert_eq!(vectors["fieldPurposeAndFormatSince"], json!(FIELD_PURPOSE_AND_FORMAT_SINCE));
 
     let since = vectors["since"].as_object().expect("since");
     let kinds: Vec<&str> = since.keys().map(String::as_str).collect();

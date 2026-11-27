@@ -54,7 +54,9 @@ import { createInlineTransport } from '../../../packages/engine/main/src/transpo
 import type { Change } from '../../../packages/engine/core/src/mutation/Change';
 import {
   API_VERSION,
+  FIELD_PURPOSE_AND_FORMAT_SINCE,
   lacksWhatArrivedIn,
+  MARK_IMAGE_OR_NONE_SINCE,
   VALIDATION_INFO_SINCE,
 } from '../../../packages/engine/core/src/wire/apiVersion';
 import {
@@ -609,7 +611,7 @@ async function runCase(group: Group, entry: Case): Promise<unknown> {
 // --- Change kinds -----------------------------------------------------------
 
 /** The sides `changeKindsUnknownTo` is asked about: none said, older, this one, newer. */
-const VERSIONS = [null, '2.9', '3.0', '3.1', '3.2', '3.3', '4.0'] as const;
+const VERSIONS = [null, '2.9', '3.0', '3.1', '3.2', '3.3', '3.4', '4.0'] as const;
 
 function kindsVector(): unknown {
   const kinds = [...CHANGE_KINDS];
@@ -620,6 +622,9 @@ function kindsVector(): unknown {
     apiVersion: API_VERSION,
     // The version the validation-data routes and a prepare with no field arrived in (4cb85c91e).
     validationInfoSince: VALIDATION_INFO_SINCE,
+    // A signature mark as an image, or none, and a field's purpose and format (fcb69611f, 833b40015).
+    markImageOrNoneSince: MARK_IMAGE_OR_NONE_SINCE,
+    fieldPurposeAndFormatSince: FIELD_PURPOSE_AND_FORMAT_SINCE,
     since: Object.fromEntries(kinds.map((kind) => [kind, changeKindSince(kind as ChangeKind)])),
     rows: CHANGE_KIND_SINCE,
     asked,
@@ -628,7 +633,7 @@ function kindsVector(): unknown {
       unknown: changeKindsUnknownTo(version, asked),
     })),
     lacks: VERSIONS.flatMap((version) =>
-      [null, '3.0', '3.1', '3.2', '3.3'].map((since) => ({
+      [null, '3.0', '3.1', '3.2', '3.3', '3.4'].map((since) => ({
         version,
         since,
         lacks: lacksWhatArrivedIn(version, since),

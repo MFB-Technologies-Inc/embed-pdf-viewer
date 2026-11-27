@@ -3,6 +3,8 @@
   "kind": "wire.changeKinds",
   "apiVersion": "3.4",
   "validationInfoSince": "3.3",
+  "markImageOrNoneSince": "3.4",
+  "fieldPurposeAndFormatSince": "3.4",
   "since": {
     "annotations.create": "3.0",
     "annotations.update": "3.0",
@@ -179,6 +181,12 @@
       ]
     },
     {
+      "version": "3.4",
+      "unknown": [
+        "pages.someKindFromANewerServer"
+      ]
+    },
+    {
       "version": "4.0",
       "unknown": []
     }
@@ -210,6 +218,11 @@
       "lacks": false
     },
     {
+      "version": null,
+      "since": "3.4",
+      "lacks": false
+    },
+    {
       "version": "2.9",
       "since": null,
       "lacks": true
@@ -232,6 +245,11 @@
     {
       "version": "2.9",
       "since": "3.3",
+      "lacks": true
+    },
+    {
+      "version": "2.9",
+      "since": "3.4",
       "lacks": true
     },
     {
@@ -260,6 +278,11 @@
       "lacks": true
     },
     {
+      "version": "3.0",
+      "since": "3.4",
+      "lacks": true
+    },
+    {
       "version": "3.1",
       "since": null,
       "lacks": true
@@ -285,6 +308,11 @@
       "lacks": true
     },
     {
+      "version": "3.1",
+      "since": "3.4",
+      "lacks": true
+    },
+    {
       "version": "3.2",
       "since": null,
       "lacks": true
@@ -310,6 +338,11 @@
       "lacks": true
     },
     {
+      "version": "3.2",
+      "since": "3.4",
+      "lacks": true
+    },
+    {
       "version": "3.3",
       "since": null,
       "lacks": true
@@ -335,6 +368,41 @@
       "lacks": false
     },
     {
+      "version": "3.3",
+      "since": "3.4",
+      "lacks": true
+    },
+    {
+      "version": "3.4",
+      "since": null,
+      "lacks": true
+    },
+    {
+      "version": "3.4",
+      "since": "3.0",
+      "lacks": false
+    },
+    {
+      "version": "3.4",
+      "since": "3.1",
+      "lacks": false
+    },
+    {
+      "version": "3.4",
+      "since": "3.2",
+      "lacks": false
+    },
+    {
+      "version": "3.4",
+      "since": "3.3",
+      "lacks": false
+    },
+    {
+      "version": "3.4",
+      "since": "3.4",
+      "lacks": false
+    },
+    {
       "version": "4.0",
       "since": null,
       "lacks": false
@@ -357,6 +425,11 @@
     {
       "version": "4.0",
       "since": "3.3",
+      "lacks": false
+    },
+    {
+      "version": "4.0",
+      "since": "3.4",
       "lacks": false
     }
   ]
