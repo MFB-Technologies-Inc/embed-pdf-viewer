@@ -88,7 +88,8 @@ test('the actual pointer create confirms the same geometry and refs that were se
   assert.equal(op.type, 'forms.create');
   assert.equal(op.objectNumber, 10001);
   assert.deepEqual(op.widgetObjectNumbers, [10002]);
-  assert.deepEqual(object(array(object(op.draft).widgets)[0]).rect, {
+  // A placed widget is sent as its frame, `box` (23741e3fd, #1118).
+  assert.deepEqual(object(array(object(op.draft).widgets)[0]).box, {
     x: 20,
     y: 88,
     width: 160,
@@ -596,7 +597,7 @@ test('real placement clamps page edges, retains thin drags and projection, decli
       const request = object(array(e.args)[0]);
       const op = object(array(request.ops)[0]);
       const draft = object(op.draft);
-      return object(array(draft.widgets)[0]).rect;
+      return object(array(draft.widgets)[0]).box;
     });
   assert.deepEqual(await rects('placement-is-page-bound'), [
     { x: 0, y: 790, width: 600, height: 10 },

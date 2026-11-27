@@ -31,7 +31,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "hydrates-on-open",
-        "canonicalInputSha256": "6516c9a5e8ccb12e7d48d2e956c7c05e00bed09564d1d9e77f2174232711dcbb",
+        "canonicalInputSha256": "d5042e8c8840376c912302a5364fe84e8d8283e3709698d07e0e1cb1f22e7415",
         "intent": "One deferred complete snapshot; reads and widget joins are empty until it lands. Authority is per field."
       },
       "disposition": "current-shipping-replacement",
@@ -54,7 +54,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "no-read-grant-never-lists",
-        "canonicalInputSha256": "ed8d397d44bd25489e262331133b692205691c8c8c87c7b34c8f1bc307a3f511",
+        "canonicalInputSha256": "ff9d69f07d58dde0e612bd0b9a577bfd9ab3ae51d5c1b8932c9d2b32c24a0454",
         "intent": "The readable mirror stays forbidden and never calls forms.list, including refresh."
       },
       "disposition": "current-shipping-replacement",
@@ -76,7 +76,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "refresh-coalesces-and-forces",
-        "canonicalInputSha256": "255c5aa120287208e49188b488ad705320718d5ad9a5a8a0bb8d1c9acd9b25da",
+        "canonicalInputSha256": "82b544346ef9ef5bbaa86d2190ef1bf9d0b3fd21d2e2ec12aff02116b8506c76",
         "intent": "Current mirror coalesces concurrent refreshes; a subsequent explicit refresh starts a fresh load. No force flag."
       },
       "disposition": "current-shipping-replacement",
@@ -96,7 +96,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "a-failed-load-warns",
-        "canonicalInputSha256": "0147b630a6f09eb5fc94c7326457d9356d36f26cc8367772e1bd7aed572ccf0d",
+        "canonicalInputSha256": "1e73db5c7744d8f86063219ed4b7397754a5e5e545a52da8df2cff96aff5d738",
         "intent": "Current mirror exposes a failed read through error status, without console or kernel reports; refresh recovers."
       },
       "disposition": "current-shipping-replacement",
@@ -116,7 +116,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "widget-geometry-loads-once-per-page",
-        "canonicalInputSha256": "76e7a666e14d5ae69217ad713f13ce57aa6b129d668a5a17f765d25342000c89",
+        "canonicalInputSha256": "1e56eb7c0cb0db61502afe106c26acc825f051fd9e5162d16bab53daa143773a",
         "intent": "Complete page-space widget rows arrive with the one form snapshot. ensureLoaded shares that load; no annotation geometry read exists."
       },
       "disposition": "current-shipping-replacement",
@@ -136,7 +136,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "a-failed-geometry-read-can-retry",
-        "canonicalInputSha256": "228d98538a3e3220d2fad2e5c766201cbdbcb513562d28a28b1a105e8c1c6da6",
+        "canonicalInputSha256": "b0858e76301f5c8560d3851235cb93873f3a425158fe66310980586dda4824d1",
         "intent": "Geometry is part of the fields load now; a refused snapshot reports once and explicit refresh retries the full current snapshot."
       },
       "disposition": "current-shipping-replacement",
@@ -156,7 +156,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "fill-authority-fuses-into-disabled",
-        "canonicalInputSha256": "34c47c1a7fc052b50678d8f1f5d24c3ecff4e681d1927f2dbea1706b5041049b",
+        "canonicalInputSha256": "fcfd0abe9232900149a02f0269691f15acc4f8ceb63e254a2890b62dc7a8aaf5",
         "intent": "Per-field fill authority and readOnly determine disabled; ordinary and readonly widgets are independently projected in two sessions."
       },
       "disposition": "current-shipping-replacement",
@@ -176,7 +176,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "typed-writes",
-        "canonicalInputSha256": "8bec8b7a6c358964871c8f7b28e89d6df37911c60c77d4c24d302e8fd5a84472",
+        "canonicalInputSha256": "3634863ca96d2895bdcbb4ce1b9a4a799b51a6aefd4611faf3dfad9c38f1ec4b",
         "intent": "Current family writes use value/checked/selectedValues and current refs; null clears a checkbox via its value vocabulary."
       },
       "disposition": "current-shipping-replacement",
@@ -196,7 +196,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "writes-serialize",
-        "canonicalInputSha256": "fb6c24ce527c7e9e3caa5490d6fbb0f47401aa3f1184a532ea0a26d13d67c405",
+        "canonicalInputSha256": "3213228fc7713fa326989a32fa87fa4788b9705d9b2a9f70a3ec39c14b1ff9b5",
         "intent": "Current fills send in order without waiting for prior answers; pending reads see the later fill until both confirmations land."
       },
       "disposition": "current-shipping-replacement",
@@ -216,7 +216,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "a-failed-write-reverts",
-        "canonicalInputSha256": "bb7b93f0386e9a776efe4aa6e48ac5d857a6bf0215eb6d62dbd437ac5499aeb9",
+        "canonicalInputSha256": "0e2e6b116ad24dec32496c33a71cc62bd418d895f85181415cbaeabde3d16461",
         "intent": "An engine refusal rolls back the pending value and rejects; the next fill confirms normally."
       },
       "disposition": "current-shipping-replacement",
@@ -236,7 +236,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "the-write-gate",
-        "canonicalInputSha256": "2afb1de73a673b8dbc0b04c8c59f325dae7fdc51385b3d87e01b060fade52622",
+        "canonicalInputSha256": "d5c9c7969802d407bc14165015688ff5d70a051714f1e629a694f041762f07b0",
         "intent": "Known fields denied fill reject value/checkbox/choice/reset locally before any apply."
       },
       "disposition": "current-shipping-replacement",
@@ -257,7 +257,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "commit-value-without-scripting",
-        "canonicalInputSha256": "2a854e1a1779d74de74a8aa6967d332bb3e916c5eab07ea4bd87f98f56b9bc80",
+        "canonicalInputSha256": "ef84682535d7f43ac9e268a1c8a95ffedd0610fc529edfe802fb4435616dfb28",
         "intent": "The public validated setValue replaces commitValue: applied or unchanged comes from result.meta.undoable; a named engine refusal rejects."
       },
       "disposition": "current-shipping-replacement",
@@ -277,7 +277,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "reset-rides-the-batch",
-        "canonicalInputSha256": "d247d9bea74c13c97946059b629087e204a478aebef8f8646f0a18c74a0fafa7",
+        "canonicalInputSha256": "e87e8659e68ba0368ac8003949aababc444aa1a215ee60b55520ba28f2dd87a7",
         "intent": "Current reset is one forms.reset ChangeOp and confirmed value facts, with no re-read. Unknown refs select nothing."
       },
       "disposition": "current-shipping-replacement",
@@ -297,7 +297,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "a-failed-reset-batch-rejects",
-        "canonicalInputSha256": "97dc0ba2f7e825687e5782ed5518d89e322f39b0b20d3acc56f496d51408d4ee",
+        "canonicalInputSha256": "7cf121d14c99192fce146f49198914b8642d6bd35efd50fff9d1e85500b8a812",
         "intent": "Current resets are atomic apply changes; exact named engine refusals reject without stale per-entry batch statuses."
       },
       "disposition": "current-shipping-replacement",
@@ -317,7 +317,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "reset-without-the-batch",
-        "canonicalInputSha256": "6f285bd959fefcf54346ca358475caaf600c0f71fe9d101acc994070c18dd975",
+        "canonicalInputSha256": "6b42083c495af75d603018ba3fbe44d26385e982050c0a75a16db309420f9108",
         "intent": "Removed applyEffects/reset fallback is replaced by the sole current change queue; successful and refused reset preserve defaults/rollback."
       },
       "disposition": "current-shipping-replacement",
@@ -337,7 +337,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "set-value-passthrough",
-        "canonicalInputSha256": "c45617d57899cf51c3653dbbf4c4248474c98fd943f3b866abcc0f0f68ccf103",
+        "canonicalInputSha256": "dfaeacaf5ad247014e06174859d07e0a35ba8940cdcb9fc13d0fd55c87742eeb",
         "intent": "Current setValue returns the confirmed field and status; the next refused value leaves it intact."
       },
       "disposition": "current-shipping-replacement",
@@ -357,7 +357,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "interchange",
-        "canonicalInputSha256": "ff27fcee253482e0d7b6579b47d9102f8142fbb807ec8700168d117c64f5d628",
+        "canonicalInputSha256": "da365b8c43c7ba7c48b9563c00e38f9690b399e007e4b077997ce2e18c03bc35",
         "intent": "Current bundles replace FDF/XFDF data doors; export/import/repair use current direct engine services and exact refusals."
       },
       "disposition": "current-shipping-replacement",
@@ -378,7 +378,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "the-twins",
-        "canonicalInputSha256": "85edf31162512053f24946585d1d43316b8ce1912124415753a2b102c3b116c3",
+        "canonicalInputSha256": "6bef309cac40c1cc6c3fb6167d8c9c32c5c60bbc06f8a8c8680fc200b8ebccc0",
         "intent": "Read/design grants and per-field fill authority are independently exposed by the current twins."
       },
       "disposition": "current-shipping-replacement",
@@ -398,7 +398,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "the-effect-folds-foreign-events",
-        "canonicalInputSha256": "c65f502e656512f654d11cb7a5739935386b3ec6f792e48cefffe265a22bb739",
+        "canonicalInputSha256": "802db7e350abab90234c47c062b4b86a89599cfe62c3446ccb69de51a92d5fdd",
         "intent": "Current remote and local facts fold directly without reads; deletion removes the field/rows. Desynchronization reloads the complete form."
       },
       "disposition": "current-shipping-replacement",
@@ -419,7 +419,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "the-effect-refresh-is-latched",
-        "canonicalInputSha256": "39fdb16612e0dde6f2c1871d5bafd1648802d7f7404462297fcd74f65c419b57",
+        "canonicalInputSha256": "ce4d929c90e1f6f917320df68d3a7ef91b71f4e0c1b6e552f75c2efe9e788937",
         "intent": "While refresh is in flight current mirrors buffer facts, then replay them over the loaded snapshot. The last buffered fact wins, and later facts fold normally."
       },
       "disposition": "current-shipping-replacement",
@@ -439,7 +439,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "a-reset-action-without-a-batch-door",
-        "canonicalInputSha256": "81eae04beff117c879162317f0bafcc57880bff9be073d964bd4ed26b6a679d2",
+        "canonicalInputSha256": "b9c67ec5830233b29be3a2a6c9e9c5a99d94682db0c50e70a293ca6d96695b65",
         "intent": "The host reset action uses the same current forms.reset operation without an actions plugin or any removed batch API."
       },
       "disposition": "current-shipping-replacement",
@@ -462,7 +462,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "close-unsubscribes",
-        "canonicalInputSha256": "452a034a5f7c9c44c9d465954d09c18433e94421ce92ba2f45fc0c3e4dda8150",
+        "canonicalInputSha256": "491faeb0cd19404fd4e1a938260f8ab3cbbc171b513787de3283241de4a4adcb",
         "intent": "Closing releases the form instance, its mirrors and hooks; reopening constructs a fresh model."
       },
       "disposition": "current-shipping-replacement",
@@ -482,7 +482,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "geometry-on-an-offset-crop",
-        "canonicalInputSha256": "10b401fbaf52f070637b89177a8d8f34f9ed5035d20799d2a89ad6dae78692f0",
+        "canonicalInputSha256": "3c0c05df6d452c87b90433aca05783cbbd7c3483a03ab7230c522c0cbb6af480",
         "intent": "Current widget rows already carry crop-relative page coordinates, including fractional dimensions; reads preserve them."
       },
       "disposition": "current-shipping-replacement",
@@ -502,7 +502,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "reads-over-the-snapshot",
-        "canonicalInputSha256": "864bb5d41b4172a347b297a41d27a25c53d976686280c135cd8c677976aa2c62",
+        "canonicalInputSha256": "601b950d1f4382ef8cd0756c8de7bee735a2df393868b81ce2a5f6c890579e0f",
         "intent": "Current list filters, values, widget addresses and exportValues read complete flat field records and page rows; unplaced widgets are absent."
       },
       "disposition": "current-shipping-replacement",
@@ -526,7 +526,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "status-without-read-and-after-a-failed-load",
-        "canonicalInputSha256": "005cb2093ec801669604fb61e312797b3daa517fec64481aef7e009be3e2bfe8",
+        "canonicalInputSha256": "45342c22c2265e1eafc214d7cec566deb3a8ac5cb645c775d7bba5a7ff70afa6",
         "intent": "The current mirror returns forbidden without read permission and error after a named load refusal."
       },
       "disposition": "current-shipping-replacement",
@@ -543,7 +543,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "batch-writes",
-        "canonicalInputSha256": "3f22e9d7a08fb746098efa23a32e410fa8c23d4d94049cbbbfc7a9911c529423",
+        "canonicalInputSha256": "caa0ec60e0391e62571bc3694546eeee06c0d4315e96e8ddc8c3d0533f1d643b",
         "intent": "Current batch accepts well-typed fields and reports unknown refs independently; plain import skips missing, forbidden and incompatible values. Accepted fields share one apply."
       },
       "disposition": "current-shipping-replacement",
@@ -563,7 +563,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "values-keyed-by-integer-like-names",
-        "canonicalInputSha256": "d8be8613c735efb3268ea7d9dd78253a026a6176231b5c627c52630962e6e2b9",
+        "canonicalInputSha256": "3ac1e7f2cb84f981dc3b7e4d4d82fa420861a19b167d72d5639e48e3941e6ad4",
         "intent": "Plain import/export follow JavaScript integer-like property ordering; the actual apply operation order records that ordering."
       },
       "disposition": "current-shipping-replacement",
@@ -583,7 +583,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "reset-all",
-        "canonicalInputSha256": "aa0747963c73ae5b7be7758c466c312f63bfac8006df959c97e6856950d2ee9d",
+        "canonicalInputSha256": "f8cf1f550186a5e6dbbdf5e5cd96f1186f98d75674d87bb025631be486e84247",
         "intent": "Current reset() selects every fillable resettable field, or explicit refs. Host action exclusion preserves ISO target selection; empty include selects none."
       },
       "disposition": "current-shipping-replacement",
@@ -606,7 +606,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "reset-all-failures",
-        "canonicalInputSha256": "43fa5a9367a61f574d47ba36b997c94b9687f0b75fe00de26f3c0619a5007ad1",
+        "canonicalInputSha256": "2fdd8bc8c665a095e3391a444b4294f672c7bbbd700159615817c3d8f75b3c9f",
         "intent": "Explicit denied reset rejects locally; reset waits for the snapshot. Current atomic engine refusal rejects the entire change and the next reset succeeds."
       },
       "disposition": "current-shipping-replacement",
@@ -629,7 +629,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "confirmed-change-events",
-        "canonicalInputSha256": "5cfaddcee19c58e9b538b25d26e7a8e6d85431b4857eb40271c9941dda22093f",
+        "canonicalInputSha256": "ca26c3c3a0573bd540e45c371e316319d68d4d4b129474117585c004daf3dac0",
         "intent": "Current facts announce value/create/update/widget/remove/delete with exact origins; refresh alone announces resync. Unrelated version facts do not synthesize form writes."
       },
       "disposition": "current-shipping-replacement",
@@ -649,7 +649,7 @@
       "after": {
         "file": "plugins/form-fill.json",
         "name": "an-unsubscribed-listener-hears-nothing",
-        "canonicalInputSha256": "118d9d7b863feefe4212fd1d805ec4a9c90a7069db480621511ca1590166c40b",
+        "canonicalInputSha256": "a5288a7650ab7c223e8b5ae13ad683dddc3ac34bf870779a85e225d6b4ec3596",
         "intent": "An event hook returns a callable unsubscribe; detaching it prevents the subsequent refreshed snapshot callback."
       },
       "disposition": "current-shipping-replacement",
@@ -683,7 +683,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "init-with-annotation",
-        "canonicalInputSha256": "879dccb8ef73209ddd881f16a8cfd049b1865789ad91473eb6fe6959108b6a4c",
+        "canonicalInputSha256": "a9ee8e3d87dd3c5e1a625c35b9d3943b8678329088151085d2a0bff937657326",
         "intent": "Palette tools join annotation.tools; widgets lend in design mode and return to form fill mode."
       },
       "disposition": "current-shipping-replacement",
@@ -705,7 +705,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "place-a-text-field",
-        "canonicalInputSha256": "6e62ac16a331c86924d58577e655d3da450e29df043f7f715d9a5a20b18cbb62",
+        "canonicalInputSha256": "86a8ef11f3afffa8c616a36f0aee30d5ff0b27aa422f30e1cf6727feb23ba1f2",
         "intent": "Current create accepts page-space drafts and explicit names. The handler owns auto-naming; engine answers fold without geometry reloads."
       },
       "disposition": "current-shipping-replacement",
@@ -727,7 +727,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "place-each-family",
-        "canonicalInputSha256": "968194d2ced04e337273ae1634010b23bd95a03b650774e7847cde9a07aa321f",
+        "canonicalInputSha256": "78f2162df645990bb6547b7dafd08b3c6338b5587cab3d9d486d324bbbff80bf",
         "intent": "Current direct drafts retain radio exportValue and complete choice options, and return complete family-specific fields/widgets."
       },
       "disposition": "current-shipping-replacement",
@@ -747,7 +747,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "placement-before-the-snapshot",
-        "canonicalInputSha256": "95d8338e07cd8cdf09ef6f3546e3da34b9685571cc3a33191d375b2a16d4e99d",
+        "canonicalInputSha256": "16b45dd411e1a17bb1b83f614a2821b28b126810cae6eb5d10780399bf68e0a5",
         "intent": "The actual handler names against the current view while the first list is pending; create shows after confirmation and remains after the snapshot loads."
       },
       "disposition": "current-shipping-replacement",
@@ -770,7 +770,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "placement-is-page-bound",
-        "canonicalInputSha256": "0dd95f416f05efc2dd70bdd9dbb107aed2ae7ec3a0020fb9eb7b19fabacc432f",
+        "canonicalInputSha256": "6b054ad605ae88a4de8c6554b74154d85071d17093f2e58297d194780fbee9e5",
         "intent": "Actual gesture placement clamps overshoots, ignores degenerate drags and unknown pages, and permits one-point geometry."
       },
       "disposition": "current-shipping-replacement",
@@ -793,7 +793,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "placement-refused-by-the-engine",
-        "canonicalInputSha256": "a4c4e438ece59070b2396d469b6fb9be4c9b9add9f6a4787008b4365ad8e5472",
+        "canonicalInputSha256": "26f55aa3288730ef33e0dea496a6ab03926b50e7f947566bfa2ee3f72fbf1366",
         "intent": "A current create refusal rejects without confirmation; the next create succeeds with its own allocated refs."
       },
       "disposition": "current-shipping-replacement",
@@ -813,7 +813,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "placement-reloads-the-annotation-page",
-        "canonicalInputSha256": "af56bd983f94d850d14ac6a815e92ec56b39edb7397d6bdb860e771a0e3944d0",
+        "canonicalInputSha256": "db555929cbbe70577d31eab28b0bffe072937f194f8e3fe0f6d3f59b8da79531",
         "intent": "Current confirmed widget rows are lent directly to annotation in design mode; selection needs no extra annotation read."
       },
       "disposition": "current-shipping-replacement",
@@ -853,7 +853,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "update-field",
-        "canonicalInputSha256": "9f00be0d0b2eca63d6f322862c5602a772fa12cc527af9e340d2328f6ae85a0f",
+        "canonicalInputSha256": "78a5be30b565f498d1d8ac2f933e8d0a1ef1e0525ea385dae20fa9b1e9b343d8",
         "intent": "Current update stages a patch against an actual field ref and folds the answer; a named engine family refusal rejects."
       },
       "disposition": "current-shipping-replacement",
@@ -873,7 +873,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "delete-field",
-        "canonicalInputSha256": "e56f0b8d7ca15aabc53d204ac9506c0e4ac9a04cfc1dc1363c1ec4f7c7bc6be4",
+        "canonicalInputSha256": "0c159b928d17cd26c8e477f4c92bf7d926d6819596af906426580f164fb58cfe",
         "intent": "Deleting a spread field removes its widgets on both pages from form and annotation lending. Unknown ref deletion is an explicit engine not-found refusal."
       },
       "disposition": "current-shipping-replacement",
@@ -897,7 +897,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "queued-verbs-interleave-with-page-reloads",
-        "canonicalInputSha256": "904aff3c8182dfae69542376383e0fdb6679b0031ca7464642f313edb8130789",
+        "canonicalInputSha256": "47894677f072b257916197c32523535bc2b2b6897672ab42826e36a3e00ff330",
         "intent": "Current structural ops overlap without old page reloads; a confirmed update remains while a prior delete awaits its answer."
       },
       "disposition": "current-shipping-replacement",
@@ -920,7 +920,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "delete-field-without-annotation",
-        "canonicalInputSha256": "1255e8b3d63f4d76a5359749a669cb3a9df64b9688c86a9e8bdd3271f026174b",
+        "canonicalInputSha256": "9bc103272ba520e4de741bd0b18eceee4715e5c3be3f377f28e1e7d703920a4d",
         "intent": "Direct delete works with no annotation plugin; a later engine not-found refusal is preserved."
       },
       "disposition": "current-shipping-replacement",
@@ -940,7 +940,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "detach-widget",
-        "canonicalInputSha256": "353a546fc12d127229ebca0ee8bba309141b9bbd33518d9558ec0e8edd240ca6",
+        "canonicalInputSha256": "7b6a13c166b6d4bee456de9f332f233497948acbde35b576131a01f7a26eca7d",
         "intent": "Current removeWidget takes field and annotation refs; detached rows remain on the page with field:null and are no longer projected as fields."
       },
       "disposition": "current-shipping-replacement",
@@ -962,7 +962,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "widget-hit-test",
-        "canonicalInputSha256": "ba11c9cab52668b1c58de3c4288463a19c51fd61d02f3d5ab8b55acb63617278",
+        "canonicalInputSha256": "fb46c3bbff065f61c13554b038a9b976d083aef45b26846431588ccf088ba520",
         "intent": "Current model hit test returns the smallest owned widget; unowned widgets and unknown pages return null before and after ensureLoaded."
       },
       "disposition": "current-shipping-replacement",
@@ -982,7 +982,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "widget-hit-test-live-boxes-compare-areas",
-        "canonicalInputSha256": "7b112d8fed758e130af9eecb3653b0fb5e6ee00628134d386c9db02cc1701266",
+        "canonicalInputSha256": "1de4bc6c356fb6309bb902f1a15bfed2be35b9ded701f4cf56e48d1df5c3192f",
         "intent": "Current snapshot hit test compares area and preserves first-listed ties; removed live fallback has the same surviving geometric owner."
       },
       "disposition": "current-shipping-replacement",
@@ -999,7 +999,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "widget-hit-test-without-annotation",
-        "canonicalInputSha256": "b45eebb9b525b65d87678af1d911b8cbcd00a962aaea218bfd25e74046040245",
+        "canonicalInputSha256": "f995aad72149ebbf93d3490d7193815ae62c54cf91cc5ef6c7e7b6d2c4509e5e",
         "intent": "Before the current form snapshot lands no widget can hit; after it lands the model hits without annotation."
       },
       "disposition": "current-shipping-replacement",
@@ -1016,7 +1016,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "attach-widget",
-        "canonicalInputSha256": "7c43d3c9707724604d8b911773d44161ce807b155d8bb3d29c4dd148d4a6e2a7",
+        "canonicalInputSha256": "0eae72ec71c4c55c2cc8056009ffa90f02fcfe963ef9727ef68f3c22ad3df32e",
         "intent": "Current addWidget creates another placement on the field, allocates its real ref and inherits look; a refused follow-up is explicit."
       },
       "disposition": "current-shipping-replacement",
@@ -1039,7 +1039,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "place-with-a-name-and-options",
-        "canonicalInputSha256": "2099cd5bed8bf4c996e29486ff701e590979b5d3a2ab767c655740e80ea55312",
+        "canonicalInputSha256": "63cc4b2bb4b41a3ed6baf9c0925fba548068eafa2875c4b9cb68ec39cdd1bcd9",
         "intent": "Current explicit create supports custom choice names/options and signature fields without a stale placeField door."
       },
       "disposition": "current-shipping-replacement",
@@ -1059,7 +1059,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "a-click-places-the-tool-default",
-        "canonicalInputSha256": "7a15848af192ac5ad496224a6c859e6a0265ea946ebce023f50da864666fb2a5",
+        "canonicalInputSha256": "027bf52f3d61708ce412f67469746198f0dc04bec5c6f11967771465bb559cfe",
         "intent": "A real pointer click creates the default text tool draft and selects the final allocated widget in design mode."
       },
       "disposition": "current-shipping-replacement",
@@ -1084,7 +1084,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "a-click-near-the-edge-is-clamped",
-        "canonicalInputSha256": "c5d4664ef1651806350d3ae8175ca4b1897f1b1c63d6080f53bd363043d07dd5",
+        "canonicalInputSha256": "60425b5c2467e9c7c3620f05bd6073ce4f85be9a5bef3acc852c6e7130712ce9",
         "intent": "The real listbox tool click clamps its standard size to the page edge."
       },
       "disposition": "current-shipping-replacement",
@@ -1107,7 +1107,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "a-thin-drag-is-a-drag",
-        "canonicalInputSha256": "65a1fe0b32626aab5fcd212abcc32f502857d9f561d51f5099b2e85b981503ef",
+        "canonicalInputSha256": "00e23c90fc61d3c39d267de29f557c1a7798210dc3330847e29f4aa0c7ef767d",
         "intent": "Without annotation a 100 by 2 drag commits its exact page-space rectangle and the tool static look."
       },
       "disposition": "current-shipping-replacement",
@@ -1130,7 +1130,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "the-home-page-tracks-through-the-projection",
-        "canonicalInputSha256": "144de79b5c2b631cf7e7c911cdabdb9d4aacf1198bfd2ab4cb5cff0a332a4e69",
+        "canonicalInputSha256": "a75b9e2cbcddc640350aeb0ec8eaea730e597cc658bdaef6d33a5105ea6369a3",
         "intent": "Cross-page moves use the serialized projection callable, null projections are ignored, and gap releases use the last resolved home-page point."
       },
       "disposition": "current-shipping-replacement",
@@ -1153,7 +1153,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "the-live-preview",
-        "canonicalInputSha256": "92699e16d021bafd076d1479863c69b386fc4007a4ddd9d50efb04eb9a301209",
+        "canonicalInputSha256": "b5214dc5f724675b74b321287cc086486b78e6625d46e7aae724dbbb639fcdb5",
         "intent": "The real form placement handler updates annotation page items past the shared drag threshold and clears its preview on release."
       },
       "disposition": "current-shipping-replacement",
@@ -1200,7 +1200,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "the-handler-outranks-lower-priorities",
-        "canonicalInputSha256": "fd04235f1ef03f8dfc8950145e12744c501e73939c0c52a4aa9a03f3c32d1d46",
+        "canonicalInputSha256": "38c08fa60ce4128fba8a659efdcc1279c28c36258ad1ca4d9dcaf55e09380051",
         "intent": "The actual priority95 form handler captures before a priority50 observer and reports form-place in gesture events."
       },
       "disposition": "current-shipping-replacement",
@@ -1244,7 +1244,7 @@
       "after": {
         "file": "plugins/form-design.json",
         "name": "auto-select-waits-for-a-stable-world",
-        "canonicalInputSha256": "636ad8dd6d28c57223ad502be32d96f35316217fcf2bdb3e5bcb54576012bb21",
+        "canonicalInputSha256": "a5330aa5581cc72e4d23acc91afd25906702c26ef61e6ce5184cab75143e1cd9",
         "intent": "Reserved object numbers make pending selection immediate; switching tools clears it. The next two immediate engine answers publish another-page/no-widget facts synchronously during stage/apply before form.get, so those authored outcomes stay unselected."
       },
       "disposition": "current-shipping-replacement",

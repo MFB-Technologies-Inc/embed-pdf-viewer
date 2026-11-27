@@ -244,7 +244,12 @@ test('indexes use current refs, rebuild joins, isolate pages and preserve no-op 
   );
   for (const name of ['update/page-geom-replaces-a-page', 'update/clear-geom-all'])
     assert.deepEqual(pure(name), {});
-  assert.deepEqual(pure('initialFormState/empty'), { focused: null });
+  // The session also holds the design group and the named groups (d6d7c25e2, #1141).
+  assert.deepEqual(pure('initialFormState/empty'), {
+    focused: null,
+    designGroup: null,
+    groups: [],
+  });
   assert.equal(pure('fieldRefByObjectNumber/object-number'), 'obj:12');
   assert.deepEqual(pure('fieldRefByName/fqn'), { kind: 'fqn', name: 'parent.child' });
 });

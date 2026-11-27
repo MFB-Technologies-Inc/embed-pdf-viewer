@@ -8881,6 +8881,7 @@
                         "kind": "none"
                       },
                       "groupId": null,
+                      "purpose": null,
                       "createdBy": null,
                       "createdAt": null,
                       "filledBy": null,
@@ -8895,6 +8896,7 @@
                       "multiline": false,
                       "password": false,
                       "comb": false,
+                      "format": null,
                       "actions": {
                         "keystroke": {
                           "root": {
@@ -8928,6 +8930,7 @@
                         "kind": "none"
                       },
                       "groupId": null,
+                      "purpose": null,
                       "createdBy": null,
                       "createdAt": null,
                       "filledBy": null,
@@ -8941,7 +8944,8 @@
                       "maxLength": null,
                       "multiline": false,
                       "password": false,
-                      "comb": false
+                      "comb": false,
+                      "format": null
                     }
                   ],
                   "widgets": [],
@@ -9521,7 +9525,7 @@
       "snapshot": "none",
       "reason": "Pins what the dispatcher answers: read trees, refusals, and which installed sink or resolver is current, through call outcomes, adapter callbacks and engine calls. Its dispatched actions are compared; the state they build is not."
     },
-    "inputSha256": "be402f46a173e2fc73026d6104e4a4e6209536fd65845e48931fbcfd9b54f44d",
+    "inputSha256": "75674a880a3725b90d5d200cee8116e160d74dafde6c53ac775e40354d4fec62",
     "result": {
       "trace": [
         {
@@ -12169,6 +12173,7 @@
                         "kind": "none"
                       },
                       "groupId": null,
+                      "purpose": null,
                       "createdBy": null,
                       "createdAt": null,
                       "filledBy": null,
@@ -12213,7 +12218,8 @@
                       "maxLength": null,
                       "multiline": false,
                       "password": false,
-                      "comb": false
+                      "comb": false,
+                      "format": null
                     },
                     {
                       "ref": {
@@ -12235,6 +12241,7 @@
                         "kind": "none"
                       },
                       "groupId": null,
+                      "purpose": null,
                       "createdBy": null,
                       "createdAt": null,
                       "filledBy": null,
@@ -12264,7 +12271,8 @@
                       "maxLength": null,
                       "multiline": false,
                       "password": false,
-                      "comb": false
+                      "comb": false,
+                      "format": null
                     }
                   ],
                   "widgets": [],
@@ -12452,7 +12460,7 @@
         "actions::a"
       ]
     },
-    "inputSha256": "dca37aa5319626c0fe0d5fd98cd3cf9c754dd88aa64e6438bd26bd058d6b770d",
+    "inputSha256": "c035ffb8575bd943c6cdc4ef5cf57f88cc87547bd937e1a70e9807752c4ee4b9",
     "result": {
       "trace": [
         {
@@ -13904,6 +13912,7 @@
                         "kind": "none"
                       },
                       "groupId": null,
+                      "purpose": null,
                       "createdBy": null,
                       "createdAt": null,
                       "filledBy": null,
@@ -13933,7 +13942,8 @@
                       "maxLength": null,
                       "multiline": false,
                       "password": false,
-                      "comb": false
+                      "comb": false,
+                      "format": null
                     }
                   ],
                   "widgets": [],
@@ -14320,7 +14330,7 @@
         "actions::a"
       ]
     },
-    "inputSha256": "d3f60e33f349b260142797277afe91803433bd00bc708796bd259145bb8fcb32",
+    "inputSha256": "07a5ec8a8691ce40ab79f1f309c3fdea2478ebbdef4277d829e66492c118748f",
     "result": {
       "trace": [
         {
@@ -15117,6 +15127,7 @@
                         "kind": "none"
                       },
                       "groupId": null,
+                      "purpose": null,
                       "createdBy": null,
                       "createdAt": null,
                       "filledBy": null,
@@ -15130,7 +15141,8 @@
                       "maxLength": null,
                       "multiline": false,
                       "password": false,
-                      "comb": false
+                      "comb": false,
+                      "format": null
                     }
                   ],
                   "widgets": [],
@@ -15368,7 +15380,7 @@
         "actions::a"
       ]
     },
-    "inputSha256": "78606dd8283ae9895fab4bc9b29827699634e41b0ac19457bbaa608a2f56e789",
+    "inputSha256": "9bae017720e0d3d68b367b3578b20246d2d62787ef207ebe8536fc52fb506ad3",
     "result": {
       "trace": [
         {

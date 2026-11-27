@@ -987,8 +987,8 @@
     },
     {
       "path": "packages/plugin/annotation/src/contract.ts",
-      "sha256": "a6226088f9057e4c55abad36c2e51928ebf246c21b26f1405bea138390758fcf",
-      "commit": "1481e455665649afaeee9f69cd743725a0bf976c"
+      "sha256": "da3d6a10e8bada756e8d897ae34f7408f7cb6932b2006680ca7b17cfc6dd7fd3",
+      "commit": "ccfcaf0fc303bde6bfab40f385b0a6a3cb3c25e9"
     },
     {
       "path": "packages/plugin/annotation/src/write/ops.ts",

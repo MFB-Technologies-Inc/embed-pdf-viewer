@@ -74,6 +74,8 @@ const expectedFailures = new Map<string, [string, string]>([
     ['ink-nan', 'inkList'],
     ['squiggly-empty', 'quadPoints'],
     ['redact-area-nan', 'rect'],
+    // zod 4 refuses an infinite number (7a878cf7f, #1151).
+    ['line-infinite', 'linePoints'],
   ].map(([label, path]): [string, [string, string]] => [
     `parseAnnotationDraft/${label}`,
     ['ZodError', path!],
@@ -199,15 +201,15 @@ test('all843 current calls have exactly their named outcomes, immutable args and
   assert.deepEqual(observed, []);
   assert.equal(calls, 843);
   assert.equal(failures, expectedFailures.size);
-  assert.equal(failures, 27);
-  assert.equal(nonfiniteResults, 7);
+  assert.equal(failures, 28);
+  assert.equal(nonfiniteResults, 6);
 });
 
 test('current records pass the real read schema except explicitly malformed historical edges', () => {
   let checked = 0,
     malformed = 0;
   const expected =
-    /callout-one-point|square-rotation-nan|square-empty-interior|text-no-icon|fromDTO\/null-ref|richDocOf\/dto-plain|buildCommentThreads\/(everything|mine|mine-absent)$/;
+    /callout-one-point|square-rotation-nan|square-rotation-infinite|square-empty-interior|text-no-icon|fromDTO\/null-ref|richDocOf\/dto-plain|buildCommentThreads\/(everything|mine|mine-absent)$/;
   const visit = (v: unknown, name: string): void => {
     if (!v || typeof v !== 'object') return;
     const o = v as Record<string, unknown>;
@@ -229,7 +231,7 @@ test('current records pass the real read schema except explicitly malformed hist
   };
   for (const s of suites) for (const c of s.cases) visit(c.args, c.name);
   assert.ok(checked > 690);
-  assert.equal(malformed, 36);
+  assert.equal(malformed, 39);
 });
 
 test('record conversion keeps stable refs and actual rotated/upright/page-offset boxes', () => {
@@ -452,6 +454,8 @@ test('every current create draft is writable except three explicit invalid geome
     'draftOf/toCreateDraft/fresh/markup-no-geometry',
     // fe2941a27: an empty dash pattern is refused; `null` means none.
     'draftOf/toCreateDraft/square-dashed-empty',
+    // 7a878cf7f (#1151): zod 4 refuses an infinite rotation.
+    'draftOf/toCreateDraft/square-rotation-infinite',
   ]);
   for (const c of (repository.suites[0] as FunctionSuite).cases.filter((c) => c.fn === 'draftOf')) {
     const checked = AnnotationDraftSchema.safeParse(run(c.name));

@@ -25,12 +25,12 @@
     "../../../packages/plugin/actions/src/scripting/surface.ts": "f8076571d62d7499cd0104f100b6bdeaea4e2f6bc01e08c9f21a015abad8d9ea",
     "../../../packages/plugin/actions/src/scripting/executor.ts": "9f14115ef0c8aab2cdd26cf1157e03b45619194307475776e62814a6f75be3d4",
     "../../../packages/engine/core/src/identity/AnnotationRef.ts": "a86b50f7ccb02b0e82d3378fe8ef4323285bc2cbaf20c8e055664f6e5ff19b1b",
-    "../../../packages/engine/core/src/events/DocumentEvent.ts": "16cf46cb97619887c12a3d7bc0c57780efa7fc029c94c4239f3d249ddcae7f35",
+    "../../../packages/engine/core/src/events/DocumentEvent.ts": "2bd27260e15123eae00046035d8f86030fd567ab3d3b4cb3cae264811a585a41",
     "../src/suites/actions-current-fixtures.ts": "4138e5c4ebc1cd09831e3281b2000eb755af36f4068d6b77b501c00f56af3764",
     "../src/scenario.ts": "20204dd9f226752580bc0c087b03e65f96ae25158b4ed4116099551f4582b813",
-    "../src/fake-engine.ts": "17260225216cb32442f97bc071288acb6a5ccdfd67dd7a6631d8c481acbf1e69",
-    "../src/canonical.ts": "28720fd87e574c9c05e9d5a328a5bec83c5bf86d2d790155f944acd1bb8f26ce",
-    "../src/vectors.ts": "56381a25abba012c626ece0e70a98f1271a181a2dbd012a1b6f8a29fa5e77c7d"
+    "../src/fake-engine.ts": "d910d4926e4c6c444c932574ad39234cffd3ef559a94be9a2eb3d87c3be3eafa",
+    "../src/canonical.ts": "3bf6b798044e1f54bb533bd7bdf9ef5d7b8997b498d1eb7962ebc7ad014334ad",
+    "../src/vectors.ts": "ec22a58a41c66ea086e59cd96cc017e831b53d9a9f70e33b60aa8406af312d95"
   },
   "archiveHashes": {
     "original-actions.ts.txt": "97cd9cec9be24b508b9f4cdf495ea30bbc33db6067e7c120c24cb69243d9a47b",
@@ -42,7 +42,7 @@
   },
   "immutableAuthorities": {
     "../task-12b2c2/deferred-runtime.json": "c877b94482b0093398e712a08fab37c831b41fbd59e1cd1f82490458f89c8145",
-    "../task-12b2c2/current-inputs-runtime.json": "f714d9c5557157aa535fc7f2fb1248b1ca36ad7e85b39fb5ea5814966925763f",
+    "../task-12b2c2/current-inputs-runtime.json": "a9040c53af721b1974d87d2425dec5ce795cbda3350d5fe65bc0b4d471861849",
     "../task-12b2c2/link-runtime.json": "4c0944fcbc1b405d03534dc88f9f9df1de3ba9518603676cffb0f5ede075eaa7"
   },
   "rulings": {

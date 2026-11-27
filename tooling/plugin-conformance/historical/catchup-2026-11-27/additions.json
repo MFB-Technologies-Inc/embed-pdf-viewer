@@ -1,0 +1,56 @@
+{
+  "start": "a137ca2e6676a4657ff7a803b90aff43227321b9",
+  "upstream": "9af4d9ee755d6e5c20a8055654e895a81b95fb83",
+  "removed": [
+    {
+      "file": "plugins/form-core.json",
+      "name": "update/create-in-the-session-group",
+      "reason": "a prediction takes no session group (fce760aeb, #1140)"
+    },
+    {
+      "file": "plugins/form-core.json",
+      "name": "update/create-without-a-session",
+      "reason": "renamed update/create-without-a-group: there is no session to be without (fce760aeb, #1140)"
+    },
+    {
+      "file": "plugins/form-core.json",
+      "name": "update/copy-in-the-session-group",
+      "reason": "renamed update/copy-through-create (fce760aeb, #1140)"
+    },
+    {
+      "file": "plugins/form-core.json",
+      "name": "update/undo-look-in-the-session-group",
+      "reason": "renamed update/undo-look-of-a-create (fce760aeb, #1140)"
+    },
+    {
+      "file": "plugins/signature-functions.json",
+      "name": "blank-page",
+      "reason": "blank-page.ts is gone; a clear takes the mark out (fcb69611f, #1145)"
+    },
+    {
+      "file": "plugins/signature-functions.json",
+      "name": "blank-page-cached",
+      "reason": "blank-page.ts is gone (fcb69611f, #1145)"
+    }
+  ],
+  "additions": [
+    {
+      "file": "plugins/form-core.json",
+      "name": "update/create-without-a-group",
+      "newFile": false,
+      "covers": "A created field whose draft names no group is in none: a prediction takes no session group (9af4d9ee7)"
+    },
+    {
+      "file": "plugins/form-core.json",
+      "name": "update/copy-through-create",
+      "newFile": false,
+      "covers": "A copied field goes through the same create"
+    },
+    {
+      "file": "plugins/form-core.json",
+      "name": "update/undo-look-of-a-create",
+      "newFile": false,
+      "covers": "The undo look of a create and a fill"
+    }
+  ]
+}
