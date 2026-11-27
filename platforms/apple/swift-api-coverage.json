@@ -3157,7 +3157,10 @@
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "selected_fields"
       },
-      "pending": "CU-C9"
+      "swift": {
+        "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Form.swift",
+        "symbol": "selectedFields"
+      }
     },
     {
       "crate": "form",
@@ -3246,7 +3249,10 @@
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "widget_anchor"
       },
-      "pending": "CU-C9"
+      "swift": {
+        "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Form.swift",
+        "symbol": "widgetAnchor"
+      }
     },
     {
       "crate": "form",
@@ -3257,7 +3263,10 @@
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "is_widget_focused"
       },
-      "pending": "CU-C9"
+      "swift": {
+        "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Form.swift",
+        "symbol": "isWidgetFocused"
+      }
     },
     {
       "crate": "form",
@@ -3290,7 +3299,10 @@
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "groups"
       },
-      "pending": "CU-C9"
+      "swift": {
+        "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Form.swift",
+        "symbol": "groups"
+      }
     },
     {
       "crate": "form",
@@ -3301,7 +3313,10 @@
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "can_set_group"
       },
-      "pending": "CU-C9"
+      "swift": {
+        "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Form.swift",
+        "symbol": "canSetGroup"
+      }
     },
     {
       "crate": "form",
@@ -3624,7 +3639,10 @@
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "move_to_group"
       },
-      "pending": "CU-C9"
+      "swift": {
+        "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Form.swift",
+        "symbol": "moveToGroup"
+      }
     },
     {
       "crate": "form",
@@ -3691,7 +3709,10 @@
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "set_groups"
       },
-      "pending": "CU-C9"
+      "swift": {
+        "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Form.swift",
+        "symbol": "setGroups"
+      }
     },
     {
       "crate": "form",
@@ -3702,7 +3723,10 @@
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "design_group"
       },
-      "pending": "CU-C9"
+      "swift": {
+        "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Form.swift",
+        "symbol": "designGroup"
+      }
     },
     {
       "crate": "form",
@@ -3713,7 +3737,10 @@
         "path": "crates/plugins/form/src/ffi.rs",
         "symbol": "set_design_group"
       },
-      "pending": "CU-C9"
+      "swift": {
+        "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Form.swift",
+        "symbol": "setDesignGroup"
+      }
     },
     {
       "crate": "form",

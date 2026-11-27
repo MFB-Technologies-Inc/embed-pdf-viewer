@@ -19,6 +19,23 @@ public typealias FormValidation = EmbedPDFBindings.FormValidation
 public typealias FormKind = EmbedPDFBindings.FormKind
 public typealias FormSnapshot = EmbedPDFBindings.FormSnapshot
 public typealias FormField = EmbedPDFBindings.FormField
+/// A text field's or a dropdown's format: a date or a time with its
+/// pattern, or `.other` (read, never written).
+public typealias FormFieldFormat = EmbedPDFBindings.FormFieldFormat
+/// One of the document's groups as people see them: its id, label and the
+/// CSS color its fields show in.
+public typealias FormGroup = EmbedPDFBindings.FormGroup
+/// One of the document's groups as the app names it with
+/// `FormCapability.setGroups(_:)`.
+public typealias FormGroupInput = EmbedPDFBindings.FormGroupInput
+/// Where a radio button comes among its group's buttons in Tab's order.
+public typealias FormGroupPosition = EmbedPDFBindings.FormGroupPosition
+/// Where UI attaches to one box of a field: its page and where the box
+/// stands.
+public typealias FormWidgetAnchor = EmbedPDFBindings.FormWidgetAnchor
+/// A record's group color and how strongly it shows; never written into
+/// the PDF.
+public typealias RecordAccent = EmbedPDFBindings.RecordAccent
 public typealias FormFieldDetail = EmbedPDFBindings.FormFieldDetail
 public typealias FormWidget = EmbedPDFBindings.FormWidget
 public typealias FormWidgetRecord = EmbedPDFBindings.FormWidgetRecord
@@ -28,8 +45,12 @@ public typealias FormChoiceOption = EmbedPDFBindings.FormChoiceOption
 public typealias FormChoiceOptionInput = EmbedPDFBindings.FormChoiceOptionInput
 public typealias FormValueInput = EmbedPDFBindings.FormValueInput
 public typealias FormValueEntry = EmbedPDFBindings.FormValueEntry
+/// One widget as a fill control draws it. `frame` is upstream's `box`, the
+/// frame the contents are laid out in; `bounds` is where the widget stands
+/// on its page, and `rotation` the quarter turn between them.
 public typealias FormFillItem = EmbedPDFBindings.FormFillItem
 public typealias FormFillControl = EmbedPDFBindings.FormFillControl
+/// The widget under a point; `frame` and `rotation` as on `FormFillItem`.
 public typealias FormWidgetHit = EmbedPDFBindings.FormWidgetHit
 public typealias FormWidgetPlacement = EmbedPDFBindings.FormWidgetPlacement
 public typealias FormWidgetAdded = EmbedPDFBindings.FormWidgetAdded
@@ -51,7 +72,21 @@ public typealias FormActivationResult = EmbedPDFBindings.FormActivationResult
 public typealias FormEvent = EmbedPDFBindings.FormEvent
 public typealias FormFocusOptions = EmbedPDFBindings.FormFocusOptions
 public typealias FormFocusNextOptions = EmbedPDFBindings.FormFocusNextOptions
+/// A mounted control's cursor target, lent to
+/// `FormCapability.attachFocusTarget(_:target:)`. Both calls come on the
+/// viewer's kernel thread: answer at once, and never wait there.
+/// `takesCursor()` is asked each time the cursor is about to move; `false`,
+/// for a box that holds nothing to focus (a signature field nobody here can
+/// sign), makes focus and Tab pass over its field. It answers `true` unless
+/// the target says otherwise. `focus(select:)` arranges the cursor move on
+/// the main actor and answers `false` when nothing will take it, and the
+/// cursor passes over the box.
 public typealias FormFocusTarget = EmbedPDFBindings.FormFocusTarget
+
+extension FormFocusTarget {
+  /// Every box takes the cursor unless its target says otherwise.
+  public func takesCursor() -> Bool { true }
+}
 public typealias FormWidgetEvent = EmbedPDFBindings.FormWidgetEvent
 
 /// A document's AcroForm. Get one with `PDFViewer.form(for:)`; the viewer
@@ -340,6 +375,66 @@ public struct FormCapability: Sendable {
   /// A tap on a widget: toggles a checkbox, runs a pushbutton's action.
   public func activate(_ widget: AnnotationRef) async throws(PDFError) -> FormActivationResult {
     try await bridgedCancellable { token in try await handle.activateWidget(widget: widget, cancel: token) }
+  }
+
+  /// The document's groups: the ones `setGroups(_:)` named, in that order,
+  /// then the other groups the form's fields are in.
+  public func groups() async throws(PDFError) -> [FormGroup] {
+    try await bridged { try await handle.groups() }
+  }
+
+  /// Says who this document's groups are, the whole list; an empty list
+  /// clears it. Emits `.groupsChanged`; the same list again changes
+  /// nothing. Session state: nothing is written into the PDF.
+  public func setGroups(_ groups: [FormGroupInput]) async throws(PDFError) {
+    try await bridged { try await handle.setGroups(groups: groups) }
+  }
+
+  /// The group fields placed with a tool go in, or `nil` for none, where it
+  /// starts.
+  public func designGroup() async throws(PDFError) -> String? {
+    try await bridged { try await handle.designGroup() }
+  }
+
+  /// Fields placed with a tool go into `groupID`; `nil` names none. Emits
+  /// `.designGroupChanged`. Throws `permission-denied` for a group the
+  /// session may not put a field in.
+  public func setDesignGroup(_ groupID: String?) async throws(PDFError) {
+    try await bridged { try await handle.setDesignGroup(groupId: groupID) }
+  }
+
+  /// Whether the session may design the form and put a field in `groupID`.
+  public func canSetGroup(_ groupID: String) async throws(PDFError) -> Bool {
+    try await bridged { try await handle.canSetGroup(groupId: groupID) }
+  }
+
+  /// Puts `fields` in a group, or with `nil` takes them out of theirs, as
+  /// one step to undo; answers the fields as they are now, in the order
+  /// given. Throws `permission-denied` without `doc.forms.modify` or for a
+  /// group the session may not put a field in, `not-found` for a field the
+  /// form doesn't have.
+  @discardableResult
+  public func moveToGroup(_ fields: [FormFieldRef], groupID: String?) async throws(PDFError) -> [FormField] {
+    try await bridgedCancellable { token in
+      try await handle.moveToGroup(fields: fields, groupId: groupID, cancel: token)
+    }
+  }
+
+  /// Every field with a selected widget in design mode, in the selection's
+  /// order, each once.
+  public func selectedFields() async throws(PDFError) -> [FormField] {
+    try await bridged { try await handle.selectedFields() }
+  }
+
+  /// Where UI attaches to one box of a field; `nil` for a box that isn't
+  /// there or shows nowhere.
+  public func widgetAnchor(_ widget: AnnotationRef) async throws(PDFError) -> FormWidgetAnchor? {
+    try await bridged { try await handle.widgetAnchor(widget: widget) }
+  }
+
+  /// Whether the cursor is in this box.
+  public func isWidgetFocused(_ widget: AnnotationRef) async throws(PDFError) -> Bool {
+    try await bridged { try await handle.isWidgetFocused(widget: widget) }
   }
 
   public func canRead() async throws(PDFError) -> Bool {

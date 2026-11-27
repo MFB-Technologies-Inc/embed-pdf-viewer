@@ -878,11 +878,15 @@ public struct AnnotationDraftsCapability: Sendable {
   }
 
   /// A sibling's drag-to-place gesture with one of this plugin's tools.
-  public func previewPlacement(tool toolID: ToolID, from: Point, to: Point, on page: PageRef)
-    async throws(PDFError)
-  {
+  /// `displayRotation` is the page's total display rotation in degrees, so
+  /// an upright tool previews on a turned page the box its commit will
+  /// place; `nil` previews as on an unturned page.
+  public func previewPlacement(
+    tool toolID: ToolID, from: Point, to: Point, on page: PageRef, displayRotation: Double? = nil
+  ) async throws(PDFError) {
     try await bridged {
-      try await handle.previewPlacement(toolId: toolID.rawValue, page: page, from: from, to: to)
+      try await handle.previewPlacement(
+        toolId: toolID.rawValue, page: page, from: from, to: to, displayRotation: displayRotation)
     }
   }
 

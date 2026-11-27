@@ -38,6 +38,10 @@ public struct AnnotationInfo: Sendable, Hashable, Identifiable {
   public let inReplyTo: AnnotationRef?
   public let canUpdate: Bool
   public let canDelete: Bool
+  /// A lent record's accent from its lender: a form widget's group color
+  /// while the annotation plugin edits it, not part of the record itself.
+  /// `nil` for every other record.
+  public let accent: RecordAccent?
   /// `/BM` on the appearance, or `nil` when the record names none this
   /// reads.
   public let blendMode: AnnotationBlendMode?
@@ -63,6 +67,7 @@ public struct AnnotationInfo: Sendable, Hashable, Identifiable {
     inReplyTo = record.inReplyTo
     canUpdate = record.canUpdate
     canDelete = record.canDelete
+    accent = record.accent
     fieldsJSON = record.fieldsJson
     details = Details(subtype: subtype, fieldsJSON: record.fieldsJson)
     blendMode = (try? JSONDecoder().decode(BlendModeField.self, from: Data(record.fieldsJson.utf8)))?
@@ -75,7 +80,7 @@ public struct AnnotationInfo: Sendable, Hashable, Identifiable {
       annotationRef: annotationRef, page: page, subtype: subtype.rawValue, rect: rect,
       contents: contents, author: author, createdAt: rawCreatedAt, modifiedAt: rawModifiedAt,
       groupId: groupID, inReplyTo: inReplyTo, canUpdate: canUpdate, canDelete: canDelete,
-      fieldsJson: fieldsJSON)
+      accent: accent, fieldsJson: fieldsJSON)
   }
 
   /// `annotationRef`, so `ForEach(annotations)` needs no `id:`.
