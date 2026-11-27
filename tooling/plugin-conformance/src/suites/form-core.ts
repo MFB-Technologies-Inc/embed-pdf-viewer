@@ -25,7 +25,9 @@ import {
   widgetRowOf,
   pageWidgetsOf,
   initialFormModel as initialFormState,
+  type Box,
   type FieldIndex,
+  type PageWidget,
   type PageWidgets,
 } from '../../../../packages/plugin/form/src/model';
 import {
@@ -60,7 +62,7 @@ import {
   row,
   pr,
 } from './form-current-fixtures';
-import { REMOTE } from './annotation-live-fixtures';
+import { REMOTE, objRef } from './annotation-live-fixtures';
 const functions = {
   fieldKeyOf,
   emptyFieldIndex,
@@ -84,7 +86,7 @@ const functions = {
   encodeFieldRefKey,
   // A named fixed host predicate: JSON cannot carry a function. All other arguments are unchanged.
   fillItemsAllowed: (index: FieldIndex, page: number, widgets: PageWidgets | undefined) =>
-    fillItems(index, page, widgets, () => true),
+    fillItems(index, page, widgets, () => true, () => true),
   formTools: () => ({ tools: FORM_TOOLS, placeTags: PLACE_TAGS }),
   formToolById: (id: string) => FORM_TOOL_BY_ID.get(id) ?? null,
   resolveFieldSelection: (
@@ -187,8 +189,11 @@ const pastEnd: FieldIndex = {
   byWidget: { ...loaded.byWidget, 177: 99 },
 };
 const inconsistent: FieldIndex = { ...withGeom, byWidget: { ...withGeom.byWidget, 999: 0 } };
-const picture = {
+const picture: PageWidget = {
+  ref: objRef(104, 3),
   box: box(1, 2),
+  rotation: 0,
+  rect: box(1, 2),
   look: {
     border: null,
     borderWidth: 1,
@@ -200,6 +205,8 @@ const picture = {
     textAlign: 'left' as const,
   },
 };
+/** `picture` placed upright at `at`: an unturned widget's frame is its rect. */
+const pictureAt = (at: Box): PageWidget => ({ ...picture, box: at, rect: at });
 const unrelated: DocumentEvent = {
   type: 'annotations.deleted',
   page: pr(3),
@@ -305,34 +312,28 @@ const cases: FunctionCase[] = [
     };
     return [
       fc(
-        'update/create-in-the-session-group',
-        'predictFormOp',
-        [withGeom, create(), { groupId: 'team-a' }],
-        'A created field whose draft names no group takes the session group',
-      ),
-      fc(
-        'update/create-without-a-session',
+        'update/create-without-a-group',
         'predictFormOp',
         [withGeom, create()],
-        'With no session a created field without a group has none',
+        'A created field whose draft names no group is in none: a prediction takes no session group (9af4d9ee7)',
       ),
       fc(
         'update/create-names-its-group',
         'predictFormOp',
-        [withGeom, create('own'), { groupId: 'team-a' }],
-        'A group the draft names wins over the session group',
+        [withGeom, create('own')],
+        'A created field is in the group its draft names',
       ),
       fc(
-        'update/copy-in-the-session-group',
+        'update/copy-through-create',
         'predictFormOp',
-        [withGeom, copy, { groupId: 'team-a' }],
-        'A copied field goes through the same create, with the session group',
+        [withGeom, copy],
+        'A copied field goes through the same create',
       ),
       fc(
-        'update/undo-look-in-the-session-group',
+        'update/undo-look-of-a-create',
         'undoLookOf',
-        [withGeom, [create(), setValue], { groupId: 'team-a' }],
-        'The undo look predicts with the session it is made for',
+        [withGeom, [create(), setValue]],
+        'The undo look of a create and a fill',
       ),
     ];
   })(),
@@ -432,51 +433,51 @@ const cases: FunctionCase[] = [
   fc('fieldForWidget/direct-widget-is-not-indexed', 'fieldForWidget', [loaded, 0]),
   fc('fieldForWidget/unknown', 'fieldForWidget', [loaded, 404]),
   fc('fieldForWidget/index-past-the-end', 'fieldForWidget', [pastEnd, 177]),
-  fc('projectWidget/text', 'projectWidget', [TEXT, 104, picture, true]),
+  fc('projectWidget/text', 'projectWidget', [TEXT, 104, picture, true, true]),
   fc(
     'projectWidget/text-default-box',
     'projectWidget',
-    [TEXT, 104, { ...picture, box: box(0, 0) }, true],
+    [TEXT, 104, pictureAt(box(0, 0)), true, true],
     'PageWidget is now mandatory; explicit default page-space box is recorded',
   ),
   fc('projectWidget/text-flags', 'projectWidget', [
     MULTI,
     106,
-    { ...picture, box: box(0, 0) },
-    true,
+    pictureAt(box(0, 0)),
+    true, true,
   ]),
-  fc('projectWidget/read-only-is-disabled', 'projectWidget', [RO, 105, picture, true]),
+  fc('projectWidget/read-only-is-disabled', 'projectWidget', [RO, 105, picture, true, true]),
   fc(
     'projectWidget/writing-is-disabled',
     'projectWidget',
-    [TEXT, 104, picture, false],
+    [TEXT, 104, picture, false, false],
     'Current disable input is explicit fill permission; a pending write alone stays fillable, independently tested live',
   ),
-  fc('projectWidget/checkbox-on-state', 'projectWidget', [CHECK, 107, picture, true]),
-  fc('projectWidget/checkbox-default-on-state', 'projectWidget', [CHECK_BARE, 108, picture, true]),
-  fc('projectWidget/checkbox-unknown-widget', 'projectWidget', [CHECK, 999, picture, true]),
-  fc('projectWidget/radio-checked', 'projectWidget', [RADIO, 110, picture, true]),
-  fc('projectWidget/radio-unchecked', 'projectWidget', [RADIO, 109, picture, true]),
-  fc('projectWidget/radio-bare-widget', 'projectWidget', [RADIO, 111, picture, true]),
-  fc('projectWidget/radio-unknown-widget', 'projectWidget', [RADIO, 999, picture, true]),
-  fc('projectWidget/combobox', 'projectWidget', [COMBO, 112, picture, true]),
-  fc('projectWidget/combobox-empty', 'projectWidget', [COMBO_EMPTY, 113, picture, true]),
-  fc('projectWidget/listbox', 'projectWidget', [LIST, 114, picture, true]),
+  fc('projectWidget/checkbox-on-state', 'projectWidget', [CHECK, 107, picture, true, true]),
+  fc('projectWidget/checkbox-default-on-state', 'projectWidget', [CHECK_BARE, 108, picture, true, true]),
+  fc('projectWidget/checkbox-unknown-widget', 'projectWidget', [CHECK, 999, picture, true, true]),
+  fc('projectWidget/radio-checked', 'projectWidget', [RADIO, 110, picture, true, true]),
+  fc('projectWidget/radio-unchecked', 'projectWidget', [RADIO, 109, picture, true, true]),
+  fc('projectWidget/radio-bare-widget', 'projectWidget', [RADIO, 111, picture, true, true]),
+  fc('projectWidget/radio-unknown-widget', 'projectWidget', [RADIO, 999, picture, true, true]),
+  fc('projectWidget/combobox', 'projectWidget', [COMBO, 112, picture, true, true]),
+  fc('projectWidget/combobox-empty', 'projectWidget', [COMBO_EMPTY, 113, picture, true, true]),
+  fc('projectWidget/listbox', 'projectWidget', [LIST, 114, picture, true, true]),
   fc('projectWidget/listbox-single', 'projectWidget', [
     { ...LIST, multiSelect: false },
     114,
     picture,
-    true,
+    true, true,
   ]),
-  fc('projectWidget/pushbutton', 'projectWidget', [BUTTON, 115, picture, true]),
+  fc('projectWidget/pushbutton', 'projectWidget', [BUTTON, 115, picture, true, true]),
   fc(
     'projectWidget/signature-has-no-control',
     'projectWidget',
-    [SIG, 116, picture, true],
+    [SIG, 116, picture, true, true],
     'Current signatures have an explicit signature control and signed state',
   ),
-  fc('projectWidget/unknown-has-no-control', 'projectWidget', [UNKNOWN, 117, picture, true]),
-  fc('projectWidget/fqn-key', 'projectWidget', [FQN, 118, picture, true]),
+  fc('projectWidget/unknown-has-no-control', 'projectWidget', [UNKNOWN, 117, picture, true, true]),
+  fc('projectWidget/fqn-key', 'projectWidget', [FQN, 118, picture, true, true]),
   fc(
     'fillItems/page-with-geometry',
     'fillItemsAllowed',
@@ -504,7 +505,7 @@ const cases: FunctionCase[] = [
   fc(
     'fillItems/partial-geometry',
     'fillItemsAllowed',
-    [loaded, 3, { 110: { ...picture, box: box(5, 5) } }],
+    [loaded, 3, { 110: pictureAt(box(5, 5)) }],
     'Fixed allowed predicate; pending values and complete page widgets are explicit current arguments',
   ),
   fc(
@@ -534,7 +535,7 @@ const cases: FunctionCase[] = [
   fc(
     'fillItemForWidget/no-control',
     'projectWidget',
-    [SIG, 116, picture, true],
+    [SIG, 116, picture, true, true],
     'Signatures now project an explicit signature control',
   ),
   fc(
@@ -552,13 +553,13 @@ const cases: FunctionCase[] = [
   fc(
     'projectWidget/signature-unsigned',
     'projectWidget',
-    [SIG, 116, picture, true],
+    [SIG, 116, picture, true, true],
     'Current signatures have an explicit signature control and signed state',
   ),
   fc(
     'projectWidget/signature-signed',
     'projectWidget',
-    [{ ...SIG, valueEntry: { kind: 'scalar', value: 'sig-dict' } }, 116, picture, true],
+    [{ ...SIG, valueEntry: { kind: 'scalar', value: 'sig-dict' } }, 116, picture, true, true],
     'Current signatures have an explicit signature control and signed state',
   ),
   fc('widgetAt/no-geometry-for-the-page', 'widgetAt', [loaded, undefined, { x: 1, y: 1 }]),
@@ -566,30 +567,30 @@ const cases: FunctionCase[] = [
   fc('widgetAt/the-smallest-containing-box-wins', 'widgetAt', [
     loaded,
     {
-      104: { ...picture, box: box(0, 0, 100, 100) },
-      105: { ...picture, box: box(10, 10, 20, 20) },
-      106: { ...picture, box: box(5, 5, 50, 50) },
+      104: pictureAt(box(0, 0, 100, 100)),
+      105: pictureAt(box(10, 10, 20, 20)),
+      106: pictureAt(box(5, 5, 50, 50)),
     },
     { x: 15, y: 15 },
   ]),
   fc('widgetAt/edges-are-inside', 'widgetAt', [
     loaded,
-    { 104: { ...picture, box: box(10, 10, 20, 20) } },
+    { 104: pictureAt(box(10, 10, 20, 20)) },
     { x: 30, y: 30 },
   ]),
   fc('widgetAt/a-box-without-a-field-is-skipped', 'widgetAt', [
     loaded,
-    { 999: { ...picture, box: box(0, 0, 5, 5) }, 104: { ...picture, box: box(0, 0, 50, 50) } },
+    { 999: pictureAt(box(0, 0, 5, 5)), 104: pictureAt(box(0, 0, 50, 50)) },
     { x: 2, y: 2 },
   ]),
   fc('widgetAt/equal-areas-keep-the-lower-object-number', 'widgetAt', [
     loaded,
-    { 104: { ...picture, box: box(0, 0, 20, 20) }, 105: { ...picture, box: box(10, 10, 20, 20) } },
+    { 104: pictureAt(box(0, 0, 20, 20)), 105: pictureAt(box(10, 10, 20, 20)) },
     { x: 15, y: 15 },
   ]),
   fc('widgetAt/a-larger-box-later-loses', 'widgetAt', [
     loaded,
-    { 105: { ...picture, box: box(10, 10, 20, 20) }, 106: { ...picture, box: box(0, 0, 50, 50) } },
+    { 105: pictureAt(box(10, 10, 20, 20)), 106: pictureAt(box(0, 0, 50, 50)) },
     { x: 15, y: 15 },
   ]),
   fc(

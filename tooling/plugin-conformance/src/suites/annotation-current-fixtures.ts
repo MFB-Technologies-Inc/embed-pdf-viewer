@@ -274,7 +274,8 @@ export const widget = (
     n,
     {
       subtype: 'widget',
-      box: BOX,
+      // A widget is a turned box (23741e3fd): an unturned widget's frame is the rect it stands in.
+      box: over.box ?? over.rect ?? BOX,
       strokeWidth: 1,
       borderStyle: 'solid',
       textAlign: 'left',

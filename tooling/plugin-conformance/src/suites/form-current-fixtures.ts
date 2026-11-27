@@ -59,6 +59,7 @@ const base = (n: number, name: string, widgets: FormWidget[]) => ({
   valueEntry: { kind: 'none' as const },
   defaultValueEntry: { kind: 'none' as const },
   groupId: null,
+  purpose: null,
   createdBy: null,
   createdAt: null,
   filledBy: null,
@@ -82,6 +83,7 @@ export const text = (
   multiline: false,
   password: false,
   comb: false,
+  format: null,
   valueEntry: value === '' ? { kind: 'none' } : { kind: 'scalar', value },
   ...over,
 });
@@ -129,6 +131,7 @@ export const combobox = (
   defaultValue: '',
   edit: false,
   options: OPTIONS.map((option) => ({ ...option, selected: option.value === value })),
+  format: null,
   valueEntry: value === '' ? { kind: 'none' } : { kind: 'scalar', value },
   ...over,
 });

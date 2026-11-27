@@ -58,7 +58,6 @@ import {
   sameFieldRef,
 } from '../../../../packages/plugin/signature/src/model';
 import type { SignatureModel as SignatureState } from '../../../../packages/plugin/signature/src/model';
-import { blankPagePdf } from '../../../../packages/plugin/signature/src/blank-page';
 import { markRoleOf } from '../../../../packages/plugin/signature/src/contract';
 import { FormToken } from '../../../../packages/plugin/form/src/contract';
 import { AnnotationToken } from '../../../../packages/plugin/annotation/src/contract';
@@ -1916,7 +1915,6 @@ const functions = {
   initialSignatureState: () => initialSignatureState(),
   setVerdicts: model.setVerdicts,
   setBusy: model.setBusy,
-  blankPagePdf: () => blankPagePdf(),
   markRoleOf: (asset: { name: string }) => markRoleOf(asset),
   setTarget: (
     target: Parameters<typeof model.setTarget>[1],
@@ -1935,18 +1933,6 @@ const functionCases: FunctionCase[] = [
   { name: 'set-verdicts', fn: 'setVerdicts', args: [S0, []] },
   { name: 'set-target', fn: 'setTarget', args: [null, ref(2)] },
   { name: 'set-busy', fn: 'setBusy', args: [S0, true] },
-  {
-    name: 'blank-page',
-    covers: 'The blank one-page PDF a clear draws.',
-    fn: 'blankPagePdf',
-    args: [],
-  },
-  {
-    name: 'blank-page-cached',
-    covers: 'A second call copies the cached bytes.',
-    fn: 'blankPagePdf',
-    args: [],
-  },
   { name: 'mark-role-initials', fn: 'markRoleOf', args: [{ name: 'initials' }] },
   { name: 'mark-role-signature', fn: 'markRoleOf', args: [{ name: 'anything' }] },
   { name: 'is-target-none', fn: 'setTarget', args: [null, ref(1)] },
