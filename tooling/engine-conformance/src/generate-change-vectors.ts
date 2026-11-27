@@ -16,6 +16,10 @@
  * | `form-copy.json` | `forms.copy` (a390171cc, 2612ae1e1) |
  * | `widget-rename.json` | a widget update's `patch.nm` renames it, held to a free name (756f8e56b) |
  * | `kinds.json` | the version each change kind arrived in (a4805a492) |
+ * | `field-purpose-format.json` | a field's purpose and format: reads, writes, undo, copies, rights (833b40015, #1147) |
+ * | `field-groups.json` | a new field in no group, `groupId: null`, undo and copies (fce760aeb, #1140) |
+ * | `signature-mark.json` | a signature field's mark as a PNG, a JPEG or a PDF, and no mark (fcb69611f, #1145) |
+ * | `widget-rotation.json` | a mark in a turned signature field is fitted into its frame (c76603e3f, #1118) |
  *
  * # What is recorded
  *
@@ -34,6 +38,14 @@
  * the Rust runner masks its own answers the same way. So that the mask
  * doesn't hide whether copies got names of their own, each exchange also
  * records how many distinct names it masked (`uuids`).
+ *
+ * A step may also be one verb of the forms service (`doc.forms.create`,
+ * `update`, `updateWidget`, `setSignatureAppearance`, `copy`), each with the
+ * op id it names so an undo can name it. A group whose fixture a
+ * conformance suite builds in memory carries it as hex (`fixtureHex`), and
+ * a case may open it with a scope and an identity of its own (`open`).
+ * Bytes inside a request are recorded as `{ "$hex": ... }`; the runner
+ * sends each as a payload the request names `{ "payload": n }`.
  *
  * Each `doc.apply` step also records the events the change publishes
  * (`changeEvents` over its answer): the main thread derives them, so they
@@ -67,6 +79,16 @@ import {
 } from '../../../packages/engine/core/src/wire/changeKinds';
 import { CHANGE_KINDS } from '../../../packages/engine/core/src/wire/changeSchemas';
 import { changeEvents } from '../../../packages/engine/core/src/events/changeEvents';
+import { pdfOf } from '../../../packages/engine/core/src/conformance/pdfOf';
+import { FIELD_GROUPS_PDF } from '../../../packages/engine/core/src/conformance/runFieldGroupsConformance';
+import { FIELD_PURPOSE_FORMAT_PDF } from '../../../packages/engine/core/src/conformance/runFieldPurposeFormatConformance';
+import { TURNED_FIELDS_PDF } from '../../../packages/engine/core/src/conformance/runWidgetRotationConformance';
+import {
+  BANDS_JPEG,
+  BANDS_PDF,
+  BANDS_PNG,
+  TWO_PAGE_PDF,
+} from '../../../packages/engine/core/src/conformance/stampFixtures';
 import type { ChangeResult } from '../../../packages/engine/core/src/mutation/Change';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -80,22 +102,62 @@ const VIEWPORTS = 'tooling/engine-conformance/fixtures/viewports.pdf';
 const ANNOTATIONS = 'tooling/engine-conformance/fixtures/annotation_base.pdf';
 const FORMS = 'tooling/engine-conformance/fixtures/form_fields.pdf';
 
+/** A mark a step draws, by name: its bytes are in the group's `fixtures`. */
+type Mark =
+  | 'png'
+  | 'jpeg'
+  | 'pdf'
+  | 'pdfKeyed'
+  | 'pngKeyed'
+  | 'twoPage'
+  | 'twoPageKeyed'
+  | 'markPdfKeyed'
+  | 'notAPicture'
+  | null;
+
 type Step =
   | { readonly apply: Change; readonly opId: string }
   | { readonly read: 'pages.list' }
   | { readonly read: 'annotations.list'; readonly page: number }
-  | { readonly read: 'forms.list' };
+  | { readonly read: 'forms.list' }
+  | { readonly call: 'forms.create'; readonly draft: unknown; readonly opId: string }
+  | { readonly call: 'forms.update'; readonly field: unknown; readonly patch: unknown; readonly opId: string }
+  | {
+      /** The first widget of field `widgetOf`, found by a `forms.list` the step records too. */
+      readonly call: 'forms.updateWidget';
+      readonly widgetOf: string;
+      /** `'$rect'` for a member stands for the widget's `rect` as the list reads it. */
+      readonly patch: Record<string, unknown>;
+      readonly opId: string;
+    }
+  | {
+      readonly call: 'forms.setSignatureAppearance';
+      readonly field: unknown;
+      readonly mark: Mark;
+      readonly opId: string;
+    }
+  | { readonly call: 'forms.copy'; readonly fields: readonly unknown[]; readonly opId: string };
+
+/** The scope and identity a case opens its fixture with; every scope when left out. */
+interface Open {
+  readonly scope?: readonly string[];
+  readonly identity?: Record<string, string>;
+}
 
 interface Case {
   readonly name: string;
   readonly covers: string;
+  readonly open?: Open;
   readonly steps: readonly Step[];
 }
 
 interface Group {
   readonly file: string;
   readonly kind: string;
-  readonly fixture: string;
+  /** A fixture's repo path, or a fixture a suite builds in memory, by name. */
+  readonly fixture: string | { readonly name: string; readonly bytes: Uint8Array };
+  /** Bytes the Rust runner's own checks read, recorded as hex. */
+  readonly fixtures?: Record<string, Uint8Array>;
   readonly cases: readonly Case[];
 }
 
@@ -489,10 +551,12 @@ function takeUuids(): number {
   return count;
 }
 
+const hex = (bytes: Uint8Array) => Buffer.from(bytes).toString('hex');
+
 function plain(value: unknown): unknown {
-  if (value instanceof ArrayBuffer) return Array.from(new Uint8Array(value));
+  if (value instanceof ArrayBuffer) return { $hex: hex(new Uint8Array(value)) };
   if (ArrayBuffer.isView(value)) {
-    return Array.from(new Uint8Array(value.buffer, value.byteOffset, value.byteLength));
+    return { $hex: hex(new Uint8Array(value.buffer, value.byteOffset, value.byteLength)) };
   }
   if (Array.isArray(value)) return value.map(plain);
   if (typeof value === 'string' && UUID.test(value)) {
@@ -573,12 +637,18 @@ function recordingEngine(): { engine: LocalEngine; take: () => Exchange[] } {
 }
 
 async function runCase(group: Group, entry: Case): Promise<unknown> {
-  const bytes = new Uint8Array(await readFile(join(repoRoot, group.fixture)));
+  const bytes =
+    typeof group.fixture === 'string'
+      ? new Uint8Array(await readFile(join(repoRoot, group.fixture)))
+      : group.fixture.bytes.slice();
   const { engine, take } = recordingEngine();
   try {
     const doc = await engine.open(
       { kind: 'bytes', id: `changes:${entry.name}`, bytes },
-      { scope: ['*'] },
+      {
+        scope: [...(entry.open?.scope ?? ['*'])],
+        ...(entry.open?.identity ? { identity: entry.open.identity } : {}),
+      },
     );
     take();
     const steps: unknown[] = [];
@@ -590,6 +660,8 @@ async function runCase(group: Group, entry: Case): Promise<unknown> {
             const result = await doc.apply(step.apply, { opId: step.opId });
             events = plain(changeEvents(result as unknown as ChangeResult));
             takeUuids();
+          } else if ('call' in step) {
+            await callStep(doc, group, step);
           } else if (step.read === 'pages.list') await doc.pages.list();
           else if (step.read === 'annotations.list')
             await doc.page(toPageRef(step.page)).annotations.list();
@@ -607,6 +679,747 @@ async function runCase(group: Group, entry: Case): Promise<unknown> {
     await engine.destroy();
   }
 }
+
+/** The mark a step names, as its caller passes it. */
+function markOf(group: Group, mark: Mark): unknown {
+  if (mark === null) return null;
+  const bytes = (name: string) => group.fixtures![name]!.slice();
+  switch (mark) {
+    case 'png':
+      return bytes('png');
+    case 'jpeg':
+      return bytes('jpeg');
+    case 'pdf':
+      return bytes('pdf');
+    case 'pdfKeyed':
+      return { pdf: bytes('pdf') };
+    case 'pngKeyed':
+      return { pdf: bytes('png') };
+    case 'twoPage':
+      return bytes('twoPage');
+    case 'twoPageKeyed':
+      return { pdf: bytes('twoPage') };
+    case 'markPdfKeyed':
+      return { pdf: bytes('markPdf') };
+    case 'notAPicture':
+      return new TextEncoder().encode('no picture at all');
+  }
+}
+
+type Called = Extract<Step, { readonly call: string }>;
+
+/** One verb of the forms service, with the op id the step names. */
+async function callStep(doc: Awaited<ReturnType<LocalEngine['open']>>, group: Group, step: Called) {
+  const forms = doc.forms as unknown as Record<string, (...args: unknown[]) => Promise<unknown>>;
+  const options = { opId: step.opId };
+  switch (step.call) {
+    case 'forms.create':
+      return forms.create!(step.draft, options);
+    case 'forms.update':
+      return forms.update!(step.field, step.patch, options);
+    case 'forms.updateWidget': {
+      const { fields, widgets } = await doc.forms.list();
+      const ref = fields.find((f) => f.name === step.widgetOf)!.widgets[0]!.ref!;
+      const row = widgets.find((w) => JSON.stringify(w.ref) === JSON.stringify(ref))!;
+      const patch = Object.fromEntries(
+        Object.entries(step.patch).map(([key, value]) => [key, value === '$rect' ? row.rect : value]),
+      );
+      return forms.updateWidget!(ref, patch, options);
+    }
+    case 'forms.setSignatureAppearance':
+      return forms.setSignatureAppearance!(step.field, markOf(group, step.mark), options);
+    case 'forms.copy':
+      return forms.copy!(step.fields, options);
+  }
+}
+
+// --- Cases of the 2026-11-27 catch-up ----------------------------------------
+
+const fqn = (name: string) => ({ kind: 'fqn', name }) as const;
+const create = (opId: string, draft: unknown): Step => ({ call: 'forms.create', draft, opId });
+const update = (opId: string, name: string, patch: unknown): Step => ({
+  call: 'forms.update',
+  field: fqn(name),
+  patch,
+  opId,
+});
+const applyUpdate = (opId: string, name: string, patch: unknown, expect?: unknown): Step =>
+  apply(opId, {
+    ops: [{ type: 'forms.update', field: fqn(name), patch, ...(expect ? { expect } : {}) }],
+  });
+const undo = (opId: string, of: string): Step => apply(opId, { undoOf: of });
+const FORMS_LIST: Step = { read: 'forms.list' };
+
+/** `FIELD_PURPOSE_FORMAT_TOKENS`. */
+const PF = {
+  designer: { scope: ['doc.open', 'doc.render', 'doc.download', 'doc.forms.modify'] },
+  filler: { scope: ['doc.open', 'doc.render', 'doc.forms.fill'] },
+  reader: { scope: ['doc.open', 'doc.render', 'doc.forms.read'] },
+} as const satisfies Record<string, Open>;
+
+const DATE_FORMAT = 'AFDate_FormatEx("m/d/yy");';
+const pfRect = (row: number) => ({ x: 40, y: 40 + row * 30, width: 200, height: 24 });
+const placed = (row: number) => [{ page: toPageRef(3), rect: pfRect(row) }];
+
+const PURPOSES_REFUSED: readonly unknown[] = [
+  '',
+  ' email',
+  'email ',
+  '\tname',
+  'p'.repeat(257),
+  'billing\u0000account',
+  7,
+  {},
+];
+
+const FORMATS_REFUSED: readonly unknown[] = [
+  { kind: 'other' },
+  { kind: 'number', pattern: '0.00' },
+  { kind: 'date' },
+  { kind: 'date', pattern: '' },
+  { kind: 'date', pattern: 'm/d/yy");app.alert("x' },
+  { kind: 'date', pattern: 'm\\d' },
+  { kind: 'date', pattern: "d 'of' mmmm" },
+  { kind: 'date', pattern: 'dddd, mmmm d' },
+  { kind: 'date', pattern: 'yyy' },
+  { kind: 'date', pattern: 'd/m/y' },
+  { kind: 'date', pattern: 'yyyymmdd' },
+  { kind: 'time', pattern: 'HH.MM' },
+  { kind: 'time', pattern: 'H:M' },
+  { kind: 'date', pattern: 'dd:mm:yyyy' },
+  { kind: 'date', pattern: '/ - .' },
+  { kind: 'date', pattern: `dd${' '.repeat(59)}yyyy` },
+  { kind: 'date', pattern: 'yyyy/mm/mm/dd' },
+  { kind: 'date', pattern: 'mmm mm d' },
+  { kind: 'time', pattern: 'HH:MM s' },
+  { kind: 'date', pattern: 'HH:MM' },
+  { kind: 'date', pattern: 'h:MM:ss tt' },
+  { kind: 'time', pattern: 'dd/mm/yyyy' },
+  { kind: 'time', pattern: 'yyyy' },
+  { kind: 'time', pattern: 'm/d/yy HH:MM' },
+  'dd/mm/yyyy',
+];
+
+const SCRIPT = { type: 'javascript', script: 'event.rc = true;' } as const;
+const DATE = { kind: 'date', pattern: 'dd/mm/yyyy' } as const;
+
+const PURPOSE_FORMAT_CASES: readonly Case[] = [
+  {
+    name: 'a-format-and-a-purpose-read-as-acrobat-decides',
+    covers:
+      "Each field's format from its format script alone, Acrobat's date and time calls in every wording, other scripts as other, a keystroke script alone as none; a purpose from /EMBD_Metadata /Purpose, one with space around it as none; list and signature fields carry no format.",
+    open: PF.reader,
+    steps: [FORMS_LIST],
+  },
+  {
+    name: 'a-create-names-a-purpose-on-every-kind',
+    covers: 'A text field, a checkbox, a signature field and a push button each take a purpose; left out or null, none.',
+    open: PF.designer,
+    steps: [
+      create('pf:c1', { kind: 'text', name: 'made_email', purpose: 'email', widgets: placed(0) }),
+      create('pf:c2', { kind: 'checkbox', name: 'made_consent', purpose: 'acme:consent', widgets: placed(1) }),
+      create('pf:c3', { kind: 'signature', name: 'made_signature', purpose: 'signature', widgets: placed(2) }),
+      create('pf:c4', { kind: 'pushbutton', name: 'made_button', purpose: 'initials', widgets: placed(3) }),
+      create('pf:c5', { kind: 'text', name: 'made_plain', widgets: placed(4) }),
+      create('pf:c6', { kind: 'text', name: 'made_none', purpose: null, widgets: placed(5) }),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'an-update-sets-keeps-and-removes-a-purpose',
+    covers:
+      'A purpose is form design alone, on a field in a group the designer may not assign; left out it stays; null takes it away; none to take away is no change; a signature field has one like any other.',
+    open: PF.designer,
+    steps: [
+      update('pf:u1', 'full_name', { purpose: 'organization' }),
+      update('pf:u2', 'full_name', { required: true }),
+      update('pf:u3', 'full_name', { purpose: null }),
+      update('pf:u4', 'plain_one', { purpose: null }),
+      update('pf:u5', 'sign_here', { purpose: 'initials' }),
+    ],
+  },
+  {
+    name: 'a-purpose-that-is-none-is-refused',
+    covers:
+      'An empty purpose, one with space at either end, one past 256 characters, one with a NUL, a number and an object are refused by an update and a create with InvalidArg; the longest is taken, and any other character is kept.',
+    open: PF.designer,
+    steps: [
+      ...PURPOSES_REFUSED.flatMap((purpose, at) => [
+        update(`pf:np${at}`, 'full_name', { purpose }),
+        create(`pf:nc${at}`, { kind: 'text', name: 'never_made', purpose }),
+      ]),
+      update('pf:long', 'full_name', { purpose: 'p'.repeat(256) }),
+      ...['two\nlines', 'caf\u00e9', '\u65e5\u4ed8', 'a(b)\\c', 'a\u0001b'].map((purpose, at) =>
+        update(`pf:kept${at}`, 'full_name', { purpose }),
+      ),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'undo-puts-a-purpose-back',
+    covers: 'Undo puts a purpose back and its undo sets it again; after a later change the undo puts it back by value.',
+    open: PF.designer,
+    steps: [
+      applyUpdate('pf:set', 'full_name', { purpose: 'email' }),
+      undo('pf:undo', 'pf:set'),
+      undo('pf:redo', 'pf:undo'),
+      applyUpdate('pf:removed', 'sign_here', { purpose: null }),
+      applyUpdate('pf:later', 'sign_here', { required: true }),
+      undo('pf:undo2', 'pf:removed'),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'an-update-that-expects-a-purpose',
+    covers: 'expect: { purpose } holds the update to a field that has it: null on full_name is a ChangeConflict, its own purpose applies.',
+    open: PF.designer,
+    steps: [
+      applyUpdate('pf:e1', 'full_name', { purpose: 'email' }, { purpose: null }),
+      applyUpdate('pf:e2', 'full_name', { purpose: 'email' }, { purpose: 'name' }),
+    ],
+  },
+  {
+    name: 'a-create-writes-a-date-and-a-time-as-acrobat-does',
+    covers:
+      "A text field's date, a text field's time (the keystroke script names the standard time pattern by number) and a dropdown's date are written as the two scripts Acrobat writes, with form design alone; left out or null, none.",
+    open: PF.designer,
+    steps: [
+      create('pf:d1', { kind: 'text', name: 'made_date', format: { kind: 'date', pattern: 'dd/mm/yyyy' }, widgets: placed(0) }),
+      create('pf:d2', { kind: 'text', name: 'made_time', format: { kind: 'time', pattern: 'h:MM tt' }, widgets: placed(1) }),
+      create('pf:d3', {
+        kind: 'combobox',
+        name: 'made_dropdown',
+        edit: true,
+        format: { kind: 'date', pattern: 'mmm d, yyyy' },
+        widgets: placed(2),
+      }),
+      create('pf:d4', { kind: 'text', name: 'made_plain', widgets: placed(3) }),
+      create('pf:d5', { kind: 'text', name: 'made_none', format: null, widgets: placed(4) }),
+    ],
+  },
+  {
+    name: 'an-update-sets-replaces-and-removes-a-format',
+    covers: 'A format is set, kept when left out, replaced by a time, removed by null with both scripts; a dropdown takes one.',
+    open: PF.designer,
+    steps: [
+      update('pf:f1', 'plain_six', { format: { kind: 'date', pattern: 'yyyy-mm-dd' } }),
+      update('pf:f2', 'plain_six', { required: true }),
+      update('pf:f3', 'plain_six', { format: { kind: 'time', pattern: 'HH:MM:ss' } }),
+      update('pf:f4', 'plain_six', { format: null }),
+      update('pf:f5', 'dropdown_date', { format: { kind: 'date', pattern: 'd-mmm-yy' } }),
+    ],
+  },
+  {
+    name: 'a-format-owns-the-two-scripts',
+    covers:
+      "null removes another format with its keystroke script; with no format, a keystroke script alone stays; a format replaces a keystroke script it didn't write.",
+    open: PF.designer,
+    steps: [
+      update('pf:o1', 'plain_five', { format: null }),
+      update('pf:o2', 'plain_three', { format: null }),
+      update('pf:o3', 'own_keystroke', { format: { kind: 'time', pattern: 'HH:MM' } }),
+    ],
+  },
+  {
+    name: 'the-format-a-field-has-changes-nothing',
+    covers:
+      "The format a field already has, in Acrobat's older numbered wording, changes nothing; an other format and a date with its own keystroke script stay through a write of something else.",
+    open: PF.designer,
+    steps: [
+      update('pf:s1', 'plain_four', { format: { kind: 'date', pattern: 'm/d' } }),
+      update('pf:s2', 'plain_five', { required: true }),
+      update('pf:s3', 'own_keystroke', { alternateName: 'A date' }),
+    ],
+  },
+  {
+    name: 'a-format-that-is-none-is-refused',
+    covers:
+      'Another kind, a pattern of no kind, one whose writing does not read back, one with a part twice, one of the other kind and a bare string are refused by an update and a create with InvalidArg before anything is written; the longest pattern is taken; a date may carry a time.',
+    steps: [
+      ...FORMATS_REFUSED.flatMap((format, at) => [
+        update(`pf:nf${at}`, 'plain_one', { format }),
+        create(`pf:nfc${at}`, { kind: 'text', name: 'never_made', format }),
+      ]),
+      update('pf:longest', 'plain_one', { format: { kind: 'date', pattern: `dd${' '.repeat(58)}yyyy` } }),
+      update('pf:withtime', 'plain_one', { format: { kind: 'date', pattern: 'dd/mm/yyyy HH:MM' } }),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'a-format-goes-on-a-text-field-and-a-dropdown-only',
+    covers:
+      'A list and a signature field refuse a format and null; a checkbox create refuses one; a format beside actions.format, actions.keystroke or a null keystroke is refused; beside a validate script it goes.',
+    steps: [
+      ...['list_with_script', 'sign_here'].flatMap((name, at) => [
+        update(`pf:fam${at}`, name, { format: DATE }),
+        update(`pf:famnull${at}`, name, { format: null }),
+      ]),
+      create('pf:famcheck', { kind: 'checkbox', name: 'never_made', format: DATE }),
+      ...[{ format: SCRIPT }, { keystroke: SCRIPT }, { keystroke: null }].flatMap((actions, at) => [
+        update(`pf:beside${at}`, 'plain_six', { format: DATE, actions }),
+        create(`pf:besidec${at}`, { kind: 'text', name: 'never_made', format: DATE, actions }),
+      ]),
+      update('pf:both', 'plain_six', { format: DATE, actions: { validate: SCRIPT } }),
+    ],
+  },
+  {
+    name: 'a-script-write-changes-the-format',
+    covers: "A format read back is the scripts': a date script makes a date, other code makes other, removing it makes none.",
+    steps: [
+      update('pf:w1', 'plain_six', { actions: { format: { type: 'javascript', script: 'AFDate_FormatEx("d/m/yy")' } } }),
+      update('pf:w2', 'plain_six', { actions: { format: { type: 'javascript', script: 'event.value = "x";' } } }),
+      update('pf:w3', 'plain_six', { actions: { format: null } }),
+    ],
+  },
+  {
+    name: 'undo-puts-a-format-back',
+    covers:
+      'Undo puts back the older wording a format replaced, and its undo sets the format again; a removed number format comes back whole; after a later change the undo puts a set format back by value.',
+    open: PF.designer,
+    steps: [
+      applyUpdate('pf:uf1', 'plain_four', { format: { kind: 'time', pattern: 'HH:MM' } }),
+      undo('pf:uf1u', 'pf:uf1'),
+      undo('pf:uf1r', 'pf:uf1u'),
+      applyUpdate('pf:uf2', 'plain_five', { format: null }),
+      undo('pf:uf2u', 'pf:uf2'),
+      applyUpdate('pf:uf3', 'plain_six', { format: DATE }),
+      applyUpdate('pf:uf3l', 'plain_six', { required: true }),
+      undo('pf:uf3u', 'pf:uf3'),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'after-a-later-change-the-undo-of-a-format-puts-back-what-it-replaced',
+    covers: 'A number format and an older wording a format replaced come back as written after a later change to the field.',
+    open: PF.designer,
+    steps: [
+      applyUpdate('pf:l1', 'plain_five', { format: DATE }),
+      applyUpdate('pf:l1l', 'plain_five', { required: true }),
+      undo('pf:l1u', 'pf:l1'),
+      applyUpdate('pf:l2', 'plain_four', { format: { kind: 'time', pattern: 'HH:MM' } }),
+      applyUpdate('pf:l2l', 'plain_four', { required: true }),
+      undo('pf:l2u', 'pf:l2'),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'the-undo-of-a-format-leaves-a-script-written-since',
+    covers: 'A keystroke script written after a format is someone else\'s work: the undo is skipped and both scripts stay.',
+    steps: [
+      applyUpdate('pf:k1', 'plain_six', { format: DATE }),
+      applyUpdate('pf:k2', 'plain_six', {
+        actions: { keystroke: { type: 'javascript', script: 'event.rc = /^[0-9/]*$/.test(event.value);' } },
+      }),
+      undo('pf:k1u', 'pf:k1'),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'the-undo-of-a-format-over-a-goto-puts-all-back',
+    covers: 'With nothing changed since, the undo of a format over a script that goes on to a GoTo puts the script and the GoTo back.',
+    open: PF.designer,
+    steps: [applyUpdate('pf:g1', 'goes_on', { format: DATE }), undo('pf:g1u', 'pf:g1'), FORMS_LIST],
+  },
+  {
+    name: 'the-undo-of-a-format-over-a-goto-after-a-change-puts-nothing-back',
+    covers: "After a later change the GoTo can't go back by value, so neither script is touched and the undo is skipped.",
+    open: PF.designer,
+    steps: [
+      applyUpdate('pf:g2', 'goes_on', { format: DATE }),
+      applyUpdate('pf:g2l', 'goes_on', { required: true }),
+      undo('pf:g2u', 'pf:g2'),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'the-undo-of-a-script-over-a-goto-after-a-change-puts-nothing-back',
+    covers: 'A script written over such actions follows the same rule.',
+    steps: [
+      applyUpdate('pf:g3', 'goes_on', { actions: { format: { type: 'javascript', script: 'event.value = event.value.trim();' } } }),
+      applyUpdate('pf:g3l', 'goes_on', { required: true }),
+      undo('pf:g3u', 'pf:g3'),
+    ],
+  },
+  {
+    name: 'an-update-that-expects-a-format',
+    covers: 'expect: { format } holds the update to a field that has it: null on plain_one is a ChangeConflict, its own date applies.',
+    open: PF.designer,
+    steps: [
+      applyUpdate('pf:x1', 'plain_one', { format: { kind: 'time', pattern: 'HH:MM' } }, { format: null }),
+      applyUpdate('pf:x2', 'plain_one', { format: { kind: 'time', pattern: 'HH:MM' } }, { format: { kind: 'date', pattern: 'm/d/yy' } }),
+    ],
+  },
+  {
+    name: 'a-copy-keeps-a-purpose-and-a-format-without-the-script-right',
+    covers:
+      'Without doc.forms.script a copy keeps a purpose and a date or time format, written from the pattern, and reports nothing dropped.',
+    open: PF.designer,
+    steps: [
+      update('pf:cp0', 'plain_one', { purpose: 'date-signed' }),
+      { call: 'forms.copy', fields: ['plain_one', 'time_numbered', 'dropdown_date', 'sign_here'].map(fqn), opId: 'pf:cp1' },
+    ],
+  },
+  {
+    name: 'a-copy-without-the-script-right-leaves-out-what-is-no-date-or-time',
+    covers: "An other format is left out and reported; a date's own keystroke script of other code is reported and the copy gets the format's own.",
+    open: PF.designer,
+    steps: [{ call: 'forms.copy', fields: ['plain_five', 'own_keystroke'].map(fqn), opId: 'pf:cp2' }],
+  },
+  {
+    name: 'a-copy-with-the-script-right-keeps-the-scripts-as-written',
+    covers: 'With doc.forms.script a copy keeps the older wording and a keystroke script of its own as they are.',
+    steps: [{ call: 'forms.copy', fields: ['plain_four', 'own_keystroke'].map(fqn), opId: 'pf:cp3' }],
+  },
+  {
+    name: 'both-take-form-design',
+    covers:
+      'A filler is refused a purpose and a format by an update and a create (Forbidden, doc.forms.modify) and reads both; a designer is refused the same format as a script of her own (doc.forms.script) and may set the format and a purpose.',
+    open: PF.filler,
+    steps: [
+      update('pf:r1', 'plain_six', { purpose: 'email' }),
+      update('pf:r2', 'plain_six', { format: { kind: 'date', pattern: 'm/d/yy' } }),
+      update('pf:r3', 'plain_one', { format: null }),
+      create('pf:r4', { kind: 'text', name: 'never_made', purpose: 'email' }),
+      create('pf:r5', { kind: 'text', name: 'never_made', format: { kind: 'date', pattern: 'm/d/yy' } }),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'a-designer-writes-a-format-not-its-script',
+    covers: 'The same format as a script takes doc.forms.script, which a designer lacks; as a format, with a purpose, it is form design.',
+    open: PF.designer,
+    steps: [
+      update('pf:r6', 'plain_six', { actions: { format: { type: 'javascript', script: DATE_FORMAT } } }),
+      update('pf:r7', 'plain_six', { format: { kind: 'date', pattern: 'm/d/yy' }, purpose: 'date-signed' }),
+    ],
+  },
+];
+
+/** `FIELD_GROUP_TOKENS`. */
+const FG = {
+  seller: { scope: ['doc.open', 'doc.render', 'fields:*:group=seller'], identity: {} },
+  buyer: {
+    scope: ['doc.open', 'doc.render', 'fields:fill:group=buyer', 'fields:sign:group=buyer'],
+    identity: { userId: 'alice', displayName: 'Alice' },
+  },
+  designer: {
+    scope: ['doc.open', 'doc.render', 'doc.forms.modify', 'fields:set-group:group=buyer'],
+    identity: { userId: 'lisa', groupId: 'legal' },
+  },
+} as const satisfies Record<string, Open>;
+
+const fgPlaced = (x: number) => [{ page: toPageRef(3), rect: { x, y: 200, width: 100, height: 20 } }];
+
+const FIELD_GROUP_CASES: readonly Case[] = [
+  {
+    name: 'a-new-field-is-in-no-group-unless-its-draft-names-one',
+    covers: "A designer whose own group is legal makes a field in no group, left out, null, or as one op of a change.",
+    open: FG.designer,
+    steps: [
+      create('fg:c1', { kind: 'text', name: 'clause', widgets: fgPlaced(20) }),
+      create('fg:c2', { kind: 'text', name: 'note', groupId: null, widgets: fgPlaced(140) }),
+      apply('fg:c3', { ops: [{ type: 'forms.create', draft: { kind: 'text', name: 'annex', widgets: fgPlaced(260) } }] }),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'naming-her-own-group-takes-no-right',
+    covers: "Her own group takes no right, the buyer's takes fields:set-group she has, the seller's is Forbidden, by a create and an update.",
+    open: FG.designer,
+    steps: [
+      create('fg:o1', { kind: 'text', name: 'clause', groupId: 'legal', widgets: fgPlaced(20) }),
+      create('fg:o2', { kind: 'text', name: 'buyer_address', groupId: 'buyer', widgets: fgPlaced(140) }),
+      create('fg:o3', { kind: 'text', name: 'seller_address', groupId: 'seller', widgets: fgPlaced(260) }),
+      update('fg:o4', 'clause', { groupId: 'buyer' }),
+      update('fg:o5', 'clause', { groupId: 'legal' }),
+      update('fg:o6', 'clause', { groupId: 'seller' }),
+    ],
+  },
+  {
+    name: 'group-id-null-takes-a-field-out-of-its-group',
+    covers: 'null takes a field out of a group she has no right to assign, with form design alone; a field in none stays in none; back in is an assignment again.',
+    open: FG.designer,
+    steps: [
+      update('fg:n1', 'seller_name', { groupId: null }),
+      update('fg:n2', 'buyer_name', { groupId: null }),
+      update('fg:n3', 'total', { groupId: null }),
+      update('fg:n4', 'seller_name', { groupId: 'seller' }),
+      update('fg:n5', 'buyer_name', { groupId: 'buyer' }),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'taking-a-field-out-of-its-group-takes-form-design',
+    covers: 'The seller, who may set the seller group but not design the form, is refused null by a verb and by a change.',
+    open: FG.seller,
+    steps: [
+      update('fg:s1', 'seller_name', { groupId: null }),
+      applyUpdate('fg:s2', 'seller_name', { groupId: null }),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'an-empty-group-id-is-refused',
+    covers: 'An empty id, by a create and an update, and one past 256 characters are InvalidArg, not no group.',
+    steps: [
+      create('fg:e1', { kind: 'text', name: 'clause', groupId: '', widgets: fgPlaced(20) }),
+      update('fg:e2', 'buyer_name', { groupId: '' }),
+      update('fg:e3', 'buyer_name', { groupId: 'g'.repeat(257) }),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'undo-puts-a-removed-group-back',
+    covers: 'Undo puts a removed group back and its undo takes it out again; undo takes an assigned group away and its undo puts it back.',
+    open: FG.designer,
+    steps: [
+      applyUpdate('fg:u1', 'seller_name', { groupId: null }),
+      undo('fg:u1u', 'fg:u1'),
+      undo('fg:u1r', 'fg:u1u'),
+      applyUpdate('fg:u2', 'total', { groupId: 'buyer' }),
+      undo('fg:u2u', 'fg:u2'),
+      undo('fg:u2r', 'fg:u2u'),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'undo-of-a-group-change-holds-after-a-later-change',
+    covers: 'After a later change to the field, the undo puts the group back by value and keeps the later change.',
+    open: FG.designer,
+    steps: [
+      applyUpdate('fg:l1', 'buyer_name', { groupId: null }),
+      applyUpdate('fg:l1l', 'buyer_name', { required: true }),
+      undo('fg:l1u', 'fg:l1'),
+      applyUpdate('fg:l2', 'total', { groupId: 'buyer' }),
+      applyUpdate('fg:l2l', 'total', { required: true }),
+      undo('fg:l2u', 'fg:l2'),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'an-update-that-expects-no-group',
+    covers: 'expect: { groupId: null } on a field in a group is a ChangeConflict; on one in none it applies.',
+    open: FG.designer,
+    steps: [
+      applyUpdate('fg:x1', 'seller_name', { groupId: 'buyer' }, { groupId: null }),
+      applyUpdate('fg:x2', 'total', { groupId: 'buyer' }, { groupId: null }),
+    ],
+  },
+  {
+    name: 'a-copy-of-a-field-in-no-group-is-in-none',
+    covers: "A copy of a field in no group is in none, of the buyer's keeps it; a copy of the seller's is Forbidden.",
+    open: FG.designer,
+    steps: [
+      { call: 'forms.copy', fields: [fqn('total'), fqn('buyer_name')], opId: 'fg:cp1' },
+      { call: 'forms.copy', fields: [fqn('seller_name')], opId: 'fg:cp2' },
+    ],
+  },
+];
+
+/** One empty 300 × 300 page (object 3), the mark suite's `PAGE_PDF`. */
+const MARK_PAGE_PDF = pdfOf([
+  '<< /Type /Catalog /Pages 2 0 R >>',
+  '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+  '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 4 0 R /Resources << >> >>',
+  '<< /Length 0 >>\nstream\n\nendstream',
+]);
+
+const MARK_DRAWING = '1 0 0 rg 0 0 40 40 re f 0 0 1 rg 40 30 80 10 re f';
+/** The rotation suite's `MARK_PDF`: 120 × 40, red over its left third, a blue bar along the rest of its top. */
+const MARK_PDF = pdfOf([
+  '<< /Type /Catalog /Pages 2 0 R >>',
+  '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+  '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 120 40] /Contents 4 0 R >>',
+  `<< /Length ${MARK_DRAWING.length} >>\nstream\n${MARK_DRAWING}\nendstream`,
+]);
+
+const MARKS = {
+  png: BANDS_PNG,
+  jpeg: BANDS_JPEG,
+  pdf: BANDS_PDF,
+  twoPage: TWO_PAGE_PDF,
+  markPdf: MARK_PDF,
+};
+
+const BANDS_BOX = { x: 30, y: 30, width: 150, height: 50 };
+const signatureField = (opId: string, name: string, placement: Record<string, unknown> = { box: BANDS_BOX }, styled = false) =>
+  create(opId, {
+    kind: 'signature',
+    name,
+    widgets: [
+      { page: toPageRef(3), ...placement, ...(styled ? { color: '#1a1a1a', interiorColor: '#eeeeee' } : {}) },
+    ],
+  });
+const mark = (opId: string, name: string, which: Mark): Step => ({
+  call: 'forms.setSignatureAppearance',
+  field: fqn(name),
+  mark: which,
+  opId,
+});
+
+const SIGNATURE_MARK_CASES: readonly Case[] = [
+  {
+    name: 'a-png-a-jpeg-and-a-pdf-fill-a-signature-field',
+    covers: 'A PNG, a JPEG, a PDF as its bytes and under { pdf } each fill a new signature field: the widget has a mark.',
+    steps: [
+      signatureField('sm:f1', 'png'),
+      mark('sm:m1', 'png', 'png'),
+      signatureField('sm:f2', 'jpeg', { box: { ...BANDS_BOX, y: 90 } }),
+      mark('sm:m2', 'jpeg', 'jpeg'),
+      signatureField('sm:f3', 'pdf', { box: { ...BANDS_BOX, y: 150 } }),
+      mark('sm:m3', 'pdf', 'pdf'),
+      signatureField('sm:f4', 'keyed', { box: { ...BANDS_BOX, y: 210 } }),
+      mark('sm:m4', 'keyed', 'pdfKeyed'),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'other-bytes-and-two-pages-are-refused',
+    covers:
+      'Bytes that are no PNG, JPEG or PDF are refused before anything is sent; an image under { pdf } is refused as a PDF; a two-page PDF is refused as bytes and under { pdf }; the field is left without a mark.',
+    steps: [
+      signatureField('sm:r0', 'sig'),
+      mark('sm:r1', 'sig', 'notAPicture'),
+      mark('sm:r2', 'sig', 'pngKeyed'),
+      mark('sm:r3', 'sig', 'twoPage'),
+      mark('sm:r4', 'sig', 'twoPageKeyed'),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'no-mark-takes-the-mark-out',
+    covers: "null takes the mark out of a styled field: the widget has no mark and draws its box again, and its style can change after.",
+    steps: [
+      signatureField('sm:c0', 'sig', { box: BANDS_BOX }, true),
+      mark('sm:c1', 'sig', 'png'),
+      mark('sm:c2', 'sig', null),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'undo-of-a-clear-brings-the-mark-back',
+    covers: 'The undo of a clear brings the mark back; its undo takes it out again.',
+    steps: [
+      signatureField('sm:u0', 'sig'),
+      mark('sm:u1', 'sig', 'png'),
+      mark('sm:u2', 'sig', null),
+      undo('sm:u3', 'sm:u2'),
+      FORMS_LIST,
+      undo('sm:u4', 'sm:u3'),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'a-mark-and-no-mark-are-ops-of-one-change',
+    covers: 'A mark and no mark travel as ops of one change, which one undo takes back.',
+    steps: [
+      signatureField('sm:o0', 'a'),
+      signatureField('sm:o1', 'b', { box: { ...BANDS_BOX, y: 120 } }),
+      mark('sm:o2', 'b', 'png'),
+      apply('sm:o3', {
+        ops: [
+          { type: 'forms.setSignatureAppearance', field: fqn('a'), appearance: BANDS_PNG.slice() },
+          { type: 'forms.setSignatureAppearance', field: fqn('b'), appearance: null },
+        ],
+      }),
+      FORMS_LIST,
+      undo('sm:o4', 'sm:o3'),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'no-mark-in-a-field-that-has-none-changes-nothing',
+    covers: 'null on a field with no mark leaves its widget as it is.',
+    steps: [signatureField('sm:n0', 'sig', { box: BANDS_BOX }, true), mark('sm:n1', 'sig', null), FORMS_LIST],
+  },
+  {
+    name: 'a-field-with-two-boxes-is-filled-and-cleared-in-both',
+    covers: 'Both widgets of one signature field get the mark, and both lose it.',
+    steps: [
+      create('sm:t0', {
+        kind: 'signature',
+        name: 'twice',
+        widgets: [
+          { page: toPageRef(3), box: BANDS_BOX },
+          { page: toPageRef(3), box: { ...BANDS_BOX, y: 150 } },
+        ],
+      }),
+      mark('sm:t1', 'twice', 'jpeg'),
+      FORMS_LIST,
+      mark('sm:t2', 'twice', null),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'a-field-of-another-family-takes-no-mark',
+    covers: 'A text field takes no mark and gives none up: InvalidArg both ways.',
+    steps: [
+      create('sm:x0', { kind: 'text', name: 'text', widgets: [{ page: toPageRef(3), box: BANDS_BOX }] }),
+      mark('sm:x1', 'text', 'png'),
+      mark('sm:x2', 'text', null),
+    ],
+  },
+];
+
+const MARK_FRAME = { x: 150, y: 20, width: 120, height: 40 };
+
+const WIDGET_ROTATION_CASES: readonly Case[] = [
+  {
+    name: 'a-mark-in-a-turned-field-is-fitted-into-its-frame',
+    covers: 'A mark drawn into a signature field turned 90 has a mark, and its rect is its box with the sides swapped.',
+    steps: [
+      create('wr:c0', { kind: 'signature', name: 'turned', widgets: [{ page: toPageRef(3), box: { ...MARK_FRAME, y: 120 }, rotation: 90 }] }),
+      mark('wr:m0', 'turned', 'markPdfKeyed'),
+      FORMS_LIST,
+    ],
+  },
+  {
+    name: 'a-turn-turns-the-mark-and-undo-puts-it-back',
+    covers:
+      "A turn of a marked widget fits the mark again (appearance changed, the mark kept); Acrobat's Orientation, a new frame, fits it as a new field's; two undos put it back upright.",
+    steps: [
+      create('wr:t0', { kind: 'signature', name: 'marked', widgets: [{ page: toPageRef(3), box: MARK_FRAME }] }),
+      mark('wr:t1', 'marked', 'markPdfKeyed'),
+      { call: 'forms.updateWidget', widgetOf: 'marked', patch: { rotation: 90 }, opId: 'wr:t2' },
+      { call: 'forms.updateWidget', widgetOf: 'marked', patch: { rotation: null, box: '$rect' }, opId: 'wr:t3' },
+      create('wr:t4', { kind: 'signature', name: 'fresh', widgets: [{ page: toPageRef(3), box: { x: 40, y: -20, width: 40, height: 120 } }] }),
+      mark('wr:t5', 'fresh', 'markPdfKeyed'),
+      undo('wr:t6', 'wr:t3'),
+      undo('wr:t7', 'wr:t2'),
+      { read: 'annotations.list', page: 3 },
+      FORMS_LIST,
+    ],
+  },
+];
+
+const CATCHUP_GROUPS: readonly Group[] = [
+  {
+    file: 'field-purpose-format.json',
+    kind: 'forms.purposeAndFormat',
+    fixture: { name: 'FIELD_PURPOSE_FORMAT_PDF', bytes: FIELD_PURPOSE_FORMAT_PDF },
+    cases: PURPOSE_FORMAT_CASES,
+  },
+  {
+    file: 'field-groups.json',
+    kind: 'forms.fieldGroups',
+    fixture: { name: 'FIELD_GROUPS_PDF', bytes: FIELD_GROUPS_PDF },
+    cases: FIELD_GROUP_CASES,
+  },
+  {
+    file: 'signature-mark.json',
+    kind: 'forms.signatureMark',
+    fixture: { name: 'PAGE_PDF', bytes: MARK_PAGE_PDF },
+    fixtures: MARKS,
+    cases: SIGNATURE_MARK_CASES,
+  },
+  {
+    file: 'widget-rotation.json',
+    kind: 'forms.widgetRotation.mark',
+    fixture: { name: 'TURNED_FIELDS_PDF', bytes: TURNED_FIELDS_PDF },
+    fixtures: MARKS,
+    cases: WIDGET_ROTATION_CASES,
+  },
+];
 
 // --- Change kinds -----------------------------------------------------------
 
@@ -645,8 +1458,15 @@ function kindsVector(): unknown {
 // --- Output -----------------------------------------------------------------
 
 function serialize(group: Group, cases: readonly unknown[]): string {
+  const fixture =
+    typeof group.fixture === 'string'
+      ? { fixture: group.fixture }
+      : { fixture: group.fixture.name, fixtureHex: hex(group.fixture.bytes) };
+  const fixtures = group.fixtures
+    ? { fixtures: Object.fromEntries(Object.entries(group.fixtures).map(([k, v]) => [k, hex(v)])) }
+    : {};
   const head = JSON.stringify(
-    { schemaVersion: SCHEMA_VERSION, kind: group.kind, fixture: group.fixture },
+    { schemaVersion: SCHEMA_VERSION, kind: group.kind, ...fixture, ...fixtures },
     null,
     2,
   ).replace(/\n}$/, ',');
@@ -679,7 +1499,7 @@ async function emit(relative: string, text: string, check: boolean): Promise<boo
 async function main(): Promise<void> {
   const check = process.argv.includes('--check');
   let differs = false;
-  for (const group of GROUPS) {
+  for (const group of [...GROUPS, ...CATCHUP_GROUPS]) {
     const names = new Set<string>();
     for (const entry of group.cases) {
       if (names.has(entry.name)) throw new Error(`${group.file}: duplicate case ${entry.name}`);

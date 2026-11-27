@@ -4,6 +4,10 @@
 //! Regenerate the vectors, deliberately, with:
 //!   pnpm --filter @embedpdf/tooling-engine-conformance run changes
 //!
+//! A group whose fixture a suite builds in memory carries it as hex, a case
+//! may name the scope and identity it opens with, and bytes inside a
+//! recorded request (`{ "$hex" }`) go as payloads.
+//!
 //! Each case is a list of steps against a freshly opened fixture, and each
 //! step records the worker requests one call of the TypeScript API sent,
 //! with the worker's answer to each. This sends the same requests in order
@@ -27,6 +31,9 @@ struct VectorFile {
     schema_version: u32,
     kind: String,
     fixture: String,
+    /// A fixture a conformance suite builds in memory, as hex.
+    #[serde(default)]
+    fixture_hex: Option<String>,
     cases: Vec<Case>,
 }
 
@@ -34,6 +41,9 @@ struct VectorFile {
 struct Case {
     name: String,
     covers: String,
+    /// The scope and identity the case opens its fixture with.
+    #[serde(default)]
+    open: Option<Value>,
     steps: Vec<Step>,
 }
 
@@ -146,8 +156,10 @@ fn expected_result(resolve: &Value, actual: &Value) -> Value {
 
 /// What the `Host` adds to `document.apply`'s answer beside the worker's
 /// payload: the events it publishes and the mutation sequence, the events
-/// envelope this port keeps (not part of the TypeScript worker's answer).
-const HOST_ONLY: [&str; 2] = ["events", "mutationSequence"];
+/// envelope this port keeps (not part of the TypeScript worker's answer). A
+/// single verb (`forms.createField`, `forms.updateField`) carries its one
+/// event as `event`.
+const HOST_ONLY: [&str; 3] = ["events", "event", "mutationSequence"];
 
 /// The paths where `actual` and `expected` differ, up to `limit`.
 fn differences(actual: &Value, expected: &Value, at: &str, out: &mut Vec<String>, limit: usize) {
@@ -179,17 +191,50 @@ fn differences(actual: &Value, expected: &Value, at: &str, out: &mut Vec<String>
 /// object numbers reserved for the session (`OBJECT_NUMBER_POOL_SIZE`), which
 /// is where a create's next free number starts and which numbers a copy may
 /// be given.
-fn open(fixture: &str, doc_id: &str) -> Replay {
+fn open(vectors: &VectorFile, case: &Case, doc_id: &str) -> Replay {
     let mut host = epdf_engine::host::Host::new();
-    let response = host.call_filled(
-        &json!({ "kind": "open.fatMem", "effect": "open", "jobId": 1, "docId": doc_id,
-            "password": null, "reserveObjectNumbers": 64 })
-        .to_string(),
-        vec![test_support::fixture(fixture)],
-    );
+    let bytes = match &vectors.fixture_hex {
+        Some(hex) => unhex(hex),
+        None => test_support::fixture(&vectors.fixture),
+    };
+    let mut request = json!({ "kind": "open.fatMem", "effect": "open", "jobId": 1,
+        "docId": doc_id, "password": null, "reserveObjectNumbers": 64 });
+    if let Some(open) = &case.open {
+        for key in ["scope", "identity"] {
+            if let Some(value) = open.get(key) {
+                request[key] = value.clone();
+            }
+        }
+    }
+    let response = host.call_filled(&request.to_string(), vec![bytes]);
     let envelope: Value = serde_json::from_str(&response.json).expect("the open answers JSON");
-    assert!(envelope.get("error").is_none(), "{fixture} would not open: {envelope}");
+    assert!(envelope.get("error").is_none(), "{} would not open: {envelope}", vectors.fixture);
     Replay::adopt(host, doc_id)
+}
+
+fn unhex(text: &str) -> Vec<u8> {
+    (0..text.len()).step_by(2).map(|i| u8::from_str_radix(&text[i..i + 2], 16).unwrap()).collect()
+}
+
+/// `recorded` with each `{ "$hex": ... }` in it as a payload the request
+/// names `{ "payload": n }`, as `wirePack`'s transfer list sends bytes.
+fn with_payloads(recorded: &Value) -> (Value, Vec<Vec<u8>>) {
+    fn walk(value: &mut Value, payloads: &mut Vec<Vec<u8>>) {
+        match value {
+            Value::Object(map) if map.len() == 1 && map.contains_key("$hex") => {
+                let bytes = unhex(map["$hex"].as_str().expect("hex"));
+                *value = json!({ "payload": payloads.len() });
+                payloads.push(bytes);
+            }
+            Value::Object(map) => map.values_mut().for_each(|v| walk(v, payloads)),
+            Value::Array(items) => items.iter_mut().for_each(|v| walk(v, payloads)),
+            _ => {}
+        }
+    }
+    let mut request = recorded.clone();
+    let mut payloads = Vec::new();
+    walk(&mut request, &mut payloads);
+    (request, payloads)
 }
 
 fn replay_file(file: &str, kind: &str, cases: usize) {
@@ -197,12 +242,13 @@ fn replay_file(file: &str, kind: &str, cases: usize) {
     assert_eq!(vectors.cases.len(), cases, "{file}: the case list moved");
     let mut failures = Vec::new();
     for case in &vectors.cases {
-        let mut replay = open(&vectors.fixture, &format!("changes:{}", case.name));
+        let mut replay = open(&vectors, case, &format!("changes:{}", case.name));
         'steps: for (s, step) in case.steps.iter().enumerate() {
             let mut published: Option<Value> = None;
             for exchange in &step.exchanges {
                 let what = format!("{} step {s} {}", case.name, exchange.request["kind"]);
-                let answer = replay.replay(&exchange.request);
+                let (request, payloads) = with_payloads(&exchange.request);
+                let answer = replay.send(&request, payloads).outcome;
                 match (exchange.answer.get("resolve"), exchange.answer.get("reject")) {
                     (Some(resolve), None) => match answer {
                         Ok(mut actual) => {
@@ -318,6 +364,26 @@ fn forms_copy() {
 #[test]
 fn a_widget_update_renames() {
     replay_file("widget-rename.json", "document.apply.forms.updateWidget.rename", 3);
+}
+
+#[test]
+fn a_fields_purpose_and_format() {
+    replay_file("field-purpose-format.json", "forms.purposeAndFormat", 25);
+}
+
+#[test]
+fn a_new_field_is_in_no_group_unless_named() {
+    replay_file("field-groups.json", "forms.fieldGroups", 9);
+}
+
+#[test]
+fn a_signature_mark_is_an_image_or_a_pdf_or_none() {
+    replay_file("signature-mark.json", "forms.signatureMark", 8);
+}
+
+#[test]
+fn a_mark_turns_with_its_widget() {
+    replay_file("widget-rotation.json", "forms.widgetRotation.mark", 2);
 }
 
 /// `kinds.json`: the version each change kind arrived in, which kinds an
