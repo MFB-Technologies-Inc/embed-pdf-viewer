@@ -673,7 +673,8 @@ impl DocumentSession {
         Ok(&self.state()?.document)
     }
 
-    /// The open document's stamp drawings, by content (`drawingIndex`).
+    /// The open document's drawings, by content (`drawingIndex`): the ones
+    /// stamps, signature marks and push buttons place.
     pub fn drawing_index(
         &self,
     ) -> Result<

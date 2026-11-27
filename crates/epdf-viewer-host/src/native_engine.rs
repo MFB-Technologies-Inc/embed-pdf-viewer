@@ -1296,7 +1296,12 @@ mod tests {
     fn a_group_token_fills_in_a_field_anyone_fills_in() {
         use epdf_kernel::engine::DocumentSecurity;
         let base = ["doc.open", "doc.render", "doc.download"];
-        let tokens: [(&str, Vec<&str>, [bool; 4]); 6] = [
+        let tokens: [(&str, Vec<&str>, [bool; 4]); 8] = [
+            (
+                "sender",
+                [&base[..], &["doc.forms.modify", "doc.sign", "fields:set-group:all"]].concat(),
+                [true; 4],
+            ),
             (
                 "dana",
                 [&base[..], &["fields:fill:group=dana", "fields:sign:group=dana"]].concat(),
@@ -1310,6 +1315,11 @@ mod tests {
             ("filler", vec!["doc.open", "doc.render", "doc.forms.fill", "doc.sign"], [true; 4]),
             ("fillAll", vec!["doc.open", "doc.render", "fields:fill:all"], [true; 4]),
             ("reader", vec!["doc.open", "doc.render", "doc.forms.read"], [false; 4]),
+            (
+                "designer",
+                vec!["doc.open", "doc.render", "doc.forms.modify", "fields:set-group:group=dana"],
+                [true; 4],
+            ),
             ("everything", vec!["*"], [true; 4]),
         ];
         // `reference` (anyone), `dana_name`, `ada_name`, `sender_note` (in

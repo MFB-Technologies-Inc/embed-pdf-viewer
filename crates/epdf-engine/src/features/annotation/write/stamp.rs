@@ -177,7 +177,7 @@ pub fn drawing_for_format(
         BinaryFormat::Pdf => document.canonical_drawing_of_pdf(bytes).map_err(|_| {
             EngineError::with_message(
                 EngineErrorCode::MalformedPdf,
-                "the stamp's appearance PDF could not be opened",
+                "the appearance PDF could not be opened",
             )
         })?,
         BinaryFormat::Png { width, height } | BinaryFormat::Jpeg { width, height } => {
