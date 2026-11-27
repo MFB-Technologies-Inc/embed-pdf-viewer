@@ -187,6 +187,7 @@ public func duplicateWidgets(_ widgets: [AnnotationRef], options: FormDuplicateO
 
 **Files:**
 - Modify: `platforms/apple/swift-api-coverage.json`
+- Modify: `platforms/android/kotlin-api-coverage.json`
 
 - [ ] **Step 1:** turn the nine members into rows with `export` and `swift`, in the shape of
   `selection_can_group`:
@@ -208,12 +209,24 @@ public func duplicateWidgets(_ widgets: [AnnotationRef], options: FormDuplicateO
   (`crates/plugins/annotation/src/read/annotations.rs`, owner `Core`) as an exclusion with
   classification `internal-resource` and the reason above, and drop the stale
   `remeasure_page` row: the member is gone from `write/measurement.rs`.
-- [ ] **Step 2:** `python3 scripts/check-api-coverage.py --platform swift`, the unified script
+- [ ] **Step 2:** in the same change, mirror these edits in the Kotlin manifest: add the nine
+  members as ported rows in the shape of `selection_can_group`, add `get_shared` as an
+  exclusion, and drop the `remeasure_page` row. `kotlin.path` is
+  `platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Annotation.kt` for the seven
+  annotation members and `platforms/android/embedpdf/embedpdf/src/main/kotlin/com/embedpdf/Form.kt`
+  for form `duplicate` and `duplicate_widgets`; `kotlin.symbol` follows the table order:
+  `isMovable`, `canDuplicate`, `duplicate`, `whenRemeasurable`, `stageRemeasure`, `duplicate`
+  (selection), `canDuplicate` (selection), `duplicate` (form), `duplicateWidgets`. The Kotlin
+  members landed in `56ad9ab28`, but `validate_kotlin` in `scripts/check-api-coverage.py` rejects
+  a Kotlin row the Swift manifest lacks, so the Kotlin rows can't land before the Swift ones.
+- [ ] **Step 3:** `python3 scripts/check-api-coverage.py --platform swift`, the unified script
   (`--platform kotlin` and `--platform csharp` should still pass afterwards, since the Kotlin
-  manifest follows the Swift one). On `research/dotnet-parity-p7` after the Phase 6 merge
+  manifest follows the Swift one). `--platform kotlin` reports 864 members (728 ported, 0
+  pending, 136 exclusions) on `research/kotlin-ffi-duplicate-and-cancel` at `0642f170c`; with
+  these rows it should report 873 (737 ported, 0 pending, 136 exclusions). On `research/dotnet-parity-p7` after the Phase 6 merge
   (`93e3210d8`) the Swift check reports 18 drift errors; these
   rows clear 11 of them. The 7 that remain are unrelated test counters and members added after
   the Swift port: `commands` `resolve_command_text`, `redaction` `page_list_calls`, `selection`
   `load_starts`, `stage` `wheel_by`, `scene_key_builds` and `page_state_reads`, and the kernel's
   `settings_revision`. Re-run on the start branch and list what remains there.
-- [ ] **Step 3:** commit `docs(apple): account for the duplicate and remeasure members`.
+- [ ] **Step 4:** commit `docs(apple): account for the duplicate and remeasure members`.
