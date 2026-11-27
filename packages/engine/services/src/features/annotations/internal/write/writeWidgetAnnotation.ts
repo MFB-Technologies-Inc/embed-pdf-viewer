@@ -31,7 +31,7 @@ import {
 import { withUtf16String } from '../../../../runtime/memory/strings';
 import { writeWidgetActions } from '../../../actions/internal/writeWidgetActions';
 import { checkStyleCharacter } from '../../../forms/internal/widgetCaption';
-import { readAppearanceFit, refitAppearance } from '../appearanceFit';
+import { refitAppearance } from '../appearanceFit';
 import {
   readAnnotRect,
   readBorderStyle,
@@ -44,6 +44,7 @@ import { widgetBorderStyleFromCode, widgetBorderStyleToCode } from '../shapeBord
 import type { AnnotationWriteContext } from './annotationWriteContext';
 import { KEEP_FONT_CODE } from '../standardFont';
 import { textAlignmentToCode } from '../textAlignment';
+import { widgetLayoutToCode } from '../widgetLayout';
 import {
   clearBorderDashPattern,
   setAnnotRect,
@@ -86,11 +87,11 @@ export function assertMarkKeepsItsLook(
 
 /**
  * Fit the mark in a widget into its box again, once the box or its turn has
- * changed: by the fit the mark records, else `contain`, the fit a signing
- * draws its mark with.
+ * changed: `contain`, the fit every mark is drawn with. It gives the widget a
+ * new wrapper around the same drawing, so it still reads as a mark.
  */
-export function refitWidgetMark(fn: PdfFunctions, mem: PdfRuntimeMemory, annotPtr: Ptr): void {
-  refitAppearance(fn, annotPtr, readAppearanceFit(fn, mem, annotPtr) ?? 'contain');
+export function refitWidgetMark(fn: PdfFunctions, annotPtr: Ptr): void {
+  refitAppearance(fn, annotPtr, 'contain');
 }
 
 /**
@@ -159,6 +160,17 @@ export function applyWidgetStyle(
     fn.EPDFAnnot_SetMKText(annotPtr, MK_CAPTION, NULL_PTR);
   } else if (mkText !== undefined) {
     withUtf16String(mem, mkText, (text) => fn.EPDFAnnot_SetMKText(annotPtr, MK_CAPTION, text));
+  }
+
+  // `/MK /TP`: only a push button's widget gets here with a layout, never
+  // with `null` (`fitWidgetToFamily`).
+  if (style.layout) {
+    if (!fn.EPDFAnnot_SetMKTextPosition(annotPtr, widgetLayoutToCode(style.layout))) {
+      throw new EngineError(
+        EngineErrorCode.Unknown,
+        "the widget's layout (/MK /TP) could not be written",
+      );
+    }
   }
 }
 

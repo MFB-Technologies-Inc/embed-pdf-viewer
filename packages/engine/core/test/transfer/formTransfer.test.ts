@@ -51,6 +51,7 @@ function textField(
     mappingName: null,
     valueEntry: { kind: 'scalar', value: `${name} value` },
     defaultValueEntry: { kind: 'none' },
+    forAnyone: false,
     purpose: null,
     createdBy: 'alice',
     createdAt: '2026-10-08T10:42:00Z',
@@ -91,6 +92,7 @@ function widgetRow(
     fontSize: 12,
     fontColor: '#000000',
     caption: null,
+    layout: null,
     actions: null,
     invisible: false,
     hidden: false,
@@ -276,6 +278,26 @@ describe('formExportRowsOf', () => {
     expect(calculationOrder).toEqual([signed.ref, quiet.ref]);
   });
 
+  test('a push button the form does not export goes without its picture', () => {
+    const button = (name: string, number: number, noExport: boolean) =>
+      ({
+        ...textField(name, number, [], { noExport }),
+        kind: 'pushbutton',
+        hasImage: true,
+      }) as unknown as FormField;
+    const { fields } = formExportRowsOf(
+      snapshotOf([button('photo', 10, true), button('logo', 20, false)], []),
+      {},
+      [page],
+    );
+    expect(
+      fields.map((field) => [field.name, field.kind === 'pushbutton' && field.hasImage]),
+    ).toEqual([
+      ['photo', false],
+      ['logo', true],
+    ]);
+  });
+
   test('refuses a field or a page the document does not have', () => {
     const snapshot = snapshotOf([textField('a', 10, [])], []);
     expect(() =>
@@ -338,6 +360,24 @@ describe('a form bundle through the file', () => {
     // A file of this version comes back as it is, its purpose kept.
     const same = await FormTransfer.parse(FormTransfer.stringify(now));
     expect(same.fields[0]!.data.purpose).toBe('date-signed');
+  });
+
+  test('a file from before fields anyone fills in reads forAnyone: false, and one is kept', async () => {
+    const now = bundleOf(
+      [textField('ref', 10, [20], { forAnyone: true }), textField('plain', 11, [21])],
+      [10, 11].map((field, at) => widgetRow(20 + at, refOf(field))),
+    );
+    const older = JSON.parse(FormTransfer.stringify(now)) as {
+      fields: { data: Record<string, unknown> }[];
+    };
+    for (const row of older.fields) delete row.data.forAnyone;
+    const read = await FormTransfer.parse(JSON.stringify(older));
+    expect(read.fields.map(({ data }) => [data.name, data.forAnyone])).toEqual([
+      ['ref', false],
+      ['plain', false],
+    ]);
+    const same = await FormTransfer.parse(FormTransfer.stringify(now));
+    expect(same.fields.map(({ data }) => data.forAnyone)).toEqual([true, false]);
   });
 
   test("refuses another family's file, and one past a limit", async () => {

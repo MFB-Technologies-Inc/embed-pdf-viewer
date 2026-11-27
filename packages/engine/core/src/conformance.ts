@@ -240,12 +240,27 @@ export {
   type FieldGroupsConformanceOptions,
 } from './conformance/runFieldGroupsConformance';
 export {
+  ANYONE_FIELD_TOKENS,
+  ANYONE_FIELDS_PDF,
+  runAnyoneFieldsConformance,
+  type AnyoneFieldToken,
+  type AnyoneFieldsConformanceOptions,
+  type AnyoneFieldsSigning,
+} from './conformance/runAnyoneFieldsConformance';
+export {
   FIELD_PURPOSE_FORMAT_PDF,
   FIELD_PURPOSE_FORMAT_TOKENS,
   runFieldPurposeFormatConformance,
   type FieldPurposeFormatConformanceOptions,
   type FieldPurposeFormatToken,
 } from './conformance/runFieldPurposeFormatConformance';
+export {
+  PICTURE_BUTTON_PDF,
+  PICTURE_BUTTON_TOKENS,
+  runPictureButtonConformance,
+  type PictureButtonConformanceOptions,
+  type PictureButtonToken,
+} from './conformance/runPictureButtonConformance';
 export { runMixedScriptConformance } from './conformance/runMixedScriptConformance';
 export {
   runDocumentFontsConformance,

@@ -116,6 +116,8 @@ export function widgetPlacementOf(
     fontSize: row.fontSize,
     fontColor: row.fontColor,
     caption: field.kind === 'pushbutton' ? row.caption : null,
+    // The PDF's own default, `caption`, needs no write; an older bundle's row has none.
+    layout: field.kind === 'pushbutton' && row.layout !== 'caption' ? row.layout : null,
   };
   return {
     page: mapPage(row.page),
@@ -159,8 +161,10 @@ export function fieldDraftOf(
     noExport: field.noExport,
     ...(field.alternateName !== null ? { alternateName: field.alternateName } : {}),
     ...(field.mappingName !== null ? { mappingName: field.mappingName } : {}),
-    // The group the field was in; its writer decides whether it keeps it.
+    // The group the field was in, or that anyone fills it in; its writer
+    // decides whether it keeps either.
     ...(field.groupId !== null ? { groupId: field.groupId } : {}),
+    ...(field.forAnyone ? { forAnyone: true } : {}),
     ...(isFieldPurpose(field.purpose) ? { purpose: field.purpose } : {}),
     ...(Object.keys(actions).length > 0 ? { actions } : {}),
     widgets,

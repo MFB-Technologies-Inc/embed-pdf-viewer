@@ -54,8 +54,10 @@ import {
   annotationResourceBuffers,
   hasAnnotationResources,
   resolveAnnotationResources,
+  resolvePictureBytes,
   withFileFromResource,
   type AnnotationResources,
+  type ResourceBytes,
   type WireAnnotationResources,
 } from '../annotation/resources';
 import type { AttachmentFileBase, AttachmentRef } from '../dto/Attachment';
@@ -258,6 +260,15 @@ export type ChangeOp<C extends Coordinates = PageCoordinates, R = AnnotationReso
       readonly appearance: SignatureAppearance | null;
     }
   | {
+      /**
+       * A push button's image (a PNG, a JPEG or a one-page PDF), in every
+       * widget of the field; `null` takes it out.
+       */
+      readonly type: 'forms.setButtonImage';
+      readonly field: FormFieldRef;
+      readonly image: ResourceBytes | null;
+    }
+  | {
       readonly type: 'metadata.update';
       readonly patch: MetadataPatch;
       readonly expect?: MetadataPatch;
@@ -409,8 +420,8 @@ export interface FormImportOp {
   /** A design import's: whether each field gets the bundle's value. */
   readonly values?: boolean;
   /**
-   * Whom `'stamp'` makes the creator and filler, as `create` and `setValue`
-   * do, and whose user `'restore'` records as `importedBy`.
+   * Whom `'stamp'` makes the creator, as `create` does, and whose user
+   * `'restore'` records as `importedBy`.
    */
   readonly actor?: AnnotationActor;
   readonly limits: BundleLimits;
@@ -506,6 +517,7 @@ export type ChangeItem<C extends Coordinates = PageCoordinates> =
       meta: FormMutationMeta;
     }
   | ({ type: 'forms.setSignatureAppearance' } & FormFieldUpdateResult<C>)
+  | ({ type: 'forms.setButtonImage' } & FormFieldUpdateResult<C>)
   | ({ type: 'forms.addWidget' } & FormWidgetLinkResult<C>)
   | ({ type: 'forms.removeWidget' } & FormWidgetLinkResult<C>)
   | ({ type: 'forms.deleteWidget' } & FormWidgetDeleteResult<C>)
@@ -731,6 +743,13 @@ export async function resolveChangeResources(change: Change): Promise<{
         const mark = signatureAppearanceBytes(appearance);
         if (mark) buffers.push(mark.bytes.buffer as ArrayBuffer);
         ops.push({ ...op, appearance });
+        break;
+      }
+      case 'forms.setButtonImage': {
+        // Checked as a stamp's picture is: bytes that aren't PNG, JPEG or PDF are refused here.
+        const image = op.image === null ? null : await resolvePictureBytes(op.image, 'the image');
+        if (image) buffers.push(image);
+        ops.push({ ...op, image: image ? new Uint8Array(image) : null });
         break;
       }
       case 'pages.insert': {

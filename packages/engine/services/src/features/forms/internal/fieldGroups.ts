@@ -1,8 +1,9 @@
 import type { PdfRuntimeModule } from '@embedpdf/engine-runtime';
 
-import { readFieldGroup } from './fieldAttribution';
+import { PageIndexLookup } from './buttonImage';
+import { readFieldForAnyone, readFieldGroup } from './fieldAttribution';
 import { acquireFormModel } from './formModelCache';
-import { FAMILY_BY_CODE } from './readFormSnapshot';
+import { FAMILY_BY_CODE, fieldHoldsValue } from './readFormSnapshot';
 import type { DocumentSession } from '../../../document-session/DocumentSession';
 import { readUtf16String } from '../../../runtime/memory/strings';
 
@@ -35,6 +36,30 @@ export function groupLockFields(
   for (let index = 0; index < count; index++) {
     if (readFieldGroup(runtime, model, index) !== groupId) continue;
     if (FAMILY_BY_CODE[fn.EPDFForm_GetFieldFamily(model, index)] === 'signature') continue;
+    const name = readUtf16String(mem, (buf, cap) =>
+      fn.EPDFForm_GetFieldName(model, index, buf, cap),
+    );
+    if (name) names.push(name);
+  }
+  return names;
+}
+
+/**
+ * The fields anyone fills in that hold a value now, by full name: what a
+ * signer's signing locks besides their group when it names no lock. Read at
+ * the signing, so a value the sender put in counts, and a field still empty
+ * stays open for the next signer.
+ */
+export function filledAnyoneFields(runtime: PdfRuntimeModule, session: DocumentSession): string[] {
+  const { fn, mem } = runtime;
+  const model = acquireFormModel(runtime, session);
+  const docPtr = session.requireDocPtr();
+  const pages = new PageIndexLookup(runtime, docPtr);
+  const names: string[] = [];
+  const count = fn.EPDFForm_CountFields(model);
+  for (let index = 0; index < count; index++) {
+    if (!readFieldForAnyone(runtime, model, index)) continue;
+    if (!fieldHoldsValue(runtime, model, index, docPtr, pages)) continue;
     const name = readUtf16String(mem, (buf, cap) =>
       fn.EPDFForm_GetFieldName(model, index, buf, cap),
     );

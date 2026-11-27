@@ -17927,6 +17927,19 @@
                 "enum": ["check", "cross", "star", "circle", "square", "diamond"],
                 "nullable": true
               },
+              "layout": {
+                "type": "string",
+                "enum": [
+                  "caption",
+                  "image",
+                  "caption-below",
+                  "caption-above",
+                  "caption-right",
+                  "caption-left",
+                  "caption-over"
+                ],
+                "nullable": true
+              },
               "field": {},
               "fieldKind": {},
               "hasMark": {}
@@ -21696,6 +21709,9 @@
                 "type": "string",
                 "nullable": true
               },
+              "forAnyone": {
+                "type": "boolean"
+              },
               "purpose": {
                 "type": "string",
                 "nullable": true
@@ -21782,6 +21798,7 @@
               "valueEntry",
               "defaultValueEntry",
               "groupId",
+              "forAnyone",
               "purpose",
               "createdBy",
               "createdAt",
@@ -21839,6 +21856,9 @@
               },
               "groupId": {
                 "$ref": "#/components/schemas/FormField/anyOf/0/properties/groupId"
+              },
+              "forAnyone": {
+                "$ref": "#/components/schemas/FormField/anyOf/0/properties/forAnyone"
               },
               "purpose": {
                 "$ref": "#/components/schemas/FormField/anyOf/0/properties/purpose"
@@ -21923,6 +21943,7 @@
               "valueEntry",
               "defaultValueEntry",
               "groupId",
+              "forAnyone",
               "purpose",
               "createdBy",
               "createdAt",
@@ -21975,6 +21996,9 @@
               },
               "groupId": {
                 "$ref": "#/components/schemas/FormField/anyOf/0/properties/groupId"
+              },
+              "forAnyone": {
+                "$ref": "#/components/schemas/FormField/anyOf/0/properties/forAnyone"
               },
               "purpose": {
                 "$ref": "#/components/schemas/FormField/anyOf/0/properties/purpose"
@@ -22029,6 +22053,7 @@
               "valueEntry",
               "defaultValueEntry",
               "groupId",
+              "forAnyone",
               "purpose",
               "createdBy",
               "createdAt",
@@ -22082,6 +22107,9 @@
               },
               "groupId": {
                 "$ref": "#/components/schemas/FormField/anyOf/0/properties/groupId"
+              },
+              "forAnyone": {
+                "$ref": "#/components/schemas/FormField/anyOf/0/properties/forAnyone"
               },
               "purpose": {
                 "$ref": "#/components/schemas/FormField/anyOf/0/properties/purpose"
@@ -22161,6 +22189,7 @@
               "valueEntry",
               "defaultValueEntry",
               "groupId",
+              "forAnyone",
               "purpose",
               "createdBy",
               "createdAt",
@@ -22216,6 +22245,9 @@
               },
               "groupId": {
                 "$ref": "#/components/schemas/FormField/anyOf/0/properties/groupId"
+              },
+              "forAnyone": {
+                "$ref": "#/components/schemas/FormField/anyOf/0/properties/forAnyone"
               },
               "purpose": {
                 "$ref": "#/components/schemas/FormField/anyOf/0/properties/purpose"
@@ -22283,6 +22315,7 @@
               "valueEntry",
               "defaultValueEntry",
               "groupId",
+              "forAnyone",
               "purpose",
               "createdBy",
               "createdAt",
@@ -22339,6 +22372,9 @@
               "groupId": {
                 "$ref": "#/components/schemas/FormField/anyOf/0/properties/groupId"
               },
+              "forAnyone": {
+                "$ref": "#/components/schemas/FormField/anyOf/0/properties/forAnyone"
+              },
               "purpose": {
                 "$ref": "#/components/schemas/FormField/anyOf/0/properties/purpose"
               },
@@ -22366,6 +22402,9 @@
               "kind": {
                 "type": "string",
                 "enum": ["pushbutton"]
+              },
+              "hasImage": {
+                "type": "boolean"
               }
             },
             "required": [
@@ -22380,6 +22419,7 @@
               "valueEntry",
               "defaultValueEntry",
               "groupId",
+              "forAnyone",
               "purpose",
               "createdBy",
               "createdAt",
@@ -22388,7 +22428,8 @@
               "filledAt",
               "importedBy",
               "widgets",
-              "kind"
+              "kind",
+              "hasImage"
             ],
             "additionalProperties": false
           },
@@ -22430,6 +22471,9 @@
               },
               "groupId": {
                 "$ref": "#/components/schemas/FormField/anyOf/0/properties/groupId"
+              },
+              "forAnyone": {
+                "$ref": "#/components/schemas/FormField/anyOf/0/properties/forAnyone"
               },
               "purpose": {
                 "$ref": "#/components/schemas/FormField/anyOf/0/properties/purpose"
@@ -22472,6 +22516,7 @@
               "valueEntry",
               "defaultValueEntry",
               "groupId",
+              "forAnyone",
               "purpose",
               "createdBy",
               "createdAt",
@@ -22522,6 +22567,9 @@
               },
               "groupId": {
                 "$ref": "#/components/schemas/FormField/anyOf/0/properties/groupId"
+              },
+              "forAnyone": {
+                "$ref": "#/components/schemas/FormField/anyOf/0/properties/forAnyone"
               },
               "purpose": {
                 "$ref": "#/components/schemas/FormField/anyOf/0/properties/purpose"
@@ -22567,6 +22615,7 @@
               "valueEntry",
               "defaultValueEntry",
               "groupId",
+              "forAnyone",
               "purpose",
               "createdBy",
               "createdAt",
@@ -22797,6 +22846,9 @@
                 "maxLength": 256,
                 "nullable": true
               },
+              "forAnyone": {
+                "type": "boolean"
+              },
               "purpose": {
                 "type": "string",
                 "minLength": 1,
@@ -22869,6 +22921,9 @@
               "groupId": {
                 "$ref": "#/components/schemas/FormFieldDraft/anyOf/0/properties/groupId"
               },
+              "forAnyone": {
+                "$ref": "#/components/schemas/FormFieldDraft/anyOf/0/properties/forAnyone"
+              },
               "purpose": {
                 "$ref": "#/components/schemas/FormFieldDraft/anyOf/0/properties/purpose"
               },
@@ -22909,6 +22964,9 @@
               },
               "groupId": {
                 "$ref": "#/components/schemas/FormFieldDraft/anyOf/0/properties/groupId"
+              },
+              "forAnyone": {
+                "$ref": "#/components/schemas/FormFieldDraft/anyOf/0/properties/forAnyone"
               },
               "purpose": {
                 "$ref": "#/components/schemas/FormFieldDraft/anyOf/0/properties/purpose"
@@ -22956,6 +23014,9 @@
               },
               "groupId": {
                 "$ref": "#/components/schemas/FormFieldDraft/anyOf/0/properties/groupId"
+              },
+              "forAnyone": {
+                "$ref": "#/components/schemas/FormFieldDraft/anyOf/0/properties/forAnyone"
               },
               "purpose": {
                 "$ref": "#/components/schemas/FormFieldDraft/anyOf/0/properties/purpose"
@@ -23028,6 +23089,9 @@
               "groupId": {
                 "$ref": "#/components/schemas/FormFieldDraft/anyOf/0/properties/groupId"
               },
+              "forAnyone": {
+                "$ref": "#/components/schemas/FormFieldDraft/anyOf/0/properties/forAnyone"
+              },
               "purpose": {
                 "$ref": "#/components/schemas/FormFieldDraft/anyOf/0/properties/purpose"
               },
@@ -23084,6 +23148,9 @@
               "groupId": {
                 "$ref": "#/components/schemas/FormFieldDraft/anyOf/0/properties/groupId"
               },
+              "forAnyone": {
+                "$ref": "#/components/schemas/FormFieldDraft/anyOf/0/properties/forAnyone"
+              },
               "purpose": {
                 "$ref": "#/components/schemas/FormFieldDraft/anyOf/0/properties/purpose"
               },
@@ -23124,6 +23191,9 @@
               },
               "groupId": {
                 "$ref": "#/components/schemas/FormFieldDraft/anyOf/0/properties/groupId"
+              },
+              "forAnyone": {
+                "$ref": "#/components/schemas/FormFieldDraft/anyOf/0/properties/forAnyone"
               },
               "purpose": {
                 "$ref": "#/components/schemas/FormFieldDraft/anyOf/0/properties/purpose"
@@ -23173,6 +23243,9 @@
             "minLength": 1,
             "maxLength": 256,
             "nullable": true
+          },
+          "forAnyone": {
+            "type": "boolean"
           },
           "purpose": {
             "type": "string",
@@ -23375,6 +23448,19 @@
           "checkStyle": {
             "type": "string",
             "enum": ["check", "cross", "star", "circle", "square", "diamond"],
+            "nullable": true
+          },
+          "layout": {
+            "type": "string",
+            "enum": [
+              "caption",
+              "image",
+              "caption-below",
+              "caption-above",
+              "caption-right",
+              "caption-left",
+              "caption-over"
+            ],
             "nullable": true
           }
         },
@@ -23630,6 +23716,19 @@
             "enum": ["check", "cross", "star", "circle", "square", "diamond"],
             "nullable": true
           },
+          "layout": {
+            "type": "string",
+            "enum": [
+              "caption",
+              "image",
+              "caption-below",
+              "caption-above",
+              "caption-right",
+              "caption-left",
+              "caption-over"
+            ],
+            "nullable": true
+          },
           "field": {
             "allOf": [
               {
@@ -23702,6 +23801,7 @@
           "textAlign",
           "caption",
           "checkStyle",
+          "layout",
           "field",
           "fieldKind",
           "hasMark"
@@ -23919,6 +24019,19 @@
           "checkStyle": {
             "type": "string",
             "enum": ["check", "cross", "star", "circle", "square", "diamond"],
+            "nullable": true
+          },
+          "layout": {
+            "type": "string",
+            "enum": [
+              "caption",
+              "image",
+              "caption-below",
+              "caption-above",
+              "caption-right",
+              "caption-left",
+              "caption-over"
+            ],
             "nullable": true
           },
           "field": {},
@@ -25179,6 +25292,35 @@
             "properties": {
               "type": {
                 "type": "string",
+                "enum": ["forms.setButtonImage"]
+              },
+              "field": {
+                "$ref": "#/components/schemas/FormFieldRef"
+              },
+              "resources": {
+                "type": "object",
+                "properties": {
+                  "image": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/ChangeOp/anyOf/0/properties/resources/properties/appearance"
+                      }
+                    ],
+                    "nullable": true
+                  }
+                },
+                "required": ["image"],
+                "additionalProperties": false
+              }
+            },
+            "required": ["type", "field", "resources"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
                 "enum": ["metadata.update"]
               },
               "patch": {
@@ -25398,48 +25540,48 @@
                   "y": {
                     "type": "array",
                     "items": {
-                      "$ref": "#/components/schemas/ChangeOp/anyOf/27/properties/measure/properties/x/items"
+                      "$ref": "#/components/schemas/ChangeOp/anyOf/28/properties/measure/properties/x/items"
                     }
                   },
                   "distance": {
                     "type": "array",
                     "items": {
-                      "$ref": "#/components/schemas/ChangeOp/anyOf/27/properties/measure/properties/x/items"
+                      "$ref": "#/components/schemas/ChangeOp/anyOf/28/properties/measure/properties/x/items"
                     }
                   },
                   "area": {
                     "type": "array",
                     "items": {
-                      "$ref": "#/components/schemas/ChangeOp/anyOf/27/properties/measure/properties/x/items"
+                      "$ref": "#/components/schemas/ChangeOp/anyOf/28/properties/measure/properties/x/items"
                     }
                   },
                   "angle": {
                     "type": "array",
                     "items": {
-                      "$ref": "#/components/schemas/ChangeOp/anyOf/27/properties/measure/properties/x/items"
+                      "$ref": "#/components/schemas/ChangeOp/anyOf/28/properties/measure/properties/x/items"
                     }
                   },
                   "slope": {
                     "type": "array",
                     "items": {
-                      "$ref": "#/components/schemas/ChangeOp/anyOf/27/properties/measure/properties/x/items"
+                      "$ref": "#/components/schemas/ChangeOp/anyOf/28/properties/measure/properties/x/items"
                     }
                   },
                   "origin": {
                     "type": "object",
                     "properties": {
                       "x": {
-                        "$ref": "#/components/schemas/ChangeOp/anyOf/27/properties/measure/properties/x/items/properties/conversion"
+                        "$ref": "#/components/schemas/ChangeOp/anyOf/28/properties/measure/properties/x/items/properties/conversion"
                       },
                       "y": {
-                        "$ref": "#/components/schemas/ChangeOp/anyOf/27/properties/measure/properties/x/items/properties/conversion"
+                        "$ref": "#/components/schemas/ChangeOp/anyOf/28/properties/measure/properties/x/items/properties/conversion"
                       }
                     },
                     "required": ["x", "y"],
                     "additionalProperties": false
                   },
                   "cyx": {
-                    "$ref": "#/components/schemas/ChangeOp/anyOf/27/properties/measure/properties/x/items/properties/conversion"
+                    "$ref": "#/components/schemas/ChangeOp/anyOf/28/properties/measure/properties/x/items/properties/conversion"
                   }
                 },
                 "required": ["subtype", "x", "distance", "area"],
@@ -25673,6 +25815,7 @@
                   "forms.reorderWidgets",
                   "forms.updateWidget",
                   "forms.setSignatureAppearance",
+                  "forms.setButtonImage",
                   "metadata.update",
                   "metadata.updateCustom",
                   "outline.create",
@@ -26205,6 +26348,29 @@
             "properties": {
               "type": {
                 "type": "string",
+                "enum": ["forms.setButtonImage"]
+              },
+              "field": {
+                "$ref": "#/components/schemas/FormField"
+              },
+              "widgets": {
+                "$ref": "#/components/schemas/ChangeItem/anyOf/8/properties/widgets"
+              },
+              "calculationOrder": {
+                "$ref": "#/components/schemas/ChangeItem/anyOf/8/properties/calculationOrder"
+              },
+              "meta": {
+                "$ref": "#/components/schemas/FormMutationMeta"
+              }
+            },
+            "required": ["type", "field", "widgets", "meta"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
                 "enum": ["forms.addWidget"]
               },
               "field": {
@@ -26234,7 +26400,7 @@
                 "$ref": "#/components/schemas/FormField"
               },
               "widgets": {
-                "$ref": "#/components/schemas/ChangeItem/anyOf/17/properties/widgets"
+                "$ref": "#/components/schemas/ChangeItem/anyOf/18/properties/widgets"
               },
               "meta": {
                 "$ref": "#/components/schemas/FormMutationMeta"
@@ -26602,48 +26768,48 @@
                   "y": {
                     "type": "array",
                     "items": {
-                      "$ref": "#/components/schemas/ChangeItem/anyOf/32/properties/measure/properties/x/items"
+                      "$ref": "#/components/schemas/ChangeItem/anyOf/33/properties/measure/properties/x/items"
                     }
                   },
                   "distance": {
                     "type": "array",
                     "items": {
-                      "$ref": "#/components/schemas/ChangeItem/anyOf/32/properties/measure/properties/x/items"
+                      "$ref": "#/components/schemas/ChangeItem/anyOf/33/properties/measure/properties/x/items"
                     }
                   },
                   "area": {
                     "type": "array",
                     "items": {
-                      "$ref": "#/components/schemas/ChangeItem/anyOf/32/properties/measure/properties/x/items"
+                      "$ref": "#/components/schemas/ChangeItem/anyOf/33/properties/measure/properties/x/items"
                     }
                   },
                   "angle": {
                     "type": "array",
                     "items": {
-                      "$ref": "#/components/schemas/ChangeItem/anyOf/32/properties/measure/properties/x/items"
+                      "$ref": "#/components/schemas/ChangeItem/anyOf/33/properties/measure/properties/x/items"
                     }
                   },
                   "slope": {
                     "type": "array",
                     "items": {
-                      "$ref": "#/components/schemas/ChangeItem/anyOf/32/properties/measure/properties/x/items"
+                      "$ref": "#/components/schemas/ChangeItem/anyOf/33/properties/measure/properties/x/items"
                     }
                   },
                   "origin": {
                     "type": "object",
                     "properties": {
                       "x": {
-                        "$ref": "#/components/schemas/ChangeItem/anyOf/32/properties/measure/properties/x/items/properties/conversion"
+                        "$ref": "#/components/schemas/ChangeItem/anyOf/33/properties/measure/properties/x/items/properties/conversion"
                       },
                       "y": {
-                        "$ref": "#/components/schemas/ChangeItem/anyOf/32/properties/measure/properties/x/items/properties/conversion"
+                        "$ref": "#/components/schemas/ChangeItem/anyOf/33/properties/measure/properties/x/items/properties/conversion"
                       }
                     },
                     "required": ["x", "y"],
                     "additionalProperties": false
                   },
                   "cyx": {
-                    "$ref": "#/components/schemas/ChangeItem/anyOf/32/properties/measure/properties/x/items/properties/conversion"
+                    "$ref": "#/components/schemas/ChangeItem/anyOf/33/properties/measure/properties/x/items/properties/conversion"
                   }
                 },
                 "required": ["subtype", "x", "distance", "area"],
@@ -26740,7 +26906,7 @@
                 "enum": ["pages.insert"]
               },
               "insertedPages": {
-                "$ref": "#/components/schemas/ChangeItem/anyOf/35/properties/insertedPages"
+                "$ref": "#/components/schemas/ChangeItem/anyOf/36/properties/insertedPages"
               },
               "layout": {
                 "$ref": "#/components/schemas/PageListSnapshot"
@@ -26760,7 +26926,7 @@
                 "enum": ["pages.copy"]
               },
               "insertedPages": {
-                "$ref": "#/components/schemas/ChangeItem/anyOf/35/properties/insertedPages"
+                "$ref": "#/components/schemas/ChangeItem/anyOf/36/properties/insertedPages"
               },
               "layout": {
                 "$ref": "#/components/schemas/PageListSnapshot"

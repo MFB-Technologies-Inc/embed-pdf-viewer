@@ -23,7 +23,17 @@ import { openAnnotRaw } from '../../annotations/internal/identity/resolveAnnotIn
 import { setAnnotFlags } from '../../annotations/internal/write/annotationWritePrimitives';
 import type { FontRegistrar } from '../../fonts/FontRegistrar';
 import { visibleBoxReader } from '../../pages/PagesReader';
+import { pictureFormatOf } from '../../annotations/internal/pictureFormat';
+import { drawingFor } from '../../annotations/internal/write/stampDrawing';
 import { FormMutator } from '../FormMutator';
+import { setWidgetIcon } from './buttonImage';
+
+/**
+ * A push button's image a planned create gives one of its widgets: a
+ * drawing this document holds (a copy's), or a one-page PDF's bytes that
+ * become one (an import's).
+ */
+export type PlannedImage = { readonly drawing: number } | { readonly bytes: ArrayBuffer };
 
 /** One field a plan makes: a design import's, or a copy's. */
 export interface PlannedCreate {
@@ -33,6 +43,11 @@ export interface PlannedCreate {
   readonly flags: readonly WidgetFlags[];
   /** The value it gets; absent when none is written. */
   readonly value?: FormFieldValue;
+  /**
+   * A push button's image, each widget's in `draft.widgets` order (`null`
+   * for none): its value, so absent when none is written.
+   */
+  readonly images?: readonly (PlannedImage | null)[];
   /** The object numbers it takes: its own, then its widgets'. The next free ones when absent. */
   readonly objectNumbers?: readonly number[];
 }
@@ -49,8 +64,9 @@ export interface CreatedFields extends FormWidgetRows<PdfCoordinates> {
 /**
  * The fields of a plan, written through the form's own `createField` and
  * `setValue`: each with its widgets on their pages and their flags, in the
- * group `groupOf` gives it, with its value when it has one; then the
- * calculation order among them, appended to the form's in the order given.
+ * group `groupOf` gives it and for anyone when `forAnyoneOf` says so, with its
+ * value when it has one; then the calculation order among them, appended to
+ * the form's in the order given.
  * `made` runs after each field is written, for what only its caller knows
  * (who made and filled an imported field).
  */
@@ -64,6 +80,8 @@ export function createPlannedFields(
     readonly actor: AnnotationActor;
     /** The group a field goes in, given the one its source had (`null` for none). */
     readonly groupOf: (groupId: string | null) => string | null;
+    /** Whether a field is one anyone fills in, given whether its source was; left out, as it was. */
+    readonly forAnyoneOf?: (forAnyone: boolean) => boolean;
     readonly signal: AbortSignal;
     readonly made?: (objectNumber: number, at: number) => void;
   },
@@ -73,11 +91,18 @@ export function createPlannedFields(
   const boxOf = visibleBoxReader(runtime, session);
   const forms = new FormMutator(runtime, session, fonts);
   const created = creates.map((planned, at) => {
-    const { groupId: sourceGroup, ...draft } = pdfFormFieldDraftOf(planned.draft, boxOf);
+    const {
+      groupId: sourceGroup,
+      forAnyone: sourceForAnyone,
+      ...draft
+    } = pdfFormFieldDraftOf(planned.draft, boxOf);
     const groupId = write.groupOf(sourceGroup ?? null);
+    const forAnyone = write.forAnyoneOf
+      ? write.forAnyoneOf(sourceForAnyone === true)
+      : sourceForAnyone === true;
     const [objectNumber, ...widgetObjectNumbers] = planned.objectNumbers ?? [];
     const { field } = forms.createField(
-      { ...draft, groupId },
+      { ...draft, groupId, ...(forAnyone ? { forAnyone } : {}) },
       write.signal,
       write.actor,
       objectNumber === undefined ? {} : { objectNumber, widgetObjectNumbers },
@@ -85,8 +110,14 @@ export function createPlannedFields(
     field.widgets.forEach((widget, index) =>
       writeFlags(runtime, session, widget, planned.flags[index]!),
     );
+    planned.images?.forEach((image, index) => {
+      const widget = field.widgets[index];
+      if (image && widget?.ref) {
+        setWidgetIcon(runtime, session, widget.ref, drawingOf(runtime, session, image));
+      }
+    });
     session.invalidateDerived();
-    if (planned.value) forms.setValue(field.ref, planned.value, write.signal, write.actor);
+    if (planned.value) forms.setValue(field.ref, planned.value, write.signal);
     const made = objectNumberOf(field.ref);
     write.made?.(made, at);
     return made;
@@ -117,6 +148,18 @@ export function createPlannedFields(
     },
     fonts,
   );
+}
+
+/** The drawing a planned image is: the one named, or the one its bytes make or find. */
+function drawingOf(
+  runtime: PdfRuntimeModule,
+  session: DocumentSession,
+  image: PlannedImage,
+): number {
+  if ('drawing' in image) return image.drawing;
+  const { fn, mem } = runtime;
+  const format = pictureFormatOf(fn, mem, image.bytes, "a push button's image", false, 'image');
+  return drawingFor(fn, mem, session.requireDocPtr(), session.drawingIndex(), image.bytes, format);
 }
 
 /** A new widget's flags, as its source has them: a create writes none. */

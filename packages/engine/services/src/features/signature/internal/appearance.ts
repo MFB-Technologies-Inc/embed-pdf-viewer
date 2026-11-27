@@ -1,16 +1,15 @@
 import {
   EngineError,
   EngineErrorCode,
-  sniffBinaryMetadata,
-  type BinaryMetadata,
   type FormWidget,
   type SignatureAppearanceBytes,
 } from '@embedpdf/engine-core/runtime';
 import { NULL_PTR, type PdfRuntimeModule, type Ptr } from '@embedpdf/engine-runtime';
 
+import type { DrawingIndex } from '../../../document-session/DrawingIndex';
 import { CloseStack } from '../../../document-session/lifecycle/PdfDocumentOpener';
-import { withAppearanceDocument } from '../../annotations/internal/appearanceDocument';
-import { readAppearanceFit, writeAppearanceFit } from '../../annotations/internal/appearanceFit';
+import { exactBuffer, pictureFormatOf } from '../../annotations/internal/pictureFormat';
+import { drawingFor } from '../../annotations/internal/write/stampDrawing';
 
 /** `EPDF_STAMP_FIT_CONTAIN`: uniform scale, letterboxed and centred in the rect. */
 const FIT_CONTAIN = 0;
@@ -19,77 +18,55 @@ const FIT_CONTAIN = 0;
  * Draw a mark into a widget annotation's normal appearance: what a
  * signature shows, whether the field is being signed (`SignatureMutator`) or
  * only filled visually (`FormMutator`). The mark is a PNG, a JPEG or a
- * one-page PDF, and a PDF only when its caller passed it as `{ pdf }`. An
- * image becomes a page of its own size first, as a stamp's does
- * (`withAppearanceDocument`), so every mark is drawn the same way.
+ * one-page PDF, and a PDF only when its caller passed it as `{ pdf }`.
  *
- * Two fork calls, the same pair the stamp path makes: `SetAppearanceFromPage`
- * clones the page into the document as a wrapped Form XObject (page content
- * and resources in a child form, the outer stream a placement matrix), then
- * `UpdateAppearanceToRect` writes that placement — the page fitted uniformly
- * into the widget's rect. Without the second call the page sits in its own
- * box and the viewer's BBox→/Rect mapping stretches it to the rect's aspect.
+ * The mark is a drawing, as a stamp's picture is (`drawingFor`): the
+ * document holds it once however many fields, stamps and push buttons show
+ * it, and `drawings` finds the one it already holds. The widget places it
+ * (`EPDFAnnot_SetDrawing`) in a wrapper of its own, fitted uniformly into
+ * its box and turned as the widget turns (`/Rect`, `/MK /R`); neither is
+ * written. `docPtr` is the document `drawings` indexes.
  *
- * `recordFit`, for a mark drawn in without signing, records the fit as a
- * stamp records its own: the widget then reads as having a mark in it
- * (`hasMark`), which its style never draws over. A signature's mark needs
- * no record (the field's value says it's signed), and a signing changes no
- * other key of its widget.
+ * The drawing is all a mark writes: the widget reads as having one
+ * (`hasMark`) because its appearance is our wrapper (`EPDFAnnot_GetDrawing`),
+ * and nothing of ours goes into the widget's dictionary. A signature made
+ * before seals that dictionary, and Acrobat reads a change to it as the
+ * document altered; a new appearance it doesn't count as a change at all.
  */
 export function bakeWidgetAppearance(
   runtime: PdfRuntimeModule,
   docPtr: Ptr,
+  drawings: DrawingIndex,
   widget: FormWidget,
   mark: SignatureAppearanceBytes,
-  { recordFit }: { recordFit: boolean },
 ): void {
   const { mem, fn } = runtime;
-  const { bytes } = mark;
-  const format = markFormat(mark);
+  const bytes = exactBuffer(mark.bytes);
+  const format = pictureFormatOf(fn, mem, bytes, 'a signature appearance', mark.declaredPdf);
   withWidgetAnnotation(runtime, docPtr, widget, (annotPtr) => {
-    const dataPtr = mem.alloc(bytes.byteLength);
-    try {
-      mem.writeBytes(dataPtr, bytes);
-      withAppearanceDocument(fn, mem, dataPtr, bytes.byteLength, format, (markPtr) => {
-        const pages = fn.FPDF_GetPageCount(markPtr);
-        if (pages !== 1) {
-          throw new EngineError(
-            EngineErrorCode.InvalidArg,
-            `the appearance PDF has ${pages} pages; a signature appearance takes a one-page PDF`,
-          );
-        }
-        if (!fn.EPDFAnnot_SetAppearanceFromPage(annotPtr, markPtr, 0)) {
-          throw new EngineError(
-            EngineErrorCode.InvalidArg,
-            'the appearance page could not be drawn into the widget',
-          );
-        }
-      });
-    } finally {
-      mem.free(dataPtr);
-    }
-    if (!fn.EPDFAnnot_UpdateAppearanceToRect(annotPtr, FIT_CONTAIN)) {
+    const drawing = drawingFor(fn, mem, docPtr, drawings, bytes, format);
+    if (!fn.EPDFAnnot_SetDrawing(annotPtr, drawing, FIT_CONTAIN)) {
       throw new EngineError(
-        EngineErrorCode.Unknown,
-        'the appearance page could not be fitted into the widget',
+        EngineErrorCode.InvalidArg,
+        'the appearance page could not be drawn into the widget',
       );
     }
-    if (recordFit) writeAppearanceFit(fn, mem, annotPtr, 'contain');
   });
 }
 
 /**
- * Take a mark that was drawn in without signing out of a widget: its fit
- * record goes, so the widget reads as having no mark (`hasMark`), and the
- * widget draws its field's box again, in its style, in place of the mark.
- * A widget that records no mark is left as it is: what it shows isn't a
- * mark of ours to take out.
+ * Take a mark that was drawn in without signing out of a widget: the widget
+ * draws its field's box again, in its style, in place of the mark, and then
+ * reads as having no mark (`hasMark`). A widget whose appearance isn't our
+ * wrapper is left as it is: what it shows isn't a mark of ours to take out.
+ * The `/EMBD_Metadata/AppearanceFit` an older version wrote beside a mark is
+ * left too: nothing reads it, and taking it out would change the widget's
+ * dictionary.
  */
 export function clearWidgetMark(runtime: PdfRuntimeModule, docPtr: Ptr, widget: FormWidget): void {
-  const { mem, fn } = runtime;
+  const { fn } = runtime;
   withWidgetAnnotation(runtime, docPtr, widget, (annotPtr) => {
-    if (readAppearanceFit(fn, mem, annotPtr) === null) return;
-    writeAppearanceFit(fn, mem, annotPtr, null);
+    if (fn.EPDFAnnot_GetDrawing(annotPtr) === 0) return;
     if (!fn.EPDFAnnot_GenerateFormFieldAP(annotPtr)) {
       throw new EngineError(
         EngineErrorCode.Unknown,
@@ -97,27 +74,6 @@ export function clearWidgetMark(runtime: PdfRuntimeModule, docPtr: Ptr, widget: 
       );
     }
   });
-}
-
-/**
- * What a mark's bytes are. Bytes passed as `{ pdf }` are a PDF, which opens
- * as one or is refused as one that doesn't. Bytes passed as themselves are
- * what their first bytes say, and none of the three is refused.
- */
-function markFormat({ bytes, declaredPdf }: SignatureAppearanceBytes): BinaryMetadata {
-  if (declaredPdf) return { mimeType: 'application/pdf' };
-  const exact =
-    bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength
-      ? (bytes.buffer as ArrayBuffer)
-      : (bytes.slice().buffer as ArrayBuffer);
-  const format = sniffBinaryMetadata(exact);
-  if (!format) {
-    throw new EngineError(
-      EngineErrorCode.InvalidArg,
-      'the appearance resource must be PNG, JPEG or one-page PDF bytes',
-    );
-  }
-  return format;
 }
 
 /** Run `body` with a signature widget's annotation loaded from its page. */

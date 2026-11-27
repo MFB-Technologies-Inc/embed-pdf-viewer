@@ -23,8 +23,8 @@ import {
 import type { PdfRuntimeModule } from '@embedpdf/engine-runtime';
 
 import { FormMutator } from './FormMutator';
-import { createPlannedFields } from './internal/createPlannedFields';
-import { restoreFieldCreation, restoreFieldFill } from './internal/fieldAttribution';
+import { createPlannedFields, type PlannedImage } from './internal/createPlannedFields';
+import { restoreFieldCreation } from './internal/fieldAttribution';
 import { acquireFormModel } from './internal/formModelCache';
 import { readFieldAt } from './internal/readFormSnapshot';
 import { readFieldLocks } from './internal/signatureLocks';
@@ -54,6 +54,12 @@ export interface FormImportRequest {
    * for none): checked by the caller, which refuses one it may not set.
    */
   readonly groupOf: (groupId: string | null) => string | null;
+  /**
+   * Whether a field is one anyone fills in, given whether it was in the
+   * bundle: checked by the caller, which refuses one it may not mark. Left
+   * out, the field is as it was.
+   */
+  readonly forAnyoneOf?: (forAnyone: boolean) => boolean;
 }
 
 /** What a values import writes, decided before the first write. */
@@ -106,25 +112,34 @@ export class FormImporter {
     const docPtr = this.session.requireDocPtr();
     const importedBy = request.actor.userId ?? null;
     const restores = request.attribution === 'restore';
+    // A push button's image is its value: with values, each widget that
+    // names one in the bundle places it.
+    const creates = plan.creates.map((planned) => {
+      if (!request.values || planned.draft.kind !== 'pushbutton') return planned;
+      const images = planned.widgets.map((row): PlannedImage | null => {
+        const id = bundle.widgets[row]?.resources.image;
+        const bytes = id === undefined ? undefined : bundle.resources[id as never];
+        return bytes ? { bytes } : null;
+      });
+      return images.some(Boolean) ? { ...planned, images } : planned;
+    });
     const made = createPlannedFields(
       this.runtime,
       this.session,
       this.fonts,
-      plan.creates,
+      creates,
       plan.calculationOrder,
       {
         actor: request.actor,
         groupOf: request.groupOf,
+        ...(request.forAnyoneOf ? { forAnyoneOf: request.forAnyoneOf } : {}),
         signal,
-        // Who made and filled each field, as the bundle has it.
+        // Who made each field, as the bundle has it. Who filled it in
+        // travels nowhere: a fill records nobody.
         made: (objectNumber, at) => {
           if (!restores) return;
-          const planned = plan.creates[at]!;
-          const source = bundle.fields[planned.field]!.data;
+          const source = bundle.fields[plan.creates[at]!.field]!.data;
           restoreFieldCreation(this.runtime, docPtr, objectNumber, source, importedBy);
-          if (planned.value) {
-            restoreFieldFill(this.runtime, docPtr, objectNumber, source, importedBy);
-          }
         },
       },
     );
@@ -178,36 +193,17 @@ export class FormImporter {
     };
   }
 
-  /**
-   * One write of a values import: the value, then, for `'restore'`, who
-   * filled it in as the bundle has it. `'stamp'` leaves the session as the
-   * filler, as `setValue` stamps it.
-   */
+  /** One write of a values import: the value, as `setValue` writes it. */
   writeValue(
     write: PlannedValueWrite<FormField<PdfCoordinates>>,
-    bundle: WireFormBundle,
-    attribution: 'restore' | 'stamp',
-    actor: AnnotationActor,
     signal: AbortSignal,
   ): FormField<PdfCoordinates> {
     new FormMutator(this.runtime, this.session, this.fonts).setValue(
       write.target.ref,
       write.value,
       signal,
-      actor,
     );
-    const objectNumber = objectNumberOf(write.target.ref);
-    if (attribution === 'restore') {
-      restoreFieldFill(
-        this.runtime,
-        this.session.requireDocPtr(),
-        objectNumber,
-        bundle.fields[write.field]!.data,
-        actor.userId ?? null,
-      );
-      this.session.invalidateDerived();
-    }
-    return this.readField(objectNumber);
+    return this.readField(objectNumberOf(write.target.ref));
   }
 
   /** The full name of every field of the form. */

@@ -9,6 +9,8 @@ import { PageBoxSchema, PdfRotationSchema } from '../geometry/schemas';
 import type { FormWidget } from '../identity/FormFieldRef';
 import { isDatePattern, isTimePattern } from './datePattern';
 import type { FormFieldDraft, FormFieldOptionInput, WidgetPlacement } from './draft';
+import { withForAnyone } from './anyone';
+import { withButtonImage } from './buttonImage';
 import { withPurposeAndFormat, type FormFieldFormat, type FormFieldFormatWritable } from './format';
 import type { FormFieldPatch } from './patch';
 import type { FormField, FormFieldOption, FormFieldWidget, ToggleFieldWidget } from './field';
@@ -130,6 +132,7 @@ const FormFieldBaseShape = {
   defaultValueEntry: FormValueEntrySchema,
   actions: PdfFieldActionsSchema.optional(),
   groupId: z.string().nullable(),
+  forAnyone: z.boolean(),
   purpose: z.string().nullable(),
   createdBy: z.string().nullable(),
   createdAt: IsoDateTimeSchema.nullable(),
@@ -193,6 +196,7 @@ export const FormFieldDTOSchema: z.ZodType<FormField> = withCatchAll(
     z.object({
       ...FormFieldBaseShape,
       kind: z.literal('pushbutton'),
+      hasImage: z.boolean(),
     }),
     z.object({
       ...FormFieldBaseShape,
@@ -206,7 +210,7 @@ export const FormFieldDTOSchema: z.ZodType<FormField> = withCatchAll(
   ]) as unknown as z.ZodType<FormField>,
   'unknown',
   (field) => ({ ...field, rawValue: typeof field.rawValue === 'string' ? field.rawValue : '' }),
-  withPurposeAndFormat,
+  (field) => withForAnyone(withButtonImage(withPurposeAndFormat(field))),
 ).describe(
   'A form field, by its `family`. A newer server can add families: read one your client ' +
     "doesn't know as `unknown`, keeping the fields every field has, with `rawValue` an empty " +
@@ -269,6 +273,7 @@ const FormFieldDraftBaseShape = {
   alternateName: z.string().optional(),
   mappingName: z.string().optional(),
   groupId: z.string().min(1).max(256).nullable().optional(),
+  forAnyone: z.boolean().optional(),
   purpose: FieldPurposeSchema.nullable().optional(),
   actions: FieldActionsPatchSchema.optional(),
   widgets: z.array(WidgetPlacementSchema).optional(),
@@ -328,6 +333,7 @@ const FormFieldPatchBaseShape = {
   alternateName: z.string().nullable().optional(),
   mappingName: z.string().nullable().optional(),
   groupId: z.string().min(1).max(256).nullable().optional(),
+  forAnyone: z.boolean().optional(),
   purpose: FieldPurposeSchema.nullable().optional(),
   actions: FieldActionsPatchSchema.optional(),
 };

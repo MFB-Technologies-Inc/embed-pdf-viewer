@@ -11,9 +11,9 @@ import { type PdfFunctions, type PdfRuntimeMemory, type Ptr } from '@embedpdf/en
 import { withScratchN } from '../../../../runtime/memory/scratch';
 import { readUtf16String } from '../../../../runtime/memory/strings';
 import { readI32 } from '../../../../runtime/memory/structs';
-import { readAppearanceFit } from '../appearanceFit';
 import { widgetBorderStyleFromCode } from '../shapeBorderStyle';
 import { textAlignmentFromCode } from '../textAlignment';
+import { widgetLayoutFromCode } from '../widgetLayout';
 import type { AnnotationReadContext } from './annotationReadContext';
 import {
   readBorderStyle,
@@ -101,12 +101,16 @@ export function readWidget(
       fn.EPDFAnnot_GetMKText(annotPtr, MK_CAPTION, buf, capacity),
     ),
     checkStyle: null,
+    // `/MK /TP` as stored; the field join keeps it for a push button's widget only.
+    layout: widgetLayoutFromCode(fn.EPDFAnnot_GetMKTextPosition(annotPtr)),
     // Joined by the caller (joinWidgetFieldNumbers): the /Parent target is
     // a field dictionary, which annotation-plane primitives cannot follow.
     field: null,
     fieldKind: 'unknown',
-    // A mark drawn in records how it fits; the join adds a signature, and
-    // keeps it only for a signature field's widget.
-    hasMark: readAppearanceFit(fn, mem, annotPtr) !== null,
+    // A mark is our wrapper placing a drawing, as the fork reads it from the
+    // appearance's own content, so it needs no record of ours in the widget
+    // (one would change what an earlier signature sealed). The join adds a
+    // signature, and keeps it only for a signature field's widget.
+    hasMark: fn.EPDFAnnot_GetDrawing(annotPtr) !== 0,
   };
 }

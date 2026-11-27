@@ -1150,6 +1150,144 @@ describe('evaluateStep: appearance regeneration', () => {
   });
 });
 
+describe('evaluateStep: a new appearance on a signature field that is not signed', () => {
+  /** {@link structure} with a second signature field, `open` (31), that nobody signed. */
+  const withOpenField = (first: Partial<Signature> = {}, widgets: number[] = [31]) =>
+    structure({
+      fields: [
+        ...structure().fields,
+        { objectNumber: 31, name: 'open', kind: 'signature', widgets },
+      ],
+      signatures: [
+        signature(0, 30, first),
+        signature(1, 31, {
+          signed: false,
+          fieldName: 'open',
+          revisionIndex: null,
+          coverage: null,
+          byteRange: null,
+        }),
+      ],
+    });
+  const approval = withOpenField();
+  const listed = [edge(10, 'Fields/[2]'), edge(3, 'Annots/[2]')];
+  /** Object `n` written with `/AP` pointing at `ap` instead of `32`, and `extra` keys. */
+  const redrawn = (n: number, name: string, uses: ObjectReferrer[], extra = '') =>
+    change(
+      n,
+      {
+        old: `<</AP <</N 32 0 R>>/FT /Sig/T (${name})>>`,
+        new: `<</AP <</N 40 0 R>>${extra}/FT /Sig/T (${name})>>`,
+      },
+      { old: uses, new: uses },
+    );
+  /** The wrapper EmbedPDF draws a picture with: a form, the form it places, and the image. */
+  const wrapper = (owner: number) => [
+    change(
+      40,
+      { old: null, new: 'stream(41,aa)<</Resources <</XObject <</EPDFWRAP 41 0 R>>>>>>' },
+      { new: [edge(owner, 'AP/N')] },
+    ),
+    change(
+      41,
+      { old: null, new: 'stream(58,bb)<</Resources <</XObject <</FXX1 42 0 R>>>>>>' },
+      { new: [edge(40, 'Resources/XObject/EPDFWRAP')] },
+    ),
+    change(
+      42,
+      { old: null, new: 'stream(26,cc)<</Subtype /Image/Width 30/Height 10>>' },
+      { new: [edge(41, 'Resources/XObject/FXX1')] },
+    ),
+  ];
+  const judge = (changes: ObjectChange[], at: RevisionStructure = approval) =>
+    evaluateStep({ older: 1, newer: 2, changes, before: at, after: at });
+  const refused = (step: ReturnType<typeof evaluateStep>) =>
+    step.findings.filter((f) => f.verdict === 'forbidden');
+
+  test('after an approval signature it is permitted: the field changes /AP alone, and all under it is new (corpus v4/93, 94, 97)', () => {
+    const step = judge([redrawn(31, 'open', listed), ...wrapper(31)]);
+    expect(step.verdict).toBe('permitted');
+    expect(refused(step)).toEqual([]);
+    expect(step.findings.find((f) => f.objectNumber === 31)?.rule).toBe('signature-appearance');
+  });
+
+  test('a widget of its own changes /AP, and the field nothing (corpus v4/99)', () => {
+    const separate = withOpenField({}, [33]);
+    const widget = redrawn(33, 'open', [edge(31, 'Kids/[0]'), edge(3, 'Annots/[2]')]);
+    const step = judge([widget, ...wrapper(33)], separate);
+    expect(step.verdict).toBe('permitted');
+    expect(step.findings.find((f) => f.objectNumber === 33)?.rule).toBe('signature-appearance');
+  });
+
+  test('the old appearance may go with it; an object that was there before may not join', () => {
+    const freed = change(
+      32,
+      { old: 'stream(9,dd)<</Subtype /Form>>', new: null },
+      { old: [edge(31, 'AP/N')] },
+    );
+    expect(judge([redrawn(31, 'open', listed), ...wrapper(31), freed]).verdict).toBe('permitted');
+    // A font that was in the file, changed and drawn by the new appearance: not part of it.
+    const font = change(
+      50,
+      { old: '<</BaseFont /Helvetica/Type /Font>>', new: '<</BaseFont /Courier/Type /Font>>' },
+      { old: [edge(10, 'DR/Font/Helv')], new: [edge(40, 'Resources/Font/F1')] },
+    );
+    const step = judge([redrawn(31, 'open', listed), ...wrapper(31), font]);
+    expect(step.verdict).toBe('forbidden');
+    expect(refused(step).map((f) => [f.objectNumber, f.rule])).toContainEqual([50, 'unexplained']);
+  });
+
+  test('under a certification that allows form filling it is permitted too (corpus v4/101, 102)', () => {
+    const certified = withOpenField({ docMdp: 2, catalogCertification: true });
+    const step = judge([redrawn(31, 'open', listed), ...wrapper(31)], certified);
+    expect(step.levelInForce).toBe('fill');
+    expect(step.verdict).toBe('permitted');
+    // After one that allows no changes, nothing is permitted.
+    const none = withOpenField({ docMdp: 1, catalogCertification: true });
+    expect(judge([redrawn(31, 'open', listed), ...wrapper(31)], none).verdict).toBe('forbidden');
+  });
+
+  test("the signed field's own appearance stays forbidden, though Acrobat accepts it (corpus v4/95)", () => {
+    const step = judge([redrawn(30, 'sig0', [edge(10, 'Fields/[1]')]), ...wrapper(30)]);
+    expect(step.verdict).toBe('forbidden');
+    expect(step.findings.some((f) => f.rule === 'signature-appearance')).toBe(false);
+  });
+
+  test('a key beyond /AP is named as the cause (Acrobat: "Form Fields with Property Changes")', () => {
+    const step = judge([
+      redrawn(31, 'open', listed, '/EMBD_Metadata <</AppearanceFit (contain)>>'),
+      ...wrapper(31),
+    ]);
+    expect(step.verdict).toBe('forbidden');
+    const [cause] = refused(step).filter((f) => f.objectNumber === 31);
+    expect(cause.rule).toBe('signature-appearance');
+    expect(cause.detail).toMatch(/keys changed: EMBD_Metadata/);
+    // One cause for the field: its references are explained by it.
+    expect(refused(step).filter((f) => f.objectNumber === 31)).toHaveLength(1);
+  });
+
+  test("a field signed in the same step is the signing rule's, and a lock condemns before it", () => {
+    const signedNow = structure({
+      fields: approval.fields,
+      signatures: [signature(0, 30), signature(1, 31, { fieldName: 'open', revisionIndex: 2 })],
+    });
+    const step = evaluateStep({
+      older: 1,
+      newer: 2,
+      changes: [redrawn(31, 'open', listed), ...wrapper(31)],
+      before: approval,
+      after: signedNow,
+    });
+    expect(step.findings.some((f) => f.rule === 'signature-appearance')).toBe(false);
+    const locked = withOpenField({
+      fieldMdp: { action: 'include', fields: ['open'] },
+    } as Partial<Signature>);
+    const lockedStep = judge([redrawn(31, 'open', listed), ...wrapper(31)], locked);
+    expect(lockedStep.verdict).toBe('forbidden');
+    expect(refused(lockedStep).find((f) => f.objectNumber === 31)?.rule).toBe('field-lock');
+  });
+});
+
 describe('evaluateStep: a signature field added by Acrobat', () => {
   /**
    * What Acrobat writes when it adds a document timestamp to a page whose /Annots was an array
@@ -1578,5 +1716,203 @@ describe('restrictionsFor: a document timestamp after a certification that allow
 
   test('a certification that allows form filling still binds a later timestamp', () => {
     expect(restrictionsFor(after(2, timestamp), timestamp).level).toBe('fill');
+  });
+});
+
+describe("evaluateStep: a push button's image is filling in", () => {
+  // A push button 70 with its widget 71 apart, and one whose field and widget
+  // are one object, 80. The signature field 30 is signed.
+  const buttons = (extra: Partial<Signature> = {}) =>
+    structure({
+      fields: [
+        { objectNumber: 20, name: 'name', kind: 'text', widgets: [21] },
+        { objectNumber: 30, name: 'sig0', kind: 'signature', widgets: [30] },
+        { objectNumber: 70, name: 'initials', kind: 'pushbutton', widgets: [71] },
+        { objectNumber: 80, name: 'image_field', kind: 'pushbutton', widgets: [80] },
+        { objectNumber: 85, name: 'agree', kind: 'checkbox', widgets: [85] },
+      ],
+      signatures: [signature(0, 30, extra)],
+    });
+  const approval = buttons();
+  const fillOnly = buttons({ docMdp: 2, catalogCertification: true });
+
+  /** The drawing a new image is, its appearance drawing it, and the image it holds. */
+  const drawn = (owner: number, appearance: number, drawing: number) => [
+    change(
+      appearance,
+      {
+        old: null,
+        new: `stream(20,cc)<</Resources <</XObject <</FRM ${drawing} 0 R>>>>/Subtype /Form>>`,
+      },
+      { new: [edge(owner, 'AP/N')] },
+    ),
+    change(
+      drawing,
+      {
+        old: null,
+        new: `stream(30,dd)<</Resources <</XObject <</Im1 ${drawing + 1} 0 R>>>>/Subtype /Form>>`,
+      },
+      { new: [edge(owner, 'MK/I'), edge(appearance, 'Resources/XObject/FRM')] },
+    ),
+    change(
+      drawing + 1,
+      { old: null, new: 'stream(100,ee)<</Subtype /Image>>' },
+      { new: [edge(drawing, 'Resources/XObject/Im1')] },
+    ),
+  ];
+  const trailer = change(
+    0,
+    { old: '<</Root 1 0 R/Size 72>>', new: '<</Prev 1234/Root 1 0 R/Size 95>>' },
+    {},
+  );
+
+  /** Widget 71's `/MK` and `/AP /N` before and after, its old appearance 72 replaced by 90. */
+  const widget = (mkBefore: string, mkAfter: string) => [
+    change(
+      71,
+      {
+        old: `<</AP <</N 72 0 R>>/MK ${mkBefore}/Parent 70 0 R/Subtype /Widget>>`,
+        new: `<</AP <</N 90 0 R>>/MK ${mkAfter}/Parent 70 0 R/Subtype /Widget>>`,
+      },
+      {
+        old: [edge(3, 'Annots/[3]'), edge(70, 'Kids/[0]')],
+        new: [edge(3, 'Annots/[3]'), edge(70, 'Kids/[0]')],
+      },
+    ),
+    change(72, { old: 'stream(10,aa)<</Subtype /Form>>', new: null }, { old: [edge(71, 'AP/N')] }),
+  ];
+  const imageInWidget = [
+    ...widget('<</CA (Initials)/TP 1>>', '<</CA (Initials)/I 91 0 R/TP 1>>'),
+    ...drawn(71, 90, 91),
+    trailer,
+  ];
+
+  const judge = (changes: ObjectChange[], before: RevisionStructure) =>
+    evaluateStep({ older: 1, newer: 2, changes, before, after: before });
+  const notPermitted = (step: ReturnType<typeof evaluateStep>) =>
+    step.findings
+      .filter((f) => f.verdict !== 'permitted')
+      .map((f) => `${f.rule} ${f.objectNumber}${f.edge ? ` ${f.edge}` : ''}`);
+
+  test('an image put in a widget is permitted after an approval signature and a certification for form filling', () => {
+    for (const before of [approval, fillOnly]) {
+      const step = judge(imageInWidget, before);
+      expect(notPermitted(step)).toEqual([]);
+      // Nothing unexplained: the drawing (91) and the image it holds (92) are
+      // claimed through /MK /I and the appearance that draws them.
+      expect(step.verdict).toBe('permitted');
+    }
+    expect(judge(imageInWidget, fillOnly).findings.find((f) => f.objectNumber === 71)?.detail).toBe(
+      'widget of "initials" image',
+    );
+  });
+
+  test('an image taken out is permitted as well', () => {
+    const out = [
+      ...widget('<</CA (Initials)/I 91 0 R/TP 1>>', '<</CA (Initials)/TP 1>>'),
+      change(
+        90,
+        { old: null, new: 'stream(20,cc)<</Subtype /Form>>' },
+        { new: [edge(71, 'AP/N')] },
+      ),
+      change(
+        91,
+        { old: 'stream(30,dd)<</Subtype /Form>>', new: null },
+        { old: [edge(71, 'MK/I')] },
+      ),
+      trailer,
+    ];
+    expect(judge(out, fillOnly).verdict).toBe('permitted');
+  });
+
+  test('a field and widget in one object: its /MK gains the image and stays permitted at P=2', () => {
+    const merged = [
+      change(
+        80,
+        {
+          old: '<</AP <</N 81 0 R>>/FT /Btn/Ff 65536/MK <</TP 1>>/Subtype /Widget/T (image_field)>>',
+          new: '<</AP <</N 90 0 R>>/FT /Btn/Ff 65536/MK <</I 91 0 R/TP 1>>/Subtype /Widget/T (image_field)>>',
+        },
+        {
+          old: [edge(10, 'Fields/[3]'), edge(3, 'Annots/[4]')],
+          new: [edge(10, 'Fields/[3]'), edge(3, 'Annots/[4]')],
+        },
+      ),
+      change(
+        81,
+        { old: 'stream(10,aa)<</Subtype /Form>>', new: null },
+        { old: [edge(80, 'AP/N')] },
+      ),
+      ...drawn(80, 90, 91),
+      trailer,
+    ];
+    const step = judge(merged, fillOnly);
+    expect(notPermitted(step)).toEqual([]);
+    expect(step.findings.find((f) => f.objectNumber === 80)?.detail).toBe(
+      'push button "image_field" image changed',
+    );
+  });
+
+  test('a caption, a layout, or both with the image, changed under P=2 stay design: forbidden', () => {
+    for (const [before, after] of [
+      ['<</CA (Initials)/TP 1>>', '<</CA (Sign here)/TP 1>>'],
+      ['<</CA (Initials)/TP 1>>', '<</CA (Initials)/TP 2>>'],
+      ['<</CA (Initials)/TP 1>>', '<</CA (Sign here)/I 91 0 R/TP 1>>'],
+    ] as const) {
+      const changes = [...widget(before, after), ...drawn(71, 90, 91), trailer];
+      const step = judge(changes, fillOnly);
+      expect(step.verdict).toBe('forbidden');
+      expect(step.findings.find((f) => f.objectNumber === 71)).toMatchObject({
+        verdict: 'forbidden',
+        rule: 'form-fill',
+        detail: 'widget of "initials" keys changed: MK',
+      });
+      // After an approval signature the key table allows /MK as a whole.
+      expect(judge(changes, approval).verdict).toBe('permitted');
+    }
+  });
+
+  test('a push button a signature locked stays frozen: an image put in is forbidden at every level', () => {
+    for (const lock of [
+      { fieldMdp: { action: 'include' as const, fields: ['initials'] } },
+      {
+        fieldMdp: { action: 'include' as const, fields: ['initials'] },
+        docMdp: 2 as const,
+        catalogCertification: true,
+      },
+    ]) {
+      const step = judge(imageInWidget, buttons(lock));
+      expect(step.verdict).toBe('forbidden');
+      expect(step.findings.find((f) => f.objectNumber === 71)).toMatchObject({
+        verdict: 'forbidden',
+        rule: 'field-lock',
+      });
+    }
+  });
+
+  test("another kind's /MK /I is not a push button's image: it stays unexplained", () => {
+    const checkbox = [
+      change(
+        85,
+        {
+          old: '<</AP <</N 86 0 R>>/FT /Btn/MK <</CA (4)>>/Subtype /Widget/T (agree)>>',
+          new: '<</AP <</N 90 0 R>>/FT /Btn/MK <</CA (4)/I 91 0 R>>/Subtype /Widget/T (agree)>>',
+        },
+        {
+          old: [edge(10, 'Fields/[4]'), edge(3, 'Annots/[5]')],
+          new: [edge(10, 'Fields/[4]'), edge(3, 'Annots/[5]')],
+        },
+      ),
+      change(
+        86,
+        { old: 'stream(10,aa)<</Subtype /Form>>', new: null },
+        { old: [edge(85, 'AP/N')] },
+      ),
+      ...drawn(85, 90, 91),
+      trailer,
+    ];
+    const step = judge(checkbox, approval);
+    expect(step.verdict).toBe('forbidden');
+    expect(notPermitted(step)).toContain('unexplained 91 85:MK/I');
   });
 });
