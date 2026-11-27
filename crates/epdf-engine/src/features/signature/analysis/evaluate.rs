@@ -154,6 +154,7 @@ pub fn evaluate_step(input: StepInput) -> RevisionAnalysis {
         rule_dss(&ctx, &mut st);
         rule_signature_field_added(&ctx, &mut st);
         rule_signature_added(&ctx, &mut st);
+        rule_unsigned_signature_appearance(&ctx, &mut st);
         rule_form_fill(&ctx, &mut st);
         rule_annotation(&ctx, &mut st);
     } else {
@@ -500,6 +501,19 @@ impl State {
         accept: impl Fn(&str) -> bool,
         rule: &str,
     ) {
+        self.claim_subtree_admitting(ctx, side, roots, accept, rule, |_| true);
+    }
+
+    /// `claimSubtree` with its `admit`: which changed objects may join.
+    fn claim_subtree_admitting(
+        &mut self,
+        ctx: &StepContext<'_>,
+        side: Side,
+        roots: &HashSet<u32>,
+        accept: impl Fn(&str) -> bool,
+        rule: &str,
+        admit: impl Fn(&ObjectChange) -> bool,
+    ) {
         let mut joined: HashSet<u32> = HashSet::new();
         let mut grew = true;
         while grew {
@@ -508,7 +522,8 @@ impl State {
                 if roots.contains(&c.object_number) || joined.contains(&c.object_number) {
                     continue;
                 }
-                if self.locked.contains(&c.object_number) {
+                // An object the rule doesn't admit stays out, and so does what hangs off it.
+                if self.locked.contains(&c.object_number) || !admit(c) {
                     continue;
                 }
                 let edges = c.usage.get(side);
@@ -1263,6 +1278,91 @@ fn rule_signature_added(ctx: &StepContext<'_>, st: &mut State) {
     if !values.is_empty() {
         st.claim_subtree(ctx, Side::New, &values, |_| true, rule);
     }
+}
+
+/// `ruleUnsignedSignatureAppearance`. A new appearance on a signature field that is not signed,
+/// before the step or after it: the field and its widgets change `/AP` and nothing else, and every
+/// object under the new `/AP` is new (removed ones may go). Acrobat does not count it as a change
+/// after an approval signature (corpus v4/93, 94, 97, 99) and permits it under a P=2
+/// certification (v4/101, 102). A signed field is left alone on purpose (v4/95): there the drawing
+/// replaces the look the signature was made with.
+fn rule_unsigned_signature_appearance(ctx: &StepContext<'_>, st: &mut State) {
+    let rule = "signature-appearance";
+    let mut owners: HashSet<u32> = HashSet::new();
+    for (num, field) in ctx.before.field_by_obj.iter() {
+        let Some(after) = ctx.after.field_by_obj.get(num) else { continue };
+        if field.family != FormFieldFamily::Signature || after.family != FormFieldFamily::Signature
+        {
+            continue;
+        }
+        if ctx.before.signed_fields.contains(&num) || ctx.after.signed_fields.contains(&num) {
+            continue;
+        }
+        let mut parts: Vec<u32> = vec![num];
+        for w in &field.widgets {
+            if !parts.contains(w) {
+                parts.push(*w);
+            }
+        }
+        if after.widgets.len() != field.widgets.len()
+            || after.widgets.iter().any(|w| !parts.contains(w))
+        {
+            continue;
+        }
+        let written: Vec<&ObjectChange> =
+            parts.iter().filter_map(|n| ctx.change(*n)).filter(|c| !ctx.is_identical(c)).collect();
+        // A lock has already condemned what it covers.
+        if written.is_empty() || written.iter().any(|c| st.locked.contains(&c.object_number)) {
+            continue;
+        }
+        let beyond_appearance = |c: &ObjectChange| -> Vec<String> {
+            changed_keys(c.value.old.as_ref(), c.value.new.as_ref())
+                .into_iter()
+                .filter(|k| k != "AP")
+                .collect()
+        };
+        if written.iter().any(|c| !beyond_appearance(c).is_empty()) {
+            // Only the appearance has a case behind it. A condemned field still claims its
+            // stable edges: one cause in the report, not a cascade.
+            for c in &written {
+                let keys = beyond_appearance(c);
+                if keys.is_empty() {
+                    continue;
+                }
+                st.forbidden(
+                    c,
+                    rule,
+                    format!(
+                        "signature field \"{}\", not signed, keys changed: {}",
+                        field.name,
+                        keys.join(", ")
+                    ),
+                    None,
+                );
+                st.claim_stable(c, rule, false);
+            }
+            continue;
+        }
+        for c in &written {
+            st.claim_stable(c, rule, true);
+            st.permitted(
+                c,
+                rule,
+                Some(format!("new appearance on signature field \"{}\", not signed", field.name)),
+            );
+        }
+        owners.extend(parts);
+    }
+    if owners.is_empty() {
+        return;
+    }
+    // Under the new /AP only new objects; under the old one only objects removed.
+    st.claim_subtree_admitting(ctx, Side::New, &owners, is_ap, rule, |c| {
+        c.change == ObjectChangeType::Added
+    });
+    st.claim_subtree_admitting(ctx, Side::Old, &owners, is_ap, rule, |c| {
+        c.change == ObjectChangeType::Freed
+    });
 }
 
 /// JavaScript's ToInt32, for `|` on a PDF number.

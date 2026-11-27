@@ -1007,6 +1007,176 @@ fn an_appearance_stream_shared_between_two_fields_is_nobodys_regeneration() {
         && f["edge"] == "40:AP/N"));
 }
 
+// ── evaluateStep: a new appearance on a signature field that is not signed (3f54d7016) ──
+
+/// `withOpenField`: `structure` with a second signature field, `open` (31), that nobody signed.
+fn with_open_field(first: Value, widgets: &[u32]) -> Value {
+    let mut fields = base_fields().as_array().unwrap().clone();
+    fields.push(json!({ "objectNumber": 31, "name": "open", "kind": "signature",
+        "widgets": widgets }));
+    structure(json!({
+        "fields": fields,
+        "signatures": [signature(0, 30, first), unsigned(1, 31, json!({ "fieldName": "open" }))],
+    }))
+}
+
+fn listed() -> Vec<Value> {
+    vec![edge(10, "Fields/[2]"), edge(3, "Annots/[2]")]
+}
+
+/// `redrawn`: object `n` written with `/AP` pointing at 40 instead of 32, and `extra` keys.
+fn redrawn(n: u32, name: &str, uses: &[Value], extra: &str) -> Value {
+    change(
+        n,
+        Some(&format!("<</AP <</N 32 0 R>>/FT /Sig/T ({name})>>")),
+        Some(&format!("<</AP <</N 40 0 R>>{extra}/FT /Sig/T ({name})>>")),
+        both(uses),
+    )
+}
+
+/// The wrapper EmbedPDF draws a picture with: a form, the form it places, and the image.
+fn wrapper(owner: u32) -> Vec<Value> {
+    vec![
+        change(
+            40,
+            None,
+            Some("stream(41,aa)<</Resources <</XObject <</EPDFWRAP 41 0 R>>>>>>"),
+            new_only(&[edge(owner, "AP/N")]),
+        ),
+        change(
+            41,
+            None,
+            Some("stream(58,bb)<</Resources <</XObject <</FXX1 42 0 R>>>>>>"),
+            new_only(&[edge(40, "Resources/XObject/EPDFWRAP")]),
+        ),
+        change(
+            42,
+            None,
+            Some("stream(26,cc)<</Subtype /Image/Width 30/Height 10>>"),
+            new_only(&[edge(41, "Resources/XObject/FXX1")]),
+        ),
+    ]
+}
+
+fn open_redrawn(extra: &str) -> Vec<Value> {
+    let mut changes = vec![redrawn(31, "open", &listed(), extra)];
+    changes.extend(wrapper(31));
+    changes
+}
+
+fn judge_at(changes: &[Value], at: &Value) -> Value {
+    step(1, 2, changes, at, at)
+}
+
+fn rule_of(step: &Value, object_number: u32) -> Option<&str> {
+    findings(step)
+        .iter()
+        .find(|f| f["objectNumber"] == object_number)
+        .map(|f| f["rule"].as_str().unwrap())
+}
+
+#[test]
+fn after_an_approval_a_new_appearance_on_an_unsigned_signature_field_is_permitted() {
+    // Corpus v4/93, 94, 97: the field changes /AP alone, and all under it is new.
+    let s = judge_at(&open_redrawn(""), &with_open_field(json!({}), &[31]));
+    assert_eq!(verdict(&s), "permitted");
+    assert!(forbidden(&s).is_empty());
+    assert_eq!(rule_of(&s, 31), Some("signature-appearance"));
+}
+
+#[test]
+fn a_widget_of_its_own_changes_ap_and_the_field_nothing() {
+    // Corpus v4/99.
+    let separate = with_open_field(json!({}), &[33]);
+    let mut changes = vec![redrawn(33, "open", &[edge(31, "Kids/[0]"), edge(3, "Annots/[2]")], "")];
+    changes.extend(wrapper(33));
+    let s = judge_at(&changes, &separate);
+    assert_eq!(verdict(&s), "permitted");
+    assert_eq!(rule_of(&s, 33), Some("signature-appearance"));
+}
+
+#[test]
+fn the_old_appearance_may_go_and_an_object_there_before_may_not_join() {
+    let approval = with_open_field(json!({}), &[31]);
+    let freed =
+        change(32, Some("stream(9,dd)<</Subtype /Form>>"), None, old_only(&[edge(31, "AP/N")]));
+    let mut changes = open_redrawn("");
+    changes.push(freed);
+    assert_eq!(verdict(&judge_at(&changes, &approval)), "permitted");
+    // A font that was in the file, changed and drawn by the new appearance: not part of it.
+    let font = change(
+        50,
+        Some("<</BaseFont /Helvetica/Type /Font>>"),
+        Some("<</BaseFont /Courier/Type /Font>>"),
+        Usage { old: vec![edge(10, "DR/Font/Helv")], new: vec![edge(40, "Resources/Font/F1")] },
+    );
+    let mut changes = open_redrawn("");
+    changes.push(font);
+    let s = judge_at(&changes, &approval);
+    assert_eq!(verdict(&s), "forbidden");
+    assert!(forbidden(&s).iter().any(|f| f["objectNumber"] == 50 && f["rule"] == "unexplained"));
+}
+
+#[test]
+fn under_a_certification_that_allows_form_filling_it_is_permitted_too() {
+    // Corpus v4/101, 102.
+    let certified = with_open_field(json!({ "docMdp": 2, "catalogCertification": true }), &[31]);
+    let s = judge_at(&open_redrawn(""), &certified);
+    assert_eq!(s["levelInForce"], "fill");
+    assert_eq!(verdict(&s), "permitted");
+    // After one that allows no changes, nothing is permitted.
+    let none = with_open_field(json!({ "docMdp": 1, "catalogCertification": true }), &[31]);
+    assert_eq!(verdict(&judge_at(&open_redrawn(""), &none)), "forbidden");
+}
+
+#[test]
+fn the_signed_fields_own_appearance_stays_forbidden() {
+    // Corpus v4/95: Acrobat accepts it, the analysis does not.
+    let mut changes = vec![redrawn(30, "sig0", &[edge(10, "Fields/[1]")], "")];
+    changes.extend(wrapper(30));
+    let s = judge_at(&changes, &with_open_field(json!({}), &[31]));
+    assert_eq!(verdict(&s), "forbidden");
+    assert!(!rules(&s).contains(&"signature-appearance"));
+}
+
+#[test]
+fn a_key_beyond_ap_is_named_as_the_cause() {
+    // Acrobat: "Form Fields with Property Changes".
+    let s = judge_at(
+        &open_redrawn("/EMBD_Metadata <</AppearanceFit (contain)>>"),
+        &with_open_field(json!({}), &[31]),
+    );
+    assert_eq!(verdict(&s), "forbidden");
+    let causes: Vec<&Value> =
+        forbidden(&s).into_iter().filter(|f| f["objectNumber"] == 31).collect();
+    // One cause for the field: its references are explained by it.
+    assert_eq!(causes.len(), 1);
+    assert_eq!(causes[0]["rule"], "signature-appearance");
+    assert!(causes[0]["detail"].as_str().unwrap().contains("keys changed: EMBD_Metadata"));
+}
+
+#[test]
+fn a_field_signed_in_the_same_step_is_the_signing_rules_and_a_lock_condemns_before_it() {
+    let approval = with_open_field(json!({}), &[31]);
+    let signed_now = structure(json!({
+        "fields": approval["fields"].clone(),
+        "signatures": [
+            signature(0, 30, json!({})),
+            signature(1, 31, json!({ "fieldName": "open", "revisionIndex": 2 })),
+        ],
+    }));
+    let s = step(1, 2, &open_redrawn(""), &approval, &signed_now);
+    assert!(!rules(&s).contains(&"signature-appearance"));
+    let locked =
+        with_open_field(json!({ "fieldMdp": { "action": "include", "fields": ["open"] } }), &[31]);
+    let s = judge_at(&open_redrawn(""), &locked);
+    assert_eq!(verdict(&s), "forbidden");
+    assert_eq!(
+        forbidden(&s).iter().find(|f| f["objectNumber"] == 31).map(|f| f["rule"].clone()),
+        Some(json!("field-lock"))
+    );
+}
+
 // ── EdgeResolver (`resolve.test.ts`) ──────────────────────────────────────
 
 type Index = HashMap<u32, Vec<ObjectReferrer>>;

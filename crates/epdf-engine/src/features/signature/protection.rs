@@ -16,8 +16,12 @@ use super::types::{
 /// observations in `fixtures/signature-long-term`: a certification that
 /// allows no changes allows no later revision, a document timestamp after
 /// one is judged on its own, and a page's /Annots may move into an object
-/// of its own when a signature field is added.
-pub const SIGNATURE_POLICY_VERSION: u32 = 5;
+/// of its own when a signature field is added. Version 6 (3f54d7016) adds
+/// the observations in `fixtures/signature-compat/v4/`: a new appearance on
+/// a signature field that is not signed, with nothing else on the field
+/// changed and all of the drawing new, keeps an earlier approval signature
+/// and a certification that allows form filling.
+pub const SIGNATURE_POLICY_VERSION: u32 = 6;
 
 /// `APPROVAL_BASELINE`.
 pub const APPROVAL_BASELINE: ModificationLevel = ModificationLevel::Annotate;
