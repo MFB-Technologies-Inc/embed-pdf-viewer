@@ -5,7 +5,7 @@ Each check names a value in .devcontainer/Dockerfile and the files that must car
 same value. Bump them together; this script only reports the ones that drifted.
 
 With --verify-checksums it also downloads the published checksums for the pinned
-binaryen, rustup-init and .NET SDK archives and compares them with the pinned ones.
+binaryen, rustup-init, .NET SDK and .NET runtime archives and compares them with the pinned ones.
 Renovate bumps those versions but cannot compute their hashes, so its pull requests
 fail here until the hashes are filled in.
 """
@@ -59,22 +59,32 @@ def fetch(url, attempts=3):
         time.sleep(2 * attempt)
 
 
-def dotnet_matrix():
-    """The release-dotnet.yml matrix rows as dicts, whatever order their keys are in."""
-    rows = []
-    for line in read(".github/workflows/release-dotnet.yml").splitlines():
-        row_start = re.match(r"^(\s*)- rid: (\S+)$", line)
-        if row_start:
-            rows.append({"rid": row_start.group(2), "indent": len(row_start.group(1)) + 2})
-            continue
-        if not rows:
-            continue
-        key = re.match(r"^(\s*)(\w+): (\S+)$", line)
-        if key and len(key.group(1)) == rows[-1]["indent"]:
-            rows[-1][key.group(2)] = key.group(3)
-        elif line.strip() and len(line) - len(line.lstrip()) < rows[-1]["indent"]:
-            rows[-1]["indent"] = -1  # left the row; later keys belong elsewhere
-    return rows
+DOTNET_ACTION = ".github/actions/setup-dotnet/action.yml"
+DOTNET_RIDS = ("linux-arm64", "linux-x64", "osx-arm64", "osx-x64", "win-x64")
+
+
+def dotnet_pins():
+    """The setup-dotnet action's SDK and runtime pins: versions, and per RID the two SHA-512s."""
+    text = read(DOTNET_ACTION)
+    rows = {
+        rid: {"sdk": sdk, "runtime": runtime}
+        for rid, sdk, runtime in re.findall(
+            r"^\s*([a-z]+-[a-z0-9]+)\)\n\s*sdk_sha512=(\w+)\n\s*runtime_sha512=(\w+)$", text, re.MULTILINE
+        )
+    }
+    return (match(DOTNET_ACTION, r"^\s*DOTNET_SDK_VERSION: (\S+)$"),
+            match(DOTNET_ACTION, r"^\s*DOTNET_RUNTIME_VERSION: (\S+)$"),
+            rows)
+
+
+def dockerfile_dotnet_hashes():
+    """The Dockerfile's SDK and runtime SHA-512s by .NET architecture (x64, arm64)."""
+    return {
+        dotnet_arch: {"sdk": sdk, "runtime": runtime}
+        for dotnet_arch, sdk, runtime in re.findall(
+            r"dotnet_arch=(\w+); dotnet_sha512=(\w+);\s*\\\n\s*dotnet_runtime_sha512=(\w+)", DOCKERFILE.read_text()
+        )
+    }
 
 
 def verify_checksums(failures):
@@ -97,33 +107,40 @@ def verify_checksums(failures):
         ).split()[0]
         compare(f"rustup-init {rustup} {triple} SHA-256", arg(f"RUSTUP_SHA256_{docker_arch}"), published)
 
-    sdk = arg("DOTNET_SDK_VERSION")
-    channel = ".".join(sdk.split(".")[:2])
-    releases = json.loads(fetch(
-        f"https://builds.dotnet.microsoft.com/dotnet/release-metadata/{channel}/releases.json"
-    ))["releases"]
-    files = next(
-        (s["files"] for r in releases for s in r.get("sdks", []) if s["version"] == sdk), None
-    )
-    if files is None:
-        failures.append(f".NET SDK {sdk}: not in Microsoft's {channel} release metadata")
-        return
+    _, _, rows = dotnet_pins()
+    dockerfile_hashes = dockerfile_dotnet_hashes()
 
-    def published_sha512(rid, extension):
-        return next(
-            (f["hash"] for f in files if f["rid"] == rid and f["name"].endswith(extension)), None
-        )
+    def published_files(kind, version):
+        channel = ".".join(version.split(".")[:2])
+        releases = json.loads(fetch(
+            f"https://builds.dotnet.microsoft.com/dotnet/release-metadata/{channel}/releases.json"
+        ))["releases"]
+        if kind == "sdk":
+            entries = (s for r in releases for s in r.get("sdks", []))
+        else:
+            entries = (r.get("runtime") or {} for r in releases)
+        files = next((e["files"] for e in entries if e.get("version") == version), None)
+        if files is None:
+            failures.append(f".NET {kind} {version}: not in Microsoft's {channel} release metadata")
+        return files
 
-    dockerfile_hashes = dict(re.findall(r"dotnet_arch=(\w+); dotnet_sha512=(\w+)", DOCKERFILE.read_text()))
-    for dotnet_arch in ("x64", "arm64"):
-        compare(f".NET SDK {sdk} linux-{dotnet_arch} SHA-512 in the Dockerfile",
-                dockerfile_hashes.get(dotnet_arch), published_sha512(f"linux-{dotnet_arch}", ".tar.gz"))
-    for row in dotnet_matrix():
-        url = row.get("sdk_url", "")
-        extension = ".zip" if url.endswith(".zip") else ".tar.gz"
-        compare(f".NET SDK {sdk} {row['rid']} SHA-512 in release-dotnet.yml",
-                row.get("sdk_sha512"), published_sha512(row["rid"], extension))
+    for kind, label, version in (("sdk", "SDK", arg("DOTNET_SDK_VERSION")),
+                                 ("runtime", "runtime", arg("DOTNET_RUNTIME_VERSION"))):
+        files = published_files(kind, version)
+        if files is None:
+            continue
+        prefix = f"dotnet-{kind}-{version}-"
 
+        def published_sha512(rid):
+            extension = ".zip" if rid.startswith("win-") else ".tar.gz"
+            return next((f["hash"] for f in files if f["url"].endswith("/" + prefix + rid + extension)), None)
+
+        for dotnet_arch in ("x64", "arm64"):
+            compare(f".NET {label} {version} linux-{dotnet_arch} SHA-512 in the Dockerfile",
+                    dockerfile_hashes.get(dotnet_arch, {}).get(kind), published_sha512(f"linux-{dotnet_arch}"))
+        for rid, row in rows.items():
+            compare(f".NET {label} {version} {rid} SHA-512 in {DOTNET_ACTION}",
+                    row[kind], published_sha512(rid))
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0], allow_abbrev=False)
@@ -163,25 +180,22 @@ def main():
     expect("binaryen x86_64 SHA-256", arg("BINARYEN_SHA256_AMD64"), viewer,
            match(viewer, r"^\s*BINARYEN_SHA256: (\S+)$"))
 
-    dotnet = ".github/workflows/release-dotnet.yml"
-    expect(".NET SDK", arg("DOTNET_SDK_VERSION"), dotnet,
-           match(dotnet, r"^\s*- name: Install \.NET SDK (\S+)$"))
-    # The workflow's matrix pins one SDK archive per RID; the image builds for
-    # the two Linux ones.
-    sdk = arg("DOTNET_SDK_VERSION")
-    matrix = {row["rid"]: row for row in dotnet_matrix()}
-    for rid in ("linux-arm64", "linux-x64"):
-        dotnet_sha = matrix.get(rid, {}).get("sdk_sha512")
-        if dotnet_sha is None or dotnet_sha not in DOCKERFILE.read_text():
-            failures.append(f".NET SDK {rid} SHA-512: {dotnet} has {dotnet_sha}, absent from the Dockerfile")
-    for rid, row in matrix.items():
-        url = row.get("sdk_url", "")
-        if not re.search(rf"/Sdk/{re.escape(sdk)}/dotnet-sdk-{re.escape(sdk)}-{re.escape(rid)}\.(tar\.gz|zip)$", url):
-            failures.append(f".NET SDK {rid}: {dotnet} downloads {url or 'nothing'}, not SDK {sdk}")
-        if not row.get("sdk_sha512"):
-            failures.append(f".NET SDK {rid}: {dotnet} has no sdk_sha512")
+    sdk, runtime, rows = dotnet_pins()
+    expect(".NET SDK", arg("DOTNET_SDK_VERSION"), DOTNET_ACTION, sdk)
+    expect(".NET runtime", arg("DOTNET_RUNTIME_VERSION"), DOTNET_ACTION, runtime)
     expect(".NET SDK", arg("DOTNET_SDK_VERSION"), "platforms/dotnet/global.json",
            json.loads(read("platforms/dotnet/global.json"))["sdk"]["version"])
+    # The action pins one SDK and one runtime archive per RID; the image
+    # builds for the two Linux ones.
+    for rid in DOTNET_RIDS:
+        if rid not in rows:
+            failures.append(f".NET {rid}: {DOTNET_ACTION} has no SDK and runtime SHA-512s")
+    dockerfile_hashes = dockerfile_dotnet_hashes()
+    for dotnet_arch in ("x64", "arm64"):
+        for kind in ("sdk", "runtime"):
+            expect(f".NET {kind} linux-{dotnet_arch} SHA-512",
+                   dockerfile_hashes.get(dotnet_arch, {}).get(kind), DOTNET_ACTION,
+                   rows.get(f"linux-{dotnet_arch}", {}).get(kind))
 
     if args.verify_checksums:
         try:

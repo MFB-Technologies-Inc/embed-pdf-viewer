@@ -9,6 +9,7 @@
   ],
   "includePaths": [
     ".devcontainer/**",
+    ".github/actions/setup-dotnet/**",
     ".github/actions/setup-emsdk/**",
     ".github/actions/setup-node-pnpm/**",
     ".github/actions/setup-rust/**",
@@ -44,6 +45,7 @@
       "description": "Tool pins marked with a `# renovate:` (or `// renovate:`) comment on the line above: an ARG or env assignment, or a Tuist `.exact(\"...\")` requirement.",
       "managerFilePatterns": [
         "/^\\.devcontainer/Dockerfile$/",
+        "/^\\.github/actions/setup-dotnet/action\\.yml$/",
         "/^\\.github/workflows/release-rust-viewer\\.yml$/",
         "/^\\.github/workflows/release-train\\.yml$/",
         "/^platforms/apple/NutrientDemo/Project\\.swift$/"
@@ -169,13 +171,25 @@
       "dependencyDashboardApproval": true
     },
     {
-      "description": "The .NET SDK pin lives in global.json, the Dockerfile and release-dotnet.yml, with a SHA-512 per archive.",
+      "description": "The .NET SDK pin lives in global.json, the Dockerfile and .github/actions/setup-dotnet, with a SHA-512 per archive.",
       "matchDepNames": ["dotnet-sdk"],
       "groupName": ".NET SDK"
     },
     {
+      "description": "The .NET 10 runtime beside the SDK runs the net10.0 tests and consumer checks on the lowest runtime the packages support. It takes .NET 10 patches only; it moves to a new major when the packages' lowest target framework does.",
+      "matchDepNames": ["dotnet-runtime"],
+      "allowedVersions": "<11",
+      "groupName": ".NET 10 runtime"
+    },
+    {
+      "description": "The packages target net10.0, so they reference the Microsoft.Extensions line that matches it. A newer major would force that line on every .NET 10 consumer, ahead of the shared framework it runs with. The cap moves with the lowest target framework.",
+      "matchManagers": ["nuget"],
+      "matchPackageNames": ["Microsoft.Extensions.**"],
+      "allowedVersions": "<11"
+    },
+    {
       "description": "Pins with checksums beside them: Renovate cannot compute those.",
-      "matchDepNames": ["dotnet-sdk", "WebAssembly/binaryen", "rust-lang/rustup"],
+      "matchDepNames": ["dotnet-sdk", "dotnet-runtime", "WebAssembly/binaryen", "rust-lang/rustup"],
       "dependencyDashboardApproval": true,
       "prBodyNotes": [
         "This pin has checksums Renovate cannot update. Run `python3 .devcontainer/check-pins.py --verify-checksums`: it names every file to change and prints the published hashes. The `Development image pins` check fails until they match."

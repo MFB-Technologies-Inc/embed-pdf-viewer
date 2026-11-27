@@ -6,7 +6,7 @@ Use the `EmbedPDF.Engine` package downloaded as a GitHub release asset as a libr
 
 - Package: `EmbedPDF.Engine`, version `0.0.0-local`. This is a local evaluation package, not a published NuGet release.
 - This package was built from viewer commit `@COMMIT@`. The `linux-arm64` PDFium inside it is upstream's runtime release `@RUNTIME_TAG@`, pinned by `packages/engine/runtime/engine-runtime-build.json`.
-- Target framework: `net10.0`. The validated SDK is .NET `10.0.403`.
+- Target framework: `net10.0`. The validated SDK is .NET `11.0.100`.
 - Packaged native platform: Linux ARM64. Validation ran with glibc @GLIBC@; this is the tested environment, not a declared minimum. Windows, macOS and other RIDs are not covered by this package.
 - The package includes the managed library, both native libraries, the DejaVu Sans fallback font, manifests and license notices. No companion native NuGet package is needed.
 
@@ -119,4 +119,4 @@ dotnet publish ./YourApp.csproj -c Release \
 
 Run the app on Linux ARM64 with a compatible .NET 10 runtime. Deploy the entire publish directory, including both native libraries, the font, manifests and notices. Do not distribute only `EmbedPDF.Engine.dll`. The package avoids a local Rust or PDFium build.
 
-The steps in sections 2 to 5 were run for this release in a Linux ARM64 container (glibc @GLIBC@, SDK 10.0.403): `dotnet add`, `dotnet publish --runtime linux-arm64 --self-contained false`, and the `PdfPreview` class above rendering page 0 of `tooling/engine-conformance/fixtures/non_identity_text.pdf` to a @RENDER_SIZE@ image. Compatibility with a different deployment image or font bundle needs its own check.
+The steps in sections 2 to 5 were run for this release in a Linux ARM64 container (glibc @GLIBC@, SDK 11.0.100): `dotnet add`, `dotnet publish --runtime linux-arm64 --self-contained false`, and the `PdfPreview` class above rendering page 0 of `tooling/engine-conformance/fixtures/non_identity_text.pdf` to a @RENDER_SIZE@ image. Compatibility with a different deployment image or font bundle needs its own check.
