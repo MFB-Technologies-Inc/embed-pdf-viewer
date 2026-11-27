@@ -78,9 +78,9 @@ fn every_form_case_replays() {
             ("plugins/form-core.json", 104),
             ("plugins/form-design.json", 33),
             ("plugins/form-fill.json", 31),
-            ("plugins/form-groups.json", 12),
+            ("plugins/form-groups.json", 14),
             ("plugins/form-scripting.json", 46),
         ]
     );
-    assert_eq!(counts.iter().map(|(_, n)| n).sum::<usize>(), 242);
+    assert_eq!(counts.iter().map(|(_, n)| n).sum::<usize>(), 244);
 }

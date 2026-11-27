@@ -1117,6 +1117,8 @@ const placeFns: Record<string, Fn> = {
   clampRectToBox: pl.clampRectToBox,
   resolveClickPlacement: pl.resolveClickPlacement,
   placedShape: pl.placedShape,
+  placedBoxFields: pl.placedBoxFields,
+  orientationPatch: records.orientationPatch,
   straightenInkStroke: ik.straightenInkStroke,
 };
 const placeCases: FunctionCase[] = [
@@ -1127,6 +1129,28 @@ const placeCases: FunctionCase[] = [
   c('clampRectToBox', 'bigger-than-box', rc(100, 100, 700, 900), PAGE),
   c('clampRectToBox', 'offset-box', rc(0, 0, 10, 10), rc(50, 60, 100, 100)),
 ];
+// placement.ts placedBoxFields and record/shape.ts orientationPatch (23741e3fd, #1118).
+placeCases.push(
+  c('placedBoxFields', 'upright', { kind: 'box', rect: rc(10, 20, 100, 40), rot: 0 }),
+  c('placedBoxFields', 'quarter-turn', { kind: 'box', rect: rc(10, 20, 100, 40), rot: 90 }),
+);
+const UPRIGHT_WIDGET = annot('w-up', 'widget-text', gRect(rc(20, 40, 80, 20))).annotation;
+const TURNED_WIDGET = annot(
+  'w-turned',
+  'widget-toggle',
+  gRect(rc(20, 40, 80, 20), false, 90),
+).annotation;
+for (const [label, annotation, rotation] of [
+  ['upright-to-90', UPRIGHT_WIDGET, 90],
+  ['upright-to-180', UPRIGHT_WIDGET, 180],
+  ['upright-to-0', UPRIGHT_WIDGET, 0],
+  ['turned-to-0', TURNED_WIDGET, 0],
+  ['turned-to-270', TURNED_WIDGET, 270],
+  ['square', annot('sq-o', 'square', gRect(rc(20, 40, 80, 20))).annotation, 90],
+  ['ink', annot('ink-o', 'ink', gInk([[v(0, 0), v(10, 10)]])).annotation, 90],
+] as const) {
+  placeCases.push(c('orientationPatch', label, annotation, rotation));
+}
 const POLICIES = [
   ['box', { width: 100, height: 40 }],
   ['box-center', { width: 100, height: 40, anchor: 'center' }],

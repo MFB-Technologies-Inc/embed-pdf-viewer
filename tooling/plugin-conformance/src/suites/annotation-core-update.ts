@@ -1220,6 +1220,32 @@ const RUNS: Case[] = [
     ],
   ],
   ['reset-rotation-vertex', S({ selected: ['pl'] }), [{ type: 'resetRotation' }]],
+  // ccfcaf0fc, 282fe57b5 (#1118): a widget turns by quarter turns, and with
+  // pageBoxes what turned stays on its page.
+  [
+    'rotate90-widget',
+    S({ selected: ['widget'] }),
+    [
+      { type: 'rotateSelection', degrees: 90 },
+      { type: 'rotateSelection', degrees: -90 },
+      { type: 'rotateSelection', degrees: 90 },
+      { type: 'resetRotation' },
+    ],
+  ],
+  [
+    'rotate90-widget-kept-on-page',
+    S({ selected: ['widget', 'sq'] }),
+    [
+      { type: 'rotateSelection', degrees: 90, pageBoxes: { [PON]: rc(0, 0, 612, 575) } },
+      { type: 'resetRotation', pageBoxes: { [PON]: rc(0, 0, 612, 575) } },
+      { type: 'rotateSelection', degrees: -90, pageBoxes: { 99: rc(0, 0, 10, 10) } },
+    ],
+  ],
+  [
+    'rotate90-widget-page-smaller-than-frame',
+    S({ selected: ['widget'] }),
+    [{ type: 'rotateSelection', degrees: 90, pageBoxes: { [PON]: rc(0, 0, 50, 50) } }],
+  ],
   // ── delete, cancel ──
   [
     'delete',

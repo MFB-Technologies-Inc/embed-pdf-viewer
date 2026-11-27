@@ -32,6 +32,7 @@ import {
   doc,
   boot,
   FORM_ONLY,
+  refused,
 } from './form-live-fixtures';
 import { LOCAL } from './annotation-live-fixtures';
 import { square } from './annotation-current-fixtures';
@@ -139,17 +140,18 @@ const PAIR = text(6, 'pair', '', {}, [placed(101), placed(104)]);
 const ONE = text(7, 'one', '', {}, [placed(102)]);
 const PAIR_FORM = snapshot(
   [PAIR, ONE],
-  [
-    row(101, PAIR.ref, 1, at(20)),
-    row(102, ONE.ref, 1, at(60)),
-    row(104, PAIR.ref, 1, at(140)),
-  ],
+  [row(101, PAIR.ref, 1, at(20)), row(102, ONE.ref, 1, at(60)), row(104, PAIR.ref, 1, at(140))],
 );
 /** The case with `annotations` as the annotation plugin's first read. */
 const withAnnotations = (base: ScenarioCase, annotations: readonly unknown[]): ScenarioCase => {
-  const documents = base.engine.documents as Record<string, { responses: { path: string; value?: unknown }[] }>;
+  const documents = base.engine!.documents as Record<
+    string,
+    { responses: { path: string; value?: unknown }[] }
+  >;
   const a = documents.a!;
-  a.responses = a.responses.map((r) => (r.path === 'annotations.list' ? { ...r, value: { annotations } } : r));
+  a.responses = a.responses.map((r) =>
+    r.path === 'annotations.list' ? { ...r, value: { annotations } } : r,
+  );
   return base;
 };
 
@@ -297,7 +299,10 @@ const cases: ScenarioCase[] = [
     'takesCursor answering nothing (undefined or null) counts as taking the cursor, as a target without takesCursor does: Tab and focus stop at it.',
     [
       lend([objRef(101), target('a', { takesCursor: { $fn: 'a.takesCursor' } })]),
-      lend([objRef(104), target('sign', { takesCursor: { $fn: 'sign.takesCursor', returns: null } })]),
+      lend([
+        objRef(104),
+        target('sign', { takesCursor: { $fn: 'sign.takesCursor', returns: null } }),
+      ]),
       lend([objRef(102), target('b')]),
       call('focusNext'),
       call('notifyWidgetEvent', [ref(1), objRef(101), 'focus']),
@@ -358,6 +363,50 @@ const cases: ScenarioCase[] = [
       true,
     ),
     [square(200)],
+  ),
+  scenario(
+    'lent-widgets-carry-their-group-accent-and-orientation',
+    "In form design each lent widget's item carries its field group's accent, fields.tint strong (d6d7c25e2, #1141), the same while nothing changes and anew when the groups change; a selection of widgets offers Orientation, their rotation as its value (23741e3fd, #1118).",
+    [
+      tool('form-edit'),
+      anno('listPageItems', [pr(1)]),
+      anno('listPageItems', [pr(1)]),
+      call('setGroups', [[{ id: 'buyer', label: 'Dana Smith', color: '#16a34a' }]]),
+      anno('listPageItems', [pr(1)]),
+      anno('selection.select', [[objRef(101), objRef(102)]]),
+      anno('selection.getProperties'),
+    ],
+    GROUPED,
+    [],
+    {},
+    true,
+  ),
+  scenario(
+    'a-drag-on-a-turned-page-previews-upright',
+    "A palette tool's drag on a page shown turned previews the field as its release places it (previewPlacement with the press's display rotation, #1118): the preview item is the turned frame.",
+    [
+      tool('form-text'),
+      ix('dispatchPointer', [
+        sample('down', 100, 100, {
+          page: { ref: pr(1), point: { x: 100, y: 100 }, scale: 1, rotation: 90 },
+        }),
+      ]),
+      ix('dispatchPointer', [
+        sample('move', 160, 140, {
+          page: { ref: pr(1), point: { x: 160, y: 140 }, scale: 1, rotation: 90 },
+        }),
+      ]),
+      anno('listPageItems', [pr(1)]),
+      ix('dispatchPointer', [
+        sample('up', 160, 140, {
+          page: { ref: pr(1), point: { x: 160, y: 140 }, scale: 1, rotation: 90 },
+        }),
+      ]),
+    ],
+    snapshot([]),
+    [refused('intended refusal of the placed field')],
+    { security: { allows: '*', allowsField: { 'set-group': true } } },
+    true,
   ),
   scenario(
     'a-tool-places-upright-in-the-design-group',

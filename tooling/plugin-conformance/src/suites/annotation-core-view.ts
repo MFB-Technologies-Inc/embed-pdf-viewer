@@ -23,6 +23,7 @@ import {
   PON,
   annot,
   c,
+  idOf,
   cloudy,
   ends,
   flags,
@@ -219,6 +220,16 @@ const VIEW_ANNOTS: Annot[] = [
   sq('other-page', rc(100, 100, 80, 60), { page: pageRef(2) }),
 ];
 const S = (over: Partial<Model> = {}) => start(VIEW_ANNOTS, over);
+/** An upright widget with a lender's accent and one turned a quarter turn, without. */
+const WIDGETS: Model = (() => {
+  const model = start([
+    annot('w-accent', 'widget-text', gRect(rc(20, 40, 80, 20)), { source: 'baked' }),
+    annot('w-turned', 'widget-text', gRect(rc(20, 100, 80, 20), false, 90), { source: 'baked' }),
+  ]);
+  const id = idOf('w-accent');
+  const accented = { ...model.byId[id]!, accent: { color: '#2563eb', strength: 0.16 } };
+  return { ...model, byId: { ...model.byId, [id]: accented } };
+})();
 
 /** Named states: a start plus the messages that drive it. */
 const STATES: [string, Partial<Model>][] = [
@@ -568,6 +579,9 @@ viewCases.push(
     rotation: 270,
   }),
   c('pageItems', 'idle', S(), PON),
+  // view.ts (d6d7c25e2, #1141): a lent record's accent rides into its item;
+  // appearance.ts (23741e3fd, #1118): a widget's raster fills the rect its turned box stands in.
+  c('pageItems', 'widgets-accent-and-turn', WIDGETS, PON),
   c('chrome', 'sel-sq-default-offset', S({ selected: ['sq'] }), PON),
   c('selectedItems', 'group', S({ selected: ['sq', 'ghost', 'ln'] })),
   c('textBoxes', 'editing', S({ editing: 'ft' }), PON),

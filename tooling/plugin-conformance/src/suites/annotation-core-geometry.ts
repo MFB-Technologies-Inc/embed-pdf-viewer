@@ -69,6 +69,7 @@ const basicsFns: Record<string, Fn> = {
   rotatedAabb: rt.rotatedAabb,
   uprightRotation: g.uprightRotation,
   transposedAboutCenter: rt.transposedAboutCenter,
+  standingRect: rt.standingRect,
   uprightAnchoredRect: g.uprightAnchoredRect,
   fitStampBox: g.fitStampBox,
   rectHandlesFor: g.rectHandlesFor,
@@ -184,6 +185,11 @@ const basics: FunctionCase[] = [
   c('transposedAboutCenter', 'landscape', rc(10, 20, 40, 20)),
   c('transposedAboutCenter', 'square', rc(0, 0, 5, 5)),
   c('transposedAboutCenter', 'zero', rc(3, 3, 0, 8)),
+  // rect.ts standingRect (23741e3fd, #1118): where a turned box stands.
+  ...([0, 90, 180, 270, -90, 450, 45] as const).map((deg) =>
+    c('standingRect', `landscape-${deg}`, rc(10, 20, 40, 20), deg),
+  ),
+  c('standingRect', 'odd-sizes-90', rc(0.1, 0.2, 33.3, 7.7), 90),
 
   ...[...ROTS, 45, -90, 450].map((r) => c('uprightAnchoredRect', `r${r}`, v(100, 200), 180, 40, r)),
 

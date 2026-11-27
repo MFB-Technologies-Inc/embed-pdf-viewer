@@ -41,7 +41,8 @@ use crate::measurement_shape::*;
 use crate::object::{Json, JsonError};
 use crate::painted::painted_near;
 use crate::placement::{
-    MIN_DRAG, PlacementFrame, clamp_rect_to_box, placed_shape, resolve_click_placement,
+    MIN_DRAG, PlacementFrame, clamp_rect_to_box, placed_box_fields, placed_shape,
+    resolve_click_placement,
 };
 use crate::plane::{is_attached_link, is_conversation_only, is_substrate_only};
 use crate::props::{initial_text_style, kind_takes_link, properties_of, shared_properties};
@@ -865,6 +866,7 @@ pub fn functions() -> FunctionTable {
         ("rotatedAabb", |a| ok(rotated_aabb(arg(a, 0)?, arg(a, 1)?, arg(a, 2)?))),
         ("uprightRotation", |a| ok(upright_rotation(arg(a, 0)?))),
         ("transposedAboutCenter", |a| ok(transposed_about_center(arg(a, 0)?))),
+        ("standingRect", |a| ok(standing_rect(arg(a, 0)?, arg(a, 1)?))),
         ("uprightAnchoredRect", |a| {
             ok(upright_anchored_rect(arg(a, 0)?, arg(a, 1)?, arg(a, 2)?, arg(a, 3)?))
         }),
@@ -1132,6 +1134,22 @@ pub fn functions() -> FunctionTable {
                 placed_shape(&annotation_of(a, 0), &arg::<Placement>(a, 1)?)
                     .map_or(Value::Null, |s| s.json()),
             )
+        }),
+        ("placedBoxFields", |a| {
+            let Placement::Box(placement) = arg::<Placement>(a, 0)? else {
+                return Err(type_error("placedBoxFields takes a box placement"));
+            };
+            let (bx, rotation) = placed_box_fields(placement.rect, placement.rot);
+            ok_value(serde_json::json!({
+                "box": json::rect_value(bx),
+                "rotation": rotation.map_or(Value::Null, num),
+            }))
+        }),
+        ("orientationPatch", |a| {
+            ok_value(Value::Object(crate::record::orientation_patch(
+                &annotation_of(a, 0),
+                arg(a, 1)?,
+            )))
         }),
         ("straightenInkStroke", |a| {
             ok_value(points_value(&crate::ink::straighten_ink_stroke(
