@@ -53,11 +53,19 @@ internal suspend fun <T> bridged(block: suspend () -> T): T =
  * caller is also the caller's own `CancellationException` rather than the
  * kernel's `operation-cancelled`.
  *
+ * With [keepResolved], a value the kernel resolves after the caller was
+ * cancelled goes to the caller instead of [onDiscard], and the caller's
+ * cancellation comes at its next suspension. Only `markMatches` sets it: a
+ * cancel before its search finds a hit resolves with an empty list, which the
+ * caller gets as on every other platform. An error is still the caller's
+ * `CancellationException`.
+ *
  * Pass the token this hands you; a `CancelToken()` made inline is never
  * cancelled.
  */
 internal suspend fun <T> bridgedCancellable(
     onDiscard: (suspend (T) -> Unit)? = null,
+    keepResolved: Boolean = false,
     block: suspend (CancelToken) -> T,
 ): T {
     val token = CancelToken()
@@ -101,7 +109,7 @@ internal suspend fun <T> bridgedCancellable(
             context.ensureActive()
             throw error
         }
-        if (!context.isActive) {
+        if (!context.isActive && !keepResolved) {
             if (onDiscard != null) {
                 withContext(NonCancellable) {
                     try {

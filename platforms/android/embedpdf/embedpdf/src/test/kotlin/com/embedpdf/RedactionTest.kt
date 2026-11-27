@@ -3,6 +3,7 @@ package com.embedpdf
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -86,6 +87,41 @@ class RedactionTest {
         val (viewer, _, redaction, _) = opened()
         expectCancelledBeforeItStarts { redaction.markMatches(SearchQuery(text = "e")) }
         redaction.pending()
+        viewer.destroy()
+    }
+
+    @Test
+    fun markMatchesStopsWhenCancelledMidCall() = viewerTest {
+        val (viewer, _, redaction, search) = opened()
+        // Every hit of "e" on report.pdf: an uncancelled mark makes one per hit,
+        // which takes far longer than the cancel below allows.
+        val hits = search.findAll(SearchQuery(text = "e"), ContentInclusion.NEVER).size
+        assertTrue("only $hits hits", hits > 100)
+        var marks: List<RedactionMark>? = null
+        withTimeout(5_000) {
+            val marking = launch { marks = redaction.markMatches(SearchQuery(text = "e")) }
+            delay(300)
+            marking.cancel()
+            marking.join()
+        }
+        // A cancel before the search finds a hit returns no marks rather than
+        // throwing, which a slow runner can hit; either way it never marks every hit.
+        marks?.let { assertTrue("${it.size} of $hits marked", it.size < hits) }
+        assertTrue(redaction.pendingCount() < hits)
+        viewer.destroy()
+    }
+
+    @Test
+    fun markMatchesCancelledBeforeAHitReturnsEmpty() = viewerTest {
+        val (viewer, _, redaction, search) = opened()
+        val events = subscribed(search.observeEvents())
+        var marks: List<RedactionMark>? = null
+        val marking = launch { marks = redaction.markMatches(SearchQuery(text = "e")) }
+        events.nextMapped { it as? SearchEventStarted }
+        marking.cancel()
+        marking.join()
+        assertEquals(emptyList<RedactionMark>(), marks)
+        assertEquals(0, redaction.pendingCount())
         viewer.destroy()
     }
 
