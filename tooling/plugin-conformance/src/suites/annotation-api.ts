@@ -42,6 +42,12 @@ import {
   boot,
 } from './annotation-live-fixtures';
 const box = { x: 10, y: 20, width: 100, height: 40 };
+/** A square near the top of page 1, and where a quarter turn about its middle leaves it, back on the page. */
+const EDGE_SQUARE = square(30, { box: { x: 10, y: 20, width: 200, height: 20 }, rotation: 0 });
+const EDGE_TURNED = annotationAfter(EDGE_SQUARE, {
+  box: { x: 10, y: 90, width: 200, height: 20 },
+  rotation: 90,
+});
 const select = (...refs: ReturnType<typeof objRef>[]) => call('selection.select', [refs]);
 const ptr = (tool: string, phase: string, x: number, y: number, page = 1, finish = false) =>
   call('createPointer', [tool, phase, pr(page), { x, y }, finish]);
@@ -847,12 +853,12 @@ const cases: ScenarioCase[] = [
   ),
   scenario(
     'a-quarter-turn-keeps-the-annotation-on-its-page',
-    'selection.rotateBy and resetRotation send the page boxes the selection is on (ccfcaf0fc, #1118): a square whose turn would carry it past the top of the page moves the least that keeps it on the page, in the op the engine is sent.',
+    'selection.rotateBy sends the page boxes the selection is on (ccfcaf0fc, #1118): a square whose turn would carry it past the top of the page moves the least that keeps it on the page, in the op the engine is sent.',
     [select(objRef(30)), call('selection.rotateBy', [90]), call('selection.rotateBy', [-90])],
     [
-      hydrate([square(30, { box: { x: 10, y: 20, width: 200, height: 20 }, rotation: 0 })]),
-      refused('intended refusal of the turn'),
-      refused('intended refusal of the turn back'),
+      hydrate([EDGE_SQUARE]),
+      write(1, [{ item: updated(EDGE_TURNED) }]),
+      write(2, [{ item: updated(annotationAfter(EDGE_TURNED, { rotation: null })) }]),
     ],
   ),
   scenario(

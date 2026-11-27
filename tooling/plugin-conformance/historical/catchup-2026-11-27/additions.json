@@ -51,6 +51,12 @@
       "name": "update/undo-look-of-a-create",
       "newFile": false,
       "covers": "The undo look of a create and a fill"
+    },
+    {
+      "file": "plugins/annotation-api.json",
+      "name": "a-quarter-turn-keeps-the-annotation-on-its-page",
+      "newFile": false,
+      "covers": "rotateBy sends the page boxes, and a turn past the page edge moves back onto the page (ccfcaf0fc, #1118)"
     }
   ]
 }
