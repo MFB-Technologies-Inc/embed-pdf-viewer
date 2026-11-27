@@ -241,8 +241,9 @@ impl View {
         truth_row: Option<&Rc<Value>>,
         lender: &dyn LentDrawing,
     ) -> Option<Rc<ModelAnnotation>> {
-        let shown_object = shown_row.as_object().cloned().unwrap_or_default();
-        let accent = lender.accent_of(&shown_object);
+        static EMPTY: std::sync::OnceLock<Object> = std::sync::OnceLock::new();
+        let shown_object = shown_row.as_object().unwrap_or_else(|| EMPTY.get_or_init(Object::new));
+        let accent = lender.accent_of(shown_object);
         let cache_key = Rc::as_ptr(shown_row);
         if let Some(entry) = self.lent.borrow().get(&cache_key)
             && entry.shown.upgrade().is_some_and(|s| Rc::ptr_eq(&s, shown_row))
@@ -257,7 +258,7 @@ impl View {
         }
         let shown: &Value = shown_row;
         let truth: Option<&Value> = truth_row.map(|t| &**t);
-        let shown_dto = Rc::new(shown_object);
+        let shown_dto = Rc::new(shown_object.clone());
         let reference = shown.get("ref").cloned().unwrap_or(Value::Null);
         let record = match truth {
             None => {

@@ -114,7 +114,8 @@ Reverse: not applicable.
 
 Decision: the Rust-core payload was built with `build-target.sh wasm32-eh` (emsdk at
 `/opt/emsdk-eh`, the archive pinned in `/workspaces/wasm32-eh-pin.json`), as the 2026-11-18
-CU-C7 built it. `build-target.sh wasm32` with the Rust core does not link: `wasm-ld` reports
+CU-C7 built it (`../../upstream-catchup-2026-11-18/reports/CU-C7.md:47` and `:108`).
+`build-target.sh wasm32` with the Rust core does not link: `wasm-ld` reports
 `undefined symbol: __cpp_exception` from `libepdf_wasm.a` (`payload-wasm32/payload.log`). The
 built payload was copied to `/workspaces/logs/CU-C6/payload-wasm32-eh/rust-core-lib/`, and
 `npm/wasm32/lib` was put back to the payload prep made, before the vector regeneration and the

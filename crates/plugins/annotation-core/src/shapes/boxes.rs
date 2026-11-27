@@ -1,8 +1,9 @@
 //! `shapes/box.ts`: the box family. Squares, circles, stamps and form
 //! widgets, and the kinds whose shape is their `rect` (note and attachment
 //! icons, links, an area redaction). A widget's box is the frame its contents
-//! are laid out in, and its turn a quarter turn (`/MK /R`). The moves, turns, scales and resizes of a
-//! turned box serve the text box and caret families too.
+//! are laid out in, and its turn a quarter turn (`/MK /R`). The moves,
+//! turns, scales and resizes of a turned box serve the text box and caret
+//! families too.
 
 use serde_json::Value;
 

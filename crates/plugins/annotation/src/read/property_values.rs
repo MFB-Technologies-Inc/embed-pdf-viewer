@@ -1,8 +1,9 @@
 //! `read/property-values.ts`: the values a style panel shows for a list of
-//! properties. Three read differently: the border's value is `borderStyle`,
+//! properties. Four read differently: the border's value is `borderStyle`,
 //! `dashArray` and `cloudyIntensity`; a text's font, size, colour,
-//! alignment and formats read as the text shows them; and the link is an
-//! attached link's target, not a field.
+//! alignment and formats read as the text shows them; the link is an
+//! attached link's target, not a field; and a form widget's orientation is
+//! its `rotation`, as the choice's value (`'0'` upright).
 
 use epdf_annotation_core::object::Json;
 use epdf_annotation_core::types::TextStyle;
