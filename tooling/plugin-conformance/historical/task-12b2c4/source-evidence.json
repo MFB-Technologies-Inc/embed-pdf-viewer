@@ -17,7 +17,7 @@
     "packages/engine/core/src/auth/scope/types.ts": "9464052cbffb7290bbc034d55ec3c74e178d3eef41d3b60dfaec3fc2bc68c3c7",
     "tooling/plugin-conformance/src/suites/actions.ts": "a462345db90f416302c0c11644c602dfd627aa1c715abcbdd28701da523c0ccf",
     "tooling/plugin-conformance/src/suites/actions-current-fixtures.ts": "4138e5c4ebc1cd09831e3281b2000eb755af36f4068d6b77b501c00f56af3764",
-    "tooling/plugin-conformance/src/suites/acrojs.ts": "90e13aa372fc8da6bcf8c080b462cc1c864d3a889cf1d7ed3bff38adb9644c6b"
+    "tooling/plugin-conformance/src/suites/acrojs.ts": "0c9fa4c7c45daa5c5e87901299ac127702ec28a0c3da42aacded5993ae5bf4cc"
   },
   "archiveHashes": {
     "original-actions.ts.txt": "859be9c7a47199490194841575c1753384aa793c7a6b85527a9cf5ee3319d3b3",
