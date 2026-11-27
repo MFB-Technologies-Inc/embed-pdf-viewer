@@ -165,10 +165,12 @@ impl Core {
                 placing.from,
                 placing.to,
                 Some(&policy),
+                // The box the sibling's commit places: the same call, the
+                // same page box, the same turn.
                 &PlacementFrame {
                     page_box: self.page_box_of(page),
-                    upright: None,
-                    display_rotation: None,
+                    upright: Some(tool.upright),
+                    display_rotation: placing.display_rotation,
                 },
             );
             let annotation = annotation_of_tool(model, &tool);
@@ -224,13 +226,22 @@ impl Core {
         value
     }
 
-    /// `previewPlacement(toolId, page, from, to)`.
-    pub fn preview_placement(&self, tool_id: &str, page: &Value, from: Point, to: Point) {
+    /// `previewPlacement(toolId, page, from, to, displayRotation)`: the
+    /// page's view at the press is what an upright tool lays its drag out by.
+    pub fn preview_placement(
+        &self,
+        tool_id: &str,
+        page: &Value,
+        from: Point,
+        to: Point,
+        display_rotation: Option<f64>,
+    ) {
         let placing = Rc::new(ForeignPlacement {
             tool_id: tool_id.to_string(),
             page: page.clone(),
             from,
             to,
+            display_rotation,
         });
         self.update_state(|s| set_placing(s, Some(placing)));
     }

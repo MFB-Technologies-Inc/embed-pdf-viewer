@@ -35,6 +35,12 @@ pub fn property_value(spec: &Value, sources: &PropertySources) -> Option<Value> 
     if key == "link" {
         return Some(nullish_or(sources.link.as_ref(), Value::Null));
     }
+    if key == "orientation" {
+        // A form widget's orientation is its `rotation`, as the choice's
+        // value (`'0'` upright): `String(data.rotation ?? 0)`.
+        let rotation = nullish_or(sources.data.get("rotation"), json!(0));
+        return Some(Value::String(epdf_annotation_core::json::string_of(&rotation)));
+    }
     if key == "borderStyle" {
         return Some(json!({
             "borderStyle": nullish_or(sources.data.get("borderStyle"), json!("solid")),

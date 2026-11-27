@@ -1023,7 +1023,13 @@ fn call_capability(a: &AnnotationCapability, method: &str, args: &[Value], h: &H
             undefined_outcome()
         }
         "previewPlacement" => {
-            a.preview_placement(&text(args, 0), &value(args, 1), point(args, 2), point(args, 3));
+            a.preview_placement(
+                &text(args, 0),
+                &value(args, 1),
+                point(args, 2),
+                point(args, 3),
+                args.get(4).and_then(Value::as_f64),
+            );
             undefined_outcome()
         }
         "clearPlacementPreview" => {

@@ -57,6 +57,9 @@ use serde_json::Value;
 
 pub use contract::{ARMED_STAMP_TOOL_ID, annotation_defaults};
 pub use controller::{AnnotationCapability, Core, create_annotation_controller};
+/// A form widget's Orientation, as the `box` and `rotation` an update takes
+/// (`orientationPatch`).
+pub use epdf_annotation_core::record::orientation_patch;
 pub use host_contract::*;
 pub use model::{AnnotationState, initial_annotation_state};
 pub use tools::definitions::{ResolvedTool, build_tool_registry, default_tools, tool_touch_of};

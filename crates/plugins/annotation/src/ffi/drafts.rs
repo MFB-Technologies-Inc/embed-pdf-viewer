@@ -466,6 +466,9 @@ impl AnnotationDraftsHandle {
                     &page_json(page),
                     geometry_point(from),
                     geometry_point(to),
+                    // The FFI takes no display rotation yet (CU-C6-D5): a
+                    // native drag previews as on an unturned page.
+                    None,
                 );
                 Ok(())
             })

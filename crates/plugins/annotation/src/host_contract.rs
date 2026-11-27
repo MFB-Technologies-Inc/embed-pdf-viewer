@@ -4,7 +4,7 @@
 
 use std::rc::Rc;
 
-use epdf_annotation_core::types::{Authority, Effect, Model, Painter};
+use epdf_annotation_core::types::{Authority, Effect, Model, Painter, RecordAccent};
 use epdf_kernel::rt::Promise;
 use epdf_kernel::signal::AbortSignal;
 use serde_json::Value;
@@ -64,6 +64,12 @@ pub trait AnnotationLender {
     fn pending(&self, reference: &Value) -> bool;
     /// How the lender draws the record live, or none.
     fn painter(&self, record: &Rc<Object>) -> Painter;
+    /// `accentOf(record)`: the color a record shows in beside its own look,
+    /// and how strong (a form field's group's); `None` for a record without
+    /// one. Read again whenever [`records`](Self::records) hands out new lists.
+    fn accent_of(&self, _record: &Object) -> Option<RecordAccent> {
+        None
+    }
     /// Its records' pictures on a page, at rest, in every state.
     fn render_appearances(
         &self,
@@ -88,6 +94,9 @@ impl crate::read::view::LentDrawing for LenderDrawing<'_> {
     }
     fn pending(&self, reference: &Value) -> bool {
         self.0.pending(reference)
+    }
+    fn accent_of(&self, record: &Object) -> Option<RecordAccent> {
+        self.0.accent_of(record)
     }
 }
 

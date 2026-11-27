@@ -243,17 +243,42 @@ impl Core {
         Promise::spawn(async move { throw_if_failed(&written.await?) })
     }
 
-    /// `selection.rotateBy(degrees, options)`.
+    /// `selectionPageBoxes()`: the box of each page the selection is on,
+    /// where a turn keeps what it turned.
+    fn selection_page_boxes(&self) -> Value {
+        let mut boxes = Map::new();
+        for record in self.selected_records() {
+            let page = record.page().object_number;
+            if let Some(bx) = self.page_box_of(page) {
+                boxes.insert(
+                    epdf_annotation_core::js::number_to_string(page),
+                    epdf_annotation_core::json::rect_value(bx),
+                );
+            }
+        }
+        Value::Object(boxes)
+    }
+
+    /// `selection.rotateBy(degrees, options)`: a quarter turn; what turned
+    /// stays on its page, moved the least that keeps it there.
     pub fn selection_rotate_by(&self, degrees: f64, signal: Option<AbortSignal>) -> Promise<()> {
         self.commit_and_throw(
-            json!({ "type": "rotateSelection", "degrees": crate::js::num(degrees) }),
+            json!({
+                "type": "rotateSelection",
+                "degrees": crate::js::num(degrees),
+                "pageBoxes": self.selection_page_boxes(),
+            }),
             signal,
         )
     }
 
-    /// `selection.resetRotation(options)`.
+    /// `selection.resetRotation(options)`: upright again, kept on its page
+    /// as `rotateBy()` keeps it.
     pub fn selection_reset_rotation(&self, signal: Option<AbortSignal>) -> Promise<()> {
-        self.commit_and_throw(json!({ "type": "resetRotation" }), signal)
+        self.commit_and_throw(
+            json!({ "type": "resetRotation", "pageBoxes": self.selection_page_boxes() }),
+            signal,
+        )
     }
 
     /// `selection.getAnchor()`.

@@ -17,7 +17,9 @@ use std::rc::Rc;
 use epdf_annotation_core::appearance::{drawn_after, source_of_confirmed, source_of_new};
 use epdf_annotation_core::engine::resolve::annotation_patch_between;
 use epdf_annotation_core::record::from_dto;
-use epdf_annotation_core::types::{Authority, ById, Id, Model, ModelAnnotation, Session, Source};
+use epdf_annotation_core::types::{
+    Authority, ById, Id, Model, ModelAnnotation, RecordAccent, Session, Source,
+};
 use serde_json::Value;
 
 use crate::js::{Object, key_of};
@@ -65,6 +67,16 @@ pub trait LentDrawing {
     fn authority(&self, record: &Object) -> Authority;
     fn painter(&self, record: &Rc<Object>) -> epdf_annotation_core::types::Painter;
     fn pending(&self, reference: &Value) -> bool;
+    fn accent_of(&self, record: &Object) -> Option<RecordAccent>;
+}
+
+/// `sameAccent(left, right)`: none on both sides, or the same color as strong.
+fn same_accent(left: Option<&RecordAccent>, right: Option<&RecordAccent>) -> bool {
+    match (left, right) {
+        (None, None) => true,
+        (Some(l), Some(r)) => l.color == r.color && l.strength == r.strength,
+        _ => false,
+    }
 }
 
 /// What one page's slice of the model is made of.
@@ -105,10 +117,12 @@ impl PageParts {
 }
 
 /// A cached lent record: its shown row (held weakly, as a `WeakMap` key is),
-/// the confirmed row it was made from, and the record.
+/// the confirmed row it was made from, the accent its lender gives it, and
+/// the record.
 struct LentEntry {
     shown: std::rc::Weak<Value>,
     truth: Option<Rc<Value>>,
+    accent: Option<RecordAccent>,
     record: Rc<ModelAnnotation>,
 }
 
@@ -227,6 +241,8 @@ impl View {
         truth_row: Option<&Rc<Value>>,
         lender: &dyn LentDrawing,
     ) -> Option<Rc<ModelAnnotation>> {
+        let shown_object = shown_row.as_object().cloned().unwrap_or_default();
+        let accent = lender.accent_of(&shown_object);
         let cache_key = Rc::as_ptr(shown_row);
         if let Some(entry) = self.lent.borrow().get(&cache_key)
             && entry.shown.upgrade().is_some_and(|s| Rc::ptr_eq(&s, shown_row))
@@ -235,12 +251,13 @@ impl View {
                 (Some(a), Some(b)) => Rc::ptr_eq(a, b),
                 _ => false,
             }
+            && same_accent(entry.accent.as_ref(), accent.as_ref())
         {
             return Some(entry.record.clone());
         }
         let shown: &Value = shown_row;
         let truth: Option<&Value> = truth_row.map(|t| &**t);
-        let shown_dto = Rc::new(shown.as_object().cloned().unwrap_or_default());
+        let shown_dto = Rc::new(shown_object);
         let reference = shown.get("ref").cloned().unwrap_or(Value::Null);
         let record = match truth {
             None => {
@@ -292,6 +309,10 @@ impl View {
                 record
             }
         };
+        let mut record = record;
+        if accent.is_some() {
+            record.accent = accent.clone();
+        }
         let record = Rc::new(record);
         let mut lent = self.lent.borrow_mut();
         lent.retain(|_, entry| entry.shown.strong_count() > 0);
@@ -300,6 +321,7 @@ impl View {
             LentEntry {
                 shown: Rc::downgrade(shown_row),
                 truth: truth_row.cloned(),
+                accent,
                 record: record.clone(),
             },
         );

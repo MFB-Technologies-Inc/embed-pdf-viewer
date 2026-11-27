@@ -11,8 +11,9 @@ use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
 use epdf_annotation_core::json::Object;
+use epdf_annotation_core::object::Json;
 use epdf_annotation_core::record::ref_of;
-use epdf_annotation_core::types::{Authority, Effect, Model, Painter};
+use epdf_annotation_core::types::{Authority, Effect, Model, Painter, RecordAccent};
 use epdf_kernel::Error;
 use epdf_kernel::rt::Promise;
 use epdf_kernel::signal::AbortSignal;
@@ -34,12 +35,34 @@ fn object_number_of(reference: &Value) -> f64 {
     }
 }
 
+/// What the lent lists are made from: the lending, the confirmed and the
+/// shown form, the groups and the tint. The groups and the tint are there for
+/// the accents (`accentOf`), which the annotation plugin reads again only
+/// when the lists are new.
+struct LentKey {
+    lending: bool,
+    confirmed: Rc<FieldIndex>,
+    shown: Rc<FieldIndex>,
+    groups: Rc<Vec<Value>>,
+    tint: Value,
+}
+
+impl LentKey {
+    fn same(&self, other: &LentKey) -> bool {
+        self.lending == other.lending
+            && Rc::ptr_eq(&self.confirmed, &other.confirmed)
+            && Rc::ptr_eq(&self.shown, &other.shown)
+            && Rc::ptr_eq(&self.groups, &other.groups)
+            && self.tint == other.tint
+    }
+}
+
 /// The form plugin's lender. The lent lists keep their identity while the
-/// form and the lending don't change, as the TypeScript's `memo` does.
+/// form, the lending, the groups and the tint don't change, as the
+/// TypeScript's `memo` does.
 pub struct FormLender {
     core: Weak<Core>,
-    #[allow(clippy::type_complexity)]
-    memo: RefCell<Option<(bool, Rc<FieldIndex>, Rc<FieldIndex>, Option<LentRecords>)>>,
+    memo: RefCell<Option<(LentKey, Option<LentRecords>)>>,
 }
 
 impl FormLender {
@@ -104,18 +127,27 @@ impl AnnotationLender for FormLender {
 
     fn records(&self) -> Option<LentRecords> {
         let core = self.core()?;
-        let lending = core.lending();
-        let (confirmed, shown) = (core.truth(), core.view());
-        if let Some((l, c, s, records)) = &*self.memo.borrow()
-            && *l == lending
-            && Rc::ptr_eq(c, &confirmed)
-            && Rc::ptr_eq(s, &shown)
+        let key = LentKey {
+            lending: core.lending(),
+            confirmed: core.truth(),
+            shown: core.view(),
+            groups: core.list_groups(),
+            tint: core
+                .settings_now()
+                .get("fields")
+                .and_then(|f| f.get("tint"))
+                .cloned()
+                .unwrap_or(Value::Null),
+        };
+        if let Some((seen, records)) = &*self.memo.borrow()
+            && seen.same(&key)
         {
             return records.clone();
         }
-        let records = (lending && confirmed.snapshot.is_some() && shown.snapshot.is_some())
-            .then(|| LentRecords { confirmed: rows(&confirmed), shown: rows(&shown) });
-        *self.memo.borrow_mut() = Some((lending, confirmed, shown, records.clone()));
+        let (confirmed, shown) = (&key.confirmed, &key.shown);
+        let records = (key.lending && confirmed.snapshot.is_some() && shown.snapshot.is_some())
+            .then(|| LentRecords { confirmed: rows(confirmed), shown: rows(shown) });
+        *self.memo.borrow_mut() = Some((key, records.clone()));
         records
     }
 
@@ -191,6 +223,20 @@ impl AnnotationLender for FormLender {
 
     fn pending(&self, reference: &Value) -> bool {
         self.core().is_some_and(|core| core.widget_is_pending(reference))
+    }
+
+    /// `accentOf(record)`: the accent of the group of the record's field,
+    /// `fields.tint` strong; `None` for a widget in no group, and at tint 0.
+    fn accent_of(&self, record: &Object) -> Option<RecordAccent> {
+        let core = self.core()?;
+        let index = core.view();
+        let reference = record.get("ref").unwrap_or(&Value::Null);
+        let group_id = field_for_widget(&index, object_number_of(reference))
+            .and_then(|field| get(field, "groupId"))
+            .and_then(Value::as_str)
+            .map(str::to_string);
+        let look = core.group_look_of(group_id.as_deref())?;
+        RecordAccent::from_json(Some(&look.accent)).ok()
     }
 
     fn painter(&self, record: &Rc<Object>) -> Painter {

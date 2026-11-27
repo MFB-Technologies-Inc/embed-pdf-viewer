@@ -16,8 +16,11 @@
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
-use epdf_annotation_core::placement::{GestureForm, PlacementFrame, gesture_placement};
+use epdf_annotation_core::placement::{
+    GestureForm, PlacementFrame, gesture_placement, placed_box_fields,
+};
 use epdf_annotation_core::record::widget_appearance_of;
+use epdf_annotation_core::rect::standing_rect;
 use epdf_annotation_core::types::{ClickCreate, ClickPolicy, Placement};
 use epdf_geometry::{Point, Rect};
 use epdf_kernel::geometry::PageRef;
@@ -62,23 +65,14 @@ pub fn clamp_to_page(bx: Box, page: Box) -> Option<Box> {
 /// widget's placement states them (`placedBoxFields`), kept on the page: the
 /// rect the turned frame stands in is cut to the page (`clampToPage`), and
 /// the frame follows it. `None` when too little of it is on the page.
-/// `standingRect(box, deg)`: the upright rect a box stands in once turned
-/// `deg` about its middle: the box itself at 0 and 180, its sides swapped at
-/// 90 and 270, and the box around its turned corners at any other angle.
-/// Upstream's is `core/annotation`'s (`rect.ts`), which the Rust annotation
-/// core doesn't have yet (CU-C6 ports #1118's annotation half).
-fn standing_rect(bx: Rect, deg: f64) -> Rect {
-    use epdf_annotation_core::rect::{normalize_deg, rotated_aabb, transposed_about_center};
-    let turn = normalize_deg(deg);
-    if turn % 90.0 != 0.0 {
-        return rotated_aabb(bx, turn, None);
-    }
-    if turn % 180.0 == 0.0 { bx } else { transposed_about_center(bx) }
-}
-
 pub fn placed_on_page(rect: Box, rot: f64, page: Box) -> Option<(Box, Option<f64>)> {
-    // `placedBoxFields`: the box, and the turn, `null` upright.
-    let turn = if rot == 0.0 || rot.is_nan() { 0.0 } else { rot };
+    // `placedBoxFields`: the box, and the turn, `None` upright.
+    let (bx, rotation) = placed_box_fields(
+        Rect { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+        rot,
+    );
+    let rect = Box { x: bx.x, y: bx.y, width: bx.width, height: bx.height };
+    let turn = rotation.unwrap_or(0.0);
     let standing = |b: Box, deg: f64| {
         let r = standing_rect(Rect { x: b.x, y: b.y, width: b.width, height: b.height }, deg);
         Box { x: r.x, y: r.y, width: r.width, height: r.height }
@@ -282,12 +276,12 @@ impl InteractionHandler for PlaceHandler {
     }
 
     fn on_pointer_move(&self, sample: &PointerSample) {
-        let (page, start) = {
+        let (page, start, display_rotation) = {
             let mut origin = self.origin.borrow_mut();
             let Some(gesture) = origin.as_mut() else { return };
             let Some(point) = sample_point_on(sample, gesture.page) else { return };
             gesture.last = point;
-            (gesture.page, gesture.start)
+            (gesture.page, gesture.start, gesture.display_rotation)
         };
         if let Some(annotation) = &self.annotation {
             let point = self.origin.borrow().as_ref().map(|g| g.last).unwrap_or(start);
@@ -296,6 +290,7 @@ impl InteractionHandler for PlaceHandler {
                 &page.to_json(),
                 start,
                 point,
+                display_rotation,
             );
         }
     }

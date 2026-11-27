@@ -58,6 +58,9 @@ pub struct ForeignPlacement {
     pub page: Value,
     pub from: Point,
     pub to: Point,
+    /// The page's display rotation at the press (an upright tool lays its
+    /// drag out as seen).
+    pub display_rotation: Option<f64>,
 }
 
 impl ForeignPlacement {
@@ -67,6 +70,9 @@ impl ForeignPlacement {
         out.insert("page".into(), self.page.clone());
         out.insert("from".into(), point_json(self.from));
         out.insert("to".into(), point_json(self.to));
+        if let Some(r) = self.display_rotation {
+            out.insert("displayRotation".into(), num(r));
+        }
         Value::Object(out)
     }
 }
