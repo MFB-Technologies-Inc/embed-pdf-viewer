@@ -45,6 +45,8 @@ public typealias FormCreateFieldInput = EmbedPDFBindings.FormCreateFieldInput
 public typealias FormFieldPatch = EmbedPDFBindings.FormFieldPatch
 public typealias FormFieldPatchKey = EmbedPDFBindings.FormFieldPatchKey
 public typealias FormImportResult = EmbedPDFBindings.FormImportResult
+public typealias FormDuplicateOptions = EmbedPDFBindings.FormDuplicateOptions
+public typealias FormDuplicateResult = EmbedPDFBindings.FormDuplicateResult
 public typealias FormActivationResult = EmbedPDFBindings.FormActivationResult
 public typealias FormEvent = EmbedPDFBindings.FormEvent
 public typealias FormFocusOptions = EmbedPDFBindings.FormFocusOptions
@@ -286,6 +288,45 @@ public struct FormCapability: Sendable {
   {
     try await bridgedCancellable { token in
       try await handle.import(bundleJson: bundleJSON, optionsJson: optionsJSON, cancel: token)
+    }
+  }
+
+  /// Copy whole fields as one change, one step to undo. Each copy is a new
+  /// field named after its original (`email` becomes `email_2`), with its
+  /// settings, scripts and widgets. `options` puts the copied widgets on
+  /// another page, moves them by an offset in page points (`x` right, `y`
+  /// down), or keeps the originals' values; a copy starts empty otherwise.
+  ///
+  /// Throws `permission-denied` when the session may not change the form,
+  /// `not-found` for a field the form doesn't have, and `invalid-input` for
+  /// an offset that is not finite. Cancelling the task throws
+  /// `operation-cancelled`. A cancel that comes after the engine took the
+  /// change still throws, but the copies stay in the form: read the fields
+  /// again, or undo.
+  public func duplicate(
+    _ fields: [FormFieldRef], options: FormDuplicateOptions = FormDuplicateOptions()
+  ) async throws(PDFError) -> FormDuplicateResult {
+    try await bridgedCancellable { token in
+      try await handle.duplicate(fields: fields, options: options, cancel: token)
+    }
+  }
+
+  /// Copy widgets as a form designer's Duplicate does, as one step to undo:
+  /// a radio button's copy joins its group, and any other widget's copy is a
+  /// new field. The result lists the new widgets in the order of `widgets`.
+  /// `options` is read as `duplicate(_:options:)` reads it.
+  ///
+  /// Throws `permission-denied` when the session may not change the form,
+  /// `not-found` for a widget the form doesn't show, and `invalid-input` for
+  /// an offset that is not finite. Cancelling the task throws
+  /// `operation-cancelled`. A cancel that comes after the engine took the
+  /// change still throws, but the copies stay in the form: read the fields
+  /// again, or undo.
+  public func duplicateWidgets(
+    _ widgets: [AnnotationRef], options: FormDuplicateOptions = FormDuplicateOptions()
+  ) async throws(PDFError) -> FormDuplicateResult {
+    try await bridgedCancellable { token in
+      try await handle.duplicateWidgets(widgets: widgets, options: options, cancel: token)
     }
   }
 

@@ -88,6 +88,34 @@ extension BaseSuite {
       _ = try await redaction.pending()
     }
 
+    @Test func markMatchesStopsWhenCancelledMidCall() async throws {
+      let (_, _, redaction, search) = try await opened()
+      // Every hit of "e" on report.pdf: an uncancelled mark makes one per
+      // hit, which takes far longer than the cancel below allows.
+      let hits = try await search.findAll(SearchQuery(text: "e"), snippets: .never).count
+      try #require(hits > 100, "only \(hits) hits")
+      let clock = ContinuousClock()
+      let start = clock.now
+      let task = Task { try await redaction.markMatches(SearchQuery(text: "e")) }
+      try await Task.sleep(for: .milliseconds(300))
+      task.cancel()
+      let marks: [RedactionMark]?
+      do {
+        marks = try await task.value
+      } catch {
+        expectNoDifference((error as? PDFError)?.code, .operationCancelled)
+        marks = nil
+      }
+      let elapsed = clock.now - start
+      #expect(elapsed < .seconds(5), "the cancel took \(elapsed)")
+      // A cancel before the search finds a hit returns no marks rather than
+      // throwing, which a slow runner can hit; either way it never marks
+      // every hit.
+      if let marks { #expect(marks.count < hits, "\(marks.count) of \(hits) marked") }
+      let pending = try await redaction.pendingCount()
+      #expect(pending < hits)
+    }
+
     // One per member that takes a `CancelToken`, beyond `applyAll` and
     // `markMatches` above. Each is called in an already-cancelled task.
 

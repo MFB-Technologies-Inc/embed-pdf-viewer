@@ -1114,8 +1114,8 @@ handling locked tabs/passwords.
 
 ## Audited API coverage
 
-`swift-api-coverage.json` accounts for 860 public members across 31 Rust plugin-directory
-crates and the kernel: 724 mapped members and 136 explicit exclusions. The nine
+`swift-api-coverage.json` accounts for 873 public members across 31 Rust plugin-directory
+crates and the kernel: 737 mapped members and 136 explicit exclusions. The nine
 pure libraries are classified as owner-consumed code without fictional plugin APIs.
 The checker inventories public kernel `Documents` operations and `Kernel` methods,
 including viewer settings; internal kernel types are classified separately.

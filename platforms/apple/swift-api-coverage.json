@@ -824,6 +824,28 @@
     },
     {
       "crate": "annotation",
+      "path": "crates/plugins/annotation/src/read/annotations.rs",
+      "owner": "Core",
+      "symbol": "is_movable",
+      "export": {
+        "path": "crates/plugins/annotation/src/ffi/handle.rs",
+        "symbol": "is_movable"
+      },
+      "swift": {
+        "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Annotation.swift",
+        "symbol": "isMovable"
+      }
+    },
+    {
+      "crate": "annotation",
+      "path": "crates/plugins/annotation/src/read/annotations.rs",
+      "owner": "Core",
+      "symbol": "get_shared",
+      "exclusion": "Hands other Rust plugins the record as the store holds it, the same shared reference; a foreign caller can only receive a copy, which get already answers.",
+      "classification": "internal-resource"
+    },
+    {
+      "crate": "annotation",
       "path": "crates/plugins/annotation/src/read/chrome.rs",
       "owner": "Core",
       "symbol": "list_chrome_nodes",
@@ -978,6 +1000,20 @@
       "swift": {
         "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Annotation.swift",
         "symbol": "canDelete"
+      }
+    },
+    {
+      "crate": "annotation",
+      "path": "crates/plugins/annotation/src/services/authority.rs",
+      "owner": "Core",
+      "symbol": "can_duplicate",
+      "export": {
+        "path": "crates/plugins/annotation/src/ffi/handle.rs",
+        "symbol": "can_duplicate"
+      },
+      "swift": {
+        "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Annotation.swift",
+        "symbol": "canDuplicate"
       }
     },
     {
@@ -1334,6 +1370,20 @@
     },
     {
       "crate": "annotation",
+      "path": "crates/plugins/annotation/src/write/crud.rs",
+      "owner": "Core",
+      "symbol": "duplicate",
+      "export": {
+        "path": "crates/plugins/annotation/src/ffi/handle.rs",
+        "symbol": "duplicate"
+      },
+      "swift": {
+        "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Annotation.swift",
+        "symbol": "duplicate"
+      }
+    },
+    {
+      "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/drafts.rs",
       "owner": "Core",
       "symbol": "draft_get",
@@ -1570,9 +1620,29 @@
       "crate": "annotation",
       "path": "crates/plugins/annotation/src/write/measurement.rs",
       "owner": "Core",
-      "symbol": "remeasure_page",
-      "exclusion": "Annotation host rendering, text-editor or pointer/tool integration; native facade currently supports document CRUD, drafts, selection and threads, not the web chrome adapter.",
-      "classification": "host-presentation"
+      "symbol": "when_remeasurable",
+      "export": {
+        "path": "crates/plugins/annotation/src/ffi/handle.rs",
+        "symbol": "when_remeasurable"
+      },
+      "swift": {
+        "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Annotation.swift",
+        "symbol": "whenRemeasurable"
+      }
+    },
+    {
+      "crate": "annotation",
+      "path": "crates/plugins/annotation/src/write/measurement.rs",
+      "owner": "Core",
+      "symbol": "stage_remeasure",
+      "export": {
+        "path": "crates/plugins/annotation/src/ffi/handle.rs",
+        "symbol": "stage_remeasure"
+      },
+      "swift": {
+        "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Annotation.swift",
+        "symbol": "stageRemeasure"
+      }
     },
     {
       "crate": "annotation",
@@ -1830,6 +1900,34 @@
       "swift": {
         "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Annotation.swift",
         "symbol": "canUngroup"
+      }
+    },
+    {
+      "crate": "annotation",
+      "path": "crates/plugins/annotation/src/write/selection.rs",
+      "owner": "Core",
+      "symbol": "selection_duplicate",
+      "export": {
+        "path": "crates/plugins/annotation/src/ffi/selection.rs",
+        "symbol": "duplicate"
+      },
+      "swift": {
+        "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Annotation.swift",
+        "symbol": "duplicate"
+      }
+    },
+    {
+      "crate": "annotation",
+      "path": "crates/plugins/annotation/src/write/selection.rs",
+      "owner": "Core",
+      "symbol": "selection_can_duplicate",
+      "export": {
+        "path": "crates/plugins/annotation/src/ffi/selection.rs",
+        "symbol": "can_duplicate"
+      },
+      "swift": {
+        "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Annotation.swift",
+        "symbol": "canDuplicate"
       }
     },
     {
@@ -3432,6 +3530,34 @@
       "swift": {
         "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Form.swift",
         "symbol": "repair"
+      }
+    },
+    {
+      "crate": "form",
+      "path": "crates/plugins/form/src/write/fields.rs",
+      "owner": "Core",
+      "symbol": "duplicate",
+      "export": {
+        "path": "crates/plugins/form/src/ffi.rs",
+        "symbol": "duplicate"
+      },
+      "swift": {
+        "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Form.swift",
+        "symbol": "duplicate"
+      }
+    },
+    {
+      "crate": "form",
+      "path": "crates/plugins/form/src/write/fields.rs",
+      "owner": "Core",
+      "symbol": "duplicate_widgets",
+      "export": {
+        "path": "crates/plugins/form/src/ffi.rs",
+        "symbol": "duplicate_widgets"
+      },
+      "swift": {
+        "path": "platforms/apple/EmbedPDF/Sources/EmbedPDF/Plugins/Form.swift",
+        "symbol": "duplicateWidgets"
       }
     },
     {
