@@ -8,7 +8,7 @@ source files no generator imports, so c8 reports nothing for them. No cases were
 (CU-C3-D10); the job column says who adds them.
 
 This is plugin-side coverage only. The engine packages (`packages/engine/**`) are not measured by
-c8 here; their new behaviour is listed as engine cases in the work order (CU-C4 item 9).
+c8 here; their new behaviour is listed as engine cases in the work order (CU-C4 items 2 to 8 and 10).
 
 | Package | Uncovered added lines | What | Job |
 |---|---|---|---|

@@ -41,7 +41,8 @@ With those fixed, the generator stopped on two unanswered `apply` calls in
 
 ## Engine vectors
 
-`regen2x.sh` ran every engine generator twice on `3a587e088`: identical logs and identical sha256
+`regen2x.sh` ran every engine generator twice on the working tree that was then committed as
+`3a587e088`: identical logs and identical sha256
 lists over 64 files (`deterministic=yes`), every group `ok`. Seven files changed:
 
 | Files | Change | Upstream |
@@ -61,9 +62,9 @@ Nineteen vector files and `coverage.json` changed (`vector-casediff.log`, `vecto
 
 | Vector files | Change | Upstream |
 |---|---|---|
-| `plugins/{form-actions,form-core-lifecycle,form-design,form-fill,form-scripting,signature,stamp-api,stamp-placement}` | form session state gains `designGroup: null` and `groups: []` | `d6d7c25e2` (#1141) |
+| `plugins/{form-actions,form-core-lifecycle,form-design,form-fill,form-scripting,signature,stamp-api,stamp-placement}` | form session state gains `designGroup: null` and `groups: []`; in `form-core-lifecycle`, 13 input widget `box` paths move from 100 to their rect (10, 20, 24) | `d6d7c25e2` (#1141); CU-C3-D4 |
 | the same and `actions-*`, `core/acrojs` | engine field rows gain `purpose`, `format` | `833b40015` (#1147) |
-| `plugins/form-core` | `projectWidget` and fill items gain `ref`, `rotation`, `rect`, `groupId`, `canFill`, `required`, `empty`, `accent`; form tools gain `upright`; the session-group cases replaced | `23741e3fd` (#1118), `d6d7c25e2` (#1141), `fce760aeb` (#1140) |
+| `plugins/form-core` | `projectWidget` and fill items gain `ref`, `rotation`, `rect`, `groupId`, `canFill`, `required`, `empty`, `accent`; form tools gain `upright`; the session-group cases replaced; input widget `box` values move from 100 to their rect (0, 20, 10) | `23741e3fd` (#1118), `d6d7c25e2` (#1141), `fce760aeb` (#1140); CU-C3-D4 |
 | `plugins/form-design` | a placed widget is sent as its `box` | `23741e3fd` (#1118) |
 | `plugins/signature` | a mark is sent as its bytes (`appearance`), a clear as `null`; fixture widgets' box at their rect | `fcb69611f` (#1145); CU-C3-D4 |
 | `plugins/signature-functions` | `blank-page`, `blank-page-cached` removed | `fcb69611f` (#1145) |
@@ -115,11 +116,12 @@ The cargo failures by crate, cause and job, with every failing case, are in
 [`../results/CU-C3-coverage-gaps.md`](../results/CU-C3-coverage-gaps.md): 277 uncovered lines that the
 range added, in 17 files, and 3 upstream-touched files no generator loads. `plugin/form` has 236 of
 them (groups, the design group, Tab order, the control-attach API), `core/acrojs` 21, `core/annotation`
-16, `plugin/annotation` 4. The engine's new behaviour isn't measured by c8; CU-C4 item 9 lists it.
+16, `plugin/annotation` 4. The engine's new behaviour isn't measured by c8; CU-C4 items 2 to 8 and 10 list it.
 
 ## Work order
 
-Each item names its job. CU-C4 to CU-C6 run in parallel on their own branches from this tip, so the
+Each item names its job. CU-C4 to CU-C6 were planned in parallel from this tip; the controller's
+later ruling runs them in sequence instead: CU-C5 builds on CU-C4's tip and CU-C6 on CU-C5's. The
 work is split by crate, not only by PR (CU-C3-D9): CU-C4 owns `pdfium-sys`, `pdfium`, `epdf-engine`,
 `epdf-viewer-host` and `epdf-fonts`; CU-C5 owns `epdf-form-core`, `epdf-plugin-form`,
 `epdf-plugin-signature`, `epdf-signature-core` and `epdf-acrojs`; CU-C6 owns `epdf-annotation-core`,
@@ -128,6 +130,10 @@ and each half is listed under its owner. "Case" is a new engine vector case or p
 case; "replay" is an existing case that fails today.
 
 ### CU-C4: engine and runtime (#1157, #1145 engine half, #1150, #1159, #1152, #1151 engine half, and the engine halves of #1147, #1140, #1118)
+
+Replay stops at the first difference in each case, so every cause named here and in the results file
+is the first difference reported, not the only one. Stamp vectors, for example, also gained
+`purpose` and `format` in engine responses (`vector-diffpaths.log:298-316`).
 
 Failing now: the 6 `epdf-engine` tests in the results file (`change_ops` twice, `form_apply`,
 `form_field`, `form_reader`, `form_write`).

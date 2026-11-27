@@ -74,9 +74,10 @@ Decision: `crates/plugins/acrojs/prelude.js` is committed as the generator write
 added, 3 removed), the same bytes Job A saw.
 Reason: the change is `packages/core/acrojs/src/prelude.ts` from `833b40015` (#1147):
 `parseDateLoose` becomes `parseDateFrom` with `today` passed in, and the host gets a fixed
-`__acrojsParseDate` for the date keystroke check. The generator copies `PRELUDE_SOURCE` verbatim,
+`__acrojsParseDate` for the date keystroke check. `parseDateLoose` stays as a wrapper over
+`parseDateFrom(..., nowWall())`. The generator copies `PRELUDE_SOURCE` verbatim,
 so this is not tool drift.
-Cost: `epdf-plugin-acrojs` embeds the new prelude, and `core/acrojs.json` `prelude-source` changes
+Cost: `epdf-acrojs` embeds the new prelude, and `core/acrojs.json` `prelude-source` changes
 with it; any Rust test that pins the prelude's bytes moves too.
 Reverse: `git checkout a137ca2e6 -- crates/plugins/acrojs/prelude.js`, which then fails
 `vectors:check`.
@@ -93,8 +94,11 @@ CommonJS file in a `"type": "module"` package. Node 26.13.1 loads it as ESM and 
 `mise.toml`, `release-train.yml`), so the fix belongs in the port's own tooling, not in an older
 node. Upstream has no `c8`.
 Cost: the lockfile also moves `test-exclude` 7.0.2 to 8.0.0 and `glob` to 13.0.6 under it, and
-pnpm's re-resolution moves `semver` 7.7.4 to 7.8.6 (2026-11-02) for four unrelated importers and
-swaps the peer suffixes of two `nextra@4.6.1` entries.
+pnpm's re-resolution moves four transitive snapshots (`@parcel/node-resolver-core`,
+`editorconfig`, `is-bun-module`, and `jsonwebtoken`'s optional dependency) from `semver` 7.7.4 to
+7.8.6, a version already in the lockfile at `a137ca2e6`. It also swaps the peer suffixes of two
+`nextra@4.6.1` entries, which drops a dangling `next@15.5.12(@opentelemetry...)` key that Job A's
+merge had left.
 Reverse: revert the two files; `coverage:check` then needs node 22.
 
 ## CU-C3-D7. The wire vector's flipped union order is kept

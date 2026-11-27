@@ -8,6 +8,9 @@ touches no vector, so the count holds there. The crate of each test binary comes
 --no-run --message-format=json` (`scripts/cargo-by-crate.py`, which now also reads cargo's
 `build/<pkg>/<hash>/out/` layout), the replayed cases from the "N of M cases differ" blocks of the
 same log (`scripts/cu-c3/replay-cases.py`). `replay:check` reports the same 13 vector files.
+Replay stops at the first difference in each case, so the cause column gives the first difference
+reported; a case can differ in more (stamp vectors also gained `purpose` and `format` in engine
+responses, `vector-diffpaths.log:298-316`).
 
 The job column routes by crate (CU-C3-D9): C is CU-C4 (`epdf-engine`, `pdfium-sys`, `pdfium`,
 `epdf-fonts`), D is CU-C5 (`epdf-form-core`, `epdf-plugin-form`, `epdf-plugin-signature`,
