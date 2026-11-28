@@ -1896,6 +1896,7 @@ public final class com/embedpdf/FormCapability {
 	public final fun resetSettings (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun selectedField (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun selectedFields (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setButtonImage (Luniffi/epdf_ffi/FormFieldRef;[BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun setDesignGroup (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun setGroups (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun setValue (Luniffi/epdf_plugin_form/FormValueInput;Luniffi/epdf_ffi/FormFieldRef;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;

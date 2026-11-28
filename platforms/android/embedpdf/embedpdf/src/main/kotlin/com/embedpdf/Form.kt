@@ -60,6 +60,15 @@ public typealias FormFieldDetailSignature = uniffi.epdf_plugin_form.FormFieldDet
 public typealias FormFieldDetailUnknown = uniffi.epdf_plugin_form.FormFieldDetail.Unknown
 public typealias FormWidget = uniffi.epdf_plugin_form.FormWidget
 public typealias FormWidgetRecord = uniffi.epdf_plugin_form.FormWidgetRecord
+
+/**
+ * How a push button's widget lays out its caption and its picture (`/MK /TP`): the seven layouts
+ * of ISO 32000-2 Table 192. [FormWidgetRecord.layout] is `null` for every other widget.
+ */
+public typealias FormWidgetLayout = uniffi.epdf_plugin_form.FormWidgetLayout
+
+/** What [FormCapability.setButtonImage] wrote: the field now, and the widgets it drew again. */
+public typealias FormFieldUpdateResult = uniffi.epdf_plugin_form.FormFieldUpdateResult
 public typealias FormCalculationPosition = uniffi.epdf_plugin_form.FormCalculationPosition
 public typealias FormCalculationPositionStart = uniffi.epdf_plugin_form.FormCalculationPosition.Start
 public typealias FormCalculationPositionEnd = uniffi.epdf_plugin_form.FormCalculationPosition.End
@@ -223,6 +232,17 @@ public class FormCapability internal constructor(
      */
     public suspend fun deleteWidget(widget: AnnotationRef): FormField? =
         viewer.callCancellable { token -> handle.deleteWidget(widget, token) }
+
+    /**
+     * Puts [image] in every widget of a push button, or with `null` takes it out (the engine's
+     * `doc.forms.setButtonImage`): a PNG, a JPEG or a one-page PDF, fitted whole inside each
+     * widget's border and shown as each widget's [FormWidgetRecord.layout] says. One change with
+     * one undo step; the form hears it as an update. It is filling in, gated by the fill
+     * permission or the field's group. Refused with `invalid-input` for a field of another
+     * family, `not-found` for one the form doesn't have.
+     */
+    public suspend fun setButtonImage(field: FormFieldRef, image: ByteArray?): FormFieldUpdateResult =
+        viewer.callCancellable { token -> handle.setButtonImage(field, image, token) }
 
     public suspend fun value(ref: FormFieldRef): FormValueInput? = viewer.call { handle.value(ref) }
 

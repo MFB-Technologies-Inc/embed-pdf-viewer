@@ -176,7 +176,43 @@ class DeviceViewerTest {
         viewer.destroy()
     }
 
+    /**
+     * The 2026-11-27b form surface through the device's library: a field every
+     * signer fills in, a push button laid out `image`, and a picture put in
+     * and taken out (CU-C7).
+     */
+    @Test
+    fun anyoneFieldsAndAPictureButtonWork() = onDevice {
+        val viewer = PdfViewer(ViewerConfig(interaction = true, annotation = "", form = FormConfig()))
+        viewer.start()
+        val document = viewer.open(DeviceFixture.bytes("report"), name = "report.pdf")
+        val page = viewer.pages(document)[0].page
+        val form = viewer.form(document)
+        form.refresh()
+        val initials = form.create(
+            FormCreateFieldInput(FormFieldFamily.TEXT, "initials_1", page, Rect(40.0, 60.0, 90.0, 30.0), forAnyone = true),
+        )
+        assertTrue(initials.forAnyone)
+        val button = form.create(
+            FormCreateFieldInput(
+                FormFieldFamily.PUSHBUTTON, "stamp", page, Rect(40.0, 120.0, 90.0, 30.0),
+                layout = FormWidgetLayout.IMAGE,
+            ),
+        )
+        assertEquals(FormWidgetLayout.IMAGE, form.widget(button.widgets[0].annotationRef!!)?.layout)
+        val filled = form.setButtonImage(button.fieldRef, PNG_HEX.chunked(2).map { it.toInt(16).toByte() }.toByteArray())
+        Log.i(TAG, "picture button: ${filled.field.detail}, ${filled.widgets.map { it.layout }}")
+        assertEquals(FormFieldDetailPushbutton(true), filled.field.detail)
+        assertEquals(FormFieldDetailPushbutton(false), form.setButtonImage(button.fieldRef, null).field.detail)
+        viewer.destroy()
+    }
+
     private companion object {
         const val TAG = "EmbedPdfDevice"
+
+        /** The 30 by 10 PNG `changes/picture-buttons.json` records as its `png`. */
+        const val PNG_HEX =
+            "89504e470d0a1a0a0000000d494844520000001e0000000a08020000002c1579780000001a4944415478da63f8cf" +
+                "c080073150223d6af4a8d1a34693220d0041772ae4eba757400000000049454e44ae426082"
     }
 }
