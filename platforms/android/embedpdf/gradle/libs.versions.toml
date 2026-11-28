@@ -18,7 +18,7 @@ robolectric = "4.16"
 # The models module's `PdfViewerViewModel`; no Compose.
 lifecycle = "2.9.4"
 # Test only: the activity PdfViewerViewModelTest recreates.
-androidx-activity = "1.10.1"
+androidx-activity = "1.13.0"
 androidx-test-core = "1.6.1"
 # Instrumented tests (src/androidTest) only, run on a device or emulator.
 androidx-test-runner = "1.7.0"
