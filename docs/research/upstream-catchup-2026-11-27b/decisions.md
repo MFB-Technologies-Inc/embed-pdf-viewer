@@ -147,3 +147,15 @@ The divergences accepted in earlier catch-ups stand as before
   `embedpdf` module with a lock-screen PIN set ahead. Cost: two counts are sums of reruns.
 - CU-C7-D12. The linux-x64 Jint deep-recursion failure is the start's too (6 of 6 at both ends).
   Cost: the linux-x64 row is not green and the cause is not known.
+
+## CU-C8: Swift ([record](decisions/CU-C8.md))
+
+- CU-C8-D1. The framework is built from 2026-11-27's `9472117ed` Apple slices; none rebuilt. Cost:
+  a local build, not a release's.
+- CU-C8-D2. `setButtonImage(_:image:)` is cancellable and `@discardableResult`, with no coverage
+  row, and gets a cancel test besides Kotlin's three. Cost: only the tests guard the call.
+- CU-C8-D3. The start's Swift counts are 2026-11-27 CU-C9's head; only coverage was rerun at
+  `0afd87825`. Cost: the start column is a day old.
+- CU-C8-D4. The signature route tests ran through `routes-bridge.py` to the helper in the
+  container. Cost: the start skipped them, so that row is not like for like.
+- CU-C8-D5. The iOS run used a simulator made for the job, deleted at cleanup. Cost: a cold boot.
