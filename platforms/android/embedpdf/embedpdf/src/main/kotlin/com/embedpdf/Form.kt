@@ -236,9 +236,10 @@ public class FormCapability internal constructor(
     /**
      * Puts [image] in every widget of a push button, or with `null` takes it out (the engine's
      * `doc.forms.setButtonImage`): a PNG, a JPEG or a one-page PDF, fitted whole inside each
-     * widget's border and shown as each widget's [FormWidgetRecord.layout] says. One change with
-     * one undo step; the form hears it as an update. It is filling in, gated by the fill
-     * permission or the field's group. Refused with `invalid-input` for a field of another
+     * widget's border and shown as each widget's [FormWidgetRecord.layout] says. It goes straight
+     * to the engine as one change, outside the history's undo ([HistoryCapability.undo]), so an
+     * undo after it steps back over the change before it, not the picture. The form hears it as
+     * an update. It is filling in, gated by the fill permission or the field's group. Refused with `invalid-input` for a field of another
      * family, `not-found` for one the form doesn't have.
      */
     public suspend fun setButtonImage(field: FormFieldRef, image: ByteArray?): FormFieldUpdateResult =

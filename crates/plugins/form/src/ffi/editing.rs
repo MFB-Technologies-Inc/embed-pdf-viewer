@@ -352,8 +352,10 @@ impl FormHandle {
     /// Put a picture in every widget of a push button, or with `None` take
     /// it out (`doc.forms.setButtonImage`): a PNG, a JPEG or a one-page PDF,
     /// fitted whole inside each widget's border and shown as each widget's
-    /// `layout` says. The engine's own verb, one change with one undo step;
-    /// the form hears it as an update. It is filling in, gated by
+    /// `layout` says. The engine's own verb: it goes straight to the engine
+    /// as one change, outside the history's undo (`HistoryHandle::undo`), so
+    /// an undo after it steps back over the change before it, not the
+    /// picture. The form hears it as an update. It is filling in, gated by
     /// `doc.forms.fill` or the field's group. Refused with
     /// `invalid-input` for a field of another family, `permission-denied`
     /// for one a signature locked or the session may not fill, `not-found`

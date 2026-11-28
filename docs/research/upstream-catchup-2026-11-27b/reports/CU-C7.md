@@ -105,7 +105,10 @@ The same uniffi records, so the generated Swift has them; the facade work is in
    `forAnyone` on `FormFieldPatch`.
 5. `setButtonImage(_ field: FormFieldRef, image: Data?) -> FormFieldUpdateResult` on the form
    capability, over `FormHandle.setButtonImage(fieldRef:image:cancel:)`.
-6. A test per call, as `PictureButtonsTests.cs` has. No `swift-api-coverage.json` row
+6. The doc on `setButtonImage` says what the Kotlin and C# docs say: "It goes straight to the
+   engine as one change, outside the history's undo (`HistoryCapability.undo`), so an undo after it
+   steps back over the change before it, not the picture." Not "one undo step".
+7. A test per call, as `PictureButtonsTests.cs` has. No `swift-api-coverage.json` row
    (CU-C7-D2), no `*_SINCE` constant and no D-1 deprecation.
 
 ## Evidence
@@ -124,6 +127,6 @@ Mac's under the job's scratch dir in `c7/logs/` (`dotnet-head-osx-arm64/`, `dotn
   differs.
 
 - `EmbedPDF.Runtime` `0.0.0-engine.1c26d987b4f53e5d` is unpublished; the pin moves at release prep.
-- A `set_button_image` call is not in the form plugin's undo history; the engine's `opId` undo is
-  not exposed (CU-C7-D2).
+- A `set_button_image` call is not in the history plugin's undo: `HistoryCapability.undo` after it
+  steps back over the change before it. The three docs say so since the fix round (CU-C7-D2).
 - win-x64: no Windows host.
