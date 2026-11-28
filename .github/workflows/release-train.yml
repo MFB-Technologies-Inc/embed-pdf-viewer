@@ -938,7 +938,7 @@ jobs:
     env:
       DRY_RUN: ${{ inputs.dry_run }}
       # renovate: datasource=npm depName=wrangler
-      WRANGLER_VERSION: 4.168.0
+      WRANGLER_VERSION: 4.169.0
     steps:
       - uses: actions/checkout@v7
         with:
