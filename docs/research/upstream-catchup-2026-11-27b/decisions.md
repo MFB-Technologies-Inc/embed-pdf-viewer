@@ -159,3 +159,24 @@ The divergences accepted in earlier catch-ups stand as before
 - CU-C8-D4. The signature route tests ran through `routes-bridge.py` to the helper in the
   container. Cost: the start skipped them, so that row is not like for like.
 - CU-C8-D5. The iOS run used a simulator made for the job, deleted at cleanup. Cost: a cold boot.
+
+## CU-C9: merge and release prep ([record](decisions/CU-C9.md))
+
+- CU-C9-D1. Plugins `7a4673b42` is merged as fetched, no conflict (`9d66eb489`). Cost: none.
+- CU-C9-D2. The container rows ran at `9d66eb489`; the later commits touch no Rust, vector or
+  evidence input. Cost: the table's commit is not the tip.
+- CU-C9-D3. The Swift runs use a framework rebuilt from the same `9472117ed` slices; the route tests
+  skip. Cost: a local framework, not the train's.
+- CU-C9-D4. The .NET (`0.0.0-engine.7dd0c2b9e60f92a1`) and Android
+  (`android-engine-1a68bff677299ac0`) pins name packages the train will publish. Cost: the pushed
+  tip names packages that don't exist until the train's publish jobs finish.
+- CU-C9-D5. The Swift notes name `apple-engine-44a23eb0573339c7` ahead of the train. Cost: wrong if
+  an Apple hash input changes before dispatch.
+- CU-C9-D6. `dotnet-engine.md` stays as it is. Cost: the C engine release doesn't describe the form
+  changes.
+- CU-C9-D7. Each platform's notes list that platform's breaks (C#: three positional records).
+  Cost: four notes that are not interchangeable.
+- CU-C9-D8. `rust-coverage.json` is regenerated in the container and committed on the host
+  (`37c92d414`). Cost: the commit was not made where the file was generated.
+- CU-C9-D9. The first iOS run's failure is the known attachment time limit; the rerun passed. Cost:
+  the train's simulator may hit it too.
