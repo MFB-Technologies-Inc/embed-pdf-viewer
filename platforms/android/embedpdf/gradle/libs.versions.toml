@@ -11,7 +11,7 @@ serialization = "1.9.0"
 junit = "4.13.2"
 json = "20250517"
 tracing = "1.2.0"
-androidx-annotation = "1.8.1"
+androidx-annotation = "1.11.0"
 # Declares minSdk 26; the javascript module's manifest overrides it and gates use at runtime.
 javascriptengine = "1.1.1"
 robolectric = "4.16"
