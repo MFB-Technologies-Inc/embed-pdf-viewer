@@ -13,8 +13,8 @@ let package = Package(
     targets: [
         .binaryTarget(
             name: "EmbedPDFBindings",
-            url: "https://github.com/MFB-Technologies-Inc/embed-pdf-viewer/releases/download/apple-engine-ca2421677d81b1d9/EmbedPDFBindings.xcframework.zip",
-            checksum: "0ef9812708db073f497ee910685875306ac57c721dfbe398a11fd6b575932d15"
+            url: "https://github.com/MFB-Technologies-Inc/embed-pdf-viewer/releases/download/apple-engine-44a23eb0573339c7/EmbedPDFBindings.xcframework.zip",
+            checksum: "e2e7a1ff7f04f087f9739acc88d43d39b90d083462c34f94058a69d87d1b15b3"
         ),
         .target(
             name: "EmbedPDF",
