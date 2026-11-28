@@ -14,7 +14,7 @@ tracing = "1.2.0"
 androidx-annotation = "1.8.1"
 # Declares minSdk 26; the javascript module's manifest overrides it and gates use at runtime.
 javascriptengine = "1.1.1"
-robolectric = "4.16"
+robolectric = "4.18.1"
 # The models module's `PdfViewerViewModel`; no Compose.
 lifecycle = "2.9.4"
 # Test only: the activity PdfViewerViewModelTest recreates.
