@@ -132,6 +132,28 @@ public enum FormFieldPatchKey
     GroupId,
 }
 
+/// <summary>
+/// How a push button's widget lays out its caption and its picture (<c>/MK /TP</c>): the seven
+/// layouts of ISO 32000-2 Table 192. Every other widget has none.
+/// </summary>
+public enum FormWidgetLayout
+{
+    /// <summary>The caption alone.</summary>
+    Caption,
+    /// <summary>The picture alone.</summary>
+    Image,
+    /// <summary>The caption below the picture.</summary>
+    CaptionBelow,
+    /// <summary>The caption above the picture.</summary>
+    CaptionAbove,
+    /// <summary>The caption to the right of the picture.</summary>
+    CaptionRight,
+    /// <summary>The caption to the left of the picture.</summary>
+    CaptionLeft,
+    /// <summary>The caption over the picture.</summary>
+    CaptionOver,
+}
+
 /// <summary>Which fields a user may fill.</summary>
 public abstract record FormFillable
 {
@@ -258,7 +280,8 @@ public abstract record FormFieldDetail
     public sealed record Listbox(IReadOnlyList<string> SelectedValues, bool MultiSelect, IReadOnlyList<FormChoiceOption> Options) : FormFieldDetail;
 
     /// <summary>A push button.</summary>
-    public sealed record Pushbutton : FormFieldDetail;
+    /// <param name="HasImage">Whether it holds a picture (<see cref="FormCapability.SetButtonImageAsync"/> puts one in or takes it out).</param>
+    public sealed record Pushbutton(bool HasImage) : FormFieldDetail;
 
     /// <summary>A signature field.</summary>
     public sealed record Signature(bool Signed) : FormFieldDetail;
@@ -304,11 +327,12 @@ public abstract record FormFieldFormat
 
 /// <summary>A form field.</summary>
 /// <param name="GroupId">Who fills it in: its group, or <see langword="null"/> for every user.</param>
+/// <param name="ForAnyone">Whether every signer fills it in, as initials and a date beside each signature are: never with a group, never on a signature field.</param>
 /// <param name="Purpose">What its value means (<c>email</c>, <c>date-signed</c>, a name the app chose), or <see langword="null"/>.</param>
 /// <param name="Format">A text field's or a dropdown's format, or <see langword="null"/>.</param>
 public sealed record FormField(
     FormFieldRef FieldRef, string Name, FormFieldFamily Family, bool Recovered, bool ReadOnly, bool Required, bool NoExport,
-    string? AlternateName, string? MappingName, string? GroupId, string? Purpose, FormFieldFormat? Format, FormFieldDetail Detail,
+    string? AlternateName, string? MappingName, string? GroupId, bool ForAnyone, string? Purpose, FormFieldFormat? Format, FormFieldDetail Detail,
     IReadOnlyList<FormWidget> Widgets, string FieldsJson);
 
 /// <summary>A document's form.</summary>
@@ -328,8 +352,14 @@ public sealed record FormValidationResult(bool Valid, IReadOnlyList<FormField> M
 /// <param name="AnnotationRef">Its annotation.</param>
 /// <param name="Page">Its page.</param>
 /// <param name="Bounds">Its box, page space.</param>
+/// <param name="Layout">A push button's layout of its caption and picture; <see langword="null"/> for every other widget.</param>
 /// <param name="FieldsJson">Its members, as JSON.</param>
-public sealed record FormWidgetRecord(AnnotationRef AnnotationRef, PageRef Page, PdfRect Bounds, string FieldsJson);
+public sealed record FormWidgetRecord(AnnotationRef AnnotationRef, PageRef Page, PdfRect Bounds, FormWidgetLayout? Layout, string FieldsJson);
+
+/// <summary>What <see cref="FormCapability.SetButtonImageAsync"/> wrote.</summary>
+/// <param name="Field">The field now.</param>
+/// <param name="Widgets">The widgets it drew again.</param>
+public sealed record FormFieldUpdateResult(FormField Field, IReadOnlyList<FormWidgetRecord> Widgets);
 
 /// <summary>Where calculations move to in the calculation order.</summary>
 public abstract record FormCalculationPosition
@@ -459,6 +489,9 @@ public sealed record FormWidgetPlacement
 
     /// <summary>A checkbox's or radio button's export value.</summary>
     public string? ExportValue { get; init; }
+
+    /// <summary>A push button's layout; left out, <see cref="FormWidgetLayout.Caption"/>. <see cref="PdfErrorCode.InvalidInput"/> for any other kind.</summary>
+    public FormWidgetLayout? Layout { get; init; }
 }
 
 /// <summary>A widget added to a field.</summary>
@@ -519,6 +552,12 @@ public sealed record FormCreateFieldInput(FormFieldFamily Family, string Name, P
 
     /// <summary>The group that fills it in; <see cref="PdfErrorCode.PermissionDenied"/> for a group the session may not put a field in.</summary>
     public string? GroupId { get; init; }
+
+    /// <summary><see langword="true"/> for a field every signer fills in; <see cref="PdfErrorCode.InvalidInput"/> with a group or on a signature field.</summary>
+    public bool? ForAnyone { get; init; }
+
+    /// <summary>A push button's widget layout; left out, <see cref="FormWidgetLayout.Caption"/>. <see cref="PdfErrorCode.InvalidInput"/> for any other kind.</summary>
+    public FormWidgetLayout? Layout { get; init; }
 }
 
 /// <summary>A change to a field. Null members keep their value.</summary>
@@ -548,6 +587,8 @@ public sealed record FormFieldPatch
     public FormFieldFormat? Format { get; init; }
     /// <summary>The group that fills it in; <see cref="PdfErrorCode.PermissionDenied"/> for a group the session may not put a field in.</summary>
     public string? GroupId { get; init; }
+    /// <summary>Whether every signer fills it in; <see langword="true"/> is <see cref="PdfErrorCode.InvalidInput"/> for a field in a group or a signature field.</summary>
+    public bool? ForAnyone { get; init; }
     /// <summary>The optional members to clear.</summary>
     public IReadOnlyList<FormFieldPatchKey>? Clear { get; init; }
 }

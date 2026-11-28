@@ -64,7 +64,7 @@ internal static partial class Ffi
         GO.FormFieldDetail.Radio r => new FormFieldDetail.Radio(r.Value, r.RadiosInUnison, r.NoToggleToOff),
         GO.FormFieldDetail.Combobox c => new FormFieldDetail.Combobox(c.Value, c.DefaultValue, c.Edit, Options(c.Options)),
         GO.FormFieldDetail.Listbox l => new FormFieldDetail.Listbox(l.SelectedValues, l.MultiSelect, Options(l.Options)),
-        GO.FormFieldDetail.Pushbutton => new FormFieldDetail.Pushbutton(),
+        GO.FormFieldDetail.Pushbutton p => new FormFieldDetail.Pushbutton(p.HasImage),
         GO.FormFieldDetail.Signature s => new FormFieldDetail.Signature(s.Signed),
         GO.FormFieldDetail.Unknown u => new FormFieldDetail.Unknown(u.RawValue),
         _ => throw Unknown(d),
@@ -100,7 +100,7 @@ internal static partial class Ffi
 
     internal static FormField ToPublic(GO.FormField f) => new(
         ToPublic(f.FieldRef), f.Name, (FormFieldFamily)(int)f.Family, f.Recovered, f.ReadOnly, f.Required, f.NoExport, f.AlternateName, f.MappingName,
-        f.GroupId, f.Purpose, ToPublic(f.Format), ToPublic(f.Detail),
+        f.GroupId, f.ForAnyone, f.Purpose, ToPublic(f.Format), ToPublic(f.Detail),
         [.. f.Widgets.Select(w => new FormWidget(
             w.AnnotationRef is { } a ? ToPublic(a) : null, WireInteger.ToInt(w.ObjectNumber, "widget object number"), w.Page is { } p ? ToPublic(p) : null,
             w.Toggle is { } t ? new FormToggleWidget(t.OnState, t.ExportValue, t.Checked) : null))],
@@ -113,7 +113,12 @@ internal static partial class Ffi
     internal static FormSnapshot ToPublic(GO.FormSnapshot s) => new(
         (FormKind)(int)s.FormKind, s.NeedsAppearances, Fields(s.Fields), [.. s.CalculationOrder.Select(r => r is null ? null : ToPublic(r))], s.WidgetsJson);
 
-    internal static FormWidgetRecord ToPublic(GO.FormWidgetRecord w) => new(ToPublic(w.AnnotationRef), ToPublic(w.Page), ToPublic(w.Bounds), w.FieldsJson);
+    internal static FormWidgetRecord ToPublic(GO.FormWidgetRecord w) => new(
+        ToPublic(w.AnnotationRef), ToPublic(w.Page), ToPublic(w.Bounds), w.Layout is { } l ? (FormWidgetLayout)(int)l : null, w.FieldsJson);
+
+    internal static FormFieldUpdateResult ToPublic(GO.FormFieldUpdateResult r) => new(ToPublic(r.Field), [.. r.Widgets.Select(ToPublic)]);
+
+    internal static GO.FormWidgetLayout? ToFfi(FormWidgetLayout? l) => l is { } layout ? (GO.FormWidgetLayout)(int)Defined(layout, "layout") : null;
 
     internal static GO.FormCalculationPosition ToFfi(FormCalculationPosition p) => p switch
     {
@@ -158,7 +163,7 @@ internal static partial class Ffi
     internal static FormWidgetHit ToPublic(GO.FormWidgetHit h) => new(
         WireInteger.ToInt(h.AnnotObjectNumber, "annotation object number"), ToPublic(h.Field), ToPublic(h.Bounds), ToPublic(h.Frame), h.Rotation);
 
-    internal static GO.FormWidgetPlacement ToFfi(FormWidgetPlacement p) => new(p.Page is { } page ? ToFfi(page) : null, p.Bounds is { } b ? ToFfi(b) : null, p.ExportValue);
+    internal static GO.FormWidgetPlacement ToFfi(FormWidgetPlacement p) => new(p.Page is { } page ? ToFfi(page) : null, p.Bounds is { } b ? ToFfi(b) : null, p.ExportValue, ToFfi(p.Layout));
 
     internal static FormCommitResult ToPublic(GO.FormCommitResult r) => new((FormCommitStatus)(int)r.Status, r.Scripted, r.Diagnostics, r.Error);
 
@@ -173,11 +178,11 @@ internal static partial class Ffi
 
     internal static GO.FormCreateFieldInput ToFfi(FormCreateFieldInput i) => new(
         ToFfi(i.Family), i.Name ?? throw new ArgumentException("A field needs its name."), ToFfi(i.Page), ToFfi(i.Bounds), ToFfi(i.Options), i.ExportValue,
-        i.Purpose, ToFfi(i.Format), i.GroupId);
+        i.Purpose, ToFfi(i.Format), i.GroupId, i.ForAnyone, ToFfi(i.Layout));
 
     internal static GO.FormFieldPatch ToFfi(FormFieldPatch p) => new(
         p.Name, p.ReadOnly, p.Required, p.NoExport, p.AlternateName, p.MappingName, p.DefaultValue, WireInteger.ToUInt32(p.MaxLength, "max length"),
-        ToFfi(p.Options), p.Purpose, ToFfi(p.Format), p.GroupId, [.. (p.Clear ?? []).Select(k => (GO.FormFieldPatchKey)(int)Defined(k, "patch key"))]);
+        ToFfi(p.Options), p.Purpose, ToFfi(p.Format), p.GroupId, p.ForAnyone, [.. (p.Clear ?? []).Select(k => (GO.FormFieldPatchKey)(int)Defined(k, "patch key"))]);
 
     internal static GO.FormDuplicateOptions ToFfi(FormDuplicateOptions? o) =>
         new(o?.Page is { } page ? ToFfi(page) : null, o?.Offset is { } offset ? ToFfiOffset(offset) : null, o?.Values ?? false);

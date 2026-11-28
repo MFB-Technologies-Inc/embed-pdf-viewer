@@ -166,6 +166,21 @@ public sealed class FormCapability : IDisposable
         return Ffi.ToPublic(await viewer.RunCancellable(token => handle.UpdateWidget(Ffi.ToFfi(widget), Ffi.WellFormed(patchJson, "widget patch"), token), cancellationToken).ConfigureAwait(false));
     }
 
+    /// <summary>
+    /// Puts a picture in every widget of a push button, or with <see langword="null"/> takes it out
+    /// (the engine's <c>doc.forms.setButtonImage</c>): a PNG, a JPEG or a one-page PDF, fitted whole
+    /// inside each widget's border and shown as each widget's <see cref="FormWidgetRecord.Layout"/>
+    /// says. One change with one undo step; the form hears it as an update. It is filling in,
+    /// gated by the fill permission or the field's group. <see cref="PdfErrorCode.InvalidInput"/>
+    /// for a field of another kind, <see cref="PdfErrorCode.NotFound"/> for one the form doesn't have.
+    /// </summary>
+    public async Task<FormFieldUpdateResult> SetButtonImageAsync(FormFieldRef field, ReadOnlyMemory<byte>? image, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(field);
+        var bytes = image is { } picture ? picture.ToArray() : null;
+        return Ffi.ToPublic(await viewer.RunCancellable(token => handle.SetButtonImage(Ffi.ToFfi(field), bytes, token), cancellationToken).ConfigureAwait(false));
+    }
+
     /// <summary>Deletes a widget; answers its field after, or <see langword="null"/> when the field went with it.</summary>
     public async Task<FormField?> DeleteWidgetAsync(AnnotationRef widget, CancellationToken cancellationToken = default)
     {
