@@ -1,4 +1,5 @@
 public import EmbedPDFBindings
+public import Foundation
 
 public typealias FormSettings = EmbedPDFBindings.FormSettings
 public typealias FormSettingsPatch = EmbedPDFBindings.FormSettingsPatch
@@ -39,6 +40,13 @@ public typealias RecordAccent = EmbedPDFBindings.RecordAccent
 public typealias FormFieldDetail = EmbedPDFBindings.FormFieldDetail
 public typealias FormWidget = EmbedPDFBindings.FormWidget
 public typealias FormWidgetRecord = EmbedPDFBindings.FormWidgetRecord
+/// How a push button's widget lays out its caption and its picture
+/// (`/MK /TP`): the seven layouts of ISO 32000-2 Table 192.
+/// `FormWidgetRecord.layout` is `nil` for every other widget.
+public typealias FormWidgetLayout = EmbedPDFBindings.FormWidgetLayout
+/// What `FormCapability.setButtonImage(_:image:)` wrote: the field now, and
+/// the widgets it drew again.
+public typealias FormFieldUpdateResult = EmbedPDFBindings.FormFieldUpdateResult
 public typealias FormCalculationPosition = EmbedPDFBindings.FormCalculationPosition
 public typealias FormToggleWidget = EmbedPDFBindings.FormToggleWidget
 public typealias FormChoiceOption = EmbedPDFBindings.FormChoiceOption
@@ -205,6 +213,22 @@ public struct FormCapability: Sendable {
   @discardableResult
   public func deleteWidget(_ widget: AnnotationRef) async throws(PDFError) -> FormField? {
     try await bridgedCancellable { token in try await handle.deleteWidget(widget: widget, cancel: token) }
+  }
+
+  /// Puts `image` in every widget of a push button, or with `nil` takes it
+  /// out (the engine's `doc.forms.setButtonImage`): a PNG, a JPEG or a
+  /// one-page PDF, fitted whole inside each widget's border and shown as each
+  /// widget's `FormWidgetRecord.layout` says. It goes straight to the engine
+  /// as one change, outside the history's undo (`HistoryCapability.undo()`),
+  /// so an undo after it steps back over the change before it, not the
+  /// picture. The form hears it as an update. It is filling in, gated by the
+  /// fill permission or the field's group. Throws `invalid-input` for a field
+  /// of another family, `not-found` for one the form doesn't have.
+  @discardableResult
+  public func setButtonImage(_ field: FormFieldRef, image: Data?) async throws(PDFError) -> FormFieldUpdateResult {
+    try await bridgedCancellable { token in
+      try await handle.setButtonImage(fieldRef: field, image: image, cancel: token)
+    }
   }
 
   public func value(of ref: FormFieldRef) async throws(PDFError) -> FormValueInput? {
