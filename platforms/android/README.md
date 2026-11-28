@@ -20,12 +20,12 @@ demo app does by default.
 | `minSdk` | 24 or later |
 | `compileSdk` | 36 or later |
 | ABIs | `arm64-v8a`, `x86_64` |
-| Built and checked with | AGP 9.5.2, Gradle 9.8.2, Kotlin 2.2.21, JDK 17 bytecode |
+| Built and checked with | AGP 9.5.3, Gradle 9.9.3, Kotlin 2.4.21, JDK 17 bytecode |
 | Compose BOM in the app | 2026.06.01 or earlier (Compose UI 1.11.4, Material 3 1.4.0) |
 
 The demo app builds with exactly the versions above. Older AGP and Kotlin
-versions were not tried. Kotlin 2.2.21's standard library comes in through
-the POMs, and a Kotlin compiler older than 2.1 can't read the libraries'
+versions were not tried. Kotlin 2.4.21's standard library comes in through
+the POMs, and a Kotlin compiler older than 2.3 can't read the libraries'
 metadata. A Compose BOM from 2026.08.00 on resolves Compose 1.12, which needs
 `compileSdk` 37, and `embedpdf-compose` hasn't been tested against it.
 
@@ -334,7 +334,7 @@ at the cost of x86_64 emulators and devices. Keep
 
 ## Products
 
-`platforms/android/embedpdf` is one Gradle build with a wrapper (Gradle 9.8.2)
+`platforms/android/embedpdf` is one Gradle build with a wrapper (Gradle 9.9.3)
 and a version catalog, `gradle/libs.versions.toml`. Its five library modules
 are the five artifacts; `smoke` is a test module.
 
@@ -1046,11 +1046,11 @@ library and adds the checksum check, which needs `kotlinc`:
 ```bash
 KOTLINC=/path/to/kotlinc \
 JNA_JAR=/path/to/jna-5.19.1.jar \
-COROUTINES_JAR=/path/to/kotlinx-coroutines-core-jvm-1.10.2.jar \
+COROUTINES_JAR=/path/to/kotlinx-coroutines-core-jvm-1.11.0.jar \
 bash platforms/android/test-command-context.sh
 ```
 
-This test uses JDK 21 and Kotlin 2.2.21. It builds the full host, generates
+This test uses JDK 21 and Kotlin 2.4.21. It builds the full host, generates
 every Kotlin component with the production `uniffi-bindgen` into
 `bindings/src/main/kotlin`, compiles them together through Gradle, and
 executes real command callbacks. It covers default JSON state, whole replacement including null,
