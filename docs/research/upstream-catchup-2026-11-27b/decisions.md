@@ -121,3 +121,29 @@ The divergences accepted in earlier catch-ups stand as before
 - CU-C6-D8. `cargo fmt --all --check`'s diffs in `crates/epdf-node/src/lib.rs` and
   `crates/pdfium/tests/documents.rs`, present at the start too, are left. Cost: a workspace-wide
   fmt check stays red.
+
+## CU-C7: browser, Kotlin and .NET ([record](decisions/CU-C7.md))
+
+- CU-C7-D1. `/workspaces/wt/CU-C7` shares `/workspaces/target`; edits and commits on the host.
+  Cost: CU-C2's next build there recompiles the touched crates.
+- CU-C7-D2. `set_button_image` is a `FormHandle` export over the engine's `apply`, with no `Core`
+  method and no coverage row; the browser keeps upstream's `doc.forms.setButtonImage`. Cost: the
+  call is outside the plugin's undo history, and only each platform's test guards it.
+- CU-C7-D3. Kotlin runs in `embed-pdf-1127b-x64` (amd64, Rosetta). Cost: emulated builds.
+- CU-C7-D4. The Android slices are 2026-11-27's local `9472117ed` build, checked against the
+  local pin. Cost: not a release's build.
+- CU-C7-D5. `layout` is on `FormWidgetRecord`, not `FormWidget`, where upstream keeps it. Cost: a
+  field alone doesn't carry its widgets' layouts.
+- CU-C7-D6. `Pushbutton` gains `has_image`; `FormField` and `FormWidgetRecord` gain a member.
+  Cost: a source break for positional construction on every platform.
+- CU-C7-D7. No `*_SINCE` constant and no `epdf-capi` change. Cost: none.
+- CU-C7-D8. The start's Kotlin and osx rows are 2026-11-27 CU-C8's head numbers; .NET linux-arm64
+  was rerun at `0afd87825`. Cost: those rows are a day old.
+- CU-C7-D9. The osx rows build `epdf-capi` with host cargo and scratch .NET. Cost: scratch installs,
+  deleted at cleanup.
+- CU-C7-D10. linux-x64 .NET installs SDK 11.0.100 in the amd64 container. Cost: emulated, not the
+  image's SDK.
+- CU-C7-D11. `SignatureRoutesTest` was rerun with CU-C2's built `dist`, and the emulator's
+  `embedpdf` module with a lock-screen PIN set ahead. Cost: two counts are sums of reruns.
+- CU-C7-D12. The linux-x64 Jint deep-recursion failure is the start's too (6 of 6 at both ends).
+  Cost: the linux-x64 row is not green and the cause is not known.
