@@ -827,12 +827,14 @@ test can't.
 ms with a 200 ms budget, after which the factory makes working realms again;
 two factories share one connection, which survives closing one of them;
 `document_actions.pdf`'s will-close script runs through `ActionsCapability`.
-Pressing `btn-chain` in `action_buttons_form.pdf` runs its JavaScript,
-ResetForm and JavaScript nodes, all `EXECUTED`, and resets `alpha`, but leaves
-the log field at "B". The TypeScript plugin's e2e
-(`packages/plugin/form/test/action-buttons.integration.test.ts`) expects "AB"
-for the same press: the second script doesn't see the first one's write. That
-is the Rust actions plugin rather than the sandbox, and it is not fixed here.
+Pressing `btn-chain` in `action_buttons_form.pdf` ran its JavaScript,
+ResetForm and JavaScript nodes, all `EXECUTED`, but left the log field at "B"
+where the TypeScript plugin's e2e
+(`packages/plugin/form/test/action-buttons.integration.test.ts`) expects "AB".
+The Rust engine read every ResetForm as having no `/Fields`, so the reset put
+back every field, the first script's "A" included (issue #39). The test now
+asserts "AB" and an untouched `beta`; it needs a device run against an engine
+built with that fix.
 
 `DeviceStageReaderTest` (3 tests): `StageReader` draws the document and names
 its pages "Page 1 of 14" and on; a drag pans the camera and a pinch zooms it
