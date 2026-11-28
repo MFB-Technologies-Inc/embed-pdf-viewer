@@ -1,5 +1,5 @@
 [toolchain]
-channel = "1.100.0"
+channel = "1.100.1"
 # rust-analyzer ships per toolchain. Without it here, the rustup shim fails with
 # "Unknown binary 'rust-analyzer'" after every channel bump, and editor/agent
 # LSP integrations silently lose Rust code intelligence.
