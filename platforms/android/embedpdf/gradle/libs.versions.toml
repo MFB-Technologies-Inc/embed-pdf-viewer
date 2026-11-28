@@ -3,7 +3,7 @@
 [versions]
 # AGP 9 compiles Kotlin itself; the Kotlin plugin below only raises the
 # compiler it brings (2.2.10) to the version the rest of the repository uses.
-agp = "9.5.2"
+agp = "9.5.3"
 kotlin = "2.2.21"
 jna = "5.19.1"
 coroutines = "1.10.2"
