@@ -11,11 +11,12 @@
 #   bash platforms/android/fetch-android-runtime.sh            # both slices
 #   bash platforms/android/fetch-android-runtime.sh android-x64
 #
-# RUNTIME_RELEASE_REPO selects the repository holding the release.
+# RUNTIME_RELEASE_REPO selects the repository holding the release. Runtime
+# releases are published to the viewer repo by .github/workflows/release-runtime.yml.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-REPO="${RUNTIME_RELEASE_REPO:-MFB-Technologies-Inc/embed-pdf-runtime}"
+REPO="${RUNTIME_RELEASE_REPO:-MFB-Technologies-Inc/embed-pdf-viewer}"
 OUT_DIR="${PDF_RUNTIME_LIB_DIR:-$ROOT/packages/engine/runtime/build/libpdfium}"
 CACHE="$ROOT/packages/engine/runtime/build/cache"
 
