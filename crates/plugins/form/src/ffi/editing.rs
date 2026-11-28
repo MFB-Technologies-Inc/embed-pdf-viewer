@@ -68,6 +68,9 @@ pub struct FormWidgetRecord {
     pub annotation_ref: AnnotationRef,
     pub page: PageRef,
     pub bounds: Rect,
+    /// A push button's layout of its caption and picture; `None` for every
+    /// other widget.
+    pub layout: Option<FormWidgetLayout>,
     pub fields_json: String,
 }
 
@@ -76,7 +79,41 @@ fn widget_out(value: &Value) -> Result<FormWidgetRecord, Error> {
         annotation_ref: AnnotationRef::from_json(&value["ref"])?,
         page: page_of(&value["page"])?,
         bounds: rect_of(&value["rect"]),
+        layout: FormWidgetLayout::from_json(value.get("layout")),
         fields_json: value.to_string(),
+    })
+}
+
+/// What `set_button_image` wrote (`FormFieldUpdateResult`): the field as it
+/// is now, and the rows of the widgets it drew again.
+#[derive(Clone, Debug, PartialEq, uniffi::Record)]
+pub struct FormFieldUpdateResult {
+    pub field: FormField,
+    pub widgets: Vec<FormWidgetRecord>,
+}
+
+/// The op `forms.setButtonImage`, with the picture as a payload.
+fn button_image_op(field_ref: &FormFieldRef, image: Option<&[u8]>) -> Value {
+    let image =
+        image.map_or(Value::Null, |bytes| epdf_kernel::bytes::Bytes(bytes.to_vec()).to_json());
+    json!({ "type": "forms.setButtonImage", "field": field_ref_json(field_ref), "image": image })
+}
+
+/// The one item of a one-op change, read as `FormFieldUpdateResult`.
+fn button_image_result(answer: &Value) -> Result<FormFieldUpdateResult, Error> {
+    let item = answer["items"].get(0).filter(|item| item["type"] == "forms.setButtonImage");
+    let Some(item) = item else {
+        let wrote = answer["items"].get(0).map_or("nothing".into(), |i| i["type"].to_string());
+        return Err(Error::engine("Unknown", format!("forms.setButtonImage wrote {wrote}")));
+    };
+    Ok(FormFieldUpdateResult {
+        field: FormField::from_json(&item["field"])?,
+        widgets: item["widgets"]
+            .as_array()
+            .map_or(&[][..], Vec::as_slice)
+            .iter()
+            .map(widget_out)
+            .collect::<Result<_, Error>>()?,
     })
 }
 
@@ -308,6 +345,34 @@ impl FormHandle {
                     })
                 },
                 |result| widget_out(&result["widget"]).map_err(ViewerError::from),
+            )
+            .await?
+    }
+
+    /// Put a picture in every widget of a push button, or with `None` take
+    /// it out (`doc.forms.setButtonImage`): a PNG, a JPEG or a one-page PDF,
+    /// fitted whole inside each widget's border and shown as each widget's
+    /// `layout` says. The engine's own verb, one change with one undo step;
+    /// the form hears it as an update. It is filling in, gated by
+    /// `doc.forms.fill` or the field's group. Refused with
+    /// `invalid-input` for a field of another family, `permission-denied`
+    /// for one a signature locked or the session may not fill, `not-found`
+    /// for a field the document doesn't have.
+    pub async fn set_button_image(
+        &self,
+        field_ref: FormFieldRef,
+        image: Option<Vec<u8>>,
+        cancel: Arc<CancelToken>,
+    ) -> Result<FormFieldUpdateResult, ViewerError> {
+        self.cap
+            .call_promise_cancellable(
+                cancel,
+                move |c| {
+                    let doc = open(c)?.doc_or_throw()?;
+                    let op = button_image_op(&field_ref, image.as_deref());
+                    Ok(doc.call("apply", None, vec![json!({ "ops": [op] })]))
+                },
+                |answer| button_image_result(&answer).map_err(ViewerError::from),
             )
             .await?
     }

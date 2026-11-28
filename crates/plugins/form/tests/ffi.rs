@@ -713,6 +713,8 @@ fn a_created_field_sends_its_purpose_format_and_group() {
         purpose: Some("date-signed".into()),
         format: Some(FormFieldFormat::Time { pattern: "HH:MM".into() }),
         group_id: Some("dana".into()),
+        for_anyone: None,
+        layout: None,
     };
     let _ = block_on(form.create(input, CancelToken::new()));
     let ops = sent(&thread);
@@ -930,4 +932,199 @@ fn a_native_target_that_takes_no_cursor_is_passed_over() {
     let _registration = block_on(form.attach_focus_target(widget_101(), empty.clone())).unwrap();
     assert!(!block_on(form.focus(text_ref(), None)).unwrap());
     assert_eq!(*empty.0.lock().unwrap(), vec![false]);
+}
+
+// ── CU-C7 (2026-11-27b): anyone fields and picture buttons ─────────────────
+
+/// A text field every signer fills in (1, widget 101) and a push button
+/// holding a picture (2, widget 102, laid out `image`). Every `apply` is
+/// kept in `SENT`; a `forms.setButtonImage` is answered as the engine
+/// answers it, the button holding a picture while the op carried one.
+fn picture_spec() -> TestSpec {
+    TestSpec::new(spec().engine)
+        .respond("forms.list", |_| {
+            Ok(Reply::value(json!({
+                "formKind": "acroform", "needsAppearances": false, "calculationOrder": [],
+                "fields": [anyone_text(), button(true)],
+                "widgets": [row(), button_row("image")],
+            })))
+        })
+        .respond("apply", |args| {
+            SENT.with(|s| s.borrow_mut().push(args[0]["ops"].clone()));
+            let op = &args[0]["ops"][0];
+            // The engine's own verb sends no options; the plugin's changes do.
+            let op_id = args.get(1).map_or(Value::Null, |options| options["opId"].clone());
+            let meta = json!({ "affectedPages": [page()], "cacheDelta": null, "opId": op_id,
+                "undoable": true });
+            let item = match op["type"].as_str() {
+                Some("forms.setButtonImage") => json!({ "type": "forms.setButtonImage",
+                    "field": button(!op["image"].is_null()), "widgets": [button_row("image")],
+                    "meta": meta }),
+                _ => json!({ "type": "forms.update", "field": anyone_text(), "widgets": [],
+                    "meta": meta }),
+            };
+            Ok(Reply { value: json!({ "items": [item], "meta": meta }), events: vec![] })
+        })
+}
+
+fn anyone_text() -> Value {
+    let mut field = text("Ada");
+    field["forAnyone"] = json!(true);
+    field
+}
+
+fn button(has_image: bool) -> Value {
+    json!({
+        "ref": { "kind": "objectNumber", "objectNumber": 2 }, "name": "initials",
+        "origin": "acroform", "readOnly": false, "required": false, "noExport": false,
+        "alternateName": null, "mappingName": null, "valueEntry": { "kind": "none" },
+        "defaultValueEntry": { "kind": "none" }, "groupId": null, "forAnyone": true,
+        "createdBy": null, "createdAt": null, "importedBy": null,
+        "widgets": [{ "ref": button_widget_json(), "objectNumber": 102, "page": page() }],
+        "kind": "pushbutton", "hasImage": has_image,
+    })
+}
+
+fn button_widget_json() -> Value {
+    json!({ "kind": "objectNumber", "page": page(), "objectNumber": 102 })
+}
+
+fn button_row(layout: &str) -> Value {
+    let mut row = row();
+    row["ref"] = button_widget_json();
+    row["field"] = json!({ "kind": "objectNumber", "objectNumber": 2 });
+    row["fieldKind"] = json!("pushbutton");
+    row["caption"] = json!(null);
+    row["layout"] = json!(layout);
+    row
+}
+
+fn picture_handle() -> (KernelThread<TestKernel>, Arc<FormHandle>) {
+    let thread = KernelThread::spawn(|_| {
+        TestKernel::open(
+            vec![
+                interaction_plugin(InteractionConfig::default()),
+                form_plugin(FormConfig { validation: Some(FormValidation::None) }.into()),
+            ],
+            picture_spec(),
+        )
+    })
+    .unwrap();
+    let post = thread.post();
+    let form = block_on(thread.call(move |k| FormHandle::new(k.capability(&FORM).unwrap(), post)))
+        .unwrap();
+    block_on(form.refresh(CancelToken::new())).unwrap();
+    (thread, form)
+}
+
+fn button_ref() -> FormFieldRef {
+    FormFieldRef::ObjectNumber { field_object_number: 2 }
+}
+
+#[test]
+fn a_field_reads_for_anyone_a_push_button_its_picture_and_a_widget_its_layout() {
+    use epdf_plugin_form::ffi::FormWidgetLayout;
+    let (_thread, form) = picture_handle();
+    let text = block_on(form.field(text_ref())).unwrap().unwrap();
+    assert!(text.for_anyone, "{text:?}");
+    let button = block_on(form.field(button_ref())).unwrap().unwrap();
+    assert_eq!(button.detail, FormFieldDetail::Pushbutton { has_image: true });
+    let widget = AnnotationRef::ObjectNumber {
+        page: PageRef { page_object_number: 1 },
+        annot_object_number: 102,
+    };
+    assert_eq!(
+        block_on(form.widget(widget)).unwrap().unwrap().layout,
+        Some(FormWidgetLayout::Image)
+    );
+    // Every widget but a push button's has no layout.
+    let text_widget = AnnotationRef::ObjectNumber {
+        page: PageRef { page_object_number: 1 },
+        annot_object_number: 101,
+    };
+    assert_eq!(block_on(form.widget(text_widget)).unwrap().unwrap().layout, None);
+}
+
+#[test]
+fn a_create_and_a_patch_send_for_anyone_and_a_placement_its_layout() {
+    use epdf_plugin_form::ffi::{FormWidgetLayout, FormWidgetPlacement};
+    let (thread, form) = picture_handle();
+    let _ = block_on(form.create(
+        FormCreateFieldInput {
+            family: epdf_ffi::FormFieldFamily::Pushbutton,
+            name: "stamp".into(),
+            page: PageRef { page_object_number: 1 },
+            bounds: epdf_ffi::Rect { x: 10.0, y: 100.0, width: 90.0, height: 30.0 },
+            options: None,
+            export_value: None,
+            purpose: None,
+            format: None,
+            group_id: None,
+            for_anyone: Some(true),
+            layout: Some(FormWidgetLayout::CaptionBelow),
+        },
+        CancelToken::new(),
+    ));
+    let _ = block_on(form.update(
+        text_ref(),
+        FormFieldPatch { for_anyone: Some(false), ..Default::default() },
+        CancelToken::new(),
+    ));
+    let _ = block_on(form.add_widget(
+        button_ref(),
+        FormWidgetPlacement {
+            bounds: Some(epdf_ffi::Rect { x: 10.0, y: 140.0, width: 90.0, height: 30.0 }),
+            layout: Some(FormWidgetLayout::CaptionOver),
+            ..Default::default()
+        },
+        CancelToken::new(),
+    ));
+    let ops = sent(&thread);
+    let of = |kind: &str| {
+        ops.iter()
+            .filter_map(Value::as_array)
+            .flatten()
+            .find(|op| op["type"] == kind)
+            .unwrap_or_else(|| panic!("{kind}: {ops:?}"))
+            .clone()
+    };
+    let created = of("forms.create");
+    assert_eq!(created["draft"]["forAnyone"], true, "{created}");
+    assert_eq!(created["draft"]["widgets"][0]["layout"], "caption-below", "{created}");
+    assert_eq!(of("forms.update")["patch"], json!({ "forAnyone": false }));
+    assert_eq!(of("forms.addWidget")["placement"]["layout"], "caption-over");
+}
+
+#[test]
+fn a_picture_goes_to_the_engine_as_one_set_button_image_op_and_null_takes_it_out() {
+    use epdf_plugin_form::ffi::FormWidgetLayout;
+    let (thread, form) = picture_handle();
+    let png = vec![0x89, b'P', b'N', b'G'];
+    let result =
+        block_on(form.set_button_image(button_ref(), Some(png), CancelToken::new())).unwrap();
+    assert_eq!(result.field.detail, FormFieldDetail::Pushbutton { has_image: true });
+    assert_eq!(result.widgets.len(), 1);
+    assert_eq!(result.widgets[0].layout, Some(FormWidgetLayout::Image));
+    let emptied = block_on(form.set_button_image(button_ref(), None, CancelToken::new())).unwrap();
+    assert_eq!(emptied.field.detail, FormFieldDetail::Pushbutton { has_image: false });
+    assert_eq!(
+        sent(&thread),
+        vec![
+            json!([{ "type": "forms.setButtonImage",
+                "field": { "kind": "objectNumber", "objectNumber": 2 },
+                "image": { "$bytes": "iVBORw==" } }]),
+            json!([{ "type": "forms.setButtonImage",
+                "field": { "kind": "objectNumber", "objectNumber": 2 }, "image": null }]),
+        ]
+    );
+}
+
+#[test]
+fn a_closed_document_refuses_a_picture() {
+    let (thread, form) = picture_handle();
+    block_on(thread.call(|k| k.close())).unwrap().unwrap();
+    let error =
+        block_on(form.set_button_image(button_ref(), None, CancelToken::new())).unwrap_err();
+    assert_eq!(code(&error), Some("instance-closed"));
+    assert!(sent(&thread).is_empty());
 }

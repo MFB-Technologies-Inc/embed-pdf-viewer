@@ -219,13 +219,62 @@ pub enum FormFieldDetail {
         multi_select: bool,
         options: Vec<FormChoiceOption>,
     },
-    Pushbutton,
+    /// A push button; `has_image` when it holds a picture
+    /// (`set_button_image` puts one in or takes it out).
+    Pushbutton {
+        has_image: bool,
+    },
     Signature {
         signed: bool,
     },
     Unknown {
         raw_value: String,
     },
+}
+
+/// How a push button's widget lays out its caption and its picture
+/// (`WidgetLayout`, `/MK /TP`): the seven layouts of ISO 32000-2 Table 192.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, uniffi::Enum)]
+pub enum FormWidgetLayout {
+    /// The caption alone.
+    Caption,
+    /// The picture alone.
+    Image,
+    CaptionBelow,
+    CaptionAbove,
+    CaptionRight,
+    CaptionLeft,
+    /// The caption over the picture.
+    CaptionOver,
+}
+
+impl FormWidgetLayout {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            FormWidgetLayout::Caption => "caption",
+            FormWidgetLayout::Image => "image",
+            FormWidgetLayout::CaptionBelow => "caption-below",
+            FormWidgetLayout::CaptionAbove => "caption-above",
+            FormWidgetLayout::CaptionRight => "caption-right",
+            FormWidgetLayout::CaptionLeft => "caption-left",
+            FormWidgetLayout::CaptionOver => "caption-over",
+        }
+    }
+
+    /// A row's layout; `None` for none (every widget but a push button's)
+    /// and for a name outside the seven.
+    pub(crate) fn from_json(value: Option<&Value>) -> Option<Self> {
+        Some(match value?.as_str()? {
+            "caption" => FormWidgetLayout::Caption,
+            "image" => FormWidgetLayout::Image,
+            "caption-below" => FormWidgetLayout::CaptionBelow,
+            "caption-above" => FormWidgetLayout::CaptionAbove,
+            "caption-right" => FormWidgetLayout::CaptionRight,
+            "caption-left" => FormWidgetLayout::CaptionLeft,
+            "caption-over" => FormWidgetLayout::CaptionOver,
+            _ => return None,
+        })
+    }
 }
 
 /// A text field's or a dropdown's format (`FormFieldFormat`): a date or a
@@ -283,6 +332,10 @@ pub struct FormField {
     pub mapping_name: Option<String>,
     /// Who fills it in: its group, or `None` for every user.
     pub group_id: Option<String>,
+    /// Whether every signer fills it in (`forAnyone`), as initials and a
+    /// date beside each signature are: never with a group, never on a
+    /// signature field.
+    pub for_anyone: bool,
     /// What the value means (`purpose`): `email`, `date-signed`, a name the
     /// app chose; `None` for none.
     pub purpose: Option<String>,
@@ -330,6 +383,10 @@ struct FieldDto {
     mapping_name: Option<String>,
     #[serde(default)]
     group_id: Option<String>,
+    #[serde(default)]
+    for_anyone: bool,
+    #[serde(default)]
+    has_image: bool,
     #[serde(default)]
     purpose: Option<String>,
     #[serde(default)]
@@ -404,7 +461,7 @@ impl FormField {
                 multi_select: dto.multi_select,
                 options: dto.options.clone(),
             },
-            FormFieldFamily::Pushbutton => FormFieldDetail::Pushbutton,
+            FormFieldFamily::Pushbutton => FormFieldDetail::Pushbutton { has_image: dto.has_image },
             FormFieldFamily::Signature => FormFieldDetail::Signature {
                 signed: dto.value_entry.get("kind").and_then(Value::as_str) != Some("none"),
             },
@@ -440,6 +497,7 @@ impl FormField {
             alternate_name: dto.alternate_name,
             mapping_name: dto.mapping_name,
             group_id: dto.group_id,
+            for_anyone: dto.for_anyone,
             purpose: dto.purpose,
             format: FormFieldFormat::from_json(&dto.format),
             detail,
@@ -912,6 +970,14 @@ pub struct FormCreateFieldInput {
     /// `permission-denied` for a group the session may not put a field in.
     #[uniffi(default = None)]
     pub group_id: Option<String>,
+    /// `true` for a field every signer fills in; `None` is `false`.
+    /// Refused with `invalid-input` with a group or on a signature field.
+    #[uniffi(default = None)]
+    pub for_anyone: Option<bool>,
+    /// A push button's widget layout; `None` is `Caption`. Refused for any
+    /// other family.
+    #[uniffi(default = None)]
+    pub layout: Option<FormWidgetLayout>,
 }
 
 impl FormCreateFieldInput {
@@ -921,6 +987,9 @@ impl FormCreateFieldInput {
         widget.insert("rect".into(), rect_json(self.bounds));
         if let Some(export_value) = &self.export_value {
             widget.insert("exportValue".into(), json!(export_value));
+        }
+        if let Some(layout) = self.layout {
+            widget.insert("layout".into(), json!(layout.as_str()));
         }
         let mut draft = Map::new();
         draft.insert("kind".into(), json!(self.family.as_str()));
@@ -940,6 +1009,9 @@ impl FormCreateFieldInput {
         if let Some(group_id) = &self.group_id {
             draft.insert("groupId".into(), json!(group_id));
         }
+        if let Some(for_anyone) = self.for_anyone {
+            draft.insert("forAnyone".into(), json!(for_anyone));
+        }
         Value::Object(draft)
     }
 }
@@ -954,6 +1026,10 @@ pub struct FormWidgetPlacement {
     pub bounds: Option<Rect>,
     #[uniffi(default = None)]
     pub export_value: Option<String>,
+    /// A push button's widget layout; `None` is `Caption`. Refused for any
+    /// other family.
+    #[uniffi(default = None)]
+    pub layout: Option<FormWidgetLayout>,
 }
 
 impl FormWidgetPlacement {
@@ -967,6 +1043,9 @@ impl FormWidgetPlacement {
         }
         if let Some(export_value) = &self.export_value {
             placement.insert("exportValue".into(), json!(export_value));
+        }
+        if let Some(layout) = self.layout {
+            placement.insert("layout".into(), json!(layout.as_str()));
         }
         Value::Object(placement)
     }
@@ -1013,6 +1092,10 @@ pub struct FormFieldPatch {
     /// group the session may not put a field in.
     #[uniffi(default = None)]
     pub group_id: Option<String>,
+    /// Whether every signer fills it in. `true` is refused with
+    /// `invalid-input` for a field in a group or a signature field.
+    #[uniffi(default = None)]
+    pub for_anyone: Option<bool>,
     #[uniffi(default = [])]
     pub clear: Vec<FormFieldPatchKey>,
 }
@@ -1034,7 +1117,7 @@ pub enum FormFieldPatchKey {
 impl FormFieldPatch {
     fn to_json(&self) -> Result<Value, Error> {
         let mut patch = Map::new();
-        let set: [(&str, Option<Value>); 12] = [
+        let set: [(&str, Option<Value>); 13] = [
             ("name", self.name.clone().map(Value::from)),
             ("readOnly", self.read_only.map(Value::from)),
             ("required", self.required.map(Value::from)),
@@ -1054,6 +1137,7 @@ impl FormFieldPatch {
             ("purpose", self.purpose.clone().map(Value::from)),
             ("format", self.format.as_ref().map(FormFieldFormat::to_json)),
             ("groupId", self.group_id.clone().map(Value::from)),
+            ("forAnyone", self.for_anyone.map(Value::from)),
         ];
         for (key, value) in set {
             if let Some(value) = value {

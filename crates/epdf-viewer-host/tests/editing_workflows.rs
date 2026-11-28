@@ -262,6 +262,8 @@ fn form_widget_changes_and_calculation_order_survive_save_and_reopen() {
                 purpose: None,
                 format: None,
                 group_id: None,
+                for_anyone: None,
+                layout: None,
             },
             CancelToken::new(),
         ))
@@ -315,6 +317,7 @@ fn form_widget_changes_and_calculation_order_survive_save_and_reopen() {
             page: Some(page),
             bounds: Some(Rect { x: 70.0, y: 130.0, width: 120.0, height: 24.0 }),
             export_value: None,
+            layout: None,
         },
         CancelToken::new(),
     ))
@@ -513,6 +516,8 @@ fn typed_purpose_format_groups_and_a_turned_widget_survive_save_and_reopen() {
             purpose: Some("date-signed".into()),
             format: Some(FormFieldFormat::Date { pattern: "yyyy-mm-dd".into() }),
             group_id: Some("dana".into()),
+            for_anyone: None,
+            layout: None,
         },
         CancelToken::new(),
     ))
@@ -614,6 +619,8 @@ fn a_lent_widget_shows_its_group_accent_and_turns_from_the_selection() {
             purpose: None,
             format: None,
             group_id: Some("dana".into()),
+            for_anyone: None,
+            layout: None,
         },
         CancelToken::new(),
     ))
@@ -650,4 +657,143 @@ fn a_lent_widget_shows_its_group_accent_and_turns_from_the_selection() {
     assert_eq!(rotation(&form), 90.0);
     block_on(selection.reset_rotation(CancelToken::new())).unwrap();
     assert_eq!(rotation(&form), 0.0);
+}
+
+/// The PNG `changes/picture-buttons.json` records as its `png`.
+fn picture_png() -> Vec<u8> {
+    let path = test_support::corpus::vectors_dir("changes").join("picture-buttons.json");
+    let vectors: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let hex = vectors["fixtures"]["png"].as_str().unwrap();
+    (0..hex.len()).step_by(2).map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap()).collect()
+}
+
+/// CU-C7 (2026-11-27b, #1163, #1165): through the native engine, a field
+/// every signer fills in, written by the typed create and patch; a push
+/// button laid out `image`, a second place `caption-below`, a picture put
+/// in and taken out with `set_button_image`, which the form hears; and
+/// all of it read back after a save.
+#[test]
+fn anyone_fields_and_a_picture_button_survive_save_and_reopen() {
+    use epdf_plugin_form::ffi::{FormFieldDetail, FormFieldPatch, FormWidgetLayout};
+    let host = host(config());
+    let document =
+        block_on(host.open_document(test_support::fixture(test_support::REPORT), options()))
+            .unwrap();
+    let form = block_on(host.form(document.id.clone())).unwrap();
+    block_on(form.refresh(CancelToken::new())).unwrap();
+    let page = block_on(host.pages(document.id.clone())).unwrap()[0].page;
+    let create = |family, name: &str, y, for_anyone, layout| {
+        block_on(form.create(
+            FormCreateFieldInput {
+                family,
+                name: name.into(),
+                page,
+                bounds: Rect { x: 40.0, y, width: 90.0, height: 30.0 },
+                options: None,
+                export_value: None,
+                purpose: None,
+                format: None,
+                group_id: None,
+                for_anyone,
+                layout,
+            },
+            CancelToken::new(),
+        ))
+    };
+    let initials = create(FormFieldFamily::Text, "initials_1", 60.0, Some(true), None).unwrap();
+    assert!(initials.for_anyone);
+    // A signature field is never for anyone.
+    let error =
+        create(FormFieldFamily::Signature, "sign_here", 100.0, Some(true), None).unwrap_err();
+    assert!(
+        matches!(&error, ViewerError::Kernel { code: Some(code), .. } if code == "invalid-input"),
+        "{error:?}"
+    );
+    let button = create(
+        FormFieldFamily::Pushbutton,
+        "stamp",
+        140.0,
+        Some(true),
+        Some(FormWidgetLayout::Image),
+    )
+    .unwrap();
+    assert_eq!(button.detail, FormFieldDetail::Pushbutton { has_image: false });
+    let first = button.widgets[0].annotation_ref.clone().unwrap();
+    assert_eq!(
+        block_on(form.widget(first.clone())).unwrap().unwrap().layout,
+        Some(FormWidgetLayout::Image)
+    );
+    // A layout goes on a push button only.
+    let error =
+        create(FormFieldFamily::Text, "caption", 180.0, None, Some(FormWidgetLayout::Image))
+            .unwrap_err();
+    assert!(
+        matches!(&error, ViewerError::Kernel { code: Some(code), .. } if code == "invalid-input"),
+        "{error:?}"
+    );
+    let added = block_on(form.add_widget(
+        button.field_ref.clone(),
+        FormWidgetPlacement {
+            page: Some(page),
+            bounds: Some(Rect { x: 140.0, y: 140.0, width: 90.0, height: 30.0 }),
+            export_value: None,
+            layout: Some(FormWidgetLayout::CaptionBelow),
+        },
+        CancelToken::new(),
+    ))
+    .unwrap();
+    let second = epdf_ffi::AnnotationRef::from_json(&value(&added.widget_json)["ref"]).unwrap();
+    assert_eq!(
+        block_on(form.widget(second.clone())).unwrap().unwrap().layout,
+        Some(FormWidgetLayout::CaptionBelow)
+    );
+    let filled = block_on(form.set_button_image(
+        button.field_ref.clone(),
+        Some(picture_png()),
+        CancelToken::new(),
+    ))
+    .unwrap();
+    assert_eq!(filled.field.detail, FormFieldDetail::Pushbutton { has_image: true });
+    assert_eq!(filled.widgets.len(), 2, "{filled:?}");
+    // Each widget keeps its layout.
+    let layouts: Vec<_> = filled.widgets.iter().map(|w| w.layout).collect();
+    assert!(layouts.contains(&Some(FormWidgetLayout::Image)), "{layouts:?}");
+    assert!(layouts.contains(&Some(FormWidgetLayout::CaptionBelow)), "{layouts:?}");
+    // The form hears the engine's update.
+    let heard = block_on(form.field(button.field_ref.clone())).unwrap().unwrap();
+    assert_eq!(heard.detail, FormFieldDetail::Pushbutton { has_image: true });
+    // A field of another family is refused.
+    let error = block_on(form.set_button_image(
+        initials.field_ref.clone(),
+        Some(picture_png()),
+        CancelToken::new(),
+    ))
+    .unwrap_err();
+    assert!(matches!(&error, ViewerError::Kernel { .. }), "{error:?}");
+    let updated = block_on(form.update(
+        initials.field_ref.clone(),
+        FormFieldPatch { for_anyone: Some(false), ..Default::default() },
+        CancelToken::new(),
+    ))
+    .unwrap();
+    assert!(!updated.for_anyone);
+    let saved = block_on(host.save(document.id.clone(), SaveMode::Incremental, CancelToken::new()))
+        .unwrap();
+    // Null takes the picture out of every widget.
+    let emptied =
+        block_on(form.set_button_image(button.field_ref.clone(), None, CancelToken::new()))
+            .unwrap();
+    assert_eq!(emptied.field.detail, FormFieldDetail::Pushbutton { has_image: false });
+    let reopened = block_on(host.open_document(saved, options())).unwrap();
+    let reopened_form = block_on(host.form(reopened.id.clone())).unwrap();
+    block_on(reopened_form.refresh(CancelToken::new())).unwrap();
+    let found = block_on(reopened_form.field(button.field_ref.clone())).unwrap().unwrap();
+    assert!(found.for_anyone);
+    assert_eq!(found.detail, FormFieldDetail::Pushbutton { has_image: true });
+    let found = block_on(reopened_form.field(initials.field_ref.clone())).unwrap().unwrap();
+    assert!(!found.for_anyone);
+    assert_eq!(
+        block_on(reopened_form.widget(second)).unwrap().unwrap().layout,
+        Some(FormWidgetLayout::CaptionBelow)
+    );
 }
