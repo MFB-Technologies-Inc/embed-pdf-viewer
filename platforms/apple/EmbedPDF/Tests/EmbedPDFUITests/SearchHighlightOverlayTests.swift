@@ -71,6 +71,49 @@ struct SearchHighlightOverlayTests {
     return renderer
   }
 
+  /// The image of a renderer `makeRenderer` builds, once two renderers in a
+  /// row draw the same pixels.
+  ///
+  /// The same view renders the same pixels every time, so two renders that
+  /// differ mean the renderer itself slipped. The first render of the test
+  /// process, on a loaded CI simulator, has come back slow with the
+  /// multiply-blended fill black, a color no model state draws, while the
+  /// white page around it was right. This waits out such a render without
+  /// knowing the expected color: an overlay that draws the wrong pixels draws
+  /// them every time and still fails the test. Each try builds a new
+  /// renderer, because a renderer keeps its first image until its content
+  /// changes.
+  func settledImage<Content: View>(
+    sourceLocation: SourceLocation = #_sourceLocation, _ makeRenderer: () -> ImageRenderer<Content>
+  ) async throws -> CGImage {
+    var image = try #require(makeRenderer().cgImage, sourceLocation: sourceLocation)
+    var pixels = try bitmap(of: image)
+    let deadline = ContinuousClock.now + .seconds(10)
+    while ContinuousClock.now < deadline {
+      let next = try #require(makeRenderer().cgImage, sourceLocation: sourceLocation)
+      let nextPixels = try bitmap(of: next)
+      if nextPixels == pixels { return next }
+      image = next
+      pixels = nextPixels
+      try await Task.sleep(for: .milliseconds(20))
+    }
+    Issue.record("no two renders in a row drew the same pixels for 10 seconds", sourceLocation: sourceLocation)
+    return image
+  }
+
+  /// `image` as 8-bit premultiplied sRGBA rows, from the top left.
+  func bitmap(of image: CGImage) throws -> [UInt8] {
+    let sRGB = try #require(CGColorSpace(name: CGColorSpace.sRGB))
+    let context = try #require(
+      CGContext(
+        data: nil, width: image.width, height: image.height, bitsPerComponent: 8,
+        bytesPerRow: image.width * 4, space: sRGB,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+    context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+    let bytes = try #require(context.data).assumingMemoryBound(to: UInt8.self)
+    return Array(UnsafeBufferPointer(start: bytes, count: image.height * context.bytesPerRow))
+  }
+
   /// The pixel at the middle of `hit`'s first line, as `page` shows it.
   func middle(of hit: SearchHit, in image: CGImage, page: StageVisiblePage, info: PageInfo) throws -> RGB {
     let quad = try #require(hit.segments.first).quad
@@ -83,15 +126,8 @@ struct SearchHighlightOverlayTests {
 
   /// The pixel at `(x, y)`, counted from the top left, in 8-bit sRGB.
   func pixel(in image: CGImage, x: Int, y: Int) throws -> RGB {
-    let sRGB = try #require(CGColorSpace(name: CGColorSpace.sRGB))
-    let context = try #require(
-      CGContext(
-        data: nil, width: image.width, height: image.height, bitsPerComponent: 8,
-        bytesPerRow: image.width * 4, space: sRGB,
-        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
-    context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
-    let bytes = try #require(context.data).assumingMemoryBound(to: UInt8.self)
-    let offset = y * context.bytesPerRow + x * 4
+    let bytes = try bitmap(of: image)
+    let offset = y * image.width * 4 + x * 4
     return RGB(red: Int(bytes[offset]), green: Int(bytes[offset + 1]), blue: Int(bytes[offset + 2]))
   }
 
@@ -115,7 +151,7 @@ struct SearchHighlightOverlayTests {
   func aHitIsFilledWhereItsWordIs() async throws {
     let s = try await searched()
     let page = visiblePage(s.info)
-    let image = try #require(renderer(SearchHighlightOverlay(model: s.model, visiblePage: page, info: s.info), on: page).cgImage)
+    let image = try await settledImage { renderer(SearchHighlightOverlay(model: s.model, visiblePage: page, info: s.info), on: page) }
     expectColor(try middle(of: s.other, in: image, page: page, info: s.info), RGB(0xffd500))
     // A corner of the page holds no hit.
     expectColor(try pixel(in: image, x: 1, y: 1), RGB(0xffffff))
@@ -126,7 +162,7 @@ struct SearchHighlightOverlayTests {
   func theActiveHitUsesTheActiveColour() async throws {
     let s = try await searched()
     let page = visiblePage(s.info)
-    let image = try #require(renderer(SearchHighlightOverlay(model: s.model, visiblePage: page, info: s.info), on: page).cgImage)
+    let image = try await settledImage { renderer(SearchHighlightOverlay(model: s.model, visiblePage: page, info: s.info), on: page) }
     expectColor(try middle(of: s.active, in: image, page: page, info: s.info), RGB(0xff9632))
     try await s.viewer.destroy()
   }
@@ -136,8 +172,9 @@ struct SearchHighlightOverlayTests {
     let s = try await searched()
     var elsewhere = visiblePage(s.info)
     elsewhere.page = PageRef(pageObjectNumber: s.info.page.pageObjectNumber + 1000)
-    let image = try #require(
-      renderer(SearchHighlightOverlay(model: s.model, visiblePage: elsewhere, info: s.info), on: elsewhere).cgImage)
+    let image = try await settledImage {
+      renderer(SearchHighlightOverlay(model: s.model, visiblePage: elsewhere, info: s.info), on: elsewhere)
+    }
     expectColor(try middle(of: s.active, in: image, page: elsewhere, info: s.info), RGB(0xffffff))
     try await s.viewer.destroy()
   }
@@ -149,8 +186,9 @@ struct SearchHighlightOverlayTests {
     let s = try await searched()
     let page = visiblePage(s.info)
     let gray = Color(.sRGB, red: 128 / 255, green: 128 / 255, blue: 128 / 255)
-    let image = try #require(
-      renderer(SearchHighlightOverlay(model: s.model, visiblePage: page, info: s.info), on: page, background: gray).cgImage)
+    let image = try await settledImage {
+      renderer(SearchHighlightOverlay(model: s.model, visiblePage: page, info: s.info), on: page, background: gray)
+    }
     // 0xffd500 multiplied by 0x808080.
     expectColor(try middle(of: s.other, in: image, page: page, info: s.info), RGB(red: 128, green: 107, blue: 0))
     try await s.viewer.destroy()
@@ -160,7 +198,7 @@ struct SearchHighlightOverlayTests {
   func aTurnedPageMapsTheHitWithThePage() async throws {
     let s = try await searched()
     let page = visiblePage(s.info, rotation: 90)
-    let image = try #require(renderer(SearchHighlightOverlay(model: s.model, visiblePage: page, info: s.info), on: page).cgImage)
+    let image = try await settledImage { renderer(SearchHighlightOverlay(model: s.model, visiblePage: page, info: s.info), on: page) }
     #expect(image.width > image.height)
     expectColor(try middle(of: s.active, in: image, page: page, info: s.info), RGB(0xff9632))
     expectColor(try middle(of: s.other, in: image, page: page, info: s.info), RGB(0xffd500))
@@ -199,7 +237,7 @@ struct SearchHighlightOverlayTests {
     let page = visiblePage(s.info)
     let overlay = SearchHighlightOverlay(
       model: s.model, visiblePage: page, info: s.info, color: Color(.sRGB, red: 1, green: 0, blue: 0))
-    let image = try #require(renderer(overlay, on: page).cgImage)
+    let image = try await settledImage { renderer(overlay, on: page) }
     expectColor(try middle(of: s.other, in: image, page: page, info: s.info), RGB(0xff0000))
     expectColor(try middle(of: s.active, in: image, page: page, info: s.info), RGB(0xff9632))
     try await s.viewer.destroy()
@@ -213,7 +251,7 @@ struct SearchHighlightOverlayTests {
       SearchSettingsPatch(highlight: SearchHighlightPatch(color: "var(--accent)", activeColor: "#ggg")))
     await s.model.refresh()
     expectNoDifference(s.model.highlight.color, "var(--accent)")
-    let image = try #require(renderer(SearchHighlightOverlay(model: s.model, visiblePage: page, info: s.info), on: page).cgImage)
+    let image = try await settledImage { renderer(SearchHighlightOverlay(model: s.model, visiblePage: page, info: s.info), on: page) }
     expectColor(try middle(of: s.other, in: image, page: page, info: s.info), RGB(0xffd500))
     expectColor(try middle(of: s.active, in: image, page: page, info: s.info), RGB(0xff9632))
     try await s.viewer.destroy()
@@ -305,24 +343,29 @@ struct SearchHighlightOverlayTests {
     try await expectObserved({ selection.rects[info.page]?.isEmpty == false }, equals: true) {}
     let page = visiblePage(info)
 
-    func drawn(_ content: some View) throws -> RGB {
-      let renderer = ImageRenderer(
-        content: ZStack(alignment: .topLeading) {
-          Color.white
-          content
-        }
-        .frame(width: page.transform.viewWidth, height: page.transform.viewHeight))
-      renderer.scale = 1
-      return try middle(of: hit, in: try #require(renderer.cgImage), page: page, info: info)
+    func drawn(_ content: some View) async throws -> RGB {
+      let image = try await settledImage {
+        let renderer = ImageRenderer(
+          content: ZStack(alignment: .topLeading) {
+            Color.white
+            content
+          }
+          .frame(width: page.transform.viewWidth, height: page.transform.viewHeight))
+        renderer.scale = 1
+        return renderer
+      }
+      return try middle(of: hit, in: image, page: page, info: info)
     }
     let highlights = SearchHighlightOverlay(model: search, visiblePage: page, info: info)
     let selected = TextSelectionOverlay(model: selection, visiblePage: page, info: info, activation: .longPress)
-    let underSelection = try drawn(ZStack(alignment: .topLeading) { highlights; selected })
+    let underSelection = try await drawn(ZStack(alignment: .topLeading) { highlights; selected })
     // The expected pixel differs from a page with no highlight and from a
     // highlight over the selection, so the comparison below sees both.
-    #expect(!underSelection.isClose(to: try drawn(selected)))
-    #expect(!underSelection.isClose(to: try drawn(ZStack(alignment: .topLeading) { selected; highlights })))
-    expectColor(try drawn(ReaderPageOverlay(session: session, page: page, overlay: EmptyView())), underSelection)
+    let selectionOnly = try await drawn(selected)
+    #expect(!underSelection.isClose(to: selectionOnly))
+    let overSelection = try await drawn(ZStack(alignment: .topLeading) { selected; highlights })
+    #expect(!underSelection.isClose(to: overSelection))
+    expectColor(try await drawn(ReaderPageOverlay(session: session, page: page, overlay: EmptyView())), underSelection)
     await reader.close()
   }
 
