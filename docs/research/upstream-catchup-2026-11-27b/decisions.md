@@ -9,9 +9,25 @@ Targets: upstream viewer `cda9e82a4984cd7edb1a69a8fe32b1d7e11693b8`, upstream ru
 (unchanged from the 2026-11-27 run). Starting points: plugins `0afd87825`, runtime pin `9472117ed`,
 which already merges `7f399f838`.
 
-## NEW DIVERGENCE
+## NEW DIVERGENCE (none observed by a vector); recorded Rust-only differences
 
-None recorded yet.
+No NEW DIVERGENCE. CU-C6 ran every Rust and Node row at the head (`0b55dab9f` for cargo, engine
+`:check`, clippy, TS and the wasm rows; `f69b5f3c5` for the evidence tests, the plugin checks and
+`replay:check`; `f69b5f3c5` and `22f7abd8c` for `rust-coverage:check`) against `0afd87825`, and
+nothing is worse: `replay:check` replays all 16,076 cases in 124 files, the evidence tests fail the
+same 2 as at the start, and `rust-coverage:check` passes once the record is regenerated
+([`reports/CU-C6.md`](reports/CU-C6.md)). The port jobs recorded one Rust-only difference, which no
+vector observes:
+
+- CU-C4-D4. `completeFormBundle`'s `withPurposeAndFormat` reads a row's `actions` as
+  `FieldActions<Value>`; actions of a shape that doesn't parse read as no format in Rust, where
+  upstream's `loneScriptOf` reads them as `other`. The rest of 2026-11-27 CU-C4-D9's `purpose`
+  divergence closes for parsed files (D-2).
+
+Failures at both `0afd87825` and the head, upstream-owned, so not divergences: the 2
+`current-suites.test.ts` evidence failures (the kept M27 NaN divergence, 2026-11-18 CU-C7), and the
+2 `@embedpdf/core-signature` OCSP fixtures whose answers expired `2026-11-25T00:00:00Z`
+(`packages/core/signature/test/revocation/interop.test.ts:82`, CU-C2 report).
 
 The divergences accepted in earlier catch-ups stand as before
 (`docs/research/upstream-catchup-2026-11-27/decisions.md`,
@@ -84,3 +100,24 @@ The divergences accepted in earlier catch-ups stand as before
   an anyone field, on upstream too.
 - CU-C5-D4. The op's wire resource keys and the placement schema tests are not ported. Cost: three
   schema tests.
+
+## CU-C6: Rust and Node integration ([record](decisions/CU-C6.md))
+
+- CU-C6-D1. Plugins' tip `e3d6e7fbc` is merged (`5a6d266dc`); release train `46080379002` was still
+  running, so a later Apple pin commit is the controller's to merge. Cost: one merge commit.
+- CU-C6-D2. The head runs in CU-C2's worktree with `/workspaces/target`; the start, and coverage on
+  each side, get target dirs of their own. Cost: 18.4 GB of target dirs for the job's length.
+- CU-C6-D3. The start's cargo, engine `:check`, plugin checks, TS and evidence rows are CU-C2's and
+  CU-C3's; clippy, `replay:check`, the wasm rows and coverage are measured here. Cost: the TS
+  baseline is not a `--force` run.
+- CU-C6-D4. The evidence archives are re-pinned by the 2026-11-27 sequence (`f69b5f3c5`), with no
+  witness changed and one `sourceHashes` digest replaced by hand. Cost: the archives move another
+  step from the bytes they were cut from.
+- CU-C6-D5. `drawing_for_format`'s PDF refusal reads "the appearance PDF could not be opened", as
+  upstream's `drawingFor` does. Cost: none.
+- CU-C6-D6. `vectors/rust-coverage.json` is regenerated (`22f7abd8c`): current at the start, stale
+  at the head. Cost: a 4,020-line record diff reviewed as a whole.
+- CU-C6-D7. The head's TS row is `turbo run test --force`. Cost: one full TS run.
+- CU-C6-D8. `cargo fmt --all --check`'s diffs in `crates/epdf-node/src/lib.rs` and
+  `crates/pdfium/tests/documents.rs`, present at the start too, are left. Cost: a workspace-wide
+  fmt check stays red.
