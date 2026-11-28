@@ -3,25 +3,15 @@
 //! `page_actions.pdf` carries an open action that is a JavaScript node
 //! chaining to a URI through `/Next`, and a close action that is a GoTo with
 //! an explicit `/XYZ` destination. Between them they cover the tree shape, two
-//! payload kinds and the destination reader.
-//!
-//! # What this build cannot read
-//!
-//! Hide targets, ResetForm fields, SubmitForm payloads and a URI's `/IsMap`
-//! all need accessors the pinned fork artifact does not export.
-//! `packages/engine/runtime/build/libpdfium/darwin-arm64/include/epdf_action.h`
-//! is from fork commit `e4174c4f9` and has no `EPDFAction_GetNodeTargetCount`;
-//! the fork's own source does. Those node kinds come back recognized and
-//! inert, which is the behaviour the TypeScript falls back to when it
-//! feature-detects the same getters as absent, and a test below pins that it
-//! is inert rather than degraded.
+//! payload kinds and the destination reader. `action_buttons_form.pdf` covers
+//! the target-list payloads: Hide `/T`, ResetForm `/Fields` and `/Flags`.
 
 use epdf_engine::features::actions::destination::PdfDestination;
-use epdf_engine::features::actions::reader::{ActionNodeKind, read_action_model};
+use epdf_engine::features::actions::reader::{ActionNodeKind, ActionTargetRef, read_action_model};
 use epdf_engine::features::actions::vocabulary::{
     ActionReadBudget, ActionReadBudgetTracker, ActionWarning,
 };
-use pdfium::{Document, Library, PageActionEvent};
+use pdfium::{AnnotationActionEvent, Document, Library, PageActionEvent};
 
 fn document() -> Document {
     let path =
@@ -150,29 +140,71 @@ fn one_budget_spans_several_models() {
     );
 }
 
-#[test]
-fn the_payloads_this_build_cannot_read_come_back_inert_not_degraded() {
-    // Hide, ResetForm and SubmitForm need accessors the pinned artifact does
-    // not export, so their payloads are absent. What must NOT happen is a
-    // degrade to Unknown: the node type is known, and reporting it as unknown
-    // would tell a consumer the document said something it did not.
-    //
-    // No fixture here carries one, so this asserts the shape of the mapping
-    // rather than reading a document. When the artifact gains the accessors,
-    // this test is what says the fallback is gone.
-    let inert: [ActionNodeKind; 3] = [
-        ActionNodeKind::Hide { targets: Vec::new(), hide: true },
-        ActionNodeKind::ResetForm { fields: None, exclude: false },
-        ActionNodeKind::SubmitForm { payload: None },
-    ];
-    for kind in &inert {
-        assert!(
-            !matches!(kind, ActionNodeKind::Unknown),
-            "an unreadable payload degraded a known node type to unknown",
-        );
+/// Every node of every widget's activation action in `action_buttons_form.pdf`.
+fn button_action_kinds() -> Vec<ActionNodeKind> {
+    let path = test_support::workspace_root()
+        .join("packages/engine/main/test/fixtures/action_buttons_form.pdf");
+    let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+    let document = Document::from_bytes(Library::acquire(), &bytes, None).expect("open fixture");
+    let page = document.page(0).expect("page 0");
+    let mut kinds = Vec::new();
+    fn walk(
+        node: &epdf_engine::features::actions::reader::ActionNode,
+        out: &mut Vec<ActionNodeKind>,
+    ) {
+        out.push(node.kind.clone());
+        for child in &node.next {
+            walk(child, out);
+        }
     }
-    // And the payload-dropped warning is reserved for a genuine degrade.
-    assert_ne!(ActionWarning::PayloadDropped, ActionWarning::Incomplete);
+    for index in 0..page.annotation_count() {
+        let annotation = page.annotation(index).expect("annotation");
+        let Some(model) =
+            document.annotation_action_model(&annotation, AnnotationActionEvent::Activate)
+        else {
+            continue;
+        };
+        let tree =
+            read_action_model(&model, &mut ActionReadBudgetTracker::default()).expect("read");
+        assert!(!tree.warnings.contains(&ActionWarning::PayloadDropped), "{:?}", tree.warnings);
+        walk(tree.root.as_ref().expect("a root node"), &mut kinds);
+    }
+    kinds
+}
+
+fn name(name: &str) -> ActionTargetRef {
+    ActionTargetRef::Name { name: name.into() }
+}
+
+#[test]
+fn a_reset_form_reads_its_fields_and_exclude_flag() {
+    // Reading `/Fields` as absent resets every field in the form, which is
+    // what wiped the first script's write in `btn-chain` (issue #39).
+    let kinds = button_action_kinds();
+    // btn-chain's middle node: include mode, alpha only.
+    assert!(
+        kinds.contains(&ActionNodeKind::ResetForm {
+            fields: Some(vec![name("alpha")]),
+            exclude: false
+        }),
+        "{kinds:?}",
+    );
+    // btn-reset: /Flags 1 excludes the listed fields.
+    assert!(
+        kinds.contains(&ActionNodeKind::ResetForm {
+            fields: Some(vec![name("alpha"), name("log")]),
+            exclude: true,
+        }),
+        "{kinds:?}",
+    );
+}
+
+#[test]
+fn a_hide_reads_its_targets_and_hide_flag() {
+    let kinds = button_action_kinds();
+    // btn-hide omits /H, which defaults to hiding; btn-show sets it false.
+    assert!(kinds.contains(&ActionNodeKind::Hide { targets: vec![name("alpha")], hide: true }));
+    assert!(kinds.contains(&ActionNodeKind::Hide { targets: vec![name("alpha")], hide: false }));
 }
 
 // --- G6: catalog-owned actions, against the TypeScript.

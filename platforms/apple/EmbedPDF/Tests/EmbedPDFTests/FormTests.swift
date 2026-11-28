@@ -328,6 +328,49 @@ extension BaseSuite {
       expectNoDifference(result.steps.first?.result.nodes.map(\.status), [.executed])
     }
 
+    /// `action_buttons_form.pdf`'s `btn-chain`: JavaScript appending "A" to
+    /// the log field, a ResetForm of `alpha`, then JavaScript appending "B".
+    /// The reset puts back `alpha` alone, so the log keeps the first write
+    /// (`packages/plugin/form/test/action-buttons.integration.test.ts`).
+    @Test func aChainedResetFormKeepsTheFirstScriptsWrite() async throws {
+      let viewer = try PDFViewer(
+        ViewerConfig(
+          interaction: true,
+          annotation: "",
+          form: FormConfig(validation: FormValidation.none),
+          actions: .forCurrentTimeZone(
+            openSequence: .off,
+            javascript: ActionsJavaScriptConfig(enabled: true, engine: JavaScriptCoreEngineFactory()))))
+      try await viewer.start()
+      let document = try await viewer.open(Fixture.data("action_buttons_form"))
+      let actions = try await viewer.actions(for: document)
+      let form = try await viewer.form(for: document)
+      try await form.refresh()
+      let fields = Dictionary(uniqueKeysWithValues: try await form.fields().map { ($0.name, $0) })
+      let log = try #require(fields["log"]).fieldRef
+      let alpha = try #require(fields["alpha"]).fieldRef
+      let beta = try #require(fields["beta"]).fieldRef
+      let chain = try #require(fields["btn-chain"])
+      let button = try #require(chain.widgets.first?.annotationRef)
+
+      var events = actions.events.makeAsyncIterator()
+      _ = try await form.activate(button)
+      var executed: ActionDispatchResult?
+      while executed == nil, let event = await events.next() {
+        if case .executed(let event) = event { executed = event.result }
+      }
+      let result = try #require(executed)
+      expectNoDifference(result.status, .executed)
+      expectNoDifference(
+        result.nodes.map { [$0.nodeType, "\($0.status)"] },
+        [["javascript", "executed"], ["reset-form", "executed"], ["javascript", "executed"]])
+      let values = [
+        try await form.value(of: alpha), try await form.value(of: beta), try await form.value(of: log),
+      ]
+      expectNoDifference(
+        values, [.value(value: "default-a"), .value(value: "filled-b"), .value(value: "AB")])
+    }
+
     @Test func formFieldDuplicationMakesANamedCopy() async throws {
       let (_, _, form) = try await opened()
       let original = try await writableText(form)

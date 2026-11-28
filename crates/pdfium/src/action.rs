@@ -280,6 +280,102 @@ impl ActionModel<'_> {
             unsafe { pdfium_sys::EPDFAction_GetNodeDest(self.document.handle, self.handle, node) };
         (!dest.is_null()).then_some(RawDestination { dest, document: self.document })
     }
+
+    /// How many Hide `/T` or ResetForm/SubmitForm `/Fields` entries the node
+    /// carries. Zero for other node types; -1 when an entry could not be
+    /// represented, which the caller treats as an unreadable payload.
+    pub fn node_target_count(&self, node: ActionNodeId) -> i32 {
+        unsafe { pdfium_sys::EPDFAction_GetNodeTargetCount(self.handle, node) }
+    }
+
+    /// Target `index`'s field name, or `None` when that entry is an object
+    /// reference instead.
+    pub fn node_target_name(
+        &self,
+        node: ActionNodeId,
+        index: i32,
+    ) -> Result<Option<String>, PdfiumError> {
+        read_utf8(|buf, len| unsafe {
+            pdfium_sys::EPDFAction_GetNodeTargetName(self.handle, node, index, buf, len)
+        })
+    }
+
+    /// Target `index`'s object number, or `None` when that entry is a name.
+    pub fn node_target_object_number(&self, node: ActionNodeId, index: i32) -> Option<u32> {
+        let mut object_number: std::os::raw::c_uint = 0;
+        // SAFETY: the out-param is a live local, written only on success.
+        let ok = unsafe {
+            pdfium_sys::EPDFAction_GetNodeTargetObjectNumber(
+                self.handle,
+                node,
+                index,
+                &mut object_number,
+            )
+        };
+        (ok != 0).then_some(object_number)
+    }
+
+    /// Hide's `/H`; `None` for other node types.
+    pub fn node_hide_flag(&self, node: ActionNodeId) -> Option<bool> {
+        let mut hide: pdfium_sys::FPDF_BOOL = 0;
+        // SAFETY: as above.
+        let ok = unsafe { pdfium_sys::EPDFAction_GetNodeHideFlag(self.handle, node, &mut hide) };
+        (ok != 0).then_some(hide != 0)
+    }
+
+    /// ResetForm's `(has_fields, exclude)`: whether `/Fields` is present, and
+    /// `/Flags` bit 1. `None` for other node types.
+    pub fn node_reset_form(&self, node: ActionNodeId) -> Option<(bool, bool)> {
+        let mut has_fields: pdfium_sys::FPDF_BOOL = 0;
+        let mut exclude: pdfium_sys::FPDF_BOOL = 0;
+        // SAFETY: as above.
+        let ok = unsafe {
+            pdfium_sys::EPDFAction_GetNodeResetForm(
+                self.handle,
+                node,
+                &mut has_fields,
+                &mut exclude,
+            )
+        };
+        (ok != 0).then_some((has_fields != 0, exclude != 0))
+    }
+
+    /// SubmitForm's `(has_fields, raw /Flags)`. `None` for other node types
+    /// and for a submit-form node whose `/F` did not resolve to a URL.
+    pub fn node_submit_form(&self, node: ActionNodeId) -> Option<(bool, u32)> {
+        let mut has_fields: pdfium_sys::FPDF_BOOL = 0;
+        let mut flags: std::os::raw::c_uint = 0;
+        // SAFETY: as above.
+        let ok = unsafe {
+            pdfium_sys::EPDFAction_GetNodeSubmitForm(self.handle, node, &mut has_fields, &mut flags)
+        };
+        (ok != 0).then_some((has_fields != 0, flags))
+    }
+
+    /// SubmitForm's resolved URL.
+    pub fn node_submit_form_url(&self, node: ActionNodeId) -> Result<Option<String>, PdfiumError> {
+        read_utf8(|buf, len| unsafe {
+            pdfium_sys::EPDFAction_GetNodeSubmitFormURL(self.handle, node, buf, len)
+        })
+    }
+
+    /// SubmitForm's `/CharSet`, when present.
+    pub fn node_submit_form_char_set(
+        &self,
+        node: ActionNodeId,
+    ) -> Result<Option<String>, PdfiumError> {
+        read_utf8(|buf, len| unsafe {
+            pdfium_sys::EPDFAction_GetNodeSubmitFormCharSet(self.handle, node, buf, len)
+        })
+    }
+
+    /// URI's `/IsMap`; `None` for other node types.
+    pub fn node_uri_is_map(&self, node: ActionNodeId) -> Option<bool> {
+        let mut is_map: pdfium_sys::FPDF_BOOL = 0;
+        // SAFETY: as above.
+        let ok = unsafe { pdfium_sys::EPDFAction_GetNodeURIIsMap(self.handle, node, &mut is_map) };
+        (ok != 0).then_some(is_map != 0)
+    }
 }
 
 impl Drop for ActionModel<'_> {
