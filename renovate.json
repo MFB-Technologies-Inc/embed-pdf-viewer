@@ -171,6 +171,16 @@
       "dependencyDashboardApproval": true
     },
     {
+      "description": "androidx.tracing 1.3 calls android.util.Log.v from Trace.handleException, which the JVM unit tests don't mock, so 380 of them fail (#54). The 1.2 line stays until the tests get a Log stub.",
+      "matchPackageNames": ["androidx.tracing:tracing"],
+      "allowedVersions": "<1.3"
+    },
+    {
+      "description": "lifecycle 2.11 needs compileSdk 37, which embedpdf-compose would pass on to every app (#59). It moves with the compileSdk 37 and Compose 1.12 change.",
+      "matchPackageNames": ["androidx.lifecycle:**"],
+      "allowedVersions": "<2.11"
+    },
+    {
       "description": "The .NET SDK pin lives in global.json, the Dockerfile and .github/actions/setup-dotnet, with a SHA-512 per archive.",
       "matchDepNames": ["dotnet-sdk"],
       "groupName": ".NET SDK"
