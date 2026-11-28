@@ -33,7 +33,7 @@ bcv = "0.18.2"
 # Compose compiler is the Kotlin plugin of the version above.
 compose-bom = "2026.06.01"
 # What the binary-compatibility validator's dump task runs on.
-asm = "9.6"
+asm = "9.11.1"
 
 [libraries]
 jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
