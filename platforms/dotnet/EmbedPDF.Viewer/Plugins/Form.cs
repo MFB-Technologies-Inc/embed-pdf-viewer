@@ -174,7 +174,9 @@ public sealed class FormCapability : IDisposable
     /// (<see cref="HistoryCapability.UndoAsync"/>), so an undo after it steps back over the change
     /// before it, not the picture. The form hears it as an update. It is filling in, gated by the
     /// fill permission or the field's group. <see cref="PdfErrorCode.InvalidInput"/>
-    /// for a field of another kind, <see cref="PdfErrorCode.NotFound"/> for one the form doesn't have.
+    /// for a field of another kind, <see cref="PdfErrorCode.PermissionDenied"/> for one a signature
+    /// locked or the session may not fill, <see cref="PdfErrorCode.NotFound"/> for one the form
+    /// doesn't have.
     /// </summary>
     public async Task<FormFieldUpdateResult> SetButtonImageAsync(FormFieldRef field, ReadOnlyMemory<byte>? image, CancellationToken cancellationToken = default)
     {

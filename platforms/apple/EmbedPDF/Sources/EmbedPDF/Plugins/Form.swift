@@ -223,7 +223,8 @@ public struct FormCapability: Sendable {
   /// so an undo after it steps back over the change before it, not the
   /// picture. The form hears it as an update. It is filling in, gated by the
   /// fill permission or the field's group. Throws `invalid-input` for a field
-  /// of another family, `not-found` for one the form doesn't have.
+  /// of another family, `permission-denied` for one a signature locked or the
+  /// session may not fill, `not-found` for one the form doesn't have.
   @discardableResult
   public func setButtonImage(_ field: FormFieldRef, image: Data?) async throws(PDFError) -> FormFieldUpdateResult {
     try await bridgedCancellable { token in
